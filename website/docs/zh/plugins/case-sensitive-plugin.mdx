@@ -8,11 +8,7 @@ description: '在不同操作系统中，文件系统对大小写的处理方式
 
 在不同操作系统中，文件系统对大小写的处理方式可能不同。当代码中引用仅大小写不同的模块名称时，可能会导致跨系统编译时出现意外的错误，这个插件用于预防这种情况。
 
-```js
-new rspack.CaseSensitivePlugin();
-```
-
-## 注册
+## 示例
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -22,7 +18,7 @@ export default {
 };
 ```
 
-## 示例
+以下示例展示了 `CaseSensitivePlugin` 如何检测大小写冲突。
 
 假设项目中存在 `utils.js` 文件：
 

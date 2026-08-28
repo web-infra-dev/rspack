@@ -8,8 +8,70 @@ import Attribution from '@components/Attribution';
 
 本插件实现了对 source map 生成内容进行更细粒度的控制。它也可以根据 [`devtool`](/config/devtool) 配置选项的某些设置来自动启用。
 
+## 示例
+
+下面的示例展示了本插件的一些常见用例。
+
+### 基本使用
+
+你可以使用以下代码将配置项 devtool: inline-source-map 替换为等效的自定义插件配置：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  devtool: false,
+  plugins: [new rspack.SourceMapDevToolPlugin({})],
+};
+```
+
+### 排除 Vendor maps
+
+以下代码会排除 vendor.js bundle 内模块的 source map。
+
 ```js
-new rspack.SourceMapDevToolPlugin(options);
+new rspack.SourceMapDevToolPlugin({
+  filename: '[file].map[query]',
+  exclude: ['vendor.js'],
+});
+```
+
+### 在宿主环境外部化 source map
+
+设置 source map 的 URL。在宿主环境需要授权的情况下很有用。
+
+```js
+new rspack.SourceMapDevToolPlugin({
+  append: '\n//# sourceMappingURL=https://example.com/sourcemap/[url]',
+  filename: '[file].map[query]',
+});
+```
+
+还有一种场景，source map 存储在上层目录中时：
+
+```
+project
+|- dist
+  |- public
+    |- bundle-[hash].js
+  |- sourcemaps
+    |- bundle-[hash].js.map
+```
+
+如下设置：
+
+```js
+new rspack.SourceMapDevToolPlugin({
+  filename: 'sourcemaps/[file].map',
+  publicPath: 'https://example.com/project/',
+  fileContext: 'public',
+});
+```
+
+将会生成以下 URL：
+
+```
+https://example.com/project/sourcemaps/bundle-[hash].js.map
 ```
 
 ## 选项
@@ -112,71 +174,5 @@ new rspack.SourceMapDevToolPlugin(options);
 :::tip 提示
 如果你想要在[开发模式](/config/mode#development)中为这个插件使用自定义配置，请确保禁用默认配置。即设置 `devtool: false`。
 :::
-
-## 示例
-
-下面的示例展示了本插件的一些常见用例。
-
-### 基本使用
-
-你可以使用以下代码将配置项 devtool: inline-source-map 替换为等效的自定义插件配置：
-
-```js title="rspack.config.mjs"
-import { rspack } from '@rspack/core';
-
-export default {
-  devtool: false,
-  plugins: [new rspack.SourceMapDevToolPlugin({})],
-};
-```
-
-### 排除 Vendor maps
-
-以下代码会排除 vendor.js bundle 内模块的 source map。
-
-```js
-new rspack.SourceMapDevToolPlugin({
-  filename: '[file].map[query]',
-  exclude: ['vendor.js'],
-});
-```
-
-### 在宿主环境外部化 source map
-
-设置 source map 的 URL。在宿主环境需要授权的情况下很有用。
-
-```js
-new rspack.SourceMapDevToolPlugin({
-  append: '\n//# sourceMappingURL=https://example.com/sourcemap/[url]',
-  filename: '[file].map[query]',
-});
-```
-
-还有一种场景，source map 存储在上层目录中时：
-
-```
-project
-|- dist
-  |- public
-    |- bundle-[hash].js
-  |- sourcemaps
-    |- bundle-[hash].js.map
-```
-
-如下设置：
-
-```js
-new rspack.SourceMapDevToolPlugin({
-  filename: 'sourcemaps/[file].map',
-  publicPath: 'https://example.com/project/',
-  fileContext: 'public',
-});
-```
-
-将会生成以下 URL：
-
-```
-https://example.com/project/sourcemaps/bundle-[hash].js.map
-```
 
 <Attribution url="https://webpack.docschina.org/plugins/source-map-dev-tool-plugin/" />

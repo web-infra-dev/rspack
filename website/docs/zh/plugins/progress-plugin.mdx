@@ -10,8 +10,16 @@ import { Table } from '@builtIns';
 
 Rspack 使用 [indicatif::ProgressBar](https://github.com/console-rs/indicatif) 绘制进度条.
 
-```js
-new rspack.ProgressPlugin(options);
+## 示例
+
+为进度条添加前缀：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.ProgressPlugin({ prefix: 'Building' })],
+};
 ```
 
 ## 选项

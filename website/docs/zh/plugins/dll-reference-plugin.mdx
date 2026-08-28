@@ -8,6 +8,38 @@ import Attribution from '@components/Attribution';
 
 `DllReferencePlugin` 将引用的模块链接到预构建的模块。
 
+## 示例
+
+### 基础示例
+
+```js
+new rspack.DllReferencePlugin({
+  // 这里引用的 manifest 文件应该是由 Dll 插件生成的
+  manifest: require('../lib/manifest.json'),
+
+  name: '[name]_dll_lib',
+});
+```
+
+应用需要的依赖项将链接到由 `DllPlugin` 预构建的模块。
+
+### 使用 Scope
+
+通过配置 `scope`, dll 中的内容可以使用模块前缀的方式引用
+
+```js
+new rspack.DllReferencePlugin({
+  // 这里引用的 manifest 文件应该是由 Dll 插件生成的
+  manifest: require('../lib/manifest.json'),
+
+  name: '[name]_dll_lib',
+
+  scope: 'xyz',
+});
+```
+
+举例来说，通过 `require('xzy/abc')` 可以获取预构建模块中 `abc` 模块。
+
 ## 选项
 
 - **类型：**
@@ -133,37 +165,5 @@ type DllReferencePluginOptions =
 ```
 
 当依赖被引用的时候，插件通过 dll manifest 文件将依赖名和预打包的模块链接起来。
-
-## 示例
-
-### 基础示例
-
-```js
-new rspack.DllReferencePlugin({
-  // 这里引用的 manifest 文件应该是由 Dll 插件生成的
-  manifest: require('../lib/manifest.json'),
-
-  name: '[name]_dll_lib',
-});
-```
-
-应用需要的依赖项将链接到由 `DllPlugin` 预构建的模块。
-
-### 使用 Scope
-
-通过配置 `scope`, dll 中的内容可以使用模块前缀的方式引用
-
-```js
-new rspack.DllReferencePlugin({
-  // 这里引用的 manifest 文件应该是由 Dll 插件生成的
-  manifest: require('../lib/manifest.json'),
-
-  name: '[name]_dll_lib',
-
-  scope: 'xyz',
-});
-```
-
-举例来说，通过 `require('xzy/abc')` 可以获取预构建模块中 `abc` 模块。
 
 <Attribution url="https://webpack.docschina.org/plugins/dll-plugin/#dllreferenceplugin" />

@@ -7,11 +7,19 @@ description: '允许你指定外部依赖项，这些依赖项将不打包到输
 允许你指定外部依赖项，这些依赖项将不打包到输出文件中。这对于已经在全局范围内可用或通过其他方式另外管理的库非常有用。
 [`externalsType`](/config/externals#externalstype) 和 [`externals`](/config/externals#externals) 配置内部使用了该插件实现，你可以直接通过配置项来使用相应的功能，而无需单独使用插件。
 
-```js
-new rspack.ExternalsPlugin(type, externals);
+## 示例
+
+将 React 作为 CommonJS 依赖排除在打包产物之外：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.ExternalsPlugin('commonjs', ['react'])],
+};
 ```
 
-## 配置
+## 选项
 
 ### type
 

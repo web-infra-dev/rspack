@@ -10,10 +10,6 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 默认将循环导入依赖报告为编译 warning。该插件是已废弃的 [`CircularDependencyRspackPlugin`](/plugins/circular-dependency-rspack-plugin) 的推荐替代方案。
 
-```js
-new rspack.CircularCheckRspackPlugin(options);
-```
-
 ## 示例
 
 忽略特定 warning：当 `CircularCheckRspackPlugin` 报告 warning 时，可以使用 [`ignoreWarnings`](/config/other-options#ignorewarnings) 忽略特定的循环依赖诊断。

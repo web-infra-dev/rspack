@@ -8,10 +8,20 @@ import Attribution from '@components/Attribution';
 
 While writing your code, you may have already added many code split points to load stuff on demand. After compiling you might notice that some chunks are too small - creating larger HTTP overhead. `LimitChunkCountPlugin` can post-process your chunks by merging them.
 
-```js
-new rspack.optimize.LimitChunkCountPlugin({
-  // Options...
-});
+## Examples
+
+Limit the compilation to five chunks:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.optimize.LimitChunkCountPlugin({
+      maxChunks: 5,
+    }),
+  ],
+};
 ```
 
 ## Options

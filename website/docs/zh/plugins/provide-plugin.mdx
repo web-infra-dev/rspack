@@ -8,6 +8,8 @@ import Attribution from '@components/Attribution';
 
 自动加载模块，而不必在每处都 `import` 或 `require` 它们。
 
+## 示例
+
 ```js
 new rspack.ProvidePlugin({
   identifier: 'module1',
@@ -43,12 +45,6 @@ new rspack.ProvidePlugin({
 每当在模块中遇到 `identifier` 作为自由变量时，相应的`模块`会自动加载，且 `identifier` 会被填充为已加载`模块`的输出（或者是`属性`，以支持具名导出）。
 
 为了导入一个 ES2015 模块的默认导出，你必须指定模块的 default 属性。
-
-## 选项
-
-- **类型：** `Record<string, string | string[]>`
-
-## 示例
 
 ### 在浏览器中使用 process 对象
 
@@ -108,5 +104,9 @@ new rspack.ProvidePlugin({
   Vue: ['vue/dist/vue.esm.js', 'default'],
 });
 ```
+
+## 选项
+
+- **类型：** `Record<string, string | string[]>`
 
 <Attribution url="https://webpack.docschina.org/plugins/provide-plugin/" />

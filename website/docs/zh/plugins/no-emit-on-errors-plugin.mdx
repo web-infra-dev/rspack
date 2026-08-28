@@ -6,10 +6,6 @@ description: '当编译中存在错误时，阻止 Rspack 输出构建产物。'
 
 `NoEmitOnErrorsPlugin` 会在编译中存在错误时阻止 Rspack 输出构建产物。将 [`optimization.emitOnErrors`](/config/optimization#optimizationemitonerrors) 设置为 `false` 会在内部应用此插件。
 
-```js
-new rspack.NoEmitOnErrorsPlugin();
-```
-
 ## 示例
 
 下面的开发配置会在新一次编译出错时保持 `dist` 中原有的文件不变：

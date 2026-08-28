@@ -6,11 +6,24 @@ import { Table } from '@builtIns';
 
 # BannerPlugin
 
-```js
-new rspack.BannerPlugin(options);
-```
-
 在每个生成的 chunk 顶部或尾部添加一段指定的内容。
+
+## 示例
+
+在每个 chunk 文件底部添加 banner。
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.BannerPlugin({
+      banner: 'hello world',
+      footer: true,
+    }),
+  ],
+};
+```
 
 ## 选项
 
@@ -109,20 +122,3 @@ type BannerPluginArgument = BannerContent | BannerPluginOptions;
     },
   ]}
 />
-
-## 示例
-
-在每个 chunk 文件底部添加 banner。
-
-```js title="rspack.config.mjs"
-import { rspack } from '@rspack/core';
-
-export default {
-  plugins: [
-    new rspack.BannerPlugin({
-      banner: 'hello world',
-      footer: true,
-    }),
-  ],
-};
-```

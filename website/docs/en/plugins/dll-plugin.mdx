@@ -9,6 +9,22 @@ import Attribution from '@components/Attribution';
 
 The `DllPlugin` is used in a separate rspack configuration exclusively to create a dll-only-bundle.
 
+## Examples
+
+```js
+new rspack.DllPlugin({
+  path: path.resolve(__dirname, 'manifest.json'),
+  name: '[name]_dll_lib',
+});
+```
+
+The Plugin will create a `manifest.json` which is written to the given path.
+It contains mappings from require and import requests to module ids.
+
+The `manifest.json` is used by the [DllReferencePlugin](/plugins/dll-reference-plugin)
+
+Combine this plugin with `output.library` options to expose the dll function.
+
 ## Options
 
 - **Type:**
@@ -82,21 +98,5 @@ type DllPluginOptions = {
     },
   ]}
 />
-
-## Examples
-
-```js
-new rspack.DllPlugin({
-  path: path.resolve(__dirname, 'manifest.json'),
-  name: '[name]_dll_lib',
-});
-```
-
-The Plugin will create a `manifest.json` which is written to the given path.
-It contains mappings from require and import requests to module ids.
-
-The `manifest.json` is used by the [DllReferencePlugin](/plugins/dll-reference-plugin)
-
-Combine this plugin with `output.library` options to expose the dll function.
 
 <Attribution url="https://webpack.js.org/plugins/dll-plugin/" />

@@ -18,10 +18,6 @@ import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
 
 Detects circular import dependencies between modules that will exist at runtime. Import cycles are often _not_ indicative of a bug when used by functions called at runtime, but may cause bugs or errors when the imports are used during initialization. This plugin does not distinguish between the two, but can be used to help identify and resolve cycles after a bug has been encountered.
 
-```js
-new rspack.CircularDependencyRspackPlugin(options);
-```
-
 ## Comparison
 
 This plugin is an adaptation of the original [`circular-dependency-plugin`](https://github.com/aackerman/circular-dependency-plugin) for Webpack and diverges in both behavior and features.

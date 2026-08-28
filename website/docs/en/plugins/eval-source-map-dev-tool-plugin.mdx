@@ -8,8 +8,29 @@ import Attribution from '@components/Attribution';
 
 This plugin enables more fine grained control of source map generation. It is also enabled automatically by certain settings of the [`devtool`](/config/devtool) configuration option.
 
+## Examples
+
+### Basic use case
+
+You can use the following code to replace the configuration option `devtool: eval-source-map` with an equivalent custom plugin configuration:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  devtool: false,
+  plugins: [new rspack.EvalSourceMapDevToolPlugin({})],
+};
+```
+
+### Exclude vendor maps
+
+The following code would exclude source maps for any modules in the `vendor.js` bundle:
+
 ```js
-new webpack.EvalSourceMapDevToolPlugin(options);
+new rspack.EvalSourceMapDevToolPlugin({
+  exclude: ['vendor.js'],
+});
 ```
 
 ## Options
@@ -49,30 +70,5 @@ Indicates whether loaders should generate source maps (defaults to `true`).
 - **Type:** `boolean`
 
 Indicates whether column mappings should be used (defaults to `true`).
-
-## Examples
-
-### Basic use case
-
-You can use the following code to replace the configuration option `devtool: eval-source-map` with an equivalent custom plugin configuration:
-
-```js title="rspack.config.mjs"
-import { rspack } from '@rspack/core';
-
-export default {
-  devtool: false,
-  plugins: [new rspack.EvalSourceMapDevToolPlugin({})],
-};
-```
-
-### Exclude vendor maps
-
-The following code would exclude source maps for any modules in the `vendor.js` bundle:
-
-```js
-new rspack.EvalSourceMapDevToolPlugin({
-  exclude: ['vendor.js'],
-});
-```
 
 <Attribution url="https://webpack.js.org/plugins/eval-source-map-dev-tool-plugin/" />

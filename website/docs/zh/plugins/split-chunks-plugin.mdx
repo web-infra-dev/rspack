@@ -28,7 +28,8 @@ Rspack 将根据以下条件自动拆分 chunk：
 - 当按需加载 chunks 时，并行请求的最大数量小于或等于 30
 - 当加载初始化页面时，并发请求的最大数量小于或等于 30
 
-:::tip
+## 示例
+
 默认情况下，`chunks` 的值为 `async`，但对大多数生产环境应用，建议优先使用：
 
 ```js title="rspack.config.mjs"
@@ -42,9 +43,8 @@ export default {
 ```
 
 同时保留默认的 cacheGroups 配置。这样通常可以同时对 initial chunk 和 async chunk 去重，并且不会改变 JavaScript 的执行语义。Rspack runtime 仍然只会加载当前入口或 runtime 实际可达的 chunk。
-:::
 
-## 配置
+## 选项
 
 Rspack 为希望对该功能进行更多控制的开发者提供了一组选项。
 

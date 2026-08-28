@@ -8,28 +8,6 @@ import Attribution from '@components/Attribution';
 
 `DefinePlugin` 在编译时将代码中的变量替换为其他值或表达式。这对于允许开发构建和生产构建之间的不同行为非常有用。如果你在开发构建中执行日志记录，但在生产构建中则不执行，你可能会使用一个全局常量来决定是否进行日志记录。这正是 `DefinePlugin` 的用武之地，为开发和生产构建设置一成不变的规则。
 
-```js
-new rspack.DefinePlugin({
-  // 定义...
-});
-```
-
-## 选项
-
-- **类型：**
-
-```ts
-type CodeValue = RecursiveArrayOrRecord<CodeValuePrimitive>;
-type CodeValuePrimitive =
-  null | undefined | RegExp | Function | string | number | boolean | bigint;
-type RecursiveArrayOrRecord<T> =
-  | { [index: string]: RecursiveArrayOrRecord<T> }
-  | Array<RecursiveArrayOrRecord<T>>
-  | T;
-
-type DefinePluginOptions = Record<string, CodeValue>;
-```
-
 ## 示例
 
 ### 基本使用
@@ -113,6 +91,22 @@ new rspack.DefinePlugin({
 new rspack.DefinePlugin({
   SERVICE_URL: JSON.stringify('https://dev.example.com'),
 });
+```
+
+## 选项
+
+- **类型：**
+
+```ts
+type CodeValue = RecursiveArrayOrRecord<CodeValuePrimitive>;
+type CodeValuePrimitive =
+  null | undefined | RegExp | Function | string | number | boolean | bigint;
+type RecursiveArrayOrRecord<T> =
+  | { [index: string]: RecursiveArrayOrRecord<T> }
+  | Array<RecursiveArrayOrRecord<T>>
+  | T;
+
+type DefinePluginOptions = Record<string, CodeValue>;
 ```
 
 ## 使用 `JSON.stringify`

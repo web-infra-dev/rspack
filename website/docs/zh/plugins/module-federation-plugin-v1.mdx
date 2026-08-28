@@ -8,10 +8,6 @@ import { Stability } from '@components/ApiMeta';
 
 该插件对应 Module Federation v1.0，即 [webpack 中的 ModuleFederationPlugin](https://webpack.js.org/plugins/module-federation-plugin/)。
 
-```js
-new rspack.container.ModuleFederationPluginV1();
-```
-
 :::tip
 Module Federation v1.0 已经不再迭代，我们推荐使用 Module Federation v1.5 或 v2.0 版本，详见 [模块联邦](/guide/features/module-federation)。
 :::
@@ -24,10 +20,29 @@ import { rspack } from '@rspack/core';
 export default {
   plugins: [
     new rspack.container.ModuleFederationPluginV1({
-      // options
+      name: 'host',
     }),
   ],
 };
 ```
 
-ModuleFederationPluginV1 的配置基本与 [ModuleFederationPlugin](https://webpack.js.org/plugins/module-federation-plugin/) 相同，但不支持 `implementation` 、 `runtimePlugins` 、`shareStrategy` 字段。
+## 选项
+
+- **类型：**
+
+```ts
+interface ModuleFederationPluginV1Options {
+  name: string;
+  filename?: string;
+  exposes?: Exposes;
+  remotes?: Remotes;
+  shared?: Shared;
+  runtime?: EntryRuntime;
+  shareScope?: ShareScope;
+  remoteType?: ExternalsType;
+  library?: LibraryOptions;
+  enhanced?: boolean;
+}
+```
+
+`name` 是必填选项。公共字段的详细说明请参考 [ModuleFederationPlugin 选项](/plugins/module-federation-plugin#选项)。Module Federation v1 不支持 `implementation`、`runtimePlugins` 或 `shareStrategy`。

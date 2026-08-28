@@ -6,11 +6,24 @@ import { Table } from '@builtIns';
 
 # BannerPlugin
 
-```js
-new rspack.BannerPlugin(options);
-```
-
 Adds a banner to the top or bottom of each generated chunk.
+
+## Examples
+
+Add a banner to the bottom of each chunk file.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.BannerPlugin({
+      banner: 'hello world',
+      footer: true,
+    }),
+  ],
+};
+```
 
 ## Options
 
@@ -110,20 +123,3 @@ type BannerPluginArgument = BannerContent | BannerPluginOptions;
     },
   ]}
 />
-
-## Examples
-
-Add a banner to the bottom of each chunk file.
-
-```js title="rspack.config.mjs"
-import { rspack } from '@rspack/core';
-
-export default {
-  plugins: [
-    new rspack.BannerPlugin({
-      banner: 'hello world',
-      footer: true,
-    }),
-  ],
-};
-```

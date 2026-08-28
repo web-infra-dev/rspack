@@ -30,7 +30,8 @@ Rspack will automatically split chunks based on these conditions:
 
 When trying to fulfill the last two conditions, bigger chunks are preferred.
 
-:::tip
+## Examples
+
 The default value is `chunks: 'async'`, but for most production applications it is recommended to start with:
 
 ```js title="rspack.config.mjs"
@@ -44,7 +45,6 @@ export default {
 ```
 
 while keeping the default cache groups. This usually deduplicates both initial and async chunks without changing JavaScript execution semantics. Rspack's runtime still loads only the chunks reachable from the current entry or runtime.
-:::
 
 ## Options
 
