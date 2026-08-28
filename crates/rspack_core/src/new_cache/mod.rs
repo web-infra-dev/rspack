@@ -8,7 +8,7 @@ mod file_cache_strategy;
 mod idle_file_cache;
 mod memory_cache;
 mod meta;
-mod module_cache;
+pub(crate) mod module_cache;
 pub(crate) mod snapshot;
 mod validator;
 
@@ -23,7 +23,6 @@ pub use file_cache_strategy::FileCacheStrategy;
 pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
 pub use meta::Meta;
-pub(crate) use module_cache::ModuleCache;
 use rspack_fs::ReadableFileSystem;
 pub use snapshot::{FileSystemInfo, Snapshot, SnapshotValidationResult};
 
@@ -49,7 +48,12 @@ pub fn create_cache(
       max_generations: _, /* TODO: old cache default to 1, change to 5 and pass to MemoryCache */
       ..
     } => {
-      return Cache::new(compiler_path, MemoryCache::new(5), None);
+      return Cache::new(
+        compiler_path,
+        Arc::new(CacheCodec::new(None)),
+        MemoryCache::new(5),
+        None,
+      );
     }
     crate::CacheOptions::Persistent(options) => options,
   };
@@ -83,17 +87,22 @@ pub fn create_cache(
     options.readonly,
     rspack_workspace::rspack_pkg_version!().to_string(),
     options.version.clone(),
-    codec,
+    codec.clone(),
     file_system_info,
     logger.clone(),
   ) {
     Ok(strategy) => strategy,
     Err(error) => {
       logger.warn(format!("Open cache from {database_path} failed: {error}"));
-      return Cache::new(compiler_path, MemoryCache::default(), None);
+      return Cache::new(compiler_path, codec, MemoryCache::default(), None);
     }
   };
   let idle_file_cache = IdleFileCache::new(strategy, logger, None, None, None);
 
-  Cache::new(compiler_path, MemoryCache::default(), Some(idle_file_cache))
+  Cache::new(
+    compiler_path,
+    codec,
+    MemoryCache::default(),
+    Some(idle_file_cache),
+  )
 }

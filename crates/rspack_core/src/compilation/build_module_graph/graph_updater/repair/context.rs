@@ -6,13 +6,12 @@ use rustc_hash::FxHashMap as HashMap;
 
 use super::BuildModuleGraphArtifact;
 use crate::{
-  BoxModule, Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact, FileSystemInfo,
-  ModuleFactory, NeedBuildContext, ResolverFactory, RuntimeTemplate, SharedPluginDriver,
-  ValueCacheVersions,
+  Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FileSystemInfo, ModuleFactory,
+  ResolverFactory, RuntimeTemplate, SharedPluginDriver, ValueCacheVersions,
   incremental::Incremental,
   module_graph::ModuleGraph,
-  new_cache::{Cache, ModuleCache},
+  new_cache::{Cache, CacheFacade},
 };
 
 #[derive(Debug)]
@@ -34,9 +33,8 @@ pub struct TaskContext {
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_template: RuntimeTemplate,
   pub(crate) cache: Cache,
-  pub(crate) module_cache: ModuleCache,
+  pub(crate) module_cache: Option<CacheFacade>,
   pub value_cache_versions: ValueCacheVersions,
-  need_build_compilation: Option<Box<Compilation>>,
 
   pub artifact: BuildModuleGraphArtifact,
   pub exports_info_artifact: ExportsInfoArtifact,
@@ -67,7 +65,6 @@ impl TaskContext {
       module_cache: compilation.module_cache.clone(),
       cache: compilation.cache.clone(),
       value_cache_versions: compilation.value_cache_versions.clone(),
-      need_build_compilation: None,
       artifact,
       exports_info_artifact,
     }
@@ -75,18 +72,6 @@ impl TaskContext {
 }
 
 impl TaskContext {
-  pub async fn module_needs_build(&mut self, module: &mut BoxModule) -> rspack_error::Result<bool> {
-    // The task loop owns graph artifacts while background tasks run, so it
-    // cannot borrow the outer Compilation. Use the reusable temporary
-    // compilation bridge to provide webpack's complete NeedBuildContext.
-    let compilation = self.transform_to_temp_compilation();
-    let result = module
-      .need_build(&NeedBuildContext::new(&compilation))
-      .await;
-    self.recovery_from_temp_compilation(compilation);
-    result
-  }
-
   // TODO use module graph with make artifact
   pub fn get_module_graph_mut(artifact: &mut BuildModuleGraphArtifact) -> &mut ModuleGraph {
     artifact.get_module_graph_mut()
@@ -94,40 +79,33 @@ impl TaskContext {
 
   // TODO remove it after incremental rebuild cover all stage
   pub fn transform_to_temp_compilation(&mut self) -> Compilation {
-    let mut compilation = self
-      .need_build_compilation
-      .take()
-      .map(|compilation| *compilation)
-      .unwrap_or_else(|| {
-        let compiler_context = CURRENT_COMPILER_CONTEXT.get();
-        Compilation::new(
-          self.compiler_id,
-          self.compiler_options.clone(),
-          self.platform.clone(),
-          self.plugin_driver.clone(),
-          self.buildtime_plugin_driver.clone(),
-          self.resolver_factory.clone(),
-          self.loader_resolver_factory.clone(),
-          None,
-          Incremental::new_cold(self.compiler_options.incremental),
-          None,
-          Default::default(),
-          self.cache.clone(),
-          Default::default(),
-          Default::default(),
-          self.fs.clone(),
-          self.intermediate_fs.clone(),
-          self.output_fs.clone(),
-          // used at module executor which not support persistent cache, set as false
-          false,
-          compiler_context,
-        )
-      });
-    compilation.id = self.compilation_id;
+    let compiler_context = CURRENT_COMPILER_CONTEXT.get();
+    let mut compilation = Compilation::new(
+      self.compiler_id,
+      self.compiler_options.clone(),
+      self.platform.clone(),
+      self.plugin_driver.clone(),
+      self.buildtime_plugin_driver.clone(),
+      self.resolver_factory.clone(),
+      self.loader_resolver_factory.clone(),
+      None,
+      Incremental::new_cold(self.compiler_options.incremental),
+      None,
+      Default::default(),
+      self.cache.clone(),
+      Default::default(),
+      Default::default(),
+      self.fs.clone(),
+      self.intermediate_fs.clone(),
+      self.output_fs.clone(),
+      // Preserve the module executor's initial-compilation behavior. Its module
+      // cache is disabled explicitly below.
+      false,
+      compiler_context,
+    );
+    compilation.module_cache = None;
     compilation.runtime_template =
       RuntimeTemplate::for_module_execution(self.compiler_options.clone());
-    compilation.file_system_info = self.file_system_info.clone();
-    compilation.value_cache_versions = self.value_cache_versions.clone();
     compilation.dependency_factories = self.dependency_factories.clone();
     compilation.dependency_templates = self.dependency_templates.clone();
     std::mem::swap(
@@ -150,6 +128,5 @@ impl TaskContext {
       &mut *compilation.exports_info_artifact,
       &mut self.exports_info_artifact,
     );
-    self.need_build_compilation = Some(Box::new(compilation));
   }
 }
