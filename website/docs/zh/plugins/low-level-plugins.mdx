@@ -741,29 +741,41 @@ new rspack.sharing.TreeShakingSharedPlugin(options);
 - `secondary`：是否在独立构建中执行第二次 tree shaking，默认值为 `false`。
 - `onBuildAssets`：生成共享 fallback 产物后调用的回调函数。
 
-直接应用该插件主要适用于部署平台在收集完整依赖信息后执行二次构建的场景：
+直接应用该插件主要适用于部署平台执行二次构建的场景。它必须配合共享插件使用，以便 `TreeShakingSharedPlugin` 收集需要构建的共享模块：
+
+```js title="src/index.js"
+import { add } from 'lodash-es';
+
+console.log(add(1, 2));
+```
 
 ```js title="rspack.config.mjs"
 import { sharing } from '@rspack/core';
 
+const shared = {
+  'lodash-es': { treeShaking: { mode: 'server-calc' } },
+};
+
 export default {
+  entry: './src/index.js',
   plugins: [
+    new sharing.SharePlugin({
+      enhanced: true,
+      shared,
+    }),
     new sharing.TreeShakingSharedPlugin({
       secondary: true,
       mfConfig: {
         name: 'app',
-        shared: {
-          'lodash-es': { treeShaking: { mode: 'server-calc' } },
-        },
+        shared,
         library: { type: 'var', name: 'App' },
-        manifest: true,
       },
     }),
   ],
 };
 ```
 
-该插件只会为启用了 `treeShaking` 且保留本地实现的共享依赖创建独立构建。启用 `mfConfig.manifest` 后，生成的 fallback 产物信息会写入 stats 和 manifest。
+该插件只会为启用了 `treeShaking` 且保留本地实现的共享依赖创建独立构建。单独使用时，它不会生成 Module Federation stats 或 manifest 文件。当 `ModuleFederationPlugin` 在启用 manifest 生成的情况下在内部应用该插件时，生成的 fallback 产物信息会被写入这些文件。
 
 ## experiments
 

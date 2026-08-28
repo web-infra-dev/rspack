@@ -741,29 +741,41 @@ new rspack.sharing.TreeShakingSharedPlugin(options);
 - `secondary`: Whether to perform a second tree-shaking pass during the independent build. The default is `false`.
 - `onBuildAssets`: A callback invoked with the generated shared fallback assets.
 
-Direct application is mainly intended for deployment integrations that perform a secondary build after collecting complete dependency information:
+Direct application is mainly intended for deployment integrations that perform a secondary build. It must be combined with a sharing plugin so `TreeShakingSharedPlugin` can collect the shared modules to build:
+
+```js title="src/index.js"
+import { add } from 'lodash-es';
+
+console.log(add(1, 2));
+```
 
 ```js title="rspack.config.mjs"
 import { sharing } from '@rspack/core';
 
+const shared = {
+  'lodash-es': { treeShaking: { mode: 'server-calc' } },
+};
+
 export default {
+  entry: './src/index.js',
   plugins: [
+    new sharing.SharePlugin({
+      enhanced: true,
+      shared,
+    }),
     new sharing.TreeShakingSharedPlugin({
       secondary: true,
       mfConfig: {
         name: 'app',
-        shared: {
-          'lodash-es': { treeShaking: { mode: 'server-calc' } },
-        },
+        shared,
         library: { type: 'var', name: 'App' },
-        manifest: true,
       },
     }),
   ],
 };
 ```
 
-The plugin creates an independent build only for shared dependencies that enable `treeShaking` and retain a local implementation. When `mfConfig.manifest` is enabled, it records the generated fallback assets in the stats and manifest.
+The plugin creates an independent build only for shared dependencies that enable `treeShaking` and retain a local implementation. Direct use does not generate Module Federation stats or manifest files. When `ModuleFederationPlugin` applies it internally with manifest generation enabled, the plugin writes the generated fallback asset information into those files.
 
 ## experiments
 
