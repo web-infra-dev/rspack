@@ -73,13 +73,14 @@ pub(super) fn call_hooks_name_for_identifier<'parser, F, T>(
 where
   F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
 {
-  let ast = parser.ast.ast;
-  let name = ast.get_utf8(identifier.name(ast));
-  let variable = parser.get_variable_info_id_for_identifier(identifier, name);
+  let variable = parser.get_variable_info_id_for_identifier(identifier);
   let result = match variable {
     Some(id) if id == parser.semantic_normal_variable => None,
     Some(id) => call_hooks_info(id, parser, hook_call),
-    None => hook_call(parser, name),
+    None => {
+      let ast = parser.ast.ast;
+      hook_call(parser, ast.get_utf8(identifier.name(ast)))
+    }
   };
   (result, variable)
 }

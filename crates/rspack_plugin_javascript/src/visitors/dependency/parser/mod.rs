@@ -1132,14 +1132,15 @@ impl<'parser> JavascriptParser<'parser> {
   pub(super) fn get_variable_info_id_for_identifier(
     &mut self,
     identifier: IdentifierReference,
-    name: &str,
   ) -> Option<VariableInfoId> {
+    let ast = self.ast.ast;
     let Some(reference) = self
       .ast
       .semantic
       .reference_of(identifier.node_id())
       .map(|reference| self.ast.semantic.reference(reference))
     else {
+      let name = ast.get_utf8(identifier.name(ast));
       return self.get_variable_info(name).map(VariableInfo::id);
     };
     // References affected by `with`, and unresolved globals such as `require`,
@@ -1147,6 +1148,7 @@ impl<'parser> JavascriptParser<'parser> {
     if reference.flags.is_dynamic() {
       // `with` can redirect an otherwise statically resolvable reference, so
       // preserve the name-based lookup through both semantic and the overlay.
+      let name = ast.get_utf8(identifier.name(ast));
       return self.get_variable_info(name).map(VariableInfo::id);
     }
     let Some(symbol) = reference.symbol else {
@@ -1154,6 +1156,7 @@ impl<'parser> JavascriptParser<'parser> {
       // Only webpack's dynamic overlay (free-variable aliases, tags, and
       // plugin-created bindings) can change its meaning, so do not repeat a
       // name-based semantic lookup.
+      let name = ast.get_utf8(identifier.name(ast));
       return self.get_dynamic_variable_info_id(name);
     };
 
@@ -1161,6 +1164,7 @@ impl<'parser> JavascriptParser<'parser> {
     let id = if let Some(id) = self.semantic_variables.get(index).copied().flatten() {
       id
     } else {
+      let name = ast.get_utf8(identifier.name(ast));
       let (variable, tracked) =
         self
           .definitions_db
@@ -1183,15 +1187,6 @@ impl<'parser> JavascriptParser<'parser> {
       }
     };
     (id != VariableInfoId::tombstone() && id != VariableInfoId::undefined()).then_some(id)
-  }
-
-  pub(super) fn get_variable_info_for_identifier(
-    &mut self,
-    identifier: IdentifierReference,
-    name: &str,
-  ) -> Option<&VariableInfo> {
-    let id = self.get_variable_info_id_for_identifier(identifier, name)?;
-    self.variable_info_from_id(id)
   }
 
   fn restore_semantic_variable_overrides(&mut self, mark: usize) {
@@ -1345,11 +1340,12 @@ impl<'parser> JavascriptParser<'parser> {
     &mut self,
     identifier: IdentifierReference,
   ) -> Option<NameInfo<'_>> {
-    let ast = self.ast.ast;
-    let name = ast.get_utf8(identifier.name(ast));
-    let Some(info) = self.get_variable_info_for_identifier(identifier, name) else {
+    let Some(id) = self.get_variable_info_id_for_identifier(identifier) else {
+      let ast = self.ast.ast;
+      let name = ast.get_utf8(identifier.name(ast));
       return Some(NameInfo { name, info: None });
     };
+    let info = self.variable_info_from_id(id)?;
     let Some(resolved_name) = &info.name else {
       return None;
     };
