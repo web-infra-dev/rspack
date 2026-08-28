@@ -7,15 +7,8 @@ use futures::future::BoxFuture;
 use indoc::formatdoc;
 use itertools::Itertools;
 use rspack_cacheable::{
-  __private::rkyv::{
-    Place,
-    de::Pooling,
-    rancor::Fallible,
-    ser::Sharing,
-    with::{ArchiveWith, DeserializeWith, SerializeWith},
-  },
-  ContextGuard, Error as CacheableError, cacheable, cacheable_dyn,
-  with::{AsCacheable, AsOption, AsPreset, AsVec},
+  cacheable, cacheable_dyn,
+  with::{AsCacheable, AsOption, AsPreset, AsVec, Unsupported},
 };
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -41,9 +34,8 @@ use crate::{
   LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate,
   ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType, NeedBuildContext,
   RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals, RuntimeGlobalsRenderMode,
-  RuntimeSpec, SnapshotValidationResult, SourceType, cache::CacheCodecContext, contextify,
-  get_exports_type_with_strict, get_outgoing_async_modules, impl_module_meta_info,
-  module_update_hash, property_access, to_path,
+  RuntimeSpec, SnapshotValidationResult, SourceType, contextify, get_exports_type_with_strict,
+  get_outgoing_async_modules, impl_module_meta_info, module_update_hash, property_access, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -273,65 +265,6 @@ pub type ResolveContextModuleDependencies = Arc<
     + Sync,
 >;
 
-/// Context dependency resolution is factory state and is restored from the
-/// fresh module by `update_cache_module`, just like webpack's
-/// `ContextModule.resolveDependencies`.
-struct SkipResolveContextModuleDependencies;
-
-impl ArchiveWith<ResolveContextModuleDependencies> for SkipResolveContextModuleDependencies {
-  type Archived = ();
-  type Resolver = ();
-
-  fn resolve_with(
-    _field: &ResolveContextModuleDependencies,
-    _resolver: Self::Resolver,
-    _out: Place<Self::Archived>,
-  ) {
-  }
-}
-
-impl<S> SerializeWith<ResolveContextModuleDependencies, S> for SkipResolveContextModuleDependencies
-where
-  S: Fallible<Error = CacheableError> + Sharing + ?Sized,
-{
-  fn serialize_with(
-    _field: &ResolveContextModuleDependencies,
-    serializer: &mut S,
-  ) -> std::result::Result<Self::Resolver, CacheableError> {
-    let context =
-      ContextGuard::sharing_guard(serializer)?.downcast_context::<CacheCodecContext>()?;
-    if context.omit_module_factory_state() {
-      Ok(())
-    } else {
-      Err(CacheableError::UnsupportedField)
-    }
-  }
-}
-
-impl<D> DeserializeWith<(), ResolveContextModuleDependencies, D>
-  for SkipResolveContextModuleDependencies
-where
-  D: Fallible<Error = CacheableError> + Pooling + ?Sized,
-{
-  fn deserialize_with(
-    _field: &(),
-    deserializer: &mut D,
-  ) -> std::result::Result<ResolveContextModuleDependencies, CacheableError> {
-    let context =
-      ContextGuard::pooling_guard(deserializer)?.downcast_context::<CacheCodecContext>()?;
-    if !context.omit_module_factory_state() {
-      return Err(CacheableError::UnsupportedField);
-    }
-    Ok(Arc::new(|_| {
-      Box::pin(async {
-        Err(rspack_error::error!(
-          "Context module resolver was not restored from the fresh module"
-        ))
-      })
-    }))
-  }
-}
-
 #[impl_source_map_config]
 #[cacheable]
 #[derive(Debug)]
@@ -344,7 +277,7 @@ pub struct ContextModule {
   build_info: BuildInfo,
   build_meta: BuildMeta,
   #[debug(skip)]
-  #[cacheable(with=SkipResolveContextModuleDependencies)]
+  #[cacheable(with=Unsupported)]
   resolve_dependencies: ResolveContextModuleDependencies,
   force_build: bool,
 }

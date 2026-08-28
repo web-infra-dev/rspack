@@ -114,12 +114,16 @@ impl Task<TaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    let module_build = match context.module_cache.restore(module_identifier)? {
-      Some(mut build_result) => {
-        build_result.module.update_cache_module(&mut module);
-        ModuleBuild::Cached(build_result)
+    let module_build = if module.as_normal_module().is_some() {
+      match context.module_cache.restore(module_identifier)? {
+        Some(mut build_result) => {
+          build_result.module.update_cache_module(&mut module);
+          ModuleBuild::Cached(build_result)
+        }
+        None => ModuleBuild::Fresh(module),
       }
-      None => ModuleBuild::Fresh(module),
+    } else {
+      ModuleBuild::Fresh(module)
     };
 
     context

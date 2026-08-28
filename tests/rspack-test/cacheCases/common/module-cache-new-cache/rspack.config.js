@@ -55,7 +55,6 @@ module.exports = {
           } else {
             expect(builtModules).toEqual(['changed.js']);
             expect(stillValidModules.sort()).toEqual([
-              'context',
               'index.js',
               'stable.js',
               'value.js',
