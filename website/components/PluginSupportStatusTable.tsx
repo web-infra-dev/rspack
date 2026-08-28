@@ -490,7 +490,11 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'ReadFileCompileAsyncWasmPlugin',
-    status: SupportStatus.NotSupported,
+    status: SupportStatus.PartiallySupported,
+    notes: {
+      en: 'Used internally, but not exposed through the JavaScript API',
+      zh: '已在内部使用，但未通过 JavaScript API 导出',
+    },
   },
   {
     name: 'ReadFileCompileWasmPlugin',
