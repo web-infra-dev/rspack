@@ -63,18 +63,6 @@ impl DelegatedModule {
 impl Module for DelegatedModule {
   impl_module_meta_info!();
 
-  fn update_cache_module(&mut self, module: &mut BoxModule) {
-    let Some(module) = module.downcast_mut::<Self>() else {
-      return;
-    };
-
-    std::mem::swap(&mut self.factory_meta, &mut module.factory_meta);
-    std::mem::swap(&mut self.delegation_type, &mut module.delegation_type);
-    std::mem::swap(&mut self.user_request, &mut module.user_request);
-    std::mem::swap(&mut self.original_request, &mut module.original_request);
-    std::mem::swap(&mut self.delegate_data, &mut module.delegate_data);
-  }
-
   fn module_type(&self) -> &ModuleType {
     &ModuleType::JsDynamic
   }
