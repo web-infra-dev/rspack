@@ -9,11 +9,18 @@ use rspack_paths::Utf8PathBuf;
 
 /// Internal cacheable context for serialization
 #[derive(Debug, Clone)]
-struct Context {
+pub(crate) struct CacheCodecContext {
   portable_project_root: Option<Utf8PathBuf>,
+  omit_module_factory_state: bool,
 }
 
-impl rspack_cacheable::CacheableContext for Context {
+impl CacheCodecContext {
+  pub(crate) fn omit_module_factory_state(&self) -> bool {
+    self.omit_module_factory_state
+  }
+}
+
+impl rspack_cacheable::CacheableContext for CacheCodecContext {
   fn project_root(&self) -> Option<&Path> {
     self.portable_project_root.as_ref().map(|p| p.as_std_path())
   }
@@ -37,14 +44,24 @@ impl rspack_cacheable::CacheableContext for Context {
 /// ```
 #[derive(Debug, Clone)]
 pub struct CacheCodec {
-  context: Context,
+  context: CacheCodecContext,
 }
 
 impl CacheCodec {
   pub fn new(portable_project_root: Option<Utf8PathBuf>) -> Self {
     Self {
-      context: Context {
+      context: CacheCodecContext {
         portable_project_root,
+        omit_module_factory_state: false,
+      },
+    }
+  }
+
+  pub(crate) fn new_for_module_cache(portable_project_root: Option<Utf8PathBuf>) -> Self {
+    Self {
+      context: CacheCodecContext {
+        portable_project_root,
+        omit_module_factory_state: true,
       },
     }
   }

@@ -138,6 +138,27 @@ impl_empty_diagnosable_trait!(LazyCompilationProxyModule);
 impl Module for LazyCompilationProxyModule {
   impl_module_meta_info!();
 
+  fn update_cache_module(&mut self, module: &mut BoxModule) {
+    let Some(module) = module.downcast_mut::<Self>() else {
+      return;
+    };
+
+    self.need_build |= self.active != module.active;
+    std::mem::swap(&mut self.factory_meta, &mut module.factory_meta);
+    std::mem::swap(
+      &mut self.readable_identifier,
+      &mut module.readable_identifier,
+    );
+    std::mem::swap(&mut self.lib_ident, &mut module.lib_ident);
+    std::mem::swap(&mut self.context, &mut module.context);
+    std::mem::swap(&mut self.layer, &mut module.layer);
+    std::mem::swap(&mut self.dep_options, &mut module.dep_options);
+    std::mem::swap(&mut self.resource, &mut module.resource);
+    std::mem::swap(&mut self.active, &mut module.active);
+    std::mem::swap(&mut self.client, &mut module.client);
+    std::mem::swap(&mut self.reserved_externals, &mut module.reserved_externals);
+  }
+
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     &SOURCE_TYPE
   }

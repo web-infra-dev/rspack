@@ -368,6 +368,34 @@ impl Module for NormalModule {
     }
   }
 
+  fn update_cache_module(&mut self, module: &mut BoxModule) {
+    let Some(module) = module.as_normal_module_mut() else {
+      return;
+    };
+
+    std::mem::swap(&mut self.module_type, &mut module.module_type);
+    std::mem::swap(&mut self.layer, &mut module.layer);
+    std::mem::swap(&mut self.context, &mut module.context);
+    std::mem::swap(&mut self.factory_meta, &mut module.factory_meta);
+    std::mem::swap(&mut self.resolve_options, &mut module.resolve_options);
+    std::mem::swap(&mut self.request, &mut module.request);
+    std::mem::swap(&mut self.user_request, &mut module.user_request);
+    std::mem::swap(&mut self.raw_request, &mut module.raw_request);
+    std::mem::swap(
+      &mut self.parser_and_generator,
+      &mut module.parser_and_generator,
+    );
+    std::mem::swap(
+      &mut self.parser_and_generator_options,
+      &mut module.parser_and_generator_options,
+    );
+    std::mem::swap(&mut self.resource_data, &mut module.resource_data);
+    std::mem::swap(&mut self.match_resource, &mut module.match_resource);
+    std::mem::swap(&mut self.loaders, &mut module.loaders);
+    std::mem::swap(&mut self.loader_options, &mut module.loader_options);
+    std::mem::swap(&mut self.extract_source_map, &mut module.extract_source_map);
+  }
+
   async fn need_build(&mut self, context: &NeedBuildContext<'_>) -> Result<bool> {
     if self.force_build {
       return Ok(true);
