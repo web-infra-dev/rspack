@@ -17,7 +17,6 @@ use rspack_paths::Utf8Path;
 use super::context::JsLoaderDependencies;
 
 #[cacheable]
-#[derive(Clone)]
 struct LoaderCacheEntry {
   content: Option<Vec<u8>>,
   content_is_string: bool,

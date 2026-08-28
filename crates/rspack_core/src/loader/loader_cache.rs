@@ -67,7 +67,6 @@ bitflags! {
 
 #[doc(hidden)]
 #[cacheable]
-#[derive(Clone)]
 pub struct LoaderCacheDependencySnapshot {
   dependencies: Snapshot,
   paths: Vec<InternedPath>,
@@ -157,7 +156,6 @@ pub fn loader_cache_item(
 }
 
 #[cacheable]
-#[derive(Clone)]
 struct LoaderCacheEntry {
   content: Option<Vec<u8>>,
   content_is_string: bool,
