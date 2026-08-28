@@ -4,8 +4,6 @@ import { Link } from '@rspress/core/theme';
 import { useI18nUrl } from '@theme/i18n';
 import type React from 'react';
 
-// cspell:ignore evaldevtoolmoduleplugin
-
 enum SupportStatus {
   NotSupported = 0,
   PartiallySupported = 1,

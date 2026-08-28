@@ -53,6 +53,7 @@ elecmonkeyjs
 emnapi
 esbuild
 etags
+evaldevtoolmoduleplugin
 evanw
 experimentscss
 externalstypecommonjs
