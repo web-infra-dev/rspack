@@ -32,7 +32,7 @@ pub struct TaskContext {
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_template: RuntimeTemplate,
   pub(crate) cache: Cache,
-  pub(crate) loader_cache_file_system_info: FileSystemInfo,
+  pub(crate) file_system_info: FileSystemInfo,
 
   pub artifact: BuildModuleGraphArtifact,
   pub exports_info_artifact: ExportsInfoArtifact,
@@ -60,7 +60,7 @@ impl TaskContext {
       output_fs: compilation.output_filesystem.clone(),
       runtime_template: RuntimeTemplate::new(compilation.options.clone()),
       cache: compilation.cache.clone(),
-      loader_cache_file_system_info: compilation.loader_cache_file_system_info(),
+      file_system_info: compilation.file_system_info(),
       artifact,
       exports_info_artifact,
     }

@@ -250,7 +250,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .then(|| {
           JsLoaderCacheObject::new(
             cx.context.loader_cache.clone(),
-            cx.context.loader_cache_file_system_info.clone(),
+            cx.context.file_system_info.clone(),
             module.identifier().to_string(),
             cx.loader_items
               .iter()

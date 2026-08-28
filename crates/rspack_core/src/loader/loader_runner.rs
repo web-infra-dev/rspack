@@ -18,7 +18,7 @@ pub struct RunnerContext {
   pub options: Arc<CompilerOptions>,
   pub fs: Arc<dyn ReadableFileSystem>,
   pub loader_cache: CacheFacade,
-  pub loader_cache_file_system_info: FileSystemInfo,
+  pub file_system_info: FileSystemInfo,
   pub resolver_factory: Arc<ResolverFactory>,
   pub module: Box<NormalModule>,
   pub source_map_kind: SourceMapKind,

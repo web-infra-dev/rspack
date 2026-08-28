@@ -226,7 +226,7 @@ pub(crate) async fn before_normal_loader(
 
   if let Some(entry) = item_cache.get::<LoaderCacheEntry>()?
     && loader_cache_dependency_snapshot_is_valid(
-      &context.context.loader_cache_file_system_info,
+      &context.context.file_system_info,
       &entry.dependency_snapshot,
     )
     .await
@@ -272,7 +272,7 @@ pub(crate) async fn after_normal_loader(
     return Ok(());
   }
   let Some(dependency_snapshot) = loader_cache_dependency_snapshot(
-    &context.context.loader_cache_file_system_info,
+    &context.context.file_system_info,
     context.added_dependencies(),
   )
   .await
