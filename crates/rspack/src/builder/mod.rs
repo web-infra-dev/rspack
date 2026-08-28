@@ -54,8 +54,8 @@ use rspack_core::{
   ModuleType, NewCacheOptions, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption,
   Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo,
   PrintlnInfrastructureLogSink, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
-  SideEffectOption, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
-  incremental::IncrementalOptions, runtime_mode::RuntimeMode,
+  SideEffectOption, SnapshotOptions, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading,
+  WasmLoadingType, incremental::IncrementalOptions, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -943,7 +943,10 @@ impl CompilerOptionsBuilder {
     let bail = d!(self.bail.take(), false);
     let cache = d!(self.cache.take(), {
       if development {
-        CacheOptions::Memory { max_generations: 1 }
+        CacheOptions::Memory {
+          max_generations: 1,
+          snapshot: SnapshotOptions::default(),
+        }
       } else {
         CacheOptions::Disabled
       }
