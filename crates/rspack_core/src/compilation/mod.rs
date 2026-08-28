@@ -359,7 +359,6 @@ impl Compilation {
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
     let file_system_info = cache.file_system_info();
-    file_system_info.invalidate(modified_files.iter().chain(&removed_files));
     Self {
       id: CompilationId::new(),
       compiler_id,
