@@ -53,10 +53,9 @@ pub struct RawOptions {
   pub module: RawModuleOptions,
   pub optimization: RawOptimizationOptions,
   pub stats: RawStatsOptions,
-  pub snapshot: RawSnapshotOptions,
   // For now, memory.max_generation will not be exposed to the js side.
   #[napi(
-    ts_type = r#"boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent)"#
+    ts_type = r#"boolean | { type: "memory", snapshot: RawSnapshotOptions } | ({ type: "persistent" } & RawCacheOptionsPersistent)"#
   )]
   pub cache: RawCacheOptions,
   pub experiments: RawExperiments,
@@ -81,7 +80,6 @@ impl TryFrom<RawOptions> for CompilerOptions {
     let resolve_loader = value.resolve_loader.try_into()?;
     let mode = value.mode.unwrap_or_default().into();
     let module: ModuleOptions = value.module.try_into()?;
-    let snapshot = value.snapshot.into();
     let cache = normalize_raw_cache(value.cache)?;
     let experiments: Experiments = value.experiments.into();
     let incremental: IncrementalOptions = match value.incremental {
@@ -139,7 +137,6 @@ impl TryFrom<RawOptions> for CompilerOptions {
       experiments,
       incremental,
       stats,
-      snapshot,
       cache,
       optimization,
       node,

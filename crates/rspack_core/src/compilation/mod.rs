@@ -86,6 +86,7 @@ use crate::{
   RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec,
   RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
   SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
+  cache::SnapshotOptions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
@@ -358,10 +359,15 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
+    let snapshot_options = match &options.cache {
+      CacheOptions::Disabled => SnapshotOptions::default(),
+      CacheOptions::Memory { snapshot, .. } => snapshot.clone(),
+      CacheOptions::Persistent(options) => options.snapshot.clone(),
+    };
     let file_system_info = FileSystemInfo::new(
       input_filesystem.clone(),
       CompilationLogger::new("rspack.FileSystemInfo", logging.clone()),
-      options.snapshot.clone(),
+      snapshot_options,
       options.output.hash_function,
     );
 
@@ -413,7 +419,9 @@ impl Compilation {
       chunk_render_cache_artifact: StealCell::new(ChunkRenderCacheArtifact::new(
         match &options.cache {
           CacheOptions::Disabled => 0, // FIXME: this should be removed in future
-          CacheOptions::Memory { max_generations } => *max_generations,
+          CacheOptions::Memory {
+            max_generations, ..
+          } => *max_generations,
           CacheOptions::Persistent(_) => 1,
         },
       )),

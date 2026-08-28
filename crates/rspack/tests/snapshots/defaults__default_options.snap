@@ -1746,19 +1746,6 @@ CompilerOptions {
     stats: StatsOptions {
         colors: <env-dependent>,
     },
-    snapshot: SnapshotOptions {
-        immutable_paths: [],
-        unmanaged_paths: [],
-        managed_paths: [],
-        dependencies: SnapshotStrategyOptions {
-            hash: true,
-            timestamp: true,
-        },
-        context_dependencies: SnapshotStrategyOptions {
-            hash: false,
-            timestamp: true,
-        },
-    },
     cache: Disabled,
     experiments: Experiments {
         css: false,

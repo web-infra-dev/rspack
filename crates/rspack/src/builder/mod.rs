@@ -201,14 +201,6 @@ impl CompilerBuilder {
     self
   }
 
-  /// Set the filesystem snapshot options.
-  ///
-  /// See [`CompilerOptionsBuilder::snapshot`] for more details.
-  pub fn snapshot(&mut self, snapshot: SnapshotOptions) -> &mut Self {
-    self.options_builder.snapshot(snapshot);
-    self
-  }
-
   /// Set the source map configuration.
   ///
   /// See [`CompilerOptionsBuilder::devtool`] for more details.
@@ -588,8 +580,6 @@ pub struct CompilerOptionsBuilder {
   context: Option<Context>,
   /// Options for caching.
   cache: Option<CacheOptions>,
-  /// Options for filesystem snapshots.
-  snapshot: Option<SnapshotOptions>,
   /// The mode in which Rspack should operate.
   mode: Option<Mode>,
   /// The type of externals.
@@ -629,7 +619,6 @@ impl From<&mut CompilerOptionsBuilder> for CompilerOptionsBuilder {
       externals_presets: value.externals_presets.take(),
       context: value.context.take(),
       cache: value.cache.take(),
-      snapshot: value.snapshot.take(),
       mode: value.mode.take(),
       resolve: value.resolve.take(),
       resolve_loader: value.resolve_loader.take(),
@@ -705,12 +694,6 @@ impl CompilerOptionsBuilder {
   /// Set options for caching.
   pub fn cache(&mut self, cache: CacheOptions) -> &mut Self {
     self.cache = Some(cache);
-    self
-  }
-
-  /// Set options for filesystem snapshots.
-  pub fn snapshot(&mut self, snapshot: SnapshotOptions) -> &mut Self {
-    self.snapshot = Some(snapshot);
     self
   }
 
@@ -960,12 +943,14 @@ impl CompilerOptionsBuilder {
     let bail = d!(self.bail.take(), false);
     let cache = d!(self.cache.take(), {
       if development {
-        CacheOptions::Memory { max_generations: 1 }
+        CacheOptions::Memory {
+          max_generations: 1,
+          snapshot: SnapshotOptions::default(),
+        }
       } else {
         CacheOptions::Disabled
       }
     });
-    let snapshot = d!(self.snapshot.take(), SnapshotOptions::default());
 
     // apply experiments defaults
     let mut experiments_builder = f!(self.experiments.take(), Experiments::builder);
@@ -1305,7 +1290,6 @@ impl CompilerOptionsBuilder {
       resolve_loader,
       module,
       stats,
-      snapshot,
       cache,
       experiments,
       incremental,

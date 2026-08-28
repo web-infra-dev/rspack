@@ -45,6 +45,7 @@ pub fn create_cache(
     }
     crate::CacheOptions::Memory {
       max_generations: _, /* TODO: old cache default to 1, change to 5 and pass to MemoryCache */
+      ..
     } => {
       return Cache::new(compiler_path, MemoryCache::new(5), None);
     }

@@ -24,6 +24,7 @@ import {
   type RawRuleSetCondition,
   RawRuleSetConditionType,
   type RawRuleSetLogicalConditions,
+  type RawSnapshotOptions,
 } from '@rspack/binding';
 
 import type { Compiler } from '../Compiler';
@@ -84,12 +85,6 @@ export type {
 
 const MAX_U32 = 0xffffffff;
 
-const EMPTY_CACHE_SNAPSHOT: Required<CacheSnapshotNormalized> = {
-  immutablePaths: [],
-  unmanagedPaths: [],
-  managedPaths: [],
-};
-
 type ExperimentsWithDefaults = Omit<
   Required<ExperimentsNormalized>,
   'newCache'
@@ -105,11 +100,6 @@ export const getRawOptions = (
   const mode = options.mode;
   const experiments = options.experiments as ExperimentsWithDefaults;
   const cache = options.cache!;
-  const cacheSnapshot =
-    cache !== false && cache.type === 'persistent'
-      ? cache.snapshot
-      : EMPTY_CACHE_SNAPSHOT;
-  const snapshot = getRawSnapshot(cacheSnapshot);
   return {
     name: options.name,
     mode,
@@ -125,8 +115,7 @@ export const getRawOptions = (
     }),
     optimization: options.optimization as Required<Optimization>,
     stats: getRawStats(options.stats),
-    snapshot,
-    cache: getRawCache(cache, snapshot),
+    cache: getRawCache(cache),
     experiments,
     incremental: mode === 'development' && options.incremental,
     node: getRawNode(options.node),
@@ -136,9 +125,7 @@ export const getRawOptions = (
   };
 };
 
-function getRawSnapshot(
-  snapshot: CacheSnapshotNormalized,
-): RawOptions['snapshot'] {
+function getRawSnapshot(snapshot: CacheSnapshotNormalized): RawSnapshotOptions {
   return {
     immutablePaths: snapshot.immutablePaths!,
     unmanagedPaths: snapshot.unmanagedPaths!,
@@ -146,12 +133,15 @@ function getRawSnapshot(
   };
 }
 
-function getRawCache(
-  cache: CacheNormalized,
-  snapshot: RawOptions['snapshot'],
-): RawOptions['cache'] {
+function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
   if (cache === false) return false;
-  if (cache.type === 'memory') return cache;
+  const snapshot = getRawSnapshot(cache.snapshot);
+  if (cache.type === 'memory') {
+    return {
+      type: cache.type,
+      snapshot,
+    };
+  }
   const toRawStorageLimit = (name: string, value: number) => {
     if (value === Infinity) return 0;
     if (!Number.isSafeInteger(value) || value < 1 || value > MAX_U32) {

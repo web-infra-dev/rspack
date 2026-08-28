@@ -8,9 +8,9 @@ use napi::{
   bindgen_prelude::{FromNapiValue, JsObjectValue, Object, TypeName, ValidateNapiValue},
 };
 use napi_derive::napi;
-pub use raw_snapshot::RawSnapshotOptions;
+use raw_snapshot::RawSnapshotOptions;
 use raw_storage::RawStorageOptions;
-use rspack_core::{CacheOptions, PersistentCacheOptions};
+use rspack_core::{CacheOptions, PersistentCacheOptions, SnapshotOptions};
 
 #[derive(Debug)]
 #[napi(object)]
@@ -50,6 +50,7 @@ impl TryFrom<RawCacheOptionsPersistent> for PersistentCacheOptions {
 #[napi(object)]
 pub struct RawCacheOptionsMemory {
   pub max_generations: Option<u32>,
+  pub snapshot: Option<RawSnapshotOptions>,
 }
 
 #[derive(Debug)]
@@ -102,7 +103,10 @@ pub fn normalize_raw_cache(options: RawCacheOptions) -> rspack_error::Result<Cac
   Ok(match options {
     Either::A(options) => {
       if options {
-        CacheOptions::Memory { max_generations: 1 }
+        CacheOptions::Memory {
+          max_generations: 1,
+          snapshot: SnapshotOptions::default(),
+        }
       } else {
         CacheOptions::Disabled
       }
@@ -111,6 +115,7 @@ pub fn normalize_raw_cache(options: RawCacheOptions) -> rspack_error::Result<Cac
       InnerCacheOptions::Persistent(options) => CacheOptions::Persistent(options.try_into()?),
       InnerCacheOptions::Memory(options) => CacheOptions::Memory {
         max_generations: options.max_generations.unwrap_or(1),
+        snapshot: options.snapshot.unwrap_or_default().into(),
       },
     },
   })
