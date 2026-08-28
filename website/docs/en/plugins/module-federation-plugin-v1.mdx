@@ -8,17 +8,11 @@ import { Stability } from '@components/ApiMeta';
 
 This plugin corresponds to Module Federation v1.0, which is the [ModuleFederationPlugin in webpack](https://webpack.js.org/plugins/module-federation-plugin/).
 
-The configuration is consistent with the ModuleFederationPlugin above, except for the three fields `implementation`, `runtimePlugins` and `shareStrategy`.
-
-```js
-new rspack.container.ModuleFederationPluginV1();
-```
-
 :::tip
 Module Federation v1.0 is no longer being iterated. We recommend using Module Federation v1.5 or v2.0. See [Module Federation](/guide/features/module-federation).
 :::
 
-## Example
+## Examples
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -26,8 +20,29 @@ import { rspack } from '@rspack/core';
 export default {
   plugins: [
     new rspack.container.ModuleFederationPluginV1({
-      // options
+      name: 'host',
     }),
   ],
 };
 ```
+
+## Options
+
+- **Type:**
+
+```ts
+interface ModuleFederationPluginV1Options {
+  name: string;
+  filename?: string;
+  exposes?: Exposes;
+  remotes?: Remotes;
+  shared?: Shared;
+  runtime?: EntryRuntime;
+  shareScope?: ShareScope;
+  remoteType?: ExternalsType;
+  library?: LibraryOptions;
+  enhanced?: boolean;
+}
+```
+
+The `name` option is required. For details about the shared fields, see [ModuleFederationPlugin options](/plugins/module-federation-plugin#options). Module Federation v1 does not support `implementation`, `runtimePlugins`, or `shareStrategy`.

@@ -8,10 +8,6 @@ import Attribution from '@components/Attribution';
 
 The `EnvironmentPlugin` is shorthand for using the [`DefinePlugin`](/plugins/define-plugin) on [`process.env`](https://nodejs.org/api/process.html#process_process_env) keys.
 
-## Options
-
-- **Type:** `string[] | Record<string, string>`
-
 ## Examples
 
 ### Basic use case
@@ -133,5 +129,9 @@ new Dotenv({
   safe: true, // load .env.example (defaults to "false" which does not use dotenv-safe)
 });
 ```
+
+## Options
+
+- **Type:** `string[] | Record<string, string>`
 
 <Attribution url="https://webpack.js.org/plugins/environment-plugin/" />

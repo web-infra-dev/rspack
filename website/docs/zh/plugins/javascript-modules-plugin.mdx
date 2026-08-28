@@ -6,7 +6,9 @@ description: '处理 JavaScript 的打包，一般用于获取 JavascriptModules
 
 处理 JavaScript 的打包，一般用于获取 [JavascriptModulesPlugin 的相关钩子](/api/plugin-api/javascript-modules-plugin-hooks)：
 
-```js
+## 示例
+
+```js title="rspack.config.mjs"
 class MyJsMinimizerPlugin {
   apply(compiler) {
     compiler.hooks.compilation.tap(MyJsMinimizerPlugin.name, (compilation) => {
@@ -29,4 +31,8 @@ class MyJsMinimizerPlugin {
     });
   }
 }
+
+export default {
+  plugins: [new MyJsMinimizerPlugin()],
+};
 ```

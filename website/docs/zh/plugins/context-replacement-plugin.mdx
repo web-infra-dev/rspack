@@ -12,22 +12,6 @@ import Attribution from '@components/Attribution';
 
 `ContextReplacementPlugin` 允许你覆盖这些推断的信息。该插件可以通过多种方式进行配置：
 
-## 选项
-
-- **类型：**
-
-```ts
-new rspack.ContextReplacementPlugin(
-  resourceRegExp: RegExp,
-  newContentResource?: string,
-  newContentRecursive?: boolean,
-  newContentRegExp?: RegExp
-)
-```
-
-如果目录匹配 `resourceRegExp`，插件会用 `newContentResource`、`newContentRecursive` 或 `newContextRegExp` 分别替换默认资源、递归标志或生成的正则表达式。
-如果 `newContentResource` 是相对路径，则相对于前一个资源进行解析。
-
 ## 示例
 
 ### 基本使用
@@ -58,5 +42,21 @@ new rspack.ContextReplacementPlugin(/selector/, './folder', {
   './other-request': './new-request',
 });
 ```
+
+## 选项
+
+- **类型：**
+
+```ts
+new rspack.ContextReplacementPlugin(
+  resourceRegExp: RegExp,
+  newContentResource?: string,
+  newContentRecursive?: boolean,
+  newContentRegExp?: RegExp
+)
+```
+
+如果目录匹配 `resourceRegExp`，插件会用 `newContentResource`、`newContentRecursive` 或 `newContextRegExp` 分别替换默认资源、递归标志或生成的正则表达式。
+如果 `newContentResource` 是相对路径，则相对于前一个资源进行解析。
 
 <Attribution url="https://webpack.js.org/plugins/context-replacement-plugin/" />

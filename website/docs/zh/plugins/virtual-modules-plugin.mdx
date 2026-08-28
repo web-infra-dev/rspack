@@ -12,7 +12,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 该插件是 [webpack-virtual-modules](https://github.com/sysgears/webpack-virtual-modules) 的 Rust 实现版本，与 Rspack 深度集成，在提供相同功能的同时拥有更好的性能。
 
-## 使用方法
+## 示例
 
 ### 基础用法
 
@@ -25,9 +25,6 @@ new rspack.experiments.VirtualModulesPlugin({
   // ...modules
 });
 ```
-
-- **参数：**
-  - `modules`（可选）：一个对象，其中键是文件路径，值是文件内容。
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -86,3 +83,10 @@ export default {
   ],
 };
 ```
+
+## 选项
+
+- **类型：** `Record<string, string>`
+- **默认值：** `{}`
+
+可选的构造函数参数将每个虚拟文件路径映射到对应的文件内容。路径相对于 [compiler.context](/api/javascript-api/compiler#context) 解析。

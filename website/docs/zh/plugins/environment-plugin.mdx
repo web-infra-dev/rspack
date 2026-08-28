@@ -8,10 +8,6 @@ import Attribution from '@components/Attribution';
 
 `EnvironmentPlugin` 简化了使用 [`DefinePlugin`](/plugins/define-plugin) 设置 `process.env` 变量的过程。
 
-## 选项
-
-- **类型：** `string[] | Record<string, string>`
-
 ## 示例
 
 ### 基本使用
@@ -133,5 +129,9 @@ new Dotenv({
   safe: true, // load .env.example (defaults to "false" which does not use dotenv-safe)
 });
 ```
+
+## 选项
+
+- **类型：** `string[] | Record<string, string>`
 
 <Attribution url="https://webpack.docschina.org/plugins/environment-plugin/" />

@@ -8,8 +8,70 @@ import Attribution from '@components/Attribution';
 
 This plugin enables more fine grained control of source map generation. It is also enabled automatically by certain settings of the [`devtool`](/config/devtool) configuration option.
 
+## Examples
+
+The following examples demonstrate some common use cases for this plugin.
+
+### Basic use case
+
+You can use the following code to replace the configuration option devtool: inline-source-map with an equivalent custom plugin configuration:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  devtool: false,
+  plugins: [new rspack.SourceMapDevToolPlugin({})],
+};
+```
+
+### Exclude vendor maps
+
+The following code would exclude source maps for any modules in the vendor.js bundle:
+
 ```js
-new rspack.SourceMapDevToolPlugin(options);
+new rspack.SourceMapDevToolPlugin({
+  filename: '[file].map[query]',
+  exclude: ['vendor.js'],
+});
+```
+
+### Host source maps externally
+
+Set a URL for source maps. Useful for hosting them on a host that requires authorization.
+
+```js
+new rspack.SourceMapDevToolPlugin({
+  append: '\n//# sourceMappingURL=https://example.com/sourcemap/[url]',
+  filename: '[file].map[query]',
+});
+```
+
+And for cases when source maps are stored in the upper level directory:
+
+```
+project
+|- dist
+  |- public
+    |- bundle-[hash].js
+  |- sourcemaps
+    |- bundle-[hash].js.map
+```
+
+With the following config:
+
+```js
+new rspack.SourceMapDevToolPlugin({
+  filename: 'sourcemaps/[file].map',
+  publicPath: 'https://example.com/project/',
+  fileContext: 'public',
+});
+```
+
+Will produce the following URL:
+
+```
+https://example.com/project/sourcemaps/bundle-[hash].js.map
 ```
 
 ## Options
@@ -110,71 +172,5 @@ Setting `module` and/or `columns` to `false` will yield less accurate source map
 :::tip
 If you want to use a custom configuration for this plugin in [development mode](/config/mode#development), make sure to disable the default one. I.e. set `devtool: false`.
 :::
-
-## Examples
-
-The following examples demonstrate some common use cases for this plugin.
-
-### Basic use case
-
-You can use the following code to replace the configuration option devtool: inline-source-map with an equivalent custom plugin configuration:
-
-```js title="rspack.config.mjs"
-import { rspack } from '@rspack/core';
-
-export default {
-  devtool: false,
-  plugins: [new rspack.SourceMapDevToolPlugin({})],
-};
-```
-
-### Exclude vendor maps
-
-The following code would exclude source maps for any modules in the vendor.js bundle:
-
-```js
-new rspack.SourceMapDevToolPlugin({
-  filename: '[file].map[query]',
-  exclude: ['vendor.js'],
-});
-```
-
-### Host source maps externally
-
-Set a URL for source maps. Useful for hosting them on a host that requires authorization.
-
-```js
-new rspack.SourceMapDevToolPlugin({
-  append: '\n//# sourceMappingURL=https://example.com/sourcemap/[url]',
-  filename: '[file].map[query]',
-});
-```
-
-And for cases when source maps are stored in the upper level directory:
-
-```
-project
-|- dist
-  |- public
-    |- bundle-[hash].js
-  |- sourcemaps
-    |- bundle-[hash].js.map
-```
-
-With the following config:
-
-```js
-new rspack.SourceMapDevToolPlugin({
-  filename: 'sourcemaps/[file].map',
-  publicPath: 'https://example.com/project/',
-  fileContext: 'public',
-});
-```
-
-Will produce the following URL:
-
-```
-https://example.com/project/sourcemaps/bundle-[hash].js.map
-```
 
 <Attribution url="https://webpack.js.org/plugins/source-map-dev-tool-plugin/" />

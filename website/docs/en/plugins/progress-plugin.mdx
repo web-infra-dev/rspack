@@ -10,8 +10,16 @@ This plugin can be used to configure the progress bar.
 
 Rspack uses [indicatif::ProgressBar](https://github.com/console-rs/indicatif) to draw the progress bar.
 
-```js
-new rspack.ProgressPlugin(options);
+## Examples
+
+Add a prefix to the progress bar:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.ProgressPlugin({ prefix: 'Building' })],
+};
 ```
 
 ## Options

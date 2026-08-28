@@ -12,7 +12,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 This plugin is a Rust implementation of [webpack-virtual-modules](https://github.com/sysgears/webpack-virtual-modules), deeply integrated with Rspack to provide equivalent functionality with better performance.
 
-## Usage
+## Examples
 
 ### Basic usage
 
@@ -25,9 +25,6 @@ new rspack.experiments.VirtualModulesPlugin({
   // ...modules
 });
 ```
-
-- **Parameters:**
-  - `modules` (optional): An object where keys are file paths and values are file contents.
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -88,3 +85,10 @@ export default {
   ],
 };
 ```
+
+## Options
+
+- **Type:** `Record<string, string>`
+- **Default:** `{}`
+
+The optional constructor argument maps each virtual file path to its contents. Paths are resolved relative to [compiler.context](/api/javascript-api/compiler#context).
