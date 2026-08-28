@@ -25,7 +25,7 @@ pub struct BuildTask {
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
   pub loader_cache: CacheFacade,
-  pub file_system_info: Arc<FileSystemInfo>,
+  pub file_system_info: FileSystemInfo,
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,

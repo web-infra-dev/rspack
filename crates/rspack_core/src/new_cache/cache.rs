@@ -4,8 +4,8 @@ use rspack_error::Result;
 use rspack_paths::InternedPathSet;
 
 use super::{
-  CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult, Meta,
-  cache_value::CacheValueData,
+  CacheFacade, CacheKey, CacheValue, Etag, FileSystemInfo, IdleFileCache, MemoryCache,
+  MemoryCacheGetResult, Meta, cache_value::CacheValueData,
 };
 
 /// Cache entry point backed by memory and optional filesystem storage.
@@ -23,6 +23,7 @@ struct CacheStorage {
 struct CacheInner {
   compiler_path: String,
   storage: Option<CacheStorage>,
+  file_system_info: FileSystemInfo,
 }
 
 /// Cheaply cloneable handle to the shared cache state.
@@ -36,6 +37,7 @@ impl Cache {
     compiler_path: String,
     memory_cache: MemoryCache,
     idle_file_cache: Option<IdleFileCache>,
+    file_system_info: FileSystemInfo,
   ) -> Self {
     Self {
       inner: Arc::new(CacheInner {
@@ -44,17 +46,23 @@ impl Cache {
           memory_cache,
           idle_file_cache,
         }),
+        file_system_info,
       }),
     }
   }
 
-  pub fn new_disabled(compiler_path: String) -> Self {
+  pub fn new_disabled(compiler_path: String, file_system_info: FileSystemInfo) -> Self {
     Self {
       inner: Arc::new(CacheInner {
         compiler_path,
         storage: None,
+        file_system_info,
       }),
     }
+  }
+
+  pub(crate) fn file_system_info(&self) -> FileSystemInfo {
+    self.inner.file_system_info.clone()
   }
 
   pub(crate) fn facade(&self, name: &str) -> CacheFacade {

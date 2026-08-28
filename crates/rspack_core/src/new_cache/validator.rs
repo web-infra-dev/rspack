@@ -45,7 +45,7 @@ pub(super) enum CacheValidatorResult {
 pub(super) struct CacheValidator {
   data: CacheValidatorData,
   codec: Arc<CacheCodec>,
-  file_system_info: Arc<FileSystemInfo>,
+  file_system_info: FileSystemInfo,
 }
 
 impl CacheValidator {
@@ -53,7 +53,7 @@ impl CacheValidator {
     rspack_pkg_version: String,
     cache_version: String,
     codec: Arc<CacheCodec>,
-    file_system_info: Arc<FileSystemInfo>,
+    file_system_info: FileSystemInfo,
   ) -> Self {
     Self {
       data: CacheValidatorData::new(rspack_pkg_version, cache_version),
@@ -113,7 +113,6 @@ impl CacheValidator {
       .await;
     let snapshot = self
       .file_system_info
-      .clone()
       .create_snapshot(
         None,
         &resolved.files,

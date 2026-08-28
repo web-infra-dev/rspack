@@ -238,7 +238,7 @@ pub struct Compilation {
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   cache: Cache,
-  file_system_info: Arc<FileSystemInfo>,
+  file_system_info: FileSystemInfo,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -358,12 +358,8 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
-    let file_system_info = FileSystemInfo::new(
-      input_filesystem.clone(),
-      CompilationLogger::new("rspack.FileSystemInfo".to_string(), logging.clone()),
-      crate::cache::SnapshotOptions::default(),
-      options.output.hash_function,
-    );
+    let file_system_info = cache.file_system_info();
+    file_system_info.invalidate(modified_files.iter().chain(&removed_files));
     Self {
       id: CompilationId::new(),
       compiler_id,
@@ -457,7 +453,7 @@ impl Compilation {
     self.cache.facade(name)
   }
 
-  pub fn file_system_info(&self) -> Arc<FileSystemInfo> {
+  pub fn file_system_info(&self) -> FileSystemInfo {
     self.file_system_info.clone()
   }
 

@@ -1,4 +1,4 @@
-use std::{path::Path, sync::Arc};
+use std::path::Path;
 
 use bitflags::bitflags;
 use rspack_cacheable::cacheable;
@@ -76,7 +76,7 @@ pub struct LoaderCacheDependencySnapshot {
 
 #[doc(hidden)]
 pub async fn loader_cache_dependency_snapshot(
-  file_system_info: Arc<FileSystemInfo>,
+  file_system_info: &FileSystemInfo,
   dependencies: &LoaderDependencies,
 ) -> Option<LoaderCacheDependencySnapshot> {
   if !dependencies.context.is_empty() || !dependencies.missing.is_empty() {
@@ -272,7 +272,7 @@ pub(crate) async fn after_normal_loader(
     return Ok(());
   }
   let Some(dependency_snapshot) = loader_cache_dependency_snapshot(
-    context.context.file_system_info.clone(),
+    &context.context.file_system_info,
     context.added_dependencies(),
   )
   .await
