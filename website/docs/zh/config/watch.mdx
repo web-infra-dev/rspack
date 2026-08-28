@@ -62,7 +62,7 @@ export default {
 
 使用 `watchOptions.ignored` 可以从监听范围中排除匹配的文件和目录。忽略不需要监听的目录有助于降低 CPU 和内存占用。
 
-从 Rspack v1.2.0 开始，`.git` 和 `node_modules` 目录会被默认忽略，其中的文件发生变化时不会触发重新构建。
+默认情况下，`.git` 和 `node_modules` 目录会被忽略，其中的文件发生变化时不会触发重新构建。
 
 如果需要监听 `node_modules` 中的文件，可以覆盖默认值，仅忽略 `.git` 目录：
 

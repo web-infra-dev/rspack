@@ -617,7 +617,7 @@ import.meta.rspackUniqueId;
 __webpack_require__.ruid;
 
 // webpack/runtime/rspack_unique_id
-__webpack_require__.ruid = 'bundler=rspack@0.7.4';
+__webpack_require__.ruid = 'bundler=rspack@2.1.2';
 ```
 
 </Columns>
@@ -834,7 +834,7 @@ __resourceQuery
 
 ### \_\_webpack_exports_info\_\_
 
-<ApiMeta addedVersion="1.0.0" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 In modules, `__webpack_exports_info__` is available to allow exports introspection:
 
@@ -938,7 +938,7 @@ import('./module-a').then((moduleA) => {
 
 ### \_\_webpack_get_script_filename\_\_
 
-<ApiMeta addedVersion="1.0.0" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 It provides filename of the chunk by its id.
 
@@ -1001,11 +1001,7 @@ The CommonJS equivalent of [`import.meta.rspackVersion`](#importmetarspackversio
 
 ### \_\_rspack_unique_id\_\_
 
-<ApiMeta
-  addedVersion="1.0.0"
-  specific={['Rspack']}
-  stability={Stability.Deprecated}
-/>
+<ApiMeta specific={['Rspack']} stability={Stability.Deprecated} />
 
 The CommonJS equivalent of [`import.meta.rspackUniqueId`](#importmetarspackuniqueid).
 

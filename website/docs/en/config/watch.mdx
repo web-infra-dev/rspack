@@ -62,7 +62,7 @@ export default {
 
 Use `watchOptions.ignored` to exclude matching files and directories from watch mode. Ignoring directories that do not need to be watched can reduce CPU and memory usage.
 
-Since Rspack v1.2.0, `.git` and `node_modules` directories are ignored by default, so changes inside them do not trigger rebuilds.
+By default, `.git` and `node_modules` directories are ignored, so changes inside them do not trigger rebuilds.
 
 To watch files in `node_modules`, override the default value and ignore only the `.git` directory:
 
