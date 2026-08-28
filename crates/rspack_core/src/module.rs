@@ -291,7 +291,7 @@ pub struct BuildInfo {
   pub dependencies: crate::LoaderDependencies,
   /// Reserved for full `need_build` snapshot validation. Module builds do not
   /// populate it yet to avoid adding snapshot creation overhead.
-  pub snapshot: Option<Arc<Snapshot>>,
+  pub snapshot: Option<Snapshot>,
   pub value_dependencies: HashMap<String, String>,
   #[cacheable(with=AsVec<AsPreset>)]
   pub esm_named_exports: HashSet<Atom>,

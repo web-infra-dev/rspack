@@ -82,7 +82,7 @@ pub fn create_cache(
     rspack_workspace::rspack_pkg_version!().to_string(),
     options.version.clone(),
     codec,
-    file_system_info.clone(),
+    file_system_info,
     logger.clone(),
   ) {
     Ok(strategy) => strategy,
