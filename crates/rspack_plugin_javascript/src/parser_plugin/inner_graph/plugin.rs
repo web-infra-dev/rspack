@@ -11,7 +11,7 @@ use swc_next_ecma_ast::{
 };
 
 use super::state::{
-  InnerGraphMapSetValue, InnerGraphMapUsage, InnerGraphMapValue, InnerGraphState,
+  InnerGraphMapSet, InnerGraphMapSetValue, InnerGraphMapUsage, InnerGraphMapValue, InnerGraphState,
   InnerGraphUsageOperation, TopLevelSymbol,
 };
 use crate::{
@@ -169,7 +169,7 @@ impl InnerGraphParserPlugin {
           } else if new_set.is_empty() {
             state.set_graph(key, InnerGraphMapValue::Nil);
           } else {
-            state.set_graph(key, InnerGraphMapValue::Set(new_set));
+            state.set_graph(key, InnerGraphMapValue::Set(new_set.into()));
           }
         }
 
@@ -191,12 +191,12 @@ impl InnerGraphParserPlugin {
                     let mut new_set = match value {
                       InnerGraphMapValue::Set(set) => std::mem::take(set),
                       InnerGraphMapValue::True => unreachable!(),
-                      InnerGraphMapValue::Nil => HashSet::default(),
+                      InnerGraphMapValue::Nil => InnerGraphMapSet::default(),
                     };
                     let extend_value = match global_value.clone() {
                       InnerGraphMapValue::Set(set) => set,
                       InnerGraphMapValue::True => unreachable!(),
-                      InnerGraphMapValue::Nil => HashSet::default(),
+                      InnerGraphMapValue::Nil => InnerGraphMapSet::default(),
                     };
                     new_set.extend(extend_value);
                     *value = InnerGraphMapValue::Set(new_set);
@@ -607,20 +607,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
           .inner_graph
           .decl_with_top_level_symbol
           .insert(decl.span(ast), v);
-
-        if !matches!(
-          ast.expr_data(init),
-          ExprData::Function(_)
-            | ExprData::ArrowFunctionExpression(_)
-            | ExprData::StringLiteral(_)
-            | ExprData::NumericLiteral(_)
-            | ExprData::BigIntLiteral(_)
-            | ExprData::BooleanLiteral(_)
-            | ExprData::NullLiteral(_)
-            | ExprData::RegExpLiteral(_)
-        ) {
-          parser.inner_graph.pure_declarators.insert(decl.span(ast));
-        }
       }
     }
 
@@ -845,43 +831,31 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
       parser.inner_graph.set_top_level_symbol(Some(*v));
 
       let ast = parser.ast.ast;
-      if parser
-        .inner_graph
-        .pure_declarators
-        .contains(&decl.span(ast))
-      {
-        // class Foo extends Bar {}
-        // if Foo is not used, we can ignore extends Bar
-        if let Some(init) = decl.init(ast)
-          && let Some(class) = init.as_class(ast)
-          && let Some(super_class) = class.super_class(ast)
-        {
-          let super_span = super_class.span(ast);
-          let dep = PureExpressionDependency::new(
-            DependencyRange::new(super_span.real_lo(), super_span.real_hi()),
-            *parser.module_identifier,
-          );
-          let dep_idx = parser.next_dependency_idx();
-          parser.add_dependency(BoxDependency::new(dep));
-          Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
-        } else if let Some(init) = decl.init(ast)
-          && !init.is_class(ast)
-        {
-          let init_span = init.span(ast);
-          let dep = PureExpressionDependency::new(
-            DependencyRange::new(init_span.real_lo(), init_span.real_hi()),
-            *parser.module_identifier,
-          );
-          let dep_idx = parser.next_dependency_idx();
-          parser.add_dependency(BoxDependency::new(dep));
-          InnerGraphParserPlugin::on_usage(
-            parser,
-            InnerGraphUsageOperation::PureExpression(dep_idx),
-          );
-        }
+      let init = decl
+        .init(ast)
+        .expect("inner graph declarator has an initializer");
+      if !matches!(
+        ast.expr_data(init),
+        ExprData::Function(_)
+          | ExprData::ArrowFunctionExpression(_)
+          | ExprData::StringLiteral(_)
+          | ExprData::NumericLiteral(_)
+          | ExprData::BigIntLiteral(_)
+          | ExprData::BooleanLiteral(_)
+          | ExprData::NullLiteral(_)
+          | ExprData::RegExpLiteral(_)
+      ) {
+        let init_span = init.span(ast);
+        let dep = PureExpressionDependency::new(
+          DependencyRange::new(init_span.real_lo(), init_span.real_hi()),
+          *parser.module_identifier,
+        );
+        let dep_idx = parser.next_dependency_idx();
+        parser.add_dependency(BoxDependency::new(dep));
+        InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
       }
 
-      parser.walk_expression(decl.init(ast).expect("should have initialization"));
+      parser.walk_expression(init);
       parser.inner_graph.set_top_level_symbol(None);
       return Some(true);
     } else if decl

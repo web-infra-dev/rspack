@@ -1,7 +1,9 @@
 use std::hash::{Hash, Hasher};
 
+use either::Either;
 use rspack_util::atom::AtomKey;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use smallvec::SmallVec;
 use swc_next_ecma_ast::Span;
 
 use crate::Atom;
@@ -52,7 +54,7 @@ pub(super) struct TopLevelSymbolState {
 
 #[derive(Default, Clone, PartialEq, Eq, Debug)]
 pub(super) enum InnerGraphMapValue {
-  Set(HashSet<InnerGraphMapSetValue>),
+  Set(InnerGraphMapSet),
   True,
   #[default]
   Nil,
@@ -62,6 +64,122 @@ pub(super) enum InnerGraphMapValue {
 pub(super) enum InnerGraphMapSetValue {
   TopLevel(TopLevelSymbol),
   Str(Atom),
+}
+
+#[derive(Clone, Debug)]
+pub(super) enum InnerGraphMapSet {
+  Small(SmallVec<[InnerGraphMapSetValue; 2]>),
+  Large(HashSet<InnerGraphMapSetValue>),
+}
+
+impl Default for InnerGraphMapSet {
+  fn default() -> Self {
+    Self::Small(SmallVec::new())
+  }
+}
+
+impl InnerGraphMapSet {
+  fn from_value(value: InnerGraphMapSetValue) -> Self {
+    let mut values = SmallVec::new();
+    values.push(value);
+    Self::Small(values)
+  }
+
+  pub(super) fn insert(&mut self, value: InnerGraphMapSetValue) -> bool {
+    match self {
+      Self::Small(values) => {
+        if values.contains(&value) {
+          return false;
+        }
+        if values.len() < values.inline_size() {
+          values.push(value);
+          return true;
+        }
+        let mut set = HashSet::default();
+        set.reserve(values.len() + 1);
+        set.extend(values.drain(..));
+        let inserted = set.insert(value);
+        *self = Self::Large(set);
+        inserted
+      }
+      Self::Large(values) => values.insert(value),
+    }
+  }
+
+  pub(super) fn contains(&self, value: &InnerGraphMapSetValue) -> bool {
+    match self {
+      Self::Small(values) => values.contains(value),
+      Self::Large(values) => values.contains(value),
+    }
+  }
+
+  pub(super) fn len(&self) -> usize {
+    match self {
+      Self::Small(values) => values.len(),
+      Self::Large(values) => values.len(),
+    }
+  }
+
+  pub(super) fn iter(
+    &self,
+  ) -> Either<
+    std::slice::Iter<'_, InnerGraphMapSetValue>,
+    std::collections::hash_set::Iter<'_, InnerGraphMapSetValue>,
+  > {
+    self.into_iter()
+  }
+}
+
+impl From<HashSet<InnerGraphMapSetValue>> for InnerGraphMapSet {
+  fn from(values: HashSet<InnerGraphMapSetValue>) -> Self {
+    Self::Large(values)
+  }
+}
+
+impl Extend<InnerGraphMapSetValue> for InnerGraphMapSet {
+  fn extend<T: IntoIterator<Item = InnerGraphMapSetValue>>(&mut self, iter: T) {
+    for value in iter {
+      self.insert(value);
+    }
+  }
+}
+
+impl PartialEq for InnerGraphMapSet {
+  fn eq(&self, other: &Self) -> bool {
+    self.len() == other.len() && self.iter().all(|value| other.contains(value))
+  }
+}
+
+impl Eq for InnerGraphMapSet {}
+
+impl<'a> IntoIterator for &'a InnerGraphMapSet {
+  type Item = &'a InnerGraphMapSetValue;
+  type IntoIter = Either<
+    std::slice::Iter<'a, InnerGraphMapSetValue>,
+    std::collections::hash_set::Iter<'a, InnerGraphMapSetValue>,
+  >;
+
+  fn into_iter(self) -> Self::IntoIter {
+    match self {
+      InnerGraphMapSet::Small(values) => Either::Left(values.iter()),
+      InnerGraphMapSet::Large(values) => Either::Right(values.iter()),
+    }
+  }
+}
+
+impl IntoIterator for InnerGraphMapSet {
+  type Item = InnerGraphMapSetValue;
+  type IntoIter = Either<
+    smallvec::IntoIter<[InnerGraphMapSetValue; 2]>,
+    std::collections::hash_set::IntoIter<InnerGraphMapSetValue>,
+  >;
+
+  fn into_iter(self) -> Self::IntoIter {
+    match self {
+      Self::Small(values) => Either::Left(values.into_iter()),
+      Self::Large(values) => Either::Right(values.into_iter()),
+    }
+  }
 }
 
 impl Hash for InnerGraphMapSetValue {
@@ -105,7 +223,6 @@ pub(crate) struct InnerGraphState {
   pub(super) statement_pure_part: HashMap<Span, Span>,
   pub(super) class_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
   pub(super) decl_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
-  pub(super) pure_declarators: HashSet<Span>,
 }
 
 impl InnerGraphState {
@@ -237,11 +354,11 @@ impl InnerGraphState {
           }
           Some(InnerGraphMapValue::True) => {}
           Some(value @ InnerGraphMapValue::Nil) => {
-            *value = InnerGraphMapValue::Set(HashSet::from_iter([set_value]));
+            *value = InnerGraphMapValue::Set(InnerGraphMapSet::from_value(set_value));
           }
           None => self.set_graph(
             symbol,
-            InnerGraphMapValue::Set(HashSet::from_iter([set_value])),
+            InnerGraphMapValue::Set(InnerGraphMapSet::from_value(set_value)),
           ),
         }
       }

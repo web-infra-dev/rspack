@@ -1036,25 +1036,27 @@ impl<'parser> JavascriptParser<'parser> {
   /// example `require.ensure`'s `require` parameter), while import bindings
   /// need parser-plugin tags before references can consume them.
   fn activate_semantic_scope_bindings(&mut self) {
-    let symbols = self
-      .ast
-      .semantic
-      .bindings(self.current_semantic_scope)
-      .filter_map(|symbol| {
-        let flags = self.ast.semantic.symbol(symbol).flags;
-        (flags.intersects(
-          SymbolFlags::FUNCTION_SCOPED_VAR
-            | SymbolFlags::BLOCK_SCOPED_VAR
-            | SymbolFlags::FUNCTION
-            | SymbolFlags::CLASS,
-        ) && !flags
-          .intersects(SymbolFlags::PARAMETER | SymbolFlags::CATCH_VAR | SymbolFlags::ANY_IMPORT))
-        .then_some(symbol.index())
-      })
-      .collect::<SmallVec<[_; 16]>>();
-
-    for index in symbols {
-      self.ensure_semantic_variable(index);
+    let semantic = &self.ast.semantic;
+    let semantic_variables = &mut self.semantic_variables;
+    let semantic_normal_variable = self.semantic_normal_variable;
+    for symbol in semantic.bindings(self.current_semantic_scope) {
+      let flags = semantic.symbol(symbol).flags;
+      if flags.intersects(
+        SymbolFlags::FUNCTION_SCOPED_VAR
+          | SymbolFlags::BLOCK_SCOPED_VAR
+          | SymbolFlags::FUNCTION
+          | SymbolFlags::CLASS,
+      ) && !flags
+        .intersects(SymbolFlags::PARAMETER | SymbolFlags::CATCH_VAR | SymbolFlags::ANY_IMPORT)
+      {
+        let index = symbol.index();
+        if index >= semantic_variables.len() {
+          semantic_variables.resize(index + 1, None);
+        }
+        if semantic_variables[index].is_none() {
+          semantic_variables[index] = Some(semantic_normal_variable);
+        }
+      }
     }
   }
 
