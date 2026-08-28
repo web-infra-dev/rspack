@@ -97,7 +97,7 @@ use crate::{
   legacy_cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
-  new_cache::{Cache, CacheFacade},
+  new_cache::{Cache, CacheFacade, ModuleCache},
   to_identifier,
 };
 
@@ -239,6 +239,7 @@ pub struct Compilation {
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   cache: Cache,
+  pub(crate) module_cache: ModuleCache,
   pub file_system_info: FileSystemInfo,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
@@ -359,6 +360,7 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
+    let module_cache = ModuleCache::new(cache.clone(), &options, is_rebuild);
     let snapshot_options = match &options.cache {
       CacheOptions::Disabled => SnapshotOptions::default(),
       CacheOptions::Memory { snapshot, .. } => snapshot.clone(),
@@ -392,6 +394,7 @@ impl Compilation {
       diagnostics: Default::default(),
       logging,
       cache,
+      module_cache,
       file_system_info,
       plugin_driver,
       buildtime_plugin_driver,

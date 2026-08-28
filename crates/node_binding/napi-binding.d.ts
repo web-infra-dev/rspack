@@ -2779,6 +2779,7 @@ export interface RawModuleRuleUse {
 
 export interface RawNewCache {
   codeGeneration: boolean
+  module: boolean
   devtool: boolean
   loader: boolean
   minimize: boolean

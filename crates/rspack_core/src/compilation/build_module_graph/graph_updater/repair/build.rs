@@ -1,6 +1,7 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use rspack_fs::ReadableFileSystem;
+use rspack_util::time::current_time;
 use rustc_hash::FxHashSet;
 
 use super::{
@@ -11,6 +12,7 @@ use crate::{
   CompilationId, CompilerId, CompilerOptions, DependencyParents, FileSystemInfo,
   ModuleCodeTemplate, ResolverFactory, SharedPluginDriver,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
+  new_cache::ModuleCache,
   utils::{
     ResourceId,
     task_loop::{Task, TaskResult, TaskType},
@@ -30,6 +32,7 @@ pub struct BuildTask {
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
   pub forwarded_ids: ForwardedIdSet,
+  pub module_cache: ModuleCache,
 }
 
 #[async_trait::async_trait]
@@ -50,7 +53,10 @@ impl Task<TaskContext> for BuildTask {
       mut module,
       fs,
       forwarded_ids,
+      module_cache,
     } = *self;
+
+    let build_start_time = current_time();
 
     plugin_driver
       .compilation_hooks
@@ -65,7 +71,7 @@ impl Task<TaskContext> for BuildTask {
           compilation_id,
           compiler_options: compiler_options.clone(),
           loader_cache,
-          file_system_info,
+          file_system_info: file_system_info.clone(),
           resolver_factory: resolver_factory.clone(),
           plugin_driver: plugin_driver.clone(),
           runtime_template,
@@ -73,23 +79,61 @@ impl Task<TaskContext> for BuildTask {
         },
         None,
       )
-      .await;
+      .await?;
 
-    result.map::<Vec<Box<dyn Task<TaskContext>>>, _>(|build_result| {
-      vec![Box::new(BuildResultTask {
-        build_result: Box::new(build_result),
-        plugin_driver,
-        forwarded_ids,
-      })]
-    })
+    let mut build_result = result;
+    module_cache
+      .store(&mut build_result, &file_system_info, build_start_time)
+      .await?;
+
+    Ok(vec![Box::new(BuildResultTask::built(
+      build_result,
+      plugin_driver,
+      forwarded_ids,
+    ))])
   }
 }
 
 #[derive(Debug)]
-struct BuildResultTask {
+enum BuildResultOrigin {
+  Built,
+  Cached,
+}
+
+#[derive(Debug)]
+pub(super) struct BuildResultTask {
   pub build_result: Box<BuildResult>,
   pub plugin_driver: SharedPluginDriver,
   pub forwarded_ids: ForwardedIdSet,
+  origin: BuildResultOrigin,
+}
+
+impl BuildResultTask {
+  fn built(
+    build_result: BuildResult,
+    plugin_driver: SharedPluginDriver,
+    forwarded_ids: ForwardedIdSet,
+  ) -> Self {
+    Self {
+      build_result: Box::new(build_result),
+      plugin_driver,
+      forwarded_ids,
+      origin: BuildResultOrigin::Built,
+    }
+  }
+
+  pub(super) fn cached(
+    build_result: BuildResult,
+    plugin_driver: SharedPluginDriver,
+    forwarded_ids: ForwardedIdSet,
+  ) -> Self {
+    Self {
+      build_result: Box::new(build_result),
+      plugin_driver,
+      forwarded_ids,
+      origin: BuildResultOrigin::Cached,
+    }
+  }
 }
 
 #[async_trait::async_trait]
@@ -102,14 +146,26 @@ impl Task<TaskContext> for BuildResultTask {
       build_result,
       plugin_driver,
       mut forwarded_ids,
+      origin,
     } = *self;
     let mut module = build_result.module;
 
-    plugin_driver
-      .compilation_hooks
-      .succeed_module
-      .call(context.compiler_id, context.compilation_id, &mut module)
-      .await?;
+    match origin {
+      BuildResultOrigin::Built => {
+        plugin_driver
+          .compilation_hooks
+          .succeed_module
+          .call(context.compiler_id, context.compilation_id, &mut module)
+          .await?;
+      }
+      BuildResultOrigin::Cached => {
+        plugin_driver
+          .compilation_hooks
+          .still_valid_module
+          .call(context.compiler_id, context.compilation_id, &mut module)
+          .await?;
+      }
+    }
 
     let build_info = module.build_info();
 

@@ -7,8 +7,15 @@ use futures::future::BoxFuture;
 use indoc::formatdoc;
 use itertools::Itertools;
 use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  with::{AsCacheable, AsOption, AsPreset, AsVec, Unsupported},
+  __private::rkyv::{
+    Place,
+    de::Pooling,
+    rancor::Fallible,
+    ser::Sharing,
+    with::{ArchiveWith, DeserializeWith, SerializeWith},
+  },
+  ContextGuard, Error as CacheableError, cacheable, cacheable_dyn,
+  with::{AsCacheable, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -32,9 +39,10 @@ use crate::{
   DependenciesBlock, DependencyCategory, DependencyId, DependencyLocation, DynamicImportMode,
   ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions, ImportAttributes, ImportPhase,
   LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate,
-  ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType, RealDependencyLocation,
-  ReferencedSpecifier, Resolve, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType,
-  contextify, get_exports_type_with_strict, get_outgoing_async_modules, impl_module_meta_info,
+  ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType, NeedBuildContext,
+  RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals, RuntimeGlobalsRenderMode,
+  RuntimeSpec, SnapshotValidationResult, SourceType, cache::CacheCodecContext, contextify,
+  get_exports_type_with_strict, get_outgoing_async_modules, impl_module_meta_info,
   module_update_hash, property_access, to_path,
 };
 
@@ -274,6 +282,65 @@ pub type ResolveContextModuleDependencies = Arc<
     + Sync,
 >;
 
+/// Context dependency resolution is factory state and is restored from the
+/// fresh module by `update_cache_module`, just like webpack's
+/// `ContextModule.resolveDependencies`.
+struct SkipResolveContextModuleDependencies;
+
+impl ArchiveWith<ResolveContextModuleDependencies> for SkipResolveContextModuleDependencies {
+  type Archived = ();
+  type Resolver = ();
+
+  fn resolve_with(
+    _field: &ResolveContextModuleDependencies,
+    _resolver: Self::Resolver,
+    _out: Place<Self::Archived>,
+  ) {
+  }
+}
+
+impl<S> SerializeWith<ResolveContextModuleDependencies, S> for SkipResolveContextModuleDependencies
+where
+  S: Fallible<Error = CacheableError> + Sharing + ?Sized,
+{
+  fn serialize_with(
+    _field: &ResolveContextModuleDependencies,
+    serializer: &mut S,
+  ) -> std::result::Result<Self::Resolver, CacheableError> {
+    let context =
+      ContextGuard::sharing_guard(serializer)?.downcast_context::<CacheCodecContext>()?;
+    if context.omit_module_factory_state() {
+      Ok(())
+    } else {
+      Err(CacheableError::UnsupportedField)
+    }
+  }
+}
+
+impl<D> DeserializeWith<(), ResolveContextModuleDependencies, D>
+  for SkipResolveContextModuleDependencies
+where
+  D: Fallible<Error = CacheableError> + Pooling + ?Sized,
+{
+  fn deserialize_with(
+    _field: &(),
+    deserializer: &mut D,
+  ) -> std::result::Result<ResolveContextModuleDependencies, CacheableError> {
+    let context =
+      ContextGuard::pooling_guard(deserializer)?.downcast_context::<CacheCodecContext>()?;
+    if !context.omit_module_factory_state() {
+      return Err(CacheableError::UnsupportedField);
+    }
+    Ok(Arc::new(|_| {
+      Box::pin(async {
+        Err(rspack_error::error!(
+          "Context module resolver was not restored from the fresh module"
+        ))
+      })
+    }))
+  }
+}
+
 #[impl_source_map_config]
 #[cacheable]
 #[derive(Debug)]
@@ -286,8 +353,9 @@ pub struct ContextModule {
   build_info: BuildInfo,
   build_meta: BuildMeta,
   #[debug(skip)]
-  #[cacheable(with=Unsupported)]
+  #[cacheable(with=SkipResolveContextModuleDependencies)]
   resolve_dependencies: ResolveContextModuleDependencies,
+  force_build: bool,
 }
 
 impl ContextModule {
@@ -313,6 +381,7 @@ impl ContextModule {
         .with_default_object(BuildMetaDefaultObject::RedirectWarn),
       source_map_kind: SourceMapKind::empty(),
       resolve_dependencies,
+      force_build: true,
     }
   }
 
@@ -1338,6 +1407,36 @@ impl DependenciesBlock for ContextModule {
 impl Module for ContextModule {
   impl_module_meta_info!();
 
+  fn update_cache_module(&mut self, module: &mut BoxModule) {
+    let Some(module) = module.as_context_module_mut() else {
+      return;
+    };
+
+    std::mem::swap(
+      &mut self.resolve_dependencies,
+      &mut module.resolve_dependencies,
+    );
+    std::mem::swap(&mut self.options, &mut module.options);
+  }
+
+  async fn need_build(&mut self, context: &NeedBuildContext<'_>) -> Result<bool> {
+    if self.force_build {
+      return Ok(true);
+    }
+
+    let Some(snapshot) = &self.build_info.snapshot else {
+      return Ok(!self.options.resource.as_str().is_empty());
+    };
+
+    Ok(matches!(
+      context
+        .file_system_info
+        .check_snapshot_valid(snapshot)
+        .await?,
+      SnapshotValidationResult::Invalid { .. }
+    ))
+  }
+
   fn module_type(&self) -> &ModuleType {
     &ModuleType::JsAuto
   }
@@ -1441,6 +1540,9 @@ impl Module for ContextModule {
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
+    self.force_build = false;
+    self.build_info.snapshot = None;
+
     let resolve_dependencies = &self.resolve_dependencies;
     let context_element_dependencies = resolve_dependencies(self.options.clone()).await?;
 

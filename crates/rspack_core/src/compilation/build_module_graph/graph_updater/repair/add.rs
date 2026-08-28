@@ -1,8 +1,12 @@
 use rspack_error::Result;
 
-use super::{TaskContext, build::BuildTask, lazy::process_unlazy_dependencies};
+use super::{
+  TaskContext,
+  build::{BuildResultTask, BuildTask},
+  lazy::process_unlazy_dependencies,
+};
 use crate::{
-  BoxModule, DependencyRef, ModuleIdentifier,
+  BoxModule, BuildResult, DependencyRef, ModuleIdentifier,
   compilation::build_module_graph::ForwardedIdSet,
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -17,55 +21,69 @@ pub struct AddTask {
   pub from_unlazy: bool,
 }
 
+enum ModuleBuild {
+  Fresh(BoxModule),
+  Cached(BuildResult),
+}
+
 #[async_trait::async_trait]
 impl Task<TaskContext> for AddTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Main
   }
   async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
-    let module_identifier = self.module.identifier();
-    let module_graph = &mut context.artifact.module_graph;
+    let Self {
+      original_module_identifier,
+      mut module,
+      module_graph_module,
+      dependencies,
+      from_unlazy,
+    } = *self;
+    let module_identifier = module.identifier();
 
     // reuse module for self referenced module
-    if self.module.as_self_module().is_some() {
-      let issuer = self
-        .module_graph_module
+    if module.as_self_module().is_some() {
+      let issuer = module_graph_module
         .issuer()
         .identifier()
         .expect("self module should have issuer");
 
       set_resolved_module(
-        module_graph,
-        self.original_module_identifier,
-        self.dependencies,
+        &mut context.artifact.module_graph,
+        original_module_identifier,
+        dependencies,
         *issuer,
       )?;
 
       return Ok(vec![]);
     }
 
-    let forwarded_ids = ForwardedIdSet::from_dependencies(&self.dependencies);
+    let forwarded_ids = ForwardedIdSet::from_dependencies(&dependencies);
 
     // reuse module if module is already added by other dependency
-    if module_graph
+    if context
+      .artifact
+      .module_graph
       .module_graph_module_by_identifier(&module_identifier)
       .is_some()
     {
       set_resolved_module(
-        module_graph,
-        self.original_module_identifier,
-        self.dependencies,
+        &mut context.artifact.module_graph,
+        original_module_identifier,
+        dependencies,
         module_identifier,
       )?;
 
-      if self.from_unlazy {
+      if from_unlazy {
         context
           .artifact
           .affected_modules
           .mark_as_add(&module_identifier);
       }
 
-      if module_graph
+      if context
+        .artifact
+        .module_graph
         .module_by_identifier(&module_identifier)
         .is_some()
       {
@@ -77,7 +95,7 @@ impl Task<TaskContext> for AddTask {
         {
           if let Some(task) = process_unlazy_dependencies(
             &context.artifact.module_to_lazy_make,
-            module_graph,
+            &mut context.artifact.module_graph,
             forwarded_ids,
             module_identifier,
           ) {
@@ -96,28 +114,54 @@ impl Task<TaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    module_graph.add_module_graph_module(*self.module_graph_module);
+    let module_build = match context.module_cache.restore(module_identifier)? {
+      Some(mut build_result) => {
+        build_result.module.update_cache_module(&mut module);
+        ModuleBuild::Cached(build_result)
+      }
+      None => ModuleBuild::Fresh(module),
+    };
+
+    context
+      .artifact
+      .module_graph
+      .add_module_graph_module(*module_graph_module);
 
     context
       .exports_info_artifact
       .new_exports_info(module_identifier);
 
     set_resolved_module(
-      module_graph,
-      self.original_module_identifier,
-      self.dependencies,
+      &mut context.artifact.module_graph,
+      original_module_identifier,
+      dependencies,
       module_identifier,
     )?;
 
-    tracing::trace!("Module added: {}", self.module.identifier());
+    tracing::trace!("Module added: {module_identifier}");
     context
       .artifact
       .affected_modules
       .mark_as_add(&module_identifier);
+
+    let module = match module_build {
+      ModuleBuild::Fresh(module) => module,
+      ModuleBuild::Cached(mut build_result) => {
+        if !context.module_needs_build(&mut build_result.module).await? {
+          return Ok(vec![Box::new(BuildResultTask::cached(
+            build_result,
+            context.plugin_driver.clone(),
+            forwarded_ids,
+          ))]);
+        }
+        build_result.module
+      }
+    };
+
     Ok(vec![Box::new(BuildTask {
       compiler_id: context.compiler_id,
       compilation_id: context.compilation_id,
-      module: self.module,
+      module,
       resolver_factory: context.resolver_factory.clone(),
       compiler_options: context.compiler_options.clone(),
       loader_cache: context.cache.facade("loader"),
@@ -126,6 +170,7 @@ impl Task<TaskContext> for AddTask {
       runtime_template: context.runtime_template.create_module_code_template(),
       fs: context.fs.clone(),
       forwarded_ids,
+      module_cache: context.module_cache.clone(),
     })])
   }
 }
