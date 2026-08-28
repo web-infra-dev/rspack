@@ -61,7 +61,7 @@ pub struct ContextTimestampAndHash {
 /// See webpack's `Snapshot` data structure:
 /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L303-L665
 #[cacheable]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct Snapshot {
   pub(super) start_time: Option<u64>,
   pub(super) file_timestamps: Option<InternedPathMap<Option<FileSystemInfoEntry>>>,

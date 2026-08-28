@@ -289,7 +289,7 @@ pub struct BuildInfo {
   pub module_argument: ModuleArgument,
   pub exports_argument: ExportsArgument,
   pub dependencies: crate::LoaderDependencies,
-  pub snapshot: Option<Snapshot>,
+  pub snapshot: Option<Arc<Snapshot>>,
   pub value_dependencies: HashMap<String, String>,
   #[cacheable(with=AsVec<AsPreset>)]
   pub esm_named_exports: HashSet<Atom>,

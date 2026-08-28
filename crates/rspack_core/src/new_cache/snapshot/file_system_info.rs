@@ -3,7 +3,6 @@ use std::{collections::VecDeque, fmt, sync::Arc};
 use rspack_error::{Result, error};
 use rspack_fs::{Error as FsError, FileMetadata, ReadableFileSystem};
 use rspack_hash::{HashDigest, HashFunction, RspackHashDigest, RspackHasher};
-use rspack_loader_runner::LoaderDependencies;
 use rspack_parallel::TryFutureConsumer;
 use rspack_paths::{AssertUtf8, InternedPath, InternedPathDashMap, InternedPathSet};
 use rspack_util::time::mtime_accuracy;
@@ -188,25 +187,6 @@ impl FileSystemInfo {
     self.capture_contexts(&mut snapshot, contexts, mode).await?;
     self.capture_missing(&mut snapshot, missing).await?;
     Ok(snapshot)
-  }
-
-  /// Captures the filesystem inputs of a module build.
-  pub async fn create_module_snapshot(
-    &self,
-    start_time: Option<u64>,
-    dependencies: &LoaderDependencies,
-  ) -> Result<Snapshot> {
-    self
-      .create_snapshot(
-        start_time,
-        &dependencies.file,
-        &dependencies.context,
-        &dependencies.missing,
-        // Rspack does not expose webpack's `snapshot.module` option yet, so use
-        // webpack's default module snapshot strategy directly.
-        SnapshotStrategyOptions::timestamp(),
-      )
-      .await
   }
 
   /// See webpack's snapshot merge implementation:

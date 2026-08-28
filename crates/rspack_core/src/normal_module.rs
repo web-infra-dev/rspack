@@ -39,6 +39,7 @@ use crate::{
   OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult, ParserAndGenerator,
   ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext,
   RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SnapshotValidationResult, SourceType,
+  cache::SnapshotStrategyOptions,
   contextify,
   diagnostics::ModuleBuildError,
   get_context,
@@ -545,11 +546,17 @@ impl Module for NormalModule {
       self.presentational_dependencies = Some(Vec::new());
 
       if let Some(file_system_info) = &file_system_info {
-        self.build_info.snapshot = Some(
+        self.build_info.snapshot = Some(Arc::new(
           file_system_info
-            .create_module_snapshot(Some(build_start_time), &self.build_info.dependencies)
+            .create_snapshot(
+              Some(build_start_time),
+              &self.build_info.dependencies.file,
+              &self.build_info.dependencies.context,
+              &self.build_info.dependencies.missing,
+              SnapshotStrategyOptions::timestamp(),
+            )
             .await?,
-        );
+        ));
       }
 
       self.build_info.hash =
@@ -621,11 +628,17 @@ impl Module for NormalModule {
     self.presentational_dependencies = Some(presentational_dependencies);
 
     if let Some(file_system_info) = &file_system_info {
-      self.build_info.snapshot = Some(
+      self.build_info.snapshot = Some(Arc::new(
         file_system_info
-          .create_module_snapshot(Some(build_start_time), &self.build_info.dependencies)
+          .create_snapshot(
+            Some(build_start_time),
+            &self.build_info.dependencies.file,
+            &self.build_info.dependencies.context,
+            &self.build_info.dependencies.missing,
+            SnapshotStrategyOptions::timestamp(),
+          )
           .await?,
-      );
+      ));
     }
 
     self.build_info.hash =
