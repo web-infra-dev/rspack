@@ -8,7 +8,9 @@ use rustc_hash::FxHashSet;
 
 use self::{cutout::Cutout, repair::repair};
 use super::BuildModuleGraphArtifact;
-use crate::{Compilation, DependencyId, ExportsInfoArtifact};
+use crate::{
+  CacheFacade, Compilation, DependencyId, ExportsInfoArtifact, incremental::IncrementalPasses,
+};
 
 /// The param to update module graph
 #[derive(Debug, Clone)]
@@ -31,9 +33,89 @@ pub enum UpdateParam {
 /// Update module graph through `UpdateParam`
 pub async fn update_module_graph(
   compilation: &Compilation,
+  artifact: BuildModuleGraphArtifact,
+  exports_info_artifact: ExportsInfoArtifact,
+  params: Vec<UpdateParam>,
+) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+  update_module_graph_impl(
+    compilation,
+    artifact,
+    exports_info_artifact,
+    params,
+    None,
+    false,
+  )
+  .await
+}
+
+/// Update a non-incremental make with webpack's `Compilation/modules` cache.
+///
+/// A hot incremental make always delegates to `update_module_graph`, so its
+/// artifact update path never reads or writes the module cache.
+pub async fn update_module_graph_with_module_cache(
+  compilation: &Compilation,
+  artifact: BuildModuleGraphArtifact,
+  exports_info_artifact: ExportsInfoArtifact,
+  params: Vec<UpdateParam>,
+) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+  if compilation
+    .incremental
+    .mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH)
+  {
+    return update_module_graph(compilation, artifact, exports_info_artifact, params).await;
+  }
+  update_module_graph_impl(
+    compilation,
+    artifact,
+    exports_info_artifact,
+    params,
+    compilation
+      .file_system_info
+      .as_ref()
+      .map(|_| compilation.get_cache("Compilation/modules")),
+    true,
+  )
+  .await
+}
+
+/// Force a non-incremental module rebuild without restoring its previous build
+/// result, while still storing the successful replacement like webpack.
+///
+/// A hot incremental make delegates to the cache-free update path before the
+/// module cache is accessed.
+pub async fn rebuild_module_graph_with_module_cache(
+  compilation: &Compilation,
+  artifact: BuildModuleGraphArtifact,
+  exports_info_artifact: ExportsInfoArtifact,
+  params: Vec<UpdateParam>,
+) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+  if compilation
+    .incremental
+    .mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH)
+  {
+    return update_module_graph(compilation, artifact, exports_info_artifact, params).await;
+  }
+  update_module_graph_impl(
+    compilation,
+    artifact,
+    exports_info_artifact,
+    params,
+    compilation
+      .file_system_info
+      .as_ref()
+      .map(|_| compilation.get_cache("Compilation/modules")),
+    false,
+  )
+  .await
+}
+
+async fn update_module_graph_impl(
+  compilation: &Compilation,
   mut artifact: BuildModuleGraphArtifact,
   mut exports_info_artifact: ExportsInfoArtifact,
   params: Vec<UpdateParam>,
+  module_cache: Option<CacheFacade>,
+  restore_module_cache: bool,
 ) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
   let mut cutout = Cutout::default();
 
@@ -52,6 +134,8 @@ pub async fn update_module_graph(
     artifact,
     exports_info_artifact,
     build_dependencies,
+    module_cache,
+    restore_module_cache,
   )
   .await?;
   cutout.fix_artifact(&mut artifact);

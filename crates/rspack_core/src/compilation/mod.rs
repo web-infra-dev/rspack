@@ -87,7 +87,8 @@ use crate::{
   RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
   SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
   compilation::build_module_graph::{
-    BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
+    BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, rebuild_module_graph_with_module_cache,
+    update_module_graph_with_module_cache,
   },
   compiler::{CompilationRecords, CompilerId},
   get_runtime_key,
@@ -96,7 +97,7 @@ use crate::{
   legacy_cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
-  new_cache::{Cache, CacheFacade, FileSystemInfo, ModuleCache},
+  new_cache::{Cache, CacheFacade, FileSystemInfo},
   to_identifier,
 };
 
@@ -239,7 +240,6 @@ pub struct Compilation {
   logging: CompilationLogging,
   cache: Cache,
   file_system_info: Option<FileSystemInfo>,
-  module_cache: Option<ModuleCache>,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -385,7 +385,6 @@ impl Compilation {
       logging,
       cache,
       file_system_info: None,
-      module_cache: None,
       plugin_driver,
       buildtime_plugin_driver,
       resolver_factory,
@@ -459,9 +458,6 @@ impl Compilation {
         compilation.get_logger("rspack.FileSystemInfo"),
         module_snapshot_options,
         compilation.options.output.hash_function,
-      ));
-      compilation.module_cache = Some(ModuleCache::new(
-        compilation.get_cache("Compilation/modules"),
       ));
     }
     compilation
@@ -716,7 +712,7 @@ impl Compilation {
 
     let make_artifact = self.build_module_graph_artifact.steal();
     let exports_info_artifact = self.exports_info_artifact.steal();
-    let (make_artifact, exports_info_artifact) = update_module_graph(
+    let (make_artifact, exports_info_artifact) = update_module_graph_with_module_cache(
       self,
       make_artifact,
       exports_info_artifact,
@@ -773,7 +769,7 @@ impl Compilation {
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
     let make_artifact = self.build_module_graph_artifact.steal();
     let exports_info_artifact = self.exports_info_artifact.steal();
-    let (make_artifact, exports_info_artifact) = update_module_graph(
+    let (make_artifact, exports_info_artifact) = update_module_graph_with_module_cache(
       self,
       make_artifact,
       exports_info_artifact,
@@ -1092,15 +1088,12 @@ impl Compilation {
     exports_info_artifact: &mut ExportsInfoArtifact,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
-    if let Some(module_cache) = &self.module_cache {
-      module_cache.invalidate(&module_identifiers);
-    }
     let artifact = self.build_module_graph_artifact.steal();
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
 
-    let (artifact, updated_exports_info_artifact) = update_module_graph(
+    let (artifact, updated_exports_info_artifact) = rebuild_module_graph_with_module_cache(
       self,
       artifact,
       std::mem::take(exports_info_artifact),

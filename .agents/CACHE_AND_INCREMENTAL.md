@@ -40,6 +40,11 @@ Neither option implicitly enables or disables the other. All four combinations a
 In this table, Cache “On” includes either memory-only cache or filesystem-backed persistent cache.
 The choice of storage mode does not change the Incremental semantics.
 
+The module build cache is deliberately isolated from incremental make. When
+`IncrementalPasses::BUILD_MODULE_GRAPH` is readable for a hot compilation, that make invocation
+uses only the recovered `BuildModuleGraphArtifact` and must not access the new Cache's
+`Compilation/modules` entries. Other fine-grained caches and compilation passes remain available.
+
 ### Configuration Examples
 
 ```js
@@ -159,6 +164,27 @@ precedent for new code: ownership is determined by invalidation and reuse semant
 state should move behind Cache abstractions. Legacy persistent Cache calls its generic payload a
 `CacheItem`, not an Artifact.
 
+### Module Build Cache Isolation
+
+The make graph updater has three explicit interfaces:
+
+- `update_module_graph` is the cache-free interface used by incremental make and module execution.
+  It must preserve the existing artifact revoke/repair flow and must not look up, store, or
+  invalidate new Cache module entries.
+- `update_module_graph_with_module_cache` is the interface for cold or otherwise non-incremental
+  make. It may obtain the new Cache's `Compilation/modules` facade directly from `Compilation`. If
+  the current compilation can read `IncrementalPasses::BUILD_MODULE_GRAPH` mutations, it must
+  delegate to the cache-free interface before obtaining or accessing the module cache.
+- `rebuild_module_graph_with_module_cache` is the explicit-rebuild interface. In a
+  non-incremental compilation it skips cache restore and stores the successful replacement. In a
+  hot incremental compilation it must delegate to the cache-free interface before obtaining or
+  accessing the module cache.
+
+Do not bridge these interfaces with shared invalid-module sets, forced cache misses, or by storing
+module-cache state in Incremental artifacts. Cache reuse and incremental graph reuse may both be
+enabled in configuration, but they must not compete to restore module build state within the same
+make invocation.
+
 ## Architectural Invariants
 
 Changes to these systems must preserve the following rules:
@@ -172,6 +198,8 @@ Changes to these systems must preserve the following rules:
    incremental build.
 7. Tests that require full-rebuild behavior must set `incremental: false` explicitly instead of
    relying on `cache: false` as an indirect switch.
+8. A make invocation that reads `IncrementalPasses::BUILD_MODULE_GRAPH` mutations must use the
+   cache-free graph-update interface and must not access new Cache `Compilation/modules` entries.
 
 Most pass-scoped Incremental state follows these rules today. The `*CacheArtifact` types described
 above are transitional Cache co-location, while `EMIT_ASSETS` still keeps emitted asset versions

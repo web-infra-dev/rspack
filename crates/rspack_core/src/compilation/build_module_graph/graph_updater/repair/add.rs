@@ -126,6 +126,7 @@ impl Task<TaskContext> for AddTask {
       fs: context.fs.clone(),
       file_system_info: context.file_system_info.clone(),
       module_cache: context.module_cache.clone(),
+      restore_module_cache: context.restore_module_cache,
       value_cache_versions: context.value_cache_versions.clone(),
       forwarded_ids,
     })])

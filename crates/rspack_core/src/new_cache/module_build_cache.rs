@@ -1,7 +1,4 @@
-use std::sync::{Arc, Mutex};
-
 use rspack_cacheable::{cacheable, utils::OwnedOrRef};
-use rspack_collections::IdentifierSet;
 use rspack_error::Result;
 
 use super::{
@@ -91,32 +88,6 @@ struct EncodedModuleBuildCacheValue {
   bytes: Vec<u8>,
 }
 
-/// Compilation-local view of webpack's `Compilation/modules` cache.
-#[derive(Debug, Clone)]
-pub(crate) struct ModuleCache {
-  cache: CacheFacade,
-  codec: Arc<CacheCodec>,
-  invalid_modules: Arc<Mutex<IdentifierSet>>,
-}
-
-impl ModuleCache {
-  pub(crate) fn new(cache: CacheFacade) -> Self {
-    Self {
-      codec: cache.codec(),
-      cache,
-      invalid_modules: Default::default(),
-    }
-  }
-
-  pub(crate) fn invalidate(&self, modules: &IdentifierSet) {
-    self
-      .invalid_modules
-      .lock()
-      .expect("module cache invalidation lock should not be poisoned")
-      .extend(modules.iter().copied());
-  }
-}
-
 #[derive(Debug)]
 pub(crate) struct RestoredModuleBuild {
   dependencies: RestoredDependencies,
@@ -135,135 +106,115 @@ impl RestoredModuleBuild {
   }
 }
 
-impl ModuleCache {
-  /// This is the single validity contract for a restored NormalModule build.
-  async fn need_build(
-    &self,
-    file_system_info: &FileSystemInfo,
-    entry: &ModuleBuildCacheEntry,
-    value_cache_versions: &ValueCacheVersions,
-  ) -> Result<bool> {
-    if entry.state.need_build(value_cache_versions) {
-      return Ok(true);
-    }
-    let Some(snapshot) = entry.state.snapshot() else {
-      return Ok(true);
-    };
-    Ok(!matches!(
-      file_system_info.check_snapshot_valid(snapshot).await?,
-      SnapshotValidationResult::Valid
-    ))
+/// This is the single validity contract for a restored NormalModule build.
+async fn need_build(
+  file_system_info: &FileSystemInfo,
+  entry: &ModuleBuildCacheEntry,
+  value_cache_versions: &ValueCacheVersions,
+) -> Result<bool> {
+  if entry.state.need_build(value_cache_versions) {
+    return Ok(true);
+  }
+  let Some(snapshot) = entry.state.snapshot() else {
+    return Ok(true);
+  };
+  Ok(!matches!(
+    file_system_info.check_snapshot_valid(snapshot).await?,
+    SnapshotValidationResult::Valid
+  ))
+}
+
+#[tracing::instrument("Cache::ModuleBuild::restore", skip_all)]
+pub(crate) async fn restore(
+  cache: &CacheFacade,
+  module: &mut BoxModule,
+  file_system_info: &FileSystemInfo,
+  value_cache_versions: &ValueCacheVersions,
+) -> Result<Option<RestoredModuleBuild>> {
+  if module.as_normal_module().is_none() {
+    return Ok(None);
+  }
+  let item_cache = cache.get_item_cache(module.identifier().as_str(), None);
+  let Some(encoded) = item_cache.get::<EncodedModuleBuildCacheValue>()? else {
+    return Ok(None);
+  };
+  let codec = cache.codec();
+  let value = codec.decode::<ModuleBuildCacheValue>(&encoded.bytes)?;
+  let ModuleBuildCacheValue::Cacheable(entry) = value else {
+    return Ok(None);
+  };
+  if need_build(file_system_info, &entry, value_cache_versions).await? {
+    return Ok(None);
   }
 
-  #[tracing::instrument("Cache::ModuleBuild::restore", skip_all)]
-  pub(crate) async fn restore(
-    &self,
-    module: &mut BoxModule,
-    file_system_info: &FileSystemInfo,
-    value_cache_versions: &ValueCacheVersions,
-  ) -> Result<Option<RestoredModuleBuild>> {
-    if module.as_normal_module().is_none() {
-      return Ok(None);
-    }
-    if self
-      .invalid_modules
-      .lock()
-      .expect("module cache invalidation lock should not be poisoned")
-      .remove(&module.identifier())
-    {
-      return Ok(None);
-    }
-    let item_cache = self
-      .cache
-      .get_item_cache(module.identifier().as_str(), None);
-    let Some(encoded) = item_cache.get::<EncodedModuleBuildCacheValue>()? else {
-      return Ok(None);
-    };
-    let value = self.codec.decode::<ModuleBuildCacheValue>(&encoded.bytes)?;
-    let ModuleBuildCacheValue::Cacheable(entry) = value else {
-      return Ok(None);
-    };
-    if self
-      .need_build(file_system_info, &entry, value_cache_versions)
-      .await?
-    {
-      return Ok(None);
-    }
+  let restored = entry.build_result_parts(&codec)?;
+  let Some(module) = module.as_normal_module_mut() else {
+    return Ok(None);
+  };
+  module.restore_build_state(&entry.state);
+  Ok(Some(restored))
+}
 
-    let restored = entry.build_result_parts(&self.codec)?;
-    let Some(module) = module.as_normal_module_mut() else {
-      return Ok(None);
-    };
-    module.restore_build_state(&entry.state);
-    Ok(Some(restored))
-  }
+#[tracing::instrument("Cache::ModuleBuild::store", skip_all)]
+pub(crate) async fn store(
+  cache: &CacheFacade,
+  build_result: &mut BuildResult,
+  file_system_info: &FileSystemInfo,
+  snapshot_strategy: SnapshotStrategyOptions,
+  start_time: u64,
+) -> Result<()> {
+  let Some(module) = build_result.module.as_normal_module() else {
+    return Ok(());
+  };
+  let cacheable = module.build_info().cacheable;
+  let item_cache = cache.get_item_cache(build_result.module.identifier().as_str(), None);
+  let codec = cache.codec();
+  let value = if cacheable {
+    let snapshot = create_snapshot(
+      module.build_info(),
+      file_system_info,
+      snapshot_strategy,
+      start_time,
+    )
+    .await?;
+    let build_result_bytes = codec.encode(&CachedBuildResult::from_build_result(build_result))?;
+    let optimization_bailouts = build_result.optimization_bailouts.clone();
+    let module = build_result
+      .module
+      .as_normal_module_mut()
+      .expect("module type should not change while storing build cache");
+    module.build_info_mut().snapshot = Some(Box::new(snapshot));
+    ModuleBuildCacheValue::Cacheable(ModuleBuildCacheEntry {
+      state: module.build_state(),
+      build_result: build_result_bytes,
+      optimization_bailouts,
+    })
+  } else {
+    build_result
+      .module
+      .as_normal_module_mut()
+      .expect("module type should not change while storing build cache")
+      .build_info_mut()
+      .snapshot = None;
+    ModuleBuildCacheValue::NotCacheable
+  };
+  let bytes = codec.encode(&value)?;
+  item_cache.store(CacheValue::new(EncodedModuleBuildCacheValue { bytes }))
+}
 
-  #[tracing::instrument("Cache::ModuleBuild::store", skip_all)]
-  pub(crate) async fn store(
-    &self,
-    build_result: &mut BuildResult,
-    file_system_info: &FileSystemInfo,
-    snapshot_strategy: SnapshotStrategyOptions,
-    start_time: u64,
-  ) -> Result<()> {
-    let Some(module) = build_result.module.as_normal_module() else {
-      return Ok(());
-    };
-    let cacheable = module.build_info().cacheable;
-    let item_cache = self
-      .cache
-      .get_item_cache(build_result.module.identifier().as_str(), None);
-    let value = if cacheable {
-      let snapshot = self
-        .create_snapshot(
-          module.build_info(),
-          file_system_info,
-          snapshot_strategy,
-          start_time,
-        )
-        .await?;
-      let build_result_bytes = self
-        .codec
-        .encode(&CachedBuildResult::from_build_result(build_result))?;
-      let optimization_bailouts = build_result.optimization_bailouts.clone();
-      let module = build_result
-        .module
-        .as_normal_module_mut()
-        .expect("module type should not change while storing build cache");
-      module.build_info_mut().snapshot = Some(Box::new(snapshot));
-      ModuleBuildCacheValue::Cacheable(ModuleBuildCacheEntry {
-        state: module.build_state(),
-        build_result: build_result_bytes,
-        optimization_bailouts,
-      })
-    } else {
-      build_result
-        .module
-        .as_normal_module_mut()
-        .expect("module type should not change while storing build cache")
-        .build_info_mut()
-        .snapshot = None;
-      ModuleBuildCacheValue::NotCacheable
-    };
-    let bytes = self.codec.encode(&value)?;
-    item_cache.store(CacheValue::new(EncodedModuleBuildCacheValue { bytes }))
-  }
-
-  async fn create_snapshot(
-    &self,
-    build_info: &BuildInfo,
-    file_system_info: &FileSystemInfo,
-    snapshot_strategy: SnapshotStrategyOptions,
-    start_time: u64,
-  ) -> Result<Snapshot> {
-    file_system_info
-      .create_snapshot(
-        Some(start_time),
-        &build_info.dependencies.file,
-        &build_info.dependencies.context,
-        &build_info.dependencies.missing,
-        snapshot_strategy,
-      )
-      .await
-  }
+async fn create_snapshot(
+  build_info: &BuildInfo,
+  file_system_info: &FileSystemInfo,
+  snapshot_strategy: SnapshotStrategyOptions,
+  start_time: u64,
+) -> Result<Snapshot> {
+  file_system_info
+    .create_snapshot(
+      Some(start_time),
+      &build_info.dependencies.file,
+      &build_info.dependencies.context,
+      &build_info.dependencies.missing,
+      snapshot_strategy,
+    )
+    .await
 }

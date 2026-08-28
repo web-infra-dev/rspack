@@ -11,7 +11,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use self::context::TaskContext;
 use super::BuildModuleGraphArtifact;
 use crate::{
-  BuildDependency, Compilation, ExportsInfoArtifact,
+  BuildDependency, CacheFacade, Compilation, ExportsInfoArtifact,
   utils::task_loop::{Task, run_task_loop},
 };
 
@@ -20,6 +20,8 @@ pub async fn repair(
   mut artifact: BuildModuleGraphArtifact,
   exports_info_artifact: ExportsInfoArtifact,
   build_dependencies: HashSet<BuildDependency>,
+  module_cache: Option<CacheFacade>,
+  restore_module_cache: bool,
 ) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
   let module_graph = artifact.get_module_graph_mut();
   let mut grouped_deps = HashMap::default();
@@ -70,7 +72,8 @@ pub async fn repair(
     compilation,
     artifact,
     exports_info_artifact,
-    compilation.module_cache.clone(),
+    module_cache,
+    restore_module_cache,
   );
   run_task_loop(&mut ctx, init_tasks).await?;
   Ok((ctx.artifact, ctx.exports_info_artifact))

@@ -10,7 +10,10 @@ use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
 use tracing::instrument;
 
 pub use self::{
-  graph_updater::{UpdateParam, update_module_graph},
+  graph_updater::{
+    UpdateParam, rebuild_module_graph_with_module_cache, update_module_graph,
+    update_module_graph_with_module_cache,
+  },
   lazy_barrel_artifact::{
     ForwardId, ForwardedIdSet, HasLazyDependencies, LazyDependencies, LazyUntil, ModuleToLazyMake,
   },
@@ -81,7 +84,9 @@ pub async fn build_module_graph(
 
   // reset temporary data
   artifact.reset_temporary_data();
-  let artifacts = update_module_graph(compilation, artifact, exports_info_artifact, params).await?;
+  let artifacts =
+    update_module_graph_with_module_cache(compilation, artifact, exports_info_artifact, params)
+      .await?;
   Ok(artifacts)
 }
 
@@ -97,7 +102,7 @@ pub async fn finish_build_module_graph(
   artifact: BuildModuleGraphArtifact,
   exports_info_artifact: ExportsInfoArtifact,
 ) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
-  update_module_graph(
+  update_module_graph_with_module_cache(
     compilation,
     artifact,
     exports_info_artifact,

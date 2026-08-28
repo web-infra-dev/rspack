@@ -12,7 +12,7 @@ use crate::{
   CompilationId, CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate,
   ResolverFactory, SharedPluginDriver, ValueCacheVersions,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
-  new_cache::{FileSystemInfo, ModuleCache},
+  new_cache::{FileSystemInfo, module_build_cache},
   utils::{
     ResourceId,
     task_loop::{Task, TaskResult, TaskType},
@@ -31,7 +31,8 @@ pub struct BuildTask {
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
   pub(super) file_system_info: Option<FileSystemInfo>,
-  pub(super) module_cache: Option<ModuleCache>,
+  pub(super) module_cache: Option<CacheFacade>,
+  pub(super) restore_module_cache: bool,
   pub(super) value_cache_versions: Arc<ValueCacheVersions>,
   pub forwarded_ids: ForwardedIdSet,
 }
@@ -54,15 +55,21 @@ impl Task<TaskContext> for BuildTask {
       fs,
       file_system_info,
       module_cache,
+      restore_module_cache,
       value_cache_versions,
       forwarded_ids,
     } = *self;
 
     let module_build_cache = module_cache.as_ref().zip(file_system_info.as_ref());
-    if let Some((module_cache, file_system_info)) = module_build_cache
-      && let Some(restored) = module_cache
-        .restore(&mut module, file_system_info, &value_cache_versions)
-        .await?
+    if restore_module_cache
+      && let Some((module_cache, file_system_info)) = module_build_cache
+      && let Some(restored) = module_build_cache::restore(
+        module_cache,
+        &mut module,
+        file_system_info,
+        &value_cache_versions,
+      )
+      .await?
     {
       plugin_driver
         .compilation_hooks
@@ -106,14 +113,14 @@ impl Task<TaskContext> for BuildTask {
     if let (Some((module_cache, file_system_info)), Some(build_start_time)) =
       (module_build_cache, build_start_time)
     {
-      module_cache
-        .store(
-          &mut build_result,
-          file_system_info,
-          compiler_options.snapshot_module,
-          build_start_time,
-        )
-        .await?;
+      module_build_cache::store(
+        module_cache,
+        &mut build_result,
+        file_system_info,
+        compiler_options.snapshot_module,
+        build_start_time,
+      )
+      .await?;
     }
 
     Ok(vec![Box::new(BuildResultTask {

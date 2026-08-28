@@ -11,7 +11,7 @@ use crate::{
   RuntimeTemplate, SharedPluginDriver, ValueCacheVersions,
   incremental::Incremental,
   module_graph::ModuleGraph,
-  new_cache::{Cache, FileSystemInfo, ModuleCache},
+  new_cache::{Cache, CacheFacade, FileSystemInfo},
 };
 
 #[derive(Debug)]
@@ -33,7 +33,8 @@ pub struct TaskContext {
   pub runtime_template: RuntimeTemplate,
   pub(crate) cache: Cache,
   pub(super) file_system_info: Option<FileSystemInfo>,
-  pub(super) module_cache: Option<ModuleCache>,
+  pub(super) module_cache: Option<CacheFacade>,
+  pub(super) restore_module_cache: bool,
   pub(super) value_cache_versions: Arc<ValueCacheVersions>,
 
   pub artifact: BuildModuleGraphArtifact,
@@ -45,7 +46,8 @@ impl TaskContext {
     compilation: &Compilation,
     artifact: BuildModuleGraphArtifact,
     exports_info_artifact: ExportsInfoArtifact,
-    module_cache: Option<ModuleCache>,
+    module_cache: Option<CacheFacade>,
+    restore_module_cache: bool,
   ) -> Self {
     let file_system_info = module_cache
       .as_ref()
@@ -68,6 +70,7 @@ impl TaskContext {
       cache: compilation.cache.clone(),
       file_system_info,
       module_cache,
+      restore_module_cache,
       value_cache_versions: Arc::new(compilation.value_cache_versions.clone()),
       artifact,
       exports_info_artifact,
@@ -107,7 +110,6 @@ impl TaskContext {
       compiler_context,
     );
     compilation.file_system_info = None;
-    compilation.module_cache = None;
     compilation.runtime_template =
       RuntimeTemplate::for_module_execution(self.compiler_options.clone());
     compilation.dependency_factories = self.dependency_factories.clone();

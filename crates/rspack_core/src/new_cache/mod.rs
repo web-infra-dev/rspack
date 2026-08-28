@@ -9,7 +9,7 @@ mod file_dependencies;
 mod idle_file_cache;
 mod memory_cache;
 mod meta;
-mod module_build_cache;
+pub(crate) mod module_build_cache;
 mod snapshot;
 mod validator;
 
@@ -25,7 +25,6 @@ pub(crate) use file_dependencies::FileDependencies;
 pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
 pub use meta::Meta;
-pub(crate) use module_build_cache::ModuleCache;
 use rspack_fs::ReadableFileSystem;
 pub(crate) use snapshot::{FileSystemInfo, Snapshot};
 
