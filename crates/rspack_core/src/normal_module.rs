@@ -23,10 +23,7 @@ use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
 };
-use rspack_util::{
-  source_map::{ModuleSourceMapConfig, SourceMapKind},
-  time::current_time,
-};
+use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 use serde_json::json;
 use tracing::{Instrument, info_span};
 
@@ -39,12 +36,10 @@ use crate::{
   OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult, ParserAndGenerator,
   ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext,
   RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SnapshotValidationResult, SourceType,
-  cache::SnapshotStrategyOptions,
   contextify,
   diagnostics::ModuleBuildError,
-  get_context,
-  incremental::IncrementalPasses,
-  module_analyzed_side_effect_free, module_declared_side_effect_free, module_update_hash,
+  get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
+  module_update_hash,
   utils::{SourceSizeCache, SourceSizeCacheSerde},
 };
 
@@ -424,13 +419,6 @@ impl Module for NormalModule {
   ) -> Result<BuildResult> {
     self.force_build = false;
     self.build_info.snapshot = None;
-    let build_start_time = current_time();
-    let file_system_info = (!build_context
-      .compiler_options
-      .incremental
-      .passes
-      .contains(IncrementalPasses::BUILD_MODULE_GRAPH))
-    .then(|| build_context.file_system_info.clone());
 
     // so does webpack
     self.parsed = true;
@@ -545,20 +533,6 @@ impl Module for NormalModule {
       self.code_generation_dependencies = Some(Vec::new());
       self.presentational_dependencies = Some(Vec::new());
 
-      if let Some(file_system_info) = &file_system_info {
-        self.build_info.snapshot = Some(Arc::new(
-          file_system_info
-            .create_snapshot(
-              Some(build_start_time),
-              &self.build_info.dependencies.file,
-              &self.build_info.dependencies.context,
-              &self.build_info.dependencies.missing,
-              SnapshotStrategyOptions::timestamp(),
-            )
-            .await?,
-        ));
-      }
-
       self.build_info.hash =
         Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
 
@@ -626,20 +600,6 @@ impl Module for NormalModule {
     self.source = Some(source);
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
-
-    if let Some(file_system_info) = &file_system_info {
-      self.build_info.snapshot = Some(Arc::new(
-        file_system_info
-          .create_snapshot(
-            Some(build_start_time),
-            &self.build_info.dependencies.file,
-            &self.build_info.dependencies.context,
-            &self.build_info.dependencies.missing,
-            SnapshotStrategyOptions::timestamp(),
-          )
-          .await?,
-      ));
-    }
 
     self.build_info.hash =
       Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
