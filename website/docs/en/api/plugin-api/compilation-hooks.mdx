@@ -231,9 +231,9 @@ direction LR
     HookReviveChunks(hooks.reviveChunks) --> HookBeforeChunkIds(hooks.beforeChunkIds)
     HookBeforeChunkIds --> HookChunkIds(hooks.moduleIds)
     HookChunkIds --> HookOptimizeChunkIds(hooks.optimizeChunkIds)
-    HookOptimizeChunkIds --> HookAfterOptimizeChunkIds(hooks.afterOptimizeChunkIds)
+    HookOptimizeChunkIds --> HookAfterOptimizeChunkIds(<a href="#afteroptimizechunkids">hooks.afterOptimizeChunkIds</a>)
 
-    class HookReviveChunks,HookChunkIds,HookBeforeChunkIds,HookOptimizeChunkIds,HookAfterOptimizeChunkIds flow-hook-non-support
+    class HookReviveChunks,HookChunkIds,HookBeforeChunkIds,HookOptimizeChunkIds flow-hook-non-support
     end
 
     CreateChunkIds --> CreateRecords
@@ -561,6 +561,22 @@ Called after the tree optimization, at the beginning of the chunk modules optimi
     key="Module"
   >
     <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
+## `afterOptimizeChunkIds`
+
+<Badge text="Read-only" type="info" />
+
+Called after the chunk ids optimization phase has completed.
+
+- **Type:** `SyncHook<[Chunk[]]>`
+- **Arguments:**
+  - `Chunk[]`: list of chunk instances
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
   </CollapsePanel>
 </Collapse>
 

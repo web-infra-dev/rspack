@@ -232,9 +232,9 @@ direction LR
     HookReviveChunks(hooks.reviveChunks) --> HookBeforeChunkIds(hooks.beforeChunkIds)
     HookBeforeChunkIds --> HookChunkIds(hooks.moduleIds)
     HookChunkIds --> HookOptimizeChunkIds(hooks.optimizeChunkIds)
-    HookOptimizeChunkIds --> HookAfterOptimizeChunkIds(hooks.afterOptimizeChunkIds)
+    HookOptimizeChunkIds --> HookAfterOptimizeChunkIds(<a href="#afteroptimizechunkids">hooks.afterOptimizeChunkIds</a>)
 
-    class HookReviveChunks,HookChunkIds,HookBeforeChunkIds,HookOptimizeChunkIds,HookAfterOptimizeChunkIds flow-hook-non-support
+    class HookReviveChunks,HookChunkIds,HookBeforeChunkIds,HookOptimizeChunkIds flow-hook-non-support
     end
 
     CreateChunkIds --> CreateRecords
@@ -562,6 +562,22 @@ type ExecuteModuleContext = {
     key="Module"
   >
     <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
+## `afterOptimizeChunkIds`
+
+<Badge text="只读" type="info" />
+
+在 chunk id 优化阶段结束之后调用。
+
+- **类型：** `SyncHook<[Chunk[]]>`
+- **参数：**
+  - `Chunk[]`：所有 chunk 列表
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
   </CollapsePanel>
 </Collapse>
 
