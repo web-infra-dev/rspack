@@ -293,3 +293,26 @@ jobs:
   #   # after merged to main branch
   #   if: ${{ !failure() && github.event_name == 'push' }}
   #   uses: ./.github/workflows/preview-commit.yml
+
+  verify-vm-runner:
+    runs-on: rspack-ubuntu-24.04-vm-medium-verify
+    # timeout-minutes: 15
+    steps:
+      - name: Show environment
+        run: |
+          set -euxo pipefail
+          uname -a
+          cat /etc/os-release
+          id
+          nproc
+          free -h
+          df -h /
+          systemd-detect-virt
+
+      - name: Verify tools
+        run: |
+          set -euxo pipefail
+          git --version
+          node --version
+          npm --version
+          docker --version
