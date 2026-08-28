@@ -3,9 +3,7 @@ description: 'Generate packaging information that can be used to analyze module 
 ---
 
 import PropertyType from '../../../components/PropertyType.tsx';
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/configuration/stats/" />
+import Attribution from '@components/Attribution';
 
 # Stats
 
@@ -34,7 +32,8 @@ type StatsPresets =
 type Stats = boolean | StatsOptions | StatsPresets;
 ```
 
-- **Default:** `{ "preset":"errors-warnings", "timings":true }`
+- **Default in `@rspack/core`:** `{}`
+- **Default in `@rspack/cli`:** `{ "preset":"errors-warnings", "timings":true, "logging":false }`
 
 ## Stats presets
 
@@ -626,3 +625,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.js.org/configuration/stats/" />

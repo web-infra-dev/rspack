@@ -9,9 +9,9 @@ the same long-lived compiler. It is designed for development rebuilds, watch mod
 Replacement (HMR), where Rspack knows which files changed and can avoid recalculating unaffected
 stages and assets.
 
-Here, “development” describes the rebuild workflow, not `mode: 'development'`. A production-mode
-watch can also use Incremental. A standalone `rspack build` is a one-shot build with no previous
-compilation to update, so `incremental` does not make separate build invocations incremental.
+Incremental is enabled only when `mode` is set to `'development'`. A standalone `rspack build` is a
+one-shot build with no previous compilation to update, so `incremental` does not make separate build
+invocations incremental.
 
 - **Type:** `boolean | 'none' | 'safe' | 'advance' | 'advance-silent' | Incremental`
 - **Default:** `'advance-silent'`
@@ -64,6 +64,7 @@ By default, you do not need to configure `incremental` explicitly. To surface wa
 
 ```js title="rspack.config.mjs"
 export default {
+  mode: 'development',
   incremental: 'advance',
 };
 ```
@@ -111,7 +112,8 @@ type Incremental = {
 ## Performance impact
 
 Incremental improves rebuilds and HMR when a previous compilation and a known change set are
-available. It does not make the initial compilation or a separate one-shot build incremental.
+available. It does not make the initial compilation or a separate one-shot build incremental, but
+the initial compilation can still prepare artifacts for a later rebuild.
 
 Memory or persistent Cache may independently speed up computations during either an initial build or
 a rebuild. In particular, a filesystem Cache hit after process startup is Cache acceleration, not an

@@ -54,7 +54,7 @@ pub(super) fn add_async_module_boundary(
 // Mark module `__esModule`.
 // Add `__rspack_require.r(__rspack_exports);`.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ESMCompatibilityDependency;
 
 #[cacheable_dyn]

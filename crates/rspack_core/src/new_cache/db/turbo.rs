@@ -8,9 +8,9 @@ use rspack_error::Result;
 use rspack_paths::Utf8PathBuf;
 use turbo_persistence::{
   CompactConfig, DbConfig, FamilyConfig, FamilyKind, ParallelScheduler, TurboPersistence,
+  WriteBatch,
 };
 
-use super::DatabaseWrite;
 use crate::new_cache::db::DatabaseFamily;
 
 const STALE_DIRECTORY: &str = "_stale";
@@ -157,7 +157,20 @@ impl ParallelScheduler for RayonParallelScheduler {
 }
 
 type Inner = TurboPersistence<RayonParallelScheduler, { DatabaseFamily::COUNT }>;
+type InnerWriteBatch<'db, 'key> =
+  WriteBatch<'db, &'key [u8], RayonParallelScheduler, { DatabaseFamily::COUNT }>;
 pub type DatabaseValue = turbo_persistence::ArcBytes;
+
+pub(crate) struct DatabaseBatch<'db, 'key> {
+  inner: InnerWriteBatch<'db, 'key>,
+}
+
+impl<'key> DatabaseBatch<'_, 'key> {
+  pub fn put(&self, family: DatabaseFamily, key: &'key [u8], value: Vec<u8>) -> Result<()> {
+    self.inner.put(family.index() as u32, key, value.into())?;
+    Ok(())
+  }
+}
 
 pub struct Database {
   inner: Inner,
@@ -191,15 +204,15 @@ impl Database {
     Ok(self.inner.get(family.index(), &key)?)
   }
 
-  pub fn write_batch<'a>(
+  pub fn write_batch<'key>(
     &mut self,
-    writes: impl IntoIterator<Item = DatabaseWrite<'a>>,
+    write: impl FnOnce(&DatabaseBatch<'_, 'key>) -> Result<()>,
   ) -> Result<()> {
-    let batch = self.inner.write_batch::<&[u8]>()?;
-    for write in writes {
-      batch.put(write.family.index() as u32, write.key, write.value.into())?;
-    }
-    self.inner.commit_write_batch(batch)?;
+    let batch = DatabaseBatch {
+      inner: self.inner.write_batch::<&'key [u8]>()?,
+    };
+    write(&batch)?;
+    self.inner.commit_write_batch(batch.inner)?;
     Ok(())
   }
 
@@ -323,6 +336,10 @@ fn database_config() -> DbConfig<{ DatabaseFamily::COUNT }> {
       },
       FamilyConfig {
         name: "validator",
+        kind: FamilyKind::SingleValue,
+      },
+      FamilyConfig {
+        name: "meta",
         kind: FamilyKind::SingleValue,
       },
     ],

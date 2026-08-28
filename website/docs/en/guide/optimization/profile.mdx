@@ -46,11 +46,11 @@ If you need to use some Babel plugins for custom transformations, configure babe
 
 ### terser-webpack-plugin
 
-[terser-webpack-plugin](https://github.com/webpack/terser-webpack-plugin) minifies JavaScript code based on Terser. You can replace Terser with the faster SWC minimizer by using Rspack's built-in [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin).
+[terser-webpack-plugin](https://github.com/webpack/terser-webpack-plugin) minifies JavaScript code based on Terser. You can replace Terser with the faster SWC minimizer by using Rspack's built-in [SwcJsMinimizerRspackPlugin](/plugins/swc-js-minimizer-rspack-plugin).
 
 ### css-minimizer-webpack-plugin
 
-[css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin) minifies CSS code based on tools like cssnano. You can replace cssnano with the faster Lightning CSS minimizer by using Rspack's built-in [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin).
+[css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin) minifies CSS code based on tools like cssnano. You can replace cssnano with the faster Lightning CSS minimizer by using Rspack's built-in [LightningCssMinimizerRspackPlugin](/plugins/lightning-css-minimizer-rspack-plugin).
 
 ### less-loader
 
@@ -58,7 +58,7 @@ If you need to use some Babel plugins for custom transformations, configure babe
 
 ### html-webpack-plugin
 
-[html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) performs poorly when generating large numbers of HTML files. The [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) implemented in Rust by Rspack can provide better performance.
+[html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) performs poorly when generating large numbers of HTML files. The [HtmlRspackPlugin](/plugins/html-rspack-plugin) implemented in Rust by Rspack can provide better performance.
 
 ### ts-checker-rspack-plugin
 

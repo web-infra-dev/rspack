@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_core::ConstDependency;
 use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParser};
 use swc_experimental_ecma_ast::Program;
@@ -34,7 +36,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for HashbangParserPlugin {
       hashbang.len() as u32 + 2 // include "#!"
     };
 
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    parser.add_presentational_dependency(Arc::new(ConstDependency::new(
       (0, replace_len).into(),
       "".into(),
     )));

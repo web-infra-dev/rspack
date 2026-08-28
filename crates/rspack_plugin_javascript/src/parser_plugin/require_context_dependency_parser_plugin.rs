@@ -1,5 +1,6 @@
 use rspack_core::{
-  ContextMode, ContextOptions, DependencyCategory, get_context, try_convert_str_to_context_mode,
+  BoxDependency, ContextMode, ContextOptions, DependencyCategory, get_context,
+  try_convert_str_to_context_mode,
 };
 use rspack_regex::RspackRegex;
 use rspack_util::SpanExt;
@@ -72,7 +73,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireContextDependencyParserPl
       }
 
       let reg_exp = clean_regexp_in_context_module(reg_exp, reg_exp_span, parser);
-      parser.add_dependency(Box::new(RequireContextDependency::new(
+      parser.add_dependency(BoxDependency::new(RequireContextDependency::new(
         ContextOptions {
           mode,
           recursive,

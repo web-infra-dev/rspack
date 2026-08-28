@@ -6,10 +6,9 @@ use rspack_core::{
   AsContextDependency, AwaitDependenciesInitFragment, BuildMetaExportsType, Compilation,
   Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyLocation,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  FactorizeInfo, InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, NormalInitFragment, ReferencedExport, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsedName, create_exports_object_referenced, property_access,
-  to_normal_comment,
+  InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  NormalInitFragment, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  UsedName, create_exports_object_referenced, property_access, to_normal_comment,
 };
 use rspack_hash::{RspackHash, RspackHasher};
 use swc_atoms::Atom;
@@ -17,7 +16,7 @@ use swc_atoms::Atom;
 use super::esm_compatibility_dependency::add_async_module_boundary;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ProvideDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
@@ -27,7 +26,6 @@ pub struct ProvideDependency {
   ids: Vec<Atom>,
   range: DependencyRange,
   loc: Option<DependencyLocation>,
-  factorize_info: FactorizeInfo,
 }
 
 impl ProvideDependency {
@@ -45,7 +43,6 @@ impl ProvideDependency {
       identifier,
       ids,
       id: DependencyId::new(),
-      factorize_info: Default::default(),
     }
   }
 }
@@ -95,14 +92,6 @@ impl ModuleDependency for ProvideDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

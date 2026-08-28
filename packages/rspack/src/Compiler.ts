@@ -805,12 +805,11 @@ class Compiler {
         }
         this.#compilation!.startTime = startTime;
         this.#compilation!.endTime = Date.now();
-        this.hooks.afterCompile.callAsync(this.#compilation!, (err) => {
-          if (err) {
-            return callback(err);
-          }
-          return callback(null, this.#compilation);
-        });
+        // `hooks.afterCompile` is not called here: it is driven from the Rust
+        // side through `registerCompilerAfterCompileTaps`, so that it runs right
+        // after the compilation is sealed and before `shouldEmit`/`emit`, the
+        // same position webpack calls it from.
+        return callback(null, this.#compilation);
       });
     });
   }

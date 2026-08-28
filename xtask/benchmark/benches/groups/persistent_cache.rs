@@ -9,10 +9,7 @@ use std::{
 };
 
 use criterion::{BatchSize, Criterion};
-use rspack_core::{
-  CacheOptions, Mode,
-  cache::persistent::{PersistentCacheOptions, snapshot::SnapshotOptions, storage::StorageOptions},
-};
+use rspack_core::{CacheOptions, Mode, PersistentCacheOptions, SnapshotOptions, StorageOptions};
 use rspack_fs::{NativeFileSystem, NoopFileSystem};
 use rspack_tasks::{CompilerContext, within_compiler_context, within_compiler_context_sync};
 

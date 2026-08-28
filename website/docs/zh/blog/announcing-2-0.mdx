@@ -9,7 +9,7 @@ authors:
     x: 'https://x.com/rspack_dev'
 ---
 
-import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 # Rspack 2.0 正式发布
 
@@ -86,7 +86,7 @@ Rspack 2.0 主要带来以下更新：
 
 在开启 [持久化缓存](/config/cache) 的场景下，构建性能和内存占用得到了进一步改善：
 
-- 现在 Rspack 支持对 [SWC 压缩插件](/plugins/rspack/swc-js-minimizer-rspack-plugin) 的结果进行缓存复用，在命中缓存时，**构建性能提升约 50%**
+- 现在 Rspack 支持对 [SWC 压缩插件](/plugins/swc-js-minimizer-rspack-plugin) 的结果进行缓存复用，在命中缓存时，**构建性能提升约 50%**
 - 通过优化底层存储实现，在启用缓存时，**内存占用下降了 20%+**
 
 ### 精简默认依赖 \{#fewer-deps}
@@ -103,7 +103,7 @@ Rspack 2.0 减少了默认安装的 npm 依赖数量：
 
 此外，我们还采用了以下方式来减少依赖：
 
-- 将非核心依赖调整为可选依赖。例如 [@module-federation/runtime-tools](https://www.npmjs.com/package/@module-federation/runtime-tools) 现在仅在使用 [模块联邦插件](/plugins/webpack/module-federation-plugin) 时才需要手动安装。
+- 将非核心依赖调整为可选依赖。例如 [@module-federation/runtime-tools](https://www.npmjs.com/package/@module-federation/runtime-tools) 现在仅在使用 [模块联邦插件](/plugins/module-federation-plugin) 时才需要手动安装。
 - 使用更轻量的替代实现，例如以 [connect-next](https://github.com/rstackjs/connect-next) 替代 Express。对于开发服务器而言，Connect 的中间件模型已经能够覆盖大多数场景，这也与 Rsbuild 的开发服务器实现保持一致。
 - 将部分依赖 [打包进 npm 发布产物](https://e18e.dev/blog/bundling-dependencies)，由 Rspack 统一控制这些依赖及其子依赖的版本，避免依赖自动升级带来的潜在供应链风险。
 - 优先使用 Node.js 20+ 内置的原生 API，例如用 [styleText](https://nodejs.org/api/util.html#utilstyletextformat-text-options) 替代 `picocolors`。
@@ -423,9 +423,9 @@ export default {
 
 ### 代码分割改进 \{#enforce-size-threshold}
 
-Rspack 2.0 现在支持 [`splitChunks.enforceSizeThreshold`](/plugins/webpack/split-chunks-plugin#splitchunksenforcesizethreshold) 选项，用于为代码分割设置一个强制生效的体积阈值。
+Rspack 2.0 现在支持 [`splitChunks.enforceSizeThreshold`](/plugins/split-chunks-plugin#splitchunksenforcesizethreshold) 选项，用于为代码分割设置一个强制生效的体积阈值。
 
-默认情况下，`splitChunks` 中的请求数限制选项，例如 [maxAsyncRequests](/plugins/webpack/split-chunks-plugin#splitchunksmaxasyncrequests) 和 [maxInitialRequests](/plugins/webpack/split-chunks-plugin#splitchunksmaxinitialrequests)，可能会阻止较大的 chunk 继续拆分。在启用 `enforceSizeThreshold` 后，只要模块组的体积超过设定阈值，Rspack 就会忽略这些限制并进行强制拆分。
+默认情况下，`splitChunks` 中的请求数限制选项，例如 [maxAsyncRequests](/plugins/split-chunks-plugin#splitchunksmaxasyncrequests) 和 [maxInitialRequests](/plugins/split-chunks-plugin#splitchunksmaxinitialrequests)，可能会阻止较大的 chunk 继续拆分。在启用 `enforceSizeThreshold` 后，只要模块组的体积超过设定阈值，Rspack 就会忽略这些限制并进行强制拆分。
 
 在生产模式下，Rspack 默认会为所有模块类型设置 `50000` 字节的 `enforceSizeThreshold`，其他模式下默认值为 `30000` 字节。你也可以根据需要自行调整这个选项：
 

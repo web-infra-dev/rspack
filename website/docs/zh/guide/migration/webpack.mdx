@@ -218,7 +218,7 @@ function transform(webpackConfig, rspackConfig) {
 
 Rspack 实现了大部分 webpack 内置插件，其命名和参数配置与 webpack 保持一致，你可以非常轻松地替换它们。
 
-例如替换 [DefinePlugin](/plugins/webpack/define-plugin)：
+例如替换 [DefinePlugin](/plugins/define-plugin)：
 
 ```js title="rspack.config.js"
 const webpack = require('webpack'); // [!code --]
@@ -235,7 +235,7 @@ module.exports = {
 }
 ```
 
-查看 [内置插件](/plugins/webpack/) 以了解 Rspack 对 webpack 所有内置插件的支持情况。
+查看 [webpack 内置插件支持情况](/plugins/webpack-built-in-plugin-support)，了解 Rspack 对 webpack 所有内置插件的支持情况。
 
 ## 社区插件
 
@@ -258,7 +258,7 @@ Rspack 支持大部分 webpack 社区插件，并为暂不支持的插件提供�
 
 ### copy-webpack-plugin
 
-使用 [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) 代替 [copy-webpack-plugin](https://github.com/webpack/copy-webpack-plugin)：
+使用 [rspack.CopyRspackPlugin](/plugins/copy-rspack-plugin) 代替 [copy-webpack-plugin](https://github.com/webpack/copy-webpack-plugin)：
 
 ```js title="rspack.config.js"
 const CopyWebpackPlugin = require('copy-webpack-plugin'); // [!code --]
@@ -276,7 +276,7 @@ module.exports = {
 
 ### mini-css-extract-plugin
 
-使用 [rspack.CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) 代替 [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin)：
+使用 [rspack.CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin) 代替 [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin)：
 
 ```diff title="rspack.config.js"
 - const CssExtractWebpackPlugin = require('mini-css-extract-plugin');
@@ -338,7 +338,7 @@ module.exports = {
 
 ### terser-webpack-plugin
 
-对于使用 [terser-webpack-plugin](https://github.com/webpack/terser-webpack-plugin) 压缩 JavaScript 的项目，建议改用 [rspack.SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) 以获得更好的构建性能：
+对于使用 [terser-webpack-plugin](https://github.com/webpack/terser-webpack-plugin) 压缩 JavaScript 的项目，建议改用 [rspack.SwcJsMinimizerRspackPlugin](/plugins/swc-js-minimizer-rspack-plugin) 以获得更好的构建性能：
 
 ```js title="rspack.config.js"
 const TerserPlugin = require('terser-webpack-plugin'); // [!code --]
@@ -361,7 +361,7 @@ module.exports = {
 
 ### css-minimizer-webpack-plugin
 
-对于使用 [css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin) 压缩 CSS 的项目，建议改用 [rspack.LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 以获得更好的构建性能：
+对于使用 [css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin) 压缩 CSS 的项目，建议改用 [rspack.LightningCssMinimizerRspackPlugin](/plugins/lightning-css-minimizer-rspack-plugin) 以获得更好的构建性能：
 
 ```js title="rspack.config.js"
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin'); // [!code --]

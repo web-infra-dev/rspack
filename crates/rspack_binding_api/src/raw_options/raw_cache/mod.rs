@@ -10,7 +10,7 @@ use napi::{
 use napi_derive::napi;
 use raw_snapshot::RawSnapshotOptions;
 use raw_storage::RawStorageOptions;
-use rspack_core::{CacheOptions, cache::persistent::PersistentCacheOptions};
+use rspack_core::{CacheOptions, PersistentCacheOptions};
 
 #[derive(Debug)]
 #[napi(object)]

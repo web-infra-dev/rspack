@@ -2,7 +2,7 @@
 
 use normalize_path::NormalizePath;
 
-use crate::{AliasValue, ArcPath, ResolveContext, ResolveOptions, Resolver};
+use crate::{AliasValue, InternedPath, ResolveContext, ResolveOptions, Resolver};
 
 #[tokio::test]
 async fn test() {
@@ -65,7 +65,9 @@ async fn test() {
     for path in missing_dependencies {
       assert_eq!(path, path.normalize(), "{path:?}");
       assert!(
-        ctx.missing_dependencies.contains(&ArcPath::from(&path)),
+        ctx
+          .missing_dependencies
+          .contains(&InternedPath::from(&path)),
         "{specifier}: {path:?} not in {:?}",
         &ctx.missing_dependencies
       );

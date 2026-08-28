@@ -1,5 +1,5 @@
-import type { BlogAvatarAuthor } from '@rstack-dev/doc-ui/blog-avatar';
-import type { BlogListItem } from '@rstack-dev/doc-ui/blog-list';
+import type { BlogAvatarAuthor } from '@rstackjs/doc-ui/blog-avatar';
+import type { BlogListItem } from '@rstackjs/doc-ui/blog-list';
 import { useLang, usePages } from '@rspress/core/runtime';
 
 const DEFAULT_AUTHOR: BlogAvatarAuthor = {

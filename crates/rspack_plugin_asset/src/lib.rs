@@ -5,8 +5,8 @@ use rayon::prelude::*;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AssetBuildInfo, AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorImportMode,
-  AssetInfo, AssetParserDataUrl, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph,
-  ChunkUkey, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
+  AssetInfo, AssetParserDataUrl, BoxDependency, BuildMetaDefaultObject, BuildMetaExportsType,
+  ChunkGraph, ChunkUkey, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
   CodeGenerationDataPreservedAssetImport, CodeGenerationDataUrl,
   CodeGenerationPublicPathAutoReplace, Compilation, CompilationRenderManifest, CompilerOptions,
   DependencyType, Filename, GenerateContext, GeneratorOptions, JavascriptParserUrl,
@@ -513,7 +513,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         // different from webpack
         // Rspack: when set asset as entry, output a js chunk with default export
         // webpack: Assets do not have dependencies
-        dependencies: vec![Box::new(AssetExportsDependency::new())],
+        dependencies: vec![BoxDependency::new(AssetExportsDependency::new())],
         blocks: vec![],
         source,
         presentational_dependencies: vec![],
@@ -648,18 +648,27 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
           asset_info.set_source_filename(source_file_name);
 
+          let public_path = match module_generator_options
+            .and_then(|x| x.asset_public_path())
+            .unwrap_or_else(|| &compilation.options.output.public_path)
+          {
+            PublicPath::Filename(p) => PublicPath::render_filename(compilation, p).await,
+            PublicPath::Auto => AUTO_PUBLIC_PATH_PLACEHOLDER.to_string(),
+          };
+
+          if generate_context.requested_source_type == SourceType::CssUrl {
+            // `filename` includes outputPath for emission, while CSS URLs only use the original
+            // filename so their public path stays independent from the output directory.
+            generate_context
+              .data
+              .insert(CodeGenerationDataUrl::new(format!(
+                "{public_path}{original_filename}"
+              )));
+          }
+
           generate_context
             .data
-            .insert(CodeGenerationDataFilename::new(
-              filename,
-              match module_generator_options
-                .and_then(|x| x.asset_public_path())
-                .unwrap_or_else(|| &compilation.options.output.public_path)
-              {
-                PublicPath::Filename(p) => PublicPath::render_filename(compilation, p).await,
-                PublicPath::Auto => AUTO_PUBLIC_PATH_PLACEHOLDER.to_string(),
-              },
-            ));
+            .insert(CodeGenerationDataFilename::new(filename, public_path));
           generate_context
             .data
             .insert(CodeGenerationDataAssetInfo::new(asset_info));

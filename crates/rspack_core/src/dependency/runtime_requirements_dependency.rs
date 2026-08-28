@@ -82,7 +82,7 @@ impl RuntimeRequirementsDependencyMode {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RuntimeRequirementsDependency {
   pub range: DependencyRange,
   pub runtime_requirements: RuntimeGlobals,

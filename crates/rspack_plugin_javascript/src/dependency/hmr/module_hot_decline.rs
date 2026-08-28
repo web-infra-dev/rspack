@@ -1,19 +1,18 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo,
-  ModuleDependency, TemplateContext, TemplateReplaceSource,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ModuleDependency,
+  TemplateContext, TemplateReplaceSource,
 };
 use swc_atoms::Atom;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ModuleHotDeclineDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
   request: Atom,
   range: DependencyRange,
-  factorize_info: FactorizeInfo,
 }
 
 impl ModuleHotDeclineDependency {
@@ -22,7 +21,6 @@ impl ModuleHotDeclineDependency {
       id: DependencyId::new(),
       request,
       range,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -62,14 +60,6 @@ impl ModuleDependency for ModuleHotDeclineDependency {
 
   fn weak(&self) -> bool {
     true
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

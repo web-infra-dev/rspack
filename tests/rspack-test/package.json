@@ -14,7 +14,6 @@
   },
   "devDependencies": {
     "@babel/core": "catalog:",
-    "@babel/preset-react": "catalog:",
     "@module-federation/runtime-tools": "catalog:",
     "@prefresh/core": "catalog:",
     "@prefresh/utils": "catalog:",
@@ -26,8 +25,6 @@
     "@rspack/test-tools": "workspace:*",
     "@swc/helpers": "catalog:",
     "@swc/plugin-remove-console": "catalog:",
-    "@types/babel__generator": "catalog:",
-    "@types/babel__traverse": "catalog:",
     "@types/fs-extra": "catalog:",
     "@types/jsdom": "catalog:",
     "@types/react": "catalog:",

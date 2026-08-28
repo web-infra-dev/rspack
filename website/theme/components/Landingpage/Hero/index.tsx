@@ -1,5 +1,5 @@
 import { useNavigate } from '@rspress/core/runtime';
-import { Hero as BaseHero } from '@rstack-dev/doc-ui/hero';
+import { Hero as BaseHero } from '@rstackjs/doc-ui/hero';
 import { memo, useCallback } from 'react';
 import { useI18n, useI18nUrl } from '../../../i18n';
 

@@ -316,7 +316,6 @@ mod tests {
     sorted.sort_unstable_by(|x, y| compare_by_pre_order_index_or_id(x.0, x.1, y.0, y.1));
     assert_eq!(sorted.len(), items.len());
   }
-
   #[test]
   fn assign_deterministic_ids_accepts_borrowed_names() {
     let items = vec![

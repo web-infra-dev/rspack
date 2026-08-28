@@ -2,8 +2,8 @@ use std::{borrow::Cow, collections::VecDeque};
 
 use concat_string::concat_string;
 use rspack_core::{
-  BoxDependency, ChunkGraph, Context, CssBuildInfo, CssExport, CssExportType, CssExports,
-  CssModuleRenderCondition, DependencyCodeGeneration, DependencyId, DependencyType,
+  ChunkGraph, Context, CssBuildInfo, CssExport, CssExportType, CssExports,
+  CssModuleRenderCondition, Dependency, DependencyCodeGeneration, DependencyId, DependencyType,
   ExportsArgument, GenerateContext, Module, ModuleArgument, ModuleIdentifier, ModuleInitFragments,
   RESERVED_IDENTIFIER, RuntimeGlobals, SourceType, TemplateContext, UsageState, UsedNameItem,
   css_module_render_conditions_identifier,
@@ -43,7 +43,7 @@ pub fn update_css_exports(exports: &mut CssExports, name: &str, css_export: CssE
   }
 }
 
-fn dependency_request(dependency: &BoxDependency) -> Option<&str> {
+fn dependency_request(dependency: &dyn Dependency) -> Option<&str> {
   dependency
     .as_module_dependency()
     .map(|dep| dep.request())

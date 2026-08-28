@@ -15,7 +15,6 @@ use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet}
 use rspack_error::{Diagnosable, Result};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher, write_u64_hex};
-use rspack_paths::ArcPathSet;
 use rspack_sources::BoxSource;
 use rspack_util::{
   atom::Atom,
@@ -29,10 +28,10 @@ use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
-  AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
-  ChunkGraph, ChunkUkey, CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation,
-  CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
-  ConnectionState, Context, ContextModule, CssExportType, DependenciesBlock, DependencyId,
+  AsyncDependenciesBlock, BindingCell, BoxDependency, CacheFacade, ChunkGraph, ChunkUkey,
+  CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation, CompilationAsset,
+  CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
+  ContextModule, CssExportType, DependenciesBlock, DependencyCodeGenerationRef, DependencyId,
   ExportProvided, ExportsInfoArtifact, ExternalModule, Filename, GetTargetResult, ImportPhase,
   ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
   OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
@@ -45,6 +44,7 @@ pub struct BuildContext {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub compiler_options: Arc<CompilerOptions>,
+  pub loader_cache: CacheFacade,
   pub resolver_factory: Arc<ResolverFactory>,
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
@@ -267,10 +267,7 @@ pub struct BuildInfo {
   pub strict: bool,
   pub module_argument: ModuleArgument,
   pub exports_argument: ExportsArgument,
-  pub file_dependencies: ArcPathSet,
-  pub context_dependencies: ArcPathSet,
-  pub missing_dependencies: ArcPathSet,
-  pub build_dependencies: ArcPathSet,
+  pub dependencies: crate::LoaderDependencies,
   pub value_dependencies: HashMap<String, String>,
   #[cacheable(with=AsVec<AsPreset>)]
   pub esm_named_exports: HashSet<Atom>,
@@ -308,10 +305,7 @@ impl Default for BuildInfo {
       strict: false,
       module_argument: Default::default(),
       exports_argument: Default::default(),
-      file_dependencies: ArcPathSet::default(),
-      context_dependencies: ArcPathSet::default(),
-      missing_dependencies: ArcPathSet::default(),
-      build_dependencies: ArcPathSet::default(),
+      dependencies: Default::default(),
       value_dependencies: HashMap::default(),
       esm_named_exports: HashSet::default(),
       all_star_exports: Vec::default(),
@@ -778,11 +772,11 @@ pub trait Module:
   /// depends on the code generation results of dependencies which are returned by this function.
   /// e.g `Css` module may rely on the code generation result of `CssUrlDependency` to re-direct
   /// the url of the referenced assets.
-  fn get_code_generation_dependencies(&self) -> Option<&[BoxModuleDependency]> {
+  fn get_code_generation_dependencies(&self) -> Option<&[DependencyId]> {
     None
   }
 
-  fn get_presentational_dependencies(&self) -> Option<&[BoxDependencyTemplate]> {
+  fn get_presentational_dependencies(&self) -> Option<&[DependencyCodeGenerationRef]> {
     None
   }
 

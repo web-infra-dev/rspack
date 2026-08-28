@@ -1,4 +1,4 @@
-use std::iter;
+use std::{iter, sync::Arc};
 
 use either::Either;
 use itertools::Itertools;
@@ -86,12 +86,12 @@ impl AMDRequireDependenciesBlockParserPlugin {
           let mut dep = AMDRequireItemDependency::new(request.as_str().into(), None);
           dep.set_optional(parser.in_try);
           deps.push(AMDRequireArrayItem::AMDRequireItemDependency { dep_id: *dep.id() });
-          block_deps.push(Box::new(dep));
+          block_deps.push(BoxDependency::new(dep));
         }
       }
       let range = param.range();
       let dep = AMDRequireArrayDependency::new(deps, range.into());
-      parser.add_presentational_dependency(Box::new(dep));
+      parser.add_presentational_dependency(Arc::new(dep));
       return Some(true);
     }
     None
@@ -120,26 +120,26 @@ impl AMDRequireDependenciesBlockParserPlugin {
       let range = param.range();
 
       if param_str == "require" {
-        let dep = Box::new(RuntimeRequirementsDependency::new(
+        let dep = Arc::new(RuntimeRequirementsDependency::new(
           range.into(),
           RuntimeGlobals::REQUIRE,
         ));
         parser.add_presentational_dependency(dep);
       } else if param_str == "module" {
-        let dep = Box::new(RuntimeRequirementsDependency::new(
+        let dep = Arc::new(RuntimeRequirementsDependency::new(
           range.into(),
           RuntimeGlobals::MODULE,
         ));
         parser.add_presentational_dependency(dep);
       } else if param_str == "exports" {
-        let dep = Box::new(RuntimeRequirementsDependency::new(
+        let dep = Arc::new(RuntimeRequirementsDependency::new(
           range.into(),
           RuntimeGlobals::EXPORTS,
         ));
         parser.add_presentational_dependency(dep);
       } else if let Some(local_module) = parser.get_local_module_mut(param_str) {
         local_module.flag_used();
-        let dep = Box::new(LocalModuleDependency::new(
+        let dep = Arc::new(LocalModuleDependency::new(
           local_module.clone(),
           Some(range.into()),
           false,
@@ -147,12 +147,10 @@ impl AMDRequireDependenciesBlockParserPlugin {
         parser.add_presentational_dependency(dep);
         return Some(true);
       } else {
-        let mut dep = Box::new(AMDRequireItemDependency::new(
-          Atom::new(param_str.as_str()),
-          Some(range.into()),
-        ));
+        let mut dep =
+          AMDRequireItemDependency::new(Atom::new(param_str.as_str()), Some(range.into()));
         dep.set_optional(parser.in_try);
-        block_deps.push(dep);
+        block_deps.push(BoxDependency::new(dep));
       }
 
       return Some(true);
@@ -186,9 +184,9 @@ impl AMDRequireDependenciesBlockParserPlugin {
       end: call_span.real_hi(),
       ..Default::default()
     };
-    let mut dep = AMDRequireContextDependency::new(options, param_range.into(), parser.in_try);
-    *dep.critical_mut() = result.critical;
-    block_deps.push(Box::new(dep));
+    let dep = AMDRequireContextDependency::new(options, param_range.into(), parser.in_try);
+    dep.set_critical(result.critical);
+    block_deps.push(BoxDependency::new(dep));
     Some(true)
   }
 
@@ -288,18 +286,18 @@ impl AMDRequireDependenciesBlockParserPlugin {
 
     let param = parser.evaluate_expression(&first_arg.expr);
 
-    let mut dep = Box::new(AMDRequireDependency::new(
+    let mut dep = AMDRequireDependency::new(
       call_expr.span.into(),
       Some(first_arg.expr.span().into()),
       callback_arg.map(|arg| arg.expr.span().into()),
       error_callback_arg.map(|arg| arg.expr.span().into()),
-    ));
+    );
 
     let range = DependencyRange::from(call_expr.span);
     let block_loc = parser.to_dependency_location(range);
 
     if call_expr.args.len() == 1 {
-      let mut block_deps: Vec<BoxDependency> = vec![dep];
+      let mut block_deps: Vec<BoxDependency> = vec![BoxDependency::new(dep)];
       let mut result = None;
       parser.in_function_scope(true, iter::empty(), |parser| {
         result = self.process_array(parser, &mut block_deps, call_expr, &param);
@@ -328,7 +326,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       });
 
       if !result.is_some_and(|x| x) {
-        let dep = Box::new(UnsupportedDependency::new(
+        let dep = Arc::new(UnsupportedDependency::new(
           "unsupported".into(),
           call_expr.span.into(),
         ));
@@ -352,7 +350,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
         dep.error_callback_bind_this = self.process_function_argument(parser, error_callback_arg);
       }
 
-      block_deps.insert(0, dep);
+      block_deps.insert(0, BoxDependency::new(dep));
       let dep_block = Box::new(AsyncDependenciesBlock::new(
         *parser.module_identifier,
         block_loc,

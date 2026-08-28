@@ -14,11 +14,11 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::atoms::Atom;
 
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BoxLoader, BoxModuleDependency,
-  BuildInfo, BuildMeta, ChunkGraph, CodeGenerationData, Compilation, CompilerOptions,
-  ConcatenationScope, Context, DependencyLocation, DependencyRange, EvaluatedInlinableValue,
-  FactoryMeta, GeneratorOptions, Module, ModuleCodeTemplate, ModuleGraph, ModuleIdentifier,
-  ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeSpec, SourceType,
+  AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildInfo, BuildMeta, ChunkGraph,
+  CodeGenerationData, Compilation, CompilerOptions, ConcatenationScope, Context,
+  DependencyCodeGenerationRef, DependencyId, DependencyLocation, DependencyRange,
+  EvaluatedInlinableValue, FactoryMeta, GeneratorOptions, Module, ModuleCodeTemplate, ModuleGraph,
+  ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -103,8 +103,8 @@ impl SideEffectsBailoutItemWithSpan {
 pub struct ParseResult {
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
-  pub presentational_dependencies: Vec<BoxDependencyTemplate>,
-  pub code_generation_dependencies: Vec<BoxModuleDependency>,
+  pub presentational_dependencies: Vec<DependencyCodeGenerationRef>,
+  pub code_generation_dependencies: Vec<DependencyId>,
   pub source: BoxSource,
   pub side_effects_bailout: Option<SideEffectsBailoutItem>,
 }

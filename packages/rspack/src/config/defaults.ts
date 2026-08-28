@@ -282,6 +282,8 @@ const applyExperimentsDefaults = (
   D(experiments, 'newCache', false);
   if (typeof experiments.newCache === 'object') {
     D(experiments.newCache, 'codeGeneration', true);
+    D(experiments.newCache, 'devtool', true);
+    D(experiments.newCache, 'loader', true);
     D(experiments.newCache, 'minimize', true);
   }
   D(experiments, 'asyncWebAssembly', true);
@@ -861,6 +863,7 @@ const applyOutputDefaults = (
   F(output, 'chunkLoadingGlobal', () => `rspackChunk${uniqueNameId}`);
   D(output, 'assetModuleFilename', '[hash][ext][query]');
   D(output, 'webassemblyModuleFilename', '[hash].module.wasm');
+  D(output, 'wasmStreamingFallback', true);
   D(output, 'compareBeforeEmit', true);
   if (output.path && !path.isAbsolute(output.path)) {
     if (!context) {

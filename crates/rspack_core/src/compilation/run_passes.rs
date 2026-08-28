@@ -24,7 +24,9 @@ use super::{
   seal::SealPass,
   *,
 };
-use crate::{Compilation, SharedPluginDriver, artifacts::IncrementalArtifacts, cache::Cache};
+use crate::{
+  Compilation, SharedPluginDriver, artifacts::IncrementalArtifacts, legacy_cache::Cache,
+};
 
 impl Compilation {
   pub async fn run_passes(

@@ -10,7 +10,7 @@ use rspack_collections::{
   Identifiable, IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
-  BoxDependency, BoxModule, ChunkUkey, Compilation, CompilationOptimizeChunkModules, DependencyId,
+  BoxModule, ChunkUkey, Compilation, CompilationOptimizeChunkModules, Dependency, DependencyId,
   DependencyType, ExportProvided, ExportsInfoArtifact, GetTargetResult,
   ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
@@ -1787,6 +1787,7 @@ async fn create_concatenated_module(
         resolver_factory: compilation.resolver_factory.clone(),
         plugin_driver: compilation.plugin_driver.clone(),
         compiler_options: compilation.options.clone(),
+        loader_cache: compilation.get_cache("loader"),
         fs: compilation.input_filesystem.clone(),
         runtime_template: compilation.runtime_template.create_module_code_template(),
       },
@@ -1805,7 +1806,7 @@ fn prepare_concatenated_module_connections<F>(
   filter_connection: F,
 ) -> Vec<DependencyId>
 where
-  F: Fn(&ModuleIdentifier, &ModuleGraphConnection, &BoxDependency) -> bool + Sync,
+  F: Fn(&ModuleIdentifier, &ModuleGraphConnection, &dyn Dependency) -> bool + Sync,
 {
   let mg = compilation.get_module_graph();
 
@@ -1847,7 +1848,7 @@ fn prepare_concatenated_root_module_connections<F>(
   filter_connection: F,
 ) -> (Vec<DependencyId>, Vec<DependencyId>)
 where
-  F: Fn(&ModuleIdentifier, &ModuleGraphConnection, &BoxDependency) -> bool,
+  F: Fn(&ModuleIdentifier, &ModuleGraphConnection, &dyn Dependency) -> bool,
 {
   let mg = compilation.get_module_graph();
   let mut outgoings = vec![];

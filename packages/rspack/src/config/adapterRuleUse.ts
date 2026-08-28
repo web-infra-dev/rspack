@@ -535,9 +535,11 @@ function createRawModuleRuleUsesImpl(
 
   return uses.filter(Boolean).map((use, index) => {
     let o: string | undefined;
+    let fingerprintOptions = use.options;
     let isBuiltin = false;
     if (use.loader.startsWith(BUILTIN_LOADER_PREFIX)) {
       const temp = getBuiltinLoaderOptions(use.loader, use.options, options);
+      fingerprintOptions = temp;
       // keep json with indent so miette can show pretty error
       o = isNil(temp)
         ? undefined
@@ -555,6 +557,10 @@ function createRawModuleRuleUsesImpl(
         isBuiltin,
       ),
       options: o,
+      cache: use.cache ?? false,
+      optionsCacheKey: use.cache
+        ? (JSON.stringify(fingerprintOptions) ?? '')
+        : '',
     };
   });
 }

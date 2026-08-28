@@ -40,16 +40,14 @@ fn generate_workspace_versions(out_path: &str) -> Result<()> {
     .dependencies
     .get("swc_core")
     .and_then(|dep| match dep {
-      cargo_toml::Dependency::Simple(s) => Some(s.to_owned()),
+      cargo_toml::Dependency::Simple(version) => Some(version),
       // In workspace Cargo.toml, dependencies should be Simple type, not Inherited
       cargo_toml::Dependency::Inherited(_) => unreachable!(),
-      cargo_toml::Dependency::Detailed(d) => {
-        // Remove leading '=' from version string if present
-        d.version
-          .as_deref()
-          .map(|s| s.trim_start_matches('=').to_string())
-      }
+      cargo_toml::Dependency::Detailed(d) => d.version.as_ref(),
     })
+    .map(ToString::to_string)
+    // Remove exact or implicit caret operator from the version string
+    .map(|version| version.trim_start_matches(['=', '^']).to_string())
     .expect("Should have `swc_core` version");
 
   // Get Rspack version

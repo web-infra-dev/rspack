@@ -29,7 +29,7 @@ type Plugins = Plugin[];
 
 Rspack 附带了许多内置插件，你可以通过 `rspack.PluginName` 访问这些插件。
 
-例如，[`DefinePlugin`](/plugins/webpack/define-plugin) 允许你在编译时将代码中的变量替换为其他值或表达式。你可以通过 `rspack.DefinePlugin` 来访问它，并使用 `new` 来创建插件实例：
+例如，[`DefinePlugin`](/plugins/define-plugin) 允许你在编译时将代码中的变量替换为其他值或表达式。你可以通过 `rspack.DefinePlugin` 来访问它，并使用 `new` 来创建插件实例：
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -60,7 +60,7 @@ export default {
 
 Rspack 会忽略 `plugins` 数组中的 `false`、`''`、`0`、`null` 和 `undefined` 这些值，这允许你更容易地禁用某个插件。
 
-比如，仅在开发环境中启用 [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin)：
+比如，仅在开发环境中启用 [HotModuleReplacementPlugin](/plugins/hot-module-replacement-plugin)：
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
