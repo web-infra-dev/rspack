@@ -28,7 +28,9 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 ### ElectronTargetPlugin \{#electron-target-plugin}
 
-`electron.ElectronTargetPlugin(context)`
+```js
+new rspack.electron.ElectronTargetPlugin(context);
+```
 
 `ElectronTargetPlugin` 会将 Electron 内置模块保留为外部依赖，使其在运行时由 Electron 加载。传入 `'main'`、`'preload'` 或 `'renderer'`，可以额外外置对应进程中可用的模块。
 
@@ -51,7 +53,9 @@ new compiler.rspack.electron.ElectronTargetPlugin('main').apply(childCompiler);
 
 ### NodeEnvironmentPlugin
 
-`node.NodeEnvironmentPlugin(options)`
+```js
+new rspack.node.NodeEnvironmentPlugin(options);
+```
 
 `NodeEnvironmentPlugin` 会为编译器安装 infrastructure logger、带缓存的 Node.js 输入文件系统、作为输出文件系统的 Node.js `fs` 模块以及 watch 文件系统。`rspack()` API 会自动将它应用到根编译器。
 
@@ -67,7 +71,9 @@ new compiler.rspack.node.NodeEnvironmentPlugin({
 
 ### NodeTargetPlugin \{#node-target-plugin}
 
-`node.NodeTargetPlugin()`
+```js
+new rspack.node.NodeTargetPlugin();
+```
 
 `NodeTargetPlugin` 会将 Node.js 内置模块和使用 `node:` scheme 的请求保留为外部依赖，使其由 Node.js 运行时加载，而不是被 Rspack 打进 bundle。[`externalsPresets.node`](/config/externals#externalspresetsnode) 配置会在内部应用该插件。
 
@@ -92,7 +98,9 @@ new compiler.rspack.node.NodeTargetPlugin().apply(childCompiler);
 
 ### DynamicEntryPlugin
 
-`DynamicEntryPlugin(context, entry)`
+```js
+new rspack.DynamicEntryPlugin(context, entry);
+```
 
 `DynamicEntryPlugin` 会在每次触发 `make` 事件时调用入口函数，并将函数返回的入口添加到 compilation 中，因此入口列表可以在 watch 重新构建之间发生变化。
 
@@ -120,7 +128,9 @@ export default {
 
 ### EntryOptionPlugin
 
-`EntryOptionPlugin()`
+```js
+new rspack.EntryOptionPlugin();
+```
 
 `EntryOptionPlugin` 用于处理 compiler 的 `entryOption` hook。对于静态入口，它会为每个入口请求应用 `EntryPlugin`；对于函数入口，则会应用 `DynamicEntryPlugin`。Rspack 会自动将它应用到根编译器。
 
@@ -146,7 +156,9 @@ compiler.rspack.EntryOptionPlugin.applyEntryOption(
 
 ### EnableChunkLoadingPlugin \{#enable-chunk-loading-plugin}
 
-`javascript.EnableChunkLoadingPlugin(type)`
+```js
+new rspack.javascript.EnableChunkLoadingPlugin(type);
+```
 
 `EnableChunkLoadingPlugin` 会启用指定 chunk loading 类型所需的运行时模块。Rspack 通常会根据 [`output.enabledChunkLoadingTypes`](/config/output#outputenabledchunkloadingtypes) 收集到的类型应用该插件。
 
@@ -175,7 +187,9 @@ export default {
 
 ### EnableLibraryPlugin \{#enable-library-plugin}
 
-`library.EnableLibraryPlugin(type)`
+```js
+new rspack.library.EnableLibraryPlugin(type);
+```
 
 `EnableLibraryPlugin` 会向编译器注册一种 library 输出类型。Rspack 通常会根据 [`output.enabledLibraryTypes`](/config/output#outputenabledlibrarytypes) 收集到的类型应用该插件。
 
@@ -206,7 +220,9 @@ export default {
 
 ### EnableWasmLoadingPlugin \{#enable-wasm-loading-plugin}
 
-`wasm.EnableWasmLoadingPlugin(type)`
+```js
+new rspack.wasm.EnableWasmLoadingPlugin(type);
+```
 
 `EnableWasmLoadingPlugin` 会启用指定 WebAssembly 加载类型所需的运行时模块。Rspack 通常会根据 [`output.enabledWasmLoadingTypes`](/config/output#outputenabledwasmloadingtypes) 收集到的类型应用该插件。
 
@@ -240,7 +256,9 @@ export default {
 
 ### EvalDevToolModulePlugin
 
-`EvalDevToolModulePlugin(options)`
+```js
+new rspack.EvalDevToolModulePlugin(options);
+```
 
 `EvalDevToolModulePlugin` 会使用 `eval` 包裹每个非 external JavaScript 模块并添加 `sourceURL`，使浏览器开发者工具可以显示原始模块名称。设置 `devtool: 'eval'` 时，Rspack 会自动应用该插件。
 
@@ -264,7 +282,9 @@ export default {
 
 ### FetchCompileAsyncWasmPlugin
 
-`web.FetchCompileAsyncWasmPlugin()`
+```js
+new rspack.web.FetchCompileAsyncWasmPlugin();
+```
 
 `FetchCompileAsyncWasmPlugin` 会添加在浏览器中获取并编译异步 WebAssembly 模块的运行时代码。`EnableWasmLoadingPlugin('fetch')` 会在内部应用这个实现。
 
@@ -296,7 +316,9 @@ export default {
 
 ### JsonpTemplatePlugin \{#jsonp-template-plugin}
 
-`web.JsonpTemplatePlugin()`
+```js
+new rspack.web.JsonpTemplatePlugin();
+```
 
 `JsonpTemplatePlugin` 用于配置子编译器的浏览器产物。它会将 [`output.chunkLoading`](/config/output#outputchunkloading) 设置为 `'jsonp'`，应用 [`'array-push'` chunk format](/config/output#outputchunkformat)，并启用 JSONP chunk loading 所需的运行时代码。
 
@@ -354,7 +376,9 @@ export default {
 
 ### NodeTemplatePlugin \{#node-template-plugin}
 
-`node.NodeTemplatePlugin(options)`
+```js
+new rspack.node.NodeTemplatePlugin(options);
+```
 
 `NodeTemplatePlugin` 用于配置子编译器的 Node.js 产物。它会应用 [`'commonjs'` chunk format](/config/output#outputchunkformat)，默认将 [`output.chunkLoading`](/config/output#outputchunkloading) 设置为 `'require'`，并启用所需的 chunk loading 运行时代码。
 
@@ -423,7 +447,9 @@ export default {
 
 ### WebWorkerTemplatePlugin \{#web-worker-template-plugin}
 
-`webworker.WebWorkerTemplatePlugin()`
+```js
+new rspack.webworker.WebWorkerTemplatePlugin();
+```
 
 `WebWorkerTemplatePlugin` 用于配置子编译器的 Web Worker 产物。它会将 [`output.chunkLoading`](/config/output#outputchunkloading) 设置为 `'import-scripts'`，应用 [`'array-push'` chunk format](/config/output#outputchunkformat)，并启用基于 `importScripts` 的 chunk loading 运行时代码。
 
@@ -485,7 +511,9 @@ export default {
 
 ### LoaderOptionsPlugin
 
-`LoaderOptionsPlugin(options)`
+```js
+new rspack.LoaderOptionsPlugin(options);
+```
 
 `LoaderOptionsPlugin` 会将自定义选项字段复制到匹配 `test`、`include` 和 `exclude` 的资源所对应的 loader context 上。匹配字段本身只用于过滤，不会被复制。
 
@@ -525,7 +553,9 @@ export default {
 
 ### LoaderTargetPlugin
 
-`LoaderTargetPlugin(target)`
+```js
+new rspack.LoaderTargetPlugin(target);
+```
 
 `LoaderTargetPlugin` 会将 `target` 赋值给每个 loader context 的 `this.target`。当自定义编译器需要让 loader 读取到与编译器配置不同的 target 时，可以使用该插件。
 
@@ -565,7 +595,9 @@ export default {
 
 ### ContainerPlugin
 
-`container.ContainerPlugin(options)`
+```js
+new rspack.container.ContainerPlugin(options);
+```
 
 `ContainerPlugin` 会创建一个 container 入口，通过 Module Federation 的 `get` 和 `init` 接口暴露本地模块。它是 `exposes` 配置的底层实现。
 
@@ -590,7 +622,9 @@ export default {
 
 ### ContainerReferencePlugin
 
-`container.ContainerReferencePlugin(options)`
+```js
+new rspack.container.ContainerReferencePlugin(options);
+```
 
 `ContainerReferencePlugin` 会将远程 container 注册为 external，并添加从远程加载模块所需的运行时代码。它是 `remotes` 配置的底层实现。
 
@@ -614,7 +648,9 @@ export default {
 
 ### ConsumeSharedPlugin
 
-`sharing.ConsumeSharedPlugin(options)`
+```js
+new rspack.sharing.ConsumeSharedPlugin(options);
+```
 
 `ConsumeSharedPlugin` 会从 share scope 中解析配置的模块请求。它可以检查版本与 singleton 要求，并在没有合适 provider 时使用本地模块作为 fallback。
 
@@ -641,7 +677,9 @@ export default {
 
 ### ProvideSharedPlugin
 
-`sharing.ProvideSharedPlugin(options)`
+```js
+new rspack.sharing.ProvideSharedPlugin(options);
+```
 
 `ProvideSharedPlugin` 会将本地模块及其版本注册到 share scope 中，供其他构建消费。它是 `shared` 配置中 provider 部分的底层实现。
 
@@ -661,7 +699,9 @@ export default {
 
 ### SharePlugin
 
-`sharing.SharePlugin(options)`
+```js
+new rspack.sharing.SharePlugin(options);
+```
 
 `SharePlugin` 会根据同一份 `shared` 配置同时应用 `ConsumeSharedPlugin` 和 `ProvideSharedPlugin`。它等价于 `ModuleFederationPlugin` 中 `shared` 配置的底层实现。
 
@@ -687,7 +727,9 @@ export default {
 
 ### TreeShakingSharedPlugin \{#tree-shaking-shared-plugin}
 
-`sharing.TreeShakingSharedPlugin(options)`
+```js
+new rspack.sharing.TreeShakingSharedPlugin(options);
+```
 
 <ApiMeta stability={Stability.Experimental} />
 
@@ -727,7 +769,9 @@ export default {
 
 ### RemoveDuplicateModulesPlugin
 
-`experiments.RemoveDuplicateModulesPlugin()`
+```js
+new rspack.experiments.RemoveDuplicateModulesPlugin();
+```
 
 <ApiMeta stability={Stability.Experimental} />
 

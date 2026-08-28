@@ -28,7 +28,9 @@ Plugins affecting the compiler environment and runtime target.
 
 ### ElectronTargetPlugin \{#electron-target-plugin}
 
-`electron.ElectronTargetPlugin(context)`
+```js
+new rspack.electron.ElectronTargetPlugin(context);
+```
 
 `ElectronTargetPlugin` keeps Electron built-in modules external so Electron can load them at runtime. Pass `'main'`, `'preload'`, or `'renderer'` to externalize the additional modules available in that process.
 
@@ -51,7 +53,9 @@ new compiler.rspack.electron.ElectronTargetPlugin('main').apply(childCompiler);
 
 ### NodeEnvironmentPlugin
 
-`node.NodeEnvironmentPlugin(options)`
+```js
+new rspack.node.NodeEnvironmentPlugin(options);
+```
 
 `NodeEnvironmentPlugin` installs infrastructure logging, a cached Node.js input file system, the Node.js `fs` module as the output file system, and a watch file system on a compiler. The `rspack()` API applies it automatically to the root compiler.
 
@@ -67,7 +71,9 @@ This plugin configures compiler I/O and logging; it does not set the JavaScript 
 
 ### NodeTargetPlugin \{#node-target-plugin}
 
-`node.NodeTargetPlugin()`
+```js
+new rspack.node.NodeTargetPlugin();
+```
 
 `NodeTargetPlugin` keeps Node.js built-in modules and requests using the `node:` scheme external so the Node.js runtime loads them instead of Rspack bundling them. The [`externalsPresets.node`](/config/externals#externalspresetsnode) option applies this plugin internally.
 
@@ -92,7 +98,9 @@ Plugins that add entry chunks to the compilation.
 
 ### DynamicEntryPlugin
 
-`DynamicEntryPlugin(context, entry)`
+```js
+new rspack.DynamicEntryPlugin(context, entry);
+```
 
 `DynamicEntryPlugin` calls an entry function during every `make` event and adds the returned entries to the compilation. This allows the entry list to change between watch rebuilds.
 
@@ -120,7 +128,9 @@ For a regular build, prefer an [`entry` function](/config/entry#entry), which Rs
 
 ### EntryOptionPlugin
 
-`EntryOptionPlugin()`
+```js
+new rspack.EntryOptionPlugin();
+```
 
 `EntryOptionPlugin` handles the `entryOption` compiler hook. It applies an `EntryPlugin` for each static entry request or a `DynamicEntryPlugin` for a function entry. Rspack applies it automatically to the root compiler.
 
@@ -146,7 +156,9 @@ Plugins affecting generated modules, chunks, and runtime loading.
 
 ### EnableChunkLoadingPlugin \{#enable-chunk-loading-plugin}
 
-`javascript.EnableChunkLoadingPlugin(type)`
+```js
+new rspack.javascript.EnableChunkLoadingPlugin(type);
+```
 
 `EnableChunkLoadingPlugin` enables the runtime modules required by a chunk-loading type. Rspack normally applies it for the types collected in [`output.enabledChunkLoadingTypes`](/config/output#outputenabledchunkloadingtypes).
 
@@ -175,7 +187,9 @@ For a custom chunk-loading implementation, call `EnableChunkLoadingPlugin.setEna
 
 ### EnableLibraryPlugin \{#enable-library-plugin}
 
-`library.EnableLibraryPlugin(type)`
+```js
+new rspack.library.EnableLibraryPlugin(type);
+```
 
 `EnableLibraryPlugin` registers a library output type with the compiler. Rspack normally applies it for the types collected in [`output.enabledLibraryTypes`](/config/output#outputenabledlibrarytypes).
 
@@ -206,7 +220,9 @@ For a regular library build, prefer [`output.library`](/config/output#outputlibr
 
 ### EnableWasmLoadingPlugin \{#enable-wasm-loading-plugin}
 
-`wasm.EnableWasmLoadingPlugin(type)`
+```js
+new rspack.wasm.EnableWasmLoadingPlugin(type);
+```
 
 `EnableWasmLoadingPlugin` enables the runtime modules required by a WebAssembly loading type. Rspack normally applies it for the types collected in [`output.enabledWasmLoadingTypes`](/config/output#outputenabledwasmloadingtypes).
 
@@ -240,7 +256,9 @@ For a regular build, prefer [`output.wasmLoading`](/config/output#outputwasmload
 
 ### EvalDevToolModulePlugin
 
-`EvalDevToolModulePlugin(options)`
+```js
+new rspack.EvalDevToolModulePlugin(options);
+```
 
 `EvalDevToolModulePlugin` wraps each non-external JavaScript module in `eval` and appends a `sourceURL`, allowing browser developer tools to display the original module name. Setting `devtool: 'eval'` applies this plugin automatically.
 
@@ -264,7 +282,9 @@ The `moduleFilenameTemplate` and `sourceUrlComment` options can customize the ge
 
 ### FetchCompileAsyncWasmPlugin
 
-`web.FetchCompileAsyncWasmPlugin()`
+```js
+new rspack.web.FetchCompileAsyncWasmPlugin();
+```
 
 `FetchCompileAsyncWasmPlugin` adds the browser runtime that fetches and compiles asynchronous WebAssembly modules. `EnableWasmLoadingPlugin('fetch')` applies this implementation internally.
 
@@ -296,7 +316,9 @@ For a regular web build, prefer `output.wasmLoading: 'fetch'`, which enables the
 
 ### JsonpTemplatePlugin \{#jsonp-template-plugin}
 
-`web.JsonpTemplatePlugin()`
+```js
+new rspack.web.JsonpTemplatePlugin();
+```
 
 `JsonpTemplatePlugin` configures browser output for child compilers. It sets [`output.chunkLoading`](/config/output#outputchunkloading) to `'jsonp'`, applies the [`'array-push'` chunk format](/config/output#outputchunkformat), and enables the required JSONP chunk-loading runtime.
 
@@ -354,7 +376,9 @@ For a regular web build, prefer `target: 'web'`. It selects the `'array-push'` c
 
 ### NodeTemplatePlugin \{#node-template-plugin}
 
-`node.NodeTemplatePlugin(options)`
+```js
+new rspack.node.NodeTemplatePlugin(options);
+```
 
 `NodeTemplatePlugin` configures Node.js output for child compilers. It applies the [`'commonjs'` chunk format](/config/output#outputchunkformat), sets [`output.chunkLoading`](/config/output#outputchunkloading) to `'require'` by default, and enables the required chunk-loading runtime.
 
@@ -423,7 +447,9 @@ For a regular Node.js build, prefer `target: 'node'`. It selects the `'commonjs'
 
 ### WebWorkerTemplatePlugin \{#web-worker-template-plugin}
 
-`webworker.WebWorkerTemplatePlugin()`
+```js
+new rspack.webworker.WebWorkerTemplatePlugin();
+```
 
 `WebWorkerTemplatePlugin` configures Web Worker output for child compilers. It sets [`output.chunkLoading`](/config/output#outputchunkloading) to `'import-scripts'`, applies the [`'array-push'` chunk format](/config/output#outputchunkformat), and enables the required `importScripts` chunk-loading runtime.
 
@@ -485,7 +511,9 @@ Plugins that customize the context in which loaders execute.
 
 ### LoaderOptionsPlugin
 
-`LoaderOptionsPlugin(options)`
+```js
+new rspack.LoaderOptionsPlugin(options);
+```
 
 `LoaderOptionsPlugin` copies custom option fields onto the loader context for resources matching `test`, `include`, and `exclude`. The matching fields themselves are used only as filters and are not copied.
 
@@ -525,7 +553,9 @@ This plugin mainly supports loaders that read custom properties from `this`. New
 
 ### LoaderTargetPlugin
 
-`LoaderTargetPlugin(target)`
+```js
+new rspack.LoaderTargetPlugin(target);
+```
 
 `LoaderTargetPlugin` assigns `target` to `this.target` in every loader context. It is useful when a custom compiler needs loaders to observe a target that differs from the compiler's configured target.
 
@@ -565,7 +595,9 @@ These plugins implement the `exposes`, `remotes`, and `shared` parts of Module F
 
 ### ContainerPlugin
 
-`container.ContainerPlugin(options)`
+```js
+new rspack.container.ContainerPlugin(options);
+```
 
 `ContainerPlugin` creates a container entry that exposes local modules through the Module Federation `get` and `init` interface. It is the low-level implementation of the `exposes` option.
 
@@ -590,7 +622,9 @@ export default {
 
 ### ContainerReferencePlugin
 
-`container.ContainerReferencePlugin(options)`
+```js
+new rspack.container.ContainerReferencePlugin(options);
+```
 
 `ContainerReferencePlugin` registers remote containers as externals and adds the runtime needed to load modules from them. It is the low-level implementation of the `remotes` option.
 
@@ -614,7 +648,9 @@ export default {
 
 ### ConsumeSharedPlugin
 
-`sharing.ConsumeSharedPlugin(options)`
+```js
+new rspack.sharing.ConsumeSharedPlugin(options);
+```
 
 `ConsumeSharedPlugin` resolves configured module requests from a share scope. It can enforce version and singleton requirements and use a local module as a fallback when no suitable provider is available.
 
@@ -641,7 +677,9 @@ export default {
 
 ### ProvideSharedPlugin
 
-`sharing.ProvideSharedPlugin(options)`
+```js
+new rspack.sharing.ProvideSharedPlugin(options);
+```
 
 `ProvideSharedPlugin` registers local modules and their versions in a share scope so other builds can consume them. It is the provider half of the `shared` option.
 
@@ -661,7 +699,9 @@ export default {
 
 ### SharePlugin
 
-`sharing.SharePlugin(options)`
+```js
+new rspack.sharing.SharePlugin(options);
+```
 
 `SharePlugin` applies both `ConsumeSharedPlugin` and `ProvideSharedPlugin` for the same `shared` configuration. It is the low-level equivalent of `ModuleFederationPlugin`'s `shared` option.
 
@@ -687,7 +727,9 @@ export default {
 
 ### TreeShakingSharedPlugin \{#tree-shaking-shared-plugin}
 
-`sharing.TreeShakingSharedPlugin(options)`
+```js
+new rspack.sharing.TreeShakingSharedPlugin(options);
+```
 
 <ApiMeta stability={Stability.Experimental} />
 
@@ -727,7 +769,9 @@ The plugin creates an independent build only for shared dependencies that enable
 
 ### RemoveDuplicateModulesPlugin
 
-`experiments.RemoveDuplicateModulesPlugin()`
+```js
+new rspack.experiments.RemoveDuplicateModulesPlugin();
+```
 
 <ApiMeta stability={Stability.Experimental} />
 
