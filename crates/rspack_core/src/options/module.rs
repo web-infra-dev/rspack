@@ -1672,10 +1672,13 @@ pub struct ModuleRuleUseLoader {
   /// Loader options
   /// This only exists if the loader is a built-in loader.
   pub options: Option<String>,
+  /// Handle for ordinary JavaScript loader options kept in the main JS isolate.
+  pub js_options_handle: Option<u32>,
   /// Cache this loader.
   pub cache: bool,
   /// Stable serialization of the public loader options.
   pub options_cache_key: String,
+  pub parallel: bool,
 }
 
 pub type FnUse =

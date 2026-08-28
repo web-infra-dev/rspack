@@ -3,6 +3,7 @@ module.exports = function (content, sourceMap, additionalData) {
 		null,
 		`module.exports = ${JSON.stringify({
 			...additionalData,
+			workerLocal: additionalData.workerLocal.description,
 			b: "b"
 		})}`,
 		null

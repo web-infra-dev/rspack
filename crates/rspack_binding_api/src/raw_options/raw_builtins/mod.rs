@@ -852,9 +852,10 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(CircularModulesInfoPlugin::default().boxed())
       }
       BuiltinPluginName::JsLoaderRspackPlugin => {
+        let runner = self.options;
         // Set the compiler._runLoader property on the JsObject to ensure that the runLoader
         // is not garbage collected by JS while the stats Object holds a reference to JsLoaderPlugin.
-        compiler_object.set_named_property("_runLoader", self.options)?;
+        compiler_object.set_named_property("_runLoader", runner)?;
         let loader_runner_getter = JsLoaderRunnerGetter::new(&env)?;
         plugins.push(JsLoaderRspackPlugin::new(loader_runner_getter).boxed());
       }

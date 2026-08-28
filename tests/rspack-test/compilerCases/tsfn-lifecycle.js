@@ -1,11 +1,12 @@
 const path = require("node:path");
 const { spawn } = require("node:child_process");
 
-function runChild(script) {
+function runChild(script, timeout, expectedStdout) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, ["--expose-gc", script], {
       cwd: path.resolve(__dirname, "../../.."),
       stdio: ["ignore", "pipe", "pipe"],
+      timeout,
     });
 
     let stdout = "";
@@ -21,6 +22,14 @@ function runChild(script) {
     child.on("error", reject);
     child.on("close", code => {
       if (code === 0) {
+        if (expectedStdout && !stdout.includes(expectedStdout)) {
+          reject(
+            new Error(
+              `Lifecycle script exited before producing ${JSON.stringify(expectedStdout)}`,
+            ),
+          );
+          return;
+        }
         resolve();
         return;
       }
@@ -131,6 +140,37 @@ module.exports = [
           "tsfn-lifecycle",
           "closed-compiler-error.cjs",
         ),
+      );
+    },
+  },
+  {
+    description:
+      "should let the process exit after running a parallel loader",
+    async build() {
+      await runChild(
+        path.join(
+          __dirname,
+          "fixtures",
+          "tsfn-lifecycle",
+          "parallel-loader-process-exit.cjs",
+        ),
+        15_000,
+        "parallel-loader-complete",
+      );
+    },
+  },
+  {
+    description:
+      "should release main registry data when the native additional data handle is dropped",
+    async build() {
+      await runChild(
+        path.join(
+          __dirname,
+          "fixtures",
+          "tsfn-lifecycle",
+          "gc-check-loader-additional-data.cjs",
+        ),
+        15_000,
       );
     },
   },

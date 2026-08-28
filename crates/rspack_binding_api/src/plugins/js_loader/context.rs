@@ -6,7 +6,7 @@ use rspack_collections::Identifiable;
 use rspack_core::{LoaderContext, LoaderDependencies, Module, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
-use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
+use rspack_napi::MainThreadJsValueHandle;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::cache::JsLoaderCacheObject;
@@ -18,6 +18,9 @@ pub struct JsLoaderItem {
   pub loader: String,
   pub r#type: String,
   pub cache: bool,
+  pub parallel: bool,
+  pub options_handle: Option<u32>,
+  pub ident: Option<String>,
 
   // data
   pub data: serde_json::Value,
@@ -35,6 +38,9 @@ impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
       loader: value.request().to_string(),
       r#type: value.r#type().to_string(),
       cache: value.cache(),
+      parallel: value.parallel(),
+      options_handle: value.js_options_handle(),
+      ident: value.ident().map(ToOwned::to_owned),
 
       data: value.data().clone(),
       normal_executed: value.normal_executed(),
@@ -58,6 +64,9 @@ where
         data: serde_json::Value::Null,
         r#type: r#type.to_string(),
         cache: false,
+        parallel: false,
+        options_handle: None,
+        ident: None,
         pitch_executed: false,
         normal_executed: false,
         no_pitch: false,
@@ -68,6 +77,9 @@ where
       data: serde_json::Value::Null,
       r#type: String::default(),
       cache: false,
+      parallel: false,
+      options_handle: None,
+      ident: None,
       pitch_executed: false,
       normal_executed: false,
       no_pitch: false,
@@ -176,11 +188,14 @@ pub struct JsLoaderContext {
   pub module: ModuleObject,
   #[napi(ts_type = "Readonly<boolean>")]
   pub hot: bool,
+  #[napi(js_name = "__internal__runHooksOnly")]
+  pub run_hooks_only: bool,
+  #[napi(js_name = "__internal__hookExtensions")]
+  pub hook_extensions: Option<String>,
 
   /// Content maybe empty in pitching stage
   pub content: Either<Null, Buffer>,
-  #[napi(ts_type = "any")]
-  pub additional_data: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
+  pub additional_data: Option<u32>,
   #[napi(js_name = "__internal__parseMeta")]
   pub parse_meta: HashMap<String, String>,
   pub source_map: Option<Buffer>,
@@ -208,19 +223,19 @@ pub struct JsLoaderContext {
 impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
   type Error = rspack_error::Error;
 
-  fn try_from(
-    cx: &mut rspack_core::LoaderContext<RunnerContext>,
-  ) -> std::result::Result<Self, Self::Error> {
+  fn try_from(cx: &mut LoaderContext<RunnerContext>) -> std::result::Result<Self, Self::Error> {
     let module = &cx.context.module;
 
     #[allow(clippy::unwrap_used)]
-    Ok(JsLoaderContext {
+    Ok(Self {
       resource: cx.resource_data.resource().to_owned(),
       module: ModuleObject::with_ptr(
         NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module).unwrap(),
         cx.context.compiler_id,
       ),
       hot: cx.hot,
+      run_hooks_only: false,
+      hook_extensions: None,
       content: match cx.content() {
         Some(c) => Either::B(c.to_owned().into_bytes().into()),
         None => Either::A(Null),
@@ -230,8 +245,8 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       parse_meta: Default::default(),
       additional_data: cx
         .additional_data()
-        .and_then(|data| data.get::<ThreadsafeJsValueRef<Unknown>>())
-        .cloned(),
+        .and_then(|data| data.get::<MainThreadJsValueHandle>())
+        .map(MainThreadJsValueHandle::handle),
       source_map: cx
         .source_map()
         .map(|v| v.to_json())

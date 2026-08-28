@@ -7,8 +7,8 @@ use rustc_hash::FxHashMap as HashMap;
 use super::BuildModuleGraphArtifact;
 use crate::{
   Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory, ResolverFactory,
-  RuntimeTemplate, SharedPluginDriver,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, LoaderCompilation, ModuleFactory,
+  ResolverFactory, RuntimeTemplate, SharedPluginDriver,
   incremental::Incremental,
   module_graph::ModuleGraph,
   new_cache::{Cache, FileSystemInfo},
@@ -19,6 +19,7 @@ pub struct TaskContext {
   pub compiler_id: CompilerId,
   // compilation info
   pub compilation_id: CompilationId,
+  pub compilation: LoaderCompilation,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
@@ -47,6 +48,7 @@ impl TaskContext {
     Self {
       compiler_id: compilation.compiler_id(),
       compilation_id: compilation.id(),
+      compilation: LoaderCompilation::new(compilation),
       plugin_driver: compilation.plugin_driver.clone(),
       buildtime_plugin_driver: compilation.buildtime_plugin_driver.clone(),
       compiler_options: compilation.options.clone(),

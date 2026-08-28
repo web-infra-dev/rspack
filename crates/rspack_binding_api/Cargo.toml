@@ -47,6 +47,7 @@ rspack_util               = { workspace = true }
 rspack_watcher            = { workspace = true }
 rspack_workspace          = { workspace = true }
 
+async-channel           = { workspace = true }
 async-trait             = { workspace = true }
 cow-utils               = { workspace = true }
 rspack_tracing          = { workspace = true }

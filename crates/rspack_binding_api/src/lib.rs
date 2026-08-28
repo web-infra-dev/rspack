@@ -102,6 +102,7 @@ mod swc;
 mod trace_event;
 mod utils;
 mod virtual_modules;
+mod worker;
 
 use std::{
   cell::RefCell,
@@ -152,6 +153,18 @@ use crate::{
 /// @internal
 #[napi]
 pub const EXPECTED_RSPACK_CORE_VERSION: &str = rspack_workspace::rspack_pkg_version!();
+
+#[napi]
+pub fn register_main_thread_js_value_release(release: Function<u32, ()>) -> napi::Result<()> {
+  let release = release
+    .build_threadsafe_function::<u32>()
+    .weak::<true>()
+    .callee_handled::<false>()
+    .max_queue_size::<0>()
+    .build()?;
+  rspack_napi::MainThreadJsValueHandle::register_release(release);
+  Ok(())
+}
 
 thread_local! {
   static COMPILER_REFERENCES: RefCell<FxHashMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();

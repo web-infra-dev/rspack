@@ -39,6 +39,9 @@ pub struct LoaderItem<Context: Send> {
   data: serde_json::Value,
   r#type: String,
   cache_options: Option<Box<LoaderRunnerOptions>>,
+  parallel: bool,
+  js_options_handle: Option<u32>,
+  ident: Option<String>,
   pitch_executed: AtomicBool,
   normal_executed: AtomicBool,
   /// Whether loader was called with [LoaderContext::finish_with].
@@ -79,6 +82,21 @@ impl<C: Send> LoaderItem<C> {
   #[inline]
   pub fn cache(&self) -> bool {
     self.cache_options.is_some()
+  }
+
+  #[inline]
+  pub fn parallel(&self) -> bool {
+    self.parallel
+  }
+
+  #[inline]
+  pub fn js_options_handle(&self) -> Option<u32> {
+    self.js_options_handle
+  }
+
+  #[inline]
+  pub fn ident(&self) -> Option<&str> {
+    self.ident.as_deref()
   }
 
   #[inline]
@@ -246,6 +264,9 @@ impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
 
 impl<C: Send> LoaderItem<C> {
   pub(crate) fn new(loader: Arc<dyn Loader<C>>, options: LoaderRunnerOptions) -> Self {
+    let parallel = options.parallel;
+    let js_options_handle = options.js_options_handle;
+    let options_ident = options.ident.clone();
     let cache_options = options.cache.then(|| Box::new(options));
     let ident = &**loader.identifier();
     if let Some(r#type) = loader.r#type() {
@@ -264,6 +285,9 @@ impl<C: Send> LoaderItem<C> {
         data: serde_json::Value::Null,
         r#type: ty,
         cache_options,
+        parallel,
+        js_options_handle,
+        ident: options_ident,
         pitch_executed: AtomicBool::new(false),
         normal_executed: AtomicBool::new(false),
         finish_called: AtomicBool::new(false),
@@ -284,6 +308,9 @@ impl<C: Send> LoaderItem<C> {
       data: serde_json::Value::Null,
       r#type: String::default(),
       cache_options,
+      parallel,
+      js_options_handle,
+      ident: options_ident,
       pitch_executed: AtomicBool::new(false),
       normal_executed: AtomicBool::new(false),
       finish_called: AtomicBool::new(false),

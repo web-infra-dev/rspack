@@ -1,5 +1,6 @@
 module.exports = function (content, sourceMap, additionalData) {
 	this.callback(null, content, null, {
-		a: "a"
+		a: "a",
+		workerLocal: Symbol("worker-local")
 	});
 };

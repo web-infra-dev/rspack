@@ -49,8 +49,11 @@ use crate::{
 pub struct RawModuleRuleUse {
   pub loader: String,
   pub options: Option<String>,
+  /// Handle for ordinary JavaScript loader options kept in the main JS isolate.
+  pub js_options_handle: Option<u32>,
   pub cache: bool,
   pub options_cache_key: String,
+  pub parallel: bool,
 }
 
 #[rspack_napi_macros::tagged_union]
@@ -1023,8 +1026,10 @@ impl TryFrom<RawModuleRule> for ModuleRule {
           .map(|rule_use| ModuleRuleUseLoader {
             loader: rule_use.loader,
             options: rule_use.options,
+            js_options_handle: rule_use.js_options_handle,
             cache: rule_use.cache,
             options_cache_key: rule_use.options_cache_key,
+            parallel: rule_use.parallel,
           })
           .collect::<Vec<_>>();
         Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(uses))
@@ -1039,8 +1044,10 @@ impl TryFrom<RawModuleRule> for ModuleRule {
                 .map(|rule_use| ModuleRuleUseLoader {
                   loader: rule_use.loader,
                   options: rule_use.options,
+                  js_options_handle: rule_use.js_options_handle,
                   cache: rule_use.cache,
                   options_cache_key: rule_use.options_cache_key,
+                  parallel: rule_use.parallel,
                 })
                 .collect::<Vec<_>>()
             })

@@ -31,11 +31,11 @@ use crate::{
   AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildResult, ChunkGraph, CodeGenerationResultBuilder, Compilation, ConnectionState, Context,
   DependenciesBlock, DependencyCodeGenerationRef, DependencyId, FactoryMeta, GenerateContext,
-  GeneratorOptions, ImportPhase, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleType, OptimizationBailoutItem,
-  OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
-  ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec,
-  SideEffectsStateArtifact, SourceType, contextify,
+  GeneratorOptions, ImportPhase, LibIdentOptions, LoaderCompilation, Module,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
+  ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin,
+  RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, contextify,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -79,7 +79,7 @@ impl ModuleIssuer {
 define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData, fs: &Arc<dyn ReadableFileSystem>) -> Content,tracing=false);
 define_hook!(NormalModuleLoader: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
 define_hook!(NormalModuleLoaderShouldYield: SeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool,tracing=false);
-define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
+define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut Option<Box<LoaderContext<RunnerContext>>>),tracing=false);
 define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule),tracing=false);
 define_hook!(NormalModuleAdditionalData: Series(additional_data: &mut Option<&mut AdditionalData>),tracing=false);
 
@@ -373,7 +373,7 @@ impl Module for NormalModule {
   async fn build(
     mut self: Box<Self>,
     build_context: BuildContext,
-    _compilation: Option<&Compilation>,
+    compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     // so does webpack
     self.parsed = true;
@@ -398,6 +398,7 @@ impl Module for NormalModule {
 
     let compiler_id = build_context.compiler_id;
     let compilation_id = build_context.compilation_id;
+    let compilation = LoaderCompilation::new(compilation.expect("should pass compilation"));
     let compiler_options = build_context.compiler_options.clone();
     let resolver_factory = build_context.resolver_factory.clone();
     let fs = build_context.fs.clone();
@@ -409,6 +410,7 @@ impl Module for NormalModule {
       RunnerContext {
         compiler_id,
         compilation_id,
+        compilation,
         options: compiler_options,
         fs: fs.clone(),
         loader_cache: build_context.loader_cache,
