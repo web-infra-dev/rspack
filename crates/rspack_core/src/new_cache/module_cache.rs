@@ -7,13 +7,16 @@ use crate::{
   cache::{CacheCodec, SnapshotStrategyOptions},
 };
 
-/// Persistent cache for completed module builds.
+/// Persistent cache for completed normal module builds.
 ///
 /// Webpack caches the `Module` itself. Rspack keeps dependencies and blocks in
 /// `BuildResult` until they are inserted into the module graph, so caching the
 /// complete build result is the equivalent representation. The serialized form
 /// also gives each compilation an exclusively owned module while the generic
 /// cache continues to expose shared immutable values.
+///
+/// Context modules are intentionally built fresh until their factory state can
+/// be restored without serializing the process-local dependency resolver.
 #[derive(Debug, Clone)]
 pub(crate) struct ModuleCache {
   cache: CacheFacade,
@@ -31,7 +34,7 @@ impl ModuleCache {
     };
     Self {
       cache: cache.facade("Compilation/modules"),
-      codec: CacheCodec::new_for_module_cache(project_root),
+      codec: CacheCodec::new(project_root),
       // Incremental make reuses the previous module graph and owns its own
       // invalidation path. Keep that fast path unchanged.
       enabled: options.experiments.new_cache.module && !is_rebuild,
@@ -66,8 +69,11 @@ impl ModuleCache {
     }
 
     let module = &mut result.module;
-    if (module.as_normal_module().is_some() || module.as_context_module().is_some())
-      && module.build_info().cacheable
+    if module.as_normal_module().is_none() {
+      return Ok(());
+    }
+
+    if module.build_info().cacheable
       && !module
         .diagnostics()
         .iter()
