@@ -97,7 +97,7 @@ use crate::{
   legacy_cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
-  new_cache::{Cache, CacheFacade, ModuleCache},
+  new_cache::{Cache, CacheFacade},
   to_identifier,
 };
 
@@ -241,7 +241,7 @@ pub struct Compilation {
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   cache: Cache,
-  pub(crate) module_cache: ModuleCache,
+  pub(crate) module_cache: Option<CacheFacade>,
   pub file_system_info: FileSystemInfo,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
@@ -362,7 +362,12 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
-    let module_cache = ModuleCache::new(cache.clone(), &options, is_rebuild);
+    // Incremental make reuses the previous module graph and owns its own
+    // invalidation path. Keep that fast path unchanged.
+    let module_cache = (options.experiments.new_cache.module
+      && !is_rebuild
+      && !matches!(&options.cache, CacheOptions::Disabled))
+    .then(|| cache.facade("Compilation/modules"));
     let snapshot_options = match &options.cache {
       CacheOptions::Disabled => SnapshotOptions::default(),
       CacheOptions::Memory { snapshot, .. } => snapshot.clone(),

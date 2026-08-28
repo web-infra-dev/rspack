@@ -36,10 +36,11 @@ use crate::{
   OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult, ParserAndGenerator,
   ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext,
   RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SnapshotValidationResult, SourceType,
-  contextify,
+  ValueCacheVersions, contextify,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
+  new_cache::FileSystemInfo,
   utils::{SourceSizeCache, SourceSizeCacheSerde},
 };
 
@@ -304,6 +305,41 @@ impl NormalModule {
   pub fn get_generator_options(&self) -> Option<&GeneratorOptions> {
     self.parser_and_generator_options.generator_options()
   }
+
+  pub(crate) async fn need_build_with_context(
+    &self,
+    file_system_info: &FileSystemInfo,
+    value_cache_versions: &ValueCacheVersions,
+  ) -> Result<bool> {
+    if self.force_build {
+      return Ok(true);
+    }
+
+    if self
+      .diagnostics
+      .iter()
+      .any(|diagnostic| diagnostic.is_error())
+    {
+      return Ok(true);
+    }
+
+    if !self.build_info.cacheable {
+      return Ok(true);
+    }
+
+    let Some(snapshot) = &self.build_info.snapshot else {
+      return Ok(true);
+    };
+
+    if value_cache_versions.has_diff(&self.build_info.value_dependencies) {
+      return Ok(true);
+    }
+
+    Ok(matches!(
+      file_system_info.check_snapshot_valid(snapshot).await?,
+      SnapshotValidationResult::Invalid { .. }
+    ))
+  }
 }
 
 impl Identifiable for NormalModule {
@@ -397,40 +433,9 @@ impl Module for NormalModule {
   }
 
   async fn need_build(&mut self, context: &NeedBuildContext<'_>) -> Result<bool> {
-    if self.force_build {
-      return Ok(true);
-    }
-
-    if self
-      .diagnostics
-      .iter()
-      .any(|diagnostic| diagnostic.is_error())
-    {
-      return Ok(true);
-    }
-
-    if !self.build_info.cacheable {
-      return Ok(true);
-    }
-
-    let Some(snapshot) = &self.build_info.snapshot else {
-      return Ok(true);
-    };
-
-    if context
-      .value_cache_versions
-      .has_diff(&self.build_info.value_dependencies)
-    {
-      return Ok(true);
-    }
-
-    Ok(matches!(
-      context
-        .file_system_info
-        .check_snapshot_valid(snapshot)
-        .await?,
-      SnapshotValidationResult::Invalid { .. }
-    ))
+    self
+      .need_build_with_context(context.file_system_info, context.value_cache_versions)
+      .await
   }
 
   #[tracing::instrument("NormalModule:build", skip_all, fields(

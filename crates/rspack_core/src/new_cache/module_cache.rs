@@ -1,10 +1,9 @@
 use rspack_collections::Identifiable;
 use rspack_error::{Result, error};
 
-use super::{Cache, CacheFacade, CacheValue};
+use super::{CacheFacade, CacheValue};
 use crate::{
-  BuildResult, CacheOptions, CompilerOptions, FileSystemInfo, ModuleIdentifier,
-  cache::{CacheCodec, SnapshotStrategyOptions},
+  BoxModule, BuildResult, FileSystemInfo, ValueCacheVersions, cache::SnapshotStrategyOptions,
 };
 
 /// Persistent cache for completed normal module builds.
@@ -17,98 +16,92 @@ use crate::{
 ///
 /// Context modules are intentionally built fresh until their factory state can
 /// be restored without serializing the process-local dependency resolver.
-#[derive(Debug, Clone)]
-pub(crate) struct ModuleCache {
-  cache: CacheFacade,
-  codec: CacheCodec,
-  enabled: bool,
+pub(crate) async fn restore(
+  cache: &CacheFacade,
+  module: &mut BoxModule,
+  file_system_info: &FileSystemInfo,
+  value_cache_versions: &ValueCacheVersions,
+) -> Result<Option<BuildResult>> {
+  if module.as_normal_module().is_none() {
+    return Ok(None);
+  }
+
+  let identifier = module.identifier();
+  let Some(bytes) = cache.get::<Vec<u8>>(identifier.as_str(), None)? else {
+    return Ok(None);
+  };
+  let mut result = cache.codec().decode::<BuildResult>(&bytes)?;
+  if result.module.identifier() != identifier {
+    return Err(error!(
+      "Restored module identifier mismatch: expected {identifier}, got {}",
+      result.module.identifier()
+    ));
+  }
+  if result.module.as_normal_module().is_none() {
+    return Err(error!(
+      "Restored module type mismatch: expected a normal module for {identifier}"
+    ));
+  }
+
+  result.module.update_cache_module(module);
+  let need_build = result
+    .module
+    .as_normal_module()
+    .expect("restored module type was checked above")
+    .need_build_with_context(file_system_info, value_cache_versions)
+    .await?;
+  if need_build {
+    *module = result.module;
+    return Ok(None);
+  }
+
+  Ok(Some(result))
 }
 
-impl ModuleCache {
-  pub fn new(cache: Cache, options: &CompilerOptions, is_rebuild: bool) -> Self {
-    let project_root = match &options.cache {
-      CacheOptions::Persistent(cache_options) if cache_options.portable => {
-        Some(options.context.as_path().to_path_buf())
-      }
-      _ => None,
-    };
-    Self {
-      cache: cache.facade("Compilation/modules"),
-      codec: CacheCodec::new(project_root),
-      // Incremental make reuses the previous module graph and owns its own
-      // invalidation path. Keep that fast path unchanged.
-      enabled: options.experiments.new_cache.module && !is_rebuild,
-    }
+pub(crate) async fn store(
+  cache: &CacheFacade,
+  result: &mut BuildResult,
+  file_system_info: &FileSystemInfo,
+  build_start_time: u64,
+) -> Result<()> {
+  let module = &mut result.module;
+  if module.as_normal_module().is_none() {
+    return Ok(());
   }
 
-  pub fn restore(&self, identifier: ModuleIdentifier) -> Result<Option<BuildResult>> {
-    if !self.enabled {
-      return Ok(None);
-    }
-    let Some(bytes) = self.cache.get::<Vec<u8>>(identifier.as_str(), None)? else {
-      return Ok(None);
-    };
-    let result = self.codec.decode::<BuildResult>(&bytes)?;
-    if result.module.identifier() != identifier {
-      return Err(error!(
-        "Restored module identifier mismatch: expected {identifier}, got {}",
-        result.module.identifier()
-      ));
-    }
-    Ok(Some(result))
+  if module.build_info().cacheable
+    && !module
+      .diagnostics()
+      .iter()
+      .any(|diagnostic| diagnostic.is_error())
+  {
+    let build_info = module.build_info();
+    let snapshot = file_system_info
+      .create_snapshot(
+        Some(build_start_time),
+        &build_info.dependencies.file,
+        &build_info.dependencies.context,
+        &build_info.dependencies.missing,
+        // Rspack does not expose webpack's `snapshot.module` strategy yet.
+        SnapshotStrategyOptions::timestamp(),
+      )
+      .await?;
+    module.build_info_mut().snapshot = Some(snapshot);
   }
 
-  pub async fn store(
-    &self,
-    result: &mut BuildResult,
-    file_system_info: &FileSystemInfo,
-    build_start_time: u64,
-  ) -> Result<()> {
-    if !self.enabled {
+  let identifier = result.module.identifier();
+  let bytes = match cache.codec().encode(result) {
+    Ok(bytes) => bytes,
+    Err(error) => {
+      // Match webpack's persistent cache behavior: an item containing
+      // process-local state is skipped instead of failing the compilation.
+      tracing::debug!(
+        module = identifier.as_str(),
+        %error,
+        "Skipped non-serializable module cache entry"
+      );
       return Ok(());
     }
-
-    let module = &mut result.module;
-    if module.as_normal_module().is_none() {
-      return Ok(());
-    }
-
-    if module.build_info().cacheable
-      && !module
-        .diagnostics()
-        .iter()
-        .any(|diagnostic| diagnostic.is_error())
-    {
-      let build_info = module.build_info();
-      let snapshot = file_system_info
-        .create_snapshot(
-          Some(build_start_time),
-          &build_info.dependencies.file,
-          &build_info.dependencies.context,
-          &build_info.dependencies.missing,
-          // Rspack does not expose webpack's `snapshot.module` strategy yet.
-          SnapshotStrategyOptions::timestamp(),
-        )
-        .await?;
-      module.build_info_mut().snapshot = Some(snapshot);
-    }
-
-    let identifier = result.module.identifier();
-    let bytes = match self.codec.encode(result) {
-      Ok(bytes) => bytes,
-      Err(error) => {
-        // Match webpack's persistent cache behavior: an item containing
-        // process-local state is skipped instead of failing the compilation.
-        tracing::debug!(
-          module = identifier.as_str(),
-          %error,
-          "Skipped non-serializable module cache entry"
-        );
-        return Ok(());
-      }
-    };
-    self
-      .cache
-      .store(identifier.as_str(), None, CacheValue::new(bytes))
-  }
+  };
+  cache.store(identifier.as_str(), None, CacheValue::new(bytes))
 }

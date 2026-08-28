@@ -8,7 +8,7 @@ mod file_cache_strategy;
 mod idle_file_cache;
 mod memory_cache;
 mod meta;
-mod module_cache;
+pub(crate) mod module_cache;
 pub(crate) mod snapshot;
 mod validator;
 
@@ -23,7 +23,6 @@ pub use file_cache_strategy::FileCacheStrategy;
 pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
 pub use meta::Meta;
-pub(crate) use module_cache::ModuleCache;
 use rspack_fs::ReadableFileSystem;
 pub use snapshot::{FileSystemInfo, Snapshot, SnapshotValidationResult};
 
@@ -50,7 +49,12 @@ pub fn create_cache(
       max_generations: _, /* TODO: old cache default to 1, change to 5 and pass to MemoryCache */
       ..
     } => {
-      return Cache::new(compiler_path, Some(MemoryCache::new(5)), None);
+      return Cache::new(
+        compiler_path,
+        Arc::new(CacheCodec::new(None)),
+        Some(MemoryCache::new(5)),
+        None,
+      );
     }
     crate::CacheOptions::Persistent(options) => options,
   };
@@ -83,7 +87,7 @@ pub fn create_cache(
     options.readonly,
     rspack_workspace::rspack_pkg_version!().to_string(),
     options.version.clone(),
-    codec,
+    codec.clone(),
     file_system_info,
     logger.clone(),
   );
@@ -101,5 +105,10 @@ pub fn create_cache(
     MaxMemoryGenerations::Finite(max_generations) => Some(MemoryCache::new(max_generations)),
   };
 
-  Cache::new(compiler_path, memory_cache, Some(idle_file_cache))
+  Cache::new(
+    compiler_path,
+    codec,
+    memory_cache,
+    Some(idle_file_cache),
+  )
 }

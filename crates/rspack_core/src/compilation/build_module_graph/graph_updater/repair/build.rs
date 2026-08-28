@@ -12,7 +12,7 @@ use crate::{
   CompilerId, CompilerOptions, DependencyParents, DependencyRef, FileSystemInfo,
   ModuleCodeTemplate, ResolverFactory, SharedPluginDriver,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
-  new_cache::ModuleCache,
+  new_cache::module_cache,
   utils::{
     ResourceId,
     task_loop::{Task, TaskResult, TaskType},
@@ -32,7 +32,7 @@ pub struct BuildTask {
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
   pub forwarded_ids: ForwardedIdSet,
-  pub module_cache: ModuleCache,
+  pub module_cache: Option<CacheFacade>,
 }
 
 #[async_trait::async_trait]
@@ -56,7 +56,7 @@ impl Task<TaskContext> for BuildTask {
       module_cache,
     } = *self;
 
-    let build_start_time = current_time();
+    let build_start_time = module_cache.as_ref().map(|_| current_time());
 
     plugin_driver
       .compilation_hooks
@@ -82,9 +82,15 @@ impl Task<TaskContext> for BuildTask {
       .await?;
 
     let mut build_result = result;
-    module_cache
-      .store(&mut build_result, &file_system_info, build_start_time)
+    if let (Some(module_cache), Some(build_start_time)) = (&module_cache, build_start_time) {
+      module_cache::store(
+        module_cache,
+        &mut build_result,
+        &file_system_info,
+        build_start_time,
+      )
       .await?;
+    }
 
     Ok(vec![Box::new(BuildResultTask::built(
       build_result,

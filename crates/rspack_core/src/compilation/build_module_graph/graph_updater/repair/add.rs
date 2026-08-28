@@ -6,9 +6,10 @@ use super::{
   lazy::process_unlazy_dependencies,
 };
 use crate::{
-  BoxModule, BuildResult, DependencyRef, ModuleIdentifier,
+  BoxModule, DependencyRef, ModuleIdentifier,
   compilation::build_module_graph::ForwardedIdSet,
   module_graph::{ModuleGraph, ModuleGraphModule},
+  new_cache::module_cache,
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -19,11 +20,6 @@ pub struct AddTask {
   pub module_graph_module: Box<ModuleGraphModule>,
   pub dependencies: Vec<DependencyRef>,
   pub from_unlazy: bool,
-}
-
-enum ModuleBuild {
-  Fresh(BoxModule),
-  Cached(BuildResult),
 }
 
 #[async_trait::async_trait]
@@ -114,16 +110,16 @@ impl Task<TaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    let module_build = if module.as_normal_module().is_some() {
-      match context.module_cache.restore(module_identifier)? {
-        Some(mut build_result) => {
-          build_result.module.update_cache_module(&mut module);
-          ModuleBuild::Cached(build_result)
-        }
-        None => ModuleBuild::Fresh(module),
-      }
+    let cached_build_result = if let Some(cache_facade) = &context.module_cache {
+      module_cache::restore(
+        cache_facade,
+        &mut module,
+        &context.file_system_info,
+        &context.value_cache_versions,
+      )
+      .await?
     } else {
-      ModuleBuild::Fresh(module)
+      None
     };
 
     context
@@ -148,19 +144,13 @@ impl Task<TaskContext> for AddTask {
       .affected_modules
       .mark_as_add(&module_identifier);
 
-    let module = match module_build {
-      ModuleBuild::Fresh(module) => module,
-      ModuleBuild::Cached(mut build_result) => {
-        if !context.module_needs_build(&mut build_result.module).await? {
-          return Ok(vec![Box::new(BuildResultTask::cached(
-            build_result,
-            context.plugin_driver.clone(),
-            forwarded_ids,
-          ))]);
-        }
-        build_result.module
-      }
-    };
+    if let Some(build_result) = cached_build_result {
+      return Ok(vec![Box::new(BuildResultTask::cached(
+        build_result,
+        context.plugin_driver.clone(),
+        forwarded_ids,
+      ))]);
+    }
 
     Ok(vec![Box::new(BuildTask {
       compiler_id: context.compiler_id,
