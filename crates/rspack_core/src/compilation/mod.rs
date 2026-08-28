@@ -363,7 +363,7 @@ impl Compilation {
       CacheOptions::Persistent(options) => options.snapshot.clone(),
       CacheOptions::Disabled | CacheOptions::Memory { .. } => SnapshotOptions::default(),
     };
-    let file_system_info = FileSystemInfo::new_for_compilation(
+    let file_system_info = FileSystemInfo::new(
       input_filesystem.clone(),
       CompilationLogger::new("rspack.FileSystemInfo", logging.clone()),
       snapshot_options,

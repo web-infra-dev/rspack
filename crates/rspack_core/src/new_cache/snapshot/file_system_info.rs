@@ -19,9 +19,21 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-enum FileSystemInfoLogger {
+pub(crate) enum FileSystemInfoLogger {
   Compilation(CompilationLogger),
   Infrastructure(InfrastructureLogger),
+}
+
+impl From<CompilationLogger> for FileSystemInfoLogger {
+  fn from(logger: CompilationLogger) -> Self {
+    Self::Compilation(logger)
+  }
+}
+
+impl From<InfrastructureLogger> for FileSystemInfoLogger {
+  fn from(logger: InfrastructureLogger) -> Self {
+    Self::Infrastructure(logger)
+  }
 }
 
 impl Logger for FileSystemInfoLogger {
@@ -123,44 +135,16 @@ impl fmt::Debug for FileSystemInfo {
 }
 
 impl FileSystemInfo {
-  pub fn new(
+  pub(crate) fn new(
     fs: Arc<dyn ReadableFileSystem>,
-    logger: InfrastructureLogger,
-    options: SnapshotOptions,
-    hash_function: HashFunction,
-  ) -> Self {
-    Self::with_logger(
-      fs,
-      FileSystemInfoLogger::Infrastructure(logger),
-      options,
-      hash_function,
-    )
-  }
-
-  pub fn new_for_compilation(
-    fs: Arc<dyn ReadableFileSystem>,
-    logger: CompilationLogger,
-    options: SnapshotOptions,
-    hash_function: HashFunction,
-  ) -> Self {
-    Self::with_logger(
-      fs,
-      FileSystemInfoLogger::Compilation(logger),
-      options,
-      hash_function,
-    )
-  }
-
-  fn with_logger(
-    fs: Arc<dyn ReadableFileSystem>,
-    logger: FileSystemInfoLogger,
+    logger: impl Into<FileSystemInfoLogger>,
     options: SnapshotOptions,
     hash_function: HashFunction,
   ) -> Self {
     Self {
       inner: Arc::new(FileSystemInfoInner {
         fs,
-        logger,
+        logger: logger.into(),
         options,
         hash_function,
         file_timestamps: Default::default(),

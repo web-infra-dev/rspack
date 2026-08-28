@@ -389,7 +389,7 @@ impl Module for NormalModule {
       return Ok(true);
     }
 
-    let Some(snapshot) = &self.build_info.file_system_snapshot else {
+    let Some(snapshot) = &self.build_info.snapshot else {
       return Ok(true);
     };
 
@@ -422,7 +422,7 @@ impl Module for NormalModule {
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     self.force_build = false;
-    self.build_info.file_system_snapshot = None;
+    self.build_info.snapshot = None;
     let build_start_time = current_time();
     let file_system_info = (!build_context
       .compiler_options
@@ -545,7 +545,7 @@ impl Module for NormalModule {
       self.presentational_dependencies = Some(Vec::new());
 
       if let Some(file_system_info) = &file_system_info {
-        self.build_info.file_system_snapshot = Some(
+        self.build_info.snapshot = Some(
           file_system_info
             .create_module_snapshot(Some(build_start_time), &self.build_info.dependencies)
             .await?,
@@ -621,7 +621,7 @@ impl Module for NormalModule {
     self.presentational_dependencies = Some(presentational_dependencies);
 
     if let Some(file_system_info) = &file_system_info {
-      self.build_info.file_system_snapshot = Some(
+      self.build_info.snapshot = Some(
         file_system_info
           .create_module_snapshot(Some(build_start_time), &self.build_info.dependencies)
           .await?,
