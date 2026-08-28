@@ -914,11 +914,14 @@ impl JavascriptParser<'_> {
         // we use `AllowedMemberTypes::Expression` above
         unreachable!();
       };
-      if expr_info
-        .name
-        .call_hooks_name(self, |this, for_name| drive.r#typeof(this, expr, for_name))
-        .unwrap_or_default()
-      {
+      let handled = if expr_info.members.is_empty() {
+        expr_info
+          .root_info
+          .call_hooks_name(self, |this, for_name| drive.r#typeof(this, expr, for_name))
+      } else {
+        drive.r#typeof(self, expr, &expr_info.name)
+      };
+      if handled.unwrap_or_default() {
         return;
       }
     };
@@ -1108,11 +1111,8 @@ impl JavascriptParser<'_> {
       member_ranges,
     };
     let drive = self.plugin_drive.clone();
-    if expression_info
-      .name
-      .call_hooks_name(self, |this, for_name| {
-        drive.member(this, member.into(), for_name)
-      })
+    if drive
+      .member(self, member.into(), &expression_info.name)
       .unwrap_or_default()
     {
       return;
@@ -1224,12 +1224,10 @@ impl JavascriptParser<'_> {
             .new_expression(parser, expr, for_name)
         })
       } else {
-        info.name.call_hooks_name(self, |parser, for_name| {
-          parser
-            .plugin_drive
-            .clone()
-            .new_expression(parser, expr, for_name)
-        })
+        self
+          .plugin_drive
+          .clone()
+          .new_expression(self, expr, &info.name)
       };
       if result.unwrap_or_default() {
         return;
@@ -1367,11 +1365,8 @@ impl JavascriptParser<'_> {
     if let Some(expr_info) = expr_info {
       match expr_info {
         MemberExpressionInfo::Expression(expr_info) => {
-          if expr_info
-            .name
-            .call_hooks_name(self, |this, for_name| {
-              drive.member(this, expr.into(), for_name)
-            })
+          if drive
+            .member(self, expr.into(), &expr_info.name)
             .unwrap_or_default()
           {
             return;
@@ -1942,11 +1937,15 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_identifier(&mut self, identifier: IdentifierReference) {
-    let ast = self.ast.ast;
-    let span = identifier.span(ast);
     let drive = self.plugin_drive.clone();
     identifier.call_hooks_name(self, |this, for_name| {
-      drive.identifier(this, &Identifier { span }, for_name)
+      drive.identifier(
+        this,
+        &Identifier {
+          span: identifier.span(this.ast.ast),
+        },
+        for_name,
+      )
     });
   }
 

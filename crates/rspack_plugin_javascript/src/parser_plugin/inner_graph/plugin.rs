@@ -105,9 +105,7 @@ impl InnerGraphParserPlugin {
       non_terminal[symbol.index()] = true;
       remaining += 1;
     }
-    let mut processed = (0..symbol_count)
-      .map(|_| HashSet::default())
-      .collect::<Vec<HashSet<InnerGraphMapSetValue>>>();
+    let mut processed = vec![InnerGraphMapSet::default(); symbol_count];
 
     while remaining != 0 {
       let mut keys_to_remove = vec![];
@@ -116,7 +114,7 @@ impl InnerGraphParserPlugin {
           continue;
         }
         let key = TopLevelSymbol::from_index(index);
-        let mut new_set = HashSet::default();
+        let mut new_set = InnerGraphMapSet::default();
         // Using enum to manipulate original is pretty hard, so I use an extra variable to
         // flagging the new set has changed to boolean `true`
         // you could refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/InnerGraph.js#L150
@@ -169,7 +167,7 @@ impl InnerGraphParserPlugin {
           } else if new_set.is_empty() {
             state.set_graph(key, InnerGraphMapValue::Nil);
           } else {
-            state.set_graph(key, InnerGraphMapValue::Set(new_set.into()));
+            state.set_graph(key, InnerGraphMapValue::Set(new_set));
           }
         }
 

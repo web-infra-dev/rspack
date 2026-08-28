@@ -120,6 +120,10 @@ impl InnerGraphMapSet {
     }
   }
 
+  pub(super) fn is_empty(&self) -> bool {
+    self.len() == 0
+  }
+
   pub(super) fn iter(
     &self,
   ) -> Either<

@@ -684,7 +684,6 @@ impl<'parser> JavascriptParser<'parser> {
     let definitions = db.create();
     let semantic_normal_variable =
       VariableInfo::create(&mut db, definitions, None, VariableInfoFlags::NORMAL, None);
-
     Self {
       last_esm_import_order: 0,
       ast,
@@ -1133,9 +1132,8 @@ impl<'parser> JavascriptParser<'parser> {
   pub(super) fn get_variable_info_id_for_identifier(
     &mut self,
     identifier: IdentifierReference,
+    name: &str,
   ) -> Option<VariableInfoId> {
-    let ast = self.ast.ast;
-    let name = ast.get_utf8(identifier.name(ast));
     let Some(reference) = self
       .ast
       .semantic
@@ -1190,8 +1188,9 @@ impl<'parser> JavascriptParser<'parser> {
   pub(super) fn get_variable_info_for_identifier(
     &mut self,
     identifier: IdentifierReference,
+    name: &str,
   ) -> Option<&VariableInfo> {
-    let id = self.get_variable_info_id_for_identifier(identifier)?;
+    let id = self.get_variable_info_id_for_identifier(identifier, name)?;
     self.variable_info_from_id(id)
   }
 
@@ -1348,7 +1347,7 @@ impl<'parser> JavascriptParser<'parser> {
   ) -> Option<NameInfo<'_>> {
     let ast = self.ast.ast;
     let name = ast.get_utf8(identifier.name(ast));
-    let Some(info) = self.get_variable_info_for_identifier(identifier) else {
+    let Some(info) = self.get_variable_info_for_identifier(identifier, name) else {
       return Some(NameInfo { name, info: None });
     };
     let Some(resolved_name) = &info.name else {
@@ -1612,9 +1611,9 @@ impl<'parser> JavascriptParser<'parser> {
         } else {
           (ExprRef::from_expr(ast, callee), RawAtomMembers::new())
         };
-        let root_name = root.get_root_name(ast)?;
         let NameInfo {
-          info: root_info, ..
+          name: root_name,
+          info: root_info,
         } = self.get_name_info_from_root(root)?;
 
         let mut root_members = materialize_member_atoms(ast, root_members);
@@ -1639,8 +1638,6 @@ impl<'parser> JavascriptParser<'parser> {
         if !allowed_types.contains(AllowedMemberTypes::Expression) {
           return None;
         }
-        let root_name = object.get_root_name(ast)?;
-
         let NameInfo {
           name: resolved_root,
           info: root_info,
@@ -1654,7 +1651,7 @@ impl<'parser> JavascriptParser<'parser> {
         Some(MemberExpressionInfo::Expression(ExpressionExpressionInfo {
           name,
           root_info: root_info.map_or_else(
-            || ExportedVariableInfo::Name(Atom::from(root_name)),
+            || ExportedVariableInfo::Name(Atom::from(resolved_root)),
             |i| ExportedVariableInfo::VariableInfo(i.id()),
           ),
           members,
@@ -2127,6 +2124,9 @@ impl<'parser> JavascriptParser<'parser> {
           });
         evaluated.or_else(|| {
           if let Some(variable) = variable {
+            if variable == self.semantic_normal_variable {
+              return None;
+            }
             let info = self.definitions_db.expect_get_variable(variable);
             if let Some(name) = &info.name
               && (info.is_free() || info.is_tagged())

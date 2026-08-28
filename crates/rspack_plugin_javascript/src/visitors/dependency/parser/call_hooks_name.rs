@@ -75,11 +75,11 @@ where
 {
   let ast = parser.ast.ast;
   let name = ast.get_utf8(identifier.name(ast));
-  let variable = parser.get_variable_info_id_for_identifier(identifier);
-  let result = if let Some(id) = variable {
-    call_hooks_info(id, parser, hook_call)
-  } else {
-    hook_call(parser, name)
+  let variable = parser.get_variable_info_id_for_identifier(identifier, name);
+  let result = match variable {
+    Some(id) if id == parser.semantic_normal_variable => None,
+    Some(id) => call_hooks_info(id, parser, hook_call),
+    None => hook_call(parser, name),
   };
   (result, variable)
 }
@@ -133,7 +133,7 @@ impl CallHooksName for MemberExpression {
     if members.is_empty() {
       expr_name.root_info.call_hooks_name(parser, hook_call)
     } else {
-      expr_name.name.call_hooks_name(parser, hook_call)
+      hook_call(parser, &expr_name.name)
     }
   }
 }
@@ -160,7 +160,7 @@ impl CallHooksName for ChainExpression {
     if members.is_empty() {
       expr_name.root_info.call_hooks_name(parser, hook_call)
     } else {
-      expr_name.name.call_hooks_name(parser, hook_call)
+      hook_call(parser, &expr_name.name)
     }
   }
 }
