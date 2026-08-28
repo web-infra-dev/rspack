@@ -64,11 +64,15 @@ impl ModuleBuildCache {
       ));
     }
 
-    result.module.update_cache_module(module);
-    let need_build = result
+    let cached_module = result
       .module
-      .as_normal_module()
-      .expect("restored module type was checked above")
+      .as_normal_module_mut()
+      .expect("restored module type was checked above");
+    let fresh_module = module
+      .as_normal_module_mut()
+      .expect("fresh module type was checked above");
+    cached_module.update_cache_module(fresh_module);
+    let need_build = cached_module
       .need_build_with_context(file_system_info, value_cache_versions)
       .await?;
     if need_build {

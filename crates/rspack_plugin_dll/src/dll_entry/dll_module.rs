@@ -61,16 +61,6 @@ impl DllModule {
 impl Module for DllModule {
   impl_module_meta_info!();
 
-  fn update_cache_module(&mut self, module: &mut BoxModule) {
-    let Some(module) = module.downcast_mut::<Self>() else {
-      return;
-    };
-
-    std::mem::swap(&mut self.factory_meta, &mut module.factory_meta);
-    std::mem::swap(&mut self.entries, &mut module.entries);
-    std::mem::swap(&mut self.context, &mut module.context);
-  }
-
   fn module_type(&self) -> &ModuleType {
     &ModuleType::JsDynamic
   }

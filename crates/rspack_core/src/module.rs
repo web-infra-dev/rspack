@@ -850,16 +850,6 @@ pub trait Module:
     ConnectionState::Active(true)
   }
 
-  /// Updates a cached module with state from the fresh factory result.
-  ///
-  /// This mirrors webpack's `Module.updateCacheModule`. Module-specific build
-  /// output remains on `self`; only current factory-derived state is copied.
-  fn update_cache_module(&mut self, module: &mut BoxModule) {
-    if let Some(factory_meta) = module.factory_meta().cloned() {
-      self.set_factory_meta(factory_meta);
-    }
-  }
-
   /// Determines whether a module needs to be rebuilt using the complete build
   /// context.
   ///

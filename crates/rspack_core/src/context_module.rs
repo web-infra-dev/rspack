@@ -32,10 +32,10 @@ use crate::{
   DependenciesBlock, DependencyCategory, DependencyId, DependencyLocation, DynamicImportMode,
   ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions, ImportAttributes, ImportPhase,
   LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate,
-  ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType, NeedBuildContext,
-  RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals, RuntimeGlobalsRenderMode,
-  RuntimeSpec, SnapshotValidationResult, SourceType, contextify, get_exports_type_with_strict,
-  get_outgoing_async_modules, impl_module_meta_info, module_update_hash, property_access, to_path,
+  ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType, RealDependencyLocation,
+  ReferencedSpecifier, Resolve, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType,
+  contextify, get_exports_type_with_strict, get_outgoing_async_modules, impl_module_meta_info,
+  module_update_hash, property_access, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -288,7 +288,6 @@ pub struct ContextModule {
   #[debug(skip)]
   #[cacheable(with=Unsupported)]
   resolve_dependencies: ResolveContextModuleDependencies,
-  force_build: bool,
 }
 
 impl ContextModule {
@@ -314,7 +313,6 @@ impl ContextModule {
         .with_default_object(BuildMetaDefaultObject::RedirectWarn),
       source_map_kind: SourceMapKind::empty(),
       resolve_dependencies,
-      force_build: true,
     }
   }
 
@@ -1340,36 +1338,6 @@ impl DependenciesBlock for ContextModule {
 impl Module for ContextModule {
   impl_module_meta_info!();
 
-  fn update_cache_module(&mut self, module: &mut BoxModule) {
-    let Some(module) = module.as_context_module_mut() else {
-      return;
-    };
-
-    std::mem::swap(
-      &mut self.resolve_dependencies,
-      &mut module.resolve_dependencies,
-    );
-    std::mem::swap(&mut self.options, &mut module.options);
-  }
-
-  async fn need_build(&mut self, context: &NeedBuildContext<'_>) -> Result<bool> {
-    if self.force_build {
-      return Ok(true);
-    }
-
-    let Some(snapshot) = &self.build_info.snapshot else {
-      return Ok(!self.options.resource.as_str().is_empty());
-    };
-
-    Ok(matches!(
-      context
-        .file_system_info
-        .check_snapshot_valid(snapshot)
-        .await?,
-      SnapshotValidationResult::Invalid { .. }
-    ))
-  }
-
   fn module_type(&self) -> &ModuleType {
     &ModuleType::JsAuto
   }
@@ -1473,9 +1441,6 @@ impl Module for ContextModule {
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    self.force_build = false;
-    self.build_info.snapshot = None;
-
     let resolve_dependencies = &self.resolve_dependencies;
     let context_element_dependencies = resolve_dependencies(self.options.clone()).await?;
 
