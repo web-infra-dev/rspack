@@ -135,6 +135,6 @@ declare class EnvironmentPlugin {
 }
 ```
 
-当所有变量都必须提供时，可以使用任一字符串形式；需要设置默认值时，请使用对象形式。对象中的值即使设置为 `undefined`，对应变量仍然是必需的。
+如果所有环境变量都必须在构建时提供，可以逐个传入变量名，也可以传入字符串数组。如果需要设置默认值，请使用对象形式；将某个值设置为 `undefined` 表示不提供默认值，因此对应的环境变量在构建时仍是必需的。
 
 <Attribution url="https://webpack.docschina.org/plugins/environment-plugin/" />
