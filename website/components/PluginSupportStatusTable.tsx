@@ -174,12 +174,12 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'JsonpTemplatePlugin',
-    url: '/plugins/jsonp-template-plugin',
+    url: '/plugins/low-level-plugins#jsonp-template-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'NodeTemplatePlugin',
-    url: '/plugins/node-template-plugin',
+    url: '/plugins/low-level-plugins#node-template-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -188,7 +188,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'WebWorkerTemplatePlugin',
-    url: '/plugins/web-worker-template-plugin',
+    url: '/plugins/low-level-plugins#web-worker-template-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -213,7 +213,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'NodeTargetPlugin',
-    url: '/plugins/node-target-plugin',
+    url: '/plugins/low-level-plugins#node-target-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -334,22 +334,22 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'ElectronTargetPlugin',
-    url: '/plugins/electron-target-plugin',
+    url: '/plugins/low-level-plugins#electron-target-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'EnableChunkLoadingPlugin',
-    url: '/plugins/enable-chunk-loading-plugin',
+    url: '/plugins/low-level-plugins#enable-chunk-loading-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'EnableLibraryPlugin',
-    url: '/plugins/enable-library-plugin',
+    url: '/plugins/low-level-plugins#enable-library-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'EnableWasmLoadingPlugin',
-    url: '/plugins/enable-wasm-loading-plugin',
+    url: '/plugins/low-level-plugins#enable-wasm-loading-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -363,7 +363,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'FetchCompileAsyncWasmPlugin',
-    url: '/plugins/internal-plugins#fetchcompileasyncwasmplugin',
+    url: '/plugins/low-level-plugins#fetchcompileasyncwasmplugin',
     status: SupportStatus.FullySupported,
   },
   {

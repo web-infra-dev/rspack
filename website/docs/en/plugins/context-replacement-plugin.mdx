@@ -2,9 +2,7 @@
 description: "Context refers to a require or dynamic import() with an expression such as require('./locale/' + name + '.json')"
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/plugins/context-replacement-plugin/" />
+import Attribution from '@components/Attribution';
 
 # ContextReplacementPlugin
 
@@ -60,3 +58,5 @@ new rspack.ContextReplacementPlugin(/selector/, './folder', {
   './other-request': './new-request',
 });
 ```
+
+<Attribution url="https://webpack.js.org/plugins/context-replacement-plugin/" />

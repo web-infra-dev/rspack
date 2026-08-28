@@ -2,9 +2,7 @@
 description: '配置 Rspack 输出代码的运行环境与 ECMAScript 兼容范围。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/configuration/target/" />
+import Attribution from '@components/Attribution';
 
 # Target
 
@@ -223,3 +221,5 @@ export default {
 - [`externalsPresets`](/config/externals#externalspresets)：控制哪些平台内置模块被视为 external。
 - [`resolve.conditionNames`](/config/resolve#resolveconditionnames)：控制解析 `package.json` 中的 `exports` 字段时使用的条件。
 - 插件作者可以通过 [`compiler.target`](/api/javascript-api/compiler#target) 读取解析后的 target。
+
+<Attribution url="https://webpack.js.org/configuration/target/" />

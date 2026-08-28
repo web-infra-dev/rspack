@@ -3,9 +3,7 @@ description: 'The DllReferencePlugin is used to reference the dll-only-bundle to
 ---
 
 import { Table } from '@builtIns';
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/plugins/dll-plugin/#dllreferenceplugin" />
+import Attribution from '@components/Attribution';
 
 # DllReferencePlugin
 
@@ -168,3 +166,5 @@ new rspack.DllReferencePlugin({
 ```
 
 Access via `require('xzy/abc')`, you can require `abc` from another pre-built lib.
+
+<Attribution url="https://webpack.js.org/plugins/dll-plugin/#dllreferenceplugin" />

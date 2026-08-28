@@ -2,9 +2,7 @@
 description: 'The DefinePlugin replaces variables in your code with other values or expressions at compile time'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/plugins/define-plugin/" />
+import Attribution from '@components/Attribution';
 
 # DefinePlugin
 
@@ -159,3 +157,5 @@ new rspack.DefinePlugin({
 ```
 
 This makes `APP_INFO` a usable object literal in the generated code. By contrast, `APP_INFO: { ... }` would be treated by `DefinePlugin` as a nested definition config and processed recursively, rather than being injected as an object literal into application code.
+
+<Attribution url="https://webpack.js.org/plugins/define-plugin/" />

@@ -4,7 +4,7 @@ description: '按功能浏览所有 Rspack 插件文档，并通过简短介绍�
 
 # Rspack 插件
 
-你可以按功能浏览下方所有已收录的 Rspack 插件。
+你可以按功能浏览下方 Rspack 内置的插件。
 
 如需了解如何使用插件，请参阅[插件使用指南](/guide/features/plugin)。
 
@@ -18,8 +18,8 @@ description: '按功能浏览所有 Rspack 插件文档，并通过简短介绍�
 
 ## 构建优化
 
-- [CompatHashedChunkIdsPlugin](/plugins/compat-hashed-chunk-ids-plugin)：为 chunk 分配紧凑且稳定的 hash id。
-- [CompatHashedModuleIdsPlugin](/plugins/compat-hashed-module-ids-plugin)：为模块分配紧凑且稳定的 hash id。
+- [CompactHashedChunkIdsPlugin](/plugins/compact-hashed-chunk-ids-plugin)：为 chunk 分配紧凑且稳定的 hash id。
+- [CompactHashedModuleIdsPlugin](/plugins/compact-hashed-module-ids-plugin)：为模块分配紧凑且稳定的 hash id。
 - [CssChunkingPlugin](/plugins/css-chunking-plugin)：拆分 CSS，并保持必要的样式表加载顺序。
 - [DeterministicModuleIdsPlugin](/plugins/deterministic-module-ids-plugin)：为模块分配较短且在多次构建间保持稳定的数字 id。
 - [DllPlugin](/plugins/dll-plugin)：生成预构建的 DLL bundle 及其 manifest。
@@ -43,7 +43,6 @@ description: '按功能浏览所有 Rspack 插件文档，并通过简短介绍�
 - [ModuleFederationPluginV1](/plugins/module-federation-plugin-v1)：提供与 webpack 兼容的 Module Federation 1.0 能力。
 - [NormalModuleReplacementPlugin](/plugins/normal-module-replacement-plugin)：将匹配的模块请求替换为另一个资源。
 - [ProvidePlugin](/plugins/provide-plugin)：使用配置的标识符时自动导入对应模块。
-- [TreeShakingSharedPlugin](/plugins/tree-shaking-shared-plugin)：对 Module Federation 共享依赖进行按需构建和导出优化。
 - [VirtualModulesPlugin](/plugins/virtual-modules-plugin)：创建、更新和删除行为与真实文件一致的内存模块。
 
 ## 开发与调试
@@ -56,23 +55,20 @@ description: '按功能浏览所有 Rspack 插件文档，并通过简短介绍�
 - [ProgressPlugin](/plugins/progress-plugin)：报告并自定义编译进度。
 - [SourceMapDevToolPlugin](/plugins/source-map-dev-tool-plugin)：精细控制 source map 的生成方式。
 
-## 运行目标与运行时
-
-- [ElectronTargetPlugin](/plugins/electron-target-plugin)：为 Electron 构建外置 Electron 内置模块。
-- [EnableChunkLoadingPlugin](/plugins/enable-chunk-loading-plugin)：启用指定的 chunk 加载类型及其所需的运行时模块。
-- [EnableLibraryPlugin](/plugins/enable-library-plugin)：启用指定 library 类型的产物输出。
-- [EnableWasmLoadingPlugin](/plugins/enable-wasm-loading-plugin)：启用指定的 WebAssembly 加载类型及其所需的运行时模块。
-- [JsonpTemplatePlugin](/plugins/jsonp-template-plugin)：为浏览器构建配置基于 JSONP 的 chunk 加载方式。
-- [NodeTargetPlugin](/plugins/node-target-plugin)：为 Node.js 构建外置 Node.js 内置模块。
-- [NodeTemplatePlugin](/plugins/node-template-plugin)：配置 Node.js 的 chunk 格式和加载方式。
-- [WebWorkerTemplatePlugin](/plugins/web-worker-template-plugin)：配置 Web Worker 构建及基于 `importScripts` 的 chunk 加载方式。
-
 ## 参考
 
-- [内部使用的插件](/plugins/internal-plugins)：汇总 Rspack 内部应用的底层插件，供自定义编译器开发和内部机制排查使用。
+- [底层插件](/plugins/low-level-plugins)：汇总用于目标预设、运行时模板、子编译器和上层插件的底层构件。
 - [webpack 内置插件支持情况](/plugins/webpack-built-in-plugin-support)：汇总 Rspack 对 webpack 内置插件的支持情况。
 
-第三方插件可以参考 [插件兼容性列表](/guide/compatibility/plugin) 和 [awesome-rstack](https://github.com/rstackjs/awesome-rstack)。
+## 社区插件
+
+Rspack 致力于兼容 webpack 生态内的插件，以便于使用社区中已经积累和验证的优秀功能。
+
+请查看 [插件兼容列表](/guide/compatibility/plugin) 获取经过我们兼容性测试的 webpack 插件清单。
+
+你还可以在 [awesome-rstack](https://github.com/rstackjs/awesome-rstack) 中查看社区提供的 Rspack 插件。
+
+欢迎将你开发的插件添加到这个仓库中。
 
 ## 已弃用
 

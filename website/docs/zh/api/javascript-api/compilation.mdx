@@ -2,7 +2,7 @@
 description: 'Compilation 对象是 Rspack 构建过程中的核心对象之一，每当 Rspack 执行构建时（包括监听模式下的重新构建），都会创建一个新的 Compilation 实例，它包含了当前构建的所有信息。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import AssetInfoType from '../../types/asset-info.mdx';
 import SourceType from '../../types/source.mdx';
 import ChunkGroupType from '../../types/chunk-group.mdx';
@@ -20,8 +20,6 @@ import RspackErrorType from '../../types/rspack-error.mdx';
 import CompilationDependenciesType from '../../types/compilation-dependencies.mdx';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 import { ApiMeta } from '@components/ApiMeta';
-
-<WebpackLicense from="https://webpack.docschina.org/api/compilation-object/" />
 
 # Compilation
 
@@ -859,3 +857,5 @@ class MyPlugin {
     <RspackErrorType />
   </CollapsePanel>
 </Collapse>
+
+<Attribution url="https://webpack.docschina.org/api/compilation-object/" />

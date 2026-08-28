@@ -17,8 +17,8 @@
     "type": "section-header",
     "label": "构建优化"
   },
-  "compat-hashed-chunk-ids-plugin",
-  "compat-hashed-module-ids-plugin",
+  "compact-hashed-chunk-ids-plugin",
+  "compact-hashed-module-ids-plugin",
   "css-chunking-plugin",
   "deterministic-module-ids-plugin",
   "dll-plugin",
@@ -43,7 +43,6 @@
   "module-federation-plugin-v1",
   "normal-module-replacement-plugin",
   "provide-plugin",
-  "tree-shaking-shared-plugin",
   "virtual-modules-plugin",
   {
     "type": "section-header",
@@ -58,21 +57,9 @@
   "source-map-dev-tool-plugin",
   {
     "type": "section-header",
-    "label": "运行目标与运行时"
-  },
-  "electron-target-plugin",
-  "enable-chunk-loading-plugin",
-  "enable-library-plugin",
-  "enable-wasm-loading-plugin",
-  "jsonp-template-plugin",
-  "node-target-plugin",
-  "node-template-plugin",
-  "web-worker-template-plugin",
-  {
-    "type": "section-header",
     "label": "参考"
   },
-  "internal-plugins",
+  "low-level-plugins",
   "webpack-built-in-plugin-support",
   {
     "type": "section-header",

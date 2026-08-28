@@ -20,8 +20,8 @@ use tracing::instrument;
 pub use self::rebuild::CompilationRecords;
 use crate::{
   BoxPlugin, CacheOptions, CleanOptions, Compilation, CompilationAsset, CompilationLogging,
-  CompilerOptions, CompilerPlatform, ContextModuleFactory, Filename, KeepPattern,
-  NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
+  CompilerOptions, CompilerPlatform, ContextModuleFactory, Filename, InfrastructureLogSink,
+  KeepPattern, NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
   artifacts::IncrementalArtifacts,
   compilation::build_module_graph::ModuleExecutor,
   fast_set,
@@ -132,6 +132,7 @@ impl Compiler {
     resolver_factory: Option<Arc<ResolverFactory>>,
     loader_resolver_factory: Option<Arc<ResolverFactory>>,
     compiler_context: Option<Arc<CompilerContext>>,
+    infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
     platform: Arc<CompilerPlatform>,
   ) -> Self {
     #[cfg(debug_assertions)]
@@ -171,7 +172,7 @@ impl Compiler {
       compiler_path.clone(),
       options.clone(),
       input_filesystem.clone(),
-      compilation_logging.clone(),
+      infrastructure_log_sink,
     );
     let cache = create_legacy_cache(
       &compiler_path,
@@ -306,6 +307,7 @@ impl Compiler {
 
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
   async fn build_inner(&mut self) -> Result<()> {
+    self.new_cache.file_system_info().invalidate_all();
     if let Some(restored) = self.new_cache.restore_meta()? {
       let current = self.compiler_context.dependency_id();
       if current < restored.max_dependency_id {

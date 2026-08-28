@@ -47,7 +47,7 @@ _2026 年 8 月 26 日_
 - 性能
   - [性能提升](#performance-improvements)
   - [HMR 改进](#better-hmr)
-  - [更短的模块 ID](#compat-hashed-ids)
+  - [更短的模块 ID](#compact-hashed-ids)
 - 新特性
   - [`import.meta` 改进](#import-meta-improvements)
   - [支持 Browserslist Baseline](#browserslist-baseline)
@@ -92,24 +92,24 @@ Rspack 2.2 避免了 HMR 中不必要的 CSS 请求。此前，即使只修改�
 
 此外，[#14580](https://github.com/web-infra-dev/rspack/pull/14580) 修复了 `mini-css-extract-plugin` 热更新时样式短暂失效的问题，避免页面闪烁。
 
-### 更短的模块 ID \{#compat-hashed-ids}
+### 更短的模块 ID \{#compact-hashed-ids}
 
-Rspack 现在支持为模块和 chunk 生成更短的 ID。相比当前的 `deterministic` 策略，新的 `compat-hashed` 策略会从稳定 hash 中选取最短可用前缀，在保持 ID 稳定和运行时索引效率的同时，进一步减小产物体积。
+Rspack 现在支持为模块和 chunk 生成更短的 ID。相比当前的 `deterministic` 策略，新的 `compact-hashed` 策略会从稳定 hash 中选取最短可用前缀，在保持 ID 稳定和运行时索引效率的同时，进一步减小产物体积。
 
 在一个真实项目中，产物体积变化如下：
 
-| **指标**        | **`deterministic`** | **`compat-hashed`** | **体积减少**         |
-| --------------- | ------------------- | ------------------- | -------------------- |
-| Minified JS     | 25,795.2 KB         | 25,710.6 KB         | **84.6 KB（0.33%）** |
-| Minified + gzip | 7,103.3 KB          | 7,041.7 KB          | **61.6 KB（0.87%）** |
+| **指标**        | **`deterministic`** | **`compact-hashed`** | **体积减少**         |
+| --------------- | ------------------- | -------------------- | -------------------- |
+| Minified JS     | 25,795.2 KB         | 25,710.6 KB          | **84.6 KB（0.33%）** |
+| Minified + gzip | 7,103.3 KB          | 7,041.7 KB           | **61.6 KB（0.87%）** |
 
 通过 [`optimization.chunkIds`](/config/optimization#optimizationchunkids) 和 [`optimization.moduleIds`](/config/optimization#optimizationmoduleids) 选项即可开启：
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
-    chunkIds: 'compat-hashed',
-    moduleIds: 'compat-hashed',
+    chunkIds: 'compact-hashed',
+    moduleIds: 'compact-hashed',
   },
 };
 ```
