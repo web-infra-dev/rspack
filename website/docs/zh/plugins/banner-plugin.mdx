@@ -18,9 +18,16 @@ export default {
 };
 ```
 
+生成的 chunk 文件会以这段注释开头：
+
+```js title="dist/main.js"
+/*! Built with Rspack */
+// ...
+```
+
 ## 选项
 
-构造函数可以直接接收 banner 字符串或函数，也可以接收选项对象。下面的示例均假设已按上例导入 `rspack`。`test`、`include` 和 `exclude` 匹配的是生成的 chunk 文件名，而不是模块的源码路径。字符串条件匹配文件名的开头，正则表达式可以匹配文件名的任意部分；使用数组时，满足其中任一条件即可。
+`BannerPlugin` 可以接收 banner 字符串、函数或选项对象。下面的示例沿用上方导入的 `rspack`。
 
 ### banner
 
@@ -96,7 +103,7 @@ new rspack.BannerPlugin({
 - **类型：** `string | RegExp | Array<string | RegExp>`
 - **默认值：** `undefined`
 
-只为生成文件名满足该条件的 chunk 文件添加 banner。省略时，此选项不会限制匹配的文件。
+仅当 chunk 的产物文件名与 `test` 匹配时，才添加 banner。匹配对象是产物文件名，而不是模块源码路径：字符串匹配文件名开头，正则表达式可匹配任意位置，数组中任一条件匹配即可。省略 `test` 时不限制文件。
 
 ```js
 new rspack.BannerPlugin({
@@ -110,7 +117,7 @@ new rspack.BannerPlugin({
 - **类型：** `string | RegExp | Array<string | RegExp>`
 - **默认值：** `undefined`
 
-只为生成文件名满足至少一个条件的 chunk 文件添加 banner。如果同时设置 `test` 和 `include`，文件名必须同时满足这两个选项。
+仅当 chunk 的产物文件名与 `include` 中任一条件匹配时，才添加 banner。匹配对象是产物文件名，而不是模块源码路径：字符串匹配文件名开头，正则表达式可匹配任意位置，数组中任一条件匹配即可。如果同时设置 `test`，文件名必须也与 `test` 匹配。
 
 ```js
 new rspack.BannerPlugin({
@@ -124,7 +131,7 @@ new rspack.BannerPlugin({
 - **类型：** `string | RegExp | Array<string | RegExp>`
 - **默认值：** `undefined`
 
-跳过生成文件名满足至少一个条件的 chunk 文件。`exclude` 在 `test` 和 `include` 之后生效。
+如果 chunk 的产物文件名与 `exclude` 中任一条件匹配，则不添加 banner。匹配对象是产物文件名，而不是模块源码路径：字符串匹配文件名开头，正则表达式可匹配任意位置，数组中任一条件匹配即可。`exclude` 在 `test` 和 `include` 之后检查。
 
 ```js
 new rspack.BannerPlugin({

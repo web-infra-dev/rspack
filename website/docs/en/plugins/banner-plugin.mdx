@@ -18,9 +18,16 @@ export default {
 };
 ```
 
+The generated chunk begins with this comment:
+
+```js title="dist/main.js"
+/*! Built with Rspack */
+// ...
+```
+
 ## Options
 
-The constructor accepts a banner string or function directly, or an options object. The examples below assume that `rspack` is imported as shown above. The `test`, `include`, and `exclude` options match emitted chunk filenames, not module source paths. A string condition matches the beginning of a filename, while a regular expression can match any part of it. In an array, any matching condition is sufficient.
+`BannerPlugin` accepts a banner string, function, or options object. The examples below reuse the `rspack` import above.
 
 ### banner
 
@@ -96,7 +103,7 @@ new rspack.BannerPlugin({
 - **Type:** `string | RegExp | Array<string | RegExp>`
 - **Default:** `undefined`
 
-Adds the banner only to chunk files whose emitted filenames match the condition. When omitted, this option does not restrict the matched files.
+Adds the banner only when a chunk's emitted filename matches `test`. Matching uses the emitted filename, not module source paths: a string matches the beginning of the filename, a regular expression can match any part, and an array matches when any condition does. When omitted, `test` does not restrict files.
 
 ```js
 new rspack.BannerPlugin({
@@ -110,7 +117,7 @@ new rspack.BannerPlugin({
 - **Type:** `string | RegExp | Array<string | RegExp>`
 - **Default:** `undefined`
 
-Adds the banner only to chunk files whose emitted filenames match at least one condition. If both `test` and `include` are set, a filename must satisfy both options.
+Adds the banner only when a chunk's emitted filename matches at least one `include` condition. Matching uses the emitted filename, not module source paths: a string matches the beginning of the filename, a regular expression can match any part, and an array matches when any condition does. If `test` is also set, the filename must match both options.
 
 ```js
 new rspack.BannerPlugin({
@@ -124,7 +131,7 @@ new rspack.BannerPlugin({
 - **Type:** `string | RegExp | Array<string | RegExp>`
 - **Default:** `undefined`
 
-Skips chunk files whose emitted filenames match at least one condition. `exclude` is applied after `test` and `include`.
+Does not add the banner when a chunk's emitted filename matches at least one `exclude` condition. Matching uses the emitted filename, not module source paths: a string matches the beginning of the filename, a regular expression can match any part, and an array matches when any condition does. `exclude` is checked after `test` and `include`.
 
 ```js
 new rspack.BannerPlugin({
