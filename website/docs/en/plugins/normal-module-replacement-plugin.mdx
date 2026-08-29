@@ -2,17 +2,11 @@
 description: 'The NormalModuleReplacementPlugin allows you to replace resources that match resourceRegExp with newResource'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/plugins/normal-module-replacement-plugin/" />
+import Attribution from '@components/Attribution';
 
 # NormalModuleReplacementPlugin
 
 The `NormalModuleReplacementPlugin` allows you to replace resources that match `resourceRegExp` with `newResource`.
-
-```js
-new rspack.NormalModuleReplacementPlugin(resourceRegExp, newResource);
-```
 
 If `newResource` is relative, it is resolved relative to the previous resource.
 
@@ -26,7 +20,9 @@ Note that the `resourceRegExp` is tested against the "request" on `beforeResolve
 Also, please note that when using Windows, you have to accommodate for the different folder separator symbol. E.g. `/src\/environments\/environment\.ts/` won't work on Windows, you have to use `/src[\\/]environments[\\/]environment\.ts/` instead.
 :::
 
-## Basic example
+## Examples
+
+### Basic example
 
 Replace a specific module when building for a production environment.
 
@@ -41,7 +37,7 @@ new rspack.NormalModuleReplacementPlugin(
 );
 ```
 
-## Advanced example
+### Advanced example
 
 Conditional build depending on a specified environment.
 
@@ -96,3 +92,21 @@ rspack --env APP_TARGET=VERSION_A
 rspack --env APP_TARGET=VERSION_B
 => 'I am version B'
 ```
+
+## Options
+
+The plugin accepts two positional arguments.
+
+### resourceRegExp
+
+- **Type:** `RegExp`
+
+Matches the module request during `beforeResolve` and the resolved resource during `afterResolve`.
+
+### newResource
+
+- **Type:** `string | ((data: ResolveData) => void)`
+
+A replacement request or a function that updates the supplied resolve data. Relative replacement requests are resolved relative to the original resource.
+
+<Attribution url="https://webpack.js.org/plugins/normal-module-replacement-plugin/" />

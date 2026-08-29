@@ -2,10 +2,8 @@
 description: '介绍 Rspack 对外暴露、用于目标预设、运行时模板、子编译器和上层插件的底层插件。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import { ApiMeta, Stability } from '@components/ApiMeta';
-
-<WebpackLicense from="https://webpack.docschina.org/plugins/internal-plugins/" />
 
 # 底层插件
 
@@ -30,7 +28,9 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 ### ElectronTargetPlugin \{#electron-target-plugin}
 
-`electron.ElectronTargetPlugin(context)`
+```js
+new rspack.electron.ElectronTargetPlugin(context);
+```
 
 `ElectronTargetPlugin` 会将 Electron 内置模块保留为外部依赖，使其在运行时由 Electron 加载。传入 `'main'`、`'preload'` 或 `'renderer'`，可以额外外置对应进程中可用的模块。
 
@@ -53,13 +53,27 @@ new compiler.rspack.electron.ElectronTargetPlugin('main').apply(childCompiler);
 
 ### NodeEnvironmentPlugin
 
-`node.NodeEnvironmentPlugin()`
+```js
+new rspack.node.NodeEnvironmentPlugin(options);
+```
 
-将 Node.js 风格的文件系统应用到编译器。
+`NodeEnvironmentPlugin` 会为编译器安装 infrastructure logger、带缓存的 Node.js 输入文件系统、作为输出文件系统的 Node.js `fs` 模块以及 watch 文件系统。`rspack()` API 会自动将它应用到根编译器。
+
+当自定义编译器需要独立的 Node.js 文件系统环境时，可以传入该编译器标准化后的 infrastructure logging 选项并直接应用插件：
+
+```js
+new compiler.rspack.node.NodeEnvironmentPlugin({
+  infrastructureLogging: childCompiler.options.infrastructureLogging,
+}).apply(childCompiler);
+```
+
+该插件只配置编译器 I/O 和日志，不会设置 JavaScript 运行目标。需要将 Node.js 内置模块保留为外部依赖时，应使用 `NodeTargetPlugin`。
 
 ### NodeTargetPlugin \{#node-target-plugin}
 
-`node.NodeTargetPlugin()`
+```js
+new rspack.node.NodeTargetPlugin();
+```
 
 `NodeTargetPlugin` 会将 Node.js 内置模块和使用 `node:` scheme 的请求保留为外部依赖，使其由 Node.js 运行时加载，而不是被 Rspack 打进 bundle。[`externalsPresets.node`](/config/externals#externalspresetsnode) 配置会在内部应用该插件。
 
@@ -84,13 +98,57 @@ new compiler.rspack.node.NodeTargetPlugin().apply(childCompiler);
 
 ### DynamicEntryPlugin
 
-`DynamicEntryPlugin(context, entry)`
+```js
+new rspack.DynamicEntryPlugin(context, entry);
+```
 
-与 `EntryPlugin` 类似，但接受一个函数作为 `entry` 参数。该函数会在每次触发 `make` 事件时调用，以动态决定入口点。
+`DynamicEntryPlugin` 会在每次触发 `make` 事件时调用入口函数，并将函数返回的入口添加到 compilation 中，因此入口列表可以在 watch 重新构建之间发生变化。
+
+直接调用该 API 时需要传入标准化后的入口描述，因此每个 `import` 的值都是数组：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+const context = process.cwd();
+
+export default {
+  context,
+  entry: {},
+  plugins: [
+    new rspack.DynamicEntryPlugin(context, async () => ({
+      main: {
+        import: ['./src/index.js'],
+      },
+    })),
+  ],
+};
+```
+
+常规构建应优先使用 [`entry` 函数](/config/entry#entry)，Rspack 会自动将它标准化并传给该插件。
 
 ### EntryOptionPlugin
 
-`EntryOptionPlugin()`
+```js
+new rspack.EntryOptionPlugin();
+```
+
+`EntryOptionPlugin` 用于处理 compiler 的 `entryOption` hook。对于静态入口，它会为每个入口请求应用 `EntryPlugin`；对于函数入口，则会应用 `DynamicEntryPlugin`。Rspack 会自动将它应用到根编译器。
+
+为子编译器添加标准化后的入口时，可以使用静态的 `applyEntryOption` 方法：
+
+```js
+const childOptions = compiler.rspack.config.getNormalizedRspackOptions({
+  entry: {
+    child: './src/child.js',
+  },
+});
+
+compiler.rspack.EntryOptionPlugin.applyEntryOption(
+  childCompiler,
+  compiler.context,
+  childOptions.entry,
+);
+```
 
 ## output
 
@@ -98,7 +156,9 @@ new compiler.rspack.node.NodeTargetPlugin().apply(childCompiler);
 
 ### EnableChunkLoadingPlugin \{#enable-chunk-loading-plugin}
 
-`javascript.EnableChunkLoadingPlugin(type)`
+```js
+new rspack.javascript.EnableChunkLoadingPlugin(type);
+```
 
 `EnableChunkLoadingPlugin` 会启用指定 chunk loading 类型所需的运行时模块。Rspack 通常会根据 [`output.enabledChunkLoadingTypes`](/config/output#outputenabledchunkloadingtypes) 收集到的类型应用该插件。
 
@@ -127,7 +187,9 @@ export default {
 
 ### EnableLibraryPlugin \{#enable-library-plugin}
 
-`library.EnableLibraryPlugin(type)`
+```js
+new rspack.library.EnableLibraryPlugin(type);
+```
 
 `EnableLibraryPlugin` 会向编译器注册一种 library 输出类型。Rspack 通常会根据 [`output.enabledLibraryTypes`](/config/output#outputenabledlibrarytypes) 收集到的类型应用该插件。
 
@@ -158,7 +220,9 @@ export default {
 
 ### EnableWasmLoadingPlugin \{#enable-wasm-loading-plugin}
 
-`wasm.EnableWasmLoadingPlugin(type)`
+```js
+new rspack.wasm.EnableWasmLoadingPlugin(type);
+```
 
 `EnableWasmLoadingPlugin` 会启用指定 WebAssembly 加载类型所需的运行时模块。Rspack 通常会根据 [`output.enabledWasmLoadingTypes`](/config/output#outputenabledwasmloadingtypes) 收集到的类型应用该插件。
 
@@ -192,19 +256,69 @@ export default {
 
 ### EvalDevToolModulePlugin
 
-`EvalDevToolModulePlugin(options)`
+```js
+new rspack.EvalDevToolModulePlugin(options);
+```
 
-使用带有 `// @sourceURL` 注释的 `eval` 包裹每个模块，以装饰模块模板。
+`EvalDevToolModulePlugin` 会使用 `eval` 包裹每个非 external JavaScript 模块并添加 `sourceURL`，使浏览器开发者工具可以显示原始模块名称。设置 `devtool: 'eval'` 时，Rspack 会自动应用该插件。
+
+下面的配置直接应用该插件，并使用 `dashboard` 作为 source URL 的 namespace：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  mode: 'development',
+  devtool: false,
+  plugins: [
+    new rspack.EvalDevToolModulePlugin({
+      namespace: 'dashboard',
+    }),
+  ],
+};
+```
+
+可以通过 `moduleFilenameTemplate` 和 `sourceUrlComment` 选项自定义生成的模块 URL 和注释格式。
 
 ### FetchCompileAsyncWasmPlugin
 
-`web.FetchCompileAsyncWasmPlugin()`
+```js
+new rspack.web.FetchCompileAsyncWasmPlugin();
+```
 
-为异步获取和编译 WebAssembly 模块提供运行时代码，通常配合子编译器使用。
+`FetchCompileAsyncWasmPlugin` 会添加在浏览器中获取并编译异步 WebAssembly 模块的运行时代码。`EnableWasmLoadingPlugin('fetch')` 会在内部应用这个实现。
+
+下面的示例关闭 WebAssembly loading 的自动配置，并直接安装 fetch 实现：
+
+```js title="src/index.js"
+import { add } from './add.wasm';
+
+console.log(add(1, 2));
+```
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  target: 'web',
+  entry: './src/index.js',
+  experiments: {
+    asyncWebAssembly: true,
+  },
+  output: {
+    wasmLoading: false,
+  },
+  plugins: [new rspack.web.FetchCompileAsyncWasmPlugin()],
+};
+```
+
+常规 web 构建应优先使用 `output.wasmLoading: 'fetch'`，Rspack 会自动启用相同的运行时实现。
 
 ### JsonpTemplatePlugin \{#jsonp-template-plugin}
 
-`web.JsonpTemplatePlugin()`
+```js
+new rspack.web.JsonpTemplatePlugin();
+```
 
 `JsonpTemplatePlugin` 用于配置子编译器的浏览器产物。它会将 [`output.chunkLoading`](/config/output#outputchunkloading) 设置为 `'jsonp'`，应用 [`'array-push'` chunk format](/config/output#outputchunkformat)，并启用 JSONP chunk loading 所需的运行时代码。
 
@@ -262,7 +376,9 @@ export default {
 
 ### NodeTemplatePlugin \{#node-template-plugin}
 
-`node.NodeTemplatePlugin(options)`
+```js
+new rspack.node.NodeTemplatePlugin(options);
+```
 
 `NodeTemplatePlugin` 用于配置子编译器的 Node.js 产物。它会应用 [`'commonjs'` chunk format](/config/output#outputchunkformat)，默认将 [`output.chunkLoading`](/config/output#outputchunkloading) 设置为 `'require'`，并启用所需的 chunk loading 运行时代码。
 
@@ -331,7 +447,9 @@ export default {
 
 ### WebWorkerTemplatePlugin \{#web-worker-template-plugin}
 
-`webworker.WebWorkerTemplatePlugin()`
+```js
+new rspack.webworker.WebWorkerTemplatePlugin();
+```
 
 `WebWorkerTemplatePlugin` 用于配置子编译器的 Web Worker 产物。它会将 [`output.chunkLoading`](/config/output#outputchunkloading) 设置为 `'import-scripts'`，应用 [`'array-push'` chunk format](/config/output#outputchunkformat)，并启用基于 `importScripts` 的 chunk loading 运行时代码。
 
@@ -389,41 +507,229 @@ export default {
 
 ## loader
 
+用于自定义 loader 执行上下文的插件。
+
 ### LoaderOptionsPlugin
 
-`LoaderOptionsPlugin(options)`
+```js
+new rspack.LoaderOptionsPlugin(options);
+```
+
+`LoaderOptionsPlugin` 会将自定义选项字段复制到匹配 `test`、`include` 和 `exclude` 的资源所对应的 loader context 上。匹配字段本身只用于过滤，不会被复制。
+
+下面的 loader 会从 context 中读取自定义的 `message` 属性：
+
+```js title="loaders/message-loader.cjs"
+module.exports = function () {
+  return `export default ${JSON.stringify(this.message)};`;
+};
+```
+
+插件只在处理 `.message` 文件时提供该属性：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: './src/welcome.message',
+  module: {
+    rules: [
+      {
+        test: /\.message$/,
+        use: './loaders/message-loader.cjs',
+      },
+    ],
+  },
+  plugins: [
+    new rspack.LoaderOptionsPlugin({
+      test: /\.message$/,
+      message: 'Hello from the loader',
+    }),
+  ],
+};
+```
+
+该插件主要用于兼容从 `this` 读取自定义属性的 loader。新编写的 loader 通常应通过自身的 loader options 接收参数。
 
 ### LoaderTargetPlugin
 
-`LoaderTargetPlugin(target)`
+```js
+new rspack.LoaderTargetPlugin(target);
+```
+
+`LoaderTargetPlugin` 会将 `target` 赋值给每个 loader context 的 `this.target`。当自定义编译器需要让 loader 读取到与编译器配置不同的 target 时，可以使用该插件。
+
+下面的 loader 会将输入替换为它读取到的 target：
+
+```js title="loaders/target-loader.cjs"
+module.exports = function () {
+  return `console.log(${JSON.stringify(this.target)});`;
+};
+```
+
+虽然构建的 target 是 `web`，下面的插件会让 loader 读取到 `'node'`：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  target: 'web',
+  entry: './src/index.js',
+  module: {
+    rules: [
+      {
+        test: /index\.js$/,
+        use: './loaders/target-loader.cjs',
+      },
+    ],
+  },
+  plugins: [new rspack.LoaderTargetPlugin('node')],
+};
+```
+
+常规构建应优先使用顶层的 [`target`](/config/target) 配置。
 
 ## module federation
 
-`ModuleFederationPlugin` 使用的底层插件。
+这些插件实现了 Module Federation 的 `exposes`、`remotes` 和 `shared` 能力。常规应用构建应优先使用 [`ModuleFederationPlugin`](/plugins/module-federation-plugin)，由它统一配置这些底层插件。
 
 ### ContainerPlugin
 
-`container.ContainerPlugin(options)`
+```js
+new rspack.container.ContainerPlugin(options);
+```
+
+`ContainerPlugin` 会创建一个 container 入口，通过 Module Federation 的 `get` 和 `init` 接口暴露本地模块。它是 `exposes` 配置的底层实现。
+
+下面的配置会生成 `remoteEntry.js`，并将 `src/Button.js` 暴露为 `./Button`：
+
+```js title="rspack.config.mjs"
+import { container } from '@rspack/core';
+
+export default {
+  entry: {},
+  plugins: [
+    new container.ContainerPlugin({
+      name: 'catalog',
+      filename: 'remoteEntry.js',
+      exposes: {
+        './Button': './src/Button.js',
+      },
+    }),
+  ],
+};
+```
 
 ### ContainerReferencePlugin
 
-`container.ContainerReferencePlugin(options)`
+```js
+new rspack.container.ContainerReferencePlugin(options);
+```
+
+`ContainerReferencePlugin` 会将远程 container 注册为 external，并添加从远程加载模块所需的运行时代码。它是 `remotes` 配置的底层实现。
+
+使用下面的配置后，`import('catalog/Button')` 这样的导入会从远程 container 加载 `./Button`：
+
+```js title="rspack.config.mjs"
+import { container } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [
+    new container.ContainerReferencePlugin({
+      remoteType: 'script',
+      remotes: {
+        catalog: 'catalog@http://localhost:3001/remoteEntry.js',
+      },
+    }),
+  ],
+};
+```
 
 ### ConsumeSharedPlugin
 
-`sharing.ConsumeSharedPlugin(options)`
+```js
+new rspack.sharing.ConsumeSharedPlugin(options);
+```
+
+`ConsumeSharedPlugin` 会从 share scope 中解析配置的模块请求。它可以检查版本与 singleton 要求，并在没有合适 provider 时使用本地模块作为 fallback。
+
+下面的示例会从默认 share scope 中消费 singleton `react`，不检查版本，并在需要时回退到本地安装的 package：
+
+```js title="rspack.config.mjs"
+import { sharing } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [
+    new sharing.ConsumeSharedPlugin({
+      consumes: {
+        react: {
+          import: 'react',
+          requiredVersion: false,
+          singleton: true,
+        },
+      },
+    }),
+  ],
+};
+```
 
 ### ProvideSharedPlugin
 
-`sharing.ProvideSharedPlugin(options)`
+```js
+new rspack.sharing.ProvideSharedPlugin(options);
+```
+
+`ProvideSharedPlugin` 会将本地模块及其版本注册到 share scope 中，供其他构建消费。它是 `shared` 配置中 provider 部分的底层实现。
+
+下面的简写形式会使用 `react` 作为 share key 提供本地安装的 `react` package，并从 package metadata 中推断版本：
+
+```js title="rspack.config.mjs"
+import { sharing } from '@rspack/core';
+
+export default {
+  plugins: [
+    new sharing.ProvideSharedPlugin({
+      provides: ['react'],
+    }),
+  ],
+};
+```
 
 ### SharePlugin
 
-`sharing.SharePlugin(options)`
+```js
+new rspack.sharing.SharePlugin(options);
+```
+
+`SharePlugin` 会根据同一份 `shared` 配置同时应用 `ConsumeSharedPlugin` 和 `ProvideSharedPlugin`。它等价于 `ModuleFederationPlugin` 中 `shared` 配置的底层实现。
+
+下面的示例会将本地 `react` package 作为 fallback 提供，同时从默认 share scope 中消费 singleton 实例：
+
+```js title="rspack.config.mjs"
+import { sharing } from '@rspack/core';
+
+export default {
+  plugins: [
+    new sharing.SharePlugin({
+      enhanced: false,
+      shared: {
+        react: {
+          requiredVersion: false,
+          singleton: true,
+        },
+      },
+    }),
+  ],
+};
+```
 
 ### TreeShakingSharedPlugin \{#tree-shaking-shared-plugin}
 
-`sharing.TreeShakingSharedPlugin(options)`
+```js
+new rspack.sharing.TreeShakingSharedPlugin(options);
+```
 
 <ApiMeta stability={Stability.Experimental} />
 
@@ -435,32 +741,69 @@ export default {
 - `secondary`：是否在独立构建中执行第二次 tree shaking，默认值为 `false`。
 - `onBuildAssets`：生成共享 fallback 产物后调用的回调函数。
 
-直接应用该插件主要适用于部署平台在收集完整依赖信息后执行二次构建的场景：
+直接应用该插件主要适用于部署平台执行二次构建的场景。它必须配合共享插件使用，以便 `TreeShakingSharedPlugin` 收集需要构建的共享模块：
+
+```js title="src/index.js"
+import { add } from 'lodash-es';
+
+console.log(add(1, 2));
+```
 
 ```js title="rspack.config.mjs"
 import { sharing } from '@rspack/core';
 
+const shared = {
+  'lodash-es': { treeShaking: { mode: 'server-calc' } },
+};
+
 export default {
+  entry: './src/index.js',
   plugins: [
+    new sharing.SharePlugin({
+      enhanced: true,
+      shared,
+    }),
     new sharing.TreeShakingSharedPlugin({
       secondary: true,
       mfConfig: {
         name: 'app',
-        shared: {
-          'lodash-es': { treeShaking: { mode: 'server-calc' } },
-        },
+        shared,
         library: { type: 'var', name: 'App' },
-        manifest: true,
       },
     }),
   ],
 };
 ```
 
-该插件只会为启用了 `treeShaking` 且保留本地实现的共享依赖创建独立构建。启用 `mfConfig.manifest` 后，生成的 fallback 产物信息会写入 stats 和 manifest。
+该插件只会为启用了 `treeShaking` 且保留本地实现的共享依赖创建独立构建。单独使用时，它不会生成 Module Federation stats 或 manifest 文件。当 `ModuleFederationPlugin` 在启用 manifest 生成的情况下在内部应用该插件时，生成的 fallback 产物信息会被写入这些文件。
 
 ## experiments
 
 ### RemoveDuplicateModulesPlugin
 
-`experiments.RemoveDuplicateModulesPlugin()`
+```js
+new rspack.experiments.RemoveDuplicateModulesPlugin();
+```
+
+<ApiMeta stability={Stability.Experimental} />
+
+`RemoveDuplicateModulesPlugin` 会查找同时出现在同一组多个 chunk 中的模块，并将它们移动到一个可复用或新创建的共享 chunk 中。Rspack 会在生成 `modern-module` library 产物时在内部使用该插件。
+
+下面的两个入口都导入了同一个 `src/shared.js` 模块。关闭 `splitChunks` 后，将由 `RemoveDuplicateModulesPlugin` 提取这个重复模块：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: {
+    admin: './src/admin.js',
+    store: './src/store.js',
+  },
+  optimization: {
+    splitChunks: false,
+  },
+  plugins: [new rspack.experiments.RemoveDuplicateModulesPlugin()],
+};
+```
+
+<Attribution url="https://webpack.docschina.org/plugins/internal-plugins/" />

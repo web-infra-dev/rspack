@@ -2,10 +2,7 @@
 description: 'SplitChunksPlugin 是一个内置插件，用于将代码拆分成多个 chunk，以优化应用的加载性能，实现更好的缓存策略和并行加载效果。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-import { ApiMeta } from '@components/ApiMeta';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/optimization/" />
+import Attribution from '@components/Attribution';
 
 # SplitChunksPlugin
 
@@ -31,7 +28,8 @@ Rspack 将根据以下条件自动拆分 chunk：
 - 当按需加载 chunks 时，并行请求的最大数量小于或等于 30
 - 当加载初始化页面时，并发请求的最大数量小于或等于 30
 
-:::tip
+## 示例
+
 默认情况下，`chunks` 的值为 `async`，但对大多数生产环境应用，建议优先使用：
 
 ```js title="rspack.config.mjs"
@@ -45,9 +43,8 @@ export default {
 ```
 
 同时保留默认的 cacheGroups 配置。这样通常可以同时对 initial chunk 和 async chunk 去重，并且不会改变 JavaScript 的执行语义。Rspack runtime 仍然只会加载当前入口或 runtime 实际可达的 chunk。
-:::
 
-## 配置
+## 选项
 
 Rspack 为希望对该功能进行更多控制的开发者提供了一组选项。
 
@@ -432,8 +429,6 @@ type SplitChunksNameFunction = (
 
 - **默认值：** `false`
 
-> 其中函数类型的版本要求为 `>=0.4.1`
-
 每个 cacheGroup 也可以使用：`splitChunks.cacheGroups.{cacheGroup}.name`。
 
 拆分 chunk 的名称。设为 `false` 将保持 chunk 的相同名称，因此不会不必要地更改名称。这是生产环境下构建的建议值。
@@ -541,8 +536,6 @@ export default {
 
 ### splitChunks.usedExports
 
-<ApiMeta addedVersion="1.0.0" />
-
 - **类型：** `boolean`
 - **默认值：** 默认值为 [optimization.usedExports](/config/optimization#optimizationusedexports)
 
@@ -638,8 +631,6 @@ export default {
 
 - **类型：** `RegExp | string | (module: Module, { chunkGraph: ChunkGraph, moduleGraph: ModuleGraph }) => boolean`
 
-> 其中函数类型的版本要求为 `>=0.4.1`
-
 控制此 cacheGroup 选择的模块。省略它会选择所有模块。它可以匹配绝对模块资源路径或 chunk 名称。匹配 chunk 名称时，将选择该 chunk 中的所有模块。
 
 :::warning
@@ -733,3 +724,5 @@ export default {
 有可能。
 
 在 `mini-css-extract-plugin`、Rspack 的[内置 CSS 支持](/guide/tech/css#内置-css-支持)这类抽取式 CSS 场景里，splitChunks 改变 chunk group 后，最终 CSS 顺序也可能随之变化。可以参考 [Deep dive into webpack CSS order issue](https://github.com/orgs/web-infra-dev/discussions/12)。如果 CSS 顺序是主要诉求，也建议同时参考 [CssChunkingPlugin](/plugins/css-chunking-plugin)。
+
+<Attribution url="https://webpack.docschina.org/configuration/optimization/" />

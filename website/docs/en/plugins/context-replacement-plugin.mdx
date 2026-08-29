@@ -2,9 +2,7 @@
 description: "Context refers to a require or dynamic import() with an expression such as require('./locale/' + name + '.json')"
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/plugins/context-replacement-plugin/" />
+import Attribution from '@components/Attribution';
 
 # ContextReplacementPlugin
 
@@ -13,22 +11,6 @@ When encountering such an expression, Rspack infers the directory (`'./locale/'`
 Since the name is not known at compile time, Rspack includes every file as module in the bundle.
 
 The `ContextReplacementPlugin` allows you to override the inferred information. There are various ways to configure the plugin:
-
-## Options
-
-- **Type:**
-
-```ts
-new rspack.ContextReplacementPlugin(
-  resourceRegExp: RegExp,
-  newContentResource?: string,
-  newContentRecursive?: boolean,
-  newContentRegExp?: RegExp
-)
-```
-
-If the resource (directory) matches `resourceRegExp`, the plugin replaces the default resource, recursive flag or generated regular expression with `newContentResource`, `newContentRecursive` or `newContextRegExp` respectively.
-If `newContentResource` is relative, it is resolved relative to the previous resource.
 
 ## Examples
 
@@ -60,3 +42,21 @@ new rspack.ContextReplacementPlugin(/selector/, './folder', {
   './other-request': './new-request',
 });
 ```
+
+## Options
+
+- **Type:**
+
+```ts
+new rspack.ContextReplacementPlugin(
+  resourceRegExp: RegExp,
+  newContentResource?: string,
+  newContentRecursive?: boolean,
+  newContentRegExp?: RegExp
+)
+```
+
+If the resource (directory) matches `resourceRegExp`, the plugin replaces the default resource, recursive flag or generated regular expression with `newContentResource`, `newContentRecursive` or `newContextRegExp` respectively.
+If `newContentResource` is relative, it is resolved relative to the previous resource.
+
+<Attribution url="https://webpack.js.org/plugins/context-replacement-plugin/" />

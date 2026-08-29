@@ -4,15 +4,16 @@ use bitflags::bitflags;
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifiable;
 use rspack_error::Result;
-use rspack_fs::ReadableFileSystem;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_loader_runner::{Content, LoaderContext, LoaderDependencies};
-use rspack_paths::InternedPathSet;
+use rspack_paths::{InternedPath, InternedPathSet};
 use rspack_sources::SourceMap;
+use rspack_util::time::current_time;
 
 use crate::{
-  CacheFacade, CacheValue, Etag, ItemCacheFacade, Module, RunnerContext,
-  new_cache::FileDependencies,
+  CacheFacade, CacheValue, Etag, FileSystemInfo, ItemCacheFacade, Module, RunnerContext,
+  cache::SnapshotStrategyOptions,
+  new_cache::{Snapshot, SnapshotValidationResult},
 };
 
 fn loader_cache_key(module_identifier: &str, loader_name: &str) -> String {
@@ -66,23 +67,25 @@ bitflags! {
 
 #[doc(hidden)]
 #[cacheable]
-#[derive(Clone)]
 pub struct LoaderCacheDependencySnapshot {
-  dependencies: FileDependencies,
+  dependencies: Snapshot,
+  paths: Vec<InternedPath>,
   kinds: Vec<LoaderCacheDependencyKind>,
 }
 
 #[doc(hidden)]
-pub fn loader_cache_dependency_snapshot(
-  fs: &dyn ReadableFileSystem,
+pub async fn loader_cache_dependency_snapshot(
+  file_system_info: &FileSystemInfo,
   dependencies: &LoaderDependencies,
 ) -> Option<LoaderCacheDependencySnapshot> {
   if !dependencies.context.is_empty() || !dependencies.missing.is_empty() {
     return None;
   }
+  let mut files = InternedPathSet::default();
   let mut paths = Vec::with_capacity(dependencies.file.len() + dependencies.build.len());
   let mut kinds = Vec::with_capacity(paths.capacity());
   for path in dependencies.file.union(&dependencies.build) {
+    files.insert(path.clone());
     paths.push(path.clone());
     let mut kind = LoaderCacheDependencyKind::empty();
     if dependencies.file.contains(path) {
@@ -94,19 +97,36 @@ pub fn loader_cache_dependency_snapshot(
     debug_assert!(!kind.is_empty());
     kinds.push(kind);
   }
-  let dependencies = FileDependencies::capture(fs, paths)?;
+  let empty = InternedPathSet::default();
+  let dependencies = file_system_info
+    .create_snapshot(
+      Some(current_time()),
+      &files,
+      &empty,
+      &empty,
+      SnapshotStrategyOptions::timestamp(),
+    )
+    .await
+    .ok()?;
   Some(LoaderCacheDependencySnapshot {
     dependencies,
+    paths,
     kinds,
   })
 }
 
 #[doc(hidden)]
-pub fn loader_cache_dependency_snapshot_is_valid(
-  fs: &dyn ReadableFileSystem,
+pub async fn loader_cache_dependency_snapshot_is_valid(
+  file_system_info: &FileSystemInfo,
   snapshot: &LoaderCacheDependencySnapshot,
 ) -> bool {
-  snapshot.dependencies.paths().len() == snapshot.kinds.len() && snapshot.dependencies.is_valid(fs)
+  snapshot.paths.len() == snapshot.kinds.len()
+    && matches!(
+      file_system_info
+        .check_snapshot_valid(&snapshot.dependencies)
+        .await,
+      Ok(SnapshotValidationResult::Valid)
+    )
 }
 
 #[doc(hidden)]
@@ -114,7 +134,7 @@ pub fn restore_loader_cache_dependencies(
   snapshot: &LoaderCacheDependencySnapshot,
   dependencies: &mut LoaderDependencies,
 ) {
-  for (path, kind) in snapshot.dependencies.paths().zip(&snapshot.kinds) {
+  for (path, kind) in snapshot.paths.iter().zip(&snapshot.kinds) {
     if kind.contains(LoaderCacheDependencyKind::FILE) {
       dependencies.file.insert(path.clone());
     }
@@ -136,7 +156,6 @@ pub fn loader_cache_item(
 }
 
 #[cacheable]
-#[derive(Clone)]
 struct LoaderCacheEntry {
   content: Option<Vec<u8>>,
   content_is_string: bool,
@@ -172,7 +191,7 @@ fn input_etag(context: &LoaderContext<RunnerContext>) -> Option<Etag> {
   ))
 }
 
-pub(crate) fn before_normal_loader(
+pub(crate) async fn before_normal_loader(
   context: &mut LoaderContext<RunnerContext>,
 ) -> Result<LoaderCacheAction> {
   debug_assert!(context.current_loader().cache());
@@ -205,9 +224,10 @@ pub(crate) fn before_normal_loader(
 
   if let Some(entry) = item_cache.get::<LoaderCacheEntry>()?
     && loader_cache_dependency_snapshot_is_valid(
-      context.context.fs.as_ref(),
+      &context.context.file_system_info,
       &entry.dependency_snapshot,
     )
+    .await
   {
     let content = match (&entry.content, entry.content_is_string) {
       (Some(content), true) => {
@@ -232,7 +252,7 @@ pub(crate) fn before_normal_loader(
   Ok(cache_miss_action(context, etag))
 }
 
-pub(crate) fn after_normal_loader(
+pub(crate) async fn after_normal_loader(
   context: &LoaderContext<RunnerContext>,
   state: &LoaderCacheMissState,
 ) -> Result<()> {
@@ -249,8 +269,11 @@ pub(crate) fn after_normal_loader(
   if !context.removed_dependencies().is_empty() {
     return Ok(());
   }
-  let Some(dependency_snapshot) =
-    loader_cache_dependency_snapshot(context.context.fs.as_ref(), context.added_dependencies())
+  let Some(dependency_snapshot) = loader_cache_dependency_snapshot(
+    &context.context.file_system_info,
+    context.added_dependencies(),
+  )
+  .await
   else {
     return Ok(());
   };

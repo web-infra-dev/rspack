@@ -64,12 +64,6 @@ The enabling of the [Preact Refresh](https://github.com/preactjs/prefresh) is di
     - Add [`@swc/plugin-prefresh`](https://github.com/swc-project/plugins/tree/main/packages/prefresh) into `jsc.experimental.plugins` to support the specific transformation of preact
   - Use `babel-loader` and add official [babel plugin](https://github.com/preactjs/prefresh/tree/main/packages/babel) of prefresh.
 
-:::warning
-In versions below 1.0.0, Rspack did not support preact refresh with `swc-loader`.
-
-Please use `builtin:swc-loader` and enable preact specific transformation with `rspackExperiments.preact: {}`
-:::
-
 ```js title="rspack.config.mjs"
 import PreactRefreshPlugin from '@rspack/plugin-preact-refresh';
 

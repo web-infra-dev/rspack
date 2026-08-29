@@ -11,10 +11,6 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 `rspack.HtmlRspackPlugin` 是使用 Rust 实现的高性能 HTML 插件，你可以使用它来为 Rspack 项目生成 HTML 文件。
 
-```js
-new rspack.HtmlRspackPlugin(options);
-```
-
 ## 对比
 
 在使用 `rspack.HtmlRspackPlugin` 之前，请注意 `rspack.HtmlRspackPlugin` 和社区的 [`html-webpack-plugin`](https://www.npmjs.com/package/html-webpack-plugin) 插件存在一些差异。
@@ -101,7 +97,7 @@ Rspack 修改了 EJS 的 escape 和 unescape 的默认语法，使其采用和 `
 <% } %>
 ```
 
-## 用法
+## 示例
 
 这个插件会为你生成一个 HTML 文件，该文件的 head 包含了所有 JS 产物对应的 `<script>` 标签。
 
@@ -132,173 +128,6 @@ export default {
 如果你的 Rspack 配置中有多个 entry points，它们的生成 `<script>` 标签都会被包含在这个 HTML 文件中。
 
 如果你的构建产物中有一些 CSS 资源，它们将被包含在 HTML head 的 `<link>` 标签中。
-
-## 选项
-
-你可以向 `rspack.HtmlRspackPlugin` 传递一些配置项，支持的选项如下：
-
-- **类型：**
-
-```ts
-type HtmlRspackPluginOptions = {
-  title?: string;
-  filename?: string | ((entry: string) => string);
-  template?: string;
-  templateContent?:
-    string | ((params: Record<string, any>) => string | Promise<string>);
-  templateParameters?:
-    | Record<string, string>
-    | boolean
-    | ((
-        params: Record<string, any>,
-      ) => Record<string, any> | Promise<Record<string, any>>);
-  inject?: boolean | 'head' | 'body';
-  publicPath?: string;
-  base?:
-    | string
-    | {
-        href?: string;
-        target?: '_self' | '_blank' | '_parent' | '_top';
-      };
-  scriptLoading?: 'blocking' | 'defer' | 'module' | 'systemjs-module';
-  chunks?: string[];
-  excludeChunks?: string[];
-  chunksSortMode?: 'auto' | 'manual';
-  minify?: boolean;
-  favicon?: string;
-  meta?: Record<string, string | Record<string, string>>;
-  hash?: boolean;
-};
-```
-
-- **默认值：** `{}`
-
-<Table
-  header={[
-    {
-      name: '名称',
-      key: 'name',
-    },
-    {
-      name: '类型',
-      key: 'type',
-    },
-    {
-      name: '默认值',
-      key: 'default',
-    },
-    {
-      name: '描述',
-      key: 'description',
-    },
-  ]}
-  body={[
-    {
-      name: '`title`',
-      type: '`string | undefined`',
-      default: '`undefined`',
-      description: '构建 HTML 的标题',
-    },
-    {
-      name: '`filename`',
-      type: '`string | undefined | ((entry: string) => string)`',
-      default: '`"index.html"`',
-      description: '输出的文件名，可以指定子目录，例如 `"pages/index.html"`',
-    },
-    {
-      name: '`template`',
-      type: '`string | undefined`',
-      default: '`undefined`',
-      description: '模版文件路径，支持 ejs',
-    },
-    {
-      name: '`templateContent`',
-      type: '`string | undefined | ((params: Record<string, any>) => string | Promise<string>)`',
-      default: '`undefined`',
-      description:
-        '模版文件内容，优先级大于 template，使用函数时传入渲染参数并将返回的字符串作为模板内容',
-    },
-    {
-      name: '`templateParameters`',
-      type: '`Record<string, string> | undefined | boolean | ((params: Record<string, any>) => Record<string, any> | Promise<Record<string, any>>)`',
-      default: '`undefined`',
-      description:
-        '传递给模版的参数，使用函数时传入渲染参数，并将返回的内容作为最终的渲染参数',
-    },
-    {
-      name: '`inject`',
-      type: '`boolean | undefined | "head" | "body"`',
-      default: '`true`',
-      description:
-        '产物注入位置，使用 `false` 则不注入，不指定时则会根据 `scriptLoading` 的配置自动判断',
-    },
-    {
-      name: '`publicPath`',
-      type: '`string | undefined`',
-      default: '`undefined`',
-      description: 'script 和 link 标签的 publicPath',
-    },
-    {
-      name: '`base`',
-      type: '`string | undefined | { href?: string; target?: "_self" | "_blank" | "_parent" | "_top" }`',
-      default: '`undefined`',
-      description:
-        '注入一个 [`base`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base) 标签',
-    },
-    {
-      name: '`scriptLoading`',
-      type: '`"blocking" | "defer" | "module" | "systemjs-module" | undefined`',
-      default: '启用 `output.module` 时为 `"module"`，否则为 `"defer"`',
-      description:
-        '现代浏览器支持使用 `defer` 来异步加载 JavaScript，设置为 `"module"` 则会添加 `type="module"` 同时使用 `defer`',
-    },
-    {
-      name: '`chunks`',
-      type: '`string[] | undefined`',
-      default: '`undefined`',
-      description: '配置需要注入的 chunk，默认注入所有 chunk',
-    },
-    {
-      name: '`excludeChunks`',
-      type: '`string[] | undefined`',
-      default: '`undefined`',
-      description: '配置需要跳过注入的 chunk',
-    },
-    {
-      name: '`chunksSortMode`',
-      type: '`"auto" | "manual"`',
-      default: '`"auto"`',
-      description: '配置 chunk 的排序模式',
-    },
-    {
-      name: '`minify`',
-      type: '`boolean`',
-      default: '`undefined`',
-      description: '是否启用压缩',
-    },
-    {
-      name: '`favicon`',
-      type: '`string | undefined`',
-      default: '`undefined`',
-      description: '配置 HTML 图标',
-    },
-    {
-      name: '`meta`',
-      type: '`Record<string, string | Record<string, string>>`',
-      default: '`{}`',
-      description: '配置需要注入 HTML 的 meta',
-    },
-    {
-      name: '`hash`',
-      type: '`boolean`',
-      default: '`undefined`',
-      description:
-        '是否在生成加载路径时添加 compilation 的哈希值作为后缀，以让缓存失效',
-    },
-  ]}
-/>
-
-## 示例
 
 ### 自定义 HTML 模板
 
@@ -556,6 +385,171 @@ export default {
   ],
 };
 ```
+
+## 选项
+
+你可以向 `rspack.HtmlRspackPlugin` 传递一些配置项，支持的选项如下：
+
+- **类型：**
+
+```ts
+type HtmlRspackPluginOptions = {
+  title?: string;
+  filename?: string | ((entry: string) => string);
+  template?: string;
+  templateContent?:
+    string | ((params: Record<string, any>) => string | Promise<string>);
+  templateParameters?:
+    | Record<string, string>
+    | boolean
+    | ((
+        params: Record<string, any>,
+      ) => Record<string, any> | Promise<Record<string, any>>);
+  inject?: boolean | 'head' | 'body';
+  publicPath?: string;
+  base?:
+    | string
+    | {
+        href?: string;
+        target?: '_self' | '_blank' | '_parent' | '_top';
+      };
+  scriptLoading?: 'blocking' | 'defer' | 'module' | 'systemjs-module';
+  chunks?: string[];
+  excludeChunks?: string[];
+  chunksSortMode?: 'auto' | 'manual';
+  minify?: boolean;
+  favicon?: string;
+  meta?: Record<string, string | Record<string, string>>;
+  hash?: boolean;
+};
+```
+
+- **默认值：** `{}`
+
+<Table
+  header={[
+    {
+      name: '名称',
+      key: 'name',
+    },
+    {
+      name: '类型',
+      key: 'type',
+    },
+    {
+      name: '默认值',
+      key: 'default',
+    },
+    {
+      name: '描述',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`title`',
+      type: '`string | undefined`',
+      default: '`undefined`',
+      description: '构建 HTML 的标题',
+    },
+    {
+      name: '`filename`',
+      type: '`string | undefined | ((entry: string) => string)`',
+      default: '`"index.html"`',
+      description: '输出的文件名，可以指定子目录，例如 `"pages/index.html"`',
+    },
+    {
+      name: '`template`',
+      type: '`string | undefined`',
+      default: '`undefined`',
+      description: '模版文件路径，支持 ejs',
+    },
+    {
+      name: '`templateContent`',
+      type: '`string | undefined | ((params: Record<string, any>) => string | Promise<string>)`',
+      default: '`undefined`',
+      description:
+        '模版文件内容，优先级大于 template，使用函数时传入渲染参数并将返回的字符串作为模板内容',
+    },
+    {
+      name: '`templateParameters`',
+      type: '`Record<string, string> | undefined | boolean | ((params: Record<string, any>) => Record<string, any> | Promise<Record<string, any>>)`',
+      default: '`undefined`',
+      description:
+        '传递给模版的参数，使用函数时传入渲染参数，并将返回的内容作为最终的渲染参数',
+    },
+    {
+      name: '`inject`',
+      type: '`boolean | undefined | "head" | "body"`',
+      default: '`true`',
+      description:
+        '产物注入位置，使用 `false` 则不注入，不指定时则会根据 `scriptLoading` 的配置自动判断',
+    },
+    {
+      name: '`publicPath`',
+      type: '`string | undefined`',
+      default: '`undefined`',
+      description: 'script 和 link 标签的 publicPath',
+    },
+    {
+      name: '`base`',
+      type: '`string | undefined | { href?: string; target?: "_self" | "_blank" | "_parent" | "_top" }`',
+      default: '`undefined`',
+      description:
+        '注入一个 [`base`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base) 标签',
+    },
+    {
+      name: '`scriptLoading`',
+      type: '`"blocking" | "defer" | "module" | "systemjs-module" | undefined`',
+      default: '启用 `output.module` 时为 `"module"`，否则为 `"defer"`',
+      description:
+        '现代浏览器支持使用 `defer` 来异步加载 JavaScript，设置为 `"module"` 则会添加 `type="module"` 同时使用 `defer`',
+    },
+    {
+      name: '`chunks`',
+      type: '`string[] | undefined`',
+      default: '`undefined`',
+      description: '配置需要注入的 chunk，默认注入所有 chunk',
+    },
+    {
+      name: '`excludeChunks`',
+      type: '`string[] | undefined`',
+      default: '`undefined`',
+      description: '配置需要跳过注入的 chunk',
+    },
+    {
+      name: '`chunksSortMode`',
+      type: '`"auto" | "manual"`',
+      default: '`"auto"`',
+      description: '配置 chunk 的排序模式',
+    },
+    {
+      name: '`minify`',
+      type: '`boolean`',
+      default: '`undefined`',
+      description: '是否启用压缩',
+    },
+    {
+      name: '`favicon`',
+      type: '`string | undefined`',
+      default: '`undefined`',
+      description: '配置 HTML 图标',
+    },
+    {
+      name: '`meta`',
+      type: '`Record<string, string | Record<string, string>>`',
+      default: '`{}`',
+      description: '配置需要注入 HTML 的 meta',
+    },
+    {
+      name: '`hash`',
+      type: '`boolean`',
+      default: '`undefined`',
+      description:
+        '是否在生成加载路径时添加 compilation 的哈希值作为后缀，以让缓存失效',
+    },
+  ]}
+/>
 
 ## Hooks
 

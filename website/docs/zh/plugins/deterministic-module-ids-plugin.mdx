@@ -2,15 +2,15 @@
 description: '为模块分配较短且在多次编译间保持稳定的数字 id'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/configuration/optimization/#optimizationmoduleids" />
+import Attribution from '@components/Attribution';
 
 # DeterministicModuleIdsPlugin
 
 `DeterministicModuleIdsPlugin` 会基于模块标识符为模块分配较短的数字 id。生成的 id 在多次编译之间保持稳定，因此适合用于长期缓存。
 
 `optimization.moduleIds: 'deterministic'` 内部会使用该插件。只有在需要自定义 deterministic id 生成行为时，才需要直接使用该插件。
+
+## 示例
 
 ```js title="rspack.config.mjs"
 import rspack from '@rspack/core';
@@ -99,3 +99,5 @@ export default {
 ```
 
 只有在需要上述自定义选项时，才直接使用 `DeterministicModuleIdsPlugin`。
+
+<Attribution url="https://webpack.js.org/configuration/optimization/#optimizationmoduleids" />

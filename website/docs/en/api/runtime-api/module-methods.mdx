@@ -2,10 +2,8 @@
 description: 'This section covers all methods available in code compiled with Rspack'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import { ApiMeta } from '@components/ApiMeta';
-
-<WebpackLicense from="https://webpack.js.org/api/module-methods/" />
 
 # Module methods
 
@@ -258,8 +256,6 @@ The final filename is still determined by [`output.chunkFilename`](/config/outpu
 
 #### rspackFetchPriority \{#rspackfetchpriority}
 
-<ApiMeta addedVersion="1.0.0" />
-
 - **Type:** `"low" | "high" | "auto"`
 - **webpack equivalent:** `webpackFetchPriority`
 
@@ -276,8 +272,6 @@ const hero = await import(
 
 #### rspackInclude \{#rspackinclude}
 
-<ApiMeta addedVersion="1.0.0" />
-
 - **Type:** `RegExp`
 - **webpack equivalent:** `webpackInclude`
 
@@ -293,8 +287,6 @@ const messages = await import(
 ```
 
 #### rspackExclude \{#rspackexclude}
-
-<ApiMeta addedVersion="1.0.0" />
 
 - **Type:** `RegExp`
 - **webpack equivalent:** `webpackExclude`
@@ -315,8 +307,6 @@ const messages = await import(
 :::
 
 #### rspackExports \{#rspackexports}
-
-<ApiMeta addedVersion="1.0.0" />
 
 - **Type:** `string | string[]`
 - **webpack equivalent:** `webpackExports`
@@ -595,3 +585,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.js.org/api/module-methods/" />

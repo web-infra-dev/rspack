@@ -2,17 +2,11 @@
 description: 'NormalModuleReplacementPlugin 可以帮你把 resourceRegExp 匹配的 import/require 等模块请求（后面简称 请求 或 request）替换为 newResource。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.docschina.org/plugins/normal-module-replacement-plugin/" />
+import Attribution from '@components/Attribution';
 
 # NormalModuleReplacementPlugin
 
 `NormalModuleReplacementPlugin` 可以帮你把 `resourceRegExp` 匹配的 `import`/`require` 等模块请求（后面简称 **请求** 或 **request**）替换为 `newResource`。
-
-```js
-new rspack.NormalModuleReplacementPlugin(resourceRegExp, newResource);
-```
 
 如果 `newResource` 是相对路径，则会相对于先前的资源进行解析。
 
@@ -27,7 +21,9 @@ new rspack.NormalModuleReplacementPlugin(resourceRegExp, newResource);
 此外，请注意，在使用 Windows 时，你必须适应不同的路径分隔符。例如，`/src\/environments\/environment\.ts/` 在 Windows 上无法工作，相应的，你应该使用 `/src[\\/]environments[\\/]environment\.ts/`。
 :::
 
-## 基本用法示例
+## 示例
+
+### 基本用法示例
 
 以“为生产构建使用特定的模块”这个目标为例。
 
@@ -42,7 +38,7 @@ new rspack.NormalModuleReplacementPlugin(
 );
 ```
 
-## 高级用法示例
+### 高级用法示例
 
 根据指定的环境条件构建。
 
@@ -97,3 +93,21 @@ rspack --env APP_TARGET=VERSION_A
 rspack --env APP_TARGET=VERSION_B
 => '版本 B'
 ```
+
+## 选项
+
+该插件接受两个位置参数。
+
+### resourceRegExp
+
+- **类型：** `RegExp`
+
+在 `beforeResolve` 阶段匹配模块请求，在 `afterResolve` 阶段匹配解析后的资源。
+
+### newResource
+
+- **类型：** `string | ((data: ResolveData) => void)`
+
+用于替换的请求，或用于修改解析数据的函数。相对路径形式的替换请求会相对于原资源进行解析。
+
+<Attribution url="https://webpack.docschina.org/plugins/normal-module-replacement-plugin/" />

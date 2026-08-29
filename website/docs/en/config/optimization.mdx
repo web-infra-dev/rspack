@@ -5,17 +5,13 @@ description: 'Use optimization config to custom optimization strategy'
 import { ApiMeta } from '@components/ApiMeta';
 import PropertyType from '../../../components/PropertyType.tsx';
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/configuration/optimization/" />
+import Attribution from '@components/Attribution';
 
 # Optimization
 
 Rspack will select appropriate optimization configuration based on the [`mode`](/config/mode). You can also customize the configuration via [`optimization`](/config/optimization).
 
 ## optimization.avoidEntryIife
-
-<ApiMeta addedVersion="1.2.0" />
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
@@ -623,3 +619,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.js.org/configuration/optimization/" />

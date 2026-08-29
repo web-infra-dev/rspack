@@ -6,9 +6,24 @@ description: "这意味着，在以 'moment' 结尾的目录下，如果导入�
 
 此插件将会忽略指定的导入文件，让这些 `import` 或 `require` 包含的文件不被打包。
 
-```js
-new rspack.IgnorePlugin(options);
+## 示例
+
+当使用以下配置时：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.IgnorePlugin({
+      resourceRegExp: /^\.\/locale$/,
+      contextRegExp: /moment$/,
+    }),
+  ],
+};
 ```
+
+这意味着，在以 'moment' 结尾的目录下，如果导入语句匹配 './locale' ，那么这个 './locale' 资源不会被打包。
 
 ## 选项
 
@@ -28,22 +43,3 @@ new rspack.IgnorePlugin(options);
 ```
 
 - **默认值：** `undefined`
-
-## 示例
-
-当使用以下配置时：
-
-```js title="rspack.config.mjs"
-import { rspack } from '@rspack/core';
-
-export default {
-  plugins: [
-    new rspack.IgnorePlugin({
-      resourceRegExp: /^\.\/locale$/,
-      contextRegExp: /moment$/,
-    }),
-  ],
-};
-```
-
-这意味着，在以 'moment' 结尾的目录下，如果导入语句匹配 './locale' ，那么这个 './locale' 资源不会被打包。

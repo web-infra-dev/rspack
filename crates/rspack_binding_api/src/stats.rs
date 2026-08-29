@@ -1,4 +1,4 @@
-use std::{borrow::Cow, cell::RefCell};
+use std::{borrow::Cow, cell::RefCell, sync::Arc};
 
 use napi::{
   Env,
@@ -16,7 +16,7 @@ use rspack_napi::napi::{
   Either,
   bindgen_prelude::{Buffer, Result, SharedReference, ToNapiValue},
 };
-use rspack_util::{atom::Atom, itoa, numeric_id_value, ryu_js};
+use rspack_util::{atom::Atom, numeric_id_value};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -24,6 +24,7 @@ use crate::{
   compilation::JsCompilation,
   error::{RspackError, RspackResultToNapiResultExt},
   identifier::JsIdentifier,
+  logging::JsLog,
 };
 
 // These handles are only used during the `to_json` call,
@@ -240,136 +241,6 @@ pub struct JsStatsModuleTraceDependency {
 impl From<rspack_core::StatsErrorModuleTraceDependency> for JsStatsModuleTraceDependency {
   fn from(stats: rspack_core::StatsErrorModuleTraceDependency) -> Self {
     Self { loc: stats.loc }
-  }
-}
-
-#[napi(object, object_from_js = false)]
-pub struct JsStatsLogging<'a> {
-  pub name: String,
-  pub r#type: &'a str,
-  pub args: Option<Vec<String>>,
-  pub trace: Option<Vec<String>>,
-}
-
-impl<'a> From<(String, rspack_core::LogType)> for JsStatsLogging<'a> {
-  fn from(value: (String, rspack_core::LogType)) -> Self {
-    match value.1 {
-      rspack_core::LogType::Error { message, trace } => Self {
-        name: value.0,
-        r#type: "error",
-        args: Some(vec![message]),
-        trace: Some(trace),
-      },
-      rspack_core::LogType::Warn { message, trace } => Self {
-        name: value.0,
-        r#type: "warn",
-        args: Some(vec![message]),
-        trace: Some(trace),
-      },
-      rspack_core::LogType::Info { message } => Self {
-        name: value.0,
-        r#type: "info",
-        args: Some(vec![message]),
-        trace: None,
-      },
-      rspack_core::LogType::Log { message } => Self {
-        name: value.0,
-        r#type: "log",
-        args: Some(vec![message]),
-        trace: None,
-      },
-      rspack_core::LogType::Debug { message } => Self {
-        name: value.0,
-        r#type: "debug",
-        args: Some(vec![message]),
-        trace: None,
-      },
-      rspack_core::LogType::Trace { message, trace } => Self {
-        name: value.0,
-        r#type: "trace",
-        args: Some(vec![message]),
-        trace: Some(trace),
-      },
-      rspack_core::LogType::Group { message } => Self {
-        name: value.0,
-        r#type: "group",
-        args: Some(vec![message]),
-        trace: None,
-      },
-      rspack_core::LogType::GroupCollapsed { message } => Self {
-        name: value.0,
-        r#type: "groupCollapsed",
-        args: Some(vec![message]),
-        trace: None,
-      },
-      rspack_core::LogType::GroupEnd => Self {
-        name: value.0,
-        r#type: "groupEnd",
-        args: None,
-        trace: None,
-      },
-      rspack_core::LogType::Profile { label } => Self {
-        name: value.0,
-        r#type: "profile",
-        args: Some(vec![label.to_string()]),
-        trace: None,
-      },
-      rspack_core::LogType::ProfileEnd { label } => Self {
-        name: value.0,
-        r#type: "profileEnd",
-        args: Some(vec![label.to_string()]),
-        trace: None,
-      },
-      rspack_core::LogType::Time {
-        label,
-        secs,
-        subsec_nanos,
-      } => {
-        let ms = secs as f64 * 1000.0 + subsec_nanos as f64 / 1_000_000.0;
-        let mut time_buffer = ryu_js::Buffer::new();
-        let time_str = time_buffer.format(ms);
-        Self {
-          name: value.0,
-          r#type: "time",
-          args: Some(vec![format!("{}: {} ms", label, time_str)]),
-          trace: None,
-        }
-      }
-      rspack_core::LogType::Clear => Self {
-        name: value.0,
-        r#type: "clear",
-        args: None,
-        trace: None,
-      },
-      rspack_core::LogType::Status { message } => Self {
-        name: value.0,
-        r#type: "status",
-        args: Some(vec![message]),
-        trace: None,
-      },
-      rspack_core::LogType::Cache { label, hit, total } => {
-        let mut hit_buffer = itoa::Buffer::new();
-        let hit_str = hit_buffer.format(hit);
-        let mut total_buffer = itoa::Buffer::new();
-        let total_str = total_buffer.format(total);
-        Self {
-          name: value.0,
-          r#type: "cache",
-          args: Some(vec![format!(
-            "{}: {:.1}% ({}/{})",
-            label,
-            if total == 0 {
-              0 as f32
-            } else {
-              hit as f32 / total as f32 * 100_f32
-            },
-            hit_str,
-            total_str,
-          )]),
-          trace: None,
-        }
-      }
-    }
   }
 }
 
@@ -1272,11 +1143,10 @@ impl JsStats {
   }
 
   #[napi]
-  pub fn get_logging(&self, accepted_types: u32) -> Vec<JsStatsLogging<'_>> {
+  pub fn get_logging(&self, accepted_types: u32) -> Vec<JsLog> {
     self
       .inner
       .get_logging()
-      .into_iter()
       .filter(|log| {
         let bit = log.1.to_bit_flag();
         accepted_types & bit == bit

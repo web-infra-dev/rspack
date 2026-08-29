@@ -10,12 +10,14 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 This plugin uses [lightningcss](https://lightningcss.dev/) to minify CSS assets. See [optimization.minimizer](/config/optimization#optimizationminimizer).
 
+## Examples
+
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
 
 export default {
   optimization: {
-    minimizer: [new rspack.LightningCssMinimizerRspackPlugin(options)],
+    minimizer: [new rspack.LightningCssMinimizerRspackPlugin()],
   },
 };
 ```

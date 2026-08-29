@@ -6,8 +6,18 @@ description: 'Adds an entry chunk on compilation. The chunk is named options.nam
 
 Adds an entry chunk on compilation. The chunk is named `options.name` and contains only one module (plus dependencies). The module is resolved from `entry` in `context` (absolute path).
 
-```js
-new rspack.EntryPlugin(context, entry, options);
+## Examples
+
+Register an entry from a plugin:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.EntryPlugin(process.cwd(), './src/index.js', { name: 'main' }),
+  ],
+};
 ```
 
 ## Options

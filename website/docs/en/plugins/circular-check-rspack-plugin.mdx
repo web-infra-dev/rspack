@@ -10,11 +10,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 Reports circular import dependencies as compilation warnings by default. This is the recommended replacement for the deprecated [`CircularDependencyRspackPlugin`](/plugins/circular-dependency-rspack-plugin).
 
-```js
-new rspack.CircularCheckRspackPlugin(options);
-```
-
-## Example
+## Examples
 
 Ignore specific warnings: when `CircularCheckRspackPlugin` reports warnings, you can use [`ignoreWarnings`](/config/other-options#ignorewarnings) to suppress specific circular dependency diagnostics.
 

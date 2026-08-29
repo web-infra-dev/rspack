@@ -2,18 +2,26 @@
 description: 'While writing your code, you may have already added many code split points to load stuff on demand'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/plugins/limit-chunk-count-plugin/" />
+import Attribution from '@components/Attribution';
 
 # LimitChunkCountPlugin
 
 While writing your code, you may have already added many code split points to load stuff on demand. After compiling you might notice that some chunks are too small - creating larger HTTP overhead. `LimitChunkCountPlugin` can post-process your chunks by merging them.
 
-```js
-new rspack.optimize.LimitChunkCountPlugin({
-  // Options...
-});
+## Examples
+
+Limit the compilation to five chunks:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.optimize.LimitChunkCountPlugin({
+      maxChunks: 5,
+    }),
+  ],
+};
 ```
 
 ## Options
@@ -29,3 +37,5 @@ new rspack.optimize.LimitChunkCountPlugin({
   maxChunks: 5,
 });
 ```
+
+<Attribution url="https://webpack.js.org/plugins/limit-chunk-count-plugin/" />

@@ -20,8 +20,8 @@ type LoaderCacheApi = {
     loaderIndex: number,
     content: LoaderCacheContent,
     existing: LoaderDependencies,
-  ): LoaderCacheEntry | null;
-  store(loaderIndex: number, output: LoaderCacheEntry): void;
+  ): Promise<LoaderCacheEntry | null>;
+  store(loaderIndex: number, output: LoaderCacheEntry): Promise<void>;
 };
 
 export class LoaderCache {
@@ -35,11 +35,11 @@ export class LoaderCache {
     this.#dependencies = dependencies;
   }
 
-  get(
+  async get(
     loaderIndex: number,
     content: LoaderCacheContent | null | undefined,
     additionalData: unknown,
-  ): LoaderCacheEntry | null | undefined {
+  ): Promise<LoaderCacheEntry | null | undefined> {
     const context = this.#context;
     const loader = context.loaderItems[loaderIndex];
     if (
@@ -54,7 +54,7 @@ export class LoaderCache {
       return undefined;
     }
 
-    const hit = this.#api.get(
+    const hit = await this.#api.get(
       loaderIndex,
       content,
       this.#dependencies.existing,
@@ -65,7 +65,7 @@ export class LoaderCache {
     return hit;
   }
 
-  store(
+  async store(
     loaderIndex: number,
     content: LoaderCacheContent | null | undefined,
     sourceMap: Uint8Array | undefined,
@@ -80,7 +80,7 @@ export class LoaderCache {
       return;
     }
 
-    this.#api.store(loaderIndex, {
+    await this.#api.store(loaderIndex, {
       content: isNil(content) ? null : content,
       sourceMap,
       addedDependencies: this.#dependencies.added,
@@ -88,22 +88,22 @@ export class LoaderCache {
     });
   }
 
-  workerGet(
+  async workerGet(
     loaderIndex: number,
     content: LoaderCacheContent | null | undefined,
     additionalData: unknown,
   ) {
-    const hit = this.get(loaderIndex, content, additionalData);
+    const hit = await this.get(loaderIndex, content, additionalData);
     if (!hit) return undefined;
     return hit;
   }
 
-  workerStore(
+  async workerStore(
     loaderIndex: number,
     content: LoaderCacheContent | null | undefined,
     sourceMap: Uint8Array | undefined,
     additionalData: unknown,
   ) {
-    this.store(loaderIndex, content, sourceMap, additionalData);
+    await this.store(loaderIndex, content, sourceMap, additionalData);
   }
 }

@@ -11,10 +11,6 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 `rspack.HtmlRspackPlugin` is a high-performance HTML plugin implemented in Rust. You can use it to generate HTML files for Rspack projects.
 
-```js
-new rspack.HtmlRspackPlugin(options);
-```
-
 ## Comparison
 
 Before using `rspack.HtmlRspackPlugin`, please note that there are some differences between `rspack.HtmlRspackPlugin` and the community [`html-webpack-plugin`](https://www.npmjs.com/package/html-webpack-plugin).
@@ -101,7 +97,7 @@ Use the `for in` statement to implement list traversal and the `if` statement to
 <% } %>
 ```
 
-## Usage
+## Examples
 
 The plugin will generate an HTML file for you that includes all your JS outputs in the head using `<script>` tags.
 
@@ -132,177 +128,6 @@ This will generate a file "_dist/index.html_" containing the following:
 If you have multiple entry points in your Rspack config, they will all be included with `<script>` tags in the generated HTML.
 
 If you have some CSS assets in the build outputs, they will be included with `<link>` tags in the HTML head.
-
-## Options
-
-You can pass some configuration options to `rspack.HtmlRspackPlugin`. Allowed options are as follows:
-
-- **Type:**
-
-```ts
-type HtmlRspackPluginOptions = {
-  title?: string;
-  filename?: string | ((entry: string) => string);
-  template?: string;
-  templateContent?:
-    string | ((params: Record<string, any>) => string | Promise<string>);
-  templateParameters?:
-    | Record<string, string>
-    | boolean
-    | ((
-        params: Record<string, any>,
-      ) => Record<string, any> | Promise<Record<string, any>>);
-  inject?: boolean | 'head' | 'body';
-  publicPath?: string;
-  base?:
-    | string
-    | {
-        href?: string;
-        target?: '_self' | '_blank' | '_parent' | '_top';
-      };
-  scriptLoading?: 'blocking' | 'defer' | 'module' | 'systemjs-module';
-  chunks?: string[];
-  excludeChunks?: string[];
-  chunksSortMode?: 'auto' | 'manual';
-  minify?: boolean;
-  favicon?: string;
-  meta?: Record<string, string | Record<string, string>>;
-  hash?: boolean;
-};
-```
-
-- **Default:** `{}`
-
-<Table
-  header={[
-    {
-      name: 'Name',
-      key: 'name',
-    },
-    {
-      name: 'Type',
-      key: 'type',
-    },
-    {
-      name: 'Default',
-      key: 'default',
-    },
-    {
-      name: 'Description',
-      key: 'description',
-    },
-  ]}
-  body={[
-    {
-      name: '`title`',
-      type: '`string | undefined`',
-      default: '`undefined`',
-      description: 'The title to use for the generated HTML document.',
-    },
-    {
-      name: '`filename`',
-      type: '`string | undefined | ((entry: string) => string)`',
-      default: '`"index.html"`',
-      description:
-        'The file to write the HTML to. You can specify a subdirectory here too (e.g.: `"pages/index.html"`).',
-    },
-    {
-      name: '`template`',
-      type: '`string | undefined`',
-      default: '`undefined`',
-      description: 'The template file path.',
-    },
-    {
-      name: '`templateContent`',
-      type: '`string | undefined | ((params: Record<string, any>) => string | Promise<string>)`',
-      default: '`undefined`',
-      description:
-        'The template file content, priority is greater than `template` option. When using a function, pass in the template parameters and use the returned string as the template content.',
-    },
-    {
-      name: '`templateParameters`',
-      type: '`Record<string, string> | undefined | boolean | ((params: Record<string, any>) => Record<string, any> | Promise<Record<string, any>>)`',
-      default: '`undefined`',
-      description:
-        'Allows to overwrite the parameters used in the template. When using a function, pass in the original template parameters and use the returned object as the final template parameters.',
-    },
-    {
-      name: '`inject`',
-      type: '`boolean | undefined | "head" | "body"`',
-      default: '`true`',
-      description:
-        'The script and link tag inject position in template. Use `false` to not inject. If not specified, it will be automatically determined based on `scriptLoading` value.',
-    },
-    {
-      name: '`publicPath`',
-      type: '`string | undefined`',
-      default: '`undefined`',
-      description: 'The public path used for script and link tags.',
-    },
-    {
-      name: '`base`',
-      type: '`string | undefined | { href?: string; target?: "_self" | "_blank" | "_parent" | "_top" }`',
-      default: '`undefined`',
-      description:
-        'Inject a [`base`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base) tag.',
-    },
-    {
-      name: '`scriptLoading`',
-      type: '`"blocking" | "defer" | "module" | "systemjs-module" | undefined`',
-      default:
-        '`"module"` when `output.module` is enabled, otherwise `"defer"`',
-      description:
-        'Modern browsers support non-blocking JavaScript loading ([`defer` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script#defer)) to improve the page startup performance. Setting this option to `"module"` adds attribute `type="module"` to the `script`. This also implies `defer` attribute on the `script`, since modules are automatically deferred.',
-    },
-    {
-      name: '`chunks`',
-      type: '`string[] | undefined`',
-      default: '`undefined`',
-      description: 'Allows you to add only some chunks.',
-    },
-    {
-      name: '`excludeChunks`',
-      type: '`string[] | undefined`',
-      default: '`undefined`',
-      description: 'Allows you to skip some chunks.',
-    },
-    {
-      name: '`chunksSortMode`',
-      type: '`"auto" | "manual"`',
-      default: '`"auto"`',
-      description:
-        'Allows to control how chunks should be sorted before they are included to the HTML.',
-    },
-    {
-      name: '`minify`',
-      type: '`boolean`',
-      default: '`undefined`',
-      description:
-        'Controls whether to minify the output, disabled by default.',
-    },
-    {
-      name: '`favicon`',
-      type: '`string | undefined`',
-      default: '`undefined`',
-      description: 'Adds the given favicon path to the output HTML.',
-    },
-    {
-      name: '`meta`',
-      type: '`Record<string, string | Record<string, string>>`',
-      default: '`{}`',
-      description: 'Allows to inject meta-tags.',
-    },
-    {
-      name: '`hash`',
-      type: '`boolean`',
-      default: '`undefined`',
-      description:
-        'If `true` then append a unique Rspack compilation hash to all included scripts and CSS files. This is useful for cache busting.',
-    },
-  ]}
-/>
-
-## Example
 
 ### Custom HTML template
 
@@ -559,6 +384,175 @@ export default {
   ],
 };
 ```
+
+## Options
+
+You can pass some configuration options to `rspack.HtmlRspackPlugin`. Allowed options are as follows:
+
+- **Type:**
+
+```ts
+type HtmlRspackPluginOptions = {
+  title?: string;
+  filename?: string | ((entry: string) => string);
+  template?: string;
+  templateContent?:
+    string | ((params: Record<string, any>) => string | Promise<string>);
+  templateParameters?:
+    | Record<string, string>
+    | boolean
+    | ((
+        params: Record<string, any>,
+      ) => Record<string, any> | Promise<Record<string, any>>);
+  inject?: boolean | 'head' | 'body';
+  publicPath?: string;
+  base?:
+    | string
+    | {
+        href?: string;
+        target?: '_self' | '_blank' | '_parent' | '_top';
+      };
+  scriptLoading?: 'blocking' | 'defer' | 'module' | 'systemjs-module';
+  chunks?: string[];
+  excludeChunks?: string[];
+  chunksSortMode?: 'auto' | 'manual';
+  minify?: boolean;
+  favicon?: string;
+  meta?: Record<string, string | Record<string, string>>;
+  hash?: boolean;
+};
+```
+
+- **Default:** `{}`
+
+<Table
+  header={[
+    {
+      name: 'Name',
+      key: 'name',
+    },
+    {
+      name: 'Type',
+      key: 'type',
+    },
+    {
+      name: 'Default',
+      key: 'default',
+    },
+    {
+      name: 'Description',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`title`',
+      type: '`string | undefined`',
+      default: '`undefined`',
+      description: 'The title to use for the generated HTML document.',
+    },
+    {
+      name: '`filename`',
+      type: '`string | undefined | ((entry: string) => string)`',
+      default: '`"index.html"`',
+      description:
+        'The file to write the HTML to. You can specify a subdirectory here too (e.g.: `"pages/index.html"`).',
+    },
+    {
+      name: '`template`',
+      type: '`string | undefined`',
+      default: '`undefined`',
+      description: 'The template file path.',
+    },
+    {
+      name: '`templateContent`',
+      type: '`string | undefined | ((params: Record<string, any>) => string | Promise<string>)`',
+      default: '`undefined`',
+      description:
+        'The template file content, priority is greater than `template` option. When using a function, pass in the template parameters and use the returned string as the template content.',
+    },
+    {
+      name: '`templateParameters`',
+      type: '`Record<string, string> | undefined | boolean | ((params: Record<string, any>) => Record<string, any> | Promise<Record<string, any>>)`',
+      default: '`undefined`',
+      description:
+        'Allows to overwrite the parameters used in the template. When using a function, pass in the original template parameters and use the returned object as the final template parameters.',
+    },
+    {
+      name: '`inject`',
+      type: '`boolean | undefined | "head" | "body"`',
+      default: '`true`',
+      description:
+        'The script and link tag inject position in template. Use `false` to not inject. If not specified, it will be automatically determined based on `scriptLoading` value.',
+    },
+    {
+      name: '`publicPath`',
+      type: '`string | undefined`',
+      default: '`undefined`',
+      description: 'The public path used for script and link tags.',
+    },
+    {
+      name: '`base`',
+      type: '`string | undefined | { href?: string; target?: "_self" | "_blank" | "_parent" | "_top" }`',
+      default: '`undefined`',
+      description:
+        'Inject a [`base`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base) tag.',
+    },
+    {
+      name: '`scriptLoading`',
+      type: '`"blocking" | "defer" | "module" | "systemjs-module" | undefined`',
+      default:
+        '`"module"` when `output.module` is enabled, otherwise `"defer"`',
+      description:
+        'Modern browsers support non-blocking JavaScript loading ([`defer` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script#defer)) to improve the page startup performance. Setting this option to `"module"` adds attribute `type="module"` to the `script`. This also implies `defer` attribute on the `script`, since modules are automatically deferred.',
+    },
+    {
+      name: '`chunks`',
+      type: '`string[] | undefined`',
+      default: '`undefined`',
+      description: 'Allows you to add only some chunks.',
+    },
+    {
+      name: '`excludeChunks`',
+      type: '`string[] | undefined`',
+      default: '`undefined`',
+      description: 'Allows you to skip some chunks.',
+    },
+    {
+      name: '`chunksSortMode`',
+      type: '`"auto" | "manual"`',
+      default: '`"auto"`',
+      description:
+        'Allows to control how chunks should be sorted before they are included to the HTML.',
+    },
+    {
+      name: '`minify`',
+      type: '`boolean`',
+      default: '`undefined`',
+      description:
+        'Controls whether to minify the output, disabled by default.',
+    },
+    {
+      name: '`favicon`',
+      type: '`string | undefined`',
+      default: '`undefined`',
+      description: 'Adds the given favicon path to the output HTML.',
+    },
+    {
+      name: '`meta`',
+      type: '`Record<string, string | Record<string, string>>`',
+      default: '`{}`',
+      description: 'Allows to inject meta-tags.',
+    },
+    {
+      name: '`hash`',
+      type: '`boolean`',
+      default: '`undefined`',
+      description:
+        'If `true` then append a unique Rspack compilation hash to all included scripts and CSS files. This is useful for cache busting.',
+    },
+  ]}
+/>
 
 ## Hooks
 

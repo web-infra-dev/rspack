@@ -334,7 +334,7 @@ export declare class JsCompilation {
 }
 
 export declare class JsCompiler {
-  constructor(compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform)
+  constructor(compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -408,8 +408,8 @@ export declare class JsExportsInfo {
 }
 
 export declare class JsLoaderCache {
-  get(loaderIndex: number, content: string | Uint8Array, existing: JsLoaderDependencies): JsLoaderCacheEntry | null
-  store(loaderIndex: number, output: JsLoaderCacheEntry): void
+  get(loaderIndex: number, content: string | Uint8Array, existing: JsLoaderDependencies): Promise<JsLoaderCacheEntry | null>
+  store(loaderIndex: number, output: JsLoaderCacheEntry): Promise<void>
 }
 
 export declare class JsModuleGraph {
@@ -440,7 +440,7 @@ export declare class JsResolverFactory {
 
 export declare class JsStats {
   toJson(jsOptions: JsStatsOptions): JsStatsCompilation
-  getLogging(acceptedTypes: number): Array<JsStatsLogging>
+  getLogging(acceptedTypes: number): Array<JsLog>
 }
 
 export declare class KnownBuildInfo {
@@ -1008,6 +1008,13 @@ export declare enum JsLoaderState {
   Normal = 'Normal'
 }
 
+export interface JsLog {
+  name: string
+  type: string
+  args: Array<string | number>
+  trace?: Array<string>
+}
+
 export interface JsModuleDescriptor {
   identifier: string
   name: string
@@ -1470,13 +1477,6 @@ export interface JsStatsError {
 export interface JsStatsGetAssets {
   assets: Array<JsStatsAsset>
   assetsByChunkName: Array<JsStatsAssetsByChunkName>
-}
-
-export interface JsStatsLogging {
-  name: string
-  type: string
-  args?: Array<string>
-  trace?: Array<string>
 }
 
 export interface JsStatsModule {
@@ -1946,6 +1946,7 @@ export interface RawCacheGroupOptions {
 
 export interface RawCacheOptionsMemory {
   maxGenerations?: number
+  snapshot?: RawSnapshotOptions
 }
 
 export interface RawCacheOptionsPersistent {
@@ -2830,7 +2831,7 @@ export interface RawOptions {
   module: RawModuleOptions
   optimization: RawOptimizationOptions
   stats: RawStatsOptions
-  cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent)
+  cache: boolean | { type: "memory", snapshot: RawSnapshotOptions } | ({ type: "persistent" } & RawCacheOptionsPersistent)
   experiments: RawExperiments
 incremental?: false | { [key: string]: boolean }
 node?: RawNodeOption

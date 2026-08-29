@@ -4,12 +4,12 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  CacheFacade, CacheValue, Content, Etag, LoaderCacheDependencySnapshot, LoaderDependencies,
-  Resolver, loader_cache_dependency_snapshot, loader_cache_dependency_snapshot_is_valid,
-  loader_cache_etag, loader_cache_item, restore_loader_cache_dependencies,
+  CacheFacade, CacheValue, Content, Etag, FileSystemInfo, LoaderCacheDependencySnapshot,
+  LoaderDependencies, Resolver, loader_cache_dependency_snapshot,
+  loader_cache_dependency_snapshot_is_valid, loader_cache_etag, loader_cache_item,
+  restore_loader_cache_dependencies,
 };
 use rspack_error::Result;
-use rspack_fs::ReadableFileSystem;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_loader_runner::LoaderRunnerOptions;
 use rspack_paths::Utf8Path;
@@ -17,7 +17,6 @@ use rspack_paths::Utf8Path;
 use super::context::JsLoaderDependencies;
 
 #[cacheable]
-#[derive(Clone)]
 struct LoaderCacheEntry {
   content: Option<Vec<u8>>,
   content_is_string: bool,
@@ -33,10 +32,11 @@ pub struct JsLoaderCacheEntry {
   pub removed_dependencies: JsLoaderDependencies,
 }
 
+#[derive(Clone)]
 #[napi]
 pub struct JsLoaderCache {
   cache: CacheFacade,
-  fs: Arc<dyn ReadableFileSystem>,
+  file_system_info: FileSystemInfo,
   module_identifier: String,
   loaders: Vec<LoaderRunnerOptions>,
   pending_etags: Arc<Mutex<Vec<Option<Etag>>>>,
@@ -53,7 +53,7 @@ impl FromNapiValue for JsLoaderCacheObject {
       unsafe { <ClassInstance<JsLoaderCache> as FromNapiValue>::from_napi_value(env, napi_val)? };
     Ok(Self(JsLoaderCache {
       cache: instance.cache.clone(),
-      fs: instance.fs.clone(),
+      file_system_info: instance.file_system_info.clone(),
       module_identifier: instance.module_identifier.clone(),
       loaders: instance.loaders.clone(),
       pending_etags: instance.pending_etags.clone(),
@@ -85,14 +85,14 @@ impl ValidateNapiValue for JsLoaderCacheObject {}
 impl JsLoaderCache {
   fn new(
     cache: CacheFacade,
-    fs: Arc<dyn ReadableFileSystem>,
+    file_system_info: FileSystemInfo,
     module_identifier: String,
     loaders: Vec<LoaderRunnerOptions>,
   ) -> Self {
     let pending_etags = Arc::new(Mutex::new(vec![None; loaders.len()]));
     Self {
       cache,
-      fs,
+      file_system_info,
       module_identifier,
       loaders,
       pending_etags,
@@ -130,35 +130,8 @@ impl JsLoaderCache {
         .take(),
     )
   }
-}
 
-impl JsLoaderCacheObject {
-  pub(super) fn new(
-    cache: CacheFacade,
-    fs: Arc<dyn ReadableFileSystem>,
-    module_identifier: String,
-    loaders: Vec<LoaderRunnerOptions>,
-  ) -> Self {
-    Self(JsLoaderCache::new(cache, fs, module_identifier, loaders))
-  }
-}
-
-pub(crate) async fn loader_cache_version(
-  resolver: &Resolver,
-  path: &Utf8Path,
-) -> Result<Option<String>> {
-  // V1 fingerprints only the resolved loader entry file. Files that the
-  // loader imports or requires are intentionally not included yet.
-  let contents = resolver.inner_fs().read(path).await?;
-  let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
-  hasher.write(&contents);
-  Ok(Some(format!("file:{:016x}", hasher.finish())))
-}
-
-#[napi]
-impl JsLoaderCache {
-  #[napi]
-  pub fn get(
+  async fn get_async(
     &self,
     loader_index: u32,
     content: Either<String, Uint8Array>,
@@ -189,7 +162,12 @@ impl JsLoaderCache {
       self.set_pending_etag(loader_index, Some(etag))?;
       return Ok(None);
     };
-    if !loader_cache_dependency_snapshot_is_valid(self.fs.as_ref(), &entry.dependency_snapshot) {
+    if !loader_cache_dependency_snapshot_is_valid(
+      &self.file_system_info,
+      &entry.dependency_snapshot,
+    )
+    .await
+    {
       self.set_pending_etag(loader_index, Some(etag))?;
       return Ok(None);
     }
@@ -213,8 +191,7 @@ impl JsLoaderCache {
     }))
   }
 
-  #[napi]
-  pub fn store(&self, loader_index: u32, output: JsLoaderCacheEntry) -> napi::Result<()> {
+  async fn store_async(&self, loader_index: u32, output: JsLoaderCacheEntry) -> napi::Result<()> {
     let loader_name = &self.loader(loader_index)?.loader_name;
     let Some(etag) = self.take_pending_etag(loader_index)? else {
       return Ok(());
@@ -227,7 +204,7 @@ impl JsLoaderCache {
     }
     let dependencies: LoaderDependencies = output.added_dependencies.into();
     let Some(dependency_snapshot) =
-      loader_cache_dependency_snapshot(self.fs.as_ref(), &dependencies)
+      loader_cache_dependency_snapshot(&self.file_system_info, &dependencies).await
     else {
       return Ok(());
     };
@@ -246,5 +223,63 @@ impl JsLoaderCache {
     item_cache
       .store(CacheValue::new(entry))
       .map_err(|error| napi::Error::from_reason(error.to_string()))
+  }
+}
+
+impl JsLoaderCacheObject {
+  pub(super) fn new(
+    cache: CacheFacade,
+    file_system_info: FileSystemInfo,
+    module_identifier: String,
+    loaders: Vec<LoaderRunnerOptions>,
+  ) -> Self {
+    Self(JsLoaderCache::new(
+      cache,
+      file_system_info,
+      module_identifier,
+      loaders,
+    ))
+  }
+}
+
+pub(crate) async fn loader_cache_version(
+  resolver: &Resolver,
+  path: &Utf8Path,
+) -> Result<Option<String>> {
+  // V1 fingerprints only the resolved loader entry file. Files that the
+  // loader imports or requires are intentionally not included yet.
+  let contents = resolver.inner_fs().read(path).await?;
+  let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
+  hasher.write(&contents);
+  Ok(Some(format!("file:{:016x}", hasher.finish())))
+}
+
+#[napi]
+impl JsLoaderCache {
+  #[napi(ts_return_type = "Promise<JsLoaderCacheEntry | null>")]
+  pub fn get<'env>(
+    &self,
+    env: &'env Env,
+    loader_index: u32,
+    content: Either<String, Uint8Array>,
+    existing: JsLoaderDependencies,
+  ) -> napi::Result<PromiseRaw<'env, Option<JsLoaderCacheEntry>>> {
+    let this = self.clone();
+    rspack_napi::runtime::promise_from_future(env, async move {
+      this.get_async(loader_index, content, existing).await
+    })
+  }
+
+  #[napi(ts_return_type = "Promise<void>")]
+  pub fn store<'env>(
+    &self,
+    env: &'env Env,
+    loader_index: u32,
+    output: JsLoaderCacheEntry,
+  ) -> napi::Result<PromiseRaw<'env, ()>> {
+    let this = self.clone();
+    rspack_napi::runtime::promise_from_future(env, async move {
+      this.store_async(loader_index, output).await
+    })
   }
 }

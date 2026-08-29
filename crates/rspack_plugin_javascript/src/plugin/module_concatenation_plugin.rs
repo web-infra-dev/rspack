@@ -1788,6 +1788,7 @@ async fn create_concatenated_module(
         plugin_driver: compilation.plugin_driver.clone(),
         compiler_options: compilation.options.clone(),
         loader_cache: compilation.get_cache("loader"),
+        file_system_info: compilation.file_system_info.clone(),
         fs: compilation.input_filesystem.clone(),
         runtime_template: compilation.runtime_template.create_module_code_template(),
       },

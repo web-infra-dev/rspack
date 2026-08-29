@@ -32,10 +32,11 @@ use crate::{
   BuildResult, ChunkGraph, CodeGenerationResultBuilder, Compilation, ConnectionState, Context,
   DependenciesBlock, DependencyCodeGenerationRef, DependencyId, FactoryMeta, GenerateContext,
   GeneratorOptions, ImportPhase, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleType, OptimizationBailoutItem,
-  OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
-  ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec,
-  SideEffectsStateArtifact, SourceType, contextify,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleType, NeedBuildContext,
+  OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult, ParserAndGenerator,
+  ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SnapshotValidationResult, SourceType,
+  contextify,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -148,6 +149,9 @@ pub struct NormalModule {
   build_info: BuildInfo,
   build_meta: BuildMeta,
   parsed: bool,
+  /// Mirrors webpack's `_forceBuild`: a new module has no reusable build until
+  /// its first build starts.
+  force_build: bool,
 
   source_map_kind: SourceMapKind,
 }
@@ -230,6 +234,7 @@ impl NormalModule {
       build_info,
       build_meta: Default::default(),
       parsed: false,
+      force_build: true,
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -363,6 +368,43 @@ impl Module for NormalModule {
     }
   }
 
+  async fn need_build(&mut self, context: &NeedBuildContext<'_>) -> Result<bool> {
+    if self.force_build {
+      return Ok(true);
+    }
+
+    if self
+      .diagnostics
+      .iter()
+      .any(|diagnostic| diagnostic.is_error())
+    {
+      return Ok(true);
+    }
+
+    if !self.build_info.cacheable {
+      return Ok(true);
+    }
+
+    let Some(snapshot) = &self.build_info.snapshot else {
+      return Ok(true);
+    };
+
+    if context
+      .value_cache_versions
+      .has_diff(&self.build_info.value_dependencies)
+    {
+      return Ok(true);
+    }
+
+    Ok(matches!(
+      context
+        .file_system_info
+        .check_snapshot_valid(snapshot)
+        .await?,
+      SnapshotValidationResult::Invalid { .. }
+    ))
+  }
+
   #[tracing::instrument("NormalModule:build", skip_all, fields(
     perfetto.track_name = format!("Module Build"),
     perfetto.process_name = format!("Rspack Build Detail"),
@@ -375,6 +417,9 @@ impl Module for NormalModule {
     build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
+    self.force_build = false;
+    self.build_info.snapshot = None;
+
     // so does webpack
     self.parsed = true;
 
@@ -412,6 +457,7 @@ impl Module for NormalModule {
         options: compiler_options,
         fs: fs.clone(),
         loader_cache: build_context.loader_cache,
+        file_system_info: build_context.file_system_info,
         resolver_factory,
         source_map_kind: self.source_map_kind,
         module: self,

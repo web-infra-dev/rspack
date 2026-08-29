@@ -2,15 +2,15 @@
 description: 'Assign short numeric module ids that stay stable between compilations'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/configuration/optimization/#optimizationmoduleids" />
+import Attribution from '@components/Attribution';
 
 # DeterministicModuleIdsPlugin
 
 `DeterministicModuleIdsPlugin` assigns short numeric ids to modules based on their module identifiers. The ids are stable between compilations, which makes the plugin useful for long-term caching.
 
 `optimization.moduleIds: 'deterministic'` uses this plugin internally. Use the plugin directly when you need to customize the deterministic id generation behavior.
+
+## Examples
 
 ```js title="rspack.config.mjs"
 import rspack from '@rspack/core';
@@ -99,3 +99,5 @@ export default {
 ```
 
 Use `DeterministicModuleIdsPlugin` directly only when you need the options above.
+
+<Attribution url="https://webpack.js.org/configuration/optimization/#optimizationmoduleids" />

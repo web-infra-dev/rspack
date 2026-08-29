@@ -2,10 +2,8 @@
 description: 'Publicly exposed low-level Rspack plugins for target presets, runtime templates, child compilers, and higher-level plugins.'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import { ApiMeta, Stability } from '@components/ApiMeta';
-
-<WebpackLicense from="https://webpack.js.org/plugins/internal-plugins/" />
 
 # Low-level plugins
 
@@ -30,7 +28,9 @@ Plugins affecting the compiler environment and runtime target.
 
 ### ElectronTargetPlugin \{#electron-target-plugin}
 
-`electron.ElectronTargetPlugin(context)`
+```js
+new rspack.electron.ElectronTargetPlugin(context);
+```
 
 `ElectronTargetPlugin` keeps Electron built-in modules external so Electron can load them at runtime. Pass `'main'`, `'preload'`, or `'renderer'` to externalize the additional modules available in that process.
 
@@ -53,13 +53,27 @@ new compiler.rspack.electron.ElectronTargetPlugin('main').apply(childCompiler);
 
 ### NodeEnvironmentPlugin
 
-`node.NodeEnvironmentPlugin()`
+```js
+new rspack.node.NodeEnvironmentPlugin(options);
+```
 
-Applies a Node.js-style filesystem to the compiler.
+`NodeEnvironmentPlugin` installs infrastructure logging, a cached Node.js input file system, the Node.js `fs` module as the output file system, and a watch file system on a compiler. The `rspack()` API applies it automatically to the root compiler.
+
+When a custom compiler needs its own Node.js file-system environment, pass its normalized infrastructure logging options and apply the plugin directly:
+
+```js
+new compiler.rspack.node.NodeEnvironmentPlugin({
+  infrastructureLogging: childCompiler.options.infrastructureLogging,
+}).apply(childCompiler);
+```
+
+This plugin configures compiler I/O and logging; it does not set the JavaScript runtime target. Use `NodeTargetPlugin` when Node.js built-in modules should remain external.
 
 ### NodeTargetPlugin \{#node-target-plugin}
 
-`node.NodeTargetPlugin()`
+```js
+new rspack.node.NodeTargetPlugin();
+```
 
 `NodeTargetPlugin` keeps Node.js built-in modules and requests using the `node:` scheme external so the Node.js runtime loads them instead of Rspack bundling them. The [`externalsPresets.node`](/config/externals#externalspresetsnode) option applies this plugin internally.
 
@@ -84,13 +98,57 @@ Plugins that add entry chunks to the compilation.
 
 ### DynamicEntryPlugin
 
-`DynamicEntryPlugin(context, entry)`
+```js
+new rspack.DynamicEntryPlugin(context, entry);
+```
 
-Similar to `EntryPlugin` but accepts a function as the `entry` argument. This function is called during each `make` event to determine the entry points dynamically.
+`DynamicEntryPlugin` calls an entry function during every `make` event and adds the returned entries to the compilation. This allows the entry list to change between watch rebuilds.
+
+The direct API receives normalized entry descriptions, so each `import` value is an array:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+const context = process.cwd();
+
+export default {
+  context,
+  entry: {},
+  plugins: [
+    new rspack.DynamicEntryPlugin(context, async () => ({
+      main: {
+        import: ['./src/index.js'],
+      },
+    })),
+  ],
+};
+```
+
+For a regular build, prefer an [`entry` function](/config/entry#entry), which Rspack normalizes and passes to this plugin automatically.
 
 ### EntryOptionPlugin
 
-`EntryOptionPlugin()`
+```js
+new rspack.EntryOptionPlugin();
+```
+
+`EntryOptionPlugin` handles the `entryOption` compiler hook. It applies an `EntryPlugin` for each static entry request or a `DynamicEntryPlugin` for a function entry. Rspack applies it automatically to the root compiler.
+
+The static `applyEntryOption` helper is useful when adding normalized entries to a child compiler:
+
+```js
+const childOptions = compiler.rspack.config.getNormalizedRspackOptions({
+  entry: {
+    child: './src/child.js',
+  },
+});
+
+compiler.rspack.EntryOptionPlugin.applyEntryOption(
+  childCompiler,
+  compiler.context,
+  childOptions.entry,
+);
+```
 
 ## output
 
@@ -98,7 +156,9 @@ Plugins affecting generated modules, chunks, and runtime loading.
 
 ### EnableChunkLoadingPlugin \{#enable-chunk-loading-plugin}
 
-`javascript.EnableChunkLoadingPlugin(type)`
+```js
+new rspack.javascript.EnableChunkLoadingPlugin(type);
+```
 
 `EnableChunkLoadingPlugin` enables the runtime modules required by a chunk-loading type. Rspack normally applies it for the types collected in [`output.enabledChunkLoadingTypes`](/config/output#outputenabledchunkloadingtypes).
 
@@ -127,7 +187,9 @@ For a custom chunk-loading implementation, call `EnableChunkLoadingPlugin.setEna
 
 ### EnableLibraryPlugin \{#enable-library-plugin}
 
-`library.EnableLibraryPlugin(type)`
+```js
+new rspack.library.EnableLibraryPlugin(type);
+```
 
 `EnableLibraryPlugin` registers a library output type with the compiler. Rspack normally applies it for the types collected in [`output.enabledLibraryTypes`](/config/output#outputenabledlibrarytypes).
 
@@ -158,7 +220,9 @@ For a regular library build, prefer [`output.library`](/config/output#outputlibr
 
 ### EnableWasmLoadingPlugin \{#enable-wasm-loading-plugin}
 
-`wasm.EnableWasmLoadingPlugin(type)`
+```js
+new rspack.wasm.EnableWasmLoadingPlugin(type);
+```
 
 `EnableWasmLoadingPlugin` enables the runtime modules required by a WebAssembly loading type. Rspack normally applies it for the types collected in [`output.enabledWasmLoadingTypes`](/config/output#outputenabledwasmloadingtypes).
 
@@ -192,19 +256,69 @@ For a regular build, prefer [`output.wasmLoading`](/config/output#outputwasmload
 
 ### EvalDevToolModulePlugin
 
-`EvalDevToolModulePlugin(options)`
+```js
+new rspack.EvalDevToolModulePlugin(options);
+```
 
-Decorates the module template by wrapping each module in an `eval` annotated with `// @sourceURL`.
+`EvalDevToolModulePlugin` wraps each non-external JavaScript module in `eval` and appends a `sourceURL`, allowing browser developer tools to display the original module name. Setting `devtool: 'eval'` applies this plugin automatically.
+
+The following configuration applies it directly and uses `dashboard` as the source URL namespace:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  mode: 'development',
+  devtool: false,
+  plugins: [
+    new rspack.EvalDevToolModulePlugin({
+      namespace: 'dashboard',
+    }),
+  ],
+};
+```
+
+The `moduleFilenameTemplate` and `sourceUrlComment` options can customize the generated module URL and comment format.
 
 ### FetchCompileAsyncWasmPlugin
 
-`web.FetchCompileAsyncWasmPlugin()`
+```js
+new rspack.web.FetchCompileAsyncWasmPlugin();
+```
 
-Provides runtime code for fetching and compiling asynchronous WebAssembly modules, and is often used with a child compiler.
+`FetchCompileAsyncWasmPlugin` adds the browser runtime that fetches and compiles asynchronous WebAssembly modules. `EnableWasmLoadingPlugin('fetch')` applies this implementation internally.
+
+This example disables automatic WebAssembly loading setup and installs the fetch implementation directly:
+
+```js title="src/index.js"
+import { add } from './add.wasm';
+
+console.log(add(1, 2));
+```
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  target: 'web',
+  entry: './src/index.js',
+  experiments: {
+    asyncWebAssembly: true,
+  },
+  output: {
+    wasmLoading: false,
+  },
+  plugins: [new rspack.web.FetchCompileAsyncWasmPlugin()],
+};
+```
+
+For a regular web build, prefer `output.wasmLoading: 'fetch'`, which enables the same runtime automatically.
 
 ### JsonpTemplatePlugin \{#jsonp-template-plugin}
 
-`web.JsonpTemplatePlugin()`
+```js
+new rspack.web.JsonpTemplatePlugin();
+```
 
 `JsonpTemplatePlugin` configures browser output for child compilers. It sets [`output.chunkLoading`](/config/output#outputchunkloading) to `'jsonp'`, applies the [`'array-push'` chunk format](/config/output#outputchunkformat), and enables the required JSONP chunk-loading runtime.
 
@@ -262,7 +376,9 @@ For a regular web build, prefer `target: 'web'`. It selects the `'array-push'` c
 
 ### NodeTemplatePlugin \{#node-template-plugin}
 
-`node.NodeTemplatePlugin(options)`
+```js
+new rspack.node.NodeTemplatePlugin(options);
+```
 
 `NodeTemplatePlugin` configures Node.js output for child compilers. It applies the [`'commonjs'` chunk format](/config/output#outputchunkformat), sets [`output.chunkLoading`](/config/output#outputchunkloading) to `'require'` by default, and enables the required chunk-loading runtime.
 
@@ -331,7 +447,9 @@ For a regular Node.js build, prefer `target: 'node'`. It selects the `'commonjs'
 
 ### WebWorkerTemplatePlugin \{#web-worker-template-plugin}
 
-`webworker.WebWorkerTemplatePlugin()`
+```js
+new rspack.webworker.WebWorkerTemplatePlugin();
+```
 
 `WebWorkerTemplatePlugin` configures Web Worker output for child compilers. It sets [`output.chunkLoading`](/config/output#outputchunkloading) to `'import-scripts'`, applies the [`'array-push'` chunk format](/config/output#outputchunkformat), and enables the required `importScripts` chunk-loading runtime.
 
@@ -389,41 +507,229 @@ For a regular Web Worker build, prefer `target: 'webworker'`. It selects the `'a
 
 ## loader
 
+Plugins that customize the context in which loaders execute.
+
 ### LoaderOptionsPlugin
 
-`LoaderOptionsPlugin(options)`
+```js
+new rspack.LoaderOptionsPlugin(options);
+```
+
+`LoaderOptionsPlugin` copies custom option fields onto the loader context for resources matching `test`, `include`, and `exclude`. The matching fields themselves are used only as filters and are not copied.
+
+This loader reads a custom `message` property from its context:
+
+```js title="loaders/message-loader.cjs"
+module.exports = function () {
+  return `export default ${JSON.stringify(this.message)};`;
+};
+```
+
+The plugin provides that property only while processing `.message` files:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: './src/welcome.message',
+  module: {
+    rules: [
+      {
+        test: /\.message$/,
+        use: './loaders/message-loader.cjs',
+      },
+    ],
+  },
+  plugins: [
+    new rspack.LoaderOptionsPlugin({
+      test: /\.message$/,
+      message: 'Hello from the loader',
+    }),
+  ],
+};
+```
+
+This plugin mainly supports loaders that read custom properties from `this`. New loaders should usually receive values through their own loader options.
 
 ### LoaderTargetPlugin
 
-`LoaderTargetPlugin(target)`
+```js
+new rspack.LoaderTargetPlugin(target);
+```
+
+`LoaderTargetPlugin` assigns `target` to `this.target` in every loader context. It is useful when a custom compiler needs loaders to observe a target that differs from the compiler's configured target.
+
+The following loader replaces its input with the target it observes:
+
+```js title="loaders/target-loader.cjs"
+module.exports = function () {
+  return `console.log(${JSON.stringify(this.target)});`;
+};
+```
+
+Although the build target is `web`, this plugin makes the loader receive `'node'`:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  target: 'web',
+  entry: './src/index.js',
+  module: {
+    rules: [
+      {
+        test: /index\.js$/,
+        use: './loaders/target-loader.cjs',
+      },
+    ],
+  },
+  plugins: [new rspack.LoaderTargetPlugin('node')],
+};
+```
+
+For a regular build, prefer the top-level [`target`](/config/target) option.
 
 ## module federation
 
-Low-level plugins used by `ModuleFederationPlugin`.
+These plugins implement the `exposes`, `remotes`, and `shared` parts of Module Federation. For regular application builds, prefer [`ModuleFederationPlugin`](/plugins/module-federation-plugin), which configures these low-level plugins together.
 
 ### ContainerPlugin
 
-`container.ContainerPlugin(options)`
+```js
+new rspack.container.ContainerPlugin(options);
+```
+
+`ContainerPlugin` creates a container entry that exposes local modules through the Module Federation `get` and `init` interface. It is the low-level implementation of the `exposes` option.
+
+This configuration emits `remoteEntry.js` and exposes `src/Button.js` as `./Button`:
+
+```js title="rspack.config.mjs"
+import { container } from '@rspack/core';
+
+export default {
+  entry: {},
+  plugins: [
+    new container.ContainerPlugin({
+      name: 'catalog',
+      filename: 'remoteEntry.js',
+      exposes: {
+        './Button': './src/Button.js',
+      },
+    }),
+  ],
+};
+```
 
 ### ContainerReferencePlugin
 
-`container.ContainerReferencePlugin(options)`
+```js
+new rspack.container.ContainerReferencePlugin(options);
+```
+
+`ContainerReferencePlugin` registers remote containers as externals and adds the runtime needed to load modules from them. It is the low-level implementation of the `remotes` option.
+
+With the following configuration, an import such as `import('catalog/Button')` loads `./Button` from the remote container:
+
+```js title="rspack.config.mjs"
+import { container } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [
+    new container.ContainerReferencePlugin({
+      remoteType: 'script',
+      remotes: {
+        catalog: 'catalog@http://localhost:3001/remoteEntry.js',
+      },
+    }),
+  ],
+};
+```
 
 ### ConsumeSharedPlugin
 
-`sharing.ConsumeSharedPlugin(options)`
+```js
+new rspack.sharing.ConsumeSharedPlugin(options);
+```
+
+`ConsumeSharedPlugin` resolves configured module requests from a share scope. It can enforce version and singleton requirements and use a local module as a fallback when no suitable provider is available.
+
+This example consumes `react` as a singleton from the default share scope and falls back to the locally installed package without checking its version:
+
+```js title="rspack.config.mjs"
+import { sharing } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [
+    new sharing.ConsumeSharedPlugin({
+      consumes: {
+        react: {
+          import: 'react',
+          requiredVersion: false,
+          singleton: true,
+        },
+      },
+    }),
+  ],
+};
+```
 
 ### ProvideSharedPlugin
 
-`sharing.ProvideSharedPlugin(options)`
+```js
+new rspack.sharing.ProvideSharedPlugin(options);
+```
+
+`ProvideSharedPlugin` registers local modules and their versions in a share scope so other builds can consume them. It is the provider half of the `shared` option.
+
+The shorthand form below provides the locally installed `react` package under the `react` share key and infers its version from the package metadata:
+
+```js title="rspack.config.mjs"
+import { sharing } from '@rspack/core';
+
+export default {
+  plugins: [
+    new sharing.ProvideSharedPlugin({
+      provides: ['react'],
+    }),
+  ],
+};
+```
 
 ### SharePlugin
 
-`sharing.SharePlugin(options)`
+```js
+new rspack.sharing.SharePlugin(options);
+```
+
+`SharePlugin` applies both `ConsumeSharedPlugin` and `ProvideSharedPlugin` for the same `shared` configuration. It is the low-level equivalent of `ModuleFederationPlugin`'s `shared` option.
+
+This example provides the local `react` package as a fallback and consumes a singleton instance from the default share scope:
+
+```js title="rspack.config.mjs"
+import { sharing } from '@rspack/core';
+
+export default {
+  plugins: [
+    new sharing.SharePlugin({
+      enhanced: false,
+      shared: {
+        react: {
+          requiredVersion: false,
+          singleton: true,
+        },
+      },
+    }),
+  ],
+};
+```
 
 ### TreeShakingSharedPlugin \{#tree-shaking-shared-plugin}
 
-`sharing.TreeShakingSharedPlugin(options)`
+```js
+new rspack.sharing.TreeShakingSharedPlugin(options);
+```
 
 <ApiMeta stability={Stability.Experimental} />
 
@@ -435,32 +741,69 @@ Low-level plugins used by `ModuleFederationPlugin`.
 - `secondary`: Whether to perform a second tree-shaking pass during the independent build. The default is `false`.
 - `onBuildAssets`: A callback invoked with the generated shared fallback assets.
 
-Direct application is mainly intended for deployment integrations that perform a secondary build after collecting complete dependency information:
+Direct application is mainly intended for deployment integrations that perform a secondary build. It must be combined with a sharing plugin so `TreeShakingSharedPlugin` can collect the shared modules to build:
+
+```js title="src/index.js"
+import { add } from 'lodash-es';
+
+console.log(add(1, 2));
+```
 
 ```js title="rspack.config.mjs"
 import { sharing } from '@rspack/core';
 
+const shared = {
+  'lodash-es': { treeShaking: { mode: 'server-calc' } },
+};
+
 export default {
+  entry: './src/index.js',
   plugins: [
+    new sharing.SharePlugin({
+      enhanced: true,
+      shared,
+    }),
     new sharing.TreeShakingSharedPlugin({
       secondary: true,
       mfConfig: {
         name: 'app',
-        shared: {
-          'lodash-es': { treeShaking: { mode: 'server-calc' } },
-        },
+        shared,
         library: { type: 'var', name: 'App' },
-        manifest: true,
       },
     }),
   ],
 };
 ```
 
-The plugin creates an independent build only for shared dependencies that enable `treeShaking` and retain a local implementation. When `mfConfig.manifest` is enabled, it records the generated fallback assets in the stats and manifest.
+The plugin creates an independent build only for shared dependencies that enable `treeShaking` and retain a local implementation. Direct use does not generate Module Federation stats or manifest files. When `ModuleFederationPlugin` applies it internally with manifest generation enabled, the plugin writes the generated fallback asset information into those files.
 
 ## experiments
 
 ### RemoveDuplicateModulesPlugin
 
-`experiments.RemoveDuplicateModulesPlugin()`
+```js
+new rspack.experiments.RemoveDuplicateModulesPlugin();
+```
+
+<ApiMeta stability={Stability.Experimental} />
+
+`RemoveDuplicateModulesPlugin` finds modules that occur in the same set of multiple chunks and moves them into one reusable or newly created shared chunk. Rspack uses it internally for `modern-module` library output.
+
+In this example, both entries import the same `src/shared.js` module. Disabling `splitChunks` makes `RemoveDuplicateModulesPlugin` responsible for extracting that duplicated module:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: {
+    admin: './src/admin.js',
+    store: './src/store.js',
+  },
+  optimization: {
+    splitChunks: false,
+  },
+  plugins: [new rspack.experiments.RemoveDuplicateModulesPlugin()],
+};
+```
+
+<Attribution url="https://webpack.js.org/plugins/internal-plugins/" />

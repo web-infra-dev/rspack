@@ -3,7 +3,6 @@ description: 'CssChunkingPlugin is a plugin specifically designed for CSS code s
 ---
 
 import { Table } from '@builtIns';
-import WebpackLicense from '@components/WebpackLicense';
 import { ApiMeta } from '@components/ApiMeta.tsx';
 
 # CssChunkingPlugin
@@ -13,6 +12,8 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 `CssChunkingPlugin` is a plugin specifically designed for CSS code splitting. It ensures that the loading order of styles matches the import order in your source code, avoiding UI issues caused by incorrect CSS order.
 
 > This plugin is inspired by Next.js's [CSS Chunking](https://nextjs.org/docs/app/api-reference/config/next-config-js/cssChunking) feature, thanks to the Next.js team for their innovation.
+
+## Examples
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';

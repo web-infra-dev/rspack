@@ -3,20 +3,14 @@ description: 'Copies individual files or entire directories, which already exist
 ---
 
 import { Table } from '@builtIns';
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import { ApiMeta } from '@components/ApiMeta.tsx';
-
-<WebpackLicense from="https://webpack.js.org/plugins/copy-webpack-plugin/#root" />
 
 # CopyRspackPlugin
 
 <ApiMeta specific={['Rspack']} />
 
 Copies individual files or entire directories, which already exist, to the build directory.
-
-```js
-new rspack.CopyRspackPlugin(options);
-```
 
 ## Examples
 
@@ -513,3 +507,5 @@ export default {
   ],
 };
 ```
+
+<Attribution url="https://webpack.js.org/plugins/copy-webpack-plugin/#root" />

@@ -2170,6 +2170,10 @@ export type MemoryCacheOptions = {
    * Cache type.
    */
   type: 'memory';
+  /**
+   * Snapshot options for determining which files have been modified.
+   */
+  snapshot?: CacheSnapshotOptions;
 };
 
 /**

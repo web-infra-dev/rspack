@@ -1,30 +1,26 @@
 ---
-description: 'The EnvironmentPlugin is shorthand for using the DefinePlugin on process.env keys'
+description: 'Use EnvironmentPlugin to expose selected process.env values to bundled code with optional defaults'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/plugins/environment-plugin/" />
+import Attribution from '@components/Attribution';
 
 # EnvironmentPlugin
 
-The `EnvironmentPlugin` is shorthand for using the [`DefinePlugin`](/plugins/define-plugin) on [`process.env`](https://nodejs.org/api/process.html#process_process_env) keys.
-
-## Options
-
-- **Type:** `string[] | Record<string, string>`
+`EnvironmentPlugin` is shorthand for defining selected [`process.env`](https://nodejs.org/api/process.html#process_process_env) values with [`DefinePlugin`](/plugins/define-plugin). It reads environment variables when Rspack builds and replaces the corresponding `process.env.*` expressions in your bundled code.
 
 ## Examples
 
-### Basic use case
+### Basic usage
 
-The `EnvironmentPlugin` accepts either an array of keys or an object mapping its keys to their default values.
+Pass environment variable names as separate arguments or as an array. The following calls are equivalent:
 
 ```js
+new rspack.EnvironmentPlugin('NODE_ENV', 'DEBUG');
+
 new rspack.EnvironmentPlugin(['NODE_ENV', 'DEBUG']);
 ```
 
-This is equivalent to the following `DefinePlugin` application:
+Both configurations create definitions equivalent to:
 
 ```js
 new rspack.DefinePlugin({
@@ -33,38 +29,24 @@ new rspack.DefinePlugin({
 });
 ```
 
-:::tip
-Not specifying the environment variable raises an "`EnvironmentPlugin` - `${key}` environment variable is undefined" error.
-:::
+If a requested variable is missing and has no default value, compilation fails with an `EnvVariableNotDefinedError`.
 
-### Usage with default values
+### Using default values
 
-Alternatively, the `EnvironmentPlugin` supports an object, which maps keys to their default values. The default value for a key is taken if the key is undefined in `process.env`.
+Pass an object to provide a default value for each variable. A default is used only when the corresponding key is `undefined` in `process.env` when the build starts.
 
 ```js
 new rspack.EnvironmentPlugin({
-  NODE_ENV: 'development', // use 'development' unless process.env.NODE_ENV is defined
+  NODE_ENV: 'development',
   DEBUG: false,
 });
 ```
 
-:::warning
-Variables coming from `process.env` are always strings.
-:::
+`EnvironmentPlugin` serializes default values with `JSON.stringify` before passing them to `DefinePlugin`. As a result, JSON-compatible defaults preserve their types: the `false` default above is injected as a boolean rather than a string.
 
-:::tip
-Unlike [`DefinePlugin`](/plugins/define-plugin), default values are applied to `JSON.stringify` by the `EnvironmentPlugin`.
-:::
+Use `undefined` for a variable that must be provided during the build. If it is missing, compilation fails. Use `null` to provide an optional variable with a `null` fallback.
 
-:::tip
-Default values of `null` and `undefined` behave differently. Use `undefined` for variables that must be provided during bundling, or `null` if they are optional.
-:::
-
-:::warning
-If an environment variable is not found during bundling and no default value was provided, Rspack will throw an error instead of a warning.
-:::
-
-Let's investigate the result when running the previous `EnvironmentPlugin` configuration on a test file `entry.js`:
+For example, suppose `entry.js` contains:
 
 ```js
 if (process.env.NODE_ENV === 'production') {
@@ -75,63 +57,84 @@ if (process.env.DEBUG) {
 }
 ```
 
-When executing `NODE_ENV=production` Rspack in the terminal to build, `entry.js` becomes this:
+If `NODE_ENV=production` is set for the build and `DEBUG` is unset, the replacements are equivalent to:
 
 ```js
 if ('production' === 'production') {
-  // <-- 'production' from NODE_ENV is taken
+  // process.env.NODE_ENV comes from the environment
   console.log('Welcome to production');
 }
 if (false) {
-  // <-- default value is taken
+  // process.env.DEBUG uses the default value
   console.log('Debugging output');
 }
 ```
 
-Running `DEBUG=false` Rspack yields:
+If `DEBUG=false` is set and `NODE_ENV` is unset, the replacements are equivalent to:
 
 ```js
 if ('development' === 'production') {
-  // <-- default value is taken
+  // process.env.NODE_ENV uses the default value
   console.log('Welcome to production');
 }
 if ('false') {
-  // <-- 'false' from DEBUG is taken
+  // process.env.DEBUG comes from the environment
   console.log('Debugging output');
 }
 ```
 
-### Git version
+:::tip
+Environment variables read from `process.env` are always strings. Setting `DEBUG=false` injects the string `'false'`, not the boolean `false`.
+:::
 
-The following `EnvironmentPlugin` configuration provides `process.env.GIT_VERSION` (such as "v5.4.0-2-g25139f57f") and `process.env.GIT_AUTHOR_DATE` (such as "2020-11-04T12:25:16+01:00") corresponding to the last Git commit of the repository:
+### Using Git metadata
+
+Default values can also be computed while loading the Rspack configuration. This example exposes the version and author date of the current Git commit:
 
 ```js
-import child_process from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 
-function git(command) {
-  return child_process.execSync(`git ${command}`, { encoding: 'utf8' }).trim();
+function git(...args) {
+  return execFileSync('git', args, { encoding: 'utf8' }).trim();
 }
 
 new rspack.EnvironmentPlugin({
-  GIT_VERSION: git('describe --always'),
-  GIT_AUTHOR_DATE: git('log -1 --format=%aI'),
+  GIT_VERSION: git('describe', '--always'),
+  GIT_AUTHOR_DATE: git('log', '-1', '--format=%aI'),
 });
 ```
 
-### DotenvPlugin
+### Loading `.env` files
 
-The third-party [`DotenvPlugin`](https://github.com/mrsteele/dotenv-webpack) (`dotenv-webpack`) allows you to expose (a subset of) [dotenv variables](https://www.npmjs.com/package/dotenv):
+`EnvironmentPlugin` does not read `.env` files by itself. To load variables from a file, use a third-party plugin such as [`dotenv-webpack`](https://github.com/mrsteele/dotenv-webpack):
 
-```js
-// .env
-DB_HOST=127.0.0.1
-DB_PASS=foobar
-S3_API=mysecretkey
+```text title=".env"
+PUBLIC_API_ORIGIN=https://api.example.com
+FEATURE_ENABLED=true
 ```
 
 ```js
+import Dotenv from 'dotenv-webpack';
+
 new Dotenv({
-  path: './.env', // Path to .env file (this is the default)
-  safe: true, // load .env.example (defaults to "false" which does not use dotenv-safe)
+  path: './.env',
 });
 ```
+
+Only load values that are safe to embed in client-side code, because injected values can be read from the generated bundle.
+
+## Options
+
+- **Type:**
+
+```ts
+declare class EnvironmentPlugin {
+  constructor(...keys: string[]);
+  constructor(keys: string[]);
+  constructor(defaultValues: Record<string, any>);
+}
+```
+
+Use either string form when every selected variable is required. Use the object form to provide default values; assigning `undefined` still marks that variable as required.
+
+<Attribution url="https://webpack.js.org/plugins/environment-plugin/" />
