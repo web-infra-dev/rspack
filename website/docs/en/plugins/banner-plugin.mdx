@@ -45,7 +45,21 @@ The generated chunk begins with this comment:
 
 - **Required:** Yes, when using an options object
 
-Specifies the banner content. A function is called once for each selected chunk file and receives the compilation `hash`, current `chunk`, and emitted `filename`. By default, Rspack wraps the returned string in a comment. You can also pass the string or function directly to `BannerPlugin` instead of using an options object.
+#### String
+
+Pass a string to specify the banner content directly. By default, Rspack wraps the string in a comment. You can set it through the `banner` option or pass it directly to `BannerPlugin`.
+
+```js
+new rspack.BannerPlugin({
+  banner: 'Built with Rspack',
+});
+```
+
+#### Function
+
+Pass a function to generate banner content for each selected chunk file. Rspack calls it with the compilation `hash`, current `chunk`, and emitted `filename`.
+
+The returned string is wrapped in a comment by default. You can set the function through the `banner` option or pass it directly to `BannerPlugin`.
 
 ```js
 new rspack.BannerPlugin({
