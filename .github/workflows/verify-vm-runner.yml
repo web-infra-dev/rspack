@@ -1,0 +1,146 @@
+name: Verify VM Runner
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: VM runner validation scenario
+        required: true
+        default: availability
+        type: choice
+        options:
+          - availability
+          - failure
+          - cancel
+          - stress
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-vm-runner-${{ github.event.inputs.scenario }}
+  cancel-in-progress: false
+
+jobs:
+  availability:
+    if: inputs.scenario == 'availability'
+    runs-on: rspack-ubuntu-24.04-vm-medium-verify
+    timeout-minutes: 15
+    steps:
+      - name: Verify VM environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(systemd-detect-virt)" = kvm
+          test "$(id -un)" = runner
+          test "$(nproc)" -eq 4
+          grep -F 'VERSION_ID="24.04"' /etc/os-release
+          sudo -n true
+          test "$(df --output=avail -B1 / | tail -1)" -ge 21474836480
+
+      - name: Verify tools and Docker daemon
+        shell: bash
+        run: |
+          set -euo pipefail
+          git --version
+          node --version
+          npm --version
+          docker --version
+          systemctl is-active --quiet docker
+          docker info --format '{{json .ServerVersion}}'
+          network="arc-vm-verify-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          volume="arc-vm-verify-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          trap 'docker network rm "$network" >/dev/null 2>&1 || true; docker volume rm "$volume" >/dev/null 2>&1 || true' EXIT
+          docker network create "$network"
+          docker volume create "$volume"
+
+      - name: Verify local npm lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          workdir="${RUNNER_TEMP}/npm-smoke"
+          mkdir -p "${workdir}/dependency"
+          printf '%s\n' '{"name":"vm-local-dependency","version":"1.0.0","main":"index.js"}' > "${workdir}/dependency/package.json"
+          printf '%s\n' 'module.exports = 42;' > "${workdir}/dependency/index.js"
+          printf '%s\n' '{"name":"vm-npm-smoke","version":"1.0.0","private":true,"dependencies":{"vm-local-dependency":"file:./dependency"}}' > "${workdir}/package.json"
+          npm --prefix "$workdir" install --ignore-scripts --no-audit --no-fund
+          test "$(NODE_PATH="${workdir}/node_modules" node -e 'process.stdout.write(String(require("vm-local-dependency")))')" = 42
+
+      - name: Verify disk and network
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact="${RUNNER_TEMP}/disk-smoke.bin"
+          dd if=/dev/zero of="$artifact" bs=4M count=256 conv=fdatasync status=progress
+          test "$(stat -c %s "$artifact")" -eq 1073741824
+          rm -f "$artifact"
+          curl --fail --silent --show-error --location --retry 3 --connect-timeout 10 --max-time 60 \
+            https://actions.tos-ap-southeast-1.bytepluses.com/images/noble-server-cloudimg-amd64.img.sha256 \
+            | grep -E '^[0-9a-f]{64}([[:space:]]|$)'
+
+  expected-failure:
+    if: inputs.scenario == 'failure'
+    runs-on: rspack-ubuntu-24.04-vm-medium-verify
+    timeout-minutes: 10
+    steps:
+      - name: Fail after VM registration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(systemd-detect-virt)" = kvm
+          echo "intentional failure for ARC and KubeVirt cleanup validation"
+          exit 42
+
+  cancellation-target:
+    if: inputs.scenario == 'cancel'
+    runs-on: rspack-ubuntu-24.04-vm-medium-verify
+    timeout-minutes: 15
+    steps:
+      - name: Wait for external cancellation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(systemd-detect-virt)" = kvm
+          echo "VM_READY_FOR_CANCELLATION"
+          sleep 600
+
+  stress:
+    if: inputs.scenario == 'stress'
+    name: stress-${{ matrix.slot }}
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        slot: [1, 2, 3]
+    runs-on: rspack-ubuntu-24.04-vm-medium-verify
+    timeout-minutes: 15
+    steps:
+      - name: Verify stress target
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(systemd-detect-virt)" = kvm
+          test "$(nproc)" -eq 4
+          test "$(df --output=avail -B1 / | tail -1)" -ge 21474836480
+
+      - name: Run bounded CPU, memory, and disk pressure
+        shell: bash
+        env:
+          STRESS_SECONDS: "90"
+        run: |
+          set -euo pipefail
+          workdir="${RUNNER_TEMP}/stress-${{ matrix.slot }}"
+          mkdir -p "$workdir"
+          cleanup() {
+            jobs -pr | xargs -r kill 2>/dev/null || true
+            rm -rf "$workdir"
+          }
+          trap cleanup EXIT
+
+          for worker in 1 2 3 4; do
+            node -e 'const end=Date.now()+Number(process.env.STRESS_SECONDS)*1000; let n=0; while(Date.now()<end){n=Math.imul(n+1,2654435761)}; console.log(n)' &
+          done
+          node -e 'const b=Buffer.allocUnsafe(2*1024*1024*1024); for(let i=0;i<b.length;i+=4096)b[i]=i; setTimeout(()=>console.log(b.length),Number(process.env.STRESS_SECONDS)*1000)' &
+          dd if=/dev/zero of="$workdir/io.bin" bs=4M count=512 conv=fdatasync status=progress
+          wait
+          test "$(stat -c %s "$workdir/io.bin")" -eq 2147483648
