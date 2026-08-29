@@ -126,7 +126,7 @@ jobs:
       - name: Run bounded CPU, memory, and disk pressure
         shell: bash
         env:
-          STRESS_SECONDS: "90"
+          STRESS_SECONDS: '90'
         run: |
           set -euo pipefail
           workdir="${RUNNER_TEMP}/stress-${{ matrix.slot }}"
