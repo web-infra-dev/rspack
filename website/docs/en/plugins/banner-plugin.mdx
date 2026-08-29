@@ -31,7 +31,18 @@ The generated chunk begins with this comment:
 
 ### banner
 
-- **Type:** `string | ((args) => string)`
+- **Type:**
+
+  ```ts
+  type BannerFunction = (args: {
+    hash: string;
+    chunk: Chunk;
+    filename: string;
+  }) => string;
+
+  type BannerContent = string | BannerFunction;
+  ```
+
 - **Required:** Yes, when using an options object
 
 Specifies the banner content. A function is called once for each selected chunk file and receives the compilation `hash`, current `chunk`, and emitted `filename`. By default, Rspack wraps the returned string in a comment. You can also pass the string or function directly to `BannerPlugin` instead of using an options object.

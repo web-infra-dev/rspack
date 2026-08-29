@@ -31,7 +31,18 @@ export default {
 
 ### banner
 
-- **类型：** `string | ((args) => string)`
+- **类型：**
+
+  ```ts
+  type BannerFunction = (args: {
+    hash: string;
+    chunk: Chunk;
+    filename: string;
+  }) => string;
+
+  type BannerContent = string | BannerFunction;
+  ```
+
 - **是否必填：** 使用选项对象时必填
 
 指定 banner 内容。函数会针对每个选中的 chunk 文件调用一次，并接收本次编译的 `hash`、当前 `chunk` 和生成的 `filename`。默认情况下，Rspack 会将函数返回的字符串包裹成注释。也可以不使用选项对象，直接将字符串或函数传给 `BannerPlugin`。
