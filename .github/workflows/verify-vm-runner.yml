@@ -1,6 +1,11 @@
 name: Verify VM Runner
 
 on:
+  workflow_call:
+    inputs:
+      scenario:
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       scenario:
@@ -18,7 +23,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: verify-vm-runner-${{ github.event.inputs.scenario }}
+  group: verify-vm-runner-${{ inputs.scenario }}
   cancel-in-progress: false
 
 jobs:

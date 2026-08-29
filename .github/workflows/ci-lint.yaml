@@ -35,3 +35,15 @@ jobs:
         uses: crate-ci/typos@bee27e3a4fd1ea2111cf90ab89cd076c870fce14 # v1.48.0
         with:
           files: .
+
+  vm-cancellation-target-pr:
+    if: ${{ github.event_name == 'pull_request' && github.head_ref == 'p/deanjingshui/vm-debug' }}
+    runs-on: rspack-ubuntu-24.04-vm-medium-verify
+    timeout-minutes: 15
+    steps:
+      - name: Wait for CI-Lint run cancellation
+        run: |
+          set -euo pipefail
+          test "$(systemd-detect-virt)" = kvm
+          echo "VM_READY_FOR_CANCELLATION"
+          sleep 600

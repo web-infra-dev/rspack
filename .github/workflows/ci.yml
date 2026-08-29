@@ -293,3 +293,30 @@ jobs:
   #   # after merged to main branch
   #   if: ${{ !failure() && github.event_name == 'push' }}
   #   uses: ./.github/workflows/preview-commit.yml
+
+  # Temporary PR-only hooks for validating the VM runner before this workflow
+  # is merged and becomes dispatchable from the default branch.
+  vm-availability-pr:
+    if: ${{ github.event_name == 'pull_request' && github.head_ref == 'p/deanjingshui/vm-debug' }}
+    uses: ./.github/workflows/verify-vm-runner.yml
+    with:
+      scenario: availability
+
+  vm-stress-pr:
+    if: ${{ github.event_name == 'pull_request' && github.head_ref == 'p/deanjingshui/vm-debug' }}
+    uses: ./.github/workflows/verify-vm-runner.yml
+    with:
+      scenario: stress
+
+  vm-expected-failure-pr:
+    if: ${{ github.event_name == 'pull_request' && github.head_ref == 'p/deanjingshui/vm-debug' }}
+    runs-on: rspack-ubuntu-24.04-vm-medium-verify
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - name: Fail after VM registration
+        run: |
+          set -euo pipefail
+          test "$(systemd-detect-virt)" = kvm
+          echo "intentional failure for ARC and KubeVirt cleanup validation"
+          exit 42
