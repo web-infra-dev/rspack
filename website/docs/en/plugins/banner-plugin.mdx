@@ -45,27 +45,23 @@ The generated chunk begins with this comment:
 
 - **Required:** Yes, when using an options object
 
-#### String
+The `banner` option supports:
 
-Pass a string to specify the banner content directly. By default, Rspack wraps the string in a comment. You can set it through the `banner` option or pass it directly to `BannerPlugin`.
+- **String:** Pass a string to specify the banner content directly. By default, Rspack wraps the string in a comment. You can set it through the `banner` option or pass it directly to `BannerPlugin`.
 
-```js
-new rspack.BannerPlugin({
-  banner: 'Built with Rspack',
-});
-```
+  ```js
+  new rspack.BannerPlugin({
+    banner: 'Built with Rspack',
+  });
+  ```
 
-#### Function
+- **Function:** Pass a function to generate banner content for each selected chunk file. Rspack calls it with the compilation `hash`, current `chunk`, and emitted `filename`. The returned string is wrapped in a comment by default. You can set the function through the `banner` option or pass it directly to `BannerPlugin`.
 
-Pass a function to generate banner content for each selected chunk file. Rspack calls it with the compilation `hash`, current `chunk`, and emitted `filename`.
-
-The returned string is wrapped in a comment by default. You can set the function through the `banner` option or pass it directly to `BannerPlugin`.
-
-```js
-new rspack.BannerPlugin({
-  banner: ({ filename }) => `Built file: ${filename}`,
-});
-```
+  ```js
+  new rspack.BannerPlugin({
+    banner: ({ filename }) => `Built file: ${filename}`,
+  });
+  ```
 
 ### entryOnly
 

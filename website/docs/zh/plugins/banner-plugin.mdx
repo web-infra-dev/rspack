@@ -45,27 +45,23 @@ export default {
 
 - **是否必填：** 使用选项对象时必填
 
-#### 字符串
+`banner` 选项支持以下两种形式：
 
-传入字符串可直接指定 banner 内容。默认情况下，Rspack 会将字符串包裹成注释。可以通过 `banner` 选项设置，也可以直接将字符串传给 `BannerPlugin`。
+- **字符串：** 传入字符串可直接指定 banner 内容。默认情况下，Rspack 会将字符串包裹成注释。可以通过 `banner` 选项设置，也可以直接将字符串传给 `BannerPlugin`。
 
-```js
-new rspack.BannerPlugin({
-  banner: 'Built with Rspack',
-});
-```
+  ```js
+  new rspack.BannerPlugin({
+    banner: 'Built with Rspack',
+  });
+  ```
 
-#### 函数
+- **函数：** 需要为每个选中的 chunk 文件动态生成 banner 时，可以传入函数。Rspack 调用函数时会传入本次编译的 `hash`、当前 `chunk` 和产物文件名 `filename`。函数返回的字符串默认会被包裹成注释。可以通过 `banner` 选项设置，也可以直接将函数传给 `BannerPlugin`。
 
-需要为每个选中的 chunk 文件动态生成 banner 时，可以传入函数。Rspack 调用函数时会传入本次编译的 `hash`、当前 `chunk` 和产物文件名 `filename`。
-
-函数返回的字符串默认会被包裹成注释。可以通过 `banner` 选项设置，也可以直接将函数传给 `BannerPlugin`。
-
-```js
-new rspack.BannerPlugin({
-  banner: ({ filename }) => `Built file: ${filename}`,
-});
-```
+  ```js
+  new rspack.BannerPlugin({
+    banner: ({ filename }) => `Built file: ${filename}`,
+  });
+  ```
 
 ### entryOnly
 
