@@ -1,124 +1,134 @@
 ---
-description: 'Rspack BannerPlugin 插件参考，说明用途、可用选项、典型场景、使用方式与常见集成方式。'
+description: '使用 Rspack BannerPlugin 在生成的 chunk 文件开头或结尾添加注释或原始文本。'
 ---
-
-import { Table } from '@builtIns';
 
 # BannerPlugin
 
-在每个生成的 chunk 顶部或尾部添加一段指定的内容。
+`BannerPlugin` 用于在生成的 chunk 文件开头或结尾添加注释或原始文本。默认情况下，它会将配置的 banner 包裹成注释，并添加到每个 chunk 文件的开头。
 
 ## 示例
 
-在每个 chunk 文件底部添加 banner。
+在每个生成的 chunk 文件开头添加一段注释：
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
 
 export default {
-  plugins: [
-    new rspack.BannerPlugin({
-      banner: 'hello world',
-      footer: true,
-    }),
-  ],
+  plugins: [new rspack.BannerPlugin('Built with Rspack')],
 };
 ```
 
 ## 选项
 
-- **类型：**
+构造函数可以直接接收 banner 字符串或函数，也可以接收选项对象。下面的示例均假设已按上例导入 `rspack`。`test`、`include` 和 `exclude` 匹配的是生成的 chunk 文件名，而不是模块的源码路径。字符串条件匹配文件名的开头，正则表达式可以匹配文件名的任意部分；使用数组时，满足其中任一条件即可。
 
-```ts
-type BannerFunction = (args: {
-  hash: string;
-  chunk: Chunk;
-  filename: string;
-}) => string;
-type BannerContent = string | BannerFunction;
-type BannerRules = string | RegExp | Array<string | RegExp>;
-type BannerPluginOptions = {
-  banner: BannerContent;
-  entryOnly?: boolean;
-  footer?: boolean;
-  raw?: boolean;
-  stage?: number;
-  test?: BannerRules;
-  include?: BannerRules;
-  exclude?: BannerRules;
-};
-type BannerPluginArgument = BannerContent | BannerPluginOptions;
+### banner
+
+- **类型：** `string | ((args) => string)`
+- **是否必填：** 使用选项对象时必填
+
+指定 banner 内容。函数会针对每个选中的 chunk 文件调用一次，并接收本次编译的 `hash`、当前 `chunk` 和生成的 `filename`。默认情况下，Rspack 会将函数返回的字符串包裹成注释。也可以不使用选项对象，直接将字符串或函数传给 `BannerPlugin`。
+
+```js
+new rspack.BannerPlugin({
+  banner: ({ filename }) => `Built file: ${filename}`,
+});
 ```
 
+### entryOnly
+
+- **类型：** `boolean`
 - **默认值：** `undefined`
 
-<Table
-  header={[
-    {
-      name: '名称',
-      key: 'name',
-    },
-    {
-      name: '类型',
-      key: 'type',
-    },
-    {
-      name: '默认值',
-      key: 'default',
-    },
-    {
-      name: '描述',
-      key: 'description',
-    },
-  ]}
-  body={[
-    {
-      name: '`banner`',
-      type: '`BannerFunction|string`',
-      default: 'undefined',
-      description: '指定 banner 内容（会被包裹成注释）',
-    },
-    {
-      name: '`entryOnly`',
-      type: '`boolean|undefined`',
-      default: 'undefined',
-      description: '如果值为 true，将只在入口 chunks 文件中添加',
-    },
-    {
-      name: '`footer`',
-      type: '`boolean|undefined`',
-      default: 'undefined',
-      description: '如果值为 true，banner 将会位于编译结果的最下方',
-    },
-    {
-      name: '`raw`',
-      type: '`boolean|undefined`',
-      default: 'undefined',
-      description: '如果值为 true，将直接输出，不会被作为注释',
-    },
-    {
-      name: '`stage`',
-      type: '`number|undefined`',
-      default: '`PROCESS_ASSETS_STAGE_ADDITIONS`(-100)',
-      description: 'Banner 应在哪个编译阶段注入',
-    },
-    {
-      name: '`test`',
-      type: '`BannerRules|undefined`',
-      default: 'undefined',
-      description: '包含所有匹配的模块',
-    },
-    {
-      name: '`include`',
-      type: '`BannerRules|undefined`',
-      default: 'undefined',
-      description: '根据条件匹配指定的模块',
-    },
-    {
-      name: '`exclude`',
-      type: '`BannerRules|undefined`',
-      default: 'undefined',
-      description: '根据条件排除指定的模块',
-    },
-  ]}
-/>
+设置为 `true` 时，只在初始 chunk 的文件中添加 banner，并跳过异步加载的 chunk 文件。省略时，初始 chunk 和异步 chunk 的文件均可添加 banner。
+
+```js
+new rspack.BannerPlugin({
+  banner: 'Entry bundle',
+  entryOnly: true,
+});
+```
+
+### footer
+
+- **类型：** `boolean`
+- **默认值：** `undefined`
+
+设置为 `true` 时，将 banner 追加到每个选中的 chunk 文件末尾，而不是添加到开头。省略时，banner 会添加到文件开头。
+
+```js
+new rspack.BannerPlugin({
+  banner: 'End of bundle',
+  footer: true,
+});
+```
+
+### raw
+
+- **类型：** `boolean`
+- **默认值：** `undefined`
+
+设置为 `true` 时，输出 banner 时不将其包裹成注释。请确保原始内容对每个选中的输出文件都是有效的。
+
+```js
+new rspack.BannerPlugin({
+  banner: '/* Build: production */',
+  raw: true,
+});
+```
+
+### stage
+
+- **类型：** `number`
+- **默认值：** `Compilation.PROCESS_ASSETS_STAGE_ADDITIONS`（`-100`）
+
+控制添加 banner 时所处的 [`processAssets`](/api/plugin-api/compilation-hooks#processassets) 阶段。数值越小，执行越早。仅当 banner 需要在另一个处理资源的插件之前或之后运行时，才需要修改此选项。
+
+```js
+new rspack.BannerPlugin({
+  banner: 'Optimized bundle',
+  stage: rspack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE,
+});
+```
+
+### test
+
+- **类型：** `string | RegExp | Array<string | RegExp>`
+- **默认值：** `undefined`
+
+只为生成文件名满足该条件的 chunk 文件添加 banner。省略时，此选项不会限制匹配的文件。
+
+```js
+new rspack.BannerPlugin({
+  banner: 'JavaScript bundle',
+  test: /\.js$/,
+});
+```
+
+### include
+
+- **类型：** `string | RegExp | Array<string | RegExp>`
+- **默认值：** `undefined`
+
+只为生成文件名满足至少一个条件的 chunk 文件添加 banner。如果同时设置 `test` 和 `include`，文件名必须同时满足这两个选项。
+
+```js
+new rspack.BannerPlugin({
+  banner: 'Application bundle',
+  include: [/^app/, /^admin/],
+});
+```
+
+### exclude
+
+- **类型：** `string | RegExp | Array<string | RegExp>`
+- **默认值：** `undefined`
+
+跳过生成文件名满足至少一个条件的 chunk 文件。`exclude` 在 `test` 和 `include` 之后生效。
+
+```js
+new rspack.BannerPlugin({
+  banner: 'Application bundle',
+  exclude: [/^runtime/, /^vendor/],
+});
+```
