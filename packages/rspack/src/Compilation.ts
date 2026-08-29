@@ -820,9 +820,13 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   getAssetPathWithInfo(filename: Filename, data: PathData = {}) {
-    const template = typeof filename === 'function' ? filename(data) : filename;
+    const info: AssetInfo = {};
+    const template =
+      typeof filename === 'function' ? filename(data, info) : filename;
     const pathData = normalizePathData(data);
-    return this.#inner.getAssetPathWithInfo(template, pathData);
+    const result = this.#inner.getAssetPathWithInfo(template, pathData, info);
+    Object.assign(info, result.info);
+    return { path: result.path, info };
   }
 
   getLogger(name: string | (() => string)) {
