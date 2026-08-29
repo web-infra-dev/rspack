@@ -100,7 +100,7 @@ catalog:
   'iconv-lite': '^0.7.3'
   'image-minimizer-webpack-plugin': '^5.0.0'
   'javascript-stringify': '^2.1.0'
-  'jest-diff': '^30.4.1'
+  'jest-diff': '^30.5.0'
   'jiti': '^2.7.0'
   'jsdom': '^30.0.1'
   'json-loader': '^0.5.7'
