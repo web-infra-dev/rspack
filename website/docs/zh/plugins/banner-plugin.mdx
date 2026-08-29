@@ -114,7 +114,11 @@ new rspack.BannerPlugin({
 - **类型：** `string | RegExp | Array<string | RegExp>`
 - **默认值：** `undefined`
 
-仅当 chunk 的产物文件名与 `test` 匹配时，才添加 banner。匹配对象是产物文件名，而不是模块源码路径：字符串匹配文件名开头，正则表达式可匹配任意位置，数组中任一条件匹配即可。省略 `test` 时不限制文件。
+`test` 用于筛选需要添加 banner 的 chunk 文件。仅当 chunk 的产物文件名与 `test` 匹配时，才会添加 banner。
+
+匹配对象是产物文件名，而不是模块源码路径。字符串匹配文件名开头；正则表达式可匹配任意位置；传入数组时，任一条件匹配即可。
+
+省略 `test` 时，不会通过该选项过滤 chunk 文件。
 
 ```js
 new rspack.BannerPlugin({
@@ -128,7 +132,11 @@ new rspack.BannerPlugin({
 - **类型：** `string | RegExp | Array<string | RegExp>`
 - **默认值：** `undefined`
 
-仅当 chunk 的产物文件名与 `include` 中任一条件匹配时，才添加 banner。匹配对象是产物文件名，而不是模块源码路径：字符串匹配文件名开头，正则表达式可匹配任意位置，数组中任一条件匹配即可。如果同时设置 `test`，文件名必须也与 `test` 匹配。
+`include` 用于限定需要添加 banner 的 chunk 文件。仅当 chunk 的产物文件名与 `include` 匹配时，才会添加 banner。
+
+匹配对象是产物文件名，而不是模块源码路径。字符串匹配文件名开头；正则表达式可匹配任意位置；传入数组时，任一条件匹配即可。
+
+如果同时设置 `test`，产物文件名必须同时满足 `test` 和 `include`。
 
 ```js
 new rspack.BannerPlugin({
@@ -142,7 +150,11 @@ new rspack.BannerPlugin({
 - **类型：** `string | RegExp | Array<string | RegExp>`
 - **默认值：** `undefined`
 
-如果 chunk 的产物文件名与 `exclude` 中任一条件匹配，则不添加 banner。匹配对象是产物文件名，而不是模块源码路径：字符串匹配文件名开头，正则表达式可匹配任意位置，数组中任一条件匹配即可。`exclude` 在 `test` 和 `include` 之后检查。
+`exclude` 用于指定不添加 banner 的 chunk 文件。如果 chunk 的产物文件名与 `exclude` 匹配，则不会添加 banner。
+
+匹配对象是产物文件名，而不是模块源码路径。字符串匹配文件名开头；正则表达式可匹配任意位置；传入数组时，任一条件匹配即可。
+
+`exclude` 会在 `test` 和 `include` 完成筛选后应用。
 
 ```js
 new rspack.BannerPlugin({
