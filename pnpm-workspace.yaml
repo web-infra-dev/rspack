@@ -29,7 +29,7 @@ catalog:
   '@emnapi/runtime': '1.11.3'
   '@iarna/toml': '^3.0.0'
   '@microsoft/api-extractor': '^7.59.0'
-  '@module-federation/runtime-tools': '2.8.2'
+  '@module-federation/runtime-tools': '2.9.0'
   '@napi-rs/cli': '3.7.4'
   '@napi-rs/wasm-runtime': '1.1.6'
   '@playwright/test': '1.62.1'
