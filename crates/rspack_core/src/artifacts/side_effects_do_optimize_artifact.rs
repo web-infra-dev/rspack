@@ -12,7 +12,7 @@ use crate::{
 pub struct SideEffectsDoOptimize {
   pub ids: Vec<Atom>,
   pub target_module: ModuleIdentifier,
-  pub need_move_target: Option<SideEffectsDoOptimizeMoveTarget>,
+  pub need_move_targets: Vec<SideEffectsDoOptimizeMoveTarget>,
 }
 
 #[derive(Debug, Clone)]

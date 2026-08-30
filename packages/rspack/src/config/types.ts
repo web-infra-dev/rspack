@@ -411,6 +411,9 @@ export type Environment = {
   /** The environment supports destructuring ('{ a, b } = obj'). */
   destructuring?: boolean;
 
+  /** The environment supports spread and rest in array/object literals and calls ('{ ...obj }', 'fn(...args)'). */
+  spread?: boolean;
+
   /** The environment supports 'document' variable. */
   document?: boolean;
 

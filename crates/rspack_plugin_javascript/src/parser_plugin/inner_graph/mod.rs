@@ -11,58 +11,116 @@ pub mod state;
 fn module_has_side_effects_free_export(
   module_graph: &ModuleGraph,
   module_identifier: &ModuleIdentifier,
-  atom: &Atom,
+  ids: &[Atom],
 ) -> Option<bool> {
   let module = module_graph.module_by_identifier(module_identifier)?;
   let side_effects_free = module.build_info().side_effects_free.as_ref()?;
-  Some(side_effects_free.contains(atom))
+  Some(
+    ids
+      .last()
+      .is_some_and(|atom| side_effects_free.contains(atom)),
+  )
+}
+
+fn resolved_target_is_side_effects_free(
+  module_graph: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
+  module_identifier: &ModuleIdentifier,
+  ids: &[Atom],
+) -> Option<bool> {
+  let exports_info = exports_info_artifact.get_exports_info_data(module_identifier);
+  let export_info = exports_info.get_read_only_export_info_recursive(exports_info_artifact, ids)?;
+  let resolve_filter = |_: &ResolvedExportInfoTarget| true;
+
+  if let Some(GetTargetResult::Target(target)) = get_target(
+    export_info,
+    module_graph,
+    exports_info_artifact,
+    &resolve_filter,
+    &mut Default::default(),
+  ) {
+    let resolved_ids = target.export.as_deref().unwrap_or(ids);
+    module_has_side_effects_free_export(module_graph, &target.module, resolved_ids)
+  } else {
+    module_has_side_effects_free_export(module_graph, module_identifier, ids)
+  }
 }
 
 pub fn deferred_pure_check_is_impure(
   module_graph: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
   dep_id: &DependencyId,
-  atom: &Atom,
+  ids: &[Atom],
 ) -> bool {
+  if ids.is_empty() {
+    return true;
+  }
   let Some(ref_module) = module_graph.module_identifier_by_dependency_id(dep_id) else {
     return true;
   };
 
   let target_exports_info = exports_info_artifact.get_exports_info_data(ref_module);
-  let target_export_info = target_exports_info.get_export_info_without_mut_module_graph(atom);
+  let Some(target_export_info) =
+    target_exports_info.get_read_only_export_info_recursive(exports_info_artifact, ids)
+  else {
+    return true;
+  };
   let resolve_filter = |_: &ResolvedExportInfoTarget| true;
 
-  let (ref_module_id, resolved_atom) = if let Some(GetTargetResult::Target(target)) = get_target(
-    &target_export_info,
+  let (ref_module_id, resolved_ids) = if let Some(GetTargetResult::Target(target)) = get_target(
+    target_export_info,
     module_graph,
     exports_info_artifact,
     &resolve_filter,
     &mut Default::default(),
   ) {
-    let atom = if target.module == *ref_module {
-      Some(atom.clone())
+    let ids = if target.module == *ref_module {
+      Some(ids.to_vec())
     } else {
-      target
-        .export
-        .as_ref()
-        .and_then(|export| export.first().cloned())
+      target.export
     };
-    (target.module, atom)
+    (target.module, ids)
   } else {
-    (*ref_module, Some(atom.clone()))
+    (*ref_module, Some(ids.to_vec()))
   };
 
-  if let Some(resolved_atom) = resolved_atom.as_ref()
+  if let Some(resolved_ids) = resolved_ids.as_deref()
     && let Some(side_effects_free) =
-      module_has_side_effects_free_export(module_graph, &ref_module_id, resolved_atom)
+      module_has_side_effects_free_export(module_graph, &ref_module_id, resolved_ids)
   {
     return !side_effects_free;
+  }
+
+  // Namespace reexports such as `export * as pure from "./source"` expose a nested
+  // exports info object whose target is the source module namespace. Resolve that
+  // first segment, then continue checking the remaining property path in the source
+  // module. This mirrors webpack's recursive ExportInfo target lookup for `pure.fn`.
+  if ids.len() > 1 {
+    let first_export_info = target_exports_info.get_read_only_export_info(&ids[0]);
+    if let Some(GetTargetResult::Target(target)) = get_target(
+      first_export_info,
+      module_graph,
+      exports_info_artifact,
+      &resolve_filter,
+      &mut Default::default(),
+    ) {
+      let mut remaining_ids = target.export.unwrap_or_default();
+      remaining_ids.extend_from_slice(&ids[1..]);
+      if let Some(side_effects_free) = resolved_target_is_side_effects_free(
+        module_graph,
+        exports_info_artifact,
+        &target.module,
+        &remaining_ids,
+      ) {
+        return !side_effects_free;
+      }
+    }
   }
 
   if let Some(resolved_module) = module_graph.get_resolved_module(dep_id)
     && resolved_module != &ref_module_id
     && let Some(side_effects_free) =
-      module_has_side_effects_free_export(module_graph, resolved_module, atom)
+      module_has_side_effects_free_export(module_graph, resolved_module, ids)
   {
     return !side_effects_free;
   }
@@ -83,7 +141,7 @@ pub fn has_impure_deferred_pure_checks(
         module_graph,
         exports_info_artifact,
         &deferred_check.dep_id,
-        &deferred_check.atom,
+        &deferred_check.ids,
       )
     })
 }

@@ -4,8 +4,9 @@ use std::sync::Arc;
 
 use rspack_core::{
   BoxDependency, ConstDependency, Context, ContextDependency, ContextMode, ContextModulePattern,
-  ContextOptions, DependencyCategory, DependencyRange, DependencyType, ImportMetaKnownProperties,
-  ModuleType, ReferencedSpecifier, RuntimeGlobals, RuntimeRequirementsDependency, get_context,
+  ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyRange, DependencyType,
+  ImportMetaKnownProperties, ModuleType, ReferencedSpecifier, RuntimeGlobals,
+  RuntimeRequirementsDependency, get_context,
 };
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
@@ -1702,12 +1703,13 @@ impl CommonJsImportsParserPlugin {
     span: Span,
     param: &BasicEvaluatedExpression,
     request_context: Option<Context>,
-  ) -> Option<bool> {
+    allow_evaluation_only: bool,
+  ) -> Option<DependencyId> {
     param.is_string().then(|| {
       let (start, end) = param.range();
       let range_expr = DependencyRange::new(start, end);
       let loc = parser.to_dependency_location(range_expr);
-      let referenced_specifiers =
+      let mut referenced_specifiers =
         parser
           .destructuring_assignment_properties
           .get(&span)
@@ -1719,6 +1721,17 @@ impl CommonJsImportsParserPlugin {
             });
             refs
           });
+      let is_require_binding = parser
+        .common_js_require_references
+        .get_require_mut(&span)
+        .is_some();
+      if allow_evaluation_only
+        && referenced_specifiers.is_none()
+        && !is_require_binding
+        && parser.is_statement_level_expression(span)
+      {
+        referenced_specifiers = Some(vec![]);
+      }
       let mut dep = if let Some(context) = request_context {
         CommonJsRequireDependency::new_contextual(
           param.string().clone(),
@@ -1740,6 +1753,7 @@ impl CommonJsImportsParserPlugin {
       if let Some(referenced_specifiers) = referenced_specifiers {
         dep.set_referenced_specifiers(referenced_specifiers);
       }
+      let dependency_id = *dep.id();
       let dep_idx = parser.next_dependency_idx();
       if let Some(require_references) = parser.common_js_require_references.get_require_mut(&span) {
         require_references.dep_locator = Some(RequireDependencyLocator {
@@ -1749,7 +1763,7 @@ impl CommonJsImportsParserPlugin {
         });
       }
       parser.add_dependency(BoxDependency::new(dep));
-      true
+      dependency_id
     })
   }
 
@@ -1835,7 +1849,7 @@ impl CommonJsImportsParserPlugin {
       let mut is_expression = false;
       for p in param.options() {
         if self
-          .process_require_item(parser, expr.span(), p, request_context.clone())
+          .process_require_item(parser, expr.span(), p, request_context.clone(), false)
           .is_none()
         {
           is_expression = true;
@@ -1866,16 +1880,20 @@ impl CommonJsImportsParserPlugin {
       return None;
     }
 
-    if self
-      .process_require_item(parser, expr.span(), &param, request_context.clone())
-      .is_none()
-      && let CallOrNewExpr::Call(call_expr) = expr
-    {
-      self.process_require_context(parser, call_expr, &param, request_context);
-    } else {
+    let require_dependency =
+      self.process_require_item(parser, expr.span(), &param, request_context.clone(), true);
+    if let Some(require_dependency) = require_dependency {
       let range: DependencyRange = callee.span().into();
       let loc = parser.to_dependency_location(range);
-      parser.add_presentational_dependency(Arc::new(RequireHeaderDependency::new(range, loc)));
+      parser.add_presentational_dependency(Arc::new(RequireHeaderDependency::new_with_dependency(
+        range,
+        loc,
+        require_dependency,
+      )));
+    } else {
+      if let CallOrNewExpr::Call(call_expr) = expr {
+        self.process_require_context(parser, call_expr, &param, request_context);
+      }
     }
     Some(true)
   }

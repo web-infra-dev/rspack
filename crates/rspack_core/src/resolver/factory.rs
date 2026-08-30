@@ -25,6 +25,10 @@ pub struct ResolverFactory {
 }
 
 impl ResolverFactory {
+  pub fn filesystem(&self) -> Arc<dyn ReadableFileSystem> {
+    self.resolver.inner_fs()
+  }
+
   pub fn clear_cache(&self) {
     self.resolver.clear_cache();
   }

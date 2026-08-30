@@ -22,20 +22,22 @@ it('rewrites require.resolve calls with source module origin', () => {
 	);
 
 	// Nested require inside the argument must still be collected as a dependency.
-	expect(content).toContain("module.exports = { name: './target' }");
+	expect(content).toContain("module.exports = {");
+	expect(content).toContain("'./target'");
 
 	// Nested require.resolve calls inside arguments should still be rewritten, while
 	// `webpackIgnore` only affects require.resolve when commonjsMagicComments is
 	// enabled, and shadowed require must not be rewritten.
 	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
 		expect(content).toContain(
-			`${helper}((__rspack_context.r(161)/* .name */.name), ${originLiteral})`,
+			`${helper}((__rspack_context.r(161)/* .name */.`,
 		);
 	} else {
 		expect(content).toContain(
-			`${helper}((__webpack_require__(161)/* .name */.name), ${originLiteral})`,
+			`${helper}((__webpack_require__(161)/* .name */.`,
 		);
 	}
+	expect(content).toContain(`), ${originLiteral})`);
 	expect(content).toContain(
 		`${helper}(/* webpackIgnore: true */ './ignored', ${originLiteral})`,
 	);

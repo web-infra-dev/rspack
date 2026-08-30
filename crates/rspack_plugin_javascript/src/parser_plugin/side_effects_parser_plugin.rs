@@ -8,10 +8,11 @@ use rustc_hash::FxHashSet;
 use swc_atoms::Atom;
 use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom};
 use swc_experimental_ecma_ast::{
-  ArrayLit, ArrowExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Class, ClassMember, CommentKind,
-  Comments, Decl, DefaultDecl, ExportSpecifier, Expr, ExprOrSpread, Function, GetSpan,
-  ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem, ObjectPatProp, Pat, Program, PropName,
-  Span, Span as AstSpan, Stmt, VarDecl, VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
+  ArrayLit, ArrowExpr, BinaryOp, BlockStmt, BlockStmtOrExpr, CallExpr, Class, ClassMember,
+  CommentKind, Comments, Decl, DefaultDecl, ExportSpecifier, Expr, ExprOrSpread, Function, GetSpan,
+  ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem, ObjectPatProp, OptChainBase, Pat,
+  Program, PropName, Span, Span as AstSpan, Stmt, UnaryOp, VarDecl, VarDeclKind, VarDeclOrExpr,
+  Visit, VisitWith,
 };
 use swc_experimental_ecma_utils::{ExprCtx, ExprExt};
 
@@ -24,6 +25,9 @@ use crate::{
 
 static PURE_COMMENTS: LazyLock<regex::Regex> = LazyLock::new(|| {
   regex::Regex::new("(?s)^\\s*(#|@)__PURE__(?:\\s|$)").expect("Should create the regex")
+});
+static NO_SIDE_EFFECTS_COMMENTS: LazyLock<regex::Regex> = LazyLock::new(|| {
+  regex::Regex::new(r"^\s*[#@]__NO_SIDE_EFFECTS__\s*$").expect("Should create the regex")
 });
 pub struct SideEffectsParserPlugin {
   analyze_side_effects_free: bool,
@@ -47,7 +51,11 @@ fn compat_atom(atom: &AstAtom<'_>) -> Atom {
 }
 
 fn has_no_side_effects_notation(comments: &Comments<'_>, span: AstSpan) -> bool {
-  comments.has_flag(span.start, "NO_SIDE_EFFECTS")
+  comments.leading.get(&span.start).is_some_and(|comments| {
+    comments.iter().any(|comment| {
+      comment.kind == CommentKind::Block && NO_SIDE_EFFECTS_COMMENTS.is_match(&comment.text)
+    })
+  })
 }
 
 fn expr_ctx<'a>(parser: &'a JavascriptParser<'_>, is_unresolved_ref_safe: bool) -> ExprCtx<'a> {
@@ -98,22 +106,25 @@ impl<'a> Visit<'a> for PureAnnotation<'a> {
             .side_effects_free
             .insert(compat_atom(&fn_decl.ident.sym));
         } else if let Some(var_decl) = export_decl.decl.as_var()
-          && matches!(var_decl.kind, VarDeclKind::Const)
           && var_decl.decls.len() == 1
         {
           let const_decl = &var_decl.decls[0];
           if let Some(ident) = const_decl.name.as_ident()
             && let Some(Expr::Fn(fn_expr)) = const_decl.init.as_ref()
-            && (has_no_side_effects_notation(self.parser.ast.comments, var_decl.span())
+            && ((matches!(var_decl.kind, VarDeclKind::Const)
+              && has_no_side_effects_notation(self.parser.ast.comments, var_decl.span()))
               || has_no_side_effects_notation(self.parser.ast.comments, fn_expr.span())
-              || has_no_side_effects_notation(self.parser.ast.comments, export_decl.span()))
+              || (matches!(var_decl.kind, VarDeclKind::Const)
+                && has_no_side_effects_notation(self.parser.ast.comments, export_decl.span())))
           {
             self.side_effects_free.insert(compat_atom(&ident.id.sym));
           } else if let Some(ident) = const_decl.name.as_ident()
             && let Some(Expr::Arrow(fn_expr)) = const_decl.init.as_ref()
-            && (has_no_side_effects_notation(self.parser.ast.comments, var_decl.span())
+            && ((matches!(var_decl.kind, VarDeclKind::Const)
+              && has_no_side_effects_notation(self.parser.ast.comments, var_decl.span()))
               || has_no_side_effects_notation(self.parser.ast.comments, fn_expr.span())
-              || has_no_side_effects_notation(self.parser.ast.comments, export_decl.span()))
+              || (matches!(var_decl.kind, VarDeclKind::Const)
+                && has_no_side_effects_notation(self.parser.ast.comments, export_decl.span())))
           {
             self.side_effects_free.insert(compat_atom(&ident.id.sym));
           }
@@ -142,18 +153,20 @@ impl<'a> Visit<'a> for PureAnnotation<'a> {
           const sideEffectFreeVariable = /*#__NO_SIDE_EFFECTS__*/ () => {}
           ```
            */
-          if matches!(var_decl.kind, VarDeclKind::Const) && var_decl.decls.len() == 1 {
+          if var_decl.decls.len() == 1 {
             let const_decl = &var_decl.decls[0];
 
             if let Some(ident) = const_decl.name.as_ident()
               && let Some(Expr::Fn(fn_expr)) = const_decl.init.as_ref()
-              && (has_no_side_effects_notation(self.parser.ast.comments, var_decl.span())
+              && ((matches!(var_decl.kind, VarDeclKind::Const)
+                && has_no_side_effects_notation(self.parser.ast.comments, var_decl.span()))
                 || has_no_side_effects_notation(self.parser.ast.comments, fn_expr.span()))
             {
               self.side_effects_free.insert(compat_atom(&ident.id.sym));
             } else if let Some(ident) = const_decl.name.as_ident()
               && let Some(Expr::Arrow(fn_expr)) = const_decl.init.as_ref()
-              && (has_no_side_effects_notation(self.parser.ast.comments, var_decl.span())
+              && ((matches!(var_decl.kind, VarDeclKind::Const)
+                && has_no_side_effects_notation(self.parser.ast.comments, var_decl.span()))
                 || has_no_side_effects_notation(self.parser.ast.comments, fn_expr.span()))
             {
               self.side_effects_free.insert(compat_atom(&ident.id.sym));
@@ -262,6 +275,44 @@ fn collect_defined_configured_side_effects_free(
       acceptable.contains(&atom).then_some(atom)
     })
     .collect()
+}
+
+fn add_side_effects_free_export_aliases(program: &Program, names: &mut FxHashSet<Atom>) {
+  let Program::Module(module) = program else {
+    return;
+  };
+  let local_names = names.clone();
+  for item in &module.body {
+    let ModuleItem::ModuleDecl(decl) = item else {
+      continue;
+    };
+    let ModuleDecl::ExportNamed(export) = &**decl else {
+      continue;
+    };
+    if export.src.is_some() {
+      continue;
+    }
+    for specifier in &export.specifiers {
+      let ExportSpecifier::Named(named) = specifier else {
+        continue;
+      };
+      let ModuleExportName::Ident(local) = &named.orig else {
+        continue;
+      };
+      if !local_names.contains(&compat_atom(&local.sym)) {
+        continue;
+      }
+      let exported = named.exported.as_ref().unwrap_or(&named.orig);
+      match exported {
+        ModuleExportName::Ident(exported) => {
+          names.insert(compat_atom(&exported.sym));
+        }
+        ModuleExportName::Str(exported) => {
+          names.insert(Atom::from(exported.value.to_string_lossy().as_ref()));
+        }
+      }
+    }
+  }
 }
 
 fn visit_pat_binding_names(pat: &Pat, f: &mut impl FnMut(Atom)) {
@@ -628,7 +679,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
         parser,
       };
       ast.visit_with(&mut pure_annotation);
-      let detected_side_effects_free = pure_annotation.side_effects_free;
+      let mut detected_side_effects_free = pure_annotation.side_effects_free;
+      add_side_effects_free_export_aliases(ast, &mut detected_side_effects_free);
       if !detected_side_effects_free.is_empty() {
         let side_effects_free = parser.build_info.side_effects_free.get_or_insert_default();
         side_effects_free.extend(detected_side_effects_free);
@@ -695,14 +747,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
           ));
         } else {
           // record all potential pure callee
-          for (callee, span) in callees {
-            if let Some(deferred_check) = try_extract_deferred_check(parser, callee, span) {
+          for callee in callees {
+            if let Some(deferred_check) = try_extract_deferred_check(parser, &callee) {
               parser
                 .build_info
                 .deferred_pure_checks
                 .insert(deferred_check);
             } else {
-              let range = DependencyRange::from(span);
+              let range = DependencyRange::from(callee.span);
               let loc = parser.to_dependency_location(range);
               parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
                 range,
@@ -731,14 +783,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
             String::from("Decl"),
           ));
         }
-        for (callee, span) in callees {
-          if let Some(deferred_check) = try_extract_deferred_check(parser, callee, span) {
+        for callee in callees {
+          if let Some(deferred_check) = try_extract_deferred_check(parser, &callee) {
             parser
               .build_info
               .deferred_pure_checks
               .insert(deferred_check);
           } else {
-            let range = DependencyRange::from(span);
+            let range = DependencyRange::from(callee.span);
             let loc = parser.to_dependency_location(range);
             parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
               range,
@@ -796,13 +848,49 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
   }
 }
 
+#[derive(Debug, Clone)]
+pub struct PureCallee {
+  pub local: Atom,
+  pub ids: Vec<Atom>,
+  pub span: Span,
+}
+
+fn imported_pure_callee(parser: &mut JavascriptParser, callee: &Expr) -> Option<PureCallee> {
+  let evaluated = parser.evaluate_expression(callee);
+  if !evaluated.is_identifier() {
+    return None;
+  }
+  let crate::visitors::ExportedVariableInfo::VariableInfo(root) = evaluated.root_info() else {
+    return None;
+  };
+  let data = parser
+    .get_variable_tag_data::<ESMSpecifierData>(*root, ESM_SPECIFIER_TAG)?
+    .clone();
+  let mut ids = data.ids.into_vec();
+  ids.extend(
+    evaluated
+      .members()
+      .map(|members| members.iter().cloned())
+      .into_iter()
+      .flatten(),
+  );
+  if ids.is_empty() {
+    return None;
+  }
+  Some(PureCallee {
+    local: data.name,
+    ids,
+    span: callee.span(),
+  })
+}
+
 #[inline(never)]
 fn is_pure_call_expr(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   expr: &Expr,
   comments: &Comments<'_>,
-  callees: Option<&mut Vec<(Atom, Span)>>,
+  callees: Option<&mut Vec<PureCallee>>,
 ) -> bool {
   let Expr::Call(call_expr) = expr else {
     unreachable!();
@@ -839,7 +927,11 @@ fn is_pure_call_expr(
         let Some(callees) = callees else {
           return false;
         };
-        callees.push((compat_atom(&ident.sym), callee.span()));
+        callees.push(PureCallee {
+          local: compat_atom(&ident.sym),
+          ids: Vec::new(),
+          span: callee.span(),
+        });
         return is_pure_call_args(
           parser,
           analyze_side_effects_free,
@@ -853,7 +945,11 @@ fn is_pure_call_expr(
     }
 
     if let Some(callees) = callees {
-      callees.push((compat_atom(&ident.sym), callee.span()));
+      callees.push(PureCallee {
+        local: compat_atom(&ident.sym),
+        ids: Vec::new(),
+        span: callee.span(),
+      });
       return is_pure_call_args(
         parser,
         analyze_side_effects_free,
@@ -862,6 +958,21 @@ fn is_pure_call_expr(
         Some(callees),
       );
     }
+  } else if analyze_side_effects_free
+    && let Some(callee_expr) = callee.as_expr()
+    && let Some(imported_callee) = imported_pure_callee(parser, callee_expr)
+  {
+    let Some(callees) = callees else {
+      return false;
+    };
+    callees.push(imported_callee);
+    return is_pure_call_args(
+      parser,
+      analyze_side_effects_free,
+      call_expr,
+      comments,
+      Some(callees),
+    );
   }
 
   !expr.may_have_side_effects(expr_ctx(parser, false))
@@ -873,7 +984,7 @@ fn is_pure_call_args(
   analyze_side_effects_free: bool,
   call_expr: &CallExpr,
   comments: &Comments<'_>,
-  mut callees: Option<&mut Vec<(Atom, Span)>>,
+  mut callees: Option<&mut Vec<PureCallee>>,
 ) -> bool {
   for arg in &call_expr.args {
     if arg.spread.is_some() {
@@ -897,7 +1008,7 @@ fn is_pure_array_lit<'a>(
   analyze_side_effects_free: bool,
   array_lit: &'a ArrayLit,
   comments: &'a Comments<'a>,
-  mut callees: Option<&mut Vec<(Atom, Span)>>,
+  mut callees: Option<&mut Vec<PureCallee>>,
 ) -> bool {
   for elem in array_lit.elems.iter().flatten() {
     if elem.spread.is_some()
@@ -940,7 +1051,16 @@ fn resolve_explicit_side_effects_free_callee(
 
   // For non-imports the deferred path doesn't apply at all, so we skip the
   // user-config lookup and fall straight through to Direct/Invalid.
-  if try_extract_deferred_check(parser, ident.clone(), span).is_some() {
+  if try_extract_deferred_check(
+    parser,
+    &PureCallee {
+      local: ident.clone(),
+      ids: Vec::new(),
+      span,
+    },
+  )
+  .is_some()
+  {
     // When the user explicitly listed this name in `pureFunctions`, trust the
     // assertion at the call site instead of deferring to the import target.
     // This lets users mark imported helpers (e.g. `import { cva } from 'cva'`)
@@ -950,9 +1070,10 @@ fn resolve_explicit_side_effects_free_callee(
       .side_effects_free
       .as_ref()
       .is_some_and(|names| names.iter().any(|name| name.as_str() == ident.as_str()));
-    if !is_user_configured {
-      return ExplicitSideEffectsFreeCallee::Deferred;
+    if is_user_configured {
+      return ExplicitSideEffectsFreeCallee::Direct;
     }
+    return ExplicitSideEffectsFreeCallee::Deferred;
   }
 
   if let Some((declared_scope, is_free)) = parser
@@ -974,10 +1095,9 @@ fn resolve_explicit_side_effects_free_callee(
 
 fn try_extract_deferred_check(
   parser: &mut JavascriptParser,
-  ident: Atom,
-  span: Span,
+  callee: &PureCallee,
 ) -> Option<DeferredPureCheck> {
-  let info = parser.get_variable_info(&ident)?;
+  let info = parser.get_variable_info(&callee.local)?;
 
   let tag_info_id = info.tag_info?;
   let tag_info = parser.definitions_db.expect_get_tag_info(tag_info_id);
@@ -1002,14 +1122,14 @@ fn try_extract_deferred_check(
       request_eq && attributes_eq
     })
     .map(|dep| DeferredPureCheck {
-      atom: data
-        .ids
-        .first()
-        .cloned()
-        .unwrap_or_else(|| data.name.clone()),
+      ids: if callee.ids.is_empty() {
+        data.ids.into_vec()
+      } else {
+        callee.ids.clone()
+      },
       dep_id: *dep.id(),
-      start: span.real_lo(),
-      end: span.real_hi(),
+      start: callee.span.real_lo(),
+      end: callee.span.real_hi(),
     })
 }
 
@@ -1286,14 +1406,14 @@ impl SideEffectsParserPlugin {
     };
 
     if parser.side_effects_item.is_none() {
-      for (callee, span) in callees {
-        if let Some(deferred_check) = try_extract_deferred_check(parser, callee, span) {
+      for callee in callees {
+        if let Some(deferred_check) = try_extract_deferred_check(parser, &callee) {
           parser
             .build_info
             .deferred_pure_checks
             .insert(deferred_check);
         } else {
-          let range = DependencyRange::from(span);
+          let range = DependencyRange::from(callee.span);
           let loc = parser.to_dependency_location(range);
           parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
             range,
@@ -1312,7 +1432,7 @@ pub fn is_pure_pat<'a>(
   analyze_side_effects_free: bool,
   pat: &'a Pat,
   comments: &'a Comments<'a>,
-  mut callees: Option<&mut Vec<(Atom, Span)>>,
+  mut callees: Option<&mut Vec<PureCallee>>,
 ) -> bool {
   match pat {
     Pat::Ident(_) => true,
@@ -1482,7 +1602,7 @@ pub fn is_pure_function<'a>(
   analyze_side_effects_free: bool,
   function: &'a Function,
   comments: &'a Comments<'a>,
-  mut callees: Option<&mut Vec<(Atom, Span)>>,
+  mut callees: Option<&mut Vec<PureCallee>>,
 ) -> bool {
   for param in &function.params {
     if !is_pure_pat(
@@ -1504,14 +1624,14 @@ pub fn is_pure_expression<'a>(
   analyze_side_effects_free: bool,
   expr: &'a Expr,
   comments: &'a Comments<'a>,
-  callees: Option<&mut Vec<(Atom, Span)>>,
+  callees: Option<&mut Vec<PureCallee>>,
 ) -> bool {
   pub fn _is_pure_expression<'a>(
     parser: &mut JavascriptParser,
     analyze_side_effects_free: bool,
     expr: &'a Expr,
     comments: &'a Comments<'a>,
-    mut callees: Option<&mut Vec<(Atom, Span)>>,
+    mut callees: Option<&mut Vec<PureCallee>>,
   ) -> bool {
     if let Some(res) = parser.plugin_drive.clone().is_pure(parser, expr) {
       return res;
@@ -1529,6 +1649,98 @@ pub fn is_pure_expression<'a>(
         is_pure_call_expr(parser, analyze_side_effects_free, expr, comments, callees)
       }
       Expr::New(_) => is_pure_new_expr(parser, analyze_side_effects_free, expr, comments),
+      Expr::OptChain(chain) => match &chain.base {
+        OptChainBase::Call(call)
+          if has_pure_comment(comments, chain.span.start)
+            || has_pure_comment(comments, call.callee.span().start) =>
+        {
+          call.args.iter().all(|arg| {
+            arg.spread.is_none()
+              && is_pure_expression(
+                parser,
+                analyze_side_effects_free,
+                &arg.expr,
+                comments,
+                callees.as_deref_mut(),
+              )
+          })
+        }
+        _ => !expr.may_have_side_effects(expr_ctx(parser, true)),
+      },
+      Expr::TaggedTpl(tagged) if has_pure_comment(comments, tagged.span.start) => {
+        tagged.tpl.exprs.iter().all(|expr| {
+          is_pure_expression(
+            parser,
+            analyze_side_effects_free,
+            expr,
+            comments,
+            callees.as_deref_mut(),
+          )
+        })
+      }
+      Expr::Tpl(template) => template.exprs.iter().all(|expr| {
+        is_pure_expression(
+          parser,
+          analyze_side_effects_free,
+          expr,
+          comments,
+          callees.as_deref_mut(),
+        )
+      }),
+      Expr::Unary(unary) if matches!(unary.op, UnaryOp::Bang | UnaryOp::TypeOf | UnaryOp::Void) => {
+        is_pure_expression(
+          parser,
+          analyze_side_effects_free,
+          &unary.arg,
+          comments,
+          callees,
+        )
+      }
+      Expr::Bin(binary)
+        if matches!(
+          binary.op,
+          BinaryOp::EqEqEq
+            | BinaryOp::NotEqEq
+            | BinaryOp::LogicalAnd
+            | BinaryOp::LogicalOr
+            | BinaryOp::NullishCoalescing
+        ) =>
+      {
+        is_pure_expression(
+          parser,
+          analyze_side_effects_free,
+          &binary.left,
+          comments,
+          callees.as_deref_mut(),
+        ) && is_pure_expression(
+          parser,
+          analyze_side_effects_free,
+          &binary.right,
+          comments,
+          callees,
+        )
+      }
+      Expr::Cond(conditional) => {
+        is_pure_expression(
+          parser,
+          analyze_side_effects_free,
+          &conditional.test,
+          comments,
+          callees.as_deref_mut(),
+        ) && is_pure_expression(
+          parser,
+          analyze_side_effects_free,
+          &conditional.cons,
+          comments,
+          callees.as_deref_mut(),
+        ) && is_pure_expression(
+          parser,
+          analyze_side_effects_free,
+          &conditional.alt,
+          comments,
+          callees,
+        )
+      }
       Expr::Paren(_) => unreachable!(),
       Expr::Seq(seq_expr) => {
         for expr in &seq_expr.exprs {
@@ -1563,7 +1775,7 @@ pub fn is_pure_class_member<'a>(
   analyze_side_effects_free: bool,
   member: &'a ClassMember,
   comments: &'a Comments<'a>,
-  mut callees: Option<&mut Vec<(Atom, Span)>>,
+  mut callees: Option<&mut Vec<PureCallee>>,
 ) -> bool {
   let is_key_pure = match member.class_key() {
     Some(PropName::Ident(_ident)) => true,
@@ -1623,7 +1835,7 @@ pub fn is_pure_decl(
   analyze_side_effects_free: bool,
   stmt: &Decl,
   comments: &Comments<'_>,
-  callees: Option<&mut Vec<(Atom, Span)>>,
+  callees: Option<&mut Vec<PureCallee>>,
 ) -> bool {
   match stmt {
     Decl::Class(class) => is_pure_class(
@@ -1645,7 +1857,7 @@ pub fn is_pure_class(
   analyze_side_effects_free: bool,
   class: &Class,
   comments: &Comments<'_>,
-  mut callees: Option<&mut Vec<(Atom, Span)>>,
+  mut callees: Option<&mut Vec<PureCallee>>,
 ) -> bool {
   if let Some(ref super_class) = class.super_class
     && !is_pure_expression(
@@ -1660,7 +1872,7 @@ pub fn is_pure_class(
   }
   let is_pure_key = |parser: &mut JavascriptParser,
                      key: &PropName,
-                     callees: Option<&mut Vec<(Atom, Span)>>|
+                     callees: Option<&mut Vec<PureCallee>>|
    -> bool {
     match key {
       PropName::BigInt(_) | PropName::Ident(_) | PropName::Str(_) | PropName::Num(_) => true,
@@ -1737,7 +1949,7 @@ fn is_pure_var_decl<'a>(
   analyze_side_effects_free: bool,
   var: &'a VarDecl,
   comments: &'a Comments<'a>,
-  mut callees: Option<&mut Vec<(Atom, Span)>>,
+  mut callees: Option<&mut Vec<PureCallee>>,
 ) -> bool {
   for decl in &var.decls {
     if let Some(ref init) = decl.init

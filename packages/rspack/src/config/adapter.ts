@@ -186,6 +186,7 @@ function getRawOutputEnvironment(
     asyncFunction: Boolean(environment.asyncFunction),
     bigIntLiteral: Boolean(environment.bigIntLiteral),
     destructuring: Boolean(environment.destructuring),
+    spread: Boolean(environment.spread),
     document: Boolean(environment.document),
     dynamicImport: Boolean(environment.dynamicImport),
     dynamicImportInWorker: Boolean(environment.dynamicImportInWorker),

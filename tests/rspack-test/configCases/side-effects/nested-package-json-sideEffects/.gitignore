@@ -1,0 +1,10 @@
+!node_modules/array-ancestor-sef/dist/
+!node_modules/array-ancestor-sef/dist/**
+!node_modules/broken-ancestor-sef/dist/
+!node_modules/broken-ancestor-sef/dist/**
+!node_modules/missing-mid-sef/dist/
+!node_modules/missing-mid-sef/dist/**
+!node_modules/named-ancestor-no-sef/dist/
+!node_modules/named-ancestor-no-sef/dist/**
+!node_modules/unnamed-inner-sef/dist/
+!node_modules/unnamed-inner-sef/dist/**

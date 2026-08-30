@@ -769,6 +769,7 @@ const applyOutputDefaults = (
   F(environment, 'asyncFunction', () => tp && optimistic(tp.asyncFunction));
   F(environment, 'forOf', () => tp && optimistic(tp.forOf));
   F(environment, 'destructuring', () => tp && optimistic(tp.destructuring));
+  F(environment, 'spread', () => tp && optimistic(tp.spread));
   F(
     environment,
     'optionalChaining',

@@ -1,6 +1,7 @@
 mod common_js_export_require_dependency;
 mod common_js_exports_dependency;
 mod common_js_full_require_dependency;
+mod common_js_object_export_dependency;
 mod common_js_require_dependency;
 mod common_js_self_reference_dependency;
 mod module_decorator_dependency;
@@ -19,6 +20,9 @@ pub use common_js_exports_dependency::{
 };
 pub use common_js_full_require_dependency::{
   CommonJsFullRequireDependency, CommonJsFullRequireDependencyTemplate,
+};
+pub use common_js_object_export_dependency::{
+  CommonJsObjectExportDependency, CommonJsObjectExportDependencyTemplate, CommonJsObjectExportKind,
 };
 pub use common_js_require_dependency::{
   CommonJsRequireDependency, CommonJsRequireDependencyTemplate,

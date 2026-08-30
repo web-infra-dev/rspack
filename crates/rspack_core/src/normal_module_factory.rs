@@ -1211,8 +1211,10 @@ module.exports = "data:,";
       .call(data, &create_data, &mut module)
       .await?;
 
-    data.file_dependencies = file_dependencies;
-    data.missing_dependencies = missing_dependencies;
+    // Preserve dependencies registered by `NormalModuleFactoryModule` hooks in
+    // addition to the dependencies collected by the resolver itself.
+    data.file_dependencies.extend(file_dependencies);
+    data.missing_dependencies.extend(missing_dependencies);
 
     Ok(Some(ModuleFactoryResult::new_with_module(module)))
   }

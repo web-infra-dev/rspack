@@ -3122,6 +3122,7 @@ impl OutputOptionsBuilder {
       .unwrap_or_default();
     environment.for_of = tp.map(|t| optimistic!(t.for_of)).unwrap_or_default();
     environment.destructuring = tp.map(|t| optimistic!(t.destructuring)).unwrap_or_default();
+    environment.spread = tp.map(|t| optimistic!(t.spread)).unwrap_or_default();
     environment.optional_chaining = tp
       .map(|t| optimistic!(t.optional_chaining))
       .unwrap_or_default();

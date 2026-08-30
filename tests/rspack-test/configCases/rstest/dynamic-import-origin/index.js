@@ -47,7 +47,8 @@ it('rewrites template-literal dynamic imports with importFunctionName + origin',
 	// `require('./nested.js')` nested inside the dynamic import argument
 	// must still be collected as a dependency. Otherwise `nested.js` would
 	// not be in the bundle and accessing `.name` would throw at runtime.
-	expect(content).toContain(`module.exports = { name: './literal.js' }`);
+	expect(content).toContain(`module.exports = {`);
+	expect(content).toContain(`'./literal.js'`);
 
 	// `/* webpackIgnore: true */ import(...)` must be left as a native
 	// dynamic import. We must not rewrite the callee or append origin.

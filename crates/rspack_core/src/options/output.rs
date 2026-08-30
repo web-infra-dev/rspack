@@ -628,6 +628,7 @@ pub struct Environment {
   pub async_function: bool,
   pub big_int_literal: bool,
   pub destructuring: bool,
+  pub spread: bool,
   pub document: bool,
   pub dynamic_import: bool,
   pub for_of: bool,
@@ -667,6 +668,10 @@ impl Environment {
 
   pub fn supports_destructuring(&self) -> bool {
     self.destructuring
+  }
+
+  pub fn supports_spread(&self) -> bool {
+    self.spread
   }
 
   pub fn supports_document(&self) -> bool {

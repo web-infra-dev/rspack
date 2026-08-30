@@ -254,14 +254,14 @@ impl InnerGraphParserPlugin {
       .values()
       .any(|symbol_data| !symbol_data.depend_on_pure.is_empty())
     {
-      let mut dep_by_span: HashMap<(u32, u32), (DependencyId, Atom)> = dependencies
+      let mut dep_by_span: HashMap<(u32, u32), (DependencyId, Vec<Atom>)> = dependencies
         .iter()
         .filter_map(|dep| {
           let specifier_dep = dep.downcast_ref::<ESMImportSpecifierDependency>()?;
           let range = specifier_dep.range()?;
           Some((
             (range.start, range.end),
-            (*dep.id(), specifier_dep.imported_name().clone()),
+            (*dep.id(), specifier_dep.original_ids().to_vec()),
           ))
         })
         .collect();
@@ -271,12 +271,8 @@ impl InnerGraphParserPlugin {
       for (symbol, symbol_data) in &state.symbol_map {
         let mut deferred_pure_checks = Vec::new();
         for (_name, span) in &symbol_data.depend_on_pure {
-          if let Some((dep_id, import_name)) = dep_by_span.remove(&(span.real_lo(), span.real_hi()))
-          {
-            deferred_pure_checks.push(UsedByExportsDeferredPureCheck {
-              dep_id,
-              atom: import_name,
-            });
+          if let Some((dep_id, ids)) = dep_by_span.remove(&(span.real_lo(), span.real_hi())) {
+            deferred_pure_checks.push(UsedByExportsDeferredPureCheck { dep_id, ids });
           } else {
             always_used_symbols.push(*symbol);
             deferred_pure_checks.clear();
@@ -516,8 +512,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
       let export_part = &default_expr.expr;
       let variable = Self::tag_top_level_symbol(parser, &DEFAULT_STAR_JS_WORD);
 
-      for (name, span) in callees {
-        variable.add_depend_on(&mut parser.inner_graph, name, span);
+      for callee in callees {
+        variable.add_depend_on(&mut parser.inner_graph, callee.local, callee.span);
       }
 
       let export_span = export_decl.span();
@@ -578,8 +574,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
         )
       {
         let v = Self::tag_top_level_symbol(parser, &name);
-        for (symbol, span) in callees {
-          v.add_depend_on(&mut parser.inner_graph, symbol, span);
+        for callee in callees {
+          v.add_depend_on(&mut parser.inner_graph, callee.local, callee.span);
         }
 
         parser

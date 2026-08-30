@@ -3,7 +3,7 @@ import { exportDefaultUsed as export2 } from "./package1/script2";
 import { exportDefaultUsed as export3 } from "./package2/script";
 
 it("should load module correctly", () => {
-	require("./module");
+	expect(require("./module").mod).toBe(1);
 });
 
 if (process.env.NODE_ENV === "production") {

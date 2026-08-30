@@ -309,6 +309,7 @@ pub struct BuildInfo {
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
   pub inline_exports: bool,
+  pub commonjs_object_literal_exports: bool,
   pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
   pub rsc: Option<RscMeta>,
   pub import_phase: ImportPhase,
@@ -344,6 +345,7 @@ impl Default for BuildInfo {
       assets: Default::default(),
       module: false,
       inline_exports: false,
+      commonjs_object_literal_exports: false,
       collected_typescript_info: None,
       rsc: None,
       import_phase: ImportPhase::Evaluation,
@@ -464,8 +466,8 @@ impl BuildMetaDefaultObject {
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DeferredPureCheck {
-  #[cacheable(with=AsPreset)]
-  pub atom: Atom,
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub ids: Vec<Atom>,
   pub dep_id: DependencyId,
   pub start: u32,
   pub end: u32,
@@ -750,6 +752,7 @@ pub trait Module:
       get_exports_type_impl(
         self.identifier(),
         self.build_meta(),
+        self.build_info(),
         module_graph,
         exports_info_artifact,
         strict,
@@ -880,6 +883,7 @@ pub trait Module:
 fn get_exports_type_impl(
   identifier: ModuleIdentifier,
   build_meta: &BuildMeta,
+  build_info: &BuildInfo,
   mg: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
   strict: bool,
@@ -896,6 +900,9 @@ fn get_exports_type_impl(
     }
     BuildMetaExportsType::Namespace => ExportsType::Namespace,
     BuildMetaExportsType::Default => match default_object {
+      BuildMetaDefaultObject::Redirect if build_info.commonjs_object_literal_exports && !strict => {
+        ExportsType::Dynamic
+      }
       BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
       BuildMetaDefaultObject::RedirectWarn => {
         if strict {

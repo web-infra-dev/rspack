@@ -2298,6 +2298,7 @@ export interface RawEnvironment {
   asyncFunction: boolean
   bigIntLiteral: boolean
   destructuring: boolean
+  spread: boolean
   document: boolean
   dynamicImport: boolean
   forOf: boolean

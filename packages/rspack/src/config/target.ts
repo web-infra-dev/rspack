@@ -91,6 +91,8 @@ export type EcmaTargetProperties = {
   forOf: boolean | null;
   /**  destructuring is available */
   destructuring: boolean | null;
+  /**  spread and rest in array/object literals and calls is available */
+  spread: boolean | null;
   /**  async import() is available */
   dynamicImport: boolean | null;
   /**  async import() is available when creating a worker */
@@ -306,6 +308,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         asyncFunction: v(7, 6),
         forOf: v(5),
         destructuring: v(6),
+        spread: v(8, 3),
         bigIntLiteral: v(10, 4),
         dynamicImport: v(12, 17),
         dynamicImportInWorker: major ? false : undefined,
@@ -381,6 +384,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         asyncFunction: v(1, 7),
         forOf: v(0, 36),
         destructuring: v(1, 1),
+        spread: v(2),
         bigIntLiteral: v(4),
         dynamicImport: v(11),
         dynamicImportInWorker: major ? false : undefined,
@@ -445,6 +449,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         asyncFunction: v(0, 21),
         forOf: v(0, 13),
         destructuring: v(0, 15),
+        spread: v(0, 23),
         bigIntLiteral: v(0, 32),
         dynamicImport: v(0, 43),
         dynamicImportInWorker: major ? false : undefined,
@@ -471,6 +476,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         arrowFunction: v >= 2015,
         forOf: v >= 2015,
         destructuring: v >= 2015,
+        spread: v >= 2018,
         module: v >= 2015,
         asyncFunction: v >= 2017,
         globalThis: v >= 2020,

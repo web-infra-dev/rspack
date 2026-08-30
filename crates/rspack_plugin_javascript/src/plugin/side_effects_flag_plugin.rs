@@ -1,4 +1,9 @@
-use std::{borrow::Cow, fmt::Debug};
+use std::{
+  borrow::Cow,
+  fmt::Debug,
+  io::ErrorKind,
+  path::{Component, PathBuf},
+};
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
@@ -15,6 +20,7 @@ use rspack_core::{
   incremental::{self, IncrementalPasses, Mutation},
 };
 use rspack_error::{Diagnostic, Result};
+use rspack_fs::Error as FileSystemError;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, Utf8Path};
 use sugar_path::SugarPath;
@@ -66,6 +72,75 @@ fn get_side_effects_from_package_json(side_effects: SideEffects, relative_path: 
     SideEffects::Array(patterns) => patterns
       .iter()
       .any(|pattern| glob_match_with_normalized_pattern(pattern, relative_path.as_str())),
+  }
+}
+
+fn path_contains_node_modules(path: &std::path::Path) -> bool {
+  path
+    .components()
+    .any(|component| matches!(component, Component::Normal(name) if name == "node_modules"))
+}
+
+async fn resolve_side_effects_flag(
+  data: &mut ModuleFactoryCreateData,
+  create_data: &NormalModuleCreateData,
+) -> Option<(SideEffects, PathBuf)> {
+  let resource_data = create_data.resource_resolve_data.as_ref();
+  let resource_path = resource_data.path()?.as_std_path().to_path_buf();
+  let description = resource_data.description()?;
+  let description_root = description.path().to_path_buf();
+  let description_json = description.json();
+
+  if let Some(side_effects) = SideEffects::from_description(description_json) {
+    return Some((side_effects, description_root));
+  }
+  if description_json.get("name").is_some() || !path_contains_node_modules(&resource_path) {
+    return None;
+  }
+
+  let filesystem = data.resolver_factory.filesystem();
+  let mut directory = description_root.parent()?.to_path_buf();
+  loop {
+    let parent = directory.parent()?.to_path_buf();
+    if directory
+      .file_name()
+      .is_some_and(|name| name == "node_modules")
+    {
+      return None;
+    }
+
+    let package_json = directory.join("package.json");
+    let package_json_utf8 = Utf8Path::from_path(&package_json)?;
+    let content = match filesystem.read_to_string(package_json_utf8).await {
+      Ok(content) => {
+        data.add_file_dependencies([package_json.clone()]);
+        content
+      }
+      Err(FileSystemError::Io(error)) if error.kind() == ErrorKind::NotFound => {
+        data.add_missing_dependencies([package_json]);
+        directory = parent;
+        continue;
+      }
+      Err(_) => {
+        data.add_file_dependencies([package_json]);
+        return None;
+      }
+    };
+
+    let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) else {
+      return None;
+    };
+    if !json.is_object() {
+      directory = parent;
+      continue;
+    }
+    if let Some(side_effects) = SideEffects::from_description(&json) {
+      return Some((side_effects, directory));
+    }
+    if json.get("name").is_some() {
+      return None;
+    }
+    directory = parent;
   }
 }
 
@@ -130,7 +205,7 @@ impl SideEffectsFlagPlugin {
 #[plugin_hook(NormalModuleFactoryModule for SideEffectsFlagPlugin,tracing=false)]
 async fn nmf_module(
   &self,
-  _data: &mut ModuleFactoryCreateData,
+  data: &mut ModuleFactoryCreateData,
   create_data: &NormalModuleCreateData,
   module: &mut BoxModule,
 ) -> Result<()> {
@@ -145,16 +220,13 @@ async fn nmf_module(
   let Some(resource_path) = resource_data.path() else {
     return Ok(());
   };
-  let Some(description) = resource_data.description() else {
-    return Ok(());
-  };
-  let package_path = description.path();
-  let Some(side_effects) = SideEffects::from_description(description.json()) else {
+  let Some((side_effects, package_path)) = resolve_side_effects_flag(data, create_data).await
+  else {
     return Ok(());
   };
   let relative_path = resource_path
     .as_std_path()
-    .relative(package_path)
+    .relative(&package_path)
     .assert_utf8();
   let has_side_effects = get_side_effects_from_package_json(side_effects, relative_path.as_path());
 
@@ -203,7 +275,7 @@ async fn finish_modules(
             module_graph,
             exports_info_artifact,
             &deferred_check.dep_id,
-            &deferred_check.atom,
+            &deferred_check.ids,
           )
         });
 
@@ -439,7 +511,7 @@ fn do_optimize_connection(
   let SideEffectsDoOptimize {
     ids,
     target_module,
-    need_move_target,
+    need_move_targets,
   } = do_optimize;
   module_graph.do_update_module(&dependency, &target_module);
   module_graph.set_dependency_extra_meta(
@@ -449,16 +521,33 @@ fn do_optimize_connection(
       explanation: Some("(skipped side-effect-free modules)"),
     },
   );
-  if let Some(SideEffectsDoOptimizeMoveTarget {
+  for SideEffectsDoOptimizeMoveTarget {
     export_info,
     target_export,
-  }) = need_move_target
+  } in need_move_targets
   {
     export_info
       .as_data_mut(exports_info_artifact)
       .do_move_target(dependency, target_export);
   }
   (dependency, target_module)
+}
+
+fn module_has_single_star_reexport(
+  module_identifier: &ModuleIdentifier,
+  module_graph: &ModuleGraph,
+) -> bool {
+  let Some(module) = module_graph.module_by_identifier(module_identifier) else {
+    return false;
+  };
+  let build_info = module.build_info();
+  if !build_info.esm_named_exports.is_empty() || build_info.all_star_exports.len() != 1 {
+    return false;
+  }
+  let dependency = module_graph.dependency_by_id(&build_info.all_star_exports[0]);
+  dependency
+    .downcast_ref::<ESMExportImportedSpecifierDependency>()
+    .is_some_and(|dependency| dependency.name.is_none())
 }
 
 #[tracing::instrument("can_optimize_connection", level = "trace", skip_all)]
@@ -472,21 +561,68 @@ fn can_optimize_connection(
   let dependency_id = connection.dependency_id;
   let dep = module_graph.dependency_by_id(&dependency_id);
 
-  if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
-    && let Some(name) = &dep.name
-  {
+  if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>() {
     let exports_info = exports_info_artifact.get_exports_info_data(&original_module);
-    let export_info = exports_info.get_export_info_without_mut_module_graph(name);
+    let (target, need_move_targets) = if let Some(name) = &dep.name {
+      let export_info = exports_info.get_export_info_without_mut_module_graph(name);
+      let resolve_filter = |target: &ResolvedExportInfoTarget| {
+        side_effects_state_map[&target.module] == ConnectionState::Active(false)
+      };
+      let target = can_move_target(
+        &export_info,
+        module_graph,
+        exports_info_artifact,
+        &resolve_filter,
+      )?;
+      let need_move_targets = match export_info {
+        Cow::Borrowed(export_info) => vec![SideEffectsDoOptimizeMoveTarget {
+          export_info: export_info.id(),
+          target_export: target.export.clone(),
+        }],
+        Cow::Owned { .. } => Vec::new(),
+      };
+      (target, need_move_targets)
+    } else {
+      if !module_has_single_star_reexport(connection.module_identifier(), module_graph) {
+        return None;
+      }
 
-    let resolve_filter = |target: &ResolvedExportInfoTarget| {
-      side_effects_state_map[&target.module] == ConnectionState::Active(false)
+      let resolve_filter = |target: &ResolvedExportInfoTarget| {
+        side_effects_state_map[&target.module] == ConnectionState::Active(false)
+          && module_has_single_star_reexport(&target.module, module_graph)
+      };
+      let mut resolved_target = None;
+      let mut need_move_targets = Vec::new();
+      for export_info in exports_info.exports().values() {
+        let immediate_targets = export_info.get_max_target();
+        if !immediate_targets
+          .values()
+          .any(|target| target.dependency == Some(dependency_id))
+        {
+          continue;
+        }
+        let Some(target) = can_move_target(
+          export_info,
+          module_graph,
+          exports_info_artifact,
+          &resolve_filter,
+        ) else {
+          continue;
+        };
+        if resolved_target
+          .as_ref()
+          .is_some_and(|resolved: &ResolvedExportInfoTarget| resolved.module != target.module)
+        {
+          return None;
+        }
+        need_move_targets.push(SideEffectsDoOptimizeMoveTarget {
+          export_info: export_info.id(),
+          target_export: target.export.clone(),
+        });
+        resolved_target = Some(target);
+      }
+      (resolved_target?, need_move_targets)
     };
-    let target = can_move_target(
-      &export_info,
-      module_graph,
-      exports_info_artifact,
-      &resolve_filter,
-    )?;
     if !module_graph.can_update_module(&dependency_id, &target.module) {
       return None;
     }
@@ -500,18 +636,10 @@ fn can_optimize_connection(
         ret
       },
     );
-    let need_move_target = match export_info {
-      Cow::Borrowed(export_info) => Some(SideEffectsDoOptimizeMoveTarget {
-        export_info: export_info.id(),
-        target_export: target.export,
-      }),
-      Cow::Owned { .. } => None,
-    };
-
     return Some(SideEffectsDoOptimize {
       ids: processed_ids,
       target_module: target.module,
-      need_move_target,
+      need_move_targets,
     });
   }
 
@@ -551,7 +679,7 @@ fn can_optimize_connection(
     return Some(SideEffectsDoOptimize {
       ids: processed_ids,
       target_module: target.module,
-      need_move_target: None,
+      need_move_targets: Vec::new(),
     });
   }
 

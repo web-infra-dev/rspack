@@ -313,6 +313,6 @@ pub enum UsedByExportsCondition {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct UsedByExportsDeferredPureCheck {
   pub dep_id: DependencyId,
-  #[cacheable(with=AsPreset)]
-  pub atom: Atom,
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub ids: Vec<Atom>,
 }

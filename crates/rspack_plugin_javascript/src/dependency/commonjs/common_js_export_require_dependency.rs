@@ -3,15 +3,18 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, AsVec},
 };
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportNameOrSpec,
-  ExportProvided, ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, ExportsType,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, Nullable,
-  ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyCondition, DependencyConditionFn, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportProvided, ExportSpec,
+  ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, ExportsType, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, Nullable, ReferencedExport, RuntimeSpec,
+  SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
   collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
   property_access, to_normal_comment,
 };
+use rspack_util::json_stringify_str;
 use rustc_hash::FxHashSet;
 use swc_atoms::Atom;
 
@@ -26,33 +29,40 @@ pub struct CommonJsExportRequireDependency {
   request: String,
   optional: bool,
   range: DependencyRange,
+  value_range: Option<DependencyRange>,
   base: ExportsBase,
   #[cacheable(with=AsVec<AsPreset>)]
   names: Vec<Atom>,
   #[cacheable(with=AsVec<AsPreset>)]
   ids: Vec<Atom>,
   result_used: bool,
+  getter: bool,
 }
 
 impl CommonJsExportRequireDependency {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     request: String,
     optional: bool,
     range: DependencyRange,
+    value_range: Option<DependencyRange>,
     base: ExportsBase,
     names: Vec<Atom>,
     ids: Vec<Atom>,
     result_used: bool,
+    getter: bool,
   ) -> Self {
     Self {
       id: DependencyId::new(),
       request,
       optional,
       range,
+      value_range,
       base,
       names,
       ids,
       result_used,
+      getter,
     }
   }
 }
@@ -396,6 +406,60 @@ impl ModuleDependency for CommonJsExportRequireDependency {
   fn get_optional(&self) -> bool {
     self.optional
   }
+
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    (!self.result_used && !self.names.is_empty())
+      .then(|| DependencyCondition::new(CommonJsExportRequireDependencyCondition))
+  }
+}
+
+struct CommonJsExportRequireDependencyCondition;
+
+impl DependencyConditionFn for CommonJsExportRequireDependencyCondition {
+  fn get_connection_state(
+    &self,
+    connection: &rspack_core::ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+  ) -> ConnectionState {
+    let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+    let dependency = dependency
+      .downcast_ref::<CommonJsExportRequireDependency>()
+      .expect("should be CommonJsExportRequireDependency");
+    let Some(parent_module) = module_graph.get_parent_module(&dependency.id) else {
+      return ConnectionState::Active(true);
+    };
+    if exports_info_artifact
+      .get_exports_info_data(parent_module)
+      .get_used_name(exports_info_artifact, runtime, &dependency.names)
+      .is_some()
+    {
+      return ConnectionState::Active(true);
+    }
+    if dependency.getter {
+      return ConnectionState::Active(false);
+    }
+    let module_identifier = *connection.module_identifier();
+    if let Some(state) =
+      side_effects_state_artifact.module_evaluation_side_effects_state(&module_identifier)
+    {
+      return state;
+    }
+    if let Some(module) = module_graph.module_by_identifier(&module_identifier) {
+      module.get_side_effects_connection_state(
+        module_graph,
+        module_graph_cache,
+        side_effects_state_artifact,
+        &mut IdentifierSet::default(),
+        &mut IdentifierMap::default(),
+      )
+    } else {
+      ConnectionState::Active(true)
+    }
+  }
 }
 impl AsContextDependency for CommonJsExportRequireDependency {}
 
@@ -450,6 +514,27 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
       .get_exports_info_data(&module.identifier());
     let used = exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names);
 
+    if used.is_none()
+      && let Some(connection) = mg.connection_by_dependency_id(&dep.id)
+      && !connection.is_target_active(
+        mg,
+        *runtime,
+        &compilation.module_graph_cache_artifact,
+        &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact,
+        &compilation.exports_info_artifact,
+      )
+    {
+      source.replace(
+        dep.range.start,
+        dep.range.end,
+        "/* unused reexport */ 0".to_string(),
+        None,
+      );
+      return;
+    }
+
     let base = if dep.base.is_exports() {
       runtime_template.render_exports_argument(exports_argument)
     } else if dep.base.is_module_exports() {
@@ -501,7 +586,38 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
       };
       source.replace(dep.range.start, dep.range.end, expr, None)
     } else if dep.base.is_define_property() {
-      todo!("CommonJsExportRequireDependency define_property base type")
+      let value_range = dep
+        .value_range
+        .expect("define property reexport should have a value range");
+      let Some(UsedName::Normal(used)) = used else {
+        source.replace(
+          dep.range.start,
+          dep.range.end,
+          format!("/* unused reexport */ {require_expr}"),
+          None,
+        );
+        return;
+      };
+      let (last, parent) = used
+        .split_last()
+        .expect("define property reexport should have an export name");
+      let descriptor = if dep.getter {
+        "enumerable: true, get: () => ("
+      } else {
+        "value: ("
+      };
+      source.replace(
+        dep.range.start,
+        value_range.start,
+        format!(
+          "Object.defineProperty({base}{}, {}, {{ {descriptor}",
+          property_access(parent, 0),
+          json_stringify_str(last)
+        ),
+        None,
+      );
+      source.replace(value_range.start, value_range.end, require_expr, None);
+      source.replace_static(value_range.end, dep.range.end, ") })", None);
     } else {
       panic!("Unexpected type");
     }

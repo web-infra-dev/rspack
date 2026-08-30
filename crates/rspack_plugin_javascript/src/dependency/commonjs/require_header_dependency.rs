@@ -11,6 +11,7 @@ pub struct RequireHeaderDependency {
   id: DependencyId,
   range: DependencyRange,
   loc: Option<DependencyLocation>,
+  require_dependency: Option<DependencyId>,
 }
 
 impl RequireHeaderDependency {
@@ -19,6 +20,20 @@ impl RequireHeaderDependency {
       id: DependencyId::new(),
       range,
       loc,
+      require_dependency: None,
+    }
+  }
+
+  pub fn new_with_dependency(
+    range: DependencyRange,
+    loc: Option<DependencyLocation>,
+    require_dependency: DependencyId,
+  ) -> Self {
+    Self {
+      id: DependencyId::new(),
+      range,
+      loc,
+      require_dependency: Some(require_dependency),
     }
   }
 }
@@ -71,8 +86,27 @@ impl DependencyTemplate for RequireHeaderDependencyTemplate {
       .expect("RequireHeaderDependencyTemplate should only be used for RequireHeaderDependency");
 
     let TemplateContext {
-      runtime_template, ..
+      compilation,
+      runtime,
+      runtime_template,
+      ..
     } = code_generatable_context;
+    if let Some(require_dependency) = dep.require_dependency {
+      let module_graph = compilation.get_module_graph();
+      if let Some(connection) = module_graph.connection_by_dependency_id(&require_dependency)
+        && !connection.is_target_active(
+          module_graph,
+          *runtime,
+          &compilation.module_graph_cache_artifact,
+          &compilation
+            .build_module_graph_artifact
+            .side_effects_state_artifact,
+          &compilation.exports_info_artifact,
+        )
+      {
+        return;
+      }
+    }
     source.replace(
       dep.range.start,
       dep.range.end,

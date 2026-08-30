@@ -23,6 +23,7 @@ module.exports = {
             module: true,
             nodePrefixForCoreModules: false,
             optionalChaining: true,
+            spread: true,
             templateLiteral: true,
           }
         `);

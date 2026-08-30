@@ -1445,7 +1445,8 @@ impl Module for ConcatenatedModule {
       if matches!(
         exports_type,
         BuildMetaExportsType::Dynamic | BuildMetaExportsType::Unset
-      ) {
+      ) || module.build_info().commonjs_object_literal_exports
+      {
         let external_name_interop: Atom = name_allocator.find_new_name(
           "default",
           escaped_identifiers

@@ -3,12 +3,13 @@ use rspack_cacheable::{
   with::{AsCacheable, AsOption, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Context, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ReferencedExport, ReferencedSpecifier, ResourceIdentifier, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
-  create_referenced_exports_by_referenced_specifiers,
+  AsContextDependency, ConnectionState, Context, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
+  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  ExportsInfoArtifact, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport,
+  ReferencedSpecifier, ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
+  TemplateReplaceSource, UsedByExports, create_exports_object_referenced,
+  create_no_exports_referenced, create_referenced_exports_by_referenced_specifiers,
 };
 
 use super::create_resource_identifier_for_contextual_commonjs_dependency;
@@ -27,6 +28,7 @@ pub struct CommonJsRequireDependency {
   referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   #[cacheable(with=AsOption<AsCacheable>)]
   branch_guard: Option<DependencyBranchGuard>,
+  used_by_exports: Option<UsedByExports>,
   context: Option<Context>,
   resource_identifier: ResourceIdentifier,
 }
@@ -48,6 +50,7 @@ impl CommonJsRequireDependency {
       loc,
       referenced_specifiers: None,
       branch_guard: None,
+      used_by_exports: None,
       context: None,
       resource_identifier: Default::default(),
     }
@@ -75,13 +78,14 @@ impl CommonJsRequireDependency {
   }
 
   pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
-    if referenced_specifiers.is_empty() {
-      // If the referenced specifiers are empty, keep it as default (None), since this dependency can't eliminate by side effects optimization,
-      // so if we set it to Some(vec![]), and the dependency still executes, it will cause runtime error because the exports are all tree shaken.
-      // see test case `tests/rspack-test/configCases/cjs-tree-shaking/side-effects-free`
-      return;
-    }
     self.referenced_specifiers = Some(referenced_specifiers);
+  }
+
+  fn is_evaluation_only(&self) -> bool {
+    self
+      .referenced_specifiers
+      .as_ref()
+      .is_some_and(|referenced_specifiers| referenced_specifiers.is_empty())
   }
 
   pub fn set_branch_guard(&mut self, guard: DependencyBranchGuard) {
@@ -89,6 +93,10 @@ impl CommonJsRequireDependency {
       Some(old_guard) => old_guard.and(guard),
       None => guard,
     });
+  }
+
+  pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
+    self.used_by_exports = used_by_exports;
   }
 }
 
@@ -133,6 +141,22 @@ impl Dependency for CommonJsRequireDependency {
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {
     if let Some(referenced_specifiers) = &self.referenced_specifiers {
+      if referenced_specifiers.is_empty() {
+        let explicitly_side_effect_free = module_graph
+          .get_module_by_dependency_id(&self.id)
+          .and_then(|module| module.factory_meta())
+          .and_then(|meta| meta.side_effect_free)
+          == Some(true);
+        return if explicitly_side_effect_free {
+          create_no_exports_referenced()
+        } else {
+          // Preserve the historical CommonJS namespace observation unless
+          // sideEffects metadata explicitly allows pruning. Besides runtime
+          // compatibility, this keeps reexport cycles and weak-dependency
+          // inclusion semantics intact.
+          create_exports_object_referenced()
+        };
+      }
       let module = module_graph
         .get_module_by_dependency_id(&self.id)
         .expect("should have module");
@@ -172,7 +196,54 @@ impl ModuleDependency for CommonJsRequireDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    compose_dependency_condition(None, self.branch_guard.as_ref())
+    let condition = (self.is_evaluation_only() || self.used_by_exports.is_some())
+      .then(|| DependencyCondition::new(CommonJsRequireDependencyCondition));
+    compose_dependency_condition(condition, self.branch_guard.as_ref())
+  }
+}
+
+struct CommonJsRequireDependencyCondition;
+
+impl DependencyConditionFn for CommonJsRequireDependencyCondition {
+  fn get_connection_state(
+    &self,
+    connection: &rspack_core::ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+  ) -> ConnectionState {
+    let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+    let dependency = dependency
+      .downcast_ref::<CommonJsRequireDependency>()
+      .expect("should be CommonJsRequireDependency");
+    if !crate::connection_active_used_by_exports(
+      connection,
+      runtime,
+      module_graph,
+      exports_info_artifact,
+      dependency.used_by_exports.as_ref(),
+    ) {
+      return ConnectionState::Active(false);
+    }
+    if !dependency.is_evaluation_only() {
+      return ConnectionState::Active(true);
+    }
+    let Some(module) = module_graph.module_by_identifier(connection.module_identifier()) else {
+      return ConnectionState::Active(true);
+    };
+
+    // Removing a bare CommonJS require solely from parser-level purity changes
+    // long-standing chunk-presence and evaluation semantics (for example when a
+    // weak dependency relies on a sibling require to include the module). Only
+    // package/rule `sideEffects` metadata is an explicit authorization to drop
+    // this evaluation-only connection. This still covers webpack's
+    // remove-unused-requires fixtures while preserving existing Rspack behavior
+    // for inferred-pure CommonJS modules.
+    ConnectionState::Active(
+      module.factory_meta().and_then(|meta| meta.side_effect_free) != Some(true),
+    )
   }
 }
 
@@ -208,6 +279,25 @@ impl DependencyTemplate for CommonJsRequireDependencyTemplate {
       .expect(
         "CommonJsRequireDependencyTemplate should only be used for CommonJsRequireDependency",
       );
+
+    let compilation = code_generatable_context.compilation;
+    let module_graph = compilation.get_module_graph();
+    if let Some(connection) = module_graph.connection_by_dependency_id(&dep.id)
+      && !connection.is_target_active(
+        module_graph,
+        code_generatable_context.runtime,
+        &compilation.module_graph_cache_artifact,
+        &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact,
+        &compilation.exports_info_artifact,
+      )
+    {
+      if let Some(range_expr) = dep.range_expr {
+        source.replace(range_expr.start, range_expr.end, "0".to_string(), None);
+      }
+      return;
+    }
 
     source.replace(
       dep.range.start,

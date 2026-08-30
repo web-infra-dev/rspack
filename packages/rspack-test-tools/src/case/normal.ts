@@ -22,6 +22,7 @@ const createCaseOptions = (
   return {
     clean: true,
     describe: false,
+    mode,
     steps: ({ name }) => [
       {
         config: async (context: ITestContext) => {

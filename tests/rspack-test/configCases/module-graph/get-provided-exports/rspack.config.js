@@ -34,12 +34,14 @@ class Plugin {
           'default',
         ]);
 
-        // CJS module (all exports potentially provided)
+        // Statically analyzable CJS object-literal export
         const moduleC = Array.from(compilation.modules).find(
           (module) =>
             normalize(module.resource) === normalize(join(__dirname, 'c.js')),
         );
-        expect(compilation.moduleGraph.getProvidedExports(moduleC)).toBe(true);
+        expect(compilation.moduleGraph.getProvidedExports(moduleC)).toEqual([
+          'dynamic',
+        ]);
       });
     });
   }

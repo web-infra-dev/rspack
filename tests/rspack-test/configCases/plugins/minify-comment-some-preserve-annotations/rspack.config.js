@@ -12,6 +12,9 @@ module.exports = {
   },
   optimization: {
     minimize: true,
+    // Keep the annotated expressions in this fixture. Export pruning is covered
+    // independently by the CommonJS tree-shaking cases.
+    usedExports: false,
   },
   plugins: [
     new rspack.SwcJsMinimizerRspackPlugin({

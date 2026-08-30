@@ -34,6 +34,7 @@ pub struct TargetProperties {
   pub arrow_function: Option<bool>,
   pub for_of: Option<bool>,
   pub destructuring: Option<bool>,
+  pub spread: Option<bool>,
   pub dynamic_import: Option<bool>,
   pub dynamic_import_in_worker: Option<bool>,
   pub module: Option<bool>,
@@ -116,6 +117,9 @@ impl TargetProperties {
   }
   pub fn destructuring(&self) -> bool {
     self.destructuring.unwrap_or(false)
+  }
+  pub fn spread(&self) -> bool {
+    self.spread.unwrap_or(false)
   }
   pub fn dynamic_import(&self) -> bool {
     self.dynamic_import.unwrap_or(false)
@@ -232,6 +236,7 @@ fn merge_target_properties(target_properties: &[TargetProperties]) -> TargetProp
   merge_field!(arrow_function);
   merge_field!(for_of);
   merge_field!(destructuring);
+  merge_field!(spread);
   merge_field!(dynamic_import);
   merge_field!(dynamic_import_in_worker);
   merge_field!(module);
@@ -286,6 +291,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       async_function: Some(version_dependent(7, Some(6), major, minor)),
       for_of: Some(version_dependent(5, None, major, minor)),
       destructuring: Some(version_dependent(6, None, major, minor)),
+      spread: Some(version_dependent(8, Some(3), major, minor)),
       big_int_literal: Some(version_dependent(10, Some(4), major, minor)),
       dynamic_import: Some(version_dependent(12, Some(17), major, minor)),
       dynamic_import_in_worker: if major.is_some() { Some(false) } else { None },
@@ -391,6 +397,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       async_function: Some(version_dependent(1, Some(7), major, minor)),
       for_of: Some(version_dependent(0, Some(36), major, minor)),
       destructuring: Some(version_dependent(1, Some(1), major, minor)),
+      spread: Some(version_dependent(2, None, major, minor)),
       big_int_literal: Some(version_dependent(4, None, major, minor)),
       dynamic_import: Some(version_dependent(11, None, major, minor)),
       dynamic_import_in_worker: if major.is_some() { Some(false) } else { None },
@@ -436,6 +443,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       async_function: Some(version_dependent(0, Some(21), major, minor)),
       for_of: Some(version_dependent(0, Some(13), major, minor)),
       destructuring: Some(version_dependent(0, Some(15), major, minor)),
+      spread: Some(version_dependent(0, Some(23), major, minor)),
       big_int_literal: Some(version_dependent(0, Some(32), major, minor)),
       dynamic_import: Some(version_dependent(0, Some(43), major, minor)),
       dynamic_import_in_worker: if major.is_some() { Some(false) } else { None },
@@ -465,6 +473,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       arrow_function: Some(version >= 2015),
       for_of: Some(version >= 2015),
       destructuring: Some(version >= 2015),
+      spread: Some(version >= 2018),
       module: Some(version >= 2015),
       async_function: Some(version >= 2017),
       global_this: Some(version >= 2020),
