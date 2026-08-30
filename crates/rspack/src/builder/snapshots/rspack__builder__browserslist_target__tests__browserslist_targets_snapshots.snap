@@ -75,6 +75,9 @@ expression: results
             destructuring: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
             dynamic_import: Some(
                 false,
             ),
@@ -166,6 +169,9 @@ expression: results
                 false,
             ),
             destructuring: Some(
+                false,
+            ),
+            spread: Some(
                 false,
             ),
             dynamic_import: Some(
@@ -261,6 +267,9 @@ expression: results
             destructuring: Some(
                 true,
             ),
+            spread: Some(
+                true,
+            ),
             dynamic_import: Some(
                 true,
             ),
@@ -352,6 +361,9 @@ expression: results
                 false,
             ),
             destructuring: Some(
+                false,
+            ),
+            spread: Some(
                 false,
             ),
             dynamic_import: Some(
@@ -447,6 +459,9 @@ expression: results
             destructuring: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
             dynamic_import: Some(
                 false,
             ),
@@ -538,6 +553,9 @@ expression: results
                 false,
             ),
             destructuring: Some(
+                false,
+            ),
+            spread: Some(
                 false,
             ),
             dynamic_import: Some(
@@ -633,6 +651,9 @@ expression: results
             destructuring: Some(
                 true,
             ),
+            spread: Some(
+                true,
+            ),
             dynamic_import: Some(
                 true,
             ),
@@ -724,6 +745,9 @@ expression: results
                 true,
             ),
             destructuring: Some(
+                true,
+            ),
+            spread: Some(
                 true,
             ),
             dynamic_import: Some(
@@ -819,6 +843,9 @@ expression: results
             destructuring: Some(
                 true,
             ),
+            spread: Some(
+                true,
+            ),
             dynamic_import: Some(
                 true,
             ),
@@ -910,6 +937,9 @@ expression: results
                 true,
             ),
             destructuring: Some(
+                true,
+            ),
+            spread: Some(
                 true,
             ),
             dynamic_import: Some(
@@ -1005,6 +1035,9 @@ expression: results
             destructuring: Some(
                 true,
             ),
+            spread: Some(
+                true,
+            ),
             dynamic_import: Some(
                 true,
             ),
@@ -1096,6 +1129,9 @@ expression: results
                 true,
             ),
             destructuring: Some(
+                true,
+            ),
+            spread: Some(
                 true,
             ),
             dynamic_import: Some(
@@ -1191,6 +1227,9 @@ expression: results
             destructuring: Some(
                 true,
             ),
+            spread: Some(
+                true,
+            ),
             dynamic_import: Some(
                 true,
             ),
@@ -1284,6 +1323,9 @@ expression: results
             destructuring: Some(
                 true,
             ),
+            spread: Some(
+                false,
+            ),
             dynamic_import: Some(
                 false,
             ),
@@ -1375,6 +1417,9 @@ expression: results
                 true,
             ),
             destructuring: Some(
+                true,
+            ),
+            spread: Some(
                 true,
             ),
             dynamic_import: Some(
@@ -1470,6 +1515,9 @@ expression: results
             destructuring: Some(
                 true,
             ),
+            spread: Some(
+                false,
+            ),
             dynamic_import: Some(
                 false,
             ),
@@ -1561,6 +1609,9 @@ expression: results
                 true,
             ),
             destructuring: Some(
+                true,
+            ),
+            spread: Some(
                 true,
             ),
             dynamic_import: Some(
@@ -1656,6 +1707,9 @@ expression: results
             destructuring: Some(
                 true,
             ),
+            spread: Some(
+                true,
+            ),
             dynamic_import: Some(
                 true,
             ),
@@ -1747,6 +1801,9 @@ expression: results
                 true,
             ),
             destructuring: Some(
+                true,
+            ),
+            spread: Some(
                 true,
             ),
             dynamic_import: Some(
@@ -1842,6 +1899,9 @@ expression: results
             destructuring: Some(
                 true,
             ),
+            spread: Some(
+                true,
+            ),
             dynamic_import: Some(
                 true,
             ),
@@ -1933,6 +1993,9 @@ expression: results
                 true,
             ),
             destructuring: Some(
+                false,
+            ),
+            spread: Some(
                 false,
             ),
             dynamic_import: Some(
@@ -2028,6 +2091,9 @@ expression: results
             destructuring: Some(
                 true,
             ),
+            spread: Some(
+                true,
+            ),
             dynamic_import: Some(
                 true,
             ),
@@ -2119,6 +2185,9 @@ expression: results
                 true,
             ),
             destructuring: Some(
+                true,
+            ),
+            spread: Some(
                 true,
             ),
             dynamic_import: Some(
@@ -2214,6 +2283,9 @@ expression: results
             destructuring: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
             dynamic_import: Some(
                 false,
             ),
@@ -2305,6 +2377,9 @@ expression: results
                 false,
             ),
             destructuring: Some(
+                false,
+            ),
+            spread: Some(
                 false,
             ),
             dynamic_import: Some(
@@ -2400,6 +2475,9 @@ expression: results
             destructuring: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
             dynamic_import: Some(
                 false,
             ),
@@ -2491,6 +2569,9 @@ expression: results
                 true,
             ),
             destructuring: Some(
+                false,
+            ),
+            spread: Some(
                 false,
             ),
             dynamic_import: Some(
@@ -2586,6 +2667,9 @@ expression: results
             destructuring: Some(
                 true,
             ),
+            spread: Some(
+                true,
+            ),
             dynamic_import: Some(
                 false,
             ),
@@ -2677,6 +2761,9 @@ expression: results
                 true,
             ),
             destructuring: Some(
+                true,
+            ),
+            spread: Some(
                 true,
             ),
             dynamic_import: Some(
@@ -2772,6 +2859,9 @@ expression: results
             destructuring: Some(
                 true,
             ),
+            spread: Some(
+                true,
+            ),
             dynamic_import: Some(
                 true,
             ),
@@ -2863,6 +2953,9 @@ expression: results
                 false,
             ),
             destructuring: Some(
+                false,
+            ),
+            spread: Some(
                 false,
             ),
             dynamic_import: Some(
@@ -2958,6 +3051,9 @@ expression: results
             destructuring: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
             dynamic_import: Some(
                 true,
             ),
@@ -3051,6 +3147,9 @@ expression: results
             destructuring: Some(
                 true,
             ),
+            spread: Some(
+                false,
+            ),
             dynamic_import: Some(
                 false,
             ),
@@ -3142,6 +3241,9 @@ expression: results
                 false,
             ),
             destructuring: Some(
+                false,
+            ),
+            spread: Some(
                 false,
             ),
             dynamic_import: Some(
@@ -3238,6 +3340,9 @@ expression: results
             destructuring: Some(
                 true,
             ),
+            spread: Some(
+                true,
+            ),
             dynamic_import: Some(
                 true,
             ),
@@ -3314,6 +3419,9 @@ expression: results
                 true,
             ),
             destructuring: Some(
+                true,
+            ),
+            spread: Some(
                 true,
             ),
             dynamic_import: Some(
@@ -3407,6 +3515,9 @@ expression: results
                 false,
             ),
             destructuring: Some(
+                false,
+            ),
+            spread: Some(
                 false,
             ),
             dynamic_import: Some(

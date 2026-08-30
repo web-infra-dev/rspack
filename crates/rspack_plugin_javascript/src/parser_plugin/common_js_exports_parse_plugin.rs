@@ -353,15 +353,21 @@ fn getter_reexport_expression<'a>(expr: &'a Expr<'a>) -> Option<&'a Expr<'a>> {
 fn descriptor_key<'a>(property: &'a Prop<'a>) -> Option<&'a str> {
   let key = match property {
     Prop::KeyValue(property) => &property.key,
-    Prop::Getter(property) => &property.key,
-    Prop::Setter(property) => &property.key,
     Prop::Method(property) => &property.key,
-    Prop::Shorthand(_) | Prop::Assign(_) => return None,
+    Prop::Getter(_) | Prop::Setter(_) | Prop::Shorthand(_) | Prop::Assign(_) => return None,
   };
   let PropName::Ident(key) = key else {
     return None;
   };
   Some(key.sym.as_str())
+}
+
+fn is_boolean_descriptor_field(property: &Prop) -> bool {
+  matches!(
+    property,
+    Prop::KeyValue(property)
+      if matches!(&property.value, Expr::Lit(lit) if matches!(&**lit, Lit::Bool(_)))
+  )
 }
 
 fn get_reexport_of_property_descriptor<'a>(
@@ -372,32 +378,44 @@ fn get_reexport_of_property_descriptor<'a>(
   };
   let mut value = None;
   let mut getter = None;
+  let mut writable = false;
   for property in &descriptor.props {
     let PropOrSpread::Prop(property) = property else {
-      continue;
-    };
-    let Some(key) = descriptor_key(property) else {
-      continue;
-    };
-    if key == "set" {
       return None;
-    }
-    if key == "value" {
-      if let Prop::KeyValue(property) = &**property {
+    };
+    let key = descriptor_key(property)?;
+    match key {
+      "value" => {
+        let Prop::KeyValue(property) = &**property else {
+          return None;
+        };
+        if value.is_some() {
+          return None;
+        }
         value = Some(&property.value);
       }
-    } else if key == "get" {
-      getter = match &**property {
-        Prop::KeyValue(property) => getter_reexport_expression(&property.value),
-        Prop::Getter(property) => property.body.as_deref().and_then(single_return_expression),
-        Prop::Method(property) => property
-          .function
-          .body
-          .as_deref()
-          .and_then(single_return_expression),
-        Prop::Shorthand(_) | Prop::Assign(_) | Prop::Setter(_) => None,
-      };
+      "get" => {
+        if getter.is_some() {
+          return None;
+        }
+        getter = match &**property {
+          Prop::KeyValue(property) => getter_reexport_expression(&property.value),
+          Prop::Method(property) => property
+            .function
+            .body
+            .as_deref()
+            .and_then(single_return_expression),
+          Prop::Getter(_) | Prop::Setter(_) | Prop::Shorthand(_) | Prop::Assign(_) => None,
+        };
+        getter?;
+      }
+      "enumerable" | "configurable" if is_boolean_descriptor_field(property) => {}
+      "writable" if is_boolean_descriptor_field(property) => writable = true,
+      _ => return None,
     }
+  }
+  if (value.is_some() && getter.is_some()) || (getter.is_some() && writable) {
+    return None;
   }
   value
     .map(|value| (value, false))
@@ -553,6 +571,8 @@ fn handle_assign_export(
       arg.string().clone(),
       parser.in_try,
       range,
+      None,
+      None,
       None,
       base,
       remaining.to_vec(),
@@ -726,6 +746,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
           parser.in_try,
           call_expr.span.into(),
           Some(reexport.span().into()),
+          Some(arg0.span().into()),
+          Some(arg1.span().into()),
           base,
           vec![property.into()],
           ids,

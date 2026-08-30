@@ -51,3 +51,32 @@ it("should never execute an unused getter reexport", () => {
 	require("./reexport-unused-getter");
 	expect(counter.value).toBe(0);
 });
+
+it("should preserve descriptor fields and async getter semantics", async () => {
+	const reexports = require("./reexport-descriptor-fields");
+	expect(reexports.eager).toBe("abc");
+	expect(await reexports.lazy).toBe("def");
+
+	const descriptors = Object.values(Object.getOwnPropertyDescriptors(reexports));
+	const eager = descriptors.find(descriptor => descriptor.value === "abc");
+	const lazy = descriptors.find(descriptor => typeof descriptor.get === "function");
+	expect(eager).toMatchObject({
+		enumerable: false,
+		configurable: true,
+		writable: true
+	});
+	expect(lazy).toMatchObject({ enumerable: false, configurable: true });
+	expect(lazy.get.constructor.name).toBe("AsyncFunction");
+});
+
+it("should preserve side effects in non-canonical descriptors", () => {
+	const counter = require("./counter");
+	counter.value = 0;
+	const reexports = require("./reexport-side-effectful-descriptor");
+	expect(counter.value).toBe(1);
+	expect(reexports.value).toBe("abc");
+});
+
+it("should not optimize invalid accessor descriptors", () => {
+	expect(() => require("./reexport-invalid-descriptor")).toThrow();
+});

@@ -30,6 +30,8 @@ pub struct CommonJsExportRequireDependency {
   optional: bool,
   range: DependencyRange,
   value_range: Option<DependencyRange>,
+  define_property_base_range: Option<DependencyRange>,
+  define_property_name_range: Option<DependencyRange>,
   base: ExportsBase,
   #[cacheable(with=AsVec<AsPreset>)]
   names: Vec<Atom>,
@@ -46,6 +48,8 @@ impl CommonJsExportRequireDependency {
     optional: bool,
     range: DependencyRange,
     value_range: Option<DependencyRange>,
+    define_property_base_range: Option<DependencyRange>,
+    define_property_name_range: Option<DependencyRange>,
     base: ExportsBase,
     names: Vec<Atom>,
     ids: Vec<Atom>,
@@ -58,6 +62,8 @@ impl CommonJsExportRequireDependency {
       optional,
       range,
       value_range,
+      define_property_base_range,
+      define_property_name_range,
       base,
       names,
       ids,
@@ -601,23 +607,25 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
       let (last, parent) = used
         .split_last()
         .expect("define property reexport should have an export name");
-      let descriptor = if dep.getter {
-        "enumerable: true, get: () => ("
-      } else {
-        "value: ("
-      };
+      let base_range = dep
+        .define_property_base_range
+        .expect("define property reexport should have a base range");
+      let name_range = dep
+        .define_property_name_range
+        .expect("define property reexport should have a name range");
       source.replace(
-        dep.range.start,
-        value_range.start,
-        format!(
-          "Object.defineProperty({base}{}, {}, {{ {descriptor}",
-          property_access(parent, 0),
-          json_stringify_str(last)
-        ),
+        base_range.start,
+        base_range.end,
+        format!("{base}{}", property_access(parent, 0)),
+        None,
+      );
+      source.replace(
+        name_range.start,
+        name_range.end,
+        json_stringify_str(last),
         None,
       );
       source.replace(value_range.start, value_range.end, require_expr, None);
-      source.replace_static(value_range.end, dep.range.end, ") })", None);
     } else {
       panic!("Unexpected type");
     }
