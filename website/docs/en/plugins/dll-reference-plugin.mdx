@@ -174,9 +174,9 @@ Provides the mappings from module requests to module metadata directly. When thi
 ### context
 
 - **Type:** `string`
-- **Default:** `compiler.context`
+- **Default:** `undefined`
 
-Sets the absolute context used to resolve requests from `manifest` or `content`.
+Sets the absolute context used to match module requests against keys in `manifest` or `content`. When using a manifest generated with a custom `DllPlugin.context`, set this option to the same path.
 
 ### extensions
 

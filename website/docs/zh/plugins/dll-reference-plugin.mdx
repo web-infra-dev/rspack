@@ -174,9 +174,9 @@ type DllReferencePluginOptions =
 ### context
 
 - **类型：** `string`
-- **默认值：** `compiler.context`
+- **默认值：** `undefined`
 
-设置解析 `manifest` 或 `content` 中请求时使用的绝对 context。
+设置将模块请求与 `manifest` 或 `content` 中的键进行匹配时使用的绝对 context。使用通过自定义 `DllPlugin.context` 生成的 manifest 时，应将该选项设置为相同的路径。
 
 ### extensions
 
