@@ -21,6 +21,7 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
   } else {
     Default::default()
   };
+  splitter.configure_parallel();
 
   let all_modules = compilation
     .get_module_graph()
