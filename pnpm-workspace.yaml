@@ -124,7 +124,7 @@ catalog:
   'prebundle': '^1.6.5'
   'prettier': '3.9.6'
   'prettier-plugin-toml': '2.0.6'
-  'pretty-format': '30.4.1'
+  'pretty-format': '30.5.0'
   'prop-types': '^15.8.1'
   'raw-loader': '^4.0.2'
   'react': '^19.2.8'

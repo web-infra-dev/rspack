@@ -320,8 +320,8 @@ catalogs:
       specifier: 2.0.6
       version: 2.0.6
     pretty-format:
-      specifier: 30.4.1
-      version: 30.4.1
+      specifier: 30.5.0
+      version: 30.5.0
     prop-types:
       specifier: ^15.8.1
       version: 15.8.1
@@ -847,7 +847,7 @@ importers:
         version: 0.6.0
       pretty-format:
         specifier: 'catalog:'
-        version: 30.4.1
+        version: 30.5.0
       rimraf:
         specifier: 'catalog:'
         version: 5.0.10
