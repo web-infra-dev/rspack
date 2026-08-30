@@ -96,7 +96,7 @@ type ExtractCommentsOptions =
 
 是否将注释提取到单独的文件中。如果原始文件名是 `foo.js`，则注释将提取到 `foo.js.LICENSE.txt` 文件中。
 
-#### boolean
+#### 布尔值形式
 
 如果值为 `true`，等同于 `/@preserve|@lic|@cc_on|^\**!/` 正则表达式，并移除其他的注释。
 
@@ -116,7 +116,7 @@ new rspack.SwcJsMinimizerRspackPlugin({
 });
 ```
 
-#### RegExp
+#### 正则表达式形式
 
 如果值为 `RegExp`，则将匹配的注释提取到单独的文件中。
 
@@ -126,7 +126,7 @@ new rspack.SwcJsMinimizerRspackPlugin({
 });
 ```
 
-#### object
+#### 对象形式
 
 如果值为 `object`，则可以使用 `condition` 和 `banner` 来自定义注释的提取。
 

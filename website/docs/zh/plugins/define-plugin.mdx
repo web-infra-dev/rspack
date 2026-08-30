@@ -109,6 +109,8 @@ type RecursiveArrayOrRecord<T> =
 type DefinePluginOptions = Record<string, CodeValue>;
 ```
 
+将标识符或属性路径映射为编译时替换它们的代码片段。对象中的每个键都是一项定义，例如 `DEBUG` 或 `process.env.NODE_ENV`。
+
 ## 使用 `JSON.stringify`
 
 当你希望注入的是字面量值，而不是代码片段时，应使用 `JSON.stringify`。

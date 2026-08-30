@@ -2,7 +2,6 @@
 description: 'The DllPlugin is used in a separate rspack configuration exclusively to create a dll-only-bundle'
 ---
 
-import { Table } from '@builtIns';
 import Attribution from '@components/Attribution';
 
 # DllPlugin
@@ -27,8 +26,6 @@ Combine this plugin with `output.library` options to expose the dll function.
 
 ## Options
 
-- **Type:**
-
 ```ts
 type DllPluginOptions = {
   context?: string;
@@ -40,63 +37,45 @@ type DllPluginOptions = {
 };
 ```
 
-<Table
-  header={[
-    {
-      name: 'Name',
-      key: 'name',
-    },
-    {
-      name: 'Type',
-      key: 'type',
-    },
-    {
-      name: 'Default',
-      key: 'default',
-    },
-    {
-      name: 'Description',
-      key: 'description',
-    },
-  ]}
-  body={[
-    {
-      name: '`context`',
-      type: '`string`',
-      default: `The rspack compiler context`,
-      description: 'context of requests in the manifest file',
-    },
-    {
-      name: '`path`',
-      type: '`string`',
-      default: `undefined`,
-      description: 'absolute path to the manifest json file ',
-    },
-    {
-      name: '`entryOnly`',
-      type: '`boolean`',
-      default: '`true`',
-      description: 'if `true`, only entry points will be exposed',
-    },
-    {
-      name: '`format`',
-      type: '`boolean`',
-      default: 'undefined',
-      description: 'Whether or not format manifest json',
-    },
-    {
-      name: '`name`',
-      type: '`string`',
-      default: 'undefined',
-      description: 'The expose dll function name',
-    },
-    {
-      name: '`type`',
-      type: '`string`',
-      default: 'undefined',
-      description: 'type of the dll bundle',
-    },
-  ]}
-/>
+### context
+
+- **Type:** `string`
+- **Default:** The Rspack compiler context
+
+Sets the context used for requests in the manifest file.
+
+### entryOnly
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+If `true`, only entry modules are exposed.
+
+### format
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Controls whether the generated manifest JSON is formatted for readability.
+
+### name
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+Sets the name of the exposed DLL function. Configure it to match the DLL bundle's `output.library` name.
+
+### path
+
+- **Type:** `string`
+
+Sets the absolute output path of the manifest JSON file. This option is required.
+
+### type
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+Sets the external type of the DLL bundle. Configure it to match `output.library.type`.
 
 <Attribution url="https://webpack.js.org/plugins/dll-plugin/" />

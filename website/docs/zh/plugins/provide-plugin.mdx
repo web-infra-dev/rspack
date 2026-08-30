@@ -109,4 +109,9 @@ new rspack.ProvidePlugin({
 
 - **类型：** `Record<string, string | string[]>`
 
+将每个标识符映射到提供它的模块。
+
+- **字符串形式：** 指定要加载的模块标识符。目标标识符会被赋值为加载该模块后返回的值，例如 CommonJS 模块的 `module.exports` 或 ES module 的命名空间对象。
+- **数组形式：** 第一项是模块标识符，其余项组成访问模块加载结果的属性路径。若要提供 ES module 的默认导出，请使用 `[moduleSpecifier, 'default']`。
+
 <Attribution url="https://webpack.docschina.org/plugins/provide-plugin/" />
