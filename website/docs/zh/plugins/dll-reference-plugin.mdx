@@ -63,7 +63,7 @@ type DllReferencePluginOptionsContent = {
     /**
      * Module ID.
      */
-    id?: string;
+    id?: string | number;
   };
 };
 
@@ -163,6 +163,62 @@ type DllReferencePluginOptions =
       type?: 'require' | 'object';
     };
 ```
+
+### content
+
+- **类型：** `DllReferencePluginOptionsContent`
+- **默认值：** `undefined`
+
+直接提供从模块请求到模块元数据的映射。使用这种形式代替 `manifest` 时，必须配置 `name`。
+
+### context
+
+- **类型：** `string`
+- **默认值：** `compiler.context`
+
+设置解析 `manifest` 或 `content` 中请求时使用的绝对 context。
+
+### extensions
+
+- **类型：** `string[]`
+- **默认值：** `['', '.js', '.json', '.wasm']`
+
+配置 `scope` 后，设置解析 DLL bundle 中模块时使用的扩展名。
+
+### manifest
+
+- **类型：** `string | DllReferencePluginOptionsManifest`
+- **默认值：** `undefined`
+
+提供 manifest 对象，或由 `DllPlugin` 生成的 JSON manifest 文件的绝对路径。该选项与 `content` 二选一。
+
+### name
+
+- **类型：** `string`
+- **默认值：** `manifest.name`
+
+设置 DLL 暴露时使用的 external 名称。直接提供 `content` 时，该选项为必填项。
+
+### scope
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+设置访问 DLL 内容时使用的模块前缀。
+
+### sourceType
+
+- **类型：** `DllReferencePluginOptionsSourceType`
+- **默认值：** `manifest.type`；未提供类型时为 `'var'`
+
+设置 DLL 的暴露方式，对应其 library type。
+
+### type
+
+- **类型：** `'require' | 'object'`
+- **默认值：** `'require'`
+
+控制如何使用 DLL bundle 的导出。
 
 当依赖被引用的时候，插件通过 dll manifest 文件将依赖名和预打包的模块链接起来。
 

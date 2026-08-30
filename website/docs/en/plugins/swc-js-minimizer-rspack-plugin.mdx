@@ -96,7 +96,7 @@ type ExtractCommentsOptions =
 
 Whether comments shall be extracted to a separate file. If the original file is named `foo.js`, then the comments will be stored to `foo.js.LICENSE.txt`.
 
-#### boolean
+#### Boolean form
 
 If value is `true`, it is equivalent to `/@preserve|@lic|@cc_on|^\**!/` regexp condition and remove remaining comments.
 
@@ -116,7 +116,7 @@ new rspack.SwcJsMinimizerRspackPlugin({
 });
 ```
 
-#### RegExp
+#### Regular expression form
 
 If value is `RegExp`, all comments that match the given expression will be extracted to the separate file.
 
@@ -126,7 +126,7 @@ new rspack.SwcJsMinimizerRspackPlugin({
 });
 ```
 
-#### object
+#### Object form
 
 If value is `object`, it can use `condition` and `banner` to customize the extraction.
 

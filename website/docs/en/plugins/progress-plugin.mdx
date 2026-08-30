@@ -2,8 +2,6 @@
 description: 'This plugin can be used to configure the progress bar'
 ---
 
-import { Table } from '@builtIns';
-
 # ProgressPlugin
 
 This plugin can be used to configure the progress bar.
@@ -24,9 +22,12 @@ export default {
 
 ## Options
 
-### Function
+### Function form
 
-Provide a handler function which will be called when hooks report progress. `handler` function arguments:
+- **Type:** `(percentage: number, message: string, info: ProgressPluginHandlerInfo) => void`
+- **Default:** `undefined`
+
+Pass a handler function directly to the `ProgressPlugin` constructor. It is called when hooks report progress with the following arguments:
 
 - `percentage`: a number between 0 and 1 indicating the completion percentage of the compilation
 - `message`: a short description of the currently-executing hook
@@ -43,12 +44,12 @@ const handler = (percentage, message, info) => {
 new rspack.ProgressPlugin(handler);
 ```
 
-### Object
+### Object form
 
 #### prefix
 
 - **Type:** `string`
-- **Default:** `'Rspack'`
+- **Default:** `''`
 
 The text will be displayed before the progress bar.
 

@@ -2,7 +2,6 @@
 description: 'Dll 插件用于在一个单独的 rspack 配置中生成一个 dll 库，DllReference 插件通过该插件生成的 manifest.json 能够将依赖映射到对应的位置上。'
 ---
 
-import { Table } from '@builtIns';
 import Attribution from '@components/Attribution';
 
 # DllPlugin
@@ -27,8 +26,6 @@ manifest 文件包含了从 `require` 和 `import` 请求到模块id的映射。
 
 ## 选项
 
-- **类型：**
-
 ```ts
 type DllPluginOptions = {
   context?: string;
@@ -40,63 +37,45 @@ type DllPluginOptions = {
 };
 ```
 
-<Table
-  header={[
-    {
-      name: 'Name',
-      key: 'name',
-    },
-    {
-      name: 'Type',
-      key: 'type',
-    },
-    {
-      name: 'Default',
-      key: 'default',
-    },
-    {
-      name: 'Description',
-      key: 'description',
-    },
-  ]}
-  body={[
-    {
-      name: '`context`',
-      type: '`string`',
-      default: `Rspack compiler 的 context`,
-      description: 'manifest 文件中依赖请求的 context',
-    },
-    {
-      name: '`path`',
-      type: '`string`',
-      default: `undefined`,
-      description: 'manifest 文件输出的绝对路径',
-    },
-    {
-      name: '`entryOnly`',
-      type: '`boolean`',
-      default: '`true`',
-      description: '如果为 true ，只有入口文件会被暴露',
-    },
-    {
-      name: '`format`',
-      type: '`boolean`',
-      default: 'undefined',
-      description: 'manifest 文件是否会被格式化输出',
-    },
-    {
-      name: '`name`',
-      type: '`string`',
-      default: 'undefined',
-      description: '暴露处的 Dll 函数名称',
-    },
-    {
-      name: '`type`',
-      type: '`string`',
-      default: 'undefined',
-      description: 'dll bundle 的类型',
-    },
-  ]}
-/>
+### context
+
+- **类型：** `string`
+- **默认值：** Rspack compiler 的 context
+
+设置 manifest 文件中依赖请求所使用的 context。
+
+### entryOnly
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+设置为 `true` 时，只暴露入口模块。
+
+### format
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+控制是否格式化生成的 manifest JSON，以提高可读性。
+
+### name
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+设置暴露的 DLL 函数名称。该值应与 DLL bundle 的 `output.library` 名称保持一致。
+
+### path
+
+- **类型：** `string`
+
+设置 manifest JSON 文件的绝对输出路径。该选项为必填项。
+
+### type
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+设置 DLL bundle 的 external 类型。该值应与 `output.library.type` 保持一致。
 
 <Attribution url="https://webpack.docschina.org/plugins/dll-plugin/" />

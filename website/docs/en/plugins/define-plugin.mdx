@@ -109,6 +109,8 @@ type RecursiveArrayOrRecord<T> =
 type DefinePluginOptions = Record<string, CodeValue>;
 ```
 
+Maps identifiers or property paths to the code fragments that replace them at compile time. Each key in the object is one definition, such as `DEBUG` or `process.env.NODE_ENV`.
+
 ## Use `JSON.stringify`
 
 Use `JSON.stringify` when you want to inject a literal value rather than a code fragment.

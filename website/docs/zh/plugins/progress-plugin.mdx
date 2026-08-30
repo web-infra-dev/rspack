@@ -2,8 +2,6 @@
 description: 'Rspack ProgressPlugin 插件参考，说明用途、可用选项、典型场景、使用方式与常见集成方式。'
 ---
 
-import { Table } from '@builtIns';
-
 # ProgressPlugin
 
 此插件可以用来配置进度条。
@@ -24,9 +22,12 @@ export default {
 
 ## 选项
 
-### Function
+### 函数形式
 
-提供一个处理函数，当 hooks 进度更新时将调用该函数。`handler` 函数参数为：
+- **类型：** `(percentage: number, message: string, info: ProgressPluginHandlerInfo) => void`
+- **默认值：** `undefined`
+
+将处理函数直接传给 `ProgressPlugin` 构造函数。当 hooks 报告进度时，将使用以下参数调用该函数：
 
 - `percentage`：0 到 1 之间的数字，表示编译的完成百分比
 - `message`：关于当前执行 hook 的简短描述
@@ -43,26 +44,26 @@ const handler = (percentage, message, info) => {
 new rspack.ProgressPlugin(handler);
 ```
 
-### Object
+### 对象形式
 
 #### prefix
 
-- **Type:** `string`
-- **Default:** `'Rspack'`
+- **类型：** `string`
+- **默认值：** `''`
 
 进度条前显示文案。
 
 #### profile
 
-- **Type:** `boolean`
-- **Default:** `false`
+- **类型：** `boolean`
+- **默认值：** `false`
 
 是否收集进度步骤的性能数据。
 
 #### template
 
-- **Type:** `string`
-- **Default:** `● {prefix:.bold} {bar:25.green/white.dim} ({percent}%) {wide_msg:.dim}`
+- **类型：** `string`
+- **默认值：** `● {prefix:.bold} {bar:25.green/white.dim} ({percent}%) {wide_msg:.dim}`
 
 进度条的模板。
 
@@ -70,8 +71,8 @@ new rspack.ProgressPlugin(handler);
 
 #### tick
 
-- **Type:** `string | string[] | undefined`
-- **Default:** `undefined`
+- **类型：** `string | string[] | undefined`
+- **默认值：** `undefined`
 
 Spinner 变化的字符串序列，如果是字符串，则会被拆分为字符。
 
@@ -79,8 +80,8 @@ Spinner 变化的字符串序列，如果是字符串，则会被拆分为字符
 
 #### progressChars
 
-- **Type:** `string`
-- **Default:** `━━`
+- **类型：** `string`
+- **默认值：** `━━`
 
 组成进度条的字符。
 

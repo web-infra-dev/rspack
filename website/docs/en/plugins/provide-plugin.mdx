@@ -109,4 +109,9 @@ new rspack.ProvidePlugin({
 
 - **Type:** `Record<string, string | string[]>`
 
+Maps each identifier to the module that provides it.
+
+- **String form:** Specifies the module specifier to load. The provided identifier is assigned the value returned by loading that module, such as a CommonJS module's `module.exports` or an ES module namespace object.
+- **Array form:** The first item is the module specifier, and the remaining items form a property path into the value returned by loading that module. To provide the default export of an ES module, use `[moduleSpecifier, 'default']`.
+
 <Attribution url="https://webpack.js.org/plugins/provide-plugin/" />
