@@ -19,6 +19,18 @@ const FNV_OFFSET_64: u64 = 0xCBF2_9CE4_8422_2325;
 
 const FNV_PRIME_64: u64 = 0x0100_0000_01B3;
 
+#[derive(Debug, Clone, Copy)]
+pub struct NumberHashState {
+  inner: NumberHashStateInner,
+  range: usize,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum NumberHashStateInner {
+  Fnv32(u32),
+  Fnv64(u64),
+}
+
 fn fnv1a32(s: &str) -> u32 {
   fnv1a32_update(FNV_OFFSET_32, s) & MASK_31
 }
@@ -60,15 +72,31 @@ pub fn get_number_hash(s: &str, range: usize) -> usize {
   }
 }
 
-pub fn get_number_hash_combined(prefix: &str, suffix: usize, range: usize) -> usize {
+pub fn get_number_hash_state(prefix: &str, range: usize) -> NumberHashState {
+  let inner = if range < FNV_64_THRESHOLD {
+    NumberHashStateInner::Fnv32(fnv1a32_update(FNV_OFFSET_32, prefix))
+  } else {
+    NumberHashStateInner::Fnv64(fnv1a64_update(FNV_OFFSET_64, prefix))
+  };
+  NumberHashState { inner, range }
+}
+
+pub fn get_number_hash_combined_from_state(state: NumberHashState, suffix: usize) -> usize {
   let mut suffix_buffer = itoa::Buffer::new();
   let suffix = suffix_buffer.format(suffix);
 
-  if range < FNV_64_THRESHOLD {
-    ((fnv1a32_update(fnv1a32_update(FNV_OFFSET_32, prefix), suffix) & MASK_31) as usize) % range
-  } else {
-    (fnv1a64_update(fnv1a64_update(FNV_OFFSET_64, prefix), suffix) % (range as u64)) as usize
+  match state.inner {
+    NumberHashStateInner::Fnv32(hash) => {
+      ((fnv1a32_update(hash, suffix) & MASK_31) as usize) % state.range
+    }
+    NumberHashStateInner::Fnv64(hash) => {
+      (fnv1a64_update(hash, suffix) % (state.range as u64)) as usize
+    }
   }
+}
+
+pub fn get_number_hash_combined(prefix: &str, suffix: usize, range: usize) -> usize {
+  get_number_hash_combined_from_state(get_number_hash_state(prefix, range), suffix)
 }
 
 #[test]
