@@ -104,6 +104,7 @@ CompilerOptions {
             async_function: false,
             big_int_literal: false,
             destructuring: false,
+            spread: false,
             document: true,
             dynamic_import: false,
             for_of: false,
