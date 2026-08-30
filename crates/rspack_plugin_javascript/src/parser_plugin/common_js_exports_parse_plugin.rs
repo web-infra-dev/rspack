@@ -10,7 +10,8 @@ use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   AssignExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Class, ClassMember, Expr, ExprOrSpread,
   Function, GetSpan, GetterProp, Ident, Key, Lit, MemberExpr, MethodProp, Prop, PropName,
-  PropOrSpread, SetterProp, Span, Stmt, ThisExpr, UnaryExpr, UnaryOp, Visit, VisitWith,
+  PropOrSpread, SetterProp, Span, Stmt, SuperPropExpr, ThisExpr, UnaryExpr, UnaryOp, Visit,
+  VisitWith,
 };
 
 use super::JavascriptParserPlugin;
@@ -112,6 +113,23 @@ fn own_this_in_property(prop: &Prop) -> Option<Span> {
     Prop::Method(method) => own_this_in_function(&method.function),
     Prop::Shorthand(_) | Prop::Assign(_) => None,
   }
+}
+
+#[derive(Default)]
+struct SuperPropertyVisitor {
+  found: bool,
+}
+
+impl Visit<'_> for SuperPropertyVisitor {
+  fn visit_super_prop_expr(&mut self, _expr: &SuperPropExpr<'_>) {
+    self.found = true;
+  }
+}
+
+fn property_contains_super(property: &Prop) -> bool {
+  let mut visitor = SuperPropertyVisitor::default();
+  property.visit_with(&mut visitor);
+  visitor.found
 }
 
 fn static_object_export_name(property: &PropOrSpread) -> Option<Atom> {
@@ -498,6 +516,7 @@ fn handle_object_literal_export(
       .source
       .get(property_range.start as usize..value_range.start as usize)
       .is_some_and(|prefix| prefix.trim_end().ends_with('('));
+    let contains_super = kind.is_function() && property_contains_super(property);
 
     if name == "__esModule" {
       let value = match property {
@@ -507,15 +526,18 @@ fn handle_object_literal_export(
       parser.check_namespace(true, value);
     }
 
-    parser.add_dependency(BoxDependency::new(CommonJsObjectExportDependency::new(
-      property_range,
-      key_range,
-      value_range,
-      name.clone(),
-      kind,
-      pure,
-      value_has_leading_parenthesis,
-    )));
+    parser.add_dependency(BoxDependency::new(
+      CommonJsObjectExportDependency::new(
+        property_range,
+        key_range,
+        value_range,
+        name.clone(),
+        kind,
+        pure,
+        value_has_leading_parenthesis,
+      )
+      .with_contains_super(contains_super),
+    ));
 
     if let Some(span) = own_this_in_property(property) {
       add_this_self_reference(parser, span);

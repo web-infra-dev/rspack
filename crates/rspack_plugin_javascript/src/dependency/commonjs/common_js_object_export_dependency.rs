@@ -51,6 +51,7 @@ pub struct CommonJsObjectExportDependency {
   kind: CommonJsObjectExportKind,
   pure: bool,
   value_has_leading_parenthesis: bool,
+  contains_super: bool,
 }
 
 impl CommonJsObjectExportDependency {
@@ -72,7 +73,13 @@ impl CommonJsObjectExportDependency {
       kind,
       pure,
       value_has_leading_parenthesis,
+      contains_super: false,
     }
+  }
+
+  pub fn with_contains_super(mut self, contains_super: bool) -> Self {
+    self.contains_super = contains_super;
+    self
   }
 }
 
@@ -178,6 +185,12 @@ impl DependencyTemplate for CommonJsObjectExportDependencyTemplate {
       }
 
       if let Some(head) = dep.kind.function_drop_head() {
+        // `super` is only valid while the function keeps its method home object.
+        // Leave the unused property intact instead of converting it to a plain
+        // function expression, which would produce invalid JavaScript.
+        if dep.contains_super {
+          return;
+        }
         // Keep the body intact so nested dependency ranges remain valid.
         source.replace_static(dep.range.start, dep.value_range.start, head, None);
         source.insert_static(dep.value_range.end, ")", None);

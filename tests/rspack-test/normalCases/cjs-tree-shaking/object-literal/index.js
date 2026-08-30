@@ -31,6 +31,11 @@ it("should keep sibling exports when an object method uses this", () => {
 	expect(m.usedExports).toBe(true);
 });
 
+it("should preserve unused object methods that use super", () => {
+	const m = require("./method-super");
+	expect(m.used).toBe("used");
+});
+
 it("should drop unused data properties with a side-effect-free value", () => {
 	const m = require("./pure");
 	expect(m.used).toBe("used");

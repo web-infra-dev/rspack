@@ -580,6 +580,7 @@ fn try_mark_auto_side_effects_free_stmt(
   stmt: &Stmt,
   comments: &Comments<'_>,
   duplicate_names: &FxHashSet<Atom>,
+  written: &FxHashSet<Atom>,
 ) {
   if let Stmt::Decl(decl) = stmt {
     match &**decl {
@@ -591,6 +592,7 @@ fn try_mark_auto_side_effects_free_stmt(
           .as_ref()
           .is_some_and(|side_effects_free| side_effects_free.contains(&ident))
           || duplicate_names.contains(&ident)
+          || written.contains(&ident)
         {
           return;
         }
@@ -623,6 +625,7 @@ fn try_mark_auto_side_effects_free_module_decl(
   decl: &ModuleDecl,
   comments: &Comments<'_>,
   duplicate_names: &FxHashSet<Atom>,
+  written: &FxHashSet<Atom>,
 ) {
   match decl {
     ModuleDecl::ExportDefaultExpr(default_expr) => {
@@ -640,6 +643,7 @@ fn try_mark_auto_side_effects_free_module_decl(
         .as_ref()
         .is_some_and(|side_effects_free| side_effects_free.contains(&ident))
         || duplicate_names.contains(&ident)
+        || written.contains(&ident)
       {
         return;
       }
@@ -667,6 +671,7 @@ fn try_mark_auto_side_effects_free_module_decl(
         .as_ref()
         .is_some_and(|side_effects_free| side_effects_free.contains(&ident))
         || duplicate_names.contains(&ident)
+        || written.contains(&ident)
       {
         return;
       }
@@ -681,14 +686,14 @@ fn try_mark_auto_side_effects_free_module_decl(
     }
     ModuleDecl::ExportDecl(export_decl) => match &export_decl.decl {
       Decl::Fn(fn_decl) => {
+        let ident = compat_atom(&fn_decl.ident.sym);
         if parser
           .build_info
           .side_effects_free
           .as_ref()
-          .is_some_and(|side_effects_free| {
-            side_effects_free.contains(&compat_atom(&fn_decl.ident.sym))
-          })
-          || duplicate_names.contains(&compat_atom(&fn_decl.ident.sym))
+          .is_some_and(|side_effects_free| side_effects_free.contains(&ident))
+          || duplicate_names.contains(&ident)
+          || written.contains(&ident)
         {
           return;
         }
@@ -699,7 +704,7 @@ fn try_mark_auto_side_effects_free_module_decl(
           &fn_decl.function,
           comments,
         ) {
-          mark_side_effects_free(parser, &compat_atom(&fn_decl.ident.sym), None);
+          mark_side_effects_free(parser, &ident, None);
         }
       }
       Decl::Var(var_decl) => try_mark_auto_side_effects_free_var_decl(
@@ -722,6 +727,7 @@ fn mark_auto_side_effects_free_program(
   program: &Program,
   comments: &Comments<'_>,
   duplicate_names: &FxHashSet<Atom>,
+  written: &FxHashSet<Atom>,
 ) {
   match program {
     Program::Module(module) => {
@@ -733,6 +739,7 @@ fn mark_auto_side_effects_free_program(
             stmt,
             comments,
             duplicate_names,
+            written,
           ),
           ModuleItem::ModuleDecl(decl) => try_mark_auto_side_effects_free_module_decl(
             parser,
@@ -740,6 +747,7 @@ fn mark_auto_side_effects_free_program(
             decl,
             comments,
             duplicate_names,
+            written,
           ),
         }
       }
@@ -752,6 +760,7 @@ fn mark_auto_side_effects_free_program(
           stmt,
           comments,
           duplicate_names,
+          written,
         );
       }
     }
@@ -779,8 +788,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
         parser,
       };
       ast.visit_with(&mut pure_annotation);
-      let mut detected_side_effects_free = pure_annotation.side_effects_free;
-      detected_side_effects_free.retain(|name| !pure_annotation.written.contains(name));
+      let PureAnnotation {
+        side_effects_free: mut detected_side_effects_free,
+        written,
+        ..
+      } = pure_annotation;
+      detected_side_effects_free.retain(|name| !written.contains(name));
       add_side_effects_free_export_aliases(ast, &mut detected_side_effects_free);
       if !detected_side_effects_free.is_empty() {
         let side_effects_free = parser.build_info.side_effects_free.get_or_insert_default();
@@ -809,6 +822,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
           ast,
           parser.ast.comments,
           &duplicate_names,
+          &written,
         );
         let next_len = parser
           .build_info

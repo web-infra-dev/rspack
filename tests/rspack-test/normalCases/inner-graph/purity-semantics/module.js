@@ -1,5 +1,6 @@
 globalThis.__template_coercion_effect__ = 0;
 globalThis.__reassigned_pure_function_effect__ = 0;
+globalThis.__reassigned_auto_function_effect__ = 0;
 
 const value = {
 	[Symbol.toPrimitive]() {
@@ -22,3 +23,16 @@ varFn = () => {
 
 export const unusedLetCall = letFn();
 export const unusedVarCall = varFn();
+
+function autoFn() {}
+autoFn = () => {
+	globalThis.__reassigned_auto_function_effect__++;
+};
+
+export function exportedAutoFn() {}
+exportedAutoFn = () => {
+	globalThis.__reassigned_auto_function_effect__++;
+};
+
+export const unusedAutoCall = autoFn();
+export const unusedExportedAutoCall = exportedAutoFn();
