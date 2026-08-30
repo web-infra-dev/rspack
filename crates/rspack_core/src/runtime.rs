@@ -231,6 +231,7 @@ pub fn filter_runtime(
 ) -> RuntimeCondition {
   match runtime {
     None => RuntimeCondition::Boolean(filter(None)),
+    Some(runtime) if runtime.len() == 1 => RuntimeCondition::Boolean(filter(Some(runtime))),
     Some(runtime) => {
       let mut some = false;
       let mut every = true;
