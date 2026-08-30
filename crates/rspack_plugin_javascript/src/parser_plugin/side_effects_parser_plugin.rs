@@ -8,11 +8,12 @@ use rustc_hash::FxHashSet;
 use swc_atoms::Atom;
 use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom};
 use swc_experimental_ecma_ast::{
-  ArrayLit, ArrowExpr, BinaryOp, BlockStmt, BlockStmtOrExpr, CallExpr, Class, ClassMember,
-  CommentKind, Comments, Decl, DefaultDecl, ExportSpecifier, Expr, ExprOrSpread, Function, GetSpan,
-  ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem, ObjectPatProp, OptChainBase, Pat,
-  Program, PropName, Span, Span as AstSpan, Stmt, UnaryOp, VarDecl, VarDeclKind, VarDeclOrExpr,
-  Visit, VisitWith,
+  ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignTarget, AssignTargetPat, BinaryOp, BindingIdent,
+  BlockStmt, BlockStmtOrExpr, CallExpr, Class, ClassMember, CommentKind, Comments, Decl,
+  DefaultDecl, ExportSpecifier, Expr, ExprOrSpread, ForHead, ForInStmt, ForOfStmt, Function,
+  GetSpan, Ident, ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem, ObjectPat,
+  ObjectPatProp, OptChainBase, Pat, Program, PropName, SimpleAssignTarget, Span, Span as AstSpan,
+  Stmt, UnaryOp, UpdateExpr, VarDecl, VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
 };
 use swc_experimental_ecma_utils::{ExprCtx, ExprExt};
 
@@ -43,7 +44,75 @@ impl SideEffectsParserPlugin {
 
 struct PureAnnotation<'a> {
   side_effects_free: FxHashSet<Atom>,
+  written: FxHashSet<Atom>,
   parser: &'a JavascriptParser<'a>,
+}
+
+impl PureAnnotation<'_> {
+  fn is_top_level_ident(&self, ident: &Ident) -> bool {
+    self.parser.ast.semantic.node_scope(ident) == self.parser.ast.semantic.top_level_scope_id()
+  }
+
+  fn mark_written_binding(&mut self, binding: &BindingIdent) {
+    if self.is_top_level_ident(&binding.id) {
+      self.written.insert(compat_atom(&binding.id.sym));
+    }
+  }
+
+  fn mark_written_pat(&mut self, pat: &Pat) {
+    match pat {
+      Pat::Ident(ident) => self.mark_written_binding(ident),
+      Pat::Array(array) => self.mark_written_array_pat(array),
+      Pat::Object(object) => self.mark_written_object_pat(object),
+      Pat::Assign(assign) => self.mark_written_pat(&assign.left),
+      Pat::Rest(rest) => self.mark_written_pat(&rest.arg),
+      Pat::Expr(expr) => {
+        if let Expr::Ident(ident) = &**expr
+          && self.is_top_level_ident(ident)
+        {
+          self.written.insert(compat_atom(&ident.sym));
+        }
+      }
+      Pat::Invalid(_) => {}
+    }
+  }
+
+  fn mark_written_array_pat(&mut self, array: &ArrayPat) {
+    for item in array.elems.iter().flatten() {
+      self.mark_written_pat(item);
+    }
+  }
+
+  fn mark_written_object_pat(&mut self, object: &ObjectPat) {
+    for property in &object.props {
+      match property {
+        ObjectPatProp::KeyValue(property) => self.mark_written_pat(&property.value),
+        ObjectPatProp::Assign(property) => self.mark_written_binding(&property.key),
+        ObjectPatProp::Rest(property) => self.mark_written_pat(&property.arg),
+      }
+    }
+  }
+
+  fn mark_written_assign_target(&mut self, target: &AssignTarget) {
+    match target {
+      AssignTarget::Simple(target) => {
+        if let SimpleAssignTarget::Ident(ident) = &**target {
+          self.mark_written_binding(ident);
+        }
+      }
+      AssignTarget::Pat(target) => match &**target {
+        AssignTargetPat::Array(array) => self.mark_written_array_pat(array),
+        AssignTargetPat::Object(object) => self.mark_written_object_pat(object),
+        AssignTargetPat::Invalid(_) => {}
+      },
+    }
+  }
+
+  fn mark_written_for_head(&mut self, head: &ForHead) {
+    if let ForHead::Pat(pat) = head {
+      self.mark_written_pat(pat);
+    }
+  }
 }
 
 fn compat_atom(atom: &AstAtom<'_>) -> Atom {
@@ -132,6 +201,7 @@ impl<'a> Visit<'a> for PureAnnotation<'a> {
       }
       _ => {}
     }
+    node.visit_children_with(self);
   }
 
   fn visit_stmt(&mut self, node: &Stmt<'a>) {
@@ -139,7 +209,9 @@ impl<'a> Visit<'a> for PureAnnotation<'a> {
       #[allow(clippy::collapsible_match)]
       match &**decl {
         Decl::Fn(fn_decl) => {
-          if has_no_side_effects_notation(self.parser.ast.comments, fn_decl.span()) {
+          if self.is_top_level_ident(&fn_decl.ident)
+            && has_no_side_effects_notation(self.parser.ast.comments, fn_decl.span())
+          {
             self
               .side_effects_free
               .insert(compat_atom(&fn_decl.ident.sym));
@@ -157,6 +229,7 @@ impl<'a> Visit<'a> for PureAnnotation<'a> {
             let const_decl = &var_decl.decls[0];
 
             if let Some(ident) = const_decl.name.as_ident()
+              && self.is_top_level_ident(&ident.id)
               && let Some(Expr::Fn(fn_expr)) = const_decl.init.as_ref()
               && ((matches!(var_decl.kind, VarDeclKind::Const)
                 && has_no_side_effects_notation(self.parser.ast.comments, var_decl.span()))
@@ -164,6 +237,7 @@ impl<'a> Visit<'a> for PureAnnotation<'a> {
             {
               self.side_effects_free.insert(compat_atom(&ident.id.sym));
             } else if let Some(ident) = const_decl.name.as_ident()
+              && self.is_top_level_ident(&ident.id)
               && let Some(Expr::Arrow(fn_expr)) = const_decl.init.as_ref()
               && ((matches!(var_decl.kind, VarDeclKind::Const)
                 && has_no_side_effects_notation(self.parser.ast.comments, var_decl.span()))
@@ -176,6 +250,31 @@ impl<'a> Visit<'a> for PureAnnotation<'a> {
         _ => {}
       }
     }
+    node.visit_children_with(self);
+  }
+
+  fn visit_assign_expr(&mut self, node: &AssignExpr<'a>) {
+    self.mark_written_assign_target(&node.left);
+    node.visit_children_with(self);
+  }
+
+  fn visit_update_expr(&mut self, node: &UpdateExpr<'a>) {
+    if let Expr::Ident(ident) = &node.arg
+      && self.is_top_level_ident(ident)
+    {
+      self.written.insert(compat_atom(&ident.sym));
+    }
+    node.visit_children_with(self);
+  }
+
+  fn visit_for_in_stmt(&mut self, node: &ForInStmt<'a>) {
+    self.mark_written_for_head(&node.left);
+    node.visit_children_with(self);
+  }
+
+  fn visit_for_of_stmt(&mut self, node: &ForOfStmt<'a>) {
+    self.mark_written_for_head(&node.left);
+    node.visit_children_with(self);
   }
 }
 
@@ -676,10 +775,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
       // use a raw swc visitor so that we can find all pure functions before the parser visit the ast
       let mut pure_annotation = PureAnnotation {
         side_effects_free: FxHashSet::default(),
+        written: FxHashSet::default(),
         parser,
       };
       ast.visit_with(&mut pure_annotation);
       let mut detected_side_effects_free = pure_annotation.side_effects_free;
+      detected_side_effects_free.retain(|name| !pure_annotation.written.contains(name));
       add_side_effects_free_export_aliases(ast, &mut detected_side_effects_free);
       if !detected_side_effects_free.is_empty() {
         let side_effects_free = parser.build_info.side_effects_free.get_or_insert_default();
@@ -1679,13 +1780,34 @@ pub fn is_pure_expression<'a>(
         })
       }
       Expr::Tpl(template) => template.exprs.iter().all(|expr| {
-        is_pure_expression(
+        if !is_pure_expression(
           parser,
           analyze_side_effects_free,
           expr,
           comments,
           callees.as_deref_mut(),
-        )
+        ) {
+          return false;
+        }
+
+        // Template interpolation coerces values to strings. Objects may run user-defined coercion
+        // hooks, and symbols may throw, so only statically known primitive values are safe here.
+        let syntactically_primitive = matches!(
+          expr,
+          Expr::Unary(unary)
+            if matches!(unary.op, UnaryOp::Bang | UnaryOp::TypeOf | UnaryOp::Void)
+        ) || matches!(
+          expr,
+          Expr::Bin(binary) if matches!(binary.op, BinaryOp::EqEqEq | BinaryOp::NotEqEq)
+        );
+        let evaluated = parser.evaluate_expression(expr);
+        syntactically_primitive
+          || evaluated.is_undefined()
+          || evaluated.is_null()
+          || evaluated.is_string()
+          || evaluated.is_bool()
+          || evaluated.is_number()
+          || evaluated.is_bigint()
       }),
       Expr::Unary(unary) if matches!(unary.op, UnaryOp::Bang | UnaryOp::TypeOf | UnaryOp::Void) => {
         is_pure_expression(

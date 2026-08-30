@@ -6,7 +6,7 @@ module.exports = createTestCases({
   nothing: {
     usedExports: [],
     expect: {
-      any: ['fn'],
+      any: ['fn', 'im1'],
     },
   },
   pureTpl: {
@@ -15,10 +15,16 @@ module.exports = createTestCases({
       any: ['fn', 'im1'],
     },
   },
+  unknownTpl: {
+    usedExports: ['unknownTpl'],
+    expect: {
+      any: ['fn', 'im1'],
+    },
+  },
   impureTpl: {
     usedExports: ['impureTpl'],
     expect: {
-      any: ['fn'],
+      any: ['fn', 'im1'],
     },
   },
 });

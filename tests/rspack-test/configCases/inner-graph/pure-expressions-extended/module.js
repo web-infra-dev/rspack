@@ -7,4 +7,4 @@ export const typed = typeof d;
 export const voided = void e;
 export const eqStrict = f === undefined;
 export const neStrict = g !== null;
-export const tplPure = `wrap ${/*#__PURE__*/ h()}`;
+export const tplPure = `wrap ${typeof h}`;
