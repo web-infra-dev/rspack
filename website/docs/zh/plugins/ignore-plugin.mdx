@@ -1,45 +1,147 @@
 ---
-description: "这意味着，在以 'moment' 结尾的目录下，如果导入语句匹配 './locale' ，那么这个 './locale' 资源不会被打包。"
+description: '忽略指定的导入，使对应模块不进入构建产物。'
 ---
 
 # IgnorePlugin
 
 此插件将会忽略指定的导入文件，让这些 `import` 或 `require` 包含的文件不被打包。
 
+## 工作原理
+
+Rspack 会在解析前检查每一处模块引用。对于直接的 `import` 或 `require`，参与匹配的是尚未解析的模块标识符；对于 `require('./locale/' + name)` 等动态模块查找，参与匹配的是从表达式中提取的上下文路径。当配置的正则表达式匹配该值，或过滤函数返回 `true` 时，Rspack 会忽略该模块引用，不再生成对应模块。其他模块引用仍会正常解析并打包。
+
+`IgnorePlugin` 不会将被忽略的模块替换为空模块。Rspack 会跳过对该模块的解析，也不会生成对应模块。如果构建产物执行到匹配的 `import` 或 `require` 所生成的代码，这段代码会在运行时抛出一个 `code` 为 `MODULE_NOT_FOUND` 的错误。使用插件前，应确保相关代码不会在目标环境中执行，或引用方代码已经处理了模块不存在的情况。
+
+使用 [`resourceRegExp`](#resourceregexp) 或 [`checkResource`](#checkresource) 选择要忽略的模块引用。若要根据引用方模块所在的目录限定正则表达式的匹配范围，请将 [`contextRegExp`](#contextregexp) 与 [`resourceRegExp`](#resourceregexp) 组合使用。
+
+## 常见使用场景
+
+只有在省略被引用模块不会影响正常运行时，才应使用 `IgnorePlugin`。常见场景包括：
+
+- 排除第三方库动态查找、但当前应用并不需要的一组资源，例如未使用的 Moment.js 语言包。
+- 排除可选模块或仅在特定运行环境中使用的模块，前提是相关代码路径不会执行，或引用方代码已经处理模块不存在的情况。
+- 将忽略规则限定在特定包或目录，使其他位置使用相同模块标识符时仍可正常解析。
+
 ## 示例
 
-当使用以下配置时：
+### 忽略指定导入
+
+以下配置会忽略所有在解析前模块标识符恰好为 `./optional-feature` 的模块引用，不限制引用方模块所在的目录：
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
 
 export default {
+  entry: './src/index.js',
   plugins: [
     new rspack.IgnorePlugin({
-      resourceRegExp: /^\.\/locale$/,
-      contextRegExp: /moment$/,
+      resourceRegExp: /^\.\/optional-feature$/,
     }),
   ],
 };
 ```
 
-这意味着，在以 'moment' 结尾的目录下，如果导入语句匹配 './locale' ，那么这个 './locale' 资源不会被打包。
+例如，入口文件中包含一个与规则匹配的静态导入：
+
+```js title="src/index.js"
+import './optional-feature';
+```
+
+由于省略了 `contextRegExp`，这条规则会对所有目录中的模块引用生效，其他模块标识符仍会正常解析。
+
+Rspack 不会为 `./optional-feature` 生成模块，也不会将它替换为空模块。生成的 JavaScript 不会保留原始的 `import` 语法，而是在对应位置生成一个缺失模块表达式。入口执行到该表达式时，会抛出一个 `code` 为 `MODULE_NOT_FOUND` 的错误：
+
+```js title="dist/main.js（简化）"
+Object(
+  (function __rspack_missing_module() {
+    const error = new Error("Cannot find module './optional-feature'");
+    error.code = 'MODULE_NOT_FOUND';
+    throw error;
+  })(),
+);
+```
+
+此示例特意展示执行被忽略的静态导入时产生的运行时错误。
+
+### 忽略 Moment.js 语言包
+
+Moment.js 通过 `require('./locale/' + name)` 动态加载语言包。Rspack 会从该表达式中提取 `./locale` 作为上下文路径。若只想在引用方模块位于路径以 `moment` 结尾的目录时忽略这项动态查找，需要同时配置 `resourceRegExp` 和 `contextRegExp`：
+
+```js
+new rspack.IgnorePlugin({
+  resourceRegExp: /^\.\/locale$/,
+  contextRegExp: /moment$/,
+});
+```
+
+入口文件可以正常导入 Moment.js：
+
+```js title="src/index.js"
+import moment from 'moment';
+
+console.log(moment().format());
+```
+
+Rspack 会使用提取出的上下文路径 `./locale` 匹配 `resourceRegExp`，而不是使用解析后的路径 `moment/locale`。两个正则表达式均匹配，因此构建产物会保留 Moment.js 本身，但不会包含 `moment/locale` 中的模块：
+
+```js title="dist/main.js（简化）"
+// 构建产物中包含 Moment.js 核心代码。
+// 构建产物中不包含 moment/locale/*.js 模块。
+```
 
 ## 选项
 
-- **类型：**
+### resourceRegExp
 
-```ts
-| {
-    /** 用于匹配资源文件 */
-    resourceRegExp: RegExp;
-    /** 用于匹配请求的目录 */
-    contextRegExp?: RegExp;
-  }
-| {
-    /** 根据资源和请求的目录进行过滤 */
-    checkResource: (resource: string, context: string) => boolean;
-  }
+- **类型：** `RegExp`
+- **默认值：** `undefined`
+
+Rspack 会在解析前使用 `resourceRegExp` 进行匹配。对于直接模块引用，参与匹配的是尚未解析的模块标识符；对于动态模块查找，参与匹配的是从表达式中提取的上下文路径。例如，`import './optional-feature'` 会以 `./optional-feature` 参与匹配，而 `require('./locale/' + name)` 会以 `./locale` 参与匹配，两者都不会使用解析后的绝对路径。
+
+正则表达式匹配且未配置 `contextRegExp` 时，Rspack 不会生成被引用的模块，也不限制引用方模块所在的目录。配置 `contextRegExp` 后，两个正则表达式必须同时匹配。如果省略 `resourceRegExp`，则必须提供 `checkResource`；按照公开选项类型，两者不能同时省略。
+
+```js
+new rspack.IgnorePlugin({
+  resourceRegExp: /^\.\/optional-feature$/,
+});
 ```
 
+### contextRegExp
+
+- **类型：** `RegExp`
 - **默认值：** `undefined`
+
+用于匹配引用方模块所在的目录（`context`），该值通常是绝对路径。Rspack 仅在 `resourceRegExp` 匹配后才检查此正则表达式，两个正则表达式同时匹配时才会停止生成对应模块。
+
+省略此选项时，`resourceRegExp` 的匹配结果不受引用方模块所在目录的限制。`contextRegExp` 不能脱离 `resourceRegExp` 单独生效；使用函数形式时，应在 `checkResource` 中检查 `context` 参数。
+
+```js
+new rspack.IgnorePlugin({
+  resourceRegExp: /^\.\/optional-feature$/,
+  contextRegExp: /[/\\]legacy$/,
+});
+```
+
+### checkResource
+
+- **类型：**
+
+  ```ts
+  (resource: string, context: string) => boolean;
+  ```
+
+- **默认值：** `undefined`
+
+Rspack 会在解析每一处模块引用前调用此函数。`resource` 与 `resourceRegExp` 的匹配值相同：对于直接模块引用，它是尚未解析的模块标识符；对于动态模块查找，它是提取出的上下文路径。`context` 是引用方模块所在的目录。返回 `true` 时停止解析且不生成对应模块；返回 `false` 时继续处理。
+
+这是 `resourceRegExp` 和 `contextRegExp` 的函数形式替代方案。如果省略此选项，则必须提供 `resourceRegExp`。需要按目录限制函数的匹配范围时，请在函数内部检查 `context`。
+
+Rspack 会先执行 `checkResource`，再检查正则表达式选项。如果同时提供两种形式，返回 `true` 的结果优先，会立即停止解析且不生成对应模块；返回 `false` 后，Rspack 会继续检查 `resourceRegExp` 和 `contextRegExp`。只有两种形式都未忽略该模块引用时，Rspack 才会继续执行常规解析。
+
+```js
+new rspack.IgnorePlugin({
+  checkResource(resource, context) {
+    return resource === './optional-feature' && /[/\\]legacy$/.test(context);
+  },
+});
+```
