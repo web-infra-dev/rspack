@@ -266,18 +266,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
       });
     }
 
-    let exports_only = generator_options
-      .exports_only
-      .expect("should have exports_only");
-
-    CssModuleParser::new(
-      generator_options,
-      parser_options,
-      exports_only,
-      parse_context,
-    )
-    .parse()
-    .await
+    CssModuleParser::new(generator_options, parser_options, parse_context)
+      .parse()
+      .await
   }
 
   async fn generate(
