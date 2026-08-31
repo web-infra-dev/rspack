@@ -168,8 +168,6 @@ pub struct NormalModule {
 pub(crate) struct CachedModule {
   #[cacheable(with=AsOption<AsPreset>)]
   source: Option<BoxSource>,
-  #[cacheable(with=As<SourceSizeCacheSerde>)]
-  cached_source_sizes: SourceSizeCache,
   diagnostics: Vec<Diagnostic>,
   code_generation_dependencies: Option<Vec<DependencyId>>,
   presentational_dependencies: Option<Vec<DependencyCodeGenerationRef>>,
@@ -182,9 +180,7 @@ pub(crate) struct CachedModule {
 impl CachedModule {
   fn apply_to(&self, module: &mut NormalModule) {
     module.source.clone_from(&self.source);
-    module
-      .cached_source_sizes
-      .clone_from(&self.cached_source_sizes);
+    module.cached_source_sizes = Default::default();
     module.diagnostics.clone_from(&self.diagnostics);
     module
       .code_generation_dependencies
@@ -379,7 +375,6 @@ impl NormalModule {
 
     Ok(Some(CachedModule {
       source: self.source.clone(),
-      cached_source_sizes: self.cached_source_sizes.clone(),
       diagnostics: self.diagnostics.clone(),
       code_generation_dependencies: self.code_generation_dependencies.clone(),
       presentational_dependencies: self.presentational_dependencies.clone(),
