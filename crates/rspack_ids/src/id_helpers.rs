@@ -161,18 +161,32 @@ pub fn get_hash(s: impl Hash, length: usize) -> String {
 
 #[allow(clippy::too_many_arguments)]
 pub fn assign_deterministic_ids<T>(
-  mut items: Vec<T>,
+  items: Vec<T>,
   get_name: impl for<'b> Fn(&'b T) -> &'b str,
   comparator: impl FnMut(&T, &T) -> Ordering,
-  mut assign_id: impl FnMut(&T, usize) -> bool,
+  assign_id: impl FnMut(&T, usize) -> bool,
   ranges: &[usize],
   expand_factor: usize,
   extra_space: usize,
   salt: usize,
 ) {
-  items.sort_unstable_by(comparator);
+  let range = get_deterministic_id_range(items.len(), ranges, expand_factor, extra_space);
+  assign_deterministic_ids_with_hash(
+    items,
+    comparator,
+    assign_id,
+    |item, suffix| get_number_hash_combined(get_name(item), suffix, range),
+    salt,
+  );
+}
 
-  let optimal_range = usize::min(items.len() * 20 + extra_space, usize::MAX);
+pub(crate) fn get_deterministic_id_range(
+  item_count: usize,
+  ranges: &[usize],
+  expand_factor: usize,
+  extra_space: usize,
+) -> usize {
+  let optimal_range = usize::min(item_count * 20 + extra_space, usize::MAX);
   let mut i = 0;
   debug_assert!(!ranges.is_empty());
   let mut range = ranges[i];
@@ -186,14 +200,24 @@ pub fn assign_deterministic_ids<T>(
       break;
     }
   }
+  range
+}
+
+pub(crate) fn assign_deterministic_ids_with_hash<T>(
+  mut items: Vec<T>,
+  comparator: impl FnMut(&T, &T) -> Ordering,
+  mut assign_id: impl FnMut(&T, usize) -> bool,
+  mut get_id: impl FnMut(&T, usize) -> usize,
+  salt: usize,
+) {
+  items.sort_unstable_by(comparator);
 
   for item in items {
-    let ident = get_name(&item);
     let mut i = salt;
-    let mut id = get_number_hash_combined(ident, i, range);
+    let mut id = get_id(&item, i);
     while !assign_id(&item, id) {
       i += 1;
-      id = get_number_hash_combined(ident, i, range);
+      id = get_id(&item, i);
     }
   }
 }
@@ -244,7 +268,7 @@ pub fn compare_modules_by_pre_order_index_or_identifier(
 /// some modules): a numeric edge and an identifier edge can disagree. Use a single
 /// key — pre-order index (missing sorts last via `u32::MAX`) — with the identifier
 /// as a deterministic tiebreak.
-fn compare_by_pre_order_index_or_id(
+pub(crate) fn compare_by_pre_order_index_or_id(
   a_index: Option<u32>,
   a_id: &str,
   b_index: Option<u32>,

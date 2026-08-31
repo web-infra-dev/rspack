@@ -5,13 +5,65 @@
   },
   "index",
   {
-    "type": "dir-section-header",
-    "name": "rspack",
-    "label": "Built-in plugins"
+    "type": "section-header",
+    "label": "Output and assets"
   },
+  "banner-plugin",
+  "copy-rspack-plugin",
+  "css-extract-rspack-plugin",
+  "html-rspack-plugin",
+  "subresource-integrity-plugin",
   {
-    "type": "dir-section-header",
-    "name": "webpack",
-    "label": "Built-in plugins (webpack-aligned)"
-  }
+    "type": "section-header",
+    "label": "Build optimization"
+  },
+  "compact-hashed-chunk-ids-plugin",
+  "compact-hashed-module-ids-plugin",
+  "css-chunking-plugin",
+  "deterministic-module-ids-plugin",
+  "dll-plugin",
+  "dll-reference-plugin",
+  "lightning-css-minimizer-rspack-plugin",
+  "limit-chunk-count-plugin",
+  "runtime-chunk-plugin",
+  "split-chunks-plugin",
+  "swc-js-minimizer-rspack-plugin",
+  {
+    "type": "section-header",
+    "label": "Modules and dependencies"
+  },
+  "context-replacement-plugin",
+  "define-plugin",
+  "entry-plugin",
+  "environment-plugin",
+  "externals-plugin",
+  "ignore-plugin",
+  "javascript-modules-plugin",
+  "module-federation-plugin",
+  "module-federation-plugin-v1",
+  "normal-module-replacement-plugin",
+  "provide-plugin",
+  "virtual-modules-plugin",
+  {
+    "type": "section-header",
+    "label": "Development and debugging"
+  },
+  "case-sensitive-plugin",
+  "circular-check-rspack-plugin",
+  "eval-source-map-dev-tool-plugin",
+  "hot-module-replacement-plugin",
+  "no-emit-on-errors-plugin",
+  "progress-plugin",
+  "source-map-dev-tool-plugin",
+  {
+    "type": "section-header",
+    "label": "Reference"
+  },
+  "low-level-plugins",
+  "webpack-built-in-plugin-support",
+  {
+    "type": "section-header",
+    "label": "Deprecated"
+  },
+  "circular-dependency-rspack-plugin"
 ]

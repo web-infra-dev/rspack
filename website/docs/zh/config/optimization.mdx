@@ -5,17 +5,13 @@ description: '通过 optimization 来自定义优化配置'
 import { ApiMeta } from '@components/ApiMeta';
 import PropertyType from '../../../components/PropertyType.tsx';
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/optimization/" />
+import Attribution from '@components/Attribution';
 
 # Optimization
 
 优化：该选项用于自定义优化配置。你可以通过 [optimization](/config/optimization) 来自定义优化配置。默认情况下，Rspack 会根据 [mode](/config/mode) 来选择合适的优化配置。
 
 ## optimization.avoidEntryIife
-
-<ApiMeta addedVersion="1.2.0" />
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
@@ -38,7 +34,7 @@ export default {
 ## optimization.chunkIds
 
 <PropertyType
-  type="false | 'natural' | 'named' | 'deterministic' | 'compat-hashed' | 'size' | 'total-size'"
+  type="false | 'natural' | 'named' | 'deterministic' | 'compact-hashed' | 'size' | 'total-size'"
   defaultValueList={[
     { defaultValue: "'named'", mode: 'development' },
     { defaultValue: "'deterministic'", mode: 'production' },
@@ -49,15 +45,15 @@ export default {
 
 支持以下字符串值：
 
-| 选项              | 描述                                                                                     |
-| ----------------- | ---------------------------------------------------------------------------------------- |
-| `'natural'`       | 根据 Chunk 加载的顺序使用自增数字作为 Chunk id。                                         |
-| `'named'`         | 使用有意义、方便调试的内容当作 Chunk id。                                                |
-| `'deterministic'` | 简短的数字 id，在多次编译的场景下，会尽量保持其稳定性。适合长期缓存。默认使用 3 位数字。 |
-| `'compat-hashed'` | 使用稳定小写字母数字 hash 的最短可用前缀。                                               |
-| `'size'`          | 使用让初始下载包大小更小的数字 id。                                                      |
-| `'total-size'`    | 使用让总下载包大小更小的数字 id。                                                        |
-| `false`           | 禁用 Rspack 内置的 Chunk id 算法，允许自定义插件提供 Chunk id。                          |
+| 选项               | 描述                                                                                     |
+| ------------------ | ---------------------------------------------------------------------------------------- |
+| `'natural'`        | 根据 Chunk 加载的顺序使用自增数字作为 Chunk id。                                         |
+| `'named'`          | 使用有意义、方便调试的内容当作 Chunk id。                                                |
+| `'deterministic'`  | 简短的数字 id，在多次编译的场景下，会尽量保持其稳定性。适合长期缓存。默认使用 3 位数字。 |
+| `'compact-hashed'` | 使用稳定小写字母数字 hash 的最短可用前缀。                                               |
+| `'size'`           | 使用让初始下载包大小更小的数字 id。                                                      |
+| `'total-size'`     | 使用让总下载包大小更小的数字 id。                                                        |
+| `false`            | 禁用 Rspack 内置的 Chunk id 算法，允许自定义插件提供 Chunk id。                          |
 
 ```js title="rspack.config.mjs"
 export default {
@@ -67,18 +63,22 @@ export default {
 };
 ```
 
-`compat-hashed` 选项使用稳定小写字母数字 hash 的最短可用前缀作为 Chunk id，兼顾长期缓存、产物体积和运行时性能。
+`compact-hashed` 选项使用稳定小写字母数字 hash 的最短可用前缀作为 Chunk id，兼顾长期缓存、产物体积和运行时性能。
+
+:::warning 已废弃的别名
+`compat-hashed` 可在 Rspack 2.2.0 中使用，现已废弃，并于 Rspack 2.2.1 更名为 `compact-hashed`。旧名称目前仅作为兼容别名保留。
+:::
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
-    chunkIds: 'compat-hashed',
+    chunkIds: 'compact-hashed',
   },
 };
 ```
 
 :::tip
-`compat-hashed` 选项从 Rspack 2.2.0 开始支持。
+`compact-hashed` 选项从 Rspack 2.2.1 开始支持。
 :::
 
 ## optimization.concatenateModules
@@ -310,7 +310,7 @@ export default {
   ]}
 />
 
-自定义压缩器。默认使用 [`rspack.SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin) 和 [`rspack.LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin)。
+自定义压缩器。默认使用 [`rspack.SwcJsMinimizerRspackPlugin`](/plugins/swc-js-minimizer-rspack-plugin) 和 [`rspack.LightningCssMinimizerRspackPlugin`](/plugins/lightning-css-minimizer-rspack-plugin)。
 
 当设置了 `optimization.minimizer` 时，默认的压缩器会被禁用。
 
@@ -354,7 +354,7 @@ export default {
 ## optimization.moduleIds
 
 <PropertyType
-  type="false | 'natural' | 'named' | 'deterministic' | 'compat-hashed' | 'hashed'"
+  type="false | 'natural' | 'named' | 'deterministic' | 'compact-hashed' | 'hashed'"
   defaultValueList={[
     { defaultValue: "'deterministic'", mode: 'production' },
     { defaultValue: "'named'", mode: 'development' },
@@ -366,16 +366,16 @@ export default {
 
 支持以下字符串值：
 
-| 选项            | 描述                                                                                                          |
-| --------------- | ------------------------------------------------------------------------------------------------------------- |
-| `natural`       | 根据模块加载的顺序使用自增数字作为模块 id。                                                                   |
-| `named`         | 使用有意义、方便调试的内容当作模块 id。                                                                       |
-| `deterministic` | 使用对模块标识符哈希后的数字当作模块 id，有益于长期缓存。默认使用 3 位数字。                                  |
-| `compat-hashed` | 使用稳定字母数字 hash 的最短可用前缀。                                                                        |
-| `hashed`        | 使用模块标识符的哈希值作为模块 id。等同于使用默认选项（md4、base64、4 字符）的 `HashedModuleIdsPlugin` 插件。 |
-| `false`         | 禁用 Rspack 内置的模块 id 算法，允许自定义插件提供模块 id。                                                   |
+| 选项             | 描述                                                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------------------------------- |
+| `natural`        | 根据模块加载的顺序使用自增数字作为模块 id。                                                                   |
+| `named`          | 使用有意义、方便调试的内容当作模块 id。                                                                       |
+| `deterministic`  | 使用对模块标识符哈希后的数字当作模块 id，有益于长期缓存。默认使用 3 位数字。                                  |
+| `compact-hashed` | 使用稳定字母数字 hash 的最短可用前缀。                                                                        |
+| `hashed`         | 使用模块标识符的哈希值作为模块 id。等同于使用默认选项（md4、base64、4 字符）的 `HashedModuleIdsPlugin` 插件。 |
+| `false`          | 禁用 Rspack 内置的模块 id 算法，允许自定义插件提供模块 id。                                                   |
 
-推荐在开发环境使用 `named`，在生产环境使用 `deterministic` 或 `compat-hashed`。
+推荐在开发环境使用 `named`，在生产环境使用 `deterministic` 或 `compact-hashed`。
 
 通过 `process.env.NODE_ENV` 来判断当前环境：
 
@@ -389,10 +389,14 @@ export default {
 };
 ```
 
-`compat-hashed` 选项使用稳定字母数字 hash 的最短可用前缀作为模块 id，兼顾长期缓存、产物体积和运行时性能。
+`compact-hashed` 选项使用稳定字母数字 hash 的最短可用前缀作为模块 id，兼顾长期缓存、产物体积和运行时性能。
+
+:::warning 已废弃的别名
+`compat-hashed` 可在 Rspack 2.2.0 中使用，现已废弃，并于 Rspack 2.2.1 更名为 `compact-hashed`。旧名称目前仅作为兼容别名保留。
+:::
 
 :::warning
-`compat-hashed` 生成的模块 id 区分大小写且可能包含大写字母。在大小写不敏感的文件系统上，不要在 [Asset module 文件名](/config/output#outputassetmodulefilename)或 [WebAssembly 模块文件名](/config/output#outputwebassemblymodulefilename)中仅使用 `[id]` 进行区分。请优先使用 `[contenthash]`，或将其与 `[id]` 一起使用。
+`compact-hashed` 生成的模块 id 区分大小写且可能包含大写字母。在大小写不敏感的文件系统上，不要在 [Asset module 文件名](/config/output#outputassetmodulefilename)或 [WebAssembly 模块文件名](/config/output#outputwebassemblymodulefilename)中仅使用 `[id]` 进行区分。请优先使用 `[contenthash]`，或将其与 `[id]` 一起使用。
 :::
 
 ```js title="rspack.config.mjs"
@@ -400,13 +404,13 @@ const isDev = process.env.NODE_ENV === 'development';
 
 export default {
   optimization: {
-    moduleIds: isDev ? 'named' : 'compat-hashed',
+    moduleIds: isDev ? 'named' : 'compact-hashed',
   },
 };
 ```
 
 :::tip
-`compat-hashed` 选项从 Rspack 2.2.0 开始支持。
+`compact-hashed` 选项从 Rspack 2.2.1 开始支持。
 :::
 
 ## optimization.nodeEnv
@@ -417,7 +421,7 @@ export default {
   - [`development` 模式](/config/mode#development)：`'development'`
   - [`none` 模式](/config/mode#none)：`false`
 
-`optimization.nodeEnv` 用于控制 Rspack 在编译时替换 `process.env.NODE_ENV` 所使用的值。Rspack 会通过 [DefinePlugin](/plugins/webpack/define-plugin) 完成该替换。
+`optimization.nodeEnv` 用于控制 Rspack 在编译时替换 `process.env.NODE_ENV` 所使用的值。Rspack 会通过 [DefinePlugin](/plugins/define-plugin) 完成该替换。
 
 你也可以使用以下值覆盖由 `mode` 决定的默认行为：
 
@@ -578,7 +582,7 @@ Rspack 支持通过 `optimization.splitChunks` 配置项来对 Chunk 进行拆�
 
 该优化选项默认情况下是开启的，你可以将其设为 `false` 来关闭它。
 
-有关配置此行为的可用选项，请参见 [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin) 页面。
+有关配置此行为的可用选项，请参见 [SplitChunksPlugin](/plugins/split-chunks-plugin) 页面。
 
 ## optimization.usedExports
 
@@ -610,3 +614,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.docschina.org/configuration/optimization/" />

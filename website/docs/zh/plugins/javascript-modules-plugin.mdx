@@ -1,0 +1,82 @@
+---
+description: '处理 JavaScript 的打包，一般用于获取 JavascriptModulesPlugin 的相关钩子：'
+---
+
+# JavascriptModulesPlugin
+
+处理 JavaScript 的打包，一般用于获取 [JavascriptModulesPlugin 的相关钩子](/api/plugin-api/javascript-modules-plugin-hooks)：
+
+## 示例
+
+```js title="rspack.config.mjs"
+class MyJsMinimizerPlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap(MyJsMinimizerPlugin.name, (compilation) => {
+      // 用来获取 JavascriptModulesPlugin 的 chunkHash 钩子
+      const hooks =
+        compiler.rspack.javascript.JavascriptModulesPlugin.getCompilationHooks(
+          compilation,
+        );
+      // 由于 JS chunk 被优化，内容改变，所以要更新 JS chunk 的 chunk hash
+      hooks.chunkHash.tap(MyJsMinimizerPlugin.name, (chunk, hash) => {
+        hash.update(`minimized by ${MyJsMinimizerPlugin.name}`);
+      });
+      // 优化 JS chunk
+      compilation.hooks.processAssets.tap(
+        MyJsMinimizerPlugin.name,
+        (assets) => {
+          optimize(assets);
+        },
+      );
+    });
+  }
+}
+
+export default {
+  plugins: [new MyJsMinimizerPlugin()],
+};
+```
+
+## 静态方法
+
+### `getChunkFilenameTemplate`
+
+<ApiMeta addedVersion="2.2.2" />
+
+```ts
+function getChunkFilenameTemplate(
+  chunk: Chunk,
+  outputOptions: Output,
+): Filename | undefined;
+```
+
+返回用于生成该 chunk 对应 JavaScript 文件的文件名模板，按以下顺序解析：
+
+1. `chunk.filenameTemplate`，如果该 chunk 自带模板（例如由设置了 `filename` 的
+   `splitChunks` cacheGroup 产生的 chunk）。
+2. [`output.filename`](/config/output#outputfilename)，如果该 chunk 可以是 initial chunk。
+3. 否则为 [`output.chunkFilename`](/config/output#outputchunkfilename)。
+
+```js
+class MyPlugin {
+  apply(compiler) {
+    const { JavascriptModulesPlugin } = compiler.rspack.javascript;
+    compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
+      compilation.hooks.afterSeal.tap('MyPlugin', () => {
+        for (const chunk of compilation.chunks) {
+          const template = JavascriptModulesPlugin.getChunkFilenameTemplate(
+            chunk,
+            compilation.outputOptions,
+          );
+          const filename = compilation.getPath(template, { chunk });
+          console.log(filename);
+        }
+      });
+    });
+  }
+}
+```
+
+:::info 与 webpack 的差异
+尚不支持 hot update chunk，因其未暴露到 JavaScript 侧。
+:::

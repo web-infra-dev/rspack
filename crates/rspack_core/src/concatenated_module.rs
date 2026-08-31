@@ -2089,14 +2089,14 @@ impl Module for ConcatenatedModule {
                 .expect("should have module")
                 .get_runtime_hash(compilation, generation_runtime)
                 .await?;
-              Ok(Some(digest.encoded().to_string()))
+              Ok(Some(digest))
             }
             ConcatenationEntry::External(e) => Ok(
               ChunkGraph::get_module_id(
                 &compilation.module_ids_artifact,
                 e.module(compilation.get_module_graph()),
               )
-              .map(|id| id.to_string()),
+              .map(|id| RspackHashDigest::from(id.as_str())),
             ),
           }
         })

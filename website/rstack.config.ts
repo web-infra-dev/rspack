@@ -57,8 +57,28 @@ define.doc(async () => {
       pluginClientRedirects({
         redirects: [
           {
-            from: '/plugins/webpack/warn-case-sensitive-modules-plugin',
-            to: '/plugins/webpack/case-sensitive-plugin',
+            from: '^(/zh)?/plugins/compat-hashed-chunk-ids-plugin/?$',
+            to: '$1/plugins/compact-hashed-chunk-ids-plugin',
+          },
+          {
+            from: '^(/zh)?/plugins/compat-hashed-module-ids-plugin/?$',
+            to: '$1/plugins/compact-hashed-module-ids-plugin',
+          },
+          {
+            from: '^(/zh)?/plugins/webpack/warn-case-sensitive-modules-plugin/?$',
+            to: '$1/plugins/case-sensitive-plugin',
+          },
+          {
+            from: '^(/zh)?/plugins/webpack(?:/index)?/?$',
+            to: '$1/plugins/webpack-built-in-plugin-support',
+          },
+          {
+            from: '^(/zh)?/plugins/rspack/?$',
+            to: '$1/plugins/',
+          },
+          {
+            from: '^(/zh)?/plugins/(?:rspack|webpack)/([^/]+)/?$',
+            to: '$1/plugins/$2',
           },
         ],
       }),
@@ -94,6 +114,9 @@ define.doc(async () => {
       }),
     ],
     themeConfig: {
+      llmsUI: {
+        placement: 'outline',
+      },
       socialLinks: [
         {
           icon: 'github',

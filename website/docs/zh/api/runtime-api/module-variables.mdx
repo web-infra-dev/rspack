@@ -2,11 +2,9 @@
 description: '本节涵盖了使用 Rspack 编译代码时所有可用的变量。模块将能够通过 module 和其他变量访问来自编译过程的特定数据。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import Columns from '@components/Columns';
 import { ApiMeta, Stability } from '@components/ApiMeta';
-
-<WebpackLicense from="https://webpack.docschina.org/api/module-variables/" />
 
 # 模块变量
 
@@ -620,7 +618,7 @@ import.meta.rspackUniqueId;
 __webpack_require__.ruid;
 
 // webpack/runtime/rspack_unique_id
-__webpack_require__.ruid = 'bundler=rspack@0.7.4';
+__webpack_require__.ruid = 'bundler=rspack@2.1.2';
 ```
 
 </Columns>
@@ -834,7 +832,7 @@ __resourceQuery
 
 ### \_\_webpack_exports_info\_\_
 
-<ApiMeta addedVersion="1.0.0" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 在模块中通过 `__webpack_exports_info__` 可以读取如下导出信息：
 
@@ -938,7 +936,7 @@ import('./module-a').then((moduleA) => {
 
 ### \_\_webpack_get_script_filename\_\_
 
-<ApiMeta addedVersion="1.0.0" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 通过 chunk 的 id 获取 chunk 的文件名。
 
@@ -1001,10 +999,8 @@ __webpack_get_script_filename__ = (chunkId) => {
 
 ### \_\_rspack_unique_id\_\_
 
-<ApiMeta
-  addedVersion="1.0.0"
-  specific={['Rspack']}
-  stability={Stability.Deprecated}
-/>
+<ApiMeta specific={['Rspack']} stability={Stability.Deprecated} />
 
 是 [`import.meta.rspackUniqueId`](#importmetarspackuniqueid) 在 CommonJS 下的等价写法。
+
+<Attribution url="https://webpack.docschina.org/api/module-variables/" />

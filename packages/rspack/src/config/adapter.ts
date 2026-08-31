@@ -24,6 +24,7 @@ import {
   type RawRuleSetCondition,
   RawRuleSetConditionType,
   type RawRuleSetLogicalConditions,
+  type RawSnapshotOptions,
 } from '@rspack/binding';
 
 import type { Compiler } from '../Compiler';
@@ -41,6 +42,7 @@ import {
 } from './adapterRuleUse';
 import type {
   CacheNormalized,
+  CacheSnapshotNormalized,
   ExperimentsNormalized,
   ModuleOptionsNormalized,
   OutputNormalized,
@@ -97,6 +99,7 @@ export const getRawOptions = (
 ): RawOptions => {
   const mode = options.mode;
   const experiments = options.experiments as ExperimentsWithDefaults;
+  const cache = options.cache!;
   return {
     name: options.name,
     mode,
@@ -112,9 +115,9 @@ export const getRawOptions = (
     }),
     optimization: options.optimization as Required<Optimization>,
     stats: getRawStats(options.stats),
-    cache: getRawCache(options.cache!),
+    cache: getRawCache(cache),
     experiments,
-    incremental: options.incremental,
+    incremental: mode === 'development' && options.incremental,
     node: getRawNode(options.node),
     amd: options.amd ? JSON.stringify(options.amd || {}) : undefined,
     bail: options.bail!,
@@ -122,9 +125,23 @@ export const getRawOptions = (
   };
 };
 
+function getRawSnapshot(snapshot: CacheSnapshotNormalized): RawSnapshotOptions {
+  return {
+    immutablePaths: snapshot.immutablePaths!,
+    unmanagedPaths: snapshot.unmanagedPaths!,
+    managedPaths: snapshot.managedPaths!,
+  };
+}
+
 function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
   if (cache === false) return false;
-  if (cache.type === 'memory') return cache;
+  const snapshot = getRawSnapshot(cache.snapshot);
+  if (cache.type === 'memory') {
+    return {
+      type: cache.type,
+      snapshot,
+    };
+  }
   const toRawStorageLimit = (name: string, value: number) => {
     if (value === Infinity) return 0;
     if (!Number.isSafeInteger(value) || value < 1 || value > MAX_U32) {
@@ -144,11 +161,7 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
       // Raw `directory` expects the final cache path; normalized `directory` is only the base.
       directory: cache.storage.location!,
     },
-    snapshot: {
-      immutablePaths: cache.snapshot.immutablePaths!,
-      unmanagedPaths: cache.snapshot.unmanagedPaths!,
-      managedPaths: cache.snapshot.managedPaths!,
-    },
+    snapshot,
     portable: cache.portable,
     readonly: cache.readonly,
   };

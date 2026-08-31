@@ -74,6 +74,9 @@ export type WasmLoadingType = 'fetch' | 'async-node' | 'universal';
 /** Option to set the method of loading WebAssembly Modules. */
 export type WasmLoading = false | WasmLoadingType;
 
+/** Whether to fall back to non-streaming WebAssembly loading when streaming fails due to an incorrect MIME type. */
+export type WasmStreamingFallback = boolean;
+
 export type ScriptType = false | 'text/javascript' | 'module';
 
 export type LibraryCustomUmdObject = {
@@ -578,6 +581,13 @@ export type Output = {
    * @default 'fetch'
    * */
   wasmLoading?: WasmLoading;
+
+  /**
+   * Fall back to non-streaming WebAssembly instantiation or compilation when the server
+   * does not serve WebAssembly with the `application/wasm` MIME type.
+   * @default true
+   */
+  wasmStreamingFallback?: WasmStreamingFallback;
 
   /** List of wasm loading types enabled for use by entry points. */
   enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
@@ -2160,6 +2170,10 @@ export type MemoryCacheOptions = {
    * Cache type.
    */
   type: 'memory';
+  /**
+   * Snapshot options for determining which files have been modified.
+   */
+  snapshot?: CacheSnapshotOptions;
 };
 
 /**
@@ -2817,6 +2831,9 @@ export type OptimizationSplitChunksOptions = {
   hidePathInfo?: boolean;
 } & SharedOptimizationSplitChunksCacheGroup;
 
+/** @deprecated Use `'compact-hashed'` instead. */
+type CompatHashedIds = 'compat-hashed';
+
 export type Optimization = {
   /**
    * Which algorithm to use when choosing module ids.
@@ -2824,7 +2841,13 @@ export type Optimization = {
    * (e.g. HashedModuleIdsPlugin) to provide module ids instead.
    */
   moduleIds?:
-    false | 'named' | 'natural' | 'deterministic' | 'compat-hashed' | 'hashed';
+    | false
+    | 'named'
+    | 'natural'
+    | 'deterministic'
+    | 'compact-hashed'
+    | CompatHashedIds
+    | 'hashed';
 
   /**
    * Which algorithm to use when choosing chunk ids.
@@ -2836,7 +2859,8 @@ export type Optimization = {
     | 'natural'
     | 'named'
     | 'deterministic'
-    | 'compat-hashed'
+    | 'compact-hashed'
+    | CompatHashedIds
     | 'size'
     | 'total-size';
 
@@ -3478,6 +3502,7 @@ export type RspackOptions = {
 
   /**
    * Control artifact reuse during same-compiler rebuilds such as watch and HMR.
+   * Effective only when `mode` is set to `'development'`.
    * This does not make standalone one-shot builds incremental.
    */
   incremental?: IncrementalPresets | Incremental;

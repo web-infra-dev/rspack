@@ -31,7 +31,7 @@ use napi::{
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
 use raw_ids::{
-  RawCompatHashedChunkIdsPluginOptions, RawCompatHashedModuleIdsPluginOptions,
+  RawCompactHashedChunkIdsPluginOptions, RawCompactHashedModuleIdsPluginOptions,
   RawDeterministicModuleIdsPluginOptions, RawHashedModuleIdsPluginOptions,
   RawOccurrenceChunkIdsPluginOptions, RawSyncModuleIdsPluginOptions,
 };
@@ -45,7 +45,7 @@ use raw_sri::RawSubresourceIntegrityPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_ids::{
-  CompatHashedChunkIdsPlugin, CompatHashedModuleIdsPlugin, DeterministicChunkIdsPlugin,
+  CompactHashedChunkIdsPlugin, CompactHashedModuleIdsPlugin, DeterministicChunkIdsPlugin,
   DeterministicModuleIdsPlugin, HashedModuleIdsPlugin, NamedChunkIdsPlugin, NamedModuleIdsPlugin,
   NaturalChunkIdsPlugin, NaturalModuleIdsPlugin, OccurrenceChunkIdsPlugin, SyncModuleIdsPlugin,
 };
@@ -198,13 +198,13 @@ pub enum BuiltinPluginName {
   NamedModuleIdsPlugin,
   NaturalModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
-  CompatHashedModuleIdsPlugin,
+  CompactHashedModuleIdsPlugin,
   SyncModuleIdsPlugin,
   HashedModuleIdsPlugin,
   NaturalChunkIdsPlugin,
   NamedChunkIdsPlugin,
   DeterministicChunkIdsPlugin,
-  CompatHashedChunkIdsPlugin,
+  CompactHashedChunkIdsPlugin,
   OccurrenceChunkIdsPlugin,
   RealContentHashPlugin,
   RemoveEmptyChunksPlugin,
@@ -595,9 +595,9 @@ impl<'a> BuiltinPlugin<'a> {
         )
         .boxed(),
       ),
-      BuiltinPluginName::CompatHashedModuleIdsPlugin => plugins.push(
-        CompatHashedModuleIdsPlugin::new(
-          downcast_into::<RawCompatHashedModuleIdsPluginOptions>(self.options)
+      BuiltinPluginName::CompactHashedModuleIdsPlugin => plugins.push(
+        CompactHashedModuleIdsPlugin::new(
+          downcast_into::<RawCompactHashedModuleIdsPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .into(),
         )
@@ -628,9 +628,9 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::DeterministicChunkIdsPlugin => {
         plugins.push(DeterministicChunkIdsPlugin::default().boxed())
       }
-      BuiltinPluginName::CompatHashedChunkIdsPlugin => plugins.push(
-        CompatHashedChunkIdsPlugin::new(
-          downcast_into::<RawCompatHashedChunkIdsPluginOptions>(self.options)
+      BuiltinPluginName::CompactHashedChunkIdsPlugin => plugins.push(
+        CompactHashedChunkIdsPlugin::new(
+          downcast_into::<RawCompactHashedChunkIdsPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .into(),
         )

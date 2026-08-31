@@ -1,0 +1,46 @@
+---
+description: 'Creates separate runtime chunks and controls how they are named.'
+---
+
+# RuntimeChunkPlugin
+
+`RuntimeChunkPlugin` creates separate runtime chunks and controls how they are named. [`optimization.runtimeChunk`](/config/optimization#optimizationruntimechunk) applies this plugin internally.
+
+## Examples
+
+This configuration extracts the runtime used by two entry points into `runtime.js`:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: {
+    app: './src/app.js',
+    admin: './src/admin.js',
+  },
+  output: {
+    filename: '[name].js',
+  },
+  plugins: [
+    new rspack.optimize.RuntimeChunkPlugin({
+      name: 'runtime',
+    }),
+  ],
+};
+```
+
+Rspack emits `app.js`, `admin.js`, and the shared `runtime.js`. Keeping the runtime separate allows entry bundles to be cached independently from runtime changes.
+
+## Options
+
+### name
+
+Used to configure the name of the runtime chunk; it can be a string or a function that returns a string, where the function parameter is the name of the entry.
+
+- **Type:** `string | ((entrypoint: { name: string }) => string)`
+
+```js
+new rspack.optimize.RuntimeChunkPlugin({
+  name: ({ name }) => `runtime~${name}`,
+});
+```

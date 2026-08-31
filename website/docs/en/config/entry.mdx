@@ -2,11 +2,8 @@
 description: 'Rspack entry configuration reference covering single and multiple entries, dynamic entry functions, and entry description options.'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-import { ApiMeta, Stability } from '../../../components/ApiMeta';
+import Attribution from '@components/Attribution';
 import PropertyType from '@components/PropertyType';
-
-<WebpackLicense from="https://webpack.js.org/configuration/entry-context/#entry" />
 
 # Entry
 
@@ -235,8 +232,6 @@ The default value of [`output.wasmLoading`](/config/output#outputwasmloading) ca
 
 #### EntryDescription.layer
 
-<ApiMeta addedVersion={'1.0.0-beta.1'} />
-
 <PropertyType
   type="string | null | undefined"
   defaultValueList={[{ defaultValue: 'undefined' }]}
@@ -288,3 +283,5 @@ export default {
 ```
 
 When combining with the [output.library](/config/output#outputlibrary) option: If an array is passed only the last item is exported.
+
+<Attribution url="https://webpack.js.org/configuration/entry-context/#entry" />

@@ -15,7 +15,6 @@ use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet}
 use rspack_error::{Diagnosable, Result};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher, write_u64_hex};
-use rspack_paths::InternedPathSet;
 use rspack_sources::BoxSource;
 use rspack_util::{
   atom::Atom,
@@ -33,10 +32,10 @@ use crate::{
   CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation, CompilationAsset,
   CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
   ContextModule, CssExportType, DependenciesBlock, DependencyCodeGenerationRef, DependencyId,
-  ExportProvided, ExportsInfoArtifact, ExternalModule, Filename, GetTargetResult, ImportPhase,
-  ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
-  OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
-  SharedPluginDriver, SideEffectsStateArtifact, SourceType,
+  ExportProvided, ExportsInfoArtifact, ExternalModule, FileSystemInfo, Filename, GetTargetResult,
+  ImportPhase, ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType,
+  NormalModule, OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec,
+  SelfModule, SharedPluginDriver, SideEffectsStateArtifact, Snapshot, SourceType,
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
   get_target, value_cache_versions::ValueCacheVersions,
 };
@@ -46,10 +45,31 @@ pub struct BuildContext {
   pub compilation_id: CompilationId,
   pub compiler_options: Arc<CompilerOptions>,
   pub loader_cache: CacheFacade,
+  pub file_system_info: FileSystemInfo,
   pub resolver_factory: Arc<ResolverFactory>,
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+}
+
+/// Context used to decide whether a previously built module is still valid.
+///
+/// This follows webpack's `NeedBuildContext` shape and provides the shared
+/// filesystem snapshot service used to validate a previous module build.
+pub struct NeedBuildContext<'a> {
+  pub compilation: &'a Compilation,
+  pub file_system_info: &'a FileSystemInfo,
+  pub value_cache_versions: &'a ValueCacheVersions,
+}
+
+impl<'a> NeedBuildContext<'a> {
+  pub fn new(compilation: &'a Compilation) -> Self {
+    Self {
+      compilation,
+      file_system_info: &compilation.file_system_info,
+      value_cache_versions: &compilation.value_cache_versions,
+    }
+  }
 }
 
 #[cacheable]
@@ -260,7 +280,7 @@ pub struct AssetBuildInfo {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
   pub cacheable: bool,
@@ -268,10 +288,10 @@ pub struct BuildInfo {
   pub strict: bool,
   pub module_argument: ModuleArgument,
   pub exports_argument: ExportsArgument,
-  pub file_dependencies: InternedPathSet,
-  pub context_dependencies: InternedPathSet,
-  pub missing_dependencies: InternedPathSet,
-  pub build_dependencies: InternedPathSet,
+  pub dependencies: crate::LoaderDependencies,
+  /// Reserved for full `need_build` snapshot validation. Module builds do not
+  /// populate it yet to avoid adding snapshot creation overhead.
+  pub snapshot: Option<Snapshot>,
   pub value_dependencies: HashMap<String, String>,
   #[cacheable(with=AsVec<AsPreset>)]
   pub esm_named_exports: HashSet<Atom>,
@@ -309,10 +329,8 @@ impl Default for BuildInfo {
       strict: false,
       module_argument: Default::default(),
       exports_argument: Default::default(),
-      file_dependencies: InternedPathSet::default(),
-      context_dependencies: InternedPathSet::default(),
-      missing_dependencies: InternedPathSet::default(),
-      build_dependencies: InternedPathSet::default(),
+      dependencies: Default::default(),
+      snapshot: None,
       value_dependencies: HashMap::default(),
       esm_named_exports: HashSet::default(),
       all_star_exports: Vec::default(),
@@ -831,7 +849,23 @@ pub trait Module:
     ConnectionState::Active(true)
   }
 
-  fn need_build(&self, value_cache_version: &ValueCacheVersions) -> bool {
+  /// Determines whether a module needs to be rebuilt using the complete build
+  /// context.
+  ///
+  /// Implementations may inspect or mutate module state and perform asynchronous
+  /// work. As in webpack's base `Module`, the default is conservative: module
+  /// types that can prove an existing build is valid should override this.
+  async fn need_build(&mut self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+    Ok(true)
+  }
+
+  /// Performs the synchronous rebuild decision used by incremental make.
+  ///
+  /// This preserves the pre-existing incremental-make behavior: it only checks
+  /// cacheability, value dependencies, and build errors. Filesystem changes are
+  /// handled separately by the make artifact. It is intentionally narrower than
+  /// [`Module::need_build`] and must not be used as the general rebuild check.
+  fn need_build_for_incremental(&self, value_cache_version: &ValueCacheVersions) -> bool {
     let build_info = self.build_info();
     !build_info.cacheable
       || value_cache_version.has_diff(&build_info.value_dependencies)

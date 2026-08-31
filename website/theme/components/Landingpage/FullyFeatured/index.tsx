@@ -1,12 +1,12 @@
 import { Link } from '@rspress/core/theme-original';
-import { FullyFeatured as BaseFullyFeatured } from '@rstack-dev/doc-ui/fully-featured';
+import { FullyFeatured as BaseFullyFeatured } from '@rstackjs/doc-ui/fully-featured';
 import {
   containerStyle,
   descStyle,
   innerContainerStyle,
   titleAndDescStyle,
   titleStyle,
-} from '@rstack-dev/doc-ui/section-style';
+} from '@rstackjs/doc-ui/section-style';
 import { memo } from 'react';
 import { useI18n, useI18nUrl } from '../../../i18n';
 import arrow from './assets/arrow.svg';
@@ -104,7 +104,7 @@ const FullyFeatured = memo(() => {
       icon: lightningcss,
       title: 'Lightning CSS',
       description: t('featureLightningCss'),
-      link: tUrl('/plugins/rspack/lightning-css-minimizer-rspack-plugin'),
+      link: tUrl('/plugins/lightning-css-minimizer-rspack-plugin'),
     },
     {
       icon: javascriptApi,

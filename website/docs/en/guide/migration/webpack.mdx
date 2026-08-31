@@ -222,7 +222,7 @@ function transform(webpackConfig, rspackConfig) {
 
 Rspack has implemented most of webpack's built-in plugins, with the same names and configuration parameters, allowing for easy replacement.
 
-For example, replacing the [DefinePlugin](/plugins/webpack/define-plugin):
+For example, replacing the [DefinePlugin](/plugins/define-plugin):
 
 ```js title="rspack.config.js"
 const webpack = require('webpack'); // [!code --]
@@ -239,7 +239,7 @@ module.exports = {
 }
 ```
 
-See [Built-in plugins](/plugins/webpack/) for more information about supported webpack plugins in Rspack.
+See [webpack plugin compatibility](/plugins/webpack-built-in-plugin-support) for Rspack's compatibility status with webpack built-in plugins and selected internal plugins.
 
 ## Community plugins
 
@@ -262,7 +262,7 @@ Some [unplugin](/guide/features/plugin#unplugin) packages provide separate entry
 
 ### copy-webpack-plugin
 
-Use [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) instead of [copy-webpack-plugin](https://github.com/webpack/copy-webpack-plugin):
+Use [rspack.CopyRspackPlugin](/plugins/copy-rspack-plugin) instead of [copy-webpack-plugin](https://github.com/webpack/copy-webpack-plugin):
 
 ```js title="rspack.config.js"
 const CopyWebpackPlugin = require('copy-webpack-plugin'); // [!code --]
@@ -280,7 +280,7 @@ module.exports = {
 
 ### mini-css-extract-plugin
 
-Use [rspack.CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) instead of [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin):
+Use [rspack.CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin) instead of [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin):
 
 ```diff title="rspack.config.js"
 - const CssExtractWebpackPlugin = require('mini-css-extract-plugin');
@@ -342,7 +342,7 @@ module.exports = {
 
 ### terser-webpack-plugin
 
-For projects that use [terser-webpack-plugin](https://github.com/webpack/terser-webpack-plugin) to minify JavaScript, we recommend switching to [rspack.SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) for better build performance:
+For projects that use [terser-webpack-plugin](https://github.com/webpack/terser-webpack-plugin) to minify JavaScript, we recommend switching to [rspack.SwcJsMinimizerRspackPlugin](/plugins/swc-js-minimizer-rspack-plugin) for better build performance:
 
 ```js title="rspack.config.js"
 const TerserPlugin = require('terser-webpack-plugin'); // [!code --]
@@ -365,7 +365,7 @@ When you explicitly configure [optimization.minimizer](/config/optimization#opti
 
 ### css-minimizer-webpack-plugin
 
-For projects that use [css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin) to minify CSS, we recommend switching to [rspack.LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) for better build performance:
+For projects that use [css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin) to minify CSS, we recommend switching to [rspack.LightningCssMinimizerRspackPlugin](/plugins/lightning-css-minimizer-rspack-plugin) for better build performance:
 
 ```js title="rspack.config.js"
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin'); // [!code --]

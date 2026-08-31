@@ -2,9 +2,7 @@
 description: 'Rspack can watch files and recompile whenever they change'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/configuration/watch" />
+import Attribution from '@components/Attribution';
 
 # Watch
 
@@ -64,7 +62,7 @@ export default {
 
 Use `watchOptions.ignored` to exclude matching files and directories from watch mode. Ignoring directories that do not need to be watched can reduce CPU and memory usage.
 
-Since Rspack v1.2.0, `.git` and `node_modules` directories are ignored by default, so changes inside them do not trigger rebuilds.
+By default, `.git` and `node_modules` directories are ignored, so changes inside them do not trigger rebuilds.
 
 To watch files in `node_modules`, override the default value and ignore only the `.git` directory:
 
@@ -169,3 +167,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.js.org/configuration/watch" />

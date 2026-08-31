@@ -799,9 +799,13 @@ impl SplitChunksPlugin {
     module_sizes: &ModuleSizes,
   ) {
     // remove all modules from other entries and update size
+    let placed_chunk_mask = placed_module_chunks.chunk_mask();
     let keys_of_invalid_group = module_group_map
       .par_iter_mut()
       .filter_map(|(key, other_module_group)| {
+        if !other_module_group.may_have_chunks_in_mask(placed_chunk_mask) {
+          return None;
+        }
         let duplicated_modules = match (
           placed_module_chunks,
           other_module_group.shared_module_chunks(),

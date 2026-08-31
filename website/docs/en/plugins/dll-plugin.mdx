@@ -1,0 +1,81 @@
+---
+description: 'The DllPlugin is used in a separate rspack configuration exclusively to create a dll-only-bundle'
+---
+
+import Attribution from '@components/Attribution';
+
+# DllPlugin
+
+The `DllPlugin` is used in a separate rspack configuration exclusively to create a dll-only-bundle.
+
+## Examples
+
+```js
+new rspack.DllPlugin({
+  path: path.resolve(__dirname, 'manifest.json'),
+  name: '[name]_dll_lib',
+});
+```
+
+The Plugin will create a `manifest.json` which is written to the given path.
+It contains mappings from require and import requests to module ids.
+
+The `manifest.json` is used by the [DllReferencePlugin](/plugins/dll-reference-plugin)
+
+Combine this plugin with `output.library` options to expose the dll function.
+
+## Options
+
+```ts
+type DllPluginOptions = {
+  context?: string;
+  entryOnly?: boolean;
+  format?: boolean;
+  name?: string;
+  path: string;
+  type?: string;
+};
+```
+
+### context
+
+- **Type:** `string`
+- **Default:** The Rspack compiler context
+
+Sets the context used for requests in the manifest file.
+
+### entryOnly
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+If `true`, only entry modules are exposed.
+
+### format
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Controls whether the generated manifest JSON is formatted for readability.
+
+### name
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+Sets the name of the exposed DLL function. Configure it to match the DLL bundle's `output.library` name.
+
+### path
+
+- **Type:** `string`
+
+Sets the absolute output path of the manifest JSON file. This option is required.
+
+### type
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+Sets the external type of the DLL bundle. Configure it to match `output.library.type`.
+
+<Attribution url="https://webpack.js.org/plugins/dll-plugin/" />

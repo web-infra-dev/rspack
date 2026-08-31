@@ -79,13 +79,14 @@ use crate::{
   CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
   DependenciesDiagnosticsArtifact, Dependency, DependencyId, DependencyRef, DependencyTemplate,
   DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
-  ExecuteModuleId, ExportsInfoArtifact, ExternalModuleChunkConditionHook, Filename, ImportPhase,
-  ImportVarMap, ImportedByDeferModulesArtifact, ModuleFactory, ModuleGraph,
+  ExecuteModuleId, ExportsInfoArtifact, ExternalModuleChunkConditionHook, FileSystemInfo, Filename,
+  ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact, ModuleFactory, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
   ProcessRuntimeRequirementsCacheArtifact, ReferencedExport, ResolverFactory, RuntimeGlobals,
   RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec,
   RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
   SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
+  cache::SnapshotOptions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
@@ -238,6 +239,7 @@ pub struct Compilation {
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   cache: Cache,
+  pub file_system_info: FileSystemInfo,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -357,6 +359,18 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
+    let snapshot_options = match &options.cache {
+      CacheOptions::Disabled => SnapshotOptions::default(),
+      CacheOptions::Memory { snapshot, .. } => snapshot.clone(),
+      CacheOptions::Persistent(options) => options.snapshot.clone(),
+    };
+    let file_system_info = FileSystemInfo::new(
+      input_filesystem.clone(),
+      CompilationLogger::new("rspack.FileSystemInfo", logging.clone()),
+      snapshot_options,
+      options.output.hash_function,
+    );
+
     Self {
       id: CompilationId::new(),
       compiler_id,
@@ -378,6 +392,7 @@ impl Compilation {
       diagnostics: Default::default(),
       logging,
       cache,
+      file_system_info,
       plugin_driver,
       buildtime_plugin_driver,
       resolver_factory,
@@ -404,7 +419,9 @@ impl Compilation {
       chunk_render_cache_artifact: StealCell::new(ChunkRenderCacheArtifact::new(
         match &options.cache {
           CacheOptions::Disabled => 0, // FIXME: this should be removed in future
-          CacheOptions::Memory { max_generations } => *max_generations,
+          CacheOptions::Memory {
+            max_generations, ..
+          } => *max_generations,
           CacheOptions::Persistent(_) => 1,
         },
       )),
@@ -1241,8 +1258,8 @@ impl Compilation {
     Ok((path, info))
   }
 
-  pub fn get_logger(&self, name: impl Into<String>) -> CompilationLogger {
-    CompilationLogger::new(name.into(), self.logging.clone())
+  pub fn get_logger(&self, name: impl Into<Arc<str>>) -> CompilationLogger {
+    CompilationLogger::new(name, self.logging.clone())
   }
 
   pub fn set_dependency_factory(

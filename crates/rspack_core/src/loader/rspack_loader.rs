@@ -3,8 +3,8 @@ use std::sync::Arc;
 use rspack_error::{Diagnostic, Result};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::{Content, Loader, LoaderContext, LoaderRunnerPlugin, ResourceData};
+use rspack_paths::InternedPathSet;
 use rspack_sources::SourceMap;
-use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   RunnerContext, SharedPluginDriver,
@@ -38,13 +38,7 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     &self,
     resource_data: &ResourceData,
     fs: Arc<dyn ReadableFileSystem>,
-  ) -> Result<
-    Option<(
-      Content,
-      Option<SourceMap<'static>>,
-      HashSet<std::path::PathBuf>,
-    )>,
-  > {
+  ) -> Result<Option<(Content, Option<SourceMap<'static>>, InternedPathSet)>> {
     // First try the plugin's read_resource hook
     let result = self
       .plugin_driver
@@ -68,10 +62,10 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
 
         match extract_result {
           Ok(extract_result) => {
-            // Convert file dependencies to FxHashSet for consistency
+            // Convert file dependencies to interned paths for reuse across cache contexts.
             let file_deps = extract_result
               .file_dependencies
-              .map(|deps| deps.into_iter().collect::<HashSet<_>>())
+              .map(|deps| deps.into_iter().map(Into::into).collect())
               .unwrap_or_default();
 
             // Return the content with source map extracted and file dependencies
@@ -90,12 +84,12 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
               .lock()
               .expect("should get lock")
               .push(Diagnostic::warn("extractSourceMap".into(), e));
-            return Ok(Some((content, None, HashSet::default())));
+            return Ok(Some((content, None, InternedPathSet::default())));
           }
         }
       }
       // Return original content with empty dependencies when extract_source_map is disabled
-      return Ok(Some((content, None, HashSet::default())));
+      return Ok(Some((content, None, InternedPathSet::default())));
     }
 
     // If no plugin handled it, return None so the default logic can handle it
@@ -132,7 +126,7 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     loader: Arc<dyn Loader<Self::Context>>,
   ) -> Result<()> {
     let cache_action = if context.current_loader().cache() {
-      before_normal_loader(context)?
+      before_normal_loader(context).await?
     } else {
       LoaderCacheAction::Disabled
     };
@@ -146,7 +140,7 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
       context.finish_with_empty();
     }
     if let LoaderCacheAction::Miss(state) = cache_action {
-      after_normal_loader(context, &state)?;
+      after_normal_loader(context, &state).await?;
     }
     Ok(())
   }

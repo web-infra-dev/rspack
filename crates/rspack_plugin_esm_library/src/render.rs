@@ -192,6 +192,10 @@ impl EsmLibraryPlugin {
 
     if !chunk_link.decl_modules.is_empty() {
       let hooks = JsPlugin::get_compilation_hooks(compilation.id());
+      let module_runtime_scope = compilation
+        .runtime_template
+        .create_module_code_template()
+        .render_runtime_scope();
 
       let mut decl_inner = ConcatSource::default();
       for m in chunk_link.decl_modules.iter() {
@@ -216,6 +220,7 @@ impl EsmLibraryPlugin {
           &output_path,
           &hooks,
           module_runtime_template,
+          Some(&module_runtime_scope),
         )
         .await?
         else {

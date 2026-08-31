@@ -9,7 +9,7 @@ authors:
     x: 'https://x.com/rspack_dev'
 ---
 
-import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 # Announcing Rspack 1.0
 
@@ -69,7 +69,7 @@ We also hope to support and create more community plugins to further enrich the 
 
 ### Smaller bundle size
 
-Rspack has consistently prioritized minimizing the bundle size of production builds. Since the release of 0.1, Rspack has gradually aligned its optimization capabilities with webpack, implementing features such as [split chunks](/plugins/webpack/split-chunks-plugin#splitchunksplugin), [tree shaking](/guide/optimization/tree-shaking), [scope hoisting](/config/optimization#optimizationconcatenatemodules) and [mangle exports](/config/optimization#optimizationmangleexports).
+Rspack has consistently prioritized minimizing the bundle size of production builds. Since the release of 0.1, Rspack has gradually aligned its optimization capabilities with webpack, implementing features such as [split chunks](/plugins/split-chunks-plugin#splitchunksplugin), [tree shaking](/guide/optimization/tree-shaking), [scope hoisting](/config/optimization#optimizationconcatenatemodules) and [mangle exports](/config/optimization#optimizationmangleexports).
 
 When a project migrates from webpack to Rspack, these features ensure that the bundle size remains the same as webpack while improving DX. In some scenarios, the output size of Rspack has even slightly outperformed webpack.
 

@@ -16,9 +16,10 @@ use tokio::{
 };
 
 use super::{
-  CacheKey, CacheValue, Etag, FileCacheStrategy,
+  CacheKey, CacheValue, Etag, FileCacheStrategy, Meta,
   cache_value::{CacheValueData, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
 };
+use crate::{InfrastructureLogger, Logger};
 
 const DEFAULT_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 const DEFAULT_IDLE_TIMEOUT_FOR_INITIAL_STORE: Duration = Duration::from_secs(5);
@@ -33,12 +34,16 @@ enum Command {
     value: ErasedCacheValue,
     encoder: CacheValueEncoder,
   },
-  StoreBuildDependencies(InternedPathSet),
   Restore {
     key: CacheKey,
     etag: Option<Etag>,
     decoder: CacheValueDecoder,
     result: sync_mpsc::SyncSender<Result<Option<ErasedCacheValue>>>,
+  },
+  StoreBuildDependencies(InternedPathSet),
+  StoreMeta(Meta),
+  RestoreMeta {
+    result: sync_mpsc::SyncSender<Result<Option<Meta>>>,
   },
   RecordBuildTime(Duration),
   BeginIdle {
@@ -56,6 +61,7 @@ struct IdleDeadline {
 
 struct BackgroundJob {
   strategy: FileCacheStrategy,
+  logger: Arc<InfrastructureLogger>,
   command_receiver: mpsc::UnboundedReceiver<Command>,
   // A deadline remains valid only while this still matches its captured epoch.
   idle_epoch: Arc<AtomicU64>,
@@ -70,7 +76,9 @@ struct BackgroundJob {
 impl BackgroundJob {
   async fn run(mut self) {
     if let Err(error) = self.strategy.db_validation().await {
-      tracing::warn!("Validating persistent cache build dependencies failed: {error}");
+      self
+        .logger
+        .warn(format!("Validating cache database failed: {error}"));
       return;
     }
 
@@ -99,7 +107,9 @@ impl BackgroundJob {
 
       let Some(command) = command else {
         if self.strategy.has_pending_writes() {
-          tracing::warn!("Idle file cache was dropped before shutdown with pending cache items");
+          self
+            .logger
+            .warn("Idle file cache was dropped before shutdown with pending cache items");
         }
         return;
       };
@@ -121,6 +131,9 @@ impl BackgroundJob {
       }
       Command::StoreBuildDependencies(dependencies) => {
         self.strategy.store_build_dependencies(dependencies);
+      }
+      Command::StoreMeta(meta) => {
+        self.strategy.store_meta(meta);
       }
       Command::Restore {
         key,
@@ -165,6 +178,9 @@ impl BackgroundJob {
         let _ = result.send(self.strategy.shutdown().await);
         return true;
       }
+      Command::RestoreMeta { result } => {
+        let _ = result.send(self.strategy.restore_meta());
+      }
     }
     false
   }
@@ -176,7 +192,7 @@ impl BackgroundJob {
       .after_all_stored(MAX_IDLE_COMPACTION_PASSES, check_idle_ended)
       .await
     {
-      tracing::warn!("Finalizing idle file cache store failed: {error}");
+      self.logger.warn(format!("Caching failed: {error}"));
       return;
     }
     let time_spent_in_store = start.elapsed();
@@ -202,6 +218,7 @@ pub struct IdleFileCache {
 impl IdleFileCache {
   pub fn new(
     strategy: FileCacheStrategy,
+    logger: Arc<InfrastructureLogger>,
     idle_timeout: Option<Duration>,
     idle_timeout_for_initial_store: Option<Duration>,
     idle_timeout_after_large_changes: Option<Duration>,
@@ -215,6 +232,7 @@ impl IdleFileCache {
     let idle_epoch = Arc::new(AtomicU64::new(0));
     let background_job = BackgroundJob {
       strategy,
+      logger,
       command_receiver,
       idle_epoch: Arc::clone(&idle_epoch),
       idle_deadline: None,
@@ -284,6 +302,18 @@ impl IdleFileCache {
 
   pub fn store_build_dependencies(&self, dependencies: InternedPathSet) -> Result<()> {
     self.send(Command::StoreBuildDependencies(dependencies))
+  }
+
+  pub fn store_meta(&self, meta: Meta) -> Result<()> {
+    self.send(Command::StoreMeta(meta))
+  }
+
+  pub fn restore_meta(&self) -> Result<Option<Meta>> {
+    let (result, result_receiver) = sync_mpsc::sync_channel(1);
+    self.send(Command::RestoreMeta { result })?;
+    result_receiver
+      .recv()
+      .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))?
   }
 
   pub fn record_build_time(&self, build_time: Duration) -> Result<()> {

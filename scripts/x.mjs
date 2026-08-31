@@ -178,7 +178,7 @@ program
       '--no-git-push', // Do not push generated commit and tags to git remote
       '--no-git-tag', // Do not tag versions in git, we will tag them in `crate-publish`
       '--force',
-      'rspack*', // Always include targeted crates matched by glob even when there are no changes
+      '*', // Published crates share `[workspace.package].version`; include them all so `[workspace.dependencies]` exact pins stay in sync
       '--yes', // Skip confirmation prompt
       bump, // Bump type
     ];

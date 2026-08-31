@@ -14,11 +14,11 @@ Rspack provides two plugin options for generating HTML:
 - The built-in `HtmlRspackPlugin` is optimized for performance and common HTML generation needs.
 - The community-compatible `HtmlWebpackPlugin` is suitable when you need broader webpack ecosystem compatibility or features that are not yet implemented by `HtmlRspackPlugin`.
 
-If you're not sure which plugin to choose, see the [comparison between HtmlRspackPlugin and HtmlWebpackPlugin](/plugins/rspack/html-rspack-plugin#comparison) to understand their differences in performance, features, and compatibility.
+If you're not sure which plugin to choose, see the [comparison between HtmlRspackPlugin and HtmlWebpackPlugin](/plugins/html-rspack-plugin#comparison) to understand their differences in performance, features, and compatibility.
 
 ### Built-in HtmlRspackPlugin
 
-[HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) is a high-performance HTML plugin implemented in Rust, offering significantly better build performance than the `HtmlWebpackPlugin`, especially when building a large number of HTML files.
+[HtmlRspackPlugin](/plugins/html-rspack-plugin) is a high-performance HTML plugin implemented in Rust, offering significantly better build performance than the `HtmlWebpackPlugin`, especially when building a large number of HTML files.
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -28,7 +28,7 @@ export default {
 };
 ```
 
-For all configuration options, see the [plugin documentation](/plugins/rspack/html-rspack-plugin).
+For all configuration options, see the [plugin documentation](/plugins/html-rspack-plugin).
 
 ### HtmlWebpackPlugin
 
