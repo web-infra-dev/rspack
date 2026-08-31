@@ -700,11 +700,14 @@ function createSendRequest(
     result.id = id;
     return result;
   }) as SendRequestFunction;
-  sendRequest.sync = createSendRequestSync(workerSyncPort);
+  sendRequest.sync = createSendRequestSync(workerPort, workerSyncPort);
   return sendRequest;
 }
 
-function createSendRequestSync(workerSyncPort: MessagePort) {
+function createSendRequestSync(
+  workerPort: MessagePort,
+  workerSyncPort: MessagePort,
+) {
   return (requestType: RequestSyncType, ...args: any[]) => {
     const id = nextId++;
 
@@ -713,7 +716,7 @@ function createSendRequestSync(workerSyncPort: MessagePort) {
     const sharedBuffer = new SharedArrayBuffer(8);
     const sharedBufferView = new Int32Array(sharedBuffer);
 
-    workerSyncPort.postMessage({
+    workerPort.postMessage({
       type: 'request-sync',
       id,
       requestType,
