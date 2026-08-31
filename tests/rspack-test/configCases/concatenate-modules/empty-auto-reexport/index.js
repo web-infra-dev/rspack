@@ -1,4 +1,8 @@
-import { getValue } from "./barrel";
+import {
+	__esModule as esModuleFromEmptyStar,
+	getValue,
+	missing as missingFromEmptyStar
+} from "./barrel";
 import "./sloppy-empty";
 import "./override-strict-empty";
 import "./override-non-strict-empty";
@@ -6,6 +10,7 @@ import "./shadowed-require";
 import "./access-exports";
 import "./access-module";
 import "./access-webpack-module";
+import "./defined-exports";
 import "./require-access";
 import "./mutate-empty";
 import "./dynamic";
@@ -32,11 +37,17 @@ const dynamicEmpty = import(
 	/* webpackMode: "eager" */ "./dynamic-import-empty"
 );
 
+function getNamespaceKeys(namespace) {
+	return Object.keys(namespace);
+}
+
 it("should only concatenate unknown non-ESM modules without CommonJS export access", async () => {
 	const dynamicNamespace = await dynamicEmpty;
 	expect(getValue()).toBe(42);
+	expect(missingFromEmptyStar).toBeUndefined();
+	expect(esModuleFromEmptyStar).toBeUndefined();
 	expect(Object.keys(unknown)).toEqual([]);
-	expect(Object.keys(namedValues)).toEqual(["missing"]);
+	expect(getNamespaceKeys(namedValues)).toEqual(["missing"]);
 	expect(namedValues.missing).toBeUndefined();
 	expect(directMissing).toBeUndefined();
 	expect(mutatedValue).toBe(42);
@@ -61,6 +72,10 @@ it("should only concatenate unknown non-ESM modules without CommonJS export acce
 	expect(typeof globalThis.emptyAutoReexportWebpackModule).toBe("object");
 	expect(globalThis.emptyAutoReexportWebpackModule).not.toBe(
 		__webpack_module__
+	);
+	expect(typeof globalThis.emptyAutoReexportDefinedExports).toBe("object");
+	expect(globalThis.emptyAutoReexportDefinedExports).not.toBe(
+		__webpack_module__.exports
 	);
 	expect(globalThis.emptyAutoReexportRequireAccessExecuted).toBe(true);
 	expect(globalThis.emptyAutoReexportMutatedExecuted).toBe(true);
@@ -90,6 +105,7 @@ it("should only concatenate unknown non-ESM modules without CommonJS export acce
 	delete globalThis.emptyAutoReexportAccessExportsExecuted;
 	delete globalThis.emptyAutoReexportAccessModuleExecuted;
 	delete globalThis.emptyAutoReexportWebpackModule;
+	delete globalThis.emptyAutoReexportDefinedExports;
 	delete globalThis.emptyAutoReexportRequireAccessExecuted;
 	delete globalThis.emptyAutoReexportMutatedExecuted;
 	delete globalThis.emptyAutoReexportMutatorExecuted;
@@ -117,6 +133,8 @@ it("should only concatenate unknown non-ESM modules without CommonJS export acce
 	);
 	expect(concatenated.modules.map(module => module.name)).toEqual(
 		expect.arrayContaining([
+			"./barrel.js",
+			"./empty-barrel.js",
 			"./empty.js",
 			"./override-strict-empty.js",
 			"./shadowed-require.js"
@@ -134,6 +152,7 @@ it("should only concatenate unknown non-ESM modules without CommonJS export acce
 		"./access-exports.js",
 		"./access-module.js",
 		"./access-webpack-module.js",
+		"./defined-exports.js",
 		"./direct-empty.js",
 		"./named-empty.js",
 		"./named-reexport-empty.js",

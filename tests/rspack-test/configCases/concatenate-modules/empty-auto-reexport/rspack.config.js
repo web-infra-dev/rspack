@@ -1,3 +1,5 @@
+const rspack = require('@rspack/core');
+
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
   mode: 'production',
@@ -34,6 +36,11 @@ module.exports = {
     concatenateModules: true,
     minimize: false,
   },
+  plugins: [
+    new rspack.DefinePlugin({
+      EMPTY_AUTO_REEXPORT_DEFINED_EXPORTS: 'exports',
+    }),
+  ],
   stats: {
     modules: true,
     nestedModules: true,
