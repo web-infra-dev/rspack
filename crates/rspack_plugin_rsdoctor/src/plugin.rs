@@ -1,18 +1,19 @@
 use std::{
   fmt,
-  sync::{Arc, LazyLock},
+  future::Future,
+  sync::{Arc, LazyLock, Mutex},
 };
 
 use atomic_refcell::AtomicRefCell;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
   BuildModuleGraphArtifact, ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration,
-  CompilationAfterProcessAssets, CompilationId, CompilationModuleIds,
+  CompilationAfterProcessAssets, CompilationAfterSeal, CompilationId, CompilationModuleIds,
   CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationOptimizeDependencies,
   CompilationParams, CompilerCompilation, ExportsInfoArtifact, ModuleIdsArtifact,
   OptimizationBailoutItem, Plugin, SideEffectsOptimizeArtifact,
 };
-use rspack_error::{Diagnostic, Result};
+use rspack_error::{Diagnostic, Result, error};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_devtool::{
   SourceMapDevToolModuleOptionsPlugin, SourceMapDevToolModuleOptionsPluginOptions,
@@ -24,6 +25,7 @@ use rspack_util::{
   source_map::SourceMapKind,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use tokio::task::JoinHandle;
 
 use crate::{
   EntrypointUkey, ModuleUkey, RsdoctorAssetPatch, RsdoctorChunkGraph,
@@ -68,6 +70,35 @@ static JSON_MODULE_SIZE_MAP: LazyLock<FxDashMap<CompilationId, crate::RsdoctorJs
 static ACTIVE_EXPORT_USAGE_DEPENDENCY_MAP: LazyLock<
   FxDashMap<CompilationId, Vec<RsdoctorExportUsageDependency>>,
 > = LazyLock::new(FxDashMap::default);
+
+type PatchTasks = Mutex<Vec<JoinHandle<Result<()>>>>;
+
+/// Patches are sent to the JavaScript side concurrently so the build does not block on report
+/// serialization, but they must all have been delivered before the compilation stops sealing.
+/// Otherwise a consumer that finalizes its report on a later hook (Rsdoctor finalizes on
+/// `afterCompile`) can race the delivery and drop a patch.
+static PENDING_PATCHES: LazyLock<FxDashMap<CompilationId, PatchTasks>> =
+  LazyLock::new(FxDashMap::default);
+
+/// Send a patch to the JavaScript side and record the task so [`after_seal`] can await it.
+fn spawn_patch<T, F>(compilation_id: CompilationId, what: &'static str, fut: F)
+where
+  T: Send + 'static,
+  F: Future<Output = Result<T>> + Send + 'static,
+{
+  let handle = tokio::spawn(async move {
+    fut
+      .await
+      .map(|_| ())
+      .map_err(|e| error!("rsdoctor send {what} failed: {e}"))
+  });
+  PENDING_PATCHES
+    .entry(compilation_id)
+    .or_default()
+    .lock()
+    .expect("should have rsdoctor pending patches")
+    .push(handle);
+}
 
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub enum RsdoctorPluginModuleGraphFeature {
@@ -300,8 +331,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     }
   }
 
-  tokio::spawn(async move {
-    match hooks
+  spawn_patch(compilation.id(), "chunk graph", async move {
+    hooks
       .borrow()
       .chunk_graph
       .call(&mut RsdoctorChunkGraph {
@@ -309,10 +340,6 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         entrypoints: rsd_entrypoints.into_values().collect::<Vec<_>>(),
       })
       .await
-    {
-      Ok(_) => {}
-      Err(e) => panic!("rsdoctor send chunk graph failed: {e}"),
-    };
   });
 
   Ok(None)
@@ -483,8 +510,8 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     Vec::new()
   };
 
-  tokio::spawn(async move {
-    match hooks
+  spawn_patch(compilation.id(), "module graph", async move {
+    hooks
       .borrow()
       .module_graph
       .call(&mut RsdoctorModuleGraph {
@@ -495,10 +522,6 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
         export_usage_edges,
       })
       .await
-    {
-      Ok(_) => {}
-      Err(e) => panic!("rsdoctor send module graph failed: {e}"),
-    };
   });
 
   Ok(None)
@@ -530,18 +553,14 @@ async fn module_ids(
     module_ids,
   );
 
-  tokio::spawn(async move {
-    match hooks
+  spawn_patch(compilation.id(), "module ids", async move {
+    hooks
       .borrow()
       .module_ids
       .call(&mut RsdoctorModuleIdsPatch {
         module_ids: rsd_module_ids,
       })
       .await
-    {
-      Ok(_) => {}
-      Err(e) => panic!("rsdoctor send module ids failed: {e}"),
-    };
   });
 
   Ok(())
@@ -577,8 +596,8 @@ async fn after_code_generation(
     .map(|map| map.clone())
     .unwrap_or_default();
 
-  tokio::spawn(async move {
-    match hooks
+  spawn_patch(compilation.id(), "module sources", async move {
+    hooks
       .borrow()
       .module_sources
       .call(&mut RsdoctorModuleSourcesPatch {
@@ -586,10 +605,6 @@ async fn after_code_generation(
         json_module_sizes,
       })
       .await
-    {
-      Ok(_) => {}
-      Err(e) => panic!("rsdoctor send module sources failed: {e}"),
-    };
   });
 
   Ok(())
@@ -624,8 +639,8 @@ async fn after_process_assets(
     chunk_by_ukey,
   );
 
-  tokio::spawn(async move {
-    match hooks
+  spawn_patch(compilation.id(), "assets", async move {
+    hooks
       .borrow()
       .assets
       .call(&mut RsdoctorAssetPatch {
@@ -634,12 +649,30 @@ async fn after_process_assets(
         entrypoint_assets,
       })
       .await
-    {
-      Ok(_) => {}
-      Err(e) => panic!("rsdoctor send assets failed: {e}"),
-    };
   });
 
+  Ok(())
+}
+
+/// Barrier for every patch spawned during this compilation.
+///
+/// `after_seal` runs right after `after_process_assets`, which is the last hook that sends a patch,
+/// and before the compiler level `afterCompile`. Waiting here guarantees that consumers observing a
+/// later hook see a complete report instead of racing the in-flight sends.
+#[plugin_hook(CompilationAfterSeal for RsdoctorPlugin)]
+async fn after_seal(&self, compilation: &Compilation) -> Result<()> {
+  let Some((_, tasks)) = PENDING_PATCHES.remove(&compilation.id()) else {
+    return Ok(());
+  };
+  for task in tasks
+    .into_inner()
+    .expect("should have rsdoctor pending patches")
+  {
+    match task.await {
+      Ok(result) => result?,
+      Err(e) => return Err(error!("rsdoctor patch delivery failed: {e}")),
+    }
+  }
   Ok(())
 }
 
@@ -682,6 +715,8 @@ impl Plugin for RsdoctorPlugin {
       .after_process_assets
       .tap(after_process_assets::new(self));
 
+    ctx.compilation_hooks.after_seal.tap(after_seal::new(self));
+
     SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
       source_map_kind: SourceMapKind::from_module(self.options.source_map_features.module)
         .with_cheap(self.options.source_map_features.cheap),
@@ -697,5 +732,6 @@ impl Plugin for RsdoctorPlugin {
     ENTRYPOINT_UKEY_MAP.remove(&id);
     JSON_MODULE_SIZE_MAP.remove(&id);
     ACTIVE_EXPORT_USAGE_DEPENDENCY_MAP.remove(&id);
+    PENDING_PATCHES.remove(&id);
   }
 }
