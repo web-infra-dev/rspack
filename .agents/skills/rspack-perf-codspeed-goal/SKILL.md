@@ -3,7 +3,7 @@ name: rspack-perf-codspeed-goal
 description: Use when optimizing a benchmarked code path through a GitHub PR where success depends on GitHub Actions checks, CodSpeed PR comments, requested percentage thresholds, flaky CI reruns, rebases, review comments, or repeated performance iterations. For Rspack performance work, combine this workflow with the rspack-perf skill and keep changes within the user-specified plugin, file, crate, feature, compilation stage, benchmark, or hot path unless expanding scope is necessary for correctness or the measured optimization.
 ---
 
-# Rspack Perf CodSpeed Goal
+# Rspack perf CodSpeed goal
 
 Use this for performance work where success is judged by a GitHub PR, required correctness validation, review comments, and CodSpeed benchmark feedback.
 
@@ -22,7 +22,7 @@ The agent owns the loop. After the user gives the target benchmark, threshold, a
 - Use local verification only for correctness. Run all CodSpeed performance validation in CI and use the CI/CodSpeed result for the current PR head as the source of truth.
 - Use append-only commits for normal optimization rounds. Do not routinely amend previous commits or force-push; use history rewriting only for an explicit user-requested rebase or another unavoidable repository operation.
 
-## Initial Setup
+## Initial setup
 
 1. Establish a clean base.
    - Check the working tree before changing code.
@@ -143,7 +143,7 @@ Run these steps in order for every round.
     - Do not add the comment when the final CodSpeed result is provisional, unreliable, neutral, or slower than the PR base.
     - Record whether this comment was added in the fixed progress comment and final report.
 
-## Progress Comment Format
+## Progress comment format
 
 Keep one fixed PR comment in this shape and refresh it throughout the work:
 
@@ -162,7 +162,7 @@ Latest head: `<sha>`
 
 Update, do not duplicate, this comment. Keep entries concise but specific enough that the commit history and performance result history are visible.
 
-## Rspack Scope
+## Rspack scope
 
 When the repository or task is Rspack-specific:
 
@@ -173,7 +173,7 @@ When the repository or task is Rspack-specific:
 - Do not touch unrelated plugins, compilation stages, tests, snapshots, or formatting outside the changed files unless required by the scoped optimization or CI result.
 - If the measured bottleneck crosses the requested boundary, explain the reason before expanding scope and keep the expansion minimal.
 
-## Correctness Guardrails
+## Correctness guardrails
 
 - When caching derived state, verify that the state is stable for the whole pass where it is reused.
 - When adding a fast path, compare it against the original slow path for all relevant modes, not only the common case.

@@ -1,9 +1,9 @@
-# Cache and Incremental Compilation
+# Cache and incremental compilation
 
 This document defines the boundary between Rspack's build cache and incremental compilation. They
 are independent performance mechanisms and must remain independently configurable.
 
-## Canonical Terms
+## Canonical terms
 
 | Term                    | Meaning                                                                                                                                              |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -19,7 +19,7 @@ Use these terms by ownership, not by the shape of the data. In particular, **Art
 synonym for cached value**. New Cache-owned payloads should be called cache entries or cache values,
 and new Incremental-owned intermediate state should be modeled as artifacts.
 
-## Two Orthogonal Configuration Axes
+## Two orthogonal configuration axes
 
 `cache` and `incremental` are orthogonal axes:
 
@@ -40,7 +40,7 @@ Neither option implicitly enables or disables the other. All four combinations a
 In this table, Cache “On” includes either memory-only cache or filesystem-backed persistent cache.
 The choice of storage mode does not change the Incremental semantics.
 
-### Configuration Examples
+### Configuration examples
 
 ```js
 // Cache off, Incremental on
@@ -60,7 +60,7 @@ export default {
 };
 ```
 
-## Incremental Is a Development Rebuild Mechanism
+## Incremental is a development rebuild mechanism
 
 Incremental compilation is designed for rebuilds performed by the same compiler with a known set of
 modified and removed files. The supported user-facing workflows are development, watch mode, and
@@ -82,7 +82,7 @@ change. The alignment is semantic, not structural. Rspack exposes Incremental as
 top-level option and does not inherit webpack's configuration coupling between `cacheUnaffected` and
 memory cache.
 
-## Cache Storage Modes
+## Cache storage modes
 
 Cache supports fine-grained entries through two storage modes:
 
@@ -94,7 +94,7 @@ Cache supports fine-grained entries through two storage modes:
 Filesystem-backed cache implementations may keep a memory front cache. That implementation detail
 does not create a third public storage mode.
 
-## Cache Backends
+## Cache backends
 
 Rspack currently carries two implementations of the same Cache responsibility:
 
@@ -112,7 +112,7 @@ unselected one. Code should depend on their Cache responsibility rather than use
 the owner of Incremental state. The two implementations do not need identical cache coverage or
 storage formats while the migration is in progress.
 
-## Ownership and Data Flow
+## Ownership and data flow
 
 Ownership is the architectural boundary:
 
@@ -146,7 +146,7 @@ precedent for new code: ownership is determined by invalidation and reuse semant
 state should move behind Cache abstractions. Legacy persistent Cache calls its generic payload a
 `CacheItem`, not an Artifact.
 
-## Architectural Invariants
+## Architectural invariants
 
 Changes to these systems must preserve the following rules:
 
@@ -165,7 +165,7 @@ above are transitional Cache co-location, while `EMIT_ASSETS` still keeps emitte
 directly on `Compiler` instead of in an Incremental artifact. Neither exception should be used to
 introduce new Cache/Incremental coupling.
 
-## Relevant Code
+## Relevant code
 
 - Cache configuration: `crates/rspack_core/src/options/cache.rs`
 - Shared Cache dependencies: `crates/rspack_core/src/cache/`

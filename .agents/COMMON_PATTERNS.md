@@ -1,10 +1,10 @@
-# Common Patterns
+# Common patterns
 
 Common code patterns and templates used in Rspack.
 
-## Plugin Implementation
+## Plugin implementation
 
-### Basic Plugin Structure
+### Basic plugin structure
 
 ```rust
 use rspack_core::{Compilation, Plugin, ApplyContext};
@@ -47,7 +47,7 @@ impl Plugin for MyPlugin {
 }
 ```
 
-### Plugin with Multiple Hooks
+### Plugin with multiple hooks
 
 ```rust
 #[plugin_hook(CompilationProcessAssets for MyPlugin)]
@@ -69,9 +69,9 @@ impl Plugin for MyPlugin {
 }
 ```
 
-## Hook Usage
+## Hook usage
 
-### Accessing Compilation Data
+### Accessing compilation data
 
 ```rust
 #[plugin_hook(CompilationProcessAssets for MyPlugin)]
@@ -95,7 +95,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 ```
 
-### Updating Assets
+### Updating assets
 
 ```rust
 #[plugin_hook(CompilationProcessAssets for MyPlugin)]
@@ -108,7 +108,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 ```
 
-### Using Logger
+### Using logger
 
 ```rust
 #[plugin_hook(CompilationProcessAssets for MyPlugin)]
@@ -122,9 +122,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 ```
 
-## Error Handling
+## Error handling
 
-### Propagating Errors
+### Propagating errors
 
 ```rust
 use rspack_error::Result;
@@ -135,7 +135,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 ```
 
-### Adding Context to Errors
+### Adding context to errors
 
 ```rust
 use rspack_error::{Result, Error};
@@ -147,7 +147,7 @@ async fn process_file(&self, filename: &str) -> Result<String> {
 }
 ```
 
-### Batch Error Handling
+### Batch error handling
 
 ```rust
 use rspack_error::{BatchErrors, Result};
@@ -163,9 +163,9 @@ async fn process_multiple(&self, files: Vec<&str>) -> Result<()> {
 }
 ```
 
-## Async Operations
+## Async operations
 
-### Async Function in Trait
+### Async function in trait
 
 ```rust
 use futures::future::BoxFuture;
@@ -175,7 +175,7 @@ pub type MyAsyncFn = Box<
 >;
 ```
 
-### Parallel Processing
+### Parallel processing
 
 ```rust
 use futures::future::join_all;
@@ -189,13 +189,13 @@ async fn process_multiple(&self, items: Vec<Item>) -> Result<Vec<Result>>> {
 }
 ```
 
-## Testing Patterns
+## Testing patterns
 
-### Rust Tests
+### Rust tests
 
 Do not add inline `#[test]` functions or crate-local unit tests in ordinary changes. Add Rust test cases only when they belong in a dedicated test crate.
 
-### JavaScript Integration Test
+### JavaScript integration test
 
 ```javascript
 // tests/rspack-test/configCases/my-plugin/index.js
@@ -218,9 +218,9 @@ it('should process assets correctly', async () => {
 });
 ```
 
-## Loader Implementation
+## Loader implementation
 
-### Basic Loader Structure
+### Basic loader structure
 
 ```rust
 use rspack_core::{LoaderContext, LoaderResult};
@@ -235,7 +235,7 @@ pub async fn my_loader(
 }
 ```
 
-### Loader with Options
+### Loader with options
 
 ```rust
 #[derive(Debug, Deserialize)]
@@ -256,9 +256,9 @@ pub async fn my_loader(
 }
 ```
 
-## Configuration Options
+## Configuration options
 
-### Defining Options
+### Defining options
 
 ```rust
 #[derive(Debug, Deserialize)]
@@ -281,7 +281,7 @@ fn default_option3() -> i32 {
 }
 ```
 
-### TypeScript Options Type
+### TypeScript options type
 
 ```typescript
 export interface MyPluginOptions {
@@ -303,9 +303,9 @@ export interface MyPluginOptions {
 }
 ```
 
-## Asset Processing Patterns
+## Asset processing patterns
 
-### Reading and Modifying Assets
+### Reading and modifying assets
 
 ```rust
 #[plugin_hook(CompilationProcessAssets for MyPlugin)]
@@ -323,7 +323,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 ```
 
-### Creating New Assets
+### Creating new assets
 
 ```rust
 #[plugin_hook(CompilationProcessAssets for MyPlugin)]
@@ -334,7 +334,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 ```
 
-## String Processing
+## String processing
 
 ### Using CowUtils
 
@@ -349,7 +349,7 @@ fn process_string(input: &str) -> String {
 }
 ```
 
-### Regex Patterns
+### Regex patterns
 
 ```rust
 use std::sync::LazyLock;
@@ -364,9 +364,9 @@ fn match_pattern(input: &str) -> bool {
 }
 ```
 
-## Performance Optimization Patterns
+## Performance optimization patterns
 
-### Avoiding Allocations
+### Avoiding allocations
 
 ```rust
 // Prefer &str over String when possible
@@ -386,7 +386,7 @@ fn maybe_owned(input: &str) -> Cow<str> {
 }
 ```
 
-### Efficient Iteration
+### Efficient iteration
 
 ```rust
 let results: Vec<_> = items
@@ -396,9 +396,9 @@ let results: Vec<_> = items
  .collect();
 ```
 
-## Common Utilities
+## Common utilities
 
-### Path Handling
+### Path handling
 
 ```rust
 use rspack_core::{Filename, PathData};
@@ -412,7 +412,7 @@ let filename = compilation.get_path(
 ).await?;
 ```
 
-### Hash Generation
+### Hash generation
 
 ```rust
 let hash = compilation
