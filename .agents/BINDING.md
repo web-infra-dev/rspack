@@ -1,4 +1,4 @@
-# JavaScript Binding Guide
+# JavaScript binding guide
 
 Use this guide for changes involving any of these paths:
 

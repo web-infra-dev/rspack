@@ -3,16 +3,16 @@ name: rspack-webpack-gap-tracker
 description: Use when tracking, auditing, or updating Rspack compatibility gaps against webpack, including missing webpack features, built-in and ecosystem plugin compatibility gaps, completed compatibility features, and missing webpack test coverage.
 ---
 
-# Rspack Webpack Gap Tracker
+# Rspack webpack gap tracker
 
-## Tracking Targets
+## Tracking targets
 
 - Main tracking issue: https://github.com/web-infra-dev/rspack/issues/14556
 - Completed feature comment ID: `4785525873`
 - Missing test comment ID: `4785526309`
 - Native CSS tracking issue: https://github.com/web-infra-dev/rspack/issues/14002
 
-## Required Output Shape
+## Required output shape
 
 Keep the issue and comments as lists, not prose-only summaries.
 
@@ -26,7 +26,7 @@ Every update to the issue body or either placeholder comment must include a visi
 Last updated: YYYY-MM-DD HH:mm:ss Z
 ```
 
-## Audit Workflow
+## Audit workflow
 
 1. Read the current tracking issue and its comments before adding anything.
 2. Preserve the existing issue and comment format when updating; only change the relevant timestamp and list entries.
@@ -49,7 +49,7 @@ Last updated: YYYY-MM-DD HH:mm:ss Z
    - Otherwise, list missing tests by webpack test directory.
    - Include older missing tests directly; do not hide them just because they predate the last update.
 
-## Suggested Investigation Sources
+## Suggested investigation sources
 
 - Webpack releases and changelog for new feature candidates.
 - Webpack config schema/types and Rspack config schema/types for option-level gaps.
@@ -60,7 +60,7 @@ Last updated: YYYY-MM-DD HH:mm:ss Z
 - Rsbuild docs/source and https://github.com/rstackjs packages for existing compatibility solutions.
 - `tests/rspack-test/` and the local webpack checkout, when available, for test coverage comparison.
 
-## Compare Test Directories
+## Compare test directories
 
 Run the bundled zx script before manually auditing missing webpack tests. It compares canonical test case directories and maps webpack's `test/cases` to Rspack's `tests/rspack-test/normalCases` and webpack's `test/statsCases` to Rspack's `tests/rspack-test/statsOutputCases`.
 
@@ -91,7 +91,7 @@ Set the webpack checkout with `--webpack` or `WEBPACK_ROOT`. Set a different Rsp
 
 Use `--direction webpack` to show tests missing from Rspack, `--direction rspack` to show Rspack-only tests, or the default `--direction both` to show the symmetric directory diff. Read `scripts/diff-tests.mjs` only when changing its comparison behavior.
 
-## Entry Format
+## Entry format
 
 Use concise checklist entries. Prefer one feature or test group per item.
 
