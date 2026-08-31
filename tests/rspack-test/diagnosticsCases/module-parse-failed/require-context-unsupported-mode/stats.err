@@ -1,10 +1,12 @@
 ERROR in ./index.js
   × Module parse failed:
   ╰─▶   × Unsupported mode: `mode` expected "sync", "eager", "weak", "async-weak", "lazy" or "lazy-once", but received: "unknown-mode".
-         ╭─[1:53]
-       1 │ const ctx = require.context("./dir", false, //.js$/, "unknown-mode");
+         ╭─[3:53]
+       1 │ require.context(request, false, //.js$/, "unknown-mode");
+       2 │
+       3 │ const ctx = require.context("./dir", false, //.js$/, "unknown-mode");
          ·                                                      ──────────────
-       2 │ module.exports = ctx;
+       4 │ module.exports = ctx;
          ╰────
       
   help: 

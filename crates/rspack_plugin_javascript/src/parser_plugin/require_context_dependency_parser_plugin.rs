@@ -30,6 +30,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireContextDependencyParserPl
       return None;
     }
 
+    let arg = expr.args.first()?;
+    let request_expr = parser.evaluate_expression(&arg.expr);
+    if !request_expr.is_string() {
+      return None;
+    }
+
     let mode = if expr.args.len() == 4 {
       let mode_expr = parser.evaluate_expression(&expr.args[3].expr);
       if !mode_expr.is_string() {
@@ -83,32 +89,23 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireContextDependencyParserPl
       true
     };
 
-    if let Some(arg) = expr.args.first() {
-      let request_expr = parser.evaluate_expression(&arg.expr);
-      if !request_expr.is_string() {
-        return None;
-      }
-
-      let reg_exp = clean_regexp_in_context_module(reg_exp, reg_exp_span, parser);
-      parser.add_dependency(BoxDependency::new(RequireContextDependency::new(
-        ContextOptions {
-          mode,
-          recursive,
-          pattern: reg_exp.into(),
-          category: DependencyCategory::CommonJS,
-          request: request_expr.string().clone(),
-          context: get_context(parser.resource_data).to_string(),
-          compiler_context: parser.compiler_options.context.clone(),
-          start: expr.span().real_lo(),
-          end: expr.span().real_hi(),
-          ..Default::default()
-        },
-        expr.span.into(),
-        parser.in_try,
-      )));
-      return Some(true);
-    }
-
-    None
+    let reg_exp = clean_regexp_in_context_module(reg_exp, reg_exp_span, parser);
+    parser.add_dependency(BoxDependency::new(RequireContextDependency::new(
+      ContextOptions {
+        mode,
+        recursive,
+        pattern: reg_exp.into(),
+        category: DependencyCategory::CommonJS,
+        request: request_expr.string().clone(),
+        context: get_context(parser.resource_data).to_string(),
+        compiler_context: parser.compiler_options.context.clone(),
+        start: expr.span().real_lo(),
+        end: expr.span().real_hi(),
+        ..Default::default()
+      },
+      expr.span.into(),
+      parser.in_try,
+    )));
+    Some(true)
   }
 }
