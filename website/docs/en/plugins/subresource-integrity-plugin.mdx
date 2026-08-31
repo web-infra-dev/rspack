@@ -94,7 +94,7 @@ export default {
 
 If you use the HTML plugin with `inject: false`, you need to set the `integrity` and `crossorigin` attributes in your template manually.
 
-With [`HtmlRspackPlugin`](/plugins/html-rspack-plugin), the grammar of the template is a bit different with `.ejs`(see [here](/plugins/html-rspack-plugin#supported-ejs-syntax)), you can inject them like this:
+With [`HtmlRspackPlugin`](/plugins/html-rspack-plugin), the grammar of the template is a bit different with `.ejs`(see [here](/plugins/html-rspack-plugin#template-syntax)), you can inject them like this:
 
 ```ejs title="index.ejs"
 <% for src in htmlRspackPlugin.files.js { %>
