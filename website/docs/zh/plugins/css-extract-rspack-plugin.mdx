@@ -54,6 +54,8 @@ dist/
 `CssExtractRspackPlugin` 会输出入口中导入的 CSS，但不会自动在 HTML 中添加对应链接。将 [HtmlRspackPlugin](/plugins/html-rspack-plugin) 与它一起注册，可以生成 `index.html` 并注入对应的样式表 `<link>` 标签：
 
 ```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
 export default {
   entry: './src/index.js',
   plugins: [new rspack.HtmlRspackPlugin(), new rspack.CssExtractRspackPlugin()],
@@ -79,6 +81,8 @@ export default {
 `CssExtractRspackPlugin` 会将提取出的样式表示为类型为 `css/mini-extract` 的模块。通过 [`splitChunks.cacheGroups.{cacheGroup}.type`](/plugins/split-chunks-plugin#splitchunkscachegroupscachegrouptype) 可以只选择该插件提取的 CSS，而不会选择 JavaScript 模块或由 Rspack 内置 CSS 支持处理的模块。
 
 ```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
 export default {
   plugins: [new rspack.CssExtractRspackPlugin()],
   module: {
