@@ -37,6 +37,7 @@ import {
   EnableLibraryPlugin,
   EnableWasmLoadingPlugin,
   EnsureChunkConditionsPlugin,
+  applyLimits,
   EvalDevToolModulePlugin,
   EvalSourceMapDevToolPlugin,
   ExternalsPlugin,
@@ -93,6 +94,13 @@ export class RspackOptionsApply {
     compiler.outputPath = options.output.path;
     compiler.name = options.name;
     compiler.outputFileSystem = fs;
+
+    if (options.output.enabledLibraryTypes?.includes('modern-module')) {
+      applyLimits(
+        options,
+        compiler.getInfrastructureLogger('rspack.RspackOptionsApply'),
+      );
+    }
 
     if (options.externals) {
       if (!options.externalsType) {
