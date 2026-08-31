@@ -28,10 +28,7 @@ Called when computing the chunk hash for JavaScript chunks.
 
 `SyncWaterfallHook<[Source, RenderContext]>`
 
-Called with the rendered content of a JavaScript chunk, before the chunk's init
-fragments are injected and before the chunk is written out. Taps must return a
-`Source`, which becomes the content the following taps and the rest of the
-rendering pipeline see.
+Called with the rendered content of a JavaScript chunk, before the chunk's init fragments are injected and before the chunk is written out. Taps must return a `Source`, which becomes the content the following taps and the rest of the rendering pipeline see.
 
 Use it to wrap the whole chunk content, for example in a `try`/`catch`:
 
@@ -60,11 +57,6 @@ type RenderContext = {
   chunk: Chunk;
 };
 ```
-
-webpack additionally exposes `chunkGraph`, `moduleGraph`, `runtimeTemplate`,
-`codeGenerationResults` and `runtimeRequirements` on the render context. In
-Rspack those are reachable from the `compilation` the hooks were retrieved from,
-so only the per-call `chunk` is carried across the binding.
 
 <Collapse>
   <CollapsePanel

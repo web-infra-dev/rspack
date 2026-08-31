@@ -59,10 +59,6 @@ type RenderContext = {
 };
 ```
 
-webpack 的 render context 上还有 `chunkGraph`、`moduleGraph`、`runtimeTemplate`、
-`codeGenerationResults` 和 `runtimeRequirements`。在 Rspack 中这些都可以从获取 hooks 时用的
-`compilation` 上拿到，因此只有每次调用才会变化的 `chunk` 会跨越 binding 传递。
-
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
