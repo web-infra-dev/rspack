@@ -309,7 +309,7 @@ export declare class JsCompilation {
   getWarnings(): Array<RspackError>
   getStats(): JsStats
   getAssetPath(filename: string, data: JsPathData): string
-  getAssetPathWithInfo(filename: string, data: JsPathData): PathWithInfo
+  getAssetPathWithInfo(filename: string, data: JsPathData, assetInfo?: AssetInfo | undefined | null): PathWithInfo
   getPath(filename: string, data: JsPathData): string
   getPathWithInfo(filename: string, data: JsPathData): PathWithInfo
   addFileDependencies(deps: Array<string>): void

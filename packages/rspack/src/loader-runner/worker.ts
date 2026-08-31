@@ -303,29 +303,57 @@ async function loaderImpl(
 
   loaderContext._compilation = {
     ...loaderContext._compilation,
-    getPath(filename, data) {
-      return sendRequest(RequestType.CompilationGetPath, filename, data).wait();
+    getPath(filename, data = {}) {
+      if (!data.hash) {
+        data = {
+          hash: loaderContext._compilation.hash ?? undefined,
+          ...data,
+        };
+      }
+      const template =
+        typeof filename === 'function' ? filename(data) : filename;
+      return sendRequest(RequestType.CompilationGetPath, template, data).wait();
     },
-    getPathWithInfo(filename, data) {
-      return sendRequest(
+    getPathWithInfo(filename, data = {}) {
+      if (!data.hash) {
+        data = {
+          hash: loaderContext._compilation.hash ?? undefined,
+          ...data,
+        };
+      }
+      const info = {};
+      const template =
+        typeof filename === 'function' ? filename(data, info) : filename;
+      const result = sendRequest(
         RequestType.CompilationGetPathWithInfo,
-        filename,
+        template,
         data,
+        info,
       ).wait();
+      Object.assign(info, result.info);
+      return { path: result.path, info };
     },
-    getAssetPath(filename, data) {
+    getAssetPath(filename, data = {}) {
+      const template =
+        typeof filename === 'function' ? filename(data) : filename;
       return sendRequest(
         RequestType.CompilationGetAssetPath,
-        filename,
+        template,
         data,
       ).wait();
     },
-    getAssetPathWithInfo(filename, data) {
-      return sendRequest(
+    getAssetPathWithInfo(filename, data = {}) {
+      const info = {};
+      const template =
+        typeof filename === 'function' ? filename(data, info) : filename;
+      const result = sendRequest(
         RequestType.CompilationGetAssetPathWithInfo,
-        filename,
+        template,
         data,
+        info,
       ).wait();
+      Object.assign(info, result.info);
+      return { path: result.path, info };
     },
   } as LoaderContext['_compilation'];
 
@@ -672,11 +700,14 @@ function createSendRequest(
     result.id = id;
     return result;
   }) as SendRequestFunction;
-  sendRequest.sync = createSendRequestSync(workerSyncPort);
+  sendRequest.sync = createSendRequestSync(workerPort, workerSyncPort);
   return sendRequest;
 }
 
-function createSendRequestSync(workerSyncPort: MessagePort) {
+function createSendRequestSync(
+  workerPort: MessagePort,
+  workerSyncPort: MessagePort,
+) {
   return (requestType: RequestSyncType, ...args: any[]) => {
     const id = nextId++;
 
@@ -685,7 +716,7 @@ function createSendRequestSync(workerSyncPort: MessagePort) {
     const sharedBuffer = new SharedArrayBuffer(8);
     const sharedBufferView = new Int32Array(sharedBuffer);
 
-    workerSyncPort.postMessage({
+    workerPort.postMessage({
       type: 'request-sync',
       id,
       requestType,

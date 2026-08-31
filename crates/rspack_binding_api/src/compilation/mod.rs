@@ -534,15 +534,18 @@ impl JsCompilation {
     &self,
     filename: String,
     data: JsPathData,
+    asset_info: Option<AssetInfo>,
   ) -> Result<PathWithInfo> {
     let compilation = self.as_ref()?;
+    let filename: rspack_core::Filename = filename.into();
+    let mut asset_info = asset_info.map(Into::into).unwrap_or_default();
 
     #[allow(clippy::disallowed_methods)]
-    let res = futures::executor::block_on(
-      compilation.get_asset_path_with_info(&filename.into(), data.to_path_data(compilation)?),
+    let path = futures::executor::block_on(
+      filename.render(data.to_path_data(compilation)?, Some(&mut asset_info)),
     )
     .to_napi_result()?;
-    Ok(res.into())
+    Ok((path, asset_info).into())
   }
 
   #[napi]

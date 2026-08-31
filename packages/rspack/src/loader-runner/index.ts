@@ -780,6 +780,7 @@ export async function runLoaders(
         },
       },
       _compilation: {
+        hash: compiler._lastCompilation!.hash,
         options: {
           output: {
             // css-loader
@@ -952,7 +953,16 @@ export async function runLoaders(
           case RequestType.CompilationGetPathWithInfo: {
             const filename = args[0];
             const data = args[1];
-            return compiler._lastCompilation!.getPathWithInfo(filename, data);
+            const initialInfo = args[2];
+            return compiler._lastCompilation!.getPathWithInfo(
+              initialInfo
+                ? (_pathData, info) => {
+                    Object.assign(info!, initialInfo);
+                    return filename;
+                  }
+                : filename,
+              data,
+            );
           }
           case RequestType.CompilationGetAssetPath: {
             const filename = args[0];
@@ -962,8 +972,14 @@ export async function runLoaders(
           case RequestType.CompilationGetAssetPathWithInfo: {
             const filename = args[0];
             const data = args[1];
+            const initialInfo = args[2];
             return compiler._lastCompilation!.getAssetPathWithInfo(
-              filename,
+              initialInfo
+                ? (_pathData, info) => {
+                    Object.assign(info!, initialInfo);
+                    return filename;
+                  }
+                : filename,
               data,
             );
           }

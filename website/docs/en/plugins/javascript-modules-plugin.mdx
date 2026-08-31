@@ -36,3 +36,48 @@ export default {
   plugins: [new MyJsMinimizerPlugin()],
 };
 ```
+
+## Static methods
+
+### `getChunkFilenameTemplate`
+
+<ApiMeta addedVersion="2.2.2" />
+
+```ts
+function getChunkFilenameTemplate(
+  chunk: Chunk,
+  outputOptions: Output,
+): Filename | undefined;
+```
+
+Returns the filename template that is used to render the JavaScript file of the
+given chunk, resolved in this order:
+
+1. `chunk.filenameTemplate`, if the chunk carries its own template (for example
+   a chunk produced by a `splitChunks` cache group with `filename` set).
+2. [`output.filename`](/config/output#outputfilename), if the chunk can be initial.
+3. [`output.chunkFilename`](/config/output#outputchunkfilename) otherwise.
+
+```js
+class MyPlugin {
+  apply(compiler) {
+    const { JavascriptModulesPlugin } = compiler.rspack.javascript;
+    compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
+      compilation.hooks.afterSeal.tap('MyPlugin', () => {
+        for (const chunk of compilation.chunks) {
+          const template = JavascriptModulesPlugin.getChunkFilenameTemplate(
+            chunk,
+            compilation.outputOptions,
+          );
+          const filename = compilation.getPath(template, { chunk });
+          console.log(filename);
+        }
+      });
+    });
+  }
+}
+```
+
+:::info Difference from webpack
+Hot update chunks are not currently supported because they are not yet exposed to the JavaScript side.
+:::
