@@ -1,86 +1,125 @@
+use rspack_cacheable::cacheable;
 use rspack_collections::Identifiable;
-use rspack_error::{Result, error};
+use rspack_error::Result;
 
 use crate::{
-  BoxModule, BuildResult, CacheOptions, CompilerOptions, FileSystemInfo, ValueCacheVersions,
-  cache::{CacheCodec, SnapshotStrategyOptions},
+  BoxModule, BuildResult, DependencyRef, FileSystemInfo, NeedBuildContext, OptimizationBailoutItem,
+  ValueCacheVersions,
+  dependencies_block::CachedAsyncDependenciesBlock,
   new_cache::{CacheFacade, CacheValue},
+  normal_module::CachedModule,
 };
 
-/// Persistent cache for completed normal module builds.
+/// Cache-owned result of a completed normal module build.
 ///
-/// Webpack caches the `Module` itself. Rspack keeps dependencies and blocks in
-/// `BuildResult` until they are inserted into the module graph, so caching the
-/// complete build result is the equivalent representation. The serialized form
-/// also gives each compilation an exclusively owned module while the generic
-/// cache continues to expose shared immutable values.
+/// This is deliberately separate from [`BuildResult`]. A build result is
+/// consumed while it is installed into a module graph, whereas this type is
+/// immutable and can be shared by the in-memory cache. The file-cache backend
+/// serializes this value only when persistence is enabled.
+#[cacheable]
+#[derive(Debug)]
+struct CachedBuildResult {
+  module: CachedModule,
+  dependencies: Vec<DependencyRef>,
+  blocks: Vec<CachedAsyncDependenciesBlock>,
+  optimization_bailouts: Vec<OptimizationBailoutItem>,
+}
+
+impl CachedBuildResult {
+  async fn from_build_result(
+    result: &mut BuildResult,
+    file_system_info: &FileSystemInfo,
+    build_start_time: u64,
+  ) -> Result<Option<Self>> {
+    let Some(module) = result.module.as_normal_module() else {
+      return Ok(None);
+    };
+    let Some(module) = module
+      .save_to_cache(file_system_info, build_start_time)
+      .await?
+    else {
+      return Ok(None);
+    };
+
+    Ok(Some(Self {
+      module,
+      dependencies: result.dependencies.clone(),
+      blocks: result
+        .blocks
+        .iter_mut()
+        .map(|block| CachedAsyncDependenciesBlock::from_block(block))
+        .collect(),
+      optimization_bailouts: result.optimization_bailouts.clone(),
+    }))
+  }
+
+  async fn recover(
+    &self,
+    mut module: BoxModule,
+    context: &NeedBuildContext<'_>,
+  ) -> Result<ModuleBuildCacheRestore> {
+    let Some(normal_module) = module.as_normal_module_mut() else {
+      return Ok(ModuleBuildCacheRestore::Miss(module));
+    };
+    if !normal_module
+      .recover_from_cache(&self.module, context)
+      .await?
+    {
+      return Ok(ModuleBuildCacheRestore::Miss(module));
+    }
+
+    Ok(ModuleBuildCacheRestore::Hit(BuildResult {
+      module,
+      dependencies: self.dependencies.clone(),
+      blocks: self
+        .blocks
+        .iter()
+        .map(|block| block.materialize())
+        .collect(),
+      optimization_bailouts: self.optimization_bailouts.clone(),
+    }))
+  }
+}
+
+pub(crate) enum ModuleBuildCacheRestore {
+  Hit(BuildResult),
+  Miss(BoxModule),
+}
+
+/// Cache for completed normal module builds.
 ///
-/// Context modules are intentionally built fresh until their factory state can
-/// be restored without serializing the process-local dependency resolver.
+/// `CacheFacade` retains `CachedBuildResult` directly in memory. The generic
+/// cache backend owns filesystem encoding and decoding, so module cache users
+/// never need to depend on `CacheCodec` or byte buffers.
 #[derive(Debug, Clone)]
 pub(crate) struct ModuleBuildCache {
   cache: CacheFacade,
-  codec: CacheCodec,
 }
 
 impl ModuleBuildCache {
-  pub(crate) fn new(cache: CacheFacade, options: &CompilerOptions) -> Self {
-    let project_root = match &options.cache {
-      CacheOptions::Persistent(cache_options) if cache_options.portable => {
-        Some(options.context.as_path().to_path_buf())
-      }
-      _ => None,
-    };
-    Self {
-      cache,
-      codec: CacheCodec::new(project_root),
-    }
+  pub(crate) fn new(cache: CacheFacade) -> Self {
+    Self { cache }
   }
 
   pub(crate) async fn restore(
     &self,
-    module: &mut BoxModule,
+    module: BoxModule,
     file_system_info: &FileSystemInfo,
     value_cache_versions: &ValueCacheVersions,
-  ) -> Result<Option<BuildResult>> {
-    if module.as_normal_module().is_none() {
-      return Ok(None);
-    }
-
+  ) -> Result<ModuleBuildCacheRestore> {
     let identifier = module.identifier();
-    let Some(bytes) = self.cache.get::<Vec<u8>>(identifier.as_str(), None)? else {
-      return Ok(None);
+    let Some(result) = self
+      .cache
+      .get::<CachedBuildResult>(identifier.as_str(), None)?
+    else {
+      return Ok(ModuleBuildCacheRestore::Miss(module));
     };
-    let mut result = self.codec.decode::<BuildResult>(&bytes)?;
-    if result.module.identifier() != identifier {
-      return Err(error!(
-        "Restored module identifier mismatch: expected {identifier}, got {}",
-        result.module.identifier()
-      ));
-    }
-    if result.module.as_normal_module().is_none() {
-      return Err(error!(
-        "Restored module type mismatch: expected a normal module for {identifier}"
-      ));
-    }
-
-    let cached_module = result
-      .module
-      .as_normal_module_mut()
-      .expect("restored module type was checked above");
-    let fresh_module = module
-      .as_normal_module_mut()
-      .expect("fresh module type was checked above");
-    cached_module.update_cache_module(fresh_module);
-    let need_build = cached_module
-      .need_build_with_context(file_system_info, value_cache_versions)
-      .await?;
-    if need_build {
-      *module = result.module;
-      return Ok(None);
-    }
-
-    Ok(Some(result))
+    result
+      .recover(
+        module,
+        &NeedBuildContext::new(file_system_info, value_cache_versions),
+      )
+      .await
   }
 
   pub(crate) async fn store(
@@ -89,47 +128,14 @@ impl ModuleBuildCache {
     file_system_info: &FileSystemInfo,
     build_start_time: u64,
   ) -> Result<()> {
-    let module = &mut result.module;
-    if module.as_normal_module().is_none() {
+    let Some(cached_result) =
+      CachedBuildResult::from_build_result(result, file_system_info, build_start_time).await?
+    else {
       return Ok(());
-    }
-
-    if module.build_info().cacheable
-      && !module
-        .diagnostics()
-        .iter()
-        .any(|diagnostic| diagnostic.is_error())
-    {
-      let build_info = module.build_info();
-      let snapshot = file_system_info
-        .create_snapshot(
-          Some(build_start_time),
-          &build_info.dependencies.file,
-          &build_info.dependencies.context,
-          &build_info.dependencies.missing,
-          // Rspack does not expose webpack's `snapshot.module` strategy yet.
-          SnapshotStrategyOptions::timestamp(),
-        )
-        .await?;
-      module.build_info_mut().snapshot = Some(snapshot);
-    }
-
-    let identifier = result.module.identifier();
-    let bytes = match self.codec.encode(result) {
-      Ok(bytes) => bytes,
-      Err(error) => {
-        // Match webpack's persistent cache behavior: an item containing
-        // process-local state is skipped instead of failing the compilation.
-        tracing::debug!(
-          module = identifier.as_str(),
-          %error,
-          "Skipped non-serializable module cache entry"
-        );
-        return Ok(());
-      }
     };
+    let identifier = result.module.identifier();
     self
       .cache
-      .store(identifier.as_str(), None, CacheValue::new(bytes))
+      .store(identifier.as_str(), None, CacheValue::new(cached_result))
   }
 }

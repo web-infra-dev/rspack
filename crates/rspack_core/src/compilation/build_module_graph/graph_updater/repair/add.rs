@@ -7,7 +7,7 @@ use super::{
 };
 use crate::{
   BoxModule, DependencyRef, ModuleIdentifier,
-  compilation::build_module_graph::ForwardedIdSet,
+  compilation::build_module_graph::{ForwardedIdSet, module_build_cache::ModuleBuildCacheRestore},
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
 };
@@ -29,7 +29,7 @@ impl Task<TaskContext> for AddTask {
   async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let Self {
       original_module_identifier,
-      mut module,
+      module,
       module_graph_module,
       dependencies,
       from_unlazy,
@@ -109,14 +109,24 @@ impl Task<TaskContext> for AddTask {
       return Ok(vec![]);
     }
 
+    let mut module = Some(module);
     let cached_build_result = if let Some(module_build_cache) = &context.module_build_cache {
-      module_build_cache
+      match module_build_cache
         .restore(
-          &mut module,
+          module
+            .take()
+            .expect("module is available before cache restoration"),
           &context.file_system_info,
           &context.value_cache_versions,
         )
         .await?
+      {
+        ModuleBuildCacheRestore::Hit(result) => Some(result),
+        ModuleBuildCacheRestore::Miss(restored_module) => {
+          module = Some(restored_module);
+          None
+        }
+      }
     } else {
       None
     };
@@ -154,7 +164,7 @@ impl Task<TaskContext> for AddTask {
     Ok(vec![Box::new(BuildTask {
       compiler_id: context.compiler_id,
       compilation_id: context.compilation_id,
-      module,
+      module: module.expect("module is retained after a cache miss"),
       resolver_factory: context.resolver_factory.clone(),
       compiler_options: context.compiler_options.clone(),
       loader_cache: context.cache.facade("loader"),
