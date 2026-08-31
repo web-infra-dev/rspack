@@ -222,16 +222,14 @@ impl FileCacheStrategy {
       let pending_items = entries.len()
         + if validator.is_some() { 1 } else { 0 }
         + if meta.is_some() { 1 } else { 0 };
-      let logger = &self.logger;
-      let skipped_items = &AtomicUsize::new(0);
+      let skipped = AtomicUsize::new(0);
+      let skipped_items = &skipped;
       let result = self.database.write_batch(move |batch| {
         entries.par_iter().try_for_each(|(key, pending)| {
           let value = match (pending.encoder)(&pending.entry, codec) {
             Ok(value) => value,
             Err(error) => {
-              logger.warn(format!(
-                "Skipping cache item {key}, it can't be stored: {error}"
-              ));
+              tracing::warn!("Storing cache item {key} failed: {error}");
               skipped_items.fetch_add(1, Ordering::Relaxed);
               return Ok(());
             }
@@ -249,10 +247,16 @@ impl FileCacheStrategy {
       self.logger.time_end(start);
       result?;
 
-      let stored_items = pending_items - skipped_items.load(Ordering::Relaxed);
+      let skipped_items = skipped.load(Ordering::Relaxed);
+      let stored_items = pending_items - skipped_items;
       self.pending_writes.entries.clear();
       self.pending_writes.new_build_dependencies = None;
       self.pending_writes.meta = None;
+      if skipped_items > 0 {
+        self.logger.warn(format!(
+          "Skipped {skipped_items} cache items that can't be stored"
+        ));
+      }
       self
         .logger
         .log(format!("Stored cache ({stored_items} items)"));
@@ -289,6 +293,7 @@ impl FileCacheStrategy {
 mod tests {
   use rspack_fs::MemoryFileSystem;
   use rspack_hash::HashFunction;
+  use rspack_paths::AssertUtf8;
 
   use super::*;
   use crate::{PrintlnInfrastructureLogSink, cache::SnapshotOptions, new_cache::CacheValue};
@@ -297,7 +302,7 @@ mod tests {
     Err(rspack_error::error!("value can't be serialized"))
   }
 
-  fn strategy(directory: &Utf8PathBuf) -> FileCacheStrategy {
+  fn new_strategy(directory: &Utf8PathBuf) -> FileCacheStrategy {
     let logger = Arc::new(InfrastructureLogger::new(
       "rspack.cache.IdleFileCache",
       Arc::new(PrintlnInfrastructureLogSink),
@@ -317,14 +322,13 @@ mod tests {
       file_system_info,
       logger,
     )
-    .unwrap()
+    .expect("should open the cache database")
   }
 
   #[tokio::test]
-  async fn a_non_encodable_entry_does_not_discard_the_batch() {
-    let directory = tempfile::tempdir().unwrap();
-    let mut strategy =
-      strategy(&Utf8PathBuf::from_path_buf(directory.path().to_path_buf()).unwrap());
+  async fn non_encodable_entry_does_not_discard_the_batch() {
+    let directory = tempfile::tempdir().expect("should create a temporary directory");
+    let mut strategy = new_strategy(&directory.path().to_path_buf().assert_utf8());
 
     strategy.store(
       CacheKey::new("encodable"),
@@ -338,21 +342,26 @@ mod tests {
       CacheValue::new("value".to_string()).erase(),
       failing_encoder,
     );
+    strategy.store_meta(Meta {
+      max_dependency_id: 7,
+    });
 
-    strategy.after_all_stored(0, || false).await.unwrap();
+    strategy
+      .after_all_stored(0, || false)
+      .await
+      .expect("should store the encodable items");
 
     let decoder = CacheValue::<String>::decoder();
-    assert!(
-      strategy
-        .restore(&CacheKey::new("encodable"), None, decoder)
-        .unwrap()
-        .is_some()
-    );
-    assert!(
-      strategy
-        .restore(&CacheKey::new("non-encodable"), None, decoder)
-        .unwrap()
-        .is_none()
-    );
+    let encodable = strategy
+      .restore(&CacheKey::new("encodable"), None, decoder)
+      .expect("should read the encodable item");
+    let non_encodable = strategy
+      .restore(&CacheKey::new("non-encodable"), None, decoder)
+      .expect("should read the non encodable item");
+    let meta = strategy.restore_meta().expect("should read the meta");
+
+    assert!(encodable.is_some());
+    assert!(non_encodable.is_none());
+    assert_eq!(meta.expect("meta should be stored").max_dependency_id, 7);
   }
 }
