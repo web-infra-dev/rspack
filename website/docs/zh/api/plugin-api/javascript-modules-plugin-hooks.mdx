@@ -4,6 +4,7 @@ description: 'Rspack JavascriptModulesPlugin 钩子 插件 API 参考，涵盖�
 
 import ChunkType from '../../types/chunk.mdx';
 import HashType from '../../types/hash.mdx';
+import SourceType from '../../types/source.mdx';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 
 # JavascriptModulesPlugin 钩子
@@ -20,5 +21,57 @@ import { Collapse, CollapsePanel } from '@components/Collapse';
   </CollapsePanel>
   <CollapsePanel className="collapse-code-panel" header="Hash.ts" key="Hash">
     <HashType />
+  </CollapsePanel>
+</Collapse>
+
+## `renderContent`
+
+`SyncWaterfallHook<[Source, RenderContext]>`
+
+在 JavaScript chunk 渲染出内容后调用，早于该 chunk 的 init fragments 注入，也早于产物写出。
+tap 必须返回一个 `Source`，它将作为后续 tap 和渲染流程看到的内容。
+
+可以用它包裹整个 chunk 的内容，例如包一层 `try`/`catch`：
+
+```js title="rspack.config.mjs"
+class WrapChunkPlugin {
+  apply(compiler) {
+    const { ConcatSource } = compiler.rspack.sources;
+    compiler.hooks.compilation.tap('WrapChunkPlugin', (compilation) => {
+      const hooks =
+        compiler.rspack.javascript.JavascriptModulesPlugin.getCompilationHooks(
+          compilation,
+        );
+      hooks.renderContent.tap('WrapChunkPlugin', (source, { chunk }) => {
+        if (chunk.name !== 'background') return source;
+        return new ConcatSource('try {\n', source, '\n} catch (e) {}');
+      });
+    });
+  }
+}
+```
+
+`RenderContext` 携带当前正在渲染的 `chunk`：
+
+```ts
+type RenderContext = {
+  chunk: Chunk;
+};
+```
+
+webpack 的 render context 上还有 `chunkGraph`、`moduleGraph`、`runtimeTemplate`、
+`codeGenerationResults` 和 `runtimeRequirements`。在 Rspack 中这些都可以从获取 hooks 时用的
+`compilation` 上拿到，因此只有每次调用才会变化的 `chunk` 会跨越 binding 传递。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
   </CollapsePanel>
 </Collapse>
