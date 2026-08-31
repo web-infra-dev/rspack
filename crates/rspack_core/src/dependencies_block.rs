@@ -5,8 +5,8 @@ use rspack_collections::{Identifier, IdentifierHasher};
 use rspack_hash::{RspackHash, RspackHasher};
 
 use crate::{
-  BoxDependency, Compilation, DependencyId, DependencyLocation, GroupOptions, ModuleIdentifier,
-  RuntimeSpec,
+  BoxDependency, Compilation, DependencyId, DependencyLocation, DependencyRef, GroupOptions,
+  ModuleIdentifier, RuntimeSpec,
 };
 
 pub trait DependenciesBlock {
@@ -83,7 +83,7 @@ pub struct AsyncDependenciesBlock {
   blocks: Vec<Box<AsyncDependenciesBlock>>,
   block_ids: Vec<AsyncDependenciesBlockIdentifier>,
   dependency_ids: Vec<DependencyId>,
-  dependencies: Vec<BoxDependency>,
+  dependencies: AsyncDependenciesBlockDependencies,
   loc: Option<DependencyLocation>,
   parent: ModuleIdentifier,
   request: Option<String>,
@@ -132,7 +132,7 @@ impl AsyncDependenciesBlock {
       blocks: Default::default(),
       block_ids: Default::default(),
       dependency_ids,
-      dependencies,
+      dependencies: AsyncDependenciesBlockDependencies::Mutable(dependencies),
       loc,
       parent,
       request,
@@ -151,16 +151,32 @@ impl AsyncDependenciesBlock {
     self.group_options.as_ref()
   }
 
-  pub fn take_dependencies(&mut self) -> Vec<BoxDependency> {
-    std::mem::take(&mut self.dependencies)
+  pub fn take_dependencies(&mut self) -> Vec<DependencyRef> {
+    match std::mem::replace(
+      &mut self.dependencies,
+      AsyncDependenciesBlockDependencies::Shared(Vec::new()),
+    ) {
+      AsyncDependenciesBlockDependencies::Mutable(dependencies) => {
+        dependencies.into_iter().map(DependencyRef::from).collect()
+      }
+      AsyncDependenciesBlockDependencies::Shared(dependencies) => dependencies,
+    }
   }
 
   pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut BoxDependency> {
-    self.dependencies.get_mut(idx)
+    match &mut self.dependencies {
+      AsyncDependenciesBlockDependencies::Mutable(dependencies) => dependencies.get_mut(idx),
+      AsyncDependenciesBlockDependencies::Shared(_) => None,
+    }
   }
 
   pub fn dependencies_mut(&mut self) -> &mut [BoxDependency] {
-    &mut self.dependencies
+    match &mut self.dependencies {
+      AsyncDependenciesBlockDependencies::Mutable(dependencies) => dependencies,
+      AsyncDependenciesBlockDependencies::Shared(_) => {
+        panic!("async dependency block dependencies are frozen")
+      }
+    }
   }
 
   pub fn take_blocks(&mut self) -> Vec<Box<AsyncDependenciesBlock>> {
@@ -203,6 +219,86 @@ impl AsyncDependenciesBlock {
       compilation,
       runtime,
     );
+  }
+}
+
+#[cacheable]
+#[derive(Debug)]
+enum AsyncDependenciesBlockDependencies {
+  Mutable(Vec<BoxDependency>),
+  Shared(Vec<DependencyRef>),
+}
+
+impl AsyncDependenciesBlockDependencies {
+  fn freeze(&mut self) -> &[DependencyRef] {
+    if let Self::Mutable(dependencies) = self {
+      let dependencies = std::mem::take(dependencies)
+        .into_iter()
+        .map(DependencyRef::from)
+        .collect();
+      *self = Self::Shared(dependencies);
+    }
+    let Self::Shared(dependencies) = self else {
+      unreachable!("mutable dependencies are frozen above")
+    };
+    dependencies
+  }
+}
+
+/// Immutable cache representation for an async dependency block.
+///
+/// Build result blocks are consumed while they are inserted into a module graph.
+/// Cache entries retain this projection and materialize fresh blocks for each hit.
+#[cacheable]
+#[derive(Debug)]
+pub(crate) struct CachedAsyncDependenciesBlock {
+  id: AsyncDependenciesBlockIdentifier,
+  group_options: Option<GroupOptions>,
+  #[cacheable(omit_bounds)]
+  blocks: Vec<CachedAsyncDependenciesBlock>,
+  block_ids: Vec<AsyncDependenciesBlockIdentifier>,
+  dependency_ids: Vec<DependencyId>,
+  dependencies: Vec<DependencyRef>,
+  loc: Option<DependencyLocation>,
+  parent: ModuleIdentifier,
+  request: Option<String>,
+}
+
+impl CachedAsyncDependenciesBlock {
+  pub(crate) fn from_block(block: &mut AsyncDependenciesBlock) -> Self {
+    Self {
+      id: block.id,
+      group_options: block.group_options.clone(),
+      blocks: block
+        .blocks
+        .iter_mut()
+        .map(|block| Self::from_block(block))
+        .collect(),
+      block_ids: block.block_ids.clone(),
+      dependency_ids: block.dependency_ids.clone(),
+      dependencies: block.dependencies.freeze().to_vec(),
+      loc: block.loc.clone(),
+      parent: block.parent,
+      request: block.request.clone(),
+    }
+  }
+
+  pub(crate) fn materialize(&self) -> Box<AsyncDependenciesBlock> {
+    Box::new(AsyncDependenciesBlock {
+      id: self.id,
+      group_options: self.group_options.clone(),
+      blocks: self
+        .blocks
+        .iter()
+        .map(|block| block.materialize())
+        .collect(),
+      block_ids: self.block_ids.clone(),
+      dependency_ids: self.dependency_ids.clone(),
+      dependencies: AsyncDependenciesBlockDependencies::Shared(self.dependencies.clone()),
+      loc: self.loc.clone(),
+      parent: self.parent,
+      request: self.request.clone(),
+    })
   }
 }
 

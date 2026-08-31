@@ -28,7 +28,7 @@ use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
-  AsyncDependenciesBlock, BindingCell, BoxDependency, CacheFacade, ChunkGraph, ChunkUkey,
+  AsyncDependenciesBlock, BindingCell, CacheFacade, ChunkGraph, ChunkUkey,
   CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation, CompilationAsset,
   CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
   ContextModule, CssExportType, DependenciesBlock, DependencyCodeGenerationRef, DependencyId,
@@ -57,17 +57,18 @@ pub struct BuildContext {
 /// This follows webpack's `NeedBuildContext` shape and provides the shared
 /// filesystem snapshot service used to validate a previous module build.
 pub struct NeedBuildContext<'a> {
-  pub compilation: &'a Compilation,
   pub file_system_info: &'a FileSystemInfo,
   pub value_cache_versions: &'a ValueCacheVersions,
 }
 
 impl<'a> NeedBuildContext<'a> {
-  pub fn new(compilation: &'a Compilation) -> Self {
+  pub fn new(
+    file_system_info: &'a FileSystemInfo,
+    value_cache_versions: &'a ValueCacheVersions,
+  ) -> Self {
     Self {
-      compilation,
-      file_system_info: &compilation.file_system_info,
-      value_cache_versions: &compilation.value_cache_versions,
+      file_system_info,
+      value_cache_versions,
     }
   }
 }
@@ -280,7 +281,7 @@ pub struct AssetBuildInfo {
 }
 
 #[cacheable]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
   pub cacheable: bool,
@@ -660,7 +661,7 @@ impl RspackHash for ExportsArgument {
 pub struct BuildResult {
   pub module: BoxModule,
   /// Whether the result is cacheable, i.e shared between builds.
-  pub dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<crate::DependencyRef>,
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
   pub optimization_bailouts: Vec<OptimizationBailoutItem>,
 }

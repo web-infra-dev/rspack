@@ -112,7 +112,7 @@ impl Module for DelegatedModule {
     self.build_meta = self.delegate_data.build_meta.clone();
     Ok(BuildResult {
       module: BoxModule::new(self),
-      dependencies,
+      dependencies: dependencies.into_iter().map(Into::into).collect(),
       blocks: vec![],
       optimization_bailouts: vec![],
     })

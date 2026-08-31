@@ -1205,10 +1205,13 @@ impl Module for ExternalModule {
     self.build_meta.set_exports_type(exports_type);
     Ok(BuildResult {
       module: BoxModule::new(self),
-      dependencies: vec![BoxDependency::new(StaticExportsDependency::new(
-        StaticExportsSpec::True,
-        can_mangle,
-      ))],
+      dependencies: vec![
+        BoxDependency::new(StaticExportsDependency::new(
+          StaticExportsSpec::True,
+          can_mangle,
+        ))
+        .into(),
+      ],
       blocks: Vec::new(),
       optimization_bailouts: vec![],
     })

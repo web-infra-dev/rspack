@@ -25,6 +25,23 @@ pub struct SourceSizeCache {
   custom: RwLock<UstrMap<f64>>,
 }
 
+impl Clone for SourceSizeCache {
+  fn clone(&self) -> Self {
+    Self {
+      builtins: array::from_fn(|index| {
+        AtomicU64::new(self.builtins[index].load(Ordering::Relaxed))
+      }),
+      custom: RwLock::new(
+        self
+          .custom
+          .read()
+          .unwrap_or_else(|poisoned| poisoned.into_inner())
+          .clone(),
+      ),
+    }
+  }
+}
+
 impl Default for SourceSizeCache {
   fn default() -> Self {
     Self {

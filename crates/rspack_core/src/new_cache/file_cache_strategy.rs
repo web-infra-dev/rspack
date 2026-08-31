@@ -1,6 +1,6 @@
 use std::{fmt, sync::Arc};
 
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rspack_error::Result;
 use rspack_paths::{InternedPathSet, Utf8PathBuf};
 use rustc_hash::FxHashMap;
@@ -213,14 +213,29 @@ impl FileCacheStrategy {
         .as_ref()
         .map(|meta| codec.encode(meta))
         .transpose()?;
-      let stored_items = entries.len()
+      let encoded_entries = entries
+        .par_iter()
+        .filter_map(
+          |(key, pending)| match (pending.encoder)(&pending.entry, codec) {
+            Ok(value) => Some((key, value)),
+            Err(error) => {
+              tracing::debug!(
+                cache_key = key.as_str(),
+                %error,
+                "Skipped non-serializable cache entry"
+              );
+              None
+            }
+          },
+        )
+        .collect::<Vec<_>>();
+      let stored_items = encoded_entries.len()
         + if validator.is_some() { 1 } else { 0 }
         + if meta.is_some() { 1 } else { 0 };
       let result = self.database.write_batch(move |batch| {
-        entries.par_iter().try_for_each(|(key, pending)| {
-          let value = (pending.encoder)(&pending.entry, codec)?;
-          batch.put(DatabaseFamily::Cache, key.as_bytes(), value)
-        })?;
+        encoded_entries
+          .into_par_iter()
+          .try_for_each(|(key, value)| batch.put(DatabaseFamily::Cache, key.as_bytes(), value))?;
         if let Some(validator) = validator {
           batch.put(DatabaseFamily::Validator, VALIDATOR_KEY, validator)?;
         }
