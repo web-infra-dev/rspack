@@ -21,7 +21,7 @@ runs:
         path: ${{ inputs.path }}
     - name: Save cache to local
       if: ${{ runner.environment == 'self-hosted' }}
-      uses: lynx-infra/cache/save@3c8b52290f86bc0144a2ea7d695c8d63f4962791 # codex/refresh-action-archive
+      uses: lynx-infra/cache/save@3c8b52290f86bc0144a2ea7d695c8d63f4962791 # refresh-action-archive
       with:
         key: ${{ inputs.key }}
         path: ${{ inputs.path }}
