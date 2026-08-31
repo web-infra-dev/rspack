@@ -44,3 +44,36 @@ it('should tree-shake the ESM containers down to the used exports', () => {
 	expect(uiLibCode).not.toContain('Button:"Button"');
 	expect(uiLibCode).not.toContain('List:"List"');
 });
+
+it('should load and run the emitted ESM fallback container via import/init/get', () => {
+	// The test harness runs this file in a VM sandbox without dynamic
+	// `import()` support, so exercise the container's ESM `get`/`init`
+	// interface in a real Node process instead.
+	const { execFileSync } = require('child_process');
+	const { pathToFileURL } = require('url');
+	const url = pathToFileURL(uiLibDepEntry).href;
+	const script = `
+		const container = await import(${JSON.stringify(url)});
+		// \`__webpack_require__.f\` must be initialized before \`init()\` wires up
+		// \`.consumes\` on it, otherwise this throws
+		// "Cannot read properties of undefined (reading 'consumes')".
+		await container.init({}, {
+			installInitialConsumes: ({ webpackRequire, initialConsumes }) => {
+				for (const id of initialConsumes) {
+					webpackRequire.m[id] = m => { m.exports = { Message: 'Message' }; };
+				}
+				return Promise.resolve();
+			}
+		});
+		const getter = await container.get();
+		console.log(JSON.stringify(getter()));
+	`;
+	const output = execFileSync(
+		process.execPath,
+		['--input-type=module', '-e', script],
+		{ encoding: 'utf-8' }
+	);
+	const shareModules = JSON.parse(output.trim().split('\n').pop());
+	expect(shareModules.Message).toBe('Message');
+	expect(shareModules.Text).toBeUndefined();
+});

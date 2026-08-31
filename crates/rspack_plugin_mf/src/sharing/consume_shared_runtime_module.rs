@@ -70,10 +70,19 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     &self,
     compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
-    let dependencies = CONSUMES_RUNTIME_REQUIREMENTS.dependencies
+    let mut dependencies = CONSUMES_RUNTIME_REQUIREMENTS.dependencies
       | CONSUMES_INITIAL_RUNTIME_REQUIREMENTS.dependencies
       | CONSUMES_LOADING_RUNTIME_REQUIREMENTS.dependencies
       | runtime_require_scope_requirement(compilation);
+    // `runtime_requirements_in_tree` only wires up `EnsureChunkRuntimeModule`
+    // (which does `__webpack_require__.f = {}`) for `ENSURE_CHUNK_HANDLERS`
+    // alone when the output isn't an ESM module — for `module`-type output it
+    // requires `ENSURE_CHUNK` too. The consumes loading code always reads
+    // `__webpack_require__.f.consumes`, so require `ENSURE_CHUNK` explicitly
+    // to make sure `__webpack_require__.f` exists regardless of output type.
+    if dependencies.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
+      dependencies.insert(RuntimeGlobals::ENSURE_CHUNK);
+    }
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies,
       ..Default::default()
