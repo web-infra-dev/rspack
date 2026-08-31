@@ -1,4 +1,10 @@
-use std::{fmt, sync::Arc};
+use std::{
+  fmt,
+  sync::{
+    Arc,
+    atomic::{AtomicUsize, Ordering},
+  },
+};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_error::Result;
@@ -213,12 +219,23 @@ impl FileCacheStrategy {
         .as_ref()
         .map(|meta| codec.encode(meta))
         .transpose()?;
-      let stored_items = entries.len()
+      let pending_items = entries.len()
         + if validator.is_some() { 1 } else { 0 }
         + if meta.is_some() { 1 } else { 0 };
+      let logger = &self.logger;
+      let skipped_items = &AtomicUsize::new(0);
       let result = self.database.write_batch(move |batch| {
         entries.par_iter().try_for_each(|(key, pending)| {
-          let value = (pending.encoder)(&pending.entry, codec)?;
+          let value = match (pending.encoder)(&pending.entry, codec) {
+            Ok(value) => value,
+            Err(error) => {
+              logger.warn(format!(
+                "Skipping cache item {key}, it can't be stored: {error}"
+              ));
+              skipped_items.fetch_add(1, Ordering::Relaxed);
+              return Ok(());
+            }
+          };
           batch.put(DatabaseFamily::Cache, key.as_bytes(), value)
         })?;
         if let Some(validator) = validator {
@@ -232,6 +249,7 @@ impl FileCacheStrategy {
       self.logger.time_end(start);
       result?;
 
+      let stored_items = pending_items - skipped_items.load(Ordering::Relaxed);
       self.pending_writes.entries.clear();
       self.pending_writes.new_build_dependencies = None;
       self.pending_writes.meta = None;
@@ -264,5 +282,77 @@ impl FileCacheStrategy {
     !self.pending_writes.entries.is_empty()
       || self.pending_writes.new_build_dependencies.is_some()
       || self.pending_writes.meta.is_some()
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use rspack_fs::MemoryFileSystem;
+  use rspack_hash::HashFunction;
+
+  use super::*;
+  use crate::{PrintlnInfrastructureLogSink, cache::SnapshotOptions, new_cache::CacheValue};
+
+  fn failing_encoder(_entry: &CacheEntry, _codec: &CacheCodec) -> Result<Vec<u8>> {
+    Err(rspack_error::error!("value can't be serialized"))
+  }
+
+  fn strategy(directory: &Utf8PathBuf) -> FileCacheStrategy {
+    let logger = Arc::new(InfrastructureLogger::new(
+      "rspack.cache.IdleFileCache",
+      Arc::new(PrintlnInfrastructureLogSink),
+    ));
+    let file_system_info = FileSystemInfo::new(
+      Arc::new(MemoryFileSystem::default()),
+      logger.get_child("rspack.FileSystemInfo"),
+      SnapshotOptions::default(),
+      HashFunction::Xxhash64,
+    );
+    FileCacheStrategy::new(
+      (directory.clone(), directory.join("database")),
+      false,
+      "0.0.0".to_string(),
+      "test".to_string(),
+      Arc::new(CacheCodec::new(None)),
+      file_system_info,
+      logger,
+    )
+    .unwrap()
+  }
+
+  #[tokio::test]
+  async fn a_non_encodable_entry_does_not_discard_the_batch() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut strategy =
+      strategy(&Utf8PathBuf::from_path_buf(directory.path().to_path_buf()).unwrap());
+
+    strategy.store(
+      CacheKey::new("encodable"),
+      None,
+      CacheValue::new("value".to_string()).erase(),
+      CacheValue::<String>::encoder(),
+    );
+    strategy.store(
+      CacheKey::new("non-encodable"),
+      None,
+      CacheValue::new("value".to_string()).erase(),
+      failing_encoder,
+    );
+
+    strategy.after_all_stored(0, || false).await.unwrap();
+
+    let decoder = CacheValue::<String>::decoder();
+    assert!(
+      strategy
+        .restore(&CacheKey::new("encodable"), None, decoder)
+        .unwrap()
+        .is_some()
+    );
+    assert!(
+      strategy
+        .restore(&CacheKey::new("non-encodable"), None, decoder)
+        .unwrap()
+        .is_none()
+    );
   }
 }
