@@ -885,6 +885,7 @@ var {} = {{}};
           output_path,
           &hooks,
           runtime_template,
+          None,
         )
         .await?
         else {
@@ -1108,6 +1109,7 @@ var {} = {{}};
               output_path,
               hooks,
               runtime_template,
+              None,
             )
             .await
           },
