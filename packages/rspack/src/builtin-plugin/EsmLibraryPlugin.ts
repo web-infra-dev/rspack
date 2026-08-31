@@ -30,20 +30,29 @@ export function applyLimits(options: RspackOptionsNormalized, logger?: Logger) {
     options.output.chunkLoading = 'import';
   }
 
-  // Eval source maps wrap module code in eval(), while modern-module renders it
-  // at the top level. Delay this fallback until options apply so it can warn.
-  if (
-    logger &&
-    typeof options.devtool === 'string' &&
-    options.devtool.startsWith('eval-') &&
-    options.devtool.includes('source-map')
-  ) {
+  // Eval devtools wrap module code in eval(), while modern-module renders it at
+  // the top level. Delay this fallback until options apply so it can warn.
+  if (logger && typeof options.devtool === 'string') {
     const previousDevtool = options.devtool;
-    const fallbackDevtool = previousDevtool.slice('eval-'.length);
-    options.devtool = fallbackDevtool as RspackOptionsNormalized['devtool'];
-    logger.warn(
-      `\`devtool: "${previousDevtool}"\` is not supported with \`library.type: "modern-module"\` because its modules are rendered as top-level code. Rspack has changed \`devtool\` to \`"${fallbackDevtool}"\`.`,
-    );
+    let fallbackDevtool: RspackOptionsNormalized['devtool'];
+
+    if (previousDevtool === 'eval') {
+      fallbackDevtool = false;
+    } else if (
+      previousDevtool.startsWith('eval-') &&
+      previousDevtool.includes('source-map')
+    ) {
+      fallbackDevtool = previousDevtool.slice(
+        'eval-'.length,
+      ) as RspackOptionsNormalized['devtool'];
+    }
+
+    if (fallbackDevtool !== undefined) {
+      options.devtool = fallbackDevtool;
+      logger.warn(
+        `\`devtool: "${previousDevtool}"\` is not supported with \`library.type: "modern-module"\` because its modules are rendered as top-level code. Rspack has changed \`devtool\` to \`${JSON.stringify(fallbackDevtool)}\`.`,
+      );
+    }
   }
 
   let { splitChunks } = options.optimization;
