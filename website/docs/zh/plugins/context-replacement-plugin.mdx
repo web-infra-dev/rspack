@@ -1,62 +1,173 @@
 ---
-description: "context 是指带有表达式的 require 或动态 import()，例如 require('./locale/' + name + '.json') 遇到这种表达式时，Rspack 会推断出目录（'./locale/'）和一个正则表达式（/^..json$/）。"
+description: '限制或重定向动态 require 和 import() 上下文可访问的模块。'
 ---
 
 import Attribution from '@components/Attribution';
 
 # ContextReplacementPlugin
 
-`context` 是指带有表达式的 `require` 或动态 `import()`，例如 `require('./locale/' + name + '.json')`
-遇到这种表达式时，Rspack 会推断出目录（`'./locale/'`）和一个正则表达式（`/^.*.json$/`）。
-由于在编译时无法确定 `name`，Rspack 会将每个文件都作为模块打包。
+`ContextReplacementPlugin` 用于修改动态 `require`、动态 `import()` 和 [`require.context()`](/api/runtime-api/module-methods#requirecontext) 调用可以加载哪些模块，以及 Rspack 从哪里查找这些模块。
 
-`ContextReplacementPlugin` 允许你覆盖这些推断的信息。该插件可以通过多种方式进行配置：
+Rspack 会使用[上下文模块](/misc/glossary#context-module)表示这些请求。例如，`import('./locales/' + name + '.js')` 会创建一个上下文模块。
+
+使用 [`resourceRegExp`](#resourceregexp) 指定要修改的上下文模块。`ContextReplacementPlugin` 可以替换这些模块的查找目录、递归行为、请求匹配正则或请求映射。省略的参数沿用原值，其他上下文模块不受影响。
+
+插件还会移除匹配上下文的 `Critical dependency` 警告。
 
 ## 示例
 
-### 基本使用
+### 限制上下文中的模块
 
-```js
-new rspack.ContextReplacementPlugin(/moment[/\\]locale$/, /de|fr|hu/);
+假设 `src/locales` 中包含 `en.js`、`fr.js` 和 `zh.js`，入口文件会动态加载语言模块：
+
+```js title="src/index.js"
+export const loadLocale = (name) => import(`./locales/${name}.js`);
 ```
 
-这个示例限制了 `moment/locale` 目录下的文件，仅打包匹配 `/de|fr|hu/` 的文件。因此，仅包含这些语言模块（在[这里](https://github.com/moment/moment/issues/2373)了解更多信息）。
+以下配置只扫描 `src/locales` 的当前目录，并且只包含英文和中文语言模块：
 
-### 其他选项
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-关于 `newContentResource` 和 `newContentCreateContextMap` 参数：
-
-```ts
-new rspack.ContextReplacementPlugin(
-  resourceRegExp: RegExp,
-  newContentResource: string,
-  newContentCreateContextMap: object // 映射运行时请求（userRequest）到编译时请求（request）
-);
+export default {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.ContextReplacementPlugin(
+      /[/\\]locales$/,
+      false,
+      /^\.\/(en|zh)\.js$/,
+    ),
+  ],
+};
 ```
 
-这两个参数可以一起使用，以更有针对性地重定向请求。`newContentCreateContextMap` 允许你以对象的形式映射运行时请求到编译时请求：
+生成的上下文映射只包含以下请求键：
 
-```js
-new rspack.ContextReplacementPlugin(/selector/, './folder', {
-  './request': './request',
-  './other-request': './new-request',
-});
+```js title="dist/main.js（简化）"
+const localeRequestMap = {
+  './en.js': 'module-id-for-en',
+  './zh.js': 'module-id-for-zh',
+};
 ```
 
 ## 选项
 
-- **类型：**
+该插件使用位置参数，因此参数顺序不能改变。
 
-```ts
-new rspack.ContextReplacementPlugin(
-  resourceRegExp: RegExp,
-  newContentResource?: string,
-  newContentRecursive?: boolean,
-  newContentRegExp?: RegExp
-)
+### resourceRegExp
+
+- **类型：** `RegExp`
+- **是否必填：** 是
+
+选择需要修改的上下文模块。解析前，Rspack 会用该正则表达式匹配上下文请求，例如 `./locales`；解析后，则会匹配解析得到的上下文资源目录，该值通常是绝对路径。Rspack 会在匹配的阶段应用该阶段支持的替换参数。如果一个上下文在两个阶段都不匹配，则不会受到影响。
+
+匹配目录分隔符时，正则表达式应同时兼容 `/` 和 `\`。如果不传入其他参数，Rspack 会保留推断得到的资源、递归标志和请求正则表达式，但仍会移除匹配上下文的关键依赖警告。
+
+```js
+new rspack.ContextReplacementPlugin(/[/\\]locales$/);
 ```
 
-如果目录匹配 `resourceRegExp`，插件会用 `newContentResource`、`newContentRecursive` 或 `newContextRegExp` 分别替换默认资源、递归标志或生成的正则表达式。
-如果 `newContentResource` 是相对路径，则相对于前一个资源进行解析。
+### newContentResource
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+替换匹配上下文解析模块时使用的资源目录。当 `resourceRegExp` 在解析前匹配时，该值会替换上下文请求，并作为新请求进行解析；当 `resourceRegExp` 匹配解析后的资源时，绝对路径会直接替换该资源，相对路径则基于原资源目录进行解析。
+
+请将 `newContentResource` 作为第二个参数传入。省略时，Rspack 会保留推断得到的资源。后面传入 [`newContentCreateContextMap`](#newcontentcreatecontextmap) 时，该替换资源也会作为映射中编译时请求的基准目录。
+
+```js
+new rspack.ContextReplacementPlugin(
+  /[/\\]src[/\\]locales$/,
+  '../translated-locales',
+);
+```
+
+如果上下文原本解析到 `src/locales`，该示例会将资源改为同级的 `src/translated-locales` 目录。
+
+### newContentRecursive
+
+- **类型：** `boolean`
+- **默认值：** `undefined`
+
+替换 Rspack 在上下文资源中查找模块时使用的递归标志。设为 `true` 时会查找子目录，设为 `false` 时只查找资源目录本身。省略时，Rspack 会保留从原上下文推断出的递归行为。
+
+该标志先决定 Rspack 扫描哪些目录，再由 [`newContentRegExp`](#newcontentregexp) 筛选生成的请求键。使用 [`newContentCreateContextMap`](#newcontentcreatecontextmap) 时不会用到该标志，因为显式映射会替代目录扫描。
+
+- **不替换资源：** 将布尔值作为第二个参数传入。
+
+  ```js
+  new rspack.ContextReplacementPlugin(/[/\\]locales$/, false);
+  ```
+
+- **同时替换资源：** 将资源字符串作为第二个参数、布尔值作为第三个参数传入。
+
+  ```js
+  new rspack.ContextReplacementPlugin(
+    /[/\\]src[/\\]locales$/,
+    '../translated-locales',
+    false,
+  );
+  ```
+
+### newContentRegExp
+
+- **类型：** `RegExp`
+- **默认值：** `undefined`
+
+替换 Rspack 扫描上下文资源时用于筛选请求键的正则表达式。参与匹配的是 `./en.js` 这样的上下文相对请求，而不是文件的绝对路径。该正则表达式会替换推断得到的表达式，两者不会组合。省略时，Rspack 会保留推断得到的表达式。
+
+[`newContentRecursive`](#newcontentrecursive) 会先决定扫描哪些目录，然后由 `newContentRegExp` 筛选这些目录中生成的请求键。使用 [`newContentCreateContextMap`](#newcontentcreatecontextmap) 时不会用到该参数，因为映射已经提供了完整的请求键集合。
+
+- **不替换资源和递归标志：** 将正则表达式作为第二个参数传入。
+
+  ```js
+  new rspack.ContextReplacementPlugin(/[/\\]locales$/, /^\.\/(en|zh)\.js$/);
+  ```
+
+- **只同时替换递归标志：** 将布尔值作为第二个参数、正则表达式作为第三个参数传入。
+
+  ```js
+  new rspack.ContextReplacementPlugin(
+    /[/\\]locales$/,
+    false,
+    /^\.\/(en|zh)\.js$/,
+  );
+  ```
+
+- **同时替换资源：** 将资源字符串作为第二个参数、布尔值作为第三个参数、正则表达式作为第四个参数传入。此处不能省略布尔值。
+
+  ```js
+  new rspack.ContextReplacementPlugin(
+    /[/\\]src[/\\]locales$/,
+    '../translated-locales',
+    false,
+    /^\.\/(en|zh)\.js$/,
+  );
+  ```
+
+### newContentCreateContextMap
+
+- **类型：** `Record<string, string>`
+- **默认值：** `undefined`
+
+为匹配的上下文提供完整的请求映射。对象的键是该上下文在运行时接受的请求，值是基于 `newContentResource` 解析的编译时请求。运行时只能使用映射中列出的请求键。上下文原有的资源查询参数和片段会附加到映射后的编译时请求上。
+
+请在 `newContentResource` 字符串之后，将该映射作为第三个参数传入。此形式会替代自动目录扫描，因此不能再与 `newContentRecursive` 或 `newContentRegExp` 组合使用。省略映射时，Rspack 会按照当前资源、递归标志和请求正则表达式查找模块。
+
+Rspack 会在上下文解析完成后应用该映射。因此，`resourceRegExp` 必须匹配解析阶段之后看到的资源；仅匹配解析前的请求并不足以应用映射。
+
+```js
+new rspack.ContextReplacementPlugin(
+  /[/\\]src[/\\]locales$/,
+  '../translated-locales',
+  {
+    './en.js': './en.js',
+    './default.js': './en.js',
+  },
+);
+```
+
+如果上下文原本解析到 `src/locales`，该示例会从 `src/translated-locales` 中加载模块。在运行时，`./en.js` 和 `./default.js` 都会加载该替换资源中的编译时请求 `./en.js`。
 
 <Attribution url="https://webpack.js.org/plugins/context-replacement-plugin/" />
