@@ -164,12 +164,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
 
   fn evaluate_identifier(
     &self,
-    _parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser<'p>,
     for_name: &str,
     _member_expr_info: Option<&crate::visitors::ExpressionExpressionInfo>,
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression<'p>> {
+    // Evaluation is also used for generated expressions such as DefinePlugin values, which may
+    // be consumed without going through the normal identifier walker.
+    self.observe_factory_binding(parser, for_name);
+
     if for_name == expr_name::MODULE_HOT {
       Some(evaluate_to_identifier(
         expr_name::MODULE_HOT.into(),
