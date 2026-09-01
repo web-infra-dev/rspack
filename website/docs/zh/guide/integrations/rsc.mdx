@@ -110,7 +110,7 @@ export default [
 
 ## 配置 layer
 
-在 Server Compiler 中，Rspack 使用 [layer](/guide/features/layer) 区分 RSC 与 SSR 环境。RSC 插件使用的层名为：
+在 Server Compiler 中，Rspack 使用 [layer](/guide/advanced/layer) 区分 RSC 与 SSR 环境。RSC 插件使用的层名为：
 
 - **`Layers.rsc`**（`'react-server-components'`）：RSC 环境。只有在此层下的模块，Loader 才会把 `"use client"` 转成客户端引用、把 `"use server"` 注册为 Server Action。
 - **`Layers.ssr`**（`'server-side-rendering'`）：SSR 环境。用于标识 SSR 入口；若无模块被分配到此层，Rspack 会跳过 SSR 产物生成。

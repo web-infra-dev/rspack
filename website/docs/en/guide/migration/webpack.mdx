@@ -273,7 +273,7 @@ Update the import and constructor name in the Rspack configuration:
 
 After completing the migration, remove `html-webpack-plugin` from the project dependencies.
 
-If build performance is the priority, you can also use the built-in Rust plugin [`rspack.HtmlRspackPlugin`](/plugins/html-rspack-plugin). See the [HTML guide](/guide/tech/html#choose-a-plugin) for details.
+If build performance is the priority, you can also use the built-in Rust plugin [`rspack.HtmlRspackPlugin`](/plugins/html-rspack-plugin). See the [HTML guide](/guide/languages/html#choose-a-plugin) for details.
 
 ### unplugin
 
@@ -568,7 +568,7 @@ Migrate [raw-loader](https://github.com/webpack-contrib/raw-loader) to [Asset Mo
 
 ### vue-loader
 
-For Vue 3 projects, replace `vue-loader` with [`rspack-vue-loader`](/guide/tech/vue#vue-3), and update both the plugin import and loader name:
+For Vue 3 projects, replace `vue-loader` with [`rspack-vue-loader`](/guide/integrations/vue#vue-3), and update both the plugin import and loader name:
 
 ```diff title="rspack.config.mjs"
 -import { VueLoaderPlugin } from 'vue-loader';

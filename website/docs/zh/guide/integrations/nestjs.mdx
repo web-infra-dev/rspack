@@ -10,7 +10,7 @@ Rspack 可以用于构建 [NestJS](https://nestjs.com/) 应用。相比直接使
 
 ## 如何使用
 
-请先参考通用的 [Node.js 应用配置](/guide/tech/node)，再补充本文介绍的 NestJS 配置。你也可以参考 `rstack-examples` 中的 [NestJS example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/nestjs)，其中包含完整的 `rspack.config.mjs`、开发脚本、生产构建脚本和 HMR 入口。
+请先参考通用的 [Node.js 应用配置](/guide/integrations/node)，再补充本文介绍的 NestJS 配置。你也可以参考 `rstack-examples` 中的 [NestJS example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/nestjs)，其中包含完整的 `rspack.config.mjs`、开发脚本、生产构建脚本和 HMR 入口。
 
 ## 示例
 
@@ -18,13 +18,13 @@ Rspack 可以用于构建 [NestJS](https://nestjs.com/) 应用。相比直接使
 
 ## 安装依赖
 
-先按 [Node.js 指南](/guide/tech/node#安装依赖)安装通用的 Node.js 构建依赖，然后安装 NestJS 运行时依赖：
+先按 [Node.js 指南](/guide/integrations/node#安装依赖)安装通用的 Node.js 构建依赖，然后安装 NestJS 运行时依赖：
 
 <PackageManagerTabs command="add @nestjs/common @nestjs/core @nestjs/platform-express reflect-metadata rxjs" />
 
 ## 基本概念
 
-NestJS 应用运行在 Node.js 中，因此大部分配置都与通用的 [Node.js 配置](/guide/tech/node) 一致。除此之外，NestJS 还需要 decorator metadata，框架会在运行时读取这些信息。
+NestJS 应用运行在 Node.js 中，因此大部分配置都与通用的 [Node.js 配置](/guide/integrations/node) 一致。除此之外，NestJS 还需要 decorator metadata，框架会在运行时读取这些信息。
 
 - **Decorator metadata**：启用 TypeScript decorators 和 decorator metadata，保证依赖注入、控制器、路由、守卫、拦截器等 NestJS 能力正常工作。
 - **HMR cleanup**：开发阶段 HMR 更新服务端 bundle 时，需要在接受更新前关闭旧的 Nest 应用实例。
@@ -209,7 +209,7 @@ async function bootstrap() {
 bootstrap();
 ```
 
-通用的 Rspack entry、`writeToDisk`、`RunScriptWebpackPlugin` 和 externals allowlist 设置请参考 [Node.js - 配置开发 HMR](/guide/tech/node#配置开发-hmr)。如果你的项目需要 ESM 输出，请参考 [Node.js - 使用 ESM 输出](/guide/tech/node#使用-esm-输出)。
+通用的 Rspack entry、`writeToDisk`、`RunScriptWebpackPlugin` 和 externals allowlist 设置请参考 [Node.js - 配置开发 HMR](/guide/integrations/node#配置开发-hmr)。如果你的项目需要 ESM 输出，请参考 [Node.js - 使用 ESM 输出](/guide/integrations/node#使用-esm-输出)。
 
 ## 配置生产压缩
 
@@ -240,4 +240,4 @@ export default {
 
 ## Native node modules
 
-如果 NestJS 依赖中包含 Node.js native addon（`.node` 模块），请参考 [Node.js - Native node modules](/guide/tech/node#native-node-modules)，使用 `asset/resource` 输出 addon，并让 Node.js 在运行时加载。
+如果 NestJS 依赖中包含 Node.js native addon（`.node` 模块），请参考 [Node.js - Native node modules](/guide/integrations/node#native-node-modules)，使用 `asset/resource` 输出 addon，并让 Node.js 在运行时加载。

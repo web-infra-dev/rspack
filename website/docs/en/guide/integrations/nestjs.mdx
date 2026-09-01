@@ -10,7 +10,7 @@ Rspack can build [NestJS](https://nestjs.com/) applications. Compared with `tsc`
 
 ## How to use
 
-Start with the common [Node.js application configuration](/guide/tech/node), then add the NestJS settings described below. You can also use the [NestJS example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/nestjs) in `rstack-examples` as a reference. It includes a complete `rspack.config.mjs`, development script, production build script, and HMR entry.
+Start with the common [Node.js application configuration](/guide/integrations/node), then add the NestJS settings described below. You can also use the [NestJS example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/nestjs) in `rstack-examples` as a reference. It includes a complete `rspack.config.mjs`, development script, production build script, and HMR entry.
 
 ## Example
 
@@ -18,13 +18,13 @@ The [rstack-examples](https://github.com/rstackjs/rstack-examples/tree/main/rspa
 
 ## Install dependencies
 
-Install the common Node.js build dependencies from the [Node.js guide](/guide/tech/node#install-dependencies), then install the NestJS runtime packages:
+Install the common Node.js build dependencies from the [Node.js guide](/guide/integrations/node#install-dependencies), then install the NestJS runtime packages:
 
 <PackageManagerTabs command="add @nestjs/common @nestjs/core @nestjs/platform-express reflect-metadata rxjs" />
 
 ## Basic concepts
 
-NestJS applications run in Node.js, so most configurations can follow the common [Node.js configuration](/guide/tech/node). The main NestJS-specific requirement is decorator metadata, which NestJS uses at runtime.
+NestJS applications run in Node.js, so most configurations can follow the common [Node.js configuration](/guide/integrations/node). The main NestJS-specific requirement is decorator metadata, which NestJS uses at runtime.
 
 - **Decorator metadata**: Enable TypeScript decorators and emitted metadata so dependency injection, controllers, routes, guards, interceptors, and other NestJS features work correctly.
 - **HMR cleanup**: When development HMR updates the server bundle, close the previous Nest application instance before accepting the update.
@@ -209,7 +209,7 @@ async function bootstrap() {
 bootstrap();
 ```
 
-See [Node.js - Configure development HMR](/guide/tech/node#configure-development-hmr) for the shared Rspack entry, `writeToDisk`, `RunScriptWebpackPlugin`, and externals allowlist settings used with this bootstrap code. If your project needs ESM output, see [Node.js - Use ESM output](/guide/tech/node#use-esm-output).
+See [Node.js - Configure development HMR](/guide/integrations/node#configure-development-hmr) for the shared Rspack entry, `writeToDisk`, `RunScriptWebpackPlugin`, and externals allowlist settings used with this bootstrap code. If your project needs ESM output, see [Node.js - Use ESM output](/guide/integrations/node#use-esm-output).
 
 ## Configure production minification
 
@@ -240,4 +240,4 @@ export default {
 
 ## Native node modules
 
-If a NestJS dependency includes a Node.js native addon (`.node` module), follow [Node.js - Native node modules](/guide/tech/node#native-node-modules) to emit the addon with `asset/resource` and let Node.js load it at runtime.
+If a NestJS dependency includes a Node.js native addon (`.node` module), follow [Node.js - Native node modules](/guide/integrations/node#native-node-modules) to emit the addon with `asset/resource` and let Node.js load it at runtime.

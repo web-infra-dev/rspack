@@ -1,10 +1,10 @@
 ---
-description: '了解如何使用 Rstest 为 Rspack 项目添加单元测试和端到端测试'
+description: '在 Rspack 项目中集成 Rstest，编写单元测试和端到端测试。'
 ---
 
 import { PackageManagerTabs } from '@theme';
 
-# 使用 Rstest 测试
+# Rstest
 
 [Rstest](https://rstest.rs/) 是一个基于 Rspack 的 JavaScript 测试框架。它通过 Rspack 的打包流程运行测试，并可借助官方适配器复用现有 Rspack 配置中的模块解析、代码转换和插件。
 
@@ -50,7 +50,7 @@ export default defineConfig({
 
 :::note
 
-适配器默认从 `process.cwd()` 查找 Rspack 配置。它还会关闭 Rstest 内置的 CSS 插件，让 Rspack 的 CSS 配置生效。关于 monorepo、自定义配置路径、具名配置和完整的配置映射，请参阅 [Rstest：Rspack 集成](https://rstest.rs/guide/integration/rspack)。
+适配器默认从 `process.cwd()` 查找 Rspack 配置。它还会关闭 Rstest 内置的 CSS 插件，让 Rspack 的 CSS 配置生效。关于 monorepo、自定义配置路径、具名配置和完整的配置映射，请参阅 [Rstest：Rspack 集成](https://rstest.rs/zh/guide/integration/rspack)。
 
 :::
 

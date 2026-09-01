@@ -12,7 +12,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 默认情况下，入口 chunk 中的 CSS 输出为 `[name].css`，通过动态 `import()` 加载的 CSS 则由插件注入的运行时代码处理。
 
-如果项目不需要 css-loader，建议优先使用 Rspack 的[内置 CSS 支持](/guide/tech/css)，省去额外的 loader 和插件处理。
+如果项目不需要 css-loader，建议优先使用 Rspack 的[内置 CSS 支持](/guide/languages/css)，省去额外的 loader 和插件处理。
 
 :::warning
 `CssExtractRspackPlugin.loader` 不能与 Rspack 的内置 CSS 模块类型 `css`、`css/auto`、`css/global` 或 `css/module` 同时使用。默认模块类型是 `javascript/auto`，因此通常可以省略 `type`。如果模块使用了上述任一内置 CSS 类型，该 loader 会跳过该模块并输出警告，插件也不会提取其中的 CSS。

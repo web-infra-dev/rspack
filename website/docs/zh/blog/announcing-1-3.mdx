@@ -89,7 +89,7 @@ export default {
 
 ### Lazy compilation 改进
 
-在过去的版本中，当 [lazy compilation](/guide/features/lazy-compilation) 被开启时，Rspack 会启动一个单独的服务器来处理 lazy compilation 相关的请求。这导致了一些问题，例如，开发阶段需要启动两个服务器，并且 lazy compilation 服务器无法与默认的开发服务器共享代理配置和 CORS 配置。
+在过去的版本中，当 [lazy compilation](/guide/advanced/lazy-compilation) 被开启时，Rspack 会启动一个单独的服务器来处理 lazy compilation 相关的请求。这导致了一些问题，例如，开发阶段需要启动两个服务器，并且 lazy compilation 服务器无法与默认的开发服务器共享代理配置和 CORS 配置。
 
 Rspack 1.3 提供了一个全新的 Express 风格的中间件来集成 lazy compilation，以解决上述问题。
 
