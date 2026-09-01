@@ -269,7 +269,7 @@ Rspack 支持大部分 webpack 社区插件，并为暂不支持的插件提供�
 
 完成迁移后，从项目依赖中移除 `html-webpack-plugin`。
 
-如果更关注构建性能，也可以选择内置的 Rust 插件 [`rspack.HtmlRspackPlugin`](/plugins/html-rspack-plugin)。详情请参阅 [HTML 指南](/guide/tech/html#选择插件)。
+如果更关注构建性能，也可以选择内置的 Rust 插件 [`rspack.HtmlRspackPlugin`](/plugins/html-rspack-plugin)。详情请参阅 [HTML 指南](/guide/languages/html#选择插件)。
 
 ### unplugin
 
@@ -564,7 +564,7 @@ module.exports = {
 
 ### vue-loader
 
-对于 Vue 3 项目，请将 `vue-loader` 替换为 [`rspack-vue-loader`](/guide/tech/vue#vue-3)，并同步更新插件导入和 loader 名称：
+对于 Vue 3 项目，请将 `vue-loader` 替换为 [`rspack-vue-loader`](/guide/integrations/vue#vue-3)，并同步更新插件导入和 loader 名称：
 
 ```diff title="rspack.config.mjs"
 -import { VueLoaderPlugin } from 'vue-loader';

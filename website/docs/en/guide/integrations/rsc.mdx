@@ -111,7 +111,7 @@ Discovered `"use client"` modules are injected into that matching entry’s modu
 
 ## Configure layer
 
-In the Server Compiler, Rspack uses [layer](/guide/features/layer) to distinguish RSC from SSR. The RSC plugin uses these layer names:
+In the Server Compiler, Rspack uses [layer](/guide/advanced/layer) to distinguish RSC from SSR. The RSC plugin uses these layer names:
 
 - **`Layers.rsc`** (`'react-server-components'`): RSC environment. Only modules in this layer have `"use client"` turned into client references and `"use server"` registered as Server Actions.
 - **`Layers.ssr`** (`'server-side-rendering'`): SSR environment. Use this to mark the SSR entry; if no modules are assigned to this layer, Rspack skips SSR output.

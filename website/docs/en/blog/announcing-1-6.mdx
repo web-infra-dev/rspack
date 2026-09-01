@@ -152,7 +152,7 @@ export default {
 
 ### Optimized barrels by default
 
-In Rspack 1.5, we introduced the experimental [lazyBarrel](/guide/optimization/lazy-barrel) optimization feature, specifically designed to improve the build performance of barrel files. After a period of production environment practice and user feedback collection, we confirmed that the lazyBarrel feature has reached a stable state, so it is enabled by default in Rspack 1.6.
+In Rspack 1.5, we introduced the experimental [lazyBarrel](/guide/advanced/lazy-barrel) optimization feature, specifically designed to improve the build performance of barrel files. After a period of production environment practice and user feedback collection, we confirmed that the lazyBarrel feature has reached a stable state, so it is enabled by default in Rspack 1.6.
 
 :::info
 What are barrel files? Barrel files are files that are primarily used to re-export content from other modules, typically used to simplify import paths and provide a unified API entry point.
@@ -165,9 +165,9 @@ Layer is a feature for organizing modules into different layers, which can be us
 - Compiling modules in different layers for different target environments
 - Outputting them to separate build directories
 
-Starting from Rspack 1.6, the layer feature has become stable enough that the experimental flag [experiments.layers](/guide/features/layer) has been deprecated. You can now use the layer feature directly without the experimental flag.
+Starting from Rspack 1.6, the layer feature has become stable enough that the experimental flag [experiments.layers](/guide/advanced/layer) has been deprecated. You can now use the layer feature directly without the experimental flag.
 
-For more details and practical examples, check out our new [Layer guide](/guide/features/layer#layer).
+For more details and practical examples, check out our new [Layer guide](/guide/advanced/layer#layer).
 
 ### Preserve JSX syntax
 

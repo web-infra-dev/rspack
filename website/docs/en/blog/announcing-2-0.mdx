@@ -172,7 +172,7 @@ export default {
 
 ### Module Federation tree shaking \{#mf-share-treeshaking}
 
-Rspack now supports tree shaking for shared dependencies in [Module Federation](/guide/features/module-federation), allowing it to prune them at the export level, remove unused parts, and reduce the size of shared packages.
+Rspack now supports tree shaking for shared dependencies in [Module Federation](/guide/advanced/module-federation), allowing it to prune them at the export level, remove unused parts, and reduce the size of shared packages.
 
 In Rspack 1.x, once a dependency was declared as `shared`, the runtime usually had to load the entire package. Even if only a few exports were used, the whole package would still be included. For large shared libraries, that could add significant overhead.
 
@@ -302,7 +302,7 @@ In addition, `modern-module` supports preserving the source directory structure.
 You can use this capability in two ways:
 
 - **Use Rsbuild**: We provide out-of-the-box RSC support through [rsbuild-plugin-rsc](https://github.com/rstackjs/rsbuild-plugin-rsc).
-- **Configure Rspack manually**: Refer to the [React Server Components documentation](/guide/tech/rsc) to add the required configuration yourself.
+- **Configure Rspack manually**: Refer to the [React Server Components documentation](/guide/integrations/rsc) to add the required configuration yourself.
 
 Across the ecosystem, Modern.js already provides RSC support built on Rspack. See the [Modern.js RSC documentation](https://modernjs.dev/guides/basic-features/render/rsc.html) for details. Rspack also supports React Router's Data Mode, with examples available in the [React Router examples](https://github.com/rstackjs/rsbuild-plugin-rsc/tree/main/examples/react-router).
 

@@ -514,7 +514,7 @@ WARNING in ./re-exports.ts
 ```
 
 :::info 推荐配合 isolatedModules 使用 Rspack
-使用 Rspack 打包 TypeScript 时，我们强烈推荐开启 tsconfig.json 中的 [isolatedModules](https://www.typescriptlang.org/tsconfig/#isolatedModules)（使用其他 bundler 时也推荐开启，因为这符合 bundler 如何编译 TypeScript：[.ts 文件之间相互独立，独立进行编译](/guide/tech/typescript#%E5%BC%80%E5%90%AF-isolatedmodules)），此时对于重导出类型会收到 TypeScript 提示：`Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.`。
+使用 Rspack 打包 TypeScript 时，我们强烈推荐开启 tsconfig.json 中的 [isolatedModules](https://www.typescriptlang.org/tsconfig/#isolatedModules)（使用其他 bundler 时也推荐开启，因为这符合 bundler 如何编译 TypeScript：[.ts 文件之间相互独立，独立进行编译](/guide/languages/typescript#%E5%BC%80%E5%90%AF-isolatedmodules)），此时对于重导出类型会收到 TypeScript 提示：`Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.`。
 :::
 
 - `'no-tolerant'`：默认行为，不会对重导出类型进行宽容处理，遇到上述情况会报错。

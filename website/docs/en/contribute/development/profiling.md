@@ -188,7 +188,7 @@ If we want to analyze the time cost of loaders and plugins or the compilation be
 
 ![image](https://assets.rspack.rs/others/assets/rsdoctor/rsdoctor-loader-timeline.png)
 
-Refer to [Rsdoctor Compilation Analysis](/guide/optimization/use-rsdoctor)
+Refer to [Rsdoctor Compilation Analysis](/guide/diagnostics/use-rsdoctor)
 
 ## Mac Xcode instruments
 

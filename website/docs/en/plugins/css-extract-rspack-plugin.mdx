@@ -12,7 +12,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 By default, CSS in entry chunks is emitted as `[name].css`. CSS loaded through dynamic `import()` is handled by runtime code injected by the plugin.
 
-If your project does not need css-loader, prefer Rspack's [built-in CSS support](/guide/tech/css) to avoid the extra loader and plugin processing.
+If your project does not need css-loader, prefer Rspack's [built-in CSS support](/guide/languages/css) to avoid the extra loader and plugin processing.
 
 :::warning
 `CssExtractRspackPlugin.loader` cannot be used with Rspack's built-in CSS module types: `css`, `css/auto`, `css/global`, or `css/module`. The default module type is `javascript/auto`, so `type` can normally be omitted. If a module uses one of the built-in CSS types, the loader skips it and emits a warning; the plugin does not extract its CSS.

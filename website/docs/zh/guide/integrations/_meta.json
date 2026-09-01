@@ -1,8 +1,4 @@
 [
-  "typescript",
-  "css",
-  "html",
-  "json",
   "react",
   "rsc",
   "preact",
@@ -11,5 +7,6 @@
   "node",
   "nestjs",
   "solid",
-  "svelte"
+  "svelte",
+  "rstest"
 ]

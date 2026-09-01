@@ -45,7 +45,7 @@ const WhyRspack = memo(() => {
       },
       {
         img: FrameCheck,
-        url: tUrl('/guide/tech/react'),
+        url: tUrl('/guide/integrations/react'),
         title: t('FrameworkAgnostic'),
         description: t('FrameworkAgnosticDesc'),
         lottieJsonData: FrameCheckJson,
