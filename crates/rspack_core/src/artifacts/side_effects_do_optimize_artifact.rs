@@ -12,13 +12,21 @@ use crate::{
 pub struct SideEffectsDoOptimize {
   pub ids: Vec<Atom>,
   pub target_module: ModuleIdentifier,
-  pub need_move_target: Option<SideEffectsDoOptimizeMoveTarget>,
+  pub move_targets: SideEffectsDoOptimizeMoveTargets,
 }
 
 #[derive(Debug, Clone)]
 pub struct SideEffectsDoOptimizeMoveTarget {
   pub export_info: ExportInfo,
   pub target_export: Option<Vec<Atom>>,
+}
+
+#[derive(Debug, Default, Clone)]
+pub enum SideEffectsDoOptimizeMoveTargets {
+  #[default]
+  None,
+  Single(SideEffectsDoOptimizeMoveTarget),
+  Multiple(Vec<SideEffectsDoOptimizeMoveTarget>),
 }
 
 #[derive(Debug, Default, Clone)]
