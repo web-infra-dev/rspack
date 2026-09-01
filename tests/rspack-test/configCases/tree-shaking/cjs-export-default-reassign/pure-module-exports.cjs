@@ -1,0 +1,2 @@
+module.exports = 'PURE_MODULE_EXPORTS_SENTINEL';
+module['exports'] = 'PURE_COMPUTED_MODULE_EXPORTS_SENTINEL';
