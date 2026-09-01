@@ -89,6 +89,10 @@ define.doc(async () => {
             to: '$1/guide/advanced/lazy-barrel',
           },
           {
+            from: '^(/zh)?/guide/compatibility/plugin/?$',
+            to: '$1/plugins/community-plugin-compatibility',
+          },
+          {
             from: '^(/zh)?/plugins/compat-hashed-chunk-ids-plugin/?$',
             to: '$1/plugins/compact-hashed-chunk-ids-plugin',
           },
