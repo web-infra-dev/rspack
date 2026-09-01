@@ -4,37 +4,32 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use rayon::{iter::Either, prelude::*};
+use rayon::iter::Either;
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
-  ChunkUkey, CodeGenerationDataChunkInitFragments, CodeGenerationDataConcatenationScopeOutput,
+  ChunkGraph, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
+  CodeGenerationDataChunkInitFragments, CodeGenerationDataConcatenationScopeOutput,
   CodeGenerationDataPreservedAssetImport, CodeGenerationPublicPathAutoReplace, Compilation,
-  ConcatenatedModuleIdent, ConditionalInitFragment, DependencyType, ExportInfo, ExportMode,
-  ExportProvided, ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT,
-  RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeTemplateRenderMode, RuntimeVariable,
-  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
-  all_runtime_module_variables, collect_ident, escape_name_atom_ref, find_new_name, find_target,
-  get_cached_readable_identifier, get_module_directives, get_module_hashbang, property_access,
-  property_name, reserved_names::RESERVED_NAMES_ATOM_SET, rspack_sources::ReplaceSource,
-  split_readable_identifier, to_normal_comment,
+  ConcatenationBindingPlan, ConcatenationBindingResolver, ConcatenationBindingTarget,
+  ConcatenationContext, ConcatenationInterop, ConcatenationNameAllocator, ConditionalInitFragment,
+  DependencyType, ExportInfo, ExportMode, ExportProvided, ExportsInfoArtifact, ExportsType,
+  FindTargetResult, ImportSpec, InitFragmentKey, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals, RuntimeGlobalsRenderMode,
+  RuntimeTemplateRenderMode, RuntimeVariable, SideEffectsStateArtifact, SourceType, URLStaticMode,
+  UsageState, UsedName, UsedNameItem, all_runtime_module_variables, analyze_module_scope,
+  find_new_name, find_target, get_cached_readable_identifier, get_module_directives,
+  get_module_hashbang, property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
+  rspack_sources::ReplaceSource, to_normal_comment,
 };
-use rspack_error::{Diagnostic, Error, Result};
+use rspack_error::{Diagnostic, Result};
 use rspack_plugin_javascript::{
   JsPlugin, RenderSource, dependency::ESMExportImportedSpecifierDependency,
 };
 use rspack_plugin_runtime::should_export_webpack_require_for_module_chunk_loading;
 use rspack_util::{
-  SpanExt,
   atom::Atom,
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
 };
-use swc_core::common::SyntaxContext;
-use swc_experimental_allocator::Allocator;
-use swc_experimental_ecma_ast::{EsVersion, Program};
-use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
-use swc_experimental_ecma_semantic::resolver::resolver;
 
 use crate::{
   EsmLibraryPlugin,
@@ -71,8 +66,7 @@ pub(crate) struct ExportsContext {
 
 struct DeconflictSymbolsContext<'a> {
   runtime_module_used_names: &'a FxHashSet<Atom>,
-  escaped_names: &'a FxHashMap<Atom, Atom>,
-  escaped_identifiers: &'a FxHashMap<String, Vec<Atom>>,
+  concatenation_context: &'a ConcatenationContext<'a>,
 }
 
 enum ExternalImportBinding {
@@ -80,6 +74,8 @@ enum ExternalImportBinding {
   Named(Atom),
   Namespace,
 }
+
+type AnalyzedModule = (ModuleInfo, Option<(ModuleIdentifier, ChunkInitFragments)>);
 
 impl EsmLibraryPlugin {
   fn collect_init_fragments_in_render_order<'a>(
@@ -602,96 +598,13 @@ impl EsmLibraryPlugin {
       })
       .collect::<FxHashSet<_>>();
 
-    let (escaped_name_entries, escaped_identifier_entries) = concate_modules_map
-      .par_values()
-      .map(|info| {
-        let (name_capacity, identifier_capacity) = match info {
-          ModuleInfo::Concatenated(info) => {
-            let import_map = info.import_map.as_ref();
-            let import_sources = import_map.map_or(0, |map| map.len());
-            let imported_names = import_map.map_or(0, |map| {
-              map
-                .values()
-                .map(|imported| {
-                  imported.specifiers.len() + usize::from(imported.namespace.is_some())
-                })
-                .sum::<usize>()
-            });
-            (
-              info.binding_to_ref.len() + imported_names,
-              1 + import_sources,
-            )
-          }
-          ModuleInfo::External(_) => (0, 1),
-        };
-        let mut escaped_names =
-          FxHashMap::with_capacity_and_hasher(name_capacity, Default::default());
-        let mut escaped_identifiers = Vec::with_capacity(identifier_capacity);
-        let readable_identifier = get_cached_readable_identifier(
-          &info.id(),
-          module_graph,
-          &compilation.module_static_cache,
-          &compilation.options.context,
-        );
-        let splitted_readable_identifier = split_readable_identifier(&readable_identifier);
-        escaped_identifiers.push((readable_identifier, splitted_readable_identifier));
-
-        match info {
-          ModuleInfo::Concatenated(info) => {
-            for (id, _) in info.binding_to_ref.iter() {
-              escaped_names
-                .entry(id.0.clone())
-                .or_insert_with(|| escape_name_atom_ref(&id.0));
-            }
-
-            if let Some(import_map) = &info.import_map {
-              for ((source, _), imported_atoms) in import_map.iter() {
-                escaped_identifiers
-                  .push((source.clone(), split_readable_identifier(source.as_str())));
-                for atom in &imported_atoms.specifiers {
-                  escaped_names
-                    .entry(atom.clone())
-                    .or_insert_with(|| escape_name_atom_ref(atom));
-                }
-                if let Some(ns_import) = &imported_atoms.namespace {
-                  escaped_names
-                    .entry(ns_import.clone())
-                    .or_insert_with(|| escape_name_atom_ref(ns_import));
-                }
-              }
-            }
-          }
-          ModuleInfo::External(_) => (),
-        }
-        (
-          escaped_names.into_iter().collect::<Vec<_>>(),
-          escaped_identifiers,
-        )
-      })
-      .reduce(
-        || (Vec::new(), Vec::new()),
-        |mut a, mut b| {
-          a.0.append(&mut b.0);
-          a.1.append(&mut b.1);
-          a
-        },
-      );
-    let mut escaped_names =
-      FxHashMap::with_capacity_and_hasher(escaped_name_entries.len(), Default::default());
-    for (name, escaped_name) in escaped_name_entries {
-      escaped_names.insert(name, escaped_name);
-    }
-    let mut escaped_identifiers =
-      FxHashMap::with_capacity_and_hasher(escaped_identifier_entries.len(), Default::default());
-    for (identifier, parts) in escaped_identifier_entries {
-      escaped_identifiers.insert(identifier, parts);
-    }
+    let concatenation_context =
+      ConcatenationContext::prepare(&concate_modules_map, compilation, None);
 
     let runtime_module_used_names = Self::collect_rspack_export_runtime_used_names(compilation);
     let deconflict_context = DeconflictSymbolsContext {
       runtime_module_used_names: &runtime_module_used_names,
-      escaped_names: &escaped_names,
-      escaped_identifiers: &escaped_identifiers,
+      concatenation_context: &concatenation_context,
     };
 
     for chunk_link in link.values_mut() {
@@ -704,15 +617,32 @@ impl EsmLibraryPlugin {
       );
     }
 
+    let mut binding_resolver = ConcatenationBindingResolver {
+      context: &concatenation_context,
+      module_to_info_map: &mut concate_modules_map,
+      normalize_export_name: |module_graph, module, export_name| {
+        let is_source_phase_external = module_graph
+          .module_by_identifier(module)
+          .and_then(|module| module.as_external_module())
+          .is_some_and(|external_module| external_module.get_import_phase().is_source());
+        if is_source_phase_external
+          && export_name
+            .first()
+            .is_some_and(|name| name.as_str() == "default")
+        {
+          export_name.remove(0);
+        }
+      },
+    };
+
     // link imported specifier with exported symbol
     let mut needed_namespace_objects_by_ukey = FxHashMap::default();
     diagnostics.extend(self.link_imports_and_exports(
       compilation,
+      &mut binding_resolver,
       &mut link,
       &runtime_chunks_exporting_require_via_runtime_module,
-      &mut concate_modules_map,
       &mut needed_namespace_objects_by_ukey,
-      &escaped_identifiers,
     ));
 
     let mut namespace_object_sources: IdentifierMap<String> = IdentifierMap::default();
@@ -738,10 +668,9 @@ impl EsmLibraryPlugin {
             .expect("index is within the current worklist");
           let module_info_id = &module_info_id;
 
-          let module_info = concate_modules_map[module_info_id].as_concatenated();
+          let module_info = binding_resolver.module_to_info_map[module_info_id].as_concatenated();
           let mut runtime_template = compilation.runtime_template.create_module_code_template();
 
-          let module_graph = compilation.get_module_graph();
           let box_module = module_graph
             .module_by_identifier(module_info_id)
             .expect("should have box module");
@@ -759,7 +688,8 @@ impl EsmLibraryPlugin {
           }
 
           let mut ns_obj = Vec::new();
-          for export_info in compilation
+          for export_info in binding_resolver
+            .context
             .exports_info_artifact
             .get_exports_info_data(module_info_id)
             .exports()
@@ -775,20 +705,16 @@ impl EsmLibraryPlugin {
             }
 
             if let Some(UsedNameItem::Str(used_name)) = export_info.get_used_name(None, None) {
-              let Some(mut binding) = Self::get_binding(
+              let Some(mut binding) = self.get_binding(
                 None,
-                compilation.get_module_graph(),
-                &compilation.module_graph_cache_artifact,
-                &compilation.exports_info_artifact,
+                &mut binding_resolver,
                 module_info_id,
                 vec![export_info.name().cloned().unwrap_or("".into())],
-                &mut concate_modules_map,
                 &mut needed_namespace_objects,
                 false,
                 false,
                 strict_esm_module,
                 Some(true),
-                &mut Default::default(),
                 &mut chunk_link.required,
                 &mut chunk_link.used_names,
               ) else {
@@ -796,7 +722,9 @@ impl EsmLibraryPlugin {
               };
 
               if let Ref::Symbol(symbol_binding) = &mut binding {
-                let target_info = concate_modules_map.get(&symbol_binding.module);
+                let target_info = binding_resolver
+                  .module_to_info_map
+                  .get(&symbol_binding.module);
                 if matches!(target_info, Some(ModuleInfo::External(_))) {
                   chunk_link.imports.entry(symbol_binding.module).or_default();
                 } else if symbol_binding.ids.is_empty()
@@ -807,13 +735,13 @@ impl EsmLibraryPlugin {
                   // When ids is empty, the symbol is directly referenced (not via property
                   // access like ns.readFile), so we need to add an import from the external
                   // source to make the binding available.
-                  let module_graph = compilation.get_module_graph();
                   if let Some(ext) = module_graph
                     .module_by_identifier(&symbol_binding.module)
                     .and_then(|m| m.as_external_module())
                     && ext.resolve_external_type() == "module"
                   {
-                    let Some((raw_import_source, import_binding)) = concate_modules_map
+                    let Some((raw_import_source, import_binding)) = binding_resolver
+                      .module_to_info_map
                       .get(&symbol_binding.module)
                       .and_then(|target_info| match target_info {
                         ModuleInfo::Concatenated(target_info) => {
@@ -895,11 +823,11 @@ impl EsmLibraryPlugin {
           let star_re_export_binding = Self::resolve_single_star_re_export_target(
             *module_info_id,
             module_graph,
-            &compilation.module_graph_cache_artifact,
+            binding_resolver.context.module_graph_cache,
             &compilation
               .build_module_graph_artifact
               .side_effects_state_artifact,
-            &compilation.exports_info_artifact,
+            binding_resolver.context.exports_info_artifact,
             &mut namespace_re_export_star_cache,
           )
           .and_then(|target_module| {
@@ -909,20 +837,16 @@ impl EsmLibraryPlugin {
               .build_meta()
               .strict_esm_module();
 
-            Self::get_binding(
+            self.get_binding(
               None,
-              module_graph,
-              &compilation.module_graph_cache_artifact,
-              &compilation.exports_info_artifact,
+              &mut binding_resolver,
               &target_module,
               vec![],
-              &mut concate_modules_map,
               &mut needed_namespace_objects,
               false,
               false,
               target_strict_esm_module,
               None,
-              &mut Default::default(),
               &mut chunk_link.required,
               &mut chunk_link.used_names,
             )
@@ -992,7 +916,8 @@ var {} = {{}};
               )
             };
 
-          let module_info = concate_modules_map[module_info_id].as_concatenated_mut();
+          let module_info =
+            binding_resolver.module_to_info_map[module_info_id].as_concatenated_mut();
 
           namespace_object_sources.insert(*module_info_id, namespace_object_source);
 
@@ -1098,9 +1023,9 @@ var {} = {{}};
     let context = &compilation.options.context;
     let DeconflictSymbolsContext {
       runtime_module_used_names,
-      escaped_names,
-      escaped_identifiers,
+      concatenation_context,
     } = deconflict_context;
+    let escaped_identifiers = &concatenation_context.escaped_identifiers;
 
     let module_graph = compilation.get_module_graph();
 
@@ -1176,6 +1101,7 @@ var {} = {{}};
       &mut all_used_names,
       escaped_identifiers,
     );
+    let mut name_allocator = ConcatenationNameAllocator(all_used_names, concatenation_context);
 
     // deconflict top level symbols
     for id in chunk_link
@@ -1183,22 +1109,13 @@ var {} = {{}};
       .iter()
       .chain(chunk_link.decl_modules.iter())
     {
-      let module = module_graph
-        .module_by_identifier(id)
-        .expect("should have module");
-      let exports_type = module.build_meta().exports_type();
-      let default_object = module.build_meta().default_object();
-
       let info = &mut concate_modules_map[id];
-      let readable_identifier =
-        get_cached_readable_identifier(id, module_graph, &compilation.module_static_cache, context);
-
       if let ModuleInfo::Concatenated(concate_info) = info {
-        let mut internal_names = FxHashMap::default();
+        concate_info.internal_names.clear();
 
         // registered import map
-        if let Some(import_map) = &concate_info.import_map {
-          for ((source, attr), imported_atoms) in import_map.iter() {
+        if let Some(import_map) = concate_info.import_map.take() {
+          for ((source, attr), imported_atoms) in &import_map {
             let raw_import_source = RawImportSource::Source((source.clone(), attr.clone()));
             let existing_namespace_import = chunk_link
               .module_external_namespace_imports
@@ -1221,7 +1138,9 @@ var {} = {{}};
             if let Some(ns_import) = &imported_atoms.namespace {
               if let Some(existing_local) = existing_namespace_import.as_ref() {
                 if existing_local != ns_import {
-                  internal_names.insert(ns_import.clone(), existing_local.clone());
+                  concate_info
+                    .internal_names
+                    .insert(ns_import.clone(), existing_local.clone());
                 }
               } else {
                 total_imported_atoms = Some(
@@ -1249,8 +1168,7 @@ var {} = {{}};
               let total_imported_atoms = total_imported_atoms
                 .as_mut()
                 .expect("should have import spec");
-              // already import this symbol
-              if let Some(internal_atom) = total_imported_atoms.atoms.get(atom).or_else(|| {
+              let existing_name = total_imported_atoms.atoms.get(atom).or_else(|| {
                 if atom == "default"
                   && let Some(default_symbol) = &total_imported_atoms.default_import
                 {
@@ -1258,81 +1176,27 @@ var {} = {{}};
                 } else {
                   None
                 }
-              }) {
-                internal_names.insert(atom.clone(), internal_atom.clone());
-                // if the imported symbol is exported, we rename the export as well
-                if let Some(raw_export_map) = concate_info.raw_export_map.as_mut()
-                  && raw_export_map.contains_key(atom)
-                {
-                  raw_export_map.insert(atom.clone(), internal_atom.to_string());
-                }
-                continue;
-              }
+              });
+              let new_name = name_allocator.assign_import_binding_name(
+                atom,
+                existing_name,
+                source,
+                concate_info,
+              );
 
-              let new_name = if all_used_names.contains(atom) {
-                let new_name = if atom == "default" {
-                  find_new_name("", &all_used_names, &escaped_identifiers[source])
+              if existing_name.is_none() {
+                if atom == "default" {
+                  total_imported_atoms.default_import = Some(new_name);
                 } else {
-                  find_new_name(
-                    escaped_names
-                      .get(atom)
-                      .expect("should have escaped name")
-                      .as_ref(),
-                    &all_used_names,
-                    &escaped_identifiers[&readable_identifier],
-                  )
-                };
-                all_used_names.insert(new_name.clone());
-                // if the imported symbol is exported, we rename the export as well
-                if let Some(raw_export_map) = concate_info.raw_export_map.as_mut()
-                  && raw_export_map.contains_key(atom)
-                {
-                  raw_export_map.insert(atom.clone(), new_name.to_string());
+                  total_imported_atoms.atoms.insert(atom.clone(), new_name);
                 }
-                new_name
-              } else {
-                all_used_names.insert(atom.clone());
-                atom.clone()
-              };
-
-              internal_names.insert(atom.clone(), new_name.clone());
-
-              if atom == "default" {
-                total_imported_atoms.default_import = Some(new_name.clone());
-              } else {
-                total_imported_atoms
-                  .atoms
-                  .insert(atom.clone(), new_name.clone());
               }
             }
           }
+          concate_info.import_map = Some(import_map);
         }
 
-        for (atom, ctxt) in concate_info.binding_to_ref.keys() {
-          // only need to handle top level scope
-          if ctxt != &concate_info.module_ctxt {
-            continue;
-          }
-
-          if all_used_names.contains(atom) {
-            let new_name = find_new_name(
-              escaped_names
-                .get(atom)
-                .expect("should have escaped name")
-                .as_ref(),
-              &all_used_names,
-              &escaped_identifiers[&readable_identifier],
-            );
-
-            all_used_names.insert(new_name.clone());
-            internal_names.insert(atom.clone(), new_name);
-          } else {
-            all_used_names.insert(atom.clone());
-            internal_names.insert(atom.clone(), atom.clone());
-          }
-        }
-
-        concate_info.internal_names = internal_names;
+        name_allocator.assign_module_binding_names(concate_info);
 
         // Handle the name passed through by namespace_export_symbol
         if let Some(ref namespace_export_symbol) = concate_info.namespace_export_symbol
@@ -1341,7 +1205,7 @@ var {} = {{}};
         {
           let name: Atom =
             Atom::from(namespace_export_symbol[NAMESPACE_OBJECT_EXPORT.len()..].to_string());
-          all_used_names.insert(name.clone());
+          name_allocator.insert(name.clone());
           concate_info
             .internal_names
             .insert(namespace_export_symbol.clone(), name.clone());
@@ -1355,66 +1219,25 @@ var {} = {{}};
             ns_map.get(id).cloned()
           };
           if let Some(pre_assigned) = pre_assigned {
+            name_allocator.insert(pre_assigned.clone());
             pre_assigned
           } else if let Some(ref namespace_export_symbol) = concate_info.namespace_export_symbol {
             concate_info
               .get_internal_name(namespace_export_symbol)
               .cloned()
               .unwrap_or_else(|| {
-                find_new_name(
-                  "namespaceObject",
-                  &all_used_names,
-                  &escaped_identifiers[&readable_identifier],
-                )
+                name_allocator.find_new_module_name("namespaceObject", &concate_info.module)
               })
           } else {
-            find_new_name(
-              "namespaceObject",
-              &all_used_names,
-              &escaped_identifiers[&readable_identifier],
-            )
+            name_allocator.find_new_module_name("namespaceObject", &concate_info.module)
           }
         };
-        all_used_names.insert(namespace_object_name.clone());
         concate_info.namespace_object_name = Some(namespace_object_name.clone());
 
-        // Handle additional logic based on module build meta
-        if exports_type != BuildMetaExportsType::Namespace {
-          let external_name_interop: Atom = find_new_name(
-            "namespaceObject",
-            &all_used_names,
-            &escaped_identifiers[&readable_identifier],
-          );
-          all_used_names.insert(external_name_interop.clone());
-          info.set_interop_namespace_object_name(Some(external_name_interop.clone()));
-        }
-
-        if exports_type == BuildMetaExportsType::Default
-          && !matches!(default_object, BuildMetaDefaultObject::Redirect)
-        {
-          let external_name_interop: Atom = find_new_name(
-            "namespaceObject2",
-            &all_used_names,
-            &escaped_identifiers[&readable_identifier],
-          );
-          all_used_names.insert(external_name_interop.clone());
-          info.set_interop_namespace_object2_name(Some(external_name_interop.clone()));
-        }
-
-        if matches!(
-          exports_type,
-          BuildMetaExportsType::Dynamic | BuildMetaExportsType::Unset
-        ) {
-          let external_name_interop: Atom = find_new_name(
-            "default",
-            &all_used_names,
-            &escaped_identifiers[&readable_identifier],
-          );
-          all_used_names.insert(external_name_interop.clone());
-          info.set_interop_default_access_name(Some(external_name_interop.clone()));
-        }
+        name_allocator.assign_interop_names(info);
       }
     }
+    let mut all_used_names = name_allocator.0;
 
     // Build a targeted set for external module name deconfliction:
     // Start from chunk_link.used_names (cross-chunk accumulated names) and add
@@ -1529,203 +1352,133 @@ var {} = {{}};
       for (m, info) in concate_modules_map {
         // SAFETY: caller will poll the futures
         let s = unsafe { token.used((compilation, m, info, &runtime_template)) };
-        s.spawn(async move |(compilation, id, info, runtime_template)| {
-          if compilation
-            .build_chunk_graph_artifact
-            .chunk_graph
-            .get_module_chunks(m)
-            .is_empty()
-          {
-            // orphan module
-            return Ok((info, None));
-          }
-
-          let chunk_ukey = Self::get_module_chunk(m, compilation)?;
-
-          let module_graph = compilation.get_module_graph();
-
-          match info {
-            rspack_core::ModuleInfo::External(mut external_module_info) => {
-              let codegen_res = compilation.code_generation_results.get(&id, None);
-              let has_javascript_source = compilation
-                .code_generation_results
-                .get(&id, None)
-                .get(&SourceType::JavaScript)
-                .is_some();
-              let used_in_chunk = !compilation
-                .build_chunk_graph_artifact
-                .chunk_graph
-                .get_module_chunks(id)
-                .is_empty();
-              if has_javascript_source && used_in_chunk {
-                // we use __rspack_require.add({...}) to register modules
-                external_module_info
-                  .runtime_requirements
-                  .insert(RuntimeGlobals::REQUIRE | RuntimeGlobals::MODULE_FACTORIES);
-              }
-              let chunk_init_fragments = codegen_res
-                .data()
-                .get::<CodeGenerationDataChunkInitFragments>()
-                .map(|fragments| fragments.inner().clone())
-                .unwrap_or_default();
-              Ok((
-                ModuleInfo::External(external_module_info),
-                if chunk_init_fragments.is_empty() {
-                  None
-                } else {
-                  Some((id, chunk_init_fragments))
-                },
-              ))
+        s.spawn(
+          async move |(compilation, id, info, runtime_template)| -> Result<AnalyzedModule> {
+            if compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .get_module_chunks(m)
+              .is_empty()
+            {
+              // orphan module
+              return Ok((info, None));
             }
-            rspack_core::ModuleInfo::Concatenated(mut concate_info) => {
-              let hooks = JsPlugin::get_compilation_hooks(compilation.id());
-              let hooks = hooks.read().await;
 
-              let module = module_graph
-                .module_by_identifier(&id)
-                .expect("should have module");
-              let codegen_res = compilation.code_generation_results.get(&id, None);
-              let Some(js_source) = codegen_res.get(&SourceType::JavaScript) else {
-                return Ok((ModuleInfo::Concatenated(concate_info), None));
-              };
-              let concatenation_scope_output = codegen_res
-                .data()
-                .get::<CodeGenerationDataConcatenationScopeOutput>()
-                .expect("should have concatenation scope output for scope hoisted module");
+            let chunk_ukey = Self::get_module_chunk(m, compilation)?;
 
-              let mut render_source = RenderSource {
-                source: js_source.clone(),
-              };
-              let mut runtime_requirements = *codegen_res.runtime_requirements();
+            let module_graph = compilation.get_module_graph();
 
-              let mut chunk_init_fragments = vec![];
-              hooks
-                .render_module_content
-                .call(
-                  compilation,
-                  &chunk_ukey,
-                  module.as_ref(),
-                  &mut render_source,
-                  &mut runtime_requirements,
-                  &mut chunk_init_fragments,
-                  runtime_template,
-                )
-                .await?;
-              concatenation_scope_output.apply_to(&mut concate_info);
-
-              let jsx = module
-                .as_ref()
-                .as_normal_module()
-                .and_then(|normal_module| normal_module.get_parser_options())
-                .and_then(|options| {
-                  options
-                    .get_javascript()
-                    .and_then(|js_options| js_options.jsx)
-                })
-                .unwrap_or(false);
-              let source_str = render_source
-                .source
-                .source()
-                .into_string_lossy()
-                .into_owned();
-              let allocator = Allocator::new();
-              let lexer = swc_experimental_ecma_parser::Lexer::new(
-                &allocator,
-                Syntax::Es(EsSyntax {
-                  jsx,
-                  ..Default::default()
-                }),
-                EsVersion::EsNext,
-                StringSource::new(&source_str),
-                None,
-              );
-              let mut parser = Parser::new_from(&allocator, lexer);
-              let module = match parser.parse_module() {
-                Ok(module) => module,
-                Err(err) => {
-                  return Err(Error::from_string(
-                    Some(source_str.clone()),
-                    err.span().real_lo() as usize,
-                    err.span().real_hi() as usize,
-                    "JavaScript parse error:\n".to_string(),
-                    err.kind().msg().to_string(),
-                  ));
+            match info {
+              rspack_core::ModuleInfo::External(mut external_module_info) => {
+                let codegen_res = compilation.code_generation_results.get(&id, None);
+                let has_javascript_source = compilation
+                  .code_generation_results
+                  .get(&id, None)
+                  .get(&SourceType::JavaScript)
+                  .is_some();
+                let used_in_chunk = !compilation
+                  .build_chunk_graph_artifact
+                  .chunk_graph
+                  .get_module_chunks(id)
+                  .is_empty();
+                if has_javascript_source && used_in_chunk {
+                  // we use __rspack_require.add({...}) to register modules
+                  external_module_info
+                    .runtime_requirements
+                    .insert(RuntimeGlobals::REQUIRE | RuntimeGlobals::MODULE_FACTORIES);
                 }
-              };
-              let program = Program::Module(allocator.boxed(module));
-              let semantic = resolver(&program);
-              let ids = collect_ident(&allocator, &program);
-
-              concate_info.module_ctxt =
-                SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
-              concate_info.global_ctxt =
-                SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
-
-              let top_level_scope_id = semantic.top_level_scope_id();
-              let mut all_used_names = FxHashSet::default();
-              all_used_names.reserve(ids.len());
-              concate_info.idents.reserve(ids.len());
-              concate_info.global_scope_ident.reserve(ids.len());
-              let mut binding_to_ref: FxIndexMap<
-                (Atom, SyntaxContext),
-                Vec<ConcatenatedModuleIdent>,
-              > = Default::default();
-              binding_to_ref.reserve(ids.len());
-
-              for ident in ids {
-                let scope = semantic.node_scope(&ident.id);
-                let is_global = SyntaxContext::from_u32(scope.raw()) == concate_info.global_ctxt;
-                let legacy = if is_global {
-                  let leg = ident.to_legacy(&semantic);
-                  concate_info.global_scope_ident.push(leg.clone());
-                  all_used_names.insert(leg.id.sym.clone());
-                  Some(leg)
-                } else {
-                  None
-                };
-                if ident.is_class_expr_with_ident {
-                  all_used_names.insert(Atom::from(ident.id.sym.as_str()));
-                  continue;
-                }
-                if scope != top_level_scope_id {
-                  all_used_names.insert(Atom::from(ident.id.sym.as_str()));
-                }
-                let legacy = legacy.unwrap_or_else(|| ident.to_legacy(&semantic));
-                concate_info.idents.push(legacy.clone());
-                binding_to_ref
-                  .entry((legacy.id.sym.clone(), legacy.id.ctxt))
-                  .or_default()
-                  .push(legacy);
-              }
-
-              concate_info.all_used_names = all_used_names;
-              concate_info.binding_to_ref = binding_to_ref;
-              concate_info.has_ast = true;
-              concate_info.source = Some(ReplaceSource::new(render_source.source.clone()));
-              concate_info.internal_source = Some(render_source.source.clone());
-              concate_info.runtime_requirements = runtime_requirements;
-              concate_info.chunk_init_fragments = codegen_res
-                .data()
-                .get::<CodeGenerationDataChunkInitFragments>()
-                .map(|fragments| fragments.inner().clone())
-                .unwrap_or_default();
-              concate_info
-                .chunk_init_fragments
-                .extend(chunk_init_fragments);
-              if let Some(CodeGenerationPublicPathAutoReplace(true)) =
-                codegen_res
+                let chunk_init_fragments = codegen_res
                   .data()
-                  .get::<CodeGenerationPublicPathAutoReplace>()
-              {
-                concate_info.public_path_auto_replacement = Some(true);
+                  .get::<CodeGenerationDataChunkInitFragments>()
+                  .map(|fragments| fragments.inner().clone())
+                  .unwrap_or_default();
+                Ok((
+                  ModuleInfo::External(external_module_info),
+                  if chunk_init_fragments.is_empty() {
+                    None
+                  } else {
+                    Some((id, chunk_init_fragments))
+                  },
+                ))
               }
-              if codegen_res.data().contains::<URLStaticMode>() {
-                concate_info.static_url_replacement = true;
+              rspack_core::ModuleInfo::Concatenated(mut concate_info) => {
+                let hooks = JsPlugin::get_compilation_hooks(compilation.id());
+                let hooks = hooks.read().await;
+
+                let module = module_graph
+                  .module_by_identifier(&id)
+                  .expect("should have module");
+                let codegen_res = compilation.code_generation_results.get(&id, None);
+                let Some(js_source) = codegen_res.get(&SourceType::JavaScript) else {
+                  return Ok((ModuleInfo::Concatenated(concate_info), None));
+                };
+                let concatenation_scope_output = codegen_res
+                  .data()
+                  .get::<CodeGenerationDataConcatenationScopeOutput>()
+                  .expect("should have concatenation scope output for scope hoisted module");
+
+                let mut render_source = RenderSource {
+                  source: js_source.clone(),
+                };
+                let mut runtime_requirements = *codegen_res.runtime_requirements();
+
+                let mut chunk_init_fragments = vec![];
+                hooks
+                  .render_module_content
+                  .call(
+                    compilation,
+                    &chunk_ukey,
+                    module.as_ref(),
+                    &mut render_source,
+                    &mut runtime_requirements,
+                    &mut chunk_init_fragments,
+                    runtime_template,
+                  )
+                  .await?;
+                concatenation_scope_output.apply_to(&mut concate_info);
+
+                let jsx = module
+                  .as_ref()
+                  .as_normal_module()
+                  .and_then(|normal_module| normal_module.get_parser_options())
+                  .and_then(|options| {
+                    options
+                      .get_javascript()
+                      .and_then(|js_options| js_options.jsx)
+                  })
+                  .unwrap_or(false);
+                let source_str = render_source
+                  .source
+                  .source()
+                  .into_string_lossy()
+                  .into_owned();
+                analyze_module_scope(&source_str, jsx, &mut concate_info)?;
+                concate_info.source = Some(ReplaceSource::new(render_source.source.clone()));
+                concate_info.internal_source = Some(render_source.source.clone());
+                concate_info.runtime_requirements = runtime_requirements;
+                concate_info.chunk_init_fragments = codegen_res
+                  .data()
+                  .get::<CodeGenerationDataChunkInitFragments>()
+                  .map(|fragments| fragments.inner().clone())
+                  .unwrap_or_default();
+                concate_info
+                  .chunk_init_fragments
+                  .extend(chunk_init_fragments);
+                if let Some(CodeGenerationPublicPathAutoReplace(true)) =
+                  codegen_res
+                    .data()
+                    .get::<CodeGenerationPublicPathAutoReplace>()
+                {
+                  concate_info.public_path_auto_replacement = Some(true);
+                }
+                if codegen_res.data().contains::<URLStaticMode>() {
+                  concate_info.static_url_replacement = true;
+                }
+                Ok((ModuleInfo::Concatenated(concate_info), None))
               }
-              Ok((ModuleInfo::Concatenated(concate_info), None))
             }
-          }
-        })
+          },
+        )
       }
     })
     .await;
@@ -2044,22 +1797,21 @@ var {} = {{}};
     current_chunk: ChunkUkey,
     entry_chunk: ChunkUkey,
     compilation: &Compilation,
-    concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
+    binding_resolver: &mut ConcatenationBindingResolver,
     required: &mut IdentifierIndexMap<ExternalInterop>,
     link: &mut FxHashMap<ChunkUkey, ChunkLinkContext>,
     needed_namespace_objects: &mut IdentifierIndexSet,
     entry_imports: &mut IdentifierIndexMap<FxHashMap<Atom, Atom>>,
     exports: &mut FxHashMap<ChunkUkey, ExportsContext>,
-    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
     allow_rename: bool,
     filter_unused: bool,
     re_export_star_cache: &mut IdentifierMap<FxIndexSet<Either<Atom, ModuleIdentifier>>>,
   ) -> Vec<Diagnostic> {
     let mut errors = vec![];
-    let context = &compilation.options.context;
-    let module_graph = compilation.get_module_graph();
+    let module_graph = binding_resolver.context.module_graph;
 
-    let exports_info = compilation
+    let exports_info = binding_resolver
+      .context
       .exports_info_artifact
       .get_exports_info_data(&entry_module);
 
@@ -2081,11 +1833,11 @@ var {} = {{}};
     Self::resolve_re_export_star_from_unknown(
       entry_module,
       module_graph,
-      &compilation.module_graph_cache_artifact,
+      binding_resolver.context.module_graph_cache,
       &compilation
         .build_module_graph_artifact
         .side_effects_state_artifact,
-      &compilation.exports_info_artifact,
+      binding_resolver.context.exports_info_artifact,
       // When filter_unused is true, own exports are already collected and filtered
       // by usage above — only collect `export *` targets here.
       // When filter_unused is false (entry modules), also collect own exports.
@@ -2106,14 +1858,14 @@ var {} = {{}};
 
     let exports_type = module.get_exports_type(
       module_graph,
-      &compilation.module_graph_cache_artifact,
-      &compilation.exports_info_artifact,
+      binding_resolver.context.module_graph_cache,
+      binding_resolver.context.exports_info_artifact,
       module.build_meta().strict_esm_module(),
     );
 
     if matches!(exports_type, ExportsType::DefaultOnly) {
       Self::export_namespace_as_default(
-        concate_modules_map,
+        &mut *binding_resolver.module_to_info_map,
         entry_module,
         current_chunk,
         entry_chunk,
@@ -2131,20 +1883,16 @@ var {} = {{}};
         }
 
         let chunk_link = link.get_mut_unwrap(&current_chunk);
-        let Some(binding) = Self::get_binding(
+        let Some(binding) = self.get_binding(
           None,
-          module_graph,
-          &compilation.module_graph_cache_artifact,
-          &compilation.exports_info_artifact,
+          binding_resolver,
           &entry_module,
           vec![name.clone()],
-          concate_modules_map,
           needed_namespace_objects,
           false,
           false,
           module.build_meta().strict_esm_module(),
           None,
-          &mut Default::default(),
           required,
           &mut chunk_link.used_names,
         ) else {
@@ -2160,7 +1908,7 @@ var {} = {{}};
                 continue;
               }
             };
-            let ref_info = &mut concate_modules_map[&symbol_binding.module];
+            let ref_info = &mut binding_resolver.module_to_info_map[&symbol_binding.module];
 
             match ref_info {
               ModuleInfo::External(_) => {
@@ -2252,11 +2000,11 @@ var {} = {{}};
               .expect("should have current chunk link");
             if let Some(local_name) = Self::get_same_chunk_inlined_export_binding(
               module_graph,
-              &compilation.exports_info_artifact,
+              binding_resolver.context.exports_info_artifact,
               &entry_module,
               vec![name.clone()],
               current_chunk_link,
-              concate_modules_map,
+              binding_resolver.module_to_info_map,
               &mut Default::default(),
             ) {
               let exported = Self::add_chunk_export_alias(
@@ -2300,12 +2048,7 @@ var {} = {{}};
             let new_name = find_new_name(
               &name,
               &entry_chunk_link.used_names,
-              &escaped_identifiers[&get_cached_readable_identifier(
-                &entry_module,
-                module_graph,
-                &compilation.module_static_cache,
-                context,
-              )],
+              binding_resolver.context.module_identifier(&entry_module),
             );
             if Self::add_chunk_export(
               entry_chunk,
@@ -2327,7 +2070,7 @@ var {} = {{}};
 
       if matches!(exports_type, ExportsType::DefaultWithNamed) {
         Self::export_namespace_as_default(
-          concate_modules_map,
+          &mut *binding_resolver.module_to_info_map,
           entry_module,
           current_chunk,
           entry_chunk,
@@ -2358,7 +2101,7 @@ var {} = {{}};
         .insert(START_EXPORTS.clone());
     }
 
-    if concate_modules_map[&entry_module].is_external() {
+    if binding_resolver.module_to_info_map[&entry_module].is_external() {
       // execute
       Self::add_require(
         entry_module,
@@ -2376,15 +2119,13 @@ var {} = {{}};
   fn link_imports_and_exports(
     &self,
     compilation: &Compilation,
+    binding_resolver: &mut ConcatenationBindingResolver,
     link: &mut FxHashMap<ChunkUkey, ChunkLinkContext>,
     runtime_chunks_exporting_require_via_runtime_module: &FxHashSet<ChunkUkey>,
-    concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     needed_namespace_objects_by_ukey: &mut FxHashMap<ChunkUkey, IdentifierIndexSet>,
-    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
   ) -> Vec<Diagnostic> {
     let mut errors = vec![];
-    let context = &compilation.options.context;
-    let module_graph = compilation.get_module_graph();
+    let module_graph = binding_resolver.context.module_graph;
 
     // Cache for resolve_re_export_star_from_unknown to avoid redundant
     // traversals of the same module's export * chains across entry modules.
@@ -2478,13 +2219,12 @@ var {} = {{}};
           entry_module_chunk,
           entry_chunk_ukey,
           compilation,
-          concate_modules_map,
+          binding_resolver,
           required,
           link,
           needed_namespace,
           entry_imports,
           &mut exports,
-          escaped_identifiers,
           false,
           false,
           &mut re_export_star_cache,
@@ -2541,7 +2281,7 @@ var {} = {{}};
 
           entry_imports.entry(*entry_module).or_default();
 
-          if concate_modules_map[entry_module].is_external() {
+          if binding_resolver.module_to_info_map[entry_module].is_external() {
             let require_info = Self::add_require(
               *entry_module,
               None,
@@ -2632,13 +2372,12 @@ var {} = {{}};
           module_chunk,
           module_chunk,
           compilation,
-          concate_modules_map,
+          binding_resolver,
           required,
           link,
           needed_namespace,
           module_imports,
           &mut exports,
-          escaped_identifiers,
           false,
           false,
           &mut re_export_star_cache,
@@ -2742,13 +2481,12 @@ var {} = {{}};
             source_chunk,
             target_chunk,
             compilation,
-            concate_modules_map,
+            binding_resolver,
             required,
             link,
             needed_namespace,
             target_imports,
             &mut exports,
-            escaped_identifiers,
             allow_rename,
             true,
             &mut re_export_star_cache,
@@ -2771,7 +2509,7 @@ var {} = {{}};
         .iter()
         .chain(chunk_link.hoisted_modules.iter())
       {
-        let info = &concate_modules_map[m];
+        let info = &binding_resolver.module_to_info_map[m];
         let runtime_requirements = info.get_runtime_requirements();
         if !runtime_requirements.is_empty() && runtime_chunk != *chunk {
           if compilation.runtime_template.render_mode() == RuntimeTemplateRenderMode::RspackExport {
@@ -2840,11 +2578,11 @@ var {} = {{}};
               && conn.is_target_active(
                 module_graph,
                 None,
-                &compilation.module_graph_cache_artifact,
+                binding_resolver.context.module_graph_cache,
                 &compilation
                   .build_module_graph_artifact
                   .side_effects_state_artifact,
-                &compilation.exports_info_artifact,
+                binding_resolver.context.exports_info_artifact,
               )
             {
               chunk_imports.entry(ref_module).or_default();
@@ -2855,16 +2593,16 @@ var {} = {{}};
           if !conn.is_target_active(
             module_graph,
             None,
-            &compilation.module_graph_cache_artifact,
+            binding_resolver.context.module_graph_cache,
             &compilation
               .build_module_graph_artifact
               .side_effects_state_artifact,
-            &compilation.exports_info_artifact,
+            binding_resolver.context.exports_info_artifact,
           ) {
             continue;
           }
 
-          let outgoing_module_info = &concate_modules_map[conn.module_identifier()];
+          let outgoing_module_info = &binding_resolver.module_to_info_map[conn.module_identifier()];
 
           //ensure chunk
           chunk_imports.entry(ref_module).or_default();
@@ -2904,20 +2642,16 @@ var {} = {{}};
               continue;
             }
 
-            let Some(binding) = Self::get_binding(
+            let Some(binding) = self.get_binding(
               Some(*m),
-              module_graph,
-              &compilation.module_graph_cache_artifact,
-              &compilation.exports_info_artifact,
+              binding_resolver,
               ref_module,
               options.ids.clone(),
-              concate_modules_map,
               needed_namespace_objects,
               options.call,
               !options.direct_import,
               module.build_meta().strict_esm_module(),
               options.asi_safe,
-              &mut Default::default(),
               required,
               &mut chunk_link.used_names,
             ) else {
@@ -2969,7 +2703,7 @@ var {} = {{}};
             continue;
           }
         };
-        let info = &concate_modules_map[&m];
+        let info = &binding_resolver.module_to_info_map[&m];
         let from_external = matches!(info, ModuleInfo::External(_));
         let needs_import_chunk = ref_chunk != *chunk;
 
@@ -2979,17 +2713,11 @@ var {} = {{}};
         }
 
         if needs_import_chunk && !from_external {
-          let readable_identifier = get_cached_readable_identifier(
-            &m,
-            module_graph,
-            &compilation.module_static_cache,
-            context,
-          );
           let (orig_symbol, local_symbol) = if all_used_names.contains(&symbol) {
             let new_symbol = find_new_name(
               &symbol,
               all_used_names,
-              &escaped_identifiers[&readable_identifier],
+              binding_resolver.context.module_identifier(&m),
             );
             all_used_names.insert(new_symbol.clone());
 
@@ -3041,11 +2769,11 @@ var {} = {{}};
           if !conn.is_target_active(
             module_graph,
             None,
-            &compilation.module_graph_cache_artifact,
+            binding_resolver.context.module_graph_cache,
             &compilation
               .build_module_graph_artifact
               .side_effects_state_artifact,
-            &compilation.exports_info_artifact,
+            binding_resolver.context.exports_info_artifact,
           ) {
             continue;
           }
@@ -3193,202 +2921,233 @@ var {} = {{}};
   // the final name is the exact symbol in ref chunk
   #[allow(clippy::too_many_arguments)]
   fn get_binding(
+    &self,
     from: Option<ModuleIdentifier>,
-    mg: &ModuleGraph,
-    mg_cache: &ModuleGraphCacheArtifact,
-    exports_info_artifact: &ExportsInfoArtifact,
+    binding_resolver: &mut ConcatenationBindingResolver,
     info_id: &ModuleIdentifier,
-    mut export_name: Vec<Atom>,
-    module_to_info_map: &mut IdentifierIndexMap<ModuleInfo>,
+    export_name: Vec<Atom>,
     needed_namespace_objects: &mut IdentifierIndexSet,
     as_call: bool,
     call_context: bool,
     strict_esm_module: bool,
     asi_safe: Option<bool>,
-    already_visited: &mut FxHashSet<ExportInfo>,
     required: &mut IdentifierIndexMap<ExternalInterop>,
     all_used_names: &mut FxHashSet<Atom>,
   ) -> Option<Ref> {
-    let module = mg
-      .module_by_identifier(info_id)
-      .expect("should have module");
-    let exports_type =
-      module.get_exports_type(mg, mg_cache, exports_info_artifact, strict_esm_module);
-    if Self::is_source_phase_external(mg, info_id)
-      && export_name
-        .first()
-        .is_some_and(|name| name.as_str() == "default")
-    {
-      export_name.remove(0);
-    }
-    let info = &mut module_to_info_map[info_id];
+    let ConcatenationBindingPlan {
+      info_id,
+      export_name,
+      target,
+      ..
+    } = binding_resolver.resolve(info_id, export_name, strict_esm_module);
+    let module_to_info_map = &mut *binding_resolver.module_to_info_map;
 
-    if export_name.is_empty() {
-      match exports_type {
-        ExportsType::DefaultOnly => {
-          info.set_interop_namespace_object2_used(true);
-          let symbol = match info {
-            ModuleInfo::External(info) => {
-              let required_info = Self::add_require(
-                *info_id,
+    match target {
+      ConcatenationBindingTarget::InteropNamespace(kind) => {
+        let info = &mut module_to_info_map[&info_id];
+        let symbol = match kind {
+          ConcatenationInterop::Namespace => {
+            info.set_interop_namespace_object_used(true);
+            match info {
+              ModuleInfo::External(info) => Self::add_require(
+                info_id,
                 from,
                 Some(info.name.clone().expect("should have name")),
                 all_used_names,
                 required,
-              );
-              required_info.namespace2(all_used_names)
-            }
-            ModuleInfo::Concatenated(info) => info
-              .interop_namespace_object2_name
-              .clone()
-              .expect("should already set interop namespace"),
-          };
-
-          return Some(Ref::Symbol(SymbolRef::new(
-            *info_id,
-            symbol,
-            export_name.clone(),
-            Arc::new(move |binding| binding.symbol.to_string()),
-          )));
-        }
-        ExportsType::DefaultWithNamed => {
-          info.set_interop_namespace_object_used(true);
-          let symbol = match info {
-            ModuleInfo::External(external_info) => {
-              let required_info = Self::add_require(
-                *info_id,
-                from,
-                Some(external_info.name.clone().expect("should have name")),
-                all_used_names,
-                required,
-              );
-              required_info.namespace(all_used_names)
-            }
-            ModuleInfo::Concatenated(info) => info
-              .interop_namespace_object_name
-              .clone()
-              .expect("should already set interop namespace"),
-          };
-
-          return Some(Ref::Symbol(SymbolRef::new(
-            *info_id,
-            symbol,
-            export_name.clone(),
-            Arc::new(|binding| binding.symbol.to_string()),
-          )));
-        }
-        _ => {}
-      }
-    } else {
-      match exports_type {
-        // normal case
-        ExportsType::Namespace => {}
-        ExportsType::DefaultWithNamed => match export_name.first().map(|atom| atom.as_str()) {
-          Some("default") => {
-            export_name = export_name[1..].to_vec();
-          }
-          Some("__esModule") => {
-            return Some(es_module_binding());
-          }
-          _ => {}
-        },
-        ExportsType::DefaultOnly => {
-          if export_name.first().map(|item| item.as_str()) == Some("__esModule") {
-            return Some(es_module_binding());
-          }
-
-          let first_export_id = export_name.remove(0);
-          if first_export_id != "default" {
-            return Some(Ref::Inline(
-              "/* non-default import from default-exporting module */undefined".into(),
-            ));
-          }
-        }
-        ExportsType::Dynamic => match export_name.first().map(|atom| atom.as_str()) {
-          Some("default") => {
-            // shadowing the previous immutable ref to avoid violating rustc borrow rules
-            info.set_interop_default_access_used(true);
-            let symbol = match info {
-              ModuleInfo::External(info) => {
-                let required_info = Self::add_require(
-                  *info_id,
-                  from,
-                  Some(info.name.clone().expect("should have name")),
-                  all_used_names,
-                  required,
-                );
-                required_info.default_access(all_used_names)
-              }
+              )
+              .namespace(all_used_names),
               ModuleInfo::Concatenated(info) => info
-                .interop_default_access_name
+                .interop_namespace_object_name
                 .clone()
                 .expect("should already set interop namespace"),
+            }
+          }
+          ConcatenationInterop::Namespace2 => {
+            info.set_interop_namespace_object2_used(true);
+            match info {
+              ModuleInfo::External(info) => Self::add_require(
+                info_id,
+                from,
+                Some(info.name.clone().expect("should have name")),
+                all_used_names,
+                required,
+              )
+              .namespace2(all_used_names),
+              ModuleInfo::Concatenated(info) => info
+                .interop_namespace_object2_name
+                .clone()
+                .expect("should already set interop namespace"),
+            }
+          }
+        };
+
+        return Some(Ref::Symbol(SymbolRef::new(
+          info_id,
+          symbol,
+          export_name,
+          Arc::new(|binding| binding.symbol.to_string()),
+        )));
+      }
+      ConcatenationBindingTarget::InteropDefault => {
+        let info = &mut module_to_info_map[&info_id];
+        info.set_interop_default_access_used(true);
+        let symbol = match info {
+          ModuleInfo::External(info) => Self::add_require(
+            info_id,
+            from,
+            Some(info.name.clone().expect("should have name")),
+            all_used_names,
+            required,
+          )
+          .default_access(all_used_names),
+          ModuleInfo::Concatenated(info) => info
+            .interop_default_access_name
+            .clone()
+            .expect("should already set interop namespace"),
+        };
+
+        return Some(Ref::Symbol(SymbolRef::new(
+          info_id,
+          symbol,
+          export_name,
+          Arc::new(move |binding| {
+            let default_access_name = &binding.symbol;
+            let default_export = if as_call {
+              format!("{default_access_name}()")
+            } else if let Some(true) = asi_safe {
+              format!("({default_access_name}())")
+            } else if let Some(false) = asi_safe {
+              format!(";({default_access_name}())")
+            } else {
+              format!("{default_access_name}.a")
             };
 
-            export_name = export_name[1..].to_vec();
+            let exports = format!("{default_export}{}", property_access(&binding.ids, 0));
 
-            return Some(Ref::Symbol(SymbolRef::new(
-              *info_id,
-              symbol,
-              export_name.clone(),
-              Arc::new(move |binding| {
-                let default_access_name = &binding.symbol;
-                let default_export = if as_call {
-                  format!("{default_access_name}()")
-                } else if let Some(true) = asi_safe {
-                  format!("({default_access_name}())")
-                } else if let Some(false) = asi_safe {
-                  format!(";({default_access_name}())")
-                } else {
-                  format!("{default_access_name}.a")
-                };
+            if !binding.ids.is_empty() && as_call && !call_context {
+              return if asi_safe.unwrap_or_default() {
+                format!("(0,{exports})")
+              } else if let Some(_asi_safe) = asi_safe {
+                format!(";(0,{exports})")
+              } else {
+                format!("/*#__PURE__*/Object({exports})")
+              };
+            }
 
-                let exports = format!("{default_export}{}", property_access(&binding.ids, 0));
-
-                if !binding.ids.is_empty() && as_call && !call_context {
-                  return if asi_safe.unwrap_or_default() {
-                    format!("(0,{exports})")
-                  } else if let Some(_asi_safe) = asi_safe {
-                    format!(";(0,{exports})")
-                  } else {
-                    format!("/*#__PURE__*/Object({exports})")
-                  };
-                }
-
-                exports
-              }),
-            )));
-          }
-          Some("__esModule") => {
-            return Some(es_module_binding());
-          }
-          _ => {}
-        },
+            exports
+          }),
+        )));
       }
-    }
-
-    let exports_info = exports_info_artifact.get_exports_info_data(info_id);
-
-    if export_name.is_empty() {
-      let info = module_to_info_map.get_mut_unwrap(info_id);
-      match info {
+      ConcatenationBindingTarget::EsModule(_) => return Some(es_module_binding()),
+      ConcatenationBindingTarget::UnsupportedDefaultImport => {
+        return Some(Ref::Inline(
+          "/* non-default import from default-exporting module */undefined".into(),
+        ));
+      }
+      ConcatenationBindingTarget::Namespace => match module_to_info_map.get_mut_unwrap(&info_id) {
         ModuleInfo::Concatenated(info) => {
           needed_namespace_objects.insert(info.module);
-          return Some(Ref::Symbol(SymbolRef::new(
+          Some(Ref::Symbol(SymbolRef::new(
             info.module,
             info
               .namespace_object_name
               .clone()
               .expect("should have namespace_object_name"),
-            vec![],
+            export_name,
             Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
-          )));
+          )))
         }
-        ModuleInfo::External(info) => {
-          return Some(Ref::Symbol(SymbolRef::new(
-            info.module,
+        ModuleInfo::External(info) => Some(Ref::Symbol(SymbolRef::new(
+          info.module,
+          Self::add_require(
+            info_id,
+            from,
+            Some(info.name.clone().expect("should have symbol")),
+            all_used_names,
+            required,
+          )
+          .required_symbol
+          .clone()
+          .expect("should have name"),
+          export_name,
+          Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
+        ))),
+      },
+      ConcatenationBindingTarget::Circular => Some(Ref::Inline(
+        "/* circular reexport */ Object(function x() { x() }())".into(),
+      )),
+      ConcatenationBindingTarget::Direct { symbol, used_name } => match used_name {
+        Some(UsedName::Normal(used_name)) => {
+          let info = module_to_info_map[&info_id].as_concatenated();
+          let symbol = info
+            .get_internal_name(&symbol)
+            .unwrap_or_else(|| panic!("should set internal name for {symbol}"));
+          Some(Ref::Symbol(SymbolRef::new(
+            info_id,
+            symbol.clone(),
+            used_name[1..].to_vec(),
+            Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
+          )))
+        }
+        Some(UsedName::Inlined(inlined)) => Some(Ref::Inline(inlined.render(&to_normal_comment(
+          &format!("inlined export {}", property_access(&export_name, 0)),
+        )))),
+        None => Some(Ref::Inline("/* unused export */ undefined".into())),
+      },
+      ConcatenationBindingTarget::Raw(symbol) => {
+        let info = module_to_info_map[&info_id].as_concatenated();
+        let name = info.get_internal_name(&symbol).unwrap_or(&symbol);
+        Some(Ref::Symbol(SymbolRef::new(
+          info_id,
+          name.clone(),
+          export_name[1..].to_vec(),
+          Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
+        )))
+      }
+      ConcatenationBindingTarget::Inlined(used_name) => {
+        let UsedName::Inlined(inlined) = used_name else {
+          unreachable!("inlined binding plan should contain an inlined used name")
+        };
+        Some(Ref::Inline(inlined.inlined_value().render(
+          &to_normal_comment(&format!(
+            "inlined export {}",
+            property_access(&export_name, 0)
+          )),
+        )))
+      }
+      ConcatenationBindingTarget::NamespaceExport(used_name) => {
+        let info = module_to_info_map[&info_id].as_concatenated();
+        Some(match used_name {
+          UsedName::Normal(used_name) => Ref::Symbol(SymbolRef::new(
+            info_id,
+            info
+              .namespace_object_name
+              .clone()
+              .expect("should have namespace_object_name"),
+            used_name,
+            Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
+          )),
+          UsedName::Inlined(inlined) => Ref::Inline(inlined.render("")),
+        })
+      }
+      ConcatenationBindingTarget::Missing(used_name) => {
+        if let Some(UsedName::Inlined(inlined)) = used_name {
+          Some(Ref::Inline(inlined.render(&to_normal_comment(&format!(
+            "inlined export {}",
+            property_access(&export_name, 0)
+          )))))
+        } else {
+          None
+        }
+      }
+      ConcatenationBindingTarget::External(used_name) => {
+        let info = module_to_info_map[&info_id].as_external();
+        Some(match used_name {
+          Some(UsedName::Normal(used_name)) => Ref::Symbol(SymbolRef::new(
+            info_id,
             Self::add_require(
-              *info_id,
+              info_id,
               from,
               Some(info.name.clone().expect("should have symbol")),
               all_used_names,
@@ -3396,219 +3155,17 @@ var {} = {{}};
             )
             .required_symbol
             .clone()
-            .expect("should have name"),
-            vec![],
+            .expect("should have symbol"),
+            used_name,
             Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
-          )));
-        }
+          )),
+          Some(UsedName::Inlined(inlined)) => Ref::Inline(inlined.render(&to_normal_comment(
+            &format!("inlined export {}", property_access(&export_name, 0)),
+          ))),
+          None => Ref::Inline("/* unused export */ undefined".into()),
+        })
       }
     }
-
-    let export_info = exports_info.get_export_info_without_mut_module_graph(&export_name[0]);
-    let export_info_id = export_info.id();
-
-    if already_visited.contains(&export_info_id) {
-      return Some(Ref::Inline(
-        "/* circular reexport */ Object(function x() { x() }())".into(),
-      ));
-    }
-
-    already_visited.insert(export_info_id);
-
-    let info = &module_to_info_map[info_id];
-    match info {
-      ModuleInfo::Concatenated(info) => {
-        let export_id = export_name.first().cloned();
-        if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
-          let info = module_to_info_map
-            .get_mut_unwrap(info_id)
-            .as_concatenated_mut();
-          needed_namespace_objects.insert(info.module);
-
-          return Some(Ref::Symbol(SymbolRef::new(
-            info.module,
-            info
-              .namespace_object_name
-              .clone()
-              .expect("should have namespace_object"),
-            export_name.clone(),
-            Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
-          )));
-        }
-
-        let used_name = exports_info.get_used_name(exports_info_artifact, None, &export_name);
-        if let Some(ref export_id) = export_id
-          && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(export_id))
-        {
-          if let Some(used_name) = used_name {
-            match used_name {
-              UsedName::Normal(used_name) => {
-                let direct_export = Atom::new(direct_export.clone());
-                let symbol = info
-                  .get_internal_name(&direct_export)
-                  .unwrap_or_else(|| panic!("should set internal name for {direct_export}"));
-
-                return Some(Ref::Symbol(SymbolRef::new(
-                  info.module,
-                  symbol.clone(),
-                  used_name[1..].to_vec(),
-                  Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
-                )));
-              }
-              UsedName::Inlined(inlined) => {
-                return Some(Ref::Inline(inlined.render(&to_normal_comment(&format!(
-                  "inlined export {}",
-                  property_access(&export_name, 0)
-                )))));
-              }
-            }
-          } else {
-            return Some(Ref::Inline("/* unused export */ undefined".into()));
-          }
-        }
-
-        if let Some(ref export_id) = export_id
-          && let Some(raw_export) = info
-            .raw_export_map
-            .as_ref()
-            .and_then(|map| map.get(export_id))
-        {
-          let raw_export_symbol: Atom = raw_export.clone().into();
-          let name = info
-            .get_internal_name(&raw_export_symbol)
-            .unwrap_or(&raw_export_symbol);
-          return Some(Ref::Symbol(SymbolRef::new(
-            info.module,
-            name.clone(),
-            export_name[1..].to_vec(),
-            Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
-          )));
-        }
-
-        let reexport = find_target(
-          &export_info,
-          mg,
-          exports_info_artifact,
-          Arc::new(|module: &ModuleIdentifier| module_to_info_map.contains_key(module)),
-          &mut Default::default(),
-        );
-        match reexport {
-          FindTargetResult::NoTarget => {}
-          FindTargetResult::InvalidTarget(target) => {
-            if let Some(export) = target.export {
-              let exports_info = exports_info_artifact.get_exports_info_data(&target.module);
-              if let Some(UsedName::Inlined(inlined)) =
-                exports_info.get_used_name(exports_info_artifact, None, &export)
-              {
-                return Some(Ref::Inline(inlined.inlined_value().render(
-                  &to_normal_comment(&format!(
-                    "inlined export {}",
-                    property_access(&export_name, 0)
-                  )),
-                )));
-              }
-            }
-            panic!(
-              "Target module of reexport is not part of the concatenation (export '{:?}')",
-              &export_id
-            );
-          }
-          FindTargetResult::ValidTarget(reexport) => {
-            if let Some(ref_info) = module_to_info_map.get(&reexport.module) {
-              let build_meta = mg
-                .module_by_identifier(info_id)
-                .expect("should have module")
-                .build_meta();
-
-              return Self::get_binding(
-                from,
-                mg,
-                mg_cache,
-                exports_info_artifact,
-                &ref_info.id(),
-                if let Some(reexport_export) = reexport.export {
-                  [reexport_export, export_name[1..].to_vec()].concat()
-                } else {
-                  export_name[1..].to_vec()
-                },
-                module_to_info_map,
-                needed_namespace_objects,
-                as_call,
-                call_context,
-                build_meta.strict_esm_module(),
-                asi_safe,
-                already_visited,
-                required,
-                all_used_names,
-              );
-            }
-          }
-        }
-
-        if info.namespace_export_symbol.is_some() {
-          // That's how webpack write https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L463-L471
-          let used_name = exports_info
-            .get_used_name(exports_info_artifact, None, &export_name)
-            .expect("should have export name");
-          return Some(match used_name {
-            UsedName::Normal(used_name) => Ref::Symbol(SymbolRef::new(
-              info.module,
-              info
-                .namespace_object_name
-                .clone()
-                .expect("should have namespace_object_name"),
-              used_name,
-              Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
-            )),
-            // Inlined namespace export symbol is not possible for now but we compat it here
-            UsedName::Inlined(inlined) => Ref::Inline(inlined.render("")),
-          });
-        }
-
-        if let Some(UsedName::Inlined(inlined)) = used_name {
-          return Some(Ref::Inline(inlined.render(&to_normal_comment(&format!(
-            "inlined export {}",
-            property_access(&export_name, 0)
-          )))));
-        }
-
-        None
-      }
-      ModuleInfo::External(info) => {
-        if let Some(used_name) =
-          exports_info.get_used_name(exports_info_artifact, None, &export_name)
-        {
-          Some(match used_name {
-            UsedName::Normal(used_name) => Ref::Symbol(SymbolRef::new(
-              info.module,
-              Self::add_require(
-                *info_id,
-                from,
-                Some(info.name.clone().expect("should have symbol")),
-                all_used_names,
-                required,
-              )
-              .required_symbol
-              .clone()
-              .expect("should have symbol"),
-              used_name,
-              Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
-            )),
-            UsedName::Inlined(inlined) => Ref::Inline(inlined.render(&to_normal_comment(
-              &format!("inlined export {}", property_access(&export_name, 0)),
-            ))),
-          })
-        } else {
-          Some(Ref::Inline("/* unused export */ undefined".into()))
-        }
-      }
-    }
-  }
-
-  fn is_source_phase_external(mg: &ModuleGraph, module_id: &ModuleIdentifier) -> bool {
-    mg.module_by_identifier(module_id)
-      .and_then(|module| module.as_external_module())
-      .is_some_and(|external_module| external_module.get_import_phase().is_source())
   }
 }
 
