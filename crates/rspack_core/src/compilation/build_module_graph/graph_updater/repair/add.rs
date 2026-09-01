@@ -109,26 +109,20 @@ impl Task<TaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    let mut module = Some(module);
-    let cached_build_result = if let Some(module_build_cache) = &context.module_build_cache {
-      match module_build_cache
+    let restore_result = if let Some(module_build_cache) = &context.module_build_cache {
+      module_build_cache
         .restore(
-          module
-            .take()
-            .expect("module is available before cache restoration"),
+          module,
           &context.file_system_info,
           &context.value_cache_versions,
         )
         .await?
-      {
-        ModuleBuildCacheRestore::Hit(result) => Some(result),
-        ModuleBuildCacheRestore::Miss(restored_module) => {
-          module = Some(restored_module);
-          None
-        }
-      }
     } else {
-      None
+      ModuleBuildCacheRestore::Miss(module)
+    };
+    let (cached_build_result, module) = match restore_result {
+      ModuleBuildCacheRestore::Hit(result) => (Some(result), None),
+      ModuleBuildCacheRestore::Miss(module) => (None, Some(module)),
     };
 
     context
