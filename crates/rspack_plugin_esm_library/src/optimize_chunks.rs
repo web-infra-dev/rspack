@@ -4,7 +4,7 @@ use atomic_refcell::AtomicRefCell;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  ChunkGroupUkey, ChunkUkey, Compilation, ConcatenationNameAllocator, DependenciesBlock,
+  ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation, ConcatenationNameAllocator, DependenciesBlock,
   DependencyType, ExportProvided, ModuleIdentifier, UsageState, get_cached_readable_identifier,
   incremental::Mutation, split_readable_identifier,
 };
@@ -513,6 +513,42 @@ pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) {
     new_chunk.add_id_name_hints("runtime".to_string());
     new_chunk.set_prevent_integration(true);
     new_chunk.add_group(entrypoint_ukey);
+  }
+}
+
+/// Mark module-less entrypoint chunks as facades after modern-module chunk
+/// optimizations have finished.
+pub(crate) fn mark_facade_chunks(compilation: &mut Compilation) {
+  let artifact = &mut compilation.build_chunk_graph_artifact;
+  for chunk in artifact.chunk_by_ukey.values_mut() {
+    if chunk.kind() == ChunkKind::Facade {
+      chunk.set_kind(ChunkKind::Normal);
+    }
+  }
+
+  let entrypoint_chunks = artifact
+    .entrypoints
+    .values()
+    .chain(artifact.async_entrypoints.iter())
+    .map(|entrypoint_ukey| {
+      artifact
+        .chunk_group_by_ukey
+        .expect_get(entrypoint_ukey)
+        .get_entrypoint_chunk()
+    })
+    .collect::<Vec<_>>();
+
+  for chunk_ukey in entrypoint_chunks {
+    if artifact
+      .chunk_graph
+      .get_number_of_chunk_modules(&chunk_ukey)
+      == 0
+    {
+      artifact
+        .chunk_by_ukey
+        .expect_get_mut(&chunk_ukey)
+        .set_kind(ChunkKind::Facade);
+    }
   }
 }
 
