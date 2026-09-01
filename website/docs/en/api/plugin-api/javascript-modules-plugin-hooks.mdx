@@ -5,6 +5,7 @@ description: 'Hooks of the JavascriptModulesPlugin, used to hash and rewrite the
 import ChunkType from '../../types/chunk.mdx';
 import HashType from '../../types/hash.mdx';
 import SourceType from '../../types/source.mdx';
+import { ApiMeta } from '@components/ApiMeta';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 
 # JavascriptModulesPlugin
@@ -25,6 +26,8 @@ Called when computing the chunk hash for JavaScript chunks.
 </Collapse>
 
 ## `renderContent`
+
+<ApiMeta addedVersion="2.2.2" />
 
 `SyncWaterfallHook<[Source, RenderContext]>`
 

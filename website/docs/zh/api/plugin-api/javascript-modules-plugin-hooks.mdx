@@ -5,6 +5,7 @@ description: 'Rspack JavascriptModulesPlugin 钩子 插件 API 参考，涵盖�
 import ChunkType from '../../types/chunk.mdx';
 import HashType from '../../types/hash.mdx';
 import SourceType from '../../types/source.mdx';
+import { ApiMeta } from '@components/ApiMeta';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 
 # JavascriptModulesPlugin 钩子
@@ -26,10 +27,11 @@ import { Collapse, CollapsePanel } from '@components/Collapse';
 
 ## `renderContent`
 
+<ApiMeta addedVersion="2.2.2" />
+
 `SyncWaterfallHook<[Source, RenderContext]>`
 
-在 JavaScript chunk 渲染出内容后调用，早于该 chunk 的 init fragments 注入，也早于产物写出。
-tap 必须返回一个 `Source`，它将作为后续 tap 和渲染流程看到的内容。
+在 JavaScript chunk 渲染出内容后调用，早于该 chunk 的 init fragments 注入，也早于产物写出。tap 必须返回一个 `Source`，它将作为后续 tap 和渲染流程看到的内容。
 
 可以用它包裹整个 chunk 的内容，例如包一层 `try`/`catch`：
 
