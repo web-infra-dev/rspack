@@ -10,6 +10,7 @@ import RuntimeModuleType from '../../types/runtime-module.mdx';
 import SourceType from '../../types/source.mdx';
 import HashType from '../../types/hash.mdx';
 import CompilerType from '../../types/compiler.mdx';
+import { ApiMeta } from '@components/ApiMeta';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 import Columns from '@components/Columns';
 import { NoSSR } from '@rspress/core/runtime';
@@ -566,6 +567,8 @@ type ExecuteModuleContext = {
 </Collapse>
 
 ## `afterOptimizeChunkIds`
+
+<ApiMeta addedVersion="2.2.2" />
 
 <Badge text="只读" type="info" />
 
