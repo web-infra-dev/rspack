@@ -65,11 +65,11 @@ describe("NativeWatcher `ignored` as a function", () => {
 		}
 	});
 
-	// Run in a child process: without the JS-thread guard `triggerEvent` waits on
-	// the event loop while occupying it, which wedges the whole thread — the
-	// in-process timeout could not fire either. The child turns that into a
-	// bounded, reportable failure.
-	it("does not deadlock when `triggerEvent` re-enters from the JS thread", () => {
+	// Run in a child process: if `triggerEvent` ever went back to answering the
+	// predicate inline, it would wait on the event loop while occupying it and
+	// wedge the whole thread — the in-process timeout could not fire either. The
+	// child turns that into a bounded, reportable failure.
+	it("returns from `triggerEvent` instead of wedging the JS thread", () => {
 		const dir = makeDir();
 		const file = path.join(dir, "injected.js");
 		fs.writeFileSync(file, "0");
@@ -97,9 +97,6 @@ describe("NativeWatcher `ignored` as a function", () => {
 			expect(child.signal).toBe(null);
 			const report = JSON.parse(child.stdout.trim());
 			expect(report.returned).toBe(true);
-			// Injected events are explicit plugin requests, so the predicate is
-			// not consulted for them.
-			expect(report.asked).not.toContain(file);
 		} finally {
 			fs.rmSync(dir, { recursive: true, force: true });
 		}

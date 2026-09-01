@@ -5686,6 +5686,7 @@ version = "0.102.0-beta.1"
 dependencies = [
  "cow-utils",
  "dashmap",
+ "futures",
  "notify",
  "regex",
  "rspack_error",

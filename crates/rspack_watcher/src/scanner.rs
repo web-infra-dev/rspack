@@ -172,7 +172,7 @@ mod tests {
       vec![current_dir.join("___missing_file.txt").into()].into_iter(),
       vec![].into_iter(),
     );
-    path_manager.update(files, dirs, missing).unwrap();
+    path_manager.update(files, dirs, missing).await.unwrap();
 
     let (tx, mut _rx) = tokio::sync::mpsc::unbounded_channel();
     let mut scanner = Scanner::new(tx, Arc::new(path_manager));
@@ -239,6 +239,7 @@ mod tests {
         (std::iter::empty(), std::iter::empty()),
         (std::iter::empty(), std::iter::empty()),
       )
+      .await
       .expect("register files");
 
     // start_time sits before `changed`'s mtime but after `unchanged`'s.
@@ -288,6 +289,7 @@ mod tests {
           std::iter::empty(),
         ),
       )
+      .await
       .expect("register missing deps");
 
     // start_time is in the past; the missing dep is created "now", after it.

@@ -308,7 +308,10 @@ impl FsWatcherInner {
   ) {
     self.path_manager.reset();
 
-    if let Err(e) = self.wait_for_event(files, directories, missing, start_time) {
+    if let Err(e) = self
+      .wait_for_event(files, directories, missing, start_time)
+      .await
+    {
       event_aggregate_handler.on_error(e);
       return;
     };
@@ -328,18 +331,21 @@ impl FsWatcherInner {
     Ok(())
   }
 
-  fn wait_for_event(
+  async fn wait_for_event(
     &mut self,
     files: (Vec<ArcPath>, Vec<ArcPath>),
     directories: (Vec<ArcPath>, Vec<ArcPath>),
     missing: (Vec<ArcPath>, Vec<ArcPath>),
     start_time: SystemTime,
   ) -> Result<()> {
-    self.path_manager.update(
-      (files.0.into_iter(), files.1.into_iter()),
-      (directories.0.into_iter(), directories.1.into_iter()),
-      (missing.0.into_iter(), missing.1.into_iter()),
-    )?;
+    self
+      .path_manager
+      .update(
+        (files.0.into_iter(), files.1.into_iter()),
+        (directories.0.into_iter(), directories.1.into_iter()),
+        (missing.0.into_iter(), missing.1.into_iter()),
+      )
+      .await?;
 
     // Record baseline mtimes for files added in this watch() cycle, BEFORE
     // starting the disk watcher. Synchronous so a stale FSEvent delivered

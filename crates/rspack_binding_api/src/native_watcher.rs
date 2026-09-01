@@ -28,22 +28,17 @@ fn to_fs_watcher_ignored(ignored: Option<JsWatcherIgnored>) -> FsWatcherIgnored 
 }
 
 fn to_ignored_fn(func: ThreadsafeFunction<String, bool>) -> IgnoredFn {
-  let js_thread = std::thread::current().id();
-
-  Arc::new(move |path: &str| {
-    let is_on_js_thread = std::thread::current().id() == js_thread;
-    if is_on_js_thread {
-      return false;
-    }
-
-    #[allow(clippy::disallowed_methods)]
-    match futures::executor::block_on(func.call_with_sync(path.to_owned())) {
-      Ok(ignored) => ignored,
-      Err(e) => {
-        tracing::error!("failed to call the `ignored` function with `{path}`: {e}");
-        false
+  Arc::new(move |path: String| {
+    let func = func.clone();
+    Box::pin(async move {
+      match func.call_with_sync(path.clone()).await {
+        Ok(ignored) => ignored,
+        Err(e) => {
+          tracing::error!("failed to call the `ignored` function with `{path}`: {e}");
+          false
+        }
       }
-    }
+    })
   })
 }
 

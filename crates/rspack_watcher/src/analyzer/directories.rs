@@ -68,8 +68,8 @@ mod tests {
   use super::*;
   use crate::paths::PathManager;
 
-  #[test]
-  fn test_find_watch_directories() {
+  #[tokio::test]
+  async fn test_find_watch_directories() {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
     let path_manager = PathManager::default();
     let files = (
@@ -88,7 +88,7 @@ mod tests {
 
     let missing = (vec![].into_iter(), vec![].into_iter());
 
-    path_manager.update(files, dirs, missing).unwrap();
+    path_manager.update(files, dirs, missing).await.unwrap();
     let analyzer = WatcherDirectoriesAnalyzer::default();
     let watch_patterns = analyzer.analyze(path_manager.access());
 
@@ -105,8 +105,8 @@ mod tests {
     }));
   }
 
-  #[test]
-  fn test_find_non_exists_watcher_directories() {
+  #[tokio::test]
+  async fn test_find_non_exists_watcher_directories() {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
     let dir_0 = ArcPath::from(current_dir.join("src"));
 
@@ -129,7 +129,7 @@ mod tests {
     );
     let missing = (vec![].into_iter(), vec![].into_iter());
 
-    path_manager.update(files, dirs, missing).unwrap();
+    path_manager.update(files, dirs, missing).await.unwrap();
 
     let analyzer = WatcherDirectoriesAnalyzer::default();
     let watch_patterns = analyzer.analyze(path_manager.access());

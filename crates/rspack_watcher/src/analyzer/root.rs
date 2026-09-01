@@ -188,8 +188,8 @@ mod tests {
   use super::*;
   use crate::paths::PathManager;
 
-  #[test]
-  fn test_find_watch_root() {
+  #[tokio::test]
+  async fn test_find_watch_root() {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
     let file_0 = ArcPath::from(current_dir.join("Cargo.toml"));
     let file_1 = ArcPath::from(current_dir.join("src/lib.rs"));
@@ -199,7 +199,7 @@ mod tests {
     let files = (vec![file_0, file_1].into_iter(), vec![].into_iter());
     let dirs = (vec![dir_0, dir_1].into_iter(), vec![].into_iter());
     let missing = (vec![].into_iter(), vec![].into_iter());
-    path_manager.update(files, dirs, missing).unwrap();
+    path_manager.update(files, dirs, missing).await.unwrap();
 
     let analyzer = WatcherRootAnalyzer::default();
     let watch_patterns = analyzer.analyze(path_manager.access());
@@ -209,8 +209,8 @@ mod tests {
     assert_eq!(watch_patterns[0].mode, notify::RecursiveMode::Recursive);
   }
 
-  #[test]
-  fn test_find_with_missing() {
+  #[tokio::test]
+  async fn test_find_with_missing() {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
 
     let path_manager = PathManager::default();
@@ -226,7 +226,7 @@ mod tests {
       vec![].into_iter(),
     );
 
-    path_manager.update(files, dirs, missing).unwrap();
+    path_manager.update(files, dirs, missing).await.unwrap();
 
     let analyzer = WatcherRootAnalyzer::default();
     let watch_patterns = analyzer.analyze(path_manager.access());
@@ -267,8 +267,8 @@ mod tests {
     );
   }
 
-  #[test]
-  fn test_analyze_cancels_cross_set_migration() {
+  #[tokio::test]
+  async fn test_analyze_cancels_cross_set_migration() {
     // `some-module` migrates missing -> directory on recovery: in the same cycle
     // it appears in both `missing.removed` and `directories.added`. The
     // union-difference must cancel it, so the shared tree neither re-adds nor
@@ -287,6 +287,7 @@ mod tests {
       (std::iter::empty(), std::iter::empty()),
       (std::iter::once(sm.clone()), std::iter::empty()),
     )
+    .await
     .unwrap();
     analyzer.analyze(pm.access());
     pm.reset();
@@ -302,6 +303,7 @@ mod tests {
         std::iter::once(sm.clone()),
       ),
     )
+    .await
     .unwrap();
 
     // Must not panic, and must keep the migrated `some-module` node.

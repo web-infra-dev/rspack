@@ -1,10 +1,11 @@
 use std::{borrow::Cow, fmt::Debug, sync::Arc};
 
 use cow_utils::CowUtils;
+use futures::future::BoxFuture;
 use regex::Regex;
 use rspack_regex::RspackRegex;
 
-pub type IgnoredFn = Arc<dyn Fn(&str) -> bool + Send + Sync>;
+pub type IgnoredFn = Arc<dyn Fn(String) -> BoxFuture<'static, bool> + Send + Sync>;
 
 #[derive(Default)]
 pub enum FsWatcherIgnored {
@@ -169,14 +170,14 @@ impl IgnoredMatcher {
 
   /// Whether `path` is ignored — directly or by living inside an ignored
   /// directory. Single regex test against the normalized path.
-  pub fn is_ignored(&self, path: &str) -> bool {
+  pub async fn is_ignored(&self, path: &str) -> bool {
     match self {
       IgnoredMatcher::None => false,
       IgnoredMatcher::Globs(re) => re.is_match(&normalize_path(path)),
       IgnoredMatcher::Regex(re) => re.test(&normalize_path(path)),
       // watchpack hands the arbitrary function the raw entry — it is the only
       // form whose path keeps the platform separators.
-      IgnoredMatcher::Function(f) => f(path),
+      IgnoredMatcher::Function(f) => f(path.to_owned()).await,
     }
   }
 }
@@ -189,42 +190,46 @@ mod tests {
     IgnoredMatcher::new(FsWatcherIgnored::Path(pattern.to_owned()))
   }
 
-  #[test]
-  fn subtree_match_catches_directory_and_its_files() {
+  #[tokio::test]
+  async fn subtree_match_catches_directory_and_its_files() {
     let m = matcher("**/dist/.rstest-temp");
-    assert!(m.is_ignored("/proj/dist/.rstest-temp"));
-    assert!(m.is_ignored("/proj/dist/.rstest-temp/foo.mjs"));
-    assert!(m.is_ignored("/proj/dist/.rstest-temp/nested/bar.mjs"));
+    assert!(m.is_ignored("/proj/dist/.rstest-temp").await);
+    assert!(m.is_ignored("/proj/dist/.rstest-temp/foo.mjs").await);
+    assert!(m.is_ignored("/proj/dist/.rstest-temp/nested/bar.mjs").await);
   }
 
-  #[test]
-  fn subtree_match_keeps_unrelated_paths() {
+  #[tokio::test]
+  async fn subtree_match_keeps_unrelated_paths() {
     let m = matcher("**/dist/.rstest-temp");
-    assert!(!m.is_ignored("/proj/src/index.js"));
-    assert!(!m.is_ignored("/proj/dist/main.js"));
+    assert!(!m.is_ignored("/proj/src/index.js").await);
+    assert!(!m.is_ignored("/proj/dist/main.js").await);
     // Must not match a sibling directory that merely shares a prefix.
-    assert!(!m.is_ignored("/proj/dist/.rstest-temp-old/x.js"));
+    assert!(!m.is_ignored("/proj/dist/.rstest-temp-old/x.js").await);
   }
 
-  #[test]
-  fn none_matches_nothing() {
-    assert!(!IgnoredMatcher::default().is_ignored("/anything/at/all"));
+  #[tokio::test]
+  async fn none_matches_nothing() {
+    assert!(
+      !IgnoredMatcher::default()
+        .is_ignored("/anything/at/all")
+        .await
+    );
   }
 
-  #[test]
-  fn combines_multiple_globs() {
+  #[tokio::test]
+  async fn combines_multiple_globs() {
     // watchpack: `ignored: ["**/foo", "**/bar"]` — folded into one regex.
     let m = IgnoredMatcher::new(FsWatcherIgnored::Paths(vec![
       "**/foo".to_owned(),
       "**/bar".to_owned(),
     ]));
-    assert!(m.is_ignored("/x/foo"));
-    assert!(m.is_ignored("/x/bar"));
-    assert!(!m.is_ignored("/x/baz"));
+    assert!(m.is_ignored("/x/foo").await);
+    assert!(m.is_ignored("/x/bar").await);
+    assert!(!m.is_ignored("/x/baz").await);
   }
 
-  #[test]
-  fn empty_patterns_match_nothing() {
+  #[tokio::test]
+  async fn empty_patterns_match_nothing() {
     // watchpack treats "", [] and an all-empty array as ignoring nothing.
     let cases = [
       FsWatcherIgnored::Path(String::new()),
@@ -232,52 +237,59 @@ mod tests {
       FsWatcherIgnored::Paths(vec![String::new(), String::new()]),
     ];
     for ignored in cases {
-      assert!(!IgnoredMatcher::new(ignored).is_ignored("any"));
+      assert!(!IgnoredMatcher::new(ignored).is_ignored("any").await);
     }
   }
 
-  #[test]
-  fn user_regex_matches_like_watchpack() {
+  #[tokio::test]
+  async fn user_regex_matches_like_watchpack() {
     // watchpack: `ignored: /ignoredPattern/` is applied to the path as-is.
     let m = IgnoredMatcher::new(FsWatcherIgnored::Regex(
       RspackRegex::new("ignoredPattern").unwrap(),
     ));
-    assert!(m.is_ignored("/foo/ignoredPattern/bar"));
-    assert!(!m.is_ignored("/foo/keep"));
+    assert!(m.is_ignored("/foo/ignoredPattern/bar").await);
+    assert!(!m.is_ignored("/foo/keep").await);
   }
 
-  #[test]
-  fn extended_glob_syntax_matches_watchpack() {
+  #[tokio::test]
+  async fn extended_glob_syntax_matches_watchpack() {
     // The full port gives us brace groups, character classes and `?` — the
     // syntax the minimal translator used to swallow as literals.
     let braces = matcher("**/*.{js,ts}");
-    assert!(braces.is_ignored("/p/a.js"));
-    assert!(braces.is_ignored("/p/pkg/b.ts"));
-    assert!(!braces.is_ignored("/p/a.css"));
+    assert!(braces.is_ignored("/p/a.js").await);
+    assert!(braces.is_ignored("/p/pkg/b.ts").await);
+    assert!(!braces.is_ignored("/p/a.css").await);
 
     let class = matcher("**/foo[0-9]");
-    assert!(class.is_ignored("/p/foo1"));
-    assert!(!class.is_ignored("/p/fooX"));
+    assert!(class.is_ignored("/p/foo1").await);
+    assert!(!class.is_ignored("/p/fooX").await);
 
     let question = matcher("**/a?c");
-    assert!(question.is_ignored("/p/abc"));
-    assert!(!question.is_ignored("/p/ac"));
+    assert!(question.is_ignored("/p/abc").await);
+    assert!(!question.is_ignored("/p/ac").await);
   }
 
-  #[test]
-  fn windows_form_paths_match_after_normalization() {
+  #[tokio::test]
+  async fn windows_form_paths_match_after_normalization() {
     // Windows delivers backslash, drive-letter paths; `is_ignored` normalizes
     // the haystack, so matching is separator-agnostic. Plain-string input keeps
     // this portable — it runs on any host.
     let nm = matcher("**/node_modules");
-    assert!(nm.is_ignored(r"C:\proj\node_modules\pkg\index.js"));
-    assert!(nm.is_ignored(r"C:\proj\packages\app\node_modules\dep\lib.js"));
-    assert!(!nm.is_ignored(r"C:\proj\src\index.ts"));
+    assert!(nm.is_ignored(r"C:\proj\node_modules\pkg\index.js").await);
+    assert!(
+      nm.is_ignored(r"C:\proj\packages\app\node_modules\dep\lib.js")
+        .await
+    );
+    assert!(!nm.is_ignored(r"C:\proj\src\index.ts").await);
 
     let temp = matcher("**/dist/.rstest-temp");
-    assert!(temp.is_ignored(r"C:\proj\dist\.rstest-temp\spec.test.mjs"));
-    assert!(!temp.is_ignored(r"C:\proj\dist\main.js"));
+    assert!(
+      temp
+        .is_ignored(r"C:\proj\dist\.rstest-temp\spec.test.mjs")
+        .await
+    );
+    assert!(!temp.is_ignored(r"C:\proj\dist\main.js").await);
     // mixed separators must work too
-    assert!(temp.is_ignored("C:/proj/dist/.rstest-temp/x.mjs"));
+    assert!(temp.is_ignored("C:/proj/dist/.rstest-temp/x.mjs").await);
   }
 }
