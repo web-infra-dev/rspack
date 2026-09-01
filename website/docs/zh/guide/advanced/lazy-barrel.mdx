@@ -1,10 +1,10 @@
 ---
-description: '了解 Rspack 如何通过 Lazy barrel 跳过未使用的重导出模块构建，从而提升构建性能。'
+description: '了解 Rspack 如何通过跳过未使用的重导出模块构建来优化 barrel 文件。'
 ---
 
-# Lazy barrel
+# Barrel 文件优化
 
-Lazy barrel 是 Rspack 中一个稳定的优化功能，通过跳过无副作用 barrel 文件中未使用的重导出模块的构建来提升构建性能。
+Rspack 的 barrel 文件优化也称为 Lazy barrel，通过跳过无副作用 barrel 文件中未使用的重导出模块构建来提升构建性能。
 
 ## 什么是 barrel 文件
 

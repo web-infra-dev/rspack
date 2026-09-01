@@ -52,7 +52,7 @@ const WhyRspack = memo(() => {
       },
       {
         img: Compatible,
-        url: tUrl('/guide/compatibility/plugin'),
+        url: tUrl('/plugins/community-plugin-compatibility'),
         title: t('WebpackCompatible'),
         description: t('WebpackCompatibleDesc'),
         lottieJsonData: CompatibleJson,

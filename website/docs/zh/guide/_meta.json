@@ -38,10 +38,5 @@
     "type": "dir-section-header",
     "name": "migration",
     "label": "迁移"
-  },
-  {
-    "type": "dir-section-header",
-    "name": "compatibility",
-    "label": "兼容"
   }
 ]
