@@ -87,4 +87,4 @@ export default {
 4. [output.chunkLoading](/config/output#outputchunkloading): 在构建应用的 ESM 产物时，通常设置为 `'import'`；对于 `modern-module`，Rspack 会自动切换到基于 `import` 的 chunk loading。
 5. [output.workerChunkLoading](/config/output#outputworkerchunkloading): 当你的应用或库还需要在 Worker 中以 ESM 方式加载 chunk 时，通常设置为 `'import'`。
 6. [optimization.avoidEntryIife](/config/optimization#optimizationavoidentryiife): 在某些情况下，Rspack 会将 ESM 产物的输出包裹在一个 IIFE 中，这会破坏 ESM 的模块化特性
-7. [HtmlWebpackPlugin.scriptLoading](/guide/tech/html#htmlwebpackplugin): 设置为 `'module'`，表示使用 ESM 的 `<script type="module">` 来加载 `.mjs` 模块。
+7. [HtmlRspackPlugin.scriptLoading](/plugins/html-rspack-plugin#scriptloading): 设置为 `'module'`，表示使用 ESM 的 `<script type="module">` 来加载 `.mjs` 模块。
