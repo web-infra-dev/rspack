@@ -233,7 +233,7 @@ fn add_node_module_dependencies(
     )],
     None,
   );
-  parser.add_presentational_dependency(Box::new(external_url_dep));
+  parser.add_presentational_dependency(Arc::new(external_url_dep));
 
   if property == ImportMetaKnownProperties::DIRNAME {
     let external_path_dep = ExternalModuleDependency::new(
@@ -241,7 +241,7 @@ fn add_node_module_dependencies(
       vec![("dirname".to_string(), "__rspack_dirname".to_string())],
       None,
     );
-    parser.add_presentational_dependency(Box::new(external_path_dep));
+    parser.add_presentational_dependency(Arc::new(external_path_dep));
   }
 }
 
@@ -265,7 +265,7 @@ fn add_import_meta_cached_dependency(
       CachedConstDependencyPlace::Chunk,
     ),
   };
-  parser.add_presentational_dependency(Box::new(const_dep));
+  parser.add_presentational_dependency(Arc::new(const_dep));
   identifier.to_string()
 }
 
@@ -362,3 +362,4 @@ pub(crate) fn get_import_meta_member_replacement(
 
   None
 }
+use std::sync::Arc;

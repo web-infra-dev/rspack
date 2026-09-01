@@ -7,7 +7,7 @@ use rspack_cacheable::{
 use rspack_error::Result;
 
 use super::etag::Etag;
-use crate::cache::persistent::codec::CacheCodec;
+use crate::cache::CacheCodec;
 
 /// Shared immutable cache value.
 ///

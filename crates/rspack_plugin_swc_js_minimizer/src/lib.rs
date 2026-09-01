@@ -12,10 +12,9 @@ use regex::Regex;
 use rspack_core::{
   AssetInfo, CacheOptions, CacheValue, ChunkUkey, Compilation, CompilationAsset, CompilationParams,
   CompilationProcessAssets, CompilerCompilation, Etag, Logger, Plugin,
-  cache::persistent::occasion::minimize::{
-    CachedExtractedComments, CachedMinimizeEntry, MinimizeCacheKey,
-  },
+  cache::{CachedExtractedComments, CachedMinimizeEntry},
   diagnostics::MinifyError,
+  legacy_cache::persistent::occasion::minimize::MinimizeCacheKey,
   rspack_sources::{
     BoxSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt,
     SourceMapSource, SourceMapSourceOptions,
@@ -226,7 +225,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
 
-  let new_cache = (compilation.options.experiments.new_cache
+  let new_cache = (compilation.options.experiments.new_cache.minimize
     && !matches!(&compilation.options.cache, CacheOptions::Disabled))
   .then(|| compilation.get_cache(PLUGIN_NAME));
   let minimize_persistent_cache = compilation.minimize_persistent_cache.take();

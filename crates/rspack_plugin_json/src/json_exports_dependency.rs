@@ -9,7 +9,7 @@ use rspack_hash::{RspackHash, RspackHasher};
 use rspack_util::itoa;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct JsonExportsDependency {
   id: DependencyId,
   exports_depth: u32,

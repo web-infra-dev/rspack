@@ -1,5 +1,5 @@
 ---
-description: 'Glossary of Rspack terms covering bundler concepts, architecture, commonly used APIs, and project vocabulary.'
+description: 'Definitions of common Rspack terms.'
 sidebar: false
 ---
 
@@ -36,8 +36,8 @@ Bundle splitting is a technique that allows you to split or merge your code into
 In Rspack, built-in module types refer to module types that can be supported without relying on loaders or plugins, such as JavaScript, CSS, JSON, Assets, etc. However, module types that require loaders or plugins to support, such as TypeScript, HTML, Markdown, YAML, etc., are not built-in module types.
 
 - [Asset modules](/guide/features/asset-module)
-- [CSS](/guide/tech/css)
-- [JSON](/guide/tech/json)
+- [CSS](/guide/languages/css)
+- [JSON](/guide/languages/json)
 - [rules[].type](/config/module-rules#rulestype)
 
 ## chunk
@@ -53,6 +53,10 @@ Chunk graph is a data structure that represents the relationship between chunks.
 Code splitting is a technique that allows you to split your code into multiple chunks, and only load the necessary chunks when the application is running. This can help you reduce the size of the initial bundle and speed up the application load time.
 
 - [Code splitting](/guide/optimization/code-splitting)
+
+## context module
+
+A context module represents a set of modules that can be loaded through a dynamic request. Rspack creates one for expressions such as `import('./locales/' + name + '.js')` and for [`require.context()`](/api/runtime-api/module-methods#requirecontext). It defines which directory to search, whether to search subdirectories, and which relative requests are available.
 
 ## dependency
 

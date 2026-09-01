@@ -5,10 +5,11 @@ import type {
   RspackOptionsNormalized,
 } from '../config';
 import WebpackError from '../lib/WebpackError';
+import type { Logger } from '../logging/Logger';
 import { RemoveDuplicateModulesPlugin } from './RemoveDuplicateModulesPlugin';
 import { toRawSplitChunksOptions } from './SplitChunksPlugin';
 
-export function applyLimits(options: RspackOptionsNormalized) {
+export function applyLimits(options: RspackOptionsNormalized, logger?: Logger) {
   // concatenateModules is not supported in ESM library mode, it has its own scope hoist algorithm
   options.optimization.concatenateModules = false;
 
@@ -27,6 +28,31 @@ export function applyLimits(options: RspackOptionsNormalized) {
 
   if (options.output.chunkLoading === undefined) {
     options.output.chunkLoading = 'import';
+  }
+
+  // Eval devtools wrap module code in eval(), while modern-module renders it at
+  // the top level. Delay this fallback until options apply so it can warn.
+  if (logger && typeof options.devtool === 'string') {
+    const previousDevtool = options.devtool;
+    let fallbackDevtool: RspackOptionsNormalized['devtool'];
+
+    if (previousDevtool === 'eval') {
+      fallbackDevtool = false;
+    } else if (
+      previousDevtool.startsWith('eval-') &&
+      previousDevtool.includes('source-map')
+    ) {
+      fallbackDevtool = previousDevtool.slice(
+        'eval-'.length,
+      ) as RspackOptionsNormalized['devtool'];
+    }
+
+    if (fallbackDevtool !== undefined) {
+      options.devtool = fallbackDevtool;
+      logger.warn(
+        `\`devtool: "${previousDevtool}"\` is not supported with \`library.type: "modern-module"\` because its modules are rendered as top-level code. Rspack has changed \`devtool\` to \`${JSON.stringify(fallbackDevtool)}\`.`,
+      );
+    }
   }
 
   let { splitChunks } = options.optimization;

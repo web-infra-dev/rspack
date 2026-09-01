@@ -20,11 +20,10 @@ use swc_core::atoms::Atom;
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
   DependencyId, DependencyType, ExportsArgument, ExportsInfoArtifact, ExportsType,
-  FakeNamespaceObjectMode, GenerateContext, ImportPhase, InitFragment, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, Module, ModuleArgument, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo,
-  RuntimeCondition, RuntimeGlobals, RuntimeSpec, UsedName, compile_boolean_matcher_from_lists,
-  contextify, property_access,
+  FakeNamespaceObjectMode, ImportPhase, InitFragment, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, Module, ModuleArgument, ModuleGraph, ModuleGraphCacheArtifact, ModuleId,
+  ModuleIdentifier, NormalInitFragment, PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  UsedName, compile_boolean_matcher_from_lists, contextify, property_access,
   runtime_globals::{
     RuntimeVariable, rspack_export_runtime_variable_name, rspack_runtime_variable_name,
     runtime_globals_to_string, runtime_variable_name,
@@ -799,7 +798,7 @@ pub fn get_outgoing_async_modules(
           let dep = mg.dependency_by_id(&connection.dependency_id);
           matches!(
             dep.dependency_type(),
-            DependencyType::EsmImport | DependencyType::EsmExportImport
+            DependencyType::EsmImport | DependencyType::EsmExportImport | DependencyType::Provided
           )
         });
         if is_esm {
@@ -1353,7 +1352,7 @@ impl ModuleCodeTemplate {
   pub fn export_from_import(
     &mut self,
     compilation: &Compilation,
-    init_fragments: &mut Vec<Box<dyn InitFragment<GenerateContext<'_>>>>,
+    init_fragments: &mut Vec<Box<dyn InitFragment>>,
     module_id: Identifier,
     runtime: Option<&RuntimeSpec>,
     default_interop: bool,

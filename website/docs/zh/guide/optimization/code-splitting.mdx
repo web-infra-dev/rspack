@@ -2,9 +2,7 @@
 description: 'Rspack 支持代码分割特性，允许让你对代码进行分割，控制生成的资源体积和资源数量来获取资源加载性能的提升。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.docschina.org/guides/code-splitting/" />
+import Attribution from '@components/Attribution';
 
 # 代码分割
 
@@ -89,7 +87,7 @@ Entrypoint index = index.js
 
 Rspack 默认会对 `node_modules` 目录下的文件以及重复模块进行拆分，将这些模块从他们所属的原 Chunk 抽离到单独的新 Chunk 中。那为何我们上面例子中，`shared.js` 还是在多个 Chunk 中重复出现了呢？这是因为我们例子中的 `shared.js` 体积很小，如果对一个很小的模块单独拆成一个 Chunk 让浏览器加载，可能反而会让加载更慢。
 
-我们可以通过 [splitChunks.minSize](/plugins/webpack/split-chunks-plugin#splitchunksminsize) 配置最小拆分体积为 0，来让 `shared.js` 被单独抽离。
+我们可以通过 [splitChunks.minSize](/plugins/split-chunks-plugin#splitchunksminsize) 配置最小拆分体积为 0，来让 `shared.js` 被单独抽离。
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -106,9 +104,9 @@ export default {
 
 重新打包会发现 `shared.js` 被单独抽离出去，产物中多了一个包含有 `shared.js` 的 Chunk。
 
-如果在调低 [`splitChunks.minSize`](/plugins/webpack/split-chunks-plugin#splitchunksminsize) 之后，`shared.js` 仍然重复出现，下一步应优先检查 [`splitChunks.minSizeReduction`](/plugins/webpack/split-chunks-plugin#splitchunksminsizereduction)、[`splitChunks.minChunks`](/plugins/webpack/split-chunks-plugin#splitchunksminchunks)，以及 [`splitChunks.maxAsyncRequests`](/plugins/webpack/split-chunks-plugin#splitchunksmaxasyncrequests) / [`splitChunks.maxInitialRequests`](/plugins/webpack/split-chunks-plugin#splitchunksmaxinitialrequests) 这类请求数量限制，而不是直接使用 [`splitChunks.cacheGroups.{cacheGroup}.enforce`](/plugins/webpack/split-chunks-plugin#splitchunkscachegroupscachegroupenforce)。
+如果在调低 [`splitChunks.minSize`](/plugins/split-chunks-plugin#splitchunksminsize) 之后，`shared.js` 仍然重复出现，下一步应优先检查 [`splitChunks.minSizeReduction`](/plugins/split-chunks-plugin#splitchunksminsizereduction)、[`splitChunks.minChunks`](/plugins/split-chunks-plugin#splitchunksminchunks)，以及 [`splitChunks.maxAsyncRequests`](/plugins/split-chunks-plugin#splitchunksmaxasyncrequests) / [`splitChunks.maxInitialRequests`](/plugins/split-chunks-plugin#splitchunksmaxinitialrequests) 这类请求数量限制，而不是直接使用 [`splitChunks.cacheGroups.{cacheGroup}.enforce`](/plugins/split-chunks-plugin#splitchunkscachegroupscachegroupenforce)。
 
-如果你的目标是让体积已经足够大的候选 chunk 在触发这些请求限制后仍然继续拆分，优先考虑 [`splitChunks.enforceSizeThreshold`](/plugins/webpack/split-chunks-plugin#splitchunksenforcesizethreshold)，而不是直接对整个 cacheGroup 使用 `enforce`。
+如果你的目标是让体积已经足够大的候选 chunk 在触发这些请求限制后仍然继续拆分，优先考虑 [`splitChunks.enforceSizeThreshold`](/plugins/split-chunks-plugin#splitchunksenforcesizethreshold)，而不是直接对整个 cacheGroup 使用 `enforce`。
 
 对于大多数生产环境应用，推荐先使用：
 
@@ -126,7 +124,7 @@ export default {
 
 ### 强制拆分某些模块
 
-我们可以通过 [`optimization.splitChunks.cacheGroups.{cacheGroup}.name`](/plugins/webpack/split-chunks-plugin#splitchunkscachegroupscachegroupname) 强制将指定模块分到一个 Chunk 中去，例如如下配置：
+我们可以通过 [`optimization.splitChunks.cacheGroups.{cacheGroup}.name`](/plugins/split-chunks-plugin#splitchunkscachegroupscachegroupname) 强制将指定模块分到一个 Chunk 中去，例如如下配置：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -149,7 +147,7 @@ export default {
 
 更重要的是，`name` 不只是一个文件名选项。固定的 `name` 会把原本可能分属不同候选组的模块强制合并到同一个共享 chunk 中，这可能让某个路由去请求本来不需要的模块依赖链。对大多数项目来说，除非你明确想要一个共享资产并愿意接受这个权衡，否则不要轻易加 `name`。
 
-这个权衡只和 chunk 分组及网络加载边界有关，不会改变 JavaScript 执行顺序，也和 tree shaking 无关。CSS 需要单独看待：在 extracted CSS 场景下，splitChunks 可能影响最终 CSS 顺序。详见 [SplitChunksPlugin 文档](/plugins/webpack/split-chunks-plugin#faq)。
+这个权衡只和 chunk 分组及网络加载边界有关，不会改变 JavaScript 执行顺序，也和 tree shaking 无关。CSS 需要单独看待：在 extracted CSS 场景下，splitChunks 可能影响最终 CSS 顺序。详见 [SplitChunksPlugin 文档](/plugins/split-chunks-plugin#faq)。
 
 下图是一个例子，展示了 cacheGroup 中是否带 name 配置对最终产物 Chunk 的影响。
 
@@ -220,3 +218,5 @@ const lazyComp = () =>
 ```
 
 在这个示例中，发生错误的 script 将被移除。Rspack 会创建自己的 script 并在超时前处理任何发生的异常。
+
+<Attribution url="https://webpack.docschina.org/guides/code-splitting/" />

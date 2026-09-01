@@ -1,95 +1,186 @@
 ---
-description: '目标环境与兼容性：该选项用于配置 Rspack 输出产物的目标环境和 Rspack runtime 代码的 ECMAScript 版本。'
+description: '配置 Rspack 输出代码的运行环境与 ECMAScript 兼容范围。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/configuration/target/" />
+import Attribution from '@components/Attribution';
 
 # Target
 
-目标环境与兼容性：该选项用于配置 Rspack 输出产物的目标环境和 Rspack runtime 代码的 ECMAScript 版本。
+`target` 用于描述输出代码的运行环境。Rspack 会据此确定目标环境支持的平台 API 和 ECMAScript 语法，并自动设置与该环境兼容的模块解析条件、externals 预设和 chunk 加载方式。Rspack 生成的 runtime 代码也会使用目标环境支持的语法。
 
-- **类型：** `false | string | string[]`
-- **默认值：** 如果当前项目中存在 `browserslist` 配置，则为 `browserslist`，否则为 `web`。
+当 Rspack 内置的 loader 和压缩插件未显式配置目标时，它们也可以从 `target` 继承默认值。但 `target` 不会为缺失的 API 注入 polyfill。
 
-## string
+- **类型：**
 
-现在支持的字符串格式有：
+```ts
+type Target = false | string | string[];
+```
 
-| 选项                         | 描述                                                                                                                                                                                               |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `'web'`                      | 编译为浏览器环境可用（默认值）                                                                                                                                                                     |
-| `'webworker'`                | 编译为 Web Worker                                                                                                                                                                                  |
-| `'browserslist'`             | 根据配置的 browserslist 完成 ECMAScript 特性的推断（如果 browserslist 存在，则默认开启）                                                                                                           |
-| `'node[[X].Y]'`              | 编译为 Node.js 环境可用                                                                                                                                                                            |
-| `'async-node[[X].Y]'`        | 编译为类 Node.js 环境可用（使用 fs 和 vm 异步加载分块）                                                                                                                                            |
-| `'es[X]'`                    | 编译 Rspack runtime 为对应的 ECMAScript 版本，当前支持 `es3`、`es5`、`es2015`、`es2016`、`es2017`、`es2018`、`es2019`、`es2020`、`es2021`、`es2022`、`es2023`、`es2024`、`es2025`（默认使用 es5 ） |
-| `'electron[[X].Y]-main'`     | 编译 Electron 的主进程                                                                                                                                                                             |
-| `'electron[[X].Y]-renderer'` | 编译 Electron 的渲染器进程，该 target 下会使用 array-push 作为 chunkFormat，jsonp 作为 chunkLoading，为 CommonJS 和 Electron 内置模块提供 NodeTargetPlugin 和 ExternalsPlugin                      |
-| `'electron[[X].Y]-preload'`  | 编译 Electron 的预加载脚本                                                                                                                                                                         |
-| `'nwjs[[X].Y]'`              | 编译为 NW.js 环境可用                                                                                                                                                                              |
-| `'node-webkit[[X].Y]'`       | 编译为 node-webkit 环境可用                                                                                                                                                                        |
+- **默认值：** 当项目中包含标准的 Browserslist 配置时为 `browserslist`，否则为 `web`
 
-:::tip esX 生效范围
+## 推荐配置
 
-`target` 配置中的 `esX` 只能指定 Rspack runtime 代码使用的 ECMAScript 语法版本，如果你需要指定用户代码的 ECMAScript 版本，可以使用 [builtin:swc-loader](/guide/features/builtin-swc-loader) 或 [babel-loader](https://www.npmjs.com/package/babel-loader) 进行代码降级。
+### 浏览器
 
-:::
+对于浏览器应用，在共享的 [Browserslist](https://github.com/browserslist/browserslist#config-file) 配置中声明需要支持的浏览器（详见 [Browserslist](#browserslist) 小节）：
 
-## 示例
+```json title="package.json"
+{
+  "browserslist": ["fully supports es6"]
+}
+```
 
-指定 Compiler 需要编译为 Node.js 环境下的代码：
+使用以下配置：
 
 ```js title="rspack.config.mjs"
 export default {
-  target: 'node',
+  target: 'browserslist',
 };
 ```
 
-当传递多个 target 时，Rspack 将使用公共的 features 子集：
+当项目中包含标准的 Browserslist 配置时，`target` 默认就是 `browserslist`，因此可以省略这一选项。显式保留可以让配置意图更清晰。
+
+#### 固定语法版本
+
+如果不使用 Browserslist，并且希望浏览器产物的 runtime 最多使用 ES2020 语法，可以组合平台和语法 target（详见 [Target 数组](#target-arrays)）：
 
 ```js title="rspack.config.mjs"
 export default {
-  // Rspack 将为 web 平台生成运行时代码，并且只使用 ES5 特性
-  target: ['web', 'es5'],
+  target: ['web', 'es2020'],
 };
 ```
 
-注意并非所有 target 都可以混合使用。当指定 Compiler 需要编译为多个平台时，则会报错：
+`web` 用于选择平台。`es2020` 会限制 Rspack runtime 使用的语法；支持继承 `target` 的内置转换工具也会将它作为默认输出目标。
+
+### Node.js
+
+对于 Node.js 应用，指定部署环境中使用的最低 Node.js 版本：
 
 ```js title="rspack.config.mjs"
 export default {
-  target: ['web', 'node'],
+  target: 'node22',
 };
 ```
 
-对于上述的情况，你可以基于 [MultiCompiler](/api/javascript-api/#multicompiler)，定义多份 Rspack 配置进行打包。
+请将 `22` 替换为应用实际支持的版本。指定版本后，Rspack 可以使用该版本确定支持的 runtime 特性。不指定版本的 `node` 会采用更保守的兼容性假设。
 
-## browserslist
+### Web worker
 
-如果当前项目存在 browserslist 配置，那么 Rspack 将会使用它：
+对于运行在 Web Worker、Shared Worker 或 Service Worker 中的代码，使用：
 
-- 确定可用于 **Rspack 的运行时代码** 的 ES 特性（这不会影响用户代码的转译结果）。
-- 推断目标环境（例如：`last 2 node versions` 等价于 `target: node`，并会进行一些 [`output.environment`](/config/output#outputenvironment) 设置).
+```js title="rspack.config.mjs"
+export default {
+  target: 'webworker',
+};
+```
 
-:::tip 什么是 Browserslist
-[Browserslist](https://browsersl.ist/) 可以指定 web 应用能够在哪些浏览器中正常运行，它提供了统一的配置格式，并且已经成为了前端社区中的标准。Browserslist 被 Autoprefixer, Babel, ESLint, PostCSS，SWC 和 webpack 等库所使用。
-:::
+该配置会使用 worker 全局对象和 chunk 加载方式，而不依赖 `document` 等浏览器 API。
 
-支持的 browserslist 值：
+## 常用值
 
-- `browserslist` - 使用自动解析的 browserslist 配置和环境（从最近的 `.browserslistrc` 文件， `package.json` 的 `browserslist` 字段，或 `BROWSERSLIST` 环境变量中获取，具体请查阅 [browserslist 文档](https://github.com/browserslist/browserslist#queries)）
-- `browserslist:modern` - 使用自动解析的 browserslist 配置中的 `modern` 环境
-- `browserslist:last 2 versions` - 使用显式 browserslist 查询（配置将被忽略）
-- `browserslist:/path/to/config` - 明确指定 browserslist 配置路径
-- `browserslist:/path/to/config:modern` - 明确指定 browserslist 的配置路径和环境
+下表中的 `X` 和 `Y` 表示版本号，方括号表示可选部分。例如，`node22`、`node22.12` 和 `electron34-renderer` 都是有效值，不需要输入方括号。
 
-### Baseline 查询 \{#baseline-queries}
+| 值                         | 用途                                                            |
+| -------------------------- | --------------------------------------------------------------- |
+| `async-node[X[.Y]]`        | Node.js 环境，通过 `fs` 和 `vm` 异步加载 chunk                  |
+| `browserslist[:...]`       | 从 Browserslist 配置、环境或内联查询中推断平台和支持的特性      |
+| `electron[X[.Y]]-main`     | Electron 主进程                                                 |
+| `electron[X[.Y]]-preload`  | Electron preload 脚本                                           |
+| `electron[X[.Y]]-renderer` | Electron renderer 进程                                          |
+| `esX`                      | 限制 runtime 使用的 ECMAScript 特性，通常与平台 target 组合使用 |
+| `false`                    | 禁用 target 推断以及由 target 派生的默认值                      |
+| `node[X[.Y]]`              | Node.js 环境，通过 `require()` 加载 chunk                       |
+| `node-webkit[X[.Y]]`       | 对应 NW.js target 的别名                                        |
+| `nwjs[X[.Y]]`              | NW.js 环境                                                      |
+| `web`                      | 类浏览器环境                                                    |
+| `webworker`                | Web Worker、Shared Worker 或 Service Worker 环境                |
 
-> Rspack >= v2.1.9 支持 Baseline 查询。
+- 支持的 ECMAScript target 包括 `es3`、`es5`，以及 `es2015` 至 `es2025`。
+- `esX` target 只描述语法能力，不描述运行平台。通常它应该与 `web`、`node` 等平台 target 组合使用。
+- Node.js、Electron 和 NW.js target 都可以指定版本。
 
-你可以使用 Baseline 查询，根据 Baseline 特性集指定目标浏览器版本。例如，如需兼容所有被归类为 [Baseline 广泛可用的特性](https://web.dev/baseline)，可以配置：
+## 作用范围
+
+### 输出默认值
+
+Rspack 会从 target 派生多项默认配置，包括：
+
+- `browser`、`node` 和 `electron` 等[模块解析条件](/config/resolve#resolveconditionnames)
+- [`output.environment`](/config/output#outputenvironment)、chunk 格式、chunk 加载、worker 加载和 WebAssembly 加载方式
+- [externals 预设](/config/externals#externalspresets)，例如将 Node.js 或 Electron 内置模块保留为 external
+- `document`、`require`、`global` 和 `importScripts` 等平台全局对象与能力
+
+这些配置都是默认值。当 target 预设不符合某项具体输出要求时，可以单独覆盖对应选项。
+
+### 源码转换 \{#目标环境继承}
+
+`target` 会直接控制 Rspack 生成的 runtime 可以使用哪些语法，但它本身不会自动降级每一个应用模块的语法。
+
+使用以下内置工具且没有显式配置转换目标时，它们会从 `target` 继承兼容的默认值：
+
+- [`builtin:swc-loader`](/guide/features/builtin-swc-loader) 会派生 `env.targets` 或 `jsc.target`
+- [`builtin:lightningcss-loader`](/guide/features/builtin-lightningcss-loader) 会在存在浏览器目标时派生对应的 target
+- [`SwcJsMinimizerRspackPlugin`](/plugins/swc-js-minimizer-rspack-plugin) 会派生 ECMAScript target
+- [`LightningCssMinimizerRspackPlugin`](/plugins/lightning-css-minimizer-rspack-plugin) 会在存在浏览器目标时派生对应的 target
+
+只有经过这些工具处理的代码才会应用相应转换。由 Babel 处理的代码遵循 Babel 自身的配置。内置工具也可能将继承的 target 限制在自身支持的版本范围内。
+
+## Target 数组 \{#target-arrays}
+
+target 数组会将所有值共同支持的特性子集应用于同一次编译。常见用法是在平台 target 上增加 ECMAScript 约束：
+
+```js title="rspack.config.mjs"
+export default {
+  target: ['web', 'es2018'],
+};
+```
+
+target 数组不会为每个环境创建独立的编译任务。组合 `['web', 'node']` 等存在冲突的平台 target，可能导致 chunk 格式等默认值无法确定。
+
+如果需要分别生成浏览器和 Node.js 产物，应导出多份配置：
+
+```js title="rspack.config.mjs"
+export default [
+  {
+    name: 'client',
+    entry: './src/client.js',
+    target: 'web',
+    output: {
+      filename: 'client.js',
+    },
+  },
+  {
+    name: 'server',
+    entry: './src/server.js',
+    target: 'node22',
+    output: {
+      filename: 'server.js',
+    },
+  },
+];
+```
+
+Rspack 会通过 [MultiCompiler](/api/javascript-api/compiler#multicompiler) 运行这些配置，并为每一项创建独立的编译任务。
+
+## Browserslist
+
+`browserslist` target 会通过 Browserslist 查询推断平台以及支持的 ECMAScript 特性。浏览器查询会选择 `web` target，Node.js 查询则会选择具备对应 runtime 能力的 Node.js target。
+
+Rspack 支持以下格式：
+
+| 值                                    | 解析方式                           |
+| ------------------------------------- | ---------------------------------- |
+| `browserslist`                        | 使用最近的配置及其当前环境         |
+| `browserslist:modern`                 | 使用最近配置中的 `modern` 环境     |
+| `browserslist:last 2 versions`        | 使用内联查询，并忽略项目中的配置   |
+| `browserslist:/path/to/config`        | 使用指定的配置文件                 |
+| `browserslist:/path/to/config:modern` | 使用指定配置文件中的 `modern` 环境 |
+
+最近的配置可以来自 `browserslist` 或 `.browserslistrc` 文件，也可以来自 `package.json` 中的 `browserslist` 字段。显式选择 `browserslist` target 时，还可以使用 `BROWSERSLIST` 环境变量。Rspack 支持浏览器和 Node.js 查询，但不支持 Electron 查询。
+
+### Baseline \{#baseline-queries}
+
+Rspack 2.1.9 及更高版本支持 [Baseline](https://web.dev/baseline) 查询。例如，以下 target 包含支持 Baseline Widely Available 中所有特性的浏览器：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -97,58 +188,38 @@ export default {
 };
 ```
 
-你还可以使用 `baseline 2024` 等年份查询，或 `baseline widely available on 2025-05-01` 等固定日期查询。
+你也可以使用 `baseline 2024` 等年份查询，或 `baseline widely available on 2025-05-01` 等固定日期查询。更多信息请参考[在 Browserslist 中使用 Baseline](https://web.dev/articles/use-baseline-with-browserslist)。
 
-:::tip
-更多信息请参考 [在 Browserslist 中使用 Baseline](https://web.dev/articles/use-baseline-with-browserslist)。
-:::
+### 限制
 
-### 限制说明
-
-Rspack 使用的是 [browserslist-rs](https://github.com/browserslist/browserslist-rs)。这是 Browserslist 的一个 Rust 实现，目前尚未完全支持 Browserslist 的所有特性。
-
-当前不支持的功能：
+Rspack 使用 [browserslist-rs](https://github.com/browserslist/browserslist-rs)，它尚未实现 Browserslist 的全部功能。目前不支持以下查询：
 
 - 自定义使用率查询，例如 `> 0.5% in my stats`
-- 基于覆盖率的使用率查询，例如 `cover 99.5% in my stats`
-
-## Node.js 版本
-
-可以选择指定一个 node 或 electron 的版本。这在上表中用 [[X].Y] 表示。
-
-```js title="rspack.config.mjs"
-export default {
-  target: 'node18.12',
-};
-```
-
-当 Rspack 生成运行时代码时，这有助于确定所能使用的 ES 特性（所有的代码块和模块都被运行时代码包裹）。
-
-## 目标环境继承
-
-当你使用 Rspack 内置的 loaders 或压缩插件时，Rspack 会基于 [target](/config/target) 选项自动为它们设置默认的目标环境。
-
-例如，配置 `target: 'node22'` 后，Rspack 的 `builtin:swc-loader` 会默认使用与 Node.js 22 对应的目标设置。
-
-这意味着，通常你只需要配置 `target` 选项，JavaScript 转换、CSS 转换和代码压缩就会自动使用一致的目标环境；当你需要为某个 loader 或压缩插件指定不同的目标时，依然可以在它们的配置中覆盖默认值。
-
-以下 loaders 和插件会继承这个默认值：
-
-- [builtin:swc-loader](/guide/features/builtin-swc-loader)：自动设置 `env.targets` 或 `jsc.target` 选项
-- [builtin:lightningcss-loader](/guide/features/builtin-lightningcss-loader)：自动设置 `targets` 选项。仅对 browserslist 相关的 `target` 生效，因为 Lightning CSS 只支持浏览器目标
-- [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin)：自动设置 `ecma` 版本
-- [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin)：自动设置 `targets` 选项。仅对 browserslist 相关的 `target` 生效
-
-:::tip
-如果你开发了一个第三方 loader 或插件，你也可以通过 [compiler.target](/api/javascript-api/compiler#target) 访问 Rspack 解析后的目标环境信息，以便根据目标环境调整你的 loader 或插件的行为。
-:::
+- 覆盖率查询，例如 `cover 99.5% in my stats`
 
 ## 禁用 target
 
-如果上述列表中的预设 target 都不符合你的需求，你可以将 `target` 设置为 `false`，这会禁用基于 `target` 的默认推断和相关的默认行为。
+仅在需要用自定义配置替代 target 推断时，才将 `target` 设为 `false`。这会禁用所有由 target 派生的默认值。
+
+以下是使用 CommonJS chunk 格式的最小配置：
 
 ```js title="rspack.config.mjs"
 export default {
   target: false,
+  output: {
+    chunkFormat: 'commonjs',
+  },
 };
 ```
+
+只配置 `target: false` 会构建失败，因为 Rspack 无法推断 [`output.chunkFormat`](/config/output#outputchunkformat)。必须显式设置 `output.chunkFormat`，然后根据运行环境按需配置 `output.environment`、chunk 加载、解析条件和 externals 预设等选项。
+
+## 相关配置
+
+- [`output.environment`](/config/output#outputenvironment)：覆盖从 target 派生的 runtime 语法能力。
+- [`output.chunkFormat`](/config/output#outputchunkformat) 和 [`output.chunkLoading`](/config/output#outputchunkloading)：覆盖 chunk 的输出与加载方式。
+- [`externalsPresets`](/config/externals#externalspresets)：控制哪些平台内置模块被视为 external。
+- [`resolve.conditionNames`](/config/resolve#resolveconditionnames)：控制解析 `package.json` 中的 `exports` 字段时使用的条件。
+- 插件作者可以通过 [`compiler.target`](/api/javascript-api/compiler#target) 读取解析后的 target。
+
+<Attribution url="https://webpack.js.org/configuration/target/" />

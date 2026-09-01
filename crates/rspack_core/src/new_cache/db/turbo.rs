@@ -1,23 +1,25 @@
 use std::{
   fmt,
+  sync::Arc,
   time::{SystemTime, UNIX_EPOCH},
 };
 
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rspack_error::Result;
 use rspack_paths::Utf8PathBuf;
 use turbo_persistence::{
-  CompactConfig, DbConfig, FamilyConfig, FamilyKind, SerialScheduler, TurboPersistence,
+  CompactConfig, DbConfig, FamilyConfig, FamilyKind, ParallelScheduler, TurboPersistence,
+  WriteBatch,
 };
 
-use super::DatabaseWrite;
-use crate::new_cache::db::DatabaseFamily;
+use crate::{InfrastructureLogger, Logger, new_cache::db::DatabaseFamily};
 
 const STALE_DIRECTORY: &str = "_stale";
 const MB: u64 = 1024 * 1024;
 
 // Keep idle compaction selective and bounded. This follows Turbopack's
-// compaction thresholds, while limiting each call to one merge segment because
-// Rspack uses the serial scheduler.
+// compaction thresholds, while limiting each call to one merge segment to keep
+// idle work responsive to interruption.
 const COMPACT_CONFIG: CompactConfig = CompactConfig {
   min_merge_count: 3,
   optimal_merge_count: 8,
@@ -28,14 +30,155 @@ const COMPACT_CONFIG: CompactConfig = CompactConfig {
   max_merge_segment_count: 1,
 };
 
-type Inner = TurboPersistence<SerialScheduler, { DatabaseFamily::COUNT }>;
+#[derive(Clone, Copy, Default)]
+struct RayonParallelScheduler;
+
+impl ParallelScheduler for RayonParallelScheduler {
+  fn block_in_place<R>(&self, f: impl FnOnce() -> R + Send) -> R
+  where
+    R: Send,
+  {
+    f()
+  }
+
+  fn parallel_for_each<T>(&self, items: &[T], f: impl Fn(&T) + Send + Sync)
+  where
+    T: Sync,
+  {
+    if items.len() <= 1 {
+      items.iter().for_each(f);
+      return;
+    }
+
+    items.into_par_iter().for_each(f);
+  }
+
+  fn try_parallel_for_each<'l, T, E>(
+    &self,
+    items: &'l [T],
+    f: impl (Fn(&'l T) -> Result<(), E>) + Send + Sync,
+  ) -> Result<(), E>
+  where
+    T: Sync,
+    E: Send + 'static,
+  {
+    if items.len() <= 1 {
+      for item in items {
+        f(item)?;
+      }
+      return Ok(());
+    }
+
+    items.into_par_iter().try_for_each(f)
+  }
+
+  fn try_parallel_for_each_mut<'l, T, E>(
+    &self,
+    items: &'l mut [T],
+    f: impl (Fn(&'l mut T) -> Result<(), E>) + Send + Sync,
+  ) -> Result<(), E>
+  where
+    T: Send + Sync,
+    E: Send + 'static,
+  {
+    if items.len() <= 1 {
+      for item in items {
+        f(item)?;
+      }
+      return Ok(());
+    }
+
+    items.into_par_iter().try_for_each(f)
+  }
+
+  fn try_parallel_for_each_owned<T, E>(
+    &self,
+    items: Vec<T>,
+    f: impl (Fn(T) -> Result<(), E>) + Send + Sync,
+  ) -> Result<(), E>
+  where
+    T: Send + Sync,
+    E: Send + 'static,
+  {
+    if items.len() <= 1 {
+      for item in items {
+        f(item)?;
+      }
+      return Ok(());
+    }
+
+    items.into_par_iter().try_for_each(f)
+  }
+
+  fn parallel_map_collect<'l, Item, PerItemResult, Output>(
+    &self,
+    items: &'l [Item],
+    f: impl Fn(&'l Item) -> PerItemResult + Send + Sync,
+  ) -> Output
+  where
+    Item: Sync,
+    PerItemResult: Send + Sync + 'l,
+    Output: FromIterator<PerItemResult>,
+  {
+    if items.len() <= 1 {
+      return items.iter().map(f).collect();
+    }
+
+    items
+      .into_par_iter()
+      .map(f)
+      .collect_vec_list()
+      .into_iter()
+      .flatten()
+      .collect()
+  }
+
+  fn parallel_map_collect_owned<Item, PerItemResult, Output>(
+    &self,
+    items: Vec<Item>,
+    f: impl Fn(Item) -> PerItemResult + Send + Sync,
+  ) -> Output
+  where
+    Item: Send + Sync,
+    PerItemResult: Send + Sync,
+    Output: FromIterator<PerItemResult>,
+  {
+    if items.len() <= 1 {
+      return items.into_iter().map(f).collect();
+    }
+
+    items
+      .into_par_iter()
+      .map(f)
+      .collect_vec_list()
+      .into_iter()
+      .flatten()
+      .collect()
+  }
+}
+
+type Inner = TurboPersistence<RayonParallelScheduler, { DatabaseFamily::COUNT }>;
+type InnerWriteBatch<'db, 'key> =
+  WriteBatch<'db, &'key [u8], RayonParallelScheduler, { DatabaseFamily::COUNT }>;
 pub type DatabaseValue = turbo_persistence::ArcBytes;
+
+pub(crate) struct DatabaseBatch<'db, 'key> {
+  inner: InnerWriteBatch<'db, 'key>,
+}
+
+impl<'key> DatabaseBatch<'_, 'key> {
+  pub fn put(&self, family: DatabaseFamily, key: &'key [u8], value: Vec<u8>) -> Result<()> {
+    self.inner.put(family.index() as u32, key, value.into())?;
+    Ok(())
+  }
+}
 
 pub struct Database {
   inner: Inner,
   base_path: Utf8PathBuf,
   path: Utf8PathBuf,
   readonly: bool,
+  logger: Arc<InfrastructureLogger>,
 }
 
 impl fmt::Debug for Database {
@@ -49,13 +192,19 @@ impl fmt::Debug for Database {
 }
 
 impl Database {
-  pub fn open(base_path: Utf8PathBuf, path: Utf8PathBuf, readonly: bool) -> Result<Self> {
+  pub fn open(
+    base_path: Utf8PathBuf,
+    path: Utf8PathBuf,
+    readonly: bool,
+    logger: Arc<InfrastructureLogger>,
+  ) -> Result<Self> {
     let inner = open_database(&path, readonly)?;
     Ok(Self {
       inner,
       base_path,
       path,
       readonly,
+      logger,
     })
   }
 
@@ -63,15 +212,19 @@ impl Database {
     Ok(self.inner.get(family.index(), &key)?)
   }
 
-  pub fn write_batch<'a>(
+  pub fn is_empty(&self) -> bool {
+    self.inner.is_empty()
+  }
+
+  pub fn write_batch<'key>(
     &mut self,
-    writes: impl IntoIterator<Item = DatabaseWrite<'a>>,
+    write: impl FnOnce(&DatabaseBatch<'_, 'key>) -> Result<()>,
   ) -> Result<()> {
-    let batch = self.inner.write_batch::<&[u8]>()?;
-    for write in writes {
-      batch.put(write.family.index() as u32, write.key, write.value.into())?;
-    }
-    self.inner.commit_write_batch(batch)?;
+    let batch = DatabaseBatch {
+      inner: self.inner.write_batch::<&'key [u8]>()?,
+    };
+    write(&batch)?;
+    self.inner.commit_write_batch(batch.inner)?;
     Ok(())
   }
 
@@ -103,17 +256,15 @@ impl Database {
     let stale_directory = self.stale_directory();
     match std::fs::remove_dir_all(stale_directory.as_std_path()) {
       Ok(()) => {
-        tracing::debug!(
-          path = %stale_directory,
-          "Removed stale persistent cache databases"
-        );
+        self.logger.debug(format!(
+          "Removed stale cache databases from {stale_directory}"
+        ));
       }
       Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
       Err(error) => {
-        tracing::warn!(
-          path = %stale_directory,
-          "Removing stale persistent cache databases failed: {error}"
-        );
+        self.logger.warn(format!(
+          "Removing stale cache databases from {stale_directory} failed: {error}"
+        ));
       }
     }
   }
@@ -194,7 +345,11 @@ fn database_config() -> DbConfig<{ DatabaseFamily::COUNT }> {
         kind: FamilyKind::SingleValue,
       },
       FamilyConfig {
-        name: "snapshot",
+        name: "validator",
+        kind: FamilyKind::SingleValue,
+      },
+      FamilyConfig {
+        name: "meta",
         kind: FamilyKind::SingleValue,
       },
     ],

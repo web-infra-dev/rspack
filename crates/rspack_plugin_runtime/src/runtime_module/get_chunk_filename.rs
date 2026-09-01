@@ -1,16 +1,14 @@
-use std::{cmp::Ordering, fmt};
+use std::{borrow::Cow, cmp::Ordering, fmt};
 
 use itertools::Itertools;
 use rspack_cacheable::with::Unsupported;
 use rspack_core::{
-  Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals,
-  RuntimeGlobalsRenderMode, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
-  SourceType, get_filename_without_hash_length, has_hash_placeholder, impl_runtime_module,
+  Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, FilenameRenderValue, PathData,
+  PlaceholderKind, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeModule,
+  RuntimeModuleGenerateContext, RuntimeTemplate, SourceType, StringTemplatePlaceholder,
+  impl_runtime_module,
 };
-use rspack_util::{
-  fx_hash::{FxIndexMap, FxIndexSet},
-  itoa,
-};
+use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
 use rustc_hash::FxHashMap;
 
 use super::{stringify_dynamic_chunk_map, stringify_static_chunk_map};
@@ -19,6 +17,30 @@ use crate::{get_chunk_runtime_requirements, runtime_module::unquoted_stringify};
 type GetChunkFilenameAllChunks = Box<dyn Fn(&RuntimeGlobals) -> bool + Sync + Send>;
 type GetFilenameForChunk = Box<dyn Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send>;
 
+fn render_hash(placeholder: StringTemplatePlaceholder, hash: &str) -> String {
+  placeholder
+    .render_hash(hash)
+    .expect("hash placeholder must have hash parameters")
+    .into_owned()
+}
+
+fn render_full_hash<'value>(
+  placeholder: StringTemplatePlaceholder,
+  compilation: &'value Compilation,
+  runtime_template: &rspack_core::RuntimeCodeTemplate,
+) -> FilenameRenderValue<'value> {
+  if placeholder.hash_encoding().is_some() {
+    return FilenameRenderValue::Value(Cow::Borrowed(compilation.get_hash().unwrap_or("XXXX")));
+  }
+
+  let runtime_global = runtime_template.render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH);
+  let hash_expression = match placeholder.hash_len() {
+    Some(hash_len) => format!("{runtime_global}().slice(0, {hash_len})"),
+    None => format!("{runtime_global}()"),
+  };
+  FilenameRenderValue::Rendered(Cow::Owned(format!("\" + {hash_expression} + \"")))
+}
+
 #[impl_runtime_module]
 pub struct GetChunkFilenameRuntimeModule {
   #[cacheable(with=Unsupported)]
@@ -26,6 +48,7 @@ pub struct GetChunkFilenameRuntimeModule {
   source_type: SourceType,
   global: String,
   rspack_export_global: Option<String>,
+  full_hash: bool,
   #[cacheable(with=Unsupported)]
   all_chunks: GetChunkFilenameAllChunks,
   #[cacheable(with=Unsupported)]
@@ -70,6 +93,7 @@ impl GetChunkFilenameRuntimeModule {
       source_type,
       global,
       None,
+      false,
       Box::new(all_chunks),
       Box::new(filename_for_chunk),
       chunk_ukey,
@@ -78,6 +102,11 @@ impl GetChunkFilenameRuntimeModule {
 
   pub fn with_rspack_export_global(mut self, global: impl Into<String>) -> Self {
     self.rspack_export_global = Some(global.into());
+    self
+  }
+
+  pub fn with_full_hash(mut self, full_hash: bool) -> Self {
+    self.full_hash = full_hash;
     self
   }
 
@@ -139,9 +168,17 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: {
         if (self.source_type == SourceType::JavaScript
-          && has_hash_placeholder(compilation.options.output.chunk_filename.as_str()))
+          && compilation
+            .options
+            .output
+            .chunk_filename
+            .has_hash_placeholder())
           || (self.source_type == SourceType::Css
-            && has_hash_placeholder(compilation.options.output.css_chunk_filename.as_str()))
+            && compilation
+              .options
+              .output
+              .css_chunk_filename
+              .has_hash_placeholder())
         {
           RuntimeGlobals::GET_FULL_HASH
         } else {
@@ -166,8 +203,12 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     )]
   }
 
+  fn full_hash(&self) -> bool {
+    self.full_hash
+  }
+
   fn dependent_hash(&self) -> bool {
-    true
+    !self.full_hash
   }
 
   async fn generate(
@@ -242,8 +283,10 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           }
         })
         .collect::<FxIndexSet<ChunkUkey>>();
-      let (fake_filename, hash_len_map) =
-        get_filename_without_hash_length(&Filename::from(dynamic_filename.clone()));
+      let filename = Filename::from(dynamic_filename.clone());
+      let compiled = filename
+        .as_json_string_literal_template(PathData::default(), None)
+        .await?;
 
       let chunk_id = "\" + chunkId + \"";
       let chunk_name = stringify_dynamic_chunk_map(
@@ -252,76 +295,54 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         &chunk_map,
       );
       let chunk_runtime = stringify_dynamic_chunk_map(
-        |c| {
-          let runtime = c.runtime().as_str();
-          Some(runtime.to_string())
-        },
+        |c| Some(c.runtime().as_str().to_string()),
         &chunks,
         &chunk_map,
       );
-      let chunk_hash = stringify_dynamic_chunk_map(
-        |c| {
-          let hash = c
-            .rendered_hash(
-              &compilation.chunk_hashes_artifact,
-              compilation.options.output.hash_digest_length,
-            )
-            .map(|hash| hash.to_string());
-          match hash_len_map.get("[chunkhash]") {
-            Some(hash_len) => hash.map(|s| s[..*hash_len].to_string()),
-            None => hash,
-          }
-        },
-        &chunks,
-        &chunk_map,
-      );
-      let content_hash = stringify_dynamic_chunk_map(
-        |c| {
-          c.rendered_content_hash_by_source_type(
-            &compilation.chunk_hashes_artifact,
-            &self.source_type,
-            compilation.options.output.hash_digest_length,
-          )
-          .map(|hash| match hash_len_map.get("[contenthash]") {
-            Some(hash_len) => hash[..*hash_len].to_string(),
-            None => hash.to_string(),
-          })
-        },
-        &chunks,
-        &chunk_map,
-      );
-      let full_hash = match hash_len_map
-        .get("[fullhash]")
-        .or(hash_len_map.get("[hash]"))
-      {
-        Some(hash_len) => {
-          let mut hash_len_buffer = itoa::Buffer::new();
-          let hash_len_str = hash_len_buffer.format(*hash_len);
-          format!(
-            "\" + {}().slice(0, {}) + \"",
-            runtime_template.render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH),
-            hash_len_str
-          )
-        }
-        None => format!(
-          "\" + {}() + \"",
-          runtime_template.render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH)
-        ),
-      };
 
       Some(
-        compilation
-          .get_path(
-            &Filename::from(rspack_util::json_stringify_str(fake_filename.as_str())),
-            PathData::default()
-              .chunk_id(chunk_id)
-              .chunk_hash(&chunk_hash)
-              .chunk_name(&chunk_name)
-              .hash(&full_hash)
-              .content_hash(&content_hash)
-              .runtime(&chunk_runtime),
-          )
-          .await?,
+        compiled.render_with_path_data(
+          PathData::default()
+            .chunk_id(chunk_id)
+            .chunk_name(&chunk_name)
+            .runtime(&chunk_runtime),
+          None,
+          |placeholder| match placeholder.kind() {
+            PlaceholderKind::Hash | PlaceholderKind::FullHash => {
+              Some(render_full_hash(placeholder, compilation, runtime_template))
+            }
+            PlaceholderKind::ChunkHash => {
+              let chunk_hash = stringify_dynamic_chunk_map(
+                |c| {
+                  c.rendered_hash(
+                    &compilation.chunk_hashes_artifact,
+                    compilation.options.output.hash_digest_length,
+                  )
+                  .map(|hash| render_hash(placeholder, hash))
+                },
+                &chunks,
+                &chunk_map,
+              );
+              Some(FilenameRenderValue::Rendered(Cow::Owned(chunk_hash)))
+            }
+            PlaceholderKind::ContentHash => {
+              let content_hash = stringify_dynamic_chunk_map(
+                |c| {
+                  c.rendered_content_hash_by_source_type(
+                    &compilation.chunk_hashes_artifact,
+                    &self.source_type,
+                    compilation.options.output.hash_digest_length,
+                  )
+                  .map(|hash| render_hash(placeholder, hash))
+                },
+                &chunks,
+                &chunk_map,
+              );
+              Some(FilenameRenderValue::Rendered(Cow::Owned(content_hash)))
+            }
+            _ => None,
+          },
+        ),
       )
     } else {
       None
@@ -337,7 +358,15 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         })
     {
       if let Some(chunk) = chunk_map.get(chunk_ukey) {
-        let (fake_filename, hash_len_map) = get_filename_without_hash_length(filename_template);
+        let compiled = filename_template
+          .as_json_string_literal_template(
+            PathData::default()
+              .chunk(chunk.ukey(), compilation)
+              .chunk_name_optional(chunk.name())
+              .chunk_id_optional(chunk.id().map(|id| id.as_str())),
+            None,
+          )
+          .await?;
 
         let chunk_id = chunk
           .id()
@@ -348,78 +377,34 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
             .id()
             .map(|chunk_id| unquoted_stringify(Some(chunk_id), chunk_id.as_str())),
         };
-        let chunk_hash = chunk
-          .rendered_hash(
-            &compilation.chunk_hashes_artifact,
-            compilation.options.output.hash_digest_length,
-          )
-          .map(|chunk_hash| {
-            let hash = unquoted_stringify(chunk.id(), chunk_hash);
-            match hash_len_map.get("[chunkhash]") {
-              Some(hash_len) => hash[..*hash_len].to_string(),
-              None => hash,
-            }
-          });
-        let content_hash = chunk
-          .content_hash(&compilation.chunk_hashes_artifact)
-          .and_then(|content_hash| content_hash.get(&self.source_type))
-          .map(|i| {
-            let hash = unquoted_stringify(
-              chunk.id(),
-              i.rendered(compilation.options.output.hash_digest_length),
-            );
-            match hash_len_map.get("[contenthash]") {
-              Some(hash_len) => hash[..*hash_len].to_string(),
-              None => hash,
-            }
-          });
-        let full_hash = match hash_len_map
-          .get("[fullhash]")
-          .or(hash_len_map.get("[hash]"))
-        {
-          Some(hash_len) => {
-            let mut hash_len_buffer = itoa::Buffer::new();
-            let hash_len_str = hash_len_buffer.format(*hash_len);
-            format!(
-              "\" + {}().slice(0, {}) + \"",
-              runtime_template.render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH),
-              hash_len_str
-            )
-          }
-          None => format!(
-            "\" + {}() + \"",
-            runtime_template.render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH)
-          ),
-        };
         let chunk_runtime = chunk.runtime().as_str();
 
-        let filename = compilation
-          .get_path(
-            &Filename::from(if let Some(template) = fake_filename.template() {
-              rspack_util::json_stringify_str(template)
-            } else {
-              rspack_util::json_stringify_str(
-                fake_filename
-                  .render(
-                    PathData::default()
-                      .chunk(chunk.ukey(), compilation)
-                      .chunk_name_optional(chunk.name())
-                      .chunk_id_optional(chunk.id().map(|id| id.as_str())),
-                    None,
-                  )
-                  .await?
-                  .as_str(),
+        let filename = compiled.render_with_path_data(
+          PathData::default()
+            .chunk_id_optional(chunk_id.as_deref())
+            .chunk_name_optional(chunk_name.as_deref())
+            .runtime(chunk_runtime),
+          None,
+          |placeholder| match placeholder.kind() {
+            PlaceholderKind::Hash | PlaceholderKind::FullHash => {
+              Some(render_full_hash(placeholder, compilation, runtime_template))
+            }
+            PlaceholderKind::ChunkHash => chunk
+              .rendered_hash(
+                &compilation.chunk_hashes_artifact,
+                compilation.options.output.hash_digest_length,
               )
-            }),
-            PathData::default()
-              .chunk_id_optional(chunk_id.as_deref())
-              .chunk_hash_optional(chunk_hash.as_deref())
-              .chunk_name_optional(chunk_name.as_deref())
-              .hash(&full_hash)
-              .content_hash_optional(content_hash.as_deref())
-              .runtime(chunk_runtime),
-          )
-          .await?;
+              .map(|chunk_hash| FilenameRenderValue::Value(Cow::Borrowed(chunk_hash))),
+            PlaceholderKind::ContentHash => chunk
+              .rendered_content_hash_by_source_type(
+                &compilation.chunk_hashes_artifact,
+                &self.source_type,
+                compilation.options.output.hash_digest_length,
+              )
+              .map(|content_hash| FilenameRenderValue::Value(Cow::Borrowed(content_hash))),
+            _ => None,
+          },
+        );
 
         if let Some(chunk_id) = chunk.id() {
           static_urls

@@ -53,7 +53,7 @@ fn render_runtime_global_specifiers(context: RuntimeImportRenderContext<'_>) -> 
         .compilation
         .code_generation_results
         .get(module_identifier, Some(chunk.runtime()))
-        .data
+        .data()
         .get::<CodeGenerationRuntimeRequirementsWrite>()
     })
     .fold(RuntimeGlobals::default(), |mut requirements, write| {

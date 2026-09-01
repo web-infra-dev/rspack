@@ -6,7 +6,7 @@ use rspack_core::{
   AsContextDependency, CodeGenerationPublicPathAutoReplace, ConnectionState, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, FactorizeInfo, JavascriptParserUrl, ModuleDependency, ModuleGraph,
+  ExportsInfoArtifact, JavascriptParserUrl, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeGlobals, RuntimeSpec,
   SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, URLStaticMode, UsedByExports,
 };
@@ -15,7 +15,7 @@ use swc_atoms::Atom;
 use crate::{connection_active_used_by_exports, runtime::AUTO_PUBLIC_PATH_PLACEHOLDER};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct URLDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
@@ -24,7 +24,6 @@ pub struct URLDependency {
   range_url: DependencyRange,
   used_by_exports: Option<UsedByExports>,
   mode: Option<JavascriptParserUrl>,
-  factorize_info: FactorizeInfo,
 }
 
 impl URLDependency {
@@ -41,7 +40,6 @@ impl URLDependency {
       range_url,
       used_by_exports: None,
       mode,
-      factorize_info: Default::default(),
     }
   }
 
@@ -93,14 +91,6 @@ impl ModuleDependency for URLDependency {
 
   fn get_condition(&self) -> Option<DependencyCondition> {
     Some(DependencyCondition::new(URLDependencyCondition))
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

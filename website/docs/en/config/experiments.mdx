@@ -3,10 +3,9 @@ description: 'In minor releases, Rspack may change the APIs of experimental feat
 ---
 
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import PropertyType from '@components/PropertyType';
-
-<WebpackLicense from="https://webpack.js.org/configuration/experiments/" />
+import { Tabs, Tab } from '@theme';
 
 # Experiments
 
@@ -187,23 +186,6 @@ const instance = await WebAssembly.instantiate(wasmModule);
 For a normal WebAssembly import, Rspack instantiates the module and exposes its exports. For a source phase import, Rspack returns the compiled `WebAssembly.Module` instead, and your code is responsible for calling `WebAssembly.instantiate`.
 :::
 
-## experiments.fasterModuleConcatenation
-
-<ApiMeta addedVersion="2.2.0" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Improves the speed of [module concatenation optimization](/config/optimization#optimizationconcatenatemodules) when enabled.
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    fasterModuleConcatenation: true,
-  },
-};
-```
-
 ## experiments.futureDefaults
 
 - **Type:** `boolean`
@@ -280,6 +262,85 @@ export default {
 This option depends on `optimization.sideEffects`. If you disable [`optimization.sideEffects`](/config/optimization#optimizationsideeffects), pure-function hints will not be analyzed.
 :::
 
+## experiments.runtimeMode
+
+<ApiMeta addedVersion="2.2.0" />
+
+- **Type:** `'webpack' | 'rspack'`
+- **Default:** `'webpack'`
+
+Setting `experiments.runtimeMode` to `'rspack'` enables Rspack's experimental runtime output. This output mode is still under development, so use it with caution. It currently generates cleaner output when [`output.module`](/config/output#outputmodule) is `true` and [`output.library.type`](/config/output#outputlibrarytype) is `'modern-module'`. In this case, instead of exporting one `__webpack_require__` function with runtime helpers attached as properties, the runtime exports the loader, module factories, and helpers as named ESM bindings. Each output chunk can import only the bindings it needs.
+
+### Example
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    runtimeMode: 'rspack',
+  },
+  output: {
+    module: true,
+    library: {
+      type: 'modern-module',
+    },
+  },
+  optimization: {
+    runtimeChunk: 'single',
+  },
+};
+```
+
+The generated runtime and a chunk that consumes it are organized like this (simplified):
+
+<Tabs>
+  <Tab label="runtimeMode: 'webpack'">
+
+```js
+// runtime.js
+var __webpack_modules__ = {};
+function __webpack_require__(moduleId) {
+  /* ... */
+}
+__webpack_require__.m = __webpack_modules__;
+__webpack_require__.n = (module) => {
+  /* ... */
+};
+
+export { __webpack_require__ };
+
+// main.js
+import { __webpack_require__ } from './runtime.js';
+
+const value = __webpack_require__(moduleId);
+const getDefault = __webpack_require__.n(value);
+```
+
+  </Tab>
+  <Tab label="runtimeMode: 'rspack'">
+
+```js
+// runtime.js
+var modules = {};
+function rspackRequire(moduleId) {
+  /* ... */
+}
+var moduleFactories = modules;
+var compatGetDefaultExport = (module) => {
+  /* ... */
+};
+
+export { rspackRequire, moduleFactories, compatGetDefaultExport };
+
+// main.js
+import { rspackRequire, compatGetDefaultExport } from './runtime.js';
+
+const value = rspackRequire(moduleId);
+const getDefault = compatGetDefaultExport(value);
+```
+
+  </Tab>
+</Tabs>
+
 ## experiments.useInputFileSystem
 
 <ApiMeta addedVersion="1.3.14" />
@@ -353,3 +414,5 @@ export default {
 
 When access to `virtual-entry.js` and `src/another-virtual.js` which match the regular expressions of `experiments.useInputFileSystem`,
 Rspack will use the input file system wrapped by `VirtualModulesPlugin`; other than that, `src/disk-file.js` will be accessed by the native file system.
+
+<Attribution url="https://webpack.js.org/configuration/experiments/" />

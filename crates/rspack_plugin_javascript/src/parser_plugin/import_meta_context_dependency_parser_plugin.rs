@@ -1,8 +1,8 @@
 use concat_string::concat_string;
 use rspack_core::{
-  ContextMode, ContextModulePattern, ContextNameSpaceObject, ContextOptions, DependencyCategory,
-  ReferencedSpecifier, compile_context_module_glob_request, get_context, normalize_path_separators,
-  normalize_path_separators_for_path,
+  BoxDependency, ContextMode, ContextModulePattern, ContextNameSpaceObject, ContextOptions,
+  DependencyCategory, ReferencedSpecifier, compile_context_module_glob_request, get_context,
+  normalize_path_separators, normalize_path_separators_for_path,
 };
 use rspack_error::{Error, Result, Severity};
 use rspack_macros::AstObject;
@@ -34,7 +34,7 @@ struct ImportMetaWebpackContextOptions {
   reg_exp: Option<RspackRegex>,
   include: Option<RspackRegex>,
   exclude: Option<RspackRegex>,
-  mode: Option<String>,
+  mode: Option<ContextMode>,
   /// Absent or unrecognized means `true`.
   recursive: Option<bool>,
 }
@@ -57,10 +57,7 @@ impl From<&ImportMetaWebpackContextOptions> for ContextOptions {
       pattern: options.reg_exp.clone().into(),
       include: options.include.clone(),
       exclude: options.exclude.clone(),
-      mode: options
-        .mode
-        .as_deref()
-        .map_or(ContextMode::Sync, ContextMode::from),
+      mode: options.mode.clone().unwrap_or(ContextMode::Sync),
       recursive: options.recursive.unwrap_or(true),
       ..Default::default()
     }
@@ -477,7 +474,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaContextDependencyParse
     };
 
     if let Some(dep) = dep {
-      parser.add_dependency(Box::new(dep));
+      parser.add_dependency(BoxDependency::new(dep));
       Some(true)
     } else {
       None
@@ -495,7 +492,7 @@ mod tests {
       reg_exp: Some(RspackRegex::with_flags("^\\./", "i").expect("valid regexp")),
       include: Some(RspackRegex::new("include").expect("valid regexp")),
       exclude: Some(RspackRegex::new("exclude").expect("valid regexp")),
-      mode: Some("lazy".to_string()),
+      mode: Some(ContextMode::Lazy),
       recursive: Some(false),
     };
     let context_options = ContextOptions::from(&options);

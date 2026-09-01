@@ -8,6 +8,7 @@ import type { LoaderContext } from '../config';
 import type { ResolveCallback } from '../config/adapterRuleUse';
 import type { ResolveRequest } from '../Resolver';
 import * as swc from '../swc';
+import { serializeObject, toObject } from '../util';
 import { cleverMerge } from '../util/cleverMerge';
 import { createHash } from '../util/createHash';
 import { absolutify, contextify } from '../util/identifier';
@@ -107,6 +108,16 @@ async function loaderImpl(
   };
   loaderContext.clearDependencies = function clearDependencies() {
     pendingDependencyRequest.push(sendRequest(RequestType.ClearDependencies));
+  };
+
+  const beginDependencyChanges = () =>
+    sendRequest(RequestType.BeginDependencyChanges);
+  const mergeDependencyChanges = async () => {
+    if (pendingDependencyRequest.length > 0) {
+      waitForPendingRequest(pendingDependencyRequest);
+      pendingDependencyRequest.length = 0;
+    }
+    await sendRequest(RequestType.MergeDependencyChanges);
   };
   loaderContext.resolve = function resolve(context, request, callback) {
     sendRequest(RequestType.Resolve, context, request).then(
@@ -292,29 +303,57 @@ async function loaderImpl(
 
   loaderContext._compilation = {
     ...loaderContext._compilation,
-    getPath(filename, data) {
-      return sendRequest(RequestType.CompilationGetPath, filename, data).wait();
+    getPath(filename, data = {}) {
+      if (!data.hash) {
+        data = {
+          hash: loaderContext._compilation.hash ?? undefined,
+          ...data,
+        };
+      }
+      const template =
+        typeof filename === 'function' ? filename(data) : filename;
+      return sendRequest(RequestType.CompilationGetPath, template, data).wait();
     },
-    getPathWithInfo(filename, data) {
-      return sendRequest(
+    getPathWithInfo(filename, data = {}) {
+      if (!data.hash) {
+        data = {
+          hash: loaderContext._compilation.hash ?? undefined,
+          ...data,
+        };
+      }
+      const info = {};
+      const template =
+        typeof filename === 'function' ? filename(data, info) : filename;
+      const result = sendRequest(
         RequestType.CompilationGetPathWithInfo,
-        filename,
+        template,
         data,
+        info,
       ).wait();
+      Object.assign(info, result.info);
+      return { path: result.path, info };
     },
-    getAssetPath(filename, data) {
+    getAssetPath(filename, data = {}) {
+      const template =
+        typeof filename === 'function' ? filename(data) : filename;
       return sendRequest(
         RequestType.CompilationGetAssetPath,
-        filename,
+        template,
         data,
       ).wait();
     },
-    getAssetPathWithInfo(filename, data) {
-      return sendRequest(
+    getAssetPathWithInfo(filename, data = {}) {
+      const info = {};
+      const template =
+        typeof filename === 'function' ? filename(data, info) : filename;
+      const result = sendRequest(
         RequestType.CompilationGetAssetPathWithInfo,
-        filename,
+        template,
         data,
+        info,
       ).wait();
+      Object.assign(info, result.info);
+      return { path: result.path, info };
     },
   } as LoaderContext['_compilation'];
 
@@ -503,12 +542,55 @@ async function loaderImpl(
           continue;
         }
 
-        await loadLoaderAsync(currentLoaderObject, loaderContext._compiler);
-        const fn = currentLoaderObject.normal;
-        currentLoaderObject.normalExecuted = true;
-        if (!fn) continue;
-        convertArgs(args, !!currentLoaderObject.raw);
-        args = (await runSyncOrAsync(fn, loaderContext, args)) || [];
+        const trackDependencies = currentLoaderObject.loaderItem.cache;
+        if (trackDependencies) {
+          await beginDependencyChanges();
+        }
+        try {
+          if (currentLoaderObject.loaderItem.cache) {
+            waitForPendingRequest(pendingDependencyRequest);
+            const hit = await sendRequest(
+              RequestType.LoaderCacheGet,
+              loaderContext.loaderIndex,
+              args[0],
+              args[2],
+            );
+            if (hit) {
+              currentLoaderObject.normalExecuted = true;
+              args = [
+                typeof hit.content === 'string'
+                  ? hit.content
+                  : hit.content && Buffer.from(hit.content),
+                hit.sourceMap
+                  ? toObject(Buffer.from(hit.sourceMap))
+                  : undefined,
+                undefined,
+              ];
+              continue;
+            }
+          }
+
+          await loadLoaderAsync(currentLoaderObject, loaderContext._compiler);
+          const fn = currentLoaderObject.normal;
+          currentLoaderObject.normalExecuted = true;
+          if (!fn) continue;
+          convertArgs(args, !!currentLoaderObject.raw);
+          args = (await runSyncOrAsync(fn, loaderContext, args)) || [];
+          if (currentLoaderObject.loaderItem.cache) {
+            waitForPendingRequest(pendingDependencyRequest);
+            await sendRequest(
+              RequestType.LoaderCacheStore,
+              loaderContext.loaderIndex,
+              args[0],
+              serializeObject(args[1]),
+              args[2],
+            );
+          }
+        } finally {
+          if (trackDependencies) {
+            await mergeDependencyChanges();
+          }
+        }
       }
     }
   }
@@ -618,11 +700,14 @@ function createSendRequest(
     result.id = id;
     return result;
   }) as SendRequestFunction;
-  sendRequest.sync = createSendRequestSync(workerSyncPort);
+  sendRequest.sync = createSendRequestSync(workerPort, workerSyncPort);
   return sendRequest;
 }
 
-function createSendRequestSync(workerSyncPort: MessagePort) {
+function createSendRequestSync(
+  workerPort: MessagePort,
+  workerSyncPort: MessagePort,
+) {
   return (requestType: RequestSyncType, ...args: any[]) => {
     const id = nextId++;
 
@@ -631,7 +716,7 @@ function createSendRequestSync(workerSyncPort: MessagePort) {
     const sharedBuffer = new SharedArrayBuffer(8);
     const sharedBufferView = new Int32Array(sharedBuffer);
 
-    workerSyncPort.postMessage({
+    workerPort.postMessage({
       type: 'request-sync',
       id,
       requestType,

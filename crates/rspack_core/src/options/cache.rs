@@ -1,4 +1,7 @@
-use crate::cache::persistent::PersistentCacheOptions;
+pub use crate::cache::{
+  BuildDepsOptions, PathMatcher, PersistentCacheOptions, SnapshotOptions, SnapshotStrategyOptions,
+  StorageOptions,
+};
 
 #[derive(Debug, Clone)]
 pub enum CacheOptions {
@@ -9,6 +12,7 @@ pub enum CacheOptions {
     /// For example, if `max_generations` is set to 1,
     /// the cache will be removed if it's not accessed for 1 compilation generation.
     max_generations: u32,
+    snapshot: SnapshotOptions,
   },
   Persistent(PersistentCacheOptions),
 }

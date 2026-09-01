@@ -1,7 +1,9 @@
+use std::sync::Arc;
+
 use concat_string::concat_string;
 use rspack_core::{
-  ConstDependency, ImportMetaKnownProperties, ModuleArgument, RuntimeGlobals,
-  RuntimeGlobalsRenderMode, RuntimeRequirementsDependency,
+  BoxDependency, ConstDependency, DependencyCodeGenerationRef, ImportMetaKnownProperties,
+  ModuleArgument, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeRequirementsDependency,
   RuntimeRequirementsDependencyWriteOperation, property_access,
   runtime_mode::RuntimeMode as ExperimentRuntimeMode,
 };
@@ -26,7 +28,7 @@ fn expression_not_supported(
   name: &str,
   is_call: bool,
   expr_span: Span,
-) -> (Error, Box<ConstDependency>) {
+) -> (Error, DependencyCodeGenerationRef) {
   let mut error = create_traceable_error(
     "Unsupported feature".into(),
     format!(
@@ -40,7 +42,7 @@ fn expression_not_supported(
   error.hide_stack = Some(true);
   (
     error,
-    Box::new(ConstDependency::new(expr_span.into(), "(void 0)".into())),
+    Arc::new(ConstDependency::new(expr_span.into(), "(void 0)".into())),
   )
 }
 
@@ -327,7 +329,7 @@ pub(crate) fn render_import_meta_runtime_api_destructuring(
   parser: &mut JavascriptParser,
   api: &ImportMetaRuntimeApi,
 ) -> Option<String> {
-  parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
+  parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
     api.runtime_global,
   )));
   Some(format!(
@@ -347,7 +349,7 @@ pub(crate) fn import_meta_runtime_api_member(
   } else {
     RuntimeRequirementsDependency::new(span.into(), api.runtime_global)
   };
-  parser.add_presentational_dependency(Box::new(dep));
+  parser.add_presentational_dependency(Arc::new(dep));
   Some(true)
 }
 
@@ -359,7 +361,7 @@ pub(crate) fn import_meta_runtime_api_call(
   if api.type_of != "function" {
     return None;
   }
-  parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+  parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
     call_expr.callee.span().into(),
     api.runtime_global,
   )));
@@ -382,7 +384,7 @@ pub(crate) fn import_meta_runtime_api_assign(
       if is_simple_assign_op(operation) {
         concat_string!("({}).", property)
       } else {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
+        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
           api.runtime_global,
         )));
         concat_string!(
@@ -398,7 +400,7 @@ pub(crate) fn import_meta_runtime_api_assign(
       "({})".to_string()
     };
     parser
-      .add_presentational_dependency(Box::new(ConstDependency::new(span.into(), content.into())));
+      .add_presentational_dependency(Arc::new(ConstDependency::new(span.into(), content.into())));
     return Some(true);
   }
   if parser.parser_runtime_requirements.render_mode == RuntimeGlobalsRenderMode::RspackExport
@@ -421,7 +423,7 @@ pub(crate) fn import_meta_runtime_api_assign(
   } else {
     RuntimeRequirementsDependency::write(span.into(), api.runtime_global)
   };
-  parser.add_presentational_dependency(Box::new(dependency));
+  parser.add_presentational_dependency(Arc::new(dependency));
   Some(true)
 }
 
@@ -514,7 +516,7 @@ fn static_require_member_chain(
       } else {
         RuntimeRequirementsDependency::new(dep_span.into(), runtime_global)
       };
-      parser.add_presentational_dependency(Box::new(dep));
+      parser.add_presentational_dependency(Arc::new(dep));
     } else {
       let require_scope = if parser.parser_runtime_requirements.render_mode
         == RuntimeGlobalsRenderMode::RspackExport
@@ -528,10 +530,10 @@ fn static_require_member_chain(
         require_scope,
         property_access(members.iter().map(Atom::as_ref), 0)
       );
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
+      parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
         RuntimeGlobals::REQUIRE_SCOPE,
       )));
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         expr_span.into(),
         content.into(),
       )));
@@ -551,7 +553,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     for_name: &str,
   ) -> Option<bool> {
     (for_name == API_IS_INCLUDED).then(|| {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         (expr.span.real_lo(), expr.span.real_hi()).into(),
         "'function'".into(),
       )));
@@ -590,7 +592,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == API_LAYER {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         ident.span.into(),
         serde_json::to_string(&parser.module_layer)
           .expect("should stringify JSON")
@@ -603,7 +605,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       let range = ident.span.into();
       let loc = parser.to_dependency_location(range);
       parser
-        .add_presentational_dependency(Box::new(ModuleArgumentDependency::new(None, range, loc)));
+        .add_presentational_dependency(Arc::new(ModuleArgumentDependency::new(None, range, loc)));
       return Some(true);
     }
 
@@ -615,12 +617,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
         "require".into()
       };
       parser
-        .add_presentational_dependency(Box::new(ConstDependency::new(ident.span.into(), content)));
+        .add_presentational_dependency(Arc::new(ConstDependency::new(ident.span.into(), content)));
       return Some(true);
     }
 
     if for_name == API_EXPORTS_INFO {
-      let dep = Box::new(ConstDependency::new(ident.span.into(), "true".into()));
+      let dep = Arc::new(ConstDependency::new(ident.span.into(), "true".into()));
       parser.add_presentational_dependency(dep);
       return Some(true);
     }
@@ -633,27 +635,27 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Require))
         && parser.compiler_options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack =>
       {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
           runtime_global,
         )));
         Some(true)
       }
       _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Require)) => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
+        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
           runtime_global,
         )));
         None
       }
       _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Call)) => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::call(
+        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::call(
           ident.span.into(),
           runtime_global,
         )));
         Some(true)
       }
       API_LAYER => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           ident.span.into(),
           parser
             .module_layer
@@ -663,7 +665,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
         Some(true)
       }
       _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Normal)) => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
           runtime_global,
         )));
@@ -714,7 +716,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     }
 
     if for_name == "require.cache" {
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+      parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
         member_expr.span().into(),
         RuntimeGlobals::MODULE_CACHE,
       )));
@@ -722,7 +724,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     }
 
     if for_name == "require.main" {
-      parser.add_presentational_dependency(Box::new(RequireMainDependency::new(
+      parser.add_presentational_dependency(Arc::new(RequireMainDependency::new(
         member_expr.span().into(),
       )));
       return Some(true);
@@ -731,7 +733,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     if for_name == "__webpack_module__.id" {
       let range = member_expr.span.into();
       let loc = parser.to_dependency_location(range);
-      parser.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
+      parser.add_presentational_dependency(Arc::new(ModuleArgumentDependency::new(
         Some("id".into()),
         range,
         loc,
@@ -754,7 +756,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     let len = members.len();
     if len >= 1 && for_name == API_EXPORTS_INFO {
       let prop = members[len - 1].clone();
-      let dep = Box::new(ExportInfoDependency::new(
+      let dep = Arc::new(ExportInfoDependency::new(
         member_expr.span.real_lo(),
         member_expr.span.real_hi(),
         members.iter().take(len - 1).cloned().collect::<Vec<_>>(),
@@ -806,16 +808,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     );
     if handled.is_some() {
       if preserve_require_receiver && let Some(first_arg) = expr.args.first() {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
+        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
           RuntimeGlobals::REQUIRE,
         )));
         let callee_end = expr.callee.span().real_hi();
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           (callee_end, callee_end).into(),
           ".call".into(),
         )));
         let first_arg_start = first_arg.span().real_lo();
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           (first_arg_start, first_arg_start).into(),
           format!("{}, ", parser.parser_runtime_requirements.require).into(),
         )));
@@ -873,7 +875,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
         expr.op,
         runtime_global,
       )?;
-      parser.add_presentational_dependency(Box::new(dependency));
+      parser.add_presentational_dependency(Arc::new(dependency));
       return Some(true);
     }
     None
@@ -933,7 +935,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     {
       let request = parser.evaluate_expression(&call_expr.args[0].expr);
       if request.is_string() {
-        parser.add_dependency(Box::new(IsIncludeDependency::new(
+        parser.add_dependency(BoxDependency::new(IsIncludeDependency::new(
           (call_expr.span.real_lo(), call_expr.span.real_hi()).into(),
           request.string().clone(),
         )));
@@ -944,7 +946,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     if for_name == API_REQUIRE
       && parser.compiler_options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack
     {
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
+      parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
         RuntimeGlobals::REQUIRE,
       )));
       return None;

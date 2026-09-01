@@ -31,6 +31,7 @@ import type { ChunkGraph } from './ChunkGraph';
 import type { Compiler } from './Compiler';
 import type { ContextModuleFactory } from './ContextModuleFactory';
 import type {
+  Filename,
   OutputNormalized,
   RspackOptionsNormalized,
   RspackPluginInstance,
@@ -47,6 +48,7 @@ import type { NormalModuleFactory } from './NormalModuleFactory';
 import type { ResolverFactory } from './ResolverFactory';
 import type { RspackError } from './RspackError';
 import { RuntimeModule } from './RuntimeModule';
+import { RuntimeTemplate } from './RuntimeTemplate';
 import {
   Stats,
   type StatsAsset,
@@ -314,6 +316,7 @@ export class Compilation {
   inputFileSystem: InputFileSystem | null;
   options: RspackOptionsNormalized;
   outputOptions: OutputNormalized;
+  runtimeTemplate: RuntimeTemplate;
   logging: Map<string, LogEntry[]>;
   childrenCounters: Record<string, number>;
   children: Compilation[];
@@ -461,6 +464,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     this.inputFileSystem = compiler.inputFileSystem;
     this.options = compiler.options;
     this.outputOptions = compiler.options.output;
+    this.runtimeTemplate = new RuntimeTemplate(this, this.outputOptions);
     this.logging = new Map();
     this.childrenCounters = {};
     this.children = [];
@@ -789,24 +793,40 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     this.#warnings.splice(0, this.#warnings.length, ...warnings);
   }
 
-  getPath(filename: string, data: PathData = {}) {
-    const pathData = normalizePathData(data);
-    return this.#inner.getPath(filename, pathData);
+  getPath(filename: Filename, data: PathData = {}) {
+    if (!data.hash) {
+      data = {
+        hash: this.hash ?? undefined,
+        ...data,
+      };
+    }
+    return this.getAssetPath(filename, data);
   }
 
-  getPathWithInfo(filename: string, data: PathData = {}) {
-    const pathData = normalizePathData(data);
-    return this.#inner.getPathWithInfo(filename, pathData);
+  getPathWithInfo(filename: Filename, data: PathData = {}) {
+    if (!data.hash) {
+      data = {
+        hash: this.hash ?? undefined,
+        ...data,
+      };
+    }
+    return this.getAssetPathWithInfo(filename, data);
   }
 
-  getAssetPath(filename: string, data: PathData = {}) {
+  getAssetPath(filename: Filename, data: PathData = {}) {
+    const template = typeof filename === 'function' ? filename(data) : filename;
     const pathData = normalizePathData(data);
-    return this.#inner.getAssetPath(filename, pathData);
+    return this.#inner.getAssetPath(template, pathData);
   }
 
-  getAssetPathWithInfo(filename: string, data: PathData = {}) {
+  getAssetPathWithInfo(filename: Filename, data: PathData = {}) {
+    const info: AssetInfo = {};
+    const template =
+      typeof filename === 'function' ? filename(data, info) : filename;
     const pathData = normalizePathData(data);
-    return this.#inner.getAssetPathWithInfo(filename, pathData);
+    const result = this.#inner.getAssetPathWithInfo(template, pathData, info);
+    Object.assign(info, result.info);
+    return { path: result.path, info };
   }
 
   getLogger(name: string | (() => string)) {

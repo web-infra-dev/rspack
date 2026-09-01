@@ -10,14 +10,14 @@ use heck::{ToKebabCase, ToLowerCamelCase};
 use once_cell::sync::OnceCell;
 use regex::Regex;
 use rspack_core::{
-  BoxDependency, ChunkGraph, Compilation, CompilerOptions, CssExportType, CssExportsConvention,
-  CssModuleGeneratorOptions, CssModuleRenderCondition, GeneratorOptions, ImportAttributes,
-  LocalIdentName, Module, ModuleType, NormalModuleCreateData, PathData, ReplaceAllPlaceholder,
-  ResourceData,
+  ChunkGraph, Compilation, CompilerOptions, CssExportType, CssExportsConvention,
+  CssModuleGeneratorOptions, CssModuleRenderCondition, Dependency, FilenameRenderValue,
+  GeneratorOptions, ImportAttributes, LocalIdentName, Module, ModuleType, NormalModuleCreateData,
+  PathData, PlaceholderKind, ResourceData,
 };
 use rspack_error::{Diagnostic, Error, Result, Severity};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHasher};
-use rspack_util::{base64, identifier::make_paths_relative, itoa, json_stringify_str};
+use rspack_util::{identifier::make_paths_relative, itoa, json_stringify_str};
 use rustc_hash::{FxHashSet, FxHasher};
 
 use crate::{
@@ -107,7 +107,7 @@ pub(crate) fn css_attribute_export_type(
     .and_then(|value| (value == "css").then_some(CssExportType::CssStyleSheet))
 }
 
-pub(crate) fn css_dependency_export_type(dependency: &BoxDependency) -> Option<CssExportType> {
+pub(crate) fn css_dependency_export_type(dependency: &dyn Dependency) -> Option<CssExportType> {
   dependency
     .downcast_ref::<CssImportDependency>()
     .and_then(|dep| dep.export_type())
@@ -125,7 +125,7 @@ pub(crate) struct CssDependencyMeta {
   pub export_type: Option<CssExportType>,
 }
 
-pub(crate) fn css_dependency_meta(dependency: &BoxDependency) -> CssDependencyMeta {
+pub(crate) fn css_dependency_meta(dependency: &dyn Dependency) -> CssDependencyMeta {
   let css_import_dependency = dependency.downcast_ref::<CssImportDependency>();
   let is_css_import_dependency = css_import_dependency.is_some();
   let is_css_dependency =
@@ -154,7 +154,6 @@ pub struct LocalIdentModuleHashOptions<'a> {
   pub export_dependency_names: Vec<String>,
   pub graph_export_names: FxHashSet<String>,
   pub presentational_dependency_hash_updates: Vec<PresentationalDependencyHashUpdate<'a>>,
-  pub exports_only: bool,
   pub es_module: bool,
   pub named_exports: bool,
   pub exports_convention: Option<CssExportsConvention>,
@@ -271,22 +270,15 @@ impl<'a> LocalIdentOptions<'a> {
     let mut hasher =
       RspackHasher::with_salt(&self.local_ident_hash_function, self.local_ident_hash_salt);
     hasher.write(build_hash.as_bytes());
-    if module_hash_options.exports_only {
-      hasher.write(b"javascript");
-    } else {
-      hasher.write(b"javascript");
-      hasher.write(b"css");
-    }
+    // Local identifiers must be independent of whether CSS is emitted.
+    hasher.write(b"javascript");
+    hasher.write(b"css");
     hasher.write(if module_hash_options.es_module {
       b"true"
     } else {
       b"false"
     });
-    hasher.write(if module_hash_options.exports_only {
-      b"true"
-    } else {
-      b"false"
-    });
+    hasher.write(b"false");
     hasher.write(graph_hash.as_bytes());
     let mut itoa_buffer = itoa::Buffer::new();
     for update in module_hash_options
@@ -495,15 +487,6 @@ struct LocalIdentNameRenderOptions<'a> {
   folder: &'a str,
 }
 
-fn render_hash(hash: &str, len: Option<usize>, need_base64: bool) -> String {
-  let content = if need_base64 {
-    base64::encode_to_string(hash)
-  } else {
-    hash.to_string()
-  };
-  content[..len.unwrap_or(content.len()).min(content.len())].to_string()
-}
-
 fn non_numeric_only_hash(hash: &str, hash_length: usize) -> String {
   if hash_length < 1 {
     return String::new();
@@ -524,26 +507,22 @@ fn non_numeric_only_hash(hash: &str, hash_length: usize) -> String {
 
 impl LocalIdentNameRenderOptions<'_> {
   pub async fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> Result<String> {
-    let template = local_ident_name.template.template().map_or_else(
-      || local_ident_name.template.clone(),
-      |template| {
-        template
-          .replace_all_with_len("[fullhash]", |len, need_base64| {
-            render_hash(self.local_ident_hash, len, need_base64)
-          })
-          .into_owned()
-          .into()
-      },
-    );
-    let raw = template.render(self.path_data, None).await?;
-    let s: &str = raw.as_ref();
-
-    Ok(
-      s.cow_replace("[uniqueName]", self.unique_name)
-        .cow_replace("[local]", self.local)
-        .cow_replace("[folder]", self.folder)
-        .into_owned(),
-    )
+    local_ident_name
+      .template
+      .render_with(self.path_data, None, |placeholder| {
+        match placeholder.kind() {
+          PlaceholderKind::FullHash => Some(FilenameRenderValue::Value(Cow::Borrowed(
+            self.local_ident_hash,
+          ))),
+          PlaceholderKind::UniqueName => {
+            Some(FilenameRenderValue::Value(Cow::Borrowed(self.unique_name)))
+          }
+          PlaceholderKind::Local => Some(FilenameRenderValue::Value(Cow::Borrowed(self.local))),
+          PlaceholderKind::Folder => Some(FilenameRenderValue::Value(Cow::Borrowed(self.folder))),
+          _ => None,
+        }
+      })
+      .await
   }
 }
 

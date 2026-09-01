@@ -2,11 +2,11 @@ use std::{path::Path, sync::Arc};
 
 use once_cell::sync::OnceCell;
 use rspack_core::{
-  BoxDependencyTemplate, BoxModuleDependency, ConstDependency, CssAutoOrModuleParserOptions,
-  CssExport, CssExportType, CssExports, CssExportsConvention, CssLayer, CssLocalNames,
-  CssModuleGeneratorOptions, CssModuleRenderCondition, CssParserImport, CssParserImportContext,
-  Dependency, DependencyId, DependencyRange, ModuleType, ParseContext, ParseResult, ResourceData,
-  StaticExportsDependency, StaticExportsSpec,
+  BoxDependency, ConstDependency, CssAutoOrModuleParserOptions, CssExport, CssExportType,
+  CssExports, CssExportsConvention, CssLayer, CssLocalNames, CssModuleGeneratorOptions,
+  CssModuleRenderCondition, CssParserImport, CssParserImportContext, Dependency,
+  DependencyCodeGenerationRef, DependencyId, DependencyRange, ModuleType, ParseContext,
+  ParseResult, ResourceData, StaticExportsDependency, StaticExportsSpec,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics, remove_bom, rspack_sources::Source,
   topological_sort,
 };
@@ -33,16 +33,15 @@ use crate::{
 pub(super) struct CssModuleParser<'context> {
   parser_options: &'context CssAutoOrModuleParserOptions,
   generator_options: &'context CssModuleGeneratorOptions,
-  exports_only: bool,
   export_type: Option<CssExportType>,
   has_charset: bool,
   parse_context: ParseContext<'context>,
   source: Arc<dyn Source>,
   source_code: Arc<str>,
   diagnostics: Vec<Diagnostic>,
-  dependencies: Vec<Box<dyn Dependency>>,
-  presentational_dependencies: Vec<BoxDependencyTemplate>,
-  code_generation_dependencies: Vec<BoxModuleDependency>,
+  dependencies: Vec<BoxDependency>,
+  presentational_dependencies: Vec<DependencyCodeGenerationRef>,
+  code_generation_dependencies: Vec<DependencyId>,
   css_exports: CssExports,
   css_local_names: CssLocalNames,
   icss_definitions: FxHashMap<String, IcssDefinition>,
@@ -217,7 +216,6 @@ impl<'context> CssModuleParser<'context> {
   pub fn new(
     generator_options: &'context CssModuleGeneratorOptions,
     parser_options: &'context CssAutoOrModuleParserOptions,
-    exports_only: bool,
     parse_context: ParseContext<'context>,
   ) -> Self {
     let source = remove_bom(parse_context.source.clone());
@@ -233,7 +231,6 @@ impl<'context> CssModuleParser<'context> {
     Self {
       parser_options,
       generator_options,
-      exports_only,
       export_type,
       has_charset: false,
       parse_context,
@@ -280,7 +277,7 @@ impl<'context> CssModuleParser<'context> {
     ) {
       self
         .dependencies
-        .push(Box::new(StaticExportsDependency::new(
+        .push(BoxDependency::new(StaticExportsDependency::new(
           StaticExportsSpec::Array(vec!["default".into()]),
           false,
         )));
@@ -562,7 +559,6 @@ impl<'context> CssModuleParser<'context> {
       export_dependency_names,
       graph_export_names: graph_export_name_set,
       presentational_dependency_hash_updates,
-      exports_only: self.exports_only,
       es_module: self.es_module(),
       named_exports: self.named_exports(),
       exports_convention: self.generator_options.exports_convention,
@@ -747,7 +743,7 @@ impl<'context> CssModuleParser<'context> {
         let range = self.presentational_replace_range(content, *range);
         self
           .presentational_dependencies
-          .push(Box::new(ConstDependency::new(range, (*content).into())));
+          .push(Arc::new(ConstDependency::new(range, (*content).into())));
         Ok(())
       }
       css_module_lexer::Dependency::Charset { range, .. } => {
@@ -940,7 +936,7 @@ impl<'context> CssModuleParser<'context> {
     self.has_charset = true;
     self
       .presentational_dependencies
-      .push(Box::new(ConstDependency::new(
+      .push(Arc::new(ConstDependency::new(
         (range.start, range.end).into(),
         "".into(),
       )));
@@ -964,13 +960,13 @@ impl<'context> CssModuleParser<'context> {
       range.end,
     );
     let request = normalize_url(request);
-    let dep = Box::new(CssUrlDependency::new(
+    let dep = CssUrlDependency::new(
       request.into_owned(),
       DependencyRange::new(range.start, range.end),
       matches!(kind, css_module_lexer::UrlRangeKind::Function),
-    ));
-    self.dependencies.push(dep.clone());
-    self.code_generation_dependencies.push(dep);
+    );
+    self.code_generation_dependencies.push(*dep.id());
+    self.dependencies.push(BoxDependency::new(dep));
     Ok(())
   }
 
@@ -986,7 +982,7 @@ impl<'context> CssModuleParser<'context> {
     if request.trim().is_empty() {
       self
         .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
+        .push(Arc::new(ConstDependency::new(
           (range.start, range.end).into(),
           "".into(),
         )));
@@ -1018,15 +1014,15 @@ impl<'context> CssModuleParser<'context> {
       supports.map(|supports| supports.trim().into()),
       layer,
     );
-    let dep = Box::new(CssImportDependency::new(
+    let dep = CssImportDependency::new(
       request,
       DependencyRange::new(range.start, range.end),
       inherited_render_conditions,
       render_condition,
       self.export_type(),
-    ));
-    self.dependencies.push(dep.clone());
-    self.code_generation_dependencies.push(dep);
+    );
+    self.code_generation_dependencies.push(*dep.id());
+    self.dependencies.push(BoxDependency::new(dep));
     Ok(())
   }
 
@@ -1176,15 +1172,15 @@ impl<'context> CssModuleParser<'context> {
     let (local_ident, convention_names) = self
       .resolve_local_ident_and_update_exports(&name, module_hash_options)
       .await?;
-    self
-      .dependencies
-      .push(Box::new(CssSelfReferenceLocalIdentDependency::new(
+    self.dependencies.push(BoxDependency::new(
+      CssSelfReferenceLocalIdentDependency::new(
         convention_names,
         vec![CssSelfReferenceLocalIdentReplacement {
           local_ident,
           range: (range.start, range.end).into(),
         }],
-      )));
+      ),
+    ));
     Ok(())
   }
 
@@ -1221,7 +1217,7 @@ impl<'context> CssModuleParser<'context> {
 
     self
       .dependencies
-      .push(Box::new(CssLocalIdentDependency::new(
+      .push(BoxDependency::new(CssLocalIdentDependency::new(
         local_ident,
         convention_names,
         start,
@@ -1264,15 +1260,15 @@ impl<'context> CssModuleParser<'context> {
     let (local_ident, convention_names) = self
       .resolve_local_var_ident_and_update_exports(name, module_hash_options)
       .await?;
-    self
-      .dependencies
-      .push(Box::new(CssSelfReferenceLocalIdentDependency::new(
+    self.dependencies.push(BoxDependency::new(
+      CssSelfReferenceLocalIdentDependency::new(
         convention_names,
         vec![CssSelfReferenceLocalIdentReplacement {
           local_ident,
           range: (range.start, range.end).into(),
         }],
-      )));
+      ),
+    ));
     Ok(())
   }
 
@@ -1309,7 +1305,7 @@ impl<'context> CssModuleParser<'context> {
 
     self
       .dependencies
-      .push(Box::new(CssLocalIdentDependency::new(
+      .push(BoxDependency::new(CssLocalIdentDependency::new(
         local_ident,
         convention_names,
         start,
@@ -1473,14 +1469,11 @@ impl<'context> CssModuleParser<'context> {
       self
         .composes_order
         .track_request_order(&local_classes, from, range.start, *dep.id());
-      self.dependencies.push(Box::new(dep));
+      self.dependencies.push(BoxDependency::new(dep));
     } else if from.is_none() {
-      self
-        .dependencies
-        .push(Box::new(CssSelfReferenceLocalIdentDependency::new(
-          names.clone(),
-          vec![],
-        )));
+      self.dependencies.push(BoxDependency::new(
+        CssSelfReferenceLocalIdentDependency::new(names.clone(), vec![]),
+      ));
     }
 
     let convention = self.convention();
@@ -1574,7 +1567,9 @@ impl<'context> CssModuleParser<'context> {
     }
     self
       .dependencies
-      .push(Box::new(CssExportDependency::new(convention_names)));
+      .push(BoxDependency::new(CssExportDependency::new(
+        convention_names,
+      )));
   }
 
   fn handle_icss_import_from(&mut self, path: &str) {
@@ -1601,12 +1596,14 @@ impl<'context> CssModuleParser<'context> {
         self.update_css_exports_from_custom_property_definition(name, prop, &definition);
       }
     }
-    self.dependencies.push(Box::new(CssComposeDependency::new(
-      request,
-      vec![value.to_owned().into()],
-      DependencyRange::new(0, 0),
-      self.export_type(),
-    )));
+    self
+      .dependencies
+      .push(BoxDependency::new(CssComposeDependency::new(
+        request,
+        vec![value.to_owned().into()],
+        DependencyRange::new(0, 0),
+        self.export_type(),
+      )));
   }
 
   fn handle_icss_symbol(&mut self, name: &str, range: css_module_lexer::Range) {
@@ -1615,7 +1612,7 @@ impl<'context> CssModuleParser<'context> {
     };
     self
       .dependencies
-      .push(Box::new(CssIcssSymbolDependency::new(
+      .push(BoxDependency::new(CssIcssSymbolDependency::new(
         self.icss_symbol_value_from_definition(name, &definition),
         (range.start, range.end).into(),
       )));

@@ -17,7 +17,7 @@ authors:
     github: 'ahabhgk'
 ---
 
-import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 # Announcing Rspack 1.2
 
@@ -191,7 +191,7 @@ For more details, see [FAQ - SWC plugin version mismatch](https://swc.rs/docs/pl
 
 ### Disable WarnCaseSensitiveModulesPlugin by default
 
-The [WarnCaseSensitiveModulesPlugin](/plugins/webpack/case-sensitive-plugin) is used to check the paths of modules and issue warnings for modules that conflict when their paths are all in lowercase. Rspack used to enable it by default, but since it is only a "linter" plugin and it has additional performance overhead especially in development mode. So now it is disabled by default.
+The [WarnCaseSensitiveModulesPlugin](/plugins/case-sensitive-plugin) is used to check the paths of modules and issue warnings for modules that conflict when their paths are all in lowercase. Rspack used to enable it by default, but since it is only a "linter" plugin and it has additional performance overhead especially in development mode. So now it is disabled by default.
 
 If you prefer to keep the previous behavior, you can set:
 

@@ -342,6 +342,8 @@ fn configure_swc_loader(builder: &mut CompilerBuilder) {
             })
             .to_string(),
           ),
+          cache: false,
+          options_cache_key: String::new(),
         }]),
         ..Default::default()
       },
@@ -366,6 +368,7 @@ fn reset_compilation_state(compiler: &mut Compiler) {
 
   let compiler_id = compiler.id();
   let compiler_context = CURRENT_COMPILER_CONTEXT.get();
+  let cache = Cache::new_disabled(compiler.compiler_path.clone());
   fast_set(
     &mut compiler.compilation,
     Compilation::new(
@@ -380,7 +383,7 @@ fn reset_compilation_state(compiler: &mut Compiler) {
       Incremental::new_cold(compiler.options.incremental),
       Some(Default::default()),
       Default::default(),
-      Cache::new_disabled(compiler.compiler_path.clone()),
+      cache,
       Default::default(),
       Default::default(),
       compiler.input_filesystem.clone(),

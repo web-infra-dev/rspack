@@ -4,7 +4,6 @@ mod executor;
 mod ignored;
 mod paths;
 mod scanner;
-mod time_info;
 mod trigger;
 
 use std::{
@@ -23,7 +22,7 @@ use executor::Executor;
 pub use ignored::{FsWatcherIgnored, IgnoredFn};
 use paths::PathManager;
 use rspack_error::Result;
-use rspack_paths::ArcPath;
+use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 use scanner::Scanner;
 use tokio::sync::{mpsc, oneshot};
@@ -31,7 +30,7 @@ use trigger::Trigger;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub(crate) struct WatchPattern {
-  path: ArcPath,
+  path: InternedPath,
   mode: notify::RecursiveMode,
 }
 
@@ -44,7 +43,7 @@ pub enum FsEventKind {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct FsEvent {
-  pub path: ArcPath,
+  pub path: InternedPath,
   pub kind: FsEventKind,
 }
 
@@ -98,9 +97,9 @@ const WATCHER_UNAVAILABLE: &str =
 
 enum WatcherOp {
   Watch {
-    files: (Vec<ArcPath>, Vec<ArcPath>),
-    directories: (Vec<ArcPath>, Vec<ArcPath>),
-    missing: (Vec<ArcPath>, Vec<ArcPath>),
+    files: (Vec<InternedPath>, Vec<InternedPath>),
+    directories: (Vec<InternedPath>, Vec<InternedPath>),
+    missing: (Vec<InternedPath>, Vec<InternedPath>),
     start_time: SystemTime,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
@@ -169,9 +168,18 @@ impl FsWatcher {
   /// * `event_handler` - A boxed trait object for handling individual events.
   pub fn watch(
     &self,
-    files: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
-    directories: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
-    missing: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
+    files: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+    directories: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+    missing: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
     start_time: SystemTime,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
@@ -219,7 +227,7 @@ impl FsWatcher {
     })
   }
 
-  pub fn trigger_event(&self, path: &ArcPath, kind: FsEventKind) {
+  pub fn trigger_event(&self, path: &InternedPath, kind: FsEventKind) {
     let trigger = self.trigger.lock().expect("should lock trigger").clone();
     if let Some(trigger) = trigger {
       trigger.on_event(path, kind);
@@ -299,9 +307,9 @@ fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<Watche
 impl FsWatcherInner {
   async fn watch(
     &mut self,
-    files: (Vec<ArcPath>, Vec<ArcPath>),
-    directories: (Vec<ArcPath>, Vec<ArcPath>),
-    missing: (Vec<ArcPath>, Vec<ArcPath>),
+    files: (Vec<InternedPath>, Vec<InternedPath>),
+    directories: (Vec<InternedPath>, Vec<InternedPath>),
+    missing: (Vec<InternedPath>, Vec<InternedPath>),
     start_time: SystemTime,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
@@ -333,9 +341,9 @@ impl FsWatcherInner {
 
   async fn wait_for_event(
     &mut self,
-    files: (Vec<ArcPath>, Vec<ArcPath>),
-    directories: (Vec<ArcPath>, Vec<ArcPath>),
-    missing: (Vec<ArcPath>, Vec<ArcPath>),
+    files: (Vec<InternedPath>, Vec<InternedPath>),
+    directories: (Vec<InternedPath>, Vec<InternedPath>),
+    missing: (Vec<InternedPath>, Vec<InternedPath>),
     start_time: SystemTime,
   ) -> Result<()> {
     self

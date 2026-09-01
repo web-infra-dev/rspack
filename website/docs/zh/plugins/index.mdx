@@ -1,40 +1,76 @@
 ---
-description: 'Rspack 插件文档总览，涵盖内置插件、webpack 兼容插件、能力分类与对应参考入口，帮助快速定位相关信息。'
+description: '按功能浏览所有 Rspack 插件文档，并通过简短介绍快速找到对应的参考页面。'
 ---
 
 # Rspack 插件
 
-Rspack 通过丰富插件生态来增强编译功能，这些插件分为以下几类：
+你可以按功能浏览下方 Rspack 内置的插件。
 
-## 内置插件
+如需了解如何使用插件，请参阅[插件使用指南](/guide/features/plugin)。
 
-Rspack 内置了一些高性能的插件，它们可以用于替代 webpack 生态中的一些流行插件，并提供更高效的性能。
+## 产物与资源
 
-包括：
+- [BannerPlugin](/plugins/banner-plugin)：在生成的 chunk 开头或结尾添加横幅内容。
+- [CopyRspackPlugin](/plugins/copy-rspack-plugin)：将文件或目录复制到构建输出目录。
+- [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin)：将 CSS 提取为独立文件，可替代 `mini-css-extract-plugin`。
+- [HtmlRspackPlugin](/plugins/html-rspack-plugin)：生成 HTML 文件并自动注入构建产物中的脚本和样式。
+- [SubresourceIntegrityPlugin](/plugins/subresource-integrity-plugin)：为构建产物生成完整性 hash，并将其添加到 HTML 和 chunk 加载标签中。
 
-- [CircularCheckRspackPlugin](/plugins/rspack/circular-check-rspack-plugin)：检测循环依赖
-- [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin)：将文件或目录复制到构建产物
-- [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin)：按导入顺序切分 CSS，避免样式顺序问题
-- [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin)：把样式抽取为独立 CSS 文件
-- [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin)：生成 HTML 并注入资源
-- [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin)：用 Lightning CSS 压缩样式
-- [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin)：启用子资源完整性（SRI）
-- [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin)：基于 SWC 压缩 JavaScript
-- [VirtualModulesPlugin](/plugins/rspack/virtual-modules-plugin)：在内存中创建和修改虚拟模块
-- [CircularDependencyRspackPlugin](/plugins/rspack/circular-dependency-rspack-plugin)：已废弃，请使用 [CircularCheckRspackPlugin](/plugins/rspack/circular-check-rspack-plugin)
+## 构建优化
 
-## 内置插件（对齐 webpack）
+- [CompactHashedChunkIdsPlugin](/plugins/compact-hashed-chunk-ids-plugin)：为 chunk 分配紧凑且稳定的 hash id。
+- [CompactHashedModuleIdsPlugin](/plugins/compact-hashed-module-ids-plugin)：为模块分配紧凑且稳定的 hash id。
+- [CssChunkingPlugin](/plugins/css-chunking-plugin)：拆分 CSS，并保持必要的样式表加载顺序。
+- [DeterministicModuleIdsPlugin](/plugins/deterministic-module-ids-plugin)：为模块分配较短且在多次构建间保持稳定的数字 id。
+- [DllPlugin](/plugins/dll-plugin)：生成预构建的 DLL bundle 及其 manifest。
+- [DllReferencePlugin](/plugins/dll-reference-plugin)：读取 DLL manifest，以复用预构建的依赖。
+- [LightningCssMinimizerRspackPlugin](/plugins/lightning-css-minimizer-rspack-plugin)：使用 Lightning CSS 压缩 CSS 产物。
+- [LimitChunkCountPlugin](/plugins/limit-chunk-count-plugin)：合并 chunk，将总数量限制在配置值以内。
+- [RuntimeChunkPlugin](/plugins/runtime-chunk-plugin)：控制 Rspack 生成 runtime chunk 的方式。
+- [SplitChunksPlugin](/plugins/split-chunks-plugin)：拆分共享或异步代码，以改善加载性能和缓存效果。
+- [SwcJsMinimizerRspackPlugin](/plugins/swc-js-minimizer-rspack-plugin)：使用 SWC 压缩 JavaScript 产物。
 
-为了对齐 webpack 的功能，Rspack 实现了大部分 webpack 内置插件，它们尽可能地保持了相同的命名和参数配置，并提供相同的功能。
+## 模块与依赖
 
-详见 [内置插件（对齐 webpack） - 总览](/plugins/webpack/)。
+- [ContextReplacementPlugin](/plugins/context-replacement-plugin)：缩小或替换动态 `require` 和 `import()` 上下文可访问的模块范围。
+- [DefinePlugin](/plugins/define-plugin)：在编译时将变量替换为常量值或表达式。
+- [EntryPlugin](/plugins/entry-plugin)：在编译过程中添加入口模块和入口 chunk。
+- [EnvironmentPlugin](/plugins/environment-plugin)：通过 `DefinePlugin` 定义指定的 `process.env` 变量。
+- [ExternalsPlugin](/plugins/externals-plugin)：将指定依赖排除在 bundle 之外，改由外部环境提供。
+- [IgnorePlugin](/plugins/ignore-plugin)：阻止匹配的 `import` 或 `require` 请求生成模块。
+- [JavascriptModulesPlugin](/plugins/javascript-modules-plugin)：处理 JavaScript 模块打包，并提供自定义渲染和 chunk hash 的编译钩子。
+- [ModuleFederationPlugin](/plugins/module-federation-plugin)：在 Rspack 中启用 Module Federation 1.5。
+- [ModuleFederationPluginV1](/plugins/module-federation-plugin-v1)：提供与 webpack 兼容的 Module Federation 1.0 能力。
+- [NormalModuleReplacementPlugin](/plugins/normal-module-replacement-plugin)：将匹配的模块请求替换为另一个资源。
+- [ProvidePlugin](/plugins/provide-plugin)：使用配置的标识符时自动导入对应模块。
+- [VirtualModulesPlugin](/plugins/virtual-modules-plugin)：创建、更新和删除行为与真实文件一致的内存模块。
+
+## 开发与调试
+
+- [CaseSensitivePlugin](/plugins/case-sensitive-plugin)：检测模块引用与文件系统路径的大小写冲突并发出警告。
+- [CircularCheckRspackPlugin](/plugins/circular-check-rspack-plugin)：报告模块图中发现的循环导入。
+- [EvalSourceMapDevToolPlugin](/plugins/eval-source-map-dev-tool-plugin)：使用基于 eval 的映射精细控制 source map 生成。
+- [HotModuleReplacementPlugin](/plugins/hot-module-replacement-plugin)：在开发过程中启用热模块替换。
+- [NoEmitOnErrorsPlugin](/plugins/no-emit-on-errors-plugin)：发生编译错误时阻止生成构建产物。
+- [ProgressPlugin](/plugins/progress-plugin)：报告并自定义编译进度。
+- [SourceMapDevToolPlugin](/plugins/source-map-dev-tool-plugin)：精细控制 source map 的生成方式。
+
+## 参考
+
+- [底层插件](/plugins/low-level-plugins)：汇总用于目标预设、运行时模板、子编译器和上层插件的底层构件。
+- [社区插件兼容性](/plugins/community-plugin-compatibility)：列出常见 webpack 社区插件的兼容结果。
+- [webpack 内置插件兼容性](/plugins/webpack-built-in-plugin-support)：汇总 Rspack 对 webpack 内置插件和部分内部插件的兼容状态。
 
 ## 社区插件
 
 Rspack 致力于兼容 webpack 生态内的插件，以便于使用社区中已经积累和验证的优秀功能。
 
-请查看 [插件兼容列表](/guide/compatibility/plugin) 获取经过我们兼容性测试的 webpack 插件清单。
+请查看[社区插件兼容性](/plugins/community-plugin-compatibility)，获取经过我们兼容性测试的 webpack 插件清单。
 
 你还可以在 [awesome-rstack](https://github.com/rstackjs/awesome-rstack) 中查看社区提供的 Rspack 插件。
 
 欢迎将你开发的插件添加到这个仓库中。
+
+## 已弃用
+
+- [CircularDependencyRspackPlugin](/plugins/circular-dependency-rspack-plugin)：检测循环依赖，现已弃用，请改用 `CircularCheckRspackPlugin`。

@@ -1,15 +1,24 @@
 use std::sync::Arc;
 
-pub use rspack_loader_runner::{Content, Loader, LoaderContext, run_loaders};
+use rspack_fs::ReadableFileSystem;
+pub use rspack_loader_runner::{
+  Content, Loader, LoaderContext, LoaderDependencies, LoaderRunnerOptions, run_loaders,
+};
 use rspack_util::source_map::SourceMapKind;
 
-use crate::{CompilationId, CompilerId, CompilerOptions, NormalModule, ResolverFactory};
+use crate::{
+  CacheFacade, CompilationId, CompilerId, CompilerOptions, FileSystemInfo, NormalModule,
+  ResolverFactory,
+};
 
 #[derive(Debug)]
 pub struct RunnerContext {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub options: Arc<CompilerOptions>,
+  pub fs: Arc<dyn ReadableFileSystem>,
+  pub loader_cache: CacheFacade,
+  pub file_system_info: FileSystemInfo,
   pub resolver_factory: Arc<ResolverFactory>,
   pub module: Box<NormalModule>,
   pub source_map_kind: SourceMapKind,

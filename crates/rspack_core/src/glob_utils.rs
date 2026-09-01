@@ -106,10 +106,9 @@ pub fn is_glob_metacharacter(c: char) -> bool {
   matches!(c, '*' | '?' | '[' | '{')
 }
 
-/// Return the byte index after the base directory prefix of a glob pattern.
-pub fn glob_base_dir_end(pattern: &str) -> usize {
+/// Return the byte index of the first unescaped glob metacharacter in a pattern.
+fn first_glob_metacharacter_index(pattern: &str) -> Option<usize> {
   let mut escaped = false;
-  let mut idx = pattern.len();
   for (byte_idx, c) in pattern.char_indices() {
     if escaped {
       escaped = false;
@@ -122,10 +121,16 @@ pub fn glob_base_dir_end(pattern: &str) -> usize {
     }
 
     if is_glob_metacharacter(c) {
-      idx = byte_idx;
-      break;
+      return Some(byte_idx);
     }
   }
+
+  None
+}
+
+/// Return the byte index after the base directory prefix of a glob pattern.
+pub fn glob_base_dir_end(pattern: &str) -> usize {
+  let idx = first_glob_metacharacter_index(pattern).unwrap_or(pattern.len());
 
   pattern[..idx]
     .rfind('/')
@@ -240,6 +245,24 @@ pub async fn find_files_by_glob(
   let unescaped_base_dir = unescape_glob_path(base_dir);
   let base_dir_path = Utf8Path::new(&unescaped_base_dir);
 
+  // A pattern without metacharacters can only match itself, so walking its base directory is wasted
+  // work. Case-insensitive matching still needs the walk to find the real spelling on disk.
+  if options.case_sensitive && first_glob_metacharacter_index(&normalized_pattern).is_none() {
+    let path = Utf8PathBuf::from(unescape_glob_path(&normalized_pattern));
+    let matched = fs
+      .metadata(&path)
+      .await
+      .is_ok_and(|meta| !meta.is_directory)
+      && glob_match_normalized_with_explicit_dot(
+        &normalized_pattern,
+        path.as_str(),
+        base_dir_path.as_str(),
+        options,
+      );
+
+    return Ok(if matched { vec![path] } else { Vec::new() });
+  }
+
   let mut results = Vec::new();
   walk_dir(
     base_dir_path,
@@ -327,7 +350,102 @@ fn pattern_has_explicit_dot_for(
 
 #[cfg(test)]
 mod tests {
+  use std::sync::atomic::{AtomicUsize, Ordering};
+
+  use rspack_fs::{FileMetadata, FilePermissions, MemoryFileSystem, WritableFileSystem};
+
   use super::*;
+
+  #[derive(Debug, Default)]
+  struct ReadDirCountingFileSystem {
+    inner: MemoryFileSystem,
+    read_dir_count: AtomicUsize,
+  }
+
+  #[async_trait::async_trait]
+  impl ReadableFileSystem for ReadDirCountingFileSystem {
+    async fn read(&self, path: &Utf8Path) -> rspack_fs::Result<Vec<u8>> {
+      self.inner.read(path).await
+    }
+
+    fn read_sync(&self, path: &Utf8Path) -> rspack_fs::Result<Vec<u8>> {
+      self.inner.read_sync(path)
+    }
+
+    async fn metadata(&self, path: &Utf8Path) -> rspack_fs::Result<FileMetadata> {
+      self.inner.metadata(path).await
+    }
+
+    fn metadata_sync(&self, path: &Utf8Path) -> rspack_fs::Result<FileMetadata> {
+      self.inner.metadata_sync(path)
+    }
+
+    async fn symlink_metadata(&self, path: &Utf8Path) -> rspack_fs::Result<FileMetadata> {
+      self.inner.symlink_metadata(path).await
+    }
+
+    async fn canonicalize(&self, path: &Utf8Path) -> rspack_fs::Result<Utf8PathBuf> {
+      self.inner.canonicalize(path).await
+    }
+
+    async fn read_dir(&self, dir: &Utf8Path) -> rspack_fs::Result<Vec<String>> {
+      self.read_dir_count.fetch_add(1, Ordering::Relaxed);
+      ReadableFileSystem::read_dir(&self.inner, dir).await
+    }
+
+    fn read_dir_sync(&self, dir: &Utf8Path) -> rspack_fs::Result<Vec<String>> {
+      self.read_dir_count.fetch_add(1, Ordering::Relaxed);
+      self.inner.read_dir_sync(dir)
+    }
+
+    async fn permissions(&self, path: &Utf8Path) -> rspack_fs::Result<Option<FilePermissions>> {
+      self.inner.permissions(path).await
+    }
+  }
+
+  #[tokio::test]
+  async fn literal_pattern_does_not_walk_its_base_directory() {
+    let fs = Arc::new(ReadDirCountingFileSystem::default());
+    fs.inner
+      .create_dir_all("/project/deps".into())
+      .await
+      .unwrap();
+    fs.inner
+      .write("/project/index.html".into(), "abc".as_bytes())
+      .await
+      .unwrap();
+    fs.inner
+      .write("/project/deps/other.html".into(), "abc".as_bytes())
+      .await
+      .unwrap();
+
+    let entries = find_files_by_glob(
+      "/project/index.html",
+      &GlobMatchOptions::default(),
+      fs.clone() as Arc<dyn ReadableFileSystem>,
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(entries, vec![Utf8PathBuf::from("/project/index.html")]);
+    assert_eq!(fs.read_dir_count.load(Ordering::Relaxed), 0);
+  }
+
+  #[tokio::test]
+  async fn literal_pattern_returns_nothing_when_the_file_is_missing() {
+    let fs = Arc::new(MemoryFileSystem::default());
+    fs.create_dir_all("/project".into()).await.unwrap();
+
+    let entries = find_files_by_glob(
+      "/project/index.html",
+      &GlobMatchOptions::default(),
+      fs as Arc<dyn ReadableFileSystem>,
+    )
+    .await
+    .unwrap();
+
+    assert!(entries.is_empty());
+  }
 
   #[test]
   fn extract_glob_base_dir_skips_escaped_metacharacters() {

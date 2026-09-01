@@ -58,9 +58,9 @@ async fn cmf_before_resolve(&self, mut result: BeforeResolveResult) -> Result<Be
     // if let Some(new_content_callback) = &self.new_content_after_resolve_callback {
     //   new_content_callback(&mut result).await?;
     // } else {
-    for d in &mut data.dependencies {
-      if let Some(d) = d.as_context_dependency_mut() {
-        *d.critical_mut() = None;
+    for d in &data.dependencies {
+      if let Some(d) = d.as_context_dependency() {
+        d.set_critical(None);
       }
     }
     // }
@@ -122,7 +122,6 @@ async fn cmf_after_resolve(&self, mut result: AfterResolveResult) -> Result<Afte
                 attributes: options.context_options.attributes.clone(),
                 referenced_specifiers: options.context_options.referenced_specifiers.clone(),
                 dependency_type: DependencyType::ContextElement(options.type_prefix),
-                factorize_info: Default::default(),
               }
             })
             .collect::<Vec<_>>();
@@ -133,9 +132,9 @@ async fn cmf_after_resolve(&self, mut result: AfterResolveResult) -> Result<Afte
     // if let Some(new_content_callback) = &self.new_content_callback {
     //   new_content_callback(&mut result).await?;
     // } else {
-    for d in &mut data.dependencies {
-      if let Some(d) = d.as_context_dependency_mut() {
-        *d.critical_mut() = None;
+    for d in &data.dependencies {
+      if let Some(d) = d.as_context_dependency() {
+        d.set_critical(None);
       }
     }
     // }

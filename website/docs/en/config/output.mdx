@@ -2,11 +2,9 @@
 description: 'The top-level output key contains a set of options instructing Rspack on how and where it should output your bundles, assets, and anything else you bundle...'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import { Tabs, Tab } from '@theme';
-
-<WebpackLicense from="https://webpack.js.org/configuration/output/" />
 
 # Output
 
@@ -228,8 +226,6 @@ export default {
 ```
 
 ## output.compareBeforeEmit
-
-<ApiMeta addedVersion={'1.1.0'} />
 
 - **Type:** `boolean`
 - **Default:** `true`
@@ -652,10 +648,6 @@ export default {
   },
 };
 ```
-
-:::tip
-Rspack uses the faster `xxhash64` algorithm by default since v1.1.
-:::
 
 ## output.hashSalt
 
@@ -1756,8 +1748,6 @@ export default {
 
 ### output.trustedTypes.onPolicyCreationFailure
 
-<ApiMeta addedVersion={'1.1.6'} />
-
 - **Type:** `"stop" | "continue"`
 - **Default:** `"stop"`
 
@@ -1817,6 +1807,23 @@ The default value can be affected by different [`target`](/config/target):
 export default {
   output: {
     wasmLoading: 'fetch',
+  },
+};
+```
+
+## output.wasmStreamingFallback
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Controls whether the generated WebAssembly loading runtime falls back to a non-streaming API when `WebAssembly.compileStreaming` or `WebAssembly.instantiateStreaming` rejects because the response does not use the `application/wasm` MIME type.
+
+Set this option to `false` to omit the fallback runtime code when your server always serves WebAssembly files with the correct MIME type.
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    wasmStreamingFallback: false,
   },
 };
 ```
@@ -1888,3 +1895,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.js.org/configuration/output/" />

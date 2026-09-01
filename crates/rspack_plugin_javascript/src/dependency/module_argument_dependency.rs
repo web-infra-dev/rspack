@@ -6,7 +6,7 @@ use rspack_core::{
 use rspack_hash::{RspackHash, RspackHasher};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ModuleArgumentDependency {
   id: Option<String>,
   range: DependencyRange,

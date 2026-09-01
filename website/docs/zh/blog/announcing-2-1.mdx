@@ -29,7 +29,7 @@ authors:
     github: 'LingyuCoder'
 ---
 
-import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 import { PackageManagerTabs } from '@theme';
 
@@ -117,7 +117,7 @@ export default {
 };
 ```
 
-更多配置方式参考 [Rspack React Compiler 指南](/guide/tech/react#react-compiler)。
+更多配置方式参考 [Rspack React Compiler 指南](/guide/integrations/react#react-compiler)。
 
 ### 构建性能优化 \{#build-performance}
 
@@ -151,7 +151,7 @@ export default {
 
 ### 更快的循环依赖检查 \{#circular-check}
 
-Rspack 2.1 新增了 [`CircularCheckRspackPlugin`](/plugins/rspack/circular-check-rspack-plugin)，用于替代废弃的 [`CircularDependencyRspackPlugin`](/plugins/rspack/circular-dependency-rspack-plugin)。
+Rspack 2.1 新增了 [`CircularCheckRspackPlugin`](/plugins/circular-check-rspack-plugin)，用于替代废弃的 [`CircularDependencyRspackPlugin`](/plugins/circular-dependency-rspack-plugin)。
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -188,7 +188,7 @@ for (const path in pages) {
 
 ### 改进内置 CSS 支持 \{#builtin-css-features}
 
-Rspack 2.1 进一步改进了 [内置 CSS 支持](/guide/tech/css#内置-css-支持)。新增的 `css/global` 模块类型让 CSS Modules 可以以“默认全局、按需 `:local`”的方式工作，和 `css/module`、`css/auto` 一起覆盖更多作用域组织方式。
+Rspack 2.1 进一步改进了 [内置 CSS 支持](/guide/languages/css#内置-css-支持)。新增的 `css/global` 模块类型让 CSS Modules 可以以“默认全局、按需 `:local`”的方式工作，和 `css/module`、`css/auto` 一起覆盖更多作用域组织方式。
 
 CSS Modules 相关能力也继续补齐，支持更多 CSS Modules 语法与行为。
 

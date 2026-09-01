@@ -74,6 +74,9 @@ export type WasmLoadingType = 'fetch' | 'async-node' | 'universal';
 /** Option to set the method of loading WebAssembly Modules. */
 export type WasmLoading = false | WasmLoadingType;
 
+/** Whether to fall back to non-streaming WebAssembly loading when streaming fails due to an incorrect MIME type. */
+export type WasmStreamingFallback = boolean;
+
 export type ScriptType = false | 'text/javascript' | 'module';
 
 export type LibraryCustomUmdObject = {
@@ -579,6 +582,13 @@ export type Output = {
    * */
   wasmLoading?: WasmLoading;
 
+  /**
+   * Fall back to non-streaming WebAssembly instantiation or compilation when the server
+   * does not serve WebAssembly with the `application/wasm` MIME type.
+   * @default true
+   */
+  wasmStreamingFallback?: WasmStreamingFallback;
+
   /** List of wasm loading types enabled for use by entry points. */
   enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
 
@@ -691,18 +701,34 @@ export type Output = {
 
 //#region Resolve
 /**
- * Path alias
+ * Redirect module requests to other paths.
+ *
  * @example
+ * A regular alias also matches subpath requests:
+ *
  * ```js
  * {
- * 	"@": path.resolve(__dirname, './src'),
- * 	"abc$": path.resolve(__dirname, './node_modules/abc/index.js'),
+ *   '@': path.resolve(import.meta.dirname, './src'),
  * }
- * // - require("@/a") will attempt to resolve <root>/src/a.
- * // - require("abc") will attempt to resolve <root>/src/abc.
- * // - require("abc/file.js") will not match, and it will attempt to resolve node_modules/abc/file.js.
  * ```
- * */
+ *
+ * `import '@/a'` will attempt to resolve `<root>/src/a`.
+ *
+ * @example
+ * Add `$` to the end of an alias key to match only the complete module request.
+ * The `$` is a special `resolve.alias` marker and is not part of the module request:
+ *
+ * ```js
+ * {
+ *   abc$: path.resolve(import.meta.dirname, './src/abc'),
+ * }
+ * ```
+ *
+ * - `import 'abc'` will attempt to resolve `<root>/src/abc`.
+ * - `import 'abc/file.js'` will not match the alias and will continue through normal module resolution, which typically attempts to resolve `node_modules/abc/file.js`.
+ *
+ * Without the `$`, an `abc` alias would also match subpath requests such as `import 'abc/file.js'`.
+ */
 export type ResolveAlias =
   | {
       [x: string]: string | false | (string | false)[];
@@ -874,6 +900,13 @@ export type RuleSetLoaderWithOptions = {
    * - When set to `false` or omitted, the loader runs on the main thread.
    */
   parallel?: boolean | { maxWorkers?: number };
+
+  /**
+   * Cache this loader in `experiments.newCache`.
+   * This is an experimental API and may change or be removed in the future.
+   * @experimental
+   */
+  cache?: boolean;
 
   options?: RuleSetLoaderOptions;
 };
@@ -2137,6 +2170,10 @@ export type MemoryCacheOptions = {
    * Cache type.
    */
   type: 'memory';
+  /**
+   * Snapshot options for determining which files have been modified.
+   */
+  snapshot?: CacheSnapshotOptions;
 };
 
 /**
@@ -2794,18 +2831,38 @@ export type OptimizationSplitChunksOptions = {
   hidePathInfo?: boolean;
 } & SharedOptimizationSplitChunksCacheGroup;
 
+/** @deprecated Use `'compact-hashed'` instead. */
+type CompatHashedIds = 'compat-hashed';
+
 export type Optimization = {
   /**
    * Which algorithm to use when choosing module ids.
    * Setting to `false` disables the built-in algorithm, allowing a custom plugin
    * (e.g. HashedModuleIdsPlugin) to provide module ids instead.
    */
-  moduleIds?: false | 'named' | 'natural' | 'deterministic' | 'hashed';
+  moduleIds?:
+    | false
+    | 'named'
+    | 'natural'
+    | 'deterministic'
+    | 'compact-hashed'
+    | CompatHashedIds
+    | 'hashed';
 
   /**
    * Which algorithm to use when choosing chunk ids.
+   * Setting to `false` disables the built-in algorithm, allowing a custom plugin
+   * to provide chunk ids instead.
    */
-  chunkIds?: 'natural' | 'named' | 'deterministic' | 'size' | 'total-size';
+  chunkIds?:
+    | false
+    | 'natural'
+    | 'named'
+    | 'deterministic'
+    | 'compact-hashed'
+    | CompatHashedIds
+    | 'size'
+    | 'total-size';
 
   /**
    * Whether to minimize the bundle.
@@ -3082,6 +3139,20 @@ export type HttpUriOptions = HttpUriPluginOptions;
  */
 export type UseInputFileSystem = false | RegExp[];
 
+/** Fine-grained switches for the experimental new cache implementation. */
+export type NewCache = {
+  /** Enable the module code generation cache. @default true */
+  codeGeneration?: boolean;
+  /** Enable the devtool asset cache. @default true */
+  devtool?: boolean;
+  /** Enable the per-loader cache. @default true */
+  loader?: boolean;
+  /** Enable the asset minimization cache. @default true */
+  minimize?: boolean;
+};
+
+export type NewCachePresets = boolean;
+
 /**
  * Experimental features configuration.
  */
@@ -3122,12 +3193,7 @@ export type Experiments = {
    * Enable the experimental new cache implementation.
    * @default false
    */
-  newCache?: boolean;
-  /**
-   * Enable the faster module concatenation implementation.
-   * @default false
-   */
-  fasterModuleConcatenation?: boolean;
+  newCache?: NewCachePresets | NewCache;
   /**
    * Enable loading of modules via HTTP/HTTPS requests.
    * @default false
@@ -3438,6 +3504,7 @@ export type RspackOptions = {
 
   /**
    * Control artifact reuse during same-compiler rebuilds such as watch and HMR.
+   * Effective only when `mode` is set to `'development'`.
    * This does not make standalone one-shot builds incremental.
    */
   incremental?: IncrementalPresets | Incremental;

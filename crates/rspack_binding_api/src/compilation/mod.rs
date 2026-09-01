@@ -14,8 +14,8 @@ use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions, ExportsInfoArtifact,
-  FactorizeInfo, ModuleIdentifier, OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,
+  BindingCell, Compilation, CompilationId, DependencyRef, EntryOptions, ExportsInfoArtifact,
+  ModuleIdentifier, OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,
 };
 use rspack_error::{Diagnostic, Severity, ToStringResultToRspackResultExt};
 use rspack_napi::napi::bindgen_prelude::*;
@@ -534,15 +534,18 @@ impl JsCompilation {
     &self,
     filename: String,
     data: JsPathData,
+    asset_info: Option<AssetInfo>,
   ) -> Result<PathWithInfo> {
     let compilation = self.as_ref()?;
+    let filename: rspack_core::Filename = filename.into();
+    let mut asset_info = asset_info.map(Into::into).unwrap_or_default();
 
     #[allow(clippy::disallowed_methods)]
-    let res = futures::executor::block_on(
-      compilation.get_asset_path_with_info(&filename.into(), data.to_path_data(compilation)?),
+    let path = futures::executor::block_on(
+      filename.render(data.to_path_data(compilation)?, Some(&mut asset_info)),
     )
     .to_napi_result()?;
-    Ok(res.into())
+    Ok((path, asset_info).into())
   }
 
   #[napi]
@@ -838,7 +841,7 @@ impl JsCompilation {
           };
           Ok((dependency, options))
         })
-        .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()
+        .collect::<napi::Result<Vec<(DependencyRef, EntryOptions)>>>()
         .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
 
       callbackify(
@@ -855,8 +858,9 @@ impl JsCompilation {
           let results = dependency_ids
             .into_iter()
             .map(|dependency_id| {
-              let dependency = module_graph.dependency_by_id(&dependency_id);
-              if let Some(factorize_info) = FactorizeInfo::get_from(dependency)
+              if let Some(factorize_info) = compilation
+                .build_module_graph_artifact
+                .factorize_info(&dependency_id)
                 && let Some(diagnostic) = factorize_info.diagnostics().first()
               {
                 return Either::A(diagnostic.to_string());
@@ -940,7 +944,7 @@ impl JsCompilation {
           };
           Ok((dependency, options))
         })
-        .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()
+        .collect::<napi::Result<Vec<(DependencyRef, EntryOptions)>>>()
         .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
 
       callbackify(
@@ -957,8 +961,9 @@ impl JsCompilation {
           let results = dependency_ids
             .into_iter()
             .map(|dependency_id| {
-              let dependency = module_graph.dependency_by_id(&dependency_id);
-              if let Some(factorize_info) = FactorizeInfo::get_from(dependency)
+              if let Some(factorize_info) = compilation
+                .build_module_graph_artifact
+                .factorize_info(&dependency_id)
                 && let Some(diagnostic) = factorize_info.diagnostics().first()
               {
                 return Either::A(diagnostic.to_string());

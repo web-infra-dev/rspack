@@ -51,11 +51,11 @@ use rspack_core::{
   JavascriptParserOrder, JavascriptParserUrl, JavascriptParserWorkerOptions, JsonGeneratorOptions,
   JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
   MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
-  ModuleType, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption, Optimization,
-  OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve,
-  RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions, TrustedTypes,
-  UsedExportsOption, WasmLoading, WasmLoadingType, incremental::IncrementalOptions,
-  runtime_mode::RuntimeMode,
+  ModuleType, NewCacheOptions, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption,
+  Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo,
+  PrintlnInfrastructureLogSink, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
+  SideEffectOption, SnapshotOptions, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading,
+  WasmLoadingType, incremental::IncrementalOptions, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -469,6 +469,7 @@ impl CompilerBuilder {
       None,
       None,
       compiler_context,
+      Arc::new(PrintlnInfrastructureLogSink),
       Arc::new(platform),
     ))
   }
@@ -942,7 +943,10 @@ impl CompilerOptionsBuilder {
     let bail = d!(self.bail.take(), false);
     let cache = d!(self.cache.take(), {
       if development {
-        CacheOptions::Memory { max_generations: 1 }
+        CacheOptions::Memory {
+          max_generations: 1,
+          snapshot: SnapshotOptions::default(),
+        }
       } else {
         CacheOptions::Disabled
       }
@@ -2128,6 +2132,8 @@ pub struct OutputOptionsBuilder {
   asset_module_filename: Option<Filename>,
   /// Set the wasm loading.
   wasm_loading: Option<WasmLoading>,
+  /// Set whether to fall back when streaming WebAssembly loading fails due to an incorrect MIME type.
+  wasm_streaming_fallback: Option<bool>,
   /// Set the wasm module filename.
   webassembly_module_filename: Option<Filename>,
   /// Set the unique name.
@@ -2219,6 +2225,7 @@ impl From<OutputOptions> for OutputOptionsBuilder {
       public_path: Some(value.public_path),
       asset_module_filename: Some(value.asset_module_filename),
       wasm_loading: Some(value.wasm_loading),
+      wasm_streaming_fallback: Some(value.wasm_streaming_fallback),
       webassembly_module_filename: Some(value.webassembly_module_filename),
       unique_name: Some(value.unique_name),
       chunk_loading: Some(value.chunk_loading),
@@ -2272,6 +2279,7 @@ impl From<&mut OutputOptionsBuilder> for OutputOptionsBuilder {
       public_path: value.public_path.take(),
       asset_module_filename: value.asset_module_filename.take(),
       wasm_loading: value.wasm_loading.take(),
+      wasm_streaming_fallback: value.wasm_streaming_fallback.take(),
       webassembly_module_filename: value.webassembly_module_filename.take(),
       unique_name: value.unique_name.take(),
       chunk_loading: value.chunk_loading.take(),
@@ -2367,6 +2375,14 @@ impl OutputOptionsBuilder {
   /// [`WasmLoadingType`]: rspack_core::options::WasmLoadingType
   pub fn wasm_loading(&mut self, loading: WasmLoading) -> &mut Self {
     self.wasm_loading = Some(loading);
+    self
+  }
+
+  /// Fall back to non-streaming WebAssembly loading when the server uses an incorrect MIME type.
+  ///
+  /// Default set to `true`.
+  pub fn wasm_streaming_fallback(&mut self, enabled: bool) -> &mut Self {
+    self.wasm_streaming_fallback = Some(enabled);
     self
   }
 
@@ -3136,6 +3152,7 @@ impl OutputOptionsBuilder {
       asset_module_filename,
       public_path,
       wasm_loading,
+      wasm_streaming_fallback: self.wasm_streaming_fallback.take().unwrap_or(true),
       webassembly_module_filename,
       unique_name,
       chunk_loading,
@@ -3458,6 +3475,11 @@ impl OptimizationOptionsBuilder {
           .plugins
           .push(BuiltinPluginOptions::DeterministicModuleIdsPlugin);
       }
+      "compact-hashed" => {
+        builder_context
+          .plugins
+          .push(BuiltinPluginOptions::CompactHashedModuleIdsPlugin);
+      }
       "named" => {
         builder_context
           .plugins
@@ -3500,6 +3522,11 @@ impl OptimizationOptionsBuilder {
         builder_context
           .plugins
           .push(BuiltinPluginOptions::DeterministicChunkIdsPlugin);
+      }
+      "compact-hashed" => {
+        builder_context
+          .plugins
+          .push(BuiltinPluginOptions::CompactHashedChunkIdsPlugin);
       }
       "named" => {
         builder_context
@@ -3677,15 +3704,13 @@ pub struct ExperimentsBuilder {
   /// Whether to enable css.
   css: Option<bool>,
   /// Whether to enable the new cache implementation.
-  new_cache: Option<bool>,
+  new_cache: Option<NewCacheOptions>,
   /// Whether to enable async web assembly.
   async_web_assembly: Option<bool>,
   /// Whether to enable defer import.
   defer_import: Option<bool>,
   /// Whether to enable source import.
   source_import: Option<bool>,
-  /// Whether to enable the faster module concatenation implementation.
-  faster_module_concatenation: Option<bool>,
   // TODO: lazy compilation
   pure_functions: Option<bool>,
   runtime_mode: Option<RuntimeMode>,
@@ -3700,7 +3725,6 @@ impl From<Experiments> for ExperimentsBuilder {
       async_web_assembly: None,
       defer_import: Some(value.defer_import),
       source_import: Some(value.source_import),
-      faster_module_concatenation: Some(value.faster_module_concatenation),
       pure_functions: Some(value.pure_functions),
       runtime_mode: Some(value.runtime_mode),
     }
@@ -3716,7 +3740,6 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
       async_web_assembly: value.async_web_assembly.take(),
       defer_import: value.defer_import.take(),
       source_import: value.source_import.take(),
-      faster_module_concatenation: value.faster_module_concatenation.take(),
       pure_functions: value.pure_functions.take(),
       runtime_mode: value.runtime_mode.take(),
     }
@@ -3738,7 +3761,11 @@ impl ExperimentsBuilder {
 
   /// Set whether to enable the new cache implementation.
   pub fn new_cache(&mut self, new_cache: bool) -> &mut Self {
-    self.new_cache = Some(new_cache);
+    self.new_cache = Some(if new_cache {
+      NewCacheOptions::all()
+    } else {
+      NewCacheOptions::default()
+    });
     self
   }
 
@@ -3760,12 +3787,6 @@ impl ExperimentsBuilder {
     self
   }
 
-  /// Set whether to enable the faster module concatenation implementation.
-  pub fn faster_module_concatenation(&mut self, faster_module_concatenation: bool) -> &mut Self {
-    self.faster_module_concatenation = Some(faster_module_concatenation);
-    self
-  }
-
   /// Build [`Experiments`] from options.
   ///
   /// [`Experiments`]: rspack_core::options::Experiments
@@ -3782,10 +3803,9 @@ impl ExperimentsBuilder {
 
     Ok(Experiments {
       css: d!(self.css, false),
-      new_cache: d!(self.new_cache, false),
+      new_cache: d!(self.new_cache, NewCacheOptions::default()),
       defer_import: d!(self.defer_import, false),
       source_import: d!(self.source_import, false),
-      faster_module_concatenation: d!(self.faster_module_concatenation, false),
       pure_functions: d!(self.pure_functions, _production),
       runtime_mode: d!(self.runtime_mode, RuntimeMode::Webpack),
     })

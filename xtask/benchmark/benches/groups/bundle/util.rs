@@ -44,11 +44,7 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
       extensions: Some(vec!["...".to_string(), ".jsx".to_string()]),
       ..Default::default()
     })
-    .experiments(
-      Experiments::builder()
-        .css(true)
-        .faster_module_concatenation(true),
-    )
+    .experiments(Experiments::builder().css(true))
     .input_filesystem(Arc::new(NativeFileSystem::new(false)))
     .output_filesystem(output_filesystem);
 
@@ -81,6 +77,8 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
               })
               .to_string(),
             ),
+            cache: false,
+            options_cache_key: String::new(),
           }]),
           ..Default::default()
         },

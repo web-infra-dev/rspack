@@ -3,10 +3,11 @@ use std::borrow::Cow;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::IdentifierIndexMap;
 use rspack_core::{
-  BoxDependency, BuildMetaExportsType, ConcatenationScopeInfoMode, Dependency, DependencyId,
-  DependencyType, ExportsArgument, GenerateContext, GeneratedSource, ImportPhase, Module,
+  AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, CodeGenerationDataItem, Dependency,
+  DependencyId, DependencyType, ExportsArgument, GenerateContext, ImportPhase, Module,
   ModuleArgument, ModuleDependency, ModuleGraph, ModuleInitFragments, ParseContext, ParseResult,
-  ParserAndGenerator, RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec,
+  ParserAndGenerator, PathData, RuntimeGlobals, SourceType, StaticExportsDependency,
+  StaticExportsSpec,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -19,6 +20,16 @@ use crate::dependency::WasmImportDependency;
 #[cacheable]
 #[derive(Debug)]
 pub struct AsyncWasmParserAndGenerator;
+
+#[cacheable]
+#[derive(Clone, Debug)]
+pub(crate) struct CodeGenerationDataWasmFilename {
+  pub filename: String,
+  pub asset_info: AssetInfo,
+}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataWasmFilename {}
 
 pub(crate) static WASM_SOURCE_TYPE: &[SourceType; 2] = &[SourceType::Wasm, SourceType::JavaScript];
 const WASM_MAGIC_HEADER: &[u8; 4] = b"\0asm";
@@ -33,10 +44,6 @@ struct DepModule<'a> {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for AsyncWasmParserAndGenerator {
-  fn concatenation_scope_info_mode(&self) -> ConcatenationScopeInfoMode {
-    ConcatenationScopeInfoMode::Unsupported
-  }
-
   fn source_types(&self, _module: &dyn Module, _module_graph: &ModuleGraph) -> &[SourceType] {
     WASM_SOURCE_TYPE
   }
@@ -65,7 +72,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           "Source phase imports require valid WebAssembly modules. Invalid magic header (expected \\0asm).".into(),
         ));
       }
-      dependencies.push(Box::new(StaticExportsDependency::new(
+      dependencies.push(BoxDependency::new(StaticExportsDependency::new(
         StaticExportsSpec::Array(vec![Atom::from("default")]),
         false,
       )));
@@ -101,7 +108,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             for import in s {
               match import {
                 Ok(Import { module, name, .. }) => {
-                  dependencies.push(Box::new(WasmImportDependency::new(
+                  dependencies.push(BoxDependency::new(WasmImportDependency::new(
                     module.into(),
                     name.into(),
                   )));
@@ -124,7 +131,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       }
     }
 
-    dependencies.push(Box::new(StaticExportsDependency::new(
+    dependencies.push(BoxDependency::new(StaticExportsDependency::new(
       StaticExportsSpec::Array(exports.iter().cloned().map(Atom::from).collect::<Vec<_>>()),
       false,
     )));
@@ -161,11 +168,12 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     source: &BoxSource,
     module: &dyn Module,
     generate_context: &mut GenerateContext,
-  ) -> Result<GeneratedSource> {
+  ) -> Result<BoxSource> {
     let GenerateContext {
       compilation,
       runtime,
       runtime_template,
+      data,
       ..
     } = generate_context;
     let hash = module
@@ -174,6 +182,29 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       .as_ref()
       .map(|hash| hash.rendered(16))
       .expect("should build info have hash");
+    let wasm_filename = if let Some(data) = data.get::<CodeGenerationDataWasmFilename>() {
+      data.filename.clone()
+    } else {
+      let module_id =
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
+          .map(|id| PathData::prepare_id(id.as_str()));
+      let path_data = PathData::default()
+        .module_id_optional(module_id.as_deref())
+        .content_hash(hash)
+        .hash(hash);
+      let (filename, asset_info) = compilation
+        .get_asset_path_with_info(
+          &compilation.options.output.webassembly_module_filename,
+          path_data,
+        )
+        .await?;
+      data.insert(CodeGenerationDataWasmFilename {
+        filename: filename.clone(),
+        asset_info,
+      });
+      filename
+    };
+    let wasm_filename = json_stringify_str(&wasm_filename);
 
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
@@ -181,10 +212,8 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           let module_argument = runtime_template.render_module_argument(ModuleArgument::Module);
           let exports_argument = runtime_template.render_exports_argument(ExportsArgument::Exports);
           let compile_call = format!(
-            r#"{}({}, "{}")"#,
+            r#"{}({wasm_filename})"#,
             runtime_template.render_runtime_globals(&RuntimeGlobals::COMPILE_WASM),
-            runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_ID),
-            &hash,
           );
           let source = RawStringSource::from(format!(
             r#"{}({module_argument}, async function (__rspack_handle_async_dependencies__, __rspack_async_done) {{
@@ -197,7 +226,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             runtime_template.render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE),
             runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
           ));
-          return Ok(source.boxed().into());
+          return Ok(source.boxed());
         }
 
         let mut dep_modules = IdentifierIndexMap::<DepModule>::default();
@@ -305,10 +334,8 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let module_argument = runtime_template.render_module_argument(ModuleArgument::Module);
         let exports_argument = runtime_template.render_exports_argument(ExportsArgument::Exports);
         let instantiate_call = format!(
-          r#"{}({exports_argument}, {}, "{}" {})"#,
+          r#"{}({exports_argument}, {wasm_filename}{})"#,
           runtime_template.render_runtime_globals(&RuntimeGlobals::INSTANTIATE_WASM),
-          runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_ID),
-          &hash,
           imports_obj.unwrap_or_default()
         );
 
@@ -340,9 +367,9 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           ))
         };
 
-        Ok(source.boxed().into())
+        Ok(source.boxed())
       }
-      _ => Ok(source.clone().into()),
+      _ => Ok(source.clone()),
     }
   }
 

@@ -222,7 +222,7 @@ function transform(webpackConfig, rspackConfig) {
 
 Rspack has implemented most of webpack's built-in plugins, with the same names and configuration parameters, allowing for easy replacement.
 
-For example, replacing the [DefinePlugin](/plugins/webpack/define-plugin):
+For example, replacing the [DefinePlugin](/plugins/define-plugin):
 
 ```js title="rspack.config.js"
 const webpack = require('webpack'); // [!code --]
@@ -239,15 +239,41 @@ module.exports = {
 }
 ```
 
-See [Built-in plugins](/plugins/webpack/) for more information about supported webpack plugins in Rspack.
+See [webpack plugin compatibility](/plugins/webpack-built-in-plugin-support) for Rspack's compatibility status with webpack built-in plugins and selected internal plugins.
 
 ## Community plugins
 
 Rspack supports most of the webpack community plugins and also offers alternative solutions for some currently unsupported plugins.
 
-Check [Plugin compat](/guide/compatibility/plugin) for more information on Rspack's compatibility with popular webpack community plugins.
+Check [Community plugin compatibility](/plugins/community-plugin-compatibility) for more information on Rspack's compatibility with popular webpack community plugins.
 
 Some webpack ecosystem packages, such as [`webpack-node-externals`](https://www.npmjs.com/package/webpack-node-externals) and [`node-polyfill-webpack-plugin`](https://www.npmjs.com/package/node-polyfill-webpack-plugin), require newer versions for Rspack compatibility. Before reusing a community package, upgrade it to the latest version, as older versions may rely on incompatible webpack APIs.
+
+### html-webpack-plugin
+
+For most projects migrating from [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin), use [`html-rspack-plugin`](https://github.com/rstackjs/html-rspack-plugin). It is a JavaScript fork designed for Rspack and provides closer compatibility with existing options, templates, and integrations.
+
+<PackageManagerTabs command="add html-rspack-plugin -D" />
+
+Update the import and constructor name in the Rspack configuration:
+
+```diff title="rspack.config.mjs"
+-import HtmlWebpackPlugin from 'html-webpack-plugin';
++import HtmlRspackPlugin from 'html-rspack-plugin';
+
+ export default {
+   plugins: [
+-    new HtmlWebpackPlugin({
++    new HtmlRspackPlugin({
+       // ...
+     }),
+   ],
+ };
+```
+
+After completing the migration, remove `html-webpack-plugin` from the project dependencies.
+
+If build performance is the priority, you can also use the built-in Rust plugin [`rspack.HtmlRspackPlugin`](/plugins/html-rspack-plugin). See the [HTML guide](/guide/languages/html#choose-a-plugin) for details.
 
 ### unplugin
 
@@ -262,7 +288,7 @@ Some [unplugin](/guide/features/plugin#unplugin) packages provide separate entry
 
 ### copy-webpack-plugin
 
-Use [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) instead of [copy-webpack-plugin](https://github.com/webpack/copy-webpack-plugin):
+Use [rspack.CopyRspackPlugin](/plugins/copy-rspack-plugin) instead of [copy-webpack-plugin](https://github.com/webpack/copy-webpack-plugin):
 
 ```js title="rspack.config.js"
 const CopyWebpackPlugin = require('copy-webpack-plugin'); // [!code --]
@@ -280,7 +306,7 @@ module.exports = {
 
 ### mini-css-extract-plugin
 
-Use [rspack.CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) instead of [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin):
+Use [rspack.CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin) instead of [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin):
 
 ```diff title="rspack.config.js"
 - const CssExtractWebpackPlugin = require('mini-css-extract-plugin');
@@ -342,7 +368,7 @@ module.exports = {
 
 ### terser-webpack-plugin
 
-For projects that use [terser-webpack-plugin](https://github.com/webpack/terser-webpack-plugin) to minify JavaScript, we recommend switching to [rspack.SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) for better build performance:
+For projects that use [terser-webpack-plugin](https://github.com/webpack/terser-webpack-plugin) to minify JavaScript, we recommend switching to [rspack.SwcJsMinimizerRspackPlugin](/plugins/swc-js-minimizer-rspack-plugin) for better build performance:
 
 ```js title="rspack.config.js"
 const TerserPlugin = require('terser-webpack-plugin'); // [!code --]
@@ -365,7 +391,7 @@ When you explicitly configure [optimization.minimizer](/config/optimization#opti
 
 ### css-minimizer-webpack-plugin
 
-For projects that use [css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin) to minify CSS, we recommend switching to [rspack.LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) for better build performance:
+For projects that use [css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin) to minify CSS, we recommend switching to [rspack.LightningCssMinimizerRspackPlugin](/plugins/lightning-css-minimizer-rspack-plugin) for better build performance:
 
 ```js title="rspack.config.js"
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin'); // [!code --]
@@ -542,7 +568,7 @@ Migrate [raw-loader](https://github.com/webpack-contrib/raw-loader) to [Asset Mo
 
 ### vue-loader
 
-For Vue 3 projects, replace `vue-loader` with [`rspack-vue-loader`](/guide/tech/vue#vue-3), and update both the plugin import and loader name:
+For Vue 3 projects, replace `vue-loader` with [`rspack-vue-loader`](/guide/integrations/vue#vue-3), and update both the plugin import and loader name:
 
 ```diff title="rspack.config.mjs"
 -import { VueLoaderPlugin } from 'vue-loader';
@@ -578,7 +604,7 @@ When migrating webpack ecosystem packages, the following non-plugin packages usu
 | `webpack-chain`          | [`rspack-chain`](https://github.com/rstackjs/rspack-chain)                    | Chainable Rspack configuration API.    |
 | `webpack-merge`          | [`rspack-merge`](https://github.com/rstackjs/rspack-merge)                    | Rspack configuration merging.          |
 
-> For plugin packages, see [Plugin compatibility](/guide/compatibility/plugin).
+> For plugin packages, see [Community plugin compatibility](/plugins/community-plugin-compatibility).
 
 ## Removing webpack dependencies
 

@@ -5,7 +5,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, Context,
+  BuildResult, ChunkGraph, ChunkUkey, CodeGenerationResultBuilder, Compilation, Context,
   DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
   RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
@@ -139,7 +139,9 @@ impl Module for FallbackModule {
   ) -> Result<BuildResult> {
     let mut dependencies: Vec<BoxDependency> = Vec::new();
     for request in &self.requests {
-      dependencies.push(Box::new(FallbackItemDependency::new(request.clone())))
+      dependencies.push(BoxDependency::new(FallbackItemDependency::new(
+        request.clone(),
+      )))
     }
 
     Ok(BuildResult {
@@ -154,13 +156,13 @@ impl Module for FallbackModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime_template,
       ..
     } = code_generation_context;
-    let mut codegen = CodeGenerationResult::default();
+    let mut codegen = CodeGenerationResultBuilder::default();
     let module_graph = compilation.get_module_graph();
     let ids: Vec<_> = self
       .get_dependencies()
@@ -195,7 +197,7 @@ var handleError = function(e) {{
       ids = json_stringify(&ids),
       require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
     );
-    codegen = codegen.with_javascript(RawStringSource::from(code).boxed());
+    codegen.add(SourceType::JavaScript, RawStringSource::from(code).boxed());
     Ok(codegen)
   }
 

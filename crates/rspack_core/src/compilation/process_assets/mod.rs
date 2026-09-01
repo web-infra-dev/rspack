@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use super::*;
-use crate::{cache::Cache, compilation::pass::PassExt};
+use crate::{compilation::pass::PassExt, legacy_cache::Cache};
 
 pub struct ProcessAssetsPass;
 

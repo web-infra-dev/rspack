@@ -1,16 +1,15 @@
-use std::{fmt::Debug, path::PathBuf, sync::Arc};
+use std::{fmt::Debug, sync::Arc};
 
 use rspack_error::{Diagnostic, Error, Result, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::Utf8PathBuf;
 use rspack_sources::SourceMap;
-use rustc_hash::FxHashSet as HashSet;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  ParseMeta,
+  LoaderRunnerOptions, ParseMeta,
   content::{AdditionalData, Content, ResourceData},
-  context::{LoaderContext, State},
+  context::{LoaderContext, LoaderDependencies, State},
   loader::{Loader, LoaderItem},
   plugin::LoaderRunnerPlugin,
 };
@@ -42,7 +41,10 @@ async fn process_resource<Context: Send>(
   {
     loader_context.content = Some(content);
     loader_context.source_map = source_map.map(Box::new);
-    loader_context.file_dependencies.extend(file_dependencies);
+    for dependency in file_dependencies {
+      loader_context.add_file_dependency(dependency);
+    }
+    loader_context.merge_dependency_changes();
     return Ok(());
   }
 
@@ -67,21 +69,20 @@ fn create_loader_context<Context: Send>(
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
 ) -> LoaderContext<Context> {
-  let mut file_dependencies: HashSet<PathBuf> = Default::default();
+  let mut dependencies = LoaderDependencies::default();
   if let Some(resource_path) = resource_data.path()
     && resource_path.is_absolute()
   {
-    file_dependencies.insert(resource_path.to_owned().into_std_path_buf());
+    dependencies.file.insert(resource_path.into());
   }
 
   LoaderContext {
     hot: false,
     cacheable: true,
     parse_meta: Default::default(),
-    file_dependencies,
-    context_dependencies: Default::default(),
-    missing_dependencies: Default::default(),
-    build_dependencies: Default::default(),
+    dependencies,
+    added_dependencies: Default::default(),
+    removed_dependencies: Default::default(),
     content: None,
     context,
     source_map: None,
@@ -98,15 +99,26 @@ fn create_loader_context<Context: Send>(
 #[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
 pub async fn run_loaders<Context: Send>(
   loaders: Vec<Arc<dyn Loader<Context>>>,
+  loader_options: Option<Vec<LoaderRunnerOptions>>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> (LoaderResult<Context>, Option<Error>) {
-  let loaders = loaders
-    .into_iter()
-    .map(|i| i.into())
-    .collect::<Vec<LoaderItem<Context>>>();
+  let loaders = if let Some(loader_options) = loader_options {
+    assert_eq!(
+      loaders.len(),
+      loader_options.len(),
+      "loader options must stay aligned with loaders"
+    );
+    loaders
+      .into_iter()
+      .zip(loader_options)
+      .map(|(loader, options)| LoaderItem::new(loader, options))
+      .collect::<Vec<LoaderItem<Context>>>()
+  } else {
+    loaders.into_iter().map(LoaderItem::from).collect()
+  };
   let mut cx = create_loader_context(loaders, resource_data, plugin, context);
   let result = run_loaders_impl(&mut cx, fs).await;
   (LoaderResult::new(cx), result.err())
@@ -148,7 +160,10 @@ async fn run_loaders_impl<Context: Send>(
         cx.current_loader().set_pitch_executed();
         let loader = cx.current_loader().loader().clone();
         let span = info_span!("run_loader:pitch", resource);
-        loader.pitch(cx).instrument(span).await?;
+        cx.reset_dependency_changes();
+        let result = loader.pitch(cx).instrument(span).await;
+        cx.merge_dependency_changes();
+        result?;
         if cx.content.is_some() {
           cx.state.transition(State::Normal);
           cx.loader_index -= 1;
@@ -184,13 +199,21 @@ async fn run_loaders_impl<Context: Send>(
         let loader = cx.current_loader().loader().clone();
 
         let span = info_span!("run_loader:normal", resource);
-        loader.run(cx).instrument(span).await?;
-        if !cx.current_loader().finish_called() {
-          // If nothing is returned from this loader,
-          // we set everything to [None] and move to the next loader.
-          // This mocks the behavior of webpack loader-runner.
-          cx.finish_with_empty();
-        }
+        cx.reset_dependency_changes();
+        let result = if let Some(plugin) = cx.plugin.clone() {
+          plugin.run_normal_loader(cx, loader).instrument(span).await
+        } else {
+          let result = loader.run(cx).instrument(span).await;
+          if result.is_ok() && !cx.current_loader().finish_called() {
+            // If nothing is returned from this loader,
+            // we set everything to [None] and move to the next loader.
+            // This mocks the behavior of webpack loader-runner.
+            cx.finish_with_empty();
+          }
+          result
+        };
+        cx.merge_dependency_changes();
+        result?;
       }
       State::Finished => break,
     }
@@ -214,10 +237,7 @@ async fn run_loaders_impl<Context: Send>(
 pub struct LoaderResult<Context> {
   pub context: Context,
   pub cacheable: bool,
-  pub file_dependencies: HashSet<PathBuf>,
-  pub context_dependencies: HashSet<PathBuf>,
-  pub missing_dependencies: HashSet<PathBuf>,
-  pub build_dependencies: HashSet<PathBuf>,
+  pub dependencies: LoaderDependencies,
   pub diagnostics: Vec<Diagnostic>,
   pub content: Content,
   pub source_map: Option<Box<SourceMap<'static>>>,
@@ -231,10 +251,7 @@ impl<Context: Send> LoaderResult<Context> {
     LoaderResult {
       context: loader_context.context,
       cacheable: loader_context.cacheable,
-      file_dependencies: loader_context.file_dependencies,
-      context_dependencies: loader_context.context_dependencies,
-      missing_dependencies: loader_context.missing_dependencies,
-      build_dependencies: loader_context.build_dependencies,
+      dependencies: loader_context.dependencies,
       diagnostics: loader_context.diagnostics,
       content: loader_context
         .content
@@ -262,8 +279,8 @@ mod test {
   use rspack_collections::Identifier;
   use rspack_error::Result;
   use rspack_fs::{NativeFileSystem, ReadableFileSystem};
+  use rspack_paths::InternedPathSet;
   use rspack_sources::SourceMap;
-  use rustc_hash::FxHashSet as HashSet;
 
   use super::{Loader, LoaderContext, ResourceData, run_loaders};
   use crate::{AdditionalData, content::Content, plugin::LoaderRunnerPlugin};
@@ -286,13 +303,7 @@ mod test {
       &self,
       _resource_data: &ResourceData,
       _fs: Arc<dyn ReadableFileSystem>,
-    ) -> Result<
-      Option<(
-        Content,
-        Option<SourceMap<'static>>,
-        HashSet<std::path::PathBuf>,
-      )>,
-    > {
+    ) -> Result<Option<(Content, Option<SourceMap<'static>>, InternedPathSet)>> {
       Ok(Some((Content::Buffer(vec![]), None, Default::default())))
     }
   }
@@ -445,6 +456,7 @@ mod test {
     assert!(
       run_loaders(
         vec![p1, p2, c1, c2],
+        None,
         rs.clone(),
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -465,6 +477,7 @@ mod test {
     assert!(
       run_loaders(
         vec![p1, p2, p3],
+        None,
         rs.clone(),
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -538,6 +551,7 @@ mod test {
     assert!(
       run_loaders(
         vec![Arc::new(Normal) as Arc<dyn Loader>, Arc::new(Normal2)],
+        None,
         rs,
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -595,6 +609,7 @@ mod test {
     assert!(
       run_loaders(
         vec![Arc::new(Normal2), Arc::new(Normal)],
+        None,
         rs,
         Some(Arc::new(TestContentPlugin)),
         (),

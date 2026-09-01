@@ -1,10 +1,10 @@
 use std::{ops::Deref, sync::Arc, time::SystemTime};
 
-use rspack_paths::{ArcPath, ArcPathDashSet};
+use rspack_paths::{InternedPath, InternedPathDashSet};
+use rspack_util::time::{mtime_safe_time, system_time_to_millis};
 use tokio::sync::mpsc::UnboundedSender;
 
-use super::{FsEvent, FsEventKind, PathManager};
-use crate::{EventBatch, time_info};
+use super::{EventBatch, FsEvent, FsEventKind, PathManager};
 
 // Scanner will scann the path whether it is exist or not in disk on initialization
 pub struct Scanner {
@@ -94,8 +94,8 @@ impl Scanner {
 }
 
 fn scan_path_missing(
-  paths: &[ArcPath],
-  missing: &ArcPathDashSet,
+  paths: &[InternedPath],
+  missing: &InternedPathDashSet,
   tx: &UnboundedSender<EventBatch>,
 ) -> bool {
   let remove_event = paths
@@ -114,8 +114,8 @@ fn scan_path_missing(
 }
 
 fn scan_path_events(
-  paths: &[ArcPath],
-  selected: impl Fn(&ArcPath) -> bool,
+  paths: &[InternedPath],
+  selected: impl Fn(&InternedPath) -> bool,
   kind: FsEventKind,
   tx: &UnboundedSender<EventBatch>,
 ) -> bool {
@@ -133,23 +133,22 @@ fn scan_path_events(
 }
 
 /// Whether `path`'s current on-disk mtime is at or after `start_time`, using
-/// watchpack's accuracy padding ([`time_info::safe_time`]) so a change hidden by
+/// watchpack's accuracy padding ([`mtime_safe_time`]) so a change hidden by
 /// coarse mtime granularity is still caught. A failed stat (missing/unreadable)
 /// counts as unchanged.
-fn changed_since(path: &ArcPath, start_time: SystemTime) -> bool {
+fn changed_since(path: &InternedPath, start_time: SystemTime) -> bool {
   let Ok(mtime) = path
     .metadata()
     .and_then(|m| m.modified().or_else(|_| m.created()))
   else {
     return false;
   };
-  time_info::safe_time(time_info::system_time_to_millis(mtime))
-    >= time_info::system_time_to_millis(start_time)
+  mtime_safe_time(system_time_to_millis(mtime)) >= system_time_to_millis(start_time)
 }
 
 #[cfg(test)]
 mod tests {
-  use rspack_paths::ArcPath;
+  use rspack_paths::InternedPath;
 
   use super::*;
 
@@ -194,11 +193,11 @@ mod tests {
     assert_eq!(collected_events.len(), 2);
 
     assert!(collected_events.contains(&vec![FsEvent {
-      path: ArcPath::from(current_dir.join("___test_file.txt")),
+      path: InternedPath::from(current_dir.join("___test_file.txt")),
       kind: FsEventKind::Remove
     }]));
     assert!(collected_events.contains(&vec![FsEvent {
-      path: ArcPath::from(current_dir.join("___test_dir/a/b/c")),
+      path: InternedPath::from(current_dir.join("___test_dir/a/b/c")),
       kind: FsEventKind::Remove,
     }]));
   }
@@ -222,8 +221,8 @@ mod tests {
     use std::{collections::HashSet, time::Duration};
 
     let dir = tempfile::tempdir().expect("create temp dir");
-    let changed = ArcPath::from(dir.path().join("changed.js").as_path());
-    let unchanged = ArcPath::from(dir.path().join("unchanged.js").as_path());
+    let changed = InternedPath::from(dir.path().join("changed.js").as_path());
+    let unchanged = InternedPath::from(dir.path().join("unchanged.js").as_path());
     std::fs::write(changed.as_ref(), b"a").expect("write changed");
     std::fs::write(unchanged.as_ref(), b"b").expect("write unchanged");
     // `unchanged` is parked well before start_time; `changed` keeps its ~now mtime.
@@ -276,8 +275,8 @@ mod tests {
     use std::{collections::HashSet, time::Duration};
 
     let dir = tempfile::tempdir().expect("create temp dir");
-    let created = ArcPath::from(dir.path().join("created.js").as_path());
-    let still_missing = ArcPath::from(dir.path().join("still_missing.js").as_path());
+    let created = InternedPath::from(dir.path().join("created.js").as_path());
+    let still_missing = InternedPath::from(dir.path().join("still_missing.js").as_path());
 
     let path_manager = Arc::new(PathManager::default());
     path_manager

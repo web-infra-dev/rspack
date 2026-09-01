@@ -8,13 +8,15 @@ use std::{
 };
 
 use regex::Regex;
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsPreset, AsVec},
+};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation,
-  ConcatenationScopeInfoMode, CssAutoOrModuleParserOptions, CssBuildInfo, CssExportType,
-  DependencyType, ExportsInfoArtifact, GenerateContext, GeneratedSource, Module, ModuleGraph,
-  ModuleIdentifier, NormalModule, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
-  ResolvedModuleOptions, RuntimeSpec, SourceType, UsageState,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CodeGenerationDataItem, Compilation,
+  CssAutoOrModuleParserOptions, CssBuildInfo, CssExportType, DependencyType, ExportsInfoArtifact,
+  GenerateContext, Module, ModuleGraph, ModuleIdentifier, NormalModule, ParseContext, ParseResult,
+  ParserAndGenerator, ParserOptions, ResolvedModuleOptions, RuntimeSpec, SourceType, UsageState,
   rspack_sources::{BoxSource, Source},
 };
 pub use rspack_core::{CssExport, CssExports};
@@ -131,10 +133,15 @@ pub fn get_used_exports<'a>(
   )
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataUnusedLocalIdent {
+  #[cacheable(with=AsVec<AsPreset>)]
   pub(crate) idents: FxHashSet<SmolStr>,
 }
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataUnusedLocalIdent {}
 
 pub fn get_unused_local_ident(
   css_build_info: &CssBuildInfo,
@@ -189,10 +196,6 @@ pub fn get_unused_local_ident(
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for CssParserAndGenerator {
-  fn concatenation_scope_info_mode(&self) -> ConcatenationScopeInfoMode {
-    ConcatenationScopeInfoMode::GenerateAtCodegen
-  }
-
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
     let export_type = self.effective_export_type(module);
     if matches!(
@@ -263,18 +266,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
       });
     }
 
-    let exports_only = generator_options
-      .exports_only
-      .expect("should have exports_only");
-
-    CssModuleParser::new(
-      generator_options,
-      parser_options,
-      exports_only,
-      parse_context,
-    )
-    .parse()
-    .await
+    CssModuleParser::new(generator_options, parser_options, parse_context)
+      .parse()
+      .await
   }
 
   async fn generate(
@@ -282,7 +276,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     source: &BoxSource,
     module: &dyn rspack_core::Module,
     generate_context: &mut GenerateContext,
-  ) -> Result<GeneratedSource> {
+  ) -> Result<BoxSource> {
     match generate_context.requested_source_type {
       SourceType::Css => Ok(
         CssModuleGenerator::new(
@@ -292,8 +286,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           self.hot,
           self.es_module,
         )
-        .generate_css_source()
-        .into(),
+        .generate_css_source(),
       ),
       SourceType::JavaScript => CssModuleGenerator::new(
         source.clone(),

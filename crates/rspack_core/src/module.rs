@@ -15,7 +15,6 @@ use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet}
 use rspack_error::{Diagnosable, Result};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher, write_u64_hex};
-use rspack_paths::ArcPathSet;
 use rspack_sources::BoxSource;
 use rspack_util::{
   atom::Atom,
@@ -29,27 +28,48 @@ use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
-  AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
-  ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo, Compilation,
-  CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
-  ConcatenationScopeInfoMode, ConnectionState, Context, ContextModule, CssExportType,
-  DependenciesBlock, DependencyId, ExportProvided, ExportsInfoArtifact, ExternalModule, Filename,
-  GetTargetResult, ImportPhase, ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleLayer, ModuleType, NormalModule, OptimizationBailoutItem, RawModule, Resolve,
-  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SideEffectsStateArtifact,
-  SourceType, concatenated_module::ConcatenatedModule,
-  dependencies_block::dependencies_block_update_hash, get_target,
-  utils::PendingConcatenationScopeInfo, value_cache_versions::ValueCacheVersions,
+  AsyncDependenciesBlock, BindingCell, BoxDependency, CacheFacade, ChunkGraph, ChunkUkey,
+  CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation, CompilationAsset,
+  CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
+  ContextModule, CssExportType, DependenciesBlock, DependencyCodeGenerationRef, DependencyId,
+  ExportProvided, ExportsInfoArtifact, ExternalModule, FileSystemInfo, Filename, GetTargetResult,
+  ImportPhase, ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType,
+  NormalModule, OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec,
+  SelfModule, SharedPluginDriver, SideEffectsStateArtifact, Snapshot, SourceType,
+  concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
+  get_target, value_cache_versions::ValueCacheVersions,
 };
 
 pub struct BuildContext {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub compiler_options: Arc<CompilerOptions>,
+  pub loader_cache: CacheFacade,
+  pub file_system_info: FileSystemInfo,
   pub resolver_factory: Arc<ResolverFactory>,
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+}
+
+/// Context used to decide whether a previously built module is still valid.
+///
+/// This follows webpack's `NeedBuildContext` shape and provides the shared
+/// filesystem snapshot service used to validate a previous module build.
+pub struct NeedBuildContext<'a> {
+  pub compilation: &'a Compilation,
+  pub file_system_info: &'a FileSystemInfo,
+  pub value_cache_versions: &'a ValueCacheVersions,
+}
+
+impl<'a> NeedBuildContext<'a> {
+  pub fn new(compilation: &'a Compilation) -> Self {
+    Self {
+      compilation,
+      file_system_info: &compilation.file_system_info,
+      value_cache_versions: &compilation.value_cache_versions,
+    }
+  }
 }
 
 #[cacheable]
@@ -260,7 +280,7 @@ pub struct AssetBuildInfo {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
   pub cacheable: bool,
@@ -268,10 +288,10 @@ pub struct BuildInfo {
   pub strict: bool,
   pub module_argument: ModuleArgument,
   pub exports_argument: ExportsArgument,
-  pub file_dependencies: ArcPathSet,
-  pub context_dependencies: ArcPathSet,
-  pub missing_dependencies: ArcPathSet,
-  pub build_dependencies: ArcPathSet,
+  pub dependencies: crate::LoaderDependencies,
+  /// Reserved for full `need_build` snapshot validation. Module builds do not
+  /// populate it yet to avoid adding snapshot creation overhead.
+  pub snapshot: Option<Snapshot>,
   pub value_dependencies: HashMap<String, String>,
   #[cacheable(with=AsVec<AsPreset>)]
   pub esm_named_exports: HashSet<Atom>,
@@ -285,7 +305,6 @@ pub struct BuildInfo {
   pub side_effects_free: Option<HashSet<Atom>>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
-  pub pending_concatenation_scope_info: Option<Box<PendingConcatenationScopeInfo>>,
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
@@ -310,10 +329,8 @@ impl Default for BuildInfo {
       strict: false,
       module_argument: Default::default(),
       exports_argument: Default::default(),
-      file_dependencies: ArcPathSet::default(),
-      context_dependencies: ArcPathSet::default(),
-      missing_dependencies: ArcPathSet::default(),
-      build_dependencies: ArcPathSet::default(),
+      dependencies: Default::default(),
+      snapshot: None,
       value_dependencies: HashMap::default(),
       esm_named_exports: HashSet::default(),
       all_star_exports: Vec::default(),
@@ -323,7 +340,6 @@ impl Default for BuildInfo {
       css: None,
       side_effects_free: None,
       top_level_declarations: None,
-      pending_concatenation_scope_info: None,
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,
@@ -754,7 +770,7 @@ pub trait Module:
   async fn code_generation(
     &self,
     _code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult>;
+  ) -> Result<CodeGenerationResultBuilder>;
 
   /// Name matched against bundle-splitting conditions.
   fn name_for_condition(&self) -> Option<Box<str>> {
@@ -781,16 +797,12 @@ pub trait Module:
   /// depends on the code generation results of dependencies which are returned by this function.
   /// e.g `Css` module may rely on the code generation result of `CssUrlDependency` to re-direct
   /// the url of the referenced assets.
-  fn get_code_generation_dependencies(&self) -> Option<&[BoxModuleDependency]> {
+  fn get_code_generation_dependencies(&self) -> Option<&[DependencyId]> {
     None
   }
 
-  fn get_presentational_dependencies(&self) -> Option<&[BoxDependencyTemplate]> {
+  fn get_presentational_dependencies(&self) -> Option<&[DependencyCodeGenerationRef]> {
     None
-  }
-
-  fn concatenation_scope_info_mode(&self) -> ConcatenationScopeInfoMode {
-    ConcatenationScopeInfoMode::Unsupported
   }
 
   fn get_concatenation_bailout_reason(
@@ -837,7 +849,23 @@ pub trait Module:
     ConnectionState::Active(true)
   }
 
-  fn need_build(&self, value_cache_version: &ValueCacheVersions) -> bool {
+  /// Determines whether a module needs to be rebuilt using the complete build
+  /// context.
+  ///
+  /// Implementations may inspect or mutate module state and perform asynchronous
+  /// work. As in webpack's base `Module`, the default is conservative: module
+  /// types that can prove an existing build is valid should override this.
+  async fn need_build(&mut self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+    Ok(true)
+  }
+
+  /// Performs the synchronous rebuild decision used by incremental make.
+  ///
+  /// This preserves the pre-existing incremental-make behavior: it only checks
+  /// cacheability, value dependencies, and build errors. Filesystem changes are
+  /// handled separately by the make artifact. It is intentionally narrower than
+  /// [`Module::need_build`] and must not be used as the general rebuild check.
+  fn need_build_for_incremental(&self, value_cache_version: &ValueCacheVersions) -> bool {
     let build_info = self.build_info();
     !build_info.cacheable
       || value_cache_version.has_diff(&build_info.value_dependencies)
@@ -1163,9 +1191,9 @@ mod test {
 
   use super::{BoxModule, Module};
   use crate::{
-    AsyncDependenciesBlockIdentifier, BuildContext, BuildResult, CodeGenerationResult, Compilation,
-    Context, DependenciesBlock, DependencyId, ModuleCodeGenerationContext, ModuleExt, ModuleGraph,
-    ModuleType, RuntimeSpec, SourceType,
+    AsyncDependenciesBlockIdentifier, BuildContext, BuildResult, CodeGenerationResultBuilder,
+    Compilation, Context, DependenciesBlock, DependencyId, ModuleCodeGenerationContext, ModuleExt,
+    ModuleGraph, ModuleType, RuntimeSpec, SourceType,
   };
 
   #[cacheable]
@@ -1254,7 +1282,7 @@ mod test {
         async fn code_generation(
           &self,
           _code_generation_context: &mut ModuleCodeGenerationContext,
-        ) -> Result<CodeGenerationResult> {
+        ) -> Result<CodeGenerationResultBuilder> {
           unreachable!()
         }
 

@@ -26,12 +26,13 @@ tracing    = { workspace = true, features = ["attributes", "std"] }
 
 simd-json = { workspace = true }
 
-camino              = { workspace = true, features = ["serde1"] } # UTF-8 path types used for all internal path representations
+camino              = { workspace = true, features = ["serde1"] }    # UTF-8 path types used for all internal path representations
 cfg-if              = { workspace = true }
 cow-utils           = { workspace = true }
-dunce               = { workspace = true }                        # Normalize Windows paths to the most compatible format, avoiding UNC where possible
+dunce               = { workspace = true }                           # Normalize Windows paths to the most compatible format, avoiding UNC where possible
 indexmap            = { workspace = true, features = ["serde"] }
 json-strip-comments = { workspace = true }
+rspack_paths        = { workspace = true, default-features = false } # no cacheable: it pulls swc_core, which breaks wasm32-unknown-unknown
 rustc-hash          = { workspace = true, features = ["std"] }
 thiserror           = { workspace = true }
 

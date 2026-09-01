@@ -190,7 +190,7 @@ Rspack 的 Rust 代码通常执行在 tokio 线程里，选择 tokio 线程就�
 
 ![image](https://assets.rspack.rs/others/assets/rsdoctor/rsdoctor-loader-timeline.png)
 
-参考 [Rsdoctor Compilation Analysis](/guide/optimization/profile#使用-rsdoctor-分析)
+参考 [Rsdoctor Compilation Analysis](/guide/diagnostics/profile#使用-rsdoctor-分析)
 
 ## Mac Xcode instruments
 

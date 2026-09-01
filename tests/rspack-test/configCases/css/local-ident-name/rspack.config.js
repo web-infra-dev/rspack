@@ -92,14 +92,18 @@ const common = {
   },
 };
 
-/** @type {import("@rspack/core").Configuration} */
-module.exports = [
-  {
-    ...common,
-    target: 'web',
+const createConfig = (target, exportsOnly) => ({
+  ...common,
+  target,
+  module: {
+    ...common.module,
+    generator: {
+      'css/auto': {
+        exportsOnly,
+      },
+    },
   },
-  {
-    ...common,
-    target: 'node',
-  },
-];
+});
+
+/** @type {import("@rspack/core").Configuration[]} */
+module.exports = [createConfig('web', false), createConfig('node', true)];

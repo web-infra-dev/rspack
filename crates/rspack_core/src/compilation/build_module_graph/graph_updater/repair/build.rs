@@ -7,9 +7,9 @@ use super::{
   TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CompilationId,
-  CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate, ResolverFactory,
-  SharedPluginDriver,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CacheFacade,
+  CompilationId, CompilerId, CompilerOptions, DependencyParents, FileSystemInfo,
+  ModuleCodeTemplate, ResolverFactory, SharedPluginDriver,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
   utils::{
     ResourceId,
@@ -24,6 +24,8 @@ pub struct BuildTask {
   pub module: BoxModule,
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
+  pub loader_cache: CacheFacade,
+  pub file_system_info: FileSystemInfo,
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
@@ -40,6 +42,8 @@ impl Task<TaskContext> for BuildTask {
       compiler_id,
       compilation_id,
       compiler_options,
+      loader_cache,
+      file_system_info,
       resolver_factory,
       plugin_driver,
       runtime_template,
@@ -60,6 +64,8 @@ impl Task<TaskContext> for BuildTask {
           compiler_id,
           compilation_id,
           compiler_options: compiler_options.clone(),
+          loader_cache,
+          file_system_info,
           resolver_factory: resolver_factory.clone(),
           plugin_driver: plugin_driver.clone(),
           runtime_template,
@@ -124,19 +130,19 @@ impl Task<TaskContext> for BuildResultTask {
     context
       .artifact
       .file_dependencies
-      .add_files(&resource_id, &build_info.file_dependencies);
+      .add_files(&resource_id, &build_info.dependencies.file);
     context
       .artifact
       .context_dependencies
-      .add_files(&resource_id, &build_info.context_dependencies);
+      .add_files(&resource_id, &build_info.dependencies.context);
     context
       .artifact
       .missing_dependencies
-      .add_files(&resource_id, &build_info.missing_dependencies);
+      .add_files(&resource_id, &build_info.dependencies.missing);
     context
       .artifact
       .build_dependencies
-      .add_files(&resource_id, &build_info.build_dependencies);
+      .add_files(&resource_id, &build_info.dependencies.build);
 
     let module_graph = &mut context.artifact.module_graph;
     let mut lazy_dependencies = LazyDependencies::default();

@@ -5,9 +5,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
+  BuildResult, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId,
   FactoryMeta, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
-  ModuleDependency, ModuleGraph, ModuleId, ModuleType, RuntimeSpec, SourceType,
+  ModuleDependency, ModuleGraph, ModuleId, ModuleType, NeedBuildContext, RuntimeSpec, SourceType,
   StaticExportsDependency, StaticExportsSpec, ValueCacheVersions, impl_module_meta_info,
   impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource},
@@ -97,8 +97,8 @@ impl Module for DelegatedModule {
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let dependencies = vec![
-      Box::new(DelegatedSourceDependency::new(self.source_request.clone())),
-      Box::new(StaticExportsDependency::new(
+      BoxDependency::new(DelegatedSourceDependency::new(self.source_request.clone())),
+      BoxDependency::new(StaticExportsDependency::new(
         match self.delegate_data.exports.clone() {
           Some(exports) => match exports {
             DllManifestContentItemExports::True => StaticExportsSpec::True,
@@ -107,7 +107,7 @@ impl Module for DelegatedModule {
           None => StaticExportsSpec::True,
         },
         false,
-      )) as BoxDependency,
+      )),
     ];
     self.build_meta = self.delegate_data.build_meta.clone();
     Ok(BuildResult {
@@ -121,14 +121,14 @@ impl Module for DelegatedModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime_template,
       ..
     } = code_generation_context;
 
-    let mut code_generation_result = CodeGenerationResult::default();
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
 
     let dep = self.dependencies[0];
     let mg = compilation.get_module_graph();
@@ -179,13 +179,17 @@ impl Module for DelegatedModule {
       Arc::new(raw_source)
     };
 
-    code_generation_result = code_generation_result.with_javascript(source);
+    code_generation_result.add(SourceType::JavaScript, source);
 
     Ok(code_generation_result)
   }
 
-  fn need_build(&self, _value_cache_versions: &ValueCacheVersions) -> bool {
+  fn need_build_for_incremental(&self, _value_cache_versions: &ValueCacheVersions) -> bool {
     false
+  }
+
+  async fn need_build(&mut self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+    Ok(false)
   }
 
   async fn get_runtime_hash(

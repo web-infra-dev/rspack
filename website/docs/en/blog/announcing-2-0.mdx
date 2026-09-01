@@ -9,7 +9,7 @@ authors:
     x: 'https://x.com/rspack_dev'
 ---
 
-import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 # Announcing Rspack 2.0
 
@@ -86,7 +86,7 @@ These improvements mainly come from continued optimization of the core architect
 
 With [persistent cache](/config/cache) enabled, both build performance and memory usage improve even further:
 
-- Rspack now supports cache reuse for the [SWC minimizer plugin](/plugins/rspack/swc-js-minimizer-rspack-plugin). On cache hits, **build performance improves by around 50%**.
+- Rspack now supports cache reuse for the [SWC minimizer plugin](/plugins/swc-js-minimizer-rspack-plugin). On cache hits, **build performance improves by around 50%**.
 - With optimized underlying storage, **memory usage drops by more than 20%** when cache is enabled.
 
 ### Fewer default dependencies \{#fewer-deps}
@@ -103,7 +103,7 @@ At the same time, `@rspack/cli` no longer depends on `@rspack/dev-server` by def
 
 We also reduced dependencies through the following measures:
 
-- Making non-core dependencies optional. For example, [@module-federation/runtime-tools](https://www.npmjs.com/package/@module-federation/runtime-tools) now only needs to be installed when you use the [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin).
+- Making non-core dependencies optional. For example, [@module-federation/runtime-tools](https://www.npmjs.com/package/@module-federation/runtime-tools) now only needs to be installed when you use the [ModuleFederationPlugin](/plugins/module-federation-plugin).
 - Replacing heavier dependencies with lighter alternatives, such as using [connect-next](https://github.com/rstackjs/connect-next) instead of Express. For dev servers, Connect's middleware model already covers most scenarios, and using it also keeps Rspack aligned with Rsbuild's dev server implementation.
 - [Bundling some dependencies into the npm package](https://e18e.dev/blog/bundling-dependencies) so that Rspack can control the versions of those dependencies and their transitive dependencies, reducing potential supply-chain risks caused by automatic upgrades.
 - Preferring native Node.js 20+ APIs where possible, such as using [styleText](https://nodejs.org/api/util.html#utilstyletextformat-text-options) instead of `picocolors`.
@@ -172,7 +172,7 @@ export default {
 
 ### Module Federation tree shaking \{#mf-share-treeshaking}
 
-Rspack now supports tree shaking for shared dependencies in [Module Federation](/guide/features/module-federation), allowing it to prune them at the export level, remove unused parts, and reduce the size of shared packages.
+Rspack now supports tree shaking for shared dependencies in [Module Federation](/guide/advanced/module-federation), allowing it to prune them at the export level, remove unused parts, and reduce the size of shared packages.
 
 In Rspack 1.x, once a dependency was declared as `shared`, the runtime usually had to load the entire package. Even if only a few exports were used, the whole package would still be included. For large shared libraries, that could add significant overhead.
 
@@ -302,7 +302,7 @@ In addition, `modern-module` supports preserving the source directory structure.
 You can use this capability in two ways:
 
 - **Use Rsbuild**: We provide out-of-the-box RSC support through [rsbuild-plugin-rsc](https://github.com/rstackjs/rsbuild-plugin-rsc).
-- **Configure Rspack manually**: Refer to the [React Server Components documentation](/guide/tech/rsc) to add the required configuration yourself.
+- **Configure Rspack manually**: Refer to the [React Server Components documentation](/guide/integrations/rsc) to add the required configuration yourself.
 
 Across the ecosystem, Modern.js already provides RSC support built on Rspack. See the [Modern.js RSC documentation](https://modernjs.dev/guides/basic-features/render/rsc.html) for details. Rspack also supports React Router's Data Mode, with examples available in the [React Router examples](https://github.com/rstackjs/rsbuild-plugin-rsc/tree/main/examples/react-router).
 
@@ -423,9 +423,9 @@ export default {
 
 ### Improved code splitting \{#enforce-size-threshold}
 
-Rspack 2.0 now supports [`splitChunks.enforceSizeThreshold`](/plugins/webpack/split-chunks-plugin#splitchunksenforcesizethreshold), which lets you define a size threshold that Rspack will enforce during code splitting.
+Rspack 2.0 now supports [`splitChunks.enforceSizeThreshold`](/plugins/split-chunks-plugin#splitchunksenforcesizethreshold), which lets you define a size threshold that Rspack will enforce during code splitting.
 
-By default, request-count limits in `splitChunks`, such as [maxAsyncRequests](/plugins/webpack/split-chunks-plugin#splitchunksmaxasyncrequests) and [maxInitialRequests](/plugins/webpack/split-chunks-plugin#splitchunksmaxinitialrequests), can prevent large chunks from being split further. With `enforceSizeThreshold` enabled, once a module group exceeds the configured threshold, Rspack ignores those limits and forces the split.
+By default, request-count limits in `splitChunks`, such as [maxAsyncRequests](/plugins/split-chunks-plugin#splitchunksmaxasyncrequests) and [maxInitialRequests](/plugins/split-chunks-plugin#splitchunksmaxinitialrequests), can prevent large chunks from being split further. With `enforceSizeThreshold` enabled, once a module group exceeds the configured threshold, Rspack ignores those limits and forces the split.
 
 In production mode, Rspack sets a default `enforceSizeThreshold` of `50000` bytes for all module types. In other modes, the default is `30000` bytes. You can also adjust it as needed:
 

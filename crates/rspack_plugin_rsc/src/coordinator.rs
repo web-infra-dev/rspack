@@ -1,4 +1,3 @@
-use futures::future::BoxFuture;
 use rspack_core::CompilerId;
 use rspack_error::Result;
 use tokio::sync::{Mutex, Notify};
@@ -15,8 +14,6 @@ enum State {
   Failed,
 }
 
-type GetServerCompilerId = Box<dyn Fn() -> BoxFuture<'static, Result<CompilerId>> + Sync + Send>;
-
 /// Coordinates the compilation sequence between Server Compiler and Client Compiler.
 ///
 /// Ensures the following compilation order:
@@ -29,20 +26,31 @@ type GetServerCompilerId = Box<dyn Fn() -> BoxFuture<'static, Result<CompilerId>
 pub struct Coordinator {
   state: Mutex<State>,
   state_notify: Notify,
-  get_server_compiler_id: GetServerCompilerId,
+  server_compiler_id: Mutex<Option<CompilerId>>,
+}
+
+impl Default for Coordinator {
+  fn default() -> Self {
+    Self::new()
+  }
 }
 
 impl Coordinator {
-  pub fn new(get_server_compiler_id: GetServerCompilerId) -> Self {
+  pub fn new() -> Self {
     Self {
       state: Mutex::new(State::Idle),
       state_notify: Default::default(),
-      get_server_compiler_id,
+      server_compiler_id: Default::default(),
     }
   }
 
   pub async fn get_server_compiler_id(&self) -> Result<CompilerId> {
-    (self.get_server_compiler_id)().await
+    (*self.server_compiler_id.lock().await).ok_or_else(|| {
+      rspack_error::error!(
+        "Server compiler ID is not registered in the RSC coordinator. \
+         Ensure RscServerPlugin starts compiling before RscClientPlugin."
+      )
+    })
   }
 
   async fn wait_for(&self, mut predicate: impl FnMut(State) -> bool) -> Result<()> {
@@ -100,13 +108,16 @@ impl Coordinator {
     self.wait_for(|s| s == State::Idle).await
   }
 
-  pub async fn start_server_entries_compilation(&self) -> Result<()> {
+  pub async fn start_server_entries_compilation(&self, compiler_id: CompilerId) -> Result<()> {
     loop {
-      if self
-        .set_if_current(State::Idle, State::ServerEntriesCompiling)
-        .await
       {
-        return Ok(());
+        let mut state = self.state.lock().await;
+        if *state == State::Idle {
+          *self.server_compiler_id.lock().await = Some(compiler_id);
+          *state = State::ServerEntriesCompiling;
+          self.state_notify.notify_waiters();
+          return Ok(());
+        }
       }
       self.wait_idle().await?;
     }

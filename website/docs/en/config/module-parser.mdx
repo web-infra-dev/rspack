@@ -4,9 +4,7 @@ description: 'Configure parser options by module type.'
 
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import PropertyType from '@components/PropertyType';
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
+import Attribution from '@components/Attribution';
 
 # Module parser
 
@@ -210,8 +208,6 @@ export default {
 
 ### javascript.dynamicImportFetchPriority
 
-<ApiMeta addedVersion="1.0.0" />
-
 <PropertyType
   type="'low' | 'high' | 'auto'"
   defaultValueList={[{ defaultValue: "'auto'" }]}
@@ -373,8 +369,6 @@ export default {
 
 ### javascript.importMeta
 
-<ApiMeta addedVersion="1.0.0-alpha.6" />
-
 - **Type:** `boolean | 'preserve-unknown' | ImportMetaParserOptions`
 - **Default:** When using [ESM output](/guide/features/esm), the default value is `'preserve-unknown'`; otherwise, it is `true`
 
@@ -520,7 +514,7 @@ WARNING in ./re-exports.ts
 ```
 
 :::info Recommended with isolatedModules
-When using Rspack to bundle TypeScript, we strongly recommend enabling [isolatedModules](https://www.typescriptlang.org/tsconfig/#isolatedModules) in tsconfig.json (also recommended with other bundlers as it matches how bundlers compile TypeScript: [.ts files are independent and compiled separately](/guide/tech/typescript#enable-isolatedmodules)). This will give TypeScript's own warning for type re-exports: `Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.`
+When using Rspack to bundle TypeScript, we strongly recommend enabling [isolatedModules](https://www.typescriptlang.org/tsconfig/#isolatedModules) in tsconfig.json (also recommended with other bundlers as it matches how bundlers compile TypeScript: [.ts files are independent and compiled separately](/guide/languages/typescript#enable-isolatedmodules)). This will give TypeScript's own warning for type re-exports: `Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.`
 :::
 
 - `'no-tolerant'`: Default behavior, shows errors for type re-exports.
@@ -558,8 +552,6 @@ export default {
 Please refer to [type reexports presence example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
 
 ### javascript.worker
-
-<ApiMeta addedVersion="1.0.0-alpha.0" />
 
 <PropertyType type="string[] | boolean | { alias?: string[], url?: 'new-url-relative' }" />
 
@@ -621,8 +613,6 @@ new Worker(new URL('./worker.bundle.js', import.meta.url));
 > See [Web Workers](/guide/features/web-workers) for more details.
 
 ### javascript.overrideStrict
-
-<ApiMeta addedVersion="1.0.0-alpha.4" />
 
 <PropertyType type="'strict' | 'non-strict'" />
 
@@ -1027,8 +1017,6 @@ export default {
 
 ### json
 
-<ApiMeta addedVersion="1.2.0" />
-
 Parser options for `json` modules.
 
 ```js title="rspack.config.mjs"
@@ -1044,8 +1032,6 @@ export default {
 ```
 
 ### json.exportsDepth
-
-<ApiMeta addedVersion="1.2.0" />
 
 - **Type:** `number`
 - **Default:** production mode is `Number.MAX_SAFE_INTEGER`, development mode is `1`
@@ -1921,3 +1907,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.js.org/configuration/module/" />

@@ -3,8 +3,9 @@ mod snapshot;
 
 use std::{collections::VecDeque, sync::Arc};
 
-use rspack_core::cache::persistent::storage::{
-  BoxStorage, CacheDirectory, StorageOptions, create_storage,
+use rspack_core::{
+  StorageOptions,
+  legacy_cache::persistent::storage::{BoxStorage, CacheDirectory, create_storage},
 };
 use rspack_error::{Result, error};
 use rspack_fs::{NativeFileSystem, ReadableFileSystem};

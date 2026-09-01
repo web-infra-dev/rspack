@@ -2,10 +2,8 @@
 description: '懒编译（Lazy Compilation）是一种优化技术，可以延迟模块的编译，直到它们被实际请求时才进行构建。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import { ApiMeta } from '@components/ApiMeta';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/experiments/#experimentslazycompilation" />
 
 # LazyCompilation
 
@@ -15,10 +13,11 @@ import { ApiMeta } from '@components/ApiMeta';
 
 开启懒编译，对提高多入口应用（MPA）或大型单页面应用（SPA）的 dev 启动性能会非常有帮助。
 
-## lazyCompilation
+:::tip
+参考 [指南](/guide/advanced/lazy-compilation) 来快速上手。
+:::
 
-- **类型：** `boolean | LazyCompilationOptions`
-- **默认值：** 当 [`Target`](/config/target) 仅为 `'web'` 应用时 `{ entries: false, imports: true }`，其他情况 `false`.
+- **类型：**
 
 ```ts
 type LazyCompilationOptions =
@@ -26,12 +25,10 @@ type LazyCompilationOptions =
   | {
       /**
        * 为 entries 启用 lazy compilation
-       * @default true
        */
       entries?: boolean;
       /**
        * 为 dynamic imports 启用 lazy compilation
-       * @default true
        */
       imports?: boolean;
       /**
@@ -54,30 +51,99 @@ type LazyCompilationOptions =
     };
 ```
 
-:::tip
-参考 [指南](/guide/features/lazy-compilation) 来快速上手。
-:::
+## 默认行为
 
-如果你有二十个入口，当开启懒编译时，只有访问到的入口才会进行构建，或者如果项目中存在非常多的 `import()`，每一个 `import()` 所指向的模块都只有在被真正访问到时，才进行构建。
+- **JavaScript API：** 默认关闭懒编译。启用 `lazyCompilation` 后，需要将 lazy compilation 中间件注册到开发服务器。参见[与自定义的服务器集成](/guide/advanced/lazy-compilation#integrating-with-custom-server)。
+- **Rspack CLI：** `rspack dev` 会自动注册中间件。当 [`target`](/config/target) 仅面向浏览器环境且未显式配置 `lazyCompilation` 时，还会默认使用 `{ entries: false, imports: true }`；其他情况下，未配置时保持关闭。
 
-如果设置为 `true`，则默认会对入口模块以及 `import()` 指向的模块进行懒编译。你可以通过配置对象形式，来决定是否只对入口或只对 `import()` 生效。`entries` 决定是否对入口生效，`import()` 决定是否对 `import()` 生效。
+## 编译范围
+
+懒编译可以作用于两类模块：入口模块，以及通过 `import()` 动态导入的模块。启用后，Rspack 会将这些模块的构建推迟到它们被实际访问时。
+
+例如，如果应用包含二十个入口，Rspack 只会构建实际访问到的入口，其余入口会等到被访问时再构建。通过 `import()` 动态导入的模块也是如此。
+
+将 `lazyCompilation` 设置为 `true`，会同时对这两类模块开启懒编译：
 
 ```js title="rspack.config.mjs"
-const isDev = process.env.NODE_ENV === 'development';
-
 export default {
-  // 仅在 dev 模式下开启
-  lazyCompilation: isDev,
+  lazyCompilation: true,
 };
 ```
 
-除此以外你还可以配置 `test` 来更细粒度控制对哪些模块进行懒编译。`test` 可以是一个正则表达式，只对该正则匹配到的模块进行懒编译，`test` 也可以是一个函数，函数的输入是 `Module` 类型，返回 `boolean` 类型，表示是否命中懒编译逻辑。
+这等价于：
 
-### lazyCompilation.client
+```js title="rspack.config.mjs"
+export default {
+  lazyCompilation: {
+    entries: true,
+    imports: true,
+  },
+};
+```
+
+如果只想对其中一类模块开启懒编译，可以使用配置对象分别设置 [`entries`](#entries) 和 [`imports`](#imports)。`entries` 控制入口模块，`imports` 控制通过 `import()` 动态导入的模块。
+
+如果还需要进一步缩小懒编译范围，可以使用 [`test`](#test) 筛选模块。`test` 支持正则表达式，也支持接收 `Module` 并返回 `boolean` 的函数。
+
+## 选项
+
+### entries
+
+- **类型：** `boolean`
+- **默认值：** 在对象中省略 `entries` 时，该选项默认为 `true`
+
+控制是否对入口模块启用懒编译。
+
+设为 `false` 时，入口模块会在首次编译中完成构建。
+
+```js title="rspack.config.mjs"
+export default {
+  lazyCompilation: {
+    entries: false,
+  },
+};
+```
+
+### imports
+
+- **类型：** `boolean`
+- **默认值：** 在对象中省略 `imports` 时，该选项默认为 `true`
+
+控制是否对 `import()` 动态导入的模块启用懒编译。
+
+设为 `false` 时，动态导入的模块会在首次编译中完成构建。
+
+```js title="rspack.config.mjs"
+export default {
+  lazyCompilation: {
+    imports: false,
+  },
+};
+```
+
+### test
+
+- **类型：** `RegExp | ((module: Module) => boolean)`
+- **默认值：** `undefined`
+
+在 `entries` 和 `imports` 选出的入口模块及动态导入模块上进一步筛选。两者均未设置时，都会默认为 `true`，因此 `test` 会同时筛选这两类模块。正则表达式会匹配 `module.nameForCondition()`，函数则直接接收 `Module` 实例。匹配成功或返回 `true` 时，该模块会进行懒编译；否则会正常构建。
+
+```js title="rspack.config.mjs"
+export default {
+  lazyCompilation: {
+    test: /src/,
+  },
+};
+```
+
+配置示例参见[筛选部分模块](/guide/advanced/lazy-compilation#filtering-modules)。
+
+### client
 
 - **类型：** `string`
+- **默认值：** 自动选择内置的 Web 或 Node.js 客户端
 
-用于覆盖默认 lazy compilation 的客户端运行时，如果你想要自定义客户端运行时的逻辑，可以通过该配置项来指定。
+用于指定自定义运行时代码路径，以覆盖默认的懒编译客户端。默认情况下，启用 [`externalsPresets.node`](/config/externals#externalspresetsnode) 时使用内置的 Node.js 客户端，否则使用内置的 Web 客户端。
 
 你可以参考默认实现：
 
@@ -94,11 +160,12 @@ export default {
 };
 ```
 
-### lazyCompilation.serverUrl
+### serverUrl
 
 - **类型：** `string`
+- **默认值：** `''`
 
-告诉客户端需要请求的服务端路径，默认为空，在浏览器环境会找到页面所在的服务端路径，但在 Node 环境下需要显式指定具体的路径。
+设置懒编译客户端请求的服务端基础 URL，Rspack 会在该值后拼接 [`lazyCompilation.prefix`](#prefix)。未设置时，Web 客户端会向当前页面所在的服务端发送请求；在 Node.js 环境中，需要显式指定开发服务器 URL。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -108,7 +175,7 @@ export default {
 };
 ```
 
-### lazyCompilation.prefix
+### prefix
 
 - **类型：** `string`
 - **默认值：** `'/_rspack/lazy/trigger'`
@@ -123,28 +190,4 @@ export default {
 };
 ```
 
-### 排除 HMR client
-
-如果你未使用 Rspack 的 dev server，而是使用自己的 server 作为开发服务器，一般会在 entry 配置中加入另外的 client 代码来开启 HMR 等能力，那么最好通过配置 test 来将该 client 模块从懒编译模块中排除出去。
-
-如果不排除掉，并且开启 entry 的懒编译，该 client 在第一次访问页面时不会被编译，因此需要一次额外的刷新才能让其真正生效。
-
-```js title="rspack.config.mjs"
-import { rspack } from '@rspack/core';
-
-const options = {
-  lazyCompilation: {
-    test(module) {
-      const isMyClient = module.nameForCondition().endsWith('dev-client.js');
-      // 让 dev-client.js 不被懒编译
-      return !isMyClient;
-    },
-  },
-};
-const compiler = rspack(options);
-
-new compiler.rspack.EntryPlugin(compiler.context, 'dev-client.js', {
-  // name: undefined 代表这是全局 entry，会插入到每一个 entry 前
-  name: undefined,
-}).apply(compiler);
-```
+<Attribution url="https://webpack.docschina.org/configuration/experiments/#experimentslazycompilation" />

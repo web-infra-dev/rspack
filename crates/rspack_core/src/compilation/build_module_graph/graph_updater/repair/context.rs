@@ -7,9 +7,9 @@ use rustc_hash::FxHashMap as HashMap;
 use super::BuildModuleGraphArtifact;
 use crate::{
   Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory, ResolverFactory,
-  RuntimeTemplate, SharedPluginDriver, incremental::Incremental, module_graph::ModuleGraph,
-  new_cache::Cache,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FileSystemInfo, ModuleFactory,
+  ResolverFactory, RuntimeTemplate, SharedPluginDriver, incremental::Incremental,
+  module_graph::ModuleGraph, new_cache::Cache,
 };
 
 #[derive(Debug)]
@@ -20,6 +20,7 @@ pub struct TaskContext {
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+  pub file_system_info: FileSystemInfo,
   pub intermediate_fs: Arc<dyn IntermediateFileSystem>,
   pub output_fs: Arc<dyn WritableFileSystem>,
   pub compiler_options: Arc<CompilerOptions>,
@@ -29,7 +30,7 @@ pub struct TaskContext {
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_template: RuntimeTemplate,
-  cache: Cache,
+  pub(crate) cache: Cache,
 
   pub artifact: BuildModuleGraphArtifact,
   pub exports_info_artifact: ExportsInfoArtifact,
@@ -53,6 +54,7 @@ impl TaskContext {
       dependency_factories: compilation.dependency_factories.clone(),
       dependency_templates: compilation.dependency_templates.clone(),
       fs: compilation.input_filesystem.clone(),
+      file_system_info: compilation.file_system_info.clone(),
       intermediate_fs: compilation.intermediate_filesystem.clone(),
       output_fs: compilation.output_filesystem.clone(),
       runtime_template: RuntimeTemplate::new(compilation.options.clone()),

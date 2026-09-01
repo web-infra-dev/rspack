@@ -4,9 +4,7 @@ description: '按模块类型配置 parser 选项。'
 
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import PropertyType from '@components/PropertyType';
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
+import Attribution from '@components/Attribution';
 
 # Module parser
 
@@ -210,8 +208,6 @@ export default {
 
 ### javascript.dynamicImportFetchPriority
 
-<ApiMeta addedVersion="1.0.0" />
-
 <PropertyType
   type="'low' | 'high' | 'auto'"
   defaultValueList={[{ defaultValue: "'auto'" }]}
@@ -373,8 +369,6 @@ export default {
 
 ### javascript.importMeta
 
-<ApiMeta addedVersion="1.0.0-alpha.6" />
-
 - **类型：** `boolean | 'preserve-unknown' | ImportMetaParserOptions`
 - **默认值：** 当输出为 [ESM 格式](/guide/features/esm) 时，默认值为 `'preserve-unknown'`，其他情况默认值为 `true`
 
@@ -520,7 +514,7 @@ WARNING in ./re-exports.ts
 ```
 
 :::info 推荐配合 isolatedModules 使用 Rspack
-使用 Rspack 打包 TypeScript 时，我们强烈推荐开启 tsconfig.json 中的 [isolatedModules](https://www.typescriptlang.org/tsconfig/#isolatedModules)（使用其他 bundler 时也推荐开启，因为这符合 bundler 如何编译 TypeScript：[.ts 文件之间相互独立，独立进行编译](/guide/tech/typescript#%E5%BC%80%E5%90%AF-isolatedmodules)），此时对于重导出类型会收到 TypeScript 提示：`Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.`。
+使用 Rspack 打包 TypeScript 时，我们强烈推荐开启 tsconfig.json 中的 [isolatedModules](https://www.typescriptlang.org/tsconfig/#isolatedModules)（使用其他 bundler 时也推荐开启，因为这符合 bundler 如何编译 TypeScript：[.ts 文件之间相互独立，独立进行编译](/guide/languages/typescript#%E5%BC%80%E5%90%AF-isolatedmodules)），此时对于重导出类型会收到 TypeScript 提示：`Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.`。
 :::
 
 - `'no-tolerant'`：默认行为，不会对重导出类型进行宽容处理，遇到上述情况会报错。
@@ -558,8 +552,6 @@ export default {
 详细示例可参考：[type reexports presence 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence)
 
 ### javascript.worker
-
-<ApiMeta addedVersion="1.0.0-alpha.0" />
 
 <PropertyType type="string[] | boolean | { alias?: string[], url?: 'new-url-relative' }" />
 
@@ -620,8 +612,6 @@ new Worker(new URL('./worker.bundle.js', import.meta.url));
 > 查看 [Web Workers](/guide/features/web-workers) 了解更多。
 
 ### javascript.overrideStrict
-
-<ApiMeta addedVersion="1.0.0-alpha.4" />
 
 <PropertyType type="'strict' | 'non-strict'" />
 
@@ -1026,8 +1016,6 @@ export default {
 
 ### json
 
-<ApiMeta addedVersion="1.2.0" />
-
 `json` 模块的解析器选项。
 
 ```js title="rspack.config.mjs"
@@ -1043,8 +1031,6 @@ export default {
 ```
 
 ### json.exportsDepth
-
-<ApiMeta addedVersion="1.2.0" />
 
 - **Type:** `number`
 - **Default:** production 模式为 `Number.MAX_SAFE_INTEGER`, development 模式为 `1`
@@ -1920,3 +1906,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.docschina.org/configuration/module/" />

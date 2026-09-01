@@ -10,11 +10,11 @@ use futures::future::BoxFuture;
 use itertools::Itertools;
 use regex::Regex;
 use rspack_core::{
-  AssetInfo, CacheCount, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationParams,
-  CompilationProcessAssets, CompilerCompilation, Filename, Logger, ModuleIdentifier, PathData,
-  Plugin,
-  cache::persistent::occasion::SourceMapDevToolPluginCache,
-  has_content_hash_placeholder,
+  AssetInfo, CacheCount, CacheFacade, CacheOptions, CacheValue, Chunk, ChunkUkey, Compilation,
+  CompilationAsset, CompilationParams, CompilationProcessAssets, CompilerCompilation, Etag,
+  Filename, Logger, ModuleIdentifier, PathData, Plugin,
+  cache::CachedSourceMapDevToolPluginEntry,
+  legacy_cache::persistent::occasion::SourceMapDevToolPluginCache,
   rspack_sources::{
     BoxSource, ConcatSource, MapOptions, ObjectPool, RawBufferSource, RawStringSource, Source,
     SourceExt, SourceMap, SourceValue,
@@ -147,6 +147,8 @@ fn compute_source_references(
 static URL_FORMATTING_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^\n\/\/(.*)$").expect("failed to compile URL_FORMATTING_REGEXP regex")
 });
+
+const PLUGIN_NAME: &str = "rspack.SourceMapDevToolPlugin";
 
 #[derive(Clone)]
 pub enum ModuleFilenameTemplate {
@@ -436,7 +438,86 @@ impl SourceMapDevToolPlugin {
       .await
   }
 
-  async fn use_cache(
+  async fn use_new_cache(
+    &self,
+    compilation: &Compilation,
+    file_to_chunk: &HashMap<&str, &Chunk>,
+    output_path: &Utf8Path,
+    compilation_assets: Vec<(String, &CompilationAsset)>,
+    cache: &CacheFacade,
+    cache_counter: Option<&CacheCount>,
+  ) -> Result<Vec<MappedAsset>> {
+    let asset_count = compilation_assets.len();
+    let mut mapped_assets = Vec::with_capacity(asset_count);
+    let mut vanilla_assets = Vec::new();
+
+    for (index, (filename, asset)) in compilation_assets.into_iter().enumerate() {
+      let cached = if asset.get_source().is_some() && !asset.info.version.is_empty() {
+        cache.get::<CachedSourceMapDevToolPluginEntry>(
+          &filename,
+          Some(Etag::from(asset.info.version.clone())),
+        )?
+      } else {
+        None
+      };
+
+      if let Some(cached) = cached
+        && let Some((source_asset, source_map, asset_append)) = cached.restore(asset)
+      {
+        if let Some(counter) = cache_counter {
+          counter.hit();
+        }
+        mapped_assets.push(MappedAsset {
+          asset: (Arc::from(filename), source_asset),
+          asset_append,
+          source_map,
+        });
+        continue;
+      }
+
+      if let Some(counter) = cache_counter {
+        counter.miss();
+      }
+
+      if vanilla_assets.is_empty() {
+        vanilla_assets.reserve(asset_count - index);
+      }
+      vanilla_assets.push((filename, asset));
+    }
+
+    if !vanilla_assets.is_empty() {
+      let new_mapped_assets = self
+        .map_assets(compilation, file_to_chunk, output_path, vanilla_assets)
+        .await?;
+
+      for mapped_asset in &new_mapped_assets {
+        let asset = &mapped_asset.asset.1;
+        if asset.get_source().is_none() || asset.info.version.is_empty() {
+          continue;
+        }
+        let Some(cache_entry) = CachedSourceMapDevToolPluginEntry::from_assets(
+          mapped_asset.asset_append.as_slice(),
+          mapped_asset
+            .source_map
+            .as_ref()
+            .map(|(filename, asset)| (filename.as_str(), asset)),
+        ) else {
+          continue;
+        };
+        cache.store(
+          mapped_asset.asset.0.as_ref(),
+          Some(Etag::from(asset.info.version.clone())),
+          CacheValue::new(cache_entry),
+        )?;
+      }
+
+      mapped_assets.extend(new_mapped_assets);
+    }
+
+    Ok(mapped_assets)
+  }
+
+  async fn use_legacy_cache(
     &self,
     compilation: &Compilation,
     file_to_chunk: &HashMap<&str, &Chunk>,
@@ -1023,7 +1104,7 @@ impl SourceMapDevToolPlugin {
       };
 
       let content_hash_digest =
-        if chunk.is_some() && has_content_hash_placeholder(source_map_filename_config.as_str()) {
+        if chunk.is_some() && source_map_filename_config.has_content_hash_placeholder() {
           let mut hasher = RspackHasher::from(&compilation.options.output);
           source_map_json.hash(&mut hasher);
           let digest = hasher.digest(&compilation.options.output.hash_digest);
@@ -1160,13 +1241,15 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  compilation.use_source_map_dev_tool_plugin_cache = true;
+  if !compilation.options.experiments.new_cache.devtool {
+    compilation.use_source_map_dev_tool_plugin_cache = true;
+  }
   Ok(())
 }
 
 #[plugin_hook(CompilationProcessAssets for SourceMapDevToolPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_DEV_TOOLING)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let logger = compilation.get_logger("rspack.SourceMapDevToolPlugin");
+  let logger = compilation.get_logger(PLUGIN_NAME);
 
   // use to read
   let mut file_to_chunk: HashMap<&str, &Chunk> = HashMap::default();
@@ -1198,12 +1281,16 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .await?,
   );
 
-  let mut cache = compilation.source_map_dev_tool_plugin_cache.take();
-  let cache_counter = if cache.is_some() {
-    Some(logger.cache("source map persistent cache"))
-  } else {
+  let new_cache = (compilation.options.experiments.new_cache.devtool
+    && !matches!(&compilation.options.cache, CacheOptions::Disabled))
+  .then(|| compilation.get_cache(PLUGIN_NAME));
+  let mut legacy_cache = if new_cache.is_some() {
     None
+  } else {
+    compilation.source_map_dev_tool_plugin_cache.take()
   };
+  let cache_counter = (new_cache.is_some() || legacy_cache.is_some())
+    .then(|| logger.cache("source map persistent cache"));
 
   let start = logger.time("collect source maps");
   let compilation_assets = compilation
@@ -1212,19 +1299,32 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .filter(|(_filename, asset)| asset.info.related.source_map.is_none())
     .map(|(filename, asset)| (filename.clone(), asset))
     .collect();
-  let mapped_assets = self
-    .use_cache(
-      compilation,
-      &file_to_chunk,
-      &output_path,
-      compilation_assets,
-      cache.as_mut(),
-      cache_counter.as_ref(),
-    )
-    .await?;
+  let mapped_assets = if let Some(cache) = &new_cache {
+    self
+      .use_new_cache(
+        compilation,
+        &file_to_chunk,
+        &output_path,
+        compilation_assets,
+        cache,
+        cache_counter.as_ref(),
+      )
+      .await?
+  } else {
+    self
+      .use_legacy_cache(
+        compilation,
+        &file_to_chunk,
+        &output_path,
+        compilation_assets,
+        legacy_cache.as_mut(),
+        cache_counter.as_ref(),
+      )
+      .await?
+  };
   logger.time_end(start);
 
-  if let Some(cache) = cache {
+  if let Some(cache) = legacy_cache {
     compilation.source_map_dev_tool_plugin_cache = Some(cache);
   }
   if let Some(counter) = cache_counter {
@@ -1268,7 +1368,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
 impl Plugin for SourceMapDevToolPlugin {
   fn name(&self) -> &'static str {
-    "rspack.SourceMapDevToolPlugin"
+    PLUGIN_NAME
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {

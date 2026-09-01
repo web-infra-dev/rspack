@@ -5,16 +5,16 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  FactorizeInfo, ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact,
-  ReferencedSpecifier, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
-  create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
+  ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact, ReferencedSpecifier,
+  ResourceIdentifier, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  create_referenced_exports_by_referenced_specifiers,
 };
 use swc_atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ImportEagerDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
@@ -25,7 +25,6 @@ pub struct ImportEagerDependency {
   attributes: Option<ImportAttributes>,
   phase: ImportPhase,
   resource_identifier: ResourceIdentifier,
-  factorize_info: FactorizeInfo,
 }
 
 impl ImportEagerDependency {
@@ -45,7 +44,6 @@ impl ImportEagerDependency {
       attributes,
       phase,
       resource_identifier,
-      factorize_info: Default::default(),
     }
   }
 
@@ -141,14 +139,6 @@ impl ModuleDependency for ImportEagerDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

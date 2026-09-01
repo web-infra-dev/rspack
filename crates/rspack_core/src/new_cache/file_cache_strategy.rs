@@ -1,23 +1,27 @@
 use std::{fmt, sync::Arc};
 
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_error::Result;
-use rspack_paths::{ArcPathSet, Utf8PathBuf};
+use rspack_paths::{InternedPathSet, Utf8PathBuf};
 use rustc_hash::FxHashMap;
 
 use super::{
-  CacheKey, Etag,
+  CacheKey, Etag, Meta,
   cache_value::{CacheEntry, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
-  db::{Database, DatabaseFamily, DatabaseValue, DatabaseWrite},
-  snapshot::{BuildDeps, BuildDepsValidationResult, Snapshot},
+  db::{Database, DatabaseFamily},
+  snapshot::FileSystemInfo,
+  validator::{CacheValidator, CacheValidatorResult},
 };
-use crate::cache::persistent::codec::CacheCodec;
+use crate::{InfrastructureLogger, Logger, cache::CacheCodec};
 
-const BUILD_DEPENDENCIES_KEY: &[u8] = b"build-dependencies";
+const VALIDATOR_KEY: &[u8] = b"validator";
+const META_KEY: &[u8] = b"meta";
 
 #[derive(Debug, Default)]
 struct PendingWrites {
   entries: FxHashMap<CacheKey, PendingWrite>,
-  build_dependencies: Option<ArcPathSet>,
+  new_build_dependencies: Option<InternedPathSet>,
+  meta: Option<Meta>,
 }
 
 #[derive(Debug)]
@@ -28,12 +32,12 @@ struct PendingWrite {
 
 /// Filesystem cache implementation scheduled by [`super::IdleFileCache`].
 pub struct FileCacheStrategy {
+  validator: CacheValidator,
   codec: Arc<CacheCodec>,
-  snapshot: Snapshot,
-  build_deps: BuildDeps,
   database: Database,
   pending_writes: PendingWrites,
   readonly: bool,
+  logger: Arc<InfrastructureLogger>,
 }
 
 impl fmt::Debug for FileCacheStrategy {
@@ -48,55 +52,68 @@ impl fmt::Debug for FileCacheStrategy {
 
 impl FileCacheStrategy {
   pub fn new(
-    base_path: Utf8PathBuf,
-    database_path: Utf8PathBuf,
+    database_paths: (Utf8PathBuf, Utf8PathBuf),
     readonly: bool,
+    rspack_pkg_version: String,
+    cache_version: String,
     codec: Arc<CacheCodec>,
-    snapshot: Snapshot,
-    build_deps: BuildDeps,
+    file_system_info: FileSystemInfo,
+    logger: Arc<InfrastructureLogger>,
   ) -> Result<Self> {
-    let database = Database::open(base_path, database_path, readonly)?;
+    let (base_path, database_path) = database_paths;
+    let start = logger.time("open cache database");
+    let database = Database::open(base_path, database_path, readonly, logger.clone());
+    logger.time_end(start);
+    let database = database?;
     Ok(Self {
+      validator: CacheValidator::new(
+        rspack_pkg_version,
+        cache_version,
+        codec.clone(),
+        file_system_info,
+        logger.clone(),
+      ),
       codec,
-      snapshot,
-      build_deps,
       database,
       pending_writes: PendingWrites::default(),
       readonly,
+      logger,
     })
   }
 
   /// Validates the current database's build dependencies once before the
   /// background job starts serving commands.
   pub async fn db_validation(&mut self) -> Result<()> {
-    let validation = {
-      let build_snapshot: Option<DatabaseValue> = self
-        .database
-        .get(DatabaseFamily::Snapshot, BUILD_DEPENDENCIES_KEY)?;
-      self
-        .build_deps
-        .validate_snapshot(&self.codec, &self.snapshot, build_snapshot.as_deref())
-        .await
-    };
+    if self.database.is_empty() {
+      return Ok(());
+    }
+    let data = self
+      .database
+      .get(DatabaseFamily::Validator, VALIDATOR_KEY)?;
+    let validation = self.validator.validate(data).await?;
     match validation {
-      Ok(BuildDepsValidationResult::Valid { tracked_files }) => {
-        tracing::debug!(tracked_files, "Build dependencies snapshot is valid");
-      }
-      Ok(BuildDepsValidationResult::Invalid {
-        modified_files,
-        removed_files,
-      }) => {
-        tracing::info!(
-          modified_files = modified_files.len(),
-          removed_files = removed_files.len(),
-          "Resetting persistent cache database because build dependencies changed"
-        );
+      CacheValidatorResult::Valid => {}
+      CacheValidatorResult::InvalidVersion => {
+        self
+          .logger
+          .log("Resetting cache, the cache version doesn't match");
         self.database.reset()?;
       }
-      Err(error) => {
-        tracing::warn!(
-          "Resetting persistent cache database because build dependencies validation failed: {error}"
-        );
+      CacheValidatorResult::InvalidBuildDependencies {
+        modified_files,
+        removed_files,
+      } => {
+        self.logger.log(format!(
+          "Resetting cache, build dependencies have changed ({} modified, {} removed)",
+          modified_files.len(),
+          removed_files.len()
+        ));
+        self.database.reset()?;
+      }
+      CacheValidatorResult::InvalidError => {
+        self
+          .logger
+          .warn("Resetting cache, unexpected error occurred");
         self.database.reset()?;
       }
     }
@@ -122,15 +139,32 @@ impl FileCacheStrategy {
     );
   }
 
-  pub fn store_build_dependencies(&mut self, dependencies: ArcPathSet) {
+  pub fn store_build_dependencies(&mut self, dependencies: InternedPathSet) {
     if self.readonly {
       return;
     }
     self
       .pending_writes
-      .build_dependencies
+      .new_build_dependencies
       .get_or_insert_default()
       .extend(dependencies);
+  }
+
+  pub fn store_meta(&mut self, meta: Meta) {
+    if self.readonly {
+      return;
+    }
+    self.pending_writes.meta = Some(meta);
+  }
+
+  pub fn restore_meta(&self) -> Result<Option<Meta>> {
+    if let Some(pending) = self.pending_writes.meta.as_ref() {
+      return Ok(Some(pending.clone()));
+    }
+    let Some(entry) = self.database.get(DatabaseFamily::Meta, META_KEY)? else {
+      return Ok(None);
+    };
+    Ok(Some(self.codec.decode(&entry)?))
   }
 
   pub(super) fn restore(
@@ -164,39 +198,46 @@ impl FileCacheStrategy {
     }
 
     if self.has_pending_writes() {
-      let build_snapshot = if let Some(dependencies) = &self.pending_writes.build_dependencies {
-        Some(
-          self
-            .build_deps
-            .create_snapshot(&self.codec, &self.snapshot, dependencies.iter().cloned())
-            .await?,
-        )
+      self.logger.log("Storing cache...");
+      let start = self.logger.time("store cache");
+      let codec = &self.codec;
+      let entries = &self.pending_writes.entries;
+      let validator = if let Some(dependencies) = &self.pending_writes.new_build_dependencies {
+        self.validator.update(dependencies.iter().cloned()).await?
       } else {
         None
       };
-      let cache_entries = self
+      let meta = self
         .pending_writes
-        .entries
-        .iter()
-        .map(|(key, pending)| Ok((key, (pending.encoder)(&pending.entry, &self.codec)?)))
-        .collect::<Result<Vec<_>>>()?;
-
-      let writes = cache_entries
-        .iter()
-        .map(|(key, value)| {
-          DatabaseWrite::new(DatabaseFamily::Cache, key.as_bytes(), value.as_slice())
-        })
-        .chain(build_snapshot.iter().map(|snapshot| {
-          DatabaseWrite::new(
-            DatabaseFamily::Snapshot,
-            BUILD_DEPENDENCIES_KEY,
-            snapshot.as_slice(),
-          )
-        }));
-      self.database.write_batch(writes)?;
+        .meta
+        .as_ref()
+        .map(|meta| codec.encode(meta))
+        .transpose()?;
+      let stored_items = entries.len()
+        + if validator.is_some() { 1 } else { 0 }
+        + if meta.is_some() { 1 } else { 0 };
+      let result = self.database.write_batch(move |batch| {
+        entries.par_iter().try_for_each(|(key, pending)| {
+          let value = (pending.encoder)(&pending.entry, codec)?;
+          batch.put(DatabaseFamily::Cache, key.as_bytes(), value)
+        })?;
+        if let Some(validator) = validator {
+          batch.put(DatabaseFamily::Validator, VALIDATOR_KEY, validator)?;
+        }
+        if let Some(meta) = meta {
+          batch.put(DatabaseFamily::Meta, META_KEY, meta)?;
+        }
+        Ok(())
+      });
+      self.logger.time_end(start);
+      result?;
 
       self.pending_writes.entries.clear();
-      self.pending_writes.build_dependencies = None;
+      self.pending_writes.new_build_dependencies = None;
+      self.pending_writes.meta = None;
+      self
+        .logger
+        .log(format!("Stored cache ({stored_items} items)"));
     }
 
     for _ in 0..max_compaction_passes {
@@ -220,6 +261,8 @@ impl FileCacheStrategy {
   }
 
   pub fn has_pending_writes(&self) -> bool {
-    !self.pending_writes.entries.is_empty() || self.pending_writes.build_dependencies.is_some()
+    !self.pending_writes.entries.is_empty()
+      || self.pending_writes.new_build_dependencies.is_some()
+      || self.pending_writes.meta.is_some()
   }
 }

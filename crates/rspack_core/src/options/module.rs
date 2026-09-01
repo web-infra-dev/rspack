@@ -110,7 +110,8 @@ impl From<&str> for DynamicImportMode {
       "lazy" => DynamicImportMode::Lazy,
       "lazy-once" => DynamicImportMode::LazyOnce,
       _ => {
-        // TODO: warning
+        // Unknown values are diagnosed where they enter the compiler (e.g. when
+        // parsing `webpackMode` magic comments), fall back to `lazy` like webpack.
         DynamicImportMode::Lazy
       }
     }
@@ -1672,6 +1673,10 @@ pub struct ModuleRuleUseLoader {
   /// Loader options
   /// This only exists if the loader is a built-in loader.
   pub options: Option<String>,
+  /// Cache this loader.
+  pub cache: bool,
+  /// Stable serialization of the public loader options.
+  pub options_cache_key: String,
 }
 
 pub type FnUse =

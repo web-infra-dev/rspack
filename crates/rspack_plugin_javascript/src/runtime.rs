@@ -1,10 +1,10 @@
 use cow_utils::CowUtils;
 use rayon::prelude::*;
 use rspack_core::{
-  ChunkGraph, ChunkInitFragments, ChunkKind, ChunkUkey, CodeGenerationDataPreservedAssetImport,
-  CodeGenerationPublicPathAutoReplace, Compilation, ExternalModuleInitFragment, InitFragmentExt,
-  InitFragmentStage, Module, RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode,
-  RuntimeModuleGenerateContext, SourceType,
+  ChunkGraph, ChunkInitFragments, ChunkKind, ChunkUkey, CodeGenerationDataChunkInitFragments,
+  CodeGenerationDataPreservedAssetImport, CodeGenerationPublicPathAutoReplace, Compilation,
+  ExternalModuleInitFragment, InitFragmentExt, InitFragmentStage, Module, RuntimeCodeTemplate,
+  RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeModuleGenerateContext, SourceType,
   chunk_graph_chunk::ChunkIdSet,
   get_undo_path, render_runtime_module_source,
   rspack_sources::{
@@ -34,6 +34,10 @@ pub async fn render_chunk_modules(
   hooks: &JavascriptModulesPluginHooks,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<Option<(BoxSource, ChunkInitFragments)>> {
+  let module_runtime_scope = compilation
+    .runtime_template
+    .create_module_code_template()
+    .render_runtime_scope();
   let module_sources = rspack_parallel::scope::<_, _>(|token| {
     ordered_modules.iter().for_each(|module| {
       let s = unsafe {
@@ -44,11 +48,21 @@ pub async fn render_chunk_modules(
           all_strict,
           output_path,
           hooks,
-          runtime_template
+          runtime_template,
+          module_runtime_scope.as_str(),
         ))
       };
       s.spawn(
-        |(compilation, chunk_ukey, module, all_strict, output_path, hooks, runtime_template)| async move {
+        |(
+          compilation,
+          chunk_ukey,
+          module,
+          all_strict,
+          output_path,
+          hooks,
+          runtime_template,
+          module_runtime_scope,
+        )| async move {
           render_module(
             compilation,
             chunk_ukey,
@@ -58,10 +72,11 @@ pub async fn render_chunk_modules(
             true,
             output_path,
             hooks,
-            runtime_template
+            runtime_template,
+            Some(module_runtime_scope),
           )
           .await
-          .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
+          .map(|result| result.map(|(source, fragments)| (module.identifier(), source, fragments)))
         },
       );
     });
@@ -71,7 +86,7 @@ pub async fn render_chunk_modules(
   .map(|r| r.to_rspack_result())
   .collect::<Result<Vec<_>>>()?;
 
-  let mut module_code_array = vec![];
+  let mut module_code_array = Vec::with_capacity(module_sources.len());
   for item in module_sources {
     if let Some(i) = item? {
       module_code_array.push(i);
@@ -82,21 +97,14 @@ pub async fn render_chunk_modules(
     return Ok(None);
   }
 
-  module_code_array.sort_unstable_by_key(|(module_identifier, _, _, _)| *module_identifier);
+  module_code_array.sort_unstable_by_key(|(module_identifier, _, _)| *module_identifier);
 
-  let chunk_init_fragments = module_code_array.iter().fold(
-    ChunkInitFragments::default(),
-    |mut chunk_init_fragments, (_, _, fragments, additional_fragments)| {
-      chunk_init_fragments.extend((*fragments).clone());
-      chunk_init_fragments.extend(additional_fragments.clone());
-      chunk_init_fragments
-    },
-  );
-
-  let module_sources: Vec<_> = module_code_array
-    .into_iter()
-    .map(|(_, source, _, _)| source)
-    .collect();
+  let mut chunk_init_fragments = ChunkInitFragments::default();
+  let mut module_sources = Vec::with_capacity(module_code_array.len());
+  for (_, source, fragments) in module_code_array {
+    chunk_init_fragments.extend(fragments);
+    module_sources.push(source);
+  }
   let module_sources = module_sources
     .into_par_iter()
     .fold(ConcatSource::default, |mut output, source| {
@@ -124,26 +132,60 @@ pub async fn render_module(
   output_path: &str,
   hooks: &JavascriptModulesPluginHooks,
   runtime_template: &RuntimeCodeTemplate,
-) -> Result<Option<(BoxSource, ChunkInitFragments, ChunkInitFragments)>> {
+  module_runtime_scope: Option<&str>,
+) -> Result<Option<(BoxSource, ChunkInitFragments)>> {
+  let module_identifier = module.identifier();
   let chunk = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .expect_get(chunk_ukey);
   let code_gen_result = compilation
     .code_generation_results
-    .get(&module.identifier(), Some(chunk.runtime()));
+    .get(&module_identifier, Some(chunk.runtime()));
   let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) else {
     return Ok(None);
   };
 
-  let mut module_chunk_init_fragments = match code_gen_result.data.get::<ChunkInitFragments>() {
-    Some(fragments) => fragments.clone(),
-    None => ChunkInitFragments::default(),
-  };
-  let mut render_runtime_requirements = code_gen_result.runtime_requirements;
+  let mut module_chunk_init_fragments = code_gen_result
+    .data()
+    .get::<CodeGenerationDataChunkInitFragments>()
+    .map(|fragments| fragments.inner().clone())
+    .unwrap_or_default();
+  if render_preserved_asset_import_fragment
+    && let Some(asset_import) = code_gen_result
+      .data()
+      .get::<CodeGenerationDataPreservedAssetImport>()
+  {
+    // The normal JavaScript renderer has no chunk linker for raw imports. Use the same structured
+    // fragment as ExternalModuleDependency, after the final output-relative request is known.
+    let relative = get_undo_path(
+      output_path,
+      compilation.options.output.path.to_string(),
+      true,
+    );
+    let request = asset_import
+      .request()
+      .cow_replace(AUTO_PUBLIC_PATH_PLACEHOLDER, &relative)
+      .into_owned();
+    let position = compilation
+      .get_module_graph()
+      .get_pre_order_index(&module_identifier)
+      .map_or(0, |index| index as i32);
+    module_chunk_init_fragments.push(
+      ExternalModuleInitFragment::new(
+        request,
+        Vec::new(),
+        Some(asset_import.binding().to_string()),
+        InitFragmentStage::StageESMImports,
+        position,
+      )
+      .boxed(),
+    );
+  }
+  let mut render_runtime_requirements = *code_gen_result.runtime_requirements();
 
   let mut render_source = if code_gen_result
-    .data
+    .data()
     .get::<CodeGenerationPublicPathAutoReplace>()
     .is_some()
   {
@@ -204,9 +246,8 @@ pub async fn render_module(
 
   let sources = if factory {
     let mut sources = ConcatSource::default();
-    let module_id =
-      ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
-        .expect("should have module_id in render_module");
+    let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module_identifier)
+      .expect("should have module_id in render_module");
     sources.add(RawStringSource::from(rspack_util::json_stringify(
       module_id,
     )));
@@ -214,7 +255,7 @@ pub async fn render_module(
     let mut post_module_container = {
       let runtime_requirements = ChunkGraph::get_module_runtime_requirements(
         compilation,
-        module.identifier(),
+        module_identifier,
         chunk.runtime(),
       );
 
@@ -226,44 +267,47 @@ pub async fn render_module(
           || !render_runtime_requirements
             .renderable_require_scope()
             .is_empty());
-      let module_runtime_scope = compilation
-        .runtime_template
-        .create_module_code_template()
-        .render_runtime_scope();
-
-      let mut args = Vec::new();
+      let mut args = String::with_capacity(64);
+      let mut push_argument = |argument: &str, used: bool| {
+        if !args.is_empty() {
+          args.push_str(", ");
+        }
+        if !used {
+          args.push_str("__unused_rspack_");
+        }
+        args.push_str(argument);
+      };
       if need_module || need_exports || need_require {
         let module_argument = runtime_template.render_module_argument(module.get_module_argument());
-        args.push(if need_module {
-          module_argument
-        } else {
-          format!("__unused_rspack_{module_argument}")
-        });
+        push_argument(&module_argument, need_module);
       }
 
       if need_exports || need_require {
         let exports_argument =
           runtime_template.render_exports_argument(module.get_exports_argument());
-        args.push(if need_exports {
-          exports_argument
-        } else {
-          format!("__unused_rspack_{exports_argument}")
-        });
+        push_argument(&exports_argument, need_exports);
       }
       if need_require {
-        args.push(module_runtime_scope);
+        push_argument(
+          module_runtime_scope
+            .expect("module runtime scope should be provided for factory modules"),
+          true,
+        );
       }
 
       let mut container_sources = ConcatSource::default();
 
+      let mut container_prefix = String::with_capacity(args.len() + 16);
       if use_method_shorthand {
-        container_sources.add(RawStringSource::from(format!("({}) {{\n", args.join(", "))));
+        container_prefix.push('(');
+        container_prefix.push_str(&args);
+        container_prefix.push_str(") {\n");
       } else {
-        container_sources.add(RawStringSource::from(format!(
-          ": (function ({}) {{\n",
-          args.join(", ")
-        )));
+        container_prefix.push_str(": (function (");
+        container_prefix.push_str(&args);
+        container_prefix.push_str(") {\n");
       }
+      container_sources.add(RawStringSource::from(container_prefix));
       if module.build_info().strict && !all_strict {
         container_sources.add(RawStringSource::from_static("\"use strict\";\n"));
       }
@@ -324,44 +368,7 @@ pub async fn render_module(
     render_source.source
   };
 
-  let mut chunk_init_fragments = code_gen_result.chunk_init_fragments.clone();
-  if render_preserved_asset_import_fragment
-    && let Some(asset_import) = code_gen_result
-      .data
-      .get::<CodeGenerationDataPreservedAssetImport>()
-  {
-    // The normal JavaScript renderer has no chunk linker for raw imports. Use the same structured
-    // fragment as ExternalModuleDependency, after the final output-relative request is known.
-    let relative = get_undo_path(
-      output_path,
-      compilation.options.output.path.to_string(),
-      true,
-    );
-    let request = asset_import
-      .request()
-      .cow_replace(AUTO_PUBLIC_PATH_PLACEHOLDER, &relative)
-      .into_owned();
-    let position = compilation
-      .get_module_graph()
-      .get_pre_order_index(&module.identifier())
-      .map_or(0, |index| index as i32);
-    chunk_init_fragments.push(
-      ExternalModuleInitFragment::new(
-        request,
-        Vec::new(),
-        Some(asset_import.binding().to_string()),
-        InitFragmentStage::StageESMImports,
-        position,
-      )
-      .boxed(),
-    );
-  }
-
-  Ok(Some((
-    sources,
-    chunk_init_fragments,
-    module_chunk_init_fragments,
-  )))
+  Ok(Some((sources, module_chunk_init_fragments)))
 }
 
 pub async fn render_chunk_runtime_modules(
