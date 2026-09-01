@@ -1,0 +1,152 @@
+---
+description: '了解如何使用 Rstest 为 Rspack 项目添加单元测试和端到端测试'
+---
+
+import { PackageManagerTabs } from '@theme';
+
+# 使用 Rstest 测试
+
+[Rstest](https://rstest.rs/) 是一个基于 Rspack 的 JavaScript 测试框架。它通过 Rspack 的打包流程运行测试，并可借助官方适配器复用现有 Rspack 配置中的模块解析、代码转换和插件。
+
+本指南介绍如何使用 Rstest 编写单元测试，以及如何通过 [`@rstest/playwright`](https://rstest.rs/zh/guide/advanced/playwright) 编写端到端测试。
+
+## 配置 Rstest
+
+### 创建新项目
+
+创建项目时，请参阅[快速上手](/guide/start/quick-start)，并在交互式提示中选择 **Rstest - testing**。生成的项目会包含 Rstest 所需的依赖、配置和测试脚本。
+
+### 添加到现有项目
+
+将 Rstest 和官方的 Rspack 适配器安装为开发依赖：
+
+<PackageManagerTabs command="add @rstest/core @rstest/adapter-rspack -D" />
+
+然后在 `package.json` 中添加运行测试和监听文件变化的脚本：
+
+```json title="package.json"
+{
+  "scripts": {
+    "test": "rstest",
+    "test:watch": "rstest --watch"
+  }
+}
+```
+
+### 复用 Rspack 配置
+
+在项目根目录创建 `rstest.config.ts`，通过 `withRspackConfig` 复用现有的 Rspack 配置：
+
+```ts title="rstest.config.ts"
+import { withRspackConfig } from '@rstest/adapter-rspack';
+import { defineConfig } from '@rstest/core';
+
+export default defineConfig({
+  extends: withRspackConfig(),
+});
+```
+
+适配器会加载 `rspack.config.ts`，将兼容的 Rspack 配置转换为 Rstest 配置，并与其他 Rstest 配置合并。
+
+:::note
+
+适配器默认从 `process.cwd()` 查找 Rspack 配置。它还会关闭 Rstest 内置的 CSS 插件，让 Rspack 的 CSS 配置生效。关于 monorepo、自定义配置路径、具名配置和完整的配置映射，请参阅 [Rstest：Rspack 集成](https://rstest.rs/guide/integration/rspack)。
+
+:::
+
+## 单元测试
+
+单元测试用于隔离验证模块和函数。
+
+### 编写测试
+
+创建源文件和对应的测试文件：
+
+```ts title="src/utils.ts"
+export function add(a: number, b: number) {
+  return a + b;
+}
+```
+
+```ts title="src/utils.test.ts"
+import { expect, test } from '@rstest/core';
+import { add } from './utils';
+
+test('adds two numbers correctly', () => {
+  expect(add(1, 2)).toBe(3);
+  expect(add(-1, 1)).toBe(0);
+});
+```
+
+### 运行测试
+
+```bash
+# 运行全部测试
+pnpm run test
+
+# 以 watch 模式运行测试
+pnpm run test:watch
+
+# 运行测试名称匹配指定模式的测试
+pnpm run test -- -t 'adds two numbers'
+```
+
+更多测试 API、Mock、Snapshot 和覆盖率等功能，请参阅 [Rstest 文档](https://rstest.rs/zh/guide/)。
+
+## 端到端测试
+
+[`@rstest/playwright`](https://rstest.rs/zh/guide/advanced/playwright) 是 Rstest 提供的 Playwright 集成包。它提供 Playwright 风格的断言和 fixtures，可测试本地、预览或已部署的应用，并与单元测试共用 Rstest 的运行器、配置和报告流程。
+
+:::tip
+
+如果需要完整的 Playwright Test runner 和 `playwright.config.ts` 配置模型，请使用 [原生 Playwright](https://playwright.dev/docs/test-intro)。
+
+:::
+
+### 安装 `@rstest/playwright`
+
+安装 Rstest 集成包和 Playwright 浏览器自动化运行时：
+
+<PackageManagerTabs command="add @rstest/playwright playwright -D" />
+
+然后安装 Chromium 浏览器：
+
+```bash
+pnpm exec playwright install chromium
+```
+
+### 测试运行中的应用
+
+从 `@rstest/playwright` 导入 `test` 和 `expect`，访问由 Rspack 提供服务的应用：
+
+```ts title="tests/home.e2e.test.ts"
+import { expect, test } from '@rstest/playwright';
+
+test('home page', async ({ page }) => {
+  await page.goto('http://localhost:3000');
+  await expect(page).toHaveTitle(/Rspack/);
+});
+```
+
+### 测试本地构建产物
+
+使用 Rstest 提供的 `serve` fixture，可以从本地文件启动静态应用。测试结束后，服务器会自动清理：
+
+```ts title="tests/home.e2e.test.ts"
+import { expect, test } from '@rstest/playwright';
+
+test('home page', async ({ page, serve }) => {
+  const { url } = await serve('./dist/index.html');
+
+  await page.goto(url);
+  await expect(page.locator('h1')).toHaveText('Home');
+});
+```
+
+端到端测试使用 Rstest runner，可以和单元测试放在一起，并通过同一条命令运行：
+
+```bash
+pnpm run test
+```
+
+更多 fixtures、浏览器配置、Trace 和调试方式，请参阅 [Rstest：Playwright](https://rstest.rs/zh/guide/advanced/playwright)。

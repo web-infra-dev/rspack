@@ -1,0 +1,152 @@
+---
+description: 'Learn how to use Rstest for unit and end-to-end testing in Rspack projects'
+---
+
+import { PackageManagerTabs } from '@theme';
+
+# Testing with Rstest
+
+[Rstest](https://rstest.rs/) is a JavaScript testing framework powered by Rspack. It runs tests through Rspack's bundling pipeline, and its official adapter can reuse module resolution, transforms, and plugins from an existing Rspack configuration.
+
+This guide covers unit testing with Rstest and end-to-end testing with [`@rstest/playwright`](https://rstest.rs/guide/advanced/playwright).
+
+## Set up Rstest
+
+### Create a new project
+
+When creating a project, follow the [Quick start](/guide/start/quick-start) guide and select **Rstest - testing** in the prompts. The generated project includes the Rstest dependencies, configuration, and test scripts.
+
+### Add Rstest to an existing project
+
+Install Rstest and the official Rspack adapter as development dependencies:
+
+<PackageManagerTabs command="add @rstest/core @rstest/adapter-rspack -D" />
+
+Then add scripts for running tests and watching for changes:
+
+```json title="package.json"
+{
+  "scripts": {
+    "test": "rstest",
+    "test:watch": "rstest --watch"
+  }
+}
+```
+
+### Reuse the Rspack configuration
+
+Create an `rstest.config.ts` file in the project root and use `withRspackConfig` to reuse the existing Rspack configuration:
+
+```ts title="rstest.config.ts"
+import { withRspackConfig } from '@rstest/adapter-rspack';
+import { defineConfig } from '@rstest/core';
+
+export default defineConfig({
+  extends: withRspackConfig(),
+});
+```
+
+The adapter loads `rspack.config.ts`, maps compatible Rspack options to Rstest, and merges them with the rest of the Rstest configuration.
+
+:::note
+
+By default, the adapter looks for the Rspack configuration in `process.cwd()`. It also disables Rstest's built-in CSS plugins so that the Rspack CSS configuration takes effect. For monorepos, custom configuration paths, named configurations, and complete mapping details, see [Rstest - Rspack integration](https://rstest.rs/guide/integration/rspack).
+
+:::
+
+## Unit testing
+
+Unit tests verify individual modules and functions in isolation.
+
+### Write tests
+
+Create a source file and a corresponding test file:
+
+```ts title="src/utils.ts"
+export function add(a: number, b: number) {
+  return a + b;
+}
+```
+
+```ts title="src/utils.test.ts"
+import { expect, test } from '@rstest/core';
+import { add } from './utils';
+
+test('adds two numbers correctly', () => {
+  expect(add(1, 2)).toBe(3);
+  expect(add(-1, 1)).toBe(0);
+});
+```
+
+### Run tests
+
+```bash
+# Run all tests
+pnpm run test
+
+# Run tests in watch mode
+pnpm run test:watch
+
+# Run tests whose names match a pattern
+pnpm run test -- -t 'adds two numbers'
+```
+
+See the [Rstest documentation](https://rstest.rs/guide/) for test APIs, mocking, snapshots, coverage, and other features.
+
+## End-to-end testing
+
+[`@rstest/playwright`](https://rstest.rs/guide/advanced/playwright) is Rstest's Playwright integration. It provides Playwright-style assertions and fixtures for testing local, preview, or deployed applications while sharing Rstest's runner, configuration, and reporting workflow with unit tests.
+
+:::tip
+
+If you need the full Playwright Test runner and its `playwright.config.ts` configuration model, use [native Playwright](https://playwright.dev/docs/test-intro).
+
+:::
+
+### Install `@rstest/playwright`
+
+Install the Rstest integration and the Playwright browser automation runtime:
+
+<PackageManagerTabs command="add @rstest/playwright playwright -D" />
+
+Then install the Chromium browser binary:
+
+```bash
+pnpm exec playwright install chromium
+```
+
+### Test a running application
+
+Import `test` and `expect` from `@rstest/playwright` and navigate to the application served by Rspack:
+
+```ts title="tests/home.e2e.test.ts"
+import { expect, test } from '@rstest/playwright';
+
+test('home page', async ({ page }) => {
+  await page.goto('http://localhost:3000');
+  await expect(page).toHaveTitle(/Rspack/);
+});
+```
+
+### Test local build output
+
+Use Rstest's `serve` fixture to start a static application from local files. The server is cleaned up automatically after the test:
+
+```ts title="tests/home.e2e.test.ts"
+import { expect, test } from '@rstest/playwright';
+
+test('home page', async ({ page, serve }) => {
+  const { url } = await serve('./dist/index.html');
+
+  await page.goto(url);
+  await expect(page.locator('h1')).toHaveText('Home');
+});
+```
+
+End-to-end tests use the Rstest runner, so they can live alongside unit tests and run with the same command:
+
+```bash
+pnpm run test
+```
+
+For more fixtures, browser options, tracing, and debugging, see [Rstest - Playwright](https://rstest.rs/guide/advanced/playwright).

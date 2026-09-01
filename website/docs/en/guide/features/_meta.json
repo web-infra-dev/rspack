@@ -11,5 +11,6 @@
   "builtin-swc-loader",
   "builtin-lightningcss-loader",
   "esm",
-  "layer"
+  "layer",
+  "rstest"
 ]
