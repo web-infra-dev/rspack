@@ -960,7 +960,7 @@ export default {
   ```
 
 :::warning 警告
-只有对 `assets.js`、`assets.css` 和 `assets.favicon` 的修改会影响该插件生成的标签；其他字段即使被修改，也不会改变输出。
+只有对 `assets.js`、`assets.css` 和 `assets.favicon` 的修改会影响插件自动生成的标签。其他字段不会影响自动生成标签，但模板仍可通过 `htmlRspackPlugin.files` 读取这些字段。
 :::
 
 以下示例添加了 URL `extra-script.js`，最终 HTML 中会生成对应的 `<script defer src="extra-script.js"></script>` 标签。
