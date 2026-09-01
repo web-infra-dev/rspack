@@ -1,23 +1,35 @@
 ---
-description: '在 Rspack 中使用HTML的指南，涵盖环境配置、集成方式、调试要点、开发模式与常见问题处理，帮助快速定位相关信息。'
+description: '使用 Rspack 内置的 Rust 插件或兼容 html-webpack-plugin 行为的 JavaScript 插件生成 HTML。'
 ---
+
+import { PackageManagerTabs } from '@theme';
 
 # HTML
 
-Rspack 可以为应用生成 HTML 文件，并自动注入构建产物中的 JavaScript 和 CSS 资源。这在生产构建中尤其有用，因为资源文件名通常会包含内容哈希，而生成的 HTML 会始终引用最新的构建产物。
+Rspack 支持通过插件生成 HTML，并自动注入构建产物中的 JavaScript 和 CSS 资源。本文介绍两种插件方案，以及它们在性能、功能和 `html-webpack-plugin` 兼容性方面的差异。
 
-## 插件
+## 选择插件
 
 Rspack 提供两种插件用于生成 HTML：
 
-- 内置的 `HtmlRspackPlugin` 针对性能和常见 HTML 生成场景做了优化；
-- 兼容社区的 `HtmlWebpackPlugin`，适合需要更完整的 webpack 生态兼容性，或需要 `HtmlRspackPlugin` 尚未实现的功能。
+- 内置的 [`rspack.HtmlRspackPlugin`](/plugins/html-rspack-plugin) 使用 Rust 实现，侧重性能和常见 HTML 生成场景。
+- 独立安装的 [`html-rspack-plugin`](https://github.com/rstackjs/html-rspack-plugin) 使用 JavaScript 实现，基于 `html-webpack-plugin` fork，侧重兼容其行为。
 
-如果你不确定应该选择哪个插件，可以先查看 [HtmlRspackPlugin 与 HtmlWebpackPlugin 的对比](/plugins/html-rspack-plugin#对比)，了解两者在性能、功能和兼容性上的差异。
+### 性能
 
-### 内置 HtmlRspackPlugin
+内置的 Rust 实现具有更好的构建性能，尤其适合生成大量 HTML 文件。JavaScript 插件也针对 Rspack 做了优化，但更侧重兼容性。
 
-[HtmlRspackPlugin](/plugins/html-rspack-plugin) 是以 Rust 实现的高性能 HTML 插件，它的构建性能显著优于 `HtmlWebpackPlugin` 插件，尤其是在构建大量 HTML 文件的场景下。
+### 功能
+
+`rspack.HtmlRspackPlugin` 支持 `html-webpack-plugin` 的大部分功能，但由于核心逻辑在 Rust 侧执行，无法完全对齐 JavaScript 插件的所有行为。当它能满足需求且更关注性能时，请使用内置插件；迁移已有的 `html-webpack-plugin` 配置，或需要尚未支持的选项、能力或行为时，请使用 `html-rspack-plugin`。
+
+:::tip
+`rspack.HtmlRspackPlugin` 只支持部分 EJS 风格语法，且不会执行任意 JavaScript。如需兼容 `html-webpack-plugin` 的模板处理行为，请使用 `html-rspack-plugin` 并参考其[模板文档](https://github.com/rstackjs/html-rspack-plugin#writing-your-own-templates)。
+:::
+
+## 内置 HtmlRspackPlugin
+
+`rspack.HtmlRspackPlugin` 已包含在 `@rspack/core` 中，无需安装额外的 npm 包。
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -29,16 +41,20 @@ export default {
 
 有关所有配置选项，请参阅[插件文档](/plugins/html-rspack-plugin)。
 
-### HtmlWebpackPlugin
+## html-rspack-plugin
 
-Rspack 完全兼容 [HtmlWebpackPlugin](https://github.com/jantimon/html-webpack-plugin)。
+单独安装 `html-rspack-plugin`：
+
+<PackageManagerTabs command="add html-rspack-plugin -D" />
 
 ```js title="rspack.config.mjs"
-import HtmlWebpackPlugin from 'html-webpack-plugin';
+import HtmlRspackPlugin from 'html-rspack-plugin';
 
 export default {
-  plugins: [new HtmlWebpackPlugin()],
+  plugins: [new HtmlRspackPlugin()],
 };
 ```
 
-有关所有配置选项，请参阅[插件文档](https://github.com/jantimon/html-webpack-plugin#options)。
+配置选项请参阅 [Options](https://github.com/rstackjs/html-rspack-plugin#options)。
+
+从 `html-webpack-plugin` 迁移时，请参阅 [webpack 迁移指南](/guide/migration/webpack#html-webpack-plugin)。

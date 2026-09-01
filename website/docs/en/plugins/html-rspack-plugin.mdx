@@ -12,9 +12,10 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 - [Examples](#examples): Explore common use cases.
 - [Options](#options): Review types, defaults, and examples.
-- [Comparison](#comparison): Compare with `html-webpack-plugin`.
 - [Template syntax](#template-syntax): See supported interpolation and control statements.
 - [Hooks](#hooks): Modify asset URLs, tags, and HTML.
+
+For help choosing between the built-in plugin and the JavaScript `html-rspack-plugin`, see the [HTML guide](/guide/tech/html#choose-a-plugin).
 
 ## Examples
 
@@ -820,26 +821,6 @@ new rspack.HtmlRspackPlugin({
   hash: true,
 });
 ```
-
-## Comparison
-
-`rspack.HtmlRspackPlugin` differs from the community [`html-webpack-plugin`](https://www.npmjs.com/package/html-webpack-plugin) in performance and supported features.
-
-### Performance
-
-Because `rspack.HtmlRspackPlugin` is implemented in Rust, it builds significantly faster than `html-webpack-plugin`, especially when generating many HTML files.
-
-### Features
-
-`rspack.HtmlRspackPlugin` supports a subset of the features provided by `html-webpack-plugin`. Some features are not implemented to keep the native implementation fast.
-
-Use the community [`html-webpack-plugin`](https://www.npmjs.com/package/html-webpack-plugin) when you need an option or template feature that is not supported here.
-
-:::warning
-`rspack.HtmlRspackPlugin` supports only a subset of the full [EJS syntax](https://ejs.co/#docs). Use `html-webpack-plugin` if the template requires full EJS compatibility.
-
-To match the default template syntax of `html-webpack-plugin`, `<%-` escapes its result and `<%=` inserts its result without escaping.
-:::
 
 ## Template syntax
 

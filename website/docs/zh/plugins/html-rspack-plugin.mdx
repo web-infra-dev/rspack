@@ -12,9 +12,10 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 - [示例](#示例)：查看常见用法。
 - [选项](#选项)：查看类型、默认值和示例。
-- [对比](#对比)：了解与 `html-webpack-plugin` 的差异。
 - [模板语法](#模板语法)：查看支持的插值和控制语句。
 - [Hooks](#hooks)：修改产物 URL、标签和 HTML。
+
+关于内置插件与 JavaScript 版 `html-rspack-plugin` 的选择，请参考 [HTML 指南](/guide/tech/html#选择插件)。
 
 ## 示例
 
@@ -820,26 +821,6 @@ new rspack.HtmlRspackPlugin({
   hash: true,
 });
 ```
-
-## 对比
-
-与社区的 [`html-webpack-plugin`](https://www.npmjs.com/package/html-webpack-plugin) 相比，`rspack.HtmlRspackPlugin` 在性能和功能支持上有所不同。
-
-### 性能
-
-`rspack.HtmlRspackPlugin` 基于 Rust 实现，构建性能显著高于 `html-webpack-plugin`，尤其是在需要生成大量 HTML 文件时。
-
-### 功能
-
-`rspack.HtmlRspackPlugin` 支持 `html-webpack-plugin` 的部分功能。为了保持原生实现的性能，还有一些功能尚未支持。
-
-如果需要插件尚未支持的选项或模板能力，可以使用社区的 [`html-webpack-plugin`](https://www.npmjs.com/package/html-webpack-plugin)。
-
-:::warning 警告
-`rspack.HtmlRspackPlugin` 只支持部分 [EJS 语法](https://ejs.co/#docs)。如果模板需要完整的 EJS 兼容性，请使用 `html-webpack-plugin`。
-
-为了兼容 `html-webpack-plugin` 的默认模板语法，`<%-` 会转义插值结果，`<%=` 则直接插入未经转义的结果。
-:::
 
 ## 模板语法
 

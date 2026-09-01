@@ -249,6 +249,32 @@ Check [Plugin compat](/guide/compatibility/plugin) for more information on Rspac
 
 Some webpack ecosystem packages, such as [`webpack-node-externals`](https://www.npmjs.com/package/webpack-node-externals) and [`node-polyfill-webpack-plugin`](https://www.npmjs.com/package/node-polyfill-webpack-plugin), require newer versions for Rspack compatibility. Before reusing a community package, upgrade it to the latest version, as older versions may rely on incompatible webpack APIs.
 
+### html-webpack-plugin
+
+For most projects migrating from [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin), use [`html-rspack-plugin`](https://github.com/rstackjs/html-rspack-plugin). It is a JavaScript fork designed for Rspack and provides closer compatibility with existing options, templates, and integrations.
+
+<PackageManagerTabs command="add html-rspack-plugin -D" />
+
+Update the import and constructor name in the Rspack configuration:
+
+```diff title="rspack.config.mjs"
+-import HtmlWebpackPlugin from 'html-webpack-plugin';
++import HtmlRspackPlugin from 'html-rspack-plugin';
+
+ export default {
+   plugins: [
+-    new HtmlWebpackPlugin({
++    new HtmlRspackPlugin({
+       // ...
+     }),
+   ],
+ };
+```
+
+After completing the migration, remove `html-webpack-plugin` from the project dependencies.
+
+If build performance is the priority, you can also use the built-in Rust plugin [`rspack.HtmlRspackPlugin`](/plugins/html-rspack-plugin). See the [HTML guide](/guide/tech/html#choose-a-plugin) for details.
+
 ### unplugin
 
 Some [unplugin](/guide/features/plugin#unplugin) packages provide separate entry points for each bundler. When a `/rspack` entry is available, use it instead of `/webpack` so the plugin selects the Rspack adapter:
