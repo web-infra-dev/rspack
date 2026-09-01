@@ -8,13 +8,13 @@ import { PackageManagerTabs } from '@theme';
 
 [Rstest](https://rstest.rs/) 是一个基于 Rspack 的 JavaScript 测试框架。它通过 Rspack 的打包流程运行测试，并可借助官方适配器复用现有 Rspack 配置中的模块解析、代码转换和插件。
 
-本指南介绍如何使用 Rstest 编写单元测试，以及如何通过 [`@rstest/playwright`](https://rstest.rs/guide/advanced/playwright) 编写端到端测试。
+本指南介绍如何使用 Rstest 编写单元测试，以及如何通过 [`@rstest/playwright`](https://rstest.rs/zh/guide/advanced/playwright) 编写端到端测试。
 
 ## 配置 Rstest
 
 ### 创建新项目
 
-使用 [create-rspack](https://www.npmjs.com/package/create-rspack) 创建项目时，在交互式提示中选择 **Rstest - testing**。生成的项目会包含 Rstest 所需的依赖、配置和测试脚本。
+创建项目时，请参阅[快速上手](/guide/start/quick-start)，并在交互式提示中选择 **Rstest - testing**。生成的项目会包含 Rstest 所需的依赖、配置和测试脚本。
 
 ### 添加到现有项目
 
@@ -72,7 +72,7 @@ export function add(a: number, b: number) {
 import { expect, test } from '@rstest/core';
 import { add } from './utils';
 
-test('正确计算两个数字的和', () => {
+test('adds two numbers correctly', () => {
   expect(add(1, 2)).toBe(3);
   expect(add(-1, 1)).toBe(0);
 });
@@ -88,14 +88,14 @@ pnpm run test
 pnpm run test:watch
 
 # 运行测试名称匹配指定模式的测试
-pnpm run test -- -t '正确计算两个数字的和'
+pnpm run test -- -t 'adds two numbers'
 ```
 
-更多测试 API、Mock、Snapshot 和覆盖率等功能，请参阅 [Rstest 文档](https://rstest.rs/guide/)。
+更多测试 API、Mock、Snapshot 和覆盖率等功能，请参阅 [Rstest 文档](https://rstest.rs/zh/guide/)。
 
 ## 端到端测试
 
-[`@rstest/playwright`](https://rstest.rs/guide/advanced/playwright) 是 Rstest 提供的 Playwright 集成包。它提供 Playwright 风格的断言和 fixtures，可测试本地、预览或已部署的应用，并与单元测试共用 Rstest 的运行器、配置和报告流程。
+[`@rstest/playwright`](https://rstest.rs/zh/guide/advanced/playwright) 是 Rstest 提供的 Playwright 集成包。它提供 Playwright 风格的断言和 fixtures，可测试本地、预览或已部署的应用，并与单元测试共用 Rstest 的运行器、配置和报告流程。
 
 :::tip
 
@@ -122,7 +122,7 @@ pnpm exec playwright install chromium
 ```ts title="tests/home.e2e.test.ts"
 import { expect, test } from '@rstest/playwright';
 
-test('首页', async ({ page }) => {
+test('home page', async ({ page }) => {
   await page.goto('http://localhost:3000');
   await expect(page).toHaveTitle(/Rspack/);
 });
@@ -135,7 +135,7 @@ test('首页', async ({ page }) => {
 ```ts title="tests/home.e2e.test.ts"
 import { expect, test } from '@rstest/playwright';
 
-test('首页', async ({ page, serve }) => {
+test('home page', async ({ page, serve }) => {
   const { url } = await serve('./dist/index.html');
 
   await page.goto(url);
@@ -149,4 +149,4 @@ test('首页', async ({ page, serve }) => {
 pnpm run test
 ```
 
-更多 fixtures、浏览器配置、Trace 和调试方式，请参阅 [Rstest：Playwright](https://rstest.rs/guide/advanced/playwright)。
+更多 fixtures、浏览器配置、Trace 和调试方式，请参阅 [Rstest：Playwright](https://rstest.rs/zh/guide/advanced/playwright)。
