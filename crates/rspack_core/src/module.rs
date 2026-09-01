@@ -291,8 +291,9 @@ pub struct BuildInfo {
   pub module_argument: ModuleArgument,
   pub exports_argument: ExportsArgument,
   pub dependencies: crate::LoaderDependencies,
-  /// Reserved for full `need_build` snapshot validation. Module builds do not
-  /// populate it yet to avoid adding snapshot creation overhead.
+  /// Snapshot used by full `need_build` validation. `NormalModule` populates
+  /// this when the module build cache is enabled; other builds leave it empty
+  /// to avoid snapshot creation overhead.
   pub snapshot: Option<Snapshot>,
   pub value_dependencies: HashMap<String, String>,
   #[cacheable(with=AsVec<AsPreset>)]

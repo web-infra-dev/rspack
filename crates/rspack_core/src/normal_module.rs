@@ -383,7 +383,7 @@ impl NormalModule {
   }
 
   pub(crate) async fn save_to_cache(
-    &self,
+    &mut self,
     file_system_info: &FileSystemInfo,
     build_start_time: u64,
   ) -> Result<Option<CachedModule>> {
@@ -396,14 +396,13 @@ impl NormalModule {
       return Ok(None);
     }
 
-    let mut build_info = self.build_info.clone();
-    build_info.snapshot = Some(
+    self.build_info.snapshot = Some(
       file_system_info
         .create_snapshot(
           Some(build_start_time),
-          &build_info.dependencies.file,
-          &build_info.dependencies.context,
-          &build_info.dependencies.missing,
+          &self.build_info.dependencies.file,
+          &self.build_info.dependencies.context,
+          &self.build_info.dependencies.missing,
           // Rspack does not expose webpack's `snapshot.module` strategy yet.
           SnapshotStrategyOptions::timestamp(),
         )
@@ -415,7 +414,7 @@ impl NormalModule {
       diagnostics: self.diagnostics.clone(),
       code_generation_dependencies: self.code_generation_dependencies.clone(),
       presentational_dependencies: self.presentational_dependencies.clone(),
-      build_info,
+      build_info: self.build_info.clone(),
       build_meta: self.build_meta.clone(),
       parsed: self.parsed,
       source_map_kind: self.source_map_kind,
@@ -432,9 +431,6 @@ impl NormalModule {
     }
 
     cached_module.restore_into(self);
-    // The snapshot belongs to the cache entry. Do not retain it in the module
-    // graph's runtime build info.
-    self.build_info.snapshot = None;
     Ok(true)
   }
 }

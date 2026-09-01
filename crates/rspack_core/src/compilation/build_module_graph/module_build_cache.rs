@@ -37,7 +37,7 @@ impl CachedBuildResult {
     file_system_info: &FileSystemInfo,
     build_start_time: u64,
   ) -> Result<Option<Self>> {
-    let Some(module) = result.module.as_normal_module() else {
+    let Some(module) = result.module.as_normal_module_mut() else {
       return Ok(None);
     };
     let Some(module) = module
