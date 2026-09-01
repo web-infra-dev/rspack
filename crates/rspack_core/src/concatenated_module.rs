@@ -1176,7 +1176,7 @@ impl Module for ConcatenatedModule {
     let binding_resolver = ConcatenationBindingResolver {
       context: &concatenation_context,
       module_to_info_map: &mut module_to_info_map,
-      normalize_export_name: |_, _, _| {},
+      normalize_export_name: None,
     };
 
     // Find and replace references to modules
@@ -2505,7 +2505,7 @@ impl ConcatenatedModule {
               }
             }
           };
-        return FinalBindingResult {
+        FinalBindingResult {
           binding: Binding::Raw(RawBinding {
             info_id,
             raw_name: raw_name.cloned().expect("should have raw name"),
@@ -2518,7 +2518,7 @@ impl ConcatenatedModule {
           interop_default_access_used: None,
           deferred_namespace_object_used: is_deferred.then_some(true),
           needed_namespace_object,
-        };
+        }
       }
       ConcatenationBindingTarget::InteropDefault => {
         let info = module_to_info_map
@@ -2562,7 +2562,7 @@ impl ConcatenatedModule {
           format!("{default_access_name}.a")
         };
 
-        return FinalBindingResult {
+        FinalBindingResult {
           binding: Binding::Raw(RawBinding {
             raw_name: default_export.into(),
             ids: export_name.clone(),
@@ -2575,50 +2575,48 @@ impl ConcatenatedModule {
           interop_namespace_object2_used: None,
           deferred_namespace_object_used: None,
           needed_namespace_object: None,
-        };
+        }
       }
       ConcatenationBindingTarget::EsModule(ids) => {
-        return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
+        FinalBindingResult::from_binding(Binding::Raw(RawBinding {
           info_id,
           raw_name: "/* __esModule */true".into(),
           ids,
           export_name,
           comment: None,
-        }));
+        }))
       }
       ConcatenationBindingTarget::UnsupportedDefaultImport => {
-        return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
+        FinalBindingResult::from_binding(Binding::Raw(RawBinding {
           raw_name: "/* non-default import from default-exporting module */undefined".into(),
           ids: export_name.clone(),
           export_name,
           info_id,
           comment: None,
-        }));
+        }))
       }
       ConcatenationBindingTarget::Namespace => {
         match module_to_info_map
           .get(&info_id)
           .expect("should have module info")
         {
-          ModuleInfo::Concatenated(info) => {
-            return FinalBindingResult {
-              binding: Binding::Raw(RawBinding {
-                raw_name: info
-                  .namespace_object_name
-                  .clone()
-                  .expect("should have namespace_object_name"),
-                ids: export_name.clone(),
-                export_name,
-                info_id: info.module,
-                comment: None,
-              }),
-              needed_namespace_object: Some(info.module),
-              interop_namespace_object_used: None,
-              interop_namespace_object2_used: None,
-              interop_default_access_used: None,
-              deferred_namespace_object_used: None,
-            };
-          }
+          ModuleInfo::Concatenated(info) => FinalBindingResult {
+            binding: Binding::Raw(RawBinding {
+              raw_name: info
+                .namespace_object_name
+                .clone()
+                .expect("should have namespace_object_name"),
+              ids: export_name.clone(),
+              export_name,
+              info_id: info.module,
+              comment: None,
+            }),
+            needed_namespace_object: Some(info.module),
+            interop_namespace_object_used: None,
+            interop_namespace_object2_used: None,
+            interop_default_access_used: None,
+            deferred_namespace_object_used: None,
+          },
           ModuleInfo::External(info) => {
             if is_deferred {
               return FinalBindingResult {
@@ -2639,27 +2637,27 @@ impl ConcatenatedModule {
                 needed_namespace_object: None,
               };
             }
-            return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
+            FinalBindingResult::from_binding(Binding::Raw(RawBinding {
               raw_name: info.name.clone().expect("should have raw name"),
               ids: export_name.clone(),
               export_name,
               info_id: info.module,
               comment: None,
-            }));
+            }))
           }
         }
       }
       ConcatenationBindingTarget::Circular => {
-        return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
+        FinalBindingResult::from_binding(Binding::Raw(RawBinding {
           raw_name: "/* circular reexport */ Object(function x() { x() }())".into(),
           ids: Vec::new(),
           export_name,
           info_id,
           comment: None,
-        }));
+        }))
       }
       ConcatenationBindingTarget::Direct { symbol, used_name } => {
-        return FinalBindingResult::from_binding(match used_name {
+        FinalBindingResult::from_binding(match used_name {
           Some(UsedName::Normal(used_name)) => Binding::Symbol(SymbolBinding {
             info_id,
             name: symbol,
@@ -2687,22 +2685,22 @@ impl ConcatenatedModule {
             info_id,
             comment: None,
           }),
-        });
+        })
       }
       ConcatenationBindingTarget::Raw(symbol) => {
-        return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
+        FinalBindingResult::from_binding(Binding::Raw(RawBinding {
           info_id,
           raw_name: symbol,
           ids: export_name[1..].to_vec(),
           export_name,
           comment: None,
-        }));
+        }))
       }
       ConcatenationBindingTarget::Inlined(used_name) => {
         let UsedName::Inlined(inlined) = used_name else {
           unreachable!("inlined binding plan should contain an inlined used name")
         };
-        return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
+        FinalBindingResult::from_binding(Binding::Raw(RawBinding {
           raw_name: inlined
             .inlined_value()
             .render(&to_normal_comment(&format!(
@@ -2714,14 +2712,14 @@ impl ConcatenatedModule {
           export_name,
           info_id,
           comment: None,
-        }));
+        }))
       }
       ConcatenationBindingTarget::NamespaceExport(used_name) => {
         let info = module_to_info_map
           .get(&info_id)
           .expect("should have module info")
           .as_concatenated();
-        return FinalBindingResult::from_binding(match used_name {
+        FinalBindingResult::from_binding(match used_name {
           UsedName::Normal(used_name) => Binding::Raw(RawBinding {
             info_id,
             raw_name: info
@@ -2747,7 +2745,7 @@ impl ConcatenatedModule {
             export_name,
             comment: None,
           }),
-        });
+        })
       }
       ConcatenationBindingTarget::Missing(_) => {
         let module = module_graph

@@ -113,7 +113,7 @@ pub enum ConcatenationBindingTarget {
 pub struct ConcatenationBindingResolver<'a> {
   pub context: &'a ConcatenationContext<'a>,
   pub module_to_info_map: &'a mut IdentifierIndexMap<ModuleInfo>,
-  pub normalize_export_name: fn(&ModuleGraph, &ModuleIdentifier, &mut Vec<Atom>),
+  pub normalize_export_name: Option<fn(&ModuleGraph, &ModuleIdentifier, &mut Vec<Atom>)>,
 }
 
 impl<'a> ConcatenationBindingResolver<'a> {
@@ -156,7 +156,9 @@ impl<'a> ConcatenationBindingResolver<'a> {
       strict_esm_module,
     );
 
-    (self.normalize_export_name)(module_graph, info_id, &mut export_name);
+    if let Some(normalize_export_name) = self.normalize_export_name {
+      normalize_export_name(module_graph, info_id, &mut export_name);
+    }
 
     if export_name.is_empty() {
       match exports_type {

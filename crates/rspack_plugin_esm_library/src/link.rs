@@ -620,7 +620,7 @@ impl EsmLibraryPlugin {
     let mut binding_resolver = ConcatenationBindingResolver {
       context: &concatenation_context,
       module_to_info_map: &mut concate_modules_map,
-      normalize_export_name: |module_graph, module, export_name| {
+      normalize_export_name: Some(|module_graph, module, export_name| {
         let is_source_phase_external = module_graph
           .module_by_identifier(module)
           .and_then(|module| module.as_external_module())
@@ -632,7 +632,7 @@ impl EsmLibraryPlugin {
         {
           export_name.remove(0);
         }
-      },
+      }),
     };
 
     // link imported specifier with exported symbol
@@ -2982,12 +2982,12 @@ var {} = {{}};
           }
         };
 
-        return Some(Ref::Symbol(SymbolRef::new(
+        Some(Ref::Symbol(SymbolRef::new(
           info_id,
           symbol,
           export_name,
           Arc::new(|binding| binding.symbol.to_string()),
-        )));
+        )))
       }
       ConcatenationBindingTarget::InteropDefault => {
         let info = &mut module_to_info_map[&info_id];
@@ -3007,7 +3007,7 @@ var {} = {{}};
             .expect("should already set interop namespace"),
         };
 
-        return Some(Ref::Symbol(SymbolRef::new(
+        Some(Ref::Symbol(SymbolRef::new(
           info_id,
           symbol,
           export_name,
@@ -3037,14 +3037,12 @@ var {} = {{}};
 
             exports
           }),
-        )));
+        )))
       }
-      ConcatenationBindingTarget::EsModule(_) => return Some(es_module_binding()),
-      ConcatenationBindingTarget::UnsupportedDefaultImport => {
-        return Some(Ref::Inline(
-          "/* non-default import from default-exporting module */undefined".into(),
-        ));
-      }
+      ConcatenationBindingTarget::EsModule(_) => Some(es_module_binding()),
+      ConcatenationBindingTarget::UnsupportedDefaultImport => Some(Ref::Inline(
+        "/* non-default import from default-exporting module */undefined".into(),
+      )),
       ConcatenationBindingTarget::Namespace => match module_to_info_map.get_mut_unwrap(&info_id) {
         ModuleInfo::Concatenated(info) => {
           needed_namespace_objects.insert(info.module);
