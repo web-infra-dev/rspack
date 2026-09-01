@@ -245,10 +245,14 @@ impl AsyncDependenciesBlockDependencies {
   }
 }
 
-/// Immutable cache representation for an async dependency block.
+/// Cache-owned structural representation for an async dependency block.
 ///
 /// Build result blocks are consumed while they are inserted into a module graph.
-/// Cache entries retain this projection and materialize fresh blocks for each hit.
+/// Cache entries retain this projection and materialize fresh block containers
+/// for each hit. Dependency references remain shared with the live module graph,
+/// matching the module build cache and webpack's cached-module semantics;
+/// interior state such as an unset lazy marker is intentionally retained across
+/// hits.
 #[cacheable]
 #[derive(Debug)]
 pub(crate) struct CachedAsyncDependenciesBlock {

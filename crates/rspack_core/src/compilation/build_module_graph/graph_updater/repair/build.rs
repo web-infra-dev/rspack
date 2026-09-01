@@ -82,27 +82,75 @@ impl Task<TaskContext> for BuildTask {
       )
       .await?;
 
-    let mut build_result = result;
-    if let (Some(module_build_cache), Some(build_start_time)) =
-      (&module_build_cache, build_start_time)
-    {
+    let module_build_cache_store =
       module_build_cache
-        .store(&mut build_result, &file_system_info, build_start_time)
-        .await?;
-    }
+        .zip(build_start_time)
+        .map(|(cache, build_start_time)| ModuleBuildCacheStore {
+          cache,
+          file_system_info,
+          build_start_time,
+        });
 
     Ok(vec![Box::new(BuildResultTask::built(
-      build_result,
+      result,
       plugin_driver,
       forwarded_ids,
+      module_build_cache_store,
     ))])
   }
 }
 
 #[derive(Debug)]
 enum BuildResultOrigin {
-  Built,
+  Built(Option<ModuleBuildCacheStore>),
+  BuiltAfterSucceed,
   Cached,
+}
+
+#[derive(Debug)]
+struct ModuleBuildCacheStore {
+  cache: ModuleBuildCache,
+  file_system_info: FileSystemInfo,
+  build_start_time: u64,
+}
+
+#[derive(Debug)]
+struct StoreModuleBuildCacheTask {
+  build_result: Box<BuildResult>,
+  plugin_driver: SharedPluginDriver,
+  forwarded_ids: ForwardedIdSet,
+  store: ModuleBuildCacheStore,
+}
+
+#[async_trait::async_trait]
+impl Task<TaskContext> for StoreModuleBuildCacheTask {
+  fn get_task_type(&self) -> TaskType {
+    TaskType::Background
+  }
+
+  async fn background_run(self: Box<Self>) -> TaskResult<TaskContext> {
+    let Self {
+      mut build_result,
+      plugin_driver,
+      forwarded_ids,
+      store,
+    } = *self;
+    store
+      .cache
+      .store(
+        &mut build_result,
+        &store.file_system_info,
+        store.build_start_time,
+      )
+      .await?;
+
+    Ok(vec![Box::new(BuildResultTask {
+      build_result,
+      plugin_driver,
+      forwarded_ids,
+      origin: BuildResultOrigin::BuiltAfterSucceed,
+    })])
+  }
 }
 
 #[derive(Debug)]
@@ -118,12 +166,13 @@ impl BuildResultTask {
     build_result: BuildResult,
     plugin_driver: SharedPluginDriver,
     forwarded_ids: ForwardedIdSet,
+    module_build_cache_store: Option<ModuleBuildCacheStore>,
   ) -> Self {
     Self {
       build_result: Box::new(build_result),
       plugin_driver,
       forwarded_ids,
-      origin: BuildResultOrigin::Built,
+      origin: BuildResultOrigin::Built(module_build_cache_store),
     }
   }
 
@@ -153,25 +202,44 @@ impl Task<TaskContext> for BuildResultTask {
       mut forwarded_ids,
       origin,
     } = *self;
-    let mut module = build_result.module;
+    let mut build_result = build_result;
 
     match origin {
-      BuildResultOrigin::Built => {
+      BuildResultOrigin::Built(module_build_cache_store) => {
         plugin_driver
           .compilation_hooks
           .succeed_module
-          .call(context.compiler_id, context.compilation_id, &mut module)
+          .call(
+            context.compiler_id,
+            context.compilation_id,
+            &mut build_result.module,
+          )
           .await?;
+
+        if let Some(store) = module_build_cache_store {
+          return Ok(vec![Box::new(StoreModuleBuildCacheTask {
+            build_result,
+            plugin_driver,
+            forwarded_ids,
+            store,
+          })]);
+        }
       }
       BuildResultOrigin::Cached => {
         plugin_driver
           .compilation_hooks
           .still_valid_module
-          .call(context.compiler_id, context.compilation_id, &mut module)
+          .call(
+            context.compiler_id,
+            context.compilation_id,
+            &mut build_result.module,
+          )
           .await?;
       }
+      BuildResultOrigin::BuiltAfterSucceed => {}
     }
 
+    let mut module = build_result.module;
     let build_info = module.build_info();
 
     if !module.diagnostics().is_empty() {

@@ -13,9 +13,15 @@ use crate::{
 /// Cache-owned result of a completed normal module build.
 ///
 /// This is deliberately separate from [`BuildResult`]. A build result is
-/// consumed while it is installed into a module graph, whereas this type is
-/// immutable and can be shared by the in-memory cache. The file-cache backend
-/// serializes this value only when persistence is enabled.
+/// consumed while it is installed into a module graph, whereas this type can be
+/// retained by the in-memory cache. The file-cache backend serializes this
+/// value only when persistence is enabled.
+///
+/// The structure is cache-owned, but its [`DependencyRef`] values are
+/// intentionally shared with the live module graph. This matches webpack,
+/// which installs the cached module object itself. In particular, lazy barrel
+/// processing may unset a dependency's lazy state after installation, and that
+/// decision remains visible to later cache hits so the dependency stays eager.
 #[cacheable]
 #[derive(Debug)]
 struct CachedBuildResult {

@@ -178,7 +178,11 @@ pub(crate) struct CachedModule {
 }
 
 impl CachedModule {
-  fn apply_to(&self, module: &mut NormalModule) {
+  async fn need_build(&self, context: &NeedBuildContext<'_>) -> Result<bool> {
+    need_build_with_state(&self.diagnostics, &self.build_info, context).await
+  }
+
+  fn restore_into(&self, module: &mut NormalModule) {
     module.source.clone_from(&self.source);
     module.cached_source_sizes = Default::default();
     module.diagnostics.clone_from(&self.diagnostics);
@@ -194,6 +198,39 @@ impl CachedModule {
     module.force_build = false;
     module.source_map_kind = self.source_map_kind;
   }
+}
+
+async fn need_build_with_state(
+  diagnostics: &[Diagnostic],
+  build_info: &BuildInfo,
+  context: &NeedBuildContext<'_>,
+) -> Result<bool> {
+  if diagnostics.iter().any(|diagnostic| diagnostic.is_error()) {
+    return Ok(true);
+  }
+
+  if !build_info.cacheable {
+    return Ok(true);
+  }
+
+  let Some(snapshot) = &build_info.snapshot else {
+    return Ok(true);
+  };
+
+  if context
+    .value_cache_versions
+    .has_diff(&build_info.value_dependencies)
+  {
+    return Ok(true);
+  }
+
+  Ok(matches!(
+    context
+      .file_system_info
+      .check_snapshot_valid(snapshot)
+      .await?,
+    SnapshotValidationResult::Invalid { .. }
+  ))
 }
 
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
@@ -390,12 +427,15 @@ impl NormalModule {
     cached_module: &CachedModule,
     context: &NeedBuildContext<'_>,
   ) -> Result<bool> {
-    cached_module.apply_to(self);
-    let need_build = self.need_build(context).await?;
+    if cached_module.need_build(context).await? {
+      return Ok(false);
+    }
+
+    cached_module.restore_into(self);
     // The snapshot belongs to the cache entry. Do not retain it in the module
     // graph's runtime build info.
     self.build_info.snapshot = None;
-    Ok(!need_build)
+    Ok(true)
   }
 }
 
@@ -466,36 +506,7 @@ impl Module for NormalModule {
       return Ok(true);
     }
 
-    if self
-      .diagnostics
-      .iter()
-      .any(|diagnostic| diagnostic.is_error())
-    {
-      return Ok(true);
-    }
-
-    if !self.build_info.cacheable {
-      return Ok(true);
-    }
-
-    let Some(snapshot) = &self.build_info.snapshot else {
-      return Ok(true);
-    };
-
-    if context
-      .value_cache_versions
-      .has_diff(&self.build_info.value_dependencies)
-    {
-      return Ok(true);
-    }
-
-    Ok(matches!(
-      context
-        .file_system_info
-        .check_snapshot_valid(snapshot)
-        .await?,
-      SnapshotValidationResult::Invalid { .. }
-    ))
+    need_build_with_state(&self.diagnostics, &self.build_info, context).await
   }
 
   #[tracing::instrument("NormalModule:build", skip_all, fields(
