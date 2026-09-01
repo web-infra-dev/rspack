@@ -2,7 +2,6 @@ use std::{
   sync::{
     Arc,
     atomic::{AtomicU64, Ordering},
-    mpsc as sync_mpsc,
   },
   thread,
   time::Duration,
@@ -17,7 +16,7 @@ use tokio::{
 
 use super::{
   CacheKey, CacheValue, Etag, FileCacheStrategy, Meta,
-  cache_value::{CacheValueData, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
+  cache_value::{CacheValueData, ErasedCacheValue},
 };
 use crate::{InfrastructureLogger, Logger};
 
@@ -28,27 +27,8 @@ const MAX_IDLE_COMPACTION_PASSES: usize = 10;
 
 #[derive(Debug)]
 enum Command {
-  Store {
-    key: CacheKey,
-    etag: Option<Etag>,
-    value: ErasedCacheValue,
-    encoder: CacheValueEncoder,
-  },
-  Restore {
-    key: CacheKey,
-    etag: Option<Etag>,
-    decoder: CacheValueDecoder,
-    result: sync_mpsc::SyncSender<Result<Option<ErasedCacheValue>>>,
-  },
-  StoreBuildDependencies(InternedPathSet),
-  StoreMeta(Meta),
-  RestoreMeta {
-    result: sync_mpsc::SyncSender<Result<Option<Meta>>>,
-  },
   RecordBuildTime(Duration),
-  BeginIdle {
-    epoch: u64,
-  },
+  BeginIdle { epoch: u64 },
   EndIdle,
   Shutdown(oneshot::Sender<Result<()>>),
 }
@@ -60,7 +40,7 @@ struct IdleDeadline {
 }
 
 struct BackgroundJob {
-  strategy: FileCacheStrategy,
+  strategy: Arc<FileCacheStrategy>,
   logger: Arc<InfrastructureLogger>,
   command_receiver: mpsc::UnboundedReceiver<Command>,
   // A deadline remains valid only while this still matches its captured epoch.
@@ -121,28 +101,6 @@ impl BackgroundJob {
 
   async fn handle_command(&mut self, command: Command) -> bool {
     match command {
-      Command::Store {
-        key,
-        etag,
-        value,
-        encoder,
-      } => {
-        self.strategy.store(key, etag, value, encoder);
-      }
-      Command::StoreBuildDependencies(dependencies) => {
-        self.strategy.store_build_dependencies(dependencies);
-      }
-      Command::StoreMeta(meta) => {
-        self.strategy.store_meta(meta);
-      }
-      Command::Restore {
-        key,
-        etag,
-        decoder,
-        result,
-      } => {
-        let _ = result.send(self.strategy.restore(&key, etag.as_ref(), decoder));
-      }
       Command::RecordBuildTime(build_time) => {
         self.time_spent_in_build = self
           .time_spent_in_build
@@ -178,9 +136,6 @@ impl BackgroundJob {
         let _ = result.send(self.strategy.shutdown().await);
         return true;
       }
-      Command::RestoreMeta { result } => {
-        let _ = result.send(self.strategy.restore_meta());
-      }
     }
     false
   }
@@ -211,6 +166,7 @@ impl BackgroundJob {
 /// Runs filesystem cache operations in one persistent background job.
 #[derive(Debug)]
 pub struct IdleFileCache {
+  strategy: Arc<FileCacheStrategy>,
   command_sender: mpsc::UnboundedSender<Command>,
   idle_epoch: Arc<AtomicU64>,
 }
@@ -230,8 +186,9 @@ impl IdleFileCache {
       idle_timeout_after_large_changes.unwrap_or(DEFAULT_IDLE_TIMEOUT_AFTER_LARGE_CHANGES);
     let (command_sender, command_receiver) = mpsc::unbounded_channel();
     let idle_epoch = Arc::new(AtomicU64::new(0));
+    let strategy = Arc::new(strategy);
     let background_job = BackgroundJob {
-      strategy,
+      strategy: Arc::clone(&strategy),
       logger,
       command_receiver,
       idle_epoch: Arc::clone(&idle_epoch),
@@ -254,6 +211,7 @@ impl IdleFileCache {
       .expect("failed to spawn idle file cache background thread");
 
     Self {
+      strategy,
       command_sender,
       idle_epoch,
     }
@@ -266,18 +224,10 @@ impl IdleFileCache {
       .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))
   }
 
-  pub fn store<T: CacheValueData>(
-    &self,
-    key: CacheKey,
-    etag: Option<Etag>,
-    value: CacheValue<T>,
-  ) -> Result<()> {
-    self.send(Command::Store {
-      key,
-      etag,
-      value: value.erase(),
-      encoder: CacheValue::<T>::encoder(),
-    })
+  pub fn store<T: CacheValueData>(&self, key: CacheKey, etag: Option<Etag>, value: CacheValue<T>) {
+    self
+      .strategy
+      .store(key, etag, value.erase(), CacheValue::<T>::encoder());
   }
 
   pub fn restore<T: CacheValueData>(
@@ -285,35 +235,22 @@ impl IdleFileCache {
     key: CacheKey,
     etag: Option<Etag>,
   ) -> Result<Option<CacheValue<T>>> {
-    let (result, result_receiver) = sync_mpsc::sync_channel(1);
-    self.send(Command::Restore {
-      key,
-      etag,
-      decoder: CacheValue::<T>::decoder(),
-      result,
-    })?;
-    Ok(
-      result_receiver
-        .recv()
-        .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))??
-        .and_then(ErasedCacheValue::downcast),
-    )
+    let restored = self
+      .strategy
+      .restore(&key, etag.as_ref(), CacheValue::<T>::decoder())?;
+    Ok(restored.and_then(ErasedCacheValue::downcast))
   }
 
-  pub fn store_build_dependencies(&self, dependencies: InternedPathSet) -> Result<()> {
-    self.send(Command::StoreBuildDependencies(dependencies))
+  pub fn store_build_dependencies(&self, dependencies: InternedPathSet) {
+    self.strategy.store_build_dependencies(dependencies);
   }
 
-  pub fn store_meta(&self, meta: Meta) -> Result<()> {
-    self.send(Command::StoreMeta(meta))
+  pub fn store_meta(&self, meta: Meta) {
+    self.strategy.store_meta(meta);
   }
 
   pub fn restore_meta(&self) -> Result<Option<Meta>> {
-    let (result, result_receiver) = sync_mpsc::sync_channel(1);
-    self.send(Command::RestoreMeta { result })?;
-    result_receiver
-      .recv()
-      .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))?
+    self.strategy.restore_meta()
   }
 
   pub fn record_build_time(&self, build_time: Duration) -> Result<()> {

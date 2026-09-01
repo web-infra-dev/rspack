@@ -1,32 +1,32 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 
 use rspack_error::Result;
 use rspack_paths::Utf8PathBuf;
 use rustc_hash::FxHashMap;
 
 use super::DatabaseFamily;
-use crate::InfrastructureLogger;
+use crate::{InfrastructureLogger, new_cache::CacheKey};
 
 pub type DatabaseValue = Arc<[u8]>;
 
 pub(crate) struct DatabaseBatch {
-  writes: Mutex<[FxHashMap<Vec<u8>, DatabaseValue>; DatabaseFamily::COUNT]>,
+  writes: Mutex<[FxHashMap<CacheKey, DatabaseValue>; DatabaseFamily::COUNT]>,
 }
 
 impl DatabaseBatch {
-  pub fn put(&self, family: DatabaseFamily, key: &[u8], value: Vec<u8>) -> Result<()> {
+  pub fn put(&self, family: DatabaseFamily, key: CacheKey, value: Vec<u8>) -> Result<()> {
     self
       .writes
       .lock()
       .expect("memory database batch mutex should not be poisoned")[family.index()]
-    .insert(key.to_vec(), Arc::from(value));
+    .insert(key, Arc::from(value));
     Ok(())
   }
 }
 
 #[derive(Debug)]
 pub struct Database {
-  families: [FxHashMap<Vec<u8>, DatabaseValue>; DatabaseFamily::COUNT],
+  families: RwLock<[FxHashMap<Vec<u8>, DatabaseValue>; DatabaseFamily::COUNT]>,
   _logger: Arc<InfrastructureLogger>,
 }
 
@@ -38,31 +38,51 @@ impl Database {
     logger: Arc<InfrastructureLogger>,
   ) -> Result<Self> {
     Ok(Self {
-      families: Default::default(),
+      families: RwLock::new(Default::default()),
       _logger: logger,
     })
   }
 
   pub fn get(&self, family: DatabaseFamily, key: &[u8]) -> Result<Option<DatabaseValue>> {
-    Ok(self.families[family.index()].get(key).cloned())
+    Ok(
+      self
+        .families
+        .read()
+        .expect("memory database lock should not be poisoned")[family.index()]
+      .get(key)
+      .cloned(),
+    )
   }
 
   pub fn is_empty(&self) -> bool {
-    self.families.iter().all(|family| family.is_empty())
+    self
+      .families
+      .read()
+      .expect("memory database lock should not be poisoned")
+      .iter()
+      .all(|family| family.is_empty())
   }
 
-  pub fn write_batch(&mut self, write: impl FnOnce(&DatabaseBatch) -> Result<()>) -> Result<()> {
+  pub fn write_batch(&self, write: impl FnOnce(&DatabaseBatch) -> Result<()>) -> Result<()> {
     let batch = DatabaseBatch {
       writes: Mutex::new(Default::default()),
     };
     write(&batch)?;
-    for (family, writes) in self.families.iter_mut().zip(
+    let mut families = self
+      .families
+      .write()
+      .expect("memory database lock should not be poisoned");
+    for (family, writes) in families.iter_mut().zip(
       batch
         .writes
         .into_inner()
         .expect("memory database batch mutex should not be poisoned"),
     ) {
-      family.extend(writes);
+      family.extend(
+        writes
+          .into_iter()
+          .map(|(key, value)| (Vec::from(key.as_bytes()), value)),
+      );
     }
     Ok(())
   }
@@ -71,8 +91,13 @@ impl Database {
     Ok(())
   }
 
-  pub fn reset(&mut self) -> Result<()> {
-    for family in &mut self.families {
+  pub fn reset(&self) -> Result<()> {
+    for family in self
+      .families
+      .write()
+      .expect("memory database lock should not be poisoned")
+      .iter_mut()
+    {
       family.clear();
     }
     Ok(())
@@ -80,7 +105,7 @@ impl Database {
 
   pub fn cleanup_stale(&self) {}
 
-  pub fn shutdown(&mut self) -> Result<()> {
+  pub fn shutdown(&self) -> Result<()> {
     self.reset()
   }
 }

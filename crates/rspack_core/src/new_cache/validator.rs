@@ -1,8 +1,8 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use rspack_cacheable::cacheable;
 use rspack_error::Result;
-use rspack_paths::{InternedPath, InternedPathSet};
+use rspack_paths::InternedPathSet;
 
 use super::snapshot::{FileSystemInfo, Snapshot};
 use crate::{
@@ -47,7 +47,7 @@ pub(super) enum CacheValidatorResult {
 
 #[derive(Debug)]
 pub(super) struct CacheValidator {
-  data: CacheValidatorData,
+  data: Mutex<CacheValidatorData>,
   codec: Arc<CacheCodec>,
   file_system_info: FileSystemInfo,
   logger: Arc<InfrastructureLogger>,
@@ -62,24 +62,25 @@ impl CacheValidator {
     logger: Arc<InfrastructureLogger>,
   ) -> Self {
     Self {
-      data: CacheValidatorData::new(rspack_pkg_version, cache_version),
+      data: Mutex::new(CacheValidatorData::new(rspack_pkg_version, cache_version)),
       codec,
       file_system_info,
       logger,
     }
   }
 
+  fn data(&self) -> MutexGuard<'_, CacheValidatorData> {
+    self.data.lock().expect("should lock")
+  }
+
   /// See webpack's persistent build snapshot validation:
   /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/cache/PackFileCacheStrategy.js#L1345-L1429
-  pub(super) async fn validate(
-    &mut self,
-    data: Option<DatabaseValue>,
-  ) -> Result<CacheValidatorResult> {
+  pub(super) async fn validate(&self, data: Option<DatabaseValue>) -> Result<CacheValidatorResult> {
     let Some(data) = data else {
       return Ok(CacheValidatorResult::InvalidError);
     };
     let validator = self.codec.decode::<CacheValidatorData>(&data)?;
-    if !validator.has_same_version(&self.data) {
+    if !validator.has_same_version(&self.data()) {
       return Ok(CacheValidatorResult::InvalidVersion);
     }
     let Some(build_dependencies_snapshot) = &validator.build_dependencies_snapshot else {
@@ -94,7 +95,7 @@ impl CacheValidator {
     let validation = validation?;
     Ok(match validation {
       SnapshotValidationResult::Valid => {
-        self.data = validator;
+        *self.data() = validator;
         CacheValidatorResult::Valid
       }
       SnapshotValidationResult::Invalid {
@@ -110,15 +111,17 @@ impl CacheValidator {
   /// See webpack's build dependency resolution and snapshot persistence:
   /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/cache/PackFileCacheStrategy.js#L1510-L1625
   pub(super) async fn update(
-    &mut self,
-    build_dependencies: impl Iterator<Item = InternedPath>,
+    &self,
+    mut new_build_dependencies: InternedPathSet,
   ) -> Result<Option<Vec<u8>>> {
-    let new_build_dependencies = build_dependencies
-      .filter(|path| !self.data.build_dependencies.contains(path))
-      .collect::<InternedPathSet>();
-    if new_build_dependencies.is_empty() && self.data.build_dependencies_snapshot.is_some() {
-      return Ok(None);
-    }
+    let new_build_dependencies = {
+      let data = self.data();
+      new_build_dependencies.retain(|path| !data.build_dependencies.contains(path));
+      if new_build_dependencies.is_empty() && data.build_dependencies_snapshot.is_some() {
+        return Ok(None);
+      }
+      new_build_dependencies
+    };
 
     self.logger.debug(format!(
       "Capturing build dependencies... ({} dependencies)",
@@ -144,14 +147,15 @@ impl CacheValidator {
       .await;
     self.logger.time_end(start);
     let snapshot = snapshot?;
-    self.data.build_dependencies_snapshot = Some(
-      if let Some(current) = self.data.build_dependencies_snapshot.take() {
+    let mut data = self.data();
+    data.build_dependencies_snapshot = Some(
+      if let Some(current) = data.build_dependencies_snapshot.take() {
         self.file_system_info.merge_snapshots(current, snapshot)
       } else {
         snapshot
       },
     );
-    self.data.build_dependencies.extend(new_build_dependencies);
-    Ok(Some(self.codec.encode(&self.data)?))
+    data.build_dependencies.extend(new_build_dependencies);
+    Ok(Some(self.codec.encode(&*data)?))
   }
 }

@@ -1,9 +1,12 @@
-use std::{fmt, sync::Arc};
+use std::{
+  fmt,
+  sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard},
+};
 
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rspack_error::Result;
 use rspack_paths::{InternedPathSet, Utf8PathBuf};
-use rustc_hash::FxHashMap;
+use rspack_util::fx_hash::FxDashMap;
 
 use super::{
   CacheKey, Etag, Meta,
@@ -14,14 +17,14 @@ use super::{
 };
 use crate::{InfrastructureLogger, Logger, cache::CacheCodec};
 
-const VALIDATOR_KEY: &[u8] = b"validator";
-const META_KEY: &[u8] = b"meta";
+const VALIDATOR_KEY: &str = "validator";
+const META_KEY: &str = "meta";
 
 #[derive(Debug, Default)]
 struct PendingWrites {
-  entries: FxHashMap<CacheKey, PendingWrite>,
-  new_build_dependencies: Option<InternedPathSet>,
-  meta: Option<Meta>,
+  entries: FxDashMap<CacheKey, PendingWrite>,
+  new_build_dependencies: Mutex<Option<InternedPathSet>>,
+  meta: Mutex<Option<Meta>>,
 }
 
 #[derive(Debug)]
@@ -30,12 +33,24 @@ struct PendingWrite {
   encoder: CacheValueEncoder,
 }
 
+impl PendingWrites {
+  fn new_build_dependencies(&self) -> MutexGuard<'_, Option<InternedPathSet>> {
+    self.new_build_dependencies.lock().expect("should lock")
+  }
+
+  fn meta(&self) -> MutexGuard<'_, Option<Meta>> {
+    self.meta.lock().expect("should lock")
+  }
+}
+
 /// Filesystem cache implementation scheduled by [`super::IdleFileCache`].
 pub struct FileCacheStrategy {
   validator: CacheValidator,
   codec: Arc<CacheCodec>,
   database: Database,
   pending_writes: PendingWrites,
+  /// Foreground cache operations share the gate; background database work is exclusive.
+  activity_gate: RwLock<()>,
   readonly: bool,
   logger: Arc<InfrastructureLogger>,
 }
@@ -76,20 +91,36 @@ impl FileCacheStrategy {
       codec,
       database,
       pending_writes: PendingWrites::default(),
+      activity_gate: RwLock::new(()),
       readonly,
       logger,
     })
   }
 
+  fn foreground_activity(&self) -> RwLockReadGuard<'_, ()> {
+    self
+      .activity_gate
+      .read()
+      .expect("cache activity gate should not be poisoned")
+  }
+
+  fn background_activity(&self) -> RwLockWriteGuard<'_, ()> {
+    self
+      .activity_gate
+      .write()
+      .expect("cache activity gate should not be poisoned")
+  }
+
   /// Validates the current database's build dependencies once before the
   /// background job starts serving commands.
-  pub async fn db_validation(&mut self) -> Result<()> {
+  pub async fn db_validation(&self) -> Result<()> {
+    let _activity = self.background_activity();
     if self.database.is_empty() {
       return Ok(());
     }
     let data = self
       .database
-      .get(DatabaseFamily::Validator, VALIDATOR_KEY)?;
+      .get(DatabaseFamily::Validator, VALIDATOR_KEY.as_bytes())?;
     let validation = self.validator.validate(data).await?;
     match validation {
       CacheValidatorResult::Valid => {}
@@ -121,7 +152,7 @@ impl FileCacheStrategy {
   }
 
   pub(super) fn store(
-    &mut self,
+    &self,
     key: CacheKey,
     etag: Option<Etag>,
     value: ErasedCacheValue,
@@ -130,6 +161,7 @@ impl FileCacheStrategy {
     if self.readonly {
       return;
     }
+    let _activity = self.foreground_activity();
     self.pending_writes.entries.insert(
       key,
       PendingWrite {
@@ -139,29 +171,35 @@ impl FileCacheStrategy {
     );
   }
 
-  pub fn store_build_dependencies(&mut self, dependencies: InternedPathSet) {
+  pub fn store_build_dependencies(&self, dependencies: InternedPathSet) {
     if self.readonly {
       return;
     }
+    let _activity = self.foreground_activity();
     self
       .pending_writes
-      .new_build_dependencies
+      .new_build_dependencies()
       .get_or_insert_default()
       .extend(dependencies);
   }
 
-  pub fn store_meta(&mut self, meta: Meta) {
+  pub fn store_meta(&self, meta: Meta) {
     if self.readonly {
       return;
     }
-    self.pending_writes.meta = Some(meta);
+    let _activity = self.foreground_activity();
+    *self.pending_writes.meta() = Some(meta);
   }
 
   pub fn restore_meta(&self) -> Result<Option<Meta>> {
-    if let Some(pending) = self.pending_writes.meta.as_ref() {
+    let _activity = self.foreground_activity();
+    if let Some(pending) = self.pending_writes.meta().as_ref() {
       return Ok(Some(pending.clone()));
     }
-    let Some(entry) = self.database.get(DatabaseFamily::Meta, META_KEY)? else {
+    let Some(entry) = self
+      .database
+      .get(DatabaseFamily::Meta, META_KEY.as_bytes())?
+    else {
       return Ok(None);
     };
     Ok(Some(self.codec.decode(&entry)?))
@@ -173,6 +211,7 @@ impl FileCacheStrategy {
     etag: Option<&Etag>,
     decoder: CacheValueDecoder,
   ) -> Result<Option<ErasedCacheValue>> {
+    let _activity = self.foreground_activity();
     if let Some(pending) = self.pending_writes.entries.get(key) {
       return Ok(
         pending
@@ -181,7 +220,6 @@ impl FileCacheStrategy {
           .then(|| pending.entry.value().clone()),
       );
     }
-
     let Some(entry) = self.database.get(DatabaseFamily::Cache, key.as_bytes())? else {
       return Ok(None);
     };
@@ -189,55 +227,61 @@ impl FileCacheStrategy {
   }
 
   pub(super) async fn after_all_stored(
-    &mut self,
+    &self,
     max_compaction_passes: usize,
     mut check_idle_ended: impl FnMut() -> bool,
   ) -> Result<()> {
     if self.readonly {
       return Ok(());
     }
+    let _activity = self.background_activity();
 
     if self.has_pending_writes() {
       self.logger.log("Storing cache...");
       let start = self.logger.time("store cache");
       let codec = &self.codec;
-      let entries = &self.pending_writes.entries;
-      let validator = if let Some(dependencies) = &self.pending_writes.new_build_dependencies {
-        self.validator.update(dependencies.iter().cloned()).await?
-      } else {
-        None
-      };
-      let meta = self
+
+      let mut writes = self
         .pending_writes
-        .meta
-        .as_ref()
-        .map(|meta| codec.encode(meta))
-        .transpose()?;
-      let stored_items = entries.len()
-        + if validator.is_some() { 1 } else { 0 }
-        + if meta.is_some() { 1 } else { 0 };
-      let result = self.database.write_batch(move |batch| {
-        entries.par_iter().try_for_each(|(key, pending)| {
+        .entries
+        .par_iter()
+        .map(|pending| {
+          let key = pending.key().clone();
           let value = (pending.encoder)(&pending.entry, codec)?;
-          batch.put(DatabaseFamily::Cache, key.as_bytes(), value)
-        })?;
-        if let Some(validator) = validator {
-          batch.put(DatabaseFamily::Validator, VALIDATOR_KEY, validator)?;
-        }
-        if let Some(meta) = meta {
-          batch.put(DatabaseFamily::Meta, META_KEY, meta)?;
-        }
-        Ok(())
+          Ok((DatabaseFamily::Cache, key, value))
+        })
+        .collect::<Result<Vec<_>>>()?;
+      self.pending_writes.entries.clear();
+
+      let new_build_dependencies = self.pending_writes.new_build_dependencies().take();
+      if let Some(dependencies) = new_build_dependencies
+        && let Some(validator) = self.validator.update(dependencies).await?
+      {
+        writes.push((
+          DatabaseFamily::Validator,
+          CacheKey::from(VALIDATOR_KEY),
+          validator,
+        ));
+      }
+
+      let meta = self.pending_writes.meta().take();
+      if let Some(meta) = meta {
+        let meta = codec.encode(&meta)?;
+        writes.push((DatabaseFamily::Meta, CacheKey::from(META_KEY), meta));
+      }
+
+      let writes_len = writes.len();
+      let result = self.database.write_batch(move |batch| {
+        writes
+          .into_par_iter()
+          .try_for_each(|(family, key, value)| batch.put(family, key, value))
       });
       self.logger.time_end(start);
       result?;
 
-      self.pending_writes.entries.clear();
-      self.pending_writes.new_build_dependencies = None;
-      self.pending_writes.meta = None;
       self
         .logger
-        .log(format!("Stored cache ({stored_items} items)"));
+        .log(format!("Stored cache ({} items)", writes_len));
     }
 
     for _ in 0..max_compaction_passes {
@@ -253,16 +297,17 @@ impl FileCacheStrategy {
     Ok(())
   }
 
-  pub async fn shutdown(&mut self) -> Result<()> {
+  pub async fn shutdown(&self) -> Result<()> {
     self.after_all_stored(1, || false).await?;
 
+    let _activity = self.background_activity();
     self.database.shutdown()?;
     Ok(())
   }
 
   pub fn has_pending_writes(&self) -> bool {
     !self.pending_writes.entries.is_empty()
-      || self.pending_writes.new_build_dependencies.is_some()
-      || self.pending_writes.meta.is_some()
+      || self.pending_writes.new_build_dependencies().is_some()
+      || self.pending_writes.meta().is_some()
   }
 }
