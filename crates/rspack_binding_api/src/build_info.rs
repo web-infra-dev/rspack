@@ -13,6 +13,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use crate::{define_symbols, module::Module};
 
 define_symbols! {
+  BUILD_INFO_CACHEABLE_SYMBOL => "rspack.buildInfo.cacheable",
   BUILD_INFO_ASSETS_SYMBOL => "rspack.buildInfo.assets",
   BUILD_INFO_FILE_DEPENDENCIES_SYMBOL => "rspack.buildInfo.fileDependencies",
   BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL => "rspack.buildInfo.contextDependencies",
@@ -60,6 +61,7 @@ impl Assets {
 
 static KNOWN_BUILD_INFO_FIELD_NAMES: LazyLock<FxHashSet<&'static str>> = LazyLock::new(|| {
   FxHashSet::from_iter(vec![
+    "cacheable",
     "assets",
     "fileDependencies",
     "contextDependencies",
@@ -145,6 +147,28 @@ impl BuildInfo {
 }
 
 fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) -> napi::Result<()> {
+  BUILD_INFO_CACHEABLE_SYMBOL.with(|once_cell| {
+    #[allow(clippy::unwrap_used)]
+    let symbol = once_cell.get().unwrap();
+    properties.push(
+      Property::new()
+        .with_name(env, symbol)?
+        .with_getter_closure(|env, this| {
+          let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
+          wrapped_value.with_ref(|module| Ok(module.build_info().cacheable))
+        })
+        .with_setter_closure(|env, this, cacheable: bool| {
+          let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
+          wrapped_value.with_mut(|module| {
+            module.build_info_mut().cacheable = cacheable;
+            Ok(())
+          })
+        })
+        .with_property_attributes(PropertyAttributes::Configurable),
+    );
+    Ok::<(), napi::Error>(())
+  })?;
+
   BUILD_INFO_ASSETS_SYMBOL.with(|once_cell| {
     #[allow(clippy::unwrap_used)]
     let symbol = once_cell.get().unwrap();
