@@ -95,6 +95,22 @@ impl Cache {
     }
   }
 
+  pub(crate) fn get_without_memory<T: CacheValueData>(
+    &self,
+    key: CacheKey,
+    etag: Option<Etag>,
+  ) -> Result<Option<CacheValue<T>>> {
+    let Some(file_cache) = self
+      .inner
+      .storage
+      .as_ref()
+      .and_then(|storage| storage.idle_file_cache.as_ref())
+    else {
+      return Ok(None);
+    };
+    file_cache.restore(key, etag)
+  }
+
   pub fn store<T: CacheValueData>(
     &self,
     key: CacheKey,
@@ -113,6 +129,23 @@ impl Cache {
       storage.memory_cache.store(key, etag, value);
       Ok(())
     }
+  }
+
+  pub(crate) fn store_without_memory<T: CacheValueData>(
+    &self,
+    key: CacheKey,
+    etag: Option<Etag>,
+    value: CacheValue<T>,
+  ) -> Result<()> {
+    let Some(file_cache) = self
+      .inner
+      .storage
+      .as_ref()
+      .and_then(|storage| storage.idle_file_cache.as_ref())
+    else {
+      return Ok(());
+    };
+    file_cache.store(key, etag, value)
   }
 
   pub fn store_build_dependencies(&self, dependencies: InternedPathSet) -> Result<()> {

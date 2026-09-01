@@ -45,6 +45,14 @@ impl CacheFacade {
     self.cache.get(self.key(identifier), etag)
   }
 
+  pub(crate) fn get_without_memory<T: CacheValueData>(
+    &self,
+    identifier: &str,
+    etag: Option<Etag>,
+  ) -> Result<Option<CacheValue<T>>> {
+    self.cache.get_without_memory(self.key(identifier), etag)
+  }
+
   pub fn store<T: CacheValueData>(
     &self,
     identifier: &str,
@@ -52,6 +60,17 @@ impl CacheFacade {
     value: CacheValue<T>,
   ) -> Result<()> {
     self.cache.store(self.key(identifier), etag, value)
+  }
+
+  pub(crate) fn store_without_memory<T: CacheValueData>(
+    &self,
+    identifier: &str,
+    etag: Option<Etag>,
+    value: CacheValue<T>,
+  ) -> Result<()> {
+    self
+      .cache
+      .store_without_memory(self.key(identifier), etag, value)
   }
 
   fn key(&self, identifier: &str) -> CacheKey {

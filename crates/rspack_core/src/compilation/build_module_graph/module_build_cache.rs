@@ -94,17 +94,22 @@ pub(crate) enum ModuleBuildCacheRestore {
 
 /// Cache for completed normal module builds.
 ///
-/// `CacheFacade` retains `CachedBuildResult` directly in memory. The generic
-/// cache backend owns filesystem encoding and decoding, so module cache users
-/// never need to depend on `CacheCodec` or byte buffers.
+/// The generic cache backend owns memory retention and filesystem encoding, so
+/// module cache users never need to depend on `CacheCodec` or byte buffers.
+/// Incremental make may bypass memory retention while preserving filesystem
+/// cache reads and writes.
 #[derive(Debug, Clone)]
 pub(crate) struct ModuleBuildCache {
   cache: CacheFacade,
+  use_memory_cache: bool,
 }
 
 impl ModuleBuildCache {
-  pub(crate) fn new(cache: CacheFacade) -> Self {
-    Self { cache }
+  pub(crate) fn new(cache: CacheFacade, use_memory_cache: bool) -> Self {
+    Self {
+      cache,
+      use_memory_cache,
+    }
   }
 
   pub(crate) async fn restore(
@@ -114,10 +119,16 @@ impl ModuleBuildCache {
     value_cache_versions: &ValueCacheVersions,
   ) -> Result<ModuleBuildCacheRestore> {
     let identifier = module.identifier();
-    let Some(result) = self
-      .cache
-      .get::<CachedBuildResult>(identifier.as_str(), None)?
-    else {
+    let result = if self.use_memory_cache {
+      self
+        .cache
+        .get::<CachedBuildResult>(identifier.as_str(), None)?
+    } else {
+      self
+        .cache
+        .get_without_memory::<CachedBuildResult>(identifier.as_str(), None)?
+    };
+    let Some(result) = result else {
       return Ok(ModuleBuildCacheRestore::Miss(module));
     };
     result
@@ -140,8 +151,13 @@ impl ModuleBuildCache {
       return Ok(());
     };
     let identifier = result.module.identifier();
-    self
-      .cache
-      .store(identifier.as_str(), None, CacheValue::new(cached_result))
+    let value = CacheValue::new(cached_result);
+    if self.use_memory_cache {
+      self.cache.store(identifier.as_str(), None, value)
+    } else {
+      self
+        .cache
+        .store_without_memory(identifier.as_str(), None, value)
+    }
   }
 }

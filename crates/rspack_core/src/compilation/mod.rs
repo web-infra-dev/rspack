@@ -361,12 +361,18 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
-    // Incremental make reuses the previous module graph and owns its own
-    // invalidation path. Keep that fast path unchanged.
+    // Incremental make retains the live module graph, so retaining the same
+    // module build results in the memory cache would duplicate that state.
+    // Persistent cache remains useful across compiler processes, but bypasses
+    // the memory front cache for module entries in this mode.
+    let incremental_make =
+      incremental.passes_enabled(crate::incremental::IncrementalPasses::BUILD_MODULE_GRAPH);
+    let use_module_memory_cache = !incremental_make;
     let module_build_cache = (options.experiments.new_cache.module
       && !is_rebuild
-      && !matches!(&options.cache, CacheOptions::Disabled))
-    .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules")));
+      && !matches!(&options.cache, CacheOptions::Disabled)
+      && (use_module_memory_cache || cache.has_file_cache()))
+    .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules"), use_module_memory_cache));
     let snapshot_options = match &options.cache {
       CacheOptions::Disabled => SnapshotOptions::default(),
       CacheOptions::Memory { snapshot, .. } => snapshot.clone(),
