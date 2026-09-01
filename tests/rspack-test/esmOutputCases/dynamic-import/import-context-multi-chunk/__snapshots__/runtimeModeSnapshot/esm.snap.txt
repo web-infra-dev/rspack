@@ -107,9 +107,9 @@ module.exports = __rspack_async_context;
 
 module.exports = {
 
-  "./modules/a.js": function() { return Promise.all(/*! esm */ [ensureChunk("shared-chunk"), ensureChunk(0), ensureChunk("a")]).then(rspackRequire.bind(rspackRequire, /*! ./modules/a.js */ "./modules/a.js")); },
+  "./modules/a.js": function() { return Promise.all(/*! esm */ [ensureChunk("shared-chunk"), ensureChunk(0), ensureChunk("a")]).then(() => (rspackRequire(/*! ./modules/a.js */ "./modules/a.js"))); },
 
-  "./modules/b.js": function() { return Promise.all(/*! esm */ [ensureChunk("shared-chunk"), ensureChunk(0), ensureChunk("b")]).then(rspackRequire.bind(rspackRequire, /*! ./modules/b.js */ "./modules/b.js")); }
+  "./modules/b.js": function() { return Promise.all(/*! esm */ [ensureChunk("shared-chunk"), ensureChunk(0), ensureChunk("b")]).then(() => (rspackRequire(/*! ./modules/b.js */ "./modules/b.js"))); }
 };
 
 

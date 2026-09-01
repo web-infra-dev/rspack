@@ -68,12 +68,12 @@ module.exports = __rspack_async_context;
 },
 "./index.js"(__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
 const request = "a";
-__webpack_require__.e(/* import() */ "child_a_js").then(__webpack_require__.bind(__webpack_require__, "./child/a.js")).then(({ a }) => console.log("Literal", a));
-__webpack_require__.e(/* import() */ "child_b_js").then(__webpack_require__.bind(__webpack_require__, "./child/b.js")).then(({ b }) => console.log("Template Literal", b));
+__webpack_require__.e(/* import() */ "child_a_js").then(() => (__webpack_require__("./child/a.js"))).then(({ a }) => console.log("Literal", a));
+__webpack_require__.e(/* import() */ "child_b_js").then(() => (__webpack_require__("./child/b.js"))).then(({ b }) => console.log("Template Literal", b));
 __webpack_require__("./child lazy recursive ^\\.\\/.*\\.js$ referencedExports: a")(`./${request}.js`).then(({ a }) =>
 	console.log("context_module_tpl", a)
 );
-__webpack_require__.e(/* import() */ "child_a_js").then(__webpack_require__.bind(__webpack_require__, "./child/a.js")).then(({ a }) =>
+__webpack_require__.e(/* import() */ "child_a_js").then(() => (__webpack_require__("./child/a.js"))).then(({ a }) =>
 	console.log("context_module_tpl_with_cond", a)
 );
 __webpack_require__("./child lazy recursive ^\\.\\/.*\\.js$ referencedExports: a")("./" + request + ".js").then(({ a }) =>

@@ -348,6 +348,8 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       options: Box::new(EntryOptions {
         name: Some("build time".into()),
         runtime: Some("runtime".into()),
+        worker: None,
+        worklet: None,
         chunk_loading: Some(crate::ChunkLoading::Disable),
         wasm_loading: Some(crate::WasmLoading::Disable),
         async_chunks: Some(false),

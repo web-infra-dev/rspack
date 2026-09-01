@@ -9,6 +9,8 @@ use crate::extract_runtime_module_variables_from_ejs;
 
 static CREATE_FAKE_NAMESPACE_OBJECT_TEMPLATE: &str =
   include_str!("runtime/create_fake_namespace_object.ejs");
+// No `__proto__` fallback: `Object.create` and `Object.defineProperty` in the
+// generated helper already require the same ES5 baseline.
 static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
   extract_runtime_module_variables_from_ejs(&[CREATE_FAKE_NAMESPACE_OBJECT_TEMPLATE])
 });
@@ -51,19 +53,22 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let params = Some(
-      if context.compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
-        serde_json::json!({
-          "__this": "(typeof this === \"function\" ? this : this.r)"
-        })
-      } else {
-        serde_json::json!({
-          "__this": "this"
-        })
-      },
-    );
-    let source = context.runtime_template.render(self.id(), params)?;
+    let this = if context.compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
+      "(typeof this === \"function\" ? this : this.r)"
+    } else {
+      "this"
+    };
+    let params = Some(serde_json::json!({
+      "__this": this,
+      "_leaf_prototypes_assignment": context.runtime_template.assign_or(
+        "leafPrototypes",
+        "[null, getProto({}), getProto([]), getProto(getProto)]",
+      ),
+    }));
+    let mut source = context.runtime_template.render(self.id(), params)?;
 
+    let trimmed_len = source.trim_end().len();
+    source.truncate(trimmed_len);
     Ok(source)
   }
 }

@@ -26,6 +26,7 @@ describeByWalk(
 			/^hooks\/(modify-extract-css-loading-runtime|rspack-issue-5571|runtime-module|runtime-requirement-in-tree)$/,
 			/^rstest\/(dynamic-import-origin|mock|mock-dynamic-import-external|mock-shared-runtime|module-path-names|new-url-wasm)$/,
 			/^runtime\/add-runtime-module/,
+			/^runtime\/on-chunks-loaded-priority$/,
 			/^sharing\/tree-shaking-shared$/
 		]
 	}

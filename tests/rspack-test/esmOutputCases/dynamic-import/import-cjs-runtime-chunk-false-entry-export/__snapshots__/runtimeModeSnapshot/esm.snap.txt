@@ -64,7 +64,7 @@ var compatGetDefaultExport = (module) => {
 ;
 export { compatGetDefaultExport };
 // rspack/runtime/create_fake_namespace_object
-var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
+var getProto = Object.getPrototypeOf;
 var leafPrototypes;
 // create a fake namespace object
 // mode & 1: value is a module id, require it
@@ -144,7 +144,7 @@ var makeNamespaceObject = (exports) => {
         if (hasOwnProperty(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
             moduleInstalledChunks[chunkId][0]();
         }
-        moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
+        moduleInstalledChunks[chunkId] = 0;
     }
     
 };
