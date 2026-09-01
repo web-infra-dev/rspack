@@ -16,6 +16,7 @@ export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
 
 export const COMPILATION_HOOKS_MAP_SYMBOL: unique symbol;
 
+export const BUILD_INFO_CACHEABLE_SYMBOL: unique symbol;
 export const BUILD_INFO_ASSETS_SYMBOL: unique symbol;
 export const BUILD_INFO_FILE_DEPENDENCIES_SYMBOL: unique symbol;
 export const BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL: unique symbol;
@@ -30,6 +31,7 @@ export const TRANSITIVE_ONLY_SYMBOL: unique symbol;
 export type ConnectionState = boolean | typeof CIRCULAR_CONNECTION_SYMBOL | typeof TRANSITIVE_ONLY_SYMBOL;
 
 interface KnownBuildInfo {
+	[BUILD_INFO_CACHEABLE_SYMBOL]: boolean,
 	[BUILD_INFO_ASSETS_SYMBOL]: Assets,
 	[BUILD_INFO_FILE_DEPENDENCIES_SYMBOL]: string[],
 	[BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL]: string[],
