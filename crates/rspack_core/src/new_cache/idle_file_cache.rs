@@ -8,7 +8,7 @@ use std::{
 };
 
 use rspack_error::Result;
-use rspack_paths::InternedPathSet;
+use rspack_paths::{InternedPathSet, Utf8PathBuf};
 use tokio::{
   sync::{mpsc, oneshot},
   time::{Instant, sleep_until},
@@ -43,7 +43,6 @@ struct BackgroundJob {
   strategy: Arc<FileCacheStrategy>,
   logger: Arc<InfrastructureLogger>,
   command_receiver: mpsc::UnboundedReceiver<Command>,
-  // A deadline remains valid only while this still matches its captured epoch.
   idle_epoch: Arc<AtomicU64>,
   idle_deadline: Option<IdleDeadline>,
   idle_timeout: Duration,
@@ -54,11 +53,11 @@ struct BackgroundJob {
 }
 
 impl BackgroundJob {
-  async fn run(mut self) {
-    if let Err(error) = self.strategy.db_validation().await {
+  async fn run(mut self, database_paths: (Utf8PathBuf, Utf8PathBuf)) {
+    if let Err(error) = self.strategy.db_init(database_paths).await {
       self
         .logger
-        .warn(format!("Validating cache database failed: {error}"));
+        .warn(format!("Initializing cache database failed: {error}"));
       return;
     }
 
@@ -173,6 +172,7 @@ pub struct IdleFileCache {
 
 impl IdleFileCache {
   pub fn new(
+    database_paths: (Utf8PathBuf, Utf8PathBuf),
     strategy: FileCacheStrategy,
     logger: Arc<InfrastructureLogger>,
     idle_timeout: Option<Duration>,
@@ -206,7 +206,7 @@ impl IdleFileCache {
           .enable_time()
           .build()
           .expect("failed to create idle file cache runtime");
-        runtime.block_on(background_job.run());
+        runtime.block_on(background_job.run(database_paths));
       })
       .expect("failed to spawn idle file cache background thread");
 

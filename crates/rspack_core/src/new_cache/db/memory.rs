@@ -91,7 +91,12 @@ impl Database {
     Ok(())
   }
 
-  pub fn reset(&self) -> Result<()> {
+  pub fn reset(&mut self) -> Result<()> {
+    self.clear();
+    Ok(())
+  }
+
+  fn clear(&self) {
     for family in self
       .families
       .write()
@@ -100,12 +105,12 @@ impl Database {
     {
       family.clear();
     }
-    Ok(())
   }
 
   pub fn cleanup_stale(&self) {}
 
   pub fn shutdown(&self) -> Result<()> {
-    self.reset()
+    self.clear();
+    Ok(())
   }
 }

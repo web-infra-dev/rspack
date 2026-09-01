@@ -1,7 +1,7 @@
 use std::{
   fmt,
   hash::Hasher,
-  sync::{Arc, RwLock},
+  sync::Arc,
   time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -194,7 +194,7 @@ impl<'db> DatabaseBatch<'db> {
 }
 
 pub struct Database {
-  inner: RwLock<Inner>,
+  inner: Inner,
   base_path: Utf8PathBuf,
   path: Utf8PathBuf,
   readonly: bool,
@@ -220,7 +220,7 @@ impl Database {
   ) -> Result<Self> {
     let inner = open_database(&path, readonly)?;
     Ok(Self {
-      inner: RwLock::new(inner),
+      inner,
       base_path,
       path,
       readonly,
@@ -229,55 +229,33 @@ impl Database {
   }
 
   pub fn get(&self, family: super::DatabaseFamily, key: &[u8]) -> Result<Option<DatabaseValue>> {
-    Ok(
-      self
-        .inner
-        .read()
-        .expect("cache database lock should not be poisoned")
-        .get(family.index(), &key)?,
-    )
+    Ok(self.inner.get(family.index(), &key)?)
   }
 
   pub fn is_empty(&self) -> bool {
-    self
-      .inner
-      .read()
-      .expect("cache database lock should not be poisoned")
-      .is_empty()
+    self.inner.is_empty()
   }
 
   pub fn write_batch(&self, write: impl FnOnce(&DatabaseBatch<'_>) -> Result<()>) -> Result<()> {
-    let inner = self
-      .inner
-      .read()
-      .expect("cache database lock should not be poisoned");
     let batch = DatabaseBatch {
-      inner: inner.write_batch::<CacheKey>()?,
+      inner: self.inner.write_batch::<CacheKey>()?,
     };
     write(&batch)?;
-    inner.commit_write_batch(batch.inner)?;
+    self.inner.commit_write_batch(batch.inner)?;
     Ok(())
   }
 
   pub fn compact(&self) -> Result<()> {
-    let inner = self
-      .inner
-      .read()
-      .expect("cache database lock should not be poisoned");
-    if self.readonly || inner.is_empty() {
+    if self.readonly || self.inner.is_empty() {
       return Ok(());
     }
-    inner.compact(&COMPACT_CONFIG)?;
+    self.inner.compact(&COMPACT_CONFIG)?;
     Ok(())
   }
 
-  pub fn reset(&self) -> Result<()> {
-    let mut inner = self
-      .inner
-      .write()
-      .expect("cache database lock should not be poisoned");
+  pub fn reset(&mut self) -> Result<()> {
     let old_database = std::mem::replace(
-      &mut *inner,
+      &mut self.inner,
       Inner::empty_in_memory_with_config(database_config()),
     );
     old_database.clear_cache();
@@ -286,7 +264,7 @@ impl Database {
 
     if !self.readonly {
       self.move_to_stale()?;
-      *inner = open_database(&self.path, false)?;
+      self.inner = open_database(&self.path, false)?;
     }
     Ok(())
   }
@@ -309,12 +287,8 @@ impl Database {
   }
 
   pub fn shutdown(&self) -> Result<()> {
-    let inner = self
-      .inner
-      .read()
-      .expect("cache database lock should not be poisoned");
-    inner.clear_cache();
-    inner.shutdown()?;
+    self.inner.clear_cache();
+    self.inner.shutdown()?;
     Ok(())
   }
 

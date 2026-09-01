@@ -87,7 +87,6 @@ pub fn create_cache(
     }
   };
   let strategy = match FileCacheStrategy::new(
-    (base_path, database_path.clone()),
     options.readonly,
     rspack_workspace::rspack_pkg_version!().to_string(),
     options.version.clone(),
@@ -105,7 +104,14 @@ pub fn create_cache(
       );
     }
   };
-  let idle_file_cache = IdleFileCache::new(strategy, logger, None, None, None);
+  let idle_file_cache = IdleFileCache::new(
+    (base_path, database_path),
+    strategy,
+    logger,
+    None,
+    None,
+    None,
+  );
 
   Cache::new(
     compiler_path,

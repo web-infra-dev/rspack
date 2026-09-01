@@ -1,6 +1,6 @@
 use std::{
   fmt,
-  sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard},
+  sync::{Arc, Mutex, MutexGuard, OnceLock, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -47,9 +47,8 @@ impl PendingWrites {
 pub struct FileCacheStrategy {
   validator: CacheValidator,
   codec: Arc<CacheCodec>,
-  database: Database,
+  database: OnceLock<Database>,
   pending_writes: PendingWrites,
-  /// Foreground cache operations share the gate; background database work is exclusive.
   activity_gate: RwLock<()>,
   readonly: bool,
   logger: Arc<InfrastructureLogger>,
@@ -67,7 +66,6 @@ impl fmt::Debug for FileCacheStrategy {
 
 impl FileCacheStrategy {
   pub fn new(
-    database_paths: (Utf8PathBuf, Utf8PathBuf),
     readonly: bool,
     rspack_pkg_version: String,
     cache_version: String,
@@ -75,11 +73,6 @@ impl FileCacheStrategy {
     file_system_info: FileSystemInfo,
     logger: Arc<InfrastructureLogger>,
   ) -> Result<Self> {
-    let (base_path, database_path) = database_paths;
-    let start = logger.time("open cache database");
-    let database = Database::open(base_path, database_path, readonly, logger.clone());
-    logger.time_end(start);
-    let database = database?;
     Ok(Self {
       validator: CacheValidator::new(
         rspack_pkg_version,
@@ -89,12 +82,61 @@ impl FileCacheStrategy {
         logger.clone(),
       ),
       codec,
-      database,
+      database: OnceLock::new(),
       pending_writes: PendingWrites::default(),
       activity_gate: RwLock::new(()),
       readonly,
       logger,
     })
+  }
+
+  pub async fn db_init(
+    &self,
+    (base_path, database_path): (Utf8PathBuf, Utf8PathBuf),
+  ) -> Result<()> {
+    let _activity = self.background_activity();
+
+    let mut database = {
+      let start = self.logger.time("open cache database");
+      let database = Database::open(base_path, database_path, self.readonly, self.logger.clone());
+      self.logger.time_end(start);
+      database
+    }?;
+
+    if database.is_empty() {
+      return Ok(());
+    }
+
+    let data = database.get(DatabaseFamily::Validator, VALIDATOR_KEY.as_bytes())?;
+    let validation = self.validator.validate(data).await?;
+    match validation {
+      CacheValidatorResult::Valid => {}
+      CacheValidatorResult::InvalidVersion => {
+        self
+          .logger
+          .log("Resetting cache, the cache version doesn't match");
+        database.reset()?;
+      }
+      CacheValidatorResult::InvalidBuildDependencies {
+        modified_files,
+        removed_files,
+      } => {
+        self.logger.log(format!(
+          "Resetting cache, build dependencies have changed ({} modified, {} removed)",
+          modified_files.len(),
+          removed_files.len()
+        ));
+        database.reset()?;
+      }
+      CacheValidatorResult::InvalidError => {
+        self
+          .logger
+          .warn("Resetting cache, unexpected error occurred");
+        database.reset()?;
+      }
+    }
+    self.database.set(database).expect("should not have db");
+    Ok(())
   }
 
   fn foreground_activity(&self) -> RwLockReadGuard<'_, ()> {
@@ -109,46 +151,6 @@ impl FileCacheStrategy {
       .activity_gate
       .write()
       .expect("cache activity gate should not be poisoned")
-  }
-
-  /// Validates the current database's build dependencies once before the
-  /// background job starts serving commands.
-  pub async fn db_validation(&self) -> Result<()> {
-    let _activity = self.background_activity();
-    if self.database.is_empty() {
-      return Ok(());
-    }
-    let data = self
-      .database
-      .get(DatabaseFamily::Validator, VALIDATOR_KEY.as_bytes())?;
-    let validation = self.validator.validate(data).await?;
-    match validation {
-      CacheValidatorResult::Valid => {}
-      CacheValidatorResult::InvalidVersion => {
-        self
-          .logger
-          .log("Resetting cache, the cache version doesn't match");
-        self.database.reset()?;
-      }
-      CacheValidatorResult::InvalidBuildDependencies {
-        modified_files,
-        removed_files,
-      } => {
-        self.logger.log(format!(
-          "Resetting cache, build dependencies have changed ({} modified, {} removed)",
-          modified_files.len(),
-          removed_files.len()
-        ));
-        self.database.reset()?;
-      }
-      CacheValidatorResult::InvalidError => {
-        self
-          .logger
-          .warn("Resetting cache, unexpected error occurred");
-        self.database.reset()?;
-      }
-    }
-    Ok(())
   }
 
   pub(super) fn store(
@@ -198,6 +200,7 @@ impl FileCacheStrategy {
     }
     let Some(entry) = self
       .database
+      .wait()
       .get(DatabaseFamily::Meta, META_KEY.as_bytes())?
     else {
       return Ok(None);
@@ -220,7 +223,11 @@ impl FileCacheStrategy {
           .then(|| pending.entry.value().clone()),
       );
     }
-    let Some(entry) = self.database.get(DatabaseFamily::Cache, key.as_bytes())? else {
+    let Some(entry) = self
+      .database
+      .wait()
+      .get(DatabaseFamily::Cache, key.as_bytes())?
+    else {
       return Ok(None);
     };
     decoder(&entry, etag, &self.codec)
@@ -235,6 +242,7 @@ impl FileCacheStrategy {
       return Ok(());
     }
     let _activity = self.background_activity();
+    let database = self.database.wait();
 
     if self.has_pending_writes() {
       self.logger.log("Storing cache...");
@@ -271,7 +279,7 @@ impl FileCacheStrategy {
       }
 
       let writes_len = writes.len();
-      let result = self.database.write_batch(move |batch| {
+      let result = database.write_batch(move |batch| {
         writes
           .into_par_iter()
           .try_for_each(|(family, key, value)| batch.put(family, key, value))
@@ -288,12 +296,12 @@ impl FileCacheStrategy {
       if check_idle_ended() {
         return Ok(());
       }
-      self.database.compact()?;
+      database.compact()?;
     }
     if check_idle_ended() {
       return Ok(());
     }
-    self.database.cleanup_stale();
+    database.cleanup_stale();
     Ok(())
   }
 
@@ -301,7 +309,7 @@ impl FileCacheStrategy {
     self.after_all_stored(1, || false).await?;
 
     let _activity = self.background_activity();
-    self.database.shutdown()?;
+    self.database.wait().shutdown()?;
     Ok(())
   }
 
