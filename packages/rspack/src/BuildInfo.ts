@@ -10,7 +10,6 @@ declare module '@rspack/binding' {
   }
 
   interface KnownBuildInfo {
-    cacheable: boolean;
     assets: Record<string, Source>;
     fileDependencies: Set<string>;
     contextDependencies: Set<string>;
@@ -25,24 +24,12 @@ Object.defineProperty(binding.KnownBuildInfo.prototype, util.inspect.custom, {
   value(this: binding.KnownBuildInfo): any {
     return {
       ...this,
-      cacheable: this.cacheable,
       assets: this.assets,
       fileDependencies: this.fileDependencies,
       contextDependencies: this.contextDependencies,
       missingDependencies: this.missingDependencies,
       buildDependencies: this.buildDependencies,
     };
-  },
-});
-
-Object.defineProperty(binding.KnownBuildInfo.prototype, 'cacheable', {
-  enumerable: true,
-  configurable: true,
-  get(this: binding.KnownBuildInfo): boolean {
-    return this[binding.BUILD_INFO_CACHEABLE_SYMBOL];
-  },
-  set(this: binding.KnownBuildInfo, cacheable: boolean) {
-    this[binding.BUILD_INFO_CACHEABLE_SYMBOL] = cacheable;
   },
 });
 
@@ -108,7 +95,6 @@ Object.defineProperty(binding.KnownBuildInfo.prototype, 'buildDependencies', {
 export type { BuildInfo } from '@rspack/binding';
 
 const knownBuildInfoFields: Set<string> = new Set([
-  'cacheable',
   'assets',
   'fileDependencies',
   'contextDependencies',
