@@ -151,7 +151,7 @@ impl ExternalsPlugin {
     if matches!(external_module_type.as_str(), "asset" | "asset-url")
       && matches!(dependency.dependency_type(), DependencyType::CssUrl)
     {
-      dependency_meta.source_type = Some(SourceType::CssUrl);
+      dependency_meta.source_type = Some(SourceType::AssetUrl);
     }
 
     if external_module_type == "modern-module"

@@ -27,7 +27,7 @@ use crate::{
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
 static EXTERNAL_MODULE_CSS_SOURCE_TYPES: &[SourceType] = &[SourceType::CssImport];
-static EXTERNAL_MODULE_CSS_URL_SOURCE_TYPES: &[SourceType] = &[SourceType::CssUrl];
+static EXTERNAL_MODULE_ASSET_URL_SOURCE_TYPES: &[SourceType] = &[SourceType::AssetUrl];
 
 define_hook!(ExternalModuleChunkCondition: SeriesBail(
   chunk_ukey: &ChunkUkey,
@@ -434,7 +434,7 @@ fn resolve_external_type<'a>(
       }
     }
     "asset" | "asset-url" => {
-      if dependency_meta.source_type == Some(SourceType::CssUrl) {
+      if dependency_meta.source_type == Some(SourceType::AssetUrl) {
         "asset-url"
       } else {
         "asset"
@@ -1108,7 +1108,7 @@ impl Module for ExternalModule {
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     match self.resolve_external_type() {
-      "asset-url" => EXTERNAL_MODULE_CSS_URL_SOURCE_TYPES,
+      "asset-url" => EXTERNAL_MODULE_ASSET_URL_SOURCE_TYPES,
       "css-import" => EXTERNAL_MODULE_CSS_SOURCE_TYPES,
       _ => EXTERNAL_MODULE_JS_SOURCE_TYPES,
     }

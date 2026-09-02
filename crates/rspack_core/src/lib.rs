@@ -130,7 +130,7 @@ pub mod debug_info;
 pub enum SourceType {
   JavaScript,
   Css,
-  CssUrl,
+  AssetUrl,
   Wasm,
   Asset,
   Expose,
@@ -162,7 +162,7 @@ impl SourceType {
     match self {
       SourceType::JavaScript => "javascript",
       SourceType::Css => "css",
-      SourceType::CssUrl => "css-url",
+      SourceType::AssetUrl => "asset-url",
       SourceType::Wasm => "wasm",
       SourceType::Asset => "asset",
       SourceType::Expose => "expose",
@@ -183,6 +183,7 @@ impl From<&str> for SourceType {
     match value {
       "javascript" => Self::JavaScript,
       "css" => Self::Css,
+      "asset-url" => Self::AssetUrl,
       "wasm" => Self::Wasm,
       "asset" => Self::Asset,
       "expose" => Self::Expose,
