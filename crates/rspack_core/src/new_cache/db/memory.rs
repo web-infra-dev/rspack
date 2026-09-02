@@ -5,7 +5,7 @@ use rspack_paths::Utf8PathBuf;
 use rustc_hash::FxHashMap;
 
 use super::DatabaseFamily;
-use crate::{InfrastructureLogger, new_cache::CacheKey};
+use crate::new_cache::CacheKey;
 
 pub type DatabaseValue = Arc<[u8]>;
 
@@ -27,20 +27,19 @@ impl DatabaseBatch {
 #[derive(Debug)]
 pub struct Database {
   families: RwLock<[FxHashMap<Vec<u8>, DatabaseValue>; DatabaseFamily::COUNT]>,
-  _logger: Arc<InfrastructureLogger>,
 }
 
 impl Database {
-  pub fn open(
-    _base_path: Utf8PathBuf,
-    _path: Utf8PathBuf,
-    _readonly: bool,
-    logger: Arc<InfrastructureLogger>,
-  ) -> Result<Self> {
-    Ok(Self {
+  pub fn open(_base_path: Utf8PathBuf, _path: Utf8PathBuf, _readonly: bool) -> Result<Self> {
+    Self {
       families: RwLock::new(Default::default()),
-      _logger: logger,
-    })
+    }
+  }
+
+  pub fn noop() -> Self {
+    Self {
+      families: RwLock::new(Default::default()),
+    }
   }
 
   pub fn get(&self, family: DatabaseFamily, key: &[u8]) -> Result<Option<DatabaseValue>> {
@@ -107,7 +106,9 @@ impl Database {
     }
   }
 
-  pub fn cleanup_stale(&self) {}
+  pub fn cleanup_stale(&self) -> Result<()> {
+    Ok(())
+  }
 
   pub fn shutdown(&self) -> Result<()> {
     self.clear();

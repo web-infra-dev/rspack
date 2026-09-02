@@ -45,12 +45,6 @@ impl PendingWrites {
   fn is_empty(&self) -> bool {
     self.entries.is_empty() && self.new_build_dependencies().is_none() && self.meta().is_none()
   }
-
-  fn clear(&self) {
-    self.entries.clear();
-    *self.new_build_dependencies() = None;
-    *self.meta() = None;
-  }
 }
 
 /// Filesystem cache implementation scheduled by [`super::IdleFileCache`].
@@ -108,12 +102,11 @@ impl FileCacheStrategy {
           .set(database)
           .expect("database should be set only once");
       })
-      .map_err(|e| {
+      .inspect_err(|_| {
         self
           .database
           .set(Database::noop())
           .expect("database should be set only once");
-        e
       })
   }
 
@@ -266,22 +259,30 @@ impl FileCacheStrategy {
       let start = self.logger.time("store cache");
       let codec = &self.codec;
 
-      let pending_writes = self
-        .pending_writes
-        .write()
-        .expect("cache pending writes lock should not be poisoned");
+      let mut writes;
+      let new_build_dependencies;
+      let meta;
+      {
+        let pending_writes = self
+          .pending_writes
+          .write()
+          .expect("cache pending writes lock should not be poisoned");
 
-      let mut writes = pending_writes
-        .entries
-        .par_iter()
-        .map(|pending| {
-          let key = pending.key().clone();
-          let value = (pending.encoder)(&pending.entry, codec)?;
-          Ok((DatabaseFamily::Cache, key, value))
-        })
-        .collect::<Result<Vec<_>>>()?;
+        writes = pending_writes
+          .entries
+          .par_iter()
+          .map(|pending| {
+            let key = pending.key().clone();
+            let value = (pending.encoder)(&pending.entry, codec)?;
+            Ok((DatabaseFamily::Cache, key, value))
+          })
+          .collect::<Result<Vec<_>>>()?;
 
-      if let Some(dependencies) = &*pending_writes.new_build_dependencies()
+        new_build_dependencies = pending_writes.new_build_dependencies().take();
+        meta = pending_writes.meta().take();
+      }
+
+      if let Some(dependencies) = new_build_dependencies
         && let Some(validator) = self.validator.update(dependencies).await?
       {
         writes.push((
@@ -291,8 +292,8 @@ impl FileCacheStrategy {
         ));
       }
 
-      if let Some(meta) = &*pending_writes.meta() {
-        let meta = codec.encode(meta)?;
+      if let Some(meta) = meta {
+        let meta = codec.encode(&meta)?;
         writes.push((DatabaseFamily::Meta, CacheKey::from(META_KEY), meta));
       }
 
@@ -305,11 +306,9 @@ impl FileCacheStrategy {
       self.logger.time_end(start);
       result?;
 
-      pending_writes.clear();
-
       self
         .logger
-        .log(format!("Stored cache ({} items)", writes_len));
+        .log(format!("Stored cache ({writes_len} items)"));
     }
 
     for _ in 0..max_compaction_passes {

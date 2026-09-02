@@ -58,7 +58,6 @@ impl BackgroundJob {
       self
         .logger
         .warn(format!("Initializing cache database failed: {error}"));
-      return;
     }
 
     let idle_epoch = Arc::clone(&self.idle_epoch);

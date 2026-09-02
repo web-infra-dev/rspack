@@ -208,7 +208,8 @@ impl fmt::Debug for Database {
 
 impl Database {
   pub fn open(base_path: Utf8PathBuf, path: Utf8PathBuf, readonly: bool) -> Result<Self> {
-    let inner = open_database(&path, readonly)?;
+    let inner = open_database(&path, readonly)
+      .map_err(|error| rspack_error::error!("Open cache database from {path} failed: {error}"))?;
     Ok(Self {
       inner,
       base_path,
@@ -270,8 +271,11 @@ impl Database {
 
   pub fn cleanup_stale(&self) -> Result<()> {
     let stale_directory = self.stale_directory();
-    std::fs::remove_dir_all(stale_directory.as_std_path())?;
-    Ok(())
+    match std::fs::remove_dir_all(stale_directory.as_std_path()) {
+      Ok(()) => Ok(()),
+      Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+      Err(error) => Err(error.into()),
+    }
   }
 
   pub fn shutdown(&self) -> Result<()> {
