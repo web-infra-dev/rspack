@@ -76,7 +76,6 @@ import {
 } from './builtin-plugin';
 import { getTargetProperties, getTargetsProperties } from './config/target';
 import MemoryCachePlugin from './lib/cache/MemoryCachePlugin';
-import MemoryWithGcCachePlugin from './lib/cache/MemoryWithGcCachePlugin';
 import EntryOptionPlugin from './lib/EntryOptionPlugin';
 import IgnoreWarningsPlugin from './lib/IgnoreWarningsPlugin';
 import { DefaultStatsFactoryPlugin } from './stats/DefaultStatsFactoryPlugin';
@@ -435,18 +434,7 @@ export class RspackOptionsApply {
     }
 
     if (options.cache) {
-      if (options.cache.type === 'persistent') {
-        const maxMemoryGenerations = options.cache.maxMemoryGenerations!;
-        if (!Number.isFinite(maxMemoryGenerations)) {
-          new MemoryCachePlugin().apply(compiler);
-        } else if (maxMemoryGenerations !== 0) {
-          new MemoryWithGcCachePlugin({
-            maxGenerations: maxMemoryGenerations,
-          }).apply(compiler);
-        }
-      } else {
-        new MemoryCachePlugin().apply(compiler);
-      }
+      new MemoryCachePlugin().apply(compiler);
     }
 
     new WorkerPlugin(
