@@ -248,8 +248,8 @@ export type ReadFile = {
 export type ReadFileSync = {
   (
     path: PathOrFileDescriptor,
-    options: {
-      encoding: null | undefined;
+    options?: {
+      encoding?: null | undefined;
       flag?: string;
     } | null,
   ): Buffer;
@@ -259,7 +259,7 @@ export type ReadFileSync = {
   ): string;
   (
     path: PathOrFileDescriptor,
-    options:
+    options?:
       (ObjectEncodingOptions & { flag?: string }) | BufferEncoding | null,
   ): string | Buffer;
 };
@@ -294,9 +294,9 @@ export type Readlink = {
 };
 
 export type ReadlinkSync = {
-  (path: PathLike, options: EncodingOption): string;
+  (path: PathLike, options?: EncodingOption): string;
   (path: PathLike, options: BufferEncodingOption): Buffer;
-  (path: PathLike, options: EncodingOption): string | Buffer;
+  (path: PathLike, options?: EncodingOption): string | Buffer;
 };
 
 export type Readdir = {
@@ -343,7 +343,7 @@ export type Readdir = {
 export type ReaddirSync = {
   (
     path: PathLike,
-    options:
+    options?:
       | {
           encoding: BufferEncoding | null;
           withFileTypes?: false;
@@ -360,7 +360,7 @@ export type ReaddirSync = {
   ): Buffer[];
   (
     path: PathLike,
-    options:
+    options?:
       | (ObjectEncodingOptions & { withFileTypes?: false; recursive?: boolean })
       | BufferEncoding
       | null,
