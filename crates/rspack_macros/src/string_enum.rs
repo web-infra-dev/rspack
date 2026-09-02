@@ -195,7 +195,7 @@ pub fn expand(input: DeriveInput) -> Result<TokenStream> {
     }
   });
 
-  let (as_str_return_type, fallback_as_str_arm, fallback_from_str) = match fallback {
+  let (as_str_return_type, fallback_as_str_arm, fallback_constructor) = match fallback {
     Fallback::Unit(variant) => (
       quote!(&'static str),
       quote! {
@@ -226,7 +226,7 @@ pub fn expand(input: DeriveInput) -> Result<TokenStream> {
       fn from(value: &str) -> Self {
         match value {
           #(#from_str_arms)*
-          _ => #fallback_from_str,
+          _ => #fallback_constructor,
         }
       }
     }
