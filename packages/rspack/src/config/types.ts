@@ -1815,8 +1815,7 @@ export type ExternalsType =
   | 'commonjs-import'
   | 'asset'
   | 'asset-url'
-  | 'css-import'
-  | 'css-url';
+  | 'css-import';
 //#endregion
 
 //#region Externals

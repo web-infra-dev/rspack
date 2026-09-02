@@ -433,7 +433,7 @@ fn resolve_external_type<'a>(
         "module"
       }
     }
-    "asset" | "asset-url" | "css-url" => {
+    "asset" | "asset-url" => {
       if dependency_meta.source_type == Some(SourceType::CssUrl) {
         "asset-url"
       } else {

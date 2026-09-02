@@ -148,10 +148,8 @@ impl ExternalsPlugin {
     };
 
     let external_module_type = r#type.unwrap_or(external_module_type);
-    if matches!(
-      external_module_type.as_str(),
-      "asset" | "asset-url" | "css-url"
-    ) && matches!(dependency.dependency_type(), DependencyType::CssUrl)
+    if matches!(external_module_type.as_str(), "asset" | "asset-url")
+      && matches!(dependency.dependency_type(), DependencyType::CssUrl)
     {
       dependency_meta.source_type = Some(SourceType::CssUrl);
     }
