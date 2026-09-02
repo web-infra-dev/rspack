@@ -1,10 +1,13 @@
-use std::{borrow::Cow, collections::HashMap, ops::Deref, sync::Arc};
+use std::{borrow::Cow, ops::Deref, sync::Arc};
 
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{Loader, LoaderRunnerOptions, Scheme, get_scheme};
 use rspack_paths::InternedPathSet;
-use rspack_util::{MergeFrom, fx_hash::FxDashMap};
+use rspack_util::{
+  MergeFrom,
+  fx_hash::{FxDashMap, FxHashMap as HashMap},
+};
 use sugar_path::SugarPath;
 use winnow::prelude::*;
 
@@ -95,7 +98,7 @@ impl AsRef<ResourceData> for NormalModuleCreateDataResource {
 fn create_global_parser_options_cache(
   parser_options: Option<&ParserOptionsMap>,
 ) -> HashMap<String, ParserOptions> {
-  let mut cache = HashMap::new();
+  let mut cache = HashMap::default();
   let Some(parser_options) = parser_options else {
     return cache;
   };
@@ -123,7 +126,7 @@ fn create_global_parser_options_cache(
 fn create_global_generator_options_cache(
   generator_options: Option<&crate::GeneratorOptionsMap>,
 ) -> HashMap<String, GeneratorOptions> {
-  let mut cache = HashMap::new();
+  let mut cache = HashMap::default();
   let Some(generator_options) = generator_options else {
     return cache;
   };

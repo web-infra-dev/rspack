@@ -3,16 +3,16 @@
 use std::sync::{Arc, LazyLock};
 
 use atomic_refcell::AtomicRefCell;
+use rspack_collections::IdentifierMap;
 use rspack_core::{
   AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey,
   Compilation, CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CssBuildInfo, CssModuleRenderCondition,
-  DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph,
-  ModuleIdentifier, ModuleRule, ModuleType, NormalModuleCreateData,
-  NormalModuleFactoryAfterResolve, NormalModuleFactoryModule, ParserAndGenerator, PathData, Plugin,
-  PublicPath, RenderManifestEntry, RuntimeGlobals, RuntimeModule, RuntimeModuleExt,
-  SelfModuleFactory, SourceType, css_module_render_conditions_identifier,
-  get_css_chunk_filename_template, is_source_equal,
+  DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph, ModuleRule,
+  ModuleType, NormalModuleCreateData, NormalModuleFactoryAfterResolve, NormalModuleFactoryModule,
+  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleExt, SelfModuleFactory, SourceType,
+  css_module_render_conditions_identifier, get_css_chunk_filename_template, is_source_equal,
   rspack_sources::{BoxSource, CachedSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -240,7 +240,7 @@ impl CssPlugin {
       .into_iter()
       .collect::<Result<Vec<_>>>()?
       .into_iter()
-      .collect::<HashMap<_, _>>();
+      .collect::<IdentifierMap<_>>();
     Ok(Self::render_ordered_css_sources(
       ordered_css_modules,
       &module_sources,
@@ -249,7 +249,7 @@ impl CssPlugin {
 
   fn render_ordered_css_sources(
     ordered_css_modules: &[&dyn Module],
-    module_sources: &HashMap<ModuleIdentifier, CssModuleRenderSources>,
+    module_sources: &IdentifierMap<CssModuleRenderSources>,
   ) -> BoxSource {
     let mut non_import_css_sources = HashMap::<_, Vec<_>>::default();
     for module in ordered_css_modules
