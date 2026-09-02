@@ -1958,6 +1958,7 @@ export interface RawCacheOptionsPersistent {
   buildDependencies?: Array<string>
   version?: string
   maxAge: number
+  maxMemoryGenerations?: number
   snapshot?: RawSnapshotOptions
   storage?: RawStorageOptions
   portable?: boolean

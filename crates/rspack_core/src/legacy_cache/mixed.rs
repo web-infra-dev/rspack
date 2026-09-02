@@ -5,14 +5,14 @@ use crate::Compilation;
 #[derive(Debug)]
 pub struct MixedCache {
   persistent: PersistentCache,
-  memory: MemoryCache,
+  memory: Option<MemoryCache>,
 }
 
 impl MixedCache {
-  pub fn new(persistent: PersistentCache) -> Self {
+  pub fn new(persistent: PersistentCache, use_memory_cache: bool) -> Self {
     Self {
       persistent,
-      memory: MemoryCache::default(),
+      memory: use_memory_cache.then(MemoryCache::default),
     }
   }
 }
@@ -21,7 +21,11 @@ impl MixedCache {
 impl Cache for MixedCache {
   async fn before_compile(&mut self, compilation: &mut Compilation) -> bool {
     if compilation.is_rebuild {
-      self.memory.before_compile(compilation).await
+      if let Some(memory) = &mut self.memory {
+        memory.before_compile(compilation).await
+      } else {
+        false
+      }
     } else {
       self.persistent.before_compile(compilation).await
     }
@@ -40,7 +44,9 @@ impl Cache for MixedCache {
   }
 
   async fn before_process_assets(&mut self, compilation: &mut Compilation) {
-    self.memory.before_process_assets(compilation).await;
+    if let Some(memory) = &mut self.memory {
+      memory.before_process_assets(compilation).await;
+    }
     self.persistent.before_process_assets(compilation).await;
   }
 
@@ -49,7 +55,9 @@ impl Cache for MixedCache {
   }
 
   fn store_hot_cache(&mut self, compilation: &mut Compilation) {
-    self.memory.store_hot_cache(compilation);
+    if let Some(memory) = &mut self.memory {
+      memory.store_hot_cache(compilation);
+    }
   }
 
   async fn close(&self) {

@@ -15,7 +15,7 @@ use super::{
 /// including misses, are recorded in memory for subsequent reads.
 #[derive(Debug)]
 struct CacheStorage {
-  memory_cache: MemoryCache,
+  memory_cache: Option<MemoryCache>,
   idle_file_cache: Option<IdleFileCache>,
 }
 
@@ -34,16 +34,21 @@ pub struct Cache {
 impl Cache {
   pub fn new(
     compiler_path: String,
-    memory_cache: MemoryCache,
+    memory_cache: Option<MemoryCache>,
     idle_file_cache: Option<IdleFileCache>,
   ) -> Self {
+    let storage = if memory_cache.is_some() || idle_file_cache.is_some() {
+      Some(CacheStorage {
+        memory_cache,
+        idle_file_cache,
+      })
+    } else {
+      None
+    };
     Self {
       inner: Arc::new(CacheInner {
         compiler_path,
-        storage: Some(CacheStorage {
-          memory_cache,
-          idle_file_cache,
-        }),
+        storage,
       }),
     }
   }
@@ -72,25 +77,33 @@ impl Cache {
     let Some(storage) = &self.inner.storage else {
       return Ok(None);
     };
-    match storage.memory_cache.get(&key, etag.as_ref()) {
-      MemoryCacheGetResult::Hit(value) => Ok(Some(value)),
-      MemoryCacheGetResult::Miss => Ok(None),
-      MemoryCacheGetResult::NotCached => {
-        let Some(file_cache) = &storage.idle_file_cache else {
-          storage.memory_cache.store_miss(key);
-          return Ok(None);
-        };
+    if let Some(memory_cache) = &storage.memory_cache {
+      match memory_cache.get(&key, etag.as_ref()) {
+        MemoryCacheGetResult::Hit(value) => return Ok(Some(value)),
+        MemoryCacheGetResult::Miss => return Ok(None),
+        MemoryCacheGetResult::NotCached => {}
+      }
+    }
 
-        match file_cache.restore::<T>(key.clone(), etag.clone())? {
-          Some(value) => {
-            storage.memory_cache.store(key, etag, value.clone());
-            Ok(Some(value))
-          }
-          None => {
-            storage.memory_cache.store_miss(key);
-            Ok(None)
-          }
+    let Some(file_cache) = &storage.idle_file_cache else {
+      if let Some(memory_cache) = &storage.memory_cache {
+        memory_cache.store_miss(key);
+      }
+      return Ok(None);
+    };
+
+    match file_cache.restore::<T>(key.clone(), etag.clone())? {
+      Some(value) => {
+        if let Some(memory_cache) = &storage.memory_cache {
+          memory_cache.store(key, etag, value.clone());
         }
+        Ok(Some(value))
+      }
+      None => {
+        if let Some(memory_cache) = &storage.memory_cache {
+          memory_cache.store_miss(key);
+        }
+        Ok(None)
       }
     }
   }
@@ -105,12 +118,14 @@ impl Cache {
       return Ok(());
     };
     if let Some(file_cache) = &storage.idle_file_cache {
-      storage
-        .memory_cache
-        .store(key.clone(), etag.clone(), value.clone());
+      if let Some(memory_cache) = &storage.memory_cache {
+        memory_cache.store(key.clone(), etag.clone(), value.clone());
+      }
       file_cache.store(key, etag, value)
     } else {
-      storage.memory_cache.store(key, etag, value);
+      if let Some(memory_cache) = &storage.memory_cache {
+        memory_cache.store(key, etag, value);
+      }
       Ok(())
     }
   }
@@ -171,7 +186,9 @@ impl Cache {
     let Some(storage) = &self.inner.storage else {
       return Ok(());
     };
-    storage.memory_cache.start_next_generation();
+    if let Some(memory_cache) = &storage.memory_cache {
+      memory_cache.start_next_generation();
+    }
     if let Some(file_cache) = &storage.idle_file_cache {
       file_cache.begin_idle()
     } else {
@@ -192,7 +209,9 @@ impl Cache {
 
   pub async fn shutdown(&self) -> Result<()> {
     if let Some(storage) = &self.inner.storage {
-      storage.memory_cache.clear();
+      if let Some(memory_cache) = &storage.memory_cache {
+        memory_cache.clear();
+      }
       if let Some(file_cache) = &storage.idle_file_cache {
         file_cache.shutdown().await?;
       }

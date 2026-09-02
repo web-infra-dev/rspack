@@ -12,6 +12,7 @@ module.exports = {
 			+   "cache": Object {
 			+     "buildDependencies": Array [],
 			+     "maxAge": 604800,
+			+     "maxMemoryGenerations": 5,
 			+     "name": "development",
 			+     "portable": false,
 			+     "readonly": false,

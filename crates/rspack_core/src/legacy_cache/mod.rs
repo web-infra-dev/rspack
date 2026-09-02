@@ -70,7 +70,13 @@ pub fn create_cache(
         intermediate_filesystem,
         compilation_logging,
       );
-      Box::new(MixedCache::new(persistent))
+      Box::new(MixedCache::new(
+        persistent,
+        !matches!(
+          option.max_memory_generations,
+          crate::cache::MaxMemoryGenerations::Disabled
+        ),
+      ))
     }
   }
 }

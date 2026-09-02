@@ -248,6 +248,7 @@ const applyCacheDefaults = (
       );
       D(cache, 'version', '');
       D(cache, 'maxAge', DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS);
+      D(cache, 'maxMemoryGenerations', mode === 'development' ? 5 : Infinity);
       F(cache, 'buildDependencies', () => []);
       D(cache, 'portable', false);
       D(cache, 'readonly', false);

@@ -25,6 +25,16 @@ pub use meta::Meta;
 use rspack_fs::ReadableFileSystem;
 pub use snapshot::{FileSystemInfo, Snapshot, SnapshotValidationResult};
 
+fn create_memory_cache(max_generations: crate::cache::MaxMemoryGenerations) -> Option<MemoryCache> {
+  match max_generations {
+    crate::cache::MaxMemoryGenerations::Disabled => None,
+    crate::cache::MaxMemoryGenerations::Infinity => Some(MemoryCache::new_infinite()),
+    crate::cache::MaxMemoryGenerations::Finite(max_generations) => {
+      Some(MemoryCache::new(max_generations))
+    }
+  }
+}
+
 use crate::{
   CompilerOptions, InfrastructureLogSink, InfrastructureLogger, Logger, cache::CacheCodec,
 };
@@ -47,7 +57,7 @@ pub fn create_cache(
       max_generations: _, /* TODO: old cache default to 1, change to 5 and pass to MemoryCache */
       ..
     } => {
-      return Cache::new(compiler_path, MemoryCache::new(5), None);
+      return Cache::new(compiler_path, Some(MemoryCache::new(5)), None);
     }
     crate::CacheOptions::Persistent(options) => options,
   };
@@ -88,10 +98,18 @@ pub fn create_cache(
     Ok(strategy) => strategy,
     Err(error) => {
       logger.warn(format!("Open cache from {database_path} failed: {error}"));
-      return Cache::new(compiler_path, MemoryCache::default(), None);
+      return Cache::new(
+        compiler_path,
+        create_memory_cache(options.max_memory_generations),
+        None,
+      );
     }
   };
   let idle_file_cache = IdleFileCache::new(strategy, logger, None, None, None);
 
-  Cache::new(compiler_path, MemoryCache::default(), Some(idle_file_cache))
+  Cache::new(
+    compiler_path,
+    create_memory_cache(options.max_memory_generations),
+    Some(idle_file_cache),
+  )
 }
