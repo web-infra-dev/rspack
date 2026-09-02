@@ -81,8 +81,8 @@ impl FileCacheStrategy {
     codec: Arc<CacheCodec>,
     file_system_info: FileSystemInfo,
     logger: Arc<InfrastructureLogger>,
-  ) -> Result<Self> {
-    Ok(Self {
+  ) -> Self {
+    Self {
       validator: CacheValidator::new(
         rspack_pkg_version,
         cache_version,
@@ -95,25 +95,49 @@ impl FileCacheStrategy {
       pending_writes: Default::default(),
       readonly,
       logger,
-    })
+    }
   }
 
-  pub async fn db_init(
-    &self,
-    (base_path, database_path): (Utf8PathBuf, Utf8PathBuf),
-  ) -> Result<()> {
+  pub async fn db_init(&self, database_paths: (Utf8PathBuf, Utf8PathBuf)) -> Result<()> {
+    self
+      .db_init_impl(database_paths)
+      .await
+      .map(|database| {
+        self
+          .database
+          .set(database)
+          .expect("database should be set only once");
+      })
+      .map_err(|e| {
+        self
+          .database
+          .set(Database::noop())
+          .expect("database should be set only once");
+        e
+      })
+  }
+
+  async fn db_init_impl(&self, (base_path, path): (Utf8PathBuf, Utf8PathBuf)) -> Result<Database> {
     let mut database = {
       let start = self.logger.time("open cache database");
-      let database = Database::open(base_path, database_path, self.readonly, self.logger.clone());
+      let database = Database::open(base_path, path, self.readonly);
       self.logger.time_end(start);
       database
     }?;
 
     if database.is_empty() {
-      self.database.set(database).expect("should not have db");
-      return Ok(());
+      return Ok(database);
     }
 
+    let start = self.logger.time("validate cache database");
+    let validation = self.db_validate(&mut database).await;
+    self.logger.time_end(start);
+    validation?;
+
+    Ok(database)
+  }
+
+  async fn db_validate(&self, database: &mut Database) -> Result<()> {
     let data = database.get(DatabaseFamily::Validator, VALIDATOR_KEY.as_bytes())?;
     let validation = self.validator.validate(data).await?;
     match validation {
@@ -142,7 +166,6 @@ impl FileCacheStrategy {
         database.reset()?;
       }
     }
-    self.database.set(database).expect("should not have db");
     Ok(())
   }
 
@@ -298,7 +321,11 @@ impl FileCacheStrategy {
     if check_idle_ended() {
       return Ok(());
     }
-    database.cleanup_stale();
+    if let Err(error) = database.cleanup_stale() {
+      self
+        .logger
+        .warn(format!("Cleaning up stale cache databases failed: {error}"));
+    }
     Ok(())
   }
 

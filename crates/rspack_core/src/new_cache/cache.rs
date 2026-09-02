@@ -112,15 +112,11 @@ impl Cache {
     let Some(storage) = &self.inner.storage else {
       return;
     };
+    if let Some(memory_cache) = &storage.memory_cache {
+      memory_cache.store(key.clone(), etag.clone(), value.clone());
+    }
     if let Some(file_cache) = &storage.idle_file_cache {
-      if let Some(memory_cache) = &storage.memory_cache {
-        memory_cache.store(key.clone(), etag.clone(), value.clone());
-      }
       file_cache.store(key, etag, value)
-    } else {
-      if let Some(memory_cache) = &storage.memory_cache {
-        memory_cache.store(key, etag, value);
-      }
     }
   }
 

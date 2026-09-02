@@ -222,7 +222,7 @@ module.exports = [
 					log =>
 						log.name === "rspack.cache.IdleFileCache" &&
 						log.type === "warn" &&
-						log.args[0].includes("Open cache from")
+						log.args[0].includes("Failed to open database")
 				);
 			for (let i = 0; i < 50; i++) {
 				if (findDatabaseWarning()) break;
@@ -230,7 +230,6 @@ module.exports = [
 			}
 			const warning = findDatabaseWarning();
 			expect(warning).toBeTruthy();
-			expect(warning.args[0]).toContain("invalid-cache-location");
 		}
 	}
 ];

@@ -1,7 +1,6 @@
 use std::{
   fmt,
   hash::Hasher,
-  sync::Arc,
   time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -13,10 +12,7 @@ use turbo_persistence::{
   TurboPersistence, WriteBatch,
 };
 
-use crate::{
-  InfrastructureLogger, Logger,
-  new_cache::{CacheKey, db::DatabaseFamily},
-};
+use crate::new_cache::{CacheKey, db::DatabaseFamily};
 
 const STALE_DIRECTORY: &str = "_stale";
 const MB: u64 = 1024 * 1024;
@@ -198,7 +194,6 @@ pub struct Database {
   base_path: Utf8PathBuf,
   path: Utf8PathBuf,
   readonly: bool,
-  logger: Arc<InfrastructureLogger>,
 }
 
 impl fmt::Debug for Database {
@@ -212,20 +207,24 @@ impl fmt::Debug for Database {
 }
 
 impl Database {
-  pub fn open(
-    base_path: Utf8PathBuf,
-    path: Utf8PathBuf,
-    readonly: bool,
-    logger: Arc<InfrastructureLogger>,
-  ) -> Result<Self> {
+  pub fn open(base_path: Utf8PathBuf, path: Utf8PathBuf, readonly: bool) -> Result<Self> {
     let inner = open_database(&path, readonly)?;
     Ok(Self {
       inner,
       base_path,
       path,
       readonly,
-      logger,
     })
+  }
+
+  pub fn noop() -> Self {
+    let inner = Inner::empty_in_memory_with_config(database_config());
+    Self {
+      inner,
+      base_path: Utf8PathBuf::new(),
+      path: Utf8PathBuf::new(),
+      readonly: true,
+    }
   }
 
   pub fn get(&self, family: super::DatabaseFamily, key: &[u8]) -> Result<Option<DatabaseValue>> {
@@ -269,21 +268,10 @@ impl Database {
     Ok(())
   }
 
-  pub fn cleanup_stale(&self) {
+  pub fn cleanup_stale(&self) -> Result<()> {
     let stale_directory = self.stale_directory();
-    match std::fs::remove_dir_all(stale_directory.as_std_path()) {
-      Ok(()) => {
-        self.logger.debug(format!(
-          "Removed stale cache databases from {stale_directory}"
-        ));
-      }
-      Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-      Err(error) => {
-        self.logger.warn(format!(
-          "Removing stale cache databases from {stale_directory} failed: {error}"
-        ));
-      }
-    }
+    std::fs::remove_dir_all(stale_directory.as_std_path())?;
+    Ok(())
   }
 
   pub fn shutdown(&self) -> Result<()> {
