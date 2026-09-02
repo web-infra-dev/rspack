@@ -458,9 +458,9 @@ type ExecuteModuleContext = {
 
 当所有模块都没有错误地构建完成时调用。
 
-- **类型：** `AsyncSeriesHook<[Module[]]>`
+- **类型：** `AsyncSeriesHook<[Iterable<Module>]>`
 - **参数：**
-  - `Module[]`：所有模块列表
+  - `Iterable<Module>`：模块实例的可迭代对象
 
 <Collapse>
   <CollapsePanel
@@ -478,9 +478,9 @@ type ExecuteModuleContext = {
 
 在模块优化阶段开始时调用。
 
-- **类型：** `SyncBailHook<[Module[]]>`
+- **类型：** `SyncBailHook<[Iterable<Module>]>`
 - **参数：**
-  - `Module[]`：所有模块列表
+  - `Iterable<Module>`：模块实例的可迭代对象
 
 <Collapse>
   <CollapsePanel
@@ -504,9 +504,9 @@ type ExecuteModuleContext = {
 
 在模块优化完成之后调用。
 
-- **类型：** `SyncBailHook<[Module[]]>`
+- **类型：** `SyncHook<[Iterable<Module>]>`
 - **参数：**
-  - `Module[]`：所有模块列表
+  - `Iterable<Module>`：模块实例的可迭代对象
 
 <Collapse>
   <CollapsePanel
@@ -524,10 +524,10 @@ type ExecuteModuleContext = {
 
 在优化依赖树之前调用。
 
-- **类型：** `AsyncSeriesHook<[Chunk[], Module[]]>`
+- **类型：** `AsyncSeriesHook<[Iterable<Chunk>, Iterable<Module>]>`
 - **参数：**
-  - `Chunk[]`：Chunk 列表：
-  - `Module[]`：模块列表
+  - `Iterable<Chunk>`：Chunk 实例的可迭代对象
+  - `Iterable<Module>`：模块实例的可迭代对象
 
 <Collapse>
   <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
@@ -548,10 +548,10 @@ type ExecuteModuleContext = {
 
 在树优化之后，chunk 模块优化开始时调用。
 
-- **类型：** `AsyncSeriesBailHook<[Chunk[], Module[]]>`
+- **类型：** `AsyncSeriesBailHook<[Iterable<Chunk>, Iterable<Module>]>`
 - **参数：**
-  - `Chunk[]`：Chunk 列表：
-  - `Module[]`：模块列表
+  - `Iterable<Chunk>`：Chunk 实例的可迭代对象
+  - `Iterable<Module>`：模块实例的可迭代对象
 
 <Collapse>
   <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
@@ -574,9 +574,9 @@ type ExecuteModuleContext = {
 
 在 chunk id 优化阶段结束之后调用。
 
-- **类型：** `SyncHook<[Chunk[]]>`
+- **类型：** `SyncHook<[Iterable<Chunk>]>`
 - **参数：**
-  - `Chunk[]`：所有 chunk 列表
+  - `Iterable<Chunk>`：Chunk 实例的可迭代对象
 
 <Collapse>
   <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
