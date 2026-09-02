@@ -15,7 +15,7 @@ use swc_experimental_ecma_ast::{
   VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
 };
 
-use super::side_effects_analysis::{MayHaveSideEffects, SideEffectsContext};
+use super::side_effects_analysis::{SideEffectsContext, may_have_side_effects};
 use crate::{
   ClassExt, JavascriptParserPlugin,
   dependency::ESMImportSideEffectDependency,
@@ -863,7 +863,7 @@ fn is_pure_call_expr(
     }
   }
 
-  !expr.may_have_side_effects(expr_ctx(parser, false))
+  !may_have_side_effects(expr, expr_ctx(parser, false))
 }
 
 #[inline(never)]
@@ -1023,7 +1023,7 @@ fn is_pure_new_expr(
   };
   let pure_flag = has_pure_comment(comments, expr.span().start);
   if !pure_flag {
-    !expr.may_have_side_effects(expr_ctx(parser, false))
+    !may_have_side_effects(expr, expr_ctx(parser, false))
   } else {
     are_pure_args(
       parser,
@@ -1368,18 +1368,18 @@ fn stmt_may_have_side_effects(parser: &JavascriptParser, stmt: &Stmt) -> bool {
 
   match stmt {
     Stmt::Empty(_) => false,
-    Stmt::Expr(expr_stmt) => expr_stmt.expr.may_have_side_effects(expr_ctx),
+    Stmt::Expr(expr_stmt) => may_have_side_effects(&expr_stmt.expr, expr_ctx),
     Stmt::Return(return_stmt) => return_stmt
       .arg
       .as_ref()
-      .is_some_and(|arg| arg.may_have_side_effects(expr_ctx)),
+      .is_some_and(|arg| may_have_side_effects(arg, expr_ctx)),
     Stmt::Decl(decl) => match &**decl {
       Decl::Var(var_decl) => var_decl.decls.iter().any(|declarator| {
         declarator.name.as_ident().is_none()
           || declarator
             .init
             .as_ref()
-            .is_some_and(|init| init.may_have_side_effects(expr_ctx))
+            .is_some_and(|init| may_have_side_effects(init, expr_ctx))
       }),
       _ => true,
     },
@@ -1615,7 +1615,7 @@ pub fn is_pure_expression<'a>(
         true
       }
       _ => {
-        if !expr.may_have_side_effects(expr_ctx(parser, true)) {
+        if !may_have_side_effects(expr, expr_ctx(parser, true)) {
           return true;
         }
         // could_have_side_effects is true by default, so here we test if it's modified by other plugins to return false.
