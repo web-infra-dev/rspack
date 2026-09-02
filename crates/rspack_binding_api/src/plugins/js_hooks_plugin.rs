@@ -61,6 +61,7 @@ pub struct JsHooksAdapterPlugin {
   register_context_module_factory_after_resolve_taps: RegisterContextModuleFactoryAfterResolveTaps,
   register_external_module_chunk_condition_taps: RegisterExternalModuleChunkConditionTaps,
   register_javascript_modules_chunk_hash_taps: RegisterJavascriptModulesChunkHashTaps,
+  register_normal_module_before_loaders_taps: RegisterNormalModuleBeforeLoadersTaps,
   register_html_plugin_before_asset_tag_generation_taps:
     RegisterHtmlPluginBeforeAssetTagGenerationTaps,
   register_html_plugin_alter_asset_tags_taps: RegisterHtmlPluginAlterAssetTagsTaps,
@@ -248,6 +249,10 @@ impl Plugin for JsHooksAdapterPlugin {
         .register_normal_module_factory_create_module_taps
         .clone(),
     );
+    ctx
+      .normal_module_hooks
+      .before_loaders
+      .intercept(self.register_normal_module_before_loaders_taps.clone());
     ctx.context_module_factory_hooks.before_resolve.intercept(
       self
         .register_context_module_factory_before_resolve_taps
@@ -361,6 +366,9 @@ impl Plugin for JsHooksAdapterPlugin {
       .clear_cache();
     self
       .register_javascript_modules_chunk_hash_taps
+      .clear_cache();
+    self
+      .register_normal_module_before_loaders_taps
       .clear_cache();
     self
       .register_html_plugin_before_asset_tag_generation_taps
@@ -685,6 +693,10 @@ impl JsHooksAdapterPlugin {
           ),
         register_javascript_modules_chunk_hash_taps: RegisterJavascriptModulesChunkHashTaps::new(
           register_js_taps.register_javascript_modules_chunk_hash_taps,
+          non_skippable_registers.clone(),
+        ),
+        register_normal_module_before_loaders_taps: RegisterNormalModuleBeforeLoadersTaps::new(
+          register_js_taps.register_normal_module_before_loaders_taps,
           non_skippable_registers.clone(),
         ),
         register_html_plugin_before_asset_tag_generation_taps:

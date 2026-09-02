@@ -14,32 +14,33 @@ use napi::{
 };
 use rspack_collections::{Identifier, IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AfterResolveResult, AssetEmittedInfo, AsyncModulesArtifact, BeforeResolveResult, BindingCell,
-  BoxModule, ChunkGraph, ChunkUkey, CircularModulesInfo, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirementsHook,
-  CompilationAfterOptimizeModules, CompilationAfterOptimizeModulesHook,
-  CompilationAfterProcessAssets, CompilationAfterProcessAssetsHook, CompilationAfterSeal,
-  CompilationAfterSealHook, CompilationBeforeModuleIds, CompilationBeforeModuleIdsHook,
-  CompilationBuildModule, CompilationBuildModuleHook, CompilationChunkAsset,
-  CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
-  CompilationExecuteModule, CompilationExecuteModuleHook, CompilationFinishModules,
-  CompilationFinishModulesHook, CompilationId, CompilationOptimizeChunkModules,
-  CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
-  CompilationOptimizeTree, CompilationOptimizeTreeHook, CompilationParams,
-  CompilationProcessAssets, CompilationProcessAssetsHook, CompilationRuntimeModule,
-  CompilationRuntimeModuleHook, CompilationRuntimeRequirementInTree,
-  CompilationRuntimeRequirementInTreeHook, CompilationSeal, CompilationSealHook,
-  CompilationStillValidModule, CompilationStillValidModuleHook, CompilationSucceedModule,
-  CompilationSucceedModuleHook, CompilerAfterCompile, CompilerAfterCompileHook, CompilerAfterEmit,
-  CompilerAfterEmitHook, CompilerAssetEmitted, CompilerAssetEmittedHook, CompilerCompilation,
-  CompilerCompilationHook, CompilerEmit, CompilerEmitHook, CompilerFinishMake,
-  CompilerFinishMakeHook, CompilerId, CompilerMake, CompilerMakeHook, CompilerShouldEmit,
-  CompilerShouldEmitHook, CompilerThisCompilation, CompilerThisCompilationHook,
-  ContextModuleFactoryAfterResolve, ContextModuleFactoryAfterResolveHook,
-  ContextModuleFactoryBeforeResolve, ContextModuleFactoryBeforeResolveHook, ExecuteModuleId,
-  ExternalModuleChunkCondition, ExternalModuleChunkConditionHook, Module, ModuleFactoryCreateData,
-  ModuleId, ModuleIdentifier, ModuleIdsArtifact, NormalModuleCreateData,
-  NormalModuleFactoryAfterResolve, NormalModuleFactoryAfterResolveHook,
+  AfterResolveResult, AssetEmittedInfo, AsyncModulesArtifact, BeforeLoadersItem,
+  BeforeResolveResult, BindingCell, BoxModule, ChunkGraph, ChunkUkey, CircularModulesInfo,
+  Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationAdditionalTreeRuntimeRequirementsHook, CompilationAfterOptimizeModules,
+  CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
+  CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
+  CompilationBeforeModuleIds, CompilationBeforeModuleIdsHook, CompilationBuildModule,
+  CompilationBuildModuleHook, CompilationChunkAsset, CompilationChunkAssetHook,
+  CompilationChunkHash, CompilationChunkHashHook, CompilationExecuteModule,
+  CompilationExecuteModuleHook, CompilationFinishModules, CompilationFinishModulesHook,
+  CompilationId, CompilationOptimizeChunkModules, CompilationOptimizeChunkModulesHook,
+  CompilationOptimizeModules, CompilationOptimizeModulesHook, CompilationOptimizeTree,
+  CompilationOptimizeTreeHook, CompilationParams, CompilationProcessAssets,
+  CompilationProcessAssetsHook, CompilationRuntimeModule, CompilationRuntimeModuleHook,
+  CompilationRuntimeRequirementInTree, CompilationRuntimeRequirementInTreeHook, CompilationSeal,
+  CompilationSealHook, CompilationStillValidModule, CompilationStillValidModuleHook,
+  CompilationSucceedModule, CompilationSucceedModuleHook, CompilerAfterCompile,
+  CompilerAfterCompileHook, CompilerAfterEmit, CompilerAfterEmitHook, CompilerAssetEmitted,
+  CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook, CompilerEmit,
+  CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerId, CompilerMake,
+  CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook, CompilerThisCompilation,
+  CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
+  ContextModuleFactoryAfterResolveHook, ContextModuleFactoryBeforeResolve,
+  ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, ExternalModuleChunkCondition,
+  ExternalModuleChunkConditionHook, Module, ModuleFactoryCreateData, ModuleId, ModuleIdentifier,
+  ModuleIdsArtifact, ModuleRuleUseLoader, NormalModuleBeforeLoaders, NormalModuleBeforeLoadersHook,
+  NormalModuleCreateData, NormalModuleFactoryAfterResolve, NormalModuleFactoryAfterResolveHook,
   NormalModuleFactoryBeforeResolve, NormalModuleFactoryBeforeResolveHook,
   NormalModuleFactoryCreateModule, NormalModuleFactoryCreateModuleHook,
   NormalModuleFactoryFactorize, NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
@@ -100,6 +101,7 @@ use crate::{
     JsCreateData, JsNormalModuleFactoryCreateModuleArgs, JsResolveData, JsResolveForSchemeArgs,
     JsResolveForSchemeOutput,
   },
+  plugins::JsLoaderItem,
   rsdoctor::{
     JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
     JsRsdoctorModuleSourcesPatch,
@@ -139,6 +141,24 @@ impl JsBeforeModuleIdsArg {
 pub struct JsBeforeModuleIdsResult {
   #[napi(ts_type = "Record<string, string | number>")]
   pub assignments: FxHashMap<String, Either<String, u32>>,
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsBeforeLoadersArgs {
+  pub loaders: Vec<JsLoaderItem>,
+  #[napi(ts_type = "Module")]
+  pub module: ModuleObject,
+}
+
+/// A loader a `beforeLoaders` tap added to the list. Loaders that were already
+/// on the module are handed back as their index instead, so that their resolved
+/// loader and cache options can be reused.
+#[napi(object, object_to_js = false)]
+pub struct JsAddedLoaderItem {
+  pub loader: String,
+  pub options: Option<String>,
+  pub cache: bool,
+  pub options_cache_key: String,
 }
 
 #[napi(object, object_from_js = false)]
@@ -477,6 +497,7 @@ pub enum RegisterJsTapKind {
   ContextModuleFactoryAfterResolve,
   ExternalModuleChunkCondition,
   JavascriptModulesChunkHash,
+  NormalModuleBeforeLoaders,
   HtmlPluginBeforeAssetTagGeneration,
   HtmlPluginAlterAssetTags,
   HtmlPluginAlterAssetTagGroups,
@@ -661,6 +682,10 @@ pub struct RegisterJsTaps {
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: Chunk) => Buffer); stage: number; }>"
   )]
   pub register_javascript_modules_chunk_hash_taps: RegisterFunction,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsBeforeLoadersArgs) => Array<number | JsAddedLoaderItem> | undefined); stage: number; }>"
+  )]
+  pub register_normal_module_before_loaders_taps: RegisterFunction,
   // html plugin
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsBeforeAssetTagGenerationData) => JsBeforeAssetTagGenerationData); stage: number; }>"
@@ -1005,6 +1030,13 @@ define_register!(
   tap = JavascriptModulesChunkHashTap<ChunkWrapper, Buffer> @ JavascriptModulesChunkHashHook,
   cache = true,
   kind = RegisterJsTapKind::JavascriptModulesChunkHash,
+  skip = true,
+);
+define_register!(
+  RegisterNormalModuleBeforeLoadersTaps,
+  tap = NormalModuleBeforeLoadersTap<JsBeforeLoadersArgs, Option<Vec<Either<u32, JsAddedLoaderItem>>>> @ NormalModuleBeforeLoadersHook,
+  cache = true,
+  kind = RegisterJsTapKind::NormalModuleBeforeLoaders,
   skip = true,
 );
 
@@ -1909,6 +1941,52 @@ impl JavascriptModulesChunkHash for JavascriptModulesChunkHashTap {
       .await?;
     hasher.write(&result);
     Ok(())
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+#[async_trait]
+impl NormalModuleBeforeLoaders for NormalModuleBeforeLoadersTap {
+  async fn run(
+    &self,
+    compiler_id: CompilerId,
+    module: &mut rspack_core::NormalModule,
+  ) -> rspack_error::Result<Option<Vec<BeforeLoadersItem>>> {
+    let loaders = module
+      .loaders()
+      .iter()
+      .map(JsLoaderItem::from)
+      .collect::<Vec<_>>();
+    let module: &mut dyn Module = module;
+    #[allow(clippy::unwrap_used)]
+    let args = JsBeforeLoadersArgs {
+      loaders,
+      module: ModuleObject::with_ptr(
+        NonNull::new(module as *const dyn Module as *mut dyn Module).unwrap(),
+        compiler_id,
+      ),
+    };
+    let Some(items) = self.function.call_with_sync(args).await? else {
+      return Ok(None);
+    };
+    Ok(Some(
+      items
+        .into_iter()
+        .map(|item| match item {
+          Either::A(index) => BeforeLoadersItem::Kept(index as usize),
+          Either::B(added) => BeforeLoadersItem::Added(ModuleRuleUseLoader {
+            loader: added.loader,
+            options: added.options,
+            cache: added.cache,
+            options_cache_key: added.options_cache_key,
+          }),
+        })
+        .collect(),
+    ))
   }
 
   fn stage(&self) -> i32 {

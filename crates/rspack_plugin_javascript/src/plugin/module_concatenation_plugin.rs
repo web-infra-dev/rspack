@@ -1785,6 +1785,7 @@ async fn create_concatenated_module(
         compiler_id: compilation.compiler_id(),
         compilation_id: compilation.id(),
         resolver_factory: compilation.resolver_factory.clone(),
+        loader_resolver_factory: compilation.loader_resolver_factory.clone(),
         plugin_driver: compilation.plugin_driver.clone(),
         compiler_options: compilation.options.clone(),
         loader_cache: compilation.get_cache("loader"),

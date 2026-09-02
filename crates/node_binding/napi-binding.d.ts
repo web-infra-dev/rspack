@@ -651,6 +651,18 @@ export const EXPECTED_RSPACK_CORE_VERSION: string
 
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
 
+/**
+ * A loader a `beforeLoaders` tap added to the list. Loaders that were already
+ * on the module are handed back as their index instead, so that their resolved
+ * loader and cache options can be reused.
+ */
+export interface JsAddedLoaderItem {
+  loader: string
+  options?: string
+  cache: boolean
+  optionsCacheKey: string
+}
+
 export interface JsAddingRuntimeModule {
   name: string
   generator: () => String
@@ -730,6 +742,11 @@ export interface JsBeforeEmitData {
   outputName: string
   compilationId: number
   uid?: number
+}
+
+export interface JsBeforeLoadersArgs {
+  loaders: Array<JsLoaderItem>
+  module: Module
 }
 
 export interface JsBeforeModuleIdsArg {
@@ -3282,22 +3299,23 @@ export declare enum RegisterJsTapKind {
   ContextModuleFactoryAfterResolve = 35,
   ExternalModuleChunkCondition = 36,
   JavascriptModulesChunkHash = 37,
-  HtmlPluginBeforeAssetTagGeneration = 38,
-  HtmlPluginAlterAssetTags = 39,
-  HtmlPluginAlterAssetTagGroups = 40,
-  HtmlPluginAfterTemplateExecution = 41,
-  HtmlPluginBeforeEmit = 42,
-  HtmlPluginAfterEmit = 43,
-  RuntimePluginCreateScript = 44,
-  RuntimePluginCreateLink = 45,
-  RuntimePluginLinkPreload = 46,
-  RuntimePluginLinkPrefetch = 47,
-  RealContentHashPluginUpdateHash = 48,
-  RsdoctorPluginModuleGraph = 49,
-  RsdoctorPluginChunkGraph = 50,
-  RsdoctorPluginModuleIds = 51,
-  RsdoctorPluginModuleSources = 52,
-  RsdoctorPluginAssets = 53
+  NormalModuleBeforeLoaders = 38,
+  HtmlPluginBeforeAssetTagGeneration = 39,
+  HtmlPluginAlterAssetTags = 40,
+  HtmlPluginAlterAssetTagGroups = 41,
+  HtmlPluginAfterTemplateExecution = 42,
+  HtmlPluginBeforeEmit = 43,
+  HtmlPluginAfterEmit = 44,
+  RuntimePluginCreateScript = 45,
+  RuntimePluginCreateLink = 46,
+  RuntimePluginLinkPreload = 47,
+  RuntimePluginLinkPrefetch = 48,
+  RealContentHashPluginUpdateHash = 49,
+  RsdoctorPluginModuleGraph = 50,
+  RsdoctorPluginChunkGraph = 51,
+  RsdoctorPluginModuleIds = 52,
+  RsdoctorPluginModuleSources = 53,
+  RsdoctorPluginAssets = 54
 }
 
 export interface RegisterJsTaps {
@@ -3339,6 +3357,7 @@ export interface RegisterJsTaps {
   registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>
   registerExternalModuleChunkConditionTaps: (stages: Array<number>) => Array<{ function: ((chunk: Chunk) => boolean | undefined); stage: number; }>
   registerJavascriptModulesChunkHashTaps: (stages: Array<number>) => Array<{ function: ((arg: Chunk) => Buffer); stage: number; }>
+  registerNormalModuleBeforeLoadersTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeLoadersArgs) => Array<number | JsAddedLoaderItem> | undefined); stage: number; }>
   registerHtmlPluginBeforeAssetTagGenerationTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeAssetTagGenerationData) => JsBeforeAssetTagGenerationData); stage: number; }>
   registerHtmlPluginAlterAssetTagsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAlterAssetTagsData) => JsAlterAssetTagsData); stage: number; }>
   registerHtmlPluginAlterAssetTagGroupsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAlterAssetTagGroupsData) => JsAlterAssetTagGroupsData); stage: number; }>
