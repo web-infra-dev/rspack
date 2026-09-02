@@ -9,5 +9,5 @@ pub use cache_entry::{
   CachedExtractedComments, CachedMinimizeEntry, CachedSourceMapDevToolPluginEntry,
 };
 pub use codec::CacheCodec;
-pub use options::{BuildDepsOptions, PersistentCacheOptions, StorageOptions};
+pub use options::{BuildDepsOptions, MaxMemoryGenerations, PersistentCacheOptions, StorageOptions};
 pub use snapshot::{PathMatcher, SnapshotOptions, SnapshotStrategyOptions};

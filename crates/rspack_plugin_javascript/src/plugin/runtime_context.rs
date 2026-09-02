@@ -923,8 +923,20 @@ impl JsPlugin {
     if iife {
       sources.add(RawStringSource::from_static("})()\n"));
     }
+    let mut render_source = RenderSource {
+      source: sources.boxed(),
+    };
+    hooks
+      .render_content
+      .call(
+        compilation,
+        chunk_ukey,
+        &mut render_source,
+        runtime_template,
+      )
+      .await?;
     let final_source = render_init_fragments(
-      sources.boxed(),
+      render_source.source,
       chunk_init_fragments,
       &mut ChunkRenderContext {},
     )?;

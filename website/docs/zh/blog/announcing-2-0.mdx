@@ -172,7 +172,7 @@ export default {
 
 ### 模块联邦 tree shaking \{#mf-share-treeshaking}
 
-Rspack 现在支持对 [模块联邦](/guide/features/module-federation) 的共享依赖进行 tree shaking。它可以在导出级别裁剪共享依赖，移除未使用的部分，从而减小共享包的体积。
+Rspack 现在支持对 [模块联邦](/guide/advanced/module-federation) 的共享依赖进行 tree shaking。它可以在导出级别裁剪共享依赖，移除未使用的部分，从而减小共享包的体积。
 
 在 Rspack 1.x 中，只要依赖被声明为 `shared`，运行时通常需要加载完整包。即使只用到少量导出，也会引入全部内容。对于体积较大的共享库，这会带来显著的开销。
 
@@ -302,7 +302,7 @@ export default {
 你可以通过以下两种方式使用这项能力：
 
 - **使用 Rsbuild**：我们通过 [rsbuild-plugin-rsc](https://github.com/rstackjs/rsbuild-plugin-rsc) 提供了开箱即用的 RSC 支持。
-- **手动配置 Rspack**：参考 [React Server Components 文档](/guide/tech/rsc) 以手动添加相关配置。
+- **手动配置 Rspack**：参考 [React Server Components 文档](/guide/integrations/rsc) 以手动添加相关配置。
 
 在生态支持方面，Modern.js 已基于 Rspack 提供 RSC 支持，详见 [Modern.js RSC 文档](https://modernjs.dev/zh/guides/basic-features/render/rsc.html)。同时，Rspack 已支持 React Router 的 Data Mode，相关示例见 [React Router 示例](https://github.com/rstackjs/rsbuild-plugin-rsc/tree/main/examples/react-router)。
 

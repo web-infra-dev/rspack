@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding-linux-ppc64-gnu",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "rspack.linux-ppc64-gnu.node",

@@ -246,7 +246,7 @@ export default {
 
 Matches all modules that match this resource, and will match against layer of the module that issued the current module.
 
-For more information about layers, see the [Layer guide](/guide/features/layer).
+For more information about layers, see the [Module layers guide](/guide/advanced/layer).
 
 A basic example:
 
@@ -705,8 +705,8 @@ The meanings of all `type` options are as follows:
 - `'javascript/auto'`: JavaScript modules. Rspack automatically determines the module type based on file content, providing the best compatibility.
 - `'javascript/esm'`: JavaScript modules, treated as strict ES modules.
 - `'javascript/dynamic'`: JavaScript modules, treated as Script.
-- `'json'`: JSON data module, see [JSON](/guide/tech/json).
-- `'css' | 'css/auto' | 'css/global' | 'css/module'`: CSS module, see [Built-in CSS support](/guide/tech/css#built-in-css-support).
+- `'json'`: JSON data module, see [JSON](/guide/languages/json).
+- `'css' | 'css/auto' | 'css/global' | 'css/module'`: CSS module, see [Built-in CSS support](/guide/languages/css#built-in-css-support).
 - `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline' | 'asset/bytes'`: Asset module, see [Asset Module](/guide/features/asset-module).
 
 ## rules[].layer
@@ -715,7 +715,7 @@ The meanings of all `type` options are as follows:
 
 Used to mark the layer of the matching module. A group of modules could be united in one layer which could then be used in split chunks, stats or [entry options](/config/entry#entrydescriptionlayer).
 
-For more information about layers, see the [Layer guide](/guide/features/layer).
+For more information about layers, see the [Module layers guide](/guide/advanced/layer).
 
 ```js title="rspack.config.mjs"
 export default {

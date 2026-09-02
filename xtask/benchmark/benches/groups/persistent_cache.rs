@@ -9,7 +9,10 @@ use std::{
 };
 
 use criterion::{BatchSize, Criterion};
-use rspack_core::{CacheOptions, Mode, PersistentCacheOptions, SnapshotOptions, StorageOptions};
+use rspack_core::{
+  CacheOptions, Mode, PersistentCacheOptions, SnapshotOptions, StorageOptions,
+  cache::MaxMemoryGenerations,
+};
 use rspack_fs::{NativeFileSystem, NoopFileSystem};
 use rspack_tasks::{CompilerContext, within_compiler_context, within_compiler_context_sync};
 
@@ -201,6 +204,7 @@ fn persistent_compiler(project_dir: &Path, cache_dir: &Path) -> rspack::builder:
       portable: false,
       readonly: false,
       max_age: 0,
+      max_memory_generations: MaxMemoryGenerations::Infinity,
     }))
     .input_filesystem(Arc::new(NativeFileSystem::new(false)))
     .output_filesystem(Arc::new(NoopFileSystem));

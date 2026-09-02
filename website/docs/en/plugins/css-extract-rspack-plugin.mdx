@@ -1,53 +1,94 @@
 ---
-description: 'Rspack is currently incompatible with mini-css-extract-plugin, but you can use the CssExtractRspackPlugin as a replacement'
+description: 'Extracts CSS processed by css-loader into separate CSS files'
 ---
 
-import { Table } from '@builtIns';
 import { ApiMeta } from '@components/ApiMeta.tsx';
 
 # CssExtractRspackPlugin
 
 <ApiMeta specific={['Rspack']} />
 
-Rspack is currently incompatible with [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin), but you can use the CssExtractRspackPlugin as a replacement. It can be used with css-loader to extract CSS into separate files.
+`CssExtractRspackPlugin` works with [css-loader](https://github.com/webpack/css-loader) to extract CSS imported by JavaScript modules into separate files. In Rspack, use it as an alternative to [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin), or whenever your project needs css-loader features.
 
-> If your project does not depend on css-loader and mini-css-extract-plugin, it is recommended to use Rspack's built-in CSS solution, which offers better performance.
+By default, CSS in entry chunks is emitted as `[name].css`. CSS loaded through dynamic `import()` is handled by runtime code injected by the plugin.
+
+If your project does not need css-loader, prefer Rspack's [built-in CSS support](/guide/languages/css) to avoid the extra loader and plugin processing.
+
+:::warning
+`CssExtractRspackPlugin.loader` cannot be used with Rspack's built-in CSS module types: `css`, `css/auto`, `css/global`, or `css/module`. The default module type is `javascript/auto`, so `type` can normally be omitted. If a module uses one of the built-in CSS types, the loader skips it and emits a warning; the plugin does not extract its CSS.
+:::
 
 ## Examples
 
-When using CssExtractRspackPlugin, you need to register the plugin in the `plugins` section and register `CssExtractRspackPlugin.loader` in [module.rules](/config/module#modulerules).
+### Basic usage
 
-```ts title="rspack.config.mjs"
+Register the plugin and place `CssExtractRspackPlugin.loader` before `css-loader` in the CSS rule:
+
+```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
 
 export default {
-  plugins: [new rspack.CssExtractRspackPlugin({})],
+  entry: './src/index.js',
+  plugins: [new rspack.CssExtractRspackPlugin()],
   module: {
     rules: [
       {
         test: /\.css$/i,
         use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
-        type: 'javascript/auto',
       },
     ],
   },
 };
 ```
 
-### Split extracted CSS with splitChunks
+If the `main` entry imports CSS, the default output includes:
 
-`CssExtractRspackPlugin` adds extracted CSS modules with the `css/mini-extract` module type. You can use [`splitChunks.cacheGroups.{cacheGroup}.type`](/plugins/split-chunks-plugin#splitchunkscachegroupscachegrouptype) to create a cache group that only matches CSS extracted by `CssExtractRspackPlugin`, without matching JavaScript modules or native CSS modules.
+```text
+dist/
+├── main.js
+└── main.css
+```
 
-```ts title="rspack.config.mjs"
+### With the HTML plugin
+
+`CssExtractRspackPlugin` emits CSS imported by an entry, but does not add a link for it to HTML. Register [HtmlRspackPlugin](/plugins/html-rspack-plugin) alongside it to generate `index.html` and inject the corresponding stylesheet `<link>` tags:
+
+```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
 
 export default {
-  plugins: [new rspack.CssExtractRspackPlugin({})],
+  entry: './src/index.js',
+  plugins: [new rspack.HtmlRspackPlugin(), new rspack.CssExtractRspackPlugin()],
   module: {
     rules: [
       {
         test: /\.css$/i,
-        type: 'javascript/auto',
+        use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+      },
+    ],
+  },
+};
+```
+
+The configuration above generates `dist/index.html` with a link to `main.css`:
+
+```html
+<link href="main.css" rel="stylesheet" />
+```
+
+### Split CSS
+
+`CssExtractRspackPlugin` represents extracted styles as modules of type `css/mini-extract`. Use [`splitChunks.cacheGroups.{cacheGroup}.type`](/plugins/split-chunks-plugin#splitchunkscachegroupscachegrouptype) to select only CSS extracted by this plugin, without selecting JavaScript modules or modules handled by Rspack's built-in CSS support.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.CssExtractRspackPlugin()],
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
         use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
       },
     ],
@@ -68,195 +109,392 @@ export default {
 };
 ```
 
-In this example, `extractedCss` only selects modules whose module type is `css/mini-extract`. `enforce: true` makes the CSS chunk be created even when the normal `minSize` or request-limit heuristics would skip it; remove `enforce` if you want the cache group to follow the normal splitChunks heuristics.
+Here, `extractedCss` selects only modules whose type is `css/mini-extract`. For details about `enforce`, see [`splitChunks.cacheGroups.{cacheGroup}.enforce`](/plugins/split-chunks-plugin#splitchunkscachegroupscachegroupenforce).
 
-## Plugin options
+## Options
 
-Options for `CssExtractRspackPlugin`.
+Pass these options to `new rspack.CssExtractRspackPlugin()`.
 
-- **Types:**
+### filename
 
-```ts
-interface PluginOptions {
-  filename?: string | ((pathData: PathData, assetInfo?: AssetInfo) => string);
-  chunkFilename?:
-    string | ((pathData: PathData, assetInfo?: AssetInfo) => string);
-  ignoreOrder?: boolean;
-  insert?: string | ((linkTag: HTMLLinkElement) => void);
-  attributes?: Record<string, string>;
-  linkType?: string | 'text/css' | false;
-  runtime?: boolean;
-  pathinfo?: boolean;
-  enforceRelative?: boolean;
-}
+- **Type:**
+
+  ```ts
+  type CssFilenameFunction = (
+    pathData: PathData,
+    assetInfo?: AssetInfo,
+  ) => string;
+
+  type CssFilename = string | CssFilenameFunction;
+  ```
+
+- **Default:** `'[name].css'`
+
+Sets the filename of extracted CSS assets for chunks loaded with an entry. The value supports the placeholders documented for [`output.filename`](/config/output#outputfilename). When omitted or set to an empty string, Rspack uses `[name].css`. CSS assets for on-demand chunks use [`chunkFilename`](#chunkfilename).
+
+- **String:** Uses a non-empty value as the filename template for every CSS chunk loaded with an entry.
+
+  ```js
+  new rspack.CssExtractRspackPlugin({
+    filename: 'css/[name].[contenthash].css',
+  });
+  ```
+
+- **Function:** For each CSS chunk loaded with an entry, Rspack calls the function with its `PathData` and optional `AssetInfo`, then uses the returned string as the filename.
+
+  ```js
+  new rspack.CssExtractRspackPlugin({
+    filename: ({ chunk }) => `css/${chunk?.name ?? 'styles'}.css`,
+  });
+  ```
+
+When `filename` is a function and `chunkFilename` is omitted, on-demand CSS chunks use `[id].css`; Rspack does not reuse the function for them.
+
+### chunkFilename
+
+- **Type:**
+
+  ```ts
+  type CssChunkFilenameFunction = (
+    pathData: PathData,
+    assetInfo?: AssetInfo,
+  ) => string;
+
+  type CssChunkFilename = string | CssChunkFilenameFunction;
+  ```
+
+- **Default:** Derived from `filename`
+
+Sets the filename of extracted CSS assets for on-demand chunks, including chunks created by dynamic `import()`. An explicitly configured non-empty string or function overrides the value derived from `filename`. The value supports the placeholders documented for [`output.chunkFilename`](/config/output#outputchunkfilename).
+
+When omitted, Rspack derives the value as follows:
+
+- If a string `filename` contains `[name]`, `[id]`, `[chunkhash]`, or `[contenthash]`, Rspack reuses it.
+- If a string `filename` contains none of those placeholders, Rspack adds `[id].` before its basename. For example, `css/styles.css` produces `css/[id].styles.css` for async chunks.
+- If `filename` is a function, Rspack uses `[id].css`.
+
+- **String:** Uses a non-empty value as the filename template for every on-demand CSS chunk.
+
+  ```js
+  new rspack.CssExtractRspackPlugin({
+    chunkFilename: 'css/[id].[contenthash].chunk.css',
+  });
+  ```
+
+- **Function:** Rspack calls the function for each on-demand CSS chunk with its `PathData` and optional `AssetInfo`, then uses the returned string as the filename.
+
+  ```js
+  new rspack.CssExtractRspackPlugin({
+    chunkFilename: ({ chunk }) =>
+      `css/${chunk?.name ?? chunk?.id ?? 'chunk'}.chunk.css`,
+  });
+  ```
+
+### ignoreOrder
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Controls whether Rspack reports CSS order conflicts. By default, Rspack warns when different chunk groups require incompatible CSS orders, then emits the CSS using a fallback order.
+
+Set `ignoreOrder` to `true` to suppress these warnings. This does not change the order Rspack chooses and does not resolve order-dependent styling conflicts.
+
+```js
+new rspack.CssExtractRspackPlugin({
+  ignoreOrder: true,
+});
 ```
 
-<Table
-  header={[
-    {
-      name: 'Name',
-      key: 'name',
+### insert
+
+- **Type:**
+
+  ```ts
+  type InsertFunction = (linkTag: HTMLLinkElement) => void;
+
+  type Insert = string | InsertFunction;
+  ```
+
+- **Default:** `undefined`
+
+Sets the insertion position of stylesheet `<link>` elements created by the plugin runtime for async CSS chunks and HMR updates. It does not affect stylesheet links already present in HTML.
+
+When omitted, the runtime appends a new async stylesheet to `document.head`. During a hot update, it inserts the replacement after the previous stylesheet.
+
+- **String:** Treats the value as a selector passed to `document.querySelector()` and inserts the stylesheet immediately after the first matching element. The selector must match an element at runtime.
+
+  ```js
+  new rspack.CssExtractRspackPlugin({
+    insert: '#css-anchor',
+  });
+  ```
+
+- **Function:** Serializes the function into the generated runtime and calls it in the browser with the new `<link>` element. The function must insert the element itself and cannot use variables from the Rspack configuration's scope.
+
+  ```js
+  new rspack.CssExtractRspackPlugin({
+    insert: (linkTag) => {
+      document.head.appendChild(linkTag);
     },
-    {
-      name: 'Type',
-      key: 'type',
-    },
-    {
-      name: 'Default Value',
-      key: 'default',
-    },
-    {
-      name: 'Description',
-      key: 'description',
-    },
-  ]}
-  body={[
-    {
-      name: '`filename`',
-      type: '`string`',
-      default: '"[name].css"',
-      description:
-        'The name of each CSS output file, please refer to `output.filename`',
-    },
-    {
-      name: '`chunkFilename`',
-      type: '`string`',
-      default: '"[name].css"',
-      description:
-        'The name of the asynchronously loaded CSS files. If not set, it will use `filename`; please refer to `output.chunkFilename`',
-    },
-    {
-      name: '`ignoreOrder`',
-      type: '`boolean`',
-      default: 'false',
-      description:
-        'Whether to issue a warning if there are conflicts in the order of some CSS in different chunks. For example, entryA introduces a.css and b.css, entryB introduces b.css and a.css, and the order of a.css and b.css cannot be determined',
-    },
-    {
-      name: '`insert`',
-      type: '`string | ((linkTag: HTMLLinkElement) => void)`',
-      default: 'undefined',
-      description:
-        'Decide how the link tag is inserted into the page. If passed as a string type, it will be regarded as DOM selector, and the link tag will be inserted after element corresponding to that selector. If passed as function type, the function will be converted into a string at runtime for invocation, with link tag as parameter',
-    },
-    {
-      name: '`attributes`',
-      type: '`Record<string, string>`',
-      default: 'undefined',
-      description:
-        'Adds custom attributes to the `link` tag for async CSS chunks',
-    },
-    {
-      name: '`linkType`',
-      type: "`string | 'text/css' | false`",
-      default: '"text/css"',
-      description:
-        'Set the `type` attribute value for link tags to load async CSS chunks',
-    },
-    {
-      name: '`runtime`',
-      type: '`boolean`',
-      default: 'true',
-      description: `Whether to inject runtime code for CSS loading. If disabled, CSS will be still extracted and can be used for a custom loading methods`,
-    },
-    {
-      name: '`pathinfo`',
-      type: '`boolean`',
-      default: 'false',
-      description:
-        'Whether to include comments in CSS bundles with more detailed path information',
-    },
-    {
-      name: '`enforceRelative`',
-      type: '`boolean`',
-      default: 'false',
-      description:
-        'Whether to preserve "\.\/" when generated CSS `url()` is relative',
-    },
-  ]}
-/>
+  });
+  ```
+
+The `insert` option has no effect when [`runtime`](#runtime) is `false`.
+
+### attributes
+
+- **Type:** `Record<string, string>`
+- **Default:** `undefined`
+
+Adds custom attributes to stylesheet `<link>` elements created by the plugin runtime. These elements are used when loading async CSS chunks and applying HMR updates; stylesheet links already present in HTML are not affected. When omitted, the runtime adds no custom attributes.
+
+```js
+new rspack.CssExtractRspackPlugin({
+  attributes: {
+    'data-source': 'rspack',
+  },
+});
+```
+
+Use [`linkType`](#linktype) to control the `type` attribute. When both options set `type`, a string `linkType` takes precedence. The `attributes` option has no effect when [`runtime`](#runtime) is `false`.
+
+### linkType
+
+- **Type:** `string | false`
+- **Default:** `'text/css'`
+
+Sets the `type` attribute on stylesheet `<link>` elements created by the plugin runtime. These elements are used when loading async CSS chunks and applying HMR updates; stylesheet links already present in HTML are not affected.
+
+When omitted, the runtime sets the attribute to `text/css`.
+
+- **String:** Sets the `type` attribute to the provided value.
+
+  ```js
+  new rspack.CssExtractRspackPlugin({
+    linkType: 'text/css',
+  });
+  ```
+
+- **`false`:** Disables the plugin's default `type` assignment. The attribute is omitted unless `attributes` supplies a custom `type` value.
+
+  ```js
+  new rspack.CssExtractRspackPlugin({
+    linkType: false,
+  });
+  ```
+
+The `linkType` option has no effect when [`runtime`](#runtime) is `false`.
+
+### runtime
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Controls whether the plugin injects code that loads CSS for async chunks at runtime. Setting it to `false` still emits extracted CSS assets, but your application must load CSS for on-demand chunks itself.
+
+When omitted, the plugin includes the CSS-loading runtime.
+
+When disabled, [`insert`](#insert), [`attributes`](#attributes), and [`linkType`](#linktype) cannot affect async CSS loading because the plugin does not create those `<link>` elements.
+
+```js
+new rspack.CssExtractRspackPlugin({
+  runtime: false,
+});
+```
+
+### pathinfo
+
+- **Type:** `boolean`
+- **Default:** `true` when [`output.pathinfo`](/config/output#outputpathinfo) is enabled, otherwise `false`
+
+Controls whether the plugin adds a comment containing the readable module path before each extracted module. These comments make CSS assets easier to inspect, but increase their size and can expose source paths.
+
+An explicit `pathinfo` value takes precedence over `output.pathinfo`. When omitted, the option inherits the value of `output.pathinfo`.
+
+```js
+new rspack.CssExtractRspackPlugin({
+  pathinfo: true,
+});
+```
+
+### enforceRelative
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+When the effective loader [`publicPath`](#publicpath) is `'auto'`, Rspack calculates asset URLs relative to the emitted CSS file. If the calculated prefix is empty, this option controls whether the URL starts with `./`. The default produces `url(assets/icon.svg)`; setting it to `true` produces `url(./assets/icon.svg)`.
+
+An explicitly configured loader `publicPath` other than `'auto'` takes precedence, so `enforceRelative` has no effect in that case.
+
+```js
+new rspack.CssExtractRspackPlugin({
+  enforceRelative: true,
+});
+```
 
 ## Loader options
 
-Options for `CssExtractRspackPlugin.loader`.
+Set these options on `CssExtractRspackPlugin.loader` in [`module.rules`](/config/module#modulerules).
 
-- **Types:**
+### publicPath
 
-```ts
-interface LoaderOptions {
-  publicPath?: string | ((resourcePath: string, context: string) => string);
-  emit?: boolean;
-  esModule?: boolean;
-}
+- **Type:**
+
+  ```ts
+  type PublicPathFunction = (resourcePath: string, context: string) => string;
+
+  type PublicPath = string | PublicPathFunction;
+  ```
+
+- **Default:** [`output.publicPath`](/config/output#outputpublicpath)
+
+Sets the public path used for assets referenced in CSS, such as images and fonts. It does not affect the URL of the emitted CSS file itself.
+
+An explicit loader `publicPath` takes precedence over `output.publicPath` for the CSS resource being processed.
+
+When omitted, the loader uses `output.publicPath`.
+
+- **String:** Uses the same public path for every matching CSS resource.
+
+  ```js
+  const cssRule = {
+    test: /\.css$/i,
+    use: [
+      {
+        loader: rspack.CssExtractRspackPlugin.loader,
+        options: {
+          publicPath: '/assets/',
+        },
+      },
+      'css-loader',
+    ],
+  };
+  ```
+
+- **Function:** Calls the function at build time with the absolute CSS `resourcePath` and the compiler root `context`. The returned string becomes the public path for that resource.
+
+  ```js
+  const cssRule = {
+    test: /\.css$/i,
+    use: [
+      {
+        loader: rspack.CssExtractRspackPlugin.loader,
+        options: {
+          publicPath: (resourcePath, context) =>
+            resourcePath.startsWith(context) ? '/assets/' : '/external-assets/',
+        },
+      },
+      'css-loader',
+    ],
+  };
+  ```
+
+### emit
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Controls whether CSS from the processed resource is included in extracted CSS assets. Setting it to `false` still processes the resource and preserves any CSS Modules exports in JavaScript, but omits its CSS from emitted files.
+
+When omitted, the resource's CSS is included in an emitted CSS asset.
+
+```js
+const cssRule = {
+  test: /\.css$/i,
+  use: [
+    {
+      loader: rspack.CssExtractRspackPlugin.loader,
+      options: {
+        emit: false,
+      },
+    },
+    'css-loader',
+  ],
+};
 ```
 
-<Table
-  header={[
-    {
-      name: 'Name',
-      key: 'name',
-    },
-    {
-      name: 'Type',
-      key: 'type',
-    },
-    {
-      name: 'Default Value',
-      key: 'default',
-    },
-    {
-      name: 'Description',
-      key: 'description',
-    },
-  ]}
-  body={[
-    {
-      name: '`publicPath`',
-      type: '`string | ((resourcePath: string, context: string) => string)`',
-      default: 'output.publicPath',
-      description:
-        'Specifies a custom public path for the external resources like images, files, etc inside CSS',
-    },
-    {
-      name: '`emit`',
-      type: '`boolean`',
-      default: 'true',
-      description:
-        'If true, emits CSS files. If false, the plugin will extract the CSS but will not emit files',
-    },
-    {
-      name: '`esModule`',
-      type: '`boolean`',
-      default: 'true',
-      description:
-        'whether to use ES modules syntax for CSS Modules class name exports in the generated JavaScript module',
-    },
-  ]}
-/>
+### esModule
 
-## Note
+- **Type:** `boolean`
+- **Default:** `true`
 
-Please note that if you want to use this plugin and css together, it's recommended to explicitly set type to `javascript/auto`.
+Controls whether the JavaScript module generated by `CssExtractRspackPlugin.loader` uses ES module or CommonJS syntax. Setting it to `false` uses CommonJS. For consistent output, set css-loader's `esModule` option to the same value.
 
-For example:
+When omitted, `CssExtractRspackPlugin.loader` uses ES module syntax.
 
-```ts title="rspack.config.mjs"
-import { rspack } from '@rspack/core';
+When css-loader generates named CSS Modules exports, those exports remain ES modules. In that case, use [`defaultExport`](#defaultexport) to control whether the loader also generates a default export.
 
-export default {
-  plugins: [new rspack.CssExtractRspackPlugin({})],
-  module: {
-    rules: [
-      {
-        test: /src\/legacy-project\/.*\.css$/,
-        type: 'javascript/auto', // Cover the default CSS module type and treat it as a regular JS file.
-        use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+```js
+const cssRule = {
+  test: /\.css$/i,
+  use: [
+    {
+      loader: rspack.CssExtractRspackPlugin.loader,
+      options: {
+        esModule: false,
       },
-      {
-        test: /src\/new-project\/.*\.css$/,
-        type: 'css/auto', // Handle with built-in CSS
+    },
+    {
+      loader: 'css-loader',
+      options: {
+        esModule: false,
       },
-    ],
-  },
+    },
+  ],
+};
+```
+
+### layer
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+Assigns the processed CSS resource to the specified Rspack module layer. This is a module-graph layer, not a CSS cascade `@layer`. Use it with options such as [`splitChunks.cacheGroups.{cacheGroup}.layer`](/plugins/split-chunks-plugin#splitchunkscachegroupscachegrouplayer) to select extracted CSS by layer.
+
+When omitted, this loader does not assign an explicit module layer.
+
+```js
+const cssRule = {
+  test: /\.css$/i,
+  use: [
+    {
+      loader: rspack.CssExtractRspackPlugin.loader,
+      options: {
+        layer: 'theme',
+      },
+    },
+    'css-loader',
+  ],
+};
+```
+
+### defaultExport
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+When css-loader generates named CSS Modules exports, this option controls whether `CssExtractRspackPlugin.loader` also generates a default object containing all local class names. The named exports are always preserved.
+
+This option has no effect when css-loader does not generate named exports. When omitted, only the named exports are generated in that mode.
+
+```js
+const cssRule = {
+  test: /\.css$/i,
+  use: [
+    {
+      loader: rspack.CssExtractRspackPlugin.loader,
+      options: {
+        defaultExport: true,
+      },
+    },
+    {
+      loader: 'css-loader',
+      options: {
+        modules: {
+          namedExport: true,
+        },
+      },
+    },
+  ],
 };
 ```

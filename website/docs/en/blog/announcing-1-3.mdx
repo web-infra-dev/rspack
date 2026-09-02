@@ -89,7 +89,7 @@ export default {
 
 ### Lazy compilation improvements
 
-In previous versions, when [lazy compilation](/guide/features/lazy-compilation) was enabled, Rspack would start a separate server to handle lazy compilation-related requests. This led to several issues, such as the need for two servers during development, and the lazy compilation server not being able to share proxy and CORS configurations with the default dev server.
+In previous versions, when [lazy compilation](/guide/advanced/lazy-compilation) was enabled, Rspack would start a separate server to handle lazy compilation-related requests. This led to several issues, such as the need for two servers during development, and the lazy compilation server not being able to share proxy and CORS configurations with the default dev server.
 
 Rspack 1.3 provides new Express-style middleware for integrating lazy compilation that addresses these issues.
 

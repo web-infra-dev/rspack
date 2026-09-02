@@ -1,10 +1,10 @@
-# API Design Principles
+# API design principles
 
 API design principles for Rspack, focusing on webpack compatibility, versioning, and maintainability.
 
-## Core Principles
+## Core principles
 
-### 1. Webpack Compatibility First
+### 1. Webpack compatibility first
 
 Prioritize compatibility with webpack's API for seamless migration.
 
@@ -21,7 +21,7 @@ Prioritize compatibility with webpack's API for seamless migration.
 - Loader compatibility: Support webpack loaders
 - Configuration compatibility: Accept webpack config format
 
-### 2. Performance Over Compatibility (When Necessary)
+### 2. Performance over compatibility (When Necessary)
 
 When compatibility conflicts with performance, prioritize performance but provide alternatives.
 
@@ -31,7 +31,7 @@ When compatibility conflicts with performance, prioritize performance but provid
 - Optimized algorithms over exact webpack behavior
 - Parallel processing over sequential execution
 
-### 3. Type Safety
+### 3. Type safety
 
 APIs should be type-safe with good TypeScript support.
 
@@ -42,7 +42,7 @@ APIs should be type-safe with good TypeScript support.
 - Use discriminated unions for options
 - Avoid `any` types in public APIs
 
-### 4. Developer Experience
+### 4. Developer experience
 
 APIs should be intuitive, well-documented, and provide helpful error messages.
 
@@ -53,7 +53,7 @@ APIs should be intuitive, well-documented, and provide helpful error messages.
 - Helpful error messages with suggestions
 - Good IDE support (autocomplete, type hints)
 
-## API Design Patterns
+## API design patterns
 
 ### Configuration API
 
@@ -121,9 +121,9 @@ compiler.hooks.done.tap('PluginName', (stats) => {
 - Type-safe signatures
 - Support sync and async hooks
 
-## Versioning Strategy
+## Versioning strategy
 
-### Semantic Versioning
+### Semantic versioning
 
 Follow [Semantic Versioning](https://semver.org/):
 
@@ -131,7 +131,7 @@ Follow [Semantic Versioning](https://semver.org/):
 - **MINOR**: New features (backward compatible)
 - **PATCH**: Bug fixes (backward compatible)
 
-### Breaking Changes
+### Breaking changes
 
 Only in major versions, carefully planned.
 
@@ -148,7 +148,7 @@ Only in major versions, carefully planned.
 - Migration guides for major versions
 - Compatibility layers when possible
 
-### Deprecation Policy
+### Deprecation policy
 
 **Process:**
 
@@ -163,16 +163,16 @@ Only in major versions, carefully planned.
 - Removal in next major version
 - Migration guide provided
 
-## Backward Compatibility
+## Backward compatibility
 
-### Configuration Compatibility
+### Configuration compatibility
 
 - Old formats continue to work
 - New options are additive (optional)
 - Deprecated options show warnings but work
 - Migration tools for major changes
 
-### Plugin Compatibility
+### Plugin compatibility
 
 **Levels:**
 
@@ -186,7 +186,7 @@ Only in major versions, carefully planned.
 - Document compatibility status
 - Provide alternatives for incompatible plugins
 
-### API Compatibility
+### API compatibility
 
 **Breaking Changes:**
 
@@ -202,15 +202,15 @@ Only in major versions, carefully planned.
 - Adding new configuration options
 - Performance improvements
 
-## Error Handling
+## Error handling
 
-### Error Types
+### Error types
 
 - **Build Errors**: Module build failures, resolution errors, compilation errors
 - **Configuration Errors**: Invalid config, missing options, type mismatches
 - **Runtime Errors**: Plugin errors, loader errors, file system errors
 
-### Error Messages
+### Error messages
 
 **Guidelines:**
 
@@ -219,24 +219,24 @@ Only in major versions, carefully planned.
 - Provide suggestions for fixes
 - Link to documentation when relevant
 
-## Type Definitions
+## Type definitions
 
-### Public API Types
+### Public API types
 
 - Export types from main entry point
 - Use interfaces for object shapes
 - Use type aliases for unions/intersections
 - Document complex types
 
-### Internal Types
+### Internal types
 
 - Use `@internal` tag for internal APIs
 - Don't export implementation details
 - Use `export type` for type-only exports
 
-## Documentation Standards
+## Documentation standards
 
-### API Documentation
+### API documentation
 
 **Required:**
 
@@ -246,7 +246,7 @@ Only in major versions, carefully planned.
 - Usage examples
 - Related APIs
 
-### Configuration Documentation
+### Configuration documentation
 
 **Required:**
 
@@ -256,41 +256,41 @@ Only in major versions, carefully planned.
 - Example usage
 - Related options
 
-## Testing Requirements
+## Testing requirements
 
-### API Testing
+### API testing
 
 - All public APIs should have tests
 - Test success and error cases
 - Test edge cases and boundaries
 - Test compatibility with webpack
 
-### Compatibility Testing
+### Compatibility testing
 
 - Test against webpack test suite (where applicable)
 - Test popular plugins and loaders
 - Test migration scenarios
 - Document compatibility status
 
-## Performance Considerations
+## Performance considerations
 
-### API Performance
+### API performance
 
 - Minimize overhead in hot paths
 - Use efficient data structures
 - Avoid unnecessary allocations
 - Profile API calls
 
-### Optimization Opportunities
+### Optimization opportunities
 
 - Batch operations when possible
 - Lazy evaluation for expensive operations
 - Caching for repeated operations
 - Parallel processing where applicable
 
-## Extension Points
+## Extension points
 
-### Plugin Extension API
+### Plugin extension API
 
 Plugins can:
 
@@ -300,7 +300,7 @@ Plugins can:
 - Transform existing assets
 - Hook into any compilation stage
 
-### Loader Extension API
+### Loader extension API
 
 Loaders can:
 
@@ -309,7 +309,7 @@ Loaders can:
 - Emit additional files
 - Handle errors gracefully
 
-### Custom Hooks
+### Custom hooks
 
 When adding hooks:
 
@@ -318,9 +318,9 @@ When adding hooks:
 - Provide type-safe signatures
 - Consider performance implications
 
-## Migration Guidelines
+## Migration guidelines
 
-### From Webpack
+### From webpack
 
 1. Install Rspack
 2. Update configuration (minimal changes)
@@ -335,7 +335,7 @@ When adding hooks:
 - Configuration differences
 - Behavior differences
 
-### Between Rspack Versions
+### Between Rspack versions
 
 1. Read migration guide
 2. Update dependencies
@@ -343,16 +343,16 @@ When adding hooks:
 4. Update code (if breaking changes)
 5. Test thoroughly
 
-## Best Practices
+## Best practices
 
-### For API Consumers
+### For API consumers
 
 - Use TypeScript for type safety
 - Read documentation before using APIs
 - Handle errors appropriately
 - Follow migration guides for upgrades
 
-### For API Designers
+### For API designers
 
 - Design for extensibility
 - Consider performance implications

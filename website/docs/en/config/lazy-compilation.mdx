@@ -14,7 +14,7 @@ Lazy Compilation is an optimization technique that delays the compilation of mod
 Enable lazy compilation, which can greatly improve the dev startup performance of multi-page applications (MPA) or large single-page applications (SPA).
 
 :::tip
-Check out the [guide](/guide/features/lazy-compilation) for a quick start.
+Check out the [guide](/guide/advanced/lazy-compilation) for a quick start.
 :::
 
 - **Type:**
@@ -54,7 +54,7 @@ type LazyCompilationOptions =
 
 ## Default behavior
 
-- **JavaScript API:** Lazy compilation is disabled by default. After enabling `lazyCompilation`, register the lazy compilation middleware with your development server. See [Integrating with custom server](/guide/features/lazy-compilation#integrating-with-custom-server).
+- **JavaScript API:** Lazy compilation is disabled by default. After enabling `lazyCompilation`, register the lazy compilation middleware with your development server. See [Integrating with custom server](/guide/advanced/lazy-compilation#integrating-with-custom-server).
 - **Rspack CLI:** `rspack dev` registers the middleware automatically. When [`target`](/config/target) is limited to a browser environment and `lazyCompilation` is not explicitly configured, it also uses `{ entries: false, imports: true }`. When the option is omitted in other cases, lazy compilation remains disabled.
 
 ## Compilation scope
@@ -137,7 +137,7 @@ export default {
 };
 ```
 
-See [Filtering modules](/guide/features/lazy-compilation#filtering-modules) for configuration examples.
+See [Filtering modules](/guide/advanced/lazy-compilation#filtering-modules) for configuration examples.
 
 ### client
 

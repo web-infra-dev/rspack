@@ -60,6 +60,7 @@
     "label": "Reference"
   },
   "low-level-plugins",
+  "community-plugin-compatibility",
   "webpack-built-in-plugin-support",
   {
     "type": "section-header",

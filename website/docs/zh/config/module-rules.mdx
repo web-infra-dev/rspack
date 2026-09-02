@@ -246,7 +246,7 @@ export default {
 
 匹配所有符合这个资源的模块，会与"引入当前模块"的模块的 layer 进行匹配。
 
-更多关于 layer 的信息，请参考 [Layer 指南](/guide/features/layer)。
+更多关于 layer 的信息，请参考[模块分层指南](/guide/advanced/layer)。
 
 一个基础示例：
 
@@ -703,8 +703,8 @@ export default {
 - `'javascript/auto'`：JavaScript 模块，Rspack 会根据文件内容自动判断模块类型，兼容性最佳。
 - `'javascript/esm'`：JavaScript 模块，当作严格 ES modules 处理。
 - `'javascript/dynamic'`：JavaScript 模块，当作 Script 处理。
-- `'json'`：JSON data 模块，参考 [JSON](/guide/tech/json)。
-- `'css' | 'css/auto' | 'css/global' | 'css/module'`：CSS 模块，参考 [内置 CSS 支持](/guide/tech/css#内置-css-支持)。
+- `'json'`：JSON data 模块，参考 [JSON](/guide/languages/json)。
+- `'css' | 'css/auto' | 'css/global' | 'css/module'`：CSS 模块，参考 [内置 CSS 支持](/guide/languages/css#内置-css-支持)。
 - `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline' | 'asset/bytes'`：资源模块，参考 [资源模块](/guide/features/asset-module)。
 
 ## rules[].layer
@@ -714,7 +714,7 @@ export default {
 
 用于标识匹配的模块的 layer。可以将一组模块聚合到一个 layer 中，该 layer 随后可以在 split chunks, stats 或 [entry options](/config/entry#entrydescriptionlayer) 中使用。
 
-更多关于 layer 的信息，请参考 [Layer 指南](/guide/features/layer)。
+更多关于 layer 的信息，请参考[模块分层指南](/guide/advanced/layer)。
 
 ```js title="rspack.config.mjs"
 export default {

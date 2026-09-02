@@ -56,7 +56,7 @@ const FullyFeatured = memo(() => {
       icon: moduleFederation,
       title: 'Module Federation',
       description: t('featureModuleFederation'),
-      link: tUrl('/guide/features/module-federation'),
+      link: tUrl('/guide/advanced/module-federation'),
     },
   ];
 

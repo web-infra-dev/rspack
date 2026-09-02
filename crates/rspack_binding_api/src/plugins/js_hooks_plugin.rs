@@ -38,6 +38,7 @@ pub struct JsHooksAdapterPlugin {
   register_compilation_optimize_tree_taps: RegisterCompilationOptimizeTreeTaps,
   register_compilation_optimize_chunk_modules_taps: RegisterCompilationOptimizeChunkModulesTaps,
   register_compilation_before_module_ids_taps: RegisterCompilationBeforeModuleIdsTaps,
+  register_compilation_after_optimize_chunk_ids_taps: RegisterCompilationAfterOptimizeChunkIdsTaps,
   register_compilation_additional_tree_runtime_requirements_taps:
     RegisterCompilationAdditionalTreeRuntimeRequirementsTaps,
   register_compilation_runtime_requirement_in_tree_taps:
@@ -61,6 +62,7 @@ pub struct JsHooksAdapterPlugin {
   register_context_module_factory_after_resolve_taps: RegisterContextModuleFactoryAfterResolveTaps,
   register_external_module_chunk_condition_taps: RegisterExternalModuleChunkConditionTaps,
   register_javascript_modules_chunk_hash_taps: RegisterJavascriptModulesChunkHashTaps,
+  register_javascript_modules_render_content_taps: RegisterJavascriptModulesRenderContentTaps,
   register_html_plugin_before_asset_tag_generation_taps:
     RegisterHtmlPluginBeforeAssetTagGenerationTaps,
   register_html_plugin_alter_asset_tags_taps: RegisterHtmlPluginAlterAssetTagsTaps,
@@ -171,6 +173,11 @@ impl Plugin for JsHooksAdapterPlugin {
       .compilation_hooks
       .before_module_ids
       .intercept(self.register_compilation_before_module_ids_taps.clone());
+    ctx.compilation_hooks.after_optimize_chunk_ids.intercept(
+      self
+        .register_compilation_after_optimize_chunk_ids_taps
+        .clone(),
+    );
     ctx
       .compilation_hooks
       .additional_tree_runtime_requirements
@@ -318,6 +325,9 @@ impl Plugin for JsHooksAdapterPlugin {
       .register_compilation_before_module_ids_taps
       .clear_cache();
     self
+      .register_compilation_after_optimize_chunk_ids_taps
+      .clear_cache();
+    self
       .register_compilation_additional_tree_runtime_requirements_taps
       .clear_cache();
     self
@@ -361,6 +371,9 @@ impl Plugin for JsHooksAdapterPlugin {
       .clear_cache();
     self
       .register_javascript_modules_chunk_hash_taps
+      .clear_cache();
+    self
+      .register_javascript_modules_render_content_taps
       .clear_cache();
     self
       .register_html_plugin_before_asset_tag_generation_taps
@@ -410,6 +423,9 @@ async fn js_hooks_adapter_compilation(
   hooks
     .chunk_hash
     .intercept(self.register_javascript_modules_chunk_hash_taps.clone());
+  hooks
+    .render_content
+    .intercept(self.register_javascript_modules_render_content_taps.clone());
 
   Ok(())
 }
@@ -600,6 +616,11 @@ impl JsHooksAdapterPlugin {
           register_js_taps.register_compilation_before_module_ids_taps,
           non_skippable_registers.clone(),
         ),
+        register_compilation_after_optimize_chunk_ids_taps:
+          RegisterCompilationAfterOptimizeChunkIdsTaps::new(
+            register_js_taps.register_compilation_after_optimize_chunk_ids_taps,
+            non_skippable_registers.clone(),
+          ),
         register_compilation_additional_tree_runtime_requirements_taps:
           RegisterCompilationAdditionalTreeRuntimeRequirementsTaps::new(
             register_js_taps.register_compilation_additional_tree_runtime_requirements_taps,
@@ -687,6 +708,11 @@ impl JsHooksAdapterPlugin {
           register_js_taps.register_javascript_modules_chunk_hash_taps,
           non_skippable_registers.clone(),
         ),
+        register_javascript_modules_render_content_taps:
+          RegisterJavascriptModulesRenderContentTaps::new(
+            register_js_taps.register_javascript_modules_render_content_taps,
+            non_skippable_registers.clone(),
+          ),
         register_html_plugin_before_asset_tag_generation_taps:
           RegisterHtmlPluginBeforeAssetTagGenerationTaps::new(
             register_js_taps.register_html_plugin_before_asset_tag_generation_taps,

@@ -14,7 +14,7 @@ import { ApiMeta } from '@components/ApiMeta';
 开启懒编译，对提高多入口应用（MPA）或大型单页面应用（SPA）的 dev 启动性能会非常有帮助。
 
 :::tip
-参考 [指南](/guide/features/lazy-compilation) 来快速上手。
+参考 [指南](/guide/advanced/lazy-compilation) 来快速上手。
 :::
 
 - **类型：**
@@ -53,7 +53,7 @@ type LazyCompilationOptions =
 
 ## 默认行为
 
-- **JavaScript API：** 默认关闭懒编译。启用 `lazyCompilation` 后，需要将 lazy compilation 中间件注册到开发服务器。参见[与自定义的服务器集成](/guide/features/lazy-compilation#integrating-with-custom-server)。
+- **JavaScript API：** 默认关闭懒编译。启用 `lazyCompilation` 后，需要将 lazy compilation 中间件注册到开发服务器。参见[与自定义的服务器集成](/guide/advanced/lazy-compilation#integrating-with-custom-server)。
 - **Rspack CLI：** `rspack dev` 会自动注册中间件。当 [`target`](/config/target) 仅面向浏览器环境且未显式配置 `lazyCompilation` 时，还会默认使用 `{ entries: false, imports: true }`；其他情况下，未配置时保持关闭。
 
 ## 编译范围
@@ -136,7 +136,7 @@ export default {
 };
 ```
 
-配置示例参见[筛选部分模块](/guide/features/lazy-compilation#filtering-modules)。
+配置示例参见[筛选部分模块](/guide/advanced/lazy-compilation#filtering-modules)。
 
 ### client
 

@@ -151,11 +151,21 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
     }
     return value;
   };
+  const toRawMemoryGenerations = (value: number) => {
+    if (value === Infinity) return undefined;
+    if (!Number.isSafeInteger(value) || value < 0 || value > MAX_U32) {
+      throw new Error(
+        `Invalid Rspack configuration: "cache.maxMemoryGenerations" must be a non-negative integer (0..${MAX_U32}) or Infinity, get \`${value}\`.`,
+      );
+    }
+    return value;
+  };
   return {
     type: cache.type,
     buildDependencies: cache.buildDependencies,
     version: cache.version,
     maxAge: toRawStorageLimit('cache.maxAge', cache.maxAge!),
+    maxMemoryGenerations: toRawMemoryGenerations(cache.maxMemoryGenerations!),
     storage: {
       type: cache.storage.type,
       // Raw `directory` expects the final cache path; normalized `directory` is only the base.

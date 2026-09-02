@@ -107,7 +107,6 @@ module.exports = {
 			          name: ./fixtures/a.js,
 			          nameForCondition: <TEST_ROOT>/fixtures/a.js,
 			          optimizationBailout: Array [
-			            Statement with side_effects in source code at ./fixtures/a.js<LINE_COL_RANGE>,
 			            ModuleConcatenation bailout: Module is not an ECMAScript module,
 			          ],
 			          optional: false,
@@ -188,7 +187,6 @@ module.exports = {
 			          name: ./fixtures/a.js?a=1,
 			          nameForCondition: <TEST_ROOT>/fixtures/a.js,
 			          optimizationBailout: Array [
-			            Statement with side_effects in source code at ./fixtures/a.js?a=1<LINE_COL_RANGE>,
 			            ModuleConcatenation bailout: Module is not an ECMAScript module,
 			          ],
 			          optional: false,
@@ -263,7 +261,7 @@ module.exports = {
 			          name: ./fixtures/abc-query.js,
 			          nameForCondition: <TEST_ROOT>/fixtures/abc-query.js,
 			          optimizationBailout: Array [
-			            Statement with side_effects in source code at ./fixtures/abc-query.js<LINE_COL>-32,
+			            Statement with side_effects in source code at ./fixtures/abc-query.js<LINE_COL>-20,
 			            ModuleConcatenation bailout: Module is not an ECMAScript module,
 			          ],
 			          optional: false,
@@ -330,7 +328,6 @@ module.exports = {
 			          name: ./fixtures/c.js?c=3,
 			          nameForCondition: <TEST_ROOT>/fixtures/c.js,
 			          optimizationBailout: Array [
-			            Statement with side_effects in source code at ./fixtures/c.js?c=3<LINE_COL_RANGE>,
 			            ModuleConcatenation bailout: Module is not an ECMAScript module,
 			          ],
 			          optional: false,
@@ -462,7 +459,7 @@ module.exports = {
 			      name: ./fixtures/abc-query.js,
 			      nameForCondition: <TEST_ROOT>/fixtures/abc-query.js,
 			      optimizationBailout: Array [
-			        Statement with side_effects in source code at ./fixtures/abc-query.js<LINE_COL>-32,
+			        Statement with side_effects in source code at ./fixtures/abc-query.js<LINE_COL>-20,
 			        ModuleConcatenation bailout: Module is not an ECMAScript module,
 			      ],
 			      optional: false,
@@ -529,7 +526,6 @@ module.exports = {
 			      name: ./fixtures/a.js?a=1,
 			      nameForCondition: <TEST_ROOT>/fixtures/a.js,
 			      optimizationBailout: Array [
-			        Statement with side_effects in source code at ./fixtures/a.js?a=1<LINE_COL_RANGE>,
 			        ModuleConcatenation bailout: Module is not an ECMAScript module,
 			      ],
 			      optional: false,
@@ -610,7 +606,6 @@ module.exports = {
 			      name: ./fixtures/c.js?c=3,
 			      nameForCondition: <TEST_ROOT>/fixtures/c.js,
 			      optimizationBailout: Array [
-			        Statement with side_effects in source code at ./fixtures/c.js?c=3<LINE_COL_RANGE>,
 			        ModuleConcatenation bailout: Module is not an ECMAScript module,
 			      ],
 			      optional: false,
@@ -697,7 +692,6 @@ module.exports = {
 			      name: ./fixtures/a.js,
 			      nameForCondition: <TEST_ROOT>/fixtures/a.js,
 			      optimizationBailout: Array [
-			        Statement with side_effects in source code at ./fixtures/a.js<LINE_COL_RANGE>,
 			        ModuleConcatenation bailout: Module is not an ECMAScript module,
 			      ],
 			      optional: false,

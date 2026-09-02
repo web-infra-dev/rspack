@@ -245,9 +245,35 @@ See [webpack plugin compatibility](/plugins/webpack-built-in-plugin-support) for
 
 Rspack supports most of the webpack community plugins and also offers alternative solutions for some currently unsupported plugins.
 
-Check [Plugin compat](/guide/compatibility/plugin) for more information on Rspack's compatibility with popular webpack community plugins.
+Check [Community plugin compatibility](/plugins/community-plugin-compatibility) for more information on Rspack's compatibility with popular webpack community plugins.
 
 Some webpack ecosystem packages, such as [`webpack-node-externals`](https://www.npmjs.com/package/webpack-node-externals) and [`node-polyfill-webpack-plugin`](https://www.npmjs.com/package/node-polyfill-webpack-plugin), require newer versions for Rspack compatibility. Before reusing a community package, upgrade it to the latest version, as older versions may rely on incompatible webpack APIs.
+
+### html-webpack-plugin
+
+For most projects migrating from [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin), use [`html-rspack-plugin`](https://github.com/rstackjs/html-rspack-plugin). It is a JavaScript fork designed for Rspack and provides closer compatibility with existing options, templates, and integrations.
+
+<PackageManagerTabs command="add html-rspack-plugin -D" />
+
+Update the import and constructor name in the Rspack configuration:
+
+```diff title="rspack.config.mjs"
+-import HtmlWebpackPlugin from 'html-webpack-plugin';
++import HtmlRspackPlugin from 'html-rspack-plugin';
+
+ export default {
+   plugins: [
+-    new HtmlWebpackPlugin({
++    new HtmlRspackPlugin({
+       // ...
+     }),
+   ],
+ };
+```
+
+After completing the migration, remove `html-webpack-plugin` from the project dependencies.
+
+If build performance is the priority, you can also use the built-in Rust plugin [`rspack.HtmlRspackPlugin`](/plugins/html-rspack-plugin). See the [HTML guide](/guide/languages/html#choose-a-plugin) for details.
 
 ### unplugin
 
@@ -542,7 +568,7 @@ Migrate [raw-loader](https://github.com/webpack-contrib/raw-loader) to [Asset Mo
 
 ### vue-loader
 
-For Vue 3 projects, replace `vue-loader` with [`rspack-vue-loader`](/guide/tech/vue#vue-3), and update both the plugin import and loader name:
+For Vue 3 projects, replace `vue-loader` with [`rspack-vue-loader`](/guide/integrations/vue#vue-3), and update both the plugin import and loader name:
 
 ```diff title="rspack.config.mjs"
 -import { VueLoaderPlugin } from 'vue-loader';
@@ -578,7 +604,7 @@ When migrating webpack ecosystem packages, the following non-plugin packages usu
 | `webpack-chain`          | [`rspack-chain`](https://github.com/rstackjs/rspack-chain)                    | Chainable Rspack configuration API.    |
 | `webpack-merge`          | [`rspack-merge`](https://github.com/rstackjs/rspack-merge)                    | Rspack configuration merging.          |
 
-> For plugin packages, see [Plugin compatibility](/guide/compatibility/plugin).
+> For plugin packages, see [Community plugin compatibility](/plugins/community-plugin-compatibility).
 
 ## Removing webpack dependencies
 

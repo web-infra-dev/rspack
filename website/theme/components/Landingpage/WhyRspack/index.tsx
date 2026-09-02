@@ -45,14 +45,14 @@ const WhyRspack = memo(() => {
       },
       {
         img: FrameCheck,
-        url: tUrl('/guide/tech/react'),
+        url: tUrl('/guide/integrations/react'),
         title: t('FrameworkAgnostic'),
         description: t('FrameworkAgnosticDesc'),
         lottieJsonData: FrameCheckJson,
       },
       {
         img: Compatible,
-        url: tUrl('/guide/compatibility/plugin'),
+        url: tUrl('/plugins/community-plugin-compatibility'),
         title: t('WebpackCompatible'),
         description: t('WebpackCompatibleDesc'),
         lottieJsonData: CompatibleJson,

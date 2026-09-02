@@ -27,6 +27,7 @@ type CacheOptions =
       buildDependencies?: string[];
       version?: string;
       maxAge?: number;
+      maxMemoryGenerations?: number;
       maxVersions?: number;
       portable?: boolean;
       readonly?: boolean;
@@ -176,6 +177,24 @@ Rspack 会基于 `compilerPath` 的哈希拆分缓存子目录，每个 `compile
 - **默认值：** 未设置
 
 `cache.maxVersions` 仅为向后兼容而保留，但不会产生任何作用。Rspack 对每个 `compilerPath` 只保留一份持久化缓存。显式配置此选项时，Rspack 会输出弃用警告。
+
+### maxMemoryGenerations
+
+- **类型：** `number`（非负整数）或 `Infinity`
+- **默认值：** development 模式为 `5`，production 和 none 模式为 `Infinity`
+
+持久化缓存中未使用的条目在额外内存缓存中保留的代数。设置为 `0`
+可禁用内存缓存，此后每次需要条目时都会从磁盘读取；设置为 `Infinity`
+则会在 compiler 的整个生命周期内将条目保留在内存中。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    maxMemoryGenerations: 0,
+  },
+};
+```
 
 ### maxAge
 
