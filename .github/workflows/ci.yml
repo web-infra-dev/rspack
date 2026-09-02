@@ -323,17 +323,3 @@ jobs:
           script: |
             const upload = require('./.github/actions/binary-limit/upload-binary-size.js');
             upload({ sha: context.sha, token: process.env.PERF_DATA_TOKEN });
-
-  # TODO: enable it after self hosted runners are ready
-  # pkg-preview:
-  #   name: Pkg Preview
-  #   needs:
-  #     - test-linux
-  #     - test-windows
-  #     - cargo-deny
-  #     - lint
-  #     - rust_check
-  #     - rust_test
-  #   # after merged to main branch
-  #   if: ${{ !failure() && github.event_name == 'push' }}
-  #   uses: ./.github/workflows/preview-commit.yml
