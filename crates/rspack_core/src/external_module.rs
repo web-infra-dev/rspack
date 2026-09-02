@@ -433,6 +433,13 @@ fn resolve_external_type<'a>(
         "module"
       }
     }
+    "asset" | "asset-url" | "css-url" => {
+      if dependency_meta.source_type == Some(SourceType::CssUrl) {
+        "asset-url"
+      } else {
+        "asset"
+      }
+    }
 
     import_or_module => import_or_module,
   }
@@ -1100,17 +1107,10 @@ impl Module for ExternalModule {
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
-    if self.external_type == "asset"
-      && self
-        .dependency_meta
-        .source_type
-        .is_some_and(|t| t == SourceType::CssUrl)
-    {
-      EXTERNAL_MODULE_CSS_URL_SOURCE_TYPES
-    } else if self.external_type == "css-import" {
-      EXTERNAL_MODULE_CSS_SOURCE_TYPES
-    } else {
-      EXTERNAL_MODULE_JS_SOURCE_TYPES
+    match self.resolve_external_type() {
+      "asset-url" => EXTERNAL_MODULE_CSS_URL_SOURCE_TYPES,
+      "css-import" => EXTERNAL_MODULE_CSS_SOURCE_TYPES,
+      _ => EXTERNAL_MODULE_JS_SOURCE_TYPES,
     }
   }
 
@@ -1228,7 +1228,7 @@ impl Module for ExternalModule {
 
     let mut cgr = CodeGenerationResultBuilder::default();
     let (request, external_type) = self.get_request_and_external_type();
-    match self.external_type.as_str() {
+    match self.resolve_external_type() {
       "asset" if request.is_some() => {
         let request = request.expect("request should be some");
         cgr.add(
@@ -1240,6 +1240,12 @@ impl Module for ExternalModule {
           ))
           .boxed(),
         );
+        cgr
+          .data_mut()
+          .insert(CodeGenerationDataUrl::new(request.primary().to_string()));
+      }
+      "asset-url" if request.is_some() => {
+        let request = request.expect("request should be some");
         cgr
           .data_mut()
           .insert(CodeGenerationDataUrl::new(request.primary().to_string()));

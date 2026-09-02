@@ -1812,7 +1812,11 @@ export type ExternalsType =
   | 'modern-module'
   | 'script'
   | 'node-commonjs'
-  | 'commonjs-import';
+  | 'commonjs-import'
+  | 'asset'
+  | 'asset-url'
+  | 'css-import'
+  | 'css-url';
 //#endregion
 
 //#region Externals
