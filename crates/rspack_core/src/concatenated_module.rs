@@ -1164,13 +1164,16 @@ impl Module for ConcatenatedModule {
     // Move it off the critical path once naming is complete.
     drop(name_allocator);
 
-    // `escaped_names` / `escaped_identifiers` can retain a large amount of
-    // temporary escaped naming state. Move them off the critical path once
-    // naming is complete.
+    // The escaped naming maps can retain a large amount of temporary state.
+    // Move them off the critical path once naming is complete.
     fast_set(&mut concatenation_context.escaped_names, HashMap::default());
     fast_set(
       &mut concatenation_context.escaped_identifiers,
       HashMap::default(),
+    );
+    fast_set(
+      &mut concatenation_context.module_identifiers,
+      IdentifierMap::default(),
     );
 
     let binding_resolver = ConcatenationBindingResolver {

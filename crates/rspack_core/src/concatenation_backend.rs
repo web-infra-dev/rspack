@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rayon::prelude::*;
-use rspack_collections::IdentifierIndexMap;
+use rspack_collections::{IdentifierIndexMap, IdentifierMap};
 use rspack_error::{Error, Result};
 use rspack_util::{
   SpanExt,
@@ -32,6 +32,7 @@ pub struct ConcatenationContext<'a> {
   pub compiler_context: &'a Context,
   pub escaped_names: FxHashMap<Atom, Atom>,
   pub escaped_identifiers: FxHashMap<String, Vec<Atom>>,
+  pub module_identifiers: IdentifierMap<Vec<Atom>>,
 }
 
 pub struct ConcatenationNameAllocator<'a>(pub FxHashSet<Atom>, pub &'a ConcatenationContext<'a>);
@@ -607,10 +608,8 @@ impl<'a> ConcatenationContext<'a> {
           module_static_cache,
           compiler_context,
         );
-        escaped_identifiers.push((
-          readable_identifier.clone(),
-          split_readable_identifier(&readable_identifier),
-        ));
+        let module_identifier = split_readable_identifier(&readable_identifier);
+        escaped_identifiers.push((Some(info.id()), readable_identifier, module_identifier));
 
         if let ModuleInfo::Concatenated(info) = info {
           for (identifier, _) in &info.binding_to_ref {
@@ -621,8 +620,11 @@ impl<'a> ConcatenationContext<'a> {
 
           if let Some(import_map) = &info.import_map {
             for ((source, _), imported) in import_map {
-              escaped_identifiers
-                .push((source.clone(), split_readable_identifier(source.as_str())));
+              escaped_identifiers.push((
+                None,
+                source.clone(),
+                split_readable_identifier(source.as_str()),
+              ));
               for atom in &imported.specifiers {
                 escaped_names
                   .entry(atom.clone())
@@ -656,7 +658,14 @@ impl<'a> ConcatenationContext<'a> {
     escaped_names.extend(escaped_name_entries);
     let mut escaped_identifiers =
       FxHashMap::with_capacity_and_hasher(escaped_identifier_entries.len(), Default::default());
-    escaped_identifiers.extend(escaped_identifier_entries);
+    let mut module_identifiers = IdentifierMap::default();
+    module_identifiers.reserve(module_to_info_map.len());
+    for (module, identifier, escaped_identifier) in escaped_identifier_entries {
+      if let Some(module) = module {
+        module_identifiers.insert(module, escaped_identifier.clone());
+      }
+      escaped_identifiers.insert(identifier, escaped_identifier);
+    }
 
     Self {
       module_graph,
@@ -667,6 +676,7 @@ impl<'a> ConcatenationContext<'a> {
       compiler_context,
       escaped_names,
       escaped_identifiers,
+      module_identifiers,
     }
   }
 
@@ -680,10 +690,9 @@ impl<'a> ConcatenationContext<'a> {
   }
 
   pub fn module_identifier(&self, module: &ModuleIdentifier) -> &[Atom] {
-    let readable_identifier = self.readable_identifier(module);
     self
-      .escaped_identifiers
-      .get(&readable_identifier)
+      .module_identifiers
+      .get(module)
       .expect("should have escaped identifier")
   }
 
