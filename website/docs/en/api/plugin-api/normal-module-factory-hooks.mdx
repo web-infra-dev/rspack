@@ -3,6 +3,7 @@ description: 'NormalModuleFactory is used by the Compiler to generate modules (N
 ---
 
 import ResolveDataType from '../../types/resolve-data.mdx';
+import { ApiMeta } from '@components/ApiMeta';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 
 # NormalModuleFactory
@@ -16,6 +17,29 @@ NormalModuleFactory.hooks.someHook.tap(/* ... */);
 ```
 
 All hooks inherit from `Tapable`. In addition to `tap()`, you can also use `tapAsync()` and `tapPromise()`, depending on the type of the hook.
+
+## Import attributes
+
+<ApiMeta addedVersion="2.2.3" />
+
+`ResolveData.attributes` holds the [import attributes](https://github.com/tc39/proposal-import-attributes) of the dependency that triggered the resolution, for example `{ type: 'json' }` for `import data from './data.json' with { type: 'json' }`. It is available on all four hooks below, and is `undefined` when the request carries no attributes.
+
+```js
+compiler.hooks.compilation.tap(
+  'MyPlugin',
+  (compilation, { normalModuleFactory }) => {
+    normalModuleFactory.hooks.beforeResolve.tap('MyPlugin', (resolveData) => {
+      if (resolveData.attributes?.type === 'json') {
+        // ...
+      }
+    });
+  },
+);
+```
+
+:::warning
+`attributes` is read-only. Assigning to it inside a hook has no effect on how the module is resolved or built.
+:::
 
 ## `beforeResolve`
 

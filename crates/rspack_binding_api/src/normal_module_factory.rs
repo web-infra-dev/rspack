@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use napi::{
   Env,
   bindgen_prelude::{Object, ToNapiValue},
@@ -79,6 +81,8 @@ pub struct JsResolveData {
   pub request: String,
   pub context: String,
   pub context_info: ContextInfo,
+  /// The import attributes of the dependency that triggered this resolution, read-only.
+  pub attributes: Option<HashMap<String, String>>,
   pub file_dependencies: Vec<String>,
   pub context_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,
@@ -101,6 +105,16 @@ impl JsResolveData {
           .unwrap_or_default(),
         issuer_layer: data.issuer_layer.clone(),
       },
+      attributes: data
+        .dependencies
+        .first()
+        .and_then(|dependency| dependency.get_attributes())
+        .map(|attributes| {
+          attributes
+            .iter()
+            .map(|(key, value)| (key.to_owned(), value.to_owned()))
+            .collect()
+        }),
       file_dependencies: data
         .file_dependencies
         .iter()
@@ -129,7 +143,7 @@ impl JsResolveData {
     data: &mut ModuleFactoryCreateData,
     create_data: Option<&mut NormalModuleCreateData>,
   ) {
-    // only supports update request for now
+    // only supports update request for now, `attributes` is read-only
     data.request = self.request;
     data.context = self.context.into();
     if let Some(new_data) = self.create_data

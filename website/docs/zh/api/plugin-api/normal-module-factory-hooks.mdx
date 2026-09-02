@@ -3,6 +3,7 @@ description: 'NormalModuleFactory 被 Compiler 用来生成模块（NormalModule
 ---
 
 import ResolveDataType from '../../types/resolve-data.mdx';
+import { ApiMeta } from '@components/ApiMeta';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 
 # NormalModuleFactory 钩子
@@ -16,6 +17,29 @@ NormalModuleFactory.hooks.someHook.tap(/* ... */);
 ```
 
 所有钩子均继承自 `Tapable`，除了 `tap()`，你还可以使用 `tapAsync()` 和 `tapPromise()`，具体取决于钩子的类型。
+
+## 导入属性
+
+<ApiMeta addedVersion="2.2.3" />
+
+`ResolveData.attributes` 保存触发本次解析的依赖上的[导入属性](https://github.com/tc39/proposal-import-attributes)，例如 `import data from './data.json' with { type: 'json' }` 对应 `{ type: 'json' }`。下面四个钩子均可读取该字段；当请求不带任何导入属性时，它的值为 `undefined`。
+
+```js
+compiler.hooks.compilation.tap(
+  'MyPlugin',
+  (compilation, { normalModuleFactory }) => {
+    normalModuleFactory.hooks.beforeResolve.tap('MyPlugin', (resolveData) => {
+      if (resolveData.attributes?.type === 'json') {
+        // ...
+      }
+    });
+  },
+);
+```
+
+:::warning
+`attributes` 是只读的，在钩子中对它赋值不会影响模块的解析与构建。
+:::
 
 ## `beforeResolve`
 
