@@ -1,11 +1,10 @@
-use std::collections::HashMap;
-
 use napi::{
   Env,
   bindgen_prelude::{Object, ToNapiValue},
 };
 use napi_derive::napi;
 use rspack_core::{ModuleFactoryCreateData, NormalModuleCreateData, ResourceData, parse_resource};
+use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
 use crate::resource_data::JsResourceData;
