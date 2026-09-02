@@ -41,6 +41,8 @@ Each entry has the following shape:
 - `ident`: the key `options` is registered under, or `null` when the options came from an inline query.
 - `type`: module type of the loader itself (`'module'`, `'commonjs'`, or `null`), derived from its file extension and the `type` field of the closest `package.json`.
 
+To change how a loader is configured, replace its `options` rather than mutating the object in place. As in webpack, one options object is shared by every module the rule matched, so mutating it affects all of them; Rspack additionally cannot tell that a shared object changed, so the loader keeps the cache key it was resolved with and `Rule.use[].cache` may serve output produced with the previous options.
+
 The following example runs an extra loader over every module under `src/generated`:
 
 ```js

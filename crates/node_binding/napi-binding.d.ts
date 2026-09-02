@@ -745,8 +745,24 @@ export interface JsBeforeEmitData {
 }
 
 export interface JsBeforeLoadersArgs {
-  loaders: Array<JsLoaderItem>
+  loaders: Array<JsBeforeLoadersLoaderItem>
   module: Module
+}
+
+/**
+ * A loader already on the module when `beforeLoaders` runs.
+ *
+ * Deliberately not `JsLoaderItem`: that one is built for the loader runner and
+ * derives its fields from the loader identifier, which loses the loader type.
+ * Here the type and the cache flag are read from the loader itself.
+ */
+export interface JsBeforeLoadersLoaderItem {
+  /** Loader request, that is its path plus the options query. */
+  request: string
+  /** Module type of the loader itself, `None` when it has none. */
+  type?: string
+  /** Whether `Rule.use[].cache` was enabled for this loader. */
+  cache: boolean
 }
 
 export interface JsBeforeModuleIdsArg {

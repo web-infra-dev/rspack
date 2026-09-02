@@ -297,6 +297,12 @@ impl NormalModule {
     &self.loaders
   }
 
+  /// Runner options of each loader, index-aligned with [`Self::loaders`].
+  /// `None` when no loader on this module opted into `Rule.use[].cache`.
+  pub fn loader_options(&self) -> Option<&[LoaderRunnerOptions]> {
+    self.loader_options.as_deref()
+  }
+
   /// Replaces the loader list with what a `before_loaders` tap returned.
   ///
   /// Kept entries reuse the loader and cache options they already had, added

@@ -145,9 +145,24 @@ pub struct JsBeforeModuleIdsResult {
 
 #[napi(object, object_from_js = false)]
 pub struct JsBeforeLoadersArgs {
-  pub loaders: Vec<JsLoaderItem>,
+  pub loaders: Vec<JsBeforeLoadersLoaderItem>,
   #[napi(ts_type = "Module")]
   pub module: ModuleObject,
+}
+
+/// A loader already on the module when `beforeLoaders` runs.
+///
+/// Deliberately not `JsLoaderItem`: that one is built for the loader runner and
+/// derives its fields from the loader identifier, which loses the loader type.
+/// Here the type and the cache flag are read from the loader itself.
+#[napi(object, object_from_js = false)]
+pub struct JsBeforeLoadersLoaderItem {
+  /// Loader request, that is its path plus the options query.
+  pub request: String,
+  /// Module type of the loader itself, `None` when it has none.
+  pub r#type: Option<String>,
+  /// Whether `Rule.use[].cache` was enabled for this loader.
+  pub cache: bool,
 }
 
 /// A loader a `beforeLoaders` tap added to the list. Loaders that were already
@@ -1956,10 +1971,18 @@ impl NormalModuleBeforeLoaders for NormalModuleBeforeLoadersTap {
     compiler_id: CompilerId,
     module: &mut rspack_core::NormalModule,
   ) -> rspack_error::Result<Option<Vec<BeforeLoadersItem>>> {
+    let loader_options = module.loader_options();
     let loaders = module
       .loaders()
       .iter()
-      .map(JsLoaderItem::from)
+      .enumerate()
+      .map(|(index, loader)| JsBeforeLoadersLoaderItem {
+        request: loader.identifier().to_string(),
+        r#type: loader.r#type().map(|t| t.to_string()),
+        cache: loader_options
+          .and_then(|options| options.get(index))
+          .is_some_and(|options| options.cache),
+      })
       .collect::<Vec<_>>();
     let module: &mut dyn Module = module;
     #[allow(clippy::unwrap_used)]
