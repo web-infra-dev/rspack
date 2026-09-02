@@ -43,6 +43,16 @@ impl PassExt for ChunkIdsPass {
     compilation.build_chunk_graph_artifact.chunk_by_ukey = chunk_by_ukey;
     compilation.named_chunk_ids_artifact = named_chunk_ids_artifact.into();
     compilation.extend_diagnostics(diagnostics);
+
+    compilation
+      .plugin_driver
+      .clone()
+      .compilation_hooks
+      .after_optimize_chunk_ids
+      .call(compilation)
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterOptimizeChunkIds"))?;
+
     Ok(())
   }
 }

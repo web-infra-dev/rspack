@@ -17,6 +17,7 @@ use rspack_core::{
   AfterResolveResult, AssetEmittedInfo, AsyncModulesArtifact, BeforeResolveResult, BindingCell,
   BoxModule, ChunkGraph, ChunkUkey, CircularModulesInfo, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirementsHook,
+  CompilationAfterOptimizeChunkIds, CompilationAfterOptimizeChunkIdsHook,
   CompilationAfterOptimizeModules, CompilationAfterOptimizeModulesHook,
   CompilationAfterProcessAssets, CompilationAfterProcessAssetsHook, CompilationAfterSeal,
   CompilationAfterSealHook, CompilationBeforeModuleIds, CompilationBeforeModuleIdsHook,
@@ -468,6 +469,7 @@ pub enum RegisterJsTapKind {
   CompilationOptimizeTree,
   CompilationOptimizeChunkModules,
   CompilationBeforeModuleIds,
+  CompilationAfterOptimizeChunkIds,
   CompilationAdditionalTreeRuntimeRequirements,
   CompilationRuntimeRequirementInTree,
   CompilationRuntimeModule,
@@ -610,6 +612,8 @@ pub struct RegisterJsTaps {
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsBeforeModuleIdsArg) => JsBeforeModuleIdsResult); stage: number; }>"
   )]
   pub register_compilation_before_module_ids_taps: RegisterFunction,
+  #[napi(ts_type = "(stages: Array<number>) => Array<{ function: (() => void); stage: number; }>")]
+  pub register_compilation_after_optimize_chunk_ids_taps: RegisterFunction,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: Chunk) => Buffer); stage: number; }>"
   )]
@@ -880,6 +884,13 @@ define_register!(
   tap = CompilationBeforeModuleIdsTap<JsBeforeModuleIdsArg, JsBeforeModuleIdsResult> @ CompilationBeforeModuleIdsHook,
   cache = false,
   kind = RegisterJsTapKind::CompilationBeforeModuleIds,
+  skip = true,
+);
+define_register!(
+  RegisterCompilationAfterOptimizeChunkIdsTaps,
+  tap = CompilationAfterOptimizeChunkIdsTap<(), ()> @ CompilationAfterOptimizeChunkIdsHook,
+  cache = false,
+  kind = RegisterJsTapKind::CompilationAfterOptimizeChunkIds,
   skip = true,
 );
 define_register!(
@@ -1431,6 +1442,17 @@ impl CompilationOptimizeModules for CompilationOptimizeModulesTap {
 
 #[async_trait]
 impl CompilationAfterOptimizeModules for CompilationAfterOptimizeModulesTap {
+  async fn run(&self, _compilation: &Compilation) -> rspack_error::Result<()> {
+    self.function.call_with_sync(()).await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl CompilationAfterOptimizeChunkIds for CompilationAfterOptimizeChunkIdsTap {
   async fn run(&self, _compilation: &Compilation) -> rspack_error::Result<()> {
     self.function.call_with_sync(()).await
   }
