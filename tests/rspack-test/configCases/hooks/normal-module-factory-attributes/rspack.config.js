@@ -29,6 +29,11 @@ module.exports = {
             ]) {
               normalModuleFactory.hooks[hook].tap(pluginName, (resolveData) => {
                 record(hook, resolveData);
+                // `attributes` is read-only; this rewrite must not reach the
+                // later hooks, and must not reach the module rules either.
+                if (hook === 'beforeResolve' && resolveData.attributes) {
+                  resolveData.attributes = { type: 'rewritten' };
+                }
               });
             }
 

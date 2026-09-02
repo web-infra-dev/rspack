@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import plain from './plain.js';
+import readonly from './readonly.js' with { type: 'original' };
 import withAttributes from './with-attributes.js' with {
 	type: 'custom',
 	flavor: 'spicy'
@@ -30,6 +31,16 @@ it("should expose a dynamic import's attributes to every NormalModuleFactory hoo
 	const seen = readSeen();
 	for (const hook of hooks) {
 		expect(seen['./dynamic.js'][hook]).toEqual({ level: '2' });
+	}
+});
+
+it('should ignore an attributes rewrite performed inside a hook', () => {
+	expect(readonly).toBe('readonly');
+	const seen = readSeen();
+	// `beforeResolve` rewrote the attributes to `{ type: 'rewritten' }`; the
+	// later hooks must still observe the ones the import actually declared.
+	for (const hook of hooks.slice(1)) {
+		expect(seen['./readonly.js'][hook]).toEqual({ type: 'original' });
 	}
 });
 
