@@ -126,21 +126,30 @@ pub use rspack_sources;
 pub mod debug_info;
 
 #[cacheable]
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+  Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, rspack_macros::StringEnum,
+)]
 pub enum SourceType {
+  #[string_enum(rename = "javascript")]
   JavaScript,
   Css,
+  #[string_enum(rename = "asset-url")]
   AssetUrl,
   Wasm,
   Asset,
   Expose,
   Remote,
+  #[string_enum(rename = "share-init")]
   ShareInit,
+  #[string_enum(rename = "consume-shared")]
   ConsumeShared,
+  #[string_enum(rename = "share-container-shared")]
   ShareContainerShared,
+  #[string_enum(fallback)]
   Custom(#[cacheable(with=AsPreset)] Ustr),
   #[default]
   Unknown,
+  #[string_enum(rename = "css-import")]
   CssImport,
   Runtime,
 }
@@ -154,47 +163,6 @@ impl std::fmt::Display for SourceType {
 impl RspackHash for SourceType {
   fn hash(&self, state: &mut RspackHasher) {
     self.as_str().hash(state);
-  }
-}
-
-impl SourceType {
-  fn as_str(&self) -> &str {
-    match self {
-      SourceType::JavaScript => "javascript",
-      SourceType::Css => "css",
-      SourceType::AssetUrl => "asset-url",
-      SourceType::Wasm => "wasm",
-      SourceType::Asset => "asset",
-      SourceType::Expose => "expose",
-      SourceType::Remote => "remote",
-      SourceType::ShareInit => "share-init",
-      SourceType::ConsumeShared => "consume-shared",
-      SourceType::ShareContainerShared => "share-container-shared",
-      SourceType::Unknown => "unknown",
-      SourceType::CssImport => "css-import",
-      SourceType::Custom(source_type) => source_type,
-      SourceType::Runtime => "runtime",
-    }
-  }
-}
-
-impl From<&str> for SourceType {
-  fn from(value: &str) -> Self {
-    match value {
-      "javascript" => Self::JavaScript,
-      "css" => Self::Css,
-      "asset-url" => Self::AssetUrl,
-      "wasm" => Self::Wasm,
-      "asset" => Self::Asset,
-      "expose" => Self::Expose,
-      "remote" => Self::Remote,
-      "share-init" => Self::ShareInit,
-      "consume-shared" => Self::ConsumeShared,
-      "share-container-shared" => Self::ShareContainerShared,
-      "unknown" => Self::Unknown,
-      "css-import" => Self::CssImport,
-      other => SourceType::Custom(other.into()),
-    }
   }
 }
 

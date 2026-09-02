@@ -3,6 +3,11 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Data, DeriveInput, Error, Fields, LitStr, Result, spanned::Spanned};
 
+enum Fallback {
+  Unit(syn::Ident),
+  Newtype(syn::Ident),
+}
+
 pub fn expand(input: DeriveInput) -> Result<TokenStream> {
   let name = &input.ident;
   let Data::Enum(data) = &input.data else {
@@ -16,13 +21,6 @@ pub fn expand(input: DeriveInput) -> Result<TokenStream> {
   let mut mappings = Vec::new();
 
   for variant in &data.variants {
-    if !matches!(variant.fields, Fields::Unit) {
-      return Err(Error::new(
-        variant.fields.span(),
-        "string enum variants must not contain fields",
-      ));
-    }
-
     let mut is_fallback = false;
     let mut rename = None;
     for attribute in &variant.attrs {
@@ -55,13 +53,32 @@ pub fn expand(input: DeriveInput) -> Result<TokenStream> {
           "string enum fallback cannot be renamed",
         ));
       }
-      if fallback.replace(variant.ident.clone()).is_some() {
+      let fallback_variant = match &variant.fields {
+        Fields::Unit => Fallback::Unit(variant.ident.clone()),
+        Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
+          Fallback::Newtype(variant.ident.clone())
+        }
+        _ => {
+          return Err(Error::new(
+            variant.fields.span(),
+            "string enum fallback must be a unit variant or contain exactly one unnamed field",
+          ));
+        }
+      };
+      if fallback.replace(fallback_variant).is_some() {
         return Err(Error::new(
           variant.span(),
           "string enum must have exactly one fallback variant",
         ));
       }
       continue;
+    }
+
+    if !matches!(variant.fields, Fields::Unit) {
+      return Err(Error::new(
+        variant.fields.span(),
+        "string enum non-fallback variants must not contain fields",
+      ));
     }
 
     let value = rename.unwrap_or_else(|| {
@@ -100,12 +117,29 @@ pub fn expand(input: DeriveInput) -> Result<TokenStream> {
     }
   });
 
+  let (as_str_return_type, fallback_as_str_arm, fallback_from_str) = match fallback {
+    Fallback::Unit(variant) => (
+      quote!(&'static str),
+      quote! {
+        Self::#variant => unreachable!("string enum fallback has no string representation"),
+      },
+      quote!(Self::#variant),
+    ),
+    Fallback::Newtype(variant) => (
+      quote!(&str),
+      quote! {
+        Self::#variant(value) => value,
+      },
+      quote!(Self::#variant(value.into())),
+    ),
+  };
+
   Ok(quote! {
     impl #impl_generics #name #type_generics #where_clause {
-      pub fn as_str(&self) -> &'static str {
+      pub fn as_str(&self) -> #as_str_return_type {
         match self {
           #(#as_str_arms)*
-          Self::#fallback => unreachable!("string enum fallback has no string representation"),
+          #fallback_as_str_arm
         }
       }
     }
@@ -114,7 +148,7 @@ pub fn expand(input: DeriveInput) -> Result<TokenStream> {
       fn from(value: &str) -> Self {
         match value {
           #(#from_str_arms)*
-          _ => Self::#fallback,
+          _ => #fallback_from_str,
         }
       }
     }
