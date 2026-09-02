@@ -130,6 +130,7 @@ define_hook!(CompilationBeforeModuleIds: Series(compilation: &Compilation, modul
 define_hook!(CompilationModuleIds: Series(compilation: &Compilation, module_ids: &mut ModuleIdsArtifact, preserved_module_ids: &ModuleIdsArtifact, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationRecordModules: Series(compilation: &Compilation, module_ids: &ModuleIdsArtifact));
 define_hook!(CompilationChunkIds: Series(compilation: &Compilation, chunk_by_ukey: &mut ChunkByUkey, named_chunk_ids_artifact: &mut ChunkNamedIdArtifact, diagnostics: &mut Vec<Diagnostic>));
+define_hook!(CompilationAfterOptimizeChunkIds: Series(compilation: &Compilation));
 define_hook!(CompilationRuntimeModule: Series(compilation: &Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey, runtime_modules: &mut IdentifierMap<Box<dyn RuntimeModule>>));
 define_hook!(CompilationAdditionalModuleRuntimeRequirements: Series(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &mut RuntimeGlobals),tracing=false);
 define_hook!(CompilationRuntimeRequirementInModule: SeriesBail(compilation: &Compilation, module_identifier: &ModuleIdentifier, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals),tracing=false);
@@ -172,6 +173,7 @@ pub struct CompilationHooks {
   pub module_ids: CompilationModuleIdsHook,
   pub record_modules: CompilationRecordModulesHook,
   pub chunk_ids: CompilationChunkIdsHook,
+  pub after_optimize_chunk_ids: CompilationAfterOptimizeChunkIdsHook,
   pub runtime_module: CompilationRuntimeModuleHook,
   pub additional_module_runtime_requirements: CompilationAdditionalModuleRuntimeRequirementsHook,
   pub runtime_requirement_in_module: CompilationRuntimeRequirementInModuleHook,
