@@ -4536,6 +4536,7 @@ dependencies = [
 name = "rspack_macros"
 version = "0.102.2"
 dependencies = [
+ "cow-utils",
  "heck",
  "proc-macro2",
  "quote",

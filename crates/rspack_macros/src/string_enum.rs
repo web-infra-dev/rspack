@@ -1,3 +1,4 @@
+use cow_utils::CowUtils;
 use heck::ToSnakeCase;
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -8,6 +9,63 @@ enum Fallback {
   Newtype(syn::Ident),
 }
 
+#[derive(Clone, Copy, Default)]
+enum RenameRule {
+  Lower,
+  Upper,
+  Pascal,
+  Camel,
+  #[default]
+  Snake,
+  ScreamingSnake,
+  Kebab,
+  ScreamingKebab,
+}
+
+impl RenameRule {
+  fn parse(value: &LitStr) -> Result<Self> {
+    match value.value().as_str() {
+      "lowercase" => Ok(Self::Lower),
+      "UPPERCASE" => Ok(Self::Upper),
+      "PascalCase" => Ok(Self::Pascal),
+      "camelCase" => Ok(Self::Camel),
+      "snake_case" => Ok(Self::Snake),
+      "SCREAMING_SNAKE_CASE" => Ok(Self::ScreamingSnake),
+      "kebab-case" => Ok(Self::Kebab),
+      "SCREAMING-KEBAB-CASE" => Ok(Self::ScreamingKebab),
+      _ => Err(Error::new(
+        value.span(),
+        "unknown rename rule, expected one of `lowercase`, `UPPERCASE`, `PascalCase`, \
+         `camelCase`, `snake_case`, `SCREAMING_SNAKE_CASE`, `kebab-case`, or \
+         `SCREAMING-KEBAB-CASE`",
+      )),
+    }
+  }
+
+  fn apply(self, value: &str) -> String {
+    let snake_case = || value.to_snake_case();
+    match self {
+      Self::Lower => value.cow_to_ascii_lowercase().into_owned(),
+      Self::Upper => value.cow_to_ascii_uppercase().into_owned(),
+      Self::Pascal => value.to_string(),
+      Self::Camel => {
+        let mut chars = value.chars();
+        chars
+          .next()
+          .map(|first| first.to_lowercase().collect::<String>() + chars.as_str())
+          .unwrap_or_default()
+      }
+      Self::Snake => snake_case(),
+      Self::ScreamingSnake => snake_case().cow_to_ascii_uppercase().into_owned(),
+      Self::Kebab => snake_case().cow_replace('_', "-").into_owned(),
+      Self::ScreamingKebab => snake_case()
+        .cow_replace('_', "-")
+        .cow_to_ascii_uppercase()
+        .into_owned(),
+    }
+  }
+}
+
 pub fn expand(input: DeriveInput) -> Result<TokenStream> {
   let name = &input.ident;
   let Data::Enum(data) = &input.data else {
@@ -16,6 +74,26 @@ pub fn expand(input: DeriveInput) -> Result<TokenStream> {
       "StringEnum can only be derived for enums",
     ));
   };
+
+  let mut rename_all = None;
+  for attribute in &input.attrs {
+    if !attribute.path().is_ident("string_enum") {
+      continue;
+    }
+    attribute.parse_nested_meta(|meta| {
+      if meta.path.is_ident("rename_all") {
+        if rename_all.is_some() {
+          return Err(meta.error("duplicate string_enum rename_all option"));
+        }
+        let value = meta.value()?.parse::<LitStr>()?;
+        rename_all = Some(RenameRule::parse(&value)?);
+        Ok(())
+      } else {
+        Err(meta.error("unsupported string_enum container option"))
+      }
+    })?;
+  }
+  let rename_all = rename_all.unwrap_or_default();
 
   let mut fallback = None;
   let mut mappings = Vec::new();
@@ -83,7 +161,7 @@ pub fn expand(input: DeriveInput) -> Result<TokenStream> {
 
     let value = rename.unwrap_or_else(|| {
       LitStr::new(
-        &variant.ident.to_string().to_snake_case(),
+        &rename_all.apply(&variant.ident.to_string()),
         variant.ident.span(),
       )
     });

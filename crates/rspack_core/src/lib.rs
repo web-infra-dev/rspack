@@ -129,27 +129,23 @@ pub mod debug_info;
 #[derive(
   Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, rspack_macros::StringEnum,
 )]
+#[string_enum(rename_all = "kebab-case")]
 pub enum SourceType {
   #[string_enum(rename = "javascript")]
   JavaScript,
   Css,
-  #[string_enum(rename = "asset-url")]
   AssetUrl,
   Wasm,
   Asset,
   Expose,
   Remote,
-  #[string_enum(rename = "share-init")]
   ShareInit,
-  #[string_enum(rename = "consume-shared")]
   ConsumeShared,
-  #[string_enum(rename = "share-container-shared")]
   ShareContainerShared,
   #[string_enum(fallback)]
   Custom(#[cacheable(with=AsPreset)] Ustr),
   #[default]
   Unknown,
-  #[string_enum(rename = "css-import")]
   CssImport,
   Runtime,
 }
