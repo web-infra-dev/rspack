@@ -618,7 +618,7 @@ export async function runLoaders(
     }
     loaderContext._module.emitFile(name, source!, assetInfo);
   };
-  loaderContext.fs = compiler.inputFileSystem;
+  loaderContext.fs = compiler.inputFileSystem!;
   loaderContext.experiments = {
     emitDiagnostic: (diagnostic: Diagnostic) => {
       const d = Object.assign({}, diagnostic, {

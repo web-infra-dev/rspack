@@ -324,7 +324,7 @@ export type Readdir = {
   (
     path: PathLike,
     options:
-      | (ObjectEncodingOptions & { withFileTypes: true; recursive?: boolean })
+      | (ObjectEncodingOptions & { withFileTypes?: false; recursive?: boolean })
       | BufferEncoding
       | null
       | undefined,

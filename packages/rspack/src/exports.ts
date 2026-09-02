@@ -139,7 +139,11 @@ export { default as EntryOptionPlugin } from './lib/EntryOptionPlugin';
 export { EnvironmentPlugin } from './lib/EnvironmentPlugin';
 export { LoaderOptionsPlugin } from './lib/LoaderOptionsPlugin';
 export { LoaderTargetPlugin } from './lib/LoaderTargetPlugin';
-export type { OutputFileSystem, WatchFileSystem } from './util/fs';
+export type {
+  InputFileSystem,
+  OutputFileSystem,
+  WatchFileSystem,
+} from './util/fs';
 
 import {
   FetchCompileAsyncWasmPlugin,

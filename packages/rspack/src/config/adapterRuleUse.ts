@@ -8,6 +8,7 @@ import type { Logger } from '../logging/Logger';
 import type { Module } from '../Module';
 import type { ResolveRequest } from '../Resolver';
 import { isNil } from '../util';
+import type { InputFileSystem } from '../util/fs';
 import type Hash from '../util/hash';
 import { parseResource } from '../util/identifier';
 import type { RspackOptionsNormalized } from './normalization';
@@ -380,7 +381,7 @@ export interface LoaderContext<OptionsType = {}> {
   /**
    * Access to the `compilation` object's `inputFileSystem` property.
    */
-  fs: any;
+  fs: InputFileSystem;
   /**
    * This is an experimental API and maybe subject to change.
    * @experimental
