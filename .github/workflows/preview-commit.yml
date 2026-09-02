@@ -8,7 +8,7 @@ on:
       commit:
         type: string
         required: false
-        description: 'Commit SHA or ref (defaults to the selected workflow ref)'
+        description: 'Full commit SHA or ref (defaults to the selected workflow ref)'
       target:
         type: choice
         required: true
