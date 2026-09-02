@@ -75,8 +75,8 @@ jobs:
         contains(matrix.target, 'windows-msvc') && needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS ||
         contains(matrix.target, 'apple-darwin') && needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS ||
         (matrix.target == 'x86_64-unknown-linux-gnu' ||
-          matrix.target == 'x86_64-unknown-linux-musl' ||
-          matrix.target == 'aarch64-unknown-linux-musl') && needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS ||
+        matrix.target == 'x86_64-unknown-linux-musl' ||
+        matrix.target == 'aarch64-unknown-linux-musl') && needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS ||
         '"ubuntu-latest"'
         }}
       profile: 'release'
