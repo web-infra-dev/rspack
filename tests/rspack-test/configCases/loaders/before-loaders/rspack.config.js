@@ -5,13 +5,17 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /(mutate|remove|untouched)\.js$/,
+        test: /(mutate|remove|spread|untouched)\.js$/,
         use: [
           {
             loader: require.resolve('./tag-loader.js'),
             options: { tag: '+config' },
           },
         ],
+      },
+      {
+        test: /typed\.js$/,
+        use: [{ loader: require.resolve('./noop-loader.cjs') }],
       },
     ],
   },
