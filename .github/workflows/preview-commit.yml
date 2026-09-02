@@ -2,7 +2,6 @@
 name: Preview Commit
 
 on:
-  workflow_call:
   workflow_dispatch:
     inputs:
       commit:
@@ -50,11 +49,10 @@ jobs:
     with:
       force-use-github-runner: false
 
-  check-changed:
+  resolve-ref:
     runs-on: ubuntu-latest
-    name: Check Changed
+    name: Resolve Ref
     outputs:
-      changed: ${{ steps.filter.outputs.changed == 'true' }}
       sha: ${{ steps.resolve.outputs.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -63,39 +61,22 @@ jobs:
       - name: Resolve ref
         id: resolve
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
-        id: filter
-        with:
-          filters: |
-            changed:
-              - "crates/**"
-              - "packages/rspack/**"
-              - "packages/rspack-cli/**"
 
   build:
-    needs: [get-runner-labels, check-changed]
-    if: github.event_name == 'workflow_dispatch' || needs.check-changed.outputs.changed == 'true'
-    strategy:
-      fail-fast: false
-      matrix:
-        target: ${{ fromJSON(
-          github.event_name == 'workflow_dispatch'
-          && format('["{0}"]', inputs.target)
-          || '["x86_64-unknown-linux-gnu","aarch64-unknown-linux-gnu","riscv64gc-unknown-linux-gnu","x86_64-unknown-linux-musl","aarch64-unknown-linux-musl","riscv64gc-unknown-linux-musl","powerpc64le-unknown-linux-gnu","s390x-unknown-linux-gnu","i686-pc-windows-msvc","x86_64-pc-windows-msvc","aarch64-pc-windows-msvc","x86_64-apple-darwin","aarch64-apple-darwin"]'
-          ) }}
+    needs: [get-runner-labels, resolve-ref]
     uses: ./.github/workflows/reusable-build.yml
     with:
-      ref: ${{ needs.check-changed.outputs.sha }}
-      target: ${{ matrix.target }}
+      ref: ${{ needs.resolve-ref.outputs.sha }}
+      target: ${{ inputs.target }}
       runner: ${{
-        contains(matrix.target, 'windows-msvc') && needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS ||
-        contains(matrix.target, 'apple-darwin') && needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS ||
-        (matrix.target == 'x86_64-unknown-linux-gnu' ||
-        matrix.target == 'x86_64-unknown-linux-musl' ||
-        matrix.target == 'aarch64-unknown-linux-musl') && needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS ||
+        contains(inputs.target, 'windows-msvc') && needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS ||
+        contains(inputs.target, 'apple-darwin') && needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS ||
+        (inputs.target == 'x86_64-unknown-linux-gnu' ||
+        inputs.target == 'x86_64-unknown-linux-musl' ||
+        inputs.target == 'aarch64-unknown-linux-musl') && needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS ||
         '"ubuntu-latest"'
         }}
-      profile: ${{ inputs.profile || 'release' }}
+      profile: ${{ inputs.profile }}
       test: false
 
   publish:
@@ -104,11 +85,11 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - build
-      - check-changed
+      - resolve-ref
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ needs.check-changed.outputs.sha }}
+          ref: ${{ needs.resolve-ref.outputs.sha }}
 
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm/setup
@@ -120,7 +101,7 @@ jobs:
         uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
           path: artifacts
-          pattern: bindings-${{ github.event_name == 'workflow_dispatch' && inputs.target || '*' }}
+          pattern: bindings-${{ inputs.target }}
 
       - name: Clean artifacts
         run: find artifacts -type f -name '*.d.ts' -delete
