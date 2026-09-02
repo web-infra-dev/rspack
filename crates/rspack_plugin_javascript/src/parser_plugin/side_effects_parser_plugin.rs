@@ -14,8 +14,8 @@ use swc_experimental_ecma_ast::{
   ObjectPatProp, Pat, Program, PropName, SimpleAssignTarget, Span, Span as AstSpan, Stmt, VarDecl,
   VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
 };
-use swc_experimental_ecma_utils::{ExprCtx, ExprExt};
 
+use super::side_effects_analysis::{MayHaveSideEffects, SideEffectsContext};
 use crate::{
   ClassExt, JavascriptParserPlugin,
   dependency::ESMImportSideEffectDependency,
@@ -51,13 +51,11 @@ fn has_no_side_effects_notation(comments: &Comments<'_>, span: AstSpan) -> bool 
   comments.has_flag(span.start, "NO_SIDE_EFFECTS")
 }
 
-fn expr_ctx<'a>(parser: &'a JavascriptParser<'_>, is_unresolved_ref_safe: bool) -> ExprCtx<'a> {
-  ExprCtx {
-    semantic: parser.ast.semantic,
-    is_unresolved_ref_safe,
-    in_strict: false,
-    remaining_depth: 4,
-  }
+fn expr_ctx<'a>(
+  parser: &'a JavascriptParser<'_>,
+  is_unresolved_ref_safe: bool,
+) -> SideEffectsContext<'a> {
+  SideEffectsContext::new(parser.ast.semantic, is_unresolved_ref_safe)
 }
 
 impl<'a> Visit<'a> for PureAnnotation<'a> {
