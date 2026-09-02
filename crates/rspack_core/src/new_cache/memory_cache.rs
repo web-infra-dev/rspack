@@ -66,8 +66,14 @@ impl MemoryCacheEntry {
 /// In-memory cache with generation-based garbage collection.
 #[derive(Debug)]
 pub struct MemoryCache {
-  max_generations: u32,
+  max_generations: MemoryCacheGenerations,
   entries: FxDashMap<CacheKey, MemoryCacheEntry>,
+}
+
+#[derive(Debug)]
+enum MemoryCacheGenerations {
+  Infinity,
+  Finite(u32),
 }
 
 impl Default for MemoryCache {
@@ -79,7 +85,14 @@ impl Default for MemoryCache {
 impl MemoryCache {
   pub fn new(max_generations: u32) -> Self {
     Self {
-      max_generations,
+      max_generations: MemoryCacheGenerations::Finite(max_generations),
+      entries: FxDashMap::default(),
+    }
+  }
+
+  pub fn new_infinite() -> Self {
+    Self {
+      max_generations: MemoryCacheGenerations::Infinity,
       entries: FxDashMap::default(),
     }
   }
@@ -92,7 +105,9 @@ impl MemoryCache {
     let Some(entry) = self.entries.get(key) else {
       return MemoryCacheGetResult::NotCached;
     };
-    entry.refresh(self.max_generations);
+    if let MemoryCacheGenerations::Finite(max_generations) = self.max_generations {
+      entry.refresh(max_generations);
+    }
     let entry = match &entry.value {
       MemoryCacheValue::Miss => return MemoryCacheGetResult::Miss,
       MemoryCacheValue::Hit(entry) => entry,
@@ -113,7 +128,7 @@ impl MemoryCache {
       key,
       MemoryCacheEntry::new(
         MemoryCacheValue::Hit(CacheEntry::new(etag, value.erase())),
-        self.max_generations,
+        self.finite_max_generations(),
       ),
     );
   }
@@ -121,13 +136,16 @@ impl MemoryCache {
   pub fn store_miss(&self, key: CacheKey) {
     self.entries.insert(
       key,
-      MemoryCacheEntry::new(MemoryCacheValue::Miss, self.max_generations),
+      MemoryCacheEntry::new(MemoryCacheValue::Miss, self.finite_max_generations()),
     );
   }
 
   /// Starts a new compilation generation and evicts entries that were not
   /// accessed during the configured number of previous generations.
   pub fn start_next_generation(&self) {
+    if matches!(self.max_generations, MemoryCacheGenerations::Infinity) {
+      return;
+    }
     self
       .entries
       .retain(|_, entry| entry.start_next_generation());
@@ -135,5 +153,12 @@ impl MemoryCache {
 
   pub fn clear(&self) {
     self.entries.clear();
+  }
+
+  fn finite_max_generations(&self) -> u32 {
+    match self.max_generations {
+      MemoryCacheGenerations::Finite(max_generations) => max_generations,
+      MemoryCacheGenerations::Infinity => 0,
+    }
   }
 }

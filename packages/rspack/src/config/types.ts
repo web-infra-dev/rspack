@@ -2136,6 +2136,13 @@ export type PersistentCacheOptions = {
    */
   maxAge?: number;
   /**
+   * Number of generations that unused cache entries stay in the additional
+   * memory cache. Set to 0 to disable the memory cache, or Infinity to keep
+   * entries forever.
+   * @default 5 in development mode, Infinity otherwise
+   */
+  maxMemoryGenerations?: number;
+  /**
    * @deprecated This option has no effect. Rspack keeps only one persistent
    * cache per compiler path.
    */

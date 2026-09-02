@@ -305,6 +305,7 @@ export const getNormalizedRspackOptions = (
             name: cache.name,
             version: cache.version,
             maxAge: cache.maxAge,
+            maxMemoryGenerations: cache.maxMemoryGenerations,
             ...(hasMaxVersions ? { maxVersions: cache.maxVersions } : {}),
             portable: cache.portable,
             readonly: cache.readonly,
@@ -653,6 +654,7 @@ export type CacheNormalized =
       buildDependencies: string[];
       version?: string;
       maxAge?: number;
+      maxMemoryGenerations?: number;
       maxVersions?: number;
       snapshot: CacheSnapshotNormalized;
       storage: {
