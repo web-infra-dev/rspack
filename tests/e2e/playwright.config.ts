@@ -15,7 +15,12 @@ export default defineConfig<RspackOptions>({
   // Fail the build on CI if you accidentally left test.only in the source code.
   forbidOnly: !!process.env.CI,
   build: {
-    external: ['**/moduleFederationDefaultRuntime.js'],
+    external: [
+      '**/moduleFederationDefaultRuntime.js',
+      // E2E tests load @rspack/core through both import and require.
+      // Skip Playwright transforms and let Node load its dist files natively.
+      '**/packages/rspack/dist/**',
+    ],
   },
   retries: 0,
 
@@ -69,8 +74,8 @@ export default defineConfig<RspackOptions>({
               cache.storage = {
                 type: 'filesystem',
                 ...cache.storage,
-                //rewrite directory
-                directory: 'node_modules/.cache/incremental',
+                // Rewrite the complete cache location.
+                location: 'node_modules/.cache/incremental',
               };
             }
             return config;

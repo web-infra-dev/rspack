@@ -58,6 +58,12 @@ jobs:
           - target: riscv64gc-unknown-linux-musl
             runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
             test-runner: '"ubuntu-22.04"'
+          - target: powerpc64le-unknown-linux-gnu
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+            test-runner: '"ubuntu-22.04"'
+          - target: s390x-unknown-linux-gnu
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+            test-runner: '"ubuntu-22.04"'
           - target: i686-pc-windows-msvc
             runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"' }}
             test-runner: '"windows-latest"'
@@ -105,7 +111,7 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           # This makes Actions fetch only one branch to release
           fetch-depth: 1

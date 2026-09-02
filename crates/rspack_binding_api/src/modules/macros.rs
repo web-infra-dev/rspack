@@ -35,11 +35,15 @@ macro_rules! impl_module_methods {
         self.module.readable_identifier()
       }
 
-      #[napi(js_name = "_originalSource", ts_return_type = "JsSource", enumerable = false)]
-      pub fn original_source(
+      #[napi(
+        js_name = "_originalSource",
+        ts_return_type = "JsSource | undefined",
+        enumerable = false
+      )]
+      pub fn original_source<'a>(
         &mut self,
-        env: &napi::Env,
-      ) -> napi::Result<napi::Either<$crate::source::JsSourceToJs, ()>> {
+        env: &'a napi::Env,
+      ) -> napi::Result<napi::Either<napi::bindgen_prelude::Unknown<'a>, ()>> {
         self.module.original_source(env)
       }
 

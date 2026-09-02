@@ -1,5 +1,6 @@
 const { captureStdio } = require("@rspack/test-tools/helper/legacy/captureStdio");
 const { createFsFromVolume, Volume } = require("memfs");
+const fs = require("fs");
 
 class MyPlugin {
 	apply(compiler) {
@@ -26,6 +27,7 @@ const escapeAnsi = stringRaw =>
 		.replace(/\u001b\[([0-9;]*)m/g, "<CLR=$1>");
 
 let capture;
+let nativeInfrastructureLogs;
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 module.exports = [
@@ -178,6 +180,57 @@ module.exports = [
 			<t> <CLR=35,BOLD>[MyPlugin] Time: X ms</CLR>
 		`);
 			capture.restore();
+		}
+	},
+	{
+		description:
+			"should preserve native infrastructure logs emitted before the first compilation",
+		options(context) {
+			const cacheLocation = context.getDist("invalid-cache-location");
+			fs.writeFileSync(cacheLocation, "not a directory");
+			nativeInfrastructureLogs = [];
+			return {
+				context: context.getSource(),
+				entry: "./a",
+				experiments: {
+					newCache: true
+				},
+				cache: {
+					type: "persistent",
+					storage: {
+						type: "filesystem",
+						location: cacheLocation
+					}
+				},
+				infrastructureLogging: {
+					level: "none"
+				}
+			};
+		},
+		async compiler(context, compiler) {
+			compiler.outputFileSystem = createFsFromVolume(new Volume());
+			compiler.hooks.infrastructureLog.tap(
+				"NativeInfrastructureLoggingTest",
+				(name, type, args) => {
+					nativeInfrastructureLogs.push({ name, type, args });
+				}
+			);
+		},
+		async check() {
+			const findDatabaseWarning = () =>
+				nativeInfrastructureLogs.find(
+					log =>
+						log.name === "rspack.cache.IdleFileCache" &&
+						log.type === "warn" &&
+						log.args[0].includes("Open cache from")
+				);
+			for (let i = 0; i < 50; i++) {
+				if (findDatabaseWarning()) break;
+				await new Promise(resolve => setTimeout(resolve, 20));
+			}
+			const warning = findDatabaseWarning();
+			expect(warning).toBeTruthy();
+			expect(warning.args[0]).toContain("invalid-cache-location");
 		}
 	}
 ];

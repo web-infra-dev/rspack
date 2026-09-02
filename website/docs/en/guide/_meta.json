@@ -11,22 +11,32 @@
   },
   {
     "type": "dir-section-header",
-    "name": "tech",
-    "label": "Languages and Frameworks"
+    "name": "advanced",
+    "label": "Advanced"
+  },
+  {
+    "type": "dir-section-header",
+    "name": "languages",
+    "label": "Languages"
+  },
+  {
+    "type": "dir-section-header",
+    "name": "integrations",
+    "label": "Integrations"
   },
   {
     "type": "dir-section-header",
     "name": "optimization",
-    "label": "Optimization"
+    "label": "Bundle Optimization"
+  },
+  {
+    "type": "dir-section-header",
+    "name": "diagnostics",
+    "label": "Diagnostics"
   },
   {
     "type": "dir-section-header",
     "name": "migration",
     "label": "Migration"
-  },
-  {
-    "type": "dir-section-header",
-    "name": "compatibility",
-    "label": "Compatibility"
   }
 ]

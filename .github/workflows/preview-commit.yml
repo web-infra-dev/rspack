@@ -21,8 +21,8 @@ jobs:
     outputs:
       changed: ${{ steps.filter.outputs.changed == 'true' }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         id: filter
         with:
           filters: |
@@ -50,6 +50,10 @@ jobs:
             runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
           - target: riscv64gc-unknown-linux-musl
             runner: "'ubuntu-latest'"
+          - target: powerpc64le-unknown-linux-gnu
+            runner: "'ubuntu-latest'"
+          - target: s390x-unknown-linux-gnu
+            runner: "'ubuntu-latest'"
           - target: i686-pc-windows-msvc
             runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
           - target: x86_64-pc-windows-msvc
@@ -74,7 +78,7 @@ jobs:
     needs:
       - build
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm/setup

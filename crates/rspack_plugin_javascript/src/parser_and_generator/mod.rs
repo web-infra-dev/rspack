@@ -1,6 +1,5 @@
 use std::{
   borrow::Cow,
-  collections::HashSet,
   sync::{Arc, LazyLock},
 };
 
@@ -14,13 +13,14 @@ use rspack_core::{
   COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, ChunkGraph, CollectedTypeScriptInfo, Compilation,
   DependenciesBlock, DependencyId, GenerateContext, ImportMeta, Module, ModuleArgument,
   ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
-  ResolvedModuleOptions, RuntimeGlobals, RuntimeVariable, SideEffectsBailoutItem, SourceType,
-  TemplateContext, TemplateReplaceSource,
+  ResolvedModuleOptions, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable,
+  SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_util::fx_hash::FxHashSet;
 use swc_experimental_allocator::Allocator;
 use swc_experimental_ecma_ast::{Comments, EsVersion, Program, VisitWith};
 use swc_experimental_ecma_parser::{
@@ -37,11 +37,13 @@ use crate::{
 
 #[derive(Debug)]
 pub struct ParserRuntimeRequirementsData {
+  pub render_mode: RuntimeGlobalsRenderMode,
   pub context: String,
   pub module: String,
   pub rspack_module: String,
   pub exports: String,
   pub require: String,
+  pub compatibility_runtime_scope: String,
   pub require_regex: &'static LazyLock<Regex>,
   pub module_cache: String,
   pub entry_module_id: String,
@@ -56,16 +58,17 @@ fn append_experimental_parse_errors(
   source: &str,
   errors: impl IntoIterator<Item = swc_experimental_ecma_parser::error::Error>,
 ) {
-  let mut visited = HashSet::new();
+  let mut visited = FxHashSet::default();
+  let source: Arc<str> = source.into();
   diagnostics.extend(errors.into_iter().filter_map(|err| {
     let span = err.span();
-    let message = err.kind().msg().to_string();
-    if !visited.insert((message.clone(), span)) {
+    if !visited.insert((span.start, span.end)) {
       return None;
     }
+    let message = err.kind().msg().to_string();
     Some(
-      Error::from_string(
-        Some(source.to_string()),
+      Error::from_shared_source(
+        Some(source.clone()),
         span.start.saturating_sub(1) as usize,
         span.end.saturating_sub(1) as usize,
         "JavaScript parse error".to_string(),
@@ -76,10 +79,39 @@ fn append_experimental_parse_errors(
   }));
 }
 
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn parse_errors_share_source_code() {
+    let source = "'\\101';'\\102';";
+    let allocator = Allocator::new();
+    let lexer = Lexer::new(
+      &allocator,
+      Syntax::Es(EsSyntax::default()),
+      EsVersion::EsNext,
+      StringSource::new(source),
+      None,
+    );
+    let mut parser = Parser::new_from(&allocator, lexer);
+    parser.parse_module().expect("should recover parse errors");
+
+    let mut diagnostics = Vec::new();
+    append_experimental_parse_errors(&mut diagnostics, source, parser.take_errors());
+
+    assert_eq!(diagnostics.len(), 2);
+    let first_source = diagnostics[0].src.as_ref().expect("should have source");
+    let second_source = diagnostics[1].src.as_ref().expect("should have source");
+    assert_eq!(first_source.as_ptr(), second_source.as_ptr());
+  }
+}
+
 impl ParserRuntimeRequirementsData {
   pub fn new(runtime_template: &ModuleCodeTemplate) -> Self {
     let require_name =
       runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::REQUIRE);
+    let compatibility_runtime_scope = runtime_template.render_runtime_scope();
     let module_name =
       runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::MODULE);
     let exports_name =
@@ -91,12 +123,14 @@ impl ParserRuntimeRequirementsData {
     let context_name = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
     let rspack_module_name = runtime_template.render_runtime_variable(&RuntimeVariable::Module);
     Self {
+      render_mode: runtime_template.render_mode(),
       require_regex: &LEGACY_REQUIRE_REGEX,
       context: context_name,
       module: module_name,
       rspack_module: rspack_module_name,
       exports: exports_name,
       require: require_name,
+      compatibility_runtime_scope,
       module_cache: module_cache_name,
       entry_module_id: entry_module_id_name,
     }

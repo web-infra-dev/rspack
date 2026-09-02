@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const { setTimeout: sleep } = require('node:timers/promises');
 
 /**
  * @param {import("@octokit/rest")} github
@@ -13,7 +14,9 @@ module.exports = async function action({ github, context, limit }) {
   let baseCommit;
   let baseSize;
   try {
-    ({ baseCommit, baseSize } = await findBaseCommit(github, context));
+    ({ baseCommit, baseSize } = context.payload.pull_request
+      ? await findBaseCommit(github, context)
+      : await waitForBaseCommit(github, context));
   } catch (e) {
     if (e instanceof PendingBinaryDataError) {
       await tryComment(
@@ -44,6 +47,12 @@ module.exports = async function action({ github, context, limit }) {
 const PER_PAGE = 30;
 const MAX_PAGES = 4;
 
+// The parent's own CI publishes its size about four minutes in, so a commit merged
+// right behind it can reach this job first. Observed window is one to two minutes;
+// ten leaves room for a slow build.
+const PENDING_POLL_INTERVAL_MS = 60_000;
+const PENDING_POLL_ATTEMPTS = 10;
+
 class PendingBinaryDataError extends Error {
   constructor(baseCommit, fallback) {
     super(
@@ -56,21 +65,46 @@ class PendingBinaryDataError extends Error {
   }
 }
 
-// Baseline is the base commit actually merged into the PR to build the binding
-// (the merge commit's first parent), not the fork point: PR CI builds from the
-// merge ref, so head size already includes that base tip. Walk main history
-// skipping doc-only commits (they build no binding); the first build-triggering
-// commit is decisive. Use its size data, or — when it isn't published yet (eco CI
-// is slow) — fail loudly, attaching the nearest ancestor that already has data as
-// a non-authoritative reference for a rough number.
+// A trunk push has no PR to comment on, so an unpublished baseline can only surface
+// as a red main — noise rather than a size problem. Wait for the parent's data instead
+// of failing on it, and if it never lands, compare against the nearest ancestor that
+// has data: that still measures real growth, it just spans more than one commit.
+async function waitForBaseCommit(github, context) {
+  let pending;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await findBaseCommit(github, context);
+    } catch (e) {
+      if (!(e instanceof PendingBinaryDataError)) throw e;
+      pending = e;
+    }
+
+    if (attempt === PENDING_POLL_ATTEMPTS) break;
+    console.log(
+      `Base size data not published yet, retrying in ${PENDING_POLL_INTERVAL_MS / 1000}s (${attempt}/${PENDING_POLL_ATTEMPTS})`,
+    );
+    await sleep(PENDING_POLL_INTERVAL_MS);
+  }
+
+  if (!pending.fallback) throw pending;
+
+  console.log(
+    `Base data never arrived, comparing against ${pending.fallback.baseCommit.sha} instead`,
+  );
+  return pending.fallback;
+}
+
+// Baseline is the newest trunk commit already contained in the binding CI built,
+// not the fork point: PR CI builds from the merge ref, so head size already
+// includes that trunk tip. Walk trunk history skipping doc-only commits (they
+// build no binding); the first build-triggering commit is decisive. Use its size
+// data, or — when it isn't published yet (eco CI is slow) — fail loudly, attaching
+// the nearest ancestor that already has data as a non-authoritative reference for
+// a rough number.
 async function findBaseCommit(github, context) {
   const { owner, repo } = context.repo;
-  const pr = context.payload.pull_request;
-  if (!pr) {
-    throw new Error('binary-limit action requires pull_request context');
-  }
-  const baseSha = await resolveBaseSha(github, owner, repo, context, pr);
-  console.log(`Base branch commit: ${baseSha}`);
+  const baseSha = await resolveBaseSha(github, owner, repo, context);
+  console.log(`Base trunk commit: ${baseSha}`);
 
   let pendingBase = null;
 
@@ -123,27 +157,78 @@ async function findBaseCommit(github, context) {
   );
 }
 
-// For `pull_request` events `context.sha` is the ephemeral merge commit that CI
-// checks out (`refs/pull/N/merge`); its first parent is the base commit actually
-// merged in. `pr.base.sha` is only a stale snapshot of the base branch and drifts
-// behind once main advances, so prefer the merge parent and fall back to it only
-// when there is no merge commit (e.g. an unmergeable PR).
-async function resolveBaseSha(github, owner, repo, context, pr) {
-  const { data: mergeCommit } = await github.rest.repos.getCommit({
+// Size data only exists for trunk commits, so the baseline must be a trunk commit
+// — the newest one the binding under test actually contains.
+async function resolveBaseSha(github, owner, repo, context) {
+  const pr = context.payload.pull_request;
+  const { data: commit } = await github.rest.repos.getCommit({
     owner,
     repo,
     ref: context.sha,
   });
-  const [base, head] = mergeCommit.parents ?? [];
-  if (mergeCommit.parents?.length === 2 && head?.sha === pr.head.sha) {
+  const [base, head] = commit.parents ?? [];
+
+  // A trunk push measures the pushed commit itself, so its own parent is the baseline.
+  if (!pr) {
+    if (!base) {
+      throw new Error(`Commit ${context.sha} has no parent to compare against`);
+    }
     return base.sha;
   }
-  console.log('context.sha is not a PR merge commit, using pr.base.sha');
-  return pr.base.sha;
+
+  if (commit.parents?.length !== 2 || head?.sha !== pr.head.sha) {
+    console.log('context.sha is not a PR merge commit, using pr.base.sha');
+    return pr.base.sha;
+  }
+
+  // For a standalone PR the base branch is the trunk, so the merged first parent
+  // is the baseline outright.
+  const stack = await resolveStack(github, owner, repo, pr);
+  if (!stack) {
+    return base.sha;
+  }
+
+  // In a stack the merge commits chain — each PR's merges into the one below —
+  // so the first parent is another merge commit rather than a trunk commit. Take
+  // the merge base with the trunk instead. Anchoring on the branch rather than on
+  // the payload's `stack.base.sha` is deliberate: that sha is frozen at event time
+  // while `refs/pull/N/merge` keeps being recomputed as the trunk advances, so it
+  // can end up behind the trunk commit the binding contains and silently drag the
+  // baseline backwards. The branch tip is always at or ahead of that commit, and
+  // the merge base is the same however far ahead it is.
+  console.log(`Stack trunk: ${stack.base.ref}`);
+  const { data: comparison } =
+    await github.rest.repos.compareCommitsWithBasehead({
+      owner,
+      repo,
+      basehead: `${stack.base.ref}...${context.sha}`,
+    });
+  return comparison.merge_base_commit.sha;
+}
+
+// `stack` is missing from the payload when a PR's `opened` event outruns the stack
+// being registered on GitHub — observed on #14907, created seconds before #14908,
+// which did carry it. A re-run replays that same payload, so the check would stay
+// red until the next push; read the PR back to settle it.
+async function resolveStack(github, owner, repo, pr) {
+  if (!pr.stack) {
+    const { data } = await github.rest.pulls.get({
+      owner,
+      repo,
+      pull_number: pr.number,
+    });
+    if (data.stack) {
+      console.log(
+        'stack was absent from the event payload, re-read from the API',
+      );
+      pr.stack = data.stack;
+    }
+  }
+  return pr.stack;
 }
 
 // A binding is built (and size data produced) only for commits touching non-doc
-// files, mirroring ecosystem-benchmark's `paths-ignore: ['**/*.md', 'website/**']`.
+// files, mirroring the `code_changed` filter in ci.yml that gates the binding build.
 async function triggersBinaryBuild(github, owner, repo, sha) {
   const { data: commit } = await github.rest.repos.getCommit({
     owner,
@@ -156,10 +241,19 @@ async function triggersBinaryBuild(github, owner, repo, sha) {
 }
 
 function isDocFile(filename) {
-  return filename.endsWith('.md') || filename.startsWith('website/');
+  return (
+    filename.endsWith('.md') ||
+    filename.endsWith('.mdx') ||
+    filename.startsWith('website/')
+  );
 }
 
 async function tryComment(github, context, comment) {
+  // A trunk push has no PR to comment on; it reports through the job status alone.
+  if (!context.payload.pull_request) {
+    console.log(comment);
+    return;
+  }
   try {
     await commentToPullRequest(github, context, comment);
   } catch (e) {
@@ -198,12 +292,22 @@ async function commentToPullRequest(github, context, comment) {
   });
 }
 
+// `ci-binary.json` is uploaded by the base commit's own CI right after the binding
+// build; `rspack-build.json` carries the same measurement but only lands once the
+// ecosystem benchmark completes, so it is a fallback for commits predating that job.
+async function fetchDataBySha(github, sha) {
+  const dir = `commits/${sha.slice(0, 2)}/${sha.slice(2)}`;
+  return (
+    (await fetchJson(github, `${dir}/ci-binary.json`)) ??
+    (await fetchJson(github, `${dir}/rspack-build.json`))
+  );
+}
+
 // Read via the authenticated Contents API rather than raw.githubusercontent.com:
 // the CDN rate-limits anonymous requests per shared runner IP and 429s almost
 // immediately, while the API uses the workflow token (5000 req/h) with octokit's
 // built-in retry/throttling.
-async function fetchDataBySha(github, sha) {
-  const path = `commits/${sha.slice(0, 2)}/${sha.slice(2)}/rspack-build.json`;
+async function fetchJson(github, path) {
   console.log(
     'fetching',
     `${DATA_REPO.owner}/${DATA_REPO.repo}:${path}`,
@@ -239,7 +343,23 @@ function comparingInfo(context, baseCommit) {
   const message = baseCommit.commit.message.split('\n')[0];
   const author = baseCommit.commit.author.name;
   const headSha = context.payload.pull_request?.head.sha || context.sha;
-  return `> Comparing [\`${headSha.slice(0, 7)}\`](${context.payload.repository.html_url}/commit/${headSha}) to  [${message} by ${author}](${baseCommit.html_url})\n\n`;
+  return (
+    `> Comparing [\`${headSha.slice(0, 7)}\`](${context.payload.repository.html_url}/commit/${headSha}) to  [${message} by ${author}](${baseCommit.html_url})\n\n` +
+    stackNote(context.payload.pull_request)
+  );
+}
+
+// Only the bottom PR of a stack sits directly on the trunk; for the ones above it
+// the baseline is still the trunk, so the reported diff covers every PR below as
+// well. Say so, otherwise the number reads as this PR's own contribution.
+function stackNote(pr) {
+  const trunk = pr?.stack?.base?.ref;
+  if (!trunk || pr.base.ref === trunk) return '';
+  return (
+    '> [!NOTE]\n' +
+    `> This PR is stacked on \`${pr.base.ref}\`. Sizes are compared against \`${trunk}\`, ` +
+    'so the diff below covers the whole stack, not this PR alone.\n\n'
+  );
 }
 
 function pendingBinarySizeComment(context, headSize, { baseCommit, fallback }) {

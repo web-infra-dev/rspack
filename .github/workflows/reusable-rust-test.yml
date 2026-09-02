@@ -2,12 +2,6 @@ name: Reusable Rust Test
 
 on:
   workflow_call:
-    inputs:
-      cargo-check-strategy:
-        type: string
-        required: false
-        default: 'all'
-        description: 'Strategy for cargo check: all (default) or separated'
 
 jobs:
   check-changed:
@@ -17,8 +11,8 @@ jobs:
       code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
       document_changed: ${{ steps.filter.outputs.document_changed == 'true' }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         id: filter
         with:
           predicate-quantifier: 'every'
@@ -35,8 +29,11 @@ jobs:
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  '"ubuntu-22.04"') }}
+    env:
+      CARGO_INCREMENTAL: 0
+      RUSTC: rustc
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -48,15 +45,12 @@ jobs:
         run: cargo codegen
 
       - name: Install cargo-binstall
-        if: ${{ inputs.cargo-check-strategy == 'separated' }}
-        uses: cargo-bins/cargo-binstall@732870f031d2fb36309d0deaf36abcc704a7be65 # v1.20.1
+        uses: cargo-bins/cargo-binstall@75b4bfae1b2c753a6806bbce6e6cb89b602de33c # v1.22.0
 
       - name: Install cargo-workspaces
-        if: ${{ inputs.cargo-check-strategy == 'separated' }}
         run: cargo binstall --no-confirm cargo-workspaces@0.4.0 --force
 
-      - name: Run Cargo Check (separated strategy)
-        if: ${{ inputs.cargo-check-strategy == 'separated' }}
+      - name: Run Cargo Check (per crate)
         run: cargo workspaces exec --ignore-private cargo check --lib --locked
 
       - name: Run Clippy
@@ -65,18 +59,13 @@ jobs:
       - name: Run rustfmt
         run: cargo fmt --all -- --check
 
-      - name: Install taplo
-        run: cargo install taplo-cli --locked
-      - name: Run toml format check
-        run: taplo format --check
-
   rust_unused_dependencies:
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     name: Check Rust Dependencies
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/rustup
         with:
           key: check
@@ -93,7 +82,7 @@ jobs:
           cargo deny --all-features check license bans
           cargo xtask deny-ext
 
-      - uses: cargo-bins/cargo-binstall@732870f031d2fb36309d0deaf36abcc704a7be65 # v1.20.1
+      - uses: cargo-bins/cargo-binstall@75b4bfae1b2c753a6806bbce6e6cb89b602de33c # v1.22.0
       - run: cargo binstall --no-confirm cargo-shear@1.11.2 --force
       - run: cargo shear
 
@@ -103,7 +92,7 @@ jobs:
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -131,6 +120,7 @@ jobs:
             --exclude rspack_binding_build \
             --exclude rspack_napi \
             --exclude rspack_watcher \
+            --exclude rspack_resolver \
             -- --nocapture
 
   rust_watcher_test:
@@ -146,7 +136,7 @@ jobs:
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Disable CPU hogs (Windows)
         if: runner.os == 'Windows'

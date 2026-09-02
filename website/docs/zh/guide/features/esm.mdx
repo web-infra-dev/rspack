@@ -4,7 +4,7 @@ description: 'Rspack 支持使用 ESM 格式输出进行打包。构建应用时
 
 import { Stability } from '@components/ApiMeta';
 
-# ESM 格式产物
+# ESM 产物
 
 Rspack 支持使用 ESM 格式输出进行打包。构建应用时，Rspack 默认会生成基于 IIFE 格式代码的打包输出，而不是标准的 CommonJS 或 ESM 格式，你可以通过配置 [output.module](/config/output#outputmodule) 来生成 ESM 格式的产物。下面的章节介绍了如何 [构建应用的 ESM 格式产物](#构建应用的-esm-格式产物) 及 [构建库的 ESM 格式产物](#构建库的-esm-格式产物) 并在最后列出了与 ESM 产物相关的 [配置清单](#配置清单)。
 
@@ -87,4 +87,4 @@ export default {
 4. [output.chunkLoading](/config/output#outputchunkloading): 在构建应用的 ESM 产物时，通常设置为 `'import'`；对于 `modern-module`，Rspack 会自动切换到基于 `import` 的 chunk loading。
 5. [output.workerChunkLoading](/config/output#outputworkerchunkloading): 当你的应用或库还需要在 Worker 中以 ESM 方式加载 chunk 时，通常设置为 `'import'`。
 6. [optimization.avoidEntryIife](/config/optimization#optimizationavoidentryiife): 在某些情况下，Rspack 会将 ESM 产物的输出包裹在一个 IIFE 中，这会破坏 ESM 的模块化特性
-7. [HtmlWebpackPlugin.scriptLoading](/guide/tech/html#htmlwebpackplugin): 设置为 `'module'`，表示使用 ESM 的 `<script type="module">` 来加载 `.mjs` 模块。
+7. [HtmlRspackPlugin.scriptLoading](/plugins/html-rspack-plugin#scriptloading): 设置为 `'module'`，表示使用 ESM 的 `<script type="module">` 来加载 `.mjs` 模块。

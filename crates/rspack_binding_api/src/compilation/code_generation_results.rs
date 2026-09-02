@@ -74,7 +74,7 @@ impl CodeGenerationResult {
 impl CodeGenerationResult {
   #[napi(getter, ts_return_type = "Sources")]
   pub fn sources(&self) -> napi::Result<Reflector> {
-    self.with_ref(|i| Ok(i.inner.reflector()))
+    self.with_ref(|i| Ok(i.sources_cell().reflector()))
   }
 }
 
@@ -114,7 +114,9 @@ impl CodeGenerationResults {
         Either::B(vec) => vec.into_iter().map(Into::into).collect(),
       });
 
-      let code_generation_result = code_generation_results.get(&module.identifier, rt.as_ref());
+      let code_generation_result = code_generation_results
+        .try_get(&module.identifier, rt.as_ref())
+        .map_err(|error| napi::Error::from_reason(error.to_string()))?;
       Ok(code_generation_result.reflector())
     })
   }

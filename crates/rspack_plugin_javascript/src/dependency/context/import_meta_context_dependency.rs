@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleGraph,
   ModuleGraphCacheArtifact, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
@@ -10,15 +10,14 @@ use rspack_error::Diagnostic;
 use super::create_resource_identifier_for_context_dependency;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ImportMetaContextDependency {
   id: DependencyId,
   options: ContextOptions,
   range: DependencyRange,
   resource_identifier: ResourceIdentifier,
   optional: bool,
-  critical: Option<Diagnostic>,
-  factorize_info: FactorizeInfo,
+  critical: rspack_core::DependencyCriticalState,
   kind: ImportMetaContextDependencyKind,
 }
 
@@ -54,15 +53,18 @@ impl ImportMetaContextDependency {
     optional: bool,
     kind: ImportMetaContextDependencyKind,
   ) -> Self {
-    let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
+    let context = match kind {
+      ImportMetaContextDependencyKind::WebpackContext => None,
+      ImportMetaContextDependencyKind::Glob => Some(options.context.as_str()),
+    };
+    let resource_identifier = create_resource_identifier_for_context_dependency(context, &options);
     Self {
       options,
       range,
       resource_identifier,
       optional,
       id: DependencyId::new(),
-      critical: None,
-      factorize_info: Default::default(),
+      critical: Default::default(),
       kind,
     }
   }
@@ -106,7 +108,7 @@ impl Dependency for ImportMetaContextDependency {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
-    self.critical.clone().map(|critical| vec![critical])
+    self.critical().map(|critical| vec![critical])
   }
 }
 
@@ -120,7 +122,10 @@ impl ContextDependency for ImportMetaContextDependency {
   }
 
   fn get_context(&self) -> Option<&str> {
-    None
+    match self.kind {
+      ImportMetaContextDependencyKind::WebpackContext => None,
+      ImportMetaContextDependencyKind::Glob => Some(self.options.context.as_str()),
+    }
   }
 
   fn resource_identifier(&self) -> &str {
@@ -135,20 +140,12 @@ impl ContextDependency for ImportMetaContextDependency {
     rspack_core::ContextTypePrefix::Normal
   }
 
-  fn critical(&self) -> &Option<Diagnostic> {
-    &self.critical
+  fn critical(&self) -> Option<Diagnostic> {
+    self.critical.get()
   }
 
-  fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
-    &mut self.critical
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
+  fn set_critical(&self, critical: Option<Diagnostic>) {
+    self.critical.set(critical);
   }
 }
 

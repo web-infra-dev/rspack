@@ -60,6 +60,7 @@ import type {
 
 const ERROR_PREFIX = 'Invalid Rspack configuration:';
 const DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
+const DEFAULT_CACHE_NAME = '';
 
 export const applyRspackOptionsDefaults = (
   options: RspackOptionsNormalized,
@@ -100,12 +101,12 @@ export const applyRspackOptionsDefaults = (
   D(options, 'bail', false);
 
   F(options, 'cache', () =>
-    development ? { type: 'memory' as const } : false,
+    development ? { type: 'memory' as const, snapshot: {} } : false,
   );
   applyCacheDefaults(options.cache!, {
     context: options.context!,
-    name: options.name,
-    mode: options.mode,
+    name: options.name || DEFAULT_CACHE_NAME,
+    mode: options.mode || 'production',
     compilerIndex,
   });
 
@@ -219,32 +220,35 @@ const applyCacheDefaults = (
     compilerIndex,
   }: {
     context: string;
-    name?: Name;
-    mode?: Mode;
+    name: Name;
+    mode: Mode;
     compilerIndex?: number;
   },
 ) => {
   if (cache === false) return;
+  F(cache.snapshot, 'immutablePaths', () => []);
+  F(cache.snapshot, 'unmanagedPaths', () => []);
+  F(cache.snapshot, 'managedPaths', () => [/[\\/]node_modules[\\/][^.]/]);
   switch (cache.type) {
     case 'memory':
       break;
     case 'persistent':
+      F(cache, 'name', () => {
+        const cacheName = name ? `${name}-${mode}` : mode;
+        return compilerIndex !== undefined && compilerIndex > 0
+          ? `${cacheName}-${compilerIndex}`
+          : cacheName;
+      });
+      D(cache.storage, 'type', 'filesystem');
+      F(cache.storage, 'directory', () =>
+        path.resolve(context, 'node_modules/.cache/rspack'),
+      );
+      F(cache.storage, 'location', () =>
+        path.resolve(cache.storage.directory!, cache.name!),
+      );
       D(cache, 'version', '');
       D(cache, 'maxAge', DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS);
-      D(cache, 'maxVersions', 3);
       F(cache, 'buildDependencies', () => []);
-      F(cache.snapshot, 'immutablePaths', () => []);
-      F(cache.snapshot, 'unmanagedPaths', () => []);
-      F(cache.snapshot, 'managedPaths', () => [/[\\/]node_modules[\\/][^.]/]);
-      D(cache.storage, 'type', 'filesystem');
-      F(cache.storage, 'directory', () => {
-        const modeName = mode || 'production';
-        const compilerName = name ? `${name}-${modeName}` : modeName;
-        const cacheName = compilerIndex
-          ? `${compilerName}-${compilerIndex}`
-          : compilerName;
-        return path.resolve(context, 'node_modules/.cache/rspack', cacheName);
-      });
       D(cache, 'portable', false);
       D(cache, 'readonly', false);
       break;
@@ -275,6 +279,13 @@ const applyExperimentsDefaults = (
   { production }: { production: boolean },
 ) => {
   D(experiments, 'futureDefaults', false);
+  D(experiments, 'newCache', false);
+  if (typeof experiments.newCache === 'object') {
+    D(experiments.newCache, 'codeGeneration', true);
+    D(experiments.newCache, 'devtool', true);
+    D(experiments.newCache, 'loader', true);
+    D(experiments.newCache, 'minimize', true);
+  }
   D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'deferImport', false);
   D(experiments, 'sourceImport', false);
@@ -852,6 +863,7 @@ const applyOutputDefaults = (
   F(output, 'chunkLoadingGlobal', () => `rspackChunk${uniqueNameId}`);
   D(output, 'assetModuleFilename', '[hash][ext][query]');
   D(output, 'webassemblyModuleFilename', '[hash].module.wasm');
+  D(output, 'wasmStreamingFallback', true);
   D(output, 'compareBeforeEmit', true);
   if (output.path && !path.isAbsolute(output.path)) {
     if (!context) {

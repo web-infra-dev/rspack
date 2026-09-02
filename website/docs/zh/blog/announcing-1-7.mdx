@@ -9,7 +9,7 @@ authors:
     x: 'https://x.com/rspack_dev'
 ---
 
-import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 # Rspack 1.7 发布公告
 
@@ -70,7 +70,7 @@ const text = decoder.decode(module.default);
 
 ### Lazy compilation
 
-在 Rspack 1.5 中，我们完成了 [Lazy Compilation](/guide/features/lazy-compilation) 特性的稳定化，并在 Rsbuild 中默认对动态导入的模块启用了按需编译。
+在 Rspack 1.5 中，我们完成了 [Lazy Compilation](/guide/advanced/lazy-compilation) 特性的稳定化，并在 Rsbuild 中默认对动态导入的模块启用了按需编译。
 
 从 Rspack 1.7 开始，Rspack CLI 在构建 web 应用时也将默认对动态导入的模块启用按需编译。这一改进可以减少首次构建的模块数量，从而加快开发服务器的启动速度。
 

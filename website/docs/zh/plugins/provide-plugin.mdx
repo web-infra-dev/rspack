@@ -1,0 +1,117 @@
+---
+description: '每当在模块中遇到 identifier 作为自由变量时，相应的模块会自动加载，且 identifier 会被填充为已加载模块的输出（或者是属性，以支持具名导出）。'
+---
+
+import Attribution from '@components/Attribution';
+
+# ProvidePlugin
+
+自动加载模块，而不必在每处都 `import` 或 `require` 它们。
+
+## 示例
+
+```js
+new rspack.ProvidePlugin({
+  identifier: 'module1',
+  // ...
+});
+```
+
+或
+
+```js
+new rspack.ProvidePlugin({
+  identifier: ['module1', 'property1'],
+  // ...
+});
+```
+
+默认情况下，模块解析路径为当前文件夹（`./**`）和 `node_modules`。
+
+也可以指定完整路径：
+
+```js
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+new rspack.ProvidePlugin({
+  identifier: path.resolve(path.join(__dirname, 'src/module1')),
+  // ...
+});
+```
+
+每当在模块中遇到 `identifier` 作为自由变量时，相应的`模块`会自动加载，且 `identifier` 会被填充为已加载`模块`的输出（或者是`属性`，以支持具名导出）。
+
+为了导入一个 ES2015 模块的默认导出，你必须指定模块的 default 属性。
+
+### 在浏览器中使用 process 对象
+
+在浏览器环境中启用 process 对象的支持。
+
+```js
+new rspack.ProvidePlugin({
+  process: ['process/browser'],
+});
+```
+
+以下代码片段：
+
+```js
+console.log(process.version);
+```
+
+将被转换为：
+
+```js
+import process from 'process/browser';
+console.log(process.version);
+```
+
+### jQuery
+
+要自动加载 jquery，我们可以把它暴露的两个变量都对应到相应的模块：
+
+```js
+new rspack.ProvidePlugin({
+  $: 'jquery',
+  jQuery: 'jquery',
+});
+```
+
+然后在我们的任何源代码中：
+
+```js
+// 在一个模块中
+$('#item'); // <= 可以工作
+jQuery('#item'); // <= 也可以工作
+// $ 被自动设置为模块 "jquery" 的导出
+```
+
+### Lodash map
+
+```js
+new rspack.ProvidePlugin({
+  _map: ['lodash', 'map'],
+});
+```
+
+### Vue.js
+
+```js
+new rspack.ProvidePlugin({
+  Vue: ['vue/dist/vue.esm.js', 'default'],
+});
+```
+
+## 选项
+
+- **类型：** `Record<string, string | string[]>`
+
+将每个标识符映射到提供它的模块。
+
+- **字符串形式：** 指定要加载的模块标识符。目标标识符会被赋值为加载该模块后返回的值，例如 CommonJS 模块的 `module.exports` 或 ES module 的命名空间对象。
+- **数组形式：** 第一项是模块标识符，其余项组成访问模块加载结果的属性路径。若要提供 ES module 的默认导出，请使用 `[moduleSpecifier, 'default']`。
+
+<Attribution url="https://webpack.docschina.org/plugins/provide-plugin/" />

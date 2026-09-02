@@ -3,15 +3,16 @@
 use std::sync::{Arc, LazyLock};
 
 use atomic_refcell::AtomicRefCell;
+use rspack_collections::IdentifierMap;
 use rspack_core::{
   AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey,
   Compilation, CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CssBuildInfo, CssModuleRenderCondition,
-  DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph,
-  ModuleIdentifier, ModuleType, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
-  NormalModuleFactoryModule, ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, SelfModuleFactory, SourceType,
-  css_module_render_conditions_identifier, get_css_chunk_filename_template,
+  DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph, ModuleRule,
+  ModuleType, NormalModuleCreateData, NormalModuleFactoryAfterResolve, NormalModuleFactoryModule,
+  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleExt, SelfModuleFactory, SourceType,
+  css_module_render_conditions_identifier, get_css_chunk_filename_template, is_source_equal,
   rspack_sources::{BoxSource, CachedSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -46,6 +47,11 @@ use crate::{
 /// We should make sure that there's no read-write and write-write conflicts for each hook instance by looking up [CssPlugin::get_compilation_hooks_mut]
 type ArcCssModulesPluginHooks = Arc<AtomicRefCell<CssModulesPluginHooks>>;
 
+struct CssModuleRenderSources {
+  source_before_hooks: BoxSource,
+  rendered_source: BoxSource,
+}
+
 static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcCssModulesPluginHooks>> =
   LazyLock::new(Default::default);
 
@@ -77,7 +83,7 @@ impl CssPlugin {
           .code_generation_results
           .get(module_id, Some(chunk.runtime()));
         code_gen_result
-          .data
+          .data()
           .get::<CodeGenerationDataUnusedLocalIdent>()
           .map(|data| &data.idents)
       })
@@ -206,12 +212,21 @@ impl CssPlugin {
               };
 
               let chunk_ukey = chunk.as_u32().into();
+              // Module package hooks may add module-specific decorations such as pathinfo.
+              // Deduplicate the undecorated source but emit the rendered source.
+              let source_before_hooks = post_module_container.source.clone();
               hooks
                 .render_module_package
                 .call(compilation, &chunk_ukey, module, &mut post_module_container)
                 .await?;
 
-              Ok((module.identifier(), post_module_container.source))
+              Ok((
+                module.identifier(),
+                CssModuleRenderSources {
+                  source_before_hooks,
+                  rendered_source: post_module_container.source,
+                },
+              ))
             },
           );
         });
@@ -225,7 +240,7 @@ impl CssPlugin {
       .into_iter()
       .collect::<Result<Vec<_>>>()?
       .into_iter()
-      .collect::<HashMap<_, _>>();
+      .collect::<IdentifierMap<_>>();
     Ok(Self::render_ordered_css_sources(
       ordered_css_modules,
       &module_sources,
@@ -234,31 +249,49 @@ impl CssPlugin {
 
   fn render_ordered_css_sources(
     ordered_css_modules: &[&dyn Module],
-    module_sources: &HashMap<ModuleIdentifier, BoxSource>,
+    module_sources: &IdentifierMap<CssModuleRenderSources>,
   ) -> BoxSource {
-    let non_import_css_resources = ordered_css_modules
+    let mut non_import_css_sources = HashMap::<_, Vec<_>>::default();
+    for module in ordered_css_modules
       .iter()
       .filter(|module| !css_module_is_import_dependency(**module))
-      .filter(|module| module_sources.contains_key(&module.identifier()))
-      .filter_map(|module| css_module_resource(*module))
-      .collect::<HashSet<_>>();
+    {
+      let identifier = module.identifier();
+      if let Some(resource) = css_module_resource(*module)
+        && let Some(source) = module_sources.get(&identifier)
+      {
+        non_import_css_sources
+          .entry(resource)
+          .or_default()
+          .push(&source.source_before_hooks);
+      }
+    }
 
     let mut builder = CssSourceBuilder::new(false, true, Default::default());
     for module in ordered_css_modules {
+      let identifier = module.identifier();
       if css_module_is_import_dependency(*module)
         && css_render_conditions_from_module(*module).is_empty()
         && let Some(resource) = css_module_resource(*module)
-        && non_import_css_resources.contains(resource)
+        && let Some(source) = module_sources.get(&identifier)
+        && non_import_css_sources.get(resource).is_some_and(|sources| {
+          sources.iter().any(|other| {
+            source.source_before_hooks.size() == other.size()
+              && is_source_equal(source.source_before_hooks.as_ref(), (*other).as_ref())
+          })
+        })
       {
+        if css_module_has_charset(*module) {
+          builder.set_has_charset();
+        }
         continue;
       }
 
-      let identifier = module.identifier();
       if let Some(source) = module_sources.get(&identifier) {
         if css_module_has_charset(*module) {
           builder.set_has_charset();
         }
-        builder.push_css_source(source.clone(), &[], false);
+        builder.push_css_source(source.rendered_source.clone(), &[], false);
       }
     }
 
@@ -295,7 +328,7 @@ async fn normal_module_factory_after_resolve(
   let css_dependency_export_type = data
     .dependencies
     .first()
-    .and_then(css_dependency_export_type);
+    .and_then(|dependency| css_dependency_export_type(dependency.as_ref()));
 
   if let Some(export_type) = css_dependency_export_type.or(css_attribute_export_type) {
     append_css_export_type_key(create_data, export_type);
@@ -315,7 +348,7 @@ async fn normal_module_factory_module(
     return Ok(());
   };
 
-  let css_dependency_meta = css_dependency_meta(dependency);
+  let css_dependency_meta = css_dependency_meta(dependency.as_ref());
   if css_dependency_meta.render_conditions.is_empty()
     && css_dependency_meta.export_type.is_none()
     && !css_dependency_meta.is_css_dependency
@@ -377,6 +410,20 @@ async fn compilation(
   Ok(())
 }
 
+// Native CSS is configured through module rules (`type: "css*"`), so the runtime
+// chunk must carry the css hmr handler whenever such a rule exists, even before any
+// stylesheet is imported. Otherwise the first stylesheet added via HMR is emitted but
+// never requested, because the runtime baked at the initial build lacks `hmrC.css`.
+fn has_css_module_rule(rules: &[ModuleRule]) -> bool {
+  rules.iter().any(|rule| {
+    matches!(
+      rule.effect.r#type,
+      Some(ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto | ModuleType::CssGlobal)
+    ) || rule.one_of.as_deref().is_some_and(has_css_module_rule)
+      || rule.rules.as_deref().is_some_and(has_css_module_rule)
+  })
+}
+
 #[plugin_hook(CompilationRuntimeRequirementInTree for CssPlugin)]
 async fn runtime_requirements_in_tree(
   &self,
@@ -396,11 +443,23 @@ async fn runtime_requirements_in_tree(
     &ChunkLoading::Enable(ChunkLoadingType::Import),
     compilation,
   );
+  // A compilation configured for native css (via a `type: "css*"` module rule) but
+  // without any css module yet still needs the css hmr runtime baked into the initial
+  // chunk, so a stylesheet added by a later hot update can be requested. Once a css
+  // module exists the regular `HAS_CSS_MODULES` gating already covers this. The rule
+  // scan is only reached under HMR, so non-watch builds pay nothing.
+  let has_css_rule = all_runtime_requirements
+    .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+    && has_css_module_rule(&compilation.options.module.rules);
+  let hmr_needs_css_runtime =
+    has_css_rule && !all_runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES);
   let needs_css_loading_runtime = runtime_requirements.intersects(
     RuntimeGlobals::HAS_CSS_MODULES
       | RuntimeGlobals::CSS_INJECT_STYLE
       | RuntimeGlobals::CSS_STYLE_SHEET,
-  );
+  ) || (runtime_requirements
+    .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+    && has_css_rule);
 
   if !is_enabled_for_chunk
     && !runtime_requirements
@@ -416,10 +475,11 @@ async fn runtime_requirements_in_tree(
     ));
   }
 
-  if all_runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
+  if (all_runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
     && all_runtime_requirements.intersects(
       RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS | RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
-    )
+    ))
+    || hmr_needs_css_runtime
   {
     runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_basic());
   }
@@ -450,6 +510,7 @@ async fn runtime_requirements_in_tree(
 
   if all_runtime_requirements
     .contains(RuntimeGlobals::HAS_CSS_MODULES | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+    || hmr_needs_css_runtime
   {
     runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_with_hmr());
   }
@@ -515,7 +576,9 @@ async fn render_manifest(
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .expect_get(chunk_ukey);
-  let _runtime_template = compilation.runtime_template.create_runtime_code_template();
+  let _runtime_template = compilation
+    .runtime_template
+    .create_runtime_module_code_template();
   if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     return Ok(());
   }
@@ -563,19 +626,25 @@ async fn render_manifest(
 
   let (source, more_diagnostics) = compilation
     .chunk_render_cache_artifact
-    .use_cache(compilation, chunk, &SourceType::Css, || async {
-      let (source, diagnostics) = self
-        .render_chunk(
-          compilation,
-          module_graph,
-          chunk,
-          &output_path,
-          css_import_modules,
-          css_modules,
-        )
-        .await?;
-      Ok((CachedSource::new(source).boxed(), diagnostics))
-    })
+    .use_cache(
+      compilation,
+      chunk,
+      &SourceType::Css,
+      &output_path,
+      || async {
+        let (source, diagnostics) = self
+          .render_chunk(
+            compilation,
+            module_graph,
+            chunk,
+            &output_path,
+            css_import_modules,
+            css_modules,
+          )
+          .await?;
+        Ok((CachedSource::new(source).boxed(), diagnostics))
+      },
+    )
     .await?;
 
   diagnostics.extend(more_diagnostics);
@@ -632,5 +701,9 @@ impl Plugin for CssPlugin {
     }
 
     Ok(())
+  }
+
+  fn clear_cache(&self, id: CompilationId) {
+    COMPILATION_HOOKS_MAP.remove(&id);
   }
 }

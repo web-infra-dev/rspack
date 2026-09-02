@@ -2,12 +2,14 @@ use std::{ptr::NonNull, sync::Arc};
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use rspack_core::{LoaderContext, Module, RunnerContext};
+use rspack_collections::Identifiable;
+use rspack_core::{LoaderContext, LoaderDependencies, Module, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
 use rustc_hash::FxHashMap as HashMap;
 
+use super::cache::JsLoaderCacheObject;
 use crate::{error::RspackError, module::ModuleObject};
 
 #[napi(object)]
@@ -15,6 +17,7 @@ use crate::{error::RspackError, module::ModuleObject};
 pub struct JsLoaderItem {
   pub loader: String,
   pub r#type: String,
+  pub cache: bool,
 
   // data
   pub data: serde_json::Value,
@@ -31,6 +34,7 @@ impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
     JsLoaderItem {
       loader: value.request().to_string(),
       r#type: value.r#type().to_string(),
+      cache: value.cache(),
 
       data: value.data().clone(),
       normal_executed: value.normal_executed(),
@@ -53,6 +57,7 @@ where
         loader: ident.to_string(),
         data: serde_json::Value::Null,
         r#type: r#type.to_string(),
+        cache: false,
         pitch_executed: false,
         normal_executed: false,
         no_pitch: false,
@@ -62,6 +67,7 @@ where
       loader: identifier.to_string(),
       data: serde_json::Value::Null,
       r#type: String::default(),
+      cache: false,
       pitch_executed: false,
       normal_executed: false,
       no_pitch: false,
@@ -88,6 +94,82 @@ impl From<LoaderState> for JsLoaderState {
 }
 
 #[napi(object)]
+#[derive(Clone, Default)]
+pub struct JsLoaderDependencies {
+  pub file_dependencies: Vec<String>,
+  pub context_dependencies: Vec<String>,
+  pub missing_dependencies: Vec<String>,
+  pub build_dependencies: Vec<String>,
+}
+
+impl JsLoaderDependencies {
+  pub(super) fn is_empty(&self) -> bool {
+    self.file_dependencies.is_empty()
+      && self.context_dependencies.is_empty()
+      && self.missing_dependencies.is_empty()
+      && self.build_dependencies.is_empty()
+  }
+}
+
+impl From<&LoaderDependencies> for JsLoaderDependencies {
+  fn from(value: &LoaderDependencies) -> Self {
+    Self {
+      file_dependencies: value
+        .file
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect(),
+      context_dependencies: value
+        .context
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect(),
+      missing_dependencies: value
+        .missing
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect(),
+      build_dependencies: value
+        .build
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect(),
+    }
+  }
+}
+
+impl From<JsLoaderDependencies> for LoaderDependencies {
+  fn from(value: JsLoaderDependencies) -> Self {
+    Self {
+      file: value
+        .file_dependencies
+        .iter()
+        .map(String::as_str)
+        .map(Into::into)
+        .collect(),
+      context: value
+        .context_dependencies
+        .iter()
+        .map(String::as_str)
+        .map(Into::into)
+        .collect(),
+      missing: value
+        .missing_dependencies
+        .iter()
+        .map(String::as_str)
+        .map(Into::into)
+        .collect(),
+      build: value
+        .build_dependencies
+        .iter()
+        .map(String::as_str)
+        .map(Into::into)
+        .collect(),
+    }
+  }
+}
+
+#[napi(object)]
 pub struct JsLoaderContext {
   pub resource: String,
   #[napi(js_name = "_module", ts_type = "Module")]
@@ -103,10 +185,7 @@ pub struct JsLoaderContext {
   pub parse_meta: HashMap<String, String>,
   pub source_map: Option<Buffer>,
   pub cacheable: bool,
-  pub file_dependencies: Vec<String>,
-  pub context_dependencies: Vec<String>,
-  pub missing_dependencies: Vec<String>,
-  pub build_dependencies: Vec<String>,
+  pub dependencies: JsLoaderDependencies,
 
   pub loader_items: Vec<JsLoaderItem>,
   pub loader_index: i32,
@@ -114,6 +193,11 @@ pub struct JsLoaderContext {
   pub loader_state: JsLoaderState,
   #[napi(js_name = "__internal__error")]
   pub error: Option<RspackError>,
+  #[napi(
+    js_name = "__internal__loaderCache",
+    ts_type = "JsLoaderCache | undefined"
+  )]
+  pub loader_cache: Option<JsLoaderCacheObject>,
 
   /// UTF-8 hint for `content`
   /// - Some(true): `content` is a `UTF-8` encoded sequence
@@ -153,31 +237,27 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .map(|v| v.to_json())
         .map(|v| v.into_bytes().into()),
       cacheable: cx.cacheable,
-      file_dependencies: cx
-        .file_dependencies
-        .iter()
-        .map(|i| i.to_string_lossy().to_string())
-        .collect(),
-      context_dependencies: cx
-        .context_dependencies
-        .iter()
-        .map(|i| i.to_string_lossy().to_string())
-        .collect(),
-      missing_dependencies: cx
-        .missing_dependencies
-        .iter()
-        .map(|i| i.to_string_lossy().to_string())
-        .collect(),
-      build_dependencies: cx
-        .build_dependencies
-        .iter()
-        .map(|i| i.to_string_lossy().to_string())
-        .collect(),
+      dependencies: cx.dependencies().as_ref().into(),
 
       loader_items: cx.loader_items.iter().map(Into::into).collect(),
       loader_index: cx.loader_index,
       loader_state: cx.state().into(),
       error: None,
+      loader_cache: cx
+        .loader_items
+        .iter()
+        .any(|loader| loader.cache())
+        .then(|| {
+          JsLoaderCacheObject::new(
+            cx.context.loader_cache.clone(),
+            cx.context.file_system_info.clone(),
+            module.identifier().to_string(),
+            cx.loader_items
+              .iter()
+              .map(|loader| loader.cache_options().cloned().unwrap_or_default())
+              .collect(),
+          )
+        }),
       utf8_hint: None,
     })
   }

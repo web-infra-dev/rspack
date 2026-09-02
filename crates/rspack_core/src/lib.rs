@@ -5,6 +5,8 @@ mod compilation;
 mod transient_cache;
 
 mod exports;
+pub mod legacy_cache;
+mod new_cache;
 mod value_cache_versions;
 pub use artifacts::*;
 pub use binding::*;
@@ -13,6 +15,10 @@ pub use compilation::{
   *,
 };
 pub use exports::*;
+pub use new_cache::{
+  Cache, CacheFacade, CacheValue, Etag, FileSystemInfo, ItemCacheFacade, MultiItemCache, Snapshot,
+  SnapshotValidationResult,
+};
 pub use transient_cache::*;
 pub use value_cache_versions::ValueCacheVersions;
 mod dependencies_block;
@@ -106,6 +112,7 @@ pub use rspack_location::{
 };
 pub mod concatenated_module;
 pub mod reserved_names;
+pub use inventory;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_hash::{RspackHash, RspackHasher};
 pub use rspack_loader_runner::{
@@ -418,12 +425,9 @@ impl ChunkByUkey {
     self.inner.iter_mut()
   }
 
+  #[allow(clippy::len_without_is_empty)]
   pub fn len(&self) -> usize {
     self.inner.len()
-  }
-
-  pub fn is_empty(&self) -> bool {
-    self.inner.is_empty()
   }
 }
 
@@ -439,13 +443,6 @@ impl ChunkGroupByUkey {
 
   pub fn get_mut(&mut self, ukey: &ChunkGroupUkey) -> Option<&mut ChunkGroup> {
     self.inner.get_mut(ukey)
-  }
-
-  pub fn get_many_mut<const N: usize>(
-    &mut self,
-    ukeys: [&ChunkGroupUkey; N],
-  ) -> [Option<&mut ChunkGroup>; N] {
-    self.inner.get_disjoint_mut(ukeys)
   }
 
   pub fn expect_get(&self, ukey: &ChunkGroupUkey) -> &ChunkGroup {
@@ -470,13 +467,6 @@ impl ChunkGroupByUkey {
     self.inner.remove(ukey)
   }
 
-  pub fn entry(
-    &mut self,
-    ukey: ChunkGroupUkey,
-  ) -> std::collections::hash_map::Entry<'_, ChunkGroupUkey, ChunkGroup> {
-    self.inner.entry(ukey)
-  }
-
   pub fn contains(&self, ukey: &ChunkGroupUkey) -> bool {
     self.inner.contains_key(ukey)
   }
@@ -489,15 +479,7 @@ impl ChunkGroupByUkey {
     self.inner.values()
   }
 
-  pub fn values_mut(&mut self) -> impl Iterator<Item = &mut ChunkGroup> {
-    self.inner.values_mut()
-  }
-
   pub fn iter(&self) -> impl Iterator<Item = (&ChunkGroupUkey, &ChunkGroup)> {
     self.inner.iter()
-  }
-
-  pub fn iter_mut(&mut self) -> impl Iterator<Item = (&ChunkGroupUkey, &mut ChunkGroup)> {
-    self.inner.iter_mut()
   }
 }

@@ -1,6 +1,8 @@
 use rspack_core::{
-  ContextMode, ContextOptions, DependencyCategory, try_convert_str_to_context_mode,
+  BoxDependency, ContextMode, ContextOptions, DependencyCategory, get_context,
+  try_convert_str_to_context_mode,
 };
+use rspack_error::Error;
 use rspack_regex::RspackRegex;
 use rspack_util::SpanExt;
 use swc_experimental_ecma_ast::{CallExpr, GetSpan};
@@ -8,7 +10,10 @@ use swc_experimental_ecma_ast::{CallExpr, GetSpan};
 use super::JavascriptParserPlugin;
 use crate::{
   dependency::RequireContextDependency,
-  visitors::{JavascriptParser, clean_regexp_in_context_module, default_context_reg_exp},
+  visitors::{
+    JavascriptParser, clean_regexp_in_context_module, create_traceable_error,
+    default_context_reg_exp,
+  },
 };
 
 pub struct RequireContextDependencyParserPlugin;
@@ -25,6 +30,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireContextDependencyParserPl
       return None;
     }
 
+    let arg = expr.args.first()?;
+    let request_expr = parser.evaluate_expression(&arg.expr);
+    if !request_expr.is_string() {
+      return None;
+    }
+
     let mode = if expr.args.len() == 4 {
       let mode_expr = parser.evaluate_expression(&expr.args[3].expr);
       if !mode_expr.is_string() {
@@ -33,6 +44,19 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireContextDependencyParserPl
       } else if let Some(mode_expr) = try_convert_str_to_context_mode(mode_expr.string()) {
         mode_expr
       } else {
+        // Align with webpack, which throws an `Unsupported mode` error during
+        // code generation when an unknown context mode is used.
+        let mut error: Error = create_traceable_error(
+          "Unsupported mode".into(),
+          format!(
+            r#"`mode` expected "sync", "eager", "weak", "async-weak", "lazy" or "lazy-once", but received: "{}"."#,
+            mode_expr.string()
+          ),
+          parser.source.to_string(),
+          expr.args[3].expr.span().into(),
+        );
+        error.hide_stack = Some(true);
+        parser.add_error(error.into());
         ContextMode::Sync
       }
     } else {
@@ -65,31 +89,23 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireContextDependencyParserPl
       true
     };
 
-    if let Some(arg) = expr.args.first() {
-      let request_expr = parser.evaluate_expression(&arg.expr);
-      if !request_expr.is_string() {
-        return None;
-      }
-
-      let reg_exp = clean_regexp_in_context_module(reg_exp, reg_exp_span, parser);
-      parser.add_dependency(Box::new(RequireContextDependency::new(
-        ContextOptions {
-          mode,
-          recursive,
-          pattern: reg_exp.into(),
-          category: DependencyCategory::CommonJS,
-          request: request_expr.string().clone(),
-          context: request_expr.string().clone(),
-          start: expr.span().real_lo(),
-          end: expr.span().real_hi(),
-          ..Default::default()
-        },
-        expr.span.into(),
-        parser.in_try,
-      )));
-      return Some(true);
-    }
-
-    None
+    let reg_exp = clean_regexp_in_context_module(reg_exp, reg_exp_span, parser);
+    parser.add_dependency(BoxDependency::new(RequireContextDependency::new(
+      ContextOptions {
+        mode,
+        recursive,
+        pattern: reg_exp.into(),
+        category: DependencyCategory::CommonJS,
+        request: request_expr.string().clone(),
+        context: get_context(parser.resource_data).to_string(),
+        compiler_context: parser.compiler_options.context.clone(),
+        start: expr.span().real_lo(),
+        end: expr.span().real_hi(),
+        ..Default::default()
+      },
+      expr.span.into(),
+      parser.in_try,
+    )));
+    Some(true)
   }
 }

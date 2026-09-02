@@ -6,7 +6,7 @@ use rspack_core::{
 use rspack_hash::{RspackHash, RspackHasher};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ModuleArgumentDependency {
   id: Option<String>,
   range: DependencyRange,
@@ -16,10 +16,6 @@ pub struct ModuleArgumentDependency {
 impl ModuleArgumentDependency {
   pub fn new(id: Option<String>, range: DependencyRange, loc: Option<DependencyLocation>) -> Self {
     Self { id, range, loc }
-  }
-
-  pub fn loc(&self) -> Option<DependencyLocation> {
-    self.loc.clone()
   }
 }
 

@@ -9,11 +9,11 @@ use regex::Regex;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxPlugin, ChunkUkey, Compilation, CompilationOptimizeDependencies, CompilationParams,
-  CompilationProcessAssets, CompilationRuntimeModule, CompilerCompilation, DependencyType,
-  ExportsInfoArtifact, FactoryMeta, ModuleFactoryCreateData, ModuleIdentifier, ModuleType,
-  NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
-  Plugin, PluginExt, ResolveOptionsWithDependencyType, ResolveResult, RuntimeGlobals,
-  RuntimeModule, RuntimeVariable, SideEffectsOptimizeArtifact,
+  CompilationProcessAssets, CompilationRuntimeModule, CompilerCompilation, DependencyRef,
+  DependencyType, ExportsInfoArtifact, FactoryMeta, ModuleFactoryCreateData, ModuleIdentifier,
+  ModuleType, NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser, ParserAndGenerator,
+  ParserOptions, Plugin, PluginExt, ResolveOptionsWithDependencyType, ResolveResult,
+  RuntimeGlobals, RuntimeModule, RuntimeVariable, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   module_declared_side_effect_free,
   resolver::ResolveInnerError,
@@ -54,6 +54,7 @@ pub struct RstestPluginOptions {
   pub manual_mock_root: String,
   pub preserve_new_url: Vec<String>,
   pub globals: bool,
+  pub inject_import_meta_rstest_origin: bool,
   pub inject_dynamic_import_origin: Option<RstestDynamicImportOriginOptions>,
   pub inject_require_resolve_origin: Option<RstestRequireResolveOriginOptions>,
 }
@@ -84,7 +85,9 @@ async fn runtime_module(
     return Ok(());
   };
 
-  let runtime_template = compilation.runtime_template.create_runtime_code_template();
+  let runtime_template = compilation
+    .runtime_template
+    .create_runtime_module_code_template();
   match runtime_module.get_constructor_name().as_str() {
     "DefinePropertyGettersRuntimeModule" => {
       runtime_module.set_custom_source(
@@ -272,10 +275,10 @@ impl RstestPlugin {
 
     if let Some(dep) = data
       .dependencies
-      .first_mut()
-      .and_then(|dep| dep.downcast_mut::<MockModuleIdDependency>())
+      .first()
+      .and_then(|dep| dep.downcast_ref::<MockModuleIdDependency>())
     {
-      dep.set_request(resolved_request.clone());
+      data.dependencies[0] = DependencyRef::new(dep.with_request(resolved_request.clone()));
     }
     data.request = resolved_request;
 
@@ -283,7 +286,9 @@ impl RstestPlugin {
   }
 
   fn generate_define_property_getters_runtime_source(compilation: &Compilation) -> String {
-    let runtime_template = compilation.runtime_template.create_runtime_code_template();
+    let runtime_template = compilation
+      .runtime_template
+      .create_runtime_module_code_template();
     let define_property_getters =
       runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
     let has_own_property =
@@ -445,6 +450,7 @@ async fn nmf_parser(
         import_meta_path_name: self.options.import_meta_path_name,
         manual_mock_root: self.options.manual_mock_root.clone(),
         globals: self.options.globals,
+        inject_import_meta_rstest_origin: self.options.inject_import_meta_rstest_origin,
         inject_dynamic_import_origin,
         inject_require_resolve_origin,
         commonjs_magic_comments,
@@ -697,6 +703,7 @@ impl Plugin for RstestPlugin {
       .tap(compilation_stage_9999::new(self));
 
     if self.options.module_path_name
+      || self.options.inject_import_meta_rstest_origin
       || self.options.inject_dynamic_import_origin.is_some()
       || self.options.inject_require_resolve_origin.is_some()
     {

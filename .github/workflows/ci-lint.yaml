@@ -17,7 +17,7 @@ jobs:
     name: Lint and format
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm/setup
@@ -25,19 +25,13 @@ jobs:
       - name: Pnpm Install
         run: pnpm i
 
-      - name: Lint js
-        run: pnpm run lint-ci:js
-
-      - name: Prettier
-        run: pnpm run format-ci:js
-
-      - name: Check Dependency Version
-        run: pnpm run check-dependency-version
+      - name: Run Rstack checks
+        run: pnpm run lint:js
 
       - name: Website Spell Check
         run: pnpm --dir website run check:spell
 
       - name: Typos Check
-        uses: crate-ci/typos@37bb98842b0d8c4ffebdb75301a13db0267cef89 # v1.47.2
+        uses: crate-ci/typos@8a48f81b6c64dcfea44b3633223084c4be58ac5f # v1.49.0
         with:
           files: .

@@ -46,6 +46,10 @@ impl SRIHashVariableRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for SRIHashVariableRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   async fn generate(&self, context: &RuntimeModuleGenerateContext<'_>) -> Result<String> {
     let compilation = context.compilation;
     let Some(chunk) = self
@@ -77,20 +81,21 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
 
     let module_graph = compilation.get_module_graph();
 
-    let runtime_template = compilation.runtime_template.create_module_code_template();
+    let runtime_template = context.runtime_template;
+    let runtime_require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
     let source_types = vec![
       (
         SourceType::JavaScript,
-        get_hash_variable(&runtime_template, SourceType::JavaScript),
+        get_hash_variable(&runtime_require_name, SourceType::JavaScript),
       ),
       (
         SourceType::Css,
-        get_hash_variable(&runtime_template, SourceType::Css),
+        get_hash_variable(&runtime_require_name, SourceType::Css),
       ),
       (
         SourceType::Custom("css/mini-extract".into()),
         get_hash_variable(
-          &runtime_template,
+          &runtime_require_name,
           SourceType::Custom("css/mini-extract".into()),
         ),
       ),
@@ -106,7 +111,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
           .iter()
           .any(|m| {
             let result = compilation.code_generation_results.get_one(&m.identifier());
-            result.inner.values().any(|v| v.size() != 0)
+            result.sources().values().any(|v| v.size() != 0)
           })
       })
       .collect::<Vec<_>>();
@@ -193,7 +198,7 @@ pub async fn create_script(&self, mut data: CreateScriptData) -> Result<CreateSc
   let ctx = SubresourceIntegrityPlugin::get_compilation_sri_context(data.chunk.compilation_id);
   data.code = add_attribute(
     "script",
-    &get_hash_variable(&ctx.runtime_template, SourceType::JavaScript),
+    &get_hash_variable(&ctx.runtime_require_name, SourceType::JavaScript),
     &data.code,
     &ctx.cross_origin_loading,
   );
@@ -207,10 +212,14 @@ pub async fn create_link<'a>(
   mut data: CreateLinkData<'a>,
 ) -> Result<CreateLinkData<'a>> {
   let ctx = SubresourceIntegrityPlugin::get_compilation_sri_context(compilation.id());
+  let runtime_template = compilation
+    .runtime_template
+    .create_runtime_module_code_template();
+  let runtime_require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
   if data.code.contains("loadingAttribute") {
     data.code = add_attribute(
       "link",
-      &get_hash_variable(&ctx.runtime_template, SourceType::Css),
+      &get_hash_variable(&runtime_require_name, SourceType::Css),
       &data.code,
       &ctx.cross_origin_loading,
     );
@@ -218,7 +227,7 @@ pub async fn create_link<'a>(
     data.code = add_attribute(
       "linkTag",
       &get_hash_variable(
-        &ctx.runtime_template,
+        &runtime_require_name,
         SourceType::Custom("css/mini-extract".into()),
       ),
       &data.code,
@@ -236,16 +245,20 @@ pub async fn link_preload<'a>(
   mut data: LinkPreloadData<'a>,
 ) -> Result<LinkPreloadData<'a>> {
   let ctx = SubresourceIntegrityPlugin::get_compilation_sri_context(compilation.id());
+  let runtime_template = compilation
+    .runtime_template
+    .create_runtime_module_code_template();
+  let runtime_require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
   if data.code.contains(".as = \"style\"") {
     data.code = add_attribute(
       "link",
       (if data.code.contains(".miniCssF") {
         get_hash_variable(
-          &ctx.runtime_template,
+          &runtime_require_name,
           SourceType::Custom("css/mini-extract".into()),
         )
       } else {
-        get_hash_variable(&ctx.runtime_template, SourceType::Css)
+        get_hash_variable(&runtime_require_name, SourceType::Css)
       })
       .as_str(),
       &data.code,
@@ -254,7 +267,7 @@ pub async fn link_preload<'a>(
   } else {
     data.code = add_attribute(
       "link",
-      &get_hash_variable(&ctx.runtime_template, SourceType::JavaScript),
+      &get_hash_variable(&runtime_require_name, SourceType::JavaScript),
       &data.code,
       &ctx.cross_origin_loading,
     );

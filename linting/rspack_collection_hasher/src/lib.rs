@@ -217,6 +217,10 @@ impl<'tcx> LateLintPass<'tcx> for RspackCollectionHasher {
       return;
     };
 
+    if explicit_ctor_has_non_default_hasher(cx, expr) {
+      return;
+    }
+
     emit_lint(
       cx,
       expr.span,
@@ -230,6 +234,23 @@ impl<'tcx> LateLintPass<'tcx> for RspackCollectionHasher {
       },
     );
   }
+}
+
+fn explicit_ctor_has_non_default_hasher(cx: &LateContext<'_>, expr: &Expr<'_>) -> bool {
+  let ExprKind::Call(callee, args) = expr.kind else {
+    return false;
+  };
+  let Some(path) = callee_def_path(cx, callee) else {
+    return false;
+  };
+
+  if !(path.ends_with("::with_hasher") || path.ends_with("::with_capacity_and_hasher")) {
+    return false;
+  }
+
+  args
+    .last()
+    .is_some_and(|hasher| !is_rust_default_hasher(cx, cx.typeck_results().expr_ty(hasher)))
 }
 
 fn emit_lint(cx: &LateContext<'_>, span: Span, collection_name: &str, violation: &Violation) {

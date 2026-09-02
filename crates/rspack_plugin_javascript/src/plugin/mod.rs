@@ -28,9 +28,9 @@ pub use mangle_exports_plugin::*;
 pub use module_concatenation_plugin::*;
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, IdentifierMap};
 use rspack_core::{
-  ChunkCodeTemplate, ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
+  ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
-  ExportsArgument, Module, RuntimeGlobals, RuntimeVariable, SourceType,
+  ExportsArgument, Module, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable, SourceType,
   concatenated_module::{collect_ident, find_new_name},
   render_init_fragments,
   reserved_names::RESERVED_NAMES_ATOM_SET,
@@ -134,24 +134,19 @@ impl JsPlugin {
   pub fn render_require<'me>(
     chunk_ukey: &ChunkUkey,
     compilation: &'me Compilation,
-    runtime_template: &ChunkCodeTemplate,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> Vec<Cow<'me, str>> {
-    if compilation
-      .options
-      .experiments
-      .runtime_mode
-      .uses_runtime_context()
-    {
-      return Self::render_rspack_require(chunk_ukey, compilation, runtime_template);
+    if runtime_template.render_mode().is_legacy() {
+      Self::render_webpack_require(chunk_ukey, compilation, runtime_template)
+    } else {
+      Self::render_rspack_require(chunk_ukey, compilation, runtime_template)
     }
-
-    Self::render_webpack_require(chunk_ukey, compilation, runtime_template)
   }
 
   pub fn render_webpack_require<'me>(
     chunk_ukey: &ChunkUkey,
     compilation: &'me Compilation,
-    runtime_template: &ChunkCodeTemplate,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> Vec<Cow<'me, str>> {
     let runtime_requirements = compilation
       .cgc_runtime_requirements_artifact
@@ -258,24 +253,19 @@ var module = ({module_cache}[moduleId] = {{"#,
   pub async fn render_bootstrap<'me>(
     chunk_ukey: &ChunkUkey,
     compilation: &'me Compilation,
-    runtime_template: &ChunkCodeTemplate,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> Result<RenderBootstrapResult<'me>> {
-    if compilation
-      .options
-      .experiments
-      .runtime_mode
-      .uses_runtime_context()
-    {
-      return Self::render_rspack_bootstrap(chunk_ukey, compilation, runtime_template).await;
+    if runtime_template.render_mode().is_legacy() {
+      Self::render_webpack_bootstrap(chunk_ukey, compilation, runtime_template).await
+    } else {
+      Self::render_rspack_bootstrap(chunk_ukey, compilation, runtime_template).await
     }
-
-    Self::render_webpack_bootstrap(chunk_ukey, compilation, runtime_template).await
   }
 
   pub async fn render_webpack_bootstrap<'me>(
     chunk_ukey: &ChunkUkey,
     compilation: &'me Compilation,
-    runtime_template: &ChunkCodeTemplate,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> Result<RenderBootstrapResult<'me>> {
     let runtime_requirements = compilation
       .cgc_runtime_requirements_artifact
@@ -489,7 +479,7 @@ var {} = {{}};
               .get(module, Some(chunk.runtime()));
             let module_graph = compilation.get_module_graph();
             let top_level_decls = codegen
-              .data
+              .data()
               .get::<CodeGenerationDataTopLevelDeclarations>()
               .map(|d| d.inner())
               .or_else(|| {
@@ -711,22 +701,17 @@ var {} = {{}};
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
     output_path: &str,
-    runtime_template: &ChunkCodeTemplate,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> Result<BoxSource> {
-    if compilation
-      .options
-      .experiments
-      .runtime_mode
-      .uses_runtime_context()
-    {
-      return self
+    if runtime_template.render_mode().is_legacy() {
+      self
+        .render_webpack_main(compilation, chunk_ukey, output_path, runtime_template)
+        .await
+    } else {
+      self
         .render_rspack_main(compilation, chunk_ukey, output_path, runtime_template)
-        .await;
+        .await
     }
-
-    self
-      .render_webpack_main(compilation, chunk_ukey, output_path, runtime_template)
-      .await
   }
 
   pub async fn render_webpack_main(
@@ -734,7 +719,7 @@ var {} = {{}};
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
     output_path: &str,
-    runtime_template: &ChunkCodeTemplate,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> Result<BoxSource> {
     let js_plugin_hooks = Self::get_compilation_hooks(compilation.id());
     let hooks = js_plugin_hooks
@@ -890,15 +875,17 @@ var {} = {{}};
         let m = module_graph
           .module_by_identifier(m_identifier)
           .expect("should have module");
-        let Some((mut rendered_module, fragments, additional_fragments)) = render_module(
+        let Some((mut rendered_module, fragments)) = render_module(
           compilation,
           chunk_ukey,
           m.as_ref(),
           all_strict,
           false,
+          true,
           output_path,
           &hooks,
           runtime_template,
+          None,
         )
         .await?
         else {
@@ -911,9 +898,7 @@ var {} = {{}};
         {
           rendered_module = source.clone();
         };
-
         chunk_init_fragments.extend(fragments);
-        chunk_init_fragments.extend(additional_fragments);
         let inner_strict = !all_strict && m.build_info().strict;
         let module_runtime_requirements =
           ChunkGraph::get_module_runtime_requirements(compilation, *m_identifier, chunk.runtime());
@@ -1033,8 +1018,20 @@ var {} = {{}};
     if iife {
       sources.add(RawStringSource::from_static("})()\n"));
     }
+    let mut render_source = RenderSource {
+      source: sources.boxed(),
+    };
+    hooks
+      .render_content
+      .call(
+        compilation,
+        chunk_ukey,
+        &mut render_source,
+        runtime_template,
+      )
+      .await?;
     let final_source = render_init_fragments(
-      sources.boxed(),
+      render_source.source,
       chunk_init_fragments,
       &mut ChunkRenderContext {},
     )?;
@@ -1072,7 +1069,7 @@ var {} = {{}};
     has_chunk_modules_result: bool,
     output_path: &str,
     hooks: &JavascriptModulesPluginHooks,
-    runtime_template: &ChunkCodeTemplate,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> Result<Option<IdentifierMap<Arc<dyn Source>>>> {
     let inner_strict = !all_strict && all_modules.iter().all(|m| m.build_info().strict);
     let is_multiple_entries = inlined_modules.len() > 1;
@@ -1120,9 +1117,11 @@ var {} = {{}};
               *module,
               all_strict,
               false,
+              true,
               output_path,
               hooks,
               runtime_template,
+              None,
             )
             .await
           },
@@ -1412,7 +1411,7 @@ var {} = {{}};
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
     output_path: &str,
-    runtime_template: &ChunkCodeTemplate,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> Result<BoxSource> {
     let js_plugin_hooks = Self::get_compilation_hooks(compilation.id());
     let hooks = js_plugin_hooks
@@ -1456,6 +1455,15 @@ var {} = {{}};
     };
     hooks
       .render_chunk
+      .call(
+        compilation,
+        chunk_ukey,
+        &mut render_source,
+        runtime_template,
+      )
+      .await?;
+    hooks
+      .render_content
       .call(
         compilation,
         chunk_ukey,

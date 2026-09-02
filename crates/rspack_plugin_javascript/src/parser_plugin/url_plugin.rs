@@ -1,6 +1,8 @@
+use std::sync::Arc;
+
 use rspack_core::{
-  ContextDependency, ContextMode, ContextOptions, DependencyCategory, JavascriptParserUrl,
-  RuntimeGlobals, RuntimeRequirementsDependency,
+  BoxDependency, ContextDependency, ContextMode, ContextOptions, DependencyCategory,
+  JavascriptParserUrl, RuntimeGlobals, RuntimeRequirementsDependency, get_context,
 };
 use rspack_util::SpanExt;
 use swc_atoms::Atom;
@@ -97,6 +99,7 @@ pub fn get_url_request(
 
 pub struct URLPlugin {
   pub mode: Option<JavascriptParserUrl>,
+  pub import_meta_url_enabled: bool,
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
@@ -121,7 +124,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
     let magic_comment_options = try_extract_magic_comment(parser, expr.span, arg.span());
     match magic_comment_options.get_ignore_value() {
       Some(MagicCommentValue::Bool(true)) => {
-        if args.len() != 2 {
+        if args.len() != 2 || !self.import_meta_url_enabled {
           return None;
         }
         let arg2 = args.get(1)?;
@@ -134,7 +137,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
         {
           return None;
         }
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
           arg2.span().into(),
           RuntimeGlobals::BASE_URI,
         )));
@@ -170,7 +173,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
         self.mode,
       );
       let dep_idx = parser.next_dependency_idx();
-      parser.add_dependency(Box::new(dep));
+      parser.add_dependency(BoxDependency::new(dep));
       InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::URLDependency(dep_idx));
       return Some(true);
     }
@@ -192,6 +195,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
 
     let param = parser.evaluate_expression(&arg.expr);
     let result = create_context_dependency(&param, parser);
+    let request = result.request();
     let options = ContextOptions {
       mode: ContextMode::Sync,
       recursive: true,
@@ -199,22 +203,23 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
       include: magic_comment_options.get_include(),
       exclude: magic_comment_options.get_exclude(),
       category: DependencyCategory::Url,
-      request: format!("{}{}{}", result.context, result.query, result.fragment),
-      context: result.context,
+      request,
+      context: get_context(parser.resource_data).to_string(),
+      compiler_context: parser.compiler_options.context.clone(),
       replaces: result.replaces,
       start: expr.span().real_lo(),
       end: expr.span().real_hi(),
       ..Default::default()
     };
 
-    let mut dep = URLContextDependency::new(
+    let dep = URLContextDependency::new(
       options,
       expr.span().into(),
       param.range().into(),
       parser.in_try,
     );
-    *dep.critical_mut() = result.critical;
-    parser.add_dependency(Box::new(dep));
+    dep.set_critical(result.critical);
+    parser.add_dependency(BoxDependency::new(dep));
 
     Some(true)
   }

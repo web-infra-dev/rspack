@@ -2,11 +2,9 @@
 description: 'This section covers all variables available in code compiled with Rspack'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import Columns from '@components/Columns';
 import { ApiMeta, Stability } from '@components/ApiMeta';
-
-<WebpackLicense from="https://webpack.js.org/api/module-variables/" />
 
 # Module variables
 
@@ -236,6 +234,12 @@ interface ImportMetaGlobOptions<Eager extends boolean = boolean> {
    * Base path for resolving relative glob patterns and returned keys.
    */
   base?: string;
+  /**
+   * Match file paths case-sensitively.
+   *
+   * @default true
+   */
+  caseSensitive?: boolean;
 }
 
 function glob(
@@ -262,6 +266,7 @@ function glob(
   - `options.query`: Append a query to each matched module request. It can be a query string such as `'?raw'`, or an object that is serialized as a URL query string. The keys returned from `import.meta.glob()` do not include the query.
   - `options.exhaustive`: Search files inside `node_modules` and hidden paths. This is disabled by default because it can increase build time.
   - `options.base`: Base path for resolving relative glob patterns and returned keys. Absolute glob patterns are still resolved from the project root, while returned keys are made relative to `base`.
+  - `options.caseSensitive`: Whether to match file paths case-sensitively. When set to `false`, matching ignores case, while returned object keys preserve the filesystem's original casing. Defaults to `true`.
 
 - **Example:**
 
@@ -612,7 +617,7 @@ import.meta.rspackUniqueId;
 __webpack_require__.ruid;
 
 // webpack/runtime/rspack_unique_id
-__webpack_require__.ruid = 'bundler=rspack@0.7.4';
+__webpack_require__.ruid = 'bundler=rspack@2.1.2';
 ```
 
 </Columns>
@@ -725,6 +730,25 @@ __webpack_module__.id
 
 </Columns>
 
+### \_\_webpack_layer\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+Access the [layer](/guide/advanced/layer) of the current module. Its value is the configured layer name, or `null` when the module has no layer.
+
+Rspack replaces `__webpack_layer__` at compile time, allowing optimizers to remove unreachable layer-specific branches.
+
+<Columns>
+```js title=Source
+const currentLayer = __webpack_layer__;
+```
+
+```js title=Compiled
+const currentLayer = 'client';
+```
+
+</Columns>
+
 ### \_\_webpack_require\_\_
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
@@ -810,7 +834,7 @@ __resourceQuery
 
 ### \_\_webpack_exports_info\_\_
 
-<ApiMeta addedVersion="1.0.0" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 In modules, `__webpack_exports_info__` is available to allow exports introspection:
 
@@ -914,7 +938,7 @@ import('./module-a').then((moduleA) => {
 
 ### \_\_webpack_get_script_filename\_\_
 
-<ApiMeta addedVersion="1.0.0" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 It provides filename of the chunk by its id.
 
@@ -977,10 +1001,8 @@ The CommonJS equivalent of [`import.meta.rspackVersion`](#importmetarspackversio
 
 ### \_\_rspack_unique_id\_\_
 
-<ApiMeta
-  addedVersion="1.0.0"
-  specific={['Rspack']}
-  stability={Stability.Deprecated}
-/>
+<ApiMeta specific={['Rspack']} stability={Stability.Deprecated} />
 
 The CommonJS equivalent of [`import.meta.rspackUniqueId`](#importmetarspackuniqueid).
+
+<Attribution url="https://webpack.js.org/api/module-variables/" />

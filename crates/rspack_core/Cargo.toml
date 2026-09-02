@@ -24,8 +24,10 @@ heck                       = { workspace = true }
 hex                        = { workspace = true }
 indexmap                   = { workspace = true, features = ["rayon"] }
 indoc                      = { workspace = true }
+inventory                  = { workspace = true }
 itertools                  = { workspace = true }
 json                       = { workspace = true }
+memchr                     = { workspace = true }
 mime_guess                 = { workspace = true }
 napi                       = { workspace = true, optional = true }
 num-bigint                 = { workspace = true }
@@ -47,7 +49,7 @@ rspack_location            = { workspace = true }
 rspack_macros              = { workspace = true }
 rspack_napi                = { workspace = true, optional = true }
 rspack_parallel            = { workspace = true }
-rspack_paths               = { workspace = true }
+rspack_paths               = { workspace = true, features = ["cacheable"] }
 rspack_regex               = { workspace = true }
 rspack_resolver            = { workspace = true }
 rspack_sources             = { workspace = true }
@@ -65,8 +67,10 @@ smallvec                   = { workspace = true }
 smol_str                   = { workspace = true }
 sugar_path                 = { workspace = true }
 swc_core                   = { workspace = true, features = ["__ecma", "__visit", "__utils", "__ecma_transforms", "ecma_ast", "ecma_parser", "ecma_codegen", "ecma_quote", "common_concurrent", "swc_ecma_ast", "ecma_transforms_react", "ecma_transforms_module", "swc_ecma_codegen", "swc_ecma_visit"] }
-tokio                      = { workspace = true, features = ["rt", "macros"] }
+tokio                      = { workspace = true, features = ["rt", "macros", "sync", "time"] }
 tracing                    = { workspace = true }
+triomphe                   = { workspace = true }
+unsize                     = { workspace = true }
 urlencoding                = { workspace = true }
 ustr                       = { workspace = true }
 winnow                     = { workspace = true }
@@ -75,6 +79,9 @@ swc_experimental_allocator     = { workspace = true }
 swc_experimental_ecma_ast      = { workspace = true }
 swc_experimental_ecma_parser   = { workspace = true }
 swc_experimental_ecma_semantic = { workspace = true }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+turbo-persistence = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }

@@ -2,7 +2,7 @@
 description: 'The Compilation object is one of the core objects used in the Rspack build process'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import AssetInfoType from '../../types/asset-info.mdx';
 import SourceType from '../../types/source.mdx';
 import ChunkGroupType from '../../types/chunk-group.mdx';
@@ -15,12 +15,10 @@ import StatsType from '../../types/stats.mdx';
 import LoggerType from '../../types/logger.mdx';
 import CacheType from '../../types/cache.mdx';
 import CompilerType from '../../types/compiler.mdx';
+import RuntimeTemplateType from '../../types/runtime-template.mdx';
 import RspackErrorType from '../../types/rspack-error.mdx';
 import CompilationDependenciesType from '../../types/compilation-dependencies.mdx';
 import { Collapse, CollapsePanel } from '@components/Collapse';
-import { ApiMeta } from '@components/ApiMeta';
-
-<WebpackLicense from="https://webpack.js.org/api/compilation-object/" />
 
 # Compilation
 
@@ -110,7 +108,7 @@ updateAsset(
   source: Source | ((source: Source) => Source), // the new content or a function returns the new content
   info?:  // the new info or a function returns the new info
     | AssetInfo
-    | ((assetInfo: AssetInfo) => AssetInfo)
+    | ((assetInfo: AssetInfo) => AssetInfo | undefined)
 ): void;
 ```
 
@@ -192,7 +190,7 @@ Get the list of asset objects.
 
 ```ts
 getAssets(): ReadonlyArray<{
-  filename: string;
+  name: string;
   source: Source;
   info: AssetInfo;
 }>;
@@ -236,9 +234,9 @@ Get the asset object with the specified name.
 
 ```ts
 getAsset(
-  filename: string // filename of the getting asset
+  name: string // name of the asset
 ): Readonly<{
-  filename: string;
+  name: string;
   source: Source;
   info: AssetInfo;
 }> | void;
@@ -435,8 +433,6 @@ compiler.hooks.make.tap('MyPlugin', (compilation) => {
 
 ### addRuntimeModule
 
-<ApiMeta addedVersion="1.0.6" />
-
 Add a custom runtime module to the compilation.
 
 ```ts
@@ -584,6 +580,42 @@ getCache(name: string): CacheFacade;
 **Type**: `RspackOptionsNormalized`
 
 The normalized options used by this Compilation, see [Configure Rspack](/config/) for details.
+
+### runtimeTemplate
+
+**Type**: `RuntimeTemplate`
+
+Helpers that generate runtime code matching the capabilities of the targeted environment, as
+declared by [`output.environment`](/config/output#outputenvironment). Use them instead of
+hand-written snippets so that generated code stays valid for older targets.
+
+```js
+class MyPlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
+      const { runtimeTemplate } = compilation;
+
+      // `() => (globalThis)` when arrow functions are supported,
+      // `function() { return globalThis; }` otherwise
+      runtimeTemplate.returningFunction('globalThis');
+
+      // `(a) => {\n\tconsole.log(a);\n}` when arrow functions are supported,
+      // `function(a) {\n\tconsole.log(a);\n}` otherwise
+      runtimeTemplate.basicFunction('a', 'console.log(a);');
+    });
+  }
+}
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="RuntimeTemplate.ts"
+    key="RuntimeTemplate"
+  >
+    <RuntimeTemplateType />
+  </CollapsePanel>
+</Collapse>
 
 ### compiler
 
@@ -826,3 +858,5 @@ List of emitted warnings during this compilation.
     <RspackErrorType />
   </CollapsePanel>
 </Collapse>
+
+<Attribution url="https://webpack.js.org/api/compilation-object/" />

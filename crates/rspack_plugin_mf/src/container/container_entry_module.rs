@@ -5,13 +5,15 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions, CodeGenerationResult,
-  CodeGenerationRuntimeRequirementsWrite, Compilation, Context, DependenciesBlock, Dependency,
-  DependencyId, DependencyType, ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions,
-  Module, ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions,
+  CodeGenerationDataItem, CodeGenerationResultBuilder, CodeGenerationRuntimeRequirementsWrite,
+  Compilation, Context, DependenciesBlock, Dependency, DependencyId, DependencyType,
+  ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext,
+  ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
+  RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
+  runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
@@ -23,7 +25,7 @@ use super::{
 };
 use crate::{
   ShareScope,
-  utils::{json_stringify, module_require_scope_name},
+  utils::{json_stringify, module_identifier_namespace, module_require_scope_name},
 };
 
 #[impl_source_map_config]
@@ -52,8 +54,10 @@ impl ContainerEntryModule {
     exposes: Vec<(String, ExposeOptions)>,
     share_scope: ShareScope,
     enhanced: bool,
+    runtime_mode: RuntimeMode,
   ) -> Self {
-    let lib_ident = format!("webpack/container/entry/{}", &name);
+    let namespace = module_identifier_namespace(runtime_mode);
+    let lib_ident = format!("{namespace}/container/entry/{name}");
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
@@ -81,8 +85,14 @@ impl ContainerEntryModule {
     }
   }
 
-  pub fn new_share_container_entry(name: String, request: String, version: String) -> Self {
-    let lib_ident = format!("webpack/share/container/{}", &name);
+  pub fn new_share_container_entry(
+    name: String,
+    request: String,
+    version: String,
+    runtime_mode: RuntimeMode,
+  ) -> Self {
+    let namespace = module_identifier_namespace(runtime_mode);
+    let lib_ident = format!("{namespace}/share/container/{name}");
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
@@ -190,13 +200,13 @@ impl Module for ContainerEntryModule {
 
     if self.dependency_type == DependencyType::ShareContainerEntry {
       // Shared Container logic
-      dependencies.push(Box::new(StaticExportsDependency::new(
+      dependencies.push(BoxDependency::new(StaticExportsDependency::new(
         StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
         false,
       )));
       if let Some(request) = &self.request {
         let dep = ContainerExposedDependency::new_shared_fallback(request.clone());
-        dependencies.push(Box::new(dep));
+        dependencies.push(BoxDependency::new(dep));
       }
     } else {
       // Container logic
@@ -209,10 +219,10 @@ impl Module for ContainerEntryModule {
             .import
             .iter()
             .map(|request| {
-              Box::new(ContainerExposedDependency::new(
+              BoxDependency::new(ContainerExposedDependency::new(
                 name.clone(),
                 request.clone(),
-              )) as Box<dyn Dependency>
+              ))
             })
             .collect(),
           None,
@@ -222,7 +232,7 @@ impl Module for ContainerEntryModule {
         ));
         blocks.push(Box::new(block));
       }
-      dependencies.push(Box::new(StaticExportsDependency::new(
+      dependencies.push(BoxDependency::new(StaticExportsDependency::new(
         StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
         false,
       )));
@@ -243,14 +253,14 @@ impl Module for ContainerEntryModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime_template,
       ..
     } = code_generation_context;
 
-    let mut code_generation_result = CodeGenerationResult::default();
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
     let require_name = module_require_scope_name(compilation, runtime_template);
     let runtime_argument = require_name.clone();
 
@@ -324,8 +334,10 @@ impl Module for ContainerEntryModule {
       );
 
       // Update the code generation result with the generated source
-      code_generation_result =
-        code_generation_result.with_javascript(RawStringSource::from(source).boxed());
+      code_generation_result.add(
+        SourceType::JavaScript,
+        RawStringSource::from(source).boxed(),
+      );
       code_generation_result.add(SourceType::Expose, RawStringSource::from_static("").boxed());
       return Ok(code_generation_result);
     }
@@ -357,17 +369,32 @@ impl Module for ContainerEntryModule {
         runtime_template.returning_function(&init_container, ""),
       )
     } else {
+      let current_remote_get_scope =
+        runtime_template.render_runtime_globals(&RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE);
+      let current_remote_get_scope_setter =
+        (runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport).then(|| {
+          RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE
+            .to_rspack_export_setter_name()
+            .expect("current remote get scope should have an export setter")
+        });
+      let render_current_remote_get_scope_assignment = |value: &str| {
+        if let Some(setter) = &current_remote_get_scope_setter {
+          format!("{setter}({value});")
+        } else {
+          format!("{current_remote_get_scope} = {value};")
+        }
+      };
       format!(
         r#"
 var moduleMap = {module_map_str};
 var get = function(module, getScope) {{
-  {current_remote_get_scope} = getScope;
+  {set_current_remote_get_scope}
   getScope = (
     {has_own_property}(moduleMap, module)
       ? moduleMap[module]()
       : Promise.resolve().then({get_scope_reject})
   );
-  {current_remote_get_scope} = undefined;
+  {clear_current_remote_get_scope}
   return getScope;
 }}
 var init = function(shareScope, initScope) {{
@@ -383,8 +410,8 @@ var init = function(shareScope, initScope) {{
 	init: {export_init}
 }});"#,
         exports = runtime_template.render_exports_argument(ExportsArgument::Exports),
-        current_remote_get_scope =
-          runtime_template.render_runtime_globals(&RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE),
+        set_current_remote_get_scope = render_current_remote_get_scope_assignment("getScope"),
+        clear_current_remote_get_scope = render_current_remote_get_scope_assignment("undefined"),
         has_own_property =
           runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
         share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
@@ -406,19 +433,21 @@ var init = function(shareScope, initScope) {{
         export_init = runtime_template.returning_function("init", ""),
       )
     };
-    code_generation_result =
-      code_generation_result.with_javascript(RawStringSource::from(source).boxed());
+    code_generation_result.add(
+      SourceType::JavaScript,
+      RawStringSource::from(source).boxed(),
+    );
     code_generation_result.add(SourceType::Expose, RawStringSource::from_static("").boxed());
     if !self.enhanced {
       code_generation_result
-        .data
+        .data_mut()
         .insert(CodeGenerationRuntimeRequirementsWrite {
           runtime_requirements: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
         });
     }
     if self.enhanced {
       code_generation_result
-        .data
+        .data_mut()
         .insert(CodeGenerationDataExpose {
           module_map,
           module_map_runtime_requirements,
@@ -441,6 +470,7 @@ var init = function(shareScope, initScope) {{
 
 impl_empty_diagnosable_trait!(ContainerEntryModule);
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ExposeModuleMap(Vec<(String, String)>);
 
@@ -515,9 +545,13 @@ impl ExposeModuleMap {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataExpose {
   pub module_map: ExposeModuleMap,
   pub module_map_runtime_requirements: RuntimeGlobals,
   pub share_scope: ShareScope,
 }
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataExpose {}

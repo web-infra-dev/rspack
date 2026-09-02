@@ -4,6 +4,7 @@
 export type ResolveData = {
   contextInfo: {
     issuer: string;
+    issuerLayer?: string;
   };
   context: string;
   request: string;
@@ -11,9 +12,9 @@ export type ResolveData = {
   missingDependencies: string[];
   contextDependencies: string[];
   createData?: {
-    request?: string;
-    userRequest?: string;
-    resource?: string;
+    request: string;
+    userRequest: string;
+    resource: string;
   };
 };
 ```

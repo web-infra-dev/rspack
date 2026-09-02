@@ -2,15 +2,13 @@
 description: 'Rspack JavaScript API overview covering compiler creation, watch mode, stats access, and programmatic build workflows.'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 import { Tab, Tabs, PackageManagerTabs } from '@theme';
 import { Stability } from '@components/ApiMeta';
 import CompilerType from '../../types/compiler.mdx';
 import WatchingType from '../../types/watching.mdx';
 import StatsType from '../../types/stats.mdx';
-
-<WebpackLicense from="https://webpack.js.org/api/node/" />
 
 # JavaScript API
 
@@ -21,6 +19,9 @@ The JavaScript API is useful in scenarios in which you need to customize the bui
 :::tip
 `@rspack/core` is designed to align with webpack's JavaScript API to ensure functional consistency and a similar user experience.
 :::
+
+Rspack's JavaScript API differs from webpack's in its lifecycle and performance characteristics.
+See [JavaScript API architecture](/api/javascript-api/architecture).
 
 ## Installation
 
@@ -290,3 +291,5 @@ const source = new RawSource('console.log("Hello, world!");');
 ```
 
 For detailed usage, please refer to the [webpack-sources](https://github.com/webpack/webpack-sources) documentation.
+
+<Attribution url="https://webpack.js.org/api/node/" />

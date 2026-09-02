@@ -12,6 +12,7 @@ import type Hash from '../util/hash';
 import { parseResource } from '../util/identifier';
 import type { RspackOptionsNormalized } from './normalization';
 import type {
+  Environment,
   Mode,
   PublicPath,
   Resolve,
@@ -119,6 +120,10 @@ export interface Diagnostic {
 }
 
 export interface LoaderExperiments {
+  /**
+   * Emit an error or warning diagnostic without marking the current module as a compilation
+   * failure.
+   */
   emitDiagnostic(diagnostic: Diagnostic): void;
 }
 
@@ -151,7 +156,7 @@ export interface LoaderContext<OptionsType = {}> {
   resource: string;
   /**
    * The path string of the current module, excluding the query and fragment parameters.
-   * @example `'/abc/resource.js?query#hash'` in `'/abc/resource.js'`.
+   * @example `'/abc/resource.js'` in `'/abc/resource.js?query#hash'`.
    */
   resourcePath: string;
   /**
@@ -169,22 +174,23 @@ export interface LoaderContext<OptionsType = {}> {
    */
   async(): LoaderContextCallback;
   /**
-   * A function that can be called synchronously or asynchronously in order to return multiple
-   * results. The expected arguments are:
+   * A function that can be called synchronously or asynchronously to return multiple results.
+   * The expected arguments are:
    *
-   * 1. The first parameter must be `Error` or `null`, which marks the current module as a
-   * compilation failure.
-   * 2. The second argument is a `string` or `Buffer`, which indicates the contents of the file
-   * after the module has been processed by the loader.
-   * 3. The third parameter is a source map that can be processed by the loader.
-   * 4. The fourth parameter is ignored by Rspack and can be anything (e.g. some metadata).
+   * 1. The first parameter is an `Error` when the loader fails, or `null` or `undefined` when it
+   * succeeds.
+   * 2. The second parameter is the transformed content as a `string` or `Buffer`. It can be
+   * omitted when reporting an error.
+   * 3. The third parameter is an optional source map as a `string` or `RawSourceMap`.
+   * 4. The fourth parameter is optional additional data. Rspack passes it as the third argument
+   * to the next loader in the chain.
    */
   callback: LoaderContextCallback;
   /**
-   * A function that sets the cacheable flag.
-   * By default, the processing results of the loader are marked as cacheable.
-   * Calling this method and passing `false` turns off the loader's ability to
-   * cache processing results.
+   * By default, the final build result produced for the current module by the entire loader chain
+   * is cacheable. Passing `false` marks that result as non-cacheable. Calls from subsequent loaders
+   * with `true` or no argument do not make it cacheable again; only `this.clearDependencies()`
+   * resets this state.
    */
   cacheable(cacheable?: boolean): void;
   /**
@@ -201,49 +207,56 @@ export interface LoaderContext<OptionsType = {}> {
    * location of each processed module.
    * For example, if the loader is processing `/project/src/components/Button.js`,
    * then the value of `this.context` would be `/project/src/components`.
+   * The value is `null` when the current module has no resource path.
    */
   context: string | null;
   /**
    * The index in the loaders array of the current loader.
    */
   loaderIndex: number;
+  /**
+   * A request string consisting of the loaders that follow the current loader
+   * in the chain and the current resource, joined with `!`.
+   */
   remainingRequest: string;
+  /**
+   * A request string consisting of the current loader, the loaders that follow it, and the current
+   * resource, joined with `!`.
+   */
   currentRequest: string;
+  /**
+   * A request string consisting of the loaders that precede the current loader, joined with `!`.
+   * It does not include the current resource.
+   */
   previousRequest: string;
   /**
-   * The module specifier string after being resolved.
-   * For example, if a `resource.js` is processed by `loader1.js` and `loader2.js`, the value of
-   * `this.request` will be `/path/to/loader1.js!/path/to/loader2.js!/path/to/resource.js`.
+   * The complete request string, consisting of all loaders and the current resource joined with
+   * `!`. For example, if a `resource.js` is processed by `loader1.js` and `loader2.js`, the value
+   * is `/path/to/loader1.js!/path/to/loader2.js!/path/to/resource.js`.
    */
   request: string;
   /**
-   * An array of all the loaders. It is writable in the pitch phase.
-   * loaders = [{request: string, path: string, query: string, module: function}]
-   *
-   * In the example:
-   * [
-   *   { request: "/abc/loader1.js?xyz",
-   *     path: "/abc/loader1.js",
-   *     query: "?xyz",
-   *     module: [Function]
-   *   },
-   *   { request: "/abc/node_modules/loader2/index.js",
-   *     path: "/abc/node_modules/loader2/index.js",
-   *     query: "",
-   *     module: [Function]
-   *   }
-   * ]
+   * An array containing all loaders applied to the current module. Each item
+   * provides information such as the resolved request, path, query, and
+   * options. The array can be modified during the pitch phase to adjust the
+   * loader chain.
    */
   loaders: LoaderObject[];
   /**
-   * The value of `mode` is read when Rspack is run.
-   * The possible values are: `'production'`, `'development'`, `'none'`
+   * The value of the `mode` configuration. It is `undefined` when `mode` is not configured, even
+   * though Rspack applies production-oriented defaults in that case.
    */
   mode?: Mode;
   /**
-   * The current compilation target. Passed from `target` configuration options.
+   * A loader-facing target derived from the `target` configuration.
    */
   target?: Target;
+  /**
+   * Describes the capabilities supported by the target environment. By default, this is the
+   * effective value of `output.environment`: Rspack infers capabilities from `target`, then
+   * applies the explicit settings from `output.environment`.
+   */
+  environment: Environment;
   /**
    * Whether HMR is enabled.
    */
@@ -251,7 +264,7 @@ export interface LoaderContext<OptionsType = {}> {
   /**
    * Get the options passed in by the loader's user.
    * @param schema To provide the best performance, Rspack does not perform the schema
-   * validation. If your loader requires schema validation, please call scheme-utils or
+   * validation. If your loader requires schema validation, please call schema-utils or
    * zod on your own.
    */
   getOptions(schema?: any): OptionsType;
@@ -260,36 +273,28 @@ export interface LoaderContext<OptionsType = {}> {
    * @param context The absolute path to a directory. This directory is used as the starting
    * location for resolving.
    * @param request The module specifier to be resolved.
-   * @param callback A callback function that gives the resolved path.
+   * @param callback Receives an error, the resolved path or `false`, and optional resolution
+   * details.
    */
-  resolve(
-    context: string,
-    request: string,
-    callback: (
-      arg0: null | Error,
-      arg1?: string | false,
-      arg2?: ResolveRequest,
-    ) => void,
-  ): void;
+  resolve(context: string, request: string, callback: ResolveCallback): void;
   /**
-   * Create a resolver like `this.resolve`.
+   * Create a resolver like `this.resolve`. When the returned resolver is called without a
+   * callback, it returns a Promise.
+   * @param options Optional options used to customize the resolver.
    */
   getResolve(
-    options: Resolve,
-  ):
-    | ((context: string, request: string, callback: ResolveCallback) => void)
-    | ((
-        context: string,
-        request: string,
-      ) => Promise<string | false | undefined>);
+    options?: Resolve,
+  ): ((context: string, request: string, callback: ResolveCallback) => void) &
+    ((context: string, request: string) => Promise<string | false | undefined>);
   /**
    * Get the logger of this compilation, through which messages can be logged.
+   * @param name An optional name for the logger.
    */
-  getLogger(name: string): Logger;
+  getLogger(name?: string): Logger;
   /**
-   * Emit an error. Unlike `throw` and `this.callback(err)` in the loader, it does not
-   * mark the current module as a compilation failure, it just adds an error to Rspack's
-   * Compilation and displays it on the command line at the end of this compilation.
+   * Emit an error. Unlike `throw` and `this.callback(err)` in the loader, it does not mark the
+   * current module as a compilation failure. It adds an error to Rspack's Compilation and displays
+   * it on the command line at the end of this compilation.
    */
   emitError(error: Error): void;
   /**
@@ -327,12 +332,28 @@ export interface LoaderContext<OptionsType = {}> {
    */
   addMissingDependency(missing: string): void;
   /**
-   * Removes all dependencies of the loader result.
+   * Clears all file, context, and missing dependencies collected by the loader chain. Build
+   * dependencies are not cleared. This also resets `cacheable` to `true`, overriding any earlier
+   * call to `this.cacheable(false)`. Only use this method when the current loader will register
+   * every dependency required by the final result.
    */
   clearDependencies(): void;
+  /**
+   * Get a copy of all files the loader currently watches as dependencies.
+   */
   getDependencies(): string[];
+  /**
+   * Get a copy of all directories the loader currently watches as context dependencies.
+   */
   getContextDependencies(): string[];
+  /**
+   * Get a copy of all paths to files that the loader is watching but that do not exist yet.
+   */
   getMissingDependencies(): string[];
+  /**
+   * Add a file as a build dependency of the loader result.
+   * Build dependencies invalidate the persistent cache when they change.
+   */
   addBuildDependency(file: string): void;
   /**
    * Compile and execute a module at the build time.
@@ -514,9 +535,11 @@ function createRawModuleRuleUsesImpl(
 
   return uses.filter(Boolean).map((use, index) => {
     let o: string | undefined;
+    let fingerprintOptions = use.options;
     let isBuiltin = false;
     if (use.loader.startsWith(BUILTIN_LOADER_PREFIX)) {
       const temp = getBuiltinLoaderOptions(use.loader, use.options, options);
+      fingerprintOptions = temp;
       // keep json with indent so miette can show pretty error
       o = isNil(temp)
         ? undefined
@@ -534,6 +557,10 @@ function createRawModuleRuleUsesImpl(
         isBuiltin,
       ),
       options: o,
+      cache: use.cache ?? false,
+      optionsCacheKey: use.cache
+        ? (JSON.stringify(fingerprintOptions) ?? '')
+        : '',
     };
   });
 }

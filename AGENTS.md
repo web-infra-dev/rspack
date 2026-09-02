@@ -16,9 +16,14 @@ Rspack is a high-performance JavaScript bundler written in Rust that offers stro
 - **Thread pool boundaries**: Avoid mixing `rayon` and `tokio` thread pools for the same workflow unless there is a clear boundary that cannot be avoided
 - **Rule of thumb**: Do not use `tokio` to parallelize synchronous CPU-heavy work, and do not introduce `rayon` inside async orchestration that should stay within `rspack_parallel`
 
+## Cache architecture
+
+- **Backend boundary**: `crates/rspack_core/src/new_cache/` and `crates/rspack_core/src/legacy_cache/` may depend on shared code in `crates/rspack_core/src/cache/`, but must not reference each other.
+- Read [Cache and Incremental](.agents/CACHE_AND_INCREMENTAL.md) before modifying either cache backend or their shared dependencies.
+
 ## Setup
 
-- **Rust**: Latest stable (via [rustup](https://rustup.rs/))
+- **Rust**: Use the toolchain pinned by `rust-toolchain.toml`
 - **Node.js**: Latest LTS
 - **pnpm**: Version in `package.json`
 - Run `pnpm run setup` to install and build
@@ -58,7 +63,7 @@ Before running tests after code changes:
 ## Code quality
 
 - **Linting**: `pnpm run lint:js` (Rslint), `pnpm run lint:rs` (cargo check), `cargo lint` (Rust)
-- **Formatting**: `pnpm run format:rs` (cargo fmt), `pnpm run format:js` (prettier), `pnpm run format:toml` (taplo), `cargo fmt --all --check` (Rust)
+- **Formatting**: `pnpm run format:rs` (cargo fmt), `pnpm run format:js` (rs fmt), `cargo fmt --all --check` (Rust)
 - **Style**: snake_case for Rust, camelCase for JS/TS
 
 ## Common tasks
@@ -67,9 +72,9 @@ Before running tests after code changes:
 
 1. Create feature branch from `main`
 2. Implement in appropriate crate/package
-3. Add tests (Rust unit tests, JS integration tests)
+3. Add test coverage when needed, following the restrictions in [Adding tests](#adding-tests)
 4. Update docs if APIs change
-5. Run linters and tests: `pnpm run lint:js && pnpm run lint:rs && cargo lint && pnpm run test:unit && pnpm run test:rs`
+5. Run checks and tests: `pnpm run lint:js && pnpm run lint:rs && cargo lint && pnpm run test:unit && pnpm run test:rs`
 6. Format: `pnpm run format:rs && pnpm run format:js`
 7. Create PR
 
@@ -80,15 +85,14 @@ Before running tests after code changes:
 
 ### Adding tests
 
-- **Rust**: Add `#[test]` functions in same file or `tests/` directory
-- **JavaScript**: Add cases in `tests/rspack-test/{type}Cases/` (Normal, Config, Hot, Watch, StatsOutput, StatsAPI, Diagnostic, Hash, Compiler, Defaults, Error, Hook, TreeShaking, Builtin)
+- **Rust**: Do not add new Rust tests in ordinary changes, especially unit tests for small functions. Only add Rust test cases when they belong in a dedicated test crate; do not add inline `#[test]` functions or crate-local unit tests.
+- **JavaScript**: Do not create new top-level or suite-level `test.js` runner entry files. Reuse an existing runner and add coverage only by adding a case under the appropriate cases directory, such as `tests/rspack-test/{type}Cases/` (Normal, Config, Hot, Watch, StatsOutput, StatsAPI, Diagnostic, Hash, Compiler, Defaults, Error, Hook, TreeShaking, Builtin). Files required inside an individual case by an existing harness, such as `hookCases/**/test.js`, are allowed and are not new runner entry points.
 
 ## Dependency management
 
 - **Package manager**: pnpm (workspaces for monorepo)
 - **Rust**: `Cargo.toml` in each crate
 - **JavaScript**: `package.json` files
-- **Version check**: `pnpm run check-dependency-version`
 
 ## Performance
 
@@ -115,7 +119,7 @@ Before running tests after code changes:
 ## Contributing
 
 - Follow existing code patterns
-- Add tests for new features
+- Add test coverage for new features only under the restrictions in [Adding tests](#adding-tests)
 - Update docs when APIs change
 - Run linters before submitting
 - Use Conventional Commits in semver style: `type(scope): subject`
@@ -127,6 +131,9 @@ Before running tests after code changes:
 - **Rust core**: `crates/rspack_core/`
 - **Plugins**: `crates/rspack_plugin_*/`
 - **JavaScript API**: `packages/rspack/src/`
+- **JavaScript binding API**: `crates/rspack_binding_api/`
+- **Node-API support**: `crates/rspack_napi/`
+- **Generated binding package**: `crates/node_binding/`
 - **CLI**: `packages/rspack-cli/src/`
 - **Tests**: `tests/rspack-test/`
 
@@ -141,6 +148,8 @@ Before running tests after code changes:
 This project includes comprehensive documentation designed for AI assistants and large language models. All AI-friendly documentation is located in the `.agents/` directory:
 
 - **[Architecture Guide](.agents/ARCHITECTURE.md)** - High-level architecture overview, core components, compilation pipeline, and system design
+- **[`rspack_sources` Architecture](.agents/RSPACK_SOURCES.md)** - Source composition, source-map streaming, UTF-8/UTF-16 position invariants, ownership, caching, and performance rules; read before changing or heavily using `crates/rspack_sources`
+- **[JavaScript Binding Guide](.agents/BINDING.md)** - Binding ownership, lifetimes, hook bridging, performance rules, file map, and validation
 - **[API Design](.agents/API_DESIGN.md)** - API design principles, patterns, versioning strategy, and compatibility guidelines
 - **[Code Style](.agents/CODE_STYLE.md)** - Coding standards and conventions for Rust and TypeScript/JavaScript
 - **[Common Patterns](.agents/COMMON_PATTERNS.md)** - Common code patterns, templates, and best practices for plugin/loader development

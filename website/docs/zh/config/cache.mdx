@@ -11,6 +11,8 @@ import PropertyType from '@components/PropertyType';
 
 `cache` 选项用于控制 Rspack 的缓存策略，让 Rspack 可以在构建之间复用缓存数据以提升构建性能。
 
+Rspack 支持两种启用状态的 Cache 存储模式：进程内的 Memory Cache，以及基于文件系统的 Persistent Cache。两者都用于存储细粒度计算结果，并且与 [`incremental`](/config/incremental) 相互独立。
+
 - **类型：**
 
 ```ts
@@ -21,6 +23,7 @@ type CacheOptions =
     }
   | {
       type: 'persistent';
+      name?: string;
       buildDependencies?: string[];
       version?: string;
       maxAge?: number;
@@ -35,17 +38,35 @@ type CacheOptions =
       storage?: {
         type: 'filesystem';
         directory?: string;
+        location?: string;
       };
     };
 ```
 
 - **默认值：** development 模式为 `{ type: 'memory' }`（等价于 `true`），production 模式和 none 模式为 `false`
 
+## 与 Incremental 的关系
+
+Cache 和 [`incremental`](/config/incremental) 相互正交。Cache 控制细粒度 Cache entry 的读取和存储；Incremental 控制开发期重建是否恢复上一轮 pass 的 Artifact，并根据已知 mutations 更新受影响的工作。
+
+- `cache: false` 不会关闭 Incremental。
+- `incremental: false` 不会关闭 Cache。
+- FileSystem Cache 可以加速后续的一次性 build，但这属于 Cache 命中，而不是增量构建。
+
+如果需要同时关闭两种复用机制，应显式设置两个选项：
+
+```js title="rspack.config.mjs"
+export default {
+  cache: false,
+  incremental: false,
+};
+```
+
 ## 内存缓存
 
 将 `cache` 设置为 `true` 或 `{ type: 'memory' }` 可以启用内存缓存。内存缓存只保存在当前 compiler 进程中，主要用于 rebuild、watch 模式和 HMR。
 
-内存缓存不会将缓存数据写入磁盘，因此进程结束后缓存会被清空，也无法加速后续重新启动的全新构建。它更适合开发阶段的长时间运行场景，例如同一个 compiler 实例持续处理多次重构建。
+内存缓存不会将缓存数据写入磁盘，因此进程结束后缓存会被清空，也无法加速后续重新启动的全新构建。它更适合开发阶段的长时间运行场景，例如同一个 compiler 实例持续处理多次重建。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -65,12 +86,28 @@ export default {
 
 ## 持久化缓存
 
-将 `cache` 设置为 `{ type: 'persistent' }` 可以启用持久化缓存。持久化缓存会将缓存数据写入磁盘，以便后续构建进程复用。
+将 `cache` 设置为 `{ type: 'persistent' }` 可以启用基于文件系统的持久化缓存。持久化缓存会将缓存数据写入磁盘，以便后续构建进程复用。
 
 ```js title="rspack.config.mjs"
 export default {
   cache: {
     type: 'persistent',
+  },
+};
+```
+
+### name
+
+- **类型：** `string`
+- **默认值：** 设置 `config.name` 时为 `<config.name>-<mode>`，否则为 `<mode>`
+
+`cache.name` 用于命名持久化缓存。不同的名称会创建可同时存在的缓存。在 multi compiler 模式下，第一个 compiler 保持默认名称，后续 compiler 追加从零开始的 index，例如 `-1`、`-2`。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    name: 'client-development',
   },
 };
 ```
@@ -110,7 +147,7 @@ export default {
 - **类型：** `string`
 - **默认值:** `""`
 
-`cache.version` 是写入持久化缓存 key 的额外版本字符串。可以通过修改它来手动隔离或使持久化缓存失效。
+`cache.version` 用于标识持久化缓存数据的格式。当它与已存储的版本不一致时，Rspack 不会复用现有缓存，并会在构建完成后覆盖其内容。当配置发生不兼容变更时，应更新该值。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -122,39 +159,30 @@ export default {
 ```
 
 :::warning
-不要在不同配置之间共享同一份缓存（相同的 `cache.version` 和 `cache.storage.directory`），这样可能导致错误的缓存命中。
+不要在不同配置之间共享同一份缓存（相同的 `cache.version` 和 `cache.storage.location`），这样可能导致错误的缓存命中。
 :::
 
 :::tip 持久化缓存失效
 
-除了 [buildDependencies](#builddependencies) 校验和 [version](#version) 外，持久化缓存 key 还包含 Rspack 版本、[`config.name`](/config/other-options#name)、[`config.mode`](/config/mode#mode)，以及会影响缓存内容的持久化缓存配置。
-
-这些值发生变化时，Rspack 会隔离缓存，避免复用过期的持久化缓存数据。
+Rspack 会基于 `compilerPath` 的哈希拆分缓存子目录，每个 `compilerPath` 只保留一份缓存。[version](#version) 变化时，Rspack 会使该 compiler 的现有缓存失效并覆盖其内容，不会保留多个版本。
 
 :::
 
 ### maxVersions
 
-- **类型：** `number`（正整数）或 `Infinity`
-- **默认值：** `3`
+<ApiMeta stability={Stability.Deprecated} />
 
-控制当前缓存目录最多保留多少个缓存版本。超过限制时，Rspack 会优先删除较旧且未处于当前使用状态的缓存版本。设置为 `Infinity` 可禁用基于数量的清理。
+- **类型：** `number`
+- **默认值：** 未设置
 
-```js title="rspack.config.mjs"
-export default {
-  cache: {
-    type: 'persistent',
-    maxVersions: 10,
-  },
-};
-```
+`cache.maxVersions` 仅为向后兼容而保留，但不会产生任何作用。Rspack 对每个 `compilerPath` 只保留一份持久化缓存。显式配置此选项时，Rspack 会输出弃用警告。
 
 ### maxAge
 
 - **类型：** `number`（正整数，单位为秒）或 `Infinity`
 - **默认值：** `7 * 24 * 60 * 60`（7 天）
 
-一份缓存数据在未被访问后允许保留的最长时间，单位为秒。清理时，Rspack 会删除超过 `maxAge` 时间未被访问的缓存数据。设置为 `Infinity` 可禁用基于时间的清理。
+一份 compiler 缓存在未被访问后允许保留的最长时间，单位为秒。清理时，Rspack 会删除超过 `maxAge` 时间未被访问的 compiler 缓存目录。设置为 `Infinity` 可禁用基于时间的清理。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -292,7 +320,7 @@ export default {
 
 ### storage
 
-- **类型：** `{ type: 'filesystem'; directory?: string }`
+- **类型：** `{ type: 'filesystem'; directory?: string; location?: string }`
 
 配置缓存存储。目前仅支持文件系统存储。
 
@@ -314,38 +342,63 @@ export default {
 
 通过 `type` 设置缓存存储类型。目前仅支持文件系统存储。
 
+#### storage.directory
+
+- **类型：** `string`
+- **默认值：** `node_modules/.cache/rspack`
+
+`cache.storage.directory` 是持久化缓存的基础目录，语义与 webpack 的 `cache.cacheDirectory` 一致。相对路径会基于 [`config.context`](/config/context) 解析。
+
 ```js title="rspack.config.mjs"
 export default {
   cache: {
     type: 'persistent',
     storage: {
       type: 'filesystem',
-    },
-  },
-};
-```
-
-#### storage.directory
-
-- **类型：** `string`
-- **默认值：** `node_modules/.cache/rspack/<mode>` 或 `node_modules/.cache/rspack/<name>-<mode>`
-
-通过 `directory` 设置缓存目录。默认目录会基于 [`config.context`](/config/context)、[`config.name`](/config/other-options#name)、[`config.mode`](/config/mode#mode) 和 multi compiler 的 index 生成。在 multi compiler 模式下，后续 compiler 会追加 `-<index>` 以避免共享同一个目录。
-
-```js title="rspack.config.mjs"
-export default {
-  cache: {
-    type: 'persistent',
-    storage: {
       directory: '.rspack-cache',
     },
   },
 };
 ```
 
-:::tip
-不同 Compiler 应配置不同的 [`config.name`](/config/other-options#name) 以确保使用不同的 `cache.storage.directory`，以避免缓存冲突。
-:::
+#### storage.location
+
+<ApiMeta addedVersion="2.1.8" />
+
+- **类型：** `string`
+- **默认值：** `<storage.directory>/<cache.name>`
+
+`cache.storage.location` 是 Rspack 实际读写缓存数据的完整路径，语义与 webpack 的 `cache.cacheLocation` 一致。未设置时，Rspack 会根据 `cache.storage.directory` 和 `cache.name` 推导该路径。相对路径会基于 [`config.context`](/config/context) 解析。
+
+```js title="rspack.config.mjs"
+export default {
+  context: '/project',
+  cache: {
+    type: 'persistent',
+    name: 'client',
+    storage: {
+      type: 'filesystem',
+      directory: '.rspack-cache',
+    },
+  },
+};
+
+// cache.storage.location 的默认值为 '/project/.rspack-cache/client'。
+```
+
+如需覆盖推导出的路径，可以显式设置 `storage.location`：
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    storage: {
+      type: 'filesystem',
+      location: '.custom-cache/client',
+    },
+  },
+};
+```
 
 ### 查看持久化缓存日志
 
@@ -381,7 +434,9 @@ export default {
 
 ## 禁用缓存
 
-将 `cache` 设置为 `false` 可以同时禁用内存缓存和持久化缓存。通常不建议禁用缓存，因为这会导致开发阶段的重构建显著变慢。
+将 `cache` 设置为 `false` 可以同时禁用内存缓存和持久化缓存，但不会关闭 [`incremental`](/config/incremental)。如果工作流要求完整重建且不恢复 Artifact，需要另外设置 `incremental: false`。
+
+通常不建议禁用缓存，因为未被 Incremental 跳过的计算将无法再复用细粒度 Cache entry。
 
 ```js title="rspack.config.mjs"
 export default {

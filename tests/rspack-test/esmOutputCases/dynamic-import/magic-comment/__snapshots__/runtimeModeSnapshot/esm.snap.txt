@@ -1,5 +1,5 @@
 ```mjs title=main.mjs
-import { __rspack_context } from "./runtime.mjs";
+import { rspackRequire, compatGetDefaultExport } from "./runtime.mjs";
 import {fileURLToPath as __rspack_fileURLToPath} from "node:url";
 import {dirname as __rspack_dirname} from "node:path";
 var __rspack_import_meta_dirname__ = __rspack_dirname(__rspack_fileURLToPath(import.meta.url));
@@ -8,10 +8,10 @@ const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 // node:fs
 const external_node_fs_namespaceObject = __rspack_createRequire_require("node:fs");
 
-var external_node_fs_default = /*#__PURE__*/__rspack_context.n(external_node_fs_namespaceObject);// node:path
+var external_node_fs_default = /*#__PURE__*/compatGetDefaultExport(external_node_fs_namespaceObject);// node:path
 const external_node_path_namespaceObject = __rspack_createRequire_require("node:path");
 
-var external_node_path_default = /*#__PURE__*/__rspack_context.n(external_node_path_namespaceObject);// ./index.js
+var external_node_path_default = /*#__PURE__*/compatGetDefaultExport(external_node_path_namespaceObject);// ./index.js
 
 
 
@@ -37,8 +37,8 @@ export {};
 
 ```mjs title=runtime.mjs
 // The require scope
-var __rspack_require = {};
-var __rspack_context = {};
+var rspackRequire = {};
+export { rspackRequire };
 
 // rspack/runtime/compat_get_default_export
 // getDefaultExport function for compatibility with non-ESM modules
@@ -50,7 +50,7 @@ var compatGetDefaultExport = (module) => {
 	return getter;
 };
 ;
-__rspack_context.n = compatGetDefaultExport;
+export { compatGetDefaultExport };
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -63,7 +63,7 @@ var definePropertyGetters = (exports, getters, values) => {
 	define(getters, "get");
 	define(values, "value");
 };;
-__rspack_context.d = definePropertyGetters;
+export { definePropertyGetters };
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 // rspack/runtime/make_namespace_object
@@ -74,26 +74,25 @@ var makeNamespaceObject = (exports) => {
 	}
 	Object.defineProperty(exports, '__esModule', { value: true });
 };;
-__rspack_context.N = makeNamespaceObject;
+export { makeNamespaceObject };
 
-export { __rspack_context };
 
 ```
 
 ```mjs title=shared.mjs
-import { __rspack_context } from "./runtime.mjs";
+import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
 // NAMESPACE OBJECT: ./m1.js
 var m1_namespaceObject = {};
-__rspack_context.N(m1_namespaceObject);
-__rspack_context.d(m1_namespaceObject, { 
+makeNamespaceObject(m1_namespaceObject);
+definePropertyGetters(m1_namespaceObject, { 
   "default": () => (m1),
   value: () => (value) });
 
 
 // NAMESPACE OBJECT: ./m2.js
 var m2_namespaceObject = {};
-__rspack_context.N(m2_namespaceObject);
-__rspack_context.d(m2_namespaceObject, { 
+makeNamespaceObject(m2_namespaceObject);
+definePropertyGetters(m2_namespaceObject, { 
   "default": () => (m2),
   value: () => (m2_value) });
 

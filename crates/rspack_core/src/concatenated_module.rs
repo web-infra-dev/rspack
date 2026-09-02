@@ -8,7 +8,10 @@ use std::{
 
 use rayon::prelude::*;
 use regex::Regex;
-use rspack_cacheable::{cacheable, cacheable_dyn, with::As};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{As, AsOption, AsPreset, AsVec},
+};
 use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
@@ -39,21 +42,22 @@ use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModule,
-  BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject,
-  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
-  CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
-  CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
-  ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT,
-  DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId, DependencyType, ExportInfo, ExportProvided,
-  ExportsArgument, ExportsInfoArtifact, ExportsType, FactoryMeta, ImportedByDeferModulesArtifact,
-  InitFragment, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT,
-  ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, fast_set,
-  filter_runtime, find_target, get_runtime_key, impl_source_map_config, merge_runtime_condition,
-  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
+  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments,
+  CodeGenerationDataChunkInitFragments, CodeGenerationDataTopLevelDeclarations,
+  CodeGenerationPublicPathAutoReplace, CodeGenerationResultBuilder,
+  CodeGenerationRuntimeRequirementsWrite, Compilation, ConcatenatedModuleIdent, ConcatenationScope,
+  ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM,
+  DependenciesBlock, Dependency, DependencyCodeGenerationRef, DependencyId, DependencyType,
+  ExportInfo, ExportProvided, ExportsArgument, ExportsInfoArtifact, ExportsType, FactoryMeta,
+  ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage, LibIdentOptions, Module,
+  ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType,
+  NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
+  escape_identifier, fast_set, filter_runtime, find_target, get_runtime_key,
+  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
+  module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
@@ -78,8 +82,8 @@ pub struct RootModuleContext {
   pub name_for_condition: Option<Box<str>>,
   pub lib_indent: Option<String>,
   pub resolve_options: Option<Arc<Resolve>>,
-  pub code_generation_dependencies: Option<Vec<BoxModuleDependency>>,
-  pub presentational_dependencies: Option<Vec<BoxDependencyTemplate>>,
+  pub code_generation_dependencies: Option<Vec<DependencyId>>,
+  pub presentational_dependencies: Option<Vec<DependencyCodeGenerationRef>>,
   pub context: Option<Context>,
   pub layer: Option<ModuleLayer>,
   pub side_effect_connection_state: ConnectionState,
@@ -277,9 +281,12 @@ impl ConcatenationEntryExternal {
   }
 }
 
+#[cacheable]
 #[derive(Clone, Debug, Default)]
 pub struct ConcatenatedImportMapItem {
+  #[cacheable(with=AsVec<AsPreset>)]
   pub specifiers: HashSet<Atom>,
+  #[cacheable(with=AsOption<AsPreset>)]
   pub namespace: Option<Atom>,
 }
 
@@ -295,6 +302,7 @@ pub struct ConcatenatedModuleInfo {
   pub module_ctxt: SyntaxContext,
   pub global_ctxt: SyntaxContext,
   pub runtime_requirements: RuntimeGlobals,
+  pub runtime_requirements_write: RuntimeGlobals,
   pub has_ast: bool,
   pub source: Option<ReplaceSource>,
   pub internal_source: Option<Arc<dyn Source>>,
@@ -677,7 +685,7 @@ impl ConcatenatedModule {
       };
       for dependency in dependencies {
         let references_concatenated_module = module_graph
-          .module_identifier_by_dependency_id(dependency.id())
+          .module_identifier_by_dependency_id(dependency)
           .is_some_and(|module_id| concatenated_modules.contains(module_id));
         if references_concatenated_module {
           continue;
@@ -685,7 +693,7 @@ impl ConcatenatedModule {
         root_module_ctxt
           .code_generation_dependencies
           .get_or_insert_with(Vec::new)
-          .push(dependency.clone());
+          .push(*dependency);
       }
     }
     Self::new(id.as_str().into(), root_module_ctxt, modules, runtime)
@@ -981,7 +989,7 @@ impl Module for ConcatenatedModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime_template,
@@ -1072,6 +1080,7 @@ impl Module for ConcatenatedModule {
     let mut top_level_declarations: HashSet<Atom> = HashSet::default();
     let mut public_path_auto_replace: bool = false;
     let mut static_url_replace: bool = false;
+    let mut runtime_requirements_write = CodeGenerationRuntimeRequirementsWrite::default();
 
     for (module_info_id, _) in references_info.iter() {
       let Some(ModuleInfo::Concatenated(info)) = module_to_info_map.get(module_info_id) else {
@@ -1372,6 +1381,8 @@ impl Module for ConcatenatedModule {
           if info.static_url_replacement {
             static_url_replace = true;
           }
+
+          runtime_requirements_write.insert(info.runtime_requirements_write);
         }
 
         // Handle external type
@@ -1625,7 +1636,7 @@ impl Module for ConcatenatedModule {
 
     let mut result: ConcatSource = ConcatSource::default();
     let mut should_add_esm_flag = false;
-    let mut chunk_init_fragments: Vec<Box<dyn InitFragment<ChunkRenderContext>>> = Vec::new();
+    let mut chunk_init_fragments: Vec<Box<dyn InitFragment>> = Vec::new();
 
     for ((source, attr), import_spec) in import_stmts {
       let content = render_imports(&source, attr.as_deref(), &import_spec);
@@ -2001,36 +2012,38 @@ impl Module for ConcatenatedModule {
     // `module_to_info_map` can be large and expensive to tear down on the critical path.
     fast_set(&mut module_to_info_map, IdentifierIndexMap::default());
 
-    let mut code_generation_result = CodeGenerationResult::default();
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
     code_generation_result.add(SourceType::JavaScript, CachedSource::new(result).boxed());
-    code_generation_result.chunk_init_fragments = chunk_init_fragments;
+    if !chunk_init_fragments.is_empty() {
+      code_generation_result
+        .data_mut()
+        .insert(CodeGenerationDataChunkInitFragments::from(
+          chunk_init_fragments,
+        ));
+    }
 
     if public_path_auto_replace {
       code_generation_result
-        .data
+        .data_mut()
         .insert(CodeGenerationPublicPathAutoReplace(true));
     }
 
     if static_url_replace {
-      code_generation_result.data.insert(URLStaticMode);
+      code_generation_result.data_mut().insert(URLStaticMode);
+    }
+
+    if !runtime_requirements_write.runtime_requirements.is_empty() {
+      code_generation_result
+        .data_mut()
+        .insert(runtime_requirements_write);
     }
 
     code_generation_result
-      .data
+      .data_mut()
       .insert(CodeGenerationDataTopLevelDeclarations::new(
         top_level_declarations,
       ));
 
-    if !exports_final_names.is_empty() {
-      let exports_final_names_map: HashMap<String, String> =
-        exports_final_names.into_iter().collect();
-
-      code_generation_result
-        .data
-        .insert(CodeGenerationExportsFinalNames::new(
-          exports_final_names_map,
-        ));
-    }
     Ok(code_generation_result)
   }
 
@@ -2076,14 +2089,14 @@ impl Module for ConcatenatedModule {
                 .expect("should have module")
                 .get_runtime_hash(compilation, generation_runtime)
                 .await?;
-              Ok(Some(digest.encoded().to_string()))
+              Ok(Some(digest))
             }
             ConcatenationEntry::External(e) => Ok(
               ChunkGraph::get_module_id(
                 &compilation.module_ids_artifact,
                 e.module(compilation.get_module_graph()),
               )
-              .map(|id| id.to_string()),
+              .map(|id| RspackHashDigest::from(id.as_str())),
             ),
           }
         })
@@ -2114,7 +2127,7 @@ impl Module for ConcatenatedModule {
     self.root_module_ctxt.resolve_options.clone()
   }
 
-  fn get_code_generation_dependencies(&self) -> Option<&[BoxModuleDependency]> {
+  fn get_code_generation_dependencies(&self) -> Option<&[DependencyId]> {
     if let Some(deps) = self
       .root_module_ctxt
       .code_generation_dependencies
@@ -2127,7 +2140,7 @@ impl Module for ConcatenatedModule {
     }
   }
 
-  fn get_presentational_dependencies(&self) -> Option<&[BoxDependencyTemplate]> {
+  fn get_presentational_dependencies(&self) -> Option<&[DependencyCodeGenerationRef]> {
     if let Some(deps) = self.root_module_ctxt.presentational_dependencies.as_deref()
       && !deps.is_empty()
     {
@@ -2574,24 +2587,24 @@ impl ConcatenatedModule {
         runtime_template: &mut runtime_template,
       };
       let codegen_res = module.code_generation(&mut code_generation_context).await?;
+      let concatenation_scope = code_generation_context
+        .concatenation_scope
+        .take()
+        .expect("should have concatenation_scope");
+      drop(code_generation_context);
 
-      let CodeGenerationResult {
-        mut inner,
-        mut chunk_init_fragments,
-        mut runtime_requirements,
-        concatenation_scope,
-        ..
-      } = codegen_res;
+      let chunk_init_fragments = codegen_res
+        .data()
+        .get::<CodeGenerationDataChunkInitFragments>()
+        .map(|fragments| fragments.inner().clone())
+        .unwrap_or_default();
+      let mut runtime_requirements = *codegen_res.runtime_requirements();
 
       runtime_requirements.extend(*runtime_template.runtime_requirements());
 
-      if let Some(fragments) = codegen_res.data.get::<ChunkInitFragments>() {
-        chunk_init_fragments.extend(fragments.iter().cloned());
-      }
-
-      let concatenation_scope = concatenation_scope.expect("should have concatenation_scope");
-      let source = inner
-        .remove(&SourceType::JavaScript)
+      let source = codegen_res
+        .get(&SourceType::JavaScript)
+        .cloned()
         .expect("should have javascript source");
       let source_code = source.source().into_string_lossy();
       let mut module_info = concatenation_scope.current_module;
@@ -2683,16 +2696,22 @@ impl ConcatenatedModule {
       let result_source = ReplaceSource::new(source.clone());
       module_info.has_ast = true;
       module_info.runtime_requirements = runtime_requirements;
+      if let Some(runtime_requirements_write) = codegen_res
+        .data()
+        .get::<CodeGenerationRuntimeRequirementsWrite>()
+      {
+        module_info.runtime_requirements_write = runtime_requirements_write.runtime_requirements;
+      }
       module_info.internal_source = Some(source);
       module_info.source = Some(result_source);
       module_info.chunk_init_fragments = chunk_init_fragments;
       if let Some(CodeGenerationPublicPathAutoReplace(true)) = codegen_res
-        .data
+        .data()
         .get::<CodeGenerationPublicPathAutoReplace>(
       ) {
         module_info.public_path_auto_replacement = Some(true);
       }
-      if codegen_res.data.contains::<URLStaticMode>() {
+      if codegen_res.data().contains::<URLStaticMode>() {
         module_info.static_url_replacement = true;
       }
       Ok(ModuleInfo::Concatenated(Box::new(module_info)))
@@ -2853,6 +2872,7 @@ impl ConcatenatedModule {
     if export_name.is_empty() {
       match exports_type {
         ExportsType::DefaultOnly => {
+          let needed_namespace_object = info.try_as_concatenated().map(|info| info.module);
           // shadowing the previous immutable ref to avoid violating rustc borrow rules
           let (raw_name, interop_namespace_object2_used, deferred_namespace_object_used) =
             if is_deferred {
@@ -2872,10 +2892,11 @@ impl ConcatenatedModule {
             interop_namespace_object_used: None,
             interop_default_access_used: None,
             deferred_namespace_object_used,
-            needed_namespace_object: None,
+            needed_namespace_object,
           };
         }
         ExportsType::DefaultWithNamed => {
+          let needed_namespace_object = info.try_as_concatenated().map(|info| info.module);
           // shadowing the previous immutable ref to avoid violating rustc borrow rules
           let (raw_name, interop_namespace_object_used, deferred_namespace_object_used) =
             if is_deferred {
@@ -2895,7 +2916,7 @@ impl ConcatenatedModule {
             interop_namespace_object2_used: None,
             interop_default_access_used: None,
             deferred_namespace_object_used,
-            needed_namespace_object: None,
+            needed_namespace_object,
           };
         }
         _ => {}
@@ -3334,7 +3355,7 @@ impl ConcatenatedModule {
   }
 }
 
-pub fn is_esm_dep_like(dep: &BoxDependency) -> bool {
+pub fn is_esm_dep_like(dep: &dyn Dependency) -> bool {
   matches!(
     dep.dependency_type(),
     DependencyType::EsmImportSpecifier
@@ -3490,28 +3511,6 @@ pub fn split_readable_identifier(extra_info: &str) -> Vec<Atom> {
     .collect();
   splitted_info.reverse();
   splitted_info
-}
-
-fn escaped_name(name: &str) -> Cow<'_, str> {
-  if name == DEFAULT_EXPORT {
-    return Cow::Borrowed("");
-  }
-  if name == NAMESPACE_OBJECT_EXPORT {
-    return Cow::Borrowed("namespaceObject");
-  }
-
-  escape_identifier(name)
-}
-
-pub fn escape_name(name: &str) -> String {
-  escaped_name(name).into_owned()
-}
-
-pub fn escape_name_atom(name: &str) -> Atom {
-  match escaped_name(name) {
-    Cow::Borrowed(name) => Atom::from(name),
-    Cow::Owned(name) => Atom::from(name),
-  }
 }
 
 pub fn escape_name_atom_ref(name: &Atom) -> Atom {

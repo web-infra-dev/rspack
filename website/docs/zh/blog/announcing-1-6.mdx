@@ -9,7 +9,7 @@ authors:
     x: 'https://x.com/rspack_dev'
 ---
 
-import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 # Rspack 1.6 发布公告
 
@@ -154,7 +154,7 @@ export default {
 
 ### 默认启用 barrel 优化
 
-在 Rspack 1.5 中，我们引入了实验性的 [lazyBarrel](/guide/optimization/lazy-barrel) 优化功能，专门用于提升 barrel 文件（桶文件）的构建性能。经过一段时间的生产环境实践和用户反馈收集，我们确认 lazyBarrel 功能已经达到稳定状态，因此在 Rspack 1.6 中将其设为默认启用。
+在 Rspack 1.5 中，我们引入了实验性的 [lazyBarrel](/guide/advanced/lazy-barrel) 优化功能，专门用于提升 barrel 文件（桶文件）的构建性能。经过一段时间的生产环境实践和用户反馈收集，我们确认 lazyBarrel 功能已经达到稳定状态，因此在 Rspack 1.6 中将其设为默认启用。
 
 :::info
 什么是 barrel 文件？ Barrel 文件是指那些主要用于重新导出其他模块内容的文件，通常用于简化导入路径和提供统一的 API 入口。
@@ -167,9 +167,9 @@ layer 是一种用于对模块进行分层管理的特性，可以用于 React S
 - 将不同 layer 的模块编译到不同的目标环境
 - 将它们输出到不同的产物目录中
 
-从 Rspack 1.6 开始，layer 特性已经足够稳定，因此我们废弃了原先的实验性开关 [experiments.layers](/guide/features/layer)。现在，你可以直接使用 layer 特性，不再需要实验性开关。
+从 Rspack 1.6 开始，layer 特性已经足够稳定，因此我们废弃了原先的实验性开关 [experiments.layers](/guide/advanced/layer)。现在，你可以直接使用 layer 特性，不再需要实验性开关。
 
-想了解更多 layer 的细节和使用方式，可以阅读我们新增的 [layer 指南](/guide/features/layer#layer)。
+想了解更多 layer 的细节和使用方式，可以阅读我们新增的[模块分层指南](/guide/advanced/layer)。
 
 ### 保留 JSX 语法
 

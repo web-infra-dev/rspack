@@ -319,7 +319,7 @@ impl<'a, C: Comments> ServerActions<'a, C> {
 
   // Check if the function or arrow function is an action function,
   // and remove any server function directive.
-  fn has_use_server_for_function(&mut self, maybe_body: Option<&mut BlockStmt>) -> bool {
+  fn has_use_server_for_function(&mut self, maybe_body: Option<&mut FunctionBody>) -> bool {
     let mut found_use_server = false;
 
     // Even if it's a file-level action or cache module, the function body
@@ -416,14 +416,14 @@ impl<'a, C: Comments> ServerActions<'a, C> {
         .swap_remove(&arrow_ident.to_id());
     }
 
-    if let BlockStmtOrExpr::BlockStmt(block) = &mut *arrow.body {
+    if let ArrowFunctionBody::FunctionBody(block) = &mut *arrow.body {
       block.visit_mut_with(&mut ClosureReplacer {
         used_ids: &ids_from_closure,
         private_ctxt: self.private_ctxt,
       });
     }
 
-    let mut new_body: BlockStmtOrExpr = *arrow.body.clone();
+    let mut new_body: ArrowFunctionBody = *arrow.body.clone();
 
     if !ids_from_closure.is_empty() {
       // Prepend the decryption declaration to the body.
@@ -454,11 +454,11 @@ impl<'a, C: Comments> ServerActions<'a, C> {
       };
 
       match &mut new_body {
-        BlockStmtOrExpr::BlockStmt(body) => {
+        ArrowFunctionBody::FunctionBody(body) => {
           body.stmts.insert(0, decryption_decl.into());
         }
-        BlockStmtOrExpr::Expr(body_expr) => {
-          new_body = BlockStmtOrExpr::BlockStmt(BlockStmt {
+        ArrowFunctionBody::Expr(body_expr) => {
+          new_body = ArrowFunctionBody::FunctionBody(FunctionBody {
             span: DUMMY_SP,
             stmts: vec![
               decryption_decl.into(),
@@ -467,7 +467,6 @@ impl<'a, C: Comments> ServerActions<'a, C> {
                 arg: Some(body_expr.take()),
               }),
             ],
-            ..Default::default()
           });
         }
       }
@@ -491,14 +490,13 @@ impl<'a, C: Comments> ServerActions<'a, C> {
               function: Box::new(Function {
                 params: new_params,
                 body: match new_body {
-                  BlockStmtOrExpr::BlockStmt(body) => Some(body),
-                  BlockStmtOrExpr::Expr(expr) => Some(BlockStmt {
+                  ArrowFunctionBody::FunctionBody(body) => Some(body),
+                  ArrowFunctionBody::Expr(expr) => Some(FunctionBody {
                     span: DUMMY_SP,
                     stmts: vec![Stmt::Return(ReturnStmt {
                       span: DUMMY_SP,
                       arg: Some(expr),
                     })],
-                    ..Default::default()
                   }),
                 },
                 is_async: true,
@@ -588,7 +586,7 @@ impl<'a, C: Comments> ServerActions<'a, C> {
       private_ctxt: self.private_ctxt,
     });
 
-    let mut new_body: Option<BlockStmt> = function.body.clone();
+    let mut new_body: Option<FunctionBody> = function.body.clone();
 
     if !ids_from_closure.is_empty() {
       // Prepend the decryption declaration to the body.
@@ -620,10 +618,9 @@ impl<'a, C: Comments> ServerActions<'a, C> {
       if let Some(body) = &mut new_body {
         body.stmts.insert(0, decryption_decl.into());
       } else {
-        new_body = Some(BlockStmt {
+        new_body = Some(FunctionBody {
           span: DUMMY_SP,
           stmts: vec![decryption_decl.into()],
-          ..Default::default()
         });
       }
     }
@@ -1003,12 +1000,13 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
   fn visit_mut_arrow_expr(&mut self, a: &mut ArrowExpr) {
     // Arrow expressions need to be visited in prepass to determine if it's
     // an action function or not.
-    let found_use_server =
-      self.has_use_server_for_function(if let BlockStmtOrExpr::BlockStmt(block) = &mut *a.body {
+    let found_use_server = self.has_use_server_for_function(
+      if let ArrowFunctionBody::FunctionBody(block) = &mut *a.body {
         Some(block)
       } else {
         None
-      });
+      },
+    );
 
     if found_use_server {
       self.this_status = ThisStatus::Forbidden;
@@ -1562,7 +1560,7 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
       }
     }
 
-    if in_action_file && !self.config.is_react_server_layer {
+    if in_action_file {
       self.reference_ids_by_export_name.extend(
         self
           .server_reference_exports
@@ -2199,7 +2197,7 @@ fn detect_similar_strings(a: &str, b: &str) -> bool {
 // without mutating the function body or erroring out.
 // This is used to quickly determine if we need to use the module-level
 // directives for this function or not.
-fn is_action_fn(maybe_body: &Option<BlockStmt>) -> bool {
+fn is_action_fn(maybe_body: &Option<FunctionBody>) -> bool {
   let mut result = false;
   if let Some(body) = maybe_body {
     for stmt in body.stmts.iter() {

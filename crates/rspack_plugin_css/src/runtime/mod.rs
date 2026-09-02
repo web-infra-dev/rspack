@@ -8,7 +8,8 @@ use rspack_core::{
 };
 use rspack_plugin_runtime::{
   CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimePlugin, chunk_has_css,
-  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements, stringify_chunks,
+  extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
+  get_chunk_runtime_requirements, render_chunk_loading_hmr_state_expression, stringify_chunks,
 };
 use rspack_util::json_stringify;
 
@@ -53,6 +54,22 @@ static CSS_LOADING_WITH_STYLE_SHEET_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
 > = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
   ..extract_runtime_globals_from_ejs(CSS_LOADING_WITH_STYLE_SHEET_TEMPLATE)
+});
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+  let mut variables = extract_runtime_module_variables_from_ejs(&[
+    CSS_LOADING_TEMPLATE,
+    CSS_LOADING_CREATE_LINK_TEMPLATE,
+    CSS_LOADING_WITH_HMR_TEMPLATE,
+    CSS_LOADING_WITH_LOADING_TEMPLATE,
+    CSS_LOADING_WITH_PREFETCH_TEMPLATE,
+    CSS_LOADING_WITH_PREFETCH_LINK_TEMPLATE,
+    CSS_LOADING_WITH_PRELOAD_TEMPLATE,
+    CSS_LOADING_WITH_PRELOAD_LINK_TEMPLATE,
+    CSS_LOADING_WITH_STYLE_TEMPLATE,
+    CSS_LOADING_WITH_STYLE_SHEET_TEMPLATE,
+  ]);
+  variables.push("cssInstalledChunks");
+  variables
 });
 
 #[impl_runtime_module]
@@ -121,6 +138,10 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for CssLoadingRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES.as_slice()
+  }
+
   fn runtime_requirements(
     &self,
     compilation: &Compilation,
@@ -251,6 +272,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       let initial_chunks =
         chunk.get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
       let mut initial_chunk_ids = ChunkIdSet::default();
+      let mut all_initial_chunk_ids = ChunkIdSet::default();
 
       for chunk_ukey in initial_chunks.iter() {
         let id = compilation
@@ -260,8 +282,9 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           .expect_id()
           .clone();
         if chunk_has_css(chunk_ukey, compilation) {
-          initial_chunk_ids.insert(id);
+          initial_chunk_ids.insert(id.clone());
         }
+        all_initial_chunk_ids.insert(id);
       }
 
       let environment = &compilation.options.output.environment;
@@ -285,8 +308,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           &chunk_has_css,
         );
 
-      let with_css_hmr = with_css_modules && with_hmr;
-      let with_link_runtime = with_css_hmr || with_loading || with_prefetch || with_preload;
+      let with_link_runtime = with_hmr || with_loading || with_prefetch || with_preload;
 
       if !with_link_runtime && !with_inject_style && !with_style_sheet {
         return Ok(String::new());
@@ -414,11 +436,13 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           source.push_str(&source_with_preload);
         }
 
-        if with_css_hmr {
+        if with_hmr {
           let source_with_hmr = context.runtime_template.render(
             &self.template_id(TemplateId::WithHmr),
             Some(serde_json::json!({
-              "_is_neutral_platform": is_neutral_platform
+              "_is_neutral_platform": is_neutral_platform,
+              "_initial_chunk_ids": stringify_chunks(&all_initial_chunk_ids, 1),
+              "_js_state_expression": render_chunk_loading_hmr_state_expression(runtime_template, &chunk_ukey, compilation),
             })),
           )?;
           source.push_str(&source_with_hmr);

@@ -72,11 +72,7 @@ export const lazyCompilationMiddleware = (
 
       middlewareByCompiler.set(
         options.prefix,
-        lazyCompilationMiddlewareInternal(
-          compiler,
-          activeModules,
-          options.prefix,
-        ),
+        lazyCompilationMiddlewareInternal(c, activeModules, options.prefix),
       );
 
       applyPlugin(c, options, activeModules);
@@ -84,7 +80,9 @@ export const lazyCompilationMiddleware = (
 
     const keys = [...middlewareByCompiler.keys()];
     return (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-      const key = keys.find((key) => req.url?.startsWith(key));
+      const key = keys.find(
+        (key) => req.url === key || req.url?.startsWith(`${key}?`),
+      );
       if (!key) {
         return next?.();
       }

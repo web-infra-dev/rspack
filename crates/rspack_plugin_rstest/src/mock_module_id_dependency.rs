@@ -2,21 +2,20 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 
 use crate::import_dependency::module_id_rstest;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MockModuleIdDependency {
   pub id: DependencyId,
   pub request: String,
   pub weak: bool,
   range: DependencyRange,
   optional: bool,
-  factorize_info: FactorizeInfo,
   category: DependencyCategory,
   pub suffix: Option<String>,
   missing_module_fallback: Option<String>,
@@ -38,15 +37,23 @@ impl MockModuleIdDependency {
       weak,
       optional,
       id: DependencyId::new(),
-      factorize_info: Default::default(),
       category,
       suffix,
       missing_module_fallback: None,
     }
   }
 
-  pub fn set_request(&mut self, request: String) {
-    self.request = request;
+  pub fn with_request(&self, request: String) -> Self {
+    Self {
+      id: self.id,
+      request,
+      weak: self.weak,
+      range: self.range,
+      optional: self.optional,
+      category: self.category,
+      suffix: self.suffix.clone(),
+      missing_module_fallback: self.missing_module_fallback.clone(),
+    }
   }
 
   pub fn with_missing_module_fallback(mut self, fallback: String) -> Self {
@@ -83,7 +90,7 @@ impl Dependency for MockModuleIdDependency {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     vec![]
   }
 
@@ -108,14 +115,6 @@ impl ModuleDependency for MockModuleIdDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

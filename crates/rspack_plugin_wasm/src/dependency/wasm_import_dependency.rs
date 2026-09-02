@@ -1,14 +1,14 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyRange, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, RuntimeSpec,
+  DependencyRange, DependencyType, ExportsInfoArtifact, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ReferencedExport, RuntimeSpec,
 };
 use swc_core::ecma::atoms::Atom;
 
 #[allow(dead_code)]
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct WasmImportDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
@@ -16,7 +16,6 @@ pub struct WasmImportDependency {
   request: String,
   // only_direct_import: bool,
   span: Option<DependencyRange>,
-  factorize_info: FactorizeInfo,
 }
 
 impl WasmImportDependency {
@@ -27,7 +26,6 @@ impl WasmImportDependency {
       request,
       // only_direct_import,
       span: None,
-      factorize_info: Default::default(),
     }
   }
 
@@ -56,8 +54,8 @@ impl Dependency for WasmImportDependency {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
-    vec![ExtendedReferencedExport::Array(vec![self.name.clone()])]
+  ) -> Vec<ReferencedExport> {
+    vec![ReferencedExport::from(&self.name)]
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
@@ -73,14 +71,6 @@ impl ModuleDependency for WasmImportDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

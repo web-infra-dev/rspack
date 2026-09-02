@@ -5,11 +5,12 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, ChunkGraph, CodeGenerationResult, Compilation, Context, DependenciesBlock,
+  BuildResult, ChunkGraph, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock,
   Dependency, DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
   impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
+  runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
@@ -21,7 +22,7 @@ use super::{
 };
 use crate::{
   CodeGenerationDataShareInit, ShareInitData, ShareScope,
-  sharing::share_runtime_module::DataInitInfo,
+  sharing::share_runtime_module::DataInitInfo, utils::module_identifier_namespace,
 };
 
 #[impl_source_map_config]
@@ -50,9 +51,11 @@ impl RemoteModule {
     internal_request: String,
     share_scope: ShareScope,
     remote_key: String,
+    runtime_mode: RuntimeMode,
   ) -> Self {
     let readable_identifier = format!("remote {}", &request);
-    let lib_ident = format!("webpack/container/remote/{}", &request);
+    let namespace = module_identifier_namespace(runtime_mode);
+    let lib_ident = format!("{namespace}/container/remote/{request}");
     Self {
       blocks: Default::default(),
       dependencies: Default::default(),
@@ -171,7 +174,7 @@ impl Module for RemoteModule {
         .call(&dep as &dyn Dependency)
         .await?;
 
-      dependencies.push(Box::new(dep));
+      dependencies.push(BoxDependency::new(dep));
     } else {
       let dep = FallbackDependency::new(self.external_requests.clone());
 
@@ -185,7 +188,7 @@ impl Module for RemoteModule {
         .call(&dep as &dyn Dependency)
         .await?;
 
-      dependencies.push(Box::new(dep));
+      dependencies.push(BoxDependency::new(dep));
     }
 
     Ok(BuildResult {
@@ -200,8 +203,8 @@ impl Module for RemoteModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
-    let mut codegen = CodeGenerationResult::default();
+  ) -> Result<CodeGenerationResultBuilder> {
+    let mut codegen = CodeGenerationResultBuilder::default();
     let module_graph = code_generation_context.compilation.get_module_graph();
     let module = module_graph.get_module_by_dependency_id(&self.dependencies[0]);
     let id = module.and_then(|m| {
@@ -211,7 +214,7 @@ impl Module for RemoteModule {
       )
     });
     codegen.add(SourceType::Remote, RawStringSource::from_static("").boxed());
-    codegen.data.insert(CodeGenerationDataShareInit {
+    codegen.data_mut().insert(CodeGenerationDataShareInit {
       items: vec![ShareInitData {
         share_scope: self.share_scope.clone(),
         init_stage: 20,

@@ -10,21 +10,21 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, JavascriptParserWorkerUrl,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource, URLStaticMode,
+  ExportsInfoArtifact, JavascriptParserWorkerUrl, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, URLStaticMode,
 };
 use rspack_hash::{RspackHash, RspackHasher};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct WorkerDependency {
   id: DependencyId,
   request: String,
   public_path: String,
   range: DependencyRange,
   range_path: DependencyRange,
-  factorize_info: FactorizeInfo,
+  range_request: Option<DependencyRange>,
   need_new_url: bool,
   url_mode: Option<JavascriptParserWorkerUrl>,
 }
@@ -35,6 +35,7 @@ impl WorkerDependency {
     public_path: String,
     range: DependencyRange,
     range_path: DependencyRange,
+    range_request: Option<DependencyRange>,
     need_new_url: bool,
     url_mode: Option<JavascriptParserWorkerUrl>,
   ) -> Self {
@@ -44,7 +45,7 @@ impl WorkerDependency {
       public_path,
       range,
       range_path,
-      factorize_info: Default::default(),
+      range_request,
       need_new_url,
       url_mode,
     }
@@ -52,6 +53,21 @@ impl WorkerDependency {
 
   pub fn public_path(&self) -> &str {
     &self.public_path
+  }
+
+  pub fn replace_request(&self, source: &mut TemplateReplaceSource, request: String) {
+    if let Some(range_request) = self.range_request {
+      source.replace(range_request.start, range_request.end, request, None);
+    } else if self.need_new_url {
+      source.insert(
+        self.range_path.start,
+        concat_string!("new URL(", request, ", "),
+        None,
+      );
+      source.insert_static(self.range_path.end, ")", None);
+    } else {
+      source.insert(self.range_path.start, concat_string!(request, ", "), None);
+    }
   }
 }
 
@@ -89,7 +105,7 @@ impl Dependency for WorkerDependency {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     vec![]
   }
 
@@ -106,14 +122,6 @@ impl ModuleDependency for WorkerDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 
@@ -198,13 +206,12 @@ impl DependencyTemplate for WorkerDependencyTemplate {
     ) && compilation.options.output.module
     {
       code_generatable_context.data.insert(URLStaticMode);
-      concat_string!(
-        rspack_util::json_stringify_str(&concat_string!(
-          WORKER_STATIC_URL_PLACEHOLDER,
-          dep.id.as_u32().to_string()
-        )),
-        ", import.meta.url"
-      )
+      let request = rspack_util::json_stringify_str(&concat_string!(
+        WORKER_STATIC_URL_PLACEHOLDER,
+        dep.id.as_u32().to_string()
+      ));
+      dep.replace_request(source, request);
+      return;
     } else {
       let worker_import_base_url = if !dep.public_path.is_empty() {
         format!("\"{}\"", dep.public_path)

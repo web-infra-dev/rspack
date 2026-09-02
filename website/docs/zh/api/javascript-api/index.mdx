@@ -2,15 +2,13 @@
 description: 'Rspack JavaScript API 总览，涵盖编译器创建、监听模式、统计信息访问与编程式构建流程。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 import { Tab, Tabs, PackageManagerTabs } from '@theme';
 import { Stability } from '@components/ApiMeta';
 import CompilerType from '../../types/compiler.mdx';
 import WatchingType from '../../types/watching.mdx';
 import StatsType from '../../types/stats.mdx';
-
-<WebpackLicense from="https://webpack.docschina.org/api/node/" />
 
 # JavaScript API
 
@@ -21,6 +19,8 @@ Rspack 提供了一组 JavaScript API，可在 Node.js、Deno、Bun 等 JavaScri
 :::tip 提示
 `@rspack/core` 是对齐 webpack 的 JavaScript API 设计的，旨在提供一致的功能和相似的使用体验。
 :::
+
+Rspack 的 JavaScript API 在生命周期和性能特征上与 webpack 存在差异，详见 [JavaScript API 架构](/api/javascript-api/architecture)。
 
 ## 安装
 
@@ -290,3 +290,5 @@ const source = new RawSource('console.log("Hello, world!");');
 ```
 
 详细用法请参考 [webpack-sources](https://github.com/webpack/webpack-sources) 文档。
+
+<Attribution url="https://webpack.docschina.org/api/node/" />

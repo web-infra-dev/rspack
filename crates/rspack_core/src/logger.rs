@@ -239,6 +239,98 @@ pub trait Logger {
   }
 }
 
+#[derive(Debug, Clone)]
+pub struct InfrastructureLogEvent {
+  pub name: Arc<str>,
+  pub log_type: LogType,
+}
+
+pub trait InfrastructureLogSink: Send + Sync {
+  fn emit(&self, event: InfrastructureLogEvent);
+}
+
+#[derive(Clone)]
+pub struct InfrastructureLogger {
+  sink: Arc<dyn InfrastructureLogSink>,
+  name: Arc<str>,
+}
+
+impl fmt::Debug for InfrastructureLogger {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("InfrastructureLogger")
+      .field("name", &self.name)
+      .finish_non_exhaustive()
+  }
+}
+
+impl InfrastructureLogger {
+  pub fn new(name: impl Into<Arc<str>>, sink: Arc<dyn InfrastructureLogSink>) -> Self {
+    Self {
+      sink,
+      name: name.into(),
+    }
+  }
+
+  pub fn get_child(&self, name: &str) -> Self {
+    let mut child_name = self.name.to_string();
+    child_name.push('/');
+    child_name.push_str(name);
+    Self {
+      sink: self.sink.clone(),
+      name: Arc::from(child_name),
+    }
+  }
+}
+
+impl Logger for InfrastructureLogger {
+  fn raw(&self, log_type: LogType) {
+    self.sink.emit(InfrastructureLogEvent {
+      name: self.name.clone(),
+      log_type,
+    });
+  }
+}
+
+#[derive(Debug, Default)]
+pub struct PrintlnInfrastructureLogSink;
+
+impl InfrastructureLogSink for PrintlnInfrastructureLogSink {
+  fn emit(&self, event: InfrastructureLogEvent) {
+    let name = event.name;
+    match event.log_type {
+      LogType::Error { message, .. }
+      | LogType::Warn { message, .. }
+      | LogType::Info { message }
+      | LogType::Log { message }
+      | LogType::Debug { message }
+      | LogType::Trace { message, .. } => println!("[{name}] {message}"),
+      LogType::Group { message } | LogType::GroupCollapsed { message } => {
+        println!("[{name}] {message}")
+      }
+      LogType::GroupEnd | LogType::Clear => {}
+      LogType::Profile { label } => println!("[{name}] Profile {label}"),
+      LogType::ProfileEnd { label } => println!("[{name}] Profile end {label}"),
+      LogType::Time {
+        label,
+        secs,
+        subsec_nanos,
+      } => println!(
+        "[{name}] {label}: {} ms",
+        secs as f64 * 1000.0 + subsec_nanos as f64 / 1_000_000.0
+      ),
+      LogType::Status { message } => println!("[{name}] {message}"),
+      LogType::Cache { label, hit, total } => println!(
+        "[{name}] {label}: {:.1}% ({hit}/{total})",
+        if total == 0 {
+          0.0
+        } else {
+          hit as f32 / total as f32 * 100.0
+        }
+      ),
+    }
+  }
+}
+
 pub struct StartTime {
   label: &'static str,
   start: Instant,
@@ -255,25 +347,7 @@ pub struct StartTimeAggregate {
   label: &'static str,
 }
 
-impl StartTimeAggregate {
-  pub fn start(&self) -> StartTime {
-    StartTime {
-      label: self.label,
-      start: Instant::now(),
-    }
-  }
-
-  pub fn end(&mut self, start: StartTime) {
-    if start.label == self.label {
-      self.duration += start.elapsed();
-    } else {
-      panic!(
-        "label for StartTimeAggregate should be the same, expect: {}, actual: {}",
-        self.label, start.label
-      );
-    }
-  }
-}
+impl StartTimeAggregate {}
 
 #[derive(Debug)]
 pub struct CacheCount {
@@ -293,12 +367,12 @@ impl CacheCount {
   }
 }
 
-pub type CompilationLogging = Arc<DashMap<String, Vec<LogType>, BuildHasherDefault<FxHasher>>>;
+pub type CompilationLogging = Arc<DashMap<Arc<str>, Vec<LogType>, BuildHasherDefault<FxHasher>>>;
 
 #[derive(Clone)]
 pub struct CompilationLogger {
   logging: CompilationLogging,
-  name: String,
+  name: Arc<str>,
 }
 
 impl fmt::Debug for CompilationLogger {
@@ -310,8 +384,21 @@ impl fmt::Debug for CompilationLogger {
 }
 
 impl CompilationLogger {
-  pub fn new(name: String, logging: CompilationLogging) -> Self {
-    Self { logging, name }
+  pub fn new(name: impl Into<Arc<str>>, logging: CompilationLogging) -> Self {
+    Self {
+      logging,
+      name: name.into(),
+    }
+  }
+
+  pub fn get_child(&self, name: &str) -> Self {
+    let mut child_name = self.name.to_string();
+    child_name.push('/');
+    child_name.push_str(name);
+    Self {
+      logging: self.logging.clone(),
+      name: Arc::from(child_name),
+    }
   }
 }
 

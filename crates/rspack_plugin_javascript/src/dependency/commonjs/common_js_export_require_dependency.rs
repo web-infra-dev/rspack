@@ -7,11 +7,10 @@ use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportNameOrSpec,
   ExportProvided, ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, Nullable, ReferencedExport, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedName, collect_referenced_export_items,
-  create_exports_object_referenced, create_no_exports_referenced, property_access,
-  to_normal_comment,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, Nullable,
+  ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
+  property_access, to_normal_comment,
 };
 use rustc_hash::FxHashSet;
 use swc_atoms::Atom;
@@ -21,7 +20,7 @@ use crate::dependency::commonjs::OBJECT_PROTOTYPE_METHODS;
 
 #[cacheable]
 #[allow(unused)]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CommonJsExportRequireDependency {
   id: DependencyId,
   request: String,
@@ -33,7 +32,6 @@ pub struct CommonJsExportRequireDependency {
   #[cacheable(with=AsVec<AsPreset>)]
   ids: Vec<Atom>,
   result_used: bool,
-  factorize_info: FactorizeInfo,
 }
 
 impl CommonJsExportRequireDependency {
@@ -55,7 +53,6 @@ impl CommonJsExportRequireDependency {
       names,
       ids,
       result_used,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -304,19 +301,18 @@ impl Dependency for CommonJsExportRequireDependency {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     let ids = self.get_ids(mg);
     let get_full_result = || {
       if ids.is_empty() {
         create_exports_object_referenced()
       } else {
-        vec![ExtendedReferencedExport::Export(ReferencedExport {
-          name: ids.to_vec(),
-          // `module.exports = require("./m")` can't be mangled
-          can_mangle: !self.is_all_exported_by_module_exports(),
-          can_inline: false,
-          ns_access: false,
-        })]
+        vec![
+          ReferencedExport::from(ids)
+            // `module.exports = require("./m")` can't be mangled
+            .with_can_mangle(!self.is_all_exported_by_module_exports())
+            .with_can_inline(false),
+        ]
       }
     };
     if self.result_used {
@@ -374,13 +370,10 @@ impl Dependency for CommonJsExportRequireDependency {
     referenced_exports
       .into_iter()
       .map(|name| {
-        ExtendedReferencedExport::Export(ReferencedExport {
-          name: name.into_iter().map(|i| i.to_owned()).collect_vec(),
+        ReferencedExport::from(name)
           // `module.exports = require("./m")` can't be mangled
-          can_mangle: !self.is_all_exported_by_module_exports(),
-          can_inline: false,
-          ns_access: false,
-        })
+          .with_can_mangle(!self.is_all_exported_by_module_exports())
+          .with_can_inline(false)
       })
       .collect_vec()
   }
@@ -402,14 +395,6 @@ impl ModuleDependency for CommonJsExportRequireDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 impl AsContextDependency for CommonJsExportRequireDependency {}

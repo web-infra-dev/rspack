@@ -5,17 +5,17 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Context, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport,
-  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedSpecifier,
-  ResourceIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ReferencedExport, ReferencedSpecifier, ResourceIdentifier, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  create_referenced_exports_by_referenced_specifiers,
 };
 
 use super::create_resource_identifier_for_contextual_commonjs_dependency;
 use crate::dependency::{DependencyBranchGuard, compose_dependency_condition};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CommonJsRequireDependency {
   id: DependencyId,
   request: String,
@@ -29,7 +29,6 @@ pub struct CommonJsRequireDependency {
   branch_guard: Option<DependencyBranchGuard>,
   context: Option<Context>,
   resource_identifier: ResourceIdentifier,
-  factorize_info: FactorizeInfo,
 }
 
 impl CommonJsRequireDependency {
@@ -51,7 +50,6 @@ impl CommonJsRequireDependency {
       branch_guard: None,
       context: None,
       resource_identifier: Default::default(),
-      factorize_info: Default::default(),
     }
   }
 
@@ -133,7 +131,7 @@ impl Dependency for CommonJsRequireDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     if let Some(referenced_specifiers) = &self.referenced_specifiers {
       let module = module_graph
         .get_module_by_dependency_id(&self.id)
@@ -175,14 +173,6 @@ impl ModuleDependency for CommonJsRequireDependency {
 
   fn get_condition(&self) -> Option<DependencyCondition> {
     compose_dependency_condition(None, self.branch_guard.as_ref())
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

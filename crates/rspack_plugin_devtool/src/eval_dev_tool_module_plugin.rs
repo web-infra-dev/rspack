@@ -1,11 +1,13 @@
+#![allow(clippy::too_many_arguments)]
+
 use std::borrow::Cow;
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
 use rspack_core::{
-  ChunkCodeTemplate, ChunkInitFragments, ChunkUkey, Compilation,
-  CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation, Filename,
-  Module, ModuleIdentifier, PathData, Plugin, RuntimeGlobals,
+  ChunkInitFragments, ChunkUkey, Compilation, CompilationAdditionalModuleRuntimeRequirements,
+  CompilationParams, CompilerCompilation, Filename, Module, ModuleIdentifier, PathData, Plugin,
+  RuntimeCodeTemplate, RuntimeGlobals,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -85,9 +87,13 @@ async fn render_module_content(
   chunk_ukey: &ChunkUkey,
   module: &dyn Module,
   render_source: &mut RenderSource,
+  runtime_requirements: &mut RuntimeGlobals,
   _init_fragments: &mut ChunkInitFragments,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
+  if compilation.options.output.trusted_types.is_some() {
+    runtime_requirements.insert(RuntimeGlobals::CREATE_SCRIPT);
+  }
   let origin_source = render_source.source.clone();
   let cache_key = (module.identifier(), origin_source.clone());
   if let Some(cached_source) = self.cache.get(&cache_key) {

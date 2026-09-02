@@ -25,6 +25,11 @@ impl ArtifactExt for ExportsInfoArtifact {
 }
 
 impl ExportsInfoArtifact {
+  #[allow(clippy::len_without_is_empty)]
+  pub fn len(&self) -> usize {
+    self.exports_info_map.len()
+  }
+
   pub fn new_exports_info(&mut self, module_identifier: ModuleIdentifier) {
     let info = ExportsInfoData::default();
     let id = info.id();

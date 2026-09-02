@@ -11,7 +11,7 @@ use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 use super::utils::get_output_dir;
 use crate::{
   LinkPrefetchData, LinkPreloadData, RuntimePlugin, extract_runtime_globals_from_ejs,
-  get_chunk_runtime_requirements,
+  extract_runtime_module_variables_from_ejs, get_chunk_runtime_requirements,
   runtime_module::{
     generate_javascript_hmr_runtime,
     utils::{get_initial_chunk_ids, render_hmr_runtime_state_expression, stringify_chunks},
@@ -35,6 +35,22 @@ static MODULE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE: &str =
   include_str!("runtime/module_chunk_loading_with_hmr_manifest.ejs");
 static JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
   include_str!("runtime/javascript_hot_module_replacement.ejs");
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+  let mut variables = extract_runtime_module_variables_from_ejs(&[
+    MODULE_CHUNK_LOADING_TEMPLATE,
+    MODULE_CHUNK_LOADING_WITH_LOADING_TEMPLATE,
+    MODULE_CHUNK_LOADING_WITH_PREFETCH_TEMPLATE,
+    MODULE_CHUNK_LOADING_WITH_PREFETCH_LINK_TEMPLATE,
+    MODULE_CHUNK_LOADING_WITH_PRELOAD_TEMPLATE,
+    MODULE_CHUNK_LOADING_WITH_PRELOAD_LINK_TEMPLATE,
+    MODULE_CHUNK_LOADING_WITH_HMR_TEMPLATE,
+    MODULE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE,
+    JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE,
+  ]);
+  variables.push("moduleInstalledChunks");
+  variables.push("__rspack_hmr_s_module");
+  variables
+});
 
 static MODULE_CHUNK_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_TEMPLATE));
@@ -108,7 +124,7 @@ impl ModuleChunkLoadingRuntimeModule {
     chunk: &Chunk,
     compilation: &Compilation,
     root_output_dir: &str,
-    runtime_template: &RuntimeCodeTemplate<'_>,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> String {
     let base_uri = chunk
       .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
@@ -159,6 +175,10 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES.as_slice()
+  }
+
   fn runtime_requirements(&self, compilation: &Compilation) -> RuntimeModuleRuntimeRequirements {
     let Some(chunk_ukey) = self.chunk() else {
       return RuntimeModuleRuntimeRequirements::default();

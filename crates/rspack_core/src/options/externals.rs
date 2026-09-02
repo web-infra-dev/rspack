@@ -7,8 +7,6 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{ResolveOptionsWithDependencyType, ResolverFactory};
 
-pub type Externals = Vec<ExternalItem>;
-
 #[derive(Debug)]
 pub enum ExternalItemValue {
   String(String),

@@ -2,9 +2,7 @@
 description: 'Rspack can watch files and recompile whenever they change'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/configuration/watch" />
+import Attribution from '@components/Attribution';
 
 # Watch
 
@@ -62,21 +60,21 @@ export default {
 - **Type:** `RegExp | string | string[]`
 - **Default:** `/[\\/](?:\.git|node_modules)[\\/]/`
 
-The path that matches is excluded while watching. Watching many files can result in a lot of CPU or memory usage.
+Use `watchOptions.ignored` to exclude matching files and directories from watch mode. Ignoring directories that do not need to be watched can reduce CPU and memory usage.
 
-Since Rspack v1.2.0, `node_modules` and `.git` directories are excluded by default. This means that changes to files in these directories will not trigger a rebuild.
+By default, `.git` and `node_modules` directories are ignored, so changes inside them do not trigger rebuilds.
 
-If you want to watch the `node_modules` directory, you can set it to only exclude the `.git` directory:
+To watch files in `node_modules`, override the default value and ignore only the `.git` directory:
 
 ```js title="rspack.config.mjs"
 export default {
   watchOptions: {
-    ignored: /\.git/,
+    ignored: /[\\/]\.git[\\/]/,
   },
 };
 ```
 
-`ignored` can use glob matching:
+You can also use a glob pattern:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -86,7 +84,7 @@ export default {
 };
 ```
 
-It is also possible to use multiple glob patterns:
+To ignore multiple glob patterns, pass an array:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -96,19 +94,23 @@ export default {
 };
 ```
 
-In addition, you can specify one or more absolute paths:
+You can also specify one or more absolute paths. Because strings are interpreted as glob patterns, normalize path separators to forward slashes for consistent behavior across platforms:
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
 
+const ignoredDir = path
+  .resolve(import.meta.dirname, 'ignored-dir')
+  .replaceAll(path.sep, '/');
+
 export default {
   watchOptions: {
-    ignored: [path.posix.resolve(__dirname, './ignored-dir')],
+    ignored: [ignoredDir],
   },
 };
 ```
 
-When using glob patterns, Rspack convert them to regular expressions with [glob-to-regexp](https://github.com/fitzgen/glob-to-regexp), so make sure to get yourself familiar with it before you use glob patterns for watchOptions.ignored.
+The glob syntax used by `watchOptions.ignored` is based on [glob-to-regexp](https://github.com/fitzgen/glob-to-regexp). See its documentation for details about the supported pattern syntax.
 
 ### watchOptions.poll
 
@@ -117,7 +119,7 @@ When using glob patterns, Rspack convert them to regular expressions with [glob-
 
 Whether to watch by polling.
 
-When set to `true`, the default polling interval is 5007 milliseconds.
+When set to `true`, the default polling interval is 5007 milliseconds. This matches the default polling interval used by Node.js `fs.watchFile()`.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -127,7 +129,7 @@ export default {
 };
 ```
 
-It can also set a custom polling interval:
+You can also set a custom polling interval. Note that shorter intervals can significantly increase CPU usage and file system I/O:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -165,3 +167,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.js.org/configuration/watch" />

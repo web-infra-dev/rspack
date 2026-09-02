@@ -2,15 +2,15 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, CssExportType, CssModuleRenderCondition, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleDependency, ResourceIdentifier,
-  TemplateContext, TemplateReplaceSource, css_module_render_conditions_identifier,
+  DependencyTemplateType, DependencyType, ModuleDependency, ResourceIdentifier, TemplateContext,
+  TemplateReplaceSource, css_module_render_conditions_identifier,
   iter_css_module_render_conditions, push_css_module_identifier_part,
 };
 
 use crate::utils::source_order_to_i32;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CssImportDependency {
   id: DependencyId,
   request: String,
@@ -20,7 +20,6 @@ pub struct CssImportDependency {
   render_condition: CssModuleRenderCondition,
   export_type: Option<CssExportType>,
   resource_identifier: ResourceIdentifier,
-  factorize_info: FactorizeInfo,
 }
 
 impl CssImportDependency {
@@ -46,16 +45,7 @@ impl CssImportDependency {
       render_condition,
       export_type,
       resource_identifier,
-      factorize_info: Default::default(),
     }
-  }
-
-  pub fn inherited_render_conditions(&self) -> &[CssModuleRenderCondition] {
-    &self.inherited_render_conditions
-  }
-
-  pub fn render_condition(&self) -> &CssModuleRenderCondition {
-    &self.render_condition
   }
 
   pub fn render_conditions(&self) -> impl Iterator<Item = &CssModuleRenderCondition> {
@@ -64,10 +54,6 @@ impl CssImportDependency {
 
   pub fn export_type(&self) -> Option<CssExportType> {
     self.export_type
-  }
-
-  pub fn has_render_conditions(&self) -> bool {
-    self.render_conditions().next().is_some()
   }
 }
 
@@ -110,14 +96,6 @@ impl ModuleDependency for CssImportDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

@@ -11,21 +11,17 @@ use derive_more::Debug;
 pub use drive::*;
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
-use regex::Regex;
 use rspack_core::{
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
   rspack_sources::{BoxSource, RawStringSource, SourceExt, SourceValue},
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHasher;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 type IndexSet<T> = indexmap::IndexSet<T, BuildHasherDefault<FxHasher>>;
-
-pub static QUOTE_META: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Invalid regex"));
 
 /// Safety with [atomic_refcell::AtomicRefCell]:
 ///
@@ -130,11 +126,26 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
     })
     .collect();
 
-  let (ordered_hashes, mut hash_dependencies) =
-    OrderedHashesBuilder::new(&hash_to_asset_names, &assets_data).build();
-  let mut ordered_hashes_iter = ordered_hashes.into_iter();
-
+  let ordered_hashes_result = OrderedHashesBuilder::new(&hash_to_asset_names, &assets_data).build();
   logger.time_end(start);
+
+  let OrderedHashes {
+    ordered_hashes,
+    mut hash_dependencies,
+  } = match ordered_hashes_result {
+    Ok(result) => result,
+    Err(paths) => {
+      compilation.push_diagnostic(Diagnostic::error(
+        "Circular Real Content Hash".to_string(),
+        format!(
+          "Circular real content hash dependency between assets detected:\n {}",
+          paths.join(" -> ")
+        ),
+      ));
+      return Ok(());
+    }
+  };
+  let mut ordered_hashes_iter = ordered_hashes.into_iter();
 
   let start = logger.time("old hash to new hash");
   let mut hash_to_new_hash = HashMap::default();
@@ -387,6 +398,11 @@ struct OrderedHashesBuilder<'a> {
   assets_data: &'a HashMap<&'a str, AssetData>,
 }
 
+struct OrderedHashes {
+  ordered_hashes: IndexSet<String>,
+  hash_dependencies: HashMap<String, HashSet<String>>,
+}
+
 impl<'a> OrderedHashesBuilder<'a> {
   pub fn new(
     hash_to_asset_names: &'a HashMap<&'a str, Vec<&'a str>>,
@@ -398,20 +414,23 @@ impl<'a> OrderedHashesBuilder<'a> {
     }
   }
 
-  pub fn build(&self) -> (IndexSet<String>, HashMap<String, HashSet<String>>) {
+  pub fn build(&self) -> std::result::Result<OrderedHashes, Vec<String>> {
     let mut ordered_hashes = IndexSet::default();
     let mut hash_dependencies = HashMap::default();
+    let mut stack = Vec::new();
+    let mut stack_indexes = HashMap::default();
     for hash in self.hash_to_asset_names.keys() {
       self.add_to_ordered_hashes(
         hash,
         &mut ordered_hashes,
-        &mut HashSet::default(),
+        &mut stack,
+        &mut stack_indexes,
         &mut hash_dependencies,
-      );
+      )?;
     }
-    (
+    Ok(OrderedHashes {
       ordered_hashes,
-      hash_dependencies
+      hash_dependencies: hash_dependencies
         .into_iter()
         .map(|(k, v)| {
           (
@@ -420,7 +439,7 @@ impl<'a> OrderedHashesBuilder<'a> {
           )
         })
         .collect(),
-    )
+    })
   }
 }
 
@@ -450,26 +469,50 @@ impl OrderedHashesBuilder<'_> {
     &'a self,
     hash: &'b str,
     ordered_hashes: &mut IndexSet<String>,
-    stack: &mut HashSet<&'b str>,
+    stack: &mut Vec<&'b str>,
+    stack_indexes: &mut HashMap<&'b str, usize>,
     hash_dependencies: &mut HashMap<&'b str, HashSet<&'b str>>,
-  ) {
+  ) -> std::result::Result<(), Vec<String>> {
     let deps = hash_dependencies
       .entry(hash)
       .or_insert_with(|| self.get_hash_dependencies(hash))
       .clone();
-    stack.insert(hash);
+    stack_indexes.insert(hash, stack.len());
+    stack.push(hash);
     for dep in deps {
       if ordered_hashes.contains(dep) {
         continue;
       }
-      if stack.contains(dep) {
-        // Safety: all chunk-level hash will be collected in runtime chunk
-        // so there shouldn't have circular hash dependency between chunks
-        panic!("RealContentHashPlugin: circular hash dependency");
+      if let Some(&cycle_start) = stack_indexes.get(dep) {
+        let mut cycle = stack[cycle_start..]
+          .iter()
+          .copied()
+          .map(|hash| {
+            let asset_names = self
+              .hash_to_asset_names
+              .get(hash)
+              .expect("RealContentHashPlugin: should have asset names");
+            match asset_names.as_slice() {
+              [name] => (*name).to_string(),
+              names => format!("[{}]", names.join(", ")),
+            }
+          })
+          .collect::<Vec<_>>();
+        let cycle_start = cycle
+          .iter()
+          .enumerate()
+          .min_by(|(_, a), (_, b)| a.cmp(b))
+          .map(|(index, _)| index)
+          .expect("RealContentHashPlugin: circular dependency should not be empty");
+        cycle.rotate_left(cycle_start);
+        cycle.push(cycle[0].clone());
+        return Err(cycle);
       }
-      self.add_to_ordered_hashes(dep, ordered_hashes, stack, hash_dependencies);
+      self.add_to_ordered_hashes(dep, ordered_hashes, stack, stack_indexes, hash_dependencies)?;
     }
     ordered_hashes.insert(hash.to_string());
-    stack.remove(hash);
+    stack.pop();
+    stack_indexes.remove(hash);
+    Ok(())
   }
 }

@@ -1,7 +1,7 @@
 use rspack_core::{
-  ChunkCodeTemplate, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
-  ExportProvided, ExportsType, LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin,
-  RuntimeVariable, UsedNameItem, property_access,
+  ChunkUkey, Compilation, CompilationParams, CompilerCompilation, ExportProvided, ExportsType,
+  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, RuntimeCodeTemplate, RuntimeVariable,
+  UsedNameItem, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier, to_module_export_name,
 };
@@ -60,7 +60,7 @@ async fn render_startup(
   chunk_ukey: &ChunkUkey,
   module: &ModuleIdentifier,
   render_source: &mut RenderSource,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
   let Some(_) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());

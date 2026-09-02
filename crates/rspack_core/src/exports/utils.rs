@@ -16,7 +16,6 @@ use rustc_hash::FxHashSet as HashSet;
 use crate::{DependencyId, property_access};
 
 pub static NEXT_EXPORTS_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
-pub static NEXT_EXPORT_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Clone, Hash)]
 pub struct ExportInfoTargetValue {

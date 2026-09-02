@@ -1,9 +1,12 @@
+#![allow(clippy::too_many_arguments)]
+
 use concat_string::concat_string;
 use rspack_core::{
-  ChunkCodeTemplate, ChunkInitFragments, ChunkUkey, CodeGenerationDataFilename, Compilation,
-  CompilationParams, CompilerCompilation, DependencyId, JavascriptParserUrl, Module, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin, PublicPath,
-  RuntimeSpec, SourceType, URLStaticMode, get_js_chunk_filename_template, get_undo_path,
+  ChunkInitFragments, ChunkUkey, CodeGenerationDataFilename, Compilation, CompilationParams,
+  CompilerCompilation, DependencyId, ImportMetaKnownProperties, JavascriptParserUrl, Module,
+  ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin,
+  PublicPath, RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, SourceType, URLStaticMode,
+  get_js_chunk_filename_template, get_undo_path,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
 use rspack_error::Result;
@@ -81,7 +84,7 @@ pub async fn replace_static_url_placeholders(
       continue;
     };
     let codegen_result = compilation.code_generation_results.get(module, runtime);
-    let Some(filename) = codegen_result.data.get::<CodeGenerationDataFilename>() else {
+    let Some(filename) = codegen_result.data().get::<CodeGenerationDataFilename>() else {
       unreachable!()
     };
 
@@ -181,6 +184,9 @@ async fn normal_module_factory_parser(
     if !matches!(options.url, Some(JavascriptParserUrl::Disable)) {
       parser.add_parser_plugin(Box::new(crate::parser_plugin::URLPlugin {
         mode: options.url,
+        import_meta_url_enabled: options
+          .import_meta()
+          .is_known_property_enabled(ImportMetaKnownProperties::URL),
       }));
     }
   }
@@ -195,8 +201,9 @@ async fn render_module_content(
   chunk_ukey: &ChunkUkey,
   module: &dyn Module,
   render_source: &mut RenderSource,
+  _runtime_requirements: &mut RuntimeGlobals,
   _init_fragments: &mut ChunkInitFragments,
-  _runtime_template: &ChunkCodeTemplate,
+  _runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
   let runtime = compilation
     .build_chunk_graph_artifact
@@ -206,7 +213,7 @@ async fn render_module_content(
   let codegen_result = compilation
     .code_generation_results
     .get(&module.identifier(), Some(runtime));
-  if codegen_result.data.contains::<URLStaticMode>() {
+  if codegen_result.data().contains::<URLStaticMode>() {
     let output_path = get_chunk_output_path(compilation, *chunk_ukey).await?;
     render_source.source = replace_static_url_placeholders(
       compilation,

@@ -28,7 +28,10 @@ export {
 export type { Chunk } from './Chunk';
 export { ConcatenatedModule } from './ConcatenatedModule';
 export { ContextModule } from './ContextModule';
-export { ExternalModule } from './ExternalModule';
+export {
+  ExternalModule,
+  type ExternalModuleCompilationHooks,
+} from './ExternalModule';
 export type { ResolveData, ResourceDataWithData } from './Module';
 export { Module } from './Module';
 export type { default as ModuleGraph } from './ModuleGraph';
@@ -62,6 +65,8 @@ import * as ModuleFilenameHelpers from './lib/ModuleFilenameHelpers';
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
 export { Template } from './Template';
+export { RuntimeTemplate } from './RuntimeTemplate';
+export type { ConcatenationArg } from './RuntimeTemplate';
 export { ModuleFilenameHelpers };
 
 export const WebpackError = Error;
@@ -183,17 +188,29 @@ interface Electron {
 export const electron: Electron = { ElectronTargetPlugin };
 
 import {
+  CompactHashedChunkIdsPlugin,
+  CompactHashedModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
   HashedModuleIdsPlugin,
   SyncModuleIdsPlugin,
 } from './builtin-plugin';
 
 interface Ids {
+  CompactHashedChunkIdsPlugin: typeof CompactHashedChunkIdsPlugin;
+  CompactHashedModuleIdsPlugin: typeof CompactHashedModuleIdsPlugin;
+  /** @deprecated Use `CompactHashedChunkIdsPlugin` instead. */
+  CompatHashedChunkIdsPlugin: typeof CompactHashedChunkIdsPlugin;
+  /** @deprecated Use `CompactHashedModuleIdsPlugin` instead. */
+  CompatHashedModuleIdsPlugin: typeof CompactHashedModuleIdsPlugin;
   DeterministicModuleIdsPlugin: typeof DeterministicModuleIdsPlugin;
   HashedModuleIdsPlugin: typeof HashedModuleIdsPlugin;
 }
 
 export const ids: Ids = {
+  CompactHashedChunkIdsPlugin,
+  CompactHashedModuleIdsPlugin,
+  CompatHashedChunkIdsPlugin: CompactHashedChunkIdsPlugin,
+  CompatHashedModuleIdsPlugin: CompactHashedModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
   HashedModuleIdsPlugin,
 };
@@ -240,6 +257,7 @@ export const webworker: Webworker = { WebWorkerTemplatePlugin };
 import {
   CssChunkingPlugin,
   LimitChunkCountPlugin,
+  RealContentHashPlugin,
   RemoveDuplicateModulesPlugin,
   RsdoctorPlugin,
   RslibPlugin,
@@ -250,12 +268,14 @@ import {
 
 interface Optimize {
   LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
+  RealContentHashPlugin: typeof RealContentHashPlugin;
   RuntimeChunkPlugin: typeof RuntimeChunkPlugin;
   SplitChunksPlugin: typeof SplitChunksPlugin;
 }
 
 export const optimize: Optimize = {
   LimitChunkCountPlugin,
+  RealContentHashPlugin,
   RuntimeChunkPlugin,
   SplitChunksPlugin,
 };

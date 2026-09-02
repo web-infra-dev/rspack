@@ -9,7 +9,7 @@ authors:
     x: 'https://x.com/rspack_dev'
 ---
 
-import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 # Announcing Rspack 1.5
 
@@ -61,7 +61,7 @@ export * from './hooks';
 
 While this pattern simplifies module imports, it can introduce performance overhead during the build process: when importing a single module from a barrel file, Rspack must resolve and build all modules referenced by the barrel file, even if only a small subset is actually used.
 
-To address this, Rspack 1.5 introduces the experimental [lazyBarrel](/guide/optimization/lazy-barrel) feature. This optimization automatically detects side-effect free barrel files and defers building their re-exports until actually needed. Modules are only resolved and built when actually needed, significantly reducing unnecessary module resolution and build costs.
+To address this, Rspack 1.5 introduces the experimental [lazyBarrel](/guide/advanced/lazy-barrel) feature. This optimization automatically detects side-effect free barrel files and defers building their re-exports until actually needed. Modules are only resolved and built when actually needed, significantly reducing unnecessary module resolution and build costs.
 
 This is particularly effective for projects with many barrel files, significantly improving build performance.
 
@@ -93,7 +93,7 @@ Real-world benchmarks show that barrel file optimization delivers substantial pe
 
 Barrel file optimization is enabled by default in Rsbuild 1.5, and we plan to make it the default for all projects in Rspack 1.6.
 
-For more details, see the [experiments.lazyBarrel documentation](/guide/optimization/lazy-barrel).
+For more details, see the [experiments.lazyBarrel documentation](/guide/advanced/lazy-barrel).
 
 ### Faster file system watcher
 
@@ -254,7 +254,7 @@ Rspack 1.5 introduces the [experiments.typeReexportsPresence](/config/module-par
 
 In Rspack 1.4, we introduced [custom InputFileSystem](/blog/announcing-1-4#custom-input-file-system), which combined with the `webpack-virtual-modules` plugin, enabled support for virtual modules. However, this approach still had performance bottlenecks when dealing with a large number of virtual modules.
 
-To address this, Rspack 1.5 adds a built-in [VirtualModulesPlugin](/plugins/rspack/virtual-modules-plugin).
+To address this, Rspack 1.5 adds a built-in [VirtualModulesPlugin](/plugins/virtual-modules-plugin).
 
 This plugin is implemented in Rust and moves the storage and management of virtual modules to the Rust layer. This reduces module read and parse overhead. As a result, it delivers significantly better performance when handling large volumes of virtual modules.
 
@@ -412,7 +412,7 @@ We encourage you to try it out and provide feedback to help us improve Rslint to
 Providing an out-of-the-box experience has always been a core design principle of Rsbuild. In Rsbuild 1.5, we have enabled several of Rspack's latest features by default, delivering improved build performance, including:
 
 - Enabled [lazyCompilation](/config/lazy-compilation) to compile dynamically imported modules on demand, improving development server startup speed.
-- Enabled [lazyBarrel](/guide/optimization/lazy-barrel) to optimize the build performance of barrel files and reduce unnecessary module resolution.
+- Enabled [lazyBarrel](/guide/advanced/lazy-barrel) to optimize the build performance of barrel files and reduce unnecessary module resolution.
 - Enabled [inlineEnum](/config/optimization#optimizationinlineexports) to inline TypeScript enums, reducing the bundle size after compilation.
 - Enabled [typeReexportsPresence](/config/module-parser#javascripttypereexportspresence) to correctly detect TypeScript type re-exports, improving type handling accuracy.
 

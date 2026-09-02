@@ -2,9 +2,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, NormalInitFragment, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, create_exports_object_referenced,
+  ExportsInfoArtifact, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
+  ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  create_exports_object_referenced,
 };
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_util::json_stringify_str;
@@ -13,7 +13,7 @@ use swc_atoms::Atom;
 pub const IMPORT_META_RSC_BINDING: &str = "__rspack_import_meta_rsc__";
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ImportMetaRscDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
@@ -21,7 +21,6 @@ pub struct ImportMetaRscDependency {
   importer: String,
   range: Option<DependencyRange>,
   loc: Option<DependencyLocation>,
-  factorize_info: FactorizeInfo,
 }
 
 impl ImportMetaRscDependency {
@@ -32,7 +31,6 @@ impl ImportMetaRscDependency {
       importer,
       range: Some(range),
       loc,
-      factorize_info: Default::default(),
     }
   }
 
@@ -43,7 +41,6 @@ impl ImportMetaRscDependency {
       importer,
       range: None,
       loc,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -76,7 +73,7 @@ impl Dependency for ImportMetaRscDependency {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     create_exports_object_referenced()
   }
 
@@ -93,14 +90,6 @@ impl ModuleDependency for ImportMetaRscDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

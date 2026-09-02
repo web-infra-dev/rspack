@@ -158,7 +158,8 @@ async fn optimize_code_generation(
     })
     .collect_vec();
 
-  let mut exports_info_cache = FxHashMap::with_capacity_and_hasher(q.len(), Default::default());
+  let mut exports_info_cache =
+    FxHashMap::with_capacity_and_hasher(exports_info_artifact.len(), Default::default());
 
   while !q.is_empty() {
     let items = std::mem::take(&mut q);

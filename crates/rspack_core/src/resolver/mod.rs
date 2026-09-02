@@ -17,9 +17,7 @@ use sugar_path::SugarPath;
 
 pub use self::{
   factory::{ResolveOptionsWithDependencyType, ResolverFactory},
-  resolver_impl::{
-    ResolveContext, ResolveDependencies, ResolveInnerError, ResolveInnerOptions, Resolver,
-  },
+  resolver_impl::{ResolveDependencies, ResolveInnerError, ResolveInnerOptions, Resolver},
 };
 use crate::{
   Context, DependencyCategory, DependencyRange, DependencyType, ModuleIdentifier, Resolve,

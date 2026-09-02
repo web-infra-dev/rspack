@@ -14,6 +14,7 @@ import * as liteTapable from '@rspack/lite-tapable';
 import type Watchpack from 'watchpack';
 import type { Source } from 'webpack-sources';
 import {
+  createRealContentHashPluginHooksRegisters,
   createRsdoctorPluginHooksRegisters,
   createRuntimePluginHooksRegisters,
   JsLoaderRspackPlugin,
@@ -48,7 +49,7 @@ import type { FileSystemInfoEntry } from './FileSystemInfo';
 import type { rspack } from './index';
 import Cache from './lib/Cache';
 import CacheFacade from './lib/CacheFacade';
-import { Logger } from './logging/Logger';
+import { Logger, type LogTypeEnum } from './logging/Logger';
 import { NormalModuleFactory } from './NormalModuleFactory';
 import { ResolverFactory } from './ResolverFactory';
 import { RuleSetCompiler } from './RuleSetCompiler';
@@ -59,6 +60,7 @@ import {
   createCompilationHooksRegisters,
   createCompilerHooksRegisters,
   createContextModuleFactoryHooksRegisters,
+  createExternalModuleHooksRegisters,
   createHtmlPluginHooksRegisters,
   createJavaScriptModulesHooksRegisters,
   createNormalModuleFactoryHooksRegisters,
@@ -431,6 +433,18 @@ class Compiler {
     );
   }
 
+  #logInfrastructure(name: string, type: LogTypeEnum, args: any[]): void {
+    if (this.hooks.infrastructureLog.call(name, type, args) === undefined) {
+      this.infrastructureLogger?.(name, type, args);
+    }
+  }
+
+  #logInfrastructureBatch(logs: binding.JsLog[]): void {
+    for (const log of logs) {
+      this.#logInfrastructure(log.name, log.type as LogTypeEnum, log.args);
+    }
+  }
+
   /**
    * @param name - name of the logger, or function called once to get the logger name
    * @returns a logger with that name
@@ -453,14 +467,7 @@ class Compiler {
             );
           }
         } else {
-          if (
-            this.hooks.infrastructureLog.call(normalizedName, type, args) ===
-            undefined
-          ) {
-            if (this.infrastructureLogger !== undefined) {
-              this.infrastructureLogger(normalizedName, type, args);
-            }
-          }
+          this.#logInfrastructure(normalizedName, type, args);
         }
       },
       (childName): any => {
@@ -803,12 +810,11 @@ class Compiler {
         }
         this.#compilation!.startTime = startTime;
         this.#compilation!.endTime = Date.now();
-        this.hooks.afterCompile.callAsync(this.#compilation!, (err) => {
-          if (err) {
-            return callback(err);
-          }
-          return callback(null, this.#compilation);
-        });
+        // `hooks.afterCompile` is not called here: it is driven from the Rust
+        // side through `registerCompilerAfterCompileTaps`, so that it runs right
+        // after the compilation is sealed and before `shouldEmit`/`emit`, the
+        // same position webpack calls it from.
+        return callback(null, this.#compilation);
       });
     });
   }
@@ -959,6 +965,7 @@ class Compiler {
       ThreadsafeInputNodeFS.needsBinding(options.experiments.useInputFileSystem)
         ? ThreadsafeInputNodeFS.__to_binding(this.inputFileSystem)
         : undefined;
+    const compilerRef = new WeakRef(this);
 
     try {
       this.#instance = new instanceBinding.JsCompiler(
@@ -976,6 +983,12 @@ class Compiler {
         ResolverFactory.__to_binding(this.resolverFactory),
         this.unsafeFastDrop,
         this.#platform,
+        (logs) => {
+          const compiler = compilerRef.deref();
+          if (compiler) {
+            compiler.#logInfrastructureBatch(logs);
+          }
+        },
       );
 
       callback(null, this.#instance);
@@ -1011,12 +1024,22 @@ class Compiler {
         createTap,
         createMapTap,
       ),
+      ...createExternalModuleHooksRegisters(
+        getCompiler,
+        createTap,
+        createMapTap,
+      ),
       ...createJavaScriptModulesHooksRegisters(
         getCompiler,
         createTap,
         createMapTap,
       ),
       ...createHtmlPluginHooksRegisters(getCompiler, createTap, createMapTap),
+      ...createRealContentHashPluginHooksRegisters(
+        getCompiler,
+        createTap,
+        createMapTap,
+      ),
       ...createRuntimePluginHooksRegisters(
         getCompiler,
         createTap,

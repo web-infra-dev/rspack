@@ -4,14 +4,27 @@
     "create-draft-release-notes": {
       "source": "rstackjs/agent-skills",
       "sourceType": "github",
-      "skillPath": "skills/create-draft-release-notes/SKILL.md",
-      "computedHash": "cb32485c5a35e45acba920a690a14d10f878c92fbbd2312ec3d0ce4bf2012abc"
+      "skillPath": ".agents/skills/create-draft-release-notes/SKILL.md",
+      "computedHash": "1c07601e93b35361c92cd6f067ddba3c710c27e98fd42f7b11e74b446590d1a9"
     },
     "release-blog-writer": {
       "source": "rstackjs/agent-skills",
       "sourceType": "github",
-      "skillPath": "skills/release-blog-writer/SKILL.md",
-      "computedHash": "24bdde0407813d43e4f42336fa0d433f53e5c5c8a516f46acbc3505c557f68ea"
+      "skillPath": ".agents/skills/release-blog-writer/SKILL.md",
+      "computedHash": "982e423497efa0a1266e06e14f880264c791e22b33144ce283fcd38041a7e814"
+    },
+    "rstack-cli-docs": {
+      "source": "rstackjs/rstack-cli",
+      "ref": "main",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/rstack-cli-docs/SKILL.md",
+      "computedHash": "3bd67c05c2cb4121edd24be65d118e0e7402177bca8a0f1b5bb0ce55dee5e61c"
+    },
+    "rstack-eco-ci-debug": {
+      "source": "rstackjs/agent-skills",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/rstack-eco-ci-debug/SKILL.md",
+      "computedHash": "440fea0403b77e6f7bfcd91fc62ca06bf0cb19f147bbe5181667aed6c75a56a8"
     }
   }
 }

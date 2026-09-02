@@ -4,9 +4,9 @@ use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation,
-  CompilationAfterProcessAssets, CompilationParams, CompilerCompilation, CompilerFailed,
-  CompilerId, CompilerMake, CrossOriginLoading, DependenciesBlock, Dependency, DependencyId,
+  AsyncDependenciesBlockIdentifier, BoxDependency, ChunkGraph, ChunkGroup, ChunkGroupUkey,
+  ChunkUkey, Compilation, CompilationAfterProcessAssets, CompilationParams, CompilerCompilation,
+  CompilerFailed, CompilerId, CompilerMake, CrossOriginLoading, DependenciesBlock, DependencyId,
   DependencyType, EntryDependency, Logger, ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
@@ -638,7 +638,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   let plugin_state = PLUGIN_STATES.get(&server_compiler_id).ok_or_else(|| {
     rspack_error::error!(
       "RscClientPlugin: Plugin state not found in make hook for compiler {:#?}.",
-      compilation.compiler_id()
+      server_compiler_id
     )
   })?;
 
@@ -669,7 +669,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 
     let mut include_dependencies = Vec::new();
     if !client_modules.is_empty() || entry_state.has_css_imports_by_server_entry() {
-      let dependency = Box::new(RscEntryDependency::new(
+      let dependency = BoxDependency::new(RscEntryDependency::new(
         entry_name.clone(),
         entry_state.ungrouped_client_entries.clone(),
         entry_state.root_client_entries.clone(),
@@ -691,7 +691,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 
     let mut entry_dependencies = Vec::new();
     for request in &entry_state.root_css_imports {
-      let dependency = Box::new(EntryDependency::new(
+      let dependency = BoxDependency::new(EntryDependency::new(
         request.clone(),
         compilation.options.context.clone(),
         None,

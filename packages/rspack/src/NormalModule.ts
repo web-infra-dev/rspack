@@ -1,7 +1,7 @@
 import binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import type { Source } from 'webpack-sources';
-import type { Compilation } from './Compilation';
+import { type Compilation, getOrCreateCompilationHooks } from './Compilation';
 import type { LoaderContext } from './config';
 import type { Module } from './Module';
 import { SourceAdapter } from './util/source';
@@ -10,6 +10,7 @@ Object.defineProperty(binding.NormalModule.prototype, 'identifier', {
   enumerable: true,
   configurable: true,
   value(this: binding.NormalModule): string {
+    // @ts-expect-error
     return this[binding.MODULE_IDENTIFIER_SYMBOL];
   },
 });
@@ -54,19 +55,12 @@ Object.defineProperty(binding.NormalModule, 'getCompilationHooks', {
       );
     }
 
-    const compilationHooksMap =
-      compilation[binding.COMPILATION_HOOKS_MAP_SYMBOL];
-    let hooks = compilationHooksMap.get(compilation);
-    if (hooks === undefined) {
-      hooks = {
-        loader: new liteTapable.SyncHook(['loaderContext', 'module']),
-        readResource: new liteTapable.HookMap(
-          () => new liteTapable.AsyncSeriesBailHook(['loaderContext']),
-        ),
-      };
-      compilationHooksMap.set(compilation, hooks);
-    }
-    return hooks;
+    return getOrCreateCompilationHooks(compilation, compilation, () => ({
+      loader: new liteTapable.SyncHook(['loaderContext', 'module']),
+      readResource: new liteTapable.HookMap(
+        () => new liteTapable.AsyncSeriesBailHook(['loaderContext']),
+      ),
+    }));
   },
 });
 

@@ -15,6 +15,12 @@ For projects not using webpack 5, there are other migration guides that can be r
 - For projects using create-react-app or CRACO, you can refer to [Migrating Create React App](/guide/migration/cra).
 - For projects using Vue CLI, you can refer to [Rsbuild - Migrating from Vue CLI](https://rsbuild.rs/guide/migration/vue-cli).
 
+## Checking the Node.js version
+
+Before migrating, make sure that all build environments use a Node.js version supported by Rspack. `@rspack/core@2` requires Node.js `^20.19.0 || >=22.12.0`.
+
+Keep the Node.js version consistent across local development, CI, and deployment builds. Update version settings such as `.nvmrc`, Volta configuration, and build images as needed.
+
 ## Installing Rspack
 
 Install Rspack in your project directory:
@@ -25,10 +31,7 @@ Both `@rspack/cli` and `@rspack/dev-server` are optional dependencies:
 
 - If you are not using `webpack-cli`, no need to install `@rspack/cli`.
 - If you are not using `webpack-dev-server`, no need to install `@rspack/dev-server`.
-
-Now you can remove the webpack-related dependencies from your project:
-
-<PackageManagerTabs command="remove webpack webpack-cli webpack-dev-server" />
+- Use the same version of `@rspack/core` and `@rspack/cli`. The version of `@rspack/dev-server` may differ and does not need to match.
 
 ## Updating package.json
 
@@ -46,6 +49,30 @@ Update your build scripts to use Rspack instead of webpack, see [CLI](/api/cli) 
 }
 ```
 
+## Remove unsupported CLI options
+
+Rspack CLI does not support some webpack CLI options, including `--progress`, `--color`, `--bail`, and `--output-pathinfo`. Keeping these options causes an `Unknown option` error before the configuration is loaded.
+
+During migration, remove these unsupported options from the build command. If you still need the corresponding behavior, use the Rspack configuration instead:
+
+```diff title="package.json"
+{
+  "scripts": {
+-   "build": "webpack --mode production --progress --color",
++   "build": "rspack --mode production",
+  }
+}
+```
+
+```js title="rspack.config.mjs"
+export default {
+  stats: {
+    // Equivalent to webpack CLI's --color
+    colors: true,
+  },
+};
+```
+
 ## Updating configuration
 
 Rename the `webpack.config.js` file to `rspack.config.js`.
@@ -61,9 +88,17 @@ Rspack supports most webpack configuration options. See [Configure Rspack](/conf
 
 Webpack and Rspack use different cache option shapes. Do not copy webpack cache options directly; map them to the corresponding [Rspack cache options](/config/cache).
 
-Disabled cache and memory cache can be kept as-is: `cache: false`, `cache: true`, and `cache: { type: 'memory' }` have the same meaning in Rspack.
+For Cache storage itself, disabled cache and memory cache can be kept as-is: `cache: false`,
+`cache: true`, and `cache: { type: 'memory' }` map directly to Rspack.
 
 For webpack filesystem cache, use Rspack [persistent cache](/config/cache#persistent-cache), then migrate the supported fields below.
+
+webpack's `cache.cacheUnaffected` optimization maps conceptually to Rspack's top-level
+[`incremental`](/config/incremental) option. Rspack keeps this option independent from Cache, so
+`cache: false` does not disable Incremental. To prevent cross-compilation reuse through both
+mechanisms, also set `incremental: false`. Because Rspack Incremental covers more compilation stages
+and has its own defaults, migrate this optimization separately instead of treating it as a Cache
+field rename.
 
 1. Change webpack `cache.type: 'filesystem'` to Rspack `cache.type: 'persistent'`.
 
@@ -92,29 +127,14 @@ export default {
 +   type: 'persistent',
 +   buildDependencies: [
 +     __filename,
-+     path.join(__dirname, 'package.json'),
-+     path.join(__dirname, 'tsconfig.json')
++     path.join(import.meta.dirname, 'package.json'),
++     path.join(import.meta.dirname, 'tsconfig.json')
 +   ]
 + },
 };
 ```
 
-3. Merge webpack `cache.name` and `cache.version` into Rspack [`cache.version`](/config/cache#version).
-
-Rspack does not have a separate `cache.name` option. Cache instances are isolated by `cache.version` and [`cache.storage.directory`](/config/cache#storagedirectory).
-
-```diff title="rspack.config.mjs"
-export default {
-- cache: {
--   name: `${config.name}-${config.mode}-${otherFlags}`,
--   version: appVersion
-- },
-+ cache: {
-+   type: 'persistent',
-+   version: `${config.name}-${config.mode}-${otherFlags}-${appVersion}`
-+ },
-};
-```
+3. Keep webpack [`cache.name`](/config/cache#name) and [`cache.version`](/config/cache#version) as-is. Rspack uses the same `cache.name` semantics to create coexisting caches.
 
 4. Move webpack top-level `snapshot` options into Rspack [`cache.snapshot`](/config/cache#snapshot).
 
@@ -128,32 +148,36 @@ export default {
 + cache: {
 +   type: 'persistent',
 +   snapshot: {
-+     immutablePaths: [path.join(__dirname, 'constant')],
-+     managedPaths: [path.join(__dirname, 'node_modules')],
++     immutablePaths: [path.join(import.meta.dirname, 'constant')],
++     managedPaths: [path.join(import.meta.dirname, 'node_modules')],
 +     unmanagedPaths: []
 +   }
 + },
 };
 ```
 
-5. Move webpack `cache.cacheDirectory` to Rspack [`cache.storage.directory`](/config/cache#storagedirectory).
+5. Move webpack `cache.cacheDirectory` to Rspack [`cache.storage.directory`](/config/cache#storagedirectory), and webpack `cache.cacheLocation` to Rspack [`cache.storage.location`](/config/cache#storagelocation). The option names differ, but their semantics are aligned. Rspack also defaults `storage.location` to `storage.directory/cache.name`.
 
 ```diff title="rspack.config.mjs"
 export default {
 - cache: {
--   cacheDirectory: path.join(__dirname, 'node_modules/.cache/test')
+-   type: 'filesystem',
+-   cacheDirectory: path.join(__dirname, 'node_modules/.cache/test'),
+-   cacheLocation: path.join(__dirname, 'node_modules/.cache/test/client')
 - },
 + cache: {
 +   type: 'persistent',
 +   storage: {
 +     type: 'filesystem',
-+     directory: path.join(__dirname, 'node_modules/.cache/test')
++     directory: path.join(import.meta.dirname, 'node_modules/.cache/test'),
++     location: path.join(import.meta.dirname, 'node_modules/.cache/test/client')
 +   }
 + },
 };
 ```
 
-The following example shows the same mapping when automating config migration:
+The following example automates the Cache storage mapping. It intentionally leaves Incremental as a
+separate migration decision.
 
 ```js
 function transform(webpackConfig, rspackConfig) {
@@ -177,12 +201,8 @@ function transform(webpackConfig, rspackConfig) {
     webpackConfig.cache.buildDependencies || {},
   ).flat();
 
-  const version = [webpackConfig.cache.name, webpackConfig.cache.version]
-    .filter(Boolean)
-    .join('-');
-  if (version) {
-    rspackConfig.cache.version = version;
-  }
+  rspackConfig.cache.name = webpackConfig.cache.name;
+  rspackConfig.cache.version = webpackConfig.cache.version;
 
   rspackConfig.cache.snapshot = {
     immutablePaths: webpackConfig.snapshot?.immutablePaths,
@@ -190,12 +210,11 @@ function transform(webpackConfig, rspackConfig) {
     unmanagedPaths: webpackConfig.snapshot?.unmanagedPaths,
   };
 
-  if (webpackConfig.cache.cacheDirectory) {
-    rspackConfig.cache.storage = {
-      type: 'filesystem',
-      directory: webpackConfig.cache.cacheDirectory,
-    };
-  }
+  rspackConfig.cache.storage = {
+    type: 'filesystem',
+    directory: webpackConfig.cache.cacheDirectory,
+    location: webpackConfig.cache.cacheLocation,
+  };
 }
 ```
 
@@ -203,7 +222,7 @@ function transform(webpackConfig, rspackConfig) {
 
 Rspack has implemented most of webpack's built-in plugins, with the same names and configuration parameters, allowing for easy replacement.
 
-For example, replacing the [DefinePlugin](/plugins/webpack/define-plugin):
+For example, replacing the [DefinePlugin](/plugins/define-plugin):
 
 ```js title="rspack.config.js"
 const webpack = require('webpack'); // [!code --]
@@ -220,17 +239,56 @@ module.exports = {
 }
 ```
 
-See [Built-in plugins](/plugins/webpack/) for more information about supported webpack plugins in Rspack.
+See [webpack plugin compatibility](/plugins/webpack-built-in-plugin-support) for Rspack's compatibility status with webpack built-in plugins and selected internal plugins.
 
 ## Community plugins
 
 Rspack supports most of the webpack community plugins and also offers alternative solutions for some currently unsupported plugins.
 
-Check [Plugin compat](/guide/compatibility/plugin) for more information on Rspack's compatibility with popular webpack community plugins.
+Check [Community plugin compatibility](/plugins/community-plugin-compatibility) for more information on Rspack's compatibility with popular webpack community plugins.
+
+Some webpack ecosystem packages, such as [`webpack-node-externals`](https://www.npmjs.com/package/webpack-node-externals) and [`node-polyfill-webpack-plugin`](https://www.npmjs.com/package/node-polyfill-webpack-plugin), require newer versions for Rspack compatibility. Before reusing a community package, upgrade it to the latest version, as older versions may rely on incompatible webpack APIs.
+
+### html-webpack-plugin
+
+For most projects migrating from [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin), use [`html-rspack-plugin`](https://github.com/rstackjs/html-rspack-plugin). It is a JavaScript fork designed for Rspack and provides closer compatibility with existing options, templates, and integrations.
+
+<PackageManagerTabs command="add html-rspack-plugin -D" />
+
+Update the import and constructor name in the Rspack configuration:
+
+```diff title="rspack.config.mjs"
+-import HtmlWebpackPlugin from 'html-webpack-plugin';
++import HtmlRspackPlugin from 'html-rspack-plugin';
+
+ export default {
+   plugins: [
+-    new HtmlWebpackPlugin({
++    new HtmlRspackPlugin({
+       // ...
+     }),
+   ],
+ };
+```
+
+After completing the migration, remove `html-webpack-plugin` from the project dependencies.
+
+If build performance is the priority, you can also use the built-in Rust plugin [`rspack.HtmlRspackPlugin`](/plugins/html-rspack-plugin). See the [HTML guide](/guide/languages/html#choose-a-plugin) for details.
+
+### unplugin
+
+Some [unplugin](/guide/features/plugin#unplugin) packages provide separate entry points for each bundler. When a `/rspack` entry is available, use it instead of `/webpack` so the plugin selects the Rspack adapter:
+
+```diff title="rspack.config.mjs"
+- import AutoImport from 'unplugin-auto-import/webpack';
+- import Components from 'unplugin-vue-components/webpack';
++ import AutoImport from 'unplugin-auto-import/rspack';
++ import Components from 'unplugin-vue-components/rspack';
+```
 
 ### copy-webpack-plugin
 
-Use [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) instead of [copy-webpack-plugin](https://github.com/webpack/copy-webpack-plugin):
+Use [rspack.CopyRspackPlugin](/plugins/copy-rspack-plugin) instead of [copy-webpack-plugin](https://github.com/webpack/copy-webpack-plugin):
 
 ```js title="rspack.config.js"
 const CopyWebpackPlugin = require('copy-webpack-plugin'); // [!code --]
@@ -248,7 +306,7 @@ module.exports = {
 
 ### mini-css-extract-plugin
 
-Use [rspack.CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) instead of [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin):
+Use [rspack.CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin) instead of [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin):
 
 ```diff title="rspack.config.js"
 - const CssExtractWebpackPlugin = require('mini-css-extract-plugin');
@@ -278,15 +336,16 @@ module.exports = {
 
 ### tsconfig-paths-webpack-plugin
 
-Use [resolve.tsConfig](/config/resolve#resolvetsconfig) option instead of [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin):
+Rspack does not support webpack's `resolve.plugins` option. Use [resolve.tsConfig](/config/resolve#resolvetsconfig) option instead of [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin):
 
-```js title="rspack.config.js"
-const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin'); // [!code --]
+```diff title="rspack.config.mjs"
+-import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin';
++import path from 'node:path';
 
-module.exports = {
+ export default {
   resolve: {
-    plugins: [new TsconfigPathsPlugin({})], // [!code --]
-    tsConfig: {}, // [!code ++]
+-    plugins: [new TsconfigPathsPlugin()],
++    tsConfig: path.resolve(import.meta.dirname, 'tsconfig.json'),
   },
 };
 ```
@@ -309,7 +368,7 @@ module.exports = {
 
 ### terser-webpack-plugin
 
-For projects that use [terser-webpack-plugin](https://github.com/webpack/terser-webpack-plugin) to minify JavaScript, we recommend switching to [rspack.SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) for better build performance:
+For projects that use [terser-webpack-plugin](https://github.com/webpack/terser-webpack-plugin) to minify JavaScript, we recommend switching to [rspack.SwcJsMinimizerRspackPlugin](/plugins/swc-js-minimizer-rspack-plugin) for better build performance:
 
 ```js title="rspack.config.js"
 const TerserPlugin = require('terser-webpack-plugin'); // [!code --]
@@ -332,7 +391,7 @@ When you explicitly configure [optimization.minimizer](/config/optimization#opti
 
 ### css-minimizer-webpack-plugin
 
-For projects that use [css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin) to minify CSS, we recommend switching to [rspack.LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) for better build performance:
+For projects that use [css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin) to minify CSS, we recommend switching to [rspack.LightningCssMinimizerRspackPlugin](/plugins/lightning-css-minimizer-rspack-plugin) for better build performance:
 
 ```js title="rspack.config.js"
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin'); // [!code --]
@@ -507,6 +566,31 @@ Migrate [raw-loader](https://github.com/webpack-contrib/raw-loader) to [Asset Mo
  };
 ```
 
+### vue-loader
+
+For Vue 3 projects, replace `vue-loader` with [`rspack-vue-loader`](/guide/integrations/vue#vue-3), and update both the plugin import and loader name:
+
+```diff title="rspack.config.mjs"
+-import { VueLoaderPlugin } from 'vue-loader';
++import { VueLoaderPlugin } from 'rspack-vue-loader';
+
+export default {
+  plugins: [new VueLoaderPlugin()],
+  module: {
+    rules: [
+      {
+        test: /\.vue$/,
+-       loader: 'vue-loader',
++       loader: 'rspack-vue-loader',
++       options: {
++         experimentalInlineMatchResource: true,
++       },
+      },
+    ],
+  },
+};
+```
+
 ## Common webpack package replacements
 
 When migrating webpack ecosystem packages, the following non-plugin packages usually need to be replaced.
@@ -520,4 +604,12 @@ When migrating webpack ecosystem packages, the following non-plugin packages usu
 | `webpack-chain`          | [`rspack-chain`](https://github.com/rstackjs/rspack-chain)                    | Chainable Rspack configuration API.    |
 | `webpack-merge`          | [`rspack-merge`](https://github.com/rstackjs/rspack-merge)                    | Rspack configuration merging.          |
 
-> For plugin packages, see [Plugin compatibility](/guide/compatibility/plugin).
+> For plugin packages, see [Community plugin compatibility](/plugins/community-plugin-compatibility).
+
+## Removing webpack dependencies
+
+After successfully building your project with Rspack, check whether any loaders, plugins, or custom build scripts still import `webpack` or `webpack/lib/*`.
+
+If imports remain, keep `webpack` temporarily as a compatibility dependency. Remove webpack-related dependencies after they have been replaced or verified as unnecessary:
+
+<PackageManagerTabs command="remove webpack webpack-cli webpack-dev-server" />

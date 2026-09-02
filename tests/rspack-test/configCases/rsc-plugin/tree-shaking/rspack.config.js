@@ -76,6 +76,9 @@ module.exports = [
     plugins: [
       new ServerPlugin(),
       new rspack.DefinePlugin({
+        DYNAMIC_TODO_PATH: JSON.stringify(
+          path.join(__dirname, 'src/DynamicTodo.js'),
+        ),
         TODOS_PATH: JSON.stringify(path.join(__dirname, 'src/Todos.js')),
       }),
     ],

@@ -1,6 +1,9 @@
+use std::sync::Arc;
+
 use camino::Utf8PathBuf;
 use rspack_core::{
-  AsyncDependenciesBlock, ConstDependency, DependencyRange, ImportAttributes, ImportPhase,
+  AsyncDependenciesBlock, BoxDependency, ConstDependency, DependencyRange, ImportAttributes,
+  ImportPhase,
 };
 use rspack_plugin_javascript::{
   JavascriptParserPlugin,
@@ -14,11 +17,12 @@ use rspack_plugin_javascript::{
 };
 use rspack_util::{SpanExt, atom::Atom, json_stringify_str, swc::get_swc_comments};
 use swc_experimental_ecma_ast::{
-  CallExpr, Callee, GetSpan, Ident, IdentName, ImportPhase as AstImportPhase, MemberExpr, Span,
-  UnaryExpr, VarDeclarator,
+  CallExpr, Callee, GetSpan, Ident, IdentName, ImportDecl, ImportPhase as AstImportPhase,
+  MemberExpr, MetaPropKind, OptChainBase, OptChainExpr, Span, UnaryExpr, VarDeclarator,
 };
 
 static RSTEST_MOCK_FIRST_ARG_TAG: &str = "strip the import call from the first arg of mock series";
+static RSTEST_API_IMPORT_TAG: &str = "rstest test api import";
 
 use crate::{
   dynamic_import_origin_dependency::RstestDynamicImportOriginDependency,
@@ -32,6 +36,7 @@ const DIR_NAME: &str = "__dirname";
 const FILE_NAME: &str = "__filename";
 const IMPORT_META_DIRNAME: &str = "import.meta.dirname";
 const IMPORT_META_FILENAME: &str = "import.meta.filename";
+const IMPORT_META_RSTEST: &str = "import.meta.rstest";
 pub(crate) const MOCK_TARGET_REQUEST_PREFIX: &str = "\0rstest_mock_target:\0";
 
 #[derive(PartialEq)]
@@ -49,6 +54,9 @@ pub struct RstestParserPluginOptions {
   /// Whether to handle global `rs` and `rstest` variables.
   /// When false, only ESM imported variables are processed.
   pub globals: bool,
+  /// Whether to replace `import.meta.rstest` with the optional runtime resolver
+  /// call carrying the source module's absolute path.
+  pub inject_import_meta_rstest_origin: bool,
   /// Whether to rewrite non-string-literal `import()` calls with origin info.
   /// Pre-resolved at plugin construction — false here covers both "feature
   /// disabled" and "callee resolved to default `import`".
@@ -67,6 +75,7 @@ impl Default for RstestParserPluginOptions {
       import_meta_path_name: false,
       manual_mock_root: String::new(),
       globals: true,
+      inject_import_meta_rstest_origin: false,
       inject_dynamic_import_origin: false,
       inject_require_resolve_origin: false,
       commonjs_magic_comments: false,
@@ -141,7 +150,7 @@ impl RstestParserPlugin {
       .args
       .last()
       .expect("call_expr.args has at least one element");
-    parser.add_presentational_dependency(Box::new(RstestRequireResolveOriginDependency::new(
+    parser.add_presentational_dependency(Arc::new(RstestRequireResolveOriginDependency::new(
       call_expr.callee.span().into(),
       last_arg.span().real_hi(),
       origin_path,
@@ -151,6 +160,17 @@ impl RstestParserPlugin {
     // so preserve dependency collection for nested expressions in arguments.
     parser.walk_expr_or_spread(&call_expr.args);
     Some(true)
+  }
+
+  fn import_meta_rstest_expression(&self, parser: &JavascriptParser) -> Option<String> {
+    if !self.options.inject_import_meta_rstest_origin {
+      return None;
+    }
+    let resource_path = parser.resource_data.path()?;
+    Some(format!(
+      "globalThis['@rstest/core/import-meta']?.({})",
+      json_stringify_str(resource_path.as_str())
+    ))
   }
 
   fn process_require_actual(
@@ -173,16 +193,16 @@ impl RstestParserPlugin {
             parser.in_try,
             loc,
           );
-          parser.add_dependency(Box::new(dep));
+          parser.add_dependency(BoxDependency::new(dep));
 
           let callee_range = call_expr.callee.span().into();
           let loc = parser.to_dependency_location(callee_range);
-          parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
+          parser.add_presentational_dependency(Arc::new(RequireHeaderDependency::new(
             callee_range,
             loc,
           )));
 
-          parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          parser.add_presentational_dependency(Arc::new(ConstDependency::new(
             callee_range,
             ".rstest_require_actual".into(),
           )));
@@ -223,7 +243,7 @@ impl RstestParserPlugin {
           let imported_span = call_expr.args.first().expect("should have one arg");
 
           let range = call_expr.span.into();
-          let dep = Box::new(ImportDependency::new(
+          let dep = BoxDependency::new(ImportDependency::new(
             Atom::from(lit.value.to_string_lossy().as_ref()),
             range,
             Some(attrs),
@@ -335,6 +355,7 @@ impl RstestParserPlugin {
     is_esm: bool,
     method: MockMethod,
     has_b: bool,
+    test_api_import_source_order: Option<i32>,
   ) {
     match call_expr.args.len() {
       1 => {
@@ -354,9 +375,9 @@ impl RstestParserPlugin {
             },
             if has_b { Some(", ".to_string()) } else { None },
           );
-          parser.add_dependency(Box::new(dep));
+          parser.add_dependency(BoxDependency::new(dep));
 
-          parser.add_presentational_dependency(Box::new(
+          parser.add_presentational_dependency(Arc::new(
             MockMethodDependency::new(
               call_expr.span().into(),
               call_expr.callee.span().into(),
@@ -371,12 +392,13 @@ impl RstestParserPlugin {
               None
             } else {
               Some(first_arg.span().real_hi())
-            }),
+            })
+            .with_test_api_import_source_order(test_api_import_source_order),
           ));
 
           if has_b {
             let second_arg = Span::new(first_arg.span().end, first_arg.span().end);
-            parser.add_dependency(Box::new(
+            parser.add_dependency(BoxDependency::new(
               MockModuleIdDependency::new(
                 format!("{MOCK_TARGET_REQUEST_PREFIX}{lit_str}"),
                 second_arg.into(),
@@ -425,7 +447,7 @@ impl RstestParserPlugin {
             None,
           );
 
-          parser.add_presentational_dependency(Box::new(
+          parser.add_presentational_dependency(Arc::new(
             MockMethodDependency::new(
               call_expr.span().into(),
               call_expr.callee.span().into(),
@@ -434,9 +456,10 @@ impl RstestParserPlugin {
               method,
             )
             // 2-arg `rs.mock('X', factory)`: append request after the factory.
-            .with_request_arg_end(Some(second_arg.span().real_hi())),
+            .with_request_arg_end(Some(second_arg.span().real_hi()))
+            .with_test_api_import_source_order(test_api_import_source_order),
           ));
-          parser.add_dependency(Box::new(module_dep));
+          parser.add_dependency(BoxDependency::new(module_dep));
         } else {
           parser.add_error(
             create_traceable_error(
@@ -468,6 +491,7 @@ impl RstestParserPlugin {
     parser: &mut JavascriptParser,
     call_expr: &CallExpr,
     statement_span: Option<Span>,
+    test_api_import_source_order: Option<i32>,
   ) -> Option<bool> {
     match call_expr.args.len() {
       1 => {
@@ -489,7 +513,9 @@ impl RstestParserPlugin {
             MockMethod::Hoisted,
           )
         };
-        parser.add_presentational_dependency(Box::new(dep));
+        parser.add_presentational_dependency(Arc::new(
+          dep.with_test_api_import_source_order(test_api_import_source_order),
+        ));
         Some(false)
       }
       _ => {
@@ -510,7 +536,7 @@ impl RstestParserPlugin {
   fn reset_modules(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) -> Option<bool> {
     match call_expr.args.len() {
       0 => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           call_expr.callee.span().into(),
           format!(
             "{}.rstest_reset_modules",
@@ -557,7 +583,7 @@ impl RstestParserPlugin {
                 let mut attrs = ImportAttributes::default();
                 attrs.insert("rstest".to_string(), "importMock".to_string());
                 let range = call_expr.span.into();
-                let dep = Box::new(ImportDependency::new(
+                let dep = BoxDependency::new(ImportDependency::new(
                   Atom::from(mocked_target),
                   range,
                   Some(attrs),
@@ -595,12 +621,12 @@ impl RstestParserPlugin {
 
                 let callee_range = call_expr.callee.span().into();
                 let loc = parser.to_dependency_location(callee_range);
-                parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
+                parser.add_presentational_dependency(Arc::new(RequireHeaderDependency::new(
                   callee_range,
                   loc,
                 )));
 
-                parser.add_dependency(Box::new(dep));
+                parser.add_dependency(BoxDependency::new(dep));
                 return Some(true);
               }
             }
@@ -660,8 +686,13 @@ impl RstestParserPlugin {
     prop: &IdentName,
     statement_span: Option<Span>,
   ) -> Option<bool> {
+    let ident_name = Atom::from(ident.sym.as_str());
+    let test_api_import_source_order = parser
+      .get_tag_data::<i32>(&ident_name, RSTEST_API_IMPORT_TAG)
+      .copied();
+
     // Check if this is a global variable (free variable) or an ESM import
-    let is_global = !parser.is_variable_defined(&Atom::from(ident.sym.as_str()));
+    let is_global = !parser.is_variable_defined(&ident_name);
 
     // Skip global variables if globals option is disabled
     if is_global && !self.options.globals {
@@ -671,7 +702,15 @@ impl RstestParserPlugin {
     match (ident.sym.as_str(), prop.sym.as_str()) {
       // rs.mock
       ("rs" | "rstest", "mock") => {
-        self.process_mock(parser, call_expr, true, true, MockMethod::Mock, true);
+        self.process_mock(
+          parser,
+          call_expr,
+          true,
+          true,
+          MockMethod::Mock,
+          true,
+          test_api_import_source_order,
+        );
         Some(false)
       }
       // rs.mockRequire
@@ -683,12 +722,21 @@ impl RstestParserPlugin {
           false,
           MockMethod::MockRequire,
           true,
+          test_api_import_source_order,
         );
         Some(false)
       }
       // rs.doMock
       ("rs" | "rstest", "doMock") => {
-        self.process_mock(parser, call_expr, false, true, MockMethod::DoMock, true);
+        self.process_mock(
+          parser,
+          call_expr,
+          false,
+          true,
+          MockMethod::DoMock,
+          true,
+          test_api_import_source_order,
+        );
         Some(false)
       }
       // rs.doMockRequire
@@ -700,6 +748,7 @@ impl RstestParserPlugin {
           false,
           MockMethod::DoMockRequire,
           true,
+          test_api_import_source_order,
         );
         Some(false)
       }
@@ -710,28 +759,65 @@ impl RstestParserPlugin {
       ("rs" | "rstest", "requireMock") => self.load_mock(parser, call_expr, false),
       // rs.unmock
       ("rs" | "rstest", "unmock") => {
-        self.process_mock(parser, call_expr, true, true, MockMethod::Unmock, false);
+        self.process_mock(
+          parser,
+          call_expr,
+          true,
+          true,
+          MockMethod::Unmock,
+          false,
+          test_api_import_source_order,
+        );
         Some(true)
       }
       // rs.doUnmock
       ("rs" | "rstest", "doUnmock") => {
-        self.process_mock(parser, call_expr, false, true, MockMethod::Unmock, false);
+        self.process_mock(
+          parser,
+          call_expr,
+          false,
+          true,
+          MockMethod::Unmock,
+          false,
+          test_api_import_source_order,
+        );
         Some(true)
       }
       // rs.unmockRequire
       ("rs" | "rstest", "unmockRequire") => {
-        self.process_mock(parser, call_expr, true, false, MockMethod::Unmock, false);
+        self.process_mock(
+          parser,
+          call_expr,
+          true,
+          false,
+          MockMethod::Unmock,
+          false,
+          test_api_import_source_order,
+        );
         Some(true)
       }
       // rs.doUnmockRequire
       ("rs" | "rstest", "doUnmockRequire") => {
-        self.process_mock(parser, call_expr, false, false, MockMethod::Unmock, false);
+        self.process_mock(
+          parser,
+          call_expr,
+          false,
+          false,
+          MockMethod::Unmock,
+          false,
+          test_api_import_source_order,
+        );
         Some(true)
       }
       // rs.resetModules
       ("rs" | "rstest", "resetModules") => self.reset_modules(parser, call_expr),
       // rs.hoisted
-      ("rs" | "rstest", "hoisted") => self.hoisted(parser, call_expr, statement_span),
+      ("rs" | "rstest", "hoisted") => self.hoisted(
+        parser,
+        call_expr,
+        statement_span,
+        test_api_import_source_order,
+      ),
       _ => {
         // Not a mock module, continue.
         None
@@ -742,6 +828,26 @@ impl RstestParserPlugin {
 
 #[rspack_plugin_javascript::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
+  fn import_specifier(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    _statement: &ImportDecl,
+    _source: &Atom,
+    _export_name: Option<&Atom>,
+    identifier_name: &Atom,
+  ) -> Option<bool> {
+    if matches!(identifier_name.as_str(), "rs" | "rstest") {
+      let source_order = parser.current_esm_import_order();
+      parser.tag_variable::<i32>(
+        identifier_name.clone(),
+        RSTEST_API_IMPORT_TAG,
+        Some(source_order),
+      );
+    }
+
+    None
+  }
+
   fn declarator(
     &self,
     parser: &mut JavascriptParser<'p>,
@@ -870,7 +976,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
       let args_end = last_arg.span().real_hi();
       let has_attributes = call_expr.args.len() >= 2;
 
-      parser.add_presentational_dependency(Box::new(RstestDynamicImportOriginDependency::new(
+      parser.add_presentational_dependency(Arc::new(RstestDynamicImportOriginDependency::new(
         call_expr.callee.span().into(),
         args_end,
         has_attributes,
@@ -944,13 +1050,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     if self.options.module_path_name {
       match for_name {
         DIR_NAME => {
-          parser.add_presentational_dependency(Box::new(ModulePathNameDependency::new(
+          parser.add_presentational_dependency(Arc::new(ModulePathNameDependency::new(
             NameType::DirName,
           )));
           return Some(true);
         }
         FILE_NAME => {
-          parser.add_presentational_dependency(Box::new(ModulePathNameDependency::new(
+          parser.add_presentational_dependency(Arc::new(ModulePathNameDependency::new(
             NameType::FileName,
           )));
           return Some(true);
@@ -964,10 +1070,17 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
 
   fn evaluate_typeof(
     &self,
-    _parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser<'p>,
     expr: &'a UnaryExpr,
     for_name: &str,
   ) -> Option<utils::eval::BasicEvaluatedExpression<'a>> {
+    if for_name == IMPORT_META_RSTEST && self.import_meta_rstest_expression(parser).is_some() {
+      return Some(eval::BasicEvaluatedExpression::with_range(
+        expr.span.real_lo(),
+        expr.span.real_hi(),
+      ));
+    }
+
     if self.options.import_meta_path_name {
       let mut evaluated = None;
       if for_name == IMPORT_META_DIRNAME || for_name == IMPORT_META_FILENAME {
@@ -988,6 +1101,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     start: u32,
     end: u32,
   ) -> Option<eval::BasicEvaluatedExpression<'p>> {
+    if for_name == IMPORT_META_RSTEST && self.import_meta_rstest_expression(parser).is_some() {
+      return Some(eval::BasicEvaluatedExpression::with_range(start, end));
+    }
+
     if self.options.inject_require_resolve_origin && for_name == expr_name::REQUIRE_RESOLVE {
       return Some(eval::evaluate_to_identifier(
         expr_name::REQUIRE_RESOLVE.into(),
@@ -1024,9 +1141,19 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     unary_expr: &UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
+    if for_name == IMPORT_META_RSTEST
+      && let Some(expression) = self.import_meta_rstest_expression(parser)
+    {
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+        unary_expr.span().into(),
+        format!("typeof ({expression})").into(),
+      )));
+      return Some(true);
+    }
+
     if self.options.import_meta_path_name {
       if for_name == IMPORT_META_DIRNAME || for_name == IMPORT_META_FILENAME {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           unary_expr.span().into(),
           "'string'".into(),
         )));
@@ -1045,17 +1172,29 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     member_expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
+    if for_name == IMPORT_META_RSTEST
+      && let Some(expression) = self.import_meta_rstest_expression(parser)
+    {
+      // TODO: Replace this Rstest-specific parser rewrite with
+      // DefinePlugin.runtimeValue once Rspack supports the webpack API.
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+        member_expr.span().into(),
+        expression.into(),
+      )));
+      return Some(true);
+    }
+
     if self.options.import_meta_path_name {
       if for_name == IMPORT_META_DIRNAME {
         let result = self.process_import_meta(parser, ModulePathType::DirName);
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           member_expr.span().into(),
           result.into(),
         )));
         return Some(true);
       } else if for_name == IMPORT_META_FILENAME {
         let result = self.process_import_meta(parser, ModulePathType::FileName);
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           member_expr.span().into(),
           result.into(),
         )));
@@ -1066,5 +1205,38 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     }
 
     None
+  }
+
+  fn optional_chaining(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    expr: &OptChainExpr,
+  ) -> Option<bool> {
+    if !self.options.inject_import_meta_rstest_origin {
+      return None;
+    }
+
+    let member = match &expr.base {
+      OptChainBase::Call(call) => call.callee.as_member()?,
+      OptChainBase::Member(member) => member.obj.as_member()?,
+    };
+    if !expr.optional
+      || !member
+        .obj
+        .as_meta_prop()
+        .is_some_and(|meta| meta.kind == MetaPropKind::ImportMeta)
+      || member
+        .prop
+        .as_ident()
+        .is_none_or(|property| property.sym != "rstest")
+    {
+      return None;
+    }
+
+    parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+      expr.span().into(),
+      "undefined".into(),
+    )));
+    Some(true)
   }
 }

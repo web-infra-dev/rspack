@@ -4,21 +4,20 @@ use rspack_cacheable::{
 };
 use rspack_util::json_stringify;
 
-use super::{AffectType, FactorizeInfo};
+use super::AffectType;
 use crate::{
-  AsContextDependency, AsDependencyCodeGeneration, Context, ContextMode, ContextNameSpaceObject,
-  ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyType,
-  ExportsInfoArtifact, ExtendedReferencedExport, ImportAttributes, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleLayer, ReferencedSpecifier, ResourceIdentifier, RuntimeSpec,
-  create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
+  AsContextDependency, AsDependencyCodeGeneration, Context, ContextNameSpaceObject, Dependency,
+  DependencyCategory, DependencyId, DependencyType, ExportsInfoArtifact, ImportAttributes,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ReferencedExport,
+  ReferencedSpecifier, ResourceIdentifier, RuntimeSpec, create_exports_object_referenced,
+  create_referenced_exports_by_referenced_specifiers,
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ContextElementDependency {
   pub id: DependencyId,
-  // TODO remove this async dependency mark
-  pub options: ContextOptions,
+  pub weak: bool,
   pub request: String,
   pub user_request: String,
   pub category: DependencyCategory,
@@ -29,7 +28,6 @@ pub struct ContextElementDependency {
   pub referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   pub dependency_type: DependencyType,
   pub attributes: Option<ImportAttributes>,
-  pub factorize_info: FactorizeInfo,
 }
 
 impl ContextElementDependency {
@@ -82,7 +80,7 @@ impl Dependency for ContextElementDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     if let Some(referenced_specifiers) = &self.referenced_specifiers {
       let Some(parent_module) = module_graph
         .get_parent_module(&self.id)
@@ -130,18 +128,7 @@ impl ModuleDependency for ContextElementDependency {
   }
 
   fn weak(&self) -> bool {
-    matches!(
-      self.options.mode,
-      ContextMode::AsyncWeak | ContextMode::Weak
-    )
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
+    self.weak
   }
 }
 

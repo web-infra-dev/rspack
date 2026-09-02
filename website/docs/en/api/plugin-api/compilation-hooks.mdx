@@ -10,10 +10,10 @@ import RuntimeModuleType from '../../types/runtime-module.mdx';
 import SourceType from '../../types/source.mdx';
 import HashType from '../../types/hash.mdx';
 import CompilerType from '../../types/compiler.mdx';
+import { ApiMeta } from '@components/ApiMeta';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 import Columns from '@components/Columns';
 import { NoSSR } from '@rspress/core/runtime';
-import { ApiMeta } from '@components/ApiMeta';
 
 # Compilation hooks
 
@@ -232,9 +232,9 @@ direction LR
     HookReviveChunks(hooks.reviveChunks) --> HookBeforeChunkIds(hooks.beforeChunkIds)
     HookBeforeChunkIds --> HookChunkIds(hooks.moduleIds)
     HookChunkIds --> HookOptimizeChunkIds(hooks.optimizeChunkIds)
-    HookOptimizeChunkIds --> HookAfterOptimizeChunkIds(hooks.afterOptimizeChunkIds)
+    HookOptimizeChunkIds --> HookAfterOptimizeChunkIds(<a href="#afteroptimizechunkids">hooks.afterOptimizeChunkIds</a>)
 
-    class HookReviveChunks,HookChunkIds,HookBeforeChunkIds,HookOptimizeChunkIds,HookAfterOptimizeChunkIds flow-hook-non-support
+    class HookReviveChunks,HookChunkIds,HookBeforeChunkIds,HookOptimizeChunkIds flow-hook-non-support
     end
 
     CreateChunkIds --> CreateRecords
@@ -565,6 +565,24 @@ Called after the tree optimization, at the beginning of the chunk modules optimi
   </CollapsePanel>
 </Collapse>
 
+## `afterOptimizeChunkIds`
+
+<ApiMeta addedVersion="2.2.3" />
+
+<Badge text="Read-only" type="info" />
+
+Called after the chunk ids optimization phase has completed.
+
+- **Type:** `SyncHook<[Chunk[]]>`
+- **Arguments:**
+  - `Chunk[]`: list of chunk instances
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
+
 ## `additionalTreeRuntimeRequirements`
 
 Called after the tree runtime requirements collection.
@@ -604,8 +622,6 @@ console.log(__webpack_require__.h);
 ```
 
 ## `runtimeRequirementInTree`
-
-<ApiMeta addedVersion="1.0.6" />
 
 Called during adding runtime modules to the compilation.
 
@@ -1006,7 +1022,7 @@ type StatsFactory = {
     type: string,
     data: any,
     baseContext: Omit<StatsFactoryContext, 'type'>,
-  ): void;
+  ): any;
 };
 ```
   </CollapsePanel>

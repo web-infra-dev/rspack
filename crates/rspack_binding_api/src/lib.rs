@@ -75,6 +75,7 @@ mod fs_node;
 mod html;
 mod identifier;
 mod location;
+mod logging;
 mod module;
 mod module_graph;
 mod module_graph_connection;
@@ -111,8 +112,8 @@ use std::{
 use napi::{CallContext, bindgen_prelude::*};
 pub use raw_options::{CustomPluginBuilder, register_custom_plugin};
 use rspack_core::{
-  BoxDependency, Compilation, CompilerId, CompilerPlatform, EntryOptions, ModuleIdentifier,
-  PluginExt,
+  Compilation, CompilationId, CompilerId, CompilerPlatform, DependencyRef, EntryOptions,
+  ModuleIdentifier, PluginExt,
 };
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
@@ -126,11 +127,13 @@ use crate::{
   chunk_group::ChunkGroupWrapper,
   compilation::JsCompilationWrapper,
   compiler::{Compiler, CompilerState, CompilerStateGuard},
-  compiler_scoped_tsfn::CompilerScopedTsFnManager,
+  compiler_scoped_tsfn::{CompilerScopedTsFnHandle, CompilerScopedTsFnManager},
   dependency::DependencyWrapper,
   error::{ErrorCode, RspackResultToNapiResultExt},
   fs_node::{HybridFileSystem, NodeFileSystem, ThreadsafeNodeFS},
+  logging::{InfrastructureLogDispatcher, JsLog},
   module::ModuleObject,
+  module_graph_connection::ModuleGraphConnectionWrapper,
   platform::RawCompilerPlatform,
   plugins::{
     JsCleanupPlugin, JsHooksAdapterPlugin, RegisterJsTapKind, RegisterJsTaps, buildtime_plugins,
@@ -154,6 +157,64 @@ thread_local! {
   static COMPILER_REFERENCES: RefCell<FxHashMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
 }
 
+pub(crate) fn with_compilation<R>(
+  compilation_id: CompilationId,
+  f: impl FnOnce(&Compilation) -> napi::Result<R>,
+) -> napi::Result<R> {
+  let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
+    let references = ref_cell.borrow();
+    references
+      .values()
+      .find(|reference| {
+        reference
+          .get()
+          .is_some_and(|compiler| compiler.compiler.compilation.id() == compilation_id)
+      })
+      .cloned()
+  });
+
+  let Some(compiler) = compiler_reference
+    .as_ref()
+    .and_then(|compiler_reference| compiler_reference.get())
+  else {
+    return Err(napi::Error::from_reason(format!(
+      "Unable to access compilation with id = {compilation_id:?} now. The Compilation has been removed on the Rust side or the Compiler has been garbage collected by JavaScript."
+    )));
+  };
+
+  f(&compiler.compiler.compilation)
+}
+
+pub(crate) fn with_compilation_mut<R>(
+  compilation_id: CompilationId,
+  f: impl FnOnce(&mut Compilation) -> napi::Result<R>,
+) -> napi::Result<R> {
+  let mut compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
+    let references = ref_cell.borrow();
+    references
+      .values()
+      .find(|reference| {
+        reference
+          .get()
+          .is_some_and(|compiler| compiler.compiler.compilation.id() == compilation_id)
+      })
+      .cloned()
+  });
+
+  let Some(compiler) = compiler_reference
+    .as_mut()
+    .and_then(|compiler_reference| compiler_reference.get_mut())
+  else {
+    return Err(napi::Error::from_reason(format!(
+      "Unable to access compilation with id = {compilation_id:?} now. The Compilation has been removed on the Rust side or the Compiler has been garbage collected by JavaScript."
+    )));
+  };
+
+  f(&mut compiler.compiler.compilation)
+}
+
+type EntryDependencyCacheKey = (String, String, Option<String>, Option<String>);
+
 #[js_function(1)]
 fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
   let external = ctx.get::<&mut External<(CompilerId, Vec<ModuleIdentifier>)>>(0)?;
@@ -167,13 +228,14 @@ fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
 struct JsCompiler {
   // whether to skip drop compiler in finalize
   unsafe_fast_drop: bool,
+  infrastructure_log_dispatcher: Arc<InfrastructureLogDispatcher>,
   compiler_scoped_tsfn_manager: CompilerScopedTsFnManager,
   js_hooks_plugin: JsHooksAdapterPlugin,
   // call drop manually to avoid unnecessary drop overhead in cli build
   compiler: ManuallyDrop<Compiler>,
   state: CompilerState,
-  include_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
-  entry_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
+  include_dependencies_map: FxHashMap<EntryDependencyCacheKey, DependencyRef>,
+  entry_dependencies_map: FxHashMap<EntryDependencyCacheKey, DependencyRef>,
   compiler_context: Arc<CompilerContext>,
   virtual_file_store: Option<Arc<RwLock<dyn VirtualFileStore>>>,
 }
@@ -183,7 +245,7 @@ impl JsCompiler {
   #[allow(clippy::too_many_arguments)]
   #[napi(
     constructor,
-    ts_args_type = "compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform"
+    ts_args_type = "compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void"
   )]
   pub fn new(
     env: Env,
@@ -198,6 +260,7 @@ impl JsCompiler {
     mut resolver_factory_reference: Reference<JsResolverFactory>,
     unsafe_fast_drop: bool,
     platform: RawCompilerPlatform,
+    raw_infrastructure_log_callback: Unknown<'static>,
   ) -> Result<Self> {
     tracing::info!(name:"rspack_version", version = rspack_workspace::rspack_pkg_version!());
 
@@ -212,6 +275,12 @@ impl JsCompiler {
     let register_js_taps: RegisterJsTaps = compiler_scoped_tsfn_manager.scope(|| unsafe {
       RegisterJsTaps::from_napi_value(env.raw(), raw_register_js_taps.raw())
     })?;
+    let infrastructure_log_callback: CompilerScopedTsFnHandle<Vec<JsLog>, ()> =
+      compiler_scoped_tsfn_manager.scope(|| unsafe {
+        CompilerScopedTsFnHandle::from_napi_value(env.raw(), raw_infrastructure_log_callback.raw())
+      })?;
+    let (infrastructure_log_sink, infrastructure_log_dispatcher) =
+      InfrastructureLogDispatcher::new(infrastructure_log_callback);
 
     let compiler_context = Arc::new(CompilerContext::new());
     CURRENT_COMPILER_CONTEXT.sync_scope(compiler_context.clone(), || {
@@ -337,10 +406,12 @@ impl JsCompiler {
         Some(resolver_factory),
         Some(loader_resolver_factory),
         Some(compiler_context.clone()),
+        infrastructure_log_sink,
         platform,
       );
 
       Ok(Self {
+        infrastructure_log_dispatcher,
         compiler_scoped_tsfn_manager,
         compiler: ManuallyDrop::new(Compiler::from(rspack)),
         state: CompilerState::init(),
@@ -435,6 +506,7 @@ impl JsCompiler {
     // async operation. This allows us to safely extend the lifetime to 'static.
     let compiler =
       unsafe { std::mem::transmute::<&Compiler, &'static Compiler>(&reference.compiler) };
+    let infrastructure_log_dispatcher = self.infrastructure_log_dispatcher.clone();
 
     let wait_idle = self.state.wait_idle();
     let spawn_future_result = rspack_napi::runtime::promise_from_future(env, async move {
@@ -446,6 +518,7 @@ impl JsCompiler {
         .close()
         .await
         .to_napi_result_with_message(|e| print_error_diagnostic(e, compiler.options.stats.colors));
+      infrastructure_log_dispatcher.shutdown().await;
       result?;
       Ok(())
     });
@@ -528,6 +601,7 @@ impl JsCompiler {
     ChunkGroupWrapper::cleanup_last_compilation(compilation_id);
     DependencyWrapper::cleanup_last_compilation(compilation_id);
     AsyncDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
+    ModuleGraphConnectionWrapper::cleanup_last_compilation(compilation_id);
   }
 }
 

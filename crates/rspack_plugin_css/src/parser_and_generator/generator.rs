@@ -1,9 +1,10 @@
 use std::{borrow::Cow, collections::VecDeque};
 
 use concat_string::concat_string;
+use rspack_collections::IdentifierSet;
 use rspack_core::{
-  BoxDependency, ChunkGraph, Context, CssBuildInfo, CssExport, CssExportType, CssExports,
-  CssModuleRenderCondition, DependencyCodeGeneration, DependencyId, DependencyType,
+  ChunkGraph, Context, CssBuildInfo, CssExport, CssExportType, CssExports,
+  CssModuleRenderCondition, Dependency, DependencyCodeGeneration, DependencyId, DependencyType,
   ExportsArgument, GenerateContext, Module, ModuleArgument, ModuleIdentifier, ModuleInitFragments,
   RESERVED_IDENTIFIER, RuntimeGlobals, SourceType, TemplateContext, UsageState, UsedNameItem,
   css_module_render_conditions_identifier,
@@ -21,13 +22,12 @@ use rspack_util::{
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
+  css_syntax::unescape_identifier,
   dependency::CssImportDependency,
   parser_and_generator::{
     CssExportsRef, CssSourceBuilder, get_unused_local_ident, get_used_exports,
   },
-  utils::{
-    css_generator_options, css_module_export_type, replace_css_module_id_placeholder, unescape,
-  },
+  utils::{css_generator_options, css_module_export_type, replace_css_module_id_placeholder},
 };
 
 fn css_javascript_source_map_module_name(module: &dyn Module, context: &Context) -> String {
@@ -44,7 +44,7 @@ pub fn update_css_exports(exports: &mut CssExports, name: &str, css_export: CssE
   }
 }
 
-fn dependency_request(dependency: &BoxDependency) -> Option<&str> {
+fn dependency_request(dependency: &dyn Dependency) -> Option<&str> {
   dependency
     .as_module_dependency()
     .map(|dep| dep.request())
@@ -326,7 +326,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       return self.css_text_expr(css_source, &[]);
     }
 
-    let mut seen = HashSet::default();
+    let mut seen = IdentifierSet::default();
     let mut builder = self.css_source_builder(false);
     let render_conditions = self
       .css_build_info
@@ -341,7 +341,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     &mut self,
     builder: &mut CssSourceBuilder,
     render_conditions: &[CssModuleRenderCondition],
-    seen: &mut HashSet<rspack_collections::Identifier>,
+    seen: &mut IdentifierSet,
   ) {
     let module = self.module;
     if !seen.insert(module.identifier()) {
@@ -366,7 +366,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   fn render_css_import_sources(
     &mut self,
     builder: &mut CssSourceBuilder,
-    seen: &mut HashSet<rspack_collections::Identifier>,
+    seen: &mut IdentifierSet,
   ) {
     let compilation = self.generate_context.compilation;
     let module_graph = compilation.get_module_graph();
@@ -510,10 +510,10 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       .get_used_name(None, self.generate_context.runtime);
     match used_name {
       Some(UsedNameItem::Str(name)) if should_unescape => {
-        json_stringify_str(&unescape(name.as_str()))
+        json_stringify_str(&unescape_identifier(name.as_str()))
       }
       Some(UsedNameItem::Str(name)) => json_stringify_str(name.as_str()),
-      _ if should_unescape => json_stringify_str(&unescape(ident)),
+      _ if should_unescape => json_stringify_str(&unescape_identifier(ident)),
       _ => json_stringify_str(ident),
     }
   }
@@ -772,13 +772,13 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     for CssExport {
       ident,
       from,
-      id: _,
+      id,
       orig_name: _,
     } in elements
     {
       let part = match from {
         None => self.render_local_css_export(ident),
-        Some(from_name) => self.render_standard_css_reexport(ident, from_name),
+        Some(from_name) => self.render_standard_css_reexport(ident, from_name, id.as_ref()),
       };
       push_joined(&mut content, &part, " + \" \" + ");
     }
@@ -791,27 +791,48 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     json_stringify_str(&ident)
   }
 
-  fn render_standard_css_reexport(&mut self, ident: &str, from_name: &str) -> String {
+  fn render_standard_css_reexport(
+    &mut self,
+    ident: &str,
+    from_name: &str,
+    id: Option<&DependencyId>,
+  ) -> String {
     let compilation = self.generate_context.compilation;
     let module_graph = compilation.get_module_graph();
-    let from = self
-      .module
-      .get_dependencies()
-      .iter()
-      .find_map(|id| {
-        let dependency = module_graph.dependency_by_id(id);
-        let request = dependency_request(dependency);
-        if let Some(request) = request
-          && request == from_name
-        {
-          return module_graph.module_graph_module_by_dependency_id(id);
-        }
-        None
+    let find_target_module =
+      |dep_id: &DependencyId| module_graph.get_module_by_dependency_id(dep_id);
+    let from = id
+      .and_then(find_target_module)
+      .or_else(|| {
+        self.module.get_dependencies().iter().find_map(|id| {
+          let dependency = module_graph.dependency_by_id(id);
+          let request = dependency_request(dependency);
+          if let Some(request) = request
+            && request == from_name
+          {
+            return find_target_module(id);
+          }
+          None
+        })
       })
-      .expect("should have css from module");
+      .unwrap_or_else(|| {
+        let dependency_requests = self
+          .module
+          .get_dependencies()
+          .iter()
+          .filter_map(|id| {
+            let dependency = module_graph.dependency_by_id(id);
+            dependency_request(dependency)
+          })
+          .collect::<Vec<_>>();
+        panic!(
+          "should have css from module: ident={ident}, from={from_name}, id={id:?}, dependency_requests={dependency_requests:?}"
+        );
+      });
 
-    let from_used_name = self.stringified_used_export_name(from.module_identifier, ident, true);
-    self.render_require_property_access(from.module_identifier, &from_used_name)
+    let from_identifier = from.identifier();
+    let from_used_name = self.stringified_used_export_name(from_identifier, ident, true);
+    self.render_require_property_access(from_identifier, &from_used_name)
   }
 
   fn render_concat_export_content<'b>(

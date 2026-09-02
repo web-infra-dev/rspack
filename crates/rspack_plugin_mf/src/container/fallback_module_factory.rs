@@ -14,7 +14,7 @@ impl ModuleFactory for FallbackModuleFactory {
       .downcast_ref::<FallbackDependency>()
       .expect("dependency of FallbackModuleFactory should be FallbackDependency");
     Ok(ModuleFactoryResult::new_with_module(
-      FallbackModule::new(dep.requests.clone()).boxed(),
+      FallbackModule::new(dep.requests.clone(), data.options.experiments.runtime_mode).boxed(),
     ))
   }
 }

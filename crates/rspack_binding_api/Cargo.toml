@@ -11,13 +11,15 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
-allocative    = ["rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_tracing_perfetto?/allocative"]
-browser       = []
-debug_tool    = ["rspack_core/debug_tool"]
-perfetto      = ["dep:rspack_tracing_perfetto", "rspack_tracing/perfetto"]
-plugin        = ["rspack_loader_swc/plugin", "rspack_util/plugin"]
-sftrace-setup = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
-tracy-client  = ["dep:tracy-client", "rspack_allocator/tracy-client"]
+allocative       = ["rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_tracing_perfetto?/allocative"]
+browser          = []
+debug_tool       = ["rspack_core/debug_tool"]
+perfetto         = ["dep:rspack_tracing_perfetto", "rspack_tracing/perfetto"]
+plugin           = ["rspack_loader_swc/plugin", "rspack_util/plugin"]
+sftrace-setup    = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
+system-allocator = ["rspack_allocator/system-allocator"]
+test-loader      = ["dep:rspack_loader_testing"]
+tracy-client     = ["dep:tracy-client", "rspack_allocator/tracy-client"]
 
 [dependencies]
 anyhow                    = { workspace = true }
@@ -70,7 +72,7 @@ rspack_loader_preact_refresh           = { workspace = true }
 rspack_loader_react_refresh            = { workspace = true }
 rspack_loader_runner                   = { workspace = true }
 rspack_loader_swc                      = { workspace = true }
-rspack_loader_testing                  = { workspace = true }
+rspack_loader_testing                  = { workspace = true, optional = true }
 rspack_napi_macros                     = { workspace = true }
 rspack_plugin_asset                    = { workspace = true }
 rspack_plugin_banner                   = { workspace = true }
@@ -117,7 +119,7 @@ serde                                  = { workspace = true }
 serde_json                             = { workspace = true }
 simd-json                              = { workspace = true }
 swc_core                               = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
-tokio                                  = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "tracing", "parking_lot"] }
+tokio                                  = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "sync", "time", "test-util", "tracing", "parking_lot"] }
 ustr                                   = { workspace = true }
 
 [package.metadata.cargo-shear]

@@ -54,7 +54,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           clean: ${{ runner.environment == 'github-hosted' }}
@@ -96,7 +96,7 @@ jobs:
         run: RSDOCTOR=true CI=true pnpm run build:cases
 
       - name: Report Compressed Size
-        uses: web-infra-dev/rsdoctor-action@96c3d1f7e1d2abf41c1203c3486364c9c4561b60 # v1.1.2
+        uses: web-infra-dev/rsdoctor-action@2fbd50933702502f12d2bbef5273afbfd829a289 # v1.1.4
         env:
           AI_TOKEN: ${{ secrets.AI_TOKEN }}
         with:

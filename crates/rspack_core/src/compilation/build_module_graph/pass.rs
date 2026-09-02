@@ -4,11 +4,11 @@ use rspack_error::Result;
 use super::build_module_graph_pass;
 use crate::{
   Compilation,
-  cache::Cache,
   compilation::{
     finish_make::finish_make_pass, finish_module_graph::finish_module_graph_pass,
     make::make_hook_pass, pass::PassExt,
   },
+  legacy_cache::Cache,
   logger::Logger,
 };
 
@@ -27,20 +27,15 @@ impl PassExt for BuildModuleGraphPhasePass {
     "build module graph"
   }
 
+  fn incremental_passes(&self) -> crate::incremental::IncrementalPasses {
+    crate::incremental::IncrementalPasses::BUILD_MODULE_GRAPH
+  }
+
   async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
     cache.before_build_module_graph(compilation).await;
   }
 
-  async fn run_pass(&self, _compilation: &mut Compilation) -> Result<()> {
-    // This method is not used; we override run_pass_with_cache instead
-    unreachable!("BuildModuleGraphPhasePass uses run_pass_with_cache")
-  }
-
-  async fn run_pass_with_cache(
-    &self,
-    compilation: &mut Compilation,
-    _cache: &mut dyn Cache,
-  ) -> Result<()> {
+  async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     let plugin_driver = compilation.plugin_driver.clone();
     let logger = compilation.get_logger("rspack.Compiler");
     // align with webpack, make hook include build_module_graph phase in webpack

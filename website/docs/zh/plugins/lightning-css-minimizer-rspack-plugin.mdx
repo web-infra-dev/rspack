@@ -1,0 +1,148 @@
+---
+description: '此插件使用 lightningcss 来压缩 CSS 产物。参见 optimization.minimizer。'
+---
+
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# LightningCssMinimizerRspackPlugin
+
+<ApiMeta specific={['Rspack']} />
+
+此插件使用 [lightningcss](https://lightningcss.dev/) 来压缩 CSS 产物。参见 [optimization.minimizer](/config/optimization#optimizationminimizer)。
+
+## 示例
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  optimization: {
+    minimizer: [new rspack.LightningCssMinimizerRspackPlugin()],
+  },
+};
+```
+
+## 选项
+
+### include
+
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
+
+使用此选项来指定应该被压缩的文件，匹配产物文件的路径。
+
+### exclude
+
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
+
+使用此选项来指定应该排除在压缩之外的文件，匹配产物文件的路径。
+
+### test
+
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
+
+使用此选项设置一个模式来匹配 CSS 文件。如果产物文件的路径能匹配给定模式，它将被压缩，否则将不会被压缩。
+
+### removeUnusedLocalIdents
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+是否自动移除未使用的 CSS Modules 的本地标识符，包括未使用的 CSS 类名、id 和 @keyframe 名称。这些声明将被移除。
+
+比如以下 CSS Modules，导出了类名 a 和类名 b，但只在 js 文件中使用了类名 a：
+
+```css title=index.module.css
+.a {
+  color: red;
+}
+
+.b {
+  color: blue;
+}
+```
+
+```js title=index.js
+import * as styles from './index.module.css';
+document.body.className = styles.a;
+```
+
+此时会通过 Rspack 的 tree shaking 功能获取类名 b 未被使用这一信息，提供给 lightningcss，在 minimize 时会将 CSS 产物中类名 b 的声明一并删除，得到以下最终产物：
+
+{/* prettier-ignore */}
+```css
+.a{color: red}
+```
+
+### minimizerOptions
+
+传给 Lightning CSS 进行压缩的配置。
+
+以下是支持的配置，其中 `targets` 配置为 browserslist 查询字符串，其他配置的详细解释请查看 [lightningcss 文档](https://lightningcss.dev/transpilation.html)
+
+:::info
+
+1. `targets` 选项按照以下优先级解析：
+   - 用户在插件选项中指定的 `targets`（最高优先级）
+   - 当 Rspack 的 [`target`](/config/target) 配置使用与 browserslist 相关的 targets（例如 `browserslist` 或 `browserslist:modern`）时，从 Rspack 的 [`target`](/config/target) 配置中推断出。因为 Lightning CSS 仅支持浏览器相关的 targets，像 `node` 这样的非浏览器 target 不会为此插件提供默认 targets。
+   - 如果上述均未提供，则回退到 `"fully supports es6"`
+
+   回退机制确保压缩过程不会引入可能导致浏览器不兼容的高级语法（压缩可能会因为高级语法更短而将低级语法转换为高级语法）。
+
+2. `exclude` 选项默认配置了所有的 features。我们通常会在 [builtin:lightningcss-loader](/guide/features/builtin-lightningcss-loader) 或其他 loaders 中进行语法降级，所以此插件默认 exclude 所有的 features，避免在 minimize 过程中进行语法降级。
+
+我们建议并鼓励用户配置自己所需的 `targets`，以获得最好的压缩效果。
+:::
+
+```ts
+type Targets = {
+  android?: string;
+  chrome?: string;
+  edge?: string;
+  firefox?: string;
+  ie?: string;
+  ios_saf?: string;
+  opera?: string;
+  safari?: string;
+  samsung?: string;
+};
+
+type LightningCssMinimizerOptions = {
+  errorRecovery?: boolean;
+  targets?: string[] | string | Targets;
+  include?: LightningcssFeatureOptions;
+  exclude?: LightningcssFeatureOptions;
+  drafts?: Drafts;
+  nonStandard?: NonStandard;
+  pseudoClasses?: PseudoClasses;
+  unusedSymbols?: string[];
+};
+
+type LightningcssFeatureOptions = {
+  nesting?: boolean;
+  notSelectorList?: boolean;
+  dirSelector?: boolean;
+  langSelectorList?: boolean;
+  isSelector?: boolean;
+  textDecorationThicknessPercent?: boolean;
+  mediaIntervalSyntax?: boolean;
+  mediaRangeSyntax?: boolean;
+  customMediaQueries?: boolean;
+  clampFunction?: boolean;
+  colorFunction?: boolean;
+  oklabColors?: boolean;
+  labColors?: boolean;
+  p3Colors?: boolean;
+  hexAlphaColors?: boolean;
+  spaceSeparatedColorNotation?: boolean;
+  fontFamilySystemUi?: boolean;
+  doublePositionGradients?: boolean;
+  vendorPrefixes?: boolean;
+  logicalProperties?: boolean;
+  selectors?: boolean;
+  mediaQueries?: boolean;
+  color?: boolean;
+};
+```

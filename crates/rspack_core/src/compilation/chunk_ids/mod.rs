@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use super::*;
-use crate::{cache::Cache, compilation::pass::PassExt};
+use crate::compilation::pass::PassExt;
 
 pub struct ChunkIdsPass;
 
@@ -11,8 +11,8 @@ impl PassExt for ChunkIdsPass {
     "chunk ids"
   }
 
-  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.before_chunk_ids(compilation).await;
+  fn incremental_passes(&self) -> IncrementalPasses {
+    IncrementalPasses::CHUNK_IDS
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
@@ -43,10 +43,16 @@ impl PassExt for ChunkIdsPass {
     compilation.build_chunk_graph_artifact.chunk_by_ukey = chunk_by_ukey;
     compilation.named_chunk_ids_artifact = named_chunk_ids_artifact.into();
     compilation.extend_diagnostics(diagnostics);
-    Ok(())
-  }
 
-  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.after_chunk_ids(compilation).await;
+    compilation
+      .plugin_driver
+      .clone()
+      .compilation_hooks
+      .after_optimize_chunk_ids
+      .call(compilation)
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterOptimizeChunkIds"))?;
+
+    Ok(())
   }
 }

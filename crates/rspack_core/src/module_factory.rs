@@ -1,10 +1,10 @@
 use std::{fmt::Debug, sync::Arc};
 
 use rspack_error::{Diagnostic, Result};
-use rspack_paths::{ArcPath, ArcPathSet};
+use rspack_paths::{InternedPath, InternedPathSet};
 
 use crate::{
-  BoxDependency, BoxModule, CompilationId, CompilerId, CompilerOptions, Context, ModuleIdentifier,
+  BoxModule, CompilationId, CompilerId, CompilerOptions, Context, DependencyRef, ModuleIdentifier,
   ModuleLayer, Resolve, ResolverFactory,
 };
 
@@ -16,47 +16,29 @@ pub struct ModuleFactoryCreateData {
   pub options: Arc<CompilerOptions>,
   pub request: String,
   pub context: Context,
-  pub dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<DependencyRef>,
   pub issuer: Option<Box<str>>,
   pub issuer_identifier: Option<ModuleIdentifier>,
   pub issuer_layer: Option<ModuleLayer>,
   pub resolver_factory: Arc<ResolverFactory>,
 
-  pub file_dependencies: ArcPathSet,
-  pub context_dependencies: ArcPathSet,
-  pub missing_dependencies: ArcPathSet,
+  pub file_dependencies: InternedPathSet,
+  pub context_dependencies: InternedPathSet,
+  pub missing_dependencies: InternedPathSet,
   pub diagnostics: Vec<Diagnostic>,
 }
 
 impl ModuleFactoryCreateData {
-  pub fn add_file_dependency<F: Into<ArcPath>>(&mut self, file: F) {
-    self.file_dependencies.insert(file.into());
-  }
-
-  pub fn add_file_dependencies<F: Into<ArcPath>>(&mut self, files: impl IntoIterator<Item = F>) {
+  pub fn add_file_dependencies<F: Into<InternedPath>>(
+    &mut self,
+    files: impl IntoIterator<Item = F>,
+  ) {
     self
       .file_dependencies
       .extend(files.into_iter().map(Into::into));
   }
 
-  pub fn add_context_dependency<F: Into<ArcPath>>(&mut self, context: F) {
-    self.context_dependencies.insert(context.into());
-  }
-
-  pub fn add_context_dependencies<F: Into<ArcPath>>(
-    &mut self,
-    contexts: impl IntoIterator<Item = F>,
-  ) {
-    self
-      .context_dependencies
-      .extend(contexts.into_iter().map(Into::into));
-  }
-
-  pub fn add_missing_dependency<F: Into<ArcPath>>(&mut self, missing: F) {
-    self.missing_dependencies.insert(missing.into());
-  }
-
-  pub fn add_missing_dependencies<F: Into<ArcPath>>(
+  pub fn add_missing_dependencies<F: Into<InternedPath>>(
     &mut self,
     missing: impl IntoIterator<Item = F>,
   ) {
@@ -76,11 +58,6 @@ impl ModuleFactoryResult {
     Self {
       module: Some(module),
     }
-  }
-
-  pub fn module(mut self, module: Option<BoxModule>) -> Self {
-    self.module = module;
-    self
   }
 }
 

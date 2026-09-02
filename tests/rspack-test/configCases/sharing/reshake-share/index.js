@@ -1,6 +1,10 @@
 import * as uiLib from 'ui-lib';
 import * as uiLibDep from 'ui-lib-dep';
 
+const bundlerName = globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK
+	? "rspack"
+	: "webpack";
+
 const fs = require("fs");
 const path = require("path");
 __webpack_require__.p = 'PUBLIC_PATH';
@@ -56,7 +60,7 @@ it("correct handle share dep while secondary tree shaking", async () => {
     const uiLibShareContainerModule = eval("require")(uiLibShareContainerPath).secondary_tree_shaking_share_t_ui_lib_100;
 		await uiLibShareContainerModule.init({},{
 		installInitialConsumes: async ({webpackRequire})=>{
-			webpackRequire.m['webpack/sharing/consume/default/ui-lib-dep'] = (m)=>{
+			webpackRequire.m[`${bundlerName}/sharing/consume/default/ui-lib-dep`] = (m)=>{
 				m.exports = {
 					Message: 'Message',
 				}

@@ -1,16 +1,18 @@
 use std::sync::{Arc, LazyLock};
 
 use anymap::CloneAny;
-use rspack_collections::IdentifierIndexMap;
-use rspack_util::{
-  fx_hash::{FxIndexMap, FxIndexSet},
-  itoa,
+use rspack_cacheable::{
+  cacheable,
+  with::{AsCacheable, AsMap, AsOption, AsPreset, AsVec},
 };
+use rspack_collections::IdentifierIndexMap;
+use rspack_util::{fx_hash::FxIndexMap, itoa};
+use rustc_hash::FxHashMap as HashMap;
 use swc_core::atoms::Atom;
 
 use crate::{
-  ExportMode, ModuleIdentifier,
-  concatenated_module::{ConcatenatedModuleInfo, ModuleInfo},
+  ModuleIdentifier,
+  concatenated_module::{ConcatenatedImportMap, ConcatenatedModuleInfo, ModuleInfo},
 };
 
 pub static DEFAULT_EXPORT_ATOM: LazyLock<Atom> = LazyLock::new(|| "__rspack_default_export".into());
@@ -19,14 +21,51 @@ pub const DEFAULT_EXPORT: &str = "__rspack_default_export";
 const MODULE_REFERENCE_PREFIX: &str = "__rspack_module_ref";
 const MODULE_REFERENCE_PROPERTY_ACCESS_SUFFIX: &str = "._";
 
+#[cacheable]
 #[derive(Default, Debug, Clone)]
 pub struct ModuleReferenceOptions {
+  #[cacheable(with=AsVec<AsPreset>)]
   pub ids: Vec<Atom>,
   pub call: bool,
   pub direct_import: bool,
   pub deferred_import: bool,
   pub asi_safe: Option<bool>,
   pub index: usize,
+}
+
+/// Cacheable mutations produced while generating a module with a
+/// [`ConcatenationScope`]. The ESM library plugin opts into collecting this
+/// output because it consumes the mutations after the module codegen pass.
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct CodeGenerationDataConcatenationScopeOutput {
+  #[cacheable(with=AsOption<AsPreset>)]
+  namespace_export_symbol: Option<Atom>,
+  #[cacheable(with=AsOption<AsMap<AsPreset, AsCacheable>>)]
+  export_map: Option<HashMap<Atom, String>>,
+  #[cacheable(with=AsOption<AsMap<AsPreset, AsCacheable>>)]
+  raw_export_map: Option<HashMap<Atom, String>>,
+  #[cacheable(with=AsOption<AsMap<AsCacheable, AsCacheable>>)]
+  import_map: ConcatenatedImportMap,
+  #[cacheable(with=AsMap<AsCacheable, AsMap<AsCacheable, AsCacheable>>)]
+  refs: IdentifierIndexMap<FxIndexMap<String, ModuleReferenceOptions>>,
+}
+
+impl CodeGenerationDataConcatenationScopeOutput {
+  pub fn apply_to(&self, current_module: &mut ConcatenatedModuleInfo) {
+    current_module
+      .namespace_export_symbol
+      .clone_from(&self.namespace_export_symbol);
+    current_module.export_map.clone_from(&self.export_map);
+    current_module
+      .raw_export_map
+      .clone_from(&self.raw_export_map);
+    current_module.import_map.clone_from(&self.import_map);
+  }
+
+  pub fn refs(&self) -> &IdentifierIndexMap<FxIndexMap<String, ModuleReferenceOptions>> {
+    &self.refs
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -36,8 +75,7 @@ pub struct ConcatenationScope {
   pub modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
   pub data: anymap::Map<dyn CloneAny + Send + Sync>,
   pub refs: IdentifierIndexMap<FxIndexMap<String, ModuleReferenceOptions>>,
-  pub dyn_refs: IdentifierIndexMap<FxIndexSet<(String, Atom)>>,
-  pub re_exports: IdentifierIndexMap<Vec<ExportMode>>,
+  collect_codegen_data: bool,
 }
 
 #[allow(unused)]
@@ -53,8 +91,29 @@ impl ConcatenationScope {
       modules_map,
       data: Default::default(),
       refs: IdentifierIndexMap::default(),
-      dyn_refs: Default::default(),
-      re_exports: Default::default(),
+      collect_codegen_data: false,
+    }
+  }
+
+  /// Persist the codegen mutations that are consumed after module code
+  /// generation. This is opt-in so regular module concatenation does not pay
+  /// the collection or cache-storage cost.
+  pub fn enable_codegen_data_collection(&mut self) {
+    self.collect_codegen_data = true;
+  }
+
+  pub fn is_codegen_data_collection_enabled(&self) -> bool {
+    self.collect_codegen_data
+  }
+
+  pub(crate) fn take_codegen_data_output(&mut self) -> CodeGenerationDataConcatenationScopeOutput {
+    assert!(self.collect_codegen_data);
+    CodeGenerationDataConcatenationScopeOutput {
+      namespace_export_symbol: self.current_module.namespace_export_symbol.take(),
+      export_map: self.current_module.export_map.take(),
+      raw_export_map: self.current_module.raw_export_map.take(),
+      import_map: self.current_module.import_map.take(),
+      refs: std::mem::take(&mut self.refs),
     }
   }
 

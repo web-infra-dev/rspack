@@ -1,3 +1,4 @@
+mod cache;
 mod context;
 mod resolver;
 mod scheduler;
@@ -9,7 +10,8 @@ use std::{
   sync::{Arc, Mutex},
 };
 
-pub use context::{JsLoaderContext, JsLoaderItem};
+pub use cache::{JsLoaderCache, JsLoaderCacheEntry};
+pub use context::{JsLoaderContext, JsLoaderDependencies, JsLoaderItem};
 use napi::{
   bindgen_prelude::*,
   sys::{napi_call_threadsafe_function, napi_threadsafe_function},

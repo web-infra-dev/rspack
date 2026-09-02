@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use itertools::Itertools;
 use rspack_core::{
   BoxDependency, ConstDependency, Dependency, DependencyRange, DependencyType, ImportPhase,
@@ -19,7 +21,7 @@ use crate::{
     ESMExportImportedSpecifierDependency, ESMExportSpecifierDependency,
     ESMImportSideEffectDependency,
   },
-  parser_plugin::compatibility_plugin::{NESTED_IDENTIFIER_TAG, NestedRequireData},
+  parser_plugin::compatibility_plugin::CompatibilityPlugin,
   utils::object_properties::get_attributes,
   visitors::{
     ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal, JavascriptParser,
@@ -42,7 +44,7 @@ fn create_default_exported_namespace_dependency(
     .filter(|settings| settings.namespace_import && settings.ids.is_empty())?
     .clone();
   let statement_span = statement.span();
-  let mut dep = ESMExportImportedSpecifierDependency::new(
+  let dep = ESMExportImportedSpecifierDependency::new(
     settings.source,
     settings.source_order,
     vec![],
@@ -74,7 +76,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       statement.declaration_span().map(|span| span.into()),
       loc,
     );
-    parser.add_presentational_dependency(Box::new(dep));
+    parser.add_presentational_dependency(Arc::new(dep));
     Some(true)
   }
 
@@ -86,10 +88,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
   ) -> Option<bool> {
     parser.last_esm_import_order += 1;
     let clean_dep = ConstDependency::new(statement.span().into(), "".into());
-    parser.add_presentational_dependency(Box::new(clean_dep));
+    parser.add_presentational_dependency(Arc::new(clean_dep));
     let range = DependencyRange::from(statement.span());
     let loc = parser.to_dependency_location(range);
-    let mut side_effect_dep = ESMImportSideEffectDependency::new(
+    let side_effect_dep = ESMImportSideEffectDependency::new(
       source.clone(),
       parser.last_esm_import_order,
       statement.span().into(),
@@ -106,7 +108,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     {
       side_effect_dep.set_lazy();
     }
-    parser.add_dependency(Box::new(side_effect_dep));
+    parser.add_dependency(BoxDependency::new(side_effect_dep));
     Some(true)
   }
 
@@ -118,6 +120,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     export_name: &Atom,
     export_name_span: Span,
   ) -> Option<bool> {
+    if parser.javascript_options.is_create_require_enabled() {
+      parser
+        .created_require_references
+        .record_exported_local(local_id.clone());
+    }
     InnerGraphParserPlugin::add_variable_usage(
       parser,
       local_id,
@@ -151,7 +158,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       }) {
       let range = DependencyRange::from(statement.span());
       let loc = parser.to_dependency_location(range);
-      let mut dep = ESMExportImportedSpecifierDependency::new(
+      let dep = ESMExportImportedSpecifierDependency::new(
         source,
         source_order,
         ids.into_vec(),
@@ -172,7 +179,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       {
         dep.set_lazy();
       }
-      Box::new(dep) as BoxDependency
+      BoxDependency::new(dep)
     } else {
       let const_value = parser
         .get_tag_data::<ConstValueData>(local_id, INLINABLE_CONST_TAG)
@@ -182,16 +189,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
         .collected_typescript_info
         .as_ref()
         .and_then(|info| info.exported_enums.get(local_id).cloned());
-      let variable = parser
-        .get_tag_data::<NestedRequireData>(local_id, NESTED_IDENTIFIER_TAG)
-        .map(|data| data.name.clone());
+      let variable = CompatibilityPlugin::update_nested_binding_declaration(parser, local_id);
 
       let range = DependencyRange::from(statement.span());
       let loc = parser.to_dependency_location(range);
-      Box::new(ESMExportSpecifierDependency::new(
+      BoxDependency::new(ESMExportSpecifierDependency::new(
         export_name.clone(),
         if let Some(variable) = variable {
-          variable.into()
+          variable
         } else {
           local_id.clone()
         },
@@ -238,7 +243,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     } else {
       Some(parser.build_info.all_star_exports.clone())
     };
-    let mut dep = ESMExportImportedSpecifierDependency::new(
+    let dep = ESMExportImportedSpecifierDependency::new(
       source.clone(),
       parser.last_esm_import_order,
       local_id.map(|id| vec![id.clone()]).unwrap_or_default(),
@@ -264,7 +269,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     {
       dep.set_lazy();
     }
-    parser.add_dependency(Box::new(dep));
+    parser.add_dependency(BoxDependency::new(dep));
     Some(true)
   }
 
@@ -277,11 +282,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     let expr_span = expr.span();
     let statement_span = statement.span();
     if let Some(dep) = create_default_exported_namespace_dependency(parser, statement, expr) {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         DependencyRange::new(statement_span.real_lo(), expr_span.real_lo()),
         "".into(),
       )));
-      parser.add_dependency(Box::new(dep));
+      parser.add_dependency(BoxDependency::new(dep));
       return Some(true);
     }
 
@@ -349,7 +354,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       const_value,
       parser.to_dependency_location(DependencyRange::from(expr_span)),
     );
-    parser.add_dependency(Box::new(dep));
+    parser.add_dependency(BoxDependency::new(dep));
     let name = expr.ident().map_or_else(
       || DEFAULT_STAR_JS_WORD.clone(),
       |ident| Atom::from(ident.as_str()),

@@ -1,16 +1,12 @@
 ---
-description: 'Choose a style of source mapping to enhance the debugging process'
+description: 'Learn how to configure source maps for development and production and what each devtool modifier does.'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/configuration/devtool/" />
+import Attribution from '@components/Attribution';
 
 # Devtool
 
-Choose a style of source mapping to enhance the debugging process. These values can affect build and rebuild speed dramatically.
-
-Use the [SourceMapDevToolPlugin](/plugins/webpack/source-map-dev-tool-plugin) or [EvalSourceMapDevToolPlugin](/plugins/webpack/eval-source-map-dev-tool-plugin) for a more fine grained configuration.
+The `devtool` option controls the debugging information Rspack generates for output code, including whether source maps are generated, how they are emitted, and their mapping precision. The selected value affects how well browser development tools and error monitoring services can map bundled code back to the original source. It also affects build speed and the risk of exposing source code.
 
 - **Type:**
 
@@ -20,75 +16,135 @@ type Devtool = string | false;
 
 - **Default:** `cheap-module-source-map` in development mode and `false` in production mode
 
-## Configuration guide
-
-### Step 1: determine debugging needs
-
-- **Not required** → Set `devtool: false`
-  - Disables all debugging information
-  - Zero build overhead with maximum build speed
-- **Required** → Proceed to [Step 2](#step-2-define-debugging-requirements)
-
-### Step 2: define debugging requirements
-
-- **Module-level positioning only** → Set `devtool: 'eval'`
-  - Each module executed via `eval()` with `//# sourceURL` comment
-  - Extremely fast build speed
-- **Full source code mapping needed** → Proceed to [Step 3](#step-3-configure-source-map)
-
-### Step 3: configure source map
-
-Set `devtool: 'source-map'`, A full source map is emitted as a separate file. It adds a `//# sourceMapURL` comment to the bundle so development tools know where to find it.
-
-It also supports combination with the following modifiers to improve performance and control source map generation.
-
-Performance optimization modifiers, to speed up the build, usually used in **development environments**:
-
-| Modifier | Effect                                                                                                                                         | Performance improvement |
-| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| eval     | Each module is executed with `eval()` and a source map is added as a DataUrl to the `eval()`, avoiding chunk-level multiple source map concate | ⚡⚡⚡                  |
-| cheap    | Maps line numbers only (no columns), ignores source maps from loaders                                                                          | ⚡⚡                    |
-| module   | Processes source maps from loaders to map to original code (line-only mapping)                                                                 | ⚡                      |
-
-:::tip FAQ
-In production, it’s **expected** that no source map file is emitted when using the `cheap` modifier (e.g. `cheap-source-map` or `cheap-module-source-map`).
-
-This is because `cheap` only provides **line-level** mappings, while production builds are typically minified into a single line. In that case, a source map has little practical value.
-:::
-
-Functional modifiers, to control source map generation, usually used in **production environments**:
-
-| Modifier  | Effect                                                                                                                                       |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| hidden    | source map is emitted as a separate file, but no `//# sourceMappingURL=[url]` comment is added to the bundle, protecting source code privacy |
-| inline    | source map is added as a DataUrl to the bundle                                                                                               |
-| nosources | source map is created without the `sourcesContent` in it                                                                                     |
-| debugids  | source map is created with the `debugId` in it                                                                                               |
-
-Rspack validates the `devtool` string with a fixed modifier order. The pattern is: `[inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids]`.
-
 ## Recommended configurations
 
-### Development
+The following examples use `process.env.NODE_ENV` to distinguish development from production.
 
-The following options are ideal for development:
+### Development only
 
-`cheap-source-map` - A source map is emitted as a separate file, it is "cheap" because it doesn't have column mappings, it only maps line numbers. It ignores source maps from Loaders and only display transpiled code similar to the eval devtool.
+If you only need debugging information during development and do not need source maps in production, use the following configuration:
 
-`cheap-module-source-map` - Similar to `cheap-source-map`, however, in this case source maps from Loaders are processed for better results. However Loader source maps are simplified to a single mapping per line.
+```js title="rspack.config.mjs"
+const isDev = process.env.NODE_ENV === 'development';
 
-### Production
+export default {
+  devtool: isDev ? 'cheap-module-source-map' : false,
+};
+```
 
-These options are typically used in production:
+- **Development:** Uses `cheap-module-source-map` to generate line-level source maps, balancing debugging accuracy and build speed.
+- **Production:** Sets `devtool` to `false`, so no source maps are emitted and no source map generation overhead is added.
 
-'false' - No source map is emitted. This is a good option to start with.
+### Disabled everywhere
 
-`source-map` - A full source map is emitted as a separate file. It adds a reference comment to the bundle so development tools know where to find it.
+If neither environment needs source maps, use the following configuration:
 
-`hidden-source-map` - Same as `source-map`, but doesn't add a reference comment to the bundle. Useful if you only want source maps to map error stack traces from error reports, but don't want to expose your source map for the browser development tools.
+```js title="rspack.config.mjs"
+export default {
+  devtool: false,
+};
+```
 
-`nosources-source-map` - A source map is created without the `sourcesContent` (the original source code) in it. It still exposes the original filenames and structure and can be used to map stack traces on the client without exposing the source code. This kind of source map can be deployed to the web server if you can accept the file name being exposed.
+This configuration has the lowest build overhead and does not emit `.map` files. The tradeoff is that browser errors and production stack traces can only point to bundled code and cannot be mapped back to the original source.
+
+### Enabled everywhere
+
+If you want fast source maps during development and complete line and column mappings in production, use the following configuration:
+
+```js title="rspack.config.mjs"
+const isDev = process.env.NODE_ENV === 'development';
+
+export default {
+  devtool: isDev ? 'cheap-module-source-map' : 'source-map',
+};
+```
+
+- **Development:** Uses the faster `cheap-module-source-map`.
+- **Production:** Uses `source-map`, which emits a separate `.map` file with line and column mappings and adds a `sourceMappingURL` comment to the bundle. As long as the `.map` file is accessible, browser development tools can load it automatically. This is useful for debugging production code directly, but it increases build time and may expose your source code to users.
+
+### Hidden production reference
+
+If you need production source maps to reconstruct error stack traces but do not want browsers to discover them automatically from the bundle, use the following configuration:
+
+```js title="rspack.config.mjs"
+const isDev = process.env.NODE_ENV === 'development';
+
+export default {
+  devtool: isDev ? 'cheap-module-source-map' : 'hidden-source-map',
+};
+```
+
+- **Development:** Uses the faster `cheap-module-source-map`.
+- **Production:** Uses `hidden-source-map`, which emits a separate `.map` file with complete line and column mappings but does not add a `//# sourceMappingURL` comment to the bundle. This is useful when uploading source maps privately to an error monitoring service to reconstruct production stack traces.
 
 :::warning
-When using `source-map` or `hidden-source-map`, do not deploy the source maps (`.map` file) to the public web server or CDN. Public source maps will expose your source code and may bring security risks.
+`hidden-source-map` only removes the reference from the bundle; it does not encrypt or protect the `.map` file. Unless you explicitly intend to publish your source code, do not deploy production `.map` files to a publicly accessible web server or CDN. Upload them to an access-controlled error monitoring service instead.
 :::
+
+## Common values
+
+The following table compares the mapping precision, output format, and typical use of common values.
+
+| Value                     | Mapping                                     | Output                                          | Typical use                                           |
+| ------------------------- | ------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------- |
+| `cheap-module-source-map` | Original source with line maps only         | Usually a separate `.map` file                  | Balancing debugging accuracy and build speed          |
+| `cheap-source-map`        | Transformed code with line maps only        | Usually a separate `.map` file                  | Development without mapping to original source        |
+| `eval`                    | Module names only; no source mapping        | Wraps each module in `eval()`                   | Locating modules during development                   |
+| `eval-source-map`         | Original source with line and column maps   | Per-module map embedded in its `eval()`         | Precise debugging during development                  |
+| `false`                   | No source map                               | None                                            | Debugging information is not needed                   |
+| `hidden-source-map`       | Original source with line and column maps   | Separate `.map` file without a bundle reference | Private uploads to error monitoring services          |
+| `inline-source-map`       | Original source with line and column maps   | Map embedded in the bundle as a Data URL        | Distributing a single file for development or testing |
+| `nosources-source-map`    | Line and column maps without source content | Separate `.map` file with a bundle reference    | Mapping without embedding source in the map           |
+| `source-map`              | Original source with line and column maps   | Separate `.map` file with a bundle reference    | Debugging production code directly                    |
+
+## Modifiers
+
+Without modifiers, `source-map` emits a separate `.map` file with line and column mappings and adds a `sourceMappingURL` comment to the bundle. Add the following modifiers to change how the map is emitted, its mapping precision, or its contents.
+
+### `eval`
+
+Wraps each module in `eval()`. When combined with `source-map` as `eval-source-map`, each module's source map is written to its `eval()` as a Data URL. This avoids combining source maps at the chunk level and improves rebuild performance. This modifier is normally used only in development.
+
+Using `devtool: 'eval'` by itself does not generate a source map. Instead, a `//# sourceURL` comment gives each module a readable name. This identifies the module but cannot map generated code back to the original source.
+
+### `inline`
+
+Embeds the source map in the bundle as a Data URL instead of emitting a separate `.map` file, as in `inline-source-map`. This is convenient when distributing a single file, but it significantly increases bundle size. By default, the source map also includes source content in the bundle; combining it with `nosources` omits that content. This modifier is therefore normally limited to development or testing.
+
+### `hidden`
+
+Emits a separate `.map` file without adding a `//# sourceMappingURL` comment to the bundle, as in `hidden-source-map`. Browsers do not discover the file automatically, making it suitable for private uploads to error monitoring services. It does not prevent users from accessing a publicly deployed `.map` file directly.
+
+### `nosources`
+
+Removes `sourcesContent` from the source map, as in `nosources-source-map`. The map still contains original filenames, directory structure, and mapping information, so it can reconstruct stack traces, but it cannot provide the original source content to development tools on its own.
+
+### `cheap`
+
+Generates line mappings only, omitting column mappings to reduce source map computation, as in `cheap-source-map`. On its own, it ignores source maps provided by loaders, so mappings point to loader-transformed code rather than the original source.
+
+:::tip
+In production builds with minification enabled, no source map file may be emitted when using the `cheap` modifier, such as `cheap-source-map` or `cheap-module-source-map`. This is expected: minified code typically occupies a single line, while `cheap` provides line-level mappings only. A `.map` file may still be emitted when minification is disabled.
+:::
+
+### `module`
+
+Used only together with `cheap`, as in `cheap-module-source-map`. It processes source maps provided by loaders so line mappings point back to the original source. Compared with `cheap-source-map`, it produces more accurate mappings at a slightly higher computation cost. Without `cheap`, `source-map` already processes loader source maps, so `module` is unnecessary.
+
+### `debugids`
+
+The `debugids` modifier adds a `debugId` to the source map following the [TC39 Debug ID proposal](https://github.com/tc39/ecma426/blob/main/proposals/debug-id.md). For example, with `source-map-debugids`, Rspack also adds a matching `//# debugId` comment to the corresponding output asset so error monitoring tools can associate the build artifact with its source map.
+
+Rspack validates modifier order. Values must match `[inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids]`. The `inline`, `hidden`, and `eval` modifiers are mutually exclusive, `module` can only follow `cheap`, and `debugids` must appear at the end.
+
+## Related options
+
+- [`output.sourceMapFilename`](/config/output#outputsourcemapfilename) customizes the name of separate source map files.
+- [`output.devtoolModuleFilenameTemplate`](/config/output#outputdevtoolmodulefilenametemplate), [`output.devtoolFallbackModuleFilenameTemplate`](/config/output#outputdevtoolfallbackmodulefilenametemplate), and [`output.devtoolNamespace`](/config/output#outputdevtoolnamespace) control module names in source maps and avoid naming conflicts across builds.
+- [`rules[].extractSourceMap`](/config/module-rules#rulesextractsourcemap) extracts an existing source map from an input file's `sourceMappingURL` comment.
+
+## Fine-grained control
+
+For finer-grained control over source map generation, set `devtool` to `false` and use [SourceMapDevToolPlugin](/plugins/source-map-dev-tool-plugin) instead. For `eval`-based source maps, use [EvalSourceMapDevToolPlugin](/plugins/eval-source-map-dev-tool-plugin) instead.
+
+<Attribution url="https://webpack.js.org/configuration/devtool/" />

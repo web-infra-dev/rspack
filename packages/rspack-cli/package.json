@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "2.1.3",
+  "version": "2.2.2",
   "description": "CLI for rspack",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -28,28 +28,26 @@
     "dist"
   ],
   "scripts": {
-    "build": "rslib build",
-    "dev": "rslib build -w",
+    "build": "rs lib",
+    "dev": "rs lib -w",
     "prepare": "prebundle",
-    "test": "rstest"
+    "test": "rs test"
   },
   "devDependencies": {
-    "@discoveryjs/json-ext": "^1.1.0",
-    "@microsoft/api-extractor": "^7.58.9",
-    "@rstackjs/load-config": "^0.1.1",
-    "@rslib/core": "^0.23.2",
+    "@discoveryjs/json-ext": "catalog:",
+    "@microsoft/api-extractor": "catalog:",
+    "@rstackjs/load-config": "catalog:",
     "@rspack/core": "workspace:*",
-    "@rspack/dev-server": "^2.1.0",
-    "@rspack/test-tools": "workspace:*",
-    "cac": "^7.0.0",
-    "concat-stream": "^2.0.0",
-    "cross-env": "^10.1.0",
-    "execa": "^5.1.1",
-    "exit-hook": "^5.1.0",
-    "jiti": "^2.7.0",
-    "prebundle": "^1.6.5",
-    "rspack-merge": "1.0.1",
-    "typescript": "^6.0.3"
+    "@rspack/dev-server": "catalog:",
+    "cac": "catalog:",
+    "concat-stream": "catalog:",
+    "execa": "catalog:",
+    "exit-hook": "catalog:",
+    "jiti": "catalog:",
+    "prebundle": "catalog:",
+    "rspack-merge": "catalog:",
+    "rstack": "catalog:",
+    "typescript": "catalog:"
   },
   "peerDependencies": {
     "@rspack/core": "^2.0.0-0",

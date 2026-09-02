@@ -35,19 +35,6 @@ pub(crate) fn should_assign_module_id_without_chunk(module: &dyn Module) -> bool
 
 #[allow(clippy::type_complexity)]
 #[allow(clippy::collapsible_else_if)]
-pub fn get_used_module_ids_and_modules(
-  compilation: &Compilation,
-  filter: Option<Box<dyn Fn(&BoxModule) -> bool>>,
-) -> (FxHashSet<String>, Vec<ModuleIdentifier>) {
-  get_used_module_ids_and_modules_with_artifact(
-    compilation,
-    &compilation.module_ids_artifact,
-    filter,
-  )
-}
-
-#[allow(clippy::type_complexity)]
-#[allow(clippy::collapsible_else_if)]
 pub fn get_used_module_ids_and_modules_with_artifact(
   compilation: &Compilation,
   module_ids_artifact: &ModuleIdsArtifact,
@@ -174,18 +161,32 @@ pub fn get_hash(s: impl Hash, length: usize) -> String {
 
 #[allow(clippy::too_many_arguments)]
 pub fn assign_deterministic_ids<T>(
-  mut items: Vec<T>,
+  items: Vec<T>,
   get_name: impl for<'b> Fn(&'b T) -> &'b str,
   comparator: impl FnMut(&T, &T) -> Ordering,
-  mut assign_id: impl FnMut(&T, usize) -> bool,
+  assign_id: impl FnMut(&T, usize) -> bool,
   ranges: &[usize],
   expand_factor: usize,
   extra_space: usize,
   salt: usize,
 ) {
-  items.sort_unstable_by(comparator);
+  let range = get_deterministic_id_range(items.len(), ranges, expand_factor, extra_space);
+  assign_deterministic_ids_with_hash(
+    items,
+    comparator,
+    assign_id,
+    |item, suffix| get_number_hash_combined(get_name(item), suffix, range),
+    salt,
+  );
+}
 
-  let optimal_range = usize::min(items.len() * 20 + extra_space, usize::MAX);
+pub(crate) fn get_deterministic_id_range(
+  item_count: usize,
+  ranges: &[usize],
+  expand_factor: usize,
+  extra_space: usize,
+) -> usize {
+  let optimal_range = usize::min(item_count * 20 + extra_space, usize::MAX);
   let mut i = 0;
   debug_assert!(!ranges.is_empty());
   let mut range = ranges[i];
@@ -199,14 +200,24 @@ pub fn assign_deterministic_ids<T>(
       break;
     }
   }
+  range
+}
+
+pub(crate) fn assign_deterministic_ids_with_hash<T>(
+  mut items: Vec<T>,
+  comparator: impl FnMut(&T, &T) -> Ordering,
+  mut assign_id: impl FnMut(&T, usize) -> bool,
+  mut get_id: impl FnMut(&T, usize) -> usize,
+  salt: usize,
+) {
+  items.sort_unstable_by(comparator);
 
   for item in items {
-    let ident = get_name(&item);
     let mut i = salt;
-    let mut id = get_number_hash_combined(ident, i, range);
+    let mut id = get_id(&item, i);
     while !assign_id(&item, id) {
       i += 1;
-      id = get_number_hash_combined(ident, i, range);
+      id = get_id(&item, i);
     }
   }
 }
@@ -236,13 +247,35 @@ pub fn compare_modules_by_pre_order_index_or_identifier(
   a: &Identifier,
   b: &Identifier,
 ) -> std::cmp::Ordering {
-  if let Some(a) = module_graph.get_pre_order_index(a)
-    && let Some(b) = module_graph.get_pre_order_index(b)
-  {
-    compare_numbers(a, b)
-  } else {
-    compare_ids(a, b)
-  }
+  compare_by_pre_order_index_or_id(
+    module_graph.get_pre_order_index(a),
+    a,
+    module_graph.get_pre_order_index(b),
+    b,
+  )
+}
+
+/// Ordering logic for [`compare_modules_by_pre_order_index_or_identifier`], split
+/// out as a pure function so its total-order property is unit-testable without a
+/// `ModuleGraph`.
+///
+/// Must be a *strict total order*: Rust's `sort_unstable_by` aborts the process
+/// ("comparison function does not correctly implement a total order") once it
+/// detects a violation. The previous form — compare by pre-order index only when
+/// BOTH modules have one, else fall back to identifier — is not transitive when
+/// the set mixes modules with and without a pre-order index (e.g. under
+/// splitChunks / `experiments.layers`, where `get_pre_order_index` is `None` for
+/// some modules): a numeric edge and an identifier edge can disagree. Use a single
+/// key — pre-order index (missing sorts last via `u32::MAX`) — with the identifier
+/// as a deterministic tiebreak.
+pub(crate) fn compare_by_pre_order_index_or_id(
+  a_index: Option<u32>,
+  a_id: &str,
+  b_index: Option<u32>,
+  b_id: &str,
+) -> std::cmp::Ordering {
+  compare_numbers(a_index.unwrap_or(u32::MAX), b_index.unwrap_or(u32::MAX))
+    .then_with(|| compare_ids(a_id, b_id))
 }
 
 #[cfg(test)]
@@ -254,8 +287,59 @@ mod tests {
   };
   use rustc_hash::FxHashMap;
 
-  use super::{NaturalChunkCompareCache, assign_deterministic_ids, compare_chunks_natural};
+  use super::{
+    NaturalChunkCompareCache, assign_deterministic_ids, compare_by_pre_order_index_or_id,
+    compare_chunks_natural,
+  };
 
+  #[test]
+  fn compare_by_pre_order_index_or_id_is_a_total_order() {
+    // (pre_order_index, identifier) — a mix of Some/None. Includes the triple that
+    // made the old "compare by index only when BOTH present, else by identifier"
+    // logic non-transitive: A(Some(5),"z"), B(None,"m"), C(Some(10),"a") gives
+    // A<C and C<B (so transitively A<B) yet A>B — the violation that aborted
+    // `sort_unstable_by`.
+    let items: &[(Option<u32>, &str)] = &[
+      (Some(5), "z"),
+      (None, "m"),
+      (Some(10), "a"),
+      (Some(0), "b"),
+      (None, "a"),
+      (Some(5), "a"),
+      (None, "z"),
+    ];
+    let cmp = |x: &(Option<u32>, &str), y: &(Option<u32>, &str)| {
+      compare_by_pre_order_index_or_id(x.0, x.1, y.0, y.1)
+    };
+
+    // reflexive + antisymmetric: cmp(a,a) == Equal, and cmp(a,b) reverses cmp(b,a).
+    for a in items {
+      assert_eq!(cmp(a, a), Ordering::Equal);
+      for b in items {
+        assert_eq!(cmp(a, b), cmp(b, a).reverse());
+      }
+    }
+
+    // transitive: a <= b && b <= c  =>  a <= c.
+    let le = |a: &(Option<u32>, &str), b: &(Option<u32>, &str)| cmp(a, b) != Ordering::Greater;
+    for a in items {
+      for b in items {
+        for c in items {
+          if le(a, b) && le(b, c) {
+            assert!(
+              le(a, c),
+              "transitivity violated: {a:?} <= {b:?} <= {c:?} but {a:?} > {c:?}"
+            );
+          }
+        }
+      }
+    }
+
+    // the sort the plugin performs must not panic on this set.
+    let mut sorted = items.to_vec();
+    sorted.sort_unstable_by(|x, y| compare_by_pre_order_index_or_id(x.0, x.1, y.0, y.1));
+    assert_eq!(sorted.len(), items.len());
+  }
   #[test]
   fn assign_deterministic_ids_accepts_borrowed_names() {
     let items = vec![

@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use notify::{Event, EventKind, RecommendedWatcher, Watcher, event::ModifyKind};
-use rspack_paths::ArcPath;
+use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
 use crate::{FsEventKind, WatchPattern, trigger};
@@ -54,7 +54,7 @@ impl DiskWatcher {
             // Now /path/to/index.js and /path/to/index.js.map will both be changed
             _ => return,
           };
-          for path in event.paths.into_iter().map(ArcPath::from) {
+          for path in event.paths.into_iter().map(InternedPath::from) {
             trigger.on_event(&path, kind);
           }
         }
@@ -88,7 +88,7 @@ impl DiskWatcher {
     let new_paths = new_patterns.iter().map(|p| &p.path).collect::<HashSet<_>>();
 
     // Collect stale paths that are no longer needed, then unwatch and remove them.
-    let stale_paths: HashSet<ArcPath> = self
+    let stale_paths: HashSet<InternedPath> = self
       .watch_patterns
       .iter()
       .filter(|p| !new_paths.contains(&p.path))
@@ -135,7 +135,7 @@ impl DiskWatcher {
 mod tests {
   use std::sync::Arc;
 
-  use rspack_paths::ArcPath;
+  use rspack_paths::InternedPath;
   use tokio::sync::mpsc;
 
   use super::*;
@@ -167,11 +167,11 @@ mod tests {
       .watch(
         vec![
           WatchPattern {
-            path: ArcPath::from(dir_a.clone()),
+            path: InternedPath::from(dir_a.clone()),
             mode: notify::RecursiveMode::NonRecursive,
           },
           WatchPattern {
-            path: ArcPath::from(dir_b.clone()),
+            path: InternedPath::from(dir_b.clone()),
             mode: notify::RecursiveMode::NonRecursive,
           },
         ]
@@ -185,11 +185,11 @@ mod tests {
       .watch(
         vec![
           WatchPattern {
-            path: ArcPath::from(dir_b.clone()),
+            path: InternedPath::from(dir_b.clone()),
             mode: notify::RecursiveMode::NonRecursive,
           },
           WatchPattern {
-            path: ArcPath::from(dir_c.clone()),
+            path: InternedPath::from(dir_c.clone()),
             mode: notify::RecursiveMode::NonRecursive,
           },
         ]
@@ -203,8 +203,8 @@ mod tests {
       .iter()
       .map(|p| p.path.clone())
       .collect();
-    assert!(paths.contains(&ArcPath::from(dir_b)));
-    assert!(paths.contains(&ArcPath::from(dir_c)));
-    assert!(!paths.contains(&ArcPath::from(dir_a)));
+    assert!(paths.contains(&InternedPath::from(dir_b)));
+    assert!(paths.contains(&InternedPath::from(dir_c)));
+    assert!(!paths.contains(&InternedPath::from(dir_a)));
   }
 }

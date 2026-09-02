@@ -5,8 +5,6 @@ use heck::ToLowerCamelCase;
 use rspack_hash::{RspackHash, RspackHasher};
 use rustc_hash::FxHashMap;
 
-use crate::{CompilerOptions, runtime_mode::RuntimeMode};
-
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub struct RuntimeGlobals(u128);
@@ -311,6 +309,9 @@ define_runtime_globals! {
 
   // react server component
   const RSC_MANIFEST;
+
+  // reexport
+  const REEXPORT;
 }
 
 impl Default for RuntimeGlobals {
@@ -412,6 +413,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::CREATE_SCRIPT => "ts",
     RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => "tt",
     RuntimeGlobals::DEFINE_PROPERTY_GETTERS => "d",
+    RuntimeGlobals::REEXPORT => "re",
     RuntimeGlobals::ENTRY_MODULE_ID => "s",
     RuntimeGlobals::STARTUP_NO_DEFAULT => "x (no default handler)",
     RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES => "f (include entries)",
@@ -498,16 +500,6 @@ pub enum RuntimeVariable {
   StartupExec,
 }
 
-pub fn runtime_variable_to_string(
-  runtime_variable: &RuntimeVariable,
-  compiler_options: &CompilerOptions,
-) -> String {
-  match compiler_options.experiments.runtime_mode {
-    RuntimeMode::Webpack => runtime_variable_name(runtime_variable).to_string(),
-    RuntimeMode::Rspack => rspack_runtime_variable_name(runtime_variable).to_string(),
-  }
-}
-
 pub fn rspack_runtime_variable_name(runtime_variable: &RuntimeVariable) -> &'static str {
   match *runtime_variable {
     RuntimeVariable::Require => "__rspack_require",
@@ -517,6 +509,18 @@ pub fn rspack_runtime_variable_name(runtime_variable: &RuntimeVariable) -> &'sta
     RuntimeVariable::Exports => "__rspack_exports",
     RuntimeVariable::Module => "__rspack_module",
     RuntimeVariable::StartupExec => "__rspack_exec",
+  }
+}
+
+pub fn rspack_export_runtime_variable_name(runtime_variable: &RuntimeVariable) -> &'static str {
+  match *runtime_variable {
+    RuntimeVariable::Require => "rspackRequire",
+    RuntimeVariable::Context => "context",
+    RuntimeVariable::Modules => "modules",
+    RuntimeVariable::ModuleCache => "moduleCache",
+    RuntimeVariable::Exports => "exports",
+    RuntimeVariable::Module => "module",
+    RuntimeVariable::StartupExec => "startupExec",
   }
 }
 
@@ -579,10 +583,6 @@ impl RuntimeGlobals {
     }
   }
 
-  pub fn name(&self) -> Option<&'static str> {
-    RUNTIME_GLOBAL_MAP.0.get(self).copied()
-  }
-
   pub fn from_property_name(property_name: &str) -> Option<Self> {
     RUNTIME_GLOBAL_MAP.2.get(property_name).copied()
   }
@@ -609,6 +609,15 @@ impl RuntimeGlobals {
 
   pub fn to_lexical_name(&self) -> Option<&str> {
     RUNTIME_GLOBAL_MAP.3.get(self).map(String::as_str)
+  }
+
+  pub fn to_rspack_export_setter_name(&self) -> Option<String> {
+    let name = self.to_lexical_name()?;
+    let mut setter = String::with_capacity(name.len() + 3);
+    setter.push_str("set");
+    setter.push(name.as_bytes()[0].to_ascii_uppercase() as char);
+    setter.push_str(&name[1..]);
+    Some(setter)
   }
 
   pub fn should_initialize_as_object(&self) -> bool {

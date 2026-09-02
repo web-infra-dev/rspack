@@ -1,8 +1,10 @@
+use cow_utils::CowUtils;
 use rayon::prelude::*;
 use rspack_core::{
-  ChunkCodeTemplate, ChunkGraph, ChunkInitFragments, ChunkKind, ChunkUkey,
-  CodeGenerationPublicPathAutoReplace, Compilation, Module, RuntimeGlobals,
-  RuntimeModuleGenerateContext, SourceType,
+  ChunkGraph, ChunkInitFragments, ChunkKind, ChunkUkey, CodeGenerationDataChunkInitFragments,
+  CodeGenerationDataPreservedAssetImport, CodeGenerationPublicPathAutoReplace, Compilation,
+  ExternalModuleInitFragment, InitFragmentExt, InitFragmentStage, Module, RuntimeCodeTemplate,
+  RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeModuleGenerateContext, SourceType,
   chunk_graph_chunk::ChunkIdSet,
   get_undo_path, render_runtime_module_source,
   rspack_sources::{
@@ -17,6 +19,7 @@ pub use crate::runtime_context::{
   render_rspack_runtime_modules,
   render_runtime_chunk_runtime_modules as render_rspack_runtime_chunk_runtime_modules,
   render_runtime_context_declaration, render_runtime_context_require_assignment,
+  should_export_rspack_runtime_globals,
 };
 use crate::{JavascriptModulesPluginHooks, RenderSource};
 
@@ -29,8 +32,12 @@ pub async fn render_chunk_modules(
   all_strict: bool,
   output_path: &str,
   hooks: &JavascriptModulesPluginHooks,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<Option<(BoxSource, ChunkInitFragments)>> {
+  let module_runtime_scope = compilation
+    .runtime_template
+    .create_module_code_template()
+    .render_runtime_scope();
   let module_sources = rspack_parallel::scope::<_, _>(|token| {
     ordered_modules.iter().for_each(|module| {
       let s = unsafe {
@@ -41,23 +48,35 @@ pub async fn render_chunk_modules(
           all_strict,
           output_path,
           hooks,
-          runtime_template
+          runtime_template,
+          module_runtime_scope.as_str(),
         ))
       };
       s.spawn(
-        |(compilation, chunk_ukey, module, all_strict, output_path, hooks, runtime_template)| async move {
+        |(
+          compilation,
+          chunk_ukey,
+          module,
+          all_strict,
+          output_path,
+          hooks,
+          runtime_template,
+          module_runtime_scope,
+        )| async move {
           render_module(
             compilation,
             chunk_ukey,
             *module,
             all_strict,
             true,
+            true,
             output_path,
             hooks,
-            runtime_template
+            runtime_template,
+            Some(module_runtime_scope),
           )
           .await
-          .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
+          .map(|result| result.map(|(source, fragments)| (module.identifier(), source, fragments)))
         },
       );
     });
@@ -67,7 +86,7 @@ pub async fn render_chunk_modules(
   .map(|r| r.to_rspack_result())
   .collect::<Result<Vec<_>>>()?;
 
-  let mut module_code_array = vec![];
+  let mut module_code_array = Vec::with_capacity(module_sources.len());
   for item in module_sources {
     if let Some(i) = item? {
       module_code_array.push(i);
@@ -78,21 +97,14 @@ pub async fn render_chunk_modules(
     return Ok(None);
   }
 
-  module_code_array.sort_unstable_by_key(|(module_identifier, _, _, _)| *module_identifier);
+  module_code_array.sort_unstable_by_key(|(module_identifier, _, _)| *module_identifier);
 
-  let chunk_init_fragments = module_code_array.iter().fold(
-    ChunkInitFragments::default(),
-    |mut chunk_init_fragments, (_, _, fragments, additional_fragments)| {
-      chunk_init_fragments.extend((*fragments).clone());
-      chunk_init_fragments.extend(additional_fragments.clone());
-      chunk_init_fragments
-    },
-  );
-
-  let module_sources: Vec<_> = module_code_array
-    .into_iter()
-    .map(|(_, source, _, _)| source)
-    .collect();
+  let mut chunk_init_fragments = ChunkInitFragments::default();
+  let mut module_sources = Vec::with_capacity(module_code_array.len());
+  for (_, source, fragments) in module_code_array {
+    chunk_init_fragments.extend(fragments);
+    module_sources.push(source);
+  }
   let module_sources = module_sources
     .into_par_iter()
     .fold(ConcatSource::default, |mut output, source| {
@@ -116,28 +128,64 @@ pub async fn render_module(
   module: &dyn Module,
   all_strict: bool,
   factory: bool,
+  render_preserved_asset_import_fragment: bool,
   output_path: &str,
   hooks: &JavascriptModulesPluginHooks,
-  runtime_template: &ChunkCodeTemplate,
-) -> Result<Option<(BoxSource, ChunkInitFragments, ChunkInitFragments)>> {
+  runtime_template: &RuntimeCodeTemplate,
+  module_runtime_scope: Option<&str>,
+) -> Result<Option<(BoxSource, ChunkInitFragments)>> {
+  let module_identifier = module.identifier();
   let chunk = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .expect_get(chunk_ukey);
   let code_gen_result = compilation
     .code_generation_results
-    .get(&module.identifier(), Some(chunk.runtime()));
+    .get(&module_identifier, Some(chunk.runtime()));
   let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) else {
     return Ok(None);
   };
 
-  let mut module_chunk_init_fragments = match code_gen_result.data.get::<ChunkInitFragments>() {
-    Some(fragments) => fragments.clone(),
-    None => ChunkInitFragments::default(),
-  };
+  let mut module_chunk_init_fragments = code_gen_result
+    .data()
+    .get::<CodeGenerationDataChunkInitFragments>()
+    .map(|fragments| fragments.inner().clone())
+    .unwrap_or_default();
+  if render_preserved_asset_import_fragment
+    && let Some(asset_import) = code_gen_result
+      .data()
+      .get::<CodeGenerationDataPreservedAssetImport>()
+  {
+    // The normal JavaScript renderer has no chunk linker for raw imports. Use the same structured
+    // fragment as ExternalModuleDependency, after the final output-relative request is known.
+    let relative = get_undo_path(
+      output_path,
+      compilation.options.output.path.to_string(),
+      true,
+    );
+    let request = asset_import
+      .request()
+      .cow_replace(AUTO_PUBLIC_PATH_PLACEHOLDER, &relative)
+      .into_owned();
+    let position = compilation
+      .get_module_graph()
+      .get_pre_order_index(&module_identifier)
+      .map_or(0, |index| index as i32);
+    module_chunk_init_fragments.push(
+      ExternalModuleInitFragment::new(
+        request,
+        Vec::new(),
+        Some(asset_import.binding().to_string()),
+        InitFragmentStage::StageESMImports,
+        position,
+      )
+      .boxed(),
+    );
+  }
+  let mut render_runtime_requirements = *code_gen_result.runtime_requirements();
 
   let mut render_source = if code_gen_result
-    .data
+    .data()
     .get::<CodeGenerationPublicPathAutoReplace>()
     .is_some()
   {
@@ -190,6 +238,7 @@ pub async fn render_module(
       chunk_ukey,
       module,
       &mut render_source,
+      &mut render_runtime_requirements,
       &mut module_chunk_init_fragments,
       runtime_template,
     )
@@ -197,9 +246,8 @@ pub async fn render_module(
 
   let sources = if factory {
     let mut sources = ConcatSource::default();
-    let module_id =
-      ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
-        .expect("should have module_id in render_module");
+    let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module_identifier)
+      .expect("should have module_id in render_module");
     sources.add(RawStringSource::from(rspack_util::json_stringify(
       module_id,
     )));
@@ -207,61 +255,59 @@ pub async fn render_module(
     let mut post_module_container = {
       let runtime_requirements = ChunkGraph::get_module_runtime_requirements(
         compilation,
-        module.identifier(),
+        module_identifier,
         chunk.runtime(),
       );
 
       let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
       let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));
-      let need_require = runtime_requirements.is_some_and(|r| {
-        r.contains(RuntimeGlobals::REQUIRE)
-          || r.contains(RuntimeGlobals::REQUIRE_SCOPE)
-          || (compilation.options.experiments.runtime_mode == RuntimeMode::Rspack
-            && !r.renderable_require_scope().is_empty())
-      });
-      let need_require = if need_require {
-        render_source
-          .source
-          .source()
-          .into_string_lossy()
-          .contains(&runtime_template.render_runtime_argument())
-      } else {
-        need_require
+      let need_require = runtime_template.render_mode() != RuntimeGlobalsRenderMode::RspackExport
+        && (render_runtime_requirements.contains(RuntimeGlobals::REQUIRE)
+          || render_runtime_requirements.contains(RuntimeGlobals::REQUIRE_SCOPE)
+          || !render_runtime_requirements
+            .renderable_require_scope()
+            .is_empty());
+      let mut args = String::with_capacity(64);
+      let mut push_argument = |argument: &str, used: bool| {
+        if !args.is_empty() {
+          args.push_str(", ");
+        }
+        if !used {
+          args.push_str("__unused_rspack_");
+        }
+        args.push_str(argument);
       };
-
-      let mut args = Vec::new();
       if need_module || need_exports || need_require {
         let module_argument = runtime_template.render_module_argument(module.get_module_argument());
-        args.push(if need_module {
-          module_argument
-        } else {
-          format!("__unused_rspack_{module_argument}")
-        });
+        push_argument(&module_argument, need_module);
       }
 
       if need_exports || need_require {
         let exports_argument =
           runtime_template.render_exports_argument(module.get_exports_argument());
-        args.push(if need_exports {
-          exports_argument
-        } else {
-          format!("__unused_rspack_{exports_argument}")
-        });
+        push_argument(&exports_argument, need_exports);
       }
       if need_require {
-        args.push(runtime_template.render_runtime_argument());
+        push_argument(
+          module_runtime_scope
+            .expect("module runtime scope should be provided for factory modules"),
+          true,
+        );
       }
 
       let mut container_sources = ConcatSource::default();
 
+      let mut container_prefix = String::with_capacity(args.len() + 16);
       if use_method_shorthand {
-        container_sources.add(RawStringSource::from(format!("({}) {{\n", args.join(", "))));
+        container_prefix.push('(');
+        container_prefix.push_str(&args);
+        container_prefix.push_str(") {\n");
       } else {
-        container_sources.add(RawStringSource::from(format!(
-          ": (function ({}) {{\n",
-          args.join(", ")
-        )));
+        container_prefix.push_str(": (function (");
+        container_prefix.push_str(&args);
+        container_prefix.push_str(") {\n");
       }
+      container_sources.add(RawStringSource::from(container_prefix));
       if module.build_info().strict && !all_strict {
         container_sources.add(RawStringSource::from_static("\"use strict\";\n"));
       }
@@ -322,17 +368,13 @@ pub async fn render_module(
     render_source.source
   };
 
-  Ok(Some((
-    sources,
-    code_gen_result.chunk_init_fragments.clone(),
-    module_chunk_init_fragments,
-  )))
+  Ok(Some((sources, module_chunk_init_fragments)))
 }
 
 pub async fn render_chunk_runtime_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
   let runtime_modules_sources =
     if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
@@ -382,12 +424,12 @@ pub async fn render_chunk_runtime_modules(
 pub async fn render_runtime_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
   if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
     render_rspack_runtime_modules(compilation, chunk_ukey, runtime_template).await
   } else {
-    render_webpack_runtime_modules(compilation, chunk_ukey, runtime_template).await
+    render_webpack_runtime_modules(compilation, chunk_ukey).await
   }
 }
 
@@ -396,7 +438,6 @@ pub(crate) type RuntimeModuleSourceItem = (BoxSource, RuntimeGlobals, RuntimeGlo
 pub(crate) async fn render_runtime_module_sources(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  runtime_template: &ChunkCodeTemplate,
   reject_custom_runtime_modules: bool,
 ) -> Result<Vec<RuntimeModuleSourceItem>> {
   let runtime_mode = compilation.options.experiments.runtime_mode;
@@ -415,9 +456,9 @@ pub(crate) async fn render_runtime_module_sources(
         )
       })
       .for_each(|(source, module)| {
-        let s = unsafe { token.used((compilation, source, module, runtime_template)) };
+        let s = unsafe { token.used((compilation, source, module)) };
         s.spawn(
-          move |(compilation, source, module, runtime_template)| async move {
+          move |(compilation, source, module)| async move {
             if source.size() == 0 {
               return Ok((
                 ConcatSource::default().boxed(),
@@ -443,11 +484,7 @@ pub(crate) async fn render_runtime_module_sources(
               .output
               .environment
               .supports_arrow_function();
-            let source = if !(module.full_hash()
-              || module.dependent_hash()
-              || (runtime_template.uses_runtime_context()
-                && !runtime_template.uses_lexical_runtime_globals()))
-            {
+            let source = if !(module.full_hash() || module.dependent_hash()) {
               if let Some(custom_source) = module.get_custom_source() {
                 RawStringSource::from(custom_source).boxed()
               } else {
@@ -457,7 +494,7 @@ pub(crate) async fn render_runtime_module_sources(
               if let Some(custom_source) = module.get_custom_source() {
                 RawStringSource::from(custom_source).boxed()
               } else {
-                let runtime_template = compilation.runtime_template.create_runtime_code_template();
+                let runtime_template = compilation.runtime_template.create_runtime_module_code_template();
                 let context = RuntimeModuleGenerateContext {
                   compilation,
                   runtime_template: &runtime_template,
@@ -501,10 +538,9 @@ pub(crate) async fn render_runtime_module_sources(
 async fn render_webpack_runtime_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  runtime_template: &ChunkCodeTemplate,
 ) -> Result<BoxSource> {
   let runtime_module_sources =
-    render_runtime_module_sources(compilation, chunk_ukey, runtime_template, false).await?;
+    render_runtime_module_sources(compilation, chunk_ukey, false).await?;
   let mut sources = ConcatSource::default();
 
   for (runtime_module_source, _, _, _) in runtime_module_sources {

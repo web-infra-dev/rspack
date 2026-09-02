@@ -5,11 +5,11 @@ mod context_element_dependency;
 mod dependency_category;
 mod dependency_id;
 mod dependency_location;
+mod dependency_state;
 mod dependency_template;
 mod dependency_trait;
 mod dependency_type;
 mod entry;
-mod factorize_info;
 mod loader_import;
 mod module_dependency;
 mod runtime_requirements_dependency;
@@ -26,11 +26,11 @@ pub use context_element_dependency::ContextElementDependency;
 pub use dependency_category::DependencyCategory;
 pub use dependency_id::*;
 pub use dependency_location::*;
+pub use dependency_state::*;
 pub use dependency_template::*;
 pub use dependency_trait::*;
 pub use dependency_type::DependencyType;
 pub use entry::*;
-pub use factorize_info::FactorizeInfo;
 pub use loader_import::*;
 pub use module_dependency::*;
 use rspack_cacheable::{
@@ -39,7 +39,7 @@ use rspack_cacheable::{
 };
 pub use runtime_requirements_dependency::{
   CodeGenerationRuntimeRequirementsWrite, RuntimeRequirementsDependency,
-  RuntimeRequirementsDependencyTemplate,
+  RuntimeRequirementsDependencyTemplate, RuntimeRequirementsDependencyWriteOperation,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
@@ -47,17 +47,10 @@ pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  ConnectionState, EvaluatedInlinableValue, ExportsInfoArtifact, ExportsType,
-  ExtendedReferencedExport, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleIdentifier, ReferencedExport, RuntimeSpec, SideEffectsStateArtifact,
-  create_exports_object_referenced,
+  ConnectionState, EvaluatedInlinableValue, ExportsInfoArtifact, ExportsType, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ReferencedExport, RuntimeSpec,
+  SideEffectsStateArtifact, create_exports_object_referenced,
 };
-
-#[derive(Debug, Clone)]
-pub enum ProcessModuleReferencedExports {
-  Map(FxHashMap<String, ExtendedReferencedExport>),
-  ExtendRef(Vec<ExtendedReferencedExport>),
-}
 
 #[derive(Debug, Default)]
 pub struct ExportSpec {
@@ -79,14 +72,7 @@ pub enum Nullable<T> {
   Value(T),
 }
 
-impl ExportSpec {
-  pub fn new(name: String) -> Self {
-    Self {
-      name: Atom::from(name),
-      ..Default::default()
-    }
-  }
-}
+impl ExportSpec {}
 
 #[derive(Debug)]
 pub enum ExportNameOrSpec {
@@ -312,7 +298,7 @@ pub fn create_referenced_exports_by_referenced_specifiers(
   referenced_specifiers: &[ReferencedSpecifier],
   exports_type: ExportsType,
   is_json: bool,
-) -> Vec<ExtendedReferencedExport> {
+) -> Vec<ReferencedExport> {
   let mut refs = vec![];
   for ReferencedSpecifier {
     names,
@@ -357,11 +343,11 @@ pub fn create_referenced_exports_by_referenced_specifiers(
       // remove last one
       names = &names[..names.len().saturating_sub(1)];
     }
-    refs.push(ExtendedReferencedExport::Export(ReferencedExport::new(
-      names.to_vec(),
-      false,
-      false,
-    )));
+    refs.push(
+      ReferencedExport::from(names)
+        .with_can_mangle(false)
+        .with_can_inline(false),
+    );
   }
   refs
 }

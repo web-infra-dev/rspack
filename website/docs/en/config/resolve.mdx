@@ -2,9 +2,7 @@
 description: 'Used to configure the Rspack module resolution logic'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/configuration/resolve/" />
+import Attribution from '@components/Attribution';
 
 # Resolve
 
@@ -22,32 +20,59 @@ type ResolveAlias = false | Record<string, false | string | (false | string)[]>;
 
 - **Default:** `{}`
 
-Path alias, e.g.
+Use `resolve.alias` to redirect module requests to other paths:
 
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  resolve: {
+    alias: {
+      '@': path.resolve(import.meta.dirname, './src'),
+    },
+  },
+};
 ```
-{
-  "@": path.resolve(__dirname, './src'),
-  "abc$": path.resolve(__dirname, './node_modules/abc/index.js'),
-}
+
+With this configuration, `import '@/a'` will attempt to resolve `<root>/src/a`.
+
+### Exact matching
+
+Add `$` to the end of an alias key to match only the complete module request. The `$` is a special `resolve.alias` marker and is not part of the module request:
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  resolve: {
+    alias: {
+      abc$: path.resolve(import.meta.dirname, './src/abc'),
+    },
+  },
+};
 ```
 
-At this point:
+With this configuration:
 
-- `require("@/a")` will attempt to resolve `<root>/src/a`.
-- `require("abc")` will attempt to resolve `<root>/src/abc`.
-- `require("abc/file.js")` will not match, and it will attempt to resolve `node_modules/abc/file.js`.
+- `import 'abc'` will attempt to resolve `<root>/src/abc`.
+- `import 'abc/file.js'` will not match the alias and will continue through normal module resolution, which typically attempts to resolve `node_modules/abc/file.js`.
+
+Without the `$`, an `abc` alias would also match subpath requests such as `import 'abc/file.js'`.
 
 ### Impact on package resolution
 
-When you use `resolve.alias` to redirect a package import (for example, `import 'lib'`) to a specific directory inside a monorepo or within `node_modules`, the module resolution behavior changes:
+Using `resolve.alias` to redirect a package request such as `import 'lib'` to a file system path within a monorepo or `node_modules` changes how Rspack resolves that request:
 
-- **Default behavior**: If the import is a package name, Rspack performs the full package resolution process: it reads the package's `package.json` and determines the entry file and subpath mappings according to the [`exports`](https://nodejs.org/api/packages.html#exports) field.
-- **When aliased**: When an alias resolves to a file system path — for example, `./node_modules/lib` — Rspack no longer treats it as a package name and resolves it as a regular path. This bypasses the standard package resolution logic, causing fields such as `exports` in `package.json` to no longer take effect. This is the intended and standard behavior of Node.js.
+- **Without an alias**: `lib` is treated as a package request. Rspack reads the package's `package.json` and applies package resolution rules such as [`exports`](https://nodejs.org/api/packages.html#exports) to select an entry point or subpath.
+- **With an alias**: Rspack first replaces `lib` with the configured file system path. For example, after mapping `lib` to `./node_modules/lib`, Rspack resolves the replacement as a regular path, so the `exports` mappings for the package name `lib` no longer apply.
+
+This behavior follows the semantics of the `exports` field: it controls how package names and package subpaths are resolved, but does not apply to direct file system paths.
 
 ### Monorepo usage
 
-If you want packages within a monorepo to retain the same resolution behavior as regular npm packages, avoid using `alias` to point a package name directly to its source directory.
-The recommended approach is to use your package manager's workspace feature to symlink sub-packages into `node_modules`, so they can be resolved just like normal dependencies.
+If you want packages in a monorepo to resolve like regular npm dependencies, including support for `exports`, avoid using `alias` to map package names directly to their source directories.
+
+Instead, use your package manager's workspace feature to link the packages into `node_modules`, and continue importing them by package name. Rspack can then treat each request as a package request and apply the corresponding `package.json` resolution rules.
 
 ### Disable aliases
 
@@ -565,7 +590,28 @@ export default {
 - **Type:** `string[]`
 - **Default:** `["node_modules"]`
 
-The name of the directory to use when resolving dependencies.
+Specifies the directories Rspack searches when resolving bare module requests, such as `import 'react'` or `import 'utils/format'`. Relative requests such as `import './utils/format'` are resolved from the importing file and are not searched through `resolve.modules`.
+
+Entries are tried in array order, and can be directory names, relative paths, or absolute paths:
+
+- A directory name or relative path is searched from the directory containing the importing file, and then from each parent directory. For example, `node_modules` searches `<importer-directory>/node_modules`, then each ancestor's `node_modules` directory.
+- An absolute path refers to that exact directory; it is not resolved again from each ancestor.
+
+For example, the following configuration allows modules inside `src` to be imported with bare requests, while preserving the normal lookup of third-party packages from `node_modules`:
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  resolve: {
+    modules: [path.resolve(import.meta.dirname, 'src'), 'node_modules'],
+  },
+};
+```
+
+With this configuration, `import 'utils/format'` can resolve to `<project>/src/utils/format.js`. If a request is not found in `src`, Rspack continues with the `node_modules` lookup.
+
+Setting `resolve.modules` replaces the default array. Include `'node_modules'` explicitly when normal package lookup should remain enabled.
 
 ## resolve.pnp
 
@@ -687,3 +733,5 @@ Supports [tsconfig project references](https://www.typescriptlang.org/docs/handb
 The list of tsconfig paths can be provided manually, or you may specify `auto` to read the paths list from `tsconfig.references` automatically.
 
 This feature is disabled when the value is `undefined`.
+
+<Attribution url="https://webpack.js.org/configuration/resolve/" />

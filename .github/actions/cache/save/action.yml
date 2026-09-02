@@ -15,13 +15,13 @@ runs:
   steps:
     - name: Save cache to github
       if: ${{ runner.environment == 'github-hosted' }}
-      uses: actions/cache/save@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
       with:
         key: ${{ inputs.key }}
         path: ${{ inputs.path }}
     - name: Save cache to local
       if: ${{ runner.environment == 'self-hosted' }}
-      uses: lynx-infra/cache/save@d6bd70bf2182b228ff5cfa9539e5f61b0929a1ba # main
+      uses: lynx-infra/cache/save@3c8b52290f86bc0144a2ea7d695c8d63f4962791 # refresh-action-archive
       with:
         key: ${{ inputs.key }}
         path: ${{ inputs.path }}

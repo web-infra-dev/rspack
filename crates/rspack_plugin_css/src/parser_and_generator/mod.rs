@@ -8,9 +8,12 @@ use std::{
 };
 
 use regex::Regex;
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsPreset, AsVec},
+};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CodeGenerationDataItem, Compilation,
   CssAutoOrModuleParserOptions, CssBuildInfo, CssExportType, DependencyType, ExportsInfoArtifact,
   GenerateContext, Module, ModuleGraph, ModuleIdentifier, NormalModule, ParseContext, ParseResult,
   ParserAndGenerator, ParserOptions, ResolvedModuleOptions, RuntimeSpec, SourceType, UsageState,
@@ -34,9 +37,6 @@ use crate::{
 
 static REGEX_IS_MODULES: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.module(s)?\.[^.]+$").expect("Invalid regex"));
-
-static REGEX_IS_COMMENTS: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"/\*[\s\S]*?\*/").expect("Invalid regex"));
 
 pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::Css];
 
@@ -133,10 +133,15 @@ pub fn get_used_exports<'a>(
   )
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataUnusedLocalIdent {
+  #[cacheable(with=AsVec<AsPreset>)]
   pub(crate) idents: FxHashSet<SmolStr>,
 }
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataUnusedLocalIdent {}
 
 pub fn get_unused_local_ident(
   css_build_info: &CssBuildInfo,
@@ -187,10 +192,6 @@ pub fn get_unused_local_ident(
       .collect(),
   })
 }
-
-static REGEX_CUSTOM_PROPERTY_IDENT: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"(^|[^-_a-zA-Z0-9])--([_a-zA-Z][-_a-zA-Z0-9]*)").expect("Invalid regex")
-});
 
 #[cacheable_dyn]
 #[async_trait::async_trait]
@@ -265,18 +266,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
       });
     }
 
-    let exports_only = generator_options
-      .exports_only
-      .expect("should have exports_only");
-
-    CssModuleParser::new(
-      generator_options,
-      parser_options,
-      exports_only,
-      parse_context,
-    )
-    .parse()
-    .await
+    CssModuleParser::new(generator_options, parser_options, parse_context)
+      .parse()
+      .await
   }
 
   async fn generate(

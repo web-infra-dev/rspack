@@ -72,7 +72,7 @@ impl From<Identifier> for AsyncDependenciesBlockIdentifier {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AsyncDependenciesBlock {
   id: AsyncDependenciesBlockIdentifier,
   group_options: Option<GroupOptions>,
@@ -161,12 +161,6 @@ impl AsyncDependenciesBlock {
 
   pub fn dependencies_mut(&mut self) -> &mut [BoxDependency] {
     &mut self.dependencies
-  }
-
-  pub fn add_block(&mut self, _block: AsyncDependenciesBlock) {
-    unimplemented!("Nested block are not implemented");
-    // self.block_ids.push(block.id);
-    // self.blocks.push(block);
   }
 
   pub fn take_blocks(&mut self) -> Vec<Box<AsyncDependenciesBlock>> {

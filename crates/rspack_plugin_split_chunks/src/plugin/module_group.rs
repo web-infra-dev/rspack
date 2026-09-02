@@ -4,9 +4,12 @@ use std::{
   sync::Arc,
 };
 
-use futures::future::join_all;
+use futures::{
+  StreamExt,
+  channel::{mpsc, oneshot},
+  future::join_all,
+};
 use rayon::prelude::*;
-use rspack_collections::IdentifierMap;
 use rspack_core::{
   ChunkByUkey, ChunkUkey, Compilation, ExportsInfoArtifact, Module, ModuleIdentifier,
   RuntimeKeyMap, UsageKey, get_runtime_key,
@@ -18,8 +21,8 @@ use tracing::instrument;
 
 use super::ModuleGroupMap;
 use crate::{
-  SplitChunksPlugin,
-  common::{ChunkFilter, ModuleChunks, ModuleSizes},
+  SplitChunksNameBatchFn, SplitChunksPlugin,
+  common::{ChunkFilter, ModuleChunkMap, ModuleChunks, ModuleSizes},
   min_size::remove_min_size_violating_modules,
   module_group::{IndexedCacheGroup, ModuleGroup, ModuleGroupKey, compare_entries},
   options::{
@@ -103,6 +106,76 @@ struct MatchedItem<'a> {
   cache_group_index: u32,
   cache_group: &'a CacheGroup,
   selected_chunks: SelectedChunks<'a>,
+}
+
+struct PendingNameRequest {
+  module: ModuleIdentifier,
+  chunks: Vec<ChunkUkey>,
+  cache_group_position: usize,
+  response: Option<oneshot::Sender<Option<String>>>,
+}
+
+// Keep each N-API payload bounded while amortizing the fixed cost of crossing into JavaScript.
+const JS_CHUNK_NAME_BATCH_SIZE: usize = 128;
+
+async fn process_name_requests(
+  mut receiver: mpsc::UnboundedReceiver<PendingNameRequest>,
+  cache_groups: &[IndexedCacheGroup<'_>],
+  name_batch_getters: &[Option<SplitChunksNameBatchFn>],
+  compilation: &Compilation,
+) -> Result<()> {
+  let module_graph = compilation.get_module_graph();
+
+  while let Some(first_request) = receiver.next().await {
+    let mut requests = Vec::with_capacity(JS_CHUNK_NAME_BATCH_SIZE);
+    requests.push(first_request);
+    while requests.len() < JS_CHUNK_NAME_BATCH_SIZE
+      && let Ok(request) = receiver.try_recv()
+    {
+      requests.push(request);
+    }
+
+    let mut run_start = 0;
+    while run_start < requests.len() {
+      let cache_group_position = requests[run_start].cache_group_position;
+      let mut run_end = run_start + 1;
+      while run_end < requests.len()
+        && requests[run_end].cache_group_position == cache_group_position
+      {
+        run_end += 1;
+      }
+
+      let indexed_cache_group = &cache_groups[cache_group_position];
+      let cache_group = indexed_cache_group.cache_group;
+      let get_name = name_batch_getters
+        .get(indexed_cache_group.cache_group_index as usize)
+        .and_then(Option::as_ref)
+        .expect("pending name request should use a batch name callback");
+      let contexts = requests[run_start..run_end]
+        .iter()
+        .map(|request| ChunkNameGetterFnCtx {
+          module: module_graph
+            .module_by_identifier(&request.module)
+            .expect("should have module")
+            .as_ref(),
+          compilation,
+          chunks: &request.chunks,
+          cache_group_key: &cache_group.key,
+        })
+        .collect();
+      let names = get_name(contexts).await?;
+      debug_assert_eq!(names.len(), run_end - run_start);
+
+      for (request, name) in requests[run_start..run_end].iter_mut().zip(names) {
+        if let Some(response) = request.response.take() {
+          let _ = response.send(name);
+        }
+      }
+      run_start = run_end;
+    }
+  }
+
+  Ok(())
 }
 
 fn get_key<I: Iterator<Item = ChunkUkey>>(
@@ -216,15 +289,23 @@ impl Combinator {
 
   fn group_chunks_by_exports(
     module_identifier: &ModuleIdentifier,
-    module_chunks: impl Iterator<Item = ChunkUkey>,
+    module_chunks: &FxHashSet<ChunkUkey>,
     exports_info_artifact: &ExportsInfoArtifact,
     chunk_by_ukey: &ChunkByUkey,
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
   ) -> Vec<ChunkCombination> {
+    // A single chunk cannot produce runtime-dependent usage groups.
+    if module_chunks.len() == 1 {
+      return vec![ChunkCombination {
+        key: get_key(module_chunks.iter().copied(), chunk_index_map),
+        chunks: Arc::new(module_chunks.clone()),
+      }];
+    }
+
     let exports_info = exports_info_artifact.get_exports_info_data(module_identifier);
     let mut grouped_by_used_exports: FxHashMap<UsageKey, FxHashSet<ChunkUkey>> = Default::default();
     let mut runtime_key_map = RuntimeKeyMap::default();
-    for chunk_ukey in module_chunks {
+    for chunk_ukey in module_chunks.iter().copied() {
       let chunk = chunk_by_ukey.expect_get(&chunk_ukey);
       let runtime = chunk.runtime();
       let usage_key = runtime_key_map
@@ -359,9 +440,7 @@ impl Combinator {
           module,
           module_chunks
             .get(module_index)
-            .expect("should have module chunks")
-            .iter()
-            .copied(),
+            .expect("should have module chunks"),
           exports_info_artifact,
           chunk_by_ukey,
           chunk_index_map,
@@ -435,207 +514,273 @@ impl SplitChunksPlugin {
     combinator: &Combinator,
     all_modules: &[ModuleIdentifier],
     cache_groups: Vec<IndexedCacheGroup<'_>>,
-    removed_module_chunks: &IdentifierMap<FxHashSet<ChunkUkey>>,
     compilation: &Compilation,
     module_chunks: &ModuleChunks,
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
   ) -> Result<ModuleGroupMap> {
     let module_graph = compilation.get_module_graph();
     let module_group_map: FxDashMap<ModuleGroupKey, ModuleGroup> = FxDashMap::default();
+    let name_batch_getters = self.name_batch_getters.as_deref();
+    let has_name_batch_callback = name_batch_getters.is_some_and(|name_batch_getters| {
+      cache_groups.iter().any(|indexed_cache_group| {
+        name_batch_getters
+          .get(indexed_cache_group.cache_group_index as usize)
+          .is_some_and(Option::is_some)
+      })
+    });
+    let (name_sender, name_receiver) = if has_name_batch_callback {
+      let (sender, receiver) = mpsc::unbounded();
+      (Some(sender), Some(receiver))
+    } else {
+      (None, None)
+    };
+
     let module_group_results = rspack_parallel::scope::<_, Result<_>>(|token| {
-      all_modules.iter().enumerate().for_each(|(module_index, mid)| {
-        let s = unsafe { token.used((&cache_groups, module_index, mid, &module_graph, compilation, &module_group_map, &combinator, module_chunks, removed_module_chunks, chunk_index_map)) };
-        s.spawn(|(cache_groups, module_index, mid, module_graph, compilation, module_group_map, combinator, module_chunks, removed_module_chunks, chunk_index_map)| async move {
-          let belong_to_chunks = module_chunks
-            .get(module_index)
-            .expect("should have module chunks");
-          if belong_to_chunks.is_empty() {
-            return Ok(());
-          }
+      if let Some(name_receiver) = name_receiver {
+        let coordinator = unsafe {
+          token.used((
+            name_receiver,
+            &cache_groups,
+            name_batch_getters.expect("should have batch name getters"),
+            compilation,
+          ))
+        };
+        coordinator.spawn(
+          |(name_receiver, cache_groups, name_batch_getters, compilation)| async move {
+            process_name_requests(name_receiver, cache_groups, name_batch_getters, compilation)
+              .await
+          },
+        );
+      }
 
-          let removed_chunks = removed_module_chunks.get(mid);
-          if let Some(removed_chunks) = removed_chunks
-            && belong_to_chunks.iter().all(|c| removed_chunks.contains(c))
-          {
-            return Ok(());
-          }
-          let module = module_graph.module_by_identifier(mid).expect("should have module").as_ref();
-          let mut used_exports_combs = None;
-          let mut non_used_exports_combs = None;
-
-          for cache_group in cache_groups.iter() {
-            // Filter by `splitChunks.cacheGroups.{cacheGroup}.type`
-            if !(cache_group.cache_group.r#type)(module) {
-              continue;
-            }
-
-            // Filter by `splitChunks.cacheGroups.{cacheGroup}.layer`
-            if !(cache_group.cache_group.layer)(module.get_layer().map(ToString::to_string)).await? {
-              continue;
-            }
-
-            // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
-            let is_match = match &cache_group.cache_group.test {
-              CacheGroupTest::String(str) => module
-                .name_for_condition().is_some_and(|name| name.starts_with(str)),
-              CacheGroupTest::RegExp(regexp) => module
-                .name_for_condition().is_some_and(|name| regexp.test(&name)),
-              CacheGroupTest::Fn(f) => {
-                let ctx = CacheGroupTestFnCtx { compilation, module };
-                f(ctx).await?.unwrap_or_default()
-              }
-              CacheGroupTest::Enabled => true,
-            };
-
-            if !is_match {
-              continue;
-            }
-
-            let IndexedCacheGroup {
-              cache_group_index,
-              cache_group,
-            } = cache_group;
-            if belong_to_chunks.len() < cache_group.min_chunks as usize {
-              continue;
-            }
-            let combs = if cache_group.used_exports {
-              if used_exports_combs.is_none() {
-                used_exports_combs = Some(combinator.get_combs(
-                  module_index,
-                  true,
-                  module_chunks,
-                  chunk_index_map,
-                ));
-              }
-              used_exports_combs.as_ref().expect("should have used_exports_combs")
-            } else {
-              if non_used_exports_combs.is_none() {
-                non_used_exports_combs = Some(combinator.get_combs(
-                  module_index,
-                  false,
-                  module_chunks,
-                  chunk_index_map,
-                ));
-              }
-              non_used_exports_combs.as_ref().expect("should have non_used_exports_combs")
-            };
-
-            for chunk_combination in combs {
-              if chunk_combination.is_empty() {
-                continue;
+      all_modules
+        .iter()
+        .enumerate()
+        .for_each(|(module_index, module_identifier)| {
+          let name_sender = name_sender.clone();
+          let s = unsafe {
+            token.used((
+              &cache_groups,
+              module_index,
+              module_identifier,
+              &module_graph,
+              compilation,
+              &module_group_map,
+              combinator,
+              module_chunks,
+              chunk_index_map,
+              name_sender,
+              name_batch_getters,
+            ))
+          };
+          s.spawn(
+            |(
+              cache_groups,
+              module_index,
+              module_identifier,
+              module_graph,
+              compilation,
+              module_group_map,
+              combinator,
+              module_chunks,
+              chunk_index_map,
+              name_sender,
+              name_batch_getters,
+            )| async move {
+              let belong_to_chunks = module_chunks
+                .get(module_index)
+                .expect("should have module chunks");
+              if belong_to_chunks.is_empty() {
+                return Ok(());
               }
 
-              // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
-              if chunk_combination.len() < cache_group.min_chunks as usize {
-                tracing::trace!(
-                  "Module({:?}) is ignored by CacheGroup({:?}). Reason: chunk_combination.len({:?}) < cache_group.min_chunks({:?})",
-                  mid,
-                  cache_group.key,
-                  chunk_combination.len(),
-                  cache_group.min_chunks,
-                );
-                continue;
-              }
+              let module = module_graph
+                .module_by_identifier(module_identifier)
+                .expect("should have module")
+                .as_ref();
+              let mut used_exports_combinations = None;
+              let mut non_used_exports_combinations = None;
 
-              if matches!(&cache_group.chunk_filter, ChunkFilter::All)
-                && matches!(&cache_group.name, ChunkNameGetter::Disabled)
-              {
-                if let Some(removed_chunks) = removed_chunks
-                  && chunk_combination
-                    .iter()
-                    .any(|c| removed_chunks.contains(c))
+              for (cache_group_position, indexed_cache_group) in cache_groups.iter().enumerate() {
+                let cache_group = indexed_cache_group.cache_group;
+                let has_name_batch_getter = name_batch_getters.is_some_and(|getters| {
+                  getters
+                    .get(indexed_cache_group.cache_group_index as usize)
+                    .is_some_and(Option::is_some)
+                });
+                if !(cache_group.r#type)(module)
+                  || !(cache_group.layer)(module.get_layer().map(ToString::to_string)).await?
                 {
                   continue;
                 }
 
-                let mut module_group = {
-                  module_group_map
-                    .entry(ModuleGroupKey::Anonymous {
-                      cache_group_index: *cache_group_index,
-                      chunks_key: chunk_combination.key,
-                    })
-                    .or_insert_with(|| ModuleGroup::new(None, *cache_group_index, cache_group))
+                let is_match = match &cache_group.test {
+                  CacheGroupTest::String(test) => module
+                    .name_for_condition()
+                    .is_some_and(|name| name.starts_with(test)),
+                  CacheGroupTest::RegExp(test) => module
+                    .name_for_condition()
+                    .is_some_and(|name| test.test(&name)),
+                  CacheGroupTest::Fn(test) => test(CacheGroupTestFnCtx {
+                    compilation,
+                    module,
+                  })
+                  .await?
+                  .unwrap_or_default(),
+                  CacheGroupTest::Enabled => true,
                 };
-                module_group.add_module(module.identifier());
-                if module_group.chunks.is_empty() {
-                  module_group.chunks.extend(chunk_combination.iter().copied());
+                if !is_match || belong_to_chunks.len() < cache_group.min_chunks as usize {
+                  continue;
                 }
-                continue;
-              }
 
-              let selected_chunks = if matches!(&cache_group.chunk_filter, ChunkFilter::All) {
-                SelectedChunks::All(chunk_combination)
-              } else if cache_group.chunk_filter.is_func() {
-                SelectedChunks::Filtered(
-                  join_all(chunk_combination.iter().map(|c| async move {
-                    // Filter by `splitChunks.cacheGroups.{cacheGroup}.chunks`
-                    cache_group.chunk_filter.test_func(c, compilation).await.map(|filtered|  (c, filtered))
-                  }))
-                    .await
-                    .into_iter()
-                    .collect::<Result<Vec<_>>>()?
-                    .into_iter()
-                    .filter_map(
-                      |(chunk, filtered)| {
-                        if filtered {
-                          Some(chunk)
-                        } else {
-                          None
-                        }
+                let combinations = if cache_group.used_exports {
+                  if used_exports_combinations.is_none() {
+                    used_exports_combinations = Some(combinator.get_combs(
+                      module_index,
+                      true,
+                      module_chunks,
+                      chunk_index_map,
+                    ));
+                  }
+                  used_exports_combinations
+                    .as_ref()
+                    .expect("should have used exports combinations")
+                } else {
+                  if non_used_exports_combinations.is_none() {
+                    non_used_exports_combinations = Some(combinator.get_combs(
+                      module_index,
+                      false,
+                      module_chunks,
+                      chunk_index_map,
+                    ));
+                  }
+                  non_used_exports_combinations
+                    .as_ref()
+                    .expect("should have non-used exports combinations")
+                };
+
+                for chunk_combination in combinations {
+                  if chunk_combination.is_empty()
+                    || chunk_combination.len() < cache_group.min_chunks as usize
+                  {
+                    continue;
+                  }
+
+                  if matches!(&cache_group.chunk_filter, ChunkFilter::All)
+                    && matches!(&cache_group.name, ChunkNameGetter::Disabled)
+                    && !has_name_batch_getter
+                  {
+                    let mut module_group = module_group_map
+                      .entry(ModuleGroupKey::Anonymous {
+                        cache_group_index: indexed_cache_group.cache_group_index,
+                        chunks_key: chunk_combination.key,
+                      })
+                      .or_insert_with(|| {
+                        ModuleGroup::new(None, indexed_cache_group.cache_group_index, cache_group)
+                      });
+                    module_group.add_module_with_shared_chunks(
+                      module.identifier(),
+                      chunk_combination.iter().copied(),
+                    );
+                    continue;
+                  }
+
+                  let selected_chunks = match &cache_group.chunk_filter {
+                    ChunkFilter::All => SelectedChunks::All(chunk_combination),
+                    ChunkFilter::Func(_) => SelectedChunks::Filtered(
+                      join_all(chunk_combination.iter().map(|chunk| async move {
+                        cache_group
+                          .chunk_filter
+                          .test_func(chunk, compilation)
+                          .await
+                          .map(|matched| (chunk, matched))
+                      }))
+                      .await
+                      .into_iter()
+                      .collect::<Result<Vec<_>>>()?
+                      .into_iter()
+                      .filter_map(|(chunk, matched)| matched.then_some(*chunk))
+                      .collect(),
+                    ),
+                    _ => SelectedChunks::Filtered(
+                      chunk_combination
+                        .iter()
+                        .filter(|chunk| cache_group.chunk_filter.test_internal(chunk, compilation))
+                        .copied()
+                        .collect(),
+                    ),
+                  };
+
+                  if selected_chunks.len() < cache_group.min_chunks as usize {
+                    continue;
+                  }
+
+                  let chunk_name = if has_name_batch_getter {
+                    let name_sender = name_sender
+                      .as_ref()
+                      .expect("name callback should have a batch coordinator");
+                    let (response, response_receiver) = oneshot::channel();
+                    if name_sender
+                      .unbounded_send(PendingNameRequest {
+                        module: module.identifier(),
+                        chunks: selected_chunks.iter().copied().collect(),
+                        cache_group_position,
+                        response: Some(response),
+                      })
+                      .is_err()
+                    {
+                      return Ok(());
+                    }
+                    let Ok(chunk_name) = response_receiver.await else {
+                      return Ok(());
+                    };
+                    chunk_name
+                  } else {
+                    match &cache_group.name {
+                      ChunkNameGetter::String(name) => Some(name.clone()),
+                      ChunkNameGetter::Disabled => None,
+                      ChunkNameGetter::Fn(get_name) => {
+                        let chunks = selected_chunks.iter().copied().collect::<Vec<_>>();
+                        get_name(ChunkNameGetterFnCtx {
+                          module,
+                          compilation,
+                          chunks: &chunks,
+                          cache_group_key: &cache_group.key,
+                        })
+                        .await?
                       }
-                    ).copied().collect::<Vec<_>>(),
-                )
-              } else {
-                SelectedChunks::Filtered(
-                  chunk_combination.iter().filter(|c| {
-                    cache_group.chunk_filter.test_internal(c, compilation)
-                  }).copied().collect::<Vec<_>>(),
-                )
-              };
+                    }
+                  };
 
-              // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
-              if selected_chunks.len() < cache_group.min_chunks as usize {
-                tracing::trace!(
-                  "Module({:?}) is ignored by CacheGroup({:?}). Reason: selected_chunks.len({:?}) < cache_group.min_chunks({:?})",
-                  mid,
-                  cache_group.key,
-                  selected_chunks.len(),
-                  cache_group.min_chunks,
-                );
-                continue;
+                  merge_matched_item_into_module_group_map(
+                    MatchedItem {
+                      module,
+                      cache_group,
+                      cache_group_index: indexed_cache_group.cache_group_index,
+                      selected_chunks,
+                    },
+                    chunk_name,
+                    module_group_map,
+                    chunk_index_map,
+                  );
+                }
               }
-
-              if let Some(removed_chunks) = removed_chunks
-                && selected_chunks.iter().any(|c| removed_chunks.contains(c))
-              {
-                continue;
-              }
-              merge_matched_item_into_module_group_map(
-                MatchedItem {
-                  module,
-                  cache_group,
-                  cache_group_index: *cache_group_index,
-                  selected_chunks,
-                },
-                module_group_map,
-                compilation,
-                chunk_index_map,
-              ).await?;
-            }
-          }
-          Ok(())
+              Ok(())
+            },
+          );
         });
-      })
+
+      drop(name_sender);
     })
     .await
-    .into_iter().map(|r| r.to_rspack_result())
+    .into_iter()
+    .map(|result| result.to_rspack_result())
     .collect::<Result<Vec<_>>>()?;
 
     for result in module_group_results {
       result?;
     }
 
-    // Sort the module_group_map by key to ensure deterministic iteration order
     let module_group_count = module_group_map.len();
     let mut result = Vec::with_capacity(module_group_count);
     result.extend(module_group_map);
@@ -649,37 +794,64 @@ impl SplitChunksPlugin {
   // #[tracing::instrument(skip_all)]
   pub(crate) fn remove_all_modules_from_other_module_groups(
     &self,
-    current_module_group: &ModuleGroup,
+    placed_module_chunks: &ModuleChunkMap,
     module_group_map: &mut ModuleGroupMap,
-    used_chunks: &FxHashSet<ChunkUkey>,
-    compilation: &Compilation,
     module_sizes: &ModuleSizes,
   ) {
     // remove all modules from other entries and update size
+    let placed_chunk_mask = placed_module_chunks.chunk_mask();
     let keys_of_invalid_group = module_group_map
       .par_iter_mut()
       .filter_map(|(key, other_module_group)| {
-        other_module_group
-          .chunks
-          .intersection(used_chunks)
-          .next()?;
-
-        let module_count = other_module_group.modules.len();
-
-        let duplicated_modules = if other_module_group.modules.len() > current_module_group.modules.len() {
-          current_module_group.modules.intersection(&other_module_group.modules).copied().collect::<Vec<_>>()
-        } else {
-          other_module_group.modules.intersection(&current_module_group.modules).copied().collect::<Vec<_>>()
-        };
-
-        for module in duplicated_modules {
-          other_module_group.remove_module(module);
-        }
-
-        if module_count == other_module_group.modules.len() {
-          // nothing is removed
+        if !other_module_group.may_have_chunks_in_mask(placed_chunk_mask) {
           return None;
         }
+        let duplicated_modules = match (
+          placed_module_chunks,
+          other_module_group.shared_module_chunks(),
+        ) {
+          (
+            ModuleChunkMap::Shared {
+              modules,
+              chunks: placed_chunks,
+            },
+            Some(other_chunks),
+          ) => {
+            other_chunks.intersection(placed_chunks).next()?;
+            if other_module_group.modules.len() > modules.len() {
+              modules
+                .intersection(&other_module_group.modules)
+                .copied()
+                .collect::<Vec<_>>()
+            } else {
+              other_module_group
+                .modules
+                .intersection(modules)
+                .copied()
+                .collect::<Vec<_>>()
+            }
+          }
+          _ => other_module_group
+            .modules
+            .iter()
+            .filter(|module| {
+              let Some(placed_chunks) = placed_module_chunks.get(module) else {
+                return false;
+              };
+              let Some(other_chunks) = other_module_group.get_module_chunks(module) else {
+                return false;
+              };
+              placed_chunks.intersection(other_chunks).next().is_some()
+            })
+            .copied()
+            .collect::<Vec<_>>(),
+        };
+
+        if duplicated_modules.is_empty() {
+          return None;
+        }
+
+        other_module_group.remove_modules(duplicated_modules);
 
         if other_module_group.modules.is_empty() {
           tracing::trace!(
@@ -689,18 +861,23 @@ impl SplitChunksPlugin {
         }
 
         tracing::trace!("other_module_group: {other_module_group:#?}");
-        tracing::trace!("item.modules: {:#?}", current_module_group.modules);
-
-        // Since there are modules removed, make sure the rest of chunks are all used.
-        other_module_group.chunks.retain(|c| {
-          compilation.build_chunk_graph_artifact.chunk_graph
-            .is_any_module_in_chunk(other_module_group.modules.iter(), *c)
-        });
+        tracing::trace!("placed_module_chunks: {placed_module_chunks:#?}");
 
         let cache_group = other_module_group.get_cache_group(&self.cache_groups);
 
         // Since we removed some modules and chunks from the `other_module_group`. There are chances
         // that the `min_chunks` and `min_size` validation is not satisfied anymore.
+
+        // Validate `min_size` again
+        if remove_min_size_violating_modules(key, other_module_group, cache_group, module_sizes) {
+          tracing::trace!(
+            "{key} is deleted for violating min_size {:#?}",
+            cache_group.min_size,
+          );
+          return Some(key.clone());
+        }
+
+        other_module_group.rebuild_chunks();
 
         // Validate `min_chunks` again
         if other_module_group.chunks.len() < cache_group.min_chunks as usize {
@@ -708,15 +885,6 @@ impl SplitChunksPlugin {
             "{key} is deleted for each_module_group.chunks.len()({:?}) < cache_group.min_chunks({:?})",
             other_module_group.chunks.len(),
             cache_group.min_chunks
-          );
-          return Some(key.clone());
-        }
-
-        // Validate `min_size` again
-        if remove_min_size_violating_modules(key, other_module_group, cache_group, module_sizes) {
-          tracing::trace!(
-            "{key} is deleted for violating min_size {:#?}",
-            cache_group.min_size,
           );
           return Some(key.clone());
         }
@@ -744,12 +912,12 @@ impl SplitChunksPlugin {
   }
 }
 
-async fn merge_matched_item_into_module_group_map(
+fn merge_matched_item_into_module_group_map(
   matched_item: MatchedItem<'_>,
+  chunk_name: Option<String>,
   module_group_map: &FxDashMap<ModuleGroupKey, ModuleGroup>,
-  compilation: &Compilation,
   chunk_index_map: &FxHashMap<ChunkUkey, u32>,
-) -> Result<()> {
+) {
   let MatchedItem {
     module,
     cache_group_index,
@@ -757,24 +925,9 @@ async fn merge_matched_item_into_module_group_map(
     selected_chunks,
   } = matched_item;
 
-  // `Module`s with the same chunk_name would be merged togother.
+  // `Module`s with the same chunk_name would be merged together.
   // `Module`s could be in different `ModuleGroup`s.
-  let selected_chunks_for_name;
-  let chunk_name = match &cache_group.name {
-    ChunkNameGetter::String(name) => Some(name.clone()),
-    ChunkNameGetter::Disabled => None,
-    ChunkNameGetter::Fn(f) => {
-      selected_chunks_for_name = selected_chunks.iter().copied().collect::<Vec<_>>();
-      let ctx = ChunkNameGetterFnCtx {
-        module,
-        chunks: &selected_chunks_for_name,
-        cache_group_key: &cache_group.key,
-        compilation,
-      };
-      f(ctx).await?
-    }
-  };
-  let is_anonymous = chunk_name.is_none();
+  let is_named = chunk_name.is_some();
   let key = if let Some(cache_group_name) = &chunk_name {
     ModuleGroupKey::Named {
       cache_group_index,
@@ -794,12 +947,19 @@ async fn merge_matched_item_into_module_group_map(
       .entry(key)
       .or_insert_with(|| ModuleGroup::new(chunk_name, cache_group_index, cache_group))
   };
-  let should_extend_chunks = !(is_anonymous && matches!(&selected_chunks, SelectedChunks::All(_)))
-    || module_group.chunks.is_empty();
-  module_group.add_module(module.identifier());
-  if should_extend_chunks {
-    module_group.chunks.extend(selected_chunks.iter().copied());
-  }
+  merge_matched_item_into_module_group(module, selected_chunks, is_named, &mut module_group);
+}
 
-  Ok(())
+fn merge_matched_item_into_module_group(
+  module: &dyn Module,
+  selected_chunks: SelectedChunks<'_>,
+  is_named: bool,
+  module_group: &mut ModuleGroup,
+) {
+  if is_named {
+    module_group.add_module(module.identifier(), selected_chunks.iter().copied());
+  } else {
+    module_group
+      .add_module_with_shared_chunks(module.identifier(), selected_chunks.iter().copied());
+  }
 }

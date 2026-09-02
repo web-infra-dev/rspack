@@ -5,9 +5,9 @@ use rspack_cacheable::{
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyCondition, DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode, ExportProvided,
-  ExportsInfoArtifact, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
+  DependencyCondition, DependencyConditionFn, DependencyDiagnosticsContext, DependencyId,
+  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  ExportPresenceMode, ExportProvided, ExportsInfoArtifact, ExportsType, ForwardId,
   ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport,
   ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
@@ -33,7 +33,7 @@ use crate::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ESMImportSpecifierDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
@@ -61,7 +61,6 @@ pub struct ESMImportSpecifierDependency {
   loc: Option<DependencyLocation>,
   pub namespace_object_as_context: bool,
   ns_access: bool,
-  factorize_info: FactorizeInfo,
 }
 
 impl ESMImportSpecifierDependency {
@@ -107,17 +106,12 @@ impl ESMImportSpecifierDependency {
       attributes,
       resource_identifier,
       loc,
-      factorize_info: Default::default(),
     }
   }
 
   pub fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
     mg.get_dep_meta_if_existing(&self.id)
       .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
-  }
-
-  pub fn name(&self) -> &Atom {
-    &self.name
   }
 
   pub fn imported_name(&self) -> &Atom {
@@ -127,7 +121,7 @@ impl ESMImportSpecifierDependency {
   pub fn get_referenced_exports_in_destructuring(
     &self,
     ids: Option<&[Atom]>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     if let Some(referenced_properties) = &self.referenced_properties_in_destructuring {
       let mut refs = Vec::new();
       referenced_properties.traverse_on_leaf(&mut |stack| {
@@ -144,22 +138,18 @@ impl ESMImportSpecifierDependency {
         .into_iter()
         // Do not inline if there are any places where used as destructuring
         .map(|name| {
-          ExtendedReferencedExport::Export(ReferencedExport {
-            name,
-            can_mangle: true,
-            can_inline: false,
-            ns_access: self.ns_access,
-          })
+          ReferencedExport::from(name)
+            .with_can_inline(false)
+            .with_ns_access(self.ns_access)
         })
         .collect::<Vec<_>>()
     } else if let Some(v) = ids {
-      vec![ExtendedReferencedExport::Export(ReferencedExport {
-        name: v.to_vec(),
-        can_mangle: true,
-        // Need access the export value to trigger side effects for deferred module
-        can_inline: !self.phase.is_defer(),
-        ns_access: self.ns_access,
-      })]
+      vec![
+        ReferencedExport::from(v)
+          // Need access the export value to trigger side effects for deferred module
+          .with_can_inline(!self.phase.is_defer())
+          .with_ns_access(self.ns_access),
+      ]
     } else {
       create_exports_object_referenced()
     }
@@ -244,6 +234,21 @@ impl Dependency for ESMImportSpecifierDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
+    self.get_diagnostics_with_context(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      &DependencyDiagnosticsContext::default(),
+    )
+  }
+
+  fn get_diagnostics_with_context(
+    &self,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+    diagnostics_context: &DependencyDiagnosticsContext,
+  ) -> Option<Vec<Diagnostic>> {
     let module = module_graph.get_parent_module(&self.id)?;
     let module = module_graph.module_by_identifier(module)?;
     let should_error = self
@@ -265,6 +270,7 @@ impl Dependency for ESMImportSpecifierDependency {
       &self.name,
       false,
       should_error,
+      diagnostics_context,
     ) {
       return Some(vec![diagnostic]);
     }
@@ -277,7 +283,7 @@ impl Dependency for ESMImportSpecifierDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     let mut ids = self.get_ids(module_graph);
     // namespace import
     if ids.is_empty() {
@@ -370,14 +376,6 @@ impl ModuleDependency for ESMImportSpecifierDependency {
       )),
       self.branch_guard.as_ref(),
     )
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

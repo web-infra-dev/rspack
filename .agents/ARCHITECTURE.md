@@ -10,17 +10,20 @@ Rspack is a high-performance JavaScript bundler written in Rust that maintains s
 
 ```text
 JavaScript/TypeScript Layer (@rspack/core, plugins, loaders)
-         ↓ NAPI (Node-API)
+         ↓
+Binding Layer (@rspack/binding, rspack_binding_api, rspack_napi)
+         ↓
 Rust Core Layer (rspack_core, compilation engine)
 ```
 
-### Layer Separation
+### Layer separation
 
 1. **JavaScript/TypeScript Layer** (`packages/`): Webpack-compatible API, configuration, file system operations
 2. **Rust Core Layer** (`crates/`): Core compilation engine, module system, plugin/loader execution
-3. **Binding Layer**: NAPI bindings for Rust-JavaScript interop
+3. **Binding Layer** (`crates/node_binding`, `crates/rspack_binding_api`, `crates/rspack_napi`):
+   Node-API packaging, conversion, native-backed objects, JavaScript callbacks, and runtime support
 
-## Core Components
+## Core components
 
 ### Compiler
 
@@ -60,7 +63,7 @@ Represents a single build instance managing module graph, chunks, and assets.
 
 - `buildModule`, `succeedModule`, `processAssets`, `optimizeChunks`, `afterSeal`
 
-### Module System
+### Module system
 
 Modules are the basic unit of code organization.
 
@@ -78,7 +81,7 @@ Modules are the basic unit of code organization.
 3. **Code Generation**: Generate runtime code
 4. **Seal**: Finalize module
 
-### Module Graph
+### Module graph
 
 Manages modules and their relationships through dependencies and connections.
 
@@ -97,7 +100,7 @@ Manages modules and their relationships through dependencies and connections.
 5. Create `ModuleGraphConnection` objects
 6. Build complete module graph
 
-### Chunk System
+### Chunk system
 
 Chunks are groups of modules bundled together.
 
@@ -113,7 +116,7 @@ Chunks are groups of modules bundled together.
 - Controlled by `optimization.splitChunks`
 - Groups modules based on criteria (size, cache groups, etc.)
 
-## Compilation Pipeline
+## Compilation pipeline
 
 ```text
 1. Initialize → Load config, create compiler, register plugins
@@ -122,35 +125,35 @@ Chunks are groups of modules bundled together.
 4. Generate → Code generation, asset creation, output
 ```
 
-### Detailed Stages
+### Detailed stages
 
-#### Initialize Phase
+#### Initialize phase
 
 - Load and normalize configuration
 - Create compiler instance
 - Apply plugins
 - Initialize file systems
 
-#### Compile Phase
+#### Compile phase
 
 - **Entry Processing**: Process entry points, create entry modules
 - **Module Building**: Parse source (SWC), extract dependencies, transform (loaders)
 - **Dependency Resolution**: Resolve paths, handle aliases/extensions, process externals
 
-#### Optimization Phase
+#### Optimization phase
 
 - **Tree Shaking**: Analyze exports/imports, remove unused code
 - **Code Splitting**: Split chunks based on configuration, create async chunks
 - **Minification**: Minify JS (SWC), CSS (Lightning CSS)
 
-#### Code Generation Phase
+#### Code generation phase
 
 - **Runtime Code**: Generate webpack runtime, module loading code, HMR code
 - **Asset Generation**: Generate output files, apply filename templates, generate source maps
 
-## Plugin System
+## Plugin system
 
-### Plugin Architecture
+### Plugin architecture
 
 Plugins extend functionality by hooking into compilation lifecycle.
 
@@ -160,7 +163,7 @@ Plugins extend functionality by hooking into compilation lifecycle.
 - **User Plugins**: Custom plugins via configuration
 - **External Plugins**: webpack-compatible plugins
 
-### Hook System
+### Hook system
 
 Hooks allow plugins to intercept and modify compilation.
 
@@ -172,7 +175,7 @@ Hooks allow plugins to intercept and modify compilation.
 - **AsyncSeriesBail**: Asynchronous, can bail out
 - **AsyncParallel**: Asynchronous, parallel
 
-## Loader System
+## Loader system
 
 Loaders transform source code before adding to dependency graph.
 
@@ -189,7 +192,7 @@ Loaders transform source code before adding to dependency graph.
 - **JavaScript Loaders**: Custom loaders in JavaScript
 - **Rust Loaders**: High-performance loaders in Rust
 
-## Module Resolution
+## Module resolution
 
 Determines how module paths resolve to actual files.
 
@@ -208,25 +211,31 @@ Determines how module paths resolve to actual files.
 - Module: `module-name` (from node_modules)
 - Alias: Custom alias mappings
 
-## Caching System
+## Cache and incremental compilation
 
-Multi-level caching for performance.
+Cache and Incremental are independent performance mechanisms:
 
-**Cache Levels:**
+- **Cache** stores fine-grained computation results. It supports process-local memory storage and
+  filesystem-backed persistent storage.
+- **Incremental** recovers prior pass artifacts during development rebuilds, watch mode, and HMR so
+  unaffected portions can be reused and affected work can be updated from known mutations.
 
-1. **Memory Cache**: In-memory for current build
-2. **Persistent Cache**: Disk-based across builds
-3. **Module Cache**: Cached module build results
-4. **Compilation Cache**: Cached compilation results
+The two options form orthogonal axes. Disabling Cache must not disable Incremental, and disabling
+Incremental must not disable Cache. This allows all four Cache on/off × Incremental on/off
+combinations.
 
-**Cache Invalidation:**
+Incremental does not make separate one-shot `rspack build` invocations incremental. Reuse across
+those invocations comes from filesystem Cache. Incremental is conceptually aligned with webpack's
+`cacheUnaffected` behavior, but Rspack exposes it independently from Cache.
 
-- File content changes
-- Configuration changes
-- Dependency changes
-- Manual cache clearing
+Rspack currently has two internal Cache backend implementations, `legacy_cache` and `new_cache`.
+Both implement Cache storage responsibilities and must remain independent from the compiler-owned
+Incremental artifacts.
 
-## File System Abstraction
+See [Cache and Incremental Compilation](./CACHE_AND_INCREMENTAL.md) for the configuration matrix,
+ownership model, backend boundary, and architectural invariants.
+
+## File system abstraction
 
 Cross-platform file system abstraction.
 
@@ -243,7 +252,7 @@ Cross-platform file system abstraction.
 - Browser: Uses in-memory file system (memfs)
 - Custom: Can be overridden for testing
 
-## Error Handling
+## Error handling
 
 Unified error system.
 
@@ -260,29 +269,30 @@ Unified error system.
 - Warnings collected in `compilation.warnings`
 - Errors formatted with context and suggestions
 
-## Performance Optimizations
+## Performance optimizations
 
-### Parallel Processing
+### Parallel processing
 
 - Module building parallelized
 - Asset processing parallelized
 - Code generation uses parallel workers
 
-### Incremental Compilation
+### Incremental compilation
 
-- Only rebuilds changed modules
-- Uses dependency graph to determine affected modules
-- Caches unchanged modules
+- Targets development rebuilds, watch mode, and HMR in the same compiler lifecycle
+- Uses mutations and dependency relationships to determine affected work
+- Recovers prior pass artifacts and updates affected work from mutations independently from Cache
+- Does not provide incremental semantics across standalone one-shot builds
 
-### Memory Management
+### Memory management
 
 - Uses mimalloc for optimized allocation (Linux/macOS)
 - Efficient data structures (custom HashMap, HashSet)
 - Minimizes allocations in hot paths
 
-## Data Flow
+## Data flow
 
-### Build Request Flow
+### Build request flow
 
 ```text
 User Code → Configuration → Compiler.apply() → Plugin Registration
@@ -290,14 +300,14 @@ User Code → Configuration → Compiler.apply() → Plugin Registration
 → Code Generation → Asset Emission → Output Files
 ```
 
-### Module Processing Flow
+### Module processing flow
 
 ```text
 Source File → Loader Chain → Parsed AST → Dependency Extraction
 → Module Graph Node → Code Generation → Runtime Code
 ```
 
-## Design Decisions
+## Design decisions
 
 ### Why Rust?
 
@@ -305,7 +315,7 @@ Source File → Loader Chain → Parsed AST → Dependency Extraction
 - **Concurrency**: Excellent async/await for parallel processing
 - **Ecosystem**: Rich ecosystem for parsing and transformation
 
-### Why Webpack Compatibility?
+### Why webpack Compatibility?
 
 - **Ecosystem**: Leverage existing webpack plugins and loaders
 - **Migration**: Easy migration path for existing projects
@@ -317,23 +327,23 @@ Source File → Loader Chain → Parsed AST → Dependency Extraction
 - **Compatibility**: Works with Node.js ecosystem
 - **Type Safety**: Type-safe bindings between Rust and TypeScript
 
-## Extension Points
+## Extension points
 
-### Adding a New Plugin
+### Adding a new plugin
 
 1. Create plugin struct with `#[plugin]` attribute
 2. Implement hooks with `#[plugin_hook]` attribute
 3. Implement `Plugin` trait
 4. Register hooks in `apply` method
 
-### Adding a New Loader
+### Adding a new loader
 
 1. Create loader function
 2. Register in module rules
 3. Implement transformation logic
 4. Return transformed code
 
-### Adding a New Hook
+### Adding a new hook
 
 1. Define hook using `define_hook!` macro
 2. Add to appropriate hooks struct
@@ -343,6 +353,10 @@ Source File → Loader Chain → Parsed AST → Dependency Extraction
 ## Resources
 
 - [Project Structure](../website/docs/en/contribute/development/project.md)
+- [JavaScript API Architecture](../website/docs/en/api/javascript-api/architecture.mdx)
+- [JavaScript Binding Guide](./BINDING.md)
+- [Cache and Incremental Compilation](./CACHE_AND_INCREMENTAL.md)
+- [Incremental Artifacts](./ARTIFACTS.md)
 - [Common Patterns](./COMMON_PATTERNS.md)
 - [Code Style](./CODE_STYLE.md)
 - [Plugin API Documentation](https://rspack.rs/api/plugin-api/)

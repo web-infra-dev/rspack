@@ -29,7 +29,7 @@ impl RspackHash for CachedConstDependencyPlace {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CachedConstDependency {
   pub place: CachedConstDependencyPlace,
   pub identifier: Box<str>,

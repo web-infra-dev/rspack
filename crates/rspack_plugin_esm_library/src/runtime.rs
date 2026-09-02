@@ -5,6 +5,8 @@ use rspack_core::{
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 use rspack_util::json_stringify_str;
 
+const ESM_CHUNK_LOADING_RUNTIME_MODULE_VARIABLES: &[&str] = &["esmInstalledChunks", "esmChunkMap"];
+
 #[impl_runtime_module]
 #[derive(Debug)]
 pub(crate) struct EsmRegisterModuleRuntimeModule {}
@@ -17,6 +19,10 @@ impl EsmRegisterModuleRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for EsmRegisterModuleRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   fn runtime_requirements(
     &self,
     _compilation: &Compilation,
@@ -34,12 +40,12 @@ impl RuntimeModule for EsmRegisterModuleRuntimeModule {
     let module_factories = context
       .runtime_template
       .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES);
-    let register_modules = if context.runtime_template.uses_runtime_context() {
-      module_factories.clone()
-    } else {
+    let register_modules = if context.runtime_template.render_mode().is_legacy() {
       context
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    } else {
+      module_factories.clone()
     };
     Ok(format!(
       "{register_modules}.add = function registerModules(modules) {{ Object.assign({module_factories}, modules) }}\n"
@@ -59,6 +65,10 @@ impl EsmEnsureChunkRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for EsmEnsureChunkRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
@@ -107,6 +117,10 @@ impl EsmChunkLoadingRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for EsmChunkLoadingRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    ESM_CHUNK_LOADING_RUNTIME_MODULE_VARIABLES
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,

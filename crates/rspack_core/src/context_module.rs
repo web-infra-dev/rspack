@@ -14,7 +14,7 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_macros::impl_source_map_config;
-use rspack_paths::{ArcPathSet, Utf8PathBuf};
+use rspack_paths::{InternedPathSet, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
 use rspack_util::{
@@ -28,14 +28,14 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph,
-  ChunkGroupOptions, CodeGenerationResult, Compilation, ContextElementDependency,
-  DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
-  DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
-  ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
-  ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
-  RuntimeSpec, SourceType, contextify, get_exports_type_with_strict, get_outgoing_async_modules,
-  impl_module_meta_info, module_update_hash, property_access, to_path,
+  ChunkGroupOptions, CodeGenerationResultBuilder, Compilation, Context, ContextElementDependency,
+  DependenciesBlock, DependencyCategory, DependencyId, DependencyLocation, DynamicImportMode,
+  ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions, ImportAttributes, ImportPhase,
+  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate,
+  ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType, RealDependencyLocation,
+  ReferencedSpecifier, Resolve, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType,
+  contextify, get_exports_type_with_strict, get_outgoing_async_modules, impl_module_meta_info,
+  module_update_hash, property_access, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -65,16 +65,6 @@ impl ContextMode {
   }
 }
 
-impl From<&str> for ContextMode {
-  fn from(value: &str) -> Self {
-    match try_convert_str_to_context_mode(value) {
-      Some(m) => m,
-      // TODO should give warning
-      _ => panic!("unknown context mode"),
-    }
-  }
-}
-
 impl From<DynamicImportMode> for ContextMode {
   fn from(value: DynamicImportMode) -> Self {
     match value {
@@ -86,6 +76,8 @@ impl From<DynamicImportMode> for ContextMode {
   }
 }
 
+/// Returns `None` for unknown context modes, callers are expected to emit a
+/// diagnostic (and pick a fallback) when this happens.
 pub fn try_convert_str_to_context_mode(s: &str) -> Option<ContextMode> {
   match s {
     "sync" => Some(ContextMode::Sync),
@@ -94,7 +86,6 @@ pub fn try_convert_str_to_context_mode(s: &str) -> Option<ContextMode> {
     "lazy" => Some(ContextMode::Lazy),
     "lazy-once" => Some(ContextMode::LazyOnce),
     "async-weak" => Some(ContextMode::AsyncWeak),
-    // TODO should give warning
     _ => None,
   }
 }
@@ -179,8 +170,16 @@ pub struct ContextOptions {
   pub include: Option<RspackRegex>,
   pub exclude: Option<RspackRegex>,
   pub category: DependencyCategory,
+  /// The context request passed to the resolver.
   pub request: String,
+  /// The base directory used to resolve relative context requests. For glob patterns, this is the
+  /// parser-derived request context (the importer directory or the explicit `base`) and remains
+  /// the matching coordinate even when context module factory hooks relocate the scan request.
   pub context: String,
+  /// The compiler `options.context`. Root-relative glob patterns are resolved from this directory.
+  /// This value is stable for the lifetime of a compilation and must not be changed by context
+  /// module factory hooks.
+  pub compiler_context: Context,
   pub namespace_object: ContextNameSpaceObject,
   pub group_options: Option<GroupOptions>,
   pub replaces: Vec<(String, u32, u32)>,
@@ -190,6 +189,7 @@ pub struct ContextOptions {
   pub referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   pub glob_import: Option<String>,
   pub glob_exhaustive: bool,
+  pub glob_case_sensitive: bool,
   pub attributes: Option<ImportAttributes>,
   pub phase: Option<ImportPhase>,
 }
@@ -205,6 +205,7 @@ impl Default for ContextOptions {
       category: DependencyCategory::Unknown,
       request: String::new(),
       context: String::new(),
+      compiler_context: Context::default(),
       namespace_object: ContextNameSpaceObject::Unset,
       group_options: None,
       replaces: Vec::new(),
@@ -213,10 +214,23 @@ impl Default for ContextOptions {
       referenced_specifiers: None,
       glob_import: None,
       glob_exhaustive: false,
+      glob_case_sensitive: true,
       attributes: None,
       phase: None,
     }
   }
+}
+
+/// Returns the compiler-context-relative form of a context when it needs to be part of an
+/// identifier. The compiler context itself is implicit, so encoding it as `./.` would only change
+/// existing identifiers without distinguishing different resolution behavior.
+pub fn context_identifier(compiler_context: &str, context: &str) -> Option<String> {
+  if context.is_empty() {
+    return None;
+  }
+
+  let context = contextify(compiler_context, context);
+  (context != "./.").then_some(context)
 }
 
 #[cacheable]
@@ -268,13 +282,6 @@ pub struct ContextModule {
 }
 
 impl ContextModule {
-  pub fn new(
-    resolve_dependencies: ResolveContextModuleDependencies,
-    options: ContextModuleOptions,
-  ) -> Self {
-    Self::new_with_strict(resolve_dependencies, options, None)
-  }
-
   pub(crate) fn new_with_strict(
     resolve_dependencies: ResolveContextModuleDependencies,
     options: ContextModuleOptions,
@@ -424,19 +431,18 @@ impl ContextModule {
           runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
         )
       } else {
-        format!(
-          "{}(id, {}{})",
-          runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
-          bit,
-          if async_module { " | 16" } else { "" },
+        Self::render_create_fake_namespace_object(
+          runtime_template,
+          format!("{bit}{}", if async_module { " | 16" } else { "" }),
         )
       }
     } else {
-      format!(
-        "{}(id, {}{})",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
-        fake_map_data_expr,
-        if async_module { " | 16" } else { "" },
+      Self::render_create_fake_namespace_object(
+        runtime_template,
+        format!(
+          "{fake_map_data_expr}{}",
+          if async_module { " | 16" } else { "" }
+        ),
       )
     };
 
@@ -460,6 +466,20 @@ impl ContextModule {
     }
 
     source
+  }
+
+  fn render_create_fake_namespace_object(
+    runtime_template: &mut ModuleCodeTemplate,
+    mode: String,
+  ) -> String {
+    let create_fake_namespace_object =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+    if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport {
+      let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+      format!("{create_fake_namespace_object}.call({require}, id, {mode})")
+    } else {
+      format!("{create_fake_namespace_object}(id, {mode})")
+    }
   }
 
   fn get_user_request_map<'a>(
@@ -1400,6 +1420,10 @@ impl Module for ContextModule {
     if self.options.context_options.glob_exhaustive {
       id += " globExhaustive";
     }
+    append_context_identifier(&mut id, &self.options.context_options, " context: ");
+    if !self.options.context_options.glob_case_sensitive {
+      id += " globCaseInsensitive";
+    }
     Some(Cow::Owned(id))
   }
 
@@ -1430,7 +1454,7 @@ impl Module for ContextModule {
         None,
         context_element_dependencies
           .into_iter()
-          .map(|dep| Box::new(dep) as Box<dyn Dependency>)
+          .map(BoxDependency::new)
           .collect(),
         None,
       );
@@ -1474,7 +1498,7 @@ impl Module for ContextModule {
           (*self.identifier).into(),
           None,
           Some(&context_element_dependency.user_request.clone()),
-          vec![Box::new(context_element_dependency)],
+          vec![BoxDependency::new(context_element_dependency)],
           Some(self.options.context_options.request.clone()),
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
@@ -1488,14 +1512,14 @@ impl Module for ContextModule {
     } else {
       dependencies = context_element_dependencies
         .into_iter()
-        .map(|d| Box::new(d) as BoxDependency)
+        .map(BoxDependency::new)
         .collect();
     }
 
     if !self.options.resource.as_str().is_empty() {
-      let mut context_dependencies: ArcPathSet = Default::default();
+      let mut context_dependencies: InternedPathSet = Default::default();
       context_dependencies.insert(self.options.resource.as_std_path().into());
-      self.build_info.context_dependencies = context_dependencies;
+      self.build_info.dependencies.context = context_dependencies;
     }
 
     Ok(BuildResult {
@@ -1510,13 +1534,13 @@ impl Module for ContextModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime_template,
       ..
     } = code_generation_context;
-    let mut code_generation_result = CodeGenerationResult::default();
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
     let source = self.get_source(
       self.get_source_string(compilation, runtime_template),
       compilation,
@@ -1610,6 +1634,10 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
   if options.context_options.glob_exhaustive {
     id += "|globExhaustive";
   }
+  append_context_identifier(&mut id, &options.context_options, "|context: ");
+  if !options.context_options.glob_case_sensitive {
+    id += "|globCaseInsensitive";
+  }
 
   if let Some(GroupOptions::ChunkGroup(group)) = &options.context_options.group_options {
     if let Some(chunk_name) = &group.name {
@@ -1646,4 +1674,15 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
     id += layer;
   }
   id.into()
+}
+
+fn append_context_identifier(id: &mut String, options: &ContextOptions, prefix: &str) {
+  if !matches!(options.pattern, ContextModulePattern::Glob(_)) {
+    return;
+  }
+  let Some(context) = context_identifier(&options.compiler_context, &options.context) else {
+    return;
+  };
+  id.push_str(prefix);
+  id.push_str(&context);
 }

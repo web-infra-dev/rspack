@@ -7,7 +7,7 @@ use std::{
 use itertools::Itertools;
 use num_bigint::BigUint;
 use rayon::prelude::*;
-use rspack_collections::{IdentifierIndexSet, IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnostic, Error, Result, error};
 use rspack_util::{
   fx_hash::{FxIndexMap, FxIndexSet},
@@ -85,6 +85,76 @@ fn finalize_prepared_connection_map(
   }
 
   groups
+}
+
+fn prepare_module_connection_map(
+  module: ModuleIdentifier,
+  module_graph: &ModuleGraph,
+) -> Option<PreparedBlockConnectionMap> {
+  let all_dependencies = module_graph
+    .module_graph_module_by_identifier(&module)
+    .map(|module| module.all_dependencies())
+    .unwrap_or_default();
+  let dependency_count = all_dependencies.len();
+  if dependency_count == 0 {
+    return None;
+  }
+
+  let mut ordered_dependencies = Vec::new();
+  let mut unordered_dependencies = Vec::with_capacity(dependency_count);
+  let mut ordered_dependencies_sorted = true;
+  let mut last_source_order = None;
+  for dependency_id in all_dependencies {
+    let dependency = module_graph.dependency_by_id(dependency_id);
+    let module_dependency = dependency.as_module_dependency();
+    if module_dependency.is_none() && dependency.as_context_dependency().is_none() {
+      continue;
+    }
+    if module_dependency.is_some_and(|dependency| dependency.weak()) {
+      continue;
+    }
+    let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
+      continue;
+    };
+
+    let block = module_graph
+      .get_parent_block(dependency_id)
+      .map_or(DependenciesBlockIdentifier::Module(module), |block| {
+        DependenciesBlockIdentifier::AsyncDependenciesBlock(*block)
+      });
+    let connection = PreparedBlockConnectionBuilder {
+      block,
+      module: *connection.module_identifier(),
+      dependency: *dependency_id,
+    };
+    if let Some(source_order) = dependency.source_order() {
+      if let Some(previous) = last_source_order
+        && source_order < previous
+      {
+        ordered_dependencies_sorted = false;
+      }
+      last_source_order = Some(source_order);
+      ordered_dependencies.push((source_order, connection));
+    } else {
+      unordered_dependencies.push(connection);
+    }
+  }
+  if !ordered_dependencies_sorted {
+    ordered_dependencies.sort_by_key(|(source_order, _)| *source_order);
+  }
+
+  let connection_count = ordered_dependencies.len() + unordered_dependencies.len();
+  if connection_count == 0 {
+    return None;
+  }
+
+  Some(finalize_prepared_connection_map(
+    ordered_dependencies
+      .into_iter()
+      .map(|(_, connection)| connection)
+      .chain(unordered_dependencies),
+    connection_count,
+  ))
 }
 
 #[derive(Debug, Clone, Default)]
@@ -308,6 +378,8 @@ pub(crate) struct CodeSplitter {
   prepared_connection_map: IdentifierMap<PreparedBlockConnectionMap>,
 
   prepared_blocks_map: DependenciesBlockIdentifierMap<Vec<AsyncDependenciesBlockIdentifier>>,
+
+  prepared_block_group_options: AsyncDependenciesBlockIdentifierMap<GroupOptions>,
 }
 
 fn add_chunk_in_group(
@@ -379,6 +451,117 @@ fn get_active_state_of_connections(
 }
 
 impl CodeSplitter {
+  pub(crate) fn can_reuse_affected_module(
+    &self,
+    module: ModuleIdentifier,
+    compilation: &Compilation,
+  ) -> bool {
+    let module_block = DependenciesBlockIdentifier::Module(module);
+    let current_blocks = compilation
+      .get_module_graph()
+      .module_by_identifier(&module)
+      .expect("should have module")
+      .get_blocks();
+    let cached_blocks = self
+      .prepared_blocks_map
+      .get(&module_block)
+      .map(Vec::as_slice)
+      .unwrap_or_default();
+
+    if current_blocks != cached_blocks {
+      return false;
+    }
+
+    let module_graph = compilation.get_module_graph();
+    for block_id in current_blocks {
+      let block = module_graph.block_by_id_expect(block_id);
+      // Nested async blocks are not constructed today. Keep the reuse path
+      // conservative if that changes.
+      if !block.get_blocks().is_empty() {
+        return false;
+      }
+
+      if block.get_group_options() != self.prepared_block_group_options.get(block_id) {
+        return false;
+      }
+    }
+
+    let mut current_connections_by_block = DependenciesBlockIdentifierMap::default();
+    for connection in prepare_module_connection_map(module, module_graph).unwrap_or_default() {
+      current_connections_by_block
+        .entry(connection.block)
+        .or_insert_with(Vec::new)
+        .push(connection);
+    }
+
+    let module_graph_cache = &compilation.module_graph_cache_artifact;
+    let side_effects_state_artifact = &compilation
+      .build_module_graph_artifact
+      .side_effects_state_artifact;
+    let exports_info_artifact = &compilation.exports_info_artifact;
+    // Connectionless modules deliberately use `EMPTY_BLOCK_MODULES` and are
+    // not inserted into `block_modules_runtime_map`. An existing leaf module
+    // can still be reused when both its cached chunk membership and an incoming
+    // module connection prove that its placement is derived from a stable
+    // parent topology. Entry-only and isolated modules stay conservative since
+    // their placement is not represented by the cached connection map.
+    let mut found_cached_root = current_blocks.is_empty()
+      && current_connections_by_block.is_empty()
+      && module_graph
+        .get_incoming_connections(&module)
+        .any(|connection| connection.original_module_identifier.is_some())
+      && compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_number_of_module_chunks(module)
+        > 0;
+
+    for (runtime, block_modules) in &self.block_modules_runtime_map {
+      if !block_modules.contains_key(&module_block) {
+        continue;
+      }
+
+      for block in std::iter::once(module_block).chain(
+        current_blocks
+          .iter()
+          .copied()
+          .map(DependenciesBlockIdentifier::AsyncDependenciesBlock),
+      ) {
+        let Some(cached_modules) = block_modules.get(&block) else {
+          return false;
+        };
+        found_cached_root |= block == module_block;
+
+        let current_connections = current_connections_by_block
+          .get(&block)
+          .map(Vec::as_slice)
+          .unwrap_or_default();
+        if current_connections.len() != cached_modules.len() {
+          return false;
+        }
+
+        for (current, (cached_module, cached_state, _)) in
+          current_connections.iter().zip(cached_modules.iter())
+        {
+          if current.module != *cached_module
+            || get_active_state_of_connections(
+              &current.connections,
+              runtime.as_deref(),
+              module_graph,
+              module_graph_cache,
+              side_effects_state_artifact,
+              exports_info_artifact,
+            ) != *cached_state
+          {
+            return false;
+          }
+        }
+      }
+    }
+
+    found_cached_root
+  }
+
   pub(crate) fn chunk_group_info(&self, ukey: &CgiUkey) -> &ChunkGroupInfo {
     self
       .chunk_group_infos
@@ -1166,7 +1349,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     module_identifier: ModuleIdentifier,
     runtime: Arc<RuntimeSpec>,
     visited: &mut IdentifierSet,
-    ctx: &mut (u32, u32, FxIndexMap<ModuleIdentifier, (u32, u32)>),
+    ctx: &mut (u32, u32, IdentifierIndexMap<(u32, u32)>),
     compilation: &Compilation,
   ) {
     if !visited.insert(module_identifier) {
@@ -1397,6 +1580,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
     }
     for dep in &compilation.global_entry.include_dependencies {
+      if module_graph.dependency_by_id(dep).skip_async_entrypoints() {
+        continue;
+      }
       if let Some(module) = module_graph.module_identifier_by_dependency_id(dep) {
         self
           .queue
@@ -1571,6 +1757,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       ));
     let mut entrypoint: Option<ChunkGroupUkey> = None;
     let mut c: Option<ChunkGroupUkey> = None;
+    // Async entrypoints such as workers need their own chunk group even when regular async chunks
+    // are disabled.
+    let has_entry_options = compilation
+      .get_module_graph()
+      .block_by_id(&block_id)
+      .and_then(|block| block.get_group_options().and_then(|o| o.entry_options()))
+      .is_some();
 
     let cgi = if let Some(cgi) = cgi {
       let cgi = self
@@ -1589,7 +1782,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
 
       cgi.ukey
-    } else if !item_async_chunks || !item_chunk_loading {
+    } else if !has_entry_options && (!item_async_chunks || !item_chunk_loading) {
       self.queue.push(QueueAction::ProcessBlock(ProcessBlock {
         block: block_id.into(),
         module: module_id,
@@ -2361,83 +2554,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let mg = compilation.get_module_graph();
     self.prepared_connection_map = all_modules
       .par_iter()
-      .filter_map(|module| {
-        let all_dependencies = mg
-          .module_graph_module_by_identifier(module)
-          .map(|mgm| mgm.all_dependencies())
-          .unwrap_or_default();
-        let dependency_count = all_dependencies.len();
-        if dependency_count == 0 {
-          return None;
-        }
-
-        let mut ordered_deps = Vec::new();
-        let mut unordered_deps = Vec::with_capacity(dependency_count);
-        let mut ordered_deps_sorted = true;
-        let mut last_source_order = None;
-        for dep_id in all_dependencies {
-          let dep = mg.dependency_by_id(dep_id);
-          let module_dep = dep.as_module_dependency();
-          if module_dep.is_none() && dep.as_context_dependency().is_none() {
-            continue;
-          }
-          if matches!(module_dep.map(|d| d.weak()), Some(true)) {
-            continue;
-          }
-          let Some(connection) = mg.connection_by_dependency_id(dep_id) else {
-            continue;
-          };
-
-          let module_identifier = *connection.module_identifier();
-          let block_id = if let Some(block) = mg.get_parent_block(dep_id) {
-            (*block).into()
-          } else {
-            (*module).into()
-          };
-          if let Some(source_order) = dep.source_order() {
-            if let Some(last_source_order) = last_source_order
-              && source_order < last_source_order
-            {
-              ordered_deps_sorted = false;
-            }
-            last_source_order = Some(source_order);
-            ordered_deps.push((source_order, block_id, *dep_id, module_identifier));
-          } else {
-            unordered_deps.push((block_id, *dep_id, module_identifier));
-          }
-        }
-        if !ordered_deps_sorted {
-          ordered_deps.sort_by_key(|(source_order, _, _, _)| *source_order);
-        }
-
-        let connection_count = ordered_deps.len() + unordered_deps.len();
-        if connection_count == 0 {
-          return None;
-        }
-        let ordered_deps = ordered_deps
-          .into_iter()
-          .map(
-            |(_, block, dependency, module)| PreparedBlockConnectionBuilder {
-              block,
-              module,
-              dependency,
-            },
-          );
-        let unordered_deps = unordered_deps
-          .into_iter()
-          .map(
-            |(block, dependency, module)| PreparedBlockConnectionBuilder {
-              block,
-              module,
-              dependency,
-            },
-          );
-
-        Some((
-          *module,
-          finalize_prepared_connection_map(ordered_deps.chain(unordered_deps), connection_count),
-        ))
-      })
+      .filter_map(|module| prepare_module_connection_map(*module, mg).map(|map| (*module, map)))
       .collect::<IdentifierMap<_>>();
 
     let mut prepared_blocks_map = DependenciesBlockIdentifierMap::<
@@ -2445,6 +2562,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     >::with_capacity_and_hasher(
       all_modules.len(), Default::default()
     );
+    let mut prepared_block_group_options =
+      AsyncDependenciesBlockIdentifierMap::<GroupOptions>::default();
 
     for module in all_modules {
       let blocks = compilation
@@ -2464,9 +2583,14 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       if !blocks.is_empty() {
         prepared_blocks_map.insert((*block_id).into(), blocks.to_vec());
       }
+
+      if let Some(group_options) = block.get_group_options() {
+        prepared_block_group_options.insert(*block_id, group_options.clone());
+      }
     }
 
     self.prepared_blocks_map = prepared_blocks_map;
+    self.prepared_block_group_options = prepared_block_group_options;
 
     Ok(())
   }

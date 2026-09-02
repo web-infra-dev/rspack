@@ -2,14 +2,24 @@ use quote::quote;
 use syn::{ItemStruct, parse::Parser, parse_macro_input};
 
 pub fn impl_runtime_module(
-  _args: proc_macro::TokenStream,
+  args: proc_macro::TokenStream,
   tokens: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
+  parse_macro_input!(args as syn::parse::Nothing);
   let mut input = parse_macro_input!(tokens as ItemStruct);
   let name = &input.ident;
   let generics = &input.generics;
   let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
   let origin_fields = input.fields.clone();
+  let runtime_module_variable_provider = generics.params.is_empty().then(|| {
+    quote! {
+      ::rspack_core::inventory::submit! {
+        ::rspack_core::RuntimeModuleVariableProvider {
+          variables: <#name as ::rspack_core::RuntimeModule>::runtime_module_variables,
+        }
+      }
+    }
+  });
 
   if let syn::Fields::Named(ref mut fields) = input.fields {
     fields.named.push(
@@ -121,6 +131,8 @@ pub fn impl_runtime_module(
       }
     }
 
+    #runtime_module_variable_provider
+
     #[rspack_cacheable::cacheable_dyn]
     #[async_trait::async_trait]
     impl #impl_generics ::rspack_core::Module for #name #ty_generics #where_clause {
@@ -174,7 +186,7 @@ pub fn impl_runtime_module(
       async fn code_generation(
         &self,
         code_generation_context: &mut ::rspack_core::ModuleCodeGenerationContext,
-      ) -> rspack_error::Result<::rspack_core::CodeGenerationResult> {
+      ) -> rspack_error::Result<::rspack_core::CodeGenerationResultBuilder> {
         ::rspack_core::runtime_module_code_generation(self, &self.common, code_generation_context).await
       }
 

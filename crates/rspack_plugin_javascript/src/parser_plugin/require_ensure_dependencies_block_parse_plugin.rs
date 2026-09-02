@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use either::Either;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, ChunkGroupOptions, ConstDependency, DependencyRange,
@@ -41,7 +43,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
     for_name: &str,
   ) -> Option<bool> {
     (for_name == "require.ensure").then(|| {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         expr.span.into(),
         "'function'".into(),
       )));
@@ -95,7 +97,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
 
     let error_callback_exists =
       expr.args.len() == 4 || (expr.args.len() == 3 && chunk_name.is_none());
-    let mut deps: Vec<BoxDependency> = vec![Box::new(RequireEnsureDependency::new(
+    let mut deps: Vec<BoxDependency> = vec![BoxDependency::new(RequireEnsureDependency::new(
       expr.span.into(),
       success_arg.span().into(),
       if error_callback_exists {
@@ -109,7 +111,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
     parser.in_function_scope(true, std::iter::empty(), |_| {
       for item in dependencies_items {
         if let Some(item) = item.as_string() {
-          deps.push(Box::new(RequireEnsureItemDependency::new(
+          deps.push(BoxDependency::new(RequireEnsureItemDependency::new(
             item.as_str().into(),
             expr.span.into(),
           )));

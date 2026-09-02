@@ -3,7 +3,7 @@ name: rspack-release-pr
 description: Create the official Rspack release pull request for a stable or pre-release version bump. Use when the task is to prepare a formal release branch from a clean checkout, sync to the latest origin/main, run `./x version` with an optional `--pre alpha|beta|rc`, confirm the resulting JavaScript and Rust versions with the user, open the release PR, trigger Ecosystem CI, and report the PR plus workflow URLs.
 ---
 
-# Rspack Release PR
+# Rspack release PR
 
 ## Overview
 

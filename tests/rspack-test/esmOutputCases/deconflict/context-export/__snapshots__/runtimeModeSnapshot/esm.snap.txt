@@ -1,0 +1,13 @@
+```mjs title=main.mjs
+// ./index.js
+function index_context() {}
+
+it("should preserve an exported context binding", () => {
+	expect(index_context.name).toBe(
+		 true ? "index_context" : 0,
+	);
+});
+
+export { index_context as context };
+
+```

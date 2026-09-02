@@ -5,15 +5,14 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, ExportsType, ExtendedReferencedExport, FactorizeInfo, ModuleDependency,
-  ModuleGraph, ModuleGraphCacheArtifact, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsedName, create_exports_object_referenced, property_access,
-  to_normal_comment,
+  ExportsInfoArtifact, ExportsType, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName,
+  create_exports_object_referenced, property_access, to_normal_comment,
 };
 use swc_atoms::Atom;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CommonJsFullRequireDependency {
   id: DependencyId,
   request: String,
@@ -25,7 +24,6 @@ pub struct CommonJsFullRequireDependency {
   optional: bool,
   asi_safe: bool,
   loc: Option<DependencyLocation>,
-  factorize_info: FactorizeInfo,
 }
 
 impl CommonJsFullRequireDependency {
@@ -51,7 +49,6 @@ impl CommonJsFullRequireDependency {
       optional,
       asi_safe,
       loc,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -84,7 +81,7 @@ impl Dependency for CommonJsFullRequireDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     let mut namespace_object_as_context = self.namespace_object_as_context;
 
     let module = module_graph
@@ -111,11 +108,11 @@ impl Dependency for CommonJsFullRequireDependency {
       if self.names.is_empty() {
         return create_exports_object_referenced();
       }
-      return vec![ExtendedReferencedExport::Array(
-        self.names[0..self.names.len().saturating_sub(1)].to_vec(),
+      return vec![ReferencedExport::from(
+        &self.names[..self.names.len().saturating_sub(1)],
       )];
     }
-    vec![ExtendedReferencedExport::Array(self.names.clone())]
+    vec![ReferencedExport::from(self.names.as_slice())]
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
@@ -135,14 +132,6 @@ impl ModuleDependency for CommonJsFullRequireDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

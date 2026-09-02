@@ -31,6 +31,7 @@ import type { ChunkGraph } from './ChunkGraph';
 import type { Compiler } from './Compiler';
 import type { ContextModuleFactory } from './ContextModuleFactory';
 import type {
+  Filename,
   OutputNormalized,
   RspackOptionsNormalized,
   RspackPluginInstance,
@@ -43,11 +44,11 @@ import WebpackError from './lib/WebpackError';
 import { Logger, LogType } from './logging/Logger';
 import type { Module } from './Module';
 import ModuleGraph from './ModuleGraph';
-import type { NormalModuleCompilationHooks } from './NormalModule';
 import type { NormalModuleFactory } from './NormalModuleFactory';
 import type { ResolverFactory } from './ResolverFactory';
 import type { RspackError } from './RspackError';
 import { RuntimeModule } from './RuntimeModule';
+import { RuntimeTemplate } from './RuntimeTemplate';
 import {
   Stats,
   type StatsAsset,
@@ -237,12 +238,27 @@ export const checkCompilation = (compilation: Compilation) => {
   }
 };
 
+export const getOrCreateCompilationHooks = <T>(
+  compilation: Compilation,
+  key: object,
+  createHooks: () => T,
+): T => {
+  const compilationHooksMap = compilation[binding.COMPILATION_HOOKS_MAP_SYMBOL];
+  let hooks = compilationHooksMap.get(key) as T | undefined;
+  if (hooks === undefined) {
+    hooks = createHooks();
+    compilationHooksMap.set(key, hooks);
+  }
+  return hooks;
+};
+
 export class Compilation {
   #inner: JsCompilation;
   #shutdown: boolean;
   #errors?: RspackError[];
   #warnings?: RspackError[];
   #chunks?: ReadonlySet<Chunk>;
+  #assetsProxy?: Assets;
 
   hooks: Readonly<{
     processAssets: liteTapable.AsyncSeriesHook<Assets>;
@@ -260,6 +276,7 @@ export class Compilation {
       void
     >;
     beforeModuleIds: liteTapable.SyncHook<[Iterable<Module>]>;
+    afterOptimizeChunkIds: liteTapable.SyncHook<[Iterable<Chunk>]>;
     finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
     chunkHash: liteTapable.SyncHook<[Chunk, Hash]>;
     chunkAsset: liteTapable.SyncHook<[Chunk, string]>;
@@ -300,6 +317,7 @@ export class Compilation {
   inputFileSystem: InputFileSystem | null;
   options: RspackOptionsNormalized;
   outputOptions: OutputNormalized;
+  runtimeTemplate: RuntimeTemplate;
   logging: Map<string, LogEntry[]>;
   childrenCounters: Record<string, number>;
   children: Compilation[];
@@ -316,10 +334,7 @@ export class Compilation {
   #addIncludeDispatcher: AddEntryItemDispatcher;
   #addEntryDispatcher: AddEntryItemDispatcher;
 
-  [binding.COMPILATION_HOOKS_MAP_SYMBOL]: WeakMap<
-    Compilation,
-    NormalModuleCompilationHooks
-  >;
+  [binding.COMPILATION_HOOKS_MAP_SYMBOL]: WeakMap<object, unknown>;
 
   constructor(compiler: Compiler, inner: JsCompilation) {
     this.#inner = inner;
@@ -397,6 +412,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
         'modules',
       ]),
       beforeModuleIds: new liteTapable.SyncHook(['modules']),
+      afterOptimizeChunkIds: new liteTapable.SyncHook(['chunks']),
       finishModules: new liteTapable.AsyncSeriesHook(['modules']),
       chunkHash: new liteTapable.SyncHook(['chunk', 'hash']),
       chunkAsset: new liteTapable.SyncHook(['chunk', 'filename']),
@@ -450,6 +466,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     this.inputFileSystem = compiler.inputFileSystem;
     this.options = compiler.options;
     this.outputOptions = compiler.options.output;
+    this.runtimeTemplate = new RuntimeTemplate(this, this.outputOptions);
     this.logging = new Map();
     this.childrenCounters = {};
     this.children = [];
@@ -479,7 +496,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
    * Get a map of all assets.
    */
   get assets(): Record<string, Source> {
-    return this.#createCachedAssets();
+    if (!this.#assetsProxy) {
+      this.#assetsProxy = this.#createAssetsProxy();
+    }
+    return this.#assetsProxy;
   }
 
   /**
@@ -560,7 +580,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     return this.#inner.codeGenerationResults;
   }
 
-  #createCachedAssets() {
+  #createAssetsProxy() {
     return new Proxy(
       {},
       {
@@ -775,24 +795,40 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     this.#warnings.splice(0, this.#warnings.length, ...warnings);
   }
 
-  getPath(filename: string, data: PathData = {}) {
-    const pathData = normalizePathData(data);
-    return this.#inner.getPath(filename, pathData);
+  getPath(filename: Filename, data: PathData = {}) {
+    if (!data.hash) {
+      data = {
+        hash: this.hash ?? undefined,
+        ...data,
+      };
+    }
+    return this.getAssetPath(filename, data);
   }
 
-  getPathWithInfo(filename: string, data: PathData = {}) {
-    const pathData = normalizePathData(data);
-    return this.#inner.getPathWithInfo(filename, pathData);
+  getPathWithInfo(filename: Filename, data: PathData = {}) {
+    if (!data.hash) {
+      data = {
+        hash: this.hash ?? undefined,
+        ...data,
+      };
+    }
+    return this.getAssetPathWithInfo(filename, data);
   }
 
-  getAssetPath(filename: string, data: PathData = {}) {
+  getAssetPath(filename: Filename, data: PathData = {}) {
+    const template = typeof filename === 'function' ? filename(data) : filename;
     const pathData = normalizePathData(data);
-    return this.#inner.getAssetPath(filename, pathData);
+    return this.#inner.getAssetPath(template, pathData);
   }
 
-  getAssetPathWithInfo(filename: string, data: PathData = {}) {
+  getAssetPathWithInfo(filename: Filename, data: PathData = {}) {
+    const info: AssetInfo = {};
+    const template =
+      typeof filename === 'function' ? filename(data, info) : filename;
     const pathData = normalizePathData(data);
-    return this.#inner.getAssetPathWithInfo(filename, pathData);
+    const result = this.#inner.getAssetPathWithInfo(template, pathData, info);
+    Object.assign(info, result.info);
+    return { path: result.path, info };
   }
 
   getLogger(name: string | (() => string)) {

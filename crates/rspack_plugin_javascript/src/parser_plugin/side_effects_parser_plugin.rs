@@ -6,12 +6,13 @@ use rspack_core::{
 use rspack_util::SpanExt;
 use rustc_hash::FxHashSet;
 use swc_atoms::Atom;
-use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom};
+use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom, wtf8::Wtf8};
 use swc_experimental_ecma_ast::{
-  ArrayLit, ArrowExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Class, ClassMember, CommentKind,
-  Comments, Decl, DefaultDecl, ExportSpecifier, Expr, ExprOrSpread, Function, GetSpan,
-  ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem, ObjectPatProp, Pat, Program, PropName,
-  Span, Span as AstSpan, Stmt, VarDecl, VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
+  ArrayLit, ArrowExpr, AssignExpr, AssignOp, BlockStmt, BlockStmtOrExpr, CallExpr, Class,
+  ClassMember, CommentKind, Comments, Decl, DefaultDecl, ExportSpecifier, Expr, ExprOrSpread,
+  Function, GetSpan, ImportSpecifier, Lit, MemberProp, ModuleDecl, ModuleExportName, ModuleItem,
+  ObjectPatProp, Pat, Program, PropName, SimpleAssignTarget, Span, Span as AstSpan, Stmt, VarDecl,
+  VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
 };
 use swc_experimental_ecma_utils::{ExprCtx, ExprExt};
 
@@ -1119,7 +1120,7 @@ impl SideEffectsParserPlugin {
       Statement::For(for_stmt) => {
         let pure_init = match for_stmt.init {
           Some(ref init) => match init {
-            VarDeclOrExpr::VarDecl(decl) => is_pure_var_decl(
+            VarDeclOrExpr::VarDecl(decl) => is_module_eval_pure_var_decl(
               parser,
               self.analyze_side_effects_free,
               decl,
@@ -1192,7 +1193,7 @@ impl SideEffectsParserPlugin {
         }
       }
       Statement::Expr(expr_stmt) => {
-        if !is_pure_expression(
+        if !is_module_eval_pure_expression(
           parser,
           self.analyze_side_effects_free,
           &expr_stmt.expr,
@@ -1244,7 +1245,7 @@ impl SideEffectsParserPlugin {
       }
       Statement::Var(var_stmt) => match var_stmt {
         VariableDeclaration::VarDecl(var_decl) => {
-          if !is_pure_var_decl(
+          if !is_module_eval_pure_var_decl(
             parser,
             self.analyze_side_effects_free,
             var_decl,
@@ -1498,6 +1499,77 @@ pub fn is_pure_function<'a>(
   true
 }
 
+/// Recognize a top-level CommonJS export assignment whose target write is
+/// ignored only for module-evaluation side-effect analysis. The RHS is still
+/// judged by the existing parser purity behavior.
+fn is_common_js_export_assignment(parser: &mut JavascriptParser, expr: &AssignExpr) -> bool {
+  if parser.is_esm || !parser.is_top_level_scope() || !matches!(expr.op, AssignOp::Assign) {
+    return false;
+  }
+
+  let Some(SimpleAssignTarget::Member(member)) = expr.left.as_simple() else {
+    return false;
+  };
+
+  match &member.obj {
+    Expr::Ident(ident) if ident.sym == "exports" => {
+      let property_is_side_effect_free = match &member.prop {
+        MemberProp::Ident(ident) => ident.sym != "__proto__",
+        MemberProp::Computed(computed) => match &computed.expr {
+          Expr::Lit(lit) => match &**lit {
+            Lit::Str(str) => str.value.as_wtf8() != Wtf8::from_str("__proto__"),
+            _ => false,
+          },
+          _ => false,
+        },
+        MemberProp::PrivateName(_) => false,
+      };
+      property_is_side_effect_free
+        && parser
+          .get_variable_info(&compat_atom(&ident.sym))
+          .is_none_or(|info| info.is_free())
+    }
+    Expr::Ident(ident) if ident.sym == "module" => {
+      let property_is_exports = match &member.prop {
+        MemberProp::Ident(ident) => ident.sym == "exports",
+        MemberProp::Computed(computed) => match &computed.expr {
+          Expr::Lit(lit) => match &**lit {
+            Lit::Str(str) => str.value.as_wtf8() == Wtf8::from_str("exports"),
+            _ => false,
+          },
+          _ => false,
+        },
+        MemberProp::PrivateName(_) => false,
+      };
+      property_is_exports
+        && parser
+          .get_variable_info(&compat_atom(&ident.sym))
+          .is_none_or(|info| info.is_free())
+    }
+    _ => false,
+  }
+}
+
+/// Keep the CommonJS export-write exception out of the shared
+/// `is_pure_expression` path, because innerGraph also consumes that function.
+/// This wrapper is used only by the module-level side-effects walk.
+fn is_module_eval_pure_expression<'a>(
+  parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
+  expr: &'a Expr,
+  comments: &'a Comments<'a>,
+  callees: Option<&mut Vec<(Atom, Span)>>,
+) -> bool {
+  let mut rhs = expr;
+  while let Expr::Assign(assignment) = rhs {
+    if !is_common_js_export_assignment(parser, assignment) {
+      break;
+    }
+    rhs = &assignment.right;
+  }
+  is_pure_expression(parser, analyze_side_effects_free, rhs, comments, callees)
+}
+
 #[inline(never)]
 pub fn is_pure_expression<'a>(
   parser: &mut JavascriptParser,
@@ -1742,6 +1814,30 @@ fn is_pure_var_decl<'a>(
   for decl in &var.decls {
     if let Some(ref init) = decl.init
       && !is_pure_expression(
+        parser,
+        analyze_side_effects_free,
+        init,
+        comments,
+        callees.as_deref_mut(),
+      )
+    {
+      return false;
+    }
+  }
+  true
+}
+
+#[inline(never)]
+fn is_module_eval_pure_var_decl<'a>(
+  parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
+  var: &'a VarDecl,
+  comments: &'a Comments<'a>,
+  mut callees: Option<&mut Vec<(Atom, Span)>>,
+) -> bool {
+  for decl in &var.decls {
+    if let Some(ref init) = decl.init
+      && !is_module_eval_pure_expression(
         parser,
         analyze_side_effects_free,
         init,

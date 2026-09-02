@@ -3,16 +3,16 @@ name: rspack-webpack-gap-tracker
 description: Use when tracking, auditing, or updating Rspack compatibility gaps against webpack, including missing webpack features, built-in and ecosystem plugin compatibility gaps, completed compatibility features, and missing webpack test coverage.
 ---
 
-# Rspack Webpack Gap Tracker
+# Rspack webpack gap tracker
 
-## Tracking Targets
+## Tracking targets
 
 - Main tracking issue: https://github.com/web-infra-dev/rspack/issues/14556
 - Completed feature comment ID: `4785525873`
 - Missing test comment ID: `4785526309`
 - Native CSS tracking issue: https://github.com/web-infra-dev/rspack/issues/14002
 
-## Required Output Shape
+## Required output shape
 
 Keep the issue and comments as lists, not prose-only summaries.
 
@@ -26,7 +26,7 @@ Every update to the issue body or either placeholder comment must include a visi
 Last updated: YYYY-MM-DD HH:mm:ss Z
 ```
 
-## Audit Workflow
+## Audit workflow
 
 1. Read the current tracking issue and its comments before adding anything.
 2. Preserve the existing issue and comment format when updating; only change the relevant timestamp and list entries.
@@ -49,7 +49,7 @@ Last updated: YYYY-MM-DD HH:mm:ss Z
    - Otherwise, list missing tests by webpack test directory.
    - Include older missing tests directly; do not hide them just because they predate the last update.
 
-## Suggested Investigation Sources
+## Suggested investigation sources
 
 - Webpack releases and changelog for new feature candidates.
 - Webpack config schema/types and Rspack config schema/types for option-level gaps.
@@ -60,7 +60,38 @@ Last updated: YYYY-MM-DD HH:mm:ss Z
 - Rsbuild docs/source and https://github.com/rstackjs packages for existing compatibility solutions.
 - `tests/rspack-test/` and the local webpack checkout, when available, for test coverage comparison.
 
-## Entry Format
+## Compare test directories
+
+Run the bundled zx script before manually auditing missing webpack tests. It compares canonical test case directories and maps webpack's `test/cases` to Rspack's `tests/rspack-test/normalCases` and webpack's `test/statsCases` to Rspack's `tests/rspack-test/statsOutputCases`.
+
+Run it through the skill workspace package:
+
+```bash
+pnpm --filter @rspack/skill-webpack-gap-tracker diff-tests -- --webpack /path/to/webpack
+```
+
+Pass positional filters like Rstest file filters. Treat each filter as a case-insensitive regular expression against a webpack-style test path; combine multiple filters with OR:
+
+```bash
+pnpm --filter @rspack/skill-webpack-gap-tracker diff-tests -- --webpack /path/to/webpack configCases/asset
+pnpm --filter @rspack/skill-webpack-gap-tracker diff-tests -- --webpack /path/to/webpack '^(config|hot)Cases/css'
+```
+
+Add `--content` to emit unified file-content patches for test cases present in both repositories. Always pass a positional filter with content diff unless a full-repository comparison is intentional:
+
+```bash
+pnpm --filter @rspack/skill-webpack-gap-tracker diff-tests -- --webpack /path/to/webpack --content '^configCases/asset-modules/url-relative$'
+```
+
+Treat `webpack.config.{js,mjs,cjs,ts,mts,cts}` and `rspack.config.{js,mjs,cjs,ts,mts,cts}` as the same logical file when comparing content, even when their extensions differ. Keep their real names in diff headers. Use `--context <lines>` to control unified diff context.
+
+Normalize supported text formats with one deterministic Prettier configuration before comparing them so quote, indentation, trailing-comma, line-ending, and trailing-whitespace differences do not appear in patches. If parsing fails, fall back to line-ending and trailing-whitespace normalization. Use `--no-format` only when the exact raw text difference is required.
+
+Set the webpack checkout with `--webpack` or `WEBPACK_ROOT`. Set a different Rspack checkout with `--rspack`. Pass either a repository root or its test directory.
+
+Use `--direction webpack` to show tests missing from Rspack, `--direction rspack` to show Rspack-only tests, or the default `--direction both` to show the symmetric directory diff. Read `scripts/diff-tests.mjs` only when changing its comparison behavior.
+
+## Entry format
 
 Use concise checklist entries. Prefer one feature or test group per item.
 

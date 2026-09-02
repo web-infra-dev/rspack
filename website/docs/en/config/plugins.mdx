@@ -29,7 +29,7 @@ Please refer to [Plugins page](/guide/features/plugin) for more information on u
 
 Rspack comes with a variety built-in plugins available under `rspack.PluginName`.
 
-For example, [`DefinePlugin`](/plugins/webpack/define-plugin) allows you to replaces variables in your code with other values or expressions at compile time. You can access it via `rspack.DefinePlugin` and create a plugin instance with `new`:
+For example, [`DefinePlugin`](/plugins/define-plugin) allows you to replaces variables in your code with other values or expressions at compile time. You can access it via `rspack.DefinePlugin` and create a plugin instance with `new`:
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -45,7 +45,7 @@ export default {
 
 ## webpack plugins
 
-Rspack strives to maintain compatibility with the webpack plugin ecosystem to leverage the excellent features that have been accumulated and validated by the community. Please refer to the [Plugin Compatibility List](/guide/compatibility/plugin) to access a list of webpack plugins that have passed our compatibility tests:
+Rspack strives to maintain compatibility with the webpack plugin ecosystem to leverage the excellent features that have been accumulated and validated by the community. Please refer to [Community plugin compatibility](/plugins/community-plugin-compatibility) to access a list of webpack plugins that have passed our compatibility tests:
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -60,7 +60,7 @@ export default {
 
 Rspack ignores `false`, `''`, `0`, `null` and `undefined` values in the `plugins` array, which allows you to easily disable a plugin.
 
-For example, enable [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin) only in the development environment:
+For example, enable [HotModuleReplacementPlugin](/plugins/hot-module-replacement-plugin) only in the development environment:
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';

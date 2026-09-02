@@ -63,6 +63,10 @@ node_modules/
 !scripts/node_modules/
 !tests/rspack-test/*/**/node_modules
 !packages/rspack-cli/tests/**/node_modules
+# resolver fixtures deliberately check in node_modules as test inputs
+!crates/rspack_resolver/fixtures/enhanced_resolve/**/node_modules
+!crates/rspack_resolver/fixtures/invalid/node_modules
+!crates/rspack_resolver/fixtures/tsconfig/**/node_modules
 jspm_packages/
 
 # Snowpack dependency directory (https://snowpack.dev/)
@@ -101,6 +105,8 @@ web_modules/
 dist
 compiled
 webpack-dist
+# resolver fixtures contain dist directories as test inputs
+!crates/rspack_resolver/fixtures/**/dist
 
 # Serverless directories
 .serverless/
@@ -155,6 +161,8 @@ npm/**/*.node
 !npm/linux-arm64-musl
 !npm/linux-riscv64-gnu
 !npm/linux-riscv64-musl
+!npm/linux-ppc64-gnu
+!npm/linux-s390x-gnu
 !npm/linux-x64-gnu/
 !npm/linux-x64-musl
 !npm/wasm32-wasi

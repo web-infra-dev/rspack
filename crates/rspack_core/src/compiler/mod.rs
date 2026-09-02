@@ -1,28 +1,34 @@
 mod rebuild;
-use std::sync::{Arc, atomic::AtomicU32};
+use std::{
+  sync::{Arc, atomic::AtomicU32},
+  time::Instant,
+};
 
 use futures::future::join_all;
 use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hook::define_hook;
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_paths::{InternedPath, Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
 use rspack_tasks::{CompilerContext, within_compiler_context};
 use rspack_util::{node_path::NodePath, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::FxHashMap as HashMap;
+use tokio::sync::Semaphore;
 use tracing::instrument;
 
 pub use self::rebuild::CompilationRecords;
 use crate::{
-  BoxPlugin, CleanOptions, Compilation, CompilationAsset, CompilationLogging, CompilerOptions,
-  CompilerPlatform, ContextModuleFactory, Filename, KeepPattern, NormalModuleFactory, PluginDriver,
-  ResolverFactory, SharedPluginDriver,
-  cache::{Cache, new_cache},
+  BoxPlugin, CacheOptions, CleanOptions, Compilation, CompilationAsset, CompilationLogging,
+  CompilerOptions, CompilerPlatform, ContextModuleFactory, Filename, InfrastructureLogSink,
+  KeepPattern, NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
+  artifacts::IncrementalArtifacts,
   compilation::build_module_graph::ModuleExecutor,
-  fast_set, include_hash,
+  fast_set,
   incremental::{Incremental, IncrementalPasses},
+  legacy_cache::{Cache as LegacyCache, create_cache as create_legacy_cache},
   logger::Logger,
+  new_cache::{Cache, CacheFacade, Meta, create_cache},
   trim_dir,
 };
 
@@ -33,6 +39,7 @@ define_hook!(CompilerCompilation: Series(compilation: &mut Compilation, params: 
 // should be AsyncParallelHook
 define_hook!(CompilerMake: Series(compilation: &mut Compilation));
 define_hook!(CompilerFinishMake: Series(compilation: &mut Compilation));
+define_hook!(CompilerAfterCompile: Series(compilation: &mut Compilation));
 // should be SyncBailHook, but rspack need call js hook
 define_hook!(CompilerShouldEmit: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilerShouldRecord: SeriesBail(compilation: &mut Compilation) -> bool);
@@ -49,6 +56,7 @@ pub struct CompilerHooks {
   pub compilation: CompilerCompilationHook,
   pub make: CompilerMakeHook,
   pub finish_make: CompilerFinishMakeHook,
+  pub after_compile: CompilerAfterCompileHook,
   pub should_emit: CompilerShouldEmitHook,
   pub should_record: CompilerShouldRecordHook,
   pub emit: CompilerEmitHook,
@@ -82,6 +90,9 @@ impl CompilerId {
   }
 }
 
+// bounds open file descriptors during emit, same limit as webpack's Compiler.emitAssets
+const EMIT_ASSETS_CONCURRENCY_LIMIT: usize = 15;
+
 #[derive(Debug)]
 pub struct Compiler {
   id: CompilerId,
@@ -95,7 +106,9 @@ pub struct Compiler {
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
-  pub cache: Box<dyn Cache>,
+  pub cache: Box<dyn LegacyCache>,
+  incremental_artifacts: IncrementalArtifacts,
+  new_cache: Cache,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
@@ -119,6 +132,7 @@ impl Compiler {
     resolver_factory: Option<Arc<ResolverFactory>>,
     loader_resolver_factory: Option<Arc<ResolverFactory>>,
     compiler_context: Option<Arc<CompilerContext>>,
+    infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
     platform: Arc<CompilerPlatform>,
   ) -> Self {
     #[cfg(debug_assertions)]
@@ -154,7 +168,13 @@ impl Compiler {
     let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());
     let buildtime_plugin_driver =
       PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
-    let cache = new_cache(
+    let new_cache = create_cache(
+      compiler_path.clone(),
+      options.clone(),
+      input_filesystem.clone(),
+      infrastructure_log_sink,
+    );
+    let cache = create_legacy_cache(
       &compiler_path,
       options.clone(),
       input_filesystem.clone(),
@@ -168,7 +188,6 @@ impl Compiler {
     let compiler_context = compiler_context.unwrap_or_else(|| Arc::new(CompilerContext::new()));
     Self {
       id,
-      compiler_path,
       options: options.clone(),
       compilation: Compilation::new(
         id,
@@ -182,6 +201,7 @@ impl Compiler {
         incremental,
         Some(module_executor),
         compilation_logging,
+        new_cache.clone(),
         Default::default(),
         Default::default(),
         input_filesystem.clone(),
@@ -190,6 +210,7 @@ impl Compiler {
         false,
         compiler_context.clone(),
       ),
+      compiler_path,
       output_filesystem,
       intermediate_filesystem,
       plugin_driver,
@@ -197,6 +218,8 @@ impl Compiler {
       resolver_factory,
       loader_resolver_factory,
       cache,
+      incremental_artifacts: IncrementalArtifacts::default(),
+      new_cache,
       emitted_asset_versions: Default::default(),
       input_filesystem,
       platform,
@@ -209,37 +232,89 @@ impl Compiler {
     self.id
   }
 
+  pub fn get_cache(&self, name: &str) -> CacheFacade {
+    self.new_cache.facade(name)
+  }
+
+  fn end_idle(&self) -> Result<Instant> {
+    self.new_cache.end_idle()?;
+    Ok(Instant::now())
+  }
+
+  fn begin_idle(&mut self, started_at: Instant, successful: bool) -> Result<()> {
+    let record_build_time = if successful {
+      self.new_cache.record_build_time(started_at.elapsed())
+    } else {
+      Ok(())
+    };
+    let store_build_dependencies = if successful && self.new_cache.has_file_cache() {
+      if let CacheOptions::Persistent(options) = &self.options.cache {
+        self.compilation.build_dependencies.extend(
+          options
+            .build_dependencies
+            .iter()
+            .map(|path| InternedPath::from(path.as_path())),
+        );
+      }
+      let (build_dependencies, _, _, _) = self.compilation.build_dependencies();
+      self
+        .new_cache
+        .store_build_dependencies(build_dependencies.cloned().collect())
+    } else {
+      Ok(())
+    };
+    let store_meta = self.new_cache.store_meta(Meta {
+      max_dependency_id: self.compiler_context.dependency_id(),
+    });
+    let begin_idle = self.new_cache.begin_idle();
+
+    record_build_time
+      .and(store_build_dependencies)
+      .and(store_meta)
+      .and(begin_idle)
+  }
+
   pub async fn run(&mut self) -> Result<()> {
     self.build().await?;
     Ok(())
   }
 
   pub async fn build(&mut self) -> Result<()> {
+    let start = self.end_idle()?;
     let compiler_context = self.compiler_context.clone();
-    match within_compiler_context(compiler_context, self.build_inner()).await {
+    let result = match within_compiler_context(compiler_context, self.build_inner()).await {
       Ok(_) => {
         self
           .plugin_driver
           .compiler_hooks
           .done
           .call(&self.compilation)
-          .await?;
-        Ok(())
+          .await
       }
       Err(e) => {
-        self
+        let failed = self
           .plugin_driver
           .compiler_hooks
           .failed
           .call(&self.compilation)
-          .await?;
-        Err(e)
+          .await;
+        failed.and(Err(e))
       }
-    }
+    };
+    let cache_result = self.begin_idle(start, result.is_ok());
+    result.and(cache_result)
   }
 
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
   async fn build_inner(&mut self) -> Result<()> {
+    if let Some(restored) = self.new_cache.restore_meta()? {
+      let current = self.compiler_context.dependency_id();
+      if current < restored.max_dependency_id {
+        self
+          .compiler_context
+          .set_dependency_id(restored.max_dependency_id);
+      }
+    }
     // TODO: clear the outdated cache entries in resolver,
     // TODO: maybe it's better to use external entries.
     let plugin_driver_clone = self.plugin_driver.clone();
@@ -247,6 +322,7 @@ impl Compiler {
     let _guard = scopeguard::guard((), move |_| plugin_driver_clone.clear_cache(compilation_id));
     let compilation_logging = self.compilation.get_logging().clone();
     compilation_logging.clear();
+    self.incremental_artifacts.reset();
 
     fast_set(
       &mut self.compilation,
@@ -262,6 +338,7 @@ impl Compiler {
         Incremental::new_cold(self.options.incremental),
         Some(Default::default()),
         compilation_logging,
+        self.new_cache.clone(),
         Default::default(),
         Default::default(),
         self.input_filesystem.clone(),
@@ -271,14 +348,15 @@ impl Compiler {
         self.compiler_context.clone(),
       ),
     );
-    let _is_hot = self.cache.before_compile(&mut self.compilation).await;
-    // TODO: disable it for now, enable it once persistent cache is added to all artifacts
-    // if is_hot {
-    //   // If it's a hot start, we can use incremental
-    //   self.compilation.incremental = Incremental::new_hot(self.options.incremental);
-    // }
+    self.cache.before_compile(&mut self.compilation).await;
 
     self.compile().await?;
+    self
+      .plugin_driver
+      .compiler_hooks
+      .after_compile
+      .call(&mut self.compilation)
+      .await?;
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
     #[cfg(allocative)]
@@ -307,7 +385,11 @@ impl Compiler {
     let start = logger.time("seal compilation");
     self
       .compilation
-      .run_passes(self.plugin_driver.clone(), &mut *self.cache)
+      .run_passes_with_incremental_artifacts(
+        self.plugin_driver.clone(),
+        &mut self.incremental_artifacts,
+        &mut *self.cache,
+      )
       .await?;
     logger.time_end(start);
 
@@ -382,7 +464,8 @@ impl Compiler {
       .incremental
       .passes_enabled(IncrementalPasses::EMIT_ASSETS);
 
-    rspack_parallel::scope(|token| {
+    let emit_limit = Arc::new(Semaphore::new(EMIT_ASSETS_CONCURRENCY_LIMIT));
+    let emit_results = rspack_parallel::scope(|token| {
       self
         .compilation
         .assets()
@@ -404,12 +487,21 @@ impl Compiler {
           // SAFETY: await immediately and trust caller to poll future entirely
           let s = unsafe { token.used((&self, filename, asset, output_path)) };
 
-          s.spawn(|(this, filename, asset, output_path)| {
-            this.emit_asset(output_path, filename, asset)
+          let emit_limit = emit_limit.clone();
+          s.spawn(|(this, filename, asset, output_path)| async move {
+            let _permit = emit_limit
+              .acquire()
+              .await
+              .expect("emit limit semaphore should not be closed");
+            this.emit_asset(output_path, filename, asset).await
           });
         })
     })
     .await;
+
+    for result in emit_results {
+      result.map_err(|error| rspack_error::error!("Emit asset failed: {error}"))??;
+    }
 
     self.emitted_asset_versions = new_emitted_asset_versions;
 
@@ -443,9 +535,13 @@ impl Compiler {
       let mut immutable = asset.info.immutable.unwrap_or(false);
       if !query.is_empty() {
         immutable = immutable
-          && (include_hash(target_file, &asset.info.content_hash)
-            || include_hash(target_file, &asset.info.chunk_hash)
-            || include_hash(target_file, &asset.info.full_hash));
+          && asset
+            .info
+            .content_hash
+            .iter()
+            .chain(&asset.info.chunk_hash)
+            .chain(&asset.info.full_hash)
+            .any(|hash| target_file.contains(hash));
       }
 
       let stat = self
@@ -578,8 +674,7 @@ impl Compiler {
       .await?;
 
     self.cache.close().await;
-
-    Ok(())
+    self.new_cache.shutdown().await
   }
 }
 

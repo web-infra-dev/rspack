@@ -22,6 +22,7 @@ CompilerOptions {
         wasm_loading: Enable(
             Fetch,
         ),
+        wasm_streaming_fallback: true,
         webassembly_module_filename: Filename(
             Template(
                 "[hash].module.wasm",
@@ -1748,6 +1749,12 @@ CompilerOptions {
     cache: Disabled,
     experiments: Experiments {
         css: false,
+        new_cache: NewCacheOptions {
+            code_generation: false,
+            devtool: false,
+            loader: false,
+            minimize: false,
+        },
         defer_import: false,
         source_import: false,
         pure_functions: false,

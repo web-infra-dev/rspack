@@ -10,10 +10,10 @@ import RuntimeModuleType from '../../types/runtime-module.mdx';
 import SourceType from '../../types/source.mdx';
 import HashType from '../../types/hash.mdx';
 import CompilerType from '../../types/compiler.mdx';
+import { ApiMeta } from '@components/ApiMeta';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 import Columns from '@components/Columns';
 import { NoSSR } from '@rspress/core/runtime';
-import { ApiMeta } from '@components/ApiMeta';
 
 # Compilation 钩子
 
@@ -233,9 +233,9 @@ direction LR
     HookReviveChunks(hooks.reviveChunks) --> HookBeforeChunkIds(hooks.beforeChunkIds)
     HookBeforeChunkIds --> HookChunkIds(hooks.moduleIds)
     HookChunkIds --> HookOptimizeChunkIds(hooks.optimizeChunkIds)
-    HookOptimizeChunkIds --> HookAfterOptimizeChunkIds(hooks.afterOptimizeChunkIds)
+    HookOptimizeChunkIds --> HookAfterOptimizeChunkIds(<a href="#afteroptimizechunkids">hooks.afterOptimizeChunkIds</a>)
 
-    class HookReviveChunks,HookChunkIds,HookBeforeChunkIds,HookOptimizeChunkIds,HookAfterOptimizeChunkIds flow-hook-non-support
+    class HookReviveChunks,HookChunkIds,HookBeforeChunkIds,HookOptimizeChunkIds flow-hook-non-support
     end
 
     CreateChunkIds --> CreateRecords
@@ -566,6 +566,24 @@ type ExecuteModuleContext = {
   </CollapsePanel>
 </Collapse>
 
+## `afterOptimizeChunkIds`
+
+<ApiMeta addedVersion="2.2.3" />
+
+<Badge text="只读" type="info" />
+
+在 chunk id 优化阶段结束之后调用。
+
+- **类型：** `SyncHook<[Chunk[]]>`
+- **参数：**
+  - `Chunk[]`：所有 chunk 列表
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
+
 ## `additionalTreeRuntimeRequirements`
 
 在树运行时依赖计算完成后调用。
@@ -605,8 +623,6 @@ console.log(__webpack_require__.h);
 ```
 
 ## `runtimeRequirementInTree`
-
-<ApiMeta addedVersion="1.0.6" />
 
 在根据运行时依赖以添加运行时模块时调用。
 
@@ -1008,7 +1024,7 @@ type StatsFactory = {
     type: string,
     data: any,
     baseContext: Omit<StatsFactoryContext, 'type'>,
-  ): void;
+  ): any;
 };
 ```
   </CollapsePanel>

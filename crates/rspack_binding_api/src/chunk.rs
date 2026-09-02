@@ -8,18 +8,18 @@ use napi::{
   sys,
 };
 use napi_derive::napi;
-use rspack_core::{Compilation, CompilationId, CompilerId, chunk_graph_chunk::ChunkId};
+use rspack_core::{Compilation, CompilationId, chunk_graph_chunk::ChunkId};
 use rspack_napi::OneShotRef;
 use rustc_hash::FxHashMap;
 
 use crate::{
-  COMPILER_REFERENCES, chunk_group::ChunkGroupWrapper, compilation::entries::EntryOptionsDTO,
+  chunk_group::ChunkGroupWrapper, compilation::entries::EntryOptionsDTO, with_compilation,
 };
 
 #[napi]
 pub struct Chunk {
   pub(crate) chunk_ukey: rspack_core::ChunkUkey,
-  compiler_id: CompilerId,
+  compilation_id: CompilationId,
 }
 
 impl Chunk {
@@ -27,22 +27,7 @@ impl Chunk {
     &self,
     f: impl FnOnce(&Compilation) -> napi::Result<R>,
   ) -> napi::Result<R> {
-    let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
-      let references = ref_cell.borrow();
-      references.get(&self.compiler_id).cloned()
-    });
-
-    let Some(this) = compiler_reference
-      .as_ref()
-      .and_then(|compiler_reference| compiler_reference.get())
-    else {
-      return Err(napi::Error::from_reason(format!(
-        "Unable to access chunk with id = {:?} now. The Compiler has been garbage collected by JavaScript.",
-        self.chunk_ukey
-      )));
-    };
-
-    f(&this.compiler.compilation)
+    with_compilation(self.compilation_id, f)
   }
 
   fn with_ref<R>(
@@ -58,7 +43,7 @@ impl Chunk {
         f(compilation, chunk)
       } else {
         Err(napi::Error::from_reason(format!(
-          "Unable to access chunk with id = {:?} now. The module have been removed on the Rust side.",
+          "Unable to access chunk with id = {:?} now. The chunk have been removed on the Rust side.",
           self.chunk_ukey
         )))
       }
@@ -334,20 +319,14 @@ thread_local! {
 pub struct ChunkWrapper {
   pub chunk_ukey: rspack_core::ChunkUkey,
   pub compilation_id: CompilationId,
-  compiler_id: CompilerId,
 }
-
-unsafe impl Send for ChunkWrapper {}
 
 impl FromNapiValue for ChunkWrapper {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> napi::Result<Self> {
     let chunk: &Chunk = unsafe { FromNapiValue::from_napi_value(env, napi_val)? };
-    chunk.with_compilation(|compilation| {
-      Ok(Self {
-        chunk_ukey: chunk.chunk_ukey,
-        compilation_id: compilation.id(),
-        compiler_id: compilation.compiler_id(),
-      })
+    Ok(Self {
+      chunk_ukey: chunk.chunk_ukey,
+      compilation_id: chunk.compilation_id,
     })
   }
 }
@@ -357,7 +336,13 @@ impl ChunkWrapper {
     Self {
       chunk_ukey,
       compilation_id: compilation.id(),
-      compiler_id: compilation.compiler_id(),
+    }
+  }
+
+  pub fn new_by_id(chunk_ukey: rspack_core::ChunkUkey, compilation_id: CompilationId) -> Self {
+    Self {
+      chunk_ukey,
+      compilation_id,
     }
   }
 
@@ -413,7 +398,7 @@ impl ToNapiValue for ChunkWrapper {
           std::collections::hash_map::Entry::Vacant(entry) => {
             let js_chunk = Chunk {
               chunk_ukey: val.chunk_ukey,
-              compiler_id: val.compiler_id,
+              compilation_id: val.compilation_id,
             };
             let r = entry.insert(OneShotRef::new(env, js_chunk)?);
             ToNapiValue::to_napi_value(env, r)

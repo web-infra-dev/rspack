@@ -1,29 +1,34 @@
-use std::hash::BuildHasherDefault;
+use std::{
+  hash::BuildHasherDefault,
+  sync::atomic::{AtomicBool, Ordering},
+};
 
 use indexmap::{IndexMap, IndexSet};
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
+  rkyv::with::{AtomicLoad, Relaxed},
   with::{AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, ChunkGraph, ConditionalInitFragment, ConnectionState, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
-  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, DetermineExportAssignmentsKey, ESMExportBinding, ESMExportInitFragment,
-  ExportMode, ExportModeDynamicReexport, ExportModeEmptyStar, ExportModeFakeNamespaceObject,
-  ExportModeNormalReexport, ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
+  DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, DetermineExportAssignmentsKey,
+  ESMExportBinding, ESMExportInitFragment, ExportMode, ExportModeDynamicReexport,
+  ExportModeEmptyStar, ExportModeFakeNamespaceObject, ExportModeNormalReexport,
+  ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoArtifact,
-  ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
-  FactorizeInfo, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
-  ResourceIdentifier, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
-  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
-  filter_runtime, get_exports_type, get_runtime_key, get_terminal_binding, property_access,
-  property_name, render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
+  ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, ExportsType, ForwardId, ImportAttributes,
+  ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions,
+  LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  NormalInitFragment, NormalReexportItem, ReferencedExport, ResourceIdentifier, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, StarReexportsInfo, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedName, collect_referenced_export_items,
+  create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
+  get_runtime_key, get_terminal_binding, property_access, property_name,
+  render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_hash::{RspackHash, RspackHasher};
@@ -37,12 +42,14 @@ use super::{
 };
 use crate::connection_active_inline_value_for_esm_export_imported_specifier;
 
+const DYNAMIC_REEXPORT_RUNTIME_THRESHOLD: usize = 16;
+
 // Create __rspack_context.d(__rspack_exports, {}).
 // case1: `import { a } from 'a'; export { a }`
 // case2: `export { a } from 'a';`
 // case3: `export * from 'a'`
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ESMExportImportedSpecifierDependency {
   pub id: DependencyId,
   #[cacheable(with=AsVec<AsPreset>)]
@@ -59,8 +66,8 @@ pub struct ESMExportImportedSpecifierDependency {
   resource_identifier: ResourceIdentifier,
   export_presence_mode: ExportPresenceMode,
   loc: Option<DependencyLocation>,
-  factorize_info: FactorizeInfo,
-  lazy_make: bool,
+  #[cacheable(with=AtomicLoad<Relaxed>)]
+  lazy_make: AtomicBool,
 }
 
 impl ESMExportImportedSpecifierDependency {
@@ -92,8 +99,7 @@ impl ESMExportImportedSpecifierDependency {
       phase,
       attributes,
       loc,
-      factorize_info: Default::default(),
-      lazy_make: false,
+      lazy_make: AtomicBool::new(false),
     }
   }
 
@@ -159,7 +165,7 @@ impl ESMExportImportedSpecifierDependency {
     let Some(imported_module_identifier) = module_graph.module_identifier_by_dependency_id(id)
     else {
       // if it's not exists in module graph and has the lazy mark, then it's never picked up to make the module
-      return if self.lazy_make {
+      return if self.lazy_make.load(Ordering::Relaxed) {
         ExportMode::LazyMake
       } else {
         ExportMode::Missing
@@ -504,7 +510,6 @@ impl ESMExportImportedSpecifierDependency {
   pub fn add_export_fragments(&self, ctxt: &mut TemplateContext, mode: ExportMode) {
     let module = ctxt.module;
     let runtime = ctxt.runtime;
-    let runtime_template = &mut *ctxt.runtime_template;
     let compilation = ctxt.compilation;
     let mg = &compilation.get_module_graph();
     let mg_cache = &compilation.module_graph_cache_artifact;
@@ -525,7 +530,7 @@ impl ESMExportImportedSpecifierDependency {
             "/* empty/unused ESM star reexport */\n".to_string(),
             InitFragmentStage::StageESMExports,
             1,
-            InitFragmentKey::unique(),
+            InitFragmentKey::ESMEmptyReexport(import_var),
             None,
           )
           .boxed(),
@@ -536,7 +541,7 @@ impl ESMExportImportedSpecifierDependency {
           to_normal_comment(&format!("unused reexport {name}")),
           InitFragmentStage::StageESMExports,
           1,
-          InitFragmentKey::unique(),
+          InitFragmentKey::ESMUnusedReexport(import_var),
           None,
         )
         .boxed(),
@@ -761,67 +766,111 @@ impl ESMExportImportedSpecifierDependency {
           ignored.extend(hidden);
         }
 
-        let environment = compilation.options.output.environment;
-        let supports_arrow_function = environment.supports_arrow_function();
-        let supports_const = environment.supports_const();
-
-        let mut content = format!(
-          r"
-/* reexport */ var __rspack_reexport = {{}};
-/* reexport */ for( {} __rspack_import_key in {import_var}) ",
-          if supports_const { "const" } else { "var" }
-        );
-
-        if ignored.len() > 1 {
-          content += &format!(
-            "if({}.indexOf(__rspack_import_key) < 0) ",
-            json_stringify(&ignored)
-          );
-        } else if let Some(item) = ignored.iter().next() {
-          content += &format!(
-            "if(__rspack_import_key !== {}) ",
-            rspack_util::json_stringify_str(item)
-          );
-        }
-        content += "__rspack_reexport[__rspack_import_key] =";
-
-        // Arrow getters capture the loop variable by reference.
-        // They are only correct when the loop binding is block-scoped (const/let), not var.
-        if supports_arrow_function && supports_const {
-          content += &format!("() => {import_var}[__rspack_import_key]");
-        } else {
-          content +=
-            &format!("function(key) {{ return {import_var}[key]; }}.bind(0, __rspack_import_key)");
-        }
-
+        let use_runtime =
+          self.has_repeated_dynamic_reexports(mg, runtime, mg_cache, exports_info_artifact);
         let module = mg
           .module_by_identifier(&module.identifier())
           .expect("should have module graph module");
         let exports_name = module.get_exports_argument();
         let is_async =
           ModuleGraph::is_async(&compilation.async_modules_artifact, &module.identifier());
-        ctxt.init_fragments.push(
-          NormalInitFragment::new(
-            format!(
-              r#"{content}
+        let content = if use_runtime {
+          let reexport = ctxt
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REEXPORT);
+          let exports = ctxt.runtime_template.render_exports_argument(exports_name);
+          let ignored = render_dynamic_reexport_excluded(&ignored);
+          format!("/* reexport */ {reexport}({exports}, {import_var}, {ignored});\n")
+        } else {
+          let environment = compilation.options.output.environment;
+          let supports_arrow_function = environment.supports_arrow_function();
+          let supports_const = environment.supports_const();
+          let mut content = format!(
+            r"
+/* reexport */ var __rspack_reexport = {{}};
+/* reexport */ for( {} __rspack_import_key in {import_var}) ",
+            if supports_const { "const" } else { "var" }
+          );
+
+          if ignored.len() > 1 {
+            content += &format!(
+              "if({}.indexOf(__rspack_import_key) < 0) ",
+              json_stringify(&ignored)
+            );
+          } else if let Some(item) = ignored.iter().next() {
+            content += &format!(
+              "if(__rspack_import_key !== {}) ",
+              rspack_util::json_stringify_str(item)
+            );
+          }
+          content += "__rspack_reexport[__rspack_import_key] =";
+          if supports_arrow_function && supports_const {
+            content += &format!("() => {import_var}[__rspack_import_key]");
+          } else {
+            content += &format!(
+              "function(key) {{ return {import_var}[key]; }}.bind(0, __rspack_import_key)"
+            );
+          }
+          content += &format!(
+            r#"
 /* reexport */ {}({}, __rspack_reexport);
 "#,
-              runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-              runtime_template.render_exports_argument(exports_name),
-            ),
+            ctxt
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+            ctxt.runtime_template.render_exports_argument(exports_name),
+          );
+          content
+        };
+        ctxt.init_fragments.push(
+          NormalInitFragment::new(
+            content,
             if is_async {
               InitFragmentStage::StageAsyncESMImports
             } else {
               InitFragmentStage::StageESMImports
             },
             self.source_order,
-            InitFragmentKey::unique(),
+            InitFragmentKey::ESMDynamicReexport(import_var),
             None,
           )
           .boxed(),
         );
       }
     }
+  }
+
+  fn has_repeated_dynamic_reexports(
+    &self,
+    module_graph: &ModuleGraph,
+    runtime: Option<&RuntimeSpec>,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+  ) -> bool {
+    let Some((_, dependencies)) = self.all_star_exports(module_graph) else {
+      return false;
+    };
+    dependencies
+      .iter()
+      .filter_map(|dependency_id| {
+        module_graph
+          .dependency_by_id(dependency_id)
+          .downcast_ref::<Self>()
+      })
+      .filter(|dependency| {
+        matches!(
+          dependency.get_mode(
+            module_graph,
+            runtime,
+            module_graph_cache,
+            exports_info_artifact,
+          ),
+          ExportMode::DynamicReexport(_)
+        )
+      })
+      .take(DYNAMIC_REEXPORT_RUNTIME_THRESHOLD)
+      .count()
+      >= DYNAMIC_REEXPORT_RUNTIME_THRESHOLD
   }
 
   fn get_reexport_deferred_namespace_object_fragments(
@@ -952,7 +1001,7 @@ impl ESMExportImportedSpecifierDependency {
 
   fn get_conditional_reexport_statement(
     &self,
-    ctxt: &mut TemplateContext<'_, '_, '_>,
+    ctxt: &mut TemplateContext<'_, '_>,
     key: Atom,
     name: &String,
     first_value_key: Atom,
@@ -994,6 +1043,7 @@ impl ESMExportImportedSpecifierDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     should_error: bool,
+    diagnostics_context: &DependencyDiagnosticsContext,
   ) -> Option<Vec<Diagnostic>> {
     let create_error = |message: String| {
       let (severity, title) = if should_error {
@@ -1006,10 +1056,10 @@ impl ESMExportImportedSpecifierDependency {
         .expect("should have parent module for dependency");
       let mut error = if let Some(span) = self.range()
         && let Some(parent_module) = module_graph.module_by_identifier(parent_module_identifier)
-        && let Some(source) = parent_module.source()
+        && let Some(source) = diagnostics_context.module_source(parent_module.as_ref())
       {
-        Error::from_string(
-          Some(source.source().into_string_lossy().into_owned()),
+        Error::from_shared_source(
+          Some(source),
           span.start as usize,
           span.end as usize,
           title.to_string(),
@@ -1378,6 +1428,21 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
+    self.get_diagnostics_with_context(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      &DependencyDiagnosticsContext::default(),
+    )
+  }
+
+  fn get_diagnostics_with_context(
+    &self,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+    diagnostics_context: &DependencyDiagnosticsContext,
+  ) -> Option<Vec<Diagnostic>> {
     let module = module_graph.get_parent_module(&self.id)?;
     let module = module_graph.module_by_identifier(module)?;
     let ids = self.get_ids(module_graph);
@@ -1397,6 +1462,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
           name,
           true,
           should_error,
+          diagnostics_context,
         )
       {
         diagnostics.push(error);
@@ -1407,6 +1473,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         module_graph_cache,
         exports_info_artifact,
         should_error,
+        diagnostics_context,
       ) {
         diagnostics.extend(errors);
       }
@@ -1421,7 +1488,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     let mode = self.get_mode(
       module_graph,
       runtime,
@@ -1461,7 +1528,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         );
         referenced_exports
           .into_iter()
-          .map(|i| ExtendedReferencedExport::Array(i.into_iter().map(|i| i.to_owned()).collect()))
+          .map(ReferencedExport::from)
           .collect::<Vec<_>>()
       }
       ExportMode::NormalReexport(mode) => {
@@ -1482,7 +1549,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         }
         referenced_exports
           .into_iter()
-          .map(|i| ExtendedReferencedExport::Array(i.into_iter().map(|i| i.to_owned()).collect()))
+          .map(ReferencedExport::from)
           .collect::<Vec<_>>()
       }
     }
@@ -1504,7 +1571,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   }
 
   fn lazy(&self) -> Option<LazyUntil> {
-    self.lazy_make.then(|| {
+    self.lazy_make.load(Ordering::Relaxed).then(|| {
       if let Some(name) = &self.name {
         LazyUntil::Id(name.clone())
       } else {
@@ -1513,14 +1580,12 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     })
   }
 
-  fn set_lazy(&mut self) {
-    self.lazy_make = true;
+  fn set_lazy(&self) {
+    self.lazy_make.store(true, Ordering::Relaxed);
   }
 
-  fn unset_lazy(&mut self) -> bool {
-    let changed = self.lazy_make;
-    self.lazy_make = false;
-    changed
+  fn unset_lazy(&self) -> bool {
+    self.lazy_make.swap(false, Ordering::Relaxed)
   }
 }
 
@@ -1538,14 +1603,6 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
     Some(DependencyCondition::new(
       ESMExportImportedSpecifierDependencyCondition,
     ))
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 
@@ -1699,6 +1756,19 @@ fn render_used_name(used: Option<&UsedName>) -> String {
     None => "/* unused export */ undefined".to_string(),
     Some(UsedName::Normal(value_key)) if value_key.len() == 1 => value_key[0].to_string(),
     _ => unreachable!("export should only have one name"),
+  }
+}
+
+fn render_dynamic_reexport_excluded(values: &HashSet<Atom>) -> String {
+  match values.len() {
+    0 => "0".to_string(),
+    1 => rspack_util::json_stringify_str(
+      values
+        .iter()
+        .next()
+        .expect("single excluded reexport should exist"),
+    ),
+    _ => json_stringify(values),
   }
 }
 

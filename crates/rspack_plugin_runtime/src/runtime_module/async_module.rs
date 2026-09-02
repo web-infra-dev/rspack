@@ -1,9 +1,15 @@
+use std::sync::LazyLock;
+
 use rspack_core::{
-  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
-  RuntimeVariable, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeModule,
+  RuntimeModuleGenerateContext, RuntimeTemplate, RuntimeVariable, impl_runtime_module,
 };
 
+use crate::extract_runtime_module_variables_from_ejs;
+
 static ASYNC_MODULE_TEMPLATE: &str = include_str!("runtime/async_module.ejs");
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
+  LazyLock::new(|| extract_runtime_module_variables_from_ejs(&[ASYNC_MODULE_TEMPLATE]));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -17,16 +23,24 @@ impl AsyncRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for AsyncRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES.as_slice()
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
     let runtime_template = context.runtime_template;
+    let uses_lexical_runtime_globals = match runtime_template.render_mode() {
+      RuntimeGlobalsRenderMode::RspackLexical | RuntimeGlobalsRenderMode::RspackExport => true,
+      RuntimeGlobalsRenderMode::Webpack | RuntimeGlobalsRenderMode::RspackContext => false,
+    };
     runtime_template.render(
       self.id(),
       Some(serde_json::json!({
         "_module_cache": runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
-        "_uses_lexical_runtime_globals": runtime_template.uses_lexical_runtime_globals(),
+        "_uses_lexical_runtime_globals": uses_lexical_runtime_globals,
       })),
     )
   }

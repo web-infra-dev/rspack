@@ -9,7 +9,7 @@ authors:
     x: 'https://x.com/rspack_dev'
 ---
 
-import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 # Announcing Rspack 1.7
 
@@ -70,7 +70,7 @@ const text = decoder.decode(module.default);
 
 ### Lazy compilation
 
-In Rspack 1.5, we stabilized the [Lazy Compilation](/guide/features/lazy-compilation) feature and enabled it by default for dynamically imported modules in Rsbuild.
+In Rspack 1.5, we stabilized the [Lazy Compilation](/guide/advanced/lazy-compilation) feature and enabled it by default for dynamically imported modules in Rsbuild.
 
 Starting from Rspack 1.7, the Rspack CLI also enables lazy compilation by default for dynamically imported modules when building web applications. This change reduces the number of modules in the initial build, thereby speeding up the dev server startup.
 

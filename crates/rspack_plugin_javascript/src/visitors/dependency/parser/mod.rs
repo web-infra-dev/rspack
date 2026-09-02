@@ -12,6 +12,7 @@ use std::{
   fmt::Display,
   hash::{Hash, Hasher},
   rc::Rc,
+  sync::Arc,
 };
 
 use bitflags::bitflags;
@@ -21,11 +22,11 @@ use rspack_cacheable::{
   with::{AsCacheable, AsOption, AsPreset, AsVec},
 };
 use rspack_core::{
-  ArcComputed, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, DependencyId, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
-  ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption, JavascriptParserOptions,
-  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData,
-  SideEffectsBailoutItemWithSpan,
+  ArcComputed, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, CompilerOptions,
+  DependencyCodeGeneration, DependencyCodeGenerationRef, DependencyId, DependencyLocation,
+  DependencyRange, FactoryMeta, ImportMeta, ImportMetaKnownProperties,
+  JavascriptParserCommonjsExportsOption, JavascriptParserOptions, ModuleIdentifier, ModuleLayer,
+  ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::fx_hash::FxIndexSet;
@@ -44,8 +45,9 @@ use crate::{
   dependency::{DependencyBranchGuard, local_module::LocalModule},
   parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
-    self, ImportsReferencesState, InnerGraphParserPlugin, JavaScriptParserPluginDrive,
-    JavascriptParserPlugin, RequireReferencesState, inner_graph::state::InnerGraphState,
+    self, CreatedRequireReferencesState, ImportsReferencesState, InnerGraphParserPlugin,
+    JavaScriptParserPluginDrive, JavascriptParserPlugin, RequireReferencesState,
+    inner_graph::state::InnerGraphState,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
@@ -69,6 +71,37 @@ pub trait TagInfoData: Clone + Sized + 'static {
 
 fn atom_from_wtf8(value: swc_experimental_allocator::atom::Wtf8Atom<'_>) -> Atom {
   Atom::from(value.as_wtf8().to_string_lossy().as_ref())
+}
+
+pub(crate) fn member_property_to_atom(expr: &Expr) -> Option<Atom> {
+  match expr {
+    Expr::Lit(lit) => Some(match &**lit {
+      Lit::Str(s) => atom_from_wtf8(s.value),
+      Lit::Bool(b) => Atom::from(if b.value { "true" } else { "false" }),
+      Lit::Null(_) => Atom::from("null"),
+      Lit::Num(n) => Atom::from(rspack_util::ryu_js::Buffer::new().format(n.value)),
+      Lit::BigInt(i) => Atom::from(i.value.as_str()),
+      Lit::Regex(r) => {
+        let mut flags = r.flags.as_str().chars().collect::<Vec<_>>();
+        flags.sort_unstable();
+        let mut property = String::with_capacity(r.exp.len() + flags.len() + 2);
+        property.push('/');
+        property.push_str(r.exp.as_str());
+        property.push('/');
+        property.extend(flags);
+        Atom::from(property)
+      }
+    }),
+    Expr::Tpl(tpl) if tpl.exprs.is_empty() && tpl.quasis.len() == 1 => {
+      let quasi = tpl.quasis.first()?;
+      Some(
+        quasi
+          .cooked
+          .map_or_else(|| Atom::from(quasi.raw.as_str()), atom_from_wtf8),
+      )
+    }
+    _ => None,
+  }
 }
 
 impl GetSpan for estree::Statement<'_> {
@@ -307,10 +340,6 @@ impl Hash for DestructuringAssignmentProperties {
 }
 
 impl DestructuringAssignmentProperties {
-  pub fn new(properties: FxIndexSet<DestructuringAssignmentProperty>) -> Self {
-    Self { inner: properties }
-  }
-
   pub fn insert(&mut self, prop: DestructuringAssignmentProperty) -> bool {
     self.inner.insert(prop)
   }
@@ -349,7 +378,11 @@ impl DestructuringAssignmentProperties {
     for prop in &self.inner {
       stack.push(prop);
       on_enter_node(stack);
-      if let Some(pattern) = &prop.pattern {
+      // Empty nested patterns still access and coerce their parent value, so
+      // the parent property is a referenced leaf in that case.
+      if let Some(pattern) = &prop.pattern
+        && !pattern.inner.is_empty()
+      {
         pattern.traverse_impl(on_leaf_node, on_enter_node, stack);
       } else {
         on_leaf_node(stack);
@@ -379,7 +412,7 @@ pub struct JavascriptParser<'parser> {
   errors: Vec<Diagnostic>,
   warning_diagnostics: Vec<Diagnostic>,
   dependencies: Vec<BoxDependency>,
-  presentational_dependencies: Vec<BoxDependencyTemplate>,
+  presentational_dependencies: Vec<DependencyCodeGenerationRef>,
   // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
   // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
   #[allow(clippy::vec_box)]
@@ -416,6 +449,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) destructuring_assignment_properties: DestructuringAssignmentPropertiesMap,
   pub(crate) dynamic_import_references: ImportsReferencesState,
   pub(crate) common_js_require_references: RequireReferencesState,
+  pub(crate) created_require_references: CreatedRequireReferencesState<'parser>,
   pub(crate) worker_index: u32,
   pub(crate) parser_exports_state: Option<bool>,
   pub(crate) local_modules: Vec<LocalModule>,
@@ -598,6 +632,7 @@ impl<'parser> JavascriptParser<'parser> {
       destructuring_assignment_properties: Default::default(),
       dynamic_import_references: Default::default(),
       common_js_require_references: Default::default(),
+      created_require_references: Default::default(),
       semicolons,
       statement_path: Default::default(),
       current_tag_info: None,
@@ -704,13 +739,13 @@ impl<'parser> JavascriptParser<'parser> {
     self.current_branch_guard = old_guard;
   }
 
-  pub fn add_presentational_dependency(&mut self, dep: BoxDependencyTemplate) {
+  pub fn add_presentational_dependency(&mut self, dep: DependencyCodeGenerationRef) {
     self.presentational_dependencies.push(dep);
   }
 
   pub fn add_presentational_dependencies(
     &mut self,
-    deps: impl IntoIterator<Item = BoxDependencyTemplate>,
+    deps: impl IntoIterator<Item = DependencyCodeGenerationRef>,
   ) {
     self.presentational_dependencies.extend(deps);
   }
@@ -722,8 +757,8 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn get_presentational_dependency_mut(
     &mut self,
     idx: usize,
-  ) -> Option<&mut BoxDependencyTemplate> {
-    self.presentational_dependencies.get_mut(idx)
+  ) -> Option<&mut (dyn DependencyCodeGeneration + 'static)> {
+    Arc::get_mut(self.presentational_dependencies.get_mut(idx)?)
   }
 
   pub fn add_block(&mut self, mut block: Box<AsyncDependenciesBlock>) {
@@ -810,6 +845,12 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn get_module_layer(&self) -> Option<&ModuleLayer> {
     self.module_layer
+  }
+
+  /// The source order assigned to the import declaration currently being
+  /// visited by `import_specifier` parser hooks.
+  pub fn current_esm_import_order(&self) -> i32 {
+    self.last_esm_import_order
   }
 
   pub fn get_variable_info(&mut self, name: &Atom) -> Option<&VariableInfo> {
@@ -1178,16 +1219,8 @@ impl<'parser> JavascriptParser<'parser> {
       match object {
         ExprRef::Member(expr) => {
           if let Some(computed) = expr.prop.as_computed() {
-            let Expr::Lit(lit) = &computed.expr else {
+            let Some(value) = member_property_to_atom(&computed.expr) else {
               break;
-            };
-            let value = match &**lit {
-              Lit::Str(s) => atom_from_wtf8(s.value),
-              Lit::Bool(b) => Atom::from(if b.value { "true" } else { "false" }),
-              Lit::Null(_) => Atom::from("null"),
-              Lit::Num(n) => Atom::from(n.value.to_string().as_str()),
-              Lit::BigInt(i) => Atom::from(i.value.as_str()),
-              Lit::Regex(r) => Atom::from(r.exp.as_str()),
             };
             // Since members are not used across rspack javascript parser plugin,
             // we directly makes it atom here

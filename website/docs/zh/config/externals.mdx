@@ -2,10 +2,8 @@
 description: '外部依赖（externals）用于指定哪些模块不需要被 Rspack 打包，而是直接使用外部环境中提供的实现。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import { Stability } from '../../../components/ApiMeta';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/externals/" />
 
 # Externals
 
@@ -305,17 +303,22 @@ export default {
 ## externalsType
 
 - **类型：** `string`
-- **默认值：** 取决于 [`output.library.type`](/config/output#outputlibrarytype) 和 [`output.module`](/config/output#outputmodule)
 
-默认值的推导规则如下：
+`externalsType` 决定 Rspack 默认如何加载 external 依赖。使用 `'amd'`、`'umd'`、`'system'` 或 `'jsonp'` 类型时，[`output.library.type`](/config/output#outputlibrarytype) 必须设置为相同的值。例如，只有 `'amd'` 库才能使用 `'amd'` 类型的 external。
 
-- 配置了 [`output.library`](/config/output#outputlibrary) 时，与 [`output.library.type`](/config/output#outputlibrarytype) 保持一致。
-- 否则，如果 [`output.module`](/config/output#outputmodule) 为 `true`，则为 `'module-import'`。
-- 否则为 `'var'`。
+如果 external 依赖需要使用与推导结果不同的加载格式，请显式设置 `externalsType`。
 
-指定 externals 的默认类型。当 external 被设置为 `amd`，`umd`，`system` 以及 `jsonp` 时，[`output.library.type`](/config/output#outputlibrarytype) 的值也应相同。例如，你只能在 `amd` 库中使用 `amd` 的 externals。
+### 默认值
 
-如果 external 依赖需要使用不同于推导结果的加载格式，请显式设置 `externalsType`。
+默认值按以下顺序推导：
+
+- 如果配置了 [`output.library`](/config/output#outputlibrary)，且其类型不是 `'modern-module'`，则 `externalsType` 默认为 [`output.library.type`](/config/output#outputlibrarytype)。
+- 否则，如果 [`output.module`](/config/output#outputmodule) 为 `true`，则默认为 `'module-import'`。
+- 其他情况下默认为 `'var'`。
+
+出于向后兼容的考虑，[`output.library.type: 'modern-module'`](/config/output#outputlibrarytype) 目前会跳过第一条规则，继续按照 `output.module` 推导默认值。如需使用 modern module externals，请显式设置 `externalsType: 'modern-module'`。
+
+### 可选值
 
 支持的类型如下：
 
@@ -323,7 +326,9 @@ export default {
 - `'amd-require'`
 - `'assign'` - 同 `'var'`
 - [`'commonjs'`](#externalstypecommonjs)
+- `'commonjs2'`
 - `'commonjs-module'`
+- `'commonjs-static'`
 - [`'global'`](#externalstypeglobal)
 - [`'module'`](#externalstypemodule)
 - [`'import'`](#externalstypeimport) - 使用 `import()` 加载一个原生的 ECMAScript 模块（异步模块）
@@ -536,18 +541,16 @@ async function foo() {
 
 ```js title="rspack.config.mjs"
 export default {
-  externalsType: "module-import",
+  externalsType: 'module-import',
   externals: [
-    function (
-      { request, dependencyType },
-      callback
-    ) {
-      if (dependencyType === "commonjs") {
+    function ({ request, dependencyType }, callback) {
+      if (dependencyType === 'commonjs') {
         return callback(null, `node-commonjs ${request}`);
       }
       callback();
     },
-  ]
+  ],
+};
 ```
 
 ### externalsType['modern-module']
@@ -976,3 +979,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.docschina.org/configuration/externals/" />

@@ -12,12 +12,12 @@ use json::{
 };
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoArtifact, ExportsInfoData,
-  GenerateContext, GeneratorOptions, Module, ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT,
-  ParseOption, ParserAndGenerator, ParserOptions, Plugin, RuntimeSpec, SourceType, UsageState,
-  UsedNameItem,
+  BoxDependency, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoArtifact,
+  ExportsInfoData, GenerateContext, GeneratorOptions, Module, ModuleArgument, ModuleGraph,
+  NAMESPACE_OBJECT_EXPORT, ParseOption, ParserAndGenerator, ParserOptions, Plugin, RuntimeSpec,
+  SourceType, UsageState, UsedNameItem,
   diagnostics::ModuleParseError,
-  rspack_sources::{BoxSource, OriginalSource, RawStringSource, Source, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, error};
 use rspack_util::{itoa, location::byte_line_column_to_offset};
@@ -138,10 +138,11 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       }
     };
 
-    build_info.json_data = Some(data.clone());
+    let is_default_object = data.is_object() || data.is_array();
+    build_info.json_data = Some(data);
     build_info.strict = true;
     build_meta.set_exports_type(BuildMetaExportsType::Default);
-    build_meta.set_default_object(if data.is_object() || data.is_array() {
+    build_meta.set_default_object(if is_default_object {
       BuildMetaDefaultObject::RedirectWarn
     } else {
       BuildMetaDefaultObject::False
@@ -150,8 +151,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     Ok(
       rspack_core::ParseResult {
         presentational_dependencies: vec![],
-        dependencies: vec![Box::new(JsonExportsDependency::new(
-          data,
+        dependencies: vec![BoxDependency::new(JsonExportsDependency::new(
           self.exports_depth,
         ))],
         blocks: vec![],
@@ -230,11 +230,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               .render_module_argument(ModuleArgument::Module)
           )
         };
-        if module.get_source_map_kind().enabled() {
-          Ok(OriginalSource::new(content, module.identifier().as_str()).boxed())
-        } else {
-          Ok(RawStringSource::from(content).boxed())
-        }
+        Ok(RawStringSource::from(content).boxed())
       }
       _ => panic!(
         "Unsupported source type: {:?}",

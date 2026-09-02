@@ -12,11 +12,13 @@ import path from 'node:path';
 import type { HttpUriPluginOptions } from '../builtin-plugin';
 import type { Compilation } from '../Compilation';
 import type WebpackError from '../lib/WebpackError';
+import { deprecate } from '../util';
 import type {
   Amd,
   AssetModuleFilename,
   Bail,
   BundlerInfoOptions,
+  CacheSnapshotOptions,
   ChunkFilename,
   ChunkLoading,
   ChunkLoadingGlobal,
@@ -60,6 +62,8 @@ import type {
   LibraryOptions,
   Loader,
   Mode,
+  NewCache,
+  NewCachePresets,
   Name,
   Node,
   NoParseOption,
@@ -82,6 +86,7 @@ import type {
   TrustedTypes,
   UniqueName,
   WasmLoading,
+  WasmStreamingFallback,
   Watch,
   WatchOptions,
   WebassemblyModuleFilename,
@@ -175,6 +180,7 @@ export const getNormalizedRspackOptions = (
         hotUpdateGlobal: output.hotUpdateGlobal,
         assetModuleFilename: output.assetModuleFilename,
         wasmLoading: output.wasmLoading,
+        wasmStreamingFallback: output.wasmStreamingFallback,
         enabledChunkLoadingTypes: output.enabledChunkLoadingTypes
           ? [...output.enabledChunkLoadingTypes]
           : ['...'],
@@ -275,6 +281,7 @@ export const getNormalizedRspackOptions = (
       if (cache === true) {
         return {
           type: 'memory',
+          snapshot: getNormalizedCacheSnapshot(),
         };
       }
       switch (cache.type) {
@@ -283,36 +290,35 @@ export const getNormalizedRspackOptions = (
           return {
             ...cache,
             type: 'memory',
+            snapshot: getNormalizedCacheSnapshot(cache.snapshot),
           };
         case 'persistent': {
+          const hasMaxVersions = Object.hasOwn(cache, 'maxVersions');
+          if (hasMaxVersions) {
+            deprecate(
+              '`cache.maxVersions` is deprecated and has no effect. Rspack keeps only one persistent cache per compiler path.',
+            );
+          }
           const context = config.context || process.cwd();
           return {
             type: 'persistent',
+            name: cache.name,
             version: cache.version,
             maxAge: cache.maxAge,
-            maxVersions: cache.maxVersions,
+            ...(hasMaxVersions ? { maxVersions: cache.maxVersions } : {}),
             portable: cache.portable,
             readonly: cache.readonly,
             buildDependencies: nestedArray(cache.buildDependencies, (deps) =>
               deps.map((d) => path.resolve(context, d)),
             ),
-            snapshot: nestedConfig(cache.snapshot, (snapshot) => ({
-              immutablePaths: optionalNestedArray(
-                snapshot.immutablePaths,
-                (p) => [...p],
-              ),
-              unmanagedPaths: optionalNestedArray(
-                snapshot.unmanagedPaths,
-                (p) => [...p],
-              ),
-              managedPaths: optionalNestedArray(snapshot.managedPaths, (p) => [
-                ...p,
-              ]),
-            })),
+            snapshot: getNormalizedCacheSnapshot(cache.snapshot),
             storage: nestedConfig(cache.storage, (storage) => ({
               type: storage.type,
-              directory: optionalNestedConfig(storage.directory, (d) =>
-                path.resolve(context, d),
+              directory: optionalNestedConfig(storage.directory, (directory) =>
+                path.resolve(context, directory),
+              ),
+              location: optionalNestedConfig(storage.location, (location) =>
+                path.resolve(context, location),
               ),
             })),
           };
@@ -365,6 +371,10 @@ export const getNormalizedRspackOptions = (
     experiments: nestedConfig(config.experiments, (experiments) => {
       return {
         ...experiments,
+        newCache:
+          experiments.newCache === undefined
+            ? undefined
+            : getNormalizedNewCacheOptions(experiments.newCache),
         buildHttp: experiments.buildHttp,
         useInputFileSystem: experiments.useInputFileSystem,
       };
@@ -483,6 +493,23 @@ const getNormalizedIncrementalOptions = (
   return incremental;
 };
 
+const getNormalizedNewCacheOptions = (
+  newCache: NewCachePresets | NewCache,
+): false | NewCache => {
+  if (newCache === false) return false;
+  if (newCache === true) return {};
+  return newCache;
+};
+
+const getNormalizedCacheSnapshot = (
+  snapshot?: CacheSnapshotOptions,
+): CacheSnapshotNormalized =>
+  nestedConfig(snapshot, (snapshot) => ({
+    immutablePaths: optionalNestedArray(snapshot.immutablePaths, (p) => [...p]),
+    unmanagedPaths: optionalNestedArray(snapshot.unmanagedPaths, (p) => [...p]),
+    managedPaths: optionalNestedArray(snapshot.managedPaths, (p) => [...p]),
+  }));
+
 const nestedConfig = <T, R>(value: T | undefined, fn: (value: T) => R) =>
   value === undefined ? fn({} as T) : fn(value);
 
@@ -574,6 +601,7 @@ export interface OutputNormalized {
   importMetaName?: ImportMetaName;
   iife?: Iife;
   wasmLoading?: WasmLoading;
+  wasmStreamingFallback?: WasmStreamingFallback;
   enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
   webassemblyModuleFilename?: WebassemblyModuleFilename;
   chunkFormat?: string | false;
@@ -607,25 +635,30 @@ export interface ModuleOptionsNormalized {
   noParse?: NoParseOption;
 }
 
+export type CacheSnapshotNormalized = {
+  immutablePaths?: (string | RegExp)[];
+  unmanagedPaths?: (string | RegExp)[];
+  managedPaths?: (string | RegExp)[];
+};
+
 export type CacheNormalized =
   | false
   | {
       type: 'memory';
+      snapshot: CacheSnapshotNormalized;
     }
   | {
       type: 'persistent';
+      name?: string;
       buildDependencies: string[];
       version?: string;
       maxAge?: number;
       maxVersions?: number;
-      snapshot: {
-        immutablePaths?: (string | RegExp)[];
-        unmanagedPaths?: (string | RegExp)[];
-        managedPaths?: (string | RegExp)[];
-      };
+      snapshot: CacheSnapshotNormalized;
       storage: {
         type: 'filesystem';
         directory?: string;
+        location?: string;
       };
       portable?: boolean;
       readonly?: boolean;
@@ -635,6 +668,7 @@ export interface ExperimentsNormalized {
   asyncWebAssembly?: boolean;
   css?: boolean;
   futureDefaults?: boolean;
+  newCache?: false | NewCache;
   buildHttp?: HttpUriPluginOptions;
   useInputFileSystem?: false | RegExp[];
   nativeWatcher?: boolean;

@@ -1,12 +1,14 @@
+mod runtime_mode;
+
 use std::{borrow::Cow, sync::Arc};
 
 use rspack_collections::IdentifierIndexSet;
 use rspack_core::{
-  AssetInfo, Chunk, ChunkCodeTemplate, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey,
-  Compilation, ConcatenatedModuleInfo, InitFragment, ModuleIdentifier, PathData, PathInfo,
-  RuntimeGlobals, RuntimeVariable, SourceType, export_name, get_js_chunk_filename_template,
-  get_undo_path, render_imports, render_init_fragments,
-  rspack_sources::{ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
+  AssetInfo, Chunk, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey,
+  CodeGenerationDataPreservedAssetImport, Compilation, ConcatenatedModuleInfo, InitFragment,
+  ModuleIdentifier, PathData, PathInfo, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable,
+  SourceType, export_name, get_js_chunk_filename_template, get_undo_path, render_init_fragments,
+  rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::{
@@ -20,6 +22,7 @@ use rspack_util::{
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
 };
 
+use self::runtime_mode::{RuntimeImportRenderContext, RuntimeRenderContext, renderer_for};
 use crate::{
   chunk_link::{ChunkLinkContext, RawImportSource, ReExportFrom, Ref},
   plugin::RSPACK_ESM_RUNTIME_CHUNK,
@@ -45,6 +48,31 @@ fn is_css_only_module(
     || module.identifier().starts_with("css|")
 }
 
+fn replace_preserved_asset_import_binding(
+  source: BoxSource,
+  original_binding: &str,
+  final_binding: &str,
+) -> BoxSource {
+  if original_binding == final_binding {
+    return source;
+  }
+
+  let content = source.source().into_string_lossy();
+  let matches = content
+    .match_indices(original_binding)
+    .map(|(start, _)| (start as u32, (start + original_binding.len()) as u32))
+    .collect::<Vec<_>>();
+  if matches.is_empty() {
+    return source;
+  }
+
+  let mut source = ReplaceSource::new(source);
+  for (start, end) in matches {
+    source.replace(start, end, final_binding.to_string(), None);
+  }
+  source.boxed()
+}
+
 #[inline]
 fn get_chunk(compilation: &Compilation, chunk_ukey: ChunkUkey) -> &Chunk {
   compilation
@@ -54,36 +82,6 @@ fn get_chunk(compilation: &Compilation, chunk_ukey: ChunkUkey) -> &Chunk {
 }
 
 use crate::EsmLibraryPlugin;
-
-fn normalize_raw_import_source(source: &str) -> Cow<'_, str> {
-  let mut value = source.to_string();
-  let mut changed = false;
-
-  for _ in 0..2 {
-    let decode_target = if value.starts_with("\\\"") && value.ends_with("\\\"") {
-      format!("\"{value}\"")
-    } else {
-      value.clone()
-    };
-    if let Ok(next) = serde_json::from_str::<String>(&decode_target) {
-      changed = true;
-      value = next;
-      continue;
-    }
-    break;
-  }
-
-  if value.starts_with('\"') && value.ends_with('\"') && value.len() >= 2 {
-    changed = true;
-    value = value[1..value.len() - 1].to_string();
-  }
-
-  if !changed {
-    Cow::Borrowed(source)
-  } else {
-    Cow::Owned(value)
-  }
-}
 
 impl EsmLibraryPlugin {
   fn get_entrypoint(chunk_ukey: ChunkUkey, compilation: &Compilation) -> Option<&ChunkGroup> {
@@ -135,7 +133,7 @@ impl EsmLibraryPlugin {
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
     asset_info: &mut AssetInfo,
-    runtime_template: &ChunkCodeTemplate,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> Result<Option<RenderSource>> {
     let module_graph = compilation.get_module_graph();
 
@@ -144,7 +142,7 @@ impl EsmLibraryPlugin {
     let chunk_link_guard = self.links.borrow();
     let chunk_link = &chunk_link_guard[chunk_ukey];
 
-    let mut chunk_init_fragments: Vec<Box<dyn InitFragment<ChunkRenderContext> + 'static>> =
+    let mut chunk_init_fragments: Vec<Box<dyn InitFragment + 'static>> =
       chunk_link.init_fragments.clone();
 
     let mut replace_auto_public_path = false;
@@ -154,13 +152,12 @@ impl EsmLibraryPlugin {
     let concatenated_modules_map = self.concatenated_modules_map.read().await;
 
     let chunk = get_chunk(compilation, *chunk_ukey);
-    let rspack_module_runtime_template;
-    let module_runtime_template = if runtime_template.uses_runtime_context() {
-      rspack_module_runtime_template = compilation.runtime_template.create_chunk_code_template();
-      &rspack_module_runtime_template
-    } else {
-      runtime_template
-    };
+    let runtime_chunk_ukey = Self::get_runtime_chunk(*chunk_ukey, compilation);
+    let entry_chunk_ukey = Self::get_entry_chunk(*chunk_ukey, compilation);
+    let is_separate_runtime_chunk =
+      runtime_chunk_ukey == *chunk_ukey && runtime_chunk_ukey != entry_chunk_ukey;
+    let module_runtime_template = runtime_template;
+    let runtime_mode_renderer = renderer_for(runtime_template.render_mode());
     let filename_template = get_js_chunk_filename_template(
       chunk,
       &compilation.options.output,
@@ -195,23 +192,35 @@ impl EsmLibraryPlugin {
 
     if !chunk_link.decl_modules.is_empty() {
       let hooks = JsPlugin::get_compilation_hooks(compilation.id());
+      let module_runtime_scope = compilation
+        .runtime_template
+        .create_module_code_template()
+        .render_runtime_scope();
 
       let mut decl_inner = ConcatSource::default();
       for m in chunk_link.decl_modules.iter() {
         let module = module_graph
           .module_by_identifier(m)
           .expect("should have module");
+        let preserved_asset_import = compilation
+          .code_generation_results
+          .get(m, Some(chunk.runtime()))
+          .data()
+          .get::<CodeGenerationDataPreservedAssetImport>()
+          .cloned();
 
         let hooks = hooks.read().await;
-        let Some((module_source, init_frags, init_frags2)) = render_module(
+        let Some((module_source, init_fragments)) = render_module(
           compilation,
           chunk_ukey,
           module.as_ref(),
           true,
           true,
+          false,
           &output_path,
           &hooks,
           module_runtime_template,
+          Some(&module_runtime_scope),
         )
         .await?
         else {
@@ -219,17 +228,32 @@ impl EsmLibraryPlugin {
         };
         drop(hooks);
 
-        chunk_init_fragments.extend(init_frags);
-        chunk_init_fragments.extend(init_frags2);
+        let module_source = if let Some(asset_import) = preserved_asset_import {
+          replace_auto_public_path = true;
+          let source = RawImportSource::Source((asset_import.request().to_string(), None));
+          let binding = chunk_link
+            .raw_import_stmts
+            .get(&source)
+            .and_then(|import_spec| import_spec.default_import.as_ref())
+            .ok_or_else(|| {
+              rspack_error::error!("missing preserved asset import binding for module {m}")
+            })?;
+          replace_preserved_asset_import_binding(
+            module_source,
+            asset_import.binding().as_str(),
+            binding.as_str(),
+          )
+        } else {
+          module_source
+        };
+
+        chunk_init_fragments.extend(init_fragments);
         decl_inner.add(module_source.clone());
       }
 
       if !decl_inner.source().is_empty() {
-        let register_modules = if runtime_template.uses_runtime_context() {
-          runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
-        } else {
-          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-        };
+        let register_modules =
+          runtime_mode_renderer.render_module_registration_ident(runtime_template);
         decl_source.add(RawStringSource::from(format!(
           "{register_modules}.add({{\n"
         )));
@@ -256,10 +280,6 @@ impl EsmLibraryPlugin {
 
     // render webpack runtime
     if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
-      let runtime_chunk = Self::get_runtime_chunk(*chunk_ukey, compilation);
-      let entry_chunk = Self::get_entry_chunk(*chunk_ukey, compilation);
-      let is_separate_runtime_chunk = runtime_chunk == *chunk_ukey && runtime_chunk != entry_chunk;
-
       if is_separate_runtime_chunk {
         asset_info
           .extras
@@ -303,32 +323,40 @@ var {} = {{}};
       } else {
         *tree_runtime_requirements
       };
+      let exports_require_via_runtime_module = compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_runtime_modules_iterable(chunk_ukey)
+        .any(|runtime_module_id| {
+          compilation
+            .runtime_modules
+            .get(runtime_module_id)
+            .is_some_and(|module| module.get_constructor_name() == "ExportRequireRuntimeModule")
+        });
 
-      let runtimes = Self::render_runtime(
+      let should_export_require_from_runtime = is_pure_runtime_chunk
+        && !exports_require_via_runtime_module
+        && effective_tree_requirements
+          .intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE);
+      let runtimes = runtime_mode_renderer.render_runtime(RuntimeRenderContext {
         chunk_ukey,
         compilation,
-        effective_tree_requirements,
-        module_runtime_template,
-      )
-      .await?;
+        runtime_requirements: effective_tree_requirements,
+        runtime_template: module_runtime_template,
+        should_export_require: should_export_require_from_runtime,
+      });
 
       runtime_source.add(runtimes);
       runtime_source.add(RawStringSource::from_static("\n"));
-      runtime_source.add(render_runtime_modules(compilation, chunk_ukey, runtime_template).await?);
+      runtime_source
+        .add(render_runtime_modules(compilation, chunk_ukey, module_runtime_template).await?);
       runtime_source.add(RawStringSource::from_static("\n"));
 
-      // Link already decides whether `__rspack_require` is exported via a runtime module.
-      // Only pure runtime chunks without that runtime-module export should emit a direct export.
-      if is_pure_runtime_chunk
-        && !chunk_link.exports_require_via_runtime_module
-        && effective_tree_requirements
-          .intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE)
+      // Only pure runtime chunks without a runtime-module export need a direct export.
+      if let Some(runtime_export) = runtime_mode_renderer
+        .render_direct_runtime_export(runtime_template, should_export_require_from_runtime)
       {
-        export_specifiers.insert(Cow::Owned(if runtime_template.uses_runtime_context() {
-          runtime_template.render_runtime_variable(&RuntimeVariable::Context)
-        } else {
-          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-        }));
+        export_specifiers.insert(Cow::Owned(runtime_export));
       }
     }
 
@@ -469,84 +497,16 @@ var {} = {{}};
       }
     }
 
-    let require_ident = module_runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
-    let runtime_import_ident = if module_runtime_template.uses_runtime_context() {
-      module_runtime_template.render_runtime_variable(&RuntimeVariable::Context)
-    } else {
-      require_ident.clone()
-    };
-    let import_spec_imports_require = |import_spec: &rspack_core::ImportSpec| {
-      let is_runtime_import =
-        |local: &Atom| local.as_str() == runtime_import_ident || local.as_str() == require_ident;
-      import_spec.atoms.values().any(is_runtime_import)
-        || import_spec
-          .default_import
-          .as_ref()
-          .is_some_and(is_runtime_import)
-        || import_spec
-          .ns_import
-          .as_ref()
-          .is_some_and(is_runtime_import)
-    };
-
-    if !runtime_requirements.is_empty() {
-      let runtime_chunk = Self::get_runtime_chunk(*chunk_ukey, compilation);
-      if &runtime_chunk != chunk_ukey
-        && runtime_requirements.intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE)
-      {
-        let already_imported_require =
-          chunk_link
-            .raw_import_stmts
-            .iter()
-            .any(|(raw_import_source, import_spec)| {
-              matches!(raw_import_source, RawImportSource::Chunk(_))
-                && import_spec_imports_require(import_spec)
-            });
-        if !already_imported_require {
-          let runtime_chunk = compilation
-            .build_chunk_graph_artifact
-            .chunk_by_ukey
-            .expect_get(&runtime_chunk);
-
-          import_source.add(RawStringSource::from(format!(
-            "import {{ {} }} from \"__RSPACK_ESM_CHUNK_{}\";\n",
-            runtime_import_ident,
-            runtime_chunk.expect_id().as_str()
-          )));
-        }
-      }
-    }
-
-    for (raw_import_source, import_spec) in &chunk_link.raw_import_stmts {
-      if let RawImportSource::Source((source, _)) = raw_import_source
-        && source.contains("__RSPACK_ESM_CHUNK_")
-        && import_spec_imports_require(import_spec)
-      {
-        continue;
-      }
-      let (source, attr) = match raw_import_source {
-        RawImportSource::Chunk(import_chunk) => {
-          let chunk = compilation
-            .build_chunk_graph_artifact
-            .chunk_by_ukey
-            .expect_get(import_chunk);
-          (
-            Cow::Owned(format!("__RSPACK_ESM_CHUNK_{}", chunk.expect_id().as_str())),
-            None,
-          )
-        }
-        RawImportSource::Source((source, attr)) => (
-          normalize_raw_import_source(source.as_str()),
-          attr.as_deref(),
-        ),
-      };
-
-      import_source.add(RawStringSource::from(render_imports(
-        &source,
-        attr,
-        import_spec,
-      )));
-    }
+    import_source.add(
+      runtime_mode_renderer.render_runtime_imports(RuntimeImportRenderContext {
+        compilation,
+        chunk_ukey,
+        runtime_chunk_ukey: &runtime_chunk_ukey,
+        chunk_link,
+        runtime_requirements,
+        runtime_template: module_runtime_template,
+      }),
+    );
 
     for (id, imports) in &chunk_link.imports {
       let chunk = Self::get_module_chunk(*id, compilation)?;
@@ -685,6 +645,7 @@ var {} = {{}};
     // Keep side-effect-only Node chunks explicitly in ESM form.
     // We only emit `export {};` when the chunk would otherwise render no export syntax at all.
     let should_render_empty_export = compilation.platform.is_node()
+      && !runtime_mode_renderer.renders_inline_runtime_exports(compilation, chunk_ukey)
       && export_specifiers.is_empty()
       && chunk_link.raw_star_exports.is_empty()
       && chunk_link.re_exports().is_empty()
@@ -810,111 +771,9 @@ var {} = {{}};
     } else {
       final_source
     };
-
     Ok(Some(RenderSource {
       source: final_source,
     }))
-  }
-
-  pub async fn render_runtime(
-    chunk_ukey: &ChunkUkey,
-    compilation: &Compilation,
-    runtime_requirements: RuntimeGlobals,
-    runtime_template: &ChunkCodeTemplate,
-  ) -> Result<ConcatSource> {
-    let module_factories: bool = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
-    let require_function = runtime_requirements.contains(RuntimeGlobals::REQUIRE);
-    let module_cache = runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE);
-    let intercept_module_execution =
-      runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
-    let module_used = runtime_requirements.contains(RuntimeGlobals::MODULE);
-    let require_scope_used = runtime_requirements.contains(RuntimeGlobals::REQUIRE_SCOPE);
-    let use_require = require_function || intercept_module_execution || module_used;
-    let mut source = ConcatSource::default();
-
-    if use_require || module_cache {
-      source.add(RawStringSource::from(format!(
-        r#"// The module cache
-var {} = {{}};
-"#,
-        runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache)
-      )));
-    }
-
-    if use_require {
-      source.add(RawStringSource::from(format!(
-        r#"// The require function
-function {}(moduleId) {{
-"#,
-        runtime_template.render_runtime_variable(&RuntimeVariable::Require)
-      )));
-      source.add(RawStringSource::from(
-        JsPlugin::render_require(chunk_ukey, compilation, runtime_template).join("\n"),
-      ));
-      source.add(RawStringSource::from_static(
-        r#"
-}
-"#,
-      ));
-    } else if require_scope_used {
-      source.add(RawStringSource::from(format!(
-        r#"// The require scope
-var {} = {{}};
-"#,
-        runtime_template.render_runtime_variable(&RuntimeVariable::Require)
-      )));
-    }
-
-    if runtime_template.uses_runtime_context()
-      && (module_factories
-        || runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE)
-        || intercept_module_execution
-        || use_require
-        || require_scope_used)
-    {
-      let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
-      source.add(RawStringSource::from(format!(
-        "var {runtime_context} = {{}};\n"
-      )));
-      if runtime_requirements.contains(RuntimeGlobals::REQUIRE) {
-        let require = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
-        source.add(RawStringSource::from(format!(
-          "{runtime_context}.r = {require};\n"
-        )));
-      }
-    }
-
-    if module_factories {
-      source.add(RawStringSource::from(format!(
-        r#"// expose the modules object ({modules})
-{module_factories} = {modules};
-"#,
-        module_factories =
-          runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
-        modules = runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
-      )));
-    }
-
-    if runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE) {
-      source.add(RawStringSource::from(format!(
-        r#"// expose the module cache
-{} = {};
-"#,
-        runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_CACHE),
-        runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
-      )));
-    }
-
-    if intercept_module_execution {
-      source.add(RawStringSource::from(format!(
-        r#"// expose the module execution interceptor
-{} = [];
-"#,
-        runtime_template.render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
-      )));
-    }
-
-    Ok(source)
   }
 
   pub fn render_module(
@@ -976,7 +835,7 @@ var {} = {{}};
     compilation: &Compilation,
     chunk_link: &ChunkLinkContext,
     already_required: &mut IdentifierIndexSet,
-    runtime_template: &ChunkCodeTemplate,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> ConcatSource {
     let mut source = ConcatSource::default();
     let module_graph = compilation.get_module_graph();

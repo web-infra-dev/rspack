@@ -1,0 +1,147 @@
+---
+description: 'Ignore selected imports so their modules are not resolved or included in the bundle.'
+---
+
+# IgnorePlugin
+
+This plugin ignores selected module references, so files referenced by matching `import` or `require` statements are not included in the bundle.
+
+## How it works
+
+Rspack examines each module reference before resolution. For a direct `import` or `require`, it checks the unresolved module specifier. For a dynamic lookup such as `require('./locale/' + name)`, it checks the context path extracted from the expression. Rspack ignores the module reference when the configured regular expression matches this value or the filter function returns `true`. Other module references are resolved and bundled normally.
+
+`IgnorePlugin` does not replace an ignored module with an empty module. Instead, Rspack skips resolving it and does not generate the corresponding module. If the bundle executes the code generated for the matching `import` or `require`, that code throws an error whose `code` is `MODULE_NOT_FOUND` at runtime. Before using the plugin, make sure this code will not run in the target environment, or that the referencing code already handles a missing module.
+
+Use [`resourceRegExp`](#resourceregexp) or [`checkResource`](#checkresource) to select module references to ignore. To limit a regular-expression rule by the referencing module's directory, combine [`contextRegExp`](#contextregexp) with [`resourceRegExp`](#resourceregexp).
+
+## Common use cases
+
+Use `IgnorePlugin` only when omitting the referenced module is safe. Common cases include:
+
+- Removing groups of resources that a library discovers dynamically, such as Moment.js locale modules that the application does not use.
+- Excluding optional or environment-specific modules when their code path will not run, or when the referencing code handles a missing module.
+- Restricting an ignore rule to references from a particular package or directory, so the same module specifier can still resolve elsewhere.
+
+## Examples
+
+### Ignore a specific import
+
+The following configuration ignores every module reference whose unresolved module specifier is exactly `./optional-feature`, regardless of the referencing module's directory:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.IgnorePlugin({
+      resourceRegExp: /^\.\/optional-feature$/,
+    }),
+  ],
+};
+```
+
+For example, the entry contains this static import:
+
+```js title="src/index.js"
+import './optional-feature';
+```
+
+Because `contextRegExp` is omitted, the rule applies to module references from every directory. Other module specifiers are resolved normally.
+
+Rspack does not generate a module for `./optional-feature` or replace it with an empty module. The generated JavaScript does not retain the original `import` syntax. Instead, Rspack emits a missing-module expression at the corresponding position. When the entry evaluates this expression, it throws an error whose `code` is `MODULE_NOT_FOUND`:
+
+```js title="dist/main.js (simplified)"
+Object(
+  (function __rspack_missing_module() {
+    const error = new Error("Cannot find module './optional-feature'");
+    error.code = 'MODULE_NOT_FOUND';
+    throw error;
+  })(),
+);
+```
+
+This example deliberately demonstrates the runtime failure caused by executing an ignored static import.
+
+### Ignore Moment.js locales
+
+Moment.js loads locales dynamically with `require('./locale/' + name)`. Rspack extracts `./locale` as the context path for this expression. To ignore the lookup only when the referencing module is in a directory ending in `moment`, configure both `resourceRegExp` and `contextRegExp`:
+
+```js
+new rspack.IgnorePlugin({
+  resourceRegExp: /^\.\/locale$/,
+  contextRegExp: /moment$/,
+});
+```
+
+The entry can import Moment.js normally:
+
+```js title="src/index.js"
+import moment from 'moment';
+
+console.log(moment().format());
+```
+
+Rspack tests `resourceRegExp` against the extracted context path `./locale`, not the resolved path `moment/locale`. Because both regular expressions match, the emitted bundle keeps Moment.js itself but contains no modules from `moment/locale`:
+
+```js title="dist/main.js (simplified)"
+// Moment.js core is included in the bundle.
+// No moment/locale/*.js modules are included.
+```
+
+## Options
+
+### resourceRegExp
+
+- **Type:** `RegExp`
+- **Default:** `undefined`
+
+Rspack tests `resourceRegExp` before resolution. For a direct module reference, the tested value is the unresolved module specifier. For a dynamic module lookup, it is the context path extracted from the expression. For example, `import './optional-feature'` is tested as `./optional-feature`, while `require('./locale/' + name)` is tested as `./locale`. Neither value is a resolved absolute path.
+
+When the expression matches and `contextRegExp` is omitted, Rspack does not generate the referenced module, regardless of the referencing module's directory. When `contextRegExp` is set, both expressions must match. If `resourceRegExp` is omitted, provide `checkResource`; omitting both is not valid according to the public options type.
+
+```js
+new rspack.IgnorePlugin({
+  resourceRegExp: /^\.\/optional-feature$/,
+});
+```
+
+### contextRegExp
+
+- **Type:** `RegExp`
+- **Default:** `undefined`
+
+Tests the referencing module's directory (`context`), normally an absolute path. Rspack evaluates this expression only after `resourceRegExp` matches, and skips module generation only when both expressions match.
+
+If omitted, a `resourceRegExp` match applies regardless of the referencing module's directory. `contextRegExp` has no effect without `resourceRegExp`; use the `context` parameter of `checkResource` when using the function form.
+
+```js
+new rspack.IgnorePlugin({
+  resourceRegExp: /^\.\/optional-feature$/,
+  contextRegExp: /[/\\]legacy$/,
+});
+```
+
+### checkResource
+
+- **Type:**
+
+  ```ts
+  (resource: string, context: string) => boolean;
+  ```
+
+- **Default:** `undefined`
+
+Runs before Rspack resolves each module reference. `resource` is the same value tested by `resourceRegExp`: the unresolved module specifier for a direct reference, or the extracted context path for a dynamic lookup. `context` is the referencing module's directory. Return `true` to stop resolution and module generation. Return `false` to continue processing.
+
+This is the function-based alternative to `resourceRegExp` and `contextRegExp`. If it is omitted, provide `resourceRegExp`. To restrict a function match by the referencing module's directory, test `context` inside the function.
+
+Rspack evaluates `checkResource` before the regular expression options. If both forms are supplied, returning `true` takes priority and stops resolution and module generation immediately. Returning `false` lets Rspack evaluate `resourceRegExp` and `contextRegExp` next. Normal resolution continues only when neither form ignores the module reference.
+
+```js
+new rspack.IgnorePlugin({
+  checkResource(resource, context) {
+    return resource === './optional-feature' && /[/\\]legacy$/.test(context);
+  },
+});
+```

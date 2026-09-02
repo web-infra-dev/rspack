@@ -19,19 +19,37 @@ pub mod runtime_mode {
       }
     }
   }
-
-  impl RuntimeMode {
-    pub fn uses_runtime_context(&self) -> bool {
-      matches!(self, RuntimeMode::Rspack)
-    }
-  }
 }
 
 use runtime_mode::RuntimeMode;
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct NewCacheOptions {
+  pub code_generation: bool,
+  pub devtool: bool,
+  pub loader: bool,
+  pub minimize: bool,
+}
+
+impl NewCacheOptions {
+  pub const fn all() -> Self {
+    Self {
+      code_generation: true,
+      devtool: true,
+      loader: true,
+      minimize: true,
+    }
+  }
+
+  pub const fn is_enabled(self) -> bool {
+    self.code_generation || self.devtool || self.loader || self.minimize
+  }
+}
+
 #[derive(Debug)]
 pub struct Experiments {
   pub css: bool,
+  pub new_cache: NewCacheOptions,
   pub defer_import: bool,
   pub source_import: bool,
   pub pure_functions: bool,

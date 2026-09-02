@@ -2,9 +2,7 @@
 description: '指定输出（如特定的插件或 loader）的调试信息。类似 stats.loggingDebug 选项，但适用于基础架构。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/other-options/#infrastructurelogging" />
+import Attribution from '@components/Attribution';
 
 # InfrastructureLogging
 
@@ -79,7 +77,7 @@ export default {
 export default {
   infrastructureLogging: {
     level: 'info',
-    debug: ['MyPlugin', /MyPlugin/, (name) => name.contains('MyPlugin')],
+    debug: ['MyPlugin', /MyPlugin/, (name) => name.includes('MyPlugin')],
   },
 };
 ```
@@ -122,3 +120,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.docschina.org/configuration/other-options/#infrastructurelogging" />

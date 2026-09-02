@@ -1,20 +1,19 @@
-import { __rspack_context } from "./runtime~0.mjs";
-
+import { rspackRequire, moduleFactories, definePropertyGetters, makeNamespaceObject } from "./runtime~0.mjs";
 import * as __rspack_external_external1_alias_dd38afe7 from "external1-alias";
 import * as __rspack_external_external2_alias_d6100a5a from "external2-alias";
-__rspack_context.m.add({
-42(__unused_rspack_module, __rspack_exports, __rspack_context) {
-__rspack_context.N(__rspack_exports);
-/* import */ var external1__rspack_import_0 = __rspack_context.r(322);
+moduleFactories.add({
+42(__unused_rspack_module, exports) {
+makeNamespaceObject(exports);
+/* import */ var external1__rspack_import_0 = rspackRequire(322);
 
 /* reexport */ var __rspack_reexport = {};
 /* reexport */ for( const __rspack_import_key in external1__rspack_import_0) if(__rspack_import_key !== "default") __rspack_reexport[__rspack_import_key] =() => external1__rspack_import_0[__rspack_import_key]
-/* reexport */ __rspack_context.d(__rspack_exports, __rspack_reexport);
-/* import */ var external2__rspack_import_1 = __rspack_context.r(101);
+/* reexport */ definePropertyGetters(exports, __rspack_reexport);
+/* import */ var external2__rspack_import_1 = rspackRequire(101);
 
 /* reexport */ var __rspack_reexport = {};
 /* reexport */ for( const __rspack_import_key in external2__rspack_import_1) if(__rspack_import_key !== "default") __rspack_reexport[__rspack_import_key] =() => external2__rspack_import_1[__rspack_import_key]
-/* reexport */ __rspack_context.d(__rspack_exports, __rspack_reexport);
+/* reexport */ definePropertyGetters(exports, __rspack_reexport);
 
 
 
@@ -33,7 +32,7 @@ module.exports = __rspack_external_external2_alias_d6100a5a;
 
 },
 });
-__rspack_context.r("42");
+rspackRequire("42");
 
 export * from "external1-alias";
 export * from "external2-alias";

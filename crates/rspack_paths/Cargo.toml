@@ -8,12 +8,18 @@ version.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+# `rspack_cacheable` is optional because it pulls in swc_core and lightningcss, which
+# `rspack_resolver` cannot afford: it has to keep building for wasm32-unknown-unknown.
+[features]
+cacheable = ["dep:rspack_cacheable"]
+default   = ["cacheable"]
+
 [dependencies]
 camino           = { workspace = true }
 dashmap          = { workspace = true }
 indexmap         = { workspace = true }
-rspack_cacheable = { workspace = true }
-rspack_resolver  = { workspace = true }
+rspack_cacheable = { workspace = true, optional = true }
+rspack_intern    = { workspace = true }
 rustc-hash       = { workspace = true }
 ustr             = { workspace = true }
 

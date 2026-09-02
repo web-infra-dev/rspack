@@ -26,6 +26,10 @@ impl FederationDataRuntimeModule {
 }
 #[async_trait]
 impl RuntimeModule for FederationDataRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Normal
   }
@@ -52,7 +56,7 @@ impl RuntimeModule for FederationDataRuntimeModule {
 
 pub async fn federation_runtime_template(
   chunk: &Chunk,
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &RuntimeCodeTemplate,
   compilation: &Compilation,
 ) -> String {
   let federation_global = format!(
