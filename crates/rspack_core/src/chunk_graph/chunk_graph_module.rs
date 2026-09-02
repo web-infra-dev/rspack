@@ -66,7 +66,7 @@ impl Serialize for ModuleId {
 
 impl ModuleId {
   pub fn as_number(&self) -> Option<u32> {
-    self.0.as_str().parse::<u32>().ok()
+    rspack_util::numeric_id_value(self.0.as_str())
   }
 
   pub fn as_str(&self) -> &str {
