@@ -48,6 +48,7 @@ pub struct BuildContext {
   pub loader_cache: CacheFacade,
   pub file_system_info: FileSystemInfo,
   pub resolver_factory: Arc<ResolverFactory>,
+  pub loader_resolver_factory: Arc<ResolverFactory>,
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,

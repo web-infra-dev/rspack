@@ -659,6 +659,18 @@ export const EXPECTED_RSPACK_CORE_VERSION: string
 
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
 
+/**
+ * A loader a `beforeLoaders` tap added to the list. Loaders that were already
+ * on the module are handed back as their index instead, so that their resolved
+ * loader and cache options can be reused.
+ */
+export interface JsAddedLoaderItem {
+  loader: string
+  options?: string
+  cache: boolean
+  optionsCacheKey: string
+}
+
 export interface JsAddingRuntimeModule {
   name: string
   generator: () => String
@@ -738,6 +750,11 @@ export interface JsBeforeEmitData {
   outputName: string
   compilationId: number
   uid?: number
+}
+
+export interface JsBeforeLoadersArgs {
+  loaders: Array<JsLoaderItem>
+  module: Module
 }
 
 export interface JsBeforeModuleIdsArg {
@@ -3308,7 +3325,8 @@ export declare enum RegisterJsTapKind {
   RsdoctorPluginModuleIds = 51,
   RsdoctorPluginModuleSources = 52,
   RsdoctorPluginAssets = 53,
-  NormalModuleLoader = 54
+  NormalModuleLoader = 54,
+  NormalModuleBeforeLoaders = 55
 }
 
 export interface RegisterJsTaps {
@@ -3351,6 +3369,7 @@ export interface RegisterJsTaps {
   registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>
   registerExternalModuleChunkConditionTaps: (stages: Array<number>) => Array<{ function: ((chunk: Chunk) => boolean | undefined); stage: number; }>
   registerJavascriptModulesChunkHashTaps: (stages: Array<number>) => Array<{ function: ((arg: Chunk) => Buffer); stage: number; }>
+  registerNormalModuleBeforeLoadersTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeLoadersArgs) => Array<number | JsAddedLoaderItem> | undefined); stage: number; }>
   registerHtmlPluginBeforeAssetTagGenerationTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeAssetTagGenerationData) => JsBeforeAssetTagGenerationData); stage: number; }>
   registerHtmlPluginAlterAssetTagsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAlterAssetTagsData) => JsAlterAssetTagsData); stage: number; }>
   registerHtmlPluginAlterAssetTagGroupsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAlterAssetTagGroupsData) => JsAlterAssetTagGroupsData); stage: number; }>
