@@ -101,7 +101,7 @@ const watching = compiler.watch(
 The Watching object provides the following methods:
 
 - `watch`:
-  - **Type**: `(files: string[], dirs: string[], missing: string[]): void`
+  - **Type**: `(files: Iterable<string>, dirs: Iterable<string>, missing: Iterable<string>): void`
   - **Usage**: Adds files and directories to watch.
 - `invalidate`:
   - **Type**: `(callback: () => void): void`

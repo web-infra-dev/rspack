@@ -2,10 +2,10 @@
 
 ```ts
 type ChunkGroup = {
-  name?: Readonly<string>; // name of this chunk group
-  index?: Readonly<number>; // creating index of chunk group
-  chunks: ReadonlyArray<Chunk>; // chunks in this chunk group
-  origins: ReadonlyArray<{
+  readonly name?: string; // name of this chunk group
+  readonly index?: number; // creating index of chunk group
+  readonly chunks: Chunk[]; // chunks in this chunk group
+  readonly origins: Array<{
     // where this chunk group is imported
     module?: Module;
     request?: string;

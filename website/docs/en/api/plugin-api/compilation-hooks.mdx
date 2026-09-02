@@ -457,9 +457,9 @@ Executed when a module has been built successfully.
 
 Called when all modules have been built without errors.
 
-- **Type:** `AsyncSeriesHook<[Module[]]>`
+- **Type:** `AsyncSeriesHook<[Iterable<Module>]>`
 - **Arguments:**
-  - `Module[]`: List of module instances
+  - `Iterable<Module>`: iterable of module instances
 
 <Collapse>
   <CollapsePanel
@@ -483,9 +483,9 @@ Called when the compilation stops accepting new modules and starts to optimize m
 
 Called at the beginning of the module optimization phase.
 
-- **Type:** `SyncBailHook<[Module[]]>`
+- **Type:** `SyncBailHook<[Iterable<Module>]>`
 - **Arguments:**
-  - `Module[]`: list of module instances
+  - `Iterable<Module>`: iterable of module instances
 
 <Collapse>
   <CollapsePanel
@@ -503,9 +503,9 @@ Called at the beginning of the module optimization phase.
 
 Called after modules optimization has completed.
 
-- **Type:** `SyncBailHook<[Module[]]>`
+- **Type:** `SyncBailHook<[Iterable<Module>]>`
 - **Arguments:**
-  - `Module[]`: list of module instances
+  - `Iterable<Module>`: iterable of module instances
 
 <Collapse>
   <CollapsePanel
@@ -523,10 +523,10 @@ Called after modules optimization has completed.
 
 Called before optimizing the dependency tree.
 
-- **Type:** `AsyncSeriesHook<[Chunk[], Module[]]>`
+- **Type:** `AsyncSeriesHook<[Iterable<Chunk>, Iterable<Module>]>`
 - **Arguments:**
-  - `Chunk[]`: list of chunk instances
-  - `Module[]`: list of module instances
+  - `Iterable<Chunk>`: iterable of chunk instances
+  - `Iterable<Module>`: iterable of module instances
 
 <Collapse>
   <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
@@ -547,10 +547,10 @@ Called before optimizing the dependency tree.
 
 Called after the tree optimization, at the beginning of the chunk modules optimization.
 
-- **Type:** `AsyncSeriesBailHook<[Chunk[], Module[]]>`
+- **Type:** `AsyncSeriesBailHook<[Iterable<Chunk>, Iterable<Module>]>`
 - **Arguments:**
-  - `Chunk[]`: list of chunk instances
-  - `Module[]`: list of module instances
+  - `Iterable<Chunk>`: iterable of chunk instances
+  - `Iterable<Module>`: iterable of module instances
 
 <Collapse>
   <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
@@ -573,9 +573,9 @@ Called after the tree optimization, at the beginning of the chunk modules optimi
 
 Called after the chunk ids optimization phase has completed.
 
-- **Type:** `SyncHook<[Chunk[]]>`
+- **Type:** `SyncHook<[Iterable<Chunk>]>`
 - **Arguments:**
-  - `Chunk[]`: list of chunk instances
+  - `Iterable<Chunk>`: iterable of chunk instances
 
 <Collapse>
   <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
