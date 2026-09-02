@@ -104,6 +104,7 @@ impl FileCacheStrategy {
     }?;
 
     if database.is_empty() {
+      self.database.set(database).expect("should not have db");
       return Ok(());
     }
 
