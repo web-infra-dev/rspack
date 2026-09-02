@@ -1,7 +1,4 @@
-use std::{
-  collections::HashMap,
-  sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
@@ -16,6 +13,7 @@ use rspack_error::Result;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_loader_runner::LoaderRunnerOptions;
 use rspack_paths::Utf8Path;
+use rspack_util::fx_hash::FxHashMap as HashMap;
 
 use super::context::JsLoaderDependencies;
 
