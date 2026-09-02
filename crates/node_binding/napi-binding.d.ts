@@ -1060,6 +1060,11 @@ export interface JsRealContentHashPluginUpdateHashData {
   oldHash: string
 }
 
+export interface JsRenderContentArgs {
+  source: JsSourceToJs
+  chunk: Chunk
+}
+
 export interface JsResolveData {
   request: string
   context: string
@@ -3277,22 +3282,23 @@ export declare enum RegisterJsTapKind {
   ContextModuleFactoryAfterResolve = 36,
   ExternalModuleChunkCondition = 37,
   JavascriptModulesChunkHash = 38,
-  HtmlPluginBeforeAssetTagGeneration = 39,
-  HtmlPluginAlterAssetTags = 40,
-  HtmlPluginAlterAssetTagGroups = 41,
-  HtmlPluginAfterTemplateExecution = 42,
-  HtmlPluginBeforeEmit = 43,
-  HtmlPluginAfterEmit = 44,
-  RuntimePluginCreateScript = 45,
-  RuntimePluginCreateLink = 46,
-  RuntimePluginLinkPreload = 47,
-  RuntimePluginLinkPrefetch = 48,
-  RealContentHashPluginUpdateHash = 49,
-  RsdoctorPluginModuleGraph = 50,
-  RsdoctorPluginChunkGraph = 51,
-  RsdoctorPluginModuleIds = 52,
-  RsdoctorPluginModuleSources = 53,
-  RsdoctorPluginAssets = 54
+  JavascriptModulesRenderContent = 39,
+  HtmlPluginBeforeAssetTagGeneration = 40,
+  HtmlPluginAlterAssetTags = 41,
+  HtmlPluginAlterAssetTagGroups = 42,
+  HtmlPluginAfterTemplateExecution = 43,
+  HtmlPluginBeforeEmit = 44,
+  HtmlPluginAfterEmit = 45,
+  RuntimePluginCreateScript = 46,
+  RuntimePluginCreateLink = 47,
+  RuntimePluginLinkPreload = 48,
+  RuntimePluginLinkPrefetch = 49,
+  RealContentHashPluginUpdateHash = 50,
+  RsdoctorPluginModuleGraph = 51,
+  RsdoctorPluginChunkGraph = 52,
+  RsdoctorPluginModuleIds = 53,
+  RsdoctorPluginModuleSources = 54,
+  RsdoctorPluginAssets = 55
 }
 
 export interface RegisterJsTaps {
@@ -3335,6 +3341,7 @@ export interface RegisterJsTaps {
   registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>
   registerExternalModuleChunkConditionTaps: (stages: Array<number>) => Array<{ function: ((chunk: Chunk) => boolean | undefined); stage: number; }>
   registerJavascriptModulesChunkHashTaps: (stages: Array<number>) => Array<{ function: ((arg: Chunk) => Buffer); stage: number; }>
+  registerJavascriptModulesRenderContentTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRenderContentArgs) => JsSourceToJs | undefined); stage: number; }>
   registerHtmlPluginBeforeAssetTagGenerationTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeAssetTagGenerationData) => JsBeforeAssetTagGenerationData); stage: number; }>
   registerHtmlPluginAlterAssetTagsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAlterAssetTagsData) => JsAlterAssetTagsData); stage: number; }>
   registerHtmlPluginAlterAssetTagGroupsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAlterAssetTagGroupsData) => JsAlterAssetTagGroupsData); stage: number; }>
