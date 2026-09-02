@@ -17,8 +17,8 @@ use rspack_core::{
   ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals, RuntimeGlobalsRenderMode,
   RuntimeTemplateRenderMode, RuntimeVariable, SideEffectsStateArtifact, SourceType, URLStaticMode,
   UsageState, UsedName, UsedNameItem, all_runtime_module_variables, analyze_module_scope,
-  find_new_name, find_target, get_cached_readable_identifier, get_module_directives,
-  get_module_hashbang, property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
+  find_target, get_cached_readable_identifier, get_module_directives, get_module_hashbang,
+  property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
   rspack_sources::ReplaceSource, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Result};
@@ -279,22 +279,16 @@ impl EsmLibraryPlugin {
 
   fn assign_external_candidate_name(
     readable_identifier: &str,
-    candidate_used_names: &mut FxHashSet<Atom>,
+    name_allocator: &mut ConcatenationNameAllocator,
     escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
   ) -> Atom {
-    let name = find_new_name(
-      "",
-      candidate_used_names,
-      &escaped_identifiers[readable_identifier],
-    );
-    candidate_used_names.insert(name.clone());
-    name
+    name_allocator.find_new_name("", &escaped_identifiers[readable_identifier])
   }
 
   fn register_preserved_asset_imports(
     compilation: &Compilation,
     chunk_link: &mut ChunkLinkContext,
-    used_names: &mut FxHashSet<Atom>,
+    name_allocator: &mut ConcatenationNameAllocator,
     escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
   ) {
     // Follow module externals: imports are owned by the chunk link context, so their bindings are
@@ -328,7 +322,8 @@ impl EsmLibraryPlugin {
             &compilation.module_static_cache,
             &compilation.options.context,
           );
-          let binding = find_new_name("", used_names, &escaped_identifiers[&readable_identifier]);
+          let binding =
+            name_allocator.find_new_name("", &escaped_identifiers[&readable_identifier]);
           chunk_link
             .raw_import_stmts
             .entry(source)
@@ -337,7 +332,7 @@ impl EsmLibraryPlugin {
           binding
         });
 
-      used_names.insert(binding);
+      name_allocator.insert(binding);
     }
   }
 
@@ -716,7 +711,7 @@ impl EsmLibraryPlugin {
                 strict_esm_module,
                 Some(true),
                 &mut chunk_link.required,
-                &mut chunk_link.used_names,
+                &mut chunk_link.name_allocator,
               ) else {
                 continue;
               };
@@ -781,17 +776,14 @@ impl EsmLibraryPlugin {
                     if let Some(existing_local) = existing_local {
                       symbol_binding.symbol = existing_local.clone();
                     } else {
-                      let local_name = if chunk_link.used_names.contains(&symbol_binding.symbol) {
-                        let new_name = find_new_name(
-                          symbol_binding.symbol.as_str(),
-                          &chunk_link.used_names,
-                          &[],
-                        );
-                        chunk_link.used_names.insert(new_name.clone());
-                        new_name
+                      let local_name = if chunk_link.name_allocator.contains(&symbol_binding.symbol)
+                      {
+                        chunk_link
+                          .name_allocator
+                          .find_new_name(symbol_binding.symbol.as_str(), &[])
                       } else {
                         let local_name = symbol_binding.symbol.clone();
-                        chunk_link.used_names.insert(local_name.clone());
+                        chunk_link.name_allocator.insert(local_name.clone());
                         local_name
                       };
 
@@ -848,14 +840,14 @@ impl EsmLibraryPlugin {
               target_strict_esm_module,
               None,
               &mut chunk_link.required,
-              &mut chunk_link.used_names,
+              &mut chunk_link.name_allocator,
             )
           });
           let star_re_export_getters = if let Some(binding) = star_re_export_binding {
             let star_exports_base = format!("{name}_starExports");
-            let star_exports_name =
-              find_new_name(star_exports_base.as_str(), &chunk_link.used_names, &[]);
-            chunk_link.used_names.insert(star_exports_name.clone());
+            let star_exports_name = chunk_link
+              .name_allocator
+              .find_new_name(star_exports_base.as_str(), &[]);
 
             format!(
               r#"var {} = {};
@@ -1095,13 +1087,13 @@ var {} = {{}};
       init_fragment_groups.iter().copied(),
       &mut all_used_names,
     );
+    let mut name_allocator = ConcatenationNameAllocator::new(all_used_names);
     Self::register_preserved_asset_imports(
       compilation,
       chunk_link,
-      &mut all_used_names,
+      &mut name_allocator,
       escaped_identifiers,
     );
-    let mut name_allocator = ConcatenationNameAllocator(all_used_names, concatenation_context);
 
     // deconflict top level symbols
     for id in chunk_link
@@ -1182,6 +1174,7 @@ var {} = {{}};
                 existing_name,
                 source,
                 concate_info,
+                concatenation_context,
               );
 
               if existing_name.is_none() {
@@ -1196,7 +1189,7 @@ var {} = {{}};
           concate_info.import_map = Some(import_map);
         }
 
-        name_allocator.assign_module_binding_names(concate_info);
+        name_allocator.assign_module_binding_names(concate_info, concatenation_context);
 
         // Handle the name passed through by namespace_export_symbol
         if let Some(ref namespace_export_symbol) = concate_info.namespace_export_symbol
@@ -1226,26 +1219,32 @@ var {} = {{}};
               .get_internal_name(namespace_export_symbol)
               .cloned()
               .unwrap_or_else(|| {
-                name_allocator.find_new_module_name("namespaceObject", &concate_info.module)
+                name_allocator.find_new_module_name(
+                  "namespaceObject",
+                  &concate_info.module,
+                  concatenation_context,
+                )
               })
           } else {
-            name_allocator.find_new_module_name("namespaceObject", &concate_info.module)
+            name_allocator.find_new_module_name(
+              "namespaceObject",
+              &concate_info.module,
+              concatenation_context,
+            )
           }
         };
         concate_info.namespace_object_name = Some(namespace_object_name.clone());
 
-        name_allocator.assign_interop_names(info);
+        name_allocator.assign_interop_names(info, concatenation_context);
       }
     }
-    let mut all_used_names = name_allocator.0;
-
     // Build a targeted set for external module name deconfliction:
-    // Start from chunk_link.used_names (cross-chunk accumulated names) and add
+    // Start from chunk_link.name_allocator (cross-chunk accumulated names) and add
     // names that will actually be emitted at the chunk top level. We intentionally
-    // avoid using all_used_names directly because it also contains transient
+    // avoid using the full name allocator directly because it also contains transient
     // binding_to_ref keys (e.g. `cjs`, `foo`) that are rewritten during rendering
     // and should not block external module names.
-    let mut emitted_external_used_names = chunk_link.used_names.clone();
+    let mut emitted_external_name_allocator = chunk_link.name_allocator.clone();
     for module in chunk_link
       .hoisted_modules
       .iter()
@@ -1254,66 +1253,66 @@ var {} = {{}};
       match &concate_modules_map[module] {
         ModuleInfo::Concatenated(info) => {
           if let Some(name) = &info.namespace_object_name {
-            emitted_external_used_names.insert(name.clone());
+            emitted_external_name_allocator.insert(name.clone());
           }
           if info.interop_namespace_object_used
             && let Some(name) = &info.interop_namespace_object_name
           {
-            emitted_external_used_names.insert(name.clone());
+            emitted_external_name_allocator.insert(name.clone());
           }
           if info.interop_namespace_object2_used
             && let Some(name) = &info.interop_namespace_object2_name
           {
-            emitted_external_used_names.insert(name.clone());
+            emitted_external_name_allocator.insert(name.clone());
           }
           if info.interop_default_access_used
             && let Some(name) = &info.interop_default_access_name
           {
-            emitted_external_used_names.insert(name.clone());
+            emitted_external_name_allocator.insert(name.clone());
           }
         }
         ModuleInfo::External(info) => {
           if info.interop_namespace_object_used
             && let Some(name) = &info.interop_namespace_object_name
           {
-            emitted_external_used_names.insert(name.clone());
+            emitted_external_name_allocator.insert(name.clone());
           }
           if info.interop_namespace_object2_used
             && let Some(name) = &info.interop_namespace_object2_name
           {
-            emitted_external_used_names.insert(name.clone());
+            emitted_external_name_allocator.insert(name.clone());
           }
           if info.interop_default_access_used
             && let Some(name) = &info.interop_default_access_name
           {
-            emitted_external_used_names.insert(name.clone());
+            emitted_external_name_allocator.insert(name.clone());
           }
           if info.deferred
             && let Some(name) = &info.deferred_name
           {
-            emitted_external_used_names.insert(name.clone());
+            emitted_external_name_allocator.insert(name.clone());
           }
           if info.deferred_namespace_object_used
             && let Some(name) = &info.deferred_namespace_object_name
           {
-            emitted_external_used_names.insert(name.clone());
+            emitted_external_name_allocator.insert(name.clone());
           }
         }
       }
     }
     for import_spec in chunk_link.raw_import_stmts.values() {
       if let Some(ns) = &import_spec.ns_import {
-        emitted_external_used_names.insert(ns.clone());
+        emitted_external_name_allocator.insert(ns.clone());
       }
       for atom in import_spec.atoms.values() {
-        emitted_external_used_names.insert(atom.clone());
+        emitted_external_name_allocator.insert(atom.clone());
       }
       if let Some(default_import) = &import_spec.default_import {
-        emitted_external_used_names.insert(default_import.clone());
+        emitted_external_name_allocator.insert(default_import.clone());
       }
     }
 
-    let mut external_candidate_used_names = emitted_external_used_names.clone();
+    let mut external_candidate_name_allocator = emitted_external_name_allocator.clone();
     for external_module in chunk_link.decl_modules.iter() {
       let ModuleInfo::External(info) = &mut concate_modules_map[external_module] else {
         unreachable!("should be un-scope-hoisted module");
@@ -1329,15 +1328,15 @@ var {} = {{}};
 
         let name = Self::assign_external_candidate_name(
           &readable_identifier,
-          &mut external_candidate_used_names,
+          &mut external_candidate_name_allocator,
           escaped_identifiers,
         );
         info.name = Some(name);
       }
     }
 
-    all_used_names.extend(emitted_external_used_names);
-    chunk_link.used_names = all_used_names;
+    name_allocator.merge(emitted_external_name_allocator);
+    chunk_link.name_allocator = name_allocator;
   }
 
   async fn analyze_module(
@@ -1504,7 +1503,7 @@ var {} = {{}};
     m: ModuleIdentifier,
     from: Option<ModuleIdentifier>,
     symbol: Option<Atom>,
-    all_used_names: &mut FxHashSet<Atom>,
+    name_allocator: &mut ConcatenationNameAllocator,
     required: &'a mut IdentifierIndexMap<ExternalInterop>,
   ) -> &'a mut ExternalInterop {
     let require_info: &mut ExternalInterop = required.entry(m).or_insert(ExternalInterop {
@@ -1526,12 +1525,10 @@ var {} = {{}};
     if require_info.required_symbol.is_none()
       && let Some(symbol) = symbol
     {
-      let new_name = if all_used_names.contains(&symbol) {
-        let new_name = find_new_name(&symbol, all_used_names, &[]);
-        all_used_names.insert(new_name.clone());
-        new_name
+      let new_name = if name_allocator.contains(&symbol) {
+        name_allocator.find_new_name(&symbol, &[])
       } else {
-        all_used_names.insert(symbol.clone());
+        name_allocator.insert(symbol.clone());
         symbol
       };
 
@@ -1710,12 +1707,12 @@ var {} = {{}};
           info.module,
           None,
           Some(info.name.clone().expect("should have required symbol")),
-          &mut chunk_link.used_names,
+          &mut chunk_link.name_allocator,
           required,
         );
 
-        required_info.default_access(&mut chunk_link.used_names);
-        let symbol = required_info.default_exported(&mut chunk_link.used_names);
+        required_info.default_access(&mut chunk_link.name_allocator);
+        let symbol = required_info.default_exported(&mut chunk_link.name_allocator);
         Self::add_chunk_export(
           entry_chunk,
           symbol,
@@ -1894,7 +1891,7 @@ var {} = {{}};
           module.build_meta().strict_esm_module(),
           None,
           required,
-          &mut chunk_link.used_names,
+          &mut chunk_link.name_allocator,
         ) else {
           continue;
         };
@@ -1918,11 +1915,11 @@ var {} = {{}};
                 let required_info = &mut required[&symbol_binding.module];
 
                 let export_name = if let Some(id) = symbol_binding.ids.first() {
-                  required_info.property_access(id, &mut chunk_link.used_names)
+                  required_info.property_access(id, &mut chunk_link.name_allocator)
                 } else if let Some(default_access) = &required_info.default_access
                   && default_access == &symbol_binding.symbol
                 {
-                  required_info.default_exported(&mut chunk_link.used_names)
+                  required_info.default_exported(&mut chunk_link.name_allocator)
                 } else {
                   symbol_binding.symbol
                 };
@@ -1949,8 +1946,7 @@ var {} = {{}};
                   symbol_binding.render().into()
                 } else {
                   let ref_chunk_link = link.get_mut_unwrap(&ref_chunk);
-                  let new_name = find_new_name(&name, &ref_chunk_link.used_names, &[]);
-                  ref_chunk_link.used_names.insert(new_name.clone());
+                  let new_name = ref_chunk_link.name_allocator.find_new_name(&name, &[]);
                   ref_chunk_link
                     .decl_before_exports
                     .insert(format!("var {new_name} = {};\n", symbol_binding.render()));
@@ -2045,9 +2041,8 @@ var {} = {{}};
             }
 
             let entry_chunk_link = link.get_mut_unwrap(&entry_chunk);
-            let new_name = find_new_name(
+            let new_name = entry_chunk_link.name_allocator.find_new_name(
               &name,
-              &entry_chunk_link.used_names,
               binding_resolver.context.module_identifier(&entry_module),
             );
             if Self::add_chunk_export(
@@ -2059,7 +2054,6 @@ var {} = {{}};
             )
             .is_some()
             {
-              entry_chunk_link.used_names.insert(new_name.clone());
               entry_chunk_link
                 .decl_before_exports
                 .insert(format!("var {new_name} = {inlined_value};\n"));
@@ -2107,7 +2101,7 @@ var {} = {{}};
         entry_module,
         None,
         None,
-        &mut FxHashSet::default(),
+        &mut ConcatenationNameAllocator::default(),
         required,
       );
     }
@@ -2286,7 +2280,7 @@ var {} = {{}};
               *entry_module,
               None,
               None,
-              &mut FxHashSet::default(),
+              &mut ConcatenationNameAllocator::default(),
               required.entry(*chunk_ukey).or_default(),
             );
             require_info.set_entry_module_id |= code_generation_result
@@ -2622,7 +2616,7 @@ var {} = {{}};
               modified later by get_binding
               */
               None,
-              &mut chunk_link.used_names,
+              &mut chunk_link.name_allocator,
               required,
             );
           }
@@ -2653,7 +2647,7 @@ var {} = {{}};
               module.build_meta().strict_esm_module(),
               options.asi_safe,
               required,
-              &mut chunk_link.used_names,
+              &mut chunk_link.name_allocator,
             ) else {
               continue;
             };
@@ -2693,7 +2687,7 @@ var {} = {{}};
         });
 
       let mut refs = inline_refs;
-      let all_used_names = &mut chunk_link.used_names;
+      let name_allocator = &mut chunk_link.name_allocator;
 
       for ((symbol, m), mut all_refs) in ref_by_symbol {
         let ref_chunk = match Self::get_module_chunk(m, compilation) {
@@ -2713,13 +2707,9 @@ var {} = {{}};
         }
 
         if needs_import_chunk && !from_external {
-          let (orig_symbol, local_symbol) = if all_used_names.contains(&symbol) {
-            let new_symbol = find_new_name(
-              &symbol,
-              all_used_names,
-              binding_resolver.context.module_identifier(&m),
-            );
-            all_used_names.insert(new_symbol.clone());
+          let (orig_symbol, local_symbol) = if name_allocator.contains(&symbol) {
+            let new_symbol =
+              name_allocator.find_new_name(&symbol, binding_resolver.context.module_identifier(&m));
 
             for (_, cur_ref) in &mut all_refs {
               cur_ref.symbol = new_symbol.clone();
@@ -2727,7 +2717,7 @@ var {} = {{}};
 
             (symbol.clone(), new_symbol)
           } else {
-            all_used_names.insert(symbol.clone());
+            name_allocator.insert(symbol.clone());
             (symbol.clone(), symbol.clone())
           };
 
@@ -2932,7 +2922,7 @@ var {} = {{}};
     strict_esm_module: bool,
     asi_safe: Option<bool>,
     required: &mut IdentifierIndexMap<ExternalInterop>,
-    all_used_names: &mut FxHashSet<Atom>,
+    name_allocator: &mut ConcatenationNameAllocator,
   ) -> Option<Ref> {
     let ConcatenationBindingPlan {
       info_id,
@@ -2953,10 +2943,10 @@ var {} = {{}};
                 info_id,
                 from,
                 Some(info.name.clone().expect("should have name")),
-                all_used_names,
+                name_allocator,
                 required,
               )
-              .namespace(all_used_names),
+              .namespace(name_allocator),
               ModuleInfo::Concatenated(info) => info
                 .interop_namespace_object_name
                 .clone()
@@ -2970,10 +2960,10 @@ var {} = {{}};
                 info_id,
                 from,
                 Some(info.name.clone().expect("should have name")),
-                all_used_names,
+                name_allocator,
                 required,
               )
-              .namespace2(all_used_names),
+              .namespace2(name_allocator),
               ModuleInfo::Concatenated(info) => info
                 .interop_namespace_object2_name
                 .clone()
@@ -2997,10 +2987,10 @@ var {} = {{}};
             info_id,
             from,
             Some(info.name.clone().expect("should have name")),
-            all_used_names,
+            name_allocator,
             required,
           )
-          .default_access(all_used_names),
+          .default_access(name_allocator),
           ModuleInfo::Concatenated(info) => info
             .interop_default_access_name
             .clone()
@@ -3062,7 +3052,7 @@ var {} = {{}};
             info_id,
             from,
             Some(info.name.clone().expect("should have symbol")),
-            all_used_names,
+            name_allocator,
             required,
           )
           .required_symbol
@@ -3148,7 +3138,7 @@ var {} = {{}};
               info_id,
               from,
               Some(info.name.clone().expect("should have symbol")),
-              all_used_names,
+              name_allocator,
               required,
             )
             .required_symbol
@@ -3195,7 +3185,9 @@ fn normal_render(
 
 #[cfg(test)]
 mod tests {
-  use rspack_core::{ChunkInitFragments, ChunkUkey, InitFragmentKey, ModuleIdentifier};
+  use rspack_core::{
+    ChunkInitFragments, ChunkUkey, ConcatenationNameAllocator, InitFragmentKey, ModuleIdentifier,
+  };
   use rspack_util::{
     atom::Atom,
     fx_hash::{FxHashMap, FxHashSet},
@@ -3401,15 +3393,16 @@ mod tests {
       InitFragmentKey::ModuleExternal("../compiled/webpack-sources/index.js".into()),
       None,
     ))];
-    let mut chunk_used_names = FxHashSet::default();
+    let mut reserved_names = FxHashSet::default();
     let mut namespace_imports = FxHashMap::default();
     let mut required = Default::default();
 
     EsmLibraryPlugin::reserve_module_external_namespace_import_locals(
       &init_fragments,
-      &mut chunk_used_names,
+      &mut reserved_names,
       Some(&mut namespace_imports),
     );
+    let mut chunk_used_names = ConcatenationNameAllocator::new(reserved_names);
 
     let required_info = EsmLibraryPlugin::add_require(
       module,
@@ -3558,8 +3551,8 @@ mod tests {
   #[test]
   fn external_candidate_name_does_not_claim_chunk_top_level_name() {
     let module = ModuleIdentifier::from("test_module");
-    let mut candidate_used_names = FxHashSet::default();
-    let mut chunk_used_names = FxHashSet::default();
+    let mut candidate_used_names = ConcatenationNameAllocator::default();
+    let mut chunk_used_names = ConcatenationNameAllocator::default();
     let mut required = Default::default();
     let escaped_identifiers =
       FxHashMap::from_iter([("./lib.js".to_string(), vec![Atom::from("lib")])]);

@@ -58,7 +58,7 @@ use crate::{
   merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
-  subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
+  subtract_runtime_condition, to_normal_comment,
   utils::{SourceSizeCache, SourceSizeCacheSerde},
 };
 
@@ -1011,14 +1011,14 @@ impl Module for ConcatenatedModule {
     let mut concatenation_context =
       ConcatenationContext::prepare(&module_to_info_map, compilation, runtime);
 
-    let mut name_allocator = ConcatenationNameAllocator(all_used_names, &concatenation_context);
+    let mut name_allocator = ConcatenationNameAllocator::new(all_used_names);
 
     for info in module_to_info_map.values_mut() {
       // Get used names in the scope
       match info {
         // Handle concatenated type
         ModuleInfo::Concatenated(info) => {
-          name_allocator.assign_module_binding_names(info);
+          name_allocator.assign_module_binding_names(info, &concatenation_context);
 
           for ((name, ctxt), refs) in &info.binding_to_ref {
             if ctxt != &info.module_ctxt {
@@ -1060,7 +1060,7 @@ impl Module for ConcatenatedModule {
                 } else {
                   let ns_import_key = ns_import.clone();
                   let new_name = if name_allocator.contains(&ns_import) {
-                    name_allocator.find_new_binding_name(&ns_import, &[])
+                    name_allocator.find_new_binding_name(&ns_import, &[], &concatenation_context)
                   } else {
                     name_allocator.insert(ns_import);
                     ns_import_key.clone()
@@ -1078,6 +1078,7 @@ impl Module for ConcatenatedModule {
                   existing_name.as_ref(),
                   &source,
                   info,
+                  &concatenation_context,
                 );
 
                 if existing_name.is_none() {
@@ -1110,7 +1111,11 @@ impl Module for ConcatenatedModule {
             if let Some(ref namespace_export_symbol) = info.namespace_export_symbol {
               info.internal_names.get(namespace_export_symbol).cloned()
             } else {
-              Some(name_allocator.find_new_module_name("namespaceObject", &info.module))
+              Some(name_allocator.find_new_module_name(
+                "namespaceObject",
+                &info.module,
+                &concatenation_context,
+              ))
             };
           if let Some(namespace_object_name) = namespace_object_name {
             info.namespace_object_name = Some(namespace_object_name.clone());
@@ -1131,23 +1136,28 @@ impl Module for ConcatenatedModule {
 
         // Handle external type
         ModuleInfo::External(info) => {
-          let external_name: Atom = name_allocator.find_new_module_name("", &info.module);
+          let external_name: Atom =
+            name_allocator.find_new_module_name("", &info.module, &concatenation_context);
           info.name = Some(external_name.clone());
           top_level_declarations.insert(external_name.clone());
 
           if info.deferred {
-            let external_name = name_allocator.find_new_module_name("deferred", &info.module);
+            let external_name =
+              name_allocator.find_new_module_name("deferred", &info.module, &concatenation_context);
             info.deferred_name = Some(external_name.clone());
             top_level_declarations.insert(external_name.clone());
 
-            let external_name_interop =
-              name_allocator.find_new_module_name("deferredNamespaceObject", &info.module);
+            let external_name_interop = name_allocator.find_new_module_name(
+              "deferredNamespaceObject",
+              &info.module,
+              &concatenation_context,
+            );
             info.deferred_namespace_object_name = Some(external_name_interop.clone());
             top_level_declarations.insert(external_name_interop.clone());
           }
         }
       }
-      name_allocator.assign_interop_names(info);
+      name_allocator.assign_interop_names(info, &concatenation_context);
       for name in [
         info.get_interop_namespace_object_name(),
         info.get_interop_namespace_object2_name(),
@@ -1160,7 +1170,7 @@ impl Module for ConcatenatedModule {
       }
     }
 
-    // `NameAllocator` can retain a large amount of temporary name state.
+    // `ConcatenationNameAllocator` can retain a large amount of temporary name state.
     // Move it off the critical path once naming is complete.
     drop(name_allocator);
 
@@ -2833,57 +2843,6 @@ pub fn is_esm_dep_like(dep: &dyn Dependency) -> bool {
       | DependencyType::EsmExportImport
       | DependencyType::CssImport
   )
-}
-
-pub fn find_new_name(old_name: &str, used_names: &HashSet<Atom>, extra_info: &[Atom]) -> Atom {
-  let mut name = old_name.to_string();
-
-  for info_part in extra_info {
-    let info_str = info_part.as_ref();
-    let mut new_name = String::with_capacity(info_str.len() + 1 + name.len());
-    new_name.push_str(info_str);
-    if !name.is_empty() {
-      if name.starts_with('_') || info_str.ends_with('_') {
-        new_name.push_str(&name);
-      } else {
-        new_name.push('_');
-        new_name.push_str(&name);
-      }
-    }
-    name = new_name;
-
-    let candidate: Atom = to_identifier_with_escaped(name.clone()).into();
-    if !used_names.contains(&candidate) {
-      return candidate;
-    }
-  }
-
-  let base: Atom = to_identifier_with_escaped(name).into();
-  if !base.is_empty() && !used_names.contains(&base) {
-    return base;
-  }
-
-  let mut i = 0;
-  let mut i_buffer = itoa::Buffer::new();
-
-  let mut base_with_underscore = String::with_capacity(base.len() + 1);
-  base_with_underscore.push_str(base.as_ref());
-  base_with_underscore.push('_');
-
-  let mut numbered = String::with_capacity(base_with_underscore.len() + 8);
-  loop {
-    numbered.clear();
-    numbered.push_str(&base_with_underscore);
-    numbered.push_str(i_buffer.format(i));
-
-    // Same as above: `base` is already escaped, appending '_' and a number still yields a valid identifier.
-    let candidate: Atom = Atom::from(numbered.as_str());
-    if !used_names.contains(&candidate) {
-      return candidate;
-    }
-
-    i += 1;
-  }
 }
 
 #[derive(Debug)]

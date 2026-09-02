@@ -7,6 +7,7 @@ use rspack_util::{
   SpanExt,
   atom::Atom,
   fx_hash::{FxHashMap, FxHashSet},
+  itoa,
 };
 use swc_core::common::SyntaxContext;
 use swc_experimental_allocator::Allocator;
@@ -18,8 +19,8 @@ use crate::{
   BuildMetaDefaultObject, BuildMetaExportsType, Compilation, ConcatenatedModuleInfo, Context,
   ExportInfo, ExportProvided, ExportsInfoArtifact, ExportsType, FindTargetResult, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, ModuleStaticCache, RuntimeSpec, UsedName,
-  collect_ident, escape_name_atom_ref, find_new_name, find_target, get_cached_readable_identifier,
-  split_readable_identifier,
+  collect_ident, escape_name_atom_ref, find_target, get_cached_readable_identifier,
+  split_readable_identifier, to_identifier_with_escaped,
 };
 
 /// Reusable read-only context shared by concatenation implementations.
@@ -35,43 +36,141 @@ pub struct ConcatenationContext<'a> {
   pub module_identifiers: IdentifierMap<Vec<Atom>>,
 }
 
-pub struct ConcatenationNameAllocator<'a>(pub FxHashSet<Atom>, pub &'a ConcatenationContext<'a>);
+/// Allocates unique JavaScript identifiers while retaining per-base suffix cursors.
+#[derive(Debug, Clone, Default)]
+pub struct ConcatenationNameAllocator {
+  used_names: FxHashSet<Atom>,
+  used_strings: FxHashSet<String>,
+  suffix_counters: FxHashMap<Atom, u32>,
+}
 
-impl ConcatenationNameAllocator<'_> {
+impl ConcatenationNameAllocator {
+  pub fn new(used_names: FxHashSet<Atom>) -> Self {
+    let mut used_strings = FxHashSet::default();
+    used_strings.reserve(used_names.len());
+    for name in &used_names {
+      used_strings.insert(name.as_ref().to_string());
+    }
+
+    Self {
+      used_names,
+      used_strings,
+      suffix_counters: FxHashMap::default(),
+    }
+  }
+
   pub fn contains(&self, name: &Atom) -> bool {
-    self.0.contains(name)
+    self.used_names.contains(name)
   }
 
   pub fn insert(&mut self, name: Atom) {
-    self.0.insert(name);
+    self.used_strings.insert(name.as_ref().to_string());
+    self.used_names.insert(name);
   }
 
+  pub fn extend(&mut self, names: impl IntoIterator<Item = Atom>) {
+    for name in names {
+      self.insert(name);
+    }
+  }
+
+  pub fn merge(&mut self, other: Self) {
+    self.used_names.extend(other.used_names);
+    self.used_strings.extend(other.used_strings);
+    for (base, next_suffix) in other.suffix_counters {
+      self
+        .suffix_counters
+        .entry(base)
+        .and_modify(|current| *current = (*current).max(next_suffix))
+        .or_insert(next_suffix);
+    }
+  }
+
+  /// Returns a unique name and reserves it in this allocator.
   pub fn find_new_name(&mut self, old_name: &str, extra_info: &[Atom]) -> Atom {
-    let name = find_new_name(old_name, &self.0, extra_info);
-    self.0.insert(name.clone());
-    name
+    let mut name = old_name.to_string();
+
+    for info_part in extra_info {
+      let info_str = info_part.as_ref();
+      let mut new_name = String::with_capacity(info_str.len() + 1 + name.len());
+      new_name.push_str(info_str);
+      if !name.is_empty() {
+        if name.starts_with('_') || info_str.ends_with('_') {
+          new_name.push_str(&name);
+        } else {
+          new_name.push('_');
+          new_name.push_str(&name);
+        }
+      }
+      name = new_name;
+
+      let escaped = to_identifier_with_escaped(name.clone());
+      if !self.used_strings.contains(&escaped) {
+        self.used_strings.insert(escaped.clone());
+        let candidate: Atom = escaped.into();
+        self.used_names.insert(candidate.clone());
+        return candidate;
+      }
+    }
+
+    let base_str = to_identifier_with_escaped(name);
+    if !base_str.is_empty() && !self.used_strings.contains(&base_str) {
+      self.used_strings.insert(base_str.clone());
+      let base: Atom = base_str.into();
+      self.used_names.insert(base.clone());
+      return base;
+    }
+
+    let base: Atom = base_str.into();
+    let counter = self.suffix_counters.entry(base.clone()).or_insert(0);
+    let mut i = *counter;
+    let mut i_buffer = itoa::Buffer::new();
+
+    let mut base_with_underscore = String::with_capacity(base.len() + 1);
+    base_with_underscore.push_str(base.as_ref());
+    base_with_underscore.push('_');
+
+    let mut numbered = String::with_capacity(base_with_underscore.len() + 8);
+    loop {
+      numbered.clear();
+      numbered.push_str(&base_with_underscore);
+      numbered.push_str(i_buffer.format(i));
+
+      if !self.used_strings.contains(&numbered) {
+        self.used_strings.insert(numbered.clone());
+        let candidate: Atom = Atom::from(numbered.as_str());
+        self.used_names.insert(candidate.clone());
+        *counter = i + 1;
+        return candidate;
+      }
+
+      i += 1;
+    }
   }
 
-  pub fn find_new_module_name(&mut self, old_name: &str, module: &ModuleIdentifier) -> Atom {
-    let Self(used_names, context) = self;
-    let name = find_new_name(old_name, used_names, context.module_identifier(module));
-    used_names.insert(name.clone());
-    name
+  pub fn find_new_module_name(
+    &mut self,
+    old_name: &str,
+    module: &ModuleIdentifier,
+    context: &ConcatenationContext,
+  ) -> Atom {
+    self.find_new_name(old_name, context.module_identifier(module))
   }
 
-  pub fn find_new_binding_name(&mut self, name: &Atom, extra_info: &[Atom]) -> Atom {
-    let Self(used_names, context) = self;
-    let name = find_new_name(
+  pub fn find_new_binding_name(
+    &mut self,
+    name: &Atom,
+    extra_info: &[Atom],
+    context: &ConcatenationContext,
+  ) -> Atom {
+    self.find_new_name(
       context
         .escaped_names
         .get(name)
         .expect("should have escaped name")
         .as_ref(),
-      used_names,
       extra_info,
-    );
-    used_names.insert(name.clone());
-    name
+    )
   }
 }
 
@@ -378,29 +477,29 @@ impl<'a> ConcatenationBindingResolver<'a> {
   }
 }
 
-impl ConcatenationNameAllocator<'_> {
-  pub fn assign_module_binding_names(&mut self, module_info: &mut ConcatenatedModuleInfo) {
-    let Self(used_names, context) = self;
+impl ConcatenationNameAllocator {
+  pub fn assign_module_binding_names(
+    &mut self,
+    module_info: &mut ConcatenatedModuleInfo,
+    context: &ConcatenationContext,
+  ) {
     let escaped_identifier = context.module_identifier(&module_info.module);
     for (name, ctxt) in module_info.binding_to_ref.keys() {
       if ctxt != &module_info.module_ctxt {
         continue;
       }
 
-      let internal_name = if used_names.contains(name) {
-        let internal_name = find_new_name(
+      let internal_name = if self.contains(name) {
+        self.find_new_name(
           context
             .escaped_names
             .get(name)
             .expect("should have escaped name")
             .as_ref(),
-          used_names,
           escaped_identifier,
-        );
-        used_names.insert(internal_name.clone());
-        internal_name
+        )
       } else {
-        used_names.insert(name.clone());
+        self.insert(name.clone());
         name.clone()
       };
       module_info
@@ -415,30 +514,27 @@ impl ConcatenationNameAllocator<'_> {
     existing_name: Option<&Atom>,
     source: &str,
     module_info: &mut ConcatenatedModuleInfo,
+    context: &ConcatenationContext,
   ) -> Atom {
-    let Self(used_names, context) = self;
-    let should_update_raw_export = existing_name.is_some() || used_names.contains(imported_name);
+    let should_update_raw_export = existing_name.is_some() || self.contains(imported_name);
     let internal_name = existing_name.cloned().unwrap_or_else(|| {
-      if !used_names.contains(imported_name) {
-        used_names.insert(imported_name.clone());
+      if !self.contains(imported_name) {
+        self.insert(imported_name.clone());
         return imported_name.clone();
       }
 
-      let internal_name = if imported_name == "default" {
-        find_new_name("", used_names, context.source_identifier(source))
+      if imported_name == "default" {
+        self.find_new_name("", context.source_identifier(source))
       } else {
-        find_new_name(
+        self.find_new_name(
           context
             .escaped_names
             .get(imported_name)
             .expect("should have escaped name")
             .as_ref(),
-          used_names,
           context.module_identifier(&module_info.module),
         )
-      };
-      used_names.insert(internal_name.clone());
-      internal_name
+      }
     });
 
     if should_update_raw_export
@@ -453,10 +549,13 @@ impl ConcatenationNameAllocator<'_> {
     internal_name
   }
 
-  pub fn assign_interop_names(&mut self, module_info: &mut ModuleInfo) {
+  pub fn assign_interop_names(
+    &mut self,
+    module_info: &mut ModuleInfo,
+    context: &ConcatenationContext,
+  ) {
     let module = module_info.id();
-    let build_meta = self
-      .1
+    let build_meta = context
       .module_graph
       .module_by_identifier(&module)
       .expect("should have module")
@@ -464,25 +563,30 @@ impl ConcatenationNameAllocator<'_> {
     let exports_type: BuildMetaExportsType = build_meta.exports_type();
     let default_object: BuildMetaDefaultObject = build_meta.default_object();
     if exports_type != BuildMetaExportsType::Namespace {
-      module_info.set_interop_namespace_object_name(Some(
-        self.find_new_module_name("namespaceObject", &module),
-      ));
+      module_info.set_interop_namespace_object_name(Some(self.find_new_module_name(
+        "namespaceObject",
+        &module,
+        context,
+      )));
     }
 
     if exports_type == BuildMetaExportsType::Default
       && !matches!(default_object, BuildMetaDefaultObject::Redirect)
     {
-      module_info.set_interop_namespace_object2_name(Some(
-        self.find_new_module_name("namespaceObject2", &module),
-      ));
+      module_info.set_interop_namespace_object2_name(Some(self.find_new_module_name(
+        "namespaceObject2",
+        &module,
+        context,
+      )));
     }
 
     if matches!(
       exports_type,
       BuildMetaExportsType::Dynamic | BuildMetaExportsType::Unset
     ) {
-      module_info
-        .set_interop_default_access_name(Some(self.find_new_module_name("default", &module)));
+      module_info.set_interop_default_access_name(Some(
+        self.find_new_module_name("default", &module, context),
+      ));
     }
   }
 }
