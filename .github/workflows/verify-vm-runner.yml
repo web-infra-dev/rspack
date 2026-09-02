@@ -1,6 +1,7 @@
 name: Verify VM Runner
 
 on:
+  pull_request:
   workflow_dispatch:
     inputs:
       scenario:
@@ -23,7 +24,7 @@ concurrency:
 
 jobs:
   availability:
-    if: inputs.scenario == 'availability'
+    if: github.event_name == 'pull_request' || inputs.scenario == 'availability'
     runs-on: rspack-ubuntu-24.04-vm-medium-verify
     timeout-minutes: 15
     steps:
@@ -53,6 +54,28 @@ jobs:
           trap 'docker network rm "$network" >/dev/null 2>&1 || true; docker volume rm "$volume" >/dev/null 2>&1 || true' EXIT
           docker network create "$network"
           docker volume create "$volume"
+
+      - name: Verify aligned Ubuntu runner capabilities
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcc --version
+          g++ --version
+          cmake --version
+          test "$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" = 3.12
+          test -x /opt/hostedtoolcache/Python/3.13.14/x64/bin/python
+          /opt/hostedtoolcache/Python/3.13.14/x64/bin/python --version | grep -F 'Python 3.13.14'
+          java -version 2>&1 | grep -F '11.'
+          git lfs version
+          docker buildx version | grep -F '0.21.0'
+          docker compose version | grep -F '2.23.0'
+          dumb-init --version 2>&1 | grep -F '1.2.5'
+          test -d "$ANDROID_HOME/platforms/android-30"
+          test -d "$ANDROID_HOME/platforms/android-34"
+          test -d "$ANDROID_HOME/ndk/21.1.6352462"
+          test -d "$ANDROID_HOME/ndk/26.3.11579264"
+          test -x /opt/runner/hook.sh
+          test -d "$HOME/k8s"
 
       - name: Verify local npm lifecycle
         shell: bash
