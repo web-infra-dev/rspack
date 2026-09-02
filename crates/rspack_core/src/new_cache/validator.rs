@@ -112,16 +112,17 @@ impl CacheValidator {
   /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/cache/PackFileCacheStrategy.js#L1510-L1625
   pub(super) async fn update(
     &self,
-    mut new_build_dependencies: InternedPathSet,
+    new_build_dependencies: &InternedPathSet,
   ) -> Result<Option<Vec<u8>>> {
-    let new_build_dependencies = {
-      let data = self.data();
-      new_build_dependencies.retain(|path| !data.build_dependencies.contains(path));
-      if new_build_dependencies.is_empty() && data.build_dependencies_snapshot.is_some() {
-        return Ok(None);
-      }
-      new_build_dependencies
-    };
+    let mut data = self.data();
+    let new_build_dependencies = new_build_dependencies
+      .iter()
+      .filter(|path| !data.build_dependencies.contains(path))
+      .cloned()
+      .collect::<InternedPathSet>();
+    if new_build_dependencies.is_empty() && data.build_dependencies_snapshot.is_some() {
+      return Ok(None);
+    }
 
     self.logger.debug(format!(
       "Capturing build dependencies... ({} dependencies)",
@@ -147,7 +148,6 @@ impl CacheValidator {
       .await;
     self.logger.time_end(start);
     let snapshot = snapshot?;
-    let mut data = self.data();
     data.build_dependencies_snapshot = Some(
       if let Some(current) = data.build_dependencies_snapshot.take() {
         self.file_system_info.merge_snapshots(current, snapshot)

@@ -1,6 +1,6 @@
 use std::{
   fmt,
-  sync::{Arc, Mutex, MutexGuard, OnceLock, RwLock, RwLockReadGuard, RwLockWriteGuard},
+  sync::{Arc, Mutex, MutexGuard, OnceLock, RwLock, RwLockReadGuard},
 };
 
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -41,6 +41,16 @@ impl PendingWrites {
   fn meta(&self) -> MutexGuard<'_, Option<Meta>> {
     self.meta.lock().expect("should lock")
   }
+
+  fn is_empty(&self) -> bool {
+    self.entries.is_empty() && self.new_build_dependencies().is_none() && self.meta().is_none()
+  }
+
+  fn clear(&self) {
+    self.entries.clear();
+    *self.new_build_dependencies() = None;
+    *self.meta() = None;
+  }
 }
 
 /// Filesystem cache implementation scheduled by [`super::IdleFileCache`].
@@ -48,8 +58,7 @@ pub struct FileCacheStrategy {
   validator: CacheValidator,
   codec: Arc<CacheCodec>,
   database: OnceLock<Database>,
-  pending_writes: PendingWrites,
-  activity_gate: RwLock<()>,
+  pending_writes: RwLock<PendingWrites>,
   readonly: bool,
   logger: Arc<InfrastructureLogger>,
 }
@@ -82,9 +91,8 @@ impl FileCacheStrategy {
         logger.clone(),
       ),
       codec,
-      database: OnceLock::new(),
-      pending_writes: PendingWrites::default(),
-      activity_gate: RwLock::new(()),
+      database: Default::default(),
+      pending_writes: Default::default(),
       readonly,
       logger,
     })
@@ -94,8 +102,6 @@ impl FileCacheStrategy {
     &self,
     (base_path, database_path): (Utf8PathBuf, Utf8PathBuf),
   ) -> Result<()> {
-    let _activity = self.background_activity();
-
     let mut database = {
       let start = self.logger.time("open cache database");
       let database = Database::open(base_path, database_path, self.readonly, self.logger.clone());
@@ -140,18 +146,11 @@ impl FileCacheStrategy {
     Ok(())
   }
 
-  fn foreground_activity(&self) -> RwLockReadGuard<'_, ()> {
+  fn pending_writes(&self) -> RwLockReadGuard<'_, PendingWrites> {
     self
-      .activity_gate
+      .pending_writes
       .read()
-      .expect("cache activity gate should not be poisoned")
-  }
-
-  fn background_activity(&self) -> RwLockWriteGuard<'_, ()> {
-    self
-      .activity_gate
-      .write()
-      .expect("cache activity gate should not be poisoned")
+      .expect("cache pending writes lock should not be poisoned")
   }
 
   pub(super) fn store(
@@ -164,8 +163,7 @@ impl FileCacheStrategy {
     if self.readonly {
       return;
     }
-    let _activity = self.foreground_activity();
-    self.pending_writes.entries.insert(
+    self.pending_writes().entries.insert(
       key,
       PendingWrite {
         entry: CacheEntry::new(etag, value),
@@ -178,9 +176,8 @@ impl FileCacheStrategy {
     if self.readonly {
       return;
     }
-    let _activity = self.foreground_activity();
     self
-      .pending_writes
+      .pending_writes()
       .new_build_dependencies()
       .get_or_insert_default()
       .extend(dependencies);
@@ -190,13 +187,11 @@ impl FileCacheStrategy {
     if self.readonly {
       return;
     }
-    let _activity = self.foreground_activity();
-    *self.pending_writes.meta() = Some(meta);
+    *self.pending_writes().meta() = Some(meta);
   }
 
   pub fn restore_meta(&self) -> Result<Option<Meta>> {
-    let _activity = self.foreground_activity();
-    if let Some(pending) = self.pending_writes.meta().as_ref() {
+    if let Some(pending) = self.pending_writes().meta().as_ref() {
       return Ok(Some(pending.clone()));
     }
     let Some(entry) = self
@@ -215,8 +210,7 @@ impl FileCacheStrategy {
     etag: Option<&Etag>,
     decoder: CacheValueDecoder,
   ) -> Result<Option<ErasedCacheValue>> {
-    let _activity = self.foreground_activity();
-    if let Some(pending) = self.pending_writes.entries.get(key) {
+    if let Some(pending) = self.pending_writes().entries.get(key) {
       return Ok(
         pending
           .entry
@@ -242,16 +236,19 @@ impl FileCacheStrategy {
     if self.readonly {
       return Ok(());
     }
-    let _activity = self.background_activity();
-    let database = self.database.wait();
 
+    let database = self.database.wait();
     if self.has_pending_writes() {
       self.logger.log("Storing cache...");
       let start = self.logger.time("store cache");
       let codec = &self.codec;
 
-      let mut writes = self
+      let pending_writes = self
         .pending_writes
+        .write()
+        .expect("cache pending writes lock should not be poisoned");
+
+      let mut writes = pending_writes
         .entries
         .par_iter()
         .map(|pending| {
@@ -260,10 +257,8 @@ impl FileCacheStrategy {
           Ok((DatabaseFamily::Cache, key, value))
         })
         .collect::<Result<Vec<_>>>()?;
-      self.pending_writes.entries.clear();
 
-      let new_build_dependencies = self.pending_writes.new_build_dependencies().take();
-      if let Some(dependencies) = new_build_dependencies
+      if let Some(dependencies) = &*pending_writes.new_build_dependencies()
         && let Some(validator) = self.validator.update(dependencies).await?
       {
         writes.push((
@@ -273,9 +268,8 @@ impl FileCacheStrategy {
         ));
       }
 
-      let meta = self.pending_writes.meta().take();
-      if let Some(meta) = meta {
-        let meta = codec.encode(&meta)?;
+      if let Some(meta) = &*pending_writes.meta() {
+        let meta = codec.encode(meta)?;
         writes.push((DatabaseFamily::Meta, CacheKey::from(META_KEY), meta));
       }
 
@@ -287,6 +281,8 @@ impl FileCacheStrategy {
       });
       self.logger.time_end(start);
       result?;
+
+      pending_writes.clear();
 
       self
         .logger
@@ -308,15 +304,11 @@ impl FileCacheStrategy {
 
   pub async fn shutdown(&self) -> Result<()> {
     self.after_all_stored(1, || false).await?;
-
-    let _activity = self.background_activity();
     self.database.wait().shutdown()?;
     Ok(())
   }
 
   pub fn has_pending_writes(&self) -> bool {
-    !self.pending_writes.entries.is_empty()
-      || self.pending_writes.new_build_dependencies().is_some()
-      || self.pending_writes.meta().is_some()
+    !self.pending_writes().is_empty()
   }
 }
