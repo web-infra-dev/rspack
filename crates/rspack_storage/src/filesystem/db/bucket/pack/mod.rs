@@ -31,40 +31,53 @@ impl Pack {
 
   /// Loads a pack file from disk and returns the pack data with its content hash.
   ///
+  /// The whole file is read in one shot and items are sliced out of that single
+  /// buffer: every byte is hashed for `content_hash` anyway, and this avoids the
+  /// per-item zero-fill and intermediate copies of streamed reads.
+  ///
   /// Returns: (Pack, content_hash)
   pub async fn load(fs: &ScopeFileSystem, id: PackId) -> Result<(Self, u64)> {
     let pack_name = id.pack_name();
-    let mut reader = fs.stream_read(&pack_name).await?;
+    let buf = fs.read(&pack_name).await?;
 
     let mut content_hasher = FxHasher::default();
     let mut data = vec![];
-    while let Ok(header) = reader.read_line().await {
+    let mut offset = 0;
+    while offset < buf.len() {
+      let header_end = buf[offset..]
+        .iter()
+        .position(|&b| b == b'\n')
+        .map_or(buf.len(), |pos| offset + pos);
+      // Streamed loading stopped on empty or non-utf8 header lines; keep that behavior.
+      let Ok(header) = std::str::from_utf8(&buf[offset..header_end]) else {
+        break;
+      };
       if header.is_empty() {
         break;
       }
-      let parts: Vec<_> = header.split(' ').collect();
-      if parts.len() != 2 {
+      let mut parts = header.split(' ');
+      let (Some(key_len), Some(value_len), None) = (parts.next(), parts.next(), parts.next())
+      else {
         return Err(Error::InvalidFormat(format!(
           "Invalid pack item header in '{pack_name}': expected 'key_len value_len', got '{header}'"
         )));
-      }
+      };
+      offset = (header_end + 1).min(buf.len());
 
-      let key_len = parts[0].parse::<usize>().map_err(|e| {
+      let key_len = key_len.parse::<usize>().map_err(|e| {
         Error::InvalidFormat(format!(
-          "Failed to parse key length in '{pack_name}': invalid value '{}' ({e})",
-          parts[0]
+          "Failed to parse key length in '{pack_name}': invalid value '{key_len}' ({e})"
         ))
       })?;
-      let key = reader.read(key_len).await?;
+      let key = read_item(&buf, &mut offset, key_len)?;
       key.hash(&mut content_hasher);
 
-      let value_len = parts[1].parse::<usize>().map_err(|e| {
+      let value_len = value_len.parse::<usize>().map_err(|e| {
         Error::InvalidFormat(format!(
-          "Failed to parse value length in '{pack_name}': invalid value '{}' ({e})",
-          parts[1]
+          "Failed to parse value length in '{pack_name}': invalid value '{value_len}' ({e})"
         ))
       })?;
-      let value = reader.read(value_len).await?;
+      let value = read_item(&buf, &mut offset, value_len)?;
       value.hash(&mut content_hasher);
 
       data.push((key, value))
@@ -111,6 +124,25 @@ impl Pack {
     // Check if length changed (more efficient than comparing with original_len != current_len)
     self.data.len() < original_len
   }
+}
+
+/// Copies the next `len` bytes out of the pack buffer, advancing `offset`.
+///
+/// A pack file ending before `len` bytes are available is reported as the same
+/// unexpected EOF error that streamed `read_exact` produced.
+fn read_item(buf: &[u8], offset: &mut usize, len: usize) -> Result<Vec<u8>> {
+  let end = offset
+    .checked_add(len)
+    .filter(|end| *end <= buf.len())
+    .ok_or_else(|| {
+      Error::FS(rspack_fs::Error::Io(std::io::Error::new(
+        std::io::ErrorKind::UnexpectedEof,
+        "failed to fill whole buffer",
+      )))
+    })?;
+  let item = buf[*offset..end].to_vec();
+  *offset = end;
+  Ok(item)
 }
 
 #[cfg(test)]
