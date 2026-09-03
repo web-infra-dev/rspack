@@ -375,6 +375,8 @@ pub struct ScopeInfo {
 
 #[cfg(test)]
 mod tests {
+  use crate::Atom;
+
   use super::{ScopeInfoDB, VariableInfo, VariableInfoFlags, VariableInfoId};
 
   fn new_variable(db: &mut ScopeInfoDB, scope: super::ScopeInfoId) -> VariableInfoId {
@@ -385,38 +387,36 @@ mod tests {
   fn inner_scope_shadows_and_unwinds() {
     let mut db = ScopeInfoDB::new();
     let root = db.create();
-    let a = "a".into();
-
     let outer = new_variable(&mut db, root);
     db.set(root, "a".into(), outer);
-    assert_eq!(db.get(root, &a), Some(outer));
+    assert_eq!(db.get(root, "a"), Some(outer));
 
     let child = db.create_child(root);
-    assert_eq!(db.get(child, &a), Some(outer));
+    assert_eq!(db.get(child, "a"), Some(outer));
 
     let inner = new_variable(&mut db, child);
     db.set(child, "a".into(), inner);
-    assert_eq!(db.get(child, &a), Some(inner));
+    assert_eq!(db.get(child, "a"), Some(inner));
 
     db.exit_scope(child);
-    assert_eq!(db.get(root, &a), Some(outer));
+    assert_eq!(db.get(root, "a"), Some(outer));
   }
 
   #[test]
   fn delete_masks_outer_binding_until_exit() {
     let mut db = ScopeInfoDB::new();
     let root = db.create();
-    let a = "a".into();
+    let a = Atom::from("a");
 
     let outer = new_variable(&mut db, root);
     db.set(root, "a".into(), outer);
 
     let child = db.create_child(root);
     db.delete(child, &a);
-    assert_eq!(db.get(child, &a), None);
+    assert_eq!(db.get(child, a.as_str()), None);
 
     db.exit_scope(child);
-    assert_eq!(db.get(root, &a), Some(outer));
+    assert_eq!(db.get(root, a.as_str()), Some(outer));
   }
 
   #[test]
