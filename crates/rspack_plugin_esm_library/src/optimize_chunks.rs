@@ -4,8 +4,8 @@ use atomic_refcell::AtomicRefCell;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  ChunkGroupUkey, ChunkUkey, Compilation, DependenciesBlock, DependencyType, ExportProvided,
-  ModuleIdentifier, UsageState, find_new_name, get_cached_readable_identifier,
+  ChunkGroupUkey, ChunkUkey, Compilation, ConcatenationNameAllocator, DependenciesBlock,
+  DependencyType, ExportProvided, ModuleIdentifier, UsageState, get_cached_readable_identifier,
   incremental::Mutation, split_readable_identifier,
 };
 use rspack_util::{
@@ -641,7 +641,7 @@ pub(crate) fn analyze_dyn_import_targets(
   }
 
   // Pre-assign namespace object names for scope-hoisted dyn targets in non-strict chunks.
-  // Use the same naming scheme as regular namespace objects (find_new_name("namespaceObject", ...))
+  // Use the same naming scheme as regular namespace objects.
   // so the name matches what deconflict_symbols would produce.
   // These names must be determined before code generation so the dynamic import template
   // can emit `.then(m => m.<ns_name>)`.
@@ -716,7 +716,8 @@ pub(crate) fn analyze_dyn_import_targets(
 
     // Step 3: Only assign namespace names when needed (namespace used as a whole or has conflicts)
     // Track used names per chunk to avoid collisions between multiple dyn targets
-    let mut chunk_used_names: FxHashMap<ChunkUkey, FxHashSet<Atom>> = FxHashMap::default();
+    let mut chunk_name_allocators: FxHashMap<ChunkUkey, ConcatenationNameAllocator> =
+      FxHashMap::default();
 
     for module_id in &sorted_targets {
       if !concatenated_modules.contains(module_id) {
@@ -751,9 +752,8 @@ pub(crate) fn analyze_dyn_import_targets(
         &compilation.options.context,
       );
       let escaped_idents = split_readable_identifier(&readable_identifier);
-      let used_names = chunk_used_names.entry(chunk_ukey).or_default();
-      let ns_name = find_new_name("namespaceObject", used_names, &escaped_idents);
-      used_names.insert(ns_name.clone());
+      let name_allocator = chunk_name_allocators.entry(chunk_ukey).or_default();
+      let ns_name = name_allocator.find_new_name("namespaceObject", &escaped_idents);
       ns_map.insert(*module_id, ns_name);
     }
   }

@@ -30,8 +30,9 @@ use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, Ide
 use rspack_core::{
   ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
-  ExportsArgument, Module, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable, SourceType,
-  concatenated_module::{collect_ident, find_new_name},
+  ConcatenationNameAllocator, ExportsArgument, Module, RuntimeCodeTemplate, RuntimeGlobals,
+  RuntimeVariable, SourceType,
+  concatenated_module::collect_ident,
   render_init_fragments,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -1319,6 +1320,7 @@ var {} = {{}};
       }
       Err(e) => return Err(e),
     }
+    let mut name_allocator = ConcatenationNameAllocator::new(all_used_names);
 
     for (_ident, info) in inlined_modules_to_info.iter_mut() {
       for module_scope_ident in info.module_scope_idents.iter() {
@@ -1380,7 +1382,7 @@ var {} = {{}};
           let context = compilation.options.context.clone();
           let readable_identifier = module.readable_identifier(&context).to_string();
           let splitted_readable_identifier = split_readable_identifier(&readable_identifier);
-          let new_name = find_new_name(name, &all_used_names, &splitted_readable_identifier);
+          let new_name = name_allocator.find_new_name(name, &splitted_readable_identifier);
 
           for identifier in refs.iter() {
             let span = identifier.id.span;
@@ -1394,8 +1396,6 @@ var {} = {{}};
 
             replace_source.replace(low, high, new_name.to_string(), None);
           }
-
-          all_used_names.insert(new_name);
         }
       }
 

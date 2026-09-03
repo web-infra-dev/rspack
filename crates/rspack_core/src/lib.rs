@@ -21,7 +21,9 @@ pub use new_cache::{
 };
 pub use transient_cache::*;
 pub use value_cache_versions::ValueCacheVersions;
+mod concatenation_backend;
 mod dependencies_block;
+pub use concatenation_backend::*;
 pub mod diagnostics;
 pub mod incremental;
 pub use dependencies_block::{
