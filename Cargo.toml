@@ -106,7 +106,7 @@ smallvec            = { version = "1.15.2", default-features = false }
 smol_str            = { version = "0.3.6", default-features = false }
 stacker             = { version = "0.1.24", default-features = false }
 static_assertions   = { version = "1.1.0", default-features = false }
-sugar_path          = { version = "2.0.1", default-features = false, features = ["cached_current_dir"] }
+sugar_path          = { version = "3.0.0", default-features = false, features = ["cached_current_dir"] }
 supports-color      = { version = "3.0.2", default-features = false }
 syn                 = { version = "2.0.117", default-features = false }
 tempfile            = { version = "3.27.0", default-features = false }
