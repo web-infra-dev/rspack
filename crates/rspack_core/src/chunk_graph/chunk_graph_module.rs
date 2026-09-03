@@ -294,11 +294,14 @@ impl ChunkGraph {
   /// this chunk group was created for.
   ///
   /// A chunk group is usually created by a single block, but several blocks are
-  /// merged into one group when they resolve to the same chunk name. Entrypoints
-  /// are not created by a block at all and therefore have none.
+  /// merged into one group when they resolve to the same chunk name. Async
+  /// entrypoints (a worker, or any block carrying entry options) are created by
+  /// a block as well; only the initial entrypoints have none.
   ///
   /// The blocks are sorted by identifier so that repeated builds return them in
-  /// the same order.
+  /// the same order. Note that this scans every block/chunk group pair, so
+  /// callers that need the mapping for the whole graph are better off inverting
+  /// [`ChunkGraph::get_block_chunk_group`] once themselves.
   pub fn get_chunk_group_blocks(
     &self,
     chunk_group: ChunkGroupUkey,

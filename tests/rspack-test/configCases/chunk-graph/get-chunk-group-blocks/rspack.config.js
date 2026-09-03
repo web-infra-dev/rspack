@@ -38,7 +38,7 @@ class Plugin {
           blocks[2],
         ]);
 
-        // An entrypoint is not created by a block, so it has none.
+        // The initial entrypoint is not created by a block, so it has none.
         const entrypoint = compilation.entrypoints.get('main');
         expect(chunkGraph.getChunkGroupBlocks(entrypoint)).toEqual([]);
       });

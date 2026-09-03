@@ -241,12 +241,23 @@ impl ChunkGraph {
     js_chunk_group: &ChunkGroup,
   ) -> napi::Result<Vec<AsyncDependenciesBlockWrapper>> {
     self.with_compilation(|compilation| {
+      let chunk_group_ukey = js_chunk_group.chunk_group_ukey;
+      if !compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .contains(&chunk_group_ukey)
+      {
+        return Err(napi::Error::from_reason(format!(
+          "Unable to access chunk_group with id = {chunk_group_ukey:?} now. The chunk group has been removed on the Rust side."
+        )));
+      }
+
       let module_graph = compilation.get_module_graph();
       Ok(
         compilation
           .build_chunk_graph_artifact
           .chunk_graph
-          .get_chunk_group_blocks(js_chunk_group.chunk_group_ukey)
+          .get_chunk_group_blocks(chunk_group_ukey)
           .into_iter()
           .filter_map(|block_id| {
             module_graph
