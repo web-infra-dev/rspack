@@ -1,10 +1,12 @@
+use std::sync::Arc;
+
 use rspack_cacheable::cacheable;
-use rspack_collections::Identifiable;
-use rspack_error::Result;
+use rspack_collections::{Identifiable, IdentifierDashMap};
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 
 use crate::{
-  BoxModule, BuildResult, DependencyRef, FileSystemInfo, NeedBuildContext, OptimizationBailoutItem,
-  ValueCacheVersions,
+  BoxModule, BuildModuleGraphArtifact, BuildResult, DependencyRef, FileSystemInfo,
+  ModuleIdentifier, NeedBuildContext, OptimizationBailoutItem, ValueCacheVersions,
   dependencies_block::CachedAsyncDependenciesBlock,
   new_cache::{CacheFacade, CacheValue},
   normal_module::CachedModule,
@@ -32,31 +34,46 @@ struct CachedBuildResult {
 }
 
 impl CachedBuildResult {
-  async fn from_build_result(
-    result: &mut BuildResult,
-    file_system_info: &FileSystemInfo,
-    build_start_time: u64,
-  ) -> Result<Option<Self>> {
-    let Some(module) = result.module.as_normal_module_mut() else {
-      return Ok(None);
+  fn from_module_graph(
+    artifact: &mut BuildModuleGraphArtifact,
+    module_identifier: ModuleIdentifier,
+    snapshot: crate::new_cache::Snapshot,
+  ) -> Option<Self> {
+    let (dependencies, blocks, optimization_bailouts) = {
+      let module_graph = artifact.get_module_graph();
+      let module = module_graph.module_by_identifier(&module_identifier)?;
+      let dependencies = module
+        .get_dependencies()
+        .iter()
+        .map(|dependency_id| module_graph.dependency_ref_by_id(dependency_id).clone())
+        .collect();
+      let blocks = module
+        .get_blocks()
+        .iter()
+        .map(|block_id| {
+          CachedAsyncDependenciesBlock::from_module_graph(
+            module_graph.block_by_id_expect(block_id),
+            module_graph,
+          )
+        })
+        .collect();
+      let optimization_bailouts = module_graph
+        .get_optimization_bailout(&module_identifier)
+        .clone();
+      (dependencies, blocks, optimization_bailouts)
     };
-    let Some(module) = module
-      .save_to_cache(file_system_info, build_start_time)
-      .await?
-    else {
-      return Ok(None);
-    };
+    let module = artifact
+      .get_module_graph_mut()
+      .module_by_identifier_mut(&module_identifier)?
+      .as_normal_module_mut()?
+      .save_to_cache(snapshot)?;
 
-    Ok(Some(Self {
+    Some(Self {
       module,
-      dependencies: result.dependencies.clone(),
-      blocks: result
-        .blocks
-        .iter_mut()
-        .map(|block| CachedAsyncDependenciesBlock::from_block(block))
-        .collect(),
-      optimization_bailouts: result.optimization_bailouts.clone(),
-    }))
+      dependencies,
+      blocks,
+      optimization_bailouts,
+    })
   }
 
   async fn recover(
@@ -100,11 +117,21 @@ pub(crate) enum ModuleBuildCacheRestore {
 #[derive(Debug, Clone)]
 pub(crate) struct ModuleBuildCache {
   cache: CacheFacade,
+  pending: Arc<IdentifierDashMap<u64>>,
 }
 
 impl ModuleBuildCache {
   pub(crate) fn new(cache: CacheFacade) -> Self {
-    Self { cache }
+    Self {
+      cache,
+      pending: Default::default(),
+    }
+  }
+
+  /// Defers publishing a built module until the build-module-graph phase has
+  /// completed, so make-stage mutations are included in the cache entry.
+  pub(crate) fn mark_pending(&self, module_identifier: ModuleIdentifier, build_start_time: u64) {
+    self.pending.insert(module_identifier, build_start_time);
   }
 
   pub(crate) async fn restore(
@@ -128,20 +155,60 @@ impl ModuleBuildCache {
       .await
   }
 
-  pub(crate) async fn store(
+  /// Stores pending modules from the final make artifact.
+  ///
+  /// Snapshot creation remains parallel even though publication is delayed to
+  /// `after_build_module_graph`. Only modules built in this phase are visited.
+  pub(crate) async fn store_pending(
     &self,
-    result: &mut BuildResult,
+    artifact: &mut BuildModuleGraphArtifact,
     file_system_info: &FileSystemInfo,
-    build_start_time: u64,
   ) -> Result<()> {
-    let Some(cached_result) =
-      CachedBuildResult::from_build_result(result, file_system_info, build_start_time).await?
-    else {
-      return Ok(());
-    };
-    let identifier = result.module.identifier();
-    self
-      .cache
-      .store(identifier.as_str(), None, CacheValue::new(cached_result))
+    let pending = self
+      .pending
+      .iter()
+      .map(|entry| (*entry.key(), *entry.value()))
+      .collect::<Vec<_>>();
+    self.pending.clear();
+
+    let module_graph = artifact.get_module_graph();
+    let snapshots = rspack_parallel::scope::<_, Result<_>>(|token| {
+      for (module_identifier, build_start_time) in pending {
+        // SAFETY: the scope is awaited before the module graph is mutated.
+        let task = unsafe { token.used((module_graph, file_system_info)) };
+        task.spawn(move |(module_graph, file_system_info)| async move {
+          let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
+            return Ok(None);
+          };
+          let Some(module) = module.as_normal_module() else {
+            return Ok(None);
+          };
+          Ok(
+            module
+              .create_cache_snapshot(file_system_info, build_start_time)
+              .await?
+              .map(|snapshot| (module_identifier, snapshot)),
+          )
+        });
+      }
+    })
+    .await
+    .into_iter()
+    .map(|result| result.to_rspack_result().and_then(|result| result))
+    .collect::<Result<Vec<_>>>()?;
+
+    for (module_identifier, snapshot) in snapshots.into_iter().flatten() {
+      let Some(cached_result) =
+        CachedBuildResult::from_module_graph(artifact, module_identifier, snapshot)
+      else {
+        continue;
+      };
+      self.cache.store(
+        module_identifier.as_str(),
+        None,
+        CacheValue::new(cached_result),
+      )?;
+    }
+    Ok(())
   }
 }

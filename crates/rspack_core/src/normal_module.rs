@@ -41,7 +41,7 @@ use crate::{
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
-  new_cache::FileSystemInfo,
+  new_cache::{FileSystemInfo, Snapshot},
   utils::{SourceSizeCache, SourceSizeCacheSerde},
 };
 
@@ -382,11 +382,11 @@ impl NormalModule {
     self.parser_and_generator_options.generator_options()
   }
 
-  pub(crate) async fn save_to_cache(
-    &mut self,
+  pub(crate) async fn create_cache_snapshot(
+    &self,
     file_system_info: &FileSystemInfo,
     build_start_time: u64,
-  ) -> Result<Option<CachedModule>> {
+  ) -> Result<Option<Snapshot>> {
     if !self.build_info.cacheable
       || self
         .diagnostics
@@ -396,7 +396,7 @@ impl NormalModule {
       return Ok(None);
     }
 
-    self.build_info.snapshot = Some(
+    Ok(Some(
       file_system_info
         .create_snapshot(
           Some(build_start_time),
@@ -407,9 +407,22 @@ impl NormalModule {
           SnapshotStrategyOptions::timestamp(),
         )
         .await?,
-    );
+    ))
+  }
 
-    Ok(Some(CachedModule {
+  pub(crate) fn save_to_cache(&mut self, snapshot: Snapshot) -> Option<CachedModule> {
+    if !self.build_info.cacheable
+      || self
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.is_error())
+    {
+      return None;
+    }
+
+    self.build_info.snapshot = Some(snapshot);
+
+    Some(CachedModule {
       source: self.source.clone(),
       diagnostics: self.diagnostics.clone(),
       code_generation_dependencies: self.code_generation_dependencies.clone(),
@@ -418,7 +431,7 @@ impl NormalModule {
       build_meta: self.build_meta.clone(),
       parsed: self.parsed,
       source_map_kind: self.source_map_kind,
-    }))
+    })
   }
 
   pub(crate) async fn recover_from_cache(

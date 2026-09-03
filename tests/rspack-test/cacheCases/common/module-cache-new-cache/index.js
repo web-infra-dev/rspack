@@ -3,6 +3,7 @@ import stable from './stable';
 
 it('should restore valid modules and rebuild invalid modules', async () => {
   expect(stable).toBe('stable');
+  expect((await import('./async')).default).toBe('async');
   const context = require.context('./context', false, /\.js$/);
   expect(context.keys()).toEqual(['./value.js']);
   expect(context('./value.js')).toBe('context');

@@ -1,4 +1,5 @@
 const path = require('path');
+const { RawSource } = require('webpack-sources');
 
 let compilerIndex = 0;
 let stillValidModules = [];
@@ -33,6 +34,17 @@ module.exports = {
     {
       apply(compiler) {
         compiler.hooks.compilation.tap('ModuleCacheTest', (compilation) => {
+          compilation.hooks.succeedModule.tap('ModuleCacheTest', (module) => {
+            if (
+              module.resource &&
+              path.basename(module.resource) === 'stable.js'
+            ) {
+              module.emitFile(
+                'from-succeed-module.txt',
+                new RawSource('from succeedModule'),
+              );
+            }
+          });
           compilation.hooks.stillValidModule.tap(
             'ModuleCacheTest',
             (module) => {
@@ -44,7 +56,12 @@ module.exports = {
             },
           );
         });
-        compiler.hooks.done.tap('ModuleCacheTest', () => {
+        compiler.hooks.done.tap('ModuleCacheTest', (stats) => {
+          expect(
+            stats.compilation
+              .getAsset('from-succeed-module.txt')
+              .source.source(),
+          ).toBe('from succeedModule');
           const options = compiler.options.module.rules[0].options;
           const builtModules = options.builtModules
             .map((resource) => path.basename(resource))
@@ -55,6 +72,7 @@ module.exports = {
           } else {
             expect(builtModules).toEqual(['changed.js']);
             expect(stillValidModules.sort()).toEqual([
+              'async.js',
               'index.js',
               'stable.js',
               'value.js',

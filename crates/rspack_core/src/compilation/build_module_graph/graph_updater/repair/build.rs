@@ -57,8 +57,7 @@ impl Task<TaskContext> for BuildTask {
       module_build_cache,
     } = *self;
 
-    let module_build_cache_with_start_time =
-      module_build_cache.map(|cache| (cache, current_time()));
+    let build_start_time = module_build_cache.as_ref().map(|_| current_time());
 
     plugin_driver
       .compilation_hooks
@@ -83,15 +82,14 @@ impl Task<TaskContext> for BuildTask {
       )
       .await?;
 
-    let mut build_result = result;
-    if let Some((module_build_cache, build_start_time)) = module_build_cache_with_start_time {
-      module_build_cache
-        .store(&mut build_result, &file_system_info, build_start_time)
-        .await?;
+    if let (Some(module_build_cache), Some(build_start_time)) =
+      (module_build_cache, build_start_time)
+    {
+      module_build_cache.mark_pending(result.module.identifier(), build_start_time);
     }
 
     Ok(vec![Box::new(BuildResultTask::built(
-      build_result,
+      result,
       plugin_driver,
       forwarded_ids,
     ))])
