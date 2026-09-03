@@ -120,11 +120,6 @@ impl Task<TaskContext> for AddTask {
     } else {
       ModuleBuildCacheRestore::Miss(module)
     };
-    let (cached_build_result, module) = match restore_result {
-      ModuleBuildCacheRestore::Hit(result) => (Some(result), None),
-      ModuleBuildCacheRestore::Miss(module) => (None, Some(module)),
-    };
-
     context
       .artifact
       .module_graph
@@ -147,18 +142,21 @@ impl Task<TaskContext> for AddTask {
       .affected_modules
       .mark_as_add(&module_identifier);
 
-    if let Some(build_result) = cached_build_result {
-      return Ok(vec![Box::new(BuildResultTask::cached(
-        build_result,
-        context.plugin_driver.clone(),
-        forwarded_ids,
-      ))]);
-    }
+    let module = match restore_result {
+      ModuleBuildCacheRestore::Hit(build_result) => {
+        return Ok(vec![Box::new(BuildResultTask::cached(
+          build_result,
+          context.plugin_driver.clone(),
+          forwarded_ids,
+        ))]);
+      }
+      ModuleBuildCacheRestore::Miss(module) => module,
+    };
 
     Ok(vec![Box::new(BuildTask {
       compiler_id: context.compiler_id,
       compilation_id: context.compilation_id,
-      module: module.expect("module is retained after a cache miss"),
+      module,
       resolver_factory: context.resolver_factory.clone(),
       compiler_options: context.compiler_options.clone(),
       loader_cache: context.cache.facade("loader"),
