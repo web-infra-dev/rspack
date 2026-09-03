@@ -198,7 +198,7 @@ async function generateOptions(
   options.plugins ??= [];
   (options as RspackOptions).plugins!.push(updatePlugin);
   if (!global.printLogger) {
-    options.infrastructureLogging = {
+    options.infrastructureLogging ??= {
       level: 'error',
     };
   }

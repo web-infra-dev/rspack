@@ -31,9 +31,7 @@ pub struct Database {
 
 impl Database {
   pub fn open(_base_path: Utf8PathBuf, _path: Utf8PathBuf, _readonly: bool) -> Result<Self> {
-    Self {
-      families: RwLock::new(Default::default()),
-    }
+    Ok(Self::noop())
   }
 
   pub fn noop() -> Self {

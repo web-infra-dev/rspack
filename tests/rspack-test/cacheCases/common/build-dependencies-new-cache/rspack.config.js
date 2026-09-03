@@ -13,6 +13,9 @@ module.exports = {
     type: 'persistent',
     buildDependencies: [buildDependency],
   },
+  infrastructureLogging: {
+    level: 'verbose',
+  },
   plugins: [
     {
       apply(compiler) {
