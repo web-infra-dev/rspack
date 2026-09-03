@@ -8,7 +8,7 @@ use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_experimental_ecma_ast::{
   AssignExpr, AssignOp, ClassMember, DefaultDecl, Expr, GetSpan, Ident, MemberExpr, ModuleDecl,
-  Pat, Program, Span, ThisExpr, VarDeclarator,
+  Pat, Program, Prop, PropOrSpread, Span, ThisExpr, VarDeclarator,
 };
 
 use super::state::{
@@ -27,7 +27,7 @@ use crate::{
   },
   visitors::{
     ExportedVariableInfo, JavascriptParser, Statement, TagInfoData, VariableDeclaration,
-    scope_info::VariableInfoFlags,
+    VariableDeclarationKind, scope_info::VariableInfoFlags,
   },
 };
 
@@ -42,6 +42,20 @@ fn class_member_is_static(member: &ClassMember<'_>) -> bool {
     ClassMember::StaticBlock(_) => true,
     ClassMember::AutoAccessor(a) => a.is_static,
   }
+}
+
+fn object_has_deferred_property(expr: &Expr<'_>) -> bool {
+  expr.as_object().is_some_and(|object| {
+    object.props.iter().any(|property| {
+      let PropOrSpread::Prop(property) = property else {
+        return false;
+      };
+      let Prop::KeyValue(property) = &**property else {
+        return false;
+      };
+      matches!(&property.value, Expr::Arrow(_) | Expr::Fn(_))
+    })
+  })
 }
 
 #[derive(Debug)]
@@ -572,6 +586,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
     // Webpack using estree types, which treats all `export default ...` as ExportDefaultDeclaration type
     // https://github.com/estree/estree/blob/master/es2015.md#exportdefaultdeclaration
     // but SWC using ExportDefaultExpr to represent `export default 1`
+    if let ModuleDecl::ExportDefaultExpr(default_expr) = export_decl
+      && object_has_deferred_property(&default_expr.expr)
+    {
+      let variable = Self::tag_top_level_symbol(parser, &DEFAULT_STAR_JS_WORD);
+      parser
+        .inner_graph
+        .add_object_literal(default_expr.expr.span(), variable);
+    }
+
     let mut callees = vec![];
     if let ModuleDecl::ExportDefaultExpr(default_expr) = export_decl
       && is_pure_expression(
@@ -610,9 +633,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
     &self,
     parser: &mut crate::visitors::JavascriptParser,
     decl: &VarDeclarator,
-    _stmt: VariableDeclaration<'_>,
+    stmt: VariableDeclaration<'_>,
   ) -> Option<bool> {
-    if !parser.inner_graph.is_enabled() || !parser.is_top_level_scope() {
+    if !parser.inner_graph.is_enabled()
+      || !parser.is_top_level_scope()
+      || matches!(
+        stmt.kind(),
+        VariableDeclarationKind::Using | VariableDeclarationKind::AwaitUsing
+      )
+    {
       return None;
     }
 
@@ -659,6 +688,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
         if !init.is_fn() && !init.is_arrow() && !init.is_lit() {
           parser.inner_graph.pure_declarators.insert(decl.span());
         }
+      }
+
+      if object_has_deferred_property(init) {
+        let symbol = Self::tag_top_level_symbol(parser, &name);
+        parser.inner_graph.add_object_literal(init.span(), symbol);
       }
     }
 
