@@ -5695,6 +5695,7 @@ version = "0.102.2"
 dependencies = [
  "cow-utils",
  "dashmap",
+ "futures",
  "notify",
  "regex",
  "rspack_error",
