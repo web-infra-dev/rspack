@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
 use rspack_fs::ReadableFileSystem;
+use rspack_loader_runner::LoaderRunnerContext;
 pub use rspack_loader_runner::{
-  Content, Loader, LoaderContext, LoaderDependencies, LoaderRunnerOptions, run_loaders,
+  Content, Loader, LoaderContext, LoaderDependencies, LoaderExecutionKind, LoaderRunnerOptions,
 };
 use rspack_util::source_map::SourceMapKind;
 
@@ -24,4 +25,12 @@ pub struct RunnerContext {
   pub source_map_kind: SourceMapKind,
 }
 
+impl LoaderRunnerContext for RunnerContext {
+  fn loaders(&self) -> &Loaders {
+    &self.module.loaders
+  }
+}
+
+pub type Loaders = rspack_loader_runner::Loaders<RunnerContext>;
+pub type ResolvedLoader = rspack_loader_runner::ResolvedLoader<RunnerContext>;
 pub type BoxLoader = Arc<dyn for<'a> Loader<RunnerContext>>;
