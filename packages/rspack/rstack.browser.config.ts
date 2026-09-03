@@ -249,10 +249,7 @@ function replaceDtsPlugin(): RsbuildPlugin {
             .replaceAll(
               `declare module '@rspack/binding'`,
               `declare module '${relativeBindingDts}'`,
-            )
-            // Copied declarations bypass Rslib's redirect pass.
-            // Keep explicit extensions for NodeNext consumers.
-            .replaceAll('from "./napi-binding"', 'from "./napi-binding.js"');
+            );
           await fs.writeFile(filePath, replacedDts);
         }
       });
