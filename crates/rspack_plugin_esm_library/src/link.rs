@@ -1029,7 +1029,7 @@ var {} = {{}};
         .as_concatenated()
         .global_scope_ident
         .iter()
-        .map(|ident| ident.id.sym.clone())
+        .map(|ident| Atom::from(ident.id.sym.as_str()))
     }));
 
     // merge all all_used_names from hoisted modules

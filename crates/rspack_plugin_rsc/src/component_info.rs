@@ -8,9 +8,12 @@ use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
   ESMImportSpecifierDependency,
 };
-use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
+use rspack_util::{
+  atom::Atom,
+  fx_hash::{FxIndexMap, FxIndexSet},
+};
 use rustc_hash::{FxHashMap, FxHashSet};
-use swc_core::atoms::{Atom, Wtf8Atom};
+use swc_core::atoms::Wtf8Atom;
 
 use crate::{
   constants::{IMAGE_REGEX, LAYERS_NAMES},

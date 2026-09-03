@@ -4,7 +4,8 @@ use rspack_core::{
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ModuleDependency,
   TemplateContext, TemplateReplaceSource,
 };
-use swc_atoms::Atom;
+
+use crate::Atom;
 
 #[cacheable]
 #[derive(Debug)]

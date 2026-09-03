@@ -4,7 +4,6 @@ use rspack_core::{
 };
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   AssignExpr, AssignOp, ClassMember, DefaultDecl, Expr, GetSpan, Ident, MemberExpr, ModuleDecl,
   Pat, Program, Span, ThisExpr, VarDeclarator,
@@ -15,6 +14,7 @@ use super::state::{
   InnerGraphUsageOperation, TopLevelSymbol,
 };
 use crate::{
+  Atom,
   dependency::{ESMImportSpecifierDependency, PureExpressionDependency, URLDependency},
   parser_plugin::{DEFAULT_STAR_JS_WORD, JavascriptParserPlugin},
   side_effects_parser_plugin::{

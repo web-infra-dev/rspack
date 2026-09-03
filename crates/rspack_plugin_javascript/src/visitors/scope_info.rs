@@ -2,7 +2,8 @@ use bitflags::bitflags;
 use rustc_hash::FxHashMap;
 use slotmap::{KeyData, SlotMap, new_key_type};
 use smallvec::SmallVec;
-use swc_atoms::Atom;
+
+use crate::Atom;
 
 new_key_type! {
   pub struct ScopeInfoId;
@@ -183,7 +184,7 @@ impl ScopeInfoDB {
   }
 
   /// Resolve `key` starting from the innermost active scope `id`.
-  pub fn get(&mut self, id: ScopeInfoId, key: &Atom) -> Option<VariableInfoId> {
+  pub fn get(&mut self, id: ScopeInfoId, key: &str) -> Option<VariableInfoId> {
     debug_assert_eq!(
       self.current,
       Some(id),

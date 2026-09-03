@@ -4,11 +4,11 @@ use rspack_core::{
   ConstDependency, ContextDependency, DependencyCodeGenerationRef, DependencyRange,
 };
 use rspack_util::{SpanExt, itoa};
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{CallExpr, GetSpan, Ident, Program, VarDeclarator};
 
 use super::JavascriptParserPlugin;
 use crate::{
+  Atom,
   dependency::CommonJsRequireContextDependency,
   visitors::{JavascriptParser, Statement, TagInfoData, VariableDeclaration, expr_name},
 };

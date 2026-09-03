@@ -9,7 +9,6 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
-use swc_atoms::Atom;
 use swc_experimental_allocator::CloneIn;
 use swc_experimental_ecma_ast::{
   AssignExpr, AssignOp, CallExpr, Callee, Expr, ExprOrSpread, GetSpan, Ident, Lit, MemberExpr,
@@ -25,6 +24,7 @@ use super::{
   url_plugin::is_meta_url,
 };
 use crate::{
+  Atom,
   dependency::{
     CommonJsFullRequireDependency, CommonJsRequireContextDependency, CommonJsRequireDependency,
     DependencyBranchGuard, ESMImportSpecifierDependency, RequireHeaderDependency,
@@ -236,7 +236,7 @@ fn is_current_create_require_tag(parser: &JavascriptParser) -> bool {
 }
 
 #[inline(never)]
-pub fn is_create_require_specifier(parser: &mut JavascriptParser, name: &Atom) -> bool {
+pub fn is_create_require_specifier(parser: &mut JavascriptParser, name: &str) -> bool {
   let Some(variable_info) = parser.get_variable_info(name) else {
     return false;
   };
@@ -300,7 +300,7 @@ pub(crate) fn is_create_require_namespace_member(
     return false;
   };
   let Some(settings) =
-    parser.get_tag_data::<ESMSpecifierData>(&Atom::from(namespace.sym.as_str()), ESM_SPECIFIER_TAG)
+    parser.get_tag_data::<ESMSpecifierData>(namespace.sym.as_str(), ESM_SPECIFIER_TAG)
   else {
     return false;
   };
@@ -471,8 +471,7 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
   }
 
   let new_expr = arg.as_new()?;
-  if new_expr.callee.as_ident()?.sym.as_str() != "URL"
-    || parser.get_variable_info(&Atom::from("URL")).is_some()
+  if new_expr.callee.as_ident()?.sym.as_str() != "URL" || parser.get_variable_info("URL").is_some()
   {
     return None;
   }
@@ -539,8 +538,7 @@ fn is_side_effect_free_ignored_url_arg(parser: &mut JavascriptParser, expr: &Exp
   match expr {
     Expr::Lit(_) => true,
     Expr::Ident(ident) => {
-      ident.sym.as_str() == "undefined"
-        && parser.get_variable_info(&Atom::from("undefined")).is_none()
+      ident.sym.as_str() == "undefined" && parser.get_variable_info("undefined").is_none()
     }
     Expr::Unary(unary) if unary.op == UnaryOp::Void => {
       is_side_effect_free_ignored_url_arg(parser, &unary.arg)
@@ -639,7 +637,7 @@ fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: &E
     .callee
     .as_ident()
     .is_some_and(|ident| ident.sym.as_str() == "URL")
-    && parser.get_variable_info(&Atom::from("URL")).is_none()
+    && parser.get_variable_info("URL").is_none()
   {
     let is_absolute_file_url = is_absolute_file_url_constructor_arg(parser, arg);
     let start = if is_absolute_file_url { 1 } else { 2 };
@@ -689,7 +687,7 @@ fn is_valid_ignored_url_base_arg(parser: &mut JavascriptParser, base: &ExprOrSpr
   }
   if let Expr::Ident(ident) = &base.expr
     && ident.sym.as_str() == "undefined"
-    && parser.get_variable_info(&Atom::from("undefined")).is_none()
+    && parser.get_variable_info("undefined").is_none()
   {
     return true;
   }
@@ -714,7 +712,7 @@ fn is_absolute_file_url_constructor_arg(parser: &mut JavascriptParser, arg: &Exp
     .callee
     .as_ident()
     .is_none_or(|ident| ident.sym.as_str() != "URL")
-    || parser.get_variable_info(&Atom::from("URL")).is_some()
+    || parser.get_variable_info("URL").is_some()
   {
     return false;
   };
@@ -746,7 +744,7 @@ fn is_unbound_url_constructor(parser: &mut JavascriptParser, callee: &Expr) -> b
   callee
     .as_ident()
     .is_some_and(|ident| ident.sym.as_str() == "URL")
-    && parser.get_variable_info(&Atom::from("URL")).is_none()
+    && parser.get_variable_info("URL").is_none()
 }
 
 #[inline(never)]
@@ -1013,7 +1011,7 @@ fn deferred_create_require_callee(
 ) -> Option<DeferredCreateRequireCallee> {
   let (settings, range, ids, direct_import, ns_access) = if let Some(ident) = callee.as_ident() {
     let settings = parser
-      .get_tag_data::<ESMSpecifierData>(&Atom::from(ident.sym.as_str()), ESM_SPECIFIER_TAG)?
+      .get_tag_data::<ESMSpecifierData>(ident.sym.as_str(), ESM_SPECIFIER_TAG)?
       .clone();
     let ids = settings.ids.clone().into_vec();
     (settings, ident.span.into(), ids, true, false)
@@ -1021,7 +1019,7 @@ fn deferred_create_require_callee(
     let member = callee.as_member()?;
     let namespace = member.obj.as_ident()?;
     let settings = parser
-      .get_tag_data::<ESMSpecifierData>(&Atom::from(namespace.sym.as_str()), ESM_SPECIFIER_TAG)?
+      .get_tag_data::<ESMSpecifierData>(namespace.sym.as_str(), ESM_SPECIFIER_TAG)?
       .clone();
     let mut ids = settings.ids.clone().into_vec();
     ids.push(static_member_name(member)?);
@@ -1118,7 +1116,7 @@ fn pre_tag_created_require_declarator<'a>(
   };
   let is_create_require_callee = callee
     .as_ident()
-    .is_some_and(|ident| is_create_require_specifier(parser, &Atom::from(ident.sym.as_str())))
+    .is_some_and(|ident| is_create_require_specifier(parser, ident.sym.as_str()))
     || is_create_require_namespace_member(parser, callee);
   if !is_create_require_callee || !can_defer_create_require_call(parser, &call.args) {
     return;
@@ -1209,7 +1207,7 @@ fn tag_created_require_declarator<'a>(
   parser.walk_expr_or_spread(&args[1..]);
 }
 
-fn clear_create_require_tag(parser: &mut JavascriptParser, name: &Atom) {
+fn clear_create_require_tag(parser: &mut JavascriptParser, name: &str) {
   if let Some(declared_scope) = parser
     .get_variable_info(name)
     .map(|info| info.declared_scope)
@@ -1223,7 +1221,7 @@ fn clear_create_require_tag(parser: &mut JavascriptParser, name: &Atom) {
     );
     parser
       .definitions_db
-      .set(declared_scope, name.clone(), info);
+      .set(declared_scope, Atom::from(name), info);
   }
 }
 
@@ -1533,10 +1531,7 @@ impl CommonJsImportsParserPlugin {
       return false;
     };
 
-    if parser
-      .get_variable_info(&Atom::from(ident.sym.as_str()))
-      .is_some()
-    {
+    if parser.get_variable_info(ident.sym.as_str()).is_some() {
       return false;
     }
 
@@ -1953,7 +1948,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       return Some(true);
     }
     if let Some(ident) = expr.as_ident()
-      && let Some(name_info) = parser.get_name_info_from_variable(&Atom::from(ident.sym.as_str()))
+      && let Some(name_info) = parser.get_name_info_from_variable(ident.sym.as_str())
       && let Some(info) = name_info.info
       && let Some(name) = info.name.clone()
       && parser
@@ -2026,7 +2021,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     }
 
     if let Some(init) = init.as_ident()
-      && is_create_require_specifier(parser, &Atom::from(init.sym.as_str()))
+      && is_create_require_specifier(parser, init.sym.as_str())
       && let Some(binding) = declarator.name.as_ident()
     {
       let name = Atom::from(binding.id.sym.as_str());
@@ -2639,7 +2634,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       if matches!(expr.op, AssignOp::OrAssign | AssignOp::NullishAssign) {
         return Some(true);
       }
-      clear_create_require_tag(parser, &Atom::from(ident.sym.as_str()));
+      clear_create_require_tag(parser, ident.sym.as_str());
       return Some(true);
     }
 

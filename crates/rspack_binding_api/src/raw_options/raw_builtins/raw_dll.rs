@@ -5,8 +5,8 @@ use rspack_plugin_dll::{
   DllEntryPluginOptions, DllManifest, DllManifestContent, DllManifestContentItem,
   DllManifestContentItemExports, DllReferenceAgencyPluginOptions, LibManifestPluginOptions,
 };
+use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
-use swc_core::atoms::Atom;
 
 use crate::{filename::JsFilename, module::JsBuildMeta};
 

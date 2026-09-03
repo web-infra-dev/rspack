@@ -40,7 +40,6 @@ serde_json                            = { workspace = true }
 slotmap                               = { workspace = true }
 smallvec                              = { workspace = true }
 sugar_path                            = { workspace = true }
-swc_atoms                             = { workspace = true }
 swc_experimental_allocator            = { workspace = true }
 swc_experimental_ecma_ast             = { workspace = true }
 swc_experimental_ecma_parser          = { workspace = true, features = ["unstable"] }

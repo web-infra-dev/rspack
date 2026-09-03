@@ -19,9 +19,8 @@ use rspack_core::{
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_plugin_javascript::dependency::ImportEagerDependency;
-use rspack_util::{fx_hash::FxIndexSet, source_map::SourceMapKind};
+use rspack_util::{atom::Atom, fx_hash::FxIndexSet, source_map::SourceMapKind};
 use rustc_hash::FxHashSet;
-use swc_core::ecma::atoms::Atom;
 
 use crate::{
   client_reference_dependency::ClientReferenceDependency,

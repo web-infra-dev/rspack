@@ -1,5 +1,4 @@
 use rspack_util::SpanExt;
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   ArrayPat, AssignExpr, BlockStmt, CatchClause, DoWhileStmt, ForHead, ForInStmt, ForOfStmt,
   ForStmt, GetSpan, IfStmt, LabeledStmt, ModuleItem, ObjectPat, ObjectPatProp, Pat, PropName, Stmt,
@@ -11,6 +10,7 @@ use super::{
   estree::{MaybeNamedFunctionDecl, Statement},
 };
 use crate::{
+  Atom,
   parser_plugin::JavascriptParserPlugin,
   utils::eval::BasicEvaluatedExpression,
   visitors::{DestructuringAssignmentProperties, VariableDeclaration, VariableDeclarationKind},

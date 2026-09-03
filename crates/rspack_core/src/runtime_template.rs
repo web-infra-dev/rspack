@@ -11,10 +11,9 @@ use regex::{Captures, Regex};
 use rspack_collections::{Identifier, IdentifierSet};
 use rspack_dojang::{Context, Dojang, FunctionContainer, Operand};
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt, error};
-use rspack_util::{fx_hash::FxIndexSet, json_stringify};
+use rspack_util::{atom::Atom, fx_hash::FxIndexSet, json_stringify};
 use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 use serde_json::{Value, json};
-use swc_core::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,

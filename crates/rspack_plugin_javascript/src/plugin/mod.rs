@@ -45,15 +45,15 @@ use rspack_util::SpanExt;
 #[cfg(allocative)]
 use rspack_util::allocative;
 pub use side_effects_flag_plugin::*;
-use swc_atoms::Atom;
 use swc_experimental_allocator::Allocator;
 use swc_experimental_ecma_ast::EsVersion;
 use swc_experimental_ecma_parser::{EsSyntax, Lexer, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::resolver;
 use tokio::sync::RwLock;
 
-use crate::runtime::{
-  render_chunk_modules, render_module, render_runtime_modules, stringify_array,
+use crate::{
+  Atom,
+  runtime::{render_chunk_modules, render_module, render_runtime_modules, stringify_array},
 };
 
 #[cfg_attr(allocative, allocative::root)]
@@ -1180,9 +1180,12 @@ var {} = {{}};
                 (m.build_info().hash.as_ref(), idents_with_hash.hash.as_ref())
               && *hash_current == *hash_cache
             {
-              acc
-                .all_used_names
-                .extend(idents_with_hash.value.iter().map(|v| v.id.sym.clone()));
+              acc.all_used_names.extend(
+                idents_with_hash
+                  .value
+                  .iter()
+                  .map(|v| Atom::from(v.id.sym.as_str())),
+              );
               acc
                 .non_inlined_module_through_idents
                 .extend(idents_with_hash.value.clone());
@@ -1259,7 +1262,7 @@ var {} = {{}};
                   for ident in collector_ids {
                     if semantic.node_scope(&ident.id) == global_scope_id {
                       let ident = ident.to_legacy(&semantic);
-                      acc.all_used_names.insert(ident.id.sym.clone());
+                      acc.all_used_names.insert(Atom::from(ident.id.sym.as_str()));
                       idents_vec.push(ident.clone());
                       acc.non_inlined_module_through_idents.push(ident);
                     }

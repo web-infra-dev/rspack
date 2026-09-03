@@ -3,10 +3,10 @@ use std::sync::LazyLock;
 use rspack_core::DependencyRange;
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{Expr, Lit, MemberExpr, OptChainBase};
 
 use super::JavascriptParser;
+use crate::Atom;
 
 static DEFAULT_CONTEXT_REGEXP: LazyLock<RspackRegex> =
   LazyLock::new(|| RspackRegex::new(r"^\.\/.*$").expect("reg failed"));

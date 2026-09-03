@@ -1,4 +1,3 @@
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   DefaultDecl, ExportSpecifier, ExprStmt, ModuleDecl, ModuleItem, Stmt,
 };
@@ -11,7 +10,7 @@ use super::{
   },
 };
 use crate::{
-  JS_DEFAULT_KEYWORD,
+  Atom, JS_DEFAULT_KEYWORD,
   parser_plugin::JavascriptParserPlugin,
   visitors::{VariableDeclaration, VariableDeclarationKind},
 };

@@ -23,6 +23,7 @@ use rspack_sources::{
 };
 use rspack_util::{
   SpanExt,
+  atom::Atom,
   fx_hash::{FxIndexMap, FxIndexSet},
   itoa, json_stringify, json_stringify_str,
   source_map::SourceMapKind,
@@ -30,7 +31,6 @@ use rspack_util::{
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
-  atoms::Atom,
   common::{BytePos, Spanned, SyntaxContext},
   ecma::visit::swc_ecma_ast,
 };
@@ -230,38 +230,38 @@ pub struct ConcatenatedModuleInfo {
 }
 
 impl ConcatenatedModuleInfo {
-  pub fn get_internal_name<'me>(&'me self, atom: &Atom) -> Option<&'me Atom> {
+  pub fn get_internal_name<'me>(&'me self, atom: &str) -> Option<&'me Atom> {
     if let Some(name) = self.internal_names.get(atom) {
       return Some(name);
     }
 
-    if atom.as_str() == "default" {
+    if atom == "default" {
       return self.internal_names.get(&*DEFAULT_EXPORT_ATOM);
     }
 
     if let Some(name) = &self.namespace_object_name
-      && name == atom
+      && name.as_str() == atom
     {
       return Some(name);
     }
 
     if self.interop_default_access_used
       && let Some(name) = &self.interop_default_access_name
-      && name == atom
+      && name.as_str() == atom
     {
       return Some(name);
     }
 
     if self.interop_namespace_object_used
       && let Some(name) = &self.interop_namespace_object_name
-      && name == atom
+      && name.as_str() == atom
     {
       return Some(name);
     }
 
     if self.interop_namespace_object2_used
       && let Some(name) = &self.interop_namespace_object2_name
-      && name == atom
+      && name.as_str() == atom
     {
       return Some(name);
     }
@@ -1042,7 +1042,6 @@ impl Module for ConcatenatedModule {
                 source.insert(high, format!(": {new_name}"), None);
                 continue;
               }
-
               source.replace(low, high, new_name.to_string(), None);
             }
           }
@@ -1058,7 +1057,6 @@ impl Module for ConcatenatedModule {
                     .internal_names
                     .insert(ns_import, internal_ns_import.clone());
                 } else {
-                  let ns_import_key = ns_import.clone();
                   let new_name = if name_allocator.contains(&ns_import) {
                     name_allocator.find_new_name(
                       concatenation_context
@@ -1069,11 +1067,11 @@ impl Module for ConcatenatedModule {
                       &[],
                     )
                   } else {
-                    name_allocator.insert(ns_import);
-                    ns_import_key.clone()
+                    name_allocator.insert(&ns_import);
+                    ns_import.clone()
                   };
 
-                  info.internal_names.insert(ns_import_key, new_name.clone());
+                  info.internal_names.insert(ns_import, new_name.clone());
                   total_imported_atoms.ns_import = Some(new_name);
                 }
               }
@@ -1106,7 +1104,7 @@ impl Module for ConcatenatedModule {
           {
             let name =
               Atom::from(namespace_export_symbol[NAMESPACE_OBJECT_EXPORT.len()..].to_string());
-            name_allocator.insert(name.clone());
+            name_allocator.insert(&name);
             info
               .internal_names
               .insert(namespace_export_symbol.clone(), name.clone());
@@ -2967,7 +2965,7 @@ pub struct NewConcatenatedModuleIdent<'a> {
 impl NewConcatenatedModuleIdent<'_> {
   pub fn to_legacy(&self, semantic: &Semantic) -> ConcatenatedModuleIdent {
     let span = swc_core::common::Span::new(BytePos(self.id.span.start), BytePos(self.id.span.end));
-    let sym = Atom::from(self.id.sym.as_str());
+    let sym = swc_core::atoms::Atom::from(self.id.sym.as_str());
     let ctxt = SyntaxContext::from_u32(semantic.node_scope(&self.id).raw());
     ConcatenatedModuleIdent {
       id: swc_ecma_ast::Ident::new(sym, span, ctxt),

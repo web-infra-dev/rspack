@@ -6,8 +6,10 @@ use rspack_core::{
   ModuleGraph, ModuleIdentifier, RuntimeCodeTemplate, RuntimeGlobals,
   rspack_sources::{ConcatSource, RawStringSource},
 };
-use rspack_util::fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet};
-use swc_core::atoms::Atom;
+use rspack_util::{
+  atom::Atom,
+  fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
+};
 
 #[derive(Debug, Clone)]
 pub enum Ref {

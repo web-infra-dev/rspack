@@ -5,7 +5,6 @@ use rspack_core::{
   JavascriptParserUrl, RuntimeGlobals, RuntimeRequirementsDependency, get_context,
 };
 use rspack_util::SpanExt;
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   Expr, ExprOrSpread, GetSpan, MemberExpr, MetaPropKind, NewExpr, Visit, VisitWith,
 };
@@ -228,7 +227,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
     let expr = expr.as_new()?;
     let callee = expr.callee.as_ident()?;
     if parser
-      .get_free_info_from_variable(&Atom::from(callee.sym.as_str()))
+      .get_free_info_from_variable(callee.sym.as_str())
       .is_none()
       || !callee.sym.eq("URL")
     {

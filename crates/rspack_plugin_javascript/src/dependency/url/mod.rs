@@ -10,9 +10,8 @@ use rspack_core::{
   ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeGlobals, RuntimeSpec,
   SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, URLStaticMode, UsedByExports,
 };
-use swc_atoms::Atom;
 
-use crate::{connection_active_used_by_exports, runtime::AUTO_PUBLIC_PATH_PLACEHOLDER};
+use crate::{Atom, connection_active_used_by_exports, runtime::AUTO_PUBLIC_PATH_PLACEHOLDER};
 
 #[cacheable]
 #[derive(Debug)]

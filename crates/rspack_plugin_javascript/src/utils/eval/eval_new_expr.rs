@@ -1,9 +1,9 @@
 use rspack_util::SpanExt;
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::NewExpr;
 
 use super::BasicEvaluatedExpression;
 use crate::{
+  Atom,
   parser_plugin::{evaluate_create_require_new_expression, is_create_require_specifier},
   utils::eval,
   visitors::{CallHooksName, JavascriptParser},
@@ -38,7 +38,7 @@ pub fn eval_new_expression<'a>(
     // FIXME: call hooks
     return None;
   }
-  if scanner.get_variable_info(&Atom::from("RegExp")).is_some() {
+  if scanner.get_variable_info("RegExp").is_some() {
     return None;
   }
   let Some(args) = &expr.args else {

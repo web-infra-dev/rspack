@@ -7,8 +7,8 @@ use internal::try_get_module_graph_module_mut_by_identifier;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierHasher, IdentifierMap};
 use rspack_error::Result;
+use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
-use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,

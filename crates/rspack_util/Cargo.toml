@@ -16,6 +16,7 @@ concat-string    = { workspace = true }
 cow-utils        = { workspace = true }
 dashmap          = { workspace = true }
 hashlink         = { workspace = true }
+hstr             = { workspace = true }
 indexmap         = { workspace = true }
 itoa             = { workspace = true }
 json-escape-simd = { workspace = true }

@@ -1,7 +1,7 @@
 use std::sync::LazyLock;
 
+use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
-use swc_core::atoms::Atom;
 
 pub const RESERVED_NAMES: [&str; 188] = [
   "__rspack_default_export",
@@ -199,7 +199,7 @@ pub static RESERVED_NAMES_ATOM_SET: LazyLock<FxHashSet<Atom>> =
 
 #[cfg(test)]
 mod tests {
-  use swc_core::atoms::Atom;
+  use rspack_util::atom::Atom;
 
   use super::{RESERVED_NAMES, RESERVED_NAMES_ATOM_SET};
 

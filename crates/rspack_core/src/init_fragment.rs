@@ -14,9 +14,8 @@ use rspack_cacheable::{
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt};
-use rspack_util::ext::IntoAny;
+use rspack_util::{atom::Atom, ext::IntoAny};
 use rustc_hash::FxHasher;
-use swc_core::ecma::atoms::Atom;
 
 use crate::{
   ExportsArgument, GenerateContext, ModuleCodeTemplate, RuntimeCondition, RuntimeGlobals,

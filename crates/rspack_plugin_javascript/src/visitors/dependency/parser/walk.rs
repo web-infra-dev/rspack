@@ -1,6 +1,5 @@
 use std::{borrow::Cow, cell::Cell};
 
-use swc_atoms::Atom;
 use swc_experimental_allocator::{Allocator, CloneIn};
 use swc_experimental_ecma_ast::{
   ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignOp, AssignPat, AssignTarget, AssignTargetPat,
@@ -22,6 +21,7 @@ use super::{
   estree::{ClassDeclOrExpr, MaybeNamedClassDecl, MaybeNamedFunctionDecl, Statement},
 };
 use crate::{
+  Atom,
   dependency::DependencyBranchGuard,
   parser_plugin::{
     CREATE_REQUIRE_EVALUATED_TAG, CREATE_REQUIRE_SPECIFIER_TAG, CREATED_REQUIRE_IDENTIFIER_TAG,
@@ -502,7 +502,7 @@ impl JavascriptParser<'_> {
       {
         self.copy_create_require_assignment_result(
           Atom::from(binding.id.sym.as_str()),
-          &Atom::from(target.id.sym.as_str()),
+          target.id.sym.as_str(),
         );
         continue;
       }
@@ -604,20 +604,17 @@ impl JavascriptParser<'_> {
       self.walk_expression(&expr.arg);
       return;
     }
-    let updated_ident = expr
-      .arg
-      .as_ident()
-      .map(|ident| Atom::from(ident.sym.as_str()));
-    if let Some(name) = &updated_ident {
+    let updated_ident = expr.arg.as_ident().map(|ident| ident.sym.as_str());
+    if let Some(name) = updated_ident {
       self.clear_create_require_tag(name);
     }
     self.walk_expression(&expr.arg);
-    if let Some(name) = &updated_ident {
+    if let Some(name) = updated_ident {
       self.clear_create_require_tag(name);
     }
   }
 
-  fn clear_create_require_tag(&mut self, name: &Atom) {
+  fn clear_create_require_tag(&mut self, name: &str) {
     if let Some(variable_info) = self.get_variable_info(name) {
       let declared_scope = variable_info.declared_scope;
       let should_clear_name = variable_info.name.as_ref().is_some_and(|name| {
@@ -646,12 +643,14 @@ impl JavascriptParser<'_> {
           VariableInfoFlags::NORMAL,
           None,
         );
-        self.definitions_db.set(declared_scope, name.clone(), info);
+        self
+          .definitions_db
+          .set(declared_scope, Atom::from(name), info);
       }
     }
   }
 
-  fn has_create_require_tag(&mut self, name: &Atom, include_create_require_fn: bool) -> bool {
+  fn has_create_require_tag(&mut self, name: &str, include_create_require_fn: bool) -> bool {
     let Some(variable_info) = self.get_variable_info(name) else {
       return false;
     };
@@ -676,7 +675,7 @@ impl JavascriptParser<'_> {
   fn clear_created_require_tags_in_pattern(&mut self, pat: &Pat) {
     match pat {
       Pat::Ident(ident) => {
-        self.clear_create_require_tag(&Atom::from(ident.id.sym.as_str()));
+        self.clear_create_require_tag(ident.id.sym.as_str());
       }
       Pat::Array(array) => array
         .elems
@@ -689,7 +688,7 @@ impl JavascriptParser<'_> {
           match prop {
             ObjectPatProp::KeyValue(kv) => self.clear_created_require_tags_in_pattern(&kv.value),
             ObjectPatProp::Assign(assign) => {
-              self.clear_create_require_tag(&Atom::from(assign.key.id.sym.as_str()));
+              self.clear_create_require_tag(assign.key.id.sym.as_str());
             }
             ObjectPatProp::Rest(rest) => self.clear_created_require_tags_in_pattern(&rest.arg),
           }
@@ -709,7 +708,7 @@ impl JavascriptParser<'_> {
   ) -> Option<bool> {
     let ident_name = Atom::from(ident.sym.as_str());
     if matches!(expr.op, AssignOp::OrAssign | AssignOp::NullishAssign)
-      && self.has_create_require_tag(&ident_name, true)
+      && self.has_create_require_tag(ident_name.as_str(), true)
     {
       return Some(true);
     }
@@ -719,7 +718,7 @@ impl JavascriptParser<'_> {
     if let Some(variable) = expr.right.as_ident().and_then(|rhs| {
       let rhs_name = Atom::from(rhs.sym.as_str());
       self
-        .has_create_require_tag(&rhs_name, false)
+        .has_create_require_tag(rhs_name.as_str(), false)
         .then(|| self.get_variable_info(&rhs_name).map(|info| info.id()))
         .flatten()
     }) {
@@ -762,7 +761,7 @@ impl JavascriptParser<'_> {
     None
   }
 
-  fn copy_create_require_assignment_result(&mut self, binding: Atom, target: &Atom) {
+  fn copy_create_require_assignment_result(&mut self, binding: Atom, target: &str) {
     if let Some(data) = self
       .get_tag_data::<CreatedRequireTagData>(target, CREATED_REQUIRE_IDENTIFIER_TAG)
       .cloned()
@@ -1749,7 +1748,7 @@ impl JavascriptParser<'_> {
         || !expr
           .right
           .as_ident()
-          .is_some_and(|rhs| self.has_create_require_tag(&Atom::from(rhs.sym.as_str()), false))
+          .is_some_and(|rhs| self.has_create_require_tag(rhs.sym.as_str(), false))
       {
         self.walk_expression(&expr.right);
       }

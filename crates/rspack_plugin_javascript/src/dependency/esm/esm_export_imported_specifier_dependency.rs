@@ -34,13 +34,12 @@ use rspack_error::{Diagnostic, Error, Severity};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_util::json_stringify;
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
-use swc_atoms::Atom;
 
 use super::{
   create_resource_identifier_for_esm_dependency,
   esm_import_dependency::esm_import_dependency_get_linking_error, esm_import_dependency_apply,
 };
-use crate::connection_active_inline_value_for_esm_export_imported_specifier;
+use crate::{Atom, connection_active_inline_value_for_esm_export_imported_specifier};
 
 const DYNAMIC_REEXPORT_RUNTIME_THRESHOLD: usize = 16;
 

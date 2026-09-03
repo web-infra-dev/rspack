@@ -1,10 +1,9 @@
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   ExportSpecifier, GetSpan, ImportDecl, ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem,
 };
 
 use crate::{
-  JavascriptParserPlugin,
+  Atom, JavascriptParserPlugin,
   visitors::{ExportAllDeclaration, ExportImport, ExportNamedDeclaration, JavascriptParser},
 };
 

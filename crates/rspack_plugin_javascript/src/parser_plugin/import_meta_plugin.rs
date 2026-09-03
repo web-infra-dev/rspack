@@ -11,7 +11,6 @@ use rspack_core::{
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   AssignExpr, CallExpr, Expr, GetSpan, MemberExpr, MemberProp, MetaPropKind, OptChainBase,
   OptChainExpr, Span, UnaryExpr,
@@ -30,6 +29,7 @@ use super::{
   },
 };
 use crate::{
+  Atom,
   dependency::{
     IMPORT_META_RSC_BINDING, ImportMetaResolveContextDependency, ImportMetaResolveDependency,
     ImportMetaResolveHeaderDependency, ImportMetaRscDependency,
@@ -625,7 +625,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
   fn meta_property(
     &self,
     parser: &mut JavascriptParser<'p>,
-    root_name: &swc_atoms::Atom,
+    root_name: &Atom,
     span: Span,
   ) -> Option<bool> {
     if root_name == expr_name::IMPORT_META {
@@ -905,7 +905,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaDisabledPlugin {
   fn meta_property(
     &self,
     parser: &mut JavascriptParser<'p>,
-    root_name: &swc_atoms::Atom,
+    root_name: &Atom,
     span: Span,
   ) -> Option<bool> {
     let import_meta_name = parser.compiler_options.output.import_meta_name.clone();
