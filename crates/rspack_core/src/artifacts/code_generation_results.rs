@@ -3,16 +3,16 @@ use std::{collections::hash_map::Entry, fmt::Debug, sync::Arc};
 use dyn_clone::{DynClone, clone_trait_object};
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsCacheable, AsInner, AsMap, AsPreset, AsVec},
+  with::{AsCacheable, AsInner, AsMap, AsPreset},
 };
 use rspack_collections::IdentifierMap;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest, RspackHasher};
 use rspack_sources::BoxSource;
 use rspack_util::{
-  atom::Atom,
+  atom::{Atom, AtomSet},
   ext::{AsAny, IntoAny},
 };
-use rustc_hash::{FxHashMap as HashMap, FxHashSet};
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   ArchivedCodeGenerationDataConcatenationScopeOutput, ArtifactExt, AssetInfo, BindingCell,
@@ -119,16 +119,15 @@ impl RspackHash for CodeGenerationDataPreservedAssetImport {
 #[cacheable]
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataTopLevelDeclarations {
-  #[cacheable(with=AsVec<AsPreset>)]
-  inner: FxHashSet<Atom>,
+  inner: AtomSet,
 }
 
 impl CodeGenerationDataTopLevelDeclarations {
-  pub fn new(inner: FxHashSet<Atom>) -> Self {
+  pub fn new(inner: AtomSet) -> Self {
     Self { inner }
   }
 
-  pub fn inner(&self) -> &FxHashSet<Atom> {
+  pub fn inner(&self) -> &AtomSet {
     &self.inner
   }
 }

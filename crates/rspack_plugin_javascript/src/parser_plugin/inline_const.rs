@@ -110,7 +110,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ConstValuePlugin {
       } else {
         ConstValue::NoInlinable
       };
-      tag_const_variable(parser, Atom::from(name.id.sym.as_str()), const_value);
+      tag_const_variable(parser, Atom::from(&name.id.sym), const_value);
     } else {
       tag_const_pattern(parser, &declarator.name);
     }
@@ -131,11 +131,7 @@ fn tag_const_variable(parser: &mut JavascriptParser, name: Atom, value: ConstVal
 fn tag_const_pattern(parser: &mut JavascriptParser, pattern: &Pat) {
   match pattern {
     Pat::Ident(ident) => {
-      tag_const_variable(
-        parser,
-        Atom::from(ident.id.sym.as_str()),
-        ConstValue::NoInlinable,
-      );
+      tag_const_variable(parser, Atom::from(&ident.id.sym), ConstValue::NoInlinable);
     }
     Pat::Array(array) => {
       for elem in array.elems.iter().flatten() {
@@ -152,7 +148,7 @@ fn tag_const_pattern(parser: &mut JavascriptParser, pattern: &Pat) {
           ObjectPatProp::Assign(prop) => {
             tag_const_variable(
               parser,
-              Atom::from(prop.key.id.sym.as_str()),
+              Atom::from(&prop.key.id.sym),
               ConstValue::NoInlinable,
             );
           }

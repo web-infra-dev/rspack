@@ -9,7 +9,7 @@ use rspack_plugin_javascript::dependency::{
   ESMImportSpecifierDependency,
 };
 use rspack_util::{
-  atom::Atom,
+  atom::{Atom, IndexAtomMap, IndexAtomSet},
   fx_hash::{FxIndexMap, FxIndexSet},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -22,7 +22,7 @@ use crate::{
 };
 
 // { [request to inject into client compilation]: [exported names] }
-pub type ClientComponentImports = FxIndexMap<String, FxIndexSet<Atom>>;
+pub type ClientComponentImports = FxIndexMap<String, IndexAtomSet>;
 pub type ClientComponentImportsByServerEntry = FxIndexMap<String, ClientComponentImports>;
 // { [server entry path]: [`import.meta.rspackRsc` importer paths] }
 // Used only to let `loadCss()` importers inherit their nearest server entry CSS files.
@@ -379,7 +379,7 @@ fn add_client_import(
   let assumed_source_type =
     get_assumed_source_type(module, if is_cjs_module { "commonjs" } else { "auto" });
 
-  let client_imports_set: &mut FxIndexSet<Atom> = client_component_imports
+  let client_imports_set: &mut IndexAtomSet = client_component_imports
     .entry(mod_request.to_string())
     .or_default();
 
@@ -391,13 +391,19 @@ fn add_client_import(
     // If there's collected import path with named import identifiers,
     // or there's nothing in collected imports are empty.
     // we should include the whole module.
-    if !is_first_visit_module && !client_imports_set.contains(&Atom::from("*")) {
-      client_component_imports.insert(mod_request.to_string(), FxIndexSet::from_iter(["*".into()]));
+    if !is_first_visit_module && !client_imports_set.contains("*") {
+      client_component_imports.insert(
+        mod_request.to_string(),
+        IndexAtomSet::from_iter(["*".into()]),
+      );
     }
   } else {
     let is_auto_module_source_type = assumed_source_type == "auto";
     if is_auto_module_source_type {
-      client_component_imports.insert(mod_request.to_string(), FxIndexSet::from_iter(["*".into()]));
+      client_component_imports.insert(
+        mod_request.to_string(),
+        IndexAtomSet::from_iter(["*".into()]),
+      );
     } else {
       // If it's not analyzed as named ESM exports, e.g. if it's mixing `export *` with named exports,
       // We'll include all modules since it's not able to do tree-shaking.
@@ -418,7 +424,7 @@ fn add_client_import(
 }
 
 // Gives { id: name } record of actions from the build info.
-fn get_actions_from_build_info(module: &dyn Module) -> Option<&FxIndexMap<Atom, Atom>> {
+fn get_actions_from_build_info(module: &dyn Module) -> Option<&IndexAtomMap<Atom>> {
   let rsc = get_module_rsc_information(module)?;
   Some(&rsc.action_ids)
 }

@@ -409,7 +409,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
     {
       let name = &fn_decl.ident().map_or_else(
         || DEFAULT_STAR_JS_WORD.clone(),
-        |ident| Atom::from(ident.sym.as_str()),
+        |ident| Atom::from(&ident.sym),
       );
       let fn_variable = Self::tag_top_level_symbol(parser, name);
 
@@ -444,7 +444,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
     {
       let name = &class_decl.ident().map_or_else(
         || DEFAULT_STAR_JS_WORD.clone(),
-        |ident| Atom::from(ident.sym.as_str()),
+        |ident| Atom::from(&ident.sym),
       );
       let class_variable = Self::tag_top_level_symbol(parser, name);
       parser
@@ -550,7 +550,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
     if let Pat::Ident(ident) = &decl.name
       && let Some(init) = &decl.init
     {
-      let name = Atom::from(ident.id.sym.as_str());
+      let name = Atom::from(&ident.id.sym);
       let mut callees = vec![];
 
       if init.is_class()
@@ -738,7 +738,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
           .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
           .unwrap_or(ExportedVariableInfo::Name(top_level_symbol_variable_name));
         if let Some(class_ident) = class_decl_or_expr.ident() {
-          parser.set_variable(Atom::from(class_ident.sym.as_str()), class_var.clone());
+          parser.set_variable(Atom::from(&class_ident.sym), class_var.clone());
         }
         parser.set_variable("this".into(), class_var);
       }

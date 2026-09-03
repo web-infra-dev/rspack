@@ -10,7 +10,10 @@ use std::{
 
 use indoc::formatdoc;
 use rspack_core::{RscMeta, RscModuleType};
-use rspack_util::{atom::Atom as RspackAtom, fx_hash::FxIndexMap};
+use rspack_util::{
+  atom::{Atom as RspackAtom, IndexAtomMap},
+  fx_hash::FxIndexMap,
+};
 use rustc_hash::FxHashSet;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
@@ -765,11 +768,11 @@ impl<'a, C: Comments> ServerActions<'a, C> {
       .iter()
       .map(|(ref_id, export_name)| {
         (
-          RspackAtom::from(ref_id.as_str()),
-          RspackAtom::from(export_name.atom().as_ref().as_str()),
+          RspackAtom::from(*ref_id),
+          RspackAtom::from(export_name.atom().as_ref()),
         )
       })
-      .collect::<FxIndexMap<_, _>>();
+      .collect::<IndexAtomMap<_>>();
 
     let mut rsc_meta = self.rsc_meta.borrow_mut();
     match rsc_meta.as_mut() {

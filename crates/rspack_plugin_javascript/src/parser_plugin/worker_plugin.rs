@@ -460,7 +460,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
         .pattern_syntax
         .contains_key(ident.id.sym.as_str())
     {
-      let key = Atom::from(ident.id.sym.as_str());
+      let key = Atom::from(&ident.id.sym);
       parser.tag_variable(
         key.clone(),
         WORKER_SPECIFIER_TAG,
@@ -478,7 +478,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if self.inner.pattern_syntax.contains_key(for_name) {
-      let key = Atom::from(ident.sym.as_str());
+      let key = Atom::from(&ident.sym);
       parser.tag_variable(
         key.clone(),
         WORKER_SPECIFIER_TAG,

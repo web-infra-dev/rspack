@@ -596,7 +596,9 @@ pub fn analyze_module_scope(
     let legacy = if is_global {
       let legacy = identifier.to_legacy(&semantic);
       module_info.global_scope_ident.push(legacy.clone());
-      module_info.all_used_names.insert(legacy.id.sym.clone());
+      module_info
+        .all_used_names
+        .insert(legacy.id.sym.clone().into());
       Some(legacy)
     } else {
       None
@@ -619,7 +621,7 @@ pub fn analyze_module_scope(
     module_info.idents.push(legacy.clone());
     module_info
       .binding_to_ref
-      .entry((legacy.id.sym.clone(), legacy.id.ctxt))
+      .entry((legacy.id.sym.clone().into(), legacy.id.ctxt))
       .or_default()
       .push(legacy);
   }

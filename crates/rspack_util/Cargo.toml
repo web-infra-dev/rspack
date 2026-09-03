@@ -21,6 +21,7 @@ indexmap         = { workspace = true }
 itoa             = { workspace = true }
 json-escape-simd = { workspace = true }
 memchr           = { workspace = true }
+ref-cast         = { workspace = true }
 regex            = { workspace = true, features = ["pattern"] }
 rspack_cacheable = { workspace = true }
 rspack_paths     = { workspace = true }
@@ -33,8 +34,9 @@ smallvec         = { workspace = true }
 sugar_path       = { workspace = true }
 unicase          = { workspace = true }
 
-swc_core                  = { workspace = true, features = ["__common", "base", "ecma_ast"] }
-swc_experimental_ecma_ast = { workspace = true }
+swc_core                   = { workspace = true, features = ["__common", "base", "ecma_ast"] }
+swc_experimental_allocator = { workspace = true }
+swc_experimental_ecma_ast  = { workspace = true }
 
 # wasm runtime
 anyhow            = { workspace = true, optional = true }

@@ -613,7 +613,7 @@ var {} = {{}};
       let mut exports = exports.iter().collect::<Vec<_>>();
       exports.sort_unstable();
       for exported_name in exports {
-        let is_default = exported_name.as_str() == "default";
+        let is_default = exported_name == "default";
 
         if is_default {
           if export_default.is_none() {
@@ -817,7 +817,7 @@ var {} = {{}};
         continue;
       }
 
-      if let Some(internal_name) = info.get_internal_name(ident.id.sym.as_str()) {
+      if let Some(internal_name) = info.get_internal_name(&ident.id.sym) {
         let name = if ident.shorthand {
           format!("{}: {}", &ident.id.sym, &internal_name)
         } else {

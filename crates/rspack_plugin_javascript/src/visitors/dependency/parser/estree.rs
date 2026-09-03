@@ -152,7 +152,7 @@ impl ExportNamedDeclaration<'_> {
         ExportSpecifier::Default(s) => {
           (
             JS_DEFAULT_KEYWORD.clone(),
-            Atom::from(s.exported.sym.as_str()),
+            Atom::from(&s.exported.sym),
             s.exported.span(),
           )
         },
@@ -223,12 +223,8 @@ impl ExportDefaultExpression<'_> {
 impl ExportDefaultExpression<'_> {
   pub fn ident(&self) -> Option<Atom> {
     match self {
-      ExportDefaultExpression::FnDecl(f) => {
-        f.ident.as_ref().map(|ident| Atom::from(ident.sym.as_str()))
-      }
-      ExportDefaultExpression::ClassDecl(c) => {
-        c.ident.as_ref().map(|ident| Atom::from(ident.sym.as_str()))
-      }
+      ExportDefaultExpression::FnDecl(f) => f.ident.as_ref().map(|ident| Atom::from(&ident.sym)),
+      ExportDefaultExpression::ClassDecl(c) => c.ident.as_ref().map(|ident| Atom::from(&ident.sym)),
       ExportDefaultExpression::Expr(_) => None,
     }
   }
@@ -546,7 +542,7 @@ impl<'a> VariableDeclaration<'a> {
 
 fn module_export_name_to_atom(name: &ModuleExportName<'_>) -> Atom {
   match name {
-    ModuleExportName::Ident(ident) => Atom::from(ident.sym.as_str()),
+    ModuleExportName::Ident(ident) => Atom::from(&ident.sym),
     ModuleExportName::Str(s) => wtf8_atom_to_atom(s.value),
   }
 }

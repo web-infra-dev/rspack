@@ -3,8 +3,7 @@ use std::sync::LazyLock;
 use rspack_core::{
   DeferredPureCheck, Dependency, DependencyRange, ModuleDependency, SideEffectsBailoutItemWithSpan,
 };
-use rspack_util::{SpanExt, atom::AtomKey};
-use rustc_hash::FxHashSet;
+use rspack_util::{SpanExt, atom::AtomSet};
 use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom, wtf8::Wtf8};
 use swc_experimental_ecma_ast::{
   ArrayLit, ArrowExpr, AssignExpr, AssignOp, BlockStmt, BlockStmtOrExpr, CallExpr, Class,
@@ -38,12 +37,12 @@ impl SideEffectsParserPlugin {
 }
 
 struct PureAnnotation<'a> {
-  side_effects_free: FxHashSet<Atom>,
+  side_effects_free: AtomSet,
   parser: &'a JavascriptParser<'a>,
 }
 
 fn compat_atom(atom: &AstAtom<'_>) -> Atom {
-  Atom::from(atom.as_str())
+  Atom::from(atom)
 }
 
 fn has_no_side_effects_notation(comments: &Comments<'_>, span: AstSpan) -> bool {
@@ -164,16 +163,16 @@ impl<'a> Visit<'a> for PureAnnotation<'a> {
   }
 }
 
-fn collect_pure_function_acceptable_names(program: &Program) -> FxHashSet<AtomKey> {
+fn collect_pure_function_acceptable_names(program: &Program) -> AtomSet {
   // Names a user can list in `pureFunctions` and have actually take effect:
   //   - any top-level binding (function/class/var decl or import) — so calls
   //     to local helpers and imported identifiers can be marked pure;
   //   - export aliases of local bindings (`export { foo as bar }`) and the
   //     `default` keyword for default-exported functions/arrows — preserves
   //     the original "configure on the source module" workflow.
-  let mut names = FxHashSet::default();
+  let mut names = AtomSet::default();
   let mut insert = |name: Atom| {
-    names.insert(name.into());
+    names.insert(name);
   };
 
   match program {
@@ -205,18 +204,18 @@ fn collect_pure_function_acceptable_names(program: &Program) -> FxHashSet<AtomKe
                 continue;
               };
               let orig_atom = match &named.orig {
-                ModuleExportName::Ident(ident) => compat_atom(&ident.sym),
+                ModuleExportName::Ident(ident) => &ident.sym,
                 ModuleExportName::Str(_) => continue,
               };
-              if !local_bindings.contains(AtomKey::from_atom_ref(&orig_atom)) {
+              if !local_bindings.contains(orig_atom) {
                 continue;
               }
               match named.exported.as_ref().unwrap_or(&named.orig) {
                 ModuleExportName::Ident(ident) => {
-                  names.insert(compat_atom(&ident.sym).into());
+                  names.insert(compat_atom(&ident.sym));
                 }
                 ModuleExportName::Str(s) => {
-                  names.insert(Atom::from(s.value.to_string_lossy().as_ref()).into());
+                  names.insert(Atom::from(s.value.to_string_lossy().as_ref()));
                 }
               }
             }
@@ -224,12 +223,12 @@ fn collect_pure_function_acceptable_names(program: &Program) -> FxHashSet<AtomKe
           ModuleDecl::ExportDefaultDecl(default_decl)
             if matches!(default_decl.decl, DefaultDecl::Fn(_)) =>
           {
-            names.insert(AtomKey::from("default"));
+            names.insert(Atom::from("default"));
           }
           ModuleDecl::ExportDefaultExpr(default_expr)
             if default_expr.expr.is_fn() || default_expr.expr.is_arrow() =>
           {
-            names.insert(AtomKey::from("default"));
+            names.insert(Atom::from("default"));
           }
           _ => {}
         }
@@ -250,17 +249,13 @@ fn collect_pure_function_acceptable_names(program: &Program) -> FxHashSet<AtomKe
 fn collect_defined_configured_side_effects_free(
   program: &Program,
   configured_side_effects_free: &[String],
-) -> FxHashSet<Atom> {
+) -> AtomSet {
   let acceptable = collect_pure_function_acceptable_names(program);
 
   configured_side_effects_free
     .iter()
-    .filter_map(|name| {
-      let atom = Atom::from(name.as_str());
-      acceptable
-        .contains(AtomKey::from_atom_ref(&atom))
-        .then_some(atom)
-    })
+    .filter(|name| acceptable.contains(*name))
+    .map(Atom::from)
     .collect()
 }
 
@@ -330,10 +325,10 @@ fn visit_module_decl_defined_binding_names(decl: &ModuleDecl, f: &mut impl FnMut
   }
 }
 
-fn collect_duplicate_top_level_names(program: &Program) -> FxHashSet<AtomKey> {
-  let mut counts = rustc_hash::FxHashMap::<AtomKey, usize>::default();
+fn collect_duplicate_top_level_names(program: &Program) -> AtomSet {
+  let mut counts = rustc_hash::FxHashMap::<Atom, usize>::default();
   let mut count_name = |name: Atom| {
-    *counts.entry(name.into()).or_default() += 1;
+    *counts.entry(name).or_default() += 1;
   };
 
   match program {
@@ -380,7 +375,7 @@ fn try_mark_auto_side_effects_free_var_decl(
   var_decl: &VarDecl,
   export_name: Option<&Atom>,
   comments: &Comments<'_>,
-  duplicate_names: &FxHashSet<AtomKey>,
+  duplicate_names: &AtomSet,
 ) {
   if !matches!(var_decl.kind, VarDeclKind::Const) {
     return;
@@ -390,18 +385,16 @@ fn try_mark_auto_side_effects_free_var_decl(
     let Some(ident) = declarator.name.as_ident() else {
       continue;
     };
-    let ident = compat_atom(&ident.id.sym);
-
     if parser
       .build_info
       .side_effects_free
       .as_ref()
-      .is_some_and(|side_effects_free| side_effects_free.contains(&ident))
+      .is_some_and(|side_effects_free| side_effects_free.contains(&ident.id.sym))
     {
       continue;
     }
 
-    if duplicate_names.contains(AtomKey::from_atom_ref(&ident)) {
+    if duplicate_names.contains(&ident.id.sym) {
       continue;
     }
 
@@ -419,6 +412,7 @@ fn try_mark_auto_side_effects_free_var_decl(
     };
 
     if is_side_effects_free {
+      let ident = compat_atom(&ident.id.sym);
       mark_side_effects_free(parser, &ident, export_name);
     }
   }
@@ -429,18 +423,17 @@ fn try_mark_auto_side_effects_free_stmt(
   analyze_side_effects_free: bool,
   stmt: &Stmt,
   comments: &Comments<'_>,
-  duplicate_names: &FxHashSet<AtomKey>,
+  duplicate_names: &AtomSet,
 ) {
   if let Stmt::Decl(decl) = stmt {
     match &**decl {
       Decl::Fn(fn_decl) => {
-        let ident = compat_atom(&fn_decl.ident.sym);
         if parser
           .build_info
           .side_effects_free
           .as_ref()
-          .is_some_and(|side_effects_free| side_effects_free.contains(&ident))
-          || duplicate_names.contains(AtomKey::from_atom_ref(&ident))
+          .is_some_and(|side_effects_free| side_effects_free.contains(&fn_decl.ident.sym))
+          || duplicate_names.contains(&fn_decl.ident.sym)
         {
           return;
         }
@@ -451,6 +444,7 @@ fn try_mark_auto_side_effects_free_stmt(
           &fn_decl.function,
           comments,
         ) {
+          let ident = compat_atom(&fn_decl.ident.sym);
           mark_side_effects_free(parser, &ident, None);
         }
       }
@@ -472,7 +466,7 @@ fn try_mark_auto_side_effects_free_module_decl(
   analyze_side_effects_free: bool,
   decl: &ModuleDecl,
   comments: &Comments<'_>,
-  duplicate_names: &FxHashSet<AtomKey>,
+  duplicate_names: &AtomSet,
 ) {
   match decl {
     ModuleDecl::ExportDefaultExpr(default_expr) => {
@@ -482,14 +476,12 @@ fn try_mark_auto_side_effects_free_module_decl(
       let Some(ident) = &fn_expr.ident else {
         return;
       };
-      let ident = compat_atom(&ident.sym);
-      let export_name = Atom::from("default");
       if parser
         .build_info
         .side_effects_free
         .as_ref()
-        .is_some_and(|side_effects_free| side_effects_free.contains(&ident))
-        || duplicate_names.contains(AtomKey::from_atom_ref(&ident))
+        .is_some_and(|side_effects_free| side_effects_free.contains(&ident.sym))
+        || duplicate_names.contains(&ident.sym)
       {
         return;
       }
@@ -499,6 +491,8 @@ fn try_mark_auto_side_effects_free_module_decl(
         &fn_expr.function,
         comments,
       ) {
+        let ident = compat_atom(&ident.sym);
+        let export_name = Atom::from("default");
         mark_side_effects_free(parser, &ident, Some(&export_name));
       }
     }
@@ -509,14 +503,12 @@ fn try_mark_auto_side_effects_free_module_decl(
       let Some(ident) = &fn_expr.ident else {
         return;
       };
-      let ident = compat_atom(&ident.sym);
-      let export_name = Atom::from("default");
       if parser
         .build_info
         .side_effects_free
         .as_ref()
-        .is_some_and(|side_effects_free| side_effects_free.contains(&ident))
-        || duplicate_names.contains(AtomKey::from_atom_ref(&ident))
+        .is_some_and(|side_effects_free| side_effects_free.contains(&ident.sym))
+        || duplicate_names.contains(&ident.sym)
       {
         return;
       }
@@ -526,6 +518,8 @@ fn try_mark_auto_side_effects_free_module_decl(
         &fn_expr.function,
         comments,
       ) {
+        let ident = compat_atom(&ident.sym);
+        let export_name = Atom::from("default");
         mark_side_effects_free(parser, &ident, Some(&export_name));
       }
     }
@@ -535,10 +529,8 @@ fn try_mark_auto_side_effects_free_module_decl(
           .build_info
           .side_effects_free
           .as_ref()
-          .is_some_and(|side_effects_free| {
-            side_effects_free.contains(&compat_atom(&fn_decl.ident.sym))
-          })
-          || duplicate_names.contains(AtomKey::from_atom_ref(&compat_atom(&fn_decl.ident.sym)))
+          .is_some_and(|side_effects_free| side_effects_free.contains(&fn_decl.ident.sym))
+          || duplicate_names.contains(&fn_decl.ident.sym)
         {
           return;
         }
@@ -549,7 +541,8 @@ fn try_mark_auto_side_effects_free_module_decl(
           &fn_decl.function,
           comments,
         ) {
-          mark_side_effects_free(parser, &compat_atom(&fn_decl.ident.sym), None);
+          let ident = compat_atom(&fn_decl.ident.sym);
+          mark_side_effects_free(parser, &ident, None);
         }
       }
       Decl::Var(var_decl) => try_mark_auto_side_effects_free_var_decl(
@@ -571,7 +564,7 @@ fn mark_auto_side_effects_free_program(
   analyze_side_effects_free: bool,
   program: &Program,
   comments: &Comments<'_>,
-  duplicate_names: &FxHashSet<AtomKey>,
+  duplicate_names: &AtomSet,
 ) {
   match program {
     Program::Module(module) => {
@@ -624,7 +617,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
       //    unlock later candidates regardless of declaration order.
       // use a raw swc visitor so that we can find all pure functions before the parser visit the ast
       let mut pure_annotation = PureAnnotation {
-        side_effects_free: FxHashSet::default(),
+        side_effects_free: AtomSet::default(),
         parser,
       };
       ast.visit_with(&mut pure_annotation);
@@ -649,7 +642,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
           .build_info
           .side_effects_free
           .as_ref()
-          .map_or(0, FxHashSet::len);
+          .map_or(0, |side_effects_free| side_effects_free.len());
         mark_auto_side_effects_free_program(
           parser,
           self.analyze_side_effects_free,
@@ -661,7 +654,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
           .build_info
           .side_effects_free
           .as_ref()
-          .map_or(0, FxHashSet::len);
+          .map_or(0, |side_effects_free| side_effects_free.len());
         if next_len == prev_len {
           break;
         }
@@ -770,9 +763,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
         side_effects_free.sort();
         let defined_side_effects_free = parser.build_info.side_effects_free.as_ref();
         for atom in side_effects_free {
-          if !defined_side_effects_free.is_some_and(|configured_side_effects_free| {
-            configured_side_effects_free.contains(&Atom::from(atom.clone()))
-          }) {
+          if !defined_side_effects_free
+            .is_some_and(|configured_side_effects_free| configured_side_effects_free.contains(atom))
+          {
             not_defined.push(Atom::from(atom.clone()));
           }
         }
@@ -949,7 +942,7 @@ fn resolve_explicit_side_effects_free_callee(
       .javascript_options
       .side_effects_free
       .as_ref()
-      .is_some_and(|names| names.iter().any(|name| name.as_str() == ident.as_str()));
+      .is_some_and(|names| names.iter().any(|name| name == ident));
     if !is_user_configured {
       return ExplicitSideEffectsFreeCallee::Deferred;
     }
@@ -996,7 +989,7 @@ fn try_extract_deferred_check(
         return false;
       };
 
-      let request_eq = dep.request() == data.source.as_str();
+      let request_eq = dep.request() == data.source;
       let attributes: Option<&rspack_core::ImportAttributes> = data.attributes.as_ref();
       let attributes_eq = attributes == dep.get_attributes();
       request_eq && attributes_eq
@@ -1525,7 +1518,7 @@ fn is_common_js_export_assignment(parser: &mut JavascriptParser, expr: &AssignEx
       };
       property_is_side_effect_free
         && parser
-          .get_variable_info(&compat_atom(&ident.sym))
+          .get_variable_info(&ident.sym)
           .is_none_or(|info| info.is_free())
     }
     Expr::Ident(ident) if ident.sym == "module" => {
@@ -1542,7 +1535,7 @@ fn is_common_js_export_assignment(parser: &mut JavascriptParser, expr: &AssignEx
       };
       property_is_exports
         && parser
-          .get_variable_info(&compat_atom(&ident.sym))
+          .get_variable_info(&ident.sym)
           .is_none_or(|info| info.is_free())
     }
     _ => false,

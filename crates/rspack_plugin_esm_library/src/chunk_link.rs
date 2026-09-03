@@ -7,7 +7,7 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource},
 };
 use rspack_util::{
-  atom::Atom,
+  atom::{Atom, AtomMap, IndexAtomMap, IndexAtomSet},
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
 };
 
@@ -74,7 +74,7 @@ pub struct ExternalInterop {
   pub default_exported: Option<Atom>,
   pub namespace_object: Option<Atom>,
   pub namespace_object2: Option<Atom>,
-  pub property_access: FxIndexMap<Atom, Atom>,
+  pub property_access: IndexAtomMap<Atom>,
 }
 
 fn get_or_create_interop_name(
@@ -265,7 +265,7 @@ pub struct ChunkLinkContext {
   specifier order doesn't matter, we can sort them based on name
   Map<module_id, Map<local_name, export_name>>
   */
-  exports: FxHashMap<Atom, FxIndexSet<Atom>>,
+  exports: AtomMap<IndexAtomSet>,
 
   /**
   symbols that this chunk provides
@@ -281,7 +281,7 @@ pub struct ChunkLinkContext {
   /**
    * re exports in raw form, used for rendering export * from 'module'
    */
-  pub raw_star_exports: FxIndexMap<String, FxIndexSet<Atom>>,
+  pub raw_star_exports: FxIndexMap<String, IndexAtomSet>,
 
   /**
   import order matters, it affects execution order
@@ -366,11 +366,11 @@ impl ChunkLinkContext {
     }
   }
 
-  pub fn exports(&self) -> &FxHashMap<Atom, FxIndexSet<Atom>> {
+  pub fn exports(&self) -> &AtomMap<IndexAtomSet> {
     &self.exports
   }
 
-  pub fn exports_mut(&mut self) -> &mut FxHashMap<Atom, FxIndexSet<Atom>> {
+  pub fn exports_mut(&mut self) -> &mut AtomMap<IndexAtomSet> {
     &mut self.exports
   }
 

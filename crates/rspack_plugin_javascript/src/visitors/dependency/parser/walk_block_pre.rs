@@ -95,7 +95,7 @@ impl JavascriptParser<'_> {
 
   fn block_pre_walk_class_declaration(&mut self, decl: MaybeNamedClassDecl) {
     if let Some(ident) = decl.ident() {
-      self.define_variable(Atom::from(ident.sym.as_str()))
+      self.define_variable(Atom::from(&ident.sym))
     }
   }
 
@@ -112,13 +112,8 @@ impl JavascriptParser<'_> {
         self.prev_statement = prev;
         self.block_pre_walk_statement((&decl.decl).into());
         self.enter_declaration(&decl.decl, |parser, def| {
-          drive.export_specifier(
-            parser,
-            ExportLocal::Named(export),
-            &Atom::from(def.sym.as_str()),
-            &Atom::from(def.sym.as_str()),
-            def.span,
-          );
+          let name = Atom::from(&def.sym);
+          drive.export_specifier(parser, ExportLocal::Named(export), &name, &name, def.span);
         });
       }
       ExportNamedDeclaration::Specifiers(named) => {
@@ -155,7 +150,7 @@ impl JavascriptParser<'_> {
               drive.export_specifier(
                 self,
                 ExportLocal::Default(export),
-                &Atom::from(ident.sym.as_str()),
+                &Atom::from(&ident.sym),
                 &JS_DEFAULT_KEYWORD,
                 ident.span,
               );
@@ -173,7 +168,7 @@ impl JavascriptParser<'_> {
               drive.export_specifier(
                 self,
                 ExportLocal::Default(export),
-                &Atom::from(ident.sym.as_str()),
+                &Atom::from(&ident.sym),
                 &JS_DEFAULT_KEYWORD,
                 ident.span,
               );

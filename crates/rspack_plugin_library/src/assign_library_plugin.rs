@@ -405,7 +405,7 @@ async fn embed_in_runtime_bailout(
       .get_resolved_full_name(&options, compilation, chunk)
       .await?;
     if let Some(base) = full_name.first()
-      && top_level_decls.contains(base.as_str())
+      && top_level_decls.contains(base)
     {
       return Ok(Some(format!(
         "it declares '{base}' on top-level, which conflicts with the current library output."

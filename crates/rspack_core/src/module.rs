@@ -17,7 +17,7 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher, write_u64_hex};
 use rspack_sources::BoxSource;
 use rspack_util::{
-  atom::Atom,
+  atom::{Atom, AtomSet, IndexAtomMap},
   ext::AsAny,
   fx_hash::{FxIndexMap, FxIndexSet},
   source_map::ModuleSourceMapConfig,
@@ -108,8 +108,7 @@ pub struct RscMeta {
 
   pub is_cjs: bool,
 
-  #[cacheable(with=AsMap<AsPreset, AsPreset>)]
-  pub action_ids: FxIndexMap<Atom, Atom>,
+  pub action_ids: IndexAtomMap<Atom>,
 }
 
 #[cacheable]
@@ -301,10 +300,8 @@ pub struct BuildInfo {
   pub json_data: Option<JsonValue>,
   pub asset: Option<Box<AssetBuildInfo>>,
   pub css: Option<Box<CssBuildInfo>>,
-  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
-  pub side_effects_free: Option<HashSet<Atom>>,
-  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
-  pub top_level_declarations: Option<HashSet<Atom>>,
+  pub side_effects_free: Option<AtomSet>,
+  pub top_level_declarations: Option<AtomSet>,
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,

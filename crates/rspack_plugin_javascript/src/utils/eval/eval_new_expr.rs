@@ -3,7 +3,6 @@ use swc_experimental_ecma_ast::NewExpr;
 
 use super::BasicEvaluatedExpression;
 use crate::{
-  Atom,
   parser_plugin::{evaluate_create_require_new_expression, is_create_require_specifier},
   utils::eval,
   visitors::{CallHooksName, JavascriptParser},
@@ -17,9 +16,8 @@ pub fn eval_new_expression<'a>(
   let ident = expr.callee.as_ident();
   if scanner.javascript_options.is_create_require_enabled() {
     if let Some(ident) = ident {
-      let ident_name = Atom::from(ident.sym.as_str());
-      if is_create_require_specifier(scanner, &ident_name) {
-        let evaluated = ident_name.call_hooks_name(scanner, |scanner, for_name| {
+      if is_create_require_specifier(scanner, &ident.sym) {
+        let evaluated = ident.sym.call_hooks_name(scanner, |scanner, for_name| {
           evaluate_create_require_new_expression(scanner, for_name, Some(&expr.callee), expr)
         });
         if evaluated.is_some() {
@@ -34,7 +32,7 @@ pub fn eval_new_expression<'a>(
     }
   }
   let ident = ident?;
-  if ident.sym.as_str() != "RegExp" {
+  if ident.sym != "RegExp" {
     // FIXME: call hooks
     return None;
   }

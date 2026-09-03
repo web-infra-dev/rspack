@@ -89,11 +89,11 @@ fn is_unbound_promise_all(parser: &mut JavascriptParser, call: &CallExpr) -> boo
   member
     .obj
     .as_ident()
-    .is_some_and(|ident| ident.sym.as_str() == "Promise")
+    .is_some_and(|ident| ident.sym == "Promise")
     && member
       .prop
       .as_ident()
-      .is_some_and(|ident| ident.sym.as_str() == "all")
+      .is_some_and(|ident| ident.sym == "all")
     && parser.get_variable_info("Promise").is_none()
 }
 
@@ -104,7 +104,7 @@ fn track_dynamic_import_pattern(
 ) {
   match pattern {
     Pat::Ident(binding) => {
-      let name = Atom::from(binding.id.sym.as_str());
+      let name = Atom::from(&binding.id.sym);
       parser.define_variable(name.clone());
       tag_dynamic_import_referenced(parser, import_call, name);
     }
@@ -252,7 +252,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       return Some(true);
     }
     if let Some(ident) = expr.as_ident()
-      && let Some(name_info) = parser.get_name_info_from_variable(ident.sym.as_str())
+      && let Some(name_info) = parser.get_name_info_from_variable(&ident.sym)
       && let Some(info) = name_info.info
       && let Some(name) = info.name.clone()
       && parser
@@ -277,7 +277,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         && call.callee.is_import()
         && let Some(binding) = declarator.name.as_ident()
       {
-        let name = Atom::from(binding.id.sym.as_str());
+        let name = Atom::from(&binding.id.sym);
         parser.define_variable(name.clone());
         tag_dynamic_import_referenced(parser, call, name);
       }
@@ -787,7 +787,7 @@ fn walk_import_then_fulfilled_callback(
     scope_params.into_iter(),
     |parser| {
       if let Some(ns_obj) = namespace_obj_arg.as_ident() {
-        tag_dynamic_import_referenced(parser, import_call, Atom::from(ns_obj.id.sym.as_str()));
+        tag_dynamic_import_referenced(parser, import_call, Atom::from(&ns_obj.id.sym));
       } else if let Some(ns_obj) = namespace_obj_arg.as_object() {
         add_destructuring_import_references(parser, import_call, ns_obj);
       } else {

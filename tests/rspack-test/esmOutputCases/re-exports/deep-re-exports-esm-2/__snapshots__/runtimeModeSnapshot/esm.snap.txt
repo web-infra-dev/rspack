@@ -12,12 +12,12 @@ makeNamespaceObject(exports);
 /* import */ var fs__rspack_import_0 = rspackRequire(/*! fs */ "fs");
 
 /* reexport */ var __rspack_reexport = {};
-/* reexport */ for( const __rspack_import_key in fs__rspack_import_0) if(["lib","default"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => fs__rspack_import_0[__rspack_import_key]
+/* reexport */ for( const __rspack_import_key in fs__rspack_import_0) if(["default","lib"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => fs__rspack_import_0[__rspack_import_key]
 /* reexport */ definePropertyGetters(exports, __rspack_reexport);
 /* import */ var _lib2__rspack_import_1 = rspackRequire(/*! ./lib2 */ "./lib2.js");
 
 /* reexport */ var __rspack_reexport = {};
-/* reexport */ for( const __rspack_import_key in _lib2__rspack_import_1) if(["lib","default"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => _lib2__rspack_import_1[__rspack_import_key]
+/* reexport */ for( const __rspack_import_key in _lib2__rspack_import_1) if(["default","lib"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => _lib2__rspack_import_1[__rspack_import_key]
 /* reexport */ definePropertyGetters(exports, __rspack_reexport);
 
 

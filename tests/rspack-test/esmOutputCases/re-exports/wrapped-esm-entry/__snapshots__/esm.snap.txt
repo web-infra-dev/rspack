@@ -12,7 +12,7 @@ __webpack_require__.r(__webpack_exports__);
 /* import */ var fs__rspack_import_0 = __webpack_require__(/*! fs */ "fs");
 
 /* reexport */ var __rspack_reexport = {};
-/* reexport */ for( const __rspack_import_key in fs__rspack_import_0) if(["default","readFile","fs","named","starExports","r"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => fs__rspack_import_0[__rspack_import_key]
+/* reexport */ for( const __rspack_import_key in fs__rspack_import_0) if(["r","named","default","fs","starExports","readFile"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => fs__rspack_import_0[__rspack_import_key]
 /* reexport */ __webpack_require__.d(__webpack_exports__, __rspack_reexport);
 /* module decorator */ module = __webpack_require__.hmd(module);
 

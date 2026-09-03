@@ -3,7 +3,7 @@ use std::{
   sync::atomic::{AtomicBool, Ordering},
 };
 
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   rkyv::with::{AtomicLoad, Relaxed},
@@ -32,7 +32,7 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_hash::{RspackHash, RspackHasher};
-use rspack_util::json_stringify;
+use rspack_util::{atom::IndexAtomSet, json_stringify};
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
 
 use super::{
@@ -1631,7 +1631,7 @@ fn determine_export_assignments(
   additional_dependency: Option<DependencyId>,
 ) -> (Vec<Atom>, Vec<usize>) {
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L109
-  // js `Set` keep the insertion order, use `IndexSet` to align there behavior
+  // JS `Set` keeps insertion order, so use `IndexAtomSet` to match its behavior.
   let total_deps = dependencies.len() + usize::from(additional_dependency.is_some());
 
   // Pre-compute capacity: sum up export counts across all dependencies to avoid rehashing
@@ -1647,8 +1647,7 @@ fn determine_export_assignments(
     })
     .sum();
 
-  let mut names: IndexSet<Atom, BuildHasherDefault<FxHasher>> =
-    IndexSet::with_capacity_and_hasher(estimated_capacity, Default::default());
+  let mut names = IndexAtomSet::with_capacity(estimated_capacity);
   let mut dependency_indices = Vec::with_capacity(total_deps);
 
   for dependency in dependencies.iter().chain(additional_dependency.iter()) {

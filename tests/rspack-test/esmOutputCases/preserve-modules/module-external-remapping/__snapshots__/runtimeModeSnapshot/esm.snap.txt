@@ -1,5 +1,5 @@
 ```mjs title=hoisted.mjs
-import { EventEmitter, once } from "./node_events-node_events.mjs";
+import { once, EventEmitter } from "./node_events-node_events.mjs";
 
 // ./src/hoisted.js
 
@@ -14,7 +14,7 @@ export { EventEmitterHoisted, onceHoisted };
 ```mjs title=index.mjs
 import { rspackRequire } from "./runtime.mjs";
 import "./wrapped.mjs";
-import { onceHoisted, EventEmitterHoisted } from "./hoisted.mjs";
+import { EventEmitterHoisted, onceHoisted } from "./hoisted.mjs";
 
 // ./src/index.js
 const wrapped_0 = rspackRequire("./src/wrapped.js");

@@ -1,4 +1,4 @@
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, atom::AtomRef};
 pub mod ast;
 mod call_hooks_name;
 pub mod estree;
@@ -244,7 +244,7 @@ impl RootName for ThisExpr {
 
 impl RootName for Ident<'_> {
   fn get_root_name(&self) -> Option<Atom> {
-    Some(Atom::from(self.sym.as_str()))
+    Some(Atom::from(&self.sym))
   }
 }
 
@@ -852,7 +852,10 @@ impl<'parser> JavascriptParser<'parser> {
     self.last_esm_import_order
   }
 
-  pub fn get_variable_info(&mut self, name: &str) -> Option<&VariableInfo> {
+  pub fn get_variable_info<'key>(
+    &mut self,
+    name: impl Into<AtomRef<'key>>,
+  ) -> Option<&VariableInfo> {
     let id = self.definitions_db.get(self.definitions, name)?;
     Some(self.definitions_db.expect_get_variable(id))
   }
@@ -901,9 +904,9 @@ impl<'parser> JavascriptParser<'parser> {
     None
   }
 
-  pub fn get_tag_data<Data: TagInfoData>(
+  pub fn get_tag_data<'key, Data: TagInfoData>(
     &mut self,
-    name: &str,
+    name: impl Into<AtomRef<'key>>,
     tag: &'static str,
   ) -> Option<&Data> {
     self
@@ -912,9 +915,9 @@ impl<'parser> JavascriptParser<'parser> {
       .and_then(|tag_info_id| self.get_tag_data_by_id(tag_info_id, tag))
   }
 
-  pub fn get_tag_data_mut<Data: TagInfoData>(
+  pub fn get_tag_data_mut<'key, Data: TagInfoData>(
     &mut self,
-    name: &str,
+    name: impl Into<AtomRef<'key>>,
     tag: &'static str,
   ) -> Option<&mut Data> {
     self
@@ -935,9 +938,16 @@ impl<'parser> JavascriptParser<'parser> {
       .and_then(|tag_info_id| self.get_tag_data_by_id(tag_info_id, tag))
   }
 
-  pub fn get_free_info_from_variable<'a>(&'a mut self, name: &'a str) -> Option<NameInfo<'a>> {
+  pub fn get_free_info_from_variable<'a>(
+    &'a mut self,
+    name: impl Into<AtomRef<'a>>,
+  ) -> Option<NameInfo<'a>> {
+    let name = name.into();
     let Some(info) = self.get_variable_info(name) else {
-      return Some(NameInfo { name, info: None });
+      return Some(NameInfo {
+        name: name.as_str(),
+        info: None,
+      });
     };
     let Some(name) = &info.name else {
       return None;
@@ -951,9 +961,16 @@ impl<'parser> JavascriptParser<'parser> {
     })
   }
 
-  pub fn get_name_info_from_variable<'a>(&'a mut self, name: &'a str) -> Option<NameInfo<'a>> {
+  pub fn get_name_info_from_variable<'a>(
+    &'a mut self,
+    name: impl Into<AtomRef<'a>>,
+  ) -> Option<NameInfo<'a>> {
+    let name = name.into();
     let Some(info) = self.get_variable_info(name) else {
-      return Some(NameInfo { name, info: None });
+      return Some(NameInfo {
+        name: name.as_str(),
+        info: None,
+      });
     };
     let Some(name) = &info.name else {
       return None;
@@ -1226,7 +1243,7 @@ impl<'parser> JavascriptParser<'parser> {
             members.push(value);
             member_ranges.push(expr.obj.span());
           } else if let Some(ident) = expr.prop.as_ident() {
-            members.push(Atom::from(ident.sym.as_str()));
+            members.push(Atom::from(&ident.sym));
             member_ranges.push(expr.obj.span());
           } else {
             break;
@@ -1259,7 +1276,8 @@ impl<'parser> JavascriptParser<'parser> {
     F: FnOnce(&mut Self, &Ident),
   {
     let drive = self.plugin_drive.clone();
-    if !Atom::from(ident.sym.as_str())
+    if !ident
+      .sym
       .call_hooks_name(self, |parser, for_name| {
         drive.pattern(parser, ident, for_name)
       })
@@ -1499,7 +1517,7 @@ impl<'parser> JavascriptParser<'parser> {
     scope.is_strict
   }
 
-  pub fn is_variable_defined(&mut self, name: &str) -> bool {
+  pub fn is_variable_defined<'key>(&mut self, name: impl Into<AtomRef<'key>>) -> bool {
     let Some(info) = self.get_variable_info(name) else {
       return false;
     };
@@ -1558,7 +1576,7 @@ impl<'parser> JavascriptParser<'parser> {
       ),
       Expr::Member(member) => eval::eval_member_expression(self, member, expr),
       Expr::Ident(ident) => {
-        let name = Atom::from(ident.sym.as_str());
+        let name = Atom::from(&ident.sym);
         if name == "undefined" {
           let mut eval =
             BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
@@ -1599,7 +1617,7 @@ impl<'parser> JavascriptParser<'parser> {
               let mut eval =
                 BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
               eval.set_identifier(
-                Atom::from(ident.sym.as_str()),
+                Atom::from(&ident.sym),
                 ExportedVariableInfo::Name(name.clone()),
                 None,
                 None,

@@ -19,8 +19,11 @@ use rspack_core::{
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_plugin_javascript::dependency::ImportEagerDependency;
-use rspack_util::{atom::Atom, fx_hash::FxIndexSet, source_map::SourceMapKind};
-use rustc_hash::FxHashSet;
+use rspack_util::{
+  atom::{Atom, IndexAtomSet},
+  fx_hash::FxIndexSet,
+  source_map::SourceMapKind,
+};
 
 use crate::{
   client_reference_dependency::ClientReferenceDependency,
@@ -89,7 +92,7 @@ impl RscEntryModule {
       factory_meta: None,
       build_info: BuildInfo {
         strict: true,
-        top_level_declarations: Some(FxHashSet::default()),
+        top_level_declarations: Some(Default::default()),
         ..Default::default()
       },
       build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
@@ -488,7 +491,7 @@ fn push_value(identifier: &mut String, value: &str) {
   identifier.push_str(value);
 }
 
-fn create_referenced_specifiers(ids: &FxIndexSet<Atom>) -> Option<Vec<ReferencedSpecifier>> {
+fn create_referenced_specifiers(ids: &IndexAtomSet) -> Option<Vec<ReferencedSpecifier>> {
   if ids.is_empty() || ids.iter().any(|id| id == "*") {
     return None;
   }

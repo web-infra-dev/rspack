@@ -8,7 +8,7 @@ use rspack_core::{
   ModuleType, ReferencedSpecifier, RuntimeGlobals, RuntimeRequirementsDependency, get_context,
 };
 use rspack_error::{Diagnostic, Severity};
-use rspack_util::{SpanExt, json_stringify_str};
+use rspack_util::{SpanExt, atom::AtomRef, json_stringify_str};
 use swc_experimental_allocator::CloneIn;
 use swc_experimental_ecma_ast::{
   AssignExpr, AssignOp, CallExpr, Callee, Expr, ExprOrSpread, GetSpan, Ident, Lit, MemberExpr,
@@ -236,7 +236,10 @@ fn is_current_create_require_tag(parser: &JavascriptParser) -> bool {
 }
 
 #[inline(never)]
-pub fn is_create_require_specifier(parser: &mut JavascriptParser, name: &str) -> bool {
+pub fn is_create_require_specifier<'key>(
+  parser: &mut JavascriptParser,
+  name: impl Into<AtomRef<'key>>,
+) -> bool {
   let Some(variable_info) = parser.get_variable_info(name) else {
     return false;
   };
@@ -299,8 +302,7 @@ pub(crate) fn is_create_require_namespace_member(
   let Some(namespace) = member_expr.obj.as_ident() else {
     return false;
   };
-  let Some(settings) =
-    parser.get_tag_data::<ESMSpecifierData>(namespace.sym.as_str(), ESM_SPECIFIER_TAG)
+  let Some(settings) = parser.get_tag_data::<ESMSpecifierData>(&namespace.sym, ESM_SPECIFIER_TAG)
   else {
     return false;
   };
@@ -340,7 +342,7 @@ fn is_create_require_namespace_member_param(
 #[inline(never)]
 fn static_member_name(member_expr: &MemberExpr) -> Option<Atom> {
   match &member_expr.prop {
-    MemberProp::Ident(ident) => Some(Atom::from(ident.sym.as_str())),
+    MemberProp::Ident(ident) => Some(Atom::from(&ident.sym)),
     MemberProp::Computed(computed) => match &computed.expr {
       Expr::Lit(lit) => match &**lit {
         Lit::Str(str) => Some(Atom::from(str.value.as_wtf8().to_string_lossy().as_ref())),
@@ -471,8 +473,7 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
   }
 
   let new_expr = arg.as_new()?;
-  if new_expr.callee.as_ident()?.sym.as_str() != "URL" || parser.get_variable_info("URL").is_some()
-  {
+  if new_expr.callee.as_ident()?.sym != "URL" || parser.get_variable_info("URL").is_some() {
     return None;
   }
   if let Some(args) = &new_expr.args
@@ -538,7 +539,7 @@ fn is_side_effect_free_ignored_url_arg(parser: &mut JavascriptParser, expr: &Exp
   match expr {
     Expr::Lit(_) => true,
     Expr::Ident(ident) => {
-      ident.sym.as_str() == "undefined" && parser.get_variable_info("undefined").is_none()
+      ident.sym == "undefined" && parser.get_variable_info("undefined").is_none()
     }
     Expr::Unary(unary) if unary.op == UnaryOp::Void => {
       is_side_effect_free_ignored_url_arg(parser, &unary.arg)
@@ -636,7 +637,7 @@ fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: &E
   if new_expr
     .callee
     .as_ident()
-    .is_some_and(|ident| ident.sym.as_str() == "URL")
+    .is_some_and(|ident| ident.sym == "URL")
     && parser.get_variable_info("URL").is_none()
   {
     let is_absolute_file_url = is_absolute_file_url_constructor_arg(parser, arg);
@@ -686,7 +687,7 @@ fn is_valid_ignored_url_base_arg(parser: &mut JavascriptParser, base: &ExprOrSpr
     return false;
   }
   if let Expr::Ident(ident) = &base.expr
-    && ident.sym.as_str() == "undefined"
+    && ident.sym == "undefined"
     && parser.get_variable_info("undefined").is_none()
   {
     return true;
@@ -711,7 +712,7 @@ fn is_absolute_file_url_constructor_arg(parser: &mut JavascriptParser, arg: &Exp
   if new_expr
     .callee
     .as_ident()
-    .is_none_or(|ident| ident.sym.as_str() != "URL")
+    .is_none_or(|ident| ident.sym != "URL")
     || parser.get_variable_info("URL").is_some()
   {
     return false;
@@ -741,9 +742,7 @@ fn walk_create_require_ignored_args(parser: &mut JavascriptParser, call_expr: &C
 
 #[inline(never)]
 fn is_unbound_url_constructor(parser: &mut JavascriptParser, callee: &Expr) -> bool {
-  callee
-    .as_ident()
-    .is_some_and(|ident| ident.sym.as_str() == "URL")
+  callee.as_ident().is_some_and(|ident| ident.sym == "URL")
     && parser.get_variable_info("URL").is_none()
 }
 
@@ -1011,7 +1010,7 @@ fn deferred_create_require_callee(
 ) -> Option<DeferredCreateRequireCallee> {
   let (settings, range, ids, direct_import, ns_access) = if let Some(ident) = callee.as_ident() {
     let settings = parser
-      .get_tag_data::<ESMSpecifierData>(ident.sym.as_str(), ESM_SPECIFIER_TAG)?
+      .get_tag_data::<ESMSpecifierData>(&ident.sym, ESM_SPECIFIER_TAG)?
       .clone();
     let ids = settings.ids.clone().into_vec();
     (settings, ident.span.into(), ids, true, false)
@@ -1019,7 +1018,7 @@ fn deferred_create_require_callee(
     let member = callee.as_member()?;
     let namespace = member.obj.as_ident()?;
     let settings = parser
-      .get_tag_data::<ESMSpecifierData>(namespace.sym.as_str(), ESM_SPECIFIER_TAG)?
+      .get_tag_data::<ESMSpecifierData>(&namespace.sym, ESM_SPECIFIER_TAG)?
       .clone();
     let mut ids = settings.ids.clone().into_vec();
     ids.push(static_member_name(member)?);
@@ -1116,7 +1115,7 @@ fn pre_tag_created_require_declarator<'a>(
   };
   let is_create_require_callee = callee
     .as_ident()
-    .is_some_and(|ident| is_create_require_specifier(parser, ident.sym.as_str()))
+    .is_some_and(|ident| is_create_require_specifier(parser, &ident.sym))
     || is_create_require_namespace_member(parser, callee);
   if !is_create_require_callee || !can_defer_create_require_call(parser, &call.args) {
     return;
@@ -1132,7 +1131,7 @@ fn pre_tag_created_require_declarator<'a>(
     context,
     replace_argument: _,
   } = argument;
-  let name = Atom::from(binding.id.sym.as_str());
+  let name = Atom::from(&binding.id.sym);
   parser.define_variable(name.clone());
   parser.tag_variable(
     name,
@@ -1172,7 +1171,7 @@ fn tag_created_require_declarator<'a>(
     replace_argument,
   } = argument;
   let deferred = deferred_callee.is_some();
-  let binding_name = Atom::from(binding.sym.as_str());
+  let binding_name = Atom::from(&binding.sym);
   parser.define_variable(binding_name.clone());
   parser.tag_variable(
     binding_name,
@@ -1207,7 +1206,8 @@ fn tag_created_require_declarator<'a>(
   parser.walk_expr_or_spread(&args[1..]);
 }
 
-fn clear_create_require_tag(parser: &mut JavascriptParser, name: &str) {
+fn clear_create_require_tag<'key>(parser: &mut JavascriptParser, name: impl Into<AtomRef<'key>>) {
+  let name = name.into();
   if let Some(declared_scope) = parser
     .get_variable_info(name)
     .map(|info| info.declared_scope)
@@ -1221,7 +1221,7 @@ fn clear_create_require_tag(parser: &mut JavascriptParser, name: &str) {
     );
     parser
       .definitions_db
-      .set(declared_scope, Atom::from(name), info);
+      .set(declared_scope, name.to_atom(), info);
   }
 }
 
@@ -1531,7 +1531,7 @@ impl CommonJsImportsParserPlugin {
       return false;
     };
 
-    if parser.get_variable_info(ident.sym.as_str()).is_some() {
+    if parser.get_variable_info(&ident.sym).is_some() {
       return false;
     }
 
@@ -1948,7 +1948,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       return Some(true);
     }
     if let Some(ident) = expr.as_ident()
-      && let Some(name_info) = parser.get_name_info_from_variable(ident.sym.as_str())
+      && let Some(name_info) = parser.get_name_info_from_variable(&ident.sym)
       && let Some(info) = name_info.info
       && let Some(name) = info.name.clone()
       && parser
@@ -1980,7 +1980,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && let Some(binding) = declarator.name.as_ident()
       && is_require_call_expr(parser, call)
     {
-      let name = Atom::from(binding.id.sym.as_str());
+      let name = Atom::from(&binding.id.sym);
       parser.define_variable(name.clone());
       tag_commonjs_require_referenced(parser, call, name);
     }
@@ -2000,14 +2000,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     let init = declarator.init.as_ref()?;
     if let Some(init) = init.as_ident()
       && let Some(data) = parser
-        .get_tag_data::<CreatedRequireTagData>(
-          &Atom::from(init.sym.as_str()),
-          CREATED_REQUIRE_IDENTIFIER_TAG,
-        )
+        .get_tag_data::<CreatedRequireTagData>(&init.sym, CREATED_REQUIRE_IDENTIFIER_TAG)
         .cloned()
       && let Some(binding) = declarator.name.as_ident()
     {
-      let name = Atom::from(binding.id.sym.as_str());
+      let name = Atom::from(&binding.id.sym);
       parser.define_variable(name.clone());
       parser.tag_variable(
         name,
@@ -2021,10 +2018,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     }
 
     if let Some(init) = init.as_ident()
-      && is_create_require_specifier(parser, init.sym.as_str())
+      && is_create_require_specifier(parser, &init.sym)
       && let Some(binding) = declarator.name.as_ident()
     {
-      let name = Atom::from(binding.id.sym.as_str());
+      let name = Atom::from(&binding.id.sym);
       parser.define_variable(name.clone());
       tag_create_require(parser, name);
     }
@@ -2032,7 +2029,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     let binding = declarator.name.as_ident()?;
 
     if is_create_require_namespace_member(parser, init) {
-      let name = Atom::from(binding.id.sym.as_str());
+      let name = Atom::from(&binding.id.sym);
       parser.define_variable(name.clone());
       tag_create_require(parser, name);
     }
@@ -2076,13 +2073,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     }
 
     if parser
-      .get_tag_data::<CreatedRequireTagData>(
-        &Atom::from(binding.id.sym.as_str()),
-        CREATED_REQUIRE_IDENTIFIER_TAG,
-      )
+      .get_tag_data::<CreatedRequireTagData>(&binding.id.sym, CREATED_REQUIRE_IDENTIFIER_TAG)
       .is_some()
     {
-      parser.define_variable(Atom::from(binding.id.sym.as_str()));
+      parser.define_variable(Atom::from(&binding.id.sym));
       parser.walk_expression(init);
       return Some(true);
     }
@@ -2634,7 +2628,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       if matches!(expr.op, AssignOp::OrAssign | AssignOp::NullishAssign) {
         return Some(true);
       }
-      clear_create_require_tag(parser, ident.sym.as_str());
+      clear_create_require_tag(parser, &ident.sym);
       return Some(true);
     }
 

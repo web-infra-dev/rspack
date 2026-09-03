@@ -1180,12 +1180,9 @@ var {} = {{}};
                 (m.build_info().hash.as_ref(), idents_with_hash.hash.as_ref())
               && *hash_current == *hash_cache
             {
-              acc.all_used_names.extend(
-                idents_with_hash
-                  .value
-                  .iter()
-                  .map(|v| Atom::from(v.id.sym.as_str())),
-              );
+              acc
+                .all_used_names
+                .extend(idents_with_hash.value.iter().map(|v| Atom::from(&v.id.sym)));
               acc
                 .non_inlined_module_through_idents
                 .extend(idents_with_hash.value.clone());
@@ -1219,11 +1216,11 @@ var {} = {{}};
                       || scope_id != module_scope_id
                       || ident.is_class_expr_with_ident
                     {
-                      acc.all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+                      acc.all_used_names.insert(Atom::from(&ident.id.sym));
                     }
 
                     if scope_id == module_scope_id {
-                      acc.all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+                      acc.all_used_names.insert(Atom::from(&ident.id.sym));
                       module_scope_idents.push(Arc::new(ident.to_legacy(&semantic)));
                     }
                   }
@@ -1262,7 +1259,7 @@ var {} = {{}};
                   for ident in collector_ids {
                     if semantic.node_scope(&ident.id) == global_scope_id {
                       let ident = ident.to_legacy(&semantic);
-                      acc.all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+                      acc.all_used_names.insert(Atom::from(&ident.id.sym));
                       idents_vec.push(ident.clone());
                       acc.non_inlined_module_through_idents.push(ident);
                     }

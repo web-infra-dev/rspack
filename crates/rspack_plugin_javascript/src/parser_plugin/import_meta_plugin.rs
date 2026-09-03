@@ -514,7 +514,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
         .get_root_name()
         .is_some_and(|name| name == expr_name::IMPORT_META)
       && let Some(property) = (match &member_expr.prop {
-        MemberProp::Ident(ident) => Some(Atom::from(ident.sym.as_str())),
+        MemberProp::Ident(ident) => Some(Atom::from(&ident.sym)),
         MemberProp::Computed(computed) => member_property_to_atom(&computed.expr),
         _ => None,
       })
@@ -807,7 +807,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
     let ExportedVariableInfo::Name(root) = &info.root_info else {
       return None;
     };
-    if root.as_str() != expr_name::IMPORT_META {
+    if root != expr_name::IMPORT_META {
       return None;
     }
 

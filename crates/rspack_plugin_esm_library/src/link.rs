@@ -27,7 +27,7 @@ use rspack_plugin_javascript::{
 };
 use rspack_plugin_runtime::should_export_webpack_require_for_module_chunk_loading;
 use rspack_util::{
-  atom::Atom,
+  atom::{Atom, AtomMap, IndexAtomSet},
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
 };
 
@@ -59,7 +59,7 @@ impl<V> GetMut<ModuleIdentifier, V> for IdentifierIndexMap<V> {
 static START_EXPORTS: LazyLock<Atom> = LazyLock::new(|| "*".into());
 #[derive(Default, Debug)]
 pub(crate) struct ExportsContext {
-  exports: FxHashMap<Atom, FxIndexSet<Atom>>,
+  exports: AtomMap<IndexAtomSet>,
   exported_symbols: FxHashSet<Atom>,
   re_exports: FxIndexMap<ReExportFrom, FxHashMap<Atom, FxHashSet<Atom>>>,
 }
@@ -1029,7 +1029,7 @@ var {} = {{}};
         .as_concatenated()
         .global_scope_ident
         .iter()
-        .map(|ident| Atom::from(ident.id.sym.as_str()))
+        .map(|ident| Atom::from(&ident.id.sym))
     }));
 
     // merge all all_used_names from hoisted modules

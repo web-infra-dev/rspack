@@ -23,8 +23,8 @@ use rspack_sources::{
 };
 use rspack_util::{
   SpanExt,
-  atom::Atom,
-  fx_hash::{FxIndexMap, FxIndexSet},
+  atom::{Atom, AtomMap, AtomRef, AtomSet, IndexAtomMap, IndexAtomSet},
+  fx_hash::FxIndexMap,
   itoa, json_stringify, json_stringify_str,
   source_map::SourceMapKind,
   swc::join_atom,
@@ -209,7 +209,7 @@ pub struct ConcatenatedModuleInfo {
   pub has_ast: bool,
   pub source: Option<ReplaceSource>,
   pub internal_source: Option<Arc<dyn Source>>,
-  pub internal_names: HashMap<Atom, Atom>,
+  pub internal_names: AtomMap<Atom>,
   pub export_map: Option<HashMap<Atom, String>>,
   pub raw_export_map: Option<HashMap<Atom, String>>,
   pub import_map: ConcatenatedImportMap,
@@ -230,7 +230,11 @@ pub struct ConcatenatedModuleInfo {
 }
 
 impl ConcatenatedModuleInfo {
-  pub fn get_internal_name<'me>(&'me self, atom: &str) -> Option<&'me Atom> {
+  pub fn get_internal_name<'me, 'key>(
+    &'me self,
+    atom: impl Into<AtomRef<'key>>,
+  ) -> Option<&'me Atom> {
+    let atom = atom.into();
     if let Some(name) = self.internal_names.get(atom) {
       return Some(name);
     }
@@ -240,28 +244,28 @@ impl ConcatenatedModuleInfo {
     }
 
     if let Some(name) = &self.namespace_object_name
-      && name.as_str() == atom
+      && name == atom
     {
       return Some(name);
     }
 
     if self.interop_default_access_used
       && let Some(name) = &self.interop_default_access_name
-      && name.as_str() == atom
+      && name == atom
     {
       return Some(name);
     }
 
     if self.interop_namespace_object_used
       && let Some(name) = &self.interop_namespace_object_name
-      && name.as_str() == atom
+      && name == atom
     {
       return Some(name);
     }
 
     if self.interop_namespace_object2_used
       && let Some(name) = &self.interop_namespace_object2_name
-      && name.as_str() == atom
+      && name == atom
     {
       return Some(name);
     }
@@ -981,7 +985,7 @@ impl Module for ConcatenatedModule {
       module_to_info_map.insert(id, *module_info);
     }
 
-    let mut top_level_declarations: HashSet<Atom> = HashSet::default();
+    let mut top_level_declarations = AtomSet::default();
     let mut public_path_auto_replace: bool = false;
     let mut static_url_replace: bool = false;
     let mut runtime_requirements_write = CodeGenerationRuntimeRequirementsWrite::default();
@@ -1067,7 +1071,7 @@ impl Module for ConcatenatedModule {
                       &[],
                     )
                   } else {
-                    name_allocator.insert(&ns_import);
+                    name_allocator.insert(ns_import.clone());
                     ns_import.clone()
                   };
 
@@ -1104,7 +1108,7 @@ impl Module for ConcatenatedModule {
           {
             let name =
               Atom::from(namespace_export_symbol[NAMESPACE_OBJECT_EXPORT.len()..].to_string());
-            name_allocator.insert(&name);
+            name_allocator.insert(name.clone());
             info
               .internal_names
               .insert(namespace_export_symbol.clone(), name.clone());
@@ -1285,9 +1289,9 @@ impl Module for ConcatenatedModule {
     // Move it off the critical path once all replacements are applied.
     fast_set(&mut changes, Vec::new());
 
-    let mut exports_map: FxIndexMap<Atom, String> = FxIndexMap::default();
-    let mut unused_exports: FxIndexSet<Atom> = FxIndexSet::default();
-    let mut inlined_exports: FxIndexSet<Atom> = FxIndexSet::default();
+    let mut exports_map = IndexAtomMap::<String>::default();
+    let mut unused_exports = IndexAtomSet::default();
+    let mut inlined_exports = IndexAtomSet::default();
 
     let root_info = binding_resolver
       .module_to_info_map

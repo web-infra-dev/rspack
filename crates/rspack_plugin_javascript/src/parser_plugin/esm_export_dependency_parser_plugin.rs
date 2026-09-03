@@ -39,7 +39,7 @@ fn create_default_exported_namespace_dependency(
     return None;
   };
   let settings = parser
-    .get_tag_data::<ESMSpecifierData>(ident.sym.as_str(), ESM_SPECIFIER_TAG)
+    .get_tag_data::<ESMSpecifierData>(&ident.sym, ESM_SPECIFIER_TAG)
     .filter(|settings| settings.namespace_import && settings.ids.is_empty())?
     .clone();
   let statement_span = statement.span();
@@ -338,7 +338,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     };
     let const_value = match expr {
       ExportDefaultExpression::Expr(Expr::Ident(ident)) => parser
-        .get_tag_data::<ConstValueData>(ident.sym.as_str(), INLINABLE_CONST_TAG)
+        .get_tag_data::<ConstValueData>(&ident.sym, INLINABLE_CONST_TAG)
         .map(|data| data.value.clone()),
       ExportDefaultExpression::Expr(expr) => {
         to_evaluated_inlinable_value(&parser.evaluate_expression(expr)).map(ConstValue::Inlinable)

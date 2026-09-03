@@ -1,21 +1,17 @@
-use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  with::{AsPreset, AsVec},
-};
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
   DependencyType, ExportsInfoArtifact, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   ReferencedExport, ResourceIdentifier, RuntimeSpec, create_exports_object_referenced,
 };
-use rspack_util::{atom::Atom, fx_hash::FxIndexSet};
+use rspack_util::atom::IndexAtomSet;
 
 #[cacheable]
 #[derive(Debug)]
 pub struct ClientReferenceDependency {
   id: DependencyId,
   request: String,
-  #[cacheable(with=AsVec<AsPreset>)]
-  referenced_exports: FxIndexSet<Atom>,
+  referenced_exports: IndexAtomSet,
   is_server_side_rendering: bool,
   resource_identifier: ResourceIdentifier,
 }
@@ -23,7 +19,7 @@ pub struct ClientReferenceDependency {
 impl ClientReferenceDependency {
   pub fn new(
     request: String,
-    referenced_exports: FxIndexSet<Atom>,
+    referenced_exports: IndexAtomSet,
     is_server_side_rendering: bool,
   ) -> Self {
     let resource_identifier = format!("rsc-client-reference={request}").into();

@@ -4849,7 +4849,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sugar_path",
- "swc_core",
  "tokio",
  "tracing",
 ]
@@ -5666,6 +5665,7 @@ dependencies = [
  "json-escape-simd",
  "memchr",
  "once_cell",
+ "ref-cast",
  "regex",
  "rspack-allocative",
  "rspack_cacheable",
@@ -5680,6 +5680,7 @@ dependencies = [
  "smallvec",
  "sugar_path",
  "swc_core",
+ "swc_experimental_allocator",
  "swc_experimental_ecma_ast",
  "swc_plugin_runner",
  "unicase",

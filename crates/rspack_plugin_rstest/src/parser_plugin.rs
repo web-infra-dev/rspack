@@ -117,10 +117,7 @@ impl RstestParserPlugin {
     let member_expr = callee_expr.as_member()?;
     let require_ident = member_expr.obj.as_ident()?;
 
-    if parser
-      .get_variable_info(&Atom::from(require_ident.sym.as_str()))
-      .is_some()
-    {
+    if parser.get_variable_info(&require_ident.sym).is_some() {
       return None;
     }
 
@@ -686,13 +683,12 @@ impl RstestParserPlugin {
     prop: &IdentName,
     statement_span: Option<Span>,
   ) -> Option<bool> {
-    let ident_name = Atom::from(ident.sym.as_str());
     let test_api_import_source_order = parser
-      .get_tag_data::<i32>(&ident_name, RSTEST_API_IMPORT_TAG)
+      .get_tag_data::<i32>(&ident.sym, RSTEST_API_IMPORT_TAG)
       .copied();
 
     // Check if this is a global variable (free variable) or an ESM import
-    let is_global = !parser.is_variable_defined(&ident_name);
+    let is_global = !parser.is_variable_defined(&ident.sym);
 
     // Skip global variables if globals option is disabled
     if is_global && !self.options.globals {
