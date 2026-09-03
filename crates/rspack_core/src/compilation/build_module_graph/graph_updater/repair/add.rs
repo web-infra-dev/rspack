@@ -29,7 +29,7 @@ impl Task<TaskContext> for AddTask {
   async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let Self {
       original_module_identifier,
-      mut module,
+      module,
       module_graph_module,
       dependencies,
       from_unlazy,
@@ -112,7 +112,7 @@ impl Task<TaskContext> for AddTask {
     let cached_build_result = if let Some(module_build_cache) = &context.module_build_cache {
       module_build_cache
         .restore(
-          &mut module,
+          &module,
           &context.file_system_info,
           &context.value_cache_versions,
         )
@@ -142,12 +142,12 @@ impl Task<TaskContext> for AddTask {
       .affected_modules
       .mark_as_add(&module_identifier);
 
-    if let Some(build_result) = cached_build_result {
-      return Ok(vec![Box::new(BuildResultTask::cached(
-        build_result,
-        context.plugin_driver.clone(),
+    if let Some(cached_build_result) = cached_build_result {
+      return Ok(vec![Box::new(BuildResultTask {
+        build_result: Box::new(cached_build_result.into_build_result(module)),
+        plugin_driver: context.plugin_driver.clone(),
         forwarded_ids,
-      ))]);
+      })]);
     }
 
     Ok(vec![Box::new(BuildTask {

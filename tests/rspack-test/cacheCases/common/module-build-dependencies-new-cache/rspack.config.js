@@ -2,7 +2,6 @@ const path = require('path');
 
 let compilerIndex = 0;
 let builtModules = [];
-let stillValidModules = [];
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -44,24 +43,11 @@ module.exports = {
                 }
               },
             );
-            compilation.hooks.stillValidModule.tap(
-              'ModuleBuildDependenciesTest',
-              (module) => {
-                if (
-                  module.resource &&
-                  path.basename(module.resource) === 'input.js'
-                ) {
-                  stillValidModules.push(path.basename(module.resource));
-                }
-              },
-            );
           },
         );
         compiler.hooks.done.tap('ModuleBuildDependenciesTest', () => {
           expect(builtModules).toEqual(['input.js']);
-          expect(stillValidModules).toEqual([]);
           builtModules = [];
-          stillValidModules = [];
           compilerIndex++;
         });
       },

@@ -2,7 +2,9 @@ const path = require('path');
 const { RawSource } = require('webpack-sources');
 
 let compilerIndex = 0;
-let stillValidModules = [];
+const loaderOptions = {
+  builtModules: [],
+};
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -24,9 +26,16 @@ module.exports = {
       {
         test: /(?:changed|stable)\.js$/,
         loader: './loader.js',
-        options: {
-          builtModules: [],
+        options: loaderOptions,
+      },
+      {
+        test: /data\.json$/,
+        type: 'json',
+        parser: {
+          parse: JSON.parse,
         },
+        loader: './loader.js',
+        options: loaderOptions,
       },
     ],
   },
@@ -45,16 +54,6 @@ module.exports = {
               );
             }
           });
-          compilation.hooks.stillValidModule.tap(
-            'ModuleCacheTest',
-            (module) => {
-              if (module.resource) {
-                stillValidModules.push(path.basename(module.resource));
-              } else {
-                stillValidModules.push('context');
-              }
-            },
-          );
         });
         compiler.hooks.done.tap('ModuleCacheTest', (stats) => {
           expect(
@@ -62,24 +61,19 @@ module.exports = {
               .getAsset('from-succeed-module.txt')
               .source.source(),
           ).toBe('from succeedModule');
-          const options = compiler.options.module.rules[0].options;
-          const builtModules = options.builtModules
+          const builtModules = loaderOptions.builtModules
             .map((resource) => path.basename(resource))
             .sort();
           if (compilerIndex === 0) {
-            expect(builtModules).toEqual(['changed.js', 'stable.js']);
-            expect(stillValidModules).toEqual([]);
+            expect(builtModules).toEqual([
+              'changed.js',
+              'data.json',
+              'stable.js',
+            ]);
           } else {
             expect(builtModules).toEqual(['changed.js']);
-            expect(stillValidModules.sort()).toEqual([
-              'async.js',
-              'index.js',
-              'stable.js',
-              'value.js',
-            ]);
           }
-          options.builtModules = [];
-          stillValidModules = [];
+          loaderOptions.builtModules = [];
           compilerIndex++;
         });
       },

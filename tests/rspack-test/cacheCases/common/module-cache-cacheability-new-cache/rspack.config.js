@@ -15,7 +15,6 @@ const NOT_CACHEABLE_MODULES = ['a.js', 'b.js', 'c.js', 'd.js', 'e.js', 'f.js'];
 
 let compilerIndex = 0;
 let builtModules = [];
-let stillValidModules = [];
 
 const recordModule = (modules, module) => {
   if (!module.resource) return;
@@ -60,15 +59,10 @@ module.exports = {
               'ModuleCacheCacheabilityTest',
               (module) => recordModule(builtModules, module),
             );
-            compilation.hooks.stillValidModule.tap(
-              'ModuleCacheCacheabilityTest',
-              (module) => recordModule(stillValidModules, module),
-            );
           },
         );
         compiler.hooks.done.tap('ModuleCacheCacheabilityTest', () => {
           builtModules.sort();
-          stillValidModules.sort();
           if (compilerIndex === 0) {
             expect(builtModules).toEqual([
               'a.js',
@@ -81,17 +75,10 @@ module.exports = {
               'index.js',
               'stable.js',
             ]);
-            expect(stillValidModules).toEqual([]);
           } else {
             expect(builtModules).toEqual(NOT_CACHEABLE_MODULES);
-            expect(stillValidModules).toEqual([
-              'cleared.js',
-              'index.js',
-              'stable.js',
-            ]);
           }
           builtModules = [];
-          stillValidModules = [];
           compilerIndex++;
         });
       },

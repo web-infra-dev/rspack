@@ -88,18 +88,12 @@ impl Task<TaskContext> for BuildTask {
       module_build_cache.mark_pending(result.module.identifier(), build_start_time);
     }
 
-    Ok(vec![Box::new(BuildResultTask::built(
-      result,
+    Ok(vec![Box::new(BuildResultTask {
+      build_result: Box::new(result),
       plugin_driver,
       forwarded_ids,
-    ))])
+    })])
   }
-}
-
-#[derive(Debug)]
-enum BuildResultOrigin {
-  Built,
-  Cached,
 }
 
 #[derive(Debug)]
@@ -107,35 +101,6 @@ pub(super) struct BuildResultTask {
   pub build_result: Box<BuildResult>,
   pub plugin_driver: SharedPluginDriver,
   pub forwarded_ids: ForwardedIdSet,
-  origin: BuildResultOrigin,
-}
-
-impl BuildResultTask {
-  fn built(
-    build_result: BuildResult,
-    plugin_driver: SharedPluginDriver,
-    forwarded_ids: ForwardedIdSet,
-  ) -> Self {
-    Self {
-      build_result: Box::new(build_result),
-      plugin_driver,
-      forwarded_ids,
-      origin: BuildResultOrigin::Built,
-    }
-  }
-
-  pub(super) fn cached(
-    build_result: BuildResult,
-    plugin_driver: SharedPluginDriver,
-    forwarded_ids: ForwardedIdSet,
-  ) -> Self {
-    Self {
-      build_result: Box::new(build_result),
-      plugin_driver,
-      forwarded_ids,
-      origin: BuildResultOrigin::Cached,
-    }
-  }
 }
 
 #[async_trait::async_trait]
@@ -148,26 +113,14 @@ impl Task<TaskContext> for BuildResultTask {
       build_result,
       plugin_driver,
       mut forwarded_ids,
-      origin,
     } = *self;
     let mut module = build_result.module;
 
-    match origin {
-      BuildResultOrigin::Built => {
-        plugin_driver
-          .compilation_hooks
-          .succeed_module
-          .call(context.compiler_id, context.compilation_id, &mut module)
-          .await?;
-      }
-      BuildResultOrigin::Cached => {
-        plugin_driver
-          .compilation_hooks
-          .still_valid_module
-          .call(context.compiler_id, context.compilation_id, &mut module)
-          .await?;
-      }
-    }
+    plugin_driver
+      .compilation_hooks
+      .succeed_module
+      .call(context.compiler_id, context.compilation_id, &mut module)
+      .await?;
 
     let build_info = module.build_info();
 
