@@ -368,7 +368,7 @@ impl Compilation {
     let module_build_cache = (options.experiments.new_cache.module
       && !is_rebuild
       && !matches!(&options.cache, CacheOptions::Disabled))
-    .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules")));
+    .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules"), &options));
     let snapshot_options = match &options.cache {
       CacheOptions::Disabled => SnapshotOptions::default(),
       CacheOptions::Memory { snapshot, .. } => snapshot.clone(),

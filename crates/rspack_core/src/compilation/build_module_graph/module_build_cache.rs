@@ -1,129 +1,39 @@
 use std::sync::Arc;
 
-use rspack_cacheable::cacheable;
 use rspack_collections::{Identifiable, IdentifierDashMap};
-use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 
 use crate::{
-  BoxModule, BuildModuleGraphArtifact, BuildResult, DependencyRef, FileSystemInfo,
-  ModuleIdentifier, NeedBuildContext, OptimizationBailoutItem, ValueCacheVersions,
-  dependencies_block::CachedAsyncDependenciesBlock,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule,
+  BuildModuleGraphArtifact, BuildResult, CacheOptions, CompilerOptions, DependenciesBlock,
+  FileSystemInfo, ModuleGraph, ModuleIdentifier, ValueCacheVersions,
+  cache::CacheCodec,
   new_cache::{CacheFacade, CacheValue},
-  normal_module::CachedModule,
 };
-
-/// Cache-owned result of a completed normal module build.
-///
-/// This is deliberately separate from [`BuildResult`]. A build result is
-/// consumed while it is installed into a module graph, whereas this type can be
-/// retained by the in-memory cache. The file-cache backend serializes this
-/// value only when persistence is enabled.
-///
-/// The structure is cache-owned, but its [`DependencyRef`] values are
-/// intentionally shared with the live module graph. This matches webpack,
-/// which installs the cached module object itself. In particular, lazy barrel
-/// processing may unset a dependency's lazy state after installation, and that
-/// decision remains visible to later cache hits so the dependency stays eager.
-#[cacheable]
-#[derive(Debug)]
-struct CachedBuildResult {
-  module: CachedModule,
-  dependencies: Vec<DependencyRef>,
-  blocks: Vec<CachedAsyncDependenciesBlock>,
-  optimization_bailouts: Vec<OptimizationBailoutItem>,
-}
-
-impl CachedBuildResult {
-  fn from_module_graph(
-    artifact: &mut BuildModuleGraphArtifact,
-    module_identifier: ModuleIdentifier,
-    snapshot: crate::new_cache::Snapshot,
-  ) -> Option<Self> {
-    let (dependencies, blocks, optimization_bailouts) = {
-      let module_graph = artifact.get_module_graph();
-      let module = module_graph.module_by_identifier(&module_identifier)?;
-      let dependencies = module
-        .get_dependencies()
-        .iter()
-        .map(|dependency_id| module_graph.dependency_ref_by_id(dependency_id).clone())
-        .collect();
-      let blocks = module
-        .get_blocks()
-        .iter()
-        .map(|block_id| {
-          CachedAsyncDependenciesBlock::from_module_graph(
-            module_graph.block_by_id_expect(block_id),
-            module_graph,
-          )
-        })
-        .collect();
-      let optimization_bailouts = module_graph
-        .get_optimization_bailout(&module_identifier)
-        .clone();
-      (dependencies, blocks, optimization_bailouts)
-    };
-    let module = artifact
-      .get_module_graph_mut()
-      .module_by_identifier_mut(&module_identifier)?
-      .as_normal_module_mut()?
-      .save_to_cache(snapshot)?;
-
-    Some(Self {
-      module,
-      dependencies,
-      blocks,
-      optimization_bailouts,
-    })
-  }
-
-  async fn recover(
-    &self,
-    mut module: BoxModule,
-    context: &NeedBuildContext<'_>,
-  ) -> Result<ModuleBuildCacheRestore> {
-    let Some(normal_module) = module.as_normal_module_mut() else {
-      return Ok(ModuleBuildCacheRestore::Miss(module));
-    };
-    if !normal_module
-      .recover_from_cache(&self.module, context)
-      .await?
-    {
-      return Ok(ModuleBuildCacheRestore::Miss(module));
-    }
-
-    Ok(ModuleBuildCacheRestore::Hit(BuildResult {
-      module,
-      dependencies: self.dependencies.clone(),
-      blocks: self
-        .blocks
-        .iter()
-        .map(|block| block.materialize())
-        .collect(),
-      optimization_bailouts: self.optimization_bailouts.clone(),
-    }))
-  }
-}
-
-pub(crate) enum ModuleBuildCacheRestore {
-  Hit(BuildResult),
-  Miss(BoxModule),
-}
 
 /// Cache for completed normal module builds.
 ///
-/// `CacheFacade` retains `CachedBuildResult` directly in memory. The generic
-/// cache backend owns filesystem encoding and decoding, so module cache users
-/// never need to depend on `CacheCodec` or byte buffers.
+/// Cache entries are encoded `BuildResult`s. Encoding gives every cache hit
+/// independently owned module data and keeps cache-specific ownership out of
+/// the module, dependency, and async-block data structures.
 #[derive(Debug, Clone)]
 pub(crate) struct ModuleBuildCache {
   cache: CacheFacade,
+  codec: CacheCodec,
   pending: Arc<IdentifierDashMap<u64>>,
 }
 
 impl ModuleBuildCache {
-  pub(crate) fn new(cache: CacheFacade) -> Self {
+  pub(crate) fn new(cache: CacheFacade, options: &CompilerOptions) -> Self {
+    let project_root = match &options.cache {
+      CacheOptions::Persistent(cache_options) if cache_options.portable => {
+        Some(options.context.as_path().to_path_buf())
+      }
+      _ => None,
+    };
     Self {
       cache,
+      codec: CacheCodec::new(project_root),
       pending: Default::default(),
     }
   }
@@ -136,29 +46,69 @@ impl ModuleBuildCache {
 
   pub(crate) async fn restore(
     &self,
-    module: BoxModule,
+    module: &mut BoxModule,
     file_system_info: &FileSystemInfo,
     value_cache_versions: &ValueCacheVersions,
-  ) -> Result<ModuleBuildCacheRestore> {
+  ) -> Result<Option<BuildResult>> {
+    if module.as_normal_module().is_none() {
+      return Ok(None);
+    }
+
     let identifier = module.identifier();
-    let Some(result) = self
-      .cache
-      .get::<CachedBuildResult>(identifier.as_str(), None)?
-    else {
-      return Ok(ModuleBuildCacheRestore::Miss(module));
+    let Some(bytes) = self.cache.get::<Vec<u8>>(identifier.as_str(), None)? else {
+      return Ok(None);
     };
-    result
-      .recover(
-        module,
-        &NeedBuildContext::new(file_system_info, value_cache_versions),
-      )
-      .await
+    let mut result = self.codec.decode::<BuildResult>(&bytes)?;
+    if result.module.identifier() != identifier {
+      return Err(error!(
+        "Restored module identifier mismatch: expected {identifier}, got {}",
+        result.module.identifier()
+      ));
+    }
+    if result.module.as_normal_module().is_none() {
+      return Err(error!(
+        "Restored module type mismatch: expected a normal module for {identifier}"
+      ));
+    }
+    let module_dependency_ids = result.module.get_dependencies();
+    let build_result_dependency_ids = result
+      .dependencies
+      .iter()
+      .map(|dependency| *dependency.id())
+      .collect::<Vec<_>>();
+    if module_dependency_ids != build_result_dependency_ids {
+      return Err(error!(
+        "Restored module dependencies mismatch for {identifier}: module has {module_dependency_ids:?}, build result has {build_result_dependency_ids:?}"
+      ));
+    }
+    let cached_module = result
+      .module
+      .as_normal_module_mut()
+      .expect("restored module type was checked above");
+    if cached_module
+      .need_build_with_context(file_system_info, value_cache_versions)
+      .await?
+    {
+      return Ok(None);
+    }
+    // The serialized module comes from the final module graph, where these IDs
+    // are already installed. BuildResultTask installs the decoded dependencies
+    // and blocks into the new graph, so start it from the pre-install shape.
+    cached_module.clear_dependencies_and_blocks();
+    let fresh_module = module
+      .as_normal_module_mut()
+      .expect("fresh module type was checked above");
+    cached_module.update_cache_module(fresh_module);
+
+    Ok(Some(result))
   }
 
-  /// Stores pending modules from the final make artifact.
+  /// Stores modules built during this phase from the final module graph.
   ///
-  /// Snapshot creation remains parallel even though publication is delayed to
-  /// `after_build_module_graph`. Only modules built in this phase are visited.
+  /// Snapshot creation and encoding are parallel. Reconstructing an owned
+  /// `BuildResult` through the codec is intentional: by this point the graph
+  /// owns the module's dependencies and blocks, while a cache hit must return
+  /// fresh, exclusively owned build output.
   pub(crate) async fn store_pending(
     &self,
     artifact: &mut BuildModuleGraphArtifact,
@@ -197,18 +147,136 @@ impl ModuleBuildCache {
     .map(|result| result.to_rspack_result().and_then(|result| result))
     .collect::<Result<Vec<_>>>()?;
 
-    for (module_identifier, snapshot) in snapshots.into_iter().flatten() {
-      let Some(cached_result) =
-        CachedBuildResult::from_module_graph(artifact, module_identifier, snapshot)
-      else {
-        continue;
+    let module_identifiers = snapshots
+      .into_iter()
+      .flatten()
+      .filter_map(|(module_identifier, snapshot)| {
+        let module = artifact
+          .get_module_graph_mut()
+          .module_by_identifier_mut(&module_identifier)?;
+        module.build_info_mut().snapshot = Some(snapshot);
+        Some(module_identifier)
+      })
+      .collect::<Vec<_>>();
+
+    let module_graph = artifact.get_module_graph();
+    let encoded_results = rspack_parallel::scope::<_, Result<_>>(|token| {
+      for module_identifier in module_identifiers {
+        // SAFETY: the scope is awaited before the cache entries are published.
+        let task = unsafe { token.used((module_graph, &self.codec)) };
+        task.spawn(move |(module_graph, codec)| async move {
+          Ok((
+            module_identifier,
+            encode_build_result(module_graph, module_identifier, codec),
+          ))
+        });
+      }
+    })
+    .await
+    .into_iter()
+    .map(|result| result.to_rspack_result().and_then(|result| result))
+    .collect::<Result<Vec<_>>>()?;
+
+    for (module_identifier, bytes) in encoded_results {
+      let bytes = match bytes {
+        Ok(Some(bytes)) => bytes,
+        Ok(None) => continue,
+        Err(error) => {
+          // Match webpack's persistent cache behavior: an item containing
+          // process-local state is skipped instead of failing the compilation.
+          tracing::debug!(
+            module = module_identifier.as_str(),
+            %error,
+            "Skipped non-serializable module cache entry"
+          );
+          continue;
+        }
       };
-      self.cache.store(
-        module_identifier.as_str(),
-        None,
-        CacheValue::new(cached_result),
-      )?;
+      self
+        .cache
+        .store(module_identifier.as_str(), None, CacheValue::new(bytes))?;
     }
     Ok(())
   }
+}
+
+fn encode_build_result(
+  module_graph: &ModuleGraph,
+  module_identifier: ModuleIdentifier,
+  codec: &CacheCodec,
+) -> Result<Option<Vec<u8>>> {
+  let source_module = module_graph
+    .module_by_identifier(&module_identifier)
+    .expect("pending module should exist in the final module graph");
+  let module = codec.decode::<BoxModule>(&codec.encode(source_module)?)?;
+  let Some(dependencies) =
+    clone_dependencies(module_graph, source_module.get_dependencies(), codec)?
+  else {
+    return Ok(None);
+  };
+  let blocks = source_module
+    .get_blocks()
+    .iter()
+    .map(|block_id| clone_block(module_graph, block_id, codec))
+    .collect::<Result<Option<Vec<_>>>>()?;
+  let Some(blocks) = blocks else {
+    return Ok(None);
+  };
+  let optimization_bailouts = module_graph
+    .get_optimization_bailout(&module_identifier)
+    .clone();
+
+  codec
+    .encode(&BuildResult {
+      module,
+      dependencies,
+      blocks,
+      optimization_bailouts,
+    })
+    .map(Some)
+}
+
+fn clone_dependencies(
+  module_graph: &ModuleGraph,
+  dependency_ids: &[crate::DependencyId],
+  codec: &CacheCodec,
+) -> Result<Option<Vec<BoxDependency>>> {
+  let Some(dependencies) = dependency_ids
+    .iter()
+    .map(|dependency_id| {
+      crate::module_graph::internal::try_dependency_ref_by_id(module_graph, dependency_id)
+    })
+    .collect::<Option<Vec<_>>>()
+  else {
+    return Ok(None);
+  };
+  // `DependencyRef` and `BoxDependency` intentionally share the same archived
+  // representation, so decoding turns graph-owned references back into the
+  // uniquely owned dependencies required by `BuildResult`.
+  codec.decode(&codec.encode(&dependencies)?).map(Some)
+}
+
+fn clone_block(
+  module_graph: &ModuleGraph,
+  block_id: &AsyncDependenciesBlockIdentifier,
+  codec: &CacheCodec,
+) -> Result<Option<Box<AsyncDependenciesBlock>>> {
+  let Some(source) = module_graph.block_by_id(block_id) else {
+    return Ok(None);
+  };
+  let mut block = codec.decode::<AsyncDependenciesBlock>(&codec.encode(source)?)?;
+  let Some(dependencies) = clone_dependencies(module_graph, source.get_dependencies(), codec)?
+  else {
+    return Ok(None);
+  };
+  let blocks = source
+    .get_blocks()
+    .iter()
+    .map(|block_id| clone_block(module_graph, block_id, codec))
+    .collect::<Result<Option<Vec<_>>>>()?;
+  let Some(blocks) = blocks else {
+    return Ok(None);
+  };
+  block.restore_build_result(dependencies, blocks);
+  Ok(Some(Box::new(block)))
 }

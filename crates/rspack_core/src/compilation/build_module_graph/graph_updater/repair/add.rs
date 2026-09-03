@@ -7,7 +7,7 @@ use super::{
 };
 use crate::{
   BoxModule, DependencyRef, ModuleIdentifier,
-  compilation::build_module_graph::{ForwardedIdSet, module_build_cache::ModuleBuildCacheRestore},
+  compilation::build_module_graph::ForwardedIdSet,
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
 };
@@ -29,7 +29,7 @@ impl Task<TaskContext> for AddTask {
   async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let Self {
       original_module_identifier,
-      module,
+      mut module,
       module_graph_module,
       dependencies,
       from_unlazy,
@@ -109,16 +109,16 @@ impl Task<TaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    let restore_result = if let Some(module_build_cache) = &context.module_build_cache {
+    let cached_build_result = if let Some(module_build_cache) = &context.module_build_cache {
       module_build_cache
         .restore(
-          module,
+          &mut module,
           &context.file_system_info,
           &context.value_cache_versions,
         )
         .await?
     } else {
-      ModuleBuildCacheRestore::Miss(module)
+      None
     };
     context
       .artifact
@@ -142,16 +142,13 @@ impl Task<TaskContext> for AddTask {
       .affected_modules
       .mark_as_add(&module_identifier);
 
-    let module = match restore_result {
-      ModuleBuildCacheRestore::Hit(build_result) => {
-        return Ok(vec![Box::new(BuildResultTask::cached(
-          build_result,
-          context.plugin_driver.clone(),
-          forwarded_ids,
-        ))]);
-      }
-      ModuleBuildCacheRestore::Miss(module) => module,
-    };
+    if let Some(build_result) = cached_build_result {
+      return Ok(vec![Box::new(BuildResultTask::cached(
+        build_result,
+        context.plugin_driver.clone(),
+        forwarded_ids,
+      ))]);
+    }
 
     Ok(vec![Box::new(BuildTask {
       compiler_id: context.compiler_id,

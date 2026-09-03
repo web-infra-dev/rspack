@@ -28,7 +28,7 @@ use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
-  AsyncDependenciesBlock, BindingCell, CacheFacade, ChunkGraph, ChunkUkey,
+  AsyncDependenciesBlock, BindingCell, BoxDependency, CacheFacade, ChunkGraph, ChunkUkey,
   CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation, CompilationAsset,
   CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
   ContextModule, CssExportType, DependenciesBlock, DependencyCodeGenerationRef, DependencyId,
@@ -282,7 +282,7 @@ pub struct AssetBuildInfo {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
   pub cacheable: bool,

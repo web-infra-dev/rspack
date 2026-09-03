@@ -171,6 +171,29 @@ impl AsyncDependenciesBlock {
     std::mem::take(&mut self.blocks)
   }
 
+  pub(crate) fn restore_build_result(
+    &mut self,
+    dependencies: Vec<BoxDependency>,
+    blocks: Vec<Box<AsyncDependenciesBlock>>,
+  ) {
+    debug_assert_eq!(
+      self.dependency_ids,
+      dependencies
+        .iter()
+        .map(|dependency| *dependency.id())
+        .collect::<Vec<_>>()
+    );
+    debug_assert_eq!(
+      self.block_ids,
+      blocks
+        .iter()
+        .map(|block| block.identifier())
+        .collect::<Vec<_>>()
+    );
+    self.dependencies = dependencies;
+    self.blocks = blocks;
+  }
+
   pub fn loc(&self) -> Option<DependencyLocation> {
     self.loc.clone()
   }

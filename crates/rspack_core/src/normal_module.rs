@@ -36,6 +36,7 @@ use crate::{
   OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult, ParserAndGenerator,
   ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext,
   RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SnapshotValidationResult, SourceType,
+  ValueCacheVersions,
   cache::SnapshotStrategyOptions,
   contextify,
   diagnostics::ModuleBuildError,
@@ -156,81 +157,6 @@ pub struct NormalModule {
   force_build: bool,
 
   source_map_kind: SourceMapKind,
-}
-
-/// Cache-owned build output for a [`NormalModule`].
-///
-/// Factory state always comes from the fresh module created for the current
-/// compilation. This value contains only reusable output and is immutable once
-/// published to the cache.
-#[cacheable]
-#[derive(Debug)]
-pub(crate) struct CachedModule {
-  #[cacheable(with=AsOption<AsPreset>)]
-  source: Option<BoxSource>,
-  diagnostics: Vec<Diagnostic>,
-  code_generation_dependencies: Option<Vec<DependencyId>>,
-  presentational_dependencies: Option<Vec<DependencyCodeGenerationRef>>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
-  parsed: bool,
-  source_map_kind: SourceMapKind,
-}
-
-impl CachedModule {
-  async fn need_build(&self, context: &NeedBuildContext<'_>) -> Result<bool> {
-    need_build_with_state(&self.diagnostics, &self.build_info, context).await
-  }
-
-  fn restore_into(&self, module: &mut NormalModule) {
-    module.source.clone_from(&self.source);
-    module.cached_source_sizes = Default::default();
-    module.diagnostics.clone_from(&self.diagnostics);
-    module
-      .code_generation_dependencies
-      .clone_from(&self.code_generation_dependencies);
-    module
-      .presentational_dependencies
-      .clone_from(&self.presentational_dependencies);
-    module.build_info.clone_from(&self.build_info);
-    module.build_meta.clone_from(&self.build_meta);
-    module.parsed = self.parsed;
-    module.force_build = false;
-    module.source_map_kind = self.source_map_kind;
-  }
-}
-
-async fn need_build_with_state(
-  diagnostics: &[Diagnostic],
-  build_info: &BuildInfo,
-  context: &NeedBuildContext<'_>,
-) -> Result<bool> {
-  if diagnostics.iter().any(|diagnostic| diagnostic.is_error()) {
-    return Ok(true);
-  }
-
-  if !build_info.cacheable {
-    return Ok(true);
-  }
-
-  let Some(snapshot) = &build_info.snapshot else {
-    return Ok(true);
-  };
-
-  if context
-    .value_cache_versions
-    .has_diff(&build_info.value_dependencies)
-  {
-    return Ok(true);
-  }
-
-  Ok(matches!(
-    context
-      .file_system_info
-      .check_snapshot_valid(snapshot)
-      .await?,
-    SnapshotValidationResult::Invalid { .. }
-  ))
 }
 
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
@@ -382,6 +308,72 @@ impl NormalModule {
     self.parser_and_generator_options.generator_options()
   }
 
+  /// Updates a cached normal module with state from the fresh factory result.
+  /// Build output remains on `self`; only current factory-derived state is copied.
+  pub(crate) fn update_cache_module(&mut self, module: &mut Self) {
+    std::mem::swap(&mut self.module_type, &mut module.module_type);
+    std::mem::swap(&mut self.layer, &mut module.layer);
+    std::mem::swap(&mut self.context, &mut module.context);
+    std::mem::swap(&mut self.factory_meta, &mut module.factory_meta);
+    std::mem::swap(&mut self.resolve_options, &mut module.resolve_options);
+    std::mem::swap(&mut self.request, &mut module.request);
+    std::mem::swap(&mut self.user_request, &mut module.user_request);
+    std::mem::swap(&mut self.raw_request, &mut module.raw_request);
+    std::mem::swap(
+      &mut self.parser_and_generator,
+      &mut module.parser_and_generator,
+    );
+    std::mem::swap(
+      &mut self.parser_and_generator_options,
+      &mut module.parser_and_generator_options,
+    );
+    std::mem::swap(&mut self.resource_data, &mut module.resource_data);
+    std::mem::swap(&mut self.match_resource, &mut module.match_resource);
+    std::mem::swap(&mut self.loaders, &mut module.loaders);
+    std::mem::swap(&mut self.loader_options, &mut module.loader_options);
+    std::mem::swap(&mut self.extract_source_map, &mut module.extract_source_map);
+  }
+
+  pub(crate) fn clear_dependencies_and_blocks(&mut self) {
+    self.dependencies.clear();
+    self.blocks.clear();
+  }
+
+  pub(crate) async fn need_build_with_context(
+    &self,
+    file_system_info: &FileSystemInfo,
+    value_cache_versions: &ValueCacheVersions,
+  ) -> Result<bool> {
+    if self.force_build {
+      return Ok(true);
+    }
+
+    if self
+      .diagnostics
+      .iter()
+      .any(|diagnostic| diagnostic.is_error())
+    {
+      return Ok(true);
+    }
+
+    if !self.build_info.cacheable {
+      return Ok(true);
+    }
+
+    let Some(snapshot) = &self.build_info.snapshot else {
+      return Ok(true);
+    };
+
+    if value_cache_versions.has_diff(&self.build_info.value_dependencies) {
+      return Ok(true);
+    }
+
+    Ok(matches!(
+      file_system_info.check_snapshot_valid(snapshot).await?,
+      SnapshotValidationResult::Invalid { .. }
+    ))
+  }
+
   pub(crate) async fn create_cache_snapshot(
     &self,
     file_system_info: &FileSystemInfo,
@@ -408,43 +400,6 @@ impl NormalModule {
         )
         .await?,
     ))
-  }
-
-  pub(crate) fn save_to_cache(&mut self, snapshot: Snapshot) -> Option<CachedModule> {
-    if !self.build_info.cacheable
-      || self
-        .diagnostics
-        .iter()
-        .any(|diagnostic| diagnostic.is_error())
-    {
-      return None;
-    }
-
-    self.build_info.snapshot = Some(snapshot);
-
-    Some(CachedModule {
-      source: self.source.clone(),
-      diagnostics: self.diagnostics.clone(),
-      code_generation_dependencies: self.code_generation_dependencies.clone(),
-      presentational_dependencies: self.presentational_dependencies.clone(),
-      build_info: self.build_info.clone(),
-      build_meta: self.build_meta.clone(),
-      parsed: self.parsed,
-      source_map_kind: self.source_map_kind,
-    })
-  }
-
-  pub(crate) async fn recover_from_cache(
-    &mut self,
-    cached_module: &CachedModule,
-    context: &NeedBuildContext<'_>,
-  ) -> Result<bool> {
-    if cached_module.need_build(context).await? {
-      return Ok(false);
-    }
-
-    cached_module.restore_into(self);
-    Ok(true)
   }
 }
 
@@ -511,11 +466,9 @@ impl Module for NormalModule {
   }
 
   async fn need_build(&mut self, context: &NeedBuildContext<'_>) -> Result<bool> {
-    if self.force_build {
-      return Ok(true);
-    }
-
-    need_build_with_state(&self.diagnostics, &self.build_info, context).await
+    self
+      .need_build_with_context(context.file_system_info, context.value_cache_versions)
+      .await
   }
 
   #[tracing::instrument("NormalModule:build", skip_all, fields(
@@ -719,7 +672,7 @@ impl Module for NormalModule {
 
     Ok(BuildResult {
       module: BoxModule::new(self),
-      dependencies: dependencies.into_iter().map(Into::into).collect(),
+      dependencies,
       blocks,
       optimization_bailouts,
     })
