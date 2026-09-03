@@ -8,9 +8,9 @@ use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom, wtf8::Wtf8};
 use swc_experimental_ecma_ast::{
   ArrayLit, ArrowExpr, AssignExpr, AssignOp, BlockStmt, BlockStmtOrExpr, CallExpr, Class,
   ClassMember, CommentKind, Comments, Decl, DefaultDecl, ExportSpecifier, Expr, ExprOrSpread,
-  Function, GetSpan, ImportSpecifier, Lit, MemberProp, ModuleDecl, ModuleExportName, ModuleItem,
-  ObjectPatProp, Pat, Program, PropName, SimpleAssignTarget, Span, Span as AstSpan, Stmt, VarDecl,
-  VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
+  Function, GetSpan, Ident, ImportSpecifier, Lit, MemberProp, ModuleDecl, ModuleExportName,
+  ModuleItem, ObjectPatProp, Pat, Program, PropName, SimpleAssignTarget, Span, Span as AstSpan,
+  Stmt, VarDecl, VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
 };
 
 use super::side_effects_analysis::{SideEffectsContext, may_have_side_effects};
@@ -54,6 +54,11 @@ fn expr_ctx<'a>(
   is_unresolved_ref_safe: bool,
 ) -> SideEffectsContext<'a> {
   SideEffectsContext::new(parser.ast.semantic, is_unresolved_ref_safe)
+}
+
+#[inline]
+fn is_unresolved_reference(parser: &JavascriptParser<'_>, ident: &Ident<'_>) -> bool {
+  parser.ast.semantic.node_scope(ident) == parser.ast.semantic.unresolved_scope_id()
 }
 
 impl<'a> Visit<'a> for PureAnnotation<'a> {
@@ -689,7 +694,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
         } else {
           // record all potential pure callee
           for (callee, span) in callees {
-            if let Some(deferred_check) = try_extract_deferred_check(parser, callee, span) {
+            if let Some(deferred_check) = try_extract_deferred_check(parser, &callee, span) {
               parser
                 .build_info
                 .deferred_pure_checks
@@ -725,7 +730,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
           ));
         }
         for (callee, span) in callees {
-          if let Some(deferred_check) = try_extract_deferred_check(parser, callee, span) {
+          if let Some(deferred_check) = try_extract_deferred_check(parser, &callee, span) {
             parser
               .build_info
               .deferred_pure_checks
@@ -813,12 +818,8 @@ fn is_pure_call_expr(
       callees,
     );
   } else if analyze_side_effects_free && let Some(Expr::Ident(ident)) = callee.as_expr() {
-    match resolve_explicit_side_effects_free_callee(
-      parser,
-      &compat_atom(&ident.sym),
-      callee.span(),
-      callees.is_none(),
-    ) {
+    match resolve_explicit_side_effects_free_callee(parser, ident, callee.span(), callees.is_none())
+    {
       ExplicitSideEffectsFreeCallee::Direct => {
         return is_pure_call_args(
           parser,
@@ -828,11 +829,11 @@ fn is_pure_call_expr(
           callees,
         );
       }
-      ExplicitSideEffectsFreeCallee::Deferred => {
+      ExplicitSideEffectsFreeCallee::Deferred(ident) => {
         let Some(callees) = callees else {
           return false;
         };
-        callees.push((compat_atom(&ident.sym), callee.span()));
+        callees.push((ident, callee.span()));
         return is_pure_call_args(
           parser,
           analyze_side_effects_free,
@@ -910,14 +911,14 @@ fn is_pure_array_lit<'a>(
 
 enum ExplicitSideEffectsFreeCallee {
   Direct,
-  Deferred,
+  Deferred(Atom),
   Invalid,
   NotMarked,
 }
 
 fn resolve_explicit_side_effects_free_callee(
   parser: &mut JavascriptParser,
-  ident: &Atom,
+  identifier: &Ident<'_>,
   span: Span,
   allow_unresolved_marked: bool,
 ) -> ExplicitSideEffectsFreeCallee {
@@ -925,15 +926,30 @@ fn resolve_explicit_side_effects_free_callee(
     .build_info
     .side_effects_free
     .as_ref()
-    .is_some_and(|side_effects_free| side_effects_free.contains(ident));
+    .is_some_and(|side_effects_free| side_effects_free.contains(&identifier.sym));
 
   if !is_marked {
     return ExplicitSideEffectsFreeCallee::NotMarked;
   }
 
+  let semantic = parser.ast.semantic;
+  let reference_scope = semantic.node_scope(identifier);
+  if reference_scope == semantic.unresolved_scope_id() {
+    return if allow_unresolved_marked {
+      ExplicitSideEffectsFreeCallee::Direct
+    } else {
+      ExplicitSideEffectsFreeCallee::Invalid
+    };
+  }
+  if reference_scope != semantic.top_level_scope_id() {
+    return ExplicitSideEffectsFreeCallee::Invalid;
+  }
+
+  let ident = compat_atom(&identifier.sym);
+
   // For non-imports the deferred path doesn't apply at all, so we skip the
   // user-config lookup and fall straight through to Direct/Invalid.
-  if try_extract_deferred_check(parser, ident.clone(), span).is_some() {
+  if try_extract_deferred_check(parser, &ident, span).is_some() {
     // When the user explicitly listed this name in `pureFunctions`, trust the
     // assertion at the call site instead of deferring to the import target.
     // This lets users mark imported helpers (e.g. `import { cva } from 'cva'`)
@@ -942,35 +958,21 @@ fn resolve_explicit_side_effects_free_callee(
       .javascript_options
       .side_effects_free
       .as_ref()
-      .is_some_and(|names| names.iter().any(|name| name == ident));
+      .is_some_and(|names| names.iter().any(|name| name == &ident));
     if !is_user_configured {
-      return ExplicitSideEffectsFreeCallee::Deferred;
+      return ExplicitSideEffectsFreeCallee::Deferred(ident);
     }
   }
 
-  if let Some((declared_scope, is_free)) = parser
-    .get_variable_info(ident)
-    .map(|info| (info.declared_scope, info.is_free()))
-  {
-    if !is_free && declared_scope == parser.definitions {
-      return ExplicitSideEffectsFreeCallee::Direct;
-    }
-    return ExplicitSideEffectsFreeCallee::Invalid;
-  }
-
-  if allow_unresolved_marked {
-    return ExplicitSideEffectsFreeCallee::Direct;
-  }
-
-  ExplicitSideEffectsFreeCallee::Invalid
+  ExplicitSideEffectsFreeCallee::Direct
 }
 
 fn try_extract_deferred_check(
   parser: &mut JavascriptParser,
-  ident: Atom,
+  ident: &Atom,
   span: Span,
 ) -> Option<DeferredPureCheck> {
-  let info = parser.get_variable_info(&ident)?;
+  let info = parser.get_variable_info(ident)?;
 
   let tag_info_id = info.tag_info?;
   let tag_info = parser.definitions_db.expect_get_tag_info(tag_info_id);
@@ -1280,7 +1282,7 @@ impl SideEffectsParserPlugin {
 
     if parser.side_effects_item.is_none() {
       for (callee, span) in callees {
-        if let Some(deferred_check) = try_extract_deferred_check(parser, callee, span) {
+        if let Some(deferred_check) = try_extract_deferred_check(parser, &callee, span) {
           parser
             .build_info
             .deferred_pure_checks
@@ -1516,10 +1518,7 @@ fn is_common_js_export_assignment(parser: &mut JavascriptParser, expr: &AssignEx
         },
         MemberProp::PrivateName(_) => false,
       };
-      property_is_side_effect_free
-        && parser
-          .get_variable_info(&ident.sym)
-          .is_none_or(|info| info.is_free())
+      property_is_side_effect_free && is_unresolved_reference(parser, ident)
     }
     Expr::Ident(ident) if ident.sym == "module" => {
       let property_is_exports = match &member.prop {
@@ -1533,10 +1532,7 @@ fn is_common_js_export_assignment(parser: &mut JavascriptParser, expr: &AssignEx
         },
         MemberProp::PrivateName(_) => false,
       };
-      property_is_exports
-        && parser
-          .get_variable_info(&ident.sym)
-          .is_none_or(|info| info.is_free())
+      property_is_exports && is_unresolved_reference(parser, ident)
     }
     _ => false,
   }
