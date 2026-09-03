@@ -4716,6 +4716,7 @@ dependencies = [
  "rspack_hash",
  "rspack_hook",
  "rspack_parallel",
+ "rspack_plugin_javascript",
  "rspack_plugin_runtime",
  "rspack_util",
  "rustc-hash",

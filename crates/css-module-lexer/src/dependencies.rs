@@ -122,6 +122,7 @@ impl ScanContext {
 #[derive(Debug)]
 struct ImportData<'s> {
   start: Pos,
+  magic_comments: Option<&'s str>,
   prelude: ImportPrelude<'s>,
   url: Option<&'s str>,
   url_flags: TokenFlags,
@@ -134,6 +135,7 @@ impl ImportData<'_> {
   pub fn new(start: Pos) -> Self {
     Self {
       start,
+      magic_comments: None,
       prelude: ImportPrelude::default(),
       url: None,
       url_flags: TokenFlags::ascii(),
@@ -328,6 +330,7 @@ impl BalancedStack {
 struct BalancedItem {
   kind: BalancedItemKind,
   range: Range,
+  magic_comments: Option<Range>,
 }
 
 impl BalancedItem {
@@ -343,6 +346,7 @@ impl BalancedItem {
     Self {
       kind,
       range: Range::new(start, end),
+      magic_comments: None,
     }
   }
 
@@ -350,6 +354,7 @@ impl BalancedItem {
     Self {
       kind: BalancedItemKind::new(name),
       range: Range::new(start, end),
+      magic_comments: None,
     }
   }
 
@@ -357,6 +362,7 @@ impl BalancedItem {
     Self {
       kind: BalancedItemKind::Other,
       range: Range::new(start, end),
+      magic_comments: None,
     }
   }
 
@@ -364,6 +370,7 @@ impl BalancedItem {
     Self {
       kind: BalancedItemKind::Curly,
       range: Range::new(start, end),
+      magic_comments: None,
     }
   }
 }
@@ -415,6 +422,29 @@ impl BalancedItemKind {
   pub fn is_mode_class(&self) -> bool {
     matches!(self, Self::LocalClass | Self::GlobalClass)
   }
+}
+
+fn preceding_comment_range(input: &str) -> Option<Range> {
+  let bytes = input.as_bytes();
+  let mut cursor = bytes.len();
+  let end = cursor as Pos;
+  let mut start = None;
+
+  loop {
+    while cursor > 0 && is_css_space_byte(bytes[cursor - 1]) {
+      cursor -= 1;
+    }
+    if cursor < 2 || &bytes[cursor - 2..cursor] != b"*/" {
+      break;
+    }
+    let Some(comment_start) = input[..cursor - 2].rfind("/*") else {
+      break;
+    };
+    start = Some(comment_start as Pos);
+    cursor = comment_start;
+  }
+
+  start.map(|start| Range::new(start, end))
 }
 
 fn trivia_only(input: &str) -> bool {
@@ -3081,6 +3111,12 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
 }
 
 impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
+  fn magic_comments_before(lexer: &DependencyLexer<'s>, start: Pos) -> Option<&'s str> {
+    let input = lexer.slice(0, start)?;
+    let range = preceding_comment_range(input)?;
+    lexer.slice(range.start, range.end)
+  }
+
   fn handle_comment(
     &mut self,
     lexer: &mut DependencyLexer<'s>,
@@ -3116,6 +3152,14 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     flags: TokenFlags,
   ) -> Option<()> {
     let value = lexer.slice(content_start, content_end)?;
+    let can_be_dependency = match &self.scope {
+      Scope::InAtImport(import_data) => !import_data.in_supports(),
+      Scope::InBlock => true,
+      _ => false,
+    };
+    let magic_comments = can_be_dependency
+      .then(|| Self::magic_comments_before(lexer, start))
+      .flatten();
     match self.scope {
       Scope::InAtImport(ref mut import_data) => {
         if import_data.in_supports() {
@@ -3136,12 +3180,16 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         import_data.url = Some(value);
         import_data.url_flags = flags;
         import_data.url_range = Some(Range::new(start, end));
+        import_data.magic_comments = magic_comments;
       }
-      Scope::InBlock => self.dependency_context.push_dependency(Dependency::Url {
-        request: value,
-        range: Range::new(start, end),
-        kind: UrlRangeKind::Function,
-      }),
+      Scope::InBlock => {
+        self.dependency_context.push_dependency(Dependency::Url {
+          request: value,
+          range: Range::new(start, end),
+          kind: UrlRangeKind::Function,
+          magic_comments,
+        });
+      }
       _ => {}
     }
     Some(())
@@ -3154,15 +3202,36 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     end: Pos,
     flags: TokenFlags,
   ) -> Option<()> {
+    let inside_url = matches!(
+      self.balanced.last(),
+      Some(last) if matches!(last.kind, BalancedItemKind::Url)
+    );
+    let can_be_dependency = match &self.scope {
+      Scope::InAtImport(import_data) => {
+        !import_data.in_supports() && (inside_url || import_data.url.is_none())
+      }
+      Scope::InBlock => matches!(
+        self.balanced.last(),
+        Some(last) if matches!(last.kind, BalancedItemKind::Url | BalancedItemKind::ImageSet)
+      ),
+      _ => false,
+    };
+    let mut magic_comments = can_be_dependency
+      .then(|| Self::magic_comments_before(lexer, start))
+      .flatten();
+    if magic_comments.is_none()
+      && let Some(range) = self.balanced.last().and_then(|item| item.magic_comments)
+    {
+      magic_comments = lexer.slice(range.start, range.end);
+    }
     match self.scope {
       Scope::InAtImport(ref mut import_data) => {
-        let inside_url = matches!(
-            self.balanced.last(),
-            Some(last) if matches!(last.kind, BalancedItemKind::Url)
-        );
-
-        // Do not parse URLs in `supports(...)` and other strings if we already have a URL
-        if import_data.in_supports() || (!inside_url && import_data.url.is_some()) {
+        // Do not parse URLs in `supports(...)`.
+        if import_data.in_supports() {
+          return Some(());
+        }
+        // Do not parse other strings if we already have a URL.
+        if !inside_url && import_data.url.is_some() {
           return Some(());
         }
 
@@ -3179,6 +3248,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         let value = lexer.slice(start + 1, end - 1)?;
         import_data.url = Some(value);
         import_data.url_flags = flags;
+        import_data.magic_comments = magic_comments;
         // For url("inside_url") url_range will determined in right_parenthesis
         if !inside_url {
           import_data.prelude.push(ImportPreludeNode::Url {
@@ -3218,6 +3288,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
           request: value,
           range: Range::new(start, end),
           kind,
+          magic_comments,
         });
       }
       _ => {}
@@ -3441,6 +3512,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
           layer,
           supports,
           media,
+          import_data.magic_comments,
         );
         self.scope = Scope::TopLevel;
       }
@@ -3497,10 +3569,14 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     } else {
       lowercase_ascii_keyword(name, &mut normalized)
     };
-    let item = normalized_name.map_or_else(
+    let mut item = normalized_name.map_or_else(
       || BalancedItem::new_other(start, end),
       |name| BalancedItem::new_normalized(name, start, end),
     );
+    if normalized_name == Some("url(") {
+      item.magic_comments = preceding_comment_range(stream.slice_trusted(0, start));
+    }
+    let magic_comments = item.magic_comments;
     let at_import_top_level =
       matches!(self.scope, Scope::InAtImport(_)) && self.balanced.is_empty();
     self.balanced.push(item, self.mode_data.as_mut());
@@ -3510,6 +3586,8 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         import_data.prelude.push(ImportPreludeNode::Url {
           range: Range::new(start, end),
         });
+        import_data.magic_comments =
+          magic_comments.map(|range| stream.slice_trusted(range.start, range.end));
       } else if at_import_top_level && normalized_name == Some("layer(") {
         import_data.prelude.push(ImportPreludeNode::Layer {
           range: Range::new(start, end),

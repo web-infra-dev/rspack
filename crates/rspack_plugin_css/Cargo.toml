@@ -7,31 +7,32 @@ repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
 [dependencies]
-async-trait           = { workspace = true }
-atomic_refcell        = { workspace = true }
-concat-string         = { workspace = true }
-cow-utils             = { workspace = true }
-css-module-lexer      = { workspace = true }
-cssparser             = { workspace = true }
-heck                  = { workspace = true }
-once_cell             = { workspace = true }
-regex                 = { workspace = true }
-rspack_cacheable      = { workspace = true }
-rspack_collections    = { workspace = true }
-rspack_core           = { workspace = true }
-rspack_error          = { workspace = true }
-rspack_hash           = { workspace = true }
-rspack_hook           = { workspace = true }
-rspack_parallel       = { workspace = true }
-rspack_plugin_runtime = { workspace = true }
-rspack_util           = { workspace = true }
-rustc-hash            = { workspace = true }
-serde_json            = { workspace = true }
-simd-json             = { workspace = true }
-smol_str              = { workspace = true }
-tokio                 = { workspace = true }
-tracing               = { workspace = true }
-urlencoding           = { workspace = true }
+async-trait              = { workspace = true }
+atomic_refcell           = { workspace = true }
+concat-string            = { workspace = true }
+cow-utils                = { workspace = true }
+css-module-lexer         = { workspace = true }
+cssparser                = { workspace = true }
+heck                     = { workspace = true }
+once_cell                = { workspace = true }
+regex                    = { workspace = true }
+rspack_cacheable         = { workspace = true }
+rspack_collections       = { workspace = true }
+rspack_core              = { workspace = true }
+rspack_error             = { workspace = true }
+rspack_hash              = { workspace = true }
+rspack_hook              = { workspace = true }
+rspack_parallel          = { workspace = true }
+rspack_plugin_javascript = { workspace = true }
+rspack_plugin_runtime    = { workspace = true }
+rspack_util              = { workspace = true }
+rustc-hash               = { workspace = true }
+serde_json               = { workspace = true }
+simd-json                = { workspace = true }
+smol_str                 = { workspace = true }
+tokio                    = { workspace = true }
+tracing                  = { workspace = true }
+urlencoding              = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tokio"]

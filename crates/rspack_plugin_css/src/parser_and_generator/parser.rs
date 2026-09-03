@@ -11,6 +11,7 @@ use rspack_core::{
   topological_sort,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray};
+use rspack_plugin_javascript::{RawMagicComment, try_extract_magic_comment_from_comments};
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
 
@@ -210,6 +211,41 @@ fn is_custom_property_name(value: &str) -> bool {
 
 fn normalize_ident_name(name: &str) -> SmolStr {
   SmolStr::new(unescape_identifier(name).as_ref())
+}
+
+fn raw_magic_comments<'a>(source: &str, comments: &'a str) -> Vec<RawMagicComment<'a>> {
+  let source_start = source.as_ptr() as usize;
+  let Some(base) = (comments.as_ptr() as usize)
+    .checked_sub(source_start)
+    .and_then(|base| base.checked_add(comments.len()).map(|end| (base, end)))
+    .filter(|(base, end)| source.get(*base..*end) == Some(comments))
+    .and_then(|(base, _)| u32::try_from(base).ok())
+  else {
+    return Vec::new();
+  };
+  let value = comments;
+  let mut offset = 0;
+  let mut result = Vec::new();
+
+  while let Some(relative_start) = value[offset..].find("/*") {
+    let start_offset = offset + relative_start;
+    let content_start = start_offset + 2;
+    let Some(relative_end) = value[content_start..].find("*/") else {
+      break;
+    };
+    let content_end = content_start + relative_end;
+    let end_offset = content_end + 2;
+    let (Ok(start), Ok(end)) = (u32::try_from(start_offset), u32::try_from(end_offset)) else {
+      break;
+    };
+    result.push(RawMagicComment {
+      text: &value[content_start..content_end],
+      span: DependencyRange::new(base + start, base + end),
+    });
+    offset = end_offset;
+  }
+
+  result
 }
 
 impl<'context> CssModuleParser<'context> {
@@ -722,12 +758,22 @@ impl<'context> CssModuleParser<'context> {
         request,
         range,
         kind,
-      } => self.handle_url(request, *range, *kind),
+        magic_comments,
+      } => {
+        if self.url() && self.should_ignore_magic_comments(*magic_comments, *range) {
+          return Ok(());
+        }
+        self.handle_url(request, *range, *kind)
+      }
       css_module_lexer::Dependency::Import {
         request,
         range,
         attributes,
+        magic_comments,
       } => {
+        if self.import() && self.should_ignore_magic_comments(*magic_comments, *range) {
+          return Ok(());
+        }
         let attributes = dependency_context.import_attributes(*attributes);
         self
           .handle_import(
@@ -930,6 +976,24 @@ impl<'context> CssModuleParser<'context> {
           .await
       }
     }
+  }
+
+  fn should_ignore_magic_comments(
+    &mut self,
+    comments: Option<&str>,
+    range: css_module_lexer::Range,
+  ) -> bool {
+    let Some(comments) = comments else {
+      return false;
+    };
+    let comments = raw_magic_comments(&self.source_code, comments);
+    let (options, diagnostics) = try_extract_magic_comment_from_comments(
+      &self.source_code,
+      &comments,
+      DependencyRange::new(range.start, range.end),
+    );
+    self.diagnostics.extend(diagnostics);
+    options.get_ignore() == Some(true)
   }
 
   fn handle_charset(&mut self, range: css_module_lexer::Range) {
