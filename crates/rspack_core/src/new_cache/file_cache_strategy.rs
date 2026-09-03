@@ -1,9 +1,9 @@
 use std::{
   fmt,
-  sync::{Arc, Mutex, MutexGuard, OnceLock, RwLock, RwLockReadGuard},
+  sync::{Arc, Mutex, MutexGuard, OnceLock, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
-use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_error::Result;
 use rspack_paths::{InternedPathSet, Utf8PathBuf};
 use rspack_util::fx_hash::FxDashMap;
@@ -11,11 +11,11 @@ use rspack_util::fx_hash::FxDashMap;
 use super::{
   CacheKey, Etag, Meta,
   cache_value::{CacheEntry, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
-  db::{Database, DatabaseFamily},
+  db::{Database, DatabaseFamily, NoopDatabase},
   snapshot::FileSystemInfo,
   validator::{CacheValidator, CacheValidatorResult},
 };
-use crate::{InfrastructureLogger, Logger, cache::CacheCodec};
+use crate::{InfrastructureLogger, Logger, cache::CacheCodec, new_cache::db::TurboDatabase};
 
 const VALIDATOR_KEY: &str = "validator";
 const META_KEY: &str = "meta";
@@ -47,24 +47,28 @@ impl PendingWrites {
   }
 }
 
+struct State {
+  database: OnceLock<Box<dyn Database>>,
+  pending_writes: PendingWrites,
+}
+
+impl std::fmt::Debug for State {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("State")
+      .field("database", &"..")
+      .field("pending_writes", &self.pending_writes)
+      .finish()
+  }
+}
+
 /// Filesystem cache implementation scheduled by [`super::IdleFileCache`].
+#[derive(Debug)]
 pub struct FileCacheStrategy {
   validator: CacheValidator,
   codec: Arc<CacheCodec>,
-  database: OnceLock<Database>,
-  pending_writes: RwLock<PendingWrites>,
+  state: RwLock<State>,
   readonly: bool,
   logger: Arc<InfrastructureLogger>,
-}
-
-impl fmt::Debug for FileCacheStrategy {
-  fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    formatter
-      .debug_struct("FileCacheStrategy")
-      .field("database", &self.database)
-      .field("readonly", &self.readonly)
-      .finish_non_exhaustive()
-  }
 }
 
 impl FileCacheStrategy {
@@ -85,8 +89,10 @@ impl FileCacheStrategy {
         logger.clone(),
       ),
       codec,
-      database: Default::default(),
-      pending_writes: Default::default(),
+      state: RwLock::new(State {
+        database: OnceLock::new(),
+        pending_writes: PendingWrites::default(),
+      }),
       readonly,
       logger,
     }
@@ -98,22 +104,27 @@ impl FileCacheStrategy {
       .await
       .map(|database| {
         self
+          .write_state()
           .database
-          .set(database)
-          .expect("database should be set only once");
+          .set(Box::new(database) as Box<dyn Database>)
+          .unwrap_or_else(|_| panic!("database should be set only once"));
       })
       .inspect_err(|_| {
         self
+          .write_state()
           .database
-          .set(Database::noop())
-          .expect("database should be set only once");
+          .set(Box::new(NoopDatabase) as Box<dyn Database>)
+          .unwrap_or_else(|_| panic!("database should be set only once"));
       })
   }
 
-  async fn db_init_impl(&self, (base_path, path): (Utf8PathBuf, Utf8PathBuf)) -> Result<Database> {
+  async fn db_init_impl(
+    &self,
+    (base_path, path): (Utf8PathBuf, Utf8PathBuf),
+  ) -> Result<TurboDatabase> {
     let mut database = {
       let start = self.logger.time("open cache database");
-      let database = Database::open(base_path, path, self.readonly);
+      let database = TurboDatabase::open(base_path, path, self.readonly);
       self.logger.time_end(start);
       database
     }?;
@@ -130,9 +141,9 @@ impl FileCacheStrategy {
     Ok(database)
   }
 
-  async fn db_validate(&self, database: &mut Database) -> Result<()> {
-    let data = database.get(DatabaseFamily::Validator, VALIDATOR_KEY.as_bytes())?;
-    let validation = self.validator.validate(data).await?;
+  async fn db_validate(&self, database: &mut TurboDatabase) -> Result<()> {
+    let data = database.get(DatabaseFamily::Validator, &CacheKey::new(VALIDATOR_KEY))?;
+    let validation = self.validator.validate(data.as_deref()).await?;
     match validation {
       CacheValidatorResult::Valid => {}
       CacheValidatorResult::InvalidVersion => {
@@ -162,11 +173,18 @@ impl FileCacheStrategy {
     Ok(())
   }
 
-  fn pending_writes(&self) -> RwLockReadGuard<'_, PendingWrites> {
+  fn read_state(&self) -> RwLockReadGuard<'_, State> {
     self
-      .pending_writes
+      .state
       .read()
-      .expect("cache pending writes lock should not be poisoned")
+      .expect("cache state lock should not be poisoned")
+  }
+
+  fn write_state(&self) -> RwLockWriteGuard<'_, State> {
+    self
+      .state
+      .write()
+      .expect("cache state lock should not be poisoned")
   }
 
   pub(super) fn store(
@@ -179,7 +197,7 @@ impl FileCacheStrategy {
     if self.readonly {
       return;
     }
-    self.pending_writes().entries.insert(
+    self.read_state().pending_writes.entries.insert(
       key,
       PendingWrite {
         entry: CacheEntry::new(etag, value),
@@ -193,7 +211,8 @@ impl FileCacheStrategy {
       return;
     }
     self
-      .pending_writes()
+      .read_state()
+      .pending_writes
       .new_build_dependencies()
       .get_or_insert_default()
       .extend(dependencies);
@@ -203,17 +222,18 @@ impl FileCacheStrategy {
     if self.readonly {
       return;
     }
-    *self.pending_writes().meta() = Some(meta);
+    *self.read_state().pending_writes.meta() = Some(meta);
   }
 
   pub fn restore_meta(&self) -> Result<Option<Meta>> {
-    if let Some(pending) = self.pending_writes().meta().as_ref() {
+    let state = self.read_state();
+    if let Some(pending) = state.pending_writes.meta().as_ref() {
       return Ok(Some(pending.clone()));
     }
-    let Some(entry) = self
+    let Some(entry) = state
       .database
       .wait()
-      .get(DatabaseFamily::Meta, META_KEY.as_bytes())?
+      .get(DatabaseFamily::Meta, &CacheKey::new(META_KEY))?
     else {
       return Ok(None);
     };
@@ -226,7 +246,8 @@ impl FileCacheStrategy {
     etag: Option<&Etag>,
     decoder: CacheValueDecoder,
   ) -> Result<Option<ErasedCacheValue>> {
-    if let Some(pending) = self.pending_writes().entries.get(key) {
+    let state = self.read_state();
+    if let Some(pending) = state.pending_writes.entries.get(key) {
       return Ok(
         pending
           .entry
@@ -234,11 +255,7 @@ impl FileCacheStrategy {
           .then(|| pending.entry.value().clone()),
       );
     }
-    let Some(entry) = self
-      .database
-      .wait()
-      .get(DatabaseFamily::Cache, key.as_bytes())?
-    else {
+    let Some(entry) = state.database.wait().get(DatabaseFamily::Cache, key)? else {
       return Ok(None);
     };
     decoder(&entry, etag, &self.codec)
@@ -253,7 +270,6 @@ impl FileCacheStrategy {
       return Ok(());
     }
 
-    let database = self.database.wait();
     if self.has_pending_writes() {
       self.logger.log("Storing cache...");
       let start = self.logger.time("store cache");
@@ -263,12 +279,10 @@ impl FileCacheStrategy {
       let new_build_dependencies;
       let meta;
       {
-        let pending_writes = self
-          .pending_writes
-          .write()
-          .expect("cache pending writes lock should not be poisoned");
+        let state = self.write_state();
 
-        writes = pending_writes
+        writes = state
+          .pending_writes
           .entries
           .par_iter()
           .map(|pending| {
@@ -277,9 +291,10 @@ impl FileCacheStrategy {
             Ok((DatabaseFamily::Cache, key, value))
           })
           .collect::<Result<Vec<_>>>()?;
+        state.pending_writes.entries.clear();
 
-        new_build_dependencies = pending_writes.new_build_dependencies().take();
-        meta = pending_writes.meta().take();
+        new_build_dependencies = state.pending_writes.new_build_dependencies().take();
+        meta = state.pending_writes.meta().take();
       }
 
       if let Some(dependencies) = new_build_dependencies
@@ -298,19 +313,16 @@ impl FileCacheStrategy {
       }
 
       let writes_len = writes.len();
-      let result = database.write_batch(move |batch| {
-        writes
-          .into_par_iter()
-          .try_for_each(|(family, key, value)| batch.put(family, key, value))
-      });
+      self.read_state().database.wait().write_batch(writes)?;
       self.logger.time_end(start);
-      result?;
 
       self
         .logger
         .log(format!("Stored cache ({writes_len} items)"));
     }
 
+    let state = self.read_state();
+    let database = state.database.wait();
     for _ in 0..max_compaction_passes {
       if check_idle_ended() {
         return Ok(());
@@ -330,11 +342,14 @@ impl FileCacheStrategy {
 
   pub async fn shutdown(&self) -> Result<()> {
     self.after_all_stored(1, || false).await?;
-    self.database.wait().shutdown()?;
+    let database = self.write_state().database.take();
+    if let Some(database) = database {
+      database.shutdown()?;
+    }
     Ok(())
   }
 
   pub fn has_pending_writes(&self) -> bool {
-    !self.pending_writes().is_empty()
+    !self.read_state().pending_writes.is_empty()
   }
 }
