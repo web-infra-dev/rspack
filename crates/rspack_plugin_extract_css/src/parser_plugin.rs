@@ -27,9 +27,7 @@ pub struct PluginCssExtractParserPlugin {
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for PluginCssExtractParserPlugin {
   fn finish(&self, parser: &mut JavascriptParser<'p>) -> Option<bool> {
     let deps = if let Some(data_str) = parser.parse_meta.remove(PLUGIN_NAME)
-      && let Ok(data_str) = (data_str as Box<dyn std::any::Any>)
-        .downcast::<String>()
-        .map(|i| *i)
+      && let Ok(data_str) = data_str.into_any().downcast::<String>().map(|i| *i)
     {
       let data = if let Some(data) = self.cache.get(&data_str) {
         data.clone()

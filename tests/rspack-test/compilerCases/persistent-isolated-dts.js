@@ -27,7 +27,7 @@ async function recreateCompiler(context) {
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
   description:
-    "should re-emit declaration files assets after persistent cache recovery",
+    "should restore declaration metadata from the persistent loader cache",
   options(context) {
     const sourceDir = path.resolve(__dirname, "../fixtures", CASE_DIR);
     const workDir = context.getDist(WORK_DIR);
@@ -45,14 +45,19 @@ module.exports = {
           type: "commonjs"
         }
       },
+      cache: {
+        type: "persistent",
+        buildDependencies: [__filename],
+        storage: {
+          type: "filesystem",
+          location: context.getDist(CACHE_DIR)
+        }
+      },
       experiments: {
-        cache: {
-          type: "persistent",
-          buildDependencies: [__filename],
-          storage: {
-            type: "filesystem",
-            location: context.getDist(CACHE_DIR)
-          }
+        newCache: {
+          codeGeneration: false,
+          loader: true,
+          minimize: false
         }
       },
       module: {
@@ -62,7 +67,11 @@ module.exports = {
             type: "javascript/auto",
             use: {
               loader: "builtin:swc-loader",
+              cache: true,
               options: {
+                collectTypeScriptInfo: {
+                  exportedEnum: true
+                },
                 jsc: {
                   parser: {
                     syntax: "typescript"

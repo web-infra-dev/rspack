@@ -961,6 +961,7 @@ export interface JsLoaderCacheEntry {
   sourceMap?: Uint8Array
   addedDependencies: JsLoaderDependencies
   removedDependencies: JsLoaderDependencies
+  parseMeta: Record<string, string>
 }
 
 export interface JsLoaderContext {
