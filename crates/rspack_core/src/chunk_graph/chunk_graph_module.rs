@@ -290,6 +290,28 @@ impl ChunkGraph {
     self.block_to_chunk_group_ukey.insert(block, chunk_group);
   }
 
+  /// The reverse of [`ChunkGraph::get_block_chunk_group`]: the async blocks that
+  /// this chunk group was created for.
+  ///
+  /// A chunk group is usually created by a single block, but several blocks are
+  /// merged into one group when they resolve to the same chunk name. Entrypoints
+  /// are not created by a block at all and therefore have none.
+  ///
+  /// The blocks are sorted by identifier so that repeated builds return them in
+  /// the same order.
+  pub fn get_chunk_group_blocks(
+    &self,
+    chunk_group: ChunkGroupUkey,
+  ) -> Vec<AsyncDependenciesBlockIdentifier> {
+    let mut blocks = self
+      .block_to_chunk_group_ukey
+      .iter()
+      .filter_map(|(block, ukey)| (*ukey == chunk_group).then_some(*block))
+      .collect::<Vec<_>>();
+    blocks.sort_unstable_by(|a, b| a.as_str().cmp(b.as_str()));
+    blocks
+  }
+
   pub fn get_module_hash<'c>(
     compilation: &'c Compilation,
     module_identifier: ModuleIdentifier,

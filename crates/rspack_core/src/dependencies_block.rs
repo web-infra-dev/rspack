@@ -53,6 +53,12 @@ pub fn dependencies_block_update_hash(
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct AsyncDependenciesBlockIdentifier(Identifier);
 
+impl AsyncDependenciesBlockIdentifier {
+  pub fn as_str(&self) -> &str {
+    self.0.as_str()
+  }
+}
+
 impl rspack_hash::RspackHash for AsyncDependenciesBlockIdentifier {
   fn hash(&self, state: &mut RspackHasher) {
     self.0.as_str().hash(state);
