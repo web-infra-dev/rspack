@@ -6,13 +6,13 @@ use rspack_paths::InternedPathSet;
 use rspack_sources::SourceMap;
 
 use crate::{
-  Loader, LoaderContext,
+  LoaderChain, LoaderContext, LoaderRunnerContext,
   content::{Content, ResourceData},
 };
 
 #[async_trait::async_trait]
 pub trait LoaderRunnerPlugin: Send + Sync {
-  type Context: Send;
+  type Context: LoaderRunnerContext;
 
   fn name(&self) -> &'static str {
     "unknown"
@@ -30,16 +30,12 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     Ok(())
   }
 
-  async fn run_normal_loader(
+  async fn run_normal_chain(
     &self,
     context: &mut LoaderContext<Self::Context>,
-    loader: Arc<dyn Loader<Self::Context>>,
+    chain: &LoaderChain,
   ) -> Result<()> {
-    loader.run(context).await?;
-    if !context.current_loader().finish_called() {
-      context.finish_with_empty();
-    }
-    Ok(())
+    chain.run(context).await
   }
 
   async fn process_resource(
