@@ -171,6 +171,7 @@ impl AsyncDependenciesBlock {
     std::mem::take(&mut self.blocks)
   }
 
+  #[allow(clippy::vec_box)]
   pub(crate) fn restore_build_result(
     &mut self,
     dependencies: Vec<BoxDependency>,
