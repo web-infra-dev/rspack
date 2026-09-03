@@ -60,9 +60,13 @@ module.exports = {
 			@@ ... @@
 			-   "performance": false,
 			+   "performance": Object {
+			+     "asyncChunkWaterfalls": false,
+			+     "embeddedSourceMaps": false,
 			+     "hints": "warning",
+			+     "inlinedAssets": false,
 			+     "maxAssetSize": 307200,
 			+     "maxEntrypointSize": 512000,
+			+     "topLevelThis": false,
 			+   },
 		`)
 };

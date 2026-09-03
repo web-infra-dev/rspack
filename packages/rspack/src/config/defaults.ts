@@ -1167,6 +1167,11 @@ const applyPerformanceDefaults = (
   { production }: { production: boolean },
 ) => {
   if (performance === false) return;
+  const all = performance.all ?? false;
+  D(performance, 'asyncChunkWaterfalls', all);
+  D(performance, 'embeddedSourceMaps', all);
+  D(performance, 'inlinedAssets', all);
+  D(performance, 'topLevelThis', all);
   D(performance, 'maxAssetSize', 300 * 1024);
   D(performance, 'maxEntrypointSize', 500 * 1024);
   F(performance, 'hints', () => (production ? 'warning' : false));

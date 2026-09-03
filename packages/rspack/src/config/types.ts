@@ -3341,7 +3341,7 @@ export type Bail = boolean;
 //#endregion
 
 //#region Performance
-/** Options to control how Rspack notifies you of assets and entry points that exceed a specific file limit.   */
+/** Options to control Rspack's bundle performance diagnostics. */
 export type Performance =
   | false
   | {
@@ -3350,9 +3350,20 @@ export type Performance =
        */
       assetFilter?: (assetFilename: string) => boolean;
       /**
+       * Enables every opt-in bundling diagnostic that is otherwise left unset.
+       * Individual options take precedence over this value.
+       */
+      all?: boolean;
+      /** Report async import chains that need three or more sequential requests. */
+      asyncChunkWaterfalls?: boolean;
+      /** Report production source maps embedded in emitted JavaScript. */
+      embeddedSourceMaps?: boolean;
+      /**
        * Sets the format of the hints: warnings, errors or nothing at all.
        */
       hints?: false | 'warning' | 'error';
+      /** Report asset modules larger than 8 KiB that were emitted as data URLs. */
+      inlinedAssets?: boolean;
       /**
        * File size limit (in bytes) when exceeded, Rspack will provide performance hints.
        * @default 307200 (300 KiB)
@@ -3363,6 +3374,8 @@ export type Performance =
        * @default 512000 (500 KiB)
        */
       maxEntrypointSize?: number;
+      /** Report ES modules whose top-level `this` is replaced with `undefined`. */
+      topLevelThis?: boolean;
     };
 //#endregion
 
