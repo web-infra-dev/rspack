@@ -1219,17 +1219,15 @@ var {} = {{}};
               .get_internal_name(namespace_export_symbol)
               .cloned()
               .unwrap_or_else(|| {
-                name_allocator.find_new_module_name(
+                name_allocator.find_new_name(
                   "namespaceObject",
-                  &concate_info.module,
-                  concatenation_context,
+                  concatenation_context.module_identifier(&concate_info.module),
                 )
               })
           } else {
-            name_allocator.find_new_module_name(
+            name_allocator.find_new_name(
               "namespaceObject",
-              &concate_info.module,
-              concatenation_context,
+              concatenation_context.module_identifier(&concate_info.module),
             )
           }
         };

@@ -147,31 +147,6 @@ impl ConcatenationNameAllocator {
       i += 1;
     }
   }
-
-  pub fn find_new_module_name(
-    &mut self,
-    old_name: &str,
-    module: &ModuleIdentifier,
-    context: &ConcatenationContext,
-  ) -> Atom {
-    self.find_new_name(old_name, context.module_identifier(module))
-  }
-
-  pub fn find_new_binding_name(
-    &mut self,
-    name: &Atom,
-    extra_info: &[Atom],
-    context: &ConcatenationContext,
-  ) -> Atom {
-    self.find_new_name(
-      context
-        .escaped_names
-        .get(name)
-        .expect("should have escaped name")
-        .as_ref(),
-      extra_info,
-    )
-  }
 }
 
 pub enum ConcatenationInterop {
@@ -562,31 +537,27 @@ impl ConcatenationNameAllocator {
       .build_meta();
     let exports_type: BuildMetaExportsType = build_meta.exports_type();
     let default_object: BuildMetaDefaultObject = build_meta.default_object();
+    let module_identifier = context.module_identifier(&module);
     if exports_type != BuildMetaExportsType::Namespace {
-      module_info.set_interop_namespace_object_name(Some(self.find_new_module_name(
-        "namespaceObject",
-        &module,
-        context,
-      )));
+      module_info.set_interop_namespace_object_name(Some(
+        self.find_new_name("namespaceObject", module_identifier),
+      ));
     }
 
     if exports_type == BuildMetaExportsType::Default
       && !matches!(default_object, BuildMetaDefaultObject::Redirect)
     {
-      module_info.set_interop_namespace_object2_name(Some(self.find_new_module_name(
-        "namespaceObject2",
-        &module,
-        context,
-      )));
+      module_info.set_interop_namespace_object2_name(Some(
+        self.find_new_name("namespaceObject2", module_identifier),
+      ));
     }
 
     if matches!(
       exports_type,
       BuildMetaExportsType::Dynamic | BuildMetaExportsType::Unset
     ) {
-      module_info.set_interop_default_access_name(Some(
-        self.find_new_module_name("default", &module, context),
-      ));
+      module_info
+        .set_interop_default_access_name(Some(self.find_new_name("default", module_identifier)));
     }
   }
 }

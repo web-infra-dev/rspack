@@ -1060,7 +1060,14 @@ impl Module for ConcatenatedModule {
                 } else {
                   let ns_import_key = ns_import.clone();
                   let new_name = if name_allocator.contains(&ns_import) {
-                    name_allocator.find_new_binding_name(&ns_import, &[], &concatenation_context)
+                    name_allocator.find_new_name(
+                      concatenation_context
+                        .escaped_names
+                        .get(&ns_import)
+                        .expect("should have escaped name")
+                        .as_ref(),
+                      &[],
+                    )
                   } else {
                     name_allocator.insert(ns_import);
                     ns_import_key.clone()
@@ -1111,10 +1118,9 @@ impl Module for ConcatenatedModule {
             if let Some(ref namespace_export_symbol) = info.namespace_export_symbol {
               info.internal_names.get(namespace_export_symbol).cloned()
             } else {
-              Some(name_allocator.find_new_module_name(
+              Some(name_allocator.find_new_name(
                 "namespaceObject",
-                &info.module,
-                &concatenation_context,
+                concatenation_context.module_identifier(&info.module),
               ))
             };
           if let Some(namespace_object_name) = namespace_object_name {
@@ -1136,22 +1142,18 @@ impl Module for ConcatenatedModule {
 
         // Handle external type
         ModuleInfo::External(info) => {
-          let external_name: Atom =
-            name_allocator.find_new_module_name("", &info.module, &concatenation_context);
+          let module_identifier = concatenation_context.module_identifier(&info.module);
+          let external_name: Atom = name_allocator.find_new_name("", module_identifier);
           info.name = Some(external_name.clone());
           top_level_declarations.insert(external_name.clone());
 
           if info.deferred {
-            let external_name =
-              name_allocator.find_new_module_name("deferred", &info.module, &concatenation_context);
+            let external_name = name_allocator.find_new_name("deferred", module_identifier);
             info.deferred_name = Some(external_name.clone());
             top_level_declarations.insert(external_name.clone());
 
-            let external_name_interop = name_allocator.find_new_module_name(
-              "deferredNamespaceObject",
-              &info.module,
-              &concatenation_context,
-            );
+            let external_name_interop =
+              name_allocator.find_new_name("deferredNamespaceObject", module_identifier);
             info.deferred_namespace_object_name = Some(external_name_interop.clone());
             top_level_declarations.insert(external_name_interop.clone());
           }
