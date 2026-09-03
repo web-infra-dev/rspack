@@ -104,14 +104,14 @@ impl FileCacheStrategy {
       .await
       .map(|database| {
         self
-          .write_state()
+          .read_state()
           .database
           .set(Box::new(database) as Box<dyn Database>)
           .unwrap_or_else(|_| panic!("database should be set only once"));
       })
       .inspect_err(|_| {
         self
-          .write_state()
+          .read_state()
           .database
           .set(Box::new(NoopDatabase) as Box<dyn Database>)
           .unwrap_or_else(|_| panic!("database should be set only once"));
@@ -341,12 +341,14 @@ impl FileCacheStrategy {
   }
 
   pub async fn shutdown(&self) -> Result<()> {
-    self.after_all_stored(1, || false).await?;
+    let store_result = self.after_all_stored(1, || false).await;
     let database = self.write_state().database.take();
-    if let Some(database) = database {
-      database.shutdown()?;
-    }
-    Ok(())
+    let shutdown_result = if let Some(database) = database {
+      database.shutdown()
+    } else {
+      Ok(())
+    };
+    store_result.and(shutdown_result)
   }
 
   pub fn has_pending_writes(&self) -> bool {

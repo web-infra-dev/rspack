@@ -27,7 +27,7 @@ impl DatabaseFamily {
 }
 
 #[cfg(target_family = "wasm")]
-pub type DatabaseValue = Arc<[u8]>;
+pub type DatabaseValue = std::sync::Arc<[u8]>;
 #[cfg(target_family = "wasm")]
 pub use noop::NoopDatabase as TurboDatabase;
 #[cfg(not(target_family = "wasm"))]
