@@ -23,6 +23,7 @@ pub mod node_stuff_plugin;
 mod override_strict_plugin;
 mod require_context_dependency_parser_plugin;
 mod require_ensure_dependencies_block_parse_plugin;
+mod side_effects_analysis;
 mod r#trait;
 mod url_plugin;
 mod use_strict_plugin;

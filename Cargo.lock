@@ -5003,7 +5003,6 @@ dependencies = [
  "swc_experimental_ecma_parser",
  "swc_experimental_ecma_semantic",
  "swc_experimental_ecma_transforms_base",
- "swc_experimental_ecma_utils",
  "tokio",
  "tracing",
  "url",
@@ -7280,16 +7279,6 @@ dependencies = [
  "rustc-hash",
  "swc_experimental_allocator",
  "swc_experimental_ecma_ast",
-]
-
-[[package]]
-name = "swc_experimental_ecma_utils"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19d4620c8e29665bbd21e286087b3b8dd4927ac34e3531453eb24e6286a88c61"
-dependencies = [
- "swc_experimental_ecma_ast",
- "swc_experimental_ecma_semantic",
 ]
 
 [[package]]
