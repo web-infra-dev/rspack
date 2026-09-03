@@ -163,6 +163,10 @@ impl AsyncDependenciesBlock {
     &mut self.dependencies
   }
 
+  pub fn blocks_mut(&mut self) -> &mut [Box<AsyncDependenciesBlock>] {
+    &mut self.blocks
+  }
+
   pub fn take_blocks(&mut self) -> Vec<Box<AsyncDependenciesBlock>> {
     std::mem::take(&mut self.blocks)
   }
