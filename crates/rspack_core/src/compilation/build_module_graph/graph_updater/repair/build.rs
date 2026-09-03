@@ -57,7 +57,8 @@ impl Task<TaskContext> for BuildTask {
       module_build_cache,
     } = *self;
 
-    let build_start_time = module_build_cache.as_ref().map(|_| current_time());
+    let module_build_cache_with_start_time =
+      module_build_cache.map(|cache| (cache, current_time()));
 
     plugin_driver
       .compilation_hooks
@@ -83,13 +84,11 @@ impl Task<TaskContext> for BuildTask {
       .await?;
 
     let module_build_cache_store =
-      module_build_cache
-        .zip(build_start_time)
-        .map(|(cache, build_start_time)| ModuleBuildCacheStore {
-          cache,
-          file_system_info,
-          build_start_time,
-        });
+      module_build_cache_with_start_time.map(|(cache, build_start_time)| ModuleBuildCacheStore {
+        cache,
+        file_system_info,
+        build_start_time,
+      });
 
     Ok(vec![Box::new(BuildResultTask::built(
       result,
