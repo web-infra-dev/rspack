@@ -271,7 +271,7 @@ pub(crate) async fn after_normal_chain(
   let existing = &state.existing_dependencies;
   let current = context.dependencies();
   if !existing.is_subset_of(&current) {
-    return Ok(());
+    return;
   }
   let added_dependencies = current.difference(existing);
   let Some(dependency_snapshot) =
