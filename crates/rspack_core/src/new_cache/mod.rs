@@ -99,9 +99,5 @@ pub fn create_cache(
     MaxMemoryGenerations::Finite(max_generations) => Some(MemoryCache::new(max_generations)),
   };
 
-  Cache::new(
-    compiler_path,
-    memory_cache,
-    Some(idle_file_cache),
-  )
+  Cache::new(compiler_path, memory_cache, Some(idle_file_cache))
 }

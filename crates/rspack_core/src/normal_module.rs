@@ -104,7 +104,7 @@ pub struct NormalModuleHooks {
 /// instances, and their options always come from the fresh module created for
 /// the current compilation.
 #[cacheable]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct NormalModuleState {
   #[cacheable(with=AsOption<AsPreset>)]
   source: Option<BoxSource>,
@@ -690,7 +690,7 @@ impl Module for NormalModule {
 
     Ok(BuildResult {
       module: BoxModule::new(self),
-      dependencies,
+      dependencies: dependencies.into_iter().map(Into::into).collect(),
       blocks,
       optimization_bailouts,
     })
