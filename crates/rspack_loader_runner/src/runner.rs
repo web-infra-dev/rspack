@@ -78,18 +78,6 @@ impl<Context: Send> Loaders<Context> {
   }
 }
 
-#[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
-pub async fn run_loaders<Context: LoaderRunnerContext>(
-  resource_data: Arc<ResourceData>,
-  plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
-  context: Context,
-  fs: Arc<dyn ReadableFileSystem>,
-) -> (LoaderResult<Context>, Option<Error>) {
-  let mut cx = create_loader_context(resource_data, plugin, context);
-  let result = run_loaders_impl(&mut cx, fs).await;
-  (LoaderResult::new(cx), result.err())
-}
-
 impl<Context: LoaderRunnerContext> LoaderContext<Context> {
   async fn start_yielding(&mut self) -> Result<bool> {
     if let Some(plugin) = &self.plugin
@@ -271,6 +259,18 @@ fn create_loader_context<Context: LoaderRunnerContext>(
     resource_data,
     diagnostics: vec![],
   }
+}
+
+#[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
+pub async fn run_loaders<Context: LoaderRunnerContext>(
+  resource_data: Arc<ResourceData>,
+  plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
+  context: Context,
+  fs: Arc<dyn ReadableFileSystem>,
+) -> (LoaderResult<Context>, Option<Error>) {
+  let mut cx = create_loader_context(resource_data, plugin, context);
+  let result = run_loaders_impl(&mut cx, fs).await;
+  (LoaderResult::new(cx), result.err())
 }
 
 async fn run_loaders_impl<Context: LoaderRunnerContext>(
