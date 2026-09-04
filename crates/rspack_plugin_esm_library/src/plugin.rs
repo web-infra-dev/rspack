@@ -313,7 +313,7 @@ async fn render_chunk_content(
 #[plugin_hook(CompilationFinishModules for EsmLibraryPlugin, stage = 100)]
 async fn finish_modules(
   &self,
-  compilation: &Compilation,
+  compilation: &mut Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
   exports_info_artifact: &mut ExportsInfoArtifact,
   _side_effects_state_artifact: &mut SideEffectsStateArtifact,

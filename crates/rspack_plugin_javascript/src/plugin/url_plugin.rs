@@ -2,21 +2,25 @@
 
 use concat_string::concat_string;
 use rspack_core::{
-  ChunkInitFragments, ChunkUkey, CodeGenerationDataFilename, Compilation, CompilationParams,
-  CompilerCompilation, DependencyId, ImportMetaKnownProperties, JavascriptParserUrl, Module,
+  AsyncDependenciesBlock, AsyncModulesArtifact, ChunkInitFragments, ChunkUkey,
+  CodeGenerationDataFilename, Compilation, CompilationFinishModules, CompilationParams,
+  CompilerCompilation, DependenciesBlock, DependencyId, DependencyParents, EntryOptions,
+  ExportsInfoArtifact, GroupOptions, ImportMetaKnownProperties, JavascriptParserUrl, Module,
   ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin,
-  PublicPath, RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, SourceType, URLStaticMode,
-  get_js_chunk_filename_template, get_undo_path,
+  PublicPath, RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
+  SourceType, URLStaticMode, get_css_chunk_filename_template, get_js_chunk_filename_template,
+  get_undo_path,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
 use rspack_error::Result;
+use rspack_hash::{HashDigest, RspackHash, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::{
   JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
   dependency::{
-    URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE, WORKER_STATIC_URL_PLACEHOLDER,
-    WORKER_STATIC_URL_PLACEHOLDER_RE, WorkerDependency,
+    URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE, URLDependency,
+    WORKER_STATIC_URL_PLACEHOLDER, WORKER_STATIC_URL_PLACEHOLDER_RE, WorkerDependency,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
 };
@@ -57,6 +61,128 @@ async fn get_chunk_output_path(compilation: &Compilation, chunk_ukey: ChunkUkey)
     .await
 }
 
+async fn get_css_chunk_output_path(
+  compilation: &Compilation,
+  chunk_ukey: ChunkUkey,
+) -> Result<String> {
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(&chunk_ukey);
+  let filename_template = get_css_chunk_filename_template(
+    chunk,
+    &compilation.options.output,
+    &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+  );
+
+  compilation
+    .get_path(
+      filename_template,
+      PathData::default()
+        .chunk(chunk_ukey, compilation)
+        .chunk_hash_optional(chunk.rendered_hash(
+          &compilation.chunk_hashes_artifact,
+          compilation.options.output.hash_digest_length,
+        ))
+        .chunk_id_optional(chunk.id().map(|id| id.as_str()))
+        .chunk_name_optional(chunk.name_for_filename_template())
+        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+          &compilation.chunk_hashes_artifact,
+          &SourceType::Css,
+          compilation.options.output.hash_digest_length,
+        ))
+        .runtime(chunk.runtime().as_str()),
+    )
+    .await
+}
+
+fn is_url_entry_module_type(module_type: &ModuleType) -> bool {
+  module_type.is_js_like()
+    || matches!(
+      module_type,
+      ModuleType::Css | ModuleType::CssAuto | ModuleType::CssModule | ModuleType::CssGlobal
+    )
+}
+
+const URL_FINISH_MODULES_STAGE: i32 = -10;
+
+#[plugin_hook(CompilationFinishModules for URLPlugin, stage = URL_FINISH_MODULES_STAGE)]
+async fn finish_modules(
+  &self,
+  compilation: &mut Compilation,
+  _async_modules_artifact: &mut AsyncModulesArtifact,
+  _exports_info_artifact: &mut ExportsInfoArtifact,
+  _side_effects_state_artifact: &mut SideEffectsStateArtifact,
+) -> Result<()> {
+  let promotions = {
+    let module_graph = compilation.get_module_graph();
+    module_graph
+      .dependencies()
+      .filter_map(|(dependency_id, dependency)| {
+        let dependency = dependency.downcast_ref::<URLDependency>()?;
+        if module_graph.get_parent_block(&dependency_id).is_some() {
+          return None;
+        }
+        let target_module = module_graph
+          .module_identifier_by_dependency_id(&dependency_id)
+          .and_then(|identifier| module_graph.module_by_identifier(identifier))?;
+        if target_module.as_external_module().is_some()
+          || target_module.identifier().as_str().starts_with("ignored|")
+          || !is_url_entry_module_type(target_module.module_type())
+        {
+          return None;
+        }
+        let origin_module = *module_graph.get_parent_module(&dependency_id)?;
+        let request = dependency.request().to_string();
+        let range = dependency.dependency_range();
+
+        let mut hasher = RspackHasher::from(&compilation.options.output);
+        origin_module.hash(&mut hasher);
+        request.hash(&mut hasher);
+        range.hash(&mut hasher);
+        let runtime = format!("url-{}", hasher.digest(&HashDigest::Hex).rendered(16));
+
+        Some((dependency_id, origin_module, request, range, runtime))
+      })
+      .collect::<Vec<_>>()
+  };
+
+  let module_graph = compilation.get_module_graph_mut();
+  for (dependency_id, origin_module, request, range, runtime) in promotions {
+    let modifier = format!("url-entry-{}-{}", range.start, range.end);
+    let mut block = AsyncDependenciesBlock::new(
+      origin_module,
+      None,
+      Some(&modifier),
+      Vec::new(),
+      Some(request),
+    );
+    block.add_dependency_id(dependency_id);
+    block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
+      runtime: Some(runtime.into()),
+      ..Default::default()
+    })));
+    let block_id = block.identifier();
+
+    let module = module_graph
+      .module_by_identifier_mut(&origin_module)
+      .expect("URL dependency should have an origin module");
+    module.remove_dependency_id(dependency_id);
+    module.add_block_id(block_id);
+    module_graph.set_parents(
+      dependency_id,
+      DependencyParents {
+        block: Some(block_id),
+        module: origin_module,
+        index_in_block: 0,
+      },
+    );
+    module_graph.add_block(Box::new(block));
+  }
+
+  Ok(())
+}
+
 fn is_relative_public_path(public_path: &str) -> bool {
   !public_path.starts_with('/') && url::Url::parse(public_path).is_err()
 }
@@ -80,16 +206,44 @@ pub async fn replace_static_url_placeholders(
       .parse::<u32>()
       .unwrap_or_else(|_| panic!("should be valid dependency id \"{dep_id}\""))
       .into();
-    let Some(module) = module_graph.module_identifier_by_dependency_id(&dep_id) else {
+    let Some(module_identifier) = module_graph.module_identifier_by_dependency_id(&dep_id) else {
       continue;
     };
+    if let Some(block) = module_graph.get_parent_block(&dep_id) {
+      let chunk_ukey = compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_block_chunk_group(
+          block,
+          &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+        )
+        .map(|entrypoint| entrypoint.get_entrypoint_chunk())
+        .expect("URL entry should have an entrypoint chunk");
+      let target_module = module_graph
+        .module_by_identifier(module_identifier)
+        .expect("URL entry should have a target module");
+      let filename = if matches!(
+        target_module.module_type(),
+        ModuleType::Css | ModuleType::CssAuto | ModuleType::CssModule | ModuleType::CssGlobal
+      ) {
+        get_css_chunk_output_path(compilation, chunk_ukey).await?
+      } else {
+        get_chunk_output_path(compilation, chunk_ukey).await?
+      };
+      replace_source.replace(start as u32, end as u32, filename, None);
+      continue;
+    }
     // The asset may be extracted into a shared chunk whose runtime is the union
     // of the referencing chunks' runtimes. Fall back to the unique code generation
     // result when the referencing runtime has no exact entry.
     let codegen_result = compilation
       .code_generation_results
-      .try_get(module, runtime)
-      .or_else(|_| compilation.code_generation_results.try_get(module, None))?;
+      .try_get(module_identifier, runtime)
+      .or_else(|_| {
+        compilation
+          .code_generation_results
+          .try_get(module_identifier, None)
+      })?;
     let Some(filename) = codegen_result.data().get::<CodeGenerationDataFilename>() else {
       unreachable!()
     };
@@ -239,6 +393,10 @@ impl Plugin for URLPlugin {
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
+    ctx
+      .compilation_hooks
+      .finish_modules
+      .tap(finish_modules::new(self));
     ctx
       .normal_module_factory_hooks
       .parser

@@ -443,7 +443,7 @@ async fn strict_runtime_bailout(
 #[plugin_hook(CompilationFinishModules for AssignLibraryPlugin)]
 async fn finish_modules(
   &self,
-  compilation: &Compilation,
+  compilation: &mut Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
   exports_info_artifact: &mut ExportsInfoArtifact,
   _side_effects_state_artifact: &mut SideEffectsStateArtifact,

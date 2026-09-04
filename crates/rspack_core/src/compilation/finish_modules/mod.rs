@@ -66,7 +66,7 @@ pub async fn finish_modules_pass(compilation: &mut Compilation) -> Result<()> {
 
 #[tracing::instrument("Compilation:finish_modules_inner", skip_all)]
 pub async fn finish_modules_inner(
-  compilation: &Compilation,
+  compilation: &mut Compilation,
   side_effects_state_artifact: &mut SideEffectsStateArtifact,
   dependencies_diagnostics_artifact: &mut DependenciesDiagnosticsArtifact,
   async_modules_artifact: &mut AsyncModulesArtifact,

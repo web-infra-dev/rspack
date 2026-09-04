@@ -231,7 +231,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
       matches!(
         dep.dependency_type(),
         DependencyType::CssImport | DependencyType::EsmImport
-      )
+      ) || (matches!(dep.dependency_type(), DependencyType::NewUrl)
+        && module_graph
+          .get_parent_block(&conn.dependency_id)
+          .and_then(|block_id| module_graph.block_by_id(block_id))
+          .and_then(|block| block.get_group_options())
+          .is_some_and(|options| options.entry_options().is_some()))
     });
 
     if no_need_js {
