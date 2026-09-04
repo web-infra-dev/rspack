@@ -247,7 +247,7 @@ impl Compiler {
     } else {
       Ok(())
     };
-    let store_build_dependencies = if successful && self.new_cache.has_file_cache() {
+    if successful && self.new_cache.has_file_cache() {
       if let CacheOptions::Persistent(options) = &self.options.cache {
         self.compilation.build_dependencies.extend(
           options
@@ -260,18 +260,13 @@ impl Compiler {
       self
         .new_cache
         .store_build_dependencies(build_dependencies.cloned().collect())
-    } else {
-      Ok(())
     };
-    let store_meta = self.new_cache.store_meta(Meta {
+    self.new_cache.store_meta(Meta {
       max_dependency_id: self.compiler_context.dependency_id(),
     });
     let begin_idle = self.new_cache.begin_idle();
 
-    record_build_time
-      .and(store_build_dependencies)
-      .and(store_meta)
-      .and(begin_idle)
+    record_build_time.and(begin_idle)
   }
 
   pub async fn run(&mut self) -> Result<()> {

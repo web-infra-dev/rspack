@@ -108,47 +108,33 @@ impl Cache {
     }
   }
 
-  pub fn store<T: CacheValueData>(
-    &self,
-    key: CacheKey,
-    etag: Option<Etag>,
-    value: CacheValue<T>,
-  ) -> Result<()> {
+  pub fn store<T: CacheValueData>(&self, key: CacheKey, etag: Option<Etag>, value: CacheValue<T>) {
     let Some(storage) = &self.inner.storage else {
-      return Ok(());
+      return;
     };
+    if let Some(memory_cache) = &storage.memory_cache {
+      memory_cache.store(key.clone(), etag.clone(), value.clone());
+    }
     if let Some(file_cache) = &storage.idle_file_cache {
-      if let Some(memory_cache) = &storage.memory_cache {
-        memory_cache.store(key.clone(), etag.clone(), value.clone());
-      }
       file_cache.store(key, etag, value)
-    } else {
-      if let Some(memory_cache) = &storage.memory_cache {
-        memory_cache.store(key, etag, value);
-      }
-      Ok(())
     }
   }
 
-  pub fn store_build_dependencies(&self, dependencies: InternedPathSet) -> Result<()> {
+  pub fn store_build_dependencies(&self, dependencies: InternedPathSet) {
     let Some(storage) = &self.inner.storage else {
-      return Ok(());
+      return;
     };
     if let Some(file_cache) = &storage.idle_file_cache {
-      file_cache.store_build_dependencies(dependencies)
-    } else {
-      Ok(())
+      file_cache.store_build_dependencies(dependencies);
     }
   }
 
-  pub fn store_meta(&self, meta: Meta) -> Result<()> {
+  pub fn store_meta(&self, meta: Meta) {
     let Some(storage) = &self.inner.storage else {
-      return Ok(());
+      return;
     };
     if let Some(file_cache) = &storage.idle_file_cache {
-      file_cache.store_meta(meta)
-    } else {
-      Ok(())
+      file_cache.store_meta(meta);
     }
   }
 

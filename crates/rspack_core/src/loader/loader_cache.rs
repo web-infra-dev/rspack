@@ -266,18 +266,18 @@ pub(crate) async fn before_normal_loader(
 pub(crate) async fn after_normal_loader(
   context: &LoaderContext<RunnerContext>,
   state: &LoaderCacheMissState,
-) -> Result<()> {
+) {
   if !context.cacheable
     || context.diagnostics.len() != state.diagnostics_len
     || !context.context.module.build_info().assets.is_empty()
     || !context.context.module.build_info().extras.is_empty()
     || context.additional_data().is_some()
   {
-    return Ok(());
+    return;
   }
 
   if !context.removed_dependencies().is_empty() {
-    return Ok(());
+    return;
   }
   let Some(dependency_snapshot) = loader_cache_dependency_snapshot(
     &context.context.file_system_info,
@@ -285,7 +285,7 @@ pub(crate) async fn after_normal_loader(
   )
   .await
   else {
-    return Ok(());
+    return;
   };
 
   let (content, content_is_string) = match context.content() {
@@ -310,5 +310,5 @@ pub(crate) async fn after_normal_loader(
     loader_name,
     state.etag.clone(),
   );
-  item_cache.store(CacheValue::new(entry))
+  item_cache.store(CacheValue::new(entry));
 }

@@ -226,9 +226,8 @@ impl JsLoaderCache {
       parse_meta: output.parse_meta,
     };
     let item_cache = loader_cache_item(&self.cache, &self.module_identifier, loader_name, etag);
-    item_cache
-      .store(CacheValue::new(entry))
-      .map_err(|error| napi::Error::from_reason(error.to_string()))
+    item_cache.store(CacheValue::new(entry));
+    Ok(())
   }
 }
 

@@ -8,7 +8,7 @@ mod file_cache_strategy;
 mod idle_file_cache;
 mod memory_cache;
 mod meta;
-pub(crate) mod snapshot;
+mod snapshot;
 mod validator;
 
 use std::sync::Arc;
@@ -25,18 +25,9 @@ pub use meta::Meta;
 use rspack_fs::ReadableFileSystem;
 pub use snapshot::{FileSystemInfo, Snapshot, SnapshotValidationResult};
 
-fn create_memory_cache(max_generations: crate::cache::MaxMemoryGenerations) -> Option<MemoryCache> {
-  match max_generations {
-    crate::cache::MaxMemoryGenerations::Disabled => None,
-    crate::cache::MaxMemoryGenerations::Infinity => Some(MemoryCache::new_infinite()),
-    crate::cache::MaxMemoryGenerations::Finite(max_generations) => {
-      Some(MemoryCache::new(max_generations))
-    }
-  }
-}
-
 use crate::{
-  CompilerOptions, InfrastructureLogSink, InfrastructureLogger, Logger, cache::CacheCodec,
+  CompilerOptions, InfrastructureLogSink, InfrastructureLogger,
+  cache::{CacheCodec, MaxMemoryGenerations},
 };
 
 pub fn create_cache(
@@ -86,30 +77,27 @@ pub fn create_cache(
       (base_path.to_path_buf(), directory.clone())
     }
   };
-  let strategy = match FileCacheStrategy::new(
-    (base_path, database_path.clone()),
+  let strategy = FileCacheStrategy::new(
     options.readonly,
     rspack_workspace::rspack_pkg_version!().to_string(),
     options.version.clone(),
     codec,
     file_system_info,
     logger.clone(),
-  ) {
-    Ok(strategy) => strategy,
-    Err(error) => {
-      logger.warn(format!("Open cache from {database_path} failed: {error}"));
-      return Cache::new(
-        compiler_path,
-        create_memory_cache(options.max_memory_generations),
-        None,
-      );
-    }
+  );
+  let idle_file_cache = IdleFileCache::new(
+    (base_path, database_path),
+    strategy,
+    logger,
+    None,
+    None,
+    None,
+  );
+  let memory_cache = match options.max_memory_generations {
+    MaxMemoryGenerations::Disabled => None,
+    MaxMemoryGenerations::Infinity => Some(MemoryCache::new_infinite()),
+    MaxMemoryGenerations::Finite(max_generations) => Some(MemoryCache::new(max_generations)),
   };
-  let idle_file_cache = IdleFileCache::new(strategy, logger, None, None, None);
 
-  Cache::new(
-    compiler_path,
-    create_memory_cache(options.max_memory_generations),
-    Some(idle_file_cache),
-  )
+  Cache::new(compiler_path, memory_cache, Some(idle_file_cache))
 }
