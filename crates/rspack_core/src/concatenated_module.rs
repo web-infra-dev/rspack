@@ -43,9 +43,9 @@ use crate::{
   ConcatenatedModuleIdent, ConcatenationBindingPlan, ConcatenationBindingResolver,
   ConcatenationBindingTarget, ConcatenationContext, ConcatenationInterop,
   ConcatenationNameAllocator, ConcatenationScope, ConditionalInitFragment, ConnectionState,
-  Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, Dependency,
+  ConstDependency, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, Dependency,
   DependencyCodeGenerationRef, DependencyId, DependencyType, ExportProvided, ExportsArgument,
-  ExportsInfoArtifact, FactoryMeta, ImportedByDeferModulesArtifact, InitFragment,
+  ExportsInfoArtifact, ExportsInfoData, FactoryMeta, ImportedByDeferModulesArtifact, InitFragment,
   InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition,
@@ -2765,6 +2765,21 @@ impl ConcatenatedModule {
         let module = module_graph
           .module_by_identifier(&info_id)
           .expect("should have module");
+        if is_unknown_empty_commonjs_for_concatenation(
+          module.as_ref(),
+          binding_resolver
+            .context
+            .exports_info_artifact
+            .get_exports_info_data(&info_id),
+        ) {
+          return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
+            raw_name: "/* missing export from locally empty CommonJS module */ undefined".into(),
+            ids: export_name[1..].to_vec(),
+            export_name,
+            info_id,
+            comment: None,
+          }));
+        }
         panic!(
           "Cannot get final name for export '{}' of module '{}'",
           join_atom(export_name.iter(), "."),
@@ -2844,6 +2859,34 @@ pub fn is_esm_dep_like(dep: &dyn Dependency) -> bool {
       | DependencyType::EsmExportImport
       | DependencyType::CssImport
   )
+}
+
+/// Returns whether a module has an unknown CommonJS export shape while parsing proved that its
+/// local factory cannot access the export object. This is a concatenation-only signal: callers
+/// must separately reject incoming edges that require the CommonJS wrapper or permit mutation.
+pub fn is_unknown_empty_commonjs_for_concatenation(
+  module: &dyn Module,
+  exports_info: &ExportsInfoData,
+) -> bool {
+  module.module_type().is_js_auto()
+    && !module.build_meta().esm()
+    && module.build_info().strict
+    && module.build_info().module_exports_accessed == Some(false)
+    // Non-empty source replacements are not necessarily walked as part of the original AST. For
+    // example, DefinePlugin may inject `exports` into an otherwise empty module. Empty const
+    // dependencies only remove parsed source, notably the original `"use strict"` directive.
+    && !module.get_presentational_dependencies().is_some_and(|dependencies| {
+      dependencies.iter().any(|dependency| {
+        dependency
+          .as_any()
+          .downcast_ref::<ConstDependency>()
+          .is_some_and(|dependency| !dependency.content.is_empty())
+      })
+    })
+    && matches!(
+      exports_info.other_exports_info().provided(),
+      Some(ExportProvided::Unknown)
+    )
 }
 
 #[derive(Debug)]
