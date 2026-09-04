@@ -2,12 +2,15 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsCacheable, AsOption, AsVec},
 };
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsContextDependency, Context, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ReferencedExport, ReferencedSpecifier, ResourceIdentifier, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  AsContextDependency, ConnectionState, Context, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
+  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  ExportsInfoArtifact, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ReferencedExport, ReferencedSpecifier, ResourceIdentifier, RuntimeSpec,
+  SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource,
+  create_exports_object_referenced, create_no_exports_referenced,
   create_referenced_exports_by_referenced_specifiers,
 };
 
@@ -25,6 +28,7 @@ pub struct CommonJsRequireDependency {
   loc: Option<DependencyLocation>,
   #[cacheable(with=AsOption<AsVec<AsCacheable>>)]
   referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
+  evaluation_only: bool,
   #[cacheable(with=AsOption<AsCacheable>)]
   branch_guard: Option<DependencyBranchGuard>,
   context: Option<Context>,
@@ -47,6 +51,7 @@ impl CommonJsRequireDependency {
       range_expr,
       loc,
       referenced_specifiers: None,
+      evaluation_only: false,
       branch_guard: None,
       context: None,
       resource_identifier: Default::default(),
@@ -75,13 +80,17 @@ impl CommonJsRequireDependency {
   }
 
   pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
-    if referenced_specifiers.is_empty() {
-      // If the referenced specifiers are empty, keep it as default (None), since this dependency can't eliminate by side effects optimization,
-      // so if we set it to Some(vec![]), and the dependency still executes, it will cause runtime error because the exports are all tree shaken.
-      // see test case `tests/rspack-test/configCases/cjs-tree-shaking/side-effects-free`
-      return;
-    }
+    self.evaluation_only = referenced_specifiers.is_empty();
     self.referenced_specifiers = Some(referenced_specifiers);
+  }
+
+  pub fn set_evaluation_only(&mut self) {
+    self.evaluation_only = true;
+    self.referenced_specifiers = Some(Vec::new());
+  }
+
+  pub fn is_evaluation_only(&self) -> bool {
+    self.evaluation_only
   }
 
   pub fn set_branch_guard(&mut self, guard: DependencyBranchGuard) {
@@ -132,6 +141,9 @@ impl Dependency for CommonJsRequireDependency {
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {
+    if self.evaluation_only {
+      return create_no_exports_referenced();
+    }
     if let Some(referenced_specifiers) = &self.referenced_specifiers {
       let module = module_graph
         .get_module_by_dependency_id(&self.id)
@@ -172,7 +184,42 @@ impl ModuleDependency for CommonJsRequireDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    compose_dependency_condition(None, self.branch_guard.as_ref())
+    let condition = self
+      .evaluation_only
+      .then(|| DependencyCondition::new(CommonJsRequireDependencyCondition));
+    compose_dependency_condition(condition, self.branch_guard.as_ref())
+  }
+}
+
+struct CommonJsRequireDependencyCondition;
+
+impl DependencyConditionFn for CommonJsRequireDependencyCondition {
+  fn get_connection_state(
+    &self,
+    connection: &ModuleGraphConnection,
+    _runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
+  ) -> ConnectionState {
+    let module_identifier = *connection.module_identifier();
+    if let Some(state) =
+      side_effects_state_artifact.module_evaluation_side_effects_state(&module_identifier)
+    {
+      return state;
+    }
+    if let Some(module) = module_graph.module_by_identifier(&module_identifier) {
+      module.get_side_effects_connection_state(
+        module_graph,
+        module_graph_cache,
+        side_effects_state_artifact,
+        &mut IdentifierSet::default(),
+        &mut IdentifierMap::default(),
+      )
+    } else {
+      ConnectionState::Active(true)
+    }
   }
 }
 
@@ -208,6 +255,27 @@ impl DependencyTemplate for CommonJsRequireDependencyTemplate {
       .expect(
         "CommonJsRequireDependencyTemplate should only be used for CommonJsRequireDependency",
       );
+
+    if dep.evaluation_only {
+      let compilation = code_generatable_context.compilation;
+      let module_graph = compilation.get_module_graph();
+      if let Some(connection) = module_graph.connection_by_dependency_id(&dep.id)
+        && !connection.is_target_active(
+          module_graph,
+          code_generatable_context.runtime,
+          &compilation.module_graph_cache_artifact,
+          &compilation
+            .build_module_graph_artifact
+            .side_effects_state_artifact,
+          &compilation.exports_info_artifact,
+        )
+      {
+        if let Some(range) = dep.range_expr {
+          source.replace(range.start, range.end, "0".into(), None);
+        }
+        return;
+      }
+    }
 
     source.replace(
       dep.range.start,
