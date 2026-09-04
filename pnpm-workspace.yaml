@@ -144,7 +144,7 @@ catalog:
   'source-map-loader': '^5.0.0'
   'style-loader': '^4.0.0'
   'tailwindcss': '^4.3.3'
-  'terser': '5.50.0'
+  'terser': '5.51.2'
   'terser-webpack-plugin': '^5.6.1'
   'tinypool': '^2.1.2'
   'toml': '^5.0.0'

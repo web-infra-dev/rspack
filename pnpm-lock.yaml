@@ -380,8 +380,8 @@ catalogs:
       specifier: ^4.3.3
       version: 4.3.3
     terser:
-      specifier: 5.50.0
-      version: 5.50.0
+      specifier: 5.51.2
+      version: 5.51.2
     terser-webpack-plugin:
       specifier: ^5.6.1
       version: 5.6.1
@@ -1166,7 +1166,7 @@ importers:
         version: 4.0.0
       terser:
         specifier: 'catalog:'
-        version: 5.50.0
+        version: 5.51.2
       terser-webpack-plugin:
         specifier: 'catalog:'
         version: 5.6.1(postcss@8.5.26)
@@ -7195,8 +7195,8 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
-  terser@5.50.0:
-    resolution: {integrity: sha512-CN9BVxWhgS/hRxtUMjtC2uRWSTcSfQFHMDWma6sKKfIivCD91sM+FOPfvwoaRMqCSrUpe1nv3jDamd9eEQ4y+w==}
+  terser@5.51.2:
+    resolution: {integrity: sha512-bWnjSNscmuI+GJze6ZupnHP8G/cTcsJF+bXCeQknk2SHQsgbNJnLrqiH9jZ2W4STPVXH2mDKKRX3iwPhc9Cn/Q==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -11685,7 +11685,7 @@ snapshots:
       entities: 4.5.0
       param-case: 3.0.4
       relateurl: 0.2.7
-      terser: 5.50.0
+      terser: 5.51.2
 
   html-rspack-plugin@6.1.9(@rspack/core@packages+rspack):
     dependencies:
@@ -13967,7 +13967,7 @@ snapshots:
       commander: 2.20.3
       source-map-support: 0.5.21
 
-  terser@5.50.0:
+  terser@5.51.2:
     dependencies:
       '@jridgewell/source-map': 0.3.11
       acorn: 8.18.0
