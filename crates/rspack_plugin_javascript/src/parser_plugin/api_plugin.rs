@@ -23,7 +23,7 @@ use crate::{
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
     HookMemberExpression, Identifier, JavascriptParser, Statement, VariableDeclaration,
-    create_traceable_error, expr_name,
+    create_traceable_error, expr_name, iter_arguments,
   },
 };
 
@@ -370,12 +370,7 @@ pub(crate) fn import_meta_runtime_api_call(
     call_expr.callee(ast).span(ast).into(),
     api.runtime_global,
   )));
-  parser.walk_arguments(
-    call_expr
-      .arguments(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id)),
-  );
+  parser.walk_arguments(iter_arguments(ast, call_expr.arguments(ast)));
   Some(true)
 }
 
@@ -821,13 +816,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       None,
     );
     if handled.is_some() {
-      if preserve_require_receiver
-        && let Some(first_arg) = expr
-          .arguments(ast)
-          .iter()
-          .next()
-          .map(|id| ast.get_node_in_sub_range(id))
-      {
+      if preserve_require_receiver && let Some(first_arg) = expr.arguments(ast).get_node(ast, 0) {
         parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
           RuntimeGlobals::REQUIRE,
         )));
@@ -842,12 +831,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
           format!("{}, ", parser.parser_runtime_requirements.require).into(),
         )));
       }
-      parser.walk_arguments(
-        expr
-          .arguments(ast)
-          .iter()
-          .map(|id| ast.get_node_in_sub_range(id)),
-      );
+      parser.walk_arguments(iter_arguments(ast, expr.arguments(ast)));
     }
     handled
   }
@@ -958,14 +942,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     for_name: &str,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
-    let arguments = call_expr
-      .arguments(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
+    let arguments = call_expr.arguments(ast);
     if for_name == API_IS_INCLUDED
       && arguments.len() == 1
-      && let ArgumentData::Expr(argument) = ast.argument_data(arguments[0])
+      && let Some(ArgumentData::Expr(argument)) = arguments
+        .get_node(ast, 0)
+        .map(|argument| ast.argument_data(argument))
     {
       let request = parser.evaluate_expression(argument);
       if request.is_string() {

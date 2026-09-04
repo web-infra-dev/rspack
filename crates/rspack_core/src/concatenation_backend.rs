@@ -622,10 +622,10 @@ fn analyze_identifiers(
   }
 
   let ast = parse_return.ast;
-  let semantic = resolver(&ast);
-  let module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
-  let global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
-  let identifiers = collect_ident(&ast, &semantic);
+  let name_resolver = resolver(&ast);
+  let module_ctxt = SyntaxContext::from_u32(name_resolver.top_level_scope_id().raw());
+  let global_ctxt = SyntaxContext::from_u32(name_resolver.unresolved_scope_id().raw());
+  let identifiers = collect_ident(&ast, &name_resolver);
   Ok(ConcatenatedModuleIdentifierAnalysis {
     module_ctxt,
     global_ctxt,
@@ -634,12 +634,19 @@ fn analyze_identifiers(
 }
 
 /// Collects the identifier occurrences needed by concatenated-module renaming.
+/// `JsNameResolver` resolves any supplied symbol but does not expose an iterator
+/// over those symbols. This visitor only enumerates the legacy collector's
+/// occurrences and records shorthand/class-expression metadata; all scope
+/// resolution still comes directly from `JsNameResolver`.
 /// The returned records own their strings and spans so SWC Next arena handles
 /// never escape this analysis boundary.
-fn collect_ident(ast: &Ast<'_>, semantic: &JsNameResolver<'_>) -> Vec<NewConcatenatedModuleIdent> {
-  struct IdentCollector<'a, 'semantic> {
+fn collect_ident(
+  ast: &Ast<'_>,
+  name_resolver: &JsNameResolver<'_>,
+) -> Vec<NewConcatenatedModuleIdent> {
+  struct IdentCollector<'a, 'resolver> {
     ast: &'a Ast<'a>,
-    semantic: &'semantic JsNameResolver<'a>,
+    name_resolver: &'resolver JsNameResolver<'a>,
     ids: Vec<NewConcatenatedModuleIdent>,
     shorthand_binding: Option<BindingIdentifier>,
     skipped_class_expression_binding: Option<BindingIdentifier>,
@@ -678,7 +685,7 @@ fn collect_ident(ast: &Ast<'_>, semantic: &JsNameResolver<'_>) -> Vec<NewConcate
         self.ast.get_utf8(node.name(self.ast)),
         node.span(self.ast),
         self
-          .semantic
+          .name_resolver
           .symbol_scope(SymbolNode::BindingIdentifier(node)),
         shorthand,
         is_class_expr_with_ident,
@@ -690,7 +697,7 @@ fn collect_ident(ast: &Ast<'_>, semantic: &JsNameResolver<'_>) -> Vec<NewConcate
         self.ast.get_utf8(node.name(self.ast)),
         node.span(self.ast),
         self
-          .semantic
+          .name_resolver
           .symbol_scope(SymbolNode::IdentifierReference(node)),
         shorthand,
         false,
@@ -702,7 +709,7 @@ fn collect_ident(ast: &Ast<'_>, semantic: &JsNameResolver<'_>) -> Vec<NewConcate
         self.ast.get_utf8(node.name(self.ast)),
         node.span(self.ast),
         self
-          .semantic
+          .name_resolver
           .symbol_scope(SymbolNode::LabelIdentifier(node)),
         false,
         false,
@@ -714,7 +721,7 @@ fn collect_ident(ast: &Ast<'_>, semantic: &JsNameResolver<'_>) -> Vec<NewConcate
         self.ast.get_utf8(node.name(self.ast)),
         node.span(self.ast),
         self
-          .semantic
+          .name_resolver
           .symbol_scope(SymbolNode::ModuleExportName(node)),
         false,
         false,
@@ -725,7 +732,9 @@ fn collect_ident(ast: &Ast<'_>, semantic: &JsNameResolver<'_>) -> Vec<NewConcate
       self.push(
         self.ast.get_utf8(node.name(self.ast)),
         node.span(self.ast),
-        self.semantic.symbol_scope(SymbolNode::JsxIdentifier(node)),
+        self
+          .name_resolver
+          .symbol_scope(SymbolNode::JsxIdentifier(node)),
         false,
         false,
       );
@@ -832,7 +841,7 @@ fn collect_ident(ast: &Ast<'_>, semantic: &JsNameResolver<'_>) -> Vec<NewConcate
 
   let mut collector = IdentCollector {
     ast,
-    semantic,
+    name_resolver,
     ids: Vec::new(),
     shorthand_binding: None,
     skipped_class_expression_binding: None,

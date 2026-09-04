@@ -9,7 +9,10 @@ mod eval_source;
 mod eval_tpl_expr;
 mod eval_unary_expr;
 
+use std::fmt;
+
 use bitflags::bitflags;
+use cow_utils::CowUtils;
 use num_bigint::BigInt;
 use rspack_core::{DependencyId, DependencyRange};
 use swc_next_ecma_ast::{Expr, Span};
@@ -34,6 +37,35 @@ type Bigint = num_bigint::BigInt;
 // type Array<'a> = &'a ast::ArrayLit;
 type String = std::string::String;
 type Regexp = (String, String); // (expr, flags)
+
+/// Parse the source spelling stored by SWC Next for a JavaScript BigInt literal.
+///
+/// The AST keeps radix prefixes and numeric separators while omitting the trailing
+/// `n`, whereas `num_bigint::BigInt`'s `FromStr` implementation accepts decimal
+/// digits only. Decode the JavaScript spelling once and reuse it for evaluation
+/// and property-key normalization.
+pub(crate) fn parse_bigint_literal(raw: &str) -> Option<BigInt> {
+  let digits = raw.cow_replace('_', "");
+  let (digits, radix) = if let Some(digits) = digits
+    .strip_prefix("0x")
+    .or_else(|| digits.strip_prefix("0X"))
+  {
+    (digits, 16)
+  } else if let Some(digits) = digits
+    .strip_prefix("0o")
+    .or_else(|| digits.strip_prefix("0O"))
+  {
+    (digits, 8)
+  } else if let Some(digits) = digits
+    .strip_prefix("0b")
+    .or_else(|| digits.strip_prefix("0B"))
+  {
+    (digits, 2)
+  } else {
+    (digits.as_ref(), 10)
+  };
+  BigInt::parse_bytes(digits.as_bytes(), radix)
+}
 
 #[derive(Debug, Clone)]
 struct IdentifierData {
@@ -109,11 +141,27 @@ enum Payload<'a> {
   Unknown,
 }
 
+#[derive(Clone, Copy)]
+struct EvaluatedExpression {
+  expression: Expr,
+  /// Synthetic expressions are handles into a separately parsed flat AST.
+  /// Ordinary expressions use the parser's current AST and leave this empty.
+  ast: Option<usize>,
+}
+
+impl fmt::Debug for EvaluatedExpression {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("EvaluatedExpression")
+      .field("expression", &self.expression)
+      .field("has_synthetic_ast", &self.ast.is_some())
+      .finish()
+  }
+}
+
 #[derive(Debug, Clone)]
 pub struct BasicEvaluatedExpression<'a> {
   // The handle is meaningful only with the parser-owned AST used for this evaluation.
-  // Synthetic expression evaluation deliberately leaves this empty.
-  expression: Option<Expr>,
+  expression: Option<EvaluatedExpression>,
   payload: Payload<'a>,
   range: Option<DependencyRange>,
   falsy: bool,
@@ -686,16 +734,33 @@ impl<'a> BasicEvaluatedExpression<'a> {
   }
 
   pub fn set_expression(&mut self, expression: Option<Expr>) {
-    self.expression = expression;
+    self.set_expression_with_ast(expression, None);
   }
 
   pub fn with_expression(mut self, expression: Option<Expr>) -> Self {
-    self.expression = expression;
+    self.set_expression(expression);
     self
   }
 
   pub fn expression(&self) -> Option<Expr> {
-    self.expression
+    self.expression.map(|expression| expression.expression)
+  }
+
+  pub(crate) fn expression_ast(&self) -> Option<usize> {
+    self.expression.and_then(|expression| expression.ast)
+  }
+
+  pub(crate) fn with_expression_ast(
+    mut self,
+    expression: Option<Expr>,
+    ast: Option<usize>,
+  ) -> Self {
+    self.set_expression_with_ast(expression, ast);
+    self
+  }
+
+  fn set_expression_with_ast(&mut self, expression: Option<Expr>, ast: Option<usize>) {
+    self.expression = expression.map(|expression| EvaluatedExpression { expression, ast });
   }
 }
 

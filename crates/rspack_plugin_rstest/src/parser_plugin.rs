@@ -16,12 +16,12 @@ use rspack_plugin_javascript::{
   },
   visitors::{
     HookMemberExpression, Identifier, JavascriptParser, Statement, VariableDeclaration,
-    create_traceable_error, expr_name,
+    create_traceable_error, expr_name, iter_arguments,
   },
 };
 use rspack_util::{SpanExt, json_stringify_str, swc::get_swc_next_comments};
 use swc_next_ecma_ast::{
-  Argument, Ast, CallExpression, ChainExpression, Expr, ExprData, GetSpan, IdentifierName,
+  Ast, CallExpression, ChainExpression, Expr, ExprData, GetSpan, IdentifierName,
   IdentifierReference, ImportDeclaration, ImportExpression, PropertyKeyData, Span, UnaryExpression,
   VariableDeclarator,
 };
@@ -48,14 +48,6 @@ pub(crate) const MOCK_TARGET_REQUEST_PREFIX: &str = "\0rstest_mock_target:\0";
 enum ModulePathType {
   DirName,
   FileName,
-}
-
-fn collect_arguments(ast: &Ast<'_>, call: CallExpression) -> Vec<Argument> {
-  call
-    .arguments(ast)
-    .iter()
-    .map(|id| ast.get_node_in_sub_range(id))
-    .collect()
 }
 
 fn string_literal_value(ast: &Ast<'_>, expr: Expr) -> Option<String> {
@@ -165,26 +157,31 @@ impl RstestParserPlugin {
       return None;
     }
 
-    let args = collect_arguments(ast, call_expr);
+    let args = call_expr.arguments(ast);
     if !(1..=2).contains(&args.len()) {
       return None;
     }
 
-    let first_arg = *args.first()?;
+    let first_arg = args.get_node(ast, 0)?;
     if first_arg.is_spread_element(ast)
       || self.has_ignore_comment(parser, call_expr.span(ast), first_arg.span(ast))
     {
       return None;
     }
 
-    if args.get(1).is_some_and(|arg| arg.is_spread_element(ast)) {
+    if args
+      .get_node(ast, 1)
+      .is_some_and(|arg| arg.is_spread_element(ast))
+    {
       return None;
     }
 
     let resource_path = parser.resource_data.path()?;
     let origin_path = resource_path.as_str().to_string();
 
-    let last_arg = args.last().expect("args has at least one element");
+    let last_arg = args
+      .get_node(ast, args.len() - 1)
+      .expect("args has at least one element");
     parser.add_presentational_dependency(Arc::new(RstestRequireResolveOriginDependency::new(
       call_expr.callee(ast).span(ast).into(),
       last_arg.span(ast).real_hi(),
@@ -193,7 +190,7 @@ impl RstestParserPlugin {
 
     // Returning `Some(true)` short-circuits the default walker for this call,
     // so preserve dependency collection for nested expressions in arguments.
-    parser.walk_arguments(args.into_iter());
+    parser.walk_arguments(iter_arguments(ast, args));
     Some(true)
   }
 
@@ -214,10 +211,10 @@ impl RstestParserPlugin {
     call_expr: CallExpression,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
-    let args = collect_arguments(ast, call_expr);
+    let args = call_expr.arguments(ast);
     match args.len() {
       1 => {
-        let first_arg = args[0];
+        let first_arg = args.get_node(ast, 0).expect("call has one argument");
         if let Some(first_arg_expr) = first_arg.as_expr(ast)
           && let Some(value) = string_literal_value(ast, first_arg_expr)
         {
@@ -269,10 +266,10 @@ impl RstestParserPlugin {
     call_expr: CallExpression,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
-    let args = collect_arguments(ast, call_expr);
+    let args = call_expr.arguments(ast);
     match args.len() {
       1 => {
-        let first_arg = args[0];
+        let first_arg = args.get_node(ast, 0).expect("call has one argument");
         if let Some(first_arg_expr) = first_arg.as_expr(ast)
           && let Some(value) = string_literal_value(ast, first_arg_expr)
         {
@@ -347,7 +344,7 @@ impl RstestParserPlugin {
     mock_call_expr: CallExpression,
   ) -> Option<String> {
     let ast = parser.ast.ast;
-    let first_arg = collect_arguments(ast, mock_call_expr).into_iter().next()?;
+    let first_arg = mock_call_expr.arguments(ast).get_node(ast, 0)?;
     let first_arg_expr = first_arg.as_expr(ast)?;
 
     if let ExprData::ImportExpression(import_call) = ast.expr_data(first_arg_expr) {
@@ -376,10 +373,10 @@ impl RstestParserPlugin {
     test_api_import_source_order: Option<i32>,
   ) {
     let ast = parser.ast.ast;
-    let args = collect_arguments(ast, call_expr);
+    let args = call_expr.arguments(ast);
     match args.len() {
       1 => {
-        let first_arg = args[0];
+        let first_arg = args.get_node(ast, 0).expect("call has one argument");
         let first_arg_lit_str = self.handle_mock_first_arg(parser, call_expr);
 
         if let Some(lit_str) = first_arg_lit_str {
@@ -445,8 +442,8 @@ impl RstestParserPlugin {
       }
       // mock a module
       2 => {
-        let first_arg = args[0];
-        let second_arg = args[1];
+        let first_arg = args.get_node(ast, 0).expect("call has two arguments");
+        let second_arg = args.get_node(ast, 1).expect("call has two arguments");
 
         if first_arg.is_spread_element(ast) || second_arg.is_spread_element(ast) {
           return;
@@ -597,10 +594,10 @@ impl RstestParserPlugin {
     is_esm: bool,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
-    let args = collect_arguments(ast, call_expr);
+    let args = call_expr.arguments(ast);
     match args.len() {
       1 => {
-        let first_arg = args[0];
+        let first_arg = args.get_node(ast, 0).expect("call has one argument");
         if let Some(first_arg_expr) = first_arg.as_expr(ast) {
           if let Some(value) = string_literal_value(ast, first_arg_expr) {
             if let Some(mocked_target) = self.calc_mocked_target(&value).as_std_path().to_str() {
@@ -1011,7 +1008,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
         parser.walk_expression(options);
       }
       if let Some(import_then) = import_then {
-        parser.walk_arguments(collect_arguments(ast, import_then).into_iter());
+        parser.walk_arguments(iter_arguments(ast, import_then.arguments(ast)));
       }
 
       return Some(true);

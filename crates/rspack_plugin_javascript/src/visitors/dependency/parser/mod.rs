@@ -81,7 +81,9 @@ pub(crate) fn member_property_to_atom(ast: &Ast<'_>, expr: Expr) -> Option<Atom>
     ExprData::NumericLiteral(node) => {
       Atom::from(rspack_util::ryu_js::Buffer::new().format(node.value(ast)))
     }
-    ExprData::BigIntLiteral(node) => Atom::from(ast.get_utf8(node.raw(ast))),
+    ExprData::BigIntLiteral(node) => {
+      Atom::from(eval::parse_bigint_literal(ast.get_utf8(node.raw(ast)))?.to_string())
+    }
     ExprData::RegExpLiteral(node) => {
       let pattern = ast.get_utf8(node.pattern(ast));
       let mut flags = ast.get_utf8(node.flags(ast)).chars().collect::<Vec<_>>();
@@ -118,7 +120,9 @@ pub(crate) fn member_property_key_to_atom(ast: &Ast<'_>, key: PropertyKey) -> Op
     PropertyKeyData::NumericLiteral(node) => Some(Atom::from(
       rspack_util::ryu_js::Buffer::new().format(node.value(ast)),
     )),
-    PropertyKeyData::BigIntLiteral(node) => Some(Atom::from(ast.get_utf8(node.raw(ast)))),
+    PropertyKeyData::BigIntLiteral(node) => Some(Atom::from(
+      eval::parse_bigint_literal(ast.get_utf8(node.raw(ast)))?.to_string(),
+    )),
     PropertyKeyData::Expr(expr) => member_property_to_atom(ast, expr),
     PropertyKeyData::IdentifierName(_) | PropertyKeyData::PrivateIdentifier(_) => None,
   }
@@ -437,6 +441,8 @@ pub struct JavascriptParser<'parser> {
   // ===== inputs =======
   pub(crate) source: &'parser str,
   pub ast: &'parser ParsedJavaScriptAst<'parser>,
+  synthetic_asts: Vec<&'parser ParsedJavaScriptAst<'parser>>,
+  active_synthetic_ast: Option<usize>,
   pub parse_meta: ParseMeta,
   pub factory_meta: Option<&'parser FactoryMeta>,
   pub build_meta: &'parser mut BuildMeta,
@@ -619,6 +625,8 @@ impl<'parser> JavascriptParser<'parser> {
     Self {
       last_esm_import_order: 0,
       ast,
+      synthetic_asts: Vec::new(),
+      active_synthetic_ast: None,
       javascript_options,
       source,
       errors,
@@ -1562,10 +1570,44 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn evaluate_expression(&mut self, expr: Expr) -> BasicEvaluatedExpression<'parser> {
     let span = expr.span(self.ast.ast);
     match self.evaluating(expr) {
-      Some(evaluated) => evaluated.with_expression(Some(expr)),
+      Some(evaluated) => evaluated.with_expression_ast(Some(expr), self.active_synthetic_ast),
       None => BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi())
-        .with_expression(Some(expr)),
+        .with_expression_ast(Some(expr), self.active_synthetic_ast),
     }
+  }
+
+  fn add_synthetic_ast(&mut self, ast: &'parser ParsedJavaScriptAst<'parser>) -> usize {
+    let index = self.synthetic_asts.len();
+    self.synthetic_asts.push(ast);
+    index
+  }
+
+  pub(crate) fn evaluate_expression_in_ast(
+    &mut self,
+    expression: Expr,
+    ast: &'parser ParsedJavaScriptAst<'parser>,
+  ) -> BasicEvaluatedExpression<'parser> {
+    let ast = self.add_synthetic_ast(ast);
+    let synthetic_ast = self.synthetic_asts[ast];
+    let previous_ast = std::mem::replace(&mut self.ast, synthetic_ast);
+    let previous_synthetic_ast = self.active_synthetic_ast.replace(ast);
+    let evaluated = self.evaluate_expression(expression);
+    self.active_synthetic_ast = previous_synthetic_ast;
+    self.ast = previous_ast;
+    evaluated
+  }
+
+  pub(crate) fn walk_expression_in_ast(&mut self, expression: Expr, ast: Option<usize>) {
+    let Some(ast) = ast else {
+      self.walk_expression(expression);
+      return;
+    };
+    let synthetic_ast = self.synthetic_asts[ast];
+    let previous_ast = std::mem::replace(&mut self.ast, synthetic_ast);
+    let previous_synthetic_ast = self.active_synthetic_ast.replace(ast);
+    self.walk_expression(expression);
+    self.active_synthetic_ast = previous_synthetic_ast;
+    self.ast = previous_ast;
   }
 
   pub fn evaluate<T: Display>(

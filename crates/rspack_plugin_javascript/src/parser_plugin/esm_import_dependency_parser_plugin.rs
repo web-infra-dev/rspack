@@ -26,7 +26,7 @@ use crate::{
     AllowedMemberTypes, AtomMembers, ExportedVariableInfo, ExpressionExpressionInfo,
     HookMemberExpression, Identifier, JavascriptParser, MemberExpressionInfo, TagInfoData,
     get_non_optional_member_chain_from_expr, get_non_optional_member_chain_from_member,
-    get_non_optional_part,
+    get_non_optional_part, iter_arguments,
   },
 };
 
@@ -392,12 +392,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
     );
 
-    parser.walk_arguments(
-      call_expr
-        .arguments(ast)
-        .iter()
-        .map(|id| ast.get_node_in_sub_range(id)),
-    );
+    parser.walk_arguments(iter_arguments(ast, call_expr.arguments(ast)));
     Some(true)
   }
 

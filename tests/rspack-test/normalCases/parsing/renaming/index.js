@@ -21,6 +21,29 @@ it("should be able to rename require by IIFE", function () {
 	}(require));
 });
 
+it("should walk spread arguments in a direct IIFE", function () {
+	expect(((value) => value)(...require("./spread-direct"))).toBe("direct");
+});
+
+it("should not rename parameters after an IIFE spread argument", function () {
+	(function (first, dirname) {
+		expect(dirname).toBe("not dirname");
+	})(...["first", "not dirname"], __dirname);
+});
+
+it("should walk spread arguments in an IIFE call", function () {
+	expect((function (value) {
+		return value;
+	}).call(null, ...require("./spread-call"))).toBe("call");
+});
+
+it("should walk spread arguments in an IIFE bind", function () {
+	const bound = (function (value) {
+		return value;
+	}).bind(null, ...require("./spread-bind"));
+	expect(bound()).toBe("bind");
+});
+
 it("should be able to rename require by IIFE call", function () {
 	(function (somethingElse, cjsRequire) {
 		expect(cjsRequire("./file")).toBe("ok");
@@ -83,4 +106,3 @@ it("should be able to rename stuff by IIFE call", function () {
 		typeof define !== 'undefined' ? define : null,
 		typeof require !== 'undefined' ? require : null);
 });
-

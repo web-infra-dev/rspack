@@ -5,19 +5,63 @@
 
 use rspack_intern::Atom;
 use swc_next_ecma_ast::{
-  Ast, BindingIdentifier, BlockStatement, BreakStatement, Class, ContinueStatement,
-  DebuggerStatement, DeclData, DoWhileStatement, EmptyStatement,
+  Argument, Ast, BindingIdentifier, BindingPattern, BlockStatement, BreakStatement, Class,
+  ContinueStatement, DebuggerStatement, DeclData, DoWhileStatement, EmptyStatement,
   ExportAllDeclaration as SwcExportAllDeclaration,
   ExportDefaultDeclaration as SwcExportDefaultDeclaration, ExportDefaultDeclarationKindData,
   ExportNamedDeclaration as SwcExportNamedDeclaration, Expr, ExpressionStatement, ForInStatement,
-  ForOfStatement, ForStatement, Function, GetSpan, IfStatement, ImportAttribute, LabeledStatement,
-  ModuleExportName, ModuleExportNameData, ReturnStatement, Span, Stmt, StmtData, SwitchStatement,
-  ThrowStatement, TryStatement, TypedSubRange, VariableDeclaration as SwcVariableDeclaration,
-  VariableDeclarator, VariableKind, WhileStatement, WithStatement,
+  ForOfStatement, ForStatement, FormalParameters, Function, GetSpan, IfStatement, ImportAttribute,
+  LabeledStatement, ModuleExportName, ModuleExportNameData, ReturnStatement, Span, Stmt, StmtData,
+  SwitchStatement, ThrowStatement, TryStatement, TypedSubRange,
+  VariableDeclaration as SwcVariableDeclaration, VariableDeclarator, VariableKind, WhileStatement,
+  WithStatement,
 };
 
 fn wtf8_to_atom(value: &swc_next_allocator::wtf8::Wtf8) -> Atom {
   Atom::from(value.to_string_lossy().as_ref())
+}
+
+/// Iterate call arguments without materializing flat-AST handles into a temporary `Vec`.
+pub fn iter_arguments<'a>(
+  ast: &'a Ast<'_>,
+  arguments: TypedSubRange<Argument>,
+) -> impl DoubleEndedIterator<Item = Argument> + 'a {
+  arguments
+    .iter()
+    .map(move |id| ast.get_node_in_sub_range(id))
+}
+
+/// Iterate the binding patterns represented by a function's formal parameters.
+///
+/// SWC Next stores ordinary parameters and the rest parameter separately. Keeping
+/// this detail here avoids reproducing the same reconstruction in parser plugins.
+pub fn formal_parameter_patterns<'a>(
+  ast: &'a Ast<'_>,
+  params: FormalParameters,
+) -> impl Iterator<Item = BindingPattern> + 'a {
+  let rest = params.rest(ast).map(BindingPattern::BindingRestElement);
+  params
+    .items(ast)
+    .iter()
+    .filter_map(move |id| ast.get_node_in_sub_range(id).as_formal_parameter(ast))
+    .filter_map(move |parameter| parameter.pattern(ast).as_binding_pattern(ast))
+    .chain(rest)
+}
+
+/// Returns whether all formal parameters are plain identifier bindings.
+///
+/// This intentionally rejects rest parameters and destructuring. Those cases
+/// need their parameter initialization semantics to be analyzed separately.
+pub fn formal_parameters_are_simple_identifiers(ast: &Ast<'_>, params: FormalParameters) -> bool {
+  params.rest(ast).is_none()
+    && params.items(ast).iter().all(|id| {
+      ast
+        .get_node_in_sub_range(id)
+        .as_formal_parameter(ast)
+        .and_then(|parameter| parameter.pattern(ast).as_binding_pattern(ast))
+        .and_then(|pattern| pattern.as_binding_identifier(ast))
+        .is_some()
+    })
 }
 
 #[derive(Debug, Clone, Copy)]

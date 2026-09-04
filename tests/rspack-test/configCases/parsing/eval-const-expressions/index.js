@@ -10,6 +10,10 @@ it("should evaluate basic constant expressions like webpack", () => {
 it("should evaluate bigint and arithmetic operators", () => {
 	// BigInt addition
 	if (1n + 2n !== 3n) require("./non-existent-module");
+	if (0x10n !== 16n) require("./non-existent-module");
+	if (0b10n !== 2n) require("./non-existent-module");
+	if (0o10n !== 8n) require("./non-existent-module");
+	if (1_000n !== 1000n) require("./non-existent-module");
 
 	// Numeric Mod
 	if (5 % 2 !== 1) require("./non-existent-module");
@@ -33,4 +37,3 @@ it("should evaluate typeof and keep side effects for wrapped expressions", () =>
 		throw new Error("sideEffect should be called exactly once");
 	}
 });
-

@@ -22,7 +22,7 @@ use crate::{
   Atom, JavascriptParserPlugin,
   dependency::ESMImportSideEffectDependency,
   parser_plugin::esm_import_dependency_parser_plugin::{ESM_SPECIFIER_TAG, ESMSpecifierData},
-  visitors::{JavascriptParser, Statement, TagInfoData},
+  visitors::{JavascriptParser, Statement, TagInfoData, formal_parameters_are_simple_identifiers},
 };
 
 static PURE_COMMENTS: LazyLock<regex::Regex> = LazyLock::new(|| {
@@ -823,29 +823,6 @@ fn identifier_expression_name(ast: &Ast<'_>, expression: Expr) -> Option<Atom> {
   Some(atom_from_identifier(ast, identifier))
 }
 
-fn parameters_are_simple_identifiers(ast: &Ast<'_>, function: Function) -> bool {
-  let parameters = function.params(ast);
-  if parameters.rest(ast).is_some() {
-    return false;
-  }
-  parameters.items(ast).iter().all(|slot| {
-    let item = ast.get_node_in_sub_range(slot);
-    let FormalParameterItemData::FormalParameter(parameter) = ast.formal_parameter_item_data(item)
-    else {
-      return false;
-    };
-    let FormalParameterPatternData::BindingPattern(pattern) =
-      ast.formal_parameter_pattern_data(parameter.pattern(ast))
-    else {
-      return false;
-    };
-    matches!(
-      ast.binding_pattern_data(pattern),
-      BindingPatternData::BindingIdentifier(_)
-    )
-  })
-}
-
 fn is_pure_call_expression(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
@@ -1515,7 +1492,7 @@ fn is_side_effects_free_function_body(
   function: Function,
 ) -> bool {
   let ast = parser.ast.ast;
-  if !parameters_are_simple_identifiers(ast, function) {
+  if !formal_parameters_are_simple_identifiers(ast, function.params(ast)) {
     return false;
   }
   let statements = function
@@ -1535,26 +1512,7 @@ fn is_side_effects_free_arrow_body(
   arrow: ArrowFunctionExpression,
 ) -> bool {
   let ast = parser.ast.ast;
-  let parameters = arrow.params(ast);
-  if parameters.rest(ast).is_some()
-    || !parameters.items(ast).iter().all(|slot| {
-      let item = ast.get_node_in_sub_range(slot);
-      let FormalParameterItemData::FormalParameter(parameter) =
-        ast.formal_parameter_item_data(item)
-      else {
-        return false;
-      };
-      let FormalParameterPatternData::BindingPattern(pattern) =
-        ast.formal_parameter_pattern_data(parameter.pattern(ast))
-      else {
-        return false;
-      };
-      matches!(
-        ast.binding_pattern_data(pattern),
-        BindingPatternData::BindingIdentifier(_)
-      )
-    })
-  {
+  if !formal_parameters_are_simple_identifiers(ast, arrow.params(ast)) {
     return false;
   }
   match ast.arrow_function_body_data(arrow.body(ast)) {

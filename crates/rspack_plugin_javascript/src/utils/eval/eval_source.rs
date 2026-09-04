@@ -73,14 +73,10 @@ pub fn eval_source<'parser>(
         program,
       });
 
-      let module_ast = std::mem::replace(&mut parser.ast, fragment_ast);
-      let mut evaluated = parser.evaluate_expression(expression);
-      parser.ast = module_ast;
-
-      // The expression handle indexes the fragment AST and must not escape
-      // after the parser switches back to the module AST.
-      evaluated.set_expression(None);
-      Some(evaluated)
+      // Flat-AST expressions are handles rather than self-contained nodes.
+      // Evaluate while the parser tracks the owning fragment, matching the
+      // legacy owned-expression behavior without rewriting nested owners.
+      Some(parser.evaluate_expression_in_ast(expression, fragment_ast))
     }
   }
 }

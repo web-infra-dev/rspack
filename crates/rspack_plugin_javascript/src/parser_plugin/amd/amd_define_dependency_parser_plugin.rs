@@ -9,8 +9,7 @@ use rspack_intern::Atom;
 use rspack_util::SpanExt;
 use rustc_hash::FxHashMap;
 use swc_next_ecma_ast::{
-  ArrowFunctionBodyData, Ast, BindingPattern, CallExpression, Expr, ExprData, FormalParameters,
-  GetSpan, PropertyKeyData,
+  ArrowFunctionBodyData, Ast, CallExpression, Expr, ExprData, GetSpan, PropertyKeyData,
 };
 
 use crate::{
@@ -25,24 +24,11 @@ use crate::{
   utils::eval::BasicEvaluatedExpression,
   visitors::{
     ExportedVariableInfo, JavascriptParser, PatRef, context_reg_exp, create_context_dependency,
+    formal_parameter_patterns, iter_arguments,
   },
 };
 
 pub struct AMDDefineDependencyParserPlugin;
-
-fn formal_parameter_patterns(ast: &Ast<'_>, params: FormalParameters) -> Vec<BindingPattern> {
-  let mut patterns = params
-    .items(ast)
-    .iter()
-    .map(|id| ast.get_node_in_sub_range(id))
-    .filter_map(|item| item.as_formal_parameter(ast))
-    .filter_map(|parameter| parameter.pattern(ast).as_binding_pattern(ast))
-    .collect::<Vec<_>>();
-  if let Some(rest) = params.rest(ast) {
-    patterns.push(BindingPattern::BindingRestElement(rest));
-  }
-  patterns
-}
 
 fn is_unbound_function_expression(ast: &Ast<'_>, expr: Expr) -> bool {
   expr.as_function(ast).is_some() || expr.as_arrow_function_expression(ast).is_some()
@@ -286,11 +272,7 @@ impl AMDDefineDependencyParserPlugin {
     call_expr: CallExpression,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
-    let args = call_expr
-      .arguments(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
+    let args = call_expr.arguments(ast);
     let mut array: Option<Expr> = None;
     let mut func: Option<Expr> = None;
     let mut obj: Option<Expr> = None;
@@ -299,7 +281,7 @@ impl AMDDefineDependencyParserPlugin {
     match args.len() {
       1 => {
         // We don't support spread syntax in `define()`.
-        let first_arg = args[0].as_expr(ast)?;
+        let first_arg = args.get_node(ast, 0)?.as_expr(ast)?;
 
         if is_callable(ast, first_arg) {
           // define(f() {…})
@@ -315,8 +297,8 @@ impl AMDDefineDependencyParserPlugin {
         }
       }
       2 => {
-        let first_arg = args[0].as_expr(ast)?;
-        let second_arg = args[1].as_expr(ast)?;
+        let first_arg = args.get_node(ast, 0)?.as_expr(ast)?;
+        let second_arg = args.get_node(ast, 1)?.as_expr(ast)?;
 
         if is_literal(ast, first_arg) {
           // define("…", …)
@@ -355,9 +337,9 @@ impl AMDDefineDependencyParserPlugin {
       3 => {
         // define("…", […], …)
 
-        let first_arg = args[0].as_expr(ast)?;
-        let second_arg = args[1].as_expr(ast)?;
-        let third_arg = args[2].as_expr(ast)?;
+        let first_arg = args.get_node(ast, 0)?.as_expr(ast)?;
+        let second_arg = args.get_node(ast, 1)?.as_expr(ast)?;
+        let third_arg = args.get_node(ast, 2)?.as_expr(ast)?;
 
         if !is_literal(ast, first_arg) {
           return None;
@@ -402,13 +384,11 @@ impl AMDDefineDependencyParserPlugin {
         fn_params = match ast.expr_data(func) {
           ExprData::Function(normal_func) => Some(
             formal_parameter_patterns(ast, normal_func.params(ast))
-              .into_iter()
               .map(PatRef::Borrowed)
               .collect(),
           ),
           ExprData::ArrowFunctionExpression(arrow_func) => Some(
             formal_parameter_patterns(ast, arrow_func.params(ast))
-              .into_iter()
               .map(PatRef::Borrowed)
               .collect(),
           ),
@@ -428,7 +408,6 @@ impl AMDDefineDependencyParserPlugin {
 
         fn_params = Some(
           formal_parameter_patterns(ast, object.params(ast))
-            .into_iter()
             .map(PatRef::Borrowed)
             .collect(),
         );
@@ -527,7 +506,7 @@ impl AMDDefineDependencyParserPlugin {
           let params = formal_parameter_patterns(ast, func_expr.params(ast));
           parser.in_function_scope(
             true,
-            params.into_iter().map(PatRef::Borrowed).filter(|pat| {
+            params.map(PatRef::Borrowed).filter(|pat| {
               pat
                 .as_pat()
                 .as_binding_identifier(ast)
@@ -549,12 +528,10 @@ impl AMDDefineDependencyParserPlugin {
           );
         }
 
-        parser.walk_arguments(
-          call_expr
-            .arguments(parser.ast.ast)
-            .iter()
-            .map(|id| parser.ast.ast.get_node_in_sub_range(id)),
-        );
+        parser.walk_arguments(iter_arguments(
+          parser.ast.ast,
+          call_expr.arguments(parser.ast.ast),
+        ));
       }
     } else if let Some(expr) = func {
       parser.walk_expression(expr);

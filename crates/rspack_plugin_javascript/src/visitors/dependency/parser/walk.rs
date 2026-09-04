@@ -9,7 +9,7 @@ use super::{
   TopLevelScope,
   estree::{
     ClassDeclOrExpr, ExportDefaultDeclaration, MaybeNamedClassDecl, MaybeNamedFunctionDecl,
-    Statement,
+    Statement, formal_parameter_patterns, iter_arguments,
   },
   object_and_members_to_name,
 };
@@ -1253,12 +1253,7 @@ impl JavascriptParser<'_> {
       }
     }
     self.walk_expression(callee);
-    self.walk_arguments(
-      expr
-        .arguments(ast)
-        .iter()
-        .map(|id| ast.get_node_in_sub_range(id)),
-    );
+    self.walk_arguments(iter_arguments(ast, expr.arguments(ast)));
   }
 
   fn walk_meta_property(&mut self, expr: MetaProperty) {
@@ -1513,20 +1508,6 @@ impl JavascriptParser<'_> {
     }
   }
 
-  fn formal_parameter_patterns(ast: &Ast<'_>, params: FormalParameters) -> Vec<BindingPattern> {
-    let mut patterns = params
-      .items(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .filter_map(|item| item.as_formal_parameter(ast))
-      .filter_map(|parameter| parameter.pattern(ast).as_binding_pattern(ast))
-      .collect::<Vec<_>>();
-    if let Some(rest) = params.rest(ast) {
-      patterns.push(BindingPattern::BindingRestElement(rest));
-    }
-    patterns
-  }
-
   fn simple_parameter_identifiers(
     ast: &Ast<'_>,
     params: FormalParameters,
@@ -1534,17 +1515,8 @@ impl JavascriptParser<'_> {
     if params.rest(ast).is_some() {
       return None;
     }
-    params
-      .items(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .map(|item| {
-        item
-          .as_formal_parameter(ast)?
-          .pattern(ast)
-          .as_binding_pattern(ast)?
-          .as_binding_identifier(ast)
-      })
+    formal_parameter_patterns(ast, params)
+      .map(|pattern| pattern.as_binding_identifier(ast))
       .collect()
   }
 
@@ -1596,8 +1568,8 @@ impl JavascriptParser<'_> {
   fn _walk_iife(
     &mut self,
     expr: Expr,
-    args: impl Iterator<Item = Expr>,
-    current_this: Option<Expr>,
+    args: impl Iterator<Item = Argument>,
+    current_this: Option<Argument>,
   ) {
     fn get_var_name(parser: &mut JavascriptParser, expr: Expr) -> Option<ExportedVariableInfo> {
       if let Some(rename_identifier) = parser.get_rename_identifier(expr)
@@ -1622,12 +1594,36 @@ impl JavascriptParser<'_> {
       None
     }
 
-    let ast = self.ast.ast;
-    let rename_this = current_this.and_then(|this| get_var_name(self, this));
+    fn get_argument_var_name(
+      parser: &mut JavascriptParser,
+      argument: Argument,
+      can_map_parameter: &mut bool,
+    ) -> Option<ExportedVariableInfo> {
+      let ast = parser.ast.ast;
+      match ast.argument_data(argument) {
+        ArgumentData::Expr(expression) if *can_map_parameter => get_var_name(parser, expression),
+        ArgumentData::Expr(expression) => {
+          parser.walk_expression(expression);
+          None
+        }
+        ArgumentData::SpreadElement(spread) => {
+          parser.walk_expression(spread.argument(ast));
+          // A spread contributes an unknown number of arguments. Positional
+          // argument-to-parameter renaming is no longer sound after it.
+          *can_map_parameter = false;
+          None
+        }
+      }
+    }
+
+    let mut can_map_parameter = true;
+    let rename_this =
+      current_this.and_then(|this| get_argument_var_name(self, this, &mut can_map_parameter));
     let variable_info_for_args = args
-      .map(|param| get_var_name(self, param))
+      .map(|argument| get_argument_var_name(self, argument, &mut can_map_parameter))
       .collect::<Vec<_>>();
 
+    let ast = self.ast.ast;
     let mut params = Vec::new();
     let mut scope_params = Vec::new();
     let formal_params = match ast.expr_data(expr) {
@@ -1706,11 +1702,7 @@ impl JavascriptParser<'_> {
   fn walk_call_expression(&mut self, expr: CallExpression) {
     let ast = self.ast.ast;
     let callee = expr.callee(ast);
-    let arguments = expr
-      .arguments(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
+    let arguments = expr.arguments(ast);
 
     if let Some(member) = callee.as_member_expression(ast)
       && let Some(function) = member.object(ast).as_function(ast)
@@ -1719,9 +1711,7 @@ impl JavascriptParser<'_> {
       && !arguments.is_empty()
       && Self::simple_parameter_identifiers(ast, function.params(ast)).is_some()
     {
-      let mut args = arguments
-        .into_iter()
-        .filter_map(|argument| argument.as_expr(ast));
+      let mut args = iter_arguments(ast, arguments);
       let current_this = args.next();
       self._walk_iife(member.object(ast), args, current_this);
       return;
@@ -1734,13 +1724,7 @@ impl JavascriptParser<'_> {
     };
     if direct_params.is_some_and(|params| Self::simple_parameter_identifiers(ast, params).is_some())
     {
-      self._walk_iife(
-        callee,
-        arguments
-          .into_iter()
-          .filter_map(|argument| argument.as_expr(ast)),
-        None,
-      );
+      self._walk_iife(callee, iter_arguments(ast, arguments), None);
       return;
     }
 
@@ -1792,7 +1776,7 @@ impl JavascriptParser<'_> {
           .import_call(self, call, None, Some((&members, true)))
           .unwrap_or_default()
         {
-          self.walk_arguments(arguments.into_iter());
+          self.walk_arguments(iter_arguments(ast, arguments));
           return;
         }
       }
@@ -1847,7 +1831,7 @@ impl JavascriptParser<'_> {
     } else {
       self.walk_expression(callee);
     }
-    self.walk_arguments(arguments.into_iter());
+    self.walk_arguments(iter_arguments(ast, arguments));
   }
 
   fn extract_await_import_member(
@@ -2086,7 +2070,7 @@ impl JavascriptParser<'_> {
 
   fn walk_arrow_function_expression(&mut self, expr: ArrowFunctionExpression) {
     let ast = self.ast.ast;
-    let patterns = Self::formal_parameter_patterns(ast, expr.params(ast));
+    let patterns = formal_parameter_patterns(ast, expr.params(ast)).collect::<Vec<_>>();
     let was_top_level_scope = self.top_level_scope;
     if !matches!(was_top_level_scope, TopLevelScope::False) {
       self.top_level_scope = TopLevelScope::ArrowFunction;
@@ -2161,7 +2145,7 @@ impl JavascriptParser<'_> {
     self.top_level_scope = TopLevelScope::False;
     let ast = self.ast.ast;
     let function = decl.function();
-    let patterns = Self::formal_parameter_patterns(ast, function.params(ast));
+    let patterns = formal_parameter_patterns(ast, function.params(ast)).collect::<Vec<_>>();
     self.in_function_scope(
       true,
       patterns.iter().copied().map(PatRef::Borrowed),
@@ -2174,7 +2158,7 @@ impl JavascriptParser<'_> {
 
   fn walk_function(&mut self, function: Function) {
     let ast = self.ast.ast;
-    for pattern in Self::formal_parameter_patterns(ast, function.params(ast)) {
+    for pattern in formal_parameter_patterns(ast, function.params(ast)) {
       self.walk_pattern(pattern)
     }
     self.walk_function_body(function.body(ast));
@@ -2184,8 +2168,7 @@ impl JavascriptParser<'_> {
     let ast = self.ast.ast;
     let was_top_level = self.top_level_scope;
     self.top_level_scope = TopLevelScope::False;
-    let mut scope_params: Vec<PatRef> = Self::formal_parameter_patterns(ast, expr.params(ast))
-      .into_iter()
+    let mut scope_params: Vec<PatRef> = formal_parameter_patterns(ast, expr.params(ast))
       .map(PatRef::Borrowed)
       .collect();
 
@@ -2346,7 +2329,7 @@ impl JavascriptParser<'_> {
             let was_top_level = this.top_level_scope;
             this.top_level_scope = TopLevelScope::False;
             let function = method.value(ast);
-            let patterns = Self::formal_parameter_patterns(ast, function.params(ast));
+            let patterns = formal_parameter_patterns(ast, function.params(ast)).collect::<Vec<_>>();
             this.in_function_scope(
               true,
               patterns.iter().copied().map(PatRef::Borrowed),

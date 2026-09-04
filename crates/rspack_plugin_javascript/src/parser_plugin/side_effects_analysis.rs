@@ -8,12 +8,13 @@
 // Rspack-specific policies such as `/*#__PURE__*/`, `pureFunctions`, parser hooks, and deferred
 // import checks stay in `side_effects_parser_plugin`.
 use swc_next_ecma_ast::{
-  ArgumentData, Ast, BindingPatternData, Class, ClassElementData, DeclData, Expr, ExprData,
-  FormalParameterItemData, FormalParameterPatternData, Function, MethodDefinitionKind,
-  ObjectPropertyKindData, PropertyKey, PropertyKeyData, PropertyKind, Stmt, StmtData,
-  UnaryOperator, VariableKind,
+  ArgumentData, Ast, Class, ClassElementData, DeclData, Expr, ExprData, Function,
+  MethodDefinitionKind, ObjectPropertyKindData, PropertyKey, PropertyKeyData, PropertyKind, Stmt,
+  StmtData, UnaryOperator, VariableKind,
 };
 use swc_next_ecma_semantic::Semantic;
+
+use crate::visitors::formal_parameters_are_simple_identifiers;
 
 #[derive(Clone, Copy)]
 pub(super) struct SideEffectsContext<'a, 'ast> {
@@ -489,30 +490,8 @@ fn is_pure_new_callee(expression: Expr, ctx: SideEffectsContext<'_, '_>) -> bool
 }
 
 fn is_empty_function(ast: &Ast<'_>, function: Function) -> bool {
-  parameters_are_simple_identifiers(ast, function) && function.body(ast).body(ast).is_empty()
-}
-
-fn parameters_are_simple_identifiers(ast: &Ast<'_>, function: Function) -> bool {
-  let parameters = function.params(ast);
-  if parameters.rest(ast).is_some() {
-    return false;
-  }
-  parameters.items(ast).iter().all(|slot| {
-    let item = ast.get_node_in_sub_range(slot);
-    let FormalParameterItemData::FormalParameter(parameter) = ast.formal_parameter_item_data(item)
-    else {
-      return false;
-    };
-    let FormalParameterPatternData::BindingPattern(pattern) =
-      ast.formal_parameter_pattern_data(parameter.pattern(ast))
-    else {
-      return false;
-    };
-    matches!(
-      ast.binding_pattern_data(pattern),
-      BindingPatternData::BindingIdentifier(_)
-    )
-  })
+  formal_parameters_are_simple_identifiers(ast, function.params(ast))
+    && function.body(ast).body(ast).is_empty()
 }
 
 fn is_pure_string_method(method: &str) -> bool {

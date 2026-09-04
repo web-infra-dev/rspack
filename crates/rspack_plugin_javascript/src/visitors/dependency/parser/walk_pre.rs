@@ -8,7 +8,7 @@ use super::{
 use crate::{
   Atom,
   parser_plugin::JavascriptParserPlugin,
-  utils::eval::BasicEvaluatedExpression,
+  utils::eval::{BasicEvaluatedExpression, parse_bigint_literal},
   visitors::{DestructuringAssignmentProperties, VariableDeclaration, VariableDeclarationKind},
 };
 
@@ -30,7 +30,7 @@ fn eval_property_key<'parser>(
     }
     PropertyKeyData::NumericLiteral(number) => evaluated.set_number(number.value(ast)),
     PropertyKeyData::BigIntLiteral(bigint) => {
-      if let Ok(value) = ast.get_utf8(bigint.raw(ast)).parse() {
+      if let Some(value) = parse_bigint_literal(ast.get_utf8(bigint.raw(ast))) {
         evaluated.set_bigint(value);
       }
     }

@@ -9,7 +9,7 @@ use rspack_util::{SpanExt, swc::get_swc_next_comments};
 use rustc_hash::FxHashMap;
 use swc_next_ecma_ast::{
   ArrowFunctionBodyData, BindingPattern, BindingPatternData, CallExpression, Expr, ExprData,
-  FormalParameters, GetSpan, ImportExpression, ObjectPattern, Span, VariableDeclarator,
+  GetSpan, ImportExpression, ObjectPattern, Span, VariableDeclarator,
 };
 
 use super::{JavascriptParserPlugin, import_phase::get_import_phase};
@@ -24,7 +24,7 @@ use crate::{
     ContextModuleScanResult, DestructuringAssignmentProperties, HookMemberExpression, Identifier,
     JavascriptParser, PatRef, TagInfoData, TopLevelScope, VariableDeclaration,
     VariableDeclarationKind, context_reg_exp, create_context_dependency, create_traceable_error,
-    get_non_optional_part, parse_order_string,
+    formal_parameter_patterns, get_non_optional_part, iter_arguments, parse_order_string,
   },
 };
 
@@ -386,12 +386,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           && !direct_import,
       );
     let ast = parser.ast.ast;
-    parser.walk_arguments(
-      expr
-        .arguments(ast)
-        .iter()
-        .map(|id| ast.get_node_in_sub_range(id)),
-    );
+    parser.walk_arguments(iter_arguments(ast, expr.arguments(ast)));
     Some(true)
   }
 
@@ -661,25 +656,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
     if let Some(import_then) = import_then {
       if let Some(ns_obj) = referenced_fulfilled_ns_obj {
         let ast = parser.ast.ast;
-        let arguments = import_then
-          .arguments(ast)
-          .iter()
-          .map(|id| ast.get_node_in_sub_range(id))
-          .collect::<Vec<_>>();
+        let arguments = import_then.arguments(ast);
         let fulfilled_callback = arguments
-          .first()
+          .get_node(ast, 0)
           .and_then(|argument| argument.as_expr(ast))
           .expect("fulfilled callback should be an expression");
         walk_import_then_fulfilled_callback(parser, node, fulfilled_callback, ns_obj);
-        parser.walk_arguments(arguments.into_iter().skip(1));
+        parser.walk_arguments(iter_arguments(ast, arguments).skip(1));
       } else {
         let ast = parser.ast.ast;
-        parser.walk_arguments(
-          import_then
-            .arguments(ast)
-            .iter()
-            .map(|id| ast.get_node_in_sub_range(id)),
-        );
+        parser.walk_arguments(iter_arguments(ast, import_then.arguments(ast)));
       }
     }
 
@@ -756,19 +742,6 @@ fn get_attributes_from_import_expr(
   get_value_by_obj_prop(ast, options, "with")
     .and_then(|expr| expr.as_object_expression(ast))
     .map(|object| get_attributes(ast, object))
-}
-
-fn formal_parameter_patterns<'a>(
-  ast: &'a swc_next_ecma_ast::Ast<'_>,
-  params: FormalParameters,
-) -> impl Iterator<Item = BindingPattern> + 'a {
-  let rest = params.rest(ast).map(BindingPattern::BindingRestElement);
-  params
-    .items(ast)
-    .iter()
-    .filter_map(move |id| ast.get_node_in_sub_range(id).as_formal_parameter(ast))
-    .filter_map(move |parameter| parameter.pattern(ast).as_binding_pattern(ast))
-    .chain(rest)
 }
 
 fn get_fulfilled_callback_namespace_obj(

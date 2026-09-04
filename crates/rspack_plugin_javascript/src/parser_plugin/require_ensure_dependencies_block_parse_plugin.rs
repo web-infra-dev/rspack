@@ -60,12 +60,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
     }
 
     let ast = parser.ast.ast;
-    let arguments = expr
-      .arguments(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
-    let dependencies_arg = arguments.first()?.as_expr(ast)?;
+    let arguments = expr.arguments(ast);
+    let dependencies_arg = arguments.get_node(ast, 0)?.as_expr(ast)?;
     let dependencies_expr = parser.evaluate_expression(dependencies_arg);
     let dependencies_items = if dependencies_expr.is_array() {
       Either::Left(dependencies_expr.items().iter())
@@ -73,10 +69,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
       Either::Right(std::iter::once(&dependencies_expr))
     };
 
-    let success_argument = *arguments.get(1)?;
+    let success_argument = arguments.get_node(ast, 1)?;
     let success_arg = success_argument.as_expr(ast)?;
     let success_expr = success_arg.get_function_expr(ast);
-    let error_arg = arguments.get(2).copied();
+    let error_arg = arguments.get_node(ast, 2);
     let error_expr = error_arg
       .and_then(|arg| arg.as_expr(ast))
       .and_then(|expr| expr.get_function_expr(ast));
@@ -84,7 +80,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
     let chunk_name = match expr
       .arguments(ast)
       .get_node(ast, 3)
-      .or_else(|| if error_expr.is_some() { None } else { arguments.get(2).copied() }) // !errorExpression
+      .or_else(|| if error_expr.is_some() { None } else { arguments.get_node(ast, 2) }) // !errorExpression
     {
       Some(arg) => match arg
         .as_expr(ast)

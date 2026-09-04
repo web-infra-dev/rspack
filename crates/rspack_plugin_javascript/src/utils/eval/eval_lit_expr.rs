@@ -1,7 +1,7 @@
 use rspack_util::SpanExt;
 use swc_next_ecma_ast::{Ast, Expr, ExprData, GetSpan};
 
-use super::BasicEvaluatedExpression;
+use super::{BasicEvaluatedExpression, parse_bigint_literal};
 
 #[inline]
 pub fn eval_lit_expr<'a>(ast: &Ast<'_>, expr: Expr) -> Option<BasicEvaluatedExpression<'a>> {
@@ -24,7 +24,7 @@ pub fn eval_lit_expr<'a>(ast: &Ast<'_>, expr: Expr) -> Option<BasicEvaluatedExpr
     ExprData::NumericLiteral(number) => result.set_number(number.value(ast)),
     ExprData::BooleanLiteral(boolean) => result.set_bool(boolean.value(ast)),
     ExprData::BigIntLiteral(bigint) => {
-      result.set_bigint(ast.get_utf8(bigint.raw(ast)).parse().ok()?);
+      result.set_bigint(parse_bigint_literal(ast.get_utf8(bigint.raw(ast)))?);
     }
     _ => return None,
   }
