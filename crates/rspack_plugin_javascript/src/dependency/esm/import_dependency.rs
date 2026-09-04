@@ -1,4 +1,4 @@
-use std::sync::{Arc, LazyLock};
+use std::sync::LazyLock;
 
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
@@ -34,7 +34,7 @@ pub struct ImportDependency {
   pub comments: Vec<(bool, String)>,
   resource_identifier: ResourceIdentifier,
   optional: bool,
-  used_by_exports: Option<Arc<UsedByExports>>,
+  used_by_exports: Option<UsedByExports>,
   #[cacheable(with=AsOption<AsCacheable>)]
   branch_guard: Option<DependencyBranchGuard>,
 }
@@ -86,12 +86,12 @@ impl ImportDependency {
     });
   }
 
-  pub fn set_used_by_exports(&mut self, used_by_exports: Option<Arc<UsedByExports>>) {
+  pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
     self.used_by_exports = used_by_exports;
   }
 
   pub(super) fn used_by_exports(&self) -> Option<&UsedByExports> {
-    self.used_by_exports.as_deref()
+    self.used_by_exports.as_ref()
   }
 }
 
@@ -180,7 +180,7 @@ impl ModuleDependency for ImportDependency {
 
   fn get_condition(&self) -> Option<DependencyCondition> {
     let inner_graph_condition =
-      get_import_dependency_inner_graph_condition(self.used_by_exports.as_deref());
+      get_import_dependency_inner_graph_condition(self.used_by_exports.as_ref());
     compose_dependency_condition(inner_graph_condition, self.branch_guard.as_ref())
   }
 }

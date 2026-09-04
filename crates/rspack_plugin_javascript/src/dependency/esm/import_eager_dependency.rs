@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsCacheable, AsOption, AsPreset, AsVec},
@@ -31,7 +29,7 @@ pub struct ImportEagerDependency {
   attributes: Option<ImportAttributes>,
   phase: ImportPhase,
   resource_identifier: ResourceIdentifier,
-  used_by_exports: Option<Arc<UsedByExports>>,
+  used_by_exports: Option<UsedByExports>,
 }
 
 impl ImportEagerDependency {
@@ -69,12 +67,12 @@ impl ImportEagerDependency {
     self.referenced_specifiers = Some(referenced_specifiers);
   }
 
-  pub fn set_used_by_exports(&mut self, used_by_exports: Option<Arc<UsedByExports>>) {
+  pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
     self.used_by_exports = used_by_exports;
   }
 
   pub(super) fn used_by_exports(&self) -> Option<&UsedByExports> {
-    self.used_by_exports.as_deref()
+    self.used_by_exports.as_ref()
   }
 }
 
@@ -158,7 +156,7 @@ impl ModuleDependency for ImportEagerDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    get_import_dependency_inner_graph_condition(self.used_by_exports.as_deref())
+    get_import_dependency_inner_graph_condition(self.used_by_exports.as_ref())
   }
 }
 
