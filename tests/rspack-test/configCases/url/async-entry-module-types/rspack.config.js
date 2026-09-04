@@ -27,14 +27,22 @@ class CheckUrlEntriesPlugin {
           const directUrlDependencies = originModule.dependencies.filter(
             (dependency) => dependency.type === 'new URL()',
           );
-          expect(directUrlDependencies).toHaveLength(1);
-          expect(directUrlDependencies[0].request).toBe('./target.png');
+          expect(
+            directUrlDependencies
+              .map((dependency) => dependency.request)
+              .sort(),
+          ).toEqual(['./target-asset.js', './target.png']);
+
+          const jsAssetModule = Array.from(compilation.modules).find(
+            (module) => module.rawRequest === './target-asset.js',
+          );
+          expect(jsAssetModule).toBeDefined();
+          expect(jsAssetModule.type).toBe('asset/resource');
 
           const assets = compilation.getAssets().map((asset) => asset.name);
           const scriptAssets = assets.filter((asset) =>
             asset.endsWith(`.${this.scriptExtension}`),
           );
-          expect(scriptAssets).toHaveLength(3);
           expect(
             scriptAssets.filter((asset) =>
               asset.startsWith(`url-${this.name}-`),
@@ -44,6 +52,7 @@ class CheckUrlEntriesPlugin {
             1,
           );
           expect(assets).toContain(`target-${this.name}.png`);
+          expect(assets).toContain(`target-asset-${this.name}.js`);
         },
       );
     });
@@ -86,6 +95,9 @@ const createConfig = (name, parserUrl, outputModule = false) => {
           test: /target\.png$/,
           dependency: 'url',
           type: 'asset/resource',
+        },
+        {
+          test: /target-asset\.js$/,
         },
       ],
     },
