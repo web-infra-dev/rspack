@@ -316,7 +316,7 @@ impl Module for RscEntryModule {
           None,
           Some(&block_modifier),
           block_dependencies,
-          Some(server_entry.clone()),
+          Some(server_entry.clone().into()),
         );
         blocks.push(Box::new(block));
       }
@@ -339,7 +339,7 @@ impl Module for RscEntryModule {
           None,
           None,
           dependencies,
-          Some(format!("{}#root-client", self.name)),
+          Some(format!("{}#root-client", self.name).into()),
         );
         blocks.push(Box::new(block));
       }
@@ -355,7 +355,7 @@ impl Module for RscEntryModule {
           None,
           None,
           vec![BoxDependency::new(dep)],
-          Some(client_module.request.clone()),
+          Some(client_module.request.clone().into()),
         );
         blocks.push(Box::new(block));
       }
