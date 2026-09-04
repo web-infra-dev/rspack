@@ -1,15 +1,15 @@
-use std::{borrow::Cow, fmt::Debug};
+use std::{borrow::Cow, fmt::Debug, sync::OnceLock};
 
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsyncModulesArtifact, BoxModule, Compilation, CompilationFinishModules,
   CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta, DependencyId,
   ExportsInfoArtifact, FactoryMeta, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
   OptimizationBailoutItem, Plugin, ResolvedExportInfoTarget, SideEffectsDoOptimize,
-  SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact, SideEffectsState,
-  SideEffectsStateArtifact,
+  SideEffectsDoOptimizeMoveTarget, SideEffectsDoOptimizeMoveTargets, SideEffectsOptimizeArtifact,
+  SideEffectsState, SideEffectsStateArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   can_move_target, get_target,
   incremental::{self, IncrementalPasses, Mutation},
@@ -22,7 +22,10 @@ use swc_experimental_ecma_ast::{ClassMember, Key, PropName};
 
 use crate::{
   FLAG_DEPENDENCY_EXPORTS_STAGE, deferred_pure_check_is_impure,
-  dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency},
+  dependency::{
+    ESMExportExpressionDependency, ESMExportImportedSpecifierDependency,
+    ESMImportSpecifierDependency,
+  },
 };
 
 pub static SIDE_EFFECTS_FLAG_PLUGIN_STAGE: i32 = FLAG_DEPENDENCY_EXPORTS_STAGE + 10;
@@ -270,6 +273,7 @@ async fn optimize_dependencies(
       .collect()
   };
   let module_graph = build_module_graph_artifact.get_module_graph();
+  let defer_enabled = compilation.options.experiments.defer_import;
 
   if self.analyze_side_effects_free {
     // `finish_modules` may change the side-effect state of modules that were not part of the
@@ -350,6 +354,7 @@ async fn optimize_dependencies(
   };
   logger.time_end(inner_start);
 
+  let single_star_reexport_cache = OnceLock::new();
   let inner_start = logger.time("find optimizable connections");
   let mut optimized_connections = modules
     .par_iter()
@@ -367,6 +372,8 @@ async fn optimize_dependencies(
           &side_effects_state_map,
           module_graph,
           exports_info_artifact,
+          &single_star_reexport_cache,
+          defer_enabled,
         ),
       )
     })
@@ -412,6 +419,8 @@ async fn optimize_dependencies(
           &side_effects_state_map,
           module_graph,
           exports_info_artifact,
+          &single_star_reexport_cache,
+          defer_enabled,
         )
         .map(|i| (connection.dependency_id, i))
       })
@@ -439,7 +448,7 @@ fn do_optimize_connection(
   let SideEffectsDoOptimize {
     ids,
     target_module,
-    need_move_target,
+    move_targets,
   } = do_optimize;
   module_graph.do_update_module(&dependency, &target_module);
   module_graph.set_dependency_extra_meta(
@@ -449,16 +458,86 @@ fn do_optimize_connection(
       explanation: Some("(skipped side-effect-free modules)"),
     },
   );
-  if let Some(SideEffectsDoOptimizeMoveTarget {
-    export_info,
-    target_export,
-  }) = need_move_target
-  {
+  let move_target = |SideEffectsDoOptimizeMoveTarget {
+                       export_info,
+                       target_export,
+                     }: SideEffectsDoOptimizeMoveTarget,
+                     exports_info_artifact: &mut ExportsInfoArtifact| {
     export_info
       .as_data_mut(exports_info_artifact)
       .do_move_target(dependency, target_export);
+  };
+  match move_targets {
+    SideEffectsDoOptimizeMoveTargets::None => {}
+    SideEffectsDoOptimizeMoveTargets::Single(target) => {
+      move_target(target, exports_info_artifact);
+    }
+    SideEffectsDoOptimizeMoveTargets::Multiple(targets) => {
+      for target in targets {
+        move_target(target, exports_info_artifact);
+      }
+    }
   }
   (dependency, target_module)
+}
+
+/// Returns whether the module's complete export surface is a single `export *`.
+/// Such a module can be skipped without changing which names the star contributes.
+fn module_has_single_star_reexport_uncached(
+  module_identifier: &ModuleIdentifier,
+  module_graph: &ModuleGraph,
+) -> bool {
+  let Some(module) = module_graph.module_by_identifier(module_identifier) else {
+    return false;
+  };
+  let build_info = module.build_info();
+  if !build_info.esm_named_exports.is_empty() || build_info.all_star_exports.len() != 1 {
+    return false;
+  }
+  // Default export declarations and default exports of imported namespaces are
+  // not recorded in `esm_named_exports`, while webpack's `activeExports`
+  // includes them. Check their dependencies explicitly.
+  if module_graph
+    .module_graph_module_by_identifier(module_identifier)
+    .is_some_and(|module| {
+      module.all_dependencies().iter().any(|dependency_id| {
+        let dependency = module_graph.dependency_by_id(dependency_id);
+        dependency
+          .downcast_ref::<ESMExportExpressionDependency>()
+          .is_some()
+          || dependency
+            .downcast_ref::<ESMExportImportedSpecifierDependency>()
+            .is_some_and(|dependency| dependency.name.is_some())
+      })
+    })
+  {
+    return false;
+  }
+  module_graph
+    .dependency_by_id(&build_info.all_star_exports[0])
+    .downcast_ref::<ESMExportImportedSpecifierDependency>()
+    .is_some_and(|dependency| dependency.name.is_none())
+}
+
+fn module_has_single_star_reexport(
+  module_identifier: &ModuleIdentifier,
+  module_graph: &ModuleGraph,
+  cache: &OnceLock<IdentifierDashMap<bool>>,
+) -> bool {
+  let cache = cache.get_or_init(IdentifierDashMap::default);
+  if let Some(result) = cache.get(module_identifier) {
+    return *result;
+  }
+  let result = module_has_single_star_reexport_uncached(module_identifier, module_graph);
+  cache.insert(*module_identifier, result);
+  result
+}
+
+fn is_deferred_target(target: &ResolvedExportInfoTarget, module_graph: &ModuleGraph) -> bool {
+  module_graph
+    .dependency_by_id(&target.dependency)
+    .get_phase()
+    .is_defer()
 }
 
 #[tracing::instrument("can_optimize_connection", level = "trace", skip_all)]
@@ -467,51 +546,132 @@ fn can_optimize_connection(
   side_effects_state_map: &IdentifierMap<ConnectionState>,
   module_graph: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
+  single_star_reexport_cache: &OnceLock<IdentifierDashMap<bool>>,
+  defer_enabled: bool,
 ) -> Option<SideEffectsDoOptimize> {
   let original_module = connection.original_module_identifier?;
   let dependency_id = connection.dependency_id;
   let dep = module_graph.dependency_by_id(&dependency_id);
 
-  if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
-    && let Some(name) = &dep.name
-  {
+  if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>() {
     let exports_info = exports_info_artifact.get_exports_info_data(&original_module);
-    let export_info = exports_info.get_export_info_without_mut_module_graph(name);
+    let (target, pending_move_target, mut move_targets) = if let Some(name) = &dep.name {
+      let export_info = exports_info.get_export_info_without_mut_module_graph(name);
+      let resolve_filter = |target: &ResolvedExportInfoTarget| {
+        side_effects_state_map[&target.module] == ConnectionState::Active(false)
+          && (!defer_enabled || !is_deferred_target(target, module_graph))
+      };
+      let target = can_move_target(
+        &export_info,
+        module_graph,
+        exports_info_artifact,
+        &resolve_filter,
+      )?;
+      if defer_enabled && is_deferred_target(&target, module_graph) {
+        return None;
+      }
+      let pending_move_target = match export_info {
+        Cow::Borrowed(export_info) => Some(export_info.id()),
+        Cow::Owned { .. } => None,
+      };
+      (
+        target,
+        pending_move_target,
+        SideEffectsDoOptimizeMoveTargets::None,
+      )
+    } else {
+      if !module_has_single_star_reexport(
+        connection.module_identifier(),
+        module_graph,
+        single_star_reexport_cache,
+      ) {
+        return None;
+      }
 
-    let resolve_filter = |target: &ResolvedExportInfoTarget| {
-      side_effects_state_map[&target.module] == ConnectionState::Active(false)
+      let resolve_filter = |target: &ResolvedExportInfoTarget| {
+        side_effects_state_map[&target.module] == ConnectionState::Active(false)
+          && (!defer_enabled || !is_deferred_target(target, module_graph))
+          && module_has_single_star_reexport(
+            &target.module,
+            module_graph,
+            single_star_reexport_cache,
+          )
+      };
+      let mut resolved_target = None;
+      let mut move_targets = SideEffectsDoOptimizeMoveTargets::None;
+      for export_info in exports_info.exports().values() {
+        if !export_info
+          .get_max_target()
+          .values()
+          .any(|target| target.dependency == Some(dependency_id))
+        {
+          continue;
+        }
+        let Some(target) = can_move_target(
+          export_info,
+          module_graph,
+          exports_info_artifact,
+          &resolve_filter,
+        ) else {
+          continue;
+        };
+        if defer_enabled && is_deferred_target(&target, module_graph) {
+          continue;
+        }
+        if resolved_target
+          .as_ref()
+          .is_some_and(|resolved: &ResolvedExportInfoTarget| resolved.module != target.module)
+        {
+          return None;
+        }
+        let move_target = SideEffectsDoOptimizeMoveTarget {
+          export_info: export_info.id(),
+          target_export: target.export.clone(),
+        };
+        move_targets = match move_targets {
+          SideEffectsDoOptimizeMoveTargets::None => {
+            SideEffectsDoOptimizeMoveTargets::Single(move_target)
+          }
+          SideEffectsDoOptimizeMoveTargets::Single(first) => {
+            SideEffectsDoOptimizeMoveTargets::Multiple(vec![first, move_target])
+          }
+          SideEffectsDoOptimizeMoveTargets::Multiple(mut targets) => {
+            targets.push(move_target);
+            SideEffectsDoOptimizeMoveTargets::Multiple(targets)
+          }
+        };
+        resolved_target = Some(target);
+      }
+      let target = resolved_target?;
+      (target, None, move_targets)
     };
-    let target = can_move_target(
-      &export_info,
-      module_graph,
-      exports_info_artifact,
-      &resolve_filter,
-    )?;
     if !module_graph.can_update_module(&dependency_id, &target.module) {
       return None;
     }
 
     let ids = dep.get_ids(module_graph);
-    let processed_ids = target.export.as_ref().map_or_else(
-      || ids.get(1..).unwrap_or_default().to_vec(),
-      |item| {
-        let mut ret = item.clone();
-        ret.extend_from_slice(ids.get(1..).unwrap_or_default());
-        ret
-      },
-    );
-    let need_move_target = match export_info {
-      Cow::Borrowed(export_info) => Some(SideEffectsDoOptimizeMoveTarget {
-        export_info: export_info.id(),
-        target_export: target.export,
-      }),
-      Cow::Owned { .. } => None,
+    let processed_ids = if dep.name.is_none() {
+      ids.to_vec()
+    } else {
+      target.export.as_ref().map_or_else(
+        || ids.get(1..).unwrap_or_default().to_vec(),
+        |item| {
+          let mut ret = item.clone();
+          ret.extend_from_slice(ids.get(1..).unwrap_or_default());
+          ret
+        },
+      )
     };
-
+    if let Some(export_info) = pending_move_target {
+      move_targets = SideEffectsDoOptimizeMoveTargets::Single(SideEffectsDoOptimizeMoveTarget {
+        export_info,
+        target_export: target.export,
+      });
+    }
     return Some(SideEffectsDoOptimize {
       ids: processed_ids,
       target_module: target.module,
-      need_move_target,
+      move_targets,
     });
   }
 
@@ -525,6 +685,7 @@ fn can_optimize_connection(
 
     let resolve_filter = |target: &ResolvedExportInfoTarget| {
       side_effects_state_map[&target.module] == ConnectionState::Active(false)
+        && (!defer_enabled || !is_deferred_target(target, module_graph))
     };
     let Some(GetTargetResult::Target(target)) = get_target(
       &export_info,
@@ -535,6 +696,9 @@ fn can_optimize_connection(
     ) else {
       return None;
     };
+    if defer_enabled && is_deferred_target(&target, module_graph) {
+      return None;
+    }
 
     if !module_graph.can_update_module(&dependency_id, &target.module) {
       return None;
@@ -551,7 +715,7 @@ fn can_optimize_connection(
     return Some(SideEffectsDoOptimize {
       ids: processed_ids,
       target_module: target.module,
-      need_move_target: None,
+      move_targets: SideEffectsDoOptimizeMoveTargets::None,
     });
   }
 
