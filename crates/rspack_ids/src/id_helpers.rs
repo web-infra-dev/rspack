@@ -12,12 +12,12 @@ use itertools::{
 };
 use rspack_collections::Identifier;
 use rspack_core::{
-  BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkNamedIdArtifact, ChunkUkey, Compilation, CompilerId, ExportsInfoArtifact, Module,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
-  SideEffectsStateArtifact, compare_runtime,
+  BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind,
+  ChunkNamedIdArtifact, ChunkUkey, Compilation, CompilerId, DependencyLocation,
+  ExportsInfoArtifact, Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleIdsArtifact, SideEffectsStateArtifact, compare_runtime,
 };
-use rspack_error::Result;
+use rspack_error::{Result, error};
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
   identifier::make_paths_relative,
@@ -544,17 +544,19 @@ pub fn get_long_chunk_name(
   shorten_long_string(chunk_name, delimiter)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn get_full_chunk_name(
   chunk: &Chunk,
   chunk_graph: &ChunkGraph,
+  chunk_group_by_ukey: &ChunkGroupByUkey,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
   side_effects_state_artifact: &SideEffectsStateArtifact,
   context: &str,
   exports_info_artifact: &ExportsInfoArtifact,
-) -> String {
+) -> Result<String> {
   if let Some(name) = chunk.name() {
-    return name.to_owned();
+    return Ok(name.to_owned());
   }
 
   let full_module_names = chunk_graph
@@ -570,7 +572,65 @@ pub fn get_full_chunk_name(
     .map(|module| get_full_module_name(module, context))
     .collect::<Vec<_>>();
 
-  full_module_names.join(",")
+  let name = full_module_names.join(",");
+  if !name.is_empty() || chunk.kind() != ChunkKind::Facade {
+    return Ok(name);
+  }
+
+  let mut group_names = Vec::new();
+  for group_ukey in chunk.groups() {
+    let group = chunk_group_by_ukey.expect_get(group_ukey);
+    if !group.kind.is_entrypoint() || group.get_entrypoint_chunk() != chunk.ukey() {
+      continue;
+    }
+
+    let mut origins = group
+      .origins()
+      .iter()
+      .map(|origin| {
+        (
+          origin
+            .module
+            .map(|module| make_paths_relative(context, module.as_str())),
+          origin.loc.as_ref().map(|location| match location {
+            DependencyLocation::Real(location) => format!("real:{location}"),
+            DependencyLocation::Synthetic(location) => format!("synthetic:{location}"),
+          }),
+          origin
+            .request
+            .as_deref()
+            .map(|request| make_paths_relative(context, request)),
+        )
+      })
+      .collect::<Vec<_>>();
+    origins.sort_unstable();
+
+    if origins.is_empty() {
+      return Err(error!(
+        "Unable to derive a full name for facade chunk '{:?}': its entrypoint chunk group has no origin",
+        chunk.ukey()
+      ));
+    }
+
+    group_names.push((
+      group.is_initial(),
+      group.name().map(ToOwned::to_owned),
+      origins,
+    ));
+  }
+
+  if group_names.is_empty() {
+    return Err(error!(
+      "Unable to derive a full name for facade chunk '{:?}': it has neither a name, root modules, nor an entrypoint origin",
+      chunk.ukey()
+    ));
+  }
+  group_names.sort_unstable();
+
+  Ok(format!(
+    "facade:{}",
+    serde_json::to_string(&group_names).expect("facade origins should be serializable")
+  ))
 }
 
 pub use rspack_util::identifier::request_to_id;

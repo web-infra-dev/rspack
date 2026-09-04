@@ -1858,6 +1858,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             false,
             Box::new(entry_options.clone()),
           ));
+          // Match reused async entrypoints above: the creating block remains the logical
+          // origin even if later optimizers move the entry module to another chunk.
+          entrypoint.add_origin(Some(module_id), loc, request);
 
           self.stat_chunk_group_created += 1;
           let cgi = ChunkGroupInfo::new(

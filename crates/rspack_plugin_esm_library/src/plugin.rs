@@ -47,7 +47,7 @@ use crate::{
   esm_lib_parser_plugin::EsmLibParserPlugin,
   optimize_chunks::{
     analyze_dyn_import_targets, assign_dyn_import_chunk_short_names, ensure_entry_exports,
-    extract_tla_shared_modules, optimize_runtime_chunks,
+    extract_tla_shared_modules, mark_facade_chunks, optimize_runtime_chunks,
   },
   preserve_modules::preserve_modules,
   runtime::{
@@ -652,6 +652,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 #[plugin_hook(CompilationOptimizeChunks for EsmLibraryPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED + 1)]
 async fn optimize_runtime_chunk_hook(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   optimize_runtime_chunks(compilation);
+  mark_facade_chunks(compilation);
   Ok(None)
 }
 
