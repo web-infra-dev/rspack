@@ -3,18 +3,20 @@ name: CI Diff
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    # Ignore md files in PR to skip workflow when only documentation changes
+    # Ignore files that do not affect build output to skip unnecessary builds
     paths-ignore:
       - '**/*.md'
+      - '.agents/**'
       - 'website/**'
 
   push:
     branches:
       - main
       - v1.x
-    # Ignore md files in push to skip workflow when only documentation changes
+    # Ignore files that do not affect build output to skip unnecessary builds
     paths-ignore:
       - '**/*.md'
+      - '.agents/**'
       - 'website/**'
 
   workflow_dispatch:

@@ -18,6 +18,7 @@ on:
       - v1.x
     paths-ignore:
       - '**/*.md'
+      - '.agents/**'
       - 'website/**'
     tags-ignore:
       - '**'
@@ -49,6 +50,7 @@ jobs:
             code_changed:
               - "!**/*.md"
               - "!**/*.mdx"
+              - "!.agents/**"
               - "!website/**"
             document_changed:
               - "website/**"

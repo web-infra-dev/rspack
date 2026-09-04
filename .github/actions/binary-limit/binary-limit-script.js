@@ -96,11 +96,11 @@ async function waitForBaseCommit(github, context) {
 
 // Baseline is the newest trunk commit already contained in the binding CI built,
 // not the fork point: PR CI builds from the merge ref, so head size already
-// includes that trunk tip. Walk trunk history skipping doc-only commits (they
-// build no binding); the first build-triggering commit is decisive. Use its size
-// data, or — when it isn't published yet (eco CI is slow) — fail loudly, attaching
-// the nearest ancestor that already has data as a non-authoritative reference for
-// a rough number.
+// includes that trunk tip. Walk trunk history skipping commits that only change
+// files ignored by the build; the first build-triggering commit is decisive. Use
+// its size data, or — when it isn't published yet (eco CI is slow) — fail loudly,
+// attaching the nearest ancestor that already has data as a non-authoritative
+// reference for a rough number.
 async function findBaseCommit(github, context) {
   const { owner, repo } = context.repo;
   const baseSha = await resolveBaseSha(github, owner, repo, context);
@@ -131,7 +131,9 @@ async function findBaseCommit(github, context) {
       }
 
       if (!(await triggersBinaryBuild(github, owner, repo, commit.sha))) {
-        console.log(`Commit ${commit.sha} is doc-only, skipping to parent`);
+        console.log(
+          `Commit ${commit.sha} only changes build-ignored files, skipping to parent`,
+        );
         continue;
       }
 
@@ -227,8 +229,8 @@ async function resolveStack(github, owner, repo, pr) {
   return pr.stack;
 }
 
-// A binding is built (and size data produced) only for commits touching non-doc
-// files, mirroring the `code_changed` filter in ci.yml that gates the binding build.
+// A binding is built (and size data produced) only for commits touching files not
+// ignored by the `code_changed` filter in ci.yml.
 async function triggersBinaryBuild(github, owner, repo, sha) {
   const { data: commit } = await github.rest.repos.getCommit({
     owner,
@@ -237,13 +239,14 @@ async function triggersBinaryBuild(github, owner, repo, sha) {
   });
   const files = commit.files ?? [];
   if (files.length === 0) return true;
-  return files.some((file) => !isDocFile(file.filename));
+  return files.some((file) => !isBuildIgnoredFile(file.filename));
 }
 
-function isDocFile(filename) {
+function isBuildIgnoredFile(filename) {
   return (
     filename.endsWith('.md') ||
     filename.endsWith('.mdx') ||
+    filename.startsWith('.agents/') ||
     filename.startsWith('website/')
   );
 }
