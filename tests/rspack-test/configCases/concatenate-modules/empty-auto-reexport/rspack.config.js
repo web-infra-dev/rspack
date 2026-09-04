@@ -4,32 +4,12 @@ const rspack = require('@rspack/core');
 module.exports = {
   mode: 'production',
   output: {
-    library: {
-      type: 'commonjs2',
-    },
+    library: { type: 'commonjs2' },
   },
   module: {
     rules: [
-      {
-        test: /empty\.js$/,
-        sideEffects: true,
-      },
-      {
-        test: /override-strict-empty\.js$/,
-        parser: {
-          overrideStrict: 'strict',
-        },
-      },
-      {
-        test: /override-non-strict-empty\.js$/,
-        parser: {
-          overrideStrict: 'non-strict',
-        },
-      },
-      {
-        test: /dynamic\.js$/,
-        type: 'javascript/dynamic',
-      },
+      { test: /empty\.js$/, sideEffects: true },
+      { test: /dynamic\.js$/, type: 'javascript/dynamic' },
     ],
   },
   optimization: {

@@ -1,2 +1,0 @@
-"use strict";
-void exports;

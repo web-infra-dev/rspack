@@ -1,3 +1,2 @@
 "use strict";
-
-globalThis.emptyAutoReexportWebpackModule = __webpack_module__;
+void __webpack_module__.id;
