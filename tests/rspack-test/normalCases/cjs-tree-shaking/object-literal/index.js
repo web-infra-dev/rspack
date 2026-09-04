@@ -24,3 +24,9 @@ it("should keep the full object when the namespace is used as a value", () => {
 		unused: "unused-value"
 	});
 });
+
+it("should keep sibling exports when an object method uses this", () => {
+	const m = require("./method-this");
+	expect(m.getValue()).toBe(10);
+	expect(m.usedExports).toBe(true);
+});

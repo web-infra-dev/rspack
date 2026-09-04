@@ -168,18 +168,31 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();
 
-    let base = if dep.base.is_exports() {
-      runtime_template.render_exports_argument(exports_argument)
+    let (base, original_base) = if dep.base.is_exports() {
+      (
+        runtime_template.render_exports_argument(exports_argument),
+        "exports",
+      )
     } else if dep.base.is_module_exports() {
-      format!(
-        "{}.exports",
-        runtime_template.render_module_argument(module_argument)
+      (
+        format!(
+          "{}.exports",
+          runtime_template.render_module_argument(module_argument)
+        ),
+        "module.exports",
       )
     } else if dep.base.is_this() {
-      runtime_template.render_this_exports()
+      (runtime_template.render_this_exports(), "this")
     } else {
       unreachable!();
     };
+
+    if let UsedName::Normal(used) = &used
+      && base == original_base
+      && used == &dep.names
+    {
+      return;
+    }
 
     source.replace(
       dep.range.start,

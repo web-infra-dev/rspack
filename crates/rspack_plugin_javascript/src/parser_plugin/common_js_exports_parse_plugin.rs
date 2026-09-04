@@ -6,8 +6,9 @@ use rspack_core::{
 };
 use rspack_util::SpanExt;
 use swc_experimental_ecma_ast::{
-  AssignExpr, CallExpr, Expr, ExprOrSpread, GetSpan, Ident, Lit, MemberExpr, Prop, PropName,
-  PropOrSpread, Span, ThisExpr, UnaryExpr, UnaryOp,
+  AssignExpr, AutoAccessor, CallExpr, ClassProp, Constructor, Expr, ExprOrSpread, Function,
+  GetSpan, GetterProp, Ident, Key, Lit, MemberExpr, PrivateProp, Prop, PropName, PropOrSpread,
+  SetterProp, Span, StaticBlock, ThisExpr, UnaryExpr, UnaryOp, Visit, VisitWith,
 };
 
 use super::JavascriptParserPlugin;
@@ -178,6 +179,115 @@ fn parse_require_call<'p: 'a, 'a>(
   None
 }
 
+#[derive(Default)]
+struct OwnThisVisitor {
+  this_span: Option<Span>,
+}
+
+impl OwnThisVisitor {
+  fn visit_computed_key(&mut self, key: &PropName) {
+    if let PropName::Computed(computed) = key {
+      computed.expr.visit_with(self);
+    }
+  }
+}
+
+impl<'a> Visit<'a> for OwnThisVisitor {
+  fn visit_this_expr(&mut self, node: &ThisExpr) {
+    self.this_span.get_or_insert(node.span);
+  }
+
+  // Nested non-arrow functions have their own `this` binding.
+  fn visit_function(&mut self, _node: &Function<'a>) {}
+
+  // Class field initializers, constructors, and static blocks do not use the
+  // surrounding function's `this`. Computed keys still evaluate outside the
+  // class element's own `this` scope and must be inspected.
+  fn visit_class_prop(&mut self, node: &ClassProp<'a>) {
+    self.visit_computed_key(&node.key);
+  }
+
+  fn visit_private_prop(&mut self, _node: &PrivateProp<'a>) {}
+
+  fn visit_constructor(&mut self, _node: &Constructor<'a>) {}
+
+  fn visit_static_block(&mut self, _node: &StaticBlock<'a>) {}
+
+  fn visit_auto_accessor(&mut self, node: &AutoAccessor<'a>) {
+    if let Key::Public(key) = &node.key {
+      self.visit_computed_key(key);
+    }
+  }
+
+  // Object accessors nested in the exported function also introduce their
+  // own `this`; only a computed property key belongs to the outer scope.
+  fn visit_getter_prop(&mut self, node: &GetterProp<'a>) {
+    self.visit_computed_key(&node.key);
+  }
+
+  fn visit_setter_prop(&mut self, node: &SetterProp<'a>) {
+    self.visit_computed_key(&node.key);
+  }
+}
+
+fn find_own_this_in_function(function: &Function) -> Option<Span> {
+  let mut visitor = OwnThisVisitor::default();
+  for param in &function.params {
+    param.visit_with(&mut visitor);
+  }
+  if let Some(body) = &function.body {
+    body.visit_with(&mut visitor);
+  }
+  visitor.this_span
+}
+
+fn get_this_access_in_exported_value(value: &Expr) -> Option<Span> {
+  let Expr::Fn(function) = value else {
+    return None;
+  };
+  find_own_this_in_function(&function.function)
+}
+
+fn get_this_access_in_exported_property(prop: &Prop) -> Option<Span> {
+  match prop {
+    Prop::KeyValue(prop) => get_this_access_in_exported_value(&prop.value),
+    Prop::Method(prop) => find_own_this_in_function(&prop.function),
+    Prop::Getter(prop) => {
+      let mut visitor = OwnThisVisitor::default();
+      if let Some(body) = &prop.body {
+        body.visit_with(&mut visitor);
+      }
+      visitor.this_span
+    }
+    Prop::Setter(prop) => {
+      let mut visitor = OwnThisVisitor::default();
+      prop.param.visit_with(&mut visitor);
+      if let Some(body) = &prop.body {
+        body.visit_with(&mut visitor);
+      }
+      visitor.this_span
+    }
+    Prop::Shorthand(_) | Prop::Assign(_) => None,
+  }
+}
+
+fn keep_all_exports_on_this_access(
+  parser: &mut JavascriptParser,
+  this_span: Option<Span>,
+  base: ExportsBase,
+) {
+  let Some(this_span) = this_span else {
+    return;
+  };
+  parser.add_dependency(BoxDependency::new(CommonJsSelfReferenceDependency::new(
+    this_span.into(),
+    base,
+    vec![],
+    vec![],
+    false,
+  )));
+}
+
 fn get_static_property_name(name: &PropName) -> Option<Atom> {
   let name = match name {
     PropName::Ident(ident) => Atom::from(&ident.sym),
@@ -342,6 +452,7 @@ fn handle_object_literal_export(
       kind,
       pure,
     )));
+    keep_all_exports_on_this_access(parser, get_this_access_in_exported_property(prop), base);
     parser.walk_property(prop);
   }
   Some(true)
@@ -412,6 +523,11 @@ fn handle_assign_export(
     base,
     remaining.to_owned(),
   )));
+  keep_all_exports_on_this_access(
+    parser,
+    get_this_access_in_exported_value(&assign_expr.right),
+    base,
+  );
   parser.walk_expression(&assign_expr.right);
   Some(true)
 }
@@ -552,6 +668,19 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
         base,
         vec![property.into()],
       )));
+
+      if let Expr::Object(descriptor) = arg2 {
+        for prop in &descriptor.props {
+          let PropOrSpread::Prop(prop) = prop else {
+            continue;
+          };
+          let this_span = get_this_access_in_exported_property(prop);
+          if this_span.is_some() {
+            keep_all_exports_on_this_access(parser, this_span, base);
+            break;
+          }
+        }
+      }
 
       parser.walk_expression(arg2);
       return Some(true);
