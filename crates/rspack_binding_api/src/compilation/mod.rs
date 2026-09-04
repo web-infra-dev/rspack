@@ -39,11 +39,11 @@ use crate::{
   source::{JsSourceFromJs, JsSourceToJs},
   stats::{JsStats, JsStatsOptimizationBailout, create_stats_warnings},
   utils::callbackify,
+  with_compilation,
 };
 
 #[napi]
 pub struct JsCompilation {
-  #[allow(dead_code)]
   pub(crate) id: CompilationId,
   pub(crate) inner: NonNull<Compilation>,
 }
@@ -52,6 +52,29 @@ impl JsCompilation {
   pub(crate) fn new(id: CompilationId, inner: NonNull<Compilation>) -> Self {
     #[allow(clippy::unwrap_used)]
     Self { id, inner }
+  }
+
+  // `inner` points at the `Compilation` inlined in `Compiler`, and `Compiler::rebuild`
+  // replaces the value in that slot, so a handle from an earlier build aliases whichever
+  // compilation occupies the slot now. Reading the module graph through such a handle is
+  // the case that aborts the process: these accessors reach into
+  // `build_module_graph_artifact`, which the running build steals for the whole make phase.
+  //
+  // Resolve the compilation by id the way `ChunkGraph` and `JsModuleGraph` already do,
+  // which drops the handle when it is no longer current, and then check that the artifact
+  // is still in its cell.
+  fn with_module_graph<R>(
+    &self,
+    f: impl FnOnce(&Compilation) -> napi::Result<R>,
+  ) -> napi::Result<R> {
+    with_compilation(self.id, |compilation| {
+      if compilation.build_module_graph_artifact.is_stolen() {
+        return Err(napi::Error::from_reason(
+          "ModuleGraph is not available while a compilation pass is holding the module graph artifact".to_string(),
+        ));
+      }
+      f(compilation)
+    })
   }
 
   pub(crate) fn as_ref(&self) -> napi::Result<&'static Compilation> {
@@ -198,55 +221,56 @@ impl JsCompilation {
 
   #[napi(getter, ts_return_type = "Array<Module>")]
   pub fn modules<'a>(&self, env: &'a Env) -> Result<Array<'a>> {
-    let compilation = self.as_ref()?;
-    let module_graph = compilation.get_module_graph();
-    let mut arr = env.create_array(module_graph.modules_len() as u32)?;
-    for (i, identifier) in module_graph.modules_keys().enumerate() {
-      arr.set(
-        i as u32,
-        compilation
-          .module_by_identifier(identifier)
-          .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id())),
-      )?;
-    }
-    Ok(arr)
+    self.with_module_graph(|compilation| {
+      let module_graph = compilation.get_module_graph();
+      let mut arr = env.create_array(module_graph.modules_len() as u32)?;
+      for (i, identifier) in module_graph.modules_keys().enumerate() {
+        arr.set(
+          i as u32,
+          compilation
+            .module_by_identifier(identifier)
+            .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id())),
+        )?;
+      }
+      Ok(arr)
+    })
   }
 
   #[napi(getter, ts_return_type = "Array<Module>")]
   pub fn built_modules(&self) -> Result<Vec<ModuleObject>> {
-    let compilation = self.as_ref()?;
-
-    Ok(
-      compilation
-        .build_module_graph_artifact
-        .built_modules()
-        .filter_map(|module_id| {
-          compilation
-            .module_by_identifier(module_id)
-            .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
-        })
-        .collect::<Vec<_>>(),
-    )
+    self.with_module_graph(|compilation| {
+      Ok(
+        compilation
+          .build_module_graph_artifact
+          .built_modules()
+          .filter_map(|module_id| {
+            compilation
+              .module_by_identifier(module_id)
+              .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
+          })
+          .collect::<Vec<_>>(),
+      )
+    })
   }
 
   #[napi]
   pub fn get_optimization_bailout(&self) -> Result<Vec<JsStatsOptimizationBailout>> {
-    let compilation = self.as_ref()?;
-
-    Ok(
-      compilation
-        .get_module_graph()
-        .module_graph_modules()
-        .map(|(_, mgm)| mgm)
-        .flat_map(|item| {
-          item.optimization_bailout.iter().map(|b| match b {
-            OptimizationBailoutItem::Message(msg) => msg.as_str().to_owned(),
-            b => b.to_string(),
+    self.with_module_graph(|compilation| {
+      Ok(
+        compilation
+          .get_module_graph()
+          .module_graph_modules()
+          .map(|(_, mgm)| mgm)
+          .flat_map(|item| {
+            item.optimization_bailout.iter().map(|b| match b {
+              OptimizationBailoutItem::Message(msg) => msg.as_str().to_owned(),
+              b => b.to_string(),
+            })
           })
-        })
-        .map(|item| JsStatsOptimizationBailout { inner: item })
-        .collect::<Vec<_>>(),
-    )
+          .map(|item| JsStatsOptimizationBailout { inner: item })
+          .collect::<Vec<_>>(),
+      )
+    })
   }
 
   #[napi(getter, ts_return_type = "Chunks")]
