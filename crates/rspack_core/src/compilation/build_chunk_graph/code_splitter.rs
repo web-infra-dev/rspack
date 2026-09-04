@@ -21,9 +21,10 @@ use crate::{
   AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
   AsyncDependenciesBlockIdentifierSet, ChunkGraph, ChunkGroup, ChunkGroupKind, ChunkGroupOptions,
   ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, ConnectionState, DependenciesBlock,
-  DependencyId, DependencyLocation, EntryDependency, EntryRuntime, ExportsInfoArtifact,
-  GroupOptions, Logger, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  RuntimeSpec, SideEffectsStateArtifact, SyntheticDependencyLocation, assign_depths,
+  DependencyId, DependencyLocation, DependencyType, EntryDependency, EntryRuntime,
+  ExportsInfoArtifact, GroupOptions, Logger, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, RuntimeSpec, SideEffectsStateArtifact,
+  SyntheticDependencyLocation, assign_depths,
   dependencies_block::AsyncDependenciesToInitialChunkError,
   get_entry_runtime,
   incremental::{IncrementalPasses, Mutation},
@@ -404,6 +405,10 @@ pub(crate) struct CodeSplitter {
   prepared_blocks_map: DependenciesBlockIdentifierMap<Vec<AsyncDependenciesBlockIdentifier>>,
 
   prepared_block_group_options: AsyncDependenciesBlockIdentifierMap<GroupOptions>,
+
+  // Conditions on async and eager dynamic imports can change with exports
+  // usage even when their owning module is not part of the mutation set.
+  conditional_modules: IdentifierSet,
 }
 
 fn add_chunk_in_group(
@@ -475,6 +480,16 @@ fn get_active_state_of_connections(
 }
 
 impl CodeSplitter {
+  pub(crate) fn cached_conditional_modules(&self) -> impl Iterator<Item = ModuleIdentifier> + '_ {
+    self.conditional_modules.iter().copied().filter(|module| {
+      let module_block = DependenciesBlockIdentifier::Module(*module);
+      self
+        .block_modules_runtime_map
+        .values()
+        .any(|block_modules| block_modules.contains_key(&module_block))
+    })
+  }
+
   pub(crate) fn can_reuse_affected_module(
     &self,
     module: ModuleIdentifier,
@@ -2829,6 +2844,33 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       })
       .filter_map(|entry| entry)
       .collect::<IdentifierMap<_>>();
+    self.conditional_modules = self
+      .prepared_connection_map
+      .iter()
+      .filter_map(|(module, connections)| {
+        connections
+          .iter()
+          .any(|connection| {
+            let is_async = matches!(
+              connection.block,
+              DependenciesBlockIdentifier::AsyncDependenciesBlock(_)
+            );
+            connection.connections.iter().any(|dependency_id| {
+              let dependency = mg.dependency_by_id(dependency_id);
+              (is_async
+                || matches!(
+                  dependency.dependency_type(),
+                  DependencyType::DynamicImportEager
+                ))
+                && dependency
+                  .as_module_dependency()
+                  .and_then(|dependency| dependency.get_condition())
+                  .is_some()
+            })
+          })
+          .then_some(*module)
+      })
+      .collect();
 
     let mut prepared_blocks_map = DependenciesBlockIdentifierMap::<
       Vec<AsyncDependenciesBlockIdentifier>,
