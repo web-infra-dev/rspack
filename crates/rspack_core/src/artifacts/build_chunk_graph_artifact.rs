@@ -1,27 +1,19 @@
-use std::{mem, sync::Arc};
+use std::mem;
 
 use futures::Future;
 use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_util::{fx_hash::FxIndexMap, tracing_preset::TRACING_BENCH_TARGET};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
-  ArtifactExt, AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGraph, ChunkGroupByUkey,
-  ChunkGroupUkey, ChunkUkey, Compilation, ConnectionState, DependenciesBlock, DependencyType,
-  Logger, ModuleIdentifier, RuntimeSpec,
+  ArtifactExt, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation,
+  Logger,
   build_chunk_graph::code_splitter::CodeSplitter,
   fast_set,
   incremental::{IncrementalPasses, Mutation},
 };
-
-#[derive(Debug, Default)]
-struct DependencyConditionSnapshot {
-  runtimes: Vec<Option<Arc<RuntimeSpec>>>,
-  async_states: HashMap<(AsyncDependenciesBlockIdentifier, usize), Vec<ConnectionState>>,
-  eager_states: HashMap<(ModuleIdentifier, usize), Vec<ConnectionState>>,
-}
 
 #[derive(Debug, Default)]
 pub struct BuildChunkGraphArtifact {
@@ -34,7 +26,6 @@ pub struct BuildChunkGraphArtifact {
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) code_splitter: CodeSplitter,
   pub module_idx: IdentifierMap<(u32, u32)>,
-  dependency_condition_snapshot: DependencyConditionSnapshot,
 }
 
 impl BuildChunkGraphArtifact {
@@ -82,7 +73,7 @@ impl BuildChunkGraphArtifact {
     }
 
     let module_graph = this_compilation.get_module_graph();
-    let affected_modules = mutations.get_affected_modules_with_module_graph(module_graph);
+    let mut affected_modules = mutations.get_affected_modules_with_module_graph(module_graph);
     let previous_modules_map = &this_compilation
       .build_chunk_graph_artifact
       .code_splitter
@@ -93,31 +84,10 @@ impl BuildChunkGraphArtifact {
       return false;
     }
 
-    let current_condition_states = collect_async_dependency_condition_states(
-      this_compilation,
-      &self.dependency_condition_snapshot.runtimes,
-    );
-    if current_condition_states != self.dependency_condition_snapshot.async_states {
-      logger.log("async dependency condition change detected, rebuilding chunk graph");
-      return false;
-    }
-
-    let mut eager_modules = self
-      .dependency_condition_snapshot
-      .eager_states
-      .keys()
-      .map(|(module, _)| *module)
-      .collect::<HashSet<_>>();
-    eager_modules.extend(affected_modules.iter().copied());
-    let current_eager_condition_states = collect_eager_dependency_condition_states(
-      this_compilation,
-      &self.dependency_condition_snapshot.runtimes,
-      eager_modules,
-    );
-    if current_eager_condition_states != self.dependency_condition_snapshot.eager_states {
-      logger.log("eager dependency condition change detected, rebuilding chunk graph");
-      return false;
-    }
+    // A dependency condition may change when exports usage changes even if its
+    // owning module was not rebuilt. Revalidate every conditional module that
+    // contributed to the cached chunk graph in addition to mutated modules.
+    affected_modules.extend(self.code_splitter.cached_conditional_modules());
 
     for module in affected_modules {
       if !self
@@ -154,144 +124,6 @@ impl BuildChunkGraphArtifact {
     self.named_chunks.clear();
     self.set_code_splitter(Default::default());
     self.module_idx.clear();
-    self.dependency_condition_snapshot = Default::default();
-  }
-}
-
-fn collect_async_dependency_condition_states(
-  compilation: &Compilation,
-  runtimes: &[Option<Arc<RuntimeSpec>>],
-) -> HashMap<(AsyncDependenciesBlockIdentifier, usize), Vec<ConnectionState>> {
-  let module_graph = compilation.get_module_graph();
-  let module_graph_cache = &compilation.module_graph_cache_artifact;
-  let side_effects_state_artifact = &compilation
-    .build_module_graph_artifact
-    .side_effects_state_artifact;
-  let exports_info_artifact = &compilation.exports_info_artifact;
-  let mut states = HashMap::default();
-
-  for (block_id, block) in module_graph.blocks() {
-    for (dependency_index, dependency_id) in block.get_dependencies().iter().enumerate() {
-      let dependency = module_graph.dependency_by_id(dependency_id);
-      let has_condition = dependency
-        .as_module_dependency()
-        .and_then(|dependency| dependency.get_condition())
-        .is_some();
-      if !has_condition {
-        continue;
-      }
-
-      let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
-        continue;
-      };
-      let dependency_states = runtimes
-        .iter()
-        .map(|runtime| {
-          connection.active_state(
-            module_graph,
-            runtime.as_deref(),
-            module_graph_cache,
-            side_effects_state_artifact,
-            exports_info_artifact,
-          )
-        })
-        .collect();
-      states.insert((*block_id, dependency_index), dependency_states);
-    }
-  }
-
-  states
-}
-
-fn collect_eager_dependency_condition_states(
-  compilation: &Compilation,
-  runtimes: &[Option<Arc<RuntimeSpec>>],
-  modules: impl IntoIterator<Item = ModuleIdentifier>,
-) -> HashMap<(ModuleIdentifier, usize), Vec<ConnectionState>> {
-  let module_graph = compilation.get_module_graph();
-  let module_graph_cache = &compilation.module_graph_cache_artifact;
-  let side_effects_state_artifact = &compilation
-    .build_module_graph_artifact
-    .side_effects_state_artifact;
-  let exports_info_artifact = &compilation.exports_info_artifact;
-  let mut states = HashMap::default();
-
-  for module_identifier in modules {
-    let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
-      continue;
-    };
-    for (dependency_index, dependency_id) in module.get_dependencies().iter().enumerate() {
-      let dependency = module_graph.dependency_by_id(dependency_id);
-      if !matches!(
-        dependency.dependency_type(),
-        DependencyType::DynamicImportEager
-      ) || dependency
-        .as_module_dependency()
-        .and_then(|dependency| dependency.get_condition())
-        .is_none()
-      {
-        continue;
-      }
-
-      let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
-        continue;
-      };
-      let dependency_states = runtimes
-        .iter()
-        .map(|runtime| {
-          connection.active_state(
-            module_graph,
-            runtime.as_deref(),
-            module_graph_cache,
-            side_effects_state_artifact,
-            exports_info_artifact,
-          )
-        })
-        .collect();
-      states.insert((module_identifier, dependency_index), dependency_states);
-    }
-  }
-
-  states
-}
-
-fn create_dependency_condition_snapshot(compilation: &Compilation) -> DependencyConditionSnapshot {
-  let code_splitter = &compilation.build_chunk_graph_artifact.code_splitter;
-  let mut runtimes = Vec::new();
-  let mut seen_runtimes = HashSet::default();
-
-  for runtime in code_splitter
-    .block_modules_runtime_map
-    .keys()
-    .cloned()
-    .chain(
-      code_splitter
-        .chunk_group_infos
-        .values()
-        .map(|info| Some(info.runtime.clone())),
-    )
-  {
-    if seen_runtimes.insert(runtime.clone()) {
-      runtimes.push(runtime);
-    }
-  }
-
-  // A conditional async dependency implies that code splitting evaluated at
-  // least one runtime. Keep a conservative fallback for an empty graph cache.
-  if runtimes.is_empty() {
-    runtimes.push(None);
-  }
-
-  let async_states = collect_async_dependency_condition_states(compilation, &runtimes);
-  let eager_states = collect_eager_dependency_condition_states(
-    compilation,
-    &runtimes,
-    compilation.get_module_graph().modules_keys().copied(),
-  );
-  DependencyConditionSnapshot {
-    runtimes,
-    async_states,
-    eager_states,
   }
 }
 
@@ -350,10 +182,6 @@ where
     map.insert(*mid, (pre, post));
   }
   compilation.build_chunk_graph_artifact.module_idx = map;
-  let condition_snapshot = create_dependency_condition_snapshot(compilation);
-  compilation
-    .build_chunk_graph_artifact
-    .dependency_condition_snapshot = condition_snapshot;
   Ok(())
 }
 
@@ -364,7 +192,6 @@ impl ArtifactExt for BuildChunkGraphArtifact {
   }
   fn recover(_incremental: &crate::incremental::Incremental, new: &mut Self, old: &mut Self) {
     new.code_splitter = mem::take(&mut old.code_splitter);
-    new.dependency_condition_snapshot = mem::take(&mut old.dependency_condition_snapshot);
     rayon::scope(|s| {
       s.spawn(|_| new.chunk_by_ukey.clone_from(&old.chunk_by_ukey));
       s.spawn(|_| new.chunk_graph.clone_from(&old.chunk_graph));

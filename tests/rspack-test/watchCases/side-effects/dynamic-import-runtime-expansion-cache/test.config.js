@@ -10,8 +10,8 @@ module.exports = {
 	},
 	checkStats(step, _, stringStats) {
 		const rebuilt = stringStats.includes("<t> rebuild chunk graph");
-		const conditionChanged = stringStats.includes(
-			"async dependency condition change detected"
+		const topologyChanged = stringStats.includes(
+			"module topology change detected"
 		);
 
 		if (step === "0") {
@@ -19,7 +19,7 @@ module.exports = {
 		} else if (step === "1" || step === "2") {
 			assert(rebuilt, `runtime usage change at step ${step} should rebuild`);
 			assert(
-				conditionChanged,
+				topologyChanged,
 				`runtime-specific condition change at step ${step} should invalidate the cache`
 			);
 		} else {
