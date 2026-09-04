@@ -1826,7 +1826,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .expect("should have block");
       let chunk_name = block.get_group_options().and_then(|o| o.name());
       let entry_options = block.get_group_options().and_then(|o| o.entry_options());
-      let request = block.request().clone();
+      let request = block.request().as_ref().map(ToString::to_string);
       let loc = block.loc();
 
       let cgi = if let Some(entry_options) = entry_options {
@@ -1932,7 +1932,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         let block = module_graph
           .block_by_id(&block_id)
           .expect("should have block");
-        let request = block.request().clone();
+        let request = block.request().as_ref().map(ToString::to_string);
         let loc = block.loc();
 
         if compilation
@@ -1964,7 +1964,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           block.get_group_options(),
           module_id,
           block.loc(),
-          block.request().clone(),
+          block.request().as_ref().map(ToString::to_string),
         );
         let chunk_group_ukey = chunk_group.ukey;
         let chunk = compilation

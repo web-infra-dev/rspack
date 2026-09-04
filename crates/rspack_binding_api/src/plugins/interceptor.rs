@@ -1394,7 +1394,7 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
 impl CompilationFinishModules for CompilationFinishModulesTap {
   async fn run(
     &self,
-    compilation: &Compilation,
+    compilation: &mut Compilation,
     _async_modules_artifact: &mut AsyncModulesArtifact,
     exports_info_artifact: &mut rspack_core::ExportsInfoArtifact,
     _side_effects_state_artifact: &mut rspack_core::SideEffectsStateArtifact,

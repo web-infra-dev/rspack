@@ -196,7 +196,7 @@ pub static FLAG_DEPENDENCY_EXPORTS_STAGE: i32 = 0;
 #[plugin_hook(CompilationFinishModules for FlagDependencyExportsPlugin, stage = FLAG_DEPENDENCY_EXPORTS_STAGE)]
 async fn finish_modules(
   &self,
-  compilation: &Compilation,
+  compilation: &mut Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
   exports_info_artifact: &mut ExportsInfoArtifact,
   _side_effects_state_artifact: &mut SideEffectsStateArtifact,

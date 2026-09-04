@@ -1,0 +1,1 @@
+globalThis.URL_ENTRY_REBUILD_TARGET_EXECUTED = 'initial';

@@ -308,7 +308,9 @@ impl AMDRequireDependenciesBlockParserPlugin {
           block_loc,
           None,
           block_deps,
-          self.process_array_for_request_string(&param),
+          self
+            .process_array_for_request_string(&param)
+            .map(Into::into),
         ));
         parser.add_block(dep_block);
         return Some(true);
@@ -356,7 +358,9 @@ impl AMDRequireDependenciesBlockParserPlugin {
         block_loc,
         None,
         block_deps,
-        self.process_array_for_request_string(&param),
+        self
+          .process_array_for_request_string(&param)
+          .map(Into::into),
       ));
       parser.add_block(dep_block);
 

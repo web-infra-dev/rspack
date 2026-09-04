@@ -1,7 +1,7 @@
 use rspack_cacheable::cacheable;
 use rspack_core::{
   DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ModuleDependency, TemplateContext, TemplateReplaceSource,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_plugin_javascript::dependency::{URLDependency, URLDependencyTemplate};
 
@@ -38,7 +38,10 @@ impl DependencyTemplate for RstestUrlDependencyTemplate {
 
     // Strip query string and fragment from request path before checking extension
     let request = dep.request();
-    let request_path = request.split(&['?', '#'][..]).next().unwrap_or(request);
+    let request_path = request
+      .split(&['?', '#'][..])
+      .next()
+      .unwrap_or(request.as_str());
 
     let should_preserve = request_path.rsplit('.').next().is_some_and(|ext| {
       self.preserve_extensions.iter().any(|preserve_ext| {

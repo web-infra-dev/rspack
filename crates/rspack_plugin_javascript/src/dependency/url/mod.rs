@@ -50,6 +50,14 @@ impl URLDependency {
   pub fn used_by_exports(&self) -> Option<&UsedByExports> {
     self.used_by_exports.as_ref()
   }
+
+  pub fn request(&self) -> Atom {
+    self.request.clone()
+  }
+
+  pub fn dependency_range(&self) -> DependencyRange {
+    self.range
+  }
 }
 
 #[cacheable_dyn]
@@ -135,6 +143,89 @@ impl DependencyTemplate for URLDependencyTemplate {
       ..
     } = code_generatable_context;
 
+    let module_graph = compilation.get_module_graph();
+    if let Some(block) = module_graph.get_parent_block(&dep.id) {
+      let chunk_id = compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_block_chunk_group(
+          block,
+          &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+        )
+        .map(|entrypoint| entrypoint.get_entrypoint_chunk())
+        .and_then(|ukey| {
+          compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .get(&ukey)
+        })
+        .and_then(|chunk| chunk.id())
+        .map(rspack_util::json_stringify)
+        .expect("URL entry should have a chunk id");
+      let target_module = module_graph
+        .module_identifier_by_dependency_id(&dep.id)
+        .and_then(|identifier| module_graph.module_by_identifier(identifier))
+        .expect("URL entry should have a target module");
+      let chunk_filename_global = if matches!(
+        target_module.module_type(),
+        rspack_core::ModuleType::Css
+          | rspack_core::ModuleType::CssAuto
+          | rspack_core::ModuleType::CssModule
+          | rspack_core::ModuleType::CssGlobal
+      ) {
+        RuntimeGlobals::GET_CHUNK_CSS_FILENAME
+      } else {
+        RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME
+      };
+
+      if matches!(dep.mode, Some(JavascriptParserUrl::NewUrlRelative)) {
+        code_generatable_context.data.insert(URLStaticMode);
+        code_generatable_context
+          .data
+          .insert(CodeGenerationPublicPathAutoReplace(true));
+        source.replace(
+          dep.range.start,
+          dep.range.end,
+          format!(
+            "new URL({}, import.meta.url)",
+            rspack_util::json_stringify_str(&format!(
+              "{AUTO_PUBLIC_PATH_PLACEHOLDER}{URL_STATIC_PLACEHOLDER}{}",
+              &dep.id.as_u32()
+            )),
+          ),
+          None,
+        );
+        return;
+      }
+
+      let entry_url = format!(
+        "{} + {}({chunk_id})",
+        runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH),
+        runtime_template.render_runtime_globals(&chunk_filename_global),
+      );
+      match dep.mode {
+        Some(JavascriptParserUrl::Relative) => source.replace(
+          dep.range.start,
+          dep.range.end,
+          format!(
+            "/* entry url */ new {}({entry_url})",
+            runtime_template.render_runtime_globals(&RuntimeGlobals::RELATIVE_URL),
+          ),
+          None,
+        ),
+        _ => source.replace(
+          dep.range_url.start,
+          dep.range_url.end,
+          format!(
+            "/* entry url */{entry_url}, {}",
+            runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI)
+          ),
+          None,
+        ),
+      }
+      return;
+    }
+
     match dep.mode {
       Some(JavascriptParserUrl::Relative) => {
         source.replace(
@@ -200,6 +291,14 @@ impl DependencyConditionFn for URLDependencyCondition {
     let dependency = dependency
       .downcast_ref::<URLDependency>()
       .expect("should be URLDependency");
+    let runtime = if module_graph
+      .get_parent_block(&connection.dependency_id)
+      .is_some()
+    {
+      None
+    } else {
+      runtime
+    };
     ConnectionState::Active(connection_active_used_by_exports(
       connection,
       runtime,
