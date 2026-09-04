@@ -8,6 +8,7 @@ export type ResolveData = {
   };
   context: string;
   request: string;
+  attributes?: Record<string, string>;
   fileDependencies: string[];
   missingDependencies: string[];
   contextDependencies: string[];
