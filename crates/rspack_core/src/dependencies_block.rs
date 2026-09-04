@@ -271,12 +271,6 @@ impl AsyncDependenciesBlock {
     self.group_options.as_ref()
   }
 
-  pub fn blocks_mut(&mut self) -> impl Iterator<Item = &mut AsyncDependenciesBlock> {
-    self.dependencies_block.blocks.iter_mut().map(|block| {
-      Arc::get_mut(block).expect("parser blocks must not be published")
-    })
-  }
-
   pub fn loc(&self) -> Option<DependencyLocation> {
     self.loc.clone()
   }

@@ -261,7 +261,7 @@ impl InnerGraphParserPlugin {
   pub fn finalize_dependency_usage(
     state: &mut InnerGraphState,
     dependencies: &mut [BoxDependency],
-    blocks: &mut [Box<AsyncDependenciesBlock>],
+    blocks: &mut [Option<Box<AsyncDependenciesBlock>>],
   ) {
     if !state.is_enabled() || state.symbols.iter().all(|symbol| symbol.usages.is_empty()) {
       return;
@@ -358,39 +358,30 @@ impl InnerGraphParserPlugin {
     }
 
     if !import_dependency_usage.is_empty() {
-      fn set_import_dependency_usage(
-        dependency: &mut BoxDependency,
-        used_by_exports: Arc<UsedByExports>,
-      ) {
-        if let Some(dependency) = dependency.downcast_mut::<ImportDependency>() {
-          dependency.set_used_by_exports(Some(used_by_exports));
-        } else if let Some(dependency) = dependency.downcast_mut::<ImportEagerDependency>() {
-          dependency.set_used_by_exports(Some(used_by_exports));
-        } else {
-          unreachable!("inner graph import dependency should be a dynamic import dependency");
-        }
-      }
-
-      fn apply_import_dependency_usage(
-        blocks: &mut [Box<AsyncDependenciesBlock>],
-        import_dependency_usage: &mut HashMap<DependencyId, Arc<UsedByExports>>,
-      ) {
-        for block in blocks {
-          for dependency in block.dependencies_mut() {
-            if let Some(used_by_exports) = import_dependency_usage.remove(dependency.id()) {
-              set_import_dependency_usage(dependency, used_by_exports);
+      // Parser blocks are still flat here; nested blocks are assembled afterwards.
+      for block in blocks.iter_mut().flatten() {
+        for dependency in block.dependencies_mut() {
+          if let Some(used_by_exports) = import_dependency_usage.remove(dependency.id()) {
+            if let Some(dependency) = dependency.downcast_mut::<ImportDependency>() {
+              dependency.set_used_by_exports(Some(used_by_exports));
+            } else if let Some(dependency) = dependency.downcast_mut::<ImportEagerDependency>() {
+              dependency.set_used_by_exports(Some(used_by_exports));
+            } else {
+              unreachable!("inner graph import dependency should be a dynamic import dependency");
             }
           }
-          apply_import_dependency_usage(block.blocks_mut(), import_dependency_usage);
         }
       }
 
       for dependency in dependencies {
         if let Some(used_by_exports) = import_dependency_usage.remove(dependency.id()) {
-          set_import_dependency_usage(dependency, used_by_exports);
+          if let Some(dependency) = dependency.downcast_mut::<ImportEagerDependency>() {
+            dependency.set_used_by_exports(Some(used_by_exports));
+          } else {
+            unreachable!("top-level import dependency should be ImportEagerDependency");
+          }
         }
       }
-      apply_import_dependency_usage(blocks, &mut import_dependency_usage);
       assert!(
         import_dependency_usage.is_empty(),
         "inner graph import dependencies should exist in the module dependencies or an async dependencies block"
