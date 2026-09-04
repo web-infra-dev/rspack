@@ -139,13 +139,19 @@ test('should work with cross-origin lazy compilation using simple POST request',
   const { lazyCompilationPort } = crossOriginSetup;
 
   // Set up request interception to verify the request format
-  const requests: { method: string; contentType: string; body: string }[] = [];
+  const requests: {
+    method: string;
+    accept: string;
+    contentType: string;
+    body: string;
+  }[] = [];
 
   page.on('request', (request) => {
     const url = request.url();
     if (url.includes(`${lazyCompilationPort}`)) {
       requests.push({
         method: request.method(),
+        accept: request.headers().accept || '',
         contentType: request.headers()['content-type'] || '',
         body: request.postData() || '',
       });
@@ -168,6 +174,7 @@ test('should work with cross-origin lazy compilation using simple POST request',
   // Verify the request was a simple POST request with text/plain content type
   const lazyRequest = requests.find((r) => r.method === 'POST');
   expect(lazyRequest).toBeDefined();
+  expect(lazyRequest!.accept).toBe('text/event-stream');
   expect(lazyRequest!.contentType).toBe('text/plain');
   // The body should be newline-separated module IDs, not JSON
   expect(lazyRequest!.body).not.toMatch(/^\[/); // Not a JSON array
