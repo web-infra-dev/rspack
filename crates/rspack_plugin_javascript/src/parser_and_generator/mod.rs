@@ -1,6 +1,5 @@
 use std::{
   borrow::Cow,
-  collections::HashSet,
   sync::{Arc, LazyLock},
 };
 
@@ -25,6 +24,7 @@ use rspack_error::{
   TWithDiagnosticArray,
 };
 use rspack_util::swc::RspackComments;
+use rustc_hash::FxHashSet;
 use swc_next_allocator::Allocator;
 use swc_next_ecma_ast::{Lang, Severity as SwcSeverity, SourceType as SwcSourceType, VisitWith};
 use swc_next_ecma_parser::{CommentMode, Options, ParseReturn, Parser, TokenParserConfig};
@@ -76,7 +76,7 @@ fn append_swc_next_diagnostics<'a>(
   source: &str,
   errors: impl IntoIterator<Item = swc_next_ecma_ast::Diagnostic<'a>>,
 ) {
-  let mut visited = HashSet::new();
+  let mut visited = FxHashSet::default();
   let mut shared_source = None;
   diagnostics.extend(errors.into_iter().filter_map(|diagnostic| {
     let span = diagnostic.span;
