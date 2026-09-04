@@ -1032,7 +1032,7 @@ impl JavascriptParser<'_> {
     self.top_level_scope = was_top_level;
   }
 
-  fn walk_property(&mut self, prop: &Prop) {
+  pub(crate) fn walk_property(&mut self, prop: &Prop) {
     match prop {
       Prop::Shorthand(ident) => {
         self.in_short_hand = true;

@@ -33,6 +33,8 @@ pub enum DependencyType {
   CjsFullRequire,
   // cjs exports
   CjsExports,
+  // properties of a module.exports object literal
+  CjsObjectExports,
   // module.exports = require(), should bailout in old tree shaking
   CjsExportRequire,
   // cjs self reference
@@ -165,6 +167,7 @@ impl DependencyType {
       DependencyType::CjsRequire => "cjs require",
       DependencyType::CjsFullRequire => "cjs full require",
       DependencyType::CjsExports => "cjs exports",
+      DependencyType::CjsObjectExports => "cjs object exports",
       DependencyType::CjsExportRequire => "cjs export require",
       DependencyType::CjsSelfReference => "cjs self exports reference",
       DependencyType::AmdDefine => "amd define",

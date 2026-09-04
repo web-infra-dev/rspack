@@ -1,5 +1,8 @@
+use std::sync::Arc;
+
 use rspack_core::{
   BoxDependency, BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, RuntimeGlobals,
+  RuntimeRequirementsDependency,
 };
 use rspack_util::SpanExt;
 use swc_experimental_ecma_ast::{
@@ -11,8 +14,9 @@ use super::JavascriptParserPlugin;
 use crate::{
   Atom,
   dependency::{
-    CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsSelfReferenceDependency,
-    ExportsBase, ModuleDecoratorDependency,
+    CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsObjectExportDependency,
+    CommonJsObjectExportKind, CommonJsSelfReferenceDependency, ExportsBase,
+    ModuleDecoratorDependency,
   },
   parser_plugin::common_js_imports_parse_plugin::is_require_call_expr,
   utils::eval::{self, BasicEvaluatedExpression},
@@ -171,6 +175,165 @@ fn parse_require_call<'p: 'a, 'a>(
   None
 }
 
+fn get_static_property_name(name: &PropName) -> Option<Atom> {
+  let name = match name {
+    PropName::Ident(ident) => Atom::from(&ident.sym),
+    PropName::Str(str) => Atom::from(str.value.to_string_lossy().as_ref()),
+    PropName::Num(_) | PropName::Computed(_) | PropName::BigInt(_) => return None,
+  };
+  (name != "__proto__").then_some(name)
+}
+
+fn get_object_export_name(prop: &PropOrSpread) -> Option<Atom> {
+  let PropOrSpread::Prop(prop) = prop else {
+    return None;
+  };
+  match &**prop {
+    Prop::Shorthand(ident) => {
+      let name = Atom::from(&ident.sym);
+      (name != "__proto__").then_some(name)
+    }
+    Prop::KeyValue(prop) => get_static_property_name(&prop.key),
+    Prop::Getter(prop) => get_static_property_name(&prop.key),
+    Prop::Setter(prop) => get_static_property_name(&prop.key),
+    Prop::Method(prop) => get_static_property_name(&prop.key),
+    Prop::Assign(_) => None,
+  }
+}
+
+fn get_object_export_kind(prop: &Prop) -> Option<CommonJsObjectExportKind> {
+  Some(match prop {
+    Prop::KeyValue(_) => CommonJsObjectExportKind::KeyValue,
+    Prop::Shorthand(_) => CommonJsObjectExportKind::Shorthand,
+    Prop::Getter(_) => CommonJsObjectExportKind::Getter,
+    Prop::Setter(_) => CommonJsObjectExportKind::Setter,
+    Prop::Method(prop) => match (prop.function.is_async, prop.function.is_generator) {
+      (false, false) => CommonJsObjectExportKind::Method,
+      (true, false) => CommonJsObjectExportKind::AsyncMethod,
+      (false, true) => CommonJsObjectExportKind::GeneratorMethod,
+      (true, true) => CommonJsObjectExportKind::AsyncGeneratorMethod,
+    },
+    Prop::Assign(_) => return None,
+  })
+}
+
+fn expand_parenthesized_range(source: &str, mut range: DependencyRange) -> DependencyRange {
+  let bytes = source.as_bytes();
+  loop {
+    let mut start = range.start as usize;
+    while start > 0 && bytes[start - 1].is_ascii_whitespace() {
+      start -= 1;
+    }
+    let mut end = range.end as usize;
+    while end < bytes.len() && bytes[end].is_ascii_whitespace() {
+      end += 1;
+    }
+    if start == 0 || end >= bytes.len() || bytes[start - 1] != b'(' || bytes[end] != b')' {
+      break;
+    }
+    range.start = (start - 1) as u32;
+    range.end = (end + 1) as u32;
+  }
+  range
+}
+
+fn get_object_export_ranges(
+  prop: &Prop,
+  source: &str,
+) -> Option<(DependencyRange, DependencyRange, DependencyRange)> {
+  let mut range: DependencyRange = prop.span().into();
+  let key_range = match prop {
+    Prop::Shorthand(ident) => ident.span.into(),
+    Prop::KeyValue(prop) => prop.key.span().into(),
+    Prop::Getter(prop) => prop.key.span().into(),
+    Prop::Setter(prop) => prop.key.span().into(),
+    Prop::Method(prop) => prop.key.span().into(),
+    Prop::Assign(_) => return None,
+  };
+  let value_range = match prop {
+    Prop::Shorthand(ident) => ident.span.into(),
+    // Parentheses are removed before dependency scanning, while the source
+    // text is kept. Recover them so source replacements don't leave behind an
+    // unmatched closing parenthesis.
+    Prop::KeyValue(prop) => expand_parenthesized_range(source, prop.value.span().into()),
+    Prop::Getter(prop) => DependencyRange::new(prop.key.span().real_hi(), prop.span.real_hi()),
+    Prop::Setter(prop) => DependencyRange::new(prop.key.span().real_hi(), prop.span.real_hi()),
+    Prop::Method(prop) => DependencyRange::new(prop.key.span().real_hi(), prop.span().real_hi()),
+    Prop::Assign(_) => return None,
+  };
+  range.end = range.end.max(value_range.end);
+  Some((range, key_range, value_range))
+}
+
+fn get_object_export_value<'a>(prop: &'a Prop<'a>) -> Option<&'a Expr<'a>> {
+  match prop {
+    Prop::KeyValue(prop) => Some(&prop.value),
+    Prop::Shorthand(_) | Prop::Assign(_) | Prop::Getter(_) | Prop::Setter(_) | Prop::Method(_) => {
+      None
+    }
+  }
+}
+
+fn handle_object_literal_export(
+  parser: &mut JavascriptParser,
+  assign_expr: &AssignExpr,
+  base: ExportsBase,
+) -> Option<bool> {
+  if !matches!(base, ExportsBase::ModuleExports)
+    || parser.statement_path.len() != 1
+    || !parser.is_statement_level_expression(assign_expr.span)
+  {
+    return None;
+  }
+  let Expr::Object(object) = &assign_expr.right else {
+    return None;
+  };
+
+  // The original `module.exports` text remains in place, so make sure the
+  // generated module wrapper keeps its module argument.
+  parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
+    RuntimeGlobals::MODULE,
+  )));
+
+  // A single unknown key makes the object opaque. Resolve all names before
+  // adding any structured export dependencies.
+  let Some(names) = object
+    .props
+    .iter()
+    .map(get_object_export_name)
+    .collect::<Option<Vec<_>>>()
+  else {
+    parser.bailout();
+    parser.walk_expression(&assign_expr.right);
+    return Some(true);
+  };
+
+  parser.enable();
+  for (prop, name) in object.props.iter().zip(names) {
+    let PropOrSpread::Prop(prop) = prop else {
+      unreachable!("spread properties were rejected while collecting export names")
+    };
+    let kind = get_object_export_kind(prop)
+      .expect("unsupported properties were rejected while collecting export names");
+    let (range, key_range, value_range) = get_object_export_ranges(prop, parser.source)
+      .expect("unsupported properties were rejected while collecting export names");
+
+    if name == "__esModule" {
+      parser.check_namespace(true, get_object_export_value(prop));
+    }
+
+    parser.add_dependency(BoxDependency::new(CommonJsObjectExportDependency::new(
+      range,
+      key_range,
+      value_range,
+      name,
+      kind,
+    )));
+    parser.walk_property(prop);
+  }
+  Some(true)
+}
+
 fn handle_assign_export(
   parser: &mut JavascriptParser,
   assign_expr: &AssignExpr,
@@ -301,6 +464,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
     if for_name == "module" && matches!(remaining.first(), Some(first) if first == "exports") {
       // module.exports.x = y;
+      if let Some(result) =
+        handle_object_literal_export(parser, assign_expr, ExportsBase::ModuleExports)
+      {
+        return Some(result);
+      }
       return handle_assign_export(
         parser,
         assign_expr,
