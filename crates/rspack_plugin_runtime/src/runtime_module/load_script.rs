@@ -132,6 +132,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
         code: create_script_code,
         chunk: RuntimeModuleChunkWrapper {
           chunk_ukey,
+          compiler_id: compilation.compiler_id(),
           compilation_id: compilation.id(),
         },
       })

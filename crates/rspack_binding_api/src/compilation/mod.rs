@@ -811,8 +811,9 @@ impl JsCompilation {
   )]
   pub fn add_entry(
     &mut self,
+    env: &Env,
     reference: Reference<JsCompilation>,
-    js_args: Vec<(String, &mut EntryDependency, Option<JsEntryOptions>)>,
+    raw_js_args: Unknown<'static>,
     f: Function<'static>,
   ) -> napi::Result<(), ErrorCode> {
     let compilation = self
@@ -835,6 +836,17 @@ impl JsCompilation {
           "Unable to addEntry now. The Compiler has been garbage collected by JavaScript.",
         ));
       };
+      let js_args = js_compiler
+        .compiler_scoped_filename_tsfn_manager
+        .scope(|| {
+          js_compiler.compiler_scoped_tsfn_manager.scope(|| unsafe {
+            Vec::<(String, &mut EntryDependency, Option<JsEntryOptions>)>::from_napi_value(
+              env.raw(),
+              raw_js_args.raw(),
+            )
+          })
+        })
+        .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
       let entry_dependencies_map = &mut js_compiler.entry_dependencies_map;
 
       let args = js_args
@@ -915,8 +927,9 @@ impl JsCompilation {
   )]
   pub fn add_include(
     &mut self,
+    env: &Env,
     reference: Reference<JsCompilation>,
-    js_args: Vec<(String, &mut EntryDependency, Option<JsEntryOptions>)>,
+    raw_js_args: Unknown<'static>,
     f: Function<'static>,
   ) -> napi::Result<(), ErrorCode> {
     let compilation = self
@@ -939,6 +952,17 @@ impl JsCompilation {
       ));
     };
     within_compiler_context_sync(js_compiler.compiler_context.clone(), || {
+      let js_args = js_compiler
+        .compiler_scoped_filename_tsfn_manager
+        .scope(|| {
+          js_compiler.compiler_scoped_tsfn_manager.scope(|| unsafe {
+            Vec::<(String, &mut EntryDependency, Option<JsEntryOptions>)>::from_napi_value(
+              env.raw(),
+              raw_js_args.raw(),
+            )
+          })
+        })
+        .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
       let include_dependencies_map = &mut js_compiler.include_dependencies_map;
 
       let args = js_args
