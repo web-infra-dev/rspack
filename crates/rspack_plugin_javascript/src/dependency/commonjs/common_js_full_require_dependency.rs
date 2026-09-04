@@ -90,7 +90,7 @@ impl Dependency for CommonJsFullRequireDependency {
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {
-    let mut namespace_object_as_context = self.namespace_object_as_context;
+    let namespace_object_as_context = self.namespace_object_as_context;
 
     let module = module_graph
       .get_module_by_dependency_id(&self.id)
@@ -102,17 +102,12 @@ impl Dependency for CommonJsFullRequireDependency {
       false,
     );
 
-    // Force enable namespace object as context for json module, it's a common case:
-    // import json from "./array.json"; json.map(d => d * 2);
-    if matches!(
-      exports_type,
-      ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
-    ) && module.build_info().json_data.is_some()
+    // CommonJS exports are real objects, so a member call can observe the whole
+    // object through `this`. ESM namespace objects only need this bailout when
+    // strictThisContextOnImports is enabled.
+    if self.is_call
+      && (namespace_object_as_context || !matches!(exports_type, ExportsType::Namespace))
     {
-      namespace_object_as_context = true;
-    }
-
-    if namespace_object_as_context && self.is_call {
       if self.names.is_empty() {
         return create_exports_object_referenced();
       }
