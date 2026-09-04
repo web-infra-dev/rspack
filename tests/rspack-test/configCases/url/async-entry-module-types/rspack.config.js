@@ -31,13 +31,19 @@ class CheckUrlEntriesPlugin {
             directUrlDependencies
               .map((dependency) => dependency.request)
               .sort(),
-          ).toEqual(['./target-asset.js', './target.png']);
+          ).toEqual([
+            './target-asset.css',
+            './target-asset.js',
+            './target.png',
+          ]);
 
-          const jsAssetModule = Array.from(compilation.modules).find(
-            (module) => module.rawRequest === './target-asset.js',
-          );
-          expect(jsAssetModule).toBeDefined();
-          expect(jsAssetModule.type).toBe('asset/resource');
+          for (const request of ['./target-asset.js', './target-asset.css']) {
+            const assetModule = Array.from(compilation.modules).find(
+              (module) => module.rawRequest === request,
+            );
+            expect(assetModule).toBeDefined();
+            expect(assetModule.type).toBe('asset/resource');
+          }
 
           const compilationAssets = compilation.getAssets();
           const assets = compilationAssets.map((asset) => asset.name);
@@ -49,16 +55,18 @@ class CheckUrlEntriesPlugin {
               asset.startsWith(`url-${this.name}-`),
             ),
           ).toHaveLength(2);
-          const cssAssets = compilationAssets.filter((asset) =>
-            asset.name.endsWith('.css'),
+          const cssAssets = compilationAssets.filter(
+            (asset) =>
+              asset.name.startsWith(`url-${this.name}-`) &&
+              asset.name.endsWith('.css'),
           );
           expect(cssAssets).toHaveLength(1);
-          expect(cssAssets[0].name.startsWith(`url-${this.name}-`)).toBe(true);
           const cssSource = cssAssets[0].source.source().toString();
           expect(cssSource).toContain('.url-entry-imported');
           expect(cssSource).toContain('.url-entry-target');
           expect(assets).toContain(`target-${this.name}.png`);
           expect(assets).toContain(`target-asset-${this.name}.js`);
+          expect(assets).toContain(`target-asset-${this.name}.css`);
         },
       );
     });
@@ -108,6 +116,9 @@ const createConfig = (name, parserUrl, outputModule = false) => {
         },
         {
           test: /target-asset\.js$/,
+        },
+        {
+          test: /target-asset\.css$/,
         },
       ],
     },
