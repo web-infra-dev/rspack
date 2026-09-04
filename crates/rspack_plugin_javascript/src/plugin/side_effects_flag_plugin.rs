@@ -1,4 +1,4 @@
-use std::{borrow::Cow, fmt::Debug};
+use std::{borrow::Cow, fmt::Debug, path::PathBuf, sync::RwLock};
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
@@ -16,7 +16,8 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
-use rspack_paths::{AssertUtf8, Utf8Path};
+use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
+use rustc_hash::FxHashMap;
 use sugar_path::SugarPath;
 use swc_experimental_ecma_ast::{ClassMember, Key, PropName};
 
@@ -33,6 +34,12 @@ enum SideEffects {
   Bool(bool),
   String(String),
   Array(Vec<String>),
+}
+
+#[derive(Clone, Debug)]
+struct OwningSideEffects {
+  side_effects: SideEffects,
+  package_root: Utf8PathBuf,
 }
 
 impl SideEffects {
@@ -119,18 +126,74 @@ impl<'a> ClassExt<'a> for ClassMember<'a> {
 #[derive(Debug, Default)]
 pub struct SideEffectsFlagPlugin {
   analyze_side_effects_free: bool,
+  owning_side_effects_cache: RwLock<FxHashMap<PathBuf, Option<OwningSideEffects>>>,
 }
 
 impl SideEffectsFlagPlugin {
   pub fn new(analyze_side_effects_free: bool) -> Self {
-    Self::new_inner(analyze_side_effects_free)
+    Self::new_inner(analyze_side_effects_free, Default::default())
+  }
+
+  async fn get_owning_side_effects(
+    &self,
+    data: &mut ModuleFactoryCreateData,
+    description_root: &Utf8Path,
+  ) -> Option<OwningSideEffects> {
+    if let Some(cached) = self
+      .owning_side_effects_cache
+      .read()
+      .expect("sideEffects cache lock should not be poisoned")
+      .get(description_root.as_std_path())
+      .cloned()
+    {
+      return cached;
+    }
+
+    let fs = data.resolver_factory.inner_fs();
+    let mut dir = description_root.parent();
+    let mut result = None;
+
+    while let Some(current) = dir {
+      if current.file_name() == Some("node_modules") {
+        break;
+      }
+
+      let description_file = current.join("package.json");
+      match fs.read(&description_file).await {
+        Ok(content) => {
+          data.add_file_dependencies([description_file.as_std_path()]);
+          if let Ok(description) = serde_json::from_slice::<serde_json::Value>(&content) {
+            if let Some(side_effects) = SideEffects::from_description(&description) {
+              result = Some(OwningSideEffects {
+                side_effects,
+                package_root: current.to_path_buf(),
+              });
+              break;
+            }
+            if description.get("name").is_some() {
+              break;
+            }
+          }
+        }
+        Err(_) => data.add_missing_dependencies([description_file.as_std_path()]),
+      }
+
+      dir = current.parent();
+    }
+
+    self
+      .owning_side_effects_cache
+      .write()
+      .expect("sideEffects cache lock should not be poisoned")
+      .insert(description_root.as_std_path().to_path_buf(), result.clone());
+    result
   }
 }
 
 #[plugin_hook(NormalModuleFactoryModule for SideEffectsFlagPlugin,tracing=false)]
 async fn nmf_module(
   &self,
-  _data: &mut ModuleFactoryCreateData,
+  data: &mut ModuleFactoryCreateData,
   create_data: &NormalModuleCreateData,
   module: &mut BoxModule,
 ) -> Result<()> {
@@ -149,12 +212,33 @@ async fn nmf_module(
     return Ok(());
   };
   let package_path = description.path();
-  let Some(side_effects) = SideEffects::from_description(description.json()) else {
-    return Ok(());
-  };
+  let (side_effects, package_path) =
+    if let Some(side_effects) = SideEffects::from_description(description.json()) {
+      (side_effects, package_path.assert_utf8().to_path_buf())
+    } else {
+      // A named package owns its metadata boundary even when it omits sideEffects.
+      if description.json().get("name").is_some() {
+        return Ok(());
+      }
+
+      let description_root = package_path.assert_utf8();
+      // Type-only nested package.json files shadow application metadata, but inside
+      // node_modules they should inherit sideEffects from the owning package root.
+      if !description_root
+        .components()
+        .any(|component| component.as_str() == "node_modules")
+      {
+        return Ok(());
+      }
+
+      let Some(owning) = self.get_owning_side_effects(data, description_root).await else {
+        return Ok(());
+      };
+      (owning.side_effects, owning.package_root)
+    };
   let relative_path = resource_path
     .as_std_path()
-    .relative(package_path)
+    .relative(package_path.as_std_path())
     .assert_utf8();
   let has_side_effects = get_side_effects_from_package_json(side_effects, relative_path.as_path());
 
