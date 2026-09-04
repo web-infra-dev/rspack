@@ -46,6 +46,7 @@ pub struct CommonJsObjectExportDependency {
   #[cacheable(with=AsPreset)]
   name: Atom,
   kind: CommonJsObjectExportKind,
+  pure: bool,
 }
 
 impl CommonJsObjectExportDependency {
@@ -55,6 +56,7 @@ impl CommonJsObjectExportDependency {
     value_range: DependencyRange,
     name: Atom,
     kind: CommonJsObjectExportKind,
+    pure: bool,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -63,6 +65,7 @@ impl CommonJsObjectExportDependency {
       value_range,
       name,
       kind,
+      pure,
     }
   }
 }
@@ -197,8 +200,19 @@ impl DependencyTemplate for CommonJsObjectExportDependencyTemplate {
           None,
         );
       } else {
-        // Preserve evaluation of an unused data property's value. A later
-        // optimization may omit it when the value is proven pure.
+        if dep.pure {
+          // Spreading null adds nothing. Keep the value text in a dead branch
+          // so nested dependency replacements continue to target valid ranges.
+          source.replace_static(
+            dep.range.start,
+            dep.value_range.start,
+            "...(/* unused pure expression */ null && (",
+            None,
+          );
+          source.replace_static(dep.value_range.end, dep.range.end, "))", None);
+          return;
+        }
+        // Preserve evaluation of an unused data property's impure value.
         source.replace_static(dep.range.start, dep.value_range.start, "...void (", None);
         source.replace_static(dep.value_range.end, dep.range.end, ")", None);
       }

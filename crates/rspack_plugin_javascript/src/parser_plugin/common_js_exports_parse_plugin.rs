@@ -18,7 +18,10 @@ use crate::{
     CommonJsObjectExportKind, CommonJsSelfReferenceDependency, ExportsBase,
     ModuleDecoratorDependency,
   },
-  parser_plugin::common_js_imports_parse_plugin::is_require_call_expr,
+  parser_plugin::{
+    common_js_imports_parse_plugin::is_require_call_expr,
+    side_effects_parser_plugin::is_pure_expression,
+  },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::JavascriptParser,
 };
@@ -317,6 +320,15 @@ fn handle_object_literal_export(
       .expect("unsupported properties were rejected while collecting export names");
     let (range, key_range, value_range) = get_object_export_ranges(prop, parser.source)
       .expect("unsupported properties were rejected while collecting export names");
+    let pure = get_object_export_value(prop).is_some_and(|value| {
+      is_pure_expression(
+        parser,
+        parser.compiler_options.experiments.pure_functions,
+        value,
+        parser.ast.comments,
+        None,
+      )
+    });
 
     if name == "__esModule" {
       parser.check_namespace(true, get_object_export_value(prop));
@@ -328,6 +340,7 @@ fn handle_object_literal_export(
       value_range,
       name,
       kind,
+      pure,
     )));
     parser.walk_property(prop);
   }
