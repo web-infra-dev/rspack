@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, Dependency, DependencyId, DependencyRange, UsedByExports,
-  UsedByExportsCondition, UsedByExportsDeferredPureCheck,
+  UsedByExportsDeferredPureCheck,
 };
 use rspack_intern::AtomRef;
 use rspack_util::SpanExt;
@@ -323,56 +323,36 @@ impl InnerGraphParserPlugin {
     }
 
     let mut import_dependency_usage = HashMap::default();
-    for (operations, used_by_exports) in
+    for (operation, used_by_exports) in
       Self::infer_dependency_usage(state, &deferred_pure_checks_by_symbol)
     {
-      let has_import_dependency = !matches!(
-        used_by_exports.condition(),
-        UsedByExportsCondition::Bool(true)
-      ) && operations
-        .iter()
-        .any(|operation| matches!(operation, InnerGraphUsageOperation::ImportDependency(_)));
-      let (owned_used_by_exports, shared_used_by_exports) = if has_import_dependency {
-        (None, Some(Arc::new(used_by_exports)))
-      } else {
-        (Some(used_by_exports), None)
-      };
-      let used_by_exports = shared_used_by_exports
-        .as_deref()
-        .or(owned_used_by_exports.as_ref())
-        .expect("used by exports should be owned or shared");
-
-      for operation in operations {
-        match operation {
-          InnerGraphUsageOperation::PureExpression(dep_idx) => {
-            let Some(dep) = dependencies.get_mut(dep_idx) else {
-              continue;
-            };
-            if let Some(dep) = dep.downcast_mut::<PureExpressionDependency>() {
-              dep.set_used_by_exports(Some(used_by_exports.clone()));
-            }
+      match operation {
+        InnerGraphUsageOperation::PureExpression(dep_idx) => {
+          let Some(dep) = dependencies.get_mut(dep_idx) else {
+            continue;
+          };
+          if let Some(dep) = dep.downcast_mut::<PureExpressionDependency>() {
+            dep.set_used_by_exports(Some(used_by_exports));
           }
-          InnerGraphUsageOperation::ESMImportSpecifier(dep_idx) => {
-            let Some(dep) = dependencies.get_mut(dep_idx) else {
-              continue;
-            };
-            if let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>() {
-              dep.set_used_by_exports(Some(used_by_exports.clone()));
-            }
+        }
+        InnerGraphUsageOperation::ESMImportSpecifier(dep_idx) => {
+          let Some(dep) = dependencies.get_mut(dep_idx) else {
+            continue;
+          };
+          if let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>() {
+            dep.set_used_by_exports(Some(used_by_exports));
           }
-          InnerGraphUsageOperation::URLDependency(dep_idx) => {
-            let Some(dep) = dependencies.get_mut(dep_idx) else {
-              continue;
-            };
-            if let Some(dep) = dep.downcast_mut::<URLDependency>() {
-              dep.set_used_by_exports(Some(used_by_exports.clone()));
-            }
+        }
+        InnerGraphUsageOperation::URLDependency(dep_idx) => {
+          let Some(dep) = dependencies.get_mut(dep_idx) else {
+            continue;
+          };
+          if let Some(dep) = dep.downcast_mut::<URLDependency>() {
+            dep.set_used_by_exports(Some(used_by_exports));
           }
-          InnerGraphUsageOperation::ImportDependency(dep_id) => {
-            if let Some(used_by_exports) = &shared_used_by_exports {
-              import_dependency_usage.insert(dep_id, used_by_exports.clone());
-            }
-          }
+        }
+        InnerGraphUsageOperation::ImportDependency(dep_id) => {
+          import_dependency_usage.insert(dep_id, used_by_exports);
         }
       }
     }
