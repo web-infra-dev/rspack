@@ -107,39 +107,47 @@ fn path_from_bytes(bytes: &[u8]) -> &Path {
   Path::new(unsafe { OsStr::from_encoded_bytes_unchecked(bytes) })
 }
 
-/// Returns the spelling `Path::components` rebuilds for `path`, or `None` when `path` already is
-/// spelled that way.
+/// Returns the native spelling of an absolute Windows `path` — separators as `\`, no doubled
+/// separators, no `.` components — or `None` when `path` already is spelled that way.
 ///
-/// On Windows [`PreHashedPath::eq`] compares components, so `D:/a/b`, `D:\a\b\`, `D:\a\\b` and
-/// `D:\a\.\b` all share one allocation and come back with whichever spelling was interned first.
-/// String-keyed consumers such as watchpack only match the native spelling, so it has to be the
-/// one stored. The spellings rewritten here are exactly the ones `eq` merges; on Unix `eq` is
-/// byte-wise, nothing is merged, and nothing needs rewriting.
+/// On Windows [`PreHashedPath::eq`] compares components, so `D:/a/b`, `D:\a\\b` and `D:\a\.\b`
+/// all share one allocation with `D:\a\b` and come back with whichever spelling was interned
+/// first. String-keyed consumers such as watchpack only match the native spelling, so it has to
+/// be the one stored. On Unix `eq` is byte-wise, nothing is merged, and nothing needs rewriting.
 ///
-/// Verbatim paths (`\\?\`), `..` components and the drive letter's case are left as they are.
+/// Left as they are: relative paths, verbatim paths (`\\?\`), `..` components, a trailing
+/// separator (kept, spelled `\`) and the drive letter's case.
 #[cfg(not(unix))]
 fn canonical_spelling(path: &Path) -> Option<PathBuf> {
-  use std::path::Component;
+  use std::path::{Component, MAIN_SEPARATOR_STR};
 
   let bytes = path.as_os_str().as_encoded_bytes();
   if !has_unnormalized_separator_or_dot(bytes) {
     return None;
   }
-  if let Some(Component::Prefix(prefix)) = path.components().next()
-    && prefix.kind().is_verbatim()
-  {
-    return None;
+  // Only absolute paths are compared against strings the file system produced; a verbatim
+  // prefix (`\\?\`) turns `/` into an ordinary character.
+  match path.components().next() {
+    Some(Component::Prefix(prefix)) if !prefix.kind().is_verbatim() => {}
+    _ => return None,
   }
-  let rebuilt: PathBuf = path.components().collect();
+  let mut rebuilt: PathBuf = path.components().collect();
+  // A trailing separator is significant to glob matching (`**/node_modules/**` matches
+  // `node_modules/` but not `node_modules`), so it is kept, just spelled natively. Appended to
+  // the `OsString` because `PathBuf::push` treats a bare separator as a new root.
+  if matches!(bytes.last(), Some(b'\\' | b'/'))
+    && !rebuilt.as_os_str().as_encoded_bytes().ends_with(b"\\")
+  {
+    rebuilt.as_mut_os_string().push(MAIN_SEPARATOR_STR);
+  }
   (rebuilt.as_os_str().as_encoded_bytes() != bytes).then_some(rebuilt)
 }
 
-/// Byte scan for the spellings `Path::components` would rewrite. Returns `true` when `bytes`
+/// Byte scan for the spellings [`canonical_spelling`] rewrites. Returns `true` when `bytes`
 /// contain any of:
 ///
 /// - a `/` separator: `D:/a/b`, `D:\a/b`
 /// - a doubled `\` after the prefix: `D:\a\\b` (the leading `\\` of a UNC path does not count)
-/// - a trailing `\`: `D:\a\b\` (a bare root such as `D:\` does not count)
 /// - a `.` component: `D:\a\.\b`, `D:\a\b\.`
 ///
 /// A false positive only costs the rebuild-and-compare in [`canonical_spelling`].
@@ -159,7 +167,7 @@ fn has_unnormalized_separator_or_dot(bytes: &[u8]) -> bool {
       _ => prev_sep = false,
     }
   }
-  prev_sep && bytes.len() > 3
+  false
 }
 
 /// An interned path: equal paths share one allocation process-wide, so equality is a pointer

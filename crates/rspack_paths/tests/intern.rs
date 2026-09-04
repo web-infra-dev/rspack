@@ -86,7 +86,6 @@ fn windows_redundant_separators_and_dot_components_are_canonicalized() {
   // intern to the canonical bytes, whichever arrives first.
   let canonical = InternedPath::from(Path::new(r"D:\intern\win\c.js"));
   for spelling in [
-    r"D:\intern\win\c.js\",
     r"D:\intern\\win\c.js",
     r"D:\intern\.\win\c.js",
     r"D:\intern\win\c.js\.",
@@ -103,15 +102,30 @@ fn windows_redundant_separators_and_dot_components_are_canonicalized() {
 
 #[cfg(windows)]
 #[test]
+fn windows_trailing_separator_is_kept_but_spelled_natively() {
+  // `**/node_modules/**` matches `node_modules/` but not `node_modules`, so the trailing
+  // separator must survive; only its spelling changes.
+  let interned = InternedPath::from(Path::new("D:/intern/win/node_modules/"));
+  assert_eq!(
+    interned.as_ref().as_os_str(),
+    r"D:\intern\win\node_modules\"
+  );
+}
+
+#[cfg(windows)]
+#[test]
 fn windows_already_canonical_paths_keep_their_bytes() {
-  // `..` stays (it is not collapsed by `Path::components` and keeps paths distinct), a bare root
-  // keeps its trailing separator, a UNC prefix keeps its leading `\\`, and the drive letter's
-  // case is not touched.
+  // `..` stays (it is not collapsed by `Path::components` and keeps paths distinct), trailing
+  // separators stay, a UNC prefix keeps its leading `\\`, the drive letter's case is not touched,
+  // and relative paths are never rewritten.
   for spelling in [
     r"D:\intern\win\..\up.js",
+    r"D:\intern\win\dir\",
     r"D:\",
     r"\\server\share\intern\unc.js",
     r"d:\intern\win\lower.js",
+    "src/index.js",
+    "src/",
   ] {
     let interned = InternedPath::from(Path::new(spelling));
     assert_eq!(interned.as_ref().as_os_str(), spelling, "{spelling}");
