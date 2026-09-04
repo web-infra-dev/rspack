@@ -20,6 +20,7 @@ jobs:
             code_changed:
               - "!**/*.md"
               - "!**/*.mdx"
+              - "!.agents/**"
               - "!website/**"
             document_changed:
               - "website/**"
