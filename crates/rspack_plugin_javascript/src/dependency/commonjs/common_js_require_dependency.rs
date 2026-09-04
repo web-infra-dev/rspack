@@ -9,13 +9,16 @@ use rspack_core::{
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportsInfoArtifact, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleGraphConnection, ReferencedExport, ReferencedSpecifier, ResourceIdentifier, RuntimeSpec,
-  SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource,
+  SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, UsedByExports,
   create_exports_object_referenced, create_no_exports_referenced,
   create_referenced_exports_by_referenced_specifiers,
 };
 
 use super::create_resource_identifier_for_contextual_commonjs_dependency;
-use crate::dependency::{DependencyBranchGuard, compose_dependency_condition};
+use crate::{
+  connection_active_used_by_exports,
+  dependency::{DependencyBranchGuard, compose_dependency_condition},
+};
 
 #[cacheable]
 #[derive(Debug)]
@@ -31,6 +34,7 @@ pub struct CommonJsRequireDependency {
   evaluation_only: bool,
   #[cacheable(with=AsOption<AsCacheable>)]
   branch_guard: Option<DependencyBranchGuard>,
+  used_by_exports: Option<UsedByExports>,
   context: Option<Context>,
   resource_identifier: ResourceIdentifier,
 }
@@ -53,6 +57,7 @@ impl CommonJsRequireDependency {
       referenced_specifiers: None,
       evaluation_only: false,
       branch_guard: None,
+      used_by_exports: None,
       context: None,
       resource_identifier: Default::default(),
     }
@@ -98,6 +103,10 @@ impl CommonJsRequireDependency {
       Some(old_guard) => old_guard.and(guard),
       None => guard,
     });
+  }
+
+  pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
+    self.used_by_exports = used_by_exports;
   }
 }
 
@@ -184,8 +193,7 @@ impl ModuleDependency for CommonJsRequireDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    let condition = self
-      .evaluation_only
+    let condition = (self.evaluation_only || self.used_by_exports.is_some())
       .then(|| DependencyCondition::new(CommonJsRequireDependencyCondition));
     compose_dependency_condition(condition, self.branch_guard.as_ref())
   }
@@ -197,12 +205,29 @@ impl DependencyConditionFn for CommonJsRequireDependencyCondition {
   fn get_connection_state(
     &self,
     connection: &ModuleGraphConnection,
-    _runtime: Option<&RuntimeSpec>,
+    runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
     side_effects_state_artifact: &SideEffectsStateArtifact,
-    _exports_info_artifact: &ExportsInfoArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
+    let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+    let dependency = dependency
+      .downcast_ref::<CommonJsRequireDependency>()
+      .expect("should be CommonJsRequireDependency");
+    if !connection_active_used_by_exports(
+      connection,
+      runtime,
+      module_graph,
+      exports_info_artifact,
+      dependency.used_by_exports.as_ref(),
+    ) {
+      return ConnectionState::Active(false);
+    }
+    if !dependency.evaluation_only {
+      return ConnectionState::Active(true);
+    }
+
     let module_identifier = *connection.module_identifier();
     if let Some(state) =
       side_effects_state_artifact.module_evaluation_side_effects_state(&module_identifier)

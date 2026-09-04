@@ -3,14 +3,15 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, ExportsType, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName,
-  create_exports_object_referenced, property_access, to_normal_comment,
+  AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyCondition, DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact, ExportsType,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ReferencedExport,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource,
+  UsedByExports, UsedName, create_exports_object_referenced, property_access, to_normal_comment,
 };
 
-use crate::Atom;
+use crate::{Atom, connection_active_used_by_exports};
 
 #[cacheable]
 #[derive(Debug)]
@@ -25,6 +26,7 @@ pub struct CommonJsFullRequireDependency {
   optional: bool,
   asi_safe: bool,
   loc: Option<DependencyLocation>,
+  used_by_exports: Option<UsedByExports>,
 }
 
 impl CommonJsFullRequireDependency {
@@ -50,7 +52,12 @@ impl CommonJsFullRequireDependency {
       optional,
       asi_safe,
       loc,
+      used_by_exports: None,
     }
+  }
+
+  pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
+    self.used_by_exports = used_by_exports;
   }
 }
 
@@ -133,6 +140,39 @@ impl ModuleDependency for CommonJsFullRequireDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
+  }
+
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    self
+      .used_by_exports
+      .is_some()
+      .then(|| DependencyCondition::new(CommonJsFullRequireDependencyCondition))
+  }
+}
+
+struct CommonJsFullRequireDependencyCondition;
+
+impl DependencyConditionFn for CommonJsFullRequireDependencyCondition {
+  fn get_connection_state(
+    &self,
+    connection: &ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+  ) -> ConnectionState {
+    let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+    let dependency = dependency
+      .downcast_ref::<CommonJsFullRequireDependency>()
+      .expect("should be CommonJsFullRequireDependency");
+    ConnectionState::Active(connection_active_used_by_exports(
+      connection,
+      runtime,
+      module_graph,
+      exports_info_artifact,
+      dependency.used_by_exports.as_ref(),
+    ))
   }
 }
 

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rspack_core::{
   BoxDependency, BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, RuntimeGlobals,
-  RuntimeRequirementsDependency,
+  RuntimeRequirementsDependency, UsedByExports,
 };
 use rspack_util::SpanExt;
 use swc_experimental_ecma_ast::{
@@ -15,9 +15,9 @@ use super::JavascriptParserPlugin;
 use crate::{
   Atom,
   dependency::{
-    CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsObjectExportDependency,
-    CommonJsObjectExportKind, CommonJsSelfReferenceDependency, ExportsBase,
-    ModuleDecoratorDependency,
+    CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsFullRequireDependency,
+    CommonJsObjectExportDependency, CommonJsObjectExportKind, CommonJsRequireDependency,
+    CommonJsSelfReferenceDependency, ExportsBase, ModuleDecoratorDependency,
   },
   parser_plugin::{
     common_js_imports_parse_plugin::is_require_call_expr,
@@ -439,6 +439,9 @@ fn handle_object_literal_export(
         None,
       )
     });
+    let used_by_exports = kind
+      .can_drop_nested_requires()
+      .then(|| UsedByExports::set(std::iter::once(name.clone()).collect()));
 
     if name == "__esModule" {
       parser.check_namespace(true, get_object_export_value(prop));
@@ -453,7 +456,21 @@ fn handle_object_literal_export(
       pure,
     )));
     keep_all_exports_on_this_access(parser, get_this_access_in_exported_property(prop), base);
+    let start = parser.next_dependency_idx();
     parser.walk_property(prop);
+    if let Some(used_by_exports) = used_by_exports {
+      for idx in start..parser.next_dependency_idx() {
+        let Some(dependency) = parser.get_dependency_mut(idx) else {
+          continue;
+        };
+        if let Some(dependency) = dependency.downcast_mut::<CommonJsRequireDependency>() {
+          dependency.set_used_by_exports(Some(used_by_exports.clone()));
+        } else if let Some(dependency) = dependency.downcast_mut::<CommonJsFullRequireDependency>()
+        {
+          dependency.set_used_by_exports(Some(used_by_exports.clone()));
+        }
+      }
+    }
   }
   Some(true)
 }

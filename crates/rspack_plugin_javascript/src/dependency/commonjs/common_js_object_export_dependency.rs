@@ -25,6 +25,10 @@ pub enum CommonJsObjectExportKind {
 }
 
 impl CommonJsObjectExportKind {
+  pub fn can_drop_nested_requires(self) -> bool {
+    self.unused_prefix().is_some()
+  }
+
   fn unused_prefix(self) -> Option<&'static str> {
     match self {
       Self::Getter | Self::Setter | Self::Method => Some("...void (function "),
