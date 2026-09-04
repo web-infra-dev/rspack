@@ -3,6 +3,7 @@ const jsUrlB = new URL("./target-b.js", import.meta.url);
 const cssUrl = new URL("./target.css", import.meta.url);
 const assetUrl = new URL("./target.png", import.meta.url);
 const jsAssetUrl = new URL("./target-asset.js", import.meta.url);
+const cssAssetUrl = new URL("./target-asset.css", import.meta.url);
 
 it("should turn JavaScript and CSS URL dependencies into async entries", () => {
 	const scriptExtension = URL_MODE === "new-url-relative" ? "mjs" : "js";
@@ -28,6 +29,9 @@ it("should turn JavaScript and CSS URL dependencies into async entries", () => {
 	);
 	expect(jsAssetUrl.href).toMatch(
 		new RegExp(`${urlPrefix}target-asset-${URL_MODE}\\.js$`)
+	);
+	expect(cssAssetUrl.href).toMatch(
+		new RegExp(`${urlPrefix}target-asset-${URL_MODE}\\.css$`)
 	);
 
 	expect(globalThis.URL_ENTRY_TARGET_A_EXECUTED).toBeUndefined();
