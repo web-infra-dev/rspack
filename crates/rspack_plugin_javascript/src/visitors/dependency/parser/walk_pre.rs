@@ -259,7 +259,11 @@ impl JavascriptParser<'_> {
       let key = property.key(ast);
       let value = property.value(ast);
       let (id, shorthand) = if property.shorthand(ast) {
-        let identifier = value.as_binding_identifier(ast)?;
+        let identifier = value.as_binding_identifier(ast).or_else(|| {
+          value
+            .as_assignment_pattern(ast)
+            .and_then(|assignment| assignment.left(ast).as_binding_identifier(ast))
+        })?;
         (Atom::from(ast.get_utf8(identifier.name(ast))), true)
       } else {
         let evaluated = eval_property_key(self, key);

@@ -69,6 +69,12 @@ it("should analyze usage of variable that in correct scope", async () => {
 	})();
 });
 
+it("should analyze shorthand defaults in destructuring", async () => {
+	const { a = 0, usedExports } = await import("./dir4/a?shorthand-default");
+	expect(a).toBe(1);
+	expect(usedExports).toEqual(["a", "usedExports"]);
+});
+
 it("should correctly analyze usage of variable for var declaration", async () => {
 	var m = await import("./dir4/a?4");
 	expect(m.a).toBe(1);
