@@ -115,11 +115,13 @@ impl LoaderItemState {
   }
 
   #[inline]
+  #[doc(hidden)]
   pub fn set_data(&mut self, data: serde_json::Value) {
     self.data = data;
   }
 
   #[inline]
+  #[doc(hidden)]
   pub fn pitch_executed(&self) -> bool {
     self.pitch_executed
   }
@@ -130,21 +132,25 @@ impl LoaderItemState {
   }
 
   #[inline]
+  #[doc(hidden)]
   pub fn finish_called(&self) -> bool {
     self.finish_called
   }
 
   #[inline]
+  #[doc(hidden)]
   pub fn set_pitch_executed(&mut self) {
     self.pitch_executed = true;
   }
 
   #[inline]
+  #[doc(hidden)]
   pub fn set_normal_executed(&mut self) {
     self.normal_executed = true;
   }
 
   #[inline]
+  #[doc(hidden)]
   pub fn set_finish_called(&mut self) {
     self.finish_called = true;
   }
