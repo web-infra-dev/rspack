@@ -78,7 +78,7 @@ catalog:
   'connect-next': '^5.0.0'
   'core-js': '3.50.0'
   'cross-env': '^10.1.0'
-  'cspell': '^10.0.1'
+  'cspell': '^10.2.1'
   'cspell-ban-words': '0.0.4'
   'css-loader': '^7.1.4'
   'date-fns': '^4.4.0'
