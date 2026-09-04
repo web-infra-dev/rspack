@@ -335,19 +335,6 @@ impl InnerGraphParserPlugin {
     }
 
     if !import_dependency_usage.is_empty() {
-      fn set_import_dependency_usage(
-        dependency: &mut BoxDependency,
-        used_by_exports: UsedByExports,
-      ) {
-        if let Some(dependency) = dependency.downcast_mut::<ImportDependency>() {
-          dependency.set_used_by_exports(Some(used_by_exports));
-        } else if let Some(dependency) = dependency.downcast_mut::<ImportEagerDependency>() {
-          dependency.set_used_by_exports(Some(used_by_exports));
-        } else {
-          unreachable!("inner graph import dependency should be a dynamic import dependency");
-        }
-      }
-
       fn apply_import_dependency_usage(
         blocks: &mut [Box<AsyncDependenciesBlock>],
         import_dependency_usage: &mut HashMap<DependencyId, UsedByExports>,
@@ -355,7 +342,11 @@ impl InnerGraphParserPlugin {
         for block in blocks {
           for dependency in block.dependencies_mut() {
             if let Some(used_by_exports) = import_dependency_usage.remove(dependency.id()) {
-              set_import_dependency_usage(dependency, used_by_exports);
+              if let Some(dependency) = dependency.downcast_mut::<ImportDependency>() {
+                dependency.set_used_by_exports(Some(used_by_exports));
+              } else {
+                unreachable!("dependencies in async blocks should be ImportDependency");
+              }
             }
           }
           apply_import_dependency_usage(block.blocks_mut(), import_dependency_usage);
@@ -364,7 +355,11 @@ impl InnerGraphParserPlugin {
 
       for dependency in dependencies {
         if let Some(used_by_exports) = import_dependency_usage.remove(dependency.id()) {
-          set_import_dependency_usage(dependency, used_by_exports);
+          if let Some(dependency) = dependency.downcast_mut::<ImportEagerDependency>() {
+            dependency.set_used_by_exports(Some(used_by_exports));
+          } else {
+            unreachable!("top-level import dependency should be ImportEagerDependency");
+          }
         }
       }
       apply_import_dependency_usage(blocks, &mut import_dependency_usage);
