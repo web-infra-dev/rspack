@@ -24,8 +24,8 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   ArcComputed, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, CompilerOptions,
-  DependencyCodeGeneration, DependencyCodeGenerationRef, DependencyId, DependencyLocation,
-  DependencyRange, FactoryMeta, ImportMeta, ImportMetaKnownProperties,
+  Dependency, DependencyCodeGeneration, DependencyCodeGenerationRef, DependencyId,
+  DependencyLocation, DependencyRange, FactoryMeta, ImportMeta, ImportMetaKnownProperties,
   JavascriptParserCommonjsExportsOption, JavascriptParserOptions, ModuleIdentifier, ModuleLayer,
   ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData, SideEffectsBailoutItemWithSpan,
 };
@@ -698,8 +698,8 @@ impl<'parser> JavascriptParser<'parser> {
     &self.dependencies
   }
 
-  pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut BoxDependency> {
-    self.dependencies.get_mut(idx)
+  pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut (dyn Dependency + 'static)> {
+    self.dependencies.get_mut(idx).map(AsMut::as_mut)
   }
 
   pub fn collect_dependencies_for_block(
@@ -764,7 +764,7 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn add_block(&mut self, mut block: Box<AsyncDependenciesBlock>) {
     if let Some(guard) = &self.current_branch_guard {
       for dep in block.dependencies_mut() {
-        guard.bind_dependency(dep.as_mut());
+        guard.bind_dependency(dep);
       }
     }
     self.blocks.push(block);

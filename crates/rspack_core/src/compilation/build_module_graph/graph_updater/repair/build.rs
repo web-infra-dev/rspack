@@ -181,11 +181,7 @@ impl Task<TaskContext> for BuildResultTask {
     queue.extend(blocks);
 
     while let Some(mut block) = queue.pop_front() {
-      let dependencies = block
-        .take_dependencies()
-        .into_iter()
-        .map(Into::into)
-        .collect();
+      let dependencies = block.take_dependencies();
       let blocks = handle_block(dependencies, block.take_blocks(), Some(block));
       queue.extend(blocks);
     }
