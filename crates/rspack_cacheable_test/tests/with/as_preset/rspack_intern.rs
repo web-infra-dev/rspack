@@ -1,5 +1,5 @@
 use rspack_cacheable::{enable_cacheable as cacheable, from_bytes, to_bytes, with::AsPreset};
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 
 #[cacheable]
 #[derive(Debug, PartialEq, Eq)]

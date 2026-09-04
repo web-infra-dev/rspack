@@ -18,16 +18,13 @@ use rspack_collections::{
 use rspack_error::{Diagnosable, Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
+use rspack_intern::{Atom, AtomMap, AtomRef, AtomSet, IndexAtomMap, IndexAtomSet};
 use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
 };
 use rspack_util::{
-  SpanExt,
-  atom::{Atom, AtomMap, AtomRef, AtomSet, IndexAtomMap, IndexAtomSet},
-  fx_hash::FxIndexMap,
-  itoa, json_stringify, json_stringify_str,
-  source_map::SourceMapKind,
-  swc::join_atom,
+  SpanExt, fx_hash::FxIndexMap, itoa, json_stringify, json_stringify_str,
+  source_map::SourceMapKind, swc::join_atom,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{

@@ -1,6 +1,6 @@
 use std::{borrow::Cow, cell::Cell};
 
-use rspack_util::atom::AtomRef;
+use rspack_intern::AtomRef;
 use swc_experimental_allocator::{Allocator, CloneIn};
 use swc_experimental_ecma_ast::{
   ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignOp, AssignPat, AssignTarget, AssignTargetPat,

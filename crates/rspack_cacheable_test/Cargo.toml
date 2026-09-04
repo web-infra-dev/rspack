@@ -17,8 +17,8 @@ json             = { workspace = true }
 lightningcss     = { workspace = true }
 once_cell        = { workspace = true }
 rspack_cacheable = { workspace = true }
+rspack_intern    = { workspace = true, features = ["atom"] }
 rspack_sources   = { workspace = true }
-rspack_util      = { workspace = true }
 rustc-hash       = { workspace = true }
 serde_json       = { workspace = true }
 ustr             = { workspace = true }

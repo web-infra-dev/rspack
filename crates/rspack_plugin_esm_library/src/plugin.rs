@@ -25,6 +25,7 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
+use rspack_intern::Atom;
 use rspack_plugin_javascript::{
   JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
   dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
@@ -34,10 +35,7 @@ use rspack_plugin_rslib::{
   worker_external::{ExternalWorkerDependencyTemplate, cutout_worker_externals},
 };
 use rspack_plugin_split_chunks::CacheGroup;
-use rspack_util::{
-  atom::Atom,
-  fx_hash::{FxHashMap, FxHashSet},
-};
+use rspack_util::fx_hash::{FxHashMap, FxHashSet};
 use sugar_path::SugarPath;
 use tokio::sync::RwLock;
 

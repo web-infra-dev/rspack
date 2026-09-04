@@ -3,9 +3,9 @@ use std::sync::Arc;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierIndexMap, IdentifierMap};
 use rspack_error::{Error, Result};
+use rspack_intern::{Atom, AtomSet};
 use rspack_util::{
   SpanExt,
-  atom::{Atom, AtomSet},
   fx_hash::{FxHashMap, FxHashSet},
   itoa,
 };

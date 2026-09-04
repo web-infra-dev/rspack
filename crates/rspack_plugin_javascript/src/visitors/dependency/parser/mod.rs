@@ -1,4 +1,5 @@
-use rspack_util::{SpanExt, atom::AtomRef};
+use rspack_intern::AtomRef;
+use rspack_util::SpanExt;
 pub mod ast;
 mod call_hooks_name;
 pub mod estree;

@@ -30,6 +30,7 @@ rspack_error                          = { workspace = true }
 rspack_hash                           = { workspace = true }
 rspack_hook                           = { workspace = true }
 rspack_ids                            = { workspace = true }
+rspack_intern                         = { workspace = true, features = ["swc"] }
 rspack_macros                         = { workspace = true }
 rspack_parallel                       = { workspace = true }
 rspack_paths                          = { workspace = true }

@@ -1,10 +1,9 @@
 #[cfg(feature = "plugin")]
 pub mod runtime;
 
+use rspack_intern::Atom;
 use rustc_hash::FxHashSet;
 use swc_experimental_ecma_ast::{CommentKind, Comments, Span as AstSpan};
-
-use crate::atom::Atom;
 
 pub fn normalize_custom_filename(source: &str) -> &str {
   if source.starts_with('<') && source.ends_with('>') {

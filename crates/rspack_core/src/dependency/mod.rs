@@ -37,7 +37,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsPreset, AsVec},
 };
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 pub use runtime_requirements_dependency::{
   CodeGenerationRuntimeRequirementsWrite, RuntimeRequirementsDependency,
   RuntimeRequirementsDependencyTemplate, RuntimeRequirementsDependencyWriteOperation,

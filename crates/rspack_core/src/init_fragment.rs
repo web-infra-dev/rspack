@@ -13,8 +13,9 @@ use rspack_cacheable::{
 };
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHasher};
+use rspack_intern::Atom;
 use rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt};
-use rspack_util::{atom::Atom, ext::IntoAny};
+use rspack_util::ext::IntoAny;
 use rustc_hash::FxHasher;
 
 use crate::{

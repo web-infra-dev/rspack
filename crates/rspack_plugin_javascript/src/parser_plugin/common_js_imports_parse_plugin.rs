@@ -8,7 +8,8 @@ use rspack_core::{
   ModuleType, ReferencedSpecifier, RuntimeGlobals, RuntimeRequirementsDependency, get_context,
 };
 use rspack_error::{Diagnostic, Severity};
-use rspack_util::{SpanExt, atom::AtomRef, json_stringify_str};
+use rspack_intern::AtomRef;
+use rspack_util::{SpanExt, json_stringify_str};
 use swc_experimental_allocator::CloneIn;
 use swc_experimental_ecma_ast::{
   AssignExpr, AssignOp, CallExpr, Callee, Expr, ExprOrSpread, GetSpan, Ident, Lit, MemberExpr,

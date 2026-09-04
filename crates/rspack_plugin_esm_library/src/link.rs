@@ -22,14 +22,12 @@ use rspack_core::{
   rspack_sources::ReplaceSource, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Result};
+use rspack_intern::{Atom, AtomMap, IndexAtomSet};
 use rspack_plugin_javascript::{
   JsPlugin, RenderSource, dependency::ESMExportImportedSpecifierDependency,
 };
 use rspack_plugin_runtime::should_export_webpack_require_for_module_chunk_loading;
-use rspack_util::{
-  atom::{Atom, AtomMap, IndexAtomSet},
-  fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
-};
+use rspack_util::fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet};
 
 use crate::{
   EsmLibraryPlugin,
@@ -3186,10 +3184,8 @@ mod tests {
   use rspack_core::{
     ChunkInitFragments, ChunkUkey, ConcatenationNameAllocator, InitFragmentKey, ModuleIdentifier,
   };
-  use rspack_util::{
-    atom::Atom,
-    fx_hash::{FxHashMap, FxHashSet},
-  };
+  use rspack_intern::Atom;
+  use rspack_util::fx_hash::{FxHashMap, FxHashSet};
 
   use crate::{EsmLibraryPlugin, chunk_link::RawImportSource};
 

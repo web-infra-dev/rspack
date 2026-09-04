@@ -5,9 +5,9 @@ use std::{
 };
 
 use rspack_cacheable::{cacheable, with::AsPreset};
+use rspack_intern::Atom;
 use rspack_loader_runner::ResourceData;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
-use rspack_util::atom::Atom;
 
 use crate::{contextify, parse_resource};
 

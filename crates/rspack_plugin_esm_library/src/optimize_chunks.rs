@@ -8,10 +8,8 @@ use rspack_core::{
   DependencyType, ExportProvided, ModuleIdentifier, UsageState, get_cached_readable_identifier,
   incremental::Mutation, split_readable_identifier,
 };
-use rspack_util::{
-  atom::Atom,
-  fx_hash::{FxDashSet, FxHashMap, FxHashSet},
-};
+use rspack_intern::Atom;
+use rspack_util::fx_hash::{FxDashSet, FxHashMap, FxHashSet};
 
 use crate::EsmLibraryPlugin;
 

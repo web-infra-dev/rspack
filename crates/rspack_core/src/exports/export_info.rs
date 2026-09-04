@@ -1,4 +1,4 @@
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{ExportInfoTargetValue, ExportProvided, ExportsInfo, ExportsInfoData, UsageState};

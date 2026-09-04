@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
 use once_cell::sync::Lazy;
+use rspack_cacheable::with::{AsPreset, AsVec};
 use rspack_collections::IdentifierSet;
 use rspack_core::CompilerId;
-use rspack_util::{
-  atom::{Atom, IndexAtomSet},
-  fx_hash::{FxDashMap, FxIndexSet},
-};
+use rspack_intern::{Atom, IndexAtomSet};
+use rspack_util::fx_hash::{FxDashMap, FxIndexSet};
 use rustc_hash::FxHashMap;
 
 use crate::reference_manifest::{
@@ -23,6 +22,7 @@ pub type RootCssImports = FxIndexSet<String>;
 #[derive(Debug, Clone)]
 pub struct ClientModuleImport {
   pub request: String,
+  #[cacheable(with=AsVec<AsPreset>)]
   pub ids: IndexAtomSet,
 }
 

@@ -5,6 +5,7 @@ use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, ConstDependency, DependencyRange, ImportAttributes,
   ImportPhase,
 };
+use rspack_intern::Atom;
 use rspack_plugin_javascript::{
   JavascriptParserPlugin,
   dependency::{CommonJsRequireDependency, ImportDependency, RequireHeaderDependency},
@@ -15,7 +16,7 @@ use rspack_plugin_javascript::{
   },
   visitors::{JavascriptParser, Statement, VariableDeclaration, create_traceable_error, expr_name},
 };
-use rspack_util::{SpanExt, atom::Atom, json_stringify_str, swc::get_swc_comments};
+use rspack_util::{SpanExt, json_stringify_str, swc::get_swc_comments};
 use swc_experimental_ecma_ast::{
   CallExpr, Callee, GetSpan, Ident, IdentName, ImportDecl, ImportPhase as AstImportPhase,
   MemberExpr, MetaPropKind, OptChainBase, OptChainExpr, Span, UnaryExpr, VarDeclarator,

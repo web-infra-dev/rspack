@@ -10,10 +10,8 @@ use std::{
 
 use indoc::formatdoc;
 use rspack_core::{RscMeta, RscModuleType};
-use rspack_util::{
-  atom::{Atom as RspackAtom, IndexAtomMap},
-  fx_hash::FxIndexMap,
-};
+use rspack_intern::{Atom as RspackAtom, IndexAtomMap};
+use rspack_util::fx_hash::FxIndexMap;
 use rustc_hash::FxHashSet;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};

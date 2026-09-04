@@ -14,8 +14,8 @@ use rspack_core::{
   to_identifier,
 };
 use rspack_error::Result;
+use rspack_intern::Atom;
 use rspack_util::{
-  atom::Atom,
   fx_hash::{FxIndexMap, FxIndexSet},
   itoa, json_stringify, json_stringify_str,
 };

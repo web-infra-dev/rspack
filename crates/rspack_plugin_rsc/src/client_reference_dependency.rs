@@ -1,16 +1,20 @@
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsPreset, AsVec},
+};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
   DependencyType, ExportsInfoArtifact, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   ReferencedExport, ResourceIdentifier, RuntimeSpec, create_exports_object_referenced,
 };
-use rspack_util::atom::IndexAtomSet;
+use rspack_intern::IndexAtomSet;
 
 #[cacheable]
 #[derive(Debug)]
 pub struct ClientReferenceDependency {
   id: DependencyId,
   request: String,
+  #[cacheable(with=AsVec<AsPreset>)]
   referenced_exports: IndexAtomSet,
   is_server_side_rendering: bool,
   resource_identifier: ResourceIdentifier,

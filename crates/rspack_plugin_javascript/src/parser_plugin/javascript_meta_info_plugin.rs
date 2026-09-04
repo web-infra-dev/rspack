@@ -1,4 +1,4 @@
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 use swc_experimental_ecma_ast::CallExpr;
 
 use super::{

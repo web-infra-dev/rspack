@@ -32,6 +32,7 @@ rspack_error              = { workspace = true }
 rspack_fs                 = { workspace = true }
 rspack_hash               = { workspace = true }
 rspack_hook               = { workspace = true }
+rspack_intern             = { workspace = true, features = ["atom"] }
 rspack_napi               = { workspace = true }
 rspack_paths              = { workspace = true }
 rspack_plugin_esm_library = { workspace = true }

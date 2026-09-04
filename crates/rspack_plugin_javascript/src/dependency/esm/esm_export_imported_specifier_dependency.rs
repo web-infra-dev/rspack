@@ -32,7 +32,8 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_hash::{RspackHash, RspackHasher};
-use rspack_util::{atom::IndexAtomSet, json_stringify};
+use rspack_intern::IndexAtomSet;
+use rspack_util::json_stringify;
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
 
 use super::{

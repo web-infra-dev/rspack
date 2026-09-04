@@ -3,7 +3,7 @@ use rspack_core::{
   AffectType, AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory,
   DependencyId, DependencyRange, DependencyType, ModuleDependency,
 };
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 
 #[cacheable]
 #[derive(Debug)]

@@ -1,8 +1,8 @@
 use rspack_core::{CollectedTypeScriptInfo, EvaluatedInlinableValue, TSEnumValue};
+use rspack_intern::Atom as RspackAtom;
 use rspack_swc_plugin_ts_collector::{
   EnumMemberValue, ExportedEnumCollector, TypeExportsCollector,
 };
-use rspack_util::atom::Atom as RspackAtom;
 use rustc_hash::FxHashMap;
 use swc::atoms::{Atom, Wtf8Atom};
 use swc_core::{

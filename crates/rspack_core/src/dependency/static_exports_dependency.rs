@@ -2,7 +2,7 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, AsVec},
 };
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 
 use super::AffectType;
 use crate::{

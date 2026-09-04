@@ -3,32 +3,26 @@ use std::{
   cmp::Ordering,
   collections::hash_map::Entry as HashEntry,
   fmt,
-  hash::{Hash, Hasher},
+  hash::{BuildHasherDefault, Hash, Hasher},
   ops::{Deref, DerefMut},
   rc::Rc,
   sync::Arc,
 };
 
+use indexmap::{IndexMap, IndexSet};
 use ref_cast::RefCast;
-use rspack_cacheable::{
-  cacheable,
-  rkyv::{
-    Place,
-    rancor::{Fallible, Source},
-    ser::Writer,
-    string::{ArchivedString, StringResolver},
-    with::{ArchiveWith, DeserializeWith, SerializeWith},
-  },
-  with::{AsMap, AsPreset, AsVec},
-};
+use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
 use serde::{
   Deserialize, Deserializer, Serialize, Serializer,
   de::{Error as DeserializeError, Visitor},
 };
+#[cfg(feature = "swc")]
 use swc_core::atoms::Atom as SwcAtom;
+#[cfg(feature = "swc")]
 use swc_experimental_allocator::atom::Atom as AstAtom;
 
-use crate::fx_hash::{FxHashMap, FxHashSet, FxHasher, FxIndexMap, FxIndexSet, indexmap};
+type FxIndexMap<K, V> = IndexMap<K, V, BuildHasherDefault<FxHasher>>;
+type FxIndexSet<K> = IndexSet<K, BuildHasherDefault<FxHasher>>;
 
 /// An owned JavaScript name used by Rspack's internal IR.
 ///
@@ -144,6 +138,7 @@ impl<'a> From<&'a String> for AtomRef<'a> {
   }
 }
 
+#[cfg(feature = "swc")]
 impl<'a> From<&'a AstAtom<'_>> for AtomRef<'a> {
   #[inline]
   fn from(value: &'a AstAtom<'_>) -> Self {
@@ -151,6 +146,7 @@ impl<'a> From<&'a AstAtom<'_>> for AtomRef<'a> {
   }
 }
 
+#[cfg(feature = "swc")]
 impl<'a> From<&'a SwcAtom> for AtomRef<'a> {
   #[inline]
   fn from(value: &'a SwcAtom) -> Self {
@@ -433,10 +429,8 @@ impl_atom_map!(
   remove_entry -> Option<(Atom, V)>,
 );
 
-#[cacheable]
 #[derive(Clone, Debug, Default)]
 pub struct AtomSet {
-  #[cacheable(with=AsVec<AsPreset>)]
   inner: FxHashSet<Atom>,
 }
 
@@ -449,10 +443,8 @@ impl_atom_set!(
 
 /// An insertion-ordered map keyed by [`Atom`] with zero-allocation borrowed
 /// lookups. Query hashing is selected internally without changing map order.
-#[cacheable]
 #[derive(Clone, Debug, Default)]
 pub struct IndexAtomMap<V> {
-  #[cacheable(with=AsMap<AsPreset, AsPreset>)]
   inner: FxIndexMap<Atom, V>,
 }
 
@@ -466,10 +458,8 @@ impl_atom_map!(
 
 /// An insertion-ordered set of [`Atom`] values with zero-allocation borrowed
 /// lookups. Query hashing is selected internally without changing set order.
-#[cacheable]
 #[derive(Clone, Debug, Default)]
 pub struct IndexAtomSet {
-  #[cacheable(with=AsVec<AsPreset>)]
   inner: FxIndexSet<Atom>,
 }
 
@@ -526,6 +516,7 @@ impl PartialEq<Atom> for str {
   }
 }
 
+#[cfg(feature = "swc")]
 impl PartialEq<AstAtom<'_>> for Atom {
   #[inline]
   fn eq(&self, other: &AstAtom<'_>) -> bool {
@@ -533,6 +524,7 @@ impl PartialEq<AstAtom<'_>> for Atom {
   }
 }
 
+#[cfg(feature = "swc")]
 impl PartialEq<Atom> for AstAtom<'_> {
   #[inline]
   fn eq(&self, other: &Atom) -> bool {
@@ -540,6 +532,7 @@ impl PartialEq<Atom> for AstAtom<'_> {
   }
 }
 
+#[cfg(feature = "swc")]
 impl PartialEq<SwcAtom> for Atom {
   #[inline]
   fn eq(&self, other: &SwcAtom) -> bool {
@@ -547,6 +540,7 @@ impl PartialEq<SwcAtom> for Atom {
   }
 }
 
+#[cfg(feature = "swc")]
 impl PartialEq<Atom> for SwcAtom {
   #[inline]
   fn eq(&self, other: &Atom) -> bool {
@@ -628,6 +622,7 @@ impl From<&String> for Atom {
   }
 }
 
+#[cfg(feature = "swc")]
 impl From<AstAtom<'_>> for Atom {
   #[inline]
   fn from(value: AstAtom<'_>) -> Self {
@@ -635,6 +630,7 @@ impl From<AstAtom<'_>> for Atom {
   }
 }
 
+#[cfg(feature = "swc")]
 impl From<&AstAtom<'_>> for Atom {
   #[inline]
   fn from(value: &AstAtom<'_>) -> Self {
@@ -642,6 +638,7 @@ impl From<&AstAtom<'_>> for Atom {
   }
 }
 
+#[cfg(feature = "swc")]
 impl From<SwcAtom> for Atom {
   #[inline]
   fn from(value: SwcAtom) -> Self {
@@ -649,6 +646,7 @@ impl From<SwcAtom> for Atom {
   }
 }
 
+#[cfg(feature = "swc")]
 impl From<&SwcAtom> for Atom {
   #[inline]
   fn from(value: &SwcAtom) -> Self {
@@ -719,36 +717,5 @@ impl<'de> Deserialize<'de> for Atom {
     }
 
     deserializer.deserialize_str(AtomVisitor)
-  }
-}
-
-impl ArchiveWith<Atom> for AsPreset {
-  type Archived = ArchivedString;
-  type Resolver = StringResolver;
-
-  #[inline]
-  fn resolve_with(field: &Atom, resolver: Self::Resolver, out: Place<Self::Archived>) {
-    ArchivedString::resolve_from_str(field.as_str(), resolver, out);
-  }
-}
-
-impl<S> SerializeWith<Atom, S> for AsPreset
-where
-  S: ?Sized + Fallible + Writer,
-  S::Error: Source,
-{
-  #[inline]
-  fn serialize_with(field: &Atom, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
-    ArchivedString::serialize_from_str(field.as_str(), serializer)
-  }
-}
-
-impl<D> DeserializeWith<ArchivedString, Atom, D> for AsPreset
-where
-  D: ?Sized + Fallible,
-{
-  #[inline]
-  fn deserialize_with(field: &ArchivedString, _: &mut D) -> Result<Atom, D::Error> {
-    Ok(Atom::from(field.as_str()))
   }
 }

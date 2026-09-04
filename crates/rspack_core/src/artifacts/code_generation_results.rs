@@ -3,15 +3,13 @@ use std::{collections::hash_map::Entry, fmt::Debug, sync::Arc};
 use dyn_clone::{DynClone, clone_trait_object};
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsCacheable, AsInner, AsMap, AsPreset},
+  with::{AsCacheable, AsInner, AsMap, AsPreset, AsVec},
 };
 use rspack_collections::IdentifierMap;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest, RspackHasher};
+use rspack_intern::{Atom, AtomSet};
 use rspack_sources::BoxSource;
-use rspack_util::{
-  atom::{Atom, AtomSet},
-  ext::{AsAny, IntoAny},
-};
+use rspack_util::ext::{AsAny, IntoAny};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -119,6 +117,7 @@ impl RspackHash for CodeGenerationDataPreservedAssetImport {
 #[cacheable]
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataTopLevelDeclarations {
+  #[cacheable(with=AsVec<AsPreset>)]
   inner: AtomSet,
 }
 

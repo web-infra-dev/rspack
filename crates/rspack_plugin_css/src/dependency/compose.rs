@@ -7,7 +7,7 @@ use rspack_core::{
   DependencyId, DependencyRange, DependencyType, ExportsInfoArtifact, ModuleDependency,
   ReferencedExport, RuntimeSpec,
 };
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 
 #[cacheable]
 #[derive(Debug)]

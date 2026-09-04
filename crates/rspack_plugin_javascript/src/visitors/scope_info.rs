@@ -1,5 +1,5 @@
 use bitflags::bitflags;
-use rspack_util::atom::{AtomMap, AtomRef};
+use rspack_intern::{AtomMap, AtomRef};
 use slotmap::{KeyData, SlotMap, new_key_type};
 use smallvec::SmallVec;
 

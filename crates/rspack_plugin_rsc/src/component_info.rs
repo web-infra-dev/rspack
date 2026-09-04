@@ -4,14 +4,12 @@ use rspack_core::{
   Compilation, DependencyId, Module, ModuleGraph, ModuleIdentifier, RscMeta, RscModuleType,
   RuntimeSpec, module_declared_side_effect_free,
 };
+use rspack_intern::{Atom, IndexAtomMap, IndexAtomSet};
 use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
   ESMImportSpecifierDependency,
 };
-use rspack_util::{
-  atom::{Atom, IndexAtomMap, IndexAtomSet},
-  fx_hash::{FxIndexMap, FxIndexSet},
-};
+use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::atoms::Wtf8Atom;
 
