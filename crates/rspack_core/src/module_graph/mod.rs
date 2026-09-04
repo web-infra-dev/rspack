@@ -158,6 +158,90 @@ impl ModuleGraphData {
 pub struct ModuleGraph {
   pub(super) inner: ModuleGraphData,
 }
+
+/// Provides access to module graph state that can be safely mutated while dependencies are being
+/// iterated.
+pub struct ModuleGraphDependencyMutator<'a> {
+  modules: &'a mut rollback::RollbackMap<
+    ModuleIdentifier,
+    BoxModule,
+    BuildHasherDefault<IdentifierHasher>,
+  >,
+  blocks: &'a mut AsyncDependenciesBlockIdentifierMap<Box<AsyncDependenciesBlock>>,
+  dependency_id_to_parents: &'a mut rollback::DenseDependencyIdMap<DependencyParents>,
+  connections: &'a rollback::DenseDependencyIdOverlayMap<ModuleGraphConnection>,
+}
+
+impl ModuleGraphDependencyMutator<'_> {
+  pub fn get_parent_module(&self, dependency_id: &DependencyId) -> Option<&ModuleIdentifier> {
+    self
+      .dependency_id_to_parents
+      .get(dependency_id)
+      .map(|parents| &parents.module)
+  }
+
+  pub fn get_parent_block(
+    &self,
+    dependency_id: &DependencyId,
+  ) -> Option<&AsyncDependenciesBlockIdentifier> {
+    self
+      .dependency_id_to_parents
+      .get(dependency_id)
+      .and_then(|parents| parents.block.as_ref())
+  }
+
+  pub fn get_module_by_dependency_id(&self, dependency_id: &DependencyId) -> Option<&BoxModule> {
+    self
+      .connections
+      .get(dependency_id)
+      .and_then(|connection| self.modules.get(connection.module_identifier()))
+  }
+
+  /// Moves a dependency directly owned by a module into a newly created async block.
+  pub fn move_dependency_to_new_block(
+    &mut self,
+    dependency_id: DependencyId,
+    block: Box<AsyncDependenciesBlock>,
+  ) {
+    let parents = self
+      .dependency_id_to_parents
+      .get(&dependency_id)
+      .expect("dependency should have parents");
+    assert!(
+      parents.block.is_none(),
+      "dependency should be directly owned by a module"
+    );
+    let origin_module = parents.module;
+    assert_eq!(
+      block.parent(),
+      &origin_module,
+      "new block should have the dependency's origin module as parent"
+    );
+    let index_in_block = block
+      .get_dependencies()
+      .iter()
+      .position(|id| *id == dependency_id)
+      .expect("new block should contain dependency");
+    let block_id = block.identifier();
+
+    let module = self
+      .modules
+      .get_mut(&origin_module)
+      .expect("dependency should have an origin module");
+    module.remove_dependency_id(dependency_id);
+    module.add_block_id(block_id);
+    self.dependency_id_to_parents.insert(
+      dependency_id,
+      DependencyParents {
+        block: Some(block_id),
+        module: origin_module,
+        index_in_block,
+      },
+    );
+    self.blocks.insert(block_id, block);
+  }
+}
+
 impl ModuleGraph {
   // checkpoint
   pub fn checkpoint(&mut self) {
@@ -562,6 +646,31 @@ impl ModuleGraph {
       .dependencies
       .iter()
       .map(|(id, dependency)| (id, dependency.as_ref()))
+  }
+
+  /// Iterates dependencies while allowing safe graph updates through a restricted mutator.
+  pub fn for_each_dependency_with_mutation(
+    &mut self,
+    mut f: impl FnMut(DependencyId, &(dyn Dependency + 'static), &mut ModuleGraphDependencyMutator<'_>),
+  ) {
+    let ModuleGraphData {
+      modules,
+      dependencies,
+      blocks,
+      dependency_id_to_parents,
+      connections,
+      ..
+    } = &mut self.inner;
+    let mut mutator = ModuleGraphDependencyMutator {
+      modules,
+      blocks,
+      dependency_id_to_parents,
+      connections,
+    };
+
+    for (dependency_id, dependency) in dependencies.iter() {
+      f(dependency_id, dependency.as_ref(), &mut mutator);
+    }
   }
 
   pub fn add_dependency(&mut self, dependency: BoxDependency) {
