@@ -107,6 +107,61 @@ fn path_from_bytes(bytes: &[u8]) -> &Path {
   Path::new(unsafe { OsStr::from_encoded_bytes_unchecked(bytes) })
 }
 
+/// Returns the spelling `Path::components` rebuilds for `path`, or `None` when `path` already is
+/// spelled that way.
+///
+/// On Windows [`PreHashedPath::eq`] compares components, so `D:/a/b`, `D:\a\b\`, `D:\a\\b` and
+/// `D:\a\.\b` all share one allocation and come back with whichever spelling was interned first.
+/// String-keyed consumers such as watchpack only match the native spelling, so it has to be the
+/// one stored. The spellings rewritten here are exactly the ones `eq` merges; on Unix `eq` is
+/// byte-wise, nothing is merged, and nothing needs rewriting.
+///
+/// Verbatim paths (`\\?\`), `..` components and the drive letter's case are left as they are.
+#[cfg(not(unix))]
+fn canonical_spelling(path: &Path) -> Option<PathBuf> {
+  use std::path::Component;
+
+  let bytes = path.as_os_str().as_encoded_bytes();
+  if !has_unnormalized_separator_or_dot(bytes) {
+    return None;
+  }
+  if let Some(Component::Prefix(prefix)) = path.components().next()
+    && prefix.kind().is_verbatim()
+  {
+    return None;
+  }
+  let rebuilt: PathBuf = path.components().collect();
+  (rebuilt.as_os_str().as_encoded_bytes() != bytes).then_some(rebuilt)
+}
+
+/// Byte scan for the spellings `Path::components` would rewrite. Returns `true` when `bytes`
+/// contain any of:
+///
+/// - a `/` separator: `D:/a/b`, `D:\a/b`
+/// - a doubled `\` after the prefix: `D:\a\\b` (the leading `\\` of a UNC path does not count)
+/// - a trailing `\`: `D:\a\b\` (a bare root such as `D:\` does not count)
+/// - a `.` component: `D:\a\.\b`, `D:\a\b\.`
+///
+/// A false positive only costs the rebuild-and-compare in [`canonical_spelling`].
+#[cfg(not(unix))]
+fn has_unnormalized_separator_or_dot(bytes: &[u8]) -> bool {
+  let mut prev_sep = false;
+  for (i, &b) in bytes.iter().enumerate() {
+    match b {
+      b'/' => return true,
+      b'\\' => {
+        if prev_sep && i > 1 {
+          return true;
+        }
+        prev_sep = true;
+      }
+      b'.' if prev_sep && matches!(bytes.get(i + 1), None | Some(b'\\')) => return true,
+      _ => prev_sep = false,
+    }
+  }
+  prev_sep && bytes.len() > 3
+}
+
 /// An interned path: equal paths share one allocation process-wide, so equality is a pointer
 /// comparison and each path is stored once. Hashing still uses the precomputed content hash
 /// (see [`Hash`] below).
@@ -129,8 +184,18 @@ impl InternedPath {
   /// that `hash` equals [`hash_path`] of `path`. Used at boundaries (e.g. consuming
   /// `rspack_resolver::ResolverPath`) where the same `FxHash` has already been computed
   /// upstream.
+  ///
+  /// On Windows a non-canonical spelling is rewritten before it is interned, see
+  /// `canonical_spelling`. This is the only place an [`InternedPath`] is created.
   #[inline]
   pub fn from_parts(hash: u64, path: &Path) -> Self {
+    #[cfg(not(unix))]
+    if let Some(native) = canonical_spelling(path) {
+      return Self(InternedSlice::new(
+        hash_path(&native),
+        native.as_os_str().as_encoded_bytes(),
+      ));
+    }
     Self(InternedSlice::new(
       hash,
       path.as_os_str().as_encoded_bytes(),
