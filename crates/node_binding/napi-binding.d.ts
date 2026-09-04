@@ -2314,6 +2314,7 @@ export interface RawEnvironment {
   globalThis: boolean
   module: boolean
   optionalChaining: boolean
+  spread: boolean
   logicalAssignment: boolean
   templateLiteral: boolean
   dynamicImportInWorker: boolean

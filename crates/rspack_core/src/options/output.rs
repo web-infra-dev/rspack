@@ -634,6 +634,7 @@ pub struct Environment {
   pub global_this: bool,
   pub module: bool,
   pub optional_chaining: bool,
+  pub spread: bool,
   pub logical_assignment: bool,
   pub template_literal: bool,
   pub dynamic_import_in_worker: bool,
@@ -675,6 +676,10 @@ impl Environment {
 
   pub fn supports_dynamic_import(&self) -> bool {
     self.dynamic_import
+  }
+
+  pub fn supports_spread(&self) -> bool {
+    self.spread
   }
 
   pub fn supports_logical_assignment(&self) -> bool {

@@ -40,6 +40,7 @@ module.exports = [
 						arrowFunction: false,
 						destructuring: false,
 						forOf: false,
+						spread: false,
 						templateLiteral: false,
 						nodePrefixForCoreModules: false
 					}
@@ -58,6 +59,7 @@ module.exports = [
 			expect(runtimeTemplate.supportsArrowFunction()).toBe(false);
 			expect(runtimeTemplate.supportsDestructuring()).toBe(false);
 			expect(runtimeTemplate.supportsForOf()).toBe(false);
+			expect(runtimeTemplate.supportsSpread()).toBe(false);
 			expect(runtimeTemplate.supportTemplateLiteral()).toBe(false);
 			expect(runtimeTemplate.returningFunction("a", "b")).toBe(
 				"function(b) { return a; }"
@@ -99,10 +101,12 @@ module.exports = [
 					arrowFunction: true,
 					destructuring: true,
 					forOf: true,
+					spread: true,
 					templateLiteral: true,
 					nodePrefixForCoreModules: true
 				}
 			});
+			expect(modern.supportsSpread()).toBe(true);
 			expect(modern.returningFunction("a", "b")).toBe("(b) => (a)");
 			expect(modern.basicFunction("a", "return a;")).toBe(
 				"(a) => {\n\treturn a;\n}"

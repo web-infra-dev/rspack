@@ -444,6 +444,9 @@ export type Environment = {
   /** The environment supports optional chaining ('obj?.a' or 'obj?.()'). */
   optionalChaining?: boolean;
 
+  /** The environment supports spread and rest syntax ('{ ...obj }', '[...arr]', 'fn(...args)'). */
+  spread?: boolean;
+
   /** The environment supports logical assignment ('a ||= b'). */
   logicalAssignment?: boolean;
 

@@ -775,6 +775,7 @@ const applyOutputDefaults = (
     'optionalChaining',
     () => tp && optimistic(tp.optionalChaining),
   );
+  F(environment, 'spread', () => tp && optimistic(tp.spread));
   F(
     environment,
     'logicalAssignment',

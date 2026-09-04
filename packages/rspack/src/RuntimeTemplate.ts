@@ -174,6 +174,10 @@ export class RuntimeTemplate {
     return Boolean(this.#environment.optionalChaining);
   }
 
+  supportsSpread(): boolean {
+    return Boolean(this.#environment.spread);
+  }
+
   supportsForOf(): boolean {
     return Boolean(this.#environment.forOf);
   }
