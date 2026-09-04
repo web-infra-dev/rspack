@@ -10,12 +10,12 @@ use rspack_collections::{
   Identifiable, IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
-  BoxModule, BuildMetaExportsType, ChunkUkey, Compilation, CompilationOptimizeChunkModules,
-  Dependency, DependencyId, DependencyType, ExportMode, ExportProvided, ExportsInfoArtifact,
-  GetTargetResult, ImportPhase, ImportedByDeferModulesArtifact, LibIdentOptions, Logger,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule,
-  ModuleIdentifier, OptimizationBailoutItem, Plugin, ProvidedExports, RuntimeCondition,
-  RuntimeSpec, RuntimeSpecMap, SideEffectsStateArtifact, SourceType,
+  BoxModule, ChunkUkey, Compilation, CompilationOptimizeChunkModules, Dependency, DependencyId,
+  DependencyType, ExportInfoData, ExportMode, ExportProvided, ExportsInfoArtifact, GetTargetResult,
+  ImportPhase, ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier,
+  OptimizationBailoutItem, Plugin, ProvidedExports, RuntimeCondition, RuntimeSpec, RuntimeSpecMap,
+  SideEffectsStateArtifact, SourceType,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
     is_unknown_empty_commonjs_for_concatenation,
@@ -42,14 +42,6 @@ fn is_plain_export_star(
   dependency.name.is_none() && dependency.get_ids(module_graph).is_empty()
 }
 
-fn is_evaluation_phase_plain_export_star(
-  dependency: &ESMExportImportedSpecifierDependency,
-  module_graph: &ModuleGraph,
-) -> bool {
-  dependency.get_phase() == ImportPhase::Evaluation
-    && is_plain_export_star(dependency, module_graph)
-}
-
 fn can_reference_unknown_empty_commonjs_without_wrapper(
   dependency: &dyn Dependency,
   module_graph: &ModuleGraph,
@@ -70,7 +62,7 @@ fn can_reference_unknown_empty_commonjs_without_wrapper(
 }
 
 fn get_namespace_object_referenced_modules(
-  module_ids: &IdentifierSet,
+  module_ids: &[ModuleIdentifier],
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
@@ -105,37 +97,23 @@ fn get_namespace_object_referenced_modules(
     .collect()
 }
 
-fn get_export_star_ancestor_modules(
-  roots: &IdentifierSet,
-  module_graph: &ModuleGraph,
-) -> IdentifierSet {
-  let mut result = roots.clone();
-  let mut queue = roots.iter().copied().collect::<VecDeque<_>>();
-  while let Some(module_id) = queue.pop_front() {
-    for connection in module_graph.get_incoming_connections(&module_id) {
-      let Some(dependency) = module_graph
-        .dependency_by_id(&connection.dependency_id)
-        .downcast_ref::<ESMExportImportedSpecifierDependency>()
-      else {
-        continue;
-      };
-      if !is_evaluation_phase_plain_export_star(dependency, module_graph) {
-        continue;
-      }
-      let Some(origin_module) = module_graph.get_parent_module(&dependency.id) else {
-        continue;
-      };
-      if result.insert(*origin_module) {
-        queue.push_back(*origin_module);
-      }
-    }
-  }
-  result
+fn is_export_info_from_dependencies(
+  export_info: &ExportInfoData,
+  dependencies: &HashSet<DependencyId>,
+) -> bool {
+  let targets = export_info.get_max_target();
+  !targets.is_empty()
+    && targets.values().all(|target| {
+      target
+        .dependency
+        .is_some_and(|dependency| dependencies.contains(&dependency))
+    })
 }
 
 fn get_unknown_empty_commonjs_candidates(
   module_ids: &[ModuleIdentifier],
   module_graph: &ModuleGraph,
+  namespace_object_referenced_modules: &IdentifierSet,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> IdentifierSet {
   module_ids
@@ -144,206 +122,57 @@ fn get_unknown_empty_commonjs_candidates(
       let module = module_graph.module_by_identifier(module_id)?;
       let exports_info = exports_info_artifact.get_exports_info_data(module_id);
       (is_unknown_empty_commonjs_for_concatenation(module.as_ref(), exports_info)
-        && has_only_safe_incoming_unknown_empty_commonjs_connections(module_id, module_graph))
+        && module_graph
+          .get_incoming_connections(module_id)
+          .all(|connection| {
+            let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+            can_reference_unknown_empty_commonjs_without_wrapper(dependency, module_graph)
+              && !dependency
+                .downcast_ref::<ESMExportImportedSpecifierDependency>()
+                .filter(|dependency| is_plain_export_star(dependency, module_graph))
+                .and_then(|dependency| module_graph.get_parent_module(&dependency.id))
+                .is_some_and(|origin| namespace_object_referenced_modules.contains(origin))
+          }))
       .then_some(*module_id)
     })
     .collect()
 }
 
-fn get_namespace_safe_unknown_empty_commonjs_modules(
-  candidates: &IdentifierSet,
-  module_graph: &ModuleGraph,
-  namespace_object_referenced_modules: &IdentifierSet,
-) -> IdentifierSet {
-  candidates
-    .iter()
-    .filter(|module_id| {
-      // Keep the runtime export object when the barrel consuming this star target is observed as a
-      // whole namespace. A deeper barrel remains safe because that module boundary materializes it.
-      !namespace_object_referenced_modules.contains(module_id)
-        && module_graph
-          .get_incoming_connections(module_id)
-          .filter_map(|connection| {
-            let dependency = module_graph
-              .dependency_by_id(&connection.dependency_id)
-              .downcast_ref::<ESMExportImportedSpecifierDependency>()?;
-            if !is_evaluation_phase_plain_export_star(dependency, module_graph) {
-              return None;
-            }
-            module_graph.get_parent_module(&dependency.id)
-          })
-          .all(|origin_module| !namespace_object_referenced_modules.contains(origin_module))
-    })
-    .copied()
-    .collect()
-}
-
-fn has_unresolved_explicit_reexport(
-  module_id: &ModuleIdentifier,
-  module_graph: &ModuleGraph,
-  exports_info_artifact: &ExportsInfoArtifact,
-) -> bool {
-  let Some(module) = module_graph.module_by_identifier(module_id) else {
-    return true;
-  };
-  exports_info_artifact
-    .get_exports_info_data(module_id)
-    .get_relevant_exports(None)
-    .iter()
-    .any(|export_info| {
-      export_info.is_reexport()
-        && export_info
-          .name()
-          .is_some_and(|name| module.build_info().esm_named_exports.contains(name))
-        && !matches!(
-          get_target(
-            export_info,
-            module_graph,
-            exports_info_artifact,
-            &|_| true,
-            &mut Default::default(),
-          ),
-          Some(GetTargetResult::Target(_))
-        )
-    })
-}
-
-fn get_dynamic_star_reexport_targets(
-  module_id: &ModuleIdentifier,
-  namespace_object_referenced_modules: &IdentifierSet,
+fn get_ignorable_dynamic_star_export_dependencies(
+  module_ids: &[ModuleIdentifier],
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
-  exports_info_artifact: &ExportsInfoArtifact,
-) -> Option<Vec<ModuleIdentifier>> {
-  let module = module_graph.module_by_identifier(module_id)?;
-  if !module.build_meta().esm()
-    || module.build_meta().exports_type() != BuildMetaExportsType::Namespace
-    || namespace_object_referenced_modules.contains(module_id)
-    || has_unresolved_explicit_reexport(module_id, module_graph, exports_info_artifact)
-  {
-    return None;
-  }
-
-  let mut targets = Vec::new();
-  for dependency_id in &module.build_info().all_star_exports {
-    let dependency = module_graph
-      .dependency_by_id(dependency_id)
-      .downcast_ref::<ESMExportImportedSpecifierDependency>()?;
-    if !matches!(
-      dependency.get_mode(
-        module_graph,
-        None,
-        module_graph_cache,
-        exports_info_artifact,
-      ),
-      ExportMode::DynamicReexport(_)
-    ) {
-      continue;
-    }
-
-    if !is_evaluation_phase_plain_export_star(dependency, module_graph) {
-      return None;
-    }
-    let target_module = module_graph.module_identifier_by_dependency_id(dependency_id)?;
-    targets.push(*target_module);
-  }
-  (!targets.is_empty()).then_some(targets)
-}
-
-fn get_modules_with_ignorable_dynamic_star_exports(
-  export_star_ancestor_modules: &IdentifierSet,
-  module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCacheArtifact,
-  namespace_object_referenced_modules: &IdentifierSet,
   safe_unknown_empty_commonjs_modules: &IdentifierSet,
   exports_info_artifact: &ExportsInfoArtifact,
-) -> IdentifierSet {
-  // Build the dynamic-star barrel graph once, then propagate safety from known-empty CommonJS
-  // leaves. The worklist keeps this linear in the number of candidate barrels and their star
-  // edges; unresolved cycles intentionally remain conservative.
-  let candidates = export_star_ancestor_modules
+) -> HashSet<DependencyId> {
+  module_ids
     .iter()
-    .filter_map(|module_id| {
-      let module = module_graph.module_by_identifier(module_id)?;
-      if module.build_info().all_star_exports.is_empty() {
+    .filter_map(|module_id| module_graph.module_by_identifier(module_id))
+    .flat_map(|module| module.build_info().all_star_exports.iter())
+    .filter_map(|dependency_id| {
+      let dependency = module_graph
+        .dependency_by_id(dependency_id)
+        .downcast_ref::<ESMExportImportedSpecifierDependency>()?;
+      if dependency.get_phase() != ImportPhase::Evaluation
+        || !is_plain_export_star(dependency, module_graph)
+        || !matches!(
+          dependency.get_mode(
+            module_graph,
+            None,
+            module_graph_cache,
+            exports_info_artifact,
+          ),
+          ExportMode::DynamicReexport(_)
+        )
+      {
         return None;
       }
-      get_dynamic_star_reexport_targets(
-        module_id,
-        namespace_object_referenced_modules,
-        module_graph,
-        module_graph_cache,
-        exports_info_artifact,
-      )
-      .map(|targets| (*module_id, targets))
+      module_graph
+        .module_identifier_by_dependency_id(dependency_id)
+        .filter(|target| safe_unknown_empty_commonjs_modules.contains(target))
+        .map(|_| *dependency_id)
     })
-    .collect::<IdentifierMap<_>>();
-  if candidates.is_empty() {
-    return IdentifierSet::default();
-  }
-
-  let mut remaining_targets = IdentifierMap::<usize>::default();
-  let mut incoming_barrels = IdentifierMap::<Vec<ModuleIdentifier>>::default();
-  let mut queue = VecDeque::new();
-
-  for (module_id, targets) in &candidates {
-    let mut remaining = 0usize;
-    let mut can_be_resolved = true;
-    for target in targets {
-      if safe_unknown_empty_commonjs_modules.contains(target) {
-        continue;
-      }
-      if !candidates.contains_key(target) {
-        can_be_resolved = false;
-        break;
-      }
-      remaining += 1;
-      incoming_barrels
-        .entry(*target)
-        .or_default()
-        .push(*module_id);
-    }
-    if can_be_resolved {
-      remaining_targets.insert(*module_id, remaining);
-      if remaining == 0 {
-        queue.push_back(*module_id);
-      }
-    }
-  }
-
-  let mut result = IdentifierSet::default();
-  while let Some(module_id) = queue.pop_front() {
-    if !result.insert(module_id) {
-      continue;
-    }
-    let Some(incoming) = incoming_barrels.get(&module_id) else {
-      continue;
-    };
-    for origin_module in incoming {
-      let Some(remaining) = remaining_targets.get_mut(origin_module) else {
-        continue;
-      };
-      *remaining -= 1;
-      if *remaining == 0 {
-        queue.push_back(*origin_module);
-      }
-    }
-  }
-  result
-}
-
-fn has_only_safe_incoming_unknown_empty_commonjs_connections(
-  module_id: &ModuleIdentifier,
-  module_graph: &ModuleGraph,
-) -> bool {
-  module_graph
-    .get_incoming_connections(module_id)
-    .all(|connection| {
-      can_reference_unknown_empty_commonjs_without_wrapper(
-        module_graph.dependency_by_id(&connection.dependency_id),
-        module_graph,
-      )
-    })
+    .collect()
 }
 
 #[derive(Clone, Debug)]
@@ -1246,41 +1075,25 @@ impl ModuleConcatenationPlugin {
       .module_graph_modules()
       .map(|(k, _)| *k)
       .collect();
-    let unknown_empty_commonjs_candidates = get_unknown_empty_commonjs_candidates(
+    let namespace_object_referenced_modules = get_namespace_object_referenced_modules(
       &modules,
       module_graph,
+      &compilation.module_graph_cache_artifact,
       &compilation.exports_info_artifact,
     );
-    let export_star_ancestor_modules =
-      get_export_star_ancestor_modules(&unknown_empty_commonjs_candidates, module_graph);
-    let namespace_object_referenced_modules = if export_star_ancestor_modules.is_empty() {
-      IdentifierSet::default()
-    } else {
-      get_namespace_object_referenced_modules(
-        &export_star_ancestor_modules,
-        module_graph,
-        &compilation.module_graph_cache_artifact,
-        &compilation.exports_info_artifact,
-      )
-    };
-    let safe_unknown_empty_commonjs_modules = get_namespace_safe_unknown_empty_commonjs_modules(
-      &unknown_empty_commonjs_candidates,
+    let safe_unknown_empty_commonjs_modules = get_unknown_empty_commonjs_candidates(
+      &modules,
       module_graph,
       &namespace_object_referenced_modules,
+      &compilation.exports_info_artifact,
     );
-    let modules_with_ignorable_dynamic_star_exports =
-      if safe_unknown_empty_commonjs_modules.is_empty() {
-        IdentifierSet::default()
-      } else {
-        get_modules_with_ignorable_dynamic_star_exports(
-          &export_star_ancestor_modules,
-          module_graph,
-          &compilation.module_graph_cache_artifact,
-          &namespace_object_referenced_modules,
-          &safe_unknown_empty_commonjs_modules,
-          &compilation.exports_info_artifact,
-        )
-      };
+    let ignorable_dynamic_star_export_dependencies = get_ignorable_dynamic_star_export_dependencies(
+      &modules,
+      module_graph,
+      &compilation.module_graph_cache_artifact,
+      &safe_unknown_empty_commonjs_modules,
+      &compilation.exports_info_artifact,
+    );
     let res: Vec<_> = modules
       .into_par_iter()
       .map(|module_id| {
@@ -1302,8 +1115,6 @@ impl ModuleConcatenationPlugin {
         let exports_info = compilation
           .exports_info_artifact
           .get_exports_info_data(&module_id);
-        let can_ignore_dynamic_star_exports =
-          modules_with_ignorable_dynamic_star_exports.contains(&module_id);
         let can_concatenate_unknown_empty_commonjs =
           safe_unknown_empty_commonjs_modules.contains(&module_id);
 
@@ -1357,6 +1168,10 @@ impl ModuleConcatenationPlugin {
               ),
               Some(GetTargetResult::Target(_))
             )
+            && !is_export_info_from_dependencies(
+              export_info,
+              &ignorable_dynamic_star_export_dependencies,
+            )
           {
             unknown_exports.get_or_insert_with(Vec::new).push({
               let name = export_info
@@ -1366,9 +1181,7 @@ impl ModuleConcatenationPlugin {
             });
           }
         }
-        if let Some(unknown_exports) = unknown_exports
-          && !can_ignore_dynamic_star_exports
-        {
+        if let Some(unknown_exports) = unknown_exports {
           let cur_bailout_reason = unknown_exports.join(", ");
           // self.set_bailout_reason(
           //   &module_id,
@@ -1385,12 +1198,12 @@ impl ModuleConcatenationPlugin {
         }
         let mut unknown_provided_exports = None;
         for export_info in relevant_exports.iter() {
-          // Only unknown names contributed by the validated dynamic stars may be ignored. Explicit
-          // ESM exports must still satisfy the normal provided-export check.
-          let is_ignorable_dynamic_star_export = can_ignore_dynamic_star_exports
-            && export_info
-              .name()
-              .is_none_or(|name| !m.build_info().esm_named_exports.contains(name));
+          // Ignore only export info whose target comes exclusively from the validated dynamic-star
+          // dependencies. Explicit exports and other reexports still follow the normal checks.
+          let is_ignorable_dynamic_star_export = is_export_info_from_dependencies(
+            export_info,
+            &ignorable_dynamic_star_export_dependencies,
+          );
           if !is_ignorable_dynamic_star_export
             && !matches!(export_info.provided(), Some(ExportProvided::Provided))
           {

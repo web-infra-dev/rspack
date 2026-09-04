@@ -2766,6 +2766,21 @@ impl ConcatenatedModule {
         let module = module_graph
           .module_by_identifier(&info_id)
           .expect("should have module");
+        if is_unknown_empty_commonjs_for_concatenation(
+          module.as_ref(),
+          binding_resolver
+            .context
+            .exports_info_artifact
+            .get_exports_info_data(&info_id),
+        ) {
+          return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
+            raw_name: "/* missing export from locally empty CommonJS module */ undefined".into(),
+            ids: export_name[1..].to_vec(),
+            export_name,
+            info_id,
+            comment: None,
+          }));
+        }
         panic!(
           "Cannot get final name for export '{}' of module '{}'",
           join_atom(export_name.iter(), "."),
