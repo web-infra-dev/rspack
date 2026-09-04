@@ -1499,7 +1499,7 @@ impl Module for ContextModule {
           None,
           Some(&context_element_dependency.user_request.clone()),
           vec![BoxDependency::new(context_element_dependency)],
-          Some(self.options.context_options.request.clone()),
+          Some(self.options.context_options.request.clone().into()),
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
           name,

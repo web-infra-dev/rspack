@@ -560,7 +560,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           loc,
           None,
           vec![BoxDependency::new(dep)],
-          Some(param.string().clone()),
+          Some(param.string().clone().into()),
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
           chunk_name,

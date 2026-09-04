@@ -262,7 +262,7 @@ impl RstestParserPlugin {
             loc,
             None,
             vec![dep],
-            Some(lit.value.to_string_lossy().to_string()),
+            Some(lit.value.to_string_lossy().to_string().into()),
           );
 
           parser.add_block(Box::new(block));
@@ -602,7 +602,7 @@ impl RstestParserPlugin {
                   loc,
                   None,
                   vec![dep],
-                  Some(mocked_target.to_string()),
+                  Some(mocked_target.into()),
                 );
 
                 parser.add_block(Box::new(block));

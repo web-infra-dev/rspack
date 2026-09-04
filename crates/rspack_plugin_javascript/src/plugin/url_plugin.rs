@@ -133,7 +133,7 @@ async fn finish_modules(
           return None;
         }
         let origin_module = *module_graph.get_parent_module(&dependency_id)?;
-        let request = dependency.request().to_string();
+        let request = dependency.request();
         let range = dependency.dependency_range();
 
         let mut hasher = RspackHasher::from(&compilation.options.output);

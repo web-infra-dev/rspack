@@ -51,8 +51,8 @@ impl URLDependency {
     self.used_by_exports.as_ref()
   }
 
-  pub fn request(&self) -> &str {
-    &self.request
+  pub fn request(&self) -> Atom {
+    self.request.clone()
   }
 
   pub fn dependency_range(&self) -> DependencyRange {
