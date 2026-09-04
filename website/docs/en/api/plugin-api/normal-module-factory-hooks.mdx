@@ -22,6 +22,8 @@ All hooks inherit from `Tapable`. In addition to `tap()`, you can also use `tapA
 
 <ApiMeta addedVersion="2.2.3" />
 
+**Type:** `Readonly<Record<string, string>>`
+
 `ResolveData.attributes` holds the [import attributes](https://github.com/tc39/proposal-import-attributes) of the dependency that triggered the resolution, for example `{ type: 'json' }` for `import data from './data.json' with { type: 'json' }`. It is available on the [`beforeResolve`](#beforeresolve), [`factorize`](#factorize), [`resolve`](#resolve) and [`afterResolve`](#afterresolve) hooks, and is `undefined` when the request carries no attributes.
 
 ```js
@@ -36,10 +38,6 @@ compiler.hooks.compilation.tap(
   },
 );
 ```
-
-:::warning
-`attributes` is read-only: assigning to it inside a hook has no effect on how the module is resolved or built. It still has to hold a string map when the hook returns, so replacing it with values of another type fails the build.
-:::
 
 ## `beforeResolve`
 

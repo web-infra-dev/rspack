@@ -22,6 +22,8 @@ NormalModuleFactory.hooks.someHook.tap(/* ... */);
 
 <ApiMeta addedVersion="2.2.3" />
 
+**类型：** `Readonly<Record<string, string>>`
+
 `ResolveData.attributes` 保存触发本次解析的依赖上的[导入属性](https://github.com/tc39/proposal-import-attributes)，例如 `import data from './data.json' with { type: 'json' }` 对应 `{ type: 'json' }`。[`beforeResolve`](#beforeresolve)、[`factorize`](#factorize)、[`resolve`](#resolve) 和 [`afterResolve`](#afterresolve) 四个钩子均可读取该字段；当请求不带任何导入属性时，它的值为 `undefined`。
 
 ```js
@@ -37,9 +39,6 @@ compiler.hooks.compilation.tap(
 );
 ```
 
-:::warning
-`attributes` 是只读的：在钩子中对它赋值不会影响模块的解析与构建。但钩子返回时它仍必须是一个字符串映射，替换成其他类型的值会导致构建失败。
-:::
 
 ## `beforeResolve`
 
