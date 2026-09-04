@@ -1019,20 +1019,8 @@ var {} = {{}};
     if iife {
       sources.add(RawStringSource::from_static("})()\n"));
     }
-    let mut render_source = RenderSource {
-      source: sources.boxed(),
-    };
-    hooks
-      .render_content
-      .call(
-        compilation,
-        chunk_ukey,
-        &mut render_source,
-        runtime_template,
-      )
-      .await?;
     let final_source = render_init_fragments(
-      render_source.source,
+      sources.boxed(),
       chunk_init_fragments,
       &mut ChunkRenderContext {},
     )?;
@@ -1455,15 +1443,6 @@ var {} = {{}};
     };
     hooks
       .render_chunk
-      .call(
-        compilation,
-        chunk_ukey,
-        &mut render_source,
-        runtime_template,
-      )
-      .await?;
-    hooks
-      .render_content
       .call(
         compilation,
         chunk_ukey,

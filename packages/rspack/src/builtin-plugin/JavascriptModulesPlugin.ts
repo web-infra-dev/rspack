@@ -1,28 +1,14 @@
 import { type BuiltinPlugin, BuiltinPluginName } from '@rspack/binding';
 
 import * as liteTapable from '@rspack/lite-tapable';
-import type { Source } from 'webpack-sources';
 import type { Chunk } from '../Chunk';
 import { type Compilation, checkCompilation } from '../Compilation';
 import type { Filename, OutputNormalized } from '../config';
 import type Hash from '../util/hash';
 import { createBuiltinPlugin, RspackBuiltinPlugin } from './base';
 
-/**
- * The render context passed to `renderContent`.
- *
- * webpack additionally exposes `chunkGraph`, `moduleGraph`, `runtimeTemplate`,
- * `codeGenerationResults` and `runtimeRequirements` here. In Rspack those are
- * reachable from the `compilation` the hook was retrieved from, so only the
- * per-call `chunk` is carried across the binding.
- */
-export type RenderContext = {
-  chunk: Chunk;
-};
-
 export type CompilationHooks = {
   chunkHash: liteTapable.SyncHook<[Chunk, Hash]>;
-  renderContent: liteTapable.SyncWaterfallHook<[Source, RenderContext]>;
 };
 
 const compilationHooksMap: WeakMap<Compilation, CompilationHooks> =
@@ -43,10 +29,6 @@ export class JavascriptModulesPlugin extends RspackBuiltinPlugin {
     if (hooks === undefined) {
       hooks = {
         chunkHash: new liteTapable.SyncHook(['chunk', 'hash']),
-        renderContent: new liteTapable.SyncWaterfallHook([
-          'source',
-          'renderContext',
-        ]),
       };
       compilationHooksMap.set(compilation, hooks);
     }
