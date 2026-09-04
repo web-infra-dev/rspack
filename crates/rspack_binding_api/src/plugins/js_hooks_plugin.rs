@@ -38,7 +38,6 @@ pub struct JsHooksAdapterPlugin {
   register_compilation_optimize_tree_taps: RegisterCompilationOptimizeTreeTaps,
   register_compilation_optimize_chunk_modules_taps: RegisterCompilationOptimizeChunkModulesTaps,
   register_compilation_before_module_ids_taps: RegisterCompilationBeforeModuleIdsTaps,
-  register_compilation_after_optimize_chunk_ids_taps: RegisterCompilationAfterOptimizeChunkIdsTaps,
   register_compilation_additional_tree_runtime_requirements_taps:
     RegisterCompilationAdditionalTreeRuntimeRequirementsTaps,
   register_compilation_runtime_requirement_in_tree_taps:
@@ -172,11 +171,6 @@ impl Plugin for JsHooksAdapterPlugin {
       .compilation_hooks
       .before_module_ids
       .intercept(self.register_compilation_before_module_ids_taps.clone());
-    ctx.compilation_hooks.after_optimize_chunk_ids.intercept(
-      self
-        .register_compilation_after_optimize_chunk_ids_taps
-        .clone(),
-    );
     ctx
       .compilation_hooks
       .additional_tree_runtime_requirements
@@ -322,9 +316,6 @@ impl Plugin for JsHooksAdapterPlugin {
       .clear_cache();
     self
       .register_compilation_before_module_ids_taps
-      .clear_cache();
-    self
-      .register_compilation_after_optimize_chunk_ids_taps
       .clear_cache();
     self
       .register_compilation_additional_tree_runtime_requirements_taps
@@ -609,11 +600,6 @@ impl JsHooksAdapterPlugin {
           register_js_taps.register_compilation_before_module_ids_taps,
           non_skippable_registers.clone(),
         ),
-        register_compilation_after_optimize_chunk_ids_taps:
-          RegisterCompilationAfterOptimizeChunkIdsTaps::new(
-            register_js_taps.register_compilation_after_optimize_chunk_ids_taps,
-            non_skippable_registers.clone(),
-          ),
         register_compilation_additional_tree_runtime_requirements_taps:
           RegisterCompilationAdditionalTreeRuntimeRequirementsTaps::new(
             register_js_taps.register_compilation_additional_tree_runtime_requirements_taps,
