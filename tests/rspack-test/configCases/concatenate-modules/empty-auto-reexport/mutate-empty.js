@@ -1,4 +1,5 @@
 "use strict";
 
-require("./mutated-empty").value = 42;
-globalThis.emptyAutoReexportMutatorExecuted = true;
+const target = require("./mutated-empty");
+target.value = 42;
+globalThis.emptyAutoReexportMutatedValue = target.value;

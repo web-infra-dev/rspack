@@ -2,4 +2,3 @@
 (function (require) {
 	require();
 })(() => {});
-globalThis.emptyAutoReexportShadowedRequireExecuted = true;

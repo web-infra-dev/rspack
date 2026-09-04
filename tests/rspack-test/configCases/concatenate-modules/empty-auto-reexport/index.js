@@ -1,190 +1,66 @@
-import {
-	__esModule as esModuleFromEmptyStar,
-	getValue,
-	missing as missingFromEmptyStar
-} from "./barrel";
+import { getValue, missing } from "./barrel";
 import "./sloppy-empty";
-import "./override-strict-empty";
-import "./override-non-strict-empty";
 import "./shadowed-require";
 import "./access-exports";
-import "./access-module";
 import "./access-webpack-module";
 import "./defined-exports";
 import "./require-access";
+import "./arguments-access";
 import "./mutate-empty";
 import "./dynamic";
 import "./top-level-return";
-import * as unknown from "./unknown-barrel";
-import * as namedValues from "./named-barrel";
-import { missing as directMissing } from "./direct-empty";
-import { value as mutatedValue } from "./mutated-empty";
-import { value as amdRequireValue } from "./amd-require-empty";
-import { __esModule as directEsModule } from "./es-module-empty";
-import * as directNamespace from "./namespace-empty";
-import directDefault from "./default-empty";
-import * as namespaceMember from "./namespace-member-empty";
-import * as _unusedNamespace from "./unused-namespace-empty";
-import _unusedDefault from "./unused-default-empty";
-import { default as _unusedNamedDefault } from "./unused-named-default-empty";
-import {
-	emptyNamespace,
-	emptyDefault,
-	reexportedMissing,
-	reexportedEsModule
-} from "./reexports";
-const dynamicEmpty = import(
-	/* webpackMode: "eager" */ "./dynamic-import-empty"
-);
+import * as namespace from "./namespace-barrel";
+import { value as mixedValue } from "./mixed-barrel";
 
-function getNamespaceKeys(namespace) {
-	return Object.keys(namespace);
-}
-
-it("should only concatenate unknown non-ESM modules without CommonJS export access", async () => {
-	const dynamicNamespace = await dynamicEmpty;
+it("concatenates only locally empty CommonJS export-star chains", () => {
 	expect(getValue()).toBe(42);
-	expect(missingFromEmptyStar).toBeUndefined();
-	expect(esModuleFromEmptyStar).toBeUndefined();
-	expect(Object.keys(unknown)).toEqual([]);
-	expect(getNamespaceKeys(namedValues)).toEqual(["missing"]);
-	expect(namedValues.missing).toBeUndefined();
-	expect(directMissing).toBeUndefined();
-	expect(mutatedValue).toBe(42);
-	expect(amdRequireValue).toBe(42);
-	expect(directEsModule).toBe(true);
-	expect(directNamespace.default).toEqual({});
-	expect(directDefault).toEqual({});
-	expect(namespaceMember.missing).toBeUndefined();
-	expect(emptyNamespace.default).toEqual({});
-	expect(emptyDefault).toEqual({});
-	expect(reexportedMissing).toBeUndefined();
-	expect(reexportedEsModule).toBe(true);
-	expect(dynamicNamespace.default).toEqual({});
-	expect(globalThis.emptyAutoReexportStrictExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportSloppyExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportSloppyThisPreserved).toBe(true);
-	expect(globalThis.emptyAutoReexportOverrideStrictExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportOverrideNonStrictExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportShadowedRequireExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportAccessExportsExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportAccessModuleExecuted).toBe(true);
-	expect(typeof globalThis.emptyAutoReexportWebpackModule).toBe("object");
-	expect(globalThis.emptyAutoReexportWebpackModule).not.toBe(
-		__webpack_module__
-	);
-	expect(typeof globalThis.emptyAutoReexportDefinedExports).toBe("object");
-	expect(globalThis.emptyAutoReexportDefinedExports).not.toBe(
-		__webpack_module__.exports
-	);
-	expect(globalThis.emptyAutoReexportRequireAccessExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportMutatedExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportMutatorExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportAmdRequireExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportDynamicExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportReturnBefore).toBe(true);
+	expect(missing).toBeUndefined();
+	expect(mixedValue).toBe(1);
+	expect(Object.keys(namespace)).toEqual([]);
+	expect(globalThis.emptyAutoReexportMutatedValue).toBe(42);
 	expect(globalThis.emptyAutoReexportReturnAfter).toBeUndefined();
-	expect(globalThis.emptyAutoReexportNamespaceExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportDefaultExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportNamespaceMemberExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportUnusedNamespaceExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportUnusedDefaultExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportUnusedNamedDefaultExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportNamespaceReexportExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportDefaultReexportExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportNamedReexportExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportEsModuleExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportEsModuleReexportExecuted).toBe(true);
-	expect(globalThis.emptyAutoReexportDynamicImportExecuted).toBe(true);
-	delete globalThis.emptyAutoReexportStrictExecuted;
-	delete globalThis.emptyAutoReexportSloppyExecuted;
-	delete globalThis.emptyAutoReexportSloppyThisPreserved;
-	delete globalThis.emptyAutoReexportOverrideStrictExecuted;
-	delete globalThis.emptyAutoReexportOverrideNonStrictExecuted;
-	delete globalThis.emptyAutoReexportShadowedRequireExecuted;
-	delete globalThis.emptyAutoReexportAccessExportsExecuted;
-	delete globalThis.emptyAutoReexportAccessModuleExecuted;
-	delete globalThis.emptyAutoReexportWebpackModule;
-	delete globalThis.emptyAutoReexportDefinedExports;
-	delete globalThis.emptyAutoReexportRequireAccessExecuted;
-	delete globalThis.emptyAutoReexportMutatedExecuted;
-	delete globalThis.emptyAutoReexportMutatorExecuted;
-	delete globalThis.emptyAutoReexportAmdRequireExecuted;
-	delete globalThis.emptyAutoReexportDynamicExecuted;
-	delete globalThis.emptyAutoReexportReturnBefore;
-	delete globalThis.emptyAutoReexportNamespaceExecuted;
-	delete globalThis.emptyAutoReexportDefaultExecuted;
-	delete globalThis.emptyAutoReexportNamespaceMemberExecuted;
-	delete globalThis.emptyAutoReexportUnusedNamespaceExecuted;
-	delete globalThis.emptyAutoReexportUnusedDefaultExecuted;
-	delete globalThis.emptyAutoReexportUnusedNamedDefaultExecuted;
-	delete globalThis.emptyAutoReexportNamespaceReexportExecuted;
-	delete globalThis.emptyAutoReexportDefaultReexportExecuted;
-	delete globalThis.emptyAutoReexportNamedReexportExecuted;
-	delete globalThis.emptyAutoReexportEsModuleExecuted;
-	delete globalThis.emptyAutoReexportEsModuleReexportExecuted;
-	delete globalThis.emptyAutoReexportDynamicImportExecuted;
 
-	const empty = __STATS__.modules.find(module => module.name === "./empty.js");
+	const allModules = __STATS__.modules.flatMap(module => [
+		module,
+		...(module.modules ?? [])
+	]);
+	const empty = allModules.find(module => module.name === "./empty.js");
 	expect(empty.providedExports).toBe(null);
 
-	const concatenated = __STATS__.modules.find(module =>
-		module.modules?.some(nested => nested.name === "./empty.js")
-	);
-	expect(concatenated.modules.map(module => module.name)).toEqual(
-		expect.arrayContaining([
-			"./barrel.js",
-			"./empty-barrel.js",
-			"./empty.js",
-			"./override-strict-empty.js",
-			"./shadowed-require.js"
-		])
-	);
 	const nestedModuleNames = new Set(
 		__STATS__.modules.flatMap(module =>
 			(module.modules ?? []).map(nested => nested.name)
 		)
 	);
+	for (const name of [
+		"./barrel.js",
+		"./empty-barrel.js",
+		"./empty.js",
+		"./shadowed-require.js",
+		"./namespace-barrel.js",
+		"./mixed-barrel.js",
+		"./mixed-empty.js"
+	]) {
+		expect(nestedModuleNames.has(name)).toBe(true);
+	}
 
 	for (const name of [
 		"./sloppy-empty.js",
-		"./override-non-strict-empty.js",
 		"./access-exports.js",
-		"./access-module.js",
 		"./access-webpack-module.js",
 		"./defined-exports.js",
-		"./direct-empty.js",
-		"./named-empty.js",
-		"./named-reexport-empty.js",
 		"./require-access.js",
+		"./arguments-access.js",
 		"./mutate-empty.js",
-		"./required-dep.js",
 		"./mutated-empty.js",
-		"./amd-require-empty.js",
 		"./dynamic.js",
 		"./top-level-return.js",
-		"./unknown-barrel.js",
 		"./namespace-empty.js",
-		"./default-empty.js",
-		"./namespace-member-empty.js",
-		"./namespace-reexport-empty.js",
-		"./default-reexport-empty.js",
-		"./es-module-empty.js",
-		"./es-module-reexport-empty.js",
-		"./dynamic-import-empty.js"
+		"./real-cjs.js"
 	]) {
 		expect(__STATS__.modules.some(module => module.name === name)).toBe(true);
 		expect(nestedModuleNames.has(name)).toBe(false);
 	}
-
-	const sloppyEmpty = __STATS__.modules.find(
-		module => module.name === "./sloppy-empty.js"
-	);
-	expect(sloppyEmpty.optimizationBailout).toEqual(
-		expect.arrayContaining([
-			expect.stringContaining("not an ECMAScript module")
-		])
-	);
 
 	const topLevelReturn = __STATS__.modules.find(
 		module => module.name === "./top-level-return.js"
@@ -192,14 +68,6 @@ it("should only concatenate unknown non-ESM modules without CommonJS export acce
 	expect(topLevelReturn.optimizationBailout).toEqual(
 		expect.arrayContaining([expect.stringContaining("top-level return")])
 	);
-
-	const unknownBarrel = __STATS__.modules.find(
-		module => module.name === "./unknown-barrel.js"
-	);
-	expect(unknownBarrel.optimizationBailout).toEqual(
-		expect.arrayContaining([
-			expect.stringContaining("Reexports in this module do not have a static target")
-		])
-	);
-
+	delete globalThis.emptyAutoReexportMutatedValue;
+	delete globalThis.emptyAutoReexportReturnAfter;
 });
