@@ -4,11 +4,12 @@ use concat_string::concat_string;
 use rspack_core::{
   AsyncDependenciesBlock, AsyncModulesArtifact, ChunkInitFragments, ChunkUkey,
   CodeGenerationDataFilename, Compilation, CompilationFinishModules, CompilationParams,
-  CompilerCompilation, DependenciesBlock, DependencyId, EntryOptions, ExportsInfoArtifact,
-  GroupOptions, ImportMetaKnownProperties, JavascriptParserUrl, Module, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin, PublicPath,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
-  URLStaticMode, get_css_chunk_filename_template, get_js_chunk_filename_template, get_undo_path,
+  CompilerCompilation, DependenciesBlock, DependencyId, DependencyParents, EntryOptions,
+  ExportsInfoArtifact, GroupOptions, ImportMetaKnownProperties, JavascriptParserUrl, Module,
+  ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin,
+  PublicPath, RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
+  SourceType, URLStaticMode, get_css_chunk_filename_template, get_js_chunk_filename_template,
+  get_undo_path,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
 use rspack_error::Result;
@@ -113,53 +114,70 @@ async fn finish_modules(
   _exports_info_artifact: &mut ExportsInfoArtifact,
   _side_effects_state_artifact: &mut SideEffectsStateArtifact,
 ) -> Result<()> {
-  let output_options = &compilation.options.output;
-  compilation
-    .build_module_graph_artifact
-    .get_module_graph_mut()
-    .for_each_dependency_with_mutation(|dependency_id, dependency, module_graph| {
-      let Some(dependency) = dependency.downcast_ref::<URLDependency>() else {
-        return;
-      };
-      if module_graph.get_parent_block(&dependency_id).is_some() {
-        return;
-      }
-      let Some(target_module) = module_graph.get_module_by_dependency_id(&dependency_id) else {
-        return;
-      };
-      if target_module.as_external_module().is_some()
-        || target_module.identifier().as_str().starts_with("ignored|")
-        || !is_url_entry_module_type(target_module.module_type())
-      {
-        return;
-      }
-      let Some(origin_module) = module_graph.get_parent_module(&dependency_id).copied() else {
-        return;
-      };
-      let request = dependency.request();
-      let range = dependency.dependency_range();
+  let blocks = {
+    let module_graph = compilation.get_module_graph();
+    module_graph
+      .dependencies()
+      .filter_map(|(dependency_id, dependency)| {
+        let dependency = dependency.downcast_ref::<URLDependency>()?;
+        if module_graph.get_parent_block(&dependency_id).is_some() {
+          return None;
+        }
+        let target_module = module_graph.get_module_by_dependency_id(&dependency_id)?;
+        if target_module.as_external_module().is_some()
+          || target_module.identifier().as_str().starts_with("ignored|")
+          || !is_url_entry_module_type(target_module.module_type())
+        {
+          return None;
+        }
+        let origin_module = *module_graph.get_parent_module(&dependency_id)?;
+        let request = dependency.request();
+        let range = dependency.dependency_range();
 
-      let mut hasher = RspackHasher::from(output_options);
-      origin_module.hash(&mut hasher);
-      request.hash(&mut hasher);
-      range.hash(&mut hasher);
-      let runtime = format!("url-{}", hasher.digest(&HashDigest::Hex).rendered(16));
+        let mut hasher = RspackHasher::from(&compilation.options.output);
+        origin_module.hash(&mut hasher);
+        request.hash(&mut hasher);
+        range.hash(&mut hasher);
+        let runtime = format!("url-{}", hasher.digest(&HashDigest::Hex).rendered(16));
 
-      let modifier = format!("url-entry-{}-{}", range.start, range.end);
-      let mut block = AsyncDependenciesBlock::new(
-        origin_module,
-        None,
-        Some(&modifier),
-        Vec::new(),
-        Some(request),
-      );
-      block.add_dependency_id(dependency_id);
-      block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
-        runtime: Some(runtime.into()),
-        ..Default::default()
-      })));
-      module_graph.move_dependency_to_new_block(dependency_id, Box::new(block));
-    });
+        let modifier = format!("url-entry-{}-{}", range.start, range.end);
+        let mut block = Box::new(AsyncDependenciesBlock::new(
+          origin_module,
+          None,
+          Some(&modifier),
+          Vec::new(),
+          Some(request),
+        ));
+        block.add_dependency_id(dependency_id);
+        block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
+          runtime: Some(runtime.into()),
+          ..Default::default()
+        })));
+
+        Some((dependency_id, block))
+      })
+      .collect::<Vec<_>>()
+  };
+
+  let module_graph = compilation.get_module_graph_mut();
+  for (dependency_id, block) in blocks {
+    let origin_module = *block.parent();
+    let block_id = block.identifier();
+    let module = module_graph
+      .module_by_identifier_mut(&origin_module)
+      .expect("URL dependency should have an origin module");
+    module.remove_dependency_id(dependency_id);
+    module.add_block_id(block_id);
+    module_graph.set_parents(
+      dependency_id,
+      DependencyParents {
+        block: Some(block_id),
+        module: origin_module,
+        index_in_block: 0,
+      },
+    );
+    module_graph.add_block(block);
+  }
 
   Ok(())
 }
