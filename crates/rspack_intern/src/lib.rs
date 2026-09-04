@@ -8,6 +8,10 @@
 //!
 //! [`InternedSlice`] interns a header plus a slice in one allocation, behind a thin pointer.
 
+#[cfg(feature = "atom")]
+mod atom;
 mod slice;
 
+#[cfg(feature = "atom")]
+pub use self::atom::{Atom, AtomMap, AtomRef, AtomSet, IndexAtomMap, IndexAtomSet};
 pub use self::slice::{InternSliceStorage, InternedSlice, SliceInternable};

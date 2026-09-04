@@ -10,13 +10,13 @@ use rspack_core::{
   collect_referenced_export_items,
   rspack_sources::{MapOptions, ObjectPool},
 };
+use rspack_intern::Atom;
 use rspack_paths::Utf8PathBuf;
 use rspack_plugin_javascript::{
   dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency, URLDependency},
   has_impure_deferred_pure_checks,
 };
 use rspack_plugin_json::create_object_for_exports_info;
-use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use thread_local::ThreadLocal;
 

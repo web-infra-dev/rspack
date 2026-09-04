@@ -4,7 +4,8 @@ use rspack_core::{
   InitFragmentKey, InitFragmentStage, ModuleCodeTemplate, ModuleGraph, ModuleInitFragments,
   NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsageState,
 };
-use swc_atoms::Atom;
+
+use crate::Atom;
 
 pub(super) fn add_async_module_boundary(
   init_fragments: &mut ModuleInitFragments,

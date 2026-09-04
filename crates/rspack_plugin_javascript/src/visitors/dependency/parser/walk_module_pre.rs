@@ -1,10 +1,9 @@
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   ExportSpecifier, GetSpan, ImportDecl, ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem,
 };
 
 use crate::{
-  JavascriptParserPlugin,
+  Atom, JavascriptParserPlugin,
   visitors::{ExportAllDeclaration, ExportImport, ExportNamedDeclaration, JavascriptParser},
 };
 
@@ -45,11 +44,11 @@ impl JavascriptParser<'_> {
     for specifier in &decl.specifiers {
       match specifier {
         ImportSpecifier::Named(named) => {
-          let identifier_name = Atom::from(named.local.sym.as_str());
+          let identifier_name = Atom::from(&named.local.sym);
           let export_name = named.imported.as_ref().map_or_else(
             || identifier_name.clone(),
             |imported| match imported {
-              ModuleExportName::Ident(ident) => Atom::from(ident.sym.as_str()),
+              ModuleExportName::Ident(ident) => Atom::from(&ident.sym),
               ModuleExportName::Str(s) => Atom::from(s.value.as_wtf8().to_string_lossy().as_ref()),
             },
           );
@@ -67,7 +66,7 @@ impl JavascriptParser<'_> {
           }
         }
         ImportSpecifier::Default(default) => {
-          let identifier_name = Atom::from(default.local.sym.as_str());
+          let identifier_name = Atom::from(&default.local.sym);
           if drive
             .import_specifier(
               self,
@@ -82,7 +81,7 @@ impl JavascriptParser<'_> {
           }
         }
         ImportSpecifier::Namespace(namespace) => {
-          let identifier_name = Atom::from(namespace.local.sym.as_str());
+          let identifier_name = Atom::from(&namespace.local.sym);
           if drive
             .import_specifier(self, decl, &source_atom, None, &identifier_name)
             .unwrap_or_default()

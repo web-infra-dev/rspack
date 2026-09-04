@@ -10,8 +10,8 @@ use get_exports_type::*;
 use get_mode::*;
 use get_side_effects_connection_state::*;
 use module_graph_hash::*;
+use rspack_intern::Atom;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_core::atoms::Atom;
 
 use crate::{
   ConcatenationEntry, ConnectionState, DependencyId, ExportInfo, ExportsType, ModuleIdentifier,

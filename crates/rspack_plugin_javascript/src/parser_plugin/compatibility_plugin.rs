@@ -4,11 +4,11 @@ use rspack_core::{
   ConstDependency, ContextDependency, DependencyCodeGenerationRef, DependencyRange,
 };
 use rspack_util::{SpanExt, itoa};
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{CallExpr, GetSpan, Ident, Program, VarDeclarator};
 
 use super::JavascriptParserPlugin;
 use crate::{
+  Atom,
   dependency::CommonJsRequireContextDependency,
   visitors::{JavascriptParser, Statement, TagInfoData, VariableDeclaration, expr_name},
 };
@@ -134,13 +134,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
   ) -> Option<bool> {
     let ident = decl.name.as_ident()?;
 
-    if ident.id.sym.as_str() == self.nested_require_name(parser) {
+    if ident.id.sym == self.nested_require_name(parser) {
       let span = ident.span();
       let start = span.real_lo();
       let end = span.real_hi();
       self.tag_nested_require_data(
         parser,
-        Atom::from(ident.id.sym.as_str()),
+        Atom::from(&ident.id.sym),
         {
           let mut start_buffer = itoa::Buffer::new();
           let start_str = start_buffer.format(start);
@@ -153,11 +153,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
         end,
       );
       return Some(true);
-    } else if ident.id.sym.as_str() == parser.parser_runtime_requirements.exports {
+    } else if ident.id.sym == parser.parser_runtime_requirements.exports.as_str() {
       let span = ident.span();
       self.tag_nested_require_data(
         parser,
-        Atom::from(ident.id.sym.as_str()),
+        Atom::from(&ident.id.sym),
         "__nested_rspack_exports__".to_string(),
         parser.in_short_hand,
         span.real_lo(),
@@ -178,7 +178,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     if for_name == parser.parser_runtime_requirements.exports {
       self.tag_nested_require_data(
         parser,
-        Atom::from(ident.sym.as_str()),
+        Atom::from(&ident.sym),
         "__nested_rspack_exports__".to_string(),
         parser.in_short_hand,
         ident.span().real_lo(),
@@ -193,7 +193,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
       let end = span.real_hi();
       self.tag_nested_require_data(
         parser,
-        Atom::from(ident.sym.as_str()),
+        Atom::from(&ident.sym),
         {
           let mut start_buffer = itoa::Buffer::new();
           let start_str = start_buffer.format(start);
@@ -216,12 +216,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     let fn_decl = stmt.as_function_decl()?;
     let ident = fn_decl.ident()?;
     let name = &ident.sym;
-    if name.as_str() != self.nested_require_name(parser) {
+    if name != self.nested_require_name(parser) {
       None
     } else {
       self.tag_nested_require_data(
         parser,
-        Atom::from(name.as_str()),
+        Atom::from(name),
         {
           let mut lo_buffer = itoa::Buffer::new();
           let lo_str = lo_buffer.format(fn_decl.span().real_lo());
@@ -242,13 +242,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     _stmt: VariableDeclaration<'_>,
   ) -> Option<bool> {
     if let Some(ident) = declarator.name.as_ident()
-      && (ident.id.sym.as_str() == parser.parser_runtime_requirements.exports
-        || ident.id.sym.as_str() == self.nested_require_name(parser))
+      && (ident.id.sym == parser.parser_runtime_requirements.exports.as_str()
+        || ident.id.sym == self.nested_require_name(parser))
     {
-      let data = parser.get_tag_data_mut::<NestedRequireData>(
-        &Atom::from(ident.id.sym.as_str()),
-        NESTED_IDENTIFIER_TAG,
-      )?;
+      let data =
+        parser.get_tag_data_mut::<NestedRequireData>(&ident.id.sym, NESTED_IDENTIFIER_TAG)?;
       if !data.update {
         let dep = Arc::new(ConstDependency::new(data.loc, data.name.clone().into()));
         data.update = true;

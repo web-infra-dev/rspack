@@ -19,9 +19,9 @@ use rspack_core::{
   TypeReexportPresenceMode, filter_runtime,
 };
 use rspack_error::{Diagnostic, Error, Severity};
-use swc_atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
+use crate::Atom;
 
 // TODO: find a better way to implement this for performance
 // Align with https://github.com/webpack/webpack/blob/51f0f0aeac072f989f8d40247f6c23a1995c5c37/lib/dependencies/HarmonyImportDependency.js#L361-L365

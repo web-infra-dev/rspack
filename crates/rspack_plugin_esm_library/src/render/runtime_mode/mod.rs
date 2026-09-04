@@ -9,8 +9,9 @@ use rspack_core::{
   RuntimeGlobalsRenderMode, RuntimeVariable, render_imports,
   rspack_sources::{ConcatSource, RawStringSource},
 };
+use rspack_intern::Atom;
 use rspack_plugin_javascript::JsPlugin;
-use rspack_util::{atom::Atom, fx_hash::FxIndexSet};
+use rspack_util::fx_hash::FxIndexSet;
 
 use self::{
   rspack_context::RspackContextRuntimeRenderer, rspack_export::RspackExportRuntimeRenderer,

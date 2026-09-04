@@ -11,8 +11,8 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_intern::Atom;
 use rspack_util::{itoa, json_stringify_str};
-use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
 
 use crate::dependency::WasmImportDependency;

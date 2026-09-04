@@ -22,14 +22,12 @@ use rspack_core::{
   rspack_sources::ReplaceSource, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Result};
+use rspack_intern::{Atom, AtomMap, IndexAtomSet};
 use rspack_plugin_javascript::{
   JsPlugin, RenderSource, dependency::ESMExportImportedSpecifierDependency,
 };
 use rspack_plugin_runtime::should_export_webpack_require_for_module_chunk_loading;
-use rspack_util::{
-  atom::Atom,
-  fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
-};
+use rspack_util::fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet};
 
 use crate::{
   EsmLibraryPlugin,
@@ -59,7 +57,7 @@ impl<V> GetMut<ModuleIdentifier, V> for IdentifierIndexMap<V> {
 static START_EXPORTS: LazyLock<Atom> = LazyLock::new(|| "*".into());
 #[derive(Default, Debug)]
 pub(crate) struct ExportsContext {
-  exports: FxHashMap<Atom, FxIndexSet<Atom>>,
+  exports: AtomMap<IndexAtomSet>,
   exported_symbols: FxHashSet<Atom>,
   re_exports: FxIndexMap<ReExportFrom, FxHashMap<Atom, FxHashSet<Atom>>>,
 }
@@ -1029,7 +1027,7 @@ var {} = {{}};
         .as_concatenated()
         .global_scope_ident
         .iter()
-        .map(|ident| ident.id.sym.clone())
+        .map(|ident| Atom::from(&ident.id.sym))
     }));
 
     // merge all all_used_names from hoisted modules
@@ -3186,10 +3184,8 @@ mod tests {
   use rspack_core::{
     ChunkInitFragments, ChunkUkey, ConcatenationNameAllocator, InitFragmentKey, ModuleIdentifier,
   };
-  use rspack_util::{
-    atom::Atom,
-    fx_hash::{FxHashMap, FxHashSet},
-  };
+  use rspack_intern::Atom;
+  use rspack_util::fx_hash::{FxHashMap, FxHashSet};
 
   use crate::{EsmLibraryPlugin, chunk_link::RawImportSource};
 

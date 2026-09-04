@@ -3,7 +3,8 @@ use rspack_core::{
   ModuleGraphConnection, ModuleIdentifier, ResolvedExportInfoTarget, RuntimeCondition, RuntimeSpec,
   UsageState, UsedByExports, UsedByExportsCondition, filter_runtime, get_target,
 };
-use swc_atoms::Atom;
+
+use crate::Atom;
 
 pub mod plugin;
 pub mod state;

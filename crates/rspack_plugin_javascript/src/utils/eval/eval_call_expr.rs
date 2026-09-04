@@ -1,4 +1,3 @@
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{CallExpr, Callee, MemberProp};
 
 use super::BasicEvaluatedExpression;
@@ -20,9 +19,9 @@ pub fn eval_call_expression<'parser: 'a, 'a>(
     Callee::Expr(callee_expr) => {
       if let Some(ident) = callee_expr.as_ident() {
         let is_create_require = parser.javascript_options.is_create_require_enabled()
-          && is_create_require_specifier(parser, &Atom::from(ident.sym.as_str()));
+          && is_create_require_specifier(parser, &ident.sym);
         let evaluated = if is_create_require {
-          Atom::from(ident.sym.as_str()).call_hooks_name(parser, |parser, for_name| {
+          ident.sym.call_hooks_name(parser, |parser, for_name| {
             drive.evaluate_call_expression(parser, for_name, expr)
           })
         } else if parser.javascript_options.is_create_require_enabled() {

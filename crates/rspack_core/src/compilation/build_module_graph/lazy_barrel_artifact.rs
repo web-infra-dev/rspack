@@ -3,7 +3,7 @@ use rspack_cacheable::{
   with::{AsMap, AsPreset, AsVec},
 };
 use rspack_collections::IdentifierMap;
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{BoxDependency, DependencyId, DependencyRef, ModuleIdentifier};

@@ -1,7 +1,7 @@
 use napi::Either;
 use napi_derive::napi;
 use rspack_core::{Compilation, CompilationId, ExportsInfo, ModuleGraph, RuntimeSpec};
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 
 use crate::{runtime::JsRuntimeSpec, with_compilation, with_compilation_mut};
 

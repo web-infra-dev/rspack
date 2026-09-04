@@ -7,11 +7,11 @@ use rspack_cacheable::{
 };
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
+use rspack_intern::Atom;
 use rspack_loader_runner::{AdditionalData, ParseMeta, ParseMetaValue, ResourceData};
 use rspack_sources::BoxSource;
 use rspack_util::{ext::AsAny, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap, FxHashSet};
-use swc_core::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildInfo, BuildMeta, ChunkGraph,

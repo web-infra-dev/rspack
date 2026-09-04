@@ -18,19 +18,16 @@ use rspack_collections::{
 use rspack_error::{Diagnosable, Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
+use rspack_intern::{Atom, AtomMap, AtomRef, AtomSet, IndexAtomMap, IndexAtomSet};
 use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
 };
 use rspack_util::{
-  SpanExt,
-  fx_hash::{FxIndexMap, FxIndexSet},
-  itoa, json_stringify, json_stringify_str,
-  source_map::SourceMapKind,
-  swc::join_atom,
+  SpanExt, fx_hash::FxIndexMap, itoa, json_stringify, json_stringify_str,
+  source_map::SourceMapKind, swc::join_atom,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
-  atoms::Atom,
   common::{BytePos, Spanned, SyntaxContext},
   ecma::visit::swc_ecma_ast,
 };
@@ -209,7 +206,7 @@ pub struct ConcatenatedModuleInfo {
   pub has_ast: bool,
   pub source: Option<ReplaceSource>,
   pub internal_source: Option<Arc<dyn Source>>,
-  pub internal_names: HashMap<Atom, Atom>,
+  pub internal_names: AtomMap<Atom>,
   pub export_map: Option<HashMap<Atom, String>>,
   pub raw_export_map: Option<HashMap<Atom, String>>,
   pub import_map: ConcatenatedImportMap,
@@ -230,12 +227,16 @@ pub struct ConcatenatedModuleInfo {
 }
 
 impl ConcatenatedModuleInfo {
-  pub fn get_internal_name<'me>(&'me self, atom: &Atom) -> Option<&'me Atom> {
+  pub fn get_internal_name<'me, 'key>(
+    &'me self,
+    atom: impl Into<AtomRef<'key>>,
+  ) -> Option<&'me Atom> {
+    let atom = atom.into();
     if let Some(name) = self.internal_names.get(atom) {
       return Some(name);
     }
 
-    if atom.as_str() == "default" {
+    if atom == "default" {
       return self.internal_names.get(&*DEFAULT_EXPORT_ATOM);
     }
 
@@ -981,7 +982,7 @@ impl Module for ConcatenatedModule {
       module_to_info_map.insert(id, *module_info);
     }
 
-    let mut top_level_declarations: HashSet<Atom> = HashSet::default();
+    let mut top_level_declarations = AtomSet::default();
     let mut public_path_auto_replace: bool = false;
     let mut static_url_replace: bool = false;
     let mut runtime_requirements_write = CodeGenerationRuntimeRequirementsWrite::default();
@@ -1042,7 +1043,6 @@ impl Module for ConcatenatedModule {
                 source.insert(high, format!(": {new_name}"), None);
                 continue;
               }
-
               source.replace(low, high, new_name.to_string(), None);
             }
           }
@@ -1058,7 +1058,6 @@ impl Module for ConcatenatedModule {
                     .internal_names
                     .insert(ns_import, internal_ns_import.clone());
                 } else {
-                  let ns_import_key = ns_import.clone();
                   let new_name = if name_allocator.contains(&ns_import) {
                     name_allocator.find_new_name(
                       concatenation_context
@@ -1069,11 +1068,11 @@ impl Module for ConcatenatedModule {
                       &[],
                     )
                   } else {
-                    name_allocator.insert(ns_import);
-                    ns_import_key.clone()
+                    name_allocator.insert(ns_import.clone());
+                    ns_import.clone()
                   };
 
-                  info.internal_names.insert(ns_import_key, new_name.clone());
+                  info.internal_names.insert(ns_import, new_name.clone());
                   total_imported_atoms.ns_import = Some(new_name);
                 }
               }
@@ -1287,9 +1286,9 @@ impl Module for ConcatenatedModule {
     // Move it off the critical path once all replacements are applied.
     fast_set(&mut changes, Vec::new());
 
-    let mut exports_map: FxIndexMap<Atom, String> = FxIndexMap::default();
-    let mut unused_exports: FxIndexSet<Atom> = FxIndexSet::default();
-    let mut inlined_exports: FxIndexSet<Atom> = FxIndexSet::default();
+    let mut exports_map = IndexAtomMap::<String>::default();
+    let mut unused_exports = IndexAtomSet::default();
+    let mut inlined_exports = IndexAtomSet::default();
 
     let root_info = binding_resolver
       .module_to_info_map
@@ -2967,7 +2966,7 @@ pub struct NewConcatenatedModuleIdent<'a> {
 impl NewConcatenatedModuleIdent<'_> {
   pub fn to_legacy(&self, semantic: &Semantic) -> ConcatenatedModuleIdent {
     let span = swc_core::common::Span::new(BytePos(self.id.span.start), BytePos(self.id.span.end));
-    let sym = Atom::from(self.id.sym.as_str());
+    let sym = swc_core::atoms::Atom::from(self.id.sym.as_str());
     let ctxt = SyntaxContext::from_u32(semantic.node_scope(&self.id).raw());
     ConcatenatedModuleIdent {
       id: swc_ecma_ast::Ident::new(sym, span, ctxt),

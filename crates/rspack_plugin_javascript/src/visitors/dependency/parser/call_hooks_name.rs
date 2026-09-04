@@ -1,9 +1,11 @@
-use swc_atoms::Atom;
 use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom};
 use swc_experimental_ecma_ast::{Expr, MemberExpr, OptChainExpr};
 
 use super::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo};
-use crate::visitors::{ExprRef, scope_info::VariableInfoId};
+use crate::{
+  Atom,
+  visitors::{ExprRef, scope_info::VariableInfoId},
+};
 
 /// callHooksForName/callHooksForInfo in webpack
 /// webpack use HookMap and filter at callHooksForName/callHooksForInfo
@@ -47,7 +49,13 @@ impl CallHooksName for &str {
   where
     F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
   {
-    Atom::from(*self).call_hooks_name(parser, hook_call)
+    if let Some(id) = parser.get_variable_info(*self).map(|info| info.id()) {
+      // resolved variable info
+      call_hooks_info(id, parser, hook_call)
+    } else {
+      // unresolved free variable, for example the global `require` in commonjs.
+      hook_call(parser, self)
+    }
   }
 }
 
@@ -60,7 +68,11 @@ impl CallHooksName for AstAtom<'_> {
   where
     F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
   {
-    Atom::from(self.as_str()).call_hooks_name(parser, hook_call)
+    if let Some(id) = parser.get_variable_info(self).map(|info| info.id()) {
+      call_hooks_info(id, parser, hook_call)
+    } else {
+      hook_call(parser, self.as_str())
+    }
   }
 }
 #[allow(unused_lifetimes)]

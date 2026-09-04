@@ -1,8 +1,9 @@
 use bitflags::bitflags;
-use rustc_hash::FxHashMap;
+use rspack_intern::{AtomMap, AtomRef};
 use slotmap::{KeyData, SlotMap, new_key_type};
 use smallvec::SmallVec;
-use swc_atoms::Atom;
+
+use crate::Atom;
 
 new_key_type! {
   pub struct ScopeInfoId;
@@ -68,7 +69,7 @@ struct Binding {
 pub struct ScopeInfoDB {
   map: SlotMap<ScopeInfoId, ScopeInfo>,
   /// For each name, the stack of active bindings, innermost last.
-  bindings: FxHashMap<Atom, SmallVec<[Binding; 2]>>,
+  bindings: AtomMap<SmallVec<[Binding; 2]>>,
   /// The innermost active scope, used to validate the stack discipline.
   current: Option<ScopeInfoId>,
   variable_info_db: VariableInfoDB,
@@ -85,7 +86,7 @@ impl ScopeInfoDB {
   pub fn new() -> Self {
     Self {
       map: SlotMap::with_key(),
-      bindings: FxHashMap::default(),
+      bindings: AtomMap::default(),
       current: None,
       variable_info_db: VariableInfoDB::new(),
       tag_info_db: TagInfoDB::new(),
@@ -183,7 +184,11 @@ impl ScopeInfoDB {
   }
 
   /// Resolve `key` starting from the innermost active scope `id`.
-  pub fn get(&mut self, id: ScopeInfoId, key: &Atom) -> Option<VariableInfoId> {
+  pub fn get<'key>(
+    &mut self,
+    id: ScopeInfoId,
+    key: impl Into<AtomRef<'key>>,
+  ) -> Option<VariableInfoId> {
     debug_assert_eq!(
       self.current,
       Some(id),
@@ -375,6 +380,7 @@ pub struct ScopeInfo {
 #[cfg(test)]
 mod tests {
   use super::{ScopeInfoDB, VariableInfo, VariableInfoFlags, VariableInfoId};
+  use crate::Atom;
 
   fn new_variable(db: &mut ScopeInfoDB, scope: super::ScopeInfoId) -> VariableInfoId {
     VariableInfo::create(db, scope, None, VariableInfoFlags::NORMAL, None)
@@ -384,8 +390,7 @@ mod tests {
   fn inner_scope_shadows_and_unwinds() {
     let mut db = ScopeInfoDB::new();
     let root = db.create();
-    let a = "a".into();
-
+    let a = Atom::from("a");
     let outer = new_variable(&mut db, root);
     db.set(root, "a".into(), outer);
     assert_eq!(db.get(root, &a), Some(outer));
@@ -405,7 +410,7 @@ mod tests {
   fn delete_masks_outer_binding_until_exit() {
     let mut db = ScopeInfoDB::new();
     let root = db.create();
-    let a = "a".into();
+    let a = Atom::from("a");
 
     let outer = new_variable(&mut db, root);
     db.set(root, "a".into(), outer);

@@ -5,7 +5,6 @@ use rspack_core::{
   ImportAttributes, ImportPhase,
 };
 use rspack_util::SpanExt;
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   BinExpr, BinaryOp, CallExpr, Callee, Expr, GetSpan, Ident, ImportDecl, MemberExpr, Span,
 };
@@ -17,6 +16,7 @@ use super::{
   inner_graph::state::InnerGraphUsageOperation,
 };
 use crate::{
+  Atom,
   dependency::{ESMImportSideEffectDependency, ESMImportSpecifierDependency},
   utils::{
     eval::{BasicEvaluatedExpression, DependencyData},

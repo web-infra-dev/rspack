@@ -1,7 +1,8 @@
 use std::{collections::BTreeMap, hash::Hash, sync::atomic::Ordering::Relaxed};
 
 use rspack_cacheable::cacheable;
-use rspack_util::{atom::Atom, ext::DynHash};
+use rspack_intern::Atom;
+use rspack_util::ext::DynHash;
 use rustc_hash::FxHashSet;
 use serde::Serialize;
 

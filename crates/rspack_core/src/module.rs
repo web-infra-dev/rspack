@@ -15,9 +15,9 @@ use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet}
 use rspack_error::{Diagnosable, Result};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher, write_u64_hex};
+use rspack_intern::{Atom, AtomSet, IndexAtomMap};
 use rspack_sources::BoxSource;
 use rspack_util::{
-  atom::Atom,
   ext::AsAny,
   fx_hash::{FxIndexMap, FxIndexSet},
   source_map::ModuleSourceMapConfig,
@@ -109,7 +109,7 @@ pub struct RscMeta {
   pub is_cjs: bool,
 
   #[cacheable(with=AsMap<AsPreset, AsPreset>)]
-  pub action_ids: FxIndexMap<Atom, Atom>,
+  pub action_ids: IndexAtomMap<Atom>,
 }
 
 #[cacheable]
@@ -302,9 +302,9 @@ pub struct BuildInfo {
   pub asset: Option<Box<AssetBuildInfo>>,
   pub css: Option<Box<CssBuildInfo>>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
-  pub side_effects_free: Option<HashSet<Atom>>,
+  pub side_effects_free: Option<AtomSet>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
-  pub top_level_declarations: Option<HashSet<Atom>>,
+  pub top_level_declarations: Option<AtomSet>,
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,

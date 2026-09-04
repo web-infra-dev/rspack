@@ -9,7 +9,8 @@ use rspack_core::{
   ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName,
   create_exports_object_referenced, property_access, to_normal_comment,
 };
-use swc_atoms::Atom;
+
+use crate::Atom;
 
 #[cacheable]
 #[derive(Debug)]

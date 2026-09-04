@@ -17,6 +17,7 @@ rspack_core                = { workspace = true }
 rspack_error               = { workspace = true }
 rspack_hash                = { workspace = true }
 rspack_hook                = { workspace = true }
+rspack_intern              = { workspace = true, features = ["atom"] }
 rspack_parallel            = { workspace = true }
 rspack_plugin_javascript   = { workspace = true }
 rspack_plugin_rslib        = { workspace = true }
@@ -32,7 +33,6 @@ regex          = { workspace = true }
 serde          = { workspace = true }
 serde_json     = { workspace = true }
 sugar_path     = { workspace = true }
-swc_core       = { workspace = true, features = ["swc_ecma_transforms_base"] }
 tokio          = { workspace = true }
 tracing        = { workspace = true }
 

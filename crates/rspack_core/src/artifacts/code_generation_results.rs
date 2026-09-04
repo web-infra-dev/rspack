@@ -7,12 +7,10 @@ use rspack_cacheable::{
 };
 use rspack_collections::IdentifierMap;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest, RspackHasher};
+use rspack_intern::{Atom, AtomSet};
 use rspack_sources::BoxSource;
-use rspack_util::{
-  atom::Atom,
-  ext::{AsAny, IntoAny},
-};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet};
+use rspack_util::ext::{AsAny, IntoAny};
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   ArchivedCodeGenerationDataConcatenationScopeOutput, ArtifactExt, AssetInfo, BindingCell,
@@ -120,15 +118,15 @@ impl RspackHash for CodeGenerationDataPreservedAssetImport {
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataTopLevelDeclarations {
   #[cacheable(with=AsVec<AsPreset>)]
-  inner: FxHashSet<Atom>,
+  inner: AtomSet,
 }
 
 impl CodeGenerationDataTopLevelDeclarations {
-  pub fn new(inner: FxHashSet<Atom>) -> Self {
+  pub fn new(inner: AtomSet) -> Self {
     Self { inner }
   }
 
-  pub fn inner(&self) -> &FxHashSet<Atom> {
+  pub fn inner(&self) -> &AtomSet {
     &self.inner
   }
 }

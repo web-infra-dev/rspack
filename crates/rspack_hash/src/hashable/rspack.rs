@@ -1,8 +1,6 @@
 use rspack_collections::Identifier;
-use rspack_util::{
-  asset_condition::{AssetCondition, AssetConditions},
-  atom::Atom,
-};
+use rspack_intern::Atom;
+use rspack_util::asset_condition::{AssetCondition, AssetConditions};
 
 use crate::{RspackHash, RspackHasher};
 

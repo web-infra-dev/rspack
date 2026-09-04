@@ -3,9 +3,9 @@ use std::sync::Arc;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierIndexMap, IdentifierMap};
 use rspack_error::{Error, Result};
+use rspack_intern::{Atom, AtomSet};
 use rspack_util::{
   SpanExt,
-  atom::Atom,
   fx_hash::{FxHashMap, FxHashSet},
   itoa,
 };
@@ -39,22 +39,14 @@ pub struct ConcatenationContext<'a> {
 /// Allocates unique JavaScript identifiers while retaining per-base suffix cursors.
 #[derive(Debug, Clone, Default)]
 pub struct ConcatenationNameAllocator {
-  used_names: FxHashSet<Atom>,
-  used_strings: FxHashSet<String>,
+  used_names: AtomSet,
   suffix_counters: FxHashMap<Atom, u32>,
 }
 
 impl ConcatenationNameAllocator {
   pub fn new(used_names: FxHashSet<Atom>) -> Self {
-    let mut used_strings = FxHashSet::default();
-    used_strings.reserve(used_names.len());
-    for name in &used_names {
-      used_strings.insert(name.as_ref().to_string());
-    }
-
     Self {
-      used_names,
-      used_strings,
+      used_names: used_names.into(),
       suffix_counters: FxHashMap::default(),
     }
   }
@@ -64,7 +56,6 @@ impl ConcatenationNameAllocator {
   }
 
   pub fn insert(&mut self, name: Atom) {
-    self.used_strings.insert(name.as_ref().to_string());
     self.used_names.insert(name);
   }
 
@@ -76,7 +67,6 @@ impl ConcatenationNameAllocator {
 
   pub fn merge(&mut self, other: Self) {
     self.used_names.extend(other.used_names);
-    self.used_strings.extend(other.used_strings);
     for (base, next_suffix) in other.suffix_counters {
       self
         .suffix_counters
@@ -105,8 +95,7 @@ impl ConcatenationNameAllocator {
       name = new_name;
 
       let escaped = to_identifier_with_escaped(name.clone());
-      if !self.used_strings.contains(&escaped) {
-        self.used_strings.insert(escaped.clone());
+      if !self.used_names.contains(&escaped) {
         let candidate: Atom = escaped.into();
         self.used_names.insert(candidate.clone());
         return candidate;
@@ -114,8 +103,7 @@ impl ConcatenationNameAllocator {
     }
 
     let base_str = to_identifier_with_escaped(name);
-    if !base_str.is_empty() && !self.used_strings.contains(&base_str) {
-      self.used_strings.insert(base_str.clone());
+    if !base_str.is_empty() && !self.used_names.contains(&base_str) {
       let base: Atom = base_str.into();
       self.used_names.insert(base.clone());
       return base;
@@ -136,8 +124,7 @@ impl ConcatenationNameAllocator {
       numbered.push_str(&base_with_underscore);
       numbered.push_str(i_buffer.format(i));
 
-      if !self.used_strings.contains(&numbered) {
-        self.used_strings.insert(numbered.clone());
+      if !self.used_names.contains(&numbered) {
         let candidate: Atom = Atom::from(numbered.as_str());
         self.used_names.insert(candidate.clone());
         *counter = i + 1;
@@ -609,7 +596,9 @@ pub fn analyze_module_scope(
     let legacy = if is_global {
       let legacy = identifier.to_legacy(&semantic);
       module_info.global_scope_ident.push(legacy.clone());
-      module_info.all_used_names.insert(legacy.id.sym.clone());
+      module_info
+        .all_used_names
+        .insert(legacy.id.sym.clone().into());
       Some(legacy)
     } else {
       None
@@ -632,7 +621,7 @@ pub fn analyze_module_scope(
     module_info.idents.push(legacy.clone());
     module_info
       .binding_to_ref
-      .entry((legacy.id.sym.clone(), legacy.id.ctxt))
+      .entry((legacy.id.sym.clone().into(), legacy.id.ctxt))
       .or_default()
       .push(legacy);
   }
