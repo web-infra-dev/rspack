@@ -5,7 +5,9 @@ use rspack_cacheable::{cacheable, with::AsMap};
 use rspack_collections::Identifiable;
 use rspack_error::Result;
 use rspack_hash::{HashFunction, RspackHasher};
-use rspack_loader_runner::{Content, LoaderContext, LoaderDependencies, ParseMeta};
+use rspack_loader_runner::{
+  Content, LoaderChain, LoaderContext, LoaderDependencies, LoaderRunnerOptions, ParseMeta,
+};
 use rspack_paths::{InternedPath, InternedPathSet};
 use rspack_sources::SourceMap;
 use rspack_util::time::current_time;
@@ -17,13 +19,23 @@ use crate::{
   new_cache::{Snapshot, SnapshotValidationResult},
 };
 
-fn loader_cache_key(module_identifier: &str, loader_name: &str) -> String {
+fn loader_cache_key<'a>(
+  module_identifier: &str,
+  loader_options: impl Iterator<Item = Option<&'a LoaderRunnerOptions>>,
+) -> Option<String> {
   let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
   rspack_hash::rspack_hash_object!(&mut hasher, {
     "module" => module_identifier,
-    "loader" => loader_name,
   });
-  format!("{:016x}", hasher.finish())
+  for options in loader_options {
+    let options = options?;
+    rspack_hash::rspack_hash_object!(&mut hasher, {
+      "loader" => &options.loader_name,
+      "options" => &options.options_cache_key,
+      "loader_version" => &options.loader_version,
+    });
+  }
+  Some(format!("{:016x}", hasher.finish()))
 }
 
 fn sorted_dependency_paths(paths: &InternedPathSet) -> Vec<&Path> {
@@ -32,13 +44,7 @@ fn sorted_dependency_paths(paths: &InternedPathSet) -> Vec<&Path> {
   paths
 }
 
-#[doc(hidden)]
-pub fn loader_cache_etag(
-  content: &Content,
-  existing: &LoaderDependencies,
-  options_cache_key: &str,
-  loader_version: &str,
-) -> Etag {
+fn loader_cache_etag(content: &Content, existing: &LoaderDependencies) -> Etag {
   let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
   // Context and missing dependencies intentionally invalidate the minimal cache: inherited values
   // disable lookup, and entries that add either kind are skipped at store time. This trade-off lets
@@ -47,14 +53,11 @@ pub fn loader_cache_etag(
     "content" => content,
     "file_dependencies" => sorted_dependency_paths(&existing.file),
     "build_dependencies" => sorted_dependency_paths(&existing.build),
-    "options" => options_cache_key,
-    "loader_version" => loader_version,
     "rspack_version" => rspack_workspace::rspack_pkg_version!(),
   });
   Etag::from(format!("{:016x}", hasher.finish()))
 }
 
-#[doc(hidden)]
 #[cacheable]
 #[derive(Clone, Copy)]
 struct LoaderCacheDependencyKind(u8);
@@ -66,16 +69,14 @@ bitflags! {
   }
 }
 
-#[doc(hidden)]
 #[cacheable]
-pub struct LoaderCacheDependencySnapshot {
+struct LoaderCacheDependencySnapshot {
   dependencies: Snapshot,
   paths: Vec<InternedPath>,
   kinds: Vec<LoaderCacheDependencyKind>,
 }
 
-#[doc(hidden)]
-pub async fn loader_cache_dependency_snapshot(
+async fn loader_cache_dependency_snapshot(
   file_system_info: &FileSystemInfo,
   dependencies: &LoaderDependencies,
 ) -> Option<LoaderCacheDependencySnapshot> {
@@ -116,8 +117,7 @@ pub async fn loader_cache_dependency_snapshot(
   })
 }
 
-#[doc(hidden)]
-pub async fn loader_cache_dependency_snapshot_is_valid(
+async fn loader_cache_dependency_snapshot_is_valid(
   file_system_info: &FileSystemInfo,
   snapshot: &LoaderCacheDependencySnapshot,
 ) -> bool {
@@ -130,8 +130,7 @@ pub async fn loader_cache_dependency_snapshot_is_valid(
     )
 }
 
-#[doc(hidden)]
-pub fn restore_loader_cache_dependencies(
+fn restore_loader_cache_dependencies(
   snapshot: &LoaderCacheDependencySnapshot,
   dependencies: &mut LoaderDependencies,
 ) {
@@ -145,15 +144,8 @@ pub fn restore_loader_cache_dependencies(
   }
 }
 
-#[doc(hidden)]
-pub fn loader_cache_item(
-  storage: &CacheFacade,
-  module_identifier: &str,
-  loader_name: &str,
-  etag: Etag,
-) -> ItemCacheFacade {
-  let key = loader_cache_key(module_identifier, loader_name);
-  storage.get_item_cache(&key, Some(etag))
+fn loader_cache_item(storage: &CacheFacade, key: &str, etag: Etag) -> ItemCacheFacade {
+  storage.get_item_cache(key, Some(etag))
 }
 
 #[cacheable]
@@ -169,8 +161,10 @@ struct LoaderCacheEntry {
 }
 
 pub(crate) struct LoaderCacheMissState {
+  cache_key: String,
   etag: Etag,
   diagnostics_len: usize,
+  existing_dependencies: LoaderDependencies,
 }
 
 pub(crate) enum LoaderCacheAction {
@@ -179,27 +173,18 @@ pub(crate) enum LoaderCacheAction {
   Miss(Box<LoaderCacheMissState>),
 }
 
-fn cache_miss_action(context: &LoaderContext<RunnerContext>, etag: Etag) -> LoaderCacheAction {
-  LoaderCacheAction::Miss(Box::new(LoaderCacheMissState {
-    etag,
-    diagnostics_len: context.diagnostics.len(),
-  }))
-}
-
 fn input_etag(context: &LoaderContext<RunnerContext>) -> Option<Etag> {
-  let loader = context.current_loader();
   Some(loader_cache_etag(
     context.content()?,
     context.existing_dependencies(),
-    loader.options_cache_key(),
-    loader.loader_version(),
   ))
 }
 
-pub(crate) async fn before_normal_loader(
+pub(crate) async fn before_normal_chain(
   context: &mut LoaderContext<RunnerContext>,
+  chain: &LoaderChain,
 ) -> Result<LoaderCacheAction> {
-  debug_assert!(context.current_loader().cache());
+  debug_assert!(chain.is_cache());
   if !context.cacheable {
     return Ok(LoaderCacheAction::Disabled);
   }
@@ -220,14 +205,16 @@ pub(crate) async fn before_normal_loader(
   let Some(etag) = input_etag(context) else {
     return Ok(LoaderCacheAction::Disabled);
   };
-  let loader_name = context.current_loader().loader_name();
   let module_identifier = context.context.module.identifier();
-  let item_cache = loader_cache_item(
-    &context.context.loader_cache,
+  let Some(cache_key) = loader_cache_key(
     module_identifier.as_str(),
-    loader_name,
-    etag.clone(),
-  );
+    chain
+      .range()
+      .map(|index| context.loader_items()[usize::from(index)].cache_options()),
+  ) else {
+    return Ok(LoaderCacheAction::Disabled);
+  };
+  let item_cache = loader_cache_item(&context.context.loader_cache, &cache_key, etag.clone());
 
   if let Some(entry) = item_cache.get::<LoaderCacheEntry>()?
     && loader_cache_dependency_snapshot_is_valid(
@@ -260,10 +247,15 @@ pub(crate) async fn before_normal_loader(
     return Ok(LoaderCacheAction::Hit);
   }
 
-  Ok(cache_miss_action(context, etag))
+  Ok(LoaderCacheAction::Miss(Box::new(LoaderCacheMissState {
+    cache_key,
+    etag,
+    diagnostics_len: context.diagnostics.len(),
+    existing_dependencies: context.existing_dependencies().clone(),
+  })))
 }
 
-pub(crate) async fn after_normal_loader(
+pub(crate) async fn after_normal_chain(
   context: &LoaderContext<RunnerContext>,
   state: &LoaderCacheMissState,
 ) {
@@ -276,14 +268,14 @@ pub(crate) async fn after_normal_loader(
     return;
   }
 
-  if !context.removed_dependencies().is_empty() {
+  let existing = &state.existing_dependencies;
+  let current = context.dependencies();
+  if !existing.is_subset_of(&current) {
     return;
   }
-  let Some(dependency_snapshot) = loader_cache_dependency_snapshot(
-    &context.context.file_system_info,
-    context.added_dependencies(),
-  )
-  .await
+  let added_dependencies = current.difference(existing);
+  let Some(dependency_snapshot) =
+    loader_cache_dependency_snapshot(&context.context.file_system_info, &added_dependencies).await
   else {
     return;
   };
@@ -302,12 +294,9 @@ pub(crate) async fn after_normal_loader(
     isolated_dts: context.context.module.build_info().isolated_dts.clone(),
     rsc: context.context.module.build_info().rsc.clone(),
   };
-  let loader_name = context.current_loader().loader_name();
-  let module_identifier = context.context.module.identifier();
   let item_cache = loader_cache_item(
     &context.context.loader_cache,
-    module_identifier.as_str(),
-    loader_name,
+    &state.cache_key,
     state.etag.clone(),
   );
   item_cache.store(CacheValue::new(entry));

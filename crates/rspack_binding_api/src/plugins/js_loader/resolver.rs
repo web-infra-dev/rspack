@@ -6,14 +6,27 @@ use rspack_cacheable::{
 };
 use rspack_collections::Identifier;
 use rspack_core::{
-  BoxLoader, Context, Loader, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, ResolveResult,
-  Resolver, Resource, RunnerContext,
+  BoxLoader, Context, Loader, LoaderExecutionKind, ModuleRuleUseLoader,
+  NormalModuleFactoryResolveLoader, ResolveResult, Resolver, Resource, RunnerContext,
 };
 use rspack_error::Result;
+use rspack_hash::{HashFunction, RspackHasher};
 use rspack_hook::plugin_hook;
 use rspack_paths::Utf8Path;
 
-use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner, cache::loader_cache_version};
+use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
+
+pub(crate) async fn loader_cache_version(
+  resolver: &Resolver,
+  path: &Utf8Path,
+) -> Result<Option<String>> {
+  // V1 fingerprints only the resolved loader entry file. Files that the
+  // loader imports or requires are intentionally not included yet.
+  let contents = resolver.inner_fs().read(path).await?;
+  let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
+  hasher.write(&contents);
+  Ok(Some(format!("file:{:016x}", hasher.finish())))
+}
 
 #[cacheable]
 #[derive(Debug)]
@@ -35,6 +48,10 @@ impl Loader<RunnerContext> for JsLoader {
 
   fn cache_version(&self) -> Option<&str> {
     self.2.as_deref()
+  }
+
+  fn execution_kind(&self) -> LoaderExecutionKind {
+    LoaderExecutionKind::JavaScript
   }
 }
 

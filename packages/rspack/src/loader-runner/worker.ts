@@ -8,12 +8,10 @@ import type { LoaderContext } from '../config';
 import type { ResolveCallback } from '../config/adapterRuleUse';
 import type { ResolveRequest } from '../Resolver';
 import * as swc from '../swc';
-import { serializeObject, toObject } from '../util';
 import { cleverMerge } from '../util/cleverMerge';
 import { createHash } from '../util/createHash';
 import { absolutify, contextify } from '../util/identifier';
 import { memoize } from '../util/memoize';
-import type { WorkerCacheResult } from './cache';
 import loadLoader from './loadLoader';
 import {
   isWorkerResponseErrorMessage,
@@ -30,10 +28,11 @@ import {
 } from './service';
 import { convertArgs, runSyncOrAsync } from './utils';
 
-const BUILTIN_LOADER_PREFIX = 'builtin:';
-
 interface WorkerOptions {
-  loaderContext: LoaderContext;
+  loaderContext: LoaderContext & {
+    loaderChainStart: number;
+    loaderChainEnd: number;
+  };
   loaderState: JsLoaderState;
   args: any[];
 
@@ -111,15 +110,6 @@ async function loaderImpl(
     pendingDependencyRequest.push(sendRequest(RequestType.ClearDependencies));
   };
 
-  const beginDependencyChanges = () =>
-    sendRequest(RequestType.BeginDependencyChanges);
-  const mergeDependencyChanges = async () => {
-    if (pendingDependencyRequest.length > 0) {
-      waitForPendingRequest(pendingDependencyRequest);
-      pendingDependencyRequest.length = 0;
-    }
-    await sendRequest(RequestType.MergeDependencyChanges);
-  };
   loaderContext.resolve = function resolve(context, request, callback) {
     sendRequest(RequestType.Resolve, context, request).then(
       ([result, resolveRequest]) => {
@@ -493,18 +483,16 @@ async function loaderImpl(
     if (!currentLoaderObject?.parallel) {
       return true;
     }
-    if (currentLoaderObject?.request.startsWith(BUILTIN_LOADER_PREFIX)) {
-      return true;
-    }
     return false;
   };
 
   // Execute loader list until the current loader object is to yield to the main
-  // thread.  This happens if the loader is marked as non-parallel or if it is a
-  // builtin loader which belongs to the rust side.
+  // thread. This happens when the loader is marked as non-parallel. The
+  // factory-prepared execution chain guarantees that this range contains only
+  // JavaScript loaders.
   switch (loaderState) {
     case JsLoaderState.Pitching: {
-      while (loaderContext.loaderIndex < loaderContext.loaders.length) {
+      while (loaderContext.loaderIndex < loaderContext.loaderChainEnd) {
         const currentLoaderObject =
           loaderContext.loaders[loaderContext.loaderIndex];
         if (shouldYieldToMainThread(currentLoaderObject)) break;
@@ -533,10 +521,9 @@ async function loaderImpl(
       break;
     }
     case JsLoaderState.Normal: {
-      while (loaderContext.loaderIndex >= 0) {
+      while (loaderContext.loaderIndex >= loaderContext.loaderChainStart) {
         const currentLoaderObject =
           loaderContext.loaders[loaderContext.loaderIndex];
-        let cacheResult: WorkerCacheResult | undefined;
 
         if (shouldYieldToMainThread(currentLoaderObject)) break;
         if (currentLoaderObject.normalExecuted) {
@@ -544,57 +531,12 @@ async function loaderImpl(
           continue;
         }
 
-        const trackDependencies = currentLoaderObject.loaderItem.cache;
-        if (trackDependencies) {
-          await beginDependencyChanges();
-        }
-        try {
-          if (currentLoaderObject.loaderItem.cache) {
-            waitForPendingRequest(pendingDependencyRequest);
-            const result: WorkerCacheResult = await sendRequest(
-              RequestType.LoaderCacheGet,
-              loaderContext.loaderIndex,
-              args[0],
-              args[2],
-            );
-            cacheResult = result;
-            if (result.type === 'hit') {
-              const { entry } = result;
-              currentLoaderObject.normalExecuted = true;
-              args = [
-                typeof entry.content === 'string'
-                  ? entry.content
-                  : entry.content && Buffer.from(entry.content),
-                entry.sourceMap
-                  ? toObject(Buffer.from(entry.sourceMap))
-                  : undefined,
-                undefined,
-              ];
-              continue;
-            }
-          }
-
-          await loadLoaderAsync(currentLoaderObject, loaderContext._compiler);
-          const fn = currentLoaderObject.normal;
-          currentLoaderObject.normalExecuted = true;
-          if (!fn) continue;
-          convertArgs(args, !!currentLoaderObject.raw);
-          args = (await runSyncOrAsync(fn, loaderContext, args)) || [];
-          if (cacheResult?.type === 'miss') {
-            waitForPendingRequest(pendingDependencyRequest);
-            await sendRequest(
-              RequestType.LoaderCacheStore,
-              loaderContext.loaderIndex,
-              args[0],
-              serializeObject(args[1]),
-              args[2],
-            );
-          }
-        } finally {
-          if (trackDependencies) {
-            await mergeDependencyChanges();
-          }
-        }
+        await loadLoaderAsync(currentLoaderObject, loaderContext._compiler);
+        const fn = currentLoaderObject.normal;
+        currentLoaderObject.normalExecuted = true;
+        if (!fn) continue;
+        convertArgs(args, !!currentLoaderObject.raw);
+        args = (await runSyncOrAsync(fn, loaderContext, args)) || [];
       }
     }
   }

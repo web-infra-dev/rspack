@@ -2,13 +2,13 @@ use std::sync::Arc;
 
 use rspack_error::{Diagnostic, Result};
 use rspack_fs::ReadableFileSystem;
-use rspack_loader_runner::{Content, Loader, LoaderContext, LoaderRunnerPlugin, ResourceData};
+use rspack_loader_runner::{Content, LoaderChain, LoaderContext, LoaderRunnerPlugin, ResourceData};
 use rspack_paths::InternedPathSet;
 use rspack_sources::SourceMap;
 
 use crate::{
   RunnerContext, SharedPluginDriver,
-  loader::loader_cache::{LoaderCacheAction, after_normal_loader, before_normal_loader},
+  loader::loader_cache::{LoaderCacheAction, after_normal_chain, before_normal_chain},
   utils::extract_source_map,
 };
 
@@ -120,27 +120,30 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
       .await
   }
 
-  async fn run_normal_loader(
+  async fn run_normal_chain(
     &self,
     context: &mut LoaderContext<Self::Context>,
-    loader: Arc<dyn Loader<Self::Context>>,
+    chain: &LoaderChain,
   ) -> Result<()> {
-    let cache_action = if context.current_loader().cache() {
-      before_normal_loader(context).await?
+    let cache_action = if chain.is_cache() && context.loader_index == chain.end() as i32 - 1 {
+      before_normal_chain(context, chain).await?
     } else {
       LoaderCacheAction::Disabled
     };
     if matches!(cache_action, LoaderCacheAction::Hit) {
-      context.current_loader().set_finish_called();
+      for loader_index in chain.range() {
+        let state = context.loader_item_state_mut(usize::from(loader_index));
+        state.set_normal_executed();
+        state.set_finish_called();
+      }
+      context.loader_index = chain.start() as i32 - 1;
+      context.merge_dependency_changes();
       return Ok(());
     }
 
-    loader.run(context).await?;
-    if !context.current_loader().finish_called() {
-      context.finish_with_empty();
-    }
+    chain.run(context).await?;
     if let LoaderCacheAction::Miss(state) = cache_action {
-      after_normal_loader(context, &state).await;
+      after_normal_chain(context, &state).await;
     }
     Ok(())
   }
