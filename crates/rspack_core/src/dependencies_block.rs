@@ -72,7 +72,7 @@ impl From<Identifier> for AsyncDependenciesBlockIdentifier {
 }
 
 #[cacheable]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AsyncDependenciesBlock {
   id: AsyncDependenciesBlockIdentifier,
   group_options: Option<GroupOptions>,
@@ -169,6 +169,30 @@ impl AsyncDependenciesBlock {
 
   pub fn take_blocks(&mut self) -> Vec<Box<AsyncDependenciesBlock>> {
     std::mem::take(&mut self.blocks)
+  }
+
+  #[allow(clippy::vec_box)]
+  pub(crate) fn restore_build_result(
+    &mut self,
+    dependencies: Vec<DependencyRef>,
+    blocks: Vec<Box<AsyncDependenciesBlock>>,
+  ) {
+    debug_assert_eq!(
+      self.dependency_ids,
+      dependencies
+        .iter()
+        .map(|dependency| *dependency.id())
+        .collect::<Vec<_>>()
+    );
+    debug_assert_eq!(
+      self.block_ids,
+      blocks
+        .iter()
+        .map(|block| block.identifier())
+        .collect::<Vec<_>>()
+    );
+    self.dependencies = dependencies;
+    self.blocks = blocks;
   }
 
   pub fn loc(&self) -> Option<DependencyLocation> {

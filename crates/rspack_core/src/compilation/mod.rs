@@ -88,7 +88,8 @@ use crate::{
   SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
   cache::SnapshotOptions,
   compilation::build_module_graph::{
-    BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
+    BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, module_build_cache::ModuleBuildCache,
+    update_module_graph,
   },
   compiler::{CompilationRecords, CompilerId},
   get_runtime_key,
@@ -241,6 +242,7 @@ pub struct Compilation {
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   cache: Cache,
+  pub(crate) module_build_cache: Option<ModuleBuildCache>,
   pub file_system_info: FileSystemInfo,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
@@ -361,6 +363,12 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
+    // Incremental make reuses the previous module graph and owns its own
+    // invalidation path. Keep that fast path unchanged.
+    let module_build_cache = (options.experiments.new_cache.module
+      && !is_rebuild
+      && !matches!(&options.cache, CacheOptions::Disabled))
+    .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules"), &options));
     let snapshot_options = match &options.cache {
       CacheOptions::Disabled => SnapshotOptions::default(),
       CacheOptions::Memory { snapshot, .. } => snapshot.clone(),
@@ -394,6 +402,7 @@ impl Compilation {
       diagnostics: Default::default(),
       logging,
       cache,
+      module_build_cache,
       file_system_info,
       plugin_driver,
       buildtime_plugin_driver,

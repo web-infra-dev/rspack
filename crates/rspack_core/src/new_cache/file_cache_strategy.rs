@@ -274,7 +274,6 @@ impl FileCacheStrategy {
       self.logger.log("Storing cache...");
       let start = self.logger.time("store cache");
       let codec = &self.codec;
-
       let mut writes;
       let new_build_dependencies;
       let meta;

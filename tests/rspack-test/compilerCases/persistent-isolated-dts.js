@@ -24,7 +24,7 @@ module.exports = [
   },
   {
     name: "new-cache-without-loader-cache",
-    newCache: { loader: false },
+    newCache: { loader: false, module: false },
     warmLoaderRuns: 1
   },
   {
@@ -33,6 +33,7 @@ module.exports = [
       codeGeneration: false,
       devtool: false,
       loader: true,
+      module: false,
       minimize: false
     },
     warmLoaderRuns: 0

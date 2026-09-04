@@ -1,6 +1,7 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use rspack_fs::ReadableFileSystem;
+use rspack_util::time::current_time;
 use rustc_hash::FxHashSet;
 
 use super::{
@@ -10,7 +11,9 @@ use crate::{
   AsyncDependenciesBlock, BoxModule, BuildContext, BuildResult, CacheFacade, CompilationId,
   CompilerId, CompilerOptions, DependencyParents, DependencyRef, FileSystemInfo,
   ModuleCodeTemplate, ResolverFactory, SharedPluginDriver,
-  compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
+  compilation::build_module_graph::{
+    ForwardedIdSet, HasLazyDependencies, LazyDependencies, module_build_cache::ModuleBuildCache,
+  },
   utils::{
     ResourceId,
     task_loop::{Task, TaskResult, TaskType},
@@ -30,6 +33,7 @@ pub struct BuildTask {
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
   pub forwarded_ids: ForwardedIdSet,
+  pub module_build_cache: Option<ModuleBuildCache>,
 }
 
 #[async_trait::async_trait]
@@ -50,7 +54,10 @@ impl Task<TaskContext> for BuildTask {
       mut module,
       fs,
       forwarded_ids,
+      module_build_cache,
     } = *self;
+
+    let build_start_time = module_build_cache.as_ref().map(|_| current_time());
 
     plugin_driver
       .compilation_hooks
@@ -65,7 +72,7 @@ impl Task<TaskContext> for BuildTask {
           compilation_id,
           compiler_options: compiler_options.clone(),
           loader_cache,
-          file_system_info,
+          file_system_info: file_system_info.clone(),
           resolver_factory: resolver_factory.clone(),
           plugin_driver: plugin_driver.clone(),
           runtime_template,
@@ -73,20 +80,24 @@ impl Task<TaskContext> for BuildTask {
         },
         None,
       )
-      .await;
+      .await?;
 
-    result.map::<Vec<Box<dyn Task<TaskContext>>>, _>(|build_result| {
-      vec![Box::new(BuildResultTask {
-        build_result: Box::new(build_result),
-        plugin_driver,
-        forwarded_ids,
-      })]
-    })
+    if let (Some(module_build_cache), Some(build_start_time)) =
+      (module_build_cache, build_start_time)
+    {
+      module_build_cache.mark_pending(result.module.identifier(), build_start_time);
+    }
+
+    Ok(vec![Box::new(BuildResultTask {
+      build_result: Box::new(result),
+      plugin_driver,
+      forwarded_ids,
+    })])
   }
 }
 
 #[derive(Debug)]
-struct BuildResultTask {
+pub(super) struct BuildResultTask {
   pub build_result: Box<BuildResult>,
   pub plugin_driver: SharedPluginDriver,
   pub forwarded_ids: ForwardedIdSet,

@@ -1,8 +1,7 @@
-const rspack = require('@rspack/core');
 const path = require('path');
 
-let index = 0;
-let builtErrorModules = [];
+let compilerIndex = 0;
+let builtModules = [];
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -16,38 +15,40 @@ module.exports = {
       module: true,
     },
   },
-  optimization: {
-    minimize: false,
-  },
   cache: {
     type: 'persistent',
+  },
+  module: {
+    rules: [
+      {
+        test: /input\.js$/,
+        loader: './loader.js',
+      },
+    ],
   },
   plugins: [
     {
       apply(compiler) {
         compiler.hooks.compilation.tap(
-          'ModuleCacheErrorTest',
+          'ModuleBuildDependenciesTest',
           (compilation) => {
             compilation.hooks.buildModule.tap(
-              'ModuleCacheErrorTest',
+              'ModuleBuildDependenciesTest',
               (module) => {
                 if (
                   module.resource &&
-                  path.basename(module.resource) === 'file.js'
+                  path.basename(module.resource) === 'input.js'
                 ) {
-                  builtErrorModules.push(path.basename(module.resource));
+                  builtModules.push(path.basename(module.resource));
                 }
               },
             );
           },
         );
-        compiler.hooks.done.tapPromise('PLUGIN', async (stats) => {
-          const { errors } = stats.toJson({ errors: true });
-          expect(builtErrorModules).toEqual(['file.js']);
-          expect(errors).toHaveLength(1);
-          expect(errors[0].message).toMatch('LoaderError');
-          builtErrorModules = [];
-          index++;
+        compiler.hooks.done.tap('ModuleBuildDependenciesTest', () => {
+          expect(builtModules).toEqual(['input.js']);
+          builtModules = [];
+          compilerIndex++;
         });
       },
     },

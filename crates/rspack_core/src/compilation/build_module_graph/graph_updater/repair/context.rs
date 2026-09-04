@@ -8,7 +8,8 @@ use super::BuildModuleGraphArtifact;
 use crate::{
   Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportsInfoArtifact, FileSystemInfo, ModuleFactory,
-  ResolverFactory, RuntimeTemplate, SharedPluginDriver, incremental::Incremental,
+  ResolverFactory, RuntimeTemplate, SharedPluginDriver, ValueCacheVersions,
+  compilation::build_module_graph::module_build_cache::ModuleBuildCache, incremental::Incremental,
   module_graph::ModuleGraph, new_cache::Cache,
 };
 
@@ -31,6 +32,8 @@ pub struct TaskContext {
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_template: RuntimeTemplate,
   pub(crate) cache: Cache,
+  pub(crate) module_build_cache: Option<ModuleBuildCache>,
+  pub value_cache_versions: ValueCacheVersions,
 
   pub artifact: BuildModuleGraphArtifact,
   pub exports_info_artifact: ExportsInfoArtifact,
@@ -58,7 +61,9 @@ impl TaskContext {
       intermediate_fs: compilation.intermediate_filesystem.clone(),
       output_fs: compilation.output_filesystem.clone(),
       runtime_template: RuntimeTemplate::new(compilation.options.clone()),
+      module_build_cache: compilation.module_build_cache.clone(),
       cache: compilation.cache.clone(),
+      value_cache_versions: compilation.value_cache_versions.clone(),
       artifact,
       exports_info_artifact,
     }
@@ -92,10 +97,12 @@ impl TaskContext {
       self.fs.clone(),
       self.intermediate_fs.clone(),
       self.output_fs.clone(),
-      // used at module executor which not support persistent cache, set as false
+      // Preserve the module executor's initial-compilation behavior. Its module
+      // cache is disabled explicitly below.
       false,
       compiler_context,
     );
+    compilation.module_build_cache = None;
     compilation.runtime_template =
       RuntimeTemplate::for_module_execution(self.compiler_options.clone());
     compilation.dependency_factories = self.dependency_factories.clone();
