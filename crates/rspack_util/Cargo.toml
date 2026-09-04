@@ -33,7 +33,7 @@ smallvec         = { workspace = true }
 sugar_path       = { workspace = true }
 unicase          = { workspace = true }
 
-swc_core                  = { workspace = true, features = ["__common", "base", "ecma_ast"] }
+swc_core          = { workspace = true, features = ["__common", "base", "ecma_ast"] }
 swc_next_ecma_ast = { workspace = true }
 
 # wasm runtime
