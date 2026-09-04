@@ -2,25 +2,20 @@ use std::sync::Arc;
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierIndexMap, IdentifierMap};
-use rspack_error::{Error, Result};
+use rspack_error::Result;
 use rspack_intern::{Atom, AtomSet};
 use rspack_util::{
-  SpanExt,
   fx_hash::{FxHashMap, FxHashSet},
   itoa,
 };
-use swc_core::common::SyntaxContext;
-use swc_experimental_allocator::Allocator;
-use swc_experimental_ecma_ast::{EsVersion, Program};
-use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
-use swc_experimental_ecma_semantic::resolver::resolver;
 
 use crate::{
-  BuildMetaDefaultObject, BuildMetaExportsType, Compilation, ConcatenatedModuleInfo, Context,
-  ExportInfo, ExportProvided, ExportsInfoArtifact, ExportsType, FindTargetResult, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, ModuleStaticCache, RuntimeSpec, UsedName,
-  collect_ident, escape_name_atom_ref, find_target, get_cached_readable_identifier,
-  split_readable_identifier, to_identifier_with_escaped,
+  BuildMetaDefaultObject, BuildMetaExportsType, Compilation, ConcatenatedModuleInfo,
+  ConcatenatedModuleParseMode, Context, ExportInfo, ExportProvided, ExportsInfoArtifact,
+  ExportsType, FindTargetResult, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleInfo, ModuleStaticCache, RuntimeSpec, UsedName, analyze_concatenated_module_identifiers,
+  escape_name_atom_ref, find_target, get_cached_readable_identifier, split_readable_identifier,
+  to_identifier_with_escaped,
 };
 
 /// Reusable read-only context shared by concatenation implementations.
@@ -554,35 +549,12 @@ pub fn analyze_module_scope(
   jsx: bool,
   module_info: &mut ConcatenatedModuleInfo,
 ) -> Result<()> {
-  let allocator = Allocator::new();
-  let lexer = swc_experimental_ecma_parser::Lexer::new(
-    &allocator,
-    Syntax::Es(EsSyntax {
-      jsx,
-      ..Default::default()
-    }),
-    EsVersion::EsNext,
-    StringSource::new(source),
-    None,
-  );
-  let mut parser = Parser::new_from(&allocator, lexer);
-  let parsed_module = parser.parse_module().map_err(|error| {
-    Error::from_string(
-      Some(source.to_owned()),
-      error.span().real_lo() as usize,
-      error.span().real_hi() as usize,
-      "JavaScript parse error:\n".to_string(),
-      error.kind().msg().to_string(),
-    )
-  })?;
-  let program = Program::Module(allocator.boxed(parsed_module));
-  let semantic = resolver(&program);
-  let identifiers = collect_ident(&allocator, &program);
+  let analysis =
+    analyze_concatenated_module_identifiers(source, jsx, ConcatenatedModuleParseMode::Unambiguous)?;
+  let identifiers = analysis.identifiers;
+  module_info.module_ctxt = analysis.module_ctxt;
+  module_info.global_ctxt = analysis.global_ctxt;
 
-  module_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
-  module_info.global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
-
-  let top_level_scope_id = semantic.top_level_scope_id();
   module_info.all_used_names.clear();
   module_info.binding_to_ref.clear();
   module_info.all_used_names.reserve(identifiers.len());
@@ -591,10 +563,10 @@ pub fn analyze_module_scope(
   module_info.binding_to_ref.reserve(identifiers.len());
 
   for identifier in identifiers {
-    let scope = semantic.node_scope(&identifier.id);
-    let is_global = SyntaxContext::from_u32(scope.raw()) == module_info.global_ctxt;
+    let scope = identifier.scope;
+    let is_global = scope == module_info.global_ctxt;
     let legacy = if is_global {
-      let legacy = identifier.to_legacy(&semantic);
+      let legacy = identifier.to_legacy();
       module_info.global_scope_ident.push(legacy.clone());
       module_info
         .all_used_names
@@ -611,13 +583,13 @@ pub fn analyze_module_scope(
       continue;
     }
 
-    if scope != top_level_scope_id {
+    if scope != module_info.module_ctxt {
       module_info
         .all_used_names
         .insert(Atom::from(identifier.id.sym.as_str()));
     }
 
-    let legacy = legacy.unwrap_or_else(|| identifier.to_legacy(&semantic));
+    let legacy = legacy.unwrap_or_else(|| identifier.to_legacy());
     module_info.idents.push(legacy.clone());
     module_info
       .binding_to_ref

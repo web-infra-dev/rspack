@@ -1,5 +1,6 @@
+use rspack_intern::Atom;
 use rspack_util::SpanExt;
-use swc_experimental_ecma_ast::{Lit, UnaryExpr, UnaryOp};
+use swc_next_ecma_ast::{ExprData, GetSpan, UnaryExpression, UnaryOperator};
 
 use super::BasicEvaluatedExpression;
 use crate::{
@@ -7,152 +8,135 @@ use crate::{
   visitors::{CallHooksName, JavascriptParser, RootName},
 };
 
-#[inline]
-fn eval_typeof<'parser: 'a, 'a>(
+fn eval_typeof<'parser>(
   parser: &mut JavascriptParser<'parser>,
-  expr: &'a UnaryExpr<'a>,
-) -> Option<BasicEvaluatedExpression<'a>> {
-  assert!(expr.op == UnaryOp::TypeOf);
-  if let Some(ident) = expr.arg.as_ident()
-    && let Some(res) = ident.sym.call_hooks_name(parser, |parser, for_name| {
-      parser
-        .plugin_drive
-        .clone()
-        .evaluate_typeof(parser, expr, for_name)
-    })
-  {
-    return Some(res);
-  } else if let Some(meta_prop) = expr.arg.as_meta_prop()
-    && let Some(res) = meta_prop.get_root_name().and_then(|name| {
-      name.call_hooks_name(parser, |parser, for_name| {
+  expression: UnaryExpression,
+) -> Option<BasicEvaluatedExpression<'parser>> {
+  let ast = parser.ast.ast;
+  debug_assert_eq!(expression.operator(ast), UnaryOperator::Typeof);
+  let argument = expression.argument(ast);
+  let hook_result = match ast.expr_data(argument) {
+    ExprData::IdentifierReference(identifier) => Atom::from(ast.get_utf8(identifier.name(ast)))
+      .call_hooks_name(parser, |parser, name| {
         parser
           .plugin_drive
           .clone()
-          .evaluate_typeof(parser, expr, for_name)
+          .evaluate_typeof(parser, expression, name)
+      }),
+    ExprData::MetaProperty(meta) => meta.get_root_name(ast).and_then(|name| {
+      name.call_hooks_name(parser, |parser, name| {
+        parser
+          .plugin_drive
+          .clone()
+          .evaluate_typeof(parser, expression, name)
       })
-    })
-  {
-    return Some(res);
-  } else if let Some(member_expr) = expr.arg.as_member()
-    && let Some(res) = member_expr.call_hooks_name(parser, |parser, for_name| {
+    }),
+    ExprData::MemberExpression(member) => member.call_hooks_name(parser, |parser, name| {
       parser
         .plugin_drive
         .clone()
-        .evaluate_typeof(parser, expr, for_name)
-    })
-  {
-    return Some(res);
-  } else if let Some(chain_expr) = expr.arg.as_opt_chain()
-    && let Some(res) = chain_expr.call_hooks_name(parser, |parser, for_name| {
+        .evaluate_typeof(parser, expression, name)
+    }),
+    ExprData::ChainExpression(chain) => chain.call_hooks_name(parser, |parser, name| {
       parser
         .plugin_drive
         .clone()
-        .evaluate_typeof(parser, expr, for_name)
-    })
-  {
-    return Some(res);
-  } else if expr.arg.as_fn().is_some() {
-    let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-    res.set_string("function".to_string());
-    return Some(res);
+        .evaluate_typeof(parser, expression, name)
+    }),
+    _ => None,
+  };
+  if hook_result.is_some() {
+    return hook_result;
   }
-
-  let arg = parser.evaluate_expression(&expr.arg);
-  if arg.is_unknown() {
-    let arg = &expr.arg;
-    if arg.as_fn().is_some() || arg.as_class().is_some() {
-      let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-      res.set_string("function".to_string());
-      Some(res)
-    } else if let Some(unary) = arg.as_unary()
-      && matches!(unary.op, UnaryOp::Minus | UnaryOp::Plus)
-      && let Some(lit) = unary.arg.as_lit()
-      && matches!(lit, Lit::Num(_))
-    {
-      let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-      res.set_string("number".to_string());
-      Some(res)
-    } else {
-      None
+  let span = expression.span(ast);
+  if argument.is_function(ast) {
+    let mut result = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
+    result.set_string("function".to_string());
+    return Some(result);
+  }
+  let argument_eval = parser.evaluate_expression(argument);
+  let type_name = if argument_eval.is_unknown() {
+    match ast.expr_data(argument) {
+      ExprData::Function(_) | ExprData::Class(_) => Some("function"),
+      ExprData::UnaryExpression(unary)
+        if matches!(
+          unary.operator(ast),
+          UnaryOperator::Negate | UnaryOperator::Positive
+        ) && unary.argument(ast).is_numeric_literal(ast) =>
+      {
+        Some("number")
+      }
+      _ => None,
     }
-  } else if arg.is_string() {
-    let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-    res.set_string("string".to_string());
-    Some(res)
-  } else if arg.is_undefined() {
-    let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-    res.set_string("undefined".to_string());
-    Some(res)
-  } else if arg.is_number() {
-    let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-    res.set_string("number".to_string());
-    Some(res)
-  } else if arg.is_null() || arg.is_regexp() || arg.is_array() {
-    let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-    res.set_string("object".to_string());
-    Some(res)
-  } else if arg.is_bool() {
-    let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-    res.set_string("boolean".to_string());
-    Some(res)
-  } else if arg.is_bigint() {
-    let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-    res.set_string("bigint".to_string());
-    Some(res)
-  } else if arg.is_wrapped() {
-    let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-    res.set_string("string".to_string());
-    res.set_side_effects(arg.could_have_side_effects());
-    Some(res)
+  } else if argument_eval.is_string() || argument_eval.is_wrapped() {
+    Some("string")
+  } else if argument_eval.is_undefined() {
+    Some("undefined")
+  } else if argument_eval.is_number() {
+    Some("number")
+  } else if argument_eval.is_null() || argument_eval.is_regexp() || argument_eval.is_array() {
+    Some("object")
+  } else if argument_eval.is_bool() {
+    Some("boolean")
+  } else if argument_eval.is_bigint() {
+    Some("bigint")
   } else {
     None
+  }?;
+  let mut result = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
+  result.set_string(type_name.to_string());
+  if argument_eval.is_wrapped() {
+    result.set_side_effects(argument_eval.could_have_side_effects());
   }
+  Some(result)
 }
 
 #[inline]
-pub fn eval_unary_expression<'parser: 'a, 'a>(
-  scanner: &mut JavascriptParser<'parser>,
-  expr: &'a UnaryExpr<'a>,
-) -> Option<BasicEvaluatedExpression<'a>> {
-  match expr.op {
-    UnaryOp::TypeOf => eval_typeof(scanner, expr),
-    UnaryOp::Bang => {
-      let arg = scanner.evaluate_expression(&expr.arg);
-      if arg.is_dependency() {
-        let side_effects = arg.could_have_side_effects();
-        let mut eval =
-          BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-        eval.set_dependency(arg.into_dependency().not());
-        eval.set_side_effects(side_effects);
-        return Some(eval);
+pub fn eval_unary_expression<'parser>(
+  parser: &mut JavascriptParser<'parser>,
+  expression: UnaryExpression,
+) -> Option<BasicEvaluatedExpression<'parser>> {
+  let ast = parser.ast.ast;
+  let span = expression.span(ast);
+  let argument = expression.argument(ast);
+  match expression.operator(ast) {
+    UnaryOperator::Typeof => eval_typeof(parser, expression),
+    UnaryOperator::LogicalNot => {
+      let argument = parser.evaluate_expression(argument);
+      if argument.is_dependency() {
+        let side_effects = argument.could_have_side_effects();
+        let mut result = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
+        result.set_dependency(argument.into_dependency().not());
+        result.set_side_effects(side_effects);
+        return Some(result);
       }
-      let boolean = arg.as_bool()?;
-      let mut eval = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-      eval.set_bool(!boolean);
-      eval.set_side_effects(arg.could_have_side_effects());
-      Some(eval)
+      let value = argument.as_bool()?;
+      let mut result = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
+      result.set_bool(!value);
+      result.set_side_effects(argument.could_have_side_effects());
+      Some(result)
     }
-    UnaryOp::Tilde => {
-      let arg = scanner.evaluate_expression(&expr.arg);
-      let number = arg.as_int()?;
-      let mut eval = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-      eval.set_number(!number as f64);
-      eval.set_side_effects(arg.could_have_side_effects());
-      Some(eval)
+    UnaryOperator::BitwiseNot => {
+      let argument = parser.evaluate_expression(argument);
+      let value = argument.as_int()?;
+      let mut result = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
+      result.set_number(!value as f64);
+      result.set_side_effects(argument.could_have_side_effects());
+      Some(result)
     }
-    UnaryOp::Minus | UnaryOp::Plus => {
-      let arg = scanner.evaluate_expression(&expr.arg);
-      let number = arg.as_number()?;
-      let res = match &expr.op {
-        UnaryOp::Minus => -number,
-        UnaryOp::Plus => number,
-        _ => unreachable!(),
+    UnaryOperator::Negate | UnaryOperator::Positive => {
+      let argument = parser.evaluate_expression(argument);
+      let value = argument.as_number()?;
+      let value = if expression.operator(ast) == UnaryOperator::Negate {
+        -value
+      } else {
+        value
       };
-      let mut eval = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-      eval.set_number(res);
-      eval.set_side_effects(arg.could_have_side_effects());
-      Some(eval)
+      let mut result = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
+      result.set_number(value);
+      result.set_side_effects(argument.could_have_side_effects());
+      Some(result)
     }
-    _ => None,
+    UnaryOperator::Void | UnaryOperator::Delete => None,
   }
 }

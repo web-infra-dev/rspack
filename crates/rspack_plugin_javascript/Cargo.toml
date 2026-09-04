@@ -41,11 +41,10 @@ serde_json                            = { workspace = true }
 slotmap                               = { workspace = true }
 smallvec                              = { workspace = true }
 sugar_path                            = { workspace = true }
-swc_experimental_allocator            = { workspace = true }
-swc_experimental_ecma_ast             = { workspace = true }
-swc_experimental_ecma_parser          = { workspace = true, features = ["unstable"] }
-swc_experimental_ecma_semantic        = { workspace = true }
-swc_experimental_ecma_transforms_base = { workspace = true }
+swc_next_allocator     = { workspace = true }
+swc_next_ecma_ast      = { workspace = true }
+swc_next_ecma_parser   = { workspace = true }
+swc_next_ecma_semantic = { workspace = true }
 tokio                                 = { workspace = true, features = ["sync"] }
 tracing                               = { workspace = true }
 url                                   = { workspace = true }

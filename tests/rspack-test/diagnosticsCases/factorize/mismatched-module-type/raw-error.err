@@ -6,28 +6,23 @@ Array [
   },
   Object {
     code: ModuleParseError,
-    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.js,
-    moduleName: ./app.js,
-  },
-  Object {
-    code: ModuleParseError,
-    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.js,
-    moduleName: ./app.js,
-  },
-  Object {
-    code: ModuleParseError,
     moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.jsx,
     moduleName: ./app.jsx,
   },
   Object {
     code: ModuleParseError,
-    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.jsx,
-    moduleName: ./app.jsx,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.ts,
+    moduleName: ./app.ts,
   },
   Object {
     code: ModuleParseError,
-    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.jsx,
-    moduleName: ./app.jsx,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.ts,
+    moduleName: ./app.ts,
+  },
+  Object {
+    code: ModuleParseError,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.ts,
+    moduleName: ./app.ts,
   },
   Object {
     code: ModuleParseError,

@@ -1,6 +1,6 @@
 ERROR in ./b.js
   × Module parse failed:
-  ╰─▶   × JavaScript parse error: Expected ';', '}' or <eof>
+  ╰─▶   × JavaScript parse error: Expected a semicolon or an implicit semicolon after a statement, but found ')'
          ╭─[6:7]
        4 │ includes
        5 │ a
@@ -13,4 +13,19 @@ ERROR in ./b.js
   help: 
         You may need an appropriate loader to handle this file type.
 
-Rspack compiled with 1 error
+ERROR in ./b.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: 'in' is reserved and cannot be used as an identifier
+          ╭─[8:0]
+        6 │ parser )
+        7 │ error
+        8 │ in
+          · ──
+        9 │ some
+       10 │ line
+          ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+Rspack compiled with 2 errors

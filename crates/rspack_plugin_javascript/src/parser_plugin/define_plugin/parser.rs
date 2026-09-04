@@ -7,14 +7,16 @@ use std::{
 };
 
 use rspack_util::SpanExt;
-use swc_experimental_ecma_ast::{Expr, Ident, MemberExpr, UnaryExpr};
+use swc_next_ecma_ast::{Expr, GetSpan, UnaryExpression};
 
 use super::{VALUE_DEP_PREFIX, utils::gen_const_dep, walk_data::WalkData};
 use crate::{
   JavascriptParserPlugin,
   define_plugin::walk_data::DefineRecord,
   utils::eval::{BasicEvaluatedExpression, evaluate_to_string},
-  visitors::{AllowedMemberTypes, JavascriptParser, MemberExpressionInfo},
+  visitors::{
+    AllowedMemberTypes, HookMemberExpression, Identifier, JavascriptParser, MemberExpressionInfo,
+  },
 };
 
 pub struct DefineParserPlugin {
@@ -70,12 +72,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
   fn evaluate_typeof(
     &self,
     parser: &mut JavascriptParser<'p>,
-    expr: &'a UnaryExpr<'a>,
+    expr: UnaryExpression,
     for_name: &str,
-  ) -> Option<BasicEvaluatedExpression<'a>>
-  where
-    'p: 'a,
-  {
+  ) -> Option<BasicEvaluatedExpression<'p>> {
     if let Some(record) = self.get_define_record(for_name)
       && let Some(on_evaluate_typeof) = &record.on_evaluate_typeof
     {
@@ -84,7 +83,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
         return None;
       }
       self.add_value_dependency(parser, for_name);
-      let evaluated = on_evaluate_typeof(record, parser, expr.span.real_lo(), expr.span.real_hi());
+      let span = expr.span(parser.ast.ast);
+      let evaluated = on_evaluate_typeof(record, parser, span.real_lo(), span.real_hi());
       self.recurse_typeof.store(false, Ordering::Release);
       return evaluated;
     }
@@ -92,8 +92,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
       self.add_value_dependency(parser, for_name);
       return Some(evaluate_to_string(
         "object".to_string(),
-        expr.span.real_lo(),
-        expr.span.real_hi(),
+        expr.span(parser.ast.ast).real_lo(),
+        expr.span(parser.ast.ast).real_hi(),
       ));
     }
     None
@@ -130,14 +130,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
   fn r#typeof(
     &self,
     parser: &mut JavascriptParser<'p>,
-    expr: &UnaryExpr<'_>,
+    expr: UnaryExpression,
     for_name: &str,
   ) -> Option<bool> {
     if let Some(record) = self.get_define_record(for_name)
       && let Some(on_typeof) = &record.on_typeof
     {
       self.add_value_dependency(parser, for_name);
-      return on_typeof(record, parser, expr.span.real_lo(), expr.span.real_hi());
+      let span = expr.span(parser.ast.ast);
+      return on_typeof(record, parser, span.real_lo(), span.real_hi());
     } else if self.walk_data.object_define_record.contains_key(for_name) {
       self.add_value_dependency(parser, for_name);
       debug_assert!(!parser.in_short_hand);
@@ -145,8 +146,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
         parser,
         Cow::Borrowed(r#""object""#),
         for_name,
-        expr.span.real_lo(),
-        expr.span.real_hi(),
+        expr.span(parser.ast.ast).real_lo(),
+        expr.span(parser.ast.ast).real_hi(),
       ) {
         parser.add_presentational_dependency(dep);
       }
@@ -159,7 +160,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
   fn can_collect_destructuring_assignment_properties(
     &self,
     parser: &mut JavascriptParser<'p>,
-    expr: &Expr,
+    expr: Expr,
   ) -> Option<bool> {
     if let MemberExpressionInfo::Expression(info) =
       parser.get_member_expression_info_from_expr(expr, AllowedMemberTypes::Expression)?
@@ -180,14 +181,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
   fn member(
     &self,
     parser: &mut JavascriptParser<'p>,
-    expr: &MemberExpr<'_>,
+    expr: HookMemberExpression,
     for_name: &str,
   ) -> Option<bool> {
     if let Some(record) = self.get_define_record(for_name)
       && let Some(on_expression) = &record.on_expression
     {
       self.add_value_dependency(parser, for_name);
-      let span = expr.span;
+      let span = expr.span(parser.ast.ast);
       return on_expression(
         record,
         parser,
@@ -200,7 +201,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
       && let Some(on_expression) = &record.on_expression
     {
       self.add_value_dependency(parser, for_name);
-      let span = expr.span;
+      let span = expr.span(parser.ast.ast);
       return on_expression(
         record,
         parser,
@@ -216,14 +217,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Ident<'_>,
+    ident: &Identifier,
     for_name: &str,
   ) -> Option<bool> {
     if let Some(record) = self.get_define_record(for_name)
       && let Some(on_expression) = &record.on_expression
     {
       self.add_value_dependency(parser, for_name);
-      let span = ident.span;
+      let span = ident.span();
       return on_expression(
         record,
         parser,
@@ -236,7 +237,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
       && let Some(on_expression) = &record.on_expression
     {
       self.add_value_dependency(parser, for_name);
-      let span = ident.span;
+      let span = ident.span();
       return on_expression(
         record,
         parser,

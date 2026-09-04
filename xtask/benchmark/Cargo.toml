@@ -38,14 +38,14 @@ rspack_plugin_split_chunks            = { workspace = true }
 rspack_regex                          = { workspace = true }
 rspack_sources                        = { workspace = true }
 rspack_tasks                          = { workspace = true }
+rspack_util                           = { workspace = true }
 rustc-hash                            = { workspace = true }
 serde_json                            = { workspace = true }
 swc_core                              = { workspace = true, features = ["common"] }
-swc_experimental_allocator            = { workspace = true }
-swc_experimental_ecma_ast             = { workspace = true }
-swc_experimental_ecma_parser          = { workspace = true, features = ["unstable"] }
-swc_experimental_ecma_semantic        = { workspace = true }
-swc_experimental_ecma_transforms_base = { workspace = true }
+swc_next_allocator     = { workspace = true }
+swc_next_ecma_ast      = { workspace = true }
+swc_next_ecma_parser   = { workspace = true }
+swc_next_ecma_semantic = { workspace = true }
 
 [[bench]]
 harness = false

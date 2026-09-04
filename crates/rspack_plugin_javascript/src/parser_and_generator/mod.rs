@@ -1,5 +1,6 @@
 use std::{
   borrow::Cow,
+  collections::HashSet,
   sync::{Arc, LazyLock},
 };
 
@@ -19,15 +20,15 @@ use rspack_core::{
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
-use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_util::fx_hash::FxHashSet;
-use swc_experimental_allocator::Allocator;
-use swc_experimental_ecma_ast::{Comments, EsVersion, Program, VisitWith};
-use swc_experimental_ecma_parser::{
-  EsSyntax, Lexer, Parser, StringSource, Syntax, unstable::Capturing,
+use rspack_error::{
+  Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity as RspackSeverity,
+  TWithDiagnosticArray,
 };
-use swc_experimental_ecma_semantic::resolver::resolver;
-use swc_experimental_ecma_transforms_base::remove_paren::remove_paren;
+use rspack_util::swc::RspackComments;
+use swc_next_allocator::Allocator;
+use swc_next_ecma_ast::{Lang, Severity as SwcSeverity, SourceType as SwcSourceType, VisitWith};
+use swc_next_ecma_parser::{CommentMode, Options, ParseReturn, Parser, TokenParserConfig};
+use swc_next_ecma_semantic::{AnalyzeOptions, SemanticReturn, analyze};
 
 use crate::{
   BoxJavascriptParserPlugin,
@@ -53,58 +54,33 @@ static LEGACY_REQUIRE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new("__webpack_require__\\s*(!?\\.)").expect("should init `REQUIRE_FUNCTION_REGEX`")
 });
 
-fn append_experimental_parse_errors(
+fn append_swc_next_diagnostics<'a>(
   diagnostics: &mut Vec<Diagnostic>,
   source: &str,
-  errors: impl IntoIterator<Item = swc_experimental_ecma_parser::error::Error>,
+  errors: impl IntoIterator<Item = swc_next_ecma_ast::Diagnostic<'a>>,
 ) {
-  let mut visited = FxHashSet::default();
-  let source: Arc<str> = source.into();
-  diagnostics.extend(errors.into_iter().filter_map(|err| {
-    let span = err.span();
+  let mut visited = HashSet::new();
+  let mut shared_source = None;
+  diagnostics.extend(errors.into_iter().filter_map(|diagnostic| {
+    let span = diagnostic.span;
     if !visited.insert((span.start, span.end)) {
       return None;
     }
-    let message = err.kind().msg().to_string();
-    Some(
-      Error::from_shared_source(
-        Some(source.clone()),
-        span.start.saturating_sub(1) as usize,
-        span.end.saturating_sub(1) as usize,
-        "JavaScript parse error".to_string(),
-        message,
-      )
-      .into(),
-    )
-  }));
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn parse_errors_share_source_code() {
-    let source = "'\\101';'\\102';";
-    let allocator = Allocator::new();
-    let lexer = Lexer::new(
-      &allocator,
-      Syntax::Es(EsSyntax::default()),
-      EsVersion::EsNext,
-      StringSource::new(source),
-      None,
+    let source = shared_source.get_or_insert_with(|| Arc::<str>::from(source));
+    let mut error = Error::from_shared_source(
+      Some(source.clone()),
+      span.start as usize,
+      span.end as usize,
+      "JavaScript parse error".to_string(),
+      diagnostic.message.into_owned(),
     );
-    let mut parser = Parser::new_from(&allocator, lexer);
-    parser.parse_module().expect("should recover parse errors");
-
-    let mut diagnostics = Vec::new();
-    append_experimental_parse_errors(&mut diagnostics, source, parser.take_errors());
-
-    assert_eq!(diagnostics.len(), 2);
-    let first_source = diagnostics[0].src.as_ref().expect("should have source");
-    let second_source = diagnostics[1].src.as_ref().expect("should have source");
-    assert_eq!(first_source.as_ptr(), second_source.as_ptr());
-  }
+    error.severity = match diagnostic.severity {
+      SwcSeverity::Error => RspackSeverity::Error,
+      SwcSeverity::Warning => RspackSeverity::Warning,
+      SwcSeverity::Hint | SwcSeverity::Info => RspackSeverity::Warning,
+    };
+    Some(error.into())
+  }));
 }
 
 impl ParserRuntimeRequirementsData {
@@ -292,66 +268,89 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       .unwrap_or(false);
 
     let allocator = Allocator::new();
-    let mut comments = Comments::new_in(&allocator);
-    let parser_lexer = Lexer::new(
-      &allocator,
-      Syntax::Es(EsSyntax {
-        jsx,
-        allow_return_outside_function: matches!(
-          module_type,
-          ModuleType::JsDynamic | ModuleType::JsAuto
-        ),
-        explicit_resource_management: true,
-        import_attributes: true,
-        ..Default::default()
-      }),
-      EsVersion::EsNext,
-      StringSource::new(source_string.as_ref()),
-      // The parser keeps this mutable borrow for the AST lifetime. We only read
-      // the comments after dropping the parser below.
-      Some(&mut comments),
-    );
-    let parser_lexer = Capturing::new(parser_lexer);
-    let mut parser = Parser::new_from(&allocator, parser_lexer);
-
-    let mut program = match match module_type {
-      ModuleType::JsEsm => parser
-        .parse_module()
-        .map(|module| Program::Module(allocator.boxed(module))),
-      ModuleType::JsDynamic => parser
-        .parse_commonjs()
-        .map(|script| Program::Script(allocator.boxed(script))),
-      _ => parser.parse_program(),
-    } {
-      Ok(program) => program,
-      Err(e) => {
-        let mut errors = parser.take_errors();
-        errors.push(e);
-        append_experimental_parse_errors(&mut diagnostics, &source_string, errors);
-        return default_with_diagnostics(source, diagnostics);
-      }
+    let source_type = match module_type {
+      ModuleType::JsEsm => SwcSourceType::Module,
+      ModuleType::JsDynamic => SwcSourceType::CommonJs,
+      _ => SwcSourceType::Unambiguous,
     };
+    let parse_with_source_type = |source_type| {
+      Parser::init(
+        &allocator,
+        source_string.as_ref(),
+        Options {
+          source_type,
+          lang: if jsx { Lang::Jsx } else { Lang::Js },
+          preserve_parens: false,
+          comments: CommentMode::Flat,
+        },
+        TokenParserConfig,
+      )
+      .parse()
+    };
+    let mut parse_return = parse_with_source_type(source_type);
+    // The legacy `JsAuto` parser allowed a CommonJS-style top-level return.
+    // SWC Next's unambiguous mode resolves non-ESM input as `Script`, where
+    // return is rejected. Retry only this compatibility case as CommonJS;
+    // other parse errors and files containing ESM syntax remain diagnostics.
+    if module_type.is_js_auto()
+      && parse_return.diagnostics.iter().any(|diagnostic| {
+        diagnostic.message == "'return' statement is only valid inside a function"
+      })
+    {
+      parse_return = parse_with_source_type(SwcSourceType::CommonJs);
+    }
+    let ParseReturn {
+      ast,
+      tokens,
+      diagnostics: parse_diagnostics,
+    } = parse_return;
 
-    let parse_errors = parser.take_errors();
-    let tokens = parser.input_mut().iter.take();
-    drop(parser);
-    if !parse_errors.is_empty() {
-      append_experimental_parse_errors(&mut diagnostics, &source_string, parse_errors);
+    if !parse_diagnostics.is_empty() {
+      append_swc_next_diagnostics(&mut diagnostics, &source_string, parse_diagnostics);
       return default_with_diagnostics(source, diagnostics);
     }
 
+    let SemanticReturn {
+      semantic,
+      diagnostics: mut semantic_diagnostics,
+    } = analyze(
+      &ast,
+      AnalyzeOptions {
+        check_syntax: true,
+        build_module_record: false,
+      },
+    );
+    // The legacy parser accepted several redeclaration combinations that the
+    // SWC Next semantic checker rejects (for example `var a` followed by
+    // `export function a`, and an exported binding shadowing an import). The
+    // parser has already emitted its own early errors, so retain the semantic
+    // syntax checks while excluding this stricter-than-legacy category.
+    semantic_diagnostics.retain(|diagnostic| {
+      !(diagnostic.message.starts_with("Identifier '")
+        && diagnostic.message.ends_with("' has already been declared"))
+        // Rspack intentionally parses regexp literals as raw pattern/flags
+        // and lets consumers such as import.meta.webpackContext downgrade an
+        // invalid constructed regexp to a warning, matching the legacy path.
+        && diagnostic.message != "Invalid regular expression literal"
+    });
+    if !semantic_diagnostics.is_empty() {
+      append_swc_next_diagnostics(&mut diagnostics, &source_string, semantic_diagnostics);
+      return default_with_diagnostics(source, diagnostics);
+    }
+
+    let program = ast.root_program();
+    let comments = RspackComments::from_ast(&ast);
     let mut semicolons = Default::default();
-    remove_paren(&mut program, &allocator, Some(&mut comments));
-    let semantic = resolver(&program);
     program.visit_with(&mut semicolon::InsertedSemicolons::new(
+      &ast,
       &mut semicolons,
       &tokens,
     ));
     let parsed_ast = ParsedJavaScriptAst {
-      allocator: &allocator,
+      ast: &ast,
       comments: &comments,
       semantic: &semantic,
-      program: &program,
+      program,
     };
     let parser_runtime_requirements = ParserRuntimeRequirementsData::new(runtime_template);
 
