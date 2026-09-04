@@ -31,9 +31,7 @@ use rspack_core::{
   ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
   ConcatenationNameAllocator, ExportsArgument, Module, RuntimeCodeTemplate, RuntimeGlobals,
-  RuntimeVariable, SourceType,
-  concatenated_module::{ConcatenatedModuleParseMode, analyze_concatenated_module_identifiers},
-  render_init_fragments,
+  RuntimeVariable, SourceType, analyze_program_identifiers, render_init_fragments,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
   split_readable_identifier,
@@ -1187,11 +1185,7 @@ var {} = {{}};
 
             if !use_cache {
               let code_string = code.source().into_string_lossy();
-              if let Ok(analysis) = analyze_concatenated_module_identifiers(
-                code_string.as_ref(),
-                false,
-                ConcatenatedModuleParseMode::Unambiguous,
-              ) {
+              if let Ok(analysis) = analyze_program_identifiers(code_string.as_ref(), false) {
                 let global_scope_id = analysis.global_ctxt;
                 let module_scope_id = analysis.module_ctxt;
                 let collector_ids = analysis.identifiers;

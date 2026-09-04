@@ -2,20 +2,33 @@ use std::sync::Arc;
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierIndexMap, IdentifierMap};
-use rspack_error::Result;
+use rspack_error::{Error, Result};
 use rspack_intern::{Atom, AtomSet};
 use rspack_util::{
   fx_hash::{FxHashMap, FxHashSet},
   itoa,
 };
+use swc_core::{
+  atoms::Atom as SwcAtom,
+  common::{BytePos, SyntaxContext},
+  ecma::visit::swc_ecma_ast,
+};
+use swc_next_allocator::Allocator;
+use swc_next_ecma_ast::{
+  Ast, BindingIdentifier, Class, ClassType, ExportSpecifier, GetSpan, IdentifierName,
+  IdentifierReference, JsxElementName, JsxElementNameData, JsxMemberExpression,
+  JsxMemberExpressionObjectData, LabelIdentifier, Lang, ModuleExportNameData, ObjectProperty,
+  SourceType as SwcSourceType, Visit, VisitWith,
+};
+use swc_next_ecma_parser::{Options as SwcParserOptions, Parser, TokenParserConfig};
+use swc_next_ecma_semantic::name_resolver::{JsNameResolver, SymbolNode, resolver};
 
 use crate::{
-  BuildMetaDefaultObject, BuildMetaExportsType, Compilation, ConcatenatedModuleInfo,
-  ConcatenatedModuleParseMode, Context, ExportInfo, ExportProvided, ExportsInfoArtifact,
-  ExportsType, FindTargetResult, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleInfo, ModuleStaticCache, RuntimeSpec, UsedName, analyze_concatenated_module_identifiers,
-  escape_name_atom_ref, find_target, get_cached_readable_identifier, split_readable_identifier,
-  to_identifier_with_escaped,
+  BuildMetaDefaultObject, BuildMetaExportsType, Compilation, ConcatenatedModuleIdent,
+  ConcatenatedModuleInfo, Context, ExportInfo, ExportProvided, ExportsInfoArtifact, ExportsType,
+  FindTargetResult, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo,
+  ModuleStaticCache, RuntimeSpec, UsedName, escape_name_atom_ref, find_target,
+  get_cached_readable_identifier, split_readable_identifier, to_identifier_with_escaped,
 };
 
 /// Reusable read-only context shared by concatenation implementations.
@@ -544,13 +557,296 @@ impl ConcatenationNameAllocator {
   }
 }
 
+#[derive(Debug)]
+pub struct NewConcatenatedModuleIdent {
+  pub id: swc_ecma_ast::Ident,
+  pub scope: SyntaxContext,
+  pub shorthand: bool,
+  pub is_class_expr_with_ident: bool,
+}
+
+impl NewConcatenatedModuleIdent {
+  pub fn to_legacy(&self) -> ConcatenatedModuleIdent {
+    ConcatenatedModuleIdent {
+      id: self.id.clone(),
+      is_class_expr_with_ident: self.is_class_expr_with_ident,
+      shorthand: self.shorthand,
+    }
+  }
+}
+
+#[derive(Debug)]
+pub struct ConcatenatedModuleIdentifierAnalysis {
+  pub module_ctxt: SyntaxContext,
+  pub global_ctxt: SyntaxContext,
+  pub identifiers: Vec<NewConcatenatedModuleIdent>,
+}
+
+/// Analyze a generated JavaScript program without requiring it to parse as an ES module.
+///
+/// This is used by the JavaScript rendering path, where a generated source may be either a
+/// script or a module. Concatenation consumers should use [`analyze_module_scope`] instead.
+pub fn analyze_program_identifiers(
+  source: &str,
+  jsx: bool,
+) -> Result<ConcatenatedModuleIdentifierAnalysis> {
+  analyze_identifiers(source, jsx, SwcSourceType::Unambiguous)
+}
+
+fn analyze_identifiers(
+  source: &str,
+  jsx: bool,
+  source_type: SwcSourceType,
+) -> Result<ConcatenatedModuleIdentifierAnalysis> {
+  let allocator = Allocator::new();
+  let parse_return = Parser::init(
+    &allocator,
+    source,
+    SwcParserOptions {
+      source_type,
+      lang: if jsx { Lang::Jsx } else { Lang::Js },
+      preserve_parens: false,
+      ..Default::default()
+    },
+    TokenParserConfig,
+  )
+  .parse();
+  if let Some(diagnostic) = parse_return.diagnostics.into_iter().next() {
+    return Err(Error::from_string(
+      Some(source.to_string()),
+      diagnostic.span.start as usize,
+      diagnostic.span.end as usize,
+      "JavaScript parse error:\n".to_string(),
+      diagnostic.message.into_owned(),
+    ));
+  }
+
+  let ast = parse_return.ast;
+  let semantic = resolver(&ast);
+  let module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
+  let global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
+  let identifiers = collect_ident(&ast, &semantic);
+  Ok(ConcatenatedModuleIdentifierAnalysis {
+    module_ctxt,
+    global_ctxt,
+    identifiers,
+  })
+}
+
+/// Collects the identifier occurrences needed by concatenated-module renaming.
+/// The returned records own their strings and spans so SWC Next arena handles
+/// never escape this analysis boundary.
+fn collect_ident(ast: &Ast<'_>, semantic: &JsNameResolver<'_>) -> Vec<NewConcatenatedModuleIdent> {
+  struct IdentCollector<'a, 'semantic> {
+    ast: &'a Ast<'a>,
+    semantic: &'semantic JsNameResolver<'a>,
+    ids: Vec<NewConcatenatedModuleIdent>,
+    shorthand_binding: Option<BindingIdentifier>,
+    skipped_class_expression_binding: Option<BindingIdentifier>,
+  }
+
+  impl IdentCollector<'_, '_> {
+    fn push(
+      &mut self,
+      name: &str,
+      span: swc_next_ecma_ast::Span,
+      scope: swc_next_ecma_ast::ScopeId,
+      shorthand: bool,
+      is_class_expr_with_ident: bool,
+    ) {
+      // swc_core BytePos is one-based while SWC Next spans are zero-based.
+      let span = swc_core::common::Span::new(
+        BytePos(span.start.saturating_add(1)),
+        BytePos(span.end.saturating_add(1)),
+      );
+      let scope = SyntaxContext::from_u32(scope.raw());
+      self.ids.push(NewConcatenatedModuleIdent {
+        id: swc_ecma_ast::Ident::new(SwcAtom::from(name), span, scope),
+        scope,
+        shorthand,
+        is_class_expr_with_ident,
+      });
+    }
+
+    fn push_binding(
+      &mut self,
+      node: BindingIdentifier,
+      shorthand: bool,
+      is_class_expr_with_ident: bool,
+    ) {
+      self.push(
+        self.ast.get_utf8(node.name(self.ast)),
+        node.span(self.ast),
+        self
+          .semantic
+          .symbol_scope(SymbolNode::BindingIdentifier(node)),
+        shorthand,
+        is_class_expr_with_ident,
+      );
+    }
+
+    fn push_reference(&mut self, node: IdentifierReference, shorthand: bool) {
+      self.push(
+        self.ast.get_utf8(node.name(self.ast)),
+        node.span(self.ast),
+        self
+          .semantic
+          .symbol_scope(SymbolNode::IdentifierReference(node)),
+        shorthand,
+        false,
+      );
+    }
+
+    fn push_label(&mut self, node: LabelIdentifier) {
+      self.push(
+        self.ast.get_utf8(node.name(self.ast)),
+        node.span(self.ast),
+        self
+          .semantic
+          .symbol_scope(SymbolNode::LabelIdentifier(node)),
+        false,
+        false,
+      );
+    }
+
+    fn push_module_export_name(&mut self, node: IdentifierName) {
+      self.push(
+        self.ast.get_utf8(node.name(self.ast)),
+        node.span(self.ast),
+        self
+          .semantic
+          .symbol_scope(SymbolNode::ModuleExportName(node)),
+        false,
+        false,
+      );
+    }
+
+    fn push_jsx_identifier(&mut self, node: swc_next_ecma_ast::JsxIdentifier) {
+      self.push(
+        self.ast.get_utf8(node.name(self.ast)),
+        node.span(self.ast),
+        self.semantic.symbol_scope(SymbolNode::JsxIdentifier(node)),
+        false,
+        false,
+      );
+    }
+
+    fn visit_jsx_member_root(&mut self, member: JsxMemberExpression) {
+      match self
+        .ast
+        .jsx_member_expression_object_data(member.object(self.ast))
+      {
+        JsxMemberExpressionObjectData::JsxIdentifier(identifier) => {
+          self.push_jsx_identifier(identifier);
+        }
+        JsxMemberExpressionObjectData::JsxMemberExpression(member) => {
+          self.visit_jsx_member_root(member);
+        }
+      }
+    }
+  }
+
+  impl<'a> Visit<'a> for IdentCollector<'a, '_> {
+    fn ast(&self) -> &Ast<'a> {
+      self.ast
+    }
+
+    fn visit_identifier_reference(&mut self, node: IdentifierReference) {
+      self.push_reference(node, false);
+    }
+
+    fn visit_binding_identifier(&mut self, node: BindingIdentifier) {
+      if self.skipped_class_expression_binding == Some(node) {
+        return;
+      }
+      self.push_binding(node, self.shorthand_binding == Some(node), false);
+      node.visit_children_with(self);
+    }
+
+    fn visit_label_identifier(&mut self, node: LabelIdentifier) {
+      self.push_label(node);
+    }
+
+    fn visit_binding_property(&mut self, node: swc_next_ecma_ast::BindingProperty) {
+      let previous = self.shorthand_binding;
+      if node.shorthand(self.ast) {
+        let value = node.value(self.ast);
+        self.shorthand_binding = value.as_binding_identifier(self.ast).or_else(|| {
+          value
+            .as_assignment_pattern(self.ast)
+            .and_then(|assignment| assignment.left(self.ast).as_binding_identifier(self.ast))
+        });
+      }
+      node.visit_children_with(self);
+      self.shorthand_binding = previous;
+    }
+
+    fn visit_object_property(&mut self, node: ObjectProperty) {
+      if node.shorthand(self.ast)
+        && let Some(identifier) = node.value(self.ast).as_identifier_reference(self.ast)
+      {
+        self.push_reference(identifier, true);
+        return;
+      }
+      node.visit_children_with(self);
+    }
+
+    fn visit_class(&mut self, node: Class) {
+      let previous = self.skipped_class_expression_binding;
+      if node.class_type(self.ast) == ClassType::ClassExpression {
+        self.skipped_class_expression_binding = node.id(self.ast);
+        if node.super_class(self.ast).is_some()
+          && let Some(identifier) = node.id(self.ast)
+        {
+          self.push_binding(identifier, false, true);
+        }
+      }
+      node.visit_children_with(self);
+      self.skipped_class_expression_binding = previous;
+    }
+
+    fn visit_export_specifier(&mut self, node: ExportSpecifier) {
+      let local = node.local(self.ast);
+      if let ModuleExportNameData::IdentifierName(identifier) =
+        self.ast.module_export_name_data(local)
+      {
+        self.push_module_export_name(identifier);
+      }
+      let exported = node.exported(self.ast);
+      if exported.span(self.ast) != local.span(self.ast)
+        && let ModuleExportNameData::IdentifierName(identifier) =
+          self.ast.module_export_name_data(exported)
+      {
+        self.push_module_export_name(identifier);
+      }
+    }
+
+    fn visit_jsx_element_name(&mut self, node: JsxElementName) {
+      match self.ast.jsx_element_name_data(node) {
+        JsxElementNameData::JsxIdentifier(identifier) => self.push_jsx_identifier(identifier),
+        JsxElementNameData::JsxMemberExpression(member) => self.visit_jsx_member_root(member),
+        JsxElementNameData::JsxNamespacedName(_) => {}
+      }
+    }
+  }
+
+  let mut collector = IdentCollector {
+    ast,
+    semantic,
+    ids: Vec::new(),
+    shorthand_binding: None,
+    skipped_class_expression_binding: None,
+  };
+  ast.root_program().visit_with(&mut collector);
+  collector.ids
+}
+
 pub fn analyze_module_scope(
   source: &str,
   jsx: bool,
   module_info: &mut ConcatenatedModuleInfo,
 ) -> Result<()> {
-  let analysis =
-    analyze_concatenated_module_identifiers(source, jsx, ConcatenatedModuleParseMode::Unambiguous)?;
+  let analysis = analyze_identifiers(source, jsx, SwcSourceType::Module)?;
   let identifiers = analysis.identifiers;
   module_info.module_ctxt = analysis.module_ctxt;
   module_info.global_ctxt = analysis.global_ctxt;
