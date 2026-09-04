@@ -15,8 +15,9 @@ use rspack_cacheable::{
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CodeGenerationDataItem, Compilation,
   CssAutoOrModuleParserOptions, CssBuildInfo, CssExportType, DependencyType, ExportsInfoArtifact,
-  GenerateContext, Module, ModuleGraph, ModuleIdentifier, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, ResolvedModuleOptions, RuntimeSpec, SourceType, UsageState,
+  GenerateContext, Module, ModuleGraph, ModuleIdentifier, NO_SOURCE_TYPE_LIST, NormalModule,
+  ParseContext, ParseResult, ParserAndGenerator, ParserOptions, ResolvedModuleOptions, RuntimeSpec,
+  SourceType, UsageState,
   rspack_sources::{BoxSource, Source},
 };
 pub use rspack_core::{CssExport, CssExports};
@@ -203,19 +204,33 @@ impl ParserAndGenerator for CssParserAndGenerator {
       return CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST;
     }
 
+    let incoming_connections = module_graph
+      .get_incoming_connections(&module.identifier())
+      .collect::<Vec<_>>();
+
     if self.exports_only {
-      return CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST;
+      let is_root_only = !incoming_connections.is_empty()
+        && incoming_connections
+          .iter()
+          .all(|conn| conn.original_module_identifier.is_none());
+      return if is_root_only {
+        NO_SOURCE_TYPE_LIST
+      } else {
+        CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST
+      };
     }
 
-    let no_need_js = module_graph
-      .get_incoming_connections(&module.identifier())
-      .all(|conn| {
-        let dep = module_graph.dependency_by_id(&conn.dependency_id);
-        matches!(
-          dep.dependency_type(),
-          DependencyType::CssImport | DependencyType::EsmImport
-        )
-      });
+    let no_need_js = incoming_connections.iter().all(|conn| {
+      if conn.original_module_identifier.is_none() {
+        return true;
+      }
+
+      let dep = module_graph.dependency_by_id(&conn.dependency_id);
+      matches!(
+        dep.dependency_type(),
+        DependencyType::CssImport | DependencyType::EsmImport
+      )
+    });
 
     if no_need_js {
       CSS_MODULE_SOURCE_TYPE_LIST
