@@ -256,21 +256,14 @@ fn clone_block(
   module_graph: &ModuleGraph,
   block_id: &AsyncDependenciesBlockIdentifier,
 ) -> Option<Box<AsyncDependenciesBlock>> {
-  let Some(source) = module_graph.block_by_id(block_id) else {
-    return None;
-  };
+  let source = module_graph.block_by_id(block_id)?;
   let mut block = source.clone();
-  let Some(dependencies) = clone_dependencies(module_graph, source.get_dependencies()) else {
-    return None;
-  };
+  let dependencies = clone_dependencies(module_graph, source.get_dependencies())?;
   let blocks = source
     .get_blocks()
     .iter()
     .map(|block_id| clone_block(module_graph, block_id))
-    .collect::<Option<Vec<_>>>();
-  let Some(blocks) = blocks else {
-    return None;
-  };
+    .collect::<Option<Vec<_>>>()?;
   block.restore_build_result(dependencies, blocks);
   Some(Box::new(block))
 }
