@@ -15,7 +15,7 @@ pub struct InferAsyncModulesPlugin;
 #[plugin_hook(CompilationFinishModules for InferAsyncModulesPlugin)]
 async fn finish_modules(
   &self,
-  compilation: &Compilation,
+  compilation: &mut Compilation,
   async_modules_artifact: &mut AsyncModulesArtifact,
   _exports_info_artifact: &mut ExportsInfoArtifact,
   _side_effects_state_artifact: &mut SideEffectsStateArtifact,

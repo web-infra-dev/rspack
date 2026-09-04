@@ -168,7 +168,7 @@ async fn nmf_module(
 #[plugin_hook(CompilationFinishModules for SideEffectsFlagPlugin, stage = SIDE_EFFECTS_FLAG_PLUGIN_STAGE)]
 async fn finish_modules(
   &self,
-  compilation: &Compilation,
+  compilation: &mut Compilation,
   _modules: &mut AsyncModulesArtifact,
   exports_info_artifact: &mut ExportsInfoArtifact,
   side_effects_state_artifact: &mut SideEffectsStateArtifact,

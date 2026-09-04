@@ -439,7 +439,7 @@ async fn finish_make(&self, _compilation: &mut Compilation) -> Result<()> {
 #[plugin_hook(CompilationFinishModules for ProgressPlugin)]
 async fn finish_modules(
   &self,
-  _compilation: &Compilation,
+  _compilation: &mut Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
   _exports_info_artifact: &mut ExportsInfoArtifact,
   _side_effects_state_artifact: &mut SideEffectsStateArtifact,
