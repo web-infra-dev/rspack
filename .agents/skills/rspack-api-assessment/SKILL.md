@@ -98,16 +98,14 @@ Determine the strongest reason for and against the API internally, but report on
 
 ## Present the result
 
-Return only the following seven labeled lines, with exactly one concise sentence per line and no headings, preamble, recap, table, or separate source list; place any necessary citation inline:
+Return only the following Markdown list, with exactly seven single-sentence items and no headings, preamble, recap, table, or separate source list; place any necessary citation inline:
 
-```text
-Function: <what the API does>
-Use case: <the concrete problem it solves>
-Replaceability: <whether existing Rspack APIs or hooks can replace it, including the key difference>
-Performance impact: <the main unused-path and active-path costs>
-Architectural impact: <the most important architectural benefit or cost>
-webpack usage: <the number and breadth of independent real-world usages>
-Verdict: <add, keep, defer, or reject, with the decisive reason>
-```
+- **Function:** <what the API does>.
+- **Use case:** <the concrete problem it solves>.
+- **Replaceability:** <whether existing Rspack APIs or hooks can replace it, including the key difference>.
+- **Performance impact:** <the main unused-path and active-path costs>.
+- **Architectural impact:** <the most important architectural benefit or cost>.
+- **webpack usage:** <the number and breadth of independent real-world usages>.
+- **Verdict:** <add, keep, defer, or reject, with the decisive reason>.
 
-Only when `Replaceability` is an evidence-backed “yes” and existing Rspack APIs or hooks preserve the required behavior, append `Compatibility implementation:` followed by one minimal code block at the very end. Keep the snippet to the essential calls, normally no more than 12 non-empty lines; for partial, uncertain, or semantically different alternatives, output no code.
+Only when `Replaceability` is an evidence-backed “yes” and existing Rspack APIs or hooks preserve the required behavior, append an eighth `**Compatibility implementation:**` list item containing one minimal code block. Keep the snippet to the essential calls, normally no more than 12 non-empty lines; for partial, uncertain, or semantically different alternatives, output no code.
