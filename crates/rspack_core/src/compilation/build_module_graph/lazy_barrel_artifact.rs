@@ -6,7 +6,7 @@ use rspack_collections::IdentifierMap;
 use rspack_intern::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::{BoxDependency, DependencyId, DependencyRef, ModuleIdentifier};
+use crate::{DependencyId, DependencyRef, ModuleIdentifier};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum ForwardId {
@@ -86,7 +86,7 @@ impl LazyDependencies {
     self.request_to_dependencies.is_empty() && self.fallback_dependencies.is_empty()
   }
 
-  pub fn insert(&mut self, dependency: &BoxDependency, until: LazyUntil) {
+  pub fn insert(&mut self, dependency: &DependencyRef, until: LazyUntil) {
     if matches!(&until, LazyUntil::Fallback) {
       self.fallback_dependencies.insert(*dependency.id());
     } else if let LazyUntil::Local(forward_id) = &until {

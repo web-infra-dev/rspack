@@ -7,8 +7,8 @@ use super::{
   TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CacheFacade,
-  CompilationId, CompilerId, CompilerOptions, DependencyParents, FileSystemInfo,
+  AsyncDependenciesBlock, BoxModule, BuildContext, BuildResult, CacheFacade, CompilationId,
+  CompilerId, CompilerOptions, DependencyParents, DependencyRef, FileSystemInfo,
   ModuleCodeTemplate, ResolverFactory, SharedPluginDriver,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
   utils::{
@@ -148,7 +148,7 @@ impl Task<TaskContext> for BuildResultTask {
     let mut lazy_dependencies = LazyDependencies::default();
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
-    let mut handle_block = |dependencies: Vec<BoxDependency>,
+    let mut handle_block = |dependencies: Vec<DependencyRef>,
                             blocks: Vec<Box<AsyncDependenciesBlock>>,
                             current_block: Option<Box<AsyncDependenciesBlock>>|
      -> Vec<Box<AsyncDependenciesBlock>> {
@@ -169,7 +169,7 @@ impl Task<TaskContext> for BuildResultTask {
             index_in_block,
           },
         );
-        module_graph.add_dependency(dependency);
+        module_graph.add_dependency_ref(dependency);
       }
       if let Some(current_block) = current_block {
         module.add_block_id(current_block.identifier());
@@ -181,7 +181,11 @@ impl Task<TaskContext> for BuildResultTask {
     queue.extend(blocks);
 
     while let Some(mut block) = queue.pop_front() {
-      let dependencies = block.take_dependencies();
+      let dependencies = block
+        .take_dependencies()
+        .into_iter()
+        .map(Into::into)
+        .collect();
       let blocks = handle_block(dependencies, block.take_blocks(), Some(block));
       queue.extend(blocks);
     }

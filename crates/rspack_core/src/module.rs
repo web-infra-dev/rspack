@@ -28,16 +28,17 @@ use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
-  AsyncDependenciesBlock, BindingCell, BoxDependency, CacheFacade, ChunkGraph, ChunkUkey,
+  AsyncDependenciesBlock, BindingCell, CacheFacade, ChunkGraph, ChunkUkey,
   CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation, CompilationAsset,
   CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
   ContextModule, CssExportType, DependenciesBlock, DependencyCodeGenerationRef, DependencyId,
-  ExportProvided, ExportsInfoArtifact, ExternalModule, FileSystemInfo, Filename, GetTargetResult,
-  ImportPhase, ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType,
-  NormalModule, OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec,
-  SelfModule, SharedPluginDriver, SideEffectsStateArtifact, Snapshot, SourceType,
-  concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
-  get_target, value_cache_versions::ValueCacheVersions,
+  DependencyRef, ExportProvided, ExportsInfoArtifact, ExternalModule, FileSystemInfo, Filename,
+  GetTargetResult, ImportPhase, ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleLayer, ModuleType, NormalModule, OptimizationBailoutItem, RawModule, Resolve,
+  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SideEffectsStateArtifact, Snapshot,
+  SourceType, concatenated_module::ConcatenatedModule,
+  dependencies_block::dependencies_block_update_hash, get_target,
+  value_cache_versions::ValueCacheVersions,
 };
 
 pub struct BuildContext {
@@ -658,8 +659,8 @@ impl RspackHash for ExportsArgument {
 #[derive(Debug)]
 pub struct BuildResult {
   pub module: BoxModule,
-  /// Whether the result is cacheable, i.e shared between builds.
-  pub dependencies: Vec<BoxDependency>,
+  /// Dependencies are shared after the module build finishes.
+  pub dependencies: Vec<DependencyRef>,
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
   pub optimization_bailouts: Vec<OptimizationBailoutItem>,
 }
