@@ -143,15 +143,7 @@ impl ModuleGraphConnection {
   ) -> napi::Result<JsConnectionState> {
     self.with_ref(|compilation, module_graph| {
       if let Some(connection) = module_graph.connection_by_dependency_id(&self.dependency_id) {
-        // When exports_info_artifact is stolen (e.g. during finishModules hook),
-        // we cannot evaluate conditional connections properly, so we need the
-        // real artifact to get accurate results.
-        let Some(exports_info_artifact) = compilation.exports_info_artifact.try_read() else {
-          // Fallback: without exports info, non-conditional connections return
-          // their raw active state; conditional ones are treated as active since
-          // the optimization phase hasn't run yet.
-          return Ok(JsConnectionState::Bool(true));
-        };
+        let exports_info_artifact = &compilation.exports_info_artifact;
         let runtime_spec = runtime.map(|r| {
           let mut set = ustr::UstrSet::default();
           match r {

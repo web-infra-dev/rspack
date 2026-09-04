@@ -3,13 +3,12 @@ use std::sync::LazyLock;
 use futures::future::join_all;
 use regex::Regex;
 use rspack_core::{
-  AsyncModulesArtifact, BoxModule, CanInlineUse, Chunk, ChunkUkey,
-  CodeGenerationDataTopLevelDeclarations, Compilation,
+  BoxModule, CanInlineUse, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
-  CompilerCompilation, EntryData, ExportProvided, ExportsInfoArtifact, Filename, LibraryExport,
-  LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeVariable, SideEffectsStateArtifact,
-  SourceType, UsageState, get_entry_runtime, property_access,
+  CompilerCompilation, EntryData, ExportProvided, Filename, LibraryExport, LibraryName,
+  LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin, RuntimeCodeTemplate,
+  RuntimeGlobals, RuntimeModule, RuntimeVariable, SourceType, UsageState, get_entry_runtime,
+  property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -440,13 +439,7 @@ async fn strict_runtime_bailout(
 }
 
 #[plugin_hook(CompilationFinishModules for AssignLibraryPlugin)]
-async fn finish_modules(
-  &self,
-  compilation: &Compilation,
-  _async_modules_artifact: &mut AsyncModulesArtifact,
-  exports_info_artifact: &mut ExportsInfoArtifact,
-  _side_effects_state_artifact: &mut SideEffectsStateArtifact,
-) -> Result<()> {
+async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   let module_graph = compilation.get_module_graph();
   let mut runtime_info = Vec::with_capacity(compilation.entries.len());
   for (entry_name, entry) in compilation.entries.iter() {
@@ -484,6 +477,7 @@ async fn finish_modules(
     }
   }
 
+  let exports_info_artifact = &mut compilation.exports_info_artifact;
   for (runtime, export, module_identifier) in runtime_info {
     if let Some(export) = export {
       let export_info = exports_info_artifact

@@ -14,8 +14,8 @@ use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  BindingCell, Compilation, CompilationId, DependencyRef, EntryOptions, ExportsInfoArtifact,
-  ModuleIdentifier, OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,
+  BindingCell, Compilation, CompilationId, DependencyRef, EntryOptions, ModuleIdentifier,
+  OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,
 };
 use rspack_error::{Diagnostic, Severity, ToStringResultToRspackResultExt};
 use rspack_napi::napi::bindgen_prelude::*;
@@ -87,23 +87,6 @@ impl JsCompilation {
     // SAFETY: The memory address of rspack_core::Compilation will not change,
     // so as long as the Compiler is not dropped, we can safely return a 'static reference.
     Ok(unsafe { self.inner.as_mut() })
-  }
-
-  pub(crate) fn exports_info_artifact_mut(
-    &mut self,
-  ) -> napi::Result<&'static mut ExportsInfoArtifact> {
-    let compilation = self.as_mut()?;
-    if let Some(ptr) = compilation.compiler_context.exports_info_artifact_ptr() {
-      // SAFETY: pointer is injected by binding hook phases and valid in current scope.
-      return Ok(unsafe { &mut *(ptr as *mut ExportsInfoArtifact) });
-    }
-    if let Some(exports_info_artifact) = compilation.exports_info_artifact.try_write() {
-      return Ok(exports_info_artifact);
-    }
-    Err(napi::Error::new(
-      napi::Status::GenericFailure,
-      "Cannot mutate exports info artifact after it was stolen from compilation.".to_string(),
-    ))
   }
 }
 
@@ -651,9 +634,6 @@ impl JsCompilation {
     let compilation = self
       .as_mut()
       .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
-    let exports_info_artifact = self
-      .exports_info_artifact_mut()
-      .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
     let compiler_context = compilation.compiler_context.clone();
     callbackify(
       f,
@@ -666,7 +646,6 @@ impl JsCompilation {
               .into_iter()
               .map(ModuleIdentifier::from)
               .collect::<IdentifierSet>(),
-            exports_info_artifact,
             |modules| {
               modules
                 .into_iter()

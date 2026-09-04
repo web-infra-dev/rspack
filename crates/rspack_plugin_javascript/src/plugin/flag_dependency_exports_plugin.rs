@@ -1,11 +1,11 @@
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules, DependencyId,
+  BuildMetaExportsType, Compilation, CompilationFinishModules, DependencyId,
   EvaluatedInlinableValue, ExportInfo, ExportInfoData, ExportNameOrSpec, ExportProvided,
   ExportsInfo, ExportsInfoArtifact, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec,
   GetTargetResult, Logger, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleIdentifier, Nullable, Plugin, SideEffectsStateArtifact, get_target,
+  ModuleIdentifier, Nullable, Plugin, get_target,
   incremental::{self, IncrementalPasses},
 };
 use rspack_error::Result;
@@ -195,14 +195,8 @@ pub struct FlagDependencyExportsPlugin;
 pub static FLAG_DEPENDENCY_EXPORTS_STAGE: i32 = 0;
 
 #[plugin_hook(CompilationFinishModules for FlagDependencyExportsPlugin, stage = FLAG_DEPENDENCY_EXPORTS_STAGE)]
-async fn finish_modules(
-  &self,
-  compilation: &Compilation,
-  _async_modules_artifact: &mut AsyncModulesArtifact,
-  exports_info_artifact: &mut ExportsInfoArtifact,
-  _side_effects_state_artifact: &mut SideEffectsStateArtifact,
-) -> Result<()> {
-  let module_graph = compilation.get_module_graph();
+async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+  let module_graph = &compilation.build_module_graph_artifact.module_graph;
   let modules: IdentifierSet = if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::FINISH_MODULES)
@@ -221,8 +215,12 @@ async fn finish_modules(
   };
   let module_graph_cache = compilation.module_graph_cache_artifact.clone();
 
-  FlagDependencyExportsState::new(module_graph, &module_graph_cache, exports_info_artifact)
-    .apply(modules);
+  FlagDependencyExportsState::new(
+    module_graph,
+    &module_graph_cache,
+    &mut compilation.exports_info_artifact,
+  )
+  .apply(modules);
 
   Ok(())
 }

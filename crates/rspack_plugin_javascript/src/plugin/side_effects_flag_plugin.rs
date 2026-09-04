@@ -3,13 +3,12 @@ use std::{borrow::Cow, fmt::Debug};
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsyncModulesArtifact, BoxModule, Compilation, CompilationFinishModules,
-  CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta, DependencyId,
-  ExportsInfoArtifact, FactoryMeta, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
-  OptimizationBailoutItem, Plugin, ResolvedExportInfoTarget, SideEffectsDoOptimize,
-  SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact, SideEffectsState,
-  SideEffectsStateArtifact,
+  BoxModule, Compilation, CompilationFinishModules, CompilationOptimizeDependencies,
+  ConnectionState, DependencyExtraMeta, DependencyId, ExportsInfoArtifact, FactoryMeta,
+  GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph, ModuleGraphConnection,
+  ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule, OptimizationBailoutItem,
+  Plugin, ResolvedExportInfoTarget, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
+  SideEffectsOptimizeArtifact, SideEffectsState,
   build_module_graph::BuildModuleGraphArtifact,
   can_move_target, get_target,
   incremental::{self, IncrementalPasses, Mutation},
@@ -166,13 +165,8 @@ async fn nmf_module(
 
 // run after exports info are set
 #[plugin_hook(CompilationFinishModules for SideEffectsFlagPlugin, stage = SIDE_EFFECTS_FLAG_PLUGIN_STAGE)]
-async fn finish_modules(
-  &self,
-  compilation: &Compilation,
-  _modules: &mut AsyncModulesArtifact,
-  exports_info_artifact: &mut ExportsInfoArtifact,
-  side_effects_state_artifact: &mut SideEffectsStateArtifact,
-) -> Result<()> {
+async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+  let exports_info_artifact = &compilation.exports_info_artifact;
   let modules: IdentifierSet = compilation
     .get_module_graph()
     .modules()
@@ -214,6 +208,9 @@ async fn finish_modules(
     ));
   }
 
+  let side_effects_state_artifact = &mut compilation
+    .build_module_graph_artifact
+    .side_effects_state_artifact;
   side_effects_state_artifact.clear();
   for (module_id, side_effect_free, has_impure_deferred_check) in deferred_side_effect_states {
     side_effects_state_artifact.insert(

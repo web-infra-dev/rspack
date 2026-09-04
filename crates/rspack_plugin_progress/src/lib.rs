@@ -12,16 +12,16 @@ use futures::future::BoxFuture;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  AsyncModulesArtifact, BoxModule, ChunkByUkey, ChunkNamedIdArtifact, CircularModulesInfo,
-  Compilation, CompilationAfterOptimizeModules, CompilationAfterProcessAssets,
-  CompilationBuildModule, CompilationChunkIds, CompilationFinishModules, CompilationId,
-  CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
-  CompilationOptimizeCodeGeneration, CompilationOptimizeDependencies, CompilationOptimizeModules,
-  CompilationOptimizeTree, CompilationParams, CompilationProcessAssets, CompilationSeal,
-  CompilationSucceedModule, CompilerAfterEmit, CompilerClose, CompilerCompilation, CompilerEmit,
-  CompilerFinishMake, CompilerId, CompilerMake, CompilerThisCompilation, ExportsInfoArtifact,
-  ModuleIdentifier, ModuleIdsArtifact, Plugin, SideEffectsOptimizeArtifact,
-  SideEffectsStateArtifact, build_module_graph::BuildModuleGraphArtifact,
+  BoxModule, ChunkByUkey, ChunkNamedIdArtifact, CircularModulesInfo, Compilation,
+  CompilationAfterOptimizeModules, CompilationAfterProcessAssets, CompilationBuildModule,
+  CompilationChunkIds, CompilationFinishModules, CompilationId, CompilationModuleIds,
+  CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationOptimizeCodeGeneration,
+  CompilationOptimizeDependencies, CompilationOptimizeModules, CompilationOptimizeTree,
+  CompilationParams, CompilationProcessAssets, CompilationSeal, CompilationSucceedModule,
+  CompilerAfterEmit, CompilerClose, CompilerCompilation, CompilerEmit, CompilerFinishMake,
+  CompilerId, CompilerMake, CompilerThisCompilation, ExportsInfoArtifact, ModuleIdentifier,
+  ModuleIdsArtifact, Plugin, SideEffectsOptimizeArtifact,
+  build_module_graph::BuildModuleGraphArtifact,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -437,13 +437,7 @@ async fn finish_make(&self, _compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationFinishModules for ProgressPlugin)]
-async fn finish_modules(
-  &self,
-  _compilation: &Compilation,
-  _async_modules_artifact: &mut AsyncModulesArtifact,
-  _exports_info_artifact: &mut ExportsInfoArtifact,
-  _side_effects_state_artifact: &mut SideEffectsStateArtifact,
-) -> Result<()> {
+async fn finish_modules(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("finish modules", 0).await
 }
 

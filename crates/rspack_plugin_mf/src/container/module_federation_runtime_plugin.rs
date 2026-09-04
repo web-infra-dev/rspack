@@ -5,10 +5,9 @@
 
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  AsyncModulesArtifact, BoxDependency, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationFinishModules, CompilationParams,
-  CompilerCompilation, CompilerFinishMake, DependencyType, EntryOptions, ExportsInfoArtifact,
-  Plugin, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact,
+  BoxDependency, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationFinishModules, CompilationParams, CompilerCompilation, CompilerFinishMake,
+  DependencyType, EntryOptions, Plugin, RuntimeGlobals, RuntimeModule,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -107,18 +106,13 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
 // renderers (e.g. library wrappers) can safely `await` exports without sprinkling MF-specific
 // RuntimeGlobals checks across generic plugins.
 #[plugin_hook(CompilationFinishModules for ModuleFederationRuntimePlugin, stage = 1000)]
-async fn finish_modules(
-  &self,
-  compilation: &Compilation,
-  async_modules_artifact: &mut AsyncModulesArtifact,
-  _exports_info_artifact: &mut ExportsInfoArtifact,
-  _side_effects_state_artifact: &mut SideEffectsStateArtifact,
-) -> Result<()> {
+async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   if !self.options.experiments.async_startup {
     return Ok(());
   }
 
-  let module_graph = compilation.get_module_graph();
+  let module_graph = &compilation.build_module_graph_artifact.module_graph;
+  let async_modules_artifact = &mut compilation.async_modules_artifact;
   for (module_identifier, module) in module_graph.modules() {
     if module
       .as_ref()

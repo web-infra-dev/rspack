@@ -9,18 +9,18 @@ use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
-  ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact, ChunkUkey,
-  Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationAdditionalModuleRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
-  CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationOptimizeDependencies,
-  CompilationParams, CompilationProcessAssets, CompilationRuntimeRequirementInTree,
-  CompilerCompilation, ConcatenatedModuleInfo, ConcatenationScope, DependencyType,
-  ExportsInfoArtifact, ExternalModuleInfo, GetTargetResult, JavascriptParserUrl, Logger,
-  ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType,
-  NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
-  Plugin, REQUIRE_SCOPE_GLOBALS, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
-  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, get_target, is_esm_dep_like,
+  ApplyContext, AssetInfo, BoxModule, BuildModuleGraphArtifact, ChunkUkey, Compilation,
+  CompilationAdditionalChunkRuntimeRequirements, CompilationAdditionalModuleRuntimeRequirements,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration,
+  CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunkModules,
+  CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationParams,
+  CompilationProcessAssets, CompilationRuntimeRequirementInTree, CompilerCompilation,
+  ConcatenatedModuleInfo, ConcatenationScope, DependencyType, ExportsInfoArtifact,
+  ExternalModuleInfo, GetTargetResult, JavascriptParserUrl, Logger, ModuleFactoryCreateData,
+  ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, REQUIRE_SCOPE_GLOBALS,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact, get_target,
+  is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -309,13 +309,7 @@ async fn render_chunk_content(
 }
 
 #[plugin_hook(CompilationFinishModules for EsmLibraryPlugin, stage = 100)]
-async fn finish_modules(
-  &self,
-  compilation: &Compilation,
-  _async_modules_artifact: &mut AsyncModulesArtifact,
-  exports_info_artifact: &mut ExportsInfoArtifact,
-  _side_effects_state_artifact: &mut SideEffectsStateArtifact,
-) -> Result<()> {
+async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   let module_graph = compilation.get_module_graph();
   // mark all entry exports as used
   let mut entry_modules = IdentifierSet::default();
@@ -329,7 +323,8 @@ async fn finish_modules(
   }
 
   for m in entry_modules {
-    exports_info_artifact
+    compilation
+      .exports_info_artifact
       .get_exports_info_data_mut(&m)
       .set_used_in_unknown_way(None);
   }

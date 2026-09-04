@@ -1,5 +1,4 @@
 use std::{
-  ffi::c_void,
   hash::Hash,
   marker::PhantomData,
   ptr::NonNull,
@@ -14,35 +13,35 @@ use napi::{
 };
 use rspack_collections::{Identifier, IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AfterResolveResult, AssetEmittedInfo, AsyncModulesArtifact, BeforeResolveResult, BindingCell,
-  BoxModule, ChunkGraph, ChunkUkey, CircularModulesInfo, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirementsHook,
-  CompilationAfterOptimizeModules, CompilationAfterOptimizeModulesHook,
-  CompilationAfterProcessAssets, CompilationAfterProcessAssetsHook, CompilationAfterSeal,
-  CompilationAfterSealHook, CompilationBeforeModuleIds, CompilationBeforeModuleIdsHook,
-  CompilationBuildModule, CompilationBuildModuleHook, CompilationChunkAsset,
-  CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
-  CompilationExecuteModule, CompilationExecuteModuleHook, CompilationFinishModules,
-  CompilationFinishModulesHook, CompilationId, CompilationOptimizeChunkModules,
-  CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
-  CompilationOptimizeTree, CompilationOptimizeTreeHook, CompilationParams,
-  CompilationProcessAssets, CompilationProcessAssetsHook, CompilationRuntimeModule,
-  CompilationRuntimeModuleHook, CompilationRuntimeRequirementInTree,
-  CompilationRuntimeRequirementInTreeHook, CompilationSeal, CompilationSealHook,
-  CompilationStillValidModule, CompilationStillValidModuleHook, CompilationSucceedModule,
-  CompilationSucceedModuleHook, CompilerAfterCompile, CompilerAfterCompileHook, CompilerAfterEmit,
-  CompilerAfterEmitHook, CompilerAssetEmitted, CompilerAssetEmittedHook, CompilerCompilation,
-  CompilerCompilationHook, CompilerEmit, CompilerEmitHook, CompilerFinishMake,
-  CompilerFinishMakeHook, CompilerId, CompilerMake, CompilerMakeHook, CompilerShouldEmit,
-  CompilerShouldEmitHook, CompilerThisCompilation, CompilerThisCompilationHook,
-  ContextModuleFactoryAfterResolve, ContextModuleFactoryAfterResolveHook,
-  ContextModuleFactoryBeforeResolve, ContextModuleFactoryBeforeResolveHook, ExecuteModuleId,
-  ExternalModuleChunkCondition, ExternalModuleChunkConditionHook, Module, ModuleFactoryCreateData,
-  ModuleId, ModuleIdentifier, ModuleIdsArtifact, NormalModuleCreateData,
-  NormalModuleFactoryAfterResolve, NormalModuleFactoryAfterResolveHook,
-  NormalModuleFactoryBeforeResolve, NormalModuleFactoryBeforeResolveHook,
-  NormalModuleFactoryCreateModule, NormalModuleFactoryCreateModuleHook,
-  NormalModuleFactoryFactorize, NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
+  AfterResolveResult, AssetEmittedInfo, BeforeResolveResult, BindingCell, BoxModule, ChunkGraph,
+  ChunkUkey, CircularModulesInfo, Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationAdditionalTreeRuntimeRequirementsHook, CompilationAfterOptimizeModules,
+  CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
+  CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
+  CompilationBeforeModuleIds, CompilationBeforeModuleIdsHook, CompilationBuildModule,
+  CompilationBuildModuleHook, CompilationChunkAsset, CompilationChunkAssetHook,
+  CompilationChunkHash, CompilationChunkHashHook, CompilationExecuteModule,
+  CompilationExecuteModuleHook, CompilationFinishModules, CompilationFinishModulesHook,
+  CompilationId, CompilationOptimizeChunkModules, CompilationOptimizeChunkModulesHook,
+  CompilationOptimizeModules, CompilationOptimizeModulesHook, CompilationOptimizeTree,
+  CompilationOptimizeTreeHook, CompilationParams, CompilationProcessAssets,
+  CompilationProcessAssetsHook, CompilationRuntimeModule, CompilationRuntimeModuleHook,
+  CompilationRuntimeRequirementInTree, CompilationRuntimeRequirementInTreeHook, CompilationSeal,
+  CompilationSealHook, CompilationStillValidModule, CompilationStillValidModuleHook,
+  CompilationSucceedModule, CompilationSucceedModuleHook, CompilerAfterCompile,
+  CompilerAfterCompileHook, CompilerAfterEmit, CompilerAfterEmitHook, CompilerAssetEmitted,
+  CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook, CompilerEmit,
+  CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerId, CompilerMake,
+  CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook, CompilerThisCompilation,
+  CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
+  ContextModuleFactoryAfterResolveHook, ContextModuleFactoryBeforeResolve,
+  ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, ExternalModuleChunkCondition,
+  ExternalModuleChunkConditionHook, Module, ModuleFactoryCreateData, ModuleId, ModuleIdentifier,
+  ModuleIdsArtifact, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
+  NormalModuleFactoryAfterResolveHook, NormalModuleFactoryBeforeResolve,
+  NormalModuleFactoryBeforeResolveHook, NormalModuleFactoryCreateModule,
+  NormalModuleFactoryCreateModuleHook, NormalModuleFactoryFactorize,
+  NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
   RuntimeModule, RuntimeModuleGenerateContext, Scheme,
@@ -1359,31 +1358,13 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
 
 #[async_trait]
 impl CompilationFinishModules for CompilationFinishModulesTap {
-  async fn run(
-    &self,
-    compilation: &Compilation,
-    _async_modules_artifact: &mut AsyncModulesArtifact,
-    exports_info_artifact: &mut rspack_core::ExportsInfoArtifact,
-    _side_effects_state_artifact: &mut rspack_core::SideEffectsStateArtifact,
-  ) -> rspack_error::Result<()> {
+  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
     let compiler_context = compilation.compiler_context.clone();
-    let previous_ptr_addr = compiler_context
-      .exports_info_artifact_ptr()
-      .map_or(0usize, |ptr| ptr as usize);
-    compiler_context
-      .set_exports_info_artifact_ptr(Some(exports_info_artifact as *mut _ as *mut c_void));
-    let result = within_compiler_context(compiler_context.clone(), async {
+    within_compiler_context(compiler_context, async {
       let compilation = JsCompilationWrapper::new(compilation);
       self.function.call_with_promise(compilation).await
     })
-    .await;
-    let previous_ptr = if previous_ptr_addr == 0 {
-      None
-    } else {
-      Some(previous_ptr_addr as *mut c_void)
-    };
-    compiler_context.set_exports_info_artifact_ptr(previous_ptr);
-    result
+    .await
   }
 
   fn stage(&self) -> i32 {
