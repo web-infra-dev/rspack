@@ -3,14 +3,18 @@ use rspack_cacheable::{
   with::{AsCacheable, AsOption, AsPreset, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact, ReferencedSpecifier,
-  ResourceIdentifier, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyCondition, DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType,
+  DependencyType, ExportsInfoArtifact, ImportAttributes, ImportPhase, ModuleDependency,
+  ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier, TemplateContext,
+  TemplateReplaceSource, UsedByExports, create_exports_object_referenced,
   create_referenced_exports_by_referenced_specifiers,
 };
 
-use super::create_resource_identifier_for_esm_dependency;
+use super::{
+  create_resource_identifier_for_esm_dependency,
+  import_dependency::get_import_dependency_inner_graph_condition,
+};
 use crate::Atom;
 
 #[cacheable]
@@ -25,6 +29,7 @@ pub struct ImportEagerDependency {
   attributes: Option<ImportAttributes>,
   phase: ImportPhase,
   resource_identifier: ResourceIdentifier,
+  used_by_exports: Option<UsedByExports>,
 }
 
 impl ImportEagerDependency {
@@ -44,6 +49,7 @@ impl ImportEagerDependency {
       attributes,
       phase,
       resource_identifier,
+      used_by_exports: None,
     }
   }
 
@@ -59,6 +65,14 @@ impl ImportEagerDependency {
       return;
     }
     self.referenced_specifiers = Some(referenced_specifiers);
+  }
+
+  pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
+    self.used_by_exports = used_by_exports;
+  }
+
+  pub(super) fn used_by_exports(&self) -> Option<&UsedByExports> {
+    self.used_by_exports.as_ref()
   }
 }
 
@@ -139,6 +153,10 @@ impl ModuleDependency for ImportEagerDependency {
 
   fn user_request(&self) -> &str {
     &self.request
+  }
+
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    get_import_dependency_inner_graph_condition(self.used_by_exports.as_ref())
   }
 }
 

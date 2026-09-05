@@ -73,7 +73,7 @@ impl BuildChunkGraphArtifact {
     }
 
     let module_graph = this_compilation.get_module_graph();
-    let affected_modules = mutations.get_affected_modules_with_module_graph(module_graph);
+    let mut affected_modules = mutations.get_affected_modules_with_module_graph(module_graph);
     let previous_modules_map = &this_compilation
       .build_chunk_graph_artifact
       .code_splitter
@@ -83,6 +83,11 @@ impl BuildChunkGraphArtifact {
       logger.log("no cache detected, rebuilding chunk graph");
       return false;
     }
+
+    // A dependency condition may change when exports usage changes even if its
+    // owning module was not rebuilt. Revalidate every conditional module that
+    // contributed to the cached chunk graph in addition to mutated modules.
+    affected_modules.extend(self.code_splitter.cached_conditional_modules());
 
     for module in affected_modules {
       if !self

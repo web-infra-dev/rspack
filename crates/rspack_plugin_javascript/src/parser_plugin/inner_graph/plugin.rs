@@ -1,5 +1,5 @@
 use rspack_core::{
-  BoxDependency, Dependency, DependencyId, DependencyRange, UsedByExports,
+  AsyncDependenciesBlock, BoxDependency, Dependency, DependencyId, DependencyRange, UsedByExports,
   UsedByExportsDeferredPureCheck,
 };
 use rspack_util::SpanExt;
@@ -15,7 +15,10 @@ use super::state::{
 };
 use crate::{
   Atom,
-  dependency::{ESMImportSpecifierDependency, PureExpressionDependency, URLDependency},
+  dependency::{
+    ESMImportSpecifierDependency, ImportDependency, ImportEagerDependency,
+    PureExpressionDependency, URLDependency,
+  },
   parser_plugin::{DEFAULT_STAR_JS_WORD, JavascriptParserPlugin},
   side_effects_parser_plugin::{
     is_pure_class, is_pure_class_member, is_pure_expression, is_pure_function,
@@ -243,6 +246,7 @@ impl InnerGraphParserPlugin {
   pub fn finalize_dependency_usage(
     state: &mut InnerGraphState,
     dependencies: &mut [BoxDependency],
+    blocks: &mut [Box<AsyncDependenciesBlock>],
   ) {
     if !state.is_enabled() || state.usage_map.is_empty() {
       return;
@@ -295,34 +299,74 @@ impl InnerGraphParserPlugin {
       }
     }
 
+    let mut import_dependency_usage = HashMap::default();
     for (operation, used_by_exports) in
       Self::infer_dependency_usage(state, &deferred_pure_checks_by_symbol)
     {
-      let dep_idx = match operation {
-        InnerGraphUsageOperation::PureExpression(dep_idx)
-        | InnerGraphUsageOperation::ESMImportSpecifier(dep_idx)
-        | InnerGraphUsageOperation::URLDependency(dep_idx) => dep_idx,
-      };
-      let Some(dep) = dependencies.get_mut(dep_idx) else {
-        continue;
-      };
       match operation {
-        InnerGraphUsageOperation::PureExpression(_) => {
+        InnerGraphUsageOperation::PureExpression(dep_idx) => {
+          let Some(dep) = dependencies.get_mut(dep_idx) else {
+            continue;
+          };
           if let Some(dep) = dep.downcast_mut::<PureExpressionDependency>() {
             dep.set_used_by_exports(Some(used_by_exports));
           }
         }
-        InnerGraphUsageOperation::ESMImportSpecifier(_) => {
+        InnerGraphUsageOperation::ESMImportSpecifier(dep_idx) => {
+          let Some(dep) = dependencies.get_mut(dep_idx) else {
+            continue;
+          };
           if let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>() {
             dep.set_used_by_exports(Some(used_by_exports));
           }
         }
-        InnerGraphUsageOperation::URLDependency(_) => {
+        InnerGraphUsageOperation::URLDependency(dep_idx) => {
+          let Some(dep) = dependencies.get_mut(dep_idx) else {
+            continue;
+          };
           if let Some(dep) = dep.downcast_mut::<URLDependency>() {
             dep.set_used_by_exports(Some(used_by_exports));
           }
         }
+        InnerGraphUsageOperation::ImportDependency(dep_id) => {
+          import_dependency_usage.insert(dep_id, used_by_exports);
+        }
       }
+    }
+
+    if !import_dependency_usage.is_empty() {
+      fn apply_import_dependency_usage(
+        blocks: &mut [Box<AsyncDependenciesBlock>],
+        import_dependency_usage: &mut HashMap<DependencyId, UsedByExports>,
+      ) {
+        for block in blocks {
+          for dependency in block.dependencies_mut() {
+            if let Some(used_by_exports) = import_dependency_usage.remove(dependency.id()) {
+              if let Some(dependency) = dependency.downcast_mut::<ImportDependency>() {
+                dependency.set_used_by_exports(Some(used_by_exports));
+              } else {
+                unreachable!("dependencies in async blocks should be ImportDependency");
+              }
+            }
+          }
+          apply_import_dependency_usage(block.blocks_mut(), import_dependency_usage);
+        }
+      }
+
+      for dependency in dependencies {
+        if let Some(used_by_exports) = import_dependency_usage.remove(dependency.id()) {
+          if let Some(dependency) = dependency.downcast_mut::<ImportEagerDependency>() {
+            dependency.set_used_by_exports(Some(used_by_exports));
+          } else {
+            unreachable!("top-level import dependency should be ImportEagerDependency");
+          }
+        }
+      }
+      apply_import_dependency_usage(blocks, &mut import_dependency_usage);
+      assert!(
+        import_dependency_usage.is_empty(),
+        "inner graph import dependencies should exist in the module dependencies or an async dependencies block"
+      );
     }
   }
 
@@ -345,10 +389,10 @@ impl InnerGraphParserPlugin {
         .entry(symbol)
         .or_default()
         .push(operation);
-      // When inner graph is enabled but no top-level symbol, the expression is always used,
-      // so we skip adding PureExpressionDependency (same as UsedByExports::Bool(true))
+      // Without a top-level symbol, the dependency is always used, which is equivalent to not
+      // attaching UsedByExports (or attaching UsedByExports::Bool(true)).
     }
-    // When inner graph is disabled, we skip adding PureExpressionDependency (same as None)
+    // When inner graph is disabled, dependencies keep their default unconditional behavior.
   }
 
   pub fn tag_top_level_symbol(

@@ -1,0 +1,1 @@
+export const value = 'PERSISTENT_CACHE_EAGER_FEATURE_MARKER';
