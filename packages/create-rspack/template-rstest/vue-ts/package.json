@@ -7,8 +7,8 @@
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/vue": "^8.1.0",
-    "@rstest/adapter-rspack": "^0.11.10",
-    "@rstest/core": "^0.11.10",
+    "@rstest/adapter-rspack": "^0.11.12",
+    "@rstest/core": "^0.11.12",
     "happy-dom": "^20.14.0"
   }
 }
