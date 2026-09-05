@@ -111,7 +111,7 @@ Explain why the fix addresses the root cause, not merely what lines changed.
 
 After the visible report, put the entire translation in a collapsed block without a language-version heading:
 
-```html
+```text
 <details>
 <summary>Translation</summary>
 

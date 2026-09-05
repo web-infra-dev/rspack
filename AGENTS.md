@@ -106,7 +106,7 @@ Before running tests after code changes:
 - **Docs**: `website/docs/en/` (English), `website/docs/zh/` (Chinese)
 - **API**: `website/docs/en/api/`
 
-## Code Review Rules
+## Code review rules
 
 - When handling a GitHub Codex review request for a pull request, invoke `$rspack-pr-review` to prepare the overall review report.
 - Maintain one ordinary GitHub issue comment for the review report. Do not submit a GitHub review, approval, or request-changes event.
