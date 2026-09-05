@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use rayon::prelude::*;
 use rspack_cacheable::cacheable;
 use rspack_collections::{Identifiable, IdentifierMap};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -82,7 +85,7 @@ impl ModuleBuildCache {
       return Ok(None);
     }
 
-    Ok(Some(result.as_arc().as_ref().clone()))
+    Ok(Some(Arc::unwrap_or_clone(result.into_arc())))
   }
 
   /// Stores modules built during this phase from the final module graph.
@@ -137,22 +140,15 @@ impl ModuleBuildCache {
       .collect::<Vec<_>>();
 
     let module_graph = artifact.get_module_graph();
-    let cache_entries = rspack_parallel::scope::<_, Result<_>>(|token| {
-      for module_identifier in module_identifiers {
-        // SAFETY: the scope is awaited before the cache entries are published.
-        let task = unsafe { token.used((module_graph, self.persistent_codec.as_ref())) };
-        task.spawn(move |(module_graph, codec)| async move {
-          Ok((
-            module_identifier,
-            create_cache_entry(module_graph, module_identifier, codec),
-          ))
-        });
-      }
-    })
-    .await
-    .into_iter()
-    .map(|result| result.to_rspack_result().and_then(|result| result))
-    .collect::<Result<Vec<_>>>()?;
+    let cache_entries = module_identifiers
+      .into_par_iter()
+      .map(|identifier| {
+        (
+          identifier,
+          create_cache_entry(module_graph, identifier, self.persistent_codec.as_ref()),
+        )
+      })
+      .collect::<Vec<_>>();
 
     for (module_identifier, entry) in cache_entries {
       let entry = match entry {

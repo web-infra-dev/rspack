@@ -36,7 +36,7 @@ pub struct TaskContext {
   pub runtime_template: RuntimeTemplate,
   pub(crate) cache: Cache,
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
-  pub value_cache_versions: ValueCacheVersions,
+  pub value_cache_versions: Arc<ValueCacheVersions>,
   pub(crate) make_session: Arc<MakeSession>,
   pub(crate) rebuild_modules: IdentifierSet,
 
@@ -71,7 +71,7 @@ impl TaskContext {
       make_session,
       rebuild_modules: Default::default(),
       cache: compilation.cache.clone(),
-      value_cache_versions: compilation.value_cache_versions.clone(),
+      value_cache_versions: Arc::new(compilation.value_cache_versions.clone()),
       artifact,
       exports_info_artifact,
     }
