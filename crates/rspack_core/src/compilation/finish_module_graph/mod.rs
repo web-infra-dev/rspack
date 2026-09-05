@@ -35,6 +35,6 @@ pub async fn finish_build_module_graph_pass(compilation: &mut Compilation) -> Re
       .await?;
     compilation.module_executor = Some(module_executor);
   }
-  // make finished, make artifact should be readonly thereafter.
+  // finishModules hooks may still rebuild modules before the graph is checkpointed.
   Ok(())
 }

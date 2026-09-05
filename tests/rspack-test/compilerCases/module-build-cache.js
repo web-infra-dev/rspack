@@ -47,7 +47,7 @@ function readOutput(root) {
 }
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
-module.exports = [false].flatMap((cache) =>
+module.exports = [false, true].flatMap((cache) =>
   [false, true].map((incremental) => {
     let root;
     let built;
@@ -166,12 +166,104 @@ module.exports = [false].flatMap((cache) =>
   }),
 );
 
+module.exports.push(
+  ...[false, true].map((incremental) => ({
+    description: `should cache the final explicit rebuild after finishModules with incremental=${incremental}`,
+    options(context) {
+      const root = context.getDist(`explicit-rebuild-${incremental}`);
+      context.setValue("root", root);
+      context.setValue("builds", []);
+      fs.rmSync(root, { recursive: true, force: true });
+      write(path.join(root, "src/index.js"), 'module.exports = "original";');
+      write(
+        path.join(root, "loader.js"),
+        "module.exports = function(source) { return this.replacement || source; };",
+      );
+      return {
+        context: path.join(root, "src"),
+        mode: "development",
+        devtool: false,
+        target: "node",
+        entry: "./index.js",
+        cache: true,
+        incremental,
+        experiments: { newCache },
+        module: {
+          rules: [{ test: /index\.js$/, loader: path.join(root, "loader.js") }],
+        },
+        output: {
+          path: path.join(root, "dist"),
+          filename: "main.js",
+          library: { type: "commonjs2" },
+        },
+        plugins: [
+          {
+            apply(compiler) {
+              let replacement;
+              compiler.hooks.compilation.tap(
+                "ExplicitRebuild",
+                (compilation) => {
+                  compiler.rspack.NormalModule.getCompilationHooks(
+                    compilation,
+                  ).loader.tap("ExplicitRebuild", (loaderContext) => {
+                    loaderContext.replacement = replacement;
+                  });
+                  compilation.hooks.buildModule.tap(
+                    "ExplicitRebuild",
+                    (module) => {
+                      if (module.resource)
+                        context
+                          .getValue("builds")
+                          .push(path.basename(module.resource));
+                    },
+                  );
+                  compilation.hooks.finishModules.tapPromise(
+                    "ExplicitRebuild",
+                    async (modules) => {
+                      if (!context.getValue("rebuild")) return;
+                      context.setValue("rebuild", false);
+                      replacement = 'module.exports = "rebuilt";';
+                      const module = [...modules].find(
+                        (module) =>
+                          module.resource === path.join(root, "src/index.js"),
+                      );
+                      await new Promise((resolve, reject) =>
+                        compilation.rebuildModule(module, (error) =>
+                          error ? reject(error) : resolve(),
+                        ),
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          },
+        ],
+      };
+    },
+    compiler(_, compiler) {
+      compiler.outputFileSystem = fs;
+    },
+    async build(context, compiler) {
+      const root = context.getValue("root");
+      await run(compiler);
+      expect(readOutput(root)).toBe("original");
+      context.setValue("rebuild", true);
+      await run(compiler);
+      expect(readOutput(root)).toBe("rebuilt");
+      expect(context.getValue("builds")).toEqual(["index.js", "index.js"]);
+      await run(compiler);
+      expect(readOutput(root)).toBe("rebuilt");
+      expect(context.getValue("builds")).toEqual(["index.js", "index.js"]);
+    },
+  })),
+);
 
 const mainEntry = 'export { default } from "./shared.js";';
 const executorEntry = 'export { default } from "./macro.txt";';
 
 module.exports.push(
-  ...["persistent"].flatMap((cacheType) =>
+  ...["memory", "persistent"].flatMap((cacheType) =>
     [false, true].map((executionFirst) => ({
       description: `should share ${cacheType} module builds from ${executionFirst ? "importModule" : "the main graph"} to ${executionFirst ? "the main graph" : "importModule"}`,
       options(context) {
@@ -260,6 +352,24 @@ module.exports.push(
         expect(readOutput(root).default).toBe("initial");
         expect(builds()).toBe(2);
 
+        // Both graphs can install the same cached dependency tree in one compilation.
+        write(
+          index,
+          'import generated from "./macro.txt"; import value from "./shared.js"; export default [generated, value];',
+        );
+        await run(activeCompiler, [index]);
+        expect(readOutput(root).default).toEqual(["initial", "initial"]);
+        expect(builds()).toBe(2);
+
+        const leaf = path.join(root, "src/leaf.js");
+        write(leaf, 'export default "updated";');
+        await run(activeCompiler, [leaf]);
+        expect(readOutput(root).default).toEqual(["updated", "updated"]);
+        expect(builds()).toBe(4);
+
+        await run(activeCompiler);
+        expect(readOutput(root).default).toEqual(["updated", "updated"]);
+        expect(builds()).toBe(4);
       },
     })),
   ),

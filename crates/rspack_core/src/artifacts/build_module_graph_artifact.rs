@@ -8,7 +8,7 @@ use crate::{
   ArtifactExt, BuildDependency, BuildResult, DependencyId, DependencyParents, DependencyRef,
   FactorizationArtifact, FactorizeInfo, ModuleGraph, ModuleIdentifier, SideEffectsStateArtifact,
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
-  incremental::IncrementalPasses,
+  incremental::{IncrementalPasses, Mutation},
   incremental_info::IncrementalInfo,
   module_graph::ModuleBuildData,
   utils::{FileCounter, ResourceId},
@@ -82,6 +82,35 @@ impl BuildModuleGraphArtifact {
   }
   pub fn get_module_graph_mut(&mut self) -> &mut ModuleGraph {
     &mut self.module_graph
+  }
+
+  pub(crate) fn module_graph_mutations(&self) -> impl Iterator<Item = Mutation> + '_ {
+    self
+      .affected_dependencies
+      .updated()
+      .iter()
+      .map(|&dependency| Mutation::DependencyUpdate { dependency })
+      .chain(
+        self
+          .affected_modules
+          .removed()
+          .iter()
+          .map(|&module| Mutation::ModuleRemove { module }),
+      )
+      .chain(
+        self
+          .affected_modules
+          .updated()
+          .iter()
+          .map(|&module| Mutation::ModuleUpdate { module }),
+      )
+      .chain(
+        self
+          .affected_modules
+          .added()
+          .iter()
+          .map(|&module| Mutation::ModuleAdd { module }),
+      )
   }
 
   /// Installs fresh and cached builds through the same graph and index updates.

@@ -109,7 +109,9 @@ impl Task<TaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    let cached_build_result = if let Some(module_build_cache) = &context.module_build_cache {
+    let cached_build_result = if !context.rebuild_modules.contains(&module_identifier)
+      && let Some(module_build_cache) = &context.module_build_cache
+    {
       module_build_cache
         .restore(
           &module,

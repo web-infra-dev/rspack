@@ -36,6 +36,9 @@ impl PassExt for BuildModuleGraphPhasePass {
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
+    compilation
+      .build_module_graph_artifact
+      .reset_temporary_data();
     let plugin_driver = compilation.plugin_driver.clone();
     let logger = compilation.get_logger("rspack.Compiler");
     // align with webpack, make hook include build_module_graph phase in webpack
@@ -47,29 +50,10 @@ impl PassExt for BuildModuleGraphPhasePass {
     finish_make_pass(compilation, plugin_driver).await?;
     finish_module_graph_pass(compilation).await?;
 
-    use crate::incremental::IncrementalPasses;
-    if compilation
-      .incremental
-      .passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
-    {
-      compilation
-        .build_module_graph_artifact
-        .module_graph
-        .checkpoint();
-    }
     Ok(())
   }
 
   async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) -> Result<()> {
-    if let Some(module_build_cache) = compilation.module_build_cache.clone() {
-      module_build_cache
-        .store_pending(
-          &mut compilation.build_module_graph_artifact,
-          &compilation.file_system_info,
-          compilation.make_session.take_cache_writes(),
-        )
-        .await?;
-    }
     cache.after_build_module_graph(compilation).await;
     Ok(())
   }

@@ -14,6 +14,7 @@ use crate::{BuildDependency, Compilation, internal};
 /// do some post-processing on module graph like clean up isolated module.
 #[derive(Debug, Default)]
 pub struct Cutout {
+  pub(super) rebuild_modules: IdentifierSet,
   fix_issuers: FixIssuers,
   fix_build_meta: FixBuildMeta,
 }
@@ -117,6 +118,8 @@ impl Cutout {
       build_deps.extend(artifact.revoke_dependency(&dep_id, false));
     }
 
+    self.rebuild_modules.clone_from(&force_build_modules);
+
     // do revoke module and collect deps
     for id in force_build_modules {
       build_deps.extend(artifact.revoke_module(&id));
@@ -170,6 +173,7 @@ impl Cutout {
     let Self {
       fix_issuers,
       fix_build_meta,
+      ..
     } = self;
     fix_issuers.fix_artifact(artifact);
     fix_build_meta.fix_artifact(artifact);

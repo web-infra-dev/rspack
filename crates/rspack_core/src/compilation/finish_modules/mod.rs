@@ -22,11 +22,27 @@ impl PassExt for FinishModulesPhasePass {
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     finish_modules_pass(compilation).await?;
 
+    // finishModules hooks can call rebuildModule. Publish the final build output
+    // only after those graph updates, before Seal starts modifying the graph.
+    if let Some(module_build_cache) = compilation.module_build_cache.clone() {
+      module_build_cache
+        .store_pending(
+          &mut compilation.build_module_graph_artifact,
+          &compilation.file_system_info,
+          compilation.make_session.take_cache_writes(),
+        )
+        .await?;
+    }
+
     use crate::incremental::IncrementalPasses;
     if compilation
       .incremental
       .passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
     {
+      compilation
+        .build_module_graph_artifact
+        .module_graph
+        .checkpoint();
       compilation.exports_info_artifact.checkpoint();
     }
     Ok(())
@@ -73,34 +89,10 @@ pub async fn finish_modules_inner(
   exports_info_artifact: &mut ExportsInfoArtifact,
 ) -> Result<Vec<Diagnostic>> {
   if let Some(mut mutations) = compilation.incremental.mutations_write() {
-    let build_module_graph_artifact = &compilation.build_module_graph_artifact;
-    mutations.extend(
-      build_module_graph_artifact
-        .affected_dependencies
-        .updated()
-        .iter()
-        .map(|&dependency| Mutation::DependencyUpdate { dependency }),
-    );
-    mutations.extend(
-      build_module_graph_artifact
-        .affected_modules
-        .removed()
-        .iter()
-        .map(|&module| Mutation::ModuleRemove { module }),
-    );
-    mutations.extend(
-      build_module_graph_artifact
-        .affected_modules
-        .updated()
-        .iter()
-        .map(|&module| Mutation::ModuleUpdate { module }),
-    );
-    mutations.extend(
-      build_module_graph_artifact
-        .affected_modules
-        .added()
-        .iter()
-        .map(|&module| Mutation::ModuleAdd { module }),
+    mutations.replace_module_graph_mutations(
+      compilation
+        .build_module_graph_artifact
+        .module_graph_mutations(),
     );
     tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::BUILD_MODULE_GRAPH, %mutations);
   }
