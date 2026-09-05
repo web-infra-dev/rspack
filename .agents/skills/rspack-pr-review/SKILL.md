@@ -17,7 +17,7 @@ description: Review a pull request in web-infra-dev/rspack from a PR number or G
 
 Use the connected GitHub tools when available; otherwise use authenticated `gh` and local `git`. Inspect evidence rather than relying only on the PR description.
 
-1. Resolve the PR number, repository, base SHA, head SHA, author, title, body, labels, commits, changed files, checks, review threads, issue comments, and review comments.
+1. Resolve the PR number, repository, base ref, base SHA, head SHA, effective merge base, author, title, body, labels, commits, changed files, checks, review threads, issue comments, and review comments.
 2. Read the complete diff. For large PRs, inspect every changed file at least at the structural level, then deeply inspect behavior-bearing code, public types, tests, documentation, benchmarks, fixtures, snapshots, and generated changes.
 3. Inspect the relevant base-branch implementation and history to explain the previous design and why the change is necessary. Follow repository `AGENTS.md` instructions.
 4. Trace important flows across Rust and JavaScript/TypeScript boundaries where applicable. Check error paths, caching, invalidation, ordering, concurrency, determinism, platform differences, and lifecycle behavior.
@@ -127,7 +127,7 @@ Use natural translated headings corresponding to the visible headings, but do no
 ## Post and verify
 
 1. Draft the complete comment in a temporary file to avoid shell-quoting corruption.
-2. Immediately before publication, resolve the current PR head SHA again. If it differs from the head SHA used for the review, inspect the new changes and regenerate the report; never attach a stale report to the new SHA.
+2. Immediately before publication, re-resolve the current base ref, base SHA, head SHA, and effective merge base. If any differs from the values used for the review, refresh the diff and all affected evidence, then regenerate the report; never publish a report against stale base or head state.
 3. Put the complete reviewed head SHA in the first visible line. Recheck every factual claim against collected evidence, confirm both language versions match, verify that the hidden marker is present, verify that no Chinese character appears before `<details>`, and ensure the comment contains no language-version heading or label.
 4. List the pull request's existing issue comments. Match a workflow comment by the exact `<!-- rspack-pr-review -->` marker; for comments created before this marker existed, also match a comment whose first line is the exact disclaimer. If multiple comments match, select the most recently updated one.
 5. If a workflow comment exists, verify that the authenticated account can edit it and update that comment in place through its issue-comment endpoint. If it cannot be edited, report the blocker and do not create a duplicate. Create exactly one ordinary issue comment only when no workflow comment exists.

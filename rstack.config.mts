@@ -28,6 +28,13 @@ define.fmt({
   plugins: ['heading-case'],
   overrides: [
     {
+      // OpenAI recognizes this file's exact `## Code Review Rules` heading.
+      files: 'AGENTS.md',
+      options: {
+        plugins: [],
+      },
+    },
+    {
       files: '*.toml',
       options: {
         plugins: ['prettier-plugin-toml'],
