@@ -362,10 +362,8 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
-    // Incremental make reuses the previous module graph and owns its own
-    // invalidation path. Keep that fast path unchanged.
+    // Cache lookup is selected per build request, independently of artifact recovery.
     let module_build_cache = (options.experiments.new_cache.module
-      && !is_rebuild
       && !matches!(&options.cache, CacheOptions::Disabled))
     .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules"), &options));
     let snapshot_options = match &options.cache {
@@ -1112,6 +1110,11 @@ impl Compilation {
     .await?;
     *exports_info_artifact = updated_exports_info_artifact;
     self.build_module_graph_artifact = artifact.into();
+
+    if let Some(mut mutations) = self.incremental.mutations_write() {
+      mutations
+        .replace_module_graph_mutations(self.build_module_graph_artifact.module_graph_mutations());
+    }
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers

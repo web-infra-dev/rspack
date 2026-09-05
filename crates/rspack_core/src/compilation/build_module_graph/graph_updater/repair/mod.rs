@@ -7,6 +7,7 @@ pub mod process_dependencies;
 
 use std::sync::Arc;
 
+use rspack_collections::IdentifierSet;
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -23,6 +24,7 @@ pub async fn repair(
   mut artifact: BuildModuleGraphArtifact,
   exports_info_artifact: ExportsInfoArtifact,
   build_dependencies: HashSet<BuildDependency>,
+  rebuild_modules: IdentifierSet,
   session: Arc<MakeSession>,
 ) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
   let module_graph = artifact.get_module_graph_mut();
@@ -71,6 +73,7 @@ pub async fn repair(
     .collect::<Vec<_>>();
 
   let mut ctx = TaskContext::new(compilation, artifact, exports_info_artifact, session);
+  ctx.rebuild_modules = rebuild_modules;
   run_task_loop(&mut ctx, init_tasks).await?;
   Ok((ctx.artifact, ctx.exports_info_artifact))
 }

@@ -4,7 +4,6 @@ pub(crate) mod module_build_cache;
 mod module_executor;
 pub mod pass;
 mod session;
-
 use std::sync::atomic::Ordering;
 
 use rspack_error::Result;
@@ -56,7 +55,7 @@ pub async fn do_build_module_graph(compilation: &mut Compilation) -> Result<()> 
 /// it will use entries, modified_files, removed_files to update the module graph.
 pub async fn build_module_graph(
   compilation: &Compilation,
-  mut artifact: BuildModuleGraphArtifact,
+  artifact: BuildModuleGraphArtifact,
   exports_info_artifact: ExportsInfoArtifact,
 ) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
   let mut params = Vec::with_capacity(6);
@@ -82,8 +81,6 @@ pub async fn build_module_graph(
     params.push(UpdateParam::RemovedFiles(compilation.removed_files.clone()));
   }
 
-  // reset temporary data
-  artifact.reset_temporary_data();
   let artifacts = update_module_graph(compilation, artifact, exports_info_artifact, params).await?;
   Ok(artifacts)
 }

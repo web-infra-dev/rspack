@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use rspack_collections::IdentifierSet;
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_tasks::CURRENT_COMPILER_CONTEXT;
 use rustc_hash::FxHashMap as HashMap;
@@ -37,6 +38,7 @@ pub struct TaskContext {
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
   pub value_cache_versions: ValueCacheVersions,
   pub(crate) make_session: Arc<MakeSession>,
+  pub(crate) rebuild_modules: IdentifierSet,
 
   pub artifact: BuildModuleGraphArtifact,
   pub exports_info_artifact: ExportsInfoArtifact,
@@ -67,6 +69,7 @@ impl TaskContext {
       runtime_template: RuntimeTemplate::new(compilation.options.clone()),
       module_build_cache: compilation.module_build_cache.clone(),
       make_session,
+      rebuild_modules: Default::default(),
       cache: compilation.cache.clone(),
       value_cache_versions: compilation.value_cache_versions.clone(),
       artifact,

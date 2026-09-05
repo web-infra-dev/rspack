@@ -72,6 +72,7 @@ pub(crate) async fn update_module_graph_with_session(
     artifact,
     exports_info_artifact,
     build_dependencies,
+    std::mem::take(&mut cutout.rebuild_modules),
     session,
   )
   .await?;

@@ -71,6 +71,27 @@ impl fmt::Display for Mutation {
 }
 
 impl Mutations {
+  /// Refresh Make's accumulated changes after a hook updates the module graph.
+  /// Derived affected sets may already have been read by earlier finishModules hooks.
+  pub(crate) fn replace_module_graph_mutations(
+    &mut self,
+    mutations: impl IntoIterator<Item = Mutation>,
+  ) {
+    self.inner.retain(|mutation| {
+      !matches!(
+        mutation,
+        Mutation::ModuleAdd { .. }
+          | Mutation::ModuleUpdate { .. }
+          | Mutation::ModuleRemove { .. }
+          | Mutation::DependencyUpdate { .. }
+      )
+    });
+    self.inner.extend(mutations);
+    self.affected_modules_with_module_graph.take();
+    self.affected_modules_with_chunk_graph.take();
+    self.affected_chunks_with_chunk_graph.take();
+  }
+
   pub fn add(&mut self, mutation: Mutation) {
     self.inner.push(mutation);
   }
