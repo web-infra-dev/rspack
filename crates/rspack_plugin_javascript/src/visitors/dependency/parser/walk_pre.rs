@@ -51,16 +51,16 @@ fn skip_js_trivia(source: &[u8], mut offset: usize, end: usize) -> usize {
       offset += 1;
       continue;
     }
-    if source.get(offset..offset + 2) == Some(b"//") {
+    if offset + 1 < end && source[offset] == b'/' && source[offset + 1] == b'/' {
       offset += 2;
       while offset < end && !matches!(source[offset], b'\n' | b'\r') {
         offset += 1;
       }
       continue;
     }
-    if source.get(offset..offset + 2) == Some(b"/*") {
+    if offset + 1 < end && source[offset] == b'/' && source[offset + 1] == b'*' {
       offset += 2;
-      while offset + 1 < end && source.get(offset..offset + 2) != Some(b"*/") {
+      while offset + 1 < end && !(source[offset] == b'*' && source[offset + 1] == b'/') {
         offset += 1;
       }
       offset = (offset + 2).min(end);
