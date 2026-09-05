@@ -2,7 +2,7 @@ use rspack_error::Result;
 
 use super::{
   TaskContext,
-  build::{BuildResultTask, BuildTask},
+  build::{BuildOrigin, BuildResultTask, BuildTask},
   lazy::process_unlazy_dependencies,
 };
 use crate::{
@@ -147,6 +147,7 @@ impl Task<TaskContext> for AddTask {
         build_result: Box::new(cached_build_result.into_build_result(module)),
         plugin_driver: context.plugin_driver.clone(),
         forwarded_ids,
+        origin: BuildOrigin::CacheHit,
       })]);
     }
 

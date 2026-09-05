@@ -3,11 +3,13 @@ mod lazy_barrel_artifact;
 pub(crate) mod module_build_cache;
 mod module_executor;
 pub mod pass;
+mod session;
 
 use std::sync::atomic::Ordering;
 
 use rspack_error::Result;
 use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
+pub(crate) use session::MakeSession;
 use tracing::instrument;
 
 pub use self::{

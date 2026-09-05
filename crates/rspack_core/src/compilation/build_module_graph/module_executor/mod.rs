@@ -5,6 +5,8 @@ mod execute;
 mod module_tracker;
 mod overwrite;
 
+use std::sync::Arc;
+
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet};
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -24,8 +26,8 @@ use self::{
   execute::{ExecuteModuleResult, ExecuteTask},
 };
 use super::{
-  BuildModuleGraphArtifact,
-  graph_updater::{UpdateParam, repair::context::TaskContext, update_module_graph},
+  BuildModuleGraphArtifact, MakeSession,
+  graph_updater::{UpdateParam, repair::context::TaskContext, update_module_graph_with_session},
 };
 use crate::{
   Compilation, CompilationAsset, Context, DependencyId, ExportsInfoArtifact, PublicPath, StealCell,
@@ -34,6 +36,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct ModuleExecutor {
+  session: Arc<MakeSession>,
   // data
   pub make_artifact: StealCell<BuildModuleGraphArtifact>,
   pub entries: HashMap<ImportModuleMeta, DependencyId>,
@@ -50,6 +53,7 @@ pub struct ModuleExecutor {
 impl Default for ModuleExecutor {
   fn default() -> Self {
     Self {
+      session: Arc::new(MakeSession::default()),
       make_artifact: StealCell::new(BuildModuleGraphArtifact::new()),
       entries: Default::default(),
       exports_info_artifact: StealCell::new(Default::default()),
@@ -64,6 +68,7 @@ impl Default for ModuleExecutor {
 
 impl ModuleExecutor {
   pub async fn before_build_module_graph(&mut self, compilation: &Compilation) -> Result<()> {
+    self.session = Arc::new(MakeSession::default());
     let mut make_artifact = self.make_artifact.steal();
     let mut exports_info_artifact = self.exports_info_artifact.steal();
     let mut params = Vec::with_capacity(5);
@@ -79,11 +84,22 @@ impl ModuleExecutor {
     make_artifact.reset_temporary_data();
 
     // update the module affected by modified_files
-    (make_artifact, exports_info_artifact) =
-      update_module_graph(compilation, make_artifact, exports_info_artifact, params).await?;
+    (make_artifact, exports_info_artifact) = update_module_graph_with_session(
+      compilation,
+      make_artifact,
+      exports_info_artifact,
+      params,
+      self.session.clone(),
+    )
+    .await?;
 
     let mut ctx = ExecutorTaskContext {
-      origin_context: TaskContext::new(compilation, make_artifact, exports_info_artifact),
+      origin_context: TaskContext::new(
+        compilation,
+        make_artifact,
+        exports_info_artifact,
+        self.session.clone(),
+      ),
       tracker: Default::default(),
       entries: std::mem::take(&mut self.entries),
       executed_entry_deps: Default::default(),
@@ -128,13 +144,14 @@ impl ModuleExecutor {
     entries.retain(|k, v| {
       !removed_module.contains(&k.origin_module_identifier) || ctx.executed_entry_deps.contains(v)
     });
-    (make_artifact, exports_info_artifact) = update_module_graph(
+    (make_artifact, exports_info_artifact) = update_module_graph_with_session(
       compilation,
       make_artifact,
       exports_info_artifact,
       vec![UpdateParam::BuildEntryAndClean(
         entries.values().copied().collect(),
       )],
+      self.session.clone(),
     )
     .await?;
 
@@ -157,6 +174,15 @@ impl ModuleExecutor {
       compilation.code_generated_modules.insert(id);
     }
 
+    if let Some(cache) = compilation.module_build_cache.clone() {
+      cache
+        .store_pending(
+          &mut make_artifact,
+          &compilation.file_system_info,
+          self.session.take_cache_writes(),
+        )
+        .await?;
+    }
     self.make_artifact = make_artifact.into();
     self.exports_info_artifact = exports_info_artifact.into();
     self.entries = entries;

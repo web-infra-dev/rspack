@@ -9,8 +9,10 @@ use crate::{
   Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportsInfoArtifact, FileSystemInfo, ModuleFactory,
   ResolverFactory, RuntimeTemplate, SharedPluginDriver, ValueCacheVersions,
-  compilation::build_module_graph::module_build_cache::ModuleBuildCache, incremental::Incremental,
-  module_graph::ModuleGraph, new_cache::Cache,
+  compilation::build_module_graph::{MakeSession, module_build_cache::ModuleBuildCache},
+  incremental::Incremental,
+  module_graph::ModuleGraph,
+  new_cache::Cache,
 };
 
 #[derive(Debug)]
@@ -34,6 +36,7 @@ pub struct TaskContext {
   pub(crate) cache: Cache,
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
   pub value_cache_versions: ValueCacheVersions,
+  pub(crate) make_session: Arc<MakeSession>,
 
   pub artifact: BuildModuleGraphArtifact,
   pub exports_info_artifact: ExportsInfoArtifact,
@@ -44,6 +47,7 @@ impl TaskContext {
     compilation: &Compilation,
     artifact: BuildModuleGraphArtifact,
     exports_info_artifact: ExportsInfoArtifact,
+    make_session: Arc<MakeSession>,
   ) -> Self {
     Self {
       compiler_id: compilation.compiler_id(),
@@ -62,6 +66,7 @@ impl TaskContext {
       output_fs: compilation.output_filesystem.clone(),
       runtime_template: RuntimeTemplate::new(compilation.options.clone()),
       module_build_cache: compilation.module_build_cache.clone(),
+      make_session,
       cache: compilation.cache.clone(),
       value_cache_versions: compilation.value_cache_versions.clone(),
       artifact,

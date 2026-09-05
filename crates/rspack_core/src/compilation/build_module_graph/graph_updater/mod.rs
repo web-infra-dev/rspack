@@ -1,13 +1,15 @@
 mod cutout;
 pub mod repair;
 
+use std::sync::Arc;
+
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
 use rspack_paths::InternedPathSet;
 use rustc_hash::FxHashSet;
 
 use self::{cutout::Cutout, repair::repair};
-use super::BuildModuleGraphArtifact;
+use super::{BuildModuleGraphArtifact, MakeSession};
 use crate::{Compilation, DependencyId, ExportsInfoArtifact};
 
 /// The param to update module graph
@@ -32,9 +34,26 @@ pub enum UpdateParam {
 /// Update module graph through `UpdateParam`
 pub async fn update_module_graph(
   compilation: &Compilation,
+  artifact: BuildModuleGraphArtifact,
+  exports_info_artifact: ExportsInfoArtifact,
+  params: Vec<UpdateParam>,
+) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+  update_module_graph_with_session(
+    compilation,
+    artifact,
+    exports_info_artifact,
+    params,
+    compilation.make_session.clone(),
+  )
+  .await
+}
+
+pub(crate) async fn update_module_graph_with_session(
+  compilation: &Compilation,
   mut artifact: BuildModuleGraphArtifact,
   mut exports_info_artifact: ExportsInfoArtifact,
   params: Vec<UpdateParam>,
+  session: Arc<MakeSession>,
 ) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
   let mut cutout = Cutout::default();
 
@@ -53,6 +72,7 @@ pub async fn update_module_graph(
     artifact,
     exports_info_artifact,
     build_dependencies,
+    session,
   )
   .await?;
   cutout.fix_artifact(&mut artifact);

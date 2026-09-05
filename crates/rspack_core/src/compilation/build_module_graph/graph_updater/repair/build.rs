@@ -78,23 +78,25 @@ impl Task<TaskContext> for BuildTask {
       )
       .await?;
 
-    if let (Some(module_build_cache), Some(build_start_time)) =
-      (module_build_cache, build_start_time)
-    {
-      module_build_cache.mark_pending(result.module.identifier(), build_start_time);
-    }
-
     Ok(vec![Box::new(BuildResultTask {
       build_result: Box::new(result),
       plugin_driver,
       forwarded_ids,
+      origin: BuildOrigin::Built(build_start_time),
     })])
   }
 }
 
 #[derive(Debug)]
+pub(super) enum BuildOrigin {
+  Built(Option<u64>),
+  CacheHit,
+}
+
+#[derive(Debug)]
 pub(super) struct BuildResultTask {
   pub build_result: Box<BuildResult>,
+  pub origin: BuildOrigin,
   pub plugin_driver: SharedPluginDriver,
   pub forwarded_ids: ForwardedIdSet,
 }
@@ -109,6 +111,7 @@ impl Task<TaskContext> for BuildResultTask {
       build_result,
       plugin_driver,
       mut forwarded_ids,
+      origin,
     } = *self;
     let mut module = build_result.module;
 
@@ -125,6 +128,11 @@ impl Task<TaskContext> for BuildResultTask {
         blocks: build_result.blocks,
         optimization_bailouts: build_result.optimization_bailouts,
       });
+    if let BuildOrigin::Built(Some(started_at)) = origin {
+      context
+        .make_session
+        .record_build(module_identifier, started_at);
+    }
     let module_graph = &mut context.artifact.module_graph;
 
     let mut tasks: Vec<Box<dyn Task<TaskContext>>> = vec![];

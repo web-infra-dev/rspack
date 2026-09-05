@@ -166,3 +166,101 @@ module.exports = [false].flatMap((cache) =>
   }),
 );
 
+
+const mainEntry = 'export { default } from "./shared.js";';
+const executorEntry = 'export { default } from "./macro.txt";';
+
+module.exports.push(
+  ...["persistent"].flatMap((cacheType) =>
+    [false, true].map((executionFirst) => ({
+      description: `should share ${cacheType} module builds from ${executionFirst ? "importModule" : "the main graph"} to ${executionFirst ? "the main graph" : "importModule"}`,
+      options(context) {
+        const root = context.getDist(
+          `executor-cache-${cacheType}-${executionFirst}`,
+        );
+        context.setValue("root", root);
+        fs.rmSync(root, { recursive: true, force: true });
+        write(
+          path.join(root, "src/index.js"),
+          executionFirst ? executorEntry : mainEntry,
+        );
+        write(path.join(root, "src/macro.txt"), "");
+        write(
+          path.join(root, "src/shared.js"),
+          'export { default } from "./leaf.js";',
+        );
+        write(path.join(root, "src/leaf.js"), 'export default "initial";');
+        write(
+          path.join(root, "macro-loader.js"),
+          'module.exports = async function() { this.cacheable(false); const value = await this.importModule("./shared.js", {}); return `export default ${JSON.stringify(value.default)};`; };',
+        );
+        write(
+          path.join(root, "count-loader.js"),
+          'const fs = require("node:fs"); module.exports = function(source) { fs.appendFileSync(this.getOptions().counter, "x"); return source; };',
+        );
+        return {
+          context: path.join(root, "src"),
+          mode: "development",
+          devtool: false,
+          target: "node",
+          entry: "./index.js",
+          incremental: false,
+          cache:
+            cacheType === "memory"
+              ? true
+              : {
+                  type: "persistent",
+                  version: "module-executor-build-records",
+                  storage: {
+                    type: "filesystem",
+                    directory: path.join(root, "cache"),
+                  },
+                },
+          experiments: { newCache },
+          module: {
+            rules: [
+              { test: /\.txt$/, loader: path.join(root, "macro-loader.js") },
+              {
+                test: /(?:shared|leaf)\.js$/,
+                loader: path.join(root, "count-loader.js"),
+                options: { counter: path.join(root, "builds.txt") },
+              },
+            ],
+          },
+          output: {
+            path: path.join(root, "dist"),
+            filename: "main.js",
+            library: { type: "commonjs2" },
+          },
+        };
+      },
+      compiler(_, compiler) {
+        compiler.outputFileSystem = fs;
+      },
+      async build(context, compiler) {
+        const root = context.getValue("root");
+        const manager = context.getCompiler();
+        const builds = () =>
+          fs.readFileSync(path.join(root, "builds.txt"), "utf8").length;
+        await run(compiler);
+        expect(readOutput(root).default).toBe("initial");
+        expect(builds()).toBe(2);
+
+        let activeCompiler = compiler;
+        if (cacheType === "persistent") {
+          await manager.close();
+          activeCompiler = manager.createCompiler();
+          activeCompiler.outputFileSystem = fs;
+        }
+
+        // Populate one graph, then restore its build results into the other graph.
+        const index = path.join(root, "src/index.js");
+        write(index, executionFirst ? mainEntry : executorEntry);
+        await run(activeCompiler, [index]);
+        expect(readOutput(root).default).toBe("initial");
+        expect(builds()).toBe(2);
+
+      },
+    })),
+  ),
+);
