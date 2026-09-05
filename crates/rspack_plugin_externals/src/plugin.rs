@@ -147,13 +147,13 @@ impl ExternalsPlugin {
       source_type: None,
     };
 
-    if r#type.as_ref().is_some_and(|t| t == "asset")
+    let external_module_type = r#type.unwrap_or(external_module_type);
+    if matches!(external_module_type.as_str(), "asset" | "asset-url")
       && matches!(dependency.dependency_type(), DependencyType::CssUrl)
     {
-      dependency_meta.source_type = Some(SourceType::CssUrl);
+      dependency_meta.source_type = Some(SourceType::AssetUrl);
     }
 
-    let external_module_type = r#type.unwrap_or(external_module_type);
     if external_module_type == "modern-module"
       && matches!(
         dependency_type,
