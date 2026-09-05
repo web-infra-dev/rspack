@@ -9,10 +9,18 @@ use rspack_util::{json_stringify_str, quote_meta};
 use super::create_traceable_error;
 use crate::utils::eval::{BasicEvaluatedExpression, TemplateStringKind};
 
-// Webpack will walk only the dynamic parts of evaluated expression in this function
-// but in our implementation, due to we can't easily implement setExpression for
-// BasicEvaluatedExpression (will introduce lots of lifetime), so this function's
-// caller should consider whether need to walk expressions
+fn walk_evaluated_expression(
+  evaluated: &BasicEvaluatedExpression,
+  parser: &mut crate::visitors::JavascriptParser,
+) {
+  let Some(expression) = evaluated.expression() else {
+    return;
+  };
+  parser.walk_expression_in_ast(expression, evaluated.expression_ast());
+}
+
+// Match webpack by walking only the dynamic parts retained by evaluation. SWC
+// Next expression handles carry their owning flat AST through `BasicEvaluatedExpression`.
 pub fn create_context_dependency(
   param: &BasicEvaluatedExpression,
   parser: &mut crate::visitors::JavascriptParser,
@@ -93,8 +101,8 @@ pub fn create_context_dependency(
           let range = part.range();
           replaces.push((value, range.0, range.1));
         }
-      } else if let Some(expr) = part.expression() {
-        parser.walk_expression(expr);
+      } else {
+        walk_evaluated_expression(part, parser);
       }
     }
 
@@ -184,9 +192,7 @@ pub fn create_context_dependency(
 
     if let Some(inner_expressions) = param.wrapped_inner_expressions() {
       for part in inner_expressions {
-        if let Some(inner_expression) = part.expression() {
-          parser.walk_expression(inner_expression);
-        }
+        walk_evaluated_expression(part, parser);
       }
     }
 
@@ -211,9 +217,7 @@ pub fn create_context_dependency(
       critical = Some(warn);
     }
 
-    if let Some(expr) = param.expression() {
-      parser.walk_expression(expr);
-    }
+    walk_evaluated_expression(param, parser);
 
     ContextModuleScanResult {
       context: String::from("."),

@@ -1,3 +1,3 @@
 module.exports = [
-	[/JavaScript parse error: Unexpected token `let`. Expected let is reserved in const, let, class declaration/]
+	[/JavaScript parse error: 'let' is not allowed as a variable name in a lexical declaration/]
 ];

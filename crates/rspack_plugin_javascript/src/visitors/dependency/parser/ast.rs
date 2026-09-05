@@ -1,81 +1,102 @@
-use swc_experimental_ecma_ast::*;
+use swc_next_ecma_ast::{
+  Ast, AwaitExpression, CallExpression, ChainExpression, Expr, ExprData, GetSpan,
+  IdentifierReference, JsxMemberExpression, MemberExpression, MetaProperty, Span, ThisExpression,
+};
 
-/// A reference-based wrapper around SWC AST expression types.
+/// The hook-facing source location for an identifier-like reference.
 ///
-/// This enum holds references to various expression types to avoid
-/// unnecessary cloning during AST traversal and analysis. The lifetime
-/// `'ast` represents the lifetime of the original AST node being referenced.
-#[derive(Debug)]
-pub enum ExprRef<'ast> {
-  This(&'ast ThisExpr),
-  Array(&'ast ArrayLit<'ast>),
-  Object(&'ast ObjectLit<'ast>),
-  Fn(&'ast FnExpr<'ast>),
-  Unary(&'ast UnaryExpr<'ast>),
-  Update(&'ast UpdateExpr<'ast>),
-  Bin(&'ast BinExpr<'ast>),
-  Assign(&'ast AssignExpr<'ast>),
-  Member(&'ast MemberExpr<'ast>),
-  SuperProp(&'ast SuperPropExpr<'ast>),
-  Cond(&'ast CondExpr<'ast>),
-  Call(&'ast CallExpr<'ast>),
-  New(&'ast NewExpr<'ast>),
-  Seq(&'ast SeqExpr<'ast>),
-  Ident(&'ast Ident<'ast>),
-  Lit(&'ast Lit<'ast>),
-  Tpl(&'ast Tpl<'ast>),
-  TaggedTpl(&'ast TaggedTpl<'ast>),
-  Arrow(&'ast ArrowExpr<'ast>),
-  Class(&'ast ClassExpr<'ast>),
-  Yield(&'ast YieldExpr<'ast>),
-  MetaProp(&'ast MetaPropExpr),
-  Await(&'ast AwaitExpr<'ast>),
-  Paren(&'ast ParenExpr<'ast>),
-  JSXMember(&'ast JSXMemberExpr<'ast>),
-  JSXNamespacedName(&'ast JSXNamespacedName<'ast>),
-  JSXEmpty(&'ast JSXEmptyExpr),
-  JSXElement(&'ast JSXElement<'ast>),
-  JSXFragment(&'ast JSXFragment<'ast>),
-  PrivateName(&'ast PrivateName<'ast>),
-  OptChain(&'ast OptChainExpr<'ast>),
-  Invalid(&'ast Invalid),
+/// JSX identifiers and ECMAScript identifier references use different SWC
+/// Next node kinds, while parser plugins only need the source span; keeping
+/// that semantic shape avoids manufacturing AST nodes.
+#[derive(Debug, Clone, Copy)]
+pub struct Identifier {
+  pub span: Span,
 }
 
-impl<'ast> From<&'ast Expr<'ast>> for ExprRef<'ast> {
-  fn from(expr: &'ast Expr<'ast>) -> Self {
-    match expr {
-      Expr::This(this_expr) => ExprRef::This(this_expr),
-      Expr::Array(array_lit) => ExprRef::Array(array_lit),
-      Expr::Object(object_lit) => ExprRef::Object(object_lit),
-      Expr::Fn(fn_expr) => ExprRef::Fn(fn_expr),
-      Expr::Unary(unary_expr) => ExprRef::Unary(unary_expr),
-      Expr::Update(update_expr) => ExprRef::Update(update_expr),
-      Expr::Bin(bin_expr) => ExprRef::Bin(bin_expr),
-      Expr::Assign(assign_expr) => ExprRef::Assign(assign_expr),
-      Expr::Member(member_expr) => ExprRef::Member(member_expr),
-      Expr::SuperProp(super_prop_expr) => ExprRef::SuperProp(super_prop_expr),
-      Expr::Cond(cond_expr) => ExprRef::Cond(cond_expr),
-      Expr::Call(call_expr) => ExprRef::Call(call_expr),
-      Expr::New(new_expr) => ExprRef::New(new_expr),
-      Expr::Seq(seq_expr) => ExprRef::Seq(seq_expr),
-      Expr::Ident(ident) => ExprRef::Ident(ident),
-      Expr::Lit(lit) => ExprRef::Lit(lit),
-      Expr::Tpl(tpl) => ExprRef::Tpl(tpl),
-      Expr::TaggedTpl(tagged_tpl) => ExprRef::TaggedTpl(tagged_tpl),
-      Expr::Arrow(arrow_expr) => ExprRef::Arrow(arrow_expr),
-      Expr::Class(class_expr) => ExprRef::Class(class_expr),
-      Expr::Yield(yield_expr) => ExprRef::Yield(yield_expr),
-      Expr::MetaProp(meta_prop_expr) => ExprRef::MetaProp(meta_prop_expr),
-      Expr::Await(await_expr) => ExprRef::Await(await_expr),
-      Expr::Paren(paren_expr) => ExprRef::Paren(paren_expr),
-      Expr::JSXMember(jsxmember_expr) => ExprRef::JSXMember(jsxmember_expr),
-      Expr::JSXNamespacedName(jsxnamespaced_name) => ExprRef::JSXNamespacedName(jsxnamespaced_name),
-      Expr::JSXEmpty(jsxempty_expr) => ExprRef::JSXEmpty(jsxempty_expr),
-      Expr::JSXElement(jsxelement) => ExprRef::JSXElement(jsxelement),
-      Expr::JSXFragment(jsxfragment) => ExprRef::JSXFragment(jsxfragment),
-      Expr::PrivateName(private_name) => ExprRef::PrivateName(private_name),
-      Expr::OptChain(opt_chain_expr) => ExprRef::OptChain(opt_chain_expr),
-      Expr::Invalid(invalid) => ExprRef::Invalid(invalid),
+impl Identifier {
+  pub fn span(self) -> Span {
+    self.span
+  }
+}
+
+/// The hook-facing representation of an ECMAScript or JSX member expression.
+///
+/// SWC Next keeps those node kinds distinct. Parser plugins mostly need the
+/// complete source span, while the few ECMAScript-only paths can explicitly
+/// request the underlying node instead of manufacturing an incompatible AST
+/// handle for JSX.
+#[derive(Debug, Clone, Copy)]
+pub enum HookMemberExpression {
+  Ecma(MemberExpression),
+  Jsx(JsxMemberExpression),
+}
+
+impl HookMemberExpression {
+  pub fn span(self, ast: &Ast<'_>) -> Span {
+    match self {
+      Self::Ecma(expression) => expression.span(ast),
+      Self::Jsx(expression) => expression.span(ast),
+    }
+  }
+
+  pub fn ecma(self) -> Option<MemberExpression> {
+    match self {
+      Self::Ecma(expression) => Some(expression),
+      Self::Jsx(_) => None,
+    }
+  }
+}
+
+impl From<MemberExpression> for HookMemberExpression {
+  fn from(expression: MemberExpression) -> Self {
+    Self::Ecma(expression)
+  }
+}
+
+impl From<JsxMemberExpression> for HookMemberExpression {
+  fn from(expression: JsxMemberExpression) -> Self {
+    Self::Jsx(expression)
+  }
+}
+
+/// A small discriminant helper for member-chain analysis. Payloads remain SWC
+/// Next typed handles and must always be read through the parser's `Ast`.
+#[derive(Debug, Clone, Copy)]
+pub enum ExprRef {
+  Await(AwaitExpression),
+  Call(CallExpression),
+  Ident(IdentifierReference),
+  Member(MemberExpression),
+  MetaProp(MetaProperty),
+  OptChain(ChainExpression),
+  This(ThisExpression),
+  Other(Expr),
+}
+
+impl ExprRef {
+  pub fn from_expr(ast: &Ast<'_>, expr: Expr) -> Self {
+    match ast.expr_data(expr) {
+      ExprData::AwaitExpression(node) => Self::Await(node),
+      ExprData::CallExpression(node) => Self::Call(node),
+      ExprData::IdentifierReference(node) => Self::Ident(node),
+      ExprData::MemberExpression(node) => Self::Member(node),
+      ExprData::MetaProperty(node) => Self::MetaProp(node),
+      ExprData::ChainExpression(node) => Self::OptChain(node),
+      ExprData::ThisExpression(node) => Self::This(node),
+      _ => Self::Other(expr),
+    }
+  }
+
+  pub fn expression(self) -> Expr {
+    match self {
+      Self::Await(node) => Expr::AwaitExpression(node),
+      Self::Call(node) => Expr::CallExpression(node),
+      Self::Ident(node) => Expr::IdentifierReference(node),
+      Self::Member(node) => Expr::MemberExpression(node),
+      Self::MetaProp(node) => Expr::MetaProperty(node),
+      Self::OptChain(node) => Expr::ChainExpression(node),
+      Self::This(node) => Expr::ThisExpression(node),
+      Self::Other(expr) => expr,
     }
   }
 }

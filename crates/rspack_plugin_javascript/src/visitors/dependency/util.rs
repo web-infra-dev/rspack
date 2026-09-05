@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use rspack_core::DependencyRange;
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
-use swc_experimental_ecma_ast::{Expr, Lit, MemberExpr, OptChainBase};
+use swc_next_ecma_ast::{Ast, Expr, ExprData, MemberExpression};
 
 use super::JavascriptParser;
 use crate::Atom;
@@ -44,25 +44,22 @@ pub fn parse_order_string(x: &str) -> Option<i32> {
   }
 }
 
-pub fn static_string_from_expr(expr: &Expr) -> Option<String> {
-  expr
-    .as_lit()
-    .and_then(|lit| {
-      if let Lit::Str(str) = lit {
-        return Some(str.value.to_string_lossy().to_string());
-      }
-      None
-    })
-    .or_else(|| {
-      if let Some(tpl) = expr.as_tpl()
-        && tpl.exprs.is_empty()
-        && tpl.quasis.len() == 1
-        && let Some(el) = tpl.quasis.first()
-      {
-        return Some(el.raw.to_string());
-      }
-      None
-    })
+pub fn static_string_from_expr(ast: &Ast<'_>, expr: Expr) -> Option<String> {
+  match ast.expr_data(expr) {
+    ExprData::StringLiteral(string) => Some(
+      ast
+        .get_wtf8(string.value(ast))
+        .to_string_lossy()
+        .into_owned(),
+    ),
+    ExprData::TemplateLiteral(template)
+      if template.expressions(ast).is_empty() && template.quasis(ast).len() == 1 =>
+    {
+      let element = ast.get_node_in_sub_range(template.quasis(ast).iter().next()?);
+      Some(ast.get_utf8(element.raw(ast)).to_string())
+    }
+    _ => None,
+  }
 }
 
 pub fn create_traceable_error(
@@ -136,25 +133,25 @@ pub fn get_non_optional_part<'a>(members: &'a [Atom], members_optionals: &[bool]
   }
 }
 
-pub fn get_non_optional_member_chain_from_expr<'a>(
-  mut expr: &'a Expr<'a>,
+pub fn get_non_optional_member_chain_from_expr(
+  ast: &Ast<'_>,
+  mut expr: Expr,
   mut count: i32,
-) -> &'a Expr<'a> {
+) -> Expr {
   while count != 0 {
-    if let Expr::Member(member) = expr {
-      expr = &member.obj;
+    if let Some(member) = expr.as_member_expression(ast) {
+      expr = member.object(ast);
       count -= 1;
-    } else if let Expr::OptChain(opt_chain) = expr {
-      expr = match &opt_chain.base {
-        OptChainBase::Member(member) => &member.obj,
-        OptChainBase::Call(call) if call.callee.as_member().is_some() => {
-          let member = call
-            .callee
-            .as_member()
-            .expect("`call.callee` is `MemberExpr` in `if_guard`");
-          &member.obj
-        }
-        _ => unreachable!(),
+    } else if let Some(chain) = expr.as_chain_expression(ast) {
+      let expression = chain.expression(ast);
+      expr = if let Some(member) = expression.as_member_expression(ast) {
+        member.object(ast)
+      } else if let Some(call) = expression.as_call_expression(ast)
+        && let Some(member) = call.callee(ast).as_member_expression(ast)
+      {
+        member.object(ast)
+      } else {
+        unreachable!()
       };
       count -= 1;
     } else {
@@ -164,10 +161,11 @@ pub fn get_non_optional_member_chain_from_expr<'a>(
   expr
 }
 
-pub fn get_non_optional_member_chain_from_member<'a>(
-  member: &'a MemberExpr<'a>,
+pub fn get_non_optional_member_chain_from_member(
+  ast: &Ast<'_>,
+  member: MemberExpression,
   mut count: i32,
-) -> &'a Expr<'a> {
+) -> Expr {
   count -= 1;
-  get_non_optional_member_chain_from_expr(&member.obj, count)
+  get_non_optional_member_chain_from_expr(ast, member.object(ast), count)
 }

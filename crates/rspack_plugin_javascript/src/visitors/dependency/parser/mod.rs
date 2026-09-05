@@ -33,11 +33,11 @@ use rspack_error::{Diagnostic, Result};
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
-use swc_experimental_allocator::{Allocator, CloneIn};
-use swc_experimental_ecma_ast::{
-  ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, Decl, Expr, GetSpan, Ident, Lit,
-  MemberExpr, MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase,
-  OptChainExpr, Pat, Program, RestPat, Span, Stmt, ThisExpr,
+use swc_next_ecma_ast::{
+  ArrayPattern, AssignmentPattern, Ast, BindingIdentifier, BindingPattern, BindingPatternData,
+  BindingRestElement, CallExpression, Decl, DeclData, Expr, ExprData, GetSpan, IdentifierReference,
+  MemberExpression, MetaProperty, ObjectPattern, Program, PropertyKey, PropertyKeyData, Span,
+  StmtData, ThisExpression,
 };
 
 use crate::{
@@ -69,44 +69,62 @@ pub trait TagInfoData: Clone + Sized + 'static {
   fn downcast_mut(any: &mut dyn anymap::CloneAny) -> &mut Self;
 }
 
-fn atom_from_wtf8(value: swc_experimental_allocator::atom::Wtf8Atom<'_>) -> Atom {
-  Atom::from(value.as_wtf8().to_string_lossy().as_ref())
+fn atom_from_wtf8(value: &swc_next_allocator::wtf8::Wtf8) -> Atom {
+  Atom::from(value.to_string_lossy().as_ref())
 }
 
-pub(crate) fn member_property_to_atom(expr: &Expr) -> Option<Atom> {
-  match expr {
-    Expr::Lit(lit) => Some(match &**lit {
-      Lit::Str(s) => atom_from_wtf8(s.value),
-      Lit::Bool(b) => Atom::from(if b.value { "true" } else { "false" }),
-      Lit::Null(_) => Atom::from("null"),
-      Lit::Num(n) => Atom::from(rspack_util::ryu_js::Buffer::new().format(n.value)),
-      Lit::BigInt(i) => Atom::from(i.value.as_str()),
-      Lit::Regex(r) => {
-        let mut flags = r.flags.as_str().chars().collect::<Vec<_>>();
-        flags.sort_unstable();
-        let mut property = String::with_capacity(r.exp.len() + flags.len() + 2);
-        property.push('/');
-        property.push_str(r.exp.as_str());
-        property.push('/');
-        property.extend(flags);
-        Atom::from(property)
-      }
-    }),
-    Expr::Tpl(tpl) if tpl.exprs.is_empty() && tpl.quasis.len() == 1 => {
-      let quasi = tpl.quasis.first()?;
-      Some(
-        quasi
-          .cooked
-          .map_or_else(|| Atom::from(quasi.raw.as_str()), atom_from_wtf8),
-      )
+pub(crate) fn member_property_to_atom(ast: &Ast<'_>, expr: Expr) -> Option<Atom> {
+  Some(match ast.expr_data(expr) {
+    ExprData::StringLiteral(node) => atom_from_wtf8(ast.get_wtf8(node.value(ast))),
+    ExprData::BooleanLiteral(node) => Atom::from(if node.value(ast) { "true" } else { "false" }),
+    ExprData::NullLiteral(_) => Atom::from("null"),
+    ExprData::NumericLiteral(node) => {
+      Atom::from(rspack_util::ryu_js::Buffer::new().format(node.value(ast)))
     }
-    _ => None,
-  }
+    ExprData::BigIntLiteral(node) => {
+      Atom::from(eval::parse_bigint_literal(ast.get_utf8(node.raw(ast)))?.to_string())
+    }
+    ExprData::RegExpLiteral(node) => {
+      let pattern = ast.get_utf8(node.pattern(ast));
+      let mut flags = ast.get_utf8(node.flags(ast)).chars().collect::<Vec<_>>();
+      flags.sort_unstable();
+      let mut property = String::with_capacity(pattern.len() + flags.len() + 2);
+      property.push('/');
+      property.push_str(pattern);
+      property.push('/');
+      property.extend(flags);
+      Atom::from(property)
+    }
+    ExprData::TemplateLiteral(node)
+      if node.expressions(ast).is_empty() && node.quasis(ast).len() == 1 =>
+    {
+      let quasi = node.quasis(ast).get_node(ast, 0)?;
+      if quasi.is_cooked_undefined(ast) {
+        Atom::from(ast.get_utf8(quasi.raw(ast)))
+      } else {
+        atom_from_wtf8(ast.get_wtf8(quasi.cooked(ast)))
+      }
+    }
+    _ => return None,
+  })
 }
 
-impl GetSpan for estree::Statement<'_> {
-  fn span(&self) -> Span {
-    self.span()
+/// Resolve the key of a computed member expression.
+///
+/// `PropertyKey` is a nested union in SWC Next. Literal expressions such as
+/// `obj["key"]` are exposed directly as `StringLiteral`, without an outer
+/// `PropertyKeyData::Expr` variant.
+pub(crate) fn member_property_key_to_atom(ast: &Ast<'_>, key: PropertyKey) -> Option<Atom> {
+  match ast.property_key_data(key) {
+    PropertyKeyData::StringLiteral(node) => Some(atom_from_wtf8(ast.get_wtf8(node.value(ast)))),
+    PropertyKeyData::NumericLiteral(node) => Some(Atom::from(
+      rspack_util::ryu_js::Buffer::new().format(node.value(ast)),
+    )),
+    PropertyKeyData::BigIntLiteral(node) => Some(Atom::from(
+      eval::parse_bigint_literal(ast.get_utf8(node.raw(ast)))?.to_string(),
+    )),
+    PropertyKeyData::Expr(expr) => member_property_to_atom(ast, expr),
+    PropertyKeyData::IdentifierName(_) | PropertyKeyData::PrivateIdentifier(_) => None,
   }
 }
 
@@ -145,8 +163,8 @@ pub type OptionalMembers = SmallVec<[bool; 2]>;
 pub type MemberRanges = SmallVec<[Span; 2]>;
 
 #[derive(Debug)]
-pub struct ExtractedMemberExpressionChainData<'ast> {
-  pub object: ExprRef<'ast>,
+pub struct ExtractedMemberExpressionChainData {
+  pub object: ExprRef,
   pub members: AtomMembers,
   pub members_optionals: OptionalMembers,
   pub member_ranges: MemberRanges,
@@ -161,14 +179,14 @@ bitflags! {
 }
 
 #[derive(Debug)]
-pub enum MemberExpressionInfo<'ast> {
-  Call(CallExpressionInfo<'ast>),
+pub enum MemberExpressionInfo {
+  Call(CallExpressionInfo),
   Expression(ExpressionExpressionInfo),
 }
 
 #[derive(Debug)]
-pub struct CallExpressionInfo<'ast> {
-  pub call: &'ast CallExpr<'ast>,
+pub struct CallExpressionInfo {
+  pub call: CallExpression,
   pub root_info: ExportedVariableInfo,
   pub callee_members: AtomMembers,
   pub members: AtomMembers,
@@ -210,50 +228,54 @@ fn object_and_members_to_name(object: &str, members_reversed: &[impl AsRef<str>]
 }
 
 pub trait RootName {
-  fn get_root_name(&self) -> Option<Atom> {
+  fn get_root_name(&self, _ast: &Ast<'_>) -> Option<Atom> {
     None
   }
 }
 
-impl RootName for Expr<'_> {
-  fn get_root_name(&self) -> Option<Atom> {
-    match self {
-      Expr::Ident(ident) => ident.get_root_name(),
-      Expr::This(this) => this.get_root_name(),
-      Expr::MetaProp(meta) => meta.get_root_name(),
+impl RootName for Expr {
+  fn get_root_name(&self, ast: &Ast<'_>) -> Option<Atom> {
+    match ast.expr_data(*self) {
+      ExprData::IdentifierReference(ident) => ident.get_root_name(ast),
+      ExprData::ThisExpression(this) => this.get_root_name(ast),
+      ExprData::MetaProperty(meta) => meta.get_root_name(ast),
       _ => None,
     }
   }
 }
 
-impl RootName for ExprRef<'_> {
-  fn get_root_name(&self) -> Option<Atom> {
+impl RootName for ExprRef {
+  fn get_root_name(&self, ast: &Ast<'_>) -> Option<Atom> {
     match self {
-      ExprRef::Ident(ident) => ident.get_root_name(),
-      ExprRef::This(this) => this.get_root_name(),
-      ExprRef::MetaProp(meta) => meta.get_root_name(),
+      ExprRef::Ident(ident) => ident.get_root_name(ast),
+      ExprRef::This(this) => this.get_root_name(ast),
+      ExprRef::MetaProp(meta) => meta.get_root_name(ast),
       _ => None,
     }
   }
 }
 
-impl RootName for ThisExpr {
-  fn get_root_name(&self) -> Option<Atom> {
+impl RootName for ThisExpression {
+  fn get_root_name(&self, _ast: &Ast<'_>) -> Option<Atom> {
     Some("this".into())
   }
 }
 
-impl RootName for Ident<'_> {
-  fn get_root_name(&self) -> Option<Atom> {
-    Some(Atom::from(&self.sym))
+impl RootName for IdentifierReference {
+  fn get_root_name(&self, ast: &Ast<'_>) -> Option<Atom> {
+    Some(Atom::from(ast.get_utf8(self.name(ast))))
   }
 }
 
-impl RootName for MetaPropExpr {
-  fn get_root_name(&self) -> Option<Atom> {
-    match self.kind {
-      MetaPropKind::NewTarget => Some("new.target".into()),
-      MetaPropKind::ImportMeta => Some("import.meta".into()),
+impl RootName for MetaProperty {
+  fn get_root_name(&self, ast: &Ast<'_>) -> Option<Atom> {
+    match (
+      ast.get_utf8(self.meta(ast).name(ast)),
+      ast.get_utf8(self.property(ast).name(ast)),
+    ) {
+      ("new", "target") => Some("new.target".into()),
+      ("import", "meta") => Some("import.meta".into()),
+      _ => None,
     }
   }
 }
@@ -263,16 +285,15 @@ pub struct NameInfo<'a> {
   pub info: Option<&'a VariableInfo>,
 }
 
-pub enum PatRef<'a> {
-  Borrowed(&'a Pat<'a>),
-  Owned(Pat<'a>),
+pub enum PatRef {
+  Borrowed(BindingPattern),
+  Owned(BindingPattern),
 }
 
-impl<'a> PatRef<'a> {
-  pub(crate) fn as_pat(&self) -> &Pat<'a> {
+impl PatRef {
+  pub(crate) fn as_pat(&self) -> BindingPattern {
     match self {
-      PatRef::Borrowed(pat) => pat,
-      PatRef::Owned(pat) => pat,
+      PatRef::Borrowed(pattern) | PatRef::Owned(pattern) => *pattern,
     }
   }
 }
@@ -420,6 +441,8 @@ pub struct JavascriptParser<'parser> {
   // ===== inputs =======
   pub(crate) source: &'parser str,
   pub ast: &'parser ParsedJavaScriptAst<'parser>,
+  synthetic_asts: Vec<&'parser ParsedJavaScriptAst<'parser>>,
+  active_synthetic_ast: Option<usize>,
   pub parse_meta: ParseMeta,
   pub factory_meta: Option<&'parser FactoryMeta>,
   pub build_meta: &'parser mut BuildMeta,
@@ -449,7 +472,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) destructuring_assignment_properties: DestructuringAssignmentPropertiesMap,
   pub(crate) dynamic_import_references: ImportsReferencesState,
   pub(crate) common_js_require_references: RequireReferencesState,
-  pub(crate) created_require_references: CreatedRequireReferencesState<'parser>,
+  pub(crate) created_require_references: CreatedRequireReferencesState,
   pub(crate) worker_index: u32,
   pub(crate) parser_exports_state: Option<bool>,
   pub(crate) local_modules: Vec<LocalModule>,
@@ -602,6 +625,8 @@ impl<'parser> JavascriptParser<'parser> {
     Self {
       last_esm_import_order: 0,
       ast,
+      synthetic_asts: Vec::new(),
+      active_synthetic_ast: None,
       javascript_options,
       source,
       errors,
@@ -1111,26 +1136,27 @@ impl<'parser> JavascriptParser<'parser> {
     self.definitions_db.set(self.definitions, name, new_info);
   }
 
-  fn _get_member_expression_info<'ast>(
+  fn _get_member_expression_info(
     &mut self,
-    object: ExprRef<'ast>,
+    object: ExprRef,
     mut members: AtomMembers,
     mut members_optionals: OptionalMembers,
     mut member_ranges: MemberRanges,
     allowed_types: AllowedMemberTypes,
-  ) -> Option<MemberExpressionInfo<'ast>> {
+  ) -> Option<MemberExpressionInfo> {
+    let ast = self.ast.ast;
     match object {
       ExprRef::Call(expr) => {
         if !allowed_types.contains(AllowedMemberTypes::CallExpression) {
           return None;
         }
-        let callee = expr.callee.as_expr()?;
-        let (root_name, mut root_members) = if let Some(member) = callee.as_member() {
+        let callee = expr.callee(ast);
+        let (root_name, mut root_members) = if let Some(member) = callee.as_member_expression(ast) {
           let extracted = self.extract_member_expression_chain(ExprRef::Member(member));
-          let root_name = extracted.object.get_root_name()?;
+          let root_name = extracted.object.get_root_name(ast)?;
           (root_name, extracted.members)
         } else {
-          (callee.get_root_name()?, AtomMembers::new())
+          (callee.get_root_name(ast)?, AtomMembers::new())
         };
         let NameInfo {
           info: root_info, ..
@@ -1157,7 +1183,7 @@ impl<'parser> JavascriptParser<'parser> {
         if !allowed_types.contains(AllowedMemberTypes::Expression) {
           return None;
         }
-        let root_name = object.get_root_name()?;
+        let root_name = object.get_root_name(ast)?;
 
         let NameInfo {
           name: resolved_root,
@@ -1184,17 +1210,18 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  pub fn get_member_expression_info_from_expr<'ast>(
+  pub fn get_member_expression_info_from_expr(
     &mut self,
-    expr: &'ast Expr,
+    expr: Expr,
     allowed_types: AllowedMemberTypes,
-  ) -> Option<MemberExpressionInfo<'ast>> {
-    match expr {
-      Expr::Member(_) | Expr::OptChain(_) => {
-        self.get_member_expression_info(expr.into(), allowed_types)
+  ) -> Option<MemberExpressionInfo> {
+    let expr_ref = ExprRef::from_expr(self.ast.ast, expr);
+    match expr_ref {
+      ExprRef::Member(_) | ExprRef::OptChain(_) => {
+        self.get_member_expression_info(expr_ref, allowed_types)
       }
       _ => self._get_member_expression_info(
-        expr.into(),
+        expr_ref,
         AtomMembers::new(),
         OptionalMembers::new(),
         MemberRanges::new(),
@@ -1203,11 +1230,11 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  pub fn get_member_expression_info<'ast>(
+  pub fn get_member_expression_info(
     &mut self,
-    expr: ExprRef<'ast>,
+    expr: ExprRef,
     allowed_types: AllowedMemberTypes,
-  ) -> Option<MemberExpressionInfo<'ast>> {
+  ) -> Option<MemberExpressionInfo> {
     let ExtractedMemberExpressionChainData {
       object,
       members,
@@ -1223,10 +1250,11 @@ impl<'parser> JavascriptParser<'parser> {
     )
   }
 
-  pub fn extract_member_expression_chain<'ast>(
+  pub fn extract_member_expression_chain(
     &self,
-    expr: ExprRef<'ast>,
-  ) -> ExtractedMemberExpressionChainData<'ast> {
+    expr: ExprRef,
+  ) -> ExtractedMemberExpressionChainData {
+    let ast = self.ast.ast;
     let mut object = expr;
     let mut members = AtomMembers::new();
     let mut members_optionals = OptionalMembers::new();
@@ -1235,27 +1263,29 @@ impl<'parser> JavascriptParser<'parser> {
     loop {
       match object {
         ExprRef::Member(expr) => {
-          if let Some(computed) = expr.prop.as_computed() {
-            let Some(value) = member_property_to_atom(&computed.expr) else {
+          let property = expr.property(ast);
+          if expr.computed(ast) {
+            let Some(value) = member_property_key_to_atom(ast, property) else {
               break;
             };
             // Since members are not used across rspack javascript parser plugin,
             // we directly makes it atom here
             members.push(value);
-            member_ranges.push(expr.obj.span());
-          } else if let Some(ident) = expr.prop.as_ident() {
-            members.push(Atom::from(&ident.sym));
-            member_ranges.push(expr.obj.span());
+            member_ranges.push(expr.object(ast).span(ast));
+          } else if let PropertyKeyData::IdentifierName(ident) = ast.property_key_data(property) {
+            members.push(Atom::from(ast.get_utf8(ident.name(ast))));
+            member_ranges.push(expr.object(ast).span(ast));
           } else {
             break;
           }
-          members_optionals.push(in_optional_chain);
-          object = (&expr.obj).into();
+          members_optionals.push(in_optional_chain || expr.optional(ast));
+          object = ExprRef::from_expr(ast, expr.object(ast));
           in_optional_chain = false;
         }
         ExprRef::OptChain(expr) => {
-          in_optional_chain = expr.optional;
-          if let OptChainBase::Member(member) = &expr.base {
+          let expression = expr.expression(ast);
+          if let Some(member) = expression.as_member_expression(ast) {
+            in_optional_chain = member.optional(ast);
             object = ExprRef::Member(member);
           } else {
             break;
@@ -1272,13 +1302,13 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn enter_ident<F>(&mut self, ident: &Ident, on_ident: F)
+  fn enter_ident<F>(&mut self, ident: BindingIdentifier, on_ident: F)
   where
-    F: FnOnce(&mut Self, &Ident),
+    F: FnOnce(&mut Self, BindingIdentifier),
   {
+    let name = Atom::from(self.ast.ast.get_utf8(ident.name(self.ast.ast)));
     let drive = self.plugin_drive.clone();
-    if !ident
-      .sym
+    if !name
       .call_hooks_name(self, |parser, for_name| {
         drive.pattern(parser, ident, for_name)
       })
@@ -1288,141 +1318,142 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn enter_array_pattern<F>(&mut self, array_pat: &ArrayPat, on_ident: F)
+  fn enter_array_pattern<F>(&mut self, array_pat: ArrayPattern, on_ident: F)
   where
-    F: FnOnce(&mut Self, &Ident) + Copy,
+    F: FnOnce(&mut Self, BindingIdentifier) + Copy,
   {
-    array_pat
-      .elems
-      .iter()
-      .flatten()
-      .for_each(|ele| self.enter_pattern(PatRef::Borrowed(ele), on_ident));
-  }
-
-  fn enter_assignment_pattern<F>(&mut self, assign: &AssignPat, on_ident: F)
-  where
-    F: FnOnce(&mut Self, &Ident) + Copy,
-  {
-    self.enter_pattern(PatRef::Borrowed(&assign.left), on_ident);
-  }
-
-  fn enter_object_pattern<F>(&mut self, obj: &ObjectPat, on_ident: F)
-  where
-    F: FnOnce(&mut Self, &Ident) + Copy,
-  {
-    for prop in &obj.props {
-      match prop {
-        ObjectPatProp::KeyValue(kv) => self.enter_pattern(PatRef::Borrowed(&kv.value), on_ident),
-        ObjectPatProp::Assign(assign) => {
-          let old = self.in_short_hand;
-          if assign.value.is_none() {
-            self.in_short_hand = true;
-          }
-          self.enter_ident(&assign.key.id, on_ident);
-          self.in_short_hand = old;
-        }
-        ObjectPatProp::Rest(rest) => self.enter_rest_pattern(rest, on_ident),
+    let ast = self.ast.ast;
+    for slot in array_pat.elements(ast).iter() {
+      if let Some(element) = ast.get_node_in_sub_range(slot) {
+        self.enter_pattern(PatRef::Borrowed(element), on_ident);
       }
     }
-  }
-
-  fn enter_rest_pattern<F>(&mut self, rest: &RestPat, on_ident: F)
-  where
-    F: FnOnce(&mut Self, &Ident) + Copy,
-  {
-    self.enter_pattern(PatRef::Borrowed(&rest.arg), on_ident)
-  }
-
-  fn enter_pattern<F>(&mut self, pattern: PatRef<'_>, on_ident: F)
-  where
-    F: FnOnce(&mut Self, &Ident) + Copy,
-  {
-    match pattern.as_pat() {
-      Pat::Ident(ident) => self.enter_ident(&ident.id, on_ident),
-      Pat::Array(array) => self.enter_array_pattern(array, on_ident),
-      Pat::Assign(assign) => self.enter_assignment_pattern(assign, on_ident),
-      Pat::Object(obj) => self.enter_object_pattern(obj, on_ident),
-      Pat::Rest(rest) => self.enter_rest_pattern(rest, on_ident),
-      Pat::Invalid(_) => (),
-      Pat::Expr(_) => (),
+    if let Some(rest) = array_pat.rest(ast) {
+      self.enter_rest_pattern(rest, on_ident);
     }
   }
 
-  fn enter_assign_target_pattern<F>(&mut self, pattern: &AssignTargetPat, on_ident: F)
+  fn enter_assignment_pattern<F>(&mut self, assign: AssignmentPattern, on_ident: F)
   where
-    F: FnOnce(&mut Self, &Ident) + Copy,
+    F: FnOnce(&mut Self, BindingIdentifier) + Copy,
   {
-    match pattern {
-      AssignTargetPat::Array(array) => self.enter_array_pattern(array, on_ident),
-      AssignTargetPat::Object(obj) => self.enter_object_pattern(obj, on_ident),
-      AssignTargetPat::Invalid(_) => (),
+    self.enter_pattern(PatRef::Borrowed(assign.left(self.ast.ast)), on_ident);
+  }
+
+  fn enter_object_pattern<F>(&mut self, object: ObjectPattern, on_ident: F)
+  where
+    F: FnOnce(&mut Self, BindingIdentifier) + Copy,
+  {
+    let ast = self.ast.ast;
+    for slot in object.properties(ast).iter() {
+      let property = ast.get_node_in_sub_range(slot);
+      let value = property.value(ast);
+      let old = self.in_short_hand;
+      if property.shorthand(ast) && !value.is_assignment_pattern(ast) {
+        self.in_short_hand = true;
+      }
+      self.enter_pattern(PatRef::Borrowed(value), on_ident);
+      self.in_short_hand = old;
+    }
+    if let Some(rest) = object.rest(ast) {
+      self.enter_rest_pattern(rest, on_ident);
     }
   }
 
-  fn enter_patterns<'a, I, F>(&mut self, patterns: I, on_ident: F)
+  fn enter_rest_pattern<F>(&mut self, rest: BindingRestElement, on_ident: F)
   where
-    F: FnOnce(&mut Self, &Ident) + Copy,
-    I: Iterator<Item = PatRef<'a>>,
+    F: FnOnce(&mut Self, BindingIdentifier) + Copy,
+  {
+    self.enter_pattern(PatRef::Borrowed(rest.argument(self.ast.ast)), on_ident)
+  }
+
+  fn enter_pattern<F>(&mut self, pattern: PatRef, on_ident: F)
+  where
+    F: FnOnce(&mut Self, BindingIdentifier) + Copy,
+  {
+    match self.ast.ast.binding_pattern_data(pattern.as_pat()) {
+      BindingPatternData::BindingIdentifier(ident) => self.enter_ident(ident, on_ident),
+      BindingPatternData::ArrayPattern(array) => self.enter_array_pattern(array, on_ident),
+      BindingPatternData::AssignmentPattern(assign) => {
+        self.enter_assignment_pattern(assign, on_ident)
+      }
+      BindingPatternData::ObjectPattern(object) => self.enter_object_pattern(object, on_ident),
+      BindingPatternData::BindingRestElement(rest) => self.enter_rest_pattern(rest, on_ident),
+      BindingPatternData::SimpleAssignmentTarget(_) => (),
+    }
+  }
+
+  fn enter_patterns<I, F>(&mut self, patterns: I, on_ident: F)
+  where
+    F: FnOnce(&mut Self, BindingIdentifier) + Copy,
+    I: Iterator<Item = PatRef>,
   {
     for pattern in patterns {
       self.enter_pattern(pattern, on_ident);
     }
   }
 
-  fn enter_optional_chain<'a, C, M, R>(
+  fn enter_optional_chain<C, M, R>(
     &mut self,
-    expr: &'a OptChainExpr<'a>,
+    expr: swc_next_ecma_ast::ChainExpression,
     on_call: C,
     on_member: M,
   ) -> R
   where
-    C: FnOnce(&mut Self, &'a OptCall<'a>) -> R,
-    M: FnOnce(&mut Self, &'a MemberExpr<'a>) -> R,
+    C: FnOnce(&mut Self, CallExpression) -> R,
+    M: FnOnce(&mut Self, MemberExpression) -> R,
   {
     let member_expr_in_optional_chain = self.member_expr_in_optional_chain;
-    let ret = match &expr.base {
-      OptChainBase::Call(call) => {
-        if call.callee.is_member() {
-          self.member_expr_in_optional_chain = expr.optional;
-        }
-        on_call(self, call)
+    let ast = self.ast.ast;
+    let expression = expr.expression(ast);
+    let ret = if let Some(call) = expression.as_call_expression(ast) {
+      if call.callee(ast).is_member_expression(ast) {
+        self.member_expr_in_optional_chain = call.optional(ast);
       }
-      OptChainBase::Member(member) => {
-        self.member_expr_in_optional_chain = expr.optional;
-        on_member(self, member)
-      }
+      on_call(self, call)
+    } else if let Some(member) = expression.as_member_expression(ast) {
+      self.member_expr_in_optional_chain = member.optional(ast);
+      on_member(self, member)
+    } else {
+      unreachable!("chain expression must contain a call or member expression")
     };
     self.member_expr_in_optional_chain = member_expr_in_optional_chain;
     ret
   }
 
-  fn enter_declaration<F>(&mut self, decl: &Decl, on_ident: F)
+  fn enter_declaration<F>(&mut self, decl: Decl, on_ident: F)
   where
-    F: FnOnce(&mut Self, &Ident) + Copy,
+    F: FnOnce(&mut Self, BindingIdentifier) + Copy,
   {
-    match decl {
-      Decl::Class(c) => {
-        self.enter_ident(&c.ident, on_ident);
-      }
-      Decl::Fn(f) => {
-        self.enter_ident(&f.ident, on_ident);
-      }
-      Decl::Var(var) => {
-        for decl in &var.decls {
-          self.enter_pattern(PatRef::Borrowed(&decl.name), on_ident);
+    let ast = self.ast.ast;
+    match ast.decl_data(decl) {
+      DeclData::Class(class) => {
+        if let Some(id) = class.id(ast) {
+          self.enter_ident(id, on_ident);
         }
       }
-      Decl::Using(_) => (),
+      DeclData::Function(function) => {
+        if let Some(id) = function.id(ast) {
+          self.enter_ident(id, on_ident);
+        }
+      }
+      DeclData::VariableDeclaration(variable) => {
+        for slot in variable.declarators(ast).iter() {
+          let declarator = ast.get_node_in_sub_range(slot);
+          self.enter_pattern(PatRef::Borrowed(declarator.id(ast)), on_ident);
+        }
+      }
+      _ => (),
     }
   }
 
-  fn enter_statement<S, H, F>(&mut self, statement: &S, call_hook: H, on_statement: F)
+  fn enter_statement<S, H, F>(&mut self, span: Span, statement: S, call_hook: H, on_statement: F)
   where
-    S: GetSpan,
-    H: FnOnce(&mut Self, &S) -> bool,
-    F: FnOnce(&mut Self, &S),
+    S: Copy,
+    H: FnOnce(&mut Self, S) -> bool,
+    F: FnOnce(&mut Self, S),
   {
-    self.statement_path.push(statement.span().into());
+    self.statement_path.push(span.into());
     if call_hook(self, statement) {
       self.prev_statement = self.statement_path.pop();
       return;
@@ -1431,29 +1462,29 @@ impl<'parser> JavascriptParser<'parser> {
     self.prev_statement = self.statement_path.pop();
   }
 
-  pub fn enter_destructuring_assignment<'a>(
+  pub fn enter_destructuring_assignment(
     &mut self,
-    pattern: &ObjectPat<'a>,
-    expr: &'a Expr<'a>,
-  ) -> Option<&'a Expr<'a>> {
+    pattern: ObjectPattern,
+    expr: Expr,
+  ) -> Option<Expr> {
+    let ast = self.ast.ast;
     let drive = self.plugin_drive.clone();
-    let expr = if let Expr::Await(await_expr) = expr {
-      &await_expr.arg
+    let expr = if let Some(await_expr) = expr.as_await_expression(ast) {
+      await_expr.argument(ast)
     } else {
       expr
     };
-    let destructuring = if let Some(assign) = expr.as_assign()
-      && let Some(pat) = assign.left.as_pat()
-      && let Some(obj_pat) = pat.as_object()
+    let destructuring = if let Some(assign) = expr.as_assignment_expression(ast)
+      && let Some(obj_pat) = assign.left(ast).as_object_assignment_target(ast)
     {
-      self.enter_destructuring_assignment(obj_pat, &assign.right)
+      self.enter_destructuring_assignment(obj_pat, assign.right(ast))
     } else {
       let can_collect = drive
         .can_collect_destructuring_assignment_properties(self, expr)
         .unwrap_or_default();
       can_collect.then_some(expr)
     };
-    let destructuring_span = destructuring.map(|destructuring| destructuring.span());
+    let destructuring_span = destructuring.map(|destructuring| destructuring.span(ast));
     if let Some(destructuring_span) = destructuring_span
       && let Some(keys) =
         self.collect_destructuring_assignment_properties_from_object_pattern(pattern)
@@ -1465,31 +1496,43 @@ impl<'parser> JavascriptParser<'parser> {
     destructuring
   }
 
-  pub fn walk_program(&mut self, ast: &Program) {
+  pub fn walk_program(&mut self, program: Program) {
     let drive = self.plugin_drive.clone();
-    if drive.program(self, ast).is_none() {
-      match ast {
-        Program::Module(m) => {
-          self.set_strict(true);
-          self.prev_statement = None;
-          self.module_pre_walk_module_items(&m.body);
-          self.prev_statement = None;
-          self.pre_walk_module_items(&m.body);
-          self.prev_statement = None;
-          self.block_pre_walk_module_items(&m.body);
-          self.prev_statement = None;
-          self.walk_module_items(&m.body);
-        }
-        Program::Script(s) => {
-          self.detect_mode(&s.body);
-          self.prev_statement = None;
-          self.pre_walk_statements(&s.body);
-          self.prev_statement = None;
-          self.block_pre_walk_statements(&s.body);
-          self.prev_statement = None;
-          self.walk_statements(&s.body);
-        }
+    if drive.program(self, program).is_none() {
+      let ast = self.ast.ast;
+      let body = program
+        .body(ast)
+        .iter()
+        .map(|slot| ast.get_node_in_sub_range(slot))
+        .collect::<Vec<_>>();
+      // Match the legacy `Program::Module` traversal without treating an
+      // `import.meta`-only unambiguous parse as ESM. Do not set `self.is_esm`
+      // early: legacy parsing only flipped that state during pre-walk.
+      let is_esm_program = matches!(self.module_type, ModuleType::JsEsm)
+        || body.iter().any(|statement| {
+          matches!(
+            ast.stmt_data(*statement),
+            StmtData::ImportDeclaration(_)
+              | StmtData::ExportNamedDeclaration(_)
+              | StmtData::ExportDefaultDeclaration(_)
+              | StmtData::ExportAllDeclaration(_)
+              | StmtData::TsExportAssignment(_)
+              | StmtData::TsNamespaceExportDeclaration(_)
+          )
+        });
+      if is_esm_program {
+        self.set_strict(true);
+        self.prev_statement = None;
+        self.module_pre_walk_module_items(&body);
+      } else {
+        self.detect_mode(program);
       }
+      self.prev_statement = None;
+      self.pre_walk_module_items(&body);
+      self.prev_statement = None;
+      self.block_pre_walk_module_items(&body);
+      self.prev_statement = None;
+      self.walk_module_items(&body);
     }
     drive.finish(self);
   }
@@ -1499,17 +1542,14 @@ impl<'parser> JavascriptParser<'parser> {
     current_scope.is_strict = value;
   }
 
-  pub fn detect_mode(&mut self, stmts: &[Stmt]) {
-    let Some(Lit::Str(str)) = stmts
-      .first()
-      .and_then(|stmt| stmt.as_expr())
-      .and_then(|expr_stmt| expr_stmt.expr.as_lit())
-    else {
-      return;
-    };
-
-    if str.value.as_wtf8().to_string_lossy().as_ref() == "use strict" {
-      self.set_strict(true);
+  pub fn detect_mode(&mut self, program: Program) {
+    let ast = self.ast.ast;
+    for slot in program.directives(ast).iter() {
+      let directive = ast.get_node_in_sub_range(slot);
+      if ast.get_utf8(directive.value(ast)) == "use strict" {
+        self.set_strict(true);
+        return;
+      }
     }
   }
 
@@ -1527,15 +1567,47 @@ impl<'parser> JavascriptParser<'parser> {
 }
 
 impl<'parser> JavascriptParser<'parser> {
-  pub fn evaluate_expression<'a>(&mut self, expr: &'a Expr<'a>) -> BasicEvaluatedExpression<'a>
-  where
-    'parser: 'a,
-  {
+  pub fn evaluate_expression(&mut self, expr: Expr) -> BasicEvaluatedExpression<'parser> {
+    let span = expr.span(self.ast.ast);
     match self.evaluating(expr) {
-      Some(evaluated) => evaluated.with_expression(Some(expr)),
-      None => BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span().real_hi())
-        .with_expression(Some(expr)),
+      Some(evaluated) => evaluated.with_expression_ast(Some(expr), self.active_synthetic_ast),
+      None => BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi())
+        .with_expression_ast(Some(expr), self.active_synthetic_ast),
     }
+  }
+
+  fn add_synthetic_ast(&mut self, ast: &'parser ParsedJavaScriptAst<'parser>) -> usize {
+    let index = self.synthetic_asts.len();
+    self.synthetic_asts.push(ast);
+    index
+  }
+
+  pub(crate) fn evaluate_expression_in_ast(
+    &mut self,
+    expression: Expr,
+    ast: &'parser ParsedJavaScriptAst<'parser>,
+  ) -> BasicEvaluatedExpression<'parser> {
+    let ast = self.add_synthetic_ast(ast);
+    let synthetic_ast = self.synthetic_asts[ast];
+    let previous_ast = std::mem::replace(&mut self.ast, synthetic_ast);
+    let previous_synthetic_ast = self.active_synthetic_ast.replace(ast);
+    let evaluated = self.evaluate_expression(expression);
+    self.active_synthetic_ast = previous_synthetic_ast;
+    self.ast = previous_ast;
+    evaluated
+  }
+
+  pub(crate) fn walk_expression_in_ast(&mut self, expression: Expr, ast: Option<usize>) {
+    let Some(ast) = ast else {
+      self.walk_expression(expression);
+      return;
+    };
+    let synthetic_ast = self.synthetic_asts[ast];
+    let previous_ast = std::mem::replace(&mut self.ast, synthetic_ast);
+    let previous_synthetic_ast = self.active_synthetic_ast.replace(ast);
+    self.walk_expression(expression);
+    self.active_synthetic_ast = previous_synthetic_ast;
+    self.ast = previous_ast;
   }
 
   pub fn evaluate<T: Display>(
@@ -1548,52 +1620,47 @@ impl<'parser> JavascriptParser<'parser> {
 
   // same as `JavascriptParser._initializeEvaluating` in webpack
   // FIXME: should mv it to plugin(for example `parse.hooks.evaluate for`)
-  fn evaluating<'a>(&mut self, expr: &'a Expr<'a>) -> Option<BasicEvaluatedExpression<'a>>
-  where
-    'parser: 'a,
-  {
-    match expr {
-      Expr::Tpl(tpl) => eval::eval_tpl_expression(self, tpl),
-      Expr::TaggedTpl(tagged_tpl) => eval::eval_tagged_tpl_expression(self, tagged_tpl),
-      Expr::Lit(lit) => eval::eval_lit_expr(lit),
-      Expr::Cond(cond) => eval::eval_cond_expression(self, cond),
-      Expr::Unary(unary) => eval::eval_unary_expression(self, unary),
-      Expr::Bin(binary) => eval::eval_binary_expression(self, binary),
-      Expr::Array(array) => eval::eval_array_expression(self, array),
-      Expr::New(new) => eval::eval_new_expression(self, new),
-      Expr::Call(call) => eval::eval_call_expression(self, call),
-      Expr::OptChain(opt_chain) => self.enter_optional_chain(
-        opt_chain,
-        |parser, call| {
-          let allocator: &'a Allocator = parser.ast.allocator;
-          let call_expr = allocator.alloc(CallExpr {
-            span: call.span,
-            callee: Callee::Expr(allocator.boxed(call.callee.clone_in(allocator))),
-            args: call.args.clone_in(allocator),
-          });
-          eval::eval_call_expression(parser, call_expr)
-        },
-        |parser, member| eval::eval_member_expression(parser, member, expr),
-      ),
-      Expr::Member(member) => eval::eval_member_expression(self, member, expr),
-      Expr::Ident(ident) => {
-        let name = Atom::from(&ident.sym);
+  fn evaluating(&mut self, expr: Expr) -> Option<BasicEvaluatedExpression<'parser>> {
+    let ast = self.ast.ast;
+    match ast.expr_data(expr) {
+      ExprData::TemplateLiteral(tpl) => eval::eval_tpl_expression(self, tpl),
+      ExprData::TaggedTemplateExpression(tagged_tpl) => {
+        eval::eval_tagged_tpl_expression(self, tagged_tpl)
+      }
+      ExprData::StringLiteral(_)
+      | ExprData::NumericLiteral(_)
+      | ExprData::BigIntLiteral(_)
+      | ExprData::BooleanLiteral(_)
+      | ExprData::NullLiteral(_)
+      | ExprData::RegExpLiteral(_) => eval::eval_lit_expr(ast, expr),
+      ExprData::ConditionalExpression(cond) => eval::eval_cond_expression(self, cond),
+      ExprData::UnaryExpression(unary) => eval::eval_unary_expression(self, unary),
+      ExprData::BinaryExpression(binary) => eval::eval_binary_expression(self, binary),
+      ExprData::LogicalExpression(logical) => eval::eval_logical_expression(self, logical),
+      ExprData::ArrayExpression(array) => eval::eval_array_expression(self, array),
+      ExprData::NewExpression(new) => eval::eval_new_expression(self, new),
+      ExprData::CallExpression(call) => eval::eval_call_expression(self, call),
+      ExprData::ChainExpression(chain) => {
+        let inner = chain.expression(ast);
+        match ast.expr_data(inner) {
+          ExprData::CallExpression(call) => eval::eval_call_expression(self, call),
+          ExprData::MemberExpression(member) => eval::eval_member_expression(self, member, expr),
+          _ => None,
+        }
+      }
+      ExprData::MemberExpression(member) => eval::eval_member_expression(self, member, expr),
+      ExprData::IdentifierReference(ident) => {
+        let span = ident.span(ast);
+        let name = Atom::from(ast.get_utf8(ident.name(ast)));
         if name == "undefined" {
-          let mut eval =
-            BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
+          let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
           eval.set_undefined();
           return Some(eval);
         }
         let drive = self.plugin_drive.clone();
         name
           .call_hooks_name(self, |parser, name| {
-            drive.evaluate_identifier(
-              parser,
-              name,
-              None,
-              ident.span.real_lo(),
-              ident.span.real_hi(),
-            )
+            drive.evaluate_identifier(parser, name, None, span.real_lo(), span.real_hi())
           })
           .or_else(|| {
             let info = self.get_variable_info(&name);
@@ -1601,8 +1668,7 @@ impl<'parser> JavascriptParser<'parser> {
               if let Some(name) = &info.name
                 && (info.is_free() || info.is_tagged())
               {
-                let mut eval =
-                  BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
+                let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
                 eval.set_identifier(
                   name.to_owned(),
                   ExportedVariableInfo::VariableInfo(info.id()),
@@ -1615,10 +1681,9 @@ impl<'parser> JavascriptParser<'parser> {
                 None
               }
             } else {
-              let mut eval =
-                BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
+              let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
               eval.set_identifier(
-                Atom::from(&ident.sym),
+                name.clone(),
                 ExportedVariableInfo::Name(name.clone()),
                 None,
                 None,
@@ -1628,11 +1693,11 @@ impl<'parser> JavascriptParser<'parser> {
             }
           })
       }
-      Expr::This(this) => {
+      ExprData::ThisExpression(this) => {
+        let span = this.span(ast);
         let drive = self.plugin_drive.clone();
         let default_eval = || {
-          let mut eval =
-            BasicEvaluatedExpression::with_range(this.span.real_lo(), this.span.real_hi());
+          let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
           eval.set_identifier(
             "this".into(),
             ExportedVariableInfo::Name("this".into()),
@@ -1645,7 +1710,7 @@ impl<'parser> JavascriptParser<'parser> {
         let Some(info) = self.get_variable_info("this") else {
           // use `ident.sym` as fallback for global variable(or maybe just a undefined variable)
           return drive
-            .evaluate_identifier(self, "this", None, this.span.real_lo(), this.span.real_hi())
+            .evaluate_identifier(self, "this", None, span.real_lo(), span.real_hi())
             .or_else(default_eval);
         };
         if let Some(name) = &info.name
@@ -1653,7 +1718,7 @@ impl<'parser> JavascriptParser<'parser> {
         {
           let name = name.clone();
           return drive
-            .evaluate_identifier(self, &name, None, this.span.real_lo(), this.span.real_hi())
+            .evaluate_identifier(self, &name, None, span.real_lo(), span.real_hi())
             .or_else(default_eval);
         }
         None

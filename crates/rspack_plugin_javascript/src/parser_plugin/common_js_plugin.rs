@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency};
-use swc_experimental_ecma_ast::{MemberExpr, UnaryExpr};
+use swc_next_ecma_ast::{GetSpan, UnaryExpression};
 
 use super::JavascriptParserPlugin;
 use crate::{
   utils::eval::{BasicEvaluatedExpression, evaluate_to_identifier},
-  visitors::{JavascriptParser, expr_name},
+  visitors::{HookMemberExpression, JavascriptParser, expr_name},
 };
 
 pub struct CommonJsPlugin;
@@ -37,12 +37,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
   fn r#typeof(
     &self,
     parser: &mut JavascriptParser<'p>,
-    expr: &UnaryExpr,
+    expr: UnaryExpression,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::MODULE {
       parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-        expr.span.into(),
+        expr.span(parser.ast.ast).into(),
         "'object'".into(),
       )));
       Some(true)
@@ -54,7 +54,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
   fn member(
     &self,
     parser: &mut JavascriptParser<'p>,
-    _expr: &MemberExpr,
+    _expr: HookMemberExpression,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "module.id" {

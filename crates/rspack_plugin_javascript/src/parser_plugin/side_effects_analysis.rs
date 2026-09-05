@@ -7,23 +7,32 @@
 //
 // Rspack-specific policies such as `/*#__PURE__*/`, `pureFunctions`, parser hooks, and deferred
 // import checks stay in `side_effects_parser_plugin`.
-use swc_experimental_ecma_ast::{
-  Callee, Class, ClassMember, Decl, Expr, Lit, MemberProp, MethodKind, OptChainBase, Pat, Prop,
-  PropName, PropOrSpread, Stmt, UnaryOp, VarDeclKind,
+use swc_next_ecma_ast::{
+  ArgumentData, Ast, Class, ClassElementData, DeclData, Expr, ExprData, Function,
+  MethodDefinitionKind, ObjectPropertyKindData, PropertyKey, PropertyKeyData, PropertyKind, Stmt,
+  StmtData, UnaryOperator, VariableKind,
 };
-use swc_experimental_ecma_semantic::resolver::Semantic;
+use swc_next_ecma_semantic::Semantic;
+
+use crate::visitors::formal_parameters_are_simple_identifiers;
 
 #[derive(Clone, Copy)]
-pub(super) struct SideEffectsContext<'a> {
-  semantic: &'a Semantic,
+pub(super) struct SideEffectsContext<'a, 'ast> {
+  ast: &'a Ast<'ast>,
+  semantic: &'a Semantic<'ast>,
   is_unresolved_ref_safe: bool,
   in_strict: bool,
   remaining_depth: u8,
 }
 
-impl<'a> SideEffectsContext<'a> {
-  pub(super) fn new(semantic: &'a Semantic, is_unresolved_ref_safe: bool) -> Self {
+impl<'a, 'ast> SideEffectsContext<'a, 'ast> {
+  pub(super) fn new(
+    ast: &'a Ast<'ast>,
+    semantic: &'a Semantic<'ast>,
+    is_unresolved_ref_safe: bool,
+  ) -> Self {
     Self {
+      ast,
       semantic,
       is_unresolved_ref_safe,
       in_strict: false,
@@ -43,7 +52,7 @@ impl<'a> SideEffectsContext<'a> {
   }
 }
 
-pub(super) fn may_have_side_effects(expression: &Expr<'_>, ctx: SideEffectsContext<'_>) -> bool {
+pub(super) fn may_have_side_effects(expression: Expr, ctx: SideEffectsContext<'_, '_>) -> bool {
   let Some(ctx) = ctx.consume_depth() else {
     return true;
   };
@@ -52,15 +61,16 @@ pub(super) fn may_have_side_effects(expression: &Expr<'_>, ctx: SideEffectsConte
     return false;
   }
 
-  match expression {
-    Expr::Ident(ident) => {
+  let ast = ctx.ast;
+  match ast.expr_data(expression) {
+    ExprData::IdentifierReference(identifier) => {
       if ctx.is_unresolved_ref_safe {
         return false;
       }
 
-      if ctx.semantic.node_scope(ident) == ctx.semantic.unresolved_scope_id() {
+      if is_unresolved_reference(identifier, ctx) {
         !matches!(
-          ident.sym.as_str(),
+          ast.get_utf8(identifier.name(ast)),
           "Infinity"
             | "NaN"
             | "Math"
@@ -81,354 +91,395 @@ pub(super) fn may_have_side_effects(expression: &Expr<'_>, ctx: SideEffectsConte
         false
       }
     }
-    Expr::Lit(..) | Expr::This(..) | Expr::PrivateName(..) => false,
-    Expr::Paren(parenthesized) => may_have_side_effects(&parenthesized.expr, ctx),
-    Expr::Fn(..) | Expr::Arrow(..) => false,
-    Expr::Class(class) => class_has_side_effects(ctx, &class.class),
-    Expr::Array(array) => array
-      .elems
-      .iter()
-      .flatten()
-      .any(|element| element.spread.is_some() || may_have_side_effects(&element.expr, ctx)),
-    Expr::Unary(unary) => match unary.op {
-      UnaryOp::Delete => true,
-      _ => may_have_side_effects(&unary.arg, ctx),
-    },
-    Expr::Bin(binary) => {
-      may_have_side_effects(&binary.left, ctx) || may_have_side_effects(&binary.right, ctx)
+    ExprData::StringLiteral(_)
+    | ExprData::NumericLiteral(_)
+    | ExprData::BigIntLiteral(_)
+    | ExprData::BooleanLiteral(_)
+    | ExprData::NullLiteral(_)
+    | ExprData::RegExpLiteral(_)
+    | ExprData::ThisExpression(_)
+    | ExprData::PrivateIdentifier(_) => false,
+    ExprData::ParenthesizedExpression(parenthesized) => {
+      may_have_side_effects(parenthesized.expression(ast), ctx)
     }
-    Expr::Member(member)
+    ExprData::TsAsExpression(expression) => may_have_side_effects(expression.expression(ast), ctx),
+    ExprData::TsSatisfiesExpression(expression) => {
+      may_have_side_effects(expression.expression(ast), ctx)
+    }
+    ExprData::TsTypeAssertion(expression) => may_have_side_effects(expression.expression(ast), ctx),
+    ExprData::TsNonNullExpression(expression) => {
+      may_have_side_effects(expression.expression(ast), ctx)
+    }
+    ExprData::TsInstantiationExpression(expression) => {
+      may_have_side_effects(expression.expression(ast), ctx)
+    }
+    ExprData::Function(_) | ExprData::ArrowFunctionExpression(_) => false,
+    ExprData::Class(class) => class_has_side_effects(ctx, class),
+    ExprData::ArrayExpression(array) => array
+      .elements(ast)
+      .iter()
+      .filter_map(|slot| ast.get_node_in_sub_range(slot))
+      .any(|argument| match ast.argument_data(argument) {
+        ArgumentData::Expr(expression) => may_have_side_effects(expression, ctx),
+        ArgumentData::SpreadElement(_) => true,
+      }),
+    ExprData::UnaryExpression(unary) => {
+      unary.operator(ast) == UnaryOperator::Delete
+        || may_have_side_effects(unary.argument(ast), ctx)
+    }
+    ExprData::BinaryExpression(binary) => {
+      may_have_side_effects(binary.left(ast), ctx) || may_have_side_effects(binary.right(ast), ctx)
+    }
+    ExprData::LogicalExpression(logical) => {
+      may_have_side_effects(logical.left(ast), ctx)
+        || may_have_side_effects(logical.right(ast), ctx)
+    }
+    ExprData::MemberExpression(member)
       if matches!(
-        &member.obj,
-        Expr::Object(_) | Expr::Fn(_) | Expr::Arrow(_) | Expr::Class(_)
+        ast.expr_data(member.object(ast)),
+        ExprData::ObjectExpression(_)
+          | ExprData::Function(_)
+          | ExprData::ArrowFunctionExpression(_)
+          | ExprData::Class(_)
       ) =>
     {
-      let object = &member.obj;
+      let object = member.object(ast);
       if may_have_side_effects(object, ctx) {
         return true;
       }
 
-      match object {
-        Expr::Class(class)
-          if class.class.body.iter().any(|member| {
-            matches!(
-              member,
-              ClassMember::Method(method)
-                if (method.kind == MethodKind::Getter || method.kind == MethodKind::Setter)
-                  && method.is_static
-            )
-          }) =>
-        {
+      match ast.expr_data(object) {
+        ExprData::Class(class) if class_member_access_may_have_side_effects(ctx, class) => {
           return true;
         }
-        Expr::Object(object) => {
-          let can_have_side_effects = |property: &PropOrSpread<'_>| match property {
-            PropOrSpread::Spread(_) => true,
-            PropOrSpread::Prop(property) => match &**property {
-              Prop::Getter(_) | Prop::Setter(_) | Prop::Method(_) => true,
-              Prop::Shorthand(identifier) => identifier.sym == "__proto__",
-              Prop::KeyValue(key_value) => match &key_value.key {
-                PropName::Ident(identifier) => identifier.sym == "__proto__",
-                PropName::Str(string) => string.value.as_wtf8().as_str() == Some("__proto__"),
-                PropName::Computed(_) => true,
-                _ => false,
-              },
-              _ => false,
-            },
-          };
-          if object.props.iter().any(can_have_side_effects) {
-            return true;
-          }
+        ExprData::ObjectExpression(object)
+          if object_member_access_may_have_side_effects(ctx, object) =>
+        {
+          return true;
         }
         _ => {}
       }
 
-      match &member.prop {
-        MemberProp::Computed(computed) => may_have_side_effects(&computed.expr, ctx),
-        MemberProp::Ident(_) | MemberProp::PrivateName(_) => false,
+      member.computed(ast) && property_key_may_have_side_effects(member.property(ast), ctx)
+    }
+    ExprData::TemplateLiteral(_)
+    | ExprData::TaggedTemplateExpression(_)
+    | ExprData::MetaProperty(_) => true,
+    ExprData::AwaitExpression(_)
+    | ExprData::YieldExpression(_)
+    | ExprData::MemberExpression(_)
+    | ExprData::Super(_)
+    | ExprData::UpdateExpression(_)
+    | ExprData::AssignmentExpression(_)
+    | ExprData::ImportExpression(_) => true,
+    ExprData::ChainExpression(chain) => match ast.expr_data(chain.expression(ast)) {
+      ExprData::CallExpression(call) if is_pure_callee(call.callee(ast), ctx) => {
+        arguments_may_have_side_effects(call.arguments(ast), ctx)
       }
-    }
-    Expr::Tpl(_) | Expr::TaggedTpl(_) | Expr::MetaProp(_) => true,
-    Expr::Await(_)
-    | Expr::Yield(_)
-    | Expr::Member(_)
-    | Expr::SuperProp(_)
-    | Expr::Update(_)
-    | Expr::Assign(_) => true,
-    Expr::OptChain(optional_chain) if matches!(&optional_chain.base, OptChainBase::Member(_)) => {
-      true
-    }
-    Expr::New(new_expression) if is_pure_new_callee(&new_expression.callee, ctx) => {
-      new_expression.args.as_ref().is_some_and(|arguments| {
-        arguments
-          .iter()
-          .any(|argument| may_have_side_effects(&argument.expr, ctx))
-      })
-    }
-    Expr::New(_) => true,
-    Expr::Call(call_expression) => {
-      let Callee::Expr(callee) = &call_expression.callee else {
-        return true;
-      };
-
-      if is_pure_callee(callee, ctx) {
-        call_expression
-          .args
-          .iter()
-          .any(|argument| may_have_side_effects(&argument.expr, ctx))
-      } else {
-        true
-      }
-    }
-    Expr::OptChain(optional_chain) => match &optional_chain.base {
-      OptChainBase::Call(call) if is_pure_callee(&call.callee, ctx) => call
-        .args
-        .iter()
-        .any(|argument| may_have_side_effects(&argument.expr, ctx)),
       _ => true,
     },
-    Expr::Seq(sequence) => sequence
-      .exprs
-      .iter()
-      .any(|expression| may_have_side_effects(expression, ctx)),
-    Expr::Cond(conditional) => {
-      may_have_side_effects(&conditional.test, ctx)
-        || may_have_side_effects(&conditional.cons, ctx)
-        || may_have_side_effects(&conditional.alt, ctx)
+    ExprData::NewExpression(new_expression)
+      if is_pure_new_callee(new_expression.callee(ast), ctx) =>
+    {
+      arguments_may_have_side_effects(new_expression.arguments(ast), ctx)
     }
-    Expr::Object(object) => object.props.iter().any(|property| match property {
-      PropOrSpread::Prop(property) => match &**property {
-        Prop::Shorthand(..) => false,
-        Prop::KeyValue(key_value) => {
-          let key_has_side_effects = match &key_value.key {
-            PropName::Computed(computed) => may_have_side_effects(&computed.expr, ctx),
-            _ => false,
-          };
-          key_has_side_effects || may_have_side_effects(&key_value.value, ctx)
+    ExprData::NewExpression(_) => true,
+    ExprData::CallExpression(call) if is_pure_callee(call.callee(ast), ctx) => {
+      arguments_may_have_side_effects(call.arguments(ast), ctx)
+    }
+    ExprData::CallExpression(_) => true,
+    ExprData::SequenceExpression(sequence) => sequence
+      .expressions(ast)
+      .iter()
+      .any(|slot| may_have_side_effects(ast.get_node_in_sub_range(slot), ctx)),
+    ExprData::ConditionalExpression(conditional) => {
+      may_have_side_effects(conditional.test(ast), ctx)
+        || may_have_side_effects(conditional.consequent(ast), ctx)
+        || may_have_side_effects(conditional.alternate(ast), ctx)
+    }
+    ExprData::ObjectExpression(object) => object.properties(ast).iter().any(|slot| {
+      let property = ast.get_node_in_sub_range(slot);
+      match ast.object_property_kind_data(property) {
+        ObjectPropertyKindData::SpreadElement(_) => true,
+        ObjectPropertyKindData::ObjectProperty(property) => {
+          if property.shorthand(ast) {
+            return false;
+          }
+
+          let key_has_side_effects =
+            property.computed(ast) && property_key_may_have_side_effects(property.key(ast), ctx);
+          if property.kind(ast) == PropertyKind::Init && !property.method(ast) {
+            key_has_side_effects || may_have_side_effects(property.value(ast), ctx)
+          } else {
+            key_has_side_effects
+          }
         }
-        Prop::Getter(getter) => match &getter.key {
-          PropName::Computed(computed) => may_have_side_effects(&computed.expr, ctx),
-          _ => false,
-        },
-        Prop::Setter(setter) => match &setter.key {
-          PropName::Computed(computed) => may_have_side_effects(&computed.expr, ctx),
-          _ => false,
-        },
-        Prop::Method(method) => match &method.key {
-          PropName::Computed(computed) => may_have_side_effects(&computed.expr, ctx),
-          _ => false,
-        },
-        Prop::Assign(_) => true,
-      },
-      PropOrSpread::Spread(_) => true,
+      }
     }),
-    Expr::JSXMember(..)
-    | Expr::JSXNamespacedName(..)
-    | Expr::JSXEmpty(..)
-    | Expr::JSXElement(..)
-    | Expr::JSXFragment(..)
-    | Expr::Invalid(..) => true,
+    ExprData::JsxElement(_) | ExprData::JsxFragment(_) => true,
   }
 }
 
-fn is_pure_callee(expression: &Expr<'_>, ctx: SideEffectsContext<'_>) -> bool {
+fn is_pure_callee(expression: Expr, ctx: SideEffectsContext<'_, '_>) -> bool {
   if is_global_ref_to(expression, ctx, "Date") {
     return true;
   }
 
-  match expression {
-    Expr::Member(member) => {
-      let object = &member.obj;
-      let property = &member.prop;
+  let ast = ctx.ast;
+  match ast.expr_data(expression) {
+    ExprData::MemberExpression(member) if !member.computed(ast) => {
+      let PropertyKeyData::IdentifierName(property) = ast.property_key_data(member.property(ast))
+      else {
+        return false;
+      };
+      let property = ast.get_utf8(property.name(ast));
+      let object = member.object(ast);
 
-      if let MemberProp::Ident(property) = property {
-        if is_global_ref_to(object, ctx, "Math") {
-          return true;
-        }
+      if is_global_ref_to(object, ctx, "Math") {
+        return true;
+      }
 
-        match object {
-          Expr::Ident(identifier) => identifier.sym == "Math",
-          Expr::Lit(literal) if matches!(&**literal, Lit::Str(..)) => {
-            is_pure_string_method(property.sym.as_str())
-          }
-          Expr::Tpl(template) if template.exprs.is_empty() => {
-            is_pure_string_method(property.sym.as_str())
-          }
-          _ => false,
+      match ast.expr_data(object) {
+        ExprData::IdentifierReference(identifier) => ast.get_utf8(identifier.name(ast)) == "Math",
+        ExprData::StringLiteral(_) => is_pure_string_method(property),
+        ExprData::TemplateLiteral(template) if template.expressions(ast).is_empty() => {
+          is_pure_string_method(property)
         }
-      } else {
-        false
+        _ => false,
       }
     }
-    Expr::Fn(function) => {
-      let function = &function.function;
-      function
-        .params
-        .iter()
-        .all(|parameter| matches!(&parameter.pat, Pat::Ident(_)))
-        && function
-          .body
-          .as_ref()
-          .is_some_and(|body| body.stmts.is_empty())
-    }
+    ExprData::Function(function) => is_empty_function(ast, function),
     _ => false,
   }
 }
 
-fn is_global_ref_to(expression: &Expr<'_>, ctx: SideEffectsContext<'_>, id: &str) -> bool {
-  match expression {
-    Expr::Ident(identifier) => {
-      ctx.semantic.node_scope(identifier) == ctx.semantic.unresolved_scope_id()
-        && identifier.sym == id
-    }
-    _ => false,
-  }
+fn is_unresolved_reference(
+  identifier: swc_next_ecma_ast::IdentifierReference,
+  ctx: SideEffectsContext<'_, '_>,
+) -> bool {
+  ctx
+    .semantic
+    .reference_of(identifier.node_id())
+    .map(|reference| ctx.semantic.reference(reference))
+    .is_some_and(|reference| reference.symbol.is_none() && !reference.flags.is_dynamic())
 }
 
-fn statement_may_have_side_effects(statement: &Stmt<'_>, ctx: SideEffectsContext<'_>) -> bool {
-  match statement {
-    Stmt::Block(block) => block
-      .stmts
+fn is_global_ref_to(expression: Expr, ctx: SideEffectsContext<'_, '_>, id: &str) -> bool {
+  let ast = ctx.ast;
+  let ExprData::IdentifierReference(identifier) = ast.expr_data(expression) else {
+    return false;
+  };
+  ast.get_utf8(identifier.name(ast)) == id && is_unresolved_reference(identifier, ctx)
+}
+
+fn arguments_may_have_side_effects(
+  arguments: swc_next_ecma_ast::TypedSubRange<swc_next_ecma_ast::Argument>,
+  ctx: SideEffectsContext<'_, '_>,
+) -> bool {
+  arguments.iter().any(|slot| {
+    let argument = ctx.ast.get_node_in_sub_range(slot);
+    match ctx.ast.argument_data(argument) {
+      ArgumentData::Expr(expression) => may_have_side_effects(expression, ctx),
+      ArgumentData::SpreadElement(_) => true,
+    }
+  })
+}
+
+fn statement_may_have_side_effects(statement: Stmt, ctx: SideEffectsContext<'_, '_>) -> bool {
+  let ast = ctx.ast;
+  match ast.stmt_data(statement) {
+    StmtData::BlockStatement(block) => block
+      .body(ast)
       .iter()
-      .any(|statement| statement_may_have_side_effects(statement, ctx)),
-    Stmt::Empty(_) => false,
-    Stmt::Labeled(labeled) => statement_may_have_side_effects(&labeled.body, ctx),
-    Stmt::If(if_statement) => {
-      may_have_side_effects(&if_statement.test, ctx)
-        || statement_may_have_side_effects(&if_statement.cons, ctx)
+      .any(|slot| statement_may_have_side_effects(ast.get_node_in_sub_range(slot), ctx)),
+    StmtData::EmptyStatement(_) => false,
+    StmtData::LabeledStatement(labeled) => statement_may_have_side_effects(labeled.body(ast), ctx),
+    StmtData::IfStatement(if_statement) => {
+      may_have_side_effects(if_statement.test(ast), ctx)
+        || statement_may_have_side_effects(if_statement.consequent(ast), ctx)
         || if_statement
-          .alt
-          .as_ref()
+          .alternate(ast)
           .is_some_and(|statement| statement_may_have_side_effects(statement, ctx))
     }
-    Stmt::Switch(switch) => {
-      may_have_side_effects(&switch.discriminant, ctx)
-        || switch.cases.iter().any(|case| {
+    StmtData::SwitchStatement(switch) => {
+      may_have_side_effects(switch.discriminant(ast), ctx)
+        || switch.cases(ast).iter().any(|slot| {
+          let case = ast.get_node_in_sub_range(slot);
           case
-            .test
-            .as_ref()
+            .test(ast)
             .is_some_and(|expression| may_have_side_effects(expression, ctx))
             || case
-              .cons
+              .consequent(ast)
               .iter()
-              .any(|statement| statement_may_have_side_effects(statement, ctx))
+              .any(|slot| statement_may_have_side_effects(ast.get_node_in_sub_range(slot), ctx))
         })
     }
-    Stmt::Try(try_statement) => {
+    StmtData::TryStatement(try_statement) => {
       try_statement
-        .block
-        .stmts
+        .block(ast)
+        .body(ast)
         .iter()
-        .any(|statement| statement_may_have_side_effects(statement, ctx))
-        || try_statement.handler.as_ref().is_some_and(|handler| {
+        .any(|slot| statement_may_have_side_effects(ast.get_node_in_sub_range(slot), ctx))
+        || try_statement.handler(ast).is_some_and(|handler| {
           handler
-            .body
-            .stmts
+            .body(ast)
+            .body(ast)
             .iter()
-            .any(|statement| statement_may_have_side_effects(statement, ctx))
+            .any(|slot| statement_may_have_side_effects(ast.get_node_in_sub_range(slot), ctx))
         })
-        || try_statement.finalizer.as_ref().is_some_and(|finalizer| {
+        || try_statement.finalizer(ast).is_some_and(|finalizer| {
           finalizer
-            .stmts
+            .body(ast)
             .iter()
-            .any(|statement| statement_may_have_side_effects(statement, ctx))
+            .any(|slot| statement_may_have_side_effects(ast.get_node_in_sub_range(slot), ctx))
         })
     }
-    Stmt::Decl(declaration) => match &**declaration {
-      Decl::Class(class) => class_has_side_effects(ctx, &class.class),
-      Decl::Fn(_) => !ctx.in_strict,
-      Decl::Var(variable) => variable.kind == VarDeclKind::Var,
+    StmtData::Declaration(declaration) => match ast.decl_data(declaration) {
+      DeclData::Class(class) => class_has_side_effects(ctx, class),
+      DeclData::Function(_) => !ctx.in_strict,
+      DeclData::VariableDeclaration(variable) => variable.kind(ast) == VariableKind::Var,
       _ => false,
     },
-    Stmt::Expr(expression) => may_have_side_effects(&expression.expr, ctx),
+    StmtData::ExpressionStatement(expression) => {
+      may_have_side_effects(expression.expression(ast), ctx)
+    }
     _ => true,
   }
 }
 
-fn class_has_side_effects(ctx: SideEffectsContext<'_>, class: &Class<'_>) -> bool {
-  if let Some(super_class) = &class.super_class
-    && may_have_side_effects(super_class, ctx)
+fn class_has_side_effects(ctx: SideEffectsContext<'_, '_>, class: Class) -> bool {
+  let ast = ctx.ast;
+  if class
+    .super_class(ast)
+    .is_some_and(|super_class| may_have_side_effects(super_class, ctx))
   {
     return true;
   }
 
-  for member in &class.body {
-    match member {
-      ClassMember::Method(method) => {
-        if let PropName::Computed(key) = &method.key
-          && may_have_side_effects(&key.expr, ctx)
+  for slot in class.body(ast).body(ast).iter() {
+    let member = ast.get_node_in_sub_range(slot);
+    match ast.class_element_data(member) {
+      ClassElementData::MethodDefinition(method) => {
+        if method.computed(ast) && property_key_may_have_side_effects(method.key(ast), ctx) {
+          return true;
+        }
+      }
+      ClassElementData::TsMethodDefinition(method) => {
+        if method.computed(ast) && property_key_may_have_side_effects(method.key(ast), ctx) {
+          return true;
+        }
+      }
+      ClassElementData::PropertyDefinition(property) => {
+        if property.computed(ast) && property_key_may_have_side_effects(property.key(ast), ctx) {
+          return true;
+        }
+        if property
+          .value(ast)
+          .is_some_and(|value| may_have_side_effects(value, ctx))
         {
           return true;
         }
       }
-      ClassMember::ClassProp(property) => {
-        if let PropName::Computed(key) = &property.key
-          && may_have_side_effects(&key.expr, ctx)
-        {
-          return true;
-        }
-        if let Some(value) = &property.value
-          && may_have_side_effects(value, ctx)
-        {
-          return true;
-        }
-      }
-      ClassMember::PrivateProp(property) => {
-        if let Some(value) = &property.value
-          && may_have_side_effects(value, ctx)
-        {
-          return true;
-        }
-      }
-      ClassMember::StaticBlock(block)
+      ClassElementData::StaticBlock(block)
         if block
-          .body
-          .stmts
+          .body(ast)
           .iter()
-          .any(|statement| statement_may_have_side_effects(statement, ctx)) =>
+          .any(|slot| statement_may_have_side_effects(ast.get_node_in_sub_range(slot), ctx)) =>
       {
         return true;
       }
-      _ => {}
+      ClassElementData::StaticBlock(_) | ClassElementData::TsIndexSignature(_) => {}
     }
   }
 
   false
 }
 
-fn is_pure_new_callee(expression: &Expr<'_>, ctx: SideEffectsContext<'_>) -> bool {
-  match expression {
-    Expr::Fn(function) => {
-      let function = &function.function;
-      function
-        .params
-        .iter()
-        .all(|parameter| matches!(&parameter.pat, Pat::Ident(_)))
-        && function
-          .body
-          .as_ref()
-          .is_some_and(|body| body.stmts.is_empty())
+fn class_member_access_may_have_side_effects(
+  ctx: SideEffectsContext<'_, '_>,
+  class: Class,
+) -> bool {
+  let ast = ctx.ast;
+  class.body(ast).body(ast).iter().any(|slot| {
+    let member = ast.get_node_in_sub_range(slot);
+    match ast.class_element_data(member) {
+      ClassElementData::MethodDefinition(method) => {
+        method.r#static(ast)
+          && matches!(
+            method.kind(ast),
+            MethodDefinitionKind::Get | MethodDefinitionKind::Set
+          )
+      }
+      ClassElementData::TsMethodDefinition(method) => {
+        method.r#static(ast)
+          && matches!(
+            method.kind(ast),
+            MethodDefinitionKind::Get | MethodDefinitionKind::Set
+          )
+      }
+      _ => false,
     }
-    Expr::Class(class) => {
-      let class = &class.class;
-      if class.super_class.is_some() || class_has_side_effects(ctx, class) {
+  })
+}
+
+fn object_member_access_may_have_side_effects(
+  ctx: SideEffectsContext<'_, '_>,
+  object: swc_next_ecma_ast::ObjectExpression,
+) -> bool {
+  let ast = ctx.ast;
+  object.properties(ast).iter().any(|slot| {
+    let property = ast.get_node_in_sub_range(slot);
+    let ObjectPropertyKindData::ObjectProperty(property) = ast.object_property_kind_data(property)
+    else {
+      return true;
+    };
+    if property.computed(ast) || property.method(ast) || property.kind(ast) != PropertyKind::Init {
+      return true;
+    }
+    property_key_is(property.key(ast), ctx, "__proto__")
+  })
+}
+
+fn property_key_may_have_side_effects(key: PropertyKey, ctx: SideEffectsContext<'_, '_>) -> bool {
+  match ctx.ast.property_key_data(key) {
+    PropertyKeyData::Expr(expression) => may_have_side_effects(expression, ctx),
+    _ => false,
+  }
+}
+
+fn property_key_is(key: PropertyKey, ctx: SideEffectsContext<'_, '_>, expected: &str) -> bool {
+  let ast = ctx.ast;
+  match ast.property_key_data(key) {
+    PropertyKeyData::IdentifierName(identifier) => ast.get_utf8(identifier.name(ast)) == expected,
+    PropertyKeyData::StringLiteral(string) => {
+      ast.get_wtf8(string.value(ast)).as_str() == Some(expected)
+    }
+    _ => false,
+  }
+}
+
+fn is_pure_new_callee(expression: Expr, ctx: SideEffectsContext<'_, '_>) -> bool {
+  let ast = ctx.ast;
+  match ast.expr_data(expression) {
+    ExprData::Function(function) => is_empty_function(ast, function),
+    ExprData::Class(class) => {
+      if class.super_class(ast).is_some() || class_has_side_effects(ctx, class) {
         return false;
       }
 
-      for member in &class.body {
-        match member {
-          ClassMember::ClassProp(property) if !property.is_static => return false,
-          ClassMember::PrivateProp(property) if !property.is_static => return false,
+      for slot in class.body(ast).body(ast).iter() {
+        let member = ast.get_node_in_sub_range(slot);
+        match ast.class_element_data(member) {
+          ClassElementData::PropertyDefinition(property) if !property.r#static(ast) => {
+            return false;
+          }
+          ClassElementData::MethodDefinition(method)
+            if method.kind(ast) == MethodDefinitionKind::Constructor
+              && !method.value(ast).body(ast).body(ast).is_empty() =>
+          {
+            return false;
+          }
           _ => {}
-        }
-      }
-
-      for member in &class.body {
-        if let ClassMember::Constructor(constructor) = member
-          && let Some(body) = &constructor.body
-          && !body.stmts.is_empty()
-        {
-          return false;
         }
       }
 
@@ -436,6 +487,11 @@ fn is_pure_new_callee(expression: &Expr<'_>, ctx: SideEffectsContext<'_>) -> boo
     }
     _ => false,
   }
+}
+
+fn is_empty_function(ast: &Ast<'_>, function: Function) -> bool {
+  formal_parameters_are_simple_identifiers(ast, function.params(ast))
+    && function.body(ast).body(ast).is_empty()
 }
 
 fn is_pure_string_method(method: &str) -> bool {

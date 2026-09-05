@@ -10,12 +10,12 @@ version     = "0.1.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-clippy_utils   = { git = "https://github.com/rust-lang/rust-clippy", rev = "c936595d17413c1f08e162e117e504fb4ed126e4" }
-dylint_linting = "4.1.2"
+clippy_utils   = { git = "https://github.com/rust-lang/rust-clippy", rev = "a55b8533bef24d86e43ac873c8b26573b9864864" }
+dylint_linting = "6.0.4"
 
 [dev-dependencies]
 dashmap            = "6.1.0"
-dylint_testing     = "4.1.2"
+dylint_testing     = "6.0.4"
 hashlink           = "0.10.0"
 indexmap           = "2.13.0"
 rspack_collections = { path = "../../crates/rspack_collections" }
