@@ -45,22 +45,47 @@ fn eval_property_key<'parser>(
   evaluated
 }
 
-fn skip_js_trivia(source: &[u8], mut offset: usize, end: usize) -> usize {
+fn is_ecmascript_whitespace_or_line_terminator(character: char) -> bool {
+  character.is_whitespace() || character == '\u{feff}'
+}
+
+fn is_ecmascript_line_terminator(character: char) -> bool {
+  matches!(character, '\n' | '\r' | '\u{2028}' | '\u{2029}')
+}
+
+fn skip_js_trivia(source: &str, mut offset: usize, end: usize) -> usize {
+  let bytes = source.as_bytes();
   while offset < end {
-    if source[offset].is_ascii_whitespace() {
-      offset += 1;
+    let Some(character) = source
+      .get(offset..end)
+      .and_then(|remaining| remaining.chars().next())
+    else {
+      break;
+    };
+    if is_ecmascript_whitespace_or_line_terminator(character) {
+      offset += character.len_utf8();
       continue;
     }
-    if offset + 1 < end && source[offset] == b'/' && source[offset + 1] == b'/' {
+    if offset + 1 < end && bytes[offset] == b'/' && bytes[offset + 1] == b'/' {
       offset += 2;
-      while offset < end && !matches!(source[offset], b'\n' | b'\r') {
-        offset += 1;
+      while offset < end {
+        let Some(character) = source
+          .get(offset..end)
+          .and_then(|remaining| remaining.chars().next())
+        else {
+          offset = end;
+          break;
+        };
+        if is_ecmascript_line_terminator(character) {
+          break;
+        }
+        offset += character.len_utf8();
       }
       continue;
     }
-    if offset + 1 < end && source[offset] == b'/' && source[offset + 1] == b'*' {
+    if offset + 1 < end && bytes[offset] == b'/' && bytes[offset + 1] == b'*' {
       offset += 2;
-      while offset + 1 < end && !(source[offset] == b'*' && source[offset + 1] == b'/') {
+      while offset + 1 < end && !(bytes[offset] == b'*' && bytes[offset + 1] == b'/') {
         offset += 1;
       }
       offset = (offset + 2).min(end);
@@ -303,19 +328,20 @@ impl JavascriptParser<'_> {
         // so include the brackets to avoid emitting `[mangledName]` (a runtime
         // variable lookup) instead of `mangledName` (a property key).
         let property_span = property.span(ast);
-        let source = self.source().as_bytes();
+        let source = self.source();
+        let source_bytes = source.as_bytes();
         let property_start = property_span.real_lo() as usize;
         let property_end = property_span.real_hi() as usize;
         let key_start = key_span.real_lo() as usize;
         let key_end = key_span.real_hi() as usize;
         let opening_bracket = skip_js_trivia(source, property_start, key_start);
         let closing_bracket = skip_js_trivia(source, key_end, property_end);
-        let start = if source.get(opening_bracket) == Some(&b'[') {
+        let start = if source_bytes.get(opening_bracket) == Some(&b'[') {
           opening_bracket
         } else {
           key_start
         };
-        let end = if source.get(closing_bracket) == Some(&b']') {
+        let end = if source_bytes.get(closing_bracket) == Some(&b']') {
           closing_bracket + 1
         } else {
           key_end
