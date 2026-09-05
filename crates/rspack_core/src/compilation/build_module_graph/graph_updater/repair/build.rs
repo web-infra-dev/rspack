@@ -9,7 +9,7 @@ use super::{
 };
 use crate::{
   BoxModule, BuildContext, BuildResult, CacheFacade, CompilationId, CompilerId, CompilerOptions,
-  FileSystemInfo, ModuleCodeTemplate, ResolverFactory, SharedPluginDriver,
+  FileSystemInfo, ModuleCodeTemplate, ResolverFactory, SharedPluginDriver, ValueCacheVersions,
   compilation::build_module_graph::{
     ForwardedIdSet, HasLazyDependencies, module_build_cache::ModuleBuildCache,
   },
@@ -30,6 +30,8 @@ pub struct BuildTask {
   pub fs: Arc<dyn ReadableFileSystem>,
   pub forwarded_ids: ForwardedIdSet,
   pub module_build_cache: Option<ModuleBuildCache>,
+  pub value_cache_versions: Arc<ValueCacheVersions>,
+  pub use_cache: bool,
 }
 
 #[async_trait::async_trait]
@@ -51,9 +53,26 @@ impl Task<TaskContext> for BuildTask {
       fs,
       forwarded_ids,
       module_build_cache,
+      value_cache_versions,
+      use_cache,
     } = *self;
 
     let build_start_time = module_build_cache.as_ref().map(|_| current_time());
+
+    // Cache decoding and snapshot validation run outside the graph's main queue.
+    if use_cache
+      && let Some(cache) = &module_build_cache
+      && let Some(entry) = cache
+        .restore(&module, &file_system_info, &value_cache_versions)
+        .await?
+    {
+      return Ok(vec![Box::new(BuildResultTask {
+        build_result: Box::new(entry.into_build_result(module)),
+        plugin_driver,
+        forwarded_ids,
+        origin: BuildOrigin::CacheHit,
+      })]);
+    }
 
     plugin_driver
       .compilation_hooks

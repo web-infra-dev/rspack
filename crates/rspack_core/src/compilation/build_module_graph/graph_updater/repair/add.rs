@@ -1,10 +1,6 @@
 use rspack_error::Result;
 
-use super::{
-  TaskContext,
-  build::{BuildOrigin, BuildResultTask, BuildTask},
-  lazy::process_unlazy_dependencies,
-};
+use super::{TaskContext, build::BuildTask, lazy::process_unlazy_dependencies};
 use crate::{
   BoxModule, DependencyRef, ModuleIdentifier,
   compilation::build_module_graph::ForwardedIdSet,
@@ -109,19 +105,6 @@ impl Task<TaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    let cached_build_result = if !context.rebuild_modules.contains(&module_identifier)
-      && let Some(module_build_cache) = &context.module_build_cache
-    {
-      module_build_cache
-        .restore(
-          &module,
-          &context.file_system_info,
-          &context.value_cache_versions,
-        )
-        .await?
-    } else {
-      None
-    };
     context
       .artifact
       .module_graph
@@ -144,15 +127,6 @@ impl Task<TaskContext> for AddTask {
       .affected_modules
       .mark_as_add(&module_identifier);
 
-    if let Some(cached_build_result) = cached_build_result {
-      return Ok(vec![Box::new(BuildResultTask {
-        build_result: Box::new(cached_build_result.into_build_result(module)),
-        plugin_driver: context.plugin_driver.clone(),
-        forwarded_ids,
-        origin: BuildOrigin::CacheHit,
-      })]);
-    }
-
     Ok(vec![Box::new(BuildTask {
       compiler_id: context.compiler_id,
       compilation_id: context.compilation_id,
@@ -166,6 +140,8 @@ impl Task<TaskContext> for AddTask {
       fs: context.fs.clone(),
       forwarded_ids,
       module_build_cache: context.module_build_cache.clone(),
+      value_cache_versions: context.value_cache_versions.clone(),
+      use_cache: !context.rebuild_modules.contains(&module_identifier),
     })])
   }
 }
