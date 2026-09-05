@@ -5,8 +5,8 @@
 
 use rspack_intern::Atom;
 use swc_next_ecma_ast::{
-  Ast, BindingIdentifier, BindingPattern, BlockStatement, BreakStatement, Class,
-  ContinueStatement, DebuggerStatement, DeclData, DoWhileStatement, EmptyStatement,
+  Ast, BindingIdentifier, BindingPattern, BlockStatement, BreakStatement, Class, ContinueStatement,
+  DebuggerStatement, DeclData, DoWhileStatement, EmptyStatement,
   ExportAllDeclaration as SwcExportAllDeclaration,
   ExportDefaultDeclaration as SwcExportDefaultDeclaration, ExportDefaultDeclarationKindData,
   ExportNamedDeclaration as SwcExportNamedDeclaration, Expr, ExpressionStatement, ForInStatement,

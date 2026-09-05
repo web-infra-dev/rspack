@@ -45,6 +45,32 @@ fn eval_property_key<'parser>(
   evaluated
 }
 
+fn skip_js_trivia(source: &[u8], mut offset: usize, end: usize) -> usize {
+  while offset < end {
+    if source[offset].is_ascii_whitespace() {
+      offset += 1;
+      continue;
+    }
+    if source.get(offset..offset + 2) == Some(b"//") {
+      offset += 2;
+      while offset < end && !matches!(source[offset], b'\n' | b'\r') {
+        offset += 1;
+      }
+      continue;
+    }
+    if source.get(offset..offset + 2) == Some(b"/*") {
+      offset += 2;
+      while offset + 1 < end && source.get(offset..offset + 2) != Some(b"*/") {
+        offset += 1;
+      }
+      offset = (offset + 2).min(end);
+      continue;
+    }
+    break;
+  }
+  offset
+}
+
 impl JavascriptParser<'_> {
   pub fn pre_walk_module_items(&mut self, statements: &[Stmt]) {
     for &statement in statements {
@@ -282,14 +308,18 @@ impl JavascriptParser<'_> {
         let property_end = property_span.real_hi() as usize;
         let key_start = key_span.real_lo() as usize;
         let key_end = key_span.real_hi() as usize;
-        let start = source
-          .get(property_start..key_start)
-          .and_then(|prefix| prefix.iter().rposition(|byte| *byte == b'['))
-          .map_or(key_start, |offset| property_start + offset);
-        let end = source
-          .get(key_end..property_end)
-          .and_then(|suffix| suffix.iter().position(|byte| *byte == b']'))
-          .map_or(key_end, |offset| key_end + offset + 1);
+        let opening_bracket = skip_js_trivia(source, property_start, key_start);
+        let closing_bracket = skip_js_trivia(source, key_end, property_end);
+        let start = if source.get(opening_bracket) == Some(&b'[') {
+          opening_bracket
+        } else {
+          key_start
+        };
+        let end = if source.get(closing_bracket) == Some(&b']') {
+          closing_bracket + 1
+        } else {
+          key_end
+        };
         (start as u32, end as u32).into()
       } else {
         key_span.into()
