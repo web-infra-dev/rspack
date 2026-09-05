@@ -33,45 +33,8 @@ impl PassExt for FinishModulesPhasePass {
   }
 }
 
+#[tracing::instrument("Compilation:finish_modules", skip_all)]
 pub async fn finish_modules_pass(compilation: &mut Compilation) -> Result<()> {
-  let mut dependencies_diagnostics_artifact = compilation.dependencies_diagnostics_artifact.steal();
-  let mut async_modules_artifact = compilation.async_modules_artifact.steal();
-  let mut exports_info_artifact = compilation.exports_info_artifact.steal();
-  let mut side_effects_state_artifact = compilation
-    .build_module_graph_artifact
-    .steal_side_effects_state_artifact();
-  let diagnostics = finish_modules_inner(
-    compilation,
-    &mut side_effects_state_artifact,
-    &mut dependencies_diagnostics_artifact,
-    &mut async_modules_artifact,
-    &mut exports_info_artifact,
-  )
-  .await;
-  compilation.dependencies_diagnostics_artifact = dependencies_diagnostics_artifact.into();
-  compilation.async_modules_artifact = async_modules_artifact.into();
-  compilation.exports_info_artifact = exports_info_artifact.into();
-  let diagnostics = diagnostics?;
-  apply_side_effects_state_artifact(
-    compilation.get_module_graph_mut(),
-    &side_effects_state_artifact,
-  );
-  compilation
-    .build_module_graph_artifact
-    .set_side_effects_state_artifact(side_effects_state_artifact);
-  compilation.extend_diagnostics(diagnostics);
-
-  Ok(())
-}
-
-#[tracing::instrument("Compilation:finish_modules_inner", skip_all)]
-pub async fn finish_modules_inner(
-  compilation: &Compilation,
-  side_effects_state_artifact: &mut SideEffectsStateArtifact,
-  dependencies_diagnostics_artifact: &mut DependenciesDiagnosticsArtifact,
-  async_modules_artifact: &mut AsyncModulesArtifact,
-  exports_info_artifact: &mut ExportsInfoArtifact,
-) -> Result<Vec<Diagnostic>> {
   if let Some(mut mutations) = compilation.incremental.mutations_write() {
     let build_module_graph_artifact = &compilation.build_module_graph_artifact;
     mutations.extend(
@@ -109,17 +72,14 @@ pub async fn finish_modules_inner(
   // frozen and start to optimize (provided exports, infer async, etc.) based on the
   // module graph, so any kind of change that affect these should be done before the
   // finish_modules
+  // Keep artifacts in Compilation across hook calls. JavaScript taps can access
+  // ModuleGraph and ExportsInfo, including while an asynchronous tap is pending.
   compilation
     .plugin_driver
     .clone()
     .compilation_hooks
     .finish_modules
-    .call(
-      compilation,
-      async_modules_artifact,
-      exports_info_artifact,
-      side_effects_state_artifact,
-    )
+    .call(compilation)
     .await?;
 
   // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2988
@@ -127,26 +87,28 @@ pub async fn finish_modules_inner(
   // Collect dependencies diagnostics at here to make sure:
   // 1. after finish_modules: has provide exports info
   // 2. before optimize dependencies: side effects free module hasn't been skipped
-  let mut all_diagnostics = collect_dependencies_diagnostics(
-    compilation,
-    dependencies_diagnostics_artifact,
-    exports_info_artifact,
-  );
+  let mut all_diagnostics = collect_dependencies_diagnostics(compilation);
   compilation.module_graph_cache_artifact.unfreeze();
 
   // take make diagnostics
   let diagnostics = compilation.build_module_graph_artifact.diagnostics();
   all_diagnostics.extend(diagnostics);
-  Ok(all_diagnostics)
+
+  let build_module_graph_artifact = &mut *compilation.build_module_graph_artifact;
+  apply_side_effects_state_artifact(
+    &mut build_module_graph_artifact.module_graph,
+    &build_module_graph_artifact.side_effects_state_artifact,
+  );
+  compilation.extend_diagnostics(all_diagnostics);
+  Ok(())
 }
 
 #[tracing::instrument("Compilation:collect_dependencies_diagnostics", skip_all)]
-fn collect_dependencies_diagnostics(
-  compilation: &Compilation,
-  dependencies_diagnostics_artifact: &mut DependenciesDiagnosticsArtifact,
-  exports_info_artifact: &ExportsInfoArtifact,
-) -> Vec<Diagnostic> {
+fn collect_dependencies_diagnostics(compilation: &mut Compilation) -> Vec<Diagnostic> {
+  let logger = compilation.get_logger("rspack.incremental.finishModules");
   let build_module_graph_artifact = &compilation.build_module_graph_artifact;
+  let dependencies_diagnostics_artifact = &mut *compilation.dependencies_diagnostics_artifact;
+  let exports_info_artifact = &compilation.exports_info_artifact;
   // Compute modules while holding the lock, then release it
   let (modules, has_mutations) = {
     let mutations = compilation
@@ -165,7 +127,6 @@ fn collect_dependencies_diagnostics(
         }
         let modules = mutations
           .get_affected_modules_with_module_graph(build_module_graph_artifact.get_module_graph());
-        let logger = compilation.get_logger("rspack.incremental.finishModules");
         logger.log(format!(
           "{} modules are affected, {} in total",
           modules.len(),

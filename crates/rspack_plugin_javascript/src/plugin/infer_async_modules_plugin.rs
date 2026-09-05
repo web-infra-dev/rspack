@@ -1,8 +1,8 @@
 use rayon::prelude::*;
 use rspack_collections::{IdentifierLinkedSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsyncModulesArtifact, Compilation, CompilationFinishModules, DependencyType, ExportsInfoArtifact,
-  Logger, ModuleGraph, Plugin, SideEffectsStateArtifact,
+  AsyncModulesArtifact, Compilation, CompilationFinishModules, DependencyType, Logger, ModuleGraph,
+  Plugin,
   incremental::{IncrementalPasses, Mutation, Mutations},
 };
 use rspack_error::Result;
@@ -13,13 +13,8 @@ use rspack_hook::{plugin, plugin_hook};
 pub struct InferAsyncModulesPlugin;
 
 #[plugin_hook(CompilationFinishModules for InferAsyncModulesPlugin)]
-async fn finish_modules(
-  &self,
-  compilation: &Compilation,
-  async_modules_artifact: &mut AsyncModulesArtifact,
-  _exports_info_artifact: &mut ExportsInfoArtifact,
-  _side_effects_state_artifact: &mut SideEffectsStateArtifact,
-) -> Result<()> {
+async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+  let async_modules_artifact = &mut compilation.async_modules_artifact;
   if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::FINISH_MODULES)
@@ -38,7 +33,7 @@ async fn finish_modules(
       });
   }
 
-  let module_graph = compilation.get_module_graph();
+  let module_graph = &compilation.build_module_graph_artifact.module_graph;
   let mut sync_modules = IdentifierLinkedSet::default();
   let mut async_modules = IdentifierLinkedSet::default();
   for (module_identifier, module) in module_graph.modules() {

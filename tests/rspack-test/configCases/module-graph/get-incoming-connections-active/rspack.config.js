@@ -23,31 +23,34 @@ class Plugin {
         const outgoingConnections =
           moduleGraph.getOutgoingConnections(entryModule);
 
-        // Find the connection to "used.js"
-        const usedConnection = outgoingConnections.find(
+        const usedConnections = outgoingConnections.filter(
           (c) => c.module && normalize(c.module.request).includes('used.js'),
         );
-        expect(usedConnection).toBeTruthy();
+        // The value import is active; the pure module's side-effect import is not.
+        const outgoingStates = usedConnections.map((connection) =>
+          connection.getActiveState(undefined),
+        );
+        expect(new Set(outgoingStates)).toEqual(new Set([false, true]));
 
-        // Active connection should return true (boolean)
-        const outgoingState = usedConnection.getActiveState(undefined);
-        expect(outgoingState).toBe(true);
-        expect(typeof outgoingState).toBe('boolean');
-
-        // Incoming connections to "used.js" should all be active
-        const usedModule = usedConnection.module;
+        const usedModule = usedConnections[0].module;
         const incomingConnections =
           moduleGraph.getIncomingConnections(usedModule);
         expect(incomingConnections.length).toBeGreaterThan(0);
         for (const connection of incomingConnections) {
           const state = connection.getActiveState(undefined);
-          expect(state).toBe(true);
+          expect(typeof state).toBe('boolean');
           expect(connection.originModule).toBeTruthy();
         }
+        expect(
+          new Set(
+            incomingConnections.map((connection) =>
+              connection.getActiveState(undefined),
+            ),
+          ),
+        ).toEqual(new Set(outgoingStates));
       });
 
-      // Test TransitiveOnly in processAssets phase where exports info is available
-      compilation.hooks.processAssets.tap(PLUGIN_NAME, () => {
+      const checkTransitiveOnly = () => {
         const moduleGraph = compilation.moduleGraph;
 
         // Walk all modules to find CssDependency connections with TransitiveOnly state
@@ -63,7 +66,12 @@ class Plugin {
           }
         }
         expect(foundTransitiveOnly).toBe(true);
-      });
+      };
+      compilation.hooks.finishModules.tap(
+        { name: PLUGIN_NAME, stage: 20 },
+        checkTransitiveOnly,
+      );
+      compilation.hooks.processAssets.tap(PLUGIN_NAME, checkTransitiveOnly);
     });
   }
 }

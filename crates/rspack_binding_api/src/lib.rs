@@ -438,10 +438,11 @@ impl JsCompiler {
     f: Function<'static>,
   ) -> Result<(), ErrorCode> {
     unsafe {
-      self.run(reference, |compiler, guard| {
+      self.run(reference, |compiler, state_guard, reference| {
         callbackify(
           f,
           async move {
+            let _state_guard = state_guard;
             let result = compiler.build().await.to_napi_result_with_message(|e| {
               print_error_diagnostic(e, compiler.options.stats.colors)
             });
@@ -450,7 +451,7 @@ impl JsCompiler {
             Ok(())
           },
           Some(move || {
-            drop(guard);
+            drop(reference);
           }),
         )
       })
@@ -469,10 +470,11 @@ impl JsCompiler {
     f: Function<'static>,
   ) -> Result<(), ErrorCode> {
     unsafe {
-      self.run(reference, |compiler, guard| {
+      self.run(reference, |compiler, state_guard, reference| {
         callbackify(
           f,
           async move {
+            let _state_guard = state_guard;
             let result = compiler
               .rebuild(
                 changed_files.into_iter().collect::<FxHashSet<_>>(),
@@ -487,7 +489,7 @@ impl JsCompiler {
             Ok(())
           },
           Some(move || {
-            drop(guard);
+            drop(reference);
           }),
         )
       })
@@ -548,11 +550,6 @@ impl JsCompiler {
   }
 }
 
-struct RunGuard {
-  _compiler_state_guard: CompilerStateGuard,
-  _reference: Reference<JsCompiler>,
-}
-
 impl JsCompiler {
   /// Run the given function with the compiler.
   ///
@@ -563,7 +560,11 @@ impl JsCompiler {
   unsafe fn run<R>(
     &mut self,
     mut reference: Reference<JsCompiler>,
-    f: impl FnOnce(&'static mut Compiler, RunGuard) -> Result<R, ErrorCode>,
+    f: impl FnOnce(
+      &'static mut Compiler,
+      CompilerStateGuard,
+      Reference<JsCompiler>,
+    ) -> Result<R, ErrorCode>,
   ) -> Result<R, ErrorCode> {
     if self.state.running() {
       return Err(concurrent_compiler_error());
@@ -584,13 +585,13 @@ impl JsCompiler {
       references.insert(compiler.id(), weak_reference);
     });
 
-    let guard = RunGuard {
-      _compiler_state_guard: compiler_state_guard,
-      _reference: reference,
-    };
-
     self.cleanup_last_compilation(&compiler.compilation);
-    within_compiler_context_sync(self.compiler_context.clone(), || f(compiler, guard))
+    // Release the running state when native work finishes, including errors.
+    // N-API skips callbackify's argument conversion/finalizer on its error path,
+    // so that finalizer must only retain the JS reference, not the running state.
+    within_compiler_context_sync(self.compiler_context.clone(), || {
+      f(compiler, compiler_state_guard, reference)
+    })
   }
 
   fn cleanup_last_compilation(&self, compilation: &Compilation) {

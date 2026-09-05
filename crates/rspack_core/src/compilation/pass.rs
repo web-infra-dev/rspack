@@ -16,7 +16,10 @@ pub trait PassExt: Send + Sync {
   /// The name of this pass, used for logging and profiling.
   fn name(&self) -> &'static str;
 
-  /// Core pass logic.
+  /// Core pass logic. Keep hook-visible artifacts in Compilation when invoking
+  /// plugins: JavaScript hooks may re-enter Compilation throughout an awaited tap.
+  /// Borrow individual fields locally inside algorithms instead of moving them
+  /// out across a hook call.
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()>;
 
   /// Override this instead of run_pass if you need cache access mid-pass.
