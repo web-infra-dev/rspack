@@ -99,7 +99,7 @@ use crate::{
   package_json::JSONMap,
   path::{PathUtil, SLASH_START},
   specifier::Specifier,
-  tsconfig::{ExtendsField, ProjectReference, TsConfig},
+  tsconfig::{ExtendsField, ProjectReference, TsConfig, is_relative_specifier},
 };
 pub use crate::{
   builtins::NODEJS_BUILTINS,
@@ -364,11 +364,15 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     ctx: &mut Ctx,
   ) -> Result<CachedPath, ResolveError> {
     // tsconfig-paths
-    if let Some(path) = self
-      .load_tsconfig_paths(cached_path, specifier, ctx)
-      .await?
-    {
-      return Ok(path);
+    // `paths` never applies to a relative specifier, so the tsconfig is
+    // neither loaded nor a file dependency for one.
+    if !is_relative_specifier(specifier) {
+      if let Some(path) = self
+        .load_tsconfig_paths(cached_path, specifier, ctx)
+        .await?
+      {
+        return Ok(path);
+      }
     }
 
     // enhanced-resolve: try alias
