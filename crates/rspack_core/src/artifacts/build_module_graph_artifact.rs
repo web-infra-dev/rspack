@@ -5,11 +5,12 @@ use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet;
 
 use crate::{
-  ArtifactExt, BuildDependency, DependencyId, DependencyRef, FactorizationArtifact, FactorizeInfo,
-  ModuleGraph, ModuleIdentifier, SideEffectsStateArtifact,
-  compilation::build_module_graph::ModuleToLazyMake,
+  ArtifactExt, BuildDependency, BuildResult, DependencyId, DependencyParents, DependencyRef,
+  FactorizationArtifact, FactorizeInfo, ModuleGraph, ModuleIdentifier, SideEffectsStateArtifact,
+  compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
   incremental::IncrementalPasses,
   incremental_info::IncrementalInfo,
+  module_graph::ModuleBuildData,
   utils::{FileCounter, ResourceId},
 };
 
@@ -81,6 +82,86 @@ impl BuildModuleGraphArtifact {
   }
   pub fn get_module_graph_mut(&mut self) -> &mut ModuleGraph {
     &mut self.module_graph
+  }
+
+  /// Installs fresh and cached builds through the same graph and index updates.
+  /// The module record retains the build output after its indices are published.
+  pub(crate) fn apply_build_result(
+    &mut self,
+    result: BuildResult,
+  ) -> (ModuleIdentifier, Vec<DependencyId>, LazyDependencies) {
+    let BuildResult {
+      mut module,
+      dependencies,
+      blocks,
+      optimization_bailouts,
+    } = result;
+    let identifier = module.identifier();
+    let mut data = ModuleBuildData {
+      dependencies,
+      blocks,
+      optimization_bailouts,
+    };
+    data.normalize_blocks();
+
+    if !module.diagnostics().is_empty() {
+      self.make_failed_module.insert(identifier);
+    }
+    let build_info = module.build_info();
+    let resource = ResourceId::from(identifier);
+    self
+      .file_dependencies
+      .add_files(&resource, &build_info.dependencies.file);
+    self
+      .context_dependencies
+      .add_files(&resource, &build_info.dependencies.context);
+    self
+      .missing_dependencies
+      .add_files(&resource, &build_info.dependencies.missing);
+    self
+      .build_dependencies
+      .add_files(&resource, &build_info.dependencies.build);
+
+    let mut all_dependencies = Vec::new();
+    let mut lazy_dependencies = LazyDependencies::default();
+    for (block, dependencies) in std::iter::once((None, data.dependencies.as_slice())).chain(
+      data
+        .blocks
+        .iter()
+        .map(|block| (Some(block.identifier()), block.dependency_refs())),
+    ) {
+      for (index_in_block, dependency) in dependencies.iter().enumerate() {
+        let id = *dependency.id();
+        if let Some(until) = dependency.lazy() {
+          lazy_dependencies.insert(dependency, until);
+        }
+        if block.is_none() {
+          module.add_dependency_id(id);
+        }
+        all_dependencies.push(id);
+        self.module_graph.set_parents(
+          id,
+          DependencyParents {
+            block,
+            module: identifier,
+            index_in_block,
+          },
+        );
+        self.module_graph.add_dependency_ref(dependency.clone());
+      }
+    }
+    for block in &data.blocks {
+      module.add_block_id(block.identifier());
+    }
+    let mgm = self
+      .module_graph
+      .module_graph_module_by_identifier_mut(&identifier);
+    mgm.all_dependencies_mut().clone_from(&all_dependencies);
+    mgm
+      .optimization_bailout_mut()
+      .extend(data.optimization_bailouts.iter().cloned());
+    self.module_graph.add_module_with_build_data(module, data);
+    (identifier, all_dependencies, lazy_dependencies)
   }
 
   /// Add a dependency that has not been factorized in the current build.

@@ -1,3 +1,6 @@
+mod build_data;
+pub(crate) use build_data::{ModuleBuildData, ModuleRecord};
+
 pub mod internal;
 pub mod rollback;
 
@@ -95,12 +98,12 @@ pub(crate) struct ModuleGraphData {
   /****** only modified during Make Phase */
   /// Module indexed by `ModuleIdentifier`.
   pub(crate) modules:
-    rollback::RollbackMap<ModuleIdentifier, BoxModule, BuildHasherDefault<IdentifierHasher>>,
+    rollback::RollbackMap<ModuleIdentifier, ModuleRecord, BuildHasherDefault<IdentifierHasher>>,
 
   /// Dependencies indexed by `DependencyId`.
   dependencies: rollback::DenseDependencyIdMap<DependencyRef>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
-  blocks: AsyncDependenciesBlockIdentifierMap<Box<AsyncDependenciesBlock>>,
+  blocks: AsyncDependenciesBlockIdentifierMap<(ModuleIdentifier, usize)>,
 
   /// Dependency_id to parent module identifier and parent block
   ///
@@ -177,14 +180,22 @@ impl ModuleGraph {
 
   #[inline]
   pub fn modules(&self) -> impl Iterator<Item = (&ModuleIdentifier, &BoxModule)> {
-    self.inner.modules.iter()
+    self
+      .inner
+      .modules
+      .iter()
+      .map(|(id, record)| (id, &record.module))
   }
 
   #[inline]
   pub fn modules_par(
     &self,
   ) -> impl rayon::prelude::ParallelIterator<Item = (&ModuleIdentifier, &BoxModule)> {
-    self.inner.modules.par_iter()
+    self
+      .inner
+      .modules
+      .par_iter()
+      .map(|(id, record)| (id, &record.module))
   }
 
   #[inline]
@@ -296,10 +307,14 @@ impl ModuleGraph {
       if let Some(m_id) = original_module_identifier
         && let Some(module) = self.inner.modules.get_mut(&m_id)
       {
-        module.remove_dependency_id(*dep_id);
+        module.module.remove_dependency_id(*dep_id);
+        module
+          .build_data
+          .dependencies
+          .retain(|dependency| dependency.id() != dep_id);
       }
       if let Some(b_id) = parent_block
-        && let Some(block) = self.inner.blocks.get_mut(&b_id)
+        && let Some(block) = self.block_by_id_mut(&b_id)
       {
         block.remove_dependency_id(*dep_id);
       }
@@ -493,11 +508,29 @@ impl ModuleGraph {
   }
 
   pub fn add_module(&mut self, module: BoxModule) {
-    self.inner.modules.insert(module.identifier(), module);
+    self.add_module_with_build_data(module, ModuleBuildData::default());
   }
 
-  pub fn add_block(&mut self, block: Box<AsyncDependenciesBlock>) {
-    self.inner.blocks.insert(block.identifier(), block);
+  pub(crate) fn add_module_with_build_data(
+    &mut self,
+    module: BoxModule,
+    build_data: ModuleBuildData,
+  ) {
+    let identifier = module.identifier();
+    for (slot, block) in build_data.blocks.iter().enumerate() {
+      self
+        .inner
+        .blocks
+        .insert(block.identifier(), (identifier, slot));
+    }
+    self
+      .inner
+      .modules
+      .insert(identifier, ModuleRecord { module, build_data });
+  }
+
+  pub(crate) fn module_record(&self, identifier: &ModuleIdentifier) -> Option<&ModuleRecord> {
+    self.inner.modules.get(identifier)
   }
 
   pub fn set_parents(&mut self, dependency_id: DependencyId, parents: DependencyParents) {
@@ -538,7 +571,15 @@ impl ModuleGraph {
     &self,
     block_id: &AsyncDependenciesBlockIdentifier,
   ) -> Option<&AsyncDependenciesBlock> {
-    self.inner.blocks.get(block_id).map(AsRef::as_ref)
+    let (owner, slot) = self.inner.blocks.get(block_id)?;
+    self
+      .inner
+      .modules
+      .get(owner)?
+      .build_data
+      .blocks
+      .get(*slot)
+      .map(AsRef::as_ref)
   }
 
   pub fn block_by_id_expect(
@@ -546,14 +587,33 @@ impl ModuleGraph {
     block_id: &AsyncDependenciesBlockIdentifier,
   ) -> &AsyncDependenciesBlock {
     self
-      .inner
-      .blocks
-      .get(block_id)
+      .block_by_id(block_id)
       .expect("should insert block before get it")
   }
 
-  pub fn blocks(&self) -> &AsyncDependenciesBlockIdentifierMap<Box<AsyncDependenciesBlock>> {
-    &self.inner.blocks
+  fn block_by_id_mut(
+    &mut self,
+    block_id: &AsyncDependenciesBlockIdentifier,
+  ) -> Option<&mut AsyncDependenciesBlock> {
+    let (owner, slot) = self.inner.blocks.get(block_id)?;
+    self
+      .inner
+      .modules
+      .get_mut(owner)?
+      .build_data
+      .blocks
+      .get_mut(*slot)
+      .map(AsMut::as_mut)
+  }
+
+  pub fn blocks(
+    &self,
+  ) -> impl Iterator<Item = (&AsyncDependenciesBlockIdentifier, &AsyncDependenciesBlock)> {
+    self
+      .inner
+      .blocks
+      .keys()
+      .map(|id| (id, self.block_by_id_expect(id)))
   }
 
   pub fn dependencies(&self) -> impl Iterator<Item = (DependencyId, &(dyn Dependency + 'static))> {
@@ -569,7 +629,31 @@ impl ModuleGraph {
   }
 
   pub(crate) fn add_dependency_ref(&mut self, dependency: DependencyRef) {
-    self.inner.dependencies.insert(*dependency.id(), dependency);
+    let id = *dependency.id();
+    if self
+      .inner
+      .dependencies
+      .get(&id)
+      .is_some_and(|stored| std::ptr::eq(stored.as_ref(), dependency.as_ref()))
+    {
+      return;
+    }
+    if let Some(parents) = self.inner.dependency_id_to_parents.get(&id).cloned() {
+      if let Some(block) = parents.block {
+        if let Some(block) = self.block_by_id_mut(&block) {
+          block.replace_dependency_ref(&dependency);
+        }
+      } else if let Some(record) = self.inner.modules.get_mut(&parents.module)
+        && let Some(stored) = record
+          .build_data
+          .dependencies
+          .iter_mut()
+          .find(|stored| *stored.id() == id)
+      {
+        *stored = dependency.clone();
+      }
+    }
+    self.inner.dependencies.insert(id, dependency);
   }
 
   pub(crate) fn dependency_ref_by_id(&self, dependency_id: &DependencyId) -> &DependencyRef {
@@ -623,7 +707,7 @@ impl ModuleGraph {
   pub fn get_module_by_dependency_id(&self, dep_id: &DependencyId) -> Option<&BoxModule> {
     self
       .module_identifier_by_dependency_id(dep_id)
-      .and_then(|module_id| self.inner.modules.get(module_id))
+      .and_then(|module_id| self.module_by_identifier(module_id))
   }
 
   fn add_connection(
@@ -700,14 +784,22 @@ impl ModuleGraph {
 
   /// Uniquely identify a module by its identifier and return the aliased reference
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
-    self.inner.modules.get(identifier)
+    self
+      .inner
+      .modules
+      .get(identifier)
+      .map(|record| &record.module)
   }
 
   pub fn module_by_identifier_mut(
     &mut self,
     identifier: &ModuleIdentifier,
   ) -> Option<&mut BoxModule> {
-    self.inner.modules.get_mut(identifier)
+    self
+      .inner
+      .modules
+      .get_mut(identifier)
+      .map(|record| &mut record.module)
   }
 
   /// Uniquely identify a module graph module by its module's identifier and return the aliased reference

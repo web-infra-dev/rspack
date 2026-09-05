@@ -171,28 +171,22 @@ impl AsyncDependenciesBlock {
     std::mem::take(&mut self.blocks)
   }
 
-  #[allow(clippy::vec_box)]
-  pub(crate) fn restore_build_result(
-    &mut self,
-    dependencies: Vec<DependencyRef>,
-    blocks: Vec<Box<AsyncDependenciesBlock>>,
-  ) {
-    debug_assert_eq!(
-      self.dependency_ids,
-      dependencies
-        .iter()
-        .map(|dependency| *dependency.id())
-        .collect::<Vec<_>>()
-    );
-    debug_assert_eq!(
-      self.block_ids,
-      blocks
-        .iter()
-        .map(|block| block.identifier())
-        .collect::<Vec<_>>()
-    );
+  pub(crate) fn dependency_refs(&self) -> &[DependencyRef] {
+    &self.dependencies
+  }
+
+  pub(crate) fn replace_dependency_ref(&mut self, dependency: &DependencyRef) {
+    if let Some(stored) = self
+      .dependencies
+      .iter_mut()
+      .find(|stored| stored.id() == dependency.id())
+    {
+      *stored = dependency.clone();
+    }
+  }
+
+  pub(crate) fn restore_dependencies(&mut self, dependencies: Vec<DependencyRef>) {
     self.dependencies = dependencies;
-    self.blocks = blocks;
   }
 
   pub fn loc(&self) -> Option<DependencyLocation> {
@@ -250,6 +244,7 @@ impl DependenciesBlock for AsyncDependenciesBlock {
 
   fn remove_dependency_id(&mut self, dependency: DependencyId) {
     self.dependency_ids.retain(|dep| dep != &dependency);
+    self.dependencies.retain(|dep| *dep.id() != dependency);
   }
 
   fn get_dependencies(&self) -> &[DependencyId] {

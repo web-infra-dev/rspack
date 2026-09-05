@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, sync::Arc};
+use std::sync::Arc;
 
 use rspack_fs::ReadableFileSystem;
 use rspack_util::time::current_time;
@@ -8,16 +8,12 @@ use super::{
   TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  AsyncDependenciesBlock, BoxModule, BuildContext, BuildResult, CacheFacade, CompilationId,
-  CompilerId, CompilerOptions, DependencyParents, DependencyRef, FileSystemInfo,
-  ModuleCodeTemplate, ResolverFactory, SharedPluginDriver,
+  BoxModule, BuildContext, BuildResult, CacheFacade, CompilationId, CompilerId, CompilerOptions,
+  FileSystemInfo, ModuleCodeTemplate, ResolverFactory, SharedPluginDriver,
   compilation::build_module_graph::{
-    ForwardedIdSet, HasLazyDependencies, LazyDependencies, module_build_cache::ModuleBuildCache,
+    ForwardedIdSet, HasLazyDependencies, module_build_cache::ModuleBuildCache,
   },
-  utils::{
-    ResourceId,
-    task_loop::{Task, TaskResult, TaskType},
-  },
+  utils::task_loop::{Task, TaskResult, TaskType},
 };
 
 #[derive(Debug)]
@@ -122,89 +118,14 @@ impl Task<TaskContext> for BuildResultTask {
       .call(context.compiler_id, context.compilation_id, &mut module)
       .await?;
 
-    let build_info = module.build_info();
-
-    if !module.diagnostics().is_empty() {
-      context
-        .artifact
-        .make_failed_module
-        .insert(module.identifier());
-    }
-
-    tracing::trace!("Module built: {}", module.identifier());
-    context
-      .artifact
-      .module_graph
-      .get_optimization_bailout_mut(&module.identifier())
-      .extend(build_result.optimization_bailouts);
-    let resource_id = ResourceId::from(module.identifier());
-    context
-      .artifact
-      .file_dependencies
-      .add_files(&resource_id, &build_info.dependencies.file);
-    context
-      .artifact
-      .context_dependencies
-      .add_files(&resource_id, &build_info.dependencies.context);
-    context
-      .artifact
-      .missing_dependencies
-      .add_files(&resource_id, &build_info.dependencies.missing);
-    context
-      .artifact
-      .build_dependencies
-      .add_files(&resource_id, &build_info.dependencies.build);
-
+    let (module_identifier, mut all_dependencies, lazy_dependencies) =
+      context.artifact.apply_build_result(BuildResult {
+        module,
+        dependencies: build_result.dependencies,
+        blocks: build_result.blocks,
+        optimization_bailouts: build_result.optimization_bailouts,
+      });
     let module_graph = &mut context.artifact.module_graph;
-    let mut lazy_dependencies = LazyDependencies::default();
-    let mut queue = VecDeque::new();
-    let mut all_dependencies = vec![];
-    let mut handle_block = |dependencies: Vec<DependencyRef>,
-                            blocks: Vec<Box<AsyncDependenciesBlock>>,
-                            current_block: Option<Box<AsyncDependenciesBlock>>|
-     -> Vec<Box<AsyncDependenciesBlock>> {
-      for (index_in_block, dependency) in dependencies.into_iter().enumerate() {
-        let dependency_id = *dependency.id();
-        if let Some(until) = dependency.lazy() {
-          lazy_dependencies.insert(&dependency, until);
-        }
-        if current_block.is_none() {
-          module.add_dependency_id(dependency_id);
-        }
-        all_dependencies.push(dependency_id);
-        module_graph.set_parents(
-          dependency_id,
-          DependencyParents {
-            block: current_block.as_ref().map(|block| block.identifier()),
-            module: module.identifier(),
-            index_in_block,
-          },
-        );
-        module_graph.add_dependency_ref(dependency);
-      }
-      if let Some(current_block) = current_block {
-        module.add_block_id(current_block.identifier());
-        module_graph.add_block(current_block);
-      }
-      blocks
-    };
-    let blocks = handle_block(build_result.dependencies, build_result.blocks, None);
-    queue.extend(blocks);
-
-    while let Some(mut block) = queue.pop_front() {
-      let dependencies = block.take_dependencies();
-      let blocks = handle_block(dependencies, block.take_blocks(), Some(block));
-      queue.extend(blocks);
-    }
-
-    {
-      let mgm = module_graph.module_graph_module_by_identifier_mut(&module.identifier());
-      mgm.all_dependencies_mut().clone_from(&all_dependencies);
-    }
-
-    let module_identifier = module.identifier();
-
-    module_graph.add_module(module);
 
     let mut tasks: Vec<Box<dyn Task<TaskContext>>> = vec![];
 
