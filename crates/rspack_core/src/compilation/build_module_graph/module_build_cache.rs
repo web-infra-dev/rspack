@@ -1,7 +1,5 @@
-use std::sync::Arc;
-
 use rspack_cacheable::cacheable;
-use rspack_collections::{Identifiable, IdentifierDashMap};
+use rspack_collections::{Identifiable, IdentifierMap};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 
 use crate::{
@@ -20,7 +18,6 @@ use crate::{
 pub(crate) struct ModuleBuildCache {
   cache: CacheFacade,
   persistent_codec: Option<CacheCodec>,
-  pending: Arc<IdentifierDashMap<u64>>,
 }
 
 #[cacheable]
@@ -57,14 +54,7 @@ impl ModuleBuildCache {
     Self {
       cache,
       persistent_codec,
-      pending: Default::default(),
     }
-  }
-
-  /// Defers publishing a built module until the build-module-graph phase has
-  /// completed, so make-stage mutations are included in the cache entry.
-  pub(crate) fn mark_pending(&self, module_identifier: ModuleIdentifier, build_start_time: u64) {
-    self.pending.insert(module_identifier, build_start_time);
   }
 
   pub(crate) async fn restore(
@@ -104,13 +94,11 @@ impl ModuleBuildCache {
     &self,
     artifact: &mut BuildModuleGraphArtifact,
     file_system_info: &FileSystemInfo,
+    pending: IdentifierMap<u64>,
   ) -> Result<()> {
-    let pending = self
-      .pending
-      .iter()
-      .map(|entry| (*entry.key(), *entry.value()))
-      .collect::<Vec<_>>();
-    self.pending.clear();
+    if pending.is_empty() {
+      return Ok(());
+    }
 
     let module_graph = artifact.get_module_graph();
     let snapshots = rspack_parallel::scope::<_, Result<_>>(|token| {

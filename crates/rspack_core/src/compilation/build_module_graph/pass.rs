@@ -66,6 +66,7 @@ impl PassExt for BuildModuleGraphPhasePass {
         .store_pending(
           &mut compilation.build_module_graph_artifact,
           &compilation.file_system_info,
+          compilation.make_session.take_cache_writes(),
         )
         .await?;
     }
