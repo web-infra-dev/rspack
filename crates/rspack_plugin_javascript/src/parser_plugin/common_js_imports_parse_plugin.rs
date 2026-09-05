@@ -38,7 +38,7 @@ use crate::{
     CallHooksName, ExportedVariableInfo, HookMemberExpression, Identifier, JavascriptParser,
     StatementPath, TagInfoData, VariableDeclaration, VariableDeclarationKind, VariableInfo,
     VariableInfoFlags, context_reg_exp, create_context_dependency, create_traceable_error,
-    expr_name, get_non_optional_part, iter_arguments, member_property_key_to_atom,
+    expr_name, get_non_optional_part, member_property_key_to_atom,
   },
 };
 
@@ -357,48 +357,11 @@ fn static_member_name(ast: &Ast<'_>, member_expr: MemberExpression) -> Option<At
   }
 }
 
-#[derive(Clone, Copy)]
-struct Arguments<'a, 'ast> {
-  ast: &'a Ast<'ast>,
-  range: TypedSubRange<Argument>,
-}
-
-impl<'a, 'ast> Arguments<'a, 'ast> {
-  fn len(self) -> usize {
-    self.range.len()
-  }
-
-  fn is_empty(self) -> bool {
-    self.range.is_empty()
-  }
-
-  fn first(self) -> Option<Argument> {
-    self.get(0)
-  }
-
-  fn get(self, index: usize) -> Option<Argument> {
-    self.range.get_node(self.ast, index)
-  }
-
-  fn at(self, index: usize) -> Argument {
-    self
-      .get(index)
-      .expect("argument index should be within range")
-  }
-
-  fn iter(self) -> impl Iterator<Item = Argument> + 'a {
-    self
-      .range
-      .iter()
-      .map(move |id| self.ast.get_node_in_sub_range(id))
-  }
-}
-
-fn arguments_view<'a, 'ast>(
-  ast: &'a Ast<'ast>,
-  range: TypedSubRange<Argument>,
-) -> Arguments<'a, 'ast> {
-  Arguments { ast, range }
+fn collect_arguments(ast: &Ast<'_>, arguments: TypedSubRange<Argument>) -> Vec<Argument> {
+  arguments
+    .iter()
+    .map(|id| ast.get_node_in_sub_range(id))
+    .collect()
 }
 
 fn argument_expression(ast: &Ast<'_>, argument: Argument) -> Expr {
@@ -533,13 +496,13 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: Expr) ->
   {
     return None;
   }
-  let args = arguments_view(ast, new_expr.arguments(ast));
+  let args = collect_arguments(ast, new_expr.arguments(ast));
   if let Some(first_arg) = args.first().and_then(|arg| arg.as_expr(ast))
     && let Some(value) = parser.evaluate_expression(first_arg).as_string()
     && value.starts_with("file:/")
   {
     if let Some(base) = args.get(1)
-      && !is_valid_ignored_url_base_arg(parser, base)
+      && !is_valid_ignored_url_base_arg(parser, *base)
     {
       return None;
     }
@@ -580,7 +543,7 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: Expr) ->
 #[inline(never)]
 fn ignored_url_args_are_side_effect_free_from(
   parser: &mut JavascriptParser,
-  args: &Arguments<'_, '_>,
+  args: &[Argument],
   start: usize,
 ) -> bool {
   let ast = parser.ast.ast;
@@ -621,7 +584,7 @@ fn parse_create_require_argument(
   emit_warning: bool,
 ) -> Option<CreateRequireArgument> {
   let ast = parser.ast.ast;
-  let args = arguments_view(ast, call_expr.arguments(ast));
+  let args = collect_arguments(ast, call_expr.arguments(ast));
   parse_create_require_argument_from_args(parser, &args, call_expr.span(ast), emit_warning)
 }
 
@@ -629,7 +592,7 @@ fn parse_create_require_argument(
 #[inline(never)]
 fn parse_create_require_argument_from_args(
   parser: &mut JavascriptParser,
-  args: &Arguments<'_, '_>,
+  args: &[Argument],
   span: Span,
   emit_warning: bool,
 ) -> Option<CreateRequireArgument> {
@@ -641,13 +604,12 @@ fn parse_create_require_argument_from_args(
   }
 
   let ast = parser.ast.ast;
-  let first_arg = args.at(0);
-  let Some(arg) = first_arg.as_expr(ast) else {
+  let Some(arg) = args[0].as_expr(ast) else {
     if emit_warning {
       add_create_require_warning(
         parser,
         "module.createRequire does not support spread arguments.",
-        first_arg.span(ast),
+        args[0].span(ast),
       );
     }
     return None;
@@ -686,7 +648,7 @@ fn parse_create_require_new_argument(
   emit_warning: bool,
 ) -> Option<CreateRequireArgument> {
   let ast = parser.ast.ast;
-  let args = arguments_view(ast, new_expr.arguments(ast));
+  let args = collect_arguments(ast, new_expr.arguments(ast));
   parse_create_require_argument_from_args(parser, &args, new_expr.span(ast), emit_warning)
 }
 
@@ -712,10 +674,10 @@ fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: Ex
   {
     let is_absolute_file_url = is_absolute_file_url_constructor_arg(parser, arg);
     let start = if is_absolute_file_url { 1 } else { 2 };
-    let args = arguments_view(ast, new_expr.arguments(ast));
+    let args = collect_arguments(ast, new_expr.arguments(ast));
     if is_absolute_file_url
       && let Some(base) = args.get(1)
-      && !is_valid_ignored_url_base_arg(parser, base)
+      && !is_valid_ignored_url_base_arg(parser, *base)
     {
       return false;
     }
@@ -726,21 +688,17 @@ fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: Ex
 }
 
 #[inline(never)]
-fn can_defer_create_require_call(parser: &mut JavascriptParser, args: &Arguments<'_, '_>) -> bool {
+fn can_defer_create_require_call(parser: &mut JavascriptParser, args: &[Argument]) -> bool {
   let ast = parser.ast.ast;
   args.len() == 1
-    && args
-      .at(0)
+    && args[0]
       .as_expr(ast)
       .and_then(|expr| expr.as_member_expression(ast))
       .is_some_and(|member| is_meta_url(parser, member))
 }
 
 #[inline(never)]
-fn should_clear_create_require_call(
-  parser: &mut JavascriptParser,
-  args: &Arguments<'_, '_>,
-) -> bool {
+fn should_clear_create_require_call(parser: &mut JavascriptParser, args: &[Argument]) -> bool {
   !matches!(parser.javascript_options.require_resolve, Some(false))
     && can_defer_create_require_call(parser, args)
 }
@@ -791,7 +749,7 @@ fn is_absolute_file_url_constructor_arg(parser: &mut JavascriptParser, arg: Expr
   {
     return false;
   };
-  let args = arguments_view(ast, new_expr.arguments(ast));
+  let args = collect_arguments(ast, new_expr.arguments(ast));
   args
     .first()
     .and_then(|arg| arg.as_expr(ast))
@@ -806,9 +764,9 @@ fn walk_create_require_callee(parser: &mut JavascriptParser, call_expr: CallExpr
 
 fn walk_create_require_ignored_args(parser: &mut JavascriptParser, call_expr: CallExpression) {
   let ast = parser.ast.ast;
-  let args = arguments_view(ast, call_expr.arguments(ast));
+  let args = collect_arguments(ast, call_expr.arguments(ast));
   if args.len() > 1 {
-    parser.walk_arguments(args.iter().skip(1));
+    parser.walk_arguments(args.into_iter().skip(1));
   }
 }
 
@@ -829,9 +787,9 @@ fn walk_create_require_argument_side_effects(parser: &mut JavascriptParser, arg:
   if !is_unbound_url_constructor(parser, new_expr.callee(ast)) {
     return;
   };
-  let args = arguments_view(ast, new_expr.arguments(ast));
+  let args = collect_arguments(ast, new_expr.arguments(ast));
   if args.len() > 1 {
-    parser.walk_arguments(args.iter().skip(1));
+    parser.walk_arguments(args.into_iter().skip(1));
   }
 }
 
@@ -880,14 +838,14 @@ fn create_require_url_arg_side_effects(parser: &mut JavascriptParser, arg: Expr)
   if !is_unbound_url_constructor(parser, new_expr.callee(ast)) {
     return String::new();
   };
-  let args = arguments_view(ast, new_expr.arguments(ast));
+  let args = collect_arguments(ast, new_expr.arguments(ast));
   let start = if is_absolute_file_url_constructor_arg(parser, arg) {
     1
   } else {
     2
   };
   let mut side_effects = String::new();
-  for argument in args.iter().skip(start) {
+  for argument in args.iter().skip(start).copied() {
     let expression = argument_expression(ast, argument);
     let Some(source) = source_for_span(parser, expression.span(ast)) else {
       continue;
@@ -930,13 +888,10 @@ fn wrap_span_with_side_effects(parser: &mut JavascriptParser, span: Span, side_e
 }
 
 #[inline(never)]
-fn create_require_extra_arg_side_effects(
-  parser: &JavascriptParser,
-  args: &Arguments<'_, '_>,
-) -> String {
+fn create_require_extra_arg_side_effects(parser: &JavascriptParser, args: &[Argument]) -> String {
   let ast = parser.ast.ast;
   let mut side_effects = String::new();
-  for argument in args.iter().skip(1) {
+  for argument in args.iter().skip(1).copied() {
     let expression = argument_expression(ast, argument);
     let Some(source) = source_for_span(parser, expression.span(ast)) else {
       continue;
@@ -953,13 +908,13 @@ fn create_require_extra_arg_side_effects(
 #[inline(never)]
 fn create_require_args_side_effects(
   parser: &mut JavascriptParser,
-  args: &Arguments<'_, '_>,
+  args: &[Argument],
   argument: &CreateRequireArgument,
 ) -> String {
   let mut side_effects = if argument.replace_argument {
     String::new()
   } else {
-    create_require_url_arg_side_effects(parser, argument_expression(parser.ast.ast, args.at(0)))
+    create_require_url_arg_side_effects(parser, argument_expression(parser.ast.ast, args[0]))
   };
   let extra_side_effects = create_require_extra_arg_side_effects(parser, args);
   if !extra_side_effects.is_empty() {
@@ -972,7 +927,7 @@ fn create_require_args_side_effects(
 fn evaluate_created_require<'p>(
   parser: &mut JavascriptParser<'p>,
   range: Span,
-  args: &Arguments<'_, '_>,
+  args: &[Argument],
   argument: CreateRequireArgument,
 ) -> BasicEvaluatedExpression<'p> {
   let side_effects = create_require_args_side_effects(parser, args, &argument);
@@ -1013,7 +968,7 @@ pub(crate) fn evaluate_create_require_new_expression<'p>(
   }
   let argument = parse_create_require_new_argument(parser, expr, false)?;
   let ast = parser.ast.ast;
-  let args = arguments_view(ast, expr.arguments(ast));
+  let args = collect_arguments(ast, expr.arguments(ast));
   Some(evaluate_created_require(
     parser,
     expr.span(ast),
@@ -1029,7 +984,7 @@ fn evaluate_create_require_call_expression<'p>(
 ) -> Option<BasicEvaluatedExpression<'p>> {
   let argument = parse_create_require_argument(parser, expr, false)?;
   let ast = parser.ast.ast;
-  let args = arguments_view(ast, expr.arguments(ast));
+  let args = collect_arguments(ast, expr.arguments(ast));
   Some(evaluate_created_require(
     parser,
     expr.span(ast),
@@ -1207,7 +1162,7 @@ fn pre_tag_created_require_declarator(
   let is_create_require_callee = callee.as_identifier_reference(ast).is_some_and(|ident| {
     is_create_require_specifier(parser, &Atom::from(ast.get_utf8(ident.name(ast))))
   }) || is_create_require_namespace_member(parser, callee);
-  let args = arguments_view(ast, call.arguments(ast));
+  let args = collect_arguments(ast, call.arguments(ast));
   if !is_create_require_callee || !can_defer_create_require_call(parser, &args) {
     return;
   }
@@ -1240,7 +1195,7 @@ fn pre_tag_created_require_declarator(
   parser.created_require_references.add_pending(
     call_span,
     deferred_callee,
-    argument_expression(parser.ast.ast, args.at(0)),
+    argument_expression(parser.ast.ast, args[0]),
     statement_path,
     prev_statement,
   );
@@ -1253,7 +1208,7 @@ fn tag_created_require_declarator(
   binding: swc_next_ecma_ast::BindingIdentifier,
   call_span: Span,
   clear_call: bool,
-  args: &Arguments<'_, '_>,
+  args: &[Argument],
   deferred_callee: Option<DeferredCreateRequireCallee>,
   argument: CreateRequireArgument,
 ) {
@@ -1281,7 +1236,7 @@ fn tag_created_require_declarator(
     parser.created_require_references.add_pending(
       call_span,
       callee,
-      argument_expression(parser.ast.ast, args.at(0)),
+      argument_expression(parser.ast.ast, args[0]),
       statement_path,
       prev_statement,
     );
@@ -1289,18 +1244,15 @@ fn tag_created_require_declarator(
     clear_create_require_call(parser, call_span);
   } else if replace_argument {
     parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-      argument_expression(parser.ast.ast, args.at(0))
+      argument_expression(parser.ast.ast, args[0])
         .span(parser.ast.ast)
         .into(),
       json_stringify_str(&value).into(),
     )));
   } else {
-    walk_create_require_argument_side_effects(
-      parser,
-      argument_expression(parser.ast.ast, args.at(0)),
-    );
+    walk_create_require_argument_side_effects(parser, argument_expression(parser.ast.ast, args[0]));
   }
-  parser.walk_arguments(args.iter().skip(1));
+  parser.walk_arguments(args.iter().skip(1).copied());
 }
 
 fn clear_create_require_tag<'key>(parser: &mut JavascriptParser, name: impl Into<AtomRef<'key>>) {
@@ -1410,9 +1362,9 @@ fn walk_unsupported_create_require_resolve(
 ) {
   walk_create_require_callee(parser, inner_call_expr);
   let ast = parser.ast.ast;
-  let inner_args = arguments_view(ast, inner_call_expr.arguments(ast));
+  let inner_args = collect_arguments(ast, inner_call_expr.arguments(ast));
   if inner_args.len() == 1
-    && let Some(arg) = inner_args.at(0).as_expr(ast)
+    && let Some(arg) = inner_args[0].as_expr(ast)
   {
     if let Some(value) = evaluate_create_require_argument(parser, arg) {
       if should_replace_create_require_argument(parser, arg) {
@@ -1425,22 +1377,27 @@ fn walk_unsupported_create_require_resolve(
       }
     } else if let Some(new_expr) = arg.as_new_expression(parser.ast.ast)
       && is_unbound_url_constructor(parser, new_expr.callee(parser.ast.ast))
-      && let args = arguments_view(parser.ast.ast, new_expr.arguments(parser.ast.ast))
+      && let args = collect_arguments(parser.ast.ast, new_expr.arguments(parser.ast.ast))
       && args.len() > 2
     {
       if get_url_request(parser, new_expr).is_some() {
-        parser.walk_arguments(args.iter().skip(2));
+        parser.walk_arguments(args.into_iter().skip(2));
       } else {
-        parser.walk_arguments(args.iter());
+        parser.walk_arguments(args.into_iter());
       }
     } else {
       parser.walk_expression(arg);
     }
   } else {
-    parser.walk_arguments(inner_args.iter());
+    parser.walk_arguments(inner_args.into_iter());
   }
   let ast = parser.ast.ast;
-  parser.walk_arguments(iter_arguments(ast, call_expr.arguments(ast)));
+  parser.walk_arguments(
+    call_expr
+      .arguments(ast)
+      .iter()
+      .map(|id| ast.get_node_in_sub_range(id)),
+  );
 }
 
 fn tag_commonjs_require_referenced(
@@ -1591,10 +1548,10 @@ impl CallOrNewExpression {
     }
   }
 
-  fn args<'a, 'ast>(self, ast: &'a Ast<'ast>) -> Arguments<'a, 'ast> {
+  pub fn args(self, ast: &Ast<'_>) -> Vec<Argument> {
     match self {
-      CallOrNewExpression::Call(call_expr) => arguments_view(ast, call_expr.arguments(ast)),
-      CallOrNewExpression::New(new_expr) => arguments_view(ast, new_expr.arguments(ast)),
+      CallOrNewExpression::Call(call_expr) => collect_arguments(ast, call_expr.arguments(ast)),
+      CallOrNewExpression::New(new_expr) => collect_arguments(ast, new_expr.arguments(ast)),
     }
   }
 
@@ -1650,18 +1607,18 @@ impl CommonJsImportsParserPlugin {
     request_context: Option<Context>,
   ) {
     let ast = parser.ast.ast;
-    let args = arguments_view(ast, call_expr.arguments(ast));
+    let args = collect_arguments(ast, call_expr.arguments(ast));
     if args.len() != 1 {
       return;
     }
 
-    if let Some(argument_expr) = args.at(0).as_expr(ast)
+    if let Some(argument_expr) = args[0].as_expr(ast)
       && Self::has_ignore_comment(parser, call_expr.span(ast), argument_expr.span(ast))
     {
       return;
     }
 
-    let argument_expr = argument_expression(ast, args.at(0));
+    let argument_expr = argument_expression(ast, args[0]);
     let param = parser.evaluate_expression(argument_expr);
     let range = call_expr.callee(parser.ast.ast).span(parser.ast.ast).into();
     let loc = parser.to_dependency_location(range);
@@ -1689,15 +1646,15 @@ impl CommonJsImportsParserPlugin {
     expr: CallExpression,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
-    let args = arguments_view(ast, expr.arguments(ast));
-    if args.len() != 1 || args.at(0).as_expr(ast).is_none() {
+    let args = collect_arguments(ast, expr.arguments(ast));
+    if args.len() != 1 || args[0].as_expr(ast).is_none() {
       preserve_unhandled_created_require(parser);
-      parser.walk_arguments(args.iter());
+      parser.walk_arguments(args.into_iter());
       return Some(true);
     }
     if matches!(parser.javascript_options.require_resolve, Some(false)) {
       preserve_unhandled_created_require(parser);
-      parser.walk_arguments(args.iter());
+      parser.walk_arguments(args.into_iter());
       return Some(true);
     }
     self.process_resolve(parser, expr, false, current_created_require_context(parser));
@@ -1764,11 +1721,11 @@ impl CommonJsImportsParserPlugin {
     is_call: bool,
   ) -> Option<CommonJsFullRequireDependency> {
     let ast = parser.ast.ast;
-    let args = arguments_view(ast, call_expr.arguments(ast));
+    let args = collect_arguments(ast, call_expr.arguments(ast));
     if args.len() != 1 {
       return None;
     }
-    let arg = args.at(0);
+    let arg = args[0];
     if let Some(argument_expr) = arg.as_expr(ast)
       && Self::has_ignore_comment(parser, call_expr.span(ast), argument_expr.span(ast))
     {
@@ -1914,7 +1871,7 @@ impl CommonJsImportsParserPlugin {
     if args.len() != 1 {
       return None;
     }
-    let argument_expr = args.at(0).as_expr(ast)?;
+    let argument_expr = args[0].as_expr(ast)?;
 
     // Skip adding require() as a dependency when in unreachable code after
     // return/throw (e.g. require("fail") in dead code should not be resolved).
@@ -2150,7 +2107,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         || is_create_require_namespace_member(parser, callee))
       && let Some(argument) = parse_create_require_argument(parser, call, false)
     {
-      let args = arguments_view(parser.ast.ast, call.arguments(parser.ast.ast));
+      let args = collect_arguments(parser.ast.ast, call.arguments(parser.ast.ast));
       let call_span = call.span(parser.ast.ast);
       let clear_call = should_clear_create_require_call(parser, &args);
       let deferred_callee = (declaration.kind(parser.ast.ast) == VariableDeclarationKind::Const
@@ -2179,7 +2136,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && let Some(argument) = parse_create_require_new_argument(parser, init, false)
     {
       let ast = parser.ast.ast;
-      let args = arguments_view(ast, init.arguments(ast));
+      let args = collect_arguments(ast, init.arguments(ast));
       tag_created_require_declarator(
         parser,
         binding,
@@ -2332,12 +2289,22 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         && preserve_unhandled_created_require(parser)
       {
         let ast = parser.ast.ast;
-        parser.walk_arguments(iter_arguments(ast, expr.arguments(ast)));
+        parser.walk_arguments(
+          expr
+            .arguments(ast)
+            .iter()
+            .map(|id| ast.get_node_in_sub_range(id)),
+        );
         return Some(true);
       }
       if ids.len() != members.len() {
         let ast = parser.ast.ast;
-        parser.walk_arguments(iter_arguments(ast, expr.arguments(ast)));
+        parser.walk_arguments(
+          expr
+            .arguments(ast)
+            .iter()
+            .map(|id| ast.get_node_in_sub_range(id)),
+        );
         return Some(true);
       }
       return None;
@@ -2364,7 +2331,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
           && !direct_import,
       );
     let ast = parser.ast.ast;
-    parser.walk_arguments(iter_arguments(ast, expr.arguments(ast)));
+    parser.walk_arguments(
+      expr
+        .arguments(ast)
+        .iter()
+        .map(|id| ast.get_node_in_sub_range(id)),
+    );
     Some(true)
   }
 
@@ -2551,13 +2523,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     ) {
       if let Some(argument) = parse_create_require_argument(parser, call_expr, true) {
         let ast = parser.ast.ast;
-        let args = arguments_view(ast, call_expr.arguments(ast));
+        let args = collect_arguments(ast, call_expr.arguments(ast));
         let call_span = call_expr.span(ast);
         let clear_call = should_clear_create_require_call(parser, &args);
         if clear_call {
           clear_create_require_call(parser, call_span);
         } else if argument.replace_argument {
-          let argument_expr = argument_expression(parser.ast.ast, args.at(0));
+          let argument_expr = argument_expression(parser.ast.ast, args[0]);
           parser.add_presentational_dependency(Arc::new(ConstDependency::new(
             argument_expr.span(parser.ast.ast).into(),
             json_stringify_str(&argument.value).into(),
@@ -2565,7 +2537,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         } else {
           walk_create_require_argument_side_effects(
             parser,
-            argument_expression(parser.ast.ast, args.at(0)),
+            argument_expression(parser.ast.ast, args[0]),
           );
         }
         if !clear_call {
@@ -2641,7 +2613,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && let Some(argument) = parse_create_require_argument(parser, call_expr, false)
     {
       let ast = parser.ast.ast;
-      let args = arguments_view(ast, call_expr.arguments(ast));
+      let args = collect_arguments(ast, call_expr.arguments(ast));
       let member_span = member_expr.span(ast);
       let side_effects = create_require_args_side_effects(parser, &args, &argument);
       let unsupported_replacement = create_require_unsupported_member_replacement(&side_effects);
@@ -2689,17 +2661,17 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && members[0].as_ref() == "resolve"
     {
       let ast = parser.ast.ast;
-      let call_args = arguments_view(ast, call_expr.arguments(ast));
+      let call_args = collect_arguments(ast, call_expr.arguments(ast));
       if matches!(parser.javascript_options.require_resolve, Some(false))
         || call_args.len() != 1
-        || call_args.at(0).as_expr(ast).is_none()
+        || call_args[0].as_expr(ast).is_none()
       {
         walk_unsupported_create_require_resolve(parser, inner_call_expr, call_expr);
         return Some(true);
       }
       let argument = parse_create_require_argument(parser, inner_call_expr, false)?;
       let ast = parser.ast.ast;
-      let inner_args = arguments_view(ast, inner_call_expr.arguments(ast));
+      let inner_args = collect_arguments(ast, inner_call_expr.arguments(ast));
       let side_effects = create_require_args_side_effects(parser, &inner_args, &argument);
       wrap_span_with_side_effects(parser, call_expr.span(parser.ast.ast), &side_effects);
       let context = argument.context;
@@ -2713,7 +2685,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && let Some(argument) = parse_create_require_argument(parser, inner_call_expr, false)
     {
       let ast = parser.ast.ast;
-      let inner_args = arguments_view(ast, inner_call_expr.arguments(ast));
+      let inner_args = collect_arguments(ast, inner_call_expr.arguments(ast));
       let side_effects = create_require_args_side_effects(parser, &inner_args, &argument);
       let unsupported_replacement = create_require_unsupported_member_replacement(&side_effects);
       let callee = call_expr.callee(ast);
@@ -2738,7 +2710,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       }
       walk_create_require_ignored_args(parser, inner_call_expr);
       let ast = parser.ast.ast;
-      parser.walk_arguments(iter_arguments(ast, call_expr.arguments(ast)));
+      parser.walk_arguments(
+        call_expr
+          .arguments(ast)
+          .iter()
+          .map(|id| ast.get_node_in_sub_range(id)),
+      );
       return Some(true);
     }
 
@@ -2752,7 +2729,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     {
       parser.add_dependency(BoxDependency::new(dep));
       let ast = parser.ast.ast;
-      parser.walk_arguments(iter_arguments(ast, call_expr.arguments(ast)));
+      parser.walk_arguments(
+        call_expr
+          .arguments(ast)
+          .iter()
+          .map(|id| ast.get_node_in_sub_range(id)),
+      );
       return Some(true);
     }
     None

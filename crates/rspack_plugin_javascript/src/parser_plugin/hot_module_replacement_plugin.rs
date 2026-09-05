@@ -13,7 +13,7 @@ use crate::{
   },
   parser_plugin::JavascriptParserPlugin,
   utils::eval,
-  visitors::{HookMemberExpression, JavascriptParser, expr_name, iter_arguments},
+  visitors::{HookMemberExpression, JavascriptParser, expr_name},
 };
 
 type CreateDependency = fn(Atom, DependencyRange) -> BoxDependency;
@@ -97,10 +97,21 @@ impl JavascriptParser<'_> {
         loc,
       )));
       self.add_dependencies(dependencies);
-      self.walk_arguments(iter_arguments(ast, call_expr.arguments(ast)).skip(1));
+      self.walk_arguments(
+        call_expr
+          .arguments(ast)
+          .iter()
+          .skip(1)
+          .map(|id| ast.get_node_in_sub_range(id)),
+      );
       return Some(true);
     }
-    self.walk_arguments(iter_arguments(ast, call_expr.arguments(ast)));
+    self.walk_arguments(
+      call_expr
+        .arguments(ast)
+        .iter()
+        .map(|id| ast.get_node_in_sub_range(id)),
+    );
     Some(true)
   }
 

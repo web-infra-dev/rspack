@@ -4,7 +4,7 @@ use rspack_core::{
 use rspack_util::SpanExt;
 use swc_next_ecma_ast::{
   Argument, AssignmentExpression, Ast, CallExpression, Expr, ExprData, GetSpan, PropertyKeyData,
-  Span, ThisExpression, TypedSubRange, UnaryExpression, UnaryOperator,
+  Span, ThisExpression, UnaryExpression, UnaryOperator,
 };
 
 use super::JavascriptParserPlugin;
@@ -19,9 +19,7 @@ use crate::{
     eval::{self, BasicEvaluatedExpression},
     object_properties::get_value_by_obj_prop,
   },
-  visitors::{
-    HookMemberExpression, Identifier, JavascriptParser, iter_arguments, member_property_key_to_atom,
-  },
+  visitors::{HookMemberExpression, Identifier, JavascriptParser, member_property_key_to_atom},
 };
 
 fn get_value_of_property_description(ast: &Ast<'_>, expr: Expr) -> Option<Expr> {
@@ -238,7 +236,7 @@ fn handle_access_export(
   remaining: &[Atom],
   remaining_optionals: &[bool],
   base: ExportsBase,
-  call_args: Option<TypedSubRange<Argument>>,
+  call_args: Option<Vec<Argument>>,
 ) -> Option<bool> {
   if parser.is_esm {
     return None;
@@ -254,7 +252,7 @@ fn handle_access_export(
     call_args.is_some(),
   )));
   if let Some(call_args) = call_args {
-    parser.walk_arguments(iter_arguments(parser.ast.ast, call_args));
+    parser.walk_arguments(call_args.into_iter());
   }
   Some(true)
 }
@@ -321,13 +319,17 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
     let ast = parser.ast.ast;
     let call_span = call_expr.span(ast);
-    let args = call_expr.arguments(ast);
+    let args = call_expr
+      .arguments(ast)
+      .iter()
+      .map(|id| ast.get_node_in_sub_range(id))
+      .collect::<Vec<_>>();
     if for_name == "Object.defineProperty"
       && parser.is_statement_level_expression(call_span)
       && args.len() == 3
-      && let Some(arg0) = args.get_node(ast, 0).and_then(|arg| arg.as_expr(ast))
-      && let Some(arg1) = args.get_node(ast, 1).and_then(|arg| arg.as_expr(ast))
-      && let Some(arg2) = args.get_node(ast, 2).and_then(|arg| arg.as_expr(ast))
+      && let Some(arg0) = args[0].as_expr(ast)
+      && let Some(arg1) = args[1].as_expr(ast)
+      && let Some(arg2) = args[2].as_expr(ast)
     {
       let exports_arg = parser.evaluate_expression(arg0);
       if !exports_arg.is_identifier() {
@@ -510,7 +512,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
     let ast = parser.ast.ast;
     let callee_span = expr.callee(ast).span(ast);
-    let arguments = expr.arguments(ast);
+    let arguments = || {
+      expr
+        .arguments(ast)
+        .iter()
+        .map(|id| ast.get_node_in_sub_range(id))
+        .collect::<Vec<_>>()
+    };
 
     if for_name == "exports" {
       // exports.a.b.c()
@@ -520,7 +528,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
         members,
         members_optionals,
         ExportsBase::Exports,
-        Some(arguments),
+        Some(arguments()),
       );
     }
 
@@ -532,7 +540,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
         &members[1..],
         &members_optionals[1..],
         ExportsBase::ModuleExports,
-        Some(arguments),
+        Some(arguments()),
       );
     }
 
@@ -544,7 +552,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
         members,
         members_optionals,
         ExportsBase::This,
-        Some(arguments),
+        Some(arguments()),
       );
     }
 

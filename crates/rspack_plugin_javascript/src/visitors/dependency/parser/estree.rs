@@ -5,7 +5,7 @@
 
 use rspack_intern::Atom;
 use swc_next_ecma_ast::{
-  Argument, Ast, BindingIdentifier, BindingPattern, BlockStatement, BreakStatement, Class,
+  Ast, BindingIdentifier, BindingPattern, BlockStatement, BreakStatement, Class,
   ContinueStatement, DebuggerStatement, DeclData, DoWhileStatement, EmptyStatement,
   ExportAllDeclaration as SwcExportAllDeclaration,
   ExportDefaultDeclaration as SwcExportDefaultDeclaration, ExportDefaultDeclarationKindData,
@@ -19,16 +19,6 @@ use swc_next_ecma_ast::{
 
 fn wtf8_to_atom(value: &swc_next_allocator::wtf8::Wtf8) -> Atom {
   Atom::from(value.to_string_lossy().as_ref())
-}
-
-/// Iterate call arguments without materializing flat-AST handles into a temporary `Vec`.
-pub fn iter_arguments<'a>(
-  ast: &'a Ast<'_>,
-  arguments: TypedSubRange<Argument>,
-) -> impl DoubleEndedIterator<Item = Argument> + 'a {
-  arguments
-    .iter()
-    .map(move |id| ast.get_node_in_sub_range(id))
 }
 
 /// Iterate the binding patterns represented by a function's formal parameters.

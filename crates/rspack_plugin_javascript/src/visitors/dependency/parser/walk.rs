@@ -9,7 +9,7 @@ use super::{
   TopLevelScope,
   estree::{
     ClassDeclOrExpr, ExportDefaultDeclaration, MaybeNamedClassDecl, MaybeNamedFunctionDecl,
-    Statement, formal_parameter_patterns, iter_arguments,
+    Statement, formal_parameter_patterns,
   },
   object_and_members_to_name,
 };
@@ -1253,7 +1253,12 @@ impl JavascriptParser<'_> {
       }
     }
     self.walk_expression(callee);
-    self.walk_arguments(iter_arguments(ast, expr.arguments(ast)));
+    self.walk_arguments(
+      expr
+        .arguments(ast)
+        .iter()
+        .map(|id| ast.get_node_in_sub_range(id)),
+    );
   }
 
   fn walk_meta_property(&mut self, expr: MetaProperty) {
@@ -1702,7 +1707,11 @@ impl JavascriptParser<'_> {
   fn walk_call_expression(&mut self, expr: CallExpression) {
     let ast = self.ast.ast;
     let callee = expr.callee(ast);
-    let arguments = expr.arguments(ast);
+    let arguments = expr
+      .arguments(ast)
+      .iter()
+      .map(|id| ast.get_node_in_sub_range(id))
+      .collect::<Vec<_>>();
 
     if let Some(member) = callee.as_member_expression(ast)
       && let Some(function) = member.object(ast).as_function(ast)
@@ -1711,7 +1720,7 @@ impl JavascriptParser<'_> {
       && !arguments.is_empty()
       && Self::simple_parameter_identifiers(ast, function.params(ast)).is_some()
     {
-      let mut args = iter_arguments(ast, arguments);
+      let mut args = arguments.into_iter();
       let current_this = args.next();
       self._walk_iife(member.object(ast), args, current_this);
       return;
@@ -1724,7 +1733,7 @@ impl JavascriptParser<'_> {
     };
     if direct_params.is_some_and(|params| Self::simple_parameter_identifiers(ast, params).is_some())
     {
-      self._walk_iife(callee, iter_arguments(ast, arguments), None);
+      self._walk_iife(callee, arguments.into_iter(), None);
       return;
     }
 
@@ -1776,7 +1785,7 @@ impl JavascriptParser<'_> {
           .import_call(self, call, None, Some((&members, true)))
           .unwrap_or_default()
         {
-          self.walk_arguments(iter_arguments(ast, arguments));
+          self.walk_arguments(arguments.into_iter());
           return;
         }
       }
@@ -1831,7 +1840,7 @@ impl JavascriptParser<'_> {
     } else {
       self.walk_expression(callee);
     }
-    self.walk_arguments(iter_arguments(ast, arguments));
+    self.walk_arguments(arguments.into_iter());
   }
 
   fn extract_await_import_member(

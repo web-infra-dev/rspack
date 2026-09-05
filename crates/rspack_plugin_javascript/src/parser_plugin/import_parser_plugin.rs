@@ -24,7 +24,7 @@ use crate::{
     ContextModuleScanResult, DestructuringAssignmentProperties, HookMemberExpression, Identifier,
     JavascriptParser, PatRef, TagInfoData, TopLevelScope, VariableDeclaration,
     VariableDeclarationKind, context_reg_exp, create_context_dependency, create_traceable_error,
-    formal_parameter_patterns, get_non_optional_part, iter_arguments, parse_order_string,
+    formal_parameter_patterns, get_non_optional_part, parse_order_string,
   },
 };
 
@@ -386,7 +386,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           && !direct_import,
       );
     let ast = parser.ast.ast;
-    parser.walk_arguments(iter_arguments(ast, expr.arguments(ast)));
+    parser.walk_arguments(
+      expr
+        .arguments(ast)
+        .iter()
+        .map(|id| ast.get_node_in_sub_range(id)),
+    );
     Some(true)
   }
 
@@ -656,16 +661,25 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
     if let Some(import_then) = import_then {
       if let Some(ns_obj) = referenced_fulfilled_ns_obj {
         let ast = parser.ast.ast;
-        let arguments = import_then.arguments(ast);
+        let arguments = import_then
+          .arguments(ast)
+          .iter()
+          .map(|id| ast.get_node_in_sub_range(id))
+          .collect::<Vec<_>>();
         let fulfilled_callback = arguments
-          .get_node(ast, 0)
+          .first()
           .and_then(|argument| argument.as_expr(ast))
           .expect("fulfilled callback should be an expression");
         walk_import_then_fulfilled_callback(parser, node, fulfilled_callback, ns_obj);
-        parser.walk_arguments(iter_arguments(ast, arguments).skip(1));
+        parser.walk_arguments(arguments.into_iter().skip(1));
       } else {
         let ast = parser.ast.ast;
-        parser.walk_arguments(iter_arguments(ast, import_then.arguments(ast)));
+        parser.walk_arguments(
+          import_then
+            .arguments(ast)
+            .iter()
+            .map(|id| ast.get_node_in_sub_range(id)),
+        );
       }
     }
 

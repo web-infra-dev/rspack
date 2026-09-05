@@ -10,7 +10,7 @@ use swc_next_ecma_ast::{CallExpression, GetSpan, Span};
 use super::{super::JavascriptParserPlugin, ProvideValue, VALUE_DEP_PREFIX};
 use crate::{
   dependency::ProvideDependency,
-  visitors::{HookMemberExpression, Identifier, JavascriptParser, iter_arguments},
+  visitors::{HookMemberExpression, Identifier, JavascriptParser},
 };
 
 const SOURCE_DOT: &str = r#"."#;
@@ -77,7 +77,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ProvideParserPlugin {
     let ast = parser.ast.ast;
     if self.add_provide_dep(for_name, expr.callee(ast).span(ast), parser) {
       // FIXME: webpack use `walk_expression` here
-      parser.walk_arguments(iter_arguments(ast, expr.arguments(ast)));
+      parser.walk_arguments(
+        expr
+          .arguments(ast)
+          .iter()
+          .map(|id| ast.get_node_in_sub_range(id)),
+      );
       return Some(true);
     }
     None

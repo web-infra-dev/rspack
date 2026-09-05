@@ -44,11 +44,15 @@ impl CompatibilityPlugin {
     expr: CallExpression,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
-    let arguments = expr.arguments(ast);
+    let arguments = expr
+      .arguments(ast)
+      .iter()
+      .map(|id| ast.get_node_in_sub_range(id))
+      .collect::<Vec<_>>();
     if arguments.len() != 2 {
       return None;
     }
-    let ArgumentData::Expr(second) = ast.argument_data(arguments.get_node(ast, 1)?) else {
+    let ArgumentData::Expr(second) = ast.argument_data(arguments[1]) else {
       return None;
     };
     let second = parser.evaluate_expression(second);

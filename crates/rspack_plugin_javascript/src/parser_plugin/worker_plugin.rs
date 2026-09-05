@@ -12,7 +12,7 @@ use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_next_ecma_ast::{
   Argument, ArgumentData, BindingIdentifier, CallExpression, GetSpan, NewExpression, Span,
-  TypedSubRange, VariableDeclarator,
+  VariableDeclarator,
 };
 use url::Url;
 
@@ -235,7 +235,7 @@ fn add_dependencies(
 
 fn handle_worker(
   parser: &mut JavascriptParser,
-  args: TypedSubRange<Argument>,
+  args: &[Argument],
   span: Span,
   is_shared_worker: bool,
 ) -> Option<(
@@ -245,7 +245,7 @@ fn handle_worker(
   bool,
 )> {
   let ast = parser.ast.ast;
-  if let Some(argument) = args.get_node(ast, 0)
+  if let Some(&argument) = args.first()
     && let ArgumentData::Expr(expression) = ast.argument_data(argument)
   {
     let mut need_new_url = false;
@@ -279,7 +279,8 @@ fn handle_worker(
       return None;
     };
     let mut options = args
-      .get_node(ast, 1)
+      .get(1)
+      .copied()
       // new Worker(new URL("worker.js"), options)
       .map(|arg| parse_new_worker_options(parser, arg, is_shared_worker));
 
@@ -518,8 +519,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
     {
       let ast = parser.ast.ast;
       let span = call_expr.span(ast);
-      let arguments = call_expr.arguments(ast);
-      return handle_worker(parser, arguments, span, false).map(
+      let arguments = call_expr
+        .arguments(ast)
+        .iter()
+        .map(|id| ast.get_node_in_sub_range(id))
+        .collect::<Vec<_>>();
+      return handle_worker(parser, &arguments, span, false).map(
         |(parsed_path, parsed_options, first_arg, need_new_url)| {
           add_dependencies(
             parser,
@@ -531,7 +536,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
             self.url_mode,
           );
           parser.walk_expression(call_expr.callee(ast));
-          if let Some(argument) = arguments.get_node(ast, 1) {
+          if let Some(&argument) = arguments.get(1) {
             parser.walk_arguments(std::iter::once(argument));
           }
           true
@@ -560,8 +565,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
       {
         let ast = parser.ast.ast;
         let span = call_expr.span(ast);
-        let arguments = call_expr.arguments(ast);
-        return handle_worker(parser, arguments, span, false).map(
+        let arguments = call_expr
+          .arguments(ast)
+          .iter()
+          .map(|id| ast.get_node_in_sub_range(id))
+          .collect::<Vec<_>>();
+        return handle_worker(parser, &arguments, span, false).map(
           |(parsed_path, parsed_options, first_arg, need_new_url)| {
             add_dependencies(
               parser,
@@ -573,7 +582,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
               self.url_mode,
             );
             parser.walk_expression(call_expr.callee(ast));
-            if let Some(argument) = arguments.get_node(ast, 1) {
+            if let Some(&argument) = arguments.get(1) {
               parser.walk_arguments(std::iter::once(argument));
             }
             true
@@ -587,8 +596,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
     }
     let ast = parser.ast.ast;
     let span = call_expr.span(ast);
-    let arguments = call_expr.arguments(ast);
-    handle_worker(parser, arguments, span, false).map(
+    let arguments = call_expr
+      .arguments(ast)
+      .iter()
+      .map(|id| ast.get_node_in_sub_range(id))
+      .collect::<Vec<_>>();
+    handle_worker(parser, &arguments, span, false).map(
       |(parsed_path, parsed_options, first_arg, need_new_url)| {
         add_dependencies(
           parser,
@@ -600,7 +613,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
           self.url_mode,
         );
         parser.walk_expression(call_expr.callee(ast));
-        if let Some(argument) = arguments.get_node(ast, 1) {
+        if let Some(&argument) = arguments.get(1) {
           parser.walk_arguments(std::iter::once(argument));
         }
         true
@@ -616,7 +629,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
   ) -> Option<bool> {
     let ast = parser.ast.ast;
     let span = new_expr.span(ast);
-    let arguments = new_expr.arguments(ast);
+    let arguments = new_expr
+      .arguments(ast)
+      .iter()
+      .map(|id| ast.get_node_in_sub_range(id))
+      .collect::<Vec<_>>();
     if for_name == ESM_SPECIFIER_TAG {
       let tag_info = parser
         .definitions_db
@@ -628,7 +645,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
         .from_new_syntax
         .contains(&(ids, settings.source.to_string()))
       {
-        return handle_worker(parser, arguments, span, false).map(
+        return handle_worker(parser, &arguments, span, false).map(
           |(parsed_path, parsed_options, first_arg, need_new_url)| {
             add_dependencies(
               parser,
@@ -640,7 +657,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
               self.url_mode,
             );
             parser.walk_expression(new_expr.callee(ast));
-            if let Some(argument) = arguments.get_node(ast, 1) {
+            if let Some(&argument) = arguments.get(1) {
               parser.walk_arguments(std::iter::once(argument));
             }
             true
@@ -652,7 +669,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
     if !self.inner.new_syntax.contains(for_name) {
       return None;
     }
-    handle_worker(parser, arguments, span, for_name == "SharedWorker").map(
+    handle_worker(parser, &arguments, span, for_name == "SharedWorker").map(
       |(parsed_path, parsed_options, first_arg, need_new_url)| {
         add_dependencies(
           parser,
@@ -664,7 +681,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
           self.url_mode,
         );
         parser.walk_expression(new_expr.callee(ast));
-        if let Some(argument) = arguments.get_node(ast, 1) {
+        if let Some(&argument) = arguments.get(1) {
           parser.walk_arguments(std::iter::once(argument));
         }
         true

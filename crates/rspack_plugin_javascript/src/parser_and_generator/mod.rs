@@ -54,23 +54,6 @@ static LEGACY_REQUIRE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new("__webpack_require__\\s*(!?\\.)").expect("should init `REQUIRE_FUNCTION_REGEX`")
 });
 
-// SWC Next diagnostics currently expose severity, span, and message, but no
-// stable diagnostic kind. Keep message-based legacy compatibility confined to
-// these predicates so parser control flow does not depend on strings elsewhere.
-fn is_top_level_return_diagnostic(diagnostic: &swc_next_ecma_ast::Diagnostic<'_>) -> bool {
-  diagnostic.message == "'return' statement is only valid inside a function"
-}
-
-fn is_stricter_than_legacy_semantic_diagnostic(
-  diagnostic: &swc_next_ecma_ast::Diagnostic<'_>,
-) -> bool {
-  let message = diagnostic.message.as_ref();
-  (message.starts_with("Identifier '") && message.ends_with("' has already been declared"))
-    // Rspack intentionally keeps regexp pattern/flags raw and lets consumers
-    // such as import.meta.webpackContext downgrade invalid regexps to warnings.
-    || message == "Invalid regular expression literal"
-}
-
 fn append_swc_next_diagnostics<'a>(
   diagnostics: &mut Vec<Diagnostic>,
   source: &str,
@@ -310,10 +293,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     // return is rejected. Retry only this compatibility case as CommonJS;
     // other parse errors and files containing ESM syntax remain diagnostics.
     if module_type.is_js_auto()
-      && parse_return
-        .diagnostics
-        .iter()
-        .any(is_top_level_return_diagnostic)
+      && parse_return.diagnostics.iter().any(|diagnostic| {
+        diagnostic.message == "'return' statement is only valid inside a function"
+      })
     {
       parse_return = parse_with_source_type(SwcSourceType::CommonJs);
     }
@@ -339,10 +321,18 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       },
     );
     // The legacy parser accepted several redeclaration combinations that the
-    // SWC Next semantic checker rejects. The parser has already emitted its
-    // own early errors, so exclude only known stricter-than-legacy categories.
-    semantic_diagnostics
-      .retain(|diagnostic| !is_stricter_than_legacy_semantic_diagnostic(diagnostic));
+    // SWC Next semantic checker rejects (for example `var a` followed by
+    // `export function a`, and an exported binding shadowing an import). The
+    // parser has already emitted its own early errors, so retain the semantic
+    // syntax checks while excluding this stricter-than-legacy category.
+    semantic_diagnostics.retain(|diagnostic| {
+      !(diagnostic.message.starts_with("Identifier '")
+        && diagnostic.message.ends_with("' has already been declared"))
+        // Rspack intentionally parses regexp literals as raw pattern/flags
+        // and lets consumers such as import.meta.webpackContext downgrade an
+        // invalid constructed regexp to a warning, matching the legacy path.
+        && diagnostic.message != "Invalid regular expression literal"
+    });
     if !semantic_diagnostics.is_empty() {
       append_swc_next_diagnostics(&mut diagnostics, &source_string, semantic_diagnostics);
       return default_with_diagnostics(source, diagnostics);

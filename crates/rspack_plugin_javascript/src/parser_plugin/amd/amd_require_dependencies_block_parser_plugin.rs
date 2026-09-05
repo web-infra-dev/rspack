@@ -234,20 +234,18 @@ impl AMDRequireDependenciesBlockParserPlugin {
     if let Some(func_expr) = func_arg_expr.get_function_expr(ast) {
       match func_expr.func {
         Either::Left(func) => {
-          let params = formal_parameter_patterns(ast, func.params(ast));
           parser.in_function_scope(
             true,
-            params
+            formal_parameter_patterns(ast, func.params(ast))
               .filter(|param| !is_reserved_param(ast, *param))
               .map(PatRef::Borrowed),
             |parser| parser.walk_function_body(func.body(parser.ast.ast)),
           );
         }
         Either::Right(arrow) => {
-          let params = formal_parameter_patterns(ast, arrow.params(ast));
           parser.in_function_scope(
             true,
-            params
+            formal_parameter_patterns(ast, arrow.params(ast))
               .filter(|param| !is_reserved_param(ast, *param))
               .map(PatRef::Borrowed),
             |parser| match parser
@@ -282,7 +280,11 @@ impl AMDRequireDependenciesBlockParserPlugin {
     call_expr: CallExpression,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
-    let args = call_expr.arguments(ast);
+    let args = call_expr
+      .arguments(ast)
+      .iter()
+      .map(|id| ast.get_node_in_sub_range(id))
+      .collect::<Vec<_>>();
     if args.is_empty() {
       return None;
     }
@@ -290,9 +292,9 @@ impl AMDRequireDependenciesBlockParserPlugin {
 
     // require(['dep1', 'dep2'], callback, errorCallback);
 
-    let first_arg = args.get_node(ast, 0).expect("first arg cannot be None");
-    let callback_arg = args.get_node(ast, 1);
-    let error_callback_arg = args.get_node(ast, 2);
+    let first_arg = *args.first().expect("first arg cannot be None");
+    let callback_arg = args.get(1).copied();
+    let error_callback_arg = args.get(2).copied();
     let first_arg_expr = first_arg.as_expr(ast)?;
 
     let param = parser.evaluate_expression(first_arg_expr);
