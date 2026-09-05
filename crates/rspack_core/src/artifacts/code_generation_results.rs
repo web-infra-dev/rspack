@@ -1,6 +1,5 @@
 use std::{collections::hash_map::Entry, fmt::Debug, sync::Arc};
 
-use dyn_clone::{DynClone, clone_trait_object};
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsCacheable, AsInner, AsMap, AsPreset, AsVec},
@@ -132,11 +131,9 @@ impl CodeGenerationDataTopLevelDeclarations {
 }
 
 #[cacheable_dyn]
-pub trait CodeGenerationDataItem: Debug + DynClone + AsAny + IntoAny + Send + Sync {
+pub trait CodeGenerationDataItem: Debug + AsAny + IntoAny + Send + Sync {
   fn update_hash(&self, _hasher: &mut RspackHasher) {}
 }
-
-clone_trait_object!(CodeGenerationDataItem);
 
 #[cacheable]
 #[derive(Debug, Default, Clone)]
@@ -202,7 +199,7 @@ impl CodeGenerationDataItem for CodeGenerationDataChunkInitFragments {
 impl CodeGenerationDataItem for CodeGenerationDataConcatenationScopeOutput {}
 
 #[cacheable]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct CodeGenerationData {
   inner: Vec<Box<dyn CodeGenerationDataItem>>,
 }
