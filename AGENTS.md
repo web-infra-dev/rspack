@@ -106,6 +106,17 @@ Before running tests after code changes:
 - **Docs**: `website/docs/en/` (English), `website/docs/zh/` (Chinese)
 - **API**: `website/docs/en/api/`
 
+## Code Review Rules
+
+- When handling a GitHub Codex review request for a pull request, invoke `$rspack-pr-review` to prepare the overall review report.
+- Maintain one ordinary GitHub issue comment for the review report. Do not submit a GitHub review, approval, or request-changes event.
+- Make the first visible line identify the exact full PR head commit SHA that was reviewed, using the `Reviewed commit` label, and include the stable `<!-- rspack-pr-review -->` marker immediately after it. Recheck the head SHA before publishing; if it changed during the review, review the new head before updating the comment.
+- Before creating a comment, search the pull request's existing issue comments for that marker. For backward compatibility, also recognize a comment whose first line is the `$rspack-pr-review` disclaimer. If one or more matching comments exist, update the most recently updated one in place and do not create another. If the matching comment cannot be edited, report the blocker instead of creating a duplicate.
+- Before publishing, identify every API changed by the pull request using the API-change scope defined by `$rspack-pr-review`. If the pull request changes APIs, invoke `$rspack-api-assessment` separately for each API.
+- For this combined workflow, keep the overall review and all API assessments as drafts until every section is complete; neither skill should publish a partial result independently.
+- Compose the single comment with the complete overall review first, followed by each API assessment. Identify the API immediately before its assessment, and place a Markdown horizontal rule (`---`) between the overall review and the first API assessment and between every pair of API assessments.
+- After creating or updating the comment, read it back to verify its formatting, reviewed commit SHA, and successful publication. If the mutation result is uncertain, check the existing comment before retrying.
+
 ## Pull request guidelines
 
 - **Template**: Use `.github/PULL_REQUEST_TEMPLATE.md`

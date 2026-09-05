@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Rspack PR Review'
+  short_description: 'Review Rspack PR design and implementation risks'
+  default_prompt: 'Use $rspack-pr-review to review the requested web-infra-dev/rspack pull request and publish or update one bilingual GitHub comment.'
+
+policy:
+  allow_implicit_invocation: false
