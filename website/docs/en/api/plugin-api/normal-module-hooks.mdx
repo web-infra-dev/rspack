@@ -1,0 +1,67 @@
+---
+description: 'NormalModule hooks let plugins intervene in how a module is built, such as adjusting its loader list before the loaders run.'
+---
+
+import { ApiMeta } from '@components/ApiMeta';
+
+# NormalModule hooks
+
+`NormalModule` represents a module Rspack resolved from the module graph and builds by running loaders over its source. It provides hooks for intervening in how an individual module is built.
+
+You can obtain these hooks as follows:
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    {
+      apply(compiler) {
+        const { NormalModule } = compiler.rspack;
+        compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
+          const hooks = NormalModule.getCompilationHooks(compilation);
+          // ...
+        });
+      },
+    },
+  ],
+};
+```
+
+## `beforeLoaders`
+
+<ApiMeta addedVersion="2.2.3" />
+
+`SyncHook<[LoaderItem[], NormalModule]>`
+
+Called right before the loaders of a module run, with the loader list Rspack resolved from `module.rules` and the module they belong to. Taps can add, remove, reorder, or reconfigure entries, and the module is then built with the resulting list.
+
+Each entry has the following shape:
+
+- `loader`: absolute path of the loader, without the options query.
+- `options`: the options object the loader was configured with, the raw query string when it was configured with a query, or `undefined` when it has no options.
+- `ident`: the key `options` is registered under, or `null` when the options came from an inline query.
+- `type`: module type of the loader itself (`'module'`, `'commonjs'`, or `null`), derived from its file extension and the `type` field of the closest `package.json`.
+
+To change how a loader is configured, replace its `options` rather than mutating the object in place. As in webpack, one options object is shared by every module the rule matched, so mutating it affects all of them; Rspack additionally cannot tell that a shared object changed, so the loader keeps the cache key it was resolved with and `Rule.use[].cache` may serve output produced with the previous options.
+
+The following example runs an extra loader over every module under `src/generated`:
+
+```js
+const loader = require.resolve('./my-loader.cjs');
+
+hooks.beforeLoaders.tap('MyPlugin', (loaders, module) => {
+  if (module.userRequest.includes('/src/generated/')) {
+    loaders.push({
+      loader,
+      options: { mode: 'strict' },
+      ident: null,
+      type: null,
+    });
+  }
+});
+```
+
+Loaders execute from right to left, so pushing appends a loader that runs first. Adding a loader that was not part of the configuration makes Rspack resolve it the same way loaders coming from `module.rules` are resolved, which means `resolveLoader` and inline `builtin:` loaders work here as well. The `type` of an added loader is derived during that resolution, so the value passed in is ignored.
+
+:::warning Differences with webpack
+webpack passes a third `loaderContext` argument to `beforeLoaders`. Rspack does not, because a module's loader context is only created once the loader runner starts, which is after this hook has run.
+:::

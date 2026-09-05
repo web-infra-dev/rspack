@@ -38,7 +38,26 @@ Object.defineProperty(binding.NormalModule.prototype, 'emitFile', {
   },
 });
 
+/**
+ * One entry of a module's loader list, in the shape webpack passes to
+ * `beforeLoaders` taps.
+ */
+export interface LoaderItem {
+  /** Absolute path of the loader, without the options query. */
+  loader: string;
+  /**
+   * Loader options. An object when the loader was configured with one, the raw
+   * query string when it was configured with a query, `undefined` otherwise.
+   */
+  options?: string | (object & { ident?: string }) | null;
+  /** Key the options object is registered under, `null` for inline options. */
+  ident: string | null;
+  /** Module type of the loader itself, derived from its file extension. */
+  type: string | null;
+}
+
 export interface NormalModuleCompilationHooks {
+  beforeLoaders: liteTapable.SyncHook<[LoaderItem[], binding.NormalModule]>;
   loader: liteTapable.SyncHook<[LoaderContext, Module]>;
   readResource: liteTapable.HookMap<
     liteTapable.AsyncSeriesBailHook<[LoaderContext], string | Buffer>
@@ -56,6 +75,7 @@ Object.defineProperty(binding.NormalModule, 'getCompilationHooks', {
     }
 
     return getOrCreateCompilationHooks(compilation, compilation, () => ({
+      beforeLoaders: new liteTapable.SyncHook(['loaders', 'module']),
       loader: new liteTapable.SyncHook(['loaderContext', 'module']),
       readResource: new liteTapable.HookMap(
         () => new liteTapable.AsyncSeriesBailHook(['loaderContext']),

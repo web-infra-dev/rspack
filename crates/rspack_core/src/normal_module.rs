@@ -29,12 +29,13 @@ use tracing::{Instrument, info_span};
 
 use crate::{
   AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, ChunkGraph, CodeGenerationResultBuilder, Compilation, ConnectionState, Context,
-  DependenciesBlock, DependencyCodeGenerationRef, DependencyId, FactoryMeta, GenerateContext,
-  GeneratorOptions, ImportPhase, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleType, NeedBuildContext,
-  OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult, ParserAndGenerator,
-  ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext,
+  BuildResult, ChunkGraph, CodeGenerationResultBuilder, Compilation, CompilerId, ConnectionState,
+  Context, DependenciesBlock, DependencyCategory, DependencyCodeGenerationRef, DependencyId,
+  FactoryMeta, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleLayer, ModuleRuleUseLoader, ModuleType, NeedBuildContext, OptimizationBailoutItem,
+  OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
+  ResolveOptionsWithDependencyType, ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext,
   RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SnapshotValidationResult, SourceType,
   ValueCacheVersions,
   cache::SnapshotStrategyOptions,
@@ -43,6 +44,7 @@ use crate::{
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
   new_cache::{FileSystemInfo, Snapshot},
+  normal_module_factory::resolve_each_with_options,
   utils::{SourceSizeCache, SourceSizeCacheSerde},
 };
 
@@ -84,7 +86,18 @@ define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData, 
 define_hook!(NormalModuleLoader: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
 define_hook!(NormalModuleLoaderShouldYield: SeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool,tracing=false);
 define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
-define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule),tracing=false);
+/// One entry of the loader list a `before_loaders` tap hands back.
+///
+/// Loaders that were already on the module are referenced by their original
+/// index so that their resolved [`BoxLoader`] and cache options can be reused;
+/// loaders a tap added still need to go through `resolve_loader`.
+#[derive(Debug)]
+pub enum BeforeLoadersItem {
+  Kept(usize),
+  Added(ModuleRuleUseLoader),
+}
+
+define_hook!(NormalModuleBeforeLoaders: SeriesBail(compiler_id: CompilerId, module: &mut NormalModule) -> Vec<BeforeLoadersItem>,tracing=false);
 define_hook!(NormalModuleAdditionalData: Series(additional_data: &mut Option<&mut AdditionalData>),tracing=false);
 
 #[derive(Debug, Default)]
@@ -282,6 +295,71 @@ impl NormalModule {
 
   pub fn loaders(&self) -> &[BoxLoader] {
     &self.loaders
+  }
+
+  /// Runner options of each loader, index-aligned with [`Self::loaders`].
+  /// `None` when no loader on this module opted into `Rule.use[].cache`.
+  pub fn loader_options(&self) -> Option<&[LoaderRunnerOptions]> {
+    self.loader_options.as_deref()
+  }
+
+  /// Replaces the loader list with what a `before_loaders` tap returned.
+  ///
+  /// Kept entries reuse the loader and cache options they already had, added
+  /// entries are resolved the same way [`NormalModuleFactory`] resolves the
+  /// loaders coming from `module.rules`.
+  async fn apply_before_loaders(
+    &mut self,
+    items: Vec<BeforeLoadersItem>,
+    build_context: &BuildContext,
+  ) -> Result<()> {
+    let loader_resolver =
+      build_context
+        .loader_resolver_factory
+        .get(ResolveOptionsWithDependencyType {
+          resolve_options: None,
+          resolve_to_context: false,
+          dependency_category: DependencyCategory::CommonJS,
+        });
+
+    let mut loaders = Vec::with_capacity(items.len());
+    let mut loader_options = Vec::with_capacity(items.len());
+    for item in items {
+      match item {
+        BeforeLoadersItem::Kept(index) => {
+          let loader = self
+            .loaders
+            .get(index)
+            .ok_or_else(|| error!("Invalid loader index {index} returned by `beforeLoaders`"))?;
+          loaders.push(loader.clone());
+          loader_options.push(
+            self
+              .loader_options
+              .as_ref()
+              .and_then(|options| options.get(index).cloned())
+              .unwrap_or_default(),
+          );
+        }
+        BeforeLoadersItem::Added(l) => {
+          let resolved = resolve_each_with_options(
+            &build_context.plugin_driver,
+            &build_context.compiler_options,
+            &loader_resolver,
+            &l,
+          )
+          .await?;
+          loaders.push(resolved.loader);
+          loader_options.push(resolved.options);
+        }
+      }
+    }
+
+    self.loaders = loaders;
+    self.loader_options = loader_options
+      .iter()
+      .any(|options| options.cache)
+      .then_some(loader_options);
+    Ok(())
   }
 
   pub fn parser_and_generator(&self) -> &dyn ParserAndGenerator {
@@ -507,12 +585,15 @@ impl Module for NormalModule {
       false
     };
 
-    build_context
+    if let Some(items) = build_context
       .plugin_driver
       .normal_module_hooks
       .before_loaders
-      .call(self.as_mut())
-      .await?;
+      .call(build_context.compiler_id, self.as_mut())
+      .await?
+    {
+      self.apply_before_loaders(items, &build_context).await?;
+    }
 
     let plugin = Arc::new(RspackLoaderRunnerPlugin {
       plugin_driver: build_context.plugin_driver.clone(),

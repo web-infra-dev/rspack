@@ -1,0 +1,67 @@
+---
+description: 'NormalModule 钩子用于介入模块的构建过程，例如在 loader 运行前调整模块的 loader 列表。'
+---
+
+import { ApiMeta } from '@components/ApiMeta';
+
+# NormalModule 钩子
+
+`NormalModule` 表示 Rspack 从模块图中解析出、并通过对其源码运行 loader 来构建的模块。它提供了用于介入单个模块构建过程的钩子。
+
+你可以通过如下方式获取这些钩子：
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    {
+      apply(compiler) {
+        const { NormalModule } = compiler.rspack;
+        compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
+          const hooks = NormalModule.getCompilationHooks(compilation);
+          // ...
+        });
+      },
+    },
+  ],
+};
+```
+
+## `beforeLoaders`
+
+<ApiMeta addedVersion="2.2.3" />
+
+`SyncHook<[LoaderItem[], NormalModule]>`
+
+在模块的 loader 运行之前调用，传入 Rspack 从 `module.rules` 解析出的 loader 列表以及它们所属的模块。回调中可以新增、删除、重新排序或者修改其中的条目，随后 Rspack 会使用修改后的列表来构建该模块。
+
+每个条目的结构如下：
+
+- `loader`：loader 的绝对路径，不含 options 查询串。
+- `options`：配置该 loader 时传入的 options 对象；若通过查询串配置则为原始查询串；没有 options 时为 `undefined`。
+- `ident`：`options` 注册时使用的 key；options 来自内联查询串时为 `null`。
+- `type`：loader 自身的模块类型（`'module'`、`'commonjs'` 或 `null`），由其文件扩展名以及最近的 `package.json` 中的 `type` 字段推导得出。
+
+若要修改某个 loader 的配置，请**替换** `options`，而不要原地修改该对象。与 webpack 一样，同一条 rule 匹配到的所有模块共享同一个 options 对象，原地修改会影响到所有这些模块；此外 Rspack 无法感知共享对象发生了变化，该 loader 会沿用解析时的缓存 key，因而 `Rule.use[].cache` 可能返回使用旧 options 产出的结果。
+
+下面的例子会为 `src/generated` 下的所有模块额外运行一个 loader：
+
+```js
+const loader = require.resolve('./my-loader.cjs');
+
+hooks.beforeLoaders.tap('MyPlugin', (loaders, module) => {
+  if (module.userRequest.includes('/src/generated/')) {
+    loaders.push({
+      loader,
+      options: { mode: 'strict' },
+      ident: null,
+      type: null,
+    });
+  }
+});
+```
+
+loader 的执行顺序是从右到左，因此通过 `push` 追加的 loader 会最先执行。对于配置中不存在的新增 loader，Rspack 会按照解析 `module.rules` 中 loader 的方式来解析它，因此 `resolveLoader` 与内联的 `builtin:` loader 在这里同样生效。新增 loader 的 `type` 会在该解析过程中推导得出，传入的值会被忽略。
+
+:::warning 与 webpack 的差异
+webpack 会向 `beforeLoaders` 传入第三个参数 `loaderContext`，Rspack 没有传入。因为模块的 loader context 要等到 loader runner 启动后才会创建，而这发生在该钩子执行之后。
+:::
