@@ -137,12 +137,17 @@ fn parse_require_call<'p: 'a, 'a>(
   let mut ids = Vec::new();
   while let Some(member) = expr.as_member_expression(parser.ast.ast) {
     let ast = parser.ast.ast;
-    match ast.property_key_data(member.property(ast)) {
+    let property = member.property(ast);
+    match ast.property_key_data(property) {
       PropertyKeyData::IdentifierName(property) if !member.computed(ast) => {
         ids.push(Atom::from(ast.get_utf8(property.name(ast))));
       }
+      PropertyKeyData::Expr(expression) if member.computed(ast) => {
+        let property = parser.evaluate_expression(expression).as_string()?;
+        ids.push(property.into());
+      }
       _ if member.computed(ast) => {
-        ids.push(member_property_key_to_atom(ast, member.property(ast))?);
+        ids.push(member_property_key_to_atom(ast, property)?);
       }
       _ => return None,
     }
