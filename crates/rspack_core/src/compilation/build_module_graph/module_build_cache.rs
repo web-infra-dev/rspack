@@ -5,10 +5,10 @@ use rspack_collections::{Identifiable, IdentifierDashMap};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxModule, BuildModuleGraphArtifact,
-  BuildResult, CacheOptions, CompilerOptions, DependenciesBlock, DependencyRef, FileSystemInfo,
-  ModuleGraph, ModuleIdentifier, NormalModuleState, OptimizationBailoutItem, ValueCacheVersions,
+  BoxModule, BuildModuleGraphArtifact, BuildResult, CacheOptions, CompilerOptions, FileSystemInfo,
+  ModuleGraph, ModuleIdentifier, NormalModuleState, ValueCacheVersions,
   cache::CacheCodec,
+  module_graph::ModuleBuildData,
   new_cache::{CacheFacade, CacheValue},
 };
 
@@ -27,17 +27,7 @@ pub(crate) struct ModuleBuildCache {
 #[derive(Debug, Clone)]
 pub(crate) struct ModuleBuildCacheEntry {
   module_state: NormalModuleState,
-  graph_result: ModuleGraphBuildResult,
-}
-
-#[cacheable]
-#[derive(Debug, Clone)]
-struct ModuleGraphBuildResult {
-  dependencies: Vec<DependencyRef>,
-  // Preserve BuildResult's ownership shape without reallocating large nested blocks on restore.
-  #[allow(clippy::vec_box)]
-  blocks: Vec<Box<AsyncDependenciesBlock>>,
-  optimization_bailouts: Vec<OptimizationBailoutItem>,
+  build_data: ModuleBuildData,
 }
 
 impl ModuleBuildCacheEntry {
@@ -48,9 +38,9 @@ impl ModuleBuildCacheEntry {
       .restore_module_state(self.module_state);
     BuildResult {
       module,
-      dependencies: self.graph_result.dependencies,
-      blocks: self.graph_result.blocks,
-      optimization_bailouts: self.graph_result.optimization_bailouts,
+      dependencies: self.build_data.dependencies,
+      blocks: self.build_data.blocks,
+      optimization_bailouts: self.build_data.optimization_bailouts,
     }
   }
 }
@@ -109,7 +99,7 @@ impl ModuleBuildCache {
   ///
   /// Snapshot creation and cache-entry construction are parallel. Module state
   /// and graph containers are cloned, while dependencies retain webpack-style
-  /// shared identity through [`DependencyRef`].
+  /// shared identity through [`crate::DependencyRef`].
   pub(crate) async fn store_pending(
     &self,
     artifact: &mut BuildModuleGraphArtifact,
@@ -204,66 +194,22 @@ fn create_cache_entry(
   module_identifier: ModuleIdentifier,
   persistent_codec: Option<&CacheCodec>,
 ) -> Result<Option<ModuleBuildCacheEntry>> {
-  let source_module = module_graph
-    .module_by_identifier(&module_identifier)
-    .expect("pending module should exist in the final module graph");
-  let normal_module = source_module
-    .as_normal_module()
-    .expect("only normal modules are marked pending for the module build cache");
-  let Some(dependencies) = clone_dependencies(module_graph, source_module.get_dependencies())
-  else {
+  let Some(record) = module_graph.module_record(&module_identifier) else {
     return Ok(None);
   };
-  let blocks = source_module
-    .get_blocks()
-    .iter()
-    .map(|block_id| clone_block(module_graph, block_id))
-    .collect::<Option<Vec<_>>>();
-  let Some(blocks) = blocks else {
+  let Some(normal_module) = record.module.as_normal_module() else {
     return Ok(None);
   };
-  let optimization_bailouts = module_graph
-    .get_optimization_bailout(&module_identifier)
-    .clone();
-
+  let mut build_data = record.build_data.clone();
+  build_data
+    .optimization_bailouts
+    .clone_from(module_graph.get_optimization_bailout(&module_identifier));
   let entry = ModuleBuildCacheEntry {
     module_state: normal_module.module_state().clone(),
-    graph_result: ModuleGraphBuildResult {
-      dependencies,
-      blocks,
-      optimization_bailouts,
-    },
+    build_data,
   };
   if let Some(codec) = persistent_codec {
     codec.encode(&entry)?;
   }
   Ok(Some(entry))
-}
-
-fn clone_dependencies(
-  module_graph: &ModuleGraph,
-  dependency_ids: &[crate::DependencyId],
-) -> Option<Vec<DependencyRef>> {
-  dependency_ids
-    .iter()
-    .map(|dependency_id| {
-      crate::module_graph::internal::try_dependency_ref_by_id(module_graph, dependency_id)
-    })
-    .collect()
-}
-
-fn clone_block(
-  module_graph: &ModuleGraph,
-  block_id: &AsyncDependenciesBlockIdentifier,
-) -> Option<Box<AsyncDependenciesBlock>> {
-  let source = module_graph.block_by_id(block_id)?;
-  let mut block = source.clone();
-  let dependencies = clone_dependencies(module_graph, source.get_dependencies())?;
-  let blocks = source
-    .get_blocks()
-    .iter()
-    .map(|block_id| clone_block(module_graph, block_id))
-    .collect::<Option<Vec<_>>>()?;
-  block.restore_build_result(dependencies, blocks);
-  Some(Box::new(block))
 }

@@ -84,7 +84,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       None
     } else {
       let mut global_runtime = RuntimeSpec::default();
-      for block in module_graph.blocks().values() {
+      for (_, block) in module_graph.blocks() {
         if let Some(GroupOptions::Entrypoint(options)) = block.get_group_options()
           && let Some(runtime) = RuntimeSpec::from_entry_options(options)
         {

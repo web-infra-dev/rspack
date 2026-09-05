@@ -8,12 +8,14 @@ use rustc_hash::FxHashSet;
 
 use super::alternatives::{TempDependency, TempModule};
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, Dependency,
-  DependencyId, DependencyParents, DependencyRef, FactorizationArtifact, FactorizeInfo,
-  ModuleGraph, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, RayonConsumer,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule,
+  DependenciesBlock, Dependency, DependencyId, DependencyParents, DependencyRef,
+  FactorizationArtifact, FactorizeInfo, ModuleGraph, ModuleGraphConnection, ModuleGraphModule,
+  ModuleIdentifier, RayonConsumer,
   cache::CacheCodec,
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
   legacy_cache::persistent::storage::Storage,
+  module_graph::ModuleBuildData,
 };
 
 pub const SCOPE: &str = "occasion_make_module_graph";
@@ -178,16 +180,36 @@ pub async fn recovery_module_graph(
         need_check_dep.push((con.dependency_id, *con.module_identifier()));
         mg.cache_recovery_connection(con);
       }
-      for block in node.blocks {
-        let block = block.into_owned();
-        mg.add_block(Box::new(block));
-      }
+      let blocks = node
+        .blocks
+        .into_iter()
+        .map(|block| {
+          let mut block = block.into_owned();
+          block.restore_dependencies(
+            block
+              .get_dependencies()
+              .iter()
+              .map(|id| mg.dependency_ref_by_id(id).clone())
+              .collect(),
+          );
+          Box::new(block)
+        })
+        .collect();
+      let build_data = ModuleBuildData {
+        dependencies: module
+          .get_dependencies()
+          .iter()
+          .map(|id| mg.dependency_ref_by_id(id).clone())
+          .collect(),
+        blocks,
+        optimization_bailouts: mgm.optimization_bailout.clone(),
+      };
       if let Some(lazy_info) = node.lazy_info {
         module_to_lazy_make
           .update_module_lazy_dependencies(module.identifier(), Some(lazy_info.into_owned()));
       }
       mg.add_module_graph_module(mgm);
-      mg.add_module(module);
+      mg.add_module_with_build_data(module, build_data);
     });
   // recovery incoming connections
   for (dep_id, module_identifier) in need_check_dep {
