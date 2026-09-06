@@ -206,6 +206,16 @@ impl Task<TaskContext> for FactorizeResultTask {
       }
       return Ok(vec![]);
     };
+
+    // An import skipped in a previous build may now require evaluation.
+    for dep in &dependencies {
+      if dep.dependency_type() == &DependencyType::EsmImport
+        && dep.get_phase() == ImportPhase::Evaluation
+      {
+        dep.unset_lazy();
+      }
+    }
+
     let module_identifier = module.identifier();
     let mut mgm = ModuleGraphModule::new(module.identifier());
     mgm.set_issuer_if_unset(original_module_identifier);
