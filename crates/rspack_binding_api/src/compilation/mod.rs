@@ -743,7 +743,12 @@ impl JsCompilation {
             .map(|d| d.to_string_lossy().to_string())
             .collect(),
           id: res.id,
-          error: res.error,
+          error: res
+            .error
+            .as_ref()
+            .map(|diagnostic| RspackError::try_from_diagnostic(compilation, diagnostic))
+            .transpose()
+            .map_err(|err| napi::Error::new(err.status.into(), err.reason))?,
         };
         Ok(js_result)
       }),
@@ -1130,7 +1135,7 @@ pub struct JsExecuteModuleResult {
   pub missing_dependencies: Vec<String>,
   pub cacheable: bool,
   pub id: u32,
-  pub error: Option<String>,
+  pub error: Option<RspackError>,
 }
 
 #[napi(object)]

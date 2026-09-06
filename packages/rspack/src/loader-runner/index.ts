@@ -366,7 +366,7 @@ export async function runLoaders(
           if (res.error) {
             onError(
               compiler.__internal__takeModuleExecutionResult(res.id) ??
-                new Error(res.error),
+                res.error,
             );
           } else {
             onDone(compiler.__internal__takeModuleExecutionResult(res.id));
