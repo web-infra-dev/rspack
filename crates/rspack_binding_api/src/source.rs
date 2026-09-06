@@ -53,6 +53,33 @@ pub struct JsSourceToJs {
   pub map: Option<String>,
 }
 
+#[napi]
+pub struct JsSourceSnapshot {
+  inner: BoxSource,
+}
+
+impl JsSourceSnapshot {
+  pub fn new(inner: BoxSource) -> Self {
+    Self { inner }
+  }
+}
+
+#[napi]
+impl JsSourceSnapshot {
+  #[napi]
+  pub fn source(&self) -> Either<String, Buffer> {
+    match self.inner.source() {
+      SourceValue::String(source) => Either::A(source.into_owned()),
+      SourceValue::Buffer(source) => Either::B(Buffer::from(source.to_vec())),
+    }
+  }
+
+  #[napi(ts_return_type = "JsSource")]
+  pub fn source_and_map(&self) -> Result<JsSourceToJs> {
+    (&self.inner).try_into()
+  }
+}
+
 impl From<String> for JsSourceToJs {
   fn from(source: String) -> Self {
     Self {
