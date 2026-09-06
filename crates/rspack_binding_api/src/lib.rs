@@ -79,6 +79,7 @@ mod logging;
 mod module;
 mod module_graph;
 mod module_graph_connection;
+mod module_graph_snapshot;
 mod modules;
 mod native_watcher;
 mod normal_module_factory;

@@ -426,6 +426,17 @@ export declare class JsModuleGraph {
   getParentModule(dependency: Dependency): Module | null
   getParentBlockIndex(dependency: Dependency): number
   isAsync(module: Module): boolean
+  /**
+   * Return every module and every outgoing connection in one call.
+   *
+   * Equivalent to iterating `Compilation.modules`, reading `identifier()`,
+   * `nameForCondition()` and `layer` on each module, calling
+   * `getOutgoingConnectionsInOrder` and then reading `module`, `dependency`
+   * and `getActiveState()` on every connection. Bulk consumers pay one
+   * boundary crossing instead of several per edge, and the active state of
+   * all edges is evaluated while the artifacts it reads are acquired once.
+   */
+  getSnapshot(): JsModuleGraphSnapshot
 }
 
 export declare class JsResolver {
@@ -636,6 +647,18 @@ export interface ContextInfo {
   issuer: string
   issuerLayer?: string
 }
+
+/** The edge is known to be active for the requested runtime. */
+export const EDGE_STATE_ACTIVE: number
+
+/** `ConnectionState::CircularConnection`. */
+export const EDGE_STATE_CIRCULAR: number
+
+/** The edge is known to be inactive for the requested runtime. */
+export const EDGE_STATE_INACTIVE: number
+
+/** `ConnectionState::TransitiveOnly`. */
+export const EDGE_STATE_TRANSITIVE_ONLY: number
 
 export declare enum EnforceExtension {
   Auto = 0,
@@ -1024,6 +1047,67 @@ export interface JsModuleDescriptor {
 
 export interface JsModuleForIds {
   identifier: string
+}
+
+/**
+ * A compact, ordered description of the module graph.
+ *
+ * Consumers that need every module and every outgoing connection (import
+ * linting, dependency reports, custom graph analysis) otherwise walk the
+ * graph through per-module and per-connection getters. Each of those getters
+ * crosses the JavaScript boundary, allocates a wrapper object and re-acquires
+ * the artifacts it reads. This snapshot answers the same questions in a
+ * single call, computed on the native side.
+ *
+ * Modules appear in `Compilation.modules` order, so a consumer that iterates
+ * the snapshot observes the same order it observes today. Outgoing edges
+ * appear in `getOutgoingConnectionsInOrder` order.
+ */
+export interface JsModuleGraphSnapshot {
+  /** `Module.identifier()` per module index. */
+  identifiers: Array<string>
+  /**
+   * `Module.nameForCondition()` per module index, `None` when the module has
+   * none. Query strings are stripped by `nameForCondition` itself; the value
+   * is passed through unchanged.
+   */
+  nameForConditions: Array<string | undefined | null>
+  /** `Module.layer` per module index. */
+  layers: Array<string | undefined | null>
+  /**
+   * Module indices reachable from `Compilation.entries[*].dependencies`, in
+   * entry order then dependency order. Entry dependencies without a
+   * connection or without a module are omitted, matching a consumer that
+   * skips `getConnection(dep)?.module == null`.
+   */
+  entryModules: Uint32Array
+  /**
+   * CSR row offsets, length `identifiers.len() + 1`. The outgoing edges of
+   * module `m` are the range `edgeOffsets[m]..edgeOffsets[m + 1]`.
+   */
+  edgeOffsets: Uint32Array
+  /**
+   * Target module index per edge, or `NO_MODULE` (`0xffffffff`) when the
+   * connection has no target module.
+   */
+  edgeTargets: Uint32Array
+  /**
+   * Index into `requests` per edge, or `-1` when the dependency is not a
+   * module dependency and therefore has no request.
+   */
+  edgeRequests: Int32Array
+  /** One of the `EDGE_STATE_*` values per edge. */
+  edgeStates: Uint8Array
+  /** Deduplicated dependency request strings. */
+  requests: Array<string>
+  /**
+   * `false` when the exports info artifact was unavailable, in which case
+   * every edge state is reported as active. This reproduces the fallback in
+   * `ModuleGraphConnection.getActiveState`, and lets a consumer detect that
+   * it queried the graph at a phase where active state is not yet decided
+   * instead of silently treating unresolved edges as live.
+   */
+  exportsInfoAvailable: boolean
 }
 
 export interface JsNormalModuleFactoryCreateModuleArgs {
@@ -1834,6 +1918,15 @@ export interface NativeWatchUndelayedEvent {
   kind: string
   path: string
 }
+
+/**
+ * Sentinel used in `edgeTargets` when a connection exists but its target
+ * module is no longer present in the graph. This mirrors the `null` that
+ * `ModuleGraphConnection.module` returns for the same connection, and keeps
+ * edge index `k` of module `m` aligned with
+ * `getOutgoingConnectionsInOrder(m)[k]`.
+ */
+export const NO_MODULE: number
 
 export interface NodeFsStats {
   isFile: boolean
