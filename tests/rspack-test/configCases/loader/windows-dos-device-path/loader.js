@@ -2,6 +2,11 @@ module.exports = function (source) {
   if (!this.resourcePath.startsWith('\\\\?\\')) {
     throw new Error(`Expected a DOS device resource path, got ${this.resourcePath}`);
   }
+  if (!this.loaders[this.loaderIndex].path.startsWith('\\\\?\\')) {
+    throw new Error(
+      `Expected a DOS device loader path, got ${this.loaders[this.loaderIndex].path}`,
+    );
+  }
   if (this.resourceQuery !== '?resource-query') {
     throw new Error(`Unexpected resource query: ${this.resourceQuery}`);
   }
