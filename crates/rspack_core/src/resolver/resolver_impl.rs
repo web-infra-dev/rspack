@@ -15,7 +15,7 @@ use crate::{
   Alias, AliasMap, DependencyCategory, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
 };
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct ResolveDependencies {
   /// Files that were found on file system; entries carry the precomputed
   /// `FxHash` from `rspack_resolver`.

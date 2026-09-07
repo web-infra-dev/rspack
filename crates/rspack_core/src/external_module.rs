@@ -236,7 +236,7 @@ fn module_external_import_statement(
   import_statement
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 struct ModuleExternalRemapping {
   exposed_name: String,
   raw_export_name: String,

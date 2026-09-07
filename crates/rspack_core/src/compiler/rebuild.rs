@@ -219,7 +219,7 @@ impl CompilationRecords {
           .chunk_by_ukey
           .get(&entry_ukey)
       })
-      .flat_map(|entry_chunk| entry_chunk.runtime().clone())
+      .flat_map(|entry_chunk| entry_chunk.runtime().iter().copied())
       .collect()
   }
 

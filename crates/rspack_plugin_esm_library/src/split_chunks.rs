@@ -410,7 +410,7 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
       );
     }
 
-    splitted_modules.extend(match_group.modules.clone());
+    splitted_modules.extend(match_group.modules);
   }
 
   Ok(())

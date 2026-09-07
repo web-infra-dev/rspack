@@ -198,7 +198,7 @@ impl CodeGenerationRuntimeRequirementsWrite {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct RuntimeRequirementsDependencyTemplate;
 
 impl RuntimeRequirementsDependencyTemplate {

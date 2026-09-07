@@ -894,8 +894,8 @@ impl ChunkGraph {
     let is_available_chunk = |a: &Chunk, b: &Chunk| {
       let mut queue = b
         .groups()
-        .clone()
-        .into_iter()
+        .iter()
+        .copied()
         .collect::<FxIndexSet<ChunkGroupUkey>>();
       let mut index: usize = 0;
       while index < queue.len() {
