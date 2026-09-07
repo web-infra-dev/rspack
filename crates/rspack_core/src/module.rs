@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
+  with::{As, AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -661,9 +661,33 @@ impl RspackHash for ExportsArgument {
 }
 
 #[cacheable]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct FactoryMeta {
   pub side_effect_free: Option<bool>,
+}
+
+/// Atomically replaceable factory metadata. Readers retain an `Arc` snapshot
+/// without holding a lock or copying the metadata.
+#[cacheable]
+#[derive(Debug, Default)]
+pub struct FactoryMetaStore(
+  #[cacheable(with=As<Option<Arc<FactoryMeta>>>)] arc_swap::ArcSwapOption<FactoryMeta>,
+);
+
+impl FactoryMetaStore {
+  pub fn get(&self) -> Option<Arc<FactoryMeta>> {
+    self.0.load_full()
+  }
+
+  pub fn set(&self, value: Option<Arc<FactoryMeta>>) {
+    self.0.store(value);
+  }
+}
+
+impl From<Option<Arc<FactoryMeta>>> for FactoryMetaStore {
+  fn from(value: Option<Arc<FactoryMeta>>) -> Self {
+    Self(value.into())
+  }
 }
 
 pub type ModuleIdentifier = Identifier;
@@ -715,7 +739,7 @@ pub trait Module:
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule>;
 
-  fn factory_meta(&self) -> Option<FactoryMeta>;
+  fn factory_meta(&self) -> Option<Arc<FactoryMeta>>;
 
   fn set_factory_meta(&self, factory_meta: FactoryMeta);
 
@@ -1153,19 +1177,12 @@ impl dyn Module {
 #[macro_export]
 macro_rules! impl_module_meta_info {
   () => {
-    fn factory_meta(&self) -> Option<$crate::FactoryMeta> {
-      self
-        .factory_meta
-        .read()
-        .expect("factory metadata lock poisoned")
-        .clone()
+    fn factory_meta(&self) -> Option<std::sync::Arc<$crate::FactoryMeta>> {
+      self.factory_meta.get()
     }
 
     fn set_factory_meta(&self, v: $crate::FactoryMeta) {
-      *self
-        .factory_meta
-        .write()
-        .expect("factory metadata lock poisoned") = Some(v);
+      self.factory_meta.set(Some(std::sync::Arc::new(v)));
     }
 
     fn build_info(&self) -> &$crate::BuildInfo {
@@ -1325,7 +1342,7 @@ mod test {
           unreachable!()
         }
 
-        fn factory_meta(&self) -> Option<crate::FactoryMeta> {
+        fn factory_meta(&self) -> Option<std::sync::Arc<crate::FactoryMeta>> {
           unreachable!()
         }
 

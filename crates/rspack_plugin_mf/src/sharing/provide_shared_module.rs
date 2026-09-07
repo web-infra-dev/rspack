@@ -6,8 +6,8 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
-  FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier,
-  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
+  FactoryMetaStore, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
+  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
   impl_source_map_config, module_update_hash, rspack_sources::BoxSource, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -40,8 +40,7 @@ pub struct ProvideSharedModule {
   required_version: Option<ConsumeVersion>,
   strict_version: Option<bool>,
   tree_shaking_mode: Option<String>,
-  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
-  factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
+  factory_meta: FactoryMetaStore,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 }

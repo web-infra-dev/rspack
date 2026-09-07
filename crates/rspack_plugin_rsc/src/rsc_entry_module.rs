@@ -10,7 +10,7 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock,
-  DependenciesBlockData, DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions, Module,
+  DependenciesBlockData, DependencyRange, FactoryMetaStore, ImportPhase, LibIdentOptions, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType,
   ReferencedSpecifier, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
   impl_source_map_config, module_update_hash,
@@ -44,8 +44,7 @@ pub struct RscEntryModule {
   name: Arc<str>,
   /// When true, client modules are loaded eagerly (not as code-split points).
   is_server_side_rendering: bool,
-  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
-  factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
+  factory_meta: FactoryMetaStore,
   build_info: BuildInfo,
   build_meta: BuildMeta,
   layer: Option<ModuleLayer>,

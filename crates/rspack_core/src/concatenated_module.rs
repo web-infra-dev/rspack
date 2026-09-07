@@ -45,14 +45,14 @@ use crate::{
   ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM,
   DependenciesBlock, DependenciesBlockData, Dependency, DependencyCodeGenerationRef, DependencyId,
   DependencyType, ExportProvided, ExportsArgument, ExportsInfoArtifact, FactoryMeta,
-  ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage, LibIdentOptions, Module,
-  ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType,
-  NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
-  analyze_module_scope, escape_identifier, fast_set, filter_runtime, get_runtime_key,
-  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
-  module_update_hash, property_access, property_name,
+  FactoryMetaStore, ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage,
+  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
+  ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState,
+  UsedName, UsedNameItem, analyze_module_scope, escape_identifier, fast_set, filter_runtime,
+  get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   subtract_runtime_condition, to_normal_comment,
@@ -82,8 +82,7 @@ pub struct RootModuleContext {
   pub context: Option<Context>,
   pub layer: Option<ModuleLayer>,
   pub side_effect_connection_state: ConnectionState,
-  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
-  pub factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
+  pub factory_meta: FactoryMetaStore,
   pub build_meta: BuildMeta,
   pub exports_argument: ExportsArgument,
   pub module_argument: ModuleArgument,
@@ -727,21 +726,12 @@ impl Module for ConcatenatedModule {
     &ModuleType::JsEsm
   }
 
-  fn factory_meta(&self) -> Option<FactoryMeta> {
-    self
-      .root_module_ctxt
-      .factory_meta
-      .read()
-      .expect("factory metadata lock poisoned")
-      .clone()
+  fn factory_meta(&self) -> Option<Arc<FactoryMeta>> {
+    self.root_module_ctxt.factory_meta.get()
   }
 
   fn set_factory_meta(&self, v: FactoryMeta) {
-    *self
-      .root_module_ctxt
-      .factory_meta
-      .write()
-      .expect("factory metadata lock poisoned") = Some(v);
+    self.root_module_ctxt.factory_meta.set(Some(Arc::new(v)));
   }
 
   fn build_info(&self) -> &BuildInfo {

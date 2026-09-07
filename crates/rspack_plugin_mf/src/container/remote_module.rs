@@ -6,7 +6,7 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
-  Dependency, ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext,
+  Dependency, ExportsType, FactoryMetaStore, LibIdentOptions, Module, ModuleCodeGenerationContext,
   ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, impl_module_meta_info,
   impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
@@ -38,8 +38,7 @@ pub struct RemoteModule {
   pub internal_request: String,
   pub share_scope: ShareScope,
   pub remote_key: String,
-  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
-  factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
+  factory_meta: FactoryMetaStore,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 }

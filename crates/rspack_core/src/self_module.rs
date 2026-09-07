@@ -11,9 +11,9 @@ use rspack_util::source_map::SourceMapKind;
 
 use crate::{
   BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkUkey, CodeGenerationResultBuilder,
-  Compilation, Context, DependenciesBlock, DependenciesBlockData, FactoryMeta, LibIdentOptions,
-  Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec,
-  SourceType, impl_module_meta_info,
+  Compilation, Context, DependenciesBlock, DependenciesBlockData, FactoryMetaStore,
+  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType,
+  RuntimeSpec, SourceType, impl_module_meta_info,
 };
 
 #[impl_source_map_config]
@@ -23,8 +23,7 @@ pub struct SelfModule {
   identifier: ModuleIdentifier,
   readable_identifier: String,
   dependencies_block: DependenciesBlockData,
-  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
-  factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
+  factory_meta: FactoryMetaStore,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 }

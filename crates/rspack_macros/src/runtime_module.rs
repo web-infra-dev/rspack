@@ -149,7 +149,7 @@ pub fn impl_runtime_module(
         None
       }
 
-      fn factory_meta(&self) -> Option<::rspack_core::FactoryMeta> {
+      fn factory_meta(&self) -> Option<::std::sync::Arc<::rspack_core::FactoryMeta>> {
         None
       }
 

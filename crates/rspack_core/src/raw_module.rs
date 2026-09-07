@@ -13,7 +13,7 @@ use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
   BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder, Compilation,
-  ConnectionState, Context, DependenciesBlock, DependenciesBlockData, FactoryMeta, Module,
+  ConnectionState, Context, DependenciesBlock, DependenciesBlockData, FactoryMetaStore, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType,
   RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, impl_module_meta_info,
   module_declared_side_effect_free, module_update_hash,
@@ -30,8 +30,7 @@ pub struct RawModule {
   identifier: ModuleIdentifier,
   readable_identifier: String,
   runtime_requirements: RuntimeGlobals,
-  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
-  factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
+  factory_meta: FactoryMetaStore,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 }

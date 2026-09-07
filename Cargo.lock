@@ -4140,6 +4140,7 @@ dependencies = [
 name = "rspack_cacheable"
 version = "0.102.3"
 dependencies = [
+ "arc-swap",
  "camino",
  "dashmap",
  "hashlink",
@@ -4208,6 +4209,7 @@ name = "rspack_core"
 version = "0.102.3"
 dependencies = [
  "anymap3",
+ "arc-swap",
  "async-recursion",
  "async-trait",
  "bitflags 2.13.1",

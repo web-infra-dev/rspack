@@ -4,6 +4,8 @@ const { RawSource } = require("webpack-sources");
 module.exports = ["memory", "persistent"].map(type => {
   const pluginName = `SharedModuleCache-${type}`;
   let builds = 0;
+  let succeeded = 0;
+  let reused = 0;
   let completed = 0;
   let builtModule;
 
@@ -40,10 +42,20 @@ module.exports = ["memory", "persistent"].map(type => {
               compiler.hooks.compilation.tap(pluginName, compilation => {
                 compilation.hooks.buildModule.tap(pluginName, () => builds++);
                 compilation.hooks.succeedModule.tap(pluginName, module => {
+                  succeeded++;
                   builtModule = module;
-                  if (completed === 0) {
-                    module.emitFile("built.txt", new RawSource("build output"));
-                  }
+                  module.emitFile("built.txt", new RawSource("build output"));
+                });
+                compilation.hooks.stillValidModule.tap(pluginName, module => {
+                  reused++;
+                  builtModule = module;
+                  expect(module.resource).toMatch(/\/d\.js$/);
+                  expect(module.originalSource().source()).toContain(
+                    "module.exports"
+                  );
+                  expect(() =>
+                    module.emitFile("late.txt", new RawSource("late"))
+                  ).toThrow(/Unable to modify/);
                 });
                 compilation.hooks.seal.tap(pluginName, () => {
                   // A wrapper retained from a build hook must not expose a mutable
@@ -86,6 +98,8 @@ module.exports = ["memory", "persistent"].map(type => {
     },
     async check() {
       expect(builds).toBe(1);
+      expect(succeeded).toBe(1);
+      expect(reused).toBe(type === "memory" ? 0 : 1);
       expect(completed).toBe(type === "memory" ? 1 : 2);
     }
   };

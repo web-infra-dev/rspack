@@ -11,6 +11,7 @@ noop = []
 
 [dependencies]
 allocative              = { workspace = true, optional = true }
+arc-swap                = { workspace = true }
 camino                  = { workspace = true }
 dashmap                 = { workspace = true }
 hashlink                = { workspace = true }

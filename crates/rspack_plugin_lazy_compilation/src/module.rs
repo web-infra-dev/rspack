@@ -5,7 +5,7 @@ use rspack_collections::Identifiable;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
-  DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions, Module, ModuleArgument,
+  DependencyRange, FactoryMetaStore, ImportPhase, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleLayer,
   ModuleType, NeedBuildContext, OutputOptions, RuntimeGlobals, RuntimeSpec, SourceType,
   ValueCacheVersions, impl_module_meta_info, module_update_hash,
@@ -49,8 +49,7 @@ fn has_closure_library(output: &OutputOptions) -> bool {
 pub(crate) struct LazyCompilationProxyModule {
   build_info: BuildInfo,
   build_meta: BuildMeta,
-  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
-  factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
+  factory_meta: FactoryMetaStore,
 
   readable_identifier: String,
   identifier: ModuleIdentifier,

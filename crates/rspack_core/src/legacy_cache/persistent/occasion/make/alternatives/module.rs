@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use rspack_cacheable::{cacheable, cacheable_dyn, utils::OwnedOrRef};
 use rspack_collections::Identifiable;
@@ -58,7 +58,7 @@ impl ModuleSourceMapConfig for TempModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for TempModule {
-  fn factory_meta(&self) -> Option<FactoryMeta> {
+  fn factory_meta(&self) -> Option<Arc<FactoryMeta>> {
     unreachable!()
   }
 

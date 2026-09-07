@@ -442,6 +442,10 @@ impl Module {
     let module = {
       if let Some(module) = compilation.module_by_identifier(&self.identifier) {
         module.as_ref()
+      } else if let Some(ptr) = self.ptr {
+        // SAFETY: build and still-valid hooks keep the pointed-to module alive
+        // for the duration of their callback, as in `with_ref`.
+        unsafe { ptr.as_ref() }
       } else {
         return Ok(Either::B(()));
       }

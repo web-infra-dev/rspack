@@ -5,11 +5,11 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder,
-  Compilation, Context, DependenciesBlock, DependenciesBlockData, FactoryMeta, LibIdentOptions,
-  Module, ModuleArgument, ModuleCodeGenerationContext, ModuleDependency, ModuleGraph, ModuleId,
-  ModuleType, NeedBuildContext, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, ValueCacheVersions, impl_module_meta_info, impl_source_map_config,
-  module_update_hash,
+  Compilation, Context, DependenciesBlock, DependenciesBlockData, FactoryMetaStore,
+  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleDependency,
+  ModuleGraph, ModuleId, ModuleType, NeedBuildContext, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec, ValueCacheVersions, impl_module_meta_info,
+  impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -32,8 +32,7 @@ pub struct DelegatedModule {
   original_request: Option<String>,
   delegate_data: DllManifestContentItem,
   dependencies_block: DependenciesBlockData,
-  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
-  factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
+  factory_meta: FactoryMetaStore,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 }

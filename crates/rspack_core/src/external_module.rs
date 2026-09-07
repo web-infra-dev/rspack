@@ -15,7 +15,7 @@ use crate::{
   ChunkInitFragments, ChunkUkey, CodeGenerationDataChunkInitFragments, CodeGenerationDataUrl,
   CodeGenerationResultBuilder, Compilation, ConcatenationScope, Context, CssLayer,
   CssModuleRenderCondition, DependenciesBlock, DependenciesBlockData, DependencyRef,
-  ExportProvided, ExternalType, FactoryMeta, ImportAttributes, ImportPhase, InitFragmentExt,
+  ExportProvided, ExternalType, FactoryMetaStore, ImportAttributes, ImportPhase, InitFragmentExt,
   InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
   NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
@@ -456,8 +456,7 @@ pub struct ExternalModule {
   pub external_type: ExternalType,
   /// Request intended by user (without loaders from config)
   user_request: String,
-  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
-  factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
+  factory_meta: FactoryMetaStore,
   build_info: BuildInfo,
   build_meta: BuildMeta,
   dependency_meta: DependencyMeta,
