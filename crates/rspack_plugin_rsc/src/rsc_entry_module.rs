@@ -21,7 +21,6 @@ use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_intern::{Atom, IndexAtomSet};
 use rspack_plugin_javascript::dependency::ImportEagerDependency;
 use rspack_util::{fx_hash::FxIndexSet, source_map::SourceMapKind};
-use triomphe::UniqueArc;
 
 use crate::{
   client_reference_dependency::ClientReferenceDependency,
@@ -325,14 +324,14 @@ impl Module for RscEntryModule {
         }
 
         let block_modifier = format!("server-entry={server_entry}");
-        let block = UniqueArc::new(AsyncDependenciesBlock::new(
+        let block = AsyncDependenciesBlock::new(
           self.identifier,
           None,
           Some(&block_modifier),
           block_dependencies,
           Some(server_entry.clone()),
-        ));
-        blocks.push(block);
+        );
+        blocks.push(Box::new(block));
       }
 
       if !self.root_client_modules.is_empty() {
@@ -348,14 +347,14 @@ impl Module for RscEntryModule {
           })
           .collect::<Vec<_>>();
 
-        let block = UniqueArc::new(AsyncDependenciesBlock::new(
+        let block = AsyncDependenciesBlock::new(
           self.identifier,
           None,
           None,
           dependencies,
           Some(format!("{}#root-client", self.name)),
-        ));
-        blocks.push(block);
+        );
+        blocks.push(Box::new(block));
       }
 
       for client_module in &self.client_modules {
@@ -364,14 +363,14 @@ impl Module for RscEntryModule {
           client_module.ids.clone(),
           self.is_server_side_rendering,
         );
-        let block = UniqueArc::new(AsyncDependenciesBlock::new(
+        let block = AsyncDependenciesBlock::new(
           self.identifier,
           None,
           None,
           vec![BoxDependency::new(dep)],
           Some(client_module.request.clone()),
-        ));
-        blocks.push(block);
+        );
+        blocks.push(Box::new(block));
       }
 
       Ok(BuildResult {

@@ -24,7 +24,6 @@ use rspack_util::{
   source_map::{ModuleSourceMapConfig, SourceMapKind},
 };
 use rustc_hash::FxHashMap as HashMap;
-use triomphe::UniqueArc;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
@@ -1449,7 +1448,7 @@ impl Module for ContextModule {
           .into(),
         None,
       ));
-      let mut block = UniqueArc::new(AsyncDependenciesBlock::new(
+      let mut block = AsyncDependenciesBlock::new(
         (*self.identifier).into(),
         Some(loc),
         None,
@@ -1458,11 +1457,11 @@ impl Module for ContextModule {
           .map(BoxDependency::new)
           .collect(),
         None,
-      ));
+      );
       if let Some(group_options) = &self.options.context_options.group_options {
         block.set_group_options(group_options.clone());
       }
-      blocks.push(block);
+      blocks.push(Box::new(block));
     } else if matches!(self.options.context_options.mode, ContextMode::Lazy) {
       let mut index = 0;
       for context_element_dependency in context_element_dependencies {
@@ -1495,20 +1494,20 @@ impl Module for ContextModule {
         let preload_order = group_options.and_then(|o| o.preload_order);
         let prefetch_order = group_options.and_then(|o| o.prefetch_order);
         let fetch_priority = group_options.and_then(|o| o.fetch_priority);
-        let mut block = UniqueArc::new(AsyncDependenciesBlock::new(
+        let mut block = AsyncDependenciesBlock::new(
           (*self.identifier).into(),
           None,
           Some(&context_element_dependency.user_request.clone()),
           vec![BoxDependency::new(context_element_dependency)],
           Some(self.options.context_options.request.clone()),
-        ));
+        );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
           name,
           preload_order,
           prefetch_order,
           fetch_priority,
         )));
-        blocks.push(block);
+        blocks.push(Box::new(block));
       }
     } else {
       dependencies = context_element_dependencies

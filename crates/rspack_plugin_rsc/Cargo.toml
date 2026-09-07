@@ -35,7 +35,6 @@ simd-json                = { workspace = true }
 swc_core                 = { workspace = true }
 tokio                    = { workspace = true }
 tracing                  = { workspace = true }
-triomphe                 = { workspace = true }
 urlencoding              = { workspace = true }
 
 [lints]

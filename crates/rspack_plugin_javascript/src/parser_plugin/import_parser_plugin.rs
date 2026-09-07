@@ -11,7 +11,6 @@ use swc_experimental_allocator::CloneIn;
 use swc_experimental_ecma_ast::{
   BlockStmtOrExpr, CallExpr, Expr, GetSpan, Ident, MemberExpr, ObjectPat, Pat, Span, VarDeclarator,
 };
-use triomphe::UniqueArc;
 
 use super::{JavascriptParserPlugin, import_phase::get_import_phase};
 use crate::{
@@ -556,13 +555,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         }
         let range = DependencyRange::from(import_call_span);
         let loc = parser.to_dependency_location(range);
-        let mut block = UniqueArc::new(AsyncDependenciesBlock::new(
+        let mut block = AsyncDependenciesBlock::new(
           *parser.module_identifier,
           loc,
           None,
           vec![BoxDependency::new(dep)],
           Some(param.string().clone()),
-        ));
+        );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
           chunk_name,
           chunk_preload,
@@ -570,7 +569,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           fetch_priority,
         )));
         let block_idx = parser.next_block_idx();
-        parser.add_block(block);
+        parser.add_block(Box::new(block));
         ImportDependencyLocator {
           block_idx: Some(block_idx),
           dep_idx: 0,

@@ -1,7 +1,7 @@
 pub mod internal;
 pub mod rollback;
 
-use std::hash::BuildHasherDefault;
+use std::{hash::BuildHasherDefault, sync::Arc};
 
 use internal::try_get_module_graph_module_mut_by_identifier;
 use rayon::prelude::*;
@@ -302,10 +302,10 @@ impl ModuleGraph {
         && let Some(block) = self.inner.blocks.get_mut(&b_id)
       {
         // Keep cache snapshots unchanged when revoking a published dependency.
-        if let Some(block) = triomphe::Arc::get_mut(block) {
+        if let Some(block) = Arc::get_mut(block) {
           block.remove_dependency_id(*dep_id);
         } else {
-          *block = triomphe::Arc::new(block.without_dependency(*dep_id));
+          *block = Arc::new(block.without_dependency(*dep_id));
         }
       }
     }

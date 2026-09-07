@@ -1,6 +1,5 @@
 use rspack_intern::AtomRef;
 use rspack_util::SpanExt;
-use triomphe::UniqueArc;
 pub mod ast;
 mod call_hooks_name;
 pub mod estree;
@@ -414,7 +413,10 @@ pub struct JavascriptParser<'parser> {
   warning_diagnostics: Vec<Diagnostic>,
   dependencies: Vec<BoxDependency>,
   presentational_dependencies: Vec<DependencyCodeGenerationRef>,
-  blocks: Vec<UniqueArc<AsyncDependenciesBlock>>,
+  // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
+  // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
+  #[allow(clippy::vec_box)]
+  blocks: Vec<Box<AsyncDependenciesBlock>>,
   // ===== inputs =======
   pub(crate) source: &'parser str,
   pub ast: &'parser ParsedJavaScriptAst<'parser>,
@@ -759,7 +761,7 @@ impl<'parser> JavascriptParser<'parser> {
     Arc::get_mut(self.presentational_dependencies.get_mut(idx)?)
   }
 
-  pub fn add_block(&mut self, mut block: UniqueArc<AsyncDependenciesBlock>) {
+  pub fn add_block(&mut self, mut block: Box<AsyncDependenciesBlock>) {
     if let Some(guard) = &self.current_branch_guard {
       for dep in block.dependencies_mut() {
         guard.bind_dependency(dep);
@@ -772,7 +774,7 @@ impl<'parser> JavascriptParser<'parser> {
     self.blocks.len()
   }
 
-  pub fn get_block_mut(&mut self, idx: usize) -> Option<&mut UniqueArc<AsyncDependenciesBlock>> {
+  pub fn get_block_mut(&mut self, idx: usize) -> Option<&mut Box<AsyncDependenciesBlock>> {
     self.blocks.get_mut(idx)
   }
 

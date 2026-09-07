@@ -12,7 +12,6 @@ use rspack_loader_runner::{AdditionalData, ParseMeta, ParseMetaValue, ResourceDa
 use rspack_sources::BoxSource;
 use rspack_util::{ext::AsAny, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap, FxHashSet};
-use triomphe::UniqueArc;
 
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildInfo, BuildMeta, ChunkGraph,
@@ -114,8 +113,7 @@ impl SideEffectsBailoutItemWithSpan {
 #[derive(Debug)]
 pub struct ParseResult {
   pub dependencies: Vec<BoxDependency>,
-  #[debug("{:?}", blocks.iter().map(|block| &**block).collect::<Vec<_>>())]
-  pub blocks: Vec<UniqueArc<AsyncDependenciesBlock>>,
+  pub blocks: Vec<Box<AsyncDependenciesBlock>>,
   pub presentational_dependencies: Vec<DependencyCodeGenerationRef>,
   pub code_generation_dependencies: Vec<DependencyId>,
   pub source: BoxSource,

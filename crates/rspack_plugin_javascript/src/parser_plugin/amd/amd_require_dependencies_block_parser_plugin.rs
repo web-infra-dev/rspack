@@ -11,7 +11,6 @@ use rspack_error::{Error, Severity};
 use rspack_intern::Atom;
 use rspack_util::SpanExt;
 use swc_experimental_ecma_ast::{BlockStmtOrExpr, CallExpr, ExprOrSpread, GetSpan, Pat};
-use triomphe::UniqueArc;
 
 use crate::{
   JavascriptParserPlugin,
@@ -305,7 +304,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
         result = self.process_array(parser, &mut block_deps, call_expr, &param);
       });
       if result.is_some_and(|x| x) {
-        let dep_block = UniqueArc::new(AsyncDependenciesBlock::new(
+        let dep_block = Box::new(AsyncDependenciesBlock::new(
           *parser.module_identifier,
           block_loc,
           None,
@@ -353,7 +352,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       }
 
       block_deps.insert(0, BoxDependency::new(dep));
-      let dep_block = UniqueArc::new(AsyncDependenciesBlock::new(
+      let dep_block = Box::new(AsyncDependenciesBlock::new(
         *parser.module_identifier,
         block_loc,
         None,

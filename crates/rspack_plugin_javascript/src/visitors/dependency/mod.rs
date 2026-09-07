@@ -1,5 +1,3 @@
-use triomphe::UniqueArc;
-
 mod context_dependency_helper;
 mod parser;
 mod util;
@@ -31,7 +29,7 @@ use crate::{BoxJavascriptParserPlugin, parser_and_generator::ParserRuntimeRequir
 
 pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
-  pub blocks: Vec<UniqueArc<AsyncDependenciesBlock>>,
+  pub blocks: Vec<Box<AsyncDependenciesBlock>>,
   pub presentational_dependencies: Vec<DependencyCodeGenerationRef>,
   pub warning_diagnostics: Vec<Diagnostic>,
   pub side_effects_item: Option<SideEffectsBailoutItemWithSpan>,

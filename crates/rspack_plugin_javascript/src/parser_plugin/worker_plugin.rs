@@ -13,7 +13,6 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use swc_experimental_ecma_ast::{
   CallExpr, ExprOrSpread, GetSpan, Ident, NewExpr, Span, VarDeclarator,
 };
-use triomphe::UniqueArc;
 use url::Url;
 
 use super::{
@@ -151,13 +150,8 @@ fn add_dependencies(
   ));
   let range = DependencyRange::from(span);
   let loc = parser.to_dependency_location(range);
-  let mut block = UniqueArc::new(AsyncDependenciesBlock::new(
-    *parser.module_identifier,
-    loc,
-    None,
-    vec![dep],
-    None,
-  ));
+  let mut block =
+    AsyncDependenciesBlock::new(*parser.module_identifier, loc, None, vec![dep], None);
   block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
     name,
     runtime: Some(runtime.into()),
@@ -172,7 +166,7 @@ fn add_dependencies(
     layer: None,
   })));
 
-  parser.add_block(block);
+  parser.add_block(Box::new(block));
 
   if parser.compiler_options.output.trusted_types.is_some() {
     parser.add_dependency(BoxDependency::new(CreateScriptUrlDependency::new(

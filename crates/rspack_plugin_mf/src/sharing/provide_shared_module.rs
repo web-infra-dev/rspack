@@ -14,7 +14,6 @@ use rspack_core::{
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_util::source_map::SourceMapKind;
-use triomphe::UniqueArc;
 
 use super::{
   provide_for_shared_dependency::ProvideForSharedDependency,
@@ -177,14 +176,8 @@ impl Module for ProvideSharedModule {
     if self.eager {
       dependencies.push(dep);
     } else {
-      let block = UniqueArc::new(AsyncDependenciesBlock::new(
-        self.identifier,
-        None,
-        None,
-        vec![dep],
-        None,
-      ));
-      blocks.push(block);
+      let block = AsyncDependenciesBlock::new(self.identifier, None, None, vec![dep], None);
+      blocks.push(Box::new(block));
     }
 
     Ok(BuildResult {

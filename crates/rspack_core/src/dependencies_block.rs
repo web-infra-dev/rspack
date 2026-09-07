@@ -1,9 +1,8 @@
-use std::{fmt::Write as _, hash::BuildHasherDefault};
+use std::{fmt::Write as _, hash::BuildHasherDefault, sync::Arc};
 
 use rspack_cacheable::cacheable;
 use rspack_collections::{Identifier, IdentifierHasher};
 use rspack_hash::{RspackHash, RspackHasher};
-use triomphe::{Arc, UniqueArc};
 
 use crate::{
   BoxDependency, Compilation, Dependency, DependencyId, DependencyLocation, DependencyRef,
@@ -164,14 +163,14 @@ pub struct AsyncDependenciesBlockBuildResult {
   pub blocks: Vec<AsyncDependenciesBlockBuildResult>,
 }
 
-impl From<UniqueArc<AsyncDependenciesBlock>> for AsyncDependenciesBlockBuildResult {
-  fn from(mut block: UniqueArc<AsyncDependenciesBlock>) -> Self {
+impl From<Box<AsyncDependenciesBlock>> for AsyncDependenciesBlockBuildResult {
+  fn from(mut block: Box<AsyncDependenciesBlock>) -> Self {
     let dependencies = std::mem::take(&mut block.dependencies)
       .into_iter()
       .map(Into::into)
       .collect();
     Self {
-      block: block.shareable(),
+      block: Arc::from(block),
       dependencies,
       blocks: Vec::new(),
     }

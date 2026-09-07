@@ -9,7 +9,6 @@ use rspack_util::SpanExt;
 use swc_experimental_ecma_ast::{
   ArrowExpr, BlockStmtOrExpr, CallExpr, Expr, FnExpr, GetSpan, UnaryExpr,
 };
-use triomphe::UniqueArc;
 
 use super::JavascriptParserPlugin;
 use crate::{
@@ -144,17 +143,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
 
     let range = DependencyRange::from(expr.span);
     let loc = parser.to_dependency_location(range);
-    let mut block = UniqueArc::new(AsyncDependenciesBlock::new(
-      *parser.module_identifier,
-      loc,
-      None,
-      deps,
-      None,
-    ));
+    let mut block = AsyncDependenciesBlock::new(*parser.module_identifier, loc, None, deps, None);
     block.set_group_options(GroupOptions::ChunkGroup(
       ChunkGroupOptions::default().name_optional(chunk_name),
     ));
-    parser.add_block(block);
+    parser.add_block(Box::new(block));
 
     if success_expr.is_none() {
       parser.walk_expression(success_arg);

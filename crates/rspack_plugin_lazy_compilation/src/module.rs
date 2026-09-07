@@ -18,7 +18,6 @@ use rspack_util::{
   json_stringify,
   source_map::{ModuleSourceMapConfig, SourceMapKind},
 };
-use triomphe::UniqueArc;
 
 use crate::{
   dependency::{DependencyOptions, LazyCompilationDependency},
@@ -210,7 +209,7 @@ impl Module for LazyCompilationProxyModule {
     if self.active {
       let dep = LazyCompilationDependency::new(self.dep_options.clone());
 
-      blocks.push(UniqueArc::new(AsyncDependenciesBlock::new(
+      blocks.push(Box::new(AsyncDependenciesBlock::new(
         self.identifier,
         None,
         None,

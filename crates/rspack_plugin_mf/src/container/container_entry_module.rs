@@ -18,7 +18,6 @@ use rspack_core::{
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_util::{json_stringify_str, source_map::SourceMapKind};
-use triomphe::UniqueArc;
 
 use super::{
   container_exposed_dependency::ContainerExposedDependency, container_plugin::ExposeOptions,
@@ -211,7 +210,7 @@ impl Module for ContainerEntryModule {
     } else {
       // Container logic
       for (name, options) in &self.exposes {
-        let mut block = UniqueArc::new(AsyncDependenciesBlock::new(
+        let mut block = AsyncDependenciesBlock::new(
           self.identifier,
           None,
           Some(name),
@@ -226,11 +225,11 @@ impl Module for ContainerEntryModule {
             })
             .collect(),
           None,
-        ));
+        );
         block.set_group_options(GroupOptions::ChunkGroup(
           ChunkGroupOptions::default().name_optional(options.name.clone()),
         ));
-        blocks.push(block);
+        blocks.push(Box::new(block));
       }
       dependencies.push(BoxDependency::new(StaticExportsDependency::new(
         StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
