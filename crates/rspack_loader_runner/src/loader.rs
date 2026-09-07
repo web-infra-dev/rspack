@@ -310,22 +310,6 @@ pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
   })
 }
 
-#[cfg(windows)]
-#[inline]
-fn dos_device_path_prefix_len(path: &str) -> usize {
-  let bytes = path.as_bytes();
-  if bytes.len() >= 4
-    && bytes[0] == b'\\'
-    && bytes[1] == b'\\'
-    && matches!(bytes[2], b'?' | b'.')
-    && bytes[3] == b'\\'
-  {
-    4
-  } else {
-    0
-  }
-}
-
 fn path_query_fragment(mut input: &str) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
   use winnow::{
     combinator::{alt, opt, repeat},
@@ -336,7 +320,7 @@ fn path_query_fragment(mut input: &str) -> winnow::ModalResult<(&str, Option<&st
   #[cfg(windows)]
   let original_input = input;
   #[cfg(windows)]
-  let prefix_len = dos_device_path_prefix_len(input);
+  let prefix_len = rspack_paths::dos_device_path_prefix_len(input);
   #[cfg(windows)]
   {
     input = &input[prefix_len..];

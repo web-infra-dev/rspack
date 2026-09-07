@@ -1,22 +1,9 @@
 use std::borrow::Cow;
 
-use crate::error::SpecifierError;
-
 #[cfg(windows)]
-#[inline]
-fn dos_device_path_prefix_len(path: &str) -> usize {
-  let bytes = path.as_bytes();
-  if bytes.len() >= 4
-    && bytes[0] == b'\\'
-    && bytes[1] == b'\\'
-    && matches!(bytes[2], b'?' | b'.')
-    && bytes[3] == b'\\'
-  {
-    4
-  } else {
-    0
-  }
-}
+use rspack_paths::dos_device_path_prefix_len;
+
+use crate::error::SpecifierError;
 
 #[derive(Debug)]
 pub struct Specifier<'a> {

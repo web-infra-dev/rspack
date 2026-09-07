@@ -22,6 +22,26 @@ use rspack_intern::{InternSliceStorage, InternedSlice, SliceInternable};
 use rustc_hash::FxHasher;
 pub use ustr::IdentityHasher;
 
+/// Returns the byte index immediately after a DOS device path prefix
+/// (`\\\\?\\` or `\\\\.\\`), or zero when `path` has no such prefix.
+///
+/// The prefix is ASCII, so the byte index is also a valid UTF-8 slice boundary.
+#[cfg(windows)]
+#[inline]
+pub fn dos_device_path_prefix_len(path: &str) -> usize {
+  let bytes = path.as_bytes();
+  if bytes.len() >= 4
+    && bytes[0] == b'\\'
+    && bytes[1] == b'\\'
+    && matches!(bytes[2], b'?' | b'.')
+    && bytes[3] == b'\\'
+  {
+    4
+  } else {
+    0
+  }
+}
+
 pub trait AssertUtf8 {
   type Output;
   fn assert_utf8(self) -> Self::Output;

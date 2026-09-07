@@ -9,26 +9,12 @@ use concat_string::concat_string;
 use cow_utils::CowUtils;
 use memchr::memchr2_iter;
 use regex::Regex;
+#[cfg(windows)]
+use rspack_paths::dos_device_path_prefix_len;
 use smallvec::SmallVec;
 use sugar_path::SugarPath;
 
 static WINDOWS_PATH_SEPARATOR: &[char] = &['/', '\\'];
-
-#[cfg(windows)]
-#[inline]
-fn dos_device_path_prefix_len(path: &str) -> usize {
-  let bytes = path.as_bytes();
-  if bytes.len() >= 4
-    && bytes[0] == b'\\'
-    && bytes[1] == b'\\'
-    && matches!(bytes[2], b'?' | b'.')
-    && bytes[3] == b'\\'
-  {
-    4
-  } else {
-    0
-  }
-}
 
 /// # Example
 ///  ```ignore
