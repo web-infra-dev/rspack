@@ -28,7 +28,7 @@ use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
-  AsyncDependenciesBlock, BindingCell, CacheFacade, ChunkGraph, ChunkUkey,
+  AsyncDependenciesBlockBuildResult, BindingCell, CacheFacade, ChunkGraph, ChunkUkey,
   CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation, CompilationAsset,
   CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
   ContextModule, CssExportType, DependenciesBlock, DependencyCodeGenerationRef, DependencyId,
@@ -664,7 +664,7 @@ pub struct BuildResult {
   pub module: BoxModule,
   /// Dependencies are shared after the module build finishes.
   pub dependencies: Vec<DependencyRef>,
-  pub blocks: Vec<Box<AsyncDependenciesBlock>>,
+  pub blocks: Vec<AsyncDependenciesBlockBuildResult>,
   pub optimization_bailouts: Vec<OptimizationBailoutItem>,
 }
 

@@ -2,7 +2,7 @@ use std::{collections::VecDeque, fmt::Write, iter::once, sync::atomic::AtomicU32
 
 use itertools::Itertools;
 use rspack_collections::{Identifier, IdentifierSet};
-use rspack_error::Error;
+use rspack_error::{Diagnostic, Error};
 use rspack_paths::InternedPathSet;
 use rspack_sources::{RawStringSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
@@ -139,7 +139,7 @@ fn create_execute_runtime_source(
 
 #[derive(Debug, Default)]
 pub struct ExecuteModuleResult {
-  pub error: Option<String>,
+  pub errors: Vec<Diagnostic>,
   pub cacheable: bool,
   pub file_dependencies: InternedPathSet,
   pub context_dependencies: InternedPathSet,
@@ -175,7 +175,7 @@ impl ExecuteTask {
       .send(ExecuteResult {
         execute_result: ExecuteModuleResult {
           id,
-          error: Some(error.to_string()),
+          errors: vec![error.into()],
           ..Default::default()
         },
         assets: Default::default(),
@@ -267,20 +267,19 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         assets.insert(name.clone(), asset.clone());
       }
       if !has_error && make_failed_module.contains(&m) {
-        let diagnostics = module.diagnostics();
-        let errors: Vec<_> = diagnostics
+        let diagnostics = module
+          .diagnostics()
           .iter()
           .filter(|d| d.is_error())
-          .map(|d| d.message.clone())
-          .collect();
-        if !errors.is_empty() {
+          .cloned()
+          .map(|mut diagnostic| {
+            diagnostic.module_identifier = Some(m);
+            diagnostic
+          })
+          .collect::<Vec<_>>();
+        if !diagnostics.is_empty() {
           has_error = true;
-          if let Some(existing_error) = &mut execute_result.error {
-            existing_error.push('\n');
-            existing_error.push_str(&errors.join("\n"));
-          } else {
-            execute_result.error = Some(errors.join("\n"));
-          }
+          execute_result.errors.extend(diagnostics);
         }
       }
       for dep_id in module.get_dependencies() {
@@ -289,20 +288,18 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
             .artifact
             .factorize_info(dep_id)
             .expect("should have factorize info")
-            .diagnostics();
-          let errors: Vec<_> = diagnostics
+            .diagnostics()
             .iter()
             .filter(|d| d.is_error())
-            .map(|d| d.message.clone())
-            .collect();
-          if !errors.is_empty() {
+            .cloned()
+            .map(|mut diagnostic| {
+              diagnostic.module_identifier = mg.get_parent_module(dep_id).copied();
+              diagnostic
+            })
+            .collect::<Vec<_>>();
+          if !diagnostics.is_empty() {
             has_error = true;
-            if let Some(existing_error) = &mut execute_result.error {
-              existing_error.push('\n');
-              existing_error.push_str(&errors.join("\n"));
-            } else {
-              execute_result.error = Some(errors.join("\n"));
-            }
+            execute_result.errors.extend(diagnostics);
           }
         }
         if let Some(c) = mg.connection_by_dependency_id(dep_id)
@@ -504,12 +501,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       }
       Err(e) => {
         execute_result.cacheable = false;
-        if let Some(existing_error) = &mut execute_result.error {
-          existing_error.push('\n');
-          existing_error.push_str(&e.to_string());
-        } else {
-          execute_result.error = Some(e.to_string());
-        }
+        execute_result.errors.push(e.into());
       }
     };
 

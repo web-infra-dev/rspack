@@ -8,8 +8,8 @@ use rustc_hash::FxHashSet;
 
 use super::alternatives::{TempDependency, TempModule};
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, Dependency,
-  DependencyId, DependencyParents, DependencyRef, FactorizationArtifact, FactorizeInfo,
+  AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockRef, BoxDependency, BoxModule,
+  Dependency, DependencyId, DependencyParents, DependencyRef, FactorizationArtifact, FactorizeInfo,
   ModuleGraph, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, RayonConsumer,
   cache::CacheCodec,
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
@@ -31,7 +31,7 @@ struct Node<'a> {
   pub module: OwnedOrRef<'a, BoxModule>,
   pub dependencies: Vec<CachedDependency<'a>>,
   pub connections: Vec<OwnedOrRef<'a, ModuleGraphConnection>>,
-  pub blocks: Vec<OwnedOrRef<'a, AsyncDependenciesBlock>>,
+  pub blocks: Vec<OwnedOrRef<'a, AsyncDependenciesBlockRef>>,
   pub lazy_info: Option<OwnedOrRef<'a, LazyDependencies>>,
 }
 
@@ -63,7 +63,11 @@ pub fn save_module_graph(
       let blocks = module
         .get_blocks()
         .par_iter()
-        .map(|block_id| mg.block_by_id(block_id).expect("should have block").into())
+        .map(|block_id| {
+          mg.block_ref_by_id(block_id)
+            .expect("should have block")
+            .into()
+        })
         .collect::<Vec<_>>();
       let dependencies = mgm
         .all_dependencies()
@@ -180,7 +184,7 @@ pub async fn recovery_module_graph(
       }
       for block in node.blocks {
         let block = block.into_owned();
-        mg.add_block(Box::new(block));
+        mg.add_block(block);
       }
       if let Some(lazy_info) = node.lazy_info {
         module_to_lazy_make

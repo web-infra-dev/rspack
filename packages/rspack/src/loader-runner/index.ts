@@ -363,11 +363,23 @@ export async function runLoaders(
               args: traceData.args,
             });
           }
-          if (res.error) {
-            onError(
-              compiler.__internal__takeModuleExecutionResult(res.id) ??
-                new Error(res.error),
-            );
+          if (res.errors.length > 0) {
+            const executionError =
+              compiler.__internal__takeModuleExecutionResult(res.id);
+            if (executionError != null) {
+              onError(executionError);
+            } else if (res.errors.length === 1) {
+              onError(res.errors[0]);
+            } else {
+              const error = new AggregateError(
+                res.errors,
+                res.errors
+                  .map((error: RspackError) => error.message)
+                  .join('\n'),
+              );
+              (error as RspackError).hideStack = true;
+              onError(error);
+            }
           } else {
             onDone(compiler.__internal__takeModuleExecutionResult(res.id));
           }

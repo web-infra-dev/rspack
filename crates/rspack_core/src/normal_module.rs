@@ -691,7 +691,7 @@ impl Module for NormalModule {
     Ok(BuildResult {
       module: BoxModule::new(self),
       dependencies: dependencies.into_iter().map(Into::into).collect(),
-      blocks,
+      blocks: blocks.into_iter().map(Into::into).collect(),
       optimization_bailouts,
     })
   }

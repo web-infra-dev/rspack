@@ -21,7 +21,7 @@ pub struct SideEffectsDoOptimizeMoveTarget {
   pub target_export: Option<Vec<Atom>>,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct SideEffectsOptimizeArtifact(FxHashMap<DependencyId, SideEffectsDoOptimize>);
 
 impl Deref for SideEffectsOptimizeArtifact {

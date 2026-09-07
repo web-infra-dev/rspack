@@ -81,6 +81,7 @@ Before running tests after code changes:
 ### Modifying code
 
 - **Rust**: Core in `crates/rspack_core/`, plugins in `crates/rspack_plugin_*/`, rebuild with `pnpm run build:binding:dev`, test with `pnpm run test:rs`, avoid linting and formatting for fast local development
+- **Rust `Clone`**: Do not derive or manually implement `Clone` for data structures without a concrete need. When adding an implementation that copies underlying data, explain why it is necessary in both the type's documentation comment and the PR description. Cloning `Arc` handles, including wrappers that only clone those handles, is exempt.
 - **JS/TS**: API in `packages/rspack/src/`, CLI in `packages/rspack-cli/src/`, rebuild with `pnpm run build:js`, test with `pnpm run test:unit`
 
 ### Adding tests
