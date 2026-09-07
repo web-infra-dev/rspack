@@ -1,5 +1,5 @@
 use rspack_intern::AtomRef;
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, swc::AstSubRangeExt};
 pub mod ast;
 mod call_hooks_name;
 pub mod estree;
@@ -1505,8 +1505,7 @@ impl<'parser> JavascriptParser<'parser> {
       // `import.meta`-only unambiguous parse as ESM. Do not set `self.is_esm`
       // early: legacy parsing only flipped that state during pre-walk.
       let is_esm_program = matches!(self.module_type, ModuleType::JsEsm)
-        || body.iter().any(|slot| {
-          let statement = ast.get_node_in_sub_range(slot);
+        || ast.nodes(body).any(|statement| {
           matches!(
             ast.stmt_data(statement),
             StmtData::ImportDeclaration(_)
