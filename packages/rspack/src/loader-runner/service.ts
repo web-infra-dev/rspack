@@ -162,12 +162,36 @@ export type HandleIncomingRequest = (
 // content, sourceMap, additionalData
 type WorkerArgs = any[];
 
+type SerializedAggregateErrorMember =
+  | {
+      __internal__type: 'error';
+      value: WorkerError;
+    }
+  | {
+      __internal__type: 'value';
+      value: unknown;
+    };
+
 export type WorkerError = Error & {
   __internal__isAggregateError?: boolean;
-  errors?: WorkerError[];
+  errors?: unknown;
 };
 
-export function serializeError(error: unknown): WorkerError {
+function serializeAggregateErrorMember(
+  value: unknown,
+): SerializedAggregateErrorMember {
+  return value instanceof Error
+    ? {
+        __internal__type: 'error',
+        value: serializeErrorWithoutCloneCheck(value),
+      }
+    : {
+        __internal__type: 'value',
+        value,
+      };
+}
+
+function serializeErrorWithoutCloneCheck(error: unknown): WorkerError {
   if (
     error instanceof Error ||
     (error && typeof error === 'object' && 'message' in error)
@@ -181,7 +205,7 @@ export function serializeError(error: unknown): WorkerError {
     } as WorkerError;
     if (error instanceof AggregateError) {
       serializedError.__internal__isAggregateError = true;
-      serializedError.errors = error.errors.map(serializeError);
+      serializedError.errors = error.errors.map(serializeAggregateErrorMember);
     } else {
       delete serializedError.__internal__isAggregateError;
     }
@@ -200,13 +224,40 @@ export function serializeError(error: unknown): WorkerError {
   );
 }
 
+export function serializeError(error: unknown): WorkerError {
+  try {
+    const serializedError = serializeErrorWithoutCloneCheck(error);
+    structuredClone(serializedError);
+    return serializedError;
+  } catch (serializationError) {
+    const reason =
+      serializationError instanceof Error
+        ? serializationError.message
+        : 'unknown reason';
+    return serializeErrorWithoutCloneCheck(
+      new Error(`Failed to serialize error: ${reason}`),
+    );
+  }
+}
+
+function deserializeAggregateErrorMember(
+  member: SerializedAggregateErrorMember,
+): unknown {
+  return member.__internal__type === 'error'
+    ? deserializeError(member.value)
+    : member.value;
+}
+
 export function deserializeError(error: WorkerError): WorkerError {
   const { __internal__isAggregateError, errors, ...properties } = error;
   const shouldDeserializeAsAggregate =
     __internal__isAggregateError === true && Array.isArray(errors);
   const deserializedError = (
     shouldDeserializeAsAggregate
-      ? new AggregateError(errors.map(deserializeError), error.message)
+      ? new AggregateError(
+          errors.map(deserializeAggregateErrorMember),
+          error.message,
+        )
       : new Error(error.message)
   ) as WorkerError;
   Object.assign(deserializedError, properties);
