@@ -26,7 +26,8 @@ use crate::{
   dependency::DependencyBranchGuard,
   parser_plugin::{
     CREATE_REQUIRE_EVALUATED_TAG, CREATE_REQUIRE_SPECIFIER_TAG, CREATED_REQUIRE_IDENTIFIER_TAG,
-    CreatedRequireTagData, JavascriptParserPlugin, is_create_require_namespace_member,
+    CreatedRequireTagData, JavascriptParserPlugin, inner_graph::state::TopLevelSymbol,
+    is_create_require_namespace_member,
   },
   visitors::{
     AtomMembers, ExportedVariableInfo, ExprRef, VariableDeclaration, VariableInfo,
@@ -976,7 +977,16 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_object_expression(&mut self, expr: &ObjectLit) {
+    let object_symbol = self.inner_graph.get_object_literal_symbol(&expr.span());
     for prop in &expr.props {
+      if let Some(object_symbol) = object_symbol
+        && let PropOrSpread::Prop(prop) = prop
+        && let Prop::KeyValue(kv) = &**prop
+        && matches!(&kv.value, Expr::Arrow(_) | Expr::Fn(_))
+      {
+        self.walk_key_value_prop_with_owner(kv, object_symbol);
+        continue;
+      }
       self.walk_property_or_spread(prop);
     }
   }
@@ -994,6 +1004,19 @@ impl JavascriptParser<'_> {
       self.walk_prop_name(&kv.key);
     }
     self.walk_expression(&kv.value);
+  }
+
+  fn walk_key_value_prop_with_owner(&mut self, kv: &KeyValueProp, object_symbol: TopLevelSymbol) {
+    if kv.key.is_computed() {
+      // Computed keys execute while the object is created, outside the deferred property value.
+      self.walk_prop_name(&kv.key);
+    }
+    let previous_top_level_symbol = self.inner_graph.get_top_level_symbol();
+    self.inner_graph.set_top_level_symbol(Some(object_symbol));
+    self.walk_expression(&kv.value);
+    self
+      .inner_graph
+      .set_top_level_symbol(previous_top_level_symbol);
   }
 
   fn walk_getter_prop(&mut self, getter: &GetterProp) {

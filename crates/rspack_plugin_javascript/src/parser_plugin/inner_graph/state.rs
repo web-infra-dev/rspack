@@ -89,6 +89,7 @@ pub(crate) struct InnerGraphState {
   pub(super) class_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
   pub(super) decl_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
   pub(super) pure_declarators: HashSet<Span>,
+  object_literal_symbols: Option<Box<HashMap<Span, TopLevelSymbol>>>,
 }
 
 impl InnerGraphState {
@@ -144,6 +145,24 @@ impl InnerGraphState {
     } else {
       None
     }
+  }
+
+  pub(crate) fn add_object_literal(&mut self, span: Span, symbol: TopLevelSymbol) {
+    self
+      .object_literal_symbols
+      .get_or_insert_with(Default::default)
+      .insert(span, symbol);
+  }
+
+  pub(crate) fn get_object_literal_symbol(&self, span: &Span) -> Option<TopLevelSymbol> {
+    if !self.is_enabled() {
+      return None;
+    }
+    self
+      .object_literal_symbols
+      .as_ref()
+      .and_then(|symbols| symbols.get(span))
+      .copied()
   }
 
   pub(crate) fn add_usage(&mut self, symbol: TopLevelSymbol, usage: InnerGraphMapUsage) {
