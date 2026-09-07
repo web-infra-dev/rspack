@@ -26,6 +26,8 @@ module.exports = [
       'node:os': 'node:os',
     },
     optimization: {
+      // Keep otherwise-unused exported functions in the graph for these codegen assertions.
+      innerGraph: false,
       concatenateModules: false,
       minimize: false,
       moduleIds: 'named',

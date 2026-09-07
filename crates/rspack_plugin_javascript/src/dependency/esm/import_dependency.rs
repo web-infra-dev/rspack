@@ -1,19 +1,22 @@
+use std::sync::LazyLock;
+
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsCacheable, AsOption, AsPreset, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyCondition, DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ExportsInfoArtifact, ImportAttributes, ImportPhase, ModuleDependency,
-  ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier, TemplateContext,
-  TemplateReplaceSource, create_exports_object_referenced,
+  AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyCondition, DependencyConditionFn, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ImportAttributes, ImportPhase,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ReferencedSpecifier, ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
+  TemplateReplaceSource, UsedByExports, UsedByExportsCondition, create_exports_object_referenced,
   create_referenced_exports_by_referenced_specifiers,
 };
 
-use super::create_resource_identifier_for_esm_dependency;
+use super::{ImportEagerDependency, create_resource_identifier_for_esm_dependency};
 use crate::{
-  Atom,
+  Atom, connection_active_used_by_exports,
   dependency::{DependencyBranchGuard, compose_dependency_condition},
 };
 
@@ -31,6 +34,7 @@ pub struct ImportDependency {
   pub comments: Vec<(bool, String)>,
   resource_identifier: ResourceIdentifier,
   optional: bool,
+  used_by_exports: Option<UsedByExports>,
   #[cacheable(with=AsOption<AsCacheable>)]
   branch_guard: Option<DependencyBranchGuard>,
 }
@@ -56,6 +60,7 @@ impl ImportDependency {
       resource_identifier,
       optional,
       comments,
+      used_by_exports: None,
       branch_guard: None,
     }
   }
@@ -79,6 +84,14 @@ impl ImportDependency {
       Some(old_guard) => old_guard.and(guard),
       None => guard,
     });
+  }
+
+  pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
+    self.used_by_exports = used_by_exports;
+  }
+
+  pub(super) fn used_by_exports(&self) -> Option<&UsedByExports> {
+    self.used_by_exports.as_ref()
   }
 }
 
@@ -166,7 +179,58 @@ impl ModuleDependency for ImportDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    compose_dependency_condition(None, self.branch_guard.as_ref())
+    let inner_graph_condition =
+      get_import_dependency_inner_graph_condition(self.used_by_exports.as_ref());
+    compose_dependency_condition(inner_graph_condition, self.branch_guard.as_ref())
+  }
+}
+
+struct ImportDependencyCondition;
+
+static IMPORT_DEPENDENCY_CONDITION: LazyLock<DependencyCondition> =
+  LazyLock::new(|| DependencyCondition::new(ImportDependencyCondition));
+
+pub(super) fn get_import_dependency_inner_graph_condition(
+  used_by_exports: Option<&UsedByExports>,
+) -> Option<DependencyCondition> {
+  used_by_exports
+    // Bool(true) remains active even when a deferred purity check is impure, so wrapping it in a
+    // condition only sends an unconditional connection through runtime condition machinery.
+    .filter(|used_by_exports| {
+      !matches!(
+        used_by_exports.condition(),
+        UsedByExportsCondition::Bool(true)
+      )
+    })
+    .map(|_| IMPORT_DEPENDENCY_CONDITION.clone())
+}
+
+impl DependencyConditionFn for ImportDependencyCondition {
+  fn get_connection_state(
+    &self,
+    connection: &ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+  ) -> ConnectionState {
+    let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+    let used_by_exports = if let Some(dependency) = dependency.downcast_ref::<ImportDependency>() {
+      dependency.used_by_exports()
+    } else {
+      dependency
+        .downcast_ref::<ImportEagerDependency>()
+        .expect("should be ImportDependency or ImportEagerDependency")
+        .used_by_exports()
+    };
+    ConnectionState::Active(connection_active_used_by_exports(
+      connection,
+      runtime,
+      module_graph,
+      exports_info_artifact,
+      used_by_exports,
+    ))
   }
 }
 
