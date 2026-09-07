@@ -39,8 +39,7 @@ jobs:
             runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
           - target: powerpc64le-unknown-linux-gnu
             runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-          - target: s390x-unknown-linux-gnu
-            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+          # SWC Next 0.1.3 rejects big-endian targets, so s390x cannot be built.
           - target: i686-pc-windows-msvc
             runner: ${{ '"windows-latest"' }}
           - target: x86_64-pc-windows-msvc

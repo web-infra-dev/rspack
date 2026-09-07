@@ -1,5 +1,5 @@
 use rspack_intern::Atom;
-use swc_experimental_ecma_ast::CallExpr;
+use swc_next_ecma_ast::CallExpression;
 
 use super::{
   JavascriptParserPlugin,
@@ -14,7 +14,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
   fn call(
     &self,
     parser: &mut JavascriptParser<'p>,
-    _expr: &CallExpr<'_>,
+    _expr: CallExpression,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "eval" {

@@ -24,14 +24,12 @@ use rspack_plugin_javascript::{
   },
 };
 use rspack_tasks::within_compiler_context_for_testing_sync;
+use rspack_util::swc::RspackComments;
 use rustc_hash::FxHashSet;
-use swc_experimental_allocator::Allocator;
-use swc_experimental_ecma_ast::{Comments, EsVersion, Program, VisitWith};
-use swc_experimental_ecma_parser::{
-  EsSyntax, Lexer, Parser, StringSource, Syntax, unstable::Capturing,
-};
-use swc_experimental_ecma_semantic::resolver::resolver;
-use swc_experimental_ecma_transforms_base::remove_paren::remove_paren;
+use swc_next_allocator::Allocator;
+use swc_next_ecma_ast::{Lang, SourceType as SwcSourceType, VisitWith};
+use swc_next_ecma_parser::{CommentMode, Options, Parser, TokenParserConfig};
+use swc_next_ecma_semantic::{AnalyzeOptions, analyze};
 
 const THREE_MODULE_BENCHMARK_ID: &str = "rust@scan_dependencies@three_module";
 const THREE_MODULE_RESOURCE_PATH: &str = "/node_modules/three/build/three.module.js";
@@ -185,52 +183,55 @@ fn parse_benchmark_program(
 ) -> PreparedScanDependenciesProgram {
   let source_text = Box::leak(source_text.to_string().into_boxed_str());
   let allocator = Box::leak(Box::new(Allocator::default()));
-  let comments = Box::leak(Box::new(Comments::new_in(allocator)));
-  let parser_lexer = Lexer::new(
+  let parse_return = Parser::init(
     allocator,
-    Syntax::Es(EsSyntax {
-      jsx: resource_path.ends_with(".jsx"),
-      allow_return_outside_function: matches!(
-        module_type,
-        ModuleType::JsDynamic | ModuleType::JsAuto
-      ),
-      explicit_resource_management: true,
-      import_attributes: true,
-      ..Default::default()
-    }),
-    EsVersion::EsNext,
-    StringSource::new(source_text),
-    Some(comments),
-  );
-  let parser_lexer = Capturing::new(parser_lexer);
-  let mut parser = Parser::new_from(allocator, parser_lexer);
-  let mut program = match module_type {
-    ModuleType::JsEsm => parser
-      .parse_module()
-      .map(|module| Program::Module(allocator.boxed(module))),
-    ModuleType::JsDynamic => parser
-      .parse_commonjs()
-      .map(|script| Program::Script(allocator.boxed(script))),
-    _ => parser.parse_program(),
-  }
-  .expect("scan_dependencies benchmark source should parse");
-  let parse_errors = parser.take_errors();
+    source_text,
+    Options {
+      source_type: match module_type {
+        ModuleType::JsEsm => SwcSourceType::Module,
+        ModuleType::JsDynamic => SwcSourceType::CommonJs,
+        _ => SwcSourceType::Unambiguous,
+      },
+      lang: if resource_path.ends_with(".jsx") {
+        Lang::Jsx
+      } else {
+        Lang::Js
+      },
+      preserve_parens: false,
+      comments: CommentMode::Flat,
+    },
+    TokenParserConfig,
+  )
+  .parse();
   assert!(
-    parse_errors.is_empty(),
-    "scan_dependencies benchmark source should parse without recoverable errors"
+    parse_return.diagnostics.is_empty(),
+    "scan_dependencies benchmark source should parse without diagnostics: {:#?}",
+    parse_return.diagnostics
   );
-  let tokens = parser.input().iter.tokens().to_vec();
-  drop(parser);
+  let tokens = parse_return.tokens;
+  let ast = Box::leak(Box::new(parse_return.ast));
+  let comments = Box::leak(Box::new(RspackComments::from_ast(ast)));
+  let semantic_return = analyze(
+    ast,
+    AnalyzeOptions {
+      check_syntax: true,
+      build_module_record: false,
+    },
+  );
+  assert!(
+    semantic_return.diagnostics.is_empty(),
+    "scan_dependencies benchmark source should pass semantic analysis: {:#?}",
+    semantic_return.diagnostics
+  );
+  let semantic = Box::leak(Box::new(semantic_return.semantic));
+  let program = ast.root_program();
 
   let mut semicolons = FxHashSet::default();
-  remove_paren(&mut program, allocator, Some(comments));
-  let program = Box::leak(Box::new(program));
-  let semantic = Box::leak(Box::new(resolver(program)));
-  program.visit_with(&mut InsertedSemicolons::new(&mut semicolons, &tokens));
+  program.visit_with(&mut InsertedSemicolons::new(ast, &mut semicolons, &tokens));
 
   PreparedScanDependenciesProgram {
     parsed_ast: ParsedJavaScriptAst {
-      allocator,
+      ast,
       comments,
       semantic,
       program,

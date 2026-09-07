@@ -1,1 +1,1 @@
-module.exports = [[/Expression expected/]];
+module.exports = [[/Unexpected token '\)'/]];

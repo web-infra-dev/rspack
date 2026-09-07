@@ -8,11 +8,13 @@ use rspack_core::{
 use rspack_error::{Diagnostic, cyan, yellow};
 use rspack_util::SpanExt;
 use sugar_path::SugarPath;
-use swc_experimental_ecma_ast::{Expr, GetSpan, Ident, UnaryExpr};
+use swc_next_ecma_ast::{Expr, GetSpan, UnaryExpression};
 
 use crate::{
-  JavascriptParserPlugin, dependency::ExternalModuleDependency, utils::eval,
-  visitors::JavascriptParser,
+  JavascriptParserPlugin,
+  dependency::ExternalModuleDependency,
+  utils::eval,
+  visitors::{Identifier, JavascriptParser},
 };
 
 const DIRNAME: &str = "__dirname";
@@ -104,7 +106,7 @@ impl NodeStuffPlugin {
 
   fn add_cjs_node_module_dependency(
     parser: &mut JavascriptParser,
-    ident_span: swc_experimental_ecma_ast::Span,
+    ident_span: swc_next_ecma_ast::Span,
     name: &str,
     property: NodeMetaProperty,
   ) {
@@ -134,7 +136,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Ident,
+    ident: &Identifier,
     for_name: &str,
   ) -> Option<bool> {
     // Skip CJS handling if not enabled
@@ -161,7 +163,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
           // We need to create two separate dependencies in Rspack.
           Self::add_cjs_node_module_dependency(
             parser,
-            ident.span,
+            ident.span(),
             DIRNAME,
             NodeMetaProperty::Dirname,
           );
@@ -174,7 +176,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
           }
           Self::add_cjs_node_module_dependency(
             parser,
-            ident.span,
+            ident.span(),
             DIRNAME,
             NodeMetaProperty::Dirname,
           );
@@ -185,7 +187,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
       };
       if let Some(dirname) = dirname {
         parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-          ident.span.into(),
+          ident.span().into(),
           rspack_util::json_stringify_str(&dirname).into(),
         )));
         return Some(true);
@@ -205,7 +207,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
           // We need to create two separate dependencies in Rspack.
           Self::add_cjs_node_module_dependency(
             parser,
-            ident.span,
+            ident.span(),
             FILENAME,
             NodeMetaProperty::Filename,
           );
@@ -218,7 +220,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
           }
           Self::add_cjs_node_module_dependency(
             parser,
-            ident.span,
+            ident.span(),
             FILENAME,
             NodeMetaProperty::Filename,
           );
@@ -229,7 +231,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
       };
       if let Some(filename) = filename {
         parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-          ident.span.into(),
+          ident.span().into(),
           rspack_util::json_stringify_str(&filename).into(),
         )));
         return Some(true);
@@ -241,14 +243,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
       )
     {
       if parser.in_short_hand {
-        let start = ident.span.real_lo();
+        let start = ident.span().real_lo();
         parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           (start, start).into(),
-          format!("{}: ", ident.sym).into(),
+          format!("{for_name}: ").into(),
         )));
       }
       parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
-        ident.span.into(),
+        ident.span().into(),
         RuntimeGlobals::GLOBAL,
       )));
       return Some(true);
@@ -256,7 +258,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
     None
   }
 
-  fn rename(&self, parser: &mut JavascriptParser<'p>, expr: &Expr, for_name: &str) -> Option<bool> {
+  fn rename(&self, parser: &mut JavascriptParser<'p>, expr: Expr, for_name: &str) -> Option<bool> {
     // Skip CJS handling if not enabled
     if !self.handle_cjs {
       return None;
@@ -270,7 +272,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
       )
     {
       parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
-        expr.span().into(),
+        expr.span(parser.ast.ast).into(),
         RuntimeGlobals::GLOBAL,
       )));
       return Some(false);
@@ -281,7 +283,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
   fn r#typeof(
     &self,
     parser: &mut JavascriptParser<'p>,
-    unary_expr: &UnaryExpr,
+    unary_expr: UnaryExpression,
     for_name: &str,
   ) -> Option<bool> {
     match for_name {
@@ -321,7 +323,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
     }
 
     parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-      unary_expr.span().into(),
+      unary_expr.span(parser.ast.ast).into(),
       "'string'".into(),
     )));
     Some(true)

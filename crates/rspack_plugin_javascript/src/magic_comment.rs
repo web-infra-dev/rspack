@@ -4,14 +4,14 @@ use regex::Regex;
 use rspack_core::{ContextMode, DependencyRange};
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, swc::RspackComment as Comment};
 use rustc_hash::{FxHashMap, FxHashSet};
-use swc_experimental_allocator::Allocator;
-use swc_experimental_ecma_ast::{
-  Comment, CommentKind, EsVersion, Expr, GetSpan, Lit, Prop, PropName, PropOrSpread, Span, UnaryOp,
+use swc_next_allocator::Allocator;
+use swc_next_ecma_ast::{
+  ArgumentData, Ast, CommentKind, Expr, ExprData, GetSpan, ObjectPropertyKindData, PropertyKey,
+  PropertyKeyData, Span, UnaryOperator,
 };
-use swc_experimental_ecma_parser::{EsSyntax, Syntax, parse_file_as_expr};
-use swc_experimental_ecma_transforms_base::remove_paren::remove_paren;
+use swc_next_ecma_parser::{FragmentContext, NoTokenParserConfig, Options, Parser};
 
 use crate::{
   utils::object_properties::FromAstExpr,
@@ -278,10 +278,8 @@ pub fn try_extract_magic_comment(
 ) -> RspackCommentMap {
   let mut result = RspackCommentMap::new();
   let mut warning_diagnostics = Vec::new();
-  let allocator = parser.ast.allocator;
   if let Some(comments) = parser.ast.comments.leading.get(&span.start) {
     analyze_comments(
-      allocator,
       parser.source,
       comments,
       error_span,
@@ -291,7 +289,6 @@ pub fn try_extract_magic_comment(
   }
   if let Some(comments) = parser.ast.comments.trailing.get(&span.end) {
     analyze_comments(
-      allocator,
       parser.source,
       comments,
       error_span,
@@ -355,32 +352,35 @@ fn value_span_to_comment_offsets_with_offset(
 
 fn raw_value_with_offset<'a>(
   comment_text: &'a str,
-  value: &Expr,
+  ast: &Ast<'_>,
+  value: Expr,
   comment_offset: usize,
 ) -> Option<&'a str> {
   let (start, end) =
-    value_span_to_comment_offsets_with_offset(comment_text, value.span(), comment_offset)?;
+    value_span_to_comment_offsets_with_offset(comment_text, value.span(ast), comment_offset)?;
   comment_text.get(start..end).map(str::trim)
 }
 
 fn parse_magic_comment_object<'a>(
   allocator: &'a Allocator,
   comment_text: &str,
-) -> Option<(Expr<'a>, usize)> {
+) -> Option<(Ast<'a>, usize)> {
   let magic_comment_start = find_magic_comment_start(comment_text)?;
   let comment_text = comment_text.get(magic_comment_start..)?;
   let source = format!("({{{comment_text}}})");
   let source = allocator.alloc_str(&source);
-  let mut expr = parse_file_as_expr(
+  let ast = Parser::init(
     allocator,
     source,
-    Syntax::Es(EsSyntax::default()),
-    EsVersion::EsNext,
-    None,
+    Options {
+      preserve_parens: false,
+      ..Options::default()
+    },
+    NoTokenParserConfig,
   )
+  .parse_expression_fragment(FragmentContext::TopLevel)
   .ok()?;
-  remove_paren(&mut expr, allocator, None);
-  Some((expr, magic_comment_start))
+  Some((ast, magic_comment_start))
 }
 
 static WEBPACK_COMMENT_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
@@ -396,115 +396,121 @@ fn find_magic_comment_start(comment_text: &str) -> Option<usize> {
     .and_then(|captures| captures.name("key").map(|matched| matched.start()))
 }
 
-fn prop_name_to_str<'a>(name: &'a PropName<'a>) -> Option<Cow<'a, str>> {
-  match name {
-    PropName::Ident(ident) => Some(Cow::Borrowed(ident.sym.as_str())),
-    PropName::Str(str) => Some(str.value.to_string_lossy()),
-    _ => None,
-  }
-}
-
-fn expr_to_str<'a>(expr: &'a Expr<'a>) -> Option<Cow<'a, str>> {
-  match expr {
-    Expr::Lit(lit) => match &**lit {
-      Lit::Str(str) => Some(str.value.to_string_lossy()),
-      _ => None,
-    },
-    Expr::Tpl(tpl) if tpl.exprs.is_empty() && tpl.quasis.len() == 1 => {
-      tpl.quasis.first().map(|el| Cow::Borrowed(el.raw.as_ref()))
+fn prop_name_to_str<'a>(ast: &'a Ast<'a>, name: PropertyKey) -> Option<Cow<'a, str>> {
+  match ast.property_key_data(name) {
+    PropertyKeyData::IdentifierName(identifier) => {
+      Some(Cow::Borrowed(ast.get_utf8(identifier.name(ast))))
+    }
+    PropertyKeyData::StringLiteral(string) => {
+      Some(ast.get_wtf8(string.value(ast)).to_string_lossy())
     }
     _ => None,
   }
 }
 
-fn expr_to_bool(expr: &Expr) -> Option<bool> {
-  match expr {
-    Expr::Lit(lit) => match &**lit {
-      Lit::Bool(bool) => Some(bool.value),
-      _ => None,
-    },
+fn expr_to_str<'a>(ast: &'a Ast<'a>, expr: Expr) -> Option<Cow<'a, str>> {
+  match ast.expr_data(expr) {
+    ExprData::StringLiteral(string) => Some(ast.get_wtf8(string.value(ast)).to_string_lossy()),
+    ExprData::TemplateLiteral(template)
+      if template.expressions(ast).is_empty() && template.quasis(ast).len() == 1 =>
+    {
+      let element = template.quasis(ast).get_node(ast, 0)?;
+      Some(Cow::Borrowed(ast.get_utf8(element.raw(ast))))
+    }
     _ => None,
   }
 }
 
-fn is_number_expr(expr: &Expr) -> bool {
-  match expr {
-    Expr::Lit(lit) => matches!(&**lit, Lit::Num(_)),
-    Expr::Unary(unary) if matches!(unary.op, UnaryOp::Minus) => {
-      matches!(&unary.arg, Expr::Lit(lit) if matches!(&**lit, Lit::Num(_)))
+fn expr_to_bool(ast: &Ast<'_>, expr: Expr) -> Option<bool> {
+  match ast.expr_data(expr) {
+    ExprData::BooleanLiteral(boolean) => Some(boolean.value(ast)),
+    _ => None,
+  }
+}
+
+fn is_number_expr(ast: &Ast<'_>, expr: Expr) -> bool {
+  match ast.expr_data(expr) {
+    ExprData::NumericLiteral(_) => true,
+    ExprData::UnaryExpression(unary) if unary.operator(ast) == UnaryOperator::Negate => {
+      matches!(
+        ast.expr_data(unary.argument(ast)),
+        ExprData::NumericLiteral(_)
+      )
     }
     _ => false,
   }
 }
 
 #[cfg(test)]
-fn expr_to_order_str<'a>(comment_text: &'a str, expr: &Expr) -> Option<&'a str> {
-  expr_to_order_str_with_offset(comment_text, expr, 0)
+fn expr_to_order_str<'a>(comment_text: &'a str, ast: &Ast<'_>, expr: Expr) -> Option<&'a str> {
+  expr_to_order_str_with_offset(comment_text, ast, expr, 0)
 }
 
 fn expr_to_order_str_with_offset<'a>(
   comment_text: &'a str,
-  expr: &Expr,
+  ast: &Ast<'_>,
+  expr: Expr,
   comment_offset: usize,
 ) -> Option<&'a str> {
-  if expr_to_bool(expr).is_some() || is_number_expr(expr) {
-    raw_value_with_offset(comment_text, expr, comment_offset)
+  if expr_to_bool(ast, expr).is_some() || is_number_expr(ast, expr) {
+    raw_value_with_offset(comment_text, ast, expr, comment_offset)
   } else {
     None
   }
 }
 
-fn expr_to_regexp<'a>(expr: &'a Expr<'a>) -> Option<(&'a str, &'a str)> {
-  match expr {
-    Expr::Lit(lit) => match &**lit {
-      Lit::Regex(regex) => Some((regex.exp.as_str(), regex.flags.as_str())),
-      _ => None,
-    },
+fn expr_to_regexp<'a>(ast: &'a Ast<'a>, expr: Expr) -> Option<(&'a str, &'a str)> {
+  match ast.expr_data(expr) {
+    ExprData::RegExpLiteral(regex) => Some((
+      ast.get_utf8(regex.pattern(ast)),
+      ast.get_utf8(regex.flags(ast)),
+    )),
     _ => None,
   }
 }
 
 fn expr_to_magic_comment_value_with_offset(
   comment_text: &str,
-  expr: &Expr,
+  ast: &Ast<'_>,
+  expr: Expr,
   comment_offset: usize,
 ) -> Option<MagicCommentValue> {
-  if let Some(value) = expr_to_bool(expr) {
+  if let Some(value) = expr_to_bool(ast, expr) {
     return Some(MagicCommentValue::Bool(value));
   }
 
-  if let Some(value) = expr_to_str(expr) {
+  if let Some(value) = expr_to_str(ast, expr) {
     return Some(MagicCommentValue::String(value.into_owned()));
   }
 
-  if is_number_expr(expr) {
-    return raw_value_with_offset(comment_text, expr, comment_offset)
+  if is_number_expr(ast, expr) {
+    return raw_value_with_offset(comment_text, ast, expr, comment_offset)
       .map(|value| MagicCommentValue::Number(value.to_string()));
   }
 
-  if let Some((source, flags)) = expr_to_regexp(expr) {
+  if let Some((source, flags)) = expr_to_regexp(ast, expr) {
     return Some(MagicCommentValue::RegExp {
       source: source.to_string(),
       flags: flags.to_string(),
     });
   }
 
-  let Expr::Array(array) = expr else {
+  let ExprData::ArrayExpression(array) = ast.expr_data(expr) else {
     return None;
   };
   let mut items = Vec::new();
-  for elem in &array.elems {
-    let elem = elem.as_ref()?;
-    if elem.spread.is_some() {
+  for element in array.elements(ast).iter() {
+    let element = ast.get_node_in_sub_range(element)?;
+    let ArgumentData::Expr(element) = ast.argument_data(element) else {
       return None;
-    }
-    items.push(expr_to_str(&elem.expr)?.into_owned());
+    };
+    items.push(expr_to_str(ast, element)?.into_owned());
   }
   Some(MagicCommentValue::Array(items))
 }
 
-fn expr_to_exports(expr: &Expr) -> Option<MagicCommentValue> {
-  if let Some(string) = expr_to_str(expr) {
+fn expr_to_exports(ast: &Ast<'_>, expr: Expr) -> Option<MagicCommentValue> {
+  if let Some(string) = expr_to_str(ast, expr) {
     let trimmed = string.trim();
     if trimmed.len() == string.len() {
       return Some(MagicCommentValue::String(string.into_owned()));
@@ -512,17 +518,17 @@ fn expr_to_exports(expr: &Expr) -> Option<MagicCommentValue> {
     return Some(MagicCommentValue::String(trimmed.to_string()));
   }
 
-  let Expr::Array(array) = expr else {
+  let ExprData::ArrayExpression(array) = ast.expr_data(expr) else {
     return None;
   };
 
   let mut exports = Vec::new();
-  for elem in &array.elems {
-    let elem = elem.as_ref()?;
-    if elem.spread.is_some() {
+  for element in array.elements(ast).iter() {
+    let element = ast.get_node_in_sub_range(element)?;
+    let ArgumentData::Expr(element) = ast.argument_data(element) else {
       return None;
-    }
-    exports.push(expr_to_str(&elem.expr)?.into_owned());
+    };
+    exports.push(expr_to_str(ast, element)?.into_owned());
   }
 
   Some(MagicCommentValue::Array(exports))
@@ -563,7 +569,6 @@ fn parse_magic_comment_name(name: &str) -> Option<(RspackComment, MagicCommentPr
 }
 
 fn analyze_comments(
-  allocator: &Allocator,
   source: &str,
   comments: &[Comment],
   error_span: Span,
@@ -580,31 +585,33 @@ fn analyze_comments(
       continue;
     }
     parsed_comment.insert(comment.span);
-    let Some((expr, comment_offset)) = parse_magic_comment_object(allocator, &comment.text) else {
+    let allocator = Allocator::default();
+    let Some((ast, comment_offset)) = parse_magic_comment_object(&allocator, comment.text) else {
       continue;
     };
-    let Expr::Object(object) = &expr else {
+    let expr = ast.root_expression();
+    let Some(object) = expr.as_object_expression(&ast) else {
       continue;
     };
-    for prop in &object.props {
-      let PropOrSpread::Prop(prop) = prop else {
+    for property in object.properties(&ast).iter() {
+      let property = ast.get_node_in_sub_range(property);
+      let ObjectPropertyKindData::ObjectProperty(property) =
+        ast.object_property_kind_data(property)
+      else {
         continue;
       };
-      let Prop::KeyValue(prop) = &**prop else {
-        continue;
-      };
-      let Some(item_name) = prop_name_to_str(&prop.key) else {
+      let Some(item_name) = prop_name_to_str(&ast, property.key(&ast)) else {
         continue;
       };
       let Some((rspack_comment, prefix)) = parse_magic_comment_name(item_name.as_ref()) else {
         continue;
       };
-      let value = &prop.value;
+      let value = property.value(&ast);
       let item_name = rspack_comment.prefixed_name(prefix);
       let received =
-        raw_value_with_offset(&comment.text, value, comment_offset).unwrap_or_default();
+        raw_value_with_offset(comment.text, &ast, value, comment_offset).unwrap_or_default();
       let item_span =
-        value_span_to_error_span_with_offset(comment.span, value.span(), comment_offset)
+        value_span_to_error_span_with_offset(comment.span, value.span(&ast), comment_offset)
           .unwrap_or(error_span.into());
       let push_parse_warning = |comment_type| {
         push_magic_comment_parse_warning(
@@ -619,7 +626,7 @@ fn analyze_comments(
 
       let value = match rspack_comment {
         RspackComment::ChunkName => {
-          if let Some(value) = expr_to_str(value) {
+          if let Some(value) = expr_to_str(&ast, value) {
             MagicCommentValue::String(value.into_owned())
           } else {
             push_parse_warning("a string");
@@ -627,7 +634,9 @@ fn analyze_comments(
           }
         }
         RspackComment::Prefetch => {
-          if let Some(value) = expr_to_order_str_with_offset(&comment.text, value, comment_offset) {
+          if let Some(value) =
+            expr_to_order_str_with_offset(comment.text, &ast, value, comment_offset)
+          {
             if value == "true" {
               MagicCommentValue::Bool(true)
             } else {
@@ -639,7 +648,9 @@ fn analyze_comments(
           }
         }
         RspackComment::Preload => {
-          if let Some(value) = expr_to_order_str_with_offset(&comment.text, value, comment_offset) {
+          if let Some(value) =
+            expr_to_order_str_with_offset(comment.text, &ast, value, comment_offset)
+          {
             if value == "true" {
               MagicCommentValue::Bool(true)
             } else {
@@ -651,18 +662,18 @@ fn analyze_comments(
           }
         }
         RspackComment::Ignore => {
-          if let Some(value) = expr_to_bool(value) {
+          if let Some(value) = expr_to_bool(&ast, value) {
             MagicCommentValue::Bool(value)
           } else {
             let value =
-              expr_to_magic_comment_value_with_offset(&comment.text, value, comment_offset)
+              expr_to_magic_comment_value_with_offset(comment.text, &ast, value, comment_offset)
                 .unwrap_or(MagicCommentValue::Unknown);
             push_parse_warning("a boolean");
             value
           }
         }
         RspackComment::Mode => {
-          if let Some(mode) = ContextMode::from_ast_expr(value)
+          if let Some(mode) = ContextMode::from_ast_expr(&ast, value)
             .ok()
             .flatten()
             .filter(|mode| {
@@ -679,7 +690,7 @@ fn analyze_comments(
           }
         }
         RspackComment::FetchPriority => {
-          if let Some(priority) = expr_to_str(value)
+          if let Some(priority) = expr_to_str(&ast, value)
             && matches!(priority.as_ref(), "low" | "high" | "auto")
           {
             MagicCommentValue::String(priority.into_owned())
@@ -689,7 +700,7 @@ fn analyze_comments(
           }
         }
         RspackComment::IncludeRegexp => {
-          if let Some((regexp, flags)) = expr_to_regexp(value)
+          if let Some((regexp, flags)) = expr_to_regexp(&ast, value)
             && RspackRegex::with_flags(regexp, flags).is_ok()
           {
             MagicCommentValue::RegExp {
@@ -702,7 +713,7 @@ fn analyze_comments(
           }
         }
         RspackComment::ExcludeRegexp => {
-          if let Some((regexp, flags)) = expr_to_regexp(value)
+          if let Some((regexp, flags)) = expr_to_regexp(&ast, value)
             && RspackRegex::with_flags(regexp, flags).is_ok()
           {
             MagicCommentValue::RegExp {
@@ -715,7 +726,7 @@ fn analyze_comments(
           }
         }
         RspackComment::Exports => {
-          if let Some(exports) = expr_to_exports(value) {
+          if let Some(exports) = expr_to_exports(&ast, value) {
             exports
           } else {
             push_parse_warning(r#"a string or an array of strings"#);
@@ -735,25 +746,27 @@ fn analyze_comments(
 
 #[cfg(test)]
 mod tests_extract_magic_comment_object {
-  use swc_experimental_ecma_ast::DUMMY_SP;
+  use swc_next_ecma_ast::DUMMY_SP;
 
   use super::*;
 
-  fn with_value<R>(raw: &str, name: &str, f: impl FnOnce(&Expr<'_>) -> Option<R>) -> Option<R> {
+  fn with_value<R>(
+    raw: &str,
+    name: &str,
+    f: impl FnOnce(&Ast<'_>, Expr) -> Option<R>,
+  ) -> Option<R> {
     let allocator = Allocator::new();
-    let (expr, _) = parse_magic_comment_object(&allocator, raw)?;
-    let Expr::Object(object) = &expr else {
-      return None;
-    };
-    for prop in &object.props {
-      let PropOrSpread::Prop(prop) = prop else {
+    let (ast, _) = parse_magic_comment_object(&allocator, raw)?;
+    let object = ast.root_expression().as_object_expression(&ast)?;
+    for property in object.properties(&ast).iter() {
+      let property = ast.get_node_in_sub_range(property);
+      let ObjectPropertyKindData::ObjectProperty(property) =
+        ast.object_property_kind_data(property)
+      else {
         continue;
       };
-      let Prop::KeyValue(prop) = &**prop else {
-        continue;
-      };
-      if prop_name_to_str(&prop.key).as_deref() == Some(name) {
-        return f(&prop.value);
+      if prop_name_to_str(&ast, property.key(&ast)).as_deref() == Some(name) {
+        return f(&ast, property.value(&ast));
       }
     }
     None
@@ -762,14 +775,12 @@ mod tests_extract_magic_comment_object {
   fn extract(raw: &str) -> (RspackCommentMap, Vec<Diagnostic>) {
     let mut result = RspackCommentMap::new();
     let mut warning_diagnostics = Vec::new();
-    let allocator = Allocator::new();
     analyze_comments(
-      &allocator,
       "",
       &[Comment {
         kind: CommentKind::Block,
         span: DUMMY_SP,
-        text: swc_experimental_allocator::atom::Atom::new_in(raw, &allocator),
+        text: raw,
       }],
       DUMMY_SP,
       &mut warning_diagnostics,
@@ -780,22 +791,25 @@ mod tests_extract_magic_comment_object {
 
   fn try_match_string(raw: &str) -> Option<(String, String)> {
     let name = "webpackInclude";
-    with_value(raw, name, |value| {
-      Some((name.to_string(), expr_to_str(value)?.into_owned()))
+    with_value(raw, name, |ast, value| {
+      Some((name.to_string(), expr_to_str(ast, value)?.into_owned()))
     })
   }
 
   fn try_match_order(raw: &str) -> Option<(String, String)> {
     let name = "webpackInclude";
-    with_value(raw, name, |value| {
-      Some((name.to_string(), expr_to_order_str(raw, value)?.to_string()))
+    with_value(raw, name, |ast, value| {
+      Some((
+        name.to_string(),
+        expr_to_order_str(raw, ast, value)?.to_string(),
+      ))
     })
   }
 
   fn try_match_regex(raw: &str) -> Option<(String, String, String)> {
     let name = "webpackInclude";
-    with_value(raw, name, |value| {
-      let (regexp, flags) = expr_to_regexp(value)?;
+    with_value(raw, name, |ast, value| {
+      let (regexp, flags) = expr_to_regexp(ast, value)?;
       Some((name.to_string(), regexp.to_string(), flags.to_string()))
     })
   }

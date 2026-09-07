@@ -1,9 +1,9 @@
 ERROR in ./non-recoverable.js
   × Module parse failed:
-  ╰─▶   × JavaScript parse error: Expected ident
+  ╰─▶   × JavaScript parse error: Invalid character at start of identifier
          ╭────
        1 │ ##$$
-         ·  ─
+         · ─
          ╰────
       
   help: 
@@ -22,7 +22,7 @@ ERROR in ./recoverable.js
 
 ERROR in ./recoverable.js
   × Module parse failed:
-  ╰─▶   × JavaScript parse error: Expected a semicolon
+  ╰─▶   × JavaScript parse error: Expected a semicolon or an implicit semicolon after a statement, but found '{'
          ╭────
        1 │ const foo {};
          ·           ─

@@ -1,104 +1,105 @@
-use swc_experimental_ecma_ast::{
-  ExportSpecifier, GetSpan, ImportDecl, ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem,
+use rspack_intern::Atom;
+use swc_next_ecma_ast::{
+  GetSpan, ImportDeclaration, ImportDeclarationSpecifierData, Stmt, StmtData,
 };
 
 use crate::{
-  Atom, JavascriptParserPlugin,
-  visitors::{ExportAllDeclaration, ExportImport, ExportNamedDeclaration, JavascriptParser},
+  JavascriptParserPlugin,
+  visitors::{
+    ExportAllDeclaration, ExportImport, ExportNamedDeclaration, JavascriptParser,
+    module_export_name_to_atom,
+  },
 };
 
 impl JavascriptParser<'_> {
-  pub fn module_pre_walk_module_items(&mut self, statements: &[ModuleItem<'_>]) {
-    for statement in statements {
-      self.statement_path.push(statement.span().into());
-      match statement {
-        ModuleItem::ModuleDecl(module_decl) => match &**module_decl {
-          ModuleDecl::Import(decl) => self.module_pre_walk_import_declaration(decl),
-          ModuleDecl::ExportAll(decl) => {
-            self.module_pre_walk_export_all_declaration(ExportAllDeclaration::All(decl))
-          }
-          ModuleDecl::ExportNamed(decl) => {
-            let is_named_namespace_export = decl.specifiers.len() == 1
-              && matches!(decl.specifiers.first(), Some(ExportSpecifier::Namespace(_)));
-            if is_named_namespace_export {
-              self.module_pre_walk_export_all_declaration(ExportAllDeclaration::NamedAll(decl))
-            } else {
-              self
-                .module_pre_walk_export_named_declaration(ExportNamedDeclaration::Specifiers(decl))
-            }
-          }
-          _ => {}
-        },
-        ModuleItem::Stmt(_) => {}
+  pub fn module_pre_walk_module_items(&mut self, statements: &[Stmt]) {
+    for &statement in statements {
+      let ast = self.ast.ast;
+      self.statement_path.push(statement.span(ast).into());
+      match ast.stmt_data(statement) {
+        StmtData::ImportDeclaration(declaration) => {
+          self.module_pre_walk_import_declaration(declaration);
+        }
+        StmtData::ExportAllDeclaration(declaration) => {
+          self.module_pre_walk_export_all_declaration(ExportAllDeclaration(declaration));
+        }
+        StmtData::ExportNamedDeclaration(declaration) => {
+          self.module_pre_walk_export_named_declaration(ExportNamedDeclaration(declaration));
+        }
+        _ => {}
       }
       self.prev_statement = self.statement_path.pop();
     }
   }
 
-  pub fn module_pre_walk_import_declaration(&mut self, decl: &ImportDecl<'_>) {
+  pub fn module_pre_walk_import_declaration(&mut self, declaration: ImportDeclaration) {
+    let ast = self.ast.ast;
     let drive = self.plugin_drive.clone();
-    let source = decl.src.value.as_wtf8().to_string_lossy().to_string();
-    drive.import(self, decl, source.as_str());
-    let source_atom = Atom::from(source.as_str());
-
-    for specifier in &decl.specifiers {
-      match specifier {
-        ImportSpecifier::Named(named) => {
-          let identifier_name = Atom::from(&named.local.sym);
-          let export_name = named.imported.as_ref().map_or_else(
-            || identifier_name.clone(),
-            |imported| match imported {
-              ModuleExportName::Ident(ident) => Atom::from(&ident.sym),
-              ModuleExportName::Str(s) => Atom::from(s.value.as_wtf8().to_string_lossy().as_ref()),
-            },
-          );
+    let source = ast
+      .get_wtf8(declaration.source(ast).value(ast))
+      .to_string_lossy()
+      .into_owned();
+    drive.import(self, declaration, &source);
+    let source_atom = Atom::from(source);
+    let specifiers = declaration
+      .specifiers(ast)
+      .iter()
+      .map(|id| ast.get_node_in_sub_range(id))
+      .collect::<Vec<_>>();
+    for specifier in specifiers {
+      match ast.import_declaration_specifier_data(specifier) {
+        ImportDeclarationSpecifierData::ImportSpecifier(named) => {
+          let local = named.local(ast);
+          let identifier_name = Atom::from(ast.get_utf8(local.name(ast)));
+          let export_name = module_export_name_to_atom(ast, named.imported(ast));
           if drive
             .import_specifier(
               self,
-              decl,
+              declaration,
               &source_atom,
               Some(&export_name),
               &identifier_name,
             )
             .unwrap_or_default()
           {
-            self.define_variable(identifier_name)
+            self.define_variable(identifier_name);
           }
         }
-        ImportSpecifier::Default(default) => {
-          let identifier_name = Atom::from(&default.local.sym);
+        ImportDeclarationSpecifierData::ImportDefaultSpecifier(default) => {
+          let identifier_name = Atom::from(ast.get_utf8(default.local(ast).name(ast)));
           if drive
             .import_specifier(
               self,
-              decl,
+              declaration,
               &source_atom,
               Some(&"default".into()),
               &identifier_name,
             )
             .unwrap_or_default()
           {
-            self.define_variable(identifier_name)
+            self.define_variable(identifier_name);
           }
         }
-        ImportSpecifier::Namespace(namespace) => {
-          let identifier_name = Atom::from(&namespace.local.sym);
+        ImportDeclarationSpecifierData::ImportNamespaceSpecifier(namespace) => {
+          let identifier_name = Atom::from(ast.get_utf8(namespace.local(ast).name(ast)));
           if drive
-            .import_specifier(self, decl, &source_atom, None, &identifier_name)
+            .import_specifier(self, declaration, &source_atom, None, &identifier_name)
             .unwrap_or_default()
           {
-            self.define_variable(identifier_name)
+            self.define_variable(identifier_name);
           }
         }
       }
     }
   }
 
-  pub fn module_pre_walk_export_all_declaration(&mut self, decl: ExportAllDeclaration) {
+  pub fn module_pre_walk_export_all_declaration(&mut self, declaration: ExportAllDeclaration) {
+    let ast = self.ast.ast;
     let drive = self.plugin_drive.clone();
-    let exported_name = decl.exported_name();
-    let exported_name_span = decl.exported_name_span();
-    let statement = ExportImport::All(decl);
-    let source = statement.source();
+    let exported_name = declaration.exported_name(ast);
+    let exported_name_span = declaration.exported_name_span(ast);
+    let statement = ExportImport::All(declaration);
+    let source = statement.source(ast);
     drive.export_import(self, statement, &source);
     drive.export_import_specifier(
       self,
@@ -111,27 +112,21 @@ impl JavascriptParser<'_> {
   }
 
   pub fn module_pre_walk_export_named_declaration(&mut self, export: ExportNamedDeclaration) {
-    let Some(source) = export.source() else {
+    let ast = self.ast.ast;
+    let Some(source) = export.source(ast) else {
       return;
     };
     let drive = self.plugin_drive.clone();
     drive.export_import(self, ExportImport::Named(export), &source);
-    match export {
-      ExportNamedDeclaration::Decl(_) => {}
-      ExportNamedDeclaration::Specifiers(named) => {
-        for (local_id, exported_name, exported_name_span) in
-          ExportNamedDeclaration::named_export_specifiers(named)
-        {
-          drive.export_import_specifier(
-            self,
-            ExportImport::Named(export),
-            &source,
-            Some(&local_id),
-            Some(&exported_name),
-            Some(exported_name_span),
-          );
-        }
-      }
+    for (local, exported, span) in export.named_export_specifiers(ast) {
+      drive.export_import_specifier(
+        self,
+        ExportImport::Named(export),
+        &source,
+        Some(&local),
+        Some(&exported),
+        Some(span),
+      );
     }
   }
 }

@@ -1,6 +1,5 @@
 use rspack_core::ConstDependency;
-use swc_experimental_allocator::wtf8::Wtf8;
-use swc_experimental_ecma_ast::{GetSpan, Lit, Program};
+use swc_next_ecma_ast::{GetSpan, Program};
 
 use super::JavascriptParserPlugin;
 use crate::visitors::JavascriptParser;
@@ -9,21 +8,21 @@ pub struct UseStrictPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for UseStrictPlugin {
-  fn program(&self, parser: &mut JavascriptParser<'p>, ast: &Program<'_>) -> Option<bool> {
-    let first = match ast {
-      Program::Module(ast) => ast.body.first().and_then(|i| i.as_stmt()),
-      Program::Script(ast) => ast.body.first(),
-    }
-    .and_then(|i| i.as_expr());
-    if let Some(first) = first
-      && first.expr.as_lit().and_then(|i| match i {
-        Lit::Str(s) => Some(s.value.as_wtf8()),
-        _ => None,
-      }) == Some(Wtf8::from_str("use strict"))
+  fn program(&self, parser: &mut JavascriptParser<'p>, program: Program) -> Option<bool> {
+    let ast = parser.ast.ast;
+    if let Some(first) = program
+      .directives(ast)
+      .iter()
+      .next()
+      .map(|id| ast.get_node_in_sub_range(id))
+      && ast.get_utf8(first.value(ast)) == "use strict"
     {
       // Remove "use strict" expression. It will be added later by the renderer again.
       // This is necessary in order to not break the strict mode when webpack prepends code.
-      let dep = ConstDependency::new(first.span().into(), "".into());
+      // Directive.span includes its terminating semicolon, while the nested
+      // string literal span does not. The legacy ExpressionStatement range
+      // covered both and must be preserved for byte-for-byte replacement.
+      let dep = ConstDependency::new(first.span(ast).into(), "".into());
       parser.add_presentational_dependency(Arc::new(dep));
       parser.build_info.strict = true;
     }

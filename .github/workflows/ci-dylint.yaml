@@ -35,7 +35,8 @@ jobs:
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       DYLINT_RUSTFLAGS: '-D warnings'
-      DYLINT_TOOLCHAIN: nightly-2025-10-31
+      # SWC Next 0.1.3 uses `std::hint::cold_path`, which requires a newer nightly.
+      DYLINT_TOOLCHAIN: nightly-2026-05-28
       DYLINT_VERSION: 6.0.4
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
