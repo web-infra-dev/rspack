@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockBuilder, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule,
-  BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
+  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions,
   CodeGenerationDataItem, CodeGenerationResultBuilder, CodeGenerationRuntimeRequirementsWrite,
   Compilation, Context, DependenciesBlock, Dependency, DependencyId, DependencyType,
   ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext,
@@ -18,6 +18,7 @@ use rspack_core::{
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_util::{json_stringify_str, source_map::SourceMapKind};
+use triomphe::UniqueArc;
 
 use super::{
   container_exposed_dependency::ContainerExposedDependency, container_plugin::ExposeOptions,
@@ -210,7 +211,7 @@ impl Module for ContainerEntryModule {
     } else {
       // Container logic
       for (name, options) in &self.exposes {
-        let mut block = AsyncDependenciesBlockBuilder::new(
+        let mut block = UniqueArc::new(AsyncDependenciesBlock::new(
           self.identifier,
           None,
           Some(name),
@@ -225,11 +226,11 @@ impl Module for ContainerEntryModule {
             })
             .collect(),
           None,
-        );
+        ));
         block.set_group_options(GroupOptions::ChunkGroup(
           ChunkGroupOptions::default().name_optional(options.name.clone()),
         ));
-        blocks.push(Box::new(block));
+        blocks.push(block);
       }
       dependencies.push(BoxDependency::new(StaticExportsDependency::new(
         StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
@@ -243,10 +244,7 @@ impl Module for ContainerEntryModule {
     Ok(BuildResult {
       module: BoxModule::new(self),
       dependencies: dependencies.into_iter().map(Into::into).collect(),
-      blocks: blocks
-        .into_iter()
-        .map(|block| Box::new(block.finish()))
-        .collect(),
+      blocks: blocks.into_iter().map(Into::into).collect(),
       optimization_bailouts: vec![],
     })
   }

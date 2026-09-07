@@ -3,6 +3,7 @@ use std::{fmt::Write as _, hash::BuildHasherDefault};
 use rspack_cacheable::cacheable;
 use rspack_collections::{Identifier, IdentifierHasher};
 use rspack_hash::{RspackHash, RspackHasher};
+use triomphe::{Arc, UniqueArc};
 
 use crate::{
   BoxDependency, Compilation, Dependency, DependencyId, DependencyLocation, DependencyRef,
@@ -72,31 +73,21 @@ impl From<Identifier> for AsyncDependenciesBlockIdentifier {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AsyncDependenciesBlock {
   id: AsyncDependenciesBlockIdentifier,
   group_options: Option<GroupOptions>,
-  // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
-  // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
-  #[allow(clippy::vec_box)]
-  #[cacheable(omit_bounds)]
-  blocks: Vec<Box<AsyncDependenciesBlock>>,
   block_ids: Vec<AsyncDependenciesBlockIdentifier>,
   dependency_ids: Vec<DependencyId>,
-  dependencies: Vec<DependencyRef>,
+  /// Construction-only dependencies, drained before publishing the block.
+  #[cacheable(with=rspack_cacheable::with::Skip)]
+  dependencies: Vec<BoxDependency>,
   loc: Option<DependencyLocation>,
   parent: ModuleIdentifier,
   request: Option<String>,
 }
 
-/// An async block whose dependencies remain uniquely owned during parsing.
-#[derive(Debug)]
-pub struct AsyncDependenciesBlockBuilder {
-  block: AsyncDependenciesBlock,
-  dependencies: Vec<BoxDependency>,
-}
-
-impl AsyncDependenciesBlockBuilder {
+impl AsyncDependenciesBlock {
   /// modifier should be Dependency.span in most of time
   pub fn new(
     parent: ModuleIdentifier,
@@ -134,23 +125,15 @@ impl AsyncDependenciesBlockBuilder {
     }
 
     Self {
-      block: AsyncDependenciesBlock {
-        id: id.into(),
-        group_options: Default::default(),
-        blocks: Default::default(),
-        block_ids: Default::default(),
-        dependency_ids,
-        dependencies: Vec::new(),
-        loc,
-        parent,
-        request,
-      },
+      id: id.into(),
+      group_options: Default::default(),
+      block_ids: Default::default(),
+      dependency_ids,
+      loc,
+      parent,
+      request,
       dependencies,
     }
-  }
-
-  pub fn set_group_options(&mut self, group_options: GroupOptions) {
-    self.block.set_group_options(group_options);
   }
 
   pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut (dyn Dependency + 'static)> {
@@ -166,19 +149,54 @@ impl AsyncDependenciesBlockBuilder {
       .iter_mut()
       .map(|dependency| dependency.as_mut())
   }
+}
 
-  /// Publishes the completed dependencies without reallocating them.
-  pub fn finish(self) -> AsyncDependenciesBlock {
-    let Self {
-      mut block,
+/// An immutable block shared by the module graph and build cache.
+pub type AsyncDependenciesBlockRef = Arc<AsyncDependenciesBlock>;
+
+/// Graph objects produced by an async block, kept separate from its immutable metadata.
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct AsyncDependenciesBlockBuildResult {
+  pub block: AsyncDependenciesBlockRef,
+  pub dependencies: Vec<DependencyRef>,
+  #[cacheable(omit_bounds)]
+  pub blocks: Vec<AsyncDependenciesBlockBuildResult>,
+}
+
+impl From<UniqueArc<AsyncDependenciesBlock>> for AsyncDependenciesBlockBuildResult {
+  fn from(mut block: UniqueArc<AsyncDependenciesBlock>) -> Self {
+    let dependencies = std::mem::take(&mut block.dependencies)
+      .into_iter()
+      .map(Into::into)
+      .collect();
+    Self {
+      block: block.shareable(),
       dependencies,
-    } = self;
-    block.dependencies = dependencies.into_iter().map(Into::into).collect();
-    block
+      blocks: Vec::new(),
+    }
   }
 }
 
 impl AsyncDependenciesBlock {
+  pub(crate) fn without_dependency(&self, dependency: DependencyId) -> Self {
+    Self {
+      id: self.id,
+      group_options: self.group_options.clone(),
+      block_ids: self.block_ids.clone(),
+      dependency_ids: self
+        .dependency_ids
+        .iter()
+        .copied()
+        .filter(|id| *id != dependency)
+        .collect(),
+      dependencies: Vec::new(),
+      loc: self.loc.clone(),
+      parent: self.parent,
+      request: self.request.clone(),
+    }
+  }
+
   pub fn identifier(&self) -> AsyncDependenciesBlockIdentifier {
     self.id
   }
@@ -189,38 +207,6 @@ impl AsyncDependenciesBlock {
 
   pub fn get_group_options(&self) -> Option<&GroupOptions> {
     self.group_options.as_ref()
-  }
-
-  pub fn take_dependencies(&mut self) -> Vec<DependencyRef> {
-    std::mem::take(&mut self.dependencies)
-  }
-
-  pub fn take_blocks(&mut self) -> Vec<Box<AsyncDependenciesBlock>> {
-    std::mem::take(&mut self.blocks)
-  }
-
-  #[allow(clippy::vec_box)]
-  pub(crate) fn restore_build_result(
-    &mut self,
-    dependencies: Vec<DependencyRef>,
-    blocks: Vec<Box<AsyncDependenciesBlock>>,
-  ) {
-    debug_assert_eq!(
-      self.dependency_ids,
-      dependencies
-        .iter()
-        .map(|dependency| *dependency.id())
-        .collect::<Vec<_>>()
-    );
-    debug_assert_eq!(
-      self.block_ids,
-      blocks
-        .iter()
-        .map(|block| block.identifier())
-        .collect::<Vec<_>>()
-    );
-    self.dependencies = dependencies;
-    self.blocks = blocks;
   }
 
   pub fn loc(&self) -> Option<DependencyLocation> {

@@ -24,18 +24,19 @@ use rspack_util::{
   source_map::{ModuleSourceMapConfig, SourceMapKind},
 };
 use rustc_hash::FxHashMap as HashMap;
+use triomphe::UniqueArc;
 
 use crate::{
-  AsyncDependenciesBlockBuilder, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule,
-  BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
-  ChunkGraph, ChunkGroupOptions, CodeGenerationResultBuilder, Compilation, Context,
-  ContextElementDependency, DependenciesBlock, DependencyCategory, DependencyId,
-  DependencyLocation, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode,
-  GroupOptions, ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
-  ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
-  RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, contextify, get_exports_type_with_strict,
-  get_outgoing_async_modules, impl_module_meta_info, module_update_hash, property_access, to_path,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
+  BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph,
+  ChunkGroupOptions, CodeGenerationResultBuilder, Compilation, Context, ContextElementDependency,
+  DependenciesBlock, DependencyCategory, DependencyId, DependencyLocation, DynamicImportMode,
+  ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions, ImportAttributes, ImportPhase,
+  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate,
+  ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType, RealDependencyLocation,
+  ReferencedSpecifier, Resolve, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType,
+  contextify, get_exports_type_with_strict, get_outgoing_async_modules, impl_module_meta_info,
+  module_update_hash, property_access, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -1448,7 +1449,7 @@ impl Module for ContextModule {
           .into(),
         None,
       ));
-      let mut block = AsyncDependenciesBlockBuilder::new(
+      let mut block = UniqueArc::new(AsyncDependenciesBlock::new(
         (*self.identifier).into(),
         Some(loc),
         None,
@@ -1457,11 +1458,11 @@ impl Module for ContextModule {
           .map(BoxDependency::new)
           .collect(),
         None,
-      );
+      ));
       if let Some(group_options) = &self.options.context_options.group_options {
         block.set_group_options(group_options.clone());
       }
-      blocks.push(Box::new(block));
+      blocks.push(block);
     } else if matches!(self.options.context_options.mode, ContextMode::Lazy) {
       let mut index = 0;
       for context_element_dependency in context_element_dependencies {
@@ -1494,20 +1495,20 @@ impl Module for ContextModule {
         let preload_order = group_options.and_then(|o| o.preload_order);
         let prefetch_order = group_options.and_then(|o| o.prefetch_order);
         let fetch_priority = group_options.and_then(|o| o.fetch_priority);
-        let mut block = AsyncDependenciesBlockBuilder::new(
+        let mut block = UniqueArc::new(AsyncDependenciesBlock::new(
           (*self.identifier).into(),
           None,
           Some(&context_element_dependency.user_request.clone()),
           vec![BoxDependency::new(context_element_dependency)],
           Some(self.options.context_options.request.clone()),
-        );
+        ));
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
           name,
           preload_order,
           prefetch_order,
           fetch_priority,
         )));
-        blocks.push(Box::new(block));
+        blocks.push(block);
       }
     } else {
       dependencies = context_element_dependencies
@@ -1525,10 +1526,7 @@ impl Module for ContextModule {
     Ok(BuildResult {
       module: BoxModule::new(self),
       dependencies: dependencies.into_iter().map(Into::into).collect(),
-      blocks: blocks
-        .into_iter()
-        .map(|block| Box::new(block.finish()))
-        .collect(),
+      blocks: blocks.into_iter().map(Into::into).collect(),
       optimization_bailouts: vec![],
     })
   }

@@ -4,9 +4,9 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockBuilder, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule,
-  BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResultBuilder, Compilation,
-  Context, DependenciesBlock, DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
+  BuildInfo, BuildMeta, BuildResult, CodeGenerationResultBuilder, Compilation, Context,
+  DependenciesBlock, DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
   RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::BoxSource, runtime_mode::RuntimeMode,
@@ -14,6 +14,7 @@ use rspack_core::{
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_util::{json_stringify, json_stringify_str, source_map::SourceMapKind};
+use triomphe::UniqueArc;
 
 use super::{
   consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
@@ -183,19 +184,21 @@ impl Module for ConsumeSharedModule {
       if self.options.eager {
         dependencies.push(dep);
       } else {
-        let block =
-          AsyncDependenciesBlockBuilder::new(self.identifier, None, None, vec![dep], None);
-        blocks.push(Box::new(block));
+        let block = UniqueArc::new(AsyncDependenciesBlock::new(
+          self.identifier,
+          None,
+          None,
+          vec![dep],
+          None,
+        ));
+        blocks.push(block);
       }
     }
 
     Ok(BuildResult {
       module: BoxModule::new(self),
       dependencies: dependencies.into_iter().map(Into::into).collect(),
-      blocks: blocks
-        .into_iter()
-        .map(|block| Box::new(block.finish()))
-        .collect(),
+      blocks: blocks.into_iter().map(Into::into).collect(),
       optimization_bailouts: vec![],
     })
   }

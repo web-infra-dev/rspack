@@ -27,8 +27,9 @@ pub use concatenation_backend::*;
 pub mod diagnostics;
 pub mod incremental;
 pub use dependencies_block::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockBuilder, AsyncDependenciesBlockIdentifier,
-  AsyncDependenciesBlockIdentifierMap, AsyncDependenciesBlockIdentifierSet, DependenciesBlock,
+  AsyncDependenciesBlock, AsyncDependenciesBlockBuildResult, AsyncDependenciesBlockIdentifier,
+  AsyncDependenciesBlockIdentifierMap, AsyncDependenciesBlockIdentifierSet,
+  AsyncDependenciesBlockRef, DependenciesBlock,
 };
 mod fake_namespace_object;
 pub use fake_namespace_object::*;

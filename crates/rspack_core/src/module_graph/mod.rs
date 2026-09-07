@@ -12,9 +12,9 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
-  AsyncModulesArtifact, Compilation, DependenciesBlock, Dependency, ExportInfo,
-  ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact, RuntimeSpec, SideEffectsStateArtifact,
-  UsedNameItem,
+  AsyncDependenciesBlockRef, AsyncModulesArtifact, Compilation, DependenciesBlock, Dependency,
+  ExportInfo, ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact, RuntimeSpec,
+  SideEffectsStateArtifact, UsedNameItem,
 };
 mod module;
 pub use module::*;
@@ -100,7 +100,7 @@ pub(crate) struct ModuleGraphData {
   /// Dependencies indexed by `DependencyId`.
   dependencies: rollback::DenseDependencyIdMap<DependencyRef>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
-  blocks: AsyncDependenciesBlockIdentifierMap<Box<AsyncDependenciesBlock>>,
+  blocks: AsyncDependenciesBlockIdentifierMap<AsyncDependenciesBlockRef>,
 
   /// Dependency_id to parent module identifier and parent block
   ///
@@ -301,7 +301,12 @@ impl ModuleGraph {
       if let Some(b_id) = parent_block
         && let Some(block) = self.inner.blocks.get_mut(&b_id)
       {
-        block.remove_dependency_id(*dep_id);
+        // Keep cache snapshots unchanged when revoking a published dependency.
+        if let Some(block) = triomphe::Arc::get_mut(block) {
+          block.remove_dependency_id(*dep_id);
+        } else {
+          *block = triomphe::Arc::new(block.without_dependency(*dep_id));
+        }
       }
     }
 
@@ -496,7 +501,7 @@ impl ModuleGraph {
     self.inner.modules.insert(module.identifier(), module);
   }
 
-  pub fn add_block(&mut self, block: Box<AsyncDependenciesBlock>) {
+  pub fn add_block(&mut self, block: AsyncDependenciesBlockRef) {
     self.inner.blocks.insert(block.identifier(), block);
   }
 
@@ -534,6 +539,13 @@ impl ModuleGraph {
       .map(|p| p.index_in_block)
   }
 
+  pub(crate) fn block_ref_by_id(
+    &self,
+    block_id: &AsyncDependenciesBlockIdentifier,
+  ) -> Option<&AsyncDependenciesBlockRef> {
+    self.inner.blocks.get(block_id)
+  }
+
   pub fn block_by_id(
     &self,
     block_id: &AsyncDependenciesBlockIdentifier,
@@ -552,7 +564,7 @@ impl ModuleGraph {
       .expect("should insert block before get it")
   }
 
-  pub fn blocks(&self) -> &AsyncDependenciesBlockIdentifierMap<Box<AsyncDependenciesBlock>> {
+  pub fn blocks(&self) -> &AsyncDependenciesBlockIdentifierMap<AsyncDependenciesBlockRef> {
     &self.inner.blocks
   }
 

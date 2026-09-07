@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use camino::Utf8PathBuf;
 use rspack_core::{
-  AsyncDependenciesBlockBuilder, BoxDependency, ConstDependency, DependencyRange, ImportAttributes,
+  AsyncDependenciesBlock, BoxDependency, ConstDependency, DependencyRange, ImportAttributes,
   ImportPhase,
 };
 use rspack_intern::Atom;
@@ -21,6 +21,7 @@ use swc_experimental_ecma_ast::{
   CallExpr, Callee, GetSpan, Ident, IdentName, ImportDecl, ImportPhase as AstImportPhase,
   MemberExpr, MetaPropKind, OptChainBase, OptChainExpr, Span, UnaryExpr, VarDeclarator,
 };
+use triomphe::UniqueArc;
 
 static RSTEST_MOCK_FIRST_ARG_TAG: &str = "strip the import call from the first arg of mock series";
 static RSTEST_API_IMPORT_TAG: &str = "rstest test api import";
@@ -255,15 +256,15 @@ impl RstestParserPlugin {
           ));
 
           let loc = parser.to_dependency_location(range);
-          let block = AsyncDependenciesBlockBuilder::new(
+          let block = UniqueArc::new(AsyncDependenciesBlock::new(
             *parser.module_identifier,
             loc,
             None,
             vec![dep],
             Some(lit.value.to_string_lossy().to_string()),
-          );
+          ));
 
-          parser.add_block(Box::new(block));
+          parser.add_block(block);
           return Some(true);
         }
       }
@@ -595,15 +596,15 @@ impl RstestParserPlugin {
                 ));
 
                 let loc = parser.to_dependency_location(range);
-                let block = AsyncDependenciesBlockBuilder::new(
+                let block = UniqueArc::new(AsyncDependenciesBlock::new(
                   *parser.module_identifier,
                   loc,
                   None,
                   vec![dep],
                   Some(mocked_target.to_string()),
-                );
+                ));
 
-                parser.add_block(Box::new(block));
+                parser.add_block(block);
 
                 return Some(true);
               } else {

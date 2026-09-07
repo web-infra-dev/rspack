@@ -1,9 +1,11 @@
+use triomphe::UniqueArc;
+
 mod context_dependency_helper;
 mod parser;
 mod util;
 
 use rspack_core::{
-  ArcComputed, AsyncDependenciesBlockBuilder, BoxDependency, BuildInfo, BuildMeta, CompilerOptions,
+  ArcComputed, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, CompilerOptions,
   DependencyCodeGenerationRef, FactoryMeta, ImportMeta, ModuleIdentifier, ModuleLayer, ModuleType,
   ParseMeta, ParserOptions, ResolvedModuleOptions, ResourceData, SideEffectsBailoutItemWithSpan,
 };
@@ -29,7 +31,7 @@ use crate::{BoxJavascriptParserPlugin, parser_and_generator::ParserRuntimeRequir
 
 pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
-  pub blocks: Vec<Box<AsyncDependenciesBlockBuilder>>,
+  pub blocks: Vec<UniqueArc<AsyncDependenciesBlock>>,
   pub presentational_dependencies: Vec<DependencyCodeGenerationRef>,
   pub warning_diagnostics: Vec<Diagnostic>,
   pub side_effects_item: Option<SideEffectsBailoutItemWithSpan>,

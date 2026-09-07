@@ -31,6 +31,7 @@ serde_json  = { workspace = true }
 simd-json   = { workspace = true }
 tokio       = { workspace = true, features = ["rt"] }
 tracing     = { workspace = true }
+triomphe    = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]

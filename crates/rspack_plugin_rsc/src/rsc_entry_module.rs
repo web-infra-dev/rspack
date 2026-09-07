@@ -8,12 +8,12 @@ use rspack_cacheable::{
 };
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockBuilder, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule,
-  BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult,
-  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId,
-  DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions, Module, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, ReferencedSpecifier, RuntimeSpec,
-  SourceType, contextify, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
+  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, CodeGenerationResultBuilder,
+  Compilation, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, ImportPhase,
+  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer,
+  ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
+  impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -21,6 +21,7 @@ use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_intern::{Atom, IndexAtomSet};
 use rspack_plugin_javascript::dependency::ImportEagerDependency;
 use rspack_util::{fx_hash::FxIndexSet, source_map::SourceMapKind};
+use triomphe::UniqueArc;
 
 use crate::{
   client_reference_dependency::ClientReferenceDependency,
@@ -275,7 +276,7 @@ impl Module for RscEntryModule {
         optimization_bailouts: vec![],
       })
     } else {
-      // Non-eager: code-split points; use AsyncDependenciesBlockBuilder + ClientReferenceDependency.
+      // Non-eager: code-split points; use AsyncDependenciesBlock + ClientReferenceDependency.
       let mut blocks = Vec::with_capacity(
         self.client_modules.len()
           + self.css_imports_by_server_entry.len()
@@ -324,14 +325,14 @@ impl Module for RscEntryModule {
         }
 
         let block_modifier = format!("server-entry={server_entry}");
-        let block = AsyncDependenciesBlockBuilder::new(
+        let block = UniqueArc::new(AsyncDependenciesBlock::new(
           self.identifier,
           None,
           Some(&block_modifier),
           block_dependencies,
           Some(server_entry.clone()),
-        );
-        blocks.push(Box::new(block));
+        ));
+        blocks.push(block);
       }
 
       if !self.root_client_modules.is_empty() {
@@ -347,14 +348,14 @@ impl Module for RscEntryModule {
           })
           .collect::<Vec<_>>();
 
-        let block = AsyncDependenciesBlockBuilder::new(
+        let block = UniqueArc::new(AsyncDependenciesBlock::new(
           self.identifier,
           None,
           None,
           dependencies,
           Some(format!("{}#root-client", self.name)),
-        );
-        blocks.push(Box::new(block));
+        ));
+        blocks.push(block);
       }
 
       for client_module in &self.client_modules {
@@ -363,23 +364,20 @@ impl Module for RscEntryModule {
           client_module.ids.clone(),
           self.is_server_side_rendering,
         );
-        let block = AsyncDependenciesBlockBuilder::new(
+        let block = UniqueArc::new(AsyncDependenciesBlock::new(
           self.identifier,
           None,
           None,
           vec![BoxDependency::new(dep)],
           Some(client_module.request.clone()),
-        );
-        blocks.push(Box::new(block));
+        ));
+        blocks.push(block);
       }
 
       Ok(BuildResult {
         module: BoxModule::new(self),
         dependencies: dependencies.into_iter().map(Into::into).collect(),
-        blocks: blocks
-          .into_iter()
-          .map(|block| Box::new(block.finish()))
-          .collect(),
+        blocks: blocks.into_iter().map(Into::into).collect(),
         optimization_bailouts: vec![],
       })
     }

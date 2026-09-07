@@ -5,9 +5,10 @@ use rspack_collections::{Identifiable, IdentifierDashMap};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxModule, BuildModuleGraphArtifact,
-  BuildResult, CacheOptions, CompilerOptions, DependenciesBlock, DependencyRef, FileSystemInfo,
-  ModuleGraph, ModuleIdentifier, NormalModuleState, OptimizationBailoutItem, ValueCacheVersions,
+  AsyncDependenciesBlockBuildResult, AsyncDependenciesBlockIdentifier, BoxModule,
+  BuildModuleGraphArtifact, BuildResult, CacheOptions, CompilerOptions, DependenciesBlock,
+  DependencyRef, FileSystemInfo, ModuleGraph, ModuleIdentifier, NormalModuleState,
+  OptimizationBailoutItem, ValueCacheVersions,
   cache::CacheCodec,
   new_cache::{CacheFacade, CacheValue},
 };
@@ -34,9 +35,7 @@ pub(crate) struct ModuleBuildCacheEntry {
 #[derive(Debug, Clone)]
 struct ModuleGraphBuildResult {
   dependencies: Vec<DependencyRef>,
-  // Preserve BuildResult's ownership shape without reallocating large nested blocks on restore.
-  #[allow(clippy::vec_box)]
-  blocks: Vec<Box<AsyncDependenciesBlock>>,
+  blocks: Vec<AsyncDependenciesBlockBuildResult>,
   optimization_bailouts: Vec<OptimizationBailoutItem>,
 }
 
@@ -108,8 +107,7 @@ impl ModuleBuildCache {
   /// Stores modules built during this phase from the final module graph.
   ///
   /// Snapshot creation and cache-entry construction are parallel. Module state
-  /// and graph containers are cloned, while dependencies retain webpack-style
-  /// shared identity through [`DependencyRef`].
+  /// and graph containers are cloned, while blocks and dependencies retain shared identity.
   pub(crate) async fn store_pending(
     &self,
     artifact: &mut BuildModuleGraphArtifact,
@@ -255,15 +253,17 @@ fn clone_dependencies(
 fn clone_block(
   module_graph: &ModuleGraph,
   block_id: &AsyncDependenciesBlockIdentifier,
-) -> Option<Box<AsyncDependenciesBlock>> {
-  let source = module_graph.block_by_id(block_id)?;
-  let mut block = source.clone();
-  let dependencies = clone_dependencies(module_graph, source.get_dependencies())?;
-  let blocks = source
+) -> Option<AsyncDependenciesBlockBuildResult> {
+  let block = module_graph.block_ref_by_id(block_id)?.clone();
+  let dependencies = clone_dependencies(module_graph, block.get_dependencies())?;
+  let blocks = block
     .get_blocks()
     .iter()
     .map(|block_id| clone_block(module_graph, block_id))
     .collect::<Option<Vec<_>>>()?;
-  block.restore_build_result(dependencies, blocks);
-  Some(Box::new(block))
+  Some(AsyncDependenciesBlockBuildResult {
+    block,
+    dependencies,
+    blocks,
+  })
 }
