@@ -162,7 +162,9 @@ export type HandleIncomingRequest = (
 // content, sourceMap, additionalData
 type WorkerArgs = any[];
 
-export type WorkerError = Error;
+export type WorkerError = Error & {
+  errors?: WorkerError[];
+};
 
 export function serializeError(error: unknown): WorkerError {
   if (
@@ -170,12 +172,16 @@ export function serializeError(error: unknown): WorkerError {
     (error && typeof error === 'object' && 'message' in error)
   ) {
     // Consider object with message property as an error
-    return {
+    const serializedError = {
       ...error,
       name: (error as Error).name,
       stack: (error as Error).stack,
       message: (error as Error).message,
-    };
+    } as WorkerError;
+    if (error instanceof AggregateError) {
+      serializedError.errors = error.errors.map(serializeError);
+    }
+    return serializedError;
   }
 
   if (typeof error === 'string') {
@@ -189,6 +195,18 @@ export function serializeError(error: unknown): WorkerError {
     'Failed to serialize error, only string, Error instances and objects with a message property are supported',
   );
 }
+
+export function deserializeError(error: WorkerError): WorkerError {
+  const { errors, ...properties } = error;
+  const deserializedError = (
+    error.name === 'AggregateError' && Array.isArray(errors)
+      ? new AggregateError(errors.map(deserializeError), error.message)
+      : new Error(error.message)
+  ) as WorkerError;
+  Object.assign(deserializedError, properties);
+  return deserializedError;
+}
+
 // check which props are not cloneable
 function checkCloneableProps(obj: any, loaderName: string) {
   const errors = [];
@@ -247,7 +265,7 @@ export const run = async (
           Promise.allSettled(pendingRequests.values()).then(() => {
             mainPort.close();
             mainSyncPort.close();
-            reject(message.error);
+            reject(deserializeError(message.error));
           });
         } else if (isWorkerRequestMessage(message)) {
           pendingRequests.set(

@@ -5,7 +5,13 @@ module.exports = {
     rules: [
       {
         test: /index\.js$/,
-        loader: './import-loader.js',
+        use: [
+          {
+            loader: './import-loader.js',
+            options: {},
+            parallel: true,
+          },
+        ],
       },
     ],
   },
