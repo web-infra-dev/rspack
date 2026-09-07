@@ -160,7 +160,7 @@ jobs:
   build-riscv64:
     name: Build riscv64
     needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     uses: ./.github/workflows/reusable-build-build.yml
     with:
       target: riscv64gc-unknown-linux-gnu
@@ -170,7 +170,7 @@ jobs:
   build-ppc64:
     name: Build ppc64
     needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     uses: ./.github/workflows/reusable-build-build.yml
     with:
       target: powerpc64le-unknown-linux-gnu
@@ -180,7 +180,7 @@ jobs:
   build-s390x:
     name: Build s390x
     needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     uses: ./.github/workflows/reusable-build-build.yml
     with:
       target: s390x-unknown-linux-gnu
@@ -251,9 +251,10 @@ jobs:
                 needs.test-windows.result != 'success' ||
                 needs.test-mac.result != 'success' ||
                 needs.build-wasm.result != 'success' ||
-                needs.build-riscv64.result != 'success' ||
-                needs.build-ppc64.result != 'success' ||
-                needs.build-s390x.result != 'success' ||
+                (github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+                  (needs.build-riscv64.result != 'success' ||
+                    needs.build-ppc64.result != 'success' ||
+                    needs.build-s390x.result != 'success')) ||
                 needs.test-wasm.result != 'success' ||
                 needs.check-cache.result != 'skipped'))
           }}
