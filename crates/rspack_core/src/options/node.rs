@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct NodeOption {
   pub dirname: NodeDirnameOption,
   pub global: NodeGlobalOption,

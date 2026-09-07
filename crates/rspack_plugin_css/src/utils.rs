@@ -8,16 +8,16 @@ use std::{
 use cow_utils::CowUtils;
 use heck::{ToKebabCase, ToLowerCamelCase};
 use once_cell::sync::OnceCell;
-use regex::{Captures, Regex};
+use regex::Regex;
 use rspack_core::{
-  BoxDependency, ChunkGraph, Compilation, CompilerOptions, CssExportType, CssExportsConvention,
-  CssModuleGeneratorOptions, CssModuleRenderCondition, GeneratorOptions, ImportAttributes,
-  LocalIdentName, Module, ModuleType, NormalModuleCreateData, PathData, ReplaceAllPlaceholder,
-  ResourceData,
+  ChunkGraph, Compilation, CompilerOptions, CssExportType, CssExportsConvention,
+  CssModuleGeneratorOptions, CssModuleRenderCondition, Dependency, FilenameRenderValue,
+  GeneratorOptions, ImportAttributes, LocalIdentName, Module, ModuleType, NormalModuleCreateData,
+  PathData, PlaceholderKind, ResourceData,
 };
 use rspack_error::{Diagnostic, Error, Result, Severity};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHasher};
-use rspack_util::{base64, identifier::make_paths_relative, itoa, json_stringify_str};
+use rspack_util::{identifier::make_paths_relative, itoa, json_stringify_str};
 use rustc_hash::{FxHashSet, FxHasher};
 
 use crate::{
@@ -107,7 +107,7 @@ pub(crate) fn css_attribute_export_type(
     .and_then(|value| (value == "css").then_some(CssExportType::CssStyleSheet))
 }
 
-pub(crate) fn css_dependency_export_type(dependency: &BoxDependency) -> Option<CssExportType> {
+pub(crate) fn css_dependency_export_type(dependency: &dyn Dependency) -> Option<CssExportType> {
   dependency
     .downcast_ref::<CssImportDependency>()
     .and_then(|dep| dep.export_type())
@@ -125,7 +125,7 @@ pub(crate) struct CssDependencyMeta {
   pub export_type: Option<CssExportType>,
 }
 
-pub(crate) fn css_dependency_meta(dependency: &BoxDependency) -> CssDependencyMeta {
+pub(crate) fn css_dependency_meta(dependency: &dyn Dependency) -> CssDependencyMeta {
   let css_import_dependency = dependency.downcast_ref::<CssImportDependency>();
   let is_css_import_dependency = css_import_dependency.is_some();
   let is_css_dependency =
@@ -154,7 +154,6 @@ pub struct LocalIdentModuleHashOptions<'a> {
   pub export_dependency_names: Vec<String>,
   pub graph_export_names: FxHashSet<String>,
   pub presentational_dependency_hash_updates: Vec<PresentationalDependencyHashUpdate<'a>>,
-  pub exports_only: bool,
   pub es_module: bool,
   pub named_exports: bool,
   pub exports_convention: Option<CssExportsConvention>,
@@ -271,22 +270,15 @@ impl<'a> LocalIdentOptions<'a> {
     let mut hasher =
       RspackHasher::with_salt(&self.local_ident_hash_function, self.local_ident_hash_salt);
     hasher.write(build_hash.as_bytes());
-    if module_hash_options.exports_only {
-      hasher.write(b"javascript");
-    } else {
-      hasher.write(b"javascript");
-      hasher.write(b"css");
-    }
+    // Local identifiers must be independent of whether CSS is emitted.
+    hasher.write(b"javascript");
+    hasher.write(b"css");
     hasher.write(if module_hash_options.es_module {
       b"true"
     } else {
       b"false"
     });
-    hasher.write(if module_hash_options.exports_only {
-      b"true"
-    } else {
-      b"false"
-    });
+    hasher.write(b"false");
     hasher.write(graph_hash.as_bytes());
     let mut itoa_buffer = itoa::Buffer::new();
     for update in module_hash_options
@@ -495,15 +487,6 @@ struct LocalIdentNameRenderOptions<'a> {
   folder: &'a str,
 }
 
-fn render_hash(hash: &str, len: Option<usize>, need_base64: bool) -> String {
-  let content = if need_base64 {
-    base64::encode_to_string(hash)
-  } else {
-    hash.to_string()
-  };
-  content[..len.unwrap_or(content.len()).min(content.len())].to_string()
-}
-
 fn non_numeric_only_hash(hash: &str, hash_length: usize) -> String {
   if hash_length < 1 {
     return String::new();
@@ -524,34 +507,23 @@ fn non_numeric_only_hash(hash: &str, hash_length: usize) -> String {
 
 impl LocalIdentNameRenderOptions<'_> {
   pub async fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> Result<String> {
-    let template = local_ident_name.template.template().map_or_else(
-      || local_ident_name.template.clone(),
-      |template| {
-        template
-          .replace_all_with_len("[fullhash]", |len, need_base64| {
-            render_hash(self.local_ident_hash, len, need_base64)
-          })
-          .into_owned()
-          .into()
-      },
-    );
-    let raw = template.render(self.path_data, None).await?;
-    let s: &str = raw.as_ref();
-
-    Ok(
-      s.cow_replace("[uniqueName]", self.unique_name)
-        .cow_replace("[local]", self.local)
-        .cow_replace("[folder]", self.folder)
-        .into_owned(),
-    )
+    local_ident_name
+      .template
+      .render_with(self.path_data, None, |placeholder| {
+        match placeholder.kind() {
+          PlaceholderKind::FullHash => Some(FilenameRenderValue::Value(Cow::Borrowed(
+            self.local_ident_hash,
+          ))),
+          PlaceholderKind::UniqueName => {
+            Some(FilenameRenderValue::Value(Cow::Borrowed(self.unique_name)))
+          }
+          PlaceholderKind::Local => Some(FilenameRenderValue::Value(Cow::Borrowed(self.local))),
+          PlaceholderKind::Folder => Some(FilenameRenderValue::Value(Cow::Borrowed(self.folder))),
+          _ => None,
+        }
+      })
+      .await
   }
-}
-
-static UNESCAPE_CSS_IDENT_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"([^a-zA-Z0-9_\u0081-\uffff-])").expect("invalid regex"));
-
-pub fn escape_css(s: &str) -> Cow<'_, str> {
-  UNESCAPE_CSS_IDENT_REGEX.replace_all(s, |s: &Captures| format!("\\{}", &s[0]))
 }
 
 pub(crate) fn export_locals_convention(
@@ -569,92 +541,6 @@ pub(crate) fn export_locals_convention(
     res.push(key.to_kebab_case());
   }
   res
-}
-
-static STRING_MULTILINE: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\\[\n\r\f]").expect("Invalid RegExp"));
-
-static TRIM_WHITE_SPACES: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"(^[ \t\n\r\f]*|[ \t\n\r\f]*$)").expect("Invalid RegExp"));
-
-static UNESCAPE: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\\([0-9a-fA-F]{1,6}[ \t\n\r\f]?|[\s\S])").expect("Invalid RegExp"));
-
-static DATA: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(?i)data:").expect("Invalid RegExp"));
-
-// `\/foo` in css should be treated as `foo` in js
-pub fn unescape(s: &str) -> Cow<'_, str> {
-  UNESCAPE.replace_all(s.as_ref(), |caps: &Captures| {
-    caps
-      .get(0)
-      .and_then(|m| {
-        let m = m.as_str();
-        if m.len() > 2 {
-          if let Ok(r_u32) = u32::from_str_radix(m[1..].trim(), 16)
-            && let Some(ch) = char::from_u32(r_u32)
-          {
-            return Some(format!("{ch}"));
-          }
-          None
-        } else {
-          Some(m[1..2].to_string())
-        }
-      })
-      .unwrap_or(caps[0].to_string())
-  })
-}
-
-static WHITE_OR_BRACKET_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r#"[\n\t ()'"\\]"#).expect("Invalid Regexp"));
-static QUOTATION_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r#"[\n"\\]"#).expect("Invalid Regexp"));
-static APOSTROPHE_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r#"[\n'\\]"#).expect("Invalid Regexp"));
-
-pub fn css_escape_string(s: &str) -> String {
-  let mut count_white_or_bracket = 0;
-  let mut count_quotation = 0;
-  let mut count_apostrophe = 0;
-  for c in s.chars() {
-    match c {
-      '\t' | '\n' | ' ' | '(' | ')' => count_white_or_bracket += 1,
-      '"' => count_quotation += 1,
-      '\'' => count_apostrophe += 1,
-      _ => {}
-    }
-  }
-  if count_white_or_bracket < 2 {
-    WHITE_OR_BRACKET_REGEX
-      .replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
-      .into_owned()
-  } else if count_quotation <= count_apostrophe {
-    format!(
-      "\"{}\"",
-      QUOTATION_REGEX.replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
-    )
-  } else {
-    format!(
-      "\'{}\'",
-      APOSTROPHE_REGEX.replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
-    )
-  }
-}
-
-pub fn normalize_url(s: &str) -> String {
-  let result = STRING_MULTILINE.replace_all(s, "");
-  let result = TRIM_WHITE_SPACES.replace_all(&result, "");
-  let result = unescape(&result);
-
-  if DATA.is_match(&result) {
-    return result.to_string();
-  }
-  if result.contains('%')
-    && let Ok(r) = urlencoding::decode(&result)
-  {
-    return r.to_string();
-  }
-
-  result.to_string()
 }
 
 pub fn css_parsing_traceable_error(

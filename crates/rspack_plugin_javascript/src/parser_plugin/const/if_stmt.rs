@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use itertools::Itertools;
 use rspack_core::ConstDependency;
 use rspack_util::SpanExt;
@@ -147,7 +149,7 @@ pub fn statement_if<'p>(scanner: &mut JavascriptParser<'p>, stmt: &IfStmt<'_>) -
   let param = scanner.evaluate_expression(&stmt.test);
   let boolean = param.as_bool()?;
   if !param.could_have_side_effects() {
-    scanner.add_presentational_dependency(Box::new(ConstDependency::new(
+    scanner.add_presentational_dependency(Arc::new(ConstDependency::new(
       param.range().into(),
       boolean.to_string().into_boxed_str(),
     )));
@@ -174,7 +176,7 @@ pub fn statement_if<'p>(scanner: &mut JavascriptParser<'p>, stmt: &IfStmt<'_>) -
       format!("{{ var {} }}", declarations.iter().join(", "))
     };
 
-    scanner.add_presentational_dependency(Box::new(ConstDependency::new(
+    scanner.add_presentational_dependency(Arc::new(ConstDependency::new(
       {
         let span = branch_to_remove.span();
         (span.real_lo(), span.real_hi()).into()

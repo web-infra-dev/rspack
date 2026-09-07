@@ -1,10 +1,10 @@
-import type { Plugins } from 'pretty-format';
+import type { OldPlugin } from 'pretty-format';
 import { normalizeDiff } from './expect/diff';
 import { normalizeDignostics, normalizeError } from './expect/error';
 import { normalizePlaceholder } from './expect/placeholder';
 import { normalizeStats } from './expect/rspack';
 
-export const serializers: Plugins = [
+export const serializers: OldPlugin[] = [
   {
     test(received) {
       return typeof received === 'string';

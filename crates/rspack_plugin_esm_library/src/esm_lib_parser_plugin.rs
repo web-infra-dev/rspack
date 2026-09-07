@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_core::DependencyType;
 use rspack_plugin_javascript::{
   JavascriptParserPlugin, dependency::ESMCompatibilityDependency, visitors::JavascriptParser,
@@ -29,7 +31,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for EsmLibParserPlugin {
       parser
         .build_meta
         .set_exports_type(rspack_core::BuildMetaExportsType::Namespace);
-      parser.add_presentational_dependency(Box::new(ESMCompatibilityDependency));
+      parser.add_presentational_dependency(Arc::new(ESMCompatibilityDependency));
     }
 
     None

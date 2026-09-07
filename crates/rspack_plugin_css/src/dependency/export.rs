@@ -6,7 +6,7 @@ use rspack_core::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CssExportDependency {
   id: DependencyId,
   convention_names: Vec<String>,

@@ -1,13 +1,13 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, FactorizeInfo, ModuleDependency, ResourceIdentifier,
+  DependencyType, ModuleDependency, ResourceIdentifier,
 };
 
 use crate::{ExposeOptions, ShareScope, SharedIdentity};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ContainerEntryDependency {
   id: DependencyId,
   pub name: String,
@@ -20,7 +20,6 @@ pub struct ContainerEntryDependency {
   resource_identifier: ResourceIdentifier,
   pub(crate) enhanced: bool,
   dependency_type: DependencyType,
-  factorize_info: FactorizeInfo,
 }
 
 impl ContainerEntryDependency {
@@ -43,7 +42,6 @@ impl ContainerEntryDependency {
       resource_identifier,
       enhanced,
       dependency_type: DependencyType::ContainerEntry,
-      factorize_info: Default::default(),
     }
   }
 
@@ -74,7 +72,6 @@ impl ContainerEntryDependency {
       resource_identifier,
       enhanced: false,
       dependency_type: DependencyType::ShareContainerEntry,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -114,14 +111,6 @@ impl ModuleDependency for ContainerEntryDependency {
     } else {
       &self.resource_identifier
     }
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

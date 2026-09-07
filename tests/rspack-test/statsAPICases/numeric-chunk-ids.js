@@ -31,7 +31,7 @@ function expectStatsChunkGroup(group) {
 
 /** @type {import("@rspack/test-tools").TStatsAPICaseConfig} */
 module.exports = {
-	description: "should expose numeric chunk ids as numbers in stats JSON",
+	description: "should expose numeric chunk ids and ordered child assets in stats JSON",
 	options(context) {
 		return {
 			context: context.getSource(),
@@ -118,5 +118,11 @@ module.exports = {
 		for (const chunkGroup of namedChunkGroups) {
 			expectStatsChunkGroup(chunkGroup);
 		}
+
+		// Preload and prefetch assets must come from their respective child groups.
+		expect(json.namedChunkGroups.chunk.childAssets).toEqual({
+			preload: ["chunk-b.js"],
+			prefetch: ["chunk-c.js", "chunk-a.js"]
+		});
 	}
 };

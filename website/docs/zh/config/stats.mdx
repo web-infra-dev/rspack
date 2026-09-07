@@ -3,9 +3,7 @@ description: '开启 stats.all 会导致大量的 Rust 与 JavaScript 的数据�
 ---
 
 import PropertyType from '../../../components/PropertyType.tsx';
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/stats/" />
+import Attribution from '@components/Attribution';
 
 # Stats
 
@@ -34,7 +32,8 @@ type StatsPresets =
 type Stats = boolean | StatsOptions | StatsPresets;
 ```
 
-- **默认值：** `{ "preset":"errors-warnings","timings":true }`
+- **`@rspack/core` 中的默认值：** `{}`
+- **`@rspack/cli` 中的默认值：** `{ "preset":"errors-warnings", "timings":true, "logging":false }`
 
 ## 预设（Stats presets）
 
@@ -626,3 +625,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.docschina.org/configuration/stats/" />

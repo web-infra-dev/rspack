@@ -20,7 +20,6 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesEmbedInRuntimeBailout, JavascriptModulesRender,
   JavascriptModulesRenderStartup, JavascriptModulesStrictRuntimeBailout, JsPlugin, RenderSource,
 };
-use swc_core::atoms::Atom;
 
 use crate::utils::{COMMON_LIBRARY_NAME_MESSAGE, get_options_for_chunk};
 
@@ -397,7 +396,7 @@ async fn embed_in_runtime_bailout(
     .code_generation_results
     .get(&module.identifier(), Some(chunk.runtime()));
   let top_level_decls = codegen
-    .data
+    .data()
     .get::<CodeGenerationDataTopLevelDeclarations>()
     .map(|d| d.inner())
     .or_else(|| module.build_info().top_level_declarations.as_ref());
@@ -406,7 +405,7 @@ async fn embed_in_runtime_bailout(
       .get_resolved_full_name(&options, compilation, chunk)
       .await?;
     if let Some(base) = full_name.first()
-      && top_level_decls.contains(&Atom::new(base.as_str()))
+      && top_level_decls.contains(base)
     {
       return Ok(Some(format!(
         "it declares '{base}' on top-level, which conflicts with the current library output."

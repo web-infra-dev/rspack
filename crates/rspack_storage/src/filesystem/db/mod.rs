@@ -210,6 +210,38 @@ impl DB {
 
     true
   }
+
+  /// Clears all scopes in the database.
+  ///
+  /// The caller is responsible for sequencing this with saves.
+  ///
+  /// Returns `false` when the DB is readonly or the reset failed.
+  pub async fn reset_all(&self) -> bool {
+    if self.readonly.load(Ordering::Relaxed) {
+      return false;
+    }
+
+    {
+      let mut buckets = self.buckets.lock().await;
+      buckets.clear();
+    }
+
+    let result = self.fs.remove().await;
+
+    if let Err(err) = result {
+      // The cache may be in an indeterminate state. Switch to readonly so no
+      // further writes can make things worse. Restart the process to recover.
+      self.readonly.store(true, Ordering::Relaxed);
+      println!(
+        "Rspack persistent cache reset failed: {err}\n  \
+         Persistent cache has been disabled for this session. \
+         Restart the process to re-enable it."
+      );
+      return false;
+    }
+
+    true
+  }
 }
 
 #[cfg(test)]
@@ -237,7 +269,7 @@ mod test {
 
     let mut data = HashMap::default();
     data.insert(String::from(name_1), bucket_data.clone());
-    data.insert(String::from(name_2), bucket_data);
+    data.insert(String::from(name_2), bucket_data.clone());
     assert!(db.save(data, 25).await);
 
     let mut data1 = db.load(name_1).await?;
@@ -254,6 +286,16 @@ mod test {
     assert!(db.reset(name_1).await);
     assert!(db.reset(name_2).await);
 
+    assert!(db.bucket_names().await?.is_empty());
+    assert!(db.load(name_1).await?.is_empty());
+
+    let mut data = HashMap::default();
+    data.insert(String::from(name_1), bucket_data.clone());
+    data.insert(String::from(name_2), bucket_data);
+    assert!(db.save(data, 25).await);
+    assert_eq!(db.bucket_names().await?.len(), 2);
+
+    assert!(db.reset_all().await);
     assert!(db.bucket_names().await?.is_empty());
     assert!(db.load(name_1).await?.is_empty());
 

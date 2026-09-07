@@ -12,6 +12,8 @@ const CpuToNodeArch = {
   i686: 'ia32',
   armv7: 'arm',
   riscv64gc: 'riscv64',
+  powerpc64le: 'ppc64',
+  s390x: 's390x',
 };
 
 const SysToNodePlatform = {

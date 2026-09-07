@@ -10,13 +10,13 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_hash::RspackHasher;
-use rspack_util::{atom::Atom, json_stringify, ryu_js};
+use rspack_intern::Atom;
+use rspack_util::{json_stringify, ryu_js};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{DependencyId, property_access};
 
 pub static NEXT_EXPORTS_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
-pub static NEXT_EXPORT_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Clone, Hash)]
 pub struct ExportInfoTargetValue {

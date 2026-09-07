@@ -14,7 +14,7 @@ use rspack_util::source_map::SourceMapKind;
 use tokio::sync::OnceCell;
 
 use crate::{
-  ChunkUkey, CodeGenerationResult, Compilation, Module, ModuleCodeGenerationContext,
+  ChunkUkey, CodeGenerationResultBuilder, Compilation, Module, ModuleCodeGenerationContext,
   RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, RuntimeTemplate, SourceType,
   runtime_mode::RuntimeMode,
 };
@@ -45,7 +45,7 @@ pub fn runtime_module_owned_define_fields(
       let runtime_requirements = runtime_module.runtime_requirements(compilation);
       let define_fields = runtime_requirements
         .define
-        .difference(RuntimeGlobals::STARTUP | runtime_requirements.force_context);
+        .difference(RuntimeGlobals::STARTUP);
       fields | define_fields
     })
 }
@@ -122,10 +122,6 @@ impl RuntimeModuleCommon {
     self.chunk = Some(chunk);
   }
 
-  pub fn name(&self) -> Identifier {
-    self.id
-  }
-
   pub fn id(&self) -> &Identifier {
     &self.id
   }
@@ -192,8 +188,8 @@ pub async fn runtime_module_code_generation(
   module: &dyn RuntimeModule,
   common: &RuntimeModuleCommon,
   ctx: &mut ModuleCodeGenerationContext<'_>,
-) -> Result<CodeGenerationResult> {
-  let mut result = CodeGenerationResult::default();
+) -> Result<CodeGenerationResultBuilder> {
+  let mut result = CodeGenerationResultBuilder::default();
   let source = runtime_module_get_generated_code(module, common, ctx.compilation).await?;
   result.add(SourceType::Runtime, source);
   Ok(result)

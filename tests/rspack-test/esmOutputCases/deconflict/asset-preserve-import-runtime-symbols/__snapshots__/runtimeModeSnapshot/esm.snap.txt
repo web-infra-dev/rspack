@@ -1,0 +1,8 @@
+```mjs title=main.mjs
+import { rspackRequire, moduleFactories } from "./runtime.mjs";
+import _webpack_require_ from "./assets/__webpack_require__.mjs";
+import rspackRequire_0 from "./assets/rspackRequire.mjs";
+module.exports = _webpack_require_;
+module.exports = rspackRequire_0;
+export { _webpack_require__0 as webpackRuntimeAsset, rspackRequire_1 as rspackRuntimeAsset };
+```

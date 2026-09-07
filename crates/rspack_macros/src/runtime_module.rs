@@ -186,7 +186,7 @@ pub fn impl_runtime_module(
       async fn code_generation(
         &self,
         code_generation_context: &mut ::rspack_core::ModuleCodeGenerationContext,
-      ) -> rspack_error::Result<::rspack_core::CodeGenerationResult> {
+      ) -> rspack_error::Result<::rspack_core::CodeGenerationResultBuilder> {
         ::rspack_core::runtime_module_code_generation(self, &self.common, code_generation_context).await
       }
 

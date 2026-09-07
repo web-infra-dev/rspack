@@ -36,22 +36,18 @@ fn generate_workspace_versions(out_path: &str) -> Result<()> {
     cargo_toml::Manifest::from_str(&cargo_toml_content).expect("Should parse cargo toml");
   let workspace = manifest.workspace.unwrap();
 
-  let workspace_version = workspace.package.unwrap().version.unwrap();
-
   let swc_core_version = workspace
     .dependencies
     .get("swc_core")
     .and_then(|dep| match dep {
-      cargo_toml::Dependency::Simple(s) => Some(s.to_owned()),
+      cargo_toml::Dependency::Simple(version) => Some(version),
       // In workspace Cargo.toml, dependencies should be Simple type, not Inherited
       cargo_toml::Dependency::Inherited(_) => unreachable!(),
-      cargo_toml::Dependency::Detailed(d) => {
-        // Remove leading '=' from version string if present
-        d.version
-          .as_deref()
-          .map(|s| s.trim_start_matches('=').to_string())
-      }
+      cargo_toml::Dependency::Detailed(d) => d.version.as_ref(),
     })
+    .map(ToString::to_string)
+    // Remove exact or implicit caret operator from the version string
+    .map(|version| version.trim_start_matches(['=', '^']).to_string())
     .expect("Should have `swc_core` version");
 
   // Get Rspack version
@@ -73,11 +69,6 @@ pub const fn rspack_swc_core_version() -> &'static str {{
 /// The version of the JavaScript `@rspack/core` package.
 pub const fn rspack_pkg_version() -> &'static str {{
   "{rspack_version}"
-}}
-
-/// The version of the Rust workspace in the root `Cargo.toml` of the repository.
-pub const fn rspack_workspace_version() -> &'static str {{
-  "{workspace_version}"
 }}
 "#
   );

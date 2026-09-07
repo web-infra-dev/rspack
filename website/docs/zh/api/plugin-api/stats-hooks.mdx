@@ -12,17 +12,17 @@ description: 'StatsFactory.hooks.extract 是一个 HookMap，在生成指定的 
 
 - **类型：** `HookMap<SyncBailHook<[Object, any, StatsFactoryContext], undefined>>`
 - **参数：**
-  - `Object`：该 stats 项目的结果对象，将属性添加于此对象
-  - `Class`：该 stats 项目对应的原始数据
+  - `object`：该 stats 项目的结果对象，生成的属性会添加到此对象
+  - `data`：该 stats 项目对应的原始数据
   - `StatsFactoryContext`：生成上下文
 
 ```ts
+// 以下仅列出通用的上下文字段；不同类型的 stats 项目可能提供额外字段
 type StatsFactoryContext = {
   type: string;
-  makePathsRelative?: ((arg0: string) => string) | undefined;
-  compilation?: Compilation | undefined;
-  cachedGetErrors?: ((arg0: Compilation) => JsStatsError[]) | undefined;
-  cachedGetWarnings?: ((arg0: Compilation) => JsStatsWarning[]) | undefined;
+  compilation: Compilation;
+  makePathsRelative?: (value: string) => string;
+  [key: string]: any;
 };
 ```
 
@@ -42,9 +42,9 @@ compilation.hooks.statsFactory.tap('MyPlugin', (statsFactory, options) => {
 
 `StatsFactory.hooks.result` 是一个 HookMap，在生成指定 stats 项目后触发。
 
-- **类型：** `HookMap<SyncWaterfallHook<[any[], StatsFactoryContext], undefined>>`
+- **类型：** `HookMap<SyncWaterfallHook<[any, StatsFactoryContext]>>`
 - **参数：**
-  - `any[]`：该 stats 项目的生成结果
+  - `any`：该 stats 项目的生成结果
   - `StatsFactoryContext`：生成上下文
 
 ## StatsPrinter
@@ -55,10 +55,11 @@ compilation.hooks.statsFactory.tap('MyPlugin', (statsFactory, options) => {
 
 - **类型：** `HookMap<SyncBailHook<[{}, StatsPrinterContext], string>>`
 - **参数：**
-  - `Object`：该 stats 项目
+  - `object`：该 stats 项目
   - `StatsPrinterContext`：打印上下文
 
 ```ts
+// 以下仅列出通用的上下文字段；不同类型的 stats 项目可能提供额外字段
 type StatsPrinterContext = {
   type?: string;
   compilation?: StatsCompilation;
@@ -83,6 +84,7 @@ type StatsPrinterContext = {
   formatFlag?: (flag: string) => string;
   formatTime?: (time: number, boldQuantity?: boolean) => string;
   chunkGroupKind?: string;
+  [key: string]: any;
 };
 ```
 
@@ -90,7 +92,7 @@ type StatsPrinterContext = {
 
 `StatsPrinter.hooks.result` 是一个 HookMap，在生成指定的 stats 项目的打印字符串后触发。
 
-- **类型：** `HookMap<SyncBailHook<[{}, StatsPrinterContext], string>>`
+- **类型：** `HookMap<SyncWaterfallHook<[string, StatsPrinterContext]>>`
 - **参数：**
-  - `String`：该 stats 项目打印字符串
+  - `string`：该 stats 项目打印字符串
   - `StatsPrinterContext`：打印上下文

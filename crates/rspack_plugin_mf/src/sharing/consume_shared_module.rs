@@ -5,10 +5,11 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
-  DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  BuildInfo, BuildMeta, BuildResult, CodeGenerationResultBuilder, Compilation, Context,
+  DependenciesBlock, DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType,
+  RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config,
+  module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
@@ -292,12 +293,12 @@ impl Module for ConsumeSharedModule {
     let mut blocks = vec![];
     let mut dependencies = vec![];
     if let Some(fallback) = &self.options.import {
-      let dep = Box::new(ConsumeSharedFallbackDependency::new(
+      let dep = BoxDependency::new(ConsumeSharedFallbackDependency::new(
         fallback.to_owned(),
         self.options.layer.clone(),
       ));
       if self.options.eager {
-        dependencies.push(dep as BoxDependency);
+        dependencies.push(dep);
       } else {
         let block = AsyncDependenciesBlock::new(self.identifier, None, None, vec![dep], None);
         blocks.push(Box::new(block));
@@ -306,8 +307,8 @@ impl Module for ConsumeSharedModule {
 
     Ok(BuildResult {
       module: BoxModule::new(self),
-      dependencies,
-      blocks,
+      dependencies: dependencies.into_iter().map(Into::into).collect(),
+      blocks: blocks.into_iter().map(Into::into).collect(),
       optimization_bailouts: vec![],
     })
   }
@@ -316,14 +317,14 @@ impl Module for ConsumeSharedModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime_template,
       ..
     } = code_generation_context;
 
-    let mut code_generation_result = CodeGenerationResult::default();
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
     runtime_template
       .runtime_requirements_mut()
       .insert(RuntimeGlobals::SHARE_SCOPE_MAP);
@@ -358,7 +359,7 @@ impl Module for ConsumeSharedModule {
       RawStringSource::from(factory.clone().unwrap_or_else(|| "undefined".to_string())).boxed(),
     );
     code_generation_result
-      .data
+      .data_mut()
       .insert(CodeGenerationDataConsumeShared {
         share_scope: self.options.share_scope.clone(),
         share_key: self.options.share_key.clone(),

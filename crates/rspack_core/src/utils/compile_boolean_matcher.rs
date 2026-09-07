@@ -295,19 +295,19 @@ where
 
   let mut result = Vec::new();
 
-  for list in map.values() {
-    if condition(list) {
-      for item in list {
+  for list in map.into_values() {
+    if condition(&list) {
+      for item in &list {
         items_set.remove(item);
       }
-      result.push(list.clone());
+      result.push(list);
     }
   }
 
   result
 }
 
-fn get_common_prefix<'a>(mut items: impl Iterator<Item = &'a str> + Clone) -> &'a str {
+fn get_common_prefix<'a>(mut items: impl Iterator<Item = &'a str>) -> &'a str {
   let mut prefix = if let Some(prefix) = items.next() {
     prefix
   } else {

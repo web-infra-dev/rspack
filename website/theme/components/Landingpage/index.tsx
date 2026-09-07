@@ -1,4 +1,4 @@
-import { BackgroundImage } from '@rstack-dev/doc-ui/background-image';
+import { BackgroundImage } from '@rstackjs/doc-ui/background-image';
 import { Benchmark } from './Benchmark';
 import FullyFeatured from './FullyFeatured';
 import Hero from './Hero';

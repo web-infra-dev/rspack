@@ -8,6 +8,5 @@ pub use data::*;
 pub use drive::*;
 pub use plugin::{
   RsdoctorPlugin, RsdoctorPluginChunkGraphFeature, RsdoctorPluginModuleGraphFeature,
-  RsdoctorPluginOptions, RsdoctorPluginSourceMapFeature, SendAssets, SendChunkGraph,
-  SendModuleGraph, SendModuleSources,
+  RsdoctorPluginOptions, RsdoctorPluginSourceMapFeature,
 };

@@ -30,6 +30,17 @@ module.exports = {
           },
         ],
       },
+      {
+        test: file,
+        resourceQuery: /aggregate/,
+        use: [
+          {
+            loader: './aggregate.js',
+            parallel: true,
+            options: {},
+          },
+        ],
+      },
     ],
   },
 };

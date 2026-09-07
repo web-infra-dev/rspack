@@ -2,8 +2,8 @@ use std::{collections::VecDeque, fmt::Write, iter::once, sync::atomic::AtomicU32
 
 use itertools::Itertools;
 use rspack_collections::{Identifier, IdentifierSet};
-use rspack_error::Error;
-use rspack_paths::ArcPathSet;
+use rspack_error::{Diagnostic, Error};
+use rspack_paths::InternedPathSet;
 use rspack_sources::{RawStringSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use tokio::sync::oneshot::Sender;
@@ -11,8 +11,9 @@ use tokio::sync::oneshot::Sender;
 use super::context::{ExecutorTaskContext, ImportModuleMeta};
 use crate::{
   Chunk, ChunkGraph, ChunkKind, ChunkUkey, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
-  CodeGenerationResult, Compilation, CompilationAsset, CompilationAssets, EntryOptions, Entrypoint,
-  FactorizeInfo, ModuleCodeGenerationContext, ModuleType, PublicPath, RuntimeSpec, SourceType,
+  CodeGenerationResult, CodeGenerationResultBuilder, Compilation, CompilationAsset,
+  CompilationAssets, EntryOptions, Entrypoint, ModuleCodeGenerationContext, ModuleType, PublicPath,
+  RuntimeSpec, SourceType,
   compilation::{
     code_generation::code_generation_modules,
     create_module_hashes::create_module_hashes,
@@ -124,21 +125,26 @@ fn create_execute_runtime_source(
   source.push_str(&metadata.render_context_setter_assignments(runtime_context));
 
   (!source.is_empty()).then(|| {
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
+    code_generation_result.add(
+      SourceType::JavaScript,
+      RawStringSource::from(source).boxed(),
+    );
     (
       Identifier::from("rspack/runtime/execute_module_runtime"),
-      CodeGenerationResult::default().with_javascript(RawStringSource::from(source).boxed()),
+      code_generation_result.build(),
     )
   })
 }
 
 #[derive(Debug, Default)]
 pub struct ExecuteModuleResult {
-  pub error: Option<String>,
+  pub errors: Vec<Diagnostic>,
   pub cacheable: bool,
-  pub file_dependencies: ArcPathSet,
-  pub context_dependencies: ArcPathSet,
-  pub missing_dependencies: ArcPathSet,
-  pub build_dependencies: ArcPathSet,
+  pub file_dependencies: InternedPathSet,
+  pub context_dependencies: InternedPathSet,
+  pub missing_dependencies: InternedPathSet,
+  pub build_dependencies: InternedPathSet,
   pub code_generated_modules: IdentifierSet,
   pub id: ExecuteModuleId,
 }
@@ -169,7 +175,7 @@ impl ExecuteTask {
       .send(ExecuteResult {
         execute_result: ExecuteModuleResult {
           id,
-          error: Some(error.to_string()),
+          errors: vec![error.into()],
           ..Default::default()
         },
         assets: Default::default(),
@@ -244,16 +250,16 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       let build_info = module.build_info();
       execute_result
         .file_dependencies
-        .extend(build_info.file_dependencies.iter().cloned());
+        .extend(build_info.dependencies.file.iter().cloned());
       execute_result
         .context_dependencies
-        .extend(build_info.context_dependencies.iter().cloned());
+        .extend(build_info.dependencies.context.iter().cloned());
       execute_result
         .missing_dependencies
-        .extend(build_info.missing_dependencies.iter().cloned());
+        .extend(build_info.dependencies.missing.iter().cloned());
       execute_result
         .build_dependencies
-        .extend(build_info.build_dependencies.iter().cloned());
+        .extend(build_info.dependencies.build.iter().cloned());
       if !build_info.cacheable {
         execute_result.cacheable = false;
       }
@@ -261,41 +267,39 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         assets.insert(name.clone(), asset.clone());
       }
       if !has_error && make_failed_module.contains(&m) {
-        let diagnostics = module.diagnostics();
-        let errors: Vec<_> = diagnostics
+        let diagnostics = module
+          .diagnostics()
           .iter()
           .filter(|d| d.is_error())
-          .map(|d| d.message.clone())
-          .collect();
-        if !errors.is_empty() {
+          .cloned()
+          .map(|mut diagnostic| {
+            diagnostic.module_identifier = Some(m);
+            diagnostic
+          })
+          .collect::<Vec<_>>();
+        if !diagnostics.is_empty() {
           has_error = true;
-          if let Some(existing_error) = &mut execute_result.error {
-            existing_error.push('\n');
-            existing_error.push_str(&errors.join("\n"));
-          } else {
-            execute_result.error = Some(errors.join("\n"));
-          }
+          execute_result.errors.extend(diagnostics);
         }
       }
       for dep_id in module.get_dependencies() {
         if !has_error && make_failed_dependencies.contains(dep_id) {
-          let dep = mg.dependency_by_id(dep_id);
-          let diagnostics = FactorizeInfo::get_from(dep)
+          let diagnostics = origin_context
+            .artifact
+            .factorize_info(dep_id)
             .expect("should have factorize info")
-            .diagnostics();
-          let errors: Vec<_> = diagnostics
+            .diagnostics()
             .iter()
             .filter(|d| d.is_error())
-            .map(|d| d.message.clone())
-            .collect();
-          if !errors.is_empty() {
+            .cloned()
+            .map(|mut diagnostic| {
+              diagnostic.module_identifier = mg.get_parent_module(dep_id).copied();
+              diagnostic
+            })
+            .collect::<Vec<_>>();
+          if !diagnostics.is_empty() {
             has_error = true;
-            if let Some(existing_error) = &mut execute_result.error {
-              existing_error.push('\n');
-              existing_error.push_str(&errors.join("\n"));
-            } else {
-              execute_result.error = Some(errors.join("\n"));
-            }
+            execute_result.errors.extend(diagnostics);
           }
         }
         if let Some(c) = mg.connection_by_dependency_id(dep_id)
@@ -437,7 +441,9 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         runtime_module.identifier(),
         runtime_module_source.size() as f64,
       );
-      let result = CodeGenerationResult::default().with_javascript(runtime_module_source.clone());
+      let mut code_generation_result = CodeGenerationResultBuilder::default();
+      code_generation_result.add(SourceType::JavaScript, runtime_module_source.clone());
+      let result = code_generation_result.build();
 
       compilation.code_generation_results.insert(
         *runtime_id,
@@ -482,8 +488,8 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
           let codegen_result = compilation.code_generation_results.get(m, Some(&runtime));
 
           if let Some(source) = codegen_result.get(&SourceType::Asset)
-            && let Some(filename) = codegen_result.data.get::<CodeGenerationDataFilename>()
-            && let Some(asset_info) = codegen_result.data.get::<CodeGenerationDataAssetInfo>()
+            && let Some(filename) = codegen_result.data().get::<CodeGenerationDataFilename>()
+            && let Some(asset_info) = codegen_result.data().get::<CodeGenerationDataAssetInfo>()
           {
             let filename = filename.filename();
             compilation.emit_asset(
@@ -495,12 +501,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       }
       Err(e) => {
         execute_result.cacheable = false;
-        if let Some(existing_error) = &mut execute_result.error {
-          existing_error.push('\n');
-          existing_error.push_str(&e.to_string());
-        } else {
-          execute_result.error = Some(e.to_string());
-        }
+        execute_result.errors.push(e.into());
       }
     };
 

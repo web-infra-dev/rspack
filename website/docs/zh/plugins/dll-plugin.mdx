@@ -1,0 +1,81 @@
+---
+description: 'Dll 插件用于在一个单独的 rspack 配置中生成一个 dll 库，DllReference 插件通过该插件生成的 manifest.json 能够将依赖映射到对应的位置上。'
+---
+
+import Attribution from '@components/Attribution';
+
+# DllPlugin
+
+Dll 插件用于在一个单独的 rspack 配置中生成一个 dll 库，DllReference 插件通过该插件生成的 manifest.json 能够将依赖映射到对应的位置上。
+
+## 示例
+
+```js
+new rspack.DllPlugin({
+  path: path.resolve(__dirname, 'manifest.json'),
+  name: '[name]_dll_lib',
+});
+```
+
+插件将会生成 `manifest.json` 文件并将其输出到指定路径。
+manifest 文件包含了从 `require` 和 `import` 请求到模块id的映射。
+
+`manifest.json` 将会被 [DllReferencePlugin](/plugins/dll-reference-plugin) 消费，通过"动态链接库"的方式将依赖链接起来。
+
+此插件与 `output.library` 的选项相结合可以暴露出dll 函数。
+
+## 选项
+
+```ts
+type DllPluginOptions = {
+  context?: string;
+  entryOnly?: boolean;
+  format?: boolean;
+  name?: string;
+  path: string;
+  type?: string;
+};
+```
+
+### context
+
+- **类型：** `string`
+- **默认值：** Rspack compiler 的 context
+
+设置 manifest 文件中依赖请求所使用的 context。
+
+### entryOnly
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+设置为 `true` 时，只暴露入口模块。
+
+### format
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+控制是否格式化生成的 manifest JSON，以提高可读性。
+
+### name
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+设置暴露的 DLL 函数名称。该值应与 DLL bundle 的 `output.library` 名称保持一致。
+
+### path
+
+- **类型：** `string`
+
+设置 manifest JSON 文件的绝对输出路径。该选项为必填项。
+
+### type
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+设置 DLL bundle 的 external 类型。该值应与 `output.library.type` 保持一致。
+
+<Attribution url="https://webpack.docschina.org/plugins/dll-plugin/" />

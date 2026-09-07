@@ -1,8 +1,8 @@
-# Skills Required for Rspack Development
+# Skills required for Rspack development
 
 Skills and knowledge areas needed to contribute to Rspack.
 
-## Core Programming Languages
+## Core programming languages
 
 ### Rust (Essential)
 
@@ -55,9 +55,9 @@ Used for JavaScript API layer, CLI tools, and test infrastructure.
 - [Node.js Documentation](https://nodejs.org/docs/)
 - [Webpack Concepts](https://webpack.js.org/concepts/)
 
-## Build System & Compiler Knowledge
+## Build system & compiler knowledge
 
-### Bundler Concepts (Essential)
+### Bundler concepts (Essential)
 
 **Key Concepts:**
 
@@ -74,7 +74,7 @@ Used for JavaScript API layer, CLI tools, and test infrastructure.
 - [Webpack Concepts](https://webpack.js.org/concepts/)
 - [Module Federation](https://webpack.js.org/concepts/module-federation/)
 
-### Compiler Theory (Helpful)
+### Compiler theory (Helpful)
 
 **Key Concepts:**
 
@@ -87,9 +87,9 @@ Used for JavaScript API layer, CLI tools, and test infrastructure.
 - [Crafting Interpreters](https://craftinginterpreters.com/)
 - [The Super Tiny Compiler](https://github.com/jamiebuilds/the-super-tiny-compiler)
 
-## Testing & Quality Assurance
+## Testing & quality assurance
 
-### Testing Skills (Essential)
+### Testing skills (Essential)
 
 **Rust Testing:**
 
@@ -113,23 +113,22 @@ Used for JavaScript API layer, CLI tools, and test infrastructure.
 - [Rust Testing](https://doc.rust-lang.org/book/ch11-00-testing.html)
 - [Testing Guide](./website/docs/en/contribute/development/testing.mdx)
 
-### Code Quality (Essential)
+### Code quality (Essential)
 
 **Linting:**
 
 - Rust: `cargo clippy`, `cargo check`
-- JavaScript/TypeScript: Rslint
+- JavaScript: Rslint
 - Type checking: TypeScript compiler
 
 **Formatting:**
 
 - Rust: `cargo fmt`
-- JavaScript/TypeScript: Prettier
-- TOML: taplo
+- JavaScript: `rs fmt`
 
-## Debugging & Performance
+## Debugging & performance
 
-### Debugging Skills (Essential)
+### Debugging skills (Essential)
 
 **Rust Debugging:**
 
@@ -146,7 +145,7 @@ Used for JavaScript API layer, CLI tools, and test infrastructure.
 
 - [Debugging Guide](./website/docs/en/contribute/development/debugging.mdx)
 
-### Performance Optimization (Important)
+### Performance optimization (Important)
 
 **Key Areas:**
 
@@ -167,9 +166,9 @@ Used for JavaScript API layer, CLI tools, and test infrastructure.
 - [Rust Performance Book](https://nnethercote.github.io/perf-book/)
 - [Performance Tracing](./crates/rspack_tracing/)
 
-## System Design & Architecture
+## System design & architecture
 
-### Monorepo Management (Important)
+### Monorepo management (Important)
 
 **Skills:**
 
@@ -183,7 +182,7 @@ Used for JavaScript API layer, CLI tools, and test infrastructure.
 - [pnpm Workspaces](https://pnpm.io/workspaces)
 - [Cargo Workspaces](https://doc.rust-lang.org/cargo/reference/workspaces.html)
 
-### Plugin System Architecture (Important)
+### Plugin system architecture (Important)
 
 **Key Concepts:**
 
@@ -220,7 +219,7 @@ Used for JavaScript API layer, CLI tools, and test infrastructure.
 - WASI (WebAssembly System Interface)
 - Browser vs. Node.js environments
 
-## Version Control & Collaboration
+## Version control & collaboration
 
 ### Git & GitHub (Essential)
 
@@ -238,7 +237,7 @@ Used for JavaScript API layer, CLI tools, and test infrastructure.
 
 ## Domain-Specific Knowledge
 
-### Webpack Ecosystem (Important)
+### Webpack ecosystem (Important)
 
 **Key Areas:**
 
@@ -252,53 +251,53 @@ Used for JavaScript API layer, CLI tools, and test infrastructure.
 - [Webpack Documentation](https://webpack.js.org/)
 - [Webpack Plugin API](https://webpack.js.org/api/plugins/)
 
-### Frontend Build Tools (Helpful)
+### Frontend build tools (Helpful)
 
 - Vite, esbuild, Rollup, Parcel
 - Module Federation
 - Code splitting strategies
 - CSS processing (PostCSS, Lightning CSS)
 
-## Learning Path Recommendations
+## Learning path recommendations
 
-### For Rust Developers New to Bundlers
+### For Rust developers new to bundlers
 
 1. Learn webpack concepts and ecosystem
 2. Study Rspack's architecture
 3. Understand compilation pipeline
 4. Practice writing plugins and loaders
 
-### For JavaScript Developers New to Rust
+### For JavaScript developers new to Rust
 
 1. Complete Rust fundamentals (ownership, borrowing)
 2. Learn async Rust and concurrency
 3. Study NAPI and Rust-JavaScript interop
 4. Practice reading and modifying Rust code
 
-### For New Contributors
+### For new contributors
 
 1. Set up development environment
 2. Run existing tests and understand structure
 3. Fix small bugs or add tests
 4. Gradually work on larger features
 
-## Skill Assessment
+## Skill assessment
 
-### Beginner Level
+### Beginner level
 
 - Can read and understand Rust code
 - Can write basic TypeScript/JavaScript
 - Understands basic bundler concepts
 - Can run tests and debug issues
 
-### Intermediate Level
+### Intermediate level
 
 - Can write Rust code following patterns
 - Can implement plugins or loaders
 - Understands compilation pipeline
 - Can debug complex issues
 
-### Advanced Level
+### Advanced level
 
 - Can design and implement new features
 - Understands performance implications
@@ -307,7 +306,7 @@ Used for JavaScript API layer, CLI tools, and test infrastructure.
 
 ## Resources
 
-### Official Documentation
+### Official documentation
 
 - [Rspack Documentation](https://rspack.rs/)
 - [Project Architecture](../website/docs/en/contribute/development/project.md)
@@ -317,7 +316,7 @@ Used for JavaScript API layer, CLI tools, and test infrastructure.
 - [Common Patterns](./COMMON_PATTERNS.md)
 - [Glossary](./GLOSSARY.md)
 
-### External Resources
+### External resources
 
 - [The Rust Book](https://doc.rust-lang.org/book/)
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/handbook/intro.html)

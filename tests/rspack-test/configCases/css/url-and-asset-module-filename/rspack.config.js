@@ -59,4 +59,27 @@ module.exports = [
       ],
     },
   },
+  {
+    ...common,
+    output: {
+      cssChunkFilename: 'apps/desk/[name].css',
+    },
+    module: {
+      rules: [
+        {
+          test: /\.css$/,
+          type: 'css/auto',
+        },
+        {
+          test: /\.png$/i,
+          type: 'asset/resource',
+          generator: {
+            filename: 'img/[name][ext]',
+            outputPath: 'apps/desk/',
+            publicPath: './',
+          },
+        },
+      ],
+    },
+  },
 ];

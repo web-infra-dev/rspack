@@ -8,13 +8,12 @@ use rspack_core::{
   ModuleGraph, ModuleGraphCacheArtifact, SideEffectsStateArtifact, TSEnumValue, TemplateContext,
   TemplateReplaceSource, UsedName,
 };
-use swc_atoms::Atom;
 
-use crate::{ConstValue, is_export_inlined};
+use crate::{Atom, ConstValue, is_export_inlined};
 
 // Create __rspack_context.d(__rspack_exports, {}) for each export.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ESMExportSpecifierDependency {
   id: DependencyId,
   range: DependencyRange,
@@ -45,14 +44,6 @@ impl ESMExportSpecifierDependency {
       loc,
       id: DependencyId::new(),
     }
-  }
-
-  pub fn name(&self) -> &Atom {
-    &self.name
-  }
-
-  pub fn value(&self) -> &Atom {
-    &self.value
   }
 }
 

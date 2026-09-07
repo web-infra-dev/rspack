@@ -1,0 +1,8 @@
+```mjs title=main.mjs
+import value_asset from "./assets/value.asset.mjs";
+module.exports = value_asset;
+const value_asset_0 = rspackRequire("./value.asset.mjs");
+const index_value_asset = 'application value'
+const shorthand = { value_asset: index_value_asset }
+export { index_value_asset as applicationValue, shorthand, value_asset_0 as assetValue };
+```

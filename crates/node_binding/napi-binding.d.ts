@@ -41,7 +41,6 @@ interface KnownBuildInfo {
 export type BuildInfo = KnownBuildInfo & Record<string, any>;
 
 export interface Module {
-	[MODULE_IDENTIFIER_SYMBOL]: string;
 	readonly type: string;
 	get context(): string | undefined;
 	get layer(): string | undefined;
@@ -192,7 +191,7 @@ export declare class ConcatenatedModule {
   get rootModule(): Module
   get modules(): Module[]
   readableIdentifier(): string
-  _originalSource(): JsSource
+  _originalSource(): JsSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -203,7 +202,7 @@ export declare class ConcatenatedModule {
 
 export declare class ContextModule {
   readableIdentifier(): string
-  _originalSource(): JsSource
+  _originalSource(): JsSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -268,7 +267,7 @@ export type EntryOptionsDTO = EntryOptionsDto
 
 export declare class ExternalModule {
   readableIdentifier(): string
-  _originalSource(): JsSource
+  _originalSource(): JsSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -310,7 +309,7 @@ export declare class JsCompilation {
   getWarnings(): Array<RspackError>
   getStats(): JsStats
   getAssetPath(filename: string, data: JsPathData): string
-  getAssetPathWithInfo(filename: string, data: JsPathData): PathWithInfo
+  getAssetPathWithInfo(filename: string, data: JsPathData, assetInfo?: AssetInfo | undefined | null): PathWithInfo
   getPath(filename: string, data: JsPathData): string
   getPathWithInfo(filename: string, data: JsPathData): PathWithInfo
   addFileDependencies(deps: Array<string>): void
@@ -335,7 +334,7 @@ export declare class JsCompilation {
 }
 
 export declare class JsCompiler {
-  constructor(compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform)
+  constructor(compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -372,7 +371,7 @@ export declare class JsContextModuleFactoryBeforeResolveData {
 }
 
 export declare class JsCoordinator {
-  constructor(getServerCompilerIdJsFn: () => ExternalObject<CompilerId>)
+  constructor()
 }
 
 export declare class JsDependencies {
@@ -408,6 +407,11 @@ export declare class JsExportsInfo {
   getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
 }
 
+export declare class JsLoaderCache {
+  get(loaderIndex: number, content: string | Uint8Array, existing: JsLoaderDependencies): Promise<JsLoaderCacheEntry | null>
+  store(loaderIndex: number, output: JsLoaderCacheEntry): Promise<void>
+}
+
 export declare class JsModuleGraph {
   getModule(dependency: Dependency): Module | null
   getResolvedModule(dependency: Dependency): Module | null
@@ -436,7 +440,7 @@ export declare class JsResolverFactory {
 
 export declare class JsStats {
   toJson(jsOptions: JsStatsOptions): JsStatsCompilation
-  getLogging(acceptedTypes: number): Array<JsStatsLogging>
+  getLogging(acceptedTypes: number): Array<JsLog>
 }
 
 export declare class KnownBuildInfo {
@@ -445,7 +449,7 @@ export declare class KnownBuildInfo {
 
 export declare class Module {
   readableIdentifier(): string
-  _originalSource(): JsSource
+  _originalSource(): JsSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -561,11 +565,13 @@ export declare enum BuiltinPluginName {
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
   NaturalModuleIdsPlugin = 'NaturalModuleIdsPlugin',
   DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
+  CompactHashedModuleIdsPlugin = 'CompactHashedModuleIdsPlugin',
   SyncModuleIdsPlugin = 'SyncModuleIdsPlugin',
   HashedModuleIdsPlugin = 'HashedModuleIdsPlugin',
   NaturalChunkIdsPlugin = 'NaturalChunkIdsPlugin',
   NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
   DeterministicChunkIdsPlugin = 'DeterministicChunkIdsPlugin',
+  CompactHashedChunkIdsPlugin = 'CompactHashedChunkIdsPlugin',
   OccurrenceChunkIdsPlugin = 'OccurrenceChunkIdsPlugin',
   RealContentHashPlugin = 'RealContentHashPlugin',
   RemoveEmptyChunksPlugin = 'RemoveEmptyChunksPlugin',
@@ -763,6 +769,13 @@ export interface JsChunkGroupOrigin {
   loc?: string | RealDependencyLocation
 }
 
+export interface JsChunkOptionNameBatch {
+  modules: Module[]
+  chunks: Chunk[]
+  chunkData: Uint32Array
+  cacheGroupKey: string
+}
+
 export interface JsChunkOptionNameCtx {
   module: Module
   chunks: Chunk[]
@@ -864,7 +877,7 @@ export interface JsExecuteModuleResult {
   missingDependencies: Array<string>
   cacheable: boolean
   id: number
-  error?: string
+  errors: Array<RspackError>
 }
 
 export interface JsFactoryMeta {
@@ -943,6 +956,14 @@ export interface JsLinkPreloadData {
   chunk: Chunk
 }
 
+export interface JsLoaderCacheEntry {
+  content: null | string | Uint8Array
+  sourceMap?: Uint8Array
+  addedDependencies: JsLoaderDependencies
+  removedDependencies: JsLoaderDependencies
+  parseMeta: Record<string, string>
+}
+
 export interface JsLoaderContext {
   resource: string
   _module: Module
@@ -953,14 +974,12 @@ export interface JsLoaderContext {
   __internal__parseMeta: Record<string, string>
   sourceMap?: Buffer
   cacheable: boolean
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
-  buildDependencies: Array<string>
+  dependencies: JsLoaderDependencies
   loaderItems: Array<JsLoaderItem>
   loaderIndex: number
   loaderState: Readonly<JsLoaderState>
   __internal__error?: RspackError
+  __internal__loaderCache?: JsLoaderCache | undefined
   /**
    * UTF-8 hint for `content`
    * - Some(true): `content` is a `UTF-8` encoded sequence
@@ -968,9 +987,17 @@ export interface JsLoaderContext {
   __internal__utf8Hint?: boolean
 }
 
+export interface JsLoaderDependencies {
+  fileDependencies: Array<string>
+  contextDependencies: Array<string>
+  missingDependencies: Array<string>
+  buildDependencies: Array<string>
+}
+
 export interface JsLoaderItem {
   loader: string
   type: string
+  cache: boolean
   data: any
   normalExecuted: boolean
   pitchExecuted: boolean
@@ -980,6 +1007,13 @@ export interface JsLoaderItem {
 export declare enum JsLoaderState {
   Pitching = 'Pitching',
   Normal = 'Normal'
+}
+
+export interface JsLog {
+  name: string
+  type: string
+  args: Array<string | number>
+  trace?: Array<string>
 }
 
 export interface JsModuleDescriptor {
@@ -1031,6 +1065,8 @@ export interface JsResolveData {
   request: string
   context: string
   contextInfo: ContextInfo
+  /** The import attributes of the dependency that triggered this resolution, read-only. */
+  attributes?: Record<string, string>
   fileDependencies: Array<string>
   contextDependencies: Array<string>
   missingDependencies: Array<string>
@@ -1446,13 +1482,6 @@ export interface JsStatsGetAssets {
   assetsByChunkName: Array<JsStatsAssetsByChunkName>
 }
 
-export interface JsStatsLogging {
-  name: string
-  type: string
-  args?: Array<string>
-  trace?: Array<string>
-}
-
 export interface JsStatsModule {
   commonAttributes: JsStatsModuleCommonAttributes
   dependent?: boolean
@@ -1790,9 +1819,10 @@ export interface NativeWatcherOptions {
   aggregateTimeout?: number
   /**
    * The ignored paths for the watcher.
-   * It can be a single path, an array of paths, or a regular expression.
+   * It can be a single path, an array of paths, a regular expression, or a
+   * predicate returning `true` for entries to ignore.
    */
-  ignored?: string | string[] | RegExp
+  ignored?: string | string[] | RegExp | ((entry: string) => boolean)
 }
 
 /**
@@ -1911,7 +1941,8 @@ export interface RawCacheGroupOptions {
   maxInitialSize?: number | RawSplitChunkSizes
   maxAsyncRequests?: number
   maxInitialRequests?: number
-  name?: string | false | Function
+  name?: string | false | ((ctx: JsChunkOptionNameCtx) => string | undefined)
+  nameBatch?: ((batch: JsChunkOptionNameBatch) => (string | undefined)[])
   reuseExistingChunk?: boolean
   enforce?: boolean
   usedExports?: boolean
@@ -1919,13 +1950,14 @@ export interface RawCacheGroupOptions {
 
 export interface RawCacheOptionsMemory {
   maxGenerations?: number
+  snapshot?: RawSnapshotOptions
 }
 
 export interface RawCacheOptionsPersistent {
   buildDependencies?: Array<string>
   version?: string
   maxAge: number
-  maxVersions: number
+  maxMemoryGenerations?: number
   snapshot?: RawSnapshotOptions
   storage?: RawStorageOptions
   portable?: boolean
@@ -1953,6 +1985,14 @@ export interface RawCircularDependencyRspackPluginOptions {
 export interface RawCollectShareEntryPluginOptions {
   consumes: Array<RawConsumeOptions>
   filename?: string
+}
+
+export interface RawCompactHashedChunkIdsPluginOptions {
+  minLength?: number
+}
+
+export interface RawCompactHashedModuleIdsPluginOptions {
+  minLength?: number
 }
 
 export interface RawCompilerPlatform {
@@ -2292,8 +2332,8 @@ export interface RawEvalDevToolModulePluginOptions {
 export interface RawExperiments {
   useInputFileSystem?: false | Array<RegExp>
   css?: boolean
+  newCache: false | RawNewCache
   deferImport: boolean
-  env: boolean
   sourceImport: boolean
   pureFunctions: boolean
   runtimeMode?: "webpack" | "rspack"
@@ -2741,6 +2781,16 @@ export interface RawModuleRule {
 export interface RawModuleRuleUse {
   loader: string
   options?: string
+  cache: boolean
+  optionsCacheKey: string
+}
+
+export interface RawNewCache {
+  codeGeneration: boolean
+  module: boolean
+  devtool: boolean
+  loader: boolean
+  minimize: boolean
 }
 
 export interface RawNodeOption {
@@ -2794,7 +2844,7 @@ export interface RawOptions {
   module: RawModuleOptions
   optimization: RawOptimizationOptions
   stats: RawStatsOptions
-  cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent)
+  cache: boolean | { type: "memory", snapshot: RawSnapshotOptions } | ({ type: "persistent" } & RawCacheOptionsPersistent)
   experiments: RawExperiments
 incremental?: false | { [key: string]: boolean }
 node?: RawNodeOption
@@ -2811,6 +2861,7 @@ export interface RawOutputOptions {
   publicPath: "auto" | JsFilename
   assetModuleFilename: JsFilename
   wasmLoading: string | false
+  wasmStreamingFallback: boolean
   enabledWasmLoadingTypes: Array<string>
   webassemblyModuleFilename: string
   filename: JsFilename
@@ -3007,6 +3058,11 @@ export interface RawRstestPluginOptions {
   manualMockRoot: string
   preserveNewUrl?: Array<string>
   globals?: boolean
+  /**
+   * Replaces each `import.meta.rstest` with
+   * `globalThis['@rstest/core/import-meta']?.(<absolute source path>)`.
+   */
+  injectImportMetaRstestOrigin?: boolean
 injectDynamicImportOrigin?: boolean | { functionName?: string }
 injectRequireResolveOrigin?: boolean | { functionName?: string }
 }
@@ -3083,7 +3139,8 @@ export interface RawSplitChunkSizes {
 
 export interface RawSplitChunksOptions {
   fallbackCacheGroup?: RawFallbackCacheGroupOptions
-  name?: string | false | Function
+  name?: string | false | ((ctx: JsChunkOptionNameCtx) => string | undefined)
+  nameBatch?: ((batch: JsChunkOptionNameBatch) => (string | undefined)[])
   filename?: JsFilename
   cacheGroups?: Array<RawCacheGroupOptions>
   /** What kind of chunks should be selected. */
@@ -3203,54 +3260,56 @@ export declare enum RegisterJsTapKind {
   CompilerCompilation = 1,
   CompilerMake = 2,
   CompilerFinishMake = 3,
-  CompilerShouldEmit = 4,
-  CompilerEmit = 5,
-  CompilerAfterEmit = 6,
-  CompilerAssetEmitted = 7,
-  CompilationBuildModule = 8,
-  CompilationStillValidModule = 9,
-  CompilationSucceedModule = 10,
-  CompilationExecuteModule = 11,
-  CompilationFinishModules = 12,
-  CompilationOptimizeModules = 13,
-  CompilationAfterOptimizeModules = 14,
-  CompilationOptimizeTree = 15,
-  CompilationOptimizeChunkModules = 16,
-  CompilationBeforeModuleIds = 17,
-  CompilationAdditionalTreeRuntimeRequirements = 18,
-  CompilationRuntimeRequirementInTree = 19,
-  CompilationRuntimeModule = 20,
-  CompilationChunkHash = 21,
-  CompilationChunkAsset = 22,
-  CompilationProcessAssets = 23,
-  CompilationAfterProcessAssets = 24,
-  CompilationSeal = 25,
-  CompilationAfterSeal = 26,
-  NormalModuleFactoryBeforeResolve = 27,
-  NormalModuleFactoryFactorize = 28,
-  NormalModuleFactoryResolve = 29,
-  NormalModuleFactoryAfterResolve = 30,
-  NormalModuleFactoryCreateModule = 31,
-  NormalModuleFactoryResolveForScheme = 32,
-  ContextModuleFactoryBeforeResolve = 33,
-  ContextModuleFactoryAfterResolve = 34,
-  JavascriptModulesChunkHash = 35,
-  HtmlPluginBeforeAssetTagGeneration = 36,
-  HtmlPluginAlterAssetTags = 37,
-  HtmlPluginAlterAssetTagGroups = 38,
-  HtmlPluginAfterTemplateExecution = 39,
-  HtmlPluginBeforeEmit = 40,
-  HtmlPluginAfterEmit = 41,
-  RuntimePluginCreateScript = 42,
-  RuntimePluginCreateLink = 43,
-  RuntimePluginLinkPreload = 44,
-  RuntimePluginLinkPrefetch = 45,
-  RealContentHashPluginUpdateHash = 46,
-  RsdoctorPluginModuleGraph = 47,
-  RsdoctorPluginChunkGraph = 48,
-  RsdoctorPluginModuleIds = 49,
-  RsdoctorPluginModuleSources = 50,
-  RsdoctorPluginAssets = 51
+  CompilerAfterCompile = 4,
+  CompilerShouldEmit = 5,
+  CompilerEmit = 6,
+  CompilerAfterEmit = 7,
+  CompilerAssetEmitted = 8,
+  CompilationBuildModule = 9,
+  CompilationStillValidModule = 10,
+  CompilationSucceedModule = 11,
+  CompilationExecuteModule = 12,
+  CompilationFinishModules = 13,
+  CompilationOptimizeModules = 14,
+  CompilationAfterOptimizeModules = 15,
+  CompilationOptimizeTree = 16,
+  CompilationOptimizeChunkModules = 17,
+  CompilationBeforeModuleIds = 18,
+  CompilationAdditionalTreeRuntimeRequirements = 19,
+  CompilationRuntimeRequirementInTree = 20,
+  CompilationRuntimeModule = 21,
+  CompilationChunkHash = 22,
+  CompilationChunkAsset = 23,
+  CompilationProcessAssets = 24,
+  CompilationAfterProcessAssets = 25,
+  CompilationSeal = 26,
+  CompilationAfterSeal = 27,
+  NormalModuleFactoryBeforeResolve = 28,
+  NormalModuleFactoryFactorize = 29,
+  NormalModuleFactoryResolve = 30,
+  NormalModuleFactoryAfterResolve = 31,
+  NormalModuleFactoryCreateModule = 32,
+  NormalModuleFactoryResolveForScheme = 33,
+  ContextModuleFactoryBeforeResolve = 34,
+  ContextModuleFactoryAfterResolve = 35,
+  ExternalModuleChunkCondition = 36,
+  JavascriptModulesChunkHash = 37,
+  HtmlPluginBeforeAssetTagGeneration = 38,
+  HtmlPluginAlterAssetTags = 39,
+  HtmlPluginAlterAssetTagGroups = 40,
+  HtmlPluginAfterTemplateExecution = 41,
+  HtmlPluginBeforeEmit = 42,
+  HtmlPluginAfterEmit = 43,
+  RuntimePluginCreateScript = 44,
+  RuntimePluginCreateLink = 45,
+  RuntimePluginLinkPreload = 46,
+  RuntimePluginLinkPrefetch = 47,
+  RealContentHashPluginUpdateHash = 48,
+  RsdoctorPluginModuleGraph = 49,
+  RsdoctorPluginChunkGraph = 50,
+  RsdoctorPluginModuleIds = 51,
+  RsdoctorPluginModuleSources = 52,
+  RsdoctorPluginAssets = 53
 }
 
 export interface RegisterJsTaps {
@@ -3258,6 +3317,7 @@ export interface RegisterJsTaps {
   registerCompilerCompilationTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilerMakeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilerFinishMakeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
+  registerCompilerAfterCompileTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilerShouldEmitTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => boolean | undefined); stage: number; }>
   registerCompilerEmitTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
   registerCompilerAfterEmitTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
@@ -3289,6 +3349,7 @@ export interface RegisterJsTaps {
   registerNormalModuleFactoryCreateModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsNormalModuleFactoryCreateModuleArgs) => Promise<void>); stage: number; }>
   registerContextModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryBeforeResolveData) => Promise<false | JsContextModuleFactoryBeforeResolveData>); stage: number; }>
   registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>
+  registerExternalModuleChunkConditionTaps: (stages: Array<number>) => Array<{ function: ((chunk: Chunk) => boolean | undefined); stage: number; }>
   registerJavascriptModulesChunkHashTaps: (stages: Array<number>) => Array<{ function: ((arg: Chunk) => Buffer); stage: number; }>
   registerHtmlPluginBeforeAssetTagGenerationTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeAssetTagGenerationData) => JsBeforeAssetTagGenerationData); stage: number; }>
   registerHtmlPluginAlterAssetTagsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAlterAssetTagsData) => JsAlterAssetTagsData); stage: number; }>

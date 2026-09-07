@@ -1,17 +1,55 @@
 <>
 
 ```ts
-import fs from 'node:fs';
-
 type OutputFileSystem = {
-  writeFile: typeof fs.writeFile;
-  mkdir: typeof fs.mkdir;
-  readdir: typeof fs.readdir;
-  rmdir: typeof fs.rmdir;
-  unlink: typeof fs.unlink;
-  stat: typeof fs.stat;
-  lstat: typeof fs.lstat;
-  readFile: typeof fs.readFile;
+  writeFile: (
+    path: string | number,
+    data: string | Buffer,
+    callback: (error?: NodeJS.ErrnoException | null) => void,
+  ) => void;
+  mkdir: (
+    path: string,
+    callback: (error?: NodeJS.ErrnoException | null) => void,
+  ) => void;
+  readdir: (
+    path: string,
+    callback: (
+      error?: NodeJS.ErrnoException | null,
+      files?: Array<string | Buffer> | IDirent[],
+    ) => void,
+  ) => void;
+  rmdir: (
+    path: string,
+    callback: (error?: NodeJS.ErrnoException | null) => void,
+  ) => void;
+  unlink: (
+    path: string,
+    callback: (error?: NodeJS.ErrnoException | null) => void,
+  ) => void;
+  stat: (
+    path: string,
+    callback: (error?: NodeJS.ErrnoException | null, stats?: IStats) => void,
+  ) => void;
+  lstat?: (
+    path: string,
+    callback: (error?: NodeJS.ErrnoException | null, stats?: IStats) => void,
+  ) => void;
+  readFile: (
+    path: string,
+    callback: (
+      error?: NodeJS.ErrnoException | null,
+      data?: string | Buffer,
+    ) => void,
+  ) => void;
+  chmod: (
+    path: string,
+    mode: number,
+    callback: (error?: NodeJS.ErrnoException | null) => void,
+  ) => void;
+  join?: (path1: string, path2: string) => string;
+  relative?: (from: string, to: string) => string;
+  dirname?: (path: string) => string;
+  createReadStream?: CreateReadStream;
 };
 ```
 

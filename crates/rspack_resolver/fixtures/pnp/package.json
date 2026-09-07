@@ -1,0 +1,12 @@
+{
+  "name": "pnp",
+  "packageManager": "yarn@4.3.1",
+  "dependencies": {
+    "extend": "3.0.2",
+    "is-even": "^1.0.0",
+    "is-odd": "^3.0.1",
+    "lib": "link:./shared",
+    "lodash.zip": "^4.2.0",
+    "preact": "^10.25.4"
+  }
+}

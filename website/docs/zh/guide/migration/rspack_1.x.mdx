@@ -68,7 +68,7 @@ Rspack 2.0 的最低 Node.js 版本要求为 **20.19+** 或 **22.12+**，并且�
 
 `@rspack/cli` 内置的 `webpack-bundler-analyzer` 已被移除，同时 `--analyze` 参数也将不再可用。
 
-如果你需要分析产物体积，推荐使用分析能力更强的 [Rsdoctor](/guide/optimization/use-rsdoctor) 来替代。
+如果你需要分析产物体积，推荐使用分析能力更强的 [Rsdoctor](/guide/diagnostics/use-rsdoctor) 来替代。
 
 ## 模块编译相关变更
 
@@ -341,7 +341,7 @@ const statsData = stats.toJson({
 
 ### 移除 profile 和 stats.profile 配置
 
-顶层的 `profile` 配置和 `stats.profile` 配置已被移除。建议使用 [Rsdoctor](/guide/optimization/use-rsdoctor) 进行性能分析：
+顶层的 `profile` 配置和 `stats.profile` 配置已被移除。建议使用 [Rsdoctor](/guide/diagnostics/use-rsdoctor) 进行性能分析：
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -373,7 +373,7 @@ export default {
 
 ### 移除 WarnCaseSensitiveModulesPlugin
 
-`WarnCaseSensitiveModulesPlugin` 已更名为 [CaseSensitivePlugin](/plugins/webpack/case-sensitive-plugin)，并完整覆盖了原有功能。
+`WarnCaseSensitiveModulesPlugin` 已更名为 [CaseSensitivePlugin](/plugins/case-sensitive-plugin)，并完整覆盖了原有功能。
 
 ### 移除插件的 getHooks 方法
 
@@ -381,7 +381,7 @@ export default {
 
 ### 调整 HtmlRspackPlugin 配置项
 
-[HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) 的 `sri` 配置已被移除。如果你需要 Subresource Integrity (SRI) 功能，可使用 [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin) 插件。
+[HtmlRspackPlugin](/plugins/html-rspack-plugin) 的 `sri` 配置已被移除。如果你需要 Subresource Integrity (SRI) 功能，可使用 [SubresourceIntegrityPlugin](/plugins/subresource-integrity-plugin) 插件。
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -398,7 +398,7 @@ export default {
 
 ### 调整 LightningCssMinimizerRspackPlugin 配置项
 
-[LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 的以下选项已调整：
+[LightningCssMinimizerRspackPlugin](/plugins/lightning-css-minimizer-rspack-plugin) 的以下选项已调整：
 
 - `draft`：已移除；改用 `drafts`
 - `cssHeadDataCompression`：已移除；可直接删除该选项
@@ -533,7 +533,7 @@ export default {
 
 ### `@module-federation/runtime-tools` 声明为可选 peerDependency
 
-`@module-federation/runtime-tools` 包已从 `dependencies` 调整为可选 `peerDependencies`（通过 `peerDependencies` + `peerDependenciesMeta.optional` 声明）。如果你使用了 [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin)，请确保在你的项目中显式安装该包。
+`@module-federation/runtime-tools` 包已从 `dependencies` 调整为可选 `peerDependencies`（通过 `peerDependencies` + `peerDependenciesMeta.optional` 声明）。如果你使用了 [ModuleFederationPlugin](/plugins/module-federation-plugin)，请确保在你的项目中显式安装该包。
 
 ### 移除 `module.unsafeCache`
 
@@ -564,7 +564,7 @@ export default {
 - **`css/module`**：强制启用 CSS Modules
 - **`css/auto`**：自动检测，对于 `.module.css` 文件启用 CSS Modules，普通 `.css` 文件则作为纯 CSS 处理
 
-> 更多详情参考 [CSS](/guide/tech/css)
+> 更多详情参考 [CSS](/guide/languages/css)
 
 ### 默认启用 experiments.asyncWebAssembly
 
@@ -586,11 +586,11 @@ export default {
 - `experiments.layers`：已被移除；Layer 功能现在已稳定并默认可用，但仍需要在 `module.rules` 中配置 `layer`。
 - `experiments.topLevelAwait`：已被移除；Top-level await 现在已稳定并在 ESM 模块中默认启用。
 - `experiments.lazyCompilation`：已移动到顶层的 [lazyCompilation](/config/lazy-compilation)。
-- `experiments.lazyCompilationMiddleware`：已移动到顶层的 [lazyCompilationMiddleware](/guide/features/lazy-compilation#与自定义的服务器集成)。
-- `experiments.lazyBarrel`：已被移除，[Lazy barrel](/guide/optimization/lazy-barrel) 优化现在默认启用。
+- `experiments.lazyCompilationMiddleware`：已移动到顶层的 [lazyCompilationMiddleware](/guide/advanced/lazy-compilation#integrating-with-custom-server)。
+- `experiments.lazyBarrel`：已被移除，[barrel 文件优化](/guide/advanced/lazy-barrel)现在默认启用。
 - `experiments.typeReexportsPresence`：已被移除，可使用 [module.parser.javascript.typeReexportsPresence](/config/module-parser#javascripttypereexportspresence) 直接控制类型重导出时的行为。
 - `experiments.inlineConst`：已被移除，可使用 [optimization.inlineExports](/config/optimization#optimizationinlineexports) 控制常量内联优化。
 - `experiments.inlineEnum`：已被移除，可使用 [optimization.inlineExports](/config/optimization#optimizationinlineexports) 和 `builtin:swc-loader` 的 [collectTypeScriptInfo.exportedEnum](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) 控制枚举内联优化。
 - `experiments.outputModule`：已被移除，可使用 [output.module](/config/output#outputmodule) 直接输出 ESM 产物。
 - `experiments.parallelLoader`：已被移除，Loader 并行化功能现在已稳定并默认可用，但仍需要通过 [module.rules.use.parallel](/config/module-rules#rulesuseparallel) 显式启用。
-- `experiments.SubResourceIntegrityPlugin`：已移动到顶层的 [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin)。
+- `experiments.SubResourceIntegrityPlugin`：已移动到顶层的 [SubresourceIntegrityPlugin](/plugins/subresource-integrity-plugin)。

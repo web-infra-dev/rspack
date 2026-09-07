@@ -17,6 +17,9 @@ This is a **monorepo** containing both Rust crates and JavaScript packages:
 - **`rspack_napi`**: NAPI (Node-API) support layer for interoperability between Rust and Node.js
 - **`rspack_allocator`**: Memory allocator using mimalloc to optimize memory allocation performance (Linux/macOS)
 
+See [JavaScript API architecture](/api/javascript-api/architecture) for the ownership, threading,
+hook bridge, and lifecycle relationships between these crates and `@rspack/core`.
+
 ### Build & binding crates
 
 - **`rspack_binding_build`**: Binding build script for building Node.js native bindings

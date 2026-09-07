@@ -60,7 +60,7 @@ If you are using WebAssembly modules as asynchronous modules, you now need to ma
 
 ### splitChunks.cacheGroups.\{cacheGroup\}.reuseExistingChunk
 
-The default value of [splitChunks.cacheGroups.\{cacheGroup\}.reuseExistingChunk](/plugins/webpack/split-chunks-plugin#splitchunkscachegroupscachegroupreuseexistingchunk) has been changed from `true` to `false`.
+The default value of [splitChunks.cacheGroups.\{cacheGroup\}.reuseExistingChunk](/plugins/split-chunks-plugin#splitchunkscachegroupscachegroupreuseexistingchunk) has been changed from `true` to `false`.
 
 ### optimization.moduleIds
 
@@ -206,7 +206,7 @@ export default {
 ### [Important] CSS minimizer plugin adjustment
 
 In Rspack 0.x, we used the built-in `rspack.SwcCssMinimizerRspackPlugin` to compress CSS size.
-Now, we have removed it and replaced it with [rspack.LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) to handle the same functionality.
+Now, we have removed it and replaced it with [rspack.LightningCssMinimizerRspackPlugin](/plugins/lightning-css-minimizer-rspack-plugin) to handle the same functionality.
 
 If you previously manually registered and configured `rspack.SwcCssMinimizerRspackPlugin`, you should to switch to `rspack.LightningCssMinimizerRspackPlugin`:
 

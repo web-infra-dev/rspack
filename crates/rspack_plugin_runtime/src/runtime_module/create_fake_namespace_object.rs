@@ -25,6 +25,10 @@ impl CreateFakeNamespaceObjectRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES.as_slice()
+  }
+
   fn runtime_requirements(
     &self,
     _compilation: &Compilation,
@@ -41,10 +45,6 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
       self.id().to_string(),
       CREATE_FAKE_NAMESPACE_OBJECT_TEMPLATE.to_string(),
     )]
-  }
-
-  fn runtime_module_variables() -> &'static [&'static str] {
-    RUNTIME_MODULE_VARIABLES.as_slice()
   }
 
   async fn generate(

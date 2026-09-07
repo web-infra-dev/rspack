@@ -1,0 +1,13 @@
+# Case initial-chunks-hmr: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: async/initial_js.js
+- Bundle: main.CURRENT_HASH.js
+
+## Manifest
+
+
+## Update

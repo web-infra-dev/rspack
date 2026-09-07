@@ -2,11 +2,9 @@
 description: 'context 是一个绝对路径，它被用作为 Rspack 配置中相对路径的基础路径，比如 entry 和 output 等配置中包含的相对路径。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import PropertyType from '@components/PropertyType';
 import { Tabs, Tab } from '@theme';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/entry-context/#context" />
 
 # Context
 
@@ -58,3 +56,5 @@ module.exports = {
 </Tabs>
 
 在上述例子中，`main` 入口会基于 `path.join(__dirname, './src/index.js')` 路径进行解析。
+
+<Attribution url="https://webpack.docschina.org/configuration/entry-context/#context" />
