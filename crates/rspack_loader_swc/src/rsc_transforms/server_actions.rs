@@ -587,7 +587,7 @@ impl<'a, C: Comments> ServerActions<'a, C> {
       private_ctxt: self.private_ctxt,
     });
 
-    let mut new_body: Option<FunctionBody> = function.body.take();
+    let mut new_body: Option<FunctionBody> = function.body.clone();
 
     if !ids_from_closure.is_empty() {
       // Prepend the decryption declaration to the body.
@@ -981,9 +981,11 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
     self.rewrite_fn_decl_to_proxy_decl = None;
     d.visit_mut_children_with(self);
 
-    if let Some(decl) = self.rewrite_fn_decl_to_proxy_decl.take() {
-      *d = decl.into();
+    if let Some(decl) = &self.rewrite_fn_decl_to_proxy_decl {
+      *d = (*decl).clone().into();
     }
+
+    self.rewrite_fn_decl_to_proxy_decl = None;
   }
 
   fn visit_mut_fn_decl(&mut self, f: &mut FnDecl) {
