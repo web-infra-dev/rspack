@@ -38,7 +38,8 @@ pub struct RemoteModule {
   pub internal_request: String,
   pub share_scope: ShareScope,
   pub remote_key: String,
-  factory_meta: Option<FactoryMeta>,
+  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
+  factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 }
@@ -70,7 +71,7 @@ impl RemoteModule {
       internal_request,
       share_scope,
       remote_key,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         strict: true,
         ..Default::default()

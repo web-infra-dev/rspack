@@ -715,9 +715,9 @@ pub trait Module:
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule>;
 
-  fn factory_meta(&self) -> Option<&FactoryMeta>;
+  fn factory_meta(&self) -> Option<FactoryMeta>;
 
-  fn set_factory_meta(&mut self, factory_meta: FactoryMeta);
+  fn set_factory_meta(&self, factory_meta: FactoryMeta);
 
   fn build_info(&self) -> &BuildInfo;
 
@@ -1017,6 +1017,46 @@ impl<T: Module> ModuleExt for T {
 #[repr(transparent)]
 pub struct BoxModule(Box<dyn Module>);
 
+/// A built module shared by the module graph and the in-memory build cache.
+/// Build state can only be mutated while this is the sole owner. Mutations
+/// after publication must use the module's explicit interior-mutable APIs.
+#[cacheable]
+#[derive(Debug, Clone)]
+#[repr(transparent)]
+pub struct ModuleRef(Arc<dyn Module>);
+
+impl ModuleRef {
+  pub fn get_mut(&mut self) -> Option<&mut (dyn Module + 'static)> {
+    Arc::get_mut(&mut self.0)
+  }
+}
+
+impl From<BoxModule> for ModuleRef {
+  fn from(module: BoxModule) -> Self {
+    Self(Arc::from(module.0))
+  }
+}
+
+impl std::ops::Deref for ModuleRef {
+  type Target = dyn Module;
+
+  fn deref(&self) -> &Self::Target {
+    self.0.as_ref()
+  }
+}
+
+impl AsRef<dyn Module> for ModuleRef {
+  fn as_ref(&self) -> &dyn Module {
+    self.0.as_ref()
+  }
+}
+
+impl Identifiable for ModuleRef {
+  fn identifier(&self) -> Identifier {
+    self.0.identifier()
+  }
+}
+
 impl BoxModule {
   /// Installs a module's complete build output before it is published into the graph.
   pub fn with_dependencies(
@@ -1113,12 +1153,19 @@ impl dyn Module {
 #[macro_export]
 macro_rules! impl_module_meta_info {
   () => {
-    fn factory_meta(&self) -> Option<&$crate::FactoryMeta> {
-      self.factory_meta.as_ref()
+    fn factory_meta(&self) -> Option<$crate::FactoryMeta> {
+      self
+        .factory_meta
+        .read()
+        .expect("factory metadata lock poisoned")
+        .clone()
     }
 
-    fn set_factory_meta(&mut self, v: $crate::FactoryMeta) {
-      self.factory_meta = Some(v);
+    fn set_factory_meta(&self, v: $crate::FactoryMeta) {
+      *self
+        .factory_meta
+        .write()
+        .expect("factory metadata lock poisoned") = Some(v);
     }
 
     fn build_info(&self) -> &$crate::BuildInfo {
@@ -1278,7 +1325,7 @@ mod test {
           unreachable!()
         }
 
-        fn factory_meta(&self) -> Option<&crate::FactoryMeta> {
+        fn factory_meta(&self) -> Option<crate::FactoryMeta> {
           unreachable!()
         }
 
@@ -1298,7 +1345,7 @@ mod test {
           unreachable!()
         }
 
-        fn set_factory_meta(&mut self, _: crate::FactoryMeta) {
+        fn set_factory_meta(&self, _: crate::FactoryMeta) {
           unreachable!()
         }
       }

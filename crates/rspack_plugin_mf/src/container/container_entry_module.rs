@@ -36,7 +36,8 @@ pub struct ContainerEntryModule {
   lib_ident: String,
   exposes: Vec<(String, ExposeOptions)>,
   share_scope: ShareScope,
-  factory_meta: Option<FactoryMeta>,
+  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
+  factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
   enhanced: bool,
@@ -66,7 +67,7 @@ impl ContainerEntryModule {
       lib_ident,
       exposes,
       share_scope,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         strict: true,
         top_level_declarations: Some(Default::default()),
@@ -96,7 +97,7 @@ impl ContainerEntryModule {
       lib_ident,
       exposes: vec![],
       share_scope: ShareScope::Multiple(vec![]),
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         strict: true,
         top_level_declarations: Some(Default::default()),

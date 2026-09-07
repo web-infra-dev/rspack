@@ -1,22 +1,54 @@
 use std::sync::Arc;
 
+use rspack_cacheable::{cacheable, with::{As, AsConverter}};
 use rspack_collections::{Identifiable, IdentifierDashMap};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 
 use crate::{
   BoxModule, BuildModuleGraphArtifact, FileSystemInfo, ModuleGraph, ModuleIdentifier,
-  NormalModuleState, ValueCacheVersions,
+  ModuleRef, NormalModuleState, ValueCacheVersions,
   new_cache::{CacheFacade, CacheValue},
 };
 
 /// Cache for completed normal module builds.
 ///
-/// Cache entries store [`NormalModuleState`], including its dependency and block
-/// objects. Factory-owned module data is supplied by the fresh module.
+/// Memory entries retain the built module by Arc. Persistent entries serialize
+/// its build state, including dependency and block objects.
 #[derive(Debug, Clone)]
 pub(crate) struct ModuleBuildCache {
   cache: CacheFacade,
   pending: Arc<IdentifierDashMap<u64>>,
+}
+
+#[cacheable]
+#[derive(Debug)]
+pub(crate) struct ModuleBuildCacheEntry {
+  #[cacheable(with=As<NormalModuleState>)]
+  pub(crate) module_state: CachedModuleState,
+}
+
+#[derive(Debug)]
+pub(crate) enum CachedModuleState {
+  Shared(ModuleRef),
+  Restored(Box<NormalModuleState>),
+}
+
+impl CachedModuleState {
+  pub(crate) fn get(&self) -> &NormalModuleState {
+    match self {
+      Self::Shared(module) => module.as_normal_module().expect("only normal modules are cached").module_state(),
+      Self::Restored(state) => state,
+    }
+  }
+}
+
+impl AsConverter<CachedModuleState> for NormalModuleState {
+  fn serialize(data: &CachedModuleState, _guard: &rspack_cacheable::ContextGuard) -> rspack_cacheable::Result<Self> {
+    Ok(data.get().clone())
+  }
+  fn deserialize(self, _guard: &rspack_cacheable::ContextGuard) -> rspack_cacheable::Result<CachedModuleState> {
+    Ok(CachedModuleState::Restored(Box::new(self)))
+  }
 }
 
 impl ModuleBuildCache {
@@ -38,7 +70,7 @@ impl ModuleBuildCache {
     module: &BoxModule,
     file_system_info: &FileSystemInfo,
     value_cache_versions: &ValueCacheVersions,
-  ) -> Result<Option<NormalModuleState>> {
+  ) -> Result<Option<CacheValue<ModuleBuildCacheEntry>>> {
     if module.as_normal_module().is_none() {
       return Ok(None);
     }
@@ -46,24 +78,25 @@ impl ModuleBuildCache {
     let identifier = module.identifier();
     let Some(result) = self
       .cache
-      .get::<NormalModuleState>(identifier.as_str(), None)
+      .get::<ModuleBuildCacheEntry>(identifier.as_str(), None)
     else {
       return Ok(None);
     };
     if result
+      .module_state.get()
       .need_build_with_context(file_system_info, value_cache_versions)
       .await?
     {
       return Ok(None);
     }
 
-    Ok(Some(result.as_arc().as_ref().clone()))
+    Ok(Some(result))
   }
 
   /// Stores modules built during this phase from the final module graph.
   ///
-  /// Snapshot creation and cache-entry construction are parallel. The module's
-  /// state is cloned, while dependency and block objects retain shared identity.
+  /// Snapshot creation and cache-entry construction are parallel. Modules,
+  /// dependencies and blocks retain shared identity.
   pub(crate) async fn store_pending(
     &self,
     artifact: &mut BuildModuleGraphArtifact,
@@ -142,13 +175,9 @@ impl ModuleBuildCache {
 fn create_cache_entry(
   module_graph: &ModuleGraph,
   module_identifier: ModuleIdentifier,
-) -> NormalModuleState {
+) -> ModuleBuildCacheEntry {
   let source_module = module_graph
     .module_by_identifier(&module_identifier)
     .expect("pending module should exist in the final module graph");
-  source_module
-    .as_normal_module()
-    .expect("only normal modules are marked pending for the module build cache")
-    .module_state()
-    .clone()
+  ModuleBuildCacheEntry { module_state: CachedModuleState::Shared(source_module.clone()) }
 }

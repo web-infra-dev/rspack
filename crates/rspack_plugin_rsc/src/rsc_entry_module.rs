@@ -44,7 +44,8 @@ pub struct RscEntryModule {
   name: Arc<str>,
   /// When true, client modules are loaded eagerly (not as code-split points).
   is_server_side_rendering: bool,
-  factory_meta: Option<FactoryMeta>,
+  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
+  factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
   layer: Option<ModuleLayer>,
@@ -84,7 +85,7 @@ impl RscEntryModule {
       css_imports_by_server_entry,
       name,
       is_server_side_rendering,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         strict: true,
         top_level_declarations: Some(Default::default()),

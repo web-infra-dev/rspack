@@ -31,7 +31,8 @@ pub struct ConsumeSharedModule {
   readable_identifier: String,
   context: Context,
   options: ConsumeOptions,
-  factory_meta: Option<FactoryMeta>,
+  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
+  factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 }
@@ -89,7 +90,7 @@ impl ConsumeSharedModule {
       readable_identifier: identifier,
       context,
       options,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: Default::default(),
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),

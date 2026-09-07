@@ -25,10 +25,10 @@ mod r#struct;
 pub use r#struct::*;
 
 use crate::{
-  BoxModule, BoxRuntimeModule, BuildChunkGraphArtifact, BuildModuleGraphArtifact, Chunk,
-  ChunkGraph, ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact, ChunkUkey, Compilation,
+  BoxRuntimeModule, BuildChunkGraphArtifact, BuildModuleGraphArtifact, Chunk, ChunkGraph,
+  ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact, ChunkUkey, Compilation,
   CompilationAssets, CompilationLogging, CompilerOptions, ExportsInfoArtifact, LogType,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleRef,
   OptimizationBailoutItem, ProvidedExports, RuntimeSpec, SourceType, StealCell, UsedExports,
   compilation::build_module_graph::{ExecutedRuntimeModule, ModuleExecutor},
   rspack_sources::BoxSource,
@@ -1140,7 +1140,7 @@ impl Stats<'_> {
     exports_info_artifact: &'a ExportsInfoArtifact,
     build_module_graph_artifact: &'a BuildModuleGraphArtifact,
     module_ids_artifact: &'a ModuleIdsArtifact,
-    module: &'a BoxModule,
+    module: &'a ModuleRef,
     executed: bool,
     concatenated: bool,
     root_modules: Option<&IdentifierSet>,

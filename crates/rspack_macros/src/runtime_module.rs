@@ -149,11 +149,11 @@ pub fn impl_runtime_module(
         None
       }
 
-      fn factory_meta(&self) -> Option<&::rspack_core::FactoryMeta> {
+      fn factory_meta(&self) -> Option<::rspack_core::FactoryMeta> {
         None
       }
 
-      fn set_factory_meta(&mut self, v: ::rspack_core::FactoryMeta) {}
+      fn set_factory_meta(&self, v: ::rspack_core::FactoryMeta) {}
 
       fn build_info(&self) -> &::rspack_core::BuildInfo {
         unreachable!()

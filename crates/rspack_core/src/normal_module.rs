@@ -69,7 +69,7 @@ impl ModuleIssuer {
     }
   }
 
-  pub fn get_module<'a>(&self, module_graph: &'a ModuleGraph) -> Option<&'a BoxModule> {
+  pub fn get_module<'a>(&self, module_graph: &'a ModuleGraph) -> Option<&'a crate::ModuleRef> {
     if let Some(id) = self.identifier()
       && let Some(module) = module_graph.module_by_identifier(id)
     {
@@ -159,8 +159,12 @@ pub struct NormalModule {
   #[cacheable(with=As<SourceSizeCacheSerde>)]
   cached_source_sizes: SourceSizeCache,
 
-  factory_meta: Option<FactoryMeta>,
+  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
+  factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
   state: NormalModuleState,
+  /// A seal-stage override, excluded from reusable build state.
+  #[cacheable(with=rspack_cacheable::with::Skip)]
+  asset_filename_override: std::sync::RwLock<Option<crate::Filename>>,
 }
 
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
@@ -231,7 +235,8 @@ impl NormalModule {
       extract_source_map,
 
       cached_source_sizes: SourceSizeCache::default(),
-      factory_meta: None,
+      factory_meta: Default::default(),
+      asset_filename_override: Default::default(),
       state: NormalModuleState {
         dependencies_block: Default::default(),
         source: None,
@@ -313,6 +318,21 @@ impl NormalModule {
 
   pub fn get_generator_options(&self) -> Option<&GeneratorOptions> {
     self.parser_and_generator_options.generator_options()
+  }
+
+  pub fn asset_filename_override(&self) -> Option<crate::Filename> {
+    self
+      .asset_filename_override
+      .read()
+      .expect("asset filename lock poisoned")
+      .clone()
+  }
+
+  pub fn set_asset_filename_override(&self, filename: crate::Filename) {
+    *self
+      .asset_filename_override
+      .write()
+      .expect("asset filename lock poisoned") = Some(filename);
   }
 
   pub(crate) fn module_state(&self) -> &NormalModuleState {
@@ -630,7 +650,11 @@ impl Module for NormalModule {
         resource_data: &self.resource_data,
         compiler_options: &build_context.compiler_options,
         additional_data: loader_result.additional_data,
-        factory_meta: self.factory_meta.as_ref(),
+        factory_meta: self
+          .factory_meta
+          .get_mut()
+          .expect("factory metadata lock poisoned")
+          .as_ref(),
         build_info: &mut self.state.build_info,
         build_meta: &mut self.state.build_meta,
         parse_meta: loader_result.parse_meta,
@@ -883,12 +907,19 @@ impl Module for NormalModule {
       .get_concatenation_bailout_reason(self, mg, cg)
   }
 
-  fn factory_meta(&self) -> Option<&FactoryMeta> {
-    self.factory_meta.as_ref()
+  fn factory_meta(&self) -> Option<FactoryMeta> {
+    self
+      .factory_meta
+      .read()
+      .expect("factory metadata lock poisoned")
+      .clone()
   }
 
-  fn set_factory_meta(&mut self, factory_meta: FactoryMeta) {
-    self.factory_meta = Some(factory_meta);
+  fn set_factory_meta(&self, factory_meta: FactoryMeta) {
+    *self
+      .factory_meta
+      .write()
+      .expect("factory metadata lock poisoned") = Some(factory_meta);
   }
 
   fn build_info(&self) -> &BuildInfo {

@@ -3,11 +3,10 @@ use std::sync::{Arc, atomic::AtomicI32};
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_core::{
-  BoxModule, ChunkGraph, Compilation, Context, Dependency, DependencyId, DependencyType,
-  ExportInfoData, ExportMode, ExportProvided, ExportsInfoArtifact, Module, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdsArtifact, ModuleType, OptimizationBailoutItem,
-  SideEffectsStateArtifact, UsageState, UsedByExports, UsedByExportsCondition,
-  collect_referenced_export_items,
+  ChunkGraph, Compilation, Context, Dependency, DependencyId, DependencyType, ExportInfoData,
+  ExportMode, ExportProvided, ExportsInfoArtifact, Module, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdsArtifact, ModuleRef, ModuleType, OptimizationBailoutItem, SideEffectsStateArtifact,
+  UsageState, UsedByExports, UsedByExportsCondition, collect_referenced_export_items,
   rspack_sources::{MapOptions, ObjectPool},
 };
 use rspack_intern::Atom;
@@ -32,7 +31,7 @@ type ExportUsageExports = Vec<ExportUsageExport>;
 type DependencyExportUsage = Vec<(ExportUsageExport, ExportUsageExport)>;
 
 pub fn collect_json_module_sizes(
-  modules: &IdentifierMap<&BoxModule>,
+  modules: &IdentifierMap<&ModuleRef>,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> RsdoctorJsonModuleSizes {
   let mut json_sizes: RsdoctorJsonModuleSizes = RsdoctorJsonModuleSizes::default();
@@ -80,7 +79,7 @@ pub fn collect_json_module_sizes(
 }
 
 pub fn collect_modules(
-  modules: &IdentifierMap<&BoxModule>,
+  modules: &IdentifierMap<&ModuleRef>,
   module_graph: &ModuleGraph,
   chunk_graph: &ChunkGraph,
   context: &Context,
@@ -148,7 +147,7 @@ pub fn collect_modules(
 }
 
 pub fn collect_concatenated_modules(
-  modules: &IdentifierMap<&BoxModule>,
+  modules: &IdentifierMap<&ModuleRef>,
 ) -> (IdentifierMap<IdentifierSet>, IdentifierMap<IdentifierSet>) {
   let children_map = modules
     .par_iter()
@@ -185,7 +184,7 @@ pub fn collect_concatenated_modules(
 }
 
 pub fn collect_module_original_sources(
-  modules: &IdentifierMap<&BoxModule>,
+  modules: &IdentifierMap<&ModuleRef>,
   module_ukeys: &IdentifierMap<ModuleUkey>,
   module_graph: &ModuleGraph,
   compilation: &Compilation,
@@ -251,7 +250,7 @@ pub fn collect_module_original_sources(
 }
 
 pub fn collect_module_dependencies(
-  modules: &IdentifierMap<&BoxModule>,
+  modules: &IdentifierMap<&ModuleRef>,
   module_ukeys: &IdentifierMap<ModuleUkey>,
   module_graph: &ModuleGraph,
 ) -> IdentifierMap<IdentifierMap<(DependencyId, RsdoctorDependency)>> {
@@ -619,7 +618,7 @@ fn get_esm_export_imported_specifier_exports(
 }
 
 pub fn collect_export_usage_dependencies(
-  modules: &IdentifierMap<&BoxModule>,
+  modules: &IdentifierMap<&ModuleRef>,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
@@ -760,7 +759,7 @@ pub fn collect_export_usage_edges(
 }
 
 pub fn collect_module_ids(
-  modules: &IdentifierMap<&BoxModule>,
+  modules: &IdentifierMap<&ModuleRef>,
   module_ukeys: &IdentifierMap<ModuleUkey>,
   module_ids: &ModuleIdsArtifact,
 ) -> Vec<RsdoctorModuleId> {
@@ -779,7 +778,7 @@ pub fn collect_module_ids(
 }
 
 pub fn collect_module_side_effects_locations(
-  modules: &IdentifierMap<&BoxModule>,
+  modules: &IdentifierMap<&ModuleRef>,
   module_ukeys: &IdentifierMap<ModuleUkey>,
   module_graph: &ModuleGraph,
 ) -> IdentifierMap<Vec<RsdoctorSideEffectLocation>> {
@@ -818,7 +817,7 @@ pub fn collect_module_side_effects_locations(
 }
 
 pub fn collect_connections_only_imports(
-  modules: &IdentifierMap<&BoxModule>,
+  modules: &IdentifierMap<&ModuleRef>,
   module_ukeys: &IdentifierMap<ModuleUkey>,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,

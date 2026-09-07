@@ -32,7 +32,8 @@ pub struct DelegatedModule {
   original_request: Option<String>,
   delegate_data: DllManifestContentItem,
   dependencies_block: DependenciesBlockData,
-  factory_meta: Option<FactoryMeta>,
+  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
+  factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 }

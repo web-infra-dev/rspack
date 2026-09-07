@@ -495,7 +495,7 @@ impl Compilation {
   }
 
   // it will return None during make phase since mg is incomplete
-  pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
+  pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&crate::ModuleRef> {
     if self.build_module_graph_artifact.is_stolen() {
       return None;
     }
@@ -632,7 +632,7 @@ impl Compilation {
   pub fn get_import_var(
     &self,
     module: ModuleIdentifier,
-    target_module: Option<&BoxModule>,
+    target_module: Option<&crate::ModuleRef>,
     user_request: &str,
     phase: ImportPhase,
     runtime: Option<&RuntimeSpec>,
@@ -1094,7 +1094,7 @@ impl Compilation {
     &mut self,
     module_identifiers: IdentifierSet,
     exports_info_artifact: &mut ExportsInfoArtifact,
-    f: impl Fn(Vec<&BoxModule>) -> T,
+    f: impl Fn(Vec<&crate::ModuleRef>) -> T,
   ) -> Result<T> {
     let artifact = self.build_module_graph_artifact.steal();
 

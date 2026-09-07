@@ -82,7 +82,8 @@ pub struct RootModuleContext {
   pub context: Option<Context>,
   pub layer: Option<ModuleLayer>,
   pub side_effect_connection_state: ConnectionState,
-  pub factory_meta: Option<FactoryMeta>,
+  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
+  pub factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
   pub build_meta: BuildMeta,
   pub exports_argument: ExportsArgument,
   pub module_argument: ModuleArgument,
@@ -726,12 +727,21 @@ impl Module for ConcatenatedModule {
     &ModuleType::JsEsm
   }
 
-  fn factory_meta(&self) -> Option<&FactoryMeta> {
-    self.root_module_ctxt.factory_meta.as_ref()
+  fn factory_meta(&self) -> Option<FactoryMeta> {
+    self
+      .root_module_ctxt
+      .factory_meta
+      .read()
+      .expect("factory metadata lock poisoned")
+      .clone()
   }
 
-  fn set_factory_meta(&mut self, v: FactoryMeta) {
-    self.root_module_ctxt.factory_meta = Some(v);
+  fn set_factory_meta(&self, v: FactoryMeta) {
+    *self
+      .root_module_ctxt
+      .factory_meta
+      .write()
+      .expect("factory metadata lock poisoned") = Some(v);
   }
 
   fn build_info(&self) -> &BuildInfo {

@@ -23,7 +23,8 @@ pub struct SelfModule {
   identifier: ModuleIdentifier,
   readable_identifier: String,
   dependencies_block: DependenciesBlockData,
-  factory_meta: Option<FactoryMeta>,
+  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
+  factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 }
@@ -35,7 +36,7 @@ impl SelfModule {
       identifier: ModuleIdentifier::from(identifier.as_str()),
       readable_identifier: identifier,
       dependencies_block: Default::default(),
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         strict: true,
         ..Default::default()

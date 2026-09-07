@@ -30,7 +30,8 @@ pub(crate) struct CssModule {
   pub(crate) css_layer: Option<String>,
   pub(crate) identifier_index: u32,
 
-  factory_meta: Option<FactoryMeta>,
+  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
+  factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 
@@ -64,7 +65,7 @@ impl CssModule {
       source_map: dep.source_map.clone(),
       identifier_index: dep.identifier_index,
       dependencies_block: Default::default(),
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         cacheable: dep.cacheable,
         strict: true,

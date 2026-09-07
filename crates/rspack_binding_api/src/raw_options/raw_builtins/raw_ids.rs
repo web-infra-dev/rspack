@@ -63,7 +63,7 @@ fn into_module_filter(test: RawModuleFilter) -> ModuleFilterFn {
           module: &dyn Module|
           -> BoxFuture<'_, rspack_error::Result<bool>> {
       let test = test.clone();
-      let module = ModuleObject::with_ptr(
+      let module = ModuleObject::with_readonly_ptr(
         NonNull::new(module as *const dyn Module as *mut dyn Module)
           .expect("module pointer should not be null"),
         compiler_id,

@@ -272,7 +272,8 @@ pub struct ContextModule {
   dependencies_block: DependenciesBlockData,
   identifier: Identifier,
   options: ContextModuleOptions,
-  factory_meta: Option<FactoryMeta>,
+  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
+  factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
   #[debug(skip)]
@@ -295,7 +296,7 @@ impl ContextModule {
       dependencies_block: Default::default(),
       identifier: create_identifier(&options, None),
       options,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info,
       build_meta: BuildMeta::default()
         .with_exports_type(BuildMetaExportsType::Default)

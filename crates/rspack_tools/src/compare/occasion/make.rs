@@ -179,8 +179,8 @@ impl<'a> ArtifactComparator<'a> {
   /// So we compare dependency_type in order and build a mapping from dep_id1 to dep_id2.
   fn compare_module_dependencies_and_build_map(
     &self,
-    module1: &rspack_core::BoxModule,
-    module2: &rspack_core::BoxModule,
+    module1: &rspack_core::ModuleRef,
+    module2: &rspack_core::ModuleRef,
     debug_info: &DebugInfo,
     dep_id_map: &mut HashMap<DependencyId, DependencyId>,
   ) -> Result<()> {
@@ -227,8 +227,8 @@ impl<'a> ArtifactComparator<'a> {
   /// direct comparison.
   fn compare_module_build_info(
     &self,
-    module1: &rspack_core::BoxModule,
-    module2: &rspack_core::BoxModule,
+    module1: &rspack_core::ModuleRef,
+    module2: &rspack_core::ModuleRef,
     debug_info: &DebugInfo,
     dep_id_map: &HashMap<DependencyId, DependencyId>,
   ) -> Result<()> {

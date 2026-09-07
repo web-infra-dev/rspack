@@ -131,10 +131,11 @@ fn module_factory_meta_getter(ctx: CallContext) -> napi::Result<JsFactoryMeta> {
 fn module_factory_meta_setter(ctx: CallContext) -> napi::Result<()> {
   let this = ctx.this_unchecked::<JsObject>();
   let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
-  let module = wrapped_value.as_mut()?;
   let factory_meta = ctx.get::<JsFactoryMeta>(0)?;
-  module.set_factory_meta(factory_meta.into());
-  Ok(())
+  wrapped_value.with_ref(|_, module| {
+    module.set_factory_meta(factory_meta.into());
+    Ok(())
+  })
 }
 
 #[js_function]
@@ -297,6 +298,7 @@ struct OriginalSourceNapiRef {
 pub struct Module {
   pub(crate) identifier: ModuleIdentifier,
   ptr: Option<NonNull<dyn rspack_core::Module>>,
+  mutable: bool,
   compiler_id: CompilerId,
   original_source_ref: Option<OriginalSourceNapiRef>,
   pub(crate) build_info_ref: Option<WeakRef>,
@@ -376,6 +378,18 @@ impl Module {
   }
 
   pub(crate) fn as_mut(&mut self) -> napi::Result<&'static mut dyn rspack_core::Module> {
+    // Build hooks may have left a pointer in the JS wrapper. Once the module is
+    // published in the graph, it may also be owned by the cache through Arc.
+    if !self.mutable
+      || self.with_compilation(|compilation| {
+        Ok(compilation.module_by_identifier(&self.identifier).is_some())
+      })?
+    {
+      return Err(napi::Error::from_reason(format!(
+        "Unable to modify published module with id = {}. Build state can only be modified while building the module.",
+        self.identifier
+      )));
+    }
     match self.ptr.as_mut() {
       Some(ptr) => {
         // SAFETY:
@@ -624,6 +638,7 @@ pub struct ModuleObject {
   type_id: TypeId,
   identifier: ModuleIdentifier,
   ptr: Option<NonNull<dyn rspack_core::Module>>,
+  mutable: bool,
   compiler_id: CompilerId,
 }
 
@@ -636,6 +651,7 @@ impl ModuleObject {
       type_id: module.as_any().type_id(),
       identifier: module.identifier(),
       ptr: None,
+      mutable: false,
       compiler_id,
     }
   }
@@ -647,7 +663,18 @@ impl ModuleObject {
       type_id: module.as_any().type_id(),
       identifier: module.identifier(),
       ptr: Some(module_ptr),
+      mutable: true,
       compiler_id,
+    }
+  }
+
+  pub fn with_readonly_ptr(
+    module_ptr: NonNull<dyn rspack_core::Module>,
+    compiler_id: CompilerId,
+  ) -> Self {
+    Self {
+      mutable: false,
+      ..Self::with_ptr(module_ptr, compiler_id)
     }
   }
 
@@ -710,6 +737,7 @@ impl ToNapiValue for ModuleObject {
               Either5::E(module) => &mut **module,
             };
             instance.ptr = val.ptr;
+            instance.mutable = val.mutable;
             match instance_ref {
               Either5::A(r) => ToNapiValue::to_napi_value(env, r),
               Either5::B(r) => ToNapiValue::to_napi_value(env, r),
@@ -723,6 +751,7 @@ impl ToNapiValue for ModuleObject {
               identifier: val.identifier,
               compiler_id: val.compiler_id,
               ptr: val.ptr,
+              mutable: val.mutable,
               original_source_ref: None,
               build_info_ref: Default::default(),
             };
@@ -781,30 +810,35 @@ impl FromNapiValue for ModuleObject {
           type_id: TypeId::of::<rspack_core::NormalModule>(),
           identifier: normal_module.module.identifier,
           ptr: normal_module.module.ptr,
+          mutable: normal_module.module.mutable,
           compiler_id: normal_module.module.compiler_id,
         },
         Either5::B(concatenated_module) => Self {
           type_id: TypeId::of::<rspack_core::ConcatenatedModule>(),
           identifier: concatenated_module.module.identifier,
           ptr: concatenated_module.module.ptr,
+          mutable: concatenated_module.module.mutable,
           compiler_id: concatenated_module.module.compiler_id,
         },
         Either5::C(context_module) => Self {
           type_id: TypeId::of::<rspack_core::ContextModule>(),
           identifier: context_module.module.identifier,
           ptr: context_module.module.ptr,
+          mutable: context_module.module.mutable,
           compiler_id: context_module.module.compiler_id,
         },
         Either5::D(external_module) => Self {
           type_id: TypeId::of::<rspack_core::ExternalModule>(),
           identifier: external_module.module.identifier,
           ptr: external_module.module.ptr,
+          mutable: external_module.module.mutable,
           compiler_id: external_module.module.compiler_id,
         },
         Either5::E(module) => Self {
           type_id: TypeId::of::<dyn rspack_core::Module>(),
           identifier: module.identifier,
           ptr: module.ptr,
+          mutable: module.mutable,
           compiler_id: module.compiler_id,
         },
       })

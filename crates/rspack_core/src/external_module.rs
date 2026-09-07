@@ -456,7 +456,8 @@ pub struct ExternalModule {
   pub external_type: ExternalType,
   /// Request intended by user (without loaders from config)
   user_request: String,
-  factory_meta: Option<FactoryMeta>,
+  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
+  factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
   dependency_meta: DependencyMeta,
@@ -520,7 +521,7 @@ impl ExternalModule {
       request,
       external_type,
       user_request,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         top_level_declarations: Some(Default::default()),
         strict: true,

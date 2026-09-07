@@ -146,7 +146,7 @@ impl Task<TaskContext> for AddTask {
       module
         .as_normal_module_mut()
         .expect("module cache entries are only restored for normal modules")
-        .restore_module_state(module_state);
+        .restore_module_state(module_state.module_state.get().clone());
       return Ok(vec![Box::new(BuildResultTask {
         module,
         plugin_driver: context.plugin_driver.clone(),

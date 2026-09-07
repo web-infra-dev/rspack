@@ -888,7 +888,7 @@ impl From<AssetGeneratorDataUrlFnCtx<'_>> for RawAssetGeneratorDataUrlFnCtx {
     #[allow(clippy::unwrap_used)]
     Self {
       filename: value.filename,
-      module: ModuleObject::with_ptr(
+      module: ModuleObject::with_readonly_ptr(
         NonNull::new(
           value.module as *const dyn rspack_core::Module as *mut dyn rspack_core::Module,
         )

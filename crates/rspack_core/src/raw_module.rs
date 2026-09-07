@@ -30,7 +30,8 @@ pub struct RawModule {
   identifier: ModuleIdentifier,
   readable_identifier: String,
   runtime_requirements: RuntimeGlobals,
-  factory_meta: Option<FactoryMeta>,
+  #[cacheable(with=rspack_cacheable::rkyv::with::Lock)]
+  factory_meta: std::sync::RwLock<Option<FactoryMeta>>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 }
@@ -51,7 +52,7 @@ impl RawModule {
       identifier,
       readable_identifier,
       runtime_requirements,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         cacheable: true,
         strict: true,

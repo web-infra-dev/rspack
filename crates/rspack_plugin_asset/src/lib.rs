@@ -253,11 +253,16 @@ impl AssetParserAndGenerator {
   ) -> Result<(String, String, AssetInfo)> {
     // PreserveModules may set a per-module asset filename; otherwise use
     // [Rule.generator.filename] or [output.assetModuleFilename].
-    let asset_filename_template = module
-      .build_info()
-      .asset
+    let asset_filename_override = module.asset_filename_override();
+    let asset_filename_template = asset_filename_override
       .as_ref()
-      .and_then(|x| x.filename.as_ref())
+      .or_else(|| {
+        module
+          .build_info()
+          .asset
+          .as_ref()
+          .and_then(|x| x.filename.as_ref())
+      })
       .or_else(|| module_generator_options.and_then(|x| x.asset_filename()))
       .unwrap_or(&compilation.options.output.asset_module_filename);
     let path_data = PathData::default()
