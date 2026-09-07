@@ -21,302 +21,60 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'v1.x' }}
 
-permissions:
-  # Allow commenting on issues for `reusable-build.yml`
-  issues: write
-  # Allow commenting on pull requests for `size-limit.yml`
-  pull-requests: write
-
 jobs:
-  check-changed:
-    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
-    name: Check Source Changed
-    outputs:
-      code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
-      document_changed: ${{ steps.filter.outputs.document_changed == 'true' }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
-        id: filter
-        with:
-          predicate-quantifier: 'every'
-          filters: |
-            code_changed:
-              - "!**/*.md"
-              - "!**/*.mdx"
-              - "!.agents/**"
-              - "!website/**"
-            document_changed:
-              - "website/**"
-
-  build-linux:
-    name: Build Linux
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build-build.yml
-    with:
-      target: x86_64-unknown-linux-gnu
-      profile: 'ci'
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-
-  build-website-for-fork:
-    name: Build Website for Fork PR
-    needs: [check-changed]
-    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && needs.check-changed.outputs.document_changed == 'true' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Pnpm Setup
-        uses: ./.github/actions/pnpm/setup
-
-      - name: Pnpm Install
-        run: pnpm install --frozen-lockfile
-
-      - name: Build Website
-        run: pnpm --dir website run build
-
-  test-linux:
-    name: Test Linux
-    needs: [check-changed, build-linux]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build-test.yml
-    with:
-      target: x86_64-unknown-linux-gnu
-      runner: '"ubuntu-22.04"'
-
-  bench-rust:
-    name: Rust Bench
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/bench-rust.yml
-    with:
-      target: x86_64-unknown-linux-gnu
-      runner: '"ubuntu-22.04"'
-
-  bench-rust-walltime:
-    name: Rust Bench Walltime
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
-    uses: ./.github/workflows/bench-rust.yml
-    with:
-      target: x86_64-unknown-linux-gnu
-      measurement: walltime
-      bench_target: walltime
-      runner: '"physical-1-exclusive"'
-
-  test-windows:
-    name: Test Windows
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      target: x86_64-pc-windows-msvc
-      profile: 'ci'
-      runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"' }}
-      test-runner: '"windows-latest"'
-      test: true
-
-  test-mac:
-    name: Test Mac ARM64
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      target: aarch64-apple-darwin
-      profile: 'ci'
-      runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"' }}
-      test-runner: ${{ '"macos-latest"' }}
-      test: true
-
-  build-wasm:
-    name: Build WASM
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build-build.yml
-    with:
-      target: wasm32-wasip1-threads
-      profile: 'ci'
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-
-  test-wasm:
-    name: Test WASM
-    needs: [check-changed, build-wasm]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build-test.yml
-    with:
-      target: wasm32-wasip1-threads
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-
-  build-riscv64:
-    name: Build riscv64
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    uses: ./.github/workflows/reusable-build-build.yml
-    with:
-      target: riscv64gc-unknown-linux-gnu
-      profile: 'ci'
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-
-  build-ppc64:
-    name: Build ppc64
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    uses: ./.github/workflows/reusable-build-build.yml
-    with:
-      target: powerpc64le-unknown-linux-gnu
-      profile: 'ci'
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-
-  build-s390x:
-    name: Build s390x
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    uses: ./.github/workflows/reusable-build-build.yml
-    with:
-      target: s390x-unknown-linux-gnu
-      profile: 'ci'
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-
-  # TODO: Enable this job after Rspack portable cache is implemented.
-  check-cache:
-    name: Check Cache Portable
-    needs: [test-linux, test-windows]
-    if: ${{ false }}
+  # Temporary probe: why does setup-node "Adding to the cache" take 0.7s..278s on self-hosted Linux pods
+  probe-toolcache:
+    name: Probe tool cache volume
+    strategy:
+      fail-fast: false
+      matrix:
+        sample: [1, 2, 3, 4, 5, 6]
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - name: Install Rust Toolchain
-        uses: ./.github/actions/rustup
         with:
-          key: test_cache
-          save-if: true
-      - name: Download linux cache
-        uses: ./.github/actions/artifact/download
+          clean: ${{ runner.environment == 'github-hosted' }}
+
+      - name: Env, mounts, cgroup limits
+        run: |
+          echo "runner=$RUNNER_NAME RUNNER_TOOL_CACHE=$RUNNER_TOOL_CACHE RUNNER_TEMP=$RUNNER_TEMP HOME=$HOME"
+          echo "== tool cache content"; ls -la "$RUNNER_TOOL_CACHE" 2>&1 | head -20; ls -la "$RUNNER_TOOL_CACHE/node" 2>&1 | head
+          echo "== df"; df -hT "$RUNNER_TOOL_CACHE" "$RUNNER_TEMP" "$HOME" /tmp / 2>&1
+          echo "== mountinfo"; cat /proc/self/mountinfo
+          echo "== cgroup"; for f in io.max io.stat io.pressure io.weight memory.max memory.current memory.stat cpu.max; do echo "-- $f"; head -30 /sys/fs/cgroup/$f 2>&1; done
+          echo "== pressure"; cat /proc/pressure/io /proc/pressure/memory 2>&1
+          echo "== cpu/mem"; nproc; free -m; uptime
+          echo "== dirty"; grep -E 'Dirty|Writeback' /proc/meminfo; cat /proc/sys/vm/dirty_ratio /proc/sys/vm/dirty_background_ratio
+
+      - name: Write latency probe (tool cache vs RUNNER_TEMP vs HOME vs /tmp)
+        run: |
+          now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
+          probe() {
+            d="$1/probe.$$"; mkdir -p "$d"
+            s=$(now_ms); for i in $(seq 1 3000); do echo x > "$d/f$i"; done; echo "$1: create 3000 small files $(( $(now_ms) - s ))ms"
+            s=$(now_ms); cp -r "$d" "$d.copy"; echo "$1: cp -r 3000 small files $(( $(now_ms) - s ))ms"
+            s=$(now_ms); dd if=/dev/zero of="$d/big" bs=1M count=192 conv=fsync 2>/dev/null; echo "$1: 192MB write+fsync $(( $(now_ms) - s ))ms"
+            s=$(now_ms); rm -rf "$d" "$d.copy"; echo "$1: rm -rf $(( $(now_ms) - s ))ms"
+          }
+          probe "$RUNNER_TOOL_CACHE"; probe "$RUNNER_TEMP"; probe "$HOME"; probe /tmp
+          echo "== io.stat after probe"; cat /sys/fs/cgroup/io.stat 2>&1; cat /proc/pressure/io 2>&1
+
+      - name: Real pnpm setup (timed by setup-node log lines)
+        uses: ./.github/actions/pnpm/setup
         with:
-          name: testCase-persistentCache-linux
-          path: ./cache-linux
-          force-use-github-only: true
-      - name: Download windows cache
-        uses: ./.github/actions/artifact/download
-        with:
-          name: testCase-persistentCache-windows
-          path: ./cache-windows
-          force-use-github-only: true
-      - name: Run compare kit
-        run: cargo run -p rspack_tools -- compare ./cache-linux ./cache-windows
+          node-version: 24
 
-  test_required_check:
-    # this job will be used for GitHub actions to determine required job success or not;
-    # When code changed, it will check if any of the test jobs failed.
-    # For fork PRs that change the website, it also requires the website build to pass.
-    name: Test Required Check
-    needs:
-      [
-        build-linux,
-        build-website-for-fork,
-        test-linux,
-        test-windows,
-        test-mac,
-        build-wasm,
-        build-riscv64,
-        build-ppc64,
-        build-s390x,
-        test-wasm,
-        check-changed,
-        check-cache,
-      ]
-    if: ${{ always() && !cancelled() }}
-    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
-    steps:
-      - name: Log
-        run: echo ${{ join(needs.*.result, ',') }}
-      - name: Test check
-        if: >-
-          ${{
-            needs.check-changed.result != 'success' ||
-            (needs.check-changed.outputs.code_changed == 'true' &&
-              (needs.build-linux.result != 'success' ||
-                needs.test-linux.result != 'success' ||
-                needs.test-windows.result != 'success' ||
-                needs.test-mac.result != 'success' ||
-                needs.build-wasm.result != 'success' ||
-                (github.event_name == 'push' && github.ref == 'refs/heads/main' &&
-                  (needs.build-riscv64.result != 'success' ||
-                    needs.build-ppc64.result != 'success' ||
-                    needs.build-s390x.result != 'success')) ||
-                needs.test-wasm.result != 'success' ||
-                needs.check-cache.result != 'skipped'))
-          }}
-        run: echo "Test Failed" && exit 1
-
-      - name: Website check
-        if: >-
-          ${{
-            github.event_name == 'pull_request' &&
-            github.event.pull_request.head.repo.fork &&
-            needs.check-changed.outputs.document_changed == 'true' &&
-            needs.build-website-for-fork.result != 'success'
-          }}
-        run: echo "Website Build Failed" && exit 1
-
-      - name: No check to Run test
-        run: echo "Success"
-
-  size-limit:
-    name: Binary Size Limit
-    needs: [check-changed, build-linux]
-    # On a PR this only comments (it is deliberately not part of Test Required Check).
-    # On a trunk push it gates: exceeding the threshold fails the job, and with it the run.
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' && (github.event_name == 'pull_request' || (github.event_name == 'push' && github.repository == 'web-infra-dev/rspack')) }}
-    uses: ./.github/workflows/size-limit.yml
-
-  ecosystem_ci_per_commit:
-    name: Run ecosystem CI per commit
-    needs: [check-changed, build-linux]
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-    permissions:
-      contents: write
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' }}
-    steps:
-      - name: Trigger Ecosystem CI
-        uses: rstackjs/rstack-ecosystem-ci/.github/actions/ecosystem_ci_per_commit@4b0ec855ccbd27595a0df4781ed58b77e64d25ee # v0.3.5
-        with:
-          github-token: ${{ secrets.REPO_RSTACK_ECO_CI_GITHUB_TOKEN }}
-          ecosystem-owner: web-infra-dev
-          ecosystem-repo: rspack
-          workflow-file: rspack-ecosystem-ci-from-commit.yml
-          client-payload: '{"commitSHA":"${{ github.sha }}","updateComment":true,"repo":"web-infra-dev/rspack","suite":"-","suiteRefType":"precoded","suiteRef":"precoded","sourceRunId":"${{ github.run_id }}","sourceRepo":"web-infra-dev/rspack"}'
-
-  upload-binary-size:
-    name: Upload Binary Size
-    needs: [check-changed, build-linux]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' && github.repository == 'web-infra-dev/rspack' }}
-    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Download binding artifact
-        uses: ./.github/actions/artifact/download
-        with:
-          name: bindings-x86_64-unknown-linux-gnu
-          path: crates/node_binding/
-
-      # Must mirror size-limit.yml: the uploaded size is the baseline PRs compare against.
-      - name: Strip binary
-        run: strip crates/node_binding/rspack.linux-x64-gnu.node
-
-      # github-script rather than `run: node`: this runner has no Node installed.
-      - name: Upload binary size
-        uses: actions/github-script@450193c5abd4cdb17ba9f3ffcfe8f635c4bb6c2a
-        env:
-          PERF_DATA_TOKEN: ${{ secrets.PERF_DATA_TOKEN }}
-        with:
-          script: |
-            const upload = require('./.github/actions/binary-limit/upload-binary-size.js');
-            upload({ sha: context.sha, token: process.env.PERF_DATA_TOKEN });
+      - name: Copy the real node tree both ways
+        run: |
+          now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
+          src="$RUNNER_TOOL_CACHE/node/24.20.0/x64"; ls "$src" >/dev/null
+          echo "files=$(find "$src" -type f | wc -l)"
+          s=$(now_ms); cp -r "$src" "$RUNNER_TEMP/node-copy"; echo "cp node tree -> RUNNER_TEMP $(( $(now_ms) - s ))ms"
+          s=$(now_ms); cp -r "$src" "$RUNNER_TOOL_CACHE/node-copy-probe"; echo "cp node tree -> RUNNER_TOOL_CACHE $(( $(now_ms) - s ))ms"
+          s=$(now_ms); cp -r "$RUNNER_TEMP/node-copy" "$RUNNER_TOOL_CACHE/node-copy-probe2"; echo "cp node tree RUNNER_TEMP -> RUNNER_TOOL_CACHE $(( $(now_ms) - s ))ms"
+          rm -rf "$RUNNER_TEMP/node-copy" "$RUNNER_TOOL_CACHE/node-copy-probe" "$RUNNER_TOOL_CACHE/node-copy-probe2"
+          echo "== io.stat end"; cat /sys/fs/cgroup/io.stat 2>&1; cat /proc/pressure/io 2>&1

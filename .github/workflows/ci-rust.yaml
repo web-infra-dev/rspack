@@ -21,6 +21,7 @@ on:
 jobs:
   rust_tests:
     name: Run Rust Tests
+    if: ${{ false }}
     uses: ./.github/workflows/reusable-rust-test.yml
 
   test_required_check:
