@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
@@ -9,9 +9,9 @@ use rspack_core::{
   CodeGenerationDataItem, CodeGenerationResultBuilder, CodeGenerationRuntimeRequirementsWrite,
   Compilation, Context, DependenciesBlock, Dependency, DependencyId, DependencyType,
   ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext,
-  ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleMetadata, ModuleType,
-  RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
+  RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
@@ -37,7 +37,7 @@ pub struct ContainerEntryModule {
   lib_ident: String,
   exposes: Vec<(String, ExposeOptions)>,
   share_scope: ShareScope,
-  factory_meta: ModuleMetadata<Option<FactoryMeta>>,
+  factory_meta: Arc<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
   enhanced: bool,

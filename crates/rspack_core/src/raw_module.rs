@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
@@ -14,8 +14,8 @@ use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 use crate::{
   BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResultBuilder,
   Compilation, ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleMetadata, ModuleType, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
   dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info,
   module_declared_side_effect_free, module_update_hash,
 };
@@ -32,7 +32,7 @@ pub struct RawModule {
   identifier: ModuleIdentifier,
   readable_identifier: String,
   runtime_requirements: RuntimeGlobals,
-  factory_meta: ModuleMetadata<Option<FactoryMeta>>,
+  factory_meta: Arc<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 }

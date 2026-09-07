@@ -11,8 +11,8 @@ use napi_derive::napi;
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
-  FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleCommon,
-  RuntimeModuleStage, SourceType, internal, rspack_sources::Source,
+  LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleCommon, RuntimeModuleStage,
+  SourceType, internal, rspack_sources::Source,
 };
 use rspack_napi::{
   OneShotInstanceRef, OneShotRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt,
@@ -49,14 +49,6 @@ pub struct JsLibIdentOptions {
 #[napi(object)]
 pub struct JsFactoryMeta {
   pub side_effect_free: Option<bool>,
-}
-
-impl From<JsFactoryMeta> for FactoryMeta {
-  fn from(value: JsFactoryMeta) -> Self {
-    Self {
-      side_effect_free: value.side_effect_free,
-    }
-  }
 }
 
 thread_local! {
@@ -114,7 +106,7 @@ fn module_factory_meta_getter(ctx: CallContext) -> napi::Result<JsFactoryMeta> {
     Ok(match module.as_normal_module() {
       Some(normal_module) => match normal_module.factory_meta() {
         Some(meta) => JsFactoryMeta {
-          side_effect_free: meta.side_effect_free,
+          side_effect_free: meta.side_effect_free(),
         },
         None => JsFactoryMeta {
           side_effect_free: None,
@@ -133,7 +125,9 @@ fn module_factory_meta_setter(ctx: CallContext) -> napi::Result<()> {
   let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
   let factory_meta = ctx.get::<JsFactoryMeta>(0)?;
   wrapped_value.with_mutation(|module| {
-    module.set_factory_meta(factory_meta.into());
+    if let Some(meta) = module.factory_meta() {
+      meta.set_side_effect_free(factory_meta.side_effect_free);
+    }
     Ok(())
   })
 }

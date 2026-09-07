@@ -57,7 +57,7 @@ fn create_default_exported_namespace_dependency(
   );
   if parser
     .factory_meta
-    .and_then(|meta| meta.side_effect_free)
+    .and_then(|meta| meta.side_effect_free())
     .unwrap_or_default()
   {
     dep.set_lazy();
@@ -102,7 +102,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     );
     if parser
       .factory_meta
-      .and_then(|meta| meta.side_effect_free)
+      .and_then(|meta| meta.side_effect_free())
       .unwrap_or_default()
     {
       side_effect_dep.set_lazy();
@@ -173,7 +173,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       );
       if parser
         .factory_meta
-        .and_then(|meta| meta.side_effect_free)
+        .and_then(|meta| meta.side_effect_free())
         .unwrap_or_default()
       {
         dep.set_lazy();
@@ -263,7 +263,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     }
     if parser
       .factory_meta
-      .and_then(|meta| meta.side_effect_free)
+      .and_then(|meta| meta.side_effect_free())
       .unwrap_or_default()
     {
       dep.set_lazy();

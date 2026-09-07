@@ -7,9 +7,9 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildResult, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId,
   FactoryMeta, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
-  ModuleDependency, ModuleGraph, ModuleId, ModuleMetadata, ModuleType, NeedBuildContext,
-  RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, ValueCacheVersions,
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  ModuleDependency, ModuleGraph, ModuleId, ModuleType, NeedBuildContext, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec, ValueCacheVersions, impl_module_meta_info,
+  impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -33,7 +33,7 @@ pub struct DelegatedModule {
   delegate_data: DllManifestContentItem,
   dependencies: Vec<DependencyId>,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  factory_meta: ModuleMetadata<Option<FactoryMeta>>,
+  factory_meta: Arc<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 }

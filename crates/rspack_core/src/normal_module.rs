@@ -32,11 +32,11 @@ use crate::{
   BuildResult, ChunkGraph, CodeGenerationResultBuilder, Compilation, ConnectionState, Context,
   DependenciesBlock, DependencyCodeGenerationRef, DependencyId, FactoryMeta, GenerateContext,
   GeneratorOptions, ImportPhase, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleMetadata, ModuleType,
-  NeedBuildContext, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin,
-  RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SnapshotValidationResult,
-  SourceType, ValueCacheVersions,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleType, NeedBuildContext,
+  OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult, ParserAndGenerator,
+  ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SnapshotValidationResult, SourceType,
+  ValueCacheVersions,
   cache::SnapshotStrategyOptions,
   contextify,
   diagnostics::ModuleBuildError,
@@ -161,7 +161,7 @@ pub struct NormalModule {
   #[cacheable(with=As<SourceSizeCacheSerde>)]
   cached_source_sizes: SourceSizeCache,
 
-  factory_meta: ModuleMetadata<Option<FactoryMeta>>,
+  factory_meta: Arc<FactoryMeta>,
   state: NormalModuleState,
 }
 
@@ -626,7 +626,7 @@ impl Module for NormalModule {
       });
     }
 
-    let factory_meta = self.factory_meta();
+    let factory_meta = self.factory_meta.clone();
     let (
       ParseResult {
         source,
@@ -654,7 +654,7 @@ impl Module for NormalModule {
         resource_data: &self.resource_data,
         compiler_options: &build_context.compiler_options,
         additional_data: loader_result.additional_data,
-        factory_meta: factory_meta.as_ref(),
+        factory_meta: Some(&factory_meta),
         build_info: &mut self.state.build_info,
         build_meta: &mut self.state.build_meta,
         parse_meta: loader_result.parse_meta,
@@ -907,12 +907,8 @@ impl Module for NormalModule {
       .get_concatenation_bailout_reason(self, mg, cg)
   }
 
-  fn factory_meta(&self) -> Option<FactoryMeta> {
-    self.factory_meta.snapshot()
-  }
-
-  fn set_factory_meta(&self, factory_meta: FactoryMeta) {
-    self.factory_meta.set(Some(factory_meta));
+  fn factory_meta(&self) -> Option<&FactoryMeta> {
+    Some(&self.factory_meta)
   }
 
   fn build_info(&self) -> &BuildInfo {

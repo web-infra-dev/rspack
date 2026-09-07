@@ -32,10 +32,10 @@ use crate::{
   DependenciesBlock, DependencyCategory, DependencyId, DependencyLocation, DynamicImportMode,
   ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions, ImportAttributes, ImportPhase,
   LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate,
-  ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleMetadata, ModuleType,
-  RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals, RuntimeGlobalsRenderMode,
-  RuntimeSpec, SourceType, contextify, get_exports_type_with_strict, get_outgoing_async_modules,
-  impl_module_meta_info, module_update_hash, property_access, to_path,
+  ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType, RealDependencyLocation,
+  ReferencedSpecifier, Resolve, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType,
+  contextify, get_exports_type_with_strict, get_outgoing_async_modules, impl_module_meta_info,
+  module_update_hash, property_access, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -273,7 +273,7 @@ pub struct ContextModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   identifier: Identifier,
   options: ContextModuleOptions,
-  factory_meta: ModuleMetadata<Option<FactoryMeta>>,
+  factory_meta: Arc<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
   #[debug(skip)]

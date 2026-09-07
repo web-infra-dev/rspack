@@ -100,7 +100,7 @@ impl IntoIterator for SideEffectsStateArtifact {
 pub fn module_declared_side_effect_free(module: &dyn Module) -> Option<bool> {
   module
     .factory_meta()
-    .and_then(|factory_meta| factory_meta.side_effect_free)
+    .and_then(|factory_meta| factory_meta.side_effect_free())
 }
 
 /// Returns the analyzed side-effects state derived during compilation.

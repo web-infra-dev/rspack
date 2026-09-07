@@ -1,4 +1,4 @@
-use std::{borrow::Cow, iter};
+use std::{borrow::Cow, iter, sync::Arc};
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
@@ -17,7 +17,7 @@ use crate::{
   Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRef,
   ExportProvided, ExternalType, FactoryMeta, ImportAttributes, ImportPhase, InitFragmentExt,
   InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleMetadata, ModuleType,
+  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
   NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
   StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
   extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
@@ -456,7 +456,7 @@ pub struct ExternalModule {
   pub external_type: ExternalType,
   /// Request intended by user (without loaders from config)
   user_request: String,
-  factory_meta: ModuleMetadata<Option<FactoryMeta>>,
+  factory_meta: Arc<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
   dependency_meta: DependencyMeta,

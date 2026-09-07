@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
@@ -13,7 +13,7 @@ use crate::{
   AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkUkey, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId,
   FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier,
-  ModuleMetadata, ModuleType, RuntimeSpec, SourceType, impl_module_meta_info,
+  ModuleType, RuntimeSpec, SourceType, impl_module_meta_info,
 };
 
 #[impl_source_map_config]
@@ -24,7 +24,7 @@ pub struct SelfModule {
   readable_identifier: String,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
-  factory_meta: ModuleMetadata<Option<FactoryMeta>>,
+  factory_meta: Arc<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 }

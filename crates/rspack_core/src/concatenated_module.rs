@@ -48,10 +48,10 @@ use crate::{
   ExportsInfoArtifact, FactoryMeta, ImportedByDeferModulesArtifact, InitFragment,
   InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
-  ModuleMetadata, ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve,
-  RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
-  URLStaticMode, UsageState, UsedName, UsedNameItem, analyze_module_scope, escape_identifier,
-  fast_set, filter_runtime, get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState,
+  UsedName, UsedNameItem, analyze_module_scope, escape_identifier, fast_set, filter_runtime,
+  get_runtime_key, impl_source_map_config, merge_runtime_condition,
   merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
@@ -82,7 +82,7 @@ pub struct RootModuleContext {
   pub context: Option<Context>,
   pub layer: Option<ModuleLayer>,
   pub side_effect_connection_state: ConnectionState,
-  pub factory_meta: ModuleMetadata<Option<FactoryMeta>>,
+  pub factory_meta: Arc<FactoryMeta>,
   pub build_meta: BuildMeta,
   pub exports_argument: ExportsArgument,
   pub module_argument: ModuleArgument,
@@ -740,12 +740,8 @@ impl Module for ConcatenatedModule {
     &ModuleType::JsEsm
   }
 
-  fn factory_meta(&self) -> Option<FactoryMeta> {
-    self.root_module_ctxt.factory_meta.snapshot()
-  }
-
-  fn set_factory_meta(&self, v: FactoryMeta) {
-    self.root_module_ctxt.factory_meta.set(Some(v));
+  fn factory_meta(&self) -> Option<&FactoryMeta> {
+    Some(&self.root_module_ctxt.factory_meta)
   }
 
   fn build_info(&self) -> &BuildInfo {

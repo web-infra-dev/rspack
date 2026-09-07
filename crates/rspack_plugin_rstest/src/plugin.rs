@@ -10,10 +10,10 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxPlugin, ChunkUkey, Compilation, CompilationOptimizeDependencies, CompilationParams,
   CompilationProcessAssets, CompilationRuntimeModule, CompilerCompilation, DependencyRef,
-  DependencyType, ExportsInfoArtifact, FactoryMeta, ModuleFactoryCreateData, ModuleIdentifier,
-  ModuleType, NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, Plugin, PluginExt, ResolveOptionsWithDependencyType, ResolveResult,
-  RuntimeGlobals, RuntimeModule, RuntimeVariable, SideEffectsOptimizeArtifact,
+  DependencyType, ExportsInfoArtifact, ModuleFactoryCreateData, ModuleIdentifier, ModuleType,
+  NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
+  Plugin, PluginExt, ResolveOptionsWithDependencyType, ResolveResult, RuntimeGlobals,
+  RuntimeModule, RuntimeVariable, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   module_declared_side_effect_free,
   resolver::ResolveInnerError,
@@ -631,14 +631,14 @@ async fn optimize_dependencies(
   };
 
   let mut updated_mocked_module_ids = IdentifierSet::default();
-  let module_graph = build_module_graph_artifact.get_module_graph_mut();
+  let module_graph = build_module_graph_artifact.get_module_graph();
   for module_id in mocked_module_ids {
-    if let Some(module) = module_graph.module_by_identifier_mut(&module_id)
+    if let Some(module) = module_graph.module_by_identifier(&module_id)
       && module_declared_side_effect_free(module.as_ref()) == Some(true)
     {
-      module.set_factory_meta(FactoryMeta {
-        side_effect_free: Some(false),
-      });
+      if let Some(meta) = module.factory_meta() {
+        meta.set_side_effect_free(Some(false));
+      }
       updated_mocked_module_ids.insert(module_id);
     }
   }

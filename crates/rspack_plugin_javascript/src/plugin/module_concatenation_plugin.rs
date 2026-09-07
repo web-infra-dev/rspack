@@ -11,7 +11,7 @@ use rspack_collections::{
 };
 use rspack_core::{
   BoxModule, ChunkUkey, Compilation, CompilationOptimizeChunkModules, Dependency, DependencyId,
-  DependencyType, ExportProvided, ExportsInfoArtifact, GetTargetResult,
+  DependencyType, ExportProvided, ExportsInfoArtifact, FactoryMeta, GetTargetResult,
   ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
   ProvidedExports, RuntimeCondition, RuntimeSpec, RuntimeSpecMap, SideEffectsStateArtifact,
@@ -1745,7 +1745,11 @@ async fn create_concatenated_module(
       &mut IdentifierSet::default(),
       &mut IdentifierMap::default(),
     ),
-    factory_meta: root_module.factory_meta().into(),
+    factory_meta: Arc::new(FactoryMeta::new(
+      root_module
+        .factory_meta()
+        .and_then(|meta| meta.side_effect_free()),
+    )),
     build_meta: root_module.build_meta().clone(),
     module_argument: root_module.get_module_argument(),
     exports_argument: root_module.get_exports_argument(),

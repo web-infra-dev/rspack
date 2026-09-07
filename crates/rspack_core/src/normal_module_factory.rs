@@ -14,7 +14,7 @@ use winnow::prelude::*;
 use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
   CompilerOptions, Context, CssAutoOrModuleParserOptions, CssModuleGeneratorOptions,
-  CssModuleParserOptions, Dependency, DependencyCategory, DependencyType, FactoryMeta, FuncUseCtx,
+  CssModuleParserOptions, Dependency, DependencyCategory, DependencyType, FuncUseCtx,
   GeneratorOptions, MatchContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
   ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect, ModuleRuleEnforce,
   ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
@@ -947,9 +947,9 @@ module.exports = "data:,";
               .boxed()
             };
 
-            raw_module.set_factory_meta(FactoryMeta {
-              side_effect_free: Some(true),
-            });
+            if let Some(meta) = raw_module.factory_meta() {
+              meta.set_side_effect_free(Some(true));
+            }
 
             return Ok(Some(ModuleFactoryResult::new_with_module(raw_module)));
           }

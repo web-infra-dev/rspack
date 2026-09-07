@@ -2,13 +2,17 @@ use std::{
   any::Any,
   borrow::Cow,
   fmt::{Debug, Display, Formatter},
-  sync::Arc,
+  sync::{
+    Arc,
+    atomic::{AtomicU8, Ordering},
+  },
 };
 
 use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
+  rkyv::with::{AtomicLoad, Relaxed},
   with::{AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
@@ -668,10 +672,42 @@ pub struct BuildResult {
   pub optimization_bailouts: Vec<OptimizationBailoutItem>,
 }
 
+/// Factory-owned metadata whose flags can be updated through a shared reference.
+///
+/// Mutation must follow the compilation phase's rules; changing a flag does not
+/// invalidate hashes or other derived results.
 #[cacheable]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct FactoryMeta {
-  pub side_effect_free: Option<bool>,
+  #[cacheable(with=AtomicLoad<Relaxed>)]
+  side_effect_free: AtomicU8,
+}
+
+impl FactoryMeta {
+  pub fn new(side_effect_free: Option<bool>) -> Self {
+    let meta = Self::default();
+    meta.set_side_effect_free(side_effect_free);
+    meta
+  }
+
+  pub fn side_effect_free(&self) -> Option<bool> {
+    match self.side_effect_free.load(Ordering::Relaxed) {
+      1 => Some(false),
+      2 => Some(true),
+      _ => None,
+    }
+  }
+
+  pub fn set_side_effect_free(&self, value: Option<bool>) {
+    self.side_effect_free.store(
+      match value {
+        None => 0,
+        Some(false) => 1,
+        Some(true) => 2,
+      },
+      Ordering::Relaxed,
+    );
+  }
 }
 
 pub type ModuleIdentifier = Identifier;
@@ -723,9 +759,7 @@ pub trait Module:
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult>;
 
-  fn factory_meta(&self) -> Option<FactoryMeta>;
-
-  fn set_factory_meta(&self, factory_meta: FactoryMeta);
+  fn factory_meta(&self) -> Option<&FactoryMeta>;
 
   fn build_info(&self) -> &BuildInfo;
 
@@ -1111,12 +1145,8 @@ impl dyn Module {
 #[macro_export]
 macro_rules! impl_module_meta_info {
   () => {
-    fn factory_meta(&self) -> Option<$crate::FactoryMeta> {
-      self.factory_meta.snapshot()
-    }
-
-    fn set_factory_meta(&self, v: $crate::FactoryMeta) {
-      self.factory_meta.set(Some(v));
+    fn factory_meta(&self) -> Option<&$crate::FactoryMeta> {
+      Some(&self.factory_meta)
     }
 
     fn build_info(&self) -> &$crate::BuildInfo {
@@ -1290,7 +1320,7 @@ mod test {
           unreachable!()
         }
 
-        fn factory_meta(&self) -> Option<crate::FactoryMeta> {
+        fn factory_meta(&self) -> Option<&crate::FactoryMeta> {
           unreachable!()
         }
 
@@ -1307,10 +1337,6 @@ mod test {
         }
 
         fn build_meta_mut(&mut self) -> &mut crate::BuildMeta {
-          unreachable!()
-        }
-
-        fn set_factory_meta(&self, _: crate::FactoryMeta) {
           unreachable!()
         }
       }

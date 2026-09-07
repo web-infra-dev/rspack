@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
@@ -7,9 +7,9 @@ use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildResult, CodeGenerationResultBuilder, Compilation, Context,
   DependenciesBlock, DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleMetadata, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config,
-  module_update_hash, rspack_sources::BoxSource, runtime_mode::RuntimeMode,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
+  RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::BoxSource, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
@@ -33,7 +33,7 @@ pub struct ConsumeSharedModule {
   readable_identifier: String,
   context: Context,
   options: ConsumeOptions,
-  factory_meta: ModuleMetadata<Option<FactoryMeta>>,
+  factory_meta: Arc<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 }

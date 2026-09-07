@@ -227,7 +227,10 @@ fn skip_side_effect_free_esm_import_side_effect_dependencies(
   dependencies: &[DependencyRef],
 ) -> bool {
   module.as_normal_module().is_some()
-    && module.factory_meta().and_then(|meta| meta.side_effect_free) == Some(true)
+    && module
+      .factory_meta()
+      .and_then(|meta| meta.side_effect_free())
+      == Some(true)
     && dependencies.iter().all(|dep| {
       dep.dependency_type() == &DependencyType::EsmImport
         && dep.get_phase() == ImportPhase::Evaluation

@@ -1,7 +1,7 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationBuildModule, CompilationId, CompilationOptimizeDependencies,
-  CompilerId, ExportsInfoArtifact, FactoryMeta, Plugin, RuntimeSpec, SideEffectsOptimizeArtifact,
+  CompilerId, ExportsInfoArtifact, Plugin, RuntimeSpec, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact, get_entry_runtime,
 };
 use rspack_error::{Diagnostic, Result};
@@ -81,9 +81,9 @@ async fn build_module(
 ) -> Result<()> {
   // set all modules have effects. To avoid any module remove by tree shaking.
   // see: https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/FlagAllModulesAsUsedPlugin.js#L43-L47
-  module.set_factory_meta(FactoryMeta {
-    side_effect_free: Some(false),
-  });
+  if let Some(meta) = module.factory_meta() {
+    meta.set_side_effect_free(Some(false));
+  }
 
   let module_identifier = module.identifier();
   let build_info = module.build_info_mut();
