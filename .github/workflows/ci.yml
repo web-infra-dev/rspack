@@ -39,54 +39,68 @@ jobs:
         with:
           clean: ${{ runner.environment == 'github-hosted' }}
 
-      - name: Env, load, cgroup, pressure
+      - name: Env, fs type, reflink support, dirty pages
         run: |
           set +e +o pipefail
-          echo "runner=$RUNNER_NAME RUNNER_TOOL_CACHE=$RUNNER_TOOL_CACHE RUNNER_TEMP=$RUNNER_TEMP"
-          echo "== cpu"; nproc; uptime; cat /proc/pressure/cpu /proc/pressure/io /proc/pressure/memory
-          echo "== cgroup"; cat /proc/self/cgroup; ls /sys/fs/cgroup | tr '\n' ' '; echo
-          for f in cpu.stat cpu.max cpu.pressure cpu.weight memory.max cgroup.controllers; do echo "-- $f"; cat /sys/fs/cgroup/$f 2>&1 | head -12; done
-          echo "== mem"; free -m | head -2; grep -E 'Dirty|Writeback:' /proc/meminfo
+          echo "runner=$RUNNER_NAME"; nproc; uptime; grep -E 'Dirty|Writeback:' /proc/meminfo; cat /proc/pressure/io
+          echo "== filesystems"; grep -E 'xfs|ext4|btrfs|overlay' /proc/filesystems | tr '\n' ' '; echo; ls /proc/fs; head -2 /proc/fs/xfs/stat 2>&1
+          echo "== reflink test on RUNNER_TEMP"; echo x > "$RUNNER_TEMP/rl.src"; cp --reflink=always "$RUNNER_TEMP/rl.src" "$RUNNER_TEMP/rl.dst" && echo "reflink: SUPPORTED" || echo "reflink: not supported"; rm -f "$RUNNER_TEMP/rl.src" "$RUNNER_TEMP/rl.dst"
+          echo "== python"; command -v python3; python3 -c 'import os; print("copy_file_range" in dir(os))'
+
+      - name: copy_file_range vs read/write vs sendfile on fresh (dirty) source, then after sync
+        run: |
+          set +e +o pipefail
+          D="$RUNNER_TEMP/cfr"; mkdir -p "$D/src" "$D/dst"
+          python3 - "$D" <<'PY'
+          import os, sys, time
+          D = sys.argv[1]; N = 100; SZ = 1 << 20
+          def dirty(): return next(int(l.split()[1]) // 1024 for l in open('/proc/meminfo') if l.startswith('Dirty:'))
+          def mk():
+              for i in range(N):
+                  with open(f"{D}/src/f{i}", "wb") as f: f.write(os.urandom(SZ))
+          def cfr(tag):
+              t = time.time()
+              for i in range(N):
+                  with open(f"{D}/src/f{i}", "rb") as a, open(f"{D}/dst/{tag}-cfr{i}", "wb") as b:
+                      n = SZ
+                      while n > 0:
+                          r = os.copy_file_range(a.fileno(), b.fileno(), n)
+                          if r == 0: break
+                          n -= r
+              return (time.time() - t) * 1000
+          def rw(tag):
+              t = time.time()
+              for i in range(N):
+                  with open(f"{D}/src/f{i}", "rb") as a, open(f"{D}/dst/{tag}-rw{i}", "wb") as b:
+                      while True:
+                          buf = a.read(1 << 17)
+                          if not buf: break
+                          b.write(buf)
+              return (time.time() - t) * 1000
+          def sf(tag):
+              t = time.time()
+              for i in range(N):
+                  with open(f"{D}/src/f{i}", "rb") as a, open(f"{D}/dst/{tag}-sf{i}", "wb") as b:
+                      off = 0
+                      while off < SZ:
+                          r = os.sendfile(b.fileno(), a.fileno(), off, SZ - off)
+                          if r == 0: break
+                          off += r
+              return (time.time() - t) * 1000
+          mk(); print(f"host dirty after writing 100MB src: {dirty()}MB")
+          print(f"DIRTY src : read/write {rw('d'):.0f}ms | sendfile {sf('d'):.0f}ms | copy_file_range {cfr('d'):.0f}ms   (dirty now {dirty()}MB)")
+          t = time.time(); os.sync(); print(f"sync() took {(time.time()-t)*1000:.0f}ms, dirty now {dirty()}MB")
+          print(f"CLEAN src : read/write {rw('s'):.0f}ms | sendfile {sf('s'):.0f}ms | copy_file_range {cfr('s'):.0f}ms")
+          mk(); print(f"re-dirtied src, dirty {dirty()}MB")
+          print(f"DIRTY src2: copy_file_range FIRST {cfr('e'):.0f}ms | then read/write {rw('e'):.0f}ms")
+          PY
+          rm -rf "$D"; cat /proc/pressure/io
 
       - name: Real pnpm setup (timed by setup-node log lines)
         uses: ./.github/actions/pnpm/setup
         with:
           node-version: 24
 
-      - name: Node sync vs async fs micro-benchmark on the real node tree
+      - name: After setup-node
         run: |
-          set +e +o pipefail
-          cat /proc/pressure/cpu
-          cat > "$RUNNER_TEMP/bench.mjs" <<'JS'
-          import fs from 'node:fs'; import fsp from 'node:fs/promises'; import path from 'node:path';
-          const src = process.argv[2], dst = process.argv[3];
-          const t = () => process.hrtime.bigint(); const ms = (a) => (Number(t() - a) / 1e6).toFixed(0) + 'ms';
-          const walk = (d, out) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); e.isDirectory() ? walk(p, out) : out.push(p); } return out; };
-          const files = walk(src, []); const n = files.length;
-          const sched = () => fs.readFileSync('/proc/self/schedstat', 'utf8').trim();
-          const s0 = sched();
-          let a = t(); for (let i = 0; i < 5000; i++) await new Promise(r => setImmediate(r)); console.log('setImmediate x5000 (event loop only):', ms(a));
-          a = t(); for (let i = 0; i < 5000; i++) await fsp.stat('/'); console.log("await fsp.stat('/') x5000 (threadpool round trip, no disk):", ms(a));
-          a = t(); for (const f of files) fs.lstatSync(f); console.log(`lstatSync x${n}:`, ms(a));
-          a = t(); for (const f of files) await fsp.lstat(f); console.log(`await fsp.lstat x${n}:`, ms(a));
-          const mk = (d) => { for (const f of files) fs.mkdirSync(path.dirname(path.join(d, path.relative(src, f))), { recursive: true }); };
-          mk(dst + '/sync'); a = t(); for (const f of files) fs.copyFileSync(f, path.join(dst + '/sync', path.relative(src, f))); console.log(`copyFileSync x${n}:`, ms(a));
-          mk(dst + '/async'); a = t(); for (const f of files) await fsp.copyFile(f, path.join(dst + '/async', path.relative(src, f))); console.log(`await fsp.copyFile x${n}:`, ms(a));
-          const s1 = sched(); const [r0, w0] = s0.split(' ').map(Number), [r1, w1] = s1.split(' ').map(Number);
-          console.log(`schedstat delta: on-cpu ${((r1 - r0) / 1e6).toFixed(0)}ms, runqueue-wait ${((w1 - w0) / 1e6).toFixed(0)}ms`);
-          JS
-          sed -i 's/^          //' "$RUNNER_TEMP/bench.mjs"
-          node --version; node "$RUNNER_TEMP/bench.mjs" "$RUNNER_TOOL_CACHE/node/24.20.0/x64" "$RUNNER_TEMP/bench-out"
-          rm -rf "$RUNNER_TEMP/bench-out"
-          cat /proc/pressure/cpu
-
-      - name: Alternative install path (npmmirror curl + tar into RUNNER_TEMP)
-        run: |
-          set +e +o pipefail
-          now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
-          s=$(now_ms); curl -sSL --max-time 300 -o "$RUNNER_TEMP/node.tgz" https://registry.npmmirror.com/-/binary/node/v24.20.0/node-v24.20.0-linux-x64.tar.gz; echo "curl npmmirror: $(( $(now_ms) - s ))ms size=$(stat -c %s "$RUNNER_TEMP/node.tgz")"
-          s=$(now_ms); mkdir -p "$RUNNER_TEMP/node-alt" && tar xzf "$RUNNER_TEMP/node.tgz" --strip 1 -C "$RUNNER_TEMP/node-alt"; echo "tar extract: $(( $(now_ms) - s ))ms"; "$RUNNER_TEMP/node-alt/bin/node" --version
-          s=$(now_ms); curl -sSL --max-time 300 -o /dev/null https://github.com/actions/node-versions/releases/download/24.20.0-33034074684/node-24.20.0-linux-x64.tar.gz; echo "curl github release: $(( $(now_ms) - s ))ms"
-          s=$(now_ms); cp -r "$RUNNER_TEMP/node-alt" "$RUNNER_TOOL_CACHE/node-alt-copy"; echo "cp -r node tree -> RUNNER_TOOL_CACHE: $(( $(now_ms) - s ))ms"
-          rm -rf "$RUNNER_TEMP/node-alt" "$RUNNER_TEMP/node.tgz" "$RUNNER_TOOL_CACHE/node-alt-copy"
-          uptime; cat /proc/pressure/cpu
+          grep -E 'Dirty|Writeback:' /proc/meminfo; uptime
