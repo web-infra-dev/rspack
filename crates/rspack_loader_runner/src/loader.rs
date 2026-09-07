@@ -317,6 +317,10 @@ fn path_query_fragment(mut input: &str) -> winnow::ModalResult<(&str, Option<&st
     token::{any, none_of, rest},
   };
 
+  let original_input = input;
+  let prefix_len = rspack_paths::windows_dos_device_path_prefix_len(input);
+  input = &input[prefix_len..];
+
   let path = alt((
     ('\u{200b}', any).take(),
     none_of(('?', '#', '\u{200b}')).take(),
@@ -330,7 +334,9 @@ fn path_query_fragment(mut input: &str) -> winnow::ModalResult<(&str, Option<&st
     opt(('#', fragment).take()),
   );
 
-  parser.parse_next(&mut input)
+  let (path, query, fragment) = parser.parse_next(&mut input)?;
+  let path = &original_input[..prefix_len + path.len()];
+  Ok((path, query, fragment))
 }
 
 #[cfg(test)]

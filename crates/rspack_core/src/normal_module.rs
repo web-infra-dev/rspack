@@ -794,12 +794,11 @@ impl Module for NormalModule {
       .match_resource()
       .unwrap_or_else(|| &self.resource_data)
       .resource();
-    let idx = resource.find('?');
-    if let Some(idx) = idx {
-      Some(resource[..idx].into())
-    } else {
-      Some(resource.into())
-    }
+    Some(
+      rspack_util::identifier::split_at_query_mark(resource)
+        .0
+        .into(),
+    )
   }
 
   fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<'_, str>> {

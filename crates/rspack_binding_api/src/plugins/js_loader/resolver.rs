@@ -12,6 +12,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::plugin_hook;
 use rspack_paths::Utf8Path;
+use rspack_util::identifier::split_at_query_mark;
 
 use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner, cache::loader_cache_version};
 
@@ -70,13 +71,8 @@ pub(crate) async fn resolve_loader(
 ) -> Result<Option<BoxLoader>> {
   let context = context.as_path();
   let loader_request = &l.loader;
-  let mut rest = None;
-  let prev = if let Some(index) = loader_request.find('?') {
-    rest = Some(&loader_request[index..]);
-    Utf8Path::new(&loader_request[0..index])
-  } else {
-    Utf8Path::new(loader_request)
-  };
+  let (loader_path, rest) = split_at_query_mark(loader_request);
+  let prev = Utf8Path::new(loader_path);
   #[cfg(feature = "test-loader")]
   if loader_request.starts_with("builtin:test") {
     return Ok(get_builtin_test_loader(loader_request));
