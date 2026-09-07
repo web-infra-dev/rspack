@@ -6,7 +6,7 @@ use rspack_core::{
   RuntimeRequirementsDependency, get_context,
 };
 use rspack_intern::Atom;
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use rustc_hash::FxHashMap;
 use swc_next_ecma_ast::{
   ArrowFunctionBodyData, Ast, CallExpression, Expr, ExprData, GetSpan, PropertyKeyData,
@@ -272,11 +272,7 @@ impl AMDDefineDependencyParserPlugin {
     call_expr: CallExpression,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
-    let args = call_expr
-      .arguments(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
+    let args = call_expr.arguments(ast);
     let mut array: Option<Expr> = None;
     let mut func: Option<Expr> = None;
     let mut obj: Option<Expr> = None;
@@ -285,7 +281,7 @@ impl AMDDefineDependencyParserPlugin {
     match args.len() {
       1 => {
         // We don't support spread syntax in `define()`.
-        let first_arg = args[0].as_expr(ast)?;
+        let first_arg = ast.first(args)?.as_expr(ast)?;
 
         if is_callable(ast, first_arg) {
           // define(f() {…})
@@ -301,8 +297,8 @@ impl AMDDefineDependencyParserPlugin {
         }
       }
       2 => {
-        let first_arg = args[0].as_expr(ast)?;
-        let second_arg = args[1].as_expr(ast)?;
+        let first_arg = ast.first(args)?.as_expr(ast)?;
+        let second_arg = ast.second(args)?.as_expr(ast)?;
 
         if is_literal(ast, first_arg) {
           // define("…", …)
@@ -341,9 +337,9 @@ impl AMDDefineDependencyParserPlugin {
       3 => {
         // define("…", […], …)
 
-        let first_arg = args[0].as_expr(ast)?;
-        let second_arg = args[1].as_expr(ast)?;
-        let third_arg = args[2].as_expr(ast)?;
+        let first_arg = ast.first(args)?.as_expr(ast)?;
+        let second_arg = ast.second(args)?.as_expr(ast)?;
+        let third_arg = args.get_node(ast, 2)?.as_expr(ast)?;
 
         if !is_literal(ast, first_arg) {
           return None;

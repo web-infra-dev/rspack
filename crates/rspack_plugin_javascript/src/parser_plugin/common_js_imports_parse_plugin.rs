@@ -9,7 +9,7 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Severity};
 use rspack_intern::AtomRef;
-use rspack_util::{SpanExt, json_stringify_str};
+use rspack_util::{SpanExt, json_stringify_str, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{
   Argument, ArgumentData, AssignmentExpression, AssignmentOperator, Ast, CallExpression, Expr,
   ExprData, GetSpan, MemberExpression, NewExpression, PropertyKeyData, Span, TypedSubRange,
@@ -358,13 +358,6 @@ fn static_member_name(ast: &Ast<'_>, member_expr: MemberExpression) -> Option<At
   }
 }
 
-fn collect_arguments(ast: &Ast<'_>, arguments: TypedSubRange<Argument>) -> Vec<Argument> {
-  arguments
-    .iter()
-    .map(|id| ast.get_node_in_sub_range(id))
-    .collect()
-}
-
 fn argument_expression(ast: &Ast<'_>, argument: Argument) -> Expr {
   match ast.argument_data(argument) {
     ArgumentData::Expr(expression) => expression,
@@ -497,13 +490,13 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: Expr) ->
   {
     return None;
   }
-  let args = collect_arguments(ast, new_expr.arguments(ast));
-  if let Some(first_arg) = args.first().and_then(|arg| arg.as_expr(ast))
+  let args = new_expr.arguments(ast);
+  if let Some(first_arg) = ast.first(args).and_then(|arg| arg.as_expr(ast))
     && let Some(value) = parser.evaluate_expression(first_arg).as_string()
     && value.starts_with("file:/")
   {
-    if let Some(base) = args.get(1)
-      && !is_valid_ignored_url_base_arg(parser, *base)
+    if let Some(base) = ast.second(args)
+      && !is_valid_ignored_url_base_arg(parser, base)
     {
       return None;
     }
@@ -544,11 +537,11 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: Expr) ->
 #[inline(never)]
 fn ignored_url_args_are_side_effect_free_from(
   parser: &mut JavascriptParser,
-  args: &[Argument],
+  args: TypedSubRange<Argument>,
   start: usize,
 ) -> bool {
   let ast = parser.ast.ast;
-  args.iter().skip(start).all(|arg| {
+  ast.nodes(args).skip(start).all(|arg| {
     arg
       .as_expr(ast)
       .is_some_and(|expr| is_side_effect_free_ignored_url_arg(parser, expr))
@@ -585,15 +578,15 @@ fn parse_create_require_argument(
   emit_warning: bool,
 ) -> Option<CreateRequireArgument> {
   let ast = parser.ast.ast;
-  let args = collect_arguments(ast, call_expr.arguments(ast));
-  parse_create_require_argument_from_args(parser, &args, call_expr.span(ast), emit_warning)
+  let args = call_expr.arguments(ast);
+  parse_create_require_argument_from_args(parser, args, call_expr.span(ast), emit_warning)
 }
 
 #[cold]
 #[inline(never)]
 fn parse_create_require_argument_from_args(
   parser: &mut JavascriptParser,
-  args: &[Argument],
+  args: TypedSubRange<Argument>,
   span: Span,
   emit_warning: bool,
 ) -> Option<CreateRequireArgument> {
@@ -605,12 +598,15 @@ fn parse_create_require_argument_from_args(
   }
 
   let ast = parser.ast.ast;
-  let Some(arg) = args[0].as_expr(ast) else {
+  let first_arg = ast
+    .first(args)
+    .expect("argument index should be within range");
+  let Some(arg) = first_arg.as_expr(ast) else {
     if emit_warning {
       add_create_require_warning(
         parser,
         "module.createRequire does not support spread arguments.",
-        args[0].span(ast),
+        first_arg.span(ast),
       );
     }
     return None;
@@ -649,8 +645,8 @@ fn parse_create_require_new_argument(
   emit_warning: bool,
 ) -> Option<CreateRequireArgument> {
   let ast = parser.ast.ast;
-  let args = collect_arguments(ast, new_expr.arguments(ast));
-  parse_create_require_argument_from_args(parser, &args, new_expr.span(ast), emit_warning)
+  let args = new_expr.arguments(ast);
+  parse_create_require_argument_from_args(parser, args, new_expr.span(ast), emit_warning)
 }
 
 #[inline(never)]
@@ -675,31 +671,39 @@ fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: Ex
   {
     let is_absolute_file_url = is_absolute_file_url_constructor_arg(parser, arg);
     let start = if is_absolute_file_url { 1 } else { 2 };
-    let args = collect_arguments(ast, new_expr.arguments(ast));
+    let args = new_expr.arguments(ast);
     if is_absolute_file_url
-      && let Some(base) = args.get(1)
-      && !is_valid_ignored_url_base_arg(parser, *base)
+      && let Some(base) = ast.second(args)
+      && !is_valid_ignored_url_base_arg(parser, base)
     {
       return false;
     }
-    ignored_url_args_are_side_effect_free_from(parser, &args, start)
+    ignored_url_args_are_side_effect_free_from(parser, args, start)
   } else {
     true
   }
 }
 
 #[inline(never)]
-fn can_defer_create_require_call(parser: &mut JavascriptParser, args: &[Argument]) -> bool {
+fn can_defer_create_require_call(
+  parser: &mut JavascriptParser,
+  args: TypedSubRange<Argument>,
+) -> bool {
   let ast = parser.ast.ast;
   args.len() == 1
-    && args[0]
+    && ast
+      .first(args)
+      .expect("argument index should be within range")
       .as_expr(ast)
       .and_then(|expr| expr.as_member_expression(ast))
       .is_some_and(|member| is_meta_url(parser, member))
 }
 
 #[inline(never)]
-fn should_clear_create_require_call(parser: &mut JavascriptParser, args: &[Argument]) -> bool {
+fn should_clear_create_require_call(
+  parser: &mut JavascriptParser,
+  args: TypedSubRange<Argument>,
+) -> bool {
   !matches!(parser.javascript_options.require_resolve, Some(false))
     && can_defer_create_require_call(parser, args)
 }
@@ -750,9 +754,9 @@ fn is_absolute_file_url_constructor_arg(parser: &mut JavascriptParser, arg: Expr
   {
     return false;
   };
-  let args = collect_arguments(ast, new_expr.arguments(ast));
-  args
-    .first()
+  let args = new_expr.arguments(ast);
+  ast
+    .first(args)
     .and_then(|arg| arg.as_expr(ast))
     .and_then(|arg| parser.evaluate_expression(arg).as_string())
     .is_some_and(|value| value.starts_with("file:/"))
@@ -765,9 +769,9 @@ fn walk_create_require_callee(parser: &mut JavascriptParser, call_expr: CallExpr
 
 fn walk_create_require_ignored_args(parser: &mut JavascriptParser, call_expr: CallExpression) {
   let ast = parser.ast.ast;
-  let args = collect_arguments(ast, call_expr.arguments(ast));
+  let args = call_expr.arguments(ast);
   if args.len() > 1 {
-    parser.walk_arguments(args.into_iter().skip(1));
+    parser.walk_arguments(ast.nodes(args).skip(1));
   }
 }
 
@@ -788,9 +792,9 @@ fn walk_create_require_argument_side_effects(parser: &mut JavascriptParser, arg:
   if !is_unbound_url_constructor(parser, new_expr.callee(ast)) {
     return;
   };
-  let args = collect_arguments(ast, new_expr.arguments(ast));
+  let args = new_expr.arguments(ast);
   if args.len() > 1 {
-    parser.walk_arguments(args.into_iter().skip(1));
+    parser.walk_arguments(ast.nodes(args).skip(1));
   }
 }
 
@@ -839,14 +843,14 @@ fn create_require_url_arg_side_effects(parser: &mut JavascriptParser, arg: Expr)
   if !is_unbound_url_constructor(parser, new_expr.callee(ast)) {
     return String::new();
   };
-  let args = collect_arguments(ast, new_expr.arguments(ast));
+  let args = new_expr.arguments(ast);
   let start = if is_absolute_file_url_constructor_arg(parser, arg) {
     1
   } else {
     2
   };
   let mut side_effects = String::new();
-  for argument in args.iter().skip(start).copied() {
+  for argument in ast.nodes(args).skip(start) {
     let expression = argument_expression(ast, argument);
     let Some(source) = source_for_span(parser, expression.span(ast)) else {
       continue;
@@ -889,10 +893,13 @@ fn wrap_span_with_side_effects(parser: &mut JavascriptParser, span: Span, side_e
 }
 
 #[inline(never)]
-fn create_require_extra_arg_side_effects(parser: &JavascriptParser, args: &[Argument]) -> String {
+fn create_require_extra_arg_side_effects(
+  parser: &JavascriptParser,
+  args: TypedSubRange<Argument>,
+) -> String {
   let ast = parser.ast.ast;
   let mut side_effects = String::new();
-  for argument in args.iter().skip(1).copied() {
+  for argument in ast.nodes(args).skip(1) {
     let expression = argument_expression(ast, argument);
     let Some(source) = source_for_span(parser, expression.span(ast)) else {
       continue;
@@ -909,13 +916,22 @@ fn create_require_extra_arg_side_effects(parser: &JavascriptParser, args: &[Argu
 #[inline(never)]
 fn create_require_args_side_effects(
   parser: &mut JavascriptParser,
-  args: &[Argument],
+  args: TypedSubRange<Argument>,
   argument: &CreateRequireArgument,
 ) -> String {
   let mut side_effects = if argument.replace_argument {
     String::new()
   } else {
-    create_require_url_arg_side_effects(parser, argument_expression(parser.ast.ast, args[0]))
+    let ast = parser.ast.ast;
+    create_require_url_arg_side_effects(
+      parser,
+      argument_expression(
+        ast,
+        ast
+          .first(args)
+          .expect("argument index should be within range"),
+      ),
+    )
   };
   let extra_side_effects = create_require_extra_arg_side_effects(parser, args);
   if !extra_side_effects.is_empty() {
@@ -928,7 +944,7 @@ fn create_require_args_side_effects(
 fn evaluate_created_require<'p>(
   parser: &mut JavascriptParser<'p>,
   range: Span,
-  args: &[Argument],
+  args: TypedSubRange<Argument>,
   argument: CreateRequireArgument,
 ) -> BasicEvaluatedExpression<'p> {
   let side_effects = create_require_args_side_effects(parser, args, &argument);
@@ -969,11 +985,11 @@ pub(crate) fn evaluate_create_require_new_expression<'p>(
   }
   let argument = parse_create_require_new_argument(parser, expr, false)?;
   let ast = parser.ast.ast;
-  let args = collect_arguments(ast, expr.arguments(ast));
+  let args = expr.arguments(ast);
   Some(evaluate_created_require(
     parser,
     expr.span(ast),
-    &args,
+    args,
     argument,
   ))
 }
@@ -985,11 +1001,11 @@ fn evaluate_create_require_call_expression<'p>(
 ) -> Option<BasicEvaluatedExpression<'p>> {
   let argument = parse_create_require_argument(parser, expr, false)?;
   let ast = parser.ast.ast;
-  let args = collect_arguments(ast, expr.arguments(ast));
+  let args = expr.arguments(ast);
   Some(evaluate_created_require(
     parser,
     expr.span(ast),
-    &args,
+    args,
     argument,
   ))
 }
@@ -1163,8 +1179,8 @@ fn pre_tag_created_require_declarator(
   let is_create_require_callee = callee.as_identifier_reference(ast).is_some_and(|ident| {
     is_create_require_specifier(parser, &Atom::from(ast.get_utf8(ident.name(ast))))
   }) || is_create_require_namespace_member(parser, callee);
-  let args = collect_arguments(ast, call.arguments(ast));
-  if !is_create_require_callee || !can_defer_create_require_call(parser, &args) {
+  let args = call.arguments(ast);
+  if !is_create_require_callee || !can_defer_create_require_call(parser, args) {
     return;
   }
   let Some(argument) = parse_create_require_argument(parser, call, false) else {
@@ -1196,7 +1212,12 @@ fn pre_tag_created_require_declarator(
   parser.created_require_references.add_pending(
     call_span,
     deferred_callee,
-    argument_expression(parser.ast.ast, args[0]),
+    argument_expression(
+      ast,
+      ast
+        .first(args)
+        .expect("argument index should be within range"),
+    ),
     statement_path,
     prev_statement,
   );
@@ -1209,10 +1230,11 @@ fn tag_created_require_declarator(
   binding: swc_next_ecma_ast::BindingIdentifier,
   call_span: Span,
   clear_call: bool,
-  args: &[Argument],
+  args: TypedSubRange<Argument>,
   deferred_callee: Option<DeferredCreateRequireCallee>,
   argument: CreateRequireArgument,
 ) {
+  let ast = parser.ast.ast;
   let CreateRequireArgument {
     value,
     context,
@@ -1237,23 +1259,32 @@ fn tag_created_require_declarator(
     parser.created_require_references.add_pending(
       call_span,
       callee,
-      argument_expression(parser.ast.ast, args[0]),
+      argument_expression(
+        ast,
+        ast
+          .first(args)
+          .expect("argument index should be within range"),
+      ),
       statement_path,
       prev_statement,
     );
   } else if clear_call {
     clear_create_require_call(parser, call_span);
   } else if replace_argument {
+    let first_arg = ast
+      .first(args)
+      .expect("argument index should be within range");
     parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-      argument_expression(parser.ast.ast, args[0])
-        .span(parser.ast.ast)
-        .into(),
+      argument_expression(ast, first_arg).span(ast).into(),
       json_stringify_str(&value).into(),
     )));
   } else {
-    walk_create_require_argument_side_effects(parser, argument_expression(parser.ast.ast, args[0]));
+    let first_arg = ast
+      .first(args)
+      .expect("argument index should be within range");
+    walk_create_require_argument_side_effects(parser, argument_expression(ast, first_arg));
   }
-  parser.walk_arguments(args.iter().skip(1).copied());
+  parser.walk_arguments(ast.nodes(args).skip(1));
 }
 
 fn clear_create_require_tag<'key>(parser: &mut JavascriptParser, name: impl Into<AtomRef<'key>>) {
@@ -1363,9 +1394,11 @@ fn walk_unsupported_create_require_resolve(
 ) {
   walk_create_require_callee(parser, inner_call_expr);
   let ast = parser.ast.ast;
-  let inner_args = collect_arguments(ast, inner_call_expr.arguments(ast));
+  let inner_args = inner_call_expr.arguments(ast);
   if inner_args.len() == 1
-    && let Some(arg) = inner_args[0].as_expr(ast)
+    && let Some(arg) = ast
+      .first(inner_args)
+      .and_then(|argument| argument.as_expr(ast))
   {
     if let Some(value) = evaluate_create_require_argument(parser, arg) {
       if should_replace_create_require_argument(parser, arg) {
@@ -1378,27 +1411,23 @@ fn walk_unsupported_create_require_resolve(
       }
     } else if let Some(new_expr) = arg.as_new_expression(parser.ast.ast)
       && is_unbound_url_constructor(parser, new_expr.callee(parser.ast.ast))
-      && let args = collect_arguments(parser.ast.ast, new_expr.arguments(parser.ast.ast))
+      && let args = new_expr.arguments(parser.ast.ast)
       && args.len() > 2
     {
+      let ast = parser.ast.ast;
       if get_url_request(parser, new_expr).is_some() {
-        parser.walk_arguments(args.into_iter().skip(2));
+        parser.walk_arguments(ast.nodes(args).skip(2));
       } else {
-        parser.walk_arguments(args.into_iter());
+        parser.walk_arguments(ast.nodes(args));
       }
     } else {
       parser.walk_expression(arg);
     }
   } else {
-    parser.walk_arguments(inner_args.into_iter());
+    parser.walk_arguments(ast.nodes(inner_args));
   }
   let ast = parser.ast.ast;
-  parser.walk_arguments(
-    call_expr
-      .arguments(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id)),
-  );
+  parser.walk_arguments(ast.nodes(call_expr.arguments(ast)));
 }
 
 fn tag_commonjs_require_referenced(
@@ -1549,10 +1578,10 @@ impl CallOrNewExpression {
     }
   }
 
-  pub fn args(self, ast: &Ast<'_>) -> Vec<Argument> {
+  pub fn args(self, ast: &Ast<'_>) -> TypedSubRange<Argument> {
     match self {
-      CallOrNewExpression::Call(call_expr) => collect_arguments(ast, call_expr.arguments(ast)),
-      CallOrNewExpression::New(new_expr) => collect_arguments(ast, new_expr.arguments(ast)),
+      CallOrNewExpression::Call(call_expr) => call_expr.arguments(ast),
+      CallOrNewExpression::New(new_expr) => new_expr.arguments(ast),
     }
   }
 
@@ -1608,18 +1637,21 @@ impl CommonJsImportsParserPlugin {
     request_context: Option<Context>,
   ) {
     let ast = parser.ast.ast;
-    let args = collect_arguments(ast, call_expr.arguments(ast));
+    let args = call_expr.arguments(ast);
     if args.len() != 1 {
       return;
     }
 
-    if let Some(argument_expr) = args[0].as_expr(ast)
+    let argument = ast
+      .first(args)
+      .expect("argument index should be within range");
+    if let Some(argument_expr) = argument.as_expr(ast)
       && Self::has_ignore_comment(parser, call_expr.span(ast), argument_expr.span(ast))
     {
       return;
     }
 
-    let argument_expr = argument_expression(ast, args[0]);
+    let argument_expr = argument_expression(ast, argument);
     let param = parser.evaluate_expression(argument_expr);
     let range = call_expr.callee(parser.ast.ast).span(parser.ast.ast).into();
     let loc = parser.to_dependency_location(range);
@@ -1651,15 +1683,21 @@ impl CommonJsImportsParserPlugin {
     expr: CallExpression,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
-    let args = collect_arguments(ast, expr.arguments(ast));
-    if args.len() != 1 || args[0].as_expr(ast).is_none() {
+    let args = expr.arguments(ast);
+    if args.len() != 1
+      || ast
+        .first(args)
+        .expect("argument index should be within range")
+        .as_expr(ast)
+        .is_none()
+    {
       preserve_unhandled_created_require(parser);
-      parser.walk_arguments(args.into_iter());
+      parser.walk_arguments(ast.nodes(args));
       return Some(true);
     }
     if matches!(parser.javascript_options.require_resolve, Some(false)) {
       preserve_unhandled_created_require(parser);
-      parser.walk_arguments(args.into_iter());
+      parser.walk_arguments(ast.nodes(args));
       return Some(true);
     }
     self.process_resolve(parser, expr, false, current_created_require_context(parser));
@@ -1726,11 +1764,13 @@ impl CommonJsImportsParserPlugin {
     is_call: bool,
   ) -> Option<CommonJsFullRequireDependency> {
     let ast = parser.ast.ast;
-    let args = collect_arguments(ast, call_expr.arguments(ast));
+    let args = call_expr.arguments(ast);
     if args.len() != 1 {
       return None;
     }
-    let arg = args[0];
+    let arg = ast
+      .first(args)
+      .expect("argument index should be within range");
     if let Some(argument_expr) = arg.as_expr(ast)
       && Self::has_ignore_comment(parser, call_expr.span(ast), argument_expr.span(ast))
     {
@@ -1823,7 +1863,7 @@ impl CommonJsImportsParserPlugin {
     request_context: Option<Context>,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
-    let Some(argument_expr) = call_expr.arguments(ast).get_node(ast, 0) else {
+    let Some(argument_expr) = ast.first(call_expr.arguments(ast)) else {
       unreachable!("ensure require includes arguments")
     };
     let argument_expr = argument_expression(ast, argument_expr);
@@ -1876,7 +1916,10 @@ impl CommonJsImportsParserPlugin {
     if args.len() != 1 {
       return None;
     }
-    let argument_expr = args[0].as_expr(ast)?;
+    let argument_expr = ast
+      .first(args)
+      .expect("argument index should be within range")
+      .as_expr(ast)?;
 
     // Skip adding require() as a dependency when in unreachable code after
     // return/throw (e.g. require("fail") in dead code should not be resolved).
@@ -2112,11 +2155,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         || is_create_require_namespace_member(parser, callee))
       && let Some(argument) = parse_create_require_argument(parser, call, false)
     {
-      let args = collect_arguments(parser.ast.ast, call.arguments(parser.ast.ast));
+      let args = call.arguments(parser.ast.ast);
       let call_span = call.span(parser.ast.ast);
-      let clear_call = should_clear_create_require_call(parser, &args);
+      let clear_call = should_clear_create_require_call(parser, args);
       let deferred_callee = (declaration.kind(parser.ast.ast) == VariableDeclarationKind::Const
-        && can_defer_create_require_call(parser, &args))
+        && can_defer_create_require_call(parser, args))
       .then(|| deferred_create_require_callee(parser, callee, call_span))
       .flatten();
       let walk_callee = !clear_call && deferred_callee.is_none();
@@ -2125,7 +2168,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         binding,
         call_span,
         clear_call,
-        &args,
+        args,
         deferred_callee,
         argument,
       );
@@ -2141,16 +2184,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && let Some(argument) = parse_create_require_new_argument(parser, init, false)
     {
       let ast = parser.ast.ast;
-      let args = collect_arguments(ast, init.arguments(ast));
-      tag_created_require_declarator(
-        parser,
-        binding,
-        init.span(ast),
-        false,
-        &args,
-        None,
-        argument,
-      );
+      let args = init.arguments(ast);
+      tag_created_require_declarator(parser, binding, init.span(ast), false, args, None, argument);
       parser.walk_expression(init.callee(parser.ast.ast));
       return Some(true);
     }
@@ -2528,22 +2563,25 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     ) {
       if let Some(argument) = parse_create_require_argument(parser, call_expr, true) {
         let ast = parser.ast.ast;
-        let args = collect_arguments(ast, call_expr.arguments(ast));
+        let args = call_expr.arguments(ast);
         let call_span = call_expr.span(ast);
-        let clear_call = should_clear_create_require_call(parser, &args);
+        let clear_call = should_clear_create_require_call(parser, args);
         if clear_call {
           clear_create_require_call(parser, call_span);
         } else if argument.replace_argument {
-          let argument_expr = argument_expression(parser.ast.ast, args[0]);
+          let first_arg = ast
+            .first(args)
+            .expect("argument index should be within range");
+          let argument_expr = argument_expression(ast, first_arg);
           parser.add_presentational_dependency(Arc::new(ConstDependency::new(
             argument_expr.span(parser.ast.ast).into(),
             json_stringify_str(&argument.value).into(),
           )));
         } else {
-          walk_create_require_argument_side_effects(
-            parser,
-            argument_expression(parser.ast.ast, args[0]),
-          );
+          let first_arg = ast
+            .first(args)
+            .expect("argument index should be within range");
+          walk_create_require_argument_side_effects(parser, argument_expression(ast, first_arg));
         }
         if !clear_call {
           walk_create_require_callee(parser, call_expr);
@@ -2618,9 +2656,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && let Some(argument) = parse_create_require_argument(parser, call_expr, false)
     {
       let ast = parser.ast.ast;
-      let args = collect_arguments(ast, call_expr.arguments(ast));
+      let args = call_expr.arguments(ast);
       let member_span = member_expr.span(ast);
-      let side_effects = create_require_args_side_effects(parser, &args, &argument);
+      let side_effects = create_require_args_side_effects(parser, args, &argument);
       let unsupported_replacement = create_require_unsupported_member_replacement(&side_effects);
       handle_created_require_member(
         parser,
@@ -2666,18 +2704,22 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && members[0].as_ref() == "resolve"
     {
       let ast = parser.ast.ast;
-      let call_args = collect_arguments(ast, call_expr.arguments(ast));
+      let call_args = call_expr.arguments(ast);
       if matches!(parser.javascript_options.require_resolve, Some(false))
         || call_args.len() != 1
-        || call_args[0].as_expr(ast).is_none()
+        || ast
+          .first(call_args)
+          .expect("argument index should be within range")
+          .as_expr(ast)
+          .is_none()
       {
         walk_unsupported_create_require_resolve(parser, inner_call_expr, call_expr);
         return Some(true);
       }
       let argument = parse_create_require_argument(parser, inner_call_expr, false)?;
       let ast = parser.ast.ast;
-      let inner_args = collect_arguments(ast, inner_call_expr.arguments(ast));
-      let side_effects = create_require_args_side_effects(parser, &inner_args, &argument);
+      let inner_args = inner_call_expr.arguments(ast);
+      let side_effects = create_require_args_side_effects(parser, inner_args, &argument);
       wrap_span_with_side_effects(parser, call_expr.span(parser.ast.ast), &side_effects);
       let context = argument.context;
       walk_create_require_ignored_args(parser, inner_call_expr);
@@ -2690,8 +2732,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && let Some(argument) = parse_create_require_argument(parser, inner_call_expr, false)
     {
       let ast = parser.ast.ast;
-      let inner_args = collect_arguments(ast, inner_call_expr.arguments(ast));
-      let side_effects = create_require_args_side_effects(parser, &inner_args, &argument);
+      let inner_args = inner_call_expr.arguments(ast);
+      let side_effects = create_require_args_side_effects(parser, inner_args, &argument);
       let unsupported_replacement = create_require_unsupported_member_replacement(&side_effects);
       let callee = call_expr.callee(ast);
       let member_span = callee.span(ast);
@@ -2715,12 +2757,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       }
       walk_create_require_ignored_args(parser, inner_call_expr);
       let ast = parser.ast.ast;
-      parser.walk_arguments(
-        call_expr
-          .arguments(ast)
-          .iter()
-          .map(|id| ast.get_node_in_sub_range(id)),
-      );
+      parser.walk_arguments(ast.nodes(call_expr.arguments(ast)));
       return Some(true);
     }
 
@@ -2734,12 +2771,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     {
       parser.add_dependency(BoxDependency::new(dep));
       let ast = parser.ast.ast;
-      parser.walk_arguments(
-        call_expr
-          .arguments(ast)
-          .iter()
-          .map(|id| ast.get_node_in_sub_range(id)),
-      );
+      parser.walk_arguments(ast.nodes(call_expr.arguments(ast)));
       return Some(true);
     }
     None

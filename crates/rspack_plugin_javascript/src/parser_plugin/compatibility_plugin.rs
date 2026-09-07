@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rspack_core::{
   ConstDependency, ContextDependency, DependencyCodeGenerationRef, DependencyRange, ExportsArgument,
 };
-use rspack_util::{SpanExt, itoa};
+use rspack_util::{SpanExt, itoa, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{
   ArgumentData, BindingPatternData, CallExpression, GetSpan, Program, VariableDeclarator,
 };
@@ -44,15 +44,11 @@ impl CompatibilityPlugin {
     expr: CallExpression,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
-    let arguments = expr
-      .arguments(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
+    let arguments = expr.arguments(ast);
     if arguments.len() != 2 {
       return None;
     }
-    let ArgumentData::Expr(second) = ast.argument_data(arguments[1]) else {
+    let ArgumentData::Expr(second) = ast.argument_data(ast.second(arguments)?) else {
       return None;
     };
     let second = parser.evaluate_expression(second);

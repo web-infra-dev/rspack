@@ -1,4 +1,5 @@
 use rspack_intern::Atom;
+use rspack_util::swc::AstSubRangeExt;
 use swc_next_ecma_ast::{
   GetSpan, ImportDeclaration, ImportDeclarationSpecifierData, Stmt, StmtData, TypedSubRange,
 };
@@ -14,8 +15,7 @@ use crate::{
 impl JavascriptParser<'_> {
   pub fn module_pre_walk_module_items(&mut self, statements: TypedSubRange<Stmt>) {
     let ast = self.ast.ast;
-    for id in statements.iter() {
-      let statement = ast.get_node_in_sub_range(id);
+    for statement in ast.nodes(statements) {
       self.statement_path.push(statement.span(ast).into());
       match ast.stmt_data(statement) {
         StmtData::ImportDeclaration(declaration) => {
@@ -42,8 +42,7 @@ impl JavascriptParser<'_> {
       .into_owned();
     drive.import(self, declaration, &source);
     let source_atom = Atom::from(source);
-    for id in declaration.specifiers(ast).iter() {
-      let specifier = ast.get_node_in_sub_range(id);
+    for specifier in ast.nodes(declaration.specifiers(ast)) {
       match ast.import_declaration_specifier_data(specifier) {
         ImportDeclarationSpecifierData::ImportSpecifier(named) => {
           let local = named.local(ast);
