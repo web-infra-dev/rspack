@@ -135,6 +135,11 @@ where
     self.map.iter()
   }
 
+  /// Consumes a retired map without retaining its undo history.
+  pub fn into_values(self) -> impl Iterator<Item = V> {
+    self.map.into_values()
+  }
+
   #[inline]
   #[allow(clippy::len_without_is_empty)]
   pub fn len(&self) -> usize {

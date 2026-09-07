@@ -1,5 +1,7 @@
-use std::{sync::Arc, time::Duration};
+use std::{any::Any, sync::Arc, time::Duration};
 
+use rayon::prelude::*;
+use rspack_cacheable::{__private::rkyv::Serialize, Serializer};
 use rspack_error::Result;
 use rspack_paths::InternedPathSet;
 
@@ -114,6 +116,73 @@ impl Cache {
     if let Some(file_cache) = &storage.idle_file_cache {
       file_cache.store(key, etag, value)
     }
+  }
+
+  pub(crate) fn get_memory<T: Any + Send + Sync>(
+    &self,
+    key: CacheKey,
+    etag: Option<Etag>,
+  ) -> MemoryCacheGetResult<T> {
+    self
+      .inner
+      .storage
+      .as_ref()
+      .and_then(|storage| storage.memory_cache.as_ref())
+      .map_or(MemoryCacheGetResult::NotCached, |cache| {
+        cache.get(&key, etag.as_ref())
+      })
+  }
+
+  pub(crate) fn store_memory<T: Any + Send + Sync>(
+    &self,
+    key: CacheKey,
+    etag: Option<Etag>,
+    value: CacheValue<T>,
+  ) {
+    if let Some(cache) = self
+      .inner
+      .storage
+      .as_ref()
+      .and_then(|storage| storage.memory_cache.as_ref())
+    {
+      cache.store(key, etag, value);
+    }
+  }
+
+  pub(crate) fn restore_owned<T: CacheValueData>(
+    &self,
+    key: CacheKey,
+    etag: Option<Etag>,
+  ) -> Option<T> {
+    self
+      .inner
+      .storage
+      .as_ref()?
+      .idle_file_cache
+      .as_ref()?
+      .restore_owned(key, etag)
+  }
+
+  pub(crate) fn store_borrowed<T: for<'a> Serialize<Serializer<'a>> + Send>(
+    &self,
+    entries: impl ParallelIterator<Item = (CacheKey, Option<Etag>, T)>,
+  ) {
+    if let Some(cache) = self
+      .inner
+      .storage
+      .as_ref()
+      .and_then(|storage| storage.idle_file_cache.as_ref())
+    {
+      cache.store_borrowed(entries);
+    }
+  }
+
+  pub(crate) fn has_memory_cache(&self) -> bool {
+    self
+      .inner
+      .storage
+      .as_ref()
+      .is_some_and(|storage| storage.memory_cache.is_some())
   }
 
   pub fn store_build_dependencies(&self, dependencies: InternedPathSet) {

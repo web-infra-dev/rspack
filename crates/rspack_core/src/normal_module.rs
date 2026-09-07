@@ -99,12 +99,11 @@ pub struct NormalModuleHooks {
 
 /// Build-owned state of a [`NormalModule`].
 ///
-/// This mirrors webpack's serialized module state: cache entries retain build
-/// output, while factory-owned values such as loaders, parser/generator
-/// instances, and their options always come from the fresh module created for
-/// the current compilation.
+/// Filesystem serialization borrows this state. Memory caching transfers the
+/// owning module instead, so mutations made after building remain observable.
+/// Factory-owned values are refreshed from the current module factory.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct NormalModuleState {
   dependencies_block: DependenciesBlockData,
   #[cacheable(with=AsOption<AsPreset>)]
@@ -322,6 +321,19 @@ impl NormalModule {
   pub(crate) fn restore_module_state(&mut self, state: NormalModuleState) {
     self.state = state;
     self.cached_source_sizes = SourceSizeCache::default();
+  }
+
+  /// Refreshes factory data while retaining this module's build state and identity.
+  /// Dependency and block ids are reattached when integrating the cached build output.
+  pub(crate) fn update_cache_module(&mut self, fresh: &mut NormalModule) {
+    std::mem::swap(&mut self.state, &mut fresh.state);
+    std::mem::swap(&mut self.debug_id, &mut fresh.debug_id);
+    std::mem::swap(self, fresh);
+  }
+
+  /// Restores the fresh, unbuilt state after a cached module fails validation.
+  pub(crate) fn reset_cached_build(&mut self, fresh: &mut NormalModule) {
+    std::mem::swap(&mut self.state, &mut fresh.state);
   }
 
   pub(crate) async fn need_build_with_context(

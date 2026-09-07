@@ -4,6 +4,7 @@ use std::{
 };
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use rspack_cacheable::{__private::rkyv::Serialize, Serializer, utils::OwnedOrRef};
 use rspack_error::Result;
 use rspack_paths::{InternedPathSet, Utf8PathBuf};
 use rspack_util::fx_hash::FxDashMap;
@@ -11,8 +12,11 @@ use tokio::sync::Notify;
 
 use super::{
   CacheKey, Etag, Meta,
-  cache_value::{CacheEntry, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
+  cache_value::{
+    CacheEntry, CacheValueData, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue,
+  },
   db::{Database, DatabaseFamily},
+  owned_cache_value::StoredOwnedCacheEntry,
   snapshot::FileSystemInfo,
   validator::{CacheValidator, CacheValidatorResult},
 };
@@ -29,9 +33,12 @@ struct PendingWrites {
 }
 
 #[derive(Debug)]
-struct PendingWrite {
-  entry: CacheEntry,
-  encoder: CacheValueEncoder,
+enum PendingWrite {
+  Shared {
+    entry: CacheEntry,
+    encoder: CacheValueEncoder,
+  },
+  Encoded(Vec<u8>),
 }
 
 impl PendingWrites {
@@ -250,11 +257,100 @@ impl FileCacheStrategy {
     };
     state.pending_writes.entries.insert(
       key,
-      PendingWrite {
+      PendingWrite::Shared {
         entry: CacheEntry::new(etag, value),
         encoder,
       },
     );
+  }
+
+  pub(crate) fn store_borrowed<T: for<'a> Serialize<Serializer<'a>> + Send>(
+    &self,
+    entries: impl ParallelIterator<Item = (CacheKey, Option<Etag>, T)>,
+  ) {
+    if self.readonly || self.read_state().is_none() {
+      return;
+    }
+    // Never wait for the state lock from Rayon workers: the idle writer may
+    // hold that lock while it waits for parallel serialization of shared values.
+    let encoded: Vec<_> = entries
+      .map(|(key, etag, value)| {
+        let mut entry = StoredOwnedCacheEntry {
+          etag,
+          value: Some(OwnedOrRef::Borrowed(&value)),
+        };
+        let bytes = match self.codec.encode(&entry) {
+          Ok(bytes) => bytes,
+          Err(error) => {
+            self.logger.warn(format!(
+              "Failed to encode cache entry for key {key}: {error}"
+            ));
+            // Persist a miss rather than allowing an older value to reappear.
+            entry.value = None;
+            self
+              .codec
+              .encode(&entry)
+              .expect("an empty cache entry should serialize")
+          }
+        };
+        (key, bytes)
+      })
+      .collect();
+    let state = self.read_state();
+    let Some(state) = state.as_ref() else {
+      return;
+    };
+    for (key, bytes) in encoded {
+      state
+        .pending_writes
+        .entries
+        .insert(key, PendingWrite::Encoded(bytes));
+    }
+  }
+
+  pub(crate) fn restore_owned<T: CacheValueData>(
+    &self,
+    key: &CacheKey,
+    etag: Option<&Etag>,
+  ) -> Option<T> {
+    let decode = |bytes: &[u8]| -> Result<Option<T>> {
+      let entry = self
+        .codec
+        .decode::<StoredOwnedCacheEntry<'static, T>>(bytes)?;
+      Ok(
+        (entry.etag.as_ref() == etag)
+          .then_some(entry.value)
+          .flatten()
+          .map(OwnedOrRef::into_owned),
+      )
+    };
+    let state_guard = self.read_state();
+    let state = state_guard.as_ref()?;
+    let result = if let Some(pending) = state.pending_writes.entries.get(key) {
+      match pending.value() {
+        PendingWrite::Encoded(bytes) => decode(bytes),
+        PendingWrite::Shared { .. } => return None,
+      }
+    } else {
+      match state.database.get(DatabaseFamily::Cache, key) {
+        Ok(Some(bytes)) => decode(&bytes),
+        Ok(None) => return None,
+        Err(error) => {
+          drop(state_guard);
+          self.session_unavailable(Some(&error));
+          return None;
+        }
+      }
+    };
+    match result {
+      Ok(value) => value,
+      Err(error) => {
+        self.logger.warn(format!(
+          "Failed to decode cache entry for key {key}: {error}"
+        ));
+        None
+      }
+    }
   }
 
   pub fn store_build_dependencies(&self, dependencies: InternedPathSet) {
@@ -309,10 +405,10 @@ impl FileCacheStrategy {
     let state_guard = self.read_state();
     let state = state_guard.as_ref()?;
     if let Some(pending) = state.pending_writes.entries.get(key) {
-      return pending
-        .entry
-        .matches(etag)
-        .then(|| pending.entry.value().clone());
+      let PendingWrite::Shared { entry, .. } = pending.value() else {
+        return None;
+      };
+      return entry.matches(etag).then(|| entry.value().clone());
     }
 
     let result = state.database.get(DatabaseFamily::Cache, key);
@@ -373,8 +469,12 @@ impl FileCacheStrategy {
 
         writes = std::mem::take(&mut state.pending_writes.entries)
           .into_par_iter()
-          .filter_map(
-            |(key, pending)| match (pending.encoder)(&pending.entry, codec) {
+          .filter_map(|(key, pending)| {
+            let encoded = match pending {
+              PendingWrite::Shared { entry, encoder } => encoder(&entry, codec),
+              PendingWrite::Encoded(bytes) => Ok(bytes),
+            };
+            match encoded {
               Ok(value) => Some((DatabaseFamily::Cache, key, value)),
               Err(error) => {
                 self.logger.warn(format!(
@@ -382,8 +482,8 @@ impl FileCacheStrategy {
                 ));
                 None
               }
-            },
-          )
+            }
+          })
           .collect::<Vec<_>>();
 
         new_build_dependencies = state.pending_writes.new_build_dependencies().take();

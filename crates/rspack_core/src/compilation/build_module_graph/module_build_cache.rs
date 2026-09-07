@@ -1,70 +1,124 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
+use rayon::prelude::*;
+use rspack_cacheable::{cacheable, utils::OwnedOrRef, with::AsOwned};
 use rspack_collections::{Identifiable, IdentifierDashMap};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 
 use crate::{
   BoxModule, BuildModuleGraphArtifact, FileSystemInfo, ModuleGraph, ModuleIdentifier,
   NormalModuleState, ValueCacheVersions,
-  new_cache::{CacheFacade, CacheValue},
+  new_cache::{Cache, CacheFacade, CacheValue, MemoryCacheGetResult},
 };
 
 /// Cache for completed normal module builds.
 ///
-/// Cache entries store [`NormalModuleState`], including its dependency and block
-/// objects. Factory-owned module data is supplied by the fresh module.
+/// A compilation exclusively owns its live modules until the next full build
+/// transfers them back to the memory cache. Filesystem writes borrow the latest
+/// state at compiler boundaries and queue only encoded bytes for background I/O.
 #[derive(Debug, Clone)]
 pub(crate) struct ModuleBuildCache {
   cache: CacheFacade,
   pending: Arc<IdentifierDashMap<u64>>,
 }
 
+// None records an acquired module, preventing fallback to stale filesystem data.
+type ModuleCacheSlot = Mutex<Option<BoxModule>>;
+
+#[cacheable]
+struct StoredModule<'a> {
+  #[cacheable(with=AsOwned)]
+  module_state: OwnedOrRef<'a, NormalModuleState>,
+}
+
 impl ModuleBuildCache {
-  pub(crate) fn new(cache: CacheFacade) -> Self {
+  pub(crate) fn new(cache: &Cache) -> Self {
     Self {
-      cache,
+      // The owned filesystem representation differs from the previous state cache.
+      cache: cache.facade("Compilation/modules/owned-v1"),
       pending: Default::default(),
     }
   }
 
-  /// Defers publishing a built module until the build-module-graph phase has
-  /// completed, so make-stage mutations are included in the cache entry.
+  /// Defers filesystem dependency snapshot creation until make-stage mutations finish.
   pub(crate) fn mark_pending(&self, module_identifier: ModuleIdentifier, build_start_time: u64) {
     self.pending.insert(module_identifier, build_start_time);
   }
 
   pub(crate) async fn restore(
     &self,
-    module: &BoxModule,
+    mut module: BoxModule,
     file_system_info: &FileSystemInfo,
     value_cache_versions: &ValueCacheVersions,
-  ) -> Result<Option<NormalModuleState>> {
+  ) -> Result<(BoxModule, bool)> {
     if module.as_normal_module().is_none() {
-      return Ok(None);
+      return Ok((module, false));
     }
 
     let identifier = module.identifier();
-    let Some(result) = self
+    let cached = match self
       .cache
-      .get::<NormalModuleState>(identifier.as_str(), None)
-    else {
-      return Ok(None);
+      .get_memory::<ModuleCacheSlot>(identifier.as_str(), None)
+    {
+      MemoryCacheGetResult::Hit(slot) => slot
+        .lock()
+        .expect("module cache slot should not be poisoned")
+        .take(),
+      MemoryCacheGetResult::Miss => None,
+      MemoryCacheGetResult::NotCached => {
+        let stored = self
+          .cache
+          .restore_owned::<StoredModule<'static>>(identifier.as_str(), None);
+        self.mark_acquired(identifier);
+        if let Some(StoredModule {
+          module_state,
+        }) = stored
+          && !module_state
+            .as_ref()
+            .need_build_with_context(file_system_info, value_cache_versions)
+            .await?
+        {
+          module
+            .as_normal_module_mut()
+            .expect("normal module was checked")
+            .restore_module_state(module_state.into_owned());
+          return Ok((module, true));
+        }
+        return Ok((module, false));
+      }
     };
-    if result
+    self.mark_acquired(identifier);
+    let Some(mut cached) = cached else {
+      return Ok((module, false));
+    };
+    let fresh = module
+      .as_normal_module_mut()
+      .expect("normal module was checked");
+    let normal = cached
+      .as_normal_module_mut()
+      .expect("only normal modules are cached");
+    normal.update_cache_module(fresh);
+    if normal
       .need_build_with_context(file_system_info, value_cache_versions)
       .await?
     {
-      return Ok(None);
+      normal.reset_cached_build(fresh);
+      return Ok((cached, false));
     }
 
-    Ok(Some(result.as_arc().as_ref().clone()))
+    Ok((cached, true))
   }
 
-  /// Stores modules built during this phase from the final module graph.
-  ///
-  /// Snapshot creation and cache-entry construction are parallel. The module's
-  /// state is cloned, while dependency and block objects retain shared identity.
-  pub(crate) async fn store_pending(
+  fn mark_acquired(&self, identifier: ModuleIdentifier) {
+    self.cache.store_memory(
+      identifier.as_str(),
+      None,
+      CacheValue::new(ModuleCacheSlot::new(None)),
+    );
+  }
+
+  /// Creates validity snapshots without copying the mutable module state.
+  pub(crate) async fn snapshot_pending(
     &self,
     artifact: &mut BuildModuleGraphArtifact,
     file_system_info: &FileSystemInfo,
@@ -100,55 +154,55 @@ impl ModuleBuildCache {
     .map(|result| result.to_rspack_result().and_then(|result| result))
     .collect::<Result<Vec<_>>>()?;
 
-    let module_identifiers = snapshots
-      .into_iter()
-      .flatten()
-      .filter_map(|(module_identifier, snapshot)| {
-        let module = artifact
-          .get_module_graph_mut()
-          .module_by_identifier_mut(&module_identifier)?;
+    for (module_identifier, snapshot) in snapshots.into_iter().flatten() {
+      if let Some(module) = artifact
+        .get_module_graph_mut()
+        .module_by_identifier_mut(&module_identifier)
+      {
         module.build_info_mut().snapshot = snapshot;
-        Some(module_identifier)
-      })
-      .collect::<Vec<_>>();
-
-    let module_graph = artifact.get_module_graph();
-    let cache_entries = rspack_parallel::scope::<_, Result<_>>(|token| {
-      for module_identifier in module_identifiers {
-        // SAFETY: the scope is awaited before the cache entries are published.
-        let task = unsafe { token.used(module_graph) };
-        task.spawn(move |module_graph| async move {
-          Ok((
-            module_identifier,
-            create_cache_entry(module_graph, module_identifier),
-          ))
-        });
       }
-    })
-    .await
-    .into_iter()
-    .map(|result| result.to_rspack_result().and_then(|result| result))
-    .collect::<Result<Vec<_>>>()?;
-
-    for (module_identifier, entry) in cache_entries {
-      self
-        .cache
-        .store(module_identifier.as_str(), None, CacheValue::new(entry));
     }
     Ok(())
   }
-}
 
-fn create_cache_entry(
-  module_graph: &ModuleGraph,
-  module_identifier: ModuleIdentifier,
-) -> NormalModuleState {
-  let source_module = module_graph
-    .module_by_identifier(&module_identifier)
-    .expect("pending module should exist in the final module graph");
-  source_module
-    .as_normal_module()
-    .expect("only normal modules are marked pending for the module build cache")
-    .module_state()
-    .clone()
+  /// Encodes current module state while the compilation is exclusively borrowed.
+  /// Include cache hits too: later hooks may have changed their state.
+  pub(crate) fn store_modules(&self, module_graph: &ModuleGraph) {
+    if !self.cache.has_file_cache() {
+      return;
+    }
+    self.cache.store_borrowed(
+      module_graph
+        .modules_par()
+        .filter_map(|(identifier, module)| {
+          let normal = module.as_normal_module()?;
+          Some((
+            identifier.as_str(),
+            None,
+            StoredModule {
+              module_state: OwnedOrRef::Borrowed(normal.module_state()),
+            },
+          ))
+        }),
+    );
+  }
+
+  /// Returns live modules immediately before a full build discards their graph.
+  /// Incremental rebuilds keep ownership in their recovered graph instead.
+  pub(crate) fn release_modules(&self, module_graph: &mut ModuleGraph) {
+    if !self.cache.has_memory_cache() {
+      return;
+    }
+    for module in module_graph.take_modules() {
+      if module.as_normal_module().is_none() {
+        continue;
+      }
+      let identifier = module.identifier();
+      self.cache.store_memory(
+        identifier.as_str(),
+        None,
+        CacheValue::new(ModuleCacheSlot::new(Some(module))),
+      );
+    }
+  }
 }

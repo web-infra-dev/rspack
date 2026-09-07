@@ -7,6 +7,8 @@ use std::{
   time::Duration,
 };
 
+use rayon::prelude::*;
+use rspack_cacheable::{__private::rkyv::Serialize, Serializer};
 use rspack_error::Result;
 use rspack_paths::{InternedPathSet, Utf8PathBuf};
 use tokio::{
@@ -217,6 +219,21 @@ impl IdleFileCache {
     self
       .strategy
       .store(key, etag, value.erase(), CacheValue::<T>::encoder());
+  }
+
+  pub(crate) fn store_borrowed<T: for<'a> Serialize<Serializer<'a>> + Send>(
+    &self,
+    entries: impl ParallelIterator<Item = (CacheKey, Option<Etag>, T)>,
+  ) {
+    self.strategy.store_borrowed(entries);
+  }
+
+  pub(crate) fn restore_owned<T: CacheValueData>(
+    &self,
+    key: CacheKey,
+    etag: Option<Etag>,
+  ) -> Option<T> {
+    self.strategy.restore_owned(&key, etag.as_ref())
   }
 
   pub fn restore<T: CacheValueData>(

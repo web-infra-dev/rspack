@@ -63,7 +63,7 @@ impl PassExt for BuildModuleGraphPhasePass {
   async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) -> Result<()> {
     if let Some(module_build_cache) = compilation.module_build_cache.clone() {
       module_build_cache
-        .store_pending(
+        .snapshot_pending(
           &mut compilation.build_module_graph_artifact,
           &compilation.file_system_info,
         )

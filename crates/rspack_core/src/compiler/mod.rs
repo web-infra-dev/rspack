@@ -23,7 +23,7 @@ use crate::{
   CompilerOptions, CompilerPlatform, ContextModuleFactory, Filename, InfrastructureLogSink,
   KeepPattern, NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
   artifacts::IncrementalArtifacts,
-  compilation::build_module_graph::ModuleExecutor,
+  compilation::build_module_graph::{ModuleExecutor, module_build_cache::ModuleBuildCache},
   fast_set,
   incremental::{Incremental, IncrementalPasses},
   legacy_cache::{Cache as LegacyCache, create_cache as create_legacy_cache},
@@ -236,13 +236,37 @@ impl Compiler {
     self.new_cache.facade(name)
   }
 
+  fn module_build_cache(&self) -> Option<ModuleBuildCache> {
+    (self.options.experiments.new_cache.module
+      && !matches!(&self.options.cache, CacheOptions::Disabled))
+    .then(|| ModuleBuildCache::new(&self.new_cache))
+  }
+
+  fn store_modules(&self) {
+    if let Some(cache) = self.module_build_cache()
+      && let Some(module_graph) = self.compilation.try_get_module_graph()
+    {
+      cache.store_modules(module_graph);
+    }
+  }
+
+  fn release_modules(&mut self) {
+    if let Some(cache) = self.module_build_cache()
+      && let Some(artifact) = self.compilation.build_module_graph_artifact.try_write()
+    {
+      cache.release_modules(artifact.get_module_graph_mut());
+    }
+  }
+
   fn end_idle(&self) -> Instant {
     self.new_cache.end_idle();
     Instant::now()
   }
 
   fn begin_idle(&mut self, build_time: Duration) {
-    if self.new_cache.has_file_cache() {
+    self.store_modules();
+    if self.new_cache.has_file_cache() && !self.compilation.build_module_graph_artifact.is_stolen()
+    {
       if let CacheOptions::Persistent(options) = &self.options.cache {
         self.compilation.build_dependencies.extend(
           options
@@ -312,6 +336,10 @@ impl Compiler {
     compilation_logging.clear();
     self.incremental_artifacts.reset();
 
+    // Capture the latest state and transfer ownership before fast_set starts
+    // dropping the old graph off-thread.
+    self.store_modules();
+    self.release_modules();
     fast_set(
       &mut self.compilation,
       Compilation::new(
@@ -662,6 +690,7 @@ impl Compiler {
       .await?;
 
     self.cache.close().await;
+    self.store_modules();
     self.new_cache.shutdown().await;
     Ok(())
   }

@@ -9,10 +9,10 @@ use rspack_error::Result;
 use super::etag::Etag;
 use crate::cache::CacheCodec;
 
-/// Shared immutable cache value.
+/// Shared cache value.
 ///
 /// Cloning this wrapper only increments an `Arc`; the cached object itself is
-/// never cloned.
+/// never cloned. Runtime values may manage exclusive ownership internally.
 pub struct CacheValue<T>(Arc<T>);
 
 impl<T> CacheValue<T> {
@@ -126,16 +126,18 @@ impl CacheEntry {
 }
 
 impl<T: CacheValueData> CacheValue<T> {
-  pub(super) fn erase(self) -> ErasedCacheValue {
-    ErasedCacheValue::new(self.0)
-  }
-
   pub(super) fn encoder() -> CacheValueEncoder {
     encode_cache_entry::<T>
   }
 
   pub(super) fn decoder() -> CacheValueDecoder {
     decode_cache_entry::<T>
+  }
+}
+
+impl<T: Any + Send + Sync> CacheValue<T> {
+  pub(super) fn erase(self) -> ErasedCacheValue {
+    ErasedCacheValue::new(self.0)
   }
 }
 
