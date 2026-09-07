@@ -163,6 +163,7 @@ export type HandleIncomingRequest = (
 type WorkerArgs = any[];
 
 export type WorkerError = Error & {
+  __internal__isAggregateError?: boolean;
   errors?: WorkerError[];
 };
 
@@ -179,7 +180,10 @@ export function serializeError(error: unknown): WorkerError {
       message: (error as Error).message,
     } as WorkerError;
     if (error instanceof AggregateError) {
+      serializedError.__internal__isAggregateError = true;
       serializedError.errors = error.errors.map(serializeError);
+    } else {
+      delete serializedError.__internal__isAggregateError;
     }
     return serializedError;
   }
@@ -197,13 +201,18 @@ export function serializeError(error: unknown): WorkerError {
 }
 
 export function deserializeError(error: WorkerError): WorkerError {
-  const { errors, ...properties } = error;
+  const { __internal__isAggregateError, errors, ...properties } = error;
+  const shouldDeserializeAsAggregate =
+    __internal__isAggregateError === true && Array.isArray(errors);
   const deserializedError = (
-    error.name === 'AggregateError' && Array.isArray(errors)
+    shouldDeserializeAsAggregate
       ? new AggregateError(errors.map(deserializeError), error.message)
       : new Error(error.message)
   ) as WorkerError;
   Object.assign(deserializedError, properties);
+  if (!shouldDeserializeAsAggregate && errors !== undefined) {
+    deserializedError.errors = errors;
+  }
   return deserializedError;
 }
 
