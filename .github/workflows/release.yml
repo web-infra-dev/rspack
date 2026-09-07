@@ -87,7 +87,6 @@ jobs:
     uses: ./.github/workflows/reusable-release-npm.yml
     with:
       tag: ${{ inputs.npm_tag }}
-      tag_confirm: ${{ inputs.npm_tag_confirm }}
       test: ${{ inputs.test }}
       dry_run: ${{ inputs.dry_run }}
       push_tags: ${{ inputs.push_tags }}
