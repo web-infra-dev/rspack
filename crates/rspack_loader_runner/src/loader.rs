@@ -310,6 +310,22 @@ pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
   })
 }
 
+#[cfg(windows)]
+#[inline]
+fn dos_device_path_prefix_len(path: &str) -> usize {
+  let bytes = path.as_bytes();
+  if bytes.len() >= 4
+    && bytes[0] == b'\\'
+    && bytes[1] == b'\\'
+    && matches!(bytes[2], b'?' | b'.')
+    && bytes[3] == b'\\'
+  {
+    4
+  } else {
+    0
+  }
+}
+
 fn path_query_fragment(mut input: &str) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
   use winnow::{
     combinator::{alt, opt, repeat},
@@ -317,9 +333,14 @@ fn path_query_fragment(mut input: &str) -> winnow::ModalResult<(&str, Option<&st
     token::{any, none_of, rest},
   };
 
+  #[cfg(windows)]
   let original_input = input;
-  let prefix_len = rspack_paths::windows_dos_device_path_prefix_len(input);
-  input = &input[prefix_len..];
+  #[cfg(windows)]
+  let prefix_len = dos_device_path_prefix_len(input);
+  #[cfg(windows)]
+  {
+    input = &input[prefix_len..];
+  }
 
   let path = alt((
     ('\u{200b}', any).take(),
@@ -334,9 +355,15 @@ fn path_query_fragment(mut input: &str) -> winnow::ModalResult<(&str, Option<&st
     opt(('#', fragment).take()),
   );
 
-  let (path, query, fragment) = parser.parse_next(&mut input)?;
-  let path = &original_input[..prefix_len + path.len()];
-  Ok((path, query, fragment))
+  #[cfg(not(windows))]
+  return parser.parse_next(&mut input);
+
+  #[cfg(windows)]
+  {
+    let (path, query, fragment) = parser.parse_next(&mut input)?;
+    let path = &original_input[..prefix_len + path.len()];
+    Ok((path, query, fragment))
+  }
 }
 
 #[cfg(test)]

@@ -1,8 +1,22 @@
 use std::borrow::Cow;
 
-use rspack_paths::windows_dos_device_path_prefix_len;
-
 use crate::error::SpecifierError;
+
+#[cfg(windows)]
+#[inline]
+fn dos_device_path_prefix_len(path: &str) -> usize {
+  let bytes = path.as_bytes();
+  if bytes.len() >= 4
+    && bytes[0] == b'\\'
+    && bytes[1] == b'\\'
+    && matches!(bytes[2], b'?' | b'.')
+    && bytes[3] == b'\\'
+  {
+    4
+  } else {
+    0
+  }
+}
 
 #[derive(Debug)]
 pub struct Specifier<'a> {
@@ -25,15 +39,24 @@ impl<'a> Specifier<'a> {
     if specifier.is_empty() {
       return Err(SpecifierError::Empty(specifier.to_string()));
     }
-    let dos_prefix_len = windows_dos_device_path_prefix_len(specifier);
-    let offset = if dos_prefix_len != 0 {
-      dos_prefix_len
-    } else {
-      match specifier.as_bytes()[0] {
-        b'/' | b'.' | b'#' => 1,
-        _ => 0,
+    #[cfg(windows)]
+    let offset = {
+      let dos_prefix_len = dos_device_path_prefix_len(specifier);
+      if dos_prefix_len != 0 {
+        dos_prefix_len
+      } else {
+        match specifier.as_bytes()[0] {
+          b'/' | b'.' | b'#' => 1,
+          _ => 0,
+        }
       }
     };
+    #[cfg(not(windows))]
+    let offset = match specifier.as_bytes()[0] {
+      b'/' | b'.' | b'#' => 1,
+      _ => 0,
+    };
+
     let (path, query, fragment) = Self::parse_query_framgment(specifier, offset);
     if path.is_empty() {
       return Err(SpecifierError::Empty(specifier.to_string()));

@@ -9,11 +9,26 @@ use concat_string::concat_string;
 use cow_utils::CowUtils;
 use memchr::memchr2_iter;
 use regex::Regex;
-use rspack_paths::windows_dos_device_path_prefix_len;
 use smallvec::SmallVec;
 use sugar_path::SugarPath;
 
 static WINDOWS_PATH_SEPARATOR: &[char] = &['/', '\\'];
+
+#[cfg(windows)]
+#[inline]
+fn dos_device_path_prefix_len(path: &str) -> usize {
+  let bytes = path.as_bytes();
+  if bytes.len() >= 4
+    && bytes[0] == b'\\'
+    && bytes[1] == b'\\'
+    && matches!(bytes[2], b'?' | b'.')
+    && bytes[3] == b'\\'
+  {
+    4
+  } else {
+    0
+  }
+}
 
 /// # Example
 ///  ```ignore
@@ -23,8 +38,14 @@ static WINDOWS_PATH_SEPARATOR: &[char] = &['/', '\\'];
 /// )
 /// ```
 pub fn split_at_query_mark(path: &str) -> (&str, Option<&str>) {
-  let prefix_len = windows_dos_device_path_prefix_len(path);
-  let query_mark_pos = path[prefix_len..].find('?').map(|pos| prefix_len + pos);
+  #[cfg(windows)]
+  let query_mark_pos = {
+    let prefix_len = dos_device_path_prefix_len(path);
+    path[prefix_len..].find('?').map(|pos| prefix_len + pos)
+  };
+  #[cfg(not(windows))]
+  let query_mark_pos = path.find('?');
+
   query_mark_pos.map_or((path, None), |pos| (&path[..pos], Some(&path[pos..])))
 }
 
@@ -72,12 +93,16 @@ pub fn relative_path_to_request(rel: &str) -> Cow<'_, str> {
 
 #[inline]
 fn is_windows_absolute_path(path: &str) -> bool {
+  #[cfg(windows)]
+  if dos_device_path_prefix_len(path) != 0 {
+    return true;
+  }
+
   let bytes = path.as_bytes();
-  windows_dos_device_path_prefix_len(path) != 0
-    || (bytes.len() >= 3
-      && bytes[0].is_ascii_alphabetic()
-      && bytes[1] == b':'
-      && matches!(bytes[2], b'/' | b'\\'))
+  bytes.len() >= 3
+    && bytes[0].is_ascii_alphabetic()
+    && bytes[1] == b':'
+    && matches!(bytes[2], b'/' | b'\\')
 }
 
 #[inline]
