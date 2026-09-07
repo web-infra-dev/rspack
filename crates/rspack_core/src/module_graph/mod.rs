@@ -180,6 +180,12 @@ impl ModuleGraph {
     self.inner.modules.iter()
   }
 
+  /// Transfers modules out of a graph whose compilation is about to be discarded.
+  /// Incremental artifact recovery must keep the graph intact instead.
+  pub(crate) fn take_modules(&mut self) -> impl Iterator<Item = BoxModule> + use<> {
+    std::mem::take(&mut self.inner.modules).into_values()
+  }
+
   #[inline]
   pub fn modules_par(
     &self,

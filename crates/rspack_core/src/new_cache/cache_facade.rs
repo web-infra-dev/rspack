@@ -1,6 +1,9 @@
-use std::sync::Arc;
+use std::{any::Any, sync::Arc};
 
-use super::{Cache, CacheKey, CacheValue, Etag, cache_value::CacheValueData};
+use rayon::prelude::*;
+use rspack_cacheable::{__private::rkyv::Serialize, Serializer};
+
+use super::{Cache, CacheKey, CacheValue, Etag, MemoryCacheGetResult, cache_value::CacheValueData};
 
 /// A namespaced view of the shared cache.
 ///
@@ -50,6 +53,51 @@ impl CacheFacade {
     value: CacheValue<T>,
   ) {
     self.cache.store(self.key(identifier), etag, value)
+  }
+
+  /// Looks up a runtime value without falling through to filesystem storage.
+  pub(crate) fn get_memory<T: Any + Send + Sync>(
+    &self,
+    identifier: &str,
+    etag: Option<Etag>,
+  ) -> MemoryCacheGetResult<T> {
+    self.cache.get_memory(self.key(identifier), etag)
+  }
+
+  pub(crate) fn store_memory<T: Any + Send + Sync>(
+    &self,
+    identifier: &str,
+    etag: Option<Etag>,
+    value: CacheValue<T>,
+  ) {
+    self.cache.store_memory(self.key(identifier), etag, value)
+  }
+
+  /// Restores an exclusively owned value from bytes written by `store_borrowed`.
+  pub(crate) fn restore_owned<T: CacheValueData>(
+    &self,
+    identifier: &str,
+    etag: Option<Etag>,
+  ) -> Option<T> {
+    self.cache.restore_owned(self.key(identifier), etag)
+  }
+
+  /// Encodes borrowed values in parallel; only bytes are queued for idle I/O.
+  pub(crate) fn store_borrowed<'a, T: for<'s> Serialize<Serializer<'s>> + Send>(
+    &self,
+    entries: impl ParallelIterator<Item = (&'a str, Option<Etag>, T)>,
+  ) {
+    self
+      .cache
+      .store_borrowed(entries.map(|(identifier, etag, value)| (self.key(identifier), etag, value)))
+  }
+
+  pub(crate) fn has_memory_cache(&self) -> bool {
+    self.cache.has_memory_cache()
+  }
+
+  pub(crate) fn has_file_cache(&self) -> bool {
+    self.cache.has_file_cache()
   }
 
   fn key(&self, identifier: &str) -> CacheKey {

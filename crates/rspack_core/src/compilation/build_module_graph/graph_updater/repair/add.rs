@@ -109,17 +109,18 @@ impl Task<TaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    let cached_build_result = if let Some(module_build_cache) = &context.module_build_cache {
-      module_build_cache
-        .restore(
-          &module,
-          &context.file_system_info,
-          &context.value_cache_versions,
-        )
-        .await?
-    } else {
-      None
-    };
+    let (module, cached_build_result) =
+      if let Some(module_build_cache) = &context.module_build_cache {
+        module_build_cache
+          .restore(
+            module,
+            &context.file_system_info,
+            &context.value_cache_versions,
+          )
+          .await?
+      } else {
+        (module, None)
+      };
     context
       .artifact
       .module_graph

@@ -108,6 +108,15 @@ impl Compiler {
 
       self.cache.store_hot_cache(&mut self.compilation);
 
+      self.store_modules();
+      if !next_compilation
+        .incremental
+        .mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH)
+      {
+        // A rebuild without graph recovery still reuses individual module builds.
+        self.release_modules();
+      }
+
       // Artifact recovery belongs to incremental compilation and is independent
       // from the configured build cache.
       let old_compilation = std::mem::replace(&mut self.compilation, next_compilation);

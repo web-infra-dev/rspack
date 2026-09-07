@@ -99,16 +99,17 @@ pub struct NormalModuleHooks {
 
 /// Build-owned state of a [`NormalModule`].
 ///
-/// This mirrors webpack's serialized module state: cache entries retain build
-/// output, while factory-owned values such as loaders, parser/generator
-/// instances, and their options always come from the fresh module created for
-/// the current compilation.
+/// Filesystem serialization borrows this state. Memory caching transfers the
+/// owning module instead, so mutations made after building remain observable.
+/// Factory-owned values are refreshed from the current module factory.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct NormalModuleState {
   #[cacheable(with=AsOption<AsPreset>)]
   source: Option<BoxSource>,
   diagnostics: Vec<Diagnostic>,
+  // Parse-time bailouts, independent of each compilation's optimization decisions.
+  optimization_bailouts: Vec<OptimizationBailoutItem>,
   code_generation_dependencies: Option<Vec<DependencyId>>,
   presentational_dependencies: Option<Vec<DependencyCodeGenerationRef>>,
   build_info: BuildInfo,
@@ -239,6 +240,7 @@ impl NormalModule {
       state: NormalModuleState {
         source: None,
         diagnostics: Default::default(),
+        optimization_bailouts: Default::default(),
         code_generation_dependencies: None,
         presentational_dependencies: None,
         build_info,
@@ -325,6 +327,23 @@ impl NormalModule {
   pub(crate) fn restore_module_state(&mut self, state: NormalModuleState) {
     self.state = state;
     self.cached_source_sizes = SourceSizeCache::default();
+  }
+
+  pub(crate) fn build_optimization_bailouts(&self) -> &[OptimizationBailoutItem] {
+    &self.state.optimization_bailouts
+  }
+
+  /// Refreshes factory data while retaining this module's build state and identity.
+  /// Dependency and block ids are reattached when integrating the cached build output.
+  pub(crate) fn update_cache_module(&mut self, fresh: &mut NormalModule) {
+    std::mem::swap(&mut self.state, &mut fresh.state);
+    std::mem::swap(&mut self.debug_id, &mut fresh.debug_id);
+    std::mem::swap(self, fresh);
+  }
+
+  /// Restores the fresh, unbuilt state after a cached module fails validation.
+  pub(crate) fn reset_cached_build(&mut self, fresh: &mut NormalModule) {
+    std::mem::swap(&mut self.state, &mut fresh.state);
   }
 
   pub(crate) async fn need_build_with_context(
@@ -497,6 +516,7 @@ impl Module for NormalModule {
   ) -> Result<BuildResult> {
     self.state.force_build = false;
     self.state.build_info.snapshot = None;
+    self.state.optimization_bailouts.clear();
 
     // so does webpack
     self.state.parsed = true;
@@ -667,7 +687,7 @@ impl Module for NormalModule {
     if !diagnostics.is_empty() {
       self.add_diagnostics(diagnostics);
     }
-    let optimization_bailouts = if let Some(side_effects_bailout) = side_effects_bailout {
+    self.state.optimization_bailouts = if let Some(side_effects_bailout) = side_effects_bailout {
       let short_id = self.readable_identifier(&build_context.compiler_options.context);
       vec![OptimizationBailoutItem::SideEffects {
         node_type: side_effects_bailout.ty,
@@ -688,6 +708,8 @@ impl Module for NormalModule {
       &self.state.build_meta,
     ));
 
+    // Each compilation owns its bailout list and may append optimization decisions.
+    let optimization_bailouts = self.state.optimization_bailouts.clone();
     Ok(BuildResult {
       module: BoxModule::new(self),
       dependencies: dependencies.into_iter().map(Into::into).collect(),
