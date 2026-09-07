@@ -743,11 +743,11 @@ impl JsCompilation {
             .map(|d| d.to_string_lossy().to_string())
             .collect(),
           id: res.id,
-          error: res
-            .error
-            .as_ref()
+          errors: res
+            .errors
+            .iter()
             .map(|diagnostic| RspackError::try_from_diagnostic(compilation, diagnostic))
-            .transpose()
+            .collect::<napi::Result<Vec<_>>>()
             .map_err(|err| napi::Error::new(err.status.into(), err.reason))?,
         };
         Ok(js_result)
@@ -1135,7 +1135,7 @@ pub struct JsExecuteModuleResult {
   pub missing_dependencies: Vec<String>,
   pub cacheable: bool,
   pub id: u32,
-  pub error: Option<RspackError>,
+  pub errors: Vec<RspackError>,
 }
 
 #[napi(object)]

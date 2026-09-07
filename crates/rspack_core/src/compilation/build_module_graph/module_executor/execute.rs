@@ -139,7 +139,7 @@ fn create_execute_runtime_source(
 
 #[derive(Debug, Default)]
 pub struct ExecuteModuleResult {
-  pub error: Option<Diagnostic>,
+  pub errors: Vec<Diagnostic>,
   pub cacheable: bool,
   pub file_dependencies: InternedPathSet,
   pub context_dependencies: InternedPathSet,
@@ -175,7 +175,7 @@ impl ExecuteTask {
       .send(ExecuteResult {
         execute_result: ExecuteModuleResult {
           id,
-          error: Some(error.into()),
+          errors: vec![error.into()],
           ..Default::default()
         },
         assets: Default::default(),
@@ -267,27 +267,39 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         assets.insert(name.clone(), asset.clone());
       }
       if !has_error && make_failed_module.contains(&m) {
-        let diagnostic = module.diagnostics().iter().find(|d| d.is_error()).cloned();
-        if let Some(mut diagnostic) = diagnostic {
+        let diagnostics = module
+          .diagnostics()
+          .iter()
+          .filter(|d| d.is_error())
+          .cloned()
+          .map(|mut diagnostic| {
+            diagnostic.module_identifier = Some(m);
+            diagnostic
+          })
+          .collect::<Vec<_>>();
+        if !diagnostics.is_empty() {
           has_error = true;
-          diagnostic.module_identifier = Some(m);
-          execute_result.error = Some(diagnostic);
+          execute_result.errors.extend(diagnostics);
         }
       }
       for dep_id in module.get_dependencies() {
         if !has_error && make_failed_dependencies.contains(dep_id) {
-          let diagnostic = origin_context
+          let diagnostics = origin_context
             .artifact
             .factorize_info(dep_id)
             .expect("should have factorize info")
             .diagnostics()
             .iter()
-            .find(|d| d.is_error())
-            .cloned();
-          if let Some(mut diagnostic) = diagnostic {
+            .filter(|d| d.is_error())
+            .cloned()
+            .map(|mut diagnostic| {
+              diagnostic.module_identifier = mg.get_parent_module(dep_id).copied();
+              diagnostic
+            })
+            .collect::<Vec<_>>();
+          if !diagnostics.is_empty() {
             has_error = true;
-            diagnostic.module_identifier = mg.get_parent_module(dep_id).copied();
-            execute_result.error = Some(diagnostic);
+            execute_result.errors.extend(diagnostics);
           }
         }
         if let Some(c) = mg.connection_by_dependency_id(dep_id)
@@ -489,7 +501,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       }
       Err(e) => {
         execute_result.cacheable = false;
-        execute_result.error = Some(e.into());
+        execute_result.errors.push(e.into());
       }
     };
 
