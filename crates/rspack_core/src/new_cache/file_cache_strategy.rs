@@ -324,9 +324,7 @@ impl FileCacheStrategy {
         return None;
       }
     };
-    let Some(entry) = entry else {
-      return None;
-    };
+    let entry = entry?;
     match decoder(&entry, etag, &self.codec) {
       Ok(decoded) => decoded,
       Err(e) => {
