@@ -140,9 +140,12 @@ impl ChunkGraph {
         .insert(*new_module_id, new_chunk_graph_module);
     }
 
-    let old_cgm = self.expect_chunk_graph_module(*old_module_id);
-    // Using clone to avoid using mutable borrow and immutable borrow at the same time.
-    for chunk in old_cgm.chunks.clone() {
+    let old_cgm = self.expect_chunk_graph_module_mut(*old_module_id);
+    let chunks = std::mem::take(&mut old_cgm.chunks);
+    let entry_in_chunks = std::mem::take(&mut old_cgm.entry_in_chunks);
+    let runtime_in_chunks = std::mem::take(&mut old_cgm.runtime_in_chunks);
+
+    for chunk in chunks {
       let cgc = self.expect_chunk_graph_chunk_mut(chunk);
       cgc.modules.remove(old_module_id);
       cgc.modules.insert(*new_module_id);
@@ -150,11 +153,7 @@ impl ChunkGraph {
       new_cgm.chunks.insert(chunk);
     }
 
-    // shadowing the mut ref to avoid violating rustc borrow rules
-    let old_cgm = self.expect_chunk_graph_module_mut(*old_module_id);
-    old_cgm.chunks.clear();
-
-    for chunk in old_cgm.entry_in_chunks.clone() {
+    for chunk in entry_in_chunks {
       let cgc = self.expect_chunk_graph_chunk_mut(chunk);
       if let Some(old) = cgc.entry_modules.get(old_module_id).copied() {
         let mut new_entry_modules = LinkedHashMap::default();
@@ -172,11 +171,7 @@ impl ChunkGraph {
       new_cgm.entry_in_chunks.insert(chunk);
     }
 
-    let old_cgm = self.expect_chunk_graph_module_mut(*old_module_id);
-    old_cgm.entry_in_chunks.clear();
-    let old_cgm = self.expect_chunk_graph_module(*old_module_id);
-
-    for chunk in old_cgm.runtime_in_chunks.clone() {
+    for chunk in runtime_in_chunks {
       let cgc = self.expect_chunk_graph_chunk_mut(chunk);
       // delete old module
       cgc.runtime_modules = std::mem::take(&mut cgc.runtime_modules)
@@ -201,9 +196,6 @@ impl ChunkGraph {
       //   }
       // }
     }
-
-    let old_cgm = self.expect_chunk_graph_module_mut(*old_module_id);
-    old_cgm.runtime_in_chunks.clear();
   }
 
   pub fn get_chunk_entry_modules(&self, chunk_ukey: &ChunkUkey) -> Vec<ModuleIdentifier> {
