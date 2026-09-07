@@ -204,15 +204,14 @@ impl ParserAndGenerator for CssParserAndGenerator {
       return CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST;
     }
 
-    let incoming_connections = module_graph
-      .get_incoming_connections(&module.identifier())
-      .collect::<Vec<_>>();
+    let module_identifier = module.identifier();
+    let mut incoming_connections = module_graph.get_incoming_connections(&module_identifier);
 
     if self.exports_only {
-      let is_root_only = !incoming_connections.is_empty()
-        && incoming_connections
-          .iter()
-          .all(|conn| conn.original_module_identifier.is_none());
+      let is_root_only = incoming_connections
+        .next()
+        .is_some_and(|conn| conn.original_module_identifier.is_none())
+        && incoming_connections.all(|conn| conn.original_module_identifier.is_none());
       return if is_root_only {
         NO_SOURCE_TYPE_LIST
       } else {
@@ -220,7 +219,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       };
     }
 
-    let no_need_js = incoming_connections.iter().all(|conn| {
+    let no_need_js = incoming_connections.all(|conn| {
       if conn.original_module_identifier.is_none() {
         return true;
       }
