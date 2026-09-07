@@ -30,35 +30,6 @@ const moduleCache = new Map<string, LoaderModule>();
 const modulePromiseCache = new Map<string, Promise<LoaderModule>>();
 const loaderUrlCache = new Map<string, string>();
 
-// Rust's canonicalize keeps the Windows DOS device namespace for paths that
-// cannot be represented safely as legacy Win32 paths (most notably paths over
-// MAX_PATH). Node's module loader does its own long-path conversion, while
-// passing the namespace through require() can make it resolve only the drive
-// component. Keep the namespaced path in loader metadata, but use its regular
-// drive/UNC spelling when loading the module in Node.js.
-const getNodeLoaderPath = (loaderPath: string): string => {
-  if (process.platform !== 'win32') return loaderPath;
-
-  if (
-    loaderPath.length < 7 ||
-    loaderPath.charCodeAt(0) !== 92 ||
-    loaderPath.charCodeAt(1) !== 92 ||
-    (loaderPath.charCodeAt(2) !== 63 && loaderPath.charCodeAt(2) !== 46) ||
-    loaderPath.charCodeAt(3) !== 92
-  ) {
-    return loaderPath;
-  }
-
-  const pathWithoutNamespace = loaderPath.slice(4);
-  if (/^[a-zA-Z]:[\\/]/.test(pathWithoutNamespace)) {
-    return pathWithoutNamespace;
-  }
-  if (pathWithoutNamespace.slice(0, 4).toUpperCase() === 'UNC\\') {
-    return `\\\\${pathWithoutNamespace.slice(4)}`;
-  }
-  return loaderPath;
-};
-
 export default function loadLoader(
   loader: LoaderObject,
   compiler: Compiler,
@@ -87,9 +58,7 @@ export default function loadLoader(
         if (url === undefined) url = require('node:url');
         let loaderUrl = loaderUrlCache.get(loader.path);
         if (loaderUrl === undefined) {
-          loaderUrl = url!
-            .pathToFileURL(getNodeLoaderPath(loader.path))
-            .toString();
+          loaderUrl = url!.pathToFileURL(loader.path).toString();
           loaderUrlCache.set(loader.path, loaderUrl);
         }
         modulePromise = import(loaderUrl).then(
@@ -115,7 +84,7 @@ export default function loadLoader(
   } else {
     let module: LoaderModule;
     try {
-      module = require(getNodeLoaderPath(loader.path));
+      module = require(loader.path);
     } catch (e) {
       // it is possible for node to choke on a require if the FD descriptor
       // limit has been reached. give it a chance to recover.

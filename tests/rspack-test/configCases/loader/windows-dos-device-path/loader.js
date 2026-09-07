@@ -2,9 +2,9 @@ module.exports = function (source) {
   if (!this.resourcePath.startsWith('\\\\?\\')) {
     throw new Error(`Expected a DOS device resource path, got ${this.resourcePath}`);
   }
-  if (!this.loaders[this.loaderIndex].path.startsWith('\\\\?\\')) {
+  if (!/^[a-zA-Z]:[\\/]/.test(this.loaders[this.loaderIndex].path)) {
     throw new Error(
-      `Expected a DOS device loader path, got ${this.loaders[this.loaderIndex].path}`,
+      `Expected a regular drive loader path, got ${this.loaders[this.loaderIndex].path}`,
     );
   }
   if (this.resourceQuery !== '?resource-query') {

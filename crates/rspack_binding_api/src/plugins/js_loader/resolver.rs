@@ -117,6 +117,14 @@ pub(crate) async fn resolve_loader(
             .and_then(|t| t.as_str().map(|t| Cow::Owned(t.to_owned())))
         })
       };
+      #[cfg(windows)]
+      let path = {
+        // Node's module loader may interpret a namespaced drive path as only
+        // its drive component. Filesystem access and cache versioning above
+        // still use the original namespaced path.
+        rspack_paths::strip_dos_device_path_prefix(path)
+      };
+
       // favor explicit loader query over aliased query, see webpack issue-3320
       let resource = if let Some(rest) = rest
         && !rest.is_empty()
