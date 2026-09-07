@@ -1500,18 +1500,15 @@ impl<'parser> JavascriptParser<'parser> {
     let drive = self.plugin_drive.clone();
     if drive.program(self, program).is_none() {
       let ast = self.ast.ast;
-      let body = program
-        .body(ast)
-        .iter()
-        .map(|slot| ast.get_node_in_sub_range(slot))
-        .collect::<Vec<_>>();
+      let body = program.body(ast);
       // Match the legacy `Program::Module` traversal without treating an
       // `import.meta`-only unambiguous parse as ESM. Do not set `self.is_esm`
       // early: legacy parsing only flipped that state during pre-walk.
       let is_esm_program = matches!(self.module_type, ModuleType::JsEsm)
-        || body.iter().any(|statement| {
+        || body.iter().any(|slot| {
+          let statement = ast.get_node_in_sub_range(slot);
           matches!(
-            ast.stmt_data(*statement),
+            ast.stmt_data(statement),
             StmtData::ImportDeclaration(_)
               | StmtData::ExportNamedDeclaration(_)
               | StmtData::ExportDefaultDeclaration(_)
@@ -1523,16 +1520,16 @@ impl<'parser> JavascriptParser<'parser> {
       if is_esm_program {
         self.set_strict(true);
         self.prev_statement = None;
-        self.module_pre_walk_module_items(&body);
+        self.module_pre_walk_module_items(body);
       } else {
         self.detect_mode(program);
       }
       self.prev_statement = None;
-      self.pre_walk_module_items(&body);
+      self.pre_walk_module_items(body);
       self.prev_statement = None;
-      self.block_pre_walk_module_items(&body);
+      self.block_pre_walk_module_items(body);
       self.prev_statement = None;
-      self.walk_module_items(&body);
+      self.walk_module_items(body);
     }
     drive.finish(self);
   }
