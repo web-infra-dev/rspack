@@ -950,15 +950,22 @@ impl From<JsBuildMeta> for BuildMeta {
       .map(BuildMetaExportsType::from)
       .unwrap_or_default();
 
-    BuildMeta {
-      strict_esm_module,
-      has_top_level_await,
-      esm,
-      is_css_module: None,
-      need_id_in_concatenation: None,
-      exports_type,
-      default_object,
-      side_effect_free,
+    let meta = BuildMeta::default().with_exports_type(exports_type);
+    if let Some(value) = strict_esm_module {
+      meta.set_strict_esm_module(value);
     }
+    if let Some(value) = has_top_level_await {
+      meta.set_has_top_level_await(value);
+    }
+    if let Some(value) = esm {
+      meta.set_esm(value);
+    }
+    if let Some(value) = side_effect_free {
+      meta.set_side_effect_free(value);
+    }
+    if let Some(value) = default_object {
+      meta.set_default_object(value);
+    }
+    meta
   }
 }

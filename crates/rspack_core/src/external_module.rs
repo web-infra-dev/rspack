@@ -458,7 +458,7 @@ pub struct ExternalModule {
   user_request: String,
   factory_meta: Arc<FactoryMeta>,
   build_info: BuildInfo,
-  build_meta: BuildMeta,
+  build_meta: Arc<BuildMeta>,
   dependency_meta: DependencyMeta,
   place_in_initial: bool,
 }

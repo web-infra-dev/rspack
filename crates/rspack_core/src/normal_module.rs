@@ -102,9 +102,10 @@ pub struct NormalModuleHooks {
 /// This mirrors webpack's serialized module state: cache entries retain build
 /// output, while factory-owned values such as loaders, parser/generator
 /// instances, and their options always come from the fresh module created for
-/// the current compilation.
+/// the current compilation. Cloning copies build data and metadata into independent
+/// storage because cached snapshots must remain unchanged during later builds.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct NormalModuleState {
   #[cacheable(with=AsOption<AsPreset>)]
   source: Option<BoxSource>,
@@ -112,10 +113,26 @@ pub(crate) struct NormalModuleState {
   code_generation_dependencies: Option<Vec<DependencyId>>,
   presentational_dependencies: Option<Vec<DependencyCodeGenerationRef>>,
   build_info: BuildInfo,
-  build_meta: BuildMeta,
+  build_meta: Arc<BuildMeta>,
   parsed: bool,
   force_build: bool,
   source_map_kind: SourceMapKind,
+}
+
+impl Clone for NormalModuleState {
+  fn clone(&self) -> Self {
+    Self {
+      source: self.source.clone(),
+      diagnostics: self.diagnostics.clone(),
+      code_generation_dependencies: self.code_generation_dependencies.clone(),
+      presentational_dependencies: self.presentational_dependencies.clone(),
+      build_info: self.build_info.clone(),
+      build_meta: Arc::new(self.build_meta.as_ref().clone()),
+      parsed: self.parsed,
+      force_build: self.force_build,
+      source_map_kind: self.source_map_kind,
+    }
+  }
 }
 
 #[cacheable]
@@ -656,7 +673,7 @@ impl Module for NormalModule {
         additional_data: loader_result.additional_data,
         factory_meta: Some(&factory_meta),
         build_info: &mut self.state.build_info,
-        build_meta: &mut self.state.build_meta,
+        build_meta: &self.state.build_meta,
         parse_meta: loader_result.parse_meta,
         runtime_template: &build_context.runtime_template,
       })
@@ -921,10 +938,6 @@ impl Module for NormalModule {
 
   fn build_meta(&self) -> &BuildMeta {
     &self.state.build_meta
-  }
-
-  fn build_meta_mut(&mut self) -> &mut BuildMeta {
-    &mut self.state.build_meta
   }
 }
 

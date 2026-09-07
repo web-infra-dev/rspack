@@ -35,7 +35,7 @@ pub struct DelegatedModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   factory_meta: Arc<FactoryMeta>,
   build_info: BuildInfo,
-  build_meta: BuildMeta,
+  build_meta: Arc<BuildMeta>,
 }
 
 impl DelegatedModule {
@@ -109,7 +109,7 @@ impl Module for DelegatedModule {
         false,
       )),
     ];
-    self.build_meta = self.delegate_data.build_meta.clone();
+    self.build_meta = self.delegate_data.build_meta.clone().into();
     Ok(BuildResult {
       module: BoxModule::new(self),
       dependencies: dependencies.into_iter().map(Into::into).collect(),

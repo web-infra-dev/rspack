@@ -47,7 +47,7 @@ pub struct RscEntryModule {
   is_server_side_rendering: bool,
   factory_meta: Arc<FactoryMeta>,
   build_info: BuildInfo,
-  build_meta: BuildMeta,
+  build_meta: Arc<BuildMeta>,
   layer: Option<ModuleLayer>,
 }
 
@@ -92,7 +92,9 @@ impl RscEntryModule {
         top_level_declarations: Some(Default::default()),
         ..Default::default()
       },
-      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
+      build_meta: BuildMeta::default()
+        .with_exports_type(BuildMetaExportsType::Namespace)
+        .into(),
       source_map_kind: SourceMapKind::empty(),
       layer,
     }

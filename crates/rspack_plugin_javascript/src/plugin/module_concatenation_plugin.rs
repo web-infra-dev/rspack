@@ -1750,7 +1750,7 @@ async fn create_concatenated_module(
         .factory_meta()
         .and_then(|meta| meta.side_effect_free()),
     )),
-    build_meta: root_module.build_meta().clone(),
+    build_meta: root_module.build_meta().clone().into(),
     module_argument: root_module.get_module_argument(),
     exports_argument: root_module.get_exports_argument(),
   };

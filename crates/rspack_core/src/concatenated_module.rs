@@ -83,7 +83,7 @@ pub struct RootModuleContext {
   pub layer: Option<ModuleLayer>,
   pub side_effect_connection_state: ConnectionState,
   pub factory_meta: Arc<FactoryMeta>,
-  pub build_meta: BuildMeta,
+  pub build_meta: Arc<BuildMeta>,
   pub exports_argument: ExportsArgument,
   pub module_argument: ModuleArgument,
 }
@@ -754,10 +754,6 @@ impl Module for ConcatenatedModule {
 
   fn build_meta(&self) -> &BuildMeta {
     &self.root_module_ctxt.build_meta
-  }
-
-  fn build_meta_mut(&mut self) -> &mut BuildMeta {
-    &mut self.root_module_ctxt.build_meta
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {

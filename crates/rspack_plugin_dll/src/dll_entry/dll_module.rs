@@ -27,7 +27,7 @@ pub struct DllModule {
 
   build_info: BuildInfo,
 
-  build_meta: BuildMeta,
+  build_meta: Arc<BuildMeta>,
 
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
 

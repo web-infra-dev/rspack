@@ -112,7 +112,7 @@ pub fn module_analyzed_side_effect_free(
 ) -> Option<bool> {
   side_effects_state_artifact
     .analyzed_side_effect_free(&module.identifier())
-    .or(module.build_meta().side_effect_free)
+    .or(module.build_meta().side_effect_free_value())
 }
 
 #[cfg(test)]

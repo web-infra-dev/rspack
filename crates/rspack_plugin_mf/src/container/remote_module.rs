@@ -41,7 +41,7 @@ pub struct RemoteModule {
   pub remote_key: String,
   factory_meta: Arc<FactoryMeta>,
   build_info: BuildInfo,
-  build_meta: BuildMeta,
+  build_meta: Arc<BuildMeta>,
 }
 
 impl RemoteModule {

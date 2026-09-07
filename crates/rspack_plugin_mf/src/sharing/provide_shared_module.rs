@@ -44,7 +44,7 @@ pub struct ProvideSharedModule {
   tree_shaking_mode: Option<String>,
   factory_meta: Arc<FactoryMeta>,
   build_info: BuildInfo,
-  build_meta: BuildMeta,
+  build_meta: Arc<BuildMeta>,
 }
 
 impl ProvideSharedModule {

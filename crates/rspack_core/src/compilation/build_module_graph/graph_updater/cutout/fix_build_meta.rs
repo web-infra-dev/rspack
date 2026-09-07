@@ -30,14 +30,14 @@ impl FixBuildMeta {
     }
   }
 
-  pub fn fix_artifact(self, artifact: &mut BuildModuleGraphArtifact) {
-    let module_graph = artifact.get_module_graph_mut();
+  pub fn fix_artifact(self, artifact: &BuildModuleGraphArtifact) {
+    let module_graph = artifact.get_module_graph();
     for (id, build_meta) in self.origin_module_build_meta {
-      if let Some(module) = module_graph.module_by_identifier_mut(&id)
-        && let Some(module) = module.as_normal_module_mut()
+      if let Some(module) = module_graph.module_by_identifier(&id)
+        && let Some(module) = module.as_normal_module()
         && module.first_error().is_some()
       {
-        *module.build_meta_mut() = build_meta;
+        module.build_meta().restore(&build_meta);
       }
     }
   }

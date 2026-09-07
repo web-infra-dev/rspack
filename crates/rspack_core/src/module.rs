@@ -1,3 +1,4 @@
+mod build_meta;
 use std::{
   any::Any,
   borrow::Cow,
@@ -9,6 +10,7 @@ use std::{
 };
 
 use async_trait::async_trait;
+pub use build_meta::BuildMeta;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
@@ -526,108 +528,6 @@ impl ExportsArgument {
   }
 }
 
-#[cacheable]
-#[derive(Debug, Default, Clone, Serialize, rspack_hash::RspackHash)]
-#[serde(rename_all = "camelCase")]
-pub struct BuildMeta {
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub strict_esm_module: Option<bool>,
-  // same as is_async https://github.com/webpack/webpack/blob/3919c844eca394d73ca930e4fc5506fb86e2b094/lib/Module.js#L107
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub has_top_level_await: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub esm: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub is_css_module: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub need_id_in_concatenation: Option<bool>,
-  pub exports_type: BuildMetaExportsType,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub default_object: Option<BuildMetaDefaultObject>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub side_effect_free: Option<bool>,
-}
-
-impl BuildMeta {
-  pub fn strict_esm_module(&self) -> bool {
-    self.strict_esm_module.unwrap_or(false)
-  }
-
-  pub fn has_top_level_await(&self) -> bool {
-    self.has_top_level_await.unwrap_or(false)
-  }
-
-  pub fn esm(&self) -> bool {
-    self.esm.unwrap_or(false)
-  }
-
-  pub fn is_css_module(&self) -> bool {
-    self.is_css_module.unwrap_or(false)
-  }
-
-  pub fn need_id_in_concatenation(&self) -> bool {
-    self.need_id_in_concatenation.unwrap_or(false)
-  }
-
-  pub fn exports_type(&self) -> BuildMetaExportsType {
-    self.exports_type
-  }
-
-  pub fn default_object(&self) -> BuildMetaDefaultObject {
-    self.default_object.unwrap_or(BuildMetaDefaultObject::False)
-  }
-
-  pub fn side_effect_free(&self) -> bool {
-    self.side_effect_free.unwrap_or(false)
-  }
-
-  pub fn set_strict_esm_module(&mut self, value: bool) {
-    self.strict_esm_module = Some(value);
-  }
-
-  pub fn set_has_top_level_await(&mut self, value: bool) {
-    self.has_top_level_await = Some(value);
-  }
-
-  pub fn set_esm(&mut self, value: bool) {
-    self.esm = Some(value);
-  }
-
-  pub fn set_is_css_module(&mut self, value: bool) {
-    self.is_css_module = Some(value);
-  }
-
-  pub fn set_need_id_in_concatenation(&mut self, value: bool) {
-    self.need_id_in_concatenation = Some(value);
-  }
-
-  pub fn set_exports_type(&mut self, value: BuildMetaExportsType) {
-    self.exports_type = value;
-  }
-
-  pub fn clear_exports_type(&mut self) {
-    self.exports_type = BuildMetaExportsType::Unset;
-  }
-
-  pub fn set_default_object(&mut self, value: BuildMetaDefaultObject) {
-    self.default_object = Some(value);
-  }
-
-  pub fn set_side_effect_free(&mut self, value: bool) {
-    self.side_effect_free = Some(value);
-  }
-
-  pub fn with_exports_type(mut self, value: BuildMetaExportsType) -> Self {
-    self.set_exports_type(value);
-    self
-  }
-
-  pub fn with_default_object(mut self, value: BuildMetaDefaultObject) -> Self {
-    self.set_default_object(value);
-    self
-  }
-}
-
 impl RspackHash for BuildMetaExportsType {
   fn hash(&self, state: &mut RspackHasher) {
     if matches!(self, BuildMetaExportsType::Unset) {
@@ -766,8 +666,6 @@ pub trait Module:
   fn build_info_mut(&mut self) -> &mut BuildInfo;
 
   fn build_meta(&self) -> &BuildMeta;
-
-  fn build_meta_mut(&mut self) -> &mut BuildMeta;
 
   fn get_exports_argument(&self) -> ExportsArgument {
     self.build_info().exports_argument
@@ -1160,10 +1058,6 @@ macro_rules! impl_module_meta_info {
     fn build_meta(&self) -> &$crate::BuildMeta {
       &self.build_meta
     }
-
-    fn build_meta_mut(&mut self) -> &mut $crate::BuildMeta {
-      &mut self.build_meta
-    }
   };
 }
 
@@ -1333,10 +1227,6 @@ mod test {
         }
 
         fn build_meta(&self) -> &crate::BuildMeta {
-          unreachable!()
-        }
-
-        fn build_meta_mut(&mut self) -> &mut crate::BuildMeta {
           unreachable!()
         }
       }

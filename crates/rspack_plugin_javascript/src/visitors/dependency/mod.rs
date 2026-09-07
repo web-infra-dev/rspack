@@ -51,7 +51,7 @@ pub fn scan_dependencies(
   module_type: &ModuleType,
   module_layer: Option<&ModuleLayer>,
   factory_meta: Option<&FactoryMeta>,
-  build_meta: &mut BuildMeta,
+  build_meta: &BuildMeta,
   build_info: &mut BuildInfo,
   module_identifier: ModuleIdentifier,
   module_parser_options: Option<&ParserOptions>,

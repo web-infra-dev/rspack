@@ -177,9 +177,6 @@ pub fn impl_runtime_module(
         unreachable!()
       }
 
-      fn build_meta_mut(&mut self) -> &mut ::rspack_core::BuildMeta {
-        unreachable!()
-      }
 
       async fn code_generation(
         &self,

@@ -39,7 +39,7 @@ pub struct ContainerEntryModule {
   share_scope: ShareScope,
   factory_meta: Arc<FactoryMeta>,
   build_info: BuildInfo,
-  build_meta: BuildMeta,
+  build_meta: Arc<BuildMeta>,
   enhanced: bool,
   request: Option<String>,
   version: Option<String>,
@@ -74,7 +74,9 @@ impl ContainerEntryModule {
         top_level_declarations: Some(Default::default()),
         ..Default::default()
       },
-      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
+      build_meta: BuildMeta::default()
+        .with_exports_type(BuildMetaExportsType::Namespace)
+        .into(),
       enhanced,
       request: None,
       version: None,
@@ -105,7 +107,9 @@ impl ContainerEntryModule {
         top_level_declarations: Some(Default::default()),
         ..Default::default()
       },
-      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
+      build_meta: BuildMeta::default()
+        .with_exports_type(BuildMetaExportsType::Namespace)
+        .into(),
       enhanced: false,
       request: Some(request),
       version: Some(version),

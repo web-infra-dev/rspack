@@ -31,7 +31,7 @@ pub struct FallbackModule {
   requests: Vec<String>,
   factory_meta: Arc<FactoryMeta>,
   build_info: BuildInfo,
-  build_meta: BuildMeta,
+  build_meta: Arc<BuildMeta>,
 }
 
 impl FallbackModule {

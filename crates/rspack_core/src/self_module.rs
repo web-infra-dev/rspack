@@ -26,7 +26,7 @@ pub struct SelfModule {
   dependencies: Vec<DependencyId>,
   factory_meta: Arc<FactoryMeta>,
   build_info: BuildInfo,
-  build_meta: BuildMeta,
+  build_meta: Arc<BuildMeta>,
 }
 
 impl SelfModule {

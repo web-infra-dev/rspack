@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use rspack_cacheable::{cacheable, cacheable_dyn, utils::OwnedOrRef};
 use rspack_collections::Identifiable;
@@ -19,7 +19,7 @@ use crate::{
 pub struct TempModule {
   id: ModuleIdentifier,
   build_info: BuildInfo,
-  build_meta: BuildMeta,
+  build_meta: Arc<BuildMeta>,
   dependencies: Vec<DependencyId>,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
 }
@@ -33,7 +33,7 @@ impl TempModule {
         dependencies: m.build_info().dependencies.clone(),
         ..Default::default()
       },
-      build_meta: m.build_meta().clone(),
+      build_meta: m.build_meta().clone().into(),
       dependencies: m.get_dependencies().to_vec(),
       // clean all of blocks
       blocks: vec![],
@@ -70,10 +70,6 @@ impl Module for TempModule {
 
   fn build_meta(&self) -> &BuildMeta {
     &self.build_meta
-  }
-
-  fn build_meta_mut(&mut self) -> &mut BuildMeta {
-    &mut self.build_meta
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
