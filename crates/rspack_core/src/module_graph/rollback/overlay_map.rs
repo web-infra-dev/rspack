@@ -120,21 +120,6 @@ where
     }
   }
 
-  /// Remove and return a value, cloning it only when a checkpoint must retain the base entry.
-  pub fn take(&mut self, key: &K) -> Option<V>
-  where
-    V: Clone,
-  {
-    match self.overlay.as_mut() {
-      Some(overlay) => match overlay.insert(key.clone(), OverlayValue::Tombstone) {
-        Some(OverlayValue::Value(value)) => Some(value),
-        Some(OverlayValue::Tombstone) => None,
-        None => self.base.get(key).cloned(),
-      },
-      None => self.base.remove(key),
-    }
-  }
-
   pub fn get(&self, key: &K) -> Option<&V> {
     if let Some(overlay) = &self.overlay
       && let Some(value) = overlay.get(key)

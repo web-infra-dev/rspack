@@ -1147,7 +1147,11 @@ impl JsStats {
   pub fn get_logging(&self, accepted_types: u32) -> Vec<JsLog> {
     self
       .inner
-      .get_logging(accepted_types)
+      .get_logging()
+      .filter(|log| {
+        let bit = log.1.to_bit_flag();
+        accepted_types & bit == bit
+      })
       .map(Into::into)
       .collect()
   }

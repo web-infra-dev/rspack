@@ -1113,21 +1113,13 @@ impl Stats<'_> {
     f(warnings)
   }
 
-  pub fn get_logging(&self, accepted_types: u32) -> impl Iterator<Item = (Arc<str>, LogType)> {
+  pub fn get_logging(&self) -> impl Iterator<Item = (Arc<str>, LogType)> {
     self
       .logging()
       .iter()
-      .map(move |item| {
+      .map(|item| {
         let (name, logs) = item.pair();
-        let logs = logs
-          .iter()
-          .filter(|log| {
-            let bit = log.to_bit_flag();
-            accepted_types & bit == bit
-          })
-          .cloned()
-          .collect::<Vec<_>>();
-        (name.clone(), logs)
+        (name.clone(), logs.to_owned())
       })
       .sorted_by(|a, b| a.0.cmp(&b.0))
       .flat_map(|item| item.1.into_iter().map(move |log| (item.0.clone(), log)))

@@ -99,7 +99,7 @@ impl SplitChunksPlugin {
     all_modules.sort_unstable_by_key(|module| (module.precomputed_hash(), *module));
 
     let module_sizes = get_module_sizes(all_modules.par_iter().copied(), compilation);
-    let mut module_chunks = Self::get_module_chunks(&all_modules, compilation);
+    let module_chunks = Self::get_module_chunks(&all_modules, compilation);
     logger.time_end(start);
 
     let chunk_index_map: FxHashMap<ChunkUkey, u32> = {
@@ -170,21 +170,30 @@ impl SplitChunksPlugin {
     let start = logger.time("process cache groups");
     let priority_len = priority_cache_groups.len();
     for (index, (_, cache_groups)) in priority_cache_groups.into_iter().enumerate() {
-      // Update the original chunk sets with edges consumed by the previous priority. Keep the
-      // remaining edges for lower-priority groups without adding chunks created by earlier splits.
-      if !removed_module_chunks.is_empty() {
-        all_modules
-          .par_iter()
-          .zip(module_chunks.par_iter_mut())
-          .for_each(|(module, chunks)| {
-            if let Some(removed_chunks) = removed_module_chunks.get(module) {
-              for chunk in removed_chunks {
-                chunks.remove(chunk);
+      // A higher-priority cache group consumes module-chunk edges, not the whole module. Build the
+      // combinations for this priority from the original chunk sets minus the consumed edges so a
+      // lower-priority cache group can still group a newly formed residual chunk set. Do not read
+      // the current chunk graph here because it also contains chunks created by earlier splits.
+      let available_module_chunks = if removed_module_chunks.is_empty() {
+        Cow::Borrowed(&module_chunks)
+      } else {
+        Cow::Owned(
+          all_modules
+            .par_iter()
+            .enumerate()
+            .map(|(module_index, module)| {
+              let chunks = module_chunks
+                .get(module_index)
+                .expect("should have module chunks");
+              if let Some(removed_chunks) = removed_module_chunks.get(module) {
+                chunks.difference(removed_chunks).copied().collect()
+              } else {
+                chunks.clone()
               }
-            }
-          });
-        removed_module_chunks.clear();
-      }
+            })
+            .collect(),
+        )
+      };
 
       let mut combinator = module_group::Combinator::default();
       let non_used_exports_min_chunks = cache_groups
@@ -196,7 +205,7 @@ impl SplitChunksPlugin {
       if let Some(min_chunks) = non_used_exports_min_chunks {
         combinator.prepare_group_by_chunks(
           &all_modules,
-          &module_chunks,
+          available_module_chunks.as_ref(),
           &chunk_index_map,
           min_chunks,
         );
@@ -210,7 +219,7 @@ impl SplitChunksPlugin {
           &all_modules,
           &compilation.exports_info_artifact,
           &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-          &module_chunks,
+          available_module_chunks.as_ref(),
           &chunk_index_map,
         );
       }
@@ -221,7 +230,7 @@ impl SplitChunksPlugin {
           &all_modules,
           cache_groups,
           compilation,
-          &module_chunks,
+          available_module_chunks.as_ref(),
           &chunk_index_map,
         )
         .await?;
