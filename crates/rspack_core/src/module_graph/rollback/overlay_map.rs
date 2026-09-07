@@ -6,13 +6,13 @@ use std::{
 
 use rustc_hash::FxBuildHasher;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum OverlayValue<V> {
   Value(V),
   Tombstone,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct OverlayMap<K, V, S = FxBuildHasher> {
   base: HashMap<K, V, S>,
   overlay: Option<HashMap<K, OverlayValue<V>, S>>,

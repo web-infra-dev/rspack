@@ -19,7 +19,7 @@ use crate::{
 };
 
 #[cacheable]
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct CodeGenerationDataUrl {
   inner: String,
 }
@@ -36,15 +36,15 @@ impl CodeGenerationDataUrl {
 
 // For performance, mark the js modules containing AUTO_PUBLIC_PATH_PLACEHOLDER
 #[cacheable]
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct CodeGenerationPublicPathAutoReplace(pub bool);
 
 #[cacheable]
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct URLStaticMode;
 
 #[cacheable]
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct CodeGenerationDataFilename {
   filename: String,
   public_path: String,
@@ -68,7 +68,7 @@ impl CodeGenerationDataFilename {
 }
 
 #[cacheable]
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct CodeGenerationDataAssetInfo {
   inner: AssetInfo,
 }
@@ -114,7 +114,7 @@ impl RspackHash for CodeGenerationDataPreservedAssetImport {
 }
 
 #[cacheable]
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct CodeGenerationDataTopLevelDeclarations {
   #[cacheable(with=AsVec<AsPreset>)]
   inner: AtomSet,
@@ -136,7 +136,7 @@ pub trait CodeGenerationDataItem: Debug + AsAny + IntoAny + Send + Sync {
 }
 
 #[cacheable]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct CodeGenerationDataChunkInitFragments {
   inner: ChunkInitFragments,
 }
@@ -380,7 +380,7 @@ impl CodeGenerationResultBuilder {
   }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct CodeGenerationResults {
   map: IdentifierMap<RuntimeSpecMap<BindingCell<CodeGenerationResult>>>,
 }

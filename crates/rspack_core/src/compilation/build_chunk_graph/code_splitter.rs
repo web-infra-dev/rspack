@@ -325,7 +325,7 @@ pub(crate) type BlockModulesRuntimeMap = HashMap<Option<Arc<RuntimeSpec>>, Block
 //   }
 // }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub(crate) struct CodeSplitter {
   pub(crate) chunk_group_info_map: HashMap<ChunkGroupUkey, CgiUkey>,
   pub(crate) chunk_group_infos: HashMap<CgiUkey, ChunkGroupInfo>,
