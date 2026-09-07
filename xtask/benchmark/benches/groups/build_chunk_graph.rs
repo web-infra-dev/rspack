@@ -5,7 +5,7 @@ use criterion::BatchSize;
 use rspack::builder::{Builder as _, CompilerBuilder};
 use rspack_benchmark::Criterion;
 use rspack_core::{
-  Compilation, Compiler, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleUse,
+  Cache, Compilation, Compiler, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleUse,
   ModuleRuleUseLoader, Optimization, RuleSetCondition, build_chunk_graph,
   build_module_graph::{build_module_graph_pass, finish_build_module_graph},
   fast_set,
@@ -342,6 +342,8 @@ fn configure_swc_loader(builder: &mut CompilerBuilder) {
             })
             .to_string(),
           ),
+          cache: false,
+          options_cache_key: String::new(),
         }]),
         ..Default::default()
       },
@@ -366,6 +368,7 @@ fn reset_compilation_state(compiler: &mut Compiler) {
 
   let compiler_id = compiler.id();
   let compiler_context = CURRENT_COMPILER_CONTEXT.get();
+  let cache = Cache::new_disabled(compiler.compiler_path.clone());
   fast_set(
     &mut compiler.compilation,
     Compilation::new(
@@ -380,6 +383,7 @@ fn reset_compilation_state(compiler: &mut Compiler) {
       Incremental::new_cold(compiler.options.incremental),
       Some(Default::default()),
       Default::default(),
+      cache,
       Default::default(),
       Default::default(),
       compiler.input_filesystem.clone(),

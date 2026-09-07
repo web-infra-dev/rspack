@@ -3,9 +3,9 @@ mod parser;
 mod util;
 
 use rspack_core::{
-  ArcComputed, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, FactoryMeta, ImportMeta, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta,
-  ParserOptions, ResolvedModuleOptions, ResourceData, SideEffectsBailoutItemWithSpan,
+  ArcComputed, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, CompilerOptions,
+  DependencyCodeGenerationRef, FactoryMeta, ImportMeta, ModuleIdentifier, ModuleLayer, ModuleType,
+  ParseMeta, ParserOptions, ResolvedModuleOptions, ResourceData, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet;
@@ -13,6 +13,7 @@ use swc_experimental_allocator::Allocator;
 use swc_experimental_ecma_ast::{Comments, Program};
 use swc_experimental_ecma_semantic::resolver::Semantic;
 
+pub(crate) use self::parser::{StatementPath, member_property_to_atom};
 pub use self::{
   context_dependency_helper::{ContextModuleScanResult, create_context_dependency},
   parser::{
@@ -29,7 +30,7 @@ use crate::{BoxJavascriptParserPlugin, parser_and_generator::ParserRuntimeRequir
 pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
-  pub presentational_dependencies: Vec<BoxDependencyTemplate>,
+  pub presentational_dependencies: Vec<DependencyCodeGenerationRef>,
   pub warning_diagnostics: Vec<Diagnostic>,
   pub side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
 }

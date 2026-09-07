@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Release Blog Writer'
+  short_description: 'Write polished product release blog posts'
+  default_prompt: 'Use $release-blog-writer to draft or refine a polished product release blog post.'
+
+policy:
+  allow_implicit_invocation: false

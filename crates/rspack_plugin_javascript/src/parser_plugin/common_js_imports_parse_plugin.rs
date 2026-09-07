@@ -1,14 +1,16 @@
 #[cfg(windows)]
 use std::path::Path;
+use std::sync::Arc;
 
 use rspack_core::{
-  ConstDependency, Context, ContextDependency, ContextMode, ContextModulePattern, ContextOptions,
-  DependencyCategory, DependencyRange, DependencyType, ModuleType, ReferencedSpecifier,
-  RuntimeGlobals, RuntimeRequirementsDependency,
+  BoxDependency, ConstDependency, Context, ContextDependency, ContextMode, ContextModulePattern,
+  ContextOptions, DependencyCategory, DependencyRange, DependencyType, ImportMetaKnownProperties,
+  ModuleType, ReferencedSpecifier, RuntimeGlobals, RuntimeRequirementsDependency, get_context,
 };
 use rspack_error::{Diagnostic, Severity};
+use rspack_intern::AtomRef;
 use rspack_util::{SpanExt, json_stringify_str};
-use swc_atoms::Atom;
+use swc_experimental_allocator::CloneIn;
 use swc_experimental_ecma_ast::{
   AssignExpr, AssignOp, CallExpr, Callee, Expr, ExprOrSpread, GetSpan, Ident, Lit, MemberExpr,
   MemberProp, NewExpr, Span, UnaryExpr, UnaryOp, VarDeclarator,
@@ -23,6 +25,7 @@ use super::{
   url_plugin::is_meta_url,
 };
 use crate::{
+  Atom,
   dependency::{
     CommonJsFullRequireDependency, CommonJsRequireContextDependency, CommonJsRequireDependency,
     DependencyBranchGuard, ESMImportSpecifierDependency, RequireHeaderDependency,
@@ -32,8 +35,8 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    CallHooksName, ExportedVariableInfo, JavascriptParser, TagInfoData, VariableDeclaration,
-    VariableDeclarationKind, VariableInfo, VariableInfoFlags, context_reg_exp,
+    CallHooksName, ExportedVariableInfo, JavascriptParser, StatementPath, TagInfoData,
+    VariableDeclaration, VariableDeclarationKind, VariableInfo, VariableInfoFlags, context_reg_exp,
     create_context_dependency, create_traceable_error, expr_name, get_non_optional_part,
   },
 };
@@ -60,16 +63,18 @@ struct CreateRequireArgument {
 }
 
 #[derive(Default)]
-pub struct CreatedRequireReferencesState {
-  pending: rustc_hash::FxHashMap<Span, PendingCreatedRequire>,
+pub struct CreatedRequireReferencesState<'a> {
+  pending: rustc_hash::FxHashMap<Span, PendingCreatedRequire<'a>>,
   exported_locals: rustc_hash::FxHashSet<Atom>,
 }
 
-struct PendingCreatedRequire {
+struct PendingCreatedRequire<'a> {
   must_keep: bool,
   callee: DeferredCreateRequireCallee,
-  arg_span: Span,
-  arg_value: String,
+  // Deferred calls skip this expression until their keep/strip state is known.
+  argument: Expr<'a>,
+  statement_path: Vec<StatementPath>,
+  prev_statement: Option<StatementPath>,
 }
 
 struct DeferredCreateRequireCallee {
@@ -82,13 +87,14 @@ struct DeferredCreateRequireCallee {
   branch_guard: Option<DependencyBranchGuard>,
 }
 
-impl CreatedRequireReferencesState {
+impl<'a> CreatedRequireReferencesState<'a> {
   fn add_pending(
     &mut self,
     call_span: Span,
     callee: DeferredCreateRequireCallee,
-    arg_span: Span,
-    arg_value: String,
+    argument: Expr<'a>,
+    statement_path: Vec<StatementPath>,
+    prev_statement: Option<StatementPath>,
   ) {
     // Normal walk refreshes provisional pre-walk data after earlier references may mark it.
     let must_keep = self
@@ -100,8 +106,9 @@ impl CreatedRequireReferencesState {
       PendingCreatedRequire {
         must_keep,
         callee,
-        arg_span,
-        arg_value,
+        argument,
+        statement_path,
+        prev_statement,
       },
     );
   }
@@ -112,7 +119,7 @@ impl CreatedRequireReferencesState {
     }
   }
 
-  fn take_pending(&mut self) -> Vec<(Span, PendingCreatedRequire)> {
+  fn take_pending(&mut self) -> Vec<(Span, PendingCreatedRequire<'a>)> {
     let mut pending = std::mem::take(&mut self.pending)
       .into_iter()
       .collect::<Vec<_>>();
@@ -230,7 +237,10 @@ fn is_current_create_require_tag(parser: &JavascriptParser) -> bool {
 }
 
 #[inline(never)]
-pub fn is_create_require_specifier(parser: &mut JavascriptParser, name: &Atom) -> bool {
+pub fn is_create_require_specifier<'key>(
+  parser: &mut JavascriptParser,
+  name: impl Into<AtomRef<'key>>,
+) -> bool {
   let Some(variable_info) = parser.get_variable_info(name) else {
     return false;
   };
@@ -293,8 +303,7 @@ pub(crate) fn is_create_require_namespace_member(
   let Some(namespace) = member_expr.obj.as_ident() else {
     return false;
   };
-  let Some(settings) =
-    parser.get_tag_data::<ESMSpecifierData>(&Atom::from(namespace.sym.as_str()), ESM_SPECIFIER_TAG)
+  let Some(settings) = parser.get_tag_data::<ESMSpecifierData>(&namespace.sym, ESM_SPECIFIER_TAG)
   else {
     return false;
   };
@@ -334,7 +343,7 @@ fn is_create_require_namespace_member_param(
 #[inline(never)]
 fn static_member_name(member_expr: &MemberExpr) -> Option<Atom> {
   match &member_expr.prop {
-    MemberProp::Ident(ident) => Some(Atom::from(ident.sym.as_str())),
+    MemberProp::Ident(ident) => Some(Atom::from(&ident.sym)),
     MemberProp::Computed(computed) => match &computed.expr {
       Expr::Lit(lit) => match &**lit {
         Lit::Str(str) => Some(Atom::from(str.value.as_wtf8().to_string_lossy().as_ref())),
@@ -451,6 +460,11 @@ fn dirname(path: &str) -> Option<&str> {
 #[cold]
 #[inline(never)]
 fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -> Option<String> {
+  let evaluated = parser.evaluate_expression(arg);
+  if let Some(value) = evaluated.as_string() {
+    return Some(value);
+  }
+
   if let Some(member) = arg.as_member()
     && is_meta_url(parser, member)
   {
@@ -459,15 +473,8 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
       .map(|url| url.to_string());
   }
 
-  let evaluated = parser.evaluate_expression(arg);
-  if let Some(value) = evaluated.as_string() {
-    return Some(value);
-  }
-
   let new_expr = arg.as_new()?;
-  if new_expr.callee.as_ident()?.sym.as_str() != "URL"
-    || parser.get_variable_info(&Atom::from("URL")).is_some()
-  {
+  if new_expr.callee.as_ident()?.sym != "URL" || parser.get_variable_info("URL").is_some() {
     return None;
   }
   if let Some(args) = &new_expr.args
@@ -533,8 +540,7 @@ fn is_side_effect_free_ignored_url_arg(parser: &mut JavascriptParser, expr: &Exp
   match expr {
     Expr::Lit(_) => true,
     Expr::Ident(ident) => {
-      ident.sym.as_str() == "undefined"
-        && parser.get_variable_info(&Atom::from("undefined")).is_none()
+      ident.sym == "undefined" && parser.get_variable_info("undefined").is_none()
     }
     Expr::Unary(unary) if unary.op == UnaryOp::Void => {
       is_side_effect_free_ignored_url_arg(parser, &unary.arg)
@@ -618,14 +624,22 @@ fn parse_create_require_new_argument(
 
 #[inline(never)]
 fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -> bool {
+  if let Some(member) = arg.as_member()
+    && is_meta_url(parser, member)
+  {
+    return parser
+      .javascript_options
+      .import_meta()
+      .is_known_property_enabled(ImportMetaKnownProperties::URL);
+  }
   let Some(new_expr) = arg.as_new() else {
     return true;
   };
   if new_expr
     .callee
     .as_ident()
-    .is_some_and(|ident| ident.sym.as_str() == "URL")
-    && parser.get_variable_info(&Atom::from("URL")).is_none()
+    .is_some_and(|ident| ident.sym == "URL")
+    && parser.get_variable_info("URL").is_none()
   {
     let is_absolute_file_url = is_absolute_file_url_constructor_arg(parser, arg);
     let start = if is_absolute_file_url { 1 } else { 2 };
@@ -662,7 +676,7 @@ fn should_clear_create_require_call(parser: &mut JavascriptParser, args: &[ExprO
 
 #[inline(never)]
 fn clear_create_require_call(parser: &mut JavascriptParser, span: Span) {
-  parser.add_presentational_dependency(Box::new(ConstDependency::new(
+  parser.add_presentational_dependency(Arc::new(ConstDependency::new(
     span.into(),
     "/* createRequire() */ undefined".into(),
   )));
@@ -674,8 +688,8 @@ fn is_valid_ignored_url_base_arg(parser: &mut JavascriptParser, base: &ExprOrSpr
     return false;
   }
   if let Expr::Ident(ident) = &base.expr
-    && ident.sym.as_str() == "undefined"
-    && parser.get_variable_info(&Atom::from("undefined")).is_none()
+    && ident.sym == "undefined"
+    && parser.get_variable_info("undefined").is_none()
   {
     return true;
   }
@@ -699,8 +713,8 @@ fn is_absolute_file_url_constructor_arg(parser: &mut JavascriptParser, arg: &Exp
   if new_expr
     .callee
     .as_ident()
-    .is_none_or(|ident| ident.sym.as_str() != "URL")
-    || parser.get_variable_info(&Atom::from("URL")).is_some()
+    .is_none_or(|ident| ident.sym != "URL")
+    || parser.get_variable_info("URL").is_some()
   {
     return false;
   };
@@ -729,10 +743,8 @@ fn walk_create_require_ignored_args(parser: &mut JavascriptParser, call_expr: &C
 
 #[inline(never)]
 fn is_unbound_url_constructor(parser: &mut JavascriptParser, callee: &Expr) -> bool {
-  callee
-    .as_ident()
-    .is_some_and(|ident| ident.sym.as_str() == "URL")
-    && parser.get_variable_info(&Atom::from("URL")).is_none()
+  callee.as_ident().is_some_and(|ident| ident.sym == "URL")
+    && parser.get_variable_info("URL").is_none()
 }
 
 #[inline(never)]
@@ -836,11 +848,11 @@ fn wrap_span_with_side_effects(parser: &mut JavascriptParser, span: Span, side_e
   if side_effects.is_empty() {
     return;
   }
-  parser.add_presentational_dependency(Box::new(ConstDependency::new(
+  parser.add_presentational_dependency(Arc::new(ConstDependency::new(
     (span.real_lo(), span.real_lo()).into(),
     side_effects_with_suffix(side_effects, ""),
   )));
-  parser.add_presentational_dependency(Box::new(ConstDependency::new(
+  parser.add_presentational_dependency(Arc::new(ConstDependency::new(
     (span.real_hi(), span.real_hi()).into(),
     ")".into(),
   )));
@@ -999,7 +1011,7 @@ fn deferred_create_require_callee(
 ) -> Option<DeferredCreateRequireCallee> {
   let (settings, range, ids, direct_import, ns_access) = if let Some(ident) = callee.as_ident() {
     let settings = parser
-      .get_tag_data::<ESMSpecifierData>(&Atom::from(ident.sym.as_str()), ESM_SPECIFIER_TAG)?
+      .get_tag_data::<ESMSpecifierData>(&ident.sym, ESM_SPECIFIER_TAG)?
       .clone();
     let ids = settings.ids.clone().into_vec();
     (settings, ident.span.into(), ids, true, false)
@@ -1007,7 +1019,7 @@ fn deferred_create_require_callee(
     let member = callee.as_member()?;
     let namespace = member.obj.as_ident()?;
     let settings = parser
-      .get_tag_data::<ESMSpecifierData>(&Atom::from(namespace.sym.as_str()), ESM_SPECIFIER_TAG)?
+      .get_tag_data::<ESMSpecifierData>(&namespace.sym, ESM_SPECIFIER_TAG)?
       .clone();
     let mut ids = settings.ids.clone().into_vec();
     ids.push(static_member_name(member)?);
@@ -1064,36 +1076,28 @@ fn add_deferred_create_require_callee_dependency(
     dep.set_branch_guard(branch_guard);
   }
   let dep_idx = parser.next_dependency_idx();
-  parser.add_dependency(Box::new(dep));
+  parser.add_dependency(BoxDependency::new(dep));
   InnerGraphParserPlugin::on_usage(
     parser,
     InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
   );
 }
 
-fn keep_deferred_create_require_call(
-  parser: &mut JavascriptParser,
-  pending: PendingCreatedRequire,
+fn keep_deferred_create_require_call<'a>(
+  parser: &mut JavascriptParser<'a>,
+  pending: PendingCreatedRequire<'a>,
 ) {
   add_deferred_create_require_callee_dependency(parser, pending.callee);
-  if parser.compiler_options.output.module {
-    let import_meta_name = &parser.compiler_options.output.import_meta_name;
-    if import_meta_name != expr_name::IMPORT_META {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
-        pending.arg_span.into(),
-        format!("{import_meta_name}.url").into(),
-      )));
-    }
-  } else {
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
-      pending.arg_span.into(),
-      json_stringify_str(&pending.arg_value).into(),
-    )));
-  }
+  // Let the regular parser plugins own children of a call that survives.
+  let statement_path = std::mem::replace(&mut parser.statement_path, pending.statement_path);
+  let prev_statement = std::mem::replace(&mut parser.prev_statement, pending.prev_statement);
+  parser.walk_expression(&pending.argument);
+  parser.statement_path = statement_path;
+  parser.prev_statement = prev_statement;
 }
 
-fn pre_tag_created_require_declarator(
-  parser: &mut JavascriptParser,
+fn pre_tag_created_require_declarator<'a>(
+  parser: &mut JavascriptParser<'a>,
   declarator: &VarDeclarator,
   declaration: VariableDeclaration<'_>,
 ) {
@@ -1112,7 +1116,7 @@ fn pre_tag_created_require_declarator(
   };
   let is_create_require_callee = callee
     .as_ident()
-    .is_some_and(|ident| is_create_require_specifier(parser, &Atom::from(ident.sym.as_str())))
+    .is_some_and(|ident| is_create_require_specifier(parser, &ident.sym))
     || is_create_require_namespace_member(parser, callee);
   if !is_create_require_callee || !can_defer_create_require_call(parser, &call.args) {
     return;
@@ -1124,11 +1128,11 @@ fn pre_tag_created_require_declarator(
     return;
   };
   let CreateRequireArgument {
-    value,
+    value: _,
     context,
     replace_argument: _,
   } = argument;
-  let name = Atom::from(binding.id.sym.as_str());
+  let name = Atom::from(&binding.id.sym);
   parser.define_variable(name.clone());
   parser.tag_variable(
     name,
@@ -1140,18 +1144,21 @@ fn pre_tag_created_require_declarator(
       preserve_unhandled: true,
     }),
   );
+  let statement_path = parser.statement_path.clone();
+  let prev_statement = parser.prev_statement;
   parser.created_require_references.add_pending(
     call.span,
     deferred_callee,
-    call.args[0].expr.span(),
-    value,
+    call.args[0].expr.clone_in(parser.ast.allocator),
+    statement_path,
+    prev_statement,
   );
 }
 
 #[cold]
 #[inline(never)]
-fn tag_created_require_declarator(
-  parser: &mut JavascriptParser,
+fn tag_created_require_declarator<'a>(
+  parser: &mut JavascriptParser<'a>,
   binding: &Ident,
   call_span: Span,
   clear_call: bool,
@@ -1165,7 +1172,7 @@ fn tag_created_require_declarator(
     replace_argument,
   } = argument;
   let deferred = deferred_callee.is_some();
-  let binding_name = Atom::from(binding.sym.as_str());
+  let binding_name = Atom::from(&binding.sym);
   parser.define_variable(binding_name.clone());
   parser.tag_variable(
     binding_name,
@@ -1178,13 +1185,19 @@ fn tag_created_require_declarator(
     }),
   );
   if let Some(callee) = deferred_callee {
-    parser
-      .created_require_references
-      .add_pending(call_span, callee, args[0].expr.span(), value);
+    let statement_path = parser.statement_path.clone();
+    let prev_statement = parser.prev_statement;
+    parser.created_require_references.add_pending(
+      call_span,
+      callee,
+      args[0].expr.clone_in(parser.ast.allocator),
+      statement_path,
+      prev_statement,
+    );
   } else if clear_call {
     clear_create_require_call(parser, call_span);
   } else if replace_argument {
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    parser.add_presentational_dependency(Arc::new(ConstDependency::new(
       args[0].expr.span().into(),
       json_stringify_str(&value).into(),
     )));
@@ -1194,7 +1207,8 @@ fn tag_created_require_declarator(
   parser.walk_expr_or_spread(&args[1..]);
 }
 
-fn clear_create_require_tag(parser: &mut JavascriptParser, name: &Atom) {
+fn clear_create_require_tag<'key>(parser: &mut JavascriptParser, name: impl Into<AtomRef<'key>>) {
+  let name = name.into();
   if let Some(declared_scope) = parser
     .get_variable_info(name)
     .map(|info| info.declared_scope)
@@ -1208,13 +1222,13 @@ fn clear_create_require_tag(parser: &mut JavascriptParser, name: &Atom) {
     );
     parser
       .definitions_db
-      .set(declared_scope, name.clone(), info);
+      .set(declared_scope, name.to_atom(), info);
   }
 }
 
 #[inline(never)]
 fn add_require_cache_dependency(parser: &mut JavascriptParser, range: DependencyRange) {
-  parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+  parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
     range,
     RuntimeGlobals::MODULE_CACHE,
   )));
@@ -1244,7 +1258,7 @@ fn handle_created_require_member(
     add_require_cache_dependency(parser, cache_range.into());
   } else {
     add_unsupported_create_require_member_warning(parser, member_span);
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    parser.add_presentational_dependency(Arc::new(ConstDependency::new(
       member_span.into(),
       unsupported_replacement,
     )));
@@ -1298,7 +1312,7 @@ fn walk_unsupported_create_require_resolve(
     let arg = &inner_call_expr.args[0].expr;
     if let Some(value) = evaluate_create_require_argument(parser, arg) {
       if should_replace_create_require_argument(parser, arg) {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           arg.span().into(),
           json_stringify_str(&value).into(),
         )));
@@ -1353,6 +1367,7 @@ fn create_commonjs_require_context_dependency(
   request_context: Option<rspack_core::Context>,
 ) -> CommonJsRequireContextDependency {
   let result = create_context_dependency(param, parser);
+  let request = result.request();
 
   let span = call_expr.span;
   let options = ContextOptions {
@@ -1360,8 +1375,9 @@ fn create_commonjs_require_context_dependency(
     recursive: true,
     pattern: context_reg_exp(&result.reg, "", None, parser).into(),
     category: DependencyCategory::CommonJS,
-    request: format!("{}{}{}", result.context, result.query, result.fragment),
-    context: result.context,
+    request,
+    context: get_context(parser.resource_data).to_string(),
+    compiler_context: parser.compiler_options.context.clone(),
     replaces: result.replaces,
     start: span.real_lo(),
     end: span.real_hi(),
@@ -1382,7 +1398,7 @@ fn create_commonjs_require_context_dependency(
   if let Some(referenced_specifiers) = referenced_specifiers {
     dep.set_referenced_specifiers(referenced_specifiers);
   }
-  *dep.critical_mut() = result.critical;
+  dep.set_critical(result.critical);
   dep
 }
 
@@ -1397,6 +1413,7 @@ fn create_require_resolve_context_dependency(
   let end = range.end;
 
   let result = create_context_dependency(param, parser);
+  let request = result.request();
 
   let options = ContextOptions {
     mode: if weak {
@@ -1407,8 +1424,9 @@ fn create_require_resolve_context_dependency(
     recursive: true,
     pattern: context_reg_exp(&result.reg, "", None, parser).into(),
     category: DependencyCategory::CommonJS,
-    request: format!("{}{}{}", result.context, result.query, result.fragment),
-    context: result.context,
+    request,
+    context: get_context(parser.resource_data).to_string(),
+    compiler_context: parser.compiler_options.context.clone(),
     replaces: result.replaces,
     start,
     end,
@@ -1514,10 +1532,7 @@ impl CommonJsImportsParserPlugin {
       return false;
     };
 
-    if parser
-      .get_variable_info(&Atom::from(ident.sym.as_str()))
-      .is_some()
-    {
+    if parser.get_variable_info(&ident.sym).is_some() {
       return false;
     }
 
@@ -1549,7 +1564,7 @@ impl CommonJsImportsParserPlugin {
     let range = call_expr.callee.span().into();
     let loc = parser.to_dependency_location(range);
     let require_resolve_header_dependency =
-      Box::new(RequireResolveHeaderDependency::new(range, loc));
+      BoxDependency::new(RequireResolveHeaderDependency::new(range, loc));
 
     if param.is_conditional() {
       for option in param.options() {
@@ -1594,15 +1609,17 @@ impl CommonJsImportsParserPlugin {
   ) -> bool {
     if param.is_string() {
       if let Some(context) = request_context {
-        parser.add_dependency(Box::new(RequireResolveDependency::new_contextual(
-          param.string().clone(),
-          param.range().into(),
-          weak,
-          parser.in_try,
-          context,
-        )));
+        parser.add_dependency(BoxDependency::new(
+          RequireResolveDependency::new_contextual(
+            param.string().clone(),
+            param.range().into(),
+            weak,
+            parser.in_try,
+            context,
+          ),
+        ));
       } else {
-        parser.add_dependency(Box::new(RequireResolveDependency::new(
+        parser.add_dependency(BoxDependency::new(RequireResolveDependency::new(
           param.string().clone(),
           param.range().into(),
           weak,
@@ -1631,7 +1648,7 @@ impl CommonJsImportsParserPlugin {
       request_context,
     );
 
-    parser.add_dependency(Box::new(dep));
+    parser.add_dependency(BoxDependency::new(dep));
   }
 
   fn chain_handler(
@@ -1727,7 +1744,7 @@ impl CommonJsImportsParserPlugin {
           dep_type: DependencyType::CjsRequire,
         });
       }
-      parser.add_dependency(Box::new(dep));
+      parser.add_dependency(BoxDependency::new(dep));
       true
     })
   }
@@ -1772,7 +1789,7 @@ impl CommonJsImportsParserPlugin {
         dep_type: DependencyType::CommonJSRequireContext,
       });
     }
-    parser.add_dependency(Box::new(dep));
+    parser.add_dependency(BoxDependency::new(dep));
     Some(true)
   }
 
@@ -1823,7 +1840,7 @@ impl CommonJsImportsParserPlugin {
       if !is_expression {
         let range: DependencyRange = callee.span().into();
         let loc = parser.to_dependency_location(range);
-        parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(range, loc)));
+        parser.add_presentational_dependency(Arc::new(RequireHeaderDependency::new(range, loc)));
         return Some(true);
       }
     }
@@ -1832,7 +1849,7 @@ impl CommonJsImportsParserPlugin {
     {
       local_module.flag_used();
       let span = expr.span();
-      let dep = Box::new(LocalModuleDependency::new(
+      let dep = Arc::new(LocalModuleDependency::new(
         local_module.clone(),
         Some(span.into()),
         matches!(expr, CallOrNewExpr::New(_)),
@@ -1854,7 +1871,7 @@ impl CommonJsImportsParserPlugin {
     } else {
       let range: DependencyRange = callee.span().into();
       let loc = parser.to_dependency_location(range);
-      parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(range, loc)));
+      parser.add_presentational_dependency(Arc::new(RequireHeaderDependency::new(range, loc)));
     }
     Some(true)
   }
@@ -1872,13 +1889,14 @@ impl CommonJsImportsParserPlugin {
     let span = ident.span;
     let start = span.real_lo();
     let end = span.real_hi();
-    let mut dep = CommonJsRequireContextDependency::new(
+    let dep = CommonJsRequireContextDependency::new(
       ContextOptions {
         mode: ContextMode::Sync,
         recursive: true,
         pattern: ContextModulePattern::None,
         request: ".".to_string(),
-        context: ".".to_string(),
+        context: get_context(parser.resource_data).to_string(),
+        compiler_context: parser.compiler_options.context.clone(),
         start,
         end,
         ..Default::default()
@@ -1907,9 +1925,9 @@ impl CommonJsImportsParserPlugin {
         span.into(),
       );
       error.severity = Severity::Warning;
-      *dep.critical_mut() = Some(Diagnostic::from(error));
+      dep.set_critical(Some(Diagnostic::from(error)));
     }
-    parser.add_dependency(Box::new(dep));
+    parser.add_dependency(BoxDependency::new(dep));
     Some(true)
   }
 }
@@ -1931,7 +1949,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       return Some(true);
     }
     if let Some(ident) = expr.as_ident()
-      && let Some(name_info) = parser.get_name_info_from_variable(&Atom::from(ident.sym.as_str()))
+      && let Some(name_info) = parser.get_name_info_from_variable(&ident.sym)
       && let Some(info) = name_info.info
       && let Some(name) = info.name.clone()
       && parser
@@ -1963,7 +1981,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && let Some(binding) = declarator.name.as_ident()
       && is_require_call_expr(parser, call)
     {
-      let name = Atom::from(binding.id.sym.as_str());
+      let name = Atom::from(&binding.id.sym);
       parser.define_variable(name.clone());
       tag_commonjs_require_referenced(parser, call, name);
     }
@@ -1983,14 +2001,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     let init = declarator.init.as_ref()?;
     if let Some(init) = init.as_ident()
       && let Some(data) = parser
-        .get_tag_data::<CreatedRequireTagData>(
-          &Atom::from(init.sym.as_str()),
-          CREATED_REQUIRE_IDENTIFIER_TAG,
-        )
+        .get_tag_data::<CreatedRequireTagData>(&init.sym, CREATED_REQUIRE_IDENTIFIER_TAG)
         .cloned()
       && let Some(binding) = declarator.name.as_ident()
     {
-      let name = Atom::from(binding.id.sym.as_str());
+      let name = Atom::from(&binding.id.sym);
       parser.define_variable(name.clone());
       parser.tag_variable(
         name,
@@ -2004,10 +2019,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     }
 
     if let Some(init) = init.as_ident()
-      && is_create_require_specifier(parser, &Atom::from(init.sym.as_str()))
+      && is_create_require_specifier(parser, &init.sym)
       && let Some(binding) = declarator.name.as_ident()
     {
-      let name = Atom::from(binding.id.sym.as_str());
+      let name = Atom::from(&binding.id.sym);
       parser.define_variable(name.clone());
       tag_create_require(parser, name);
     }
@@ -2015,7 +2030,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     let binding = declarator.name.as_ident()?;
 
     if is_create_require_namespace_member(parser, init) {
-      let name = Atom::from(binding.id.sym.as_str());
+      let name = Atom::from(&binding.id.sym);
       parser.define_variable(name.clone());
       tag_create_require(parser, name);
     }
@@ -2059,13 +2074,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     }
 
     if parser
-      .get_tag_data::<CreatedRequireTagData>(
-        &Atom::from(binding.id.sym.as_str()),
-        CREATED_REQUIRE_IDENTIFIER_TAG,
-      )
+      .get_tag_data::<CreatedRequireTagData>(&binding.id.sym, CREATED_REQUIRE_IDENTIFIER_TAG)
       .is_some()
     {
-      parser.define_variable(Atom::from(binding.id.sym.as_str()));
+      parser.define_variable(Atom::from(&binding.id.sym));
       parser.walk_expression(init);
       return Some(true);
     }
@@ -2247,7 +2259,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       Some(false)
     } else if for_name == expr_name::REQUIRE && should_parse_commonjs_require(parser) {
       if parser.javascript_options.require_alias.unwrap_or_default() {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           expr.span().into(),
           "undefined".into(),
         )));
@@ -2386,7 +2398,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       || should_handle_create_require_specifier(parser, for_name)
       || for_name == CREATED_REQUIRE_IDENTIFIER_TAG
     {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         expr.span.into(),
         "'function'".into(),
       )));
@@ -2412,7 +2424,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         if clear_call {
           clear_create_require_call(parser, call_expr.span);
         } else if argument.replace_argument {
-          parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          parser.add_presentational_dependency(Arc::new(ConstDependency::new(
             call_expr.args[0].expr.span().into(),
             json_stringify_str(&argument.value).into(),
           )));
@@ -2515,7 +2527,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && should_parse_commonjs_require(parser)
       && let Some(dep) = self.chain_handler(parser, member_expr, call_expr, members, false)
     {
-      parser.add_dependency(Box::new(dep));
+      parser.add_dependency(BoxDependency::new(dep));
       return Some(true);
     }
     None
@@ -2588,7 +2600,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && let Some(member) = callee.as_member()
       && let Some(dep) = self.chain_handler(parser, member, inner_call_expr, members, true)
     {
-      parser.add_dependency(Box::new(dep));
+      parser.add_dependency(BoxDependency::new(dep));
       parser.walk_expr_or_spread(&call_expr.args);
       return Some(true);
     }
@@ -2603,7 +2615,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::REQUIRE && should_parse_commonjs_require(parser) {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         (0, 0).into(),
         "var require;".into(),
       )));
@@ -2617,7 +2629,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       if matches!(expr.op, AssignOp::OrAssign | AssignOp::NullishAssign) {
         return Some(true);
       }
-      clear_create_require_tag(parser, &Atom::from(ident.sym.as_str()));
+      clear_create_require_tag(parser, &ident.sym);
       return Some(true);
     }
 
@@ -2671,7 +2683,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       }
     }
 
-    for (call_span, pending) in parser.created_require_references.take_pending() {
+    let mut created_require_references = std::mem::take(&mut parser.created_require_references);
+    let pending_calls = created_require_references.take_pending();
+    parser.created_require_references = created_require_references;
+    for (call_span, pending) in pending_calls {
       if pending.must_keep {
         keep_deferred_create_require_call(parser, pending);
       } else {

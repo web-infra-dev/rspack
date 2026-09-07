@@ -1,0 +1,59 @@
+{
+  "name": "@exports-field/bad-specifier",
+  "version": "1.0.0",
+  "exports": {
+    ".": [
+      "",
+      "./a/../b/../../pack1/index.js",
+      "././-bad-specifier-",
+      "-bad-specifier-",
+      "file.js",
+      "./a.js?foo=../"
+    ],
+    "./foo/*": [
+      "",
+      "./a/../b/../../pack1/index.js",
+      "././-bad-specifier-",
+      "-bad-specifier-",
+      "file.js",
+      "./a.js?foo=../#../"
+    ],
+    "./bar": "-bad-specifier-",
+    "./baz": ["-bad-specifier-"],
+    "./baz-multi": ["-bad-specifier-", "foo"],
+    "./pattern/*.js": {
+      "default": ["-bad-specifier-", "./*.js"]
+    },
+    "./slash": ["/bar", "./a.js"],
+    "./no-slash": [".bar", "./a.js"],
+    "./utils/": {
+      "browser": "/a/",
+      "default": "/b/"
+    },
+    "./utils1/": "/a/",
+    "./utils2/": {
+      "default": "../this/"
+    },
+    "./utils3/*": {
+      "default": "../this/*"
+    },
+    "./utils4/*": "../src/*",
+    "./utils5/": "../src/",
+    "./*": ".",
+    "./valid/*.js": {
+      "default": ["-bad-specifier-", "./*.js"]
+    },
+    "./non-existent.js": ["-bad-specifier-", "./non-existent.js", "./a.js"],
+    "./bad-specifier.js": ["-bad-specifier-", "../../a.js", "./a.js"],
+    "./bad-specifier1.js": ["-bad-specifier-", "foo", "./a.js"],
+    "./dep/multi": ["../../test", "./a.js"],
+    "./dep/multi1": ["../../test", "../../test/foo"],
+    "./dep/multi2": ["../../test"],
+    "./dep/multi3": ["./a/../b/../../pack1/index.js", "./a.js"],
+    "./dep/multi4": [
+      "./a/../b/../../pack1/index.js",
+      "./c/../b/../../pack1/index.js"
+    ],
+    "./dep/multi5": ["./a/../b/../../pack1/index.js"]
+  }
+}

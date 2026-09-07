@@ -18,11 +18,7 @@ pub struct DeterministicChunkIdsPlugin {
   pub context: Option<String>,
 }
 
-impl DeterministicChunkIdsPlugin {
-  pub fn new(delimiter: Option<String>, context: Option<String>) -> Self {
-    Self::new_inner(delimiter.unwrap_or_else(|| "~".to_string()), context)
-  }
-}
+impl DeterministicChunkIdsPlugin {}
 
 #[plugin_hook(CompilationChunkIds for DeterministicChunkIdsPlugin)]
 async fn chunk_ids(
@@ -33,7 +29,7 @@ async fn chunk_ids(
   diagnostics: &mut Vec<Diagnostic>,
 ) -> rspack_error::Result<()> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
-    IncrementalPasses::CHUNK_IDS,
+    IncrementalPasses::CHUNK_IDS | IncrementalPasses::MODULES_HASHES,
     "DeterministicChunkIdsPlugin (optimization.chunkIds = \"deterministic\")",
     "it requires calculating the id of all the chunks, which is a global effect",
   ) && let Some(diagnostic) = diagnostic
@@ -65,12 +61,13 @@ async fn chunk_ids(
 
   let chunk_names = chunks
     .par_iter()
-    .map(|chunk| {
-      (
+    .map(|chunk| -> Result<_> {
+      Ok((
         chunk.ukey(),
         get_full_chunk_name(
           chunk,
           chunk_graph,
+          &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
           module_graph,
           module_graph_cache,
           &compilation
@@ -78,10 +75,10 @@ async fn chunk_ids(
             .side_effects_state_artifact,
           &context,
           &compilation.exports_info_artifact,
-        ),
-      )
+        )?,
+      ))
     })
-    .collect::<FxHashMap<_, _>>();
+    .collect::<Result<FxHashMap<_, _>>>()?;
 
   let mut chunk_compare_cache = NaturalChunkCompareCache::default();
 

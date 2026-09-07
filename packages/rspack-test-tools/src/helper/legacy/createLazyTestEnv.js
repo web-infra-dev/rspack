@@ -62,7 +62,7 @@ export function createLazyTestEnv(globalTimeout = 2000, nameSuffix = '') {
       fn();
     } catch (e) {
       // avoid leaking memory
-      e.stack;
+      void e.stack;
       throw e;
     }
     state.currentDescribeBlock = oldCurrentDescribeBlock;
@@ -118,7 +118,7 @@ export function createLazyTestEnv(globalTimeout = 2000, nameSuffix = '') {
         );
       });
     },
-    /** @type {import('@rstest/core').Expect} */
+    /** @type {import('rstack/test').Expect} */
     expect,
     rstest,
   };

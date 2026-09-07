@@ -6,7 +6,7 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, FactorizeInfo, ModuleDependency, ResourceIdentifier,
+  DependencyType, ModuleDependency, ResourceIdentifier,
 };
 
 use crate::plugin_state::{
@@ -14,7 +14,7 @@ use crate::plugin_state::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RscEntryDependency {
   id: DependencyId,
   pub name: Arc<str>,
@@ -30,7 +30,6 @@ pub struct RscEntryDependency {
   /// When false, client modules are dynamic imports (code-split points).
   pub is_server_side_rendering: bool,
   resource_identifier: ResourceIdentifier,
-  factorize_info: FactorizeInfo,
 }
 
 impl RscEntryDependency {
@@ -52,7 +51,6 @@ impl RscEntryDependency {
       css_imports_by_server_entry,
       is_server_side_rendering,
       resource_identifier,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -84,14 +82,6 @@ impl Dependency for RscEntryDependency {
 impl ModuleDependency for RscEntryDependency {
   fn request(&self) -> &str {
     &self.resource_identifier
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

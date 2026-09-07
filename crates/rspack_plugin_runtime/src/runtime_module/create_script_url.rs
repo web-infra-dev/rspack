@@ -15,6 +15,10 @@ impl CreateScriptUrlRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for CreateScriptUrlRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   fn runtime_requirements(
     &self,
     compilation: &Compilation,

@@ -131,6 +131,24 @@ where
   }
 }
 
+// for hashlink::LinkedHashSet
+impl<T, S> AsVecConverter for hashlink::LinkedHashSet<T, S>
+where
+  T: std::cmp::Eq + std::hash::Hash,
+  S: core::hash::BuildHasher + Default,
+{
+  type Item = T;
+  fn len(&self) -> usize {
+    self.len()
+  }
+  fn iter(&self) -> impl Iterator<Item = &Self::Item> {
+    self.iter()
+  }
+  fn from(data: impl Iterator<Item = Result<Self::Item>>) -> Result<Self> {
+    data.collect::<Result<hashlink::LinkedHashSet<T, S>>>()
+  }
+}
+
 // for indexmap::IndexSet
 impl<T, S> AsVecConverter for indexmap::IndexSet<T, S>
 where

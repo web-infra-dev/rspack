@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use cargo_toml::{Inheritable, Manifest};
+use cargo_toml::{Inheritable, Manifest, SemVer};
 use clap::Args;
 
 #[derive(Debug, Args)]
@@ -83,7 +83,7 @@ fn has_package_field(package: &cargo_toml::Package, field: &str) -> bool {
         || package
           .version
           .get()
-          .is_ok_and(|version| version != "0.0.0")
+          .is_ok_and(|version| version != &SemVer::new(0, 0, 0))
     }
     "license" => package.license.is_some(),
     "repository" => package.repository.is_some(),

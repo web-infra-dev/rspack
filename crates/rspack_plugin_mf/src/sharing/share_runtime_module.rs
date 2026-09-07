@@ -1,11 +1,15 @@
 use std::sync::LazyLock;
 
 use itertools::Itertools;
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  Compilation, ModuleId, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeModuleRuntimeRequirements, RuntimeTemplate, SourceType, impl_runtime_module,
+  CodeGenerationDataItem, Compilation, ModuleId, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, RuntimeTemplate, SourceType,
+  impl_runtime_module,
 };
-use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
+use rspack_plugin_runtime::{
+  extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
+};
 use rspack_util::{
   fx_hash::{FxLinkedHashMap, FxLinkedHashSet},
   json_stringify_str,
@@ -24,6 +28,8 @@ static INITIALIZE_SHARING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeReq
     force_context: RuntimeGlobals::INITIALIZE_SHARING | RuntimeGlobals::SHARE_SCOPE_MAP,
     ..extract_runtime_globals_from_ejs(INITIALIZE_SHARING_TEMPLATE)
   });
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
+  LazyLock::new(|| extract_runtime_module_variables_from_ejs(&[INITIALIZE_SHARING_TEMPLATE]));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -39,6 +45,10 @@ impl ShareRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ShareRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES.as_slice()
+  }
+
   fn runtime_requirements(
     &self,
     compilation: &Compilation,
@@ -95,7 +105,7 @@ impl RuntimeModule for ShareRuntimeModule {
         let code_gen = compilation
           .code_generation_results
           .get(&mid, Some(chunk.runtime()));
-        let Some(data) = code_gen.data.get::<CodeGenerationDataShareInit>() else {
+        let Some(data) = code_gen.data().get::<CodeGenerationDataShareInit>() else {
           continue;
         };
         for item in &data.items {
@@ -178,11 +188,13 @@ impl RuntimeModule for ShareRuntimeModule {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataShareInit {
   pub items: Vec<ShareInitData>,
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ShareInitData {
   pub share_scope: ShareScope,
@@ -192,12 +204,14 @@ pub struct ShareInitData {
 
 pub type DataInitStage = i8;
 
+#[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DataInitInfo {
   ExternalModuleId(Option<ModuleId>),
   ProvideSharedInfo(ProvideSharedInfo),
 }
 
+#[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProvideSharedInfo {
   pub name: String,
@@ -209,3 +223,6 @@ pub struct ProvideSharedInfo {
   pub strict_version: Option<bool>,
   pub tree_shaking_mode: Option<String>,
 }
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataShareInit {}

@@ -5,4 +5,5 @@ mod isolated_dts;
 mod parser_plugin;
 mod plugin;
 mod react_directives_parser_plugin;
+pub mod worker_external;
 pub use plugin::*;

@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, sync::Arc};
 
 use miette::{Diagnostic as MietteDiagnostic, LabeledSpan};
 use rspack_cacheable::cacheable;
@@ -35,7 +35,7 @@ pub struct ErrorData {
   /// Message.
   pub message: String,
   /// Source code.
-  pub src: Option<String>,
+  pub src: Option<Arc<str>>,
   /// Labels displayed in source code.
   ///
   /// The source code block will be displayed only if both source code and labels exist.
@@ -101,6 +101,16 @@ impl Error {
 
   pub fn from_string(
     src: Option<String>,
+    start: usize,
+    end: usize,
+    title: String,
+    message: String,
+  ) -> Self {
+    Self::from_shared_source(src.map(Into::into), start, end, title, message)
+  }
+
+  pub fn from_shared_source(
+    src: Option<Arc<str>>,
     start: usize,
     end: usize,
     title: String,

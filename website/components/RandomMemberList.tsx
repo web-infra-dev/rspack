@@ -208,6 +208,12 @@ const coreTeam: Member[] = [
     x: 'https://x.com/elecmonkeyjs',
     desc: 'Rspack core team',
   },
+  {
+    id: 'swwind',
+    avatar: 'https://github.com/swwind.png',
+    x: 'https://x.com/swwind233',
+    desc: 'Rspack core team',
+  },
 ];
 
 export const RandomMemberList = ({ list = coreTeam }: { list?: Member[] }) => {

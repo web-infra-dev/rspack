@@ -17,6 +17,10 @@ impl ShareContainerRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ShareContainerRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,

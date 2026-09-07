@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use super::*;
-use crate::{cache::Cache, compilation::pass::PassExt};
+use crate::compilation::pass::PassExt;
 
 /// Collects module identifiers that need ID assignment.
 /// A module needs an ID if:
@@ -36,8 +36,8 @@ impl PassExt for ModuleIdsPass {
     "module ids"
   }
 
-  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.before_module_ids(compilation).await;
+  fn incremental_passes(&self) -> IncrementalPasses {
+    IncrementalPasses::MODULE_IDS
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
@@ -49,7 +49,8 @@ impl PassExt for ModuleIdsPass {
       compilation.module_ids_artifact.clear();
     }
 
-    let mut module_ids_artifact = compilation.module_ids_artifact.steal();
+    let module_ids_artifact = compilation.module_ids_artifact.steal();
+    let mut preserved_module_ids_artifact = ModuleIdsArtifact::default();
 
     // Call reviveModules hook - allows plugins to restore IDs from records
     if !compilation
@@ -58,13 +59,18 @@ impl PassExt for ModuleIdsPass {
       .revive_modules
       .is_empty()
     {
-      let modules_needing_ids = get_modules_needing_ids(compilation, &module_ids_artifact);
+      let modules_needing_ids =
+        get_modules_needing_ids(compilation, &preserved_module_ids_artifact);
       compilation
         .plugin_driver
         .clone()
         .compilation_hooks
         .revive_modules
-        .call(compilation, &modules_needing_ids, &mut module_ids_artifact)
+        .call(
+          compilation,
+          &modules_needing_ids,
+          &mut preserved_module_ids_artifact,
+        )
         .await
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.reviveModules"))?;
     }
@@ -76,31 +82,56 @@ impl PassExt for ModuleIdsPass {
       .before_module_ids
       .is_empty()
     {
-      let modules_needing_ids = get_modules_needing_ids(compilation, &module_ids_artifact);
+      let modules_needing_ids =
+        get_modules_needing_ids(compilation, &preserved_module_ids_artifact);
       compilation
         .plugin_driver
         .clone()
         .compilation_hooks
         .before_module_ids
-        .call(compilation, &modules_needing_ids, &mut module_ids_artifact)
+        .call(
+          compilation,
+          &modules_needing_ids,
+          &mut preserved_module_ids_artifact,
+        )
         .await
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.beforeModuleIds"))?;
     }
 
-    // Put artifact back so moduleIds plugins can see custom IDs from beforeModuleIds
-    // when they call get_used_module_ids_and_modules
+    // Put the recovered artifact back before preserved IDs are merged.
     compilation.module_ids_artifact = module_ids_artifact.into();
 
     let mut diagnostics = vec![];
     let mut module_ids_artifact = compilation.module_ids_artifact.steal();
+
+    // Merge IDs assigned by reviveModules and beforeModuleIds before running module ID plugins,
+    // so every plugin sees them as reserved IDs. Plugins that reset global IDs retain this
+    // preserved subset.
+    {
+      let mut mutations = compilation.incremental.mutations_write();
+      for (module, id) in preserved_module_ids_artifact.iter() {
+        if ChunkGraph::set_module_id(&mut module_ids_artifact, *module, id.clone())
+          && let Some(mutations) = &mut mutations
+        {
+          mutations.add(Mutation::ModuleSetId { module: *module });
+        }
+      }
+    }
+
     compilation
       .plugin_driver
       .clone()
       .compilation_hooks
       .module_ids
-      .call(compilation, &mut module_ids_artifact, &mut diagnostics)
+      .call(
+        compilation,
+        &mut module_ids_artifact,
+        &preserved_module_ids_artifact,
+        &mut diagnostics,
+      )
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.moduleIds"))?;
+
     if !compilation
       .plugin_driver
       .compilation_hooks
@@ -119,9 +150,5 @@ impl PassExt for ModuleIdsPass {
     compilation.module_ids_artifact = module_ids_artifact.into();
     compilation.extend_diagnostics(diagnostics);
     Ok(())
-  }
-
-  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.after_module_ids(compilation).await;
   }
 }

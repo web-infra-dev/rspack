@@ -2,18 +2,20 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, AsVec},
 };
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, property_access_with_optional,
+  AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  ExportsInfoArtifact, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport,
+  RuntimeSpec, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, UsedName,
+  property_access_with_optional,
 };
-use swc_atoms::Atom;
 
 use super::ExportsBase;
+use crate::Atom;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CommonJsSelfReferenceDependency {
   id: DependencyId,
   range: DependencyRange,
@@ -22,7 +24,6 @@ pub struct CommonJsSelfReferenceDependency {
   names: Vec<Atom>,
   names_optionals: Vec<bool>,
   is_call: bool,
-  factorize_info: FactorizeInfo,
 }
 
 impl CommonJsSelfReferenceDependency {
@@ -40,7 +41,6 @@ impl CommonJsSelfReferenceDependency {
       names,
       names_optionals,
       is_call,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -88,20 +88,26 @@ impl Dependency for CommonJsSelfReferenceDependency {
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::True
   }
+
+  // A self-reference (`exports` / `module.exports` read) refers back to this
+  // same module rather than evaluating another one, so it must not contribute
+  // `Active(true)` to the module-evaluation side-effect state by itself.
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
+    _module_chain: &mut IdentifierSet,
+    _connection_state_cache: &mut IdentifierMap<ConnectionState>,
+  ) -> ConnectionState {
+    ConnectionState::Active(false)
+  }
 }
 
 #[cacheable_dyn]
 impl ModuleDependency for CommonJsSelfReferenceDependency {
   fn request(&self) -> &str {
     "self"
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

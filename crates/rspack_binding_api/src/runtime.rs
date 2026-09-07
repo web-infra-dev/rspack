@@ -147,8 +147,7 @@ impl JsLinkPrefetchData {
 
 impl From<RuntimeModuleChunkWrapper> for ChunkWrapper {
   fn from(value: RuntimeModuleChunkWrapper) -> Self {
-    let compilation = unsafe { value.compilation.as_ref() };
-    ChunkWrapper::new(value.chunk_ukey, compilation)
+    ChunkWrapper::new_by_id(value.chunk_ukey, value.compilation_id)
   }
 }
 

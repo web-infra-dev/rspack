@@ -111,9 +111,13 @@ module.exports = [(() => {
     options(context) {
       return {
         entry: "./c",
+        output: {
+          path: context.getDist()
+        }
       };
     },
-    compilerCallback() {
+    compilerCallback(error) {
+      expect(error).toBeFalsy();
       expect(doneHookCb).toHaveBeenCalled();
       expect(afterDoneHookCb).toHaveBeenCalled();
     },

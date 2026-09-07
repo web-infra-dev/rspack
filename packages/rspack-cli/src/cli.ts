@@ -274,7 +274,11 @@ export class RspackCLI {
       }
 
       if (typeof item.stats === 'undefined') {
-        item.stats = { preset: 'errors-warnings', timings: true };
+        item.stats = {
+          preset: 'errors-warnings',
+          timings: true,
+          logging: false,
+        };
       } else if (typeof item.stats === 'boolean') {
         item.stats = item.stats ? { preset: 'normal' } : { preset: 'none' };
       } else if (typeof item.stats === 'string') {
@@ -282,7 +286,13 @@ export class RspackCLI {
           preset: item.stats as
             'normal' | 'none' | 'verbose' | 'errors-only' | 'errors-warnings',
         };
+      } else if (
+        typeof item.stats.preset === 'undefined' &&
+        item.stats.all !== true
+      ) {
+        item.stats.logging ??= false;
       }
+
       return item;
     };
 
@@ -394,11 +404,21 @@ export type RspackConfigExport =
  * This function helps you to autocomplete configuration types.
  * It accepts a Rspack config object, or a function that returns a config.
  */
-export function defineConfig(config: RspackOptions): RspackOptions;
-export function defineConfig(config: MultiRspackOptions): MultiRspackOptions;
-export function defineConfig(config: RspackConfigFn): RspackConfigFn;
-export function defineConfig(config: RspackConfigAsyncFn): RspackConfigAsyncFn;
-export function defineConfig(config: RspackConfigExport): RspackConfigExport;
+export function defineConfig<
+  const Config extends RspackOptions | MultiRspackOptions,
+  const Definition extends
+    | Config
+    | ((...args: Parameters<RspackConfigFn>) => Config)
+    | ((...args: Parameters<RspackConfigFn>) => Promise<Config>),
+>(
+  config: Definition,
+): Definition extends (...args: Parameters<RspackConfigFn>) => Promise<unknown>
+  ? RspackConfigAsyncFn
+  : Definition extends (...args: Parameters<RspackConfigFn>) => unknown
+    ? RspackConfigFn
+    : Definition extends readonly unknown[]
+      ? MultiRspackOptions
+      : RspackOptions;
 export function defineConfig(config: RspackConfigExport) {
   return config;
 }

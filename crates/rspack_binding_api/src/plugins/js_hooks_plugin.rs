@@ -23,6 +23,7 @@ pub struct JsHooksAdapterPlugin {
   register_compiler_compilation_taps: RegisterCompilerCompilationTaps,
   register_compiler_make_taps: RegisterCompilerMakeTaps,
   register_compiler_finish_make_taps: RegisterCompilerFinishMakeTaps,
+  register_compiler_after_compile_taps: RegisterCompilerAfterCompileTaps,
   register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps,
   register_compiler_emit_taps: RegisterCompilerEmitTaps,
   register_compiler_after_emit_taps: RegisterCompilerAfterEmitTaps,
@@ -59,6 +60,7 @@ pub struct JsHooksAdapterPlugin {
   register_context_module_factory_before_resolve_taps:
     RegisterContextModuleFactoryBeforeResolveTaps,
   register_context_module_factory_after_resolve_taps: RegisterContextModuleFactoryAfterResolveTaps,
+  register_external_module_chunk_condition_taps: RegisterExternalModuleChunkConditionTaps,
   register_javascript_modules_chunk_hash_taps: RegisterJavascriptModulesChunkHashTaps,
   register_html_plugin_before_asset_tag_generation_taps:
     RegisterHtmlPluginBeforeAssetTagGenerationTaps,
@@ -108,6 +110,10 @@ impl Plugin for JsHooksAdapterPlugin {
       .compiler_hooks
       .finish_make
       .intercept(self.register_compiler_finish_make_taps.clone());
+    ctx
+      .compiler_hooks
+      .after_compile
+      .intercept(self.register_compiler_after_compile_taps.clone());
     ctx
       .compiler_hooks
       .should_emit
@@ -207,6 +213,10 @@ impl Plugin for JsHooksAdapterPlugin {
       .compilation_hooks
       .after_seal
       .intercept(self.register_compilation_after_seal_taps.clone());
+    ctx
+      .compilation_hooks
+      .external_module_chunk_condition
+      .intercept(self.register_external_module_chunk_condition_taps.clone());
 
     ctx.normal_module_factory_hooks.before_resolve.intercept(
       self
@@ -288,6 +298,7 @@ impl Plugin for JsHooksAdapterPlugin {
     self.register_compiler_compilation_taps.clear_cache();
     self.register_compiler_make_taps.clear_cache();
     self.register_compiler_finish_make_taps.clear_cache();
+    self.register_compiler_after_compile_taps.clear_cache();
     self.register_compiler_should_emit_taps.clear_cache();
     self.register_compiler_emit_taps.clear_cache();
     self.register_compiler_after_emit_taps.clear_cache();
@@ -327,6 +338,9 @@ impl Plugin for JsHooksAdapterPlugin {
       .clear_cache();
     self.register_compilation_seal_taps.clear_cache();
     self.register_compilation_after_seal_taps.clear_cache();
+    self
+      .register_external_module_chunk_condition_taps
+      .clear_cache();
     self
       .register_normal_module_factory_before_resolve_taps
       .clear_cache();
@@ -533,6 +547,10 @@ impl JsHooksAdapterPlugin {
           register_js_taps.register_compiler_finish_make_taps,
           non_skippable_registers.clone(),
         ),
+        register_compiler_after_compile_taps: RegisterCompilerAfterCompileTaps::new(
+          register_js_taps.register_compiler_after_compile_taps,
+          non_skippable_registers.clone(),
+        ),
         register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps::new(
           register_js_taps.register_compiler_should_emit_taps,
           non_skippable_registers.clone(),
@@ -672,6 +690,11 @@ impl JsHooksAdapterPlugin {
         register_context_module_factory_after_resolve_taps:
           RegisterContextModuleFactoryAfterResolveTaps::new(
             register_js_taps.register_context_module_factory_after_resolve_taps,
+            non_skippable_registers.clone(),
+          ),
+        register_external_module_chunk_condition_taps:
+          RegisterExternalModuleChunkConditionTaps::new(
+            register_js_taps.register_external_module_chunk_condition_taps,
             non_skippable_registers.clone(),
           ),
         register_javascript_modules_chunk_hash_taps: RegisterJavascriptModulesChunkHashTaps::new(

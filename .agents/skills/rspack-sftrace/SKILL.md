@@ -3,7 +3,7 @@ name: rspack-sftrace
 description: Use sftrace, which is based on LLVM Xray instrumentation, to trace all Rust function calls. This can be used for performance analysis and troubleshooting.
 ---
 
-# Rspack Sftrace
+# Rspack sftrace
 
 ## Overview
 
@@ -156,7 +156,7 @@ vizviewer --use_external_processor "$TRACE_DIR/sf.pb.gz"
 
 Use this only for visualization.
 
-## Filtering Notes
+## Filtering notes
 
 - `sftrace filter` matches function symbols by regex/list. It is not a first-class crate-path/module-path filter.
 - Filtering does not automatically keep all descendants. If a child function symbol does not match your filter, it may disappear from the trace.

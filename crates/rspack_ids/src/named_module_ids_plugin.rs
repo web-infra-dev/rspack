@@ -191,6 +191,7 @@ async fn module_ids(
   &self,
   compilation: &rspack_core::Compilation,
   module_ids_artifact: &mut ModuleIdsArtifact,
+  _preserved_module_ids: &ModuleIdsArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   let mut module_ids = std::mem::take(module_ids_artifact);
@@ -199,6 +200,7 @@ async fn module_ids(
     .map(|(&module, id)| (id.clone(), module))
     .collect();
   let module_graph = compilation.get_module_graph();
+  let mut existing_module_set_id_mutations_len = 0;
   if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::MODULE_IDS)
@@ -218,6 +220,9 @@ async fn module_ids(
             used_ids.remove(id);
           }
           module_ids.remove(module);
+        }
+        Mutation::ModuleSetId { .. } => {
+          existing_module_set_id_mutations_len += 1;
         }
         _ => {}
       }
@@ -292,7 +297,7 @@ async fn module_ids(
     ));
     logger.log(format!(
       "{} modules are updated by set_module_id, with {} unnamed modules",
-      mutations.len(),
+      mutations.len() + existing_module_set_id_mutations_len,
       unnamed_modules_len,
     ));
   }

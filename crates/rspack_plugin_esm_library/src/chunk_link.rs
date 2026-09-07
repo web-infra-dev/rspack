@@ -2,12 +2,12 @@ use std::{borrow::Cow, sync::Arc};
 
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
-  BoxChunkInitFragment, ChunkGraph, ChunkUkey, Compilation, ImportSpec, ModuleGraph,
-  ModuleIdentifier, RuntimeCodeTemplate, RuntimeGlobals, find_new_name,
+  BoxChunkInitFragment, ChunkGraph, ChunkUkey, Compilation, ConcatenationNameAllocator, ImportSpec,
+  ModuleGraph, ModuleIdentifier, RuntimeCodeTemplate, RuntimeGlobals,
   rspack_sources::{ConcatSource, RawStringSource},
 };
+use rspack_intern::{Atom, AtomMap, IndexAtomMap, IndexAtomSet};
 use rspack_util::fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet};
-use swc_core::atoms::Atom;
 
 #[derive(Debug, Clone)]
 pub enum Ref {
@@ -66,23 +66,23 @@ impl SymbolRef {
 pub struct ExternalInterop {
   pub module: ModuleIdentifier,
   pub from_module: IdentifierSet,
+  pub set_entry_module_id: bool,
   pub required_symbol: Option<Atom>,
   pub default_access: Option<Atom>,
   pub default_exported: Option<Atom>,
   pub namespace_object: Option<Atom>,
   pub namespace_object2: Option<Atom>,
-  pub property_access: FxIndexMap<Atom, Atom>,
+  pub property_access: IndexAtomMap<Atom>,
 }
 
 fn get_or_create_interop_name(
   required_symbol: &mut Option<Atom>,
   field: &mut Option<Atom>,
   suffix: &str,
-  used_names: &mut FxHashSet<Atom>,
+  name_allocator: &mut ConcatenationNameAllocator,
 ) -> Atom {
   if required_symbol.is_none() {
-    let new_name = find_new_name("", used_names, &[]);
-    used_names.insert(new_name.clone());
+    let new_name = name_allocator.find_new_name("", &[]);
     *required_symbol = Some(new_name);
   }
   if let Some(existing) = field {
@@ -93,46 +93,46 @@ fn get_or_create_interop_name(
     required_symbol.as_ref().expect("already set"),
     suffix
   ));
-  if used_names.contains(&new_name) {
-    new_name = find_new_name(new_name.as_str(), used_names, &[]);
+  if name_allocator.contains(&new_name) {
+    new_name = name_allocator.find_new_name(new_name.as_str(), &[]);
+  } else {
+    name_allocator.insert(new_name.clone());
   }
   *field = Some(new_name.clone());
-  used_names.insert(new_name.clone());
   new_name
 }
 
 impl ExternalInterop {
-  pub fn namespace(&mut self, used_names: &mut FxHashSet<Atom>) -> Atom {
+  pub fn namespace(&mut self, name_allocator: &mut ConcatenationNameAllocator) -> Atom {
     get_or_create_interop_name(
       &mut self.required_symbol,
       &mut self.namespace_object,
       "_namespace",
-      used_names,
+      name_allocator,
     )
   }
 
-  pub fn namespace2(&mut self, used_names: &mut FxHashSet<Atom>) -> Atom {
+  pub fn namespace2(&mut self, name_allocator: &mut ConcatenationNameAllocator) -> Atom {
     get_or_create_interop_name(
       &mut self.required_symbol,
       &mut self.namespace_object2,
       "_namespace2",
-      used_names,
+      name_allocator,
     )
   }
 
-  pub fn default_access(&mut self, used_names: &mut FxHashSet<Atom>) -> Atom {
+  pub fn default_access(&mut self, name_allocator: &mut ConcatenationNameAllocator) -> Atom {
     get_or_create_interop_name(
       &mut self.required_symbol,
       &mut self.default_access,
       "_default",
-      used_names,
+      name_allocator,
     )
   }
 
-  pub fn default_exported(&mut self, used_names: &mut FxHashSet<Atom>) -> Atom {
+  pub fn default_exported(&mut self, name_allocator: &mut ConcatenationNameAllocator) -> Atom {
     if self.required_symbol.is_none() {
-      let new_name = find_new_name("", used_names, &[]);
-      used_names.insert(new_name.clone());
+      let new_name = name_allocator.find_new_name("", &[]);
       self.required_symbol = Some(new_name);
     }
 
@@ -140,17 +140,19 @@ impl ExternalInterop {
       return default_exported.clone();
     }
 
-    let default_access_symbol = self.default_access(used_names);
-    let default_exported_symbol = find_new_name(&default_access_symbol, used_names, &[]);
-    used_names.insert(default_exported_symbol.clone());
+    let default_access_symbol = self.default_access(name_allocator);
+    let default_exported_symbol = name_allocator.find_new_name(&default_access_symbol, &[]);
     self.default_exported = Some(default_exported_symbol.clone());
     default_exported_symbol
   }
 
-  pub fn property_access(&mut self, atom: &Atom, used_names: &mut FxHashSet<Atom>) -> Atom {
+  pub fn property_access(
+    &mut self,
+    atom: &Atom,
+    name_allocator: &mut ConcatenationNameAllocator,
+  ) -> Atom {
     self.property_access.get(atom).cloned().unwrap_or_else(|| {
-      let local_name = find_new_name(atom, used_names, &[]);
-      used_names.insert(local_name.clone());
+      let local_name = name_allocator.find_new_name(atom, &[]);
       self.property_access.insert(atom.clone(), local_name);
       self
         .property_access
@@ -169,6 +171,15 @@ impl ExternalInterop {
     let name = self.required_symbol.as_ref();
 
     let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, &self.module);
+    let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
+      .unwrap_or_else(|| panic!("should set module id for {:?}", self.module));
+    let mut module_id_expr = rspack_util::json_stringify(module_id.as_str());
+    if self.set_entry_module_id {
+      module_id_expr = format!(
+        "{} = {module_id_expr}",
+        runtime_template.render_runtime_globals(&RuntimeGlobals::ENTRY_MODULE_ID)
+      );
+    }
 
     if let Some(name) = name {
       source.add(RawStringSource::from(format!(
@@ -176,11 +187,7 @@ impl ExternalInterop {
         "const {name} = {}{}({});\n",
         if is_async { "await " } else { "" },
         runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        rspack_util::json_stringify(
-          ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
-            .unwrap_or_else(|| panic!("should set module id for {:?}", self.module))
-            .as_str()
-        )
+        module_id_expr
       )));
 
       if let Some(namespace_object) = &self.namespace_object {
@@ -223,13 +230,10 @@ impl ExternalInterop {
       }
     } else {
       source.add(RawStringSource::from(format!(
-        "{}({});\n",
+        "{}{}({});\n",
+        if is_async { "await " } else { "" },
         runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        rspack_util::json_stringify(
-          ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
-            .unwrap_or_else(|| panic!("should set module id for {}", self.module))
-            .as_str()
-        )
+        module_id_expr
       )));
     }
 
@@ -259,7 +263,7 @@ pub struct ChunkLinkContext {
   specifier order doesn't matter, we can sort them based on name
   Map<module_id, Map<local_name, export_name>>
   */
-  exports: FxHashMap<Atom, FxIndexSet<Atom>>,
+  exports: AtomMap<IndexAtomSet>,
 
   /**
   symbols that this chunk provides
@@ -275,7 +279,7 @@ pub struct ChunkLinkContext {
   /**
    * re exports in raw form, used for rendering export * from 'module'
    */
-  pub raw_star_exports: FxIndexMap<String, FxIndexSet<Atom>>,
+  pub raw_star_exports: FxIndexMap<String, IndexAtomSet>,
 
   /**
   import order matters, it affects execution order
@@ -326,14 +330,9 @@ pub struct ChunkLinkContext {
   pub refs: FxHashMap<String, Ref>,
 
   /**
-  all used symbols in current chunk
+  Allocator for all symbols used in the current chunk.
   */
-  pub used_names: FxHashSet<Atom>,
-
-  /**
-  whether `__rspack_require` is exported by a runtime module instead of chunk exports
-  */
-  pub exports_require_via_runtime_module: bool,
+  pub name_allocator: ConcatenationNameAllocator,
 }
 
 impl ChunkLinkContext {
@@ -357,20 +356,19 @@ impl ChunkLinkContext {
       hashbang: None,
       directives: Default::default(),
       refs: Default::default(),
-      used_names: Default::default(),
+      name_allocator: Default::default(),
       exported_symbols: Default::default(),
       raw_import_stmts: Default::default(),
       module_external_namespace_imports: Default::default(),
       raw_star_exports: Default::default(),
-      exports_require_via_runtime_module: false,
     }
   }
 
-  pub fn exports(&self) -> &FxHashMap<Atom, FxIndexSet<Atom>> {
+  pub fn exports(&self) -> &AtomMap<IndexAtomSet> {
     &self.exports
   }
 
-  pub fn exports_mut(&mut self) -> &mut FxHashMap<Atom, FxIndexSet<Atom>> {
+  pub fn exports_mut(&mut self) -> &mut AtomMap<IndexAtomSet> {
     &mut self.exports
   }
 

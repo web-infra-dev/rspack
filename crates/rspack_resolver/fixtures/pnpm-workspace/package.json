@@ -1,0 +1,14 @@
+{
+  "name": "monorepo",
+  "private": "true",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "packageManager": "pnpm@8.15.3",
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "enhanced-resolve": "^5.17.1"
+  }
+}

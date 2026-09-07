@@ -1,4 +1,4 @@
-var deferred = [];
+<%- var("deferred") %> = [];
 <%- define(ON_CHUNKS_LOADED) %> = <%- basicFunction("result, chunkIds, fn, priority") %> {
 	if (chunkIds) {
 		priority = priority || 0;

@@ -102,7 +102,7 @@ async fn revive_modules(
   &self,
   compilation: &Compilation,
   modules: &rspack_collections::IdentifierSet,
-  module_ids: &mut ModuleIdsArtifact,
+  preserved_module_ids: &mut ModuleIdsArtifact,
 ) -> Result<()> {
   if !self.need_read() {
     return Ok(());
@@ -123,7 +123,7 @@ async fn revive_modules(
   };
 
   let module_graph = compilation.get_module_graph();
-  let mut used_ids = module_ids
+  let mut used_ids = preserved_module_ids
     .iter()
     .map(|(module_identifier, id)| (id.clone(), *module_identifier))
     .collect::<BTreeMap<_, _>>();
@@ -155,10 +155,10 @@ async fn revive_modules(
         id, self.path
       ));
     }
-    if let Some(old_id) = ChunkGraph::get_module_id(module_ids, module.identifier()) {
+    if let Some(old_id) = ChunkGraph::get_module_id(preserved_module_ids, module.identifier()) {
       used_ids.remove(old_id);
     }
-    ChunkGraph::set_module_id(module_ids, module.identifier(), id.clone());
+    ChunkGraph::set_module_id(preserved_module_ids, module.identifier(), id.clone());
     used_ids.insert(id, module.identifier());
   }
 

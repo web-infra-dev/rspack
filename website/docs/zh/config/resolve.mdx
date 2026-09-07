@@ -2,9 +2,7 @@
 description: "当你使用 resolve.alias 将包名导入（例如 import 'lib'）重定向到 monorepo 或 nodemodules 中的具体目录时，模块的解析方式会发生变化："
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/configuration/resolve/" />
+import Attribution from '@components/Attribution';
 
 # Resolve
 
@@ -22,32 +20,59 @@ type ResolveAlias = false | Record<string, false | string | (false | string)[]>;
 
 - **默认值：** `{}`
 
-路径别名，例如：
+使用 `resolve.alias` 可以将模块请求重定向到其他路径：
 
-```ts
-{
-  "@": path.resolve(__dirname, './src'),
-  "abc$": path.resolve(__dirname, './src/abc')
-}
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  resolve: {
+    alias: {
+      '@': path.resolve(import.meta.dirname, './src'),
+    },
+  },
+};
 ```
 
-此时：
+使用上述配置时，`import '@/a'` 会尝试解析 `<root>/src/a`。
 
-- `require("@/a")` 会尝试解析 `<root>/src/a`。
-- `require("abc")` 会尝试解析 `<root>/src/abc`。
-- `require("abc/file.js")` 不会命中匹配规则，它会尝试去解析 `node_modules/abc/file.js`。
+### 精确匹配
+
+在别名键的末尾添加 `$`，可以让该别名只匹配完整的模块请求。`$` 是 `resolve.alias` 的特殊标记，不属于实际的模块请求：
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  resolve: {
+    alias: {
+      abc$: path.resolve(import.meta.dirname, './src/abc'),
+    },
+  },
+};
+```
+
+使用上述配置时：
+
+- `import 'abc'` 会尝试解析 `<root>/src/abc`。
+- `import 'abc/file.js'` 不会命中该别名，而是继续按照常规模块解析规则查找，通常会尝试解析 `node_modules/abc/file.js`。
+
+如果不添加 `$`，别名 `abc` 也会匹配 `import 'abc/file.js'` 这样的子路径请求。
 
 ### 对包解析的影响
 
-当你使用 `resolve.alias` 将包名导入（例如 `import 'lib'`）重定向到 monorepo 或 `node_modules` 中的具体目录时，模块的解析方式会发生变化：
+使用 `resolve.alias` 将 `import 'lib'` 这样的包请求重定向到 monorepo 或 `node_modules` 中的文件系统路径时，会改变 Rspack 解析该请求的方式：
 
-- **默认情况**：如果导入的是包名，Rspack 会执行完整的包解析流程：读取该包的 `package.json`，并根据 `[exports](https://nodejs.org/api/packages.html#exports)` 字段决定入口文件和子路径映射。
-- **重定向后**：当别名被替换成实际的文件系统路径，例如 `./node_modules/lib`，Rspack 不再将其视为包名，而是按普通路径进行解析。这会跳过包的默认解析逻辑，导致 `package.json` 中的 `exports` 等字段不再生效。这是 Node.js 的标准解析行为。
+- **未配置别名时**：`lib` 会被视为包请求。Rspack 会读取该包的 `package.json`，并按照 [`exports`](https://nodejs.org/api/packages.html#exports) 等包解析规则选择入口文件或子路径。
+- **配置别名后**：Rspack 会先将 `lib` 替换为别名指定的文件系统路径。例如，将 `lib` 映射到 `./node_modules/lib` 后，Rspack 会把替换结果作为普通路径继续解析，因此针对包名 `lib` 的 `exports` 映射不再生效。
+
+这种行为符合 `exports` 字段的语义：它用于控制包名及包子路径的解析，不适用于直接指定的文件系统路径。
 
 ### Monorepo 场景
 
-如果希望 monorepo 中的各个包依然保持和正常 npm 包一致的解析方式，不建议通过 `alias` 将包名直接指向源码目录。
-推荐的做法是使用包管理器的工作区功能，将子包符号链接到 `node_modules` 中，让它们像普通依赖一样被解析。
+如果希望 monorepo 中的包与普通 npm 依赖采用相同的解析方式，包括支持 `exports`，请避免使用 `alias` 将包名直接映射到源码目录。
+
+推荐使用包管理器的工作区功能将这些包链接到 `node_modules`，并继续通过包名导入。这样，Rspack 仍会将其视为包请求，并应用相应的 `package.json` 解析规则。
 
 ### 禁用别名
 
@@ -565,7 +590,28 @@ export default {
 - **类型：** `string[]`
 - **默认值：** `["node_modules"]`
 
-解析依赖时的目录名。
+指定 Rspack 解析非相对模块请求时要搜索的目录，例如 `import 'react'` 或 `import 'utils/format'`。`import './utils/format'` 这类相对路径请求仍然从发起导入的文件所在位置解析，不会通过 `resolve.modules` 查找。
+
+Rspack 会按照数组顺序依次尝试每一项。数组项可以是目录名、相对路径或绝对路径：
+
+- 对于目录名或相对路径，Rspack 会从发起导入的文件所在目录开始，逐级向父目录查找。例如，`node_modules` 会依次查找 `<导入方所在目录>/node_modules` 以及各级父目录下的 `node_modules`。
+- 对于绝对路径，Rspack 只会使用该路径所指向的固定目录，不会基于各级父目录再次解析。
+
+例如，下面的配置支持使用非相对模块请求导入 `src` 中的模块，同时保留从 `node_modules` 查找第三方依赖的默认行为：
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  resolve: {
+    modules: [path.resolve(import.meta.dirname, 'src'), 'node_modules'],
+  },
+};
+```
+
+在此配置下，`import 'utils/format'` 可以解析到 `<project>/src/utils/format.js`。如果请求在 `src` 中不存在，Rspack 会继续从 `node_modules` 中查找。
+
+显式设置 `resolve.modules` 会替换默认数组。如果仍需正常解析第三方依赖，应在数组中保留 `'node_modules'`。
 
 ## resolve.pnp
 
@@ -684,3 +730,5 @@ export default {
 可以通过文件路径用于手动配置，或者使用 `auto` 用于自动读取 `tsconfig.references` 中的文件路径。
 
 使用 `undefined` 将会关闭该功能。
+
+<Attribution url="https://webpack.js.org/configuration/resolve/" />

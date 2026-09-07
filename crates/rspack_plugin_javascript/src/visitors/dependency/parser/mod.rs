@@ -1,3 +1,4 @@
+use rspack_intern::AtomRef;
 use rspack_util::SpanExt;
 pub mod ast;
 mod call_hooks_name;
@@ -12,6 +13,7 @@ use std::{
   fmt::Display,
   hash::{Hash, Hasher},
   rc::Rc,
+  sync::Arc,
 };
 
 use bitflags::bitflags;
@@ -21,17 +23,16 @@ use rspack_cacheable::{
   with::{AsCacheable, AsOption, AsPreset, AsVec},
 };
 use rspack_core::{
-  ArcComputed, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, DependencyId, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
-  ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption, JavascriptParserOptions,
-  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData,
-  SideEffectsBailoutItemWithSpan,
+  ArcComputed, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, CompilerOptions,
+  Dependency, DependencyCodeGeneration, DependencyCodeGenerationRef, DependencyId,
+  DependencyLocation, DependencyRange, FactoryMeta, ImportMeta, ImportMetaKnownProperties,
+  JavascriptParserCommonjsExportsOption, JavascriptParserOptions, ModuleIdentifier, ModuleLayer,
+  ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
-use swc_atoms::Atom;
 use swc_experimental_allocator::{Allocator, CloneIn};
 use swc_experimental_ecma_ast::{
   ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, Decl, Expr, GetSpan, Ident, Lit,
@@ -40,7 +41,7 @@ use swc_experimental_ecma_ast::{
 };
 
 use crate::{
-  BoxJavascriptParserPlugin,
+  Atom, BoxJavascriptParserPlugin,
   dependency::{DependencyBranchGuard, local_module::LocalModule},
   parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
@@ -70,6 +71,37 @@ pub trait TagInfoData: Clone + Sized + 'static {
 
 fn atom_from_wtf8(value: swc_experimental_allocator::atom::Wtf8Atom<'_>) -> Atom {
   Atom::from(value.as_wtf8().to_string_lossy().as_ref())
+}
+
+pub(crate) fn member_property_to_atom(expr: &Expr) -> Option<Atom> {
+  match expr {
+    Expr::Lit(lit) => Some(match &**lit {
+      Lit::Str(s) => atom_from_wtf8(s.value),
+      Lit::Bool(b) => Atom::from(if b.value { "true" } else { "false" }),
+      Lit::Null(_) => Atom::from("null"),
+      Lit::Num(n) => Atom::from(rspack_util::ryu_js::Buffer::new().format(n.value)),
+      Lit::BigInt(i) => Atom::from(i.value.as_str()),
+      Lit::Regex(r) => {
+        let mut flags = r.flags.as_str().chars().collect::<Vec<_>>();
+        flags.sort_unstable();
+        let mut property = String::with_capacity(r.exp.len() + flags.len() + 2);
+        property.push('/');
+        property.push_str(r.exp.as_str());
+        property.push('/');
+        property.extend(flags);
+        Atom::from(property)
+      }
+    }),
+    Expr::Tpl(tpl) if tpl.exprs.is_empty() && tpl.quasis.len() == 1 => {
+      let quasi = tpl.quasis.first()?;
+      Some(
+        quasi
+          .cooked
+          .map_or_else(|| Atom::from(quasi.raw.as_str()), atom_from_wtf8),
+      )
+    }
+    _ => None,
+  }
 }
 
 impl GetSpan for estree::Statement<'_> {
@@ -159,7 +191,7 @@ pub enum ExportedVariableInfo {
   VariableInfo(VariableInfoId),
 }
 
-fn object_and_members_to_name(object: &Atom, members_reversed: &[impl AsRef<str>]) -> String {
+fn object_and_members_to_name(object: &str, members_reversed: &[impl AsRef<str>]) -> String {
   let total_len = object.len()
     + members_reversed.len()
     + members_reversed
@@ -213,7 +245,7 @@ impl RootName for ThisExpr {
 
 impl RootName for Ident<'_> {
   fn get_root_name(&self) -> Option<Atom> {
-    Some(Atom::from(self.sym.as_str()))
+    Some(Atom::from(&self.sym))
   }
 }
 
@@ -227,7 +259,7 @@ impl RootName for MetaPropExpr {
 }
 
 pub struct NameInfo<'a> {
-  pub name: &'a Atom,
+  pub name: &'a str,
   pub info: Option<&'a VariableInfo>,
 }
 
@@ -308,10 +340,6 @@ impl Hash for DestructuringAssignmentProperties {
 }
 
 impl DestructuringAssignmentProperties {
-  pub fn new(properties: FxIndexSet<DestructuringAssignmentProperty>) -> Self {
-    Self { inner: properties }
-  }
-
   pub fn insert(&mut self, prop: DestructuringAssignmentProperty) -> bool {
     self.inner.insert(prop)
   }
@@ -350,7 +378,11 @@ impl DestructuringAssignmentProperties {
     for prop in &self.inner {
       stack.push(prop);
       on_enter_node(stack);
-      if let Some(pattern) = &prop.pattern {
+      // Empty nested patterns still access and coerce their parent value, so
+      // the parent property is a referenced leaf in that case.
+      if let Some(pattern) = &prop.pattern
+        && !pattern.inner.is_empty()
+      {
         pattern.traverse_impl(on_leaf_node, on_enter_node, stack);
       } else {
         on_leaf_node(stack);
@@ -380,7 +412,7 @@ pub struct JavascriptParser<'parser> {
   errors: Vec<Diagnostic>,
   warning_diagnostics: Vec<Diagnostic>,
   dependencies: Vec<BoxDependency>,
-  presentational_dependencies: Vec<BoxDependencyTemplate>,
+  presentational_dependencies: Vec<DependencyCodeGenerationRef>,
   // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
   // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
   #[allow(clippy::vec_box)]
@@ -417,7 +449,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) destructuring_assignment_properties: DestructuringAssignmentPropertiesMap,
   pub(crate) dynamic_import_references: ImportsReferencesState,
   pub(crate) common_js_require_references: RequireReferencesState,
-  pub(crate) created_require_references: CreatedRequireReferencesState,
+  pub(crate) created_require_references: CreatedRequireReferencesState<'parser>,
   pub(crate) worker_index: u32,
   pub(crate) parser_exports_state: Option<bool>,
   pub(crate) local_modules: Vec<LocalModule>,
@@ -666,8 +698,8 @@ impl<'parser> JavascriptParser<'parser> {
     &self.dependencies
   }
 
-  pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut BoxDependency> {
-    self.dependencies.get_mut(idx)
+  pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut (dyn Dependency + 'static)> {
+    self.dependencies.get_mut(idx).map(AsMut::as_mut)
   }
 
   pub fn collect_dependencies_for_block(
@@ -707,13 +739,13 @@ impl<'parser> JavascriptParser<'parser> {
     self.current_branch_guard = old_guard;
   }
 
-  pub fn add_presentational_dependency(&mut self, dep: BoxDependencyTemplate) {
+  pub fn add_presentational_dependency(&mut self, dep: DependencyCodeGenerationRef) {
     self.presentational_dependencies.push(dep);
   }
 
   pub fn add_presentational_dependencies(
     &mut self,
-    deps: impl IntoIterator<Item = BoxDependencyTemplate>,
+    deps: impl IntoIterator<Item = DependencyCodeGenerationRef>,
   ) {
     self.presentational_dependencies.extend(deps);
   }
@@ -725,14 +757,14 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn get_presentational_dependency_mut(
     &mut self,
     idx: usize,
-  ) -> Option<&mut BoxDependencyTemplate> {
-    self.presentational_dependencies.get_mut(idx)
+  ) -> Option<&mut (dyn DependencyCodeGeneration + 'static)> {
+    Arc::get_mut(self.presentational_dependencies.get_mut(idx)?)
   }
 
   pub fn add_block(&mut self, mut block: Box<AsyncDependenciesBlock>) {
     if let Some(guard) = &self.current_branch_guard {
       for dep in block.dependencies_mut() {
-        guard.bind_dependency(dep.as_mut());
+        guard.bind_dependency(dep);
       }
     }
     self.blocks.push(block);
@@ -815,7 +847,16 @@ impl<'parser> JavascriptParser<'parser> {
     self.module_layer
   }
 
-  pub fn get_variable_info(&mut self, name: &Atom) -> Option<&VariableInfo> {
+  /// The source order assigned to the import declaration currently being
+  /// visited by `import_specifier` parser hooks.
+  pub fn current_esm_import_order(&self) -> i32 {
+    self.last_esm_import_order
+  }
+
+  pub fn get_variable_info<'key>(
+    &mut self,
+    name: impl Into<AtomRef<'key>>,
+  ) -> Option<&VariableInfo> {
     let id = self.definitions_db.get(self.definitions, name)?;
     Some(self.definitions_db.expect_get_variable(id))
   }
@@ -864,9 +905,9 @@ impl<'parser> JavascriptParser<'parser> {
     None
   }
 
-  pub fn get_tag_data<Data: TagInfoData>(
+  pub fn get_tag_data<'key, Data: TagInfoData>(
     &mut self,
-    name: &Atom,
+    name: impl Into<AtomRef<'key>>,
     tag: &'static str,
   ) -> Option<&Data> {
     self
@@ -875,9 +916,9 @@ impl<'parser> JavascriptParser<'parser> {
       .and_then(|tag_info_id| self.get_tag_data_by_id(tag_info_id, tag))
   }
 
-  pub fn get_tag_data_mut<Data: TagInfoData>(
+  pub fn get_tag_data_mut<'key, Data: TagInfoData>(
     &mut self,
-    name: &Atom,
+    name: impl Into<AtomRef<'key>>,
     tag: &'static str,
   ) -> Option<&mut Data> {
     self
@@ -898,9 +939,16 @@ impl<'parser> JavascriptParser<'parser> {
       .and_then(|tag_info_id| self.get_tag_data_by_id(tag_info_id, tag))
   }
 
-  pub fn get_free_info_from_variable<'a>(&'a mut self, name: &'a Atom) -> Option<NameInfo<'a>> {
+  pub fn get_free_info_from_variable<'a>(
+    &'a mut self,
+    name: impl Into<AtomRef<'a>>,
+  ) -> Option<NameInfo<'a>> {
+    let name = name.into();
     let Some(info) = self.get_variable_info(name) else {
-      return Some(NameInfo { name, info: None });
+      return Some(NameInfo {
+        name: name.as_str(),
+        info: None,
+      });
     };
     let Some(name) = &info.name else {
       return None;
@@ -909,14 +957,21 @@ impl<'parser> JavascriptParser<'parser> {
       return None;
     }
     Some(NameInfo {
-      name,
+      name: name.as_str(),
       info: Some(info),
     })
   }
 
-  pub fn get_name_info_from_variable<'a>(&'a mut self, name: &'a Atom) -> Option<NameInfo<'a>> {
+  pub fn get_name_info_from_variable<'a>(
+    &'a mut self,
+    name: impl Into<AtomRef<'a>>,
+  ) -> Option<NameInfo<'a>> {
+    let name = name.into();
     let Some(info) = self.get_variable_info(name) else {
-      return Some(NameInfo { name, info: None });
+      return Some(NameInfo {
+        name: name.as_str(),
+        info: None,
+      });
     };
     let Some(name) = &info.name else {
       return None;
@@ -925,7 +980,7 @@ impl<'parser> JavascriptParser<'parser> {
       return None;
     }
     Some(NameInfo {
-      name,
+      name: name.as_str(),
       info: Some(info),
     })
   }
@@ -1181,23 +1236,15 @@ impl<'parser> JavascriptParser<'parser> {
       match object {
         ExprRef::Member(expr) => {
           if let Some(computed) = expr.prop.as_computed() {
-            let Expr::Lit(lit) = &computed.expr else {
+            let Some(value) = member_property_to_atom(&computed.expr) else {
               break;
-            };
-            let value = match &**lit {
-              Lit::Str(s) => atom_from_wtf8(s.value),
-              Lit::Bool(b) => Atom::from(if b.value { "true" } else { "false" }),
-              Lit::Null(_) => Atom::from("null"),
-              Lit::Num(n) => Atom::from(n.value.to_string().as_str()),
-              Lit::BigInt(i) => Atom::from(i.value.as_str()),
-              Lit::Regex(r) => Atom::from(r.exp.as_str()),
             };
             // Since members are not used across rspack javascript parser plugin,
             // we directly makes it atom here
             members.push(value);
             member_ranges.push(expr.obj.span());
           } else if let Some(ident) = expr.prop.as_ident() {
-            members.push(Atom::from(ident.sym.as_str()));
+            members.push(Atom::from(&ident.sym));
             member_ranges.push(expr.obj.span());
           } else {
             break;
@@ -1230,7 +1277,8 @@ impl<'parser> JavascriptParser<'parser> {
     F: FnOnce(&mut Self, &Ident),
   {
     let drive = self.plugin_drive.clone();
-    if !Atom::from(ident.sym.as_str())
+    if !ident
+      .sym
       .call_hooks_name(self, |parser, for_name| {
         drive.pattern(parser, ident, for_name)
       })
@@ -1470,7 +1518,7 @@ impl<'parser> JavascriptParser<'parser> {
     scope.is_strict
   }
 
-  pub fn is_variable_defined(&mut self, name: &Atom) -> bool {
+  pub fn is_variable_defined<'key>(&mut self, name: impl Into<AtomRef<'key>>) -> bool {
     let Some(info) = self.get_variable_info(name) else {
       return false;
     };
@@ -1529,7 +1577,7 @@ impl<'parser> JavascriptParser<'parser> {
       ),
       Expr::Member(member) => eval::eval_member_expression(self, member, expr),
       Expr::Ident(ident) => {
-        let name = Atom::from(ident.sym.as_str());
+        let name = Atom::from(&ident.sym);
         if name == "undefined" {
           let mut eval =
             BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
@@ -1570,7 +1618,7 @@ impl<'parser> JavascriptParser<'parser> {
               let mut eval =
                 BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
               eval.set_identifier(
-                Atom::from(ident.sym.as_str()),
+                Atom::from(&ident.sym),
                 ExportedVariableInfo::Name(name.clone()),
                 None,
                 None,
@@ -1594,7 +1642,7 @@ impl<'parser> JavascriptParser<'parser> {
           );
           Some(eval)
         };
-        let Some(info) = self.get_variable_info(&"this".into()) else {
+        let Some(info) = self.get_variable_info("this") else {
           // use `ident.sym` as fallback for global variable(or maybe just a undefined variable)
           return drive
             .evaluate_identifier(self, "this", None, this.span.real_lo(), this.span.real_hi())

@@ -43,7 +43,7 @@ impl ExposeRuntimeModule {
         let code_gen = compilation
           .code_generation_results
           .get(&m, Some(chunk.runtime()));
-        if let Some(data) = code_gen.data.get::<CodeGenerationDataExpose>() {
+        if let Some(data) = code_gen.data().get::<CodeGenerationDataExpose>() {
           return Some(data);
         };
       }
@@ -54,6 +54,10 @@ impl ExposeRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ExposeRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   fn runtime_requirements(
     &self,
     compilation: &Compilation,

@@ -1,13 +1,14 @@
+use std::sync::Arc;
+
 use rspack_core::{
-  BoxDependencyTemplate, ConstDependency, ContextDependency, DependencyRange,
-  runtime_mode::RuntimeMode,
+  ConstDependency, ContextDependency, DependencyCodeGenerationRef, DependencyRange,
 };
 use rspack_util::{SpanExt, itoa};
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{CallExpr, GetSpan, Ident, Program, VarDeclarator};
 
 use super::JavascriptParserPlugin;
 use crate::{
+  Atom,
   dependency::CommonJsRequireContextDependency,
   visitors::{JavascriptParser, Statement, TagInfoData, VariableDeclaration, expr_name},
 };
@@ -26,11 +27,10 @@ pub struct CompatibilityPlugin;
 
 impl CompatibilityPlugin {
   fn nested_require_name<'a>(&self, parser: &'a JavascriptParser) -> &'a str {
-    if parser.compiler_options.experiments.runtime_mode == RuntimeMode::Rspack {
-      parser.parser_runtime_requirements.context.as_str()
-    } else {
-      parser.parser_runtime_requirements.require.as_str()
-    }
+    parser
+      .parser_runtime_requirements
+      .compatibility_runtime_scope
+      .as_str()
   }
 
   pub fn browserify_require_handler(
@@ -56,7 +56,7 @@ impl CompatibilityPlugin {
         parser.add_dependency(last);
       }
     }
-    parser.add_presentational_dependency(Box::new(dep));
+    parser.add_presentational_dependency(Arc::new(dep));
     Some(true)
   }
 
@@ -80,6 +80,34 @@ impl CompatibilityPlugin {
       }),
     );
   }
+
+  /// Materialize the declaration replacement before an export records the nested name.
+  /// A non-self-referential function would not otherwise visit the identifier hook.
+  pub(crate) fn update_nested_binding_declaration(
+    parser: &mut JavascriptParser,
+    name: &Atom,
+  ) -> Option<Atom> {
+    let (nested_name, dep) = {
+      let data = parser.get_tag_data_mut::<NestedRequireData>(name, NESTED_IDENTIFIER_TAG)?;
+      let nested_name = Atom::from(data.name.as_str());
+      let content = if data.in_short_hand {
+        format!("{name}: {}", data.name).into()
+      } else {
+        data.name.clone().into()
+      };
+      let dep = if data.update {
+        None
+      } else {
+        Some(ConstDependency::new(data.loc, content))
+      };
+      data.update = true;
+      (nested_name, dep)
+    };
+    if let Some(dep) = dep {
+      parser.add_presentational_dependency(Arc::new(dep));
+    }
+    Some(nested_name)
+  }
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
@@ -92,7 +120,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
       .is_some()
     {
       parser
-        .add_presentational_dependency(Box::new(ConstDependency::new((0, 0).into(), "//".into())));
+        .add_presentational_dependency(Arc::new(ConstDependency::new((0, 0).into(), "//".into())));
     }
 
     None
@@ -106,13 +134,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
   ) -> Option<bool> {
     let ident = decl.name.as_ident()?;
 
-    if ident.id.sym.as_str() == self.nested_require_name(parser) {
+    if ident.id.sym == self.nested_require_name(parser) {
       let span = ident.span();
       let start = span.real_lo();
       let end = span.real_hi();
       self.tag_nested_require_data(
         parser,
-        Atom::from(ident.id.sym.as_str()),
+        Atom::from(&ident.id.sym),
         {
           let mut start_buffer = itoa::Buffer::new();
           let start_str = start_buffer.format(start);
@@ -125,11 +153,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
         end,
       );
       return Some(true);
-    } else if ident.id.sym.as_str() == parser.parser_runtime_requirements.exports {
+    } else if ident.id.sym == parser.parser_runtime_requirements.exports.as_str() {
       let span = ident.span();
       self.tag_nested_require_data(
         parser,
-        Atom::from(ident.id.sym.as_str()),
+        Atom::from(&ident.id.sym),
         "__nested_rspack_exports__".to_string(),
         parser.in_short_hand,
         span.real_lo(),
@@ -150,20 +178,22 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     if for_name == parser.parser_runtime_requirements.exports {
       self.tag_nested_require_data(
         parser,
-        Atom::from(ident.sym.as_str()),
+        Atom::from(&ident.sym),
         "__nested_rspack_exports__".to_string(),
         parser.in_short_hand,
         ident.span().real_lo(),
         ident.span().real_hi(),
       );
-      return Some(true);
+      if !parser.is_top_level_scope() {
+        return Some(true);
+      }
     } else if for_name == self.nested_require_name(parser) {
       let span = ident.span();
       let start = span.real_lo();
       let end = span.real_hi();
       self.tag_nested_require_data(
         parser,
-        Atom::from(ident.sym.as_str()),
+        Atom::from(&ident.sym),
         {
           let mut start_buffer = itoa::Buffer::new();
           let start_str = start_buffer.format(start);
@@ -186,12 +216,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     let fn_decl = stmt.as_function_decl()?;
     let ident = fn_decl.ident()?;
     let name = &ident.sym;
-    if name.as_str() != self.nested_require_name(parser) {
+    if name != self.nested_require_name(parser) {
       None
     } else {
       self.tag_nested_require_data(
         parser,
-        Atom::from(name.as_str()),
+        Atom::from(name),
         {
           let mut lo_buffer = itoa::Buffer::new();
           let lo_str = lo_buffer.format(fn_decl.span().real_lo());
@@ -212,15 +242,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     _stmt: VariableDeclaration<'_>,
   ) -> Option<bool> {
     if let Some(ident) = declarator.name.as_ident()
-      && (ident.id.sym.as_str() == parser.parser_runtime_requirements.exports
-        || ident.id.sym.as_str() == self.nested_require_name(parser))
+      && (ident.id.sym == parser.parser_runtime_requirements.exports.as_str()
+        || ident.id.sym == self.nested_require_name(parser))
     {
-      let data = parser.get_tag_data_mut::<NestedRequireData>(
-        &Atom::from(ident.id.sym.as_str()),
-        NESTED_IDENTIFIER_TAG,
-      )?;
+      let data =
+        parser.get_tag_data_mut::<NestedRequireData>(&ident.id.sym, NESTED_IDENTIFIER_TAG)?;
       if !data.update {
-        let dep = Box::new(ConstDependency::new(data.loc, data.name.clone().into()));
+        let dep = Arc::new(ConstDependency::new(data.loc, data.name.clone().into()));
         data.update = true;
         parser.add_presentational_dependency(dep);
       }
@@ -244,11 +272,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
       .as_deref_mut()?;
 
     let nested_require_data = NestedRequireData::downcast_mut(tag_info);
-    let mut deps: Vec<BoxDependencyTemplate> = Vec::with_capacity(2);
+    let mut deps: Vec<DependencyCodeGenerationRef> = Vec::with_capacity(2);
     let name = nested_require_data.name.clone();
     if !nested_require_data.update {
       let shorthand = nested_require_data.in_short_hand;
-      deps.push(Box::new(ConstDependency::new(
+      deps.push(Arc::new(ConstDependency::new(
         nested_require_data.loc,
         if shorthand {
           format!("{}: {}", ident.sym, name).into()
@@ -259,7 +287,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
       nested_require_data.update = true;
     }
 
-    deps.push(Box::new(ConstDependency::new(
+    deps.push(Arc::new(ConstDependency::new(
       ident.span.into(),
       if parser.in_short_hand {
         format!("{}: {}", ident.sym, name).into()

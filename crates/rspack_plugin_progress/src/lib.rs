@@ -507,6 +507,7 @@ async fn module_ids(
   &self,
   _compilation: &Compilation,
   _module_ids: &mut ModuleIdsArtifact,
+  _preserved_module_ids: &ModuleIdsArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   self.sealing_hooks_report("assign module ids", 16).await

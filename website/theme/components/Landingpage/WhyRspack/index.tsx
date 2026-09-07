@@ -2,8 +2,8 @@ import { Link } from '@rspress/core/theme-original';
 import {
   containerStyle,
   innerContainerStyle,
-} from '@rstack-dev/doc-ui/section-style';
-import { WhyRspack as BaseWhyRspack } from '@rstack-dev/doc-ui/why-rspack';
+} from '@rstackjs/doc-ui/section-style';
+import { WhyRspack as BaseWhyRspack } from '@rstackjs/doc-ui/why-rspack';
 import { memo, useMemo } from 'react';
 import { useI18n, useI18nUrl } from '../../../i18n';
 import CompatibleJson from './assets/Compatible.json';
@@ -45,14 +45,14 @@ const WhyRspack = memo(() => {
       },
       {
         img: FrameCheck,
-        url: tUrl('/guide/tech/react'),
+        url: tUrl('/guide/integrations/react'),
         title: t('FrameworkAgnostic'),
         description: t('FrameworkAgnosticDesc'),
         lottieJsonData: FrameCheckJson,
       },
       {
         img: Compatible,
-        url: tUrl('/guide/compatibility/plugin'),
+        url: tUrl('/plugins/community-plugin-compatibility'),
         title: t('WebpackCompatible'),
         description: t('WebpackCompatibleDesc'),
         lottieJsonData: CompatibleJson,

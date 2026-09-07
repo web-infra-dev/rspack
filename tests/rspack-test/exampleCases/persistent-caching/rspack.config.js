@@ -16,7 +16,7 @@ module.exports = {
       buildDependencies: [__filename],
       storage: {
         type: 'filesystem',
-        directory: path.resolve(__dirname, '.cache'),
+        location: path.resolve(__dirname, '.cache'),
       },
     },
   },

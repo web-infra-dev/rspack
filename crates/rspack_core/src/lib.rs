@@ -5,6 +5,8 @@ mod compilation;
 mod transient_cache;
 
 mod exports;
+pub mod legacy_cache;
+mod new_cache;
 mod value_cache_versions;
 pub use artifacts::*;
 pub use binding::*;
@@ -13,14 +15,21 @@ pub use compilation::{
   *,
 };
 pub use exports::*;
+pub use new_cache::{
+  Cache, CacheFacade, CacheValue, Etag, FileSystemInfo, ItemCacheFacade, MultiItemCache, Snapshot,
+  SnapshotValidationResult,
+};
 pub use transient_cache::*;
 pub use value_cache_versions::ValueCacheVersions;
+mod concatenation_backend;
 mod dependencies_block;
+pub use concatenation_backend::*;
 pub mod diagnostics;
 pub mod incremental;
 pub use dependencies_block::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
-  AsyncDependenciesBlockIdentifierSet, DependenciesBlock,
+  AsyncDependenciesBlock, AsyncDependenciesBlockBuildResult, AsyncDependenciesBlockIdentifier,
+  AsyncDependenciesBlockIdentifierMap, AsyncDependenciesBlockIdentifierSet,
+  AsyncDependenciesBlockRef, DependenciesBlock,
 };
 mod fake_namespace_object;
 pub use fake_namespace_object::*;
@@ -106,6 +115,7 @@ pub use rspack_location::{
 };
 pub mod concatenated_module;
 pub mod reserved_names;
+pub use inventory;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_hash::{RspackHash, RspackHasher};
 pub use rspack_loader_runner::{
@@ -119,11 +129,15 @@ pub use rspack_sources;
 pub mod debug_info;
 
 #[cacheable]
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+  Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, rspack_macros::StringEnum,
+)]
+#[string_enum(rename_all = "kebab-case")]
 pub enum SourceType {
+  #[string_enum(rename = "javascript")]
   JavaScript,
   Css,
-  CssUrl,
+  AssetUrl,
   Wasm,
   Asset,
   Expose,
@@ -131,6 +145,7 @@ pub enum SourceType {
   ShareInit,
   ConsumeShared,
   ShareContainerShared,
+  #[string_enum(fallback)]
   Custom(#[cacheable(with=AsPreset)] Ustr),
   #[default]
   Unknown,
@@ -147,46 +162,6 @@ impl std::fmt::Display for SourceType {
 impl RspackHash for SourceType {
   fn hash(&self, state: &mut RspackHasher) {
     self.as_str().hash(state);
-  }
-}
-
-impl SourceType {
-  fn as_str(&self) -> &str {
-    match self {
-      SourceType::JavaScript => "javascript",
-      SourceType::Css => "css",
-      SourceType::CssUrl => "css-url",
-      SourceType::Wasm => "wasm",
-      SourceType::Asset => "asset",
-      SourceType::Expose => "expose",
-      SourceType::Remote => "remote",
-      SourceType::ShareInit => "share-init",
-      SourceType::ConsumeShared => "consume-shared",
-      SourceType::ShareContainerShared => "share-container-shared",
-      SourceType::Unknown => "unknown",
-      SourceType::CssImport => "css-import",
-      SourceType::Custom(source_type) => source_type,
-      SourceType::Runtime => "runtime",
-    }
-  }
-}
-
-impl From<&str> for SourceType {
-  fn from(value: &str) -> Self {
-    match value {
-      "javascript" => Self::JavaScript,
-      "css" => Self::Css,
-      "wasm" => Self::Wasm,
-      "asset" => Self::Asset,
-      "expose" => Self::Expose,
-      "remote" => Self::Remote,
-      "share-init" => Self::ShareInit,
-      "consume-shared" => Self::ConsumeShared,
-      "share-container-shared" => Self::ShareContainerShared,
-      "unknown" => Self::Unknown,
-      "css-import" => Self::CssImport,
-      other => SourceType::Custom(other.into()),
-    }
   }
 }
 
@@ -418,12 +393,9 @@ impl ChunkByUkey {
     self.inner.iter_mut()
   }
 
+  #[allow(clippy::len_without_is_empty)]
   pub fn len(&self) -> usize {
     self.inner.len()
-  }
-
-  pub fn is_empty(&self) -> bool {
-    self.inner.is_empty()
   }
 }
 
@@ -439,13 +411,6 @@ impl ChunkGroupByUkey {
 
   pub fn get_mut(&mut self, ukey: &ChunkGroupUkey) -> Option<&mut ChunkGroup> {
     self.inner.get_mut(ukey)
-  }
-
-  pub fn get_many_mut<const N: usize>(
-    &mut self,
-    ukeys: [&ChunkGroupUkey; N],
-  ) -> [Option<&mut ChunkGroup>; N] {
-    self.inner.get_disjoint_mut(ukeys)
   }
 
   pub fn expect_get(&self, ukey: &ChunkGroupUkey) -> &ChunkGroup {
@@ -470,13 +435,6 @@ impl ChunkGroupByUkey {
     self.inner.remove(ukey)
   }
 
-  pub fn entry(
-    &mut self,
-    ukey: ChunkGroupUkey,
-  ) -> std::collections::hash_map::Entry<'_, ChunkGroupUkey, ChunkGroup> {
-    self.inner.entry(ukey)
-  }
-
   pub fn contains(&self, ukey: &ChunkGroupUkey) -> bool {
     self.inner.contains_key(ukey)
   }
@@ -489,15 +447,7 @@ impl ChunkGroupByUkey {
     self.inner.values()
   }
 
-  pub fn values_mut(&mut self) -> impl Iterator<Item = &mut ChunkGroup> {
-    self.inner.values_mut()
-  }
-
   pub fn iter(&self) -> impl Iterator<Item = (&ChunkGroupUkey, &ChunkGroup)> {
     self.inner.iter()
-  }
-
-  pub fn iter_mut(&mut self) -> impl Iterator<Item = (&ChunkGroupUkey, &mut ChunkGroup)> {
-    self.inner.iter_mut()
   }
 }

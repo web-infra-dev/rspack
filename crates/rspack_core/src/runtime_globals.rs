@@ -512,6 +512,18 @@ pub fn rspack_runtime_variable_name(runtime_variable: &RuntimeVariable) -> &'sta
   }
 }
 
+pub fn rspack_export_runtime_variable_name(runtime_variable: &RuntimeVariable) -> &'static str {
+  match *runtime_variable {
+    RuntimeVariable::Require => "rspackRequire",
+    RuntimeVariable::Context => "context",
+    RuntimeVariable::Modules => "modules",
+    RuntimeVariable::ModuleCache => "moduleCache",
+    RuntimeVariable::Exports => "exports",
+    RuntimeVariable::Module => "module",
+    RuntimeVariable::StartupExec => "startupExec",
+  }
+}
+
 pub fn runtime_variable_name(runtime_variable: &RuntimeVariable) -> &'static str {
   match *runtime_variable {
     RuntimeVariable::Require => "__webpack_require__",
@@ -571,10 +583,6 @@ impl RuntimeGlobals {
     }
   }
 
-  pub fn name(&self) -> Option<&'static str> {
-    RUNTIME_GLOBAL_MAP.0.get(self).copied()
-  }
-
   pub fn from_property_name(property_name: &str) -> Option<Self> {
     RUNTIME_GLOBAL_MAP.2.get(property_name).copied()
   }
@@ -601,6 +609,15 @@ impl RuntimeGlobals {
 
   pub fn to_lexical_name(&self) -> Option<&str> {
     RUNTIME_GLOBAL_MAP.3.get(self).map(String::as_str)
+  }
+
+  pub fn to_rspack_export_setter_name(&self) -> Option<String> {
+    let name = self.to_lexical_name()?;
+    let mut setter = String::with_capacity(name.len() + 3);
+    setter.push_str("set");
+    setter.push(name.as_bytes()[0].to_ascii_uppercase() as char);
+    setter.push_str(&name[1..]);
+    Some(setter)
   }
 
   pub fn should_initialize_as_object(&self) -> bool {

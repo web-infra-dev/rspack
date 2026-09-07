@@ -23,6 +23,8 @@ module.exports = {
     expect(mainSource).toMatch(/var __rspack_module_cache\s*=\s*\{\};/);
     expect(mainSource).toContain("var ensureChunkHandlers = {};");
     expect(mainSource).not.toMatch(/var .*ensureChunkHandlers=\{\}/);
+    expect(mainSource).toContain("\n})();\n");
+    expect(mainSource).not.toContain("}).call(this);");
     expect(mainSource).toContain(
       "// expose the modules object (__rspack_modules)",
     );

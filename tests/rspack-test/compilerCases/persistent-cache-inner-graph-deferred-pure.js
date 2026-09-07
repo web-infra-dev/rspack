@@ -39,7 +39,7 @@ module.exports = {
 					buildDependencies: [__filename],
 					storage: {
 						type: "filesystem",
-						directory: context.getDist(CACHE_DIR)
+						location: context.getDist(CACHE_DIR)
 					}
 				}
 			},

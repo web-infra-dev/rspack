@@ -1,0 +1,7 @@
+{
+  "name": "imports-field-chain",
+  "imports": {
+    "#a": "#b",
+    "#b": "./the.js"
+  }
+}

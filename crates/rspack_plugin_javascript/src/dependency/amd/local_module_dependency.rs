@@ -8,7 +8,7 @@ use rspack_core::{
 use super::local_module::LocalModule;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct LocalModuleDependency {
   id: DependencyId,
   local_module: LocalModule,

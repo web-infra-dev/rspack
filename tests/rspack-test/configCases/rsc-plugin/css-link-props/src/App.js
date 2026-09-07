@@ -1,6 +1,11 @@
 "use server-entry";
 
+import "./App.css";
 import { Client } from './Client';
+
+const rspackRsc = import.meta.rspackRsc;
+
+export const getCssNodes = () => rspackRsc.loadCss();
 
 export const App = () => {
   return (

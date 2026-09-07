@@ -23,7 +23,6 @@ mod fs_trim;
 pub mod incremental_info;
 mod steal_cell;
 pub use fs_trim::*;
-mod hash;
 mod identifier;
 mod memory_gc;
 mod module_rules;
@@ -53,7 +52,6 @@ pub use self::{
   fast_actions::*,
   file_counter::{FileCounter, ResourceId},
   find_graph_roots::*,
-  hash::*,
   identifier::*,
   module_rules::*,
   property_access::*,

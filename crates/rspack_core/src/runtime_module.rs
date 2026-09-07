@@ -14,7 +14,7 @@ use rspack_util::source_map::SourceMapKind;
 use tokio::sync::OnceCell;
 
 use crate::{
-  ChunkUkey, CodeGenerationResult, Compilation, Module, ModuleCodeGenerationContext,
+  ChunkUkey, CodeGenerationResultBuilder, Compilation, Module, ModuleCodeGenerationContext,
   RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, RuntimeTemplate, SourceType,
   runtime_mode::RuntimeMode,
 };
@@ -45,7 +45,7 @@ pub fn runtime_module_owned_define_fields(
       let runtime_requirements = runtime_module.runtime_requirements(compilation);
       let define_fields = runtime_requirements
         .define
-        .difference(RuntimeGlobals::STARTUP | runtime_requirements.force_context);
+        .difference(RuntimeGlobals::STARTUP);
       fields | define_fields
     })
 }
@@ -122,10 +122,6 @@ impl RuntimeModuleCommon {
     self.chunk = Some(chunk);
   }
 
-  pub fn name(&self) -> Identifier {
-    self.id
-  }
-
   pub fn id(&self) -> &Identifier {
     &self.id
   }
@@ -192,8 +188,8 @@ pub async fn runtime_module_code_generation(
   module: &dyn RuntimeModule,
   common: &RuntimeModuleCommon,
   ctx: &mut ModuleCodeGenerationContext<'_>,
-) -> Result<CodeGenerationResult> {
-  let mut result = CodeGenerationResult::default();
+) -> Result<CodeGenerationResultBuilder> {
+  let mut result = CodeGenerationResultBuilder::default();
   let source = runtime_module_get_generated_code(module, common, ctx.compilation).await?;
   result.add(SourceType::Runtime, source);
   Ok(result)
@@ -247,6 +243,14 @@ pub trait RuntimeModule:
   fn template(&self) -> Vec<(String, String)> {
     vec![]
   }
+  /// Names that this runtime module may declare in the surrounding chunk scope.
+  ///
+  /// Runtime modules backed by EJS templates should derive these names from top-level `var()` and
+  /// `fn()` declarations. `#[impl_runtime_module]` registers the provider so the names can be
+  /// reserved before runtime module instances are created.
+  fn runtime_module_variables() -> &'static [&'static str]
+  where
+    Self: Sized;
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
@@ -264,6 +268,18 @@ pub trait RuntimeModule:
   fn runtime_requirements(&self, _compilation: &Compilation) -> RuntimeModuleRuntimeRequirements {
     Default::default()
   }
+}
+
+pub struct RuntimeModuleVariableProvider {
+  pub variables: fn() -> &'static [&'static str],
+}
+
+inventory::collect!(RuntimeModuleVariableProvider);
+
+pub fn all_runtime_module_variables() -> impl Iterator<Item = &'static str> {
+  inventory::iter::<RuntimeModuleVariableProvider>
+    .into_iter()
+    .flat_map(|provider| (provider.variables)().iter().copied())
 }
 
 pub trait AttachableRuntimeModule {

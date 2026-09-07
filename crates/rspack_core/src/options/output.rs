@@ -35,6 +35,7 @@ pub struct OutputOptions {
   pub public_path: PublicPath,
   pub asset_module_filename: Filename,
   pub wasm_loading: WasmLoading,
+  pub wasm_streaming_fallback: bool,
   pub webassembly_module_filename: Filename,
   pub unique_name: String,
   pub chunk_loading: ChunkLoading,
@@ -664,14 +665,6 @@ impl Environment {
     self.import_meta_dirname_and_filename
   }
 
-  pub fn supports_async_function(&self) -> bool {
-    self.async_function
-  }
-
-  pub fn supports_big_int_literal(&self) -> bool {
-    self.big_int_literal
-  }
-
   pub fn supports_destructuring(&self) -> bool {
     self.destructuring
   }
@@ -684,31 +677,7 @@ impl Environment {
     self.dynamic_import
   }
 
-  pub fn supports_dynamic_import_in_worker(&self) -> bool {
-    self.dynamic_import_in_worker
-  }
-
-  pub fn supports_for_of(&self) -> bool {
-    self.for_of
-  }
-
-  pub fn supports_global_this(&self) -> bool {
-    self.global_this
-  }
-
-  pub fn supports_module(&self) -> bool {
-    self.module
-  }
-
-  pub fn supports_optional_chaining(&self) -> bool {
-    self.optional_chaining
-  }
-
   pub fn supports_logical_assignment(&self) -> bool {
     self.logical_assignment
-  }
-
-  pub fn supports_template_literal(&self) -> bool {
-    self.template_literal
   }
 }

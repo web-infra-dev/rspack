@@ -31,7 +31,7 @@ Read [Introduction](https://rspack.rs/guide/start/introduction) for details.
 
 ## 🦀 Rstack
 
-Rstack is a unified JavaScript toolchain centered on Rspack, with high performance and consistent architecture.
+Rspack is part of Rstack, the fast, unified JavaScript toolchain for developers and agents.
 
 | Name                                                  | Description              | Version                                                                                                                                                                          |
 | ----------------------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -1,20 +1,20 @@
-var dataRspackPrefix = <%- _data_rspack_prefix %>;
+<%- var("dataRspackPrefix") %> = <%- _data_rspack_prefix %>;
 
-function getDataRspackId(identifier) {
+<%- fn("getDataRspackId") %>(identifier) {
 	return dataRspackPrefix + identifier;
 }
 
-function applyStyle(styleElement, css) {
+<%- fn("applyStyle") %>(styleElement, css) {
 	styleElement.textContent = css;
 }
 
-function removeStyleElement(styleElement) {
+<%- fn("removeStyleElement") %>(styleElement) {
 	if (styleElement.parentNode) {
 		styleElement.parentNode.removeChild(styleElement);
 	}
 }
 
-function findStyleElement(identifier) {
+<%- fn("findStyleElement") %>(identifier) {
 	var elements = document.getElementsByTagName("style");
 	for (var i = 0; i < elements.length; i++) {
 		var el = elements[i];
@@ -25,7 +25,7 @@ function findStyleElement(identifier) {
 	return null;
 }
 
-function insertStyleElement(key) {
+<%- fn("insertStyleElement") %>(key) {
 	<%- _create_style %>
 	document.head.appendChild(style);
 	return style;

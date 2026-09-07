@@ -1,0 +1,6 @@
+{
+  "name": "imports-slash-pattern",
+  "imports": {
+    "#/*": "./src/*"
+  }
+}

@@ -5,108 +5,154 @@ const {
 } = require("@rspack/core");
 
 const CASE_DIR = "persistent-isolated-dts";
-const CACHE_DIR = ".cache";
-const OUTPUT_DIR = "output";
-const WORK_DIR = "workdir";
 
-function getDtsPath(context) {
-  return context.getDist(path.join(WORK_DIR, "dist/types/index.d.ts"));
+async function buildAndCountLoaderRuns(context, counterFile) {
+  const before = fs.existsSync(counterFile)
+    ? fs.readFileSync(counterFile, "utf-8").length
+    : 0;
+  const stats = await context.getCompiler().build();
+  expect(stats.toJson({ all: false, errors: true }).errors).toEqual([]);
+  return fs.readFileSync(counterFile, "utf-8").length - before;
 }
 
-function readDts(context) {
-  return fs.readFileSync(getDtsPath(context), "utf-8");
-}
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
+module.exports = [
+  {
+    name: "legacy-cache",
+    newCache: false,
+    warmLoaderRuns: 0
+  },
+  {
+    name: "new-cache-without-loader-cache",
+    newCache: { loader: false, module: false },
+    warmLoaderRuns: 1
+  },
+  {
+    name: "loader-cache-only",
+    newCache: {
+      codeGeneration: false,
+      devtool: false,
+      loader: true,
+      module: false,
+      minimize: false
+    },
+    warmLoaderRuns: 0
+  }
+].map(({ name, newCache, warmLoaderRuns }) => {
+  let root;
+  let dtsPath;
+  let counterFile;
 
-async function recreateCompiler(context) {
-  const compilerManager = context.getCompiler();
-  await compilerManager.close();
-  const compiler = compilerManager.createCompiler();
-  compiler.outputFileSystem = fs;
-}
+  function configureCompiler(compiler) {
+    compiler.outputFileSystem = fs;
+    expect(compiler.options.cache.type).toBe("persistent");
+    if (newCache === false) {
+      expect(compiler.options.experiments.newCache).toBe(false);
+    } else {
+      expect(compiler.options.experiments.newCache).toMatchObject(newCache);
+    }
+  }
 
-/** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
-module.exports = {
-  description:
-    "should re-emit declaration files assets after persistent cache recovery",
-  options(context) {
-    const sourceDir = path.resolve(__dirname, "../fixtures", CASE_DIR);
-    const workDir = context.getDist(WORK_DIR);
-    fs.rmSync(workDir, { recursive: true, force: true });
-    fs.cpSync(sourceDir, workDir, { recursive: true });
+  return {
+    description: `should emit isolated declarations across persistent builds with ${name}`,
+    options(context) {
+      root = context.getDist(name);
+      const sourceDir = path.resolve(__dirname, "../fixtures", CASE_DIR);
+      const workDir = path.join(root, "workdir");
+      dtsPath = path.join(workDir, "dist/types/index.d.ts");
+      counterFile = path.join(root, "loader-runs.txt");
+      fs.rmSync(root, { recursive: true, force: true });
+      fs.cpSync(sourceDir, workDir, { recursive: true });
 
-    return {
-      context: workDir,
-      entry: "./index.ts",
-      target: "node",
-      output: {
-        path: workDir,
-        filename: `${OUTPUT_DIR}/main.js`,
-        library: {
-          type: "commonjs"
-        }
-      },
-      experiments: {
+      return {
+        context: workDir,
+        mode: "production",
+        entry: "./index.ts",
+        target: "node",
+        incremental: false,
+        output: {
+          path: workDir,
+          filename: "output/main.js",
+          library: {
+            type: "commonjs"
+          }
+        },
         cache: {
           type: "persistent",
           buildDependencies: [__filename],
           storage: {
             type: "filesystem",
-            directory: context.getDist(CACHE_DIR)
+            location: path.join(root, ".cache")
           }
-        }
-      },
-      module: {
-        rules: [
-          {
-            test: /\.ts$/,
-            type: "javascript/auto",
-            use: {
-              loader: "builtin:swc-loader",
-              options: {
-                jsc: {
-                  parser: {
-                    syntax: "typescript"
-                  },
-                  experimental: {
-                    emitIsolatedDts: true
+        },
+        experiments: {
+          newCache
+        },
+        module: {
+          rules: [
+            {
+              test: /\.ts$/,
+              type: "javascript/auto",
+              use: [
+                {
+                  loader: "builtin:swc-loader",
+                  cache: true,
+                  options: {
+                    jsc: {
+                      parser: {
+                        syntax: "typescript"
+                      },
+                      experimental: {
+                        emitIsolatedDts: true
+                      }
+                    }
                   }
+                },
+                {
+                  loader: path.join(workDir, "count-loader.js"),
+                  cache: true,
+                  options: { counterFile }
                 }
-              }
+              ]
             }
-          }
+          ]
+        },
+        plugins: [
+          new RslibPlugin({
+            emitDts: {
+              rootDir: workDir,
+              declarationDir: "./dist/types"
+            }
+          })
         ]
-      },
-      plugins: [
-        new RslibPlugin({
-          emitDts: {
-            rootDir: workDir,
-            declarationDir: "./dist/types"
-          }
-        })
-      ]
-    };
-  },
-  async compiler(_, compiler) {
-    compiler.outputFileSystem = fs;
-  },
-  async build(context) {
-    const compilerManager = context.getCompiler();
-    await compilerManager.build();
-    context.setValue("firstOutput", readDts(context));
+      };
+    },
+    compiler(_, compiler) {
+      configureCompiler(compiler);
+    },
+    async build(context) {
+      const compilerManager = context.getCompiler();
+      expect(await buildAndCountLoaderRuns(context, counterFile)).toBe(1);
+      context.setValue("firstOutput", fs.readFileSync(dtsPath, "utf-8"));
 
-    fs.rmSync(getDtsPath(context), { force: true });
+      // Flush persistent cache and remove the declaration so the next compiler
+      // must emit it again, even when SWC does not run.
+      await compilerManager.close();
+      fs.rmSync(dtsPath);
+      configureCompiler(compilerManager.createCompiler());
 
-    await recreateCompiler(context);
-    await compilerManager.build();
-    context.setValue("secondOutput", readDts(context));
-  },
-  async check({ context }) {
-    const firstOutput = context.getValue("firstOutput");
-    const secondOutput = context.getValue("secondOutput");
+      expect(await buildAndCountLoaderRuns(context, counterFile)).toBe(
+        warmLoaderRuns
+      );
+      context.setValue("secondOutput", fs.readFileSync(dtsPath, "utf-8"));
+    },
+    check({ context }) {
+      const firstOutput = context.getValue("firstOutput");
+      const secondOutput = context.getValue("secondOutput");
 
-    expect(firstOutput).toContain("export interface Foo");
-    expect(firstOutput).toContain("export declare const foo: Foo;");
-    expect(secondOutput).toContain("export interface Foo");
-    expect(secondOutput).toContain("export declare const foo: Foo;");
-  }
-};
+      expect(firstOutput).toContain("export interface Foo");
+      expect(firstOutput).toContain("export declare const foo: Foo;");
+      expect(secondOutput).toBe(firstOutput);
+    }
+  };
+});

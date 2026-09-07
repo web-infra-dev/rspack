@@ -1,0 +1,25 @@
+```mjs title=main.mjs
+
+
+// ./index.js
+function createWorker() {
+  return new Worker(
+    /* webpackChunkName: "worker" */ new URL("./worker.mjs", import.meta.url), { type: "module" },
+  );
+}
+
+export { createWorker };
+
+```
+
+```mjs title=worker.mjs
+
+
+// ./worker.js
+/* export default */ const worker = ('worker');
+
+globalThis.__workerEntryExecuted = true;
+
+export {};
+
+```

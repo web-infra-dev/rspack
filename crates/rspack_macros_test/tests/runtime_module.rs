@@ -14,6 +14,10 @@ fn with_generic() {
 
   #[async_trait::async_trait]
   impl<T: std::fmt::Debug + Send + Sync + Eq + 'static> RuntimeModule for Foo<T> {
+    fn runtime_module_variables() -> &'static [&'static str] {
+      &[]
+    }
+
     async fn generate(&self, _: &RuntimeModuleGenerateContext<'_>) -> rspack_error::Result<String> {
       todo!()
     }

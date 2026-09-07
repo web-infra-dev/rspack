@@ -100,6 +100,7 @@ pub struct RawOutputOptions {
   pub asset_module_filename: JsFilename,
   #[napi(ts_type = "string | false")]
   pub wasm_loading: RawWasmLoading,
+  pub wasm_streaming_fallback: bool,
   pub enabled_wasm_loading_types: Vec<String>,
   pub webassembly_module_filename: String,
   pub filename: JsFilename,
@@ -185,6 +186,7 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
       public_path: value.public_path.into(),
       asset_module_filename: value.asset_module_filename.into(),
       wasm_loading: value.wasm_loading.into(),
+      wasm_streaming_fallback: value.wasm_streaming_fallback,
       webassembly_module_filename: value.webassembly_module_filename.into(),
       unique_name: value.unique_name,
       chunk_loading: value.chunk_loading.into(),

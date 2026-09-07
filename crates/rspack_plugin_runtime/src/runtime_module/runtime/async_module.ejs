@@ -1,11 +1,11 @@
-var hasSymbol = typeof Symbol === "function";
-var rspackQueues = hasSymbol ? Symbol("rspack queues") : "__rspack_queues";
+<%- var("hasSymbol") %> = typeof Symbol === "function";
+<%- var("rspackQueues") %> = hasSymbol ? Symbol("rspack queues") : "__rspack_queues";
 <% if (_uses_lexical_runtime_globals) { %><%- define(ASYNC_MODULE_EXPORT_SYMBOL) %> = hasSymbol ? Symbol("rspack exports") : "<%- EXPORTS %>";
-var rspackExports = <%- ASYNC_MODULE_EXPORT_SYMBOL %>;<% } else { %>var rspackExports = <%- define(ASYNC_MODULE_EXPORT_SYMBOL) %> = hasSymbol ? Symbol("rspack exports") : "<%- EXPORTS %>";<% } %>
-var rspackError = hasSymbol ? Symbol("rspack error") : "__rspack_error";
-var rspackDone = hasSymbol ? Symbol("rspack done") : "__rspack_done";
+<%- var("rspackExports") %> = <%- ASYNC_MODULE_EXPORT_SYMBOL %>;<% } else { %><%- var("rspackExports") %> = <%- define(ASYNC_MODULE_EXPORT_SYMBOL) %> = hasSymbol ? Symbol("rspack exports") : "<%- EXPORTS %>";<% } %>
+<%- var("rspackError") %> = hasSymbol ? Symbol("rspack error") : "__rspack_error";
+<%- var("rspackDone") %> = hasSymbol ? Symbol("rspack done") : "__rspack_done";
 <% if (_uses_lexical_runtime_globals) { %><%- define(DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL) %> = hasSymbol ? Symbol("rspack defer") : "__rspack_defer";
-var rspackDefer = <%- DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL %>;<% } else { %>var rspackDefer = <%- define(DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL) %> = hasSymbol ? Symbol("rspack defer") : "__rspack_defer";<% } %>
+<%- var("rspackDefer") %> = <%- DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL %>;<% } else { %><%- var("rspackDefer") %> = <%- define(DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL) %> = hasSymbol ? Symbol("rspack defer") : "__rspack_defer";<% } %>
 <%- define(DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES) %> = <%- basicFunction("asyncDeps") %> {
 	var hasUnresolvedAsyncSubgraph = asyncDeps.some((id) => {
 		var cache = <%- _module_cache %>[id];
@@ -15,14 +15,14 @@ var rspackDefer = <%- DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL %>;<
 		return ({ then(onFulfilled, onRejected) { return Promise.all(asyncDeps.map(<%- REQUIRE %>)).then(onFulfilled, onRejected) } });
 	}
 }
-var resolveQueue = <%- basicFunction("queue") %> {
+<%- var("resolveQueue") %> = <%- basicFunction("queue") %> {
 	if (queue && queue.d < 1) {
 		queue.d = 1;
     	queue.forEach(<%- expressionFunction("fn.r--", "fn") %>);
 		queue.forEach(<%- expressionFunction("fn.r-- ? fn.r++ : fn()", "fn") %>);
 	}
 }
-var wrapDeps = <%- basicFunction("deps") %> {
+<%- var("wrapDeps") %> = <%- basicFunction("deps") %> {
 	return deps.map(<%- basicFunction("dep") %> {
 		if (dep !== null && typeof dep === "object") {
 			if(!dep[rspackQueues] && dep[rspackDefer]) {
@@ -59,7 +59,7 @@ var wrapDeps = <%- basicFunction("deps") %> {
 		return ret;
 	});
 };
-<%- define(ASYNC_MODULE) %> = <%- basicFunction("module, body, hasAwait") %> {
+<%- define(ASYNC_MODULE) %> = <%- basicFunction("module, body, hasAwait, useModuleExports") %> {
 	var queue;
 	hasAwait && ((queue = []).d = -1);
 	var depQueues = new Set();
@@ -74,6 +74,11 @@ var wrapDeps = <%- basicFunction("deps") %> {
 	promise[rspackExports] = exports;
 	promise[rspackQueues] = <%- basicFunction("fn") %> { queue && fn(queue), depQueues.forEach(fn), promise["catch"](<%- emptyFunction() %>); };
 	module.exports = promise;
+	var asyncModule = module;
+	if (useModuleExports) {
+		asyncModule = Object.create(module);
+		asyncModule.exports = exports;
+	}
 	var handle = <%- basicFunction("deps") %> {
 		currentDeps = wrapDeps(deps);
 		var fn;
@@ -92,7 +97,7 @@ var wrapDeps = <%- basicFunction("deps") %> {
 		});
 		return fn.r ? promise : getResult();
 	};
-	var done = <%- expressionFunction("(err ? reject(promise[rspackError] = err) : outerResolve(exports)), resolveQueue(queue), promise[rspackDone] = true", "err") %>;
-	body(handle, done);
+	var done = <%- expressionFunction("(err ? reject(promise[rspackError] = err) : (useModuleExports && (exports = promise[rspackExports] = asyncModule.exports), outerResolve(exports))), resolveQueue(queue), promise[rspackDone] = true", "err") %>;
+	body(handle, done, asyncModule);
 	queue && queue.d < 0 && (queue.d = 0);
 };

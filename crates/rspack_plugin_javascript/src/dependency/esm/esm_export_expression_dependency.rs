@@ -9,9 +9,8 @@ use rspack_core::{
   ModuleGraphCacheArtifact, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource,
   UsedName, property_access, rspack_sources::ReplacementEnforce,
 };
-use swc_atoms::Atom;
 
-use crate::{ConstValue, parser_plugin::JS_DEFAULT_KEYWORD};
+use crate::{Atom, ConstValue, parser_plugin::JS_DEFAULT_KEYWORD};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -39,7 +38,7 @@ impl DeclarationInfo {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ESMExportExpressionDependency {
   id: DependencyId,
   range: DependencyRange,

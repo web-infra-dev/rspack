@@ -2,15 +2,13 @@
 description: '如果你通过 HotModuleReplacementPlugin 启用了模块热替换，它的接口将暴露在 module.hot 和 import.meta.webpackHot 对象下。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.docschina.org/api/hot-module-replacement/" />
+import Attribution from '@components/Attribution';
 
 # 模块热替换
 
 Rspack 提供了与 webpack 相同的接口来实现模块热替换。
 
-如果你通过 [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin) 启用了模块热替换，它的接口将暴露在 `module.hot` 和 `import.meta.webpackHot` 对象下。
+如果你通过 [HotModuleReplacementPlugin](/plugins/hot-module-replacement-plugin) 启用了模块热替换，它的接口将暴露在 `module.hot` 和 `import.meta.webpackHot` 对象下。
 
 注意，在 ESM 中请使用 `import.meta.webpackHot` 来代替 `module.hot`。
 
@@ -366,3 +364,5 @@ module.hot.removeStatusHandler(callback);
 // or
 import.meta.webpackHot.removeStatusHandler(callback);
 ```
+
+<Attribution url="https://webpack.docschina.org/api/hot-module-replacement/" />

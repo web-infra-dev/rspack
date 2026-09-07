@@ -1,6 +1,6 @@
 use rspack_cacheable::{cacheable, from_bytes};
-pub use rspack_core::cache::persistent::occasion::meta::SCOPE;
-use rspack_core::cache::persistent::storage::Storage;
+use rspack_core::legacy_cache::persistent::storage::Storage;
+pub use rspack_core::legacy_cache::persistent::validation::SCOPE;
 use rspack_error::Result;
 
 use crate::debug_info::DebugInfo;
@@ -9,6 +9,7 @@ use crate::debug_info::DebugInfo;
 #[cacheable]
 #[derive(Debug)]
 struct Meta {
+  pub version: String,
   pub max_dependencies_id: u32,
 }
 
@@ -43,8 +44,17 @@ pub async fn compare(
   let (_, value1) = &data1[0];
   let (_, value2) = &data2[0];
 
-  let _meta1: Meta = from_bytes::<Meta, ()>(value1, &()).expect("should deserialize meta");
-  let _meta2: Meta = from_bytes::<Meta, ()>(value2, &()).expect("should deserialize meta");
+  let meta1: Meta = from_bytes::<Meta, ()>(value1, &()).expect("should deserialize meta");
+  let meta2: Meta = from_bytes::<Meta, ()>(value2, &()).expect("should deserialize meta");
+
+  if meta1.version != meta2.version {
+    return Err(rspack_error::error!(
+      "Meta version mismatch: {:?} != {:?}\n{}",
+      meta1.version,
+      meta2.version,
+      debug_info
+    ));
+  }
 
   // Compare Meta fields
   // Note: We skip comparing max_dependencies_id as it's an internal counter
@@ -52,19 +62,19 @@ pub async fn compare(
   // The dependency IDs are unique within each build and are regenerated during cache recovery.
 
   // If Meta struct gets more fields in the future, add comparisons here:
-  // if _meta1.some_field != _meta2.some_field {
+  // if meta1.some_field != meta2.some_field {
   //   let mut error_msg = format!("Meta field 'some_field' mismatch\n");
-  //   error_msg.push_str(&format!("  storage1: {:?}\n", _meta1.some_field));
-  //   error_msg.push_str(&format!("  storage2: {:?}\n", _meta2.some_field));
+  //   error_msg.push_str(&format!("  storage1: {:?}\n", meta1.some_field));
+  //   error_msg.push_str(&format!("  storage2: {:?}\n", meta2.some_field));
   //   error_msg.push_str(&debug_info.to_string());
   //   return Err(rspack_error::error!(error_msg));
   // }
 
   // Commented out: dependency_id comparison (kept for reference)
-  // if _meta1.max_dependencies_id != _meta2.max_dependencies_id {
+  // if meta1.max_dependencies_id != meta2.max_dependencies_id {
   //   let mut error_msg = format!("Meta max_dependencies_id mismatch\n");
-  //   error_msg.push_str(&format!("  storage1: {}\n", _meta1.max_dependencies_id));
-  //   error_msg.push_str(&format!("  storage2: {}\n", _meta2.max_dependencies_id));
+  //   error_msg.push_str(&format!("  storage1: {}\n", meta1.max_dependencies_id));
+  //   error_msg.push_str(&format!("  storage2: {}\n", meta2.max_dependencies_id));
   //   error_msg.push_str(&debug_info.to_string());
   //   return Err(rspack_error::error!(error_msg));
   // }
