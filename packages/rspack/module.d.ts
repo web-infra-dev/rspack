@@ -179,6 +179,7 @@ declare namespace Rspack {
     query?: ImportMetaGlobQuery;
     exhaustive?: boolean;
     base?: string;
+    caseSensitive?: boolean;
   };
 
   interface Module {
@@ -227,13 +228,8 @@ declare namespace Rspack {
   }
 }
 
-interface ImportMetaEnv {
-  [key: string]: unknown;
-}
-
 interface ImportMeta {
   url: string;
-  env: ImportMetaEnv;
   webpackHot?: Rspack.Hot;
   webpackContext: (
     request: string,

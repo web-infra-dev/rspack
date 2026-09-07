@@ -11,7 +11,6 @@ chunk {889} (runtime: main) main.js (main) xx bytes [entry] [rendered]
     commonjs require context . [237] ./index.js 3:1-17
   ./a.js [670] xx bytes {889} [depth 1] [dependent] [built] [code generated]
     [used exports unknown]
-    Statement with side_effects in source code at ./a.js<LINE_COL>-22
     ModuleConcatenation bailout: Module is not an ECMAScript module
     cjs self exports reference self [670] ./a.js
     cjs require ./a [237] ./index.js 1:9-14
@@ -134,4 +133,4 @@ WARNING in ./index.js 3:1-17
    ·         ───────
    ╰────
 
-1970-04-20 12<LINE_COL>: Rspack x.x.x compiled with 2 warnings in X s (d2cff3f6f4e0a843)
+1970-04-20 12<LINE_COL>: Rspack x.x.x compiled with 2 warnings in X s (e340a34265153bc4)

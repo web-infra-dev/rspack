@@ -9,7 +9,7 @@ authors:
     x: 'https://x.com/rspack_dev'
 ---
 
-import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 # Announcing Rspack 1.4
 
@@ -51,7 +51,7 @@ Notable changes:
 
 Starting with Rspack 1.4, we have added Wasm target support, which means Rspack can now run in browser environments, including online platforms like [StackBlitz](https://stackblitz.com/) ([WebContainers](https://blog.stackblitz.com/posts/introducing-webcontainers/)). This enables developers to quickly create prototypes and share code examples without having to configure local environments.
 
-You can try out our [online example](https://stackblitz.com/~/github.com/rstackjs/rsbuild-stackblitz-example) directly, or learn about the StackBlitz usage guide in [this documentation](/guide/start/quick-start#online-examples).
+You can try our [online example](https://stackblitz.com/~/github.com/rstackjs/rsbuild-stackblitz-example) directly.
 
 <video
   src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-wasm-target.mp4"
@@ -131,7 +131,7 @@ export default {
 
 ### New CssChunkingPlugin
 
-Rspack 1.4 introduces an experimental [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin) specifically designed for handling CSS code splitting. This plugin ensures that styles are loaded in the same order as they are imported in the source code, preventing UI issues caused by incorrect CSS loading order.
+Rspack 1.4 introduces an experimental [CssChunkingPlugin](/plugins/css-chunking-plugin) specifically designed for handling CSS code splitting. This plugin ensures that styles are loaded in the same order as they are imported in the source code, preventing UI issues caused by incorrect CSS loading order.
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -145,7 +145,7 @@ export default {
 };
 ```
 
-Once `CssChunkingPlugin` is enabled, CSS code splitting will be handled entirely by this plugin, and the `optimization.splitChunks` configuration will no longer affect CSS modules. You can check the [documentation](/plugins/rspack/css-chunking-plugin) for more details.
+Once `CssChunkingPlugin` is enabled, CSS code splitting will be handled entirely by this plugin, and the `optimization.splitChunks` configuration will no longer affect CSS modules. You can check the [documentation](/plugins/css-chunking-plugin) for more details.
 
 > This plugin is inspired by Next.js's [CSS Chunking](https://nextjs.org/docs/app/api-reference/config/next-config-js/cssChunking) feature. Thanks to the Next.js team for their innovation in this area.
 

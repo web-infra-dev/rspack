@@ -1,4 +1,4 @@
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{ExportInfoTargetValue, ExportProvided, ExportsInfo, ExportsInfoData, UsageState};
@@ -86,14 +86,13 @@ impl ExportInfoData {
           Some(
             item
               .target
-              .clone()
-              .into_iter()
+              .iter()
               .map(|(k, v)| {
                 (
-                  k,
+                  *k,
                   ExportInfoTargetValue {
                     dependency: v.dependency,
-                    export: match v.export {
+                    export: match v.export.clone() {
                       Some(vec) => Some(vec),
                       None => Some(vec![
                         name
@@ -133,10 +132,6 @@ impl ExportInfoData {
       can_inline_use: None,
       ns_access,
     }
-  }
-
-  pub fn belongs_to(&self) -> &ExportsInfo {
-    &self.belongs_to
   }
 
   pub fn name(&self) -> Option<&Atom> {

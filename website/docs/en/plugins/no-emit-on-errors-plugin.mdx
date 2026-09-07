@@ -1,0 +1,23 @@
+---
+description: 'Prevents Rspack from emitting assets when a compilation contains errors.'
+---
+
+# NoEmitOnErrorsPlugin
+
+`NoEmitOnErrorsPlugin` prevents Rspack from emitting assets when a compilation contains errors. Setting [`optimization.emitOnErrors`](/config/optimization#optimizationemitonerrors) to `false` applies this plugin internally.
+
+## Examples
+
+The following development configuration keeps the previous files in `dist` unchanged when the new compilation has an error:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  mode: 'development',
+  entry: './src/index.js',
+  plugins: [new rspack.NoEmitOnErrorsPlugin()],
+};
+```
+
+For example, if `src/index.js` contains a syntax error, Rspack reports the error without writing assets from that compilation. The equivalent configuration is `optimization.emitOnErrors: false`.

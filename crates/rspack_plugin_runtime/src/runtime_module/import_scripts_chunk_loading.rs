@@ -35,6 +35,7 @@ static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| 
     JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE,
   ]);
   variables.push("importScriptsInstalledChunks");
+  variables.push("__rspack_hmr_s_importScripts");
   variables
 });
 

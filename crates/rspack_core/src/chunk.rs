@@ -20,6 +20,8 @@ use crate::{
 pub enum ChunkKind {
   HotUpdate,
   Normal,
+  /// A module-less chunk that preserves a logical output identity.
+  Facade,
 }
 
 pub type ChunkContentHash = HashMap<SourceType, RspackHashDigest>;
@@ -119,6 +121,10 @@ impl Chunk {
     self.kind
   }
 
+  pub fn set_kind(&mut self, kind: ChunkKind) {
+    self.kind = kind;
+  }
+
   pub fn name(&self) -> Option<&str> {
     self.name.as_deref()
   }
@@ -177,10 +183,6 @@ impl Chunk {
 
   pub fn groups(&self) -> &HashSet<ChunkGroupUkey> {
     &self.groups
-  }
-
-  pub fn clear_groups(&mut self) {
-    self.groups.clear();
   }
 
   pub fn add_group(&mut self, group: ChunkGroupUkey) {

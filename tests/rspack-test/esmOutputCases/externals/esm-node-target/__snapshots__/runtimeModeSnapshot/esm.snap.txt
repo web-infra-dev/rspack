@@ -1,6 +1,6 @@
 ```mjs title=main.mjs
+import { rspackRequire, createFakeNamespaceObject } from "./runtime.mjs";
 import { resolve } from "path";
-import { __rspack_context } from "./runtime.mjs";
 
 // path
 
@@ -21,7 +21,7 @@ it("should externalize node builtins with correct external types", async () => {
 	expect(main.readFileSync).toBe(nodeFs.readFileSync);
 
 	// dynamic import should use "import" external type
-	const dynamicOs = await import("node:module").then(function(module) { return __rspack_context.t(module.createRequire(import.meta.url)("os"), 22) });
+	const dynamicOs = await import("node:module").then(function(module) { return createFakeNamespaceObject(module.createRequire(import.meta.url)("os"), 22) });
 	expect(dynamicOs.platform).toBeDefined();
 });
 
@@ -31,8 +31,8 @@ export { readFileSync } from "fs";
 
 ```mjs title=runtime.mjs
 // The require scope
-var __rspack_require = {};
-var __rspack_context = {};
+var rspackRequire = {};
+export { rspackRequire };
 
 // rspack/runtime/create_fake_namespace_object
 var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
@@ -61,7 +61,7 @@ var createFakeNamespaceObject = function(value, mode) {
 	definePropertyGetters(ns, def);
 	return ns;
 };;
-__rspack_context.t = createFakeNamespaceObject;
+export { createFakeNamespaceObject };
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -85,6 +85,5 @@ var makeNamespaceObject = (exports) => {
 	Object.defineProperty(exports, '__esModule', { value: true });
 };;
 
-export { __rspack_context };
 
 ```

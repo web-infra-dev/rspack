@@ -5,15 +5,15 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, ExportsType, FactorizeInfo, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsedName, create_exports_object_referenced, property_access,
-  to_normal_comment,
+  ExportsInfoArtifact, ExportsType, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName,
+  create_exports_object_referenced, property_access, to_normal_comment,
 };
-use swc_atoms::Atom;
+
+use crate::Atom;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CommonJsFullRequireDependency {
   id: DependencyId,
   request: String,
@@ -25,7 +25,6 @@ pub struct CommonJsFullRequireDependency {
   optional: bool,
   asi_safe: bool,
   loc: Option<DependencyLocation>,
-  factorize_info: FactorizeInfo,
 }
 
 impl CommonJsFullRequireDependency {
@@ -51,7 +50,6 @@ impl CommonJsFullRequireDependency {
       optional,
       asi_safe,
       loc,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -135,14 +133,6 @@ impl ModuleDependency for CommonJsFullRequireDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

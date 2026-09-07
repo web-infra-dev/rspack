@@ -33,8 +33,27 @@ jobs:
   dylint:
     name: Dylint
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    env:
+      DYLINT_RUSTFLAGS: '-D warnings'
+      DYLINT_TOOLCHAIN: nightly-2025-10-31
+      DYLINT_VERSION: 6.0.4
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Restore Dylint cache
+        id: dylint-cache
+        uses: ./.github/actions/cache/restore
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ~/.cargo/git/checkouts/
+            ~/.dylint_drivers/
+            target/dylint/
+          key: dylint-cache-v1-${{ runner.os }}-${{ runner.arch }}-${{ env.DYLINT_VERSION }}-${{ env.DYLINT_TOOLCHAIN }}-${{ hashFiles('linting/**/Cargo.toml', 'linting/**/Cargo.lock', 'linting/**/rust-toolchain*', 'linting/**/.cargo/*.toml', 'linting/**/src/**/*.rs') }}
+          restore-keys: |
+            dylint-cache-v1-${{ runner.os }}-${{ runner.arch }}-${{ env.DYLINT_VERSION }}-${{ env.DYLINT_TOOLCHAIN }}-
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -46,10 +65,27 @@ jobs:
         run: cargo codegen
 
       - name: Install Dylint Toolchain
-        run: rustup toolchain install nightly-2025-10-31 -c rustc-dev -c llvm-tools-preview -c rust-src
+        run: rustup toolchain install "$DYLINT_TOOLCHAIN" -c rustc-dev -c llvm-tools-preview -c rust-src
+
+      - uses: cargo-bins/cargo-binstall@ead08b90bd7b2e6d81963fb9cf0b7239f66d5db4 # v1.21.0
 
       - name: Install cargo-dylint
-        run: cargo install cargo-dylint dylint-link --locked
+        run: |
+          cargo binstall --no-confirm --force "cargo-dylint@${DYLINT_VERSION}"
+          cargo binstall --no-confirm --force "dylint-link@${DYLINT_VERSION}"
 
       - name: Run dylint
         run: cargo dylint --all
+
+      - name: Save Dylint cache
+        if: ${{ success() && steps.dylint-cache.outputs.cache-hit != 'true' }}
+        uses: ./.github/actions/cache/save
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ~/.cargo/git/checkouts/
+            ~/.dylint_drivers/
+            target/dylint/
+          key: dylint-cache-v1-${{ runner.os }}-${{ runner.arch }}-${{ env.DYLINT_VERSION }}-${{ env.DYLINT_TOOLCHAIN }}-${{ hashFiles('linting/**/Cargo.toml', 'linting/**/Cargo.lock', 'linting/**/rust-toolchain*', 'linting/**/.cargo/*.toml', 'linting/**/src/**/*.rs') }}

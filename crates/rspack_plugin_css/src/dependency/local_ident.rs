@@ -7,10 +7,10 @@ use rspack_core::{
 };
 use rspack_hash::{RspackHash, RspackHasher};
 
-use crate::utils::{escape_css, replace_css_module_id_placeholder};
+use crate::{css_syntax::escape_identifier, utils::replace_css_module_id_placeholder};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CssLocalIdentDependency {
   id: DependencyId,
   local_ident: String,
@@ -124,7 +124,7 @@ impl DependencyTemplate for CssLocalIdentDependencyTemplate {
     source.replace(
       dep.start,
       dep.end,
-      escape_css(&local_ident).into_owned(),
+      escape_identifier(&local_ident).into_owned(),
       None,
     );
   }

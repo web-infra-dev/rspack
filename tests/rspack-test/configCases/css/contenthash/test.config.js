@@ -12,6 +12,9 @@ module.exports = {
 		const link = scope.window.document.createElement("link");
 		link.rel = "stylesheet";
 		link.href = bundle;
+		scope.WAITING.push(new Promise(resolve => {
+			link.onload = link.onerror = () => resolve();
+		}));
 		scope.window.document.head.appendChild(link);
 	}
 };

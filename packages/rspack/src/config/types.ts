@@ -74,6 +74,9 @@ export type WasmLoadingType = 'fetch' | 'async-node' | 'universal';
 /** Option to set the method of loading WebAssembly Modules. */
 export type WasmLoading = false | WasmLoadingType;
 
+/** Whether to fall back to non-streaming WebAssembly loading when streaming fails due to an incorrect MIME type. */
+export type WasmStreamingFallback = boolean;
+
 export type ScriptType = false | 'text/javascript' | 'module';
 
 export type LibraryCustomUmdObject = {
@@ -579,6 +582,13 @@ export type Output = {
    * */
   wasmLoading?: WasmLoading;
 
+  /**
+   * Fall back to non-streaming WebAssembly instantiation or compilation when the server
+   * does not serve WebAssembly with the `application/wasm` MIME type.
+   * @default true
+   */
+  wasmStreamingFallback?: WasmStreamingFallback;
+
   /** List of wasm loading types enabled for use by entry points. */
   enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
 
@@ -691,18 +701,34 @@ export type Output = {
 
 //#region Resolve
 /**
- * Path alias
+ * Redirect module requests to other paths.
+ *
  * @example
+ * A regular alias also matches subpath requests:
+ *
  * ```js
  * {
- * 	"@": path.resolve(__dirname, './src'),
- * 	"abc$": path.resolve(__dirname, './node_modules/abc/index.js'),
+ *   '@': path.resolve(import.meta.dirname, './src'),
  * }
- * // - require("@/a") will attempt to resolve <root>/src/a.
- * // - require("abc") will attempt to resolve <root>/src/abc.
- * // - require("abc/file.js") will not match, and it will attempt to resolve node_modules/abc/file.js.
  * ```
- * */
+ *
+ * `import '@/a'` will attempt to resolve `<root>/src/a`.
+ *
+ * @example
+ * Add `$` to the end of an alias key to match only the complete module request.
+ * The `$` is a special `resolve.alias` marker and is not part of the module request:
+ *
+ * ```js
+ * {
+ *   abc$: path.resolve(import.meta.dirname, './src/abc'),
+ * }
+ * ```
+ *
+ * - `import 'abc'` will attempt to resolve `<root>/src/abc`.
+ * - `import 'abc/file.js'` will not match the alias and will continue through normal module resolution, which typically attempts to resolve `node_modules/abc/file.js`.
+ *
+ * Without the `$`, an `abc` alias would also match subpath requests such as `import 'abc/file.js'`.
+ */
 export type ResolveAlias =
   | {
       [x: string]: string | false | (string | false)[];
@@ -874,6 +900,13 @@ export type RuleSetLoaderWithOptions = {
    * - When set to `false` or omitted, the loader runs on the main thread.
    */
   parallel?: boolean | { maxWorkers?: number };
+
+  /**
+   * Cache this loader in `experiments.newCache`.
+   * This is an experimental API and may change or be removed in the future.
+   * @experimental
+   */
+  cache?: boolean;
 
   options?: RuleSetLoaderOptions;
 };
@@ -1188,11 +1221,6 @@ export type ImportMetaParserOptions = {
    * Enable/disable evaluating import.meta.dirname.
    */
   dirname?: boolean;
-
-  /**
-   * Enable/disable evaluating import.meta.env.
-   */
-  env?: boolean;
 
   /**
    * Enable/disable evaluating import.meta.filename.
@@ -1784,7 +1812,10 @@ export type ExternalsType =
   | 'modern-module'
   | 'script'
   | 'node-commonjs'
-  | 'commonjs-import';
+  | 'commonjs-import'
+  | 'asset'
+  | 'asset-url'
+  | 'css-import';
 //#endregion
 
 //#region Externals
@@ -2066,10 +2097,15 @@ export type CacheStorageOptions = {
    */
   type: 'filesystem';
   /**
-   * Cache directory path.
-   * @default 'node_modules/.cache/rspack/<name>-<mode>-<compilerIndex>'
+   * Base directory for the cache.
+   * @default 'node_modules/.cache/rspack'
    */
   directory?: string;
+  /**
+   * Location of the cache data.
+   * @default '<directory>/<cache.name>'
+   */
+  location?: string;
 };
 
 /**
@@ -2081,12 +2117,18 @@ export type PersistentCacheOptions = {
    */
   type: 'persistent';
   /**
+   * Name for the cache. Different names create coexisting caches.
+   * @default '<config.name>-<mode>' when config.name is set, otherwise '<mode>'
+   */
+  name?: string;
+  /**
    * An array of files containing build dependencies, Rspack will use the hash of each of these files to invalidate the persistent cache.
    * @default []
    */
   buildDependencies?: string[];
   /**
-   * Cache version, different versions of caches are isolated from each other.
+   * Version of the cache data. Changing the version invalidates the existing
+   * cache and causes its content to be overwritten.
    * @default ""
    */
   version?: string;
@@ -2097,10 +2139,15 @@ export type PersistentCacheOptions = {
    */
   maxAge?: number;
   /**
-   * Maximum number of filesystem cache versions to retain in the cache
-   * directory. Must be an integer between 1 and 4294967295, or Infinity to
-   * disable version-based cleanup.
-   * @default 3
+   * Number of generations that unused cache entries stay in the additional
+   * memory cache. Set to 0 to disable the memory cache, or Infinity to keep
+   * entries forever.
+   * @default 5 in development mode, Infinity otherwise
+   */
+  maxMemoryGenerations?: number;
+  /**
+   * @deprecated This option has no effect. Rspack keeps only one persistent
+   * cache per compiler path.
    */
   maxVersions?: number;
   /**
@@ -2133,6 +2180,10 @@ export type MemoryCacheOptions = {
    * Cache type.
    */
   type: 'memory';
+  /**
+   * Snapshot options for determining which files have been modified.
+   */
+  snapshot?: CacheSnapshotOptions;
 };
 
 /**
@@ -2790,18 +2841,38 @@ export type OptimizationSplitChunksOptions = {
   hidePathInfo?: boolean;
 } & SharedOptimizationSplitChunksCacheGroup;
 
+/** @deprecated Use `'compact-hashed'` instead. */
+type CompatHashedIds = 'compat-hashed';
+
 export type Optimization = {
   /**
    * Which algorithm to use when choosing module ids.
    * Setting to `false` disables the built-in algorithm, allowing a custom plugin
    * (e.g. HashedModuleIdsPlugin) to provide module ids instead.
    */
-  moduleIds?: false | 'named' | 'natural' | 'deterministic' | 'hashed';
+  moduleIds?:
+    | false
+    | 'named'
+    | 'natural'
+    | 'deterministic'
+    | 'compact-hashed'
+    | CompatHashedIds
+    | 'hashed';
 
   /**
    * Which algorithm to use when choosing chunk ids.
+   * Setting to `false` disables the built-in algorithm, allowing a custom plugin
+   * to provide chunk ids instead.
    */
-  chunkIds?: 'natural' | 'named' | 'deterministic' | 'size' | 'total-size';
+  chunkIds?:
+    | false
+    | 'natural'
+    | 'named'
+    | 'deterministic'
+    | 'compact-hashed'
+    | CompatHashedIds
+    | 'size'
+    | 'total-size';
 
   /**
    * Whether to minimize the bundle.
@@ -2984,7 +3055,7 @@ export type LazyCompilationOptions = {
 };
 
 /**
- * Options for incremental builds.
+ * Options for reusing prior pass artifacts during same-compiler rebuilds.
  */
 export type Incremental = {
   /**
@@ -3078,6 +3149,22 @@ export type HttpUriOptions = HttpUriPluginOptions;
  */
 export type UseInputFileSystem = false | RegExp[];
 
+/** Fine-grained switches for the experimental new cache implementation. */
+export type NewCache = {
+  /** Enable the module code generation cache. @default true */
+  codeGeneration?: boolean;
+  /** Enable the module build cache. @default true */
+  module?: boolean;
+  /** Enable the devtool asset cache. @default true */
+  devtool?: boolean;
+  /** Enable the per-loader cache. @default true */
+  loader?: boolean;
+  /** Enable the asset minimization cache. @default true */
+  minimize?: boolean;
+};
+
+export type NewCachePresets = boolean;
+
 /**
  * Experimental features configuration.
  */
@@ -3115,6 +3202,11 @@ export type Experiments = {
    */
   futureDefaults?: boolean;
   /**
+   * Enable the experimental new cache implementation.
+   * @default false
+   */
+  newCache?: NewCachePresets | NewCache;
+  /**
    * Enable loading of modules via HTTP/HTTPS requests.
    * @default false
    */
@@ -3134,11 +3226,6 @@ export type Experiments = {
    * @default false
    */
   deferImport?: boolean;
-  /**
-   * Enable import.meta.env object replacement.
-   * @default false
-   */
-  env?: boolean;
   /**
    * Enable source phase import feature
    * @default false
@@ -3181,8 +3268,10 @@ export type WatchOptions = {
 
   /**
    * Ignore some files from being watched.
+   * A function receives each entry and must return `true` to ignore it; unlike
+   * the other forms, its path keeps the platform separators.
    */
-  ignored?: string | RegExp | string[];
+  ignored?: string | RegExp | string[] | ((entry: string) => boolean);
 
   /**
    * Turn on polling by passing true, or specifying a poll interval in milliseconds.
@@ -3426,7 +3515,9 @@ export type RspackOptions = {
   lazyCompilation?: boolean | LazyCompilationOptions;
 
   /**
-   * Enable incremental builds.
+   * Control artifact reuse during same-compiler rebuilds such as watch and HMR.
+   * Effective only when `mode` is set to `'development'`.
+   * This does not make standalone one-shot builds incremental.
    */
   incremental?: IncrementalPresets | Incremental;
 };

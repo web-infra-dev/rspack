@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use super::*;
-use crate::{cache::Cache, compilation::pass::PassExt, logger::Logger};
+use crate::{compilation::pass::PassExt, logger::Logger};
 
 pub struct CreateModuleHashesPass;
 
@@ -11,16 +11,12 @@ impl PassExt for CreateModuleHashesPass {
     "create module hashes"
   }
 
-  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.before_modules_hashes(compilation).await;
+  fn incremental_passes(&self) -> IncrementalPasses {
+    IncrementalPasses::MODULES_HASHES
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     create_module_hashes_pass_impl(compilation).await
-  }
-
-  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.after_modules_hashes(compilation).await;
   }
 }
 

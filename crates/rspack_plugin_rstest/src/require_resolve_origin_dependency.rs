@@ -7,7 +7,7 @@ use rspack_core::{
 use rspack_util::json_stringify_str;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RstestRequireResolveOriginDependency {
   callee_range: DependencyRange,
   args_end: u32,

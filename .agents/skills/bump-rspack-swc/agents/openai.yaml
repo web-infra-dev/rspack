@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Bump Rspack SWC'
+  short_description: 'Upgrade Rspack SWC pins and open a focused PR'
+  default_prompt: 'Use $bump-rspack-swc to upgrade this Rspack checkout to the latest swc_core release and open the PR.'
+
+policy:
+  allow_implicit_invocation: false

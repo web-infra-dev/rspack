@@ -8,18 +8,23 @@ const sourceUrl = pathToFileURL(
 if (!import.meta.UNKNOWN_PROPERTY) {
 	import.meta.UNKNOWN_PROPERTY = "runtime";
 }
-if (!import.meta.env) {
-	import.meta.env = { RUNTIME: "runtime" };
-}
+
+let computedAccesses = 0;
+const getUnknownProperty = () => {
+	computedAccesses++;
+	return "UNKNOWN_PROPERTY";
+};
 
 const { UNKNOWN_PROPERTY, url, webpack } = import.meta;
 
 export default {
 	sourceUrl,
 	unknown: UNKNOWN_PROPERTY,
+	computedUnknown: import.meta[getUnknownProperty()],
+	templateUnknown: import.meta[`UNKNOWN_PROPERTY`],
+	computedAccesses,
 	unknownOptional: import.meta.UNKNOWN_PROPERTY?.length,
 	missingOptional: import.meta.MISSING_PROPERTY?.length,
-	env: import.meta.env,
 	url,
 	webpack
 };

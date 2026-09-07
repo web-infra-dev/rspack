@@ -53,19 +53,19 @@
 
 @value colorValue: red;
 
-.colorValue {
+.colorValue-cls {
 	color: colorValue;
 }
 
 @value colorValue-v1: red;
 
-#colorValue-v1 {
+#colorValue-v1-id {
 	color: colorValue-v1;
 }
 
 @value colorValue-v2: red;
 
-.colorValue-v2 > .colorValue-v2 {
+.colorValue-v2-cls > .colorValue-v2-cls {
 	color: colorValue-v2;
 }
 
@@ -89,11 +89,6 @@ colorValue-v3 {
 
 .foo { color: blue-i; }
 .bar { color: green-v2 }
-
-@value red-v3 from colors;
-@value colors: "./colors.module.css";
-
-.foo { color: red-v3; }
 
 @value colors: "./colors.module.css";
 @value red-v4 from colors;
@@ -165,7 +160,7 @@ colorValue-v3 {
 @value override: blue;
 @value override: red;
 
-.override {
+.override-cls {
 	color: override;
 }
 
@@ -180,13 +175,13 @@ colorValue-v3 {
 
 @value/* test */blue-v5/* test */:/* test */red/* test */;
 
-.color {
+.color-cls {
 	color: blue-v5;
 }
 
 @value/* test */blue-v6/* test *//* test */red/* test */;
 
-.color {
+.color-cls {
 	color: blue-v6;
 }
 
@@ -222,9 +217,46 @@ colorValue-v3 {
 
 .foo { color: test-v2; }
 
-@value/* test */(/* test */blue/* test */as/* test */my-name-q/* test */)/* test */from/* test */"./colors.module.css"/* test */;
+@value/* test */(/* test */blue-v1/* test */as/* test */my-name-q/* test */)/* test */from/* test */"./colors.module.css"/* test */;
 
 .foo { color: my-name-q; }
+
+@value/*
+	multiline
+	comment
+*/multiline-v1/*
+	multiline
+	comment
+*/:/*
+	multiline
+	comment
+*/red/*
+	multiline
+	comment
+*/;
+
+.color-cls {
+	color: multiline-v1;
+}
+
+@value /*
+	multiline comment
+*/ red-v3 /*
+	multiline comment
+*/ from /*
+	multiline comment
+*/ "./colors.module.css" /*
+	multiline comment
+*/;
+
+.foo { color: red-v3; }
+
+@value multiline-empty: /*
+	multiline
+	comment
+*/;
+
+:root { --color:multiline-empty; }
 
 @value;
 @value test;

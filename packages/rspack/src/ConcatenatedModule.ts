@@ -6,6 +6,7 @@ Object.defineProperty(binding.ConcatenatedModule.prototype, 'identifier', {
   enumerable: true,
   configurable: true,
   value(this: binding.ConcatenatedModule): string {
+    // @ts-expect-error
     return this[binding.MODULE_IDENTIFIER_SYMBOL];
   },
 });

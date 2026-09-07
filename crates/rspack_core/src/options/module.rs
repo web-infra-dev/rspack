@@ -110,7 +110,8 @@ impl From<&str> for DynamicImportMode {
       "lazy" => DynamicImportMode::Lazy,
       "lazy-once" => DynamicImportMode::LazyOnce,
       _ => {
-        // TODO: warning
+        // Unknown values are diagnosed where they enter the compiler (e.g. when
+        // parsing `webpackMode` magic comments), fall back to `lazy` like webpack.
         DynamicImportMode::Lazy
       }
     }
@@ -392,7 +393,6 @@ macro_rules! define_import_meta_known_properties {
 
 define_import_meta_known_properties! {
   const DIRNAME = "dirname";
-  const ENV = "env";
   const FILENAME = "filename";
   const GLOB = "glob";
   const MAIN = "main";
@@ -462,7 +462,12 @@ impl ImportMetaOptions {
 
 impl MergeFrom for ImportMetaOptions {
   fn merge_from(mut self, other: &Self) -> Self {
-    self.properties.extend(other.properties.clone());
+    self.properties.extend(
+      other
+        .properties
+        .iter()
+        .map(|(name, enabled)| (name.clone(), *enabled)),
+    );
     self.enabled_known_properties = Self::enabled_known_properties(&self.properties);
     self
   }
@@ -480,10 +485,6 @@ impl Default for ImportMetaOptions {
 impl ImportMeta {
   pub fn is_enabled(&self) -> bool {
     !matches!(self, Self::Disabled)
-  }
-
-  pub fn preserve_unknown(&self) -> bool {
-    matches!(self, Self::PreserveUnknown | Self::Granular(_))
   }
 
   pub fn is_known_property_enabled(&self, property: ImportMetaKnownProperties) -> bool {
@@ -963,9 +964,6 @@ bitflags! {
 pub struct AssetGeneratorImportMode(AssetGeneratorImportModeFlags);
 
 impl AssetGeneratorImportMode {
-  pub fn is_url(&self) -> bool {
-    self.0.contains(AssetGeneratorImportModeFlags::URL)
-  }
   pub fn is_preserve(&self) -> bool {
     self.0.contains(AssetGeneratorImportModeFlags::PRESERVE)
   }
@@ -1558,13 +1556,6 @@ impl RuleSetLogicalConditions {
     Some(Ok(true))
   }
 
-  pub async fn try_match(&self, data: DataRef<'_>) -> Result<bool> {
-    if let Some(result) = self.try_match_sync(data) {
-      return result;
-    }
-    self.try_match_async(data).await
-  }
-
   fn try_match_async<'a>(&'a self, data: DataRef<'a>) -> BoxFuture<'a, Result<bool>> {
     Box::pin(async move {
       if let Some(and) = &self.and
@@ -1617,13 +1608,6 @@ impl RuleSetLogicalConditions {
       }
     }
     Some(Ok(has_condition && match_when_empty))
-  }
-
-  pub async fn match_when_empty(&self) -> Result<bool> {
-    if let Some(result) = self.match_when_empty_sync() {
-      return result;
-    }
-    self.match_when_empty_async().await
   }
 
   fn match_when_empty_async(&self) -> BoxFuture<'_, Result<bool>> {
@@ -1694,6 +1678,10 @@ pub struct ModuleRuleUseLoader {
   /// Loader options
   /// This only exists if the loader is a built-in loader.
   pub options: Option<String>,
+  /// Cache this loader.
+  pub cache: bool,
+  /// Stable serialization of the public loader options.
+  pub options_cache_key: String,
 }
 
 pub type FnUse =

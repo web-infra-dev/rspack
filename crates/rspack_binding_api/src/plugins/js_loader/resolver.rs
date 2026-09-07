@@ -13,13 +13,14 @@ use rspack_error::Result;
 use rspack_hook::plugin_hook;
 use rspack_paths::Utf8Path;
 
-use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
+use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner, cache::loader_cache_version};
 
 #[cacheable]
 #[derive(Debug)]
 pub struct JsLoader(
   pub Identifier,
   /* LoaderType */ #[cacheable(with=AsOption<AsRefStr>)] pub Option<Cow<'static, str>>,
+  pub Option<String>,
 );
 
 #[cacheable_dyn]
@@ -31,9 +32,13 @@ impl Loader<RunnerContext> for JsLoader {
   fn r#type(&self) -> Option<&str> {
     self.1.as_deref()
   }
+
+  fn cache_version(&self) -> Option<&str> {
+    self.2.as_deref()
+  }
 }
 
-// TODO: should be compiled with a different cfg
+#[cfg(feature = "test-loader")]
 pub fn get_builtin_test_loader(builtin: &str) -> Option<BoxLoader> {
   if builtin.starts_with(rspack_loader_testing::SIMPLE_ASYNC_LOADER_IDENTIFIER) {
     return Some(Arc::new(rspack_loader_testing::SimpleAsyncLoader));
@@ -49,6 +54,9 @@ pub fn get_builtin_test_loader(builtin: &str) -> Option<BoxLoader> {
   }
   if builtin.starts_with(rspack_loader_testing::NO_PASS_THROUGH_LOADER_IDENTIFIER) {
     return Some(Arc::new(rspack_loader_testing::NoPassthroughLoader));
+  }
+  if builtin.starts_with(rspack_loader_testing::DEPENDENCY_LOADER_IDENTIFIER) {
+    return Some(Arc::new(rspack_loader_testing::DependencyLoader));
   }
   None
 }
@@ -69,7 +77,7 @@ pub(crate) async fn resolve_loader(
   } else {
     Utf8Path::new(loader_request)
   };
-
+  #[cfg(feature = "test-loader")]
   if loader_request.starts_with("builtin:test") {
     return Ok(get_builtin_test_loader(loader_request));
   }
@@ -95,6 +103,12 @@ pub(crate) async fn resolve_loader(
       // Use `str::ends_with` instead of `Path::extension` to avoid unnecessary allocation
       let path = path.as_str();
 
+      let cache_version = if l.cache {
+        loader_cache_version(resolver, Utf8Path::new(path)).await?
+      } else {
+        None
+      };
+
       let r#type = if path.ends_with(".mjs") {
         Some(Cow::Borrowed("module"))
       } else if path.ends_with(".cjs") {
@@ -115,7 +129,11 @@ pub(crate) async fn resolve_loader(
       } else {
         format!("{path}{query}")
       };
-      Ok(Some(Arc::new(JsLoader(resource.into(), r#type))))
+      Ok(Some(Arc::new(JsLoader(
+        resource.into(),
+        r#type,
+        cache_version,
+      ))))
     }
     ResolveResult::Ignored => Ok(None),
   }

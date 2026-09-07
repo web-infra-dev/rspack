@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Rspack API Assessment'
+  short_description: 'Strictly assess new Rspack public APIs'
+  default_prompt: 'Use $rspack-api-assessment to decide whether the requested Rspack API should be added, with evidence and explicit reasons.'
+
+policy:
+  allow_implicit_invocation: false

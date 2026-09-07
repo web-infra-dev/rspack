@@ -3,7 +3,7 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{BuildMeta, LibraryType, ModuleId};
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 use rustc_hash::FxHashMap as HashMap;
 use serde::{Serialize, ser::SerializeSeq};
 

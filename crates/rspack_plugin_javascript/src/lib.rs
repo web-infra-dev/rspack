@@ -14,6 +14,7 @@ pub mod visitors;
 pub use magic_comment::{RspackCommentMap, try_extract_magic_comment};
 pub use parser_plugin::*;
 use rspack_core::rspack_sources::SourceMap;
+pub use rspack_intern::Atom;
 pub use rspack_macros::implemented_javascript_parser_hooks;
 
 pub use crate::plugin::{infer_async_modules_plugin::InferAsyncModulesPlugin, *};
@@ -30,17 +31,7 @@ pub enum SourceMapsConfig {
   Str(String),
 }
 
-impl SourceMapsConfig {
-  pub fn enabled(&self) -> bool {
-    match *self {
-      SourceMapsConfig::Bool(b) => b,
-      SourceMapsConfig::Str(ref s) => {
-        assert_eq!(s, "inline", "Source map must be true, false or inline");
-        true
-      }
-    }
-  }
-}
+impl SourceMapsConfig {}
 
 #[derive(Debug)]
 pub enum IsModule {

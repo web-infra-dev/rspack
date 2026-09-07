@@ -2,11 +2,9 @@
 description: '顶级的 output 包含一组选项，指导 Rspack 如何以及在哪里输出 bundles、assets，以及使用 Rspack 打包或加载的任何其他内容。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import { Tabs, Tab } from '@theme';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/output/" />
 
 # Output
 
@@ -224,8 +222,6 @@ export default {
 ```
 
 ## output.compareBeforeEmit
-
-<ApiMeta addedVersion={'1.1.0'} />
 
 - **类型：** `boolean`
 - **默认值：** `true`
@@ -645,10 +641,6 @@ export default {
   },
 };
 ```
-
-:::tip
-Rspack 从 1.1 版本开始默认使用更快的 `xxhash64` 算法。
-:::
 
 ## output.hashSalt
 
@@ -1747,8 +1739,6 @@ export default {
 
 ### output.trustedTypes.onPolicyCreationFailure
 
-<ApiMeta addedVersion={'1.1.6'} />
-
 - **类型：** `"stop" | "continue"`
 - **默认值：** `"stop"`
 
@@ -1808,6 +1798,23 @@ export default {
 export default {
   output: {
     wasmLoading: 'fetch',
+  },
+};
+```
+
+## output.wasmStreamingFallback
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+控制生成的 WebAssembly 加载运行时代码是否在 `WebAssembly.compileStreaming` 或 `WebAssembly.instantiateStreaming` 因响应未使用 `application/wasm` MIME 类型而失败时，回退到非流式 API。
+
+如果服务器始终以正确的 MIME 类型提供 WebAssembly 文件，可以将此选项设置为 `false`，从而省略相关的回退运行时代码。
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    wasmStreamingFallback: false,
   },
 };
 ```
@@ -1879,3 +1886,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.docschina.org/configuration/output/" />

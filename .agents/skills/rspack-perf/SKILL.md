@@ -3,9 +3,9 @@ name: rspack-perf
 description: Use when optimizing performance for user-specified files, features, compilation stages, Rust crates, JavaScript plugins, graph processing, parser work, chunking, code generation, or memory/CPU hot paths in Rspack.
 ---
 
-# Rspack Performance Optimization
+# Rspack performance optimization
 
-## Core Principle
+## Core principle
 
 Optimize from the shape of Rspack's data. Always consider the rough cardinality of internal structures before changing an algorithm:
 
@@ -13,7 +13,7 @@ Optimize from the shape of Rspack's data. Always consider the rough cardinality 
 
 The larger the structure, the more dangerous full scans, repeated traversals, broad cloning, eager materialization, and per-item allocation become. Avoid whole-graph or whole-compilation work on high-cardinality structures unless profiling proves it is necessary.
 
-## First Pass
+## First pass
 
 1. Identify the target feature, file, or compilation stage and the dominant data structures it touches.
 2. Estimate whether the hot path scales with dependencies, exports, modules, chunks, chunk groups, entries, or runtimes.
@@ -21,7 +21,7 @@ The larger the structure, the more dangerous full scans, repeated traversals, br
 4. Prefer small, measurable changes that preserve observable output.
 5. If adding parallelism, respect Rspack's concurrency model: use `rayon` for CPU-bound synchronous work, use `rspack_parallel` abstractions for async orchestration, and avoid mixing rayon and tokio pools inside one workflow without a clear boundary.
 
-## CPU Optimization Techniques
+## CPU optimization techniques
 
 ### Avoid repeated computation
 
@@ -71,7 +71,7 @@ The larger the structure, the more dangerous full scans, repeated traversals, br
 - Prefer direct function calls or static dispatch when the call site is hot and the implementation set is known.
 - Parallelize only after isolating read-only inputs and local outputs; merge results in a controlled final phase to avoid lock contention.
 
-## Memory Optimization Techniques
+## Memory optimization techniques
 
 ### Reduce string churn
 
@@ -115,7 +115,7 @@ The larger the structure, the more dangerous full scans, repeated traversals, br
 - Store detailed data in side maps keyed by id when only a minority of items need it.
 - Prefer compact summaries between stages instead of copying full objects.
 
-## Validation Requirements
+## Validation requirements
 
 Functional validation:
 
@@ -130,7 +130,7 @@ Before submitting:
 - Run `cargo clippy --workspace --all-targets --all-features`.
 - Summarize the hot path, the data cardinality risk, the chosen CPU/memory optimization technique, functional test result, format result, and clippy result.
 
-## PR and Benchmark Follow-up
+## PR and benchmark Follow-up
 
 After the optimization is complete, ask the user whether they want to create a PR.
 
@@ -163,7 +163,7 @@ If the user allows waiting for GitHub CI:
 5. Perform one additional optimization iteration when there is a plausible fix, then update the PR branch, push again, and rerun the Ecosystem Benchmark workflow.
 6. Summarize the final Ecosystem Benchmark result after the workflow completes.
 
-## Common Mistakes
+## Common mistakes
 
 - Optimizing around chunks or runtimes while ignoring that dependencies and export infos may be orders of magnitude more numerous.
 - Adding a cache without defining its lifetime or invalidation boundary.

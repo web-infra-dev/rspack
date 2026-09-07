@@ -710,18 +710,14 @@ a {
 	content: "style6.css";
 }
 
-@media /* Comment *//* Comment */{
 .class {
 	content: "style6.css";
 }
 
-}
-@media /* Comment *//* Comment */{
 .class {
 	content: "style6.css";
 }
 
-}
 .class {
 	content: "style6.css";
 }
@@ -2288,18 +2284,14 @@ a {
 	content: "style6.css";
 }
 
-@media /* Comment *//* Comment */{
 .class {
 	content: "style6.css";
 }
 
-}
-@media /* Comment *//* Comment */{
 .class {
 	content: "style6.css";
 }
 
-}
 .class {
 	content: "style6.css";
 }

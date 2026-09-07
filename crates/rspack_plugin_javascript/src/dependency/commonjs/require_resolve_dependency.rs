@@ -2,14 +2,14 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Context, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ReferencedExport, ResourceIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  ExportsInfoArtifact, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport,
+  ResourceIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 use super::create_resource_identifier_for_contextual_commonjs_dependency;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RequireResolveDependency {
   pub id: DependencyId,
   pub request: String,
@@ -18,7 +18,6 @@ pub struct RequireResolveDependency {
   optional: bool,
   context: Option<Context>,
   resource_identifier: ResourceIdentifier,
-  factorize_info: FactorizeInfo,
 }
 
 impl RequireResolveDependency {
@@ -31,7 +30,6 @@ impl RequireResolveDependency {
       id: DependencyId::new(),
       context: None,
       resource_identifier: Default::default(),
-      factorize_info: Default::default(),
     }
   }
 
@@ -116,14 +114,6 @@ impl ModuleDependency for RequireResolveDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

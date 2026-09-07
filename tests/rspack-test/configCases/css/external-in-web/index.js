@@ -24,6 +24,8 @@ it("should import an external css dynamically", async () => {
 	const css = links.join("\n");
 
 	expect(css).toContain("color: red");
-	expect(css).toContain("background: url(//example.com/image.png) url(https://example.com/image.png)");
-	expect(css).toContain("background-image: url(http://example.com/image.png)");
+	expect(css).toContain(
+		'background: url("//example.com/image.png") url("https://example.com/image.png")'
+	);
+	expect(css).toContain('background-image: url("http://example.com/image.png")');
 });

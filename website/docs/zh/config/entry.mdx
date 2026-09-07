@@ -2,11 +2,8 @@
 description: 'Rspack Entry 配置项参考，涵盖单入口、多入口、动态入口函数以及入口描述对象的配置方式与行为。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-import { ApiMeta, Stability } from '../../../components/ApiMeta';
+import Attribution from '@components/Attribution';
 import PropertyType from '@components/PropertyType';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/entry-context/#entry" />
 
 # Entry
 
@@ -235,8 +232,6 @@ export default {
 
 #### EntryDescription.layer
 
-<ApiMeta addedVersion={'1.0.0-beta.1'} />
-
 <PropertyType
   type="string | null | undefined"
   defaultValueList={[{ defaultValue: 'undefined' }]}
@@ -244,7 +239,7 @@ export default {
 
 指定当前入口的模块所在的 layer。用于在 split chunks, [rules](/config/module-rules#rulesissuerlayer)、stats、externals 中通过 layer 匹配使对应的配置生效。
 
-更多关于 layer 的信息，请参考 [Layer 指南](/guide/features/layer)。
+更多关于 layer 的信息，请参考[模块分层指南](/guide/advanced/layer)。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -288,3 +283,5 @@ export default {
 ```
 
 当和 [output.library](/config/output#outputlibrary) 选项结合：如果传入的是一个数组，只有数组的最后一个条目会被导出。
+
+<Attribution url="https://webpack.docschina.org/configuration/entry-context/#entry" />

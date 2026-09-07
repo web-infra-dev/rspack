@@ -1,7 +1,7 @@
 use std::{borrow::Cow, fmt, sync::LazyLock};
 
 use regex::Regex;
-use rspack_core::DependencyRange;
+use rspack_core::{ContextMode, DependencyRange};
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
 use rspack_util::SpanExt;
@@ -13,7 +13,10 @@ use swc_experimental_ecma_ast::{
 use swc_experimental_ecma_parser::{EsSyntax, Syntax, parse_file_as_expr};
 use swc_experimental_ecma_transforms_base::remove_paren::remove_paren;
 
-use crate::visitors::{JavascriptParser, create_traceable_error};
+use crate::{
+  utils::object_properties::FromAstExpr,
+  visitors::{JavascriptParser, create_traceable_error},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RspackComment {
@@ -659,10 +662,19 @@ fn analyze_comments(
           }
         }
         RspackComment::Mode => {
-          if let Some(value) = expr_to_str(value) {
-            MagicCommentValue::String(value.into_owned())
+          if let Some(mode) = ContextMode::from_ast_expr(value)
+            .ok()
+            .flatten()
+            .filter(|mode| {
+              matches!(
+                mode,
+                ContextMode::Lazy | ContextMode::LazyOnce | ContextMode::Eager | ContextMode::Weak
+              )
+            })
+          {
+            MagicCommentValue::String(mode.as_str().to_string())
           } else {
-            push_parse_warning("a string");
+            push_parse_warning(r#""lazy", "lazy-once", "eager" or "weak""#);
             continue;
           }
         }

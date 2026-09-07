@@ -39,9 +39,10 @@ Compilation ===============> Stats JSON =================> Stats Output
 
 ```js
 compiler.hooks.done.tap('MyPlugin', (stats) => {
-  const json = stats.toJson({ all: false, errors: true, warnings: true });
-  const text = stats.toString({ preset: 'errors-warnings' });
-  // 使用 json/text
+  const statsJson = stats.toJson({ all: false, errors: true, warnings: true });
+  const statsText = stats.toString({ preset: 'errors-warnings' });
+  console.log(statsJson.errors);
+  console.log(statsText);
 });
 ```
 
@@ -53,36 +54,70 @@ compiler.hooks.done.tap('MyPlugin', (stats) => {
 
 用来检查编译期是否有错误。
 
+**类型：**
+
 ```ts
 hasErrors(): boolean;
+```
+
+可以根据返回值处理编译错误：
+
+```js
+if (stats.hasErrors()) {
+  console.error('编译失败');
+}
 ```
 
 ### hasWarnings
 
 用来检查编译期是否有警告。
 
+**类型：**
+
 ```ts
 hasWarnings(): boolean;
+```
+
+可以根据返回值处理编译警告：
+
+```js
+if (stats.hasWarnings()) {
+  console.warn('编译完成，但存在警告');
+}
 ```
 
 ### toJson
 
 以 [Stats JSON](/api/javascript-api/stats-json) 对象形式返回编译信息。[Stats 配置](/config/stats) 可以是一个字符串（预设值）或是颗粒化控制的对象：
 
-```js
-stats.toJson('minimal');
+**类型：**
+
+```ts
+toJson(options?: StatsValue): StatsCompilation;
 ```
 
+使用 `'minimal'` 预设并打印错误数量：
+
 ```js
-stats.toJson({
+const statsJson = stats.toJson('minimal');
+console.log(statsJson.errorsCount);
+```
+
+也可以通过配置对象选择要输出的字段，然后打印编译哈希：
+
+```js
+const statsJson = stats.toJson({
   assets: false,
   hash: true,
 });
+console.log(statsJson.hash);
 ```
 
 ### toString
 
 以格式化的字符串形式返回描述编译信息（类似 [CLI](/api/cli) 的输出）。
+
+**类型：**
 
 ```ts
 toString(opts?: StatsValue): string;
@@ -138,13 +173,21 @@ rspack(
 
 ### hash
 
-**类型：** `string`
+**类型：** `string | null`
 
 获取此次构建的哈希值，等同于 [`Compilation.hash`](/api/javascript-api/compilation#hashfullhash)。
 
+将其作为字符串使用前，先检查是否为 `null`：
+
+```js
+if (stats.hash !== null) {
+  console.log(stats.hash);
+}
+```
+
 ## MultiStats
 
-当使用 [`MultiCompiler`](/api/javascript-api/compiler#multicompiler) 同时执行多个编译任务后，它们的编译结果将被包装为一个 `MultiStats` 对象，它提供与 `Stats` 类似的方法和属性。
+当使用 [`MultiCompiler`](/api/javascript-api/compiler#multicompiler) 执行多个编译任务时，编译结果会被包装为一个 `MultiStats` 对象。它提供合并后的哈希，以及用于检查、序列化和格式化所有子编译结果的方法。
 
 ### hash
 
@@ -152,45 +195,94 @@ rspack(
 
 **类型：** `string`
 
-获取所有编译的哈希合并后的唯一哈希。
+获取由所有子编译哈希依次拼接而成的字符串。
+
+打印拼接后的哈希：
+
+```js
+console.log(multiStats.hash);
+```
 
 ### hasErrors
 
-用来检查编译期是否有错误，只有所有编译都没有错误，才会返回 `false`。
+任一子编译存在错误时返回 `true`。
+
+**类型：**
 
 ```ts
 hasErrors(): boolean;
 ```
 
+可以根据返回值处理所有子编译中的错误：
+
+```js
+if (multiStats.hasErrors()) {
+  console.error('至少一个编译失败');
+}
+```
+
 ### hasWarnings
 
-用来检查编译期是否有警告，只有所有编译都没有警告，才会返回 `false`。
+任一子编译存在警告时返回 `true`。
+
+**类型：**
 
 ```ts
 hasWarnings(): boolean;
 ```
 
+可以根据返回值处理所有子编译中的警告：
+
+```js
+if (multiStats.hasWarnings()) {
+  console.warn('至少一个编译存在警告');
+}
+```
+
 ### toJson
 
-根据 [Stats 配置](/config/stats) 获取所有编译的 [Stats JSON](/api/javascript-api/stats-json) 对象，包裹在 `children` 字段中，并汇总 `errors` 和 `warnings`。
+返回一个 `StatsCompilation`，其 `children` 数组包含每个子编译的 [Stats JSON](/api/javascript-api/stats-json)。对所有子编译均启用的字段（如 `errors` 和 `warnings`）还会汇总到顶层。
+
+**类型：**
 
 ```ts
-toJson(options?: StatsValue): {
-  hash: string;
-  errorsCount: number;
-  warningsCount: number;
-  errors: StatsError[];
-  warnings: StatsError[];
-  children: StatsCompilation[];
-};
+toJson(options: boolean | StatsPresets | MultiStatsOptions): StatsCompilation;
+```
+
+为所有子编译使用同一个预设，并查看结果数量：
+
+```js
+const statsJson = multiStats.toJson('minimal');
+console.log(statsJson.children?.length);
+```
+
+`MultiStatsOptions` 还支持通过 `children` 选项分别配置每个子编译。以下示例打印第一个子编译的错误信息：
+
+```js
+const statsJson = multiStats.toJson({
+  children: [
+    { all: false, errors: true },
+    { all: false, assets: true },
+  ],
+});
+console.log(statsJson.children?.[0]?.errors);
 ```
 
 ### toString
 
-根据 [Stats 配置](/config/stats) 拼接所有编译的 Stats 输出字符串。
+根据 [Stats 配置](/config/stats) 格式化每个子编译，再将结果拼接成一个字符串。
+
+**类型：**
 
 ```ts
-toString(options?: StatsValue): string;
+toString(options: boolean | StatsPresets | MultiStatsOptions): string;
+```
+
+为所有子编译使用同一个预设，并打印合并后的输出：
+
+```js
+const statsText = multiStats.toString('minimal');
+console.log(statsText);
 ```
 
 ## Stats factory

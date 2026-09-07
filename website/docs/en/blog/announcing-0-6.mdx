@@ -9,7 +9,7 @@ authors:
     x: 'https://x.com/rspack_dev'
 ---
 
-import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 import { PackageManagerTabs } from '@theme';
 
@@ -27,7 +27,7 @@ Now you can use `rspack.CssExtractRspackPlugin` as a replacement for `mini-css-e
 
 This is very useful in some scenarios, for example when the built-in CSS parser cannot meet your needs, there are more customized CSS Modules names, or you want to use some loaders that depend on the output of css-loader, but still want to extract the CSS into a separate file.
 
-For more details, please see [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin#cssextractrspackplugin).
+For more details, please see [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin#cssextractrspackplugin).
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -73,7 +73,7 @@ The `experiments.rspackFuture.disableApplyEntryLazily` option has been enabled b
 
 Remove `builtins.css`, please replace it with the CSS-related [`module.parser`](/config/module-parser#cssauto) and [`module.generator`](/config/module-generator#cssauto) options that have been introduced.
 
-Also, starting from v0.6.0, Rspack's experiments CSS will align with webpack's experiments CSS as a target, which means that, like webpack experiments CSS, it will no longer support [browsers that do not support CSS variables](https://caniuse.com/css-variables) in the future. Therefore, for those projects that need to use configurations not yet supported by experiments CSS, or need to support older browsers, we recommend migrating to [`rspack.CssExtractRspackPlugin`](/plugins/rspack/css-extract-rspack-plugin).
+Also, starting from v0.6.0, Rspack's experiments CSS will align with webpack's experiments CSS as a target, which means that, like webpack experiments CSS, it will no longer support [browsers that do not support CSS variables](https://caniuse.com/css-variables) in the future. Therefore, for those projects that need to use configurations not yet supported by experiments CSS, or need to support older browsers, we recommend migrating to [`rspack.CssExtractRspackPlugin`](/plugins/css-extract-rspack-plugin).
 
 In v0.6.0, we introduced three new types of `module.generator` and `module.parser` options: `css/auto`, `css`, and `css/module`, which will only take effect when experiments.css is enabled, checkout [this example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/css-parser-generator-options) about how to use it.
 

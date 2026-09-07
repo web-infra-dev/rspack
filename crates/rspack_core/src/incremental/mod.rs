@@ -134,9 +134,9 @@ impl IncrementalOptions {
 }
 
 enum IncrementalState {
-  /// For cold build and cold start
+  /// Initial compilation with no mutations from a previous compilation.
   Cold,
-  /// For hot build, hot start, and rebuild
+  /// Rebuild with mutations relative to a previous compilation.
   Hot { mutations: Mutex<Mutations> },
 }
 

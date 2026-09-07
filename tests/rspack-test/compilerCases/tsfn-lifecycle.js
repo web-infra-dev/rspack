@@ -94,6 +94,34 @@ module.exports = [
     },
   },
   {
+    description:
+      "should garbage collect module graph connections from a previous build",
+    async build() {
+      await runChild(
+        path.join(
+          __dirname,
+          "fixtures",
+          "tsfn-lifecycle",
+          "gc-check-module-graph-connection.cjs",
+        ),
+      );
+    },
+  },
+  {
+    description:
+      "should garbage collect custom runtime modules after compiler close",
+    async build() {
+      await runChild(
+        path.join(
+          __dirname,
+          "fixtures",
+          "tsfn-lifecycle",
+          "gc-check-runtime-module.cjs",
+        ),
+      );
+    },
+  },
+  {
     description: "should report a clear error when APIs are called after close",
     async build() {
       await runChild(

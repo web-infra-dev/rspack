@@ -1,0 +1,28 @@
+[package]
+autotests            = false
+description          = "Lexes CSS modules returning their dependencies metadata"
+edition.workspace    = true
+license.workspace    = true
+name                 = "css-module-lexer"
+repository.workspace = true
+version.workspace    = true
+
+[dependencies]
+bitflags   = { workspace = true }
+rustc-hash = { workspace = true, features = ["std"] }
+smallvec   = { workspace = true }
+
+[dev-dependencies]
+indoc           = { workspace = true }
+linked-hash-map = { workspace = true }
+similar-asserts = { workspace = true, features = ["unicode"] }
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[[test]]
+name = "test"
+path = "tests/test.rs"

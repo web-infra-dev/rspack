@@ -12,9 +12,7 @@
   },
   "devDependencies": {
     "@actions/core": "catalog:",
-    "chalk": "catalog:chalk5",
-    "@types/fs-extra": "catalog:",
-    "fs-extra": "catalog:",
+    "chalk": "catalog:",
     "typescript": "catalog:",
     "glob": "catalog:",
     "semver": "catalog:",

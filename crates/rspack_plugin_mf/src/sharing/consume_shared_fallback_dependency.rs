@@ -1,16 +1,15 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, FactorizeInfo, ModuleDependency, ModuleLayer,
+  DependencyType, ModuleDependency, ModuleLayer,
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ConsumeSharedFallbackDependency {
   id: DependencyId,
   request: String,
   layer: Option<ModuleLayer>,
-  factorize_info: FactorizeInfo,
 }
 
 impl ConsumeSharedFallbackDependency {
@@ -19,7 +18,6 @@ impl ConsumeSharedFallbackDependency {
       id: DependencyId::new(),
       request,
       layer,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -51,14 +49,6 @@ impl Dependency for ConsumeSharedFallbackDependency {
 impl ModuleDependency for ConsumeSharedFallbackDependency {
   fn request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

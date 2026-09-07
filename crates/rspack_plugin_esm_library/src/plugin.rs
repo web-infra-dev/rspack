@@ -16,15 +16,16 @@ use rspack_core::{
   CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationOptimizeDependencies,
   CompilationParams, CompilationProcessAssets, CompilationRuntimeRequirementInTree,
   CompilerCompilation, ConcatenatedModuleInfo, ConcatenationScope, DependencyType,
-  ExportsInfoArtifact, ExternalModuleInfo, GetTargetResult, Logger, ModuleFactoryCreateData,
-  ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, REQUIRE_SCOPE_GLOBALS,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact,
-  SideEffectsStateArtifact, get_target, is_esm_dep_like,
+  ExportsInfoArtifact, ExternalModuleInfo, GetTargetResult, JavascriptParserUrl, Logger,
+  ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType,
+  NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
+  Plugin, REQUIRE_SCOPE_GLOBALS, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
+  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
+use rspack_intern::Atom;
 use rspack_plugin_javascript::{
   JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
   dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
@@ -34,10 +35,7 @@ use rspack_plugin_rslib::{
   worker_external::{ExternalWorkerDependencyTemplate, cutout_worker_externals},
 };
 use rspack_plugin_split_chunks::CacheGroup;
-use rspack_util::{
-  atom::Atom,
-  fx_hash::{FxHashMap, FxHashSet},
-};
+use rspack_util::fx_hash::{FxHashMap, FxHashSet};
 use sugar_path::SugarPath;
 use tokio::sync::RwLock;
 
@@ -47,7 +45,7 @@ use crate::{
   esm_lib_parser_plugin::EsmLibParserPlugin,
   optimize_chunks::{
     analyze_dyn_import_targets, assign_dyn_import_chunk_short_names, ensure_entry_exports,
-    extract_tla_shared_modules, optimize_runtime_chunks,
+    extract_tla_shared_modules, mark_facade_chunks, optimize_runtime_chunks,
   },
   preserve_modules::preserve_modules,
   runtime::{
@@ -132,8 +130,14 @@ impl EsmLibraryPlugin {
         .any(|dep| {
           !is_esm_dep_like(dep)
             && !matches!(
-              dep.dependency_type(),
-              DependencyType::Entry | DependencyType::DynamicImport | DependencyType::NewWorker
+              (dep.dependency_type(), dep.url_mode()),
+              (
+                DependencyType::Entry | DependencyType::DynamicImport | DependencyType::NewWorker,
+                _
+              ) | (
+                DependencyType::NewUrl,
+                Some(JavascriptParserUrl::NewUrlRelative)
+              )
             )
         })
       {
@@ -347,11 +351,12 @@ async fn concatenation_scope(
   let ModuleInfo::Concatenated(current_module) = current_module else {
     return Ok(None);
   };
-  let scope = ConcatenationScope::new(
+  let mut scope = ConcatenationScope::new(
     current_module.module,
     modules_map.clone(),
     current_module.as_ref().clone(),
   );
+  scope.enable_codegen_data_collection();
   Ok(Some(scope))
 }
 
@@ -409,10 +414,19 @@ async fn additional_module_runtime_requirements(
 async fn additional_chunk_runtime_requirements(
   &self,
   _compilation: &Compilation,
-  _chunk_ukey: &ChunkUkey,
+  chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
   _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
+  if let Some(chunk_link) = self.links.borrow().get(chunk_ukey)
+    && chunk_link
+      .required
+      .values()
+      .any(|interop| interop.default_access.is_some())
+  {
+    runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
+  }
+
   // Add REQUIRE_SCOPE only when runtime_requirements actually contain globals
   // that live on the __rspack_require object (same check the runtime plugin
   // uses in handle_scope_globals). This avoids pulling in an empty
@@ -636,6 +650,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 #[plugin_hook(CompilationOptimizeChunks for EsmLibraryPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED + 1)]
 async fn optimize_runtime_chunk_hook(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   optimize_runtime_chunks(compilation);
+  mark_facade_chunks(compilation);
   Ok(None)
 }
 
@@ -664,7 +679,10 @@ async fn after_factorize(
   if let Some(external_module) = module.as_external_module_mut()
     && external_module.resolve_external_type() == "module"
     && (external_module.get_external_type() != "modern-module"
-      || data.dependencies.first().is_some_and(is_esm_dep_like))
+      || data
+        .dependencies
+        .first()
+        .is_some_and(|dependency| is_esm_dep_like(dependency.as_ref())))
   {
     // If there's an issuer, append it to the module id
     if let Some(issuer_identifier) = &data.issuer_identifier {

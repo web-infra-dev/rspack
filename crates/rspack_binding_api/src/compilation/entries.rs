@@ -199,7 +199,7 @@ impl EntryDataDTO {
       .iter()
       .map(|dependency_id| {
         let dep = module_graph.dependency_by_id(dependency_id);
-        DependencyWrapper::new(dep.as_ref(), self.compilation.id(), Some(self.compilation))
+        DependencyWrapper::new(dep, self.compilation.id(), Some(self.compilation))
       })
       .collect::<Vec<_>>()
   }
@@ -213,7 +213,7 @@ impl EntryDataDTO {
       .iter()
       .map(|dependency_id| {
         let dep = module_graph.dependency_by_id(dependency_id);
-        DependencyWrapper::new(dep.as_ref(), self.compilation.id(), Some(self.compilation))
+        DependencyWrapper::new(dep, self.compilation.id(), Some(self.compilation))
       })
       .collect::<Vec<_>>()
   }
