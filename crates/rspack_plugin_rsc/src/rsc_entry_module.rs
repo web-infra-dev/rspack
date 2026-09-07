@@ -12,8 +12,8 @@ use rspack_core::{
   BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, CodeGenerationResultBuilder,
   Compilation, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, ImportPhase,
   LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer,
-  ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
-  impl_source_map_config, module_update_hash,
+  ModuleMetadata, ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType, contextify,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -45,7 +45,7 @@ pub struct RscEntryModule {
   name: Arc<str>,
   /// When true, client modules are loaded eagerly (not as code-split points).
   is_server_side_rendering: bool,
-  factory_meta: Option<FactoryMeta>,
+  factory_meta: ModuleMetadata<Option<FactoryMeta>>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
   layer: Option<ModuleLayer>,
@@ -86,7 +86,7 @@ impl RscEntryModule {
       css_imports_by_server_entry,
       name,
       is_server_side_rendering,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         strict: true,
         top_level_declarations: Some(Default::default()),

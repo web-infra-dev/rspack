@@ -14,8 +14,8 @@ use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 use crate::{
   BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResultBuilder,
   Compilation, ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleMetadata, ModuleType, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
   dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info,
   module_declared_side_effect_free, module_update_hash,
 };
@@ -32,7 +32,7 @@ pub struct RawModule {
   identifier: ModuleIdentifier,
   readable_identifier: String,
   runtime_requirements: RuntimeGlobals,
-  factory_meta: Option<FactoryMeta>,
+  factory_meta: ModuleMetadata<Option<FactoryMeta>>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 }
@@ -54,7 +54,7 @@ impl RawModule {
       identifier,
       readable_identifier,
       runtime_requirements,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         cacheable: true,
         strict: true,

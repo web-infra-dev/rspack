@@ -723,9 +723,9 @@ pub trait Module:
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult>;
 
-  fn factory_meta(&self) -> Option<&FactoryMeta>;
+  fn factory_meta(&self) -> Option<FactoryMeta>;
 
-  fn set_factory_meta(&mut self, factory_meta: FactoryMeta);
+  fn set_factory_meta(&self, factory_meta: FactoryMeta);
 
   fn build_info(&self) -> &BuildInfo;
 
@@ -1111,12 +1111,12 @@ impl dyn Module {
 #[macro_export]
 macro_rules! impl_module_meta_info {
   () => {
-    fn factory_meta(&self) -> Option<&$crate::FactoryMeta> {
-      self.factory_meta.as_ref()
+    fn factory_meta(&self) -> Option<$crate::FactoryMeta> {
+      self.factory_meta.snapshot()
     }
 
-    fn set_factory_meta(&mut self, v: $crate::FactoryMeta) {
-      self.factory_meta = Some(v);
+    fn set_factory_meta(&self, v: $crate::FactoryMeta) {
+      self.factory_meta.set(Some(v));
     }
 
     fn build_info(&self) -> &$crate::BuildInfo {
@@ -1290,7 +1290,7 @@ mod test {
           unreachable!()
         }
 
-        fn factory_meta(&self) -> Option<&crate::FactoryMeta> {
+        fn factory_meta(&self) -> Option<crate::FactoryMeta> {
           unreachable!()
         }
 
@@ -1310,7 +1310,7 @@ mod test {
           unreachable!()
         }
 
-        fn set_factory_meta(&mut self, _: crate::FactoryMeta) {
+        fn set_factory_meta(&self, _: crate::FactoryMeta) {
           unreachable!()
         }
       }

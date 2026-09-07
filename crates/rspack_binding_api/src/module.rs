@@ -131,10 +131,11 @@ fn module_factory_meta_getter(ctx: CallContext) -> napi::Result<JsFactoryMeta> {
 fn module_factory_meta_setter(ctx: CallContext) -> napi::Result<()> {
   let this = ctx.this_unchecked::<JsObject>();
   let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
-  let module = wrapped_value.as_mut()?;
   let factory_meta = ctx.get::<JsFactoryMeta>(0)?;
-  module.set_factory_meta(factory_meta.into());
-  Ok(())
+  wrapped_value.with_mutation(|module| {
+    module.set_factory_meta(factory_meta.into());
+    Ok(())
+  })
 }
 
 #[js_function]
@@ -373,6 +374,22 @@ impl Module {
         Err(self.module_removed_error())
       }
     })
+  }
+
+  /// Access metadata for mutation without borrowing the entire native module exclusively.
+  pub(crate) fn with_mutation<R>(
+    &self,
+    f: impl FnOnce(&dyn rspack_core::Module) -> napi::Result<R>,
+  ) -> napi::Result<R> {
+    let Some(ptr) = self.ptr else {
+      return Err(napi::Error::from_reason(format!(
+        "Unable to modify module with id = {}. Currently, you can only modify the module in the loader in Rspack.",
+        self.identifier
+      )));
+    };
+    // SAFETY: the pointer is only available during the existing hook/loader
+    // mutation window. Interior mutability does not extend that window.
+    f(unsafe { ptr.as_ref() })
   }
 
   pub(crate) fn as_mut(&mut self) -> napi::Result<&'static mut dyn rspack_core::Module> {

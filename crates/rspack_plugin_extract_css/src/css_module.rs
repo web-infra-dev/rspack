@@ -4,8 +4,9 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResultBuilder, Compilation, CompilerOptions, DependenciesBlock, DependencyId,
   FactoryMeta, Module, ModuleCodeGenerationContext, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleLayer, RuntimeSpec, SourceType,
-  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleLayer, ModuleMetadata,
+  RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::BoxSource,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
@@ -30,7 +31,7 @@ pub(crate) struct CssModule {
   pub(crate) css_layer: Option<String>,
   pub(crate) identifier_index: u32,
 
-  factory_meta: Option<FactoryMeta>,
+  factory_meta: ModuleMetadata<Option<FactoryMeta>>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 
@@ -66,7 +67,7 @@ impl CssModule {
       identifier_index: dep.identifier_index,
       blocks: vec![],
       dependencies: vec![],
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         cacheable: dep.cacheable,
         strict: true,

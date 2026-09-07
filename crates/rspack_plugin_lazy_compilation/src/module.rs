@@ -7,8 +7,9 @@ use rspack_core::{
   BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResultBuilder, Compilation, Context,
   DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions,
   Module, ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, NeedBuildContext, OutputOptions, RuntimeGlobals,
-  RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info, module_update_hash,
+  ModuleIdentifier, ModuleLayer, ModuleMetadata, ModuleType, NeedBuildContext, OutputOptions,
+  RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info,
+  module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -49,7 +50,7 @@ fn has_closure_library(output: &OutputOptions) -> bool {
 pub(crate) struct LazyCompilationProxyModule {
   build_info: BuildInfo,
   build_meta: BuildMeta,
-  factory_meta: Option<FactoryMeta>,
+  factory_meta: ModuleMetadata<Option<FactoryMeta>>,
 
   readable_identifier: String,
   identifier: ModuleIdentifier,
@@ -108,7 +109,7 @@ impl LazyCompilationProxyModule {
     Self {
       build_info: Default::default(),
       build_meta: Default::default(),
-      factory_meta: None,
+      factory_meta: Default::default(),
       readable_identifier,
       lib_ident,
       identifier,

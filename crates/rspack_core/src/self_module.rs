@@ -13,7 +13,7 @@ use crate::{
   AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkUkey, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId,
   FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier,
-  ModuleType, RuntimeSpec, SourceType, impl_module_meta_info,
+  ModuleMetadata, ModuleType, RuntimeSpec, SourceType, impl_module_meta_info,
 };
 
 #[impl_source_map_config]
@@ -24,7 +24,7 @@ pub struct SelfModule {
   readable_identifier: String,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
-  factory_meta: Option<FactoryMeta>,
+  factory_meta: ModuleMetadata<Option<FactoryMeta>>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 }
@@ -37,7 +37,7 @@ impl SelfModule {
       readable_identifier: identifier,
       blocks: Default::default(),
       dependencies: Default::default(),
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         strict: true,
         ..Default::default()

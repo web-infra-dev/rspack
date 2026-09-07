@@ -7,8 +7,8 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildResult, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId,
   EntryDependency, FactoryMeta, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleType, NeedBuildContext, RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions,
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  ModuleMetadata, ModuleType, NeedBuildContext, RuntimeGlobals, RuntimeSpec, SourceType,
+  ValueCacheVersions, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -23,7 +23,7 @@ pub struct DllModule {
   // TODO: it should be set to EntryDependency.loc
   name: String,
 
-  factory_meta: Option<FactoryMeta>,
+  factory_meta: ModuleMetadata<Option<FactoryMeta>>,
 
   build_info: BuildInfo,
 

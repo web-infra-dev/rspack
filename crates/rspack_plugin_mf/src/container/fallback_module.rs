@@ -7,8 +7,9 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildResult, ChunkGraph, ChunkUkey, CodeGenerationResultBuilder, Compilation, Context,
   DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
-  RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleMetadata, ModuleType,
+  RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config,
+  module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
@@ -29,7 +30,7 @@ pub struct FallbackModule {
   readable_identifier: String,
   lib_ident: String,
   requests: Vec<String>,
-  factory_meta: Option<FactoryMeta>,
+  factory_meta: ModuleMetadata<Option<FactoryMeta>>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 }
@@ -54,7 +55,7 @@ impl FallbackModule {
       readable_identifier: identifier,
       lib_ident,
       requests,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         strict: true,
         ..Default::default()

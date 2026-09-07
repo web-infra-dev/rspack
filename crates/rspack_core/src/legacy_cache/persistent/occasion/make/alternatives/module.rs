@@ -56,11 +56,11 @@ impl ModuleSourceMapConfig for TempModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for TempModule {
-  fn factory_meta(&self) -> Option<&FactoryMeta> {
+  fn factory_meta(&self) -> Option<FactoryMeta> {
     unreachable!()
   }
 
-  fn set_factory_meta(&mut self, _factory_meta: FactoryMeta) {
+  fn set_factory_meta(&self, _factory_meta: FactoryMeta) {
     unreachable!()
   }
 

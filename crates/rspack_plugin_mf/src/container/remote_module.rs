@@ -7,8 +7,8 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildResult, ChunkGraph, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock,
   Dependency, DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleMetadata, ModuleType,
+  RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
@@ -39,7 +39,7 @@ pub struct RemoteModule {
   pub internal_request: String,
   pub share_scope: ShareScope,
   pub remote_key: String,
-  factory_meta: Option<FactoryMeta>,
+  factory_meta: ModuleMetadata<Option<FactoryMeta>>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 }
@@ -72,7 +72,7 @@ impl RemoteModule {
       internal_request,
       share_scope,
       remote_key,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         strict: true,
         ..Default::default()

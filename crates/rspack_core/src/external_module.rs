@@ -17,7 +17,7 @@ use crate::{
   Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRef,
   ExportProvided, ExternalType, FactoryMeta, ImportAttributes, ImportPhase, InitFragmentExt,
   InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
+  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleMetadata, ModuleType,
   NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
   StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
   extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
@@ -456,7 +456,7 @@ pub struct ExternalModule {
   pub external_type: ExternalType,
   /// Request intended by user (without loaders from config)
   user_request: String,
-  factory_meta: Option<FactoryMeta>,
+  factory_meta: ModuleMetadata<Option<FactoryMeta>>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
   dependency_meta: DependencyMeta,
@@ -515,7 +515,7 @@ impl ExternalModule {
       request,
       external_type,
       user_request,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         top_level_declarations: Some(Default::default()),
         strict: true,
