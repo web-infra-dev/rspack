@@ -183,7 +183,7 @@ impl RuntimeRequirementsDependency {
 }
 
 #[cacheable]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct CodeGenerationRuntimeRequirementsWrite {
   pub runtime_requirements: RuntimeGlobals,
 }

@@ -20,7 +20,7 @@ use crate::{
   find_graph_roots, merge_runtime,
 };
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct ChunkSizeOptions {
   // constant overhead for a chunk
   pub chunk_overhead: Option<f64>,
