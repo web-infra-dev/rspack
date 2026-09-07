@@ -146,7 +146,7 @@ async fn finish_modules(
           None,
           Some(&modifier),
           Vec::new(),
-          Some(request),
+          Some(request.to_string()),
         ));
         block.add_dependency_id(dependency_id);
         block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {

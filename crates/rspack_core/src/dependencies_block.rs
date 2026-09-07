@@ -1,12 +1,8 @@
 use std::{fmt::Write as _, hash::BuildHasherDefault, sync::Arc};
 
-use rspack_cacheable::{
-  cacheable,
-  with::{AsOption, AsPreset},
-};
+use rspack_cacheable::cacheable;
 use rspack_collections::{Identifier, IdentifierHasher};
 use rspack_hash::{RspackHash, RspackHasher};
-use rspack_util::atom::Atom;
 
 use crate::{
   BoxDependency, Compilation, Dependency, DependencyId, DependencyLocation, DependencyRef,
@@ -162,8 +158,7 @@ pub struct AsyncDependenciesBlock {
   dependencies_block: DependenciesBlockData,
   loc: Option<DependencyLocation>,
   parent: ModuleIdentifier,
-  #[cacheable(with=AsOption<AsPreset>)]
-  request: Option<Atom>,
+  request: Option<String>,
 }
 
 impl AsyncDependenciesBlock {
@@ -173,7 +168,7 @@ impl AsyncDependenciesBlock {
     loc: Option<DependencyLocation>,
     modifier: Option<&str>,
     dependencies: Vec<BoxDependency>,
-    request: Option<Atom>,
+    request: Option<String>,
   ) -> Self {
     let dependencies_resource_identifier_len = dependencies
       .iter()
@@ -278,7 +273,7 @@ impl AsyncDependenciesBlock {
     &self.parent
   }
 
-  pub fn request(&self) -> &Option<Atom> {
+  pub fn request(&self) -> &Option<String> {
     &self.request
   }
 
