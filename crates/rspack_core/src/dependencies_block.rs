@@ -89,7 +89,14 @@ pub struct AsyncDependenciesBlock {
   request: Option<String>,
 }
 
-impl AsyncDependenciesBlock {
+/// An async block whose dependencies remain uniquely owned during parsing.
+#[derive(Debug)]
+pub struct AsyncDependenciesBlockBuilder {
+  block: AsyncDependenciesBlock,
+  dependencies: Vec<BoxDependency>,
+}
+
+impl AsyncDependenciesBlockBuilder {
   /// modifier should be Dependency.span in most of time
   pub fn new(
     parent: ModuleIdentifier,
@@ -127,18 +134,51 @@ impl AsyncDependenciesBlock {
     }
 
     Self {
-      id: id.into(),
-      group_options: Default::default(),
-      blocks: Default::default(),
-      block_ids: Default::default(),
-      dependency_ids,
-      dependencies: dependencies.into_iter().map(Into::into).collect(),
-      loc,
-      parent,
-      request,
+      block: AsyncDependenciesBlock {
+        id: id.into(),
+        group_options: Default::default(),
+        blocks: Default::default(),
+        block_ids: Default::default(),
+        dependency_ids,
+        dependencies: Vec::new(),
+        loc,
+        parent,
+        request,
+      },
+      dependencies,
     }
   }
 
+  pub fn set_group_options(&mut self, group_options: GroupOptions) {
+    self.block.set_group_options(group_options);
+  }
+
+  pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut (dyn Dependency + 'static)> {
+    self
+      .dependencies
+      .get_mut(idx)
+      .map(|dependency| dependency.as_mut())
+  }
+
+  pub fn dependencies_mut(&mut self) -> impl Iterator<Item = &mut (dyn Dependency + 'static)> {
+    self
+      .dependencies
+      .iter_mut()
+      .map(|dependency| dependency.as_mut())
+  }
+
+  /// Publishes the completed dependencies without reallocating them.
+  pub fn finish(self) -> AsyncDependenciesBlock {
+    let Self {
+      mut block,
+      dependencies,
+    } = self;
+    block.dependencies = dependencies.into_iter().map(Into::into).collect();
+    block
+  }
+}
+
+impl AsyncDependenciesBlock {
   pub fn identifier(&self) -> AsyncDependenciesBlockIdentifier {
     self.id
   }
@@ -153,18 +193,6 @@ impl AsyncDependenciesBlock {
 
   pub fn take_dependencies(&mut self) -> Vec<DependencyRef> {
     std::mem::take(&mut self.dependencies)
-  }
-
-  pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut (dyn Dependency + 'static)> {
-    self.dependencies.get_mut(idx)?.get_mut()
-  }
-
-  pub fn dependencies_mut(&mut self) -> impl Iterator<Item = &mut (dyn Dependency + 'static)> {
-    self.dependencies.iter_mut().map(|dependency| {
-      dependency
-        .get_mut()
-        .expect("dependency must be uniquely owned before block publication")
-    })
   }
 
   pub fn take_blocks(&mut self) -> Vec<Box<AsyncDependenciesBlock>> {

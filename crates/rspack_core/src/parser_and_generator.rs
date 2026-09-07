@@ -14,7 +14,7 @@ use rspack_util::{ext::AsAny, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildInfo, BuildMeta, ChunkGraph,
+  AsyncDependenciesBlockBuilder, BoxDependency, BoxLoader, BuildInfo, BuildMeta, ChunkGraph,
   CodeGenerationData, Compilation, CompilerOptions, ConcatenationScope, Context,
   DependencyCodeGenerationRef, DependencyId, DependencyLocation, DependencyRange,
   EvaluatedInlinableValue, FactoryMeta, GeneratorOptions, Module, ModuleCodeTemplate, ModuleGraph,
@@ -113,7 +113,7 @@ impl SideEffectsBailoutItemWithSpan {
 #[derive(Debug)]
 pub struct ParseResult {
   pub dependencies: Vec<BoxDependency>,
-  pub blocks: Vec<Box<AsyncDependenciesBlock>>,
+  pub blocks: Vec<Box<AsyncDependenciesBlockBuilder>>,
   pub presentational_dependencies: Vec<DependencyCodeGenerationRef>,
   pub code_generation_dependencies: Vec<DependencyId>,
   pub source: BoxSource,

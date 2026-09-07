@@ -26,16 +26,16 @@ use rspack_util::{
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph,
-  ChunkGroupOptions, CodeGenerationResultBuilder, Compilation, Context, ContextElementDependency,
-  DependenciesBlock, DependencyCategory, DependencyId, DependencyLocation, DynamicImportMode,
-  ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions, ImportAttributes, ImportPhase,
-  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate,
-  ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType, RealDependencyLocation,
-  ReferencedSpecifier, Resolve, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType,
-  contextify, get_exports_type_with_strict, get_outgoing_async_modules, impl_module_meta_info,
-  module_update_hash, property_access, to_path,
+  AsyncDependenciesBlockBuilder, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule,
+  BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
+  ChunkGraph, ChunkGroupOptions, CodeGenerationResultBuilder, Compilation, Context,
+  ContextElementDependency, DependenciesBlock, DependencyCategory, DependencyId,
+  DependencyLocation, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode,
+  GroupOptions, ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
+  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
+  ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
+  RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, contextify, get_exports_type_with_strict,
+  get_outgoing_async_modules, impl_module_meta_info, module_update_hash, property_access, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -1448,7 +1448,7 @@ impl Module for ContextModule {
           .into(),
         None,
       ));
-      let mut block = AsyncDependenciesBlock::new(
+      let mut block = AsyncDependenciesBlockBuilder::new(
         (*self.identifier).into(),
         Some(loc),
         None,
@@ -1494,7 +1494,7 @@ impl Module for ContextModule {
         let preload_order = group_options.and_then(|o| o.preload_order);
         let prefetch_order = group_options.and_then(|o| o.prefetch_order);
         let fetch_priority = group_options.and_then(|o| o.fetch_priority);
-        let mut block = AsyncDependenciesBlock::new(
+        let mut block = AsyncDependenciesBlockBuilder::new(
           (*self.identifier).into(),
           None,
           Some(&context_element_dependency.user_request.clone()),
@@ -1525,7 +1525,10 @@ impl Module for ContextModule {
     Ok(BuildResult {
       module: BoxModule::new(self),
       dependencies: dependencies.into_iter().map(Into::into).collect(),
-      blocks,
+      blocks: blocks
+        .into_iter()
+        .map(|block| Box::new(block.finish()))
+        .collect(),
       optimization_bailouts: vec![],
     })
   }

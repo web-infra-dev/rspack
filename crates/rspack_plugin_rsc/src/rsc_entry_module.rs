@@ -8,12 +8,12 @@ use rspack_cacheable::{
 };
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, CodeGenerationResultBuilder,
-  Compilation, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, ImportPhase,
-  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer,
-  ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
-  impl_source_map_config, module_update_hash,
+  AsyncDependenciesBlockBuilder, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule,
+  BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult,
+  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId,
+  DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions, Module, ModuleCodeGenerationContext,
+  ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, ReferencedSpecifier, RuntimeSpec,
+  SourceType, contextify, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -275,7 +275,7 @@ impl Module for RscEntryModule {
         optimization_bailouts: vec![],
       })
     } else {
-      // Non-eager: code-split points; use AsyncDependenciesBlock + ClientReferenceDependency.
+      // Non-eager: code-split points; use AsyncDependenciesBlockBuilder + ClientReferenceDependency.
       let mut blocks = Vec::with_capacity(
         self.client_modules.len()
           + self.css_imports_by_server_entry.len()
@@ -324,7 +324,7 @@ impl Module for RscEntryModule {
         }
 
         let block_modifier = format!("server-entry={server_entry}");
-        let block = AsyncDependenciesBlock::new(
+        let block = AsyncDependenciesBlockBuilder::new(
           self.identifier,
           None,
           Some(&block_modifier),
@@ -347,7 +347,7 @@ impl Module for RscEntryModule {
           })
           .collect::<Vec<_>>();
 
-        let block = AsyncDependenciesBlock::new(
+        let block = AsyncDependenciesBlockBuilder::new(
           self.identifier,
           None,
           None,
@@ -363,7 +363,7 @@ impl Module for RscEntryModule {
           client_module.ids.clone(),
           self.is_server_side_rendering,
         );
-        let block = AsyncDependenciesBlock::new(
+        let block = AsyncDependenciesBlockBuilder::new(
           self.identifier,
           None,
           None,
@@ -376,7 +376,10 @@ impl Module for RscEntryModule {
       Ok(BuildResult {
         module: BoxModule::new(self),
         dependencies: dependencies.into_iter().map(Into::into).collect(),
-        blocks,
+        blocks: blocks
+          .into_iter()
+          .map(|block| Box::new(block.finish()))
+          .collect(),
         optimization_bailouts: vec![],
       })
     }

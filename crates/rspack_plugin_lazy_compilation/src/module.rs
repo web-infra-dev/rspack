@@ -3,12 +3,13 @@ use std::{borrow::Cow, sync::Arc};
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsVec};
 use rspack_collections::Identifiable;
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResultBuilder, Compilation, Context,
-  DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions,
-  Module, ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, NeedBuildContext, OutputOptions, RuntimeGlobals,
-  RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info, module_update_hash,
+  AsyncDependenciesBlockBuilder, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule,
+  BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResultBuilder,
+  Compilation, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, ImportPhase,
+  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData,
+  ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, NeedBuildContext, OutputOptions,
+  RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info,
+  module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -209,7 +210,7 @@ impl Module for LazyCompilationProxyModule {
     if self.active {
       let dep = LazyCompilationDependency::new(self.dep_options.clone());
 
-      blocks.push(Box::new(AsyncDependenciesBlock::new(
+      blocks.push(Box::new(AsyncDependenciesBlockBuilder::new(
         self.identifier,
         None,
         None,
@@ -235,7 +236,10 @@ impl Module for LazyCompilationProxyModule {
     Ok(BuildResult {
       module: BoxModule::new(self),
       dependencies: dependencies.into_iter().map(Into::into).collect(),
-      blocks,
+      blocks: blocks
+        .into_iter()
+        .map(|block| Box::new(block.finish()))
+        .collect(),
       optimization_bailouts: vec![],
     })
   }

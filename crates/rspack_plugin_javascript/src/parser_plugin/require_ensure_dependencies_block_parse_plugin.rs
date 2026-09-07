@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use either::Either;
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, ChunkGroupOptions, ConstDependency, DependencyRange,
-  GroupOptions,
+  AsyncDependenciesBlockBuilder, BoxDependency, ChunkGroupOptions, ConstDependency,
+  DependencyRange, GroupOptions,
 };
 use rspack_util::SpanExt;
 use swc_experimental_ecma_ast::{
@@ -143,7 +143,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
 
     let range = DependencyRange::from(expr.span);
     let loc = parser.to_dependency_location(range);
-    let mut block = AsyncDependenciesBlock::new(*parser.module_identifier, loc, None, deps, None);
+    let mut block =
+      AsyncDependenciesBlockBuilder::new(*parser.module_identifier, loc, None, deps, None);
     block.set_group_options(GroupOptions::ChunkGroup(
       ChunkGroupOptions::default().name_optional(chunk_name),
     ));

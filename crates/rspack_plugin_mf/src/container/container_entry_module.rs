@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions,
+  AsyncDependenciesBlockBuilder, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule,
+  BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions,
   CodeGenerationDataItem, CodeGenerationResultBuilder, CodeGenerationRuntimeRequirementsWrite,
   Compilation, Context, DependenciesBlock, Dependency, DependencyId, DependencyType,
   ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext,
@@ -210,7 +210,7 @@ impl Module for ContainerEntryModule {
     } else {
       // Container logic
       for (name, options) in &self.exposes {
-        let mut block = AsyncDependenciesBlock::new(
+        let mut block = AsyncDependenciesBlockBuilder::new(
           self.identifier,
           None,
           Some(name),
@@ -243,7 +243,10 @@ impl Module for ContainerEntryModule {
     Ok(BuildResult {
       module: BoxModule::new(self),
       dependencies: dependencies.into_iter().map(Into::into).collect(),
-      blocks,
+      blocks: blocks
+        .into_iter()
+        .map(|block| Box::new(block.finish()))
+        .collect(),
       optimization_bailouts: vec![],
     })
   }

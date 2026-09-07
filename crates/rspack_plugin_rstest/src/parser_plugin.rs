@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use camino::Utf8PathBuf;
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, ConstDependency, DependencyRange, ImportAttributes,
+  AsyncDependenciesBlockBuilder, BoxDependency, ConstDependency, DependencyRange, ImportAttributes,
   ImportPhase,
 };
 use rspack_intern::Atom;
@@ -255,7 +255,7 @@ impl RstestParserPlugin {
           ));
 
           let loc = parser.to_dependency_location(range);
-          let block = AsyncDependenciesBlock::new(
+          let block = AsyncDependenciesBlockBuilder::new(
             *parser.module_identifier,
             loc,
             None,
@@ -595,7 +595,7 @@ impl RstestParserPlugin {
                 ));
 
                 let loc = parser.to_dependency_location(range);
-                let block = AsyncDependenciesBlock::new(
+                let block = AsyncDependenciesBlockBuilder::new(
                   *parser.module_identifier,
                   loc,
                   None,

@@ -1,5 +1,5 @@
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, ChunkGroupOptions, ContextDependency,
+  AsyncDependenciesBlockBuilder, BoxDependency, ChunkGroupOptions, ContextDependency,
   ContextNameSpaceObject, ContextOptions, DependencyCategory, DependencyRange, DependencyType,
   DynamicImportFetchPriority, DynamicImportMode, GroupOptions, ImportAttributes,
   ReferencedSpecifier, get_context,
@@ -555,7 +555,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         }
         let range = DependencyRange::from(import_call_span);
         let loc = parser.to_dependency_location(range);
-        let mut block = AsyncDependenciesBlock::new(
+        let mut block = AsyncDependenciesBlockBuilder::new(
           *parser.module_identifier,
           loc,
           None,

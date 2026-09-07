@@ -4,9 +4,9 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, CodeGenerationResultBuilder, Compilation, Context,
-  DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module,
+  AsyncDependenciesBlockBuilder, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule,
+  BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResultBuilder, Compilation,
+  Context, DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
   RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::BoxSource, runtime_mode::RuntimeMode,
@@ -176,14 +176,17 @@ impl Module for ProvideSharedModule {
     if self.eager {
       dependencies.push(dep);
     } else {
-      let block = AsyncDependenciesBlock::new(self.identifier, None, None, vec![dep], None);
+      let block = AsyncDependenciesBlockBuilder::new(self.identifier, None, None, vec![dep], None);
       blocks.push(Box::new(block));
     }
 
     Ok(BuildResult {
       module: BoxModule::new(self),
       dependencies: dependencies.into_iter().map(Into::into).collect(),
-      blocks,
+      blocks: blocks
+        .into_iter()
+        .map(|block| Box::new(block.finish()))
+        .collect(),
       optimization_bailouts: vec![],
     })
   }
