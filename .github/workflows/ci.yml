@@ -41,6 +41,7 @@ jobs:
 
       - name: Env, mounts, cgroup limits
         run: |
+          set +e +o pipefail
           echo "runner=$RUNNER_NAME RUNNER_TOOL_CACHE=$RUNNER_TOOL_CACHE RUNNER_TEMP=$RUNNER_TEMP HOME=$HOME"
           echo "== tool cache content"; ls -la "$RUNNER_TOOL_CACHE" 2>&1 | head -20; ls -la "$RUNNER_TOOL_CACHE/node" 2>&1 | head
           echo "== df"; df -hT "$RUNNER_TOOL_CACHE" "$RUNNER_TEMP" "$HOME" /tmp / 2>&1
@@ -52,6 +53,7 @@ jobs:
 
       - name: Write latency probe (tool cache vs RUNNER_TEMP vs HOME vs /tmp)
         run: |
+          set +e +o pipefail
           now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
           probe() {
             d="$1/probe.$$"; mkdir -p "$d"
@@ -70,6 +72,7 @@ jobs:
 
       - name: Copy the real node tree both ways
         run: |
+          set +e +o pipefail
           now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
           src="$RUNNER_TOOL_CACHE/node/24.20.0/x64"; ls "$src" >/dev/null
           echo "files=$(find "$src" -type f | wc -l)"
