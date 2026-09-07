@@ -37,6 +37,10 @@ impl FixBuildMeta {
         && let Some(module) = module.as_normal_module()
         && module.first_error().is_some()
       {
+        #[expect(
+          clippy::disallowed_methods,
+          reason = "Restore metadata on a freshly rebuilt failed module before cache publication."
+        )]
         let module = module_graph
           .module_by_identifier_mut(&id)
           .expect("failed module should exist");

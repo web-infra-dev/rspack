@@ -107,6 +107,10 @@ impl ModuleBuildCache {
       .into_iter()
       .flatten()
       .filter_map(|(module_identifier, snapshot)| {
+        #[expect(
+          clippy::disallowed_methods,
+          reason = "Store the snapshot on a newly built module before publishing it to the cache."
+        )]
         let module = artifact
           .get_module_graph_mut()
           .module_by_identifier_mut(&module_identifier)?;

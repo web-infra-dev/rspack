@@ -1624,6 +1624,10 @@ fn seed_module_assets(compilation: &mut Compilation) -> usize {
   module_identifiers.truncate(MODULE_ASSET_SEED_COUNT);
 
   for (asset_index, module_identifier) in module_identifiers.iter().copied().enumerate() {
+    #[expect(
+      clippy::disallowed_methods,
+      reason = "The benchmark seeds asset fixtures on uniquely owned modules with caching disabled."
+    )]
     let module = compilation
       .get_module_graph_mut()
       .module_by_identifier_mut(&module_identifier)

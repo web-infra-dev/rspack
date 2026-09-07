@@ -1050,7 +1050,9 @@ pub struct BoxModule(Box<dyn Module>);
 pub struct ModuleRef(Arc<dyn Module>);
 
 impl ModuleRef {
-  pub fn get_mut(&mut self) -> Option<&mut (dyn Module + 'static)> {
+  /// Restricted to audited module graph updates while this is the sole owner.
+  /// Shared modules must use their explicit interior-mutability APIs.
+  pub(crate) fn get_mut(&mut self) -> Option<&mut (dyn Module + 'static)> {
     Arc::get_mut(&mut self.0)
   }
 }

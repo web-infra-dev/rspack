@@ -144,6 +144,10 @@ impl ModuleExecutor {
     let module_assets = std::mem::take(&mut self.module_assets);
     for (original_module_identifier, assets) in module_assets {
       // recursive import module may not exist the module, just skip it
+      #[expect(
+        clippy::disallowed_methods,
+        reason = "Finalize assets from loader execution before newly built modules enter the cache."
+      )]
       if let Some(module) = mg.module_by_identifier_mut(&original_module_identifier) {
         module.build_info_mut().assets.extend(assets);
       }

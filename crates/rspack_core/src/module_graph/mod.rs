@@ -306,6 +306,10 @@ impl ModuleGraph {
       if let Some(m_id) = original_module_identifier
         && let Some(module) = self.inner.modules.get_mut(&m_id)
       {
+        #[expect(
+          clippy::disallowed_methods,
+          reason = "Removing a dependency requires a uniquely owned parent module."
+        )]
         module
           .get_mut()
           .expect("shared modules must be revoked before their dependencies")
@@ -736,6 +740,12 @@ impl ModuleGraph {
     self.inner.modules.get(identifier)
   }
 
+  /// Access uniquely owned build state from an audited call site.
+  /// Updates to shared modules must use explicit interior-mutability APIs.
+  #[expect(
+    clippy::disallowed_methods,
+    reason = "Centralize the unique-ownership check for audited build-state updates."
+  )]
   pub fn module_by_identifier_mut(
     &mut self,
     identifier: &ModuleIdentifier,
