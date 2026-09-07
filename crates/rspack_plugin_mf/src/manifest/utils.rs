@@ -338,8 +338,7 @@ pub fn collect_expose_requirements(
     for expose_identity in expose_identities {
       let effective_layer = expose_effective_layers
         .get(&(expose_identity.clone(), expose_import.clone()))
-        .map(|layer| layer.as_deref())
-        .unwrap_or(expose_identity.layer.as_deref());
+        .map_or(expose_identity.layer.as_deref(), |layer| layer.as_deref());
       if effective_layer != issuer_layer.as_deref() {
         continue;
       }
