@@ -39,20 +39,28 @@ jobs:
         with:
           clean: ${{ runner.environment == 'github-hosted' }}
 
-      - name: Env and start wchan sampler
+      - name: Env, block devices, cgroup io, start sampler
         run: |
           set +e +o pipefail
           echo "runner=$RUNNER_NAME"; nproc; uptime; grep -E 'Dirty|Writeback:' /proc/meminfo; cat /proc/pressure/io
+          echo "== block devices"; ls /sys/block | tr '\n' ' '; echo
+          for d in /sys/block/*; do [ -e "$d/queue/wbt_lat_usec" ] && echo "$(basename $d): wbt_lat_usec=$(cat $d/queue/wbt_lat_usec 2>&1) scheduler=$(cat $d/queue/scheduler 2>&1) rotational=$(cat $d/queue/rotational 2>&1) size=$(cat $d/size 2>&1)"; done
+          echo "== cgroup"; cat /proc/self/cgroup; ls /sys/fs/cgroup | tr '\n' ' '; echo; echo "-- io.stat"; cat /sys/fs/cgroup/io.stat 2>&1 | head -5; echo "-- io.pressure"; cat /sys/fs/cgroup/io.pressure 2>&1
+          echo "== diskstats (major dev only)"; grep -E ' (sd[a-z]+|nvme[0-9]+n[0-9]+|vd[a-z]+) ' /proc/diskstats
           nohup bash -c '
             while true; do
+              now=$(date +%s%3N)
               for p in $(pgrep -f "setup-node/[^ ]*/dist/setup/index.js"); do
                 for t in /proc/$p/task/*; do
                   st=$(awk "{print \$3}" "$t/stat" 2>/dev/null); w=$(cat "$t/wchan" 2>/dev/null)
-                  echo "$(date +%s%3N) $p ${t##*/} $st $w"
+                  echo "W $now $p ${t##*/} $st $w"
                 done
+                echo "IO $now $p $(tr "\n" " " < /proc/$p/io 2>/dev/null)"
               done
+              echo "DS $now $(grep -E " (sd[a-z]+|nvme[0-9]+n[0-9]+|vd[a-z]+) " /proc/diskstats | awk "{printf \"%s:r%s:w%s:t%s:q%s \", \$3, \$6, \$10, \$13, \$12}")"
+              echo "PSI $now $(head -1 /proc/pressure/io)"
               sleep 0.05
-            done' > "$RUNNER_TEMP/wchan.log" 2>&1 &
+            done' > "$RUNNER_TEMP/sampler.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/sampler.pid"; echo "sampler pid $(cat "$RUNNER_TEMP/sampler.pid")"
 
       - name: Real pnpm setup (timed by setup-node log lines)
@@ -60,14 +68,20 @@ jobs:
         with:
           node-version: 24
 
-      - name: Stop sampler and summarize kernel wait channels
+      - name: Stop sampler and summarize
         run: |
           set +e +o pipefail
           kill "$(cat "$RUNNER_TEMP/sampler.pid")" 2>/dev/null; sleep 0.2
           grep -E 'Dirty|Writeback:' /proc/meminfo; uptime; cat /proc/pressure/io
-          L="$RUNNER_TEMP/wchan.log"; echo "samples: $(wc -l < "$L") lines, $(awk '{print $1}' "$L" | sort -u | wc -l) ticks, span $(( $(tail -1 "$L" | awk '{print $1}') - $(head -1 "$L" | awk '{print $1}') ))ms"
-          echo "== (state wchan) histogram, all threads"; awk '{print $4, $5}' "$L" | sort | uniq -c | sort -rn | head -25
-          echo "== ticks with at least one thread in D state: $(awk '$4=="D"{print $1}' "$L" | sort -u | wc -l)"
-          echo "== D-state wchan histogram"; awk '$4=="D"{print $5}' "$L" | sort | uniq -c | sort -rn | head -15
-          echo "== R-state wchan histogram"; awk '$4=="R"{print $5}' "$L" | sort | uniq -c | sort -rn | head -10
-          echo "== per-second D count timeline"; awk '$4=="D"{print int($1/1000)}' "$L" | sort | uniq -c | awk '{printf "%s:%s ", $2%100000, $1}'; echo
+          L="$RUNNER_TEMP/sampler.log"
+          echo "== wchan (state wchan) histogram"; awk '$1=="W"{print $5, $6}' "$L" | sort | uniq -c | sort -rn | head -12
+          echo "== D ticks: $(awk '$1=="W" && $5=="D"{print $2}' "$L" | sort -u | wc -l) of $(awk '$1=="W"{print $2}' "$L" | sort -u | wc -l) ticks"
+          echo "== setup-node process /proc/pid/io first vs last (rchar wchar syscr syscw read_bytes write_bytes cancelled)"
+          awk '$1=="IO"{ if(!($3 in f)) f[$3]=$0; l[$3]=$0 } END{ for(p in f){ print "first:", f[p]; print "last: ", l[p] } }' "$L" | sed -E 's/(rchar|wchar|syscr|syscw|read_bytes|write_bytes|cancelled_write_bytes): //g'
+          echo "== host diskstats over the whole sampled window (sectors r/w -> MB, io_ticks busy%)"
+          first=$(awk '$1=="DS"{print; exit}' "$L"); last=$(awk '$1=="DS"' "$L" | tail -1)
+          t0=$(echo "$first" | awk '{print $2}'); t1=$(echo "$last" | awk '{print $2}'); echo "window $(( t1 - t0 ))ms"
+          paste <(echo "$first" | tr ' ' '\n' | grep :r) <(echo "$last" | tr ' ' '\n' | grep :r) | awk -F'[ :]' -v span=$(( t1 - t0 )) '{ split($2,r0,"r"); split($3,w0,"w"); split($4,t0,"t"); split($5,q0,"q"); split($7,r1,"r"); split($8,w1,"w"); split($9,t1,"t"); split($10,q1,"q"); printf "%s: read %.0fMB write %.0fMB busy %.0f%% avg-inflight %.1f\n", $1, (r1[2]-r0[2])*512/1048576, (w1[2]-w0[2])*512/1048576, (t1[2]-t0[2])*100/span, (q1[2]-q0[2])/span }'
+          echo "== PSI io 'some avg10' max during window: $(awk '$1=="PSI"{print $3}' "$L" | sed 's/avg10=//' | sort -n | tail -1)"
+          echo "== per-second: D-ticks / disk write MB / disk busy%"
+          awk '$1=="W" && $5=="D"{d[int($2/1000)]++} $1=="DS"{ s=int($2/1000); if(!(s in w0)){ w0[s]=$0 } w1[s]=$0 } END{ for(s in w1){ split(w0[s],a," "); split(w1[s],b," "); split(a[3],x,":"); split(b[3],y,":"); sub("w","",x[3]); sub("w","",y[3]); sub("t","",x[4]); sub("t","",y[4]); printf "%d: D=%d wMB=%.0f busy=%d%%\n", s%100000, d[s], (y[3]-x[3])*512/1048576, (y[4]-x[4])/10 } }' "$L" | sort -n | tr '\n' ' '; echo
