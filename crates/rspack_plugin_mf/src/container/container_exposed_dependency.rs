@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, FactorizeInfo, ModuleDependency, ModuleLayer, ResourceIdentifier,
+  DependencyType, ModuleDependency, ModuleLayer, ResourceIdentifier,
 };
 
 use crate::push_identifier_component;
@@ -20,7 +20,7 @@ fn exposed_resource_identifier(exposed_name: &str, request: &str, layer: Option<
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ContainerExposedDependency {
   id: DependencyId,
   request: String,
@@ -28,7 +28,6 @@ pub struct ContainerExposedDependency {
   layer: Option<Box<ModuleLayer>>,
   resource_identifier: ResourceIdentifier,
   dependency_type: DependencyType,
-  factorize_info: FactorizeInfo,
 }
 
 impl ContainerExposedDependency {
@@ -46,7 +45,6 @@ impl ContainerExposedDependency {
       layer: layer.map(Box::new),
       resource_identifier,
       dependency_type: DependencyType::ContainerExposed,
-      factorize_info: Default::default(),
     }
   }
 
@@ -59,7 +57,6 @@ impl ContainerExposedDependency {
       layer: None,
       resource_identifier,
       dependency_type: DependencyType::ShareContainerFallback,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -100,14 +97,6 @@ impl ModuleDependency for ContainerExposedDependency {
   fn user_request(&self) -> &str {
     &self.request
   }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
-  }
 }
 
 impl AsContextDependency for ContainerExposedDependency {}
@@ -126,7 +115,10 @@ mod tests {
 
   #[test]
   fn two_argument_constructor_remains_available() {
-    let _constructor: fn(String, String) -> ContainerExposedDependency =
+    let constructor: fn(String, String) -> ContainerExposedDependency =
       ContainerExposedDependency::new;
+    let dependency = constructor("./a".to_string(), "./src/a.js".to_string());
+    assert_eq!(dependency.exposed_name, "./a");
+    assert!(dependency.layer.is_none());
   }
 }

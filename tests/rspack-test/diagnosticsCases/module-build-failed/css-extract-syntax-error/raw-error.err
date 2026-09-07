@@ -1,0 +1,12 @@
+Array [
+  Object {
+    code: ModuleBuildError,
+    moduleIdentifier: <PNPM_INNER>/css-loader/dist/cjs.js!<TEST_ROOT>/diagnosticsCases/module-build-failed/css-extract-syntax-error/style.css,
+    moduleName: ,
+  },
+  Object {
+    code: ModuleBuildError,
+    moduleIdentifier: <RSPACK_ROOT>/dist/cssExtractLoader.js!<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_ROOT>/diagnosticsCases/module-build-failed/css-extract-syntax-error/style.css,
+    moduleName: ./style.css,
+  },
+]

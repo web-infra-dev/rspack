@@ -1,12 +1,11 @@
 ```mjs title=main.mjs
-import { __rspack_context } from "./runtime.mjs";
-
+import { rspackRequire, createFakeNamespaceObject } from "./runtime.mjs";
 // ./index.js
 const __rspack_createRequire = "local-createRequire";
 const __rspack_createRequire_require = "local-require";
 
 async function loadFs() {
-	const fs = await import("node:module").then(function(module) { return __rspack_context.t(module.createRequire(import.meta.url)("fs"), 22) });
+	const fs = await import("node:module").then(function(module) { return createFakeNamespaceObject(module.createRequire(import.meta.url)("fs"), 22) });
 	return [
 		typeof fs.readFile,
 		typeof fs.default.readFile,
@@ -30,8 +29,8 @@ export { loadFs };
 
 ```mjs title=runtime.mjs
 // The require scope
-var __rspack_require = {};
-var __rspack_context = {};
+var rspackRequire = {};
+export { rspackRequire };
 
 // rspack/runtime/create_fake_namespace_object
 var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
@@ -60,7 +59,7 @@ var createFakeNamespaceObject = function(value, mode) {
 	definePropertyGetters(ns, def);
 	return ns;
 };;
-__rspack_context.t = createFakeNamespaceObject;
+export { createFakeNamespaceObject };
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -84,6 +83,5 @@ var makeNamespaceObject = (exports) => {
 	Object.defineProperty(exports, '__esModule', { value: true });
 };;
 
-export { __rspack_context };
 
 ```

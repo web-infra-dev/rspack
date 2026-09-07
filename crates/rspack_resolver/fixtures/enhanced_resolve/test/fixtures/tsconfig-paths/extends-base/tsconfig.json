@@ -1,0 +1,6 @@
+{
+  "extends": "${configDir}/../base/tsconfig",
+  "compilerOptions": {
+    "baseUrl": "."
+  }
+}

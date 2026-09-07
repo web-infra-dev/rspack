@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Create Draft Release Notes'
+  short_description: 'Create organized GitHub draft release notes'
+  default_prompt: 'Use $create-draft-release-notes to create or update organized draft release notes for the requested release.'
+
+policy:
+  allow_implicit_invocation: false

@@ -30,13 +30,14 @@ use rspack_core::{
   CompilationRuntimeModuleHook, CompilationRuntimeRequirementInTree,
   CompilationRuntimeRequirementInTreeHook, CompilationSeal, CompilationSealHook,
   CompilationStillValidModule, CompilationStillValidModuleHook, CompilationSucceedModule,
-  CompilationSucceedModuleHook, CompilerAfterEmit, CompilerAfterEmitHook, CompilerAssetEmitted,
-  CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook, CompilerEmit,
-  CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerId, CompilerMake,
-  CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook, CompilerThisCompilation,
-  CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
-  ContextModuleFactoryAfterResolveHook, ContextModuleFactoryBeforeResolve,
-  ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, Module, ModuleFactoryCreateData,
+  CompilationSucceedModuleHook, CompilerAfterCompile, CompilerAfterCompileHook, CompilerAfterEmit,
+  CompilerAfterEmitHook, CompilerAssetEmitted, CompilerAssetEmittedHook, CompilerCompilation,
+  CompilerCompilationHook, CompilerEmit, CompilerEmitHook, CompilerFinishMake,
+  CompilerFinishMakeHook, CompilerId, CompilerMake, CompilerMakeHook, CompilerShouldEmit,
+  CompilerShouldEmitHook, CompilerThisCompilation, CompilerThisCompilationHook,
+  ContextModuleFactoryAfterResolve, ContextModuleFactoryAfterResolveHook,
+  ContextModuleFactoryBeforeResolve, ContextModuleFactoryBeforeResolveHook, ExecuteModuleId,
+  ExternalModuleChunkCondition, ExternalModuleChunkConditionHook, Module, ModuleFactoryCreateData,
   ModuleId, ModuleIdentifier, ModuleIdsArtifact, NormalModuleCreateData,
   NormalModuleFactoryAfterResolve, NormalModuleFactoryAfterResolveHook,
   NormalModuleFactoryBeforeResolve, NormalModuleFactoryBeforeResolveHook,
@@ -442,6 +443,7 @@ pub enum RegisterJsTapKind {
   CompilerCompilation,
   CompilerMake,
   CompilerFinishMake,
+  CompilerAfterCompile,
   CompilerShouldEmit,
   CompilerEmit,
   CompilerAfterEmit,
@@ -473,6 +475,7 @@ pub enum RegisterJsTapKind {
   NormalModuleFactoryResolveForScheme,
   ContextModuleFactoryBeforeResolve,
   ContextModuleFactoryAfterResolve,
+  ExternalModuleChunkCondition,
   JavascriptModulesChunkHash,
   HtmlPluginBeforeAssetTagGeneration,
   HtmlPluginAlterAssetTags,
@@ -525,6 +528,10 @@ pub struct RegisterJsTaps {
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
   pub register_compiler_finish_make_taps: RegisterFunction,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>"
+  )]
+  pub register_compiler_after_compile_taps: RegisterFunction,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => boolean | undefined); stage: number; }>"
   )]
@@ -647,6 +654,10 @@ pub struct RegisterJsTaps {
   )]
   pub register_context_module_factory_after_resolve_taps: RegisterFunction,
   #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((chunk: Chunk) => boolean | undefined); stage: number; }>"
+  )]
+  pub register_external_module_chunk_condition_taps: RegisterFunction,
+  #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: Chunk) => Buffer); stage: number; }>"
   )]
   pub register_javascript_modules_chunk_hash_taps: RegisterFunction,
@@ -747,6 +758,13 @@ define_register!(
   tap = CompilerFinishMakeTap<JsCompilationWrapper, Promise<()>> @ CompilerFinishMakeHook,
   cache = false,
   kind = RegisterJsTapKind::CompilerFinishMake,
+  skip = true,
+);
+define_register!(
+  RegisterCompilerAfterCompileTaps,
+  tap = CompilerAfterCompileTap<JsCompilationWrapper, Promise<()>> @ CompilerAfterCompileHook,
+  cache = false,
+  kind = RegisterJsTapKind::CompilerAfterCompile,
   skip = true,
 );
 define_register!(
@@ -973,6 +991,14 @@ define_register!(
   skip = true,
 );
 
+/* ExternalModule Hooks */
+define_register!(
+  RegisterExternalModuleChunkConditionTaps,
+  tap = ExternalModuleChunkConditionTap<ChunkWrapper, Option<bool>> @ ExternalModuleChunkConditionHook,
+  cache = true,
+  kind = RegisterJsTapKind::ExternalModuleChunkCondition,
+  skip = true,
+);
 /* JavascriptModules Hooks */
 define_register!(
   RegisterJavascriptModulesChunkHashTaps,
@@ -1155,6 +1181,18 @@ impl CompilerMake for CompilerMakeTap {
 
 #[async_trait]
 impl CompilerFinishMake for CompilerFinishMakeTap {
+  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
+    let compilation = JsCompilationWrapper::new(compilation);
+    self.function.call_with_promise(compilation).await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl CompilerAfterCompile for CompilerAfterCompileTap {
   async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
     let compilation = JsCompilationWrapper::new(compilation);
     self.function.call_with_promise(compilation).await
@@ -1840,6 +1878,23 @@ impl ContextModuleFactoryAfterResolve for ContextModuleFactoryAfterResolveTap {
   }
 }
 
+#[async_trait]
+impl ExternalModuleChunkCondition for ExternalModuleChunkConditionTap {
+  async fn run(
+    &self,
+    chunk_ukey: &ChunkUkey,
+    compilation: &Compilation,
+  ) -> rspack_error::Result<Option<bool>> {
+    self
+      .function
+      .call_with_sync(ChunkWrapper::new(*chunk_ukey, compilation))
+      .await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
 #[async_trait]
 impl JavascriptModulesChunkHash for JavascriptModulesChunkHashTap {
   async fn run(

@@ -1,5 +1,3 @@
-use std::ptr::NonNull;
-
 use rspack_core::{Chunk, ChunkUkey, Compilation, CompilationId};
 use rspack_hook::define_hook;
 #[cfg(allocative)]
@@ -33,10 +31,7 @@ pub struct LinkPrefetchData<'a> {
 pub struct RuntimeModuleChunkWrapper {
   pub chunk_ukey: ChunkUkey,
   pub compilation_id: CompilationId,
-  pub compilation: NonNull<Compilation>,
 }
-
-unsafe impl Send for RuntimeModuleChunkWrapper {}
 
 define_hook!(RuntimePluginCreateScript: SeriesWaterfall(data: CreateScriptData) -> CreateScriptData);
 define_hook!(RuntimePluginCreateLink: SeriesWaterfall(compilation: &Compilation, data: CreateLinkData<'_>) -> CreateLinkData<'_>);

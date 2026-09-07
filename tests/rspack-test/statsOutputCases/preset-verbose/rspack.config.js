@@ -4,6 +4,7 @@ const {
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  incremental: false,
   mode: 'production',
   entry: './index',
   profile: true,

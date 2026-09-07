@@ -73,13 +73,8 @@ impl AsyncDependenciesBlock {
           .get_dependencies()
           .iter()
           .filter_map(|dependency_id| {
-            internal::try_dependency_by_id(module_graph, dependency_id).map(|dep| {
-              DependencyWrapper::new(
-                (&**dep) as &dyn rspack_core::Dependency,
-                compilation.id(),
-                Some(compilation),
-              )
-            })
+            internal::try_dependency_by_id(module_graph, dependency_id)
+              .map(|dep| DependencyWrapper::new(dep, compilation.id(), Some(compilation)))
           })
           .collect::<Vec<_>>(),
       )

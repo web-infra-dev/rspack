@@ -1,9 +1,10 @@
+use std::sync::Arc;
+
 use rspack_core::{
-  ConstDependency, Dependency, DependencyRange, DependencyType, ExportPresenceMode,
+  BoxDependency, ConstDependency, Dependency, DependencyRange, DependencyType, ExportPresenceMode,
   ImportAttributes, ImportPhase,
 };
 use rspack_util::SpanExt;
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   BinExpr, BinaryOp, CallExpr, Callee, Expr, GetSpan, Ident, ImportDecl, MemberExpr, Span,
 };
@@ -15,6 +16,7 @@ use super::{
   inner_graph::state::InnerGraphUsageOperation,
 };
 use crate::{
+  Atom,
   dependency::{ESMImportSideEffectDependency, ESMImportSpecifierDependency},
   utils::{
     eval::{BasicEvaluatedExpression, DependencyData},
@@ -96,9 +98,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       false,
     );
 
-    parser.add_dependency(Box::new(dependency));
+    parser.add_dependency(BoxDependency::new(dependency));
 
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    parser.add_presentational_dependency(Arc::new(ConstDependency::new(
       import_span.into(),
       if parser.is_asi_position(import_decl.span_lo()) {
         ";".into()
@@ -197,7 +199,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
 
     let dep_id = *dep.id();
     let dep_idx = parser.next_dependency_idx();
-    parser.add_dependency(Box::new(dep));
+    parser.add_dependency(BoxDependency::new(dep));
 
     if let Some(in_guard) = parser.dependencies_in_branch_guard.as_mut() {
       in_guard.insert(range, dep_id);
@@ -297,7 +299,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
     );
     let dep_id = *dep.id();
     let dep_idx = parser.next_dependency_idx();
-    parser.add_dependency(Box::new(dep));
+    parser.add_dependency(BoxDependency::new(dep));
 
     if let Some(in_guard) = parser.dependencies_in_branch_guard.as_mut() {
       in_guard.insert(range, dep_id);
@@ -372,7 +374,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       && !direct_import;
     let dep_id = *dep.id();
     let dep_idx = parser.next_dependency_idx();
-    parser.add_dependency(Box::new(dep));
+    parser.add_dependency(BoxDependency::new(dep));
 
     if let Some(in_guard) = parser.dependencies_in_branch_guard.as_mut() {
       in_guard.insert(range, dep_id);
@@ -441,7 +443,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
     );
     let dep_id = *dep.id();
     let dep_idx = parser.next_dependency_idx();
-    parser.add_dependency(Box::new(dep));
+    parser.add_dependency(BoxDependency::new(dep));
 
     if let Some(in_guard) = parser.dependencies_in_branch_guard.as_mut() {
       in_guard.insert(range, dep_id);

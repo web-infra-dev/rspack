@@ -11,7 +11,7 @@ use rspack_util::source_map::SourceMapKind;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  ChunkUkey, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
+  ChunkUkey, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId,
   FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier,
   ModuleType, RuntimeSpec, SourceType, impl_module_meta_info,
 };
@@ -113,8 +113,8 @@ impl Module for SelfModule {
   async fn code_generation(
     &self,
     _code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
-    Ok(CodeGenerationResult::default())
+  ) -> Result<CodeGenerationResultBuilder> {
+    Ok(CodeGenerationResultBuilder::default())
   }
 
   async fn get_runtime_hash(

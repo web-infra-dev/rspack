@@ -26,7 +26,7 @@ module.exports = {
 		expect(source).not.toContain('__webpack_require__.t(require("os"), 22)');
 		if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
 			expect(source).toContain(
-				'__rspack_context.t(module.createRequire(import.meta.url)("os"), 22)'
+				'createFakeNamespaceObject(module.createRequire(import.meta.url)("os"), 22)'
 			);
 		} else {
 			expect(source).toContain(

@@ -3,13 +3,38 @@ description: 'The loader context represents the properties that are available in
 ---
 
 import { ApiMeta, Stability } from '@components/ApiMeta';
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/api/loaders/#the-loader-context" />
+import Attribution from '@components/Attribution';
 
 # Loader context
 
 The loader context represents the properties that are available inside of a loader assigned to the `this` property.
+
+## this.addBuildDependency()
+
+- **Type:**
+
+```ts
+function addBuildDependency(file: string): void;
+```
+
+Add a file as a build dependency of the loader result. Build dependencies are used to invalidate the persistent cache when they change.
+
+Use this for files that affect a loader's behavior or transformation result, such as a loader configuration file.
+
+```js title="loader.mjs"
+import path from 'node:path';
+
+export default function loader(source) {
+  this.addBuildDependency(
+    path.resolve(this.rootContext, 'custom-loader.config.js'),
+  );
+  return source;
+}
+```
+
+:::tip
+`this.addBuildDependency()` does not make the file a watch dependency. If changes to the file should trigger a rebuild in watch mode, also call [this.addDependency()](#thisadddependency).
+:::
 
 ## this.addContextDependency()
 
@@ -23,13 +48,13 @@ Add the directory as a dependency for the loader results so that any changes to 
 
 For example, adding `src/static` as a dependency. When the files in the `src/static` directory change, it will trigger a rebuild.
 
-```js title="loader.js"
-const path = require('node:path');
+```js title="loader.mjs"
+import path from 'node:path';
 
-module.exports = function loader(source) {
+export default function loader(source) {
   this.addContextDependency(path.resolve(this.rootContext, 'src/static'));
   return source;
-};
+}
 ```
 
 ## this.addDependency()
@@ -42,13 +67,13 @@ function addDependency(file: string): void;
 
 Add a file as a dependency on the loader results so that any changes to them can be listened to. For example, `sass-loader`, `less-loader` use this trick to recompile when the imported style files change.
 
-```js title="loader.js"
-const path = require('node:path');
+```js title="loader.mjs"
+import path from 'node:path';
 
-module.exports = function loader(source) {
+export default function loader(source) {
   this.addDependency(path.resolve(this.rootContext, 'src/styles/foo.scss'));
   return source;
-};
+}
 ```
 
 ## this.addMissingDependency()
@@ -61,15 +86,15 @@ function addMissingDependency(file: string): void;
 
 Add a currently non-existent file as a dependency of the loader result, so that its creation and any changes can be listened. For example, when a new file is created at that path, it will trigger a rebuild.
 
-```js title="loader.js"
-const path = require('node:path');
+```js title="loader.mjs"
+import path from 'node:path';
 
-module.exports = function loader(source) {
+export default function loader(source) {
   this.addMissingDependency(
     path.resolve(this.rootContext, 'src/dynamic-file.json'),
   );
   return source;
-};
+}
 ```
 
 ## this.async()
@@ -88,15 +113,15 @@ Tells Rspack that this loader will be called asynchronously. Returns [this.callb
 function cacheable(flag: boolean = true): void;
 ```
 
-A function that sets the cacheable flag.
+By default, the final build result produced for the current module by the entire loader chain is cacheable. Calling `this.cacheable(false)` marks that result as non-cacheable.
 
-By default, the processing results of the loader are marked as cacheable. Calling this method and passing `false` turns off the loader's ability to cache processing results.
+Once a loader has called `this.cacheable(false)`, subsequent loaders cannot make the result cacheable again by calling `this.cacheable(true)` or `this.cacheable()`. Only [`this.clearDependencies()`](#thiscleardependencies) resets this state.
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   this.cacheable(false);
   return source;
-};
+}
 ```
 
 ## this.callback()
@@ -104,28 +129,31 @@ module.exports = function loader(source) {
 - **Type:**
 
 ```ts
+interface AdditionalData {
+  [index: string]: any;
+}
+
 function callback(
-  err: Error | null,
-  content: string | Buffer,
-  sourceMap?: Rspack.RawSourceMap,
-  meta?: any,
+  err?: Error | null,
+  content?: string | Buffer,
+  sourceMap?: string | Rspack.RawSourceMap,
+  additionalData?: AdditionalData,
 ): void;
 ```
 
-A function that can be called synchronously or asynchronously in order to return multiple results. The expected arguments are:
+Call `this.callback()` to return a loader's results, either synchronously or asynchronously. Its arguments are:
 
-1. The first parameter must be `Error` or `null`, which marks the current module as a compilation failure.
-2. The second argument is a `string` or `Buffer`, which indicates the contents of the file after the module has been processed by the loader.
-3. The third parameter is a source map that can be processed by the loader.
-4. The fourth parameter is ignored by Rspack and can be anything (e.g. some metadata).
+1. `err`: An `Error` when the loader fails, or `null` or `undefined` when it succeeds.
+2. `content`: The transformed module content as a `string` or `Buffer`. It can be omitted when reporting an error.
+3. `sourceMap`: An optional source map as a `string` or `Rspack.RawSourceMap`.
+4. `additionalData`: Optional additional data. Rspack passes it as the third argument to the next loader in the chain.
 
 > See [Sync loader](/api/loader-api/writing-loaders#sync-loader) for more details.
 
 :::warning
 In case this function is called, you should return `undefined` to avoid ambiguous loader results.
 
-The value passed to `this.callback` will be passed to the next loader in the chain.
-The `sourceMap` and `meta` parameters are optional. If they are not passed, the next loader will not receive them.
+The `content`, `sourceMap`, and `additionalData` values are passed to the next loader in the chain.
 :::
 
 ## this.clearDependencies()
@@ -136,7 +164,9 @@ The `sourceMap` and `meta` parameters are optional. If they are not passed, the 
 function clearDependencies(): void;
 ```
 
-Removes all dependencies of the loader result.
+Clears all [file dependencies](#thisadddependency), [context dependencies](#thisaddcontextdependency), and [missing dependencies](#thisaddmissingdependency) collected by the loader chain. [Build dependencies](#thisaddbuilddependency) are not cleared. This also resets [`cacheable`](#thiscacheable) to `true`, overriding any earlier call to `this.cacheable(false)`.
+
+Only use this method when the current loader will register every dependency required by the final result.
 
 ## this.context
 
@@ -146,20 +176,35 @@ The directory path of the currently processed module, which changes with the loc
 
 For example, if the loader is processing `/project/src/components/Button.js`, then the value of `this.context` would be `/project/src/components`.
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   console.log(this.context); // '/project/src/components'
   return source;
-};
+}
 ```
 
-If the module being processed is not from the file system, such as a virtual module, then the value of `this.context` is `null`.
+If the current module has no resource path, the value of `this.context` is `null`.
 
 ## this.loaderIndex
 
 - **Type:** `number`
 
 The index in the loaders array of the current loader.
+
+## this.loaders
+
+- **Type:** `LoaderObject[]`
+
+`this.loaders` contains all loaders applied to the current module. Each item provides information such as the resolved `request`, `path`, `query`, and `options`.
+
+During the pitch phase, you can modify the array to adjust the loader chain. Use [this.loaderIndex](#thisloaderindex) to locate the current loader.
+
+```js title="loader.mjs"
+export function pitch() {
+  const currentLoader = this.loaders[this.loaderIndex];
+  console.log(currentLoader.request);
+}
+```
 
 ## this.data
 
@@ -239,19 +284,19 @@ interface Diagnostic {
 function emitDiagnostic(diagnostic: Diagnostic): void;
 ```
 
-Formats and emits a diagnostic message (error or warning log). Supports the display of module paths, source code snippets and line/column numbers.
+Formats and emits an error or warning diagnostic. Supports the display of module paths, source code snippets, and line/column numbers.
 
 ::: info
-Unlike `throw` and `this.callback(err)` in the loader, it does not mark the current module as a compilation failure, it just adds an error to Rspack's Compilation and displays it on the command line at the end of this compilation.
+Unlike `throw` and `this.callback(err)` in a loader, it does not mark the current module as a compilation failure. It adds an error or warning to Rspack's Compilation according to `severity`, then displays it on the command line at the end of the compilation.
 :::
 
 - Basic example:
 
-When only `message` and `severity` are provided, only the basic module error information will be printed.
+When only `message` and `severity` are provided, only the basic diagnostic information will be printed.
 
-```js title="loader.js"
+```js title="loader.mjs"
 /** @type {import("@rspack/core").LoaderDefinition} */
-module.exports = function () {
+export default function () {
   this.experiments.emitDiagnostic({
     message: '`React` is not defined',
     severity: 'error',
@@ -261,24 +306,24 @@ module.exports = function () {
     severity: 'warning',
   });
   return '';
-};
+}
 ```
 
 This will print:
 
 ```
-ERROR in (./loader.js!)
+ERROR in (./loader.mjs!)
   × ModuleError: `React` is not defined
 
-WARNING in (./loader.js!)
+WARNING in (./loader.mjs!)
   ⚠ ModuleWarning: `React` is not defined
 ```
 
 - Printing code snippet:
 
-```js title="loader.js"
+```js title="loader.mjs"
 /** @type {import("@rspack/core").LoaderDefinition} */
-module.exports = function () {
+export default function () {
   this.experiments.emitDiagnostic({
     message: '`React` is not defined',
     severity: 'error',
@@ -291,7 +336,7 @@ module.exports = function () {
     file: './some-file.js',
   });
   return '';
-};
+}
 ```
 
 This will print:
@@ -325,18 +370,18 @@ Emit a new file. This method allows you to create new files during the loader ex
 
 - Basic example:
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   // Emit a new file that will be output as `foo.js` in the output directory
   this.emitFile('foo.js', 'console.log("Hello, world!");');
   return source;
-};
+}
 ```
 
 - Example with asset info:
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   this.emitFile(
     'foo.js',
     'console.log("Hello, world!");',
@@ -347,7 +392,7 @@ module.exports = function loader(source) {
   );
 
   return source;
-};
+}
 ```
 
 ## this.fs
@@ -355,6 +400,65 @@ module.exports = function loader(source) {
 - **Type:** `InputFileSystem`
 
 Access to the `compilation` object's `inputFileSystem` property.
+
+## this.getContextDependencies()
+
+- **Type:**
+
+```ts
+function getContextDependencies(): string[];
+```
+
+Returns all directories the loader currently watches as context dependencies, including directories added with [this.addContextDependency()](#thisaddcontextdependency).
+
+```js title="loader.mjs"
+export default function loader(source) {
+  const contextDependencies = this.getContextDependencies();
+  console.log(contextDependencies);
+
+  return source;
+}
+```
+
+## this.getDependencies()
+
+- **Type:**
+
+```ts
+function getDependencies(): string[];
+```
+
+Returns all files the loader currently watches as dependencies, including files added with [this.addDependency()](#thisadddependency) or [this.dependency()](#thisdependency).
+
+```js title="loader.mjs"
+export default function loader(source) {
+  const dependencies = this.getDependencies();
+  console.log(dependencies);
+
+  return source;
+}
+```
+
+## this.getMissingDependencies()
+
+- **Type:**
+
+```ts
+function getMissingDependencies(): string[];
+```
+
+Returns all paths to files that the loader is watching but that do not exist yet, including paths added with [this.addMissingDependency()](#thisaddmissingdependency). Creating one of these files may trigger a rebuild.
+
+```js title="loader.mjs"
+export default function loader(source) {
+  const missingDependencies = this.getMissingDependencies();
+  console.log(missingDependencies);
+
+  return source;
+}
+```
+
+Each method returns a new array. Modifying the returned array does not change the dependencies registered by the loader. To remove dependencies from these three lists, use [this.clearDependencies()](#thiscleardependencies).
 
 ## this.getOptions()
 
@@ -375,7 +479,7 @@ export default {
       {
         test: /\.txt$/,
         use: {
-          loader: './my-loader.js',
+          loader: './my-loader.mjs',
           options: {
             foo: 'bar',
           },
@@ -386,14 +490,14 @@ export default {
 };
 ```
 
-In `my-loader.js` get the options passed in:
+In `my-loader.mjs` get the options passed in:
 
-```js title="my-loader.js"
-module.exports = function myLoader(source) {
+```js title="my-loader.mjs"
+export default function myLoader(source) {
   const options = this.getOptions();
   console.log(options); // { foo: 'bar' }
   return source;
-};
+}
 ```
 
 :::tip
@@ -432,10 +536,37 @@ To provide the best performance, Rspack does not perform the schema validation. 
 - **Type:**
 
 ```ts
-function getResolve(options: ResolveOptions): resolve;
+type ResolveFunction = {
+  (
+    context: string,
+    request: string,
+    callback: (
+      err: Error | null,
+      result?: string | false,
+      resolveRequest?: ResolveRequest,
+    ) => void,
+  ): void;
+  (context: string, request: string): Promise<string | false | undefined>;
+};
+
+function getResolve(options?: ResolveOptions): ResolveFunction;
 ```
 
-Create a resolver like `this.resolve`.
+Creates a resolver like [`this.resolve()`](#thisresolve). Pass `options` to customize the resolver. If no options are provided, it uses the normal resolver without additional options.
+
+The returned resolver supports both callback and Promise forms. When no callback is passed, it returns a Promise.
+
+```js title="loader.mjs"
+export default async function loader(source) {
+  const resolve = this.getResolve({
+    extensions: ['.js', '.json'],
+  });
+  const result = await resolve(this.context, './dependency');
+
+  console.log(result);
+  return source;
+}
+```
 
 ## this.hot
 
@@ -443,11 +574,11 @@ Create a resolver like `this.resolve`.
 
 Whether HMR is enabled.
 
-```js title="loader.js"
-module.exports = function (source) {
+```js title="loader.mjs"
+export default function (source) {
   console.log(this.hot); // true if HMR is enabled
   return source;
-};
+}
 ```
 
 ## this.importModule()
@@ -487,10 +618,10 @@ Compile and execute a module at the build time. This is an alternative lightweig
 
 `importModule` will return a Promise if no callback is provided.
 
-```js title="loader.js"
-const path = require('node:path');
+```js title="loader.mjs"
+import path from 'node:path';
 
-module.exports = async function loader(source) {
+export default async function loader(source) {
   const modulePath = path.resolve(this.rootContext, 'some-module.ts');
   const moduleExports = await this.importModule(modulePath, {
     // optional options
@@ -498,15 +629,15 @@ module.exports = async function loader(source) {
 
   const result = someProcessing(source, moduleExports);
   return result;
-};
+}
 ```
 
 Or you can pass a callback to it.
 
-```js title="loader.js"
-const path = require('node:path');
+```js title="loader.mjs"
+import path from 'node:path';
 
-module.exports = function loader(source) {
+export default function loader(source) {
   const callback = this.async();
   const modulePath = path.resolve(this.rootContext, 'some-module.ts');
 
@@ -523,7 +654,7 @@ module.exports = function loader(source) {
       callback(null, result);
     },
   );
-};
+}
 ```
 
 ## this.query
@@ -537,13 +668,69 @@ The value depends on the loader configuration:
 
 Unlike [this.getOptions()](#thisgetoptions), the query-string form is not parsed. For example, `loader: './my-loader?s=foo+bar'` gives `this.query === '?s=foo+bar'`.
 
+## this.remainingRequest
+
+- **Type:** `string`
+
+`this.remainingRequest` consists of the loaders that follow the current loader in the chain and the current resource, joined with `!`.
+
+For example, consider the following loader chain:
+
+```text
+/path/to/loader1.mjs!/path/to/loader2.mjs!/path/to/resource.js
+```
+
+When Rspack runs `loader1.mjs`, `this.remainingRequest` is:
+
+```text
+/path/to/loader2.mjs!/path/to/resource.js
+```
+
+You can use it to create an inline request without invoking the current loader again. See [Inline matchResource](/api/loader-api/inline-match-resource) for an example.
+
+## this.currentRequest
+
+- **Type:** `string`
+
+`this.currentRequest` consists of the current loader, the loaders that follow it in the chain, and the current resource, joined with `!`.
+
+For example, consider the following loader chain:
+
+```text
+/path/to/loader1.mjs!/path/to/loader2.mjs!/path/to/resource.js
+```
+
+When Rspack runs `loader2.mjs`, `this.currentRequest` is:
+
+```text
+/path/to/loader2.mjs!/path/to/resource.js
+```
+
+## this.previousRequest
+
+- **Type:** `string`
+
+`this.previousRequest` consists of the loaders that precede the current loader, joined with `!`. It does not include the current resource.
+
+For example, consider the following loader chain:
+
+```text
+/path/to/loader1.mjs!/path/to/loader2.mjs!/path/to/resource.js
+```
+
+When Rspack runs `loader2.mjs`, `this.previousRequest` is:
+
+```text
+/path/to/loader1.mjs
+```
+
 ## this.request
 
 - **Type:** `string`
 
-The module specifier string after being resolved.
+The complete request string, consisting of all loaders and the current resource joined with `!`.
 
-For example, if a `resource.js` is processed by `loader1.js` and `loader2.js`, the value of `this.request` will be `/path/to/loader1.js!/path/to/loader2.js!/path/to/resource.js`.
+For example, if a `resource.js` is processed by `loader1.mjs` and `loader2.mjs`, the value of `this.request` will be `/path/to/loader1.mjs!/path/to/loader2.mjs!/path/to/resource.js`.
 
 ## this.resolve()
 
@@ -553,7 +740,11 @@ For example, if a `resource.js` is processed by `loader1.js` and `loader2.js`, t
 function resolve(
   context: string,
   request: string,
-  callback: (err: Error | null, result: string) => void,
+  callback: (
+    err: Error | null,
+    result?: string | false,
+    resolveRequest?: ResolveRequest,
+  ) => void,
 ): void;
 ```
 
@@ -561,34 +752,52 @@ Resolve a module specifier.
 
 - `context` must be the absolute path to a directory. This directory is used as the starting location for resolving.
 - `request` is the module specifier to be resolved.
-- `callback` is a callback function that gives the resolved path.
+- `callback` receives the error, the resolved path (or `false` when the request is ignored), and optional resolution details.
 
 ## this.mode
 
-- **Type:** `Mode`
+- **Type:** `Mode | undefined`
 
-The value of [`mode`](/config/mode) is read when Rspack is run.
+The value of the [`mode`](/config/mode) configuration.
 
-The possible values are: `'production'`, `'development'`, `'none'`
+The possible values are `'production'`, `'development'`, `'none'`, and `undefined`. If `mode` is not configured, `this.mode` is `undefined`, even though Rspack applies production-oriented defaults.
 
-```js title="loader.js"
-module.exports = function loader(source) {
-  console.log(this.mode); // 'production' or other values
+```js title="loader.mjs"
+export default function loader(source) {
+  console.log(this.mode); // 'production', 'development', 'none', or undefined
   return source;
-};
+}
 ```
 
 ## this.target
 
-- **Type:** `Target`
+- **Type:** `Target | undefined`
 
-The current compilation target. Passed from [`target`](/config/target) configuration options.
+By default, this is a simplified target value derived from the [`target`](/config/target) configuration. When possible, Rspack maps the target's capabilities to a value such as `'web'`, `'node'`, `'nwjs'`, or `'electron-main'`. Therefore, `this.target` is not necessarily identical to the original `target` configuration.
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   console.log(this.target); // 'web' or other values
   return source;
-};
+}
+```
+
+## this.environment
+
+- **Type:** `Environment`
+
+Describes the capabilities supported by the target environment. By default, this is the effective value of [`output.environment`](/config/output#outputenvironment): Rspack infers the capabilities from [`target`](/config/target), then applies the explicit settings from `output.environment`.
+
+A loader can use this information to choose syntax supported by the output environment.
+
+```js title="loader.mjs"
+export default function loader(source) {
+  if (this.environment.optionalChaining) {
+    console.log('Optional chaining is supported');
+  }
+
+  return source;
+}
 ```
 
 ## this.utils
@@ -609,8 +818,8 @@ Access to the following utilities.
 - `contextify`: Return a new request string avoiding absolute paths when possible.
 - `createHash`: Return a new Hash object from provided hash function.
 
-```js title="loader.js"
-module.exports = function (content) {
+```js title="loader.mjs"
+export default function (content) {
   this.utils.contextify(
     this.context,
     this.utils.absolutify(this.context, './index.js'),
@@ -625,7 +834,7 @@ module.exports = function (content) {
   mainHash.digest('hex');
 
   return content;
-};
+}
 ```
 
 ## this.resource
@@ -634,24 +843,24 @@ module.exports = function (content) {
 
 The path string of the current module. For example `'/abc/resource.js?query#hash'`.
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   console.log(this.resource); // '/abc/resource.js?query#hash'
   return source;
-};
+}
 ```
 
 ## this.resourcePath
 
 - **Type:** `string`
 
-The path string of the current module, excluding the query and fragment parameters. For example `'/abc/resource.js?query#hash'` in `'/abc/resource.js'`.
+The path string of the current module, excluding the query and fragment parameters. For example, the value is `'/abc/resource.js'` for `'/abc/resource.js?query#hash'`.
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   console.log(this.resourcePath); // '/abc/resource.js'
   return source;
-};
+}
 ```
 
 ## this.resourceQuery
@@ -660,11 +869,11 @@ module.exports = function loader(source) {
 
 The query parameter for the path string of the current module. For example `'?query'` in `'/abc/resource.js?query#hash'`.
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   console.log(this.resourceQuery); // '?query'
   return source;
-};
+}
 ```
 
 ## this.resourceFragment
@@ -673,11 +882,11 @@ module.exports = function loader(source) {
 
 The fragment parameter of the current module's path string. For example `'#hash'` in `'/abc/resource.js?query#hash'`.
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   console.log(this.resourceFragment); // '#hash'
   return source;
-};
+}
 ```
 
 ## this.rootContext
@@ -686,11 +895,11 @@ module.exports = function loader(source) {
 
 The base path configured in Rspack config via [context](/config/context).
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   console.log(this.rootContext); // /path/to/project
   return source;
-};
+}
 ```
 
 ## this.sourceMap
@@ -742,3 +951,5 @@ Access to the current [Compiler](/api/javascript-api/compiler) object of Rspack.
 - **Type:** `Compilation`
 
 Access to the current [Compilation](/api/javascript-api/compilation) object of Rspack.
+
+<Attribution url="https://webpack.js.org/api/loaders/#the-loader-context" />

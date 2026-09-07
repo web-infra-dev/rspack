@@ -341,7 +341,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
     .into_iter()
     .map(|dependency| {
       (
-        Box::new(dependency) as BoxDependency,
+        BoxDependency::new(dependency),
         EntryOptions {
           name: None,
           ..Default::default()

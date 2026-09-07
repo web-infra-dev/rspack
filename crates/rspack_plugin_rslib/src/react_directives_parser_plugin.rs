@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_core::ConstDependency;
 use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParser};
 use swc_experimental_ecma_ast::{Lit, ModuleItem, Program, Span, Stmt};
@@ -57,7 +59,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ReactDirectivesParserPlugin {
     );
 
     for (_, span) in directives {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(span.into(), "".into())));
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(span.into(), "".into())));
     }
 
     None

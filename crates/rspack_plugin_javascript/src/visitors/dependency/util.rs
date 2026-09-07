@@ -3,10 +3,10 @@ use std::sync::LazyLock;
 use rspack_core::DependencyRange;
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{Expr, Lit, MemberExpr, OptChainBase};
 
 use super::JavascriptParser;
+use crate::Atom;
 
 static DEFAULT_CONTEXT_REGEXP: LazyLock<RspackRegex> =
   LazyLock::new(|| RspackRegex::new(r"^\.\/.*$").expect("reg failed"));
@@ -24,7 +24,6 @@ pub mod expr_name {
   pub const IMPORT_META: &str = "import.meta";
   pub const IMPORT_META_FILENAME: &str = "import.meta.filename";
   pub const IMPORT_META_DIRNAME: &str = "import.meta.dirname";
-  pub const IMPORT_META_ENV: &str = "import.meta.env";
   pub const IMPORT_META_URL: &str = "import.meta.url";
   pub const IMPORT_META_RESOLVE: &str = "import.meta.resolve";
   pub const IMPORT_META_VERSION: &str = "import.meta.webpack";

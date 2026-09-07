@@ -6,7 +6,7 @@ import StatsType from '../../types/stats.mdx';
 import CompilerType from '../../types/compiler.mdx';
 import LoggerType from '../../types/logger.mdx';
 import CacheType from '../../types/cache.mdx';
-import ChunkType from '../../types/cache.mdx';
+import ChunkType from '../../types/chunk.mdx';
 import InputFileSystemType from '../../types/input-file-system.mdx';
 import OutputFileSystemType from '../../types/output-file-system.mdx';
 import WatchFileSystemType from '../../types/watch-file-system.mdx';
@@ -101,7 +101,7 @@ const watching = compiler.watch(
 Watching 对象提供如下方法：
 
 - `watch`:
-  - **类型：** `(files: string[], dirs: string[], missing: string[]): void`
+  - **类型：** `(files: Iterable<string>, dirs: Iterable<string>, missing: Iterable<string>): void`
   - **用途：** 添加需要被监听的文件和目录
 - `invalidate`:
   - **类型：** `(callback: () => void): void`

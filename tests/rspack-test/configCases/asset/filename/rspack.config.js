@@ -28,6 +28,13 @@ module.exports = {
               },
             },
           },
+          {
+            resourceQuery: '?custom3',
+            generator: {
+              filename:
+                '模板/[name]-[contenthash:8]-[contenthash:16]-[contenthash:8]-[contenthash:o]-[hash:1234]-[contenthash:base64:4][ext]',
+            },
+          },
         ],
       },
     ],

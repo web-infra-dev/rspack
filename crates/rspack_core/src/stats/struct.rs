@@ -1,8 +1,8 @@
 use std::{borrow::Cow, fmt::Debug};
 
+use rspack_intern::Atom;
 use rspack_paths::Utf8Path;
 use rspack_sources::BoxSource;
-use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{ChunkGroupOrderKey, ModuleId, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType};
@@ -273,7 +273,7 @@ pub struct StatsModuleIssuer<'s> {
   pub id: Option<ModuleId>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct StatsModuleReason<'s> {
   pub module_identifier: Option<ModuleIdentifier>,
   pub module_name: Option<Cow<'s, str>>,

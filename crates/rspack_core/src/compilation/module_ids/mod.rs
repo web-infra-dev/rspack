@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use super::*;
-use crate::{cache::Cache, compilation::pass::PassExt};
+use crate::compilation::pass::PassExt;
 
 /// Collects module identifiers that need ID assignment.
 /// A module needs an ID if:
@@ -36,8 +36,8 @@ impl PassExt for ModuleIdsPass {
     "module ids"
   }
 
-  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.before_module_ids(compilation).await;
+  fn incremental_passes(&self) -> IncrementalPasses {
+    IncrementalPasses::MODULE_IDS
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
@@ -150,9 +150,5 @@ impl PassExt for ModuleIdsPass {
     compilation.module_ids_artifact = module_ids_artifact.into();
     compilation.extend_diagnostics(diagnostics);
     Ok(())
-  }
-
-  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.after_module_ids(compilation).await;
   }
 }

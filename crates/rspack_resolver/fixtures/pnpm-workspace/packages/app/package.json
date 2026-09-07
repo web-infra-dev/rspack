@@ -1,0 +1,7 @@
+{
+  "name": "@monorepo/app",
+  "private": true,
+  "dependencies": {
+    "@monorepo/lib": "workspace:*"
+  }
+}

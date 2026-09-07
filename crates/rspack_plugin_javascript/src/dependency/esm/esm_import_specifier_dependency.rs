@@ -5,25 +5,25 @@ use rspack_cacheable::{
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyCondition, DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode, ExportProvided,
-  ExportsInfoArtifact, ExportsType, FactorizeInfo, ForwardId, ImportAttributes, ImportPhase,
-  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport, ResourceIdentifier, RuntimeSpec,
-  SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
-  create_exports_object_referenced, property_access, to_normal_comment,
+  DependencyCondition, DependencyConditionFn, DependencyDiagnosticsContext, DependencyId,
+  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  ExportPresenceMode, ExportProvided, ExportsInfoArtifact, ExportsType, ForwardId,
+  ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport,
+  ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
+  TemplateReplaceSource, UsedByExports, UsedName, create_exports_object_referenced,
+  property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_util::json_stringify_str;
-use swc_atoms::Atom;
 
 use super::{
   create_resource_identifier_for_esm_dependency,
   esm_import_dependency::esm_import_dependency_get_linking_error, esm_import_dependency_apply,
 };
 use crate::{
-  connection_active_inline_value_for_esm_import_specifier, connection_active_used_by_exports,
+  Atom, connection_active_inline_value_for_esm_import_specifier, connection_active_used_by_exports,
   dependency::{
     DependencyBranchGuard, compose_dependency_condition, is_dependency_export_presence_guarded,
   },
@@ -32,7 +32,7 @@ use crate::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ESMImportSpecifierDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
@@ -60,7 +60,6 @@ pub struct ESMImportSpecifierDependency {
   loc: Option<DependencyLocation>,
   pub namespace_object_as_context: bool,
   ns_access: bool,
-  factorize_info: FactorizeInfo,
 }
 
 impl ESMImportSpecifierDependency {
@@ -106,17 +105,12 @@ impl ESMImportSpecifierDependency {
       attributes,
       resource_identifier,
       loc,
-      factorize_info: Default::default(),
     }
   }
 
   pub fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
     mg.get_dep_meta_if_existing(&self.id)
       .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
-  }
-
-  pub fn name(&self) -> &Atom {
-    &self.name
   }
 
   pub fn imported_name(&self) -> &Atom {
@@ -239,6 +233,21 @@ impl Dependency for ESMImportSpecifierDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
+    self.get_diagnostics_with_context(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      &DependencyDiagnosticsContext::default(),
+    )
+  }
+
+  fn get_diagnostics_with_context(
+    &self,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+    diagnostics_context: &DependencyDiagnosticsContext,
+  ) -> Option<Vec<Diagnostic>> {
     let module = module_graph.get_parent_module(&self.id)?;
     let module = module_graph.module_by_identifier(module)?;
     let should_error = self
@@ -260,6 +269,7 @@ impl Dependency for ESMImportSpecifierDependency {
       &self.name,
       false,
       should_error,
+      diagnostics_context,
     ) {
       return Some(vec![diagnostic]);
     }
@@ -365,14 +375,6 @@ impl ModuleDependency for ESMImportSpecifierDependency {
       )),
       self.branch_guard.as_ref(),
     )
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

@@ -1,10 +1,13 @@
 use rayon::prelude::*;
 use rspack_collections::IdentifierSet;
-use rspack_core::{ModuleIdentifier, SourceType};
+use rspack_core::{ChunkUkey, ModuleIdentifier, SourceType};
+use rustc_hash::FxHashSet;
 
 use super::ModuleGroupMap;
 use crate::{
-  CacheGroup, SplitChunkSizes, SplitChunksPlugin, common::ModuleSizes, module_group::ModuleGroup,
+  CacheGroup, SplitChunkSizes, SplitChunksPlugin,
+  common::{ModuleChunkMap, ModuleSizes},
+  module_group::ModuleGroup,
 };
 
 pub trait ModulesContainer {
@@ -109,6 +112,60 @@ impl SplitChunksPlugin {
         continue;
       }
       if size * (chunk_count as f64) < *min_reduction_size {
+        return false;
+      }
+    }
+
+    true
+  }
+
+  /// Calculate the actual reduction from module-source edges. A reused destination can be part of
+  /// `module_chunks`, but it keeps the module and therefore contributes no size reduction.
+  pub(crate) fn check_min_size_reduction_for_module_chunks(
+    module_chunks: &ModuleChunkMap,
+    destination_chunk: ChunkUkey,
+    module_sizes: &ModuleSizes,
+    min_size_reduction: &SplitChunkSizes,
+  ) -> bool {
+    for (ty, min_reduction_size) in min_size_reduction.iter() {
+      if *min_reduction_size == 0.0f64 {
+        continue;
+      }
+
+      let mut has_non_zero_size = false;
+      let mut total_size_reduction = 0.0;
+      let mut add_module_reduction = |module: &ModuleIdentifier, chunks: &FxHashSet<ChunkUkey>| {
+        let Some(size) = module_sizes
+          .get(module)
+          .and_then(|module_sizes| module_sizes.get(ty))
+        else {
+          return;
+        };
+        if *size == 0.0f64 {
+          return;
+        }
+
+        has_non_zero_size = true;
+        let source_chunk_count = chunks
+          .iter()
+          .filter(|chunk| **chunk != destination_chunk)
+          .count();
+        total_size_reduction += size * source_chunk_count as f64;
+      };
+      match module_chunks {
+        ModuleChunkMap::Shared { modules, chunks } => {
+          for module in modules {
+            add_module_reduction(module, chunks);
+          }
+        }
+        ModuleChunkMap::ByModule(module_chunks) => {
+          for (module, chunks) in module_chunks {
+            add_module_reduction(module, chunks);
+          }
+        }
+      }
+
+      if has_non_zero_size && total_size_reduction < *min_reduction_size {
         return false;
       }
     }

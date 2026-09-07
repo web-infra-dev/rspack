@@ -22,8 +22,8 @@ use rspack_core::{
   OutputOptions, ProcessAssetsPass, RuntimeRequirementsPass, SideEffectsOptimizeArtifact,
   SourceType, UsedExportsOption, build_chunk_graph,
   build_module_graph::{build_module_graph_pass, finish_build_module_graph},
-  cache::Cache,
   incremental::IncrementalOptions,
+  legacy_cache::Cache,
   pass::PassExt,
   rspack_sources::{RawStringSource, SourceExt},
 };
@@ -1803,7 +1803,7 @@ async fn compute_concatenated_module_codegen(
     };
     let mut code_generation_result = module.code_generation(&mut code_generation_context).await?;
     code_generation_result
-      .runtime_requirements
+      .runtime_requirements_mut()
       .extend(*runtime_template.runtime_requirements());
     code_generation_result.set_hash_for_concatenated_module(
       &job.hash,

@@ -4,10 +4,10 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, TemplateContext, TemplateReplaceSource,
 };
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct UnsupportedDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]

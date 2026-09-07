@@ -1,7 +1,7 @@
 use super::OverlayValue;
 use crate::DependencyId;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct DenseDependencyIdOverlayMap<V> {
   base: Vec<Option<V>>,
   overlay: Option<Vec<Option<OverlayValue<V>>>>,

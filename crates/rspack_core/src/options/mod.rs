@@ -13,8 +13,6 @@ mod mode;
 pub use mode::*;
 mod context;
 pub use context::*;
-mod plugins;
-pub use plugins::*;
 mod module;
 pub use module::*;
 mod externals;

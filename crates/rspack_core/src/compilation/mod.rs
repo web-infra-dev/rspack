@@ -50,7 +50,7 @@ use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
-use rspack_paths::{ArcPath, ArcPathIndexSet, ArcPathSet};
+use rspack_paths::{InternedPath, InternedPathIndexSet, InternedPathSet};
 use rspack_sources::BoxSource;
 use rspack_tasks::CompilerContext;
 #[cfg(allocative)]
@@ -70,32 +70,36 @@ pub use self::{
   runtime_requirements::RuntimeRequirementsPass,
 };
 use crate::{
-  AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, BuildChunkGraphArtifact, CacheCount,
-  CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact,
-  Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkHashesArtifact, ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact,
-  ChunkRenderCacheArtifact, ChunkRenderResult, ChunkUkey, CircularModulesInfo,
-  CodeGenerateCacheArtifact, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
-  CompilationLogger, CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
-  DependenciesDiagnosticsArtifact, DependencyId, DependencyTemplate, DependencyTemplateType,
-  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
-  ExportsInfoArtifact, Filename, ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact,
-  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
-  ModuleStaticCache, PathData, ProcessRuntimeRequirementsCacheArtifact, ReferencedExport,
-  ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule,
-  RuntimeProxyMetadataArtifact, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, SourceType, Stats, StatsContext,
-  StealCell, ValueCacheVersions,
-  cache::persistent::occasion::{
-    devtool::SourceMapDevToolPluginCacheArtifact, minimize::MinimizePersistentCacheArtifact,
-  },
+  AsyncModulesArtifact, BindingCell, BoxModule, BuildChunkGraphArtifact, CacheCount, CacheOptions,
+  CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact, Chunk,
+  ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
+  ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact, ChunkRenderCacheArtifact,
+  ChunkRenderResult, ChunkUkey, CircularModulesInfo, CodeGenerateCacheArtifact, CodeGenerationJob,
+  CodeGenerationResult, CodeGenerationResultBuilder, CodeGenerationResults, CompilationLogger,
+  CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
+  DependenciesDiagnosticsArtifact, Dependency, DependencyId, DependencyRef, DependencyTemplate,
+  DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
+  ExecuteModuleId, ExportsInfoArtifact, ExternalModuleChunkConditionHook, FileSystemInfo, Filename,
+  ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact, ModuleFactory, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
+  ProcessRuntimeRequirementsCacheArtifact, ReferencedExport, ResolverFactory, RuntimeGlobals,
+  RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec,
+  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
+  SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
+  cache::SnapshotOptions,
   compilation::build_module_graph::{
-    BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
+    BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, module_build_cache::ModuleBuildCache,
+    update_module_graph,
   },
   compiler::{CompilationRecords, CompilerId},
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
-  is_source_equal, to_identifier,
+  is_source_equal,
+  legacy_cache::persistent::occasion::{
+    devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
+  },
+  new_cache::{Cache, CacheFacade},
+  to_identifier,
 };
 
 define_hook!(CompilationAddEntry: Series(entry_name: Option<&str>, options: &mut EntryOptions));
@@ -155,6 +159,7 @@ pub struct CompilationHooks {
   pub succeed_module: CompilationSucceedModuleHook,
   pub execute_module: CompilationExecuteModuleHook,
   pub finish_modules: CompilationFinishModulesHook,
+  pub external_module_chunk_condition: ExternalModuleChunkConditionHook,
   pub dependency_referenced_exports: CompilationDependencyReferencedExportsHook,
   pub seal: CompilationSealHook,
   pub optimize_dependencies: CompilationOptimizeDependenciesHook,
@@ -234,6 +239,9 @@ pub struct Compilation {
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
+  cache: Cache,
+  pub(crate) module_build_cache: Option<ModuleBuildCache>,
+  pub file_system_info: FileSystemInfo,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -279,9 +287,9 @@ pub struct Compilation {
     StealCell<ProcessRuntimeRequirementsCacheArtifact>,
   pub imported_by_defer_modules_artifact: StealCell<ImportedByDeferModulesArtifact>,
 
-  pub minimize_persistent_cache_artifact: Option<MinimizePersistentCacheArtifact>,
+  pub minimize_persistent_cache: Option<MinimizePersistentCache>,
   pub use_source_map_dev_tool_plugin_cache: bool,
-  pub source_map_dev_tool_plugin_cache_artifact: Option<SourceMapDevToolPluginCacheArtifact>,
+  pub source_map_dev_tool_plugin_cache: Option<SourceMapDevToolPluginCache>,
 
   pub circular_modules: StealCell<CircularModulesInfo>,
   pub code_generated_modules: IdentifierSet,
@@ -291,10 +299,10 @@ pub struct Compilation {
 
   pub hash: Option<RspackHashDigest>,
 
-  pub file_dependencies: ArcPathIndexSet,
-  pub context_dependencies: ArcPathIndexSet,
-  pub missing_dependencies: ArcPathIndexSet,
-  pub build_dependencies: ArcPathIndexSet,
+  pub file_dependencies: InternedPathIndexSet,
+  pub context_dependencies: InternedPathIndexSet,
+  pub missing_dependencies: InternedPathIndexSet,
+  pub build_dependencies: InternedPathIndexSet,
 
   pub value_cache_versions: ValueCacheVersions,
 
@@ -304,8 +312,8 @@ pub struct Compilation {
   pub module_executor: Option<ModuleExecutor>,
   in_finish_make: AtomicBool,
 
-  pub modified_files: ArcPathSet,
-  pub removed_files: ArcPathSet,
+  pub modified_files: InternedPathSet,
+  pub removed_files: InternedPathSet,
   pub build_module_graph_artifact: StealCell<BuildModuleGraphArtifact>,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
 
@@ -321,25 +329,15 @@ pub struct Compilation {
 
 impl Compilation {
   pub const OPTIMIZE_CHUNKS_STAGE_BASIC: i32 = -10;
-  pub const OPTIMIZE_CHUNKS_STAGE_DEFAULT: i32 = 0;
   pub const OPTIMIZE_CHUNKS_STAGE_ADVANCED: i32 = 10;
 
   pub const PROCESS_ASSETS_STAGE_ADDITIONAL: i32 = -2000;
-  pub const PROCESS_ASSETS_STAGE_PRE_PROCESS: i32 = -1000;
-  pub const PROCESS_ASSETS_STAGE_DERIVED: i32 = -200;
   pub const PROCESS_ASSETS_STAGE_ADDITIONS: i32 = -100;
-  pub const PROCESS_ASSETS_STAGE_OPTIMIZE: i32 = 100;
-  pub const PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT: i32 = 200;
-  pub const PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY: i32 = 300;
   pub const PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE: i32 = 400;
   pub const PROCESS_ASSETS_STAGE_DEV_TOOLING: i32 = 500;
   pub const PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE: i32 = 700;
-  pub const PROCESS_ASSETS_STAGE_SUMMARIZE: i32 = 1000;
   pub const PROCESS_ASSETS_STAGE_OPTIMIZE_HASH: i32 = 2500;
   pub const PROCESS_ASSETS_STAGE_AFTER_OPTIMIZE_HASH: i32 = 2600;
-  pub const PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER: i32 = 3000;
-  pub const PROCESS_ASSETS_STAGE_ANALYSE: i32 = 4000;
-  pub const PROCESS_ASSETS_STAGE_REPORT: i32 = 5000;
 
   #[allow(clippy::too_many_arguments)]
   pub fn new(
@@ -354,14 +352,33 @@ impl Compilation {
     incremental: Incremental,
     module_executor: Option<ModuleExecutor>,
     logging: CompilationLogging,
-    modified_files: ArcPathSet,
-    removed_files: ArcPathSet,
+    cache: Cache,
+    modified_files: InternedPathSet,
+    removed_files: InternedPathSet,
     input_filesystem: Arc<dyn ReadableFileSystem>,
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
     output_filesystem: Arc<dyn WritableFileSystem>,
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
+    // Incremental make reuses the previous module graph and owns its own
+    // invalidation path. Keep that fast path unchanged.
+    let module_build_cache = (options.experiments.new_cache.module
+      && !is_rebuild
+      && !matches!(&options.cache, CacheOptions::Disabled))
+    .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules")));
+    let snapshot_options = match &options.cache {
+      CacheOptions::Disabled => SnapshotOptions::default(),
+      CacheOptions::Memory { snapshot, .. } => snapshot.clone(),
+      CacheOptions::Persistent(options) => options.snapshot.clone(),
+    };
+    let file_system_info = FileSystemInfo::new(
+      input_filesystem.clone(),
+      CompilationLogger::new("rspack.FileSystemInfo", logging.clone()),
+      snapshot_options,
+      options.output.hash_function,
+    );
+
     Self {
       id: CompilationId::new(),
       compiler_id,
@@ -382,6 +399,9 @@ impl Compilation {
       emitted_assets: Default::default(),
       diagnostics: Default::default(),
       logging,
+      cache,
+      module_build_cache,
+      file_system_info,
       plugin_driver,
       buildtime_plugin_driver,
       resolver_factory,
@@ -408,7 +428,9 @@ impl Compilation {
       chunk_render_cache_artifact: StealCell::new(ChunkRenderCacheArtifact::new(
         match &options.cache {
           CacheOptions::Disabled => 0, // FIXME: this should be removed in future
-          CacheOptions::Memory { max_generations } => *max_generations,
+          CacheOptions::Memory {
+            max_generations, ..
+          } => *max_generations,
           CacheOptions::Persistent(_) => 1,
         },
       )),
@@ -416,9 +438,9 @@ impl Compilation {
       process_runtime_requirements_cache_artifact: StealCell::new(
         ProcessRuntimeRequirementsCacheArtifact::new(&options),
       ),
-      minimize_persistent_cache_artifact: None,
+      minimize_persistent_cache: None,
       use_source_map_dev_tool_plugin_cache: false,
-      source_map_dev_tool_plugin_cache_artifact: None,
+      source_map_dev_tool_plugin_cache: None,
       build_time_executed_modules: Default::default(),
       incremental,
       build_chunk_graph_artifact: Default::default(),
@@ -449,6 +471,10 @@ impl Compilation {
     }
   }
 
+  pub fn get_cache(&self, name: &str) -> CacheFacade {
+    self.cache.facade(name)
+  }
+
   pub fn id(&self) -> CompilationId {
     self.id
   }
@@ -459,6 +485,13 @@ impl Compilation {
 
   pub fn get_module_graph(&self) -> &ModuleGraph {
     self.build_module_graph_artifact.get_module_graph()
+  }
+
+  pub fn try_get_module_graph(&self) -> Option<&ModuleGraph> {
+    self
+      .build_module_graph_artifact
+      .try_read()
+      .map(|artifact| artifact.get_module_graph())
   }
 
   // it will return None during make phase since mg is incomplete
@@ -482,10 +515,10 @@ impl Compilation {
   pub fn file_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
   ) {
     let all_files = self
       .build_module_graph_artifact
@@ -511,10 +544,10 @@ impl Compilation {
   pub fn context_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
   ) {
     let all_files = self
       .build_module_graph_artifact
@@ -525,7 +558,7 @@ impl Compilation {
       .build_module_graph_artifact
       .context_dependencies
       .added_files()
-      .chain(&self.file_dependencies);
+      .chain(&self.context_dependencies);
     let updated_files = self
       .build_module_graph_artifact
       .context_dependencies
@@ -540,10 +573,10 @@ impl Compilation {
   pub fn missing_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
   ) {
     let all_files = self
       .build_module_graph_artifact
@@ -554,7 +587,7 @@ impl Compilation {
       .build_module_graph_artifact
       .missing_dependencies
       .added_files()
-      .chain(&self.file_dependencies);
+      .chain(&self.missing_dependencies);
     let updated_files = self
       .build_module_graph_artifact
       .missing_dependencies
@@ -569,10 +602,10 @@ impl Compilation {
   pub fn build_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
   ) {
     let all_files = self
       .build_module_graph_artifact
@@ -583,7 +616,7 @@ impl Compilation {
       .build_module_graph_artifact
       .build_dependencies
       .added_files()
-      .chain(&self.file_dependencies);
+      .chain(&self.build_dependencies);
     let updated_files = self
       .build_module_graph_artifact
       .build_dependencies
@@ -638,14 +671,13 @@ impl Compilation {
     }
   }
 
-  pub async fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
+  pub async fn add_entry(&mut self, entry: DependencyRef, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
     let entry_name: Option<String> = options.name.clone();
     let plugin_driver = self.plugin_driver.clone();
     self
       .build_module_graph_artifact
-      .get_module_graph_mut()
-      .add_dependency(entry);
+      .add_unfactorized_dependency(entry);
     let entry_options = if let Some(name) = &entry_name {
       if let Some(data) = self.entries.get_mut(name) {
         data.dependencies.push(entry_id);
@@ -678,9 +710,12 @@ impl Compilation {
     Ok(())
   }
 
-  pub async fn add_entry_batch(&mut self, args: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
+  pub async fn add_entry_batch<D>(&mut self, args: Vec<(D, EntryOptions)>) -> Result<()>
+  where
+    D: Into<DependencyRef>,
+  {
     for (entry, options) in args {
-      self.add_entry(entry, options).await?;
+      self.add_entry(entry.into(), options).await?;
     }
 
     let make_artifact = self.build_module_graph_artifact.steal();
@@ -706,7 +741,10 @@ impl Compilation {
     Ok(())
   }
 
-  pub async fn add_include(&mut self, args: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
+  pub async fn add_include<D>(&mut self, args: Vec<(D, EntryOptions)>) -> Result<()>
+  where
+    D: Into<DependencyRef>,
+  {
     if !self.in_finish_make.load(Ordering::Acquire) {
       return Err(rspack_error::Error::error(
         "You can only call `add_include` during the finish make stage".into(),
@@ -714,11 +752,11 @@ impl Compilation {
     }
 
     for (entry, options) in args {
+      let entry = entry.into();
       let entry_id = *entry.id();
       self
         .build_module_graph_artifact
-        .get_module_graph_mut()
-        .add_dependency(entry);
+        .add_unfactorized_dependency(entry);
       if let Some(name) = options.name.clone() {
         if let Some(data) = self.entries.get_mut(&name) {
           data.include_dependencies.push(entry_id);
@@ -1229,8 +1267,8 @@ impl Compilation {
     Ok((path, info))
   }
 
-  pub fn get_logger(&self, name: impl Into<String>) -> CompilationLogger {
-    CompilationLogger::new(name.into(), self.logging.clone())
+  pub fn get_logger(&self, name: impl Into<Arc<str>>) -> CompilationLogger {
+    CompilationLogger::new(name, self.logging.clone())
   }
 
   pub fn set_dependency_factory(
@@ -1243,7 +1281,7 @@ impl Compilation {
       .insert(dependency_type, module_factory);
   }
 
-  pub fn get_dependency_factory(&self, dependency: &BoxDependency) -> Arc<dyn ModuleFactory> {
+  pub fn get_dependency_factory(&self, dependency: &dyn Dependency) -> Arc<dyn ModuleFactory> {
     let dependency_type = dependency.dependency_type();
     self
       .dependency_factories
@@ -1312,10 +1350,6 @@ impl CompilationAsset {
 
   pub fn get_info_mut(&mut self) -> &mut AssetInfo {
     &mut self.info
-  }
-
-  pub fn set_info(&mut self, info: AssetInfo) {
-    self.info = BindingCell::from(info);
   }
 }
 
@@ -1502,22 +1536,6 @@ pub fn assign_depths<'a>(
       }
     }
   }
-}
-
-pub fn set_depth_if_lower(
-  module_id: ModuleIdentifier,
-  depth: usize,
-  assign_map: &mut IdentifierMap<usize>,
-) -> bool {
-  let Some(&cur_depth) = assign_map.get(&module_id) else {
-    assign_map.insert(module_id, depth);
-    return true;
-  };
-  if cur_depth > depth {
-    assign_map.insert(module_id, depth);
-    return true;
-  }
-  false
 }
 
 #[derive(Debug, Clone)]

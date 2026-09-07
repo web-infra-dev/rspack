@@ -63,10 +63,11 @@ impl Task<TaskContext> for ProcessDependenciesTask {
       };
 
       if let Some(resource_identifier) = resource_identifier {
+        let dependency = module_graph.dependency_ref_by_id(&dependency_id).clone();
         sorted_dependencies
           .entry(resource_identifier)
           .or_insert(vec![])
-          .push(dependency.clone());
+          .push(dependency);
       }
     }
 

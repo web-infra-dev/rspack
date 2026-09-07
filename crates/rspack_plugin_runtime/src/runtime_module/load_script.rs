@@ -1,4 +1,4 @@
-use std::{ptr::NonNull, sync::LazyLock};
+use std::sync::LazyLock;
 
 use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
@@ -133,7 +133,6 @@ impl RuntimeModule for LoadScriptRuntimeModule {
         chunk: RuntimeModuleChunkWrapper {
           chunk_ukey,
           compilation_id: compilation.id(),
-          compilation: NonNull::from(compilation),
         },
       })
       .await?;

@@ -9,14 +9,6 @@ impl Base64 {
   pub const fn new() -> Self {
     Self(STANDARD)
   }
-
-  pub fn encode_to_string<D: AsRef<[u8]>>(&self, data: D) -> String {
-    self.0.encode_to_string(data)
-  }
-
-  pub fn decode_to_vec<D: AsRef<[u8]>>(&self, data: D) -> Result<Vec<u8>, Error> {
-    self.0.decode_to_vec(data)
-  }
 }
 
 impl Default for Base64 {

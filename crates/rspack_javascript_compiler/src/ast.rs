@@ -1,18 +1,12 @@
 use std::{hash::Hash, sync::Arc};
 
-use rspack_error::BatchErrors;
 use swc_core::{
-  common::{
-    GLOBALS, Globals, Mark, SourceMap, comments::SingleThreadedComments, errors::Handler,
-    sync::Lrc, util::take::Take,
-  },
+  common::{GLOBALS, Globals, Mark, SourceMap, comments::SingleThreadedComments, util::take::Take},
   ecma::{
     ast::{Module, Program as SwcProgram},
-    visit::{Fold, FoldWith, Visit, VisitMut, VisitMutWith, VisitWith},
+    visit::{Visit, VisitWith},
   },
 };
-
-use crate::error::with_rspack_error_handler;
 
 /// Program is a wrapper for SwcProgram
 ///
@@ -44,21 +38,8 @@ impl Program {
     Self { program, comments }
   }
 
-  pub fn fold_with<V: ?Sized + Fold>(&mut self, v: &mut V) {
-    let p = std::mem::replace(&mut self.program, SwcProgram::Module(Module::dummy()));
-    self.program = p.fold_with(v);
-  }
-
   pub fn visit_with<V: ?Sized + Visit>(&self, v: &mut V) {
     self.program.visit_with(v)
-  }
-
-  pub fn visit_mut_with<V: ?Sized + VisitMut>(&mut self, v: &mut V) {
-    self.program.visit_mut_with(v)
-  }
-
-  pub fn get_inner_program(&self) -> &SwcProgram {
-    &self.program
   }
 }
 
@@ -148,29 +129,6 @@ impl Ast {
   pub fn with_context(mut self, context: Context) -> Self {
     self.context = Arc::new(context);
     self
-  }
-
-  pub fn get_context(&self) -> &Context {
-    &self.context
-  }
-
-  pub fn transform<F, R>(&mut self, f: F) -> R
-  where
-    F: FnOnce(&mut Program, &Context) -> R,
-  {
-    let Self { program, context } = self;
-    GLOBALS.set(&context.globals, || f(program, context))
-  }
-
-  pub fn transform_with_handler<F, R>(&mut self, cm: Lrc<SourceMap>, f: F) -> Result<R, BatchErrors>
-  where
-    F: FnOnce(&Handler, &mut Program, &Context) -> Result<R, BatchErrors>,
-  {
-    self.transform(|program, context| {
-      with_rspack_error_handler("Ast Transform Error".to_string(), cm, |handler| {
-        f(handler, program, context)
-      })
-    })
   }
 
   pub fn visit<F, R>(&self, f: F) -> R

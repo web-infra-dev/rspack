@@ -1,21 +1,20 @@
 pub mod internal;
 pub mod rollback;
 
-use std::hash::BuildHasherDefault;
+use std::{hash::BuildHasherDefault, sync::Arc};
 
 use internal::try_get_module_graph_module_mut_by_identifier;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierHasher, IdentifierMap};
 use rspack_error::Result;
-use rspack_hash::RspackHashDigest;
+use rspack_intern::Atom;
 use rustc_hash::FxHashMap as HashMap;
-use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
-  AsyncModulesArtifact, Compilation, DependenciesBlock, Dependency, ExportInfo,
-  ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact, RuntimeSpec, SideEffectsStateArtifact,
-  UsedNameItem,
+  AsyncDependenciesBlockRef, AsyncModulesArtifact, Compilation, DependenciesBlock, Dependency,
+  ExportInfo, ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact, RuntimeSpec,
+  SideEffectsStateArtifact, UsedNameItem,
 };
 mod module;
 pub use module::*;
@@ -23,7 +22,7 @@ mod connection;
 pub use connection::*;
 
 use crate::{
-  BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportsInfoArtifact,
+  BoxDependency, BoxModule, DependencyCondition, DependencyId, DependencyRef, ExportsInfoArtifact,
   ModuleIdentifier,
 };
 
@@ -79,21 +78,8 @@ impl<'a> IncomingConnectionsByOriginModule<'a> {
     }
   }
 
-  pub fn non_modules(&self) -> &[&'a ModuleGraphConnection] {
-    &self.non_modules
-  }
-
   pub fn modules(&self) -> &IdentifierMap<Vec<&'a ModuleGraphConnection>> {
     &self.modules
-  }
-
-  pub fn into_parts(
-    self,
-  ) -> (
-    Vec<&'a ModuleGraphConnection>,
-    IdentifierMap<Vec<&'a ModuleGraphConnection>>,
-  ) {
-    (self.non_modules, self.modules)
   }
 }
 
@@ -112,9 +98,9 @@ pub(crate) struct ModuleGraphData {
     rollback::RollbackMap<ModuleIdentifier, BoxModule, BuildHasherDefault<IdentifierHasher>>,
 
   /// Dependencies indexed by `DependencyId`.
-  dependencies: rollback::DenseDependencyIdMap<BoxDependency>,
+  dependencies: rollback::DenseDependencyIdMap<DependencyRef>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
-  blocks: AsyncDependenciesBlockIdentifierMap<Box<AsyncDependenciesBlock>>,
+  blocks: AsyncDependenciesBlockIdentifierMap<AsyncDependenciesBlockRef>,
 
   /// Dependency_id to parent module identifier and parent block
   ///
@@ -315,7 +301,12 @@ impl ModuleGraph {
       if let Some(b_id) = parent_block
         && let Some(block) = self.inner.blocks.get_mut(&b_id)
       {
-        block.remove_dependency_id(*dep_id);
+        // Keep cache snapshots unchanged when revoking a published dependency.
+        if let Some(block) = Arc::get_mut(block) {
+          block.remove_dependency_id(*dep_id);
+        } else {
+          *block = Arc::new(block.without_dependency(*dep_id));
+        }
       }
     }
 
@@ -420,7 +411,7 @@ impl ModuleGraph {
     &mut self,
     old_module: &ModuleIdentifier,
     new_module: &ModuleIdentifier,
-    filter_connection: impl Fn(&ModuleGraphConnection, &Box<dyn Dependency>) -> bool,
+    filter_connection: impl Fn(&ModuleGraphConnection, &dyn Dependency) -> bool,
   ) {
     if old_module == new_module {
       return;
@@ -489,46 +480,6 @@ impl ModuleGraph {
     }
   }
 
-  pub fn copy_outgoing_module_connections<F>(
-    &mut self,
-    old_module: &ModuleIdentifier,
-    new_module: &ModuleIdentifier,
-    filter_connection: F,
-  ) where
-    F: Fn(&ModuleGraphConnection, &BoxDependency) -> bool,
-  {
-    if old_module == new_module {
-      return;
-    }
-
-    let old_mgm_connections = self
-      .module_graph_module_by_identifier(old_module)
-      .expect("should have mgm")
-      .outgoing_connections()
-      .clone();
-
-    // Outgoing connections
-    let mut affected_outgoing_connections = vec![];
-    for dep_id in old_mgm_connections {
-      let connection = self
-        .connection_by_dependency_id(&dep_id)
-        .expect("should have connection");
-      let dep = self.dependency_by_id(&dep_id);
-      if filter_connection(connection, dep) {
-        let con = self
-          .connection_by_dependency_id_mut(&dep_id)
-          .expect("should have connection");
-        con.original_module_identifier = Some(*new_module);
-        affected_outgoing_connections.push(dep_id);
-      }
-    }
-
-    let new_mgm = self.module_graph_module_by_identifier_mut(new_module);
-    for dep_id in affected_outgoing_connections {
-      new_mgm.add_outgoing_connection(dep_id);
-    }
-  }
-
   pub fn get_depth(&self, module_id: &ModuleIdentifier) -> Option<usize> {
     self
       .module_graph_module_by_identifier(module_id)
@@ -550,7 +501,7 @@ impl ModuleGraph {
     self.inner.modules.insert(module.identifier(), module);
   }
 
-  pub fn add_block(&mut self, block: Box<AsyncDependenciesBlock>) {
+  pub fn add_block(&mut self, block: AsyncDependenciesBlockRef) {
     self.inner.blocks.insert(block.identifier(), block);
   }
 
@@ -588,6 +539,13 @@ impl ModuleGraph {
       .map(|p| p.index_in_block)
   }
 
+  pub(crate) fn block_ref_by_id(
+    &self,
+    block_id: &AsyncDependenciesBlockIdentifier,
+  ) -> Option<&AsyncDependenciesBlockRef> {
+    self.inner.blocks.get(block_id)
+  }
+
   pub fn block_by_id(
     &self,
     block_id: &AsyncDependenciesBlockIdentifier,
@@ -606,16 +564,32 @@ impl ModuleGraph {
       .expect("should insert block before get it")
   }
 
-  pub fn blocks(&self) -> &AsyncDependenciesBlockIdentifierMap<Box<AsyncDependenciesBlock>> {
+  pub fn blocks(&self) -> &AsyncDependenciesBlockIdentifierMap<AsyncDependenciesBlockRef> {
     &self.inner.blocks
   }
 
-  pub fn dependencies(&self) -> impl Iterator<Item = (DependencyId, &BoxDependency)> {
-    self.inner.dependencies.iter()
+  pub fn dependencies(&self) -> impl Iterator<Item = (DependencyId, &(dyn Dependency + 'static))> {
+    self
+      .inner
+      .dependencies
+      .iter()
+      .map(|(id, dependency)| (id, dependency.as_ref()))
   }
 
   pub fn add_dependency(&mut self, dependency: BoxDependency) {
+    self.add_dependency_ref(dependency.shareable());
+  }
+
+  pub(crate) fn add_dependency_ref(&mut self, dependency: DependencyRef) {
     self.inner.dependencies.insert(*dependency.id(), dependency);
+  }
+
+  pub(crate) fn dependency_ref_by_id(&self, dependency_id: &DependencyId) -> &DependencyRef {
+    self
+      .inner
+      .dependencies
+      .get(dependency_id)
+      .unwrap_or_else(|| panic!("Dependency with ID {dependency_id:?} not found"))
   }
 
   /// Get a dependency by ID, panicking if not found.
@@ -633,25 +607,8 @@ impl ModuleGraph {
   ///
   /// **Only the binding layer (`rspack_binding_api`) should use `internal::try_dependency_by_id()`**
   /// for graceful handling of missing dependencies in external APIs.
-  pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> &BoxDependency {
-    self
-      .inner
-      .dependencies
-      .get(dependency_id)
-      .unwrap_or_else(|| panic!("Dependency with ID {dependency_id:?} not found"))
-  }
-
-  /// Get a mutable dependency by ID, panicking if not found.
-  ///
-  /// **PREFERRED METHOD**: Use this for ALL internal Rust code when you need to
-  /// modify dependencies. Dependencies should always be accessible in internal
-  /// operations, so this method enforces that invariant with a clear panic message.
-  pub fn dependency_by_id_mut(&mut self, dependency_id: &DependencyId) -> &mut BoxDependency {
-    self
-      .inner
-      .dependencies
-      .get_mut(dependency_id)
-      .unwrap_or_else(|| panic!("Dependency with ID {dependency_id:?} not found"))
+  pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> &(dyn Dependency + 'static) {
+    self.dependency_ref_by_id(dependency_id).as_ref()
   }
 
   /// Uniquely identify a module by its dependency
@@ -956,12 +913,6 @@ impl ModuleGraph {
       })
       .into_iter()
       .flatten()
-  }
-
-  pub fn get_module_hash(&self, module_id: &ModuleIdentifier) -> Option<&RspackHashDigest> {
-    self
-      .module_by_identifier(module_id)
-      .and_then(|m| m.build_info().hash.as_ref())
   }
 
   /// We can't insert all sort of things into one hashmap like javascript, so we create different

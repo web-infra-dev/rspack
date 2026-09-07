@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 use std::borrow::Cow;
 
 use cow_utils::CowUtils;
@@ -39,7 +41,7 @@ pub struct EvalDevToolModulePlugin {
   source_url_comment: String,
   #[debug(skip)]
   module_filename_template: Option<ModuleFilenameTemplate>,
-  cache: FxDashMap<BoxSource, BoxSource>,
+  cache: FxDashMap<(ModuleIdentifier, BoxSource), BoxSource>,
 }
 
 impl EvalDevToolModulePlugin {
@@ -85,11 +87,16 @@ async fn render_module_content(
   chunk_ukey: &ChunkUkey,
   module: &dyn Module,
   render_source: &mut RenderSource,
+  runtime_requirements: &mut RuntimeGlobals,
   _init_fragments: &mut ChunkInitFragments,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
+  if compilation.options.output.trusted_types.is_some() {
+    runtime_requirements.insert(RuntimeGlobals::CREATE_SCRIPT);
+  }
   let origin_source = render_source.source.clone();
-  if let Some(cached_source) = self.cache.get(&origin_source) {
+  let cache_key = (module.identifier(), origin_source.clone());
+  if let Some(cached_source) = self.cache.get(&cache_key) {
     render_source.source = cached_source.value().clone();
     return Ok(());
   } else if module.as_external_module().is_some() {
@@ -174,7 +181,7 @@ async fn render_module_content(
     .boxed()
   };
 
-  self.cache.insert(origin_source, source.clone());
+  self.cache.insert(cache_key, source.clone());
   render_source.source = source;
   Ok(())
 }

@@ -83,14 +83,6 @@ impl SourceMapKind {
     self.contains(SourceMapKind::NoSources)
   }
 
-  pub fn inline(&self) -> bool {
-    self.contains(SourceMapKind::Inline)
-  }
-
-  pub fn inline_sources_content(&self) -> bool {
-    self.source_map() && !self.no_sources()
-  }
-
   pub fn emit_columns(&self) -> bool {
     !self.cheap()
   }

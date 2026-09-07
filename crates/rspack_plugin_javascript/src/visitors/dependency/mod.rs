@@ -3,10 +3,9 @@ mod parser;
 mod util;
 
 use rspack_core::{
-  ArcComputed, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilationId, CompilerOptions, FactoryMeta, ImportMeta, ModuleIdentifier, ModuleLayer,
-  ModuleType, ParseMeta, ParserOptions, ResolvedModuleOptions, ResourceData,
-  SideEffectsBailoutItemWithSpan,
+  ArcComputed, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, CompilerOptions,
+  DependencyCodeGenerationRef, FactoryMeta, ImportMeta, ModuleIdentifier, ModuleLayer, ModuleType,
+  ParseMeta, ParserOptions, ResolvedModuleOptions, ResourceData, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet;
@@ -14,7 +13,7 @@ use swc_experimental_allocator::Allocator;
 use swc_experimental_ecma_ast::{Comments, Program};
 use swc_experimental_ecma_semantic::resolver::Semantic;
 
-pub(crate) use self::parser::StatementPath;
+pub(crate) use self::parser::{StatementPath, member_property_to_atom};
 pub use self::{
   context_dependency_helper::{ContextModuleScanResult, create_context_dependency},
   parser::{
@@ -31,7 +30,7 @@ use crate::{BoxJavascriptParserPlugin, parser_and_generator::ParserRuntimeRequir
 pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
-  pub presentational_dependencies: Vec<BoxDependencyTemplate>,
+  pub presentational_dependencies: Vec<DependencyCodeGenerationRef>,
   pub warning_diagnostics: Vec<Diagnostic>,
   pub side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
 }
@@ -57,7 +56,6 @@ pub fn scan_dependencies(
   module_identifier: ModuleIdentifier,
   module_parser_options: Option<&ParserOptions>,
   import_meta: ArcComputed<ResolvedModuleOptions, ImportMeta>,
-  compilation_id: CompilationId,
   semicolons: &mut FxHashSet<u32>,
   parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
   parse_meta: ParseMeta,
@@ -81,7 +79,6 @@ pub fn scan_dependencies(
     semicolons,
     parser_plugins,
     parse_meta,
-    compilation_id,
     parser_runtime_requirements,
   );
 
