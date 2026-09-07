@@ -58,6 +58,9 @@ pub fn get_builtin_test_loader(builtin: &str) -> Option<BoxLoader> {
   if builtin.starts_with(rspack_loader_testing::DEPENDENCY_LOADER_IDENTIFIER) {
     return Some(Arc::new(rspack_loader_testing::DependencyLoader));
   }
+  if builtin.starts_with(rspack_loader_testing::NON_SERIALIZABLE_MODULE_LOADER_IDENTIFIER) {
+    return Some(Arc::new(rspack_loader_testing::NonSerializableModuleLoader));
+  }
   None
 }
 

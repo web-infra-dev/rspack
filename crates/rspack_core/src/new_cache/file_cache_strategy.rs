@@ -284,12 +284,21 @@ impl FileCacheStrategy {
           .pending_writes
           .entries
           .par_iter()
-          .map(|pending| {
+          .filter_map(|pending| {
             let key = pending.key().clone();
-            let value = (pending.encoder)(&pending.entry, codec)?;
-            Ok((DatabaseFamily::Cache, key, value))
+            match (pending.encoder)(&pending.entry, codec) {
+              Ok(value) => Some((DatabaseFamily::Cache, key, value)),
+              Err(error) => {
+                // An entry that cannot be persisted can still be reused by the
+                // memory cache. Do not prevent other entries from being stored.
+                self.logger.warn(format!(
+                  "Skipped non-serializable cache entry '{key}': {error}"
+                ));
+                None
+              }
+            }
           })
-          .collect::<Result<Vec<_>>>()?;
+          .collect::<Vec<_>>();
         state.pending_writes.entries.clear();
 
         new_build_dependencies = state.pending_writes.new_build_dependencies().take();
