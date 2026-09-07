@@ -1,4 +1,4 @@
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use swc_next_ecma_ast::*;
 
 use super::{
@@ -99,16 +99,14 @@ fn skip_js_trivia(source: &str, mut offset: usize, end: usize) -> usize {
 impl JavascriptParser<'_> {
   pub fn pre_walk_module_items(&mut self, statements: TypedSubRange<Stmt>) {
     let ast = self.ast.ast;
-    for id in statements.iter() {
-      let statement = ast.get_node_in_sub_range(id);
+    for statement in ast.nodes(statements) {
       self.pre_walk_module_item(statement);
     }
   }
 
   pub fn pre_walk_statements(&mut self, statements: TypedSubRange<Stmt>) {
     let ast = self.ast.ast;
-    for id in statements.iter() {
-      let statement = ast.get_node_in_sub_range(id);
+    for statement in ast.nodes(statements) {
       self.pre_walk_statement(Statement::from_stmt(ast, statement));
     }
   }
@@ -173,8 +171,7 @@ impl JavascriptParser<'_> {
 
   fn pre_walk_switch_statement(&mut self, stmt: SwitchStatement) {
     let ast = self.ast.ast;
-    for id in stmt.cases(ast).iter() {
-      let case = ast.get_node_in_sub_range(id);
+    for case in ast.nodes(stmt.cases(ast)) {
       self.pre_walk_statements(case.consequent(ast));
     }
   }

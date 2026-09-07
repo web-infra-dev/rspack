@@ -1,4 +1,5 @@
 use rspack_intern::AtomRef;
+use rspack_util::swc::AstSubRangeExt;
 use smallvec::SmallVec;
 use swc_next_ecma_ast::*;
 
@@ -125,8 +126,7 @@ impl JavascriptParser<'_> {
 
   pub fn walk_module_items(&mut self, statements: TypedSubRange<Stmt>) {
     let ast = self.ast.ast;
-    for id in statements.iter() {
-      let statement = ast.get_node_in_sub_range(id);
+    for statement in ast.nodes(statements) {
       self.walk_module_item(statement);
     }
   }
@@ -182,8 +182,7 @@ impl JavascriptParser<'_> {
   pub fn walk_statements(&mut self, statements: TypedSubRange<Stmt>) {
     let ast = self.ast.ast;
     let mut only_function_declaration = false;
-    for id in statements.iter() {
-      let statement = ast.get_node_in_sub_range(id);
+    for statement in ast.nodes(statements) {
       let stmt = Statement::from_stmt(ast, statement);
       if only_function_declaration
         && !matches!(stmt, Statement::Fn(_))
@@ -321,8 +320,7 @@ impl JavascriptParser<'_> {
   fn walk_switch_cases(&mut self, cases: TypedSubRange<SwitchCase>) {
     self.in_block_scope(false, |this| {
       let ast = this.ast.ast;
-      for id in cases.iter() {
-        let case = ast.get_node_in_sub_range(id);
+      for case in ast.nodes(cases) {
         let consequent = case.consequent(ast);
         if !consequent.is_empty() {
           let prev = this.prev_statement;
@@ -330,8 +328,7 @@ impl JavascriptParser<'_> {
           this.prev_statement = prev;
         }
       }
-      for id in cases.iter() {
-        let case = ast.get_node_in_sub_range(id);
+      for case in ast.nodes(cases) {
         if let Some(test) = case.test(ast) {
           this.walk_expression(test);
         }
@@ -758,11 +755,7 @@ impl JavascriptParser<'_> {
         self.clear_created_require_tags_in_pattern(rest.argument(ast));
       }
       BindingPatternData::ArrayPattern(array) => {
-        for element in array
-          .elements(ast)
-          .iter()
-          .filter_map(|id| ast.get_node_in_sub_range(id))
-        {
+        for element in ast.nodes(array.elements(ast)).flatten() {
           self.clear_created_require_tags_in_pattern(element);
         }
         if let Some(rest) = array.rest(ast) {
@@ -770,11 +763,7 @@ impl JavascriptParser<'_> {
         }
       }
       BindingPatternData::ObjectPattern(object) => {
-        for property in object
-          .properties(ast)
-          .iter()
-          .map(|id| ast.get_node_in_sub_range(id))
-        {
+        for property in ast.nodes(object.properties(ast)) {
           self.clear_created_require_tags_in_pattern(property.value(ast));
         }
         if let Some(rest) = object.rest(ast) {
@@ -915,12 +904,7 @@ impl JavascriptParser<'_> {
 
   pub(crate) fn walk_template_expression(&mut self, expr: TemplateLiteral) {
     let ast = self.ast.ast;
-    self.walk_expressions(
-      expr
-        .expressions(ast)
-        .iter()
-        .map(|id| ast.get_node_in_sub_range(id)),
-    );
+    self.walk_expressions(ast.nodes(expr.expressions(ast)));
   }
 
   fn walk_tagged_template_expression(&mut self, expr: TaggedTemplateExpression) {
@@ -939,7 +923,7 @@ impl JavascriptParser<'_> {
       && let Some(old) = self.statement_path.pop()
     {
       let prev = self.prev_statement;
-      for expression in expressions.iter().map(|id| ast.get_node_in_sub_range(id)) {
+      for expression in ast.nodes(expressions) {
         self.statement_path.push(expression.span(ast).into());
         self.walk_expression(expression);
         self.prev_statement = self.statement_path.pop();
@@ -947,7 +931,7 @@ impl JavascriptParser<'_> {
       self.prev_statement = prev;
       self.statement_path.push(old);
     } else {
-      self.walk_expressions(expressions.iter().map(|id| ast.get_node_in_sub_range(id)));
+      self.walk_expressions(ast.nodes(expressions));
     }
   }
 
@@ -961,18 +945,10 @@ impl JavascriptParser<'_> {
     let ast = self.ast.ast;
     let opening = element.opening_element(ast);
     self.walk_jsx_element_name(opening.name(ast));
-    for attribute in opening
-      .attributes(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-    {
+    for attribute in ast.nodes(opening.attributes(ast)) {
       self.walk_jsx_attr_or_spread(attribute);
     }
-    for child in element
-      .children(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-    {
+    for child in ast.nodes(element.children(ast)) {
       self.walk_jsx_child(child);
     }
     if let Some(closing) = element.closing_element(ast) {
@@ -982,11 +958,7 @@ impl JavascriptParser<'_> {
 
   fn walk_jsx_fragment(&mut self, fragment: JsxFragment) {
     let ast = self.ast.ast;
-    for child in fragment
-      .children(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-    {
+    for child in ast.nodes(fragment.children(ast)) {
       self.walk_jsx_child(child);
     }
   }
@@ -1156,11 +1128,7 @@ impl JavascriptParser<'_> {
 
   fn walk_object_expression(&mut self, expr: ObjectExpression) {
     let ast = self.ast.ast;
-    for property in expr
-      .properties(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-    {
+    for property in ast.nodes(expr.properties(ast)) {
       match ast.object_property_kind_data(property) {
         ObjectPropertyKindData::SpreadElement(spread) => {
           self.walk_expression(spread.argument(ast));
@@ -1218,12 +1186,7 @@ impl JavascriptParser<'_> {
       }
     }
     self.walk_expression(callee);
-    self.walk_arguments(
-      expr
-        .arguments(ast)
-        .iter()
-        .map(|id| ast.get_node_in_sub_range(id)),
-    );
+    self.walk_arguments(ast.nodes(expr.arguments(ast)));
   }
 
   fn walk_meta_property(&mut self, expr: MetaProperty) {
@@ -1487,11 +1450,7 @@ impl JavascriptParser<'_> {
 
   pub(crate) fn walk_function_body(&mut self, body: FunctionBody) {
     let ast = self.ast.ast;
-    for directive in body
-      .directives(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-    {
+    for directive in ast.nodes(body.directives(ast)) {
       if ast.get_utf8(directive.value(ast)) == "use strict" {
         self.set_strict(true);
         break;
@@ -1671,7 +1630,7 @@ impl JavascriptParser<'_> {
       && !arguments.is_empty()
       && formal_parameters_are_simple_identifiers(ast, function.params(ast))
     {
-      let mut args = arguments.iter().map(|id| ast.get_node_in_sub_range(id));
+      let mut args = ast.nodes(arguments);
       let current_this = args.next();
       self._walk_iife(member.object(ast), args, current_this);
       return;
@@ -1683,11 +1642,7 @@ impl JavascriptParser<'_> {
       _ => None,
     };
     if direct_params.is_some_and(|params| formal_parameters_are_simple_identifiers(ast, params)) {
-      self._walk_iife(
-        callee,
-        arguments.iter().map(|id| ast.get_node_in_sub_range(id)),
-        None,
-      );
+      self._walk_iife(callee, ast.nodes(arguments), None);
       return;
     }
 
@@ -1739,7 +1694,7 @@ impl JavascriptParser<'_> {
           .import_call(self, call, None, Some((&members, true)))
           .unwrap_or_default()
         {
-          self.walk_arguments(arguments.iter().map(|id| ast.get_node_in_sub_range(id)));
+          self.walk_arguments(ast.nodes(arguments));
           return;
         }
       }
@@ -1797,7 +1752,7 @@ impl JavascriptParser<'_> {
     } else {
       self.walk_expression(callee);
     }
-    self.walk_arguments(arguments.iter().map(|id| ast.get_node_in_sub_range(id)));
+    self.walk_arguments(ast.nodes(arguments));
   }
 
   fn extract_await_import_member(
@@ -2152,12 +2107,7 @@ impl JavascriptParser<'_> {
 
   fn walk_array_expression(&mut self, expr: ArrayExpression) {
     let ast = self.ast.ast;
-    self.walk_arguments(
-      expr
-        .elements(ast)
-        .iter()
-        .filter_map(|id| ast.get_node_in_sub_range(id)),
-    );
+    self.walk_arguments(ast.nodes(expr.elements(ast)).flatten());
   }
 
   fn walk_nested_statement(&mut self, stmt: Stmt) {
@@ -2274,11 +2224,7 @@ impl JavascriptParser<'_> {
 
   fn walk_object_pattern(&mut self, object: ObjectPattern) {
     let ast = self.ast.ast;
-    for property in object
-      .properties(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-    {
+    for property in ast.nodes(object.properties(ast)) {
       if property.computed(ast) {
         self.walk_property_key(property.key(ast));
       }
@@ -2297,11 +2243,7 @@ impl JavascriptParser<'_> {
 
   fn walk_array_pattern(&mut self, pattern: ArrayPattern) {
     let ast = self.ast.ast;
-    for element in pattern
-      .elements(ast)
-      .iter()
-      .filter_map(|id| ast.get_node_in_sub_range(id))
-    {
+    for element in ast.nodes(pattern.elements(ast)).flatten() {
       self.walk_pattern(element);
     }
     if let Some(rest) = pattern.rest(ast) {
@@ -2336,7 +2278,7 @@ impl JavascriptParser<'_> {
 
     let elements = classy.body(ast).body(ast);
     self.in_class_scope(true, scope_param.into_iter(), |this| {
-      for class_element in elements.iter().map(|id| ast.get_node_in_sub_range(id)) {
+      for class_element in ast.nodes(elements) {
         if this
           .plugin_drive
           .clone()
