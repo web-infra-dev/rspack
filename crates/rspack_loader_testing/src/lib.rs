@@ -1,14 +1,8 @@
-use std::sync::{
-  Arc,
-  atomic::{AtomicUsize, Ordering},
-};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_core::{
-  AssetBuildInfo, AssetInfo, CanonicalizedDataUrlOption, FilenameFn, Loader, LoaderContext,
-  LocalFilenameFn, Module, PathData, RunnerContext,
-};
+use rspack_core::{Loader, LoaderContext, RunnerContext};
 use rspack_error::Result;
 use rspack_loader_runner::{DisplayWithSuffix, Identifier};
 use serde_json::json;
@@ -176,45 +170,3 @@ impl Loader<RunnerContext> for DependencyLoader {
   }
 }
 pub const DEPENDENCY_LOADER_IDENTIFIER: &str = "builtin:test-dependency-loader";
-
-/// Adds a build-owned function so the module is reusable in memory but cannot
-/// be serialized. JavaScript parsing leaves this asset metadata untouched.
-#[cacheable]
-pub struct NonSerializableModuleLoader;
-
-#[derive(Debug)]
-struct TestFilename;
-
-#[async_trait]
-impl LocalFilenameFn for TestFilename {
-  async fn call(
-    &self,
-    _path_data: &PathData,
-    _asset_info: Option<&AssetInfo>,
-  ) -> Result<String> {
-    Ok("unused.txt".to_string())
-  }
-}
-
-impl FilenameFn for TestFilename {}
-
-#[cacheable_dyn]
-#[async_trait]
-impl Loader<RunnerContext> for NonSerializableModuleLoader {
-  fn identifier(&self) -> Identifier {
-    NON_SERIALIZABLE_MODULE_LOADER_IDENTIFIER.into()
-  }
-
-  async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
-    loader_context.context.module.build_info_mut().asset = Some(Box::new(AssetBuildInfo {
-      data_url: CanonicalizedDataUrlOption::Source,
-      filename: Some((Arc::new(TestFilename) as Arc<dyn FilenameFn>).into()),
-    }));
-    let data = loader_context.take_all();
-    loader_context.finish_with(data);
-    Ok(())
-  }
-}
-
-pub const NON_SERIALIZABLE_MODULE_LOADER_IDENTIFIER: &str =
-  "builtin:test-non-serializable-module-loader";
