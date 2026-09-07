@@ -5,9 +5,9 @@ use rspack_core::{
   AsyncDependenciesBlock, AsyncModulesArtifact, ChunkInitFragments, ChunkUkey,
   CodeGenerationDataFilename, Compilation, CompilationFinishModules, CompilationParams,
   CompilerCompilation, DependenciesBlock, DependencyId, DependencyParents, EntryOptions,
-  ExportsInfoArtifact, GroupOptions, ImportMetaKnownProperties, JavascriptParserUrl, Module,
-  ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin,
-  PublicPath, RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
+  ExportsInfoArtifact, Filename, GroupOptions, ImportMetaKnownProperties, JavascriptParserUrl,
+  Module, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData,
+  Plugin, PublicPath, RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
   SourceType, URLStaticMode, get_css_chunk_filename_template, get_js_chunk_filename_template,
   get_undo_path,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
@@ -29,51 +29,16 @@ use crate::{
 #[derive(Debug, Default)]
 pub struct URLPlugin {}
 
-async fn get_chunk_output_path(compilation: &Compilation, chunk_ukey: ChunkUkey) -> Result<String> {
-  let chunk = compilation
-    .build_chunk_graph_artifact
-    .chunk_by_ukey
-    .expect_get(&chunk_ukey);
-  let filename_template = get_js_chunk_filename_template(
-    chunk,
-    &compilation.options.output,
-    &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-  );
-
-  compilation
-    .get_path(
-      &filename_template,
-      PathData::default()
-        .chunk(chunk_ukey, compilation)
-        .chunk_hash_optional(chunk.rendered_hash(
-          &compilation.chunk_hashes_artifact,
-          compilation.options.output.hash_digest_length,
-        ))
-        .chunk_id_optional(chunk.id().map(|id| id.as_str()))
-        .chunk_name_optional(chunk.name_for_filename_template())
-        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-          &compilation.chunk_hashes_artifact,
-          &SourceType::JavaScript,
-          compilation.options.output.hash_digest_length,
-        ))
-        .runtime(chunk.runtime().as_str()),
-    )
-    .await
-}
-
-async fn get_css_chunk_output_path(
+async fn get_chunk_output_path(
   compilation: &Compilation,
   chunk_ukey: ChunkUkey,
+  filename_template: &Filename,
+  source_type: SourceType,
 ) -> Result<String> {
   let chunk = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .expect_get(&chunk_ukey);
-  let filename_template = get_css_chunk_filename_template(
-    chunk,
-    &compilation.options.output,
-    &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-  );
 
   compilation
     .get_path(
@@ -88,7 +53,7 @@ async fn get_css_chunk_output_path(
         .chunk_name_optional(chunk.name_for_filename_template())
         .content_hash_optional(chunk.rendered_content_hash_by_source_type(
           &compilation.chunk_hashes_artifact,
-          &SourceType::Css,
+          &source_type,
           compilation.options.output.hash_digest_length,
         ))
         .runtime(chunk.runtime().as_str()),
@@ -221,13 +186,33 @@ pub async fn replace_static_url_placeholders(
       let target_module = module_graph
         .module_by_identifier(module_identifier)
         .expect("URL entry should have a target module");
+      let chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(&chunk_ukey);
       let filename = if matches!(
         target_module.module_type(),
         ModuleType::Css | ModuleType::CssAuto | ModuleType::CssModule | ModuleType::CssGlobal
       ) {
-        get_css_chunk_output_path(compilation, chunk_ukey).await?
+        let filename_template = get_css_chunk_filename_template(
+          chunk,
+          &compilation.options.output,
+          &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+        );
+        get_chunk_output_path(compilation, chunk_ukey, filename_template, SourceType::Css).await?
       } else {
-        get_chunk_output_path(compilation, chunk_ukey).await?
+        let filename_template = get_js_chunk_filename_template(
+          chunk,
+          &compilation.options.output,
+          &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+        );
+        get_chunk_output_path(
+          compilation,
+          chunk_ukey,
+          &filename_template,
+          SourceType::JavaScript,
+        )
+        .await?
       };
       replace_source.replace(start as u32, end as u32, filename, None);
       continue;
@@ -283,7 +268,22 @@ pub async fn replace_static_url_placeholders(
       })
       .map(|entrypoint| entrypoint.get_entrypoint_chunk())
       .expect("failed to get worker chunk");
-    let filename = get_chunk_output_path(compilation, worker_chunk_ukey).await?;
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(&worker_chunk_ukey);
+    let filename_template = get_js_chunk_filename_template(
+      chunk,
+      &compilation.options.output,
+      &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+    );
+    let filename = get_chunk_output_path(
+      compilation,
+      worker_chunk_ukey,
+      &filename_template,
+      SourceType::JavaScript,
+    )
+    .await?;
     let public_path = if !worker_public_path.is_empty() {
       worker_public_path
     } else if let PublicPath::Filename(public_path) = &compilation.options.output.public_path {
@@ -364,16 +364,27 @@ async fn render_module_content(
   _init_fragments: &mut ChunkInitFragments,
   _runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
-  let runtime = compilation
+  let chunk = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
-    .expect_get(chunk_ukey)
-    .runtime();
+    .expect_get(chunk_ukey);
+  let runtime = chunk.runtime();
   let codegen_result = compilation
     .code_generation_results
     .get(&module.identifier(), Some(runtime));
   if codegen_result.data().contains::<URLStaticMode>() {
-    let output_path = get_chunk_output_path(compilation, *chunk_ukey).await?;
+    let filename_template = get_js_chunk_filename_template(
+      chunk,
+      &compilation.options.output,
+      &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+    );
+    let output_path = get_chunk_output_path(
+      compilation,
+      *chunk_ukey,
+      &filename_template,
+      SourceType::JavaScript,
+    )
+    .await?;
     render_source.source = replace_static_url_placeholders(
       compilation,
       Some(runtime),
