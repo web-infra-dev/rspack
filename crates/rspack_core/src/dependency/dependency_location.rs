@@ -30,8 +30,8 @@ impl From<swc_core::common::Span> for DependencyRange {
   }
 }
 
-impl From<swc_experimental_ecma_ast::Span> for DependencyRange {
-  fn from(span: swc_experimental_ecma_ast::Span) -> Self {
+impl From<swc_next_ecma_ast::Span> for DependencyRange {
+  fn from(span: swc_next_ecma_ast::Span) -> Self {
     Self {
       start: span.real_lo(),
       end: span.real_hi(),

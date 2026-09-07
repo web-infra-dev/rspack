@@ -1,6 +1,6 @@
 ERROR in ./index.js
   × Module parse failed:
-  ╰─▶   × JavaScript parse error: Expression expected
+  ╰─▶   × JavaScript parse error: Unexpected token 'end of file'
          ╭────
        1 │ describe('fail', -
          ╰────
