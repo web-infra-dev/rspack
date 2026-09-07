@@ -5,7 +5,10 @@ use rspack_core::{
   ReferencedSpecifier, get_context,
 };
 use rspack_error::{Error, Severity};
-use rspack_util::{SpanExt, swc::get_swc_next_comments};
+use rspack_util::{
+  SpanExt,
+  swc::{AstSubRangeExt, get_swc_next_comments},
+};
 use rustc_hash::FxHashMap;
 use swc_next_ecma_ast::{
   ArrowFunctionBodyData, BindingPattern, BindingPatternData, CallExpression, Expr, ExprData,
@@ -661,17 +664,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
     if let Some(import_then) = import_then {
       if let Some(ns_obj) = referenced_fulfilled_ns_obj {
         let ast = parser.ast.ast;
-        let arguments = import_then
-          .arguments(ast)
-          .iter()
-          .map(|id| ast.get_node_in_sub_range(id))
-          .collect::<Vec<_>>();
-        let fulfilled_callback = arguments
-          .first()
+        let arguments = import_then.arguments(ast);
+        let fulfilled_callback = ast
+          .first(arguments)
           .and_then(|argument| argument.as_expr(ast))
           .expect("fulfilled callback should be an expression");
         walk_import_then_fulfilled_callback(parser, node, fulfilled_callback, ns_obj);
-        parser.walk_arguments(arguments.into_iter().skip(1));
+        parser.walk_arguments(ast.nodes(arguments).skip(1));
       } else {
         let ast = parser.ast.ast;
         parser.walk_arguments(

@@ -4,6 +4,7 @@
 //! [`Ast`] passed alongside the handle to read fields.
 
 use rspack_intern::Atom;
+use rspack_util::swc::AstSubRangeExt;
 use swc_next_ecma_ast::{
   Ast, BindingIdentifier, BindingPattern, BlockStatement, BreakStatement, Class, ContinueStatement,
   DebuggerStatement, DeclData, DoWhileStatement, EmptyStatement,
@@ -139,8 +140,7 @@ impl ExportNamedDeclaration {
     self,
     ast: &'a Ast<'_>,
   ) -> impl Iterator<Item = (Atom, Atom, Span)> + 'a {
-    self.0.specifiers(ast).iter().map(move |slot| {
-      let specifier = ast.get_node_in_sub_range(slot);
+    ast.nodes(self.0.specifiers(ast)).map(move |specifier| {
       let local = specifier.local(ast);
       let exported = specifier.exported(ast);
       (
@@ -407,11 +407,7 @@ impl VariableDeclaration {
   }
 
   pub fn declarators<'a>(self, ast: &'a Ast<'_>) -> impl Iterator<Item = VariableDeclarator> + 'a {
-    self
-      .0
-      .declarators(ast)
-      .iter()
-      .map(move |slot| ast.get_node_in_sub_range(slot))
+    ast.nodes(self.0.declarators(ast))
   }
 }
 

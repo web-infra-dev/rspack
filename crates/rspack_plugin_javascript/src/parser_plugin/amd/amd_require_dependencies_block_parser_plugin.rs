@@ -9,7 +9,7 @@ use rspack_core::{
 };
 use rspack_error::{Error, Severity};
 use rspack_intern::Atom;
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{
   Argument, ArrowFunctionBodyData, Ast, BindingPattern, CallExpression, GetSpan,
 };
@@ -280,11 +280,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
     call_expr: CallExpression,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
-    let args = call_expr
-      .arguments(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
+    let args = call_expr.arguments(ast);
     if args.is_empty() {
       return None;
     }
@@ -292,9 +288,9 @@ impl AMDRequireDependenciesBlockParserPlugin {
 
     // require(['dep1', 'dep2'], callback, errorCallback);
 
-    let first_arg = *args.first().expect("first arg cannot be None");
-    let callback_arg = args.get(1).copied();
-    let error_callback_arg = args.get(2).copied();
+    let first_arg = ast.first(args).expect("first arg cannot be None");
+    let callback_arg = ast.second(args);
+    let error_callback_arg = args.get_node(ast, 2);
     let first_arg_expr = first_arg.as_expr(ast)?;
 
     let param = parser.evaluate_expression(first_arg_expr);

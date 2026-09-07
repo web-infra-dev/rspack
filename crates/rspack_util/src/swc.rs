@@ -4,8 +4,49 @@ pub mod runtime;
 use rspack_intern::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_next_ecma_ast::{
-  Ast, CommentKind as NextCommentKind, CommentPosition, Span as NextAstSpan,
+  Ast, CommentKind as NextCommentKind, CommentPosition, ExtraDataCompact, Span as NextAstSpan,
+  TypedSubRange,
 };
+
+pub trait AstSubRangeExt<'ast> {
+  fn first<T>(&self, range: TypedSubRange<T>) -> Option<T>
+  where
+    T: ExtraDataCompact<'ast>;
+
+  fn second<T>(&self, range: TypedSubRange<T>) -> Option<T>
+  where
+    T: ExtraDataCompact<'ast>;
+
+  fn nodes<'a, T>(&'a self, range: TypedSubRange<T>) -> impl Iterator<Item = T> + 'a
+  where
+    T: ExtraDataCompact<'ast> + 'a;
+}
+
+impl<'ast> AstSubRangeExt<'ast> for Ast<'ast> {
+  #[inline]
+  fn first<T>(&self, range: TypedSubRange<T>) -> Option<T>
+  where
+    T: ExtraDataCompact<'ast>,
+  {
+    range.get_node(self, 0)
+  }
+
+  #[inline]
+  fn second<T>(&self, range: TypedSubRange<T>) -> Option<T>
+  where
+    T: ExtraDataCompact<'ast>,
+  {
+    range.get_node(self, 1)
+  }
+
+  #[inline]
+  fn nodes<'a, T>(&'a self, range: TypedSubRange<T>) -> impl Iterator<Item = T> + 'a
+  where
+    T: ExtraDataCompact<'ast> + 'a,
+  {
+    range.iter().map(move |id| self.get_node_in_sub_range(id))
+  }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RspackComment<'a> {
