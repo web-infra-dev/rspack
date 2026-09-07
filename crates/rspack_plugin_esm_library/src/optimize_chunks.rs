@@ -820,7 +820,12 @@ pub(crate) fn analyze_dyn_import_targets(
 fn short_name_from_identifier(identifier: &str) -> Option<String> {
   // Strip module-type prefix and trailing metadata.
   // e.g. "css|./path/to/file.css|0||||}" → "./path/to/file.css"
-  let s = if let Some((_, rest)) = identifier.split_once('|') {
+  // A `|` after a `?` is part of the resource/query, not metadata. This also
+  // keeps a DOS path without a module-type prefix intact while still allowing
+  // `css|\\?\C:\...`.
+  let s = if let Some((prefix, rest)) = identifier.split_once('|')
+    && !prefix.contains('?')
+  {
     rest.split('|').next().unwrap_or(rest)
   } else {
     identifier

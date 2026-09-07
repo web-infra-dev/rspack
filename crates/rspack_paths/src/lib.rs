@@ -26,7 +26,8 @@ pub use ustr::IdentityHasher;
 /// (`\\\\?\\` or `\\\\.\\`), or zero when `path` has no such prefix.
 ///
 /// The prefix is ASCII, so the byte index is also a valid UTF-8 slice boundary.
-/// This follows enhanced-resolve's DOS device path classification.
+/// This follows enhanced-resolve's DOS device path handling:
+/// <https://github.com/webpack/enhanced-resolve/pull/551>.
 #[inline]
 pub fn windows_dos_device_path_prefix_len(path: &str) -> usize {
   let bytes = path.as_bytes();

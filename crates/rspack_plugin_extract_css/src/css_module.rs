@@ -9,7 +9,7 @@ use rspack_core::{
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
-use rspack_util::itoa;
+use rspack_util::{identifier::split_at_query_mark, itoa};
 
 use crate::{
   css_dependency::CssDependency,
@@ -138,7 +138,7 @@ impl Module for CssModule {
       .identifier
       .split('!')
       .next_back()
-      .map(|resource| resource.split('?').next().unwrap_or(resource).into())
+      .map(|resource| split_at_query_mark(resource).0.into())
   }
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {

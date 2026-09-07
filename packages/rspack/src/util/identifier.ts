@@ -8,8 +8,9 @@ const WINDOWS_ABS_PATH_REGEXP = /^[a-zA-Z]:[\\/]/;
 const SEGMENTS_SPLIT_REGEXP = /([|!])/;
 const WINDOWS_PATH_SEPARATOR_REGEXP = /\\/g;
 
-// Align with enhanced-resolve: `?` is part of a DOS device path prefix and
-// must not be interpreted as a resource query separator.
+// Align with https://github.com/webpack/enhanced-resolve/pull/551: `?` is part
+// of a DOS device path prefix and must not be interpreted as a resource query
+// separator.
 const getWindowsDosDevicePathPrefixLength = (identifier: string): number => {
   if (
     identifier.length >= 4 &&
