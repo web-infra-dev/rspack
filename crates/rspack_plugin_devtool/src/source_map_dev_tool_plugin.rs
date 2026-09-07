@@ -456,7 +456,7 @@ impl SourceMapDevToolPlugin {
         cache.get::<CachedSourceMapDevToolPluginEntry>(
           &filename,
           Some(Etag::from(asset.info.version.clone())),
-        )?
+        )
       } else {
         None
       };

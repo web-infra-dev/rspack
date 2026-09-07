@@ -21,7 +21,7 @@ impl Compiler {
     changed_files: FxHashSet<String>,
     deleted_files: FxHashSet<String>,
   ) -> Result<()> {
-    let start = self.end_idle()?;
+    let start = self.end_idle();
     let result = match within_compiler_context(
       self.compiler_context.clone(),
       self.rebuild_inner(changed_files, deleted_files),
@@ -46,8 +46,8 @@ impl Compiler {
         failed.and(Err(e))
       }
     };
-    let cache_result = self.begin_idle(start, result.is_ok());
-    result.and(cache_result)
+    self.begin_idle(start.elapsed());
+    result
   }
 
   #[tracing::instrument("Compiler:rebuild", skip_all, fields(
