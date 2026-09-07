@@ -253,9 +253,9 @@ fn handle_worker(
       && let Some((request, start, end)) = get_url_request(parser, new_url_expr)
     {
       let new_url_arguments = new_url_expr.arguments(ast);
-      let range_request = new_url_arguments.get_node(ast, 1).and_then(|_| {
-        new_url_arguments
-          .get_node(ast, 0)
+      let range_request = ast.second(new_url_arguments).and_then(|_| {
+        ast
+          .first(new_url_arguments)
           .map(|argument| (argument.span(ast).real_lo(), argument.span(ast).real_hi()))
       });
       ParsedNewWorkerPath {
@@ -286,17 +286,10 @@ fn handle_worker(
     let import_options = expression
       .as_new_expression(ast)
       .and_then(|new_url_expr| {
-        new_url_expr
-          .arguments(ast)
-          .get_node(ast, 0)
-          .and_then(|argument| {
-            // new Worker(new URL(/* options */ "worker.js"))
-            parse_new_worker_options_from_comments(
-              parser,
-              argument.span(ast),
-              new_url_expr.span(ast),
-            )
-          })
+        ast.first(new_url_expr.arguments(ast)).and_then(|argument| {
+          // new Worker(new URL(/* options */ "worker.js"))
+          parse_new_worker_options_from_comments(parser, argument.span(ast), new_url_expr.span(ast))
+        })
       })
       .or_else(|| {
         // new Worker(/* options */ new URL("worker.js"))

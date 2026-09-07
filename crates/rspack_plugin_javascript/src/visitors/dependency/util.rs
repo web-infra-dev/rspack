@@ -3,6 +3,7 @@ use std::sync::LazyLock;
 use rspack_core::DependencyRange;
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
+use rspack_util::swc::AstSubRangeExt;
 use swc_next_ecma_ast::{Ast, Expr, ExprData, MemberExpression};
 
 use super::JavascriptParser;
@@ -55,7 +56,7 @@ pub fn static_string_from_expr(ast: &Ast<'_>, expr: Expr) -> Option<String> {
     ExprData::TemplateLiteral(template)
       if template.expressions(ast).is_empty() && template.quasis(ast).len() == 1 =>
     {
-      let element = ast.get_node_in_sub_range(template.quasis(ast).iter().next()?);
+      let element = ast.first(template.quasis(ast))?;
       Some(ast.get_utf8(element.raw(ast)).to_string())
     }
     _ => None,

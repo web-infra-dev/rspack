@@ -4,7 +4,7 @@ use rspack_core::{
 };
 use rspack_error::Error;
 use rspack_regex::RspackRegex;
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{CallExpression, GetSpan};
 
 use super::JavascriptParserPlugin;
@@ -32,7 +32,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireContextDependencyParserPl
     let ast = parser.ast.ast;
     let arguments = expr.arguments(ast);
 
-    let arg = arguments.get_node(ast, 0)?.as_expr(ast)?;
+    let arg = ast.first(arguments)?.as_expr(ast)?;
     let request_expr = parser.evaluate_expression(arg);
     if !request_expr.is_string() {
       return None;
@@ -82,7 +82,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireContextDependencyParserPl
     };
 
     let recursive = if arguments.len() >= 2 {
-      let recursive_expr = parser.evaluate_expression(arguments.get_node(ast, 1)?.as_expr(ast)?);
+      let recursive_expr = parser.evaluate_expression(ast.second(arguments)?.as_expr(ast)?);
       if !recursive_expr.is_bool() {
         // FIXME: return `None` in webpack
         true
