@@ -1,45 +1,6 @@
 ERROR in ./app.js
   × Module parse failed:
-  ╰─▶   × JavaScript parse error: Expression expected
-         ╭─[4:25]
-       2 │     createElement() {}
-       3 │ };
-       4 │ export const App = () => <div></div>;
-         ·                          ─
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
-
-ERROR in ./app.js
-  × Module parse failed:
-  ╰─▶   × JavaScript parse error: Expression expected
-         ╭─[4:30]
-       2 │     createElement() {}
-       3 │ };
-       4 │ export const App = () => <div></div>;
-         ·                               ─
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
-
-ERROR in ./app.js
-  × Module parse failed:
-  ╰─▶   × JavaScript parse error: Unterminated regexp literal
-         ╭─[4:31]
-       2 │     createElement() {}
-       3 │ };
-       4 │ export const App = () => <div></div>;
-         ·                                ──────
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
-
-ERROR in ./app.jsx
-  × Module parse failed:
-  ╰─▶   × JavaScript parse error: Expression expected
+  ╰─▶   × JavaScript parse error: Unexpected token '<'
          ╭─[4:25]
        2 │     createElement() {}
        3 │ };
@@ -52,25 +13,12 @@ ERROR in ./app.jsx
 
 ERROR in ./app.jsx
   × Module parse failed:
-  ╰─▶   × JavaScript parse error: Expression expected
-         ╭─[4:30]
+  ╰─▶   × JavaScript parse error: Unexpected token '<'
+         ╭─[4:25]
        2 │     createElement() {}
        3 │ };
        4 │ export const App = () => <div></div>;
-         ·                               ─
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
-
-ERROR in ./app.jsx
-  × Module parse failed:
-  ╰─▶   × JavaScript parse error: Unterminated regexp literal
-         ╭─[4:31]
-       2 │     createElement() {}
-       3 │ };
-       4 │ export const App = () => <div></div>;
-         ·                                ──────
+         ·                          ─
          ╰────
       
   help: 
@@ -78,13 +26,56 @@ ERROR in ./app.jsx
 
 ERROR in ./app.ts
   × Module parse failed:
-  ╰─▶   × JavaScript parse error: Expected ',', got ':'
+  ╰─▶   × JavaScript parse error: Expected ')' to close parameter list, but found ':'
          ╭─[2:21]
        1 │ const React = {
        2 │     createElement(elm: any) {}
          ·                      ─
        3 │ };
        4 │ function Component<T>() {
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./app.ts
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: Expected '(' to start parameter list, but found '<'
+         ╭─[4:18]
+       2 │     createElement(elm: any) {}
+       3 │ };
+       4 │ function Component<T>() {
+         ·                   ─
+       5 │   return <div></div>
+       6 │ }
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./app.ts
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: Unexpected token '<'
+         ╭─[5:9]
+       3 │ };
+       4 │ function Component<T>() {
+       5 │   return <div></div>
+         ·          ─
+       6 │ }
+       7 │ export const App = () => <Component<any>></Component>;
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./app.ts
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: Unexpected token '<'
+         ╭─[7:25]
+       5 │   return <div></div>
+       6 │ }
+       7 │ export const App = () => <Component<any>></Component>;
+         ·                          ─
          ╰────
       
   help: 

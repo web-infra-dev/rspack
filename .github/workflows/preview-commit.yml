@@ -31,7 +31,7 @@ on:
           - aarch64-unknown-linux-musl
           - riscv64gc-unknown-linux-musl
           - powerpc64le-unknown-linux-gnu
-          - s390x-unknown-linux-gnu
+          # SWC Next 0.1.3 rejects big-endian targets, so s390x is unavailable.
           - i686-pc-windows-msvc
           - x86_64-pc-windows-msvc
           - aarch64-pc-windows-msvc

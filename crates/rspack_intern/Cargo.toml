@@ -8,18 +8,17 @@ version.workspace = true
 
 [features]
 atom = ["dep:hstr", "dep:indexmap", "dep:ref-cast", "dep:serde"]
-swc  = ["atom", "dep:swc_core", "dep:swc_experimental_allocator"]
+swc  = ["atom", "dep:swc_core"]
 
 [dependencies]
-dashmap                    = { workspace = true, features = ["raw-api"] }
-hstr                       = { workspace = true, optional = true }
-indexmap                   = { workspace = true, optional = true }
-ref-cast                   = { workspace = true, optional = true }
-rustc-hash                 = { workspace = true }
-serde                      = { workspace = true, features = ["alloc"], optional = true }
-swc_core                   = { workspace = true, features = ["swc_atoms"], optional = true }
-swc_experimental_allocator = { workspace = true, optional = true }
-triomphe                   = { workspace = true }
+dashmap    = { workspace = true, features = ["raw-api"] }
+hstr       = { workspace = true, optional = true }
+indexmap   = { workspace = true, optional = true }
+ref-cast   = { workspace = true, optional = true }
+rustc-hash = { workspace = true }
+serde      = { workspace = true, features = ["alloc"], optional = true }
+swc_core   = { workspace = true, features = ["swc_atoms"], optional = true }
+triomphe   = { workspace = true }
 
 [lints]
 workspace = true

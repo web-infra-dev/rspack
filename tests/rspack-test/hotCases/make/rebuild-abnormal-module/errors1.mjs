@@ -1,1 +1,1 @@
-export default [[/Expression expected/]];
+export default [[/Unexpected token '\)'/]];

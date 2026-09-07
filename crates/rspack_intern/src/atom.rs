@@ -18,8 +18,6 @@ use serde::{
 };
 #[cfg(feature = "swc")]
 use swc_core::atoms::Atom as SwcAtom;
-#[cfg(feature = "swc")]
-use swc_experimental_allocator::atom::Atom as AstAtom;
 
 type FxIndexMap<K, V> = IndexMap<K, V, BuildHasherDefault<FxHasher>>;
 type FxIndexSet<K> = IndexSet<K, BuildHasherDefault<FxHasher>>;
@@ -135,14 +133,6 @@ impl<'a> From<&'a String> for AtomRef<'a> {
   #[inline]
   fn from(value: &'a String) -> Self {
     Self::Str(value)
-  }
-}
-
-#[cfg(feature = "swc")]
-impl<'a> From<&'a AstAtom<'_>> for AtomRef<'a> {
-  #[inline]
-  fn from(value: &'a AstAtom<'_>) -> Self {
-    Self::Str(value.as_str())
   }
 }
 
@@ -517,22 +507,6 @@ impl PartialEq<Atom> for str {
 }
 
 #[cfg(feature = "swc")]
-impl PartialEq<AstAtom<'_>> for Atom {
-  #[inline]
-  fn eq(&self, other: &AstAtom<'_>) -> bool {
-    self.as_str() == other.as_str()
-  }
-}
-
-#[cfg(feature = "swc")]
-impl PartialEq<Atom> for AstAtom<'_> {
-  #[inline]
-  fn eq(&self, other: &Atom) -> bool {
-    self.as_str() == other.as_str()
-  }
-}
-
-#[cfg(feature = "swc")]
 impl PartialEq<SwcAtom> for Atom {
   #[inline]
   fn eq(&self, other: &SwcAtom) -> bool {
@@ -618,22 +592,6 @@ impl_from!(String);
 impl From<&String> for Atom {
   #[inline]
   fn from(value: &String) -> Self {
-    Self::from(value.as_str())
-  }
-}
-
-#[cfg(feature = "swc")]
-impl From<AstAtom<'_>> for Atom {
-  #[inline]
-  fn from(value: AstAtom<'_>) -> Self {
-    Self::from(value.as_str())
-  }
-}
-
-#[cfg(feature = "swc")]
-impl From<&AstAtom<'_>> for Atom {
-  #[inline]
-  fn from(value: &AstAtom<'_>) -> Self {
     Self::from(value.as_str())
   }
 }

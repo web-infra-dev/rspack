@@ -8,12 +8,12 @@ use rspack_core::{
   ParseMeta, ParserOptions, ResolvedModuleOptions, ResourceData, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Diagnostic;
+use rspack_util::swc::RspackComments;
 use rustc_hash::FxHashSet;
-use swc_experimental_allocator::Allocator;
-use swc_experimental_ecma_ast::{Comments, Program};
-use swc_experimental_ecma_semantic::resolver::Semantic;
+use swc_next_ecma_ast::{Ast, Program};
+use swc_next_ecma_semantic::Semantic;
 
-pub(crate) use self::parser::{StatementPath, member_property_to_atom};
+pub(crate) use self::parser::{StatementPath, member_property_key_to_atom};
 pub use self::{
   context_dependency_helper::{ContextModuleScanResult, create_context_dependency},
   parser::{
@@ -36,10 +36,10 @@ pub struct ScanDependenciesResult {
 }
 
 pub struct ParsedJavaScriptAst<'ast> {
-  pub allocator: &'ast Allocator,
-  pub comments: &'ast Comments<'ast>,
-  pub semantic: &'ast Semantic,
-  pub program: &'ast Program<'ast>,
+  pub ast: &'ast Ast<'ast>,
+  pub comments: &'ast RspackComments<'ast>,
+  pub semantic: &'ast Semantic<'ast>,
+  pub program: Program,
 }
 
 #[allow(clippy::too_many_arguments)]

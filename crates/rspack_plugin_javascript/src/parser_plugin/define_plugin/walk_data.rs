@@ -8,7 +8,7 @@ use regex::Regex;
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashMap;
 use serde_json::{Map, Value, json};
-use swc_experimental_ecma_ast::Span;
+use swc_next_ecma_ast::Span;
 
 use super::{
   ConflictingValuesError, DefineValue,
@@ -336,7 +336,7 @@ impl WalkData {
       }
     }
 
-    fn object_evaluate_identifier<'a>(start: u32, end: u32) -> BasicEvaluatedExpression<'a> {
+    fn object_evaluate_identifier<'p>(start: u32, end: u32) -> BasicEvaluatedExpression<'p> {
       let mut evaluated = BasicEvaluatedExpression::new();
       evaluated.set_truthy();
       evaluated.set_side_effects(false);
