@@ -5,11 +5,11 @@ mod context_element_dependency;
 mod dependency_category;
 mod dependency_id;
 mod dependency_location;
+mod dependency_state;
 mod dependency_template;
 mod dependency_trait;
 mod dependency_type;
 mod entry;
-mod factorize_info;
 mod loader_import;
 mod module_dependency;
 mod runtime_requirements_dependency;
@@ -26,17 +26,18 @@ pub use context_element_dependency::ContextElementDependency;
 pub use dependency_category::DependencyCategory;
 pub use dependency_id::*;
 pub use dependency_location::*;
+pub use dependency_state::*;
 pub use dependency_template::*;
 pub use dependency_trait::*;
 pub use dependency_type::DependencyType;
 pub use entry::*;
-pub use factorize_info::FactorizeInfo;
 pub use loader_import::*;
 pub use module_dependency::*;
 use rspack_cacheable::{
   cacheable,
   with::{AsPreset, AsVec},
 };
+use rspack_intern::Atom;
 pub use runtime_requirements_dependency::{
   CodeGenerationRuntimeRequirementsWrite, RuntimeRequirementsDependency,
   RuntimeRequirementsDependencyTemplate, RuntimeRequirementsDependencyWriteOperation,
@@ -44,7 +45,6 @@ pub use runtime_requirements_dependency::{
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
-use swc_core::ecma::atoms::Atom;
 
 use crate::{
   ConnectionState, EvaluatedInlinableValue, ExportsInfoArtifact, ExportsType, ModuleGraph,
@@ -72,14 +72,7 @@ pub enum Nullable<T> {
   Value(T),
 }
 
-impl ExportSpec {
-  pub fn new(name: String) -> Self {
-    Self {
-      name: Atom::from(name),
-      ..Default::default()
-    }
-  }
-}
+impl ExportSpec {}
 
 #[derive(Debug)]
 pub enum ExportNameOrSpec {

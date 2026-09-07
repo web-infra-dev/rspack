@@ -51,7 +51,7 @@ moduleFactories.add({
 /*!**************************************************************************************************************************!*\
   !*** ./modules|lazy|/^\.\/.*\.js$/|referencedExports: default|groupOptions: {}|namespace object|importPhase: evaluation ***!
   \**************************************************************************************************************************/
-(module, __unused_rspack_exports, rspackRequire) {
+(module) {
 var map = {
   "./a.js": [
     "./modules/a.js",
@@ -89,7 +89,7 @@ module.exports = __rspack_async_context;
 /*!*******************************************************************!*\
   !*** ./modules|lazy|nonrecursive|./modules/*.js|namespace object ***!
   \*******************************************************************/
-(module, __unused_rspack_exports, rspackRequire) {
+(module) {
 
 module.exports = {
 

@@ -10,6 +10,9 @@ name                    = "rspack_javascript_compiler"
 repository.workspace    = true
 version.workspace       = true
 
+[features]
+codspeed = []
+
 [dependencies]
 anyhow              = { workspace = true }
 indoc               = { workspace = true }

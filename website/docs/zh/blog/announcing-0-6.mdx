@@ -9,7 +9,7 @@ authors:
     x: 'https://x.com/rspack_dev'
 ---
 
-import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 import { PackageManagerTabs } from '@theme';
 
@@ -27,7 +27,7 @@ _2024 年 4 月 10 日_
 
 这在一些场景很实用，例如当内置的 CSS 处理不能满足你的需求，有更定制化的 CSS Modules name 等，或者你想要使用一些依赖 css-loader 的 loader，但仍然想要将 CSS 提取成单独文件。
 
-详细配置见 [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin#cssextractrspackplugin)。
+详细配置见 [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin#cssextractrspackplugin)。
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -72,7 +72,7 @@ Rspack 在 0.1.0 支持了基本的 tree shaking 功能，由于最初的架构�
 
 移除 `builtins.css`，请使用引入的 CSS 相关的 [`module.parser`](/config/module-parser#cssauto) 和 [`module.generator`](/config/module-generator#cssauto) 选项进行替代。
 
-同时，从 v0.6.0 版本开始，Rspack 的 `experiments.css` 将会以 webpack 的 `experiments.css` 为目标进行对齐，这意味着和 webpack `experiments.css` 一样在未来将不再支持[不支持 CSS 变量的浏览器](https://caniuse.com/css-variables)。因此，对于那些需要使用尚未得到 `experiments.css` 支持的配置，或者需要兼容老版本浏览器的项目，我们推荐迁移至 [`rspack.CssExtractRspackPlugin`](/plugins/rspack/css-extract-rspack-plugin.html)。
+同时，从 v0.6.0 版本开始，Rspack 的 `experiments.css` 将会以 webpack 的 `experiments.css` 为目标进行对齐，这意味着和 webpack `experiments.css` 一样在未来将不再支持[不支持 CSS 变量的浏览器](https://caniuse.com/css-variables)。因此，对于那些需要使用尚未得到 `experiments.css` 支持的配置，或者需要兼容老版本浏览器的项目，我们推荐迁移至 [`rspack.CssExtractRspackPlugin`](/plugins/css-extract-rspack-plugin)。
 
 在 v0.6.0 中，我们引入了三种新的模块类型的 `module.generator` 和 `module.parser` 选项：`css/auto`、`css` 和 `css/module`，这些选项只有在启用 experiments.css 时才会生效，关于如何使用可查看[这个例子](https://github.com/rstackjs/rstack-examples/tree/main/rspack/css-parser-generator-options)。
 

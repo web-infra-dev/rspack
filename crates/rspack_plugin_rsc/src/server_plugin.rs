@@ -210,7 +210,10 @@ async fn this_compilation(
     .or_default()
     .css_link_props = self.css_link_props.clone();
 
-  self.coordinator.start_server_entries_compilation().await?;
+  self
+    .coordinator
+    .start_server_entries_compilation(compilation.compiler_id())
+    .await?;
 
   Ok(())
 }
@@ -640,7 +643,7 @@ impl RscServerPlugin {
     Some(InjectedSsrEntry {
       runtime,
       add_entry: (
-        Box::new(ssr_entry_dependency),
+        BoxDependency::new(ssr_entry_dependency),
         EntryOptions {
           name: Some(entry_name.to_string()),
           layer: Some(LAYERS_NAMES.server_side_rendering.to_string()),
@@ -696,7 +699,7 @@ impl RscServerPlugin {
     Some(InjectedActionEntry {
       runtime,
       add_entry: (
-        Box::new(action_entry_dep),
+        BoxDependency::new(action_entry_dep),
         EntryOptions {
           name: Some(entry_name.to_string()),
           layer: Some(layer),

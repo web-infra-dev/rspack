@@ -1,6 +1,6 @@
 use napi::Either;
 use napi_derive::napi;
-use rspack_core::cache::persistent::snapshot::{PathMatcher, SnapshotOptions};
+use rspack_core::{PathMatcher, SnapshotOptions};
 use rspack_regex::RspackRegex;
 
 type RawPathMatcher = Either<String, RspackRegex>;

@@ -1,20 +1,17 @@
 // This is a comment.
-'use strict';
-// This is a comment.
-'random-directive';
-import 'fs';
-// prettier-ignore
-'qwerty';
-// This is a comment.
-1 + 1;
-// prettier-ignore
-'sasaya';
-export default function() {
-    return null;
-}
-export const a = 1;
-const b = 1;
-export { b };
-export { c } from 'c';
-export * from 'd';
-export { e as f } from 'e';
+import { registerClientReference } from "react-server-dom-rspack/server";
+export default registerClientReference(function() {
+    throw new Error("Attempted to call the default export of \"/some-project/src/some-file.js\" from the server, but it's on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.");
+}, "/some-project/src/some-file.js", "default");
+export const a = registerClientReference(function() {
+    throw new Error("Attempted to call the default export of \"/some-project/src/some-file.js\" from the server, but it's on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.");
+}, "/some-project/src/some-file.js", "a");
+export const b = registerClientReference(function() {
+    throw new Error("Attempted to call the default export of \"/some-project/src/some-file.js\" from the server, but it's on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.");
+}, "/some-project/src/some-file.js", "b");
+export const c = registerClientReference(function() {
+    throw new Error("Attempted to call the default export of \"/some-project/src/some-file.js\" from the server, but it's on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.");
+}, "/some-project/src/some-file.js", "c");
+export const f = registerClientReference(function() {
+    throw new Error("Attempted to call the default export of \"/some-project/src/some-file.js\" from the server, but it's on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.");
+}, "/some-project/src/some-file.js", "f");

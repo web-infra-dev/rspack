@@ -2,16 +2,15 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AffectType, AsModuleDependency, Context, ContextDependency, ContextOptions, ContextTypePrefix,
   Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo,
-  ModuleGraph, ModuleGraphCacheArtifact, ResourceIdentifier, TemplateContext,
-  TemplateReplaceSource,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleGraph,
+  ModuleGraphCacheArtifact, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
 use super::{context_dependency_template_as_id, create_resource_identifier_for_context_dependency};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RequireResolveContextDependency {
   id: DependencyId,
   options: ContextOptions,
@@ -19,8 +18,7 @@ pub struct RequireResolveContextDependency {
   context: Option<Context>,
   resource_identifier: ResourceIdentifier,
   optional: bool,
-  critical: Option<Diagnostic>,
-  factorize_info: FactorizeInfo,
+  critical: rspack_core::DependencyCriticalState,
 }
 
 impl RequireResolveContextDependency {
@@ -41,8 +39,7 @@ impl RequireResolveContextDependency {
       context,
       resource_identifier,
       optional,
-      critical: None,
-      factorize_info: Default::default(),
+      critical: Default::default(),
     }
   }
 }
@@ -80,7 +77,7 @@ impl Dependency for RequireResolveContextDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     if let Some(critical) = self.critical() {
-      return Some(vec![critical.clone()]);
+      return Some(vec![critical]);
     }
     None
   }
@@ -111,20 +108,12 @@ impl ContextDependency for RequireResolveContextDependency {
     ContextTypePrefix::Normal
   }
 
-  fn critical(&self) -> &Option<Diagnostic> {
-    &self.critical
+  fn critical(&self) -> Option<Diagnostic> {
+    self.critical.get()
   }
 
-  fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
-    &mut self.critical
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
+  fn set_critical(&self, critical: Option<Diagnostic>) {
+    self.critical.set(critical);
   }
 }
 

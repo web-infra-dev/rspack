@@ -6,7 +6,7 @@ moduleFactories.add({
 /*!****************!*\
   !*** ./cjs.js ***!
   \****************/
-(__unused_rspack_module, __unused_rspack_exports, rspackRequire) {
+() {
 /* import */ var _use_other__rspack_import_0 = rspackRequire(/*! ./use-other */ "./use-other.js");
 /* import */ var _use_other__rspack_import_0_default = /*#__PURE__*/compatGetDefaultExport(_use_other__rspack_import_0);
 
@@ -20,7 +20,7 @@ console.log.bind((rspackRequire(/*! fs */ "fs")/* .readFile */.readFile))
 /*!******************!*\
   !*** ./index.js ***!
   \******************/
-(module, exports, rspackRequire) {
+(module, exports) {
 makeNamespaceObject(exports);
 /* import */ var _cjs__rspack_import_0 = rspackRequire(/*! ./cjs */ "./cjs.js");
 /* module decorator */ module = esmModuleDecorator(module);
@@ -37,7 +37,7 @@ console.log.bind(module)
 /*!**********************!*\
   !*** ./use-other.js ***!
   \**********************/
-(__unused_rspack_module, __unused_rspack_exports, rspackRequire) {
+() {
 // use export writeFile
 console.log.bind((rspackRequire(/*! fs */ "fs")/* .writeFile */.writeFile))
 

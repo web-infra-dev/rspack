@@ -1,6 +1,5 @@
 use std::{
   borrow::Cow,
-  collections::HashSet,
   sync::{Arc, LazyLock},
 };
 
@@ -21,6 +20,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_util::fx_hash::FxHashSet;
 use swc_experimental_allocator::Allocator;
 use swc_experimental_ecma_ast::{Comments, EsVersion, Program, VisitWith};
 use swc_experimental_ecma_parser::{
@@ -43,6 +43,7 @@ pub struct ParserRuntimeRequirementsData {
   pub rspack_module: String,
   pub exports: String,
   pub require: String,
+  pub compatibility_runtime_scope: String,
   pub require_regex: &'static LazyLock<Regex>,
   pub module_cache: String,
   pub entry_module_id: String,
@@ -57,14 +58,14 @@ fn append_experimental_parse_errors(
   source: &str,
   errors: impl IntoIterator<Item = swc_experimental_ecma_parser::error::Error>,
 ) {
-  let mut visited = HashSet::new();
+  let mut visited = FxHashSet::default();
   let source: Arc<str> = source.into();
   diagnostics.extend(errors.into_iter().filter_map(|err| {
     let span = err.span();
-    let message = err.kind().msg().to_string();
-    if !visited.insert((message.clone(), span)) {
+    if !visited.insert((span.start, span.end)) {
       return None;
     }
+    let message = err.kind().msg().to_string();
     Some(
       Error::from_shared_source(
         Some(source.clone()),
@@ -110,6 +111,7 @@ impl ParserRuntimeRequirementsData {
   pub fn new(runtime_template: &ModuleCodeTemplate) -> Self {
     let require_name =
       runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::REQUIRE);
+    let compatibility_runtime_scope = runtime_template.render_runtime_scope();
     let module_name =
       runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::MODULE);
     let exports_name =
@@ -128,6 +130,7 @@ impl ParserRuntimeRequirementsData {
       rspack_module: rspack_module_name,
       exports: exports_name,
       require: require_name,
+      compatibility_runtime_scope,
       module_cache: module_cache_name,
       entry_module_id: entry_module_id_name,
     }
@@ -256,8 +259,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let mut diagnostics: Vec<Diagnostic> = vec![];
 
     if let Some(collected_ts_info) = parse_meta.remove(COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY)
-      && let Ok(collected_ts_info) =
-        (collected_ts_info as Box<dyn std::any::Any>).downcast::<CollectedTypeScriptInfo>()
+      && let Ok(collected_ts_info) = collected_ts_info
+        .into_any()
+        .downcast::<CollectedTypeScriptInfo>()
     {
       build_info.collected_typescript_info = Some(*collected_ts_info);
     }

@@ -68,7 +68,6 @@ var map = {
     "./modules/a.js",
     [
       "shared-chunk",
-      0,
       "a"
     ]
   ],
@@ -76,7 +75,6 @@ var map = {
     "./modules/b.js",
     [
       "shared-chunk",
-      0,
       "b"
     ]
   ]
@@ -108,9 +106,9 @@ module.exports = __rspack_async_context;
 
 module.exports = {
 
-  "./modules/a.js": function() { return Promise.all(/*! esm */ [__webpack_require__.e("shared-chunk"), __webpack_require__.e(0), __webpack_require__.e("a")]).then(__webpack_require__.bind(__webpack_require__, /*! ./modules/a.js */ "./modules/a.js")); },
+  "./modules/a.js": function() { return Promise.all(/*! esm */ [__webpack_require__.e("shared-chunk"), __webpack_require__.e("a")]).then(__webpack_require__.bind(__webpack_require__, /*! ./modules/a.js */ "./modules/a.js")); },
 
-  "./modules/b.js": function() { return Promise.all(/*! esm */ [__webpack_require__.e("shared-chunk"), __webpack_require__.e(0), __webpack_require__.e("b")]).then(__webpack_require__.bind(__webpack_require__, /*! ./modules/b.js */ "./modules/b.js")); }
+  "./modules/b.js": function() { return Promise.all(/*! esm */ [__webpack_require__.e("shared-chunk"), __webpack_require__.e("b")]).then(__webpack_require__.bind(__webpack_require__, /*! ./modules/b.js */ "./modules/b.js")); }
 };
 
 

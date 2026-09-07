@@ -11,18 +11,19 @@ impl EntryDependency {
     &mut self,
     context: rspack_core::Context,
     layer: Option<String>,
-  ) -> napi::Result<Box<dyn rspack_core::Dependency>> {
+    is_global: bool,
+  ) -> napi::Result<rspack_core::DependencyRef> {
     match &self.dependency_id {
       Some(dependency_id) => Err(napi::Error::from_reason(format!(
         "Dependency with id = {dependency_id:?} has already been resolved. Reusing EntryDependency is not allowed because Rust requires its ownership."
       ))),
       None => {
-        let dependency = Box::new(rspack_core::EntryDependency::new(
+        let dependency = rspack_core::DependencyRef::new(rspack_core::EntryDependency::new(
           self.request.clone(),
           context,
           layer,
-          false,
-        )) as rspack_core::BoxDependency;
+          is_global,
+        ));
         self.dependency_id = Some(*dependency.id());
         Ok(dependency)
       }

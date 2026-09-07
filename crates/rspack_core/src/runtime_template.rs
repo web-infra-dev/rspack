@@ -1,6 +1,5 @@
 use std::{
   borrow::Cow,
-  collections::HashMap,
   fmt::{Debug, Write},
   sync::{Arc, LazyLock, Mutex},
 };
@@ -12,19 +11,18 @@ use regex::{Captures, Regex};
 use rspack_collections::{Identifier, IdentifierSet};
 use rspack_dojang::{Context, Dojang, FunctionContainer, Operand};
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt, error};
+use rspack_intern::Atom;
 use rspack_util::{fx_hash::FxIndexSet, json_stringify};
 use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 use serde_json::{Value, json};
-use swc_core::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
   DependencyId, DependencyType, ExportsArgument, ExportsInfoArtifact, ExportsType,
-  FakeNamespaceObjectMode, GenerateContext, ImportPhase, InitFragment, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, Module, ModuleArgument, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo,
-  RuntimeCondition, RuntimeGlobals, RuntimeSpec, UsedName, compile_boolean_matcher_from_lists,
-  contextify, property_access,
+  FakeNamespaceObjectMode, ImportPhase, InitFragment, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, Module, ModuleArgument, ModuleGraph, ModuleGraphCacheArtifact, ModuleId,
+  ModuleIdentifier, NormalInitFragment, PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  UsedName, compile_boolean_matcher_from_lists, contextify, property_access,
   runtime_globals::{
     RuntimeVariable, rspack_export_runtime_variable_name, rspack_runtime_variable_name,
     runtime_globals_to_string, runtime_variable_name,
@@ -362,7 +360,7 @@ impl RuntimeTemplate {
     RuntimeCodeTemplate::new(
       self.compiler_options.clone(),
       self.render_mode.runtime_module_render_mode(),
-      self.dojang.clone(),
+      Some(self.dojang.clone()),
     )
   }
 
@@ -371,7 +369,7 @@ impl RuntimeTemplate {
     RuntimeCodeTemplate::new(
       self.compiler_options.clone(),
       self.render_mode.chunk_render_mode(),
-      self.dojang.clone(),
+      None,
     )
   }
 }
@@ -799,7 +797,7 @@ pub fn get_outgoing_async_modules(
           let dep = mg.dependency_by_id(&connection.dependency_id);
           matches!(
             dep.dependency_type(),
-            DependencyType::EsmImport | DependencyType::EsmExportImport
+            DependencyType::EsmImport | DependencyType::EsmExportImport | DependencyType::Provided
           )
         });
         if is_esm {
@@ -865,6 +863,20 @@ impl ModuleCodeTemplate {
 
   pub fn render_runtime_globals_without_adding(&self, runtime_globals: &RuntimeGlobals) -> String {
     self.runtime_globals.render(runtime_globals)
+  }
+
+  pub fn render_runtime_scope(&self) -> String {
+    match self.runtime_globals_render_mode {
+      RuntimeGlobalsRenderMode::Webpack => {
+        WEBPACK_RUNTIME_GLOBALS.render(&RuntimeGlobals::REQUIRE_SCOPE)
+      }
+      RuntimeGlobalsRenderMode::RspackExport => {
+        self.runtime_globals.render(&RuntimeGlobals::REQUIRE)
+      }
+      RuntimeGlobalsRenderMode::RspackContext | RuntimeGlobalsRenderMode::RspackLexical => {
+        RSPACK_CONTEXT_RUNTIME_GLOBALS.render(&RuntimeGlobals::REQUIRE_SCOPE)
+      }
+    }
   }
 
   pub fn define_es_module_flag_statement(&mut self, exports_argument: ExportsArgument) -> String {
@@ -1339,7 +1351,7 @@ impl ModuleCodeTemplate {
   pub fn export_from_import(
     &mut self,
     compilation: &Compilation,
-    init_fragments: &mut Vec<Box<dyn InitFragment<GenerateContext<'_>>>>,
+    init_fragments: &mut Vec<Box<dyn InitFragment>>,
     module_id: Identifier,
     runtime: Option<&RuntimeSpec>,
     default_interop: bool,
@@ -1815,14 +1827,22 @@ pub struct RuntimeCodeTemplate {
   compiler_options: Arc<CompilerOptions>,
   render_mode: RuntimeGlobalsRenderMode,
   runtime_globals: Arc<RuntimeGlobalsRenderMap>,
-  dojang: Arc<Dojang>,
+  dojang: Option<Arc<Dojang>>,
+}
+
+impl Debug for RuntimeCodeTemplate {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("RuntimeCodeTemplate")
+      .field("render_mode", &self.render_mode)
+      .finish_non_exhaustive()
+  }
 }
 
 impl RuntimeCodeTemplate {
   fn new(
     compiler_options: Arc<CompilerOptions>,
     render_mode: RuntimeGlobalsRenderMode,
-    dojang: Arc<Dojang>,
+    dojang: Option<Arc<Dojang>>,
   ) -> Self {
     Self {
       compiler_options,
@@ -1885,10 +1905,26 @@ impl RuntimeCodeTemplate {
     }
   }
 
-  pub fn render_this_exports(&self) -> String {
-    "this".to_string()
+  pub fn basic_function(&self, args: &str, body: &str) -> String {
+    if self
+      .compiler_options
+      .output
+      .environment
+      .supports_arrow_function()
+    {
+      format!(
+        r#"({args}) => {{
+{body}
+}}"#
+      )
+    } else {
+      format!(
+        r#"function({args}) {{
+{body}
+}}"#
+      )
+    }
   }
-
   pub fn render(&self, key: &str, params: Option<serde_json::Value>) -> Result<String, Error> {
     let mut render_params = Value::Object(Default::default());
 
@@ -1916,18 +1952,18 @@ impl RuntimeCodeTemplate {
       }
     }
 
-    if let Some((executer, file_content)) = self.dojang.templates.get(key) {
+    let dojang = self
+      .dojang
+      .as_ref()
+      .expect("chunk code templates cannot render runtime module templates");
+    if let Some((executer, file_content)) = dojang.templates.get(key) {
       executer
         .render(
           &mut Context::new(render_params),
-          &self.dojang.templates,
-          &self.dojang.functions,
+          &dojang.templates,
+          &dojang.functions,
           file_content,
-          #[cfg_attr(
-            dylint_lib = "rspack_collection_hasher",
-            allow(rspack_collection_hasher)
-          )]
-          &mut Mutex::new(HashMap::new()),
+          &mut Mutex::new(FxHashMap::default()),
         )
         // Replace Windows-style line endings (\r\n) with Unix-style (\n) to ensure consistent runtime templates across platforms
         .map(|render| render.cow_replace("\r\n", "\n").to_string())
@@ -1936,27 +1972,6 @@ impl RuntimeCodeTemplate {
         })
     } else {
       Err(error!("Runtime module: Template {key} is not found"))
-    }
-  }
-
-  pub fn basic_function(&self, args: &str, body: &str) -> String {
-    if self
-      .compiler_options
-      .output
-      .environment
-      .supports_arrow_function()
-    {
-      format!(
-        r#"({args}) => {{
-{body}
-}}"#
-      )
-    } else {
-      format!(
-        r#"function({args}) {{
-{body}
-}}"#
-      )
     }
   }
 }

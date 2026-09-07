@@ -2,8 +2,7 @@ use std::{borrow::Cow, sync::LazyLock};
 
 use cow_utils::CowUtils;
 use rspack_core::{
-  AssetInfo, ChunkGroupUkey, ChunkUkey, Compilation, ManifestAssetType, ModuleCodeTemplate,
-  RuntimeGlobals, SourceType,
+  AssetInfo, ChunkGroupUkey, ChunkUkey, Compilation, ManifestAssetType, SourceType,
 };
 use rspack_util::fx_hash::FxIndexSet;
 
@@ -19,14 +18,12 @@ pub static PLACEHOLDER_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
   .expect("should initialize `Regex`")
 });
 
-pub fn get_hash_variable(runtime_template: &ModuleCodeTemplate, source_type: SourceType) -> String {
-  let require_name =
-    runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::REQUIRE);
+pub fn get_hash_variable(runtime_require_name: &str, source_type: SourceType) -> String {
   match source_type {
-    SourceType::JavaScript => format!("{require_name}.sriHashes"),
-    SourceType::Css => format!("{require_name}.sriCssHashes"),
+    SourceType::JavaScript => format!("{runtime_require_name}.sriHashes"),
+    SourceType::Css => format!("{runtime_require_name}.sriCssHashes"),
     SourceType::Custom(t) if t == "css/mini-extract" => {
-      format!("{require_name}.sriExtractCssHashes")
+      format!("{runtime_require_name}.sriExtractCssHashes")
     }
     _ => unreachable!(),
   }

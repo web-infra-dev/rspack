@@ -3,9 +3,8 @@ description       = "rspack loader test"
 edition.workspace = true
 license           = "MIT"
 name              = "rspack_loader_testing"
-# Should publish this package for now,
-# as `rspack_loader_test` is used in `rspack_binding_api`
-# and we don't have a `cfg` to get rid off test code in release code
+# Keep publishing this package because `rspack_binding_api`'s
+# `test-loader` feature depends on it.
 # publish           = false
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true

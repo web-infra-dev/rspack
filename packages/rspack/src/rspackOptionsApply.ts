@@ -24,6 +24,8 @@ import {
   ChunkPrefetchPreloadPlugin,
   CircularModulesInfoPlugin,
   CommonJsChunkFormatPlugin,
+  CompactHashedChunkIdsPlugin,
+  CompactHashedModuleIdsPlugin,
   CssHttpExternalsRspackPlugin,
   CssModulesPlugin,
   DataUriPlugin,
@@ -35,6 +37,7 @@ import {
   EnableLibraryPlugin,
   EnableWasmLoadingPlugin,
   EnsureChunkConditionsPlugin,
+  applyLimits,
   EvalDevToolModulePlugin,
   EvalSourceMapDevToolPlugin,
   ExternalsPlugin,
@@ -91,6 +94,13 @@ export class RspackOptionsApply {
     compiler.outputPath = options.output.path;
     compiler.name = options.name;
     compiler.outputFileSystem = fs;
+
+    if (options.output.enabledLibraryTypes?.includes('modern-module')) {
+      applyLimits(
+        options,
+        compiler.getInfrastructureLogger('rspack.RspackOptionsApply'),
+      );
+    }
 
     if (options.externals) {
       if (!options.externalsType) {
@@ -354,6 +364,11 @@ export class RspackOptionsApply {
           new DeterministicModuleIdsPlugin().apply(compiler);
           break;
         }
+        case 'compact-hashed':
+        case 'compat-hashed': {
+          new CompactHashedModuleIdsPlugin().apply(compiler);
+          break;
+        }
         case 'hashed': {
           new HashedModuleIdsPlugin().apply(compiler);
           break;
@@ -375,6 +390,11 @@ export class RspackOptionsApply {
         }
         case 'deterministic': {
           new DeterministicChunkIdsPlugin().apply(compiler);
+          break;
+        }
+        case 'compact-hashed':
+        case 'compat-hashed': {
+          new CompactHashedChunkIdsPlugin().apply(compiler);
           break;
         }
         case 'size': {

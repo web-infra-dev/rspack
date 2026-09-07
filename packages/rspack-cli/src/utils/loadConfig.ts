@@ -39,7 +39,9 @@ const loadConfigByPath = async (
     );
   }
 
-  return content;
+  return options.configLoader === 'native'
+    ? content
+    : normalizeContext(content);
 };
 
 const isConfigObject = (value: unknown): value is Record<string, unknown> =>
@@ -53,6 +55,21 @@ const isRspackConfig = (
 const checkIsMultiRspackOptions = (
   config: RspackOptions | MultiRspackOptions,
 ): config is MultiRspackOptions => Array.isArray(config);
+
+/**
+ * jiti exposes a POSIX-style `__dirname` on Windows, so a `context` built from
+ * it keeps forward slashes and no longer matches the native paths the compiler
+ * compares it against. Drop this once jiti stops rewriting `__dirname`.
+ */
+const normalizeContext = (config: LoadedRspackConfig): LoadedRspackConfig => {
+  for (const item of checkIsMultiRspackOptions(config) ? config : [config]) {
+    if (typeof item.context === 'string') {
+      item.context = path.normalize(item.context);
+    }
+  }
+
+  return config;
+};
 
 /**
  * Loads and merges configurations from the 'extends' property

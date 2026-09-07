@@ -2,10 +2,10 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGenerationResult, Compilation, CompilerOptions, DependenciesBlock, DependencyId, FactoryMeta,
-  Module, ModuleCodeGenerationContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleGraph, ModuleLayer, RuntimeSpec, SourceType, impl_module_meta_info,
-  impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
+  CodeGenerationResultBuilder, Compilation, CompilerOptions, DependenciesBlock, DependencyId,
+  FactoryMeta, Module, ModuleCodeGenerationContext, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleLayer, RuntimeSpec, SourceType,
+  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
@@ -41,7 +41,7 @@ pub(crate) struct CssModule {
 }
 
 impl CssModule {
-  pub fn new(dep: CssDependency) -> Self {
+  pub fn new(dep: &CssDependency) -> Self {
     let mut identifier_index_buffer = itoa::Buffer::new();
     let identifier_index_str = identifier_index_buffer.format(dep.identifier_index);
     let identifier__ = format!(
@@ -55,14 +55,14 @@ impl CssModule {
     .into();
 
     Self {
-      identifier: dep.identifier,
-      content: dep.content,
+      identifier: dep.identifier.clone(),
+      content: dep.content.clone(),
       module_layer: dep.module_layer.clone(),
       css_layer: dep.css_layer.clone(),
-      _context: dep.context,
-      media: dep.media,
-      supports: dep.supports,
-      source_map: dep.source_map,
+      _context: dep.context.clone(),
+      media: dep.media.clone(),
+      supports: dep.supports.clone(),
+      source_map: dep.source_map.clone(),
       identifier_index: dep.identifier_index,
       blocks: vec![],
       dependencies: vec![],
@@ -70,10 +70,7 @@ impl CssModule {
       build_info: BuildInfo {
         cacheable: dep.cacheable,
         strict: true,
-        file_dependencies: dep.file_dependencies,
-        context_dependencies: dep.context_dependencies,
-        missing_dependencies: dep.missing_dependencies,
-        build_dependencies: dep.build_dependencies,
+        dependencies: dep.dependencies.clone(),
         ..Default::default()
       },
       build_meta: Default::default(),
@@ -182,8 +179,8 @@ impl Module for CssModule {
   async fn code_generation(
     &self,
     _code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
-    Ok(CodeGenerationResult::default())
+  ) -> Result<CodeGenerationResultBuilder> {
+    Ok(CodeGenerationResultBuilder::default())
   }
 
   async fn get_runtime_hash(
@@ -241,7 +238,7 @@ impl ModuleFactory for CssModuleFactory {
       .expect("unreachable");
 
     Ok(ModuleFactoryResult::new_with_module(
-      CssModule::new(css_dep.clone()).boxed(),
+      CssModule::new(css_dep).boxed(),
     ))
   }
 }

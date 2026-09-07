@@ -73,7 +73,7 @@ function index_createFakeNamespaceObject() {
 
 const index_moduleCache = "application";
 const index_modules = "application";
-const index_rspackRequire = "application";
+const __nested_rspack_require_219_232__ = "application";
 const index_rspack_get_mini_css_chunk_filename = "application";
 
 it("should avoid conflicts with runtime module variables", () => {
@@ -82,12 +82,12 @@ it("should avoid conflicts with runtime module variables", () => {
 	expect(index_createFakeNamespaceObject()).toBe("application");
 	expect(index_moduleCache).toBe("application");
 	expect(index_modules).toBe("application");
-	expect(index_rspackRequire).toBe("application");
+	expect(__nested_rspack_require_219_232__).toBe("application");
 	expect(index_rspack_get_mini_css_chunk_filename).toBe("application");
 });
 
 
 
-export { index_createFakeNamespaceObject as createFakeNamespaceObject, index_getProto as getProto, index_moduleCache as moduleCache, index_modules as modules, index_rspackRequire as rspackRequire, index_rspack_get_mini_css_chunk_filename as __rspack_get_mini_css_chunk_filename };
+export { __nested_rspack_require_219_232__ as rspackRequire, index_createFakeNamespaceObject as createFakeNamespaceObject, index_getProto as getProto, index_moduleCache as moduleCache, index_modules as modules, index_rspack_get_mini_css_chunk_filename as __rspack_get_mini_css_chunk_filename };
 
 ```

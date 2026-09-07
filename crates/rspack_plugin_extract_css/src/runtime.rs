@@ -4,14 +4,14 @@ use itertools::Itertools;
 use rspack_core::{
   BooleanMatcher, ChunkUkey, Compilation, RuntimeCodeTemplate, RuntimeGlobals,
   RuntimeGlobalsRenderMode, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeModuleRuntimeRequirements, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher,
-  impl_runtime_module,
+  RuntimeModuleRuntimeRequirements, RuntimeModuleStage, RuntimeTemplate,
+  chunk_graph_chunk::ChunkIdSet, compile_boolean_matcher, impl_runtime_module,
 };
 use rspack_error::Result;
 use rspack_plugin_runtime::{
   CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimePlugin,
   extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
-  get_chunk_runtime_requirements,
+  get_chunk_runtime_requirements, render_chunk_loading_hmr_state_expression, stringify_chunks,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -379,9 +379,25 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     }
 
     if with_hmr {
+      let mut all_initial_chunk_ids = ChunkIdSet::default();
+      for chunk_ukey in chunk
+        .get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+        .iter()
+      {
+        if let Some(id) = compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get(chunk_ukey)
+          .id()
+        {
+          all_initial_chunk_ids.insert(id.clone());
+        }
+      }
       let hmr = runtime_template.render(
         &self.template_id(TemplateId::WithHmr),
         Some(serde_json::json!({
+          "_initial_chunk_ids": stringify_chunks(&all_initial_chunk_ids, 1),
+          "_js_state_expression": render_chunk_loading_hmr_state_expression(runtime_template, &chunk_ukey, compilation),
           "_get_chunk_css_filename": render_mini_css_chunk_filename(runtime_template),
         })),
       )?;

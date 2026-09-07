@@ -27,13 +27,17 @@ impl IntoIterator for EcmaErrorsDeduped {
 
 impl From<Vec<swc_core::ecma::parser::error::Error>> for EcmaErrorsDeduped {
   fn from(value: Vec<swc_core::ecma::parser::error::Error>) -> Self {
+    let mut ranges = HashSet::default();
     Self(
       value
         .into_iter()
-        .map(|v| EcmaError(v.kind().msg().to_string(), v.span()))
-        .collect::<HashSet<_>>()
-        .into_iter()
-        .collect::<Vec<_>>(),
+        .filter_map(|error| {
+          let span = error.span();
+          ranges
+            .insert((span.real_lo(), span.real_hi()))
+            .then(|| EcmaError(error.kind().msg().to_string(), span))
+        })
+        .collect(),
     )
   }
 }

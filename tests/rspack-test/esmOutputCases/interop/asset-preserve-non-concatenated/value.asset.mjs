@@ -1,0 +1,1 @@
+export default 'asset value'

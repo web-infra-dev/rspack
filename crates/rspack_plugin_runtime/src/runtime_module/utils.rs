@@ -1,7 +1,8 @@
 use std::fmt::Write as _;
 
 use rspack_core::{
-  Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, RuntimeCodeTemplate, SourceType,
+  Chunk, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, PathData, RuntimeCodeTemplate,
+  SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdSet},
   get_js_chunk_filename_template, get_undo_path,
 };
@@ -66,6 +67,36 @@ pub fn render_hmr_runtime_state_expression(
   key: &str,
 ) -> String {
   runtime_template.render_hmr_runtime_state_expression(key)
+}
+
+// renders the hmr state expression of whichever chunk loading runtime is
+// active for the chunk; falls back to jsonp for custom loaders (consumers
+// guard with typeof, so an absent state just reads as not loaded)
+pub fn render_chunk_loading_hmr_state_expression(
+  runtime_template: &RuntimeCodeTemplate,
+  chunk_ukey: &ChunkUkey,
+  compilation: &Compilation,
+) -> String {
+  let chunk_loading = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .get(chunk_ukey)
+    .and_then(|chunk| {
+      chunk.get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+    })
+    .and_then(|options| options.chunk_loading.as_ref())
+    .unwrap_or(&compilation.options.output.chunk_loading);
+  let key = match chunk_loading {
+    ChunkLoading::Enable(ChunkLoadingType::Import) => "module",
+    ChunkLoading::Enable(ChunkLoadingType::ImportScripts) => "importScripts",
+    ChunkLoading::Enable(ChunkLoadingType::Require) => "require",
+    ChunkLoading::Enable(ChunkLoadingType::AsyncNode) => "readFileVm",
+    ChunkLoading::Enable(ChunkLoadingType::Jsonp) => "jsonp",
+    ChunkLoading::Enable(ChunkLoadingType::Custom(_)) => "custom",
+    // A Fallback value While Chunk loading disable, HMR throw Error in Browser.
+    ChunkLoading::Disable => "disable",
+  };
+  render_hmr_runtime_state_expression(runtime_template, key)
 }
 
 pub fn chunk_has_css(chunk: &ChunkUkey, compilation: &Compilation) -> bool {

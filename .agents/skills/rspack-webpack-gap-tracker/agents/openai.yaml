@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Rspack Webpack Gap Tracker'
+  short_description: 'Track Rspack compatibility gaps against webpack'
+  default_prompt: 'Use $rspack-webpack-gap-tracker to audit or update the requested Rspack compatibility gaps against webpack.'
+
+policy:
+  allow_implicit_invocation: false

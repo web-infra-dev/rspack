@@ -7,7 +7,7 @@ moduleFactories.add({
 /*!**********************!*\
   !*** ./modules/a.js ***!
   \**********************/
-(__unused_rspack_module, exports, rspackRequire) {
+(__unused_rspack_module, exports) {
 makeNamespaceObject(exports);
 /* import */ var _shared__rspack_import_0 = rspackRequire(/*! ../shared */ "./shared.js");
 
@@ -35,7 +35,7 @@ moduleFactories.add({
 /*!**********************!*\
   !*** ./modules/b.js ***!
   \**********************/
-(__unused_rspack_module, exports, rspackRequire) {
+(__unused_rspack_module, exports) {
 makeNamespaceObject(exports);
 /* import */ var _shared__rspack_import_0 = rspackRequire(/*! ../shared */ "./shared.js");
 
@@ -61,13 +61,12 @@ moduleFactories.add({
 /*!**************************************************************************************************************************!*\
   !*** ./modules|lazy|/^\.\/.*\.js$/|referencedExports: default|groupOptions: {}|namespace object|importPhase: evaluation ***!
   \**************************************************************************************************************************/
-(module, __unused_rspack_exports, rspackRequire) {
+(module) {
 var map = {
   "./a.js": [
     "./modules/a.js",
     [
       "shared-chunk",
-      0,
       "a"
     ]
   ],
@@ -75,7 +74,6 @@ var map = {
     "./modules/b.js",
     [
       "shared-chunk",
-      0,
       "b"
     ]
   ]
@@ -103,13 +101,13 @@ module.exports = __rspack_async_context;
 /*!*******************************************************************!*\
   !*** ./modules|lazy|nonrecursive|./modules/*.js|namespace object ***!
   \*******************************************************************/
-(module, __unused_rspack_exports, rspackRequire) {
+(module) {
 
 module.exports = {
 
-  "./modules/a.js": function() { return Promise.all(/*! esm */ [ensureChunk("shared-chunk"), ensureChunk(0), ensureChunk("a")]).then(rspackRequire.bind(rspackRequire, /*! ./modules/a.js */ "./modules/a.js")); },
+  "./modules/a.js": function() { return Promise.all(/*! esm */ [ensureChunk("shared-chunk"), ensureChunk("a")]).then(rspackRequire.bind(rspackRequire, /*! ./modules/a.js */ "./modules/a.js")); },
 
-  "./modules/b.js": function() { return Promise.all(/*! esm */ [ensureChunk("shared-chunk"), ensureChunk(0), ensureChunk("b")]).then(rspackRequire.bind(rspackRequire, /*! ./modules/b.js */ "./modules/b.js")); }
+  "./modules/b.js": function() { return Promise.all(/*! esm */ [ensureChunk("shared-chunk"), ensureChunk("b")]).then(rspackRequire.bind(rspackRequire, /*! ./modules/b.js */ "./modules/b.js")); }
 };
 
 

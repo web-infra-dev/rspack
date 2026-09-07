@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use rspack_error::Result;
 
 use crate::{
-  Compilation, build_chunk_graph::build_chunk_graph, cache::Cache, compilation::pass::PassExt,
-  logger::Logger, use_code_splitting_cache,
+  Compilation, build_chunk_graph::build_chunk_graph, compilation::pass::PassExt,
+  incremental::IncrementalPasses, logger::Logger, use_code_splitting_cache,
 };
 
 pub struct BuildChunkGraphPass;
@@ -14,8 +14,8 @@ impl PassExt for BuildChunkGraphPass {
     "build chunk graph"
   }
 
-  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.before_build_chunk_graph(compilation).await;
+  fn incremental_passes(&self) -> IncrementalPasses {
+    IncrementalPasses::BUILD_CHUNK_GRAPH
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
@@ -29,9 +29,5 @@ impl PassExt for BuildChunkGraphPass {
     })
     .await?;
     Ok(())
-  }
-
-  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.after_build_chunk_graph(compilation).await;
   }
 }

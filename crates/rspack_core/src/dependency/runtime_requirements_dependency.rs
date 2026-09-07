@@ -4,9 +4,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_hash::{RspackHash, RspackHasher};
 
 use crate::{
-  Compilation, DependencyCodeGeneration, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  CodeGenerationDataItem, Compilation, DependencyCodeGeneration, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, RuntimeGlobals, RuntimeGlobalsRenderMode,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -82,7 +82,7 @@ impl RuntimeRequirementsDependencyMode {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RuntimeRequirementsDependency {
   pub range: DependencyRange,
   pub runtime_requirements: RuntimeGlobals,
@@ -180,22 +180,16 @@ impl RuntimeRequirementsDependency {
       )),
     }
   }
-  pub fn unsupported_require_property(
-    range: DependencyRange,
-    runtime_requirements: RuntimeGlobals,
-  ) -> Self {
-    Self {
-      range,
-      runtime_requirements,
-      mode: RuntimeRequirementsDependencyMode::UnsupportedRequireProperty,
-    }
-  }
 }
 
-#[derive(Debug, Default, Clone)]
+#[cacheable]
+#[derive(Debug, Default)]
 pub struct CodeGenerationRuntimeRequirementsWrite {
   pub runtime_requirements: RuntimeGlobals,
 }
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationRuntimeRequirementsWrite {}
 
 impl CodeGenerationRuntimeRequirementsWrite {
   pub fn insert(&mut self, runtime_requirements: RuntimeGlobals) {
@@ -204,7 +198,7 @@ impl CodeGenerationRuntimeRequirementsWrite {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct RuntimeRequirementsDependencyTemplate;
 
 impl RuntimeRequirementsDependencyTemplate {

@@ -21,7 +21,7 @@ def(exports)
 /*!***************************!*\
   !*** ./runtime-decide.js ***!
   \***************************/
-(__unused_rspack_module, exports, rspackRequire) {
+(__unused_rspack_module, exports) {
 /* import */ var _dynamic_exports__rspack_import_0 = rspackRequire(/*! ./dynamic-exports */ "./dynamic-exports.js");
 /* import */ var _dynamic_exports__rspack_import_0_default = /*#__PURE__*/compatGetDefaultExport(_dynamic_exports__rspack_import_0);
 if(hasOwnProperty(_dynamic_exports__rspack_import_0, "readFile")) definePropertyGetters(exports, { readFile: function() { return _dynamic_exports__rspack_import_0.readFile; } });

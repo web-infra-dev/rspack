@@ -3,6 +3,11 @@ it("global true", function () {
 	expect(__webpack_require__.g).not.toBe(undefined);
 });
 
+it("should keep the property name when `global` is used in shorthand", function () {
+	const obj = { global };
+	expect(obj.global).toBe(globalThis);
+});
+
 it("should polyfill `global` if `node.global` is `true`", function() {
 	class Example {
 		constructor(g = global) {

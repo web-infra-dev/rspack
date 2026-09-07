@@ -1,6 +1,8 @@
+#![allow(clippy::too_many_arguments)]
+
 use rspack_core::{
   AssetInfo, BoxModule, Chunk, ChunkInitFragments, ChunkUkey, Compilation, Module,
-  ModuleIdentifier, RuntimeCodeTemplate, rspack_sources::BoxSource,
+  ModuleIdentifier, RuntimeCodeTemplate, RuntimeGlobals, rspack_sources::BoxSource,
 };
 use rspack_hash::RspackHasher;
 use rspack_hook::define_hook;
@@ -11,7 +13,7 @@ define_hook!(JavascriptModulesRenderChunk: Series(compilation: &Compilation, chu
 define_hook!(JavascriptModulesRenderChunkContent: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey, asset_info: &mut AssetInfo, runtime_template: &RuntimeCodeTemplate) -> RenderSource);
 define_hook!(JavascriptModulesRender: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, source: &mut RenderSource, runtime_template: &RuntimeCodeTemplate));
 define_hook!(JavascriptModulesRenderStartup: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, module: &ModuleIdentifier, source: &mut RenderSource, runtime_template: &RuntimeCodeTemplate));
-define_hook!(JavascriptModulesRenderModuleContent: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey,module: &dyn Module, source: &mut RenderSource, init_fragments: &mut ChunkInitFragments, runtime_template: &RuntimeCodeTemplate),tracing=false);
+define_hook!(JavascriptModulesRenderModuleContent: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey,module: &dyn Module, source: &mut RenderSource, runtime_requirements: &mut RuntimeGlobals, init_fragments: &mut ChunkInitFragments, runtime_template: &RuntimeCodeTemplate),tracing=false);
 define_hook!(JavascriptModulesRenderModuleContainer: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey,module: &dyn Module, source: &mut RenderSource, init_fragments: &mut ChunkInitFragments, runtime_template: &RuntimeCodeTemplate),tracing=false);
 define_hook!(JavascriptModulesRenderModulePackage: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, module: &dyn Module, source: &mut RenderSource, init_fragments: &mut ChunkInitFragments, runtime_template: &RuntimeCodeTemplate),tracing=false);
 define_hook!(JavascriptModulesChunkHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHasher));

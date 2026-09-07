@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@root/*": ["${configDir}/src/*"]
+    }
+  },
+  "references": [
+    { "path": "${configDir}/packages/shared" },
+    { "path": "./packages/app" }
+  ]
+}

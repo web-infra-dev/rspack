@@ -6,7 +6,7 @@ moduleFactories.add({
 /*!******************!*\
   !*** ./index.js ***!
   \******************/
-(module, exports, rspackRequire) {
+(module, exports) {
 makeNamespaceObject(exports);
 /* import */ var fs__rspack_import_0 = rspackRequire(/*! fs */ "fs");
 

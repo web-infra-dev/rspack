@@ -5,7 +5,7 @@ moduleFactories.add({
 /*!******************!*\
   !*** ./index.js ***!
   \******************/
-(__unused_rspack_module, __unused_rspack_exports, rspackRequire) {
+() {
 it('should has connection to lib only in closure', () => {
 	const { foo } = rspackRequire(/*! ./lib */ "./lib.js")
 	expect(foo()).toBe(42)

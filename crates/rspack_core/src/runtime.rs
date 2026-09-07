@@ -119,14 +119,6 @@ impl RuntimeSpec {
     Self::new(res)
   }
 
-  pub fn insert(&mut self, r: Ustr) -> bool {
-    let update = self.inner.insert(r);
-    if update {
-      self.update_key();
-    }
-    update
-  }
-
   pub fn extend(&mut self, other: &Self) {
     let prev = self.inner.len();
     self.inner.extend(other.inner.iter().copied());
@@ -192,6 +184,7 @@ pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
   a.key == b.key
 }
 
+#[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum RuntimeCondition {
@@ -238,6 +231,7 @@ pub fn filter_runtime(
 ) -> RuntimeCondition {
   match runtime {
     None => RuntimeCondition::Boolean(filter(None)),
+    Some(runtime) if runtime.len() == 1 => RuntimeCondition::Boolean(filter(Some(runtime))),
     Some(runtime) => {
       let mut some = false;
       let mut every = true;
@@ -471,10 +465,6 @@ pub struct RuntimeSpecSet {
 }
 
 impl RuntimeSpecSet {
-  pub fn get(&self, runtime: &RuntimeSpec) -> Option<&RuntimeSpec> {
-    self.map.get(get_runtime_key(runtime))
-  }
-
   pub fn set(&mut self, runtime: RuntimeSpec) {
     self.map.insert(get_runtime_key(&runtime).clone(), runtime);
   }
@@ -485,10 +475,6 @@ impl RuntimeSpecSet {
 
   pub fn values(&self) -> hash_map::Values<'_, RuntimeKey, RuntimeSpec> {
     self.map.values()
-  }
-
-  pub fn into_values(self) -> hash_map::IntoValues<RuntimeKey, RuntimeSpec> {
-    self.map.into_values()
   }
 
   pub fn len(&self) -> usize {

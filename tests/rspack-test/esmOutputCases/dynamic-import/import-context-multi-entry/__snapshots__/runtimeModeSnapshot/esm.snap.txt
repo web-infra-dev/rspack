@@ -51,7 +51,7 @@ moduleFactories.add({
 /*!***********************************************************************!*\
   !*** ./modules-a|lazy|nonrecursive|./modules-a/*.js|namespace object ***!
   \***********************************************************************/
-(module, __unused_rspack_exports, rspackRequire) {
+(module) {
 
 module.exports = {
 
@@ -82,7 +82,7 @@ moduleFactories.add({
 /*!***********************************************************************!*\
   !*** ./modules-b|lazy|nonrecursive|./modules-b/*.js|namespace object ***!
   \***********************************************************************/
-(module, __unused_rspack_exports, rspackRequire) {
+(module) {
 
 module.exports = {
 

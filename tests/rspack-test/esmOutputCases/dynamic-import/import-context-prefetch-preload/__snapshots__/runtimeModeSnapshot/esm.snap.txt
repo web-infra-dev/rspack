@@ -27,7 +27,7 @@ moduleFactories.add({
 /*!**********************!*\
   !*** ./modules/b.js ***!
   \**********************/
-(__unused_rspack_module, exports, rspackRequire) {
+(__unused_rspack_module, exports) {
 makeNamespaceObject(exports);
 import("./c.mjs").then(rspackRequire.bind(rspackRequire, /*! ./c */ "./modules/c.js"));
 
@@ -73,7 +73,7 @@ moduleFactories.add({
 /*!*******************************************************************************************************************************************!*\
   !*** ./modules|lazy|/^\.\/.*\.js$/|referencedExports: default|groupOptions: {prefetchOrder: 0,}|namespace object|importPhase: evaluation ***!
   \*******************************************************************************************************************************************/
-(module, __unused_rspack_exports, rspackRequire) {
+(module) {
 var map = {
   "./a.js": [
     "./modules/a.js",
@@ -117,7 +117,7 @@ module.exports = __rspack_async_context;
 /*!******************************************************************************************************************************************!*\
   !*** ./modules|lazy|/^\.\/.*\.js$/|referencedExports: default|groupOptions: {preloadOrder: 0,}|namespace object|importPhase: evaluation ***!
   \******************************************************************************************************************************************/
-(module, __unused_rspack_exports, rspackRequire) {
+(module) {
 var map = {
   "./a.js": [
     "./modules/a.js",
@@ -161,7 +161,7 @@ module.exports = __rspack_async_context;
 /*!*******************************************************************!*\
   !*** ./modules|lazy|nonrecursive|./modules/*.js|namespace object ***!
   \*******************************************************************/
-(module, __unused_rspack_exports, rspackRequire) {
+(module) {
 
 module.exports = {
 
@@ -222,7 +222,7 @@ export { rspackRequire };
 var moduleFactories = modules;
 export { moduleFactories };
 
-var publicPath, scriptNonce, prefetchChunk, preloadChunk;
+var scriptNonce;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {

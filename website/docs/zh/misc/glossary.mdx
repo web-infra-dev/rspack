@@ -1,5 +1,5 @@
 ---
-description: '静态资源是对图像、字体、视频等静态文件的统称。这些文件通常会最终输出为单独的文件，而不是打包到代码块中，但是通过其也可以转换成 base64 内联到代码块中'
+description: '收录 Rspack 的常用术语及定义。'
 sidebar: false
 ---
 
@@ -32,8 +32,8 @@ Bundle splitting 是一种允许你将代码分割或合并到多个 bundle 的�
 Rspack 中的内置模块类型指的是那些不需要依赖 loader 和 plugin 即可支持的模块类型，例如 JavaScript、CSS、JSON、静态资源等，而像 TypeScript、HTML、Markdown、YAML 等需要依赖 loader 和 plugin 才能支持的模块类型则不是内置模块类型。
 
 - [资源模块](/guide/features/asset-module)
-- [CSS](/guide/tech/css)
-- [JSON](/guide/tech/json)
+- [CSS](/guide/languages/css)
+- [JSON](/guide/languages/json)
 - [rules[].type](/config/module-rules#rulestype)
 
 ## chunk
@@ -49,6 +49,10 @@ Chunk 图是一种表示块之间关系的数据结构。它是一个有向图�
 Code splitting 是一种技术，它允许你将你的代码分割成多个块，并且只在应用程序运行时加载必要的块。这可以帮助你减少初始包的大小，加快应用程序的加载时间。
 
 - [代码分割](/guide/optimization/code-splitting)
+
+## context module
+
+上下文模块表示可以通过动态请求加载的一组模块。对于 `import('./locales/' + name + '.js')` 这样的表达式，或 [`require.context()`](/api/runtime-api/module-methods#requirecontext) 调用，Rspack 会创建上下文模块。它定义从哪个目录查找模块、是否查找子目录，以及允许加载哪些相对请求。
 
 ## dependency
 

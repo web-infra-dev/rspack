@@ -583,10 +583,6 @@ impl RuntimeGlobals {
     }
   }
 
-  pub fn name(&self) -> Option<&'static str> {
-    RUNTIME_GLOBAL_MAP.0.get(self).copied()
-  }
-
   pub fn from_property_name(property_name: &str) -> Option<Self> {
     RUNTIME_GLOBAL_MAP.2.get(property_name).copied()
   }

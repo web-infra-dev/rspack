@@ -40,7 +40,7 @@ moduleFactories.add({
 /*!**********************************************************************************************************************************************!*\
   !*** ./modules|lazy|/^\.\/.*\.js$/|referencedExports: default|groupOptions: {fetchPriority: high,}|namespace object|importPhase: evaluation ***!
   \**********************************************************************************************************************************************/
-(module, __unused_rspack_exports, rspackRequire) {
+(module) {
 var map = {
   "./a.js": [
     "./modules/a.js",
@@ -72,7 +72,7 @@ module.exports = __rspack_async_context;
 /*!*******************************************************************!*\
   !*** ./modules|lazy|nonrecursive|./modules/*.js|namespace object ***!
   \*******************************************************************/
-(module, __unused_rspack_exports, rspackRequire) {
+(module) {
 
 module.exports = {
 
@@ -127,7 +127,7 @@ export { rspackRequire };
 var moduleFactories = modules;
 export { moduleFactories };
 
-var publicPath, scriptNonce;
+var scriptNonce;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {

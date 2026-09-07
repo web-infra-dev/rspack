@@ -5,11 +5,11 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
-  DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
-  runtime_mode::RuntimeMode,
+  BuildInfo, BuildMeta, BuildResult, CodeGenerationResultBuilder, Compilation, Context,
+  DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType,
+  RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config,
+  module_update_hash, rspack_sources::BoxSource, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
@@ -203,9 +203,9 @@ impl Module for ProvideSharedModule {
   ) -> Result<BuildResult> {
     let mut blocks = vec![];
     let mut dependencies = vec![];
-    let dep = Box::new(ProvideForSharedDependency::new(self.request.clone()));
+    let dep = BoxDependency::new(ProvideForSharedDependency::new(self.request.clone()));
     if self.eager {
-      dependencies.push(dep as BoxDependency);
+      dependencies.push(dep);
     } else {
       let block = AsyncDependenciesBlock::new(self.identifier, None, None, vec![dep], None);
       blocks.push(Box::new(block));
@@ -213,8 +213,8 @@ impl Module for ProvideSharedModule {
 
     Ok(BuildResult {
       module: BoxModule::new(self),
-      dependencies,
-      blocks,
+      dependencies: dependencies.into_iter().map(Into::into).collect(),
+      blocks: blocks.into_iter().map(Into::into).collect(),
       optimization_bailouts: vec![],
     })
   }
@@ -223,14 +223,14 @@ impl Module for ProvideSharedModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime_template,
       ..
     } = code_generation_context;
 
-    let mut code_generation_result = CodeGenerationResult::default();
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
     runtime_template
       .runtime_requirements_mut()
       .insert(RuntimeGlobals::INITIALIZE_SHARING);
@@ -240,7 +240,7 @@ impl Module for ProvideSharedModule {
       runtime_template.async_module_factory(&self.get_blocks()[0], &self.request, compilation)
     };
     code_generation_result
-      .data
+      .data_mut()
       .insert(CodeGenerationDataShareInit {
         items: vec![ShareInitData {
           share_scope: self.share_scope.clone(),

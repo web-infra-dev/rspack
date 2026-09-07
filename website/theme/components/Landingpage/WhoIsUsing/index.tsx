@@ -1,9 +1,9 @@
 import { Link } from '@rspress/core/theme-original';
-import { BuiltWithRspack } from '@rstack-dev/doc-ui/built-with-rspack';
+import { BuiltWithRspack } from '@rstackjs/doc-ui/built-with-rspack';
 import {
   containerStyle,
   innerContainerStyle,
-} from '@rstack-dev/doc-ui/section-style';
+} from '@rstackjs/doc-ui/section-style';
 import { memo } from 'react';
 import { useI18n } from '../../../i18n';
 import abbLogo from './assets/abb.svg';

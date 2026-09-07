@@ -66,6 +66,17 @@ impl<T> AsInnerConverter for std::sync::Arc<T> {
   }
 }
 
+// for Box
+impl<T> AsInnerConverter for Box<T> {
+  type Inner = T;
+  fn to_inner(&self) -> &Self::Inner {
+    self.as_ref()
+  }
+  fn from_inner(data: Self::Inner) -> Self {
+    Self::new(data)
+  }
+}
+
 // for OnceCell
 // rkyv::with::Map
 #[repr(u8)]

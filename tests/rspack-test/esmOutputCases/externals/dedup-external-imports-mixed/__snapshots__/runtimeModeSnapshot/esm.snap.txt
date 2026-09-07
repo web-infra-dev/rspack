@@ -16,7 +16,7 @@ module.exports = __rspack_external_fs;
 /*!**************************!*\
   !*** ./cjs-consumer.cjs ***!
   \**************************/
-(__unused_rspack_module, exports, rspackRequire) {
+(__unused_rspack_module, exports) {
 // CJS module - will NOT be scope-hoisted, causing its fs dep
 // to go through init fragment path instead of raw_import_stmts
 const fs = rspackRequire(/*! fs */ "fs?94de")

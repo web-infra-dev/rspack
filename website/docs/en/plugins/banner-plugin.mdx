@@ -1,0 +1,174 @@
+---
+description: 'Inserts custom content at the beginning or end of generated chunk files'
+---
+
+# BannerPlugin
+
+`BannerPlugin` inserts custom content at the beginning or end of generated chunk files. By default, it wraps the content in a comment and prepends it to every chunk file.
+
+## Examples
+
+Add a comment to the beginning of every generated chunk file:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.BannerPlugin('Built with Rspack')],
+};
+```
+
+The generated chunk begins with this comment:
+
+```js title="dist/main.js"
+/*! Built with Rspack */
+// ...
+```
+
+## Options
+
+`BannerPlugin` accepts a banner string, function, or options object. The examples below reuse the `rspack` import above.
+
+### banner
+
+- **Type:**
+
+  ```ts
+  type BannerFunction = (args: {
+    hash: string;
+    chunk: Chunk;
+    filename: string;
+  }) => string;
+
+  type BannerContent = string | BannerFunction;
+  ```
+
+- **Required:** Yes, when using an options object
+
+The `banner` option supports:
+
+- **String:** Pass a string to specify the banner content directly. By default, Rspack wraps the string in a comment. You can set it through the `banner` option or pass it directly to `BannerPlugin`.
+
+  ```js
+  new rspack.BannerPlugin({
+    banner: 'Built with Rspack',
+  });
+  ```
+
+- **Function:** Pass a function to generate banner content for each selected chunk file. Rspack calls it with the compilation `hash`, current `chunk`, and emitted `filename`. The returned string is wrapped in a comment by default. You can set the function through the `banner` option or pass it directly to `BannerPlugin`.
+
+  ```js
+  new rspack.BannerPlugin({
+    banner: ({ filename }) => `Built file: ${filename}`,
+  });
+  ```
+
+### entryOnly
+
+- **Type:** `boolean`
+- **Default:** `undefined`
+
+If `true`, the banner is only added to files that belong to initial chunks. Files for asynchronously loaded chunks are skipped. When omitted, the banner can be added to both initial and async chunk files.
+
+```js
+new rspack.BannerPlugin({
+  banner: 'Entry bundle',
+  entryOnly: true,
+});
+```
+
+### footer
+
+- **Type:** `boolean`
+- **Default:** `undefined`
+
+If `true`, appends the banner to each selected chunk file instead of prepending it. When omitted, the banner is added at the beginning.
+
+```js
+new rspack.BannerPlugin({
+  banner: 'End of bundle',
+  footer: true,
+});
+```
+
+### raw
+
+- **Type:** `boolean`
+- **Default:** `undefined`
+
+If `true`, emits the banner without wrapping it in a comment. Ensure that the raw content is valid for every selected output file.
+
+```js
+new rspack.BannerPlugin({
+  banner: '/* Build: production */',
+  raw: true,
+});
+```
+
+### stage
+
+- **Type:** `number`
+- **Default:** `Compilation.PROCESS_ASSETS_STAGE_ADDITIONS` (`-100`)
+
+Controls the [`processAssets`](/api/plugin-api/compilation-hooks#processassets) stage at which the banner is added. Lower stage values run earlier. Change this only when the banner must run before or after another asset-processing plugin.
+
+```js
+new rspack.BannerPlugin({
+  banner: 'Optimized bundle',
+  stage: rspack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE,
+});
+```
+
+### test
+
+- **Type:** `string | RegExp | Array<string | RegExp>`
+- **Default:** `undefined`
+
+`test` selects the chunk files that receive the banner. The banner is added only when a chunk's emitted filename matches `test`.
+
+Matching is performed against the emitted filename, not a module source path. Strings match the beginning of the filename, regular expressions can match any part, and arrays match when any item does.
+
+If omitted, `test` does not filter chunk files.
+
+```js
+new rspack.BannerPlugin({
+  banner: 'JavaScript bundle',
+  test: /\.js$/,
+});
+```
+
+### include
+
+- **Type:** `string | RegExp | Array<string | RegExp>`
+- **Default:** `undefined`
+
+`include` limits the banner to specific chunk files. The banner is added only when a chunk's emitted filename matches `include`.
+
+Matching is performed against the emitted filename, not a module source path. Strings match the beginning of the filename, regular expressions can match any part, and arrays match when any item does.
+
+If `test` is also set, the filename must match both `test` and `include`.
+
+```js
+new rspack.BannerPlugin({
+  banner: 'Application bundle',
+  include: [/^app/, /^admin/],
+});
+```
+
+### exclude
+
+- **Type:** `string | RegExp | Array<string | RegExp>`
+- **Default:** `undefined`
+
+`exclude` prevents the banner from being added to specific chunk files. The banner is skipped when a chunk's emitted filename matches `exclude`.
+
+Matching is performed against the emitted filename, not a module source path. Strings match the beginning of the filename, regular expressions can match any part, and arrays match when any item does.
+
+`exclude` is applied after `test` and `include`.
+
+```js
+new rspack.BannerPlugin({
+  banner: 'Application bundle',
+  exclude: [/^runtime/, /^vendor/],
+});
+```

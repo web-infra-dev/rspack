@@ -9,7 +9,8 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, ExportsArgument, ModuleArgument, ModuleCodeTemplate,
   RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
-use rspack_util::{atom::Atom, json_stringify_str};
+use rspack_intern::Atom;
+use rspack_util::json_stringify_str;
 
 use super::local_module::LocalModule;
 
@@ -148,7 +149,7 @@ impl Branch {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AMDDefineDependency {
   id: DependencyId,
   range: DependencyRange,

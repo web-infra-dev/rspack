@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_core::{BuildMetaExportsType, ExportsArgument, ModuleArgument, ModuleType};
 use rspack_util::SpanExt;
 use swc_experimental_ecma_ast::{
@@ -53,7 +55,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMDetectionParserPlugin {
       || matches!(ast, Program::Module(module) if module.body.iter().any(|s| matches!(s, ModuleItem::ModuleDecl(_))));
 
     if is_esm {
-      parser.add_presentational_dependency(Box::new(ESMCompatibilityDependency));
+      parser.add_presentational_dependency(Arc::new(ESMCompatibilityDependency));
       parser.build_meta.set_esm(true);
       parser
         .build_meta

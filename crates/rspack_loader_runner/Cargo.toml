@@ -18,7 +18,8 @@ rspack_cacheable   = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_error       = { workspace = true }
 rspack_fs          = { workspace = true }
-rspack_paths       = { workspace = true }
+rspack_hash        = { workspace = true }
+rspack_paths       = { workspace = true, features = ["cacheable"] }
 rspack_sources     = { workspace = true }
 rspack_util        = { workspace = true }
 serde_json         = { workspace = true }

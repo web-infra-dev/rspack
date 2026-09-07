@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "2.1.6",
+  "version": "2.2.2",
   "license": "MIT",
   "description": "Fast Rust-based bundler for the web with a modernized webpack API",
   "private": true,
@@ -25,12 +25,8 @@
     "build:cli:release:browser": "pnpm --filter @rspack/binding build:release:browser && pnpm run build:js",
     "test:js": "pnpm -r run test",
     "format:rs": "cargo fmt --all",
-    "format:js": "prettier . --write && heading-case --write",
-    "format-ci:js": "prettier . --check && heading-case",
-    "format-ci:toml": "taplo format --check",
-    "format:toml": "taplo format",
-    "lint:js": "rslint --fix",
-    "lint-ci:js": "rslint",
+    "format:js": "rs fmt",
+    "lint:js": "rs check",
     "lint:rs": "cargo check --workspace --all-targets --locked",
     "build:binding:dev": "pnpm --filter @rspack/binding run build:dev",
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
@@ -40,7 +36,7 @@
     "build:bench": "cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --bench benches --bench rspack_sources",
     "build:bench:main": "cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --bench benches",
     "build:bench:rspack-sources": "cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --bench rspack_sources",
-    "prepare": "is-ci || husky",
+    "prepare": "rs hooks",
     "test:hot": "pnpm --filter \"@rspack/*\" test:hot",
     "test:unit": "pnpm --parallel --filter \"@rspack/*\" test",
     "test:type": "pnpm --filter \"@rspack-test/type-tests\" test",
@@ -54,23 +50,18 @@
     "bench:prepare": "node ./scripts/bench/setup.mjs"
   },
   "engines": {
-    "pnpm": "11.8.0"
+    "pnpm": "11.25.0"
   },
   "devDependencies": {
-    "@rslint/core": "catalog:",
-    "@rstest/core": "catalog:",
-    "@taplo/cli": "catalog:",
     "@types/node": "catalog:",
     "@typescript/native": "catalog:",
     "commander": "catalog:",
     "cross-env": "catalog:",
     "heading-case": "catalog:",
-    "husky": "catalog:",
-    "is-ci": "catalog:",
-    "lint-staged": "catalog:",
-    "prettier": "catalog:",
+    "prettier-plugin-toml": "catalog:",
+    "rstack": "catalog:",
     "typescript": "catalog:",
     "zx": "catalog:"
   },
-  "packageManager": "pnpm@11.8.0"
+  "packageManager": "pnpm@11.25.0"
 }

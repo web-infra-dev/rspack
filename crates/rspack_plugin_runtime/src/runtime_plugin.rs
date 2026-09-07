@@ -257,11 +257,12 @@ async fn runtime_requirements_in_tree(
           *chunk_ukey,
           GetChunkFilenameRuntimeModule::new(
             &compilation.runtime_template,
-            "javascript",
-            "javascript",
+            ("javascript", "javascript"),
             SourceType::JavaScript,
             runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
-            |_| false,
+            |runtime_requirements| {
+              runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+            },
             |chunk, compilation| {
               chunk_has_js(&chunk.ukey(), compilation).then(|| {
                 get_js_chunk_filename_template(
@@ -271,6 +272,15 @@ async fn runtime_requirements_in_tree(
                 )
               })
             },
+            *chunk_ukey,
+          )
+          .with_full_hash(
+            compilation.options.output.filename.has_full_hash_digest()
+              || compilation
+                .options
+                .output
+                .chunk_filename
+                .has_full_hash_digest(),
           )
           .boxed(),
         ));
@@ -283,8 +293,7 @@ async fn runtime_requirements_in_tree(
           *chunk_ukey,
           GetChunkFilenameRuntimeModule::new(
             &compilation.runtime_template,
-            "css",
-            "css",
+            ("css", "css"),
             SourceType::Css,
             runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_CSS_FILENAME),
             |runtime_requirements| {
@@ -300,6 +309,19 @@ async fn runtime_requirements_in_tree(
                 .clone()
               })
             },
+            *chunk_ukey,
+          )
+          .with_full_hash(
+            compilation
+              .options
+              .output
+              .css_filename
+              .has_full_hash_digest()
+              || compilation
+                .options
+                .output
+                .css_chunk_filename
+                .has_full_hash_digest(),
           )
           .boxed(),
         ));

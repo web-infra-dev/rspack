@@ -1,0 +1,173 @@
+# JavaScript API architecture
+
+Rspack exposes a webpack-compatible JavaScript API through `@rspack/core`, while most compilation work runs in Rust. The two layers communicate through a Node-API binding.
+
+## What is a native-backed object?
+
+An ordinary JavaScript object stores its data directly in the JavaScript engine. For example, reading the `name` property of `{ name: 'main' }` does not require a call into Rust.
+
+Rspack's `Compilation`, `Module`, `Chunk`, and graph objects work differently. Most of their compilation data is stored in Rust, while the JavaScript object usually stores only an identifier or internal handle used to locate that data. When a plugin reads certain getters or calls certain methods, Rspack accesses Rust through the Node-API binding and converts the result back into a JavaScript value. These objects are called **native-backed objects**.
+
+```text
+Ordinary JavaScript object
+
+  Read property ──────> Data in JavaScript object ──────> Result available directly
+
+
+Native-backed object
+
+  Read getter          JavaScript object              Node-API binding
+  or call method ────> (identifier / internal handle) ────> (cross-runtime access)
+                                                              │
+                                                              ▼
+                                                    Rust Compiler / Compilation
+                                                    (compilation data)
+                                                              │
+                                                              ▼
+  Receive JavaScript value <────── Convert data <──────── Node-API binding
+```
+
+The two kinds of objects can use exactly the same JavaScript syntax while behaving differently:
+
+| Object type                | Where the data is stored | What happens on property access or method call       | Lifetime                               |
+| -------------------------- | ------------------------ | ---------------------------------------------------- | -------------------------------------- |
+| Ordinary JavaScript object | JavaScript memory        | Read directly without crossing the binding           | Data normally exists while referenced  |
+| Native-backed object       | Primarily in Rust        | May read or modify data through the Node-API binding | Limited by its compiler or compilation |
+
+A native-backed object can contain both kinds of properties:
+
+- immutable data such as strings and numbers may be copied into JavaScript when the object is created, so reading it later does not access Rust;
+- getters and methods may access Rust on every call to retrieve current compilation data or perform an operation.
+
+Keeping the JavaScript object alive does not guarantee that it still refers to data from the build that created it. After a rebuild, a getter or method may retrieve data from the latest Rust compilation, or it may throw because its target no longer exists.
+
+This implementation model has two direct consequences:
+
+1. **Lifetime:** A native-backed object reliably refers to the intended Rust data only within the compiler, compilation, or hook execution scope that produced it.
+2. **Performance:** Reading a getter or calling a method may convert data between JavaScript and Rust. Repeating the same access in a loop can accumulate significant cost.
+
+If data is needed later, copy strings, numbers, or ordinary JavaScript objects while the corresponding build is still active instead of retaining the native-backed object itself.
+
+## Compiler lifecycle
+
+Creating an `@rspack/core` `Compiler` does not immediately create the corresponding native compiler. Rspack first normalizes options and runs plugin `apply` calls in JavaScript. It creates the Rust compiler on demand when a build API such as `run()` or `watch()` is called for the first time.
+
+After the native compiler has been created, the following information has already been finalized and passed to Rust:
+
+- normalized options and builtin plugins;
+- registration functions that connect JavaScript hooks to the native hook adapter;
+- file systems and resolver factories used for cross-language calls.
+
+Do not assume that arbitrary changes to `compiler.options` will still be synchronized to Rust after the native compiler has been created. Apply plugins and finish configuration before the first call to `run()` or `watch()`.
+
+:::warning Difference from webpack's object model
+A `Compiler` instance has only one active native `Compilation` at a time. Every build, including each watch rebuild, replaces that native compilation.
+
+In development, some webpack plugins continue to use a JavaScript `Compilation` after that build's `done` hook has finished. A watch rebuild may already have started before this later work runs, creating a race in which the plugin holds a `Compilation` from the previous build. To remain compatible with this common pattern, Rspack treats every JavaScript `Compilation` as a view of the compiler's **current** native compilation. Getters and methods on the old object can therefore read or modify the latest build instead of throwing. Keeping that object does not preserve the previous build.
+
+In watch mode, use the `Compilation` and native-backed objects provided to the current build's hooks. If historical data is required, copy it into ordinary JavaScript values during the corresponding build.
+:::
+
+When a compiler is no longer needed, call `close()` and wait for its callback. This waits for the current compilation to finish and releases the native resources and JavaScript callbacks owned by the compiler.
+
+## Compilation and object lifetimes
+
+Every build, including each watch rebuild, creates a new `Compilation`. Objects such as `Module`, `Chunk`, and graph objects obtained from a `Compilation` do not copy all of their data into JavaScript. Reading some properties or calling some methods still requires Rspack to retrieve data from the current Rust compilation through Node-API.
+
+Follow these rules:
+
+- Use a `Compilation` and its `Module`, `Chunk`, graph, dependency, and block objects only in hooks and callbacks for the current build.
+- Unless the API documentation explicitly promises a longer lifetime, do not retain these objects after the hook finishes or into the next build.
+- If information is needed later, save JavaScript-owned strings or numbers such as identifiers, names, paths, and hashes, or convert the data into an ordinary JavaScript object.
+- After a watch rebuild, obtain objects again from the new `Compilation` instead of reusing objects saved from the previous build.
+
+## Hook and callback execution
+
+The Rust compiler can use multiple threads to run several independent compilation tasks at the same time. JavaScript hooks, loaders, and other callbacks cannot run directly on those Rust threads. They must be scheduled back into the JavaScript environment in which the Rspack compiler was created.
+
+User code in one JavaScript environment runs on one JavaScript thread. Even if multiple Rust threads trigger callbacks at the same time, those callbacks enter a queue and are executed one by one on the JavaScript thread:
+
+```text
+Rust threads run in parallel                 JavaScript runs on one thread
+
+  Compilation task A ─┐
+  Compilation task B ─┼─> Cross-thread callback queue ─> Run callbacks one by one
+  Compilation task C ─┘                                      │
+                                                             └─> Return result
+                                                                 └─> Corresponding Rust task continues
+```
+
+The cost of hooks and callbacks is therefore not limited to Node-API conversion and thread scheduling. More importantly, they introduce a **serial execution point**: multiple Rust tasks that could otherwise run in parallel may all wait for the JavaScript queue. The more frequently a callback runs and the longer it takes, the more it can reduce the benefits of Rust parallelism. Rust work before and after the callback can still run in parallel, but the part that depends on the JavaScript result is limited by single-threaded throughput.
+
+### Why loaders are especially likely to become a bottleneck
+
+Rspack can process several files at the same time, but JavaScript loaders must run on the JavaScript thread. When several files need loader processing at once, their JavaScript loaders queue up, and the Rust compilation tasks waiting for those results pause at that boundary. The heavier the JavaScript loader and the more often it runs, the closer the overall build gets to serial execution.
+
+When equivalent functionality is available, prefer an Rspack builtin loader. For example:
+
+- use [`builtin:swc-loader`](/guide/features/builtin-swc-loader) for JavaScript and TypeScript
+  transforms;
+- use [`builtin:lightningcss-loader`](/guide/features/builtin-lightningcss-loader) for CSS
+  transforms.
+
+Builtin loaders run on the Rust side, reducing JavaScript queueing and cross-language data conversion while making better use of Rspack's parallelism.
+
+## Efficient usage
+
+### Read only the assets you need
+
+`compilation.assets` looks like an ordinary JavaScript object, but its asset contents are provided on demand by the native compilation. `Object.keys(assets)` retrieves only asset names. Rspack retrieves the corresponding `Source` from Rust through the binding only when `assets[name]` is read.
+
+If only some assets are needed, the following pattern is inefficient:
+
+```js title="Inefficient"
+compilation.hooks.processAssets.tap('ExamplePlugin', (assets) => {
+  for (const [name, source] of Object.entries(assets)) {
+    if (name.endsWith('.js')) {
+      consumeJavaScriptAsset(name, source);
+    }
+  }
+});
+```
+
+`Object.entries(assets)` reads the `Source` of every asset before the loop starts. Even if the loop
+uses only a few assets, this causes unnecessary cross-language communication and memory usage.
+
+Use `Object.keys()` to filter asset names first, then read only the required sources:
+
+```js title="Recommended"
+compilation.hooks.processAssets.tap('ExamplePlugin', (assets) => {
+  for (const name of Object.keys(assets)) {
+    if (!name.endsWith('.js')) {
+      continue;
+    }
+
+    const source = assets[name];
+    consumeJavaScriptAsset(name, source);
+  }
+});
+```
+
+If every asset is needed, using `Object.entries()` or `Object.values()` does not introduce unused reads.
+
+### Read once in a loop
+
+Read and retain data obtained from Rust during a single pass:
+
+```js
+compilation.hooks.processAssets.tap('ExamplePlugin', () => {
+  const moduleInfo = [];
+
+  for (const module of compilation.modules) {
+    const size = module.size();
+    moduleInfo.push({
+      identifier: module.identifier(),
+      size,
+    });
+  }
+
+  consumeModuleInfo(moduleInfo);
+});
+```
+
+`module.size()` retrieves data from Rust through the binding. Keeping `size` in a local variable avoids calling `module.size()` again in later logic.

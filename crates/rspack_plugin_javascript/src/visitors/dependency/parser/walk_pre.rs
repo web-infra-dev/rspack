@@ -1,5 +1,4 @@
 use rspack_util::SpanExt;
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   ArrayPat, AssignExpr, BlockStmt, CatchClause, DoWhileStmt, ForHead, ForInStmt, ForOfStmt,
   ForStmt, GetSpan, IfStmt, LabeledStmt, ModuleItem, ObjectPat, ObjectPatProp, Pat, PropName, Stmt,
@@ -11,6 +10,7 @@ use super::{
   estree::{MaybeNamedFunctionDecl, Statement},
 };
 use crate::{
+  Atom,
   parser_plugin::JavascriptParserPlugin,
   utils::eval::BasicEvaluatedExpression,
   visitors::{DestructuringAssignmentProperties, VariableDeclaration, VariableDeclarationKind},
@@ -142,7 +142,7 @@ impl JavascriptParser<'_> {
 
   pub fn pre_walk_function_declaration(&mut self, decl: MaybeNamedFunctionDecl) {
     if let Some(ident) = decl.ident() {
-      self.define_variable(Atom::from(ident.sym.as_str()));
+      self.define_variable(Atom::from(&ident.sym));
     }
   }
 
@@ -204,7 +204,7 @@ impl JavascriptParser<'_> {
         .unwrap_or_default()
       {
         self.enter_pattern(PatRef::Borrowed(&declarator.name), |this, ident| {
-          this.define_variable(Atom::from(ident.sym.as_str()));
+          this.define_variable(Atom::from(&ident.sym));
         });
       }
     }
@@ -239,7 +239,7 @@ impl JavascriptParser<'_> {
         ObjectPatProp::KeyValue(prop) => {
           if let Some(ident_key) = prop.key.as_ident() {
             keys.insert(DestructuringAssignmentProperty {
-              id: Atom::from(ident_key.sym.as_str()),
+              id: Atom::from(&ident_key.sym),
               range: prop.key.span().into(),
               pattern: self.collect_destructuring_assignment_properties(&prop.value),
               shorthand: false,
@@ -260,7 +260,7 @@ impl JavascriptParser<'_> {
         }
         ObjectPatProp::Assign(prop) => {
           keys.insert(DestructuringAssignmentProperty {
-            id: Atom::from(prop.key.id.sym.as_str()),
+            id: Atom::from(&prop.key.id.sym),
             range: prop.key.span().into(),
             pattern: None,
             shorthand: true,

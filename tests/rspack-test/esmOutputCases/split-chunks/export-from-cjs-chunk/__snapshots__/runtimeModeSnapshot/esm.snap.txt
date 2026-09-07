@@ -20,7 +20,6 @@ import { rspackRequire } from "./runtime.mjs";
 import "./cjs-chunk.mjs";
 
 // ./index.js
-const cjs = rspackRequire("./cjs.js");
 
 
 
@@ -31,6 +30,8 @@ it('should have correct export', async () => {
   expect(obj).toHaveProperty('value')
   expect(obj.value).toBe(42)
 })
+const cjs = rspackRequire("./cjs.js");
+
 export { cjs as obj };
 
 ```

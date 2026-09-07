@@ -1,0 +1,46 @@
+---
+description: '创建独立的 runtime chunk，并控制其命名方式。'
+---
+
+# RuntimeChunkPlugin
+
+`RuntimeChunkPlugin` 会创建独立的 runtime chunk，并控制其命名方式。[`optimization.runtimeChunk`](/config/optimization#optimizationruntimechunk) 的底层会应用此插件。
+
+## 示例
+
+下面的配置会把两个入口共用的 runtime 提取到 `runtime.js`：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: {
+    app: './src/app.js',
+    admin: './src/admin.js',
+  },
+  output: {
+    filename: '[name].js',
+  },
+  plugins: [
+    new rspack.optimize.RuntimeChunkPlugin({
+      name: 'runtime',
+    }),
+  ],
+};
+```
+
+Rspack 会生成 `app.js`、`admin.js` 和共用的 `runtime.js`。将 runtime 单独拆分后，入口 bundle 可以不受 runtime 变化影响而独立缓存。
+
+## 选项
+
+### name
+
+用来配置 runtime chunk 的名字，可以是字符串也可以是个返回字符串函数，函数参数为入口的名字。
+
+- **类型：** `string | ((entrypoint: { name: string }) => string)`
+
+```js
+new rspack.optimize.RuntimeChunkPlugin({
+  name: ({ name }) => `runtime~${name}`,
+});
+```

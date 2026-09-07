@@ -203,7 +203,7 @@ impl ModuleExecutor {
       executed_runtime_modules,
     } = rx.await.expect("should receiver success");
 
-    if execute_result.error.is_none() {
+    if execute_result.errors.is_empty() {
       self
         .module_assets
         .entry(origin_module_identifier)

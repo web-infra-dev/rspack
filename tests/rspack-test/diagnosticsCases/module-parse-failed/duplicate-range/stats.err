@@ -1,0 +1,9 @@
+ERROR in ./index.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: Expression expected
+         ╭────
+       1 │ describe('fail', -
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.

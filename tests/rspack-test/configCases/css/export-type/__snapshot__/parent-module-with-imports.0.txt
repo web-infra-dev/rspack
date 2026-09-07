@@ -91,7 +91,7 @@
 .module-with-imports_css_e314-main-class {
 	color: purple;
 	display: flex;
-	background-image: url(7bc91c245a8a10a4.png);
+	background-image: url("7bc91c245a8a10a4.png");
 }
 
 @layer base {
