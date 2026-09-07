@@ -1,4 +1,5 @@
 use std::{
+  any::Any,
   fmt::Debug,
   path::{Path, PathBuf},
   sync::Arc,
@@ -7,7 +8,8 @@ use std::{
 use anymap::CloneAny;
 use once_cell::sync::OnceCell;
 use rspack_cacheable::{
-  cacheable,
+  cacheable, cacheable_dyn,
+  rkyv::string::ArchivedString,
   utils::PortablePath,
   with::{As, AsInner, AsOption, AsPreset},
 };
@@ -342,4 +344,34 @@ impl DescriptionData {
 }
 
 pub type AdditionalData = anymap::Map<dyn CloneAny + Send + Sync>;
-pub type ParseMeta = FxHashMap<String, Box<dyn CloneAny + Send + Sync>>;
+
+#[cacheable_dyn]
+pub trait ParseMetaValue: CloneAny + Send + Sync {
+  fn clone_parse_meta(&self) -> Box<dyn ParseMetaValue>;
+  fn into_any(self: Box<Self>) -> Box<dyn Any + Send + Sync>;
+}
+
+impl Clone for Box<dyn ParseMetaValue> {
+  fn clone(&self) -> Self {
+    self.clone_parse_meta()
+  }
+}
+
+impl Debug for dyn ParseMetaValue {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("ParseMetaValue").finish_non_exhaustive()
+  }
+}
+
+#[cacheable_dyn]
+impl ParseMetaValue for String {
+  fn clone_parse_meta(&self) -> Box<dyn ParseMetaValue> {
+    Box::new(self.clone())
+  }
+
+  fn into_any(self: Box<Self>) -> Box<dyn Any + Send + Sync> {
+    self
+  }
+}
+
+pub type ParseMeta = FxHashMap<String, Box<dyn ParseMetaValue>>;

@@ -2,11 +2,9 @@
 description: 'This section covers all variables available in code compiled with Rspack'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import Columns from '@components/Columns';
 import { ApiMeta, Stability } from '@components/ApiMeta';
-
-<WebpackLicense from="https://webpack.js.org/api/module-variables/" />
 
 # Module variables
 
@@ -619,7 +617,7 @@ import.meta.rspackUniqueId;
 __webpack_require__.ruid;
 
 // webpack/runtime/rspack_unique_id
-__webpack_require__.ruid = 'bundler=rspack@0.7.4';
+__webpack_require__.ruid = 'bundler=rspack@2.1.2';
 ```
 
 </Columns>
@@ -736,7 +734,7 @@ __webpack_module__.id
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-Access the [layer](/guide/features/layer) of the current module. Its value is the configured layer name, or `null` when the module has no layer.
+Access the [layer](/guide/advanced/layer) of the current module. Its value is the configured layer name, or `null` when the module has no layer.
 
 Rspack replaces `__webpack_layer__` at compile time, allowing optimizers to remove unreachable layer-specific branches.
 
@@ -836,7 +834,7 @@ __resourceQuery
 
 ### \_\_webpack_exports_info\_\_
 
-<ApiMeta addedVersion="1.0.0" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 In modules, `__webpack_exports_info__` is available to allow exports introspection:
 
@@ -940,7 +938,7 @@ import('./module-a').then((moduleA) => {
 
 ### \_\_webpack_get_script_filename\_\_
 
-<ApiMeta addedVersion="1.0.0" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 It provides filename of the chunk by its id.
 
@@ -1003,10 +1001,8 @@ The CommonJS equivalent of [`import.meta.rspackVersion`](#importmetarspackversio
 
 ### \_\_rspack_unique_id\_\_
 
-<ApiMeta
-  addedVersion="1.0.0"
-  specific={['Rspack']}
-  stability={Stability.Deprecated}
-/>
+<ApiMeta specific={['Rspack']} stability={Stability.Deprecated} />
 
 The CommonJS equivalent of [`import.meta.rspackUniqueId`](#importmetarspackuniqueid).
+
+<Attribution url="https://webpack.js.org/api/module-variables/" />

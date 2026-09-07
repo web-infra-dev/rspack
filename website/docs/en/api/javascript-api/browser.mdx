@@ -214,7 +214,7 @@ export default {
 
 ### BrowserRequirePlugin
 
-In Rspack, certain scenarios require dynamically loading and executing JavaScript code, such as [Loaders](/guide/features/loader) or the template functions of [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin#use-template-function). Since this code may come from untrusted users, executing it directly in the browser environment poses potential security risks. To ensure safety, `@rspack/browser` throws errors by default in such cases to prevent unsafe code execution.
+In Rspack, certain scenarios require dynamically loading and executing JavaScript code, such as [Loaders](/guide/features/loader) or the template functions of [HtmlRspackPlugin](/plugins/html-rspack-plugin#use-template-function). Since this code may come from untrusted users, executing it directly in the browser environment poses potential security risks. To ensure safety, `@rspack/browser` throws errors by default in such cases to prevent unsafe code execution.
 
 The `BrowserRequirePlugin` plugin provides two ways to address this requirement. Options for `BrowserRequirePlugin` are as follows:
 
@@ -298,7 +298,7 @@ function uselessExecute(_code: string, runtime: CommonJsRuntime) {
 
 ## Using Module Federation
 
-`@rspack/browser` supports Rspack's [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin). With this feature, you can pre-bundle complex dependency modules as provider projects deployed to CDN, and then use them in consumer projects that are bundled online in the browser.
+`@rspack/browser` supports Rspack's [ModuleFederationPlugin](/plugins/module-federation-plugin). With this feature, you can pre-bundle complex dependency modules as provider projects deployed to CDN, and then use them in consumer projects that are bundled online in the browser.
 
 When using ModuleFederationPlugin in the browser, please note the following:
 
@@ -326,5 +326,5 @@ new BrowserHttpImportEsmPlugin({
 });
 ```
 
-3. All [ModuleFederationPlugin.shared](/plugins/webpack/module-federation-plugin#shared) configurations must set `import: false`, meaning that consumer projects bundled online cannot bundle shared modules themselves; shared modules must be provided by pre-bundled provider projects.
-4. [ModuleFederationPlugin.implementation](/plugins/webpack/module-federation-plugin#implementation) option is not supported.
+3. All [ModuleFederationPlugin.shared](/plugins/module-federation-plugin#shared) configurations must set `import: false`, meaning that consumer projects bundled online cannot bundle shared modules themselves; shared modules must be provided by pre-bundled provider projects.
+4. [ModuleFederationPlugin.implementation](/plugins/module-federation-plugin#implementation) option is not supported.

@@ -1,6 +1,5 @@
+use rspack_intern::Atom;
 use rspack_regex::RspackRegex;
-
-use crate::atom::Atom;
 
 pub trait MergeFrom: Clone {
   fn merge_from(self, other: &Self) -> Self;

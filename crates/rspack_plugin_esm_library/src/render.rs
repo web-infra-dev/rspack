@@ -11,6 +11,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
+use rspack_intern::Atom;
 use rspack_plugin_javascript::{
   JsPlugin, RenderSource,
   runtime::{AUTO_PUBLIC_PATH_PLACEHOLDER, render_module, render_runtime_modules},
@@ -18,7 +19,6 @@ use rspack_plugin_javascript::{
 };
 use rspack_util::{
   SpanExt,
-  atom::Atom,
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
 };
 
@@ -192,6 +192,10 @@ impl EsmLibraryPlugin {
 
     if !chunk_link.decl_modules.is_empty() {
       let hooks = JsPlugin::get_compilation_hooks(compilation.id());
+      let module_runtime_scope = compilation
+        .runtime_template
+        .create_module_code_template()
+        .render_runtime_scope();
 
       let mut decl_inner = ConcatSource::default();
       for m in chunk_link.decl_modules.iter() {
@@ -216,6 +220,7 @@ impl EsmLibraryPlugin {
           &output_path,
           &hooks,
           module_runtime_template,
+          Some(&module_runtime_scope),
         )
         .await?
         else {
@@ -608,7 +613,7 @@ var {} = {{}};
       let mut exports = exports.iter().collect::<Vec<_>>();
       exports.sort_unstable();
       for exported_name in exports {
-        let is_default = exported_name.as_str() == "default";
+        let is_default = exported_name == "default";
 
         if is_default {
           if export_default.is_none() {

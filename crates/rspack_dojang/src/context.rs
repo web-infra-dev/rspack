@@ -1,5 +1,6 @@
-use std::{collections::HashMap, fmt, sync::Mutex};
+use std::{fmt, sync::Mutex};
 
+use rustc_hash::FxHashMap as HashMap;
 use serde_json::{Map, Number, Value};
 
 use crate::{eval::*, exec::*, expr::*};
@@ -852,14 +853,14 @@ fn compute_and_test() {
   let context_json = r#"{"a": 1, "b":0, "c":"abc", "d":"", "e": "def"}"#;
   let context_value: Value = serde_json::from_str(context_json).unwrap();
   let mut context = Context::new(context_value);
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
 
   {
     let eval = Eval::new(get_expr(r"<% a && b %>")).unwrap();
     let result = eval.run(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       &mut includes,
     );
 
@@ -869,8 +870,8 @@ fn compute_and_test() {
     let eval = Eval::new(get_expr(r"<% c && d %>")).unwrap();
     let result = eval.run(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       &mut includes,
     );
 
@@ -880,8 +881,8 @@ fn compute_and_test() {
     let eval = Eval::new(get_expr(r"<% c && e %>")).unwrap();
     let result = eval.run(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       &mut includes,
     );
 
@@ -894,14 +895,14 @@ fn compute_or_test() {
   let context_json = r#"{"a": 1, "b":0, "c":"abc", "d":"", "e": "def"}"#;
   let context_value: Value = serde_json::from_str(context_json).unwrap();
   let mut context = Context::new(context_value);
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
 
   {
     let eval = Eval::new(get_expr(r"<% (a && b) || (c && e) %>")).unwrap();
     let result = eval.run(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       &mut includes,
     );
 
@@ -911,8 +912,8 @@ fn compute_or_test() {
     let eval = Eval::new(get_expr(r"<% (a && b) || (c && d) %>")).unwrap();
     let result = eval.run(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       &mut includes,
     );
 
@@ -922,8 +923,8 @@ fn compute_or_test() {
     let eval = Eval::new(get_expr(r"<% c || e %>")).unwrap();
     let result = eval.run(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       &mut includes,
     );
 
@@ -936,14 +937,14 @@ fn compute_complex() {
   let context_json = r#"{"a": 1, "b":0, "c":"abc", "d":"", "e": "def"}"#;
   let context_value: Value = serde_json::from_str(context_json).unwrap();
   let mut context = Context::new(context_value);
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
 
   {
     let eval = Eval::new(get_expr(r"<% !a && ((b != a) || c <= e) %>")).unwrap();
     let result = eval.run(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       &mut includes,
     );
 
@@ -953,8 +954,8 @@ fn compute_complex() {
     let eval = Eval::new(get_expr(r"<% !b && ((b != a) || c <= e && !d) %>")).unwrap();
     let result = eval.run(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       &mut includes,
     );
 
@@ -967,8 +968,8 @@ fn compute_complex() {
     .unwrap();
     let result = eval.run(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       &mut includes,
     );
 
@@ -981,14 +982,14 @@ fn compute_complex_object_name() {
   let context_json = r#"{"a": {"b" : 2, "c" : {"d" : 3 }}, "b" : 1}"#;
   let context_value: Value = serde_json::from_str(context_json).unwrap();
   let mut context = Context::new(context_value);
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
 
   {
     let eval = Eval::new(get_expr(r"<% a.b %>")).unwrap();
     let result = eval.run(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       &mut includes,
     );
 
@@ -998,8 +999,8 @@ fn compute_complex_object_name() {
     let eval = Eval::new(get_expr(r"<% a.c.d %>")).unwrap();
     let result = eval.run(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       &mut includes,
     );
 
@@ -1009,8 +1010,8 @@ fn compute_complex_object_name() {
     let eval = Eval::new(get_expr(r#"<% b %>"#)).unwrap();
     let result = eval.run(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       &mut includes,
     );
 
@@ -1021,7 +1022,7 @@ fn compute_complex_object_name() {
 #[test]
 fn compute_assign_test() {
   let context_json = r#"{"a": 1, "b":0, "c": 1}"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
 
   {
     let context_value: Value = serde_json::from_str(context_json).unwrap();
@@ -1030,8 +1031,8 @@ fn compute_assign_test() {
     let eval = Eval::new(get_expr(r"<% a = a && b %>")).unwrap();
     let result = eval.run(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       &mut includes,
     );
 
@@ -1045,8 +1046,8 @@ fn compute_assign_test() {
     let eval = Eval::new(get_expr(r"<% a = a && c %>")).unwrap();
     let result = eval.run(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       &mut includes,
     );
 
@@ -1060,8 +1061,8 @@ fn compute_assign_test() {
     let eval = Eval::new(get_expr(r"<% d = a && c %>")).unwrap();
     let result = eval.run(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       &mut includes,
     );
 
@@ -1073,7 +1074,7 @@ fn compute_assign_test() {
 #[test]
 fn compute_arithmetic() {
   let context_json = r#"{"a": 1, "b":2, "c": 3, "d" : 2, "e" : 6, "f" : 2}"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
 
   {
     let context_value: Value = serde_json::from_str(context_json).unwrap();
@@ -1083,8 +1084,8 @@ fn compute_arithmetic() {
     let eval = Eval::new(get_expr(r"<% b = a = (a + b * c - e / d) * f %>")).unwrap();
     let result = eval.run(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       &mut includes,
     );
 
@@ -1097,7 +1098,7 @@ fn compute_arithmetic() {
 #[test]
 fn check_array_get() {
   let context_json = r#"{"a": [1,2,3]}"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
 
   {
     let context_value: Value = serde_json::from_str(context_json).unwrap();
@@ -1107,8 +1108,8 @@ fn check_array_get() {
     let eval = Eval::new(get_expr(r"<% a[1] %>")).unwrap();
     let result = eval.run(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       &mut includes,
     );
 
@@ -1119,7 +1120,7 @@ fn check_array_get() {
 #[test]
 fn convert_object_to_boolean() {
   let context_json = r#"{"a": {"b" : 1}}"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
 
   // {
   //     let context_value: Value = serde_json::from_str(context_json).unwrap();
@@ -1128,8 +1129,8 @@ fn convert_object_to_boolean() {
   //     let eval = Eval::new(get_expr(r"<% !b %>")).unwrap();
   //     let result = eval.run(
   //         &mut context,
-  //         &HashMap::new(),
-  //         &HashMap::new(),
+  //         &HashMap::default(),
+  //         &HashMap::default(),
   //         &mut includes,
   //     );
 
@@ -1143,8 +1144,8 @@ fn convert_object_to_boolean() {
     let eval = Eval::new(get_expr(r"<% a || !a %>")).unwrap();
     let result = eval.run(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       &mut includes,
     );
 

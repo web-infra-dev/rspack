@@ -15,7 +15,7 @@ use crate::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct TempModule {
   id: ModuleIdentifier,
   build_info: BuildInfo,
@@ -29,7 +29,10 @@ impl TempModule {
     let m = module.as_ref();
     OwnedOrRef::Owned(BoxModule::new(Box::new(Self {
       id: m.identifier(),
-      build_info: m.build_info().clone(),
+      build_info: BuildInfo {
+        dependencies: m.build_info().dependencies.clone(),
+        ..Default::default()
+      },
       build_meta: m.build_meta().clone(),
       dependencies: m.get_dependencies().to_vec(),
       // clean all of blocks
@@ -97,7 +100,7 @@ impl Module for TempModule {
     unreachable!()
   }
 
-  fn need_build(&self, _value_cache_versions: &ValueCacheVersions) -> bool {
+  fn need_build_for_incremental(&self, _value_cache_versions: &ValueCacheVersions) -> bool {
     // return true to make sure this module always rebuild
     true
   }

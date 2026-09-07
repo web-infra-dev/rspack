@@ -17,14 +17,13 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_util::json_stringify_str;
-use swc_atoms::Atom;
 
 use super::{
   create_resource_identifier_for_esm_dependency,
   esm_import_dependency::esm_import_dependency_get_linking_error, esm_import_dependency_apply,
 };
 use crate::{
-  connection_active_inline_value_for_esm_import_specifier, connection_active_used_by_exports,
+  Atom, connection_active_inline_value_for_esm_import_specifier, connection_active_used_by_exports,
   dependency::{
     DependencyBranchGuard, compose_dependency_condition, is_dependency_export_presence_guarded,
   },

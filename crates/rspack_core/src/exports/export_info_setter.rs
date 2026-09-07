@@ -1,6 +1,6 @@
 use std::collections::hash_map::Entry;
 
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 
 use super::{ExportInfoData, ExportInfoTargetValue, UsageState};
 use crate::{CanInlineUse, DependencyId, Nullable, RuntimeSpec};

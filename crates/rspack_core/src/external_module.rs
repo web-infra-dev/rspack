@@ -7,27 +7,27 @@ use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
 use rspack_macros::impl_source_map_config;
 use rspack_util::{json_stringify_str, source_map::SourceMapKind};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet};
+use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationDataChunkInitFragments, CodeGenerationDataUrl, CodeGenerationResultBuilder,
-  Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId, ExportProvided,
-  ExternalType, FactoryMeta, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
-  ModuleCodeTemplate, ModuleGraph, ModuleType, NAMESPACE_OBJECT_EXPORT, NormalInitFragment,
-  RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, UsageState,
-  UsedExports, UsedNameItem, extract_url_and_global, impl_module_meta_info, module_update_hash,
-  property_access,
+  Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRef,
+  ExportProvided, ExternalType, FactoryMeta, ImportAttributes, ImportPhase, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
+  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
+  NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
+  extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_identifier,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
 static EXTERNAL_MODULE_CSS_SOURCE_TYPES: &[SourceType] = &[SourceType::CssImport];
-static EXTERNAL_MODULE_CSS_URL_SOURCE_TYPES: &[SourceType] = &[SourceType::CssUrl];
+static EXTERNAL_MODULE_ASSET_URL_SOURCE_TYPES: &[SourceType] = &[SourceType::AssetUrl];
 
 define_hook!(ExternalModuleChunkCondition: SeriesBail(
   chunk_ukey: &ChunkUkey,
@@ -433,6 +433,13 @@ fn resolve_external_type<'a>(
         "module"
       }
     }
+    "asset" | "asset-url" => {
+      if dependency_meta.source_type == Some(SourceType::AssetUrl) {
+        "asset-url"
+      } else {
+        "asset"
+      }
+    }
 
     import_or_module => import_or_module,
   }
@@ -510,7 +517,7 @@ impl ExternalModule {
       user_request,
       factory_meta: None,
       build_info: BuildInfo {
-        top_level_declarations: Some(FxHashSet::default()),
+        top_level_declarations: Some(Default::default()),
         strict: true,
         ..Default::default()
       },
@@ -1100,17 +1107,10 @@ impl Module for ExternalModule {
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
-    if self.external_type == "asset"
-      && self
-        .dependency_meta
-        .source_type
-        .is_some_and(|t| t == SourceType::CssUrl)
-    {
-      EXTERNAL_MODULE_CSS_URL_SOURCE_TYPES
-    } else if self.external_type == "css-import" {
-      EXTERNAL_MODULE_CSS_SOURCE_TYPES
-    } else {
-      EXTERNAL_MODULE_JS_SOURCE_TYPES
+    match self.resolve_external_type() {
+      "asset-url" => EXTERNAL_MODULE_ASSET_URL_SOURCE_TYPES,
+      "css-import" => EXTERNAL_MODULE_CSS_SOURCE_TYPES,
+      _ => EXTERNAL_MODULE_JS_SOURCE_TYPES,
     }
   }
 
@@ -1205,7 +1205,7 @@ impl Module for ExternalModule {
     self.build_meta.set_exports_type(exports_type);
     Ok(BuildResult {
       module: BoxModule::new(self),
-      dependencies: vec![BoxDependency::new(StaticExportsDependency::new(
+      dependencies: vec![DependencyRef::new(StaticExportsDependency::new(
         StaticExportsSpec::True,
         can_mangle,
       ))],
@@ -1228,7 +1228,7 @@ impl Module for ExternalModule {
 
     let mut cgr = CodeGenerationResultBuilder::default();
     let (request, external_type) = self.get_request_and_external_type();
-    match self.external_type.as_str() {
+    match self.resolve_external_type() {
       "asset" if request.is_some() => {
         let request = request.expect("request should be some");
         cgr.add(
@@ -1240,6 +1240,12 @@ impl Module for ExternalModule {
           ))
           .boxed(),
         );
+        cgr
+          .data_mut()
+          .insert(CodeGenerationDataUrl::new(request.primary().to_string()));
+      }
+      "asset-url" if request.is_some() => {
+        let request = request.expect("request should be some");
         cgr
           .data_mut()
           .insert(CodeGenerationDataUrl::new(request.primary().to_string()));

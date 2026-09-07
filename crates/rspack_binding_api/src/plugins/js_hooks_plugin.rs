@@ -23,6 +23,7 @@ pub struct JsHooksAdapterPlugin {
   register_compiler_compilation_taps: RegisterCompilerCompilationTaps,
   register_compiler_make_taps: RegisterCompilerMakeTaps,
   register_compiler_finish_make_taps: RegisterCompilerFinishMakeTaps,
+  register_compiler_after_compile_taps: RegisterCompilerAfterCompileTaps,
   register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps,
   register_compiler_emit_taps: RegisterCompilerEmitTaps,
   register_compiler_after_emit_taps: RegisterCompilerAfterEmitTaps,
@@ -108,6 +109,10 @@ impl Plugin for JsHooksAdapterPlugin {
       .compiler_hooks
       .finish_make
       .intercept(self.register_compiler_finish_make_taps.clone());
+    ctx
+      .compiler_hooks
+      .after_compile
+      .intercept(self.register_compiler_after_compile_taps.clone());
     ctx
       .compiler_hooks
       .should_emit
@@ -287,6 +292,7 @@ impl Plugin for JsHooksAdapterPlugin {
     self.register_compiler_compilation_taps.clear_cache();
     self.register_compiler_make_taps.clear_cache();
     self.register_compiler_finish_make_taps.clear_cache();
+    self.register_compiler_after_compile_taps.clear_cache();
     self.register_compiler_should_emit_taps.clear_cache();
     self.register_compiler_emit_taps.clear_cache();
     self.register_compiler_after_emit_taps.clear_cache();
@@ -530,6 +536,10 @@ impl JsHooksAdapterPlugin {
         ),
         register_compiler_finish_make_taps: RegisterCompilerFinishMakeTaps::new(
           register_js_taps.register_compiler_finish_make_taps,
+          non_skippable_registers.clone(),
+        ),
+        register_compiler_after_compile_taps: RegisterCompilerAfterCompileTaps::new(
+          register_js_taps.register_compiler_after_compile_taps,
           non_skippable_registers.clone(),
         ),
         register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps::new(

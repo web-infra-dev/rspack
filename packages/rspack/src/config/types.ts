@@ -74,6 +74,9 @@ export type WasmLoadingType = 'fetch' | 'async-node' | 'universal';
 /** Option to set the method of loading WebAssembly Modules. */
 export type WasmLoading = false | WasmLoadingType;
 
+/** Whether to fall back to non-streaming WebAssembly loading when streaming fails due to an incorrect MIME type. */
+export type WasmStreamingFallback = boolean;
+
 export type ScriptType = false | 'text/javascript' | 'module';
 
 export type LibraryCustomUmdObject = {
@@ -578,6 +581,13 @@ export type Output = {
    * @default 'fetch'
    * */
   wasmLoading?: WasmLoading;
+
+  /**
+   * Fall back to non-streaming WebAssembly instantiation or compilation when the server
+   * does not serve WebAssembly with the `application/wasm` MIME type.
+   * @default true
+   */
+  wasmStreamingFallback?: WasmStreamingFallback;
 
   /** List of wasm loading types enabled for use by entry points. */
   enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
@@ -1802,7 +1812,10 @@ export type ExternalsType =
   | 'modern-module'
   | 'script'
   | 'node-commonjs'
-  | 'commonjs-import';
+  | 'commonjs-import'
+  | 'asset'
+  | 'asset-url'
+  | 'css-import';
 //#endregion
 
 //#region Externals
@@ -2126,6 +2139,13 @@ export type PersistentCacheOptions = {
    */
   maxAge?: number;
   /**
+   * Number of generations that unused cache entries stay in the additional
+   * memory cache. Set to 0 to disable the memory cache, or Infinity to keep
+   * entries forever.
+   * @default 5 in development mode, Infinity otherwise
+   */
+  maxMemoryGenerations?: number;
+  /**
    * @deprecated This option has no effect. Rspack keeps only one persistent
    * cache per compiler path.
    */
@@ -2160,6 +2180,10 @@ export type MemoryCacheOptions = {
    * Cache type.
    */
   type: 'memory';
+  /**
+   * Snapshot options for determining which files have been modified.
+   */
+  snapshot?: CacheSnapshotOptions;
 };
 
 /**
@@ -2817,6 +2841,9 @@ export type OptimizationSplitChunksOptions = {
   hidePathInfo?: boolean;
 } & SharedOptimizationSplitChunksCacheGroup;
 
+/** @deprecated Use `'compact-hashed'` instead. */
+type CompatHashedIds = 'compat-hashed';
+
 export type Optimization = {
   /**
    * Which algorithm to use when choosing module ids.
@@ -2824,7 +2851,13 @@ export type Optimization = {
    * (e.g. HashedModuleIdsPlugin) to provide module ids instead.
    */
   moduleIds?:
-    false | 'named' | 'natural' | 'deterministic' | 'compat-hashed' | 'hashed';
+    | false
+    | 'named'
+    | 'natural'
+    | 'deterministic'
+    | 'compact-hashed'
+    | CompatHashedIds
+    | 'hashed';
 
   /**
    * Which algorithm to use when choosing chunk ids.
@@ -2836,7 +2869,8 @@ export type Optimization = {
     | 'natural'
     | 'named'
     | 'deterministic'
-    | 'compat-hashed'
+    | 'compact-hashed'
+    | CompatHashedIds
     | 'size'
     | 'total-size';
 
@@ -3119,6 +3153,8 @@ export type UseInputFileSystem = false | RegExp[];
 export type NewCache = {
   /** Enable the module code generation cache. @default true */
   codeGeneration?: boolean;
+  /** Enable the module build cache. @default true */
+  module?: boolean;
   /** Enable the devtool asset cache. @default true */
   devtool?: boolean;
   /** Enable the per-loader cache. @default true */
@@ -3232,8 +3268,10 @@ export type WatchOptions = {
 
   /**
    * Ignore some files from being watched.
+   * A function receives each entry and must return `true` to ignore it; unlike
+   * the other forms, its path keeps the platform separators.
    */
-  ignored?: string | RegExp | string[];
+  ignored?: string | RegExp | string[] | ((entry: string) => boolean);
 
   /**
    * Turn on polling by passing true, or specifying a poll interval in milliseconds.
@@ -3478,6 +3516,7 @@ export type RspackOptions = {
 
   /**
    * Control artifact reuse during same-compiler rebuilds such as watch and HMR.
+   * Effective only when `mode` is set to `'development'`.
    * This does not make standalone one-shot builds incremental.
    */
   incremental?: IncrementalPresets | Incremental;

@@ -1,7 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
 use rayon::prelude::{FromParallelIterator, IntoParallelIterator, ParallelIterator};
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 use rustc_hash::FxHashMap;
 
 use crate::{

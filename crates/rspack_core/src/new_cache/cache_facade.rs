@@ -50,7 +50,7 @@ impl CacheFacade {
     identifier: &str,
     etag: Option<Etag>,
     value: CacheValue<T>,
-  ) -> Result<()> {
+  ) {
     self.cache.store(self.key(identifier), etag, value)
   }
 
@@ -72,7 +72,7 @@ impl ItemCacheFacade {
     self.cache.get(self.key.clone(), self.etag.clone())
   }
 
-  pub fn store<T: CacheValueData>(&self, value: CacheValue<T>) -> Result<()> {
+  pub fn store<T: CacheValueData>(&self, value: CacheValue<T>) {
     self.cache.store(self.key.clone(), self.etag.clone(), value)
   }
 }
@@ -102,11 +102,10 @@ impl MultiItemCache {
     Ok(None)
   }
 
-  pub fn store<T: CacheValueData>(&self, value: CacheValue<T>) -> Result<()> {
+  pub fn store<T: CacheValueData>(&self, value: CacheValue<T>) {
     for item in &self.items {
-      item.store(value.clone())?;
+      item.store(value.clone());
     }
-    Ok(())
   }
 }
 

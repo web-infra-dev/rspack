@@ -2,10 +2,8 @@
 description: '当使用 Rspack 打包应用程序时，你可以选择多种模块语法风格，包括 ES modules 和 CommonJS。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import { ApiMeta } from '@components/ApiMeta';
-
-<WebpackLicense from="https://webpack.docschina.org/api/module-methods/" />
 
 # 模块方法
 
@@ -257,8 +255,6 @@ const settings = await import(
 
 #### rspackFetchPriority \{#rspackfetchpriority}
 
-<ApiMeta addedVersion="1.0.0" />
-
 - **类型：** `"low" | "high" | "auto"`
 - **webpack 兼容名称：** `webpackFetchPriority`
 
@@ -275,8 +271,6 @@ const hero = await import(
 
 #### rspackInclude \{#rspackinclude}
 
-<ApiMeta addedVersion="1.0.0" />
-
 - **类型：** `RegExp`
 - **webpack 兼容名称：** `webpackInclude`
 
@@ -292,8 +286,6 @@ const messages = await import(
 ```
 
 #### rspackExclude \{#rspackexclude}
-
-<ApiMeta addedVersion="1.0.0" />
 
 - **类型：** `RegExp`
 - **webpack 兼容名称：** `webpackExclude`
@@ -314,8 +306,6 @@ const messages = await import(
 :::
 
 #### rspackExports \{#rspackexports}
-
-<ApiMeta addedVersion="1.0.0" />
 
 - **类型：** `string | string[]`
 - **webpack 兼容名称：** `webpackExports`
@@ -594,3 +584,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.docschina.org/api/module-methods/" />

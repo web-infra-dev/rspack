@@ -2,9 +2,7 @@
 description: 'While using Rspack, you can use the following command to generate a JSON file of the statistics module information to analyze the module dependency...'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/api/stats/" />
+import Attribution from '@components/Attribution';
 
 # Stats JSON
 
@@ -453,3 +451,5 @@ type StatsLoggingEntry = {
   children?: StatsLoggingEntry[] | undefined;
 } & Record<string, any>;
 ```
+
+<Attribution url="https://webpack.js.org/api/stats/" />

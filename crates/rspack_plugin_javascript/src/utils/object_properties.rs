@@ -29,8 +29,8 @@
 //! nested options objects) participate by implementing [`FromAstExpr`], and
 //! `Vec<(String, T)>` extracts records with unknown keys in source order.
 
-use rspack_core::ImportAttributes;
-use rspack_error::{Label, Result};
+use rspack_core::{ContextMode, ImportAttributes, try_convert_str_to_context_mode};
+use rspack_error::{Error, Label, Result};
 use rspack_regex::RspackRegex;
 use rspack_util::SpanExt;
 use swc_experimental_ecma_ast::{Expr, GetSpan, Lit, ObjectLit, PropName};
@@ -160,6 +160,22 @@ impl FromAstExpr<'_> for bool {
 impl FromAstExpr<'_> for String {
   fn from_ast_expr(expr: &Expr<'_>) -> Result<Option<Self>> {
     Ok(static_string_from_expr(expr))
+  }
+}
+
+impl FromAstExpr<'_> for ContextMode {
+  fn from_ast_expr(expr: &Expr<'_>) -> Result<Option<Self>> {
+    let Some(value) = String::from_ast_expr(expr)? else {
+      return Ok(None);
+    };
+
+    try_convert_str_to_context_mode(&value)
+      .map(Some)
+      .ok_or_else(|| {
+        Error::error(format!(
+          r#"Unsupported mode: `mode` expected "sync", "eager", "weak", "async-weak", "lazy" or "lazy-once", but received: "{value}"."#
+        ))
+      })
   }
 }
 

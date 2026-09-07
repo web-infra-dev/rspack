@@ -38,7 +38,9 @@ pub trait PassExt: Send + Sync {
   async fn before_pass(&self, _compilation: &mut Compilation, _cache: &mut dyn Cache) {}
 
   /// Called after run_pass succeeds. For cache save.
-  async fn after_pass(&self, _compilation: &mut Compilation, _cache: &mut dyn Cache) {}
+  async fn after_pass(&self, _compilation: &mut Compilation, _cache: &mut dyn Cache) -> Result<()> {
+    Ok(())
+  }
 
   /// Whether this pass is enabled for this compilation.
   fn is_enabled(&self, _compilation: &Compilation) -> bool {
@@ -77,13 +79,18 @@ async fn run<P: PassExt + ?Sized>(
     incremental_artifacts.recover(incremental_passes, compilation);
   }
   pass.before_pass(compilation, cache).await;
-  let result = pass.run_pass_with_cache(compilation, cache).await;
-  if result.is_ok() {
-    if let Some(incremental_artifacts) = incremental_artifacts {
-      incremental_artifacts.capture(incremental_passes, compilation);
-    }
-    pass.after_pass(compilation, cache).await;
-  }
+  let result = match pass.run_pass_with_cache(compilation, cache).await {
+    Ok(()) => match pass.after_pass(compilation, cache).await {
+      Ok(()) => {
+        if let Some(incremental_artifacts) = incremental_artifacts {
+          incremental_artifacts.capture(incremental_passes, compilation);
+        }
+        Ok(())
+      }
+      Err(error) => Err(error),
+    },
+    Err(error) => Err(error),
+  };
 
   logger.time_end(start);
   result

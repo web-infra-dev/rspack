@@ -312,6 +312,10 @@ impl DependencyRef {
   pub fn new<D: Dependency + 'static>(dependency: D) -> Self {
     UniqueDependency::new(dependency).shareable()
   }
+
+  pub fn get_mut(&mut self) -> Option<&mut (dyn Dependency + 'static)> {
+    TriompheArc::get_mut(&mut self.0)
+  }
 }
 
 impl From<UniqueDependency> for DependencyRef {

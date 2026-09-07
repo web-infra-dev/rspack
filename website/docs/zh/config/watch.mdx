@@ -2,9 +2,7 @@
 description: '开启监听模式，使 Rspack 在第一次构建完后不会退出，而是继续监听文件变更，并在变更时触发重新编译。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/watch/" />
+import Attribution from '@components/Attribution';
 
 # Watch
 
@@ -59,12 +57,12 @@ export default {
 
 ### watchOptions.ignored
 
-- **类型：** `RegExp | string | string[]`
+- **类型：** `RegExp | string | string[] | ((entry: string) => boolean)`
 - **默认值：** `/[\\/](?:\.git|node_modules)[\\/]/`
 
 使用 `watchOptions.ignored` 可以从监听范围中排除匹配的文件和目录。忽略不需要监听的目录有助于降低 CPU 和内存占用。
 
-从 Rspack v1.2.0 开始，`.git` 和 `node_modules` 目录会被默认忽略，其中的文件发生变化时不会触发重新构建。
+默认情况下，`.git` 和 `node_modules` 目录会被忽略，其中的文件发生变化时不会触发重新构建。
 
 如果需要监听 `node_modules` 中的文件，可以覆盖默认值，仅忽略 `.git` 目录：
 
@@ -113,6 +111,18 @@ export default {
 ```
 
 `watchOptions.ignored` 的 glob 语法基于 [glob-to-regexp](https://github.com/fitzgen/glob-to-regexp)。有关支持的模式语法，请参阅其文档。
+
+最后，`ignored` 也可以是一个函数，它会被每个条目调用，返回 `true` 表示排除该条目：
+
+```js title="rspack.config.mjs"
+export default {
+  watchOptions: {
+    ignored: (entry) => entry.includes('.git'),
+  },
+};
+```
+
+与其他形式不同，函数拿到的路径保留了当前平台的分隔符，并且需要自行排除被排除目录下的条目。
 
 ### watchOptions.poll
 
@@ -169,3 +179,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.docschina.org/configuration/watch/" />

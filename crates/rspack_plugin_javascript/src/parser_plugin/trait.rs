@@ -1,9 +1,10 @@
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   AssignExpr, AwaitExpr, BinExpr, CallExpr, ClassMember, CondExpr, Expr, ForOfStmt, Ident, IfStmt,
   ImportDecl, MemberExpr, ModuleDecl, NewExpr, OptChainExpr, Program, Span, ThisExpr, UnaryExpr,
   VarDeclarator,
 };
+
+use crate::Atom;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]

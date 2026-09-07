@@ -77,14 +77,14 @@ pub fn get_chunk_group_ordered_children<'a>(
     .collect::<Vec<_>>()
 }
 
-pub fn get_chunk_group_oreded_child_assets<'a>(
+pub fn get_chunk_group_ordered_child_assets<'a>(
   ordered_children: &HashMap<ChunkGroupOrderKey, Vec<ChunkGroupUkey>>,
   order_key: &ChunkGroupOrderKey,
   chunk_group_by_ukey: &ChunkGroupByUkey,
   chunk_by_ukey: &'a ChunkByUkey,
 ) -> Vec<&'a str> {
   ordered_children
-    .get(&ChunkGroupOrderKey::Preload)
+    .get(order_key)
     .unwrap_or_else(|| panic!("should have {order_key} chunk groups"))
     .iter()
     .flat_map(|ukey| {

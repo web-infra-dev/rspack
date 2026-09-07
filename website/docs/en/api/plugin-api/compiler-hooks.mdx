@@ -493,9 +493,12 @@ In the make phase, Rspack builds the module graph starting from the entry and us
 
 ## `afterCompile`
 
-Called after the make phase and before the seal phase.
+Called after the compilation has been finished and sealed, and before Rspack
+decides whether to emit the assets ([`shouldEmit`](#shouldemit)).
 
-In the seal phase, Rspack will create chunk graph from the module graph and then generate the assets.
+At this point the assets have been generated and are available on
+`compilation.assets`, but nothing has been written to the output directory yet,
+so a plugin can still fail the build here without leaving stale files behind.
 
 - **Type:** `AsyncSeriesHook<[Compilation]>`
 - **Arguments:**

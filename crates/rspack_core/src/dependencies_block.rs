@@ -5,8 +5,8 @@ use rspack_collections::{Identifier, IdentifierHasher};
 use rspack_hash::{RspackHash, RspackHasher};
 
 use crate::{
-  BoxDependency, Compilation, DependencyId, DependencyLocation, GroupOptions, ModuleIdentifier,
-  RuntimeSpec,
+  BoxDependency, Compilation, Dependency, DependencyId, DependencyLocation, DependencyRef,
+  GroupOptions, ModuleIdentifier, RuntimeSpec,
 };
 
 pub trait DependenciesBlock {
@@ -72,7 +72,7 @@ impl From<Identifier> for AsyncDependenciesBlockIdentifier {
 }
 
 #[cacheable]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AsyncDependenciesBlock {
   id: AsyncDependenciesBlockIdentifier,
   group_options: Option<GroupOptions>,
@@ -83,7 +83,7 @@ pub struct AsyncDependenciesBlock {
   blocks: Vec<Box<AsyncDependenciesBlock>>,
   block_ids: Vec<AsyncDependenciesBlockIdentifier>,
   dependency_ids: Vec<DependencyId>,
-  dependencies: Vec<BoxDependency>,
+  dependencies: Vec<DependencyRef>,
   loc: Option<DependencyLocation>,
   parent: ModuleIdentifier,
   request: Option<String>,
@@ -132,7 +132,7 @@ impl AsyncDependenciesBlock {
       blocks: Default::default(),
       block_ids: Default::default(),
       dependency_ids,
-      dependencies,
+      dependencies: dependencies.into_iter().map(Into::into).collect(),
       loc,
       parent,
       request,
@@ -151,20 +151,48 @@ impl AsyncDependenciesBlock {
     self.group_options.as_ref()
   }
 
-  pub fn take_dependencies(&mut self) -> Vec<BoxDependency> {
+  pub fn take_dependencies(&mut self) -> Vec<DependencyRef> {
     std::mem::take(&mut self.dependencies)
   }
 
-  pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut BoxDependency> {
-    self.dependencies.get_mut(idx)
+  pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut (dyn Dependency + 'static)> {
+    self.dependencies.get_mut(idx)?.get_mut()
   }
 
-  pub fn dependencies_mut(&mut self) -> &mut [BoxDependency] {
-    &mut self.dependencies
+  pub fn dependencies_mut(&mut self) -> impl Iterator<Item = &mut (dyn Dependency + 'static)> {
+    self.dependencies.iter_mut().map(|dependency| {
+      dependency
+        .get_mut()
+        .expect("dependency must be uniquely owned before block publication")
+    })
   }
 
   pub fn take_blocks(&mut self) -> Vec<Box<AsyncDependenciesBlock>> {
     std::mem::take(&mut self.blocks)
+  }
+
+  #[allow(clippy::vec_box)]
+  pub(crate) fn restore_build_result(
+    &mut self,
+    dependencies: Vec<DependencyRef>,
+    blocks: Vec<Box<AsyncDependenciesBlock>>,
+  ) {
+    debug_assert_eq!(
+      self.dependency_ids,
+      dependencies
+        .iter()
+        .map(|dependency| *dependency.id())
+        .collect::<Vec<_>>()
+    );
+    debug_assert_eq!(
+      self.block_ids,
+      blocks
+        .iter()
+        .map(|block| block.identifier())
+        .collect::<Vec<_>>()
+    );
+    self.dependencies = dependencies;
+    self.blocks = blocks;
   }
 
   pub fn loc(&self) -> Option<DependencyLocation> {

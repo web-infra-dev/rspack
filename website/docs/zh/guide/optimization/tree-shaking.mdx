@@ -2,9 +2,7 @@
 description: 'Rspack 支持 tree shaking 功能，这是一个在 JavaScript 生态中广泛使用的术语，主要用于去除未被访问的代码，俗称“死代码”。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.docschina.org/guides/tree-shaking/" />
+import Attribution from '@components/Attribution';
 
 # Tree shaking
 
@@ -271,3 +269,5 @@ export default {
 ```
 
 Rspack 会校验 `pureFunctions` 中配置的每个名字是否能在命中模块中解析到顶层绑定；如果找不到，就会发出警告。
+
+<Attribution url="https://webpack.docschina.org/guides/tree-shaking/" />

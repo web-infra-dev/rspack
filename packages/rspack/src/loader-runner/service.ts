@@ -109,6 +109,12 @@ function isWorkerRequestMessage(
   return message.type === 'request';
 }
 
+function isWorkerRequestSyncMessage(
+  message: WorkerMessage,
+): message is WorkerRequestSyncMessage {
+  return message.type === 'request-sync';
+}
+
 export function isWorkerResponseErrorMessage(
   message: WorkerMessage,
 ): message is WorkerResponseErrorMessage {
@@ -124,6 +130,8 @@ export enum RequestType {
   GetContextDependencies = 'GetContextDependencies',
   GetMissingDependencies = 'GetMissingDependencies',
   ClearDependencies = 'ClearDependencies',
+  BeginDependencyChanges = 'BeginDependencyChanges',
+  MergeDependencyChanges = 'MergeDependencyChanges',
   Resolve = 'Resolve',
   GetResolve = 'GetResolve',
   GetLogger = 'GetLogger',
@@ -218,8 +226,8 @@ export const run = async (
   ensureLoaderWorkerPool(workerOptions).then(async (pool) => {
     const { MessageChannel } = await import('node:worker_threads');
     const { port1: mainPort, port2: workerPort } = new MessageChannel();
-    // Create message channel for processing sync API requests from worker
-    // threads.
+    // Synchronous requests share the regular request channel to preserve message
+    // ordering. This channel only carries their responses back to workers.
     const { port1: mainSyncPort, port2: workerSyncPort } = new MessageChannel();
     return new Promise<WorkerArgs>((resolve, reject) => {
       const handleError = (error: any) => {
@@ -267,11 +275,13 @@ export const run = async (
                 } satisfies WorkerResponseErrorMessage);
               }),
           );
+        } else if (isWorkerRequestSyncMessage(message)) {
+          void handleSyncRequest(message);
         }
       });
       mainPort.on('messageerror', handleError);
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      mainSyncPort.on('message', async (message: WorkerRequestSyncMessage) => {
+
+      async function handleSyncRequest(message: WorkerRequestSyncMessage) {
         const { sharedBuffer } = message;
         const sharedBufferView = new Int32Array(sharedBuffer);
 
@@ -287,7 +297,13 @@ export const run = async (
               // To handle errors, you should not call `wait()` on send request
               // result;
               result = await Promise.all(
-                ids.map((id) => pendingRequests.get(id)),
+                ids.map((id) => {
+                  const pendingRequest = pendingRequests.get(id);
+                  if (!pendingRequest) {
+                    throw new Error(`Unknown pending request: ${id}`);
+                  }
+                  return pendingRequest;
+                }),
               );
 
               if (!isArray) {
@@ -318,10 +334,10 @@ export const run = async (
         Atomics.add(sharedBufferView, 0, 1);
 
         // Otherwise, if `Atomics.wait` is called before this `Atomics.add` call,
-        // We uses `Atomics.notify` to wake up the worker instead.
+        // we use `Atomics.notify` to wake up the worker instead.
         Atomics.notify(sharedBufferView, 0, Number.POSITIVE_INFINITY);
-      });
-      mainSyncPort.on('messageerror', handleError);
+      }
+
       checkCloneableProps(task, loaderName);
       pool
         .run(

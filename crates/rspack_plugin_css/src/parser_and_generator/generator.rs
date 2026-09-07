@@ -1,6 +1,7 @@
 use std::{borrow::Cow, collections::VecDeque};
 
 use concat_string::concat_string;
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   ChunkGraph, Context, CssBuildInfo, CssExport, CssExportType, CssExports,
   CssModuleRenderCondition, Dependency, DependencyCodeGeneration, DependencyId, DependencyType,
@@ -13,8 +14,8 @@ use rspack_core::{
   to_identifier,
 };
 use rspack_error::Result;
+use rspack_intern::Atom;
 use rspack_util::{
-  atom::Atom,
   fx_hash::{FxIndexMap, FxIndexSet},
   itoa, json_stringify, json_stringify_str,
 };
@@ -325,7 +326,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       return self.css_text_expr(css_source, &[]);
     }
 
-    let mut seen = HashSet::default();
+    let mut seen = IdentifierSet::default();
     let mut builder = self.css_source_builder(false);
     let render_conditions = self
       .css_build_info
@@ -340,7 +341,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     &mut self,
     builder: &mut CssSourceBuilder,
     render_conditions: &[CssModuleRenderCondition],
-    seen: &mut HashSet<rspack_collections::Identifier>,
+    seen: &mut IdentifierSet,
   ) {
     let module = self.module;
     if !seen.insert(module.identifier()) {
@@ -365,7 +366,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   fn render_css_import_sources(
     &mut self,
     builder: &mut CssSourceBuilder,
-    seen: &mut HashSet<rspack_collections::Identifier>,
+    seen: &mut IdentifierSet,
   ) {
     let compilation = self.generate_context.compilation;
     let module_graph = compilation.get_module_graph();

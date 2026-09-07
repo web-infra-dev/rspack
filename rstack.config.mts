@@ -1,4 +1,5 @@
 import { define } from 'rstack';
+import skillsLock from './skills-lock.json' with { type: 'json' };
 
 define.fmt({
   singleQuote: true,
@@ -20,7 +21,11 @@ define.fmt({
     '!crates/**/',
     '!crates/**/*.md',
     '!crates/**/*.toml',
+
+    // Ignore installed Skills because their formatting may differ from this repository.
+    ...Object.keys(skillsLock.skills).map((name) => `.agents/skills/${name}`),
   ],
+  plugins: ['heading-case'],
   overrides: [
     {
       files: '*.toml',
@@ -57,20 +62,6 @@ define.lint(({ js, ts, globals }) => [
   },
   {
     languageOptions: {
-      globals: {
-        ...globals.browser,
-        ...globals.jest,
-        ...globals.node,
-        ...globals.rspack,
-        ...globals.rstest,
-        $: 'readonly',
-        $IMPORT_META_NAME: 'readonly',
-        $PATH: 'readonly',
-        __prefresh_errors__: 'readonly',
-        __prefresh_utils__: 'readonly',
-        fs: 'readonly',
-        path: 'readonly',
-      },
       parserOptions: {
         project: ['./packages/*/tsconfig.json'],
       },
@@ -99,6 +90,29 @@ define.lint(({ js, ts, globals }) => [
       'no-useless-assignment': 'off',
       'prefer-spread': 'off',
       'preserve-caught-error': 'off',
+    },
+  },
+  // Enable no-undef for JS files
+  {
+    files: ['**/*.{js,jsx,mjs,cjs}'],
+    rules: {
+      'no-undef': 'error',
+    },
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.jest,
+        ...globals.node,
+        ...globals.rspack,
+        ...globals.rstest,
+        $: 'readonly',
+        $IMPORT_META_NAME: 'readonly',
+        $PATH: 'readonly',
+        __prefresh_errors__: 'readonly',
+        __prefresh_utils__: 'readonly',
+        fs: 'readonly',
+        path: 'readonly',
+      },
     },
   },
   {

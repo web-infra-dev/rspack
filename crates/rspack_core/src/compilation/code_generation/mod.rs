@@ -312,9 +312,7 @@ where
 
   match generator.await {
     Ok(result) => {
-      if let Err(error) = cache.store(CacheValue::new(result.clone())) {
-        return (Err(error), false);
-      }
+      cache.store(CacheValue::new(result.clone()));
       (Ok(result), false)
     }
     Err(error) => (Err(error), false),

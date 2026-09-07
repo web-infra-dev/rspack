@@ -2,9 +2,7 @@
 description: '配置 Rspack 输出代码的运行环境与 ECMAScript 兼容范围。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/configuration/target/" />
+import Attribution from '@components/Attribution';
 
 # Target
 
@@ -122,8 +120,8 @@ Rspack 会从 target 派生多项默认配置，包括：
 
 - [`builtin:swc-loader`](/guide/features/builtin-swc-loader) 会派生 `env.targets` 或 `jsc.target`
 - [`builtin:lightningcss-loader`](/guide/features/builtin-lightningcss-loader) 会在存在浏览器目标时派生对应的 target
-- [`SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin) 会派生 ECMAScript target
-- [`LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 会在存在浏览器目标时派生对应的 target
+- [`SwcJsMinimizerRspackPlugin`](/plugins/swc-js-minimizer-rspack-plugin) 会派生 ECMAScript target
+- [`LightningCssMinimizerRspackPlugin`](/plugins/lightning-css-minimizer-rspack-plugin) 会在存在浏览器目标时派生对应的 target
 
 只有经过这些工具处理的代码才会应用相应转换。由 Babel 处理的代码遵循 Babel 自身的配置。内置工具也可能将继承的 target 限制在自身支持的版本范围内。
 
@@ -223,3 +221,5 @@ export default {
 - [`externalsPresets`](/config/externals#externalspresets)：控制哪些平台内置模块被视为 external。
 - [`resolve.conditionNames`](/config/resolve#resolveconditionnames)：控制解析 `package.json` 中的 `exports` 字段时使用的条件。
 - 插件作者可以通过 [`compiler.target`](/api/javascript-api/compiler#target) 读取解析后的 target。
+
+<Attribution url="https://webpack.js.org/configuration/target/" />

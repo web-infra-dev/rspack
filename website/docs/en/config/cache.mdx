@@ -27,6 +27,7 @@ type CacheOptions =
       buildDependencies?: string[];
       version?: string;
       maxAge?: number;
+      maxMemoryGenerations?: number;
       maxVersions?: number;
       portable?: boolean;
       readonly?: boolean;
@@ -186,6 +187,25 @@ that compiler's existing cache; multiple versions do not coexist.
 `cache.maxVersions` is retained for backward compatibility but has no effect.
 Rspack keeps only one persistent cache per `compilerPath`. Explicitly
 configuring this option emits a deprecation warning.
+
+### maxMemoryGenerations
+
+- **Type:** `number` (non-negative integer) or `Infinity`
+- **Default:** `5` in development mode, `Infinity` in production and none modes
+
+The number of generations that unused persistent-cache entries stay in the
+additional memory cache. Set it to `0` to disable the memory cache and read
+entries from disk whenever they are needed. Set it to `Infinity` to keep
+entries in memory for the lifetime of the compiler.
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    maxMemoryGenerations: 0,
+  },
+};
+```
 
 ### maxAge
 

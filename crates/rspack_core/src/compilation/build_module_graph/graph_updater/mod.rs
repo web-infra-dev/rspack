@@ -18,7 +18,8 @@ pub enum UpdateParam {
   BuildEntry(FxHashSet<DependencyId>),
   /// Build some entries and clean up the entries that not in this list.
   BuildEntryAndClean(FxHashSet<DependencyId>),
-  /// Build the module which module.need_build is true, i.e. modules where loader.cacheable is false
+  /// Build modules whose incremental rebuild check returns true, for example
+  /// modules where `loader.cacheable` is false.
   CheckNeedBuild,
   /// Build the module and dependency which depend on these modified file.
   ModifiedFiles(InternedPathSet),

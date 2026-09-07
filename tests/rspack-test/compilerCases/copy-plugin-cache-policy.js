@@ -95,7 +95,7 @@ function cacheablePatternsCase() {
 function separateRunsCase() {
 	let root;
 	return {
-		description: "should not reuse cached results across separate run calls",
+		description: "should reuse and invalidate cached results across run calls",
 		options(context) {
 			const project = createProject(context, "run-twice", [
 				{ from: "assets/source", to: "copied" }
@@ -109,8 +109,14 @@ function separateRunsCase() {
 			const initial = await compile(compiler);
 			expect(asset(initial, "copied/one.txt")).toBe("before\n");
 
-			write(root, "assets/source/one.txt", "after\n");
-			const updated = await compile(compiler);
+			const reused = await compile(compiler);
+			expect(asset(reused, "copied/one.txt")).toBe("before\n");
+			expect(reusedPatterns(reused)).toBe(1);
+
+			const source = write(root, "assets/source/one.txt", "after\n");
+			const updated = await compile(compiler, {
+				modifiedFiles: new Set([source])
+			});
 
 			expect(asset(updated, "copied/one.txt")).toBe("after\n");
 			expect(reusedPatterns(updated)).toBe(0);
@@ -121,7 +127,7 @@ function separateRunsCase() {
 function emptyRebuildCase() {
 	let root;
 	return {
-		description: "should not reuse cached results for an empty rebuild",
+		description: "should reuse cached results for an empty rebuild",
 		options(context) {
 			const project = createProject(context, "empty-rebuild", [
 				{ from: "assets/source", to: "copied" }
@@ -135,11 +141,10 @@ function emptyRebuildCase() {
 			const initial = await compile(compiler);
 			expect(asset(initial, "copied/one.txt")).toBe("before\n");
 
-			write(root, "assets/source/one.txt", "after\n");
 			const updated = await rebuild(compiler);
 
-			expect(asset(updated, "copied/one.txt")).toBe("after\n");
-			expect(reusedPatterns(updated)).toBe(0);
+			expect(asset(updated, "copied/one.txt")).toBe("before\n");
+			expect(reusedPatterns(updated)).toBe(1);
 		}
 	};
 }

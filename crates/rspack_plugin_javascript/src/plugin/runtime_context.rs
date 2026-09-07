@@ -790,6 +790,7 @@ impl JsPlugin {
           output_path,
           &hooks,
           runtime_template,
+          None,
         )
         .await?
         else {

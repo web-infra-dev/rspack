@@ -78,12 +78,12 @@ pub(super) enum BuiltinPluginOptions {
   NamedModuleIdsPlugin,
   NaturalModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
-  CompatHashedModuleIdsPlugin,
+  CompactHashedModuleIdsPlugin,
   HashedModuleIdsPlugin,
   NaturalChunkIdsPlugin,
   NamedChunkIdsPlugin,
   DeterministicChunkIdsPlugin,
-  CompatHashedChunkIdsPlugin,
+  CompactHashedChunkIdsPlugin,
   OccurrenceChunkIdsPlugin(rspack_ids::OccurrenceChunkIdsPluginOptions),
 
   // Define and optimization plugins
@@ -317,8 +317,8 @@ impl BuilderContext {
       BuiltinPluginOptions::DeterministicModuleIdsPlugin => {
         plugins.push(rspack_ids::DeterministicModuleIdsPlugin::default().boxed())
       }
-      BuiltinPluginOptions::CompatHashedModuleIdsPlugin => {
-        plugins.push(rspack_ids::CompatHashedModuleIdsPlugin::default().boxed())
+      BuiltinPluginOptions::CompactHashedModuleIdsPlugin => {
+        plugins.push(rspack_ids::CompactHashedModuleIdsPlugin::default().boxed())
       }
       BuiltinPluginOptions::HashedModuleIdsPlugin => plugins.push(
         rspack_ids::HashedModuleIdsPlugin::new(rspack_ids::HashedModuleIdsPluginOptions::default())
@@ -333,8 +333,8 @@ impl BuilderContext {
       BuiltinPluginOptions::DeterministicChunkIdsPlugin => {
         plugins.push(rspack_ids::DeterministicChunkIdsPlugin::default().boxed())
       }
-      BuiltinPluginOptions::CompatHashedChunkIdsPlugin => {
-        plugins.push(rspack_ids::CompatHashedChunkIdsPlugin::default().boxed())
+      BuiltinPluginOptions::CompactHashedChunkIdsPlugin => {
+        plugins.push(rspack_ids::CompactHashedChunkIdsPlugin::default().boxed())
       }
       BuiltinPluginOptions::OccurrenceChunkIdsPlugin(options) => {
         plugins.push(rspack_ids::OccurrenceChunkIdsPlugin::new(options).boxed())

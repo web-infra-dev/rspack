@@ -160,16 +160,16 @@ impl BuildModuleGraphArtifact {
     let resource_id = ResourceId::from(module_identifier);
     self
       .file_dependencies
-      .remove_files(&resource_id, &build_info.file_dependencies);
+      .remove_files(&resource_id, &build_info.dependencies.file);
     self
       .context_dependencies
-      .remove_files(&resource_id, &build_info.context_dependencies);
+      .remove_files(&resource_id, &build_info.dependencies.context);
     self
       .missing_dependencies
-      .remove_files(&resource_id, &build_info.missing_dependencies);
+      .remove_files(&resource_id, &build_info.dependencies.missing);
     self
       .build_dependencies
-      .remove_files(&resource_id, &build_info.build_dependencies);
+      .remove_files(&resource_id, &build_info.dependencies.build);
     self.make_failed_module.remove(module_identifier);
 
     // clean incoming & all_dependencies(outgoing) factorize info
@@ -252,6 +252,7 @@ impl BuildModuleGraphArtifact {
   pub fn reset_temporary_data(&mut self) {
     self.affected_modules.reset();
     self.affected_dependencies.reset();
+    self.issuer_update_modules.clear();
     self.side_effects_state_artifact = Default::default();
 
     self.file_dependencies.reset_incremental_info();

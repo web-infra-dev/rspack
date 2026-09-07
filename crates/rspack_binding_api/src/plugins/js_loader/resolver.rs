@@ -55,6 +55,9 @@ pub fn get_builtin_test_loader(builtin: &str) -> Option<BoxLoader> {
   if builtin.starts_with(rspack_loader_testing::NO_PASS_THROUGH_LOADER_IDENTIFIER) {
     return Some(Arc::new(rspack_loader_testing::NoPassthroughLoader));
   }
+  if builtin.starts_with(rspack_loader_testing::DEPENDENCY_LOADER_IDENTIFIER) {
+    return Some(Arc::new(rspack_loader_testing::DependencyLoader));
+  }
   None
 }
 

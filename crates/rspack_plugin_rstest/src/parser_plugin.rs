@@ -5,6 +5,7 @@ use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, ConstDependency, DependencyRange, ImportAttributes,
   ImportPhase,
 };
+use rspack_intern::Atom;
 use rspack_plugin_javascript::{
   JavascriptParserPlugin,
   dependency::{CommonJsRequireDependency, ImportDependency, RequireHeaderDependency},
@@ -15,7 +16,7 @@ use rspack_plugin_javascript::{
   },
   visitors::{JavascriptParser, Statement, VariableDeclaration, create_traceable_error, expr_name},
 };
-use rspack_util::{SpanExt, atom::Atom, json_stringify_str, swc::get_swc_comments};
+use rspack_util::{SpanExt, json_stringify_str, swc::get_swc_comments};
 use swc_experimental_ecma_ast::{
   CallExpr, Callee, GetSpan, Ident, IdentName, ImportDecl, ImportPhase as AstImportPhase,
   MemberExpr, MetaPropKind, OptChainBase, OptChainExpr, Span, UnaryExpr, VarDeclarator,
@@ -117,10 +118,7 @@ impl RstestParserPlugin {
     let member_expr = callee_expr.as_member()?;
     let require_ident = member_expr.obj.as_ident()?;
 
-    if parser
-      .get_variable_info(&Atom::from(require_ident.sym.as_str()))
-      .is_some()
-    {
+    if parser.get_variable_info(&require_ident.sym).is_some() {
       return None;
     }
 
@@ -686,13 +684,12 @@ impl RstestParserPlugin {
     prop: &IdentName,
     statement_span: Option<Span>,
   ) -> Option<bool> {
-    let ident_name = Atom::from(ident.sym.as_str());
     let test_api_import_source_order = parser
-      .get_tag_data::<i32>(&ident_name, RSTEST_API_IMPORT_TAG)
+      .get_tag_data::<i32>(&ident.sym, RSTEST_API_IMPORT_TAG)
       .copied();
 
     // Check if this is a global variable (free variable) or an ESM import
-    let is_global = !parser.is_variable_defined(&ident_name);
+    let is_global = !parser.is_variable_defined(&ident.sym);
 
     // Skip global variables if globals option is disabled
     if is_global && !self.options.globals {
@@ -930,7 +927,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     let first_arg = self.handle_mock_first_arg(parser, call_expr);
     if first_arg.is_some() {
       let tag_data = parser.get_tag_data::<bool>(
-        &self.compose_rstest_import_call_key(call_expr).into(),
+        &self.compose_rstest_import_call_key(call_expr),
         RSTEST_MOCK_FIRST_ARG_TAG,
       );
 

@@ -1,15 +1,15 @@
-# Code Style Guide
+# Code style guide
 
 Coding standards and conventions for the Rspack project.
 
-## General Principles
+## General principles
 
 - **Consistency**: Follow existing patterns
 - **Clarity**: Write readable code
 - **Maintainability**: Consider future developers
 - **Performance**: Be mindful of hot paths
 
-## Rust Code Style
+## Rust code style
 
 ### Formatting
 
@@ -18,7 +18,7 @@ Coding standards and conventions for the Rspack project.
 - **Line length**: Prefer < 100 chars, up to 120 acceptable
 - **Edition**: Rust 2024
 
-### Naming Conventions
+### Naming conventions
 
 - **Types**: `PascalCase` (e.g., `BannerPlugin`, `Compilation`)
 - **Functions**: `snake_case` (e.g., `process_assets`)
@@ -26,7 +26,7 @@ Coding standards and conventions for the Rspack project.
 - **Constants**: `SCREAMING_SNAKE_CASE` (e.g., `MY_CONSTANT`)
 - **Modules**: `snake_case` (e.g., `rspack_plugin_banner`)
 
-### Code Organization
+### Code organization
 
 **Imports:**
 
@@ -48,7 +48,7 @@ use rspack_error::Result;
 7. Hook implementations
 8. Trait implementations
 
-### Error Handling
+### Error handling
 
 - Use `rspack_error::Result<T>` for fallible operations
 - Use `?` operator for error propagation
@@ -61,13 +61,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 ```
 
-### Async Code
+### Async code
 
 - Prefer `async/await` over manual futures
 - Use `BoxFuture` for trait object methods
 - Avoid `block_on` in async contexts
 
-### Static Initialization
+### Static initialization
 
 - Use `LazyLock` for lazy static initialization
 
@@ -78,7 +78,7 @@ static MY_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 });
 ```
 
-### String Handling
+### String handling
 
 - Use `cow_utils::CowUtils` to avoid unnecessary allocations
 - Prefer `Cow<str>` over `String` when possible
@@ -101,7 +101,7 @@ let result = str.cow_replace("old", "new");
 - Document error conditions
 - Use `#[doc(hidden)]` for internal APIs
 
-## TypeScript/JavaScript Code Style
+## TypeScript/JavaScript Code style
 
 ### TS/JS Formatting
 
@@ -110,7 +110,7 @@ let result = str.cow_replace("old", "new");
 - **Indentation**: Tabs
 - **Semicolons**: Use semicolons
 
-### TS/JS Naming Conventions
+### TS/JS Naming conventions
 
 - **Types/Interfaces**: `PascalCase` (e.g., `RspackOptions`)
 - **Classes**: `PascalCase` (e.g., `Compiler`)
@@ -119,7 +119,7 @@ let result = str.cow_replace("old", "new");
 - **Constants**: `SCREAMING_SNAKE_CASE` or `camelCase`
 - **Files**: `camelCase.ts` or `PascalCase.ts` (match main export)
 
-### TS/JS Code Organization
+### TS/JS Code organization
 
 **File Header** (for webpack-derived code):
 
@@ -145,7 +145,7 @@ import { Compiler } from './Compiler';
 - Prefer `type` for unions/intersections
 - Export types explicitly with `export type`
 
-### TS/JS Error Handling
+### TS/JS Error handling
 
 - Use `throw new Error()` for errors
 - Provide descriptive messages
@@ -157,7 +157,7 @@ if (isNil(options.context)) {
 }
 ```
 
-### TS/JS Async Code
+### TS/JS Async code
 
 - Use `async/await` over promises
 - Handle errors with try/catch
@@ -172,7 +172,7 @@ if (isNil(options.context)) {
 
 ## Testing
 
-### Rust Testing
+### Rust testing
 
 - Do not add inline `#[test]` functions or crate-local unit tests in ordinary changes
 - Add Rust test cases only when they belong in a dedicated test crate
@@ -186,9 +186,9 @@ if (isNil(options.context)) {
 - Use `it` or `test` for cases
 - Clean up after tests
 
-## File Organization
+## File organization
 
-### Rust Crates
+### Rust crates
 
 ```text
 crates/rspack_plugin_xxx/
@@ -198,7 +198,7 @@ crates/rspack_plugin_xxx/
 └── Cargo.toml
 ```
 
-### TypeScript Packages
+### TypeScript packages
 
 ```text
 packages/xxx/
@@ -210,7 +210,7 @@ packages/xxx/
 └── tsconfig.json
 ```
 
-## Performance Considerations
+## Performance considerations
 
 - Avoid unnecessary allocations in hot paths
 - Use `Cow<str>` when possible
@@ -218,7 +218,7 @@ packages/xxx/
 - Use appropriate data structures
 - Profile before optimizing
 
-## Common Patterns to Avoid
+## Common patterns to avoid
 
 ### Rust
 

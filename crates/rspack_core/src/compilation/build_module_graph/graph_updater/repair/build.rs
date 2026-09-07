@@ -1,16 +1,19 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use rspack_fs::ReadableFileSystem;
+use rspack_util::time::current_time;
 use rustc_hash::FxHashSet;
 
 use super::{
   TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CacheFacade,
-  CompilationId, CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate,
-  ResolverFactory, SharedPluginDriver,
-  compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
+  AsyncDependenciesBlock, BoxModule, BuildContext, BuildResult, CacheFacade, CompilationId,
+  CompilerId, CompilerOptions, DependencyParents, DependencyRef, FileSystemInfo,
+  ModuleCodeTemplate, ResolverFactory, SharedPluginDriver,
+  compilation::build_module_graph::{
+    ForwardedIdSet, HasLazyDependencies, LazyDependencies, module_build_cache::ModuleBuildCache,
+  },
   utils::{
     ResourceId,
     task_loop::{Task, TaskResult, TaskType},
@@ -25,10 +28,12 @@ pub struct BuildTask {
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
   pub loader_cache: CacheFacade,
+  pub file_system_info: FileSystemInfo,
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
   pub forwarded_ids: ForwardedIdSet,
+  pub module_build_cache: Option<ModuleBuildCache>,
 }
 
 #[async_trait::async_trait]
@@ -42,13 +47,17 @@ impl Task<TaskContext> for BuildTask {
       compilation_id,
       compiler_options,
       loader_cache,
+      file_system_info,
       resolver_factory,
       plugin_driver,
       runtime_template,
       mut module,
       fs,
       forwarded_ids,
+      module_build_cache,
     } = *self;
+
+    let build_start_time = module_build_cache.as_ref().map(|_| current_time());
 
     plugin_driver
       .compilation_hooks
@@ -63,6 +72,7 @@ impl Task<TaskContext> for BuildTask {
           compilation_id,
           compiler_options: compiler_options.clone(),
           loader_cache,
+          file_system_info: file_system_info.clone(),
           resolver_factory: resolver_factory.clone(),
           plugin_driver: plugin_driver.clone(),
           runtime_template,
@@ -70,20 +80,24 @@ impl Task<TaskContext> for BuildTask {
         },
         None,
       )
-      .await;
+      .await?;
 
-    result.map::<Vec<Box<dyn Task<TaskContext>>>, _>(|build_result| {
-      vec![Box::new(BuildResultTask {
-        build_result: Box::new(build_result),
-        plugin_driver,
-        forwarded_ids,
-      })]
-    })
+    if let (Some(module_build_cache), Some(build_start_time)) =
+      (module_build_cache, build_start_time)
+    {
+      module_build_cache.mark_pending(result.module.identifier(), build_start_time);
+    }
+
+    Ok(vec![Box::new(BuildResultTask {
+      build_result: Box::new(result),
+      plugin_driver,
+      forwarded_ids,
+    })])
   }
 }
 
 #[derive(Debug)]
-struct BuildResultTask {
+pub(super) struct BuildResultTask {
   pub build_result: Box<BuildResult>,
   pub plugin_driver: SharedPluginDriver,
   pub forwarded_ids: ForwardedIdSet,
@@ -127,25 +141,25 @@ impl Task<TaskContext> for BuildResultTask {
     context
       .artifact
       .file_dependencies
-      .add_files(&resource_id, &build_info.file_dependencies);
+      .add_files(&resource_id, &build_info.dependencies.file);
     context
       .artifact
       .context_dependencies
-      .add_files(&resource_id, &build_info.context_dependencies);
+      .add_files(&resource_id, &build_info.dependencies.context);
     context
       .artifact
       .missing_dependencies
-      .add_files(&resource_id, &build_info.missing_dependencies);
+      .add_files(&resource_id, &build_info.dependencies.missing);
     context
       .artifact
       .build_dependencies
-      .add_files(&resource_id, &build_info.build_dependencies);
+      .add_files(&resource_id, &build_info.dependencies.build);
 
     let module_graph = &mut context.artifact.module_graph;
     let mut lazy_dependencies = LazyDependencies::default();
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
-    let mut handle_block = |dependencies: Vec<BoxDependency>,
+    let mut handle_block = |dependencies: Vec<DependencyRef>,
                             blocks: Vec<Box<AsyncDependenciesBlock>>,
                             current_block: Option<Box<AsyncDependenciesBlock>>|
      -> Vec<Box<AsyncDependenciesBlock>> {
@@ -166,7 +180,7 @@ impl Task<TaskContext> for BuildResultTask {
             index_in_block,
           },
         );
-        module_graph.add_dependency(dependency);
+        module_graph.add_dependency_ref(dependency);
       }
       if let Some(current_block) = current_block {
         module.add_block_id(current_block.identifier());

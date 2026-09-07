@@ -4,7 +4,7 @@ use rspack_core::{
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
   ModuleDependency, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 
 use crate::{css_syntax::escape_identifier, utils::replace_css_module_id_placeholder};
 

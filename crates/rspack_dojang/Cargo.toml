@@ -12,6 +12,7 @@ version.workspace       = true
 
 [dependencies]
 html-escape = { workspace = true }
+rustc-hash  = { workspace = true, features = ["std"] }
 serde_json  = { workspace = true }
 
 [lints]

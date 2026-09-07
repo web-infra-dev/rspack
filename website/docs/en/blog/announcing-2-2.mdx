@@ -26,7 +26,7 @@ authors:
     github: 'LingyuCoder'
 ---
 
-import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 import { PackageManagerTabs, Prompt } from '@theme';
 
@@ -47,7 +47,7 @@ Notable changes include:
 - Performance
   - [Performance improvements](#performance-improvements)
   - [Better HMR](#better-hmr)
-  - [Shorter module IDs](#compat-hashed-ids)
+  - [Shorter module IDs](#compact-hashed-ids)
 - New features
   - [`import.meta` improvements](#import-meta-improvements)
   - [Browserslist Baseline support](#browserslist-baseline)
@@ -68,7 +68,7 @@ Notable changes include:
 Rspack 2.2 includes more than 30 performance optimizations, including:
 
 - Sped up module concatenation, chunk splitting, source map generation, and other core processes. In our benchmark, these changes cut production build time by around 5%, from 1822 ms to 1725 ms.
-- Made [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) around 3-4x faster when copying a large number of files.
+- Made [CopyRspackPlugin](/plugins/copy-rspack-plugin) around 3-4x faster when copying a large number of files.
 - Reduced the Wasm build size from 29.5 MB to 28.4 MB, saving around 1.1 MB.
 - Parallelized SWC Wasm plugin compilation to reduce plugin load times. For example, this cut load time for the [coverage-instrument](https://npmx.dev/package/swc-plugin-coverage-instrument) plugin by around 80%.
 - Made built-in CSS parsing around 3x faster:
@@ -92,24 +92,24 @@ With [#14682](https://github.com/web-infra-dev/rspack/pull/14682), Rspack now ch
 
 In addition, [#14580](https://github.com/web-infra-dev/rspack/pull/14580) prevents page flicker caused by styles briefly disappearing during hot updates with `mini-css-extract-plugin`.
 
-### Shorter module IDs \{#compat-hashed-ids}
+### Shorter module IDs \{#compact-hashed-ids}
 
-Rspack can now generate shorter module and chunk IDs. The new `compat-hashed` strategy selects the shortest available prefix from a stable hash. Compared with `deterministic`, it reduces output size while preserving stable IDs and efficient runtime indexing.
+Rspack can now generate shorter module and chunk IDs. The new `compact-hashed` strategy selects the shortest available prefix from a stable hash. Compared with `deterministic`, it reduces output size while preserving stable IDs and efficient runtime indexing.
 
 In a real-world project, the output size changed as follows:
 
-| **Metric**      | **`deterministic`** | **`compat-hashed`** | **Size reduction**  |
-| --------------- | ------------------- | ------------------- | ------------------- |
-| Minified JS     | 25,795.2 KB         | 25,710.6 KB         | **84.6 KB (0.33%)** |
-| Minified + gzip | 7,103.3 KB          | 7,041.7 KB          | **61.6 KB (0.87%)** |
+| **Metric**      | **`deterministic`** | **`compact-hashed`** | **Size reduction**  |
+| --------------- | ------------------- | -------------------- | ------------------- |
+| Minified JS     | 25,795.2 KB         | 25,710.6 KB          | **84.6 KB (0.33%)** |
+| Minified + gzip | 7,103.3 KB          | 7,041.7 KB           | **61.6 KB (0.87%)** |
 
 Enable this strategy with [`optimization.chunkIds`](/config/optimization#optimizationchunkids) and [`optimization.moduleIds`](/config/optimization#optimizationmoduleids):
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
-    chunkIds: 'compat-hashed',
-    moduleIds: 'compat-hashed',
+    chunkIds: 'compact-hashed',
+    moduleIds: 'compact-hashed',
   },
 };
 ```

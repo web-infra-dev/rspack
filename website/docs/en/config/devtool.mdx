@@ -2,9 +2,7 @@
 description: 'Learn how to configure source maps for development and production and what each devtool modifier does.'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/configuration/devtool/" />
+import Attribution from '@components/Attribution';
 
 # Devtool
 
@@ -147,4 +145,6 @@ Rspack validates modifier order. Values must match `[inline-|hidden-|eval-][noso
 
 ## Fine-grained control
 
-For finer-grained control over source map generation, set `devtool` to `false` and use [SourceMapDevToolPlugin](/plugins/webpack/source-map-dev-tool-plugin) instead. For `eval`-based source maps, use [EvalSourceMapDevToolPlugin](/plugins/webpack/eval-source-map-dev-tool-plugin) instead.
+For finer-grained control over source map generation, set `devtool` to `false` and use [SourceMapDevToolPlugin](/plugins/source-map-dev-tool-plugin) instead. For `eval`-based source maps, use [EvalSourceMapDevToolPlugin](/plugins/eval-source-map-dev-tool-plugin) instead.
+
+<Attribution url="https://webpack.js.org/configuration/devtool/" />

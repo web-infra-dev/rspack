@@ -5,17 +5,13 @@ description: 'Use optimization config to custom optimization strategy'
 import { ApiMeta } from '@components/ApiMeta';
 import PropertyType from '../../../components/PropertyType.tsx';
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/configuration/optimization/" />
+import Attribution from '@components/Attribution';
 
 # Optimization
 
 Rspack will select appropriate optimization configuration based on the [`mode`](/config/mode). You can also customize the configuration via [`optimization`](/config/optimization).
 
 ## optimization.avoidEntryIife
-
-<ApiMeta addedVersion="1.2.0" />
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
@@ -38,7 +34,7 @@ The `⁠optimization.avoidEntryIife` option can negatively affect build performa
 ## optimization.chunkIds
 
 <PropertyType
-  type="false | 'natural' | 'named' | 'deterministic' | 'compat-hashed' | 'size' | 'total-size'"
+  type="false | 'natural' | 'named' | 'deterministic' | 'compact-hashed' | 'size' | 'total-size'"
   defaultValueList={[
     { defaultValue: "'named'", mode: 'development' },
     { defaultValue: "'deterministic'", mode: 'production' },
@@ -49,15 +45,15 @@ Tells Rspack which algorithm to use when generating chunk ids.
 
 The following string values are supported:
 
-| option            | description                                                                                                                                    |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `'natural'`       | Use numeric ids in order of usage.                                                                                                             |
-| `'named'`         | Readable ids for better debugging.                                                                                                             |
-| `'deterministic'` | Short numeric ids which will not be changing between compilation. Good for long term caching. By default a minimum length of 3 digits is used. |
-| `'compat-hashed'` | Use the shortest available prefix of a stable lowercase alphanumeric hash.                                                                     |
-| `'size'`          | Use numeric ids to make the initial download package smaller.                                                                                  |
-| `'total-size'`    | Use numeric ids to make the overall download package smaller.                                                                                  |
-| `false`           | Disable Rspack's built-in chunk id algorithm, allowing a custom plugin to provide chunk ids.                                                   |
+| option             | description                                                                                                                                    |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `'natural'`        | Use numeric ids in order of usage.                                                                                                             |
+| `'named'`          | Readable ids for better debugging.                                                                                                             |
+| `'deterministic'`  | Short numeric ids which will not be changing between compilation. Good for long term caching. By default a minimum length of 3 digits is used. |
+| `'compact-hashed'` | Use the shortest available prefix of a stable lowercase alphanumeric hash.                                                                     |
+| `'size'`           | Use numeric ids to make the initial download package smaller.                                                                                  |
+| `'total-size'`     | Use numeric ids to make the overall download package smaller.                                                                                  |
+| `false`            | Disable Rspack's built-in chunk id algorithm, allowing a custom plugin to provide chunk ids.                                                   |
 
 ```js title="rspack.config.mjs"
 export default {
@@ -67,18 +63,22 @@ export default {
 };
 ```
 
-The `compat-hashed` option uses the shortest available prefix of a stable lowercase alphanumeric hash as the chunk id, balancing long-term caching, bundle size, and runtime performance.
+The `compact-hashed` option uses the shortest available prefix of a stable lowercase alphanumeric hash as the chunk id, balancing long-term caching, bundle size, and runtime performance.
+
+:::warning Deprecated alias
+`compat-hashed` was available in Rspack 2.2.0. It is deprecated and was renamed to `compact-hashed` in Rspack 2.2.1. It remains available as a compatibility alias.
+:::
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
-    chunkIds: 'compat-hashed',
+    chunkIds: 'compact-hashed',
   },
 };
 ```
 
 :::tip
-The `compat-hashed` option is available in Rspack 2.2.0 and later.
+The `compact-hashed` option is available in Rspack 2.2.1 and later.
 :::
 
 ## optimization.concatenateModules
@@ -310,7 +310,7 @@ export default {
   ]}
 />
 
-Customize the minimizer. By default, [`rspack.SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin) and [`rspack.LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin) are used.
+Customize the minimizer. By default, [`rspack.SwcJsMinimizerRspackPlugin`](/plugins/swc-js-minimizer-rspack-plugin) and [`rspack.LightningCssMinimizerRspackPlugin`](/plugins/lightning-css-minimizer-rspack-plugin) are used.
 
 When `optimization.minimizer` is specified, the default minimizers will be disabled.
 
@@ -354,7 +354,7 @@ export default {
 ## optimization.moduleIds
 
 <PropertyType
-  type="false | 'natural' | 'named' | 'deterministic' | 'compat-hashed' | 'hashed'"
+  type="false | 'natural' | 'named' | 'deterministic' | 'compact-hashed' | 'hashed'"
   defaultValueList={[
     { defaultValue: "'deterministic'", mode: 'production' },
     { defaultValue: "'named'", mode: 'development' },
@@ -366,16 +366,16 @@ Tells Rspack which algorithm to use when generating module ids.
 
 The following string values are supported:
 
-| option          | description                                                                                                                    |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `natural`       | Use numeric ids in order of usage.                                                                                             |
-| `named`         | Use meaningful, easy-to-debug content as id.                                                                                   |
-| `deterministic` | Use the hashed module identifier as the id to benefit from long-term caching. By default a minimum length of 3 digits is used. |
-| `compat-hashed` | Use the shortest available prefix of a stable alphanumeric hash.                                                               |
-| `hashed`        | Use hashed module identifiers as ids. Equivalent to using `HashedModuleIdsPlugin` with default options (md4, base64, 4 chars). |
-| `false`         | Disable Rspack's built-in module id algorithm, allowing a custom plugin to provide module ids.                                 |
+| option           | description                                                                                                                    |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `natural`        | Use numeric ids in order of usage.                                                                                             |
+| `named`          | Use meaningful, easy-to-debug content as id.                                                                                   |
+| `deterministic`  | Use the hashed module identifier as the id to benefit from long-term caching. By default a minimum length of 3 digits is used. |
+| `compact-hashed` | Use the shortest available prefix of a stable alphanumeric hash.                                                               |
+| `hashed`         | Use hashed module identifiers as ids. Equivalent to using `HashedModuleIdsPlugin` with default options (md4, base64, 4 chars). |
+| `false`          | Disable Rspack's built-in module id algorithm, allowing a custom plugin to provide module ids.                                 |
 
-We recommend using `named` in development and `deterministic` or `compat-hashed` in production.
+We recommend using `named` in development and `deterministic` or `compact-hashed` in production.
 
 Use `process.env.NODE_ENV` to determine the current environment:
 
@@ -389,10 +389,14 @@ export default {
 };
 ```
 
-The `compat-hashed` option uses the shortest available prefix of a stable alphanumeric hash as the module id, balancing long-term caching, bundle size, and runtime performance.
+The `compact-hashed` option uses the shortest available prefix of a stable alphanumeric hash as the module id, balancing long-term caching, bundle size, and runtime performance.
+
+:::warning Deprecated alias
+`compat-hashed` was available in Rspack 2.2.0. It is deprecated and was renamed to `compact-hashed` in Rspack 2.2.1. It remains available as a compatibility alias.
+:::
 
 :::warning
-`compat-hashed` module ids are case-sensitive and may contain uppercase letters. On case-insensitive file systems, avoid using `[id]` as the only distinguishing placeholder in [Asset module filenames](/config/output#outputassetmodulefilename) or [WebAssembly module filenames](/config/output#outputwebassemblymodulefilename). Prefer `[contenthash]`, or include it alongside `[id]`.
+`compact-hashed` module ids are case-sensitive and may contain uppercase letters. On case-insensitive file systems, avoid using `[id]` as the only distinguishing placeholder in [Asset module filenames](/config/output#outputassetmodulefilename) or [WebAssembly module filenames](/config/output#outputwebassemblymodulefilename). Prefer `[contenthash]`, or include it alongside `[id]`.
 :::
 
 ```js title="rspack.config.mjs"
@@ -400,13 +404,13 @@ const isDev = process.env.NODE_ENV === 'development';
 
 export default {
   optimization: {
-    moduleIds: isDev ? 'named' : 'compat-hashed',
+    moduleIds: isDev ? 'named' : 'compact-hashed',
   },
 };
 ```
 
 :::tip
-The `compat-hashed` option is available in Rspack 2.2.0 and later.
+The `compact-hashed` option is available in Rspack 2.2.1 and later.
 :::
 
 ## optimization.nodeEnv
@@ -417,7 +421,7 @@ The `compat-hashed` option is available in Rspack 2.2.0 and later.
   - [`development` mode](/config/mode#development): `'development'`
   - [`none` mode](/config/mode#none): `false`
 
-`optimization.nodeEnv` controls the value used to replace `process.env.NODE_ENV` at compile time. Rspack performs this replacement with [DefinePlugin](/plugins/webpack/define-plugin).
+`optimization.nodeEnv` controls the value used to replace `process.env.NODE_ENV` at compile time. Rspack performs this replacement with [DefinePlugin](/plugins/define-plugin).
 
 You can override the mode-dependent default with either of the following values:
 
@@ -582,7 +586,7 @@ It is enabled by default for dynamically imported modules.
 
 To turn it off, set it to `false`.
 
-See available options for configuring this behavior in the [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin) page.
+See available options for configuring this behavior in the [SplitChunksPlugin](/plugins/split-chunks-plugin) page.
 
 ## optimization.usedExports
 
@@ -615,3 +619,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.js.org/configuration/optimization/" />

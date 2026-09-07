@@ -89,4 +89,4 @@ Below are the main configuration options related to ESM and their descriptions, 
 4. [output.chunkLoading](/config/output#outputchunkloading): When building application ESM output, this is typically set to `'import'`; for `modern-module`, Rspack switches chunk loading to `import` automatically.
 5. [output.workerChunkLoading](/config/output#outputworkerchunkloading): When your application or library also needs ESM worker chunk loading, this is typically set to `'import'`.
 6. [optimization.avoidEntryIife](/config/optimization#optimizationavoidentryiife): In some cases, Rspack wraps ESM output in an IIFE, which breaks ESM's modular characteristics.
-7. [HtmlWebpackPlugin.scriptLoading](/guide/tech/html#htmlwebpackplugin): Set to `'module'` to use ESM `<script type="module">` for loading `.mjs` modules.
+7. [HtmlRspackPlugin.scriptLoading](/plugins/html-rspack-plugin#scriptloading): Set to `'module'` to use ESM `<script type="module">` for loading `.mjs` modules.

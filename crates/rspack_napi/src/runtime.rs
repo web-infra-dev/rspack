@@ -2,6 +2,7 @@ use std::{
   any::Any,
   cell::RefCell,
   future::Future,
+  pin::Pin,
   sync::{
     LazyLock, RwLock,
     atomic::{AtomicUsize, Ordering},
@@ -16,6 +17,8 @@ use napi::{
 static RUNTIME: LazyLock<RwLock<Option<tokio::runtime::Runtime>>> =
   LazyLock::new(|| RwLock::new(None));
 static ACTIVE_ENVS: AtomicUsize = AtomicUsize::new(0);
+
+type BoxedUnitFuture = Pin<Box<dyn Future<Output = ()> + Send + 'static>>;
 
 thread_local! {
   static RUNTIME_CLEANUP_HOOK: RefCell<Option<CleanupEnvHook<()>>> = Default::default();
@@ -53,18 +56,20 @@ where
   let promise = PromiseRaw::new(env.raw(), promise.raw());
   let deferred_for_panic = deferred.clone();
 
-  let handle = spawn_inner(async move {
+  let task: BoxedUnitFuture = Box::pin(async move {
     match future.await {
       Ok(value) => deferred.resolve(|_| Ok(value)),
       Err(error) => deferred.reject(error),
     }
   });
+  let handle = spawn_inner(task);
 
-  spawn_inner(async move {
+  let monitor: BoxedUnitFuture = Box::pin(async move {
     if let Err(error) = handle.await {
       deferred_for_panic.reject(join_error_to_napi_error(error));
     }
   });
+  spawn_inner(monitor);
 
   Ok(promise)
 }

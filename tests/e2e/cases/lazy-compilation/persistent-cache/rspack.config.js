@@ -7,7 +7,7 @@ module.exports = {
     main: ['./src/component.js', './src/index.js'],
   },
   stats: 'none',
-  mode: 'production',
+  mode: 'development',
   plugins: [
     new rspack.HtmlRspackPlugin(),
     {

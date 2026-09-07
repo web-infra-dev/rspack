@@ -28,10 +28,7 @@ const filterPlugin = (plugin: Plugins[0], excludedPlugins: string[] = []) => {
   if (!plugin) {
     return true;
   }
-  const pluginName = plugin.name || plugin.constructor?.name;
-  if (!pluginName) {
-    return true;
-  }
+  const pluginNames = [plugin.name, plugin.constructor?.name];
   return ![
     'TreeShakingSharedPlugin',
     'IndependentSharedPlugin',
@@ -41,7 +38,7 @@ const filterPlugin = (plugin: Plugins[0], excludedPlugins: string[] = []) => {
     'HtmlRspackPlugin',
     'RsbuildHtmlPlugin',
     ...excludedPlugins,
-  ].includes(pluginName);
+  ].some((excludedPluginName) => pluginNames.includes(excludedPluginName));
 };
 
 export interface IndependentSharePluginOptions {

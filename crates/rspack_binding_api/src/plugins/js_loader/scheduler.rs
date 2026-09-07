@@ -85,22 +85,7 @@ pub(crate) fn merge_loader_context(
   mut from: JsLoaderContext,
 ) -> Result<()> {
   to.cacheable = from.cacheable;
-  to.file_dependencies = from.file_dependencies.into_iter().map(Into::into).collect();
-  to.context_dependencies = from
-    .context_dependencies
-    .into_iter()
-    .map(Into::into)
-    .collect();
-  to.missing_dependencies = from
-    .missing_dependencies
-    .into_iter()
-    .map(Into::into)
-    .collect();
-  to.build_dependencies = from
-    .build_dependencies
-    .into_iter()
-    .map(Into::into)
-    .collect();
+  to.replace_dependencies(from.dependencies.into());
 
   if let Some(error) = from.error {
     return Err(error.with_parent_error_name("ModuleBuildError").into());

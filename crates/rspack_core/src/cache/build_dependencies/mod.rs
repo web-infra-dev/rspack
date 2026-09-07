@@ -25,13 +25,13 @@ use crate::{
 /// The toolkit will use ast to analyze the build dependency files and resolve the requests in them,
 /// treat the files associated with the requests as build dependency files,
 /// and continue processing them until all dependency files are calculated.
-pub struct Helper {
+pub struct Helper<L = CompilationLogger> {
   resolver: Resolver,
-  logger: CompilationLogger,
+  logger: L,
 }
 
-impl Helper {
-  pub fn new(fs: Arc<dyn ReadableFileSystem>, logger: CompilationLogger) -> Self {
+impl<L: Logger> Helper<L> {
+  pub fn new(fs: Arc<dyn ReadableFileSystem>, logger: L) -> Self {
     Helper {
       resolver: Resolver::new(
         ResolveOption {

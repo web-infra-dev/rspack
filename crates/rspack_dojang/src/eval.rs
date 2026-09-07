@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use rustc_hash::FxHashMap as HashMap;
 use serde_json::Value;
 
 use crate::expr::*;
@@ -36,7 +35,7 @@ impl Eval {
 
     // Convert function calls into Operand::Function.
     // The corresponding Expr::Function object will be stored at the map.
-    let mut function_name_to_function = HashMap::new();
+    let mut function_name_to_function = HashMap::default();
     Eval::handle_functions(&mut expr, &mut function_name_to_function)?;
 
     // We have to scan from the back.

@@ -20,7 +20,7 @@ authors:
     github: 'chenjiahan'
 ---
 
-import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 # Announcing Rspack 1.1
 
@@ -96,7 +96,7 @@ This is still an experimental feature and we need more work to stabilize it. If 
 
 ### Improved HTML plugin
 
-In earlier versions of Rspack, the built-in [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) was implemented. However, its capabilities were severely lacking. It lacked some configuration options and did not support `hooks`, which made those plugins implemented based on the `hooks` of `HtmlWebpackPlugin` incompatible with Rspack.
+In earlier versions of Rspack, the built-in [HtmlRspackPlugin](/plugins/html-rspack-plugin) was implemented. However, its capabilities were severely lacking. It lacked some configuration options and did not support `hooks`, which made those plugins implemented based on the `hooks` of `HtmlWebpackPlugin` incompatible with Rspack.
 
 Therefore, we refactored `HtmlRspackPlugin`. While supporting most of the configuration options of `HtmlWebpackPlugin`, we also completed the alignment of `hooks`. Now you can get these hooks through `HtmlRspackPlugin.getCompilationHooks` and use them to modify the content of the HTML assets like below:
 
@@ -122,7 +122,7 @@ export default {
 };
 ```
 
-> See [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) for more details.
+> See [HtmlRspackPlugin](/plugins/html-rspack-plugin) for more details.
 
 ### Improved JSDoc
 
