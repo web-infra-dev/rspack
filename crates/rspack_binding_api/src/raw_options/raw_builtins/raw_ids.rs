@@ -1,4 +1,4 @@
-use std::{ptr::NonNull, sync::Arc};
+use std::sync::Arc;
 
 use futures::future::BoxFuture;
 use napi_derive::napi;
@@ -63,11 +63,7 @@ fn into_module_filter(test: RawModuleFilter) -> ModuleFilterFn {
           module: &dyn Module|
           -> BoxFuture<'_, rspack_error::Result<bool>> {
       let test = test.clone();
-      let module = ModuleObject::with_readonly_ptr(
-        NonNull::new(module as *const dyn Module as *mut dyn Module)
-          .expect("module pointer should not be null"),
-        compiler_id,
-      );
+      let module = ModuleObject::with_ref(module, compiler_id);
       Box::pin(async move { Ok(test.call_with_sync(module).await?.unwrap_or(false)) })
     },
   )
