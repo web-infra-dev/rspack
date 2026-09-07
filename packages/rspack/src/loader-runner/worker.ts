@@ -16,6 +16,7 @@ import { memoize } from '../util/memoize';
 import type { WorkerCacheResult } from './cache';
 import loadLoader from './loadLoader';
 import {
+  deserializeError,
   isWorkerResponseErrorMessage,
   isWorkerResponseMessage,
   RequestSyncType,
@@ -634,7 +635,7 @@ function handleIncomingResponses(workerMessage: WorkerMessage) {
     const callback = responseCallbacks[id];
     if (callback) {
       delete responseCallbacks[id];
-      callback(error, undefined);
+      callback(deserializeError(error), undefined);
     } else {
       throw new Error(`No callback found for response with id ${id}`);
     }
@@ -750,7 +751,7 @@ function createSendRequestSync(
       return message.data;
     }
 
-    throw message.error;
+    throw deserializeError(message.error);
   };
 }
 

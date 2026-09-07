@@ -159,10 +159,7 @@ impl JsLoaderCache {
       &loader.loader_name,
       etag.clone(),
     );
-    let Some(entry) = item_cache
-      .get::<LoaderCacheEntry>()
-      .map_err(|error| napi::Error::from_reason(error.to_string()))?
-    else {
+    let Some(entry) = item_cache.get::<LoaderCacheEntry>() else {
       self.set_pending_etag(loader_index, Some(etag))?;
       return Ok(None);
     };

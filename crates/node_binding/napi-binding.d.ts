@@ -877,7 +877,7 @@ export interface JsExecuteModuleResult {
   missingDependencies: Array<string>
   cacheable: boolean
   id: number
-  error?: string
+  errors: Array<RspackError>
 }
 
 export interface JsFactoryMeta {

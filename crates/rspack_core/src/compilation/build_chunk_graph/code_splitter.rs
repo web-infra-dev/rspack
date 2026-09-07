@@ -41,7 +41,7 @@ type BlockConnectionMap = DependenciesBlockIdentifierMap<Arc<BlockModules>>;
 
 static EMPTY_BLOCK_MODULES: LazyLock<Arc<BlockModules>> = LazyLock::new(|| Arc::new(Vec::new()));
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct PreparedBlockConnection {
   block: DependenciesBlockIdentifier,
   module: ModuleIdentifier,
@@ -157,7 +157,7 @@ fn prepare_module_connection_map(
   ))
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct ChunkGroupInfo {
   pub initialized: bool,
   pub ukey: CgiUkey,
@@ -325,7 +325,7 @@ pub(crate) type BlockModulesRuntimeMap = HashMap<Option<Arc<RuntimeSpec>>, Block
 //   }
 // }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub(crate) struct CodeSplitter {
   pub(crate) chunk_group_info_map: HashMap<ChunkGroupUkey, CgiUkey>,
   pub(crate) chunk_group_infos: HashMap<CgiUkey, ChunkGroupInfo>,
@@ -2599,7 +2599,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) enum QueueAction {
   AddAndEnterEntryModule(AddAndEnterEntryModule),
   AddAndEnterModule(AddAndEnterModule),
@@ -2609,28 +2609,28 @@ pub(crate) enum QueueAction {
   LeaveModule(LeaveModule),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct AddAndEnterEntryModule {
   module: ModuleIdentifier,
   chunk_group_info: CgiUkey,
   chunk: ChunkUkey,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct AddAndEnterModule {
   module: ModuleIdentifier,
   chunk_group_info: CgiUkey,
   chunk: ChunkUkey,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct EnterModule {
   module: ModuleIdentifier,
   chunk_group_info: CgiUkey,
   chunk: ChunkUkey,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Hash, PartialEq, Eq)]
 pub(crate) struct ProcessBlock {
   pub(crate) module: ModuleIdentifier,
   pub(crate) block: DependenciesBlockIdentifier,
@@ -2638,7 +2638,7 @@ pub(crate) struct ProcessBlock {
   pub(crate) chunk: ChunkUkey,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct ProcessEntryBlock {
   module: ModuleIdentifier,
   block: AsyncDependenciesBlockIdentifier,
@@ -2684,7 +2684,7 @@ impl From<AsyncDependenciesBlockIdentifier> for DependenciesBlockIdentifier {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct LeaveModule {
   module: ModuleIdentifier,
   chunk_group_info: CgiUkey,

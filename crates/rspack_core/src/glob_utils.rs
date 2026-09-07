@@ -8,7 +8,7 @@ use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct GlobMatchOptions {
   pub case_sensitive: bool,
   pub require_literal_leading_dot: bool,

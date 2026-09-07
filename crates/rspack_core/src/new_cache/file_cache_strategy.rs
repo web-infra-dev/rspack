@@ -3,15 +3,16 @@ use std::{
   sync::{Arc, Mutex, MutexGuard, OnceLock, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rspack_error::Result;
 use rspack_paths::{InternedPathSet, Utf8PathBuf};
 use rspack_util::fx_hash::FxDashMap;
+use tokio::sync::Notify;
 
 use super::{
   CacheKey, Etag, Meta,
   cache_value::{CacheEntry, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
-  db::{Database, DatabaseFamily, NoopDatabase},
+  db::{Database, DatabaseFamily},
   snapshot::FileSystemInfo,
   validator::{CacheValidator, CacheValidatorResult},
 };
@@ -48,7 +49,7 @@ impl PendingWrites {
 }
 
 struct State {
-  database: OnceLock<Box<dyn Database>>,
+  database: Box<dyn Database>,
   pending_writes: PendingWrites,
 }
 
@@ -66,7 +67,9 @@ impl std::fmt::Debug for State {
 pub struct FileCacheStrategy {
   validator: CacheValidator,
   codec: Arc<CacheCodec>,
-  state: RwLock<State>,
+  // Unset: initializing; Some: available; None: unavailable.
+  state: OnceLock<RwLock<Option<State>>>,
+  unavailable: Notify,
   readonly: bool,
   logger: Arc<InfrastructureLogger>,
 }
@@ -89,59 +92,51 @@ impl FileCacheStrategy {
         logger.clone(),
       ),
       codec,
-      state: RwLock::new(State {
-        database: OnceLock::new(),
-        pending_writes: PendingWrites::default(),
-      }),
+      state: OnceLock::new(),
+      unavailable: Notify::new(),
       readonly,
       logger,
     }
   }
 
-  pub async fn db_init(&self, database_paths: (Utf8PathBuf, Utf8PathBuf)) -> Result<()> {
-    self
-      .db_init_impl(database_paths)
-      .await
-      .map(|database| {
-        self
-          .read_state()
-          .database
-          .set(Box::new(database) as Box<dyn Database>)
-          .unwrap_or_else(|_| panic!("database should be set only once"));
-      })
-      .inspect_err(|_| {
-        self
-          .read_state()
-          .database
-          .set(Box::new(NoopDatabase) as Box<dyn Database>)
-          .unwrap_or_else(|_| panic!("database should be set only once"));
-      })
-  }
+  pub async fn db_init(&self, (base_path, path): (Utf8PathBuf, Utf8PathBuf)) {
+    fn set_initialized(strategy: &FileCacheStrategy, database: Box<dyn Database>) {
+      strategy
+        .state
+        .set(RwLock::new(Some(State {
+          database,
+          pending_writes: Default::default(),
+        })))
+        .expect("cache state should be initialized only once");
+    }
 
-  async fn db_init_impl(
-    &self,
-    (base_path, path): (Utf8PathBuf, Utf8PathBuf),
-  ) -> Result<TurboDatabase> {
-    let mut database = {
-      let start = self.logger.time("open cache database");
-      let database = TurboDatabase::open(base_path, path, self.readonly);
-      self.logger.time_end(start);
-      database
-    }?;
+    let start = self.logger.time("open cache database");
+    let mut database = match TurboDatabase::open(base_path, path, self.readonly) {
+      Ok(database) => Box::new(database) as Box<dyn Database>,
+      Err(error) => {
+        self.session_unavailable(Some(&error));
+        return;
+      }
+    };
+    self.logger.time_end(start);
 
     if database.is_empty() {
-      return Ok(database);
+      set_initialized(self, database);
+      return;
     }
 
     let start = self.logger.time("validate cache database");
-    let validation = self.db_validate(&mut database).await;
+    if let Err(e) = self.db_validate(&mut *database).await {
+      self.shutdown_database(database);
+      self.session_unavailable(Some(&e));
+      return;
+    }
     self.logger.time_end(start);
-    validation?;
-
-    Ok(database)
+    // Publish only after validation succeeds, so waiting readers cannot use an invalid DB.
+    set_initialized(self, database);
   }
 
-  async fn db_validate(&self, database: &mut TurboDatabase) -> Result<()> {
+  async fn db_validate(&self, database: &mut dyn Database) -> Result<()> {
     let data = database.get(DatabaseFamily::Validator, &CacheKey::new(VALIDATOR_KEY))?;
     let validation = self.validator.validate(data.as_deref()).await?;
     match validation {
@@ -173,18 +168,70 @@ impl FileCacheStrategy {
     Ok(())
   }
 
-  fn read_state(&self) -> RwLockReadGuard<'_, State> {
+  fn read_state(&self) -> RwLockReadGuard<'_, Option<State>> {
     self
       .state
+      .wait()
       .read()
       .expect("cache state lock should not be poisoned")
   }
 
-  fn write_state(&self) -> RwLockWriteGuard<'_, State> {
+  fn write_state(&self) -> RwLockWriteGuard<'_, Option<State>> {
     self
       .state
+      .wait()
       .write()
       .expect("cache state lock should not be poisoned")
+  }
+
+  pub fn is_available(&self) -> bool {
+    // Uninitialized or initialized and not unavailable.
+    self.state.get().is_none() || self.read_state().is_some()
+  }
+
+  pub async fn wait_until_unavailable(&self) {
+    self.unavailable.notified().await;
+  }
+
+  fn session_unavailable(&self, error: Option<&rspack_error::Error>) {
+    let state = if self.state.get().is_none() {
+      self
+        .state
+        .set(RwLock::new(None))
+        .expect("cache state should be initialized only once");
+      None
+    } else {
+      let state = self.write_state().take();
+      if state.is_none() {
+        return;
+      }
+      state
+    };
+
+    if let Some(error) = error {
+      self.logger.warn(format!(
+        "Filesystem cache unavailable for this session: {error}"
+      ));
+    }
+
+    if let Some(State {
+      database,
+      pending_writes,
+    }) = state
+    {
+      drop(pending_writes);
+      self.shutdown_database(database);
+    }
+    // Notify to exit background job
+    self.unavailable.notify_one();
+  }
+
+  fn shutdown_database(&self, database: Box<dyn Database>) {
+    if let Err(error) = database.shutdown() {
+      self
+        .logger
+        .warn(format!("Failed to shutdown cache database: {error}"));
+    }
   }
 
   pub(super) fn store(
@@ -197,7 +244,11 @@ impl FileCacheStrategy {
     if self.readonly {
       return;
     }
-    self.read_state().pending_writes.entries.insert(
+    let state = self.read_state();
+    let Some(state) = state.as_ref() else {
+      return;
+    };
+    state.pending_writes.entries.insert(
       key,
       PendingWrite {
         entry: CacheEntry::new(etag, value),
@@ -210,8 +261,11 @@ impl FileCacheStrategy {
     if self.readonly {
       return;
     }
-    self
-      .read_state()
+    let state = self.read_state();
+    let Some(state) = state.as_ref() else {
+      return;
+    };
+    state
       .pending_writes
       .new_build_dependencies()
       .get_or_insert_default()
@@ -222,22 +276,28 @@ impl FileCacheStrategy {
     if self.readonly {
       return;
     }
-    *self.read_state().pending_writes.meta() = Some(meta);
+    let state = self.read_state();
+    let Some(state) = state.as_ref() else {
+      return;
+    };
+    *state.pending_writes.meta() = Some(meta);
   }
 
   pub fn restore_meta(&self) -> Result<Option<Meta>> {
-    let state = self.read_state();
+    let state_guard = self.read_state();
+    let Some(state) = state_guard.as_ref() else {
+      return Ok(None);
+    };
     if let Some(pending) = state.pending_writes.meta().as_ref() {
       return Ok(Some(pending.clone()));
     }
-    let Some(entry) = state
+
+    let result = state
       .database
-      .wait()
-      .get(DatabaseFamily::Meta, &CacheKey::new(META_KEY))?
-    else {
-      return Ok(None);
-    };
-    Ok(Some(self.codec.decode(&entry)?))
+      .get(DatabaseFamily::Meta, &CacheKey::new(META_KEY))
+      .and_then(|entry| entry.map(|entry| self.codec.decode(&entry)).transpose());
+    drop(state_guard);
+    result.inspect_err(|error| self.session_unavailable(Some(error)))
   }
 
   pub(super) fn restore(
@@ -245,23 +305,51 @@ impl FileCacheStrategy {
     key: &CacheKey,
     etag: Option<&Etag>,
     decoder: CacheValueDecoder,
-  ) -> Result<Option<ErasedCacheValue>> {
-    let state = self.read_state();
+  ) -> Option<ErasedCacheValue> {
+    let state_guard = self.read_state();
+    let state = state_guard.as_ref()?;
     if let Some(pending) = state.pending_writes.entries.get(key) {
-      return Ok(
-        pending
-          .entry
-          .matches(etag)
-          .then(|| pending.entry.value().clone()),
-      );
+      return pending
+        .entry
+        .matches(etag)
+        .then(|| pending.entry.value().clone());
     }
-    let Some(entry) = state.database.wait().get(DatabaseFamily::Cache, key)? else {
-      return Ok(None);
+
+    let result = state.database.get(DatabaseFamily::Cache, key);
+    let entry = match result {
+      Ok(entry) => entry,
+      Err(e) => {
+        drop(state_guard);
+        self.session_unavailable(Some(&e));
+        return None;
+      }
     };
-    decoder(&entry, etag, &self.codec)
+    let entry = entry?;
+    match decoder(&entry, etag, &self.codec) {
+      Ok(decoded) => decoded,
+      Err(e) => {
+        self
+          .logger
+          .warn(format!("Failed to decode cache entry for key {key}: {e}"));
+        None
+      }
+    }
   }
 
   pub(super) async fn after_all_stored(
+    &self,
+    max_compaction_passes: usize,
+    check_idle_ended: impl FnMut() -> bool,
+  ) {
+    if let Err(e) = self
+      .after_all_stored_impl(max_compaction_passes, check_idle_ended)
+      .await
+    {
+      self.session_unavailable(Some(&e));
+    }
+  }
+
+  async fn after_all_stored_impl(
     &self,
     max_compaction_passes: usize,
     mut check_idle_ended: impl FnMut() -> bool,
@@ -278,19 +366,25 @@ impl FileCacheStrategy {
       let new_build_dependencies;
       let meta;
       {
-        let state = self.write_state();
+        let mut state = self.write_state();
+        let Some(state) = state.as_mut() else {
+          return Ok(());
+        };
 
-        writes = state
-          .pending_writes
-          .entries
-          .par_iter()
-          .map(|pending| {
-            let key = pending.key().clone();
-            let value = (pending.encoder)(&pending.entry, codec)?;
-            Ok((DatabaseFamily::Cache, key, value))
-          })
-          .collect::<Result<Vec<_>>>()?;
-        state.pending_writes.entries.clear();
+        writes = std::mem::take(&mut state.pending_writes.entries)
+          .into_par_iter()
+          .filter_map(
+            |(key, pending)| match (pending.encoder)(&pending.entry, codec) {
+              Ok(value) => Some((DatabaseFamily::Cache, key, value)),
+              Err(error) => {
+                self.logger.warn(format!(
+                  "Failed to encode cache entry for key {key}: {error}"
+                ));
+                None
+              }
+            },
+          )
+          .collect::<Vec<_>>();
 
         new_build_dependencies = state.pending_writes.new_build_dependencies().take();
         meta = state.pending_writes.meta().take();
@@ -312,7 +406,13 @@ impl FileCacheStrategy {
       }
 
       let writes_len = writes.len();
-      self.read_state().database.wait().write_batch(writes)?;
+      if writes_len > 0 {
+        let state = self.read_state();
+        let Some(state) = state.as_ref() else {
+          return Ok(());
+        };
+        state.database.write_batch(writes)?;
+      }
       self.logger.time_end(start);
 
       self
@@ -321,36 +421,43 @@ impl FileCacheStrategy {
     }
 
     let state = self.read_state();
-    let database = state.database.wait();
+    let Some(state) = state.as_ref() else {
+      return Ok(());
+    };
     for _ in 0..max_compaction_passes {
       if check_idle_ended() {
         return Ok(());
       }
-      database.compact()?;
+      if let Err(error) = state.database.compact() {
+        self
+          .logger
+          .warn(format!("Failed to compact cache database: {error}"));
+        if state.database.has_unrecoverable_write_error() {
+          return Err(error);
+        }
+        break;
+      }
     }
     if check_idle_ended() {
       return Ok(());
     }
-    if let Err(error) = database.cleanup_stale() {
+    if let Err(error) = state.database.cleanup_stale() {
       self
         .logger
-        .warn(format!("Cleaning up stale cache databases failed: {error}"));
+        .warn(format!("Failed to clean up stale cache databases: {error}"));
     }
     Ok(())
   }
 
-  pub async fn shutdown(&self) -> Result<()> {
-    let store_result = self.after_all_stored(1, || false).await;
-    let database = self.write_state().database.take();
-    let shutdown_result = if let Some(database) = database {
-      database.shutdown()
-    } else {
-      Ok(())
-    };
-    store_result.and(shutdown_result)
+  pub async fn shutdown(&self) {
+    self.after_all_stored(1, || false).await;
+    self.session_unavailable(None);
   }
 
   pub fn has_pending_writes(&self) -> bool {
-    !self.read_state().pending_writes.is_empty()
+    self
+      .read_state()
+      .as_ref()
+      .is_some_and(|state| !state.pending_writes.is_empty())
   }
 }

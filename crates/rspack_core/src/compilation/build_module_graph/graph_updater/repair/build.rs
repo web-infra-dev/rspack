@@ -8,9 +8,9 @@ use super::{
   TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  AsyncDependenciesBlock, BoxModule, BuildContext, BuildResult, CacheFacade, CompilationId,
-  CompilerId, CompilerOptions, DependencyParents, DependencyRef, FileSystemInfo,
-  ModuleCodeTemplate, ResolverFactory, SharedPluginDriver,
+  AsyncDependenciesBlockBuildResult, AsyncDependenciesBlockRef, BoxModule, BuildContext,
+  BuildResult, CacheFacade, CompilationId, CompilerId, CompilerOptions, DependencyParents,
+  DependencyRef, FileSystemInfo, ModuleCodeTemplate, ResolverFactory, SharedPluginDriver,
   compilation::build_module_graph::{
     ForwardedIdSet, HasLazyDependencies, LazyDependencies, module_build_cache::ModuleBuildCache,
   },
@@ -160,9 +160,9 @@ impl Task<TaskContext> for BuildResultTask {
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
     let mut handle_block = |dependencies: Vec<DependencyRef>,
-                            blocks: Vec<Box<AsyncDependenciesBlock>>,
-                            current_block: Option<Box<AsyncDependenciesBlock>>|
-     -> Vec<Box<AsyncDependenciesBlock>> {
+                            blocks: Vec<AsyncDependenciesBlockBuildResult>,
+                            current_block: Option<AsyncDependenciesBlockRef>|
+     -> Vec<AsyncDependenciesBlockBuildResult> {
       for (index_in_block, dependency) in dependencies.into_iter().enumerate() {
         let dependency_id = *dependency.id();
         if let Some(until) = dependency.lazy() {
@@ -191,9 +191,13 @@ impl Task<TaskContext> for BuildResultTask {
     let blocks = handle_block(build_result.dependencies, build_result.blocks, None);
     queue.extend(blocks);
 
-    while let Some(mut block) = queue.pop_front() {
-      let dependencies = block.take_dependencies();
-      let blocks = handle_block(dependencies, block.take_blocks(), Some(block));
+    while let Some(AsyncDependenciesBlockBuildResult {
+      block,
+      dependencies,
+      blocks,
+    }) = queue.pop_front()
+    {
+      let blocks = handle_block(dependencies, blocks, Some(block));
       queue.extend(blocks);
     }
 

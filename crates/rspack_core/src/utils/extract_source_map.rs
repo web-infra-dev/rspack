@@ -24,7 +24,7 @@ pub struct ExtractSourceMapResult {
 }
 
 /// Source mapping URL information
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct SourceMappingURL {
   pub source_mapping_url: String,
   pub replacement_string: String,

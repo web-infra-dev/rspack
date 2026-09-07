@@ -69,7 +69,7 @@ enum PlaceholderParameters {
   },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct PlaceholderData {
   kind: PlaceholderKind,
   parameters: PlaceholderParameters,
@@ -81,7 +81,7 @@ pub struct StringTemplatePlaceholder {
   parameters: PlaceholderParameters,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum FilenameRenderValue<'value> {
   Value(Cow<'value, str>),
   Rendered(Cow<'value, str>),
@@ -123,7 +123,7 @@ impl StringTemplatePlaceholder {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 enum StringTemplateSegment {
   Plain(Range<u16>),
   Placeholder {

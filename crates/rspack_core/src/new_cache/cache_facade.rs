@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use rspack_error::Result;
-
 use super::{Cache, CacheKey, CacheValue, Etag, cache_value::CacheValueData};
 
 /// A namespaced view of the shared cache.
@@ -41,7 +39,7 @@ impl CacheFacade {
     &self,
     identifier: &str,
     etag: Option<Etag>,
-  ) -> Result<Option<CacheValue<T>>> {
+  ) -> Option<CacheValue<T>> {
     self.cache.get(self.key(identifier), etag)
   }
 
@@ -68,7 +66,7 @@ pub struct ItemCacheFacade {
 }
 
 impl ItemCacheFacade {
-  pub fn get<T: CacheValueData>(&self) -> Result<Option<CacheValue<T>>> {
+  pub fn get<T: CacheValueData>(&self) -> Option<CacheValue<T>> {
     self.cache.get(self.key.clone(), self.etag.clone())
   }
 
@@ -93,13 +91,13 @@ impl MultiItemCache {
     }
   }
 
-  pub fn get<T: CacheValueData>(&self) -> Result<Option<CacheValue<T>>> {
+  pub fn get<T: CacheValueData>(&self) -> Option<CacheValue<T>> {
     for item in &self.items {
-      if let Some(value) = item.get()? {
-        return Ok(Some(value));
+      if let Some(value) = item.get() {
+        return Some(value);
       }
     }
-    Ok(None)
+    None
   }
 
   pub fn store<T: CacheValueData>(&self, value: CacheValue<T>) {

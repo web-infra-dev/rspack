@@ -8,7 +8,6 @@ use json::{
   JsonValue,
   number::Number,
   object::Object,
-  stringify,
 };
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
@@ -46,7 +45,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       .build_info()
       .json_data
       .as_ref()
-      .map_or(0.0, |data| stringify(data.clone()).len() as f64)
+      .map_or(0.0, |data| data.dump().len() as f64)
   }
 
   async fn parse<'a>(
@@ -199,17 +198,17 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               UsageState::Unused
             ) =>
           {
-            create_object_for_exports_info(
+            Cow::Owned(create_object_for_exports_info(
               json_data.clone(),
               exports_info,
               *runtime,
               &compilation.exports_info_artifact,
-            )
+            ))
           }
-          _ => json_data.clone(),
+          _ => Cow::Borrowed(json_data),
         };
         let is_js_object = final_json.is_object() || final_json.is_array();
-        let final_json_string = stringify(final_json);
+        let final_json_string = final_json.dump();
         let json_str = utils::escape_json(&final_json_string);
         let json_expr = if self.json_parse && is_js_object && json_str.len() > 20 {
           Cow::Owned(format!(
