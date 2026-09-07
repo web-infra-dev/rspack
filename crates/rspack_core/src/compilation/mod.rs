@@ -364,7 +364,7 @@ impl Compilation {
     // Incremental make reuses the previous module graph and owns its own
     // invalidation path. Keep that fast path unchanged.
     let module_build_cache = (options.experiments.new_cache.module
-      && !is_rebuild
+      && !(is_rebuild && incremental.passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH))
       && !matches!(&options.cache, CacheOptions::Disabled))
     .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules"), &options));
     let snapshot_options = match &options.cache {

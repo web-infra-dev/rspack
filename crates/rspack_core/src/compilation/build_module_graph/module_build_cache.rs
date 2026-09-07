@@ -7,15 +7,15 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 use crate::{
   AsyncDependenciesBlockBuildResult, AsyncDependenciesBlockIdentifier, BoxModule,
   BuildModuleGraphArtifact, BuildResult, CacheOptions, CompilerOptions, DependenciesBlock,
-  DependencyRef, FileSystemInfo, ModuleGraph, ModuleIdentifier, NormalModuleState,
+  DependencyRef, FileSystemInfo, ModuleGraph, ModuleIdentifier, ModuleState, NeedBuildContext,
   OptimizationBailoutItem, ValueCacheVersions,
-  cache::CacheCodec,
+  cache::{CacheCodec, SnapshotStrategyOptions},
   new_cache::{CacheFacade, CacheValue},
 };
 
-/// Cache for completed normal module builds.
+/// Cache for completed module builds.
 ///
-/// Cache entries store only [`NormalModuleState`] plus the graph-owned build
+/// Cache entries store only [`ModuleState`] plus the graph-owned build
 /// output. Factory-owned module data is always supplied by the fresh module.
 #[derive(Debug, Clone)]
 pub(crate) struct ModuleBuildCache {
@@ -25,9 +25,10 @@ pub(crate) struct ModuleBuildCache {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct ModuleBuildCacheEntry {
-  module_state: NormalModuleState,
+  module_type: String,
+  module_state: Box<dyn ModuleState>,
   graph_result: ModuleGraphBuildResult,
 }
 
@@ -40,16 +41,12 @@ struct ModuleGraphBuildResult {
 }
 
 impl ModuleBuildCacheEntry {
-  pub(crate) fn into_build_result(self, mut module: BoxModule) -> BuildResult {
-    module
-      .as_normal_module_mut()
-      .expect("module cache entries are only restored for normal modules")
-      .restore_module_state(self.module_state);
+  pub(crate) fn to_build_result(&self, module: BoxModule) -> BuildResult {
     BuildResult {
       module,
-      dependencies: self.graph_result.dependencies,
-      blocks: self.graph_result.blocks,
-      optimization_bailouts: self.graph_result.optimization_bailouts,
+      dependencies: self.graph_result.dependencies.clone(),
+      blocks: self.graph_result.blocks.clone(),
+      optimization_bailouts: self.graph_result.optimization_bailouts.clone(),
     }
   }
 }
@@ -78,11 +75,13 @@ impl ModuleBuildCache {
 
   pub(crate) async fn restore(
     &self,
-    module: &BoxModule,
+    module: &mut BoxModule,
     file_system_info: &FileSystemInfo,
     value_cache_versions: &ValueCacheVersions,
-  ) -> Result<Option<ModuleBuildCacheEntry>> {
-    if module.as_normal_module().is_none() {
+  ) -> Result<Option<CacheValue<ModuleBuildCacheEntry>>> {
+    // Factory data can explicitly disallow reuse, for example an extracted CSS
+    // dependency produced by a non-cacheable loader in the current compilation.
+    if !module.build_info().cacheable {
       return Ok(None);
     }
 
@@ -93,15 +92,34 @@ impl ModuleBuildCache {
     else {
       return Ok(None);
     };
-    if result
-      .module_state
-      .need_build_with_context(file_system_info, value_cache_versions)
-      .await?
+    if result.module_type != module.build_cache_type() {
+      return Ok(None);
+    }
+    let Some(fresh_state) = module.restore_build_state(result.module_state.as_ref()) else {
+      return Ok(None);
+    };
+    if !module.build_info().cacheable
+      || module
+        .diagnostics()
+        .iter()
+        .any(|diagnostic| diagnostic.is_error())
+      || value_cache_versions.has_diff(&module.build_info().value_dependencies)
     {
+      module.restore_build_state(fresh_state.as_ref());
+      return Ok(None);
+    }
+    let need_build = module
+      .need_build(&NeedBuildContext::new(
+        file_system_info,
+        value_cache_versions,
+      ))
+      .await?;
+    if need_build {
+      module.restore_build_state(fresh_state.as_ref());
       return Ok(None);
     }
 
-    Ok(Some(result.as_arc().as_ref().clone()))
+    Ok(Some(result))
   }
 
   /// Stores modules built during this phase from the final module graph.
@@ -129,12 +147,27 @@ impl ModuleBuildCache {
           let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
             return Ok(None);
           };
-          let Some(module) = module.as_normal_module() else {
-            return Ok(None);
+          let build_info = module.build_info();
+          let snapshot = if build_info.cacheable
+            && !module
+              .diagnostics()
+              .iter()
+              .any(|diagnostic| diagnostic.is_error())
+          {
+            Some(
+              file_system_info
+                .create_snapshot(
+                  Some(build_start_time),
+                  &build_info.dependencies.file,
+                  &build_info.dependencies.context,
+                  &build_info.dependencies.missing,
+                  SnapshotStrategyOptions::timestamp(),
+                )
+                .await?,
+            )
+          } else {
+            None
           };
-          let snapshot = module
-            .create_cache_snapshot(file_system_info, build_start_time)
-            .await?;
           Ok(Some((module_identifier, snapshot)))
         });
       }
@@ -205,9 +238,9 @@ fn create_cache_entry(
   let source_module = module_graph
     .module_by_identifier(&module_identifier)
     .expect("pending module should exist in the final module graph");
-  let normal_module = source_module
-    .as_normal_module()
-    .expect("only normal modules are marked pending for the module build cache");
+  let Some(module_state) = source_module.capture_build_state() else {
+    return Ok(None);
+  };
   let Some(dependencies) = clone_dependencies(module_graph, source_module.get_dependencies())
   else {
     return Ok(None);
@@ -225,7 +258,8 @@ fn create_cache_entry(
     .clone();
 
   let entry = ModuleBuildCacheEntry {
-    module_state: normal_module.module_state().clone(),
+    module_type: source_module.build_cache_type().to_owned(),
+    module_state,
     graph_result: ModuleGraphBuildResult {
       dependencies,
       blocks,

@@ -45,6 +45,8 @@ mod normal_module;
 mod raw_module;
 pub use raw_module::*;
 pub mod module;
+mod module_state;
+pub use module_state::*;
 pub mod parser_and_generator;
 pub use concatenated_module::*;
 pub use module::*;

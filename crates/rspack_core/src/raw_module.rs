@@ -12,8 +12,8 @@ use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
-  BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResultBuilder,
-  Compilation, ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
+  BoxModule, BuildContext, BuildInfo, BuildResult, CodeGenerationResultBuilder, Compilation,
+  ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType,
   RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
   dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info,
@@ -33,8 +33,7 @@ pub struct RawModule {
   readable_identifier: String,
   runtime_requirements: RuntimeGlobals,
   factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  state: crate::BaseModuleState,
 }
 
 static RAW_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -55,12 +54,14 @@ impl RawModule {
       readable_identifier,
       runtime_requirements,
       factory_meta: None,
-      build_info: BuildInfo {
-        cacheable: true,
-        strict: true,
-        ..Default::default()
+      state: crate::BaseModuleState {
+        build_info: BuildInfo {
+          cacheable: true,
+          strict: true,
+          ..Default::default()
+        },
+        build_meta: Default::default(),
       },
-      build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -94,10 +95,17 @@ impl DependenciesBlock for RawModule {
   }
 }
 
+crate::impl_module_state!(RawModule, crate::BaseModuleState);
+
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for RawModule {
-  impl_module_meta_info!();
+  impl_module_meta_info!(state);
+
+  async fn need_build(&mut self, _context: &crate::NeedBuildContext<'_>) -> Result<bool> {
+    // Called for a previously completed build, as in webpack's needBuild.
+    Ok(false)
+  }
 
   fn module_type(&self) -> &ModuleType {
     &ModuleType::JsAuto

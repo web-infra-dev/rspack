@@ -46,8 +46,7 @@ pub struct RscEntryModule {
   /// When true, client modules are loaded eagerly (not as code-split points).
   is_server_side_rendering: bool,
   factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  state: rspack_core::BaseModuleState,
   layer: Option<ModuleLayer>,
 }
 
@@ -87,12 +86,14 @@ impl RscEntryModule {
       name,
       is_server_side_rendering,
       factory_meta: None,
-      build_info: BuildInfo {
-        strict: true,
-        top_level_declarations: Some(Default::default()),
-        ..Default::default()
+      state: rspack_core::BaseModuleState {
+        build_info: BuildInfo {
+          strict: true,
+          top_level_declarations: Some(Default::default()),
+          ..Default::default()
+        },
+        build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
       },
-      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
       source_map_kind: SourceMapKind::empty(),
       layer,
     }
@@ -213,10 +214,17 @@ impl DependenciesBlock for RscEntryModule {
   }
 }
 
+rspack_core::impl_module_state!(RscEntryModule, rspack_core::BaseModuleState);
+
 #[cacheable_dyn]
 #[async_trait]
 impl Module for RscEntryModule {
-  impl_module_meta_info!();
+  impl_module_meta_info!(state);
+
+  async fn need_build(&mut self, _context: &rspack_core::NeedBuildContext<'_>) -> Result<bool> {
+    // The identifier includes the client references and server-entry grouping.
+    Ok(false)
+  }
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     42.0

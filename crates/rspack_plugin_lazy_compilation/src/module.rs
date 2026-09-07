@@ -47,8 +47,7 @@ fn has_closure_library(output: &OutputOptions) -> bool {
 #[cacheable]
 #[derive(Debug)]
 pub(crate) struct LazyCompilationProxyModule {
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  state: LazyCompilationProxyModuleState,
   factory_meta: Option<FactoryMeta>,
 
   readable_identifier: String,
@@ -70,8 +69,24 @@ pub(crate) struct LazyCompilationProxyModule {
   // slice so each clones the `Arc`, not the whole list.
   #[cacheable(with=AsVec)]
   reserved_externals: Arc<[String]>,
+}
+
+/// Build output and the factory inputs that determine the proxy dependencies.
+/// Cloning isolates the cached build from later proxy activation and rebuilds.
+#[cacheable]
+#[derive(Debug, Default, Clone)]
+pub(crate) struct LazyCompilationProxyModuleState {
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
+  active: bool,
+  client: String,
   need_build: bool,
 }
+
+#[cacheable_dyn]
+impl rspack_core::ModuleState for LazyCompilationProxyModuleState {}
+
+rspack_core::impl_module_state!(LazyCompilationProxyModule, LazyCompilationProxyModuleState);
 
 impl ModuleSourceMapConfig for LazyCompilationProxyModule {
   fn get_source_map_kind(&self) -> &SourceMapKind {
@@ -106,8 +121,7 @@ impl LazyCompilationProxyModule {
     };
 
     Self {
-      build_info: Default::default(),
-      build_meta: Default::default(),
+      state: Default::default(),
       factory_meta: None,
       readable_identifier,
       lib_ident,
@@ -122,12 +136,11 @@ impl LazyCompilationProxyModule {
       active,
       client,
       reserved_externals,
-      need_build: false,
     }
   }
 
   pub fn invalid(&mut self) {
-    self.need_build = true;
+    self.state.need_build = true;
   }
 }
 
@@ -136,7 +149,7 @@ impl_empty_diagnosable_trait!(LazyCompilationProxyModule);
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for LazyCompilationProxyModule {
-  impl_module_meta_info!();
+  impl_module_meta_info!(state);
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     &SOURCE_TYPE
@@ -171,7 +184,7 @@ impl Module for LazyCompilationProxyModule {
   }
 
   fn need_build_for_incremental(&self, value_cache_versions: &ValueCacheVersions) -> bool {
-    if self.need_build {
+    if self.state.need_build {
       return true;
     }
     // check client changes
@@ -186,7 +199,11 @@ impl Module for LazyCompilationProxyModule {
   }
 
   async fn need_build(&mut self, context: &NeedBuildContext<'_>) -> Result<bool> {
-    Ok(self.need_build_for_incremental(context.value_cache_versions))
+    Ok(
+      self.state.active != self.active
+        || self.state.client != self.client
+        || self.need_build_for_incremental(context.value_cache_versions),
+    )
   }
 
   async fn build(
@@ -194,6 +211,9 @@ impl Module for LazyCompilationProxyModule {
     build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
+    self.state.need_build = false;
+    self.state.active = self.active;
+    self.state.client.clone_from(&self.client);
     let client_dep = CommonJsRequireDependency::new(
       self.client.clone(),
       DependencyRange::new(0, 0),

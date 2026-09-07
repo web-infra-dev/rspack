@@ -1,7 +1,9 @@
+use std::hash::Hasher;
+
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildResult,
   CodeGenerationResultBuilder, Compilation, CompilerOptions, DependenciesBlock, DependencyId,
   FactoryMeta, Module, ModuleCodeGenerationContext, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleLayer, RuntimeSpec, SourceType,
@@ -31,14 +33,26 @@ pub(crate) struct CssModule {
   pub(crate) identifier_index: u32,
 
   factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  state: CssModuleState,
 
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
 
   identifier__: Identifier,
 }
+
+/// Build metadata and the content fingerprint used to validate a cached CSS build.
+/// Cloning isolates cached metadata from subsequent compilation mutations.
+#[cacheable]
+#[derive(Debug, Clone)]
+pub(crate) struct CssModuleState {
+  build_info: BuildInfo,
+  build_meta: rspack_core::BuildMeta,
+  input_hash: Option<u64>,
+}
+
+#[cacheable_dyn]
+impl rspack_core::ModuleState for CssModuleState {}
 
 impl CssModule {
   pub fn new(dep: &CssDependency) -> Self {
@@ -67,16 +81,29 @@ impl CssModule {
       blocks: vec![],
       dependencies: vec![],
       factory_meta: None,
-      build_info: BuildInfo {
-        cacheable: dep.cacheable,
-        strict: true,
-        dependencies: dep.dependencies.clone(),
-        ..Default::default()
+      state: CssModuleState {
+        build_info: BuildInfo {
+          cacheable: dep.cacheable,
+          strict: true,
+          dependencies: dep.dependencies.clone(),
+          ..Default::default()
+        },
+        build_meta: Default::default(),
+        input_hash: None,
       },
-      build_meta: Default::default(),
       source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
       identifier__,
     }
+  }
+
+  fn input_hash(&self) -> u64 {
+    let mut hasher = rustc_hash::FxHasher::default();
+    std::hash::Hash::hash(&self.content, &mut hasher);
+    std::hash::Hash::hash(&self.css_layer, &mut hasher);
+    std::hash::Hash::hash(&self.supports, &mut hasher);
+    std::hash::Hash::hash(&self.media, &mut hasher);
+    std::hash::Hash::hash(&self.source_map, &mut hasher);
+    hasher.finish()
   }
 
   fn compute_hash(&self, options: &CompilerOptions) -> RspackHashDigest {
@@ -94,10 +121,36 @@ impl CssModule {
   }
 }
 
+impl rspack_core::HasModuleState for CssModule {
+  type State = CssModuleState;
+
+  fn module_state(&self) -> &Self::State {
+    &self.state
+  }
+
+  fn restore_module_state(&mut self, mut state: Self::State) -> Self::State {
+    // The loader supplies current dependency tracking through the factory,
+    // including when its CSS output is unchanged.
+    state
+      .build_info
+      .dependencies
+      .clone_from(&self.state.build_info.dependencies);
+    if !state.build_info.cacheable {
+      state.input_hash = None;
+    }
+    state.build_info.cacheable = self.state.build_info.cacheable;
+    std::mem::replace(&mut self.state, state)
+  }
+}
+
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for CssModule {
-  impl_module_meta_info!();
+  impl_module_meta_info!(state);
+
+  async fn need_build(&mut self, _context: &rspack_core::NeedBuildContext<'_>) -> Result<bool> {
+    Ok(self.state.input_hash != Some(self.input_hash()))
+  }
 
   fn readable_identifier(&self, context: &rspack_core::Context) -> std::borrow::Cow<'_, str> {
     let index_suffix = if self.identifier_index > 0 {
@@ -166,7 +219,8 @@ impl Module for CssModule {
     build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    self.build_info.hash = Some(self.compute_hash(&build_context.compiler_options));
+    self.state.build_info.hash = Some(self.compute_hash(&build_context.compiler_options));
+    self.state.input_hash = Some(self.input_hash());
     Ok(BuildResult {
       module: BoxModule::new(self),
       dependencies: vec![],
@@ -190,7 +244,7 @@ impl Module for CssModule {
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHasher::from(&compilation.options.output);
     module_update_hash(self, &mut hasher, compilation, runtime);
-    self.build_info.hash.hash(&mut hasher);
+    self.state.build_info.hash.hash(&mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 

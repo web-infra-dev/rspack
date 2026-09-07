@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildResult,
+  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId,
   EntryDependency, FactoryMeta, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
   ModuleType, NeedBuildContext, RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions,
   impl_module_meta_info, impl_source_map_config, module_update_hash,
@@ -25,9 +25,7 @@ pub struct DllModule {
 
   factory_meta: Option<FactoryMeta>,
 
-  build_info: BuildInfo,
-
-  build_meta: BuildMeta,
+  state: rspack_core::BaseModuleState,
 
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
 
@@ -56,10 +54,12 @@ impl DllModule {
   }
 }
 
+rspack_core::impl_module_state!(DllModule, rspack_core::BaseModuleState);
+
 #[cacheable_dyn]
 #[async_trait]
 impl Module for DllModule {
-  impl_module_meta_info!();
+  impl_module_meta_info!(state);
 
   fn module_type(&self) -> &ModuleType {
     &ModuleType::JsDynamic

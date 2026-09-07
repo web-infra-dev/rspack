@@ -38,8 +38,7 @@ pub struct ContainerEntryModule {
   exposes: Vec<(String, ExposeOptions)>,
   share_scope: ShareScope,
   factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  state: rspack_core::BaseModuleState,
   enhanced: bool,
   request: Option<String>,
   version: Option<String>,
@@ -69,12 +68,14 @@ impl ContainerEntryModule {
       exposes,
       share_scope,
       factory_meta: None,
-      build_info: BuildInfo {
-        strict: true,
-        top_level_declarations: Some(Default::default()),
-        ..Default::default()
+      state: rspack_core::BaseModuleState {
+        build_info: BuildInfo {
+          strict: true,
+          top_level_declarations: Some(Default::default()),
+          ..Default::default()
+        },
+        build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
       },
-      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
       enhanced,
       request: None,
       version: None,
@@ -100,12 +101,14 @@ impl ContainerEntryModule {
       exposes: vec![],
       share_scope: ShareScope::Multiple(vec![]),
       factory_meta: None,
-      build_info: BuildInfo {
-        strict: true,
-        top_level_declarations: Some(Default::default()),
-        ..Default::default()
+      state: rspack_core::BaseModuleState {
+        build_info: BuildInfo {
+          strict: true,
+          top_level_declarations: Some(Default::default()),
+          ..Default::default()
+        },
+        build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
       },
-      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
       enhanced: false,
       request: Some(request),
       version: Some(version),
@@ -152,10 +155,17 @@ impl DependenciesBlock for ContainerEntryModule {
   }
 }
 
+rspack_core::impl_module_state!(ContainerEntryModule, rspack_core::BaseModuleState);
+
 #[cacheable_dyn]
 #[async_trait]
 impl Module for ContainerEntryModule {
-  impl_module_meta_info!();
+  impl_module_meta_info!(state);
+
+  async fn need_build(&mut self, _context: &rspack_core::NeedBuildContext<'_>) -> Result<bool> {
+    // Called for a previously completed build, as in webpack's needBuild.
+    Ok(false)
+  }
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     42.0

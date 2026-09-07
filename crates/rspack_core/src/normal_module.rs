@@ -36,13 +36,11 @@ use crate::{
   OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult, ParserAndGenerator,
   ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext,
   RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SnapshotValidationResult, SourceType,
-  ValueCacheVersions,
-  cache::SnapshotStrategyOptions,
-  contextify,
+  ValueCacheVersions, contextify,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
-  new_cache::{FileSystemInfo, Snapshot},
+  new_cache::FileSystemInfo,
   utils::{SourceSizeCache, SourceSizeCacheSerde},
 };
 
@@ -102,10 +100,11 @@ pub struct NormalModuleHooks {
 /// This mirrors webpack's serialized module state: cache entries retain build
 /// output, while factory-owned values such as loaders, parser/generator
 /// instances, and their options always come from the fresh module created for
-/// the current compilation.
+/// the current compilation. Cloning gives the cache an independent copy of
+/// mutable build output while shared sources and dependencies retain their handles.
 #[cacheable]
 #[derive(Debug, Clone)]
-pub(crate) struct NormalModuleState {
+pub struct NormalModuleState {
   #[cacheable(with=AsOption<AsPreset>)]
   source: Option<BoxSource>,
   diagnostics: Vec<Diagnostic>,
@@ -318,15 +317,6 @@ impl NormalModule {
     self.parser_and_generator_options.generator_options()
   }
 
-  pub(crate) fn module_state(&self) -> &NormalModuleState {
-    &self.state
-  }
-
-  pub(crate) fn restore_module_state(&mut self, state: NormalModuleState) {
-    self.state = state;
-    self.cached_source_sizes = SourceSizeCache::default();
-  }
-
   pub(crate) async fn need_build_with_context(
     &self,
     file_system_info: &FileSystemInfo,
@@ -335,17 +325,6 @@ impl NormalModule {
     self
       .state
       .need_build_with_context(file_system_info, value_cache_versions)
-      .await
-  }
-
-  pub(crate) async fn create_cache_snapshot(
-    &self,
-    file_system_info: &FileSystemInfo,
-    build_start_time: u64,
-  ) -> Result<Option<Snapshot>> {
-    self
-      .state
-      .create_cache_snapshot(file_system_info, build_start_time)
       .await
   }
 }
@@ -385,33 +364,21 @@ impl NormalModuleState {
       SnapshotValidationResult::Invalid { .. }
     ))
   }
+}
 
-  async fn create_cache_snapshot(
-    &self,
-    file_system_info: &FileSystemInfo,
-    build_start_time: u64,
-  ) -> Result<Option<Snapshot>> {
-    if !self.build_info.cacheable
-      || self
-        .diagnostics
-        .iter()
-        .any(|diagnostic| diagnostic.is_error())
-    {
-      return Ok(None);
-    }
+#[cacheable_dyn]
+impl crate::ModuleState for NormalModuleState {}
 
-    Ok(Some(
-      file_system_info
-        .create_snapshot(
-          Some(build_start_time),
-          &self.build_info.dependencies.file,
-          &self.build_info.dependencies.context,
-          &self.build_info.dependencies.missing,
-          // Rspack does not expose webpack's `snapshot.module` strategy yet.
-          SnapshotStrategyOptions::timestamp(),
-        )
-        .await?,
-    ))
+impl crate::HasModuleState for NormalModule {
+  type State = NormalModuleState;
+
+  fn module_state(&self) -> &Self::State {
+    &self.state
+  }
+
+  fn restore_module_state(&mut self, state: Self::State) -> Self::State {
+    self.cached_source_sizes = SourceSizeCache::default();
+    std::mem::replace(&mut self.state, state)
   }
 }
 
@@ -476,6 +443,8 @@ impl Module for NormalModule {
       f64::max(1.0, self.parser_and_generator.size(self, source_type))
     }
   }
+
+  crate::impl_module_state_access!();
 
   async fn need_build(&mut self, context: &NeedBuildContext<'_>) -> Result<bool> {
     self

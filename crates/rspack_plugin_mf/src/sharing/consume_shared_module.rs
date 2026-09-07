@@ -5,11 +5,10 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, CodeGenerationResultBuilder, Compilation, Context,
-  DependenciesBlock, DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
-  RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
-  rspack_sources::BoxSource, runtime_mode::RuntimeMode,
+  BuildResult, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId,
+  ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
+  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
+  impl_source_map_config, module_update_hash, rspack_sources::BoxSource, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
@@ -34,8 +33,7 @@ pub struct ConsumeSharedModule {
   context: Context,
   options: ConsumeOptions,
   factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  state: rspack_core::BaseModuleState,
 }
 
 impl ConsumeSharedModule {
@@ -93,8 +91,10 @@ impl ConsumeSharedModule {
       context,
       options,
       factory_meta: None,
-      build_info: Default::default(),
-      build_meta: Default::default(),
+      state: rspack_core::BaseModuleState {
+        build_info: Default::default(),
+        build_meta: Default::default(),
+      },
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -128,10 +128,17 @@ impl DependenciesBlock for ConsumeSharedModule {
   }
 }
 
+rspack_core::impl_module_state!(ConsumeSharedModule, rspack_core::BaseModuleState);
+
 #[cacheable_dyn]
 #[async_trait]
 impl Module for ConsumeSharedModule {
-  impl_module_meta_info!();
+  impl_module_meta_info!(state);
+
+  async fn need_build(&mut self, _context: &rspack_core::NeedBuildContext<'_>) -> Result<bool> {
+    // Called for a previously completed build, as in webpack's needBuild.
+    Ok(false)
+  }
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     42.0

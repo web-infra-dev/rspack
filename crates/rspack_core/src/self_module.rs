@@ -10,10 +10,10 @@ use rspack_sources::BoxSource;
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  ChunkUkey, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier,
-  ModuleType, RuntimeSpec, SourceType, impl_module_meta_info,
+  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildResult, ChunkUkey,
+  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId, FactoryMeta,
+  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType,
+  RuntimeSpec, SourceType, impl_module_meta_info,
 };
 
 #[impl_source_map_config]
@@ -25,8 +25,7 @@ pub struct SelfModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
   factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  state: crate::BaseModuleState,
 }
 
 impl SelfModule {
@@ -38,11 +37,13 @@ impl SelfModule {
       blocks: Default::default(),
       dependencies: Default::default(),
       factory_meta: None,
-      build_info: BuildInfo {
-        strict: true,
-        ..Default::default()
+      state: crate::BaseModuleState {
+        build_info: BuildInfo {
+          strict: true,
+          ..Default::default()
+        },
+        build_meta: Default::default(),
       },
-      build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -76,10 +77,12 @@ impl DependenciesBlock for SelfModule {
   }
 }
 
+crate::impl_module_state!(SelfModule, crate::BaseModuleState);
+
 #[cacheable_dyn]
 #[async_trait]
 impl Module for SelfModule {
-  impl_module_meta_info!();
+  impl_module_meta_info!(state);
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     self.identifier.len() as f64

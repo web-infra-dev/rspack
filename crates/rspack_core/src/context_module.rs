@@ -274,8 +274,7 @@ pub struct ContextModule {
   identifier: Identifier,
   options: ContextModuleOptions,
   factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  state: crate::BaseModuleState,
   #[debug(skip)]
   #[cacheable(with=Unsupported)]
   resolve_dependencies: ResolveContextModuleDependencies,
@@ -298,10 +297,12 @@ impl ContextModule {
       identifier: create_identifier(&options, None),
       options,
       factory_meta: None,
-      build_info,
-      build_meta: BuildMeta::default()
-        .with_exports_type(BuildMetaExportsType::Default)
-        .with_default_object(BuildMetaDefaultObject::RedirectWarn),
+      state: crate::BaseModuleState {
+        build_info,
+        build_meta: BuildMeta::default()
+          .with_exports_type(BuildMetaExportsType::Default)
+          .with_default_object(BuildMetaDefaultObject::RedirectWarn),
+      },
       source_map_kind: SourceMapKind::empty(),
       resolve_dependencies,
     }
@@ -1324,10 +1325,25 @@ impl DependenciesBlock for ContextModule {
   }
 }
 
+crate::impl_module_state!(ContextModule, crate::BaseModuleState);
+
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for ContextModule {
-  impl_module_meta_info!();
+  impl_module_meta_info!(state);
+
+  async fn need_build(&mut self, context: &crate::NeedBuildContext<'_>) -> Result<bool> {
+    let Some(snapshot) = &self.state.build_info.snapshot else {
+      return Ok(!self.options.resource.as_str().is_empty());
+    };
+    Ok(matches!(
+      context
+        .file_system_info
+        .check_snapshot_valid(snapshot)
+        .await?,
+      crate::SnapshotValidationResult::Invalid { .. }
+    ))
+  }
 
   fn module_type(&self) -> &ModuleType {
     &ModuleType::JsAuto
@@ -1519,7 +1535,7 @@ impl Module for ContextModule {
     if !self.options.resource.as_str().is_empty() {
       let mut context_dependencies: InternedPathSet = Default::default();
       context_dependencies.insert(self.options.resource.as_std_path().into());
-      self.build_info.dependencies.context = context_dependencies;
+      self.state.build_info.dependencies.context = context_dependencies;
     }
 
     Ok(BuildResult {

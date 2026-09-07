@@ -853,6 +853,26 @@ pub trait Module:
     ConnectionState::Active(true)
   }
 
+  /// Stable concrete type discriminator for module build cache entries.
+  fn build_cache_type(&self) -> &'static str {
+    std::any::type_name::<Self>()
+  }
+
+  /// Captures build output only. Factory data and graph-owned dependencies are
+  /// supplied separately when restoring a module in a later compilation.
+  fn capture_build_state(&self) -> Option<Box<dyn crate::ModuleState>> {
+    None
+  }
+
+  /// Restores a matching state without replacing factory-owned module data,
+  /// returning the displaced state so a failed validation can be rolled back.
+  fn restore_build_state(
+    &mut self,
+    _state: &dyn crate::ModuleState,
+  ) -> Option<Box<dyn crate::ModuleState>> {
+    None
+  }
+
   /// Determines whether a module needs to be rebuilt using the complete build
   /// context.
   ///
@@ -1110,6 +1130,33 @@ impl dyn Module {
 
 #[macro_export]
 macro_rules! impl_module_meta_info {
+  (state) => {
+    $crate::impl_module_state_access!();
+
+    fn factory_meta(&self) -> Option<&$crate::FactoryMeta> {
+      self.factory_meta.as_ref()
+    }
+
+    fn set_factory_meta(&mut self, v: $crate::FactoryMeta) {
+      self.factory_meta = Some(v);
+    }
+
+    fn build_info(&self) -> &$crate::BuildInfo {
+      &self.state.build_info
+    }
+
+    fn build_info_mut(&mut self) -> &mut $crate::BuildInfo {
+      &mut self.state.build_info
+    }
+
+    fn build_meta(&self) -> &$crate::BuildMeta {
+      &self.state.build_meta
+    }
+
+    fn build_meta_mut(&mut self) -> &mut $crate::BuildMeta {
+      &mut self.state.build_meta
+    }
+  };
   () => {
     fn factory_meta(&self) -> Option<&$crate::FactoryMeta> {
       self.factory_meta.as_ref()

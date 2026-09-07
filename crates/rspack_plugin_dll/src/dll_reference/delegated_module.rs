@@ -4,10 +4,10 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
-  ModuleDependency, ModuleGraph, ModuleId, ModuleType, NeedBuildContext, RuntimeSpec, SourceType,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildResult,
+  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId, FactoryMeta,
+  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleDependency,
+  ModuleGraph, ModuleId, ModuleType, NeedBuildContext, RuntimeSpec, SourceType,
   StaticExportsDependency, StaticExportsSpec, ValueCacheVersions, impl_module_meta_info,
   impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource},
@@ -34,8 +34,7 @@ pub struct DelegatedModule {
   dependencies: Vec<DependencyId>,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  state: rspack_core::BaseModuleState,
 }
 
 impl DelegatedModule {
@@ -58,10 +57,12 @@ impl DelegatedModule {
   }
 }
 
+rspack_core::impl_module_state!(DelegatedModule, rspack_core::BaseModuleState);
+
 #[cacheable_dyn]
 #[async_trait]
 impl Module for DelegatedModule {
-  impl_module_meta_info!();
+  impl_module_meta_info!(state);
 
   fn module_type(&self) -> &ModuleType {
     &ModuleType::JsDynamic
@@ -109,7 +110,7 @@ impl Module for DelegatedModule {
         false,
       )),
     ];
-    self.build_meta = self.delegate_data.build_meta.clone();
+    self.state.build_meta = self.delegate_data.build_meta.clone();
     Ok(BuildResult {
       module: BoxModule::new(self),
       dependencies: dependencies.into_iter().map(Into::into).collect(),

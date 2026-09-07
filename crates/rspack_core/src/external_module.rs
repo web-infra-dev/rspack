@@ -11,16 +11,15 @@ use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
-  CodeGenerationDataChunkInitFragments, CodeGenerationDataUrl, CodeGenerationResultBuilder,
-  Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRef,
-  ExportProvided, ExternalType, FactoryMeta, ImportAttributes, ImportPhase, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
-  NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
-  extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
+  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMetaExportsType,
+  BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationDataChunkInitFragments,
+  CodeGenerationDataUrl, CodeGenerationResultBuilder, Compilation, ConcatenationScope, Context,
+  DependenciesBlock, DependencyId, DependencyRef, ExportProvided, ExternalType, FactoryMeta,
+  ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate,
+  ModuleGraph, ModuleType, NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals,
+  RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports,
+  UsedNameItem, extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -457,8 +456,7 @@ pub struct ExternalModule {
   /// Request intended by user (without loaders from config)
   user_request: String,
   factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  state: crate::BaseModuleState,
   dependency_meta: DependencyMeta,
   place_in_initial: bool,
 }
@@ -516,12 +514,14 @@ impl ExternalModule {
       external_type,
       user_request,
       factory_meta: None,
-      build_info: BuildInfo {
-        top_level_declarations: Some(Default::default()),
-        strict: true,
-        ..Default::default()
+      state: crate::BaseModuleState {
+        build_info: BuildInfo {
+          top_level_declarations: Some(Default::default()),
+          strict: true,
+          ..Default::default()
+        },
+        build_meta: Default::default(),
       },
-      build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
       dependency_meta,
       place_in_initial,
@@ -1083,10 +1083,17 @@ impl DependenciesBlock for ExternalModule {
   }
 }
 
+crate::impl_module_state!(ExternalModule, crate::BaseModuleState);
+
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for ExternalModule {
-  impl_module_meta_info!();
+  impl_module_meta_info!(state);
+
+  async fn need_build(&mut self, _context: &crate::NeedBuildContext<'_>) -> Result<bool> {
+    // Called for a previously completed build, as in webpack's needBuild.
+    Ok(false)
+  }
 
   fn get_concatenation_bailout_reason(
     &self,
@@ -1160,7 +1167,7 @@ impl Module for ExternalModule {
     build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    self.build_info.module = build_context.compiler_options.output.module;
+    self.state.build_info.module = build_context.compiler_options.output.module;
     let resolved_external_type = self.resolve_external_type();
     let request = match &self.request {
       ExternalRequest::Single(request) => Some(request),
@@ -1171,7 +1178,7 @@ impl Module for ExternalModule {
 
     #[allow(clippy::collapsible_match)]
     match resolved_external_type {
-      "this" => self.build_info.strict = false,
+      "this" => self.state.build_info.strict = false,
       "system" => {
         if !request.is_some_and(|r| r.has_rest()) {
           exports_type = BuildMetaExportsType::Namespace;
@@ -1179,22 +1186,22 @@ impl Module for ExternalModule {
         }
       }
       "module" => {
-        if self.build_info.module {
+        if self.state.build_info.module {
           if !request.is_some_and(|r| r.has_rest()) {
             exports_type = BuildMetaExportsType::Namespace;
             can_mangle = true;
           }
         } else {
-          self.build_meta.set_has_top_level_await(true);
+          self.state.build_meta.set_has_top_level_await(true);
           if !request.is_some_and(|r| r.has_rest()) {
             exports_type = BuildMetaExportsType::Namespace;
             can_mangle = false;
           }
         }
       }
-      "script" | "promise" => self.build_meta.set_has_top_level_await(true),
+      "script" | "promise" => self.state.build_meta.set_has_top_level_await(true),
       "import" => {
-        self.build_meta.set_has_top_level_await(true);
+        self.state.build_meta.set_has_top_level_await(true);
         if !request.is_some_and(|r| r.has_rest()) {
           exports_type = BuildMetaExportsType::Namespace;
           can_mangle = false;
@@ -1202,7 +1209,7 @@ impl Module for ExternalModule {
       }
       _ => {}
     }
-    self.build_meta.set_exports_type(exports_type);
+    self.state.build_meta.set_exports_type(exports_type);
     Ok(BuildResult {
       module: BoxModule::new(self),
       dependencies: vec![DependencyRef::new(StaticExportsDependency::new(
