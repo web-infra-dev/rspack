@@ -34,7 +34,7 @@ const COMPACT_CONFIG: CompactConfig = CompactConfig {
 };
 
 #[derive(Clone, Copy, Default)]
-pub struct RayonParallelScheduler;
+struct RayonParallelScheduler;
 
 impl ParallelScheduler for RayonParallelScheduler {
   fn block_in_place<R>(&self, f: impl FnOnce() -> R + Send) -> R
@@ -241,6 +241,10 @@ impl Database for TurboDatabase {
     Ok(())
   }
 
+  fn has_unrecoverable_write_error(&self) -> bool {
+    self.inner.has_unrecoverable_write_error()
+  }
+
   fn reset(&mut self) -> Result<()> {
     let old_database = std::mem::replace(
       &mut self.inner,
@@ -266,7 +270,7 @@ impl Database for TurboDatabase {
     }
   }
 
-  fn shutdown(&self) -> Result<()> {
+  fn shutdown(self: Box<Self>) -> Result<()> {
     self.inner.clear_cache();
     self.inner.shutdown()?;
     Ok(())

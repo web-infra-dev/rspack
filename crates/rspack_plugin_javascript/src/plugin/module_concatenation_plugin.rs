@@ -1529,7 +1529,7 @@ impl ModuleConcatenationPlugin {
         set_mid_tasks.push((*connection, new_module_id));
       }
       let mut all_outgoings = outgoings;
-      all_outgoings.extend(root_outgoings.clone());
+      all_outgoings.extend(root_outgoings.iter().copied());
       add_connection_tasks.push((new_module_id, all_outgoings, root_incomings.clone()));
       remove_connection_tasks.push((root_module_id, root_outgoings, root_incomings));
     }

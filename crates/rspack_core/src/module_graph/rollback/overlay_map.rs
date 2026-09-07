@@ -31,7 +31,7 @@ where
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum OverlayIter<'a, K, V, S = FxBuildHasher> {
   Base(HashMapIter<'a, K, V>),
   Combined {

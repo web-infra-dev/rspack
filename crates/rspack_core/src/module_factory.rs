@@ -8,7 +8,7 @@ use crate::{
   ModuleLayer, Resolve, ResolverFactory,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ModuleFactoryCreateData {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,

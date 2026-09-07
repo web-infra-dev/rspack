@@ -78,7 +78,7 @@ impl ModuleBuildCache {
     let identifier = module.identifier();
     let Some(result) = self
       .cache
-      .get::<ModuleBuildCacheEntry>(identifier.as_str(), None)?
+      .get::<ModuleBuildCacheEntry>(identifier.as_str(), None)
     else {
       return Ok(None);
     };

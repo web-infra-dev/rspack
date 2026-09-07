@@ -216,19 +216,16 @@ module.exports = [
 				}
 			);
 		},
-		async check() {
-			const findDatabaseWarning = () =>
-				nativeInfrastructureLogs.find(
-					log =>
-						log.name === "rspack.cache.IdleFileCache" &&
-						log.type === "warn" &&
-						log.args[0].includes("Failed to open database")
-				);
-			for (let i = 0; i < 50; i++) {
-				if (findDatabaseWarning()) break;
-				await new Promise(resolve => setTimeout(resolve, 20));
-			}
-			const warning = findDatabaseWarning();
+		async check({ context }) {
+			// Closing flushes all pending native infrastructure logs.
+			await context.closeCompiler();
+			const warning = nativeInfrastructureLogs.find(
+				log =>
+					log.name === "rspack.cache.IdleFileCache" &&
+					log.type === "warn" &&
+					log.args[0].includes("Filesystem cache unavailable for this session") &&
+					log.args[0].includes("Open cache database from")
+			);
 			expect(warning).toBeTruthy();
 		}
 	}

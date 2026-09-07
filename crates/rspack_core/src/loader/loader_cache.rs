@@ -229,7 +229,7 @@ pub(crate) async fn before_normal_loader(
     etag.clone(),
   );
 
-  if let Some(entry) = item_cache.get::<LoaderCacheEntry>()?
+  if let Some(entry) = item_cache.get::<LoaderCacheEntry>()
     && loader_cache_dependency_snapshot_is_valid(
       &context.context.file_system_info,
       &entry.dependency_snapshot,

@@ -46,7 +46,6 @@ pub struct BeforeResolveData {
   pub pattern: ContextModulePattern,
 }
 
-#[derive(Clone)]
 pub enum AfterResolveResult {
   Ignored,
   Data(Box<AfterResolveData>),
