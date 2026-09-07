@@ -39,68 +39,35 @@ jobs:
         with:
           clean: ${{ runner.environment == 'github-hosted' }}
 
-      - name: Env, fs type, reflink support, dirty pages
+      - name: Env and start wchan sampler
         run: |
           set +e +o pipefail
           echo "runner=$RUNNER_NAME"; nproc; uptime; grep -E 'Dirty|Writeback:' /proc/meminfo; cat /proc/pressure/io
-          echo "== filesystems"; grep -E 'xfs|ext4|btrfs|overlay' /proc/filesystems | tr '\n' ' '; echo; ls /proc/fs; head -2 /proc/fs/xfs/stat 2>&1
-          echo "== reflink test on RUNNER_TEMP"; echo x > "$RUNNER_TEMP/rl.src"; cp --reflink=always "$RUNNER_TEMP/rl.src" "$RUNNER_TEMP/rl.dst" && echo "reflink: SUPPORTED" || echo "reflink: not supported"; rm -f "$RUNNER_TEMP/rl.src" "$RUNNER_TEMP/rl.dst"
-          echo "== python"; command -v python3; python3 -c 'import os; print("copy_file_range" in dir(os))'
-
-      - name: copy_file_range vs read/write vs sendfile on fresh (dirty) source, then after sync
-        run: |
-          set +e +o pipefail
-          D="$RUNNER_TEMP/cfr"; mkdir -p "$D/src" "$D/dst"
-          python3 - "$D" <<'PY'
-          import os, sys, time
-          D = sys.argv[1]; N = 100; SZ = 1 << 20
-          def dirty(): return next(int(l.split()[1]) // 1024 for l in open('/proc/meminfo') if l.startswith('Dirty:'))
-          def mk():
-              for i in range(N):
-                  with open(f"{D}/src/f{i}", "wb") as f: f.write(os.urandom(SZ))
-          def cfr(tag):
-              t = time.time()
-              for i in range(N):
-                  with open(f"{D}/src/f{i}", "rb") as a, open(f"{D}/dst/{tag}-cfr{i}", "wb") as b:
-                      n = SZ
-                      while n > 0:
-                          r = os.copy_file_range(a.fileno(), b.fileno(), n)
-                          if r == 0: break
-                          n -= r
-              return (time.time() - t) * 1000
-          def rw(tag):
-              t = time.time()
-              for i in range(N):
-                  with open(f"{D}/src/f{i}", "rb") as a, open(f"{D}/dst/{tag}-rw{i}", "wb") as b:
-                      while True:
-                          buf = a.read(1 << 17)
-                          if not buf: break
-                          b.write(buf)
-              return (time.time() - t) * 1000
-          def sf(tag):
-              t = time.time()
-              for i in range(N):
-                  with open(f"{D}/src/f{i}", "rb") as a, open(f"{D}/dst/{tag}-sf{i}", "wb") as b:
-                      off = 0
-                      while off < SZ:
-                          r = os.sendfile(b.fileno(), a.fileno(), off, SZ - off)
-                          if r == 0: break
-                          off += r
-              return (time.time() - t) * 1000
-          mk(); print(f"host dirty after writing 100MB src: {dirty()}MB")
-          print(f"DIRTY src : read/write {rw('d'):.0f}ms | sendfile {sf('d'):.0f}ms | copy_file_range {cfr('d'):.0f}ms   (dirty now {dirty()}MB)")
-          t = time.time(); os.sync(); print(f"sync() took {(time.time()-t)*1000:.0f}ms, dirty now {dirty()}MB")
-          print(f"CLEAN src : read/write {rw('s'):.0f}ms | sendfile {sf('s'):.0f}ms | copy_file_range {cfr('s'):.0f}ms")
-          mk(); print(f"re-dirtied src, dirty {dirty()}MB")
-          print(f"DIRTY src2: copy_file_range FIRST {cfr('e'):.0f}ms | then read/write {rw('e'):.0f}ms")
-          PY
-          rm -rf "$D"; cat /proc/pressure/io
+          nohup bash -c '
+            while true; do
+              for p in $(pgrep -f "setup-node/[^ ]*/dist/setup/index.js"); do
+                for t in /proc/$p/task/*; do
+                  st=$(awk "{print \$3}" "$t/stat" 2>/dev/null); w=$(cat "$t/wchan" 2>/dev/null)
+                  echo "$(date +%s%3N) $p ${t##*/} $st $w"
+                done
+              done
+              sleep 0.05
+            done' > "$RUNNER_TEMP/wchan.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/sampler.pid"; echo "sampler pid $(cat "$RUNNER_TEMP/sampler.pid")"
 
       - name: Real pnpm setup (timed by setup-node log lines)
         uses: ./.github/actions/pnpm/setup
         with:
           node-version: 24
 
-      - name: After setup-node
+      - name: Stop sampler and summarize kernel wait channels
         run: |
-          grep -E 'Dirty|Writeback:' /proc/meminfo; uptime
+          set +e +o pipefail
+          kill "$(cat "$RUNNER_TEMP/sampler.pid")" 2>/dev/null; sleep 0.2
+          grep -E 'Dirty|Writeback:' /proc/meminfo; uptime; cat /proc/pressure/io
+          L="$RUNNER_TEMP/wchan.log"; echo "samples: $(wc -l < "$L") lines, $(awk '{print $1}' "$L" | sort -u | wc -l) ticks, span $(( $(tail -1 "$L" | awk '{print $1}') - $(head -1 "$L" | awk '{print $1}') ))ms"
+          echo "== (state wchan) histogram, all threads"; awk '{print $4, $5}' "$L" | sort | uniq -c | sort -rn | head -25
+          echo "== ticks with at least one thread in D state: $(awk '$4=="D"{print $1}' "$L" | sort -u | wc -l)"
+          echo "== D-state wchan histogram"; awk '$4=="D"{print $5}' "$L" | sort | uniq -c | sort -rn | head -15
+          echo "== R-state wchan histogram"; awk '$4=="R"{print $5}' "$L" | sort | uniq -c | sort -rn | head -10
+          echo "== per-second D count timeline"; awk '$4=="D"{print int($1/1000)}' "$L" | sort | uniq -c | awk '{printf "%s:%s ", $2%100000, $1}'; echo
