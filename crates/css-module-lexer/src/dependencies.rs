@@ -1707,12 +1707,15 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     keep_comments: bool,
     has_mode: bool,
   ) {
+    let mut square_depth = self.selector_square_depth;
     let invalidates_composes = stream.fast_forward_selector_if_buffer_empty(
-      &mut self.selector_square_depth,
+      &mut square_depth,
       keep_comments,
       has_mode,
+      |ident| self.contains_icss_symbol(ident),
       is_css_modules_pure_magic_comment,
     );
+    self.selector_square_depth = square_depth;
     if invalidates_composes
       && self.block_nesting_level == 0
       && let Some(mode_data) = &mut self.mode_data
@@ -3656,9 +3659,35 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     end: Pos,
     flags: TokenFlags,
   ) -> Option<()> {
+    let ident = stream.slice_trusted(start, end);
+    // ICSS references can also occur in selectors and at-rule preludes,
+    // where the scope is not necessarily a declaration block.
+    if matches!(self.scope, Scope::TopLevel | Scope::InBlock)
+      && matches!(
+        self.scan_context,
+        ScanContext::Selector
+          | ScanContext::GenericValue
+          | ScanContext::SpecialValue(_)
+          | ScanContext::AtRule
+      )
+      && (self.scan_context != ScanContext::Selector || self.selector_square_depth == 0)
+      && self.contains_icss_symbol(ident)
+    {
+      self
+        .dependency_context
+        .push_dependency(Dependency::ICSSSymbol {
+          name: ident,
+          range: Range::new(start, end),
+        });
+      if matches!(self.scope, Scope::TopLevel)
+        && let Some(mode_data) = &mut self.mode_data
+      {
+        mode_data.composes_local_classes.invalidate();
+      }
+      return Some(());
+    }
     match self.scope {
       Scope::InBlock => {
-        let ident = stream.slice_trusted(start, end);
         let is_declaration_name = self.scan_context == ScanContext::DeclarationName;
         if is_declaration_name {
           let property_local_mode = self
@@ -3672,19 +3701,6 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
           if self.property_kind != PropertyKind::Composes {
             return Some(());
           }
-        }
-        let can_reference_icss = matches!(
-          self.scan_context,
-          ScanContext::GenericValue | ScanContext::SpecialValue(_) | ScanContext::AtRule
-        );
-        if can_reference_icss && !self.icss_symbols.is_empty() && self.contains_icss_symbol(ident) {
-          self
-            .dependency_context
-            .push_dependency(Dependency::ICSSSymbol {
-              name: ident,
-              range: Range::new(start, end),
-            });
-          return Some(());
         }
         let Some(mode_data) = &mut self.mode_data else {
           return Some(());
