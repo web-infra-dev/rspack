@@ -11,6 +11,7 @@ on:
   push:
     branches:
       - main
+      - release/2.3.0
       - v1.x
     # Ignore md files in push to skip workflow when only documentation changes
     paths-ignore:
@@ -27,7 +28,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'v1.x' }}
+  cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'release/2.3.0' && github.ref_name != 'v1.x' }}
 
 permissions:
   # Allow commenting on issues for `reusable-build.yml`
