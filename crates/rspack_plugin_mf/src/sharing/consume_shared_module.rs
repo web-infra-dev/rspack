@@ -141,7 +141,6 @@ impl ConsumeSharedModule {
   }
 }
 
-
 impl Identifiable for ConsumeSharedModule {
   fn identifier(&self) -> Identifier {
     self.identifier
