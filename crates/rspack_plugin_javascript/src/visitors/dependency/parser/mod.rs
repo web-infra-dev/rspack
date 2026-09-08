@@ -115,7 +115,11 @@ pub(crate) fn member_property_to_atom(ast: &Ast<'_>, expr: Expr) -> Option<Atom>
 /// `obj["key"]` are exposed directly as `StringLiteral`, without an outer
 /// `PropertyKeyData::Expr` variant.
 pub(crate) fn member_property_key_to_atom(ast: &Ast<'_>, key: PropertyKey) -> Option<Atom> {
-  match ast.property_key_data(key) {
+  member_property_key_data_to_atom(ast, ast.property_key_data(key))
+}
+
+fn member_property_key_data_to_atom(ast: &Ast<'_>, key: PropertyKeyData) -> Option<Atom> {
+  match key {
     PropertyKeyData::StringLiteral(node) => Some(atom_from_wtf8(ast.get_wtf8(node.value(ast)))),
     PropertyKeyData::NumericLiteral(node) => Some(Atom::from(
       rspack_util::ryu_js::Buffer::new().format(node.value(ast)),
@@ -125,6 +129,27 @@ pub(crate) fn member_property_key_to_atom(ast: &Ast<'_>, key: PropertyKey) -> Op
     )),
     PropertyKeyData::Expr(expr) => member_property_to_atom(ast, expr),
     PropertyKeyData::IdentifierName(_) | PropertyKeyData::PrivateIdentifier(_) => None,
+  }
+}
+
+fn member_property_key_data_can_be_atom(ast: &Ast<'_>, key: PropertyKeyData) -> bool {
+  match key {
+    PropertyKeyData::StringLiteral(_)
+    | PropertyKeyData::NumericLiteral(_)
+    | PropertyKeyData::BigIntLiteral(_) => true,
+    PropertyKeyData::Expr(expr) => match ast.expr_data(expr) {
+      ExprData::StringLiteral(_)
+      | ExprData::BooleanLiteral(_)
+      | ExprData::NullLiteral(_)
+      | ExprData::NumericLiteral(_)
+      | ExprData::BigIntLiteral(_)
+      | ExprData::RegExpLiteral(_) => true,
+      ExprData::TemplateLiteral(template) => {
+        template.expressions(ast).is_empty() && template.quasis(ast).len() == 1
+      }
+      _ => false,
+    },
+    PropertyKeyData::IdentifierName(_) | PropertyKeyData::PrivateIdentifier(_) => false,
   }
 }
 
@@ -161,6 +186,26 @@ where
 pub type AtomMembers = SmallVec<[Atom; 2]>;
 pub type OptionalMembers = SmallVec<[bool; 2]>;
 pub type MemberRanges = SmallVec<[Span; 2]>;
+type RawAtomMembers = SmallVec<[PropertyKeyData; 2]>;
+
+struct RawExtractedMemberExpressionChainData {
+  object: ExprRef,
+  members: RawAtomMembers,
+  members_optionals: OptionalMembers,
+  member_ranges: MemberRanges,
+}
+
+fn materialize_member_atoms(ast: &Ast<'_>, members: RawAtomMembers) -> AtomMembers {
+  let mut atoms = AtomMembers::with_capacity(members.len());
+  for property in members {
+    atoms.push(match property {
+      PropertyKeyData::IdentifierName(identifier) => Atom::from(ast.get_utf8(identifier.name(ast))),
+      property => member_property_key_data_to_atom(ast, property)
+        .expect("validated computed member property should convert to an atom"),
+    });
+  }
+  atoms
+}
 
 #[derive(Debug)]
 pub struct ExtractedMemberExpressionChainData {
@@ -1141,7 +1186,7 @@ impl<'parser> JavascriptParser<'parser> {
   fn _get_member_expression_info(
     &mut self,
     object: ExprRef,
-    mut members: AtomMembers,
+    members: RawAtomMembers,
     mut members_optionals: OptionalMembers,
     mut member_ranges: MemberRanges,
     allowed_types: AllowedMemberTypes,
@@ -1153,17 +1198,19 @@ impl<'parser> JavascriptParser<'parser> {
           return None;
         }
         let callee = expr.callee(ast);
-        let (root_name, mut root_members) = if let Some(member) = callee.as_member_expression(ast) {
-          let extracted = self.extract_member_expression_chain(ExprRef::Member(member));
+        let (root_name, root_members) = if let Some(member) = callee.as_member_expression(ast) {
+          let extracted = self.extract_member_expression_chain_raw(ExprRef::Member(member));
           let root_name = extracted.object.get_root_name(ast)?;
           (root_name, extracted.members)
         } else {
-          (callee.get_root_name(ast)?, AtomMembers::new())
+          (callee.get_root_name(ast)?, RawAtomMembers::new())
         };
         let NameInfo {
           info: root_info, ..
         } = self.get_name_info_from_variable(&root_name)?;
 
+        let mut root_members = materialize_member_atoms(ast, root_members);
+        let mut members = materialize_member_atoms(ast, members);
         root_members.reverse();
         members.reverse();
         members_optionals.reverse();
@@ -1192,6 +1239,7 @@ impl<'parser> JavascriptParser<'parser> {
           info: root_info,
         } = self.get_name_info_from_variable(&root_name)?;
 
+        let mut members = materialize_member_atoms(ast, members);
         let name = object_and_members_to_name(resolved_root, &members);
         members.reverse();
         members_optionals.reverse();
@@ -1224,7 +1272,7 @@ impl<'parser> JavascriptParser<'parser> {
       }
       _ => self._get_member_expression_info(
         expr_ref,
-        AtomMembers::new(),
+        RawAtomMembers::new(),
         OptionalMembers::new(),
         MemberRanges::new(),
         allowed_types,
@@ -1237,12 +1285,12 @@ impl<'parser> JavascriptParser<'parser> {
     expr: ExprRef,
     allowed_types: AllowedMemberTypes,
   ) -> Option<MemberExpressionInfo> {
-    let ExtractedMemberExpressionChainData {
+    let RawExtractedMemberExpressionChainData {
       object,
       members,
       members_optionals,
       member_ranges,
-    } = self.extract_member_expression_chain(expr);
+    } = self.extract_member_expression_chain_raw(expr);
     self._get_member_expression_info(
       object,
       members,
@@ -1256,9 +1304,27 @@ impl<'parser> JavascriptParser<'parser> {
     &self,
     expr: ExprRef,
   ) -> ExtractedMemberExpressionChainData {
+    let RawExtractedMemberExpressionChainData {
+      object,
+      members,
+      members_optionals,
+      member_ranges,
+    } = self.extract_member_expression_chain_raw(expr);
+    ExtractedMemberExpressionChainData {
+      object,
+      members: materialize_member_atoms(self.ast.ast, members),
+      members_optionals,
+      member_ranges,
+    }
+  }
+
+  fn extract_member_expression_chain_raw(
+    &self,
+    expr: ExprRef,
+  ) -> RawExtractedMemberExpressionChainData {
     let ast = self.ast.ast;
     let mut object = expr;
-    let mut members = AtomMembers::new();
+    let mut members = RawAtomMembers::new();
     let mut members_optionals = OptionalMembers::new();
     let mut member_ranges = MemberRanges::new();
     let mut in_optional_chain = self.member_expr_in_optional_chain;
@@ -1266,22 +1332,21 @@ impl<'parser> JavascriptParser<'parser> {
       match object {
         ExprRef::Member(expr) => {
           let property = expr.property(ast);
+          let property_data = ast.property_key_data(property);
+          let member_object = expr.object(ast);
           if expr.computed(ast) {
-            let Some(value) = member_property_key_to_atom(ast, property) else {
+            if !member_property_key_data_can_be_atom(ast, property_data) {
               break;
-            };
-            // Since members are not used across rspack javascript parser plugin,
-            // we directly makes it atom here
-            members.push(value);
-            member_ranges.push(expr.object(ast).span(ast));
-          } else if let PropertyKeyData::IdentifierName(ident) = ast.property_key_data(property) {
-            members.push(Atom::from(ast.get_utf8(ident.name(ast))));
-            member_ranges.push(expr.object(ast).span(ast));
+            }
+            members.push(property_data);
+          } else if matches!(property_data, PropertyKeyData::IdentifierName(_)) {
+            members.push(property_data);
           } else {
             break;
           }
+          member_ranges.push(member_object.span(ast));
           members_optionals.push(in_optional_chain || expr.optional(ast));
-          object = ExprRef::from_expr(ast, expr.object(ast));
+          object = ExprRef::from_expr(ast, member_object);
           in_optional_chain = false;
         }
         ExprRef::OptChain(expr) => {
@@ -1296,7 +1361,7 @@ impl<'parser> JavascriptParser<'parser> {
         _ => break,
       }
     }
-    ExtractedMemberExpressionChainData {
+    RawExtractedMemberExpressionChainData {
       object,
       members,
       members_optionals,
@@ -1308,7 +1373,8 @@ impl<'parser> JavascriptParser<'parser> {
   where
     F: FnOnce(&mut Self, BindingIdentifier),
   {
-    let name = Atom::from(self.ast.ast.get_utf8(ident.name(self.ast.ast)));
+    let ast = self.ast.ast;
+    let name = ast.get_utf8(ident.name(ast));
     let drive = self.plugin_drive.clone();
     if !name
       .call_hooks_name(self, |parser, for_name| {
