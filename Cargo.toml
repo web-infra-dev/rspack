@@ -100,7 +100,7 @@ sftrace-setup       = { version = "0.1.2", default-features = false }
 sha2                = { version = "0.10.9", default-features = false }
 signal-hook         = { version = "0.3.18", default-features = false, features = ["iterator"] }
 simd-json           = { version = "0.17.3", default-features = false, features = ["runtime-detection", "serde_impl"] }
-simd-utf16-len      = { version = "0.1.0", default-features = false }
+simd-utf16-len      = { git = "https://github.com/SyMind/simd-utf16-len.git", rev = "2f230d9c7c55bf3e103259bf58895de2040b297c", default-features = false }
 simdutf8            = { version = "0.1.5", default-features = false }
 similar-asserts     = { version = "1.5.0", default-features = false }
 slotmap             = { version = "1.1.1", default-features = false }
