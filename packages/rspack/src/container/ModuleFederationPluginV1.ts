@@ -40,7 +40,7 @@ export interface ModuleFederationPluginV1Options {
   enhanced?: boolean;
 }
 
-type EnhancedModuleFederationPluginV1Options =
+export type EnhancedModuleFederationPluginV1Options =
   ModuleFederationPluginV1BaseOptions<true> & { enhanced: true };
 
 export class ModuleFederationPluginV1 {
