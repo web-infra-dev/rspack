@@ -272,6 +272,31 @@ describe('module federation default runtime share scopes', () => {
 			// the scalar path never registers the host's name on the container
 			expect(containerScopeMap['host-custom']).toBeUndefined();
 		});
+
+		it('does not remap a container-owned scope listed as additional', async () => {
+			// A layered provider makes ShareRuntimeModule list the container's own
+			// scope in additionalInitScopes; the host names that scope differently.
+			const { initializedScopes, runtimeRequire, shareScopeMap: containerScopeMap } =
+				createRuntime({
+					realInitContainerEntry: true,
+					containerShareScope: 'container-custom',
+					remoteShareScope: 'host-custom',
+					additionalInitScopes: ['container-custom', 'secondary'],
+				});
+			const shareScopeMap = hostShareScopeMap();
+
+			await runtimeRequire.initContainer(shareScopeMap['host-custom'], [], {
+				shareScopeKeys: 'host-custom',
+				shareScopeMap,
+			});
+
+			expect(containerScopeMap['container-custom']).toBe(
+				shareScopeMap['host-custom'],
+			);
+			expect(shareScopeMap['container-custom']).toBeUndefined();
+			expect(containerScopeMap.secondary).toBe(shareScopeMap.secondary);
+			expect(initializedScopes.filter(scope => scope === 'secondary')).toHaveLength(1);
+		});
 	});
 
 	it('does not post-initialize scopes owned by the container', async () => {
