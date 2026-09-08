@@ -1,6 +1,6 @@
 use rspack_cacheable::cacheable;
 use rspack_core::EvaluatedInlinableValue;
-use rspack_util::ryu_js;
+use rspack_util::{ryu_js, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{BindingPattern, BindingPatternData, VariableDeclarator};
 
 use super::JavascriptParserPlugin;
@@ -141,11 +141,7 @@ fn tag_const_pattern(parser: &mut JavascriptParser, pattern: BindingPattern) {
       );
     }
     BindingPatternData::ArrayPattern(array) => {
-      for elem in array
-        .elements(ast)
-        .iter()
-        .filter_map(|id| ast.get_node_in_sub_range(id))
-      {
+      for elem in ast.nodes(array.elements(ast)).flatten() {
         tag_const_pattern(parser, elem);
       }
       if let Some(rest) = array.rest(ast) {
@@ -156,11 +152,7 @@ fn tag_const_pattern(parser: &mut JavascriptParser, pattern: BindingPattern) {
       tag_const_pattern(parser, assignment.left(ast));
     }
     BindingPatternData::ObjectPattern(object) => {
-      for property in object
-        .properties(ast)
-        .iter()
-        .map(|id| ast.get_node_in_sub_range(id))
-      {
+      for property in ast.nodes(object.properties(ast)) {
         tag_const_pattern(parser, property.value(ast));
       }
       if let Some(rest) = object.rest(ast) {

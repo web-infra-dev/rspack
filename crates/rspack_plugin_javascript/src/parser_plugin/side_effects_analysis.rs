@@ -7,6 +7,7 @@
 //
 // Rspack-specific policies such as `/*#__PURE__*/`, `pureFunctions`, parser hooks, and deferred
 // import checks stay in `side_effects_parser_plugin`.
+use rspack_util::swc::AstSubRangeExt;
 use swc_next_ecma_ast::{
   ArgumentData, Ast, Class, ClassElementData, DeclData, Expr, ExprData, Function,
   MethodDefinitionKind, ObjectPropertyKindData, PropertyKey, PropertyKeyData, PropertyKind, Stmt,
@@ -115,14 +116,15 @@ pub(super) fn may_have_side_effects(expression: Expr, ctx: SideEffectsContext<'_
     }
     ExprData::Function(_) | ExprData::ArrowFunctionExpression(_) => false,
     ExprData::Class(class) => class_has_side_effects(ctx, class),
-    ExprData::ArrayExpression(array) => array
-      .elements(ast)
-      .iter()
-      .filter_map(|slot| ast.get_node_in_sub_range(slot))
-      .any(|argument| match ast.argument_data(argument) {
-        ArgumentData::Expr(expression) => may_have_side_effects(expression, ctx),
-        ArgumentData::SpreadElement(_) => true,
-      }),
+    ExprData::ArrayExpression(array) => {
+      ast
+        .nodes(array.elements(ast))
+        .flatten()
+        .any(|argument| match ast.argument_data(argument) {
+          ArgumentData::Expr(expression) => may_have_side_effects(expression, ctx),
+          ArgumentData::SpreadElement(_) => true,
+        })
+    }
     ExprData::UnaryExpression(unary) => {
       unary.operator(ast) == UnaryOperator::Delete
         || may_have_side_effects(unary.argument(ast), ctx)
@@ -188,34 +190,34 @@ pub(super) fn may_have_side_effects(expression: Expr, ctx: SideEffectsContext<'_
       arguments_may_have_side_effects(call.arguments(ast), ctx)
     }
     ExprData::CallExpression(_) => true,
-    ExprData::SequenceExpression(sequence) => sequence
-      .expressions(ast)
-      .iter()
-      .any(|slot| may_have_side_effects(ast.get_node_in_sub_range(slot), ctx)),
+    ExprData::SequenceExpression(sequence) => ast
+      .nodes(sequence.expressions(ast))
+      .any(|node| may_have_side_effects(node, ctx)),
     ExprData::ConditionalExpression(conditional) => {
       may_have_side_effects(conditional.test(ast), ctx)
         || may_have_side_effects(conditional.consequent(ast), ctx)
         || may_have_side_effects(conditional.alternate(ast), ctx)
     }
-    ExprData::ObjectExpression(object) => object.properties(ast).iter().any(|slot| {
-      let property = ast.get_node_in_sub_range(slot);
-      match ast.object_property_kind_data(property) {
-        ObjectPropertyKindData::SpreadElement(_) => true,
-        ObjectPropertyKindData::ObjectProperty(property) => {
-          if property.shorthand(ast) {
-            return false;
-          }
+    ExprData::ObjectExpression(object) => {
+      ast.nodes(object.properties(ast)).any(|property| {
+        match ast.object_property_kind_data(property) {
+          ObjectPropertyKindData::SpreadElement(_) => true,
+          ObjectPropertyKindData::ObjectProperty(property) => {
+            if property.shorthand(ast) {
+              return false;
+            }
 
-          let key_has_side_effects =
-            property.computed(ast) && property_key_may_have_side_effects(property.key(ast), ctx);
-          if property.kind(ast) == PropertyKind::Init && !property.method(ast) {
-            key_has_side_effects || may_have_side_effects(property.value(ast), ctx)
-          } else {
-            key_has_side_effects
+            let key_has_side_effects =
+              property.computed(ast) && property_key_may_have_side_effects(property.key(ast), ctx);
+            if property.kind(ast) == PropertyKind::Init && !property.method(ast) {
+              key_has_side_effects || may_have_side_effects(property.value(ast), ctx)
+            } else {
+              key_has_side_effects
+            }
           }
         }
-      }
-    }),
+      })
+    }
     ExprData::JsxElement(_) | ExprData::JsxFragment(_) => true,
   }
 }
@@ -276,22 +278,21 @@ fn arguments_may_have_side_effects(
   arguments: swc_next_ecma_ast::TypedSubRange<swc_next_ecma_ast::Argument>,
   ctx: SideEffectsContext<'_, '_>,
 ) -> bool {
-  arguments.iter().any(|slot| {
-    let argument = ctx.ast.get_node_in_sub_range(slot);
-    match ctx.ast.argument_data(argument) {
+  ctx
+    .ast
+    .nodes(arguments)
+    .any(|argument| match ctx.ast.argument_data(argument) {
       ArgumentData::Expr(expression) => may_have_side_effects(expression, ctx),
       ArgumentData::SpreadElement(_) => true,
-    }
-  })
+    })
 }
 
 fn statement_may_have_side_effects(statement: Stmt, ctx: SideEffectsContext<'_, '_>) -> bool {
   let ast = ctx.ast;
   match ast.stmt_data(statement) {
-    StmtData::BlockStatement(block) => block
-      .body(ast)
-      .iter()
-      .any(|slot| statement_may_have_side_effects(ast.get_node_in_sub_range(slot), ctx)),
+    StmtData::BlockStatement(block) => ast
+      .nodes(block.body(ast))
+      .any(|node| statement_may_have_side_effects(node, ctx)),
     StmtData::EmptyStatement(_) => false,
     StmtData::LabeledStatement(labeled) => statement_may_have_side_effects(labeled.body(ast), ctx),
     StmtData::IfStatement(if_statement) => {
@@ -303,35 +304,28 @@ fn statement_may_have_side_effects(statement: Stmt, ctx: SideEffectsContext<'_, 
     }
     StmtData::SwitchStatement(switch) => {
       may_have_side_effects(switch.discriminant(ast), ctx)
-        || switch.cases(ast).iter().any(|slot| {
-          let case = ast.get_node_in_sub_range(slot);
+        || ast.nodes(switch.cases(ast)).any(|case| {
           case
             .test(ast)
             .is_some_and(|expression| may_have_side_effects(expression, ctx))
-            || case
-              .consequent(ast)
-              .iter()
-              .any(|slot| statement_may_have_side_effects(ast.get_node_in_sub_range(slot), ctx))
+            || ast
+              .nodes(case.consequent(ast))
+              .any(|node| statement_may_have_side_effects(node, ctx))
         })
     }
     StmtData::TryStatement(try_statement) => {
-      try_statement
-        .block(ast)
-        .body(ast)
-        .iter()
-        .any(|slot| statement_may_have_side_effects(ast.get_node_in_sub_range(slot), ctx))
+      ast
+        .nodes(try_statement.block(ast).body(ast))
+        .any(|node| statement_may_have_side_effects(node, ctx))
         || try_statement.handler(ast).is_some_and(|handler| {
-          handler
-            .body(ast)
-            .body(ast)
-            .iter()
-            .any(|slot| statement_may_have_side_effects(ast.get_node_in_sub_range(slot), ctx))
+          ast
+            .nodes(handler.body(ast).body(ast))
+            .any(|node| statement_may_have_side_effects(node, ctx))
         })
         || try_statement.finalizer(ast).is_some_and(|finalizer| {
-          finalizer
-            .body(ast)
-            .iter()
-            .any(|slot| statement_may_have_side_effects(ast.get_node_in_sub_range(slot), ctx))
+          ast
+            .nodes(finalizer.body(ast))
+            .any(|node| statement_may_have_side_effects(node, ctx))
         })
     }
     StmtData::Declaration(declaration) => match ast.decl_data(declaration) {
@@ -356,8 +350,7 @@ fn class_has_side_effects(ctx: SideEffectsContext<'_, '_>, class: Class) -> bool
     return true;
   }
 
-  for slot in class.body(ast).body(ast).iter() {
-    let member = ast.get_node_in_sub_range(slot);
+  for member in ast.nodes(class.body(ast).body(ast)) {
     match ast.class_element_data(member) {
       ClassElementData::MethodDefinition(method) => {
         if method.computed(ast) && property_key_may_have_side_effects(method.key(ast), ctx) {
@@ -381,10 +374,9 @@ fn class_has_side_effects(ctx: SideEffectsContext<'_, '_>, class: Class) -> bool
         }
       }
       ClassElementData::StaticBlock(block)
-        if block
-          .body(ast)
-          .iter()
-          .any(|slot| statement_may_have_side_effects(ast.get_node_in_sub_range(slot), ctx)) =>
+        if ast
+          .nodes(block.body(ast))
+          .any(|node| statement_may_have_side_effects(node, ctx)) =>
       {
         return true;
       }
@@ -400,9 +392,9 @@ fn class_member_access_may_have_side_effects(
   class: Class,
 ) -> bool {
   let ast = ctx.ast;
-  class.body(ast).body(ast).iter().any(|slot| {
-    let member = ast.get_node_in_sub_range(slot);
-    match ast.class_element_data(member) {
+  ast
+    .nodes(class.body(ast).body(ast))
+    .any(|member| match ast.class_element_data(member) {
       ClassElementData::MethodDefinition(method) => {
         method.r#static(ast)
           && matches!(
@@ -418,8 +410,7 @@ fn class_member_access_may_have_side_effects(
           )
       }
       _ => false,
-    }
-  })
+    })
 }
 
 fn object_member_access_may_have_side_effects(
@@ -427,8 +418,7 @@ fn object_member_access_may_have_side_effects(
   object: swc_next_ecma_ast::ObjectExpression,
 ) -> bool {
   let ast = ctx.ast;
-  object.properties(ast).iter().any(|slot| {
-    let property = ast.get_node_in_sub_range(slot);
+  ast.nodes(object.properties(ast)).any(|property| {
     let ObjectPropertyKindData::ObjectProperty(property) = ast.object_property_kind_data(property)
     else {
       return true;
@@ -467,8 +457,7 @@ fn is_pure_new_callee(expression: Expr, ctx: SideEffectsContext<'_, '_>) -> bool
         return false;
       }
 
-      for slot in class.body(ast).body(ast).iter() {
-        let member = ast.get_node_in_sub_range(slot);
+      for member in ast.nodes(class.body(ast).body(ast)) {
         match ast.class_element_data(member) {
           ClassElementData::PropertyDefinition(property) if !property.r#static(ast) => {
             return false;

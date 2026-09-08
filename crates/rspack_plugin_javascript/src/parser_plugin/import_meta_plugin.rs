@@ -10,7 +10,7 @@ use rspack_core::{
   get_context, property_access, to_normal_comment,
 };
 use rspack_error::{Error, Severity};
-use rspack_util::{SpanExt, json_stringify_str};
+use rspack_util::{SpanExt, json_stringify_str, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{
   AssignmentExpression, CallExpression, ChainExpression, Expr, GetSpan, PropertyKeyData, Span,
   UnaryExpression,
@@ -388,7 +388,7 @@ impl ImportMetaPlugin {
       return;
     }
 
-    let Some(argument_expr) = arguments.get_node(ast, 0).and_then(|arg| arg.as_expr(ast)) else {
+    let Some(argument_expr) = ast.first(arguments).and_then(|arg| arg.as_expr(ast)) else {
       return;
     };
     let param = parser.evaluate_expression(argument_expr);

@@ -144,7 +144,7 @@ fn track_dynamic_imports_in_promise_all(
   if arguments.len() != 1 {
     return;
   }
-  let Some(argument) = arguments.get_node(ast, 0) else {
+  let Some(argument) = ast.first(arguments) else {
     return;
   };
   let Some(imports) = argument
@@ -153,23 +153,18 @@ fn track_dynamic_imports_in_promise_all(
   else {
     return;
   };
-  if imports.elements(ast).iter().any(|slot| {
-    ast
-      .get_node_in_sub_range(slot)
-      .is_some_and(|argument| argument.is_spread_element(ast))
-  }) {
+  if ast
+    .nodes(imports.elements(ast))
+    .any(|element| element.is_some_and(|argument| argument.is_spread_element(ast)))
+  {
     return;
   }
 
-  for (pattern_slot, import_slot) in pattern
-    .elements(ast)
-    .iter()
-    .zip(imports.elements(ast).iter())
+  for (pattern, import) in ast
+    .nodes(pattern.elements(ast))
+    .zip(ast.nodes(imports.elements(ast)))
   {
-    let (Some(pattern), Some(import)) = (
-      ast.get_node_in_sub_range(pattern_slot),
-      ast.get_node_in_sub_range(import_slot),
-    ) else {
+    let (Some(pattern), Some(import)) = (pattern, import) else {
       continue;
     };
     let Some(import_call) = import
@@ -389,12 +384,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           && !direct_import,
       );
     let ast = parser.ast.ast;
-    parser.walk_arguments(
-      expr
-        .arguments(ast)
-        .iter()
-        .map(|id| ast.get_node_in_sub_range(id)),
-    );
+    parser.walk_arguments(ast.nodes(expr.arguments(ast)));
     Some(true)
   }
 
@@ -673,12 +663,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         parser.walk_arguments(ast.nodes(arguments).skip(1));
       } else {
         let ast = parser.ast.ast;
-        parser.walk_arguments(
-          import_then
-            .arguments(ast)
-            .iter()
-            .map(|id| ast.get_node_in_sub_range(id)),
-        );
+        parser.walk_arguments(ast.nodes(import_then.arguments(ast)));
       }
     }
 
@@ -761,7 +746,7 @@ fn get_fulfilled_callback_namespace_obj(
   ast: &swc_next_ecma_ast::Ast<'_>,
   import_then: CallExpression,
 ) -> Option<BindingPattern> {
-  let fulfilled_callback = import_then.arguments(ast).get_node(ast, 0)?.as_expr(ast)?;
+  let fulfilled_callback = ast.first(import_then.arguments(ast))?.as_expr(ast)?;
   let params = match ast.expr_data(fulfilled_callback) {
     ExprData::ArrowFunctionExpression(function) => function.params(ast),
     ExprData::Function(function) => function.params(ast),

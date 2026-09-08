@@ -1,4 +1,4 @@
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{ArgumentData, ArrayExpression, GetSpan};
 
 use super::BasicEvaluatedExpression;
@@ -11,11 +11,7 @@ pub fn eval_array_expression<'parser>(
 ) -> Option<BasicEvaluatedExpression<'parser>> {
   let ast = parser.ast.ast;
   let mut items = Vec::new();
-  for element in expression
-    .elements(ast)
-    .iter()
-    .map(|id| ast.get_node_in_sub_range(id))
-  {
+  for element in ast.nodes(expression.elements(ast)) {
     let element = element?;
     let ArgumentData::Expr(element) = ast.argument_data(element) else {
       return None;
