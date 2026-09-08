@@ -739,7 +739,7 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
   fn meta_property(
     &self,
     parser: &mut JavascriptParser<'p>,
-    root_name: &Atom,
+    root_name: &str,
     span: Span,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::MetaProperty) {

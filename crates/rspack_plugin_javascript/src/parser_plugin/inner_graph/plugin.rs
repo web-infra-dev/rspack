@@ -557,7 +557,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
     if let Some(identifier) = decl.id(ast).as_binding_identifier(ast)
       && let Some(init) = decl.init(ast)
     {
-      let name = Atom::from(ast.get_utf8(identifier.name(ast)));
+      let name = ast.get_utf8(identifier.name(ast));
       let mut callees = vec![];
 
       if let Some(class) = init.as_class(ast)
@@ -569,7 +569,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
           None,
         )
       {
-        let v = Self::tag_top_level_symbol(parser, &name);
+        let v = Self::tag_top_level_symbol(parser, &Atom::from(name));
 
         parser
           .inner_graph
@@ -584,7 +584,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
           Some(&mut callees),
         )
       {
-        let v = Self::tag_top_level_symbol(parser, &name);
+        let v = Self::tag_top_level_symbol(parser, &Atom::from(name));
         for (symbol, span) in callees {
           v.add_depend_on(&mut parser.inner_graph, symbol, span);
         }
