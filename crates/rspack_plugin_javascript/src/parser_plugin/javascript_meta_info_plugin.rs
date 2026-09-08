@@ -1,4 +1,3 @@
-use rspack_intern::Atom;
 use swc_next_ecma_ast::CallExpression;
 
 use super::{
@@ -38,7 +37,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
     }
     let variables: Vec<_> = parser
       .get_all_variables_from_current_scope()
-      .map(|(name, _)| Atom::new(name))
+      .map(|(name, _)| name.clone())
       .collect();
     for name in variables {
       if parser.is_variable_defined(&name) {

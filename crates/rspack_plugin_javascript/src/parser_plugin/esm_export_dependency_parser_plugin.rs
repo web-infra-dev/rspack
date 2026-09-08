@@ -43,10 +43,7 @@ fn create_default_exported_namespace_dependency(
     return None;
   };
   let settings = parser
-    .get_tag_data::<ESMSpecifierData>(
-      &Atom::from(ast.get_utf8(identifier.name(ast))),
-      ESM_SPECIFIER_TAG,
-    )
+    .get_tag_data::<ESMSpecifierData>(ast.get_utf8(identifier.name(ast)), ESM_SPECIFIER_TAG)
     .filter(|settings| settings.namespace_import && settings.ids.is_empty())?
     .clone();
   let statement_span = statement.span(ast);
@@ -358,10 +355,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       ExportDefaultExpression::Expr(expression) => {
         if let ExprData::IdentifierReference(identifier) = ast.expr_data(expression) {
           parser
-            .get_tag_data::<ConstValueData>(
-              &Atom::from(ast.get_utf8(identifier.name(ast))),
-              INLINABLE_CONST_TAG,
-            )
+            .get_tag_data::<ConstValueData>(ast.get_utf8(identifier.name(ast)), INLINABLE_CONST_TAG)
             .map(|data| data.value.clone())
         } else {
           to_evaluated_inlinable_value(&parser.evaluate_expression(expression))
@@ -379,10 +373,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       parser.to_dependency_location(DependencyRange::from(expr_span)),
     );
     parser.add_dependency(BoxDependency::new(dep));
-    let name = expr.ident(ast).map_or_else(
-      || DEFAULT_STAR_JS_WORD.clone(),
-      |ident| Atom::from(ident.as_str()),
-    );
+    let name = expr
+      .ident(ast)
+      .unwrap_or_else(|| DEFAULT_STAR_JS_WORD.clone());
     InnerGraphParserPlugin::add_variable_usage(
       parser,
       &name,
