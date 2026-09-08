@@ -59,6 +59,10 @@ impl Task<TaskContext> for BuildTask {
 
     let build_start_time = module_build_cache.as_ref().map(|_| current_time());
 
+    if let Some(cache) = &module_build_cache {
+      cache.track(&mut module, true);
+    }
+
     plugin_driver
       .compilation_hooks
       .build_module
@@ -90,6 +94,7 @@ impl Task<TaskContext> for BuildTask {
 
     Ok(vec![Box::new(BuildResultTask {
       module: result,
+      reused: false,
       plugin_driver,
       forwarded_ids,
     })])
@@ -99,6 +104,7 @@ impl Task<TaskContext> for BuildTask {
 #[derive(Debug)]
 pub(super) struct BuildResultTask {
   pub module: BoxModule,
+  pub reused: bool,
   pub plugin_driver: SharedPluginDriver,
   pub forwarded_ids: ForwardedIdSet,
 }
@@ -111,14 +117,27 @@ impl Task<TaskContext> for BuildResultTask {
   async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let BuildResultTask {
       mut module,
+      reused,
       plugin_driver,
       mut forwarded_ids,
     } = *self;
-    plugin_driver
-      .compilation_hooks
-      .succeed_module
-      .call(context.compiler_id, context.compilation_id, &mut module)
-      .await?;
+    if reused {
+      // A failed or cancelled cache-hit hook may leave partial mutations.
+      // Publish validity again only after the hook completes successfully.
+      module.set_cache_valid(false);
+      plugin_driver
+        .compilation_hooks
+        .still_valid_module
+        .call(context.compiler_id, context.compilation_id, &mut module)
+        .await?;
+      module.set_cache_valid(true);
+    } else {
+      plugin_driver
+        .compilation_hooks
+        .succeed_module
+        .call(context.compiler_id, context.compilation_id, &mut module)
+        .await?;
+    }
 
     let build_info = module.build_info();
 
@@ -193,6 +212,12 @@ impl Task<TaskContext> for BuildResultTask {
     }
 
     let module_identifier = module.identifier();
+
+    if reused {
+      context.artifact.reused_modules.insert(module_identifier);
+    } else {
+      context.artifact.reused_modules.remove(&module_identifier);
+    }
 
     module_graph.add_module(module);
 

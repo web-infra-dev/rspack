@@ -11,7 +11,7 @@ use tokio::sync::Notify;
 
 use super::{
   CacheKey, Etag, Meta,
-  cache_value::{CacheEntry, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
+  cache_value::{CacheEntry, CacheValueEncoder, ErasedCacheValue},
   db::{Database, DatabaseFamily},
   snapshot::FileSystemInfo,
   validator::{CacheValidator, CacheValidatorResult},
@@ -31,7 +31,14 @@ struct PendingWrites {
 #[derive(Debug)]
 struct PendingWrite {
   entry: CacheEntry,
-  encoder: CacheValueEncoder,
+  encoding: PendingEncoding,
+}
+
+#[derive(Debug)]
+enum PendingEncoding {
+  Deferred(CacheValueEncoder),
+  Encoded(Vec<u8>),
+  Invalid,
 }
 
 impl PendingWrites {
@@ -252,7 +259,57 @@ impl FileCacheStrategy {
       key,
       PendingWrite {
         entry: CacheEntry::new(etag, value),
-        encoder,
+        encoding: PendingEncoding::Deferred(encoder),
+      },
+    );
+  }
+
+  /// Keeps live values in memory without handing their access permissions to
+  /// the idle thread. Until the owner supplies bytes, old disk data is masked.
+  pub(super) fn store_live(&self, key: CacheKey, value: ErasedCacheValue) {
+    if self.readonly {
+      return;
+    }
+    let state = self.read_state();
+    let Some(state) = state.as_ref() else {
+      return;
+    };
+    state.pending_writes.entries.insert(
+      key,
+      PendingWrite {
+        entry: CacheEntry::new(None, value),
+        encoding: PendingEncoding::Invalid,
+      },
+    );
+  }
+
+  pub(super) fn encode_live(
+    &self,
+    key: CacheKey,
+    value: ErasedCacheValue,
+    encode: impl FnOnce(&CacheCodec) -> Result<Vec<u8>>,
+  ) {
+    if self.readonly {
+      return;
+    }
+    let encoding = match encode(&self.codec) {
+      Ok(bytes) => PendingEncoding::Encoded(bytes),
+      Err(error) => {
+        self.logger.warn(format!(
+          "Failed to encode cache entry for key {key}: {error}"
+        ));
+        PendingEncoding::Invalid
+      }
+    };
+    let state = self.read_state();
+    let Some(state) = state.as_ref() else {
+      return;
+    };
+    state.pending_writes.entries.insert(
+      key,
+      PendingWrite {
+        entry: CacheEntry::new(None, value),
+        encoding,
       },
     );
   }
@@ -304,7 +361,7 @@ impl FileCacheStrategy {
     &self,
     key: &CacheKey,
     etag: Option<&Etag>,
-    decoder: CacheValueDecoder,
+    decoder: impl FnOnce(&[u8], Option<&Etag>, &CacheCodec) -> Result<Option<ErasedCacheValue>>,
   ) -> Option<ErasedCacheValue> {
     let state_guard = self.read_state();
     let state = state_guard.as_ref()?;
@@ -325,6 +382,10 @@ impl FileCacheStrategy {
       }
     };
     let entry = entry?;
+    // Empty values are invalidation tombstones, never archived cache entries.
+    if entry.is_empty() {
+      return None;
+    }
     match decoder(&entry, etag, &self.codec) {
       Ok(decoded) => decoded,
       Err(e) => {
@@ -373,8 +434,12 @@ impl FileCacheStrategy {
 
         writes = std::mem::take(&mut state.pending_writes.entries)
           .into_par_iter()
-          .filter_map(
-            |(key, pending)| match (pending.encoder)(&pending.entry, codec) {
+          .filter_map(|(key, pending)| {
+            match match pending.encoding {
+              PendingEncoding::Deferred(encoder) => encoder(&pending.entry, codec),
+              PendingEncoding::Encoded(bytes) => Ok(bytes),
+              PendingEncoding::Invalid => Ok(Vec::new()),
+            } {
               Ok(value) => Some((DatabaseFamily::Cache, key, value)),
               Err(error) => {
                 self.logger.warn(format!(
@@ -382,8 +447,8 @@ impl FileCacheStrategy {
                 ));
                 None
               }
-            },
-          )
+            }
+          })
           .collect::<Vec<_>>();
 
         new_build_dependencies = state.pending_writes.new_build_dependencies().take();

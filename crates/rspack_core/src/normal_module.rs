@@ -99,12 +99,10 @@ pub struct NormalModuleHooks {
 
 /// Build-owned state of a [`NormalModule`].
 ///
-/// This mirrors webpack's serialized module state: cache entries retain build
-/// output, while factory-owned values such as loaders, parser/generator
-/// instances, and their options always come from the fresh module created for
-/// the current compilation.
+/// Kept on the live module across cache hits. Factory-owned values are refreshed
+/// separately; memory caching never copies this state.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct NormalModuleState {
   dependencies_block: DependenciesBlockData,
   #[cacheable(with=AsOption<AsPreset>)]
@@ -208,10 +206,6 @@ impl NormalModule {
   ) -> Self {
     let module_type = module_type.into();
     let id = Self::create_id(&module_type, layer.as_ref(), &request, import_phase);
-    let build_info = BuildInfo {
-      import_phase,
-      ..Default::default()
-    };
     Self {
       id: ModuleIdentifier::from(id.as_ref()),
       context: Box::new(context.unwrap_or_else(|| get_context(&resource_data))),
@@ -232,20 +226,7 @@ impl NormalModule {
 
       cached_source_sizes: SourceSizeCache::default(),
       factory_meta: None,
-      state: NormalModuleState {
-        dependencies_block: Default::default(),
-        source: None,
-        diagnostics: Default::default(),
-        code_generation_dependencies: None,
-        presentational_dependencies: None,
-        build_info,
-        build_meta: Default::default(),
-        parsed: false,
-        // Mirrors webpack's `_forceBuild`: a new module has no reusable build
-        // until its first build starts.
-        force_build: true,
-        source_map_kind: SourceMapKind::empty(),
-      },
+      state: NormalModuleState::new(import_phase, SourceMapKind::empty()),
     }
   }
 
@@ -315,15 +296,6 @@ impl NormalModule {
     self.parser_and_generator_options.generator_options()
   }
 
-  pub(crate) fn module_state(&self) -> &NormalModuleState {
-    &self.state
-  }
-
-  pub(crate) fn restore_module_state(&mut self, state: NormalModuleState) {
-    self.state = state;
-    self.cached_source_sizes = SourceSizeCache::default();
-  }
-
   pub(crate) async fn need_build_with_context(
     &self,
     file_system_info: &FileSystemInfo,
@@ -334,20 +306,28 @@ impl NormalModule {
       .need_build_with_context(file_system_info, value_cache_versions)
       .await
   }
-
-  pub(crate) async fn create_cache_snapshot(
-    &self,
-    file_system_info: &FileSystemInfo,
-    build_start_time: u64,
-  ) -> Result<Option<Snapshot>> {
-    self
-      .state
-      .create_cache_snapshot(file_system_info, build_start_time)
-      .await
-  }
 }
 
 impl NormalModuleState {
+  fn new(import_phase: ImportPhase, source_map_kind: SourceMapKind) -> Self {
+    Self {
+      dependencies_block: Default::default(),
+      source: None,
+      diagnostics: Default::default(),
+      code_generation_dependencies: None,
+      presentational_dependencies: None,
+      build_info: BuildInfo {
+        import_phase,
+        ..Default::default()
+      },
+      build_meta: Default::default(),
+      parsed: false,
+      // Mirrors webpack's `_forceBuild`: there is no reusable build yet.
+      force_build: true,
+      source_map_kind,
+    }
+  }
+
   pub(crate) async fn need_build_with_context(
     &self,
     file_system_info: &FileSystemInfo,
@@ -397,11 +377,20 @@ impl NormalModuleState {
       return Ok(None);
     }
 
+    // A module's build dependencies (for example a loader helper) also
+    // invalidate memory hits. Allocate a union only when such files exist.
+    let files = if self.build_info.dependencies.build.is_empty() {
+      Cow::Borrowed(&self.build_info.dependencies.file)
+    } else {
+      let mut files = self.build_info.dependencies.file.clone();
+      files.extend(self.build_info.dependencies.build.iter().cloned());
+      Cow::Owned(files)
+    };
     Ok(Some(
       file_system_info
         .create_snapshot(
           Some(build_start_time),
-          &self.build_info.dependencies.file,
+          &files,
           &self.build_info.dependencies.context,
           &self.build_info.dependencies.missing,
           // Rspack does not expose webpack's `snapshot.module` strategy yet.
@@ -466,6 +455,71 @@ impl Module for NormalModule {
     self
       .need_build_with_context(context.file_system_info, context.value_cache_versions)
       .await
+  }
+
+  fn supports_module_cache(&self) -> bool {
+    true
+  }
+
+  fn reset_build_state(&mut self) {
+    self.state = NormalModuleState::new(
+      self.state.build_info.import_phase,
+      self.state.source_map_kind,
+    );
+    self.cached_source_sizes = SourceSizeCache::default();
+  }
+
+  fn update_cache_module(&mut self, fresh: &mut dyn Module) {
+    let fresh = fresh
+      .as_normal_module_mut()
+      .expect("cached module type must match the fresh module");
+    // Move fresh factory data in, and let the discarded factory module drop the
+    // old runtime data. Build output and binding-backed assets keep identity.
+    std::mem::swap(&mut self.context, &mut fresh.context);
+    std::mem::swap(&mut self.request, &mut fresh.request);
+    std::mem::swap(&mut self.user_request, &mut fresh.user_request);
+    std::mem::swap(&mut self.raw_request, &mut fresh.raw_request);
+    std::mem::swap(
+      &mut self.parser_and_generator,
+      &mut fresh.parser_and_generator,
+    );
+    std::mem::swap(
+      &mut self.parser_and_generator_options,
+      &mut fresh.parser_and_generator_options,
+    );
+    std::mem::swap(&mut self.match_resource, &mut fresh.match_resource);
+    std::mem::swap(&mut self.resource_data, &mut fresh.resource_data);
+    std::mem::swap(&mut self.resolve_options, &mut fresh.resolve_options);
+    std::mem::swap(&mut self.loaders, &mut fresh.loaders);
+    std::mem::swap(&mut self.loader_options, &mut fresh.loader_options);
+    std::mem::swap(&mut self.extract_source_map, &mut fresh.extract_source_map);
+    std::mem::swap(&mut self.factory_meta, &mut fresh.factory_meta);
+    self.state.source_map_kind = fresh.state.source_map_kind;
+    self.cached_source_sizes = SourceSizeCache::default();
+  }
+
+  async fn create_cache_snapshot(
+    &self,
+    file_system_info: &FileSystemInfo,
+    build_start_time: u64,
+  ) -> Result<Option<Snapshot>> {
+    self
+      .state
+      .create_cache_snapshot(file_system_info, build_start_time)
+      .await
+  }
+
+  fn serialize_for_cache(&self, codec: &crate::cache::CacheCodec) -> Result<Vec<u8>> {
+    // Only the disk representation omits runtime factory data (including JS
+    // parser callbacks). Serialize the latest build state directly, without a
+    // state clone or a second in-memory cache entry.
+    codec.encode(&self.state)
+  }
+
+  fn restore_from_cache(&mut self, bytes: &[u8], codec: &crate::cache::CacheCodec) -> Result<()> {
+    self.state = codec.decode(bytes)?;
+    self.cached_source_sizes = SourceSizeCache::default();
+    Ok(())
   }
 
   #[tracing::instrument("NormalModule:build", skip_all, fields(

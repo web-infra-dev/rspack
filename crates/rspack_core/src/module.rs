@@ -1,8 +1,12 @@
 use std::{
   any::Any,
   borrow::Cow,
+  cell::UnsafeCell,
   fmt::{Debug, Display, Formatter},
-  sync::Arc,
+  sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+  },
 };
 
 use async_trait::async_trait;
@@ -855,6 +859,41 @@ pub trait Module:
     Ok(true)
   }
 
+  /// Opts into reuse of the complete module. Implementations must refresh their
+  /// factory-owned data and validate all build dependencies before reusing it.
+  fn supports_module_cache(&self) -> bool {
+    false
+  }
+
+  fn update_cache_module(&mut self, _fresh: &mut dyn Module) {}
+
+  /// Prepares a cached module for an actual rebuild before build hooks run.
+  /// Implementations whose build method already replaces all build state can
+  /// keep the default. This is never called on a valid cache hit.
+  fn reset_build_state(&mut self) {}
+
+  async fn create_cache_snapshot(
+    &self,
+    _file_system_info: &FileSystemInfo,
+    _build_start_time: u64,
+  ) -> Result<Option<Snapshot>> {
+    Ok(None)
+  }
+
+  /// Optional persistent representation. Memory reuse does not call either
+  /// codec method. Runtime-only factory data can be supplied by the fresh module.
+  fn serialize_for_cache(&self, _codec: &crate::cache::CacheCodec) -> Result<Vec<u8>> {
+    Err(rspack_error::error!(
+      "Module does not support persistent caching"
+    ))
+  }
+
+  fn restore_from_cache(&mut self, _bytes: &[u8], _codec: &crate::cache::CacheCodec) -> Result<()> {
+    Err(rspack_error::error!(
+      "Module does not support persistent caching"
+    ))
+  }
+
   /// Performs the synchronous rebuild decision used by incremental make.
   ///
   /// This preserves the pre-existing incremental-make behavior: it only checks
@@ -1008,14 +1047,98 @@ pub trait ModuleExt {
 
 impl<T: Module> ModuleExt for T {
   fn boxed(self) -> BoxModule {
-    BoxModule(Box::new(self))
+    BoxModule::new(Box::new(self))
   }
 }
 
-/// A newtype wrapper around `Box<dyn Module>` for improved type safety.
+/// Exclusive access to a module during building and graph use.
+///
+/// An uncached module owns its box directly. Publishing it to the module cache
+/// moves the box into a shared cell, while this non-cloneable owner retains the
+/// only access lease. Borrowing the owner (or its graph) then checks reads and
+/// writes statically, without a lock or atomic operation on each getter.
 #[cacheable(with=AsInner)]
-#[repr(transparent)]
-pub struct BoxModule(Box<dyn Module>);
+pub struct BoxModule(ModuleStorage);
+
+enum ModuleStorage {
+  Owned(Box<dyn Module>),
+  Shared(ModuleLease),
+  // Used only while promoting an exclusively borrowed owner to a shared cell.
+  Empty,
+}
+
+struct ModuleSlot {
+  module: Option<Box<dyn Module>>,
+  valid: bool,
+}
+
+/// Cache ownership grants no permission to dereference the module. A cache hit
+/// must first acquire the single access lease, which is released by BoxModule.
+pub(crate) struct ModuleCell {
+  leased: AtomicBool,
+  slot: UnsafeCell<ModuleSlot>,
+}
+
+// SAFETY: only ModuleLease accesses slot, and at most one lease exists. Sharing
+// that lease allows shared reads; mutation requires &mut ModuleLease. Module is
+// Send + Sync. Acquire/Release transfers the slot between successive owners.
+unsafe impl Send for ModuleCell {}
+unsafe impl Sync for ModuleCell {}
+
+impl Debug for ModuleCell {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("ModuleCell")
+      .field("leased", &self.leased.load(Ordering::Relaxed))
+      .finish_non_exhaustive()
+  }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct ModuleRef(Arc<ModuleCell>);
+
+struct ModuleLease(ModuleRef);
+
+impl ModuleRef {
+  pub(crate) fn from_cache(value: crate::new_cache::CacheValue<ModuleCell>) -> Self {
+    Self(value.into_arc())
+  }
+
+  pub(crate) fn cache_value(&self) -> crate::new_cache::CacheValue<ModuleCell> {
+    self.0.clone().into()
+  }
+
+  pub(crate) fn try_acquire(&self) -> Option<BoxModule> {
+    self
+      .0
+      .leased
+      .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+      .ok()?;
+    let lease = ModuleLease(self.clone());
+    // A consuming build that fails or is cancelled leaves the cell empty.
+    lease.slot().module.as_ref()?;
+    Some(BoxModule(ModuleStorage::Shared(lease)))
+  }
+}
+
+impl ModuleLease {
+  fn slot(&self) -> &ModuleSlot {
+    // SAFETY: this lease is the only access capability; its borrow bounds the
+    // returned reference. Cache handles cannot access slot independently.
+    unsafe { &*self.0.0.slot.get() }
+  }
+
+  fn slot_mut(&mut self) -> &mut ModuleSlot {
+    // SAFETY: the unique lease is exclusively borrowed for the reference's
+    // entire lifetime, including accesses from callback-scoped reborrows.
+    unsafe { &mut *self.0.0.slot.get() }
+  }
+}
+
+impl Drop for ModuleLease {
+  fn drop(&mut self) {
+    self.0.0.leased.store(false, Ordering::Release);
+  }
+}
 
 impl BoxModule {
   /// Installs a module's complete build output before it is published into the graph.
@@ -1030,7 +1153,50 @@ impl BoxModule {
 
   /// Create a new BoxModule from a boxed Module trait object.
   pub fn new(module: Box<dyn Module>) -> Self {
-    BoxModule(module)
+    Self(ModuleStorage::Owned(module))
+  }
+
+  pub(crate) fn share(&mut self) -> ModuleRef {
+    if let ModuleStorage::Shared(lease) = &self.0 {
+      return lease.0.clone();
+    }
+    let ModuleStorage::Owned(module) = std::mem::replace(&mut self.0, ModuleStorage::Empty) else {
+      unreachable!("module owner must contain a module");
+    };
+    let reference = ModuleRef(Arc::new(ModuleCell {
+      leased: AtomicBool::new(true),
+      slot: UnsafeCell::new(ModuleSlot {
+        module: Some(module),
+        valid: false,
+      }),
+    }));
+    self.0 = ModuleStorage::Shared(ModuleLease(reference.clone()));
+    reference
+  }
+
+  pub(crate) fn cache_valid(&self) -> bool {
+    matches!(&self.0, ModuleStorage::Shared(lease) if lease.slot().valid)
+  }
+
+  pub(crate) fn set_cache_valid(&mut self, valid: bool) {
+    if let ModuleStorage::Shared(lease) = &mut self.0 {
+      lease.slot_mut().valid = valid;
+    }
+  }
+
+  fn into_box(self) -> Box<dyn Module> {
+    match self.0 {
+      ModuleStorage::Owned(module) => module,
+      ModuleStorage::Shared(mut lease) => {
+        lease.slot_mut().valid = false;
+        lease
+          .slot_mut()
+          .module
+          .take()
+          .expect("module access lease must contain a module")
+      }
+      ModuleStorage::Empty => unreachable!("module owner must contain a module"),
+    }
   }
 
   pub async fn build(
@@ -1038,7 +1204,23 @@ impl BoxModule {
     build_context: BuildContext,
     compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
-    self.0.build(build_context, compilation).await
+    match self.0 {
+      ModuleStorage::Owned(module) => module.build(build_context, compilation).await,
+      ModuleStorage::Shared(mut lease) => {
+        lease.slot_mut().valid = false;
+        let module = lease
+          .slot_mut()
+          .module
+          .take()
+          .expect("module access lease must contain a module");
+        // No reference into the cell or blocking lock survives this await. On
+        // Err/cancellation, Drop releases an empty, invalid cell.
+        let result = module.build(build_context, compilation).await?;
+        lease.slot_mut().module = Some(result.into_box());
+        Ok(Self(ModuleStorage::Shared(lease)))
+      }
+      ModuleStorage::Empty => unreachable!("module owner must contain a module"),
+    }
   }
 }
 
@@ -1046,11 +1228,11 @@ impl AsInnerConverter for BoxModule {
   type Inner = Box<dyn Module>;
 
   fn to_inner(&self) -> &Self::Inner {
-    &self.0
+    self
   }
 
   fn from_inner(data: Self::Inner) -> Self {
-    BoxModule(data)
+    BoxModule::new(data)
   }
 }
 
@@ -1058,37 +1240,53 @@ impl std::ops::Deref for BoxModule {
   type Target = Box<dyn Module>;
 
   fn deref(&self) -> &Self::Target {
-    &self.0
+    match &self.0 {
+      ModuleStorage::Owned(module) => module,
+      ModuleStorage::Shared(lease) => lease
+        .slot()
+        .module
+        .as_ref()
+        .expect("module access lease must contain a module"),
+      ModuleStorage::Empty => unreachable!("module owner must contain a module"),
+    }
   }
 }
 
 impl std::ops::DerefMut for BoxModule {
   fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.0
+    match &mut self.0 {
+      ModuleStorage::Owned(module) => module,
+      ModuleStorage::Shared(lease) => lease
+        .slot_mut()
+        .module
+        .as_mut()
+        .expect("module access lease must contain a module"),
+      ModuleStorage::Empty => unreachable!("module owner must contain a module"),
+    }
   }
 }
 
 impl From<Box<dyn Module>> for BoxModule {
   fn from(inner: Box<dyn Module>) -> Self {
-    BoxModule(inner)
+    BoxModule::new(inner)
   }
 }
 
 impl AsRef<dyn Module> for BoxModule {
   fn as_ref(&self) -> &dyn Module {
-    self.0.as_ref()
+    std::ops::Deref::deref(self).as_ref()
   }
 }
 
 impl AsMut<dyn Module> for BoxModule {
   fn as_mut(&mut self) -> &mut dyn Module {
-    self.0.as_mut()
+    std::ops::DerefMut::deref_mut(self).as_mut()
   }
 }
 
 impl Debug for BoxModule {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-    self.0.fmt(f)
+    std::ops::Deref::deref(self).fmt(f)
   }
 }
 
@@ -1096,7 +1294,7 @@ impl Identifiable for BoxModule {
   /// Uniquely identify a module. If two modules share the same module identifier, then they are considered as the same module.
   /// e.g `javascript/auto|<absolute-path>/index.js` and `javascript/auto|<absolute-path>/index.js` are considered as the same.
   fn identifier(&self) -> Identifier {
-    self.0.as_ref().identifier()
+    self.as_ref().identifier()
   }
 }
 

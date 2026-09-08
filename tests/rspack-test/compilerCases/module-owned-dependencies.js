@@ -68,7 +68,9 @@ module.exports = [
 								if (module.resource === path.join(root, "index.js")) built++;
 							});
 							compilation.hooks.finishModules.tap("ModuleOwnedDependenciesTest", modules => {
+								expect(compilation.errors.map(error => error.message)).toEqual([]);
 								const entry = [...modules].find(module => module.resource === path.join(root, "index.js"));
+								expect(entry.dependencies.map(dep => dep.request)).toContain(`./${selected}.js`);
 								const dependency = entry.dependencies.find(dep => dep.request === `./${selected}.js`);
 								expect(dependency).toBeDefined();
 								expect(compilation.moduleGraph.getModule(dependency).resource).toBe(path.join(root, `${selected}.js`));
@@ -98,8 +100,8 @@ module.exports = [
 				const stats = await manager.build();
 				expect(stats.toJson({ all: false, errors: true }).errors).toEqual([]);
 				if (!legacy) {
-					// Consecutive run() calls use rebuild(), which bypasses the module cache.
-					const cacheHit = reopen && iteration % 2 === 1;
+					// Module caching is independent of incremental graph recovery.
+					const cacheHit = cache && iteration % 2 === 1;
 					expect(built).toBe(cacheHit ? 0 : 1);
 				}
 				const filename = path.join(root, "dist/main.js");

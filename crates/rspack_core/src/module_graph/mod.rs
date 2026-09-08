@@ -296,6 +296,7 @@ impl ModuleGraph {
       if let Some(m_id) = original_module_identifier
         && let Some(module) = self.inner.modules.get_mut(&m_id)
       {
+        module.set_cache_valid(false);
         module.remove_dependency_id(*dep_id);
       }
       if let Some(b_id) = parent_block
@@ -310,6 +311,7 @@ impl ModuleGraph {
         if let Some(module_id) = original_module_identifier
           && let Some(module) = self.inner.modules.get_mut(&module_id)
         {
+          module.set_cache_valid(false);
           module.dependencies_block_mut().replace_block(block.clone());
         }
       }

@@ -125,11 +125,13 @@ impl CacheEntry {
   }
 }
 
-impl<T: CacheValueData> CacheValue<T> {
+impl<T: Any + Send + Sync> CacheValue<T> {
   pub(super) fn erase(self) -> ErasedCacheValue {
     ErasedCacheValue::new(self.0)
   }
+}
 
+impl<T: CacheValueData> CacheValue<T> {
   pub(super) fn encoder() -> CacheValueEncoder {
     encode_cache_entry::<T>
   }

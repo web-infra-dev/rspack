@@ -361,10 +361,7 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
-    // Incremental make reuses the previous module graph and owns its own
-    // invalidation path. Keep that fast path unchanged.
     let module_build_cache = (options.experiments.new_cache.module
-      && !is_rebuild
       && !matches!(&options.cache, CacheOptions::Disabled))
     .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules")));
     let snapshot_options = match &options.cache {

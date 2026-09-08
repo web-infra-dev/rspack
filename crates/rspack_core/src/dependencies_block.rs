@@ -46,8 +46,8 @@ pub trait DependenciesBlock {
 /// Build-owned dependency objects and blocks. The graph indexes the same shared objects.
 /// ID slices are read indexes maintained together with their owning references, so existing
 /// graph algorithms can keep borrowing contiguous IDs without collecting them on every read.
-/// Cloning copies these containers for normal-module state cache entries; the dependency
-/// and block objects themselves remain shared.
+/// Cloning copies these containers while the dependency and block objects remain shared.
+/// Module-cache hits keep the original containers on the live module.
 #[cacheable]
 #[derive(Debug, Default, Clone)]
 pub struct DependenciesBlockData {

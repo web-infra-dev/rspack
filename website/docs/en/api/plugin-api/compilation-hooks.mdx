@@ -394,6 +394,19 @@ Triggered before a module build has started.
   </CollapsePanel>
 </Collapse>
 
+## `stillValidModule`
+
+Called when the module build cache reuses a valid module. For that cache hit,
+`buildModule` and `succeedModule` are skipped.
+
+Currently, this hook is emitted for NormalModule cache hits with
+`experiments.newCache.module` enabled. Reuse through incremental compilation is
+separate from a module build cache hit.
+
+- **Type:** `SyncHook<[Module]>`
+- **Arguments:**
+  - `Module`: the reused module instance
+
 ## `executeModule`
 
 <Badge text="Read-only" type="info" />

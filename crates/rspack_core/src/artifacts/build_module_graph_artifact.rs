@@ -29,6 +29,8 @@ pub struct BuildModuleGraphArtifact {
   ///
   /// This field is empty on the initial compilation.
   pub issuer_update_modules: IdentifierSet,
+  /// Modules installed from build cache, rather than built in this compilation.
+  pub(crate) reused_modules: IdentifierSet,
 
   // data
   /// Module graph data
@@ -62,6 +64,7 @@ impl BuildModuleGraphArtifact {
       affected_modules: Default::default(),
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
+      reused_modules: Default::default(),
       module_graph: Default::default(),
       factorization_artifact: Default::default(),
       side_effects_state_artifact: Default::default(),
@@ -151,6 +154,14 @@ impl BuildModuleGraphArtifact {
   ///
   /// This function will update index on MakeArtifact.
   pub fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<BuildDependency> {
+    if let Some(module) = self
+      .module_graph
+      .module_by_identifier_mut(module_identifier)
+    {
+      // Explicit incremental invalidation can require a rebuild even when the
+      // filesystem snapshot still validates (for example rebuildModule).
+      module.set_cache_valid(false);
+    }
     let module = self
       .module_graph
       .module_by_identifier(module_identifier)
@@ -253,6 +264,7 @@ impl BuildModuleGraphArtifact {
     self.affected_modules.reset();
     self.affected_dependencies.reset();
     self.issuer_update_modules.clear();
+    self.reused_modules.clear();
     self.side_effects_state_artifact = Default::default();
 
     self.file_dependencies.reset_incremental_info();
@@ -262,7 +274,10 @@ impl BuildModuleGraphArtifact {
   }
 
   pub fn built_modules(&self) -> impl Iterator<Item = &ModuleIdentifier> {
-    self.affected_modules.active()
+    self
+      .affected_modules
+      .active()
+      .filter(|id| !self.reused_modules.contains(id))
   }
   pub fn revoked_modules(&self) -> impl Iterator<Item = &ModuleIdentifier> {
     self.affected_modules.dirty()

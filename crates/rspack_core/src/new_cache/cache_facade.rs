@@ -1,6 +1,9 @@
-use std::sync::Arc;
+use std::{any::Any, sync::Arc};
+
+use rspack_error::Result;
 
 use super::{Cache, CacheKey, CacheValue, Etag, cache_value::CacheValueData};
+use crate::cache::CacheCodec;
 
 /// A namespaced view of the shared cache.
 ///
@@ -54,6 +57,33 @@ impl CacheFacade {
 
   fn key(&self, identifier: &str) -> CacheKey {
     CacheKey::from(join_name(&self.name, identifier, true))
+  }
+
+  /// Live memory values have no serialization bound. Their owner separately
+  /// supplies a decoder and encodes under an explicit read permission.
+  pub(crate) fn get_live<T: Any + Send + Sync>(
+    &self,
+    identifier: &str,
+    decode: impl FnOnce(&[u8], &CacheCodec) -> Result<CacheValue<T>>,
+  ) -> Option<CacheValue<T>> {
+    self.cache.get_live(self.key(identifier), decode)
+  }
+
+  pub(crate) fn store_live<T: Any + Send + Sync>(&self, identifier: &str, value: CacheValue<T>) {
+    self.cache.store_live(self.key(identifier), value);
+  }
+
+  pub(crate) fn encode_live<T: Any + Send + Sync>(
+    &self,
+    identifier: &str,
+    value: CacheValue<T>,
+    encode: impl FnOnce(&CacheCodec) -> Result<Vec<u8>>,
+  ) {
+    self.cache.encode_live(self.key(identifier), value, encode);
+  }
+
+  pub(crate) fn has_file_cache(&self) -> bool {
+    self.cache.has_file_cache()
   }
 }
 

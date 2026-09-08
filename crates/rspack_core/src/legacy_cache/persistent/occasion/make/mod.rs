@@ -51,6 +51,7 @@ impl Occasion for MakeOccasion {
       affected_modules,
       affected_dependencies,
       issuer_update_modules,
+      reused_modules: _,
       // skip
       entry_dependencies: _,
       file_dependencies: _,
@@ -121,6 +122,7 @@ impl Occasion for MakeOccasion {
     }
 
     Ok(BuildModuleGraphArtifact {
+      reused_modules: Default::default(),
       // write all of field here to avoid forget to update occasion when add new fields
       // temporary data set to default
       affected_modules: Default::default(),

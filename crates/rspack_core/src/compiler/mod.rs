@@ -242,6 +242,11 @@ impl Compiler {
   }
 
   fn begin_idle(&mut self, build_time: Duration) {
+    if let Some(cache) = self.compilation.module_build_cache.clone()
+      && let Some(artifact) = self.compilation.build_module_graph_artifact.try_write()
+    {
+      cache.encode(&mut artifact.module_graph);
+    }
     if self.new_cache.has_file_cache() {
       if let CacheOptions::Persistent(options) = &self.options.cache {
         self.compilation.build_dependencies.extend(

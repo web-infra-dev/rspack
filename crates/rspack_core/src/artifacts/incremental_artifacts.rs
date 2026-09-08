@@ -54,6 +54,10 @@ impl IncrementalArtifacts {
         &mut compilation.exports_info_artifact,
         &mut previous.exports_info_artifact,
       );
+      // Recovery has either moved this graph into the new compilation or
+      // declined it. No later pass recovers it; release its module access leases
+      // before the current graph starts acquiring individual cache entries.
+      previous.build_module_graph_artifact = crate::BuildModuleGraphArtifact::new().into();
     }
 
     if passes.contains(IncrementalPasses::FINISH_MODULES) {

@@ -439,9 +439,16 @@ impl JsCompiler {
   ) -> Result<(), ErrorCode> {
     unsafe {
       self.run(reference, |compiler, guard| {
+        let RunGuard {
+          compiler_state_guard,
+          reference,
+        } = guard;
         callbackify(
           f,
           async move {
+            // Release the running state when native work finishes, including
+            // errors. The callback retains the JS owner independently.
+            let _compiler_state_guard = compiler_state_guard;
             let result = compiler.build().await.to_napi_result_with_message(|e| {
               print_error_diagnostic(e, compiler.options.stats.colors)
             });
@@ -450,7 +457,7 @@ impl JsCompiler {
             Ok(())
           },
           Some(move || {
-            drop(guard);
+            drop(reference);
           }),
         )
       })
@@ -470,9 +477,14 @@ impl JsCompiler {
   ) -> Result<(), ErrorCode> {
     unsafe {
       self.run(reference, |compiler, guard| {
+        let RunGuard {
+          compiler_state_guard,
+          reference,
+        } = guard;
         callbackify(
           f,
           async move {
+            let _compiler_state_guard = compiler_state_guard;
             let result = compiler
               .rebuild(
                 changed_files.into_iter().collect::<FxHashSet<_>>(),
@@ -487,7 +499,7 @@ impl JsCompiler {
             Ok(())
           },
           Some(move || {
-            drop(guard);
+            drop(reference);
           }),
         )
       })
@@ -549,8 +561,8 @@ impl JsCompiler {
 }
 
 struct RunGuard {
-  _compiler_state_guard: CompilerStateGuard,
-  _reference: Reference<JsCompiler>,
+  compiler_state_guard: CompilerStateGuard,
+  reference: Reference<JsCompiler>,
 }
 
 impl JsCompiler {
@@ -585,8 +597,8 @@ impl JsCompiler {
     });
 
     let guard = RunGuard {
-      _compiler_state_guard: compiler_state_guard,
-      _reference: reference,
+      compiler_state_guard,
+      reference,
     };
 
     self.cleanup_last_compilation(&compiler.compilation);

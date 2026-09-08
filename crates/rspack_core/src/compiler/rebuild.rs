@@ -75,6 +75,17 @@ impl Compiler {
       let compilation_logging = self.compilation.get_logging().clone();
       compilation_logging.clear();
 
+      // A failed make can consume these artifacts without returning them.
+      // Reconstruct the graph on retry; incomplete artifacts are not a valid
+      // incremental baseline, while independently valid module cache entries
+      // remain available.
+      let recover_artifacts = !self.compilation.build_module_graph_artifact.is_stolen()
+        && !self.compilation.exports_info_artifact.is_stolen();
+      let incremental = if recover_artifacts {
+        Incremental::new_hot(self.options.incremental)
+      } else {
+        Incremental::new_cold(self.options.incremental)
+      };
       let mut next_compilation = Compilation::new(
         self.id,
         self.options.clone(),
@@ -84,7 +95,7 @@ impl Compiler {
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         records,
-        Incremental::new_hot(self.options.incremental),
+        incremental,
         Some(ModuleExecutor::default()),
         compilation_logging,
         self.new_cache.clone(),
@@ -106,14 +117,21 @@ impl Compiler {
         next_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
       }
 
-      self.cache.store_hot_cache(&mut self.compilation);
+      if recover_artifacts {
+        self.cache.store_hot_cache(&mut self.compilation);
+      }
 
       // Artifact recovery belongs to incremental compilation and is independent
       // from the configured build cache.
       let old_compilation = std::mem::replace(&mut self.compilation, next_compilation);
-      self
-        .incremental_artifacts
-        .store_previous_compilation(Box::new(old_compilation));
+      if recover_artifacts {
+        self
+          .incremental_artifacts
+          .store_previous_compilation(Box::new(old_compilation));
+      } else {
+        self.incremental_artifacts.reset();
+        drop(old_compilation);
+      }
 
       // FOR BINDING SAFETY:
       // Update `compilation` for each rebuild.

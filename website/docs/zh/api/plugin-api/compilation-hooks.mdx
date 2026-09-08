@@ -395,6 +395,17 @@ class Callback flow-end
   </CollapsePanel>
 </Collapse>
 
+## `stillValidModule`
+
+模块构建缓存复用有效模块时调用。此次缓存命中会跳过 `buildModule` 和 `succeedModule`。
+
+目前，开启 `experiments.newCache.module` 后，NormalModule 的缓存命中会触发此钩子。
+增量编译复用模块与模块构建缓存命中是不同的路径。
+
+- **类型：** `SyncHook<[Module]>`
+- **参数：**
+  - `Module`：被复用的模块实例
+
 ## `executeModule`
 
 <Badge text="只读" type="info" />

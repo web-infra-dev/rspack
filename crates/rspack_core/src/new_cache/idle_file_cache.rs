@@ -1,4 +1,5 @@
 use std::{
+  any::Any,
   sync::{
     Arc,
     atomic::{AtomicU64, Ordering},
@@ -18,7 +19,7 @@ use super::{
   CacheKey, CacheValue, Etag, FileCacheStrategy, Meta,
   cache_value::{CacheValueData, ErasedCacheValue},
 };
-use crate::{InfrastructureLogger, Logger};
+use crate::{InfrastructureLogger, Logger, cache::CacheCodec};
 
 const DEFAULT_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 const DEFAULT_IDLE_TIMEOUT_FOR_INITIAL_STORE: Duration = Duration::from_secs(5);
@@ -228,6 +229,32 @@ impl IdleFileCache {
       .strategy
       .restore(&key, etag.as_ref(), CacheValue::<T>::decoder());
     restored.and_then(ErasedCacheValue::downcast)
+  }
+
+  pub(super) fn restore_live<T: Any + Send + Sync>(
+    &self,
+    key: CacheKey,
+    decode: impl FnOnce(&[u8], &CacheCodec) -> Result<CacheValue<T>>,
+  ) -> Option<CacheValue<T>> {
+    self
+      .strategy
+      .restore(&key, None, |bytes, _, codec| {
+        Ok(Some(decode(bytes, codec)?.erase()))
+      })
+      .and_then(ErasedCacheValue::downcast)
+  }
+
+  pub(super) fn store_live<T: Any + Send + Sync>(&self, key: CacheKey, value: CacheValue<T>) {
+    self.strategy.store_live(key, value.erase());
+  }
+
+  pub(super) fn encode_live<T: Any + Send + Sync>(
+    &self,
+    key: CacheKey,
+    value: CacheValue<T>,
+    encode: impl FnOnce(&CacheCodec) -> Result<Vec<u8>>,
+  ) {
+    self.strategy.encode_live(key, value.erase(), encode);
   }
 
   pub fn store_build_dependencies(&self, dependencies: InternedPathSet) {
