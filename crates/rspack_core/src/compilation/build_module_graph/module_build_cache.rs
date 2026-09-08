@@ -138,9 +138,9 @@ impl ModuleBuildCache {
       .flatten()
       .filter_map(|(module_identifier, snapshot)| {
         let module = artifact
-          .get_module_graph_mut()
-          .module_by_identifier_mut(&module_identifier)?;
-        module.build_info_mut().snapshot = snapshot;
+          .get_module_graph()
+          .module_by_identifier(&module_identifier)?;
+        module.build_info().set_snapshot(snapshot);
         Some(module_identifier)
       })
       .collect::<Vec<_>>();

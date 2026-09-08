@@ -50,8 +50,7 @@ impl ProvideParserPlugin {
       let cache_key = format!("{VALUE_DEP_PREFIX}{name}");
       parser
         .build_info
-        .value_dependencies
-        .insert(cache_key, requests.join("."));
+        .update_value_dependencies(|values| values.insert(cache_key, requests.join(".")));
       return true;
     }
     false

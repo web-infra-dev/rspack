@@ -15,7 +15,7 @@ fn module_has_side_effects_free_export(
   atom: &Atom,
 ) -> Option<bool> {
   let module = module_graph.module_by_identifier(module_identifier)?;
-  let side_effects_free = module.build_info().side_effects_free.as_ref()?;
+  let side_effects_free = module.build_info().side_effects_free()?;
   Some(side_effects_free.contains(atom))
 }
 

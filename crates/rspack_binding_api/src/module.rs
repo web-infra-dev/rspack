@@ -569,28 +569,28 @@ impl Module {
     source: JsSourceFromJs,
     object: Option<Object>,
   ) -> napi::Result<()> {
-    let module = self.as_mut()?;
+    self.with_mutation(|module| {
+      let asset_info = match object {
+        Some(object) => {
+          let js_info: AssetInfo =
+            unsafe { FromNapiValue::from_napi_value(env.raw(), object.raw())? };
+          let info: rspack_core::AssetInfo = js_info.into();
+          let info = BindingCell::from(info);
+          info.reflector().set_jsobject(env, object)?;
+          info
+        }
+        None => Default::default(),
+      };
 
-    let asset_info = match object {
-      Some(object) => {
-        let js_info: AssetInfo =
-          unsafe { FromNapiValue::from_napi_value(env.raw(), object.raw())? };
-        let info: rspack_core::AssetInfo = js_info.into();
-        let info = BindingCell::from(info);
-        info.reflector().set_jsobject(env, object)?;
-        info
-      }
-      None => Default::default(),
-    };
-
-    module.build_info_mut().assets.insert(
-      filename,
-      rspack_core::CompilationAsset {
+      let asset = rspack_core::CompilationAsset {
         source: Some(source.try_into()?),
         info: asset_info,
-      },
-    );
-    Ok(())
+      };
+      module
+        .build_info()
+        .update_assets(|assets| assets.insert(filename, asset));
+      Ok(())
+    })
   }
 }
 

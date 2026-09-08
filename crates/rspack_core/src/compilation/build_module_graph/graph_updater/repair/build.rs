@@ -123,6 +123,7 @@ impl Task<TaskContext> for BuildResultTask {
       .await?;
 
     let build_info = module.build_info();
+    let dependencies = build_info.dependencies();
 
     if !module.diagnostics().is_empty() {
       context
@@ -141,19 +142,19 @@ impl Task<TaskContext> for BuildResultTask {
     context
       .artifact
       .file_dependencies
-      .add_files(&resource_id, &build_info.dependencies.file);
+      .add_files(&resource_id, &dependencies.file);
     context
       .artifact
       .context_dependencies
-      .add_files(&resource_id, &build_info.dependencies.context);
+      .add_files(&resource_id, &dependencies.context);
     context
       .artifact
       .missing_dependencies
-      .add_files(&resource_id, &build_info.dependencies.missing);
+      .add_files(&resource_id, &dependencies.missing);
     context
       .artifact
       .build_dependencies
-      .add_files(&resource_id, &build_info.dependencies.build);
+      .add_files(&resource_id, &dependencies.build);
 
     let module_graph = &mut context.artifact.module_graph;
     let mut lazy_dependencies = LazyDependencies::default();

@@ -51,7 +51,9 @@ fn extract_deps(
 
 impl JavascriptParser<'_> {
   fn create_hmr_expression_handler(&mut self, span: Span) {
-    self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
+    self
+      .build_info
+      .set_module_concatenation_bailout(Some(String::from("Hot Module Replacement")));
     let range = DependencyRange::from(span);
     let loc = self.to_dependency_location(range);
     self.add_presentational_dependency(Arc::new(ModuleArgumentDependency::new(
@@ -66,7 +68,9 @@ impl JavascriptParser<'_> {
     call_expr: &CallExpr,
     create_dependency: CreateDependency,
   ) -> Option<bool> {
-    self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
+    self
+      .build_info
+      .set_module_concatenation_bailout(Some(String::from("Hot Module Replacement")));
     let callee_span = call_expr.callee.span();
     let callee_range = DependencyRange::from(callee_span);
     let loc = self.to_dependency_location(callee_range);
@@ -107,7 +111,9 @@ impl JavascriptParser<'_> {
     call_expr: &CallExpr,
     create_dependency: CreateDependency,
   ) -> Option<bool> {
-    self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
+    self
+      .build_info
+      .set_module_concatenation_bailout(Some(String::from("Hot Module Replacement")));
     let callee_span = call_expr.callee.span();
     let callee_range = DependencyRange::from(callee_span);
     let loc = self.to_dependency_location(callee_range);

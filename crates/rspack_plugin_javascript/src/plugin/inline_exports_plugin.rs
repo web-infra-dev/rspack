@@ -17,7 +17,7 @@ fn inline_enabled(dependency_id: &DependencyId, mg: &ModuleGraph) -> bool {
   let module = mg
     .get_module_by_dependency_id(dependency_id)
     .expect("should have target module");
-  module.build_info().inline_exports
+  module.build_info().inline_exports()
 }
 
 pub fn is_export_inlined(

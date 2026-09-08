@@ -34,7 +34,7 @@ impl ParserAndGenerator for RslibAssetParserAndGenerator {
     if source_types.is_empty()
       && module
         .build_info()
-        .asset
+        .asset()
         .as_ref()
         .is_some_and(|asset| !asset.data_url.is_inline() && !asset.data_url.is_source())
     {

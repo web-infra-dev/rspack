@@ -1,3 +1,5 @@
+mod build_info;
+pub use build_info::BuildInfo;
 mod build_meta;
 use std::{
   any::Any,
@@ -11,7 +13,6 @@ use std::{
 
 use async_trait::async_trait;
 pub use build_meta::BuildMeta;
-use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   rkyv::with::{AtomicLoad, Relaxed},
@@ -21,28 +22,27 @@ use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet}
 use rspack_error::{Diagnosable, Result};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher, write_u64_hex};
-use rspack_intern::{Atom, AtomSet, IndexAtomMap};
+use rspack_intern::{Atom, IndexAtomMap};
 use rspack_sources::BoxSource;
 use rspack_util::{
   ext::AsAny,
   fx_hash::{FxIndexMap, FxIndexSet},
   source_map::ModuleSourceMapConfig,
 };
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
-  AsyncDependenciesBlockBuildResult, BindingCell, CacheFacade, ChunkGraph, ChunkUkey,
-  CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation, CompilationAsset,
-  CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
-  ContextModule, CssExportType, DependenciesBlock, DependencyCodeGenerationRef, DependencyId,
-  DependencyRef, ExportProvided, ExportsInfoArtifact, ExternalModule, FileSystemInfo, Filename,
-  GetTargetResult, ImportPhase, ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleLayer, ModuleType, NormalModule, OptimizationBailoutItem, RawModule, Resolve,
-  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SideEffectsStateArtifact, Snapshot,
-  SourceType, concatenated_module::ConcatenatedModule,
+  AsyncDependenciesBlockBuildResult, CacheFacade, ChunkGraph, ChunkUkey,
+  CodeGenerationResultBuilder, Compilation, CompilationId, CompilerId, CompilerOptions,
+  ConcatenationScope, ConnectionState, Context, ContextModule, CssExportType, DependenciesBlock,
+  DependencyCodeGenerationRef, DependencyId, DependencyRef, ExportProvided, ExportsInfoArtifact,
+  ExternalModule, FileSystemInfo, Filename, GetTargetResult, ModuleCodeTemplate, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, OptimizationBailoutItem,
+  RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver,
+  SideEffectsStateArtifact, SourceType, concatenated_module::ConcatenatedModule,
   dependencies_block::dependencies_block_update_hash, get_target,
   value_cache_versions::ValueCacheVersions,
 };
@@ -285,82 +285,6 @@ pub struct IsolatedDts {
 pub struct AssetBuildInfo {
   pub data_url: CanonicalizedDataUrlOption,
   pub filename: Option<Filename>,
-}
-
-#[cacheable]
-#[derive(Debug, Clone)]
-pub struct BuildInfo {
-  /// Whether the result is cacheable, i.e shared between builds.
-  pub cacheable: bool,
-  pub hash: Option<RspackHashDigest>,
-  pub strict: bool,
-  pub module_argument: ModuleArgument,
-  pub exports_argument: ExportsArgument,
-  pub dependencies: crate::LoaderDependencies,
-  /// Snapshot used by full `need_build` validation. `NormalModule` populates
-  /// this when the module build cache is enabled; other builds leave it empty
-  /// to avoid snapshot creation overhead.
-  pub snapshot: Option<Snapshot>,
-  pub value_dependencies: HashMap<String, String>,
-  #[cacheable(with=AsVec<AsPreset>)]
-  pub esm_named_exports: HashSet<Atom>,
-  pub all_star_exports: Vec<DependencyId>,
-  pub need_create_require: bool,
-  #[cacheable(with=AsOption<AsPreset>)]
-  pub json_data: Option<JsonValue>,
-  pub asset: Option<Box<AssetBuildInfo>>,
-  pub css: Option<Box<CssBuildInfo>>,
-  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
-  pub side_effects_free: Option<AtomSet>,
-  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
-  pub top_level_declarations: Option<AtomSet>,
-  pub module_concatenation_bailout: Option<String>,
-  pub assets: BindingCell<HashMap<String, CompilationAsset>>,
-  pub module: bool,
-  pub inline_exports: bool,
-  pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
-  pub rsc: Option<RscMeta>,
-  pub import_phase: ImportPhase,
-  pub isolated_dts: Option<Box<IsolatedDts>>,
-  /// Stores external fields from the JS side (Record<string, any>),
-  /// while other properties are stored in KnownBuildInfo.
-  #[cacheable(with=AsPreset)]
-  pub extras: serde_json::Map<String, serde_json::Value>,
-  #[cacheable(with=AsVec)]
-  pub deferred_pure_checks: HashSet<DeferredPureCheck>,
-}
-
-impl Default for BuildInfo {
-  fn default() -> Self {
-    Self {
-      cacheable: true,
-      hash: None,
-      strict: false,
-      module_argument: Default::default(),
-      exports_argument: Default::default(),
-      dependencies: Default::default(),
-      snapshot: None,
-      value_dependencies: HashMap::default(),
-      esm_named_exports: HashSet::default(),
-      all_star_exports: Vec::default(),
-      need_create_require: false,
-      json_data: None,
-      asset: None,
-      css: None,
-      side_effects_free: None,
-      top_level_declarations: None,
-      module_concatenation_bailout: None,
-      assets: Default::default(),
-      module: false,
-      inline_exports: false,
-      collected_typescript_info: None,
-      rsc: None,
-      import_phase: ImportPhase::Evaluation,
-      isolated_dts: None,
-      extras: Default::default(),
-      deferred_pure_checks: HashSet::default(),
-    }
-  }
 }
 
 #[cacheable]
@@ -663,16 +587,14 @@ pub trait Module:
 
   fn build_info(&self) -> &BuildInfo;
 
-  fn build_info_mut(&mut self) -> &mut BuildInfo;
-
   fn build_meta(&self) -> &Arc<BuildMeta>;
 
   fn get_exports_argument(&self) -> ExportsArgument {
-    self.build_info().exports_argument
+    self.build_info().exports_argument()
   }
 
   fn get_module_argument(&self) -> ModuleArgument {
-    self.build_info().module_argument
+    self.build_info().module_argument()
   }
 
   fn get_exports_type(
@@ -803,8 +725,8 @@ pub trait Module:
   /// [`Module::need_build`] and must not be used as the general rebuild check.
   fn need_build_for_incremental(&self, value_cache_version: &ValueCacheVersions) -> bool {
     let build_info = self.build_info();
-    !build_info.cacheable
-      || value_cache_version.has_diff(&build_info.value_dependencies)
+    !build_info.cacheable()
+      || value_cache_version.has_diff(&build_info.value_dependencies())
       || self.diagnostics().iter().any(|item| item.is_error())
   }
 
@@ -1051,10 +973,6 @@ macro_rules! impl_module_meta_info {
       &self.build_info
     }
 
-    fn build_info_mut(&mut self) -> &mut $crate::BuildInfo {
-      &mut self.build_info
-    }
-
     fn build_meta(&self) -> &::std::sync::Arc<$crate::BuildMeta> {
       &self.build_meta
     }
@@ -1219,10 +1137,6 @@ mod test {
         }
 
         fn build_info(&self) -> &crate::BuildInfo {
-          unreachable!()
-        }
-
-        fn build_info_mut(&mut self) -> &mut crate::BuildInfo {
           unreachable!()
         }
 

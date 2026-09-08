@@ -457,7 +457,7 @@ pub struct ExternalModule {
   /// Request intended by user (without loaders from config)
   user_request: String,
   factory_meta: Arc<FactoryMeta>,
-  build_info: BuildInfo,
+  build_info: Arc<BuildInfo>,
   build_meta: Arc<BuildMeta>,
   dependency_meta: DependencyMeta,
   place_in_initial: bool,
@@ -516,10 +516,11 @@ impl ExternalModule {
       external_type,
       user_request,
       factory_meta: Default::default(),
-      build_info: BuildInfo {
-        top_level_declarations: Some(Default::default()),
-        strict: true,
-        ..Default::default()
+      build_info: {
+        let info = Arc::new(BuildInfo::default());
+        info.set_top_level_declarations(Some(Default::default()));
+        info.set_strict(true);
+        info
       },
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
@@ -1160,7 +1161,9 @@ impl Module for ExternalModule {
     build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    self.build_info.module = build_context.compiler_options.output.module;
+    self
+      .build_info
+      .set_module(build_context.compiler_options.output.module);
     let resolved_external_type = self.resolve_external_type();
     let request = match &self.request {
       ExternalRequest::Single(request) => Some(request),
@@ -1171,7 +1174,7 @@ impl Module for ExternalModule {
 
     #[allow(clippy::collapsible_match)]
     match resolved_external_type {
-      "this" => self.build_info.strict = false,
+      "this" => self.build_info.set_strict(false),
       "system" => {
         if !request.is_some_and(|r| r.has_rest()) {
           exports_type = BuildMetaExportsType::Namespace;
@@ -1179,7 +1182,7 @@ impl Module for ExternalModule {
         }
       }
       "module" => {
-        if self.build_info.module {
+        if self.build_info.module() {
           if !request.is_some_and(|r| r.has_rest()) {
             exports_type = BuildMetaExportsType::Namespace;
             can_mangle = true;

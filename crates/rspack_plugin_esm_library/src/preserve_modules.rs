@@ -181,16 +181,13 @@ pub async fn preserve_modules(
     // up the new path during code generation.
     if is_asset {
       let filename = Filename::from(file_path_str.clone());
-      let module_graph = compilation.get_module_graph_mut();
-      if let Some(module) = module_graph.module_by_identifier_mut(&module_id)
-        && let Some(normal_module) = module.as_normal_module_mut()
+      let module_graph = compilation.get_module_graph();
+      if let Some(module) = module_graph.module_by_identifier(&module_id)
+        && let Some(normal_module) = module.as_normal_module()
       {
         normal_module
-          .build_info_mut()
-          .asset
-          .as_mut()
-          .expect("asset build info should exist for asset module")
-          .filename = Some(filename);
+          .build_info()
+          .update_asset(|asset| asset.filename = Some(filename));
       }
       continue;
     }

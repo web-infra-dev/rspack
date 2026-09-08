@@ -78,7 +78,7 @@ impl CssParserAndGenerator {
   fn effective_export_type(&self, module: &dyn Module) -> Option<CssExportType> {
     module
       .build_info()
-      .css
+      .css()
       .as_deref()
       .and_then(|css| css.export_type)
       .or(self.export_type)
@@ -243,10 +243,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
       .expect("should have named_exports");
 
     {
-      let build_info = &mut *parse_context.build_info;
+      let build_info = parse_context.build_info;
       let build_meta = parse_context.build_meta;
 
-      build_info.strict = true;
+      build_info.set_strict(true);
       build_meta.set_is_css_module(is_css_module(
         parse_context.module_type,
         parse_context.resource_data.path().map(|path| path.as_str()),
@@ -312,7 +312,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     } else if self.effective_export_type(module) == Some(CssExportType::Style)
       && module
         .build_info()
-        .css
+        .css()
         .as_deref()
         .is_some_and(|css_build_info| css_build_info.has_render_conditions())
     {

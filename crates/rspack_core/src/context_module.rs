@@ -274,7 +274,7 @@ pub struct ContextModule {
   identifier: Identifier,
   options: ContextModuleOptions,
   factory_meta: Arc<FactoryMeta>,
-  build_info: BuildInfo,
+  build_info: Arc<BuildInfo>,
   build_meta: Arc<BuildMeta>,
   #[debug(skip)]
   #[cacheable(with=Unsupported)]
@@ -287,9 +287,9 @@ impl ContextModule {
     options: ContextModuleOptions,
     strict: Option<bool>,
   ) -> Self {
-    let mut build_info = BuildInfo::default();
+    let build_info = Arc::new(BuildInfo::default());
     if let Some(strict) = strict {
-      build_info.strict = strict;
+      build_info.set_strict(strict);
     }
 
     Self {
@@ -1520,7 +1520,9 @@ impl Module for ContextModule {
     if !self.options.resource.as_str().is_empty() {
       let mut context_dependencies: InternedPathSet = Default::default();
       context_dependencies.insert(self.options.resource.as_std_path().into());
-      self.build_info.dependencies.context = context_dependencies;
+      self
+        .build_info
+        .update_dependencies(|dependencies| dependencies.context = context_dependencies);
     }
 
     Ok(BuildResult {

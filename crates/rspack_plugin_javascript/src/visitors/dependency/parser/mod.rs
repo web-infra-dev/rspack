@@ -423,7 +423,7 @@ pub struct JavascriptParser<'parser> {
   pub parse_meta: ParseMeta,
   pub factory_meta: Option<&'parser FactoryMeta>,
   pub build_meta: &'parser BuildMeta,
-  pub build_info: &'parser mut BuildInfo,
+  pub build_info: &'parser BuildInfo,
   pub resource_data: &'parser ResourceData,
   pub(crate) compiler_options: &'parser CompilerOptions,
   pub(crate) javascript_options: &'parser JavascriptParserOptions,
@@ -477,7 +477,7 @@ impl<'parser> JavascriptParser<'parser> {
     resource_data: &'parser ResourceData,
     factory_meta: Option<&'parser FactoryMeta>,
     build_meta: &'parser BuildMeta,
-    build_info: &'parser mut BuildInfo,
+    build_info: &'parser BuildInfo,
     semicolons: &'parser mut FxHashSet<u32>,
     parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
     parse_meta: ParseMeta,
@@ -579,7 +579,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     let inline_exports = compiler_options.optimization.inline_exports;
     if inline_exports {
-      build_info.inline_exports = true;
+      build_info.set_inline_exports(true);
     }
     plugins.push(Box::new(parser_plugin::ConstValuePlugin::new(
       inline_exports,

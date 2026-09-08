@@ -120,7 +120,7 @@ impl EsmLibraryPlugin {
         should_scope_hoisting = false;
       }
       // TODO: support config to disable scope hoisting for non strict module
-      //  else if !module.build_info().strict {
+      //  else if !module.build_info().strict() {
       //   logger.debug(format!("module {module_identifier} is not strict module"));
       //   should_scope_hoisting = false;
       // }

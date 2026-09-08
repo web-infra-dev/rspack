@@ -248,22 +248,23 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       }
       let module = mg.module_by_identifier(&m).expect("should have module");
       let build_info = module.build_info();
+      let dependencies = build_info.dependencies();
       execute_result
         .file_dependencies
-        .extend(build_info.dependencies.file.iter().cloned());
+        .extend(dependencies.file.iter().cloned());
       execute_result
         .context_dependencies
-        .extend(build_info.dependencies.context.iter().cloned());
+        .extend(dependencies.context.iter().cloned());
       execute_result
         .missing_dependencies
-        .extend(build_info.dependencies.missing.iter().cloned());
+        .extend(dependencies.missing.iter().cloned());
       execute_result
         .build_dependencies
-        .extend(build_info.dependencies.build.iter().cloned());
-      if !build_info.cacheable {
+        .extend(dependencies.build.iter().cloned());
+      if !build_info.cacheable() {
         execute_result.cacheable = false;
       }
-      for (name, asset) in build_info.assets.as_ref() {
+      for (name, asset) in build_info.assets().as_ref() {
         assets.insert(name.clone(), asset.clone());
       }
       if !has_error && make_failed_module.contains(&m) {

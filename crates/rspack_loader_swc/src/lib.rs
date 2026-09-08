@@ -64,7 +64,11 @@ impl SwcLoader {
       .resource_path()
       .map(|p| p.to_path_buf())
       .unwrap_or_default();
-    loader_context.context.module.build_info_mut().isolated_dts = None;
+    loader_context
+      .context
+      .module
+      .build_info()
+      .set_isolated_dts(None);
     let Some(content) = loader_context.take_content() else {
       return Ok(());
     };
@@ -246,7 +250,7 @@ impl SwcLoader {
       handle_isolated_dts_diagnostics(isolated_dts.diagnostics)?;
 
       set_build_info(
-        loader_context.context.module.build_info_mut(),
+        loader_context.context.module.build_info(),
         resource_path.as_path(),
         loader_context.context.options.context.as_path(),
         isolated_dts.code,
@@ -256,7 +260,7 @@ impl SwcLoader {
 
     if let Some(rsc) = rsc_meta.borrow_mut().take() {
       let module = &mut loader_context.context.module;
-      module.build_info_mut().rsc = Some(rsc);
+      module.build_info().set_rsc(Some(rsc));
       if let Some(code) = to_server_entry(module)? {
         loader_context.finish_with(code);
         return Ok(());

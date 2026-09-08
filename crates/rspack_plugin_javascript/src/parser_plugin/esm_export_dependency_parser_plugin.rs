@@ -131,8 +131,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     );
     if !parser
       .build_info
-      .esm_named_exports
-      .insert(export_name.clone())
+      .update_esm_named_exports(|values| values.insert(export_name.clone()))
     {
       parser.add_error(
         create_traceable_error(
@@ -185,7 +184,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
         .map(|data| data.value.clone());
       let enum_value = parser
         .build_info
-        .collected_typescript_info
+        .collected_typescript_info()
         .as_ref()
         .and_then(|info| info.exported_enums.get(local_id).cloned());
       let variable = CompatibilityPlugin::update_nested_binding_declaration(parser, local_id);
@@ -225,8 +224,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     let star_exports = if let Some(export_name) = export_name {
       if !parser
         .build_info
-        .esm_named_exports
-        .insert(export_name.clone())
+        .update_esm_named_exports(|values| values.insert(export_name.clone()))
       {
         parser.add_error(
           create_traceable_error(
@@ -240,7 +238,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       }
       None
     } else {
-      Some(parser.build_info.all_star_exports.clone())
+      Some(parser.build_info.all_star_exports().as_ref().clone())
     };
     let dep = ESMExportImportedSpecifierDependency::new(
       source.clone(),
@@ -255,7 +253,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       parser.to_dependency_location(DependencyRange::from(statement.span())),
     );
     if export_name.is_none() {
-      parser.build_info.all_star_exports.push(dep.id);
+      parser
+        .build_info
+        .update_all_star_exports(|values| values.push(dep.id));
     }
     let is_asi_safe = !parser.is_asi_position(statement.span().start);
     if !is_asi_safe {

@@ -395,11 +395,12 @@ async fn embed_in_runtime_bailout(
   let codegen = compilation
     .code_generation_results
     .get(&module.identifier(), Some(chunk.runtime()));
+  let build_info_decls = module.build_info().top_level_declarations();
   let top_level_decls = codegen
     .data()
     .get::<CodeGenerationDataTopLevelDeclarations>()
     .map(|d| d.inner())
-    .or_else(|| module.build_info().top_level_declarations.as_ref());
+    .or(build_info_decls.as_deref());
   if let Some(top_level_decls) = top_level_decls {
     let full_name = self
       .get_resolved_full_name(&options, compilation, chunk)

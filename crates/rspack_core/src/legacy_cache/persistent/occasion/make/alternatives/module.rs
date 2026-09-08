@@ -18,7 +18,7 @@ use crate::{
 #[derive(Debug)]
 pub struct TempModule {
   id: ModuleIdentifier,
-  build_info: BuildInfo,
+  build_info: Arc<BuildInfo>,
   build_meta: Arc<BuildMeta>,
   dependencies: Vec<DependencyId>,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
@@ -29,9 +29,10 @@ impl TempModule {
     let m = module.as_ref();
     OwnedOrRef::Owned(BoxModule::new(Box::new(Self {
       id: m.identifier(),
-      build_info: BuildInfo {
-        dependencies: m.build_info().dependencies.clone(),
-        ..Default::default()
+      build_info: {
+        let info = Arc::new(BuildInfo::default());
+        info.set_dependencies(m.build_info().dependencies().as_ref().clone());
+        info
       },
       build_meta: m.build_meta().clone(),
       dependencies: m.get_dependencies().to_vec(),
@@ -62,10 +63,6 @@ impl Module for TempModule {
 
   fn build_info(&self) -> &BuildInfo {
     &self.build_info
-  }
-
-  fn build_info_mut(&mut self) -> &mut BuildInfo {
-    &mut self.build_info
   }
 
   fn build_meta(&self) -> &Arc<BuildMeta> {

@@ -6,7 +6,7 @@ use sugar_path::SugarPath;
 use crate::SWC_LOADER_IDENTIFIER;
 
 pub(crate) fn set_build_info(
-  build_info: &mut BuildInfo,
+  build_info: &BuildInfo,
   resource_path: &Utf8Path,
   compiler_context: &Utf8Path,
   code: String,
@@ -23,11 +23,11 @@ pub(crate) fn set_build_info(
   }
   .to_slash_lossy()
   .into_owned();
-  build_info.isolated_dts = Some(Box::new(IsolatedDts {
+  build_info.set_isolated_dts(Some(Box::new(IsolatedDts {
     resource_path,
     code,
     references,
-  }));
+  })));
 }
 
 pub(crate) fn handle_isolated_dts_diagnostics(diagnostics: Vec<String>) -> Result<()> {

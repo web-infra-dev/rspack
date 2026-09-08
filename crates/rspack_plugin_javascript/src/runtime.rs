@@ -308,7 +308,7 @@ pub async fn render_module(
         container_prefix.push_str(") {\n");
       }
       container_sources.add(RawStringSource::from(container_prefix));
-      if module.build_info().strict && !all_strict {
+      if module.build_info().strict() && !all_strict {
         container_sources.add(RawStringSource::from_static("\"use strict\";\n"));
       }
       container_sources.add(render_source.source);

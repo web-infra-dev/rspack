@@ -363,11 +363,14 @@ fn collect_duplicate_top_level_names(program: &Program) -> AtomSet {
 }
 
 fn mark_side_effects_free(parser: &mut JavascriptParser, name: &Atom, export_name: Option<&Atom>) {
-  let side_effects_free = parser.build_info.side_effects_free.get_or_insert_default();
-  side_effects_free.insert(name.clone());
-  if let Some(export_name) = export_name {
-    side_effects_free.insert(export_name.clone());
-  }
+  parser
+    .build_info
+    .update_side_effects_free(|side_effects_free| {
+      side_effects_free.insert(name.clone());
+      if let Some(export_name) = export_name {
+        side_effects_free.insert(export_name.clone());
+      }
+    });
 }
 
 fn try_mark_auto_side_effects_free_var_decl(
@@ -388,7 +391,7 @@ fn try_mark_auto_side_effects_free_var_decl(
     };
     if parser
       .build_info
-      .side_effects_free
+      .side_effects_free()
       .as_ref()
       .is_some_and(|side_effects_free| side_effects_free.contains(&ident.id.sym))
     {
@@ -431,7 +434,7 @@ fn try_mark_auto_side_effects_free_stmt(
       Decl::Fn(fn_decl) => {
         if parser
           .build_info
-          .side_effects_free
+          .side_effects_free()
           .as_ref()
           .is_some_and(|side_effects_free| side_effects_free.contains(&fn_decl.ident.sym))
           || duplicate_names.contains(&fn_decl.ident.sym)
@@ -479,7 +482,7 @@ fn try_mark_auto_side_effects_free_module_decl(
       };
       if parser
         .build_info
-        .side_effects_free
+        .side_effects_free()
         .as_ref()
         .is_some_and(|side_effects_free| side_effects_free.contains(&ident.sym))
         || duplicate_names.contains(&ident.sym)
@@ -506,7 +509,7 @@ fn try_mark_auto_side_effects_free_module_decl(
       };
       if parser
         .build_info
-        .side_effects_free
+        .side_effects_free()
         .as_ref()
         .is_some_and(|side_effects_free| side_effects_free.contains(&ident.sym))
         || duplicate_names.contains(&ident.sym)
@@ -528,7 +531,7 @@ fn try_mark_auto_side_effects_free_module_decl(
       Decl::Fn(fn_decl) => {
         if parser
           .build_info
-          .side_effects_free
+          .side_effects_free()
           .as_ref()
           .is_some_and(|side_effects_free| side_effects_free.contains(&fn_decl.ident.sym))
           || duplicate_names.contains(&fn_decl.ident.sym)
@@ -605,8 +608,10 @@ fn mark_auto_side_effects_free_program(
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
   fn program(&self, parser: &mut JavascriptParser<'p>, ast: &Program) -> Option<bool> {
-    parser.build_info.side_effects_free = None;
-    parser.build_info.deferred_pure_checks.clear();
+    parser.build_info.set_side_effects_free(None);
+    parser
+      .build_info
+      .update_deferred_pure_checks(|values| values.clear());
 
     // analyze if any function contains #__NO_SIDE_EFFECTS__ annotation
     // so that pure functions in current module can be marked as pure
@@ -624,16 +629,22 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
       ast.visit_with(&mut pure_annotation);
       let detected_side_effects_free = pure_annotation.side_effects_free;
       if !detected_side_effects_free.is_empty() {
-        let side_effects_free = parser.build_info.side_effects_free.get_or_insert_default();
-        side_effects_free.extend(detected_side_effects_free);
+        parser
+          .build_info
+          .update_side_effects_free(|side_effects_free| {
+            side_effects_free.extend(detected_side_effects_free)
+          });
       }
 
       if let Some(flagged_side_effects_free) = &parser.javascript_options.side_effects_free {
         let defined_side_effects_free =
           collect_defined_configured_side_effects_free(ast, flagged_side_effects_free);
         if !defined_side_effects_free.is_empty() {
-          let side_effects_free = parser.build_info.side_effects_free.get_or_insert_default();
-          side_effects_free.extend(defined_side_effects_free);
+          parser
+            .build_info
+            .update_side_effects_free(|side_effects_free| {
+              side_effects_free.extend(defined_side_effects_free)
+            });
         }
       }
 
@@ -641,7 +652,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
       loop {
         let prev_len = parser
           .build_info
-          .side_effects_free
+          .side_effects_free()
           .as_ref()
           .map_or(0, |side_effects_free| side_effects_free.len());
         mark_auto_side_effects_free_program(
@@ -653,7 +664,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
         );
         let next_len = parser
           .build_info
-          .side_effects_free
+          .side_effects_free()
           .as_ref()
           .map_or(0, |side_effects_free| side_effects_free.len());
         if next_len == prev_len {
@@ -693,8 +704,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
             if let Some(deferred_check) = try_extract_deferred_check(parser, callee, span) {
               parser
                 .build_info
-                .deferred_pure_checks
-                .insert(deferred_check);
+                .update_deferred_pure_checks(|values| values.insert(deferred_check));
             } else {
               let range = DependencyRange::from(span);
               let loc = parser.to_dependency_location(range);
@@ -729,8 +739,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
           if let Some(deferred_check) = try_extract_deferred_check(parser, callee, span) {
             parser
               .build_info
-              .deferred_pure_checks
-              .insert(deferred_check);
+              .update_deferred_pure_checks(|values| values.insert(deferred_check));
           } else {
             let range = DependencyRange::from(span);
             let loc = parser.to_dependency_location(range);
@@ -762,9 +771,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
       if let Some(side_effects_free) = &parser.javascript_options.side_effects_free {
         let mut side_effects_free = side_effects_free.iter().collect::<Vec<_>>();
         side_effects_free.sort();
-        let defined_side_effects_free = parser.build_info.side_effects_free.as_ref();
+        let defined_side_effects_free = parser.build_info.side_effects_free();
         for atom in side_effects_free {
           if !defined_side_effects_free
+            .as_ref()
             .is_some_and(|configured_side_effects_free| configured_side_effects_free.contains(atom))
           {
             not_defined.push(Atom::from(atom.clone()));
@@ -773,10 +783,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
       }
 
       if !not_defined.is_empty() {
-        if let Some(side_effects_free) = parser.build_info.side_effects_free.as_mut() {
-          for atom in &not_defined {
-            side_effects_free.remove(atom);
-          }
+        if parser.build_info.side_effects_free().is_some() {
+          parser
+            .build_info
+            .update_side_effects_free(|side_effects_free| {
+              for atom in &not_defined {
+                side_effects_free.remove(atom);
+              }
+            });
         }
 
         let resource = parser.resource_data.resource();
@@ -924,7 +938,7 @@ fn resolve_explicit_side_effects_free_callee(
 ) -> ExplicitSideEffectsFreeCallee {
   let is_marked = parser
     .build_info
-    .side_effects_free
+    .side_effects_free()
     .as_ref()
     .is_some_and(|side_effects_free| side_effects_free.contains(ident));
 
@@ -1284,8 +1298,7 @@ impl SideEffectsParserPlugin {
         if let Some(deferred_check) = try_extract_deferred_check(parser, callee, span) {
           parser
             .build_info
-            .deferred_pure_checks
-            .insert(deferred_check);
+            .update_deferred_pure_checks(|values| values.insert(deferred_check));
         } else {
           let range = DependencyRange::from(span);
           let loc = parser.to_dependency_location(range);

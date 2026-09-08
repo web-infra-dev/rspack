@@ -669,7 +669,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       // named export, importers may access arbitrary properties on it. In that
       // case the entire module must be considered referenced.
       if let Some(variable_name) = variable_name
-        && parser.build_info.esm_named_exports.contains(&variable_name)
+        && parser
+          .build_info
+          .esm_named_exports()
+          .contains(&variable_name)
       {
         references.push(ReferencedSpecifier::new(vec![]));
       }

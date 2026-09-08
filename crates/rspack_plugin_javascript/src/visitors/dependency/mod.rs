@@ -52,7 +52,7 @@ pub fn scan_dependencies(
   module_layer: Option<&ModuleLayer>,
   factory_meta: Option<&FactoryMeta>,
   build_meta: &BuildMeta,
-  build_info: &mut BuildInfo,
+  build_info: &BuildInfo,
   module_identifier: ModuleIdentifier,
   module_parser_options: Option<&ParserOptions>,
   import_meta: ArcComputed<ResolvedModuleOptions, ImportMeta>,

@@ -25,7 +25,7 @@ pub struct SelfModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
   factory_meta: Arc<FactoryMeta>,
-  build_info: BuildInfo,
+  build_info: Arc<BuildInfo>,
   build_meta: Arc<BuildMeta>,
 }
 
@@ -38,9 +38,10 @@ impl SelfModule {
       blocks: Default::default(),
       dependencies: Default::default(),
       factory_meta: Default::default(),
-      build_info: BuildInfo {
-        strict: true,
-        ..Default::default()
+      build_info: {
+        let info = Arc::new(BuildInfo::default());
+        info.set_strict(true);
+        info
       },
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),

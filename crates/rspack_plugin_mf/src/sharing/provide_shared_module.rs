@@ -43,7 +43,7 @@ pub struct ProvideSharedModule {
   strict_version: Option<bool>,
   tree_shaking_mode: Option<String>,
   factory_meta: Arc<FactoryMeta>,
-  build_info: BuildInfo,
+  build_info: Arc<BuildInfo>,
   build_meta: Arc<BuildMeta>,
 }
 
@@ -83,9 +83,10 @@ impl ProvideSharedModule {
       strict_version,
       tree_shaking_mode,
       factory_meta: Default::default(),
-      build_info: BuildInfo {
-        strict: true,
-        ..Default::default()
+      build_info: {
+        let info = Arc::new(BuildInfo::default());
+        info.set_strict(true);
+        info
       },
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),

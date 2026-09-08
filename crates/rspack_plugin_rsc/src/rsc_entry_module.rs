@@ -46,7 +46,7 @@ pub struct RscEntryModule {
   /// When true, client modules are loaded eagerly (not as code-split points).
   is_server_side_rendering: bool,
   factory_meta: Arc<FactoryMeta>,
-  build_info: BuildInfo,
+  build_info: Arc<BuildInfo>,
   build_meta: Arc<BuildMeta>,
   layer: Option<ModuleLayer>,
 }
@@ -87,10 +87,11 @@ impl RscEntryModule {
       name,
       is_server_side_rendering,
       factory_meta: Default::default(),
-      build_info: BuildInfo {
-        strict: true,
-        top_level_declarations: Some(Default::default()),
-        ..Default::default()
+      build_info: {
+        let info = Arc::new(BuildInfo::default());
+        info.set_strict(true);
+        info.set_top_level_declarations(Some(Default::default()));
+        info
       },
       build_meta: BuildMeta::default()
         .with_exports_type(BuildMetaExportsType::Namespace)

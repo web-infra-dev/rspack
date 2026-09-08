@@ -371,7 +371,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         TypeReexportPresenceMode::NoTolerant
       ) && parent_module
         .build_info()
-        .collected_typescript_info
+        .collected_typescript_info()
         .is_some()
         && ids.len() == 1
         && matches!(
@@ -480,7 +480,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         )
         // Ignore the JSON named exports warning: this doesn't follow the standards
         // but it's widely used by the community, other bundlers also ignore the warning.
-        && imported_module.build_info().json_data.is_none()
+        && imported_module.build_info().json_data().is_none()
       {
         let msg = format!(
           "Should not import the named export {} {} from default-exporting module (only default export is available soon)",
@@ -512,7 +512,7 @@ fn find_type_exports_from_outgoings(
   // bailout the check of this export chain if there is a module that not transpiled from
   // typescript, we only support that the export chain is all transpiled typescript, if not
   // the check will be very slow especially when big javascript npm package exists.
-  let Some(info) = &module.build_info().collected_typescript_info else {
+  let Some(info) = &module.build_info().collected_typescript_info() else {
     return false;
   };
   if info.type_exports.contains(export_name) {

@@ -344,7 +344,9 @@ impl ImportMetaPlugin {
   }
 
   fn import_meta_main(&self, parser: &mut JavascriptParser) -> String {
-    parser.build_info.module_concatenation_bailout = Some("import.meta.main".into());
+    parser
+      .build_info
+      .set_module_concatenation_bailout(Some("import.meta.main".into()));
     parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
       RuntimeGlobals::MODULE_CACHE | RuntimeGlobals::ENTRY_MODULE_ID | RuntimeGlobals::MODULE,
     )));
@@ -356,7 +358,7 @@ impl ImportMetaPlugin {
       "] === ",
       parser
         .parser_runtime_requirements
-        .module_argument(&parser.build_info.module_argument),
+        .module_argument(&parser.build_info.module_argument()),
       ")"
     )
   }
@@ -472,20 +474,19 @@ fn is_rsc_layer(parser: &JavascriptParser) -> bool {
 }
 
 fn mark_import_meta_rsc_used(parser: &mut JavascriptParser) {
-  match parser.build_info.rsc.as_mut() {
-    Some(rsc) => {
-      rsc.import_meta_rsc = true;
-    }
-    None => {
-      parser.build_info.rsc = Some(RscMeta {
-        module_type: RscModuleType::Server,
-        server_refs: Default::default(),
-        client_refs: Default::default(),
-        import_meta_rsc: true,
-        is_cjs: false,
-        action_ids: Default::default(),
-      });
-    }
+  if parser
+    .build_info
+    .update_rsc(|rsc| rsc.import_meta_rsc = true)
+    .is_none()
+  {
+    parser.build_info.set_rsc(Some(RscMeta {
+      module_type: RscModuleType::Server,
+      server_refs: Default::default(),
+      client_refs: Default::default(),
+      import_meta_rsc: true,
+      is_cjs: false,
+      action_ids: Default::default(),
+    }));
   }
 }
 

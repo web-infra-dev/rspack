@@ -40,7 +40,7 @@ pub struct ParseContext<'a> {
   pub additional_data: Option<AdditionalData>,
   pub factory_meta: Option<&'a FactoryMeta>,
   pub parse_meta: ParseMeta,
-  pub build_info: &'a mut BuildInfo,
+  pub build_info: &'a BuildInfo,
   pub build_meta: &'a BuildMeta,
   pub runtime_template: &'a ModuleCodeTemplate,
 }

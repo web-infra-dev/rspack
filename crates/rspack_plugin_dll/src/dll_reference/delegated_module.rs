@@ -34,7 +34,7 @@ pub struct DelegatedModule {
   dependencies: Vec<DependencyId>,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   factory_meta: Arc<FactoryMeta>,
-  build_info: BuildInfo,
+  build_info: Arc<BuildInfo>,
   build_meta: Arc<BuildMeta>,
 }
 

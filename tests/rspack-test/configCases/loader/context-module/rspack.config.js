@@ -31,6 +31,16 @@ module.exports = {
                 if (module.identifier().endsWith('a.js')) {
                   hasModule = true;
                   assert(module.buildInfo.LOADER_ACCESS === true);
+                  assert.deepStrictEqual(Object.keys(module.buildInfo.assets), [
+                    'metadata.txt',
+                  ]);
+                  assert.strictEqual(
+                    compilation
+                      .getAsset('metadata.txt')
+                      .source.source()
+                      .toString(),
+                    'metadata',
+                  );
                   assert(module.buildMeta.LOADER_ACCESS === true);
                   assert(module.factoryMeta.sideEffectFree === true);
                 }

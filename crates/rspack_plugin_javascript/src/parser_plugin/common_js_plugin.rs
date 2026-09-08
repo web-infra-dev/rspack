@@ -61,7 +61,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
       parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
         RuntimeGlobals::MODULE_ID,
       )));
-      parser.build_info.module_concatenation_bailout = Some(for_name.to_string());
+      parser
+        .build_info
+        .set_module_concatenation_bailout(Some(for_name.to_string()));
       return Some(true);
     }
 
@@ -69,7 +71,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
       parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
         RuntimeGlobals::MODULE_LOADED,
       )));
-      parser.build_info.module_concatenation_bailout = Some(for_name.to_string());
+      parser
+        .build_info
+        .set_module_concatenation_bailout(Some(for_name.to_string()));
       return Some(true);
     }
 

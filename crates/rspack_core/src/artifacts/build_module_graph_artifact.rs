@@ -157,19 +157,20 @@ impl BuildModuleGraphArtifact {
       .expect("should have module");
     // clean module build info
     let build_info = module.build_info();
+    let dependencies = build_info.dependencies();
     let resource_id = ResourceId::from(module_identifier);
     self
       .file_dependencies
-      .remove_files(&resource_id, &build_info.dependencies.file);
+      .remove_files(&resource_id, &dependencies.file);
     self
       .context_dependencies
-      .remove_files(&resource_id, &build_info.dependencies.context);
+      .remove_files(&resource_id, &dependencies.context);
     self
       .missing_dependencies
-      .remove_files(&resource_id, &build_info.dependencies.missing);
+      .remove_files(&resource_id, &dependencies.missing);
     self
       .build_dependencies
-      .remove_files(&resource_id, &build_info.dependencies.build);
+      .remove_files(&resource_id, &dependencies.build);
     self.make_failed_module.remove(module_identifier);
 
     // clean incoming & all_dependencies(outgoing) factorize info

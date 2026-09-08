@@ -527,7 +527,7 @@ pub struct ConcatenatedModule {
   #[cacheable(with=As<SourceSizeCacheSerde>)]
   cached_source_sizes: SourceSizeCache,
   diagnostics: Vec<Diagnostic>,
-  build_info: BuildInfo,
+  build_info: Arc<BuildInfo>,
 }
 
 #[allow(unused)]
@@ -552,13 +552,14 @@ impl ConcatenatedModule {
       blocks: vec![],
       cached_source_sizes: SourceSizeCache::default(),
       diagnostics: vec![],
-      build_info: BuildInfo {
-        cacheable: true,
-        strict: true,
-        module_argument,
-        exports_argument,
-        top_level_declarations: Some(Default::default()),
-        ..Default::default()
+      build_info: {
+        let info = Arc::new(BuildInfo::default());
+        info.set_cacheable(true);
+        info.set_strict(true);
+        info.set_module_argument(module_argument);
+        info.set_exports_argument(exports_argument);
+        info.set_top_level_declarations(Some(Default::default()));
+        info
       },
       source_map_kind: SourceMapKind::empty(),
     }
@@ -748,10 +749,6 @@ impl Module for ConcatenatedModule {
     &self.build_info
   }
 
-  fn build_info_mut(&mut self) -> &mut BuildInfo {
-    &mut self.build_info
-  }
-
   fn build_meta(&self) -> &Arc<BuildMeta> {
     &self.root_module_ctxt.build_meta
   }
@@ -807,7 +804,9 @@ impl Module for ConcatenatedModule {
       .expect("should have root module");
 
     // populate root inline_exports
-    self.build_info.inline_exports = root_module.build_info().inline_exports;
+    self
+      .build_info
+      .set_inline_exports(root_module.build_info().inline_exports());
 
     let dependency_parts = self
       .modules
@@ -841,8 +840,8 @@ impl Module for ConcatenatedModule {
       let cur_build_info = module.build_info();
 
       // populate cacheable
-      if !cur_build_info.cacheable {
-        self.build_info.cacheable = false;
+      if !cur_build_info.cacheable() {
+        self.build_info.set_cacheable(false);
       }
 
       // populate blocks
@@ -854,25 +853,29 @@ impl Module for ConcatenatedModule {
 
       // populate topLevelDeclarations
       let module_build_info = module.build_info();
-      if let Some(decls) = &module_build_info.top_level_declarations
-        && let Some(top_level_declarations) = &mut self.build_info.top_level_declarations
+      if let Some(decls) = &module_build_info.top_level_declarations()
+        && self.build_info.top_level_declarations().is_some()
       {
-        top_level_declarations.extend(decls.iter().cloned());
+        self
+          .build_info
+          .update_top_level_declarations(|target| target.extend(decls.iter().cloned()));
       } else {
-        self.build_info.top_level_declarations = None;
+        self.build_info.set_top_level_declarations(None);
       }
 
-      if module_build_info.need_create_require {
-        self.build_info.need_create_require = true;
+      if module_build_info.need_create_require() {
+        self.build_info.set_need_create_require(true);
       }
 
       // populate assets
-      self.build_info.assets.extend(
-        module_build_info
-          .assets
-          .iter()
-          .map(|(name, asset)| (name.clone(), asset.clone())),
-      );
+      self.build_info.update_assets(|assets| {
+        assets.extend(
+          module_build_info
+            .assets()
+            .iter()
+            .map(|(name, asset)| (name.clone(), asset.clone())),
+        )
+      });
     }
     // return a dummy result is enough, since we don't build the ConcatenatedModule in make phase
     Ok(BuildResult {

@@ -97,15 +97,12 @@ impl KnownBuildInfo {
     }
   }
 
-  pub fn with_mut<T>(
+  pub fn with_mutation<T>(
     &mut self,
-    f: impl FnOnce(&mut dyn rspack_core::Module) -> napi::Result<T>,
+    f: impl FnOnce(&dyn rspack_core::Module) -> napi::Result<T>,
   ) -> napi::Result<T> {
     match self.module_reference.get_mut() {
-      Some(reference) => {
-        let module = reference.as_mut()?;
-        f(module)
-      }
+      Some(reference) => reference.with_mutation(f),
       None => Err(napi::Error::from_reason(
         "Unable to access buildInfo. The Module has been garbage collected by JavaScript."
           .to_string(),
@@ -153,7 +150,7 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
         .with_name(env, symbol)?
         .with_getter_closure(|env, this| {
           let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
-          wrapped_value.with_ref(|module| Ok(module.build_info().assets.reflector()))
+          wrapped_value.with_ref(|module| Ok(module.build_info().assets().reflector()))
         })
         .with_property_attributes(PropertyAttributes::Configurable),
     );
@@ -172,7 +169,7 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
           let result = wrapped_value.with_ref(|module| {
             module
               .build_info()
-              .dependencies
+              .dependencies()
               .file
               .iter()
               .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
@@ -197,7 +194,7 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
           let result = wrapped_value.with_ref(|module| {
             module
               .build_info()
-              .dependencies
+              .dependencies()
               .context
               .iter()
               .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
@@ -222,7 +219,7 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
           let result = wrapped_value.with_ref(|module| {
             module
               .build_info()
-              .dependencies
+              .dependencies()
               .missing
               .iter()
               .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
@@ -247,7 +244,7 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
           let result = wrapped_value.with_ref(|module| {
             module
               .build_info()
-              .dependencies
+              .dependencies()
               .build
               .iter()
               .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
@@ -291,7 +288,7 @@ impl ToNapiValue for BuildInfo {
             let this: &mut KnownBuildInfo =
               FromNapiMutRef::from_napi_mut_ref(env.raw(), object.raw())?;
 
-            this.with_mut(|module| {
+            this.with_mutation(|module| {
               let mut extras = serde_json::Map::new();
               let names = Array::from_unknown(object.get_property_names()?.to_unknown())?;
               for index in 0..names.len() {
@@ -305,16 +302,16 @@ impl ToNapiValue for BuildInfo {
                 }
               }
 
-              module.build_info_mut().extras = extras;
+              module.build_info().set_extras(extras);
 
               Ok(())
             })
           })?;
 
         val.with_ref(|module| {
-          let extras = &module.build_info().extras;
+          let extras = &module.build_info().extras();
           properties.reserve(extras.len() + 1);
-          for (key, value) in extras {
+          for (key, value) in extras.iter() {
             let napi_val = ToNapiValue::to_napi_value(env, value)?;
             properties.push(
               Property::new()

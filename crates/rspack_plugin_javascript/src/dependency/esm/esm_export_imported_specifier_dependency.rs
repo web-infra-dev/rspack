@@ -1,6 +1,9 @@
 use std::{
   hash::BuildHasherDefault,
-  sync::atomic::{AtomicBool, Ordering},
+  sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+  },
 };
 
 use indexmap::IndexMap;
@@ -104,27 +107,27 @@ impl ESMExportImportedSpecifierDependency {
   }
 
   // Because it is shared by multiply ESMExportImportedSpecifierDependency, so put it to `BuildInfo`
-  pub fn active_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a HashSet<Atom> {
+  pub fn active_exports(&self, module_graph: &ModuleGraph) -> Arc<HashSet<Atom>> {
     let build_info = module_graph
       .get_parent_module(&self.id)
       .and_then(|ident| module_graph.module_by_identifier(ident))
       .expect("should have mgm")
       .build_info();
-    &build_info.esm_named_exports
+    build_info.esm_named_exports()
   }
 
   // Because it is shared by multiply ESMExportImportedSpecifierDependency, so put it to `BuildInfo`
-  pub fn all_star_exports<'a>(
+  pub fn all_star_exports(
     &self,
-    module_graph: &'a ModuleGraph,
-  ) -> Option<(ModuleIdentifier, &'a Vec<DependencyId>)> {
+    module_graph: &ModuleGraph,
+  ) -> Option<(ModuleIdentifier, Arc<Vec<DependencyId>>)> {
     let module = module_graph
       .get_parent_module(&self.id)
       .and_then(|ident| module_graph.module_by_identifier(ident));
 
     if let Some(module) = module {
       let build_info = module.build_info();
-      Some((module.identifier(), &build_info.all_star_exports))
+      Some((module.identifier(), build_info.all_star_exports()))
     } else {
       None
     }
@@ -337,7 +340,7 @@ impl ESMExportImportedSpecifierDependency {
     );
 
     let ignored_exports: HashSet<Atom> = {
-      let mut e = self.active_exports(module_graph).clone();
+      let mut e = self.active_exports(module_graph).as_ref().clone();
       e.insert("default".into());
       e
     };
@@ -473,7 +476,7 @@ impl ESMExportImportedSpecifierDependency {
       let (names, dependency_indices) = module_graph_cache.cached_determine_export_assignments(
         DetermineExportAssignmentsKey::All(module_identifier),
         || {
-          determine_export_assignments(module_graph, exports_info_artifact, all_star_exports, None)
+          determine_export_assignments(module_graph, exports_info_artifact, &all_star_exports, None)
         },
       );
 

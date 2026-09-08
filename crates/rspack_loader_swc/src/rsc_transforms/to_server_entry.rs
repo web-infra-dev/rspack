@@ -90,7 +90,7 @@ pub fn to_server_entry(module: &NormalModule) -> Result<Option<String>> {
     return Ok(None);
   }
 
-  let Some(rsc) = module.build_info().rsc.as_ref() else {
+  let Some(rsc) = module.build_info().rsc() else {
     return Ok(None);
   };
 

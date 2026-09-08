@@ -42,9 +42,10 @@ pub fn collect_json_module_sizes(
       continue;
     }
 
-    let Some(json_data) = module.build_info().json_data.as_ref() else {
+    let Some(json_data) = module.build_info().json_data() else {
       continue;
     };
+    let json_data = json_data.as_ref();
 
     let exports_info = exports_info_artifact.get_exports_info_data(module_id);
 

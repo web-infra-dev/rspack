@@ -1,10 +1,12 @@
+use std::sync::Arc;
+
 use derive_more::Debug;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   Compilation, DependencyId, Module, ModuleGraph, ModuleIdentifier, RscMeta, RscModuleType,
   RuntimeSpec, module_declared_side_effect_free,
 };
-use rspack_intern::{Atom, IndexAtomMap, IndexAtomSet};
+use rspack_intern::{Atom, IndexAtomSet};
 use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
   ESMImportSpecifierDependency,
@@ -278,11 +280,11 @@ fn collect_once_per_module(
     component_info.should_inject_ssr_modules = true;
   }
 
-  let actions = get_actions_from_build_info(module);
-  if let Some(actions) = actions {
+  if let Some(rsc) = get_module_rsc_information(module) {
     component_info.action_imports.push((
       resource.to_string(),
-      actions
+      rsc
+        .action_ids
         .iter()
         .map(|(id, exported_name)| (id.clone(), exported_name.clone()))
         .collect(),
@@ -421,14 +423,8 @@ fn add_client_import(
   }
 }
 
-// Gives { id: name } record of actions from the build info.
-fn get_actions_from_build_info(module: &dyn Module) -> Option<&IndexAtomMap<Atom>> {
-  let rsc = get_module_rsc_information(module)?;
-  Some(&rsc.action_ids)
-}
-
-fn get_module_rsc_information(module: &dyn Module) -> Option<&RscMeta> {
-  module.build_info().rsc.as_ref()
+fn get_module_rsc_information(module: &dyn Module) -> Option<Arc<RscMeta>> {
+  module.build_info().rsc()
 }
 
 fn is_client_component_entry_module(module: &dyn Module) -> bool {

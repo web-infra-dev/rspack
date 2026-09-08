@@ -240,8 +240,8 @@ impl<'a> ArtifactComparator<'a> {
 
     // Compare all_star_exports using the DependencyId mapping
     self.compare_all_star_exports(
-      &build_info1.all_star_exports,
-      &build_info2.all_star_exports,
+      &build_info1.all_star_exports(),
+      &build_info2.all_star_exports(),
       dep_id_map,
       debug_info,
     )?;
@@ -250,8 +250,8 @@ impl<'a> ArtifactComparator<'a> {
     let ctx = ();
     let normalize = |build_info: &BuildInfo| -> rspack_cacheable::Result<Vec<u8>> {
       let bytes = rspack_cacheable::to_bytes(build_info, &ctx)?;
-      let mut normalized: BuildInfo = rspack_cacheable::from_bytes(&bytes, &ctx)?;
-      normalized.all_star_exports.clear();
+      let normalized: BuildInfo = rspack_cacheable::from_bytes(&bytes, &ctx)?;
+      normalized.update_all_star_exports(|exports| exports.clear());
       rspack_cacheable::to_bytes(&normalized, &ctx)
     };
     let bytes1 = normalize(build_info1).map_err(|e| {

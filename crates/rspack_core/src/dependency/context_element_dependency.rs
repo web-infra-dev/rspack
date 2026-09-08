@@ -105,7 +105,7 @@ impl Dependency for ContextElementDependency {
       create_referenced_exports_by_referenced_specifiers(
         referenced_specifiers,
         exports_type,
-        imported_module.build_info().json_data.is_some(),
+        imported_module.build_info().json_data().is_some(),
       )
     } else {
       create_exports_object_referenced()

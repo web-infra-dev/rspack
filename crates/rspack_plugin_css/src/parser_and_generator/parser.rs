@@ -223,7 +223,7 @@ impl<'context> CssModuleParser<'context> {
 
     let export_type = parse_context
       .build_info
-      .css
+      .css()
       .as_deref()
       .and_then(|css_build_info| css_build_info.export_type)
       .or(parser_options.export_type);
@@ -283,10 +283,11 @@ impl<'context> CssModuleParser<'context> {
         )));
     }
 
-    let css_build_info = self.parse_context.build_info.css.get_or_insert_default();
-    css_build_info.exports = self.css_exports;
-    css_build_info.local_names = self.css_local_names;
-    css_build_info.has_charset = self.has_charset;
+    self.parse_context.build_info.update_css(|css_build_info| {
+      css_build_info.exports = self.css_exports;
+      css_build_info.local_names = self.css_local_names;
+      css_build_info.has_charset = self.has_charset;
+    });
 
     Ok(
       ParseResult {
@@ -1030,7 +1031,7 @@ impl<'context> CssModuleParser<'context> {
     let (mut inherited_render_conditions, render_condition) = self
       .parse_context
       .build_info
-      .css
+      .css()
       .as_deref()
       .map(|css| {
         (

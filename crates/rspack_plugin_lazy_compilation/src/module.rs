@@ -47,7 +47,7 @@ fn has_closure_library(output: &OutputOptions) -> bool {
 #[cacheable]
 #[derive(Debug)]
 pub(crate) struct LazyCompilationProxyModule {
-  build_info: BuildInfo,
+  build_info: Arc<BuildInfo>,
   build_meta: Arc<BuildMeta>,
   factory_meta: Arc<FactoryMeta>,
 

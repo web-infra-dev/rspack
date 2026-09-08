@@ -33,7 +33,7 @@ pub struct RawModule {
   readable_identifier: String,
   runtime_requirements: RuntimeGlobals,
   factory_meta: Arc<FactoryMeta>,
-  build_info: BuildInfo,
+  build_info: Arc<BuildInfo>,
   build_meta: Arc<BuildMeta>,
 }
 
@@ -55,10 +55,11 @@ impl RawModule {
       readable_identifier,
       runtime_requirements,
       factory_meta: Default::default(),
-      build_info: BuildInfo {
-        cacheable: true,
-        strict: true,
-        ..Default::default()
+      build_info: {
+        let info = Arc::new(BuildInfo::default());
+        info.set_cacheable(true);
+        info.set_strict(true);
+        info
       },
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),

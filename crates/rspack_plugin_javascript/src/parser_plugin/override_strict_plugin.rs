@@ -11,7 +11,9 @@ pub struct OverrideStrictPlugin;
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for OverrideStrictPlugin {
   fn program(&self, parser: &mut JavascriptParser<'p>, _: &Program) -> Option<bool> {
     if let Some(strict) = parser.javascript_options.override_strict {
-      parser.build_info.strict = matches!(strict, OverrideStrict::Strict);
+      parser
+        .build_info
+        .set_strict(matches!(strict, OverrideStrict::Strict));
     }
 
     None

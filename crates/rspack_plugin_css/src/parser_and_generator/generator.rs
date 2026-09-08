@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::VecDeque};
+use std::{borrow::Cow, collections::VecDeque, sync::Arc};
 
 use concat_string::concat_string;
 use rspack_collections::IdentifierSet;
@@ -20,6 +20,7 @@ use rspack_util::{
   itoa, json_stringify, json_stringify_str,
 };
 use rustc_hash::FxHashSet as HashSet;
+use smol_str::SmolStr;
 
 use crate::{
   css_syntax::unescape_identifier,
@@ -77,7 +78,7 @@ struct CssImportedModule {
 pub(crate) struct CssModuleGenerator<'a, 'g> {
   source: BoxSource,
   module: &'a dyn Module,
-  css_build_info: &'a CssBuildInfo,
+  css_build_info: Arc<CssBuildInfo>,
   generate_context: &'a mut GenerateContext<'g>,
   with_hmr: bool,
   export_type: Option<CssExportType>,
@@ -99,8 +100,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   ) -> Self {
     let css_build_info = module
       .build_info()
-      .css
-      .as_deref()
+      .css()
       .expect("CssParserAndGenerator should populate BuildInfo.css during parse");
     let generator_options = css_generator_options(generate_context.module_generator_options);
 
@@ -149,7 +149,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     })
   }
 
-  fn collect_used_css_exports<'b>(&mut self) -> CssExportsRef<'b>
+  fn collect_used_css_exports<'b>(&mut self, css_build_info: &'b CssBuildInfo) -> CssExportsRef<'b>
   where
     'a: 'b,
     'g: 'b,
@@ -157,22 +157,13 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let identifier = self.module.identifier();
     let runtime = self.generate_context.runtime;
     let exports_info_artifact = &self.generate_context.compilation.exports_info_artifact;
-    if let Some(unused_exports) = get_unused_local_ident(
-      self.css_build_info,
-      identifier,
-      runtime,
-      exports_info_artifact,
-    ) {
+    if let Some(unused_exports) =
+      get_unused_local_ident(css_build_info, identifier, runtime, exports_info_artifact)
+    {
       self.generate_context.data.insert(unused_exports);
     }
 
-    get_used_exports(
-      self.css_build_info,
-      identifier,
-      runtime,
-      exports_info_artifact,
-    )
-    .unwrap_or_default()
+    get_used_exports(css_build_info, identifier, runtime, exports_info_artifact).unwrap_or_default()
   }
 
   pub(crate) fn generate_css_source(mut self) -> BoxSource {
@@ -224,14 +215,16 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
 
   fn generate_js_exports(&mut self) -> Result<()> {
     if self.generate_context.concatenation_scope.is_some() {
-      let exports = self.collect_used_css_exports();
+      let css_build_info = self.css_build_info.clone();
+      let exports = self.collect_used_css_exports(&css_build_info);
       self.concat_css_exports_inner(None, exports)?;
       return Ok(());
     }
 
     let (ns_obj, left, right) = self.render_namespace_object_parts();
 
-    let used_exports = self.collect_used_css_exports();
+    let css_build_info = self.css_build_info.clone();
+    let used_exports = self.collect_used_css_exports(&css_build_info);
     let exports_str = if !used_exports.is_empty() {
       let (decl_name, exports_string) = self.stringified_exports(used_exports);
       let hmr_code = self.render_exports_hmr(decl_name);
@@ -643,7 +636,8 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let module_argument = self.module_argument().to_string();
     let (ns_obj, left, right) = self.render_namespace_object_parts();
 
-    let used_exports = self.collect_used_css_exports();
+    let css_build_info = self.css_build_info.clone();
+    let used_exports = self.collect_used_css_exports(&css_build_info);
 
     if !used_exports.is_empty() {
       let (decl_name, exports_string) = self.stringified_exports(used_exports);
@@ -682,7 +676,8 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   }
 
   fn concat_css_exports_with_default(&mut self, default_expr: Option<String>) -> Result<()> {
-    let exports = self.collect_used_css_exports();
+    let css_build_info = self.css_build_info.clone();
+    let exports = self.collect_used_css_exports(&css_build_info);
     self.concat_css_exports_inner(default_expr, exports)
   }
 
@@ -1026,14 +1021,14 @@ if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_
 struct CssConcatenationState<'a> {
   compilation: &'a rspack_core::Compilation,
   used_identifiers: HashSet<String>,
-  seen_static_exports: HashSet<(rspack_core::ModuleIdentifier, &'a str)>,
+  seen_static_exports: HashSet<(rspack_core::ModuleIdentifier, SmolStr)>,
   static_export_queue: VecDeque<StaticCssExportFrame<'a>>,
 }
 
 struct StaticCssExportFrame<'a> {
   module: &'a dyn Module,
-  css_build_info: &'a CssBuildInfo,
-  export_name: &'a str,
+  css_build_info: Arc<CssBuildInfo>,
+  export_name: SmolStr,
   next_index: usize,
   resolved: String,
 }
@@ -1048,11 +1043,7 @@ impl<'a> CssConcatenationState<'a> {
     }
   }
 
-  fn resolve_static_export(
-    &mut self,
-    module: &'a dyn Module,
-    export_name: &'a str,
-  ) -> Option<String> {
+  fn resolve_static_export(&mut self, module: &'a dyn Module, export_name: &str) -> Option<String> {
     self.seen_static_exports.clear();
     self.static_export_queue.clear();
 
@@ -1099,28 +1090,23 @@ impl<'a> CssConcatenationState<'a> {
     None
   }
 
-  fn push_static_export_frame(
-    &mut self,
-    module: &'a dyn Module,
-    export_name: &'a str,
-  ) -> Option<()> {
+  fn push_static_export_frame(&mut self, module: &'a dyn Module, export_name: &str) -> Option<()> {
     let css_build_info = module
       .build_info()
-      .css
-      .as_deref()
+      .css()
       .expect("CssParserAndGenerator should populate BuildInfo.css during parse");
     css_build_info.exports.get(export_name)?;
     let module_identifier = module.identifier();
     if !self
       .seen_static_exports
-      .insert((module_identifier, export_name))
+      .insert((module_identifier, SmolStr::new(export_name)))
     {
       return None;
     }
     self.static_export_queue.push_back(StaticCssExportFrame {
       module,
       css_build_info,
-      export_name,
+      export_name: SmolStr::new(export_name),
       next_index: 0,
       resolved: String::new(),
     });
@@ -1132,13 +1118,13 @@ impl<'a> CssConcatenationState<'a> {
     if let Some(css_export) = frame
       .css_build_info
       .exports
-      .get(frame.export_name)
+      .get(frame.export_name.as_str())
       .and_then(|elements| elements.get_index(frame.next_index))
     {
       frame.next_index += 1;
       Some(StaticCssExportStep::Resolve {
         module: frame.module,
-        css_export,
+        css_export: css_export.clone(),
       })
     } else {
       Some(StaticCssExportStep::Complete(
@@ -1155,7 +1141,7 @@ impl<'a> CssConcatenationState<'a> {
 enum StaticCssExportStep<'a> {
   Resolve {
     module: &'a dyn Module,
-    css_export: &'a CssExport,
+    css_export: CssExport,
   },
   Complete(String),
 }

@@ -7,7 +7,7 @@ use rspack_collections::IdentifierMap;
 use rspack_core::{
   AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey,
   Compilation, CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, CssBuildInfo, CssModuleRenderCondition,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, CssModuleRenderCondition,
   DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph, ModuleRule,
   ModuleType, NormalModuleCreateData, NormalModuleFactoryAfterResolve, NormalModuleFactoryModule,
   ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, RuntimeGlobals,
@@ -356,14 +356,12 @@ async fn normal_module_factory_module(
     return Ok(());
   }
 
-  let css_build_info = module
-    .build_info_mut()
-    .css
-    .get_or_insert_with(|| Box::new(CssBuildInfo::default()));
-  css_build_info.inherited_render_conditions = css_dependency_meta.render_conditions;
-  css_build_info.render_condition = CssModuleRenderCondition::default();
-  css_build_info.export_type = css_dependency_meta.export_type;
-  css_build_info.css_import_dependency = css_dependency_meta.is_css_import_dependency;
+  module.build_info().update_css(|css_build_info| {
+    css_build_info.inherited_render_conditions = css_dependency_meta.render_conditions;
+    css_build_info.render_condition = CssModuleRenderCondition::default();
+    css_build_info.export_type = css_dependency_meta.export_type;
+    css_build_info.css_import_dependency = css_dependency_meta.is_css_import_dependency;
+  });
 
   Ok(())
 }

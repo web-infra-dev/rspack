@@ -611,7 +611,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
 
     if for_name == API_NON_REQUIRE {
       let content = if self.options.module {
-        parser.build_info.need_create_require = true;
+        parser.build_info.set_need_create_require(true);
         "__rspack_createRequire_require".into()
       } else {
         "require".into()
@@ -892,7 +892,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       && let Pat::Ident(ident) = &declarator.name
       && ident.id.sym.as_ref() == "module"
     {
-      parser.build_info.module_argument = ModuleArgument::RspackModule;
+      parser
+        .build_info
+        .set_module_argument(ModuleArgument::RspackModule);
     }
     None
   }
@@ -906,7 +908,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
           if let Some(ident) = fn_decl.ident()
             && ident.sym.as_ref() == "module"
           {
-            parser.build_info.module_argument = ModuleArgument::RspackModule;
+            parser
+              .build_info
+              .set_module_argument(ModuleArgument::RspackModule);
           }
         }
         Statement::Class(class_decl) => {
@@ -914,7 +918,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
           if let Some(ident) = class_decl.ident()
             && ident.sym.as_ref() == "module"
           {
-            parser.build_info.module_argument = ModuleArgument::RspackModule;
+            parser
+              .build_info
+              .set_module_argument(ModuleArgument::RspackModule);
           }
         }
         _ => {}

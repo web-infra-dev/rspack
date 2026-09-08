@@ -45,7 +45,7 @@ pub(crate) fn source_order_to_i32(source_order: u32) -> i32 {
 pub(crate) fn css_module_export_type(module: &dyn Module) -> Option<CssExportType> {
   module
     .build_info()
-    .css
+    .css()
     .as_deref()
     .and_then(|css| css.export_type)
     .or_else(|| {
@@ -63,7 +63,7 @@ pub(crate) fn css_render_conditions_from_module(
 ) -> Vec<CssModuleRenderCondition> {
   module
     .build_info()
-    .css
+    .css()
     .as_deref()
     .map(|css| css.render_conditions().cloned().collect())
     .unwrap_or_default()
@@ -72,7 +72,7 @@ pub(crate) fn css_render_conditions_from_module(
 pub(crate) fn css_module_has_charset(module: &dyn Module) -> bool {
   module
     .build_info()
-    .css
+    .css()
     .as_deref()
     .is_some_and(|css| css.has_charset)
 }
@@ -80,7 +80,7 @@ pub(crate) fn css_module_has_charset(module: &dyn Module) -> bool {
 pub(crate) fn css_module_is_import_dependency(module: &dyn Module) -> bool {
   module
     .build_info()
-    .css
+    .css()
     .as_deref()
     .is_some_and(|css| css.css_import_dependency)
 }
@@ -414,7 +414,7 @@ fn css_module_id_for_local_ident(compilation: &Compilation, module: &dyn Module)
 
   let needs_stable_long_id = module
     .build_info()
-    .css
+    .css()
     .as_deref()
     .is_some_and(|css_build_info| css_build_info.has_render_conditions());
   if !needs_stable_long_id {

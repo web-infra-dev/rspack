@@ -1276,7 +1276,7 @@ impl Stats<'_> {
       stats.name_for_condition = module.name_for_condition().map(|n| n.to_string());
       stats.pre_order_index = module_graph.get_pre_order_index(&identifier);
       stats.post_order_index = module_graph.get_post_order_index(&identifier);
-      stats.cacheable = Some(module.build_info().cacheable);
+      stats.cacheable = Some(module.build_info().cacheable());
       let side_effects_state_artifact = &build_module_graph_artifact.side_effects_state_artifact;
       stats.optional = Some(module_graph.is_optional(
         &identifier,
@@ -1336,12 +1336,7 @@ impl Stats<'_> {
         let module = module_graph
           .module_by_identifier(&identifier)
           .expect("should have module");
-        let mut assets = module
-          .build_info()
-          .assets
-          .keys()
-          .map(|s| s.as_str())
-          .collect_vec();
+        let mut assets = module.build_info().assets().keys().cloned().collect_vec();
         assets.sort_unstable();
         Some(assets)
       };

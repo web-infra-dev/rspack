@@ -43,7 +43,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
   fn size(&self, module: &dyn Module, _source_type: Option<&SourceType>) -> f64 {
     module
       .build_info()
-      .json_data
+      .json_data()
       .as_ref()
       .map_or(0.0, |data| data.dump().len() as f64)
   }
@@ -138,8 +138,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     };
 
     let is_default_object = data.is_object() || data.is_array();
-    build_info.json_data = Some(data);
-    build_info.strict = true;
+    build_info.set_json_data(Some(data));
+    build_info.set_strict(true);
     build_meta.set_exports_type(BuildMetaExportsType::Default);
     build_meta.set_default_object(if is_default_object {
       BuildMetaDefaultObject::RedirectWarn
@@ -184,9 +184,9 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           .expect("should have module identifier");
         let json_data = module
           .build_info()
-          .json_data
-          .as_ref()
+          .json_data()
           .expect("should have json data");
+        let json_data = json_data.as_ref();
         let exports_info = compilation
           .exports_info_artifact
           .get_exports_info_data(&module.identifier());

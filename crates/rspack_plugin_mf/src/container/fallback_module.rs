@@ -30,7 +30,7 @@ pub struct FallbackModule {
   lib_ident: String,
   requests: Vec<String>,
   factory_meta: Arc<FactoryMeta>,
-  build_info: BuildInfo,
+  build_info: Arc<BuildInfo>,
   build_meta: Arc<BuildMeta>,
 }
 
@@ -55,9 +55,10 @@ impl FallbackModule {
       lib_ident,
       requests,
       factory_meta: Default::default(),
-      build_info: BuildInfo {
-        strict: true,
-        ..Default::default()
+      build_info: {
+        let info = Arc::new(BuildInfo::default());
+        info.set_strict(true);
+        info
       },
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),

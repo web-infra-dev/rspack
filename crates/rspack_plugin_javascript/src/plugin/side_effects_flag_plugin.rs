@@ -187,7 +187,7 @@ async fn finish_modules(
     };
 
     let build_info = module.build_info();
-    if !self.analyze_side_effects_free || build_info.deferred_pure_checks.is_empty() {
+    if !self.analyze_side_effects_free || build_info.deferred_pure_checks().is_empty() {
       continue;
     }
 
@@ -196,7 +196,7 @@ async fn finish_modules(
     let has_impure_deferred_check =
       // find the first deferred pure check that resolves to an impure target
       build_info
-        .deferred_pure_checks
+        .deferred_pure_checks()
         .iter()
         .any(|deferred_check| {
           deferred_pure_check_is_impure(

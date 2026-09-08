@@ -167,7 +167,7 @@ pub fn get_module_hashbang(
     };
 
   build_info
-    .extras
+    .extras()
     .get("hashbang")
     .and_then(|v| v.as_str())
     .map(|s| s.to_string())
@@ -194,7 +194,7 @@ pub fn get_module_directives(
     };
 
   build_info
-    .extras
+    .extras()
     .get("react_directives")
     .and_then(|v| v.as_array())
     .map(|arr| {

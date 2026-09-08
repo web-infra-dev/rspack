@@ -18,7 +18,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "eval" {
-      parser.build_info.module_concatenation_bailout = Some("eval()".into());
+      parser
+        .build_info
+        .set_module_concatenation_bailout(Some("eval()".into()));
       if let Some(top_level_symbol) = parser.inner_graph.get_top_level_symbol() {
         parser.inner_graph.add_usage(
           TopLevelSymbol::global(),
@@ -33,8 +35,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
   }
 
   fn finish(&self, parser: &mut JavascriptParser<'p>) -> Option<bool> {
-    if parser.build_info.top_level_declarations.is_none() {
-      parser.build_info.top_level_declarations = Some(Default::default());
+    if parser.build_info.top_level_declarations().is_none() {
+      parser
+        .build_info
+        .set_top_level_declarations(Some(Default::default()));
     }
     let variables: Vec<_> = parser
       .get_all_variables_from_current_scope()
@@ -44,10 +48,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
       if parser.is_variable_defined(&name) {
         parser
           .build_info
-          .top_level_declarations
-          .as_mut()
-          .expect("must have value")
-          .insert(name);
+          .update_top_level_declarations(|declarations| declarations.insert(name));
       }
     }
     None

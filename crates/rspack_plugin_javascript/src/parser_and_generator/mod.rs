@@ -263,7 +263,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .into_any()
         .downcast::<CollectedTypeScriptInfo>()
     {
-      build_info.collected_typescript_info = Some(*collected_ts_info);
+      build_info.set_collected_typescript_info(Some(*collected_ts_info));
     }
 
     let default_with_diagnostics = |source: Arc<dyn Source>, diagnostics: Vec<Diagnostic>| {
@@ -392,7 +392,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       let has_side_effects = side_effects_item.is_some();
       build_meta.set_side_effect_free(!has_side_effects);
       if has_side_effects {
-        build_info.deferred_pure_checks.clear();
+        build_info.update_deferred_pure_checks(|values| values.clear());
       }
       side_effects_bailout = side_effects_item.take().and_then(|item| -> Option<_> {
         let msg = item.loc?.to_string();
@@ -498,7 +498,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       return Some("Module is not an ECMAScript module".into());
     }
 
-    if let Some(bailout) = module.build_info().module_concatenation_bailout.as_deref() {
+    if let Some(bailout) = module
+      .build_info()
+      .module_concatenation_bailout()
+      .as_deref()
+    {
       return Some(format!("Module uses {bailout}").into());
     }
     None

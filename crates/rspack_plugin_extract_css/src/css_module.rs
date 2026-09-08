@@ -33,7 +33,7 @@ pub(crate) struct CssModule {
   pub(crate) identifier_index: u32,
 
   factory_meta: Arc<FactoryMeta>,
-  build_info: BuildInfo,
+  build_info: Arc<BuildInfo>,
   build_meta: Arc<BuildMeta>,
 
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
@@ -69,11 +69,12 @@ impl CssModule {
       blocks: vec![],
       dependencies: vec![],
       factory_meta: Default::default(),
-      build_info: BuildInfo {
-        cacheable: dep.cacheable,
-        strict: true,
-        dependencies: dep.dependencies.clone(),
-        ..Default::default()
+      build_info: {
+        let info = Arc::new(BuildInfo::default());
+        info.set_cacheable(dep.cacheable);
+        info.set_strict(true);
+        info.set_dependencies(dep.dependencies.clone());
+        info
       },
       build_meta: Default::default(),
       source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
@@ -168,7 +169,9 @@ impl Module for CssModule {
     build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    self.build_info.hash = Some(self.compute_hash(&build_context.compiler_options));
+    self
+      .build_info
+      .set_hash(Some(self.compute_hash(&build_context.compiler_options)));
     Ok(BuildResult {
       module: BoxModule::new(self),
       dependencies: vec![],
@@ -192,7 +195,7 @@ impl Module for CssModule {
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHasher::from(&compilation.options.output);
     module_update_hash(self, &mut hasher, compilation, runtime);
-    self.build_info.hash.hash(&mut hasher);
+    self.build_info.hash().hash(&mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 

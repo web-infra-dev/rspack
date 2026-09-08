@@ -60,13 +60,17 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMDetectionParserPlugin {
       parser
         .build_meta
         .set_exports_type(BuildMetaExportsType::Namespace);
-      parser.build_info.strict = true;
-      parser.build_info.exports_argument = ExportsArgument::RspackExports;
+      parser.build_info.set_strict(true);
+      parser
+        .build_info
+        .set_exports_argument(ExportsArgument::RspackExports);
     }
 
     if is_strict_esm {
       parser.build_meta.set_strict_esm_module(true);
-      parser.build_info.module_argument = ModuleArgument::RspackModule;
+      parser
+        .build_info
+        .set_module_argument(ModuleArgument::RspackModule);
     }
 
     None

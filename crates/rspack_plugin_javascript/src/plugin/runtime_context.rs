@@ -392,16 +392,14 @@ function {}(moduleId) {{
               .code_generation_results
               .get(module, Some(chunk.runtime()));
             let module_graph = compilation.get_module_graph();
-            let top_level_decls = codegen
+            codegen
               .data()
               .get::<CodeGenerationDataTopLevelDeclarations>()
-              .map(|d| d.inner())
-              .or_else(|| {
-                module_graph
-                  .module_by_identifier(module)
-                  .and_then(|m| m.build_info().top_level_declarations.as_ref())
-              });
-            top_level_decls.is_none()
+              .is_none()
+              && module_graph
+                .module_by_identifier(module)
+                .and_then(|m| m.build_info().top_level_declarations())
+                .is_none()
           } {
             buf2.push("// This entry module doesn't tell about it's top-level declarations so it can't be inlined".into());
             allow_inline_startup = false;
@@ -671,7 +669,7 @@ impl JsPlugin {
         "(function() {\n"
       }));
     }
-    if !all_strict && all_modules.iter().all(|m| m.build_info().strict) {
+    if !all_strict && all_modules.iter().all(|m| m.build_info().strict()) {
       if let Some(strict_bailout) = hooks
         .strict_runtime_bailout
         .call(compilation, chunk_ukey)
@@ -804,7 +802,7 @@ impl JsPlugin {
           rendered_module = source.clone();
         };
         chunk_init_fragments.extend(fragments);
-        let inner_strict = !all_strict && m.build_info().strict;
+        let inner_strict = !all_strict && m.build_info().strict();
         let module_runtime_requirements =
           ChunkGraph::get_module_runtime_requirements(compilation, *m_identifier, chunk.runtime());
         let exports = module_runtime_requirements

@@ -25,7 +25,7 @@ pub struct DllModule {
 
   factory_meta: Arc<FactoryMeta>,
 
-  build_info: BuildInfo,
+  build_info: Arc<BuildInfo>,
 
   build_meta: Arc<BuildMeta>,
 

@@ -2644,7 +2644,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       // If the require result is assigned to a variable that is also an ESM
       // named export, importers may access arbitrary properties on it. In that
       // case the entire module must be considered referenced.
-      if parser.build_info.esm_named_exports.contains(&variable_name) {
+      if parser
+        .build_info
+        .esm_named_exports()
+        .contains(&variable_name)
+      {
         references.push(ReferencedSpecifier::new(vec![]));
       }
       let dep = if let Some(block_idx) = locator.block_idx

@@ -102,20 +102,38 @@ pub struct NormalModuleHooks {
 /// This mirrors webpack's serialized module state: cache entries retain build
 /// output, while factory-owned values such as loaders, parser/generator
 /// instances, and their options always come from the fresh module created for
-/// the current compilation.
+/// the current compilation. Cloning gives build information independent fields
+/// so later asset filename updates do not change cached build results.
+/// Build metadata retains shared ownership.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct NormalModuleState {
   #[cacheable(with=AsOption<AsPreset>)]
   source: Option<BoxSource>,
   diagnostics: Vec<Diagnostic>,
   code_generation_dependencies: Option<Vec<DependencyId>>,
   presentational_dependencies: Option<Vec<DependencyCodeGenerationRef>>,
-  build_info: BuildInfo,
+  build_info: Arc<BuildInfo>,
   build_meta: Arc<BuildMeta>,
   parsed: bool,
   force_build: bool,
   source_map_kind: SourceMapKind,
+}
+
+impl Clone for NormalModuleState {
+  fn clone(&self) -> Self {
+    Self {
+      source: self.source.clone(),
+      diagnostics: self.diagnostics.clone(),
+      code_generation_dependencies: self.code_generation_dependencies.clone(),
+      presentational_dependencies: self.presentational_dependencies.clone(),
+      build_info: Arc::new(self.build_info.as_ref().clone()),
+      build_meta: self.build_meta.clone(),
+      parsed: self.parsed,
+      force_build: self.force_build,
+      source_map_kind: self.source_map_kind,
+    }
+  }
 }
 
 #[cacheable]
@@ -210,9 +228,10 @@ impl NormalModule {
   ) -> Self {
     let module_type = module_type.into();
     let id = Self::create_id(&module_type, layer.as_ref(), &request, import_phase);
-    let build_info = BuildInfo {
-      import_phase,
-      ..Default::default()
+    let build_info = {
+      let info = Arc::new(BuildInfo::default());
+      info.set_import_phase(import_phase);
+      info
     };
     Self {
       blocks: Vec::new(),
@@ -368,15 +387,15 @@ impl NormalModuleState {
       return Ok(true);
     }
 
-    if !self.build_info.cacheable {
+    if !self.build_info.cacheable() {
       return Ok(true);
     }
 
-    let Some(snapshot) = &self.build_info.snapshot else {
+    let Some(snapshot) = &self.build_info.snapshot() else {
       return Ok(true);
     };
 
-    if value_cache_versions.has_diff(&self.build_info.value_dependencies) {
+    if value_cache_versions.has_diff(&self.build_info.value_dependencies()) {
       return Ok(true);
     }
 
@@ -391,7 +410,7 @@ impl NormalModuleState {
     file_system_info: &FileSystemInfo,
     build_start_time: u64,
   ) -> Result<Option<Snapshot>> {
-    if !self.build_info.cacheable
+    if !self.build_info.cacheable()
       || self
         .diagnostics
         .iter()
@@ -400,13 +419,14 @@ impl NormalModuleState {
       return Ok(None);
     }
 
+    let dependencies = self.build_info.dependencies();
     Ok(Some(
       file_system_info
         .create_snapshot(
           Some(build_start_time),
-          &self.build_info.dependencies.file,
-          &self.build_info.dependencies.context,
-          &self.build_info.dependencies.missing,
+          &dependencies.file,
+          &dependencies.context,
+          &dependencies.missing,
           // Rspack does not expose webpack's `snapshot.module` strategy yet.
           SnapshotStrategyOptions::timestamp(),
         )
@@ -496,7 +516,7 @@ impl Module for NormalModule {
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     self.state.force_build = false;
-    self.state.build_info.snapshot = None;
+    self.state.build_info.set_snapshot(None);
 
     // so does webpack
     self.state.parsed = true;
@@ -547,8 +567,11 @@ impl Module for NormalModule {
     self = loader_result.context.module;
 
     if let Some(err) = err {
-      self.state.build_info.cacheable = loader_result.cacheable;
-      self.state.build_info.dependencies = loader_result.dependencies;
+      self.state.build_info.set_cacheable(loader_result.cacheable);
+      self
+        .state
+        .build_info
+        .set_dependencies(loader_result.dependencies);
 
       self.state.source = None;
 
@@ -564,10 +587,10 @@ impl Module for NormalModule {
       )));
       self.state.diagnostics.push(diagnostic);
 
-      self.state.build_info.hash = Some(self.init_build_hash(
+      self.state.build_info.set_hash(Some(self.init_build_hash(
         &build_context.compiler_options.output,
         &self.state.build_meta,
-      ));
+      )));
       return Ok(BuildResult {
         module: BoxModule::new(self),
         dependencies: Vec::new(),
@@ -604,8 +627,11 @@ impl Module for NormalModule {
       loader_result.source_map.map(|source_map| *source_map),
     )?;
 
-    self.state.build_info.cacheable = loader_result.cacheable;
-    self.state.build_info.dependencies = loader_result.dependencies;
+    self.state.build_info.set_cacheable(loader_result.cacheable);
+    self
+      .state
+      .build_info
+      .set_dependencies(loader_result.dependencies);
 
     if no_parse {
       self.state.parsed = false;
@@ -613,10 +639,10 @@ impl Module for NormalModule {
       self.state.code_generation_dependencies = Some(Vec::new());
       self.state.presentational_dependencies = Some(Vec::new());
 
-      self.state.build_info.hash = Some(self.init_build_hash(
+      self.state.build_info.set_hash(Some(self.init_build_hash(
         &build_context.compiler_options.output,
         &self.state.build_meta,
-      ));
+      )));
 
       return Ok(BuildResult {
         module: BoxModule::new(self),
@@ -655,7 +681,7 @@ impl Module for NormalModule {
         compiler_options: &build_context.compiler_options,
         additional_data: loader_result.additional_data,
         factory_meta: Some(&factory_meta),
-        build_info: &mut self.state.build_info,
+        build_info: &self.state.build_info,
         build_meta: &self.state.build_meta,
         parse_meta: loader_result.parse_meta,
         runtime_template: &build_context.runtime_template,
@@ -684,10 +710,10 @@ impl Module for NormalModule {
     self.state.code_generation_dependencies = Some(code_generation_dependencies);
     self.state.presentational_dependencies = Some(presentational_dependencies);
 
-    self.state.build_info.hash = Some(self.init_build_hash(
+    self.state.build_info.set_hash(Some(self.init_build_hash(
       &build_context.compiler_options.output,
       &self.state.build_meta,
-    ));
+    )));
 
     Ok(BuildResult {
       module: BoxModule::new(self),
@@ -776,8 +802,8 @@ impl Module for NormalModule {
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHasher::from(&compilation.options.output);
-    self.state.build_info.hash.hash(&mut hasher);
-    // For built failed NormalModule, hash will be calculated by build_info.hash, which contains error message
+    self.state.build_info.hash().hash(&mut hasher);
+    // For built failed NormalModule, hash will be calculated by build_info.hash(), which contains error message
     if self.state.source.is_some() && self.parser_and_generator.has_runtime_hash() {
       let runtime_hash = self
         .parser_and_generator
@@ -913,10 +939,6 @@ impl Module for NormalModule {
 
   fn build_info(&self) -> &BuildInfo {
     &self.state.build_info
-  }
-
-  fn build_info_mut(&mut self) -> &mut BuildInfo {
-    &mut self.state.build_info
   }
 
   fn build_meta(&self) -> &Arc<BuildMeta> {

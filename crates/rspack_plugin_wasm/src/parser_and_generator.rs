@@ -52,7 +52,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     &mut self,
     parse_context: ParseContext<'a>,
   ) -> Result<TWithDiagnosticArray<ParseResult>> {
-    parse_context.build_info.strict = true;
+    parse_context.build_info.set_strict(true);
     parse_context.build_meta.set_has_top_level_await(true);
     parse_context
       .build_meta
@@ -64,7 +64,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     let mut dependencies: Vec<BoxDependency> = Vec::with_capacity(1);
     let mut diagnostic = Vec::with_capacity(1);
 
-    if parse_context.build_info.import_phase.is_source() {
+    if parse_context.build_info.import_phase().is_source() {
       let bytes = source.buffer();
       if !bytes.starts_with(WASM_MAGIC_HEADER) {
         diagnostic.push(Diagnostic::error(
@@ -176,9 +176,8 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       data,
       ..
     } = generate_context;
-    let hash = module
-      .build_info()
-      .hash
+    let build_hash = module.build_info().hash();
+    let hash = build_hash
       .as_ref()
       .map(|hash| hash.rendered(16))
       .expect("should build info have hash");
@@ -208,7 +207,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
-        if module.build_info().import_phase.is_source() {
+        if module.build_info().import_phase().is_source() {
           let module_argument = runtime_template.render_module_argument(ModuleArgument::Module);
           let exports_argument = runtime_template.render_exports_argument(ExportsArgument::Exports);
           let compile_call = format!(

@@ -100,7 +100,7 @@ impl Dependency for CommonJsFullRequireDependency {
     if matches!(
       exports_type,
       ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
-    ) && module.build_info().json_data.is_some()
+    ) && module.build_info().json_data().is_some()
     {
       namespace_object_as_context = true;
     }

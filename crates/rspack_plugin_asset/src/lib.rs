@@ -253,9 +253,8 @@ impl AssetParserAndGenerator {
   ) -> Result<(String, String, AssetInfo)> {
     // PreserveModules may set a per-module asset filename; otherwise use
     // [Rule.generator.filename] or [output.assetModuleFilename].
-    let asset_filename_template = module
-      .build_info()
-      .asset
+    let asset_build_info = module.build_info().asset();
+    let asset_filename_template = asset_build_info
       .as_ref()
       .and_then(|x| x.filename.as_ref())
       .or_else(|| module_generator_options.and_then(|x| x.asset_filename()))
@@ -345,7 +344,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     if self.emit
       && module
         .build_info()
-        .asset
+        .asset()
         .as_ref()
         .is_some_and(|x| x.data_url.is_resource())
       && module_graph
@@ -388,7 +387,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
     if module
       .build_info()
-      .asset
+      .asset()
       .as_ref()
       .is_some_and(|x| x.data_url.is_source() || x.data_url.is_inline() || x.data_url.is_bytes())
       || !self.emit
@@ -436,7 +435,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           return 0.0;
         }
 
-        let parsed_size = module.build_info().asset.as_ref().map(|asset| {
+        let parsed_size = module.build_info().asset().as_ref().map(|asset| {
           match &asset.data_url {
             CanonicalizedDataUrlOption::Source | CanonicalizedDataUrlOption::Bytes => {
               original_source_size
@@ -476,7 +475,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       module_parser_options,
       ..
     } = parse_context;
-    build_info.strict = true;
+    build_info.set_strict(true);
     build_meta.set_exports_type(BuildMetaExportsType::Default);
     build_meta.set_default_object(BuildMetaDefaultObject::False);
     let size = source.size();
@@ -503,10 +502,10 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         CanonicalizedDataUrlOption::Asset(size <= limit_size as usize)
       }
     };
-    build_info.asset = Some(Box::new(AssetBuildInfo {
+    build_info.set_asset(Some(Box::new(AssetBuildInfo {
       data_url,
       filename: None,
-    }));
+    })));
 
     Ok(
       rspack_core::ParseResult {
@@ -533,8 +532,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     let compilation = generate_context.compilation;
     let asset_build_info = module
       .build_info()
-      .asset
-      .as_ref()
+      .asset()
       .expect("should have asset build info in generate phase");
     let parsed_asset_config = &asset_build_info.data_url;
     let normal_module = module
@@ -827,8 +825,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     let mut hasher = RspackHasher::from(&compilation.options.output);
     let asset_build_info = module
       .build_info()
-      .asset
-      .as_ref()
+      .asset()
       .expect("should have asset build info in generate phase");
     let parsed_asset_config = &asset_build_info.data_url;
     let module_generator_options = module.get_generator_options();

@@ -40,7 +40,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for PluginCssExtractParserPlugin {
       if data.is_empty() {
         vec![]
       } else {
-        parser.build_info.strict = true;
+        parser.build_info.set_strict(true);
         data
           .iter()
           .enumerate()
@@ -69,8 +69,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for PluginCssExtractParserPlugin {
                 source_map.clone(),
                 *identifier_index,
                 DependencyRange::new(index as u32, (index + 1) as u32),
-                parser.build_info.cacheable,
-                parser.build_info.dependencies.clone(),
+                parser.build_info.cacheable(),
+                parser.build_info.dependencies().as_ref().clone(),
               ))
             },
           )

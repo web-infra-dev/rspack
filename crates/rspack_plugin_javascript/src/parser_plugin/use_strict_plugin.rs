@@ -25,7 +25,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for UseStrictPlugin {
       // This is necessary in order to not break the strict mode when webpack prepends code.
       let dep = ConstDependency::new(first.span().into(), "".into());
       parser.add_presentational_dependency(Arc::new(dep));
-      parser.build_info.strict = true;
+      parser.build_info.set_strict(true);
     }
     None
   }

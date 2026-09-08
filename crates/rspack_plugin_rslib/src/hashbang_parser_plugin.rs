@@ -23,10 +23,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for HashbangParserPlugin {
     };
 
     // Store hashbang in build_info for later use during rendering
-    parser.build_info.extras.insert(
-      "hashbang".to_string(),
-      serde_json::Value::String(normalized_hashbang),
-    );
+    parser.build_info.update_extras(|values| {
+      values.insert(
+        "hashbang".to_string(),
+        serde_json::Value::String(normalized_hashbang),
+      )
+    });
 
     // Remove hashbang from source code
     // If SWC omitted "#!", we still need to remove those two characters

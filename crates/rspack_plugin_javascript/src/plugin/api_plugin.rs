@@ -40,7 +40,7 @@ async fn render_module_content(
   init_fragments: &mut ChunkInitFragments,
   _runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
-  if module.build_info().need_create_require {
+  if module.build_info().need_create_require() {
     let need_prefix = compilation
       .options
       .output
