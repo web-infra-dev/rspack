@@ -20,14 +20,12 @@ type Target = false | string | string[];
 
 ## Default behavior \{#default-behavior}
 
-When `target` is not set, Rspack looks for a Browserslist configuration starting from [`context`](/config/context), which defaults to the current working directory:
+When `target` is not set, Rspack looks for a [Browserslist configuration](#browserslist) starting from [`context`](/config/context):
 
-- If a configuration is found, Rspack uses `browserslist` and determines the target environment from the nearest `browserslist` or `.browserslistrc` file, or the `browserslist` field in `package.json`. See [Browserslist](#browserslist) for details.
-- Otherwise, Rspack uses `web`, meaning the code will run in a browser environment without specifying particular browser versions or an ECMAScript syntax version. To define a compatibility range, configure Browserslist or combine `web` with an `esX` target.
+- If found, `target` defaults to `browserslist` and uses that configuration.
+- Otherwise, it defaults to `web`, which selects a browser environment without specifying browser versions or an ECMAScript version.
 
-Built-in loaders and minimizers can also [inherit this default](#target-inheritance). If `target` does not provide the target information they need, they use their own defaults. See each tool's documentation for details.
-
-If you explicitly set `target: 'browserslist'`, you must provide a Browserslist configuration or set the `BROWSERSLIST` environment variable. Otherwise, Rspack reports an error instead of using `web`.
+Explicitly setting `target: 'browserslist'` requires a Browserslist configuration or the `BROWSERSLIST` environment variable; otherwise, Rspack reports an error.
 
 ## Recommended configurations
 
