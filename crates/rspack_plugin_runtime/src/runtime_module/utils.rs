@@ -2,7 +2,7 @@ use std::fmt::Write as _;
 
 use rspack_core::{
   Chunk, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, PathData, RuntimeCodeTemplate,
-  SourceType,
+  RuntimeGlobals, SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdSet},
   get_js_chunk_filename_template, get_undo_path,
 };
@@ -100,8 +100,9 @@ pub fn render_chunk_loading_hmr_state_expression(
 }
 
 pub fn generate_chunk_cache_controls(
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &RuntimeCodeTemplate,
   loading_type: &str,
+  installed_chunks: &str,
   loaded_state: u8,
 ) -> String {
   let require_scope = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE_SCOPE);
@@ -122,8 +123,8 @@ chunkCacheControls[{loading_type}] = {{
     var cleared = [];
     for (var i = 0; i < chunkIds.length; i++) {{
       var chunkId = chunkIds[i];
-      if (installedChunks[chunkId] !== undefined) {{
-        installedChunks[chunkId] = undefined;
+      if ({installed_chunks}[chunkId] !== undefined) {{
+        {installed_chunks}[chunkId] = undefined;
         cleared.push(chunkId);
       }}
     }}
@@ -142,7 +143,7 @@ chunkCacheControls[{loading_type}] = {{
     var promises = [];
     for (var i = 0; i < chunkIds.length; i++) {{
       var chunkId = chunkIds[i];
-      var installedChunkData = installedChunks[chunkId];
+      var installedChunkData = {installed_chunks}[chunkId];
       if (installedChunkData && installedChunkData !== {loaded_state} && installedChunkData[2]) {{
         promises.push(installedChunkData[2].catch(function() {{}}));
       }}
@@ -153,10 +154,10 @@ chunkCacheControls[{loading_type}] = {{
     var states = {{}};
     for (var i = 0; i < chunkIds.length; i++) {{
       var chunkId = chunkIds[i];
-      if (installedChunks[chunkId] !== undefined) {{
+      if ({installed_chunks}[chunkId] !== undefined) {{
         states[chunkId] = {{
           had: true,
-          value: installedChunks[chunkId]
+          value: {installed_chunks}[chunkId]
         }};
       }} else {{
         states[chunkId] = {{
@@ -169,8 +170,8 @@ chunkCacheControls[{loading_type}] = {{
   restore: function(states) {{
     for (var chunkId in states) {{
       var state = states[chunkId];
-      if (state && state.had) installedChunks[chunkId] = state.value;
-      else installedChunks[chunkId] = undefined;
+      if (state && state.had) {installed_chunks}[chunkId] = state.value;
+      else {installed_chunks}[chunkId] = undefined;
     }}
   }},
   restoreGenerations: function(generations) {{
@@ -186,7 +187,7 @@ chunkCacheControls[{loading_type}] = {{
     return ({generation_var}[chunkId] || 0) !== generation;
   }},
   getState: function(chunkId) {{
-    return installedChunks[chunkId];
+    return {installed_chunks}[chunkId];
   }}
 }};
 "#
