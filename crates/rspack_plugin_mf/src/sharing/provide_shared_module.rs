@@ -77,7 +77,10 @@ impl ProvideSharedModule {
       &request
     );
     let identity_key = SharedIdentity::new(&share_scope, &name, layer.as_deref()).identifier_key();
-    let identifier = format!("provide shared module [{identity_key}]@{version} = {request}");
+    // Same layout as webpack's ProvideSharedModule: `(scope)`, then ` (layer)`
+    // when layered, then `name@version = request`. External manifest readers
+    // parse it by token position.
+    let identifier = readable_identifier.clone();
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
@@ -273,3 +276,46 @@ impl Module for ProvideSharedModule {
 }
 
 impl_empty_diagnosable_trait!(ProvideSharedModule);
+
+#[cfg(test)]
+mod tests {
+  use rspack_collections::Identifiable;
+  use rspack_core::runtime_mode::RuntimeMode;
+
+  use super::ProvideSharedModule;
+  use crate::{ShareScope, sharing::provide_shared_plugin::ProvideVersion};
+
+  fn module(layer: Option<&str>) -> ProvideSharedModule {
+    ProvideSharedModule::new(
+      ShareScope::Single("default".to_string()),
+      "react".to_string(),
+      ProvideVersion::Version("19.0.0".to_string()),
+      "/node_modules/react/index.js".to_string(),
+      false,
+      None,
+      None,
+      None,
+      layer.map(str::to_string),
+      None,
+      RuntimeMode::Webpack,
+    )
+  }
+
+  /// Same layout as webpack's ProvideSharedModule: external manifest readers
+  /// take `name@version` from token 4 for unlayered shares, and see the
+  /// layer as an extra `(layer)` segment.
+  #[test]
+  fn provide_identifier_follows_the_webpack_layout() {
+    let identifier = module(None).identifier();
+    assert_eq!(
+      identifier.as_str(),
+      "provide shared module (default) react@19.0.0 = /node_modules/react/index.js"
+    );
+    assert_eq!(identifier.split(' ').nth(4), Some("react@19.0.0"));
+
+    assert_eq!(
+      module(Some("server")).identifier().as_str(),
+      "provide shared module (default) (server) react@19.0.0 = /node_modules/react/index.js"
+    );
+  }
+}
