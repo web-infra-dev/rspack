@@ -321,7 +321,7 @@ bundler runtime 不直接操作 Node plugin 闭包里的 `installedChunks`。它
 
 `clearCache` 不提前加载 remote entry，不执行 remote `get`，不验证新 remote 是否可用。barrier 释放后，后续请求按正常路径重新加载当前注册的 remote。
 
-如果业务只是更新同一个 entry URL 背后的内容，`clearCache({ name })` 只在下一次请求确实能拿到新内容的前提下足够。浏览器缓存、Service Worker、HTTP 代理缓存、Node fetch cache 和 ESM 同 URL 模块缓存都可能让同 URL 继续返回旧内容。生产更新仍推荐版本化 URL。  
+如果业务只是更新同一个 entry URL 背后的内容，`clearCache({ name })` 只在下一次请求确实能拿到新内容的前提下足够。浏览器缓存、Service Worker、HTTP 代理缓存、Node fetch cache 和 ESM 同 URL 模块缓存都可能让同 URL 继续返回旧内容。生产更新仍推荐版本化 URL。
 如果业务需要替换 entry 地址，必须使用 `registerRemotes([{ name, entry: newEntry }], { force: true })`，由 register 流程替换注册并清理旧缓存。
 
 对于正在执行中的 SSR 请求，`clearCache` 不强行中断。旧请求可以继续使用已经拿到的引用，新请求重新进入加载流程。

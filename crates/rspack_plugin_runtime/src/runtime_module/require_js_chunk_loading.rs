@@ -214,7 +214,6 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RequireChunkLoadingRuntimeModule {
-<<<<<<< HEAD
   fn runtime_module_variables() -> &'static [&'static str] {
     RUNTIME_MODULE_VARIABLES.as_slice()
   }
