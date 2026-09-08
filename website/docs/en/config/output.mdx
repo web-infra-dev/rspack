@@ -1610,8 +1610,6 @@ Output JavaScript files as module type.
 
 When enabled, [`output.iife`](#outputiife) defaults to `false` and [`output.scriptType`](#outputscripttype) defaults to `'module'`. Explicit values for these options take precedence over the defaults.
 
-The built-in [SwcJsMinimizerRspackPlugin](/plugins/swc-js-minimizer-rspack-plugin#minimizeroptions) detects ESM assets from their metadata unless `minimizerOptions.module` is explicitly configured.
-
 If you set [`output.library.type`](#outputlibrarytype) to 'module' or 'modern-module', Rspack will set `output.module` to `true` for you automatically.
 
 ```js title="rspack.config.mjs"
@@ -1634,13 +1632,10 @@ The output directory as an **absolute** path.
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   output: {
-    path: path.resolve(__dirname, 'dist/assets'),
+    path: path.resolve(import.meta.dirname, 'dist/assets'),
   },
 };
 ```
@@ -1965,9 +1960,9 @@ export default {
 - **Type:** `false | 'fetch' | 'async-node' | 'universal'`
 - **Default:** [`output.wasmLoading`](#outputwasmloading)
 
-Selects the method used to load WebAssembly modules inside workers. When omitted, it inherits `output.wasmLoading`, including an explicitly configured value of `false`.
+Sets how workers load WebAssembly modules. Defaults to `output.wasmLoading`.
 
-For example, the default is `'fetch'` for a web target and `'async-node'` for a Node.js target. To disable WebAssembly loading only inside workers:
+Set to `false` to disable WebAssembly loading inside workers:
 
 ```js title="rspack.config.mjs"
 export default {

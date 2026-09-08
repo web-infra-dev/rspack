@@ -423,15 +423,12 @@ type ResolveFallback =
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   resolve: {
     fallback: {
       abc: false, // 不为 abc 引入 polyfill
-      xyz: path.resolve(__dirname, 'path/to/file.js'), // 为 xyz 引入 polyfill
+      xyz: path.resolve(import.meta.dirname, 'path/to/file.js'), // 为 xyz 引入 polyfill
     },
   },
 };
@@ -666,14 +663,9 @@ export default {
 例如，导入 `'/static/app.js'` 时，期望其相对于项目根目录进行解析：
 
 ```js title="rspack.config.mjs"
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 export default {
   resolve: {
-    roots: [__dirname],
+    roots: [import.meta.dirname],
   },
 };
 ```
@@ -698,13 +690,10 @@ Rspack 中用来替代 [tsconfig-paths-webpack-plugin](https://www.npmjs.com/pac
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   resolve: {
-    tsConfig: path.resolve(__dirname, './tsconfig.json'),
+    tsConfig: path.resolve(import.meta.dirname, './tsconfig.json'),
   },
 };
 ```
@@ -713,14 +702,11 @@ export default {
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   resolve: {
     tsConfig: {
-      configFile: path.resolve(__dirname, './tsconfig.json'),
+      configFile: path.resolve(import.meta.dirname, './tsconfig.json'),
       references: 'auto',
     },
   },

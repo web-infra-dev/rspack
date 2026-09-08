@@ -1601,8 +1601,6 @@ export default {
 
 当启用时，[`output.iife`](#outputiife) 默认为 `false`，[`output.scriptType`](#outputscripttype) 默认为 `'module'`。显式配置的值优先于这些默认值。
 
-内置的 [SwcJsMinimizerRspackPlugin](/plugins/swc-js-minimizer-rspack-plugin#minimizeroptions) 根据产物元数据识别 ESM，除非显式配置了 `minimizerOptions.module`。
-
 配置 [`output.library.type`](#outputlibrarytype) 为 'module' 或 'modern-module' 会自动将 `output.module` 设为 `true`。
 
 ```js title="rspack.config.mjs"
@@ -1625,13 +1623,10 @@ export default {
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   output: {
-    path: path.resolve(__dirname, 'dist/assets'),
+    path: path.resolve(import.meta.dirname, 'dist/assets'),
   },
 };
 ```
@@ -1956,9 +1951,9 @@ export default {
 - **类型：** `false | 'fetch' | 'async-node' | 'universal'`
 - **默认值：** [`output.wasmLoading`](#outputwasmloading)
 
-用于设置 Worker 内部加载 WebAssembly 模块的方式。未配置时继承 `output.wasmLoading`，包括显式设置的 `false`。
+设置 Worker 内部的 WebAssembly 加载方式，默认继承 `output.wasmLoading`。
 
-例如，web 目标下默认为 `'fetch'`，Node.js 目标下默认为 `'async-node'`。如需仅禁用 Worker 内部的 WebAssembly 加载：
+设为 `false` 可禁用 Worker 内部的 WebAssembly 加载：
 
 ```js title="rspack.config.mjs"
 export default {

@@ -423,15 +423,12 @@ Redirect module requests when normal resolving fails.
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   resolve: {
     fallback: {
       abc: false, // do not include a polyfill for abc
-      xyz: path.resolve(__dirname, 'path/to/file.js'), // include a polyfill for xyz
+      xyz: path.resolve(import.meta.dirname, 'path/to/file.js'), // include a polyfill for xyz
     },
   },
 };
@@ -668,14 +665,9 @@ A list of directories where server-relative URLs (beginning with '/') are resolv
 For example, importing `'/static/app.js'` and expecting it to resolve relative to the project root:
 
 ```js title="rspack.config.mjs"
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 export default {
   resolve: {
-    roots: [__dirname],
+    roots: [import.meta.dirname],
   },
 };
 ```
@@ -700,14 +692,11 @@ The replacement of [tsconfig-paths-webpack-plugin](https://www.npmjs.com/package
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   resolve: {
     // string
-    tsConfig: path.resolve(__dirname, './tsconfig.json'),
+    tsConfig: path.resolve(import.meta.dirname, './tsconfig.json'),
   },
 };
 ```
@@ -716,14 +705,11 @@ export default {
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   resolve: {
     tsConfig: {
-      configFile: path.resolve(__dirname, './tsconfig.json'),
+      configFile: path.resolve(import.meta.dirname, './tsconfig.json'),
       references: 'auto',
     },
   },

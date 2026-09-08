@@ -21,19 +21,14 @@ By default, Rspack uses the current working directory of the Node.js process as 
 
 ## Example
 
-For example, you can use [`__dirname`](https://nodejs.org/docs/latest/api/modules.html#__dirname) as the base directory:
+For example, you can use the configuration file's directory as the base directory:
 
 <Tabs>
   <Tab label="ESM">
 
 ```js title="rspack.config.mjs"
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
 export default {
-  context: __dirname,
+  context: import.meta.dirname,
   entry: {
     main: './src/index.js',
   },
@@ -55,6 +50,6 @@ module.exports = {
   </Tab>
 </Tabs>
 
-In the above example, the `main` entry will be resolved based on the `path.join(__dirname, './src/index.js')` path.
+In the above example, the `main` entry resolves to `src/index.js` relative to the configuration file's directory.
 
 <Attribution url="https://webpack.js.org/configuration/entry-context/#context" />

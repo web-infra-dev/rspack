@@ -84,16 +84,13 @@ For example:
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   experiments: {
     buildHttp: {
       allowedUris: ['https://'],
-      lockfileLocation: path.join(__dirname, 'my_project.lock'),
-      cacheLocation: path.join(__dirname, 'my_project.lock.data'),
+      lockfileLocation: path.join(import.meta.dirname, 'my_project.lock'),
+      cacheLocation: path.join(import.meta.dirname, 'my_project.lock.data'),
     },
   },
 };
