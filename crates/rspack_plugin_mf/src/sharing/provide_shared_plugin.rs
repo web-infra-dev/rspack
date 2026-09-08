@@ -336,8 +336,14 @@ async fn compilation(
 
 #[plugin_hook(CompilerFinishMake for ProvideSharedPlugin)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
-  let resolved_provide_map = self.resolved_provide_map.read().await;
-  let entries = provide_dependencies(&resolved_provide_map)
+  // Drop the read guard before `add_include`: building the included modules
+  // runs `normal_module_factory_module`, which takes the write lock on this
+  // same map when it discovers another provider.
+  let dependencies = {
+    let resolved_provide_map = self.resolved_provide_map.read().await;
+    provide_dependencies(&resolved_provide_map)
+  };
+  let entries = dependencies
     .into_iter()
     .map(|dependency| {
       (
