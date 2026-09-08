@@ -290,6 +290,30 @@ describe('module federation default runtime share scopes', () => {
 		expect(calls[0][2].shareScopeKeys).toEqual(['primary', 'secondary']);
 	});
 
+	it('installs scalar initial consumes synchronously', () => {
+		const calls = [];
+		const enhancedContainer = {
+			init(...args) {
+				calls.push(args);
+			},
+		};
+		const { runtimeRequire } = createRuntime({
+			external: enhancedContainer,
+			remoteShareScope: 'default',
+			consumeData: {
+				shareKey: 'react',
+				shareScope: 'default',
+			},
+			initialConsumes: ['consume'],
+		});
+
+		// Scalar scopes keep the legacy contract: eager factories are available
+		// to a synchronous entry, and the scope is initialized lazily.
+		expect(runtimeRequire.m.consume).toBeTypeOf('function');
+		expect(runtimeRequire.federation.initialConsumesInit).toBeUndefined();
+		expect(calls).toHaveLength(0);
+	});
+
 	it('initializes ordered scopes before installing initial consumes', async () => {
 		const calls = [];
 		const enhancedContainer = {
