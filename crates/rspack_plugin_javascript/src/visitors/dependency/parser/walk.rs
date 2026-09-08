@@ -21,9 +21,8 @@ use crate::{
     CreatedRequireTagData, JavascriptParserPlugin, is_create_require_namespace_member,
   },
   visitors::{
-    AtomMembers, ExportedVariableInfo, ExprRef, Identifier, PatternIdentifier, VariableDeclaration,
-    VariableInfo, VariableInfoFlags, dependency::parser::ExtractedMemberExpressionChainData,
-    get_non_optional_part,
+    AtomMembers, ExportedVariableInfo, ExprRef, Identifier, PatternIdentifier, VariableDeclaration, VariableInfo,
+    VariableInfoFlags, get_non_optional_part,
   },
 };
 
@@ -518,7 +517,7 @@ impl JavascriptParser<'_> {
         if let SimpleAssignmentTargetData::IdentifierReference(identifier) =
           ast.simple_assignment_target_data(target)
         {
-          self.clear_create_require_tag(&Atom::from(ast.get_utf8(identifier.name(ast))));
+          self.clear_create_require_tag(ast.get_utf8(identifier.name(ast)));
         }
       }
       AssignmentTargetData::ArrayAssignmentTarget(array) => {
@@ -550,8 +549,8 @@ impl JavascriptParser<'_> {
           .unwrap_or_default()
       {
         self.copy_create_require_assignment_result(
-          &Atom::from(ast.get_utf8(binding.name(ast))),
-          &Atom::from(ast.get_utf8(target.name(ast))),
+          ast.get_utf8(binding.name(ast)),
+          ast.get_utf8(target.name(ast)),
         );
         continue;
       }
@@ -662,12 +661,12 @@ impl JavascriptParser<'_> {
     }
     let updated_ident = argument
       .as_identifier_reference(ast)
-      .map(|ident| Atom::from(ast.get_utf8(ident.name(ast))));
-    if let Some(name) = &updated_ident {
+      .map(|ident| ast.get_utf8(ident.name(ast)));
+    if let Some(name) = updated_ident {
       self.clear_create_require_tag(name);
     }
     self.walk_simple_assign_target(argument);
-    if let Some(name) = &updated_ident {
+    if let Some(name) = updated_ident {
       self.clear_create_require_tag(name);
     }
   }
@@ -739,13 +738,13 @@ impl JavascriptParser<'_> {
     let ast = self.ast.ast;
     match ast.binding_pattern_data(pattern) {
       BindingPatternData::BindingIdentifier(identifier) => {
-        self.clear_create_require_tag(&Atom::from(ast.get_utf8(identifier.name(ast))))
+        self.clear_create_require_tag(ast.get_utf8(identifier.name(ast)))
       }
       BindingPatternData::SimpleAssignmentTarget(target) => {
         if let SimpleAssignmentTargetData::IdentifierReference(identifier) =
           ast.simple_assignment_target_data(target)
         {
-          self.clear_create_require_tag(&Atom::from(ast.get_utf8(identifier.name(ast))));
+          self.clear_create_require_tag(ast.get_utf8(identifier.name(ast)));
         }
       }
       BindingPatternData::AssignmentPattern(pattern) => {
@@ -781,11 +780,11 @@ impl JavascriptParser<'_> {
     ident: IdentifierReference,
   ) -> Option<bool> {
     let ast = self.ast.ast;
-    let ident_name = Atom::from(ast.get_utf8(ident.name(ast)));
+    let ident_name = ast.get_utf8(ident.name(ast));
     if matches!(
       expr.operator(ast),
       AssignmentOperator::LogicalOrAssign | AssignmentOperator::NullishAssign
-    ) && self.has_create_require_tag(&ident_name, true)
+    ) && self.has_create_require_tag(ident_name, true)
     {
       return Some(true);
     }
@@ -794,14 +793,14 @@ impl JavascriptParser<'_> {
     }
     let right = expr.right(ast);
     if let Some(variable) = right.as_identifier_reference(ast).and_then(|rhs| {
-      let rhs_name = Atom::from(ast.get_utf8(rhs.name(ast)));
+      let rhs_name = ast.get_utf8(rhs.name(ast));
       self
-        .has_create_require_tag(&rhs_name, false)
-        .then(|| self.get_variable_info(&rhs_name).map(|info| info.id()))
+        .has_create_require_tag(rhs_name, false)
+        .then(|| self.get_variable_info(rhs_name).map(|info| info.id()))
         .flatten()
     }) {
       self.set_variable(
-        ident_name.clone(),
+        ident_name.into(),
         ExportedVariableInfo::VariableInfo(variable),
       );
       return Some(true);
@@ -812,7 +811,7 @@ impl JavascriptParser<'_> {
         .cloned()
     {
       self.tag_variable(
-        ident_name.clone(),
+        ident_name.into(),
         CREATED_REQUIRE_IDENTIFIER_TAG,
         Some(CreatedRequireTagData {
           side_effects: String::new(),
@@ -825,14 +824,17 @@ impl JavascriptParser<'_> {
       return Some(true);
     }
     if is_create_require_namespace_member(self, right) {
-      self.tag_variable_without_data(ident_name.clone(), CREATE_REQUIRE_SPECIFIER_TAG);
+      self.tag_variable_without_data(ident_name.into(), CREATE_REQUIRE_SPECIFIER_TAG);
       self.walk_expression(right);
       return Some(true);
     }
     if let Some(rename_identifier) = self.get_rename_identifier(right)
       && rename_identifier == CREATE_REQUIRE_EVALUATED_TAG
     {
-      self.set_variable(ident_name, ExportedVariableInfo::Name(rename_identifier));
+      self.set_variable(
+        ident_name.into(),
+        ExportedVariableInfo::Name(rename_identifier),
+      );
       self.walk_expression(right);
       return Some(true);
     }
@@ -1022,13 +1024,11 @@ impl JavascriptParser<'_> {
   fn walk_jsx_member_expr(&mut self, member: JsxMemberExpression) {
     let ast = self.ast.ast;
     let mut current = member;
-    let mut members = AtomMembers::new();
     let mut members_optionals = OptionalMembers::new();
     let mut member_ranges = MemberRanges::new();
     let mut member_nodes = SmallVec::<[JsxMemberExpression; 2]>::new();
     let root = loop {
       let object = current.object(ast);
-      members.push(Atom::from(ast.get_utf8(current.property(ast).name(ast))));
       members_optionals.push(false);
       member_ranges.push(object.span(ast));
       member_nodes.push(current);
@@ -1038,16 +1038,20 @@ impl JavascriptParser<'_> {
       }
     };
 
-    let root_name = Atom::from(ast.get_utf8(root.name(ast)));
-    let Some(name_info) = self.get_name_info_from_variable(&root_name) else {
+    let root_name = ast.get_utf8(root.name(ast));
+    let Some(name_info) = self.get_name_info_from_variable(root_name) else {
       self.walk_identifier_name(root_name, root.span(ast));
       return;
     };
     let resolved_root = name_info.name;
     let root_info = name_info.info.map_or_else(
-      || ExportedVariableInfo::Name(root_name.clone()),
+      || ExportedVariableInfo::Name(root_name.into()),
       |info| ExportedVariableInfo::VariableInfo(info.id()),
     );
+    let mut members: AtomMembers = member_nodes
+      .iter()
+      .map(|member| Atom::from(ast.get_utf8(member.property(ast).name(ast))))
+      .collect();
     let name = object_and_members_to_name(resolved_root, &members);
     members.reverse();
     members_optionals.reverse();
@@ -1123,7 +1127,7 @@ impl JavascriptParser<'_> {
     if name.as_bytes().first().is_some_and(u8::is_ascii_lowercase) {
       return;
     }
-    self.walk_identifier_name(Atom::from(name), identifier.span(ast));
+    self.walk_identifier_name(name, identifier.span(ast));
   }
 
   fn walk_object_expression(&mut self, expr: ObjectExpression) {
@@ -1429,14 +1433,10 @@ impl JavascriptParser<'_> {
     }
   }
 
-  fn property_key_name(ast: &Ast<'_>, key: PropertyKey) -> Option<Atom> {
+  fn property_key_name<'a>(ast: &'a Ast<'_>, key: PropertyKey) -> Option<&'a str> {
     match ast.property_key_data(key) {
-      PropertyKeyData::IdentifierName(identifier) => {
-        Some(Atom::from(ast.get_utf8(identifier.name(ast))))
-      }
-      PropertyKeyData::StringLiteral(literal) => Some(Atom::from(
-        ast.get_wtf8(literal.value(ast)).to_string_lossy().as_ref(),
-      )),
+      PropertyKeyData::IdentifierName(identifier) => Some(ast.get_utf8(identifier.name(ast))),
+      PropertyKeyData::StringLiteral(literal) => ast.get_wtf8(literal.value(ast)).as_str(),
       _ => None,
     }
   }
@@ -1671,7 +1671,7 @@ impl JavascriptParser<'_> {
       }
       // import(...).then(...)
       if let Some(import) = member.object(ast).as_import_expression(ast)
-        && Self::property_key_name(ast, member.property(ast)).as_deref() == Some("then")
+        && Self::property_key_name(ast, member.property(ast)) == Some("then")
         && self
           .plugin_drive
           .clone()
@@ -1760,16 +1760,17 @@ impl JavascriptParser<'_> {
     expr: MemberExpression,
   ) -> Option<(ImportExpression, AtomMembers, AwaitExpression)> {
     let ast = self.ast.ast;
-    let ExtractedMemberExpressionChainData {
+    let super::RawExtractedMemberExpressionChainData {
       object,
-      mut members,
+      members,
       mut members_optionals,
       ..
-    } = self.extract_member_expression_chain(ExprRef::Member(expr));
+    } = self.extract_member_expression_chain_raw(ExprRef::Member(expr));
     let ExprRef::Await(await_expr) = object else {
       return None;
     };
     let call = await_expr.argument(ast).as_import_expression(ast)?;
+    let mut members = super::materialize_member_atoms(ast, members);
     members.reverse();
     members_optionals.reverse();
     let members = get_non_optional_part(&members, &members_optionals);
@@ -1830,13 +1831,10 @@ impl JavascriptParser<'_> {
 
   fn walk_identifier(&mut self, identifier: IdentifierReference) {
     let ast = self.ast.ast;
-    self.walk_identifier_name(
-      Atom::from(ast.get_utf8(identifier.name(ast))),
-      identifier.span(ast),
-    );
+    self.walk_identifier_name(ast.get_utf8(identifier.name(ast)), identifier.span(ast));
   }
 
-  fn walk_identifier_name(&mut self, name: Atom, span: Span) {
+  fn walk_identifier_name(&mut self, name: &str, span: Span) {
     let drive = self.plugin_drive.clone();
     name.call_hooks_name(self, |this, for_name| {
       drive.identifier(this, &Identifier { span }, for_name)
@@ -1960,18 +1958,18 @@ impl JavascriptParser<'_> {
         return;
       }
       if !self.javascript_options.is_create_require_enabled()
-        || !right.as_identifier_reference(ast).is_some_and(|rhs| {
-          self.has_create_require_tag(&Atom::from(ast.get_utf8(rhs.name(ast))), false)
-        })
+        || !right
+          .as_identifier_reference(ast)
+          .is_some_and(|rhs| self.has_create_require_tag(ast.get_utf8(rhs.name(ast)), false))
       {
         self.walk_expression(right);
       }
-      let name = Atom::from(ast.get_utf8(ident.name(ast)));
+      let name = ast.get_utf8(ident.name(ast));
       if self.javascript_options.is_create_require_enabled() {
         // The assignment target already gives us the canonical identifier
         // name. Clear any createRequire-derived tag here instead of trying to
         // reconstruct the name from a hook-facing span.
-        self.clear_create_require_tag(&name);
+        self.clear_create_require_tag(name);
       }
       self.enter_assignment_target(left, |this, identifier| {
         if !name
@@ -1987,7 +1985,7 @@ impl JavascriptParser<'_> {
           })
           .unwrap_or_default()
         {
-          this.walk_identifier(ident);
+          this.walk_identifier_name(name, ident.span(ast));
         }
       });
     } else if let Some(array) = left.as_array_assignment_target(ast) {
@@ -1997,7 +1995,7 @@ impl JavascriptParser<'_> {
       }
       self.enter_assignment_target(left, |this, ident| {
         let ast = this.ast.ast;
-        let name = Atom::from(ident.name(ast));
+        let name = ident.name(ast);
         if !name
           .call_hooks_name(this, |this, for_name| {
             drive.assign(
@@ -2011,7 +2009,7 @@ impl JavascriptParser<'_> {
           })
           .unwrap_or_default()
         {
-          this.define_variable(name);
+          this.define_variable(name.into());
         }
       });
       self.walk_array_pattern(array);
@@ -2022,7 +2020,7 @@ impl JavascriptParser<'_> {
       }
       self.enter_assignment_target(left, |this, ident| {
         let ast = this.ast.ast;
-        let name = Atom::from(ident.name(ast));
+        let name = ident.name(ast);
         if !name
           .call_hooks_name(this, |this, for_name| {
             drive.assign(
@@ -2036,7 +2034,7 @@ impl JavascriptParser<'_> {
           })
           .unwrap_or_default()
         {
-          this.define_variable(name);
+          this.define_variable(name.into());
         }
       });
       self.walk_object_pattern(object);
