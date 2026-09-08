@@ -148,7 +148,6 @@ impl Module for FallbackModule {
       module: BoxModule::new(self),
       dependencies: dependencies.into_iter().map(Into::into).collect(),
       blocks: vec![],
-      optimization_bailouts: vec![],
     })
   }
 

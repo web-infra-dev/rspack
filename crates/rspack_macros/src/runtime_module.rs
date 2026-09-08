@@ -207,7 +207,6 @@ pub fn impl_runtime_module(
           module: ::rspack_core::BoxModule::new(self),
           dependencies: vec![],
           blocks: vec![],
-          optimization_bailouts: vec![],
         })
       }
     }

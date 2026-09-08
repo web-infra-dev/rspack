@@ -497,6 +497,7 @@ impl Module for NormalModule {
   ) -> Result<BuildResult> {
     self.state.force_build = false;
     self.state.build_info.snapshot = None;
+    self.state.build_info.optimization_bailouts.clear();
 
     // so does webpack
     self.state.parsed = true;
@@ -572,7 +573,6 @@ impl Module for NormalModule {
         module: BoxModule::new(self),
         dependencies: Vec::new(),
         blocks: Vec::new(),
-        optimization_bailouts: vec![],
       });
     };
 
@@ -622,7 +622,6 @@ impl Module for NormalModule {
         module: BoxModule::new(self),
         dependencies: vec![],
         blocks: vec![],
-        optimization_bailouts: vec![],
       });
     }
 
@@ -667,16 +666,20 @@ impl Module for NormalModule {
     if !diagnostics.is_empty() {
       self.add_diagnostics(diagnostics);
     }
-    let optimization_bailouts = if let Some(side_effects_bailout) = side_effects_bailout {
-      let short_id = self.readable_identifier(&build_context.compiler_options.context);
-      vec![OptimizationBailoutItem::SideEffects {
-        node_type: side_effects_bailout.ty,
-        loc: side_effects_bailout.msg,
-        short_id: short_id.to_string(),
-      }]
-    } else {
-      vec![]
-    };
+    if let Some(side_effects_bailout) = side_effects_bailout {
+      let short_id = self
+        .readable_identifier(&build_context.compiler_options.context)
+        .to_string();
+      self
+        .state
+        .build_info
+        .optimization_bailouts
+        .push(OptimizationBailoutItem::SideEffects {
+          node_type: side_effects_bailout.ty,
+          loc: side_effects_bailout.msg,
+          short_id,
+        });
+    }
     // Only side effects used in code_generate can stay here
     // Other side effects should be set outside use_cache
     self.state.source = Some(source);
@@ -692,7 +695,6 @@ impl Module for NormalModule {
       module: BoxModule::new(self),
       dependencies: dependencies.into_iter().map(Into::into).collect(),
       blocks: blocks.into_iter().map(Into::into).collect(),
-      optimization_bailouts,
     })
   }
 

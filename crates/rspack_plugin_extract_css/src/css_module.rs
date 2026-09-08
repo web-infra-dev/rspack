@@ -171,7 +171,6 @@ impl Module for CssModule {
       module: BoxModule::new(self),
       dependencies: vec![],
       blocks: vec![],
-      optimization_bailouts: vec![],
     })
   }
 

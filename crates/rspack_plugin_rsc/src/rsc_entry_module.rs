@@ -272,7 +272,6 @@ impl Module for RscEntryModule {
         module: BoxModule::new(self),
         dependencies: dependencies.into_iter().map(Into::into).collect(),
         blocks: vec![],
-        optimization_bailouts: vec![],
       })
     } else {
       // Non-eager: code-split points; use AsyncDependenciesBlock + ClientReferenceDependency.
@@ -377,7 +376,6 @@ impl Module for RscEntryModule {
         module: BoxModule::new(self),
         dependencies: dependencies.into_iter().map(Into::into).collect(),
         blocks: blocks.into_iter().map(Into::into).collect(),
-        optimization_bailouts: vec![],
       })
     }
   }

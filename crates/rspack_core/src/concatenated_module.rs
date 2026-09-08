@@ -887,7 +887,6 @@ impl Module for ConcatenatedModule {
       module: BoxModule::new(self),
       dependencies: vec![],
       blocks: vec![],
-      optimization_bailouts: vec![],
     })
   }
 

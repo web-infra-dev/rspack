@@ -1217,7 +1217,6 @@ impl Module for ExternalModule {
         can_mangle,
       ))],
       blocks: Vec::new(),
-      optimization_bailouts: vec![],
     })
   }
 

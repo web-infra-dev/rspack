@@ -184,7 +184,6 @@ impl Module for ProvideSharedModule {
       module: BoxModule::new(self),
       dependencies: dependencies.into_iter().map(Into::into).collect(),
       blocks: blocks.into_iter().map(Into::into).collect(),
-      optimization_bailouts: vec![],
     })
   }
 

@@ -7,7 +7,7 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 use crate::{
   AsyncDependenciesBlockBuildResult, AsyncDependenciesBlockIdentifier, BoxModule,
   BuildModuleGraphArtifact, BuildResult, DependenciesBlock, DependencyRef, FileSystemInfo,
-  ModuleGraph, ModuleIdentifier, NormalModuleState, OptimizationBailoutItem, ValueCacheVersions,
+  ModuleGraph, ModuleIdentifier, NormalModuleState, ValueCacheVersions,
   new_cache::{CacheFacade, CacheValue},
 };
 
@@ -33,7 +33,6 @@ pub(crate) struct ModuleBuildCacheEntry {
 struct ModuleGraphBuildResult {
   dependencies: Vec<DependencyRef>,
   blocks: Vec<AsyncDependenciesBlockBuildResult>,
-  optimization_bailouts: Vec<OptimizationBailoutItem>,
 }
 
 impl ModuleBuildCacheEntry {
@@ -46,7 +45,6 @@ impl ModuleBuildCacheEntry {
       module,
       dependencies: self.graph_result.dependencies,
       blocks: self.graph_result.blocks,
-      optimization_bailouts: self.graph_result.optimization_bailouts,
     }
   }
 }
@@ -191,16 +189,11 @@ fn create_cache_entry(
     .iter()
     .map(|block_id| clone_block(module_graph, block_id))
     .collect::<Option<Vec<_>>>()?;
-  let optimization_bailouts = module_graph
-    .get_optimization_bailout(&module_identifier)
-    .clone();
-
   Some(ModuleBuildCacheEntry {
     module_state: normal_module.module_state().clone(),
     graph_result: ModuleGraphBuildResult {
       dependencies,
       blocks,
-      optimization_bailouts,
     },
   })
 }

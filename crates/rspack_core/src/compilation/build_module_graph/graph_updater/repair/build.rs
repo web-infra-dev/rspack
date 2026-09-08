@@ -136,7 +136,7 @@ impl Task<TaskContext> for BuildResultTask {
       .artifact
       .module_graph
       .get_optimization_bailout_mut(&module.identifier())
-      .extend(build_result.optimization_bailouts);
+      .extend_from_slice(&build_info.optimization_bailouts);
     let resource_id = ResourceId::from(module.identifier());
     context
       .artifact

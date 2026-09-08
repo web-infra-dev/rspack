@@ -308,6 +308,8 @@ pub struct BuildInfo {
   pub side_effects_free: Option<AtomSet>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<AtomSet>,
+  /// Bailouts produced during module builds, before compilation-specific optimizations.
+  pub optimization_bailouts: Vec<OptimizationBailoutItem>,
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
@@ -343,6 +345,7 @@ impl Default for BuildInfo {
       css: None,
       side_effects_free: None,
       top_level_declarations: None,
+      optimization_bailouts: Vec::new(),
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,
@@ -665,7 +668,6 @@ pub struct BuildResult {
   /// Dependencies are shared after the module build finishes.
   pub dependencies: Vec<DependencyRef>,
   pub blocks: Vec<AsyncDependenciesBlockBuildResult>,
-  pub optimization_bailouts: Vec<OptimizationBailoutItem>,
 }
 
 #[cacheable]

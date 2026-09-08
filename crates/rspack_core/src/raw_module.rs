@@ -177,7 +177,6 @@ impl Module for RawModule {
       module: BoxModule::new(self),
       dependencies: vec![],
       blocks: vec![],
-      optimization_bailouts: vec![],
     })
   }
 }
