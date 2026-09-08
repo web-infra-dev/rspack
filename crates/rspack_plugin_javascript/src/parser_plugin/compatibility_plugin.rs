@@ -175,6 +175,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
+    // Assignment targets also visit this hook. In CommonJS, bare `exports`
+    // refers to the module factory parameter, not a nested runtime binding.
+    if for_name == "exports" && !parser.is_esm {
+      return None;
+    }
     if for_name == parser.parser_runtime_requirements.exports {
       self.tag_nested_require_data(
         parser,

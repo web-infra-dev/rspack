@@ -80,7 +80,7 @@ pub fn create_cache(
   let strategy = FileCacheStrategy::new(
     options.readonly,
     rspack_workspace::rspack_pkg_version!().to_string(),
-    options.version.clone(),
+    options.version(&compiler_options),
     codec,
     file_system_info,
     logger.clone(),
