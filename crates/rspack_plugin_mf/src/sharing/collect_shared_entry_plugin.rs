@@ -5,7 +5,7 @@ use std::{
 
 use regex::Regex;
 use rspack_core::{
-  Compilation, CompilationAsset, CompilerFinishMake, DependenciesBlock, Plugin,
+  Compilation, CompilationAsset, CompilerFinishMake, DependenciesBlock, NormalModule, Plugin,
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -13,7 +13,9 @@ use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap;
 use serde::{Serialize, Serializer, ser::SerializeMap};
 
-use super::consume_shared_plugin::ConsumeOptions;
+use super::{
+  consume_shared_plugin::ConsumeOptions, provide_shared_dependency::ProvideSharedDependency,
+};
 use crate::{ShareScope, SharedIdentity};
 
 const DEFAULT_FILENAME: &str = "collect-shared-entries.json";
@@ -25,6 +27,8 @@ struct CollectSharedEntryVariant {
   #[serde(skip_serializing_if = "Option::is_none")]
   layer: Option<String>,
   requests: Vec<[String; 2]>,
+  #[serde(rename = "requestOrigins", skip_serializing_if = "Vec::is_empty")]
+  request_origins: Vec<[String; 3]>,
 }
 
 #[derive(Debug, Serialize)]
@@ -32,6 +36,8 @@ struct CollectSharedEntryAssetItem<'a> {
   #[serde(rename = "shareScope")]
   share_scope: &'a ShareScope,
   requests: &'a [[String; 2]],
+  #[serde(rename = "requestOrigins", skip_serializing_if = "Option::is_none")]
+  request_origins: Option<&'a [[String; 3]]>,
   #[serde(skip_serializing_if = "Option::is_none")]
   variants: Option<&'a [CollectSharedEntryVariant]>,
 }
@@ -126,17 +132,25 @@ impl CollectSharedEntryPlugin {
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   // Traverse ConsumeSharedModule in the graph and collect real resolved module paths from fallback
   let module_graph = compilation.get_module_graph();
-  let mut ordered_requests: FxHashMap<SharedIdentity, Vec<[String; 2]>> = FxHashMap::default();
+  let mut ordered_requests: FxHashMap<SharedIdentity, CollectSharedEntryVariant> =
+    FxHashMap::default();
 
-  for (_id, module) in module_graph.modules() {
+  // Provider versions are authoritative for the same resolved import. Collect
+  // them before consumes, whose fallback versions are inferred from packages.
+  let mut modules = module_graph
+    .modules()
+    .filter(|(_, module)| {
+      matches!(
+        module.module_type(),
+        rspack_core::ModuleType::ConsumeShared | rspack_core::ModuleType::ProvideShared
+      )
+    })
+    .collect::<Vec<_>>();
+  modules.sort_unstable_by_key(|(_, module)| {
+    matches!(module.module_type(), rspack_core::ModuleType::ConsumeShared)
+  });
+  for (id, module) in modules {
     let module_type = module.module_type();
-    if !matches!(
-      module_type,
-      rspack_core::ModuleType::ConsumeShared | rspack_core::ModuleType::ProvideShared
-    ) {
-      continue;
-    }
-
     let share_info = match module_type {
       rspack_core::ModuleType::ConsumeShared => {
         let Some(consume) = module
@@ -150,6 +164,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
           consume.get_dependencies(),
           consume.get_blocks(),
           None,
+          Vec::new(),
         )
       }
       rspack_core::ModuleType::ProvideShared => {
@@ -163,41 +178,77 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
           provide.shared_identity(),
           provide.get_dependencies(),
           provide.get_blocks(),
-          provide.version().map(str::to_string),
+          Some(provide.manifest_version().to_string()),
+          module_graph
+            .get_incoming_connections(id)
+            .filter_map(|connection| {
+              module_graph
+                .dependency_by_id(&connection.dependency_id)
+                .downcast_ref::<ProvideSharedDependency>()
+                .map(|dependency| dependency.original_request.clone())
+            })
+            .collect(),
         )
       }
       _ => continue,
     };
 
-    let (identity, dependencies, blocks, provided_version) = share_info;
+    let (identity, dependencies, blocks, provided_version, mut original_requests) = share_info;
     if identity.share_key.is_empty() || identity.share_scope.is_empty() {
       continue;
     }
 
-    // Collect target modules from dependencies and async blocks
-    let mut target_modules = Vec::new();
-    for dep_id in dependencies {
-      if let Some(target_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
-        target_modules.push(*target_id);
-      }
-    }
+    // Collect target modules from dependencies and async blocks.
+    let mut dependency_ids: Vec<_> = dependencies.copied().collect();
     for block_id in blocks {
       if let Some(block) = module_graph.block_by_id(block_id) {
-        for dep_id in block.get_dependencies() {
-          if let Some(target_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
-            target_modules.push(*target_id);
-          }
+        dependency_ids.extend(block.get_dependencies().copied());
+      }
+    }
+    let mut target_modules = Vec::new();
+    for dep_id in dependency_ids {
+      if let Some(target_id) = module_graph.module_identifier_by_dependency_id(&dep_id) {
+        target_modules.push(*target_id);
+        if matches!(module_type, rspack_core::ModuleType::ConsumeShared)
+          && let Some(dependency) = module_graph
+            .dependency_by_id(&dep_id)
+            .as_module_dependency()
+        {
+          original_requests.push(dependency.request().to_string());
         }
       }
     }
 
-    // Add real module resource paths to the map and infer version
-    let mut reqs = ordered_requests.remove(&identity).unwrap_or_default();
+    let entry =
+      ordered_requests
+        .entry(identity.clone())
+        .or_insert_with(|| CollectSharedEntryVariant {
+          share_scope: identity.share_scope.clone(),
+          layer: identity.layer.clone(),
+          requests: Vec::new(),
+          request_origins: Vec::new(),
+        });
     for target_id in target_modules {
       if let Some(target) = module_graph.module_by_identifier(&target_id)
         && let Some(name) = target.name_for_condition()
       {
-        let resource: String = name.into();
+        let resource = target.as_any().downcast_ref::<NormalModule>().map_or_else(
+          || name.into(),
+          |module| module.resource_resolved_data().resource().to_string(),
+        );
+        let original_requests = original_requests
+          .iter()
+          .filter(|original_request| {
+            provided_version.is_some()
+              || !entry
+                .request_origins
+                .iter()
+                .any(|[request, _, import]| request == &resource && import == *original_request)
+          })
+          .collect::<Vec<_>>();
+        if provided_version.is_none() && original_requests.is_empty() {
+          continue;
+        }
         let version = match &provided_version {
           Some(version) => version.clone(),
           None => self
@@ -206,26 +257,28 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
             .unwrap_or_else(String::new),
         };
         let pair = [resource, version];
-        if !reqs.iter().any(|p| p[0] == pair[0] && p[1] == pair[1]) {
-          reqs.push(pair);
+        if !entry.requests.contains(&pair) {
+          entry.requests.push(pair.clone());
+        }
+        for original_request in original_requests {
+          let origin = [pair[0].clone(), pair[1].clone(), original_request.clone()];
+          if !entry.request_origins.contains(&origin) {
+            entry.request_origins.push(origin);
+          }
         }
       }
     }
-    reqs.sort_by(|a, b| a[0].cmp(&b[0]).then(a[1].cmp(&b[1])));
-    ordered_requests.insert(identity, reqs);
+    entry.requests.sort_unstable();
+    entry.request_origins.sort_unstable();
   }
 
   // Build asset content
   let mut shared_variants: FxHashMap<String, Vec<CollectSharedEntryVariant>> = FxHashMap::default();
-  for (identity, requests) in ordered_requests {
+  for (identity, variant) in ordered_requests {
     shared_variants
       .entry(identity.share_key)
       .or_default()
-      .push(CollectSharedEntryVariant {
-        share_scope: identity.share_scope,
-        layer: identity.layer,
-        requests,
-      });
+      .push(variant);
   }
   let mut shared = shared_variants
     .iter_mut()
@@ -248,6 +301,8 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
         CollectSharedEntryAssetItem {
           share_scope: &preferred.share_scope,
           requests: &preferred.requests,
+          request_origins: (!preferred.request_origins.is_empty())
+            .then_some(preferred.request_origins.as_slice()),
           variants,
         },
       ))

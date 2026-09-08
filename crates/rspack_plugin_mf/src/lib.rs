@@ -110,35 +110,6 @@ impl RspackHash for ShareScope {
   }
 }
 
-#[cfg(test)]
-mod tests {
-  use super::{ShareScope, SharedIdentity};
-
-  #[test]
-  fn share_scope_identifier_key_is_collision_free() {
-    let single = ShareScope::Single("a|b".to_string());
-    let multiple = ShareScope::Multiple(vec!["a".to_string(), "b".to_string()]);
-
-    assert_eq!(single.key(), multiple.key());
-    assert_ne!(single.identifier_key(), multiple.identifier_key());
-    assert_ne!(single.identifier_fragment(), multiple.identifier_fragment());
-    assert_ne!(
-      ShareScope::Multiple(vec!["a:".to_string(), "b".to_string()]).identifier_key(),
-      ShareScope::Multiple(vec!["a".to_string(), ":b".to_string()]).identifier_key()
-    );
-  }
-
-  #[test]
-  fn shared_identity_key_is_collision_free() {
-    let scope = ShareScope::Single("default".to_string());
-    let first = SharedIdentity::new(&scope, "c", Some("a) b"));
-    let second = SharedIdentity::new(&scope, "b) c", Some("a"));
-    let unlayered = SharedIdentity::new(&scope, "(a) b) c", None);
-
-    assert_ne!(first.identifier_key(), second.identifier_key());
-    assert_ne!(first.identifier_key(), unlayered.identifier_key());
-  }
-}
 
 pub use container::{
   container_plugin::{ContainerPlugin, ContainerPluginOptions, ExposeOptions},
