@@ -2324,22 +2324,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         && preserve_unhandled_created_require(parser)
       {
         let ast = parser.ast.ast;
-        parser.walk_arguments(
-          expr
-            .arguments(ast)
-            .iter()
-            .map(|id| ast.get_node_in_sub_range(id)),
-        );
+        parser.walk_arguments(ast.nodes(expr.arguments(ast)));
         return Some(true);
       }
       if ids.len() != members.len() {
         let ast = parser.ast.ast;
-        parser.walk_arguments(
-          expr
-            .arguments(ast)
-            .iter()
-            .map(|id| ast.get_node_in_sub_range(id)),
-        );
+        parser.walk_arguments(ast.nodes(expr.arguments(ast)));
         return Some(true);
       }
       return None;
@@ -2366,12 +2356,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
           && !direct_import,
       );
     let ast = parser.ast.ast;
-    parser.walk_arguments(
-      expr
-        .arguments(ast)
-        .iter()
-        .map(|id| ast.get_node_in_sub_range(id)),
-    );
+    parser.walk_arguments(ast.nodes(expr.arguments(ast)));
     Some(true)
   }
 

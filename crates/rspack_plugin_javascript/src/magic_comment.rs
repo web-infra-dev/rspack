@@ -4,7 +4,10 @@ use regex::Regex;
 use rspack_core::{ContextMode, DependencyRange};
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
-use rspack_util::{SpanExt, swc::RspackComment as Comment};
+use rspack_util::{
+  SpanExt,
+  swc::{AstSubRangeExt, RspackComment as Comment},
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_next_allocator::Allocator;
 use swc_next_ecma_ast::{
@@ -414,7 +417,7 @@ fn expr_to_str<'a>(ast: &'a Ast<'a>, expr: Expr) -> Option<Cow<'a, str>> {
     ExprData::TemplateLiteral(template)
       if template.expressions(ast).is_empty() && template.quasis(ast).len() == 1 =>
     {
-      let element = template.quasis(ast).get_node(ast, 0)?;
+      let element = ast.first(template.quasis(ast))?;
       Some(Cow::Borrowed(ast.get_utf8(element.raw(ast))))
     }
     _ => None,
@@ -499,8 +502,8 @@ fn expr_to_magic_comment_value_with_offset(
     return None;
   };
   let mut items = Vec::new();
-  for element in array.elements(ast).iter() {
-    let element = ast.get_node_in_sub_range(element)?;
+  for element in ast.nodes(array.elements(ast)) {
+    let element = element?;
     let ArgumentData::Expr(element) = ast.argument_data(element) else {
       return None;
     };
@@ -523,8 +526,8 @@ fn expr_to_exports(ast: &Ast<'_>, expr: Expr) -> Option<MagicCommentValue> {
   };
 
   let mut exports = Vec::new();
-  for element in array.elements(ast).iter() {
-    let element = ast.get_node_in_sub_range(element)?;
+  for element in ast.nodes(array.elements(ast)) {
+    let element = element?;
     let ArgumentData::Expr(element) = ast.argument_data(element) else {
       return None;
     };
@@ -593,8 +596,7 @@ fn analyze_comments(
     let Some(object) = expr.as_object_expression(&ast) else {
       continue;
     };
-    for property in object.properties(&ast).iter() {
-      let property = ast.get_node_in_sub_range(property);
+    for property in ast.nodes(object.properties(&ast)) {
       let ObjectPropertyKindData::ObjectProperty(property) =
         ast.object_property_kind_data(property)
       else {
@@ -758,8 +760,7 @@ mod tests_extract_magic_comment_object {
     let allocator = Allocator::new();
     let (ast, _) = parse_magic_comment_object(&allocator, raw)?;
     let object = ast.root_expression().as_object_expression(&ast)?;
-    for property in object.properties(&ast).iter() {
-      let property = ast.get_node_in_sub_range(property);
+    for property in ast.nodes(object.properties(&ast)) {
       let ObjectPropertyKindData::ObjectProperty(property) =
         ast.object_property_kind_data(property)
       else {
