@@ -4876,6 +4876,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
+ "rspack_plugin_css",
  "rspack_plugin_javascript",
  "rspack_regex",
  "tracing",

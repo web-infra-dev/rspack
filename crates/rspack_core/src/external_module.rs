@@ -14,13 +14,14 @@ use crate::{
   AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationDataChunkInitFragments, CodeGenerationDataUrl, CodeGenerationResultBuilder,
-  Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRef,
-  ExportProvided, ExternalType, FactoryMeta, ImportAttributes, ImportPhase, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
+  Compilation, ConcatenationScope, Context, CssLayer, CssModuleRenderCondition, DependenciesBlock,
+  DependencyId, DependencyRef, ExportProvided, ExternalType, FactoryMeta, ImportAttributes,
+  ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module,
+  ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
   NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
   StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
-  extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
+  css_module_render_conditions_identifier, extract_url_and_global, impl_module_meta_info,
+  module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -480,6 +481,7 @@ pub struct DependencyMeta {
   pub attributes: Option<ImportAttributes>,
   pub phase: ImportPhase,
   pub source_type: Option<SourceType>,
+  pub css_import_conditions: Option<CssModuleRenderCondition>,
 }
 
 impl ExternalModule {
@@ -510,7 +512,12 @@ impl ExternalModule {
         } else {
           format!(" phase={}", dependency_meta.phase.as_str())
         };
-        format!("external {resolved_type} {request_str}{attrs_str}{phase_str}")
+        let css_import_str =
+          css_module_render_conditions_identifier(dependency_meta.css_import_conditions.iter())
+            .map_or(String::new(), |conditions| {
+              format!(" css-import-conditions={}", json_stringify_str(&conditions))
+            });
+        format!("external {resolved_type} {request_str}{attrs_str}{phase_str}{css_import_str}")
       }),
       request,
       external_type,
@@ -1252,14 +1259,38 @@ impl Module for ExternalModule {
       }
       "css-import" if request.is_some() => {
         let request = request.expect("request should be some");
-        cgr.add(
-          SourceType::Css,
-          RawStringSource::from(format!(
-            "@import url({});",
-            rspack_util::json_stringify_str(request.primary())
-          ))
-          .boxed(),
+        let mut source = format!(
+          "@import url({})",
+          rspack_util::json_stringify_str(request.primary())
         );
+        if let Some(conditions) = &self.dependency_meta.css_import_conditions {
+          if let Some(layer) = &conditions.layer {
+            source.push_str(" layer(");
+            if let CssLayer::Named(layer) = layer {
+              source.push_str(layer);
+            }
+            source.push(')');
+          }
+          if let Some(supports) = conditions
+            .supports
+            .as_deref()
+            .filter(|value| !value.is_empty())
+          {
+            source.push_str(" supports(");
+            source.push_str(supports);
+            source.push(')');
+          }
+          if let Some(media) = conditions
+            .media
+            .as_deref()
+            .filter(|value| !value.is_empty())
+          {
+            source.push(' ');
+            source.push_str(media);
+          }
+        }
+        source.push(';');
+        cgr.add(SourceType::Css, RawStringSource::from(source).boxed());
       }
       _ => {
         let (source, chunk_init_fragments) = self.get_source(

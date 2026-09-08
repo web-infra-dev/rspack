@@ -5,7 +5,7 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   ChunkGraph, Context, CssBuildInfo, CssExport, CssExportType, CssExports,
   CssModuleRenderCondition, Dependency, DependencyCodeGeneration, DependencyId, DependencyType,
-  ExportsArgument, GenerateContext, Module, ModuleArgument, ModuleIdentifier, ModuleInitFragments,
+  GenerateContext, Module, ModuleArgument, ModuleIdentifier, ModuleInitFragments,
   RESERVED_IDENTIFIER, RuntimeGlobals, SourceType, TemplateContext, UsageState, UsedNameItem,
   css_module_render_conditions_identifier,
   rspack_sources::{
@@ -702,19 +702,6 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       .exports_info_artifact
       .get_exports_info_data(&module.identifier());
     let mut state = CssConcatenationState::new(compilation);
-
-    if self.es_module {
-      let exports_argument = if compilation.options.output.module {
-        ExportsArgument::RspackExports
-      } else {
-        self.module.get_exports_argument()
-      };
-      let esm_flag = self
-        .generate_context
-        .runtime_template
-        .define_es_module_flag_statement(exports_argument);
-      self.concat_source.add(RawStringSource::from(esm_flag));
-    }
 
     if let Some(default_expr) = default_expr {
       let export_info = exports_info.get_read_only_export_info(&Atom::from("default"));
