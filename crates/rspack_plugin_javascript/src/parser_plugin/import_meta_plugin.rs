@@ -519,16 +519,20 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
       && meta_expr
         .get_root_name(ast)
         .is_some_and(|name| name == expr_name::IMPORT_META)
-      && let Some(property) = (match ast.property_key_data(member_expr.property(ast)) {
+      && match ast.property_key_data(member_expr.property(ast)) {
         PropertyKeyData::IdentifierName(identifier) => {
-          Some(Atom::from(ast.get_utf8(identifier.name(ast))))
+          !self.preserve_property(Some(ast.get_utf8(identifier.name(ast))))
         }
+        PropertyKeyData::StringLiteral(string) if member_expr.computed(ast) => !self
+          .preserve_property(Some(
+            ast.get_wtf8(string.value(ast)).to_string_lossy().as_ref(),
+          )),
         _ if member_expr.computed(ast) => {
           member_property_key_to_atom(ast, member_expr.property(ast))
+            .is_some_and(|property| !self.preserve_property(Some(property.as_ref())))
         }
-        _ => None,
-      })
-      && !self.preserve_property(Some(property.as_ref()))
+        _ => false,
+      }
     {
       evaluated = Some("undefined".to_string())
     }
@@ -642,7 +646,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
   fn meta_property(
     &self,
     parser: &mut JavascriptParser<'p>,
-    root_name: &Atom,
+    root_name: &str,
     span: Span,
   ) -> Option<bool> {
     if root_name == expr_name::IMPORT_META {
@@ -928,7 +932,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaDisabledPlugin {
   fn meta_property(
     &self,
     parser: &mut JavascriptParser<'p>,
-    root_name: &Atom,
+    root_name: &str,
     span: Span,
   ) -> Option<bool> {
     let import_meta_name = parser.compiler_options.output.import_meta_name.clone();

@@ -1201,7 +1201,7 @@ impl JavascriptParser<'_> {
     self
       .plugin_drive
       .clone()
-      .meta_property(self, &root_name, expr.span(ast));
+      .meta_property(self, root_name, expr.span(ast));
   }
 
   fn walk_conditional_expression(&mut self, expr: ConditionalExpression) {
@@ -1341,7 +1341,7 @@ impl JavascriptParser<'_> {
     if object.is_meta_property(ast)
       && let Some(root_name) = object.get_root_name(ast)
     {
-      let root_info = ExportedVariableInfo::Name(root_name);
+      let root_info = ExportedVariableInfo::Name(Atom::from(root_name));
       if drive
         .unhandled_expression_member_chain(self, &root_info, expr.into())
         .unwrap_or_default()

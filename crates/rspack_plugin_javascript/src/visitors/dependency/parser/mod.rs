@@ -273,13 +273,13 @@ fn object_and_members_to_name(object: &str, members_reversed: &[impl AsRef<str>]
 }
 
 pub trait RootName {
-  fn get_root_name(&self, _ast: &Ast<'_>) -> Option<Atom> {
+  fn get_root_name<'ast>(&self, _ast: &'ast Ast<'_>) -> Option<&'ast str> {
     None
   }
 }
 
 impl RootName for Expr {
-  fn get_root_name(&self, ast: &Ast<'_>) -> Option<Atom> {
+  fn get_root_name<'ast>(&self, ast: &'ast Ast<'_>) -> Option<&'ast str> {
     match ast.expr_data(*self) {
       ExprData::IdentifierReference(ident) => ident.get_root_name(ast),
       ExprData::ThisExpression(this) => this.get_root_name(ast),
@@ -290,7 +290,7 @@ impl RootName for Expr {
 }
 
 impl RootName for ExprRef {
-  fn get_root_name(&self, ast: &Ast<'_>) -> Option<Atom> {
+  fn get_root_name<'ast>(&self, ast: &'ast Ast<'_>) -> Option<&'ast str> {
     match self {
       ExprRef::Ident(ident) => ident.get_root_name(ast),
       ExprRef::This(this) => this.get_root_name(ast),
@@ -301,25 +301,25 @@ impl RootName for ExprRef {
 }
 
 impl RootName for ThisExpression {
-  fn get_root_name(&self, _ast: &Ast<'_>) -> Option<Atom> {
-    Some("this".into())
+  fn get_root_name<'ast>(&self, _ast: &'ast Ast<'_>) -> Option<&'ast str> {
+    Some("this")
   }
 }
 
 impl RootName for IdentifierReference {
-  fn get_root_name(&self, ast: &Ast<'_>) -> Option<Atom> {
-    Some(Atom::from(ast.get_utf8(self.name(ast))))
+  fn get_root_name<'ast>(&self, ast: &'ast Ast<'_>) -> Option<&'ast str> {
+    Some(ast.get_utf8(self.name(ast)))
   }
 }
 
 impl RootName for MetaProperty {
-  fn get_root_name(&self, ast: &Ast<'_>) -> Option<Atom> {
+  fn get_root_name<'ast>(&self, ast: &'ast Ast<'_>) -> Option<&'ast str> {
     match (
       ast.get_utf8(self.meta(ast).name(ast)),
       ast.get_utf8(self.property(ast).name(ast)),
     ) {
-      ("new", "target") => Some("new.target".into()),
-      ("import", "meta") => Some("import.meta".into()),
+      ("new", "target") => Some("new.target"),
+      ("import", "meta") => Some("import.meta"),
       _ => None,
     }
   }
@@ -1057,7 +1057,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn get_all_variables_from_current_scope(
     &self,
-  ) -> impl Iterator<Item = (&str, VariableInfoId)> {
+  ) -> impl Iterator<Item = (&Atom, VariableInfoId)> {
     self.definitions_db.scope_variables(self.definitions)
   }
 
@@ -1205,7 +1205,7 @@ impl<'parser> JavascriptParser<'parser> {
         };
         let NameInfo {
           info: root_info, ..
-        } = self.get_name_info_from_variable(&root_name)?;
+        } = self.get_name_info_from_variable(root_name)?;
 
         let mut root_members = materialize_member_atoms(ast, root_members);
         let mut members = materialize_member_atoms(ast, members);
@@ -1213,11 +1213,10 @@ impl<'parser> JavascriptParser<'parser> {
         members.reverse();
         members_optionals.reverse();
         member_ranges.reverse();
-        let root_name_for_info = root_name.clone();
         Some(MemberExpressionInfo::Call(CallExpressionInfo {
           call: expr,
           root_info: root_info.map_or_else(
-            || ExportedVariableInfo::Name(root_name_for_info),
+            || ExportedVariableInfo::Name(Atom::from(root_name)),
             |i| ExportedVariableInfo::VariableInfo(i.id()),
           ),
           callee_members: root_members,
@@ -1235,18 +1234,17 @@ impl<'parser> JavascriptParser<'parser> {
         let NameInfo {
           name: resolved_root,
           info: root_info,
-        } = self.get_name_info_from_variable(&root_name)?;
+        } = self.get_name_info_from_variable(root_name)?;
 
         let mut members = materialize_member_atoms(ast, members);
         let name = object_and_members_to_name(resolved_root, &members);
         members.reverse();
         members_optionals.reverse();
         member_ranges.reverse();
-        let root_name_for_info = root_name.clone();
         Some(MemberExpressionInfo::Expression(ExpressionExpressionInfo {
           name,
           root_info: root_info.map_or_else(
-            || ExportedVariableInfo::Name(root_name_for_info),
+            || ExportedVariableInfo::Name(Atom::from(root_name)),
             |i| ExportedVariableInfo::VariableInfo(i.id()),
           ),
           members,
@@ -1709,7 +1707,7 @@ impl<'parser> JavascriptParser<'parser> {
       ExprData::MemberExpression(member) => eval::eval_member_expression(self, member, expr),
       ExprData::IdentifierReference(ident) => {
         let span = ident.span(ast);
-        let name = Atom::from(ast.get_utf8(ident.name(ast)));
+        let name = ast.get_utf8(ident.name(ast));
         if name == "undefined" {
           let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
           eval.set_undefined();
@@ -1721,7 +1719,7 @@ impl<'parser> JavascriptParser<'parser> {
             drive.evaluate_identifier(parser, name, None, span.real_lo(), span.real_hi())
           })
           .or_else(|| {
-            let info = self.get_variable_info(&name);
+            let info = self.get_variable_info(name);
             if let Some(info) = info {
               if let Some(name) = &info.name
                 && (info.is_free() || info.is_tagged())
@@ -1739,10 +1737,11 @@ impl<'parser> JavascriptParser<'parser> {
                 None
               }
             } else {
+              let name = Atom::from(name);
               let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
               eval.set_identifier(
                 name.clone(),
-                ExportedVariableInfo::Name(name.clone()),
+                ExportedVariableInfo::Name(name),
                 None,
                 None,
                 None,

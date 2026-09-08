@@ -262,8 +262,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
       && (name == parser.parser_runtime_requirements.exports
         || name == self.nested_require_name(parser))
     {
-      let data =
-        parser.get_tag_data_mut::<NestedRequireData>(&Atom::from(name), NESTED_IDENTIFIER_TAG)?;
+      let data = parser.get_tag_data_mut::<NestedRequireData>(name, NESTED_IDENTIFIER_TAG)?;
       if !data.update {
         let dep = Arc::new(ConstDependency::new(data.loc, data.name.clone().into()));
         data.update = true;
