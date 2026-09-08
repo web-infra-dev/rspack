@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const readJson = (name) =>
-  JSON.parse(fs.readFileSync(path.join(__dirname, name), 'utf-8'));
+  JSON.parse(fs.readFileSync(path.join(__dirname, '..', name), 'utf-8'));
 
 const analyzedStats = readJson('analyzed-stats.json');
 const analyzedManifest = readJson('analyzed.json');

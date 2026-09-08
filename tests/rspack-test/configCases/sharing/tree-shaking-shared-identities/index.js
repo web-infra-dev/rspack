@@ -57,3 +57,13 @@ it('keeps independent shared identities distinct and legacy names stable', async
     expect(fs.existsSync(path.join(__dirname, collision.fallback))).toBe(true);
   }
 });
+
+it('does not copy custom-scope exports into an unoptimized default share', () => {
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(__dirname, 'mf-manifest.json'), 'utf-8'),
+  );
+  const shares = manifest.shared.filter(({ name }) => name === 'unoptimized-collision');
+  expect(shares).toHaveLength(2);
+  expect(shares.find(({ shareScope }) => shareScope === undefined).usedExports).toEqual([]);
+  expect(shares.find(({ shareScope }) => shareScope === 'custom').usedExports).toContain('value');
+});

@@ -1,9 +1,10 @@
 use std::path::Path;
 
-use rspack_core::{Compilation, ModuleGraph, ModuleIdentifier};
+use rspack_core::{BoxModule, Compilation, ModuleGraph, ModuleIdentifier};
 use rspack_util::fx_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{
+  asset::module_source_path,
   data::{StatsAssetsGroup, StatsExpose, StatsRemote, StatsShared, StatsSharedRequirement},
   options::RemoteAliasTarget,
 };
@@ -11,6 +12,7 @@ use crate::{ShareScope, SharedIdentity};
 
 const HOT_UPDATE_SUFFIX: &str = ".hot-update";
 
+/// Cloned because one expose participates in multiple import and asset lookup maps.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct ExposeIdentity {
   pub(crate) path: String,
@@ -261,48 +263,29 @@ pub fn record_shared_usage(
   module_graph: &ModuleGraph,
   compilation: &Compilation,
 ) {
-  fn strip_aggregate_suffix(s: &str) -> String {
-    if let Some((before, _)) = s.split_once(" + ") {
-      before.to_string()
-    } else {
-      s.to_string()
+  let mut record_issuer = |issuer: &BoxModule| {
+    if let Some(path) = module_source_path(issuer, compilation) {
+      shared_usage_links.push((
+        identity.clone(),
+        strip_ext(&path),
+        issuer.get_layer().cloned(),
+      ));
     }
-  }
-  let issuer_layer = module_graph
-    .get_issuer(module_identifier)
-    .and_then(|module| module.get_layer().cloned());
-  if let Some(issuer_module) = module_graph.get_issuer(module_identifier) {
-    let issuer_name = issuer_module
-      .readable_identifier(&compilation.options.context)
-      .to_string();
-    if !issuer_name.is_empty() {
-      let key = strip_ext(&strip_aggregate_suffix(&issuer_name));
-      shared_usage_links.push((identity.clone(), key, issuer_layer.clone()));
-    }
+  };
+  if let Some(issuer) = module_graph.get_issuer(module_identifier) {
+    record_issuer(issuer);
   }
   if let Some(mgm) = module_graph.module_graph_module_by_identifier(module_identifier) {
     for dep_id in mgm.incoming_connections() {
       let Some(connection) = module_graph.connection_by_dependency_id(dep_id) else {
         continue;
       };
-      let dependency = module_graph.dependency_by_id(&connection.dependency_id);
-      let maybe_request = dependency
-        .as_module_dependency()
-        .map(|dep| dep.user_request().to_string())
-        .or_else(|| {
-          dependency
-            .as_context_dependency()
-            .map(|dep| dep.request().to_string())
-        });
-      if let Some(request) = maybe_request {
-        let key = strip_ext(&strip_aggregate_suffix(&request));
-        let connection_issuer_layer = connection
-          .original_module_identifier
-          .or(connection.resolved_original_module_identifier)
-          .and_then(|identifier| module_graph.module_by_identifier(&identifier))
-          .and_then(|module| module.get_layer().cloned())
-          .or_else(|| issuer_layer.clone());
-        shared_usage_links.push((identity.clone(), key, connection_issuer_layer));
+      if let Some(issuer) = connection
+        .original_module_identifier
+        .or(connection.resolved_original_module_identifier)
+        .and_then(|identifier| module_graph.module_by_identifier(&identifier))
+      {
+        record_issuer(issuer);
       }
     }
   }
@@ -314,7 +297,7 @@ pub fn collect_expose_requirements(
   links: Vec<(SharedIdentity, String, Option<String>)>,
   expose_identities_by_import: &HashMap<String, Vec<ExposeIdentity>>,
   expose_effective_layers: &HashMap<(ExposeIdentity, String), Option<String>>,
-  expose_module_paths: &HashMap<ExposeIdentity, String>,
+  expose_module_paths: &HashMap<(ExposeIdentity, String), String>,
 ) {
   for (identity, expose_import, issuer_layer) in links {
     let identity_count = shared_map
@@ -352,7 +335,7 @@ pub fn collect_expose_requirements(
         expose.required_shared.push(required_shared.clone());
       }
       let target = expose_module_paths
-        .get(expose_identity)
+        .get(&(expose_identity.clone(), expose_import.clone()))
         .cloned()
         .unwrap_or_else(|| expose.path.clone());
       shared.usedIn.push(target);

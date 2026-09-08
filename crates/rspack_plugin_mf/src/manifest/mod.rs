@@ -306,6 +306,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let mut exposes_map: HashMap<ExposeIdentity, StatsExpose> = HashMap::default();
     let mut expose_imports: HashMap<ExposeIdentity, String> = HashMap::default();
     let mut expose_identities_by_import: HashMap<String, Vec<ExposeIdentity>> = HashMap::default();
+    let mut expose_module_paths: HashMap<(ExposeIdentity, String), String> = HashMap::default();
     let mut expose_effective_layers: HashMap<(ExposeIdentity, String), Option<String>> =
       HashMap::default();
     let mut expose_chunk_keys: HashMap<ExposeIdentity, rspack_core::ChunkUkey> = HashMap::default();
@@ -391,15 +392,20 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             if import.is_empty() {
               continue;
             }
-            let import_key = strip_ext(import);
-            let effective_layer = expose_dependencies
+            let imported_module = expose_dependencies
               .and_then(|dependencies| dependencies.get(import_index))
               .and_then(|dependency_id| {
                 module_graph
                   .module_identifier_by_dependency_id(dependency_id)
                   .and_then(|module_id| module_graph.module_by_identifier(module_id))
-                  .and_then(|module| module.get_layer().cloned())
               });
+            let import_path =
+              imported_module.and_then(|module| module_source_path(module, compilation));
+            let import_key = strip_ext(import_path.as_deref().unwrap_or(import));
+            let effective_layer = imported_module.and_then(|module| module.get_layer().cloned());
+            if let Some(path) = import_path {
+              expose_module_paths.insert((expose_identity.clone(), import_key.clone()), path);
+            }
             expose_effective_layers.insert(
               (expose_identity.clone(), import_key.clone()),
               effective_layer,
@@ -413,7 +419,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .entry(expose_identity.clone())
             .or_insert(StatsExpose {
               path: expose_key.clone(),
-              file: String::new(),
+              file: expose_dependencies
+                .and_then(|dependencies| dependencies.first())
+                .and_then(|dependency_id| {
+                  module_graph.module_identifier_by_dependency_id(dependency_id)
+                })
+                .and_then(|module_id| module_graph.module_by_identifier(module_id))
+                .and_then(|module| module_source_path(module, compilation))
+                .unwrap_or_default(),
               id: id_comp,
               name: expose_name.clone(),
               layer: expose_layer,
@@ -573,16 +586,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
 
-    let mut expose_module_paths: HashMap<ExposeIdentity, String> = HashMap::default();
-    for (expose_identity, expose_import) in &expose_imports {
-      if let Some(module_id) = module_ids_by_name.get(expose_import)
-        && let Some(module) = module_graph.module_by_identifier(module_id)
-        && let Some(path) = module_source_path(module, compilation)
-      {
-        expose_module_paths.insert(expose_identity.clone(), path);
-      }
-    }
-
     let shared_usage_links_for_requirements = shared_usage_links.clone();
     collect_expose_requirements(
       &mut shared_map,
@@ -685,9 +688,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         ));
       }
       let mut assets = assets.unwrap_or_else(empty_assets_group);
-      if let Some(path) = expose_module_paths.get(expose_identity) {
-        expose.file = path.clone();
-      }
       // Remove main entry files from assets
       filter_assets(&mut assets, &entry_files, &shared_asset_files, true);
       normalize_assets_group(&mut assets);

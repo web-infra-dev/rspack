@@ -51,6 +51,7 @@ pub struct StatsExpose {
   pub assets: StatsAssetsGroup,
 }
 
+/// Cloned to attach one shared requirement to each expose that consumes it.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct StatsSharedRequirement {
   pub name: String,

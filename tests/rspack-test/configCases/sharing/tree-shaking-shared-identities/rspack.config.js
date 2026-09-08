@@ -19,6 +19,19 @@ module.exports = {
       manifest: true,
       shareScope: ['root', 'default'],
       shared: {
+        'unoptimized-default': {
+          import: 'default-unlayered',
+          shareKey: 'unoptimized-collision',
+          shareScope: 'default',
+          requiredVersion: false,
+        },
+        'optimized-custom': {
+          import: 'custom-unlayered',
+          shareKey: 'unoptimized-collision',
+          shareScope: 'custom',
+          requiredVersion: false,
+          treeShaking: { mode: 'runtime-infer', usedExports: ['value'] },
+        },
         'variant-a': {
           request: 'variant-a',
           shareKey: 'shared-variant',
