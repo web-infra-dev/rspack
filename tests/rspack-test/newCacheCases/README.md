@@ -21,6 +21,13 @@ again. Explicit restarts keep control of the update steps; a restart with no
 remaining file updates simply reuses the current source. `noTests` cases still
 perform both builds and cache checks. Bundle hooks are isolated per restart.
 
+Cases that modify build dependencies between compilers can use
+`compiler.hooks.beforeCompile.tapPromise`, skipping the initial build.
+`NEXT_START` waits for the previous compiler's `close()` to flush its cache
+before creating the next compiler, so dependency changes in this hook happen
+after the previous build's snapshots are captured. `done` and `afterDone` do not
+guarantee this: snapshots can be captured later during idle cache storage.
+
 ## Running tests
 
 From `tests/rspack-test`, after `pnpm run build:js` at the repository root:
@@ -78,7 +85,18 @@ should only partially hit the cache. Use `-u` to update these snapshots after
 reviewing the expected change. Compatibility runs do not write snapshots into
 `normalCases` or `configCases`.
 
-To migrate a `cacheCases` fixture, move it into the same category under
-`newCacheCases`, retain its runtime assertions and update files, and generate
-the new cache-stat snapshots. Legacy `rspack.persistentCache` snapshots are not
-used by this suite.
+## Legacy cache compatibility
+
+The fixtures imported from `cacheCases` keep their original category names,
+configuration, runtime assertions, and file update steps. Their legacy
+`rspack.persistentCache` snapshots are replaced by newCache cache-stat snapshots.
+
+Fixtures that cannot pass unchanged remain in this directory and are excluded
+by the `cache` list in `NewCache.test.js`, with the observed failure documented
+beside each exclusion. These include differences in module restoration and
+invalidation, and storage paths expected by legacy tests.
+Excluded cases do not keep partial snapshots from failed runs.
+
+To re-enable a case after fixing its compatibility issue, remove its exclusion,
+run it with `-u`, review the generated cache-stat snapshots, and run it again
+without `-u`. Keep its original runtime assertions when doing so.

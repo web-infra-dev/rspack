@@ -17,6 +17,23 @@ for (const source of selectedSuites) {
 }
 
 const excludes = {
+	cache: [
+		// Restarts rerun loaders that these legacy assertions expect to stay cached.
+		/^common\/readonly$/,
+		/^common\/update-file$/,
+		// Moving the source directory rebuilds the immutable module (3 instead of 1).
+		/^portable\/basic$/,
+		// A later restart rebuilds the module despite an unchanged context timestamp.
+		/^snapshot\/context-dependencies-timestamp$/,
+		// Restart restores the pre-HMR module value (1 instead of 2).
+		/^snapshot\/default_value$/,
+		/^snapshot\/immutable-paths$/,
+		/^snapshot\/managed-paths$/,
+		/^snapshot\/unmanaged-paths$/,
+		// The harness overrides storage paths; these cases assert the legacy locations.
+		/^storage\/directory$/,
+		/^storage\/max-age$/
+	],
 	normal: [
 		// Module restoration does not retain loader-emitted diagnostics yet.
 		/^errors\/loader-error-warning$/,
