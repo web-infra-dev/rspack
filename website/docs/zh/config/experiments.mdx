@@ -84,6 +84,11 @@ type HttpUriOptions = {
 示例：
 
 ```js title="rspack.config.mjs"
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 export default {
   experiments: {
     buildHttp: {

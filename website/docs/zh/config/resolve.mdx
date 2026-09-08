@@ -422,6 +422,11 @@ type ResolveFallback =
 当常规解析失败时重定向模块请求。
 
 ```js title="rspack.config.mjs"
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 export default {
   resolve: {
     fallback: {
@@ -692,6 +697,11 @@ Rspack 中用来替代 [tsconfig-paths-webpack-plugin](https://www.npmjs.com/pac
 - string:
 
 ```js title="rspack.config.mjs"
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 export default {
   resolve: {
     tsConfig: path.resolve(__dirname, './tsconfig.json'),
@@ -702,6 +712,11 @@ export default {
 - object:
 
 ```js title="rspack.config.mjs"
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 export default {
   resolve: {
     tsConfig: {

@@ -422,6 +422,11 @@ type ResolveFallback =
 Redirect module requests when normal resolving fails.
 
 ```js title="rspack.config.mjs"
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 export default {
   resolve: {
     fallback: {
@@ -694,6 +699,11 @@ The replacement of [tsconfig-paths-webpack-plugin](https://www.npmjs.com/package
 - string:
 
 ```js title="rspack.config.mjs"
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 export default {
   resolve: {
     // string
@@ -705,6 +715,11 @@ export default {
 - object:
 
 ```js title="rspack.config.mjs"
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 export default {
   resolve: {
     tsConfig: {
