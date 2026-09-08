@@ -112,7 +112,7 @@ pub enum RuntimeTemplateRenderMode {
 }
 
 impl RuntimeTemplateRenderMode {
-  pub(crate) fn from_options(compiler_options: &CompilerOptions) -> Self {
+  fn from_options(compiler_options: &CompilerOptions) -> Self {
     match compiler_options.experiments.runtime_mode {
       RuntimeMode::Webpack => Self::Webpack,
       RuntimeMode::Rspack
