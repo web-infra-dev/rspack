@@ -48,3 +48,29 @@ it('links directly exposed shares, including multi-import and layered exposes', 
     layered.file,
   ]);
 });
+
+it('distinguishes scalar and ordered scopes with the same readable name', () => {
+  const stats = JSON.parse(
+    fs.readFileSync(path.join(__dirname, 'mf-stats.json'), 'utf-8'),
+  );
+  const scalar = stats.exposes.find(({ name }) => name === 'scope-scalar');
+  const ordered = stats.exposes.find(({ name }) => name === 'scope-ordered');
+  expect(scalar.requiredShared).toEqual([
+    { name: 'scope-collision', shareScope: 'a|b' },
+  ]);
+  expect(ordered.requiredShared).toEqual([
+    { name: 'scope-collision', shareScope: ['a', 'b'] },
+  ]);
+});
+
+it('distinguishes exposed modules with different resource queries', () => {
+  const stats = JSON.parse(
+    fs.readFileSync(path.join(__dirname, 'mf-stats.json'), 'utf-8'),
+  );
+  expect(stats.exposes.find(({ name }) => name === 'query-first').requires).toEqual([
+    'query-first',
+  ]);
+  expect(stats.exposes.find(({ name }) => name === 'query-second').requires).toEqual([
+    'query-second',
+  ]);
+});

@@ -306,15 +306,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
     let mut exposes_map: HashMap<ExposeIdentity, StatsExpose> = HashMap::default();
     let mut expose_imports: HashMap<ExposeIdentity, String> = HashMap::default();
-    let mut expose_identities_by_import: HashMap<String, Vec<ExposeIdentity>> = HashMap::default();
-    let mut expose_module_paths: HashMap<(ExposeIdentity, String), String> = HashMap::default();
-    let mut expose_effective_layers: HashMap<(ExposeIdentity, String), Option<String>> =
+    let mut expose_identities_by_module: HashMap<ModuleIdentifier, Vec<ExposeIdentity>> =
       HashMap::default();
+    let mut expose_module_paths: HashMap<ModuleIdentifier, String> = HashMap::default();
     let mut expose_chunk_keys: HashMap<ExposeIdentity, rspack_core::ChunkUkey> = HashMap::default();
     let mut expose_fallback_chunk_keys: HashMap<ExposeIdentity, rspack_core::ChunkUkey> =
       HashMap::default();
     let mut shared_map: HashMap<SharedIdentity, StatsShared> = HashMap::default();
-    let mut shared_usage_links: Vec<(SharedIdentity, String, Option<String>)> = Vec::new();
+    let mut shared_usage_links: Vec<(SharedIdentity, ModuleIdentifier)> = Vec::new();
     let mut shared_module_targets: HashMap<SharedIdentity, IdentifierSet> = HashMap::default();
     let mut provider_module_targets: HashMap<(SharedIdentity, String, String), IdentifierSet> =
       HashMap::default();
@@ -401,18 +400,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                   .module_identifier_by_dependency_id(dependency_id)
                   .and_then(|module_id| module_graph.module_by_identifier(module_id))
               });
-            let import_path =
-              imported_module.and_then(|module| module_source_path(module, compilation));
-            let import_key = strip_ext(import_path.as_deref().unwrap_or(import));
-            let effective_layer = imported_module.and_then(|module| module.get_layer().cloned());
-            if let Some(path) = import_path {
-              expose_module_paths.insert((expose_identity.clone(), import_key.clone()), path);
+            let Some(imported_module) = imported_module else {
+              continue;
+            };
+            let module_id = imported_module.identifier();
+            if let Some(path) = module_source_path(imported_module, compilation) {
+              expose_module_paths.insert(module_id, path);
             }
-            expose_effective_layers.insert(
-              (expose_identity.clone(), import_key.clone()),
-              effective_layer,
-            );
-            let expose_identities = expose_identities_by_import.entry(import_key).or_default();
+            let expose_identities = expose_identities_by_module.entry(module_id).or_default();
             if !expose_identities.contains(&expose_identity) {
               expose_identities.push(expose_identity.clone());
             }
@@ -554,7 +549,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             &identity,
             &module_identifier,
             module_graph,
-            compilation,
           );
         }
         continue;
@@ -605,18 +599,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           &identity,
           &module_identifier,
           module_graph,
-          compilation,
         );
       }
     }
 
-    let shared_usage_links_for_requirements = shared_usage_links.clone();
     collect_expose_requirements(
       &mut shared_map,
       &mut exposes_map,
-      shared_usage_links_for_requirements,
-      &expose_identities_by_import,
-      &expose_effective_layers,
+      shared_usage_links,
+      &expose_identities_by_module,
       &expose_module_paths,
     );
     let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;

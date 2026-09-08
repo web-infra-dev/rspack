@@ -9,6 +9,7 @@ module.exports = {
     rules: [
       { test: /second\.js$/, layer: 'server' },
       { test: /third\.js$/, layer: 'client' },
+      { test: /query\.js$/, use: require.resolve('./query-loader.js') },
     ],
   },
   optimization: { concatenateModules: false },
@@ -22,12 +23,30 @@ module.exports = {
         './other': './third.js',
         './plain': './plain.js',
         './direct': 'shared',
+        './scope-scalar': 'scope-scalar',
+        './scope-ordered': 'scope-ordered',
+        './query-first': './query.js?first',
+        './query-second': './query.js?second',
         './consume-only': 'consume-only',
         './direct-multi': { import: ['./plain.js', 'shared'] },
         './direct-layered': { import: 'shared-layered', layer: 'entry-layer' },
       },
       shared: {
         shared: { requiredVersion: false },
+        'scope-scalar': {
+          shareKey: 'scope-collision',
+          shareScope: 'a|b',
+          import: false,
+          requiredVersion: false,
+        },
+        'scope-ordered': {
+          shareKey: 'scope-collision',
+          shareScope: ['a', 'b'],
+          import: false,
+          requiredVersion: false,
+        },
+        'query-first': { import: false, requiredVersion: false },
+        'query-second': { import: false, requiredVersion: false },
         'consume-only': { import: false, requiredVersion: false },
         'shared-layered': {
           import: 'shared',

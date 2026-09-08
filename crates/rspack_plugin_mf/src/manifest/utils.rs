@@ -1,10 +1,9 @@
 use std::path::Path;
 
-use rspack_core::{BoxModule, Compilation, ModuleGraph, ModuleIdentifier};
+use rspack_core::{Compilation, ModuleGraph, ModuleIdentifier};
 use rspack_util::fx_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{
-  asset::module_source_path,
   data::{StatsAssetsGroup, StatsExpose, StatsRemote, StatsShared, StatsSharedRequirement},
   options::RemoteAliasTarget,
 };
@@ -258,40 +257,22 @@ pub(crate) fn manifest_share_scope(identity: &SharedIdentity) -> Option<ShareSco
 }
 
 pub fn record_shared_usage(
-  shared_usage_links: &mut Vec<(SharedIdentity, String, Option<String>)>,
+  shared_usage_links: &mut Vec<(SharedIdentity, ModuleIdentifier)>,
   identity: &SharedIdentity,
   module_identifier: &ModuleIdentifier,
   module_graph: &ModuleGraph,
-  compilation: &Compilation,
 ) {
-  let mut record_module = |module: &BoxModule| {
-    if let Some(path) = module_source_path(module, compilation) {
-      shared_usage_links.push((
-        identity.clone(),
-        strip_ext(&path),
-        module.get_layer().cloned(),
-      ));
-    }
-  };
   // A direct expose resolves to the shared module itself, not an ordinary issuer.
-  if let Some(module) = module_graph.module_by_identifier(module_identifier) {
-    record_module(module);
-  }
+  shared_usage_links.push((identity.clone(), *module_identifier));
   if let Some(issuer) = module_graph.get_issuer(module_identifier) {
-    record_module(issuer);
+    shared_usage_links.push((identity.clone(), issuer.identifier()));
   }
-  if let Some(mgm) = module_graph.module_graph_module_by_identifier(module_identifier) {
-    for dep_id in mgm.incoming_connections() {
-      let Some(connection) = module_graph.connection_by_dependency_id(dep_id) else {
-        continue;
-      };
-      if let Some(issuer) = connection
-        .original_module_identifier
-        .or(connection.resolved_original_module_identifier)
-        .and_then(|identifier| module_graph.module_by_identifier(&identifier))
-      {
-        record_module(issuer);
-      }
+  for connection in module_graph.get_incoming_connections(module_identifier) {
+    if let Some(issuer) = connection
+      .original_module_identifier
+      .or(connection.resolved_original_module_identifier)
+    {
+      shared_usage_links.push((identity.clone(), issuer));
     }
   }
 }
@@ -299,12 +280,11 @@ pub fn record_shared_usage(
 pub fn collect_expose_requirements(
   shared_map: &mut HashMap<SharedIdentity, StatsShared>,
   exposes_map: &mut HashMap<ExposeIdentity, StatsExpose>,
-  links: Vec<(SharedIdentity, String, Option<String>)>,
-  expose_identities_by_import: &HashMap<String, Vec<ExposeIdentity>>,
-  expose_effective_layers: &HashMap<(ExposeIdentity, String), Option<String>>,
-  expose_module_paths: &HashMap<(ExposeIdentity, String), String>,
+  links: Vec<(SharedIdentity, ModuleIdentifier)>,
+  expose_identities_by_module: &HashMap<ModuleIdentifier, Vec<ExposeIdentity>>,
+  expose_module_paths: &HashMap<ModuleIdentifier, String>,
 ) {
-  for (identity, expose_import, issuer_layer) in links {
+  for (identity, module_id) in links {
     let identity_count = shared_map
       .keys()
       .filter(|candidate| candidate.share_key == identity.share_key)
@@ -312,7 +292,7 @@ pub fn collect_expose_requirements(
     let Some(shared) = shared_map.get_mut(&identity) else {
       continue;
     };
-    let Some(expose_identities) = expose_identities_by_import.get(&expose_import) else {
+    let Some(expose_identities) = expose_identities_by_module.get(&module_id) else {
       continue;
     };
     let required_shared = StatsSharedRequirement {
@@ -324,12 +304,6 @@ pub fn collect_expose_requirements(
       || required_shared.layer.is_some()
       || required_shared.share_scope.is_some();
     for expose_identity in expose_identities {
-      let effective_layer = expose_effective_layers
-        .get(&(expose_identity.clone(), expose_import.clone()))
-        .map_or(expose_identity.layer.as_deref(), |layer| layer.as_deref());
-      if effective_layer != issuer_layer.as_deref() {
-        continue;
-      }
       let Some(expose) = exposes_map.get_mut(expose_identity) else {
         continue;
       };
@@ -340,7 +314,7 @@ pub fn collect_expose_requirements(
         expose.required_shared.push(required_shared.clone());
       }
       let target = expose_module_paths
-        .get(&(expose_identity.clone(), expose_import.clone()))
+        .get(&module_id)
         .cloned()
         .unwrap_or_else(|| expose.path.clone());
       shared.usedIn.push(target);
