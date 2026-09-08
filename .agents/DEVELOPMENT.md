@@ -2,13 +2,26 @@
 
 Run commands from the repository root unless shown otherwise. Command definitions live in [root package scripts](../package.json), [test package scripts](../tests/rspack-test/package.json), and [Cargo aliases](../.cargo/config.toml).
 
-## Setup and build variants
+## Setup
 
-- Initial setup: `pnpm run setup` installs dependencies and builds the development binding and JS packages.
+Use the Rust toolchain in `rust-toolchain.toml`, the pnpm version in `package.json`, and the latest Node.js LTS.
+
+`pnpm run setup` installs dependencies and builds the development binding and JS packages.
+
+## Build
+
+Build the changed code before running tests that consume it:
+
+| Changed code | Build                        |
+| ------------ | ---------------------------- |
+| JavaScript   | `pnpm run build:js`          |
+| Rust         | `pnpm run build:binding:dev` |
+| Both         | `pnpm run build:cli:dev`     |
+
+Other build variants:
+
 - Native binding variants: `pnpm run build:binding:debug` or `pnpm run build:binding:release`.
 - WASM: `pnpm run build:cli:dev:wasm`; browser: `pnpm run build:cli:dev:browser`.
-
-For ordinary changes, use the language-specific build commands in [AGENTS.md](../AGENTS.md#build-and-validation).
 
 ## Tests
 

@@ -4,17 +4,7 @@ Rspack is a Rust-based JavaScript bundler with a webpack-compatible API.
 
 ## Build and validation
 
-Use the Rust toolchain in `rust-toolchain.toml`, the pnpm version in `package.json`, and the latest Node.js LTS.
-
-Before testing changed code, build the artifacts those tests consume:
-
-| Changed code | Build                        |
-| ------------ | ---------------------------- |
-| JavaScript   | `pnpm run build:js`          |
-| Rust         | `pnpm run build:binding:dev` |
-| Both         | `pnpm run build:cli:dev`     |
-
-See [Development commands](.agents/DEVELOPMENT.md) for setup, focused tests, linting, profiling, and build variants.
+Before testing changed code, build the artifacts those tests consume using the [development commands](.agents/DEVELOPMENT.md#build).
 
 ## Adding tests
 
