@@ -180,9 +180,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
+    // Keep the declaration tag when assigning to an already-renamed binding.
+    if for_name == NESTED_IDENTIFIER_TAG && parser.in_assignment_pattern {
+      return Some(false);
+    }
     // Do not interpret assignments to the CommonJS factory parameter as
-    // declarations of a nested runtime binding.
-    if for_name == "exports" && parser.in_assignment_pattern {
+    // declarations of a nested runtime binding. Strict ESM must not expose it.
+    if for_name == "exports"
+      && parser.in_assignment_pattern
+      && (parser.module_type.is_js_auto() || parser.module_type.is_js_dynamic())
+    {
       return None;
     }
     if for_name == parser.parser_runtime_requirements.exports {

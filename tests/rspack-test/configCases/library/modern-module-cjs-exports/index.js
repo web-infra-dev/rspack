@@ -11,4 +11,12 @@ it('should deconflict destructured exports declarations in automatic modules', (
   expect(declarations).toEqual({ object: 42, array: 43 });
 });
 
+it('should reject undeclared exports assignments in strict ES modules', () => {
+  expect(() => require('./assignment-esm.mjs')).toThrow(ReferenceError);
+});
+
+it('should preserve assignments to declared exports in strict ES modules', () => {
+  expect(require('./declaration-esm.mjs').exports).toBe(43);
+});
+
 export default engines;
