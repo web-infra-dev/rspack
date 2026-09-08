@@ -388,17 +388,22 @@ export default function () {
         webpackRequire: runtimeRequire,
       }),
     );
+    // Only ordered (array) scopes are initialized before their consumes
+    // resolve: the bundler runtime cannot initialize them lazily, and they
+    // enable async startup, which awaits `initialConsumesInit`. Scalar scopes
+    // keep the legacy contract (factories install synchronously, the scope is
+    // initialized lazily), because `initializeSharing` always returns a
+    // promise and a synchronous entry would otherwise run before its eager
+    // consumes exist.
     const initializeConsumeShareScopes = (moduleIds) => {
       if (!moduleIds?.length) return [];
       const initPromises = [];
       const initializedScopes = new Set();
       for (const moduleId of moduleIds) {
         const shareScope =
-          consumesLoadingModuleToConsumeDataMapping[moduleId]?.shareScope ||
-          'default';
-        const scopeKey = JSON.stringify(
-          Array.isArray(shareScope) ? shareScope : [shareScope],
-        );
+          consumesLoadingModuleToConsumeDataMapping[moduleId]?.shareScope;
+        if (!Array.isArray(shareScope)) continue;
+        const scopeKey = JSON.stringify(shareScope);
         if (initializedScopes.has(scopeKey)) continue;
         initializedScopes.add(scopeKey);
         const initialized = runtimeRequire.I(shareScope, []);

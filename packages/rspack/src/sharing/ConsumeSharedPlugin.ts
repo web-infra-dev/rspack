@@ -22,14 +22,23 @@ type ConsumeSharedPluginBaseOptions<Enhanced extends boolean> = {
   consumes: Consumes<Enhanced>;
   shareScope?: ShareScope;
 };
-export type ConsumeSharedPluginOptions<Enhanced extends boolean = boolean> = [
-  Enhanced,
-] extends [true]
-  ? ConsumeSharedPluginBaseOptions<true> & { enhanced: true }
-  : [Enhanced] extends [false]
-    ? ConsumeSharedPluginBaseOptions<false> & { enhanced?: false }
-    : | (ConsumeSharedPluginBaseOptions<false> & { enhanced?: false })
-      | (ConsumeSharedPluginBaseOptions<true> & { enhanced: true });
+// Public, extendable (`interface X extends ConsumeSharedPluginOptions`) and
+// source-compatible with the pre-enhanced options shape.
+export interface ConsumeSharedPluginOptions extends ConsumeSharedPluginBaseOptions<false> {
+  enhanced?: boolean;
+}
+export interface EnhancedConsumeSharedPluginOptions extends ConsumeSharedPluginBaseOptions<true> {
+  enhanced: true;
+}
+// Strict discrimination happens only at the constructor boundary.
+type ConsumeSharedPluginConstructorOptions<Enhanced extends boolean = boolean> =
+  [Enhanced] extends [true]
+    ? EnhancedConsumeSharedPluginOptions
+    : [Enhanced] extends [false]
+      ? ConsumeSharedPluginBaseOptions<false> & { enhanced?: false }
+      : | (ConsumeSharedPluginBaseOptions<false> & { enhanced?: false })
+        | EnhancedConsumeSharedPluginOptions
+        | (ConsumeSharedPluginBaseOptions<false> & { enhanced: boolean });
 export type Consumes<Enhanced extends boolean = boolean> =
   (ConsumesItem | ConsumesObject<Enhanced>)[] | ConsumesObject<Enhanced>;
 export type ConsumesItem = string;
@@ -155,7 +164,7 @@ export class ConsumeSharedPlugin<
   name = BuiltinPluginName.ConsumeSharedPlugin;
   _options;
 
-  constructor(options: ConsumeSharedPluginOptions<Enhanced>) {
+  constructor(options: ConsumeSharedPluginConstructorOptions<Enhanced>) {
     super();
     this._options = {
       consumes: normalizeConsumeShareOptions(

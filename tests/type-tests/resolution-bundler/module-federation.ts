@@ -2,6 +2,7 @@ import rspack, {
   type ConsumesConfig,
   type ConsumeSharedPluginOptions,
   type ContainerPluginOptions,
+  type EnhancedConsumeSharedPluginOptions,
   type EnhancedContainerPluginOptions,
   type ExposesConfig,
   type ModuleFederationPluginV1Options,
@@ -20,7 +21,17 @@ new rspack.sharing.ConsumeSharedPlugin({
   consumes: { legacyConsume },
 });
 
-const annotatedEnhancedConsume: ConsumeSharedPluginOptions = {
+// The public options type stays extendable and legacy-compatible.
+interface ExtendedConsumeOptions extends ConsumeSharedPluginOptions {
+  custom?: boolean;
+}
+const extendedConsume: ExtendedConsumeOptions = {
+  consumes: { legacyConsume },
+  custom: true,
+};
+new rspack.sharing.ConsumeSharedPlugin(extendedConsume);
+
+const annotatedEnhancedConsume: EnhancedConsumeSharedPluginOptions = {
   enhanced: true,
   consumes: { react: { request: 'react-server' } },
 };
@@ -38,8 +49,21 @@ new rspack.sharing.ConsumeSharedPlugin({
   },
 });
 
+const dynamicEnhanced = Math.random() > 0.5;
+new rspack.sharing.ConsumeSharedPlugin({
+  enhanced: dynamicEnhanced,
+  consumes: { legacyConsume },
+});
+
 // @ts-expect-error Enhanced consume fields require the runtime feature gate.
 new rspack.sharing.ConsumeSharedPlugin<true>({
+  consumes: {
+    react: { request: 'react-server' },
+  },
+});
+
+// @ts-expect-error Enhanced consume fields require enhanced: true.
+new rspack.sharing.ConsumeSharedPlugin({
   consumes: {
     react: { request: 'react-server' },
   },
@@ -72,7 +96,6 @@ const extendedContainer: ExtendedContainerOptions = {
 };
 new rspack.container.ContainerPlugin(extendedContainer);
 
-const dynamicEnhanced = Math.random() > 0.5;
 const reusableLegacyExpose: ExposesConfig = { import: './index' };
 new rspack.container.ContainerPlugin({
   name: 'dynamic-enhanced',
