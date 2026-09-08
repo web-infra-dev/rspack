@@ -878,15 +878,6 @@ pub trait Module:
     true
   }
 
-  /// Replays compilation-local registrations that are not part of the cached build.
-  async fn restore_from_cache(
-    &mut self,
-    _compilation_id: CompilationId,
-    _dependencies: &[DependencyRef],
-  ) -> Result<()> {
-    Ok(())
-  }
-
   /// Checks a completed build's cacheability, value dependencies, diagnostics and
   /// filesystem snapshot. Types with additional invalidation conditions may override this.
   async fn need_build(&mut self, context: &NeedBuildContext<'_>) -> Result<bool> {

@@ -118,17 +118,18 @@ impl Task<TaskContext> for BuildResultTask {
       mut forwarded_ids,
     } = *self;
     if from_cache {
-      let dependencies = module.get_dependency_refs().to_vec();
-      module
-        .restore_from_cache(context.compilation_id, &dependencies)
+      plugin_driver
+        .compilation_hooks
+        .still_valid_module
+        .call(context.compiler_id, context.compilation_id, &mut module)
+        .await?;
+    } else {
+      plugin_driver
+        .compilation_hooks
+        .succeed_module
+        .call(context.compiler_id, context.compilation_id, &mut module)
         .await?;
     }
-
-    plugin_driver
-      .compilation_hooks
-      .succeed_module
-      .call(context.compiler_id, context.compilation_id, &mut module)
-      .await?;
 
     let build_info = module.build_info();
 

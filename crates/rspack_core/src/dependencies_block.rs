@@ -66,10 +66,8 @@ impl ExactSizeIterator for DependencyIds<'_> {}
 
 /// Build-owned dependency objects and blocks. The graph indexes the same shared objects.
 /// Dependency IDs are read from the objects; block IDs remain a contiguous read index.
-/// Cloning copies these containers for normal-module state cache entries; the dependency
-/// and block objects themselves remain shared.
 #[cacheable]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct DependenciesBlockData {
   dependencies: Vec<DependencyRef>,
   #[cacheable(omit_bounds)]

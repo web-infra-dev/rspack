@@ -18,6 +18,7 @@ module.exports = [
   let expectedAssets = [];
   let built = 0;
   let succeeded = 0;
+  let stillValid = 0;
   let failBuild = false;
   let expectedBailouts;
 
@@ -65,14 +66,17 @@ module.exports = [
               compilation.hooks.buildModule.tap(PLUGIN, module => {
                 if (module.resource === input) built++;
               });
-              compilation.hooks.succeedModule.tap(PLUGIN, module => {
-                if (module.resource !== input) return;
-                if (failBuild) throw new Error("module cache build failure");
-                succeeded++;
-                expect(Object.keys(module.buildInfo.assets).sort()).toEqual(expectedAssets);
-                // This also runs on cache hits. The next build must observe this mutation.
-                module.emitFile(`module-state-${iteration}.txt`, new RawSource(`${iteration}`));
-              });
+              for (const hook of ["succeedModule", "stillValidModule"]) {
+                compilation.hooks[hook].tap(PLUGIN, module => {
+                  if (module.resource !== input) return;
+                  if (failBuild) throw new Error("module cache build failure");
+                  if (hook === "succeedModule") succeeded++;
+                  else stillValid++;
+                  expect(Object.keys(module.buildInfo.assets).sort()).toEqual(expectedAssets);
+                  // Mutations in either hook must survive the next cache hit.
+                  module.emitFile(`module-state-${iteration}.txt`, new RawSource(`${iteration}`));
+                });
+              }
             });
           }
         }]
@@ -95,7 +99,8 @@ module.exports = [
         const stats = await manager.build();
         expect(stats.toJson({ all: false, errors: true }).errors).toEqual([]);
         expect(built - before).toBe(rebuild ? 1 : 0);
-        expect(succeeded).toBe(iteration + 1);
+        expect(succeeded).toBe(built);
+        expect(stillValid).toBe(iteration + 1 - built);
         const bailouts = stats.toJson({
           all: false,
           modules: true,

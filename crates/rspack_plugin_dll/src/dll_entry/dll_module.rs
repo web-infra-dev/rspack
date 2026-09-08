@@ -6,9 +6,9 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder,
   Compilation, Context, DependenciesBlock, DependenciesBlockData, EntryDependency, FactoryMeta,
-  Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleType, NeedBuildContext,
-  RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info,
-  impl_source_map_config, module_update_hash,
+  Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleType, RuntimeGlobals,
+  RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info, impl_source_map_config,
+  module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};

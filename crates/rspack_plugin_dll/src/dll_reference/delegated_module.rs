@@ -7,9 +7,8 @@ use rspack_core::{
   BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder,
   Compilation, Context, DependenciesBlock, DependenciesBlockData, FactoryMeta, LibIdentOptions,
   Module, ModuleArgument, ModuleCodeGenerationContext, ModuleDependency, ModuleGraph, ModuleId,
-  ModuleType, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, ValueCacheVersions, impl_module_meta_info, impl_source_map_config,
-  module_update_hash,
+  ModuleType, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
+  ValueCacheVersions, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};

@@ -8,7 +8,7 @@ use rspack_core::{
   AsyncModulesArtifact, BoxDependency, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationFinishModules, CompilationParams,
   CompilerCompilation, CompilerFinishMake, DependencyType, EntryOptions, ExportsInfoArtifact,
-  Plugin, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact,
+  ModuleType, Plugin, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -102,10 +102,6 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-// When MF async startup is enabled, STARTUP may resolve asynchronously even if the entry module
-// itself doesn't have top-level await. Mark MF container entry modules as async so downstream
-// renderers (e.g. library wrappers) can safely `await` exports without sprinkling MF-specific
-// RuntimeGlobals checks across generic plugins.
 #[plugin_hook(CompilationFinishModules for ModuleFederationRuntimePlugin, stage = 1000)]
 async fn finish_modules(
   &self,
@@ -114,17 +110,27 @@ async fn finish_modules(
   _exports_info_artifact: &mut ExportsInfoArtifact,
   _side_effects_state_artifact: &mut SideEffectsStateArtifact,
 ) -> Result<()> {
-  if !self.options.experiments.async_startup {
-    return Ok(());
-  }
-
   let module_graph = compilation.get_module_graph();
+  let hooks = FederationModulesPlugin::get_compilation_hooks(compilation);
+  let add_remote_dependency = hooks.add_remote_dependency.lock().await;
   for (module_identifier, module) in module_graph.modules() {
-    if module
-      .as_ref()
-      .as_any()
-      .downcast_ref::<ContainerEntryModule>()
-      .is_some()
+    // Register from the current graph so cached and incrementally reused modules
+    // participate even when their build method did not run in this compilation.
+    if module.module_type() == &ModuleType::Remote {
+      for dependency_id in module.get_dependencies() {
+        add_remote_dependency
+          .call(module_graph.dependency_by_id(dependency_id))
+          .await?;
+      }
+    }
+    // MF async startup can be asynchronous without top-level await. Mark container
+    // entries so downstream renderers can safely await their exports.
+    if self.options.experiments.async_startup
+      && module
+        .as_ref()
+        .as_any()
+        .downcast_ref::<ContainerEntryModule>()
+        .is_some()
     {
       async_modules_artifact.insert(*module_identifier);
     }

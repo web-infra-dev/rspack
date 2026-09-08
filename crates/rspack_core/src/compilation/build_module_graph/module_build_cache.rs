@@ -35,8 +35,7 @@ struct StoredModule<'a> {
 impl ModuleBuildCache {
   pub(crate) fn new(cache: &Cache) -> Self {
     Self {
-      // The owned filesystem representation differs from the previous state cache.
-      cache: cache.facade("Compilation/modules/owned-v2"),
+      cache: cache.facade("Compilation/modules"),
       pending: Default::default(),
     }
   }

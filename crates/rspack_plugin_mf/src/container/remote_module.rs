@@ -5,9 +5,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
-  CodeGenerationResultBuilder, Compilation, CompilationId, Context, DependenciesBlock, DependenciesBlockData,
-  Dependency, DependencyRef, ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, impl_module_meta_info,
+  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
+  ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
+  ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, impl_module_meta_info,
   impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
@@ -17,7 +17,7 @@ use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_util::source_map::SourceMapKind;
 
 use super::{
-  fallback_dependency::FallbackDependency, federation_modules_plugin::FederationModulesPlugin,
+  fallback_dependency::FallbackDependency,
   remote_to_external_dependency::RemoteToExternalDependency,
 };
 use crate::{
@@ -116,19 +116,6 @@ impl Module for RemoteModule {
     true
   }
 
-  async fn restore_from_cache(
-    &mut self,
-    compilation_id: CompilationId,
-    dependencies: &[DependencyRef],
-  ) -> Result<()> {
-    let hooks = FederationModulesPlugin::get_compilation_hooks_by_id(compilation_id);
-    let hooks = hooks.add_remote_dependency.lock().await;
-    for dependency in dependencies {
-      hooks.call(dependency.as_ref()).await?;
-    }
-    Ok(())
-  }
-
   impl_module_meta_info!();
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
@@ -170,46 +157,19 @@ impl Module for RemoteModule {
   }
 
   async fn build(
-    mut self: Box<Self>,
-    build_context: BuildContext,
+    self: Box<Self>,
+    _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
-    let mut dependencies: Vec<BoxDependency> = Vec::new();
-
-    if self.external_requests.len() == 1 {
-      let dep = RemoteToExternalDependency::new(self.external_requests[0].clone());
-
-      // Call federation hooks here using the BuildContext - this runs before optimize_chunks!
-      let hooks =
-        FederationModulesPlugin::get_compilation_hooks_by_id(build_context.compilation_id);
-      hooks
-        .add_remote_dependency
-        .lock()
-        .await
-        .call(&dep as &dyn Dependency)
-        .await?;
-
-      dependencies.push(BoxDependency::new(dep));
+    let dependency = if self.external_requests.len() == 1 {
+      BoxDependency::new(RemoteToExternalDependency::new(
+        self.external_requests[0].clone(),
+      ))
     } else {
-      let dep = FallbackDependency::new(self.external_requests.clone());
+      BoxDependency::new(FallbackDependency::new(self.external_requests.clone()))
+    };
 
-      // Call federation hooks here using the BuildContext - this runs before optimize_chunks!
-      let hooks =
-        FederationModulesPlugin::get_compilation_hooks_by_id(build_context.compilation_id);
-      hooks
-        .add_remote_dependency
-        .lock()
-        .await
-        .call(&dep as &dyn Dependency)
-        .await?;
-
-      dependencies.push(BoxDependency::new(dep));
-    }
-
-    Ok(
-      BoxModule::new(self)
-        .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![]),
-    )
+    Ok(BoxModule::new(self).with_dependencies(vec![dependency.into()], vec![]))
   }
 
   // #[tracing::instrument("RemoteModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]

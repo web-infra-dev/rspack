@@ -98,8 +98,8 @@ module.exports = [
 				const stats = await manager.build();
 				expect(stats.toJson({ all: false, errors: true }).errors).toEqual([]);
 				if (!legacy) {
-					// Consecutive run() calls use rebuild(), which bypasses the module cache.
-					const cacheHit = reopen && iteration % 2 === 1;
+					// Unchanged entries are reusable even when graph recovery is disabled.
+					const cacheHit = cache !== false && iteration % 2 === 1;
 					expect(built).toBe(cacheHit ? 0 : 1);
 				}
 				const filename = path.join(root, "dist/main.js");

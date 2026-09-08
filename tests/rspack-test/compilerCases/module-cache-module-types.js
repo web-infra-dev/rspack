@@ -19,6 +19,7 @@ module.exports = [
   let iteration;
   let built;
   let succeeded;
+  let stillValid;
   let timestamp;
   const assets = new Map(kinds.map(kind => [kind, []]));
 
@@ -105,16 +106,18 @@ module.exports = [
                 const kind = kindOf(module);
                 if (kind) built.push(kind);
               });
-              compilation.hooks.succeedModule.tap(PLUGIN, module => {
-                const kind = kindOf(module);
-                if (!kind) return;
-                succeeded.push(kind);
-                if (built.includes(kind)) assets.set(kind, []);
-                expect(Object.keys(module.buildInfo.assets).sort()).toEqual(assets.get(kind));
-                const asset = `${kind}-${iteration}.txt`;
-                module.emitFile(asset, new RawSource(asset));
-                assets.get(kind).push(asset);
-              });
+              for (const hook of ["succeedModule", "stillValidModule"]) {
+                compilation.hooks[hook].tap(PLUGIN, module => {
+                  const kind = kindOf(module);
+                  if (!kind) return;
+                  (hook === "succeedModule" ? succeeded : stillValid).push(kind);
+                  if (hook === "succeedModule") assets.set(kind, []);
+                  expect(Object.keys(module.buildInfo.assets).sort()).toEqual(assets.get(kind));
+                  const asset = `${kind}-${iteration}.txt`;
+                  module.emitFile(asset, new RawSource(asset));
+                  assets.get(kind).push(asset);
+                });
+              }
             });
           }
         }]
@@ -129,6 +132,7 @@ module.exports = [
       for (iteration = 0; iteration < 5; iteration++) {
         built = [];
         succeeded = [];
+        stillValid = [];
         timestamp = new Date(timestamp.getTime() + 1000);
         if (iteration === 2) {
           write("items/b.js", 'module.exports = "b";');
@@ -140,7 +144,6 @@ module.exports = [
         }
         const stats = await manager.build();
         expect(stats.toJson({ all: false, errors: true }).errors).toEqual([]);
-        expect(succeeded.sort()).toEqual([...kinds].sort());
         const expected = kinds.filter(kind => {
           if (iteration === 0 || cache === false) return true;
           if (kind === "sync" || kind === "lazy") return !memory || iteration === 2 || iteration === 4;
@@ -148,6 +151,8 @@ module.exports = [
           return kind === "css" && iteration === 2;
         });
         expect(built.sort()).toEqual(expected.sort());
+        expect(succeeded.sort()).toEqual(expected);
+        expect(stillValid.sort()).toEqual(kinds.filter(kind => !expected.includes(kind)).sort());
         const filename = path.join(root, "dist/main.js");
         const output = { exports: {} };
         new Function("require", "module", "exports", fs.readFileSync(filename, "utf8"))(
