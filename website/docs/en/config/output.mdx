@@ -85,14 +85,27 @@ export default {
 
 ## output.chunkFilename
 
-- **Type:** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
+- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** Determined by [`output.filename`](/config/output#outputfilename) when it is not a function, otherwise `'[id].js'`.
 
 This option determines the name of non-initial chunk files. See [`output.filename`](/config/output#outputfilename) option for details on the possible values.
 
 Note that these filenames need to be generated at runtime to send the requests for chunks. Because of this, placeholders like `[name]` and `[chunkhash]` need to add a mapping from chunk id to placeholder value to the output bundle with the Rspack runtime. This increases the size and may invalidate the bundle when placeholder value for any chunk changes.
 
-By default `[id].js` is used or a value inferred from [`output.filename`](/config/output#outputfilename)(`[name]` is replaced with `[id]` or `[id].` is prepended).
+When this option is omitted, Rspack derives it from [`output.filename`](#outputfilename):
+
+- If `output.filename` is a string containing `[name]`, `[id]`, `[chunkhash]`, or `[contenthash]`, Rspack reuses that string. In particular, `[name]` is not replaced with `[id]`.
+- Otherwise, Rspack inserts `[id].` before the basename, preserving the directory and query string.
+- If `output.filename` is a function, the default is `'[id].js'`. Rspack does not call that function to derive `output.chunkFilename`.
+
+| `output.filename`     | Default `output.chunkFilename` |
+| --------------------- | ------------------------------ |
+| `'[name].js'`         | `'[name].js'`                  |
+| `'[name].mjs'`        | `'[name].mjs'`                 |
+| `'scripts/bundle.js'` | `'scripts/[id].bundle.js'`     |
+| A function            | `'[id].js'`                    |
+
+To choose a different template explicitly:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -284,19 +297,40 @@ When Rspack dynamically loads JavaScript resources, it will generate the followi
 
 ## output.cssChunkFilename
 
-- **Type:** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
+- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** Determined by [`output.chunkFilename`](/config/output#outputchunkfilename) when it is not a function, otherwise `'[id].css'`.
 
 This option determines the name of non-initial CSS output files on disk. See [`output.filename`](/config/output#outputfilename) option for details on the possible values.
+
+For a string `output.chunkFilename`, Rspack replaces its `.js`, `.mjs`, or `.cjs` extension with `.css`, preserving any query string. For a function, the default is `'[id].css'`; the function is not called to derive the CSS filename.
 
 You **must not** specify an absolute path here. However, feel free to include folders separated by `'/'`. This specified path combines with the [`output.path`](#outputpath) value to pinpoint the location on the disk.
 
 ## output.cssFilename
 
-- **Type:** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
-- **Default:** Determined by [`output.filename`](/config/output#outputfilename)
+- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
+- **Default:** Derived from [`output.filename`](#outputfilename) when it is a string, otherwise `'[id].css'`.
 
 This option determines the name of CSS output files on disk. See [`output.filename`](/config/output#outputfilename) option for details on the possible values.
+
+For a string `output.filename`, Rspack replaces its `.js`, `.mjs`, or `.cjs` extension with `.css`, preserving any query string. If none of these extensions is present, the string is unchanged.
+
+| `output.filename`        | Default `output.cssFilename` |
+| ------------------------ | ---------------------------- |
+| `'scripts/[name].js'`    | `'scripts/[name].css'`       |
+| `'[name].mjs?version=1'` | `'[name].css?version=1'`     |
+| A function               | `'[id].css'`                 |
+
+When using a function for JavaScript filenames, configure CSS filenames separately if you need named CSS assets:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    filename: () => 'scripts/[name].js',
+    cssFilename: 'styles/[name].css',
+  },
+};
+```
 
 You **must not** specify an absolute path here. However, feel free to include folders separated by `'/'`. This specified path combines with the [`output.path`](#outputpath) value to pinpoint the location on the disk.
 
@@ -501,7 +535,7 @@ export default {
 
 ## output.filename
 
-- **Type:** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
+- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** When [`output.module`](#outputmodule) is `true`, it is `'[name].mjs'`, otherwise it is `'[name].js'`.
 
 This option determines the name of each output bundle. The bundle is written to the directory specified by the [`output.path`](#outputpath) option.
@@ -659,11 +693,11 @@ An optional salt to update the hash.
 ## output.hotUpdateChunkFilename
 
 - **Type:** `string`
-- **Default:** `"[id].[fullhash].hot-update.js"`
+- **Default:** When [`output.module`](#outputmodule) is `true`, it is `'[id].[fullhash].hot-update.mjs'`, otherwise it is `'[id].[fullhash].hot-update.js'`.
 
 Customize the filenames of hot update chunks. See [`output.filename`](#outputfilename) option for details on the possible values.
 
-The only placeholders allowed here are `[id]` and `[fullhash]`, the default being:
+The only placeholders allowed here are `[id]` and `[fullhash]`. For example:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -691,7 +725,7 @@ For details see [`output.chunkLoadingGlobal`](#outputchunkloadingglobal).
 ## output.hotUpdateMainFilename
 
 - **Type:** `string`
-- **Default:** `"[runtime].[fullhash].hot-update.json"`
+- **Default:** When [`output.module`](#outputmodule) is `true`, it is `'[runtime].[fullhash].hot-update.json.mjs'`, otherwise it is `'[runtime].[fullhash].hot-update.json'`.
 
 Customize the main hot update filename. `[fullhash]` and `[runtime]` are available as placeholder.
 
@@ -702,7 +736,7 @@ Typically you don't need to change `output.hotUpdateMainFilename`.
 ## output.iife
 
 - **Type:** `boolean`
-- **Default:** `true`
+- **Default:** `false` when [`output.module`](#outputmodule) is `true`, otherwise `true`.
 
 Tells Rspack to add [IIFE](https://developer.mozilla.org/en-US/docs/Glossary/IIFE) wrapper around emitted code.
 
@@ -1551,7 +1585,9 @@ export default {
 
 Output JavaScript files as module type.
 
-When enabled, Rspack will set [`output.iife`](#outputiife) to `false`, [`output.scriptType`](#outputscripttype) to `'module'` and `terserOptions.module` to `true` internally.
+When enabled, [`output.iife`](#outputiife) defaults to `false` and [`output.scriptType`](#outputscripttype) defaults to `'module'`. Explicit values for these options take precedence over the defaults.
+
+The built-in [SwcJsMinimizerRspackPlugin](/plugins/swc-js-minimizer-rspack-plugin#minimizeroptions) detects ESM assets from their metadata unless `minimizerOptions.module` is explicitly configured.
 
 If you set [`output.library.type`](#outputlibrarytype) to 'module' or 'modern-module', Rspack will set `output.module` to `true` for you automatically.
 

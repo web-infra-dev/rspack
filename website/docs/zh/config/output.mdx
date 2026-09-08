@@ -85,14 +85,27 @@ export default {
 
 ## output.chunkFilename
 
-- **类型：** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
-- **默认值：** 当 [`output.filename`](/config/output#outputfilename) 不为函数时，推断 [`output.filename`](/config/output#outputfilename) 推断；否则为 `'[id].js'`。
+- **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
+- **默认值：** 当 [`output.filename`](#outputfilename) 为字符串时，根据其推断；否则为 `'[id].js'`。
 
 这个选项决定了非初始块文件的名称。有关可能值的详细信息，请参见 [`output.filename`](/config/output#outputfilename) 选项。
 
 注意，这些文件名需要在运行时生成，以便发送 chunk 的请求。因此，像 `[name]` 和 `[chunkhash]` 这样的占位符需要在 Rspack 运行时将 chunk id 映射到占位符值添加到输出 bundle 中。这会增加大小，并且可能会在任何 chunk 的占位符值更改时使 bundle 的缓存失效。
 
-默认情况下，使用 `[id].js` 或从 [`output.filename`](/config/output#outputfilename) 推断出的值（`[name]` 被替换为 `[id]` 或在前面加上 `[id].`）。
+未配置此选项时，Rspack 根据 [`output.filename`](#outputfilename) 推断默认值：
+
+- 如果 `output.filename` 是包含 `[name]`、`[id]`、`[chunkhash]` 或 `[contenthash]` 的字符串，则直接复用该字符串。其中 `[name]` 不会被替换成 `[id]`。
+- 否则，Rspack 会在文件名前添加 `[id].`，保留目录和查询字符串。
+- 如果 `output.filename` 是函数，则默认为 `'[id].js'`。Rspack 不会调用该函数来推断 `output.chunkFilename`。
+
+| `output.filename`     | 默认的 `output.chunkFilename` |
+| --------------------- | ----------------------------- |
+| `'[name].js'`         | `'[name].js'`                 |
+| `'[name].mjs'`        | `'[name].mjs'`                |
+| `'scripts/bundle.js'` | `'scripts/[id].bundle.js'`    |
+| 函数                  | `'[id].js'`                   |
+
+你也可以显式指定其他文件名模板：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -280,19 +293,40 @@ export default {
 
 ## output.cssChunkFilename
 
-- **类型：** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
+- **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **默认值：** 当 [`output.chunkFilename`](/config/output#outputchunkfilename) 不为函数时，根据 [`output.chunkFilename`](/config/output#outputchunkfilename) 推断；否则为 `'[id].css'`。
 
 此选项决定了非初始（non-initial）CSS chunk 文件的名称，参阅 [`output.filename`](/config/output#outputfilename)，了解可能的值。
+
+当 `output.chunkFilename` 为字符串时，Rspack 会将其中的 `.js`、`.mjs` 或 `.cjs` 扩展名替换为 `.css`，并保留查询字符串。当其为函数时，默认值为 `'[id].css'`，不会调用该函数来推断 CSS 文件名。
 
 在这里不能指定绝对路径。不过，可以随意包括用 `'/'` 分隔的文件夹。这个指定的路径将与 [`output.path`](#outputpath) 值结合，以精确定位磁盘上的位置。
 
 ## output.cssFilename
 
-- **类型：** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
-- **默认值：** 根据 [`output.filename`](/config/output#outputfilename) 推断
+- **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
+- **默认值：** 当 [`output.filename`](#outputfilename) 为字符串时，根据其推断；否则为 `'[id].css'`。
 
 此选项决定了 CSS 文件的名称，参阅 [`output.filename`](/config/output#outputfilename)，了解可能的值。
+
+当 `output.filename` 为字符串时，Rspack 会将其中的 `.js`、`.mjs` 或 `.cjs` 扩展名替换为 `.css`，并保留查询字符串。如果不包含这些扩展名，则保持字符串不变。
+
+| `output.filename`        | 默认的 `output.cssFilename` |
+| ------------------------ | --------------------------- |
+| `'scripts/[name].js'`    | `'scripts/[name].css'`      |
+| `'[name].mjs?version=1'` | `'[name].css?version=1'`    |
+| 函数                     | `'[id].css'`                |
+
+使用函数配置 JavaScript 文件名时，如果需要按名称输出 CSS 产物，可以单独配置 CSS 文件名：
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    filename: () => 'scripts/[name].js',
+    cssFilename: 'styles/[name].css',
+  },
+};
+```
 
 在这里**不能**指定绝对路径。不过，可以随意包括用 `'/'` 分隔的文件夹。这个指定的路径将与 [`output.path`](#outputpath) 值结合，以精确定位磁盘上的位置。
 
@@ -497,7 +531,7 @@ export default {
 
 ## output.filename
 
-- **类型：** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
+- **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **默认值：** [output.module](#outputmodule) 为 `true` 时为 `'[name].mjs'`，否则为 `'[name].js'`
 
 这个选项决定了输出的 JavaScript bundle 文件名称。这些 bundle 将会被写入 [`output.path`](#outputpath) 指定的目录下。
@@ -652,7 +686,7 @@ export default {
 ## output.hotUpdateChunkFilename
 
 - **类型：** `string`
-- **默认值：** `"[id].[fullhash].hot-update.js"`
+- **默认值：** 当 [`output.module`](#outputmodule) 为 `true` 时，为 `'[id].[fullhash].hot-update.mjs'`，否则为 `'[id].[fullhash].hot-update.js'`。
 
 自定义热更新文件的文件名，参阅 [`output.filename`](#outputfilename)，了解可能的值。只有 `[fullhash]` 和 `[id]` 可用作占位符。
 
@@ -682,7 +716,7 @@ JSONP 函数用于异步加载热更新块。
 ## output.hotUpdateMainFilename
 
 - **类型：** `string`
-- **默认值：** `"[runtime].[fullhash].hot-update.json"`
+- **默认值：** 当 [`output.module`](#outputmodule) 为 `true` 时，为 `'[runtime].[fullhash].hot-update.json.mjs'`，否则为 `'[runtime].[fullhash].hot-update.json'`。
 
 自定义热更新清单文件的文件名。只有 `[fullhash]` 和 `[runtime]` 可用作占位符。
 
@@ -693,7 +727,7 @@ JSONP 函数用于异步加载热更新块。
 ## output.iife
 
 - **类型：** `boolean`
-- **默认值：** `true`
+- **默认值：** 当 [`output.module`](#outputmodule) 为 `true` 时为 `false`，否则为 `true`。
 
 让 Rspack 为生成的代码添加 [IIFE](https://developer.mozilla.org/en-US/docs/Glossary/IIFE) 包装器。
 
@@ -1542,7 +1576,9 @@ export default {
 
 是否以 ESM 模块的形式输出 JavaScript 文件。
 
-当启用时，Rspack 会将 [`output.iife`](#outputiife) 设置为 `false`， [`output.scriptType`](#outputscripttype) 设置为 `'module'`。
+当启用时，[`output.iife`](#outputiife) 默认为 `false`，[`output.scriptType`](#outputscripttype) 默认为 `'module'`。显式配置的值优先于这些默认值。
+
+内置的 [SwcJsMinimizerRspackPlugin](/plugins/swc-js-minimizer-rspack-plugin#minimizeroptions) 根据产物元数据识别 ESM，除非显式配置了 `minimizerOptions.module`。
 
 配置 [`output.library.type`](#outputlibrarytype) 为 'module' 或 'modern-module' 会自动将 `output.module` 设为 `true`。
 
