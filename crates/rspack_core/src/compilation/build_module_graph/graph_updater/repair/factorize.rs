@@ -107,7 +107,11 @@ impl Task<TaskContext> for FactorizeTask {
           return Err(e);
         }
         let mut diagnostic = Diagnostic::from(e);
-        diagnostic.loc = create_data.dependencies[0].loc();
+        diagnostic.loc = create_data
+          .dependencies
+          .iter()
+          .filter_map(|dependency| dependency.loc())
+          .min();
         create_data.diagnostics.insert(0, diagnostic);
         None
       }

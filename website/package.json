@@ -13,7 +13,7 @@
     "sort-projects-words": "node ./sortProjectWords.js"
   },
   "dependencies": {
-    "@rstack-dev/doc-ui": "catalog:",
+    "@rstackjs/doc-ui": "catalog:",
     "markdown-to-jsx": "catalog:",
     "mermaid": "catalog:",
     "react": "catalog:",

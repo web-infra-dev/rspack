@@ -5,7 +5,8 @@ use rspack_core::{
   Dependency, DependencyCategory, DependencyCodeGenerationRef, RuntimeGlobals,
   RuntimeRequirementsDependency, get_context,
 };
-use rspack_util::{SpanExt, atom::Atom};
+use rspack_intern::Atom;
+use rspack_util::SpanExt;
 use rustc_hash::FxHashMap;
 use swc_experimental_ecma_ast::{BlockStmtOrExpr, CallExpr, Callee, Expr, GetSpan, Lit};
 

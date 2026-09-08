@@ -277,7 +277,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             "{:016x}",
             minimize_cache_hash(original_source, self.options_hash, filename, is_module)
           ));
-          let value = cache.get::<CachedMinimizeEntry>(asset_filename, Some(etag.clone()))?;
+          let value = cache.get::<CachedMinimizeEntry>(asset_filename, Some(etag.clone()));
           Some((cache, etag, value))
         } else {
           None
@@ -522,7 +522,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             extracted_comments: extracted_comments_for_cache,
           };
           if let Some((cache, etag, _)) = &new_cache_entry {
-            cache.store(asset_filename, Some(etag.clone()), CacheValue::new(entry))?;
+            cache.store(asset_filename, Some(etag.clone()), CacheValue::new(entry));
           } else if let Some(cache_key) = cache_key {
             legacy_cache_entries
               .lock()

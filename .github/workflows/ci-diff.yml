@@ -3,18 +3,21 @@ name: CI Diff
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    # Ignore md files in PR to skip workflow when only documentation changes
+    # Ignore files that do not affect build output to skip unnecessary builds
     paths-ignore:
       - '**/*.md'
+      - '.agents/**'
       - 'website/**'
 
   push:
     branches:
       - main
+      - release/2.3.0
       - v1.x
-    # Ignore md files in push to skip workflow when only documentation changes
+    # Ignore files that do not affect build output to skip unnecessary builds
     paths-ignore:
       - '**/*.md'
+      - '.agents/**'
       - 'website/**'
 
   workflow_dispatch:
@@ -27,7 +30,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'v1.x' }}
+  cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'release/2.3.0' && github.ref_name != 'v1.x' }}
 
 permissions:
   # Allow commenting on issues for `reusable-build.yml`
@@ -96,11 +99,11 @@ jobs:
         run: RSDOCTOR=true CI=true pnpm run build:cases
 
       - name: Report Compressed Size
-        uses: web-infra-dev/rsdoctor-action@bce0934b887cddb56986d16c34a445bcce9a7d65 # v1.1.3
+        uses: web-infra-dev/rsdoctor-action@2fbd50933702502f12d2bbef5273afbfd829a289 # v1.1.4
         env:
           AI_TOKEN: ${{ secrets.AI_TOKEN }}
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           file_path: '../build-tools-performance/**/dist/rsdoctor-data.json'
-          target_branch: ${{ inputs.target_branch || 'main' }}
+          target_branch: ${{ github.event_name == 'push' && github.ref_name || github.event_name == 'pull_request' && github.base_ref || inputs.target_branch || 'main' }}
           ai_model: qwen3.5-plus

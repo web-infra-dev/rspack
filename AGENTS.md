@@ -19,6 +19,7 @@ Rspack is a high-performance JavaScript bundler written in Rust that offers stro
 ## Cache architecture
 
 - **Backend boundary**: `crates/rspack_core/src/new_cache/` and `crates/rspack_core/src/legacy_cache/` may depend on shared code in `crates/rspack_core/src/cache/`, but must not reference each other.
+- **Persistent cache format**: Do not add compatibility code for old persistent cache formats or introduce new/versioned cache namespaces to isolate format changes. Keep existing namespaces; clear stale cache files and rebuild when needed.
 - Read [Cache and Incremental](.agents/CACHE_AND_INCREMENTAL.md) before modifying either cache backend or their shared dependencies.
 
 ## Setup
@@ -81,6 +82,7 @@ Before running tests after code changes:
 ### Modifying code
 
 - **Rust**: Core in `crates/rspack_core/`, plugins in `crates/rspack_plugin_*/`, rebuild with `pnpm run build:binding:dev`, test with `pnpm run test:rs`, avoid linting and formatting for fast local development
+- **Rust `Clone`**: Do not derive or manually implement `Clone` for data structures without a concrete need. When adding an implementation that copies underlying data, explain why it is necessary in both the type's documentation comment and the PR description. Cloning `Arc` handles, including wrappers that only clone those handles, is exempt.
 - **JS/TS**: API in `packages/rspack/src/`, CLI in `packages/rspack-cli/src/`, rebuild with `pnpm run build:js`, test with `pnpm run test:unit`
 
 ### Adding tests

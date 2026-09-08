@@ -1,9 +1,7 @@
-use std::{
-  collections::{BTreeMap, HashMap},
-  sync::Mutex,
-};
+use std::{collections::BTreeMap, sync::Mutex};
 
 use html_escape::encode_safe;
+use rustc_hash::FxHashMap as HashMap;
 #[cfg(test)]
 use serde_json::{Value, json};
 
@@ -47,8 +45,8 @@ impl Executer {
   fn compute_jump_table(insts: &[Action<Eval>]) -> Result<JumpTables, String> {
     let mut inst_index = 0;
 
-    let mut jump_table = HashMap::new();
-    let mut break_table = HashMap::new();
+    let mut jump_table = HashMap::default();
+    let mut break_table = HashMap::default();
 
     let mut if_matching_ends = BTreeMap::new();
 
@@ -59,7 +57,7 @@ impl Executer {
     let mut loop_opened = Vec::new();
 
     // Mapping between location of break/continue to the corresponding loop.
-    let mut break_and_continue_pos = HashMap::new();
+    let mut break_and_continue_pos = HashMap::default();
 
     while inst_index < insts.len() {
       match &insts[inst_index] {
@@ -199,10 +197,10 @@ impl Executer {
     includes: &mut Mutex<HashMap<String, String>>,
   ) -> Result<String, String> {
     let mut rendered = String::new();
-    let mut for_index_counter = HashMap::new();
+    let mut for_index_counter = HashMap::default();
 
     // Contains the range value of the for-loop.
-    let mut for_range_container = HashMap::new();
+    let mut for_range_container = HashMap::default();
 
     let mut inst_index = 0;
     while inst_index < self.insts.len() {
@@ -500,7 +498,7 @@ fn test_nested_continue_jump_table() {
 #[test]
 fn test_arithmetic_exec() {
   let context_json = r#"{"a": 1, "b":2, "c": 3, "d" : 2, "e" : 6, "f" : 2}"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
 
   {
     let context_value: Value = serde_json::from_str(context_json).unwrap();
@@ -512,8 +510,8 @@ fn test_arithmetic_exec() {
     let result = executer
       .render(
         &mut context,
-        &HashMap::new(),
-        &HashMap::new(),
+        &HashMap::default(),
+        &HashMap::default(),
         template,
         &mut includes,
       )
@@ -527,15 +525,15 @@ fn test_arithmetic_exec() {
 fn test_while_exec() {
   let template =
     r#"<% a = 0; while a < 3 { if a == 1 { %>One <% } else { %>a = <%= a %> <% } a = a + 1 } %>"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
   let executer = Executer::new(Parser::parse(template).unwrap()).unwrap();
 
   let mut context = Context::new(Value::from(""));
   let result = executer
     .render(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       template,
       &mut includes,
     )
@@ -547,7 +545,7 @@ fn test_while_exec() {
 #[test]
 fn test_for_in_statement() {
   let template = r#"<% for x in arr { %><%= x %> <% } %>"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
   let executer = Executer::new(Parser::parse(template).unwrap()).unwrap();
 
   let context_json = r#"{"arr" : [1,2,3,4,5]}"#;
@@ -557,8 +555,8 @@ fn test_for_in_statement() {
   let result = executer
     .render(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       template,
       &mut includes,
     )
@@ -570,7 +568,7 @@ fn test_for_in_statement() {
 #[test]
 fn test_for_in_statement_with_index() {
   let template = r#"<% for x in arr { %><%= index %> <%= x %>,<% } %>"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
   let executer = Executer::new(Parser::parse(template).unwrap()).unwrap();
 
   let context_json = r#"{"arr" : [1,2,3,4,5]}"#;
@@ -580,8 +578,8 @@ fn test_for_in_statement_with_index() {
   let result = executer
     .render(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       template,
       &mut includes,
     )
@@ -593,7 +591,7 @@ fn test_for_in_statement_with_index() {
 #[test]
 fn test_nested_for_in_statement() {
   let template = r#"<% for x in arr { for y in arr2 { %><%= x %>*<%= y %>=<%= x * y %>,<% } } %>"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
   let executer = Executer::new(Parser::parse(template).unwrap()).unwrap();
 
   let context_json = r#"{"arr" : [1,2,3,4,5], "arr2" : [1,2]}"#;
@@ -603,8 +601,8 @@ fn test_nested_for_in_statement() {
   let result = executer
     .render(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       template,
       &mut includes,
     )
@@ -618,7 +616,7 @@ fn test_nested_for_in_statement() {
 #[test]
 fn test_break() {
   let template = r#"<% for a in v { if a > b { break; } %><%= a %> <% } %>"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
   let executer = Executer::new(Parser::parse(template).unwrap()).unwrap();
 
   let context_json = r#"{"b" : 3, "v" : [1,2,3,4,5]}"#;
@@ -628,8 +626,8 @@ fn test_break() {
   let result = executer
     .render(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       template,
       &mut includes,
     )
@@ -641,7 +639,7 @@ fn test_break() {
 fn test_nested_break() {
   let template =
     r#"<% for a in v { for b in v { if a * b > 10 { break; } %><%= a * b %> <% } } %>"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
   let executer = Executer::new(Parser::parse(template).unwrap()).unwrap();
 
   let context_json = r#"{"v" : [1,2,3,4,5]}"#;
@@ -651,8 +649,8 @@ fn test_nested_break() {
   let result = executer
     .render(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       template,
       &mut includes,
     )
@@ -663,7 +661,7 @@ fn test_nested_break() {
 #[test]
 fn test_continue() {
   let template = r#"<% for a in v { if a == b { continue; } %><%= a %> <% } %>"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
   let executer = Executer::new(Parser::parse(template).unwrap()).unwrap();
 
   let context_json = r#"{"b" : 3, "v" : [1,2,3,4,5]}"#;
@@ -673,8 +671,8 @@ fn test_continue() {
   let result = executer
     .render(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       template,
       &mut includes,
     )
@@ -685,7 +683,7 @@ fn test_continue() {
 #[test]
 fn test_nested_continue() {
   let template = r#"<% for a in v { for b in v { if a == b { continue; } %><%= b %><% } if a == 2 { continue } } %>"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
   let executer = Executer::new(Parser::parse(template).unwrap()).unwrap();
 
   let context_json = r#"{"v" : [1,2,3,4,5]}"#;
@@ -695,8 +693,8 @@ fn test_nested_continue() {
   let result = executer
     .render(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       template,
       &mut includes,
     )
@@ -707,14 +705,14 @@ fn test_nested_continue() {
 #[test]
 fn test_function() {
   let template = r#"<%= func(a, b) %>"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
   let executer = Executer::new(Parser::parse(template).unwrap()).unwrap();
 
   let context_json = r#"{"a" : 10, "b" : 20}"#;
   let context_value: Value = serde_json::from_str(context_json).unwrap();
   let mut context = Context::new(context_value);
 
-  let mut functions = HashMap::new();
+  let mut functions = HashMap::default();
   functions.insert(
     "func".to_string(),
     FunctionContainer::F2(Box::new(|a: Operand, b: Operand| -> Operand {
@@ -735,7 +733,7 @@ fn test_function() {
   let result = executer
     .render(
       &mut context,
-      &HashMap::new(),
+      &HashMap::default(),
       &functions,
       template,
       &mut includes,
@@ -748,14 +746,14 @@ fn test_function() {
 fn test_function_complex() {
   // (12 + 10 * 20 - 2 + 1 + 3) * 2
   let template = r#"<%= func(func(2, a), func(1+func2(a, b, 2), 3)) * 2 %>"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
   let executer = Executer::new(Parser::parse(template).unwrap()).unwrap();
 
   let context_json = r#"{"a" : 10, "b" : 20}"#;
   let context_value: Value = serde_json::from_str(context_json).unwrap();
   let mut context = Context::new(context_value);
 
-  let mut functions = HashMap::new();
+  let mut functions = HashMap::default();
   functions.insert(
     "func".to_string(),
     FunctionContainer::F2(Box::new(|a: Operand, b: Operand| -> Operand {
@@ -798,7 +796,7 @@ fn test_function_complex() {
   let result = executer
     .render(
       &mut context,
-      &HashMap::new(),
+      &HashMap::default(),
       &functions,
       template,
       &mut includes,
@@ -811,14 +809,14 @@ fn test_function_complex() {
 fn test_function_with_statements() {
   let template =
     r#"<%= while func(a, b) < 10 { a = a + 1; %>(<%= a %>, <%= b %>) <% b = b + 1 } %>"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
   let executer = Executer::new(Parser::parse(template).unwrap()).unwrap();
 
   let context_json = r#"{"a" : 1, "b" : 2}"#;
   let context_value: Value = serde_json::from_str(context_json).unwrap();
   let mut context = Context::new(context_value);
 
-  let mut functions = HashMap::new();
+  let mut functions = HashMap::default();
   functions.insert(
     "func".to_string(),
     FunctionContainer::F2(Box::new(|a: Operand, b: Operand| -> Operand {
@@ -839,7 +837,7 @@ fn test_function_with_statements() {
   let result = executer
     .render(
       &mut context,
-      &HashMap::new(),
+      &HashMap::default(),
       &functions,
       template,
       &mut includes,
@@ -851,13 +849,13 @@ fn test_function_with_statements() {
 #[test]
 fn test_function_taking_object() {
   let template = r#"<%- func(a) %>"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
   let executer = Executer::new(Parser::parse(template).unwrap()).unwrap();
 
   let context_value: Value = json!({"a" : {"b" : 1, "c" : 2}});
   let mut context = Context::new(context_value);
 
-  let mut functions = HashMap::new();
+  let mut functions = HashMap::default();
   functions.insert(
     "func".to_string(),
     FunctionContainer::F1(Box::new(|a: Operand| -> Operand {
@@ -873,7 +871,7 @@ fn test_function_taking_object() {
   let result = executer
     .render(
       &mut context,
-      &HashMap::new(),
+      &HashMap::default(),
       &functions,
       template,
       &mut includes,
@@ -886,18 +884,18 @@ fn test_function_taking_object() {
 #[test]
 fn test_predefined_include_function() {
   let template = r#"<%- include(a) %>"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
   let executer = Executer::new(Parser::parse(template).unwrap()).unwrap();
 
   let context_json = r#"{"a" : "./tests/test_include.html"}"#;
   let context_value: Value = serde_json::from_str(context_json).unwrap();
   let mut context = Context::new(context_value);
 
-  let functions = HashMap::new();
+  let functions = HashMap::default();
   let result = executer
     .render(
       &mut context,
-      &HashMap::new(),
+      &HashMap::default(),
       &functions,
       template,
       &mut includes,
@@ -910,15 +908,15 @@ fn test_predefined_include_function() {
 #[test]
 fn test_predefined_include_template_function() {
   let template = r#"<%- include_template(a) %>"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
   let executer = Executer::new(Parser::parse(template).unwrap()).unwrap();
 
   let context_json = r#"{"a" : "some_template", "title" : "TITLE"}"#;
   let context_value: Value = serde_json::from_str(context_json).unwrap();
   let mut context = Context::new(context_value);
 
-  let functions = HashMap::new();
-  let mut templates = HashMap::new();
+  let functions = HashMap::default();
+  let mut templates = HashMap::default();
 
   // Register "some_template". This will be loaded from include_template function.
   let some_template = "<html><%= title %></html>".to_string();
@@ -946,7 +944,7 @@ fn test_predefined_include_template_function() {
 #[test]
 fn test_accessor() {
   let template = r#"<%= 10000 + a[x][y + "c"][z] - 3%>"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
   let executer = Executer::new(Parser::parse(template).unwrap()).unwrap();
   let context_json = r#"{"a" : { "b" : { "cc" : { "1" : 1234}}}, "x" : "b", "y" : "c", "z" : 1}"#;
 
@@ -956,8 +954,8 @@ fn test_accessor() {
   let result = executer
     .render(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       template,
       &mut includes,
     )
@@ -968,14 +966,14 @@ fn test_accessor() {
 #[test]
 fn test_accessor_and_function() {
   let template = r#"<%= a[x][func2(y, "c")+"d"][func(z)] %>"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
   let executer = Executer::new(Parser::parse(template).unwrap()).unwrap();
 
   let context_json = r#"{"a" : { "b" : { "ccd" : { "2" : 1234}}}, "x" : "b", "y" : "c", "z" : 1}"#;
   let context_value: Value = serde_json::from_str(context_json).unwrap();
   let mut context = Context::new(context_value);
 
-  let mut functions = HashMap::new();
+  let mut functions = HashMap::default();
   functions.insert(
     "func2".to_string(),
     FunctionContainer::F2(Box::new(|a: Operand, b: Operand| -> Operand {
@@ -1009,7 +1007,7 @@ fn test_accessor_and_function() {
   let result = executer
     .render(
       &mut context,
-      &HashMap::new(),
+      &HashMap::default(),
       &functions,
       template,
       &mut includes,
@@ -1021,7 +1019,7 @@ fn test_accessor_and_function() {
 #[test]
 fn test_accessor_with_dot() {
   let template = r#"<%= 10000 + a[x].cc[z] - 3%>"#;
-  let mut includes = Mutex::new(HashMap::new());
+  let mut includes = Mutex::new(HashMap::default());
   let executer = Executer::new(Parser::parse(template).unwrap()).unwrap();
   let context_json = r#"{"a" : { "b" : { "cc" : { "1" : 1234}}}, "x" : "b", "y" : "c", "z" : 1}"#;
 
@@ -1031,8 +1029,8 @@ fn test_accessor_with_dot() {
   let result = executer
     .render(
       &mut context,
-      &HashMap::new(),
-      &HashMap::new(),
+      &HashMap::default(),
+      &HashMap::default(),
       template,
       &mut includes,
     )

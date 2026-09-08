@@ -110,7 +110,8 @@ impl From<&str> for DynamicImportMode {
       "lazy" => DynamicImportMode::Lazy,
       "lazy-once" => DynamicImportMode::LazyOnce,
       _ => {
-        // TODO: warning
+        // Unknown values are diagnosed where they enter the compiler (e.g. when
+        // parsing `webpackMode` magic comments), fall back to `lazy` like webpack.
         DynamicImportMode::Lazy
       }
     }
@@ -461,7 +462,12 @@ impl ImportMetaOptions {
 
 impl MergeFrom for ImportMetaOptions {
   fn merge_from(mut self, other: &Self) -> Self {
-    self.properties.extend(other.properties.clone());
+    self.properties.extend(
+      other
+        .properties
+        .iter()
+        .map(|(name, enabled)| (name.clone(), *enabled)),
+    );
     self.enabled_known_properties = Self::enabled_known_properties(&self.properties);
     self
   }

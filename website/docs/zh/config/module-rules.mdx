@@ -4,9 +4,7 @@ description: '它是一个规则数组。每条规则都会在模块被解析和
 
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import PropertyType from '@components/PropertyType';
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
+import Attribution from '@components/Attribution';
 
 # Module rules
 
@@ -243,14 +241,12 @@ export default {
 
 ## rules[].issuerLayer
 
-<ApiMeta addedVersion="1.0.0-beta.1" />
-
 - **类型：** [`Condition`](#condition)
 - **默认值：** `undefined`
 
 匹配所有符合这个资源的模块，会与"引入当前模块"的模块的 layer 进行匹配。
 
-更多关于 layer 的信息，请参考 [Layer 指南](/guide/features/layer)。
+更多关于 layer 的信息，请参考[模块分层指南](/guide/advanced/layer)。
 
 一个基础示例：
 
@@ -421,23 +417,51 @@ export default {
 - **类型：** `{ [key: string]: Condition }`
 - **默认值：** `undefined`
 
-`descriptionData` 选项允许你通过匹配描述文件（通常是 `package.json`）中的属性值，来决定某个 rule 应该应用于哪些模块。这是一个基于 `package.json` 来应用 rule 的实用方法。
+`descriptionData` 用于匹配模块描述文件（通常是 `package.json`）中的属性值，从而决定规则适用于哪些模块。你可以根据包名、版本等信息，为特定包中的模块配置规则。
 
-`descriptionData` 对象中的 key 对应模块的 `package.json` 中的键，例如 `name`、`version` 等。每个 key 与一个用于匹配 `package.json` 数据的 [`Condition`](#condition) 进行关联。
+`descriptionData` 对象的每个键指定要匹配的属性（如 `name`、`version`），对应的值则是用于检查该属性值的 [`Condition`](#condition)。如果指定了多个属性，它们必须同时满足各自的条件，模块才能通过 `descriptionData` 的匹配。
 
-例如，下面的配置会将 rule 应用于 `package.json` 的 `name` 中包含 `'rspack'` 字符串的 JavaScript 资源。
+字符串条件检查属性值是否以给定字符串开头，下面会匹配 `react`、`react-dom` 等包中的模块：
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     rules: [
       {
-        test: /\.js$/,
-        include: /node_modules/,
+        descriptionData: { name: 'react' },
+        // 其他规则选项...
+      },
+    ],
+  },
+};
+```
+
+正则表达式条件检查属性值是否符合给定模式，下面使用 `^` 和 `$` 仅匹配包名为 `react` 的模块：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        descriptionData: { name: /^react$/ },
+        // 其他规则选项...
+      },
+    ],
+  },
+};
+```
+
+函数条件可自定义匹配逻辑，下面匹配包名中包含 `rspack` 的模块：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
         descriptionData: {
-          name: (packageJsonName) => packageJsonName.includes('rspack'),
+          name: (name) => name.includes('rspack'),
         },
-        // 其他 rule options...
+        // 其他规则选项...
       },
     ],
   },
@@ -445,8 +469,6 @@ export default {
 ```
 
 ## rules[].with
-
-<ApiMeta addedVersion="1.0.0-beta.1" />
 
 - **类型：** `{ [key: string]: Condition }`
 - **默认值：** `undefined`
@@ -709,20 +731,18 @@ export default {
 - `'javascript/auto'`：JavaScript 模块，Rspack 会根据文件内容自动判断模块类型，兼容性最佳。
 - `'javascript/esm'`：JavaScript 模块，当作严格 ES modules 处理。
 - `'javascript/dynamic'`：JavaScript 模块，当作 Script 处理。
-- `'json'`：JSON data 模块，参考 [JSON](/guide/tech/json)。
-- `'css' | 'css/auto' | 'css/global' | 'css/module'`：CSS 模块，参考 [内置 CSS 支持](/guide/tech/css#内置-css-支持)。
+- `'json'`：JSON data 模块，参考 [JSON](/guide/languages/json)。
+- `'css' | 'css/auto' | 'css/global' | 'css/module'`：CSS 模块，参考 [内置 CSS 支持](/guide/languages/css#内置-css-支持)。
 - `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline' | 'asset/bytes'`：资源模块，参考 [资源模块](/guide/features/asset-module)。
 
 ## rules[].layer
-
-<ApiMeta addedVersion="1.0.0-beta.1" />
 
 - **类型：** `string`
 - **默认值：** `undefined`
 
 用于标识匹配的模块的 layer。可以将一组模块聚合到一个 layer 中，该 layer 随后可以在 split chunks, stats 或 [entry options](/config/entry#entrydescriptionlayer) 中使用。
 
-更多关于 layer 的信息，请参考 [Layer 指南](/guide/features/layer)。
+更多关于 layer 的信息，请参考[模块分层指南](/guide/advanced/layer)。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1015,3 +1035,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.docschina.org/configuration/module/" />

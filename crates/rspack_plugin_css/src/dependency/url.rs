@@ -9,6 +9,8 @@ use rspack_core::{
 
 use crate::{css_syntax::serialize_url_value, utils::AUTO_PUBLIC_PATH_PLACEHOLDER};
 
+const ASSET_AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__";
+
 #[cacheable]
 #[derive(Debug)]
 pub struct CssUrlDependency {
@@ -37,11 +39,19 @@ impl CssUrlDependency {
     let code_gen_result = compilation.code_generation_results.get_one(identifier);
 
     if let Some(url) = code_gen_result.data().get::<CodeGenerationDataUrl>() {
-      Some(url.inner().to_string())
+      Some(
+        url
+          .inner()
+          .cow_replace(
+            ASSET_AUTO_PUBLIC_PATH_PLACEHOLDER,
+            AUTO_PUBLIC_PATH_PLACEHOLDER,
+          )
+          .into_owned(),
+      )
     } else if let Some(data) = code_gen_result.data().get::<CodeGenerationDataFilename>() {
       let filename = data.filename();
       let public_path = data.public_path().cow_replace(
-        "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__",
+        ASSET_AUTO_PUBLIC_PATH_PLACEHOLDER,
         AUTO_PUBLIC_PATH_PLACEHOLDER,
       );
       Some(format!("{public_path}{filename}"))

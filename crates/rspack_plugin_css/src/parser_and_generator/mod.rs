@@ -22,10 +22,8 @@ use rspack_core::{
 pub use rspack_core::{CssExport, CssExports};
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
-use rspack_util::{
-  atom::Atom,
-  fx_hash::{FxIndexMap, FxIndexSet},
-};
+use rspack_intern::Atom;
+use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
 pub(crate) use source_builder::CssSourceBuilder;
@@ -266,18 +264,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
       });
     }
 
-    let exports_only = generator_options
-      .exports_only
-      .expect("should have exports_only");
-
-    CssModuleParser::new(
-      generator_options,
-      parser_options,
-      exports_only,
-      parse_context,
-    )
-    .parse()
-    .await
+    CssModuleParser::new(generator_options, parser_options, parse_context)
+      .parse()
+      .await
   }
 
   async fn generate(

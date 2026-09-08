@@ -122,6 +122,7 @@ impl RuntimeModule for AsyncWasmCompileRuntimeModule {
         .cow_replace("$PATH", "wasmModuleFilename"),
       &self.generate_before_compile_streaming,
       self.supports_streaming,
+      compilation.options.output.wasm_streaming_fallback,
       runtime_template,
     ))
   }
@@ -168,6 +169,7 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
         .cow_replace("$PATH", "wasmModuleFilename"),
       &self.generate_before_instantiate_streaming,
       self.supports_streaming,
+      compilation.options.output.wasm_streaming_fallback,
       runtime_template,
     ))
   }
@@ -182,6 +184,7 @@ fn get_async_wasm_loading(
   generate_before_load_binary_code: &str,
   generate_before_instantiate_streaming: &str,
   supports_streaming: bool,
+  streaming_fallback: bool,
   runtime_template: &RuntimeCodeTemplate,
 ) -> String {
   let fallback_code = r#"
@@ -190,21 +193,28 @@ fn get_async_wasm_loading(
           .then(function(res) { return Object.assign(exports, res.instance.exports);});
 "#;
 
+  let streaming_instantiation = if streaming_fallback {
+    r#"return WebAssembly.instantiateStreaming(res, importsObj)
+            .then(
+              function(res) { return Object.assign(exports, res.instance.exports);},
+              function(e) {
+                if(res.headers.get("Content-Type") !== "application/wasm") {
+                  console.warn("`WebAssembly.instantiateStreaming` failed because your server does not serve wasm with `application/wasm` MIME type. Falling back to `WebAssembly.instantiate` which is slower. Original error:\n", e);
+                  return fallback();
+                }
+                throw e;
+              }
+            );"#
+  } else {
+    r#"return WebAssembly.instantiateStreaming(res, importsObj)
+            .then(function(res) { return Object.assign(exports, res.instance.exports);});"#
+  };
+
   let streaming_code = format!(
     r#"
       return req.then(function(res) {{
         if (typeof WebAssembly.instantiateStreaming === "function") {{
-{generate_before_instantiate_streaming}          return WebAssembly.instantiateStreaming(res, importsObj)
-            .then(
-              function(res) {{ return Object.assign(exports, res.instance.exports);}},
-              function(e) {{
-                if(res.headers.get("Content-Type") !== "application/wasm") {{
-                  console.warn("`WebAssembly.instantiateStreaming` failed because your server does not serve wasm with `application/wasm` MIME type. Falling back to `WebAssembly.instantiate` which is slower. Original error:\n", e);
-                  return fallback();
-                }}
-                throw e;
-              }}
-            );
+{generate_before_instantiate_streaming}          {streaming_instantiation}
         }}
         return fallback();
       }});
@@ -243,6 +253,7 @@ fn get_async_wasm_compile(
   generate_before_load_binary_code: &str,
   generate_before_compile_streaming: &str,
   supports_streaming: bool,
+  streaming_fallback: bool,
   runtime_template: &RuntimeCodeTemplate,
 ) -> String {
   let fallback_code = format!(
@@ -254,18 +265,24 @@ fn get_async_wasm_compile(
     runtime_template.basic_function("bytes", "return WebAssembly.compile(bytes);")
   );
 
+  let streaming_compilation = if streaming_fallback {
+    r#"return WebAssembly.compileStreaming(res)
+            .catch(function(e) {
+              if(res.headers.get("Content-Type") !== "application/wasm") {
+                console.warn("`WebAssembly.compileStreaming` failed because your server does not serve wasm with `application/wasm` MIME type. Falling back to `WebAssembly.compile` which is slower. Original error:\n", e);
+                return fallback();
+              }
+              throw e;
+            });"#
+  } else {
+    "return WebAssembly.compileStreaming(res);"
+  };
+
   let streaming_code = format!(
     r#"
       return req.then(function(res) {{
         if (typeof WebAssembly.compileStreaming === "function") {{
-{generate_before_compile_streaming}          return WebAssembly.compileStreaming(res)
-            .catch(function(e) {{
-              if(res.headers.get("Content-Type") !== "application/wasm") {{
-                console.warn("`WebAssembly.compileStreaming` failed because your server does not serve wasm with `application/wasm` MIME type. Falling back to `WebAssembly.compile` which is slower. Original error:\n", e);
-                return fallback();
-              }}
-              throw e;
-            }});
+{generate_before_compile_streaming}          {streaming_compilation}
         }}
         return fallback();
       }});

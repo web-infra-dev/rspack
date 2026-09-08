@@ -22,6 +22,7 @@ once_cell               = { workspace = true }
 regex                   = { workspace = true }
 rkyv                    = { workspace = true }
 rspack_cacheable_macros = { workspace = true }
+rspack_intern           = { workspace = true, features = ["atom"] }
 rspack_sources          = { workspace = true }
 rustc-hash              = { workspace = true }
 serde_json              = { workspace = true }

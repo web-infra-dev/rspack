@@ -12,6 +12,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_css::dependency::CssImportDependency;
 use rspack_plugin_javascript::dependency::{ESMImportSideEffectDependency, ImportDependency};
 
 static UNSPECIFIED_EXTERNAL_TYPE_REGEXP: LazyLock<Regex> =
@@ -145,15 +146,19 @@ impl ExternalsPlugin {
         }
       },
       source_type: None,
+      css_import_conditions: dependency
+        .as_any()
+        .downcast_ref::<CssImportDependency>()
+        .map(|dependency| dependency.render_condition().clone()),
     };
 
-    if r#type.as_ref().is_some_and(|t| t == "asset")
+    let external_module_type = r#type.unwrap_or(external_module_type);
+    if matches!(external_module_type.as_str(), "asset" | "asset-url")
       && matches!(dependency.dependency_type(), DependencyType::CssUrl)
     {
-      dependency_meta.source_type = Some(SourceType::CssUrl);
+      dependency_meta.source_type = Some(SourceType::AssetUrl);
     }
 
-    let external_module_type = r#type.unwrap_or(external_module_type);
     if external_module_type == "modern-module"
       && matches!(
         dependency_type,

@@ -190,9 +190,8 @@ impl Module for ConsumeSharedModule {
 
     Ok(BuildResult {
       module: BoxModule::new(self),
-      dependencies,
-      blocks,
-      optimization_bailouts: vec![],
+      dependencies: dependencies.into_iter().map(Into::into).collect(),
+      blocks: blocks.into_iter().map(Into::into).collect(),
     })
   }
 

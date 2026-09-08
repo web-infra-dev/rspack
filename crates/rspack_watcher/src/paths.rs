@@ -134,7 +134,7 @@ where
 
 impl PathUpdater {
   /// Update the paths in the given set.
-  fn update(self, watch_tracker: &PathTracker, ignored: &IgnoredMatcher) -> Result<()> {
+  async fn update(self, watch_tracker: &PathTracker, ignored: &IgnoredMatcher) -> Result<()> {
     let added_paths = self.added;
     let removed_paths = self.removed;
 
@@ -148,7 +148,10 @@ impl PathUpdater {
       };
 
       // Skip ignored paths AND anything inside an ignored directory.
-      if ignored.is_ignored(added.to_str().expect("Path should be valid UTF-8")) {
+      if ignored
+        .is_ignored(added.to_str().expect("Path should be valid UTF-8"))
+        .await
+      {
         continue;
       }
 
@@ -300,7 +303,7 @@ impl PathManager {
   }
 
   /// Update the paths, directories, and missing paths in the `PathManager`.
-  pub fn update(
+  pub async fn update(
     &self,
     files: (
       impl Iterator<Item = InternedPath>,
@@ -315,9 +318,15 @@ impl PathManager {
       impl Iterator<Item = InternedPath>,
     ),
   ) -> Result<()> {
-    PathUpdater::from(files).update(&self.files, &self.ignored)?;
-    PathUpdater::from(directories).update(&self.directories, &self.ignored)?;
-    PathUpdater::from(missing).update(&self.missing, &self.ignored)?;
+    PathUpdater::from(files)
+      .update(&self.files, &self.ignored)
+      .await?;
+    PathUpdater::from(directories)
+      .update(&self.directories, &self.ignored)
+      .await?;
+    PathUpdater::from(missing)
+      .update(&self.missing, &self.ignored)
+      .await?;
 
     // Prune mtime baselines for files no longer being watched so the map
     // does not grow unboundedly across `watch()` cycles. `reset()` has
@@ -338,9 +347,9 @@ impl PathManager {
 
   /// Whether `path` is excluded from watching by the configured ignored
   /// patterns — directly, or by living inside an ignored directory.
-  pub fn is_ignored_path(&self, path: &Path) -> bool {
+  pub async fn is_ignored_path(&self, path: &Path) -> bool {
     match path.to_str() {
-      Some(s) => self.ignored.is_ignored(s),
+      Some(s) => self.ignored.is_ignored(s).await,
       None => false,
     }
   }
@@ -352,8 +361,8 @@ mod tests {
 
   use super::*;
 
-  #[test]
-  fn test_updater() {
+  #[tokio::test]
+  async fn test_updater() {
     let updater = PathUpdater::from((
       vec![
         InternedPath::from(Utf8Path::new("src/index.js")),
@@ -372,6 +381,7 @@ mod tests {
 
     updater
       .update(&path_tracker, &IgnoredMatcher::new(ignored))
+      .await
       .unwrap();
 
     let all = path_tracker.all;
@@ -384,8 +394,8 @@ mod tests {
     )
   }
 
-  #[test]
-  fn test_accessor() {
+  #[tokio::test]
+  async fn test_accessor() {
     let path_manager = PathManager::default();
 
     let files = (
@@ -401,7 +411,7 @@ mod tests {
       vec![].into_iter(),
     );
 
-    path_manager.update(files, dirs, missing).unwrap();
+    path_manager.update(files, dirs, missing).await.unwrap();
 
     let accessor = PathAccessor::new(&path_manager);
     let mut all_paths = vec![];
@@ -421,8 +431,8 @@ mod tests {
     }
   }
 
-  #[test]
-  fn test_manager() {
+  #[tokio::test]
+  async fn test_manager() {
     let ignored = FsWatcherIgnored::Paths(vec![
       "**/node_modules/**".to_string(),
       "**/.git/**".to_string(),
@@ -445,7 +455,10 @@ mod tests {
       vec![].into_iter(),
     );
 
-    path_manager.update(files, directories, missing).unwrap();
+    path_manager
+      .update(files, directories, missing)
+      .await
+      .unwrap();
 
     let accessor = path_manager.access();
     let mut all_paths = accessor
@@ -470,8 +483,8 @@ mod tests {
   /// but not yet delivered when the second cycle starts). The baseline
   /// for the already-registered file must survive the second `reset()`,
   /// so the delayed change event isn't suppressed as stale.
-  #[test]
-  fn test_baseline_persists_across_consecutive_watch_cycles() {
+  #[tokio::test]
+  async fn test_baseline_persists_across_consecutive_watch_cycles() {
     use std::{thread::sleep, time::Duration};
 
     use tempfile::NamedTempFile;
@@ -485,6 +498,7 @@ mod tests {
       (std::iter::empty(), std::iter::empty()),
       (std::iter::empty(), std::iter::empty()),
     )
+    .await
     .expect("register file");
 
     // T0 — first `watch()` cycle records the baseline.

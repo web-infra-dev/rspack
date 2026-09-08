@@ -40,7 +40,7 @@ function useRealOutputFileSystem(_context, compiler) {
 	compiler.outputFileSystem = fs;
 }
 
-function compile(compiler) {
+function compile(compiler, options) {
 	return new Promise((resolve, reject) => {
 		compiler.run((error, stats) => {
 			if (error) return reject(error);
@@ -48,7 +48,7 @@ function compile(compiler) {
 				return reject(new Error(stats.toString({ all: false, errors: true })));
 			}
 			resolve(compiler._lastCompilation);
-		});
+		}, options);
 	});
 }
 

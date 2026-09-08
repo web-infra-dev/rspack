@@ -20,6 +20,8 @@ use crate::{
 pub enum ChunkKind {
   HotUpdate,
   Normal,
+  /// A module-less chunk that preserves a logical output identity.
+  Facade,
 }
 
 pub type ChunkContentHash = HashMap<SourceType, RspackHashDigest>;
@@ -117,6 +119,10 @@ impl Chunk {
 
   pub fn kind(&self) -> ChunkKind {
     self.kind
+  }
+
+  pub fn set_kind(&mut self, kind: ChunkKind) {
+    self.kind = kind;
   }
 
   pub fn name(&self) -> Option<&str> {

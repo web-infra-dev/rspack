@@ -4,5 +4,13 @@ it('should expose loader context APIs in parallel loaders', () => {
     logger: true,
     resolve: true,
     getResolve: true,
+    path: 'path-hash.js',
+    assetPath: '[asset-hash].js',
+    pathWithInfo: 'info-hash-info-hash.js',
+    pathWithInfoIdentity: true,
+    pathWithInfoCustom: 'from-callback',
+    pathWithInfoFullhash: true,
+    assetPathWithInfo: 'asset-with-info.js',
+    assetPathWithInfoCustom: 'from-asset-callback',
   });
 });

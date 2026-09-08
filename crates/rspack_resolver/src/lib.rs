@@ -90,7 +90,7 @@ use futures::future::{BoxFuture, try_join_all};
 // Resolved dependencies are reported as interned paths, so consumers do not have to convert or
 // rehash them; re-exported for anyone reading a `ResolveContext`.
 pub use rspack_paths::{InternedPath, InternedPathSet};
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxBuildHasher, FxHashSet};
 
 use crate::{
   alias_trie::AliasTrie,
@@ -99,7 +99,7 @@ use crate::{
   package_json::JSONMap,
   path::{PathUtil, SLASH_START},
   specifier::Specifier,
-  tsconfig::{ExtendsField, ProjectReference, TsConfig},
+  tsconfig::{ExtendsField, ProjectReference, TsConfig, is_relative_specifier},
 };
 pub use crate::{
   builtins::NODEJS_BUILTINS,
@@ -114,6 +114,7 @@ pub use crate::{
 };
 
 type ResolveResult = Result<Option<CachedPath>, ResolveError>;
+type FxDashSet<T> = DashSet<T, FxBuildHasher>;
 
 /// Context returned from the [Resolver::resolve_with_context] API
 #[derive(Debug, Default, Clone)]
@@ -140,7 +141,7 @@ pub struct ResolverGeneric<Fs> {
   pnp_manifest: Arc<arc_swap::ArcSwapOption<(PathBuf, pnp::Manifest)>>,
   /// Paths that have been searched and confirmed to have no `.pnp.cjs` reachable by filesystem walk.
   #[cfg(feature = "yarn_pnp")]
-  pnp_no_manifest_cache: Arc<DashSet<CachedPath>>,
+  pnp_no_manifest_cache: Arc<FxDashSet<CachedPath>>,
   /// Lazily parsed directories from `NODE_PATH` env var.
   node_path_dirs: OnceLock<Vec<PathBuf>>,
 }
@@ -170,7 +171,7 @@ impl<Fs: Send + Sync + FileSystem + Default> ResolverGeneric<Fs> {
       #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::new(arc_swap::ArcSwapOption::empty()),
       #[cfg(feature = "yarn_pnp")]
-      pnp_no_manifest_cache: Arc::new(DashSet::new()),
+      pnp_no_manifest_cache: Arc::new(FxDashSet::default()),
       node_path_dirs: OnceLock::new(),
     }
   }
@@ -189,7 +190,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::new(arc_swap::ArcSwapOption::empty()),
       #[cfg(feature = "yarn_pnp")]
-      pnp_no_manifest_cache: Arc::new(DashSet::new()),
+      pnp_no_manifest_cache: Arc::new(FxDashSet::default()),
       node_path_dirs: OnceLock::new(),
     }
   }
@@ -363,11 +364,15 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     ctx: &mut Ctx,
   ) -> Result<CachedPath, ResolveError> {
     // tsconfig-paths
-    if let Some(path) = self
-      .load_tsconfig_paths(cached_path, specifier, ctx)
-      .await?
-    {
-      return Ok(path);
+    // `paths` never applies to a relative specifier, so the tsconfig is
+    // neither loaded nor a file dependency for one.
+    if !is_relative_specifier(specifier) {
+      if let Some(path) = self
+        .load_tsconfig_paths(cached_path, specifier, ctx)
+        .await?
+      {
+        return Ok(path);
+      }
     }
 
     // enhanced-resolve: try alias

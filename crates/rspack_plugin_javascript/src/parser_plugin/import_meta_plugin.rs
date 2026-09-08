@@ -11,7 +11,6 @@ use rspack_core::{
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   AssignExpr, CallExpr, Expr, GetSpan, MemberExpr, MemberProp, MetaPropKind, OptChainBase,
   OptChainExpr, Span, UnaryExpr,
@@ -30,6 +29,7 @@ use super::{
   },
 };
 use crate::{
+  Atom,
   dependency::{
     IMPORT_META_RSC_BINDING, ImportMetaResolveContextDependency, ImportMetaResolveDependency,
     ImportMetaResolveHeaderDependency, ImportMetaRscDependency,
@@ -514,7 +514,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
         .get_root_name()
         .is_some_and(|name| name == expr_name::IMPORT_META)
       && let Some(property) = (match &member_expr.prop {
-        MemberProp::Ident(ident) => Some(Atom::from(ident.sym.as_str())),
+        MemberProp::Ident(ident) => Some(Atom::from(&ident.sym)),
         MemberProp::Computed(computed) => member_property_to_atom(&computed.expr),
         _ => None,
       })
@@ -625,7 +625,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
   fn meta_property(
     &self,
     parser: &mut JavascriptParser<'p>,
-    root_name: &swc_atoms::Atom,
+    root_name: &Atom,
     span: Span,
   ) -> Option<bool> {
     if root_name == expr_name::IMPORT_META {
@@ -807,7 +807,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
     let ExportedVariableInfo::Name(root) = &info.root_info else {
       return None;
     };
-    if root.as_str() != expr_name::IMPORT_META {
+    if root != expr_name::IMPORT_META {
       return None;
     }
 
@@ -905,7 +905,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaDisabledPlugin {
   fn meta_property(
     &self,
     parser: &mut JavascriptParser<'p>,
-    root_name: &swc_atoms::Atom,
+    root_name: &Atom,
     span: Span,
   ) -> Option<bool> {
     let import_meta_name = parser.compiler_options.output.import_meta_name.clone();

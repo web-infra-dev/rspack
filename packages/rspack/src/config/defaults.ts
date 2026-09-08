@@ -101,7 +101,7 @@ export const applyRspackOptionsDefaults = (
   D(options, 'bail', false);
 
   F(options, 'cache', () =>
-    development ? { type: 'memory' as const } : false,
+    development ? { type: 'memory' as const, snapshot: {} } : false,
   );
   applyCacheDefaults(options.cache!, {
     context: options.context!,
@@ -226,6 +226,9 @@ const applyCacheDefaults = (
   },
 ) => {
   if (cache === false) return;
+  F(cache.snapshot, 'immutablePaths', () => []);
+  F(cache.snapshot, 'unmanagedPaths', () => []);
+  F(cache.snapshot, 'managedPaths', () => [/[\\/]node_modules[\\/][^.]/]);
   switch (cache.type) {
     case 'memory':
       break;
@@ -245,10 +248,8 @@ const applyCacheDefaults = (
       );
       D(cache, 'version', '');
       D(cache, 'maxAge', DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS);
+      D(cache, 'maxMemoryGenerations', mode === 'development' ? 5 : Infinity);
       F(cache, 'buildDependencies', () => []);
-      F(cache.snapshot, 'immutablePaths', () => []);
-      F(cache.snapshot, 'unmanagedPaths', () => []);
-      F(cache.snapshot, 'managedPaths', () => [/[\\/]node_modules[\\/][^.]/]);
       D(cache, 'portable', false);
       D(cache, 'readonly', false);
       break;
@@ -282,6 +283,7 @@ const applyExperimentsDefaults = (
   D(experiments, 'newCache', false);
   if (typeof experiments.newCache === 'object') {
     D(experiments.newCache, 'codeGeneration', true);
+    D(experiments.newCache, 'module', true);
     D(experiments.newCache, 'devtool', true);
     D(experiments.newCache, 'loader', true);
     D(experiments.newCache, 'minimize', true);
@@ -863,6 +865,7 @@ const applyOutputDefaults = (
   F(output, 'chunkLoadingGlobal', () => `rspackChunk${uniqueNameId}`);
   D(output, 'assetModuleFilename', '[hash][ext][query]');
   D(output, 'webassemblyModuleFilename', '[hash].module.wasm');
+  D(output, 'wasmStreamingFallback', true);
   D(output, 'compareBeforeEmit', true);
   if (output.path && !path.isAbsolute(output.path)) {
     if (!context) {

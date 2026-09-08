@@ -218,7 +218,7 @@ function transform(webpackConfig, rspackConfig) {
 
 Rspack 实现了大部分 webpack 内置插件，其命名和参数配置与 webpack 保持一致，你可以非常轻松地替换它们。
 
-例如替换 [DefinePlugin](/plugins/webpack/define-plugin)：
+例如替换 [DefinePlugin](/plugins/define-plugin)：
 
 ```js title="rspack.config.js"
 const webpack = require('webpack'); // [!code --]
@@ -235,15 +235,41 @@ module.exports = {
 }
 ```
 
-查看 [内置插件](/plugins/webpack/) 以了解 Rspack 对 webpack 所有内置插件的支持情况。
+查看 [webpack 内置插件兼容性](/plugins/webpack-built-in-plugin-support)，了解 Rspack 对 webpack 内置插件和部分内部插件的兼容状态。
 
 ## 社区插件
 
 Rspack 支持大部分 webpack 社区插件，并为暂不支持的插件提供了替代方案。
 
-查看 [Plugin 兼容](/guide/compatibility/plugin) 以了解 Rspack 对 webpack 常见社区插件的兼容情况。
+查看[社区插件兼容性](/plugins/community-plugin-compatibility)，了解 Rspack 对 webpack 常见社区插件的兼容情况。
 
 部分 webpack 生态包需要升级到较新版本才能兼容 Rspack，例如 [`webpack-node-externals`](https://www.npmjs.com/package/webpack-node-externals) 和 [`node-polyfill-webpack-plugin`](https://www.npmjs.com/package/node-polyfill-webpack-plugin)。复用社区包前，建议升级到最新版本，因为旧版本可能依赖不兼容的 webpack API。
+
+### html-webpack-plugin
+
+大多数项目从 [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin) 迁移时，建议使用 [`html-rspack-plugin`](https://github.com/rstackjs/html-rspack-plugin)。它是面向 Rspack 的 JavaScript fork，能够更好地兼容已有的选项、模板和集成。
+
+<PackageManagerTabs command="add html-rspack-plugin -D" />
+
+在 Rspack 配置中更新导入和构造函数名称：
+
+```diff title="rspack.config.mjs"
+-import HtmlWebpackPlugin from 'html-webpack-plugin';
++import HtmlRspackPlugin from 'html-rspack-plugin';
+
+ export default {
+   plugins: [
+-    new HtmlWebpackPlugin({
++    new HtmlRspackPlugin({
+       // ...
+     }),
+   ],
+ };
+```
+
+完成迁移后，从项目依赖中移除 `html-webpack-plugin`。
+
+如果更关注构建性能，也可以选择内置的 Rust 插件 [`rspack.HtmlRspackPlugin`](/plugins/html-rspack-plugin)。详情请参阅 [HTML 指南](/guide/languages/html#选择插件)。
 
 ### unplugin
 
@@ -258,7 +284,7 @@ Rspack 支持大部分 webpack 社区插件，并为暂不支持的插件提供�
 
 ### copy-webpack-plugin
 
-使用 [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) 代替 [copy-webpack-plugin](https://github.com/webpack/copy-webpack-plugin)：
+使用 [rspack.CopyRspackPlugin](/plugins/copy-rspack-plugin) 代替 [copy-webpack-plugin](https://github.com/webpack/copy-webpack-plugin)：
 
 ```js title="rspack.config.js"
 const CopyWebpackPlugin = require('copy-webpack-plugin'); // [!code --]
@@ -276,7 +302,7 @@ module.exports = {
 
 ### mini-css-extract-plugin
 
-使用 [rspack.CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) 代替 [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin)：
+使用 [rspack.CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin) 代替 [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin)：
 
 ```diff title="rspack.config.js"
 - const CssExtractWebpackPlugin = require('mini-css-extract-plugin');
@@ -338,7 +364,7 @@ module.exports = {
 
 ### terser-webpack-plugin
 
-对于使用 [terser-webpack-plugin](https://github.com/webpack/terser-webpack-plugin) 压缩 JavaScript 的项目，建议改用 [rspack.SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) 以获得更好的构建性能：
+对于使用 [terser-webpack-plugin](https://github.com/webpack/terser-webpack-plugin) 压缩 JavaScript 的项目，建议改用 [rspack.SwcJsMinimizerRspackPlugin](/plugins/swc-js-minimizer-rspack-plugin) 以获得更好的构建性能：
 
 ```js title="rspack.config.js"
 const TerserPlugin = require('terser-webpack-plugin'); // [!code --]
@@ -361,7 +387,7 @@ module.exports = {
 
 ### css-minimizer-webpack-plugin
 
-对于使用 [css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin) 压缩 CSS 的项目，建议改用 [rspack.LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 以获得更好的构建性能：
+对于使用 [css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin) 压缩 CSS 的项目，建议改用 [rspack.LightningCssMinimizerRspackPlugin](/plugins/lightning-css-minimizer-rspack-plugin) 以获得更好的构建性能：
 
 ```js title="rspack.config.js"
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin'); // [!code --]
@@ -538,7 +564,7 @@ module.exports = {
 
 ### vue-loader
 
-对于 Vue 3 项目，请将 `vue-loader` 替换为 [`rspack-vue-loader`](/guide/tech/vue#vue-3)，并同步更新插件导入和 loader 名称：
+对于 Vue 3 项目，请将 `vue-loader` 替换为 [`rspack-vue-loader`](/guide/integrations/vue#vue-3)，并同步更新插件导入和 loader 名称：
 
 ```diff title="rspack.config.mjs"
 -import { VueLoaderPlugin } from 'vue-loader';
@@ -574,7 +600,7 @@ export default {
 | `webpack-chain`          | [`rspack-chain`](https://github.com/rstackjs/rspack-chain)                    | 链式生成 Rspack 配置。          |
 | `webpack-merge`          | [`rspack-merge`](https://github.com/rstackjs/rspack-merge)                    | 合并 Rspack 配置。              |
 
-> 对于插件类包，请查看 [Plugin 兼容](/guide/compatibility/plugin)。
+> 对于插件类包，请查看[社区插件兼容性](/plugins/community-plugin-compatibility)。
 
 ## 移除 webpack 依赖
 

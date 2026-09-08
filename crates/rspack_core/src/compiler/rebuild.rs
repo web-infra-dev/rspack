@@ -21,7 +21,7 @@ impl Compiler {
     changed_files: FxHashSet<String>,
     deleted_files: FxHashSet<String>,
   ) -> Result<()> {
-    let start = self.end_idle()?;
+    let start = self.end_idle();
     let result = match within_compiler_context(
       self.compiler_context.clone(),
       self.rebuild_inner(changed_files, deleted_files),
@@ -46,8 +46,8 @@ impl Compiler {
         failed.and(Err(e))
       }
     };
-    let cache_result = self.begin_idle(start, result.is_ok());
-    result.and(cache_result)
+    self.begin_idle(start.elapsed());
+    result
   }
 
   #[tracing::instrument("Compiler:rebuild", skip_all, fields(
@@ -69,7 +69,7 @@ impl Compiler {
       removed_files.extend(deleted_files.iter().map(|files| Path::new(files).into()));
 
       let mut all_files = modified_files.clone();
-      all_files.extend(removed_files.clone());
+      all_files.extend(removed_files.iter().cloned());
 
       self.plugin_driver.clear_cache(self.compilation.id());
       let compilation_logging = self.compilation.get_logging().clone();
@@ -122,6 +122,12 @@ impl Compiler {
       self.compile().await?;
     }
 
+    self
+      .plugin_driver
+      .compiler_hooks
+      .after_compile
+      .call(&mut self.compilation)
+      .await?;
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
 
@@ -213,7 +219,7 @@ impl CompilationRecords {
           .chunk_by_ukey
           .get(&entry_ukey)
       })
-      .flat_map(|entry_chunk| entry_chunk.runtime().clone())
+      .flat_map(|entry_chunk| entry_chunk.runtime().iter().copied())
       .collect()
   }
 

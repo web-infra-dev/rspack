@@ -1,5 +1,6 @@
-use std::{collections::HashMap, fs, io, path::PathBuf, sync::Mutex};
+use std::{fs, io, path::PathBuf, sync::Mutex};
 
+use rustc_hash::FxHashMap as HashMap;
 use serde_json::Value;
 
 use crate::{
@@ -49,7 +50,7 @@ impl Dojang {
   }
   /// Creates a template engine.
   pub fn new() -> Self {
-    let mut functions = HashMap::<String, FunctionContainer>::new();
+    let mut functions = HashMap::<String, FunctionContainer>::default();
     functions.insert(
       "length".to_string(),
       FunctionContainer::F1(Box::new(val_length)),
@@ -66,9 +67,9 @@ impl Dojang {
     );
 
     Dojang {
-      templates: HashMap::new(),
+      templates: HashMap::default(),
       functions,
-      includes: Mutex::new(HashMap::new()),
+      includes: Mutex::new(HashMap::default()),
       options: Default::default(),
     }
   }

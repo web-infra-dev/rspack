@@ -12,7 +12,6 @@ mod eval_unary_expr;
 use bitflags::bitflags;
 use num_bigint::BigInt;
 use rspack_core::{DependencyId, DependencyRange};
-use swc_atoms::Atom;
 use swc_experimental_allocator::{Allocator, CloneIn};
 use swc_experimental_ecma_ast::{Expr, Span};
 
@@ -28,7 +27,7 @@ pub use self::{
   eval_tpl_expr::{TemplateStringKind, eval_tagged_tpl_expression, eval_tpl_expression},
   eval_unary_expr::eval_unary_expression,
 };
-use crate::visitors::ExportedVariableInfo;
+use crate::{Atom, visitors::ExportedVariableInfo};
 
 type Boolean = bool;
 type Number = f64;

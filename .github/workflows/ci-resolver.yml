@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - main
+      - release/2.3.0
     paths:
       - 'crates/rspack_resolver/**'
       - '.github/workflows/ci-resolver.yml'
@@ -20,7 +21,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.ref_name != 'main' }}
+  cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'release/2.3.0' }}
 
 permissions:
   contents: read
@@ -33,7 +34,7 @@ jobs:
       changed: ${{ steps.filter.outputs.changed == 'true' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         id: filter
         with:
           filters: |

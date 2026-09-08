@@ -4,7 +4,7 @@ use rspack_core::{
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 
 #[cacheable]
 #[derive(Debug)]

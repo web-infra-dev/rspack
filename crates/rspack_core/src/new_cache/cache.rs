@@ -4,7 +4,7 @@ use rspack_error::Result;
 use rspack_paths::InternedPathSet;
 
 use super::{
-  CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult,
+  CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult, Meta,
   cache_value::CacheValueData,
 };
 
@@ -15,7 +15,7 @@ use super::{
 /// including misses, are recorded in memory for subsequent reads.
 #[derive(Debug)]
 struct CacheStorage {
-  memory_cache: MemoryCache,
+  memory_cache: Option<MemoryCache>,
   idle_file_cache: Option<IdleFileCache>,
 }
 
@@ -34,16 +34,21 @@ pub struct Cache {
 impl Cache {
   pub fn new(
     compiler_path: String,
-    memory_cache: MemoryCache,
+    memory_cache: Option<MemoryCache>,
     idle_file_cache: Option<IdleFileCache>,
   ) -> Self {
+    let storage = if memory_cache.is_some() || idle_file_cache.is_some() {
+      Some(CacheStorage {
+        memory_cache,
+        idle_file_cache,
+      })
+    } else {
+      None
+    };
     Self {
       inner: Arc::new(CacheInner {
         compiler_path,
-        storage: Some(CacheStorage {
-          memory_cache,
-          idle_file_cache,
-        }),
+        storage,
       }),
     }
   }
@@ -64,65 +69,79 @@ impl Cache {
     CacheFacade::new(self.clone(), cache_name)
   }
 
-  pub fn get<T: CacheValueData>(
-    &self,
-    key: CacheKey,
-    etag: Option<Etag>,
-  ) -> Result<Option<CacheValue<T>>> {
+  pub fn get<T: CacheValueData>(&self, key: CacheKey, etag: Option<Etag>) -> Option<CacheValue<T>> {
     let Some(storage) = &self.inner.storage else {
-      return Ok(None);
+      return None;
     };
-    match storage.memory_cache.get(&key, etag.as_ref()) {
-      MemoryCacheGetResult::Hit(value) => Ok(Some(value)),
-      MemoryCacheGetResult::Miss => Ok(None),
-      MemoryCacheGetResult::NotCached => {
-        let Some(file_cache) = &storage.idle_file_cache else {
-          storage.memory_cache.store_miss(key);
-          return Ok(None);
-        };
+    if let Some(memory_cache) = &storage.memory_cache {
+      match memory_cache.get(&key, etag.as_ref()) {
+        MemoryCacheGetResult::Hit(value) => return Some(value),
+        MemoryCacheGetResult::Miss => return None,
+        MemoryCacheGetResult::NotCached => {}
+      }
+    }
 
-        match file_cache.restore::<T>(key.clone(), etag.clone())? {
-          Some(value) => {
-            storage.memory_cache.store(key, etag, value.clone());
-            Ok(Some(value))
-          }
-          None => {
-            storage.memory_cache.store_miss(key);
-            Ok(None)
-          }
+    let Some(file_cache) = &storage.idle_file_cache else {
+      if let Some(memory_cache) = &storage.memory_cache {
+        memory_cache.store_miss(key);
+      }
+      return None;
+    };
+
+    match file_cache.restore::<T>(key.clone(), etag.clone()) {
+      Some(value) => {
+        if let Some(memory_cache) = &storage.memory_cache {
+          memory_cache.store(key, etag, value.clone());
         }
+        Some(value)
+      }
+      None => {
+        if let Some(memory_cache) = &storage.memory_cache {
+          memory_cache.store_miss(key);
+        }
+        None
       }
     }
   }
 
-  pub fn store<T: CacheValueData>(
-    &self,
-    key: CacheKey,
-    etag: Option<Etag>,
-    value: CacheValue<T>,
-  ) -> Result<()> {
+  pub fn store<T: CacheValueData>(&self, key: CacheKey, etag: Option<Etag>, value: CacheValue<T>) {
     let Some(storage) = &self.inner.storage else {
-      return Ok(());
+      return;
     };
+    if let Some(memory_cache) = &storage.memory_cache {
+      memory_cache.store(key.clone(), etag.clone(), value.clone());
+    }
     if let Some(file_cache) = &storage.idle_file_cache {
-      storage
-        .memory_cache
-        .store(key.clone(), etag.clone(), value.clone());
       file_cache.store(key, etag, value)
-    } else {
-      storage.memory_cache.store(key, etag, value);
-      Ok(())
     }
   }
 
-  pub fn store_build_dependencies(&self, dependencies: InternedPathSet) -> Result<()> {
+  pub fn store_build_dependencies(&self, dependencies: InternedPathSet) {
     let Some(storage) = &self.inner.storage else {
-      return Ok(());
+      return;
     };
     if let Some(file_cache) = &storage.idle_file_cache {
-      file_cache.store_build_dependencies(dependencies)
+      file_cache.store_build_dependencies(dependencies);
+    }
+  }
+
+  pub fn store_meta(&self, meta: Meta) {
+    let Some(storage) = &self.inner.storage else {
+      return;
+    };
+    if let Some(file_cache) = &storage.idle_file_cache {
+      file_cache.store_meta(meta);
+    }
+  }
+
+  pub fn restore_meta(&self) -> Result<Option<Meta>> {
+    let Some(storage) = &self.inner.storage else {
+      return Ok(None);
+    };
+    if let Some(file_cache) = &storage.idle_file_cache {
+      file_cache.restore_meta()
     } else {
-      Ok(())
+      Ok(None)
     }
   }
 
@@ -134,47 +153,36 @@ impl Cache {
       .is_some_and(|storage| storage.idle_file_cache.is_some())
   }
 
-  pub fn record_build_time(&self, build_time: Duration) -> Result<()> {
+  pub fn begin_idle(&self, build_time: Duration) {
     let Some(storage) = &self.inner.storage else {
-      return Ok(());
+      return;
     };
+    if let Some(memory_cache) = &storage.memory_cache {
+      memory_cache.start_next_generation();
+    }
     if let Some(file_cache) = &storage.idle_file_cache {
-      file_cache.record_build_time(build_time)
-    } else {
-      Ok(())
+      file_cache.begin_idle(build_time);
     }
   }
 
-  pub fn begin_idle(&self) -> Result<()> {
+  pub fn end_idle(&self) {
     let Some(storage) = &self.inner.storage else {
-      return Ok(());
+      return;
     };
-    storage.memory_cache.start_next_generation();
     if let Some(file_cache) = &storage.idle_file_cache {
-      file_cache.begin_idle()
-    } else {
-      Ok(())
+      file_cache.end_idle();
     }
   }
 
-  pub fn end_idle(&self) -> Result<()> {
+  pub async fn shutdown(&self) {
     let Some(storage) = &self.inner.storage else {
-      return Ok(());
+      return;
     };
+    if let Some(memory_cache) = &storage.memory_cache {
+      memory_cache.clear();
+    }
     if let Some(file_cache) = &storage.idle_file_cache {
-      file_cache.end_idle()
-    } else {
-      Ok(())
+      file_cache.shutdown().await;
     }
-  }
-
-  pub async fn shutdown(&self) -> Result<()> {
-    if let Some(storage) = &self.inner.storage {
-      storage.memory_cache.clear();
-      if let Some(file_cache) = &storage.idle_file_cache {
-        file_cache.shutdown().await?;
-      }
-    }
-    Ok(())
   }
 }

@@ -62,7 +62,7 @@ export default {
 
 ### splitChunks.cacheGroups.\{cacheGroup\}.reuseExistingChunk
 
-[splitChunks.cacheGroups.\{cacheGroup\}.reuseExistingChunk](/plugins/webpack/split-chunks-plugin#splitchunkscachegroupscachegroupreuseexistingchunk) 默认值从 `true` 调整为 `false`。
+[splitChunks.cacheGroups.\{cacheGroup\}.reuseExistingChunk](/plugins/split-chunks-plugin#splitchunkscachegroupscachegroupreuseexistingchunk) 默认值从 `true` 调整为 `false`。
 
 ### optimization.moduleIds
 
@@ -207,7 +207,7 @@ export default {
 
 ### [重要] CSS 压缩插件的调整
 
-在 Rspack 0.x 中我们使用内置的 `rspack.SwcCssMinimizerRspackPlugin` 来压缩 CSS 代码。现在，该插件已被移除，并改用 [rspack.LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 替代它。
+在 Rspack 0.x 中我们使用内置的 `rspack.SwcCssMinimizerRspackPlugin` 来压缩 CSS 代码。现在，该插件已被移除，并改用 [rspack.LightningCssMinimizerRspackPlugin](/plugins/lightning-css-minimizer-rspack-plugin) 替代它。
 
 如果你之前手动注册并配置 `rspack.SwcCssMinimizerRspackPlugin`，现在需要使用 `rspack.LightningCssMinimizerRspackPlugin`：
 

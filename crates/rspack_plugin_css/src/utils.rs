@@ -17,7 +17,10 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Error, Result, Severity};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHasher};
-use rspack_util::{identifier::make_paths_relative, itoa, json_stringify_str};
+use rspack_util::{
+  identifier::{make_paths_relative, split_at_query_mark},
+  itoa, json_stringify_str,
+};
 use rustc_hash::{FxHashSet, FxHasher};
 
 use crate::{
@@ -154,7 +157,6 @@ pub struct LocalIdentModuleHashOptions<'a> {
   pub export_dependency_names: Vec<String>,
   pub graph_export_names: FxHashSet<String>,
   pub presentational_dependency_hash_updates: Vec<PresentationalDependencyHashUpdate<'a>>,
-  pub exports_only: bool,
   pub es_module: bool,
   pub named_exports: bool,
   pub exports_convention: Option<CssExportsConvention>,
@@ -271,22 +273,15 @@ impl<'a> LocalIdentOptions<'a> {
     let mut hasher =
       RspackHasher::with_salt(&self.local_ident_hash_function, self.local_ident_hash_salt);
     hasher.write(build_hash.as_bytes());
-    if module_hash_options.exports_only {
-      hasher.write(b"javascript");
-    } else {
-      hasher.write(b"javascript");
-      hasher.write(b"css");
-    }
+    // Local identifiers must be independent of whether CSS is emitted.
+    hasher.write(b"javascript");
+    hasher.write(b"css");
     hasher.write(if module_hash_options.es_module {
       b"true"
     } else {
       b"false"
     });
-    hasher.write(if module_hash_options.exports_only {
-      b"true"
-    } else {
-      b"false"
-    });
+    hasher.write(b"false");
     hasher.write(graph_hash.as_bytes());
     let mut itoa_buffer = itoa::Buffer::new();
     for update in module_hash_options
@@ -354,11 +349,8 @@ impl<'a> LocalIdentOptions<'a> {
     } else {
       ""
     };
-    let resource_path = self
-      .relative_resource
-      .split(['?', '#'])
-      .next()
-      .unwrap_or(&self.relative_resource);
+    let resource_path = split_at_query_mark(&self.relative_resource).0;
+    let resource_path = resource_path.split('#').next().unwrap_or(resource_path);
     let resource_path = Path::new(resource_path);
     let chunk_name = resource_path
       .file_stem()

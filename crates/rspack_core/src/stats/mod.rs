@@ -1,7 +1,10 @@
 use std::{
   borrow::Cow,
   hash::BuildHasherDefault,
-  sync::atomic::{AtomicU8, Ordering},
+  sync::{
+    Arc,
+    atomic::{AtomicU8, Ordering},
+  },
 };
 
 use dashmap::DashSet;
@@ -857,13 +860,13 @@ impl Stats<'_> {
           ),
         },
         StatschunkGroupChildAssets {
-          preload: get_chunk_group_oreded_child_assets(
+          preload: get_chunk_group_ordered_child_assets(
             &ordered_children,
             &ChunkGroupOrderKey::Preload,
             &build_chunk_graph_artifact.chunk_group_by_ukey,
             &build_chunk_graph_artifact.chunk_by_ukey,
           ),
-          prefetch: get_chunk_group_oreded_child_assets(
+          prefetch: get_chunk_group_ordered_child_assets(
             &ordered_children,
             &ChunkGroupOrderKey::Prefetch,
             &build_chunk_graph_artifact.chunk_group_by_ukey,
@@ -1110,17 +1113,16 @@ impl Stats<'_> {
     f(warnings)
   }
 
-  pub fn get_logging(&self) -> Vec<(String, LogType)> {
+  pub fn get_logging(&self) -> impl Iterator<Item = (Arc<str>, LogType)> {
     self
       .logging()
       .iter()
       .map(|item| {
         let (name, logs) = item.pair();
-        (name.to_owned(), logs.to_owned())
+        (name.clone(), logs.to_owned())
       })
       .sorted_by(|a, b| a.0.cmp(&b.0))
       .flat_map(|item| item.1.into_iter().map(move |log| (item.0.clone(), log)))
-      .collect()
   }
 
   pub fn get_hash(&self) -> Option<&str> {

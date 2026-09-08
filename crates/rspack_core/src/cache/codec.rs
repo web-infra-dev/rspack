@@ -10,12 +10,12 @@ use rspack_paths::Utf8PathBuf;
 /// Internal cacheable context for serialization
 #[derive(Debug, Clone)]
 struct Context {
-  project_path: Option<Utf8PathBuf>,
+  portable_project_root: Option<Utf8PathBuf>,
 }
 
 impl rspack_cacheable::CacheableContext for Context {
   fn project_root(&self) -> Option<&Path> {
-    self.project_path.as_ref().map(|p| p.as_std_path())
+    self.portable_project_root.as_ref().map(|p| p.as_std_path())
   }
 }
 
@@ -27,7 +27,7 @@ impl rspack_cacheable::CacheableContext for Context {
 /// # Example
 ///
 /// ```ignore
-/// let codec = CacheCodec::new(project_path);
+/// let codec = CacheCodec::new(portable_project_root);
 ///
 /// // Encode data to bytes
 /// let bytes = codec.encode(&my_data)?;
@@ -41,9 +41,11 @@ pub struct CacheCodec {
 }
 
 impl CacheCodec {
-  pub fn new(project_path: Option<Utf8PathBuf>) -> Self {
+  pub fn new(portable_project_root: Option<Utf8PathBuf>) -> Self {
     Self {
-      context: Context { project_path },
+      context: Context {
+        portable_project_root,
+      },
     }
   }
 
@@ -51,7 +53,7 @@ impl CacheCodec {
   where
     T: for<'a> Serialize<Serializer<'a>>,
   {
-    to_bytes(data, &self.context).map_err(|e| rspack_error::error!(e.to_string()))
+    to_bytes(data, &self.context).map_err(rspack_error::Error::from_error)
   }
 
   pub fn decode<T>(&self, bytes: &[u8]) -> Result<T>
@@ -59,6 +61,6 @@ impl CacheCodec {
     T: Archive,
     T::Archived: for<'a> CheckBytes<Validator<'a>> + Deserialize<T, Deserializer>,
   {
-    from_bytes(bytes, &self.context).map_err(|e| rspack_error::error!(e.to_string()))
+    from_bytes(bytes, &self.context).map_err(rspack_error::Error::from_error)
   }
 }

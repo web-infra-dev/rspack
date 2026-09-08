@@ -1529,7 +1529,7 @@ impl ModuleConcatenationPlugin {
         set_mid_tasks.push((*connection, new_module_id));
       }
       let mut all_outgoings = outgoings;
-      all_outgoings.extend(root_outgoings.clone());
+      all_outgoings.extend(root_outgoings.iter().copied());
       add_connection_tasks.push((new_module_id, all_outgoings, root_incomings.clone()));
       remove_connection_tasks.push((root_module_id, root_outgoings, root_incomings));
     }
@@ -1788,6 +1788,7 @@ async fn create_concatenated_module(
         plugin_driver: compilation.plugin_driver.clone(),
         compiler_options: compilation.options.clone(),
         loader_cache: compilation.get_cache("loader"),
+        file_system_info: compilation.file_system_info.clone(),
         fs: compilation.input_filesystem.clone(),
         runtime_template: compilation.runtime_template.create_module_code_template(),
       },

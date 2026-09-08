@@ -210,7 +210,10 @@ async fn this_compilation(
     .or_default()
     .css_link_props = self.css_link_props.clone();
 
-  self.coordinator.start_server_entries_compilation().await?;
+  self
+    .coordinator
+    .start_server_entries_compilation(compilation.compiler_id())
+    .await?;
 
   Ok(())
 }

@@ -3,7 +3,7 @@ name: rspack-perf-valgrind-goal
 description: Use when optimizing a benchmarked Rspack code path against a requested percentage target with reproducible local Docker and Valgrind measurements instead of GitHub Actions or CodSpeed cloud results. Combine this workflow with the rspack-perf skill for repeated performance rounds, local correctness validation, review-comment handling, retained-versus-reverted decisions, and PR progress reporting while keeping changes within the user-specified plugin, file, crate, feature, compilation stage, benchmark, or hot path.
 ---
 
-# Rspack Perf Valgrind Goal
+# Rspack perf valgrind goal
 
 Use this for Rspack performance work where success is judged by the Callgrind instruction count of an exact benchmark stage measured locally in a pinned native-architecture Docker environment. Build the existing Rust benchmark target with ordinary Cargo, execute the selected binary directly under Valgrind, and decide only from local Callgrind profiles. Do not run a CodSpeed CLI, use a token, upload results, read CodSpeed PR comments, or wait for GitHub Actions.
 
@@ -23,7 +23,7 @@ The agent owns the loop. After the user gives the target benchmark stage, thresh
 - Use append-only commits for normal rounds. Do not routinely amend or force-push; rewrite history only for an explicit rebase or another unavoidable repository operation.
 - When running under a persistent `/goal`, retain the original target across resumes. Do not redefine success around partial progress.
 
-## Local Measurement Contract
+## Local measurement contract
 
 Use `scripts/run_local_valgrind.sh` from this skill. It builds a reusable native-architecture image containing the repository's pinned Rust toolchain and Debian's standard Valgrind package. The helper mounts source and canonical fixtures read-only, stores build caches in Docker volumes keyed by checkout path, image ID, and native platform, builds with ordinary Cargo, executes only the selected benchmark binary under Callgrind, captures raw logs and profiles, and records an environment manifest.
 
@@ -31,7 +31,7 @@ For persistent-cache benchmark filters, the helper copies the read-only fixtures
 
 The helper passes the repository's existing `--cfg codspeed` compile-time switch to ordinary `cargo build` so the benchmark adapter exposes its Valgrind client-request boundaries. This is only a source configuration name: no CodSpeed executable, service, token, API, upload, PR comment, or benchmark result participates in the workflow. Valgrind starts instrumentation at the selected benchmark boundary, and `run-*.instructions` plus the local Callgrind profiles are the only performance source of truth.
 
-## Docker Prerequisite and Installation
+## Docker prerequisite and installation
 
 Verify Docker before preparing fixtures or building the measurement image:
 
@@ -75,7 +75,7 @@ Prepare fixtures only once for a goal. Pass that exact fixture directory to both
 
 The helper defaults to two repetitions. Read each exact instruction count from `run-*.instructions`. If the stage differs by more than 0.5% between repetitions, run a third repetition with `--repeat 3` and use the median. Keep raw logs and Callgrind profiles; do not copy a number manually without retaining its source artifact.
 
-## Initial Setup
+## Initial setup
 
 1. Establish a clean optimization checkout.
    - Check the working tree before changing code.
@@ -175,7 +175,7 @@ Run these steps in order for every round.
    - Inspect outdated threads against current code before resolving them.
    - Do not report completion while a current requested-change thread remains unresolved.
 
-## Measurement Interpretation
+## Measurement interpretation
 
 - Use only the exact integer from each local `run-*.instructions` file. It is the sum of Callgrind `totals:` values produced while the selected benchmark boundary was instrumented.
 - Use individual repeated values plus their median; never average together different stage names, benchmark filters, fixtures, image IDs, or source SHAs.
@@ -184,7 +184,7 @@ Run these steps in order for every round.
 - A performance claim must name the base SHA and value, candidate SHA and value, percentage delta, image ID, benchmark target/filter, exact stage, and result paths.
 - The local result determines the optimization goal. CI results may be mentioned as unrelated repository status only when the user explicitly asks for them.
 
-## Progress Report Format
+## Progress report format
 
 Keep one fixed PR comment, or the equivalent task report when there is no PR:
 
@@ -205,7 +205,7 @@ Latest head: `<sha>`
 
 Update this report rather than duplicating it. Keep entries concise and include links or paths to raw local logs.
 
-## Correctness Guardrails
+## Correctness guardrails
 
 - When caching derived state, verify it remains stable for the full pass where it is reused.
 - When adding a fast path, compare it with the original path in every relevant mode.

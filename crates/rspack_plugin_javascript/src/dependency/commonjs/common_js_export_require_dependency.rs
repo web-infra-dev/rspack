@@ -13,10 +13,9 @@ use rspack_core::{
   property_access, to_normal_comment,
 };
 use rustc_hash::FxHashSet;
-use swc_atoms::Atom;
 
 use super::ExportsBase;
-use crate::dependency::commonjs::OBJECT_PROTOTYPE_METHODS;
+use crate::{Atom, dependency::commonjs::OBJECT_PROTOTYPE_METHODS};
 
 #[cacheable]
 #[allow(unused)]

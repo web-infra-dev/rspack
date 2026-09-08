@@ -12,8 +12,6 @@ exports.foo = 123;
 },
 });
 // ./index.js
-const foo = rspackRequire("./foo.js");
-var foo_namespace = /*#__PURE__*/createFakeNamespaceObject(foo, 2);
 
 
 
@@ -23,6 +21,9 @@ it("should export an imported CommonJS namespace", async () => {
 
   expect(mod.ns.foo).toBe(123);
 });
+
+const foo = rspackRequire("./foo.js");
+var foo_namespace = /*#__PURE__*/createFakeNamespaceObject(foo, 2);
 
 export { foo_namespace as ns };
 

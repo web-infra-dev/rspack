@@ -1,4 +1,4 @@
-# `rspack_sources` Architecture Guide
+# `rspack_sources` Architecture guide
 
 Use this document when changing `crates/rspack_sources` or a hot caller that constructs, maps,
 hashes, serializes, or caches `BoxSource` values. It records cross-module contracts and performance

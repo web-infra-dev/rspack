@@ -35,6 +35,7 @@ pub struct OutputOptions {
   pub public_path: PublicPath,
   pub asset_module_filename: Filename,
   pub wasm_loading: WasmLoading,
+  pub wasm_streaming_fallback: bool,
   pub webassembly_module_filename: Filename,
   pub unique_name: String,
   pub chunk_loading: ChunkLoading,

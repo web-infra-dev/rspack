@@ -2,15 +2,13 @@
 description: 'Rspack JavaScript API 总览，涵盖编译器创建、监听模式、统计信息访问与编程式构建流程。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 import { Tab, Tabs, PackageManagerTabs } from '@theme';
 import { Stability } from '@components/ApiMeta';
 import CompilerType from '../../types/compiler.mdx';
 import WatchingType from '../../types/watching.mdx';
 import StatsType from '../../types/stats.mdx';
-
-<WebpackLicense from="https://webpack.docschina.org/api/node/" />
 
 # JavaScript API
 
@@ -292,3 +290,5 @@ const source = new RawSource('console.log("Hello, world!");');
 ```
 
 详细用法请参考 [webpack-sources](https://github.com/webpack/webpack-sources) 文档。
+
+<Attribution url="https://webpack.docschina.org/api/node/" />

@@ -1,6 +1,5 @@
 use std::{
   borrow::Cow,
-  collections::HashSet,
   sync::{Arc, LazyLock},
 };
 
@@ -21,6 +20,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_util::fx_hash::FxHashSet;
 use swc_experimental_allocator::Allocator;
 use swc_experimental_ecma_ast::{Comments, EsVersion, Program, VisitWith};
 use swc_experimental_ecma_parser::{
@@ -58,7 +58,7 @@ fn append_experimental_parse_errors(
   source: &str,
   errors: impl IntoIterator<Item = swc_experimental_ecma_parser::error::Error>,
 ) {
-  let mut visited = HashSet::new();
+  let mut visited = FxHashSet::default();
   let source: Arc<str> = source.into();
   diagnostics.extend(errors.into_iter().filter_map(|err| {
     let span = err.span();
@@ -259,8 +259,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let mut diagnostics: Vec<Diagnostic> = vec![];
 
     if let Some(collected_ts_info) = parse_meta.remove(COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY)
-      && let Ok(collected_ts_info) =
-        (collected_ts_info as Box<dyn std::any::Any>).downcast::<CollectedTypeScriptInfo>()
+      && let Ok(collected_ts_info) = collected_ts_info
+        .into_any()
+        .downcast::<CollectedTypeScriptInfo>()
     {
       build_info.collected_typescript_info = Some(*collected_ts_info);
     }

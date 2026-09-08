@@ -16,9 +16,9 @@ for the complete ownership model.
 Use **cache entry** or **cache value** for data whose lifecycle is controlled by Cache keys,
 validation, storage, and eviction. Do not use Artifact as a generic synonym for cached data.
 
-## Core Concepts
+## Core concepts
 
-### PASS Binding Rule
+### PASS binding rule
 
 An artifact's `PASS` must be bound to the pass where that artifact is first built in the compilation pipeline.
 
@@ -26,7 +26,7 @@ An artifact's `PASS` must be bound to the pass where that artifact is first buil
 - Do not use `empty` as a fallback.
 - If an artifact is read in later passes, it still stays bound to its first-build pass.
 
-### ArtifactExt Trait
+### ArtifactExt trait
 
 The `ArtifactExt` trait is the foundation of the artifact system. It associates each artifact with its corresponding incremental pass and provides recovery logic.
 
@@ -59,9 +59,9 @@ pub fn recover_artifact<T: ArtifactExt>(incremental: &Incremental, new: &mut T, 
 }
 ```
 
-## Artifact Types
+## Artifact types
 
-### Representative Direct Artifacts
+### Representative direct artifacts
 
 Examples of artifacts that directly implement `ArtifactExt`:
 
@@ -96,7 +96,7 @@ artifacts. Their storage is influenced by Cache configuration even though they c
 `Compilation` and move with Incremental artifacts. New Cache-owned state should live behind Cache
 abstractions instead of adding another `*CacheArtifact` type.
 
-### Wrapper Types
+### Wrapper types
 
 Wrapper types that delegate to the inner type's `PASS`:
 
@@ -106,7 +106,7 @@ Wrapper types that delegate to the inner type's `PASS`:
 | `BindingCell<T>` | JS binding-aware wrapper (napi feature)        |
 | `Box<T>`         | Simple box wrapper (sys binding)               |
 
-## Usage in Rebuild
+## Usage in rebuild
 
 During rebuild, `Compiler` moves the completed compilation into its independent
 `IncrementalArtifacts` holder:
@@ -135,9 +135,9 @@ if result.is_ok() {
 Artifact recovery and Cache hooks are deliberately separate operations. `cache: false` changes the
 Cache hooks but must not prevent `IncrementalArtifacts::recover` from running.
 
-## Implementing a New Artifact
+## Implementing a new artifact
 
-### Basic Artifact
+### Basic artifact
 
 ```rust
 use crate::{ArtifactExt, incremental::IncrementalPasses};
@@ -152,7 +152,7 @@ impl ArtifactExt for MyArtifact {
 }
 ```
 
-### Artifact with Custom Recovery
+### Artifact with custom recovery
 
 ```rust
 impl ArtifactExt for MyArtifact {
@@ -170,7 +170,7 @@ impl ArtifactExt for MyArtifact {
 Custom recovery must preserve the `should_recover` gate so `incremental: false` cannot move prior
 compilation state into the new compilation.
 
-### Wrapped Artifact
+### Wrapped artifact
 
 For artifacts wrapped in `StealCell<T>`, `BindingCell<T>`, or `Box<T>`, the wrapper delegates to the
 inner type's `PASS`.
@@ -187,14 +187,14 @@ recover_artifact(
 );
 ```
 
-## Incremental Passes
+## Incremental passes
 
 Incremental passes are bitflags that control which compilation phases may recover and reuse
 artifacts. The source of truth is `crates/rspack_core/src/incremental/mod.rs`; do not copy the bit
 values into documentation because the pass set evolves. Each `PassExt` declares its associated
 passes through `incremental_passes()`.
 
-## Design Principles
+## Design principles
 
 1. **Separation of Concerns**: Artifacts belong to Incremental, while cache entries belong to Cache
 2. **Automatic Recovery**: Wrapper types delegate recovery to inner types
@@ -202,7 +202,7 @@ passes through `incremental_passes()`.
 4. **Type Safety**: The trait system ensures compile-time correctness
 5. **Performance**: `mem::swap` provides zero-copy artifact transfer
 
-## File Locations
+## File locations
 
 - Incremental artifact owner: `crates/rspack_core/src/artifacts/incremental_artifacts.rs`
 - Pass recovery wrapper: `crates/rspack_core/src/compilation/pass.rs`

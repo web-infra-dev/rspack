@@ -1,7 +1,7 @@
 use std::{borrow::Cow, fmt, sync::LazyLock};
 
 use regex::Regex;
-use rspack_core::DependencyRange;
+use rspack_core::{ContextMode, DependencyRange};
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
 use rspack_util::SpanExt;
@@ -13,7 +13,10 @@ use swc_experimental_ecma_ast::{
 use swc_experimental_ecma_parser::{EsSyntax, Syntax, parse_file_as_expr};
 use swc_experimental_ecma_transforms_base::remove_paren::remove_paren;
 
-use crate::visitors::{JavascriptParser, create_traceable_error};
+use crate::{
+  utils::object_properties::FromAstExpr,
+  visitors::{JavascriptParser, create_traceable_error},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RspackComment {
@@ -81,6 +84,12 @@ pub enum MagicCommentValue {
 
 #[derive(Debug)]
 pub struct RspackCommentMap(FxHashMap<RspackComment, MagicCommentItem>);
+
+#[derive(Debug, Clone, Copy)]
+pub struct RawMagicComment<'a> {
+  pub text: &'a str,
+  pub span: DependencyRange,
+}
 
 impl RspackCommentMap {
   fn new() -> Self {
@@ -306,7 +315,7 @@ pub fn try_extract_magic_comment(
 /// it as `({<comment_text>})`, so synthetic expression spans are offset by the
 /// two-byte `({` prefix.
 fn value_span_to_error_span_with_offset(
-  comment_span: Span,
+  comment_span: DependencyRange,
   value_span: Span,
   comment_offset: usize,
 ) -> Option<DependencyRange> {
@@ -322,7 +331,7 @@ fn value_span_to_error_span_with_offset(
     return None;
   }
 
-  let comment_start = comment_span.real_lo() as usize;
+  let comment_start = comment_span.start as usize;
   let start = comment_start + BLOCK_COMMENT_START_LEN + comment_offset + value_start
     - OBJECT_LITERAL_PREFIX_LEN;
   let end = comment_start + BLOCK_COMMENT_START_LEN + comment_offset + value_end
@@ -567,17 +576,57 @@ fn analyze_comments(
   warning_diagnostics: &mut Vec<Diagnostic>,
   result: &mut RspackCommentMap,
 ) {
-  let mut parsed_comment = FxHashSet::<Span>::default();
-  for comment in comments
+  let comments = comments
     .iter()
-    .rev()
-    .filter(|c| matches!(c.kind, CommentKind::Block))
-  {
-    if parsed_comment.contains(&comment.span) {
+    .filter(|comment| matches!(comment.kind, CommentKind::Block))
+    .map(|comment| RawMagicComment {
+      text: &comment.text,
+      span: comment.span.into(),
+    })
+    .collect::<Vec<_>>();
+  analyze_raw_comments(
+    allocator,
+    source,
+    &comments,
+    error_span.into(),
+    warning_diagnostics,
+    result,
+    true,
+    false,
+  );
+}
+
+#[allow(clippy::too_many_arguments)]
+fn analyze_raw_comments(
+  allocator: &Allocator,
+  source: &str,
+  comments: &[RawMagicComment<'_>],
+  error_span: DependencyRange,
+  warning_diagnostics: &mut Vec<Diagnostic>,
+  result: &mut RspackCommentMap,
+  warn_on_same_prefix: bool,
+  warn_on_parse_error: bool,
+) {
+  let mut parsed_comment = FxHashSet::<DependencyRange>::default();
+  for comment in comments.iter().rev() {
+    if !parsed_comment.insert(comment.span) {
       continue;
     }
-    parsed_comment.insert(comment.span);
-    let Some((expr, comment_offset)) = parse_magic_comment_object(allocator, &comment.text) else {
+    let Some((expr, comment_offset)) = parse_magic_comment_object(allocator, comment.text) else {
+      if warn_on_parse_error && find_magic_comment_start(comment.text).is_some() {
+        let mut error: Error = create_traceable_error(
+          "Magic comments parse failed".into(),
+          format!(
+            "Compilation error while processing magic comment(-s): /*{}*/",
+            comment.text
+          ),
+          source.to_owned(),
+          comment.span,
+        );
+        error.severity = Severity::Warning;
+        error.hide_stack = Some(true);
+        warning_diagnostics.push(error.into());
+      }
       continue;
     };
     let Expr::Object(object) = &expr else {
@@ -598,11 +647,10 @@ fn analyze_comments(
       };
       let value = &prop.value;
       let item_name = rspack_comment.prefixed_name(prefix);
-      let received =
-        raw_value_with_offset(&comment.text, value, comment_offset).unwrap_or_default();
+      let received = raw_value_with_offset(comment.text, value, comment_offset).unwrap_or_default();
       let item_span =
         value_span_to_error_span_with_offset(comment.span, value.span(), comment_offset)
-          .unwrap_or(error_span.into());
+          .unwrap_or(error_span);
       let push_parse_warning = |comment_type| {
         push_magic_comment_parse_warning(
           source,
@@ -624,7 +672,7 @@ fn analyze_comments(
           }
         }
         RspackComment::Prefetch => {
-          if let Some(value) = expr_to_order_str_with_offset(&comment.text, value, comment_offset) {
+          if let Some(value) = expr_to_order_str_with_offset(comment.text, value, comment_offset) {
             if value == "true" {
               MagicCommentValue::Bool(true)
             } else {
@@ -636,7 +684,7 @@ fn analyze_comments(
           }
         }
         RspackComment::Preload => {
-          if let Some(value) = expr_to_order_str_with_offset(&comment.text, value, comment_offset) {
+          if let Some(value) = expr_to_order_str_with_offset(comment.text, value, comment_offset) {
             if value == "true" {
               MagicCommentValue::Bool(true)
             } else {
@@ -652,17 +700,26 @@ fn analyze_comments(
             MagicCommentValue::Bool(value)
           } else {
             let value =
-              expr_to_magic_comment_value_with_offset(&comment.text, value, comment_offset)
+              expr_to_magic_comment_value_with_offset(comment.text, value, comment_offset)
                 .unwrap_or(MagicCommentValue::Unknown);
             push_parse_warning("a boolean");
             value
           }
         }
         RspackComment::Mode => {
-          if let Some(value) = expr_to_str(value) {
-            MagicCommentValue::String(value.into_owned())
+          if let Some(mode) = ContextMode::from_ast_expr(value)
+            .ok()
+            .flatten()
+            .filter(|mode| {
+              matches!(
+                mode,
+                ContextMode::Lazy | ContextMode::LazyOnce | ContextMode::Eager | ContextMode::Weak
+              )
+            })
+          {
+            MagicCommentValue::String(mode.as_str().to_string())
           } else {
-            push_parse_warning("a string");
+            push_parse_warning(r#""lazy", "lazy-once", "eager" or "weak""#);
             continue;
           }
         }
@@ -716,9 +773,36 @@ fn analyze_comments(
         value,
         span: item_span,
       };
+      if !warn_on_same_prefix
+        && let Some(existing) = result.0.get(&rspack_comment)
+        && existing.prefix == item.prefix
+      {
+        continue;
+      }
       result.insert_with_conflict_warning(source, rspack_comment, item, warning_diagnostics);
     }
   }
+}
+
+pub fn try_extract_magic_comment_from_comments(
+  source: &str,
+  comments: &[RawMagicComment<'_>],
+  error_span: DependencyRange,
+) -> (RspackCommentMap, Vec<Diagnostic>) {
+  let allocator = Allocator::new();
+  let mut result = RspackCommentMap::new();
+  let mut warning_diagnostics = Vec::new();
+  analyze_raw_comments(
+    &allocator,
+    source,
+    comments,
+    error_span,
+    &mut warning_diagnostics,
+    &mut result,
+    false,
+    true,
+  );
+  (result, warning_diagnostics)
 }
 
 #[cfg(test)]

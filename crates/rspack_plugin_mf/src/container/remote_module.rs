@@ -193,9 +193,8 @@ impl Module for RemoteModule {
 
     Ok(BuildResult {
       module: BoxModule::new(self),
-      dependencies,
+      dependencies: dependencies.into_iter().map(Into::into).collect(),
       blocks: vec![],
-      optimization_bailouts: vec![],
     })
   }
 

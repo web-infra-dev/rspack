@@ -10,11 +10,11 @@ use rspack_paths::Utf8Path;
 use rspack_regex::RspackRegex;
 use rspack_util::{SpanExt, identifier::relative_path_to_request, node_path::NodePath};
 use sugar_path::SugarPath;
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{CallExpr, Expr, GetSpan, ObjectLit};
 
 use super::JavascriptParserPlugin;
 use crate::{
+  Atom,
   dependency::ImportMetaContextDependency,
   utils::{
     eval::{self, BasicEvaluatedExpression},
@@ -34,7 +34,7 @@ struct ImportMetaWebpackContextOptions {
   reg_exp: Option<RspackRegex>,
   include: Option<RspackRegex>,
   exclude: Option<RspackRegex>,
-  mode: Option<String>,
+  mode: Option<ContextMode>,
   /// Absent or unrecognized means `true`.
   recursive: Option<bool>,
 }
@@ -57,10 +57,7 @@ impl From<&ImportMetaWebpackContextOptions> for ContextOptions {
       pattern: options.reg_exp.clone().into(),
       include: options.include.clone(),
       exclude: options.exclude.clone(),
-      mode: options
-        .mode
-        .as_deref()
-        .map_or(ContextMode::Sync, ContextMode::from),
+      mode: options.mode.clone().unwrap_or(ContextMode::Sync),
       recursive: options.recursive.unwrap_or(true),
       ..Default::default()
     }
@@ -495,7 +492,7 @@ mod tests {
       reg_exp: Some(RspackRegex::with_flags("^\\./", "i").expect("valid regexp")),
       include: Some(RspackRegex::new("include").expect("valid regexp")),
       exclude: Some(RspackRegex::new("exclude").expect("valid regexp")),
-      mode: Some("lazy".to_string()),
+      mode: Some(ContextMode::Lazy),
       recursive: Some(false),
     };
     let context_options = ContextOptions::from(&options);

@@ -4,13 +4,14 @@ use atomic_refcell::AtomicRefCell;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  ChunkGroupUkey, ChunkUkey, Compilation, DependenciesBlock, DependencyType, ExportProvided,
-  ModuleIdentifier, UsageState, find_new_name, get_cached_readable_identifier,
+  ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation, ConcatenationNameAllocator, DependenciesBlock,
+  DependencyType, ExportProvided, ModuleIdentifier, UsageState, get_cached_readable_identifier,
   incremental::Mutation, split_readable_identifier,
 };
+use rspack_intern::Atom;
 use rspack_util::{
-  atom::Atom,
   fx_hash::{FxDashSet, FxHashMap, FxHashSet},
+  identifier::split_at_query_mark,
 };
 
 use crate::EsmLibraryPlugin;
@@ -516,6 +517,42 @@ pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) {
   }
 }
 
+/// Mark module-less entrypoint chunks as facades after modern-module chunk
+/// optimizations have finished.
+pub(crate) fn mark_facade_chunks(compilation: &mut Compilation) {
+  let artifact = &mut compilation.build_chunk_graph_artifact;
+  for chunk in artifact.chunk_by_ukey.values_mut() {
+    if chunk.kind() == ChunkKind::Facade {
+      chunk.set_kind(ChunkKind::Normal);
+    }
+  }
+
+  let entrypoint_chunks = artifact
+    .entrypoints
+    .values()
+    .chain(artifact.async_entrypoints.iter())
+    .map(|entrypoint_ukey| {
+      artifact
+        .chunk_group_by_ukey
+        .expect_get(entrypoint_ukey)
+        .get_entrypoint_chunk()
+    })
+    .collect::<Vec<_>>();
+
+  for chunk_ukey in entrypoint_chunks {
+    if artifact
+      .chunk_graph
+      .get_number_of_chunk_modules(&chunk_ukey)
+      == 0
+    {
+      artifact
+        .chunk_by_ukey
+        .expect_get_mut(&chunk_ukey)
+        .set_kind(ChunkKind::Facade);
+    }
+  }
+}
+
 /// Analyze dynamic import targets to identify:
 /// - all_dyn_targets: all scope-hoisted modules that are dynamically imported
 /// - namespace_targets: subset that are imported as namespace
@@ -641,7 +678,7 @@ pub(crate) fn analyze_dyn_import_targets(
   }
 
   // Pre-assign namespace object names for scope-hoisted dyn targets in non-strict chunks.
-  // Use the same naming scheme as regular namespace objects (find_new_name("namespaceObject", ...))
+  // Use the same naming scheme as regular namespace objects.
   // so the name matches what deconflict_symbols would produce.
   // These names must be determined before code generation so the dynamic import template
   // can emit `.then(m => m.<ns_name>)`.
@@ -716,7 +753,8 @@ pub(crate) fn analyze_dyn_import_targets(
 
     // Step 3: Only assign namespace names when needed (namespace used as a whole or has conflicts)
     // Track used names per chunk to avoid collisions between multiple dyn targets
-    let mut chunk_used_names: FxHashMap<ChunkUkey, FxHashSet<Atom>> = FxHashMap::default();
+    let mut chunk_name_allocators: FxHashMap<ChunkUkey, ConcatenationNameAllocator> =
+      FxHashMap::default();
 
     for module_id in &sorted_targets {
       if !concatenated_modules.contains(module_id) {
@@ -751,9 +789,8 @@ pub(crate) fn analyze_dyn_import_targets(
         &compilation.options.context,
       );
       let escaped_idents = split_readable_identifier(&readable_identifier);
-      let used_names = chunk_used_names.entry(chunk_ukey).or_default();
-      let ns_name = find_new_name("namespaceObject", used_names, &escaped_idents);
-      used_names.insert(ns_name.clone());
+      let name_allocator = chunk_name_allocators.entry(chunk_ukey).or_default();
+      let ns_name = name_allocator.find_new_name("namespaceObject", &escaped_idents);
       ns_map.insert(*module_id, ns_name);
     }
   }
@@ -781,18 +818,22 @@ pub(crate) fn analyze_dyn_import_targets(
 /// - `css|./node_modules/lib/dist/index.css|0||||}` → `lib`
 /// - `/path/to/src/index.js?query=1` → `src`
 fn short_name_from_identifier(identifier: &str) -> Option<String> {
-  // Strip ?query suffix.
-  let s = identifier
-    .split_once('?')
-    .map_or(identifier, |(path, _)| path);
-
   // Strip module-type prefix and trailing metadata.
   // e.g. "css|./path/to/file.css|0||||}" → "./path/to/file.css"
-  let s = if let Some((_, rest)) = s.split_once('|') {
+  // A `|` after a `?` is part of the resource/query, not metadata. This also
+  // keeps a DOS path without a module-type prefix intact while still allowing
+  // `css|\\?\C:\...`.
+  let s = if let Some((prefix, rest)) = identifier.split_once('|')
+    && !prefix.contains('?')
+  {
     rest.split('|').next().unwrap_or(rest)
   } else {
-    s
+    identifier
   };
+
+  // Strip ?query suffix after the module-type prefix so a DOS device path at
+  // the start of the resource is recognized correctly.
+  let s = split_at_query_mark(s).0;
 
   // Normalize Windows backslashes to forward slashes so that all subsequent
   // string operations work uniformly regardless of platform.

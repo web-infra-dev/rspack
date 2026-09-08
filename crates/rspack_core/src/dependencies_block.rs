@@ -1,12 +1,12 @@
-use std::{fmt::Write as _, hash::BuildHasherDefault};
+use std::{fmt::Write as _, hash::BuildHasherDefault, sync::Arc};
 
 use rspack_cacheable::cacheable;
 use rspack_collections::{Identifier, IdentifierHasher};
 use rspack_hash::{RspackHash, RspackHasher};
 
 use crate::{
-  BoxDependency, Compilation, DependencyId, DependencyLocation, GroupOptions, ModuleIdentifier,
-  RuntimeSpec,
+  BoxDependency, Compilation, Dependency, DependencyId, DependencyLocation, DependencyRef,
+  GroupOptions, ModuleIdentifier, RuntimeSpec,
 };
 
 pub trait DependenciesBlock {
@@ -76,13 +76,10 @@ impl From<Identifier> for AsyncDependenciesBlockIdentifier {
 pub struct AsyncDependenciesBlock {
   id: AsyncDependenciesBlockIdentifier,
   group_options: Option<GroupOptions>,
-  // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
-  // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
-  #[allow(clippy::vec_box)]
-  #[cacheable(omit_bounds)]
-  blocks: Vec<Box<AsyncDependenciesBlock>>,
   block_ids: Vec<AsyncDependenciesBlockIdentifier>,
   dependency_ids: Vec<DependencyId>,
+  /// Construction-only dependencies, drained before publishing the block.
+  #[cacheable(with=rspack_cacheable::with::Skip)]
   dependencies: Vec<BoxDependency>,
   loc: Option<DependencyLocation>,
   parent: ModuleIdentifier,
@@ -129,13 +126,73 @@ impl AsyncDependenciesBlock {
     Self {
       id: id.into(),
       group_options: Default::default(),
-      blocks: Default::default(),
       block_ids: Default::default(),
       dependency_ids,
-      dependencies,
       loc,
       parent,
       request,
+      dependencies,
+    }
+  }
+
+  pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut (dyn Dependency + 'static)> {
+    self
+      .dependencies
+      .get_mut(idx)
+      .map(|dependency| dependency.as_mut())
+  }
+
+  pub fn dependencies_mut(&mut self) -> impl Iterator<Item = &mut (dyn Dependency + 'static)> {
+    self
+      .dependencies
+      .iter_mut()
+      .map(|dependency| dependency.as_mut())
+  }
+}
+
+/// An immutable block shared by the module graph and build cache.
+pub type AsyncDependenciesBlockRef = Arc<AsyncDependenciesBlock>;
+
+/// Graph objects produced by an async block, kept separate from its immutable metadata.
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct AsyncDependenciesBlockBuildResult {
+  pub block: AsyncDependenciesBlockRef,
+  pub dependencies: Vec<DependencyRef>,
+  #[cacheable(omit_bounds)]
+  pub blocks: Vec<AsyncDependenciesBlockBuildResult>,
+}
+
+impl From<Box<AsyncDependenciesBlock>> for AsyncDependenciesBlockBuildResult {
+  fn from(mut block: Box<AsyncDependenciesBlock>) -> Self {
+    let dependencies = std::mem::take(&mut block.dependencies)
+      .into_iter()
+      .map(Into::into)
+      .collect();
+    Self {
+      block: Arc::from(block),
+      dependencies,
+      blocks: Vec::new(),
+    }
+  }
+}
+
+impl AsyncDependenciesBlock {
+  pub(crate) fn without_dependency(&self, dependency: DependencyId) -> Self {
+    Self {
+      id: self.id,
+      group_options: self.group_options.clone(),
+      block_ids: self.block_ids.clone(),
+      dependency_ids: self
+        .dependency_ids
+        .iter()
+        .copied()
+        .filter(|id| *id != dependency)
+        .collect(),
+      dependencies: Vec::new(),
+      loc: self.loc.clone(),
+      parent: self.parent,
+      request: self.request.clone(),
     }
   }
 
@@ -149,22 +206,6 @@ impl AsyncDependenciesBlock {
 
   pub fn get_group_options(&self) -> Option<&GroupOptions> {
     self.group_options.as_ref()
-  }
-
-  pub fn take_dependencies(&mut self) -> Vec<BoxDependency> {
-    std::mem::take(&mut self.dependencies)
-  }
-
-  pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut BoxDependency> {
-    self.dependencies.get_mut(idx)
-  }
-
-  pub fn dependencies_mut(&mut self) -> &mut [BoxDependency] {
-    &mut self.dependencies
-  }
-
-  pub fn take_blocks(&mut self) -> Vec<Box<AsyncDependenciesBlock>> {
-    std::mem::take(&mut self.blocks)
   }
 
   pub fn loc(&self) -> Option<DependencyLocation> {

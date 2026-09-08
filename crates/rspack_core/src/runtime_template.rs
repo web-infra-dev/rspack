@@ -1,6 +1,5 @@
 use std::{
   borrow::Cow,
-  collections::HashMap,
   fmt::{Debug, Write},
   sync::{Arc, LazyLock, Mutex},
 };
@@ -12,10 +11,10 @@ use regex::{Captures, Regex};
 use rspack_collections::{Identifier, IdentifierSet};
 use rspack_dojang::{Context, Dojang, FunctionContainer, Operand};
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt, error};
+use rspack_intern::Atom;
 use rspack_util::{fx_hash::FxIndexSet, json_stringify};
 use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 use serde_json::{Value, json};
-use swc_core::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
@@ -1964,11 +1963,7 @@ impl RuntimeCodeTemplate {
           &dojang.templates,
           &dojang.functions,
           file_content,
-          #[cfg_attr(
-            dylint_lib = "rspack_collection_hasher",
-            allow(rspack_collection_hasher)
-          )]
-          &mut Mutex::new(HashMap::new()),
+          &mut Mutex::new(FxHashMap::default()),
         )
         // Replace Windows-style line endings (\r\n) with Unix-style (\n) to ensure consistent runtime templates across platforms
         .map(|render| render.cow_replace("\r\n", "\n").to_string())
