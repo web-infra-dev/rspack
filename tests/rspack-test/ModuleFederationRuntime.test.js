@@ -25,6 +25,8 @@ function createRuntime({
 	sharedFallbackVariants,
 	consumeData,
 	initialConsumes,
+	chunkMapping = {},
+	consumeCalls = [],
 	additionalInitScopes = [],
 	scopeToSharingDataMapping = {},
 	// Use the real bundler-runtime initContainerEntry instead of recording
@@ -65,7 +67,7 @@ function createRuntime({
 	if (consumeData) {
 		runtimeRequire.f.consumes = () => {};
 		runtimeRequire.consumesLoadingData = {
-			chunkMapping: {},
+			chunkMapping,
 			initialConsumes,
 			moduleIdToConsumeDataMapping: { consume: consumeData },
 		};
@@ -109,7 +111,9 @@ function createRuntime({
 	};
 	const localBundlerRuntime = {
 		...bundlerRuntime,
-		consumes: () => {},
+		consumes: options => {
+			consumeCalls.push(options.chunkId);
+		},
 		init: () => instance,
 		getSharedFallbackGetter: ({ shareKey }) => shareKey,
 		initContainerEntry: realInitContainerEntry
@@ -273,6 +277,42 @@ describe('module federation default runtime share scopes', () => {
 			expect(containerScopeMap['host-custom']).toBeUndefined();
 		});
 
+		it('binds an additional scope by name when the host initializes it, leaving the primary pool alone', async () => {
+			// Hosts initialize a container once per shared scope. Initializing the
+			// container's additional `layered-components` scope must bind that
+			// scope only; aliasing the primary `default` pool to it mixes scopes.
+			const { initializedScopes, runtimeRequire, shareScopeMap: containerScopeMap } =
+				createRuntime({
+					realInitContainerEntry: true,
+					containerShareScope: 'default',
+					remoteShareScope: 'default',
+					additionalInitScopes: ['layered-components'],
+				});
+			const shareScopeMap = {
+				default: { tag: 'host-default' },
+				'layered-components': { tag: 'host-layered' },
+			};
+
+			await runtimeRequire.initContainer(shareScopeMap['layered-components'], [], {
+				shareScopeKeys: 'layered-components',
+				shareScopeMap,
+			});
+			expect(containerScopeMap['layered-components']).toBe(
+				shareScopeMap['layered-components'],
+			);
+			expect(containerScopeMap.default).not.toBe(shareScopeMap['layered-components']);
+			expect(initializedScopes).toContain('layered-components');
+
+			await runtimeRequire.initContainer(shareScopeMap.default, [], {
+				shareScopeKeys: 'default',
+				shareScopeMap,
+			});
+			expect(containerScopeMap.default).toBe(shareScopeMap.default);
+			expect(containerScopeMap['layered-components']).toBe(
+				shareScopeMap['layered-components'],
+			);
+		});
+
 		it('does not remap a container-owned scope listed as additional', async () => {
 			// A layered provider makes ShareRuntimeModule list the container's own
 			// scope in additionalInitScopes; the host names that scope differently.
@@ -393,10 +433,40 @@ describe('module federation default runtime share scopes', () => {
 		});
 
 		// Scalar scopes keep the legacy contract: eager factories are available
-		// to a synchronous entry, and the scope is initialized lazily.
+		// to a synchronous entry, installation is never gated, and the scope is
+		// initialized lazily by the consume handlers (initializing it here would
+		// start loading eager shares asynchronously).
 		expect(runtimeRequire.m.consume).toBeTypeOf('function');
 		expect(runtimeRequire.federation.initialConsumesInit).toBeUndefined();
 		expect(calls).toHaveLength(0);
+	});
+
+	it('waits for a pending scalar scope initialization before consuming from a chunk', async () => {
+		// A `module`/`promise` remote registers its shares asynchronously; a
+		// chunk's consumes must not resolve to the local fallback before that.
+		let resolveExternal;
+		const external = new Promise(resolve => {
+			resolveExternal = resolve;
+		});
+		const consumeCalls = [];
+		const { runtimeRequire } = createRuntime({
+			external,
+			remoteShareScope: 'default',
+			consumeData: {
+				shareKey: 'react',
+				shareScope: 'default',
+			},
+			chunkMapping: { chunk: ['consume'] },
+			consumeCalls,
+		});
+
+		const promises = [];
+		runtimeRequire.f.consumes('chunk', promises);
+		expect(promises).toHaveLength(1);
+		expect(consumeCalls).toEqual([]);
+		resolveExternal({ init() {} });
+		await Promise.all(promises);
+		expect(consumeCalls).toEqual(['chunk']);
 	});
 
 	it('initializes ordered scopes before installing initial consumes', async () => {

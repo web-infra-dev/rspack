@@ -388,22 +388,31 @@ export default function () {
         webpackRequire: runtimeRequire,
       }),
     );
-    // Only ordered (array) scopes are initialized before their consumes
-    // resolve: the bundler runtime cannot initialize them lazily, and they
-    // enable async startup, which awaits `initialConsumesInit`. Scalar scopes
-    // keep the legacy contract (factories install synchronously, the scope is
-    // initialized lazily), because `initializeSharing` always returns a
-    // promise and a synchronous entry would otherwise run before its eager
-    // consumes exist.
-    const initializeConsumeShareScopes = (moduleIds) => {
+    // Initializes the share scopes of the given consume modules and returns
+    // the promises to wait for before consuming.
+    // - Chunk path (`includeScalar`): every scope is initialized up front and
+    //   awaited, so a remote registered through `I()` (a `module`/`promise`
+    //   external initializes asynchronously) contributes its shares before a
+    //   consume resolves to a local fallback. Chunk loading is asynchronous
+    //   anyway.
+    // - Initial path: only ordered (array) scopes, which the bundler runtime
+    //   cannot initialize lazily; they enable async startup, which awaits
+    //   `initialConsumesInit`. Scalar scopes are left to the consume handlers:
+    //   initializing them here would start loading eager shares
+    //   asynchronously and make a synchronous eager consume fail, and
+    //   `initializeSharing` always returns a promise, so installation could
+    //   not stay synchronous either.
+    const initializeConsumeShareScopes = (moduleIds, includeScalar) => {
       if (!moduleIds?.length) return [];
       const initPromises = [];
       const initializedScopes = new Set();
       for (const moduleId of moduleIds) {
         const shareScope =
-          consumesLoadingModuleToConsumeDataMapping[moduleId]?.shareScope;
-        if (!Array.isArray(shareScope)) continue;
-        const scopeKey = JSON.stringify(shareScope);
+          consumesLoadingModuleToConsumeDataMapping[moduleId]?.shareScope ||
+          'default';
+        const ordered = Array.isArray(shareScope);
+        if (!ordered && !includeScalar) continue;
+        const scopeKey = JSON.stringify(ordered ? shareScope : [shareScope]);
         if (initializedScopes.has(scopeKey)) continue;
         initializedScopes.add(scopeKey);
         const initialized = runtimeRequire.I(shareScope, []);
@@ -426,6 +435,7 @@ export default function () {
         });
       const initPromises = initializeConsumeShareScopes(
         consumesLoadingChunkMapping[chunkId],
+        true,
       );
       if (initPromises.length === 0) return consume(promises);
       promises.push(
@@ -448,53 +458,76 @@ export default function () {
         webpackRequire,
       });
     });
+    // Returns `options` with `shareScopeKeys` replaced, preserving the
+    // prototype and property descriptors of the host's object.
+    const withShareScopeKeys = (options, shareScopeKeys) => {
+      const descriptors = Object.getOwnPropertyDescriptors(options);
+      descriptors.shareScopeKeys = {
+        configurable: true,
+        enumerable:
+          Object.getOwnPropertyDescriptor(options, 'shareScopeKeys')
+            ?.enumerable ?? true,
+        value: shareScopeKeys,
+        writable: true,
+      };
+      return Object.create(Object.getPrototypeOf(options), descriptors);
+    };
     override(
       runtimeRequire,
       'initContainer',
       (shareScope, initScope, remoteEntryInitOptions) => {
-        // The host's options are passed through untouched so the bundler
-        // runtime keeps the scalar contract: the container's primary scope is
-        // bound to the host's scope object, whatever either side names it.
-        // Rewriting `shareScopeKeys` into an array made the runtime register
-        // scopes under the host's names instead, losing that binding.
+        // A host initializes a container once per scope it shares with it.
+        // - Initializing one of the container's additional scopes (declared by
+        //   ordered or layered shares) by name binds that scope only; the
+        //   bundler runtime's array form maps by host name. Applying the
+        //   scalar contract here would alias the container's primary scope to
+        //   a different host pool and mix scopes.
+        // - Initializing the primary scope keeps the scalar contract (the
+        //   container's primary scope is bound to the supplied host object,
+        //   whatever either side names it) and maps the remaining additional
+        //   scopes onto the host's pools so their shares register there.
+        // Scopes the container owns are bound by initContainerEntry itself.
+        const hostShareScopeMap = remoteEntryInitOptions?.shareScopeMap;
+        let options = remoteEntryInitOptions;
+        const additionalScopes = [];
+        if (
+          additionalContainerInitScopes?.length &&
+          hostShareScopeMap &&
+          !Array.isArray(remoteEntryInitOptions.shareScopeKeys)
+        ) {
+          const hostScope = remoteEntryInitOptions.shareScopeKeys || 'default';
+          const containerScopes = Array.isArray(containerShareScope)
+            ? containerShareScope
+            : [containerShareScope || 'default'];
+          if (
+            !containerScopes.includes(hostScope) &&
+            additionalContainerInitScopes.includes(hostScope)
+          ) {
+            options = withShareScopeKeys(remoteEntryInitOptions, [hostScope]);
+            additionalScopes.push(hostScope);
+          } else {
+            for (const scope of additionalContainerInitScopes) {
+              if (scope === hostScope || containerScopes.includes(scope)) {
+                continue;
+              }
+              if (!hostShareScopeMap[scope]) hostShareScopeMap[scope] = {};
+              runtimeRequire.federation.instance.initShareScopeMap(
+                scope,
+                hostShareScopeMap[scope],
+                { hostShareScopeMap },
+              );
+              additionalScopes.push(scope);
+            }
+          }
+        }
         const result =
           runtimeRequire.federation.bundlerRuntime.initContainerEntry({
             shareScope,
             initScope,
-            remoteEntryInitOptions,
+            remoteEntryInitOptions: options,
             shareScopeKey: containerShareScope,
             webpackRequire: runtimeRequire,
           });
-        const hostShareScopeMap = remoteEntryInitOptions?.shareScopeMap;
-        if (
-          !additionalContainerInitScopes?.length ||
-          !hostShareScopeMap ||
-          Array.isArray(remoteEntryInitOptions.shareScopeKeys)
-        ) {
-          return result;
-        }
-        // Additional (ordered) scopes are mapped and initialized separately
-        // from the primary binding.
-        const primaryScope = remoteEntryInitOptions.shareScopeKeys || 'default';
-        const containerScopes = Array.isArray(containerShareScope)
-          ? containerShareScope
-          : [containerShareScope || 'default'];
-        const additionalScopes = [];
-        for (const scope of additionalContainerInitScopes) {
-          // Scopes the container owns were already bound by initContainerEntry
-          // (its own scope to the host's primary object); remapping them from
-          // the host map would replace that binding.
-          if (scope === primaryScope || containerScopes.includes(scope)) {
-            continue;
-          }
-          if (!hostShareScopeMap[scope]) hostShareScopeMap[scope] = {};
-          runtimeRequire.federation.instance.initShareScopeMap(
-            scope,
-            hostShareScopeMap[scope],
-            { hostShareScopeMap },
-          );
-          additionalScopes.push(scope);
-        }
         if (additionalScopes.length === 0) return result;
         const initializeAdditionalScopes = () =>
           Promise.all(
@@ -542,6 +575,7 @@ export default function () {
         });
       const initPromises = initializeConsumeShareScopes(
         runtimeRequire.consumesLoadingData.initialConsumes,
+        false,
       );
       if (initPromises.length === 0) {
         installInitialConsumes();

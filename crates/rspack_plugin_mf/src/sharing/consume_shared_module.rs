@@ -103,33 +103,10 @@ impl ConsumeSharedModule {
         Default::default()
       },
     );
-    let identifier = format!(
-      "consume shared module [{identity_key}]@{}{}{}{}{}",
-      options
-        .required_version
-        .as_ref()
-        .map_or_else(|| "*".to_string(), |v| v.to_string()),
-      if options.strict_version {
-        " (strict)"
-      } else {
-        Default::default()
-      },
-      if options.singleton {
-        " (strict)"
-      } else {
-        Default::default()
-      },
-      options
-        .import_resolved
-        .as_ref()
-        .map(|f| format!(" (fallback: {f})"))
-        .unwrap_or_default(),
-      if options.eager {
-        " (eager)"
-      } else {
-        Default::default()
-      },
-    );
+    // Same layout convention as webpack's shared modules: `(scope)`, then
+    // ` (layer)` when layered, then `shareKey@requiredVersion` and flags.
+    // External manifest readers parse it by token position.
+    let identifier = readable_identifier.clone();
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
@@ -193,20 +170,28 @@ mod tests {
     }
   }
 
+  /// Same layout convention as webpack's ConsumeSharedModule: external
+  /// manifest readers take `shareKey@requiredVersion` from token 4 for
+  /// unlayered shares, and see the layer as an extra `(layer)` segment.
   #[test]
-  fn unlayered_consume_identifiers_are_collision_free() {
-    let first = ConsumeSharedModule::new(
-      Context::from(""),
-      options("a) b", "c"),
-      RuntimeMode::Webpack,
+  fn consume_identifier_follows_the_webpack_layout() {
+    let mut opts = options("default", "lodash/get");
+    opts.import_resolved = Some("/node_modules/lodash/get.js".to_string());
+    opts.strict_version = true;
+    let module = ConsumeSharedModule::new(Context::from(""), opts, RuntimeMode::Webpack);
+    assert_eq!(
+      module.identifier().as_str(),
+      "consume shared module (default) lodash/get@* (strict) (fallback: /node_modules/lodash/get.js)"
     );
-    let second = ConsumeSharedModule::new(
-      Context::from(""),
-      options("a", "b) c"),
-      RuntimeMode::Webpack,
-    );
+    assert_eq!(module.identifier().split(' ').nth(4), Some("lodash/get@*"));
 
-    assert_ne!(first.identifier(), second.identifier());
+    let mut layered = options("default", "react");
+    layered.layer = Some("server".to_string());
+    let module = ConsumeSharedModule::new(Context::from(""), layered, RuntimeMode::Webpack);
+    assert_eq!(
+      module.identifier().as_str(),
+      "consume shared module (default) (server) react@*"
+    );
   }
 }
 

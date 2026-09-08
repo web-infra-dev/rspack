@@ -39,7 +39,7 @@ pub struct ModuleFederationRuntimeExperimentsOptions {
 }
 
 impl ModuleFederationRuntimeExperimentsOptions {
-  /// Whether the startup of `chunk_ukey`'s runtime must be asynchronous.
+  /// Whether the startup of `chunk_ukey` must be asynchronous.
   ///
   /// Ordered (array) share scopes are initialized before their consumes are
   /// installed, so a runtime whose initial chunks contain such a consume must
@@ -48,17 +48,40 @@ impl ModuleFederationRuntimeExperimentsOptions {
   /// option, so consumes contributed by a separately installed enhanced
   /// `ConsumeSharedPlugin` are covered too. Scalar scopes keep synchronous
   /// startup.
+  ///
+  /// The decision is owned by the runtime chunk: the runtime installs the
+  /// initial consumes of every entry it serves in one call, so an entry chunk
+  /// that delegates to a shared runtime (`runtimeChunk: 'single'`) must take
+  /// the same mode as that runtime even when its own initial chunks contain
+  /// no ordered consume.
   pub fn needs_async_startup(&self, compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
     if self.async_startup {
       return true;
     }
-    let module_graph = compilation.get_module_graph();
     let artifact = &compilation.build_chunk_graph_artifact;
-    artifact
-      .chunk_by_ukey
-      .expect_get(chunk_ukey)
-      .get_all_initial_chunks(&artifact.chunk_group_by_ukey)
-      .into_iter()
+    let chunk = artifact.chunk_by_ukey.expect_get(chunk_ukey);
+    let mut runtime_chunks: Vec<ChunkUkey> = chunk
+      .groups()
+      .iter()
+      .filter_map(|group_ukey| artifact.chunk_group_by_ukey.get(group_ukey))
+      .filter(|group| group.kind.is_entrypoint())
+      .map(|group| group.get_runtime_chunk(&artifact.chunk_group_by_ukey))
+      .collect();
+    if runtime_chunks.is_empty() {
+      runtime_chunks.push(*chunk_ukey);
+    }
+    runtime_chunks.sort_unstable();
+    runtime_chunks.dedup();
+
+    let module_graph = compilation.get_module_graph();
+    runtime_chunks
+      .iter()
+      .flat_map(|runtime_chunk| {
+        artifact
+          .chunk_by_ukey
+          .expect_get(runtime_chunk)
+          .get_all_initial_chunks(&artifact.chunk_group_by_ukey)
+      })
       .flat_map(|chunk| {
         artifact
           .chunk_graph
