@@ -69,7 +69,7 @@ rustflags = ["-C", "target-feature=+crt-static"]
 rustflags = ["-C", "target-feature=+crt-static"]
 
 [target.x86_64-unknown-linux-gnu]
-rustflags = ["-Ctarget-cpu=x86-64-v2"]
+rustflags = ["-Ctarget-cpu=x86-64-v3"]
 
 # This must be the last line to allow ci script to append flags
 [unstable]
