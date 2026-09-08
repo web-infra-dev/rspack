@@ -1,6 +1,6 @@
 ---
 name: bump-rspack-swc
-description: Upgrade the SWC Rust dependencies used by the Rspack repository, regenerate workspace version code, analyze the swc_core tag-to-tag changelog for breaking and Rspack-relevant changes, correlate fixes with Rspack issues, validate the upgrade, and commit, push, and open the GitHub pull request. Use when asked to bump, update, or upgrade swc_core or its aligned SWC crate versions in Rspack and prepare or submit the resulting PR.
+description: Upgrade Rspack swc_core and aligned SWC crates, summarize relevant upstream changes, and prepare a PR when requested.
 ---
 
 # Upgrade Rspack SWC
