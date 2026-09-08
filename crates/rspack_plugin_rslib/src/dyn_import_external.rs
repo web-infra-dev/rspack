@@ -101,7 +101,7 @@ pub fn cutout_star_re_export_externals(
       exports_info.other_exports_info().provided(),
       Some(rspack_core::ExportProvided::Unknown)
     ) {
-      let has_unknown_exports = module.get_dependencies().iter().any(|dep_id| {
+      let has_unknown_exports = module.get_dependencies().any(|dep_id| {
         if connections_to_disable.contains(dep_id) {
           return false;
         }

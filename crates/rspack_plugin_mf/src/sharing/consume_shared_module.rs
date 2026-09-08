@@ -4,12 +4,11 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, CodeGenerationResultBuilder, Compilation, Context,
-  DependenciesBlock, DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config,
-  module_update_hash,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
+  ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
+  ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
@@ -31,8 +30,7 @@ use crate::{
 #[derive(Debug)]
 pub struct ConsumeSharedModule {
   #[cacheable(with=Unsupported)]
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  dependencies: Vec<DependencyId>,
+  dependencies_block: DependenciesBlockData,
   identifier: ModuleIdentifier,
   lib_ident: String,
   readable_identifier: String,
@@ -106,10 +104,9 @@ impl ConsumeSharedModule {
     // Same layout convention as webpack's shared modules: `(scope)`, then
     // ` (layer)` when layered, then `shareKey@requiredVersion` and flags.
     // External manifest readers parse it by token position.
-    let identifier = readable_identifier.clone();
+    let identifier = format!("{readable_identifier} [identity:{identity_key}]");
     Self {
-      blocks: Vec::new(),
-      dependencies: Vec::new(),
+      dependencies_block: Default::default(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),
       lib_ident: if options.layer.is_none() && matches!(&options.share_scope, ShareScope::Single(_))
       {
@@ -147,7 +144,7 @@ impl ConsumeSharedModule {
 #[cfg(test)]
 mod tests {
   use rspack_collections::Identifiable;
-  use rspack_core::{Context, runtime_mode::RuntimeMode};
+  use rspack_core::{Context, Module, runtime_mode::RuntimeMode};
 
   use super::ConsumeSharedModule;
   use crate::{ConsumeOptions, ShareScope};
@@ -180,7 +177,7 @@ mod tests {
     opts.strict_version = true;
     let module = ConsumeSharedModule::new(Context::from(""), opts, RuntimeMode::Webpack);
     assert_eq!(
-      module.identifier().as_str(),
+      module.readable_identifier(&Context::from("")).as_ref(),
       "consume shared module (default) lodash/get@* (strict) (fallback: /node_modules/lodash/get.js)"
     );
     assert_eq!(module.identifier().split(' ').nth(4), Some("lodash/get@*"));
@@ -189,7 +186,7 @@ mod tests {
     layered.layer = Some("server".to_string());
     let module = ConsumeSharedModule::new(Context::from(""), layered, RuntimeMode::Webpack);
     assert_eq!(
-      module.identifier().as_str(),
+      module.readable_identifier(&Context::from("")).as_ref(),
       "consume shared module (default) (server) react@*"
     );
   }
@@ -202,24 +199,12 @@ impl Identifiable for ConsumeSharedModule {
 }
 
 impl DependenciesBlock for ConsumeSharedModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency)
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }
 
@@ -274,7 +259,7 @@ impl Module for ConsumeSharedModule {
     mut self: Box<Self>,
     _build_context: BuildContext,
     _: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<BoxModule> {
     let mut blocks = vec![];
     let mut dependencies = vec![];
     if let Some(fallback) = &self.options.import {
@@ -290,12 +275,10 @@ impl Module for ConsumeSharedModule {
       }
     }
 
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies: dependencies.into_iter().map(Into::into).collect(),
-      blocks: blocks.into_iter().map(Into::into).collect(),
-      optimization_bailouts: vec![],
-    })
+    Ok(BoxModule::new(self).with_dependencies(
+      dependencies.into_iter().map(Into::into).collect(),
+      blocks.into_iter().map(Into::into).collect(),
+    ))
   }
 
   // #[tracing::instrument("ConsumeSharedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
@@ -334,7 +317,14 @@ impl Module for ConsumeSharedModule {
     }
     let factory = self.options.import.as_ref().map(|fallback| {
       if self.options.eager {
-        runtime_template.sync_module_factory(&self.get_dependencies()[0], fallback, compilation)
+        runtime_template.sync_module_factory(
+          self
+            .get_dependencies()
+            .next()
+            .expect("should have fallback dependency"),
+          fallback,
+          compilation,
+        )
       } else {
         runtime_template.async_module_factory(&self.get_blocks()[0], fallback, compilation)
       }

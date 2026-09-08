@@ -164,7 +164,6 @@ fn collect_css_files_from_block_modules(
 
   block
     .get_dependencies()
-    .iter()
     .filter_map(|dependency_id| module_graph.connection_by_dependency_id(dependency_id))
     .filter_map(|connection| chunk_graph.try_get_module_chunks(connection.module_identifier()))
     .flat_map(|chunk_ukeys| collect_css_files_from_chunks(module_loading, chunk_ukeys, compilation))

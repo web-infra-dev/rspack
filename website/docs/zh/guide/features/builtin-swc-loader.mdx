@@ -311,9 +311,6 @@ Rspack 支持在 `builtin:swc-loader` 里加载 SWC 的 Wasm 插件, 你可以�
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   module: {
@@ -325,7 +322,10 @@ export default {
           options: {
             jsc: {
               experimental: {
-                cacheRoot: path.join(__dirname, './node_modules/.cache/swc'),
+                cacheRoot: path.join(
+                  import.meta.dirname,
+                  './node_modules/.cache/swc',
+                ),
               },
             },
           },

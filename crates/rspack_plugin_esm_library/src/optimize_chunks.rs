@@ -9,7 +9,10 @@ use rspack_core::{
   incremental::Mutation, split_readable_identifier,
 };
 use rspack_intern::Atom;
-use rspack_util::fx_hash::{FxDashSet, FxHashMap, FxHashSet};
+use rspack_util::{
+  fx_hash::{FxDashSet, FxHashMap, FxHashSet},
+  identifier::split_at_query_mark,
+};
 
 use crate::EsmLibraryPlugin;
 
@@ -815,18 +818,22 @@ pub(crate) fn analyze_dyn_import_targets(
 /// - `css|./node_modules/lib/dist/index.css|0||||}` → `lib`
 /// - `/path/to/src/index.js?query=1` → `src`
 fn short_name_from_identifier(identifier: &str) -> Option<String> {
-  // Strip ?query suffix.
-  let s = identifier
-    .split_once('?')
-    .map_or(identifier, |(path, _)| path);
-
   // Strip module-type prefix and trailing metadata.
   // e.g. "css|./path/to/file.css|0||||}" → "./path/to/file.css"
-  let s = if let Some((_, rest)) = s.split_once('|') {
+  // A `|` after a `?` is part of the resource/query, not metadata. This also
+  // keeps a DOS path without a module-type prefix intact while still allowing
+  // `css|\\?\C:\...`.
+  let s = if let Some((prefix, rest)) = identifier.split_once('|')
+    && !prefix.contains('?')
+  {
     rest.split('|').next().unwrap_or(rest)
   } else {
-    s
+    identifier
   };
+
+  // Strip ?query suffix after the module-type prefix so a DOS device path at
+  // the start of the resource is recognized correctly.
+  let s = split_at_query_mark(s).0;
 
   // Normalize Windows backslashes to forward slashes so that all subsequent
   // string operations work uniformly regardless of platform.
