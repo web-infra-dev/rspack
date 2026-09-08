@@ -1561,6 +1561,7 @@ impl<'parser> JavascriptParser<'parser> {
       self.pre_walk_module_items(body);
       self.prev_statement = None;
       self.block_pre_walk_module_items(body);
+      self.activate_semantic_scope_bindings();
       self.prev_statement = None;
       self.walk_module_items(body);
     }

@@ -1,5 +1,5 @@
 use swc_next_ecma_ast::{BindingIdentifier, IdentifierReference, NodeId, ScopeId, SymbolId};
-use swc_next_ecma_semantic::ReferenceSpace;
+use swc_next_ecma_semantic::{ReferenceSpace, SymbolFlags};
 
 use super::{Atom, AtomRef, BindingState, ParsedJavaScriptAst, ScopeInfoDB, ScopeInfoId};
 
@@ -158,6 +158,50 @@ impl<'ast> ScopeInfoDB<'ast> {
     }
   }
 
+  fn ordinary_declaration(flags: SymbolFlags) -> bool {
+    flags.intersects(
+      SymbolFlags::FUNCTION_SCOPED_VAR
+        | SymbolFlags::BLOCK_SCOPED_VAR
+        | SymbolFlags::FUNCTION
+        | SymbolFlags::CLASS,
+    ) && !flags
+      .intersects(SymbolFlags::PARAMETER | SymbolFlags::CATCH_VAR | SymbolFlags::ANY_IMPORT)
+  }
+
+  pub fn activate_scope_bindings(&mut self, parsed: &ParsedJavaScriptAst<'_>) {
+    if !self.owns_ast(parsed) {
+      return;
+    }
+    let scope = self.current_scope();
+    for symbol in parsed.semantic.bindings(self.semantic_scope) {
+      if Self::ordinary_declaration(parsed.semantic.symbol(symbol).flags)
+        && self.symbol_state(symbol).is_none()
+      {
+        self.set_symbol(symbol, BindingState::Normal(scope), scope);
+      }
+    }
+  }
+
+  pub fn pre_define_identifier(
+    &mut self,
+    parsed: &ParsedJavaScriptAst<'_>,
+    identifier: BindingIdentifier,
+  ) {
+    if self.owns_ast(parsed)
+      && let Some(symbol) = parsed.semantic.symbol_of(identifier.node_id())
+      && parsed.semantic.scope_of(symbol) == self.semantic_scope
+      && Self::ordinary_declaration(parsed.semantic.symbol(symbol).flags)
+      && self
+        .symbol_state(symbol)
+        .is_none_or(|state| state == BindingState::Normal(self.current_scope()))
+    {
+      return;
+    }
+    // Parameters merged with var, scope mismatches and replacement ASTs retain
+    // their explicit registration path; ordinary declarations activate in bulk.
+    self.define_identifier(parsed, identifier);
+  }
+
   pub fn define_function_declaration(
     &mut self,
     parsed: &ParsedJavaScriptAst<'_>,
@@ -172,7 +216,7 @@ impl<'ast> ScopeInfoDB<'ast> {
       let ast = parsed.ast;
       self.define(Atom::from(ast.get_utf8(identifier.name(ast))));
     } else {
-      self.define_identifier(parsed, identifier);
+      self.pre_define_identifier(parsed, identifier);
     }
   }
 

@@ -258,7 +258,7 @@ impl JavascriptParser<'_> {
         self.enter_pattern(
           PatRef::Borrowed(declarator.id(ast)),
           |this, identifier, _| {
-            this.define_variable_identifier(identifier);
+            this.pre_define_variable_identifier(identifier);
           },
         );
       }

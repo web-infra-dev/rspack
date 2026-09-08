@@ -15,6 +15,16 @@ impl JavascriptParser<'_> {
     self.definitions_db.define_identifier(self.ast, identifier);
   }
 
+  pub(super) fn pre_define_variable_identifier(&mut self, identifier: BindingIdentifier) {
+    self
+      .definitions_db
+      .pre_define_identifier(self.ast, identifier);
+  }
+
+  pub(super) fn activate_semantic_scope_bindings(&mut self) {
+    self.definitions_db.activate_scope_bindings(self.ast);
+  }
+
   pub(super) fn define_function_declaration(&mut self, identifier: BindingIdentifier) {
     self
       .definitions_db
