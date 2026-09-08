@@ -8,13 +8,13 @@ pub enum LoaderExecutionKind {
   JavaScript,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct LoaderChain {
   range: Range<u8>,
   kind: LoaderChainKind,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 enum LoaderChainKind {
   Cache { children: Range<u16> },
   Execution(LoaderExecutionKind),

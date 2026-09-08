@@ -329,7 +329,8 @@ impl<Context: LoaderRunnerContext> LoaderContext<Context> {
     &self.loader_items()[self.loader_index as usize]
   }
 
-  pub(crate) fn current_root_chain(&self) -> Option<&LoaderChain> {
+  #[inline]
+  pub fn current_root_chain(&self) -> Option<&LoaderChain> {
     let loader_index = usize::try_from(self.loader_index).ok()?;
     self
       .context

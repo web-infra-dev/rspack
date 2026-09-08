@@ -10,7 +10,7 @@ use tracing::{Instrument, info_span};
 
 use crate::{
   LoaderRunnerOptions, ParseMeta,
-  chain::{LoaderChain, LoaderChains},
+  chain::LoaderChains,
   content::{AdditionalData, Content, ResourceData},
   context::{LoaderContext, LoaderDependencies, LoaderRunnerContext, State},
   loader::{Loader, LoaderItem, LoaderItemState},
@@ -96,7 +96,6 @@ async fn run_pitch_chain<Context: LoaderRunnerContext>(
 ) -> Result<()> {
   let chain = cx
     .current_chain()
-    .cloned()
     .expect("pitching requires a current loader chain");
   let chain_end = chain.end() as i32;
   let span = info_span!(
@@ -140,20 +139,21 @@ async fn run_pitch_chain<Context: LoaderRunnerContext>(
   .await
 }
 
-impl LoaderChain {
-  /// Execute this chain's normal loaders without consulting the loader cache.
-  pub async fn run<Context: LoaderRunnerContext>(
-    &self,
-    cx: &mut LoaderContext<Context>,
-  ) -> Result<()> {
-    let chain_start = self.start() as i32;
+impl<Context: LoaderRunnerContext> LoaderContext<Context> {
+  /// Execute the current root chain's normal loaders without consulting the loader cache.
+  pub async fn run_normal_chain(&mut self) -> Result<()> {
+    let cx = self;
+    let chain = cx
+      .current_root_chain()
+      .expect("normal execution requires a current root chain");
+    let chain_start = chain.start() as i32;
     let span = info_span!(
       "run_loader_chain:normal",
       resource = cx.resource(),
-      chain_len = self.len(),
-      chain_start = self.start(),
-      chain_end = self.end(),
-      execution_kind = ?self.execution_kind(),
+      chain_len = chain.len(),
+      chain_start = chain.start(),
+      chain_end = chain.end(),
+      execution_kind = ?chain.execution_kind(),
     );
 
     async {
@@ -310,14 +310,10 @@ async fn run_loaders_impl<Context: LoaderRunnerContext>(
           continue;
         }
 
-        let chain = cx
-          .current_root_chain()
-          .cloned()
-          .expect("normal execution requires a current root chain");
         if let Some(plugin) = cx.plugin.clone() {
-          plugin.run_normal_chain(cx, &chain).await?;
+          plugin.run_normal_chain(cx).await?;
         } else {
-          chain.run(cx).await?;
+          cx.run_normal_chain().await?;
         }
       }
       State::Finished => break,

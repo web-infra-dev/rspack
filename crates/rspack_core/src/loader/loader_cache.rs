@@ -6,7 +6,7 @@ use rspack_collections::Identifiable;
 use rspack_error::Result;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_loader_runner::{
-  Content, LoaderChain, LoaderContext, LoaderDependencies, LoaderRunnerOptions, ParseMeta,
+  Content, LoaderContext, LoaderDependencies, LoaderRunnerOptions, ParseMeta,
 };
 use rspack_paths::{InternedPath, InternedPathSet};
 use rspack_sources::SourceMap;
@@ -182,8 +182,10 @@ fn input_etag(context: &LoaderContext<RunnerContext>) -> Option<Etag> {
 
 pub(crate) async fn before_normal_chain(
   context: &mut LoaderContext<RunnerContext>,
-  chain: &LoaderChain,
 ) -> Result<LoaderCacheAction> {
+  let chain = context
+    .current_root_chain()
+    .expect("normal execution requires a current root chain");
   debug_assert!(chain.is_cache());
   if !context.cacheable {
     return Ok(LoaderCacheAction::Disabled);
