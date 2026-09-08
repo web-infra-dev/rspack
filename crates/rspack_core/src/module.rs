@@ -665,7 +665,7 @@ pub trait Module:
 
   fn build_info_mut(&mut self) -> &mut BuildInfo;
 
-  fn build_meta(&self) -> &BuildMeta;
+  fn build_meta(&self) -> &Arc<BuildMeta>;
 
   fn get_exports_argument(&self) -> ExportsArgument {
     self.build_info().exports_argument
@@ -1055,7 +1055,7 @@ macro_rules! impl_module_meta_info {
       &mut self.build_info
     }
 
-    fn build_meta(&self) -> &$crate::BuildMeta {
+    fn build_meta(&self) -> &::std::sync::Arc<$crate::BuildMeta> {
       &self.build_meta
     }
   };
@@ -1226,7 +1226,7 @@ mod test {
           unreachable!()
         }
 
-        fn build_meta(&self) -> &crate::BuildMeta {
+        fn build_meta(&self) -> &::std::sync::Arc<crate::BuildMeta> {
           unreachable!()
         }
       }

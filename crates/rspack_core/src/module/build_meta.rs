@@ -13,8 +13,6 @@ use crate::{BuildMetaDefaultObject, BuildMetaExportsType};
 ///
 /// Setters require only a shared reference. Compilation phases still control
 /// when mutation is allowed; changing flags does not invalidate derived results.
-/// Cloning copies each flag into independent storage so build-cache entries,
-/// concatenated modules, and failed-build recovery retain their own snapshots.
 #[cacheable(with=BuildMetaCache)]
 #[derive(Debug, Default)]
 pub struct BuildMeta {
@@ -29,23 +27,6 @@ pub struct BuildMeta {
 }
 
 type BuildMetaCache = As<BuildMetaSnapshot>;
-
-impl Clone for BuildMeta {
-  fn clone(&self) -> Self {
-    Self {
-      strict_esm_module: AtomicU8::new(self.strict_esm_module.load(Ordering::Relaxed)),
-      has_top_level_await: AtomicU8::new(self.has_top_level_await.load(Ordering::Relaxed)),
-      esm: AtomicU8::new(self.esm.load(Ordering::Relaxed)),
-      is_css_module: AtomicU8::new(self.is_css_module.load(Ordering::Relaxed)),
-      need_id_in_concatenation: AtomicU8::new(
-        self.need_id_in_concatenation.load(Ordering::Relaxed),
-      ),
-      exports_type: AtomicU8::new(self.exports_type.load(Ordering::Relaxed)),
-      default_object: AtomicU8::new(self.default_object.load(Ordering::Relaxed)),
-      side_effect_free: AtomicU8::new(self.side_effect_free.load(Ordering::Relaxed)),
-    }
-  }
-}
 
 impl BuildMeta {
   pub fn strict_esm_module(&self) -> bool {
@@ -169,37 +150,37 @@ impl BuildMeta {
     self
   }
 
-  /// Restore a previously captured build snapshot, including unset flags.
-  pub fn restore(&self, snapshot: &Self) {
+  /// Restore metadata retained from the previous successful build, including unset flags.
+  pub fn restore(&self, previous: &Self) {
     self.strict_esm_module.store(
-      snapshot.strict_esm_module.load(Ordering::Relaxed),
+      previous.strict_esm_module.load(Ordering::Relaxed),
       Ordering::Relaxed,
     );
     self.has_top_level_await.store(
-      snapshot.has_top_level_await.load(Ordering::Relaxed),
+      previous.has_top_level_await.load(Ordering::Relaxed),
       Ordering::Relaxed,
     );
     self
       .esm
-      .store(snapshot.esm.load(Ordering::Relaxed), Ordering::Relaxed);
+      .store(previous.esm.load(Ordering::Relaxed), Ordering::Relaxed);
     self.is_css_module.store(
-      snapshot.is_css_module.load(Ordering::Relaxed),
+      previous.is_css_module.load(Ordering::Relaxed),
       Ordering::Relaxed,
     );
     self.need_id_in_concatenation.store(
-      snapshot.need_id_in_concatenation.load(Ordering::Relaxed),
+      previous.need_id_in_concatenation.load(Ordering::Relaxed),
       Ordering::Relaxed,
     );
     self.exports_type.store(
-      snapshot.exports_type.load(Ordering::Relaxed),
+      previous.exports_type.load(Ordering::Relaxed),
       Ordering::Relaxed,
     );
     self.default_object.store(
-      snapshot.default_object.load(Ordering::Relaxed),
+      previous.default_object.load(Ordering::Relaxed),
       Ordering::Relaxed,
     );
     self.side_effect_free.store(
-      snapshot.side_effect_free.load(Ordering::Relaxed),
+      previous.side_effect_free.load(Ordering::Relaxed),
       Ordering::Relaxed,
     );
   }

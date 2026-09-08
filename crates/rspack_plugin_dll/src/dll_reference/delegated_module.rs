@@ -109,7 +109,7 @@ impl Module for DelegatedModule {
         false,
       )),
     ];
-    self.build_meta = self.delegate_data.build_meta.clone().into();
+    self.build_meta = self.delegate_data.build_meta.clone();
     Ok(BuildResult {
       module: BoxModule::new(self),
       dependencies: dependencies.into_iter().map(Into::into).collect(),

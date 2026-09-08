@@ -33,7 +33,7 @@ impl TempModule {
         dependencies: m.build_info().dependencies.clone(),
         ..Default::default()
       },
-      build_meta: m.build_meta().clone().into(),
+      build_meta: m.build_meta().clone(),
       dependencies: m.get_dependencies().to_vec(),
       // clean all of blocks
       blocks: vec![],
@@ -68,7 +68,7 @@ impl Module for TempModule {
     &mut self.build_info
   }
 
-  fn build_meta(&self) -> &BuildMeta {
+  fn build_meta(&self) -> &Arc<BuildMeta> {
     &self.build_meta
   }
 

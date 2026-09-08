@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_cacheable::{
   cacheable,
   with::{AsPreset, AsVec},
@@ -44,7 +46,7 @@ impl Serialize for DllManifestContentItemExports {
 #[derive(Debug, Default, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DllManifestContentItem {
-  pub build_meta: BuildMeta,
+  pub build_meta: Arc<BuildMeta>,
 
   #[serde(skip_serializing_if = "Option::is_none")]
   pub exports: Option<DllManifestContentItemExports>,

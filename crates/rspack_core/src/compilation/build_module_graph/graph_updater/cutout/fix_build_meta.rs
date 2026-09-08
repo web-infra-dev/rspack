@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Diagnosable;
 
@@ -10,7 +12,7 @@ use crate::{BuildMeta, Module};
 /// This toolkit will restore build meta from successful build to keep importing state.
 #[derive(Debug, Default)]
 pub struct FixBuildMeta {
-  origin_module_build_meta: IdentifierMap<BuildMeta>,
+  origin_module_build_meta: IdentifierMap<Arc<BuildMeta>>,
 }
 
 impl FixBuildMeta {

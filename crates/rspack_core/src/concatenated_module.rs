@@ -752,7 +752,7 @@ impl Module for ConcatenatedModule {
     &mut self.build_info
   }
 
-  fn build_meta(&self) -> &BuildMeta {
+  fn build_meta(&self) -> &Arc<BuildMeta> {
     &self.root_module_ctxt.build_meta
   }
 

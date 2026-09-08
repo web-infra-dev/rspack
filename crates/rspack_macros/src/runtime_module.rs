@@ -173,7 +173,7 @@ pub fn impl_runtime_module(
         unreachable!()
       }
 
-      fn build_meta(&self) -> &::rspack_core::BuildMeta {
+      fn build_meta(&self) -> &::std::sync::Arc<::rspack_core::BuildMeta> {
         unreachable!()
       }
 

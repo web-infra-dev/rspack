@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use napi::Either;
 use napi_derive::napi;
 use rspack_core::ModuleId;
@@ -105,7 +107,10 @@ impl From<RawDllManifestContentItem> for DllManifestContentItem {
     });
 
     Self {
-      build_meta: value.build_meta.map(|meta| meta.into()).unwrap_or_default(),
+      build_meta: value
+        .build_meta
+        .map(|meta| Arc::new(meta.into()))
+        .unwrap_or_default(),
       exports,
       id: value.id.map(|id| match id {
         Either::A(n) => ModuleId::from(n),
