@@ -7,7 +7,10 @@ module.exports = {
   },
   module: {
     rules: [
-      { test: /declaration-(object|array)\.js$/, type: 'javascript/auto' },
+      {
+        test: /declaration-(object|array|default)\.js$/,
+        type: 'javascript/auto',
+      },
     ],
   },
   output: {

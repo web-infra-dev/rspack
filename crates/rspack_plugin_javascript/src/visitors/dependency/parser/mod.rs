@@ -1317,9 +1317,8 @@ impl<'parser> JavascriptParser<'parser> {
         ObjectPatProp::KeyValue(kv) => self.enter_pattern(PatRef::Borrowed(&kv.value), on_ident),
         ObjectPatProp::Assign(assign) => {
           let old = self.in_short_hand;
-          if assign.value.is_none() {
-            self.in_short_hand = true;
-          }
+          // Defaulted shorthand bindings must also preserve their property key.
+          self.in_short_hand = true;
           self.enter_ident(&assign.key.id, on_ident);
           self.in_short_hand = old;
         }

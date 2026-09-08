@@ -11,6 +11,13 @@ it('should deconflict destructured exports declarations in automatic modules', (
   expect(declarations).toEqual({ object: 42, array: 43 });
 });
 
+it('should preserve property keys in defaulted shorthand bindings', () => {
+  const defaulted = require('./declaration-default.js');
+  expect(defaulted.exports).toBe(42);
+  expect(defaulted.read({ exports: 43 })).toBe(43);
+  expect(defaulted.read({})).toBe(7);
+});
+
 it('should reject undeclared exports assignments in strict ES modules', () => {
   expect(() => require('./assignment-esm.mjs')).toThrow(ReferenceError);
 });
