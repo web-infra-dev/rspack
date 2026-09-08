@@ -3,7 +3,10 @@ use swc_next_ecma_ast::{ChainExpression, Expr, IdentifierReference, MemberExpres
 use super::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo};
 use crate::{
   Atom,
-  visitors::{ExprRef, scope_info::BindingState},
+  visitors::{
+    ExprRef,
+    scope_info::{BindingState, IdentifierResolution},
+  },
 };
 
 /// callHooksForName/callHooksForInfo in webpack
@@ -28,12 +31,32 @@ impl CallHooksName for IdentifierReference {
   where
     F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
   {
-    if let Some(state) = parser.definitions_db.resolve_identifier(parser.ast, *self) {
-      call_hooks_info(state, parser, hook_call)
+    parser.call_hooks_name_for_identifier(*self, hook_call).0
+  }
+}
+
+impl<'parser> JavascriptParser<'parser> {
+  pub(super) fn call_hooks_name_for_identifier<F, T>(
+    &mut self,
+    identifier: IdentifierReference,
+    hook_call: F,
+  ) -> (Option<T>, IdentifierResolution)
+  where
+    F: Fn(&mut Self, &str) -> Option<T>,
+  {
+    let resolution = self
+      .definitions_db
+      .identifier_resolution(self.ast, identifier);
+    let result = if let Some(state) = self
+      .definitions_db
+      .resolve_identifier_with(self.ast, identifier, resolution)
+    {
+      call_hooks_info(state, self, hook_call)
     } else {
-      let ast = parser.ast.ast;
-      hook_call(parser, ast.get_utf8(self.name(ast)))
-    }
+      let ast = self.ast.ast;
+      hook_call(self, ast.get_utf8(identifier.name(ast)))
+    };
+    (result, resolution)
   }
 }
 
@@ -125,7 +148,7 @@ impl CallHooksName for MemberExpression {
     if members.is_empty() {
       expr_name.root_info.call_hooks_name(parser, hook_call)
     } else {
-      expr_name.name.call_hooks_name(parser, hook_call)
+      hook_call(parser, &expr_name.name)
     }
   }
 }
@@ -152,7 +175,7 @@ impl CallHooksName for ChainExpression {
     if members.is_empty() {
       expr_name.root_info.call_hooks_name(parser, hook_call)
     } else {
-      expr_name.name.call_hooks_name(parser, hook_call)
+      hook_call(parser, &expr_name.name)
     }
   }
 }
@@ -165,6 +188,9 @@ fn call_hooks_info<'parser, F, T>(
 where
   F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
 {
+  if matches!(id, BindingState::Normal(_)) {
+    return None;
+  }
   let info = parser.definitions_db.expect_get_variable(id);
   let mut next_tag_info = info.tag_info;
 

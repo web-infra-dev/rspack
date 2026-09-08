@@ -1177,7 +1177,8 @@ impl<'parser> JavascriptParser<'parser> {
           (ExprRef::from_expr(ast, callee), RawAtomMembers::new())
         };
         let NameInfo {
-          info: root_info, ..
+          name: resolved_root,
+          info: root_info,
         } = self.get_name_info_from_root(root)?;
 
         let mut root_members = materialize_member_atoms(ast, root_members);
@@ -1189,7 +1190,7 @@ impl<'parser> JavascriptParser<'parser> {
         Some(MemberExpressionInfo::Call(CallExpressionInfo {
           call: expr,
           root_info: root_info.map_or_else(
-            || ExportedVariableInfo::Name(Atom::from(root.get_root_name(ast).expect("named root"))),
+            || ExportedVariableInfo::Name(Atom::from(resolved_root)),
             |i| ExportedVariableInfo::VariableInfo(i.snapshot()),
           ),
           callee_members: root_members,
@@ -1215,9 +1216,7 @@ impl<'parser> JavascriptParser<'parser> {
         Some(MemberExpressionInfo::Expression(ExpressionExpressionInfo {
           name,
           root_info: root_info.map_or_else(
-            || {
-              ExportedVariableInfo::Name(Atom::from(object.get_root_name(ast).expect("named root")))
-            },
+            || ExportedVariableInfo::Name(Atom::from(resolved_root)),
             |i| ExportedVariableInfo::VariableInfo(i.snapshot()),
           ),
           members,
@@ -1692,11 +1691,16 @@ impl<'parser> JavascriptParser<'parser> {
           return Some(eval);
         }
         let drive = self.plugin_drive.clone();
-        let evaluated = ident.call_hooks_name(self, |parser, name| {
+        let (evaluated, resolution) = self.call_hooks_name_for_identifier(ident, |parser, name| {
           drive.evaluate_identifier(parser, name, None, span.real_lo(), span.real_hi())
         });
         evaluated.or_else(|| {
-          let variable = self.definitions_db.resolve_identifier(self.ast, ident);
+          let variable = self
+            .definitions_db
+            .resolve_identifier_with(self.ast, ident, resolution);
+          if matches!(variable, Some(BindingState::Normal(_))) {
+            return None;
+          }
           let info = variable.map(|id| self.definitions_db.expect_get_variable(id));
           if let Some(info) = info {
             if let Some(name) = info.name

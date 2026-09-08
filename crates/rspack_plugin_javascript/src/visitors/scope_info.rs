@@ -8,6 +8,7 @@ use swc_next_ecma_ast::{ScopeId, SymbolId};
 use crate::{Atom, visitors::ParsedJavaScriptAst};
 
 mod semantic;
+pub use semantic::IdentifierResolution;
 
 macro_rules! dense_id {
   ($name:ident) => {

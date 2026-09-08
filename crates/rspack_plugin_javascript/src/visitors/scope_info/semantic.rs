@@ -3,6 +3,14 @@ use swc_next_ecma_semantic::{ReferenceSpace, SymbolFlags};
 
 use super::{Atom, AtomRef, BindingState, ParsedJavaScriptAst, ScopeInfoDB, ScopeInfoId};
 
+/// Immutable lookup information only; mutable binding state must be read again after hooks.
+#[derive(Clone, Copy)]
+pub enum IdentifierResolution {
+  Symbol(SymbolId),
+  Name,
+  Unresolved,
+}
+
 impl<'ast> ScopeInfoDB<'ast> {
   pub fn with_semantic(ast: &'ast ParsedJavaScriptAst<'ast>) -> Self {
     let mut db = Self::new();
@@ -94,19 +102,43 @@ impl<'ast> ScopeInfoDB<'ast> {
     parsed: &ParsedJavaScriptAst<'_>,
     identifier: IdentifierReference,
   ) -> Option<BindingState> {
-    let ast = parsed.ast;
+    let resolution = self.identifier_resolution(parsed, identifier);
+    self.resolve_identifier_with(parsed, identifier, resolution)
+  }
+
+  pub fn identifier_resolution(
+    &self,
+    parsed: &ParsedJavaScriptAst<'_>,
+    identifier: IdentifierReference,
+  ) -> IdentifierResolution {
     if !self.owns_ast(parsed) {
-      return self.resolve(ast.get_utf8(identifier.name(ast)));
+      return IdentifierResolution::Name;
     }
     let semantic = parsed.semantic;
     let Some(reference) = semantic.reference_of(identifier.node_id()) else {
-      return self.resolve(ast.get_utf8(identifier.name(ast)));
+      return IdentifierResolution::Name;
     };
     let reference = semantic.reference(reference);
     if reference.flags.is_dynamic() {
+      return IdentifierResolution::Name;
+    }
+    reference.symbol.map_or(
+      IdentifierResolution::Unresolved,
+      IdentifierResolution::Symbol,
+    )
+  }
+
+  pub fn resolve_identifier_with(
+    &mut self,
+    parsed: &ParsedJavaScriptAst<'_>,
+    identifier: IdentifierReference,
+    resolution: IdentifierResolution,
+  ) -> Option<BindingState> {
+    let ast = parsed.ast;
+    if let IdentifierResolution::Name = resolution {
       return self.resolve(ast.get_utf8(identifier.name(ast)));
     }
-    if let Some(symbol) = reference.symbol {
+    if let IdentifierResolution::Symbol(symbol) = resolution {
       if let Some(state) = self.symbol_state(symbol) {
         return state.defined();
       }

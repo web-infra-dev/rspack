@@ -5,7 +5,8 @@ use super::BasicEvaluatedExpression;
 use crate::{
   parser_plugin::{CREATED_REQUIRE_IDENTIFIER_TAG, CreatedRequireTagData, JavascriptParserPlugin},
   visitors::{
-    AllowedMemberTypes, ExportedVariableInfo, ExprRef, JavascriptParser, MemberExpressionInfo,
+    AllowedMemberTypes, ExportedVariableInfo, ExprRef, ExpressionExpressionInfo, JavascriptParser,
+    MemberExpressionInfo,
   },
 };
 
@@ -14,12 +15,24 @@ pub fn eval_member_expression<'parser>(
   member: MemberExpression,
   expression: Expr,
 ) -> Option<BasicEvaluatedExpression<'parser>> {
-  let ast = parser.ast.ast;
-  let span = member.span(ast);
-  let drive = parser.plugin_drive.clone();
-  let result = if let Some(MemberExpressionInfo::Expression(info)) =
-    parser.get_member_expression_info(ExprRef::Member(member), AllowedMemberTypes::Expression)
+  let info = match parser
+    .get_member_expression_info(ExprRef::Member(member), AllowedMemberTypes::Expression)
   {
+    Some(MemberExpressionInfo::Expression(info)) => Some(info),
+    _ => None,
+  };
+  eval_member_expression_with_info(parser, member, expression, info)
+}
+
+pub fn eval_member_expression_with_info<'parser>(
+  parser: &mut JavascriptParser<'parser>,
+  member: MemberExpression,
+  expression: Expr,
+  info: Option<ExpressionExpressionInfo>,
+) -> Option<BasicEvaluatedExpression<'parser>> {
+  let result = if let Some(info) = info {
+    let span = member.span(parser.ast.ast);
+    let drive = parser.plugin_drive.clone();
     let is_created_require_member = parser.javascript_options.is_create_require_enabled()
       && matches!(
         info.root_info,
