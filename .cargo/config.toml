@@ -68,6 +68,9 @@ rustflags = ["-C", "target-feature=+crt-static"]
 [target.aarch64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]
 
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-Ctarget-cpu=x86-64-v2"]
+
 # This must be the last line to allow ci script to append flags
 [unstable]
 no-embed-metadata = true
