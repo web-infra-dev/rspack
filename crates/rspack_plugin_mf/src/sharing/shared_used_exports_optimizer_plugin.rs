@@ -19,7 +19,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
 
 use super::{
-  RequestMatchKey, consume_shared_module::ConsumeSharedModule, find_exact_match,
+  RequestMatchKey, consume_shared_module::ConsumeSharedModule, find_exact_match, find_prefix_match,
   provide_shared_module::ProvideSharedModule,
   shared_used_exports_optimizer_runtime_module::SharedUsedExportsOptimizerRuntimeModule,
 };
@@ -91,6 +91,8 @@ struct SharedEntryData {
 pub struct SharedUsedExportsOptimizerPlugin {
   shared_map: FxHashMap<SharedIdentity, SharedEntryData>,
   request_map: FxHashMap<RequestMatchKey, Vec<SharedIdentity>>,
+  prefix_request_map: Vec<(RequestMatchKey, Vec<SharedIdentity>)>,
+  expanded_shared_map: Arc<RwLock<FxHashMap<SharedIdentity, SharedEntryData>>>,
   shared_referenced_exports: Arc<RwLock<FxHashMap<SharedIdentity, FxHashSet<String>>>>,
   inject_tree_shaking_used_exports: bool,
   stats_file_name: Option<String>,
@@ -102,7 +104,7 @@ impl SharedUsedExportsOptimizerPlugin {
     let mut shared_map: FxHashMap<SharedIdentity, SharedEntryData> = FxHashMap::default();
     let mut request_map: FxHashMap<RequestMatchKey, Vec<SharedIdentity>> = FxHashMap::default();
     let inject_tree_shaking_used_exports = options.inject_tree_shaking_used_exports;
-    for config in options.shared.into_iter().filter(|c| c.tree_shaking) {
+    for config in options.shared {
       let atoms = config
         .used_exports
         .into_iter()
@@ -119,6 +121,9 @@ impl SharedUsedExportsOptimizerPlugin {
           config.issuer_layer.as_deref(),
         ))
         .or_default();
+      if !config.tree_shaking {
+        continue;
+      }
       if !identities.contains(&identity) {
         identities.push(identity.clone());
       }
@@ -131,6 +136,11 @@ impl SharedUsedExportsOptimizerPlugin {
         .extend(atoms);
     }
 
+    let prefix_request_map = request_map
+      .iter()
+      .filter(|(key, _)| key.request().ends_with('/'))
+      .map(|(key, identities)| (key.clone(), identities.clone()))
+      .collect();
     let shared_referenced_exports = Arc::new(RwLock::new(FxHashMap::<
       SharedIdentity,
       FxHashSet<String>,
@@ -139,6 +149,8 @@ impl SharedUsedExportsOptimizerPlugin {
     Self::new_inner(
       shared_map,
       request_map,
+      prefix_request_map,
+      Default::default(),
       shared_referenced_exports,
       inject_tree_shaking_used_exports,
       options.stats_file_name,
@@ -151,7 +163,8 @@ impl SharedUsedExportsOptimizerPlugin {
       .shared_referenced_exports
       .write()
       .expect("lock poisoned");
-    for (share_key, shared_entry_data) in &self.shared_map {
+    let expanded_shared_map = self.expanded_shared_map.read().expect("lock poisoned");
+    for (share_key, shared_entry_data) in self.shared_map.iter().chain(expanded_shared_map.iter()) {
       let export_set = shared_referenced_exports
         .entry(share_key.clone())
         .or_default();
@@ -273,7 +286,13 @@ async fn optimize_dependencies(
         .get(&shared_identity)
         .cloned()
     };
-    if !self.shared_map.contains_key(&shared_identity) {
+    if !self.shared_map.contains_key(&shared_identity)
+      && !self
+        .expanded_shared_map
+        .read()
+        .expect("lock poisoned")
+        .contains_key(&shared_identity)
+    {
       continue;
     }
     let Some(runtime_reference_exports) = runtime_reference_exports else {
@@ -423,15 +442,38 @@ fn dependency_referenced_exports(
     .and_then(|identifier| module_graph.module_by_identifier(identifier))
     .and_then(|module| module.get_layer())
     .map(|layer| layer.as_str());
-  let Some(shared_identities) = find_exact_match(&self.request_map, request, issuer_layer).cloned()
-  else {
-    return Ok(());
-  };
-
-  let shared_identities = shared_identities
-    .into_iter()
-    .filter(|identity| self.shared_map.contains_key(identity))
-    .collect::<Vec<_>>();
+  let shared_identities =
+    if let Some(identities) = find_exact_match(&self.request_map, request, issuer_layer) {
+      identities.clone()
+    } else if let Some((identities, remainder)) =
+      find_prefix_match(&self.prefix_request_map, request, issuer_layer)
+    {
+      let mut expanded_shared_map = self.expanded_shared_map.write().expect("lock poisoned");
+      identities
+        .iter()
+        .map(|identity| {
+          let expanded = SharedIdentity {
+            share_key: identity.share_key.clone() + remainder,
+            ..identity.clone()
+          };
+          if let Some(shared_entry) = self.shared_map.get(identity) {
+            let expanded_entry = expanded_shared_map
+              .entry(expanded.clone())
+              .or_insert_with(|| SharedEntryData {
+                used_exports: vec![],
+              });
+            for export in &shared_entry.used_exports {
+              if !expanded_entry.used_exports.contains(export) {
+                expanded_entry.used_exports.push(export.clone());
+              }
+            }
+          }
+          expanded
+        })
+        .collect()
+    } else {
+      return Ok(());
+    };
   if shared_identities.is_empty() {
     return Ok(());
   }
