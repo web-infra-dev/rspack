@@ -190,9 +190,7 @@ impl JavascriptParser<'_> {
 
   pub fn pre_walk_function_declaration(&mut self, decl: MaybeNamedFunctionDecl) {
     if let Some(identifier) = decl.ident(self.ast.ast) {
-      self.define_variable(Atom::from(
-        self.ast.ast.get_utf8(identifier.name(self.ast.ast)),
-      ));
+      self.define_function_declaration(identifier);
     }
   }
 
@@ -257,9 +255,12 @@ impl JavascriptParser<'_> {
         .pre_declarator(self, declarator, decl)
         .unwrap_or_default()
       {
-        self.enter_pattern(PatRef::Borrowed(declarator.id(ast)), |this, _, name| {
-          this.define_variable(Atom::from(name));
-        });
+        self.enter_pattern(
+          PatRef::Borrowed(declarator.id(ast)),
+          |this, identifier, _| {
+            this.define_variable_identifier(identifier);
+          },
+        );
       }
     }
   }
