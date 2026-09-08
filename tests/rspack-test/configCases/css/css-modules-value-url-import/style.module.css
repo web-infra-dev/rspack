@@ -1,9 +1,9 @@
 @value importPath: "./imported.module.css";
 @import importPath;
 
-@value bgPath: "./img/shape.png";
-@value bareBgPath: ./img/shape.png;
-@value singleQuotedBgPath: './img/shape.png';
+@value bgPath: "../css-modules/img/shape.png";
+@value bareBgPath: ../css-modules/img/shape.png;
+@value singleQuotedBgPath: '../css-modules/img/shape.png';
 
 @value externalColor from "./values.module.css";
 
