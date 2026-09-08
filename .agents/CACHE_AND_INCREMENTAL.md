@@ -112,6 +112,20 @@ unselected one. Code should depend on their Cache responsibility rather than use
 the owner of Incremental state. The two implementations do not need identical cache coverage or
 storage formats while the migration is in progress.
 
+## Persistent cache format policy
+
+Persistent cache files are disposable implementation details, and their serialized format may change
+without support for older data. This applies to both cache backends and shared serialization code.
+
+- Do not add legacy decoders, fallback readers, dual-format writes, or migration code for old caches.
+- Keep existing cache namespaces, keys, and storage locations when changing a serialized payload.
+  Do not introduce another namespace or a format-version suffix (such as `owned-v1` or `owned-v2`)
+  to isolate old cache data.
+- Do not add format-version guards or other compatibility-only invalidation mechanisms.
+
+Use the existing cache validation and miss handling. Clear stale local cache files and rebuild when
+a format change makes them unusable.
+
 ## Ownership and data flow
 
 Ownership is the architectural boundary:
