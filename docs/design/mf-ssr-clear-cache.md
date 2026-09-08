@@ -625,7 +625,7 @@ Node SSR 下分别覆盖：
 - [x] 增加 remote generation，防止 stale old load 后续写回 runtime cache。
 - [x] 在 clear 前保存旧目标和旧状态快照；clear 自身失败时停止后续流程并抛错。
 
-### Phase 4: 补齐 Node、register 和浏览器边界
+### Phase 4: 补齐 node、register 和浏览器边界
 
 - [x] 清理 runtime-core Node remoteEntry loading promise 和 `loadScriptNode` 写入的全局 remote entry。
 - [x] 在 Node loader 链路增加 `loadScriptNode` ESM module cache clear adapter，通过 root URL versioning 避开 SDK 内部 ESM cache。
