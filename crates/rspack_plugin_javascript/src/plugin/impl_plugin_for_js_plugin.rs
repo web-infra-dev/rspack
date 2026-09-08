@@ -581,11 +581,8 @@ async fn render_manifest(
     chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
 
   if !is_hot_update && !is_js_entry_chunk(chunk_ukey, compilation) {
-    let has_js = if is_runtime_chunk {
-      chunk_has_runtime_or_js(chunk_ukey, compilation)
-    } else {
-      chunk_has_js(chunk_ukey, compilation)
-    };
+    let has_js = chunk_has_js(chunk_ukey, compilation)
+      || (is_runtime_chunk && chunk_has_required_runtime(chunk_ukey, compilation));
     if !has_js {
       return Ok(());
     }
@@ -765,11 +762,7 @@ pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
   chunk_graph.has_chunk_module_by_source_type(chunk_ukey, SourceType::JavaScript, module_graph)
 }
 
-fn chunk_has_runtime_or_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
-  if chunk_has_js(chunk_ukey, compilation) {
-    return true;
-  }
-
+fn chunk_has_required_runtime(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   if chunk_graph
     .get_chunk_runtime_modules_iterable(chunk_ukey)
