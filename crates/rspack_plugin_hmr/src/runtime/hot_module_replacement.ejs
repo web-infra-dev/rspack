@@ -1,4 +1,5 @@
 <%- var("currentModuleData") %> = {};
+<%- var("currentUpdateMiniCssFilenames") %> = {};
 <%- var("hmrInstalledModules") %> = <%- MODULE_CACHE %>;
 
 // module and require creation
@@ -18,6 +19,7 @@
 <%- var("queuedInvalidatedModules") %>;
 
 <%- define(HMR_MODULE_DATA) %> = currentModuleData;
+<%- define(HMR_MINI_CSS_FILENAMES) %> = currentUpdateMiniCssFilenames;
 <% if (_is_rspack_runtime_mode) { %><%- define(INTERCEPT_MODULE_EXECUTION) %> = [];
 <% } %>
 <%- INTERCEPT_MODULE_EXECUTION %>.push(function (options) {
@@ -262,6 +264,26 @@
 			return setStatus("prepare").then(function () {
 				var updatedModules = [];
 				currentUpdateApplyHandlers = [];
+
+				// Carry the freshly emitted extract-css filenames into the retained map
+				// before the update handlers run, so both the extract-css HMR handler and a
+				// later first-time import() of a lazy chunk resolve the current stylesheet
+				// URL instead of the stale `miniCssF` literal. Mutate in place: this object
+				// was handed to HMR_MINI_CSS_FILENAMES as a reference, so reassigning the
+				// variable would leave that reference pointing at the old (stale) map.
+				if (update.miniCss && update.miniCss.f) {
+					for (var cssChunkId in update.miniCss.f) {
+						currentUpdateMiniCssFilenames[cssChunkId] = update.miniCss.f[cssChunkId];
+					}
+				}
+				// Drop retained filenames for chunks whose extracted CSS was removed, so a
+				// later first-time import() of such a chunk resolves `miniCssF` (or nothing)
+				// rather than preferring a href the dev server no longer holds - a guaranteed 404.
+				if (update.miniCss && update.miniCss.r) {
+					update.miniCss.r.forEach(function (removedChunkId) {
+						delete currentUpdateMiniCssFilenames[removedChunkId];
+					});
+				}
 
 				return Promise.all(
 					Object.keys(<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>).reduce(function (
