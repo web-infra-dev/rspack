@@ -58,9 +58,9 @@ export default {
 
   ```ts
   type BundlerInfo = {
-    version?: string,
-    bundler?: string,
-    force?: ('version' | 'uniqueId')[] ｜ boolean;
+    version?: string;
+    bundler?: string;
+    force?: boolean | ('version' | 'uniqueId')[];
   };
   ```
 
@@ -190,29 +190,44 @@ export default {
 - **类型：** `boolean | { keep?: string | RegExp | ((path: string) => boolean) }`
 - **默认值：** `false`
 
-在生成产物前，删除输出目录下的所有文件。
+在输出产物之前清理输出目录中的文件。将 `clean` 设为 `true` 可启用清理：
 
 ```js title="rspack.config.mjs"
 export default {
   output: {
     clean: true, // Clean the output directory before emit.
   },
+};
+```
 
-  // or
+通过 `clean.keep` 保留指定路径：
+
+```js title="rspack.config.mjs"
+export default {
   output: {
     clean: {
       keep: 'ignored/dir', // keep these assets under 'dist/ignored/dir'.
     },
   },
+};
+```
 
-  // or
+也可以使用正则表达式匹配要保留的路径：
+
+```js title="rspack.config.mjs"
+export default {
   output: {
     clean: {
       keep: /ignored\/dir/, // keep these assets under 'dist/ignored/dir'.
     },
   },
+};
+```
 
-  // or
+如需自定义匹配逻辑，可以通过函数返回 `true` 来保留文件：
+
+```js title="rspack.config.mjs"
+export default {
   output: {
     clean: {
       keep: (path) => path.includes('ignored/dir'), // keep these assets under 'dist/ignored/dir'.

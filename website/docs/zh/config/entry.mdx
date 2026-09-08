@@ -52,6 +52,9 @@ export default {
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   entry: path.join(__dirname, './src/index.js'),
@@ -176,7 +179,7 @@ export default {
 #### EntryDescription.publicPath
 
 <PropertyType
-  type="'auto' | string | (pathData: PathData, assetInfo?: AssetInfo) => string"
+  type="'auto' | string | ((pathData: PathData, assetInfo?: AssetInfo) => string)"
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
