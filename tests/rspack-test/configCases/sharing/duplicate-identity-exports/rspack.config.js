@@ -1,6 +1,7 @@
 const { ModuleFederationPlugin } = require('@rspack/core').container;
 module.exports = {
   target: 'async-node',
+  module: { rules: [{ test: /(?:first|second)\.js$/, sideEffects: false }] },
   plugins: [
     new ModuleFederationPlugin({
       name: 'duplicate_identity_exports',
