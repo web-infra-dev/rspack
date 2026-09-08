@@ -185,7 +185,12 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
         .chunk_graph
         .get_module_chunks(**module_identifier)
         .iter()
-        .any(|chunk| self.options.experiments.needs_async_startup(compilation, chunk))
+        .any(|chunk| {
+          self
+            .options
+            .experiments
+            .needs_async_startup(compilation, chunk)
+        })
     })
     .map(|(module_identifier, _)| *module_identifier)
     .collect();
