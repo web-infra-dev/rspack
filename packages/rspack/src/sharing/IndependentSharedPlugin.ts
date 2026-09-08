@@ -221,48 +221,66 @@ const getShareRequests = (
   shareRequestsMap: ShareRequestsMap,
   shareName: string,
   shareConfig: SharedConfig,
-  rootShareScope: ShareScope = 'default',
+  rootShareScope: ShareScope,
+  fallbackImport: string,
 ) => {
-  const entry =
-    shareRequestsMap[resolveShareKey(shareConfig.shareKey, shareName)];
-  const variants =
-    entry?.variants ||
-    (entry
-      ? [
-          {
-            shareScope: entry.shareScope,
-            layer: undefined,
-            requests: entry.requests,
-          },
-        ]
-      : []);
+  const configuredShareKey = resolveShareKey(shareConfig.shareKey, shareName);
+  const isPrefix =
+    resolveShareRequest(shareConfig.request, shareName).endsWith('/') ||
+    fallbackImport.endsWith('/');
   const expectedScope = normalizeShareScope(
     resolveShareScope(shareConfig.shareScope, rootShareScope),
     true,
     'IndependentSharedPlugin',
   );
-  const matchesScope = (shareScope: ShareScope) =>
-    shareScopesEqual(shareScope, expectedScope);
-  const exact = variants.filter(
-    ({ layer, shareScope }) =>
-      layer === shareConfig.layer && matchesScope(shareScope),
-  );
-  const selected =
-    exact.length > 0 || shareConfig.layer === undefined
-      ? exact
-      : variants.filter(
-          ({ layer, shareScope }) =>
-            layer === undefined && matchesScope(shareScope),
-        );
-  const requests = selected.flatMap(({ requests }) => requests);
-  return Array.from(
-    new Map(
-      requests.map(([request, version]) => [
-        JSON.stringify([request, version]),
-        [request, version] as const,
-      ]),
-    ).values(),
-  );
+  const entry = shareRequestsMap[configuredShareKey];
+  const entries: [string, ShareRequestsMap[string]][] = isPrefix
+    ? Object.entries(shareRequestsMap)
+    : entry
+      ? [[configuredShareKey, entry]]
+      : [];
+  return entries.flatMap(([shareKey, entry]) => {
+    const prefix = isPrefix && shareKey.startsWith(configuredShareKey);
+    if (shareKey !== configuredShareKey && !prefix) return [];
+    const requestImport = prefix
+      ? fallbackImport + shareKey.slice(configuredShareKey.length)
+      : fallbackImport;
+    const variants = (entry.variants || [{ ...entry, layer: undefined }])
+      .filter(({ shareScope }) => shareScopesEqual(shareScope, expectedScope))
+      .map((variant) => ({
+        ...variant,
+        requests: variant.requestOrigins
+          ? variant.requestOrigins
+              .filter(
+                ([, version, originalImport]) =>
+                  originalImport === requestImport &&
+                  (shareConfig.version === undefined ||
+                    version ===
+                      (shareConfig.version === false
+                        ? '0'
+                        : shareConfig.version)),
+              )
+              .map(
+                ([request, version]) => [request, version] as [string, string],
+              )
+          : variant.requests,
+      }))
+      .filter(({ requests }) => requests.length > 0);
+    const exact = variants.filter(({ layer }) => layer === shareConfig.layer);
+    const selected =
+      exact.length > 0 || shareConfig.layer === undefined
+        ? exact
+        : variants.filter(({ layer }) => layer === undefined);
+    const requests = selected.flatMap(({ requests }) => requests);
+    return Array.from(
+      new Map(
+        requests.map(([request, version]) => [
+          JSON.stringify([request, version]),
+          { request, version, shareKey, fallbackImport: requestImport },
+        ]),
+      ).values(),
+    );
+  });
 };
 
 export class IndependentSharedPlugin {
@@ -418,7 +436,6 @@ export class IndependentSharedPlugin {
 
     this.sharedOptions.forEach(([configKey, shareConfig], configIndex) => {
       if (!shareConfig.treeShaking || shareConfig.import === false) return;
-      const shareKey = resolveShareKey(shareConfig.shareKey, configKey);
       const shareScope = normalizeShareScope(
         resolveShareScope(shareConfig.shareScope, this.shareScope),
         true,
@@ -437,9 +454,10 @@ export class IndependentSharedPlugin {
         configKey,
         shareConfig,
         this.shareScope,
+        fallbackImport,
       );
 
-      requests.forEach(([request, version]) => {
+      requests.forEach(({ request, version, shareKey, fallbackImport }) => {
         buildRequests.push({
           configIndex,
           configKey,

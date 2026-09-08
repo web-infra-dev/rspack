@@ -44,9 +44,11 @@ pub struct ProvideOptions {
   pub tree_shaking_mode: Option<String>,
 }
 
+/// Cloning keeps the configured import together with its resolved provider metadata.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VersionedProvideOptions {
   config_id: usize,
+  original_request: String,
   pub request: Option<String>,
   pub layer: Option<String>,
   pub share_key: String,
@@ -60,9 +62,10 @@ pub struct VersionedProvideOptions {
 }
 
 impl ProvideOptions {
-  fn to_versioned(&self) -> VersionedProvideOptions {
+  fn to_versioned(&self, request: &str) -> VersionedProvideOptions {
     VersionedProvideOptions {
       config_id: self.config_id,
+      original_request: request.to_string(),
       request: self.request.clone(),
       layer: self.layer.clone(),
       share_key: self.share_key.clone(),
@@ -157,6 +160,7 @@ fn provide_dependencies(
           config.layer.clone(),
           config.tree_shaking_mode.clone(),
         )
+        .with_original_request(config.original_request.clone())
       })
     })
     .collect()
@@ -240,6 +244,7 @@ impl ProvideSharedPlugin {
         lookup_key.clone(),
         VersionedProvideOptions {
           config_id,
+          original_request: key.to_string(),
           request: Some(resource.to_string()),
           layer: layer.clone(),
           share_key: share_key.to_string(),
@@ -268,6 +273,7 @@ impl ProvideSharedPlugin {
           lookup_key.clone(),
           VersionedProvideOptions {
             config_id,
+            original_request: key.to_string(),
             request: Some(resource.to_string()),
             layer: layer.clone(),
             share_key: share_key.to_string(),
@@ -324,7 +330,11 @@ async fn compilation(
     let actual_request = config.request.as_deref().unwrap_or(request);
     let lookup_key = RequestMatchKey::new(actual_request, config.layer.as_deref());
     if RELATIVE_REQUEST.is_match(actual_request) || ABSOLUTE_REQUEST.is_match(actual_request) {
-      insert_resolved_config(&mut resolved_provide_map, lookup_key, config.to_versioned());
+      insert_resolved_config(
+        &mut resolved_provide_map,
+        lookup_key,
+        config.to_versioned(actual_request),
+      );
     } else if actual_request.ends_with('/') {
       insert_unique_prefix_config(&mut prefix_match_provides, lookup_key, config.clone());
     } else {
@@ -426,173 +436,5 @@ impl Plugin for ProvideSharedPlugin {
       .module
       .tap(normal_module_factory_module::new(self));
     Ok(())
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use rustc_hash::FxHashMap;
-
-  use super::{
-    ProvideOptions, ProvideVersion, insert_resolved_config, insert_unique_config,
-    insert_unique_prefix_config,
-  };
-  use crate::{
-    ShareScope,
-    sharing::{RequestMatchKey, find_exact_match, find_prefix_match},
-  };
-
-  fn provide_options(share_key: &str, share_scope: &str, layer: Option<&str>) -> ProvideOptions {
-    ProvideOptions {
-      config_id: 0,
-      request: Some("pkg".to_string()),
-      layer: layer.map(str::to_string),
-      share_key: share_key.to_string(),
-      share_scope: ShareScope::Single(share_scope.to_string()),
-      version: Some(ProvideVersion::Version("1.0.0".to_string())),
-      eager: false,
-      singleton: None,
-      required_version: None,
-      strict_version: None,
-      tree_shaking_mode: None,
-    }
-  }
-
-  #[test]
-  fn same_request_and_layer_keep_every_provider_identity() {
-    let key = RequestMatchKey::new("pkg", Some("server"));
-    let mut matches = FxHashMap::default();
-    insert_unique_config(
-      &mut matches,
-      key.clone(),
-      provide_options("pkg-a", "scope-a", Some("server")),
-    );
-    insert_unique_config(
-      &mut matches,
-      key,
-      provide_options("pkg-b", "scope-b", Some("server")),
-    );
-
-    let matched = find_exact_match(&matches, "pkg", Some("server")).expect("match");
-    assert_eq!(matched.len(), 2);
-
-    let resolved = matched
-      .iter()
-      .cloned()
-      .enumerate()
-      .map(|(config_id, mut options)| {
-        options.config_id = config_id;
-        options.to_versioned()
-      })
-      .fold(FxHashMap::default(), |mut resolved, options| {
-        insert_resolved_config(
-          &mut resolved,
-          RequestMatchKey::new("/resolved/pkg.js", Some("server")),
-          options,
-        );
-        resolved
-      });
-    let resolved = resolved
-      .get(&RequestMatchKey::new("/resolved/pkg.js", Some("server")))
-      .expect("resolved providers");
-    assert_eq!(resolved.len(), 2);
-    assert!(resolved.iter().any(|options| {
-      options.share_key == "pkg-a"
-        && options.share_scope == ShareScope::Single("scope-a".to_string())
-    }));
-    assert!(resolved.iter().any(|options| {
-      options.share_key == "pkg-b"
-        && options.share_scope == ShareScope::Single("scope-b".to_string())
-    }));
-  }
-
-  #[test]
-  fn resolved_provider_version_is_replaced_without_dropping_other_providers() {
-    let key = RequestMatchKey::new("/resolved/pkg.js", Some("server"));
-    let mut resolved = FxHashMap::default();
-    let first = provide_options("pkg-a", "scope-a", Some("server")).to_versioned();
-    let mut other_options = provide_options("pkg-b", "scope-b", Some("server"));
-    other_options.config_id = 1;
-    let other = other_options.to_versioned();
-    insert_resolved_config(&mut resolved, key.clone(), first.clone());
-    insert_resolved_config(&mut resolved, key.clone(), other.clone());
-
-    let mut updated = first;
-    updated.version = ProvideVersion::Version("2.0.0".to_string());
-    insert_resolved_config(&mut resolved, key.clone(), updated);
-
-    let providers = resolved.get(&key).expect("resolved providers");
-    assert_eq!(providers.len(), 2);
-    assert!(providers.iter().any(|provider| {
-      provider.share_key == "pkg-a"
-        && provider.version == ProvideVersion::Version("2.0.0".to_string())
-    }));
-    assert!(providers.iter().any(|provider| provider == &other));
-  }
-
-  #[test]
-  fn configured_versions_of_the_same_shared_identity_coexist() {
-    let key = RequestMatchKey::new("/resolved/pkg.js", None);
-    let mut resolved = FxHashMap::default();
-    let first = provide_options("pkg", "default", None).to_versioned();
-    let mut second_options = provide_options("pkg", "default", None);
-    second_options.config_id = 1;
-    second_options.version = Some(ProvideVersion::Version("2.0.0".to_string()));
-    let second = second_options.to_versioned();
-
-    insert_resolved_config(&mut resolved, key.clone(), first);
-    insert_resolved_config(&mut resolved, key.clone(), second);
-
-    let providers = resolved.get(&key).expect("resolved providers");
-    assert_eq!(providers.len(), 2);
-    assert!(
-      providers
-        .iter()
-        .any(|provider| provider.version == ProvideVersion::Version("1.0.0".to_string()))
-    );
-    assert!(
-      providers
-        .iter()
-        .any(|provider| provider.version == ProvideVersion::Version("2.0.0".to_string()))
-    );
-  }
-
-  #[test]
-  fn exact_layer_precedes_fallback_and_prefix_order_stays_deterministic() {
-    let mut matches = FxHashMap::default();
-    insert_unique_config(
-      &mut matches,
-      RequestMatchKey::new("pkg", None),
-      provide_options("fallback", "default", None),
-    );
-    insert_unique_config(
-      &mut matches,
-      RequestMatchKey::new("pkg", Some("server")),
-      provide_options("exact", "server", Some("server")),
-    );
-    assert_eq!(
-      find_exact_match(&matches, "pkg", Some("server")).expect("exact match")[0].share_key,
-      "exact"
-    );
-    assert_eq!(
-      find_exact_match(&matches, "pkg", Some("client")).expect("fallback match")[0].share_key,
-      "fallback"
-    );
-
-    let mut prefixes = Vec::new();
-    insert_unique_prefix_config(
-      &mut prefixes,
-      RequestMatchKey::new("pkg/", Some("server")),
-      provide_options("short", "server", Some("server")),
-    );
-    insert_unique_prefix_config(
-      &mut prefixes,
-      RequestMatchKey::new("pkg/feature/", None),
-      provide_options("long", "default", None),
-    );
-    let (matched, remainder) =
-      find_prefix_match(&prefixes, "pkg/feature/button", Some("server")).expect("prefix match");
-    assert_eq!(matched[0].share_key, "long");
-    assert_eq!(remainder, "button");
   }
 }

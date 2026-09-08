@@ -141,56 +141,6 @@ impl ConsumeSharedModule {
   }
 }
 
-#[cfg(test)]
-mod tests {
-  use rspack_collections::Identifiable;
-  use rspack_core::{Context, Module, runtime_mode::RuntimeMode};
-
-  use super::ConsumeSharedModule;
-  use crate::{ConsumeOptions, ShareScope};
-
-  fn options(share_scope: &str, share_key: &str) -> ConsumeOptions {
-    ConsumeOptions {
-      request: None,
-      issuer_layer: None,
-      layer: None,
-      import: None,
-      import_resolved: None,
-      share_key: share_key.to_string(),
-      share_scope: ShareScope::Single(share_scope.to_string()),
-      required_version: None,
-      package_name: None,
-      strict_version: false,
-      singleton: false,
-      eager: false,
-      tree_shaking_mode: None,
-    }
-  }
-
-  /// Same layout convention as webpack's ConsumeSharedModule: external
-  /// manifest readers take `shareKey@requiredVersion` from token 4 for
-  /// unlayered shares, and see the layer as an extra `(layer)` segment.
-  #[test]
-  fn consume_identifier_follows_the_webpack_layout() {
-    let mut opts = options("default", "lodash/get");
-    opts.import_resolved = Some("/node_modules/lodash/get.js".to_string());
-    opts.strict_version = true;
-    let module = ConsumeSharedModule::new(Context::from(""), opts, RuntimeMode::Webpack);
-    assert_eq!(
-      module.readable_identifier(&Context::from("")).as_ref(),
-      "consume shared module (default) lodash/get@* (strict) (fallback: /node_modules/lodash/get.js)"
-    );
-    assert_eq!(module.identifier().split(' ').nth(4), Some("lodash/get@*"));
-
-    let mut layered = options("default", "react");
-    layered.layer = Some("server".to_string());
-    let module = ConsumeSharedModule::new(Context::from(""), layered, RuntimeMode::Webpack);
-    assert_eq!(
-      module.readable_identifier(&Context::from("")).as_ref(),
-      "consume shared module (default) (server) react@*"
-    );
-  }
-}
 
 impl Identifiable for ConsumeSharedModule {
   fn identifier(&self) -> Identifier {

@@ -12,6 +12,7 @@ use crate::{ConsumeVersion, ShareScope, SharedIdentity, push_identifier_componen
 pub struct ProvideSharedDependency {
   id: DependencyId,
   request: String,
+  pub(crate) original_request: String,
   pub share_scope: ShareScope,
   pub layer: Option<ModuleLayer>,
   pub name: String,
@@ -49,6 +50,7 @@ impl ProvideSharedDependency {
     let resource_identifier = resource_identifier.into();
     Self {
       id: DependencyId::new(),
+      original_request: request.clone(),
       request,
       share_scope,
       layer,
@@ -61,6 +63,13 @@ impl ProvideSharedDependency {
       tree_shaking_mode,
       resource_identifier,
     }
+  }
+  pub(crate) fn with_original_request(mut self, request: String) -> Self {
+    let mut resource_identifier = self.resource_identifier.to_string();
+    push_identifier_component(&mut resource_identifier, &request);
+    self.resource_identifier = resource_identifier.into();
+    self.original_request = request;
+    self
   }
 }
 
