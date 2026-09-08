@@ -85,7 +85,10 @@ impl ContainerEntryModule {
       identifier: ModuleIdentifier::from(format!(
         "container entry {} {}",
         share_scope.identifier_fragment(),
-        json_stringify(&(&exposes, &expose_layers)),
+        // Same `[[key, options]]` payload as webpack's ContainerEntryModule,
+        // which external manifest readers parse; a layer is carried inside
+        // its expose's options object and only when present.
+        json_stringify(&expose_identifier_payload(&exposes, &expose_layers)),
       )),
       lib_ident,
       exposes,
@@ -517,12 +520,43 @@ var init = function(shareScope, initScope) {{
 
 impl_empty_diagnosable_trait!(ContainerEntryModule);
 
+/// One expose as serialized into the container identifier: the public
+/// `ExposeOptions` fields plus the expose's layer when it has one.
+#[derive(serde::Serialize)]
+struct ExposeIdentifierPayload<'a> {
+  name: &'a Option<String>,
+  import: &'a [String],
+  #[serde(skip_serializing_if = "Option::is_none")]
+  layer: &'a Option<ModuleLayer>,
+}
+
+fn expose_identifier_payload<'a>(
+  exposes: &'a [(String, ExposeOptions)],
+  expose_layers: &'a [Option<ModuleLayer>],
+) -> Vec<(&'a str, ExposeIdentifierPayload<'a>)> {
+  exposes
+    .iter()
+    .enumerate()
+    .map(|(index, (key, options))| {
+      (
+        key.as_str(),
+        ExposeIdentifierPayload {
+          name: &options.name,
+          import: &options.import,
+          layer: expose_layers.get(index).unwrap_or(&None),
+        },
+      )
+    })
+    .collect()
+}
+
 #[cfg(test)]
 mod tests {
+  use rspack_collections::Identifiable;
   use rspack_core::runtime_mode::RuntimeMode;
 
   use super::ContainerEntryModule;
-  use crate::{ShareScope, SharedIdentity};
+  use crate::{ShareScope, SharedIdentity, container::container_plugin::ExposeOptions};
 
   #[test]
   fn share_container_entry_retains_full_shared_identity() {
@@ -542,6 +576,52 @@ mod tests {
     );
 
     assert_eq!(module.shared_identity(), Some(identity));
+  }
+
+  fn exposes() -> Vec<(String, ExposeOptions)> {
+    vec![(
+      "./Button".to_string(),
+      ExposeOptions {
+        name: Some("__federation_expose_Button".to_string()),
+        import: vec!["./src/Button.tsx".to_string()],
+      },
+    )]
+  }
+
+  /// Same `[[key, options]]` payload as webpack's ContainerEntryModule; the
+  /// external manifest reader parses it as an expose-pair array.
+  #[test]
+  fn container_identifier_keeps_the_webpack_payload_without_expose_layers() {
+    let module = ContainerEntryModule::new_with_expose_layers(
+      "container".to_string(),
+      exposes(),
+      vec![None],
+      ShareScope::Single("default".to_string()),
+      true,
+      RuntimeMode::Webpack,
+    );
+
+    assert_eq!(
+      module.identifier().as_str(),
+      r#"container entry (default) [["./Button",{"name":"__federation_expose_Button","import":["./src/Button.tsx"]}]]"#
+    );
+  }
+
+  #[test]
+  fn container_identifier_carries_a_layer_inside_the_expose_options() {
+    let module = ContainerEntryModule::new_with_expose_layers(
+      "container".to_string(),
+      exposes(),
+      vec![Some("server".to_string())],
+      ShareScope::Single("default".to_string()),
+      true,
+      RuntimeMode::Webpack,
+    );
+
+    assert_eq!(
+      module.identifier().as_str(),
+      r#"container entry (default) [["./Button",{"name":"__federation_expose_Button","import":["./src/Button.tsx"],"layer":"server"}]]"#
+    );
   }
 }
 
