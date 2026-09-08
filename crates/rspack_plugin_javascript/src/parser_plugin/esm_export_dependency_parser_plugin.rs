@@ -4,7 +4,7 @@ use itertools::Itertools;
 use rspack_core::{
   BoxDependency, ConstDependency, Dependency, DependencyRange, DependencyType, ImportPhase,
 };
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{CommentKind, ExprData, GetSpan, Span};
 
 use super::{
@@ -325,7 +325,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       ExportDefaultExpression::FnDecl(f) => {
         let start = f.span(ast).real_lo();
         let params = f.params(ast);
-        let end = if let Some(first_arg) = params.items(ast).get_node(ast, 0) {
+        let end = if let Some(first_arg) = ast.first(params.items(ast)) {
           first_arg.span(ast).real_lo()
         } else if let Some(rest) = params.rest(ast) {
           rest.span(ast).real_lo()

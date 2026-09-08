@@ -528,12 +528,7 @@ impl AMDDefineDependencyParserPlugin {
           );
         }
 
-        parser.walk_arguments(
-          call_expr
-            .arguments(parser.ast.ast)
-            .iter()
-            .map(|id| parser.ast.ast.get_node_in_sub_range(id)),
-        );
+        parser.walk_arguments(parser.ast.ast.nodes(call_expr.arguments(parser.ast.ast)));
       }
     } else if let Some(expr) = func {
       parser.walk_expression(expr);

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rspack_core::{BuildMetaExportsType, ExportsArgument, ModuleArgument, ModuleType};
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{
   AwaitExpression, CallExpression, ForOfStatement, GetSpan, Program, Span, StmtData,
   UnaryExpression,
@@ -57,9 +57,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMDetectionParserPlugin {
     // as a module. Rspack's legacy parser only enabled ESM semantics when the
     // program contained an actual import/export declaration (or the module
     // type was explicitly `javascript/esm`). Preserve that distinction here.
-    let has_esm_declaration = _program.body(ast).iter().any(|slot| {
+    let has_esm_declaration = ast.nodes(_program.body(ast)).any(|statement| {
       matches!(
-        ast.stmt_data(ast.get_node_in_sub_range(slot)),
+        ast.stmt_data(statement),
         StmtData::ImportDeclaration(_)
           | StmtData::ExportNamedDeclaration(_)
           | StmtData::ExportDefaultDeclaration(_)
