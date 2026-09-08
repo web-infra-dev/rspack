@@ -90,7 +90,7 @@ impl RequireChunkLoadingRuntimeModule {
   }
   fn generate_require_cache_clear(
     &self,
-    runtime_template: &RuntimeCodeTemplate<'_>,
+    runtime_template: &RuntimeCodeTemplate,
     root_output_dir: &str,
   ) -> String {
     let runtime_scope = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE_SCOPE);
@@ -351,6 +351,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     source.push_str(&generate_chunk_cache_controls(
       runtime_template,
       "require",
+      "requireInstalledChunks",
       1,
     ));
     if with_loading {

@@ -304,6 +304,7 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
     source.push_str(&generate_chunk_cache_controls(
       runtime_template,
       "readFileVm",
+      "readFileVmInstalledChunks",
       0,
     ));
 
