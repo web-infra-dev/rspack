@@ -8,7 +8,7 @@ use rspack_core::{
   AsyncModulesArtifact, BoxDependency, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationFinishModules, CompilationParams,
   CompilerCompilation, CompilerFinishMake, DependencyType, EntryOptions, ExportsInfoArtifact,
-  Plugin, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact,
+  Plugin, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -22,6 +22,7 @@ use super::{
   federation_runtime_dependency::FederationRuntimeDependency,
   hoist_container_references_plugin::HoistContainerReferencesPlugin,
 };
+use crate::{ShareScope, sharing::consume_shared_module::ConsumeSharedModule};
 
 #[derive(Debug, Default, Deserialize, Clone)]
 pub struct ModuleFederationRuntimePluginOptions {
@@ -35,6 +36,45 @@ pub struct ModuleFederationRuntimePluginOptions {
 pub struct ModuleFederationRuntimeExperimentsOptions {
   #[serde(default)]
   pub async_startup: bool,
+}
+
+impl ModuleFederationRuntimeExperimentsOptions {
+  /// Whether the startup of `chunk_ukey`'s runtime must be asynchronous.
+  ///
+  /// Ordered (array) share scopes are initialized before their consumes are
+  /// installed, so a runtime whose initial chunks contain such a consume must
+  /// await that initialization. This is derived from the actual initial
+  /// `ConsumeSharedModule`s rather than only from the high-level `shared`
+  /// option, so consumes contributed by a separately installed enhanced
+  /// `ConsumeSharedPlugin` are covered too. Scalar scopes keep synchronous
+  /// startup.
+  pub fn needs_async_startup(&self, compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
+    if self.async_startup {
+      return true;
+    }
+    let module_graph = compilation.get_module_graph();
+    let artifact = &compilation.build_chunk_graph_artifact;
+    artifact
+      .chunk_by_ukey
+      .expect_get(chunk_ukey)
+      .get_all_initial_chunks(&artifact.chunk_group_by_ukey)
+      .into_iter()
+      .flat_map(|chunk| {
+        artifact
+          .chunk_graph
+          .get_chunk_modules_identifier_by_source_type(
+            &chunk,
+            SourceType::ConsumeShared,
+            module_graph,
+          )
+      })
+      .any(|module_identifier| {
+        module_graph
+          .module_by_identifier(&module_identifier)
+          .and_then(|module| module.as_any().downcast_ref::<ConsumeSharedModule>())
+          .is_some_and(|module| matches!(module.share_scope(), ShareScope::Multiple(_)))
+      })
+  }
 }
 
 #[plugin]

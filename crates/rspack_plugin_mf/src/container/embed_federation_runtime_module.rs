@@ -73,6 +73,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     let mut define = RuntimeGlobals::STARTUP;
+    // `async_startup` is resolved per runtime chunk by EmbedFederationRuntimePlugin.
     if self.options.experiments.async_startup {
       define.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
     }
