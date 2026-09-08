@@ -110,23 +110,11 @@ pub fn impl_runtime_module(
     }
 
     impl #impl_generics ::rspack_core::DependenciesBlock for #name #ty_generics #where_clause {
-      fn add_block_id(&mut self, _: ::rspack_core::AsyncDependenciesBlockIdentifier) {
+      fn dependencies_block(&self) -> &::rspack_core::DependenciesBlockData {
         unreachable!()
       }
 
-      fn get_blocks(&self) -> &[::rspack_core::AsyncDependenciesBlockIdentifier] {
-        unreachable!()
-      }
-
-      fn add_dependency_id(&mut self, _: ::rspack_core::DependencyId) {
-        unreachable!()
-      }
-
-      fn remove_dependency_id(&mut self, _: ::rspack_core::DependencyId) {
-        unreachable!()
-      }
-
-      fn get_dependencies(&self) -> &[::rspack_core::DependencyId] {
+      fn dependencies_block_mut(&mut self) -> &mut ::rspack_core::DependenciesBlockData {
         unreachable!()
       }
     }
@@ -202,12 +190,8 @@ pub fn impl_runtime_module(
         self: Box<Self>,
         _build_context: ::rspack_core::BuildContext,
         _compilation: Option<&::rspack_core::Compilation>,
-      ) -> ::rspack_error::Result<::rspack_core::BuildResult> {
-        Ok(::rspack_core::BuildResult {
-          module: ::rspack_core::BoxModule::new(self),
-          dependencies: vec![],
-          blocks: vec![],
-        })
+      ) -> ::rspack_error::Result<::rspack_core::BoxModule> {
+        Ok(::rspack_core::BoxModule::new(self))
       }
     }
 

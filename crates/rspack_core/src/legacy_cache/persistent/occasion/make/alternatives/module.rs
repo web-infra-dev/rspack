@@ -8,10 +8,9 @@ use rspack_sources::BoxSource;
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId, FactoryMeta,
-  Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec,
-  SourceType, ValueCacheVersions,
+  BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder, Compilation, Context,
+  DependenciesBlock, DependenciesBlockData, FactoryMeta, Module, ModuleCodeGenerationContext,
+  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, ValueCacheVersions,
 };
 
 #[cacheable]
@@ -20,8 +19,7 @@ pub struct TempModule {
   id: ModuleIdentifier,
   build_info: BuildInfo,
   build_meta: BuildMeta,
-  dependencies: Vec<DependencyId>,
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  dependencies_block: DependenciesBlockData,
 }
 
 impl TempModule {
@@ -34,9 +32,13 @@ impl TempModule {
         ..Default::default()
       },
       build_meta: m.build_meta().clone(),
-      dependencies: m.get_dependencies().to_vec(),
-      // clean all of blocks
-      blocks: vec![],
+      dependencies_block: DependenciesBlockData::new(
+        m.get_dependency_refs()
+          .iter()
+          .map(|dependency| super::TempDependency::transform_from(dependency.into()).into_owned())
+          .collect(),
+        Vec::new(),
+      ),
     })))
   }
 }
@@ -124,12 +126,8 @@ impl Module for TempModule {
     self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies: vec![],
-      blocks: vec![],
-    })
+  ) -> Result<BoxModule> {
+    Ok(BoxModule::new(self))
   }
 }
 
@@ -140,19 +138,11 @@ impl Identifiable for TempModule {
 }
 
 impl DependenciesBlock for TempModule {
-  fn add_block_id(&mut self, _block: AsyncDependenciesBlockIdentifier) {
-    unreachable!()
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-  fn add_dependency_id(&mut self, _dependency: DependencyId) {
-    unreachable!()
-  }
-  fn remove_dependency_id(&mut self, _dependency: DependencyId) {
-    unreachable!()
-  }
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }

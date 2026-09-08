@@ -8,11 +8,11 @@ use rspack_cacheable::{
 };
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, CodeGenerationResultBuilder,
-  Compilation, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, ImportPhase,
-  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer,
-  ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  BuildMetaExportsType, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock,
+  DependenciesBlockData, DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions, Module,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType,
+  ReferencedSpecifier, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
   impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
@@ -32,8 +32,7 @@ use crate::{
 #[cacheable]
 #[derive(Debug)]
 pub struct RscEntryModule {
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  dependencies: Vec<DependencyId>,
+  dependencies_block: DependenciesBlockData,
   identifier: ModuleIdentifier,
   lib_ident: String,
   client_modules: Vec<ClientModuleImport>,
@@ -76,8 +75,7 @@ impl RscEntryModule {
     };
 
     Self {
-      blocks: Vec::new(),
-      dependencies: Vec::new(),
+      dependencies_block: Default::default(),
       identifier,
       lib_ident,
       client_modules,
@@ -192,24 +190,12 @@ impl Identifiable for RscEntryModule {
 }
 
 impl DependenciesBlock for RscEntryModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency)
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }
 
@@ -250,7 +236,7 @@ impl Module for RscEntryModule {
     mut self: Box<Self>,
     _build_context: BuildContext,
     _: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<BoxModule> {
     if self.is_server_side_rendering {
       // Eager: no code-split points; use ImportEagerDependency (CSS filtering done at call site).
       let all_client_modules = self.all_client_modules();
@@ -268,11 +254,10 @@ impl Module for RscEntryModule {
         }
         dependencies.push(BoxDependency::new(dep));
       }
-      Ok(BuildResult {
-        module: BoxModule::new(self),
-        dependencies: dependencies.into_iter().map(Into::into).collect(),
-        blocks: vec![],
-      })
+      Ok(
+        BoxModule::new(self)
+          .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![]),
+      )
     } else {
       // Non-eager: code-split points; use AsyncDependenciesBlock + ClientReferenceDependency.
       let mut blocks = Vec::with_capacity(
@@ -372,11 +357,10 @@ impl Module for RscEntryModule {
         blocks.push(Box::new(block));
       }
 
-      Ok(BuildResult {
-        module: BoxModule::new(self),
-        dependencies: dependencies.into_iter().map(Into::into).collect(),
-        blocks: blocks.into_iter().map(Into::into).collect(),
-      })
+      Ok(BoxModule::new(self).with_dependencies(
+        dependencies.into_iter().map(Into::into).collect(),
+        blocks.into_iter().map(Into::into).collect(),
+      ))
     }
   }
 

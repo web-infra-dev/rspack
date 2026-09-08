@@ -3,12 +3,12 @@ use std::{borrow::Cow, sync::Arc};
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsVec};
 use rspack_collections::Identifiable;
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResultBuilder, Compilation, Context,
-  DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions,
-  Module, ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, NeedBuildContext, OutputOptions, RuntimeGlobals,
-  RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info, module_update_hash,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
+  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
+  DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions, Module, ModuleArgument,
+  ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleLayer,
+  ModuleType, NeedBuildContext, OutputOptions, RuntimeGlobals, RuntimeSpec, SourceType,
+  ValueCacheVersions, impl_module_meta_info, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -55,8 +55,7 @@ pub(crate) struct LazyCompilationProxyModule {
   identifier: ModuleIdentifier,
   lib_ident: Option<String>,
 
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  dependencies: Vec<DependencyId>,
+  dependencies_block: DependenciesBlockData,
 
   source_map_kind: SourceMapKind,
 
@@ -113,8 +112,7 @@ impl LazyCompilationProxyModule {
       lib_ident,
       identifier,
       source_map_kind: SourceMapKind::empty(),
-      blocks: vec![],
-      dependencies: vec![],
+      dependencies_block: Default::default(),
       context: Box::new(create_data.context.clone()),
       layer: create_data.issuer_layer.clone(),
       dep_options,
@@ -193,7 +191,7 @@ impl Module for LazyCompilationProxyModule {
     mut self: Box<Self>,
     build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<BoxModule> {
     let client_dep = CommonJsRequireDependency::new(
       self.client.clone(),
       DependencyRange::new(0, 0),
@@ -232,11 +230,10 @@ impl Module for LazyCompilationProxyModule {
       }
     }
 
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies: dependencies.into_iter().map(Into::into).collect(),
-      blocks: blocks.into_iter().map(Into::into).collect(),
-    })
+    Ok(BoxModule::new(self).with_dependencies(
+      dependencies.into_iter().map(Into::into).collect(),
+      blocks.into_iter().map(Into::into).collect(),
+    ))
   }
 
   // #[tracing::instrument("LazyCompilationProxyModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
@@ -250,14 +247,14 @@ impl Module for LazyCompilationProxyModule {
       ..
     } = code_generation_context;
 
-    let client_dep_id = self.dependencies[0];
+    let client_dep_id = self.get_dependencies()[0];
     let module_graph = &compilation.get_module_graph();
 
     let client_module = module_graph
       .module_identifier_by_dependency_id(&client_dep_id)
       .expect("should have module");
 
-    let block = self.blocks.first();
+    let block = self.get_blocks().first();
 
     let client = format!(
       "var client = {}(\"{}\");\nvar data = {};",
@@ -350,23 +347,11 @@ impl Identifiable for LazyCompilationProxyModule {
 }
 
 impl DependenciesBlock for LazyCompilationProxyModule {
-  fn add_block_id(&mut self, block: rspack_core::AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block);
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[rspack_core::AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: rspack_core::DependencyId) {
-    self.dependencies.push(dependency);
-  }
-
-  fn remove_dependency_id(&mut self, dependency: rspack_core::DependencyId) {
-    self.dependencies.retain(|d| d != &dependency);
-  }
-
-  fn get_dependencies(&self) -> &[rspack_core::DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }

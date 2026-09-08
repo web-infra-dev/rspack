@@ -301,11 +301,16 @@ impl ModuleGraph {
       if let Some(b_id) = parent_block
         && let Some(block) = self.inner.blocks.get_mut(&b_id)
       {
-        // Keep cache snapshots unchanged when revoking a published dependency.
+        // Shared blocks may also be retained by another module or a rollback entry.
         if let Some(block) = Arc::get_mut(block) {
           block.remove_dependency_id(*dep_id);
         } else {
           *block = Arc::new(block.without_dependency(*dep_id));
+        }
+        if let Some(module_id) = original_module_identifier
+          && let Some(module) = self.inner.modules.get_mut(&module_id)
+        {
+          module.dependencies_block_mut().replace_block(block.clone());
         }
       }
     }

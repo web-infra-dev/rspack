@@ -1,58 +1,28 @@
 use std::sync::Arc;
 
-use rspack_cacheable::cacheable;
 use rspack_collections::{Identifiable, IdentifierDashMap};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 
 use crate::{
-  AsyncDependenciesBlockBuildResult, AsyncDependenciesBlockIdentifier, BoxModule,
-  BuildModuleGraphArtifact, BuildResult, DependenciesBlock, DependencyRef, FileSystemInfo,
-  ModuleGraph, ModuleIdentifier, NormalModuleState, ValueCacheVersions,
+  BoxModule, BuildModuleGraphArtifact, FileSystemInfo, ModuleGraph, ModuleIdentifier,
+  NormalModuleState, ValueCacheVersions,
   new_cache::{CacheFacade, CacheValue},
 };
 
 /// Cache for completed normal module builds.
 ///
-/// Cache entries store only [`NormalModuleState`] plus the graph-owned build
-/// output. Factory-owned module data is always supplied by the fresh module.
+/// Cache entries store [`NormalModuleState`], including its dependency and block
+/// objects. Factory-owned module data is supplied by the fresh module.
 #[derive(Debug, Clone)]
 pub(crate) struct ModuleBuildCache {
   cache: CacheFacade,
   pending: Arc<IdentifierDashMap<u64>>,
 }
 
-#[cacheable]
-#[derive(Debug, Clone)]
-pub(crate) struct ModuleBuildCacheEntry {
-  module_state: NormalModuleState,
-  graph_result: ModuleGraphBuildResult,
-}
-
-#[cacheable]
-#[derive(Debug, Clone)]
-struct ModuleGraphBuildResult {
-  dependencies: Vec<DependencyRef>,
-  blocks: Vec<AsyncDependenciesBlockBuildResult>,
-}
-
-impl ModuleBuildCacheEntry {
-  pub(crate) fn into_build_result(self, mut module: BoxModule) -> BuildResult {
-    module
-      .as_normal_module_mut()
-      .expect("module cache entries are only restored for normal modules")
-      .restore_module_state(self.module_state);
-    BuildResult {
-      module,
-      dependencies: self.graph_result.dependencies,
-      blocks: self.graph_result.blocks,
-    }
-  }
-}
-
 impl ModuleBuildCache {
   pub(crate) fn new(cache: CacheFacade) -> Self {
     Self {
-      cache,
+      cache: cache.get_child_cache("module-owned-dependencies"),
       pending: Default::default(),
     }
   }
@@ -68,7 +38,7 @@ impl ModuleBuildCache {
     module: &BoxModule,
     file_system_info: &FileSystemInfo,
     value_cache_versions: &ValueCacheVersions,
-  ) -> Result<Option<ModuleBuildCacheEntry>> {
+  ) -> Result<Option<NormalModuleState>> {
     if module.as_normal_module().is_none() {
       return Ok(None);
     }
@@ -76,12 +46,11 @@ impl ModuleBuildCache {
     let identifier = module.identifier();
     let Some(result) = self
       .cache
-      .get::<ModuleBuildCacheEntry>(identifier.as_str(), None)
+      .get::<NormalModuleState>(identifier.as_str(), None)
     else {
       return Ok(None);
     };
     if result
-      .module_state
       .need_build_with_context(file_system_info, value_cache_versions)
       .await?
     {
@@ -93,8 +62,8 @@ impl ModuleBuildCache {
 
   /// Stores modules built during this phase from the final module graph.
   ///
-  /// Snapshot creation and cache-entry construction are parallel. Module state
-  /// and graph containers are cloned, while blocks and dependencies retain shared identity.
+  /// Snapshot creation and cache-entry construction are parallel. The module's
+  /// state is cloned, while dependency and block objects retain shared identity.
   pub(crate) async fn store_pending(
     &self,
     artifact: &mut BuildModuleGraphArtifact,
@@ -162,9 +131,6 @@ impl ModuleBuildCache {
     .collect::<Result<Vec<_>>>()?;
 
     for (module_identifier, entry) in cache_entries {
-      let Some(entry) = entry else {
-        continue;
-      };
       self
         .cache
         .store(module_identifier.as_str(), None, CacheValue::new(entry));
@@ -176,54 +142,13 @@ impl ModuleBuildCache {
 fn create_cache_entry(
   module_graph: &ModuleGraph,
   module_identifier: ModuleIdentifier,
-) -> Option<ModuleBuildCacheEntry> {
+) -> NormalModuleState {
   let source_module = module_graph
     .module_by_identifier(&module_identifier)
     .expect("pending module should exist in the final module graph");
-  let normal_module = source_module
+  source_module
     .as_normal_module()
-    .expect("only normal modules are marked pending for the module build cache");
-  let dependencies = clone_dependencies(module_graph, source_module.get_dependencies())?;
-  let blocks = source_module
-    .get_blocks()
-    .iter()
-    .map(|block_id| clone_block(module_graph, block_id))
-    .collect::<Option<Vec<_>>>()?;
-  Some(ModuleBuildCacheEntry {
-    module_state: normal_module.module_state().clone(),
-    graph_result: ModuleGraphBuildResult {
-      dependencies,
-      blocks,
-    },
-  })
-}
-
-fn clone_dependencies(
-  module_graph: &ModuleGraph,
-  dependency_ids: &[crate::DependencyId],
-) -> Option<Vec<DependencyRef>> {
-  dependency_ids
-    .iter()
-    .map(|dependency_id| {
-      crate::module_graph::internal::try_dependency_ref_by_id(module_graph, dependency_id)
-    })
-    .collect()
-}
-
-fn clone_block(
-  module_graph: &ModuleGraph,
-  block_id: &AsyncDependenciesBlockIdentifier,
-) -> Option<AsyncDependenciesBlockBuildResult> {
-  let block = module_graph.block_ref_by_id(block_id)?.clone();
-  let dependencies = clone_dependencies(module_graph, block.get_dependencies())?;
-  let blocks = block
-    .get_blocks()
-    .iter()
-    .map(|block_id| clone_block(module_graph, block_id))
-    .collect::<Option<Vec<_>>>()?;
-  Some(AsyncDependenciesBlockBuildResult {
-    block,
-    dependencies,
-    blocks,
-  })
+    .expect("only normal modules are marked pending for the module build cache")
+    .module_state()
+    .clone()
 }

@@ -36,23 +36,23 @@ use swc_experimental_ecma_ast::{ClassExpr, Ident, ObjectPatProp, Program, Prop, 
 use swc_experimental_ecma_semantic::resolver::Semantic;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  ChunkGraph, ChunkInitFragments, CodeGenerationDataChunkInitFragments,
-  CodeGenerationDataTopLevelDeclarations, CodeGenerationPublicPathAutoReplace,
-  CodeGenerationResultBuilder, CodeGenerationRuntimeRequirementsWrite, Compilation,
-  ConcatenatedModuleIdent, ConcatenationBindingPlan, ConcatenationBindingResolver,
-  ConcatenationBindingTarget, ConcatenationContext, ConcatenationInterop,
-  ConcatenationNameAllocator, ConcatenationScope, ConditionalInitFragment, ConnectionState,
-  Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, Dependency,
-  DependencyCodeGenerationRef, DependencyId, DependencyType, ExportProvided, ExportsArgument,
-  ExportsInfoArtifact, FactoryMeta, ImportedByDeferModulesArtifact, InitFragment,
-  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
-  ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState,
-  UsedName, UsedNameItem, analyze_module_scope, escape_identifier, fast_set, filter_runtime,
-  get_runtime_key, impl_source_map_config, merge_runtime_condition,
-  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
+  BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph, ChunkInitFragments,
+  CodeGenerationDataChunkInitFragments, CodeGenerationDataTopLevelDeclarations,
+  CodeGenerationPublicPathAutoReplace, CodeGenerationResultBuilder,
+  CodeGenerationRuntimeRequirementsWrite, Compilation, ConcatenatedModuleIdent,
+  ConcatenationBindingPlan, ConcatenationBindingResolver, ConcatenationBindingTarget,
+  ConcatenationContext, ConcatenationInterop, ConcatenationNameAllocator, ConcatenationScope,
+  ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM,
+  DependenciesBlock, DependenciesBlockData, Dependency, DependencyCodeGenerationRef, DependencyId,
+  DependencyType, ExportProvided, ExportsArgument, ExportsInfoArtifact, FactoryMeta,
+  ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage, LibIdentOptions, Module,
+  ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType,
+  NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
+  analyze_module_scope, escape_identifier, fast_set, filter_runtime, get_runtime_key,
+  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
+  module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   subtract_runtime_condition, to_normal_comment,
@@ -522,8 +522,7 @@ pub struct ConcatenatedModule {
   modules: Vec<ConcatenatedInnerModule>,
   runtime: Option<RuntimeSpec>,
 
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  dependencies: Vec<DependencyId>,
+  dependencies_block: DependenciesBlockData,
   #[cacheable(with=As<SourceSizeCacheSerde>)]
   cached_source_sizes: SourceSizeCache,
   diagnostics: Vec<Diagnostic>,
@@ -548,8 +547,7 @@ impl ConcatenatedModule {
       root_module_ctxt,
       modules,
       runtime,
-      dependencies: vec![],
-      blocks: vec![],
+      dependencies_block: Default::default(),
       cached_source_sizes: SourceSizeCache::default(),
       diagnostics: vec![],
       build_info: BuildInfo {
@@ -645,24 +643,12 @@ impl Identifiable for ConcatenatedModule {
 }
 
 impl DependenciesBlock for ConcatenatedModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency)
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }
 
@@ -804,7 +790,7 @@ impl Module for ConcatenatedModule {
     mut self: Box<Self>,
     _build_context: BuildContext,
     compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<BoxModule> {
     let compilation = compilation.expect("should pass compilation");
 
     let module_graph = compilation.get_module_graph();
@@ -826,20 +812,21 @@ impl Module for ConcatenatedModule {
           .expect("should have module");
 
         module
-          .get_dependencies()
+          .get_dependency_refs()
           .iter()
-          .copied()
-          .filter(|dep_id| {
-            let dep = module_graph.dependency_by_id(dep_id);
-            let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep_id);
-            !is_esm_dep_like(dep)
+          .filter(|dep| {
+            let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep.id());
+            !is_esm_dep_like(dep.as_ref())
               || module_id_of_dep.is_none_or(|module_id| !modules.contains(module_id))
           })
+          .cloned()
           .collect::<Vec<_>>()
       })
       .collect::<Vec<_>>();
     for part in dependency_parts {
-      self.dependencies.extend(part);
+      for dependency in part {
+        self.add_dependency(dependency);
+      }
     }
 
     for m in self.modules.iter() {
@@ -854,8 +841,8 @@ impl Module for ConcatenatedModule {
       }
 
       // populate blocks
-      for b in module.get_blocks() {
-        self.blocks.push(*b);
+      for block in module.get_block_refs() {
+        self.dependencies_block.add_block(block.clone());
       }
       // populate diagnostic
       self.diagnostics.extend(module.diagnostics().into_owned());
@@ -882,12 +869,7 @@ impl Module for ConcatenatedModule {
           .map(|(name, asset)| (name.clone(), asset.clone())),
       );
     }
-    // return a dummy result is enough, since we don't build the ConcatenatedModule in make phase
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies: vec![],
-      blocks: vec![],
-    })
+    Ok(BoxModule::new(self))
   }
 
   // #[tracing::instrument("ConcatenatedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]

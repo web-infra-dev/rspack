@@ -1795,7 +1795,7 @@ async fn create_concatenated_module(
       Some(compilation),
     )
     .await?;
-  new_module = build_result.module;
+  new_module = build_result;
 
   Ok(new_module)
 }

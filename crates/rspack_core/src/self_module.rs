@@ -10,10 +10,10 @@ use rspack_sources::BoxSource;
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  ChunkUkey, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier,
-  ModuleType, RuntimeSpec, SourceType, impl_module_meta_info,
+  BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkUkey, CodeGenerationResultBuilder,
+  Compilation, Context, DependenciesBlock, DependenciesBlockData, FactoryMeta, LibIdentOptions,
+  Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec,
+  SourceType, impl_module_meta_info,
 };
 
 #[impl_source_map_config]
@@ -22,8 +22,7 @@ use crate::{
 pub struct SelfModule {
   identifier: ModuleIdentifier,
   readable_identifier: String,
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  dependencies: Vec<DependencyId>,
+  dependencies_block: DependenciesBlockData,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
@@ -35,8 +34,7 @@ impl SelfModule {
     Self {
       identifier: ModuleIdentifier::from(identifier.as_str()),
       readable_identifier: identifier,
-      blocks: Default::default(),
-      dependencies: Default::default(),
+      dependencies_block: Default::default(),
       factory_meta: None,
       build_info: BuildInfo {
         strict: true,
@@ -55,24 +53,12 @@ impl Identifiable for SelfModule {
 }
 
 impl DependenciesBlock for SelfModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency)
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }
 
@@ -133,12 +119,8 @@ impl Module for SelfModule {
     self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies: vec![],
-      blocks: vec![],
-    })
+  ) -> Result<BoxModule> {
+    Ok(BoxModule::new(self))
   }
 }
 

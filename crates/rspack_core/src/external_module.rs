@@ -11,13 +11,13 @@ use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
-  CodeGenerationDataChunkInitFragments, CodeGenerationDataUrl, CodeGenerationResultBuilder,
-  Compilation, ConcatenationScope, Context, CssLayer, CssModuleRenderCondition, DependenciesBlock,
-  DependencyId, DependencyRef, ExportProvided, ExternalType, FactoryMeta, ImportAttributes,
-  ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module,
-  ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
+  BoxModule, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, ChunkGraph,
+  ChunkInitFragments, ChunkUkey, CodeGenerationDataChunkInitFragments, CodeGenerationDataUrl,
+  CodeGenerationResultBuilder, Compilation, ConcatenationScope, Context, CssLayer,
+  CssModuleRenderCondition, DependenciesBlock, DependenciesBlockData, DependencyRef,
+  ExportProvided, ExternalType, FactoryMeta, ImportAttributes, ImportPhase, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
+  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
   NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
   StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
   css_module_render_conditions_identifier, extract_url_and_global, impl_module_meta_info,
@@ -450,8 +450,7 @@ fn resolve_external_type<'a>(
 #[cacheable]
 #[derive(Debug)]
 pub struct ExternalModule {
-  dependencies: Vec<DependencyId>,
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  dependencies_block: DependenciesBlockData,
   pub id: Identifier,
   pub request: ExternalRequest,
   pub external_type: ExternalType,
@@ -493,8 +492,7 @@ impl ExternalModule {
     place_in_initial: bool,
   ) -> Self {
     Self {
-      dependencies: Vec::new(),
-      blocks: Vec::new(),
+      dependencies_block: Default::default(),
       id: Identifier::from({
         let resolved_type = resolve_external_type(external_type.as_str(), &dependency_meta);
         let request_str = simd_json::to_string(&request).expect("invalid json to_string");
@@ -1069,24 +1067,12 @@ impl Identifiable for ExternalModule {
 }
 
 impl DependenciesBlock for ExternalModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency)
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }
 
@@ -1166,7 +1152,7 @@ impl Module for ExternalModule {
     mut self: Box<Self>,
     build_context: BuildContext,
     _: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<BoxModule> {
     self.build_info.module = build_context.compiler_options.output.module;
     let resolved_external_type = self.resolve_external_type();
     let request = match &self.request {
@@ -1210,14 +1196,13 @@ impl Module for ExternalModule {
       _ => {}
     }
     self.build_meta.set_exports_type(exports_type);
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies: vec![DependencyRef::new(StaticExportsDependency::new(
+    Ok(BoxModule::new(self).with_dependencies(
+      vec![DependencyRef::new(StaticExportsDependency::new(
         StaticExportsSpec::True,
         can_mangle,
       ))],
-      blocks: Vec::new(),
-    })
+      Vec::new(),
+    ))
   }
 
   // #[tracing::instrument("ExternalModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]

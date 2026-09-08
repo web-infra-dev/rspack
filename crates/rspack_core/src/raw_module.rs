@@ -12,11 +12,10 @@ use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
-  BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResultBuilder,
-  Compilation, ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
+  BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder, Compilation,
+  ConnectionState, Context, DependenciesBlock, DependenciesBlockData, FactoryMeta, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
-  dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, impl_module_meta_info,
   module_declared_side_effect_free, module_update_hash,
 };
 
@@ -24,8 +23,7 @@ use crate::{
 #[cacheable]
 #[derive(Debug)]
 pub struct RawModule {
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  dependencies: Vec<DependencyId>,
+  dependencies_block: DependenciesBlockData,
   source_str: String,
   #[cacheable(with=AsOption<AsPreset>)]
   source: Option<BoxSource>,
@@ -47,8 +45,7 @@ impl RawModule {
     runtime_requirements: RuntimeGlobals,
   ) -> Self {
     Self {
-      blocks: Default::default(),
-      dependencies: Default::default(),
+      dependencies_block: Default::default(),
       source_str,
       source: None,
       identifier,
@@ -73,24 +70,12 @@ impl Identifiable for RawModule {
 }
 
 impl DependenciesBlock for RawModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency)
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }
 
@@ -172,12 +157,8 @@ impl Module for RawModule {
     self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies: vec![],
-      blocks: vec![],
-    })
+  ) -> Result<BoxModule> {
+    Ok(BoxModule::new(self))
   }
 }
 

@@ -4,11 +4,11 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, ChunkGraph, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock,
-  Dependency, DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
+  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
+  Dependency, ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext,
+  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, impl_module_meta_info,
+  impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
@@ -29,8 +29,7 @@ use crate::{
 #[cacheable]
 #[derive(Debug)]
 pub struct RemoteModule {
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  dependencies: Vec<DependencyId>,
+  dependencies_block: DependenciesBlockData,
   identifier: ModuleIdentifier,
   readable_identifier: String,
   lib_ident: String,
@@ -57,8 +56,7 @@ impl RemoteModule {
     let namespace = module_identifier_namespace(runtime_mode);
     let lib_ident = format!("{namespace}/container/remote/{request}");
     Self {
-      blocks: Default::default(),
-      dependencies: Default::default(),
+      dependencies_block: Default::default(),
       identifier: ModuleIdentifier::from(format!(
         "remote ({}) {} {}",
         share_scope.key(),
@@ -90,24 +88,12 @@ impl Identifiable for RemoteModule {
 }
 
 impl DependenciesBlock for RemoteModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency)
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }
 
@@ -158,7 +144,7 @@ impl Module for RemoteModule {
     mut self: Box<Self>,
     build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<BoxModule> {
     let mut dependencies: Vec<BoxDependency> = Vec::new();
 
     if self.external_requests.len() == 1 {
@@ -191,11 +177,10 @@ impl Module for RemoteModule {
       dependencies.push(BoxDependency::new(dep));
     }
 
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies: dependencies.into_iter().map(Into::into).collect(),
-      blocks: vec![],
-    })
+    Ok(
+      BoxModule::new(self)
+        .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![]),
+    )
   }
 
   // #[tracing::instrument("RemoteModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
@@ -205,7 +190,7 @@ impl Module for RemoteModule {
   ) -> Result<CodeGenerationResultBuilder> {
     let mut codegen = CodeGenerationResultBuilder::default();
     let module_graph = code_generation_context.compilation.get_module_graph();
-    let module = module_graph.get_module_by_dependency_id(&self.dependencies[0]);
+    let module = module_graph.get_module_by_dependency_id(&self.get_dependencies()[0]);
     let id = module.and_then(|m| {
       ChunkGraph::get_module_id(
         &code_generation_context.compilation.module_ids_artifact,
