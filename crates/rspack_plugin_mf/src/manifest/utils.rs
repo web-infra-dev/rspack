@@ -264,17 +264,21 @@ pub fn record_shared_usage(
   module_graph: &ModuleGraph,
   compilation: &Compilation,
 ) {
-  let mut record_issuer = |issuer: &BoxModule| {
-    if let Some(path) = module_source_path(issuer, compilation) {
+  let mut record_module = |module: &BoxModule| {
+    if let Some(path) = module_source_path(module, compilation) {
       shared_usage_links.push((
         identity.clone(),
         strip_ext(&path),
-        issuer.get_layer().cloned(),
+        module.get_layer().cloned(),
       ));
     }
   };
+  // A direct expose resolves to the shared module itself, not an ordinary issuer.
+  if let Some(module) = module_graph.module_by_identifier(module_identifier) {
+    record_module(module);
+  }
   if let Some(issuer) = module_graph.get_issuer(module_identifier) {
-    record_issuer(issuer);
+    record_module(issuer);
   }
   if let Some(mgm) = module_graph.module_graph_module_by_identifier(module_identifier) {
     for dep_id in mgm.incoming_connections() {
@@ -286,7 +290,7 @@ pub fn record_shared_usage(
         .or(connection.resolved_original_module_identifier)
         .and_then(|identifier| module_graph.module_by_identifier(&identifier))
       {
-        record_issuer(issuer);
+        record_module(issuer);
       }
     }
   }
