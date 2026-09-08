@@ -4,7 +4,10 @@ use rspack_core::{
   DeferredPureCheck, Dependency, DependencyRange, ModuleDependency, SideEffectsBailoutItemWithSpan,
 };
 use rspack_intern::AtomSet;
-use rspack_util::{SpanExt, swc::RspackComments};
+use rspack_util::{
+  SpanExt,
+  swc::{AstSubRangeExt, RspackComments},
+};
 use rustc_hash::FxHashMap;
 use swc_next_ecma_ast::{
   ArgumentData, ArrowFunctionBodyData, ArrowFunctionExpression, AssignmentExpression,
@@ -60,14 +63,6 @@ fn atom_from_module_export_name(ast: &Ast<'_>, name: ModuleExportName) -> Atom {
   }
 }
 
-fn program_statements(ast: &Ast<'_>, program: Program) -> Vec<Stmt> {
-  program
-    .body(ast)
-    .iter()
-    .map(|slot| ast.get_node_in_sub_range(slot))
-    .collect()
-}
-
 fn has_no_side_effects_notation(comments: &RspackComments<'_>, span: Span) -> bool {
   comments.has_flag(span.start, "NO_SIDE_EFFECTS")
 }
@@ -91,18 +86,15 @@ fn visit_pattern_binding_names(ast: &Ast<'_>, pattern: BindingPattern, f: &mut i
   match ast.binding_pattern_data(pattern) {
     BindingPatternData::BindingIdentifier(identifier) => f(atom_from_binding(ast, identifier)),
     BindingPatternData::ArrayPattern(array) => {
-      for slot in array.elements(ast).iter() {
-        if let Some(element) = ast.get_node_in_sub_range(slot) {
-          visit_pattern_binding_names(ast, element, f);
-        }
+      for element in ast.nodes(array.elements(ast)).flatten() {
+        visit_pattern_binding_names(ast, element, f);
       }
       if let Some(rest) = array.rest(ast) {
         visit_pattern_binding_names(ast, rest.argument(ast), f);
       }
     }
     BindingPatternData::ObjectPattern(object) => {
-      for slot in object.properties(ast).iter() {
-        let property = ast.get_node_in_sub_range(slot);
+      for property in ast.nodes(object.properties(ast)) {
         visit_pattern_binding_names(ast, property.value(ast), f);
       }
       if let Some(rest) = object.rest(ast) {
@@ -132,8 +124,7 @@ fn visit_decl_binding_names(ast: &Ast<'_>, declaration: Decl, f: &mut impl FnMut
       }
     }
     DeclData::VariableDeclaration(variable) => {
-      for slot in variable.declarators(ast).iter() {
-        let declarator = ast.get_node_in_sub_range(slot);
+      for declarator in ast.nodes(variable.declarators(ast)) {
         visit_pattern_binding_names(ast, declarator.id(ast), f);
       }
     }
@@ -145,8 +136,7 @@ fn visit_stmt_defined_binding_names(ast: &Ast<'_>, statement: Stmt, f: &mut impl
   match ast.stmt_data(statement) {
     StmtData::Declaration(declaration) => visit_decl_binding_names(ast, declaration, f),
     StmtData::ImportDeclaration(import) => {
-      for slot in import.specifiers(ast).iter() {
-        let specifier = ast.get_node_in_sub_range(slot);
+      for specifier in ast.nodes(import.specifiers(ast)) {
         let local = match ast.import_declaration_specifier_data(specifier) {
           ImportDeclarationSpecifierData::ImportSpecifier(specifier) => specifier.local(ast),
           ImportDeclarationSpecifierData::ImportDefaultSpecifier(specifier) => specifier.local(ast),
@@ -195,20 +185,19 @@ fn visit_stmt_defined_binding_names(ast: &Ast<'_>, statement: Stmt, f: &mut impl
 }
 
 fn collect_pure_function_acceptable_names(ast: &Ast<'_>, program: Program) -> AtomSet {
-  let statements = program_statements(ast, program);
+  let statements = program.body(ast);
   let mut names = AtomSet::default();
-  for statement in statements.iter().copied() {
+  for statement in ast.nodes(statements) {
     visit_stmt_defined_binding_names(ast, statement, &mut |name| {
       names.insert(name);
     });
   }
 
   let local_bindings = names.clone();
-  for statement in statements {
+  for statement in ast.nodes(statements) {
     match ast.stmt_data(statement) {
       StmtData::ExportNamedDeclaration(export) if export.source(ast).is_none() => {
-        for slot in export.specifiers(ast).iter() {
-          let specifier = ast.get_node_in_sub_range(slot);
+        for specifier in ast.nodes(export.specifiers(ast)) {
           let local = atom_from_module_export_name(ast, specifier.local(ast));
           if local_bindings.contains(&local) {
             names.insert(atom_from_module_export_name(ast, specifier.exported(ast)));
@@ -251,7 +240,7 @@ fn collect_defined_configured_side_effects_free(
 
 fn collect_duplicate_top_level_names(ast: &Ast<'_>, program: Program) -> AtomSet {
   let mut counts = FxHashMap::<Atom, usize>::default();
-  for statement in program_statements(ast, program) {
+  for statement in ast.nodes(program.body(ast)) {
     visit_stmt_defined_binding_names(ast, statement, &mut |name| {
       *counts.entry(name).or_default() += 1;
     });
@@ -272,7 +261,7 @@ fn collect_annotation_from_variable(
   if variable.kind(ast) != VariableKind::Const || variable.declarators(ast).len() != 1 {
     return;
   }
-  let Some(declarator) = variable.declarators(ast).get_node(ast, 0) else {
+  let Some(declarator) = ast.first(variable.declarators(ast)) else {
     return;
   };
   let BindingPatternData::BindingIdentifier(identifier) =
@@ -303,7 +292,7 @@ fn collect_pure_annotations(
   program: Program,
 ) -> AtomSet {
   let mut side_effects_free = AtomSet::default();
-  for statement in program_statements(ast, program) {
+  for statement in ast.nodes(program.body(ast)) {
     match ast.stmt_data(statement) {
       StmtData::Declaration(declaration) => match ast.decl_data(declaration) {
         DeclData::Function(function) => {
@@ -412,12 +401,7 @@ fn try_mark_auto_side_effects_free_variable(
   if variable.kind(ast) != VariableKind::Const {
     return;
   }
-  let declarators = variable
-    .declarators(ast)
-    .iter()
-    .map(|slot| ast.get_node_in_sub_range(slot))
-    .collect::<Vec<_>>();
-  for declarator in declarators {
+  for declarator in ast.nodes(variable.declarators(ast)) {
     let BindingPatternData::BindingIdentifier(identifier) =
       ast.binding_pattern_data(declarator.id(ast))
     else {
@@ -483,8 +467,7 @@ fn mark_auto_side_effects_free_program(
   duplicate_names: &AtomSet,
 ) {
   let ast = parser.ast.ast;
-  let statements = program_statements(ast, program);
-  for statement in statements {
+  for statement in ast.nodes(program.body(ast)) {
     match ast.stmt_data(statement) {
       StmtData::Declaration(declaration) => try_mark_auto_side_effects_free_decl(
         parser,
@@ -795,11 +778,7 @@ fn arguments_are_pure(
   mut callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
   let ast = parser.ast.ast;
-  let arguments = arguments
-    .iter()
-    .map(|slot| ast.get_node_in_sub_range(slot))
-    .collect::<Vec<_>>();
-  for argument in arguments {
+  for argument in ast.nodes(arguments) {
     let ArgumentData::Expr(expression) = ast.argument_data(argument) else {
       return false;
     };
@@ -933,12 +912,7 @@ pub fn is_pure_expression(
   let ast = parser.ast.ast;
   match ast.expr_data(expression) {
     ExprData::ArrayExpression(array) => {
-      let elements = array
-        .elements(ast)
-        .iter()
-        .map(|slot| ast.get_node_in_sub_range(slot))
-        .collect::<Vec<_>>();
-      for element in elements.into_iter().flatten() {
+      for element in ast.nodes(array.elements(ast)).flatten() {
         let ArgumentData::Expr(element) = ast.argument_data(element) else {
           return false;
         };
@@ -983,23 +957,15 @@ pub fn is_pure_expression(
       callees,
     ),
     ExprData::SequenceExpression(sequence) => {
-      let expressions = sequence
-        .expressions(ast)
-        .iter()
-        .map(|slot| ast.get_node_in_sub_range(slot))
-        .collect::<Vec<_>>();
-      for expression in expressions {
-        if !is_pure_expression(
+      ast.nodes(sequence.expressions(ast)).all(|expression| {
+        is_pure_expression(
           parser,
           analyze_side_effects_free,
           expression,
           comments,
           callees.as_deref_mut(),
-        ) {
-          return false;
-        }
-      }
-      true
+        )
+      })
     }
     ExprData::TsAsExpression(ts) => is_pure_expression(
       parser,
@@ -1050,17 +1016,10 @@ pub fn is_pure_pat(parser: &mut JavascriptParser, pattern: BindingPattern) -> bo
   let ast = parser.ast.ast;
   match ast.binding_pattern_data(pattern) {
     BindingPatternData::BindingIdentifier(_) | BindingPatternData::BindingRestElement(_) => true,
-    BindingPatternData::ArrayPattern(array) => {
-      let elements = array
-        .elements(ast)
-        .iter()
-        .map(|slot| ast.get_node_in_sub_range(slot))
-        .collect::<Vec<_>>();
-      elements
-        .into_iter()
-        .flatten()
-        .all(|element| is_pure_pat(parser, element))
-    }
+    BindingPatternData::ArrayPattern(array) => ast
+      .nodes(array.elements(ast))
+      .flatten()
+      .all(|element| is_pure_pat(parser, element)),
     BindingPatternData::SimpleAssignmentTarget(target) => {
       target.as_identifier_reference(ast).is_some()
     }
@@ -1071,12 +1030,7 @@ pub fn is_pure_pat(parser: &mut JavascriptParser, pattern: BindingPattern) -> bo
 pub fn is_pure_function(parser: &mut JavascriptParser, function: Function) -> bool {
   let ast = parser.ast.ast;
   let parameters = function.params(ast);
-  let items = parameters
-    .items(ast)
-    .iter()
-    .map(|slot| ast.get_node_in_sub_range(slot))
-    .collect::<Vec<_>>();
-  for item in items {
+  for item in ast.nodes(parameters.items(ast)) {
     let FormalParameterItemData::FormalParameter(parameter) = ast.formal_parameter_item_data(item)
     else {
       return false;
@@ -1156,13 +1110,7 @@ pub fn is_pure_class(
     return false;
   }
 
-  let elements = class
-    .body(ast)
-    .body(ast)
-    .iter()
-    .map(|slot| ast.get_node_in_sub_range(slot))
-    .collect::<Vec<_>>();
-  for member in elements {
+  for member in ast.nodes(class.body(ast).body(ast)) {
     let pure = match ast.class_element_data(member) {
       ClassElementData::MethodDefinition(method) => {
         (method.kind(ast) != MethodDefinitionKind::Constructor || class.super_class(ast).is_none())
@@ -1250,12 +1198,7 @@ fn is_pure_var_decl(
     return false;
   }
   let ast = parser.ast.ast;
-  let declarators = variable
-    .declarators(ast)
-    .iter()
-    .map(|slot| ast.get_node_in_sub_range(slot))
-    .collect::<Vec<_>>();
-  declarators.into_iter().all(|declarator| {
+  ast.nodes(variable.declarators(ast)).all(|declarator| {
     declarator.init(ast).is_none_or(|initializer| {
       is_pure_expression(
         parser,
@@ -1358,12 +1301,7 @@ fn is_module_eval_pure_var_decl(
     return false;
   }
   let ast = parser.ast.ast;
-  let declarators = variable
-    .declarators(ast)
-    .iter()
-    .map(|slot| ast.get_node_in_sub_range(slot))
-    .collect::<Vec<_>>();
-  declarators.into_iter().all(|declarator| {
+  ast.nodes(variable.declarators(ast)).all(|declarator| {
     declarator.init(ast).is_none_or(|initializer| {
       is_module_eval_pure_expression(
         parser,
@@ -1389,12 +1327,7 @@ fn is_side_effects_free_var_decl(
     return false;
   }
   let comments = parser.ast.comments;
-  let declarators = variable
-    .declarators(ast)
-    .iter()
-    .map(|slot| ast.get_node_in_sub_range(slot))
-    .collect::<Vec<_>>();
-  for declarator in declarators {
+  for declarator in ast.nodes(variable.declarators(ast)) {
     if !matches!(
       ast.binding_pattern_data(declarator.id(ast)),
       BindingPatternData::BindingIdentifier(_)
@@ -1435,8 +1368,7 @@ fn stmt_may_have_side_effects(parser: &JavascriptParser, statement: Stmt) -> boo
         ) {
           return true;
         }
-        variable.declarators(ast).iter().any(|slot| {
-          let declarator = ast.get_node_in_sub_range(slot);
+        ast.nodes(variable.declarators(ast)).any(|declarator| {
           !matches!(
             ast.binding_pattern_data(declarator.id(ast)),
             BindingPatternData::BindingIdentifier(_)
@@ -1495,14 +1427,8 @@ fn is_side_effects_free_function_body(
   if !formal_parameters_are_simple_identifiers(ast, function.params(ast)) {
     return false;
   }
-  let statements = function
-    .body(ast)
-    .body(ast)
-    .iter()
-    .map(|slot| ast.get_node_in_sub_range(slot))
-    .collect::<Vec<_>>();
-  statements
-    .into_iter()
+  ast
+    .nodes(function.body(ast).body(ast))
     .all(|statement| is_side_effects_free_stmt(parser, analyze_side_effects_free, statement))
 }
 
@@ -1516,16 +1442,9 @@ fn is_side_effects_free_arrow_body(
     return false;
   }
   match ast.arrow_function_body_data(arrow.body(ast)) {
-    ArrowFunctionBodyData::FunctionBody(body) => {
-      let statements = body
-        .body(ast)
-        .iter()
-        .map(|slot| ast.get_node_in_sub_range(slot))
-        .collect::<Vec<_>>();
-      statements
-        .into_iter()
-        .all(|statement| is_side_effects_free_stmt(parser, analyze_side_effects_free, statement))
-    }
+    ArrowFunctionBodyData::FunctionBody(body) => ast
+      .nodes(body.body(ast))
+      .all(|statement| is_side_effects_free_stmt(parser, analyze_side_effects_free, statement)),
     ArrowFunctionBodyData::Expr(expression) => is_pure_expression(
       parser,
       analyze_side_effects_free,

@@ -157,7 +157,7 @@ fn parse_require_call<'p: 'a, 'a>(
     && is_require_call_expr(parser, call)
   {
     let ast = parser.ast.ast;
-    let arg = call.arguments(ast).get_node(ast, 0)?.as_expr(ast)?;
+    let arg = ast.first(call.arguments(ast))?.as_expr(ast)?;
     let arg = parser.evaluate_expression(arg);
     ids.reverse();
     return Some((arg, ids));

@@ -17,7 +17,7 @@ pub trait AstSubRangeExt<'ast> {
   where
     T: ExtraDataCompact<'ast>;
 
-  fn nodes<'a, T>(&'a self, range: TypedSubRange<T>) -> impl Iterator<Item = T> + 'a
+  fn nodes<'a, T>(&'a self, range: TypedSubRange<T>) -> impl DoubleEndedIterator<Item = T> + 'a
   where
     T: ExtraDataCompact<'ast> + 'a;
 }
@@ -40,7 +40,7 @@ impl<'ast> AstSubRangeExt<'ast> for Ast<'ast> {
   }
 
   #[inline]
-  fn nodes<'a, T>(&'a self, range: TypedSubRange<T>) -> impl Iterator<Item = T> + 'a
+  fn nodes<'a, T>(&'a self, range: TypedSubRange<T>) -> impl DoubleEndedIterator<Item = T> + 'a
   where
     T: ExtraDataCompact<'ast> + 'a,
   {

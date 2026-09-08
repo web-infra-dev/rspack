@@ -209,7 +209,7 @@ impl GetFunctionExpression for Expr {
         _need_this: Some(false),
       }),
       ExprData::CallExpression(call) if call.arguments(ast).len() == 1 => {
-        let first_arg = call.arguments(ast).get_node(ast, 0)?.as_expr(ast)?;
+        let first_arg = ast.first(call.arguments(ast))?.as_expr(ast)?;
         let callee = call.callee(ast);
 
         if let Some(member) = callee.as_member_expression(ast)
@@ -228,7 +228,7 @@ impl GetFunctionExpression for Expr {
         if let Some(callee_function) = callee.as_function(ast)
           && first_arg.is_this_expression(ast)
           && callee_function.body(ast).body(ast).len() == 1
-          && let Some(statement) = callee_function.body(ast).body(ast).get_node(ast, 0)
+          && let Some(statement) = ast.first(callee_function.body(ast).body(ast))
           && let StmtData::ReturnStatement(return_statement) = ast.stmt_data(statement)
           && let Some(function) = return_statement
             .argument(ast)

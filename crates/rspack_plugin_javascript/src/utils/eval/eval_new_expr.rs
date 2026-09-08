@@ -1,5 +1,5 @@
 use rspack_intern::Atom;
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{ArgumentData, GetSpan, NewExpression};
 
 use super::BasicEvaluatedExpression;
@@ -43,7 +43,7 @@ pub fn eval_new_expression<'parser>(
   }
   let arguments = expression.arguments(ast);
   let span = expression.span(ast);
-  let Some(first) = arguments.get_node(ast, 0) else {
+  let Some(first) = ast.first(arguments) else {
     let mut result = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
     result.set_regexp(String::new(), String::new());
     return Some(result);
@@ -52,7 +52,7 @@ pub fn eval_new_expression<'parser>(
     return None;
   };
   let regexp = parser.evaluate_expression(first).as_string()?;
-  let flags = if let Some(second) = arguments.get_node(ast, 1) {
+  let flags = if let Some(second) = ast.second(arguments) {
     let ArgumentData::Expr(second) = ast.argument_data(second) else {
       return None;
     };

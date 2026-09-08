@@ -4,6 +4,7 @@ use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_core::{BoxDependency, DependencyRange};
 use rspack_intern::Atom;
+use rspack_util::swc::AstSubRangeExt;
 use rustc_hash::FxHashSet as HashSet;
 use swc_next_ecma_ast::{CallExpression, GetSpan, Span};
 
@@ -77,12 +78,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ProvideParserPlugin {
     let ast = parser.ast.ast;
     if self.add_provide_dep(for_name, expr.callee(ast).span(ast), parser) {
       // FIXME: webpack use `walk_expression` here
-      parser.walk_arguments(
-        expr
-          .arguments(ast)
-          .iter()
-          .map(|id| ast.get_node_in_sub_range(id)),
-      );
+      parser.walk_arguments(ast.nodes(expr.arguments(ast)));
       return Some(true);
     }
     None

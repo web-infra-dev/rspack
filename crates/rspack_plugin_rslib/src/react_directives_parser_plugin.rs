@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use rspack_core::ConstDependency;
 use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParser};
+use rspack_util::swc::AstSubRangeExt;
 use swc_next_ecma_ast::{GetSpan, Program};
 
 pub struct ReactDirectivesParserPlugin;
@@ -10,30 +11,30 @@ pub struct ReactDirectivesParserPlugin;
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ReactDirectivesParserPlugin {
   fn program(&self, parser: &mut JavascriptParser<'p>, program: Program) -> Option<bool> {
     let ast = parser.ast.ast;
-    let directives = program
-      .directives(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
+    let directives = program.directives(ast);
+    let values: Vec<_> = ast
+      .nodes(directives)
       .take_while(|directive| ast.get_utf8(directive.value(ast)).starts_with("use "))
       .map(|directive| {
-        (
-          format!("\"{}\"", ast.get_utf8(directive.value(ast))),
-          directive.span(ast),
-        )
+        serde_json::Value::String(format!("\"{}\"", ast.get_utf8(directive.value(ast))))
       })
-      .collect::<Vec<_>>();
+      .collect();
 
-    if directives.is_empty() {
+    if values.is_empty() {
       return None;
     }
 
+    let directive_count = values.len();
     parser.build_info.extras.insert(
       "react_directives".to_string(),
-      serde_json::json!(directives.iter().map(|(d, _)| d).collect::<Vec<_>>()),
+      serde_json::Value::Array(values),
     );
 
-    for (_, span) in directives {
-      parser.add_presentational_dependency(Arc::new(ConstDependency::new(span.into(), "".into())));
+    for directive in ast.nodes(directives).take(directive_count) {
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+        directive.span(ast).into(),
+        "".into(),
+      )));
     }
 
     None

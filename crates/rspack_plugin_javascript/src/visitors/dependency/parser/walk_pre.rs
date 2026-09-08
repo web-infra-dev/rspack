@@ -289,11 +289,7 @@ impl JavascriptParser<'_> {
       return None;
     }
     let mut keys = DestructuringAssignmentProperties::default();
-    for property in object
-      .properties(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-    {
+    for property in ast.nodes(object.properties(ast)) {
       let key = property.key(ast);
       let value = property.value(ast);
       let (id, shorthand) = if property.shorthand(ast) {
@@ -357,12 +353,7 @@ impl JavascriptParser<'_> {
     }
     let mut keys = DestructuringAssignmentProperties::default();
     let mut buffer = rspack_util::itoa::Buffer::new();
-    for (index, element) in array
-      .elements(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .enumerate()
-    {
+    for (index, element) in ast.nodes(array.elements(ast)).enumerate() {
       let Some(element) = element else {
         continue;
       };

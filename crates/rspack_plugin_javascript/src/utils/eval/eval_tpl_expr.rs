@@ -1,4 +1,4 @@
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{GetSpan, TaggedTemplateExpression, TemplateLiteral};
 
 use super::BasicEvaluatedExpression;
@@ -20,14 +20,10 @@ fn get_simplified_template_result<'parser>(
 ) {
   let ast = parser.ast.ast;
   let quasis_nodes = template.quasis(ast);
-  let expressions = template.expressions(ast);
+  let mut expressions = ast.nodes(template.expressions(ast));
   let mut quasis: Vec<BasicEvaluatedExpression<'parser>> = Vec::new();
   let mut parts: Vec<BasicEvaluatedExpression<'parser>> = Vec::new();
-  for (index, quasi_node) in quasis_nodes
-    .iter()
-    .map(|id| ast.get_node_in_sub_range(id))
-    .enumerate()
-  {
+  for (index, quasi_node) in ast.nodes(quasis_nodes).enumerate() {
     let quasi = match kind {
       TemplateStringKind::Cooked if !quasi_node.is_cooked_undefined(ast) => ast
         .get_wtf8(quasi_node.cooked(ast))
@@ -42,7 +38,7 @@ fn get_simplified_template_result<'parser>(
       let previous = parts.last_mut().expect("template has a preceding quasi");
       let expression = parser.evaluate_expression(
         expressions
-          .get_node(ast, index - 1)
+          .next()
           .expect("template has an expression before each non-leading quasi"),
       );
       if !expression.could_have_side_effects()
