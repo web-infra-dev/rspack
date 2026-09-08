@@ -195,7 +195,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     let BindingPatternData::BindingIdentifier(ident) = ast.binding_pattern_data(decl.id(ast))
     else {
       // Register nested bindings before other pre-declarator hooks define them.
-      parser.enter_pattern(PatRef::Borrowed(decl.id(ast)), |_, _| {});
+      parser.enter_pattern(PatRef::Borrowed(decl.id(ast)), |_, _, _| {});
       return None;
     };
     let name = ast.get_utf8(ident.name(ast));
@@ -248,7 +248,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     for_name: &str,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
-    let name = ident.name(ast);
     // Keep the declaration tag and rewrite the target before another assignment
     // hook can bail out, including targets inside destructuring assignments.
     if for_name == NESTED_IDENTIFIER_TAG && parser.in_assignment_pattern {
@@ -276,6 +275,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
       if !parser.is_top_level_scope() {
         return None;
       }
+      let name = ident.name(ast);
       self.tag_nested_require_data(
         parser,
         Atom::from(name),
@@ -289,6 +289,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
       // The require binding must be renamed in every scope: rewritten
       // require() calls inject references to the runtime require name, which
       // would otherwise be captured by a shadowing binding.
+      let name = ident.name(ast);
       let span = ident.span(ast);
       let start = span.real_lo();
       let end = span.real_hi();
@@ -350,8 +351,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
       && (name == parser.parser_runtime_requirements.exports
         || name == self.nested_require_name(parser))
     {
-      let data =
-        parser.get_tag_data_mut::<NestedRequireData>(&Atom::from(name), NESTED_IDENTIFIER_TAG)?;
+      let data = parser.get_tag_data_mut::<NestedRequireData>(name, NESTED_IDENTIFIER_TAG)?;
       if !data.update {
         let dep = Arc::new(ConstDependency::new(data.loc, data.name.clone().into()));
         data.update = true;

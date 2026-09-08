@@ -81,8 +81,8 @@ impl JavascriptParser<'_> {
       self.undefined_variable(&"this".into());
     }
 
-    self.enter_patterns(params, |this, ident| {
-      this.define_variable(Atom::from(this.ast.ast.get_utf8(ident.name(this.ast.ast))));
+    self.enter_patterns(params, |this, _, name| {
+      this.define_variable(Atom::from(name));
     });
 
     f(self);
@@ -111,8 +111,8 @@ impl JavascriptParser<'_> {
     if has_this {
       self.undefined_variable(&"this".into());
     }
-    self.enter_patterns(params, |this, ident| {
-      this.define_variable(Atom::from(this.ast.ast.get_utf8(ident.name(this.ast.ast))));
+    self.enter_patterns(params, |this, _, name| {
+      this.define_variable(Atom::from(name));
     });
     f(self);
 
@@ -297,8 +297,8 @@ impl JavascriptParser<'_> {
     self.in_block_scope(true, |this| {
       let ast = this.ast.ast;
       if let Some(param) = catch_clause.param(ast) {
-        this.enter_pattern(PatRef::Borrowed(param), |this, ident| {
-          this.define_variable(Atom::from(this.ast.ast.get_utf8(ident.name(this.ast.ast))));
+        this.enter_pattern(PatRef::Borrowed(param), |this, _, name| {
+          this.define_variable(Atom::from(name));
         });
         this.walk_pattern(param)
       }
@@ -1201,7 +1201,7 @@ impl JavascriptParser<'_> {
     self
       .plugin_drive
       .clone()
-      .meta_property(self, &root_name, expr.span(ast));
+      .meta_property(self, root_name, expr.span(ast));
   }
 
   fn walk_conditional_expression(&mut self, expr: ConditionalExpression) {
@@ -1341,7 +1341,7 @@ impl JavascriptParser<'_> {
     if object.is_meta_property(ast)
       && let Some(root_name) = object.get_root_name(ast)
     {
-      let root_info = ExportedVariableInfo::Name(root_name);
+      let root_info = ExportedVariableInfo::Name(Atom::from(root_name));
       if drive
         .unhandled_expression_member_chain(self, &root_info, expr.into())
         .unwrap_or_default()
@@ -1621,9 +1621,14 @@ impl JavascriptParser<'_> {
   fn walk_call_expression(&mut self, expr: CallExpression) {
     let ast = self.ast.ast;
     let callee = expr.callee(ast);
+    let callee_data = ast.expr_data(callee);
+    let callee_member = match callee_data {
+      ExprData::MemberExpression(member) => Some(member),
+      _ => None,
+    };
     let arguments = expr.arguments(ast);
 
-    if let Some(member) = callee.as_member_expression(ast)
+    if let Some(member) = callee_member
       && let Some(function) = member.object(ast).as_function(ast)
       && Self::property_key_name(ast, member.property(ast))
         .is_some_and(|name| name == "call" || name == "bind")
@@ -1636,7 +1641,7 @@ impl JavascriptParser<'_> {
       return;
     }
 
-    let direct_params = match ast.expr_data(callee) {
+    let direct_params = match callee_data {
       ExprData::Function(function) => Some(function.params(ast)),
       ExprData::ArrowFunctionExpression(arrow) => Some(arrow.params(ast)),
       _ => None,
@@ -1646,7 +1651,7 @@ impl JavascriptParser<'_> {
       return;
     }
 
-    if let Some(member) = callee.as_member_expression(ast) {
+    if let Some(member) = callee_member {
       if let Some(MemberExpressionInfo::Call(expr_info)) =
         self.get_member_expression_info(ExprRef::Member(member), AllowedMemberTypes::CallExpression)
         && expr_info
@@ -1742,7 +1747,7 @@ impl JavascriptParser<'_> {
       }
     }
 
-    if let Some(member) = callee.as_member_expression(ast) {
+    if let Some(member) = callee_member {
       self.walk_expression(member.object(ast));
       if member.computed(ast)
         && let PropertyKeyData::Expr(property) = ast.property_key_data(member.property(ast))

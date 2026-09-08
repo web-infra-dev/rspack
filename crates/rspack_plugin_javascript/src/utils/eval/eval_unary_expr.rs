@@ -1,4 +1,3 @@
-use rspack_intern::Atom;
 use rspack_util::SpanExt;
 use swc_next_ecma_ast::{ExprData, GetSpan, UnaryExpression, UnaryOperator};
 
@@ -16,7 +15,8 @@ fn eval_typeof<'parser>(
   debug_assert_eq!(expression.operator(ast), UnaryOperator::Typeof);
   let argument = expression.argument(ast);
   let hook_result = match ast.expr_data(argument) {
-    ExprData::IdentifierReference(identifier) => Atom::from(ast.get_utf8(identifier.name(ast)))
+    ExprData::IdentifierReference(identifier) => ast
+      .get_utf8(identifier.name(ast))
       .call_hooks_name(parser, |parser, name| {
         parser
           .plugin_drive
