@@ -98,7 +98,7 @@ pub(crate) fn member_property_to_atom(ast: &Ast<'_>, expr: Expr) -> Option<Atom>
     ExprData::TemplateLiteral(node)
       if node.expressions(ast).is_empty() && node.quasis(ast).len() == 1 =>
     {
-      let quasi = node.quasis(ast).get_node(ast, 0)?;
+      let quasi = ast.first(node.quasis(ast))?;
       if quasi.is_cooked_undefined(ast) {
         Atom::from(ast.get_utf8(quasi.raw(ast)))
       } else {
@@ -1325,10 +1325,8 @@ impl<'parser> JavascriptParser<'parser> {
     F: FnOnce(&mut Self, BindingIdentifier) + Copy,
   {
     let ast = self.ast.ast;
-    for slot in array_pat.elements(ast).iter() {
-      if let Some(element) = ast.get_node_in_sub_range(slot) {
-        self.enter_pattern(PatRef::Borrowed(element), on_ident);
-      }
+    for element in ast.nodes(array_pat.elements(ast)).flatten() {
+      self.enter_pattern(PatRef::Borrowed(element), on_ident);
     }
     if let Some(rest) = array_pat.rest(ast) {
       self.enter_rest_pattern(rest, on_ident);
@@ -1347,8 +1345,7 @@ impl<'parser> JavascriptParser<'parser> {
     F: FnOnce(&mut Self, BindingIdentifier) + Copy,
   {
     let ast = self.ast.ast;
-    for slot in object.properties(ast).iter() {
-      let property = ast.get_node_in_sub_range(slot);
+    for property in ast.nodes(object.properties(ast)) {
       let value = property.value(ast);
       let old = self.in_short_hand;
       if property.shorthand(ast) {
@@ -1440,8 +1437,7 @@ impl<'parser> JavascriptParser<'parser> {
         }
       }
       DeclData::VariableDeclaration(variable) => {
-        for slot in variable.declarators(ast).iter() {
-          let declarator = ast.get_node_in_sub_range(slot);
+        for declarator in ast.nodes(variable.declarators(ast)) {
           self.enter_pattern(PatRef::Borrowed(declarator.id(ast)), on_ident);
         }
       }
@@ -1542,8 +1538,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn detect_mode(&mut self, program: Program) {
     let ast = self.ast.ast;
-    for slot in program.directives(ast).iter() {
-      let directive = ast.get_node_in_sub_range(slot);
+    for directive in ast.nodes(program.directives(ast)) {
       if ast.get_utf8(directive.value(ast)) == "use strict" {
         self.set_strict(true);
         return;

@@ -1544,7 +1544,6 @@ impl JavascriptParser<'_> {
       .collect::<Vec<_>>();
 
     let ast = self.ast.ast;
-    let mut params = Vec::new();
     let mut scope_params = Vec::new();
     let formal_params = match ast.expr_data(expr) {
       ExprData::Function(function) => function.params(ast),
@@ -1555,7 +1554,6 @@ impl JavascriptParser<'_> {
       .map(|identifier| identifier.expect("IIFE parameters must be binding identifiers"))
       .enumerate()
     {
-      params.push(identifier);
       if variable_info_for_args
         .get(i)
         .and_then(|info| info.as_ref())
@@ -1589,10 +1587,12 @@ impl JavascriptParser<'_> {
       {
         parser.set_variable("this".into(), this)
       }
-      for (i, var_info) in variable_info_for_args.into_iter().enumerate() {
-        if let Some(var_info) = var_info
-          && let Some(param) = params.get(i)
-        {
+      for (var_info, param) in variable_info_for_args
+        .into_iter()
+        .zip(Self::parameter_identifiers(ast, formal_params))
+      {
+        if let Some(var_info) = var_info {
+          let param = param.expect("IIFE parameters must be binding identifiers");
           parser.set_variable(
             Atom::from(parser.ast.ast.get_utf8(param.name(parser.ast.ast))),
             var_info,

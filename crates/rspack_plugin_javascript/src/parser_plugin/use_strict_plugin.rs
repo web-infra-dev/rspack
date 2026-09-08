@@ -1,4 +1,5 @@
 use rspack_core::ConstDependency;
+use rspack_util::swc::AstSubRangeExt;
 use swc_next_ecma_ast::{GetSpan, Program};
 
 use super::JavascriptParserPlugin;
@@ -10,11 +11,7 @@ pub struct UseStrictPlugin;
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for UseStrictPlugin {
   fn program(&self, parser: &mut JavascriptParser<'p>, program: Program) -> Option<bool> {
     let ast = parser.ast.ast;
-    if let Some(first) = program
-      .directives(ast)
-      .iter()
-      .next()
-      .map(|id| ast.get_node_in_sub_range(id))
+    if let Some(first) = ast.first(program.directives(ast))
       && ast.get_utf8(first.value(ast)) == "use strict"
     {
       // Remove "use strict" expression. It will be added later by the renderer again.

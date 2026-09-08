@@ -5,7 +5,7 @@ use rspack_core::{
   JavascriptParserUrl, RuntimeGlobals, RuntimeRequirementsDependency, get_context,
 };
 use rspack_intern::Atom;
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{
   ArgumentData, Ast, Expr, GetSpan, MemberExpression, NewExpression, Visit, VisitWith,
 };
@@ -59,10 +59,10 @@ pub fn get_url_request(
 ) -> Option<(String, u32, u32)> {
   let ast = parser.ast.ast;
   let arguments = expr.arguments(ast);
-  let ArgumentData::Expr(arg1) = ast.argument_data(arguments.get_node(ast, 0)?) else {
+  let ArgumentData::Expr(arg1) = ast.argument_data(ast.first(arguments)?) else {
     return None;
   };
-  let arg2 = arguments.get_node(ast, 1);
+  let arg2 = ast.second(arguments);
 
   if let Some(arg2) = arg2 {
     // new URL(xx, import.meta.url)
@@ -117,14 +117,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
     let ast = parser.ast.ast;
     let arguments = expr.arguments(ast);
 
-    let arg = arguments.get_node(ast, 0)?;
+    let arg = ast.first(arguments)?;
     let magic_comment_options = try_extract_magic_comment(parser, expr.span(ast), arg.span(ast));
     match magic_comment_options.get_ignore_value() {
       Some(MagicCommentValue::Bool(true)) => {
         if arguments.len() != 2 || !self.import_meta_url_enabled {
           return None;
         }
-        let arg2 = arguments.get_node(ast, 1)?;
+        let arg2 = ast.second(arguments)?;
         if let ArgumentData::Expr(arg2_expr) = ast.argument_data(arg2)
           && let Some(arg2) = arg2_expr.as_member_expression(ast)
           && !is_meta_url(parser, arg2)
@@ -143,8 +143,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
 
     // should not parse new URL(import.meta.url)
     if arguments.len() == 1
-      && arguments
-        .get_node(ast, 0)
+      && ast
+        .first(arguments)
         .and_then(|argument| argument.as_expr(ast))
         .and_then(|expression| expression.as_member_expression(ast))
         .is_some_and(|member| is_meta_url(parser, member))
@@ -155,7 +155,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
     if let Some((request, start, end)) = get_url_request(parser, expr) {
       if request.starts_with("//") {
         if arguments.len() == 2 {
-          parser.walk_arguments(std::iter::once(arguments.get_node(ast, 1)?));
+          parser.walk_arguments(std::iter::once(ast.second(arguments)?));
           return Some(true);
         }
         return None;
@@ -184,7 +184,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
       return None;
     }
 
-    let arg2 = arguments.get_node(ast, 1)?;
+    let arg2 = ast.second(arguments)?;
     if !arg2
       .as_expr(ast)
       .and_then(|expression| expression.as_member_expression(ast))

@@ -4,7 +4,7 @@ use rspack_core::{
   BoxDependency, ConstDependency, Dependency, DependencyRange, DependencyType, ExportPresenceMode,
   ImportAttributes, ImportPhase,
 };
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{
   BinaryExpression, BinaryOperator, CallExpression, Expr, GetSpan, ImportDeclaration, Span,
 };
@@ -392,12 +392,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
     );
 
-    parser.walk_arguments(
-      call_expr
-        .arguments(ast)
-        .iter()
-        .map(|id| ast.get_node_in_sub_range(id)),
-    );
+    parser.walk_arguments(ast.nodes(call_expr.arguments(ast)));
     Some(true)
   }
 

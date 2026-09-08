@@ -8,7 +8,9 @@ use rspack_error::{Error, Result, Severity};
 use rspack_macros::AstObject;
 use rspack_paths::Utf8Path;
 use rspack_regex::RspackRegex;
-use rspack_util::{SpanExt, identifier::relative_path_to_request, node_path::NodePath};
+use rspack_util::{
+  SpanExt, identifier::relative_path_to_request, node_path::NodePath, swc::AstSubRangeExt,
+};
 use sugar_path::SugarPath;
 use swc_next_ecma_ast::{Ast, CallExpression, Expr, GetSpan, ObjectExpression};
 
@@ -174,11 +176,10 @@ fn static_glob_patterns_from_expr(ast: &Ast<'_>, expr: Expr) -> Option<Vec<Strin
   }
 
   let array = expr.as_array_expression(ast)?;
-  array
-    .elements(ast)
-    .iter()
+  ast
+    .nodes(array.elements(ast))
     .map(|element| {
-      let element = ast.get_node_in_sub_range(element)?;
+      let element = element?;
       static_string_from_expr(ast, element.as_expr(ast)?)
     })
     .collect()
@@ -297,12 +298,11 @@ fn create_import_meta_context_dependency(
   parser: &mut JavascriptParser,
 ) -> Option<ImportMetaContextDependency> {
   let ast = parser.ast.ast;
-  let dyn_imported = node.arguments(ast).get_node(ast, 0)?.as_expr(ast)?;
+  let dyn_imported = ast.first(node.arguments(ast))?.as_expr(ast)?;
   // TODO: should've used expression evaluation to handle cases like `abc${"efg"}`, etc.
   let request = static_string_from_expr(ast, dyn_imported)?;
-  let raw_options = node
-    .arguments(ast)
-    .get_node(ast, 1)
+  let raw_options = ast
+    .second(node.arguments(ast))
     .and_then(|arg| arg.as_expr(ast))
     .and_then(|expr| expr.as_object_expression(ast));
   let options = match raw_options {
@@ -348,12 +348,11 @@ fn create_import_meta_glob_dependency(
   parser: &mut JavascriptParser,
 ) -> Option<ImportMetaContextDependency> {
   let ast = parser.ast.ast;
-  let dyn_imported = node.arguments(ast).get_node(ast, 0)?.as_expr(ast)?;
+  let dyn_imported = ast.first(node.arguments(ast))?.as_expr(ast)?;
   let raw_glob_patterns = static_glob_patterns_from_expr(ast, dyn_imported)?;
   let importer_context = get_context(parser.resource_data);
-  let glob_options = node
-    .arguments(ast)
-    .get_node(ast, 1)
+  let glob_options = ast
+    .second(node.arguments(ast))
     .and_then(|arg| arg.as_expr(ast))
     .and_then(|expr| expr.as_object_expression(ast));
   let options = match glob_options {

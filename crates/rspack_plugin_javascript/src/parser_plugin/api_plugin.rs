@@ -370,12 +370,7 @@ pub(crate) fn import_meta_runtime_api_call(
     call_expr.callee(ast).span(ast).into(),
     api.runtime_global,
   )));
-  parser.walk_arguments(
-    call_expr
-      .arguments(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id)),
-  );
+  parser.walk_arguments(ast.nodes(call_expr.arguments(ast)));
   Some(true)
 }
 
@@ -821,13 +816,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       None,
     );
     if handled.is_some() {
-      if preserve_require_receiver
-        && let Some(first_arg) = expr
-          .arguments(ast)
-          .iter()
-          .next()
-          .map(|id| ast.get_node_in_sub_range(id))
-      {
+      if preserve_require_receiver && let Some(first_arg) = ast.first(expr.arguments(ast)) {
         parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
           RuntimeGlobals::REQUIRE,
         )));
@@ -842,12 +831,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
           format!("{}, ", parser.parser_runtime_requirements.require).into(),
         )));
       }
-      parser.walk_arguments(
-        expr
-          .arguments(ast)
-          .iter()
-          .map(|id| ast.get_node_in_sub_range(id)),
-      );
+      parser.walk_arguments(ast.nodes(expr.arguments(ast)));
     }
     handled
   }

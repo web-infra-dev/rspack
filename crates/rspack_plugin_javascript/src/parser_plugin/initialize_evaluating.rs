@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
 use cow_utils::CowUtils;
-use rspack_util::SpanExt;
-use swc_next_ecma_ast::{ArgumentData, CallExpression, GetSpan};
+use rspack_util::{SpanExt, swc::AstSubRangeExt};
+use swc_next_ecma_ast::{CallExpression, GetSpan};
 
 use super::JavascriptParserPlugin;
 use crate::{utils::eval::BasicEvaluatedExpression, visitors::JavascriptParser};
@@ -26,19 +26,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
     expr: CallExpression,
   ) -> Option<BasicEvaluatedExpression<'p>> {
     let ast = parser.ast.ast;
-    let args = expr
-      .arguments(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .map(|argument| match ast.argument_data(argument) {
-        ArgumentData::Expr(expression) => Some(expression),
-        ArgumentData::SpreadElement(_) => None,
-      })
-      .collect::<Option<Vec<_>>>()?;
+    let args = expr.arguments(ast);
     if args.len() != 1 {
       return None;
     }
-    let arg = parser.evaluate_expression(args[0]);
+    let arg = parser.evaluate_expression(ast.first(args)?.as_expr(ast)?);
     let span = expr.span(ast);
     let mut res = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
     match name {
@@ -78,24 +70,22 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
     param: BasicEvaluatedExpression<'p>,
   ) -> Option<BasicEvaluatedExpression<'p>> {
     let ast = parser.ast.ast;
-    let args = expr
-      .arguments(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .map(|argument| match ast.argument_data(argument) {
-        ArgumentData::Expr(expression) => Some(expression),
-        ArgumentData::SpreadElement(_) => None,
-      })
-      .collect::<Option<Vec<_>>>()?;
+    let args = expr.arguments(ast);
+    if ast
+      .nodes(args)
+      .any(|argument| argument.is_spread_element(ast))
+    {
+      return None;
+    }
     let span = expr.span(ast);
     if property == INDEXOF_METHOD_NAME && param.is_string() {
       let arg1 = (!args.is_empty()).then_some(true).and_then(|_| {
-        let arg = parser.evaluate_expression(args[0]);
+        let arg = parser.evaluate_expression(ast.first(args)?.as_expr(ast)?);
         arg.is_string().then_some(arg)
       });
 
       let arg2 = (args.len() >= 2).then_some(true).and_then(|_| {
-        let arg = parser.evaluate_expression(args[1]);
+        let arg = parser.evaluate_expression(ast.second(args)?.as_expr(ast)?);
         arg.is_number().then_some(arg)
       });
 
@@ -118,7 +108,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
       && (args.len() == 1 || args.len() == 2)
     {
       let str = param.string();
-      let arg1 = parser.evaluate_expression(args[0]);
+      let arg1 = parser.evaluate_expression(ast.first(args)?.as_expr(ast)?);
       if !arg1.is_number() || arg1.could_have_side_effects() {
         return None;
       }
@@ -131,7 +121,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
           _ => unreachable!(),
         }
       } else {
-        let arg2 = parser.evaluate_expression(args[1]);
+        let arg2 = parser.evaluate_expression(ast.second(args)?.as_expr(ast)?);
         if !arg2.is_number() || arg2.could_have_side_effects() {
           return None;
         }
@@ -159,11 +149,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
       res.set_side_effects(param.could_have_side_effects());
       return Some(res);
     } else if property == REPLACE_METHOD_NAME && param.is_string() && args.len() == 2 {
-      let arg1 = parser.evaluate_expression(args[0]);
+      let arg1 = parser.evaluate_expression(ast.first(args)?.as_expr(ast)?);
       if !arg1.is_string() && !arg1.is_regexp() {
         return None;
       }
-      let arg2 = parser.evaluate_expression(args[1]);
+      let arg2 = parser.evaluate_expression(ast.second(args)?.as_expr(ast)?);
       if !arg2.is_string() {
         return None;
       }
@@ -189,8 +179,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
       let mut string_suffix: Option<BasicEvaluatedExpression<'p>> = None;
       let mut has_unknown_params = false;
       let mut inner_exprs: Vec<BasicEvaluatedExpression<'p>> = Vec::new();
-      for arg in args.iter().rev() {
-        let arg_expr = parser.evaluate_expression(*arg);
+      for arg in ast.nodes(args).rev() {
+        let arg_expr = parser.evaluate_expression(arg.as_expr(ast)?);
         if has_unknown_params || (!arg_expr.is_string() && !arg_expr.is_number()) {
           has_unknown_params = true;
           inner_exprs.push(arg_expr);
@@ -252,7 +242,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
         return Some(eval);
       }
     } else if property == SPLIT_METHOD_NAME && param.is_string() && args.len() == 1 {
-      let arg = parser.evaluate_expression(args[0]);
+      let arg = parser.evaluate_expression(ast.first(args)?.as_expr(ast)?);
       let array: Vec<String> = if arg.is_string() {
         param
           .string()

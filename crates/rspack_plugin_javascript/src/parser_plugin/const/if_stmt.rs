@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use itertools::Itertools;
 use rspack_core::ConstDependency;
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use rustc_hash::FxHashSet;
 use swc_next_ecma_ast::{
   Ast, BindingPattern, BindingPatternData, GetSpan, IfStatement, VariableKind,
@@ -24,22 +24,15 @@ fn collect_declaration_from_pattern<'a>(
       BindingPatternData::AssignmentPattern(assignment) => stack.push(assignment.left(ast)),
       BindingPatternData::BindingRestElement(rest) => stack.push(rest.argument(ast)),
       BindingPatternData::ArrayPattern(array) => {
-        stack.extend(
-          array
-            .elements(ast)
-            .iter()
-            .filter_map(|id| ast.get_node_in_sub_range(id)),
-        );
+        stack.extend(ast.nodes(array.elements(ast)).flatten());
         if let Some(rest) = array.rest(ast) {
           stack.push(rest.argument(ast));
         }
       }
       BindingPatternData::ObjectPattern(object) => {
         stack.extend(
-          object
-            .properties(ast)
-            .iter()
-            .map(|id| ast.get_node_in_sub_range(id))
+          ast
+            .nodes(object.properties(ast))
             .map(|property| property.value(ast)),
         );
         if let Some(rest) = object.rest(ast) {
@@ -57,11 +50,7 @@ fn collect_variable_declaration<'a>(
   declarations: &mut FxHashSet<&'a str>,
 ) {
   if declaration.kind(ast) == VariableKind::Var {
-    for declarator in declaration
-      .declarators(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-    {
+    for declarator in ast.nodes(declaration.declarators(ast)) {
       collect_declaration_from_pattern(ast, declarator.id(ast), declarations);
     }
   }
@@ -80,10 +69,8 @@ pub fn get_hoisted_declarations<'a>(
     match statement {
       Statement::Block(block) => {
         stmt_stack.extend(
-          block
-            .body(ast)
-            .iter()
-            .map(|id| ast.get_node_in_sub_range(id))
+          ast
+            .nodes(block.body(ast))
             .map(|statement| Statement::from_stmt(ast, statement)),
         );
       }
@@ -124,45 +111,31 @@ pub fn get_hoisted_declarations<'a>(
         stmt_stack.push(Statement::from_stmt(ast, statement.body(ast)));
       }
       Statement::Switch(statement) => {
-        for case in statement
-          .cases(ast)
-          .iter()
-          .map(|id| ast.get_node_in_sub_range(id))
-        {
+        for case in ast.nodes(statement.cases(ast)) {
           stmt_stack.extend(
-            case
-              .consequent(ast)
-              .iter()
-              .map(|id| ast.get_node_in_sub_range(id))
+            ast
+              .nodes(case.consequent(ast))
               .map(|statement| Statement::from_stmt(ast, statement)),
           );
         }
       }
       Statement::Try(statement) => {
         stmt_stack.extend(
-          statement
-            .block(ast)
-            .body(ast)
-            .iter()
-            .map(|id| ast.get_node_in_sub_range(id))
+          ast
+            .nodes(statement.block(ast).body(ast))
             .map(|statement| Statement::from_stmt(ast, statement)),
         );
         if let Some(handler) = statement.handler(ast) {
           stmt_stack.extend(
-            handler
-              .body(ast)
-              .body(ast)
-              .iter()
-              .map(|id| ast.get_node_in_sub_range(id))
+            ast
+              .nodes(handler.body(ast).body(ast))
               .map(|statement| Statement::from_stmt(ast, statement)),
           );
         }
         if let Some(finalizer) = statement.finalizer(ast) {
           stmt_stack.extend(
-            finalizer
-              .body(ast)
-              .iter()
-              .map(|id| ast.get_node_in_sub_range(id))
+            ast
+              .nodes(finalizer.body(ast))
               .map(|statement| Statement::from_stmt(ast, statement)),
           );
         }

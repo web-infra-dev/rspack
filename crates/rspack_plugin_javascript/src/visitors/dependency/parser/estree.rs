@@ -31,10 +31,9 @@ pub fn formal_parameter_patterns<'a>(
   params: FormalParameters,
 ) -> impl Iterator<Item = BindingPattern> + 'a {
   let rest = params.rest(ast).map(BindingPattern::BindingRestElement);
-  params
-    .items(ast)
-    .iter()
-    .filter_map(move |id| ast.get_node_in_sub_range(id).as_formal_parameter(ast))
+  ast
+    .nodes(params.items(ast))
+    .filter_map(move |item| item.as_formal_parameter(ast))
     .filter_map(move |parameter| parameter.pattern(ast).as_binding_pattern(ast))
     .chain(rest)
 }
@@ -45,9 +44,8 @@ pub fn formal_parameter_patterns<'a>(
 /// need their parameter initialization semantics to be analyzed separately.
 pub fn formal_parameters_are_simple_identifiers(ast: &Ast<'_>, params: FormalParameters) -> bool {
   params.rest(ast).is_none()
-    && params.items(ast).iter().all(|id| {
-      ast
-        .get_node_in_sub_range(id)
+    && ast.nodes(params.items(ast)).all(|item| {
+      item
         .as_formal_parameter(ast)
         .and_then(|parameter| parameter.pattern(ast).as_binding_pattern(ast))
         .and_then(|pattern| pattern.as_binding_identifier(ast))

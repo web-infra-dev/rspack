@@ -32,7 +32,7 @@
 use rspack_core::{ContextMode, ImportAttributes, try_convert_str_to_context_mode};
 use rspack_error::{Error, Label, Result};
 use rspack_regex::RspackRegex;
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{
   Ast, Expr, ExprData, GetSpan, ImportAttribute, ModuleExportNameData, ObjectExpression,
   PropertyKey, PropertyKeyData, TypedSubRange,
@@ -41,20 +41,20 @@ use swc_next_ecma_ast::{
 use crate::visitors::static_string_from_expr;
 
 pub fn get_value_by_obj_prop(ast: &Ast<'_>, object: ObjectExpression, field: &str) -> Option<Expr> {
-  object.properties(ast).iter().rev().find_map(|property| {
-    let property = ast.get_node_in_sub_range(property);
-    let property = property.as_object_property(ast)?;
-    (static_property_name(ast, property.key(ast)).as_deref() == Some(field))
-      .then(|| property.value(ast))
-  })
+  ast
+    .nodes(object.properties(ast))
+    .rev()
+    .find_map(|property| {
+      let property = property.as_object_property(ast)?;
+      (static_property_name(ast, property.key(ast)).as_deref() == Some(field))
+        .then(|| property.value(ast))
+    })
 }
 
 pub fn get_attributes(ast: &Ast<'_>, object: ObjectExpression) -> ImportAttributes {
-  object
-    .properties(ast)
-    .iter()
+  ast
+    .nodes(object.properties(ast))
     .filter_map(|property| {
-      let property = ast.get_node_in_sub_range(property);
       let property = property.as_object_property(ast)?;
       let key = static_property_name(ast, property.key(ast))?;
       let ExprData::StringLiteral(value) = ast.expr_data(property.value(ast)) else {
@@ -79,10 +79,9 @@ pub fn get_import_attributes(
     return None;
   }
   Some(
-    attributes
-      .iter()
-      .map(|id| {
-        let attribute = ast.get_node_in_sub_range(id);
+    ast
+      .nodes(attributes)
+      .map(|attribute| {
         let key = match ast.module_export_name_data(attribute.key(ast)) {
           ModuleExportNameData::IdentifierName(identifier) => {
             ast.get_utf8(identifier.name(ast)).to_string()
@@ -240,11 +239,9 @@ impl<T: FromAstExpr> FromAstExpr for Vec<(String, T)> {
     let Some(object) = expr.as_object_expression(ast) else {
       return Ok(None);
     };
-    object
-      .properties(ast)
-      .iter()
+    ast
+      .nodes(object.properties(ast))
       .map(|prop| -> Result<Option<(String, T)>> {
-        let prop = ast.get_node_in_sub_range(prop);
         let Some(property) = prop.as_object_property(ast) else {
           return Ok(None);
         };
