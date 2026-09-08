@@ -5,7 +5,7 @@ use swc_next_ecma_ast::{
 };
 
 use crate::{
-  JavascriptParserPlugin,
+  JS_DEFAULT_KEYWORD, JavascriptParserPlugin,
   visitors::{
     ExportAllDeclaration, ExportImport, ExportNamedDeclaration, JavascriptParser,
     module_export_name_to_atom,
@@ -38,11 +38,14 @@ impl JavascriptParser<'_> {
     let drive = self.plugin_drive.clone();
     let source = ast
       .get_wtf8(declaration.source(ast).value(ast))
-      .to_string_lossy()
-      .into_owned();
+      .to_string_lossy();
     drive.import(self, declaration, &source);
-    let source_atom = Atom::from(source);
-    for specifier in ast.nodes(declaration.specifiers(ast)) {
+    let specifiers = declaration.specifiers(ast);
+    if specifiers.is_empty() {
+      return;
+    }
+    let source_atom = Atom::from(source.as_ref());
+    for specifier in ast.nodes(specifiers) {
       match ast.import_declaration_specifier_data(specifier) {
         ImportDeclarationSpecifierData::ImportSpecifier(named) => {
           let local = named.local(ast);
@@ -68,7 +71,7 @@ impl JavascriptParser<'_> {
               self,
               declaration,
               &source_atom,
-              Some(&"default".into()),
+              Some(&JS_DEFAULT_KEYWORD),
               &identifier_name,
             )
             .unwrap_or_default()
