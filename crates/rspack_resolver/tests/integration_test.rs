@@ -106,3 +106,38 @@ async fn options_api() {
     .with_root(PathBuf::new())
     .with_symbolic_link(true);
 }
+
+#[cfg(windows)]
+#[tokio::test]
+async fn windows_dos_device_paths() {
+  let tests_dir = dir().join("tests");
+  let tests_dir = tests_dir
+    .to_str()
+    .expect("resolver test directory should be UTF-8");
+  let contexts = [
+    PathBuf::from(format!(r"\\?\{tests_dir}")),
+    PathBuf::from(format!(r"\\.\{tests_dir}")),
+  ];
+  let resolver = Resolver::new(ResolveOptions {
+    symlinks: false,
+    ..ResolveOptions::default()
+  });
+
+  for context in contexts {
+    let expected = context.join("package.json");
+    let resolution = resolver
+      .resolve(&context, "./package.json")
+      .await
+      .expect("relative request should resolve from a DOS device path");
+    assert_eq!(resolution.path(), expected.as_path());
+
+    let request = format!("{}?foo=bar#fragment", expected.display());
+    let resolution = resolver
+      .resolve(dir(), &request)
+      .await
+      .expect("absolute DOS device path should resolve");
+    assert_eq!(resolution.path(), expected.as_path());
+    assert_eq!(resolution.query(), Some("?foo=bar"));
+    assert_eq!(resolution.fragment(), Some("#fragment"));
+  }
+}

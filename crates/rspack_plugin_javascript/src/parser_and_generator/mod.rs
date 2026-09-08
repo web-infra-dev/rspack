@@ -184,7 +184,7 @@ impl JavaScriptParserAndGenerator {
       .block_by_id(block_id)
       .expect("should have block");
     //    let block = block_id.expect_get(compilation);
-    block.get_dependencies().iter().for_each(|dependency_id| {
+    block.get_dependencies().for_each(|dependency_id| {
       self.source_dependency(compilation, dependency_id, source, context)
     });
     block
@@ -439,7 +439,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         runtime_template: generate_context.runtime_template,
       };
 
-      module.get_dependencies().iter().for_each(|dependency_id| {
+      module.get_dependencies().for_each(|dependency_id| {
         self.source_dependency(compilation, dependency_id, &mut source, &mut context)
       });
 

@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use rspack_core::{BoxModule, Compilation, ModuleGraph, ModuleIdentifier, NormalModule};
-use rspack_util::fx_hash::FxHashSet as HashSet;
+use rspack_util::{fx_hash::FxHashSet as HashSet, identifier::split_at_query_mark};
 
 use super::{
   data::{AssetsSplit, StatsAssetsGroup},
@@ -226,9 +226,7 @@ pub fn module_source_path(module: &BoxModule, compilation: &Compilation) -> Opti
   if let Some(pos) = identifier.rfind('!') {
     identifier = identifier.split_off(pos + 1);
   }
-  if let Some(pos) = identifier.find('?') {
-    identifier.truncate(pos);
-  }
+  identifier.truncate(split_at_query_mark(&identifier).0.len());
   // strip aggregated suffix like " + 1 modules"
   if let Some((before, _)) = identifier.split_once(" + ") {
     identifier = before.to_string();

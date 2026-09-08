@@ -1151,7 +1151,6 @@ impl ModuleConcatenationPlugin {
 
         let connections = module
           .get_dependencies()
-          .iter()
           .filter_map(|d| {
             let dep = module_graph.dependency_by_id(d);
             if !is_esm_dep_like(dep) {
@@ -1795,7 +1794,7 @@ async fn create_concatenated_module(
       Some(compilation),
     )
     .await?;
-  new_module = build_result.module;
+  new_module = build_result;
 
   Ok(new_module)
 }
