@@ -370,7 +370,7 @@ If multiple modules would result in the same name, [`output.devtoolFallbackModul
 ## output.devtoolNamespace
 
 - **Type:** `string`
-- **Default:** `undefined`
+- **Default:** [`output.uniqueName`](#outputuniquename)
 
 This option determines the module's namespace used with the [`output.devtoolModuleFilenameTemplate`](#outputdevtoolmodulefilenametemplate). When not specified, it will default to the value of: [`output.uniqueName`](#outputuniquename). It's used to prevent source file path collisions in sourcemaps when loading multiple libraries built with Rspack.
 
@@ -591,9 +591,17 @@ Note this option does not affect output files for on-demand-loaded chunks. It on
 ## output.globalObject
 
 - **Type:** `string`
-- **Default:** `'self'`
+- **Default:** Derived from [`target`](/config/target): `'global'` when the target provides `global`, otherwise `'globalThis'` when it supports `globalThis`, otherwise `'self'`.
 
-When targeting a library, especially when `library.type` is `'umd'`, this option indicates what global object will be used to mount the library. To make UMD build available on both browsers and Node.js, set `output.globalObject` option to `'this'`. Defaults to `self` for Web-like targets.
+When targeting a library, especially when `library.type` is `'umd'`, this option indicates what global object will be used to mount the library. To make UMD build available on both browsers and Node.js, set `output.globalObject` to `'this'`.
+
+For example, when `output.globalObject` is omitted:
+
+| `target`            | Default `output.globalObject` |
+| ------------------- | ----------------------------- |
+| `'web'`             | `'self'`                      |
+| `['web', 'es2020']` | `'globalThis'`                |
+| `'node'`            | `'global'`                    |
 
 The return value of your entry point will be assigned to the global object using the value of `output.library.name`. Depending on the value of the `type` option, the global object could change respectively, e.g., `self`, `global`, or `globalThis`.
 
@@ -1647,9 +1655,11 @@ The generated bundle will contain comments like:
 ## output.publicPath
 
 - **Type:** `'auto' | string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
-- **Default:** `'auto'` when [target](/config/target) is `'web'` or `'webworker'`, `undefined` otherwise
+- **Default:** `'auto'` when the [target](/config/target) supports `document` or `importScripts`, otherwise `''`.
 
 Set the base URL path prefix for bundled static assets (such as JS, CSS, images, etc.).
+
+For example, `'web'` and `'webworker'` targets default to `'auto'`, while `'node'` defaults to an empty string. With an empty string, asset URLs have no additional prefix.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1794,14 +1804,23 @@ export default {
 ## output.wasmLoading
 
 - **Type:** `false | 'fetch' | 'async-node' | 'universal'`
-- **Default:** `'fetch'`
+- **Default:** Derived from [`target`](/config/target), [`output.module`](#outputmodule), and [`output.environment`](#outputenvironment).
 
-Option to set the method of loading WebAssembly Modules. Supported methods are `'fetch'` (web/webworker), `'async-node'` (Node.js), and `'universal'`.
+Selects the method used to load WebAssembly modules. Set it to `false` to disable WebAssembly loading.
 
-The default value can be affected by different [`target`](/config/target):
+Rspack chooses `'fetch'` when the target supports fetching WebAssembly, or `'async-node'` when it provides Node.js built-ins. For mixed targets where these capabilities differ, ESM output with dynamic import support can use `'universal'`. If no method can be selected, the default is `false`.
 
-- Defaults to `'fetch'` if [`target`](/config/target) is set to `'web'`, `'webworker'`, `'electron-renderer'` or `'node-webkit'`.
-- Defaults to `'async-node'` if [`target`](/config/target) is set to `'node'`, `'async-node'`, `'electron-main'` or `'electron-preload'`.
+Examples with otherwise default output settings:
+
+| `target`                                                    | `output.module` | Default `output.wasmLoading` |
+| ----------------------------------------------------------- | --------------- | ---------------------------- |
+| `'web'` or `'webworker'`                                    | `false`         | `'fetch'`                    |
+| `'electron-renderer'`                                       | `false`         | `'fetch'`                    |
+| `'node'` or `'async-node'`                                  | `false`         | `'async-node'`               |
+| `'electron-main'`, `'electron-preload'`, or `'node-webkit'` | `false`         | `'async-node'`               |
+| `['web', 'node']`                                           | `true`          | `'universal'`                |
+
+To override the inferred method:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1849,14 +1868,23 @@ See [Filename placeholders](/config/filename-placeholders) for more information.
 
 ## output.workerChunkLoading
 
-- **Type:** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import' | string`
-- **Default:** `false`
+- **Type:** `false | 'import-scripts' | 'require' | 'async-node' | 'import' | 'universal' | string`
+- **Default:** Derived from [`target`](/config/target), [`output.chunkFormat`](#outputchunkformat), and [`output.environment`](#outputenvironment).
 
-The new option `workerChunkLoading` controls the chunk loading of workers.
+Controls how workers load additional JavaScript chunks. This is separate from [`output.chunkLoading`](#outputchunkloading), which controls chunk loading outside workers.
 
-:::tip
-The default value of this option depends on the [`target`](/config/target) setting. For more details, search for `"workerChunkLoading"` [in the Rspack defaults](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts).
-:::
+For example, with otherwise default output settings:
+
+| `target`                 | `output.module` | Default `output.workerChunkLoading` |
+| ------------------------ | --------------- | ----------------------------------- |
+| `'web'` or `'webworker'` | `false`         | `'import-scripts'`                  |
+| `'node'`                 | `false`         | `'require'`                         |
+| `'async-node'`           | `false`         | `'async-node'`                      |
+| `'web'`                  | `true`          | `'import'`                          |
+
+For module-format chunks, Rspack uses `'import'` when `output.environment.dynamicImportInWorker` is enabled. Mixed targets can use `'universal'` with ESM output and dynamic import support. If no loading method can be selected, the default is `false`.
+
+To disable worker chunk loading explicitly:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1884,14 +1912,16 @@ export default {
 ## output.workerWasmLoading
 
 - **Type:** `false | 'fetch' | 'async-node' | 'universal'`
-- **Default:** `false`
+- **Default:** [`output.wasmLoading`](#outputwasmloading)
 
-Option to set the method of loading WebAssembly Modules in workers, defaults to the value of [output.wasmLoading](#outputwasmloading).
+Selects the method used to load WebAssembly modules inside workers. When omitted, it inherits `output.wasmLoading`, including an explicitly configured value of `false`.
+
+For example, the default is `'fetch'` for a web target and `'async-node'` for a Node.js target. To disable WebAssembly loading only inside workers:
 
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    workerWasmLoading: 'fetch',
+    workerWasmLoading: false,
   },
 };
 ```
