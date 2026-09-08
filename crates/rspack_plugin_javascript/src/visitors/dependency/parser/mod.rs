@@ -1330,18 +1330,19 @@ impl<'parser> JavascriptParser<'parser> {
       match object {
         ExprRef::Member(expr) => {
           let property = expr.property(ast);
-          let property_data = ast.property_key_data(property);
-          let member_object = expr.object(ast);
-          if expr.computed(ast) {
+          let property_data = if expr.computed(ast) {
+            let property_data = ast.property_key_data(property);
             if !member_property_key_data_can_be_atom(ast, property_data) {
               break;
             }
-            members.push(property_data);
-          } else if matches!(property_data, PropertyKeyData::IdentifierName(_)) {
-            members.push(property_data);
+            property_data
+          } else if let Some(identifier) = property.as_identifier_name(ast) {
+            PropertyKeyData::IdentifierName(identifier)
           } else {
             break;
-          }
+          };
+          members.push(property_data);
+          let member_object = expr.object(ast);
           member_ranges.push(member_object.span(ast));
           members_optionals.push(in_optional_chain || expr.optional(ast));
           object = ExprRef::from_expr(ast, member_object);
@@ -1369,7 +1370,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn enter_ident<F>(&mut self, ident: BindingIdentifier, on_ident: F)
   where
-    F: FnOnce(&mut Self, BindingIdentifier),
+    F: FnOnce(&mut Self, BindingIdentifier, &str),
   {
     let ast = self.ast.ast;
     let name = ast.get_utf8(ident.name(ast));
@@ -1380,13 +1381,13 @@ impl<'parser> JavascriptParser<'parser> {
       })
       .unwrap_or_default()
     {
-      on_ident(self, ident);
+      on_ident(self, ident, name);
     }
   }
 
   fn enter_array_pattern<F>(&mut self, array_pat: ArrayPattern, on_ident: F)
   where
-    F: FnOnce(&mut Self, BindingIdentifier) + Copy,
+    F: FnOnce(&mut Self, BindingIdentifier, &str) + Copy,
   {
     let ast = self.ast.ast;
     for element in ast.nodes(array_pat.elements(ast)).flatten() {
@@ -1399,14 +1400,14 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn enter_assignment_pattern<F>(&mut self, assign: AssignmentPattern, on_ident: F)
   where
-    F: FnOnce(&mut Self, BindingIdentifier) + Copy,
+    F: FnOnce(&mut Self, BindingIdentifier, &str) + Copy,
   {
     self.enter_pattern(PatRef::Borrowed(assign.left(self.ast.ast)), on_ident);
   }
 
   fn enter_object_pattern<F>(&mut self, object: ObjectPattern, on_ident: F)
   where
-    F: FnOnce(&mut Self, BindingIdentifier) + Copy,
+    F: FnOnce(&mut Self, BindingIdentifier, &str) + Copy,
   {
     let ast = self.ast.ast;
     for property in ast.nodes(object.properties(ast)) {
@@ -1425,14 +1426,14 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn enter_rest_pattern<F>(&mut self, rest: BindingRestElement, on_ident: F)
   where
-    F: FnOnce(&mut Self, BindingIdentifier) + Copy,
+    F: FnOnce(&mut Self, BindingIdentifier, &str) + Copy,
   {
     self.enter_pattern(PatRef::Borrowed(rest.argument(self.ast.ast)), on_ident)
   }
 
   fn enter_pattern<F>(&mut self, pattern: PatRef, on_ident: F)
   where
-    F: FnOnce(&mut Self, BindingIdentifier) + Copy,
+    F: FnOnce(&mut Self, BindingIdentifier, &str) + Copy,
   {
     match self.ast.ast.binding_pattern_data(pattern.as_pat()) {
       BindingPatternData::BindingIdentifier(ident) => self.enter_ident(ident, on_ident),
@@ -1448,7 +1449,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn enter_patterns<I, F>(&mut self, patterns: I, on_ident: F)
   where
-    F: FnOnce(&mut Self, BindingIdentifier) + Copy,
+    F: FnOnce(&mut Self, BindingIdentifier, &str) + Copy,
     I: Iterator<Item = PatRef>,
   {
     for pattern in patterns {
@@ -1486,7 +1487,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn enter_declaration<F>(&mut self, decl: Decl, on_ident: F)
   where
-    F: FnOnce(&mut Self, BindingIdentifier) + Copy,
+    F: FnOnce(&mut Self, BindingIdentifier, &str) + Copy,
   {
     let ast = self.ast.ast;
     match ast.decl_data(decl) {

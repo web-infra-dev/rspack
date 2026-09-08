@@ -186,8 +186,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     for_name: &str,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
-    let name = ast.get_utf8(ident.name(ast));
     if for_name == parser.parser_runtime_requirements.exports {
+      let name = ast.get_utf8(ident.name(ast));
       self.tag_nested_require_data(
         parser,
         Atom::from(name),
@@ -200,6 +200,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
         return Some(true);
       }
     } else if for_name == self.nested_require_name(parser) {
+      let name = ast.get_utf8(ident.name(ast));
       let span = ident.span(ast);
       let start = span.real_lo();
       let end = span.real_hi();
