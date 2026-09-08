@@ -1,0 +1,5 @@
+.local {
+	background: /* rspackIgnore: true */ /* note */ url("./missing-pure.png");
+	background-image: linear-gradient(red, blue), /* rspackIgnore: true */ url("./missing-pure-fast-forward.png");
+	list-style: inside /* rspackIgnore: true */ url("./missing-special.png");
+}

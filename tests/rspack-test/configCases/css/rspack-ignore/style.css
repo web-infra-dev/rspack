@@ -6,3 +6,17 @@
 .class {
 	background: /* rspackIgnore: true */ url("./missing.png");
 }
+
+/* Ordinary comments must not hide a preceding magic comment. */
+.fast-forward {
+	background: linear-gradient(red, blue), 1px /* rspackIgnore: true */ /* note */ url("./missing-fast-forward.png");
+	background-image: /* rspackIgnore: true, note: "/*" */ url("./missing-comment-opener.png");
+	background-image: image-set(/* rspackIgnore: true */ "./missing-image-set.png" 1x);
+	background-image: url(/* rspackIgnore: true */ "./missing-inner.png");
+	background-image: /* rspackIgnore: true */ url("./missing-first.png"), /* note */ url("data:image/png;base64,");
+}
+
+.resolved {
+	background: /* rspackIgnore: true */ red url("./img.png");
+	background-image: /* ordinary comment */ url("./img.png");
+}
