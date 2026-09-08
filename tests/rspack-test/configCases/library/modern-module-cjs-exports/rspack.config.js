@@ -5,6 +5,11 @@ module.exports = {
   experiments: {
     outputModule: true,
   },
+  module: {
+    rules: [
+      { test: /declaration-(object|array)\.js$/, type: 'javascript/auto' },
+    ],
+  },
   output: {
     filename: 'bundle0.mjs',
     library: { type: 'modern-module' },

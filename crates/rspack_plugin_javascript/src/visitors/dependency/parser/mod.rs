@@ -35,8 +35,8 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
 use swc_experimental_allocator::{Allocator, CloneIn};
 use swc_experimental_ecma_ast::{
-  ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, Decl, Expr, GetSpan, Ident, Lit,
-  MemberExpr, MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase,
+  ArrayPat, AssignPat, AssignTarget, AssignTargetPat, CallExpr, Callee, Decl, Expr, GetSpan, Ident,
+  Lit, MemberExpr, MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase,
   OptChainExpr, Pat, Program, RestPat, Span, Stmt, ThisExpr,
 };
 
@@ -440,6 +440,7 @@ pub struct JavascriptParser<'parser> {
   pub in_try: bool,
   pub(crate) terminated: Option<ScopeTerminated>,
   pub(crate) in_short_hand: bool,
+  pub(crate) in_assignment_pattern: bool,
   pub(crate) in_tagged_template_tag: bool,
   pub(crate) member_expr_in_optional_chain: bool,
   pub(crate) semicolons: &'parser mut FxHashSet<u32>,
@@ -612,6 +613,7 @@ impl<'parser> JavascriptParser<'parser> {
       in_try: false,
       terminated: None,
       in_short_hand: false,
+      in_assignment_pattern: false,
       top_level_scope: TopLevelScope::Top,
       is_esm: matches!(module_type, ModuleType::JsEsm),
       in_tagged_template_tag: false,
@@ -1333,7 +1335,7 @@ impl<'parser> JavascriptParser<'parser> {
     self.enter_pattern(PatRef::Borrowed(&rest.arg), on_ident)
   }
 
-  fn enter_pattern<F>(&mut self, pattern: PatRef<'_>, on_ident: F)
+  pub(crate) fn enter_pattern<F>(&mut self, pattern: PatRef<'_>, on_ident: F)
   where
     F: FnOnce(&mut Self, &Ident) + Copy,
   {
@@ -1348,15 +1350,25 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn enter_assign_target_pattern<F>(&mut self, pattern: &AssignTargetPat, on_ident: F)
+  fn enter_assignment_target<F>(&mut self, target: &AssignTarget, on_ident: F)
   where
     F: FnOnce(&mut Self, &Ident) + Copy,
   {
-    match pattern {
-      AssignTargetPat::Array(array) => self.enter_array_pattern(array, on_ident),
-      AssignTargetPat::Object(obj) => self.enter_object_pattern(obj, on_ident),
-      AssignTargetPat::Invalid(_) => (),
+    let old = self.in_assignment_pattern;
+    self.in_assignment_pattern = true;
+    match target {
+      AssignTarget::Simple(simple) => {
+        if let Some(ident) = simple.as_ident() {
+          self.enter_ident(&ident.id, on_ident);
+        }
+      }
+      AssignTarget::Pat(pattern) => match &**pattern {
+        AssignTargetPat::Array(array) => self.enter_array_pattern(array, on_ident),
+        AssignTargetPat::Object(obj) => self.enter_object_pattern(obj, on_ident),
+        AssignTargetPat::Invalid(_) => (),
+      },
     }
+    self.in_assignment_pattern = old;
   }
 
   fn enter_patterns<'a, I, F>(&mut self, patterns: I, on_ident: F)
