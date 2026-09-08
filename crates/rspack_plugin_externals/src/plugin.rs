@@ -12,6 +12,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_css::dependency::CssImportDependency;
 use rspack_plugin_javascript::dependency::{ESMImportSideEffectDependency, ImportDependency};
 
 static UNSPECIFIED_EXTERNAL_TYPE_REGEXP: LazyLock<Regex> =
@@ -145,6 +146,10 @@ impl ExternalsPlugin {
         }
       },
       source_type: None,
+      css_import_conditions: dependency
+        .as_any()
+        .downcast_ref::<CssImportDependency>()
+        .map(|dependency| dependency.render_condition().clone()),
     };
 
     let external_module_type = r#type.unwrap_or(external_module_type);

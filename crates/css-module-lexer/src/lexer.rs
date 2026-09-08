@@ -476,14 +476,16 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
   /// Attribute selectors remain opaque across calls through `square_depth`;
   /// the scanner stops before dependency candidates and structural tokens so
   /// the normal token stream remains the sole owner of parser state changes.
-  pub(crate) fn fast_forward_selector<C>(
+  pub(crate) fn fast_forward_selector<F, C>(
     &mut self,
     square_depth: &mut u32,
     keep_comments: bool,
     has_mode: bool,
+    mut is_ident_candidate: F,
     mut is_comment_candidate: C,
   ) -> bool
   where
+    F: FnMut(&str) -> bool,
     C: FnMut(&str) -> bool,
   {
     let mut position = self.scan_pos as usize;
@@ -559,6 +561,9 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
         let name = &self.value[position..end];
         // SAFETY: scanned names start and end on UTF-8 boundaries.
         let name = unsafe { str::from_utf8_unchecked(name) };
+        if is_ident_candidate(name) {
+          break;
+        }
         self
           .visitor
           .visit_ident(name, Range::new(position as Pos, end as Pos));
@@ -1870,14 +1875,16 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
   }
 
   #[inline]
-  pub(crate) fn fast_forward_selector_if_buffer_empty<C>(
+  pub(crate) fn fast_forward_selector_if_buffer_empty<F, C>(
     &mut self,
     square_depth: &mut u32,
     keep_comments: bool,
     has_mode: bool,
+    is_ident_candidate: F,
     is_comment_candidate: C,
   ) -> bool
   where
+    F: FnMut(&str) -> bool,
     C: FnMut(&str) -> bool,
   {
     if !self.buffered.is_empty() {
@@ -1919,10 +1926,13 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
         probe += 1;
       }
     }
-    let invalidates_composes =
-      self
-        .lexer
-        .fast_forward_selector(square_depth, keep_comments, has_mode, is_comment_candidate);
+    let invalidates_composes = self.lexer.fast_forward_selector(
+      square_depth,
+      keep_comments,
+      has_mode,
+      is_ident_candidate,
+      is_comment_candidate,
+    );
     self.consumed = self.lexer.scan_pos();
     invalidates_composes
   }

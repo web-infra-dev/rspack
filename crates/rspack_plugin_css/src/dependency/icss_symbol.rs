@@ -122,7 +122,7 @@ fn resolve_icss_import(
   request: &str,
 ) -> Option<String> {
   let module_graph = compilation.get_module_graph();
-  let imported_module = module.get_dependencies().iter().find_map(|id| {
+  let imported_module = module.get_dependencies().find_map(|id| {
     let dependency = module_graph.dependency_by_id(id);
     let dependency_request = dependency
       .as_module_dependency()

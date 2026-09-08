@@ -5,10 +5,9 @@
 
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  AsyncModulesArtifact, BoxDependency, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationFinishModules, CompilationParams,
-  CompilerCompilation, CompilerFinishMake, DependencyType, EntryOptions, ExportsInfoArtifact,
-  Plugin, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact, SourceType,
+  BoxDependency, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerFinishMake,
+  DependencyType, EntryOptions, Plugin, RuntimeGlobals, RuntimeModule, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -165,49 +164,33 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-// When MF async startup is enabled, STARTUP may resolve asynchronously even if the entry module
-// itself doesn't have top-level await. Mark MF container entry modules as async so downstream
-// renderers (e.g. library wrappers) can safely `await` exports without sprinkling MF-specific
-// RuntimeGlobals checks across generic plugins.
-#[plugin_hook(CompilationFinishModules for ModuleFederationRuntimePlugin, stage = 1000)]
-async fn finish_modules(
-  &self,
-  compilation: &Compilation,
-  async_modules_artifact: &mut AsyncModulesArtifact,
-  _exports_info_artifact: &mut ExportsInfoArtifact,
-  _side_effects_state_artifact: &mut SideEffectsStateArtifact,
-) -> Result<()> {
+// Container startup can return a promise independently of module-level await.
+// Wait for the chunk graph so async-only consumes and separate runtimes do not
+// make synchronous containers acquire top-level await in module-library output.
+#[plugin_hook(CompilationOptimizeChunkModules for ModuleFederationRuntimePlugin, stage = -1)]
+async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   let module_graph = compilation.get_module_graph();
-  // The chunk graph does not exist yet, so "initial" is unknown here. Any
-  // ordered consume may make startup asynchronous, and a container entry that
-  // is not marked async while startup returns a promise breaks module-library
-  // output. Over-marking only adds an await of a non-promise.
-  // ponytail: this marks container entries async for ordered consumes that end
-  // up async-chunk-only; refine once async-module marking can run after the
-  // chunk graph is built.
-  let has_ordered_consume = module_graph.modules().any(|(_, module)| {
-    module
-      .as_ref()
-      .as_any()
-      .downcast_ref::<ConsumeSharedModule>()
-      .is_some_and(|module| matches!(module.share_scope(), ShareScope::Multiple(_)))
-  });
-  if !self.options.experiments.async_startup && !has_ordered_consume {
-    return Ok(());
-  }
-
-  for (module_identifier, module) in module_graph.modules() {
-    if module
-      .as_ref()
-      .as_any()
-      .downcast_ref::<ContainerEntryModule>()
-      .is_some()
-    {
-      async_modules_artifact.insert(*module_identifier);
-    }
-  }
-
-  Ok(())
+  let async_containers: Vec<_> = module_graph
+    .modules()
+    .filter(|(_, module)| {
+      module
+        .as_ref()
+        .as_any()
+        .downcast_ref::<ContainerEntryModule>()
+        .is_some()
+    })
+    .filter(|(module_identifier, _)| {
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_module_chunks(**module_identifier)
+        .iter()
+        .any(|chunk| self.options.experiments.needs_async_startup(compilation, chunk))
+    })
+    .map(|(module_identifier, _)| *module_identifier)
+    .collect();
+  compilation.async_modules_artifact.extend(async_containers);
+  Ok(None)
 }
 
 impl Plugin for ModuleFederationRuntimePlugin {
@@ -225,8 +208,8 @@ impl Plugin for ModuleFederationRuntimePlugin {
 
     ctx
       .compilation_hooks
-      .finish_modules
-      .tap(finish_modules::new(self));
+      .optimize_chunk_modules
+      .tap(optimize_chunk_modules::new(self));
 
     ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
 

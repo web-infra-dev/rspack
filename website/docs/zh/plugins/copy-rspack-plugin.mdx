@@ -68,9 +68,6 @@ export default {
 ```ts title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   entry: './src/index.js',
@@ -81,7 +78,7 @@ export default {
       patterns: [
         {
           from: '*.json',
-          context: path.join(__dirname, 'src'),
+          context: path.join(import.meta.dirname, 'src'),
         },
       ],
     }),
@@ -118,10 +115,8 @@ export default {
 若传入相对路径，则是相对于 [context](#context) 选项。
 
 ```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   plugins: [
@@ -131,15 +126,15 @@ export default {
         { from: 'relative/path/to/file.js' },
         { from: 'relative/path/to/dir' },
         // 绝对路径
-        { from: path.resolve(__dirname, 'src', 'file.js') },
-        { from: path.resolve(__dirname, 'src', 'dir') },
+        { from: path.resolve(import.meta.dirname, 'src', 'file.js') },
+        { from: path.resolve(import.meta.dirname, 'src', 'dir') },
         // glob
         { from: 'dir/**/*' },
         // 如果绝对路径是 `glob`，我们用 forward slashes 替换 backslashes，
         // 因为只有 forward slashes 可以用于 `glob`
         {
           from: path.posix.join(
-            path.resolve(__dirname, 'src').replace(/\\/g, '/'),
+            path.resolve(import.meta.dirname, 'src').replace(/\\/g, '/'),
             '*.txt',
           ),
         },
@@ -196,15 +191,14 @@ export default {
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   plugins: [
     new rspack.CopyRspackPlugin({
       // `./src/*.json` -> `./dist/*.json`
-      patterns: [{ from: '*.json', context: path.join(__dirname, 'src') }],
+      patterns: [
+        { from: '*.json', context: path.join(import.meta.dirname, 'src') },
+      ],
     }),
   ],
 };
@@ -294,17 +288,15 @@ export default {
 当没有找到对应的文件或目录时，是否忽略错误。
 
 ```js title="rspack.config.mjs"
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
+import { rspack } from '@rspack/core';
+import path from 'node:path';
 
 export default {
   plugins: [
     new rspack.CopyRspackPlugin({
       patterns: [
         {
-          from: path.resolve(__dirname, 'missing-file.txt'),
+          from: path.resolve(import.meta.dirname, 'missing-file.txt'),
           noErrorOnMissing: true,
         },
       ],

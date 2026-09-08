@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - main
+      - release/2.3.0
     paths:
       - 'crates/rspack_resolver/**'
       - '.github/workflows/ci-resolver.yml'
@@ -20,7 +21,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.ref_name != 'main' }}
+  cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'release/2.3.0' }}
 
 permissions:
   contents: read

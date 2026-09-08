@@ -24,6 +24,7 @@ pub mod shared_container_runtime_module;
 pub mod shared_used_exports_optimizer_plugin;
 pub mod shared_used_exports_optimizer_runtime_module;
 
+/// Cloned when one request and issuer layer participates in multiple resolution maps.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct RequestMatchKey {
   request: String,

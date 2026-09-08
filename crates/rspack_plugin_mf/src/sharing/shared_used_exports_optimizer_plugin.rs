@@ -115,7 +115,7 @@ pub struct SharedUsedExportsOptimizerPlugin {
 
 impl SharedUsedExportsOptimizerPlugin {
   pub fn new(options: SharedUsedExportsOptimizerPluginOptions) -> Self {
-    let mut shared_map = FxHashMap::default();
+    let mut shared_map: FxHashMap<SharedIdentity, SharedEntryData> = FxHashMap::default();
     let mut request_map: FxHashMap<RequestMatchKey, Vec<SharedIdentity>> = FxHashMap::default();
     let inject_tree_shaking_used_exports = options.inject_tree_shaking_used_exports;
     for config in options.shared.into_iter().filter(|c| c.tree_shaking) {
@@ -138,12 +138,13 @@ impl SharedUsedExportsOptimizerPlugin {
       if !identities.contains(&identity) {
         identities.push(identity.clone());
       }
-      shared_map.insert(
-        identity,
-        SharedEntryData {
-          used_exports: atoms,
-        },
-      );
+      shared_map
+        .entry(identity)
+        .or_insert_with(|| SharedEntryData {
+          used_exports: vec![],
+        })
+        .used_exports
+        .extend(atoms);
     }
 
     let shared_referenced_exports = Arc::new(RwLock::new(FxHashMap::<
@@ -177,10 +178,10 @@ impl SharedUsedExportsOptimizerPlugin {
   }
 }
 
-fn collect_processed_modules(
+fn collect_processed_modules<'a>(
   module_graph: &ModuleGraph,
   module_blocks: &[AsyncDependenciesBlockIdentifier],
-  module_deps: &[DependencyId],
+  module_deps: impl IntoIterator<Item = &'a DependencyId>,
   out: &mut Vec<ModuleIdentifier>,
 ) {
   for dep_id in module_deps {

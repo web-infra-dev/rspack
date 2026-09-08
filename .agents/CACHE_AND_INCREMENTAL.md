@@ -103,6 +103,9 @@ Rspack currently carries two implementations of the same Cache responsibility:
 | `legacy_cache` | `crates/rspack_core/src/legacy_cache/` |
 | `new_cache`    | `crates/rspack_core/src/new_cache/`    |
 
+Both backends may depend on shared code in `crates/rspack_core/src/cache/`, but must not reference
+each other.
+
 The backend selector is not another Incremental mode. Switching between `legacy_cache` and
 `new_cache` may change how cache entries are keyed, retained, serialized, or flushed, but it must not
 change which Incremental passes are enabled or whether Incremental artifacts can be recovered.
@@ -111,6 +114,20 @@ During the backend migration, `Compiler` contains handles for both implementatio
 unselected one. Code should depend on their Cache responsibility rather than use either backend as
 the owner of Incremental state. The two implementations do not need identical cache coverage or
 storage formats while the migration is in progress.
+
+## Persistent cache format policy
+
+Persistent cache files are disposable implementation details, and their serialized format may change
+without support for older data. This applies to both cache backends and shared serialization code.
+
+- Do not add legacy decoders, fallback readers, dual-format writes, or migration code for old caches.
+- Keep existing cache namespaces, keys, and storage locations when changing a serialized payload.
+  Do not introduce another namespace or a format-version suffix (such as `owned-v1` or `owned-v2`)
+  to isolate old cache data.
+- Do not add format-version guards or other compatibility-only invalidation mechanisms.
+
+Use the existing cache validation and miss handling. Clear stale local cache files and rebuild when
+a format change makes them unusable.
 
 ## Ownership and data flow
 
