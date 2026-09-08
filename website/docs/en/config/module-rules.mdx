@@ -417,23 +417,51 @@ export default {
 - **Type:** `{ [key: string]: Condition }`
 - **Default:** `undefined`
 
-`descriptionData` option allows you to match values of properties in the description file, typically `package.json`, to determine which modules a rule should apply to. This is a useful way to apply rules to specific modules based on metadata found in their `package.json`.
+`descriptionData` matches property values in a module's description file, typically `package.json`, to determine which modules a rule applies to. This lets you configure rules for modules in specific packages based on metadata such as the package name or version.
 
-The object keys in `descriptionData` correspond to keys in the module's `package.json`, such as `name`, `version`, etc. Each key should be associated with a [`Condition`](#condition) for matching the `package.json` data.
+Each key in the `descriptionData` object specifies a property to match, such as `name` or `version`, and the corresponding value is a [`Condition`](#condition) used to check that property's value. If you specify multiple properties, all must satisfy their conditions for the module to match `descriptionData`.
 
-For example, below we are applying the rule only to JavaScript resources with `'rspack'` string included in their `package.json` `name`.
+A string condition matches property values that start with the given string, so this example matches modules in packages such as `react` and `react-dom`:
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     rules: [
       {
-        test: /\.js$/,
-        include: /node_modules/,
+        descriptionData: { name: 'react' },
+        // Other rule options...
+      },
+    ],
+  },
+};
+```
+
+A regular expression condition tests the property value against a pattern; this example uses `^` and `$` to match only modules in the package named `react`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        descriptionData: { name: /^react$/ },
+        // Other rule options...
+      },
+    ],
+  },
+};
+```
+
+A function condition provides custom matching logic; this example matches modules in packages whose names contain `rspack`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
         descriptionData: {
-          name: (packageJsonName) => packageJsonName.includes('rspack'),
+          name: (name) => name.includes('rspack'),
         },
-        // additional rule options...
+        // Other rule options...
       },
     ],
   },
