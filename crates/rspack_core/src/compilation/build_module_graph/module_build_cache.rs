@@ -22,7 +22,7 @@ pub(crate) struct ModuleBuildCache {
 impl ModuleBuildCache {
   pub(crate) fn new(cache: CacheFacade) -> Self {
     Self {
-      cache: cache.get_child_cache("module-owned-dependencies"),
+      cache,
       pending: Default::default(),
     }
   }
