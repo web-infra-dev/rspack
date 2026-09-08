@@ -2,7 +2,7 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_core::{
   CanonicalizedDataUrlOption, ChunkGroup, ChunkGroupUkey, Compilation, CompilationAsset,
-  CompilerAfterEmit, Module, Plugin,
+  CompilerAfterEmit, Plugin,
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
@@ -161,7 +161,7 @@ impl SizeLimitsPlugin {
     let mut paths: HashMap<ChunkGroupUkey, Vec<ChunkGroupUkey>> = HashMap::default();
     let mut queue = vec![];
 
-    for (ukey, group) in groups {
+    for (ukey, group) in groups.iter() {
       if group.is_initial() {
         paths.insert(*ukey, vec![]);
         queue.push(*ukey);
@@ -173,7 +173,10 @@ impl SizeLimitsPlugin {
     let mut index = 0;
     while index < queue.len() {
       let group = groups.expect_get(&queue[index]);
-      let path = paths.expect_get(&queue[index]).clone();
+      let path = paths
+        .get(&queue[index])
+        .expect("queued chunk group should have a path")
+        .clone();
       for child in group.children_iterable() {
         if paths.contains_key(child) {
           continue;
@@ -222,8 +225,7 @@ impl SizeLimitsPlugin {
       .map(|(chain, size)| format!("\n  {} ({})", chain.join(" -> "), format_size(*size as f64)))
       .collect::<String>();
     Some(format!(
-      "Async chunk waterfall: {} sequential async chunks are required before these leaves can load. Collapse nested import() calls or prefetch an earlier chunk.\nWaterfalls:{}",
-      deepest, details
+      "Async chunk waterfall: {deepest} sequential async chunks are required before these leaves can load. Collapse nested import() calls or prefetch an earlier chunk.\nWaterfalls:{details}"
     ))
   }
 
@@ -232,7 +234,8 @@ impl SizeLimitsPlugin {
     const DEFAULT_MAX_SIZE: usize = 8096;
     let mut assets = vec![];
     let mut total = 0;
-    for (_, module) in compilation.get_module_graph().modules() {
+    let module_graph = compilation.get_module_graph();
+    for (_, module) in module_graph.modules() {
       if !matches!(
         module
           .build_info()
@@ -243,7 +246,12 @@ impl SizeLimitsPlugin {
       ) {
         continue;
       }
-      let size = module.size(None, Some(compilation)).round() as usize;
+      let size = module
+        .source_types(module_graph)
+        .iter()
+        .map(|source_type| module.size(Some(source_type), Some(compilation)))
+        .sum::<f64>()
+        .round() as usize;
       if size <= DEFAULT_MAX_SIZE {
         continue;
       }
@@ -265,7 +273,7 @@ impl SizeLimitsPlugin {
       .map(|(name, size)| format!("\n  {name} ({})", format_size(*size as f64)))
       .collect::<String>();
     Some(format!(
-      "Inlined assets: {} asset module(s) larger than 8 KiB are embedded as data URLs ({} total). Consider asset/resource so browsers can cache them separately.\nAssets:{}",
+      "Inlined assets: {} asset module(s) with estimated generated sizes over {DEFAULT_MAX_SIZE} bytes are embedded as data URLs ({} total). Consider asset/resource so browsers can cache them separately.\nAssets:{}",
       assets.len(),
       format_size(total as f64),
       details
@@ -299,8 +307,7 @@ impl SizeLimitsPlugin {
       .map(|(name, count)| format!("\n  {name} ({count} occurrence(s))"))
       .collect::<String>();
     Some(format!(
-      "Top-level this: {} occurrence(s) in ES modules were replaced with undefined. Use imports, exports, or module exports explicitly instead.\nModules:{}",
-      total, details
+      "Top-level this: {total} occurrence(s) in ES modules were replaced with undefined. Use imports, exports, or module exports explicitly instead.\nModules:{details}"
     ))
   }
 }
@@ -436,7 +443,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
       );
     }
 
-    if !diagnostics.is_empty() {
+    if !assets_over_size_limit.is_empty() || !entrypoints_over_limit.is_empty() {
       let has_async_chunk = compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
@@ -453,9 +460,8 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
 
         Self::add_diagnostic(hints, title, message, &mut diagnostics);
       }
-
-      compilation.extend_diagnostics(diagnostics);
     }
+    compilation.extend_diagnostics(diagnostics);
   }
 
   for (name, asset) in compilation.assets_mut() {

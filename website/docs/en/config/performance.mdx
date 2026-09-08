@@ -53,7 +53,7 @@ All diagnostics in this section are disabled by default and require `performance
 
 - `asyncChunkWaterfalls`: reports async `import()` chains three levels deep, which require sequential network requests.
 - `embeddedSourceMaps`: reports `eval` and `inline` source maps in production builds because map data is included in the JavaScript download.
-- `inlinedAssets`: reports data-URL asset modules larger than 8 KiB, which cannot be cached independently.
+- `inlinedAssets`: reports data-URL asset modules with estimated generated sizes over 8096 bytes, which cannot be cached independently.
 - `topLevelThis`: reports top-level `this` in ES modules, where Rspack replaces it with `undefined`.
 
 Enable all bundling diagnostics:

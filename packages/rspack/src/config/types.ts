@@ -3369,7 +3369,7 @@ export type Performance =
        * Sets the format of the hints: warnings, errors or nothing at all.
        */
       hints?: false | 'warning' | 'error';
-      /** Report asset modules larger than 8 KiB that were emitted as data URLs. */
+      /** Report data-URL asset modules with estimated generated sizes over 8096 bytes. */
       inlinedAssets?: boolean;
       /**
        * File size limit (in bytes) when exceeded, Rspack will provide performance hints.
