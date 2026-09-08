@@ -127,12 +127,12 @@ type LightningcssLoaderOptions = {
 
 Browserslist query string or a `Targets` object specifying browser versions.
 
-:::tip Default targets from Rspack
-If `targets` is not configured, `builtin:lightningcss-loader` will automatically derive a default targets from Rspack's [`target`](/config/target) configuration when using browserslist-related targets (e.g., `browserslist` or `browserslist:modern`). Since Lightning CSS only supports browser-related targets, non-browser targets like `node` will not provide default targets for this loader.
+:::tip Default browser targets
+When `targets` is not set, the loader gets its browser targets from Rspack's [`target`](/config/target). For example, with `browserslist` or `browserslist:modern`, you do not need to repeat the configuration in the loader. Lightning CSS only supports browser targets, so it cannot get browser versions from non-browser targets such as `node`.
 
-This also applies when Rspack `target` is omitted. See [`target` default behavior](/config/target#default-behavior) for how Rspack selects the default. You can rely on the resolved `target` without manually specifying the same targets in the loader options.
+When Rspack `target` is not set, the loader also tries to get browser targets from its default value. See [`target` default behavior](/config/target#default-behavior) for details.
 
-If no Browserslist configuration is found and Rspack `target` defaults to `web`, there are no browser versions for the loader to inherit. In this case, the loader's `targets` remains unset unless you configure it explicitly.
+If no Browserslist configuration is found, Rspack defaults to `web`, which does not specify browser versions. The loader's `targets` then remains unset, and you can configure it as needed.
 :::
 
 Here are some examples of setting targets.

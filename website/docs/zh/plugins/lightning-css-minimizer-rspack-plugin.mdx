@@ -84,16 +84,14 @@ document.body.className = styles.a;
 
 :::info
 
-1. `targets` 选项按照以下优先级解析：
-   - 用户在插件选项中指定的 `targets`（最高优先级）
-   - 当 Rspack 的 [`target`](/config/target) 配置使用与 browserslist 相关的 targets（例如 `browserslist` 或 `browserslist:modern`）时，从 Rspack 的 [`target`](/config/target) 配置中推断出。因为 Lightning CSS 仅支持浏览器相关的 targets，像 `node` 这样的非浏览器 target 不会为此插件提供默认 targets。
-   - 如果上述均未提供，默认以完整支持 ES6 的浏览器为目标，对应的 Browserslist 查询为 `"fully supports es6"`
+1. 插件按以下顺序确定 `targets`：
+   - 优先使用显式配置的 `minimizerOptions.targets`。
+   - 未配置时，使用 Rspack 的 [`target`](/config/target) 提供的浏览器信息。例如，`browserslist` 或 `browserslist:modern` 可以提供这类信息，`node` 等非浏览器 target 则不能。
+   - 如果仍无法确定需要兼容的浏览器，则默认使用 `"fully supports es6"`，即通过 Browserslist 选择完整支持 ES6 的浏览器。
 
-   省略 Rspack `target` 时也会继承其默认值，默认值的选择规则详见 [`target` 的默认行为](/config/target#default-behavior)。
+   即使没有显式设置 Rspack 的 `target`，插件也会尝试继承它的[默认值](/config/target#default-behavior)。例如，未设置 `target` 且找不到 Browserslist 配置时，Rspack 会使用 `web`。由于 `web` 不包含浏览器版本信息，如果也没有设置 `minimizerOptions.targets`，插件就会使用 `"fully supports es6"`。
 
-   例如，找不到 Browserslist 配置且 Rspack `target` 默认为 `web` 时，没有可供继承的浏览器版本。此时，除非显式配置 `minimizerOptions.targets`，否则插件会使用 `"fully supports es6"`。
-
-   回退机制确保压缩过程不会引入可能导致浏览器不兼容的高级语法（压缩可能会因为高级语法更短而将低级语法转换为高级语法）。
+   为了减小体积，Lightning CSS 在压缩时可能会改用更短的新语法。这个默认值限定了可以使用的语法范围，让压缩后的代码也能兼容上述浏览器。
 
 2. `exclude` 选项默认配置了所有的 features。我们通常会在 [builtin:lightningcss-loader](/guide/features/builtin-lightningcss-loader) 或其他 loaders 中进行语法降级，所以此插件默认 exclude 所有的 features，避免在 minimize 过程中进行语法降级。
 

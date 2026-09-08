@@ -20,14 +20,14 @@ type Target = false | string | string[];
 
 ## 默认行为 \{#default-behavior}
 
-省略 `target` 时，Rspack 会从 [`context`](/config/context) 开始查找标准的 Browserslist 配置；`context` 默认为当前工作目录：
+未设置 `target` 时，Rspack 会以 [`context`](/config/context) 指定的目录为起点查找 Browserslist 配置。`context` 默认为当前工作目录。
 
-- 如果找到配置，`target` 默认为 `browserslist`。Rspack 会使用最近的 `browserslist` 或 `.browserslistrc` 文件，或 `package.json` 中的 `browserslist` 字段来确定目标环境。详见 [Browserslist](#browserslist)。
-- 否则，`target` 默认为 `web`。它只选择类浏览器平台，不指定浏览器版本或固定的 ECMAScript 语法版本。如果需要指定兼容范围，请配置 Browserslist，或组合使用 `web` 和 `esX` target。
+- 如果找到配置，`target` 默认为 `browserslist`，Rspack 会根据最近的配置确定目标环境。配置可以来自 `browserslist` 文件、`.browserslistrc` 文件或 `package.json` 中的 `browserslist` 字段。详见 [Browserslist](#browserslist)。
+- 如果找不到配置，`target` 默认为 `web`，表示代码将在浏览器环境中运行。`web` 不指定具体的浏览器版本或 ECMAScript 语法版本；如果需要指定兼容范围，可以配置 Browserslist，或将 `web` 与 `esX` target 组合使用。
 
-解析后的默认值也适用于[继承 `target` 的内置工具](#目标环境继承)。无法继承兼容目标时，各 loader 和压缩插件的默认行为请参阅其各自的文档。
+内置 loader 和压缩插件也可以[继承 `target` 的默认值](#目标环境继承)。如果无法从 `target` 中获取所需的目标信息，它们会使用各自的默认设置，具体行为见对应工具的文档。
 
-如果显式设置 `target: 'browserslist'`，但找不到 Browserslist 配置，且未设置 `BROWSERSLIST` 环境变量，Rspack 会报错，此时不会回退到 `web`。
+如果显式设置了 `target: 'browserslist'`，则需要提供 Browserslist 配置或设置 `BROWSERSLIST` 环境变量，否则 Rspack 会报错，不会改用 `web`。
 
 ## 推荐配置
 

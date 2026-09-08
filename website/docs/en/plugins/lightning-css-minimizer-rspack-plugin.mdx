@@ -84,16 +84,14 @@ Below are the configurations supported, `targets` configuration is plain browser
 
 :::info
 
-1. The `targets` option is resolved in the following priority order:
-   - User-specified `targets` in plugin options (highest priority)
-   - Targets derived from Rspack's [`target`](/config/target) configuration when using browserslist-related targets (e.g., `browserslist` or `browserslist:modern`), since Lightning CSS only supports browser-related targets, non-browser targets like `node` will not provide default targets for this plugin.
-   - If neither is available, targets browsers with full ES6 support by default, using the Browserslist query `"fully supports es6"`
+1. The plugin determines `targets` in this order:
+   - Use `minimizerOptions.targets` if explicitly configured.
+   - Otherwise, get browser targets from Rspack's [`target`](/config/target), such as the browsers specified by `browserslist` or `browserslist:modern`. Non-browser targets such as `node` do not provide this information.
+   - If no browser targets are available, use browsers with full ES6 support through the Browserslist query `"fully supports es6"`.
 
-   Inheritance also applies when Rspack `target` is omitted. See [`target` default behavior](/config/target#default-behavior) for how Rspack selects the default.
+   This also applies to Rspack's [default `target`](/config/target#default-behavior). For example, when `target` is not set and no Browserslist configuration is found, Rspack uses `web`. Since `web` does not specify browser versions, the plugin uses `"fully supports es6"` unless you set `minimizerOptions.targets`.
 
-   For example, if no Browserslist configuration is found and Rspack `target` defaults to `web`, there are no browser versions to inherit. The plugin then uses `"fully supports es6"` unless you configure `minimizerOptions.targets` explicitly.
-
-   The fallback ensures that minification does not introduce advanced syntax that could cause browser incompatibility (minification might turn lower-level syntax into advanced syntax because it is shorter).
+   During minification, Lightning CSS may use shorter, newer syntax to reduce file size. This default limits the syntax it can use to keep the result compatible with those browsers.
 
 2. The `exclude` option is configured with all features by default. We usually do syntax degradation in [builtin:lightningcss-loader](/guide/features/builtin-lightningcss-loader) or other loaders, so this plugin excludes all features by default to avoid syntax downgrading during the minimize process.
 
