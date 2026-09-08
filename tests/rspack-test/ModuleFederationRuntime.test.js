@@ -313,6 +313,29 @@ describe('module federation default runtime share scopes', () => {
 			);
 		});
 
+		it('initializes additional providers after binding an array of host scopes', async () => {
+			const { initializedScopes, runtimeRequire, shareScopeMap: containerScopeMap } =
+				createRuntime({
+					realInitContainerEntry: true,
+					containerShareScope: 'default',
+					remoteShareScope: 'default',
+					additionalInitScopes: ['default', 'react-layer', 'private'],
+				});
+			const shareScopeMap = { default: {}, 'react-layer': {}, unrelated: {} };
+			containerScopeMap['react-layer'] = { old: true };
+
+			await runtimeRequire.initContainer(shareScopeMap['react-layer'], [], {
+				shareScopeKeys: ['react-layer', 'default', 'unrelated'],
+				shareScopeMap,
+			});
+
+			expect(containerScopeMap.default).toBe(shareScopeMap.default);
+			expect(containerScopeMap['react-layer']).toBe(shareScopeMap['react-layer']);
+			expect(initializedScopes.filter(scope => scope === 'react-layer')).toHaveLength(1);
+			expect(initializedScopes).not.toContain('private');
+			expect(initializedScopes).not.toContain('unrelated');
+		});
+
 		it('does not remap a container-owned scope listed as additional', async () => {
 			// A layered provider makes ShareRuntimeModule list the container's own
 			// scope in additionalInitScopes; the host names that scope differently.

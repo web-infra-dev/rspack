@@ -435,7 +435,8 @@ export default function () {
         });
       const initPromises = initializeConsumeShareScopes(
         consumesLoadingChunkMapping[chunkId],
-        runtimeRequire.federation.instance.options.shareStrategy !== 'loaded-first',
+        runtimeRequire.federation.instance.options.shareStrategy !==
+          'loaded-first',
       );
       if (initPromises.length === 0) return consume(promises);
       promises.push(
@@ -490,16 +491,22 @@ export default function () {
         const hostShareScopeMap = remoteEntryInitOptions?.shareScopeMap;
         let options = remoteEntryInitOptions;
         const additionalScopes = [];
-        if (
-          additionalContainerInitScopes?.length &&
-          hostShareScopeMap &&
-          !Array.isArray(remoteEntryInitOptions.shareScopeKeys)
-        ) {
+        if (additionalContainerInitScopes?.length && hostShareScopeMap) {
           const hostScope = remoteEntryInitOptions.shareScopeKeys || 'default';
           const containerScopes = Array.isArray(containerShareScope)
             ? containerShareScope
             : [containerShareScope || 'default'];
-          if (
+          if (Array.isArray(hostScope)) {
+            // The bundler binds every host scope, but initializes only the
+            // container's primary scopes. Register additional providers too.
+            additionalScopes.push(
+              ...hostScope.filter(
+                (scope) =>
+                  additionalContainerInitScopes.includes(scope) &&
+                  !containerScopes.includes(scope),
+              ),
+            );
+          } else if (
             !containerScopes.includes(hostScope) &&
             additionalContainerInitScopes.includes(hostScope)
           ) {
