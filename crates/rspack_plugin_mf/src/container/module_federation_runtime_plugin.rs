@@ -154,11 +154,25 @@ async fn finish_modules(
   _exports_info_artifact: &mut ExportsInfoArtifact,
   _side_effects_state_artifact: &mut SideEffectsStateArtifact,
 ) -> Result<()> {
-  if !self.options.experiments.async_startup {
+  let module_graph = compilation.get_module_graph();
+  // The chunk graph does not exist yet, so "initial" is unknown here. Any
+  // ordered consume may make startup asynchronous, and a container entry that
+  // is not marked async while startup returns a promise breaks module-library
+  // output. Over-marking only adds an await of a non-promise.
+  // ponytail: this marks container entries async for ordered consumes that end
+  // up async-chunk-only; refine once async-module marking can run after the
+  // chunk graph is built.
+  let has_ordered_consume = module_graph.modules().any(|(_, module)| {
+    module
+      .as_ref()
+      .as_any()
+      .downcast_ref::<ConsumeSharedModule>()
+      .is_some_and(|module| matches!(module.share_scope(), ShareScope::Multiple(_)))
+  });
+  if !self.options.experiments.async_startup && !has_ordered_consume {
     return Ok(());
   }
 
-  let module_graph = compilation.get_module_graph();
   for (module_identifier, module) in module_graph.modules() {
     if module
       .as_ref()

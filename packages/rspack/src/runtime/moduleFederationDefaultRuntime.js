@@ -481,14 +481,19 @@ export default function () {
           : [containerShareScope || 'default'];
         const additionalScopes = [];
         for (const scope of additionalContainerInitScopes) {
-          if (scope === primaryScope) continue;
+          // Scopes the container owns were already bound by initContainerEntry
+          // (its own scope to the host's primary object); remapping them from
+          // the host map would replace that binding.
+          if (scope === primaryScope || containerScopes.includes(scope)) {
+            continue;
+          }
           if (!hostShareScopeMap[scope]) hostShareScopeMap[scope] = {};
           runtimeRequire.federation.instance.initShareScopeMap(
             scope,
             hostShareScopeMap[scope],
             { hostShareScopeMap },
           );
-          if (!containerScopes.includes(scope)) additionalScopes.push(scope);
+          additionalScopes.push(scope);
         }
         if (additionalScopes.length === 0) return result;
         const initializeAdditionalScopes = () =>
