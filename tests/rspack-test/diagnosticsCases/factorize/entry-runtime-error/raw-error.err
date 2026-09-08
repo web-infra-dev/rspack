@@ -1,5 +1,7 @@
 Array [
-  Object {},
+  Object {
+    code: ModuleNotFoundError,
+  },
   Object {
     chunkInitial: true,
     chunkName: b1,

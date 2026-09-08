@@ -1,4 +1,8 @@
 Array [
-  Object {},
-  Object {},
+  Object {
+    code: ModuleNotFoundError,
+  },
+  Object {
+    code: ModuleNotFoundError,
+  },
 ]

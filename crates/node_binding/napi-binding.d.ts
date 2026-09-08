@@ -1073,6 +1073,11 @@ export interface JsResolveData {
   createData?: JsCreateData
 }
 
+export interface JsResolveErrorArgs {
+  resolveData: JsResolveData
+  error: RspackError
+}
+
 export interface JsResolveForSchemeArgs {
   resourceData: JsResourceData
   scheme: string
@@ -3275,29 +3280,30 @@ export declare enum RegisterJsTapKind {
   NormalModuleFactoryBeforeResolve = 28,
   NormalModuleFactoryFactorize = 29,
   NormalModuleFactoryResolve = 30,
-  NormalModuleFactoryAfterResolve = 31,
-  NormalModuleFactoryCreateModule = 32,
-  NormalModuleFactoryResolveForScheme = 33,
-  ContextModuleFactoryBeforeResolve = 34,
-  ContextModuleFactoryAfterResolve = 35,
-  ExternalModuleChunkCondition = 36,
-  JavascriptModulesChunkHash = 37,
-  HtmlPluginBeforeAssetTagGeneration = 38,
-  HtmlPluginAlterAssetTags = 39,
-  HtmlPluginAlterAssetTagGroups = 40,
-  HtmlPluginAfterTemplateExecution = 41,
-  HtmlPluginBeforeEmit = 42,
-  HtmlPluginAfterEmit = 43,
-  RuntimePluginCreateScript = 44,
-  RuntimePluginCreateLink = 45,
-  RuntimePluginLinkPreload = 46,
-  RuntimePluginLinkPrefetch = 47,
-  RealContentHashPluginUpdateHash = 48,
-  RsdoctorPluginModuleGraph = 49,
-  RsdoctorPluginChunkGraph = 50,
-  RsdoctorPluginModuleIds = 51,
-  RsdoctorPluginModuleSources = 52,
-  RsdoctorPluginAssets = 53
+  NormalModuleFactoryResolveError = 31,
+  NormalModuleFactoryAfterResolve = 32,
+  NormalModuleFactoryCreateModule = 33,
+  NormalModuleFactoryResolveForScheme = 34,
+  ContextModuleFactoryBeforeResolve = 35,
+  ContextModuleFactoryAfterResolve = 36,
+  ExternalModuleChunkCondition = 37,
+  JavascriptModulesChunkHash = 38,
+  HtmlPluginBeforeAssetTagGeneration = 39,
+  HtmlPluginAlterAssetTags = 40,
+  HtmlPluginAlterAssetTagGroups = 41,
+  HtmlPluginAfterTemplateExecution = 42,
+  HtmlPluginBeforeEmit = 43,
+  HtmlPluginAfterEmit = 44,
+  RuntimePluginCreateScript = 45,
+  RuntimePluginCreateLink = 46,
+  RuntimePluginLinkPreload = 47,
+  RuntimePluginLinkPrefetch = 48,
+  RealContentHashPluginUpdateHash = 49,
+  RsdoctorPluginModuleGraph = 50,
+  RsdoctorPluginChunkGraph = 51,
+  RsdoctorPluginModuleIds = 52,
+  RsdoctorPluginModuleSources = 53,
+  RsdoctorPluginAssets = 54
 }
 
 export interface RegisterJsTaps {
@@ -3332,6 +3338,7 @@ export interface RegisterJsTaps {
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
   registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
   registerNormalModuleFactoryResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
+  registerNormalModuleFactoryResolveErrorTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveErrorArgs) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
   registerNormalModuleFactoryResolveForSchemeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveForSchemeArgs) => Promise<[boolean | undefined, JsResolveForSchemeArgs]>); stage: number; }>
   registerNormalModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
   registerNormalModuleFactoryCreateModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsNormalModuleFactoryCreateModuleArgs) => Promise<void>); stage: number; }>

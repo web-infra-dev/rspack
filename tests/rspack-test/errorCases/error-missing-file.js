@@ -12,6 +12,7 @@ module.exports = [
 				Object {
 				  "errors": Array [
 				    Object {
+				      "code": "ModuleNotFoundError",
 				      "loc": "4:9-20",
 				      "message": "  × Module not found: Can't resolve './missing' in '<TEST_ROOT>/fixtures/errors'   ╭─[4:0] 2 │  3 │ // on line 4 4 │ require(\\"./missing\\");   · ──────────────────── 5 │  6 │    ╰────",
 				      "moduleId": "./missingFile.js",
@@ -21,6 +22,7 @@ module.exports = [
 				      "stack": undefined,
 				    },
 				    Object {
+				      "code": "ModuleNotFoundError",
 				      "loc": "12:18-34",
 				      "message": "  × Module not found: Can't resolve './dir/missing2' in '<TEST_ROOT>/fixtures/errors'    ╭─[12:9] 10 │  11 │ // on line 12 char 10 12 │          require(\\"./dir/missing2\\");    ·          ─────────────────────────    ╰────",
 				      "moduleId": "./missingFile.js",
@@ -48,6 +50,7 @@ module.exports = [
 				Object {
 				  "errors": Array [
 				    Object {
+				      "code": "ModuleNotFoundError",
 				      "loc": "4:9-20",
 				      "message": "  × Module not found: Can't resolve './missing' in '<TEST_ROOT>/fixtures/errors'   ╭─[4:0] 2 │  3 │ // on line 4 4 │ require(\\"./missing\\");   · ──────────────────── 5 │  6 │    ╰────",
 				      "moduleId": "./missingFile.js",
@@ -57,6 +60,7 @@ module.exports = [
 				      "stack": undefined,
 				    },
 				    Object {
+				      "code": "ModuleNotFoundError",
 				      "loc": "12:18-34",
 				      "message": "  × Module not found: Can't resolve './dir/missing2' in '<TEST_ROOT>/fixtures/errors'    ╭─[12:9] 10 │  11 │ // on line 12 char 10 12 │          require(\\"./dir/missing2\\");    ·          ─────────────────────────    ╰────",
 				      "moduleId": "./missingFile.js",

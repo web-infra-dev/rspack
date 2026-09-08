@@ -42,20 +42,21 @@ module.exports = isCaseInsensitiveFilesystem
 		},
 		async check(diagnostics) {
 			expect(diagnostics).toMatchInlineSnapshot(`
-			Object {
-			  "errors": Array [
-			    Object {
-			      "loc": "2:9-17",
-			      "message": "  × Module not found: Can't resolve './FILE' in '<TEST_ROOT>/fixtures/errors'   ╭─[2:0] 1 │ require(\\"./file\\"); 2 │ require(\\"./FILE\\");   · ─────────────────   ╰────",
-			      "moduleId": "./case-sensitive.js",
-			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/case-sensitive.js",
-			      "moduleName": "./case-sensitive.js",
-			      "moduleTrace": Array [],
-			      "stack": undefined,
-			    },
-			  ],
-			  "warnings": Array [],
-			}
-		`);
+				Object {
+				  "errors": Array [
+				    Object {
+				      "code": "ModuleNotFoundError",
+				      "loc": "2:9-17",
+				      "message": "  × Module not found: Can't resolve './FILE' in '<TEST_ROOT>/fixtures/errors'   ╭─[2:0] 1 │ require(\\"./file\\"); 2 │ require(\\"./FILE\\");   · ─────────────────   ╰────",
+				      "moduleId": "./case-sensitive.js",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/case-sensitive.js",
+				      "moduleName": "./case-sensitive.js",
+				      "moduleTrace": Array [],
+				      "stack": undefined,
+				    },
+				  ],
+				  "warnings": Array [],
+				}
+			`);
 		}
 	};
