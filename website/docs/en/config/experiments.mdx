@@ -262,6 +262,30 @@ export default {
 This option depends on `optimization.sideEffects`. If you disable [`optimization.sideEffects`](/config/optimization#optimizationsideeffects), pure-function hints will not be analyzed.
 :::
 
+## experiments.chunkArrayLoading
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Reduces repeated chunk-loading calls by letting the runtime's existing `ensureChunk` function accept an ordered array of chunk IDs:
+
+```js title="rspack.config.mjs"
+export default {
+  mode: 'production',
+  experiments: {
+    chunkArrayLoading: true,
+  },
+};
+```
+
+For example, `Promise.all([__webpack_require__.e(12), __webpack_require__.e(34)])` becomes `__webpack_require__.e([12, 34])`. The array stays at the call site; no shared table or additional runtime property is created.
+
+Only calls that load at least two chunks use arrays. Zero- and single-chunk calls keep their existing form, and runtimes without array calls do not receive the array-handling code. This applies to dynamic imports, `require.ensure`, AMD asynchronous dependencies, and `lazy-once` contexts. Ordinary lazy contexts, startup, prefetch, and preload keep their existing generation paths.
+
+The runtime forwards each ID in order to the existing scalar loader, including fetch priority. The returned Promise preserves the ordered per-chunk results, concurrency, and retry behavior. Plugins that wrap `ensureChunk` must accept both a chunk ID and an array of IDs, or forward the arguments unchanged.
+
+The option only takes effect in production mode without hot module replacement. It adds a small branch to the runtime and reduces code at each multi-chunk call site; measure the combined bundle size for your application before enabling it.
+
 ## experiments.runtimeMode
 
 <ApiMeta addedVersion="2.2.0" />

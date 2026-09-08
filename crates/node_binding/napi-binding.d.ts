@@ -2333,6 +2333,7 @@ export interface RawExperiments {
   deferImport: boolean
   sourceImport: boolean
   pureFunctions: boolean
+  chunkArrayLoading: boolean
   runtimeMode?: "webpack" | "rspack"
 }
 

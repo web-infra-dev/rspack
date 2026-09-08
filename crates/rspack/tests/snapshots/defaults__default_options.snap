@@ -1759,6 +1759,7 @@ CompilerOptions {
         defer_import: false,
         source_import: false,
         pure_functions: false,
+        chunk_array_loading: false,
         runtime_mode: Webpack,
     },
     incremental: IncrementalOptions {

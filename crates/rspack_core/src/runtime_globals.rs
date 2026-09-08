@@ -312,6 +312,9 @@ define_runtime_globals! {
 
   // reexport
   const REEXPORT;
+
+  // A code-generation capability flag, not a property on the runtime object.
+  const HAS_CHUNK_ARRAY;
 }
 
 impl Default for RuntimeGlobals {
@@ -332,6 +335,7 @@ pub static REQUIRE_SCOPE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
       | RuntimeGlobals::THIS_AS_EXPORTS
       | RuntimeGlobals::HAS_CSS_MODULES
       | RuntimeGlobals::HAS_FETCH_PRIORITY
+      | RuntimeGlobals::HAS_CHUNK_ARRAY
       | RuntimeGlobals::STARTUP_NO_DEFAULT
       | RuntimeGlobals::STARTUP_CHUNK_DEPENDENCIES
       | RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES
@@ -449,6 +453,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::CSS_STYLE_SHEET => "css",
     RuntimeGlobals::ASYNC_STARTUP => "asyncStartup",
     RuntimeGlobals::HAS_FETCH_PRIORITY => "has fetch priority",
+    RuntimeGlobals::HAS_CHUNK_ARRAY => "has chunk array",
 
     RuntimeGlobals::RSC_MANIFEST => "rscM",
     RuntimeGlobals::TO_BINARY => "tb",

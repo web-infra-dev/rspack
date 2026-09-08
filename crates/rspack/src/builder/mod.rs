@@ -3713,6 +3713,7 @@ pub struct ExperimentsBuilder {
   source_import: Option<bool>,
   // TODO: lazy compilation
   pure_functions: Option<bool>,
+  chunk_array_loading: Option<bool>,
   runtime_mode: Option<RuntimeMode>,
 }
 
@@ -3726,6 +3727,7 @@ impl From<Experiments> for ExperimentsBuilder {
       defer_import: Some(value.defer_import),
       source_import: Some(value.source_import),
       pure_functions: Some(value.pure_functions),
+      chunk_array_loading: Some(value.chunk_array_loading),
       runtime_mode: Some(value.runtime_mode),
     }
   }
@@ -3741,12 +3743,19 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
       defer_import: value.defer_import.take(),
       source_import: value.source_import.take(),
       pure_functions: value.pure_functions.take(),
+      chunk_array_loading: value.chunk_array_loading.take(),
       runtime_mode: value.runtime_mode.take(),
     }
   }
 }
 
 impl ExperimentsBuilder {
+  /// Set whether to load asynchronous chunk lists with a single array call.
+  pub fn chunk_array_loading(&mut self, enabled: bool) -> &mut Self {
+    self.chunk_array_loading = Some(enabled);
+    self
+  }
+
   /// Set whether to enable future defaults.
   pub fn future_defaults(&mut self, future_defaults: bool) -> &mut Self {
     self.future_defaults = Some(future_defaults);
@@ -3807,6 +3816,7 @@ impl ExperimentsBuilder {
       defer_import: d!(self.defer_import, false),
       source_import: d!(self.source_import, false),
       pure_functions: d!(self.pure_functions, _production),
+      chunk_array_loading: d!(self.chunk_array_loading, false),
       runtime_mode: d!(self.runtime_mode, RuntimeMode::Webpack),
     })
   }
