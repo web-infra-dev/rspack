@@ -7,8 +7,10 @@ use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
   ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
-  impl_source_map_config, module_update_hash, rspack_sources::{BoxSource, RawStringSource, SourceExt}, runtime_mode::RuntimeMode,
+  ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
+  runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
@@ -102,7 +104,7 @@ impl ConsumeSharedModule {
     // Same layout convention as webpack's shared modules: `(scope)`, then
     // ` (layer)` when layered, then `shareKey@requiredVersion` and flags.
     // External manifest readers parse it by token position.
-    let identifier = readable_identifier.clone();
+    let identifier = format!("{readable_identifier} [identity:{identity_key}]");
     Self {
       dependencies_block: Default::default(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),
@@ -142,7 +144,7 @@ impl ConsumeSharedModule {
 #[cfg(test)]
 mod tests {
   use rspack_collections::Identifiable;
-  use rspack_core::{Context, runtime_mode::RuntimeMode};
+  use rspack_core::{Context, Module, runtime_mode::RuntimeMode};
 
   use super::ConsumeSharedModule;
   use crate::{ConsumeOptions, ShareScope};
@@ -175,7 +177,7 @@ mod tests {
     opts.strict_version = true;
     let module = ConsumeSharedModule::new(Context::from(""), opts, RuntimeMode::Webpack);
     assert_eq!(
-      module.identifier().as_str(),
+      module.readable_identifier(&Context::from("")).as_ref(),
       "consume shared module (default) lodash/get@* (strict) (fallback: /node_modules/lodash/get.js)"
     );
     assert_eq!(module.identifier().split(' ').nth(4), Some("lodash/get@*"));
@@ -184,7 +186,7 @@ mod tests {
     layered.layer = Some("server".to_string());
     let module = ConsumeSharedModule::new(Context::from(""), layered, RuntimeMode::Webpack);
     assert_eq!(
-      module.identifier().as_str(),
+      module.readable_identifier(&Context::from("")).as_ref(),
       "consume shared module (default) (server) react@*"
     );
   }

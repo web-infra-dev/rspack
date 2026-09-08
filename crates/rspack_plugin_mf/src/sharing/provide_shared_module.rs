@@ -6,8 +6,8 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
-  FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer,
-  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
+  FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier,
+  ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
   impl_source_map_config, module_update_hash, rspack_sources::BoxSource, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -78,7 +78,7 @@ impl ProvideSharedModule {
     // Same layout as webpack's ProvideSharedModule: `(scope)`, then ` (layer)`
     // when layered, then `name@version = request`. External manifest readers
     // parse it by token position.
-    let identifier = readable_identifier.clone();
+    let identifier = format!("{readable_identifier} [identity:{identity_key}]");
     Self {
       dependencies_block: Default::default(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),
@@ -270,7 +270,7 @@ impl_empty_diagnosable_trait!(ProvideSharedModule);
 #[cfg(test)]
 mod tests {
   use rspack_collections::Identifiable;
-  use rspack_core::runtime_mode::RuntimeMode;
+  use rspack_core::{Context, Module, runtime_mode::RuntimeMode};
 
   use super::ProvideSharedModule;
   use crate::{ShareScope, sharing::provide_shared_plugin::ProvideVersion};
@@ -296,15 +296,21 @@ mod tests {
   /// layer as an extra `(layer)` segment.
   #[test]
   fn provide_identifier_follows_the_webpack_layout() {
-    let identifier = module(None).identifier();
+    let unlayered = module(None);
+    let identifier = unlayered.readable_identifier(&Context::from(""));
     assert_eq!(
-      identifier.as_str(),
+      identifier.as_ref(),
       "provide shared module (default) react@19.0.0 = /node_modules/react/index.js"
     );
-    assert_eq!(identifier.split(' ').nth(4), Some("react@19.0.0"));
+    assert_eq!(
+      unlayered.identifier().split(' ').nth(4),
+      Some("react@19.0.0")
+    );
 
     assert_eq!(
-      module(Some("server")).identifier().as_str(),
+      module(Some("server"))
+        .readable_identifier(&Context::from(""))
+        .as_ref(),
       "provide shared module (default) (server) react@19.0.0 = /node_modules/react/index.js"
     );
   }

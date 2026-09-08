@@ -69,6 +69,7 @@ impl ShareScope {
   }
 }
 
+/// Cloned to key independent provider, consumer, and export-usage maps with the same identity.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct SharedIdentity {
   pub(crate) share_scope: ShareScope,
