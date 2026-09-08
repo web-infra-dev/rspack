@@ -103,6 +103,9 @@ Rspack currently carries two implementations of the same Cache responsibility:
 | `legacy_cache` | `crates/rspack_core/src/legacy_cache/` |
 | `new_cache`    | `crates/rspack_core/src/new_cache/`    |
 
+Both backends may depend on shared code in `crates/rspack_core/src/cache/`, but must not reference
+each other.
+
 The backend selector is not another Incremental mode. Switching between `legacy_cache` and
 `new_cache` may change how cache entries are keyed, retained, serialized, or flushed, but it must not
 change which Incremental passes are enabled or whether Incremental artifacts can be recovered.
