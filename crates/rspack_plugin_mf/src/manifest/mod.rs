@@ -384,16 +384,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .flatten();
           let expose_identity = ExposeIdentity::new(expose_key, expose_layer.as_deref());
           expose_imports.insert(expose_identity.clone(), expose_file_key.clone());
-          let expose_dependencies = blocks
+          let expose_block = blocks
             .get(index)
-            .and_then(|block_id| module_graph.block_by_id(block_id))
-            .map(|block| block.get_dependencies());
+            .and_then(|block_id| module_graph.block_by_id(block_id));
           for (import_index, import) in options.import.iter().enumerate() {
             if import.is_empty() {
               continue;
             }
-            let imported_module = expose_dependencies
-              .and_then(|dependencies| dependencies.get(import_index))
+            let imported_module = expose_block
+              .and_then(|block| block.get_dependencies().nth(import_index))
               .and_then(|dependency_id| {
                 module_graph
                   .module_identifier_by_dependency_id(dependency_id)
@@ -419,8 +418,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .entry(expose_identity.clone())
             .or_insert(StatsExpose {
               path: expose_key.clone(),
-              file: expose_dependencies
-                .and_then(|dependencies| dependencies.first())
+              file: expose_block
+                .and_then(|block| block.get_dependencies().next())
                 .and_then(|dependency_id| {
                   module_graph.module_identifier_by_dependency_id(dependency_id)
                 })
