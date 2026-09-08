@@ -153,6 +153,9 @@ Define how local modules can be referenced by remote containers. The key is the 
   }
   interface SharedConfig {
     import?: false | SharedItem;
+    request?: string;
+    layer?: string;
+    issuerLayer?: string;
     eager?: boolean;
     packageName?: string;
     requiredVersion?: false | string;
@@ -170,6 +173,9 @@ Specify which dependencies should be shared dependencies. This allows multiple m
 The SharedConfig can include the following sub-options:
 
 - import: Module that should be placed in the share scope of the shared module. If the shared module cannot be found in the share scope of the shared module or the version is invalid, this provided module can be used as a fallback module.
+- request: Override the module request matched by this shared configuration. When `import` is omitted, it defaults to `request`, or to the configuration key when `request` is omitted.
+- layer: Select the layer of the shared provider and fallback module. Layered matches take precedence over unlayered fallback matches. An empty string is an explicit layer and differs from an omitted value.
+- issuerLayer: Restrict consumption to modules imported from this layer. This is independent of the shared module's `layer`.
 - eager: If set to `true`, the shared module will be loaded in the initial chunk instead of being dynamically loaded when used. This means that the shared module will be loaded together with the main entry point regardless of whether it has been used. This can eliminate the delay caused by dynamic loading, but it will increase the size of the initial package. Also, please note that when this configuration is enabled, all provided modules and fallback modules will always be downloaded.
 - packageName: Used to determine the package name and required version from `package.json`. Configuration is only necessary when the package name cannot be automatically determined based on the request.
 - requiredVersion: Accepts semantic version number. For example, `"^1.2.3"`. Used to set the version range of shared modules. If the module version of the remote container does not meet this range, the module will not be loaded.

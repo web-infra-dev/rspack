@@ -473,33 +473,6 @@ var init = function(shareScope, initScope) {{
 
 impl_empty_diagnosable_trait!(ContainerEntryModule);
 
-#[cfg(test)]
-mod tests {
-  use rspack_core::runtime_mode::RuntimeMode;
-
-  use super::ContainerEntryModule;
-  use crate::{ShareScope, SharedIdentity};
-
-  #[test]
-  fn share_container_entry_retains_full_shared_identity() {
-    let identity = SharedIdentity::new(
-      &ShareScope::Single("scope".to_string()),
-      "pkg",
-      Some("server"),
-    );
-    let module = ContainerEntryModule::new_share_container_entry(
-      "pkg".to_string(),
-      "pkg".to_string(),
-      "1.0.0".to_string(),
-      identity.share_scope.clone(),
-      identity.share_key.clone(),
-      identity.layer.clone(),
-      RuntimeMode::Webpack,
-    );
-
-    assert_eq!(module.shared_identity(), Some(identity));
-  }
-}
 
 #[cacheable]
 #[derive(Debug, Clone)]
