@@ -22,7 +22,7 @@ impl<'ast> ScopeInfoDB<'ast> {
     db
   }
 
-  fn owns_ast(&self, ast: &ParsedJavaScriptAst<'_>) -> bool {
+  pub(crate) fn owns_ast(&self, ast: &ParsedJavaScriptAst<'_>) -> bool {
     self.ast.is_some_and(|original| std::ptr::eq(original, ast))
   }
 
