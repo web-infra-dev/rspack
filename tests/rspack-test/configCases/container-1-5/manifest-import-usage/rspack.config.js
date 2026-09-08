@@ -15,6 +15,7 @@ module.exports = {
   plugins: [
     new ModuleFederationPlugin({
       name: 'manifest_import_usage',
+      filename: 'container.js',
       manifest: true,
       exposes: {
         './multi': { import: ['./plain.js', 'second-alias'] },

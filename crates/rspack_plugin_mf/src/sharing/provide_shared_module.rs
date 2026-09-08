@@ -127,6 +127,10 @@ impl ProvideSharedModule {
     }
   }
 
+  pub(crate) fn request(&self) -> &str {
+    &self.request
+  }
+
   pub(crate) fn manifest_version(&self) -> &str {
     match &self.version {
       ProvideVersion::Version(version) => version,

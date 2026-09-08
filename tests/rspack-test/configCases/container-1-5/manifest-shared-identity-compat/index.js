@@ -97,3 +97,16 @@ it('retains legacy requires and adds structured shared requirements', () => {
     });
   }
 });
+
+it('loads the configured shared identities after an async boundary', async () => {
+  const modules = await Promise.all([
+    import('legacy'),
+    import('legacy-a'),
+    import('legacy-b'),
+  ]);
+  expect(modules.map((module) => module.default)).toEqual([
+    'legacy',
+    'legacy-a',
+    'legacy-b',
+  ]);
+});

@@ -61,6 +61,14 @@ pub struct StatsSharedRequirement {
   pub share_scope: Option<ShareScope>,
 }
 
+/// Cloned with shared stats when producing the manifest.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct StatsSharedProvider {
+  pub version: String,
+  pub import: String,
+  pub assets: StatsAssetsGroup,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct StatsShared {
   pub id: String,
@@ -82,6 +90,8 @@ pub struct StatsShared {
   pub usedIn: Vec<String>,
   #[serde(default)]
   pub usedExports: Vec<String>,
+  #[serde(default, skip_serializing_if = "Vec::is_empty")]
+  pub providers: Vec<StatsSharedProvider>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -170,6 +180,8 @@ pub struct ManifestShared {
   pub referenceExports: Vec<String>,
   #[serde(default)]
   pub assets: StatsAssetsGroup,
+  #[serde(default, skip_serializing_if = "Vec::is_empty")]
+  pub providers: Vec<StatsSharedProvider>,
 }
 
 #[derive(Debug, Serialize, Clone)]
