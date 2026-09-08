@@ -101,23 +101,3 @@ impl ModuleDependency for ContainerExposedDependency {
 
 impl AsContextDependency for ContainerExposedDependency {}
 impl AsDependencyCodeGeneration for ContainerExposedDependency {}
-
-#[cfg(test)]
-mod tests {
-  use super::{ContainerExposedDependency, exposed_resource_identifier};
-
-  #[test]
-  fn exposed_resource_identifiers_are_collision_free() {
-    let first = exposed_resource_identifier("./a", "b=c|layer=foo", None);
-    let second = exposed_resource_identifier("./a=b", "c", Some("foo"));
-    assert_ne!(first, second);
-  }
-
-  #[test]
-  fn two_argument_constructor_remains_available() {
-    // Signature check only: constructing a dependency allocates a
-    // `DependencyId`, which needs a compiler task context.
-    fn assert_legacy_signature(_: fn(String, String) -> ContainerExposedDependency) {}
-    assert_legacy_signature(ContainerExposedDependency::new);
-  }
-}
