@@ -198,7 +198,7 @@ impl<'a> ArtifactComparator<'a> {
     }
 
     // Compare each dependency by type in order and build mapping
-    for (i, (dep_id1, dep_id2)) in deps1.iter().zip(deps2.iter()).enumerate() {
+    for (i, (dep_id1, dep_id2)) in deps1.zip(deps2).enumerate() {
       let dep_debug_info = debug_info.with_field("dependency_index", &i.to_string());
 
       let dep1 = self.mg1.dependency_by_id(dep_id1);

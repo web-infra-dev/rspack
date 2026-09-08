@@ -98,9 +98,12 @@ impl RuntimeModule for RemoteRuntimeModule {
           ShareScope::Single(s) => ShareScopeField::Single(s.as_str()),
           ShareScope::Multiple(v) => ShareScopeField::Multiple(v.as_slice()),
         };
-        let dep = m.get_dependencies()[0];
+        let dep = m
+          .get_dependencies()
+          .next()
+          .expect("should have external dependency");
         let external_module = module_graph
-          .get_module_by_dependency_id(&dep)
+          .get_module_by_dependency_id(dep)
           .expect("should have module");
         let remote_info = if self.enhanced {
           if let Some(external_module) = external_module.downcast_ref::<ExternalModule>() {

@@ -390,11 +390,11 @@ export default function () {
     );
     // Initializes the share scopes of the given consume modules and returns
     // the promises to wait for before consuming.
-    // - Chunk path (`includeScalar`): every scope is initialized up front and
+    // - Chunk path (`includeScalar`): version-first scopes are initialized up front and
     //   awaited, so a remote registered through `I()` (a `module`/`promise`
     //   external initializes asynchronously) contributes its shares before a
     //   consume resolves to a local fallback. Chunk loading is asynchronous
-    //   anyway.
+    //   anyway. Loaded-first scalar consumes keep remote loading lazy.
     // - Initial path: only ordered (array) scopes, which the bundler runtime
     //   cannot initialize lazily; they enable async startup, which awaits
     //   `initialConsumesInit`. Scalar scopes are left to the consume handlers:
@@ -435,7 +435,7 @@ export default function () {
         });
       const initPromises = initializeConsumeShareScopes(
         consumesLoadingChunkMapping[chunkId],
-        true,
+        runtimeRequire.federation.instance.options.shareStrategy !== 'loaded-first',
       );
       if (initPromises.length === 0) return consume(promises);
       promises.push(

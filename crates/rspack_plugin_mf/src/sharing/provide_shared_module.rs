@@ -4,12 +4,11 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, CodeGenerationResultBuilder, Compilation, Context,
-  DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config,
-  module_update_hash, rspack_sources::BoxSource, runtime_mode::RuntimeMode,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
+  FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier,
+  ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
+  impl_source_map_config, module_update_hash, rspack_sources::BoxSource, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
@@ -28,8 +27,7 @@ use crate::{ConsumeVersion, ShareScope, SharedIdentity, utils::module_identifier
 #[cacheable]
 #[derive(Debug)]
 pub struct ProvideSharedModule {
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  dependencies: Vec<DependencyId>,
+  dependencies_block: DependenciesBlockData,
   identifier: ModuleIdentifier,
   lib_ident: String,
   readable_identifier: String,
@@ -80,10 +78,9 @@ impl ProvideSharedModule {
     // Same layout as webpack's ProvideSharedModule: `(scope)`, then ` (layer)`
     // when layered, then `name@version = request`. External manifest readers
     // parse it by token position.
-    let identifier = readable_identifier.clone();
+    let identifier = format!("{readable_identifier} [identity:{identity_key}]");
     Self {
-      blocks: Vec::new(),
-      dependencies: Vec::new(),
+      dependencies_block: Default::default(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),
       lib_ident: if layer.is_none() && matches!(&share_scope, ShareScope::Single(_)) {
         format!("{namespace}/sharing/provide/{scopes_key}/{name}")
@@ -145,24 +142,12 @@ impl Identifiable for ProvideSharedModule {
 }
 
 impl DependenciesBlock for ProvideSharedModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency)
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }
 
@@ -203,7 +188,7 @@ impl Module for ProvideSharedModule {
     mut self: Box<Self>,
     _build_context: BuildContext,
     _: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<BoxModule> {
     let mut blocks = vec![];
     let mut dependencies = vec![];
     let dep = BoxDependency::new(ProvideForSharedDependency::new(self.request.clone()));
@@ -214,12 +199,10 @@ impl Module for ProvideSharedModule {
       blocks.push(Box::new(block));
     }
 
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies: dependencies.into_iter().map(Into::into).collect(),
-      blocks: blocks.into_iter().map(Into::into).collect(),
-      optimization_bailouts: vec![],
-    })
+    Ok(BoxModule::new(self).with_dependencies(
+      dependencies.into_iter().map(Into::into).collect(),
+      blocks.into_iter().map(Into::into).collect(),
+    ))
   }
 
   // #[tracing::instrument("ProvideSharedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
@@ -238,7 +221,14 @@ impl Module for ProvideSharedModule {
       .runtime_requirements_mut()
       .insert(RuntimeGlobals::INITIALIZE_SHARING);
     let factory = if self.eager {
-      runtime_template.sync_module_factory(&self.get_dependencies()[0], &self.request, compilation)
+      runtime_template.sync_module_factory(
+        self
+          .get_dependencies()
+          .next()
+          .expect("should have shared dependency"),
+        &self.request,
+        compilation,
+      )
     } else {
       runtime_template.async_module_factory(&self.get_blocks()[0], &self.request, compilation)
     };
@@ -280,7 +270,7 @@ impl_empty_diagnosable_trait!(ProvideSharedModule);
 #[cfg(test)]
 mod tests {
   use rspack_collections::Identifiable;
-  use rspack_core::runtime_mode::RuntimeMode;
+  use rspack_core::{Context, Module, runtime_mode::RuntimeMode};
 
   use super::ProvideSharedModule;
   use crate::{ShareScope, sharing::provide_shared_plugin::ProvideVersion};
@@ -306,15 +296,21 @@ mod tests {
   /// layer as an extra `(layer)` segment.
   #[test]
   fn provide_identifier_follows_the_webpack_layout() {
-    let identifier = module(None).identifier();
+    let unlayered = module(None);
+    let identifier = unlayered.readable_identifier(&Context::from(""));
     assert_eq!(
-      identifier.as_str(),
+      identifier.as_ref(),
       "provide shared module (default) react@19.0.0 = /node_modules/react/index.js"
     );
-    assert_eq!(identifier.split(' ').nth(4), Some("react@19.0.0"));
+    assert_eq!(
+      unlayered.identifier().split(' ').nth(4),
+      Some("react@19.0.0")
+    );
 
     assert_eq!(
-      module(Some("server")).identifier().as_str(),
+      module(Some("server"))
+        .readable_identifier(&Context::from(""))
+        .as_ref(),
       "provide shared module (default) (server) react@19.0.0 = /node_modules/react/index.js"
     );
   }

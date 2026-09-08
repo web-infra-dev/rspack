@@ -116,6 +116,43 @@ pub fn get_short_module_name(module: &BoxModule, context: &str) -> String {
   String::new()
 }
 
+pub(crate) fn get_short_module_name_with_graph(
+  module: &BoxModule,
+  context: &str,
+  module_graph: &ModuleGraph,
+) -> String {
+  if module.as_external_module().is_some()
+    && let Some(module_graph_module) =
+      module_graph.module_graph_module_by_identifier(&module.identifier())
+  {
+    let mut requests = module_graph_module
+      .incoming_connections()
+      .iter()
+      .filter_map(|dependency_id| {
+        module_graph
+          .dependency_by_id(dependency_id)
+          .as_module_dependency()
+      })
+      .map(|dependency| dependency.request());
+    if let Some(first_request) = requests.next() {
+      let mut min_request = first_request;
+      let mut has_multiple_requests = false;
+      for request in requests {
+        has_multiple_requests |= request != first_request;
+        min_request = min_request.min(request);
+      }
+      if has_multiple_requests {
+        // External modules are deduplicated by their resolved request. Choose a stable
+        // name from all incoming requests instead of the request whose factorization
+        // happened to finish first.
+        return avoid_number(min_request).to_string();
+      }
+    }
+  }
+
+  get_short_module_name(module, context)
+}
+
 fn avoid_number(s: &str) -> Cow<'_, str> {
   if s.len() > 21 {
     return Cow::Borrowed(s);
@@ -461,7 +498,7 @@ pub fn get_short_chunk_name(
   let short_module_names = modules
     .iter()
     .map(|module| {
-      let name = get_short_module_name(module, context);
+      let name = get_short_module_name_with_graph(module, context, module_graph);
       request_to_id(&name)
     })
     .collect::<Vec<_>>();
@@ -525,7 +562,7 @@ pub fn get_long_chunk_name(
 
   let short_module_names = modules
     .iter()
-    .map(|m| request_to_id(&get_short_module_name(m, context)))
+    .map(|m| request_to_id(&get_short_module_name_with_graph(m, context, module_graph)))
     .collect::<Vec<_>>();
 
   let long_module_names = modules
