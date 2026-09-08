@@ -130,7 +130,9 @@ browserslist 查询字符串或指定浏览器版本的 `Targets` 对象。
 :::tip 来自 Rspack 的默认 Targets
 如果未配置 `targets`，当 Rspack 的 [`target`](/config/target) 配置使用与 browserslist 相关的 targets（例如 `browserslist` 或 `browserslist:modern`）时，`builtin:lightningcss-loader` 将自动从 Rspack 的 [`target`](/config/target) 配置中推断出默认 targets，因为 Lightning CSS 仅支持浏览器相关的 targets，所以像 `node` 这样的非浏览器 target 不会为此 loader 提供默认 targets。
 
-这意味着你可以依赖 Rspack 的 `target` 配置，而无需在 loader 选项中手动指定相同的 targets。
+省略 Rspack `target` 时也会应用这一行为，默认值的选择规则详见 [`target` 的默认行为](/config/target#default-behavior)。你可以依赖解析后的 `target`，而无需在 loader 选项中手动指定相同的 targets。
+
+如果找不到 Browserslist 配置，Rspack `target` 默认为 `web`，则没有可供 loader 继承的浏览器版本。此时，除非显式配置，否则 loader 的 `targets` 会保持未设置。
 :::
 
 下面是一些 targets 的用法示例。

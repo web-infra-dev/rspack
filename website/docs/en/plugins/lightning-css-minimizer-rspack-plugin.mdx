@@ -87,7 +87,11 @@ Below are the configurations supported, `targets` configuration is plain browser
 1. The `targets` option is resolved in the following priority order:
    - User-specified `targets` in plugin options (highest priority)
    - Targets derived from Rspack's [`target`](/config/target) configuration when using browserslist-related targets (e.g., `browserslist` or `browserslist:modern`), since Lightning CSS only supports browser-related targets, non-browser targets like `node` will not provide default targets for this plugin.
-   - Falls back to `"fully supports es6"` if neither is available
+   - If neither is available, targets browsers with full ES6 support by default, using the Browserslist query `"fully supports es6"`
+
+   Inheritance also applies when Rspack `target` is omitted. See [`target` default behavior](/config/target#default-behavior) for how Rspack selects the default.
+
+   For example, if no Browserslist configuration is found and Rspack `target` defaults to `web`, there are no browser versions to inherit. The plugin then uses `"fully supports es6"` unless you configure `minimizerOptions.targets` explicitly.
 
    The fallback ensures that minification does not introduce advanced syntax that could cause browser incompatibility (minification might turn lower-level syntax into advanced syntax because it is shorter).
 
