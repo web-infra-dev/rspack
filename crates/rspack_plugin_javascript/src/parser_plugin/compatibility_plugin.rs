@@ -186,8 +186,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     for_name: &str,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
-    let name = ast.get_utf8(ident.name(ast));
     if for_name == parser.parser_runtime_requirements.exports {
+      let name = ast.get_utf8(ident.name(ast));
       self.tag_nested_require_data(
         parser,
         Atom::from(name),
@@ -200,6 +200,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
         return Some(true);
       }
     } else if for_name == self.nested_require_name(parser) {
+      let name = ast.get_utf8(ident.name(ast));
       let span = ident.span(ast);
       let start = span.real_lo();
       let end = span.real_hi();
@@ -261,8 +262,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
       && (name == parser.parser_runtime_requirements.exports
         || name == self.nested_require_name(parser))
     {
-      let data =
-        parser.get_tag_data_mut::<NestedRequireData>(&Atom::from(name), NESTED_IDENTIFIER_TAG)?;
+      let data = parser.get_tag_data_mut::<NestedRequireData>(name, NESTED_IDENTIFIER_TAG)?;
       if !data.update {
         let dep = Arc::new(ConstDependency::new(data.loc, data.name.clone().into()));
         data.update = true;

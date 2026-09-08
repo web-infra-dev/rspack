@@ -111,9 +111,9 @@ impl JavascriptParser<'_> {
       self.pre_walk_statement(statement);
       self.prev_statement = prev;
       self.block_pre_walk_statement(statement);
-      self.enter_declaration(declaration, |parser, identifier| {
+      self.enter_declaration(declaration, |parser, identifier, name| {
         let ast = parser.ast.ast;
-        let name = Atom::from(ast.get_utf8(identifier.name(ast)));
+        let name = Atom::from(name);
         drive.export_specifier(
           parser,
           ExportLocal::Named(export),
