@@ -164,7 +164,6 @@ pub(crate) struct LoaderCacheMissState {
   cache_key: String,
   etag: Etag,
   diagnostics_len: usize,
-  existing_dependencies: LoaderDependencies,
 }
 
 pub(crate) enum LoaderCacheAction {
@@ -253,7 +252,6 @@ pub(crate) async fn before_normal_chain(
     cache_key,
     etag,
     diagnostics_len: context.diagnostics.len(),
-    existing_dependencies: context.existing_dependencies().clone(),
   })))
 }
 
@@ -270,14 +268,14 @@ pub(crate) async fn after_normal_chain(
     return;
   }
 
-  let existing = &state.existing_dependencies;
-  let current = context.dependencies();
-  if !existing.is_subset_of(&current) {
+  if !context.removed_dependencies().is_empty() {
     return;
   }
-  let added_dependencies = current.difference(existing);
-  let Some(dependency_snapshot) =
-    loader_cache_dependency_snapshot(&context.context.file_system_info, &added_dependencies).await
+  let Some(dependency_snapshot) = loader_cache_dependency_snapshot(
+    &context.context.file_system_info,
+    context.added_dependencies(),
+  )
+  .await
   else {
     return;
   };

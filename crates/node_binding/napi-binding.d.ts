@@ -962,6 +962,8 @@ export interface JsLoaderContext {
   sourceMap?: Buffer
   cacheable: boolean
   dependencies: JsLoaderDependencies
+  __internal__addedDependencies: JsLoaderDependencies
+  __internal__removedDependencies: JsLoaderDependencies
   loaderItems: Array<JsLoaderItem>
   loaderIndex: number
   /**

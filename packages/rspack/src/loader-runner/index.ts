@@ -261,7 +261,11 @@ export async function runLoaders(
   const contextDirectory = resourcePath ? dirname(resourcePath) : null;
 
   // execution state
-  const dependencies = new LoaderDependenciesState(context.dependencies);
+  const dependencies = new LoaderDependenciesState(
+    context.dependencies,
+    context.__internal__addedDependencies,
+    context.__internal__removedDependencies,
+  );
 
   /// Construct `loaderContext`
   const loaderContext = {} as LoaderContext;
@@ -1129,7 +1133,6 @@ export async function runLoaders(
             continue;
           }
 
-          dependencies.resetChanges();
           try {
             await loadLoader(currentLoaderObject, compiler);
             const fn = currentLoaderObject.normal;

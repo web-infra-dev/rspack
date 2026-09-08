@@ -1,4 +1,6 @@
-use std::{fmt::Display, ops::Deref, sync::Arc};
+#[cfg(feature = "test-loader")]
+use std::ops::Deref;
+use std::{fmt::Display, sync::Arc};
 
 use async_trait::async_trait;
 use derive_more::Debug;
@@ -162,9 +164,11 @@ impl<C: Send> Display for LoaderItem<C> {
   }
 }
 
+#[cfg(feature = "test-loader")]
 #[derive(Debug)]
 pub struct LoaderItemList<'a, Context: Send>(pub &'a [LoaderItem<Context>]);
 
+#[cfg(feature = "test-loader")]
 impl<Context: Send> Deref for LoaderItemList<'_, Context> {
   type Target = [LoaderItem<Context>];
 
@@ -173,6 +177,7 @@ impl<Context: Send> Deref for LoaderItemList<'_, Context> {
   }
 }
 
+#[cfg(feature = "test-loader")]
 impl<Context: Send> Default for LoaderItemList<'_, Context> {
   fn default() -> Self {
     Self(&[])
@@ -189,8 +194,10 @@ pub trait DisplayWithSuffix: Display {
   }
 }
 
+#[cfg(feature = "test-loader")]
 impl<Context: Send> DisplayWithSuffix for LoaderItemList<'_, Context> {}
 impl<Context: Send> DisplayWithSuffix for LoaderItem<Context> {}
+#[cfg(feature = "test-loader")]
 impl<Context: Send> Display for LoaderItemList<'_, Context> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     let s = self
@@ -242,6 +249,7 @@ where
   }
 }
 
+#[cfg(test)]
 impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
   fn from(loader: Arc<dyn Loader<C>>) -> Self {
     Self::new(loader, LoaderRunnerOptions::default())

@@ -171,7 +171,6 @@ impl<Context: LoaderRunnerContext> LoaderContext<Context> {
         cx.set_current_loader_normal_executed();
         let loader = cx.current_loader().loader().clone();
         let loader_span = info_span!("run_loader:normal", resource = cx.resource());
-        cx.reset_dependency_changes();
         let result = loader.run(cx).instrument(loader_span).await;
         if result.is_ok() && !cx.current_loader_state().finish_called() {
           // If nothing is returned from this loader, set every output to None
@@ -310,11 +309,13 @@ async fn run_loaders_impl<Context: LoaderRunnerContext>(
           continue;
         }
 
+        cx.reset_dependency_changes();
         if let Some(plugin) = cx.plugin.clone() {
           plugin.run_normal_chain(cx).await?;
         } else {
           cx.run_normal_chain().await?;
         }
+        cx.reset_dependency_changes();
       }
       State::Finished => break,
     }

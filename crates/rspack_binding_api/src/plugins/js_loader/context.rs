@@ -188,6 +188,10 @@ pub struct JsLoaderContext {
   pub source_map: Option<Buffer>,
   pub cacheable: bool,
   pub dependencies: JsLoaderDependencies,
+  #[napi(js_name = "__internal__addedDependencies")]
+  pub added_dependencies: JsLoaderDependencies,
+  #[napi(js_name = "__internal__removedDependencies")]
+  pub removed_dependencies: JsLoaderDependencies,
 
   pub loader_items: Vec<JsLoaderItem>,
   pub loader_index: i32,
@@ -241,7 +245,9 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .map(|v| v.to_json())
         .map(|v| v.into_bytes().into()),
       cacheable: cx.cacheable,
-      dependencies: cx.dependencies().as_ref().into(),
+      dependencies: cx.existing_dependencies().into(),
+      added_dependencies: cx.added_dependencies().into(),
+      removed_dependencies: cx.removed_dependencies().into(),
 
       loader_items: cx
         .loader_items()
