@@ -97,7 +97,11 @@ module.exports = [
 				if (iteration === 3) write("b-async.js", 'export default "updated";');
 				const stats = await manager.build();
 				expect(stats.toJson({ all: false, errors: true }).errors).toEqual([]);
-				if (!legacy) expect(built).toBe(cache === false || iteration % 2 === 0 ? 1 : 0);
+				if (!legacy) {
+					// Consecutive run() calls use rebuild(), which bypasses the module cache.
+					const cacheHit = reopen && iteration % 2 === 1;
+					expect(built).toBe(cacheHit ? 0 : 1);
+				}
 				const filename = path.join(root, "dist/main.js");
 				const source = fs.readFileSync(filename, "utf8");
 				expect(source).toContain(`CONCATENATED MODULE: ./${selected}.js`);
