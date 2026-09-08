@@ -86,8 +86,8 @@ document.body.className = styles.a;
 
 1. 插件按以下顺序确定 `targets`：
    - 优先使用显式配置的 `minimizerOptions.targets`。
-   - 未配置时，使用 Rspack 的 [`target`](/config/target#default-behavior) 提供的浏览器信息。例如，`browserslist` 或 `browserslist:modern` 可以提供这类信息，`node` 等非浏览器 target 则不能。
-   - 如果仍无法确定需要兼容的浏览器，则默认使用 `"fully supports es6"`。
+   - 未配置时，继承 Rspack 的 [`target`](/config/target#default-behavior) 提供的目标信息，只保留支持的浏览器。如果目标中不包含支持的浏览器（如 `browserslist:node 18`），则使用空目标。
+   - 如果 Rspack 未提供目标信息（如 `web`），则默认使用 `"fully supports es6"`。
 
    为了减小体积，Lightning CSS 在压缩时可能会改用更短的新语法。这个默认值限定了可以使用的语法范围，让压缩后的代码也能兼容上述浏览器。
 
