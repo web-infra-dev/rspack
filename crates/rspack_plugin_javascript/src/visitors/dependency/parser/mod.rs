@@ -1371,7 +1371,8 @@ impl<'parser> JavascriptParser<'parser> {
   where
     F: FnOnce(&mut Self, BindingIdentifier),
   {
-    let name = Atom::from(self.ast.ast.get_utf8(ident.name(self.ast.ast)));
+    let ast = self.ast.ast;
+    let name = ast.get_utf8(ident.name(ast));
     let drive = self.plugin_drive.clone();
     if !name
       .call_hooks_name(self, |parser, for_name| {
