@@ -101,22 +101,30 @@ export function createProvideShareOptions(
 ) {
   return normalizedSharedOptions
     .filter(([, options]) => options.import !== false)
-    .map(([key, options]) => ({
-      [options.import || key]: {
-        shareKey: enhanced
-          ? resolveShareKey(options.shareKey, key)
-          : options.shareKey || key,
-        shareScope: options.shareScope,
-        version: options.version,
-        eager: options.eager,
-        singleton: options.singleton,
-        requiredVersion: options.requiredVersion,
-        strictVersion: options.strictVersion,
-        layer: enhanced ? options.layer : undefined,
-        request: enhanced ? options.import || key : undefined,
-        treeShakingMode: options.treeShaking?.mode,
-      },
-    }));
+    .map(([key, options]) => {
+      // The provider must discover the same module the consumer falls back to:
+      // explicit `import`, otherwise the consume request (explicit `request`,
+      // otherwise the config key). See `createConsumeShareOptions`.
+      const provideRequest = enhanced
+        ? options.import || resolveShareRequest(options.request, key)
+        : options.import || key;
+      return {
+        [provideRequest]: {
+          shareKey: enhanced
+            ? resolveShareKey(options.shareKey, key)
+            : options.shareKey || key,
+          shareScope: options.shareScope,
+          version: options.version,
+          eager: options.eager,
+          singleton: options.singleton,
+          requiredVersion: options.requiredVersion,
+          strictVersion: options.strictVersion,
+          layer: enhanced ? options.layer : undefined,
+          request: enhanced ? provideRequest : undefined,
+          treeShakingMode: options.treeShaking?.mode,
+        },
+      };
+    });
 }
 
 export function createConsumeShareOptions(
