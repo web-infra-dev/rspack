@@ -15,6 +15,7 @@ on:
   push:
     branches:
       - main
+      - release/2.3.0
       - v1.x
     paths-ignore:
       - '**/*.md'
@@ -24,7 +25,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'v1.x' }}
+  cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'release/2.3.0' && github.ref_name != 'v1.x' }}
 
 permissions:
   # Allow commenting on issues for `reusable-build.yml`
@@ -104,7 +105,7 @@ jobs:
   bench-rust-walltime:
     name: Rust Bench Walltime
     needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/2.3.0'))) }}
     uses: ./.github/workflows/bench-rust.yml
     with:
       target: x86_64-unknown-linux-gnu
