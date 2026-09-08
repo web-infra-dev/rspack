@@ -257,10 +257,8 @@ impl JavascriptParser<'_> {
         .pre_declarator(self, declarator, decl)
         .unwrap_or_default()
       {
-        self.enter_pattern(PatRef::Borrowed(declarator.id(ast)), |this, identifier| {
-          this.define_variable(Atom::from(
-            this.ast.ast.get_utf8(identifier.name(this.ast.ast)),
-          ));
+        self.enter_pattern(PatRef::Borrowed(declarator.id(ast)), |this, _, name| {
+          this.define_variable(Atom::from(name));
         });
       }
     }
