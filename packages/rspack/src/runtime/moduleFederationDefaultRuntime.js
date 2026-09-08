@@ -452,42 +452,44 @@ export default function () {
       runtimeRequire,
       'initContainer',
       (shareScope, initScope, remoteEntryInitOptions) => {
-        let options = remoteEntryInitOptions;
-        const additionalScopes = [];
-        if (
-          additionalContainerInitScopes?.length &&
-          options?.shareScopeMap &&
-          !Array.isArray(options.shareScopeKeys)
-        ) {
-          const primaryScope = options.shareScopeKeys || 'default';
-          const shareScopeKeys = [primaryScope];
-          const containerScopes = Array.isArray(containerShareScope)
-            ? containerShareScope
-            : [containerShareScope || 'default'];
-          for (const scope of additionalContainerInitScopes) {
-            if (scope === primaryScope) continue;
-            shareScopeKeys.push(scope);
-            if (!containerScopes.includes(scope)) additionalScopes.push(scope);
-          }
-          const descriptors = Object.getOwnPropertyDescriptors(options);
-          descriptors.shareScopeKeys = {
-            configurable: true,
-            enumerable:
-              Object.getOwnPropertyDescriptor(options, 'shareScopeKeys')
-                ?.enumerable ?? true,
-            value: shareScopeKeys,
-            writable: true,
-          };
-          options = Object.create(Object.getPrototypeOf(options), descriptors);
-        }
+        // The host's options are passed through untouched so the bundler
+        // runtime keeps the scalar contract: the container's primary scope is
+        // bound to the host's scope object, whatever either side names it.
+        // Rewriting `shareScopeKeys` into an array made the runtime register
+        // scopes under the host's names instead, losing that binding.
         const result =
           runtimeRequire.federation.bundlerRuntime.initContainerEntry({
             shareScope,
             initScope,
-            remoteEntryInitOptions: options,
+            remoteEntryInitOptions,
             shareScopeKey: containerShareScope,
             webpackRequire: runtimeRequire,
           });
+        const hostShareScopeMap = remoteEntryInitOptions?.shareScopeMap;
+        if (
+          !additionalContainerInitScopes?.length ||
+          !hostShareScopeMap ||
+          Array.isArray(remoteEntryInitOptions.shareScopeKeys)
+        ) {
+          return result;
+        }
+        // Additional (ordered) scopes are mapped and initialized separately
+        // from the primary binding.
+        const primaryScope = remoteEntryInitOptions.shareScopeKeys || 'default';
+        const containerScopes = Array.isArray(containerShareScope)
+          ? containerShareScope
+          : [containerShareScope || 'default'];
+        const additionalScopes = [];
+        for (const scope of additionalContainerInitScopes) {
+          if (scope === primaryScope) continue;
+          if (!hostShareScopeMap[scope]) hostShareScopeMap[scope] = {};
+          runtimeRequire.federation.instance.initShareScopeMap(
+            scope,
+            hostShareScopeMap[scope],
+            { hostShareScopeMap },
+          );
+          if (!containerScopes.includes(scope)) additionalScopes.push(scope);
+        }
         if (additionalScopes.length === 0) return result;
         const initializeAdditionalScopes = () =>
           Promise.all(

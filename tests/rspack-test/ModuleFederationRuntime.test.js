@@ -27,12 +27,17 @@ function createRuntime({
 	initialConsumes,
 	additionalInitScopes = [],
 	scopeToSharingDataMapping = {},
+	// Use the real bundler-runtime initContainerEntry instead of recording
+	// its arguments; the runtime under test then gets its own scope map.
+	realInitContainerEntry = false,
 } = {}) {
-	const shareScopeMap = {
-		primary: { tag: 'primary' },
-		secondary: { tag: 'secondary' },
-		'host-custom': { tag: 'host-custom' },
-	};
+	const shareScopeMap = realInitContainerEntry
+		? {}
+		: {
+				primary: { tag: 'primary' },
+				secondary: { tag: 'secondary' },
+				'host-custom': { tag: 'host-custom' },
+			};
 	const runtimeRequire = () => external;
 	Object.assign(runtimeRequire, {
 		S: shareScopeMap,
@@ -96,6 +101,10 @@ function createRuntime({
 		initializeSharing(shareScope, options) {
 			return this.sharedHandler.initializeSharing(shareScope, options);
 		},
+		initOptions() {},
+		initShareScopeMap(key, scope) {
+			this.shareScopeMap[key] = scope;
+		},
 		registerShared() {},
 	};
 	const localBundlerRuntime = {
@@ -103,9 +112,11 @@ function createRuntime({
 		consumes: () => {},
 		init: () => instance,
 		getSharedFallbackGetter: ({ shareKey }) => shareKey,
-		initContainerEntry: options => {
-			initContainerCalls.push(options);
-		},
+		initContainerEntry: realInitContainerEntry
+			? bundlerRuntime.initContainerEntry
+			: options => {
+					initContainerCalls.push(options);
+				},
 	};
 	const importedBundlerRuntime = {
 		...localBundlerRuntime,
@@ -201,17 +212,66 @@ describe('module federation default runtime share scopes', () => {
 			remoteEntryInitOptions,
 		);
 
+		// The host's options reach the bundler runtime untouched (scalar
+		// primary binding); additional scopes are mapped separately.
 		expect(initContainerCalls).toHaveLength(1);
-		expect(
-			initContainerCalls[0].remoteEntryInitOptions.shareScopeKeys,
-		).toEqual(['host-custom', 'secondary']);
+		expect(initContainerCalls[0].remoteEntryInitOptions).toBe(
+			remoteEntryInitOptions,
+		);
 		expect(remoteEntryInitOptions.shareScopeKeys).toBe('host-custom');
-		expect(
-			Object.getOwnPropertyDescriptor(
-				initContainerCalls[0].remoteEntryInitOptions,
-				'shareScopeMap',
-			).enumerable,
-		).toBe(false);
+		expect(shareScopeMap.secondary).toBe(remoteEntryInitOptions.shareScopeMap.secondary);
+	});
+
+	describe('with the real initContainerEntry', () => {
+		const hostShareScopeMap = () => ({
+			'host-custom': { tag: 'host-custom' },
+			secondary: { tag: 'secondary' },
+		});
+
+		it('binds the container primary scope to the host scope object', async () => {
+			const { runtimeRequire, shareScopeMap: containerScopeMap } =
+				createRuntime({
+					realInitContainerEntry: true,
+					containerShareScope: 'container-custom',
+					remoteShareScope: 'host-custom',
+				});
+			const shareScopeMap = hostShareScopeMap();
+
+			await runtimeRequire.initContainer(shareScopeMap['host-custom'], [], {
+				shareScopeKeys: 'host-custom',
+				shareScopeMap,
+			});
+
+			expect(containerScopeMap['container-custom']).toBe(
+				shareScopeMap['host-custom'],
+			);
+		});
+
+		it('keeps the primary binding when expanding additional scopes', async () => {
+			const { initializedScopes, runtimeRequire, shareScopeMap: containerScopeMap } =
+				createRuntime({
+					realInitContainerEntry: true,
+					containerShareScope: 'container-custom',
+					remoteShareScope: 'host-custom',
+					additionalInitScopes: ['secondary'],
+				});
+			const shareScopeMap = hostShareScopeMap();
+
+			await runtimeRequire.initContainer(shareScopeMap['host-custom'], [], {
+				shareScopeKeys: 'host-custom',
+				shareScopeMap,
+			});
+
+			// primary alias: container name -> host object
+			expect(containerScopeMap['container-custom']).toBe(
+				shareScopeMap['host-custom'],
+			);
+			// additional scope shares the host's object and gets initialized
+			expect(containerScopeMap.secondary).toBe(shareScopeMap.secondary);
+			expect(initializedScopes).toContain('secondary');
+			// the scalar path never registers the host's name on the container
+			expect(containerScopeMap['host-custom']).toBeUndefined();
+		});
 	});
 
 	it('does not post-initialize scopes owned by the container', async () => {
