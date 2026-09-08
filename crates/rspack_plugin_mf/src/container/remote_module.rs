@@ -190,7 +190,12 @@ impl Module for RemoteModule {
   ) -> Result<CodeGenerationResultBuilder> {
     let mut codegen = CodeGenerationResultBuilder::default();
     let module_graph = code_generation_context.compilation.get_module_graph();
-    let module = module_graph.get_module_by_dependency_id(&self.get_dependencies()[0]);
+    let module = module_graph.get_module_by_dependency_id(
+      self
+        .get_dependencies()
+        .next()
+        .expect("should have external dependency"),
+    );
     let id = module.and_then(|m| {
       ChunkGraph::get_module_id(
         &code_generation_context.compilation.module_ids_artifact,

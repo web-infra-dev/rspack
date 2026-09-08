@@ -247,11 +247,14 @@ impl Module for LazyCompilationProxyModule {
       ..
     } = code_generation_context;
 
-    let client_dep_id = self.get_dependencies()[0];
+    let client_dep_id = self
+      .get_dependencies()
+      .next()
+      .expect("should have client dependency");
     let module_graph = &compilation.get_module_graph();
 
     let client_module = module_graph
-      .module_identifier_by_dependency_id(&client_dep_id)
+      .module_identifier_by_dependency_id(client_dep_id)
       .expect("should have module");
 
     let block = self.get_blocks().first();
@@ -276,9 +279,12 @@ impl Module for LazyCompilationProxyModule {
         .block_by_id(block_id)
         .expect("should have block");
 
-      let dep_id = block.get_dependencies()[0];
+      let dep_id = block
+        .get_dependencies()
+        .next()
+        .expect("should have dependency");
       let module = module_graph
-        .module_identifier_by_dependency_id(&dep_id)
+        .module_identifier_by_dependency_id(dep_id)
         .expect("should have module");
 
       RawStringSource::from(format!(
@@ -295,7 +301,7 @@ impl Module for LazyCompilationProxyModule {
         runtime_template.module_namespace_promise(
           compilation,
           *module,
-          &dep_id,
+          dep_id,
           Some(block_id),
           &self.resource,
           "import()",

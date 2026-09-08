@@ -34,8 +34,8 @@ pub trait DependenciesBlock {
     self.dependencies_block_mut().remove_dependency(dependency);
   }
 
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies_block().dependency_ids
+  fn get_dependencies(&self) -> DependencyIds<'_> {
+    DependencyIds(self.get_dependency_refs().iter())
   }
 
   fn get_dependency_refs(&self) -> &[DependencyRef] {
@@ -43,9 +43,29 @@ pub trait DependenciesBlock {
   }
 }
 
+/// Iterates dependency IDs directly from their owning references without allocating an ID list.
+/// Cloning only copies the cursor so code generation can traverse the same dependencies multiple times.
+#[derive(Clone)]
+pub struct DependencyIds<'a>(std::slice::Iter<'a, DependencyRef>);
+
+impl<'a> Iterator for DependencyIds<'a> {
+  type Item = &'a DependencyId;
+
+  #[inline]
+  fn next(&mut self) -> Option<Self::Item> {
+    self.0.next().map(|dependency| dependency.id())
+  }
+
+  #[inline]
+  fn size_hint(&self) -> (usize, Option<usize>) {
+    self.0.size_hint()
+  }
+}
+
+impl ExactSizeIterator for DependencyIds<'_> {}
+
 /// Build-owned dependency objects and blocks. The graph indexes the same shared objects.
-/// ID slices are read indexes maintained together with their owning references, so existing
-/// graph algorithms can keep borrowing contiguous IDs without collecting them on every read.
+/// Dependency IDs are read from the objects; block IDs remain a contiguous read index.
 /// Cloning copies these containers for normal-module state cache entries; the dependency
 /// and block objects themselves remain shared.
 #[cacheable]
@@ -54,17 +74,12 @@ pub struct DependenciesBlockData {
   dependencies: Vec<DependencyRef>,
   #[cacheable(omit_bounds)]
   blocks: Vec<AsyncDependenciesBlockRef>,
-  dependency_ids: Vec<DependencyId>,
   block_ids: Vec<AsyncDependenciesBlockIdentifier>,
 }
 
 impl DependenciesBlockData {
   pub fn new(dependencies: Vec<DependencyRef>, blocks: Vec<AsyncDependenciesBlockRef>) -> Self {
     Self {
-      dependency_ids: dependencies
-        .iter()
-        .map(|dependency| *dependency.id())
-        .collect(),
       block_ids: blocks.iter().map(|block| block.identifier()).collect(),
       dependencies,
       blocks,
@@ -72,12 +87,10 @@ impl DependenciesBlockData {
   }
 
   fn add_dependency(&mut self, dependency: DependencyRef) {
-    self.dependency_ids.push(*dependency.id());
     self.dependencies.push(dependency);
   }
 
   fn remove_dependency(&mut self, dependency: DependencyId) {
-    self.dependency_ids.retain(|id| *id != dependency);
     self.dependencies.retain(|value| *value.id() != dependency);
   }
 
@@ -105,7 +118,7 @@ pub type AsyncDependenciesBlockIdentifierSet =
   std::collections::HashSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>>;
 
 pub fn dependencies_block_update_hash(
-  deps: &[DependencyId],
+  deps: DependencyIds<'_>,
   blocks: &[AsyncDependenciesBlockIdentifier],
   hasher: &mut RspackHasher,
   compilation: &Compilation,

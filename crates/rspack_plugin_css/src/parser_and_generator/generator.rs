@@ -296,7 +296,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     };
 
     let module_graph = compilation.get_module_graph();
-    self.module.get_dependencies().iter().for_each(|id| {
+    self.module.get_dependencies().for_each(|id| {
       let dep = module_graph.dependency_by_id(id);
 
       if let Some(dependency) = dep.as_dependency_code_generation() {
@@ -317,7 +317,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
 
   fn css_text_expr_with_imports(&mut self) -> String {
     let module_graph = self.generate_context.compilation.get_module_graph();
-    let has_css_imports = self.module.get_dependencies().iter().any(|dependency_id| {
+    let has_css_imports = self.module.get_dependencies().any(|dependency_id| {
       let dependency = module_graph.dependency_by_id(dependency_id);
       matches!(dependency.dependency_type(), DependencyType::CssImport)
     });
@@ -392,7 +392,6 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     self
       .module
       .get_dependencies()
-      .iter()
       .filter_map(move |dependency_id| {
         let dependency = module_graph.dependency_by_id(dependency_id);
         if !matches!(dependency.dependency_type(), DependencyType::CssImport) {
@@ -791,7 +790,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let from = id
       .and_then(find_target_module)
       .or_else(|| {
-        self.module.get_dependencies().iter().find_map(|id| {
+        self.module.get_dependencies().find_map(|id| {
           let dependency = module_graph.dependency_by_id(id);
           let request = dependency_request(dependency);
           if let Some(request) = request
@@ -806,7 +805,6 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         let dependency_requests = self
           .module
           .get_dependencies()
-          .iter()
           .filter_map(|id| {
             let dependency = module_graph.dependency_by_id(id);
             dependency_request(dependency)
@@ -899,7 +897,6 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       .or_else(|| {
         module
           .get_dependencies()
-          .iter()
           .filter(|dep_id| {
             let dependency = module_graph.dependency_by_id(dep_id);
             dependency_request(dependency) == Some(from_name)
@@ -1167,7 +1164,7 @@ fn find_static_export_target(
       .map(|module| module.identifier())
   })
   .or_else(|| {
-    module.get_dependencies().iter().find_map(|id| {
+    module.get_dependencies().find_map(|id| {
       let dependency = module_graph.dependency_by_id(id);
       let request = dependency_request(dependency);
       (request == Some(from_request)).then(|| {

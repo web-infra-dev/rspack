@@ -187,7 +187,14 @@ impl Module for ProvideSharedModule {
       .runtime_requirements_mut()
       .insert(RuntimeGlobals::INITIALIZE_SHARING);
     let factory = if self.eager {
-      runtime_template.sync_module_factory(&self.get_dependencies()[0], &self.request, compilation)
+      runtime_template.sync_module_factory(
+        self
+          .get_dependencies()
+          .next()
+          .expect("should have shared dependency"),
+        &self.request,
+        compilation,
+      )
     } else {
       runtime_template.async_module_factory(&self.get_blocks()[0], &self.request, compilation)
     };

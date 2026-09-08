@@ -110,7 +110,6 @@ pub(crate) struct ModuleGraphData {
   /// let parent_module_id = parent_module.identifier();
   /// parent_module
   ///   .get_dependencies()
-  ///   .iter()
   ///   .map(|dependency_id| {
   ///     let parents_info = module_graph_partial
   ///       .dependency_id_to_parents

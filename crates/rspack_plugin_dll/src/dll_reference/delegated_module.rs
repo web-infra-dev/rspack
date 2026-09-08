@@ -127,11 +127,14 @@ impl Module for DelegatedModule {
 
     let mut code_generation_result = CodeGenerationResultBuilder::default();
 
-    let dep = self.get_dependencies()[0];
+    let dep = self
+      .get_dependencies()
+      .next()
+      .expect("should have source dependency");
     let mg = compilation.get_module_graph();
-    let source_module = mg.get_module_by_dependency_id(&dep);
+    let source_module = mg.get_module_by_dependency_id(dep);
     let dependency = mg
-      .dependency_by_id(&dep)
+      .dependency_by_id(dep)
       .downcast_ref::<DelegatedSourceDependency>()
       .expect("Should be module dependency");
 
@@ -140,7 +143,7 @@ impl Module for DelegatedModule {
         let mut s = format!(
           "{}.exports = ({})",
           runtime_template.render_module_argument(ModuleArgument::Module),
-          runtime_template.module_raw(compilation, &dep, dependency.request(), false,)
+          runtime_template.module_raw(compilation, dep, dependency.request(), false,)
         );
 
         let request = json_stringify(

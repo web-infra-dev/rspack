@@ -215,7 +215,14 @@ impl Module for ConsumeSharedModule {
     }
     let factory = self.options.import.as_ref().map(|fallback| {
       if self.options.eager {
-        runtime_template.sync_module_factory(&self.get_dependencies()[0], fallback, compilation)
+        runtime_template.sync_module_factory(
+          self
+            .get_dependencies()
+            .next()
+            .expect("should have fallback dependency"),
+          fallback,
+          compilation,
+        )
       } else {
         runtime_template.async_module_factory(&self.get_blocks()[0], fallback, compilation)
       }

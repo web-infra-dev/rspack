@@ -29,7 +29,7 @@ pub mod incremental;
 pub use dependencies_block::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
   AsyncDependenciesBlockIdentifierSet, AsyncDependenciesBlockRef, DependenciesBlock,
-  DependenciesBlockData,
+  DependenciesBlockData, DependencyIds,
 };
 mod fake_namespace_object;
 pub use fake_namespace_object::*;

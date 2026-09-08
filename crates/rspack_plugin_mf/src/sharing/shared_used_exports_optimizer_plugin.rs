@@ -99,10 +99,10 @@ impl SharedUsedExportsOptimizerPlugin {
   }
 }
 
-fn collect_processed_modules(
+fn collect_processed_modules<'a>(
   module_graph: &ModuleGraph,
   module_blocks: &[AsyncDependenciesBlockIdentifier],
-  module_deps: &[DependencyId],
+  module_deps: impl IntoIterator<Item = &'a DependencyId>,
   out: &mut Vec<ModuleIdentifier>,
 ) {
   for dep_id in module_deps {

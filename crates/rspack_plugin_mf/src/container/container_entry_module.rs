@@ -468,7 +468,7 @@ impl ExposeModuleMap {
       let block = module_graph
         .block_by_id(block_id)
         .expect("should have block");
-      let modules_iter = block.get_dependencies().iter().map(|dependency_id| {
+      let modules_iter = block.get_dependencies().map(|dependency_id| {
         let dep = module_graph.dependency_by_id(dependency_id);
         let dep = dep
           .downcast_ref::<ContainerExposedDependency>()

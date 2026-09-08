@@ -150,7 +150,6 @@ impl Module for FallbackModule {
     let module_graph = compilation.get_module_graph();
     let ids: Vec<_> = self
       .get_dependencies()
-      .iter()
       .filter_map(|dep| module_graph.get_module_by_dependency_id(dep))
       .filter_map(|module| {
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
