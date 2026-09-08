@@ -86,10 +86,8 @@ Below are the configurations supported, `targets` configuration is plain browser
 
 1. The plugin determines `targets` in this order:
    - Use `minimizerOptions.targets` if explicitly configured.
-   - Otherwise, get browser targets from Rspack's [`target`](/config/target), such as the browsers specified by `browserslist` or `browserslist:modern`. Non-browser targets such as `node` do not provide this information.
-   - If no browser targets are available, use browsers with full ES6 support through the Browserslist query `"fully supports es6"`.
-
-   This also applies to Rspack's [default `target`](/config/target#default-behavior). For example, when `target` is not set and no Browserslist configuration is found, Rspack uses `web`. Since `web` does not specify browser versions, the plugin uses `"fully supports es6"` unless you set `minimizerOptions.targets`.
+   - Otherwise, get browser targets from Rspack's [`target`](/config/target#default-behavior), such as the browsers specified by `browserslist` or `browserslist:modern`. Non-browser targets such as `node` do not provide this information.
+   - If no browser targets are available, use `"fully supports es6"` by default.
 
    During minification, Lightning CSS may use shorter, newer syntax to reduce file size. This default limits the syntax it can use to keep the result compatible with those browsers.
 
