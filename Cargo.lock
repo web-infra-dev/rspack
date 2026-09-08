@@ -7378,9 +7378,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_allocator"
-version = "0.1.3"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d91e7cd2b1d8e0416de91d646162c118c53970dfa5f0ee3bf5f911ec617efe7d"
+checksum = "72965c23b599e53e7dc304d56a8e2d5c971a82738920ba3e303b9799a26c1a75"
 dependencies = [
  "allocator-api2",
  "bumpalo",
@@ -7390,9 +7390,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_ast_macros"
-version = "0.1.3"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa1bab1d6fb73cd5c431785ead29d3f971494f80c7dccd90f9db20642b0b67fb"
+checksum = "2e3570bd93a03c61564002d421ffa93f9ff62a9817a333cd8e340939ef1c8ce3"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7401,9 +7401,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_ecma_ast"
-version = "0.1.3"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f33adc19da19f209cce2b140c19f7a66fd91da1e817bc2f5f2a32ede4f3cb959"
+checksum = "ee81510203d325d7272f4f348b87813258e139e5931ffc1720915ca792b3e6ae"
 dependencies = [
  "oxc_index",
  "swc_next_allocator",
@@ -7413,9 +7413,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_ecma_parser"
-version = "0.1.3"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b312fc7fa2611536895b3da3703a12982daa3ac654184cad2891ad7827ca890"
+checksum = "f1d1f170e4cb99604e0cfebcc48cc3e10040f1df91921c46f8126e72ae41df61"
 dependencies = [
  "bitflags 2.13.1",
  "memchr",
@@ -7426,9 +7426,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_ecma_semantic"
-version = "0.1.3"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7615eb63fe495d54d4ba752d896514f4f8b5eee6d794e67c62cd3a406a97533d"
+checksum = "0525b1a36eca433d420faebdf88490cd1242a514a7e35284d3f50957603683db"
 dependencies = [
  "bitflags 2.13.1",
  "hashbrown 0.17.1",
@@ -7441,9 +7441,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_regular_expression"
-version = "0.1.3"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3960525459ebbe560e5afb1820097ae4fd0612cb70aded067fc0ee3c26d7c83c"
+checksum = "1dcf071a591caaa222ce6cf39d35c5edf9d8a90523ff52bd13ee32ca49fff370"
 dependencies = [
  "bitflags 2.13.1",
  "phf 0.14.0",
