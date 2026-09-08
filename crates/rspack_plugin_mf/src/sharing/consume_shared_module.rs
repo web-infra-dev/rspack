@@ -116,6 +116,23 @@ impl DependenciesBlock for ConsumeSharedModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for ConsumeSharedModule {
+  fn update_cache_module(&mut self, fresh: &mut dyn Module) -> bool {
+    let fresh = fresh
+      .as_any_mut()
+      .downcast_mut::<Self>()
+      .expect("module type must match");
+    if self.context != fresh.context || self.options != fresh.options {
+      return false;
+    }
+    std::mem::swap(&mut self.lib_ident, &mut fresh.lib_ident);
+    std::mem::swap(
+      &mut self.readable_identifier,
+      &mut fresh.readable_identifier,
+    );
+    std::mem::swap(&mut self.factory_meta, &mut fresh.factory_meta);
+    true
+  }
+
   impl_module_meta_info!();
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {

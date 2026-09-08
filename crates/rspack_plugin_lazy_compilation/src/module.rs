@@ -134,6 +134,30 @@ impl_empty_diagnosable_trait!(LazyCompilationProxyModule);
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for LazyCompilationProxyModule {
+  fn update_cache_module(&mut self, fresh: &mut dyn Module) -> bool {
+    let fresh = fresh
+      .as_any_mut()
+      .downcast_mut::<Self>()
+      .expect("module type must match");
+    if self.active != fresh.active
+      || self.client != fresh.client
+      || self.reserved_externals != fresh.reserved_externals
+    {
+      return false;
+    }
+    std::mem::swap(
+      &mut self.readable_identifier,
+      &mut fresh.readable_identifier,
+    );
+    std::mem::swap(&mut self.lib_ident, &mut fresh.lib_ident);
+    std::mem::swap(&mut self.context, &mut fresh.context);
+    std::mem::swap(&mut self.layer, &mut fresh.layer);
+    std::mem::swap(&mut self.dep_options, &mut fresh.dep_options);
+    std::mem::swap(&mut self.resource, &mut fresh.resource);
+    std::mem::swap(&mut self.factory_meta, &mut fresh.factory_meta);
+    true
+  }
+
   impl_module_meta_info!();
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
@@ -184,7 +208,10 @@ impl Module for LazyCompilationProxyModule {
   }
 
   async fn need_build(&mut self, context: &NeedBuildContext<'_>) -> Result<bool> {
-    Ok(self.need_build_for_incremental(context.value_cache_versions))
+    Ok(
+      self.need_build_for_incremental(context.value_cache_versions)
+        || self.build_info.need_build(context).await?,
+    )
   }
 
   async fn build(

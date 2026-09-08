@@ -96,7 +96,8 @@ module.exports = {
               'stable.js',
             ]);
           } else {
-            expect(builtModules).toEqual(['changed.js']);
+            // JSON.parse is a factory callback that cannot be persisted.
+            expect(builtModules).toEqual(['changed.js', 'data.json']);
           }
           loaderOptions.builtModules = [];
           compilerIndex++;

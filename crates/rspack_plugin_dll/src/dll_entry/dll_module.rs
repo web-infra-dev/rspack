@@ -57,6 +57,18 @@ impl DllModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for DllModule {
+  fn update_cache_module(&mut self, fresh: &mut dyn Module) -> bool {
+    let fresh = fresh
+      .as_any_mut()
+      .downcast_mut::<Self>()
+      .expect("module type must match");
+    if self.entries != fresh.entries || self.context != fresh.context {
+      return false;
+    }
+    std::mem::swap(&mut self.factory_meta, &mut fresh.factory_meta);
+    true
+  }
+
   impl_module_meta_info!();
 
   fn module_type(&self) -> &ModuleType {
@@ -118,10 +130,6 @@ impl Module for DllModule {
 
   fn need_build_for_incremental(&self, _value_cache_versions: &ValueCacheVersions) -> bool {
     false
-  }
-
-  async fn need_build(&mut self, _context: &NeedBuildContext<'_>) -> Result<bool> {
-    Ok(false)
   }
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {

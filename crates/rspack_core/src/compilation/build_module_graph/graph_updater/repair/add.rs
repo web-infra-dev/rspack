@@ -145,6 +145,7 @@ impl Task<TaskContext> for AddTask {
     if cached {
       return Ok(vec![Box::new(BuildResultTask {
         module,
+        from_cache: true,
         plugin_driver: context.plugin_driver.clone(),
         forwarded_ids,
       })]);

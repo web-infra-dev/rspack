@@ -24,7 +24,7 @@ use super::{
 use crate::ShareScope;
 
 #[cacheable]
-#[derive(Debug, Clone, rspack_hash::RspackHash)]
+#[derive(Debug, Clone, PartialEq, Eq, rspack_hash::RspackHash)]
 pub struct ConsumeOptions {
   pub import: Option<String>,
   pub import_resolved: Option<String>,

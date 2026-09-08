@@ -7,11 +7,12 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 
 use crate::{
   BoxModule, BuildModuleGraphArtifact, FileSystemInfo, ModuleGraph, ModuleIdentifier,
-  NormalModuleState, ValueCacheVersions,
+  NeedBuildContext, ValueCacheVersions,
+  cache::SnapshotStrategyOptions,
   new_cache::{Cache, CacheFacade, CacheValue, MemoryCacheGetResult},
 };
 
-/// Cache for completed normal module builds.
+/// Cache for completed module builds.
 ///
 /// A compilation exclusively owns its live modules until the next full build
 /// transfers them back to the memory cache. Filesystem writes borrow the latest
@@ -28,14 +29,14 @@ type ModuleCacheSlot = Mutex<Option<BoxModule>>;
 #[cacheable]
 struct StoredModule<'a> {
   #[cacheable(with=AsOwned)]
-  module_state: OwnedOrRef<'a, NormalModuleState>,
+  module: OwnedOrRef<'a, BoxModule>,
 }
 
 impl ModuleBuildCache {
   pub(crate) fn new(cache: &Cache) -> Self {
     Self {
       // The owned filesystem representation differs from the previous state cache.
-      cache: cache.facade("Compilation/modules/owned-v1"),
+      cache: cache.facade("Compilation/modules/owned-v2"),
       pending: Default::default(),
     }
   }
@@ -51,10 +52,6 @@ impl ModuleBuildCache {
     file_system_info: &FileSystemInfo,
     value_cache_versions: &ValueCacheVersions,
   ) -> Result<(BoxModule, bool)> {
-    if module.as_normal_module().is_none() {
-      return Ok((module, false));
-    }
-
     let identifier = module.identifier();
     let cached = match self
       .cache
@@ -65,45 +62,27 @@ impl ModuleBuildCache {
         .expect("module cache slot should not be poisoned")
         .take(),
       MemoryCacheGetResult::Miss => None,
-      MemoryCacheGetResult::NotCached => {
-        let stored = self
-          .cache
-          .restore_owned::<StoredModule<'static>>(identifier.as_str(), None);
-        self.mark_acquired(identifier);
-        if let Some(StoredModule {
-          module_state,
-        }) = stored
-          && !module_state
-            .as_ref()
-            .need_build_with_context(file_system_info, value_cache_versions)
-            .await?
-        {
-          module
-            .as_normal_module_mut()
-            .expect("normal module was checked")
-            .restore_module_state(module_state.into_owned());
-          return Ok((module, true));
-        }
-        return Ok((module, false));
-      }
+      MemoryCacheGetResult::NotCached => self
+        .cache
+        .restore_owned::<StoredModule<'static>>(identifier.as_str(), None)
+        .map(|stored| stored.module.into_owned()),
     };
     self.mark_acquired(identifier);
     let Some(mut cached) = cached else {
       return Ok((module, false));
     };
-    let fresh = module
-      .as_normal_module_mut()
-      .expect("normal module was checked");
-    let normal = cached
-      .as_normal_module_mut()
-      .expect("only normal modules are cached");
-    normal.update_cache_module(fresh);
-    if normal
-      .need_build_with_context(file_system_info, value_cache_versions)
-      .await?
+    // Identifiers can be reused by factories producing different module types.
+    if cached.as_ref().as_any().type_id() != module.as_ref().as_any().type_id()
+      || !module.build_info().cacheable
+      || cached
+        .need_build(&NeedBuildContext {
+          file_system_info,
+          value_cache_versions,
+        })
+        .await?
+      || !cached.update_cache_module(module.as_mut())
     {
-      normal.reset_cached_build(fresh);
-      return Ok((cached, false));
+      return Ok((module, false));
     }
 
     Ok((cached, true))
@@ -139,12 +118,23 @@ impl ModuleBuildCache {
           let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
             return Ok(None);
           };
-          let Some(module) = module.as_normal_module() else {
-            return Ok(None);
-          };
-          let snapshot = module
-            .create_cache_snapshot(file_system_info, build_start_time)
-            .await?;
+          let build_info = module.build_info();
+          let snapshot =
+            if build_info.cacheable && !module.diagnostics().iter().any(|d| d.is_error()) {
+              Some(
+                file_system_info
+                  .create_snapshot(
+                    Some(build_start_time),
+                    &build_info.dependencies.file,
+                    &build_info.dependencies.context,
+                    &build_info.dependencies.missing,
+                    SnapshotStrategyOptions::timestamp(),
+                  )
+                  .await?,
+              )
+            } else {
+              None
+            };
           Ok(Some((module_identifier, snapshot)))
         });
       }
@@ -171,20 +161,17 @@ impl ModuleBuildCache {
     if !self.cache.has_file_cache() {
       return;
     }
-    self.cache.store_borrowed(
-      module_graph
-        .modules_par()
-        .filter_map(|(identifier, module)| {
-          let normal = module.as_normal_module()?;
-          Some((
-            identifier.as_str(),
-            None,
-            StoredModule {
-              module_state: OwnedOrRef::Borrowed(normal.module_state()),
-            },
-          ))
-        }),
-    );
+    self
+      .cache
+      .store_borrowed(module_graph.modules_par().map(|(identifier, module)| {
+        (
+          identifier.as_str(),
+          None,
+          StoredModule {
+            module: OwnedOrRef::Borrowed(module),
+          },
+        )
+      }));
   }
 
   /// Returns live modules immediately before a full build discards their graph.
@@ -194,9 +181,6 @@ impl ModuleBuildCache {
       return;
     }
     for module in module_graph.take_modules() {
-      if module.as_normal_module().is_none() {
-        continue;
-      }
       let identifier = module.identifier();
       self.cache.store_memory(
         identifier.as_str(),

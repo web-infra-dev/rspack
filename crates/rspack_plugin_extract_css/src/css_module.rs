@@ -95,6 +95,22 @@ impl CssModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for CssModule {
+  fn update_cache_module(&mut self, fresh: &mut dyn Module) -> bool {
+    let fresh = fresh
+      .as_any_mut()
+      .downcast_mut::<Self>()
+      .expect("module type must match");
+    if self.content != fresh.content
+      || self.source_map != fresh.source_map
+      || self.module_layer != fresh.module_layer
+    {
+      return false;
+    }
+    std::mem::swap(&mut self._context, &mut fresh._context);
+    std::mem::swap(&mut self.factory_meta, &mut fresh.factory_meta);
+    true
+  }
+
   impl_module_meta_info!();
 
   fn readable_identifier(&self, context: &rspack_core::Context) -> std::borrow::Cow<'_, str> {

@@ -7,7 +7,7 @@ use rspack_core::{
   BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder,
   Compilation, Context, DependenciesBlock, DependenciesBlockData, FactoryMeta, LibIdentOptions,
   Module, ModuleArgument, ModuleCodeGenerationContext, ModuleDependency, ModuleGraph, ModuleId,
-  ModuleType, NeedBuildContext, RuntimeSpec, SourceType, StaticExportsDependency,
+  ModuleType, RuntimeSpec, SourceType, StaticExportsDependency,
   StaticExportsSpec, ValueCacheVersions, impl_module_meta_info, impl_source_map_config,
   module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource},
@@ -60,6 +60,24 @@ impl DelegatedModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for DelegatedModule {
+  fn update_cache_module(&mut self, fresh: &mut dyn Module) -> bool {
+    let fresh = fresh
+      .as_any_mut()
+      .downcast_mut::<Self>()
+      .expect("module type must match");
+    if self.request != fresh.request
+      || self.delegation_type != fresh.delegation_type
+      || serde_json::to_value(&self.delegate_data).expect("serializable DLL manifest")
+        != serde_json::to_value(&fresh.delegate_data).expect("serializable DLL manifest")
+    {
+      return false;
+    }
+    std::mem::swap(&mut self.user_request, &mut fresh.user_request);
+    std::mem::swap(&mut self.original_request, &mut fresh.original_request);
+    std::mem::swap(&mut self.factory_meta, &mut fresh.factory_meta);
+    true
+  }
+
   impl_module_meta_info!();
 
   fn module_type(&self) -> &ModuleType {
@@ -186,10 +204,6 @@ impl Module for DelegatedModule {
 
   fn need_build_for_incremental(&self, _value_cache_versions: &ValueCacheVersions) -> bool {
     false
-  }
-
-  async fn need_build(&mut self, _context: &NeedBuildContext<'_>) -> Result<bool> {
-    Ok(false)
   }
 
   async fn get_runtime_hash(

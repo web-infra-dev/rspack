@@ -1079,6 +1079,23 @@ impl DependenciesBlock for ExternalModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for ExternalModule {
+  fn update_cache_module(&mut self, fresh: &mut dyn Module) -> bool {
+    let fresh = fresh
+      .as_any_mut()
+      .downcast_mut::<Self>()
+      .expect("module type must match");
+    if self.dependency_meta.source_type != fresh.dependency_meta.source_type {
+      return false;
+    }
+    std::mem::swap(&mut self.user_request, &mut fresh.user_request);
+    std::mem::swap(&mut self.request, &mut fresh.request);
+    std::mem::swap(&mut self.external_type, &mut fresh.external_type);
+    std::mem::swap(&mut self.dependency_meta, &mut fresh.dependency_meta);
+    std::mem::swap(&mut self.place_in_initial, &mut fresh.place_in_initial);
+    std::mem::swap(&mut self.factory_meta, &mut fresh.factory_meta);
+    true
+  }
+
   impl_module_meta_info!();
 
   fn get_concatenation_bailout_reason(

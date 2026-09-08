@@ -1307,6 +1307,27 @@ impl DependenciesBlock for ContextModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for ContextModule {
+  fn update_cache_module(&mut self, fresh: &mut dyn Module) -> bool {
+    let fresh = fresh
+      .as_any_mut()
+      .downcast_mut::<Self>()
+      .expect("module type must match");
+    if self.options.resolve_options != fresh.options.resolve_options
+      || self.options.context_options.category != fresh.options.context_options.category
+      || self.options.context_options.context != fresh.options.context_options.context
+      || self.build_info.strict != fresh.build_info.strict
+    {
+      return false;
+    }
+    std::mem::swap(&mut self.options, &mut fresh.options);
+    std::mem::swap(
+      &mut self.resolve_dependencies,
+      &mut fresh.resolve_dependencies,
+    );
+    std::mem::swap(&mut self.factory_meta, &mut fresh.factory_meta);
+    true
+  }
+
   impl_module_meta_info!();
 
   fn module_type(&self) -> &ModuleType {

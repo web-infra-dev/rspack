@@ -82,6 +82,24 @@ impl DependenciesBlock for RawModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for RawModule {
+  fn update_cache_module(&mut self, fresh: &mut dyn Module) -> bool {
+    let fresh = fresh
+      .as_any_mut()
+      .downcast_mut::<Self>()
+      .expect("module type must match");
+    if self.source_str != fresh.source_str
+      || self.runtime_requirements != fresh.runtime_requirements
+    {
+      return false;
+    }
+    std::mem::swap(
+      &mut self.readable_identifier,
+      &mut fresh.readable_identifier,
+    );
+    std::mem::swap(&mut self.factory_meta, &mut fresh.factory_meta);
+    true
+  }
+
   impl_module_meta_info!();
 
   fn module_type(&self) -> &ModuleType {

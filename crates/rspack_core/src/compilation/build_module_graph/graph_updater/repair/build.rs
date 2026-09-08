@@ -90,6 +90,7 @@ impl Task<TaskContext> for BuildTask {
 
     Ok(vec![Box::new(BuildResultTask {
       module: result,
+      from_cache: false,
       plugin_driver,
       forwarded_ids,
     })])
@@ -99,6 +100,7 @@ impl Task<TaskContext> for BuildTask {
 #[derive(Debug)]
 pub(super) struct BuildResultTask {
   pub module: BoxModule,
+  pub from_cache: bool,
   pub plugin_driver: SharedPluginDriver,
   pub forwarded_ids: ForwardedIdSet,
 }
@@ -111,9 +113,17 @@ impl Task<TaskContext> for BuildResultTask {
   async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let BuildResultTask {
       mut module,
+      from_cache,
       plugin_driver,
       mut forwarded_ids,
     } = *self;
+    if from_cache {
+      let dependencies = module.get_dependency_refs().to_vec();
+      module
+        .restore_from_cache(context.compilation_id, &dependencies)
+        .await?;
+    }
+
     plugin_driver
       .compilation_hooks
       .succeed_module

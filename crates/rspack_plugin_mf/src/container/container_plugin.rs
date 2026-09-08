@@ -29,7 +29,7 @@ pub struct ContainerPluginOptions {
 }
 
 #[rspack_cacheable::cacheable]
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ExposeOptions {
   pub name: Option<String>,
   pub import: Vec<String>,

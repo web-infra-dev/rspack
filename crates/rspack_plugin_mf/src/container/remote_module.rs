@@ -5,8 +5,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
-  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
-  Dependency, ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext,
+  CodeGenerationResultBuilder, Compilation, CompilationId, Context, DependenciesBlock, DependenciesBlockData,
+  Dependency, DependencyRef, ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext,
   ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, impl_module_meta_info,
   impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
@@ -100,6 +100,35 @@ impl DependenciesBlock for RemoteModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for RemoteModule {
+  fn update_cache_module(&mut self, fresh: &mut dyn Module) -> bool {
+    let fresh = fresh
+      .as_any_mut()
+      .downcast_mut::<Self>()
+      .expect("module type must match");
+    std::mem::swap(
+      &mut self.readable_identifier,
+      &mut fresh.readable_identifier,
+    );
+    std::mem::swap(&mut self.lib_ident, &mut fresh.lib_ident);
+    std::mem::swap(&mut self.request, &mut fresh.request);
+    std::mem::swap(&mut self.remote_key, &mut fresh.remote_key);
+    std::mem::swap(&mut self.factory_meta, &mut fresh.factory_meta);
+    true
+  }
+
+  async fn restore_from_cache(
+    &mut self,
+    compilation_id: CompilationId,
+    dependencies: &[DependencyRef],
+  ) -> Result<()> {
+    let hooks = FederationModulesPlugin::get_compilation_hooks_by_id(compilation_id);
+    let hooks = hooks.add_remote_dependency.lock().await;
+    for dependency in dependencies {
+      hooks.call(dependency.as_ref()).await?;
+    }
+    Ok(())
+  }
+
   impl_module_meta_info!();
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {

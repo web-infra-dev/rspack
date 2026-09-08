@@ -56,7 +56,7 @@ module.exports = [
           }
         },
         module: {
-          // Factory-owned functions must come from the fresh module after restoration.
+          // Unsupported factory functions must not prevent other modules from being cached.
           rules: [{ test: /\.json$/, type: "json", parser: { parse: JSON.parse } }]
         },
         plugins: [{

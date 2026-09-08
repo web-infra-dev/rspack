@@ -124,6 +124,27 @@ impl DependenciesBlock for ProvideSharedModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for ProvideSharedModule {
+  fn update_cache_module(&mut self, fresh: &mut dyn Module) -> bool {
+    let fresh = fresh
+      .as_any_mut()
+      .downcast_mut::<Self>()
+      .expect("module type must match");
+    if self.request != fresh.request || self.eager != fresh.eager {
+      return false;
+    }
+    std::mem::swap(&mut self.lib_ident, &mut fresh.lib_ident);
+    std::mem::swap(
+      &mut self.readable_identifier,
+      &mut fresh.readable_identifier,
+    );
+    std::mem::swap(&mut self.singleton, &mut fresh.singleton);
+    std::mem::swap(&mut self.required_version, &mut fresh.required_version);
+    std::mem::swap(&mut self.strict_version, &mut fresh.strict_version);
+    std::mem::swap(&mut self.tree_shaking_mode, &mut fresh.tree_shaking_mode);
+    std::mem::swap(&mut self.factory_meta, &mut fresh.factory_meta);
+    true
+  }
+
   impl_module_meta_info!();
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {

@@ -291,7 +291,7 @@ pub struct BuildInfo {
   pub module_argument: ModuleArgument,
   pub exports_argument: ExportsArgument,
   pub dependencies: crate::LoaderDependencies,
-  /// Snapshot used by full `need_build` validation. `NormalModule` populates
+  /// Snapshot used by full `need_build` validation. The module build cache populates
   /// this when the module build cache is enabled; other builds leave it empty
   /// to avoid snapshot creation overhead.
   pub snapshot: Option<Snapshot>,
@@ -324,6 +324,29 @@ pub struct BuildInfo {
   pub extras: serde_json::Map<String, serde_json::Value>,
   #[cacheable(with=AsVec)]
   pub deferred_pure_checks: HashSet<DeferredPureCheck>,
+}
+
+impl BuildInfo {
+  /// Validates the cacheability and dependencies recorded by a completed build.
+  pub async fn need_build(&self, context: &NeedBuildContext<'_>) -> Result<bool> {
+    if !self.cacheable
+      || context
+        .value_cache_versions
+        .has_diff(&self.value_dependencies)
+    {
+      return Ok(true);
+    }
+    let Some(snapshot) = &self.snapshot else {
+      return Ok(true);
+    };
+    Ok(matches!(
+      context
+        .file_system_info
+        .check_snapshot_valid(snapshot)
+        .await?,
+      crate::SnapshotValidationResult::Invalid { .. }
+    ))
+  }
 }
 
 impl Default for BuildInfo {
@@ -845,14 +868,36 @@ pub trait Module:
     ConnectionState::Active(true)
   }
 
-  /// Determines whether a module needs to be rebuilt using the complete build
-  /// context.
-  ///
-  /// Implementations may inspect or mutate module state and perform asynchronous
-  /// work. As in webpack's base `Module`, the default is conservative: module
-  /// types that can prove an existing build is valid should override this.
-  async fn need_build(&mut self, _context: &NeedBuildContext<'_>) -> Result<bool> {
-    Ok(true)
+  /// Refreshes factory data while retaining the cached build and module identity.
+  /// Return false if factory inputs changed in a way that invalidates the build.
+  /// When returning false, leave `fresh` intact so it can be built normally.
+  /// The default assumes the module identifier covers all build inputs other than
+  /// the filesystem and value dependencies recorded in `BuildInfo`.
+  fn update_cache_module(&mut self, fresh: &mut dyn Module) -> bool {
+    self.set_factory_meta(fresh.factory_meta().cloned().unwrap_or_default());
+    true
+  }
+
+  /// Replays compilation-local registrations that are not part of the cached build.
+  async fn restore_from_cache(
+    &mut self,
+    _compilation_id: CompilationId,
+    _dependencies: &[DependencyRef],
+  ) -> Result<()> {
+    Ok(())
+  }
+
+  /// Checks a completed build's cacheability, value dependencies, diagnostics and
+  /// filesystem snapshot. Types with additional invalidation conditions may override this.
+  async fn need_build(&mut self, context: &NeedBuildContext<'_>) -> Result<bool> {
+    if self
+      .diagnostics()
+      .iter()
+      .any(|diagnostic| diagnostic.is_error())
+    {
+      return Ok(true);
+    }
+    self.build_info().need_build(context).await
   }
 
   /// Performs the synchronous rebuild decision used by incremental make.

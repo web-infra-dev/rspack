@@ -140,6 +140,25 @@ impl DependenciesBlock for ContainerEntryModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for ContainerEntryModule {
+  fn update_cache_module(&mut self, fresh: &mut dyn Module) -> bool {
+    let fresh = fresh
+      .as_any_mut()
+      .downcast_mut::<Self>()
+      .expect("module type must match");
+    if self.exposes != fresh.exposes
+      || self.request != fresh.request
+      || self.dependency_type != fresh.dependency_type
+    {
+      return false;
+    }
+    std::mem::swap(&mut self.lib_ident, &mut fresh.lib_ident);
+    std::mem::swap(&mut self.enhanced, &mut fresh.enhanced);
+    std::mem::swap(&mut self.version, &mut fresh.version);
+    std::mem::swap(&mut self.name, &mut fresh.name);
+    std::mem::swap(&mut self.factory_meta, &mut fresh.factory_meta);
+    true
+  }
+
   impl_module_meta_info!();
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
