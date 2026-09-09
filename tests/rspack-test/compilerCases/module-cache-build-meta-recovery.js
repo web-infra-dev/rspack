@@ -12,8 +12,8 @@ function rebuild(compiler, modifiedFiles) {
 
 function expectAsync(compilation, expected) {
   for (const filename of ["index.js", "dep.js"]) {
-    const module = [...compilation.modules].find(module =>
-      module.resource?.endsWith(`/${filename}`)
+    const module = [...compilation.modules].find(
+      module => module.resource?.replace(/^.*[\\/]/, "") === filename
     );
     expect(module).toBeDefined();
     expect(compilation.moduleGraph.isAsync(module)).toBe(expected);

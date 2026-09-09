@@ -52,11 +52,11 @@ module.exports = ["memory", "persistent"].map(type => {
                   // Cache hits receive the fresh factory's metadata, even after
                   // the previous build hook changed the cached module.
                   expect(module.factoryMeta.sideEffectFree).toBe(true);
-                  expect(module.resource).toMatch(/\/d\.js$/);
+                  expect(module.resource?.replace(/^.*[\\/]/, "")).toBe("d.js");
                 });
                 compilation.hooks.seal.tap(pluginName, () => {
-                  const module = [...compilation.modules].find(module =>
-                    module.resource?.endsWith("/d.js")
+                  const module = [...compilation.modules].find(
+                    module => module.resource?.replace(/^.*[\\/]/, "") === "d.js"
                   );
                   expect(module.originalSource().source()).toContain(
                     "module.exports"
