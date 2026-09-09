@@ -83,8 +83,8 @@ pub fn save_module_graph(
       let connections = mgm
         .outgoing_connections()
         .par_iter()
-        .map(|dep_id| {
-          mg.connection_by_dependency_id(dep_id)
+        .map(|connection_id| {
+          mg.connection_by_id(connection_id)
             .expect("should have connection")
             .into()
         })
@@ -179,7 +179,7 @@ pub async fn recovery_module_graph(
       }
       for con in node.connections {
         let con = con.into_owned();
-        need_check_dep.push((con.dependency_id, *con.module_identifier()));
+        need_check_dep.push((con.id, *con.module_identifier()));
         mg.cache_recovery_connection(con);
       }
       for block in node.blocks {
@@ -194,9 +194,9 @@ pub async fn recovery_module_graph(
       mg.add_module(module);
     });
   // recovery incoming connections
-  for (dep_id, module_identifier) in need_check_dep {
+  for (connection_id, module_identifier) in need_check_dep {
     let mgm = mg.module_graph_module_by_identifier_mut(&module_identifier);
-    mgm.add_incoming_connection(dep_id);
+    mgm.add_incoming_connection(connection_id);
   }
 
   // recovery entry
@@ -209,7 +209,8 @@ pub async fn recovery_module_graph(
   let mut entry_dependencies: FxHashSet<DependencyId> = Default::default();
   for mid in entry_module {
     let dep = TempDependency::default();
-    let connection = ModuleGraphConnection::new(*dep.id(), None, mid, false);
+    let connection =
+      ModuleGraphConnection::new(mg.next_connection_id(), *dep.id(), None, mid, false);
     entry_dependencies.insert(*dep.id());
     mg.add_dependency(BoxDependency::new(dep));
     mg.cache_recovery_connection(connection);
