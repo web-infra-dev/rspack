@@ -28,9 +28,9 @@ use serde_json::json;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, ChunkGraph, CodeGenerationResultBuilder, Compilation, ConnectionState, Context,
-  DependenciesBlock, DependencyCodeGenerationRef, DependencyId, FactoryMeta, GenerateContext,
+  BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
+  CodeGenerationResultBuilder, Compilation, ConnectionState, Context, DependenciesBlock,
+  DependenciesBlockData, DependencyCodeGenerationRef, DependencyId, FactoryMeta, GenerateContext,
   GeneratorOptions, ImportPhase, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleType, NeedBuildContext,
   OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult, ParserAndGenerator,
@@ -106,6 +106,7 @@ pub struct NormalModuleHooks {
 #[cacheable]
 #[derive(Debug, Clone)]
 pub(crate) struct NormalModuleState {
+  dependencies_block: DependenciesBlockData,
   #[cacheable(with=AsOption<AsPreset>)]
   source: Option<BoxSource>,
   diagnostics: Vec<Diagnostic>,
@@ -121,9 +122,6 @@ pub(crate) struct NormalModuleState {
 #[cacheable]
 #[derive(Debug)]
 pub struct NormalModule {
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  dependencies: Vec<DependencyId>,
-
   id: ModuleIdentifier,
   /// Context of this module
   context: Box<Context>,
@@ -216,8 +214,6 @@ impl NormalModule {
       info
     };
     Self {
-      blocks: Vec::new(),
-      dependencies: Vec::new(),
       id: ModuleIdentifier::from(id.as_ref()),
       context: Box::new(context.unwrap_or_else(|| get_context(&resource_data))),
       request,
@@ -238,6 +234,7 @@ impl NormalModule {
       cached_source_sizes: SourceSizeCache::default(),
       factory_meta: Default::default(),
       state: NormalModuleState {
+        dependencies_block: Default::default(),
         source: None,
         diagnostics: Default::default(),
         code_generation_dependencies: None,
@@ -425,24 +422,12 @@ impl Identifiable for NormalModule {
 }
 
 impl DependenciesBlock for NormalModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.state.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency)
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.state.dependencies_block
   }
 }
 
@@ -496,9 +481,14 @@ impl Module for NormalModule {
     mut self: Box<Self>,
     build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<BoxModule> {
+    self.state.dependencies_block = Default::default();
     self.state.force_build = false;
     self.state.build_info.set_snapshot(None);
+    self
+      .state
+      .build_info
+      .update_optimization_bailouts(|bailouts| bailouts.clear());
 
     // so does webpack
     self.state.parsed = true;
@@ -573,12 +563,7 @@ impl Module for NormalModule {
         &build_context.compiler_options.output,
         &self.state.build_meta,
       )));
-      return Ok(BuildResult {
-        module: BoxModule::new(self),
-        dependencies: Vec::new(),
-        blocks: Vec::new(),
-        optimization_bailouts: vec![],
-      });
+      return Ok(BoxModule::new(self));
     };
 
     build_context
@@ -626,12 +611,7 @@ impl Module for NormalModule {
         &self.state.build_meta,
       )));
 
-      return Ok(BuildResult {
-        module: BoxModule::new(self),
-        dependencies: vec![],
-        blocks: vec![],
-        optimization_bailouts: vec![],
-      });
+      return Ok(BoxModule::new(self));
     }
 
     let factory_meta = self.factory_meta.clone();
@@ -676,16 +656,21 @@ impl Module for NormalModule {
     if !diagnostics.is_empty() {
       self.add_diagnostics(diagnostics);
     }
-    let optimization_bailouts = if let Some(side_effects_bailout) = side_effects_bailout {
-      let short_id = self.readable_identifier(&build_context.compiler_options.context);
-      vec![OptimizationBailoutItem::SideEffects {
-        node_type: side_effects_bailout.ty,
-        loc: side_effects_bailout.msg,
-        short_id: short_id.to_string(),
-      }]
-    } else {
-      vec![]
-    };
+    if let Some(side_effects_bailout) = side_effects_bailout {
+      let short_id = self
+        .readable_identifier(&build_context.compiler_options.context)
+        .to_string();
+      self
+        .state
+        .build_info
+        .update_optimization_bailouts(|bailouts| {
+          bailouts.push(OptimizationBailoutItem::SideEffects {
+            node_type: side_effects_bailout.ty,
+            loc: side_effects_bailout.msg,
+            short_id,
+          });
+        });
+    }
     // Only side effects used in code_generate can stay here
     // Other side effects should be set outside use_cache
     self.state.source = Some(source);
@@ -697,12 +682,10 @@ impl Module for NormalModule {
       &self.state.build_meta,
     )));
 
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies: dependencies.into_iter().map(Into::into).collect(),
-      blocks: blocks.into_iter().map(Into::into).collect(),
-      optimization_bailouts,
-    })
+    Ok(BoxModule::new(self).with_dependencies(
+      dependencies.into_iter().map(Into::into).collect(),
+      blocks.into_iter().map(Into::into).collect(),
+    ))
   }
 
   // #[tracing::instrument("NormalModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
@@ -803,12 +786,11 @@ impl Module for NormalModule {
       .match_resource()
       .unwrap_or_else(|| &self.resource_data)
       .resource();
-    let idx = resource.find('?');
-    if let Some(idx) = idx {
-      Some(resource[..idx].into())
-    } else {
-      Some(resource.into())
-    }
+    Some(
+      rspack_util::identifier::split_at_query_mark(resource)
+        .0
+        .into(),
+    )
   }
 
   fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<'_, str>> {
@@ -879,8 +861,7 @@ impl Module for NormalModule {
         }
         module_chain.insert(self.identifier());
         let mut current = ConnectionState::Active(false);
-        for dependency_id in self.get_dependencies().iter() {
-          let dependency = module_graph.dependency_by_id(dependency_id);
+        for dependency in self.get_dependencies() {
           let state = dependency.get_module_evaluation_side_effects_state(
             module_graph,
             module_graph_cache,

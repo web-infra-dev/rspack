@@ -283,7 +283,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
           execute_result.errors.extend(diagnostics);
         }
       }
-      for dep_id in module.get_dependencies() {
+      for dep_id in module.get_dependency_ids() {
         if !has_error && make_failed_dependencies.contains(dep_id) {
           let diagnostics = origin_context
             .artifact

@@ -15,16 +15,16 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use crate::{
   AssetBuildInfo, BindingCell, CollectedTypeScriptInfo, CompilationAsset, CssBuildInfo,
   DeferredPureCheck, DependencyId, ExportsArgument, ImportPhase, IsolatedDts, ModuleArgument,
-  RscMeta, Snapshot,
+  OptimizationBailoutItem, RscMeta, Snapshot,
 };
 
 /// Build information with field-scoped mutation through shared references.
 ///
 /// Scalar flags use atomics; collection updates take only that field's lock.
 /// Most collection readers own immutable snapshots. Updating a collection copies
-/// it only while a reader retains a snapshot. Emitted assets instead keep their
-/// binding identity and use a scoped read guard. Mutation is still restricted to
-/// the compilation's permitted phases.
+/// it only while a reader retains a snapshot. Emitted assets keep their binding
+/// identity; assets and build bailouts use scoped read guards. Mutation is still
+/// restricted to the compilation's permitted phases.
 /// Module-build cache entries share this information with the module.
 #[cacheable(with=BuildInfoCache)]
 #[derive(Debug)]
@@ -47,6 +47,8 @@ pub struct BuildInfo {
   css: RwLock<Option<Arc<CssBuildInfo>>>,
   side_effects_free: RwLock<Option<Arc<AtomSet>>>,
   top_level_declarations: RwLock<Option<Arc<AtomSet>>>,
+  /// Bailouts produced during module builds, before compilation-specific optimizations.
+  optimization_bailouts: RwLock<Vec<OptimizationBailoutItem>>,
   module_concatenation_bailout: RwLock<Option<String>>,
   assets: RwLock<BindingCell<HashMap<String, CompilationAsset>>>,
   module: AtomicBool,
@@ -334,6 +336,25 @@ impl BuildInfo {
     ))
   }
 
+  /// Drop this field's read guard before mutation, hooks, or async work.
+  pub fn optimization_bailouts(&self) -> RwLockReadGuard<'_, Vec<OptimizationBailoutItem>> {
+    self
+      .optimization_bailouts
+      .read()
+      .expect("should read optimization_bailouts")
+  }
+
+  pub fn update_optimization_bailouts<R>(
+    &self,
+    update: impl FnOnce(&mut Vec<OptimizationBailoutItem>) -> R,
+  ) -> R {
+    let mut value = self
+      .optimization_bailouts
+      .write()
+      .expect("should write optimization_bailouts");
+    update(&mut value)
+  }
+
   pub fn module_concatenation_bailout(&self) -> Option<String> {
     self
       .module_concatenation_bailout
@@ -503,6 +524,7 @@ impl BuildInfo {
       css: self.css().as_deref().cloned().map(Box::new),
       side_effects_free: self.side_effects_free().as_deref().cloned(),
       top_level_declarations: self.top_level_declarations().as_deref().cloned(),
+      optimization_bailouts: self.optimization_bailouts().clone(),
       module_concatenation_bailout: self.module_concatenation_bailout(),
       assets: self.assets().clone(),
       module: self.module(),
@@ -542,6 +564,7 @@ impl From<BuildInfoSnapshot> for BuildInfo {
       css: RwLock::new(value.css.map(Arc::from)),
       side_effects_free: RwLock::new(value.side_effects_free.map(Arc::new)),
       top_level_declarations: RwLock::new(value.top_level_declarations.map(Arc::new)),
+      optimization_bailouts: RwLock::new(value.optimization_bailouts),
       module_concatenation_bailout: RwLock::new(value.module_concatenation_bailout),
       assets: RwLock::new(value.assets),
       module: AtomicBool::new(value.module),
@@ -587,6 +610,7 @@ pub struct BuildInfoSnapshot {
   side_effects_free: Option<AtomSet>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   top_level_declarations: Option<AtomSet>,
+  optimization_bailouts: Vec<OptimizationBailoutItem>,
   module_concatenation_bailout: Option<String>,
   assets: BindingCell<HashMap<String, CompilationAsset>>,
   module: bool,
@@ -622,6 +646,7 @@ impl Default for BuildInfoSnapshot {
       css: None,
       side_effects_free: None,
       top_level_declarations: None,
+      optimization_bailouts: Vec::new(),
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,

@@ -17,7 +17,10 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Error, Result, Severity};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHasher};
-use rspack_util::{identifier::make_paths_relative, itoa, json_stringify_str};
+use rspack_util::{
+  identifier::{make_paths_relative, split_at_query_mark},
+  itoa, json_stringify_str,
+};
 use rustc_hash::{FxHashSet, FxHasher};
 
 use crate::{
@@ -346,11 +349,8 @@ impl<'a> LocalIdentOptions<'a> {
     } else {
       ""
     };
-    let resource_path = self
-      .relative_resource
-      .split(['?', '#'])
-      .next()
-      .unwrap_or(&self.relative_resource);
+    let resource_path = split_at_query_mark(&self.relative_resource).0;
+    let resource_path = resource_path.split('#').next().unwrap_or(resource_path);
     let resource_path = Path::new(resource_path);
     let chunk_name = resource_path
       .file_stem()

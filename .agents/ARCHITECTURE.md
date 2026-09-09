@@ -273,6 +273,9 @@ Unified error system.
 
 ### Parallel processing
 
+- Prefer `rayon` for synchronous CPU-bound parallel work and `rspack_parallel` for async orchestration instead of raw Tokio tasks.
+- Do not use Tokio to parallelize synchronous CPU work. Mix thread pools only across a necessary, explicit boundary.
+
 - Module building parallelized
 - Asset processing parallelized
 - Code generation uses parallel workers

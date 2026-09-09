@@ -35,14 +35,14 @@ use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
-  AsyncDependenciesBlockBuildResult, CacheFacade, ChunkGraph, ChunkUkey,
-  CodeGenerationResultBuilder, Compilation, CompilationId, CompilerId, CompilerOptions,
-  ConcatenationScope, ConnectionState, Context, ContextModule, CssExportType, DependenciesBlock,
+  AsyncDependenciesBlockRef, CacheFacade, ChunkGraph, ChunkUkey, CodeGenerationResultBuilder,
+  Compilation, CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState,
+  Context, ContextModule, CssExportType, DependenciesBlock, DependenciesBlockData,
   DependencyCodeGenerationRef, DependencyId, DependencyRef, ExportProvided, ExportsInfoArtifact,
   ExternalModule, FileSystemInfo, Filename, GetTargetResult, ModuleCodeTemplate, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, OptimizationBailoutItem,
-  RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver,
-  SideEffectsStateArtifact, SourceType, concatenated_module::ConcatenatedModule,
+  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, RawModule, Resolve,
+  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SideEffectsStateArtifact,
+  SourceType, concatenated_module::ConcatenatedModule,
   dependencies_block::dependencies_block_update_hash, get_target,
   value_cache_versions::ValueCacheVersions,
 };
@@ -485,17 +485,6 @@ impl RspackHash for ExportsArgument {
   }
 }
 
-// webpack build info
-#[cacheable]
-#[derive(Debug)]
-pub struct BuildResult {
-  pub module: BoxModule,
-  /// Dependencies are shared after the module build finishes.
-  pub dependencies: Vec<DependencyRef>,
-  pub blocks: Vec<AsyncDependenciesBlockBuildResult>,
-  pub optimization_bailouts: Vec<OptimizationBailoutItem>,
-}
-
 /// Factory-owned metadata whose flags can be updated through a shared reference.
 ///
 /// Mutation must follow the compilation phase's rules; changing a flag does not
@@ -581,7 +570,7 @@ pub trait Module:
     self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult>;
+  ) -> Result<BoxModule>;
 
   fn factory_meta(&self) -> Option<&FactoryMeta>;
 
@@ -880,6 +869,16 @@ impl<T: Module> ModuleExt for T {
 pub struct BoxModule(Box<dyn Module>);
 
 impl BoxModule {
+  /// Installs a module's complete build output before it is published into the graph.
+  pub fn with_dependencies(
+    mut self,
+    dependencies: Vec<DependencyRef>,
+    blocks: Vec<AsyncDependenciesBlockRef>,
+  ) -> Self {
+    *self.dependencies_block_mut() = DependenciesBlockData::new(dependencies, blocks);
+    self
+  }
+
   /// Create a new BoxModule from a boxed Module trait object.
   pub fn new(module: Box<dyn Module>) -> Self {
     BoxModule(module)
@@ -889,7 +888,7 @@ impl BoxModule {
     self,
     build_context: BuildContext,
     compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<BoxModule> {
     self.0.build(build_context, compilation).await
   }
 }
@@ -1037,9 +1036,8 @@ mod test {
 
   use super::{BoxModule, Module};
   use crate::{
-    AsyncDependenciesBlockIdentifier, BuildContext, BuildResult, CodeGenerationResultBuilder,
-    Compilation, Context, DependenciesBlock, DependencyId, ModuleCodeGenerationContext, ModuleExt,
-    ModuleGraph, ModuleType, RuntimeSpec, SourceType,
+    BuildContext, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock,
+    ModuleCodeGenerationContext, ModuleExt, ModuleGraph, ModuleType, RuntimeSpec, SourceType,
   };
 
   #[cacheable]
@@ -1061,23 +1059,10 @@ mod test {
       impl_empty_diagnosable_trait!($ident);
 
       impl DependenciesBlock for $ident {
-        fn add_block_id(&mut self, _: AsyncDependenciesBlockIdentifier) {
+        fn dependencies_block(&self) -> &$crate::DependenciesBlockData {
           unreachable!()
         }
-
-        fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-          unreachable!()
-        }
-
-        fn add_dependency_id(&mut self, _: DependencyId) {
-          unreachable!()
-        }
-
-        fn remove_dependency_id(&mut self, _: DependencyId) {
-          unreachable!()
-        }
-
-        fn get_dependencies(&self) -> &[DependencyId] {
+        fn dependencies_block_mut(&mut self) -> &mut $crate::DependenciesBlockData {
           unreachable!()
         }
       }
@@ -1113,7 +1098,7 @@ mod test {
           self: Box<Self>,
           _build_context: BuildContext,
           _compilation: Option<&Compilation>,
-        ) -> Result<BuildResult> {
+        ) -> Result<BoxModule> {
           unreachable!()
         }
 

@@ -109,8 +109,7 @@ pub(crate) struct ModuleGraphData {
   /// ```ignore
   /// let parent_module_id = parent_module.identifier();
   /// parent_module
-  ///   .get_dependencies()
-  ///   .iter()
+  ///   .get_dependency_ids()
   ///   .map(|dependency_id| {
   ///     let parents_info = module_graph_partial
   ///       .dependency_id_to_parents
@@ -301,11 +300,16 @@ impl ModuleGraph {
       if let Some(b_id) = parent_block
         && let Some(block) = self.inner.blocks.get_mut(&b_id)
       {
-        // Keep cache snapshots unchanged when revoking a published dependency.
+        // Shared blocks may also be retained by another module or a rollback entry.
         if let Some(block) = Arc::get_mut(block) {
           block.remove_dependency_id(*dep_id);
         } else {
           *block = Arc::new(block.without_dependency(*dep_id));
+        }
+        if let Some(module_id) = original_module_identifier
+          && let Some(module) = self.inner.modules.get_mut(&module_id)
+        {
+          module.dependencies_block_mut().replace_block(block.clone());
         }
       }
     }
@@ -594,7 +598,10 @@ impl ModuleGraph {
 
   /// Get a dependency by ID, panicking if not found.
   ///
-  /// **PREFERRED METHOD**: Use this for ALL internal Rust code including:
+  /// When a module or block is available, prefer [`DependenciesBlock::get_dependencies`]
+  /// to access its dependency objects directly.
+  ///
+  /// **PREFERRED METHOD** when only an ID is available in internal Rust code, including:
   /// - Core compilation logic
   /// - All plugins (`rspack_plugin_*`)
   /// - Stats generation, code generation, runtime templates
