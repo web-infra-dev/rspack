@@ -48,12 +48,11 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
       let Some(block) = module_graph.block_by_id(block_id) else {
         continue;
       };
-      for dep_id in block.get_dependencies() {
-        let dep = module_graph.dependency_by_id(dep_id);
+      for dep in block.get_dependencies() {
         if dep.dependency_type() != &DependencyType::DynamicImport {
           continue;
         }
-        let Some(target) = module_graph.module_identifier_by_dependency_id(dep_id) else {
+        let Some(target) = module_graph.module_identifier_by_dependency_id(dep.id()) else {
           continue;
         };
         if target == module_id {
@@ -574,19 +573,18 @@ pub(crate) fn analyze_dyn_import_targets(
     if !concatenated_modules.contains(module_id) {
       continue;
     }
-    for dep_id in module
+    for dep in module
       .get_blocks()
       .iter()
       .filter_map(|block| module_graph.block_by_id(block))
       .flat_map(|block| block.get_dependencies())
     {
-      let dep = module_graph.dependency_by_id(dep_id);
       if dep.dependency_type() != &DependencyType::DynamicImport {
         continue;
       }
       let exports_info_artifact = &compilation.exports_info_artifact;
 
-      let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
+      let Some(conn) = module_graph.connection_by_dependency_id(dep.id()) else {
         continue;
       };
       if !conn.is_target_active(

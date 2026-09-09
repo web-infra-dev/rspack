@@ -248,7 +248,7 @@ impl Module for LazyCompilationProxyModule {
     } = code_generation_context;
 
     let client_dep_id = self
-      .get_dependencies()
+      .get_dependency_ids()
       .next()
       .expect("should have client dependency");
     let module_graph = &compilation.get_module_graph();
@@ -280,7 +280,7 @@ impl Module for LazyCompilationProxyModule {
         .expect("should have block");
 
       let dep_id = block
-        .get_dependencies()
+        .get_dependency_ids()
         .next()
         .expect("should have dependency");
       let module = module_graph

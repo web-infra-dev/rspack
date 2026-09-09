@@ -848,8 +848,7 @@ impl Module for NormalModule {
         }
         module_chain.insert(self.identifier());
         let mut current = ConnectionState::Active(false);
-        for dependency_id in self.get_dependencies() {
-          let dependency = module_graph.dependency_by_id(dependency_id);
+        for dependency in self.get_dependencies() {
           let state = dependency.get_module_evaluation_side_effects_state(
             module_graph,
             module_graph_cache,
