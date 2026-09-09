@@ -155,6 +155,8 @@ pub fn impl_runtime_module(
 
       fn set_factory_meta(&self, v: ::rspack_core::FactoryMeta) {}
 
+      fn reset_for_compilation(&self, _: Option<::std::sync::Arc<::rspack_core::FactoryMeta>>) {}
+
       fn build_info(&self) -> ::rspack_core::FreezeReadGuard<'_, ::rspack_core::BuildInfo> {
         unreachable!()
       }

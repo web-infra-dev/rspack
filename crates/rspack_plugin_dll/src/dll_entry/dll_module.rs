@@ -120,7 +120,7 @@ impl Module for DllModule {
     false
   }
 
-  async fn need_build(&mut self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+  async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
     Ok(false)
   }
 

@@ -70,6 +70,10 @@ impl Module for TempModule {
     unreachable!()
   }
 
+  fn reset_for_compilation(&self, _factory_meta: Option<Arc<FactoryMeta>>) {
+    unreachable!()
+  }
+
   fn build_info(&self) -> crate::FreezeReadGuard<'_, BuildInfo> {
     self.build_info.read()
   }

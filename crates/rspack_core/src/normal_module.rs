@@ -36,7 +36,7 @@ use crate::{
   ModuleLayer, ModuleType, NeedBuildContext, OptimizationBailoutItem, OutputOptions, ParseContext,
   ParseResult, ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions,
   RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  SnapshotValidationResult, SourceType, ValueCacheVersions,
+  SnapshotValidationResult, SourceType,
   cache::SnapshotStrategyOptions,
   contextify,
   diagnostics::ModuleBuildError,
@@ -159,12 +159,6 @@ static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 impl NormalModule {
   pub(crate) fn restore_build_meta(&self, build_meta: crate::SharedBuildMeta) {
     self.build_meta.freeze_with(build_meta);
-  }
-
-  pub(crate) fn set_cache_snapshot(&self, snapshot: Option<Snapshot>) {
-    self
-      .build_info
-      .update(|build_info| build_info.snapshot = snapshot);
   }
 
   fn create_id<'request>(
@@ -330,54 +324,7 @@ impl NormalModule {
       .expect("asset filename lock poisoned") = Some(filename);
   }
 
-  /// Refresh factory metadata and clear the previous compilation's seal override.
-  pub(crate) fn reset_for_compilation(&self, factory_meta: Option<Arc<FactoryMeta>>) {
-    self.factory_meta.set(factory_meta);
-    *self
-      .asset_filename_override
-      .write()
-      .expect("asset filename lock poisoned") = None;
-  }
-
-  pub(crate) async fn need_build_with_context(
-    &self,
-    file_system_info: &FileSystemInfo,
-    value_cache_versions: &ValueCacheVersions,
-  ) -> Result<bool> {
-    if self.force_build {
-      return Ok(true);
-    }
-
-    if self
-      .diagnostics
-      .iter()
-      .any(|diagnostic| diagnostic.is_error())
-    {
-      return Ok(true);
-    }
-
-    let Some(build_info) = self.build_info.frozen() else {
-      return Ok(true);
-    };
-    if !build_info.cacheable {
-      return Ok(true);
-    }
-
-    let Some(snapshot) = &build_info.snapshot else {
-      return Ok(true);
-    };
-
-    if value_cache_versions.has_diff(&build_info.value_dependencies) {
-      return Ok(true);
-    }
-
-    Ok(matches!(
-      file_system_info.check_snapshot_valid(snapshot).await?,
-      SnapshotValidationResult::Invalid { .. }
-    ))
-  }
-
-  pub(crate) async fn create_cache_snapshot(
+  async fn create_cache_snapshot(
     &self,
     file_system_info: &FileSystemInfo,
     build_start_time: u64,
@@ -457,10 +404,58 @@ impl Module for NormalModule {
     }
   }
 
-  async fn need_build(&mut self, context: &NeedBuildContext<'_>) -> Result<bool> {
+  async fn need_build(&self, context: &NeedBuildContext<'_>) -> Result<bool> {
+    if self.force_build {
+      return Ok(true);
+    }
+
+    if self
+      .diagnostics
+      .iter()
+      .any(|diagnostic| diagnostic.is_error())
+    {
+      return Ok(true);
+    }
+
+    let Some(build_info) = self.build_info.frozen() else {
+      return Ok(true);
+    };
+    if !build_info.cacheable {
+      return Ok(true);
+    }
+
+    let Some(snapshot) = &build_info.snapshot else {
+      return Ok(true);
+    };
+
+    if context
+      .value_cache_versions
+      .has_diff(&build_info.value_dependencies)
+    {
+      return Ok(true);
+    }
+
+    Ok(matches!(
+      context
+        .file_system_info
+        .check_snapshot_valid(snapshot)
+        .await?,
+      SnapshotValidationResult::Invalid { .. }
+    ))
+  }
+
+  async fn prepare_for_cache(
+    &self,
+    file_system_info: &FileSystemInfo,
+    build_start_time: u64,
+  ) -> Result<()> {
+    let snapshot = self
+      .create_cache_snapshot(file_system_info, build_start_time)
+      .await?;
     self
-      .need_build_with_context(context.file_system_info, context.value_cache_versions)
-      .await
+      .build_info
+      .update(|build_info| build_info.snapshot = snapshot);
+    Ok(())
   }
 
   #[tracing::instrument("NormalModule:build", skip_all, fields(
@@ -885,6 +880,14 @@ impl Module for NormalModule {
 
   fn set_factory_meta(&self, factory_meta: FactoryMeta) {
     self.factory_meta.set(Some(Arc::new(factory_meta)));
+  }
+
+  fn reset_for_compilation(&self, factory_meta: Option<Arc<FactoryMeta>>) {
+    self.factory_meta.set(factory_meta);
+    *self
+      .asset_filename_override
+      .write()
+      .expect("asset filename lock poisoned") = None;
   }
 
   fn build_info(&self) -> crate::FreezeReadGuard<'_, BuildInfo> {

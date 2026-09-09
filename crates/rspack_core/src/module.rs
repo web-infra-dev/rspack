@@ -751,6 +751,9 @@ pub trait Module:
 
   fn set_factory_meta(&self, factory_meta: FactoryMeta);
 
+  /// Refresh factory metadata and clear compilation-specific state on cache reuse.
+  fn reset_for_compilation(&self, factory_meta: Option<Arc<FactoryMeta>>);
+
   fn build_info(&self) -> crate::FreezeReadGuard<'_, BuildInfo>;
 
   /// Finalize build information after loader assets and the cache snapshot.
@@ -887,11 +890,20 @@ pub trait Module:
   /// Determines whether a module needs to be rebuilt using the complete build
   /// context.
   ///
-  /// Implementations may inspect or mutate module state and perform asynchronous
+  /// Implementations inspect reusable build state and may perform asynchronous
   /// work. As in webpack's base `Module`, the default is conservative: module
   /// types that can prove an existing build is valid should override this.
-  async fn need_build(&mut self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+  async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
     Ok(true)
+  }
+
+  /// Prepare module-specific validity data before build information is frozen and cached.
+  async fn prepare_for_cache(
+    &self,
+    _file_system_info: &FileSystemInfo,
+    _build_start_time: u64,
+  ) -> Result<()> {
+    Ok(())
   }
 
   /// Performs the synchronous rebuild decision used by incremental make.
@@ -1194,6 +1206,10 @@ macro_rules! impl_module_meta_info {
       self.factory_meta.set(Some(std::sync::Arc::new(v)));
     }
 
+    fn reset_for_compilation(&self, factory_meta: Option<std::sync::Arc<$crate::FactoryMeta>>) {
+      self.factory_meta.set(factory_meta);
+    }
+
     fn build_info(&self) -> $crate::FreezeReadGuard<'_, $crate::BuildInfo> {
       self.build_info.read()
     }
@@ -1360,6 +1376,10 @@ mod test {
         }
 
         fn factory_meta(&self) -> Option<std::sync::Arc<crate::FactoryMeta>> {
+          unreachable!()
+        }
+
+        fn reset_for_compilation(&self, _: Option<std::sync::Arc<crate::FactoryMeta>>) {
           unreachable!()
         }
 

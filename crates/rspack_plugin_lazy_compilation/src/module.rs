@@ -186,7 +186,7 @@ impl Module for LazyCompilationProxyModule {
     }
   }
 
-  async fn need_build(&mut self, context: &NeedBuildContext<'_>) -> Result<bool> {
+  async fn need_build(&self, context: &NeedBuildContext<'_>) -> Result<bool> {
     Ok(self.need_build_for_incremental(context.value_cache_versions))
   }
 

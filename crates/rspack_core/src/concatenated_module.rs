@@ -735,6 +735,10 @@ impl Module for ConcatenatedModule {
     self.root_module_ctxt.factory_meta.set(Some(Arc::new(v)));
   }
 
+  fn reset_for_compilation(&self, factory_meta: Option<Arc<FactoryMeta>>) {
+    self.root_module_ctxt.factory_meta.set(factory_meta);
+  }
+
   fn build_info(&self) -> crate::FreezeReadGuard<'_, BuildInfo> {
     self.build_info.read()
   }
