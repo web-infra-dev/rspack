@@ -241,7 +241,7 @@ impl ProvideSharedPlugin {
       let mut resolved_provide_map = self.resolved_provide_map.write().await;
       insert_resolved_config(
         &mut resolved_provide_map,
-        lookup_key.clone(),
+        lookup_key,
         VersionedProvideOptions {
           config_id,
           original_request: key.to_string(),
@@ -270,7 +270,7 @@ impl ProvideSharedPlugin {
         let mut resolved_provide_map = self.resolved_provide_map.write().await;
         insert_resolved_config(
           &mut resolved_provide_map,
-          lookup_key.clone(),
+          lookup_key,
           VersionedProvideOptions {
             config_id,
             original_request: key.to_string(),

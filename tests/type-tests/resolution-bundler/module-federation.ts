@@ -4,6 +4,7 @@ import rspack, {
   type ContainerPluginOptions,
   type EnhancedConsumeSharedPluginOptions,
   type EnhancedContainerPluginOptions,
+  type EnhancedModuleFederationPluginV1Options,
   type ExposesConfig,
   type ModuleFederationPluginV1Options,
 } from '@rspack/core';
@@ -110,6 +111,15 @@ new rspack.container.ContainerPlugin({
     './entry': { import: './index', layer: 'server' },
   },
 });
+
+const enhancedV1Options: EnhancedModuleFederationPluginV1Options = {
+  name: 'enhanced-v1',
+  enhanced: true,
+  exposes: {
+    './entry': { import: './index', layer: 'server' },
+  },
+};
+new rspack.container.ModuleFederationPluginV1(enhancedV1Options);
 
 const legacyV1Options: ModuleFederationPluginV1Options = {
   name: 'legacy-v1',
