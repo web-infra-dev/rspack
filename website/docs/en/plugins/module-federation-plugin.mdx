@@ -239,9 +239,9 @@ When a shared key, scope, and layer has multiple concrete providers, its shared 
 
 Layer-aware builds add optional identity fields to both outputs:
 
-- `layer` identifies the layer of an exposed or shared entry; unlayered entries omit it.
+- `layer` identifies the layer of an exposed or shared entry; entries without a layer omit it.
 - Shared entries include `shareScope` for non-default scopes or ordered scope arrays. An omitted scope means the scalar `"default"` scope.
-- Scalar, unlayered shares retain the legacy `id`. `identityId` disambiguates colliding legacy IDs and shared keys beginning with the reserved `shared:` prefix. Use `identityId ?? id` as the shared entry's identity and treat it as opaque.
+- Shares with a scalar scope and no layer retain the legacy `id`. `identityId` disambiguates colliding legacy IDs and shared keys beginning with the reserved `shared:` prefix. Use `identityId ?? id` as the shared entry's identity and treat it as opaque.
 - Exposes include `requiredShared` when shared names alone are insufficient. Each requirement contains `name` and optional `shareScope` and `layer`; the stats output also retains the key-only `requires` list. Inferred requirements are omitted when asset analysis is disabled.
 
 Readers must accept older manifests without these optional fields.
