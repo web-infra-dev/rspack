@@ -6,10 +6,10 @@ use rspack_core::{
   CodeGenerationDataFilename, Compilation, CompilationFinishModules, CompilationParams,
   CompilerCompilation, DependenciesBlock, DependencyId, DependencyParents, EntryOptions,
   ExportsInfoArtifact, Filename, GroupOptions, ImportMetaKnownProperties, JavascriptParserUrl,
-  Module, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData,
-  Plugin, PublicPath, RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  SourceType, URLStaticMode, get_css_chunk_filename_template, get_js_chunk_filename_template,
-  get_undo_path,
+  Module, ModuleDependency, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
+  ParserOptions, PathData, Plugin, PublicPath, RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, SourceType, URLStaticMode, get_css_chunk_filename_template,
+  get_js_chunk_filename_template, get_undo_path,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
 use rspack_error::Result;
