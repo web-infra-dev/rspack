@@ -437,7 +437,7 @@ export class RspackOptionsApply {
         // unnecessarily ship their map data to production users.
         embeddedSourceMaps:
           options.performance.embeddedSourceMaps &&
-          options.mode === 'production' &&
+          (options.mode === 'production' || !options.mode) &&
           typeof devtool === 'string' &&
           /^(?:eval|inline)/.test(devtool),
       }).apply(compiler);

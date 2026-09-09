@@ -168,8 +168,6 @@ impl SizeLimitsPlugin {
       }
     }
 
-    let mut waterfalls = vec![];
-    let mut deepest = 0;
     let mut index = 0;
     while index < queue.len() {
       let group = groups.expect_get(&queue[index]);
@@ -178,47 +176,67 @@ impl SizeLimitsPlugin {
         .expect("queued chunk group should have a path")
         .clone();
       for child in group.children_iterable() {
-        if paths.contains_key(child) {
+        // Propagate deeper routes through shared groups without following cycles.
+        if groups.expect_get(child).is_initial()
+          || path.contains(child)
+          || paths
+            .get(child)
+            .is_some_and(|previous_path| previous_path.len() > path.len())
+        {
           continue;
         }
         let mut child_path = path.clone();
         child_path.push(*child);
-        paths.insert(*child, child_path.clone());
+        paths.insert(*child, child_path);
         queue.push(*child);
-
-        let child_group = groups.expect_get(child);
-        if child_path.len() < MIN_REPORTED_DEPTH || child_group.children_iterable().next().is_some()
-        {
-          continue;
-        }
-
-        let size = child_path
-          .iter()
-          .flat_map(|ukey| {
-            groups
-              .expect_get(ukey)
-              .get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey)
-          })
-          .filter_map(|filename| compilation.assets().get(&filename))
-          .filter_map(CompilationAsset::get_source)
-          .map(|source| source.size())
-          .sum::<usize>();
-        deepest = deepest.max(child_path.len());
-        waterfalls.push((
-          child_path
-            .iter()
-            .map(|ukey| Self::chunk_group_name(compilation, groups.expect_get(ukey)))
-            .collect::<Vec<_>>(),
-          size,
-        ));
       }
       index += 1;
+    }
+
+    let mut waterfalls = vec![];
+    let mut deepest = 0;
+    for (ukey, path) in paths {
+      if path.len() < MIN_REPORTED_DEPTH
+        || groups
+          .expect_get(&ukey)
+          .children_iterable()
+          .next()
+          .is_some()
+      {
+        continue;
+      }
+
+      let size = path
+        .iter()
+        .flat_map(|ukey| {
+          groups
+            .expect_get(ukey)
+            .get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey)
+        })
+        .filter_map(|filename| compilation.assets().get(&filename))
+        .filter_map(CompilationAsset::get_source)
+        .map(|source| source.size())
+        .sum::<usize>();
+      deepest = deepest.max(path.len());
+      waterfalls.push((
+        path
+          .iter()
+          .map(|ukey| Self::chunk_group_name(compilation, groups.expect_get(ukey)))
+          .collect::<Vec<_>>(),
+        size,
+      ));
     }
 
     if waterfalls.is_empty() {
       return None;
     }
-    waterfalls.sort_by(|a, b| b.0.len().cmp(&a.0.len()).then_with(|| b.1.cmp(&a.1)));
+    waterfalls.sort_by(|a, b| {
+      b.0
+        .len()
+        .cmp(&a.0.len())
+        .then_with(|| b.1.cmp(&a.1))
+        .then_with(|| a.0.cmp(&b.0))
+    });
     let details = waterfalls
       .iter()
       .take(MAX_REPORTED_WATERFALLS)
