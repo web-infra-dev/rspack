@@ -179,11 +179,11 @@ impl Task<TaskContext> for BuildResultTask {
           module_graph.add_block(current_block.clone());
         }
       };
-    handle_block(module.get_dependency_refs(), None);
+    handle_block(module.get_dependencies(), None);
     queue.extend(module.get_block_refs().iter().cloned());
 
     while let Some(block) = queue.pop_front() {
-      handle_block(block.get_dependency_refs(), Some(&block));
+      handle_block(block.get_dependencies(), Some(&block));
       queue.extend(block.get_block_refs().iter().cloned());
     }
 

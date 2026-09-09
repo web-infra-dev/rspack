@@ -33,7 +33,7 @@ impl TempModule {
       },
       build_meta: m.build_meta().clone(),
       dependencies_block: DependenciesBlockData::new(
-        m.get_dependency_refs()
+        m.get_dependencies()
           .iter()
           .map(|dependency| super::TempDependency::transform_from(dependency.into()).into_owned())
           .collect(),
