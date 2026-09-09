@@ -210,11 +210,6 @@ impl Plugin for JsLoaderRspackPlugin {
 
     ctx
       .normal_module_hooks
-      .loader_should_yield
-      .tap(scheduler::loader_should_yield::new(self));
-
-    ctx
-      .normal_module_hooks
       .loader_yield
       .tap(scheduler::loader_yield::new(self));
 
