@@ -227,7 +227,7 @@ impl Module for ProvideSharedModule {
     let factory = if self.eager {
       runtime_template.sync_module_factory(
         self
-          .get_dependencies()
+          .get_dependency_ids()
           .next()
           .expect("should have shared dependency"),
         &self.request,

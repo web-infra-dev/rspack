@@ -89,9 +89,39 @@ export default {
 ## resolve.aliasFields
 
 - **类型：** `string[]`
-- **默认值：**`['browser']`
+- **默认值：** 取决于 [target](/config/target) 和[模块引用方式](#resolvebydependency)。
 
-定义一个字段，例如 `browser`，以依照[此规范](https://github.com/defunctzombie/package-browser-field-spec)进行解析。
+指定从 `package.json` 的哪些字段读取模块别名，用于将模块替换为其他实现。
+
+常见默认值如下：
+
+| 场景                                      | 默认值        |
+| ----------------------------------------- | ------------- |
+| 模块导入，目标为 `'web'` 或 `'webworker'` | `['browser']` |
+| 模块导入，目标为 Node.js                  | `[]`          |
+| CSS `@import` 或 URL 引用                 | `[]`          |
+
+例如，下面的配置会使用 `browser` 字段中的别名映射，将模块替换为包提供的浏览器版本。映射规则遵循 [browser 字段规范](https://github.com/defunctzombie/package-browser-field-spec)。
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    aliasFields: ['browser'],
+  },
+};
+```
+
+例如，某个包的 `package.json` 包含以下映射：
+
+```json title="package.json"
+{
+  "browser": {
+    "./storage.js": "./storage.browser.js"
+  }
+}
+```
+
+使用上述配置时，该包根目录下的 `index.js` 中的 `import './storage.js'` 会解析到同一目录下的 `storage.browser.js`。
 
 ## resolve.byDependency
 
@@ -184,28 +214,34 @@ export default {
 
 ### 默认值
 
-Rspack 默认的 `conditionNames` 由 [mode](/config/mode)、[target](/config/target) 和模块类型共同决定。
+Rspack 默认的 `conditionNames` 由 [mode](/config/mode)、[target](/config/target) 和[依赖类型](#resolvebydependency)共同决定。常见请求的默认值如下：
 
 ```js
-// 针对 ES modules
-['import', 'module', 'webpack', mode, target];
+// ES 模块请求
+['import', 'module', 'webpack', modeCondition, ...targetConditions];
 
-// 针对 CommonJS
-['require', 'module', 'webpack', mode, target];
+// CommonJS 请求
+['require', 'module', 'webpack', modeCondition, ...targetConditions];
 
-// 针对 CSS 模块
-[mode, 'style'];
+// CSS @import 请求
+[modeCondition, 'style'];
 ```
 
-在上述示例中：
+其中，`modeCondition` 在开发模式下为 `'development'`，其他情况下为 `'production'`，包括 `mode` 为 `'none'` 时。
 
-- `mode` 由 [mode](/config/mode) 配置决定，开发模式下为 `development`，其他模式为 `production`。
-- `target` 由 [target](/config/target) 配置决定：
-  - 如果 `target` 包含 `web`，则为 `browser`。
-  - 如果 `target` 包含 `node`，则为 `node`。
-  - 如果 `target` 包含 `webworker`，则为 `worker`。
-  - 如果 `target` 包含 `electron`，则为 `electron`。
-  - 如果 `target` 包含 `nwjs`，则为 `nwjs`。
+`targetConditions` 取决于目标：
+
+| Target                                      | `targetConditions`                |
+| ------------------------------------------- | --------------------------------- |
+| `'web'`                                     | `['browser']`                     |
+| `'webworker'`                               | `['worker', 'browser']`           |
+| `'node'`                                    | `['node']`                        |
+| `'electron-main'`                           | `['node', 'electron']`            |
+| `'electron-preload'`, `'electron-renderer'` | `['node', 'browser', 'electron']` |
+| `'nwjs'`                                    | `['node', 'browser', 'nwjs']`     |
+| `false`, `'es2022'`                         | `[]`                              |
+
+CSS `@import` 请求使用独立的条件名称，默认不包含这些平台条件。
 
 ### 示例
 
@@ -262,15 +298,7 @@ export default {
 };
 ```
 
-或者，如果你想让默认值优先，再追加自定义 condition names：
-
-```js title="rspack.config.mjs"
-export default {
-  resolve: {
-    conditionNames: ['...', 'my-custom-condition'],
-  },
-};
-```
+`conditionNames` 的顺序（包括 `'...'` 的位置）不影响解析优先级；优先级由包的 `exports` 对象中键的顺序决定。
 
 ## resolve.descriptionFiles
 
@@ -520,11 +548,11 @@ export default {
 ## resolve.mainFields
 
 - **类型：** `string[]`
-- **默认值：** 根据 [target](/config/target) 选项确定
+- **默认值：** 取决于 [target](/config/target) 和[依赖类型](#resolvebydependency)。
 
 控制用于定位包入口文件的 package.json 字段优先级。Rspack 在解析 npm 包入口时，会按该列表的顺序依次尝试这些字段。
 
-当 `target` 配置为 `'web'`, `'webworker'`, 或未指定时，默认值为 `["browser", "module", "main"]`。
+对于以 `'web'` 或 `'webworker'` 为目标的 JavaScript 请求，默认值为 `["browser", "module", "main"]`。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -534,7 +562,7 @@ export default {
 };
 ```
 
-对于任何其他 `target`（包括 `'node'`）, 默认值为 `["module", "main"]`。
+以 Node.js 为目标时，JavaScript 请求的默认值为 `["module", "main"]`。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -543,6 +571,8 @@ export default {
   },
 };
 ```
+
+CSS `@import` 请求的默认值为 `["style", "main"]`，URL 请求的默认值为 `["main"]`。可通过 [resolve.byDependency](#resolvebydependency) 分别配置。
 
 例如，对于一个名为 `foo` 的库，它的 `package.json` 包含以下字段：
 
@@ -554,7 +584,7 @@ export default {
 }
 ```
 
-当 `import foo from 'foo'` 时，Rspack 会解析到 `browser` 字段中的模块，因为 `browser` 字段在 `mainFields` 数组中优先级最高。
+配置 `mainFields: ['browser', 'module', 'main']` 时，`import foo from 'foo'` 会解析到 `browser` 字段中的模块，因为该字段在数组中的优先级最高。
 
 注意 [`exports` 字段](https://nodejs.org/api/packages.html#packages_exports) 的优先级高于 `mainFields`。如果入口通过 `exports` 解析成功，Rspack 会忽略 `browser`、`module` 和 `main` 字段。
 

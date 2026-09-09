@@ -395,7 +395,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               continue;
             }
             let imported_module = expose_block
-              .and_then(|block| block.get_dependencies().nth(import_index))
+              .and_then(|block| block.get_dependency_ids().nth(import_index))
               .and_then(|dependency_id| {
                 module_graph
                   .module_identifier_by_dependency_id(dependency_id)
@@ -422,7 +422,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .or_insert(StatsExpose {
               path: expose_key.clone(),
               file: expose_block
-                .and_then(|block| block.get_dependencies().next())
+                .and_then(|block| block.get_dependency_ids().next())
                 .and_then(|dependency_id| {
                   module_graph.module_identifier_by_dependency_id(dependency_id)
                 })

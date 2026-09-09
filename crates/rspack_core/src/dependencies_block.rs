@@ -34,11 +34,13 @@ pub trait DependenciesBlock {
     self.dependencies_block_mut().remove_dependency(dependency);
   }
 
-  fn get_dependencies(&self) -> DependencyIds<'_> {
-    DependencyIds(self.get_dependency_refs().iter())
+  /// Returns dependency IDs in insertion order for graph lookups.
+  fn get_dependency_ids(&self) -> DependencyIds<'_> {
+    DependencyIds(self.get_dependencies().iter())
   }
 
-  fn get_dependency_refs(&self) -> &[DependencyRef] {
+  /// Returns the dependency objects owned by this block in insertion order.
+  fn get_dependencies(&self) -> &[DependencyRef] {
     &self.dependencies_block().dependencies
   }
 }
@@ -118,15 +120,14 @@ pub type AsyncDependenciesBlockIdentifierSet =
   std::collections::HashSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>>;
 
 pub fn dependencies_block_update_hash(
-  deps: DependencyIds<'_>,
+  deps: &[DependencyRef],
   blocks: &[AsyncDependenciesBlockIdentifier],
   hasher: &mut RspackHasher,
   compilation: &Compilation,
   runtime: Option<&RuntimeSpec>,
 ) {
   let mg = compilation.get_module_graph();
-  for dep_id in deps {
-    let dep = mg.dependency_by_id(dep_id);
+  for dep in deps {
     if let Some(dep) = dep.as_dependency_code_generation() {
       dep.update_hash(hasher, compilation, runtime);
     }
@@ -249,7 +250,7 @@ impl AsyncDependenciesBlock {
       group_options: self.group_options.clone(),
       dependencies_block: DependenciesBlockData::new(
         self
-          .get_dependency_refs()
+          .get_dependencies()
           .iter()
           .filter(|value| *value.id() != dependency)
           .cloned()

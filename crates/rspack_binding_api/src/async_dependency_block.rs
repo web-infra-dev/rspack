@@ -68,9 +68,10 @@ impl AsyncDependenciesBlock {
   pub fn dependencies(&self) -> napi::Result<Vec<DependencyWrapper>> {
     self.with_ref(|compilation, block| {
       let module_graph = compilation.get_module_graph();
+      // Only expose dependencies that are still present in the current graph.
       Ok(
         block
-          .get_dependencies()
+          .get_dependency_ids()
           .filter_map(|dependency_id| {
             internal::try_dependency_by_id(module_graph, dependency_id)
               .map(|dep| DependencyWrapper::new(dep, compilation.id(), Some(compilation)))

@@ -665,7 +665,16 @@ export class IndependentSharedPlugin {
     if (treeShaking) {
       finalPlugins.push(
         new SharedUsedExportsOptimizerPlugin(
-          sharedOptions,
+          sharedOptions.map<[string, SharedConfig]>(([key, options], index) => [
+            key,
+            index === currentShare.configIndex
+              ? {
+                  ...options,
+                  request: currentShare.request,
+                  shareKey: currentShare.shareKey,
+                }
+              : options,
+          ]),
           this.injectTreeShakingUsedExports,
           undefined,
           this.shareScope,

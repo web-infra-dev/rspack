@@ -163,7 +163,7 @@ fn collect_css_files_from_block_modules(
   };
 
   block
-    .get_dependencies()
+    .get_dependency_ids()
     .filter_map(|dependency_id| module_graph.connection_by_dependency_id(dependency_id))
     .filter_map(|connection| chunk_graph.try_get_module_chunks(connection.module_identifier()))
     .flat_map(|chunk_ukeys| collect_css_files_from_chunks(module_loading, chunk_ukeys, compilation))
@@ -539,7 +539,7 @@ impl RscClientPlugin {
           let Some(block) = module_graph.block_by_id(block_id) else {
             continue;
           };
-          for dep_id in block.get_dependencies() {
+          for dep_id in block.get_dependency_ids() {
             if let Some(conn) = module_graph.connection_by_dependency_id(dep_id) {
               client_entry_modules.insert(*conn.module_identifier());
             }

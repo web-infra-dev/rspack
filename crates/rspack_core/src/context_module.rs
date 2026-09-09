@@ -30,8 +30,8 @@ use crate::{
   BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph,
   ChunkGroupOptions, CodeGenerationResultBuilder, Compilation, Context, ContextElementDependency,
   DependenciesBlock, DependenciesBlockData, DependencyCategory, DependencyId, DependencyLocation,
-  DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
-  ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
+  DependencyRef, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode,
+  GroupOptions, ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
   ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
   RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, contextify, get_exports_type_with_strict,
@@ -480,16 +480,15 @@ impl ContextModule {
     }
   }
 
-  fn get_user_request_map<'a>(
+  fn get_user_request_map(
     &self,
-    dependencies: impl IntoIterator<Item = &'a DependencyId>,
+    dependencies: &[DependencyRef],
     compilation: &Compilation,
   ) -> FxIndexMap<String, Option<String>> {
     let module_graph = compilation.get_module_graph();
-    let dependencies = dependencies.into_iter();
     dependencies
-      .filter_map(|dep_id| {
-        let dependency = module_graph.dependency_by_id(dep_id);
+      .iter()
+      .filter_map(|dependency| {
         let dep = if let Some(d) = dependency.as_module_dependency() {
           Some(d.user_request().to_string())
         } else {
@@ -498,7 +497,7 @@ impl ContextModule {
             .map(|d| d.request().to_string())
         };
         let module_id = module_graph
-          .module_identifier_by_dependency_id(dep_id)
+          .module_identifier_by_dependency_id(dependency.id())
           .and_then(|module| ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module))
           .map(|s| s.to_string());
         // module_id could be None in weak mode
@@ -605,8 +604,7 @@ impl ContextModule {
       .iter()
       .filter_map(|b| {
         let block = module_graph.block_by_id(b)?;
-        let dep = block.get_dependencies().next()?;
-        let dependency = module_graph.dependency_by_id(dep);
+        let dependency = block.get_dependencies().first()?;
         let user_request = dependency
           .as_module_dependency()
           .map(|d| d.user_request().to_string())
@@ -617,7 +615,7 @@ impl ContextModule {
           })?;
         Some(ContextBlockInfo {
           user_request,
-          dep_id: *dep,
+          dep_id: *dependency.id(),
           block_id: block.identifier(),
         })
       })
@@ -669,11 +667,11 @@ impl ContextModule {
         self.get_glob_object_export_source(runtime_template, entries)
       }
       _ => {
-        if self.get_dependency_refs().is_empty() {
+        if self.get_dependencies().is_empty() {
           return self.get_empty_object_export_source(runtime_template);
         }
         let map = self.get_user_request_map(self.get_dependencies(), compilation);
-        let fake_map = self.get_fake_map(self.get_dependencies(), compilation);
+        let fake_map = self.get_fake_map(self.get_dependency_ids(), compilation);
         let return_module_object = self.get_return_module_object_source(
           &fake_map,
           false,
@@ -732,7 +730,7 @@ impl ContextModule {
         }
       }
       ContextMode::Eager => {
-        if !self.get_dependency_refs().is_empty() {
+        if !self.get_dependencies().is_empty() {
           self.get_eager_source(compilation, runtime_template)
         } else {
           self.get_source_for_empty_async_context(compilation, runtime_template)
@@ -746,21 +744,21 @@ impl ContextModule {
         }
       }
       ContextMode::AsyncWeak => {
-        if !self.get_dependency_refs().is_empty() {
+        if !self.get_dependencies().is_empty() {
           self.get_async_weak_source(compilation, runtime_template)
         } else {
           self.get_source_for_empty_async_context(compilation, runtime_template)
         }
       }
       ContextMode::Weak => {
-        if !self.get_dependency_refs().is_empty() {
+        if !self.get_dependencies().is_empty() {
           self.get_sync_weak_source(compilation, runtime_template)
         } else {
           self.get_source_for_empty_context(compilation, runtime_template)
         }
       }
       ContextMode::Sync => {
-        if !self.get_dependency_refs().is_empty() {
+        if !self.get_dependencies().is_empty() {
           self.get_sync_source(compilation, runtime_template)
         } else {
           self.get_source_for_empty_context(compilation, runtime_template)
@@ -781,8 +779,8 @@ impl ContextModule {
       .filter_map(|b| module_graph.block_by_id(b));
     let block_and_first_dependency_list = blocks
       .clone()
-      .filter_map(|b| b.get_dependencies().next().map(|d| (b, d)));
-    let first_dependencies = block_and_first_dependency_list.clone().map(|(_, d)| d);
+      .filter_map(|b| b.get_dependencies().first().map(|d| (b, d)));
+    let first_dependencies = block_and_first_dependency_list.clone().map(|(_, d)| d.id());
     let mut has_multiple_or_no_chunks = false;
     let mut has_no_chunk = true;
     let mut has_no_module_deferred = true;
@@ -790,7 +788,7 @@ impl ContextModule {
     let has_fake_map = matches!(fake_map, FakeMapValue::Map(_));
 
     let mut items = block_and_first_dependency_list
-      .filter_map(|(b, d)| {
+      .filter_map(|(b, dependency)| {
         let chunks: Vec<_> = compilation
           .build_chunk_graph_artifact
           .chunk_graph
@@ -816,7 +814,6 @@ impl ContextModule {
         if chunks.len() != 1 {
           has_multiple_or_no_chunks = true;
         }
-        let dependency = compilation.get_module_graph().dependency_by_id(d);
         let user_request = dependency
           .as_module_dependency()
           .map(|d| d.user_request().to_string())
@@ -825,7 +822,7 @@ impl ContextModule {
               .as_context_dependency()
               .map(|d| d.request().to_string())
           })?;
-        let module = module_graph.get_module_by_dependency_id(d)?;
+        let module = module_graph.get_module_by_dependency_id(dependency.id())?;
         let module_id =
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())?;
         let async_deps = (self
@@ -990,14 +987,14 @@ impl ContextModule {
     let block = mg.block_by_id_expect(block_id);
     let promise = runtime_template.block_promise(Some(block_id), compilation, "lazy-once context");
     let map = self.get_user_request_map(block.get_dependencies(), compilation);
-    let fake_map = self.get_fake_map(block.get_dependencies(), compilation);
+    let fake_map = self.get_fake_map(block.get_dependency_ids(), compilation);
     let async_deps_map = self
       .options
       .context_options
       .phase
       .unwrap_or_default()
       .is_defer()
-      .then(|| self.get_module_deferred_async_deps_map(block.get_dependencies(), compilation));
+      .then(|| self.get_module_deferred_async_deps_map(block.get_dependency_ids(), compilation));
 
     let return_module_object_source = self.get_return_module_object_source(
       &fake_map,
@@ -1055,14 +1052,14 @@ impl ContextModule {
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     let map = self.get_user_request_map(self.get_dependencies(), compilation);
-    let fake_map = self.get_fake_map(self.get_dependencies(), compilation);
+    let fake_map = self.get_fake_map(self.get_dependency_ids(), compilation);
     let async_deps_map = self
       .options
       .context_options
       .phase
       .unwrap_or_default()
       .is_defer()
-      .then(|| self.get_module_deferred_async_deps_map(self.get_dependencies(), compilation));
+      .then(|| self.get_module_deferred_async_deps_map(self.get_dependency_ids(), compilation));
 
     let return_module_object = self.get_return_module_object_source(
       &fake_map,
@@ -1133,7 +1130,7 @@ impl ContextModule {
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     let map = self.get_user_request_map(self.get_dependencies(), compilation);
-    let fake_map = self.get_fake_map(self.get_dependencies(), compilation);
+    let fake_map = self.get_fake_map(self.get_dependency_ids(), compilation);
     let return_module_object =
       self.get_return_module_object_source(&fake_map, true, None, "fakeMap[id]", runtime_template);
     formatdoc! {r#"
@@ -1178,14 +1175,14 @@ impl ContextModule {
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     let map = self.get_user_request_map(self.get_dependencies(), compilation);
-    let fake_map = self.get_fake_map(self.get_dependencies(), compilation);
+    let fake_map = self.get_fake_map(self.get_dependency_ids(), compilation);
     let async_deps_map = self
       .options
       .context_options
       .phase
       .unwrap_or_default()
       .is_defer()
-      .then(|| self.get_module_deferred_async_deps_map(self.get_dependencies(), compilation));
+      .then(|| self.get_module_deferred_async_deps_map(self.get_dependency_ids(), compilation));
     let return_module_object_source = self.get_return_module_object_source(
       &fake_map,
       true,
@@ -1243,7 +1240,7 @@ impl ContextModule {
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     let map = self.get_user_request_map(self.get_dependencies(), compilation);
-    let fake_map = self.get_fake_map(self.get_dependencies(), compilation);
+    let fake_map = self.get_fake_map(self.get_dependency_ids(), compilation);
     let return_module_object =
       self.get_return_module_object_source(&fake_map, false, None, "fakeMap[id]", runtime_template);
     formatdoc! {r#"
