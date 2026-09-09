@@ -18,8 +18,7 @@ function writeEntry(value) {
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
-  description:
-    "should let each module type decide whether its cached build is reusable",
+  description: "should recover DllModule dependencies from persistent cache",
   options(context) {
     root = context.getDist("polymorphic-cache");
     fs.rmSync(root, { recursive: true, force: true });
@@ -108,9 +107,19 @@ module.exports = {
       );
       expect(built.filter((id) => id.startsWith("external "))).toHaveLength(1);
       expect(reused.filter((id) => id.startsWith("external "))).toHaveLength(0);
-      expect(built.filter((id) => id.endsWith("/index.js"))).toHaveLength(
+      expect(built.filter((id) => /[\\/]index\.js$/.test(id))).toHaveLength(
         run === 1 ? 0 : 1,
       );
+
+      const dllModule = [...stats.compilation.modules].find(
+        (module) => module.identifier() === "dll main",
+      );
+      expect(dllModule).toBeDefined();
+      expect(dllModule.dependencies).toHaveLength(1);
+      const entryModule = stats.compilation.moduleGraph.getModule(
+        dllModule.dependencies[0],
+      );
+      expect(entryModule?.resource?.replace(/^.*[\\/]/, "")).toBe("index.js");
 
       const manifest = JSON.parse(
         fs.readFileSync(path.join(root, "manifest.json"), "utf8"),
