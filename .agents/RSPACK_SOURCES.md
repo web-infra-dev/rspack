@@ -187,8 +187,7 @@ calculation handle.
 `TextSpan` carries a borrowed `&str` plus an ASCII hint. Preserve the hint across transformations:
 
 - known ASCII uses byte length as UTF-16 length;
-- known non-ASCII uses `simd_utf16_len` directly;
-- unknown checks ASCII before using SIMD;
+- known non-ASCII and unknown use `simd_utf16_len` directly; its ASCII fast path avoids a separate scan;
 - a subspan of known non-ASCII becomes unknown because the slice may be ASCII-only.
 
 `WithUtf16` converts UTF-16 columns back to valid UTF-8 byte boundaries. It builds a pooled byte
