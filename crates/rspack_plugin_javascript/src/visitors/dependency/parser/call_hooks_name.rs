@@ -1,4 +1,4 @@
-use swc_next_ecma_ast::{ChainExpression, Expr, MemberExpression};
+use swc_next_ecma_ast::{ChainExpression, Expr, IdentifierReference, MemberExpression};
 
 use super::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo};
 use crate::{
@@ -19,6 +19,24 @@ pub trait CallHooksName {
     F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>;
 }
 
+impl CallHooksName for IdentifierReference {
+  fn call_hooks_name<'parser, F, T>(
+    &self,
+    parser: &mut JavascriptParser<'parser>,
+    hook_call: F,
+  ) -> Option<T>
+  where
+    F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
+  {
+    if let Some(state) = parser.definitions_db.resolve_identifier(parser.ast, *self) {
+      call_hooks_info(state, parser, hook_call)
+    } else {
+      let ast = parser.ast.ast;
+      hook_call(parser, ast.get_utf8(self.name(ast)))
+    }
+  }
+}
+
 #[allow(unused_lifetimes)]
 impl CallHooksName for Atom {
   fn call_hooks_name<'parser, F, T>(
@@ -29,10 +47,7 @@ impl CallHooksName for Atom {
   where
     F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
   {
-    if let Some(id) = parser
-      .get_variable_info(self)
-      .map(|info| info.binding_state())
-    {
+    if let Some(id) = parser.definitions_db.resolve(self) {
       // resolved variable info
       call_hooks_info(id, parser, hook_call)
     } else {
@@ -51,10 +66,7 @@ impl CallHooksName for &str {
   where
     F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
   {
-    if let Some(id) = parser
-      .get_variable_info(*self)
-      .map(|info| info.binding_state())
-    {
+    if let Some(id) = parser.definitions_db.resolve(*self) {
       // resolved variable info
       call_hooks_info(id, parser, hook_call)
     } else {
@@ -153,6 +165,9 @@ fn call_hooks_info<'parser, F, T>(
 where
   F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
 {
+  if matches!(id, BindingState::Normal(_)) {
+    return None;
+  }
   let info = parser.definitions_db.expect_get_variable(id);
   let mut next_tag_info = info.tag_info;
 

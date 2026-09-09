@@ -1200,7 +1200,7 @@ fn pre_tag_created_require_declarator(
     replace_argument: _,
   } = argument;
   let name = Atom::from(ast.get_utf8(binding.name(ast)));
-  parser.define_variable(name.clone());
+  parser.define_variable(binding);
   parser.tag_variable(
     name,
     CREATED_REQUIRE_IDENTIFIER_TAG,
@@ -1543,8 +1543,7 @@ pub(crate) fn is_require_call_expr(parser: &mut JavascriptParser, call: CallExpr
   let callee = call.callee(ast);
 
   if let Some(ident) = callee.as_identifier_reference(ast) {
-    return ast
-      .get_utf8(ident.name(ast))
+    return ident
       .call_hooks_name(parser, |_, for_name| {
         (for_name == expr_name::REQUIRE).then_some(true)
       })
@@ -2092,7 +2091,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && is_require_call_expr(parser, call)
     {
       let name = Atom::from(ast.get_utf8(binding.name(ast)));
-      parser.define_variable(name.clone());
+      parser.define_variable(binding);
       tag_commonjs_require_referenced(parser, call, name);
     }
     None

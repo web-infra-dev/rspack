@@ -362,8 +362,6 @@ impl InnerGraphParserPlugin {
     parser: &mut crate::visitors::JavascriptParser,
     name: &Atom,
   ) -> TopLevelSymbol {
-    parser.define_variable(name.clone());
-
     if let Some(existing) = parser
       .get_tag_data::<TopLevelSymbol>(name, TOP_LEVEL_SYMBOL)
       .copied()
