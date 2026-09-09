@@ -112,6 +112,8 @@ pub struct ScopeInfoDB<'ast> {
   // expression trees. All mutable binding state is owned by this database.
   ast: Option<&'ast ParsedJavaScriptAst<'ast>>,
   scopes_by_node: Vec<Option<ScopeId>>,
+  /// Block-function compatibility names, grouped by their enclosing hoist scope.
+  function_aliases: Vec<(ScopeId, SymbolId)>,
   semantic_scope: ScopeId,
   symbols: Vec<Option<BindingState>>,
   overrides: Vec<(SymbolId, Option<BindingState>, ScopeInfoId)>,
@@ -133,6 +135,7 @@ impl<'ast> ScopeInfoDB<'ast> {
       tag_info_db: TagInfoDB::new(),
       ast: None,
       scopes_by_node: Vec::new(),
+      function_aliases: Vec::new(),
       semantic_scope: ScopeId::ROOT,
       symbols: Vec::new(),
       overrides: Vec::new(),
@@ -322,7 +325,14 @@ impl<'ast> ScopeInfoDB<'ast> {
       return None;
     }
     let state = match binding.target {
-      BindingTarget::Symbol(symbol) => self.symbols.get(symbol.index()).copied().flatten()?,
+      BindingTarget::Symbol(existing) => {
+        // An early expression evaluation can reach an inner declaration before
+        // its scope is entered. A same-name outer symbol is not that binding.
+        if existing != symbol {
+          return None;
+        }
+        self.symbols.get(symbol.index()).copied().flatten()?
+      }
       BindingTarget::Local(state) => state,
     };
     binding.target = BindingTarget::Symbol(symbol);

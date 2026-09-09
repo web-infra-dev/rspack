@@ -1,10 +1,7 @@
 use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use swc_next_ecma_ast::*;
 
-use super::{
-  DestructuringAssignmentProperty, JavascriptParser, PatRef,
-  estree::{MaybeNamedFunctionDecl, Statement},
-};
+use super::{DestructuringAssignmentProperty, JavascriptParser, PatRef, estree::Statement};
 use crate::{
   Atom,
   parser_plugin::JavascriptParserPlugin,
@@ -133,7 +130,6 @@ impl JavascriptParser<'_> {
         Statement::ForIn(stmt) => parser.pre_walk_for_in_statement(stmt),
         Statement::ForOf(stmt) => parser.pre_walk_for_of_statement(stmt),
         Statement::For(stmt) => parser.pre_walk_for_statement(stmt),
-        Statement::Fn(stmt) => parser.pre_walk_function_declaration(stmt),
         Statement::Var(stmt) => parser.pre_walk_variable_declaration(stmt),
         Statement::If(stmt) => parser.pre_walk_if_statement(stmt),
         Statement::Labeled(stmt) => parser.pre_walk_labeled_statement(stmt),
@@ -185,12 +181,6 @@ impl JavascriptParser<'_> {
     self.pre_walk_statement(Statement::from_stmt(ast, stmt.consequent(ast)));
     if let Some(alternate) = stmt.alternate(ast) {
       self.pre_walk_statement(Statement::from_stmt(ast, alternate));
-    }
-  }
-
-  pub fn pre_walk_function_declaration(&mut self, decl: MaybeNamedFunctionDecl) {
-    if let Some(identifier) = decl.ident(self.ast.ast) {
-      self.define_function_declaration(identifier);
     }
   }
 
@@ -258,7 +248,7 @@ impl JavascriptParser<'_> {
         self.enter_pattern(
           PatRef::Borrowed(declarator.id(ast)),
           |this, identifier, _| {
-            this.pre_define_variable_identifier(identifier);
+            this.define_variable(identifier);
           },
         );
       }

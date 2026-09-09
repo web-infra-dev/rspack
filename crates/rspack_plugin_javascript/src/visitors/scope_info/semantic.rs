@@ -1,5 +1,8 @@
-use swc_next_ecma_ast::{BindingIdentifier, IdentifierReference, NodeId, ScopeId, SymbolId};
-use swc_next_ecma_semantic::{ReferenceSpace, SymbolFlags};
+use swc_next_ecma_ast::{
+  ArrowFunctionBodyData, BindingIdentifier, FunctionBody, IdentifierReference, NodeId,
+  NodeKindData, ScopeId, SymbolId,
+};
+use swc_next_ecma_semantic::{ReferenceSpace, SymbolFlags, scope::ScopeKind};
 
 use super::{Atom, AtomRef, BindingState, ParsedJavaScriptAst, ScopeInfoDB, ScopeInfoId};
 
@@ -26,7 +29,24 @@ impl<'ast> ScopeInfoDB<'ast> {
         db.semantic_scope = entry.id;
       }
     }
+    for entry in ast.semantic.iter_symbols() {
+      if !entry.symbol.flags.contains(SymbolFlags::FUNCTION) {
+        continue;
+      }
+      let owner = ast.semantic.scope(entry.symbol.scope);
+      if matches!(owner.kind, ScopeKind::Block | ScopeKind::With)
+        && matches!(
+          ast.semantic.scope(owner.hoist_target).kind,
+          ScopeKind::Global | ScopeKind::Module | ScopeKind::Function | ScopeKind::FunctionBody
+        )
+      {
+        db.function_aliases.push((owner.hoist_target, entry.id));
+      }
+    }
+    db.function_aliases
+      .sort_unstable_by_key(|(scope, symbol)| (*scope, symbol.index()));
     db.create();
+    db.initialize_scope_bindings(ast);
     db
   }
 
@@ -146,8 +166,8 @@ impl<'ast> ScopeInfoDB<'ast> {
       if let Some(state) = self.bind_existing_symbol(self.current_scope(), name, symbol) {
         return state.defined();
       }
-      // A plugin can deliberately suppress lexical parameters (require.ensure
-      // is one example). A static resolution alone must not activate them.
+      // Replacement trees and legacy scope mappings can still introduce a
+      // binding through the name-based overlay.
     }
     self.get(self.current_scope(), ast.get_utf8(identifier.name(ast)))
   }
@@ -168,87 +188,146 @@ impl<'ast> ScopeInfoDB<'ast> {
     parsed: &ParsedJavaScriptAst<'_>,
     identifier: BindingIdentifier,
   ) {
-    let ast = parsed.ast;
-    if self.owns_ast(parsed)
-      && let Some(symbol) = parsed.semantic.symbol_of(identifier.node_id())
-    {
-      let scope = self.current_scope();
-      let name = ast.get_utf8(identifier.name(ast));
-      let existing = self
-        .bind_existing_symbol(scope, name, symbol)
-        .or_else(|| self.symbol_state(symbol));
-      if let Some(state) = existing.and_then(BindingState::defined) {
-        let info = self.expect_get_variable(state);
-        if info.tag_info.is_some() && info.declared_scope == scope {
-          self.set_symbol(symbol, state, scope);
-          return;
+    if self.owns_ast(parsed) {
+      // Original declarations already have default bindings before hooks run.
+      debug_assert!(
+        parsed
+          .semantic
+          .symbol_of(identifier.node_id())
+          .and_then(|symbol| self.symbol_state(symbol))
+          .is_some(),
+        "declaration binding should be initialized before hooks"
+      );
+      return;
+    }
+    // Replacement declarations are resolved by name, not by their fragment's SymbolId.
+    self.define(Atom::from(parsed.ast.get_utf8(identifier.name(parsed.ast))));
+  }
+
+  pub fn initialize_scope_bindings(&mut self, parsed: &ParsedJavaScriptAst<'_>) {
+    if !self.owns_ast(parsed) {
+      return;
+    }
+    let scope = self.current_scope();
+    let semantic = parsed.semantic;
+    let mut semantic_scope = self.semantic_scope;
+    let node = semantic.scope(semantic_scope).node;
+    loop {
+      for symbol in semantic.bindings(semantic_scope) {
+        if semantic
+          .symbol(symbol)
+          .flags
+          .visible_in(ReferenceSpace::Value)
+          && self.symbol_state(symbol).is_none()
+        {
+          self.set_symbol(symbol, BindingState::Normal(scope), scope);
         }
       }
-      self.set_symbol(symbol, BindingState::Normal(scope), scope);
-    } else {
-      self.define(Atom::from(ast.get_utf8(identifier.name(ast))));
+      // A named function/class expression has an additional name scope on
+      // the same node. It belongs to the same Rspack scope as its body.
+      let Some(parent) = semantic
+        .scope(semantic_scope)
+        .parent
+        .filter(|parent| semantic.scope(*parent).node == node)
+      else {
+        break;
+      };
+      semantic_scope = parent;
+    }
+    // The legacy pre-walk made block functions visible by name in the
+    // enclosing function/program. Derive only those extra names from semantic
+    // scopes; ordinary function bindings are already initialized above.
+    let start = self
+      .function_aliases
+      .partition_point(|(target, _)| *target < self.semantic_scope);
+    for index in start..self.function_aliases.len() {
+      let (target, symbol) = self.function_aliases[index];
+      if target != self.semantic_scope {
+        break;
+      }
+      let name = parsed
+        .ast
+        .get_wtf8(semantic.symbol(symbol).name)
+        .to_string_lossy();
+      if self
+        .bindings
+        .get(name.as_ref())
+        .and_then(|bindings| bindings.last())
+        .is_none_or(|binding| binding.scope != scope)
+      {
+        self.set(
+          scope,
+          Atom::from(name.as_ref()),
+          BindingState::Normal(scope),
+        );
+      }
     }
   }
 
-  fn ordinary_declaration(flags: SymbolFlags) -> bool {
-    flags.intersects(
-      SymbolFlags::FUNCTION_SCOPED_VAR
-        | SymbolFlags::BLOCK_SCOPED_VAR
-        | SymbolFlags::FUNCTION
-        | SymbolFlags::CLASS,
-    ) && !flags
-      .intersects(SymbolFlags::PARAMETER | SymbolFlags::CATCH_VAR | SymbolFlags::ANY_IMPORT)
+  pub fn initialize_function_body_bindings(
+    &mut self,
+    parsed: &ParsedJavaScriptAst<'_>,
+    body: FunctionBody,
+  ) {
+    if self.owns_ast(parsed) {
+      // A body without its own semantic scope was already initialized when
+      // entering the function. Only parameter expressions create a separate
+      // function-body environment whose bindings still need initialization.
+      if self
+        .scopes_by_node
+        .get(body.node_id().index())
+        .is_some_and(Option::is_some)
+      {
+        self.initialize_scope_bindings(parsed);
+      }
+      return;
+    }
+    // Replacement ASTs have their own semantic IDs. Consume their declaration
+    // information too, but keep bindings in the existing name-based overlay.
+    let ast = parsed.ast;
+    let semantic = parsed.semantic;
+    let Some(scope) = semantic
+      .iter_scopes()
+      .filter(|entry| match ast.kind_data(entry.scope.node) {
+        NodeKindData::Function(function) => function.body(ast) == body,
+        NodeKindData::ArrowFunctionExpression(arrow) => matches!(
+          ast.arrow_function_body_data(arrow.body(ast)),
+          ArrowFunctionBodyData::FunctionBody(function_body) if function_body == body
+        ),
+        NodeKindData::FunctionBody(function_body) => function_body == body,
+        _ => false,
+      })
+      .last()
+    else {
+      return;
+    };
+    for entry in semantic.iter_symbols() {
+      let symbol = entry.symbol;
+      let owner = semantic.scope(symbol.scope);
+      if symbol.flags.contains(SymbolFlags::FUNCTION)
+        && owner.kind != ScopeKind::ExpressionName
+        && owner.hoist_target == scope.id
+      {
+        let name = ast.get_wtf8(symbol.name).to_string_lossy();
+        self.define(Atom::from(name.as_ref()));
+      }
+    }
   }
 
-  pub fn activate_scope_bindings(&mut self, parsed: &ParsedJavaScriptAst<'_>) {
+  pub fn suppress_scope_parameters(&mut self, parsed: &ParsedJavaScriptAst<'_>) {
     if !self.owns_ast(parsed) {
       return;
     }
     let scope = self.current_scope();
     for symbol in parsed.semantic.bindings(self.semantic_scope) {
-      if Self::ordinary_declaration(parsed.semantic.symbol(symbol).flags)
-        && self.symbol_state(symbol).is_none()
+      if parsed
+        .semantic
+        .symbol(symbol)
+        .flags
+        .contains(SymbolFlags::PARAMETER)
       {
-        self.set_symbol(symbol, BindingState::Normal(scope), scope);
+        self.set_symbol(symbol, BindingState::Tombstone, scope);
       }
-    }
-  }
-
-  pub fn pre_define_identifier(
-    &mut self,
-    parsed: &ParsedJavaScriptAst<'_>,
-    identifier: BindingIdentifier,
-  ) {
-    if self.owns_ast(parsed)
-      && let Some(symbol) = parsed.semantic.symbol_of(identifier.node_id())
-      && parsed.semantic.scope_of(symbol) == self.semantic_scope
-      && Self::ordinary_declaration(parsed.semantic.symbol(symbol).flags)
-      && self
-        .symbol_state(symbol)
-        .is_none_or(|state| state == BindingState::Normal(self.current_scope()))
-    {
-      return;
-    }
-    // Parameters merged with var, scope mismatches and replacement ASTs retain
-    // their explicit registration path; ordinary declarations activate in bulk.
-    self.define_identifier(parsed, identifier);
-  }
-
-  pub fn define_function_declaration(
-    &mut self,
-    parsed: &ParsedJavaScriptAst<'_>,
-    identifier: BindingIdentifier,
-  ) {
-    if self.owns_ast(parsed)
-      && let Some(symbol) = parsed.semantic.symbol_of(identifier.node_id())
-      && parsed.semantic.scope_of(symbol) != self.semantic_scope
-    {
-      // Keep the legacy visibility of block functions, including Annex B,
-      // even when references outside the lexical block are unresolved by SWC.
-      let ast = parsed.ast;
-      self.define(Atom::from(ast.get_utf8(identifier.name(ast))));
-    } else {
-      self.pre_define_identifier(parsed, identifier);
     }
   }
 

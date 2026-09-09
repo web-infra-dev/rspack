@@ -92,7 +92,7 @@ impl JavascriptParser<'_> {
 
   fn block_pre_walk_class_declaration(&mut self, declaration: MaybeNamedClassDecl) {
     if let Some(identifier) = declaration.ident(self.ast.ast) {
-      self.pre_define_variable_identifier(identifier);
+      self.define_variable(identifier);
     }
   }
 

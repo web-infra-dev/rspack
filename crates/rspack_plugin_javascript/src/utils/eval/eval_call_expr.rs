@@ -6,7 +6,7 @@ use crate::{
     CREATE_REQUIRE_EVALUATED_TAG, JavascriptParserPlugin, is_create_require_namespace_member,
     is_create_require_specifier,
   },
-  visitors::{CallHooksName, JavascriptParser},
+  visitors::JavascriptParser,
 };
 
 #[inline]
@@ -22,7 +22,7 @@ pub fn eval_call_expression<'parser>(
     let is_create_require = parser.javascript_options.is_create_require_enabled()
       && is_create_require_specifier(parser, name);
     let evaluated = if is_create_require {
-      name.call_hooks_name(parser, |parser, for_name| {
+      parser.call_hooks_name(name, |parser, for_name| {
         drive.evaluate_call_expression(parser, for_name, expression)
       })
     } else if parser.javascript_options.is_create_require_enabled() {

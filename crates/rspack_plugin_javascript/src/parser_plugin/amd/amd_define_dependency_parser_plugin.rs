@@ -459,40 +459,67 @@ impl AMDDefineDependencyParserPlugin {
       });
     }
 
-    if func.is_some_and(|func| is_unbound_function_expression(ast, func)) {
+    if let Some(func) = func.filter(|func| is_bound_function_expression(ast, *func)) {
+      let function = func
+        .as_call_expression(ast)
+        .and_then(|call| call.callee(ast).as_member_expression(ast))
+        .and_then(|member| member.object(ast).as_function(ast))
+        .expect("bound function");
+      for parameter in formal_parameter_patterns(ast, function.params(ast)) {
+        if let Some(identifier) = parameter.as_binding_identifier(ast) {
+          let name = ast.get_utf8(identifier.name(ast));
+          if RESERVED_NAMES.contains(&name) {
+            let name = Atom::from(name);
+            fn_renames.entry(name.clone()).or_insert(name);
+          }
+        }
+      }
+    }
+    // Resolve aliases in the enclosing scope before the callback parameters
+    // receive their default semantic bindings.
+    let fn_renames = fn_renames
+      .into_iter()
+      .map(|(name, rename_identifier)| {
+        let variable = parser
+          .get_variable_info(&rename_identifier)
+          .map(|info| ExportedVariableInfo::VariableInfo(info.binding_state()))
+          .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
+        (name, variable)
+      })
+      .collect::<Vec<_>>();
+
+    if let Some(func) = func.filter(|func| is_unbound_function_expression(ast, *func)) {
       let in_try = parser.in_try;
-      parser.in_function_scope(
-        true,
-        fn_params.expect("fn_params should not be None").into_iter(),
-        |parser| {
-          for (name, rename_identifier) in fn_renames.iter() {
-            let variable = parser
-              .get_variable_info(rename_identifier)
-              .map(|info| ExportedVariableInfo::VariableInfo(info.binding_state()))
-              .unwrap_or(ExportedVariableInfo::Name(rename_identifier.clone()));
-            parser.set_variable(name.clone(), variable);
-          }
-
-          parser.in_try = in_try;
-
-          match func.map(|func| parser.ast.ast.expr_data(func)) {
-            Some(ExprData::Function(function)) => {
-              parser.walk_function_body(function.body(parser.ast.ast));
+      parser.in_semantic_scope(func.node_id(), |parser| {
+        parser.in_function_scope(
+          true,
+          fn_params.expect("fn_params should not be None").into_iter(),
+          |parser| {
+            for (name, variable) in fn_renames {
+              parser.set_variable(name, variable);
             }
-            Some(ExprData::ArrowFunctionExpression(function)) => {
-              match parser
-                .ast
-                .ast
-                .arrow_function_body_data(function.body(parser.ast.ast))
-              {
-                ArrowFunctionBodyData::FunctionBody(body) => parser.walk_function_body(body),
-                ArrowFunctionBodyData::Expr(expr) => parser.walk_expression(expr),
+
+            parser.in_try = in_try;
+
+            match parser.ast.ast.expr_data(func) {
+              ExprData::Function(function) => {
+                parser.walk_function_body(function.body(parser.ast.ast));
               }
+              ExprData::ArrowFunctionExpression(function) => {
+                match parser
+                  .ast
+                  .ast
+                  .arrow_function_body_data(function.body(parser.ast.ast))
+                {
+                  ArrowFunctionBodyData::FunctionBody(body) => parser.walk_function_body(body),
+                  ArrowFunctionBodyData::Expr(expr) => parser.walk_expression(expr),
+                }
+              }
+              _ => unreachable!(),
             }
-            _ => unreachable!(),
-          }
-        },
-      );
+          },
+        );
+      });
     } else if func.is_some_and(|func| is_bound_function_expression(ast, func)) {
       let in_try = parser.in_try;
 
@@ -504,28 +531,26 @@ impl AMDDefineDependencyParserPlugin {
 
         if let Some(func_expr) = object {
           let params = formal_parameter_patterns(ast, func_expr.params(ast));
-          parser.in_function_scope(
-            true,
-            params.map(PatRef::Borrowed).filter(|pat| {
-              pat
-                .as_pat()
-                .as_binding_identifier(ast)
-                .is_some_and(|ident| !RESERVED_NAMES.contains(&ast.get_utf8(ident.name(ast))))
-            }),
-            |parser| {
-              for (name, rename_identifier) in fn_renames.iter() {
-                let variable = parser
-                  .get_variable_info(rename_identifier)
-                  .map(|info| ExportedVariableInfo::VariableInfo(info.binding_state()))
-                  .unwrap_or(ExportedVariableInfo::Name(rename_identifier.clone()));
-                parser.set_variable(name.clone(), variable);
-              }
+          parser.in_semantic_scope(func_expr.node_id(), |parser| {
+            parser.in_function_scope(
+              true,
+              params.map(PatRef::Borrowed).filter(|pat| {
+                pat
+                  .as_pat()
+                  .as_binding_identifier(ast)
+                  .is_some_and(|ident| !RESERVED_NAMES.contains(&ast.get_utf8(ident.name(ast))))
+              }),
+              |parser| {
+                for (name, variable) in fn_renames {
+                  parser.set_variable(name, variable);
+                }
 
-              parser.in_try = in_try;
+                parser.in_try = in_try;
 
-              parser.walk_function_body(func_expr.body(parser.ast.ast));
-            },
-          );
+                parser.walk_function_body(func_expr.body(parser.ast.ast));
+              },
+            );
+          });
         }
 
         parser.walk_arguments(parser.ast.ast.nodes(call_expr.arguments(parser.ast.ast)));

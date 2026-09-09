@@ -107,7 +107,7 @@ fn track_dynamic_import_pattern(
   match ast.binding_pattern_data(pattern) {
     BindingPatternData::BindingIdentifier(binding) => {
       let name = Atom::from(ast.get_utf8(binding.name(ast)));
-      parser.define_variable(name.clone());
+      parser.define_variable(binding);
       tag_dynamic_import_referenced(parser, import_call, name);
     }
     BindingPatternData::ObjectPattern(pattern) => {
@@ -289,7 +289,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         && let Some(binding) = declarator.id(ast).as_binding_identifier(ast)
       {
         let name = Atom::from(ast.get_utf8(binding.name(ast)));
-        parser.define_variable(name.clone());
+        parser.define_variable(binding);
         tag_dynamic_import_referenced(parser, import, name);
       }
       track_dynamic_imports_in_promise_all(parser, declarator);

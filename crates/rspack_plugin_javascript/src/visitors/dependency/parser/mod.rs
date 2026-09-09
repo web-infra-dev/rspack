@@ -252,6 +252,23 @@ pub enum ExportedVariableInfo {
   VariableInfo(BindingState),
 }
 
+pub enum VariableDefinition {
+  Name(Atom),
+  Identifier(BindingIdentifier),
+}
+
+impl From<Atom> for VariableDefinition {
+  fn from(name: Atom) -> Self {
+    Self::Name(name)
+  }
+}
+
+impl From<BindingIdentifier> for VariableDefinition {
+  fn from(identifier: BindingIdentifier) -> Self {
+    Self::Identifier(identifier)
+  }
+}
+
 fn object_and_members_to_name(object: &str, members_reversed: &[impl AsRef<str>]) -> String {
   let total_len = object.len()
     + members_reversed.len()
@@ -1067,28 +1084,19 @@ impl<'parser> JavascriptParser<'parser> {
     })
   }
 
-  pub fn define_variable(&mut self, name: Atom) {
-    self.definitions_db.define(name);
+  pub fn define_variable(&mut self, variable: impl Into<VariableDefinition>) {
+    match variable.into() {
+      // Name-based writes can reset aliases after initialization; declaration
+      // handles reuse semantic bindings and only define replacement-AST names.
+      VariableDefinition::Name(name) => self.definitions_db.define(name),
+      VariableDefinition::Identifier(identifier) => {
+        self.definitions_db.define_identifier(self.ast, identifier);
+      }
+    }
   }
 
-  fn define_variable_identifier(&mut self, identifier: BindingIdentifier) {
-    self.definitions_db.define_identifier(self.ast, identifier);
-  }
-
-  fn pre_define_variable_identifier(&mut self, identifier: BindingIdentifier) {
-    self
-      .definitions_db
-      .pre_define_identifier(self.ast, identifier);
-  }
-
-  fn activate_semantic_scope_bindings(&mut self) {
-    self.definitions_db.activate_scope_bindings(self.ast);
-  }
-
-  fn define_function_declaration(&mut self, identifier: BindingIdentifier) {
-    self
-      .definitions_db
-      .define_function_declaration(self.ast, identifier);
+  fn initialize_semantic_scope_bindings(&mut self) {
+    self.definitions_db.initialize_scope_bindings(self.ast);
   }
 
   pub fn set_variable(&mut self, name: Atom, variable: ExportedVariableInfo) {
@@ -1385,12 +1393,9 @@ impl<'parser> JavascriptParser<'parser> {
     let ast = self.ast.ast;
     let name = ast.get_utf8(ident.name(ast));
     let drive = self.plugin_drive.clone();
-    if !name
-      .call_hooks_name(self, |parser, for_name| {
-        drive.pattern(parser, ident, for_name)
-      })
-      .unwrap_or_default()
-    {
+    // Declaration hooks inspect the declared name, even when its semantic
+    // binding is already initialized as a normal local variable.
+    if !drive.pattern(self, ident, name).unwrap_or_default() {
       on_ident(self, ident, name);
     }
   }
@@ -1600,7 +1605,6 @@ impl<'parser> JavascriptParser<'parser> {
       self.pre_walk_module_items(body);
       self.prev_statement = None;
       self.block_pre_walk_module_items(body);
-      self.activate_semantic_scope_bindings();
       self.prev_statement = None;
       self.walk_module_items(body);
     }
@@ -1731,9 +1735,18 @@ impl<'parser> JavascriptParser<'parser> {
           return Some(eval);
         }
         let drive = self.plugin_drive.clone();
-        let (evaluated, resolution) = self.call_hooks_name_for_identifier(ident, |parser, name| {
+        let resolution = self.definitions_db.identifier_resolution(self.ast, ident);
+        let variable = self
+          .definitions_db
+          .resolve_identifier_with(self.ast, ident, resolution);
+        let hook_call = |parser: &mut Self, name: &str| {
           drive.evaluate_identifier(parser, name, None, span.real_lo(), span.real_hi())
-        });
+        };
+        let evaluated = if let Some(state) = variable {
+          call_hooks_name::call_hooks_info(state, self, hook_call)
+        } else {
+          hook_call(self, name)
+        };
         evaluated.or_else(|| {
           let variable = self
             .definitions_db
