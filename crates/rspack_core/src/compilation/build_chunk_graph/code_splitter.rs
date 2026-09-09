@@ -1235,8 +1235,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           continue;
         };
         let root_modules = block
-          .get_dependencies()
-          .iter()
+          .get_dependency_ids()
           .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
           .copied()
           .collect::<Vec<_>>();

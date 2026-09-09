@@ -21,6 +21,10 @@ module.exports = {
   cache: {
     type: 'persistent',
   },
+  optimization: {
+    concatenateModules: false,
+    sideEffects: true,
+  },
   module: {
     rules: [
       {
@@ -56,6 +60,27 @@ module.exports = {
           });
         });
         compiler.hooks.done.tap('ModuleCacheTest', (stats) => {
+          const { modules } = stats.toJson({
+            all: false,
+            modules: true,
+            cachedModules: true,
+            orphanModules: true,
+            optimizationBailout: true,
+          });
+          const sideEffectsBailouts = (name) =>
+            modules
+              .find((module) => module.name === `./${name}`)
+              .optimizationBailout.filter((reason) =>
+                reason.includes('with side_effects in source code'),
+              );
+          expect(sideEffectsBailouts('stable.js')).toEqual([
+            expect.stringContaining('ExportDefaultExpr with side_effects'),
+          ]);
+          expect(sideEffectsBailouts('changed.js')).toEqual(
+            compilerIndex === 0
+              ? [expect.stringContaining('Statement with side_effects')]
+              : [],
+          );
           expect(
             stats.compilation
               .getAsset('from-succeed-module.txt')

@@ -52,6 +52,10 @@ impl CssImportDependency {
     iter_css_module_render_conditions(&self.inherited_render_conditions, &self.render_condition)
   }
 
+  pub fn render_condition(&self) -> &CssModuleRenderCondition {
+    &self.render_condition
+  }
+
   pub fn export_type(&self) -> Option<CssExportType> {
     self.export_type
   }

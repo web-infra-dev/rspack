@@ -23,6 +23,7 @@ pub(crate) fn assert_url_dependency(
     request: req,
     range,
     kind: k,
+    ..
   } = dependency
   else {
     panic!("unexpected dependency");
@@ -65,6 +66,7 @@ pub(crate) fn import_dependency<'context, 's>(
     request,
     range,
     attributes,
+    ..
   } = &context[dependency_index]
   else {
     panic!("unexpected dependency");

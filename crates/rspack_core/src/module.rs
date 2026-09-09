@@ -34,17 +34,17 @@ use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
-  AsyncDependenciesBlockBuildResult, BindingCell, CacheFacade, ChunkGraph, ChunkUkey,
+  AsyncDependenciesBlockRef, BindingCell, CacheFacade, ChunkGraph, ChunkUkey,
   CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation, CompilationAsset,
   CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
-  ContextModule, CssExportType, DependenciesBlock, DependencyCodeGenerationRef, DependencyId,
-  DependencyRef, ExportProvided, ExportsInfoArtifact, ExternalModule, FileSystemInfo, Filename,
-  GetTargetResult, ImportPhase, ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleLayer, ModuleType, NormalModule, OptimizationBailoutItem, RawModule, Resolve,
-  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SideEffectsStateArtifact, Snapshot,
-  SourceType, concatenated_module::ConcatenatedModule,
-  dependencies_block::dependencies_block_update_hash, get_target,
-  value_cache_versions::ValueCacheVersions,
+  ContextModule, CssExportType, DependenciesBlock, DependenciesBlockData,
+  DependencyCodeGenerationRef, DependencyId, DependencyRef, ExportProvided, ExportsInfoArtifact,
+  ExternalModule, FileSystemInfo, Filename, GetTargetResult, ImportPhase, ModuleCodeTemplate,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
+  OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
+  SharedPluginDriver, SideEffectsStateArtifact, Snapshot, SourceType,
+  concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
+  get_target, value_cache_versions::ValueCacheVersions,
 };
 
 pub struct BuildContext {
@@ -314,6 +314,8 @@ pub struct BuildInfo {
   pub side_effects_free: Option<AtomSet>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<AtomSet>,
+  /// Bailouts produced during module builds, before compilation-specific optimizations.
+  pub optimization_bailouts: Vec<OptimizationBailoutItem>,
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
@@ -349,6 +351,7 @@ impl Default for BuildInfo {
       css: None,
       side_effects_free: None,
       top_level_declarations: None,
+      optimization_bailouts: Vec::new(),
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,
@@ -561,17 +564,6 @@ impl RspackHash for ExportsArgument {
   }
 }
 
-// webpack build info
-#[cacheable]
-#[derive(Debug)]
-pub struct BuildResult {
-  pub module: BoxModule,
-  /// Dependencies are shared after the module build finishes.
-  pub dependencies: Vec<DependencyRef>,
-  pub blocks: Vec<AsyncDependenciesBlockBuildResult>,
-  pub optimization_bailouts: Vec<OptimizationBailoutItem>,
-}
-
 /// Factory-owned metadata whose flags can be updated through a shared reference.
 ///
 /// Mutation must follow the compilation phase's rules; changing a flag does not
@@ -657,7 +649,7 @@ pub trait Module:
     self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult>;
+  ) -> Result<BoxModule>;
 
   fn factory_meta(&self) -> Option<&FactoryMeta>;
 
@@ -958,6 +950,16 @@ impl<T: Module> ModuleExt for T {
 pub struct BoxModule(Box<dyn Module>);
 
 impl BoxModule {
+  /// Installs a module's complete build output before it is published into the graph.
+  pub fn with_dependencies(
+    mut self,
+    dependencies: Vec<DependencyRef>,
+    blocks: Vec<AsyncDependenciesBlockRef>,
+  ) -> Self {
+    *self.dependencies_block_mut() = DependenciesBlockData::new(dependencies, blocks);
+    self
+  }
+
   /// Create a new BoxModule from a boxed Module trait object.
   pub fn new(module: Box<dyn Module>) -> Self {
     BoxModule(module)
@@ -967,7 +969,7 @@ impl BoxModule {
     self,
     build_context: BuildContext,
     compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<BoxModule> {
     self.0.build(build_context, compilation).await
   }
 }
@@ -1119,9 +1121,8 @@ mod test {
 
   use super::{BoxModule, Module};
   use crate::{
-    AsyncDependenciesBlockIdentifier, BuildContext, BuildResult, CodeGenerationResultBuilder,
-    Compilation, Context, DependenciesBlock, DependencyId, ModuleCodeGenerationContext, ModuleExt,
-    ModuleGraph, ModuleType, RuntimeSpec, SourceType,
+    BuildContext, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock,
+    ModuleCodeGenerationContext, ModuleExt, ModuleGraph, ModuleType, RuntimeSpec, SourceType,
   };
 
   #[cacheable]
@@ -1143,23 +1144,10 @@ mod test {
       impl_empty_diagnosable_trait!($ident);
 
       impl DependenciesBlock for $ident {
-        fn add_block_id(&mut self, _: AsyncDependenciesBlockIdentifier) {
+        fn dependencies_block(&self) -> &$crate::DependenciesBlockData {
           unreachable!()
         }
-
-        fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-          unreachable!()
-        }
-
-        fn add_dependency_id(&mut self, _: DependencyId) {
-          unreachable!()
-        }
-
-        fn remove_dependency_id(&mut self, _: DependencyId) {
-          unreachable!()
-        }
-
-        fn get_dependencies(&self) -> &[DependencyId] {
+        fn dependencies_block_mut(&mut self) -> &mut $crate::DependenciesBlockData {
           unreachable!()
         }
       }
@@ -1195,7 +1183,7 @@ mod test {
           self: Box<Self>,
           _build_context: BuildContext,
           _compilation: Option<&Compilation>,
-        ) -> Result<BuildResult> {
+        ) -> Result<BoxModule> {
           unreachable!()
         }
 
