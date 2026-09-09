@@ -10,6 +10,20 @@ module.exports = {
       name: 'tree_shaking_shared_prefix_exports',
       manifest: true,
       shared: {
+        'exact-directory': {
+          shareKey: 'directory',
+          import: './directory/',
+          version: '1.0.0',
+          requiredVersion: false,
+          treeShaking: { mode: 'runtime-infer' },
+        },
+        'exact-file': {
+          shareKey: 'directorysub.js',
+          import: './directory/sub.js',
+          version: '1.0.0',
+          requiredVersion: false,
+          treeShaking: { mode: 'runtime-infer' },
+        },
         'prefix/': {
           shareKey: 'custom-',
           requiredVersion: false,
