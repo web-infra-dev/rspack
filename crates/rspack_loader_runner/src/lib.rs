@@ -10,13 +10,14 @@ mod runner;
 mod scheme;
 
 pub use cache::LoaderRunnerOptions;
-pub use chain::{LoaderChain, LoaderExecutionKind};
+pub use chain::LoaderChain;
 pub use content::{
   AdditionalData, Content, DescriptionData, ParseMeta, ParseMetaValue, ResourceData,
 };
 pub use context::{LoaderContext, LoaderDependencies, LoaderRunnerContext, State};
 pub use loader::{
-  DisplayWithSuffix, Loader, LoaderItem, LoaderItemState, ResourceParsedData, parse_resource,
+  DisplayWithSuffix, Loader, LoaderExecutionKind, LoaderItem, LoaderItemState, ResourceParsedData,
+  parse_resource,
 };
 pub use plugin::LoaderRunnerPlugin;
 pub use rspack_collections::{Identifiable, Identifier};

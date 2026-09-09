@@ -502,7 +502,8 @@ impl Module {
           "Module.dependencies is unavailable while the module graph is under construction (e.g. inside a loader during compilation.rebuildModule)",
         ));
       };
-      let dependencies = module.get_dependencies();
+      // Only expose dependencies that are still present in the current graph.
+      let dependencies = module.get_dependency_ids();
       Ok(
         dependencies
           .filter_map(|dependency_id| {

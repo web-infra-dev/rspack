@@ -247,17 +247,16 @@ impl Module for ContainerEntryModule {
     let runtime_argument = require_name.clone();
 
     if self.dependency_type == DependencyType::ShareContainerEntry {
-      let module_graph = compilation.get_module_graph();
       let mut factory = String::new();
-      for dependency_id in self.get_dependencies() {
-        let dependency = module_graph.dependency_by_id(dependency_id);
+      for dependency in self.get_dependencies() {
         if let Some(dependency) = dependency
           .as_any()
           .downcast_ref::<ContainerExposedDependency>()
           && *dependency.dependency_type() == DependencyType::ShareContainerFallback
         {
           let request: &str = dependency.user_request();
-          let module_expr = runtime_template.module_raw(compilation, dependency_id, request, false);
+          let module_expr =
+            runtime_template.module_raw(compilation, dependency.id(), request, false);
           factory = runtime_template.returning_function(&module_expr, "");
         }
       }
@@ -468,15 +467,14 @@ impl ExposeModuleMap {
       let block = module_graph
         .block_by_id(block_id)
         .expect("should have block");
-      let modules_iter = block.get_dependencies().map(|dependency_id| {
-        let dep = module_graph.dependency_by_id(dependency_id);
+      let modules_iter = block.get_dependencies().iter().map(|dep| {
         let dep = dep
           .downcast_ref::<ContainerExposedDependency>()
           .expect("dependencies of ContainerEntryModule should be ContainerExposedDependency");
         let name = dep.exposed_name.as_str();
-        let module = module_graph.get_module_by_dependency_id(dependency_id);
+        let module = module_graph.get_module_by_dependency_id(dep.id());
         let user_request = dep.user_request();
-        (name, module, user_request, dependency_id)
+        (name, module, user_request, dep.id())
       });
       let name = modules_iter.clone().next().expect("should have item").0;
       let str = if modules_iter

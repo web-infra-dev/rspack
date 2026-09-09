@@ -96,21 +96,6 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     Ok(None)
   }
 
-  async fn should_yield(&self, context: &LoaderContext<Self::Context>) -> Result<bool> {
-    let res = self
-      .plugin_driver
-      .normal_module_hooks
-      .loader_should_yield
-      .call(context)
-      .await?;
-
-    if let Some(res) = res {
-      return Ok(res);
-    }
-
-    Ok(false)
-  }
-
   async fn start_yielding(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
     self
       .plugin_driver

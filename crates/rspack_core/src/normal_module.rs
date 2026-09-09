@@ -80,7 +80,6 @@ impl ModuleIssuer {
 
 define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData, fs: &Arc<dyn ReadableFileSystem>) -> Content,tracing=false);
 define_hook!(NormalModuleLoader: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
-define_hook!(NormalModuleLoaderShouldYield: SeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool,tracing=false);
 define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
 define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule),tracing=false);
 define_hook!(NormalModuleAdditionalData: Series(additional_data: &mut Option<&mut AdditionalData>),tracing=false);
@@ -89,7 +88,6 @@ define_hook!(NormalModuleAdditionalData: Series(additional_data: &mut Option<&mu
 pub struct NormalModuleHooks {
   pub read_resource: NormalModuleReadResourceHook,
   pub loader: NormalModuleLoaderHook,
-  pub loader_should_yield: NormalModuleLoaderShouldYieldHook,
   pub loader_yield: NormalModuleLoaderStartYieldingHook,
   pub before_loaders: NormalModuleBeforeLoadersHook,
   pub additional_data: NormalModuleAdditionalDataHook,
@@ -841,8 +839,7 @@ impl Module for NormalModule {
         }
         module_chain.insert(self.identifier());
         let mut current = ConnectionState::Active(false);
-        for dependency_id in self.get_dependencies() {
-          let dependency = module_graph.dependency_by_id(dependency_id);
+        for dependency in self.get_dependencies() {
           let state = dependency.get_module_evaluation_side_effects_state(
             module_graph,
             module_graph_cache,

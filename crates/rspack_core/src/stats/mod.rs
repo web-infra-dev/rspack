@@ -1351,9 +1351,9 @@ impl Stats<'_> {
       let mut reasons: Vec<StatsModuleReason> = mgm
         .incoming_connections()
         .iter()
-        .filter_map(|dep_id| {
+        .filter_map(|connection_id| {
           // the connection is removed
-          let connection = module_graph.connection_by_dependency_id(dep_id)?;
+          let connection = module_graph.connection_by_id(connection_id)?;
           let (module_name, module_id) = connection
             .original_module_identifier
             .and_then(|i| module_graph.module_by_identifier(&i))

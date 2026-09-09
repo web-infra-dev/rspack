@@ -1,8 +1,5 @@
 use napi::{Either, bindgen_prelude::JsValuesTupleIntoVec};
-use rspack_core::{
-  AdditionalData, LoaderContext, LoaderExecutionKind, NormalModuleLoaderShouldYield,
-  NormalModuleLoaderStartYielding, RunnerContext,
-};
+use rspack_core::{AdditionalData, LoaderContext, NormalModuleLoaderStartYielding, RunnerContext};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
@@ -18,49 +15,41 @@ impl JsLoaderRspackPlugin {
   }
 }
 
-#[plugin_hook(NormalModuleLoaderShouldYield for JsLoaderRspackPlugin, tracing=false)]
-pub(crate) async fn loader_should_yield(
-  &self,
-  loader_context: &LoaderContext<RunnerContext>,
-) -> Result<Option<bool>> {
-  match loader_context.state() {
-    s @ (LoaderState::Init | LoaderState::ProcessResource | LoaderState::Finished) => {
-      panic!("Unexpected loader runner state: {s:?}")
-    }
-    LoaderState::Pitching => {
-      let current_loader = loader_context.current_loader();
-      if current_loader.execution_kind() != LoaderExecutionKind::JavaScript {
-        Ok(Some(false))
-      } else {
-        let loaders_without_pitch = self.loaders_without_pitch.read().await;
-        let span = loader_context
-          .current_chain()
-          .expect("pitching requires a current execution chain")
-          .range();
-        let start = loader_context.loader_index as usize;
-        let should_yield = loader_context.loader_items()[start..usize::from(span.end)]
-          .iter()
-          .enumerate()
-          .any(|(offset, loader)| {
-            !loader_context
-              .loader_item_state(start + offset)
-              .pitch_executed()
-              && !loaders_without_pitch.contains(loader.path().as_str())
-          });
-        Ok(Some(should_yield))
-      }
-    }
-    LoaderState::Normal => Ok(Some(
-      loader_context.current_loader().execution_kind() == LoaderExecutionKind::JavaScript,
-    )),
-  }
-}
-
 #[plugin_hook(NormalModuleLoaderStartYielding for JsLoaderRspackPlugin,tracing=false)]
 pub(crate) async fn loader_yield(
   &self,
   loader_context: &mut LoaderContext<RunnerContext>,
 ) -> Result<()> {
+  // Skip a JavaScript execution span when no remaining loader needs pitching.
+  if loader_context.state() == LoaderState::Pitching {
+    let loaders_without_pitch = self.loaders_without_pitch.read().await;
+    let end = usize::from(
+      loader_context
+        .current_chain()
+        .expect("pitching requires a current execution chain")
+        .end(),
+    );
+    let start = loader_context.loader_index as usize;
+    let needs_pitch = loader_context.loader_items()[start..end]
+      .iter()
+      .enumerate()
+      .any(|(offset, loader)| {
+        !loader_context
+          .loader_item_state(start + offset)
+          .pitch_executed()
+          && !loaders_without_pitch.contains(loader.path().as_str())
+      });
+    if !needs_pitch {
+      for index in start..end {
+        loader_context
+          .loader_item_state_mut(index)
+          .set_pitch_executed();
+      }
+      loader_context.loader_index = end as i32;
+      return Ok(());
+    }
+  }
+
   let runner = self.runner.lock().expect("should get lock").clone();
   let runner = runner
     .get_or_try_init(|| async {

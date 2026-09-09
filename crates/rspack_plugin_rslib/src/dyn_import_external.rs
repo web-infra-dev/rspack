@@ -33,8 +33,8 @@ pub fn cutout_star_re_export_externals(
     let mut side_effects_deps_by_module = IdentifierMap::<Vec<DependencyId>>::default();
     let mut star_export_deps_by_module = IdentifierMap::default();
 
-    for dep_id in module.get_dependencies() {
-      let dep = mg.dependency_by_id(dep_id);
+    for dep in module.get_dependencies() {
+      let dep_id = dep.id();
       let Some(module) = mg
         .module_identifier_by_dependency_id(dep_id)
         .and_then(|module_id| mg.module_by_identifier(module_id))
@@ -101,12 +101,11 @@ pub fn cutout_star_re_export_externals(
       exports_info.other_exports_info().provided(),
       Some(rspack_core::ExportProvided::Unknown)
     ) {
-      let has_unknown_exports = module.get_dependencies().any(|dep_id| {
-        if connections_to_disable.contains(dep_id) {
+      let has_unknown_exports = module.get_dependencies().iter().any(|dep| {
+        if connections_to_disable.contains(dep.id()) {
           return false;
         }
 
-        let dep = mg.dependency_by_id(dep_id);
         let Some(exports) = dep.get_exports(
           mg,
           &compilation.module_graph_cache_artifact,
@@ -144,8 +143,8 @@ pub fn cutout_dyn_import_externals(
       let Some(block) = mg.block_by_id(block_id) else {
         continue;
       };
-      for block_dep_id in block.get_dependencies() {
-        let block_dep = mg.dependency_by_id(block_dep_id);
+      for block_dep in block.get_dependencies() {
+        let block_dep_id = block_dep.id();
         if block_dep.as_any().is::<ImportDependency>() {
           let import_dep_connection = mg.connection_by_dependency_id(block_dep_id);
           if let Some(import_dep_connection) = import_dep_connection {

@@ -10,7 +10,13 @@ use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::identifier::strip_zero_width_space_for_fragment;
 
-use super::{LoaderContext, LoaderExecutionKind, LoaderRunnerOptions};
+use super::{LoaderContext, LoaderRunnerOptions};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LoaderExecutionKind {
+  Native,
+  JavaScript,
+}
 
 #[derive(Debug)]
 pub struct LoaderItem<Context: Send> {
@@ -46,13 +52,13 @@ pub struct LoaderItemState {
 }
 
 impl<C: Send> LoaderItem<C> {
-  pub fn loader(&self) -> &Arc<dyn Loader<C>> {
-    &self.loader
-  }
-
   #[inline]
   pub fn execution_kind(&self) -> LoaderExecutionKind {
     self.execution_kind
+  }
+
+  pub fn loader(&self) -> &Arc<dyn Loader<C>> {
+    &self.loader
   }
 
   #[inline]

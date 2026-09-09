@@ -1,12 +1,6 @@
 use std::ops::Range;
 
-use crate::LoaderItem;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LoaderExecutionKind {
-  Native,
-  JavaScript,
-}
+use crate::{LoaderExecutionKind, LoaderItem};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct LoaderChain {

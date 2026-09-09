@@ -148,12 +148,36 @@ impl Module for ConsumeSharedModule {
 
   fn get_exports_type(
     &self,
-    _module_graph: &ModuleGraph,
-    _module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
-    _exports_info_artifact: &rspack_core::ExportsInfoArtifact,
-    _strict: bool,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
+    exports_info_artifact: &rspack_core::ExportsInfoArtifact,
+    strict: bool,
   ) -> ExportsType {
-    ExportsType::Dynamic
+    if self.options.import.is_none() {
+      return ExportsType::Dynamic;
+    }
+
+    let fallback_dependency = if self.options.eager {
+      self.get_dependency_ids().next()
+    } else {
+      self
+        .get_blocks()
+        .first()
+        .and_then(|block_id| module_graph.block_by_id(block_id))
+        .and_then(|block| block.get_dependency_ids().next())
+    };
+    let Some(fallback_module) =
+      fallback_dependency.and_then(|dep_id| module_graph.get_module_by_dependency_id(dep_id))
+    else {
+      return ExportsType::Dynamic;
+    };
+
+    fallback_module.get_exports_type(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      strict,
+    )
   }
 
   async fn build(
@@ -217,7 +241,7 @@ impl Module for ConsumeSharedModule {
       if self.options.eager {
         runtime_template.sync_module_factory(
           self
-            .get_dependencies()
+            .get_dependency_ids()
             .next()
             .expect("should have fallback dependency"),
           fallback,

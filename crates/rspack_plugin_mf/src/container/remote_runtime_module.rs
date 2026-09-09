@@ -99,7 +99,7 @@ impl RuntimeModule for RemoteRuntimeModule {
           ShareScope::Multiple(v) => ShareScopeField::Multiple(v.as_slice()),
         };
         let dep = m
-          .get_dependencies()
+          .get_dependency_ids()
           .next()
           .expect("should have external dependency");
         let external_module = module_graph

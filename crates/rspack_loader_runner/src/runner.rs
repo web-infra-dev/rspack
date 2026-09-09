@@ -9,7 +9,7 @@ use rspack_sources::SourceMap;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  LoaderRunnerOptions, ParseMeta,
+  LoaderExecutionKind, LoaderRunnerOptions, ParseMeta,
   chain::LoaderChains,
   content::{AdditionalData, Content, ResourceData},
   context::{LoaderContext, LoaderDependencies, LoaderRunnerContext, State},
@@ -80,8 +80,8 @@ impl<Context: Send> Loaders<Context> {
 
 impl<Context: LoaderRunnerContext> LoaderContext<Context> {
   async fn start_yielding(&mut self) -> Result<bool> {
-    if let Some(plugin) = &self.plugin
-      && plugin.should_yield(self).await?
+    if self.current_loader().execution_kind() == LoaderExecutionKind::JavaScript
+      && let Some(plugin) = &self.plugin
     {
       plugin.clone().start_yielding(self).await?;
       return Ok(true);
