@@ -192,7 +192,7 @@ impl Module for RemoteModule {
     let module_graph = code_generation_context.compilation.get_module_graph();
     let module = module_graph.get_module_by_dependency_id(
       self
-        .get_dependencies()
+        .get_dependency_ids()
         .next()
         .expect("should have external dependency"),
     );

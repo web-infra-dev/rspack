@@ -217,7 +217,7 @@ impl Module for ConsumeSharedModule {
       if self.options.eager {
         runtime_template.sync_module_factory(
           self
-            .get_dependencies()
+            .get_dependency_ids()
             .next()
             .expect("should have fallback dependency"),
           fallback,

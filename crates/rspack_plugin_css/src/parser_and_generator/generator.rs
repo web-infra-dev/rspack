@@ -295,10 +295,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       runtime_template: self.generate_context.runtime_template,
     };
 
-    let module_graph = compilation.get_module_graph();
-    self.module.get_dependencies().for_each(|id| {
-      let dep = module_graph.dependency_by_id(id);
-
+    self.module.get_dependencies().iter().for_each(|dep| {
       if let Some(dependency) = dep.as_dependency_code_generation() {
         render_dependency_template(dependency, &mut source, &mut context);
       }
@@ -316,11 +313,11 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   }
 
   fn css_text_expr_with_imports(&mut self) -> String {
-    let module_graph = self.generate_context.compilation.get_module_graph();
-    let has_css_imports = self.module.get_dependencies().any(|dependency_id| {
-      let dependency = module_graph.dependency_by_id(dependency_id);
-      matches!(dependency.dependency_type(), DependencyType::CssImport)
-    });
+    let has_css_imports = self
+      .module
+      .get_dependencies()
+      .iter()
+      .any(|dependency| matches!(dependency.dependency_type(), DependencyType::CssImport));
     if !has_css_imports {
       let css_source = self.render_css_module_source();
       return self.css_text_expr(css_source, &[]);
@@ -392,8 +389,8 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     self
       .module
       .get_dependencies()
-      .filter_map(move |dependency_id| {
-        let dependency = module_graph.dependency_by_id(dependency_id);
+      .iter()
+      .filter_map(move |dependency| {
         if !matches!(dependency.dependency_type(), DependencyType::CssImport) {
           return None;
         }
@@ -402,7 +399,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
             "dependency with type DependencyType::CssImport should only be CssImportDependency"
           );
         };
-        let imported_module = module_graph.module_graph_module_by_dependency_id(dependency_id)?;
+        let imported_module = module_graph.module_graph_module_by_dependency_id(dependency.id())?;
 
         Some(CssImportedModule {
           module_identifier: imported_module.module_identifier,
@@ -790,13 +787,12 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let from = id
       .and_then(find_target_module)
       .or_else(|| {
-        self.module.get_dependencies().find_map(|id| {
-          let dependency = module_graph.dependency_by_id(id);
-          let request = dependency_request(dependency);
+        self.module.get_dependencies().iter().find_map(|dependency| {
+          let request = dependency_request(dependency.as_ref());
           if let Some(request) = request
             && request == from_name
           {
-            return find_target_module(id);
+            return find_target_module(dependency.id());
           }
           None
         })
@@ -805,10 +801,8 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         let dependency_requests = self
           .module
           .get_dependencies()
-          .filter_map(|id| {
-            let dependency = module_graph.dependency_by_id(id);
-            dependency_request(dependency)
-          })
+          .iter()
+          .filter_map(|dependency| dependency_request(dependency.as_ref()))
           .collect::<Vec<_>>();
         panic!(
           "should have css from module: ident={ident}, from={from_name}, id={id:?}, dependency_requests={dependency_requests:?}"
@@ -897,11 +891,9 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       .or_else(|| {
         module
           .get_dependencies()
-          .filter(|dep_id| {
-            let dependency = module_graph.dependency_by_id(dep_id);
-            dependency_request(dependency) == Some(from_name)
-          })
-          .filter_map(find_target_module)
+          .iter()
+          .filter(|dependency| dependency_request(dependency.as_ref()) == Some(from_name))
+          .filter_map(|dependency| find_target_module(dependency.id()))
           .max_by_key(|(_, priority)| *priority)
       })
       .map(|(target, _)| target)
@@ -1164,12 +1156,11 @@ fn find_static_export_target(
       .map(|module| module.identifier())
   })
   .or_else(|| {
-    module.get_dependencies().find_map(|id| {
-      let dependency = module_graph.dependency_by_id(id);
-      let request = dependency_request(dependency);
+    module.get_dependencies().iter().find_map(|dependency| {
+      let request = dependency_request(dependency.as_ref());
       (request == Some(from_request)).then(|| {
         module_graph
-          .get_module_by_dependency_id(id)
+          .get_module_by_dependency_id(dependency.id())
           .map(|module| module.identifier())
       })?
     })
