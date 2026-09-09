@@ -102,11 +102,9 @@ pub struct NormalModuleHooks {
 /// This mirrors webpack's serialized module state: cache entries retain build
 /// output, while factory-owned values such as loaders, parser/generator
 /// instances, and their options always come from the fresh module created for
-/// the current compilation. Cloning gives build information independent fields
-/// so later asset filename updates do not change cached build results.
-/// Build metadata retains shared ownership.
+/// the current compilation. Build information and metadata retain shared ownership.
 #[cacheable]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct NormalModuleState {
   #[cacheable(with=AsOption<AsPreset>)]
   source: Option<BoxSource>,
@@ -118,22 +116,6 @@ pub(crate) struct NormalModuleState {
   parsed: bool,
   force_build: bool,
   source_map_kind: SourceMapKind,
-}
-
-impl Clone for NormalModuleState {
-  fn clone(&self) -> Self {
-    Self {
-      source: self.source.clone(),
-      diagnostics: self.diagnostics.clone(),
-      code_generation_dependencies: self.code_generation_dependencies.clone(),
-      presentational_dependencies: self.presentational_dependencies.clone(),
-      build_info: Arc::new(self.build_info.as_ref().clone()),
-      build_meta: self.build_meta.clone(),
-      parsed: self.parsed,
-      force_build: self.force_build,
-      source_map_kind: self.source_map_kind,
-    }
-  }
 }
 
 #[cacheable]

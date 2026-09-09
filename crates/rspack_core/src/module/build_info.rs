@@ -25,10 +25,7 @@ use crate::{
 /// it only while a reader retains a snapshot. Emitted assets instead keep their
 /// binding identity and use a scoped read guard. Mutation is still restricted to
 /// the compilation's permitted phases.
-/// Cloning creates independent fields for module-build cache entries and restores,
-/// so later asset filename updates do not change cached build results. Collection
-/// data remains shared until mutation; emitted assets are copied to retain a
-/// separate binding identity.
+/// Module-build cache entries share this information with the module.
 #[cacheable(with=BuildInfoCache)]
 #[derive(Debug)]
 pub struct BuildInfo {
@@ -67,39 +64,6 @@ type BuildInfoCache = As<BuildInfoSnapshot>;
 impl Default for BuildInfo {
   fn default() -> Self {
     BuildInfoSnapshot::default().into()
-  }
-}
-
-impl Clone for BuildInfo {
-  fn clone(&self) -> Self {
-    Self {
-      cacheable: AtomicBool::new(self.cacheable()),
-      hash: RwLock::new(self.hash()),
-      strict: AtomicBool::new(self.strict()),
-      module_argument: AtomicU8::new(self.module_argument.load(Ordering::Relaxed)),
-      exports_argument: AtomicU8::new(self.exports_argument.load(Ordering::Relaxed)),
-      dependencies: RwLock::new(self.dependencies()),
-      snapshot: RwLock::new(self.snapshot()),
-      value_dependencies: RwLock::new(self.value_dependencies()),
-      esm_named_exports: RwLock::new(self.esm_named_exports()),
-      all_star_exports: RwLock::new(self.all_star_exports()),
-      need_create_require: AtomicBool::new(self.need_create_require()),
-      json_data: RwLock::new(self.json_data()),
-      asset: RwLock::new(self.asset()),
-      css: RwLock::new(self.css()),
-      side_effects_free: RwLock::new(self.side_effects_free()),
-      top_level_declarations: RwLock::new(self.top_level_declarations()),
-      module_concatenation_bailout: RwLock::new(self.module_concatenation_bailout()),
-      assets: RwLock::new(self.assets().clone()),
-      module: AtomicBool::new(self.module()),
-      inline_exports: AtomicBool::new(self.inline_exports()),
-      collected_typescript_info: RwLock::new(self.collected_typescript_info()),
-      rsc: RwLock::new(self.rsc()),
-      import_phase: AtomicU8::new(self.import_phase.load(Ordering::Relaxed)),
-      isolated_dts: RwLock::new(self.isolated_dts()),
-      extras: RwLock::new(self.extras()),
-      deferred_pure_checks: RwLock::new(self.deferred_pure_checks()),
-    }
   }
 }
 
