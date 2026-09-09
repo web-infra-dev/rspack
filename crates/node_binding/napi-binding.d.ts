@@ -1936,6 +1936,7 @@ export interface RawCacheGroupOptions {
   minSize?: number | RawSplitChunkSizes
   minSizeReduction?: number | RawSplitChunkSizes
   enforceSizeThreshold?: number | RawSplitChunkSizes
+  minRemainingSize?: number | RawSplitChunkSizes
   maxSize?: number | RawSplitChunkSizes
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes

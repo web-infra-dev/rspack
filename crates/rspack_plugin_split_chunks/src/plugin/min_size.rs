@@ -1,6 +1,6 @@
 use rayon::prelude::*;
 use rspack_collections::IdentifierSet;
-use rspack_core::{ChunkUkey, ModuleIdentifier, SourceType};
+use rspack_core::{ChunkUkey, Compilation, ModuleIdentifier, SourceType};
 use rustc_hash::FxHashSet;
 
 use super::ModuleGroupMap;
@@ -95,6 +95,43 @@ pub(crate) fn remove_min_size_violating_modules<T: std::fmt::Display>(
 }
 
 impl SplitChunksPlugin {
+  pub(crate) fn get_min_remaining_size_violations(
+    module_chunks: &ModuleChunkMap,
+    source_chunk: ChunkUkey,
+    compilation: &Compilation,
+    module_sizes: &ModuleSizes,
+    min_remaining_size: &SplitChunkSizes,
+  ) -> Vec<SourceType> {
+    let mut remaining_sizes = SplitChunkSizes::empty();
+    for module in compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_chunk_modules_identifier(&source_chunk)
+    {
+      // Named groups can have different source chunks for each module. Only exclude modules
+      // actually moving out of this chunk after request limits and chunk conditions are applied.
+      if module_chunks
+        .get(module)
+        .is_some_and(|chunks| chunks.contains(&source_chunk))
+      {
+        continue;
+      }
+      for (ty, size) in module_sizes.get(module).expect("should have module size") {
+        *remaining_sizes.entry(*ty).or_default() += size;
+      }
+    }
+
+    min_remaining_size
+      .iter()
+      .filter_map(|(ty, min_size)| {
+        remaining_sizes
+          .get(ty)
+          .is_some_and(|size| *size != 0.0 && size < min_size)
+          .then_some(*ty)
+      })
+      .collect()
+  }
+
   pub(crate) fn check_min_size_reduction(
     sizes: &SplitChunkSizes,
     min_size_reduction: &SplitChunkSizes,

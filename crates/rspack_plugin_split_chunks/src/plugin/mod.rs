@@ -277,12 +277,15 @@ impl SplitChunksPlugin {
           module_group.remove_group_chunk(&new_chunk);
         }
 
-        // If the module group size exceeds enforceSizeThreshold, skip maxRequest constraints
+        // If the module group size exceeds enforceSizeThreshold, skip request and remaining-size constraints.
         // https://webpack.js.org/plugins/split-chunks-plugin/#splitchunksenforcesizethreshold
-        let enforce_size_exceeded = !cache_group.enforce_size_threshold.is_empty()
-          && module_group
+        let enforce_size_exceeded = cache_group
+          .enforce_size_threshold
+          .values()
+          .any(|size| *size > 0.0)
+          && !module_group
             .get_sizes(&module_sizes)
-            .bigger_than(&cache_group.enforce_size_threshold);
+            .smaller_than(&cache_group.enforce_size_threshold);
 
         let mut used_chunks = Cow::Borrowed(&module_group.chunks);
 
@@ -432,6 +435,41 @@ impl SplitChunksPlugin {
             cache_group.min_size_reduction,
           );
           continue;
+        }
+
+        if !enforce_size_exceeded
+          && used_chunks.len() == 1
+          && cache_group
+            .min_remaining_size
+            .values()
+            .any(|size| *size > 0.0)
+        {
+          let source_chunk = *used_chunks
+            .iter()
+            .next()
+            .expect("should have one source chunk");
+          let violating_source_types = Self::get_min_remaining_size_violations(
+            &placed_module_chunks,
+            source_chunk,
+            compilation,
+            &module_sizes,
+            &cache_group.min_remaining_size,
+          );
+          if !violating_source_types.is_empty() {
+            let old_modules_size = module_group.modules.len();
+            let _ = module_group.get_sizes(&module_sizes);
+            let violating_modules =
+              module_group.get_source_types_modules(&violating_source_types, &module_sizes);
+            module_group.remove_modules(violating_modules);
+            // Retry only when removing source types made progress. In particular, extracting CSS
+            // can leave a tiny JavaScript module without any JavaScript in the candidate to remove.
+            if !module_group.modules.is_empty() && module_group.modules.len() != old_modules_size {
+              module_group.rebuild_chunks();
+              let _ = module_group.get_sizes(&module_sizes);
+              module_group_map.insert(module_group_key, module_group);
+            }
+            continue;
+          }
         }
 
         // Only mutate metadata on an existing destination after the winning group has passed all

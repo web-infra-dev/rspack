@@ -231,7 +231,7 @@ export default {
 
 设置一个体积阈值，让 Rspack 在拆分候选 chunk 足够大时继续拆分。
 
-当候选 chunk 达到这个阈值后，Rspack 会忽略 [`splitChunks.maxAsyncRequests`](#splitchunksmaxasyncrequests) 和 [`splitChunks.maxInitialRequests`](#splitchunksmaxinitialrequests) 这类请求数量限制。
+当候选 chunk 达到这个阈值后，Rspack 会忽略 [`splitChunks.minRemainingSize`](#splitchunksminremainingsize)，以及 [`splitChunks.maxAsyncRequests`](#splitchunksmaxasyncrequests) 和 [`splitChunks.maxInitialRequests`](#splitchunksmaxinitialrequests) 这类请求数量限制。
 
 相比 [`splitChunks.cacheGroups.{cacheGroup}.enforce`](#splitchunkscachegroupscachegroupenforce)，这个选项更克制一些：只有体积已经足够大的候选才会继续被强制拆分，较小的候选仍然遵循默认启发式规则。
 
@@ -292,6 +292,33 @@ export default {
 ```
 
 例如上面的配置表示拆分出的 chunk 中 javascript 模块的最小体积需要满足 100KB，css 模块的最小体积需要满足 300KB。
+
+### splitChunks.minRemainingSize
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.minRemainingSize
+
+- **类型：** `number | Record<string, number>`
+- **默认值：** 开发模式下为 `0`，其他模式下回退到 `minSize`
+
+拆分后来源 chunk 中剩余模块的最小体积，单位为字节。排除复用的目标 chunk 并应用请求数量限制后，仅在拆分涉及一个来源 chunk 时进行此检查，避免拆分后留下过小的 chunk。
+
+例如，从已命名的异步 chunk 中抽取 CSS，可能会让原 chunk 只剩下很小的 JavaScript 模块。生产模式下，`minRemainingSize` 可以阻止此次拆分，让 CSS 保留在原来已命名的 chunk 中。
+
+体积按 source type 分别检查。数字形式应用于 [`defaultSizeTypes`](#splitchunksdefaultsizetypes) 中的类型，对象形式可以分别设置阈值。没有剩余模块或剩余体积为零的 source type 会跳过检查。
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      minRemainingSize: {
+        javascript: 20 * 1000,
+      },
+    },
+  },
+};
+```
+
+cache group 显式配置的 `minRemainingSize` 优先于该组自身的 `minSize`，后者又优先于全局的 `minRemainingSize`。设置 `enforce: true` 的 cache group 不继承全局值，但该组自身的 `minRemainingSize` 和 `minSize` 仍然生效。达到 [`enforceSizeThreshold`](#splitchunksenforcesizethreshold) 时会跳过剩余体积检查。
 
 ### splitChunks.minSizeReduction
 
@@ -641,7 +668,7 @@ export default {
 
 - **类型：** `boolean`
 
-告诉 Rspack 忽略 `splitChunks.minSize`、`splitChunks.minChunks`、`splitChunks.maxAsyncRequests` 和 `splitChunks.maxInitialRequests` 选项，并始终为此 cacheGroup 创建 chunk。
+告诉 Rspack 对此 cache group 忽略全局的 `splitChunks.minSize`、`splitChunks.minRemainingSize`、`splitChunks.minChunks`、`splitChunks.maxAsyncRequests` 和 `splitChunks.maxInitialRequests` 选项。cache group 自身显式配置的值仍然生效。
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.idHint
 
