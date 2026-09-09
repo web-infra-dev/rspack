@@ -785,7 +785,12 @@ pub fn get_outgoing_async_modules(
     if !visited.insert(module_identifier) {
       return;
     }
-    if module.build_meta().has_top_level_await() {
+    if mg
+      .module_by_identifier(&module.identifier())
+      .expect("module exists")
+      .build_meta()
+      .has_top_level_await()
+    {
       set.insert(
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, module_identifier)
           .expect("should have module_id")

@@ -12,7 +12,7 @@ use json::{
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   BoxDependency, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoArtifact,
-  ExportsInfoData, GenerateContext, GeneratorOptions, Module, ModuleArgument, ModuleGraph,
+  ExportsInfoData, GenerateContext, GeneratorOptions, ModuleArgument, ModuleGraph,
   NAMESPACE_OBJECT_EXPORT, ParseOption, ParserAndGenerator, ParserOptions, Plugin, RuntimeSpec,
   SourceType, UsageState, UsedNameItem,
   diagnostics::ModuleParseError,
@@ -36,11 +36,15 @@ struct JsonParserAndGenerator {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for JsonParserAndGenerator {
-  fn source_types(&self, _module: &dyn Module, _module_graph: &ModuleGraph) -> &[SourceType] {
+  fn source_types(
+    &self,
+    _module: &rspack_core::ModuleView<'_>,
+    _module_graph: &ModuleGraph,
+  ) -> &[SourceType] {
     &[SourceType::JavaScript]
   }
 
-  fn size(&self, module: &dyn Module, _source_type: Option<&SourceType>) -> f64 {
+  fn size(&self, module: &rspack_core::ModuleView<'_>, _source_type: Option<&SourceType>) -> f64 {
     module
       .build_info()
       .json_data
@@ -167,7 +171,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
   async fn generate(
     &self,
     _source: &BoxSource,
-    module: &dyn rspack_core::Module,
+    module: &rspack_core::ModuleView<'_>,
     generate_context: &mut GenerateContext,
   ) -> Result<BoxSource> {
     let GenerateContext {
@@ -240,7 +244,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
 
   fn get_concatenation_bailout_reason(
     &self,
-    _module: &dyn Module,
+    _module: &rspack_core::ModuleView<'_>,
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {

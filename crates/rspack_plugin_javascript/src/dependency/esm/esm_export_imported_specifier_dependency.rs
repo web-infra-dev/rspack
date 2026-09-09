@@ -104,36 +104,27 @@ impl ESMExportImportedSpecifierDependency {
   }
 
   // Because it is shared by multiply ESMExportImportedSpecifierDependency, so put it to `BuildInfo`
-  pub fn active_exports<'a>(
-    &self,
-    module_graph: &'a ModuleGraph,
-  ) -> rspack_core::FreezeReadGuard<'a, HashSet<Atom>> {
+  pub fn active_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a HashSet<Atom> {
     let build_info = module_graph
       .get_parent_module(&self.id)
       .and_then(|ident| module_graph.module_by_identifier(ident))
       .expect("should have mgm")
       .build_info();
-    build_info.map(|info| &info.esm_named_exports)
+    &build_info.esm_named_exports
   }
 
   // Because it is shared by multiply ESMExportImportedSpecifierDependency, so put it to `BuildInfo`
   pub fn all_star_exports<'a>(
     &self,
     module_graph: &'a ModuleGraph,
-  ) -> Option<(
-    ModuleIdentifier,
-    rspack_core::FreezeReadGuard<'a, Vec<DependencyId>>,
-  )> {
+  ) -> Option<(ModuleIdentifier, &'a Vec<DependencyId>)> {
     let module = module_graph
       .get_parent_module(&self.id)
       .and_then(|ident| module_graph.module_by_identifier(ident));
 
     if let Some(module) = module {
       let build_info = module.build_info();
-      Some((
-        module.identifier(),
-        build_info.map(|info| &info.all_star_exports),
-      ))
+      Some((module.identifier(), &build_info.all_star_exports))
     } else {
       None
     }
@@ -919,7 +910,10 @@ impl ESMExportImportedSpecifierDependency {
         None,
       ),
       ESMExportInitFragment::new(
-        module.get_exports_argument(),
+        compilation
+          .get_module_graph()
+          .build_info(&module.identifier())
+          .exports_argument,
         export_map,
         is_circular_module,
       ),
@@ -944,7 +938,11 @@ impl ESMExportImportedSpecifierDependency {
       ESMExportBinding::Getter(format!("/* {comment} */ {return_value}").into()),
     )];
     ESMExportInitFragment::new(
-      ctxt.module.get_exports_argument(),
+      ctxt
+        .compilation
+        .get_module_graph()
+        .build_info(&ctxt.module.identifier())
+        .exports_argument,
       export_map,
       is_circular_module,
     )
@@ -987,7 +985,10 @@ impl ESMExportImportedSpecifierDependency {
         None,
       ),
       ESMExportInitFragment::new(
-        module.get_exports_argument(),
+        compilation
+          .get_module_graph()
+          .build_info(&module.identifier())
+          .exports_argument,
         export_map,
         is_circular_module,
       ),
@@ -1021,11 +1022,15 @@ impl ESMExportImportedSpecifierDependency {
     }
     let TemplateContext {
       module,
+      compilation,
       runtime_template,
       ..
     } = ctxt;
     let return_value = Self::get_return_value(name.clone(), value_key);
-    let exports_name = module.get_exports_argument();
+    let exports_name = compilation
+      .get_module_graph()
+      .build_info(&module.identifier())
+      .exports_argument;
     format!(
       "if({}({}, {})) {}({}, {{ {}: function() {{ return {}; }} }});\n",
       runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
@@ -1457,7 +1462,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     let ids = self.get_ids(module_graph);
     if let Some(should_error) = self
       .export_presence_mode
-      .get_effective_export_presence(module.as_ref())
+      .get_effective_export_presence(module)
     {
       let mut diagnostics = Vec::new();
       // don't need to check the import specifier is existed or not when name is None (export *)

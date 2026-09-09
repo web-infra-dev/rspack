@@ -135,6 +135,10 @@ where
     self.map.iter()
   }
 
+  pub(crate) fn values_mut(&mut self) -> impl Iterator<Item = &mut V> {
+    self.map.values_mut()
+  }
+
   #[inline]
   #[allow(clippy::len_without_is_empty)]
   pub fn len(&self) -> usize {

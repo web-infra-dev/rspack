@@ -7,7 +7,7 @@ use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, ChunkGroupOptions, CodeGenerationDataItem, CodeGenerationResultBuilder,
   CodeGenerationRuntimeRequirementsWrite, Compilation, Context, DependenciesBlock,
-  DependenciesBlockData, Dependency, DependencyType, ExportsArgument, FactoryMetaStore, FreezeLock,
+  DependenciesBlockData, Dependency, DependencyType, ExportsArgument, FactoryMetaStore,
   GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleCodeTemplate,
   ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
   RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
@@ -37,8 +37,6 @@ pub struct ContainerEntryModule {
   exposes: Vec<(String, ExposeOptions)>,
   share_scope: ShareScope,
   factory_meta: FactoryMetaStore,
-  build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
   enhanced: bool,
   request: Option<String>,
   version: Option<String>,
@@ -67,15 +65,6 @@ impl ContainerEntryModule {
       exposes,
       share_scope,
       factory_meta: Default::default(),
-      build_info: BuildInfo {
-        strict: true,
-        top_level_declarations: Some(Default::default()),
-        ..Default::default()
-      }
-      .into(),
-      build_meta: BuildMeta::default()
-        .with_exports_type(BuildMetaExportsType::Namespace)
-        .into(),
       enhanced,
       request: None,
       version: None,
@@ -100,15 +89,6 @@ impl ContainerEntryModule {
       exposes: vec![],
       share_scope: ShareScope::Multiple(vec![]),
       factory_meta: Default::default(),
-      build_info: BuildInfo {
-        strict: true,
-        top_level_declarations: Some(Default::default()),
-        ..Default::default()
-      }
-      .into(),
-      build_meta: BuildMeta::default()
-        .with_exports_type(BuildMetaExportsType::Namespace)
-        .into(),
       enhanced: false,
       request: Some(request),
       version: Some(version),
@@ -146,9 +126,29 @@ impl DependenciesBlock for ContainerEntryModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for ContainerEntryModule {
+  fn initial_build_info(&self) -> rspack_core::BuildData<BuildInfo> {
+    BuildInfo {
+      strict: true,
+      top_level_declarations: Some(Default::default()),
+      ..Default::default()
+    }
+    .into()
+  }
+
+  fn initial_build_meta(&self) -> rspack_core::BuildData<BuildMeta> {
+    BuildMeta::default()
+      .with_exports_type(BuildMetaExportsType::Namespace)
+      .into()
+  }
+
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(
+    &self,
+    _source_type: Option<&SourceType>,
+    _compilation: Option<&Compilation>,
+    _build_data: Option<&rspack_core::ModuleBuildMetadata>,
+  ) -> f64 {
     42.0
   }
 
@@ -182,6 +182,7 @@ impl Module for ContainerEntryModule {
 
   async fn build(
     mut self: Box<Self>,
+    build_data: rspack_core::ModuleBuildMetadata,
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BoxModule> {
@@ -231,7 +232,7 @@ impl Module for ContainerEntryModule {
     // I need `name` for SharedContainer logic.
     // I will add `name` field to struct.
 
-    Ok(BoxModule::new(self).with_dependencies(
+    Ok(BoxModule::from_parts(self, build_data).with_dependencies(
       dependencies.into_iter().map(Into::into).collect(),
       blocks.into_iter().map(Into::into).collect(),
     ))

@@ -11,9 +11,9 @@ use super::{
   StatsModule, StatsModuleTrace,
 };
 use crate::{
-  BoxRuntimeModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
+  BoxRuntimeModule, BuiltModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
   ChunkGroupOrderKey, ChunkGroupUkey, CompilationAssets, Context, ModuleGraph, ModuleId,
-  ModuleIdsArtifact, ModuleRef, SourceType, compare_chunks_iterables, rspack_sources::BoxSource,
+  ModuleIdsArtifact, SourceType, compare_chunks_iterables, rspack_sources::BoxSource,
 };
 
 pub fn get_asset_size(file: &str, assets: &CompilationAssets) -> usize {
@@ -42,7 +42,7 @@ pub fn sort_modules(modules: &mut [StatsModule]) {
 }
 
 pub fn get_stats_module_name_and_id<'s>(
-  module: &'s ModuleRef,
+  module: &'s BuiltModule,
   module_ids_artifact: &ModuleIdsArtifact,
   context: &Context,
 ) -> (Cow<'s, str>, Option<ModuleId>) {
@@ -408,7 +408,7 @@ fn get_runtime_module_size(
   let Some(runtime_module) = runtime_modules.get(identifier) else {
     return 0f64;
   };
-  let size = runtime_module.size(Some(&SourceType::Runtime), None);
+  let size = runtime_module.size(Some(&SourceType::Runtime), None, None);
   if size == 0f64 {
     runtime_modules_code_generation_source
       .get(identifier)

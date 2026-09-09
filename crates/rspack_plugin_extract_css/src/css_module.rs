@@ -1,11 +1,11 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder, Compilation,
-  CompilerOptions, DependenciesBlock, DependenciesBlockData, FactoryMetaStore, FreezeLock, Module,
-  ModuleCodeGenerationContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleGraph, ModuleLayer, RuntimeSpec, SourceType, impl_module_meta_info,
-  impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
+  BoxModule, BuildContext, BuildInfo, CodeGenerationResultBuilder, Compilation, CompilerOptions,
+  DependenciesBlock, DependenciesBlockData, FactoryMetaStore, Module, ModuleCodeGenerationContext,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleLayer,
+  RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::BoxSource,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
@@ -31,8 +31,6 @@ pub(crate) struct CssModule {
   pub(crate) identifier_index: u32,
 
   factory_meta: FactoryMetaStore,
-  build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
 
   dependencies_block: DependenciesBlockData,
 
@@ -65,14 +63,6 @@ impl CssModule {
       identifier_index: dep.identifier_index,
       dependencies_block: Default::default(),
       factory_meta: Default::default(),
-      build_info: BuildInfo {
-        cacheable: dep.cacheable,
-        strict: true,
-        dependencies: dep.dependencies.clone(),
-        ..Default::default()
-      }
-      .into(),
-      build_meta: Default::default(),
       source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
       identifier__,
     }
@@ -140,7 +130,12 @@ impl Module for CssModule {
       .map(|resource| split_at_query_mark(resource).0.into())
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(
+    &self,
+    _source_type: Option<&SourceType>,
+    _compilation: Option<&Compilation>,
+    _build_data: Option<&rspack_core::ModuleBuildMetadata>,
+  ) -> f64 {
     self.content.len() as f64
   }
 
@@ -162,11 +157,12 @@ impl Module for CssModule {
 
   async fn build(
     mut self: Box<Self>,
+    mut build_data: rspack_core::ModuleBuildMetadata,
     build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
-    self.build_info.get_mut().hash = Some(self.compute_hash(&build_context.compiler_options));
-    Ok(BoxModule::new(self))
+    build_data.build_info.get_mut().hash = Some(self.compute_hash(&build_context.compiler_options));
+    Ok(BoxModule::from_parts(self, build_data))
   }
 
   // #[tracing::instrument("ExtractCssModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
@@ -184,7 +180,13 @@ impl Module for CssModule {
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHasher::from(&compilation.options.output);
     module_update_hash(self, &mut hasher, compilation, runtime);
-    self.build_info.read().hash.hash(&mut hasher);
+    compilation
+      .get_module_graph()
+      .module_by_identifier(&self.identifier())
+      .expect("module exists")
+      .build_info()
+      .hash
+      .hash(&mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 
@@ -219,9 +221,19 @@ impl ModuleFactory for CssModuleFactory {
       .downcast_ref::<CssDependency>()
       .expect("unreachable");
 
-    Ok(ModuleFactoryResult::new_with_module(
-      CssModule::new(css_dep).boxed(),
-    ))
+    Ok(ModuleFactoryResult::new_with_module(BoxModule::from_parts(
+      Box::new(CssModule::new(css_dep)),
+      rspack_core::ModuleBuildMetadata {
+        build_info: BuildInfo {
+          cacheable: css_dep.cacheable,
+          strict: true,
+          dependencies: css_dep.dependencies.clone(),
+          ..Default::default()
+        }
+        .into(),
+        build_meta: Default::default(),
+      },
+    )))
   }
 }
 

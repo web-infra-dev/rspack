@@ -75,7 +75,7 @@ impl CssParserAndGenerator {
     }
   }
 
-  fn effective_export_type(&self, module: &dyn Module) -> Option<CssExportType> {
+  fn effective_export_type(&self, module: &rspack_core::ModuleView<'_>) -> Option<CssExportType> {
     module
       .build_info()
       .css
@@ -194,7 +194,11 @@ pub fn get_unused_local_ident(
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for CssParserAndGenerator {
-  fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
+  fn source_types(
+    &self,
+    module: &rspack_core::ModuleView<'_>,
+    module_graph: &ModuleGraph,
+  ) -> &[SourceType] {
     let export_type = self.effective_export_type(module);
     if matches!(
       export_type,
@@ -224,7 +228,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }
   }
 
-  fn size(&self, module: &dyn Module, source_type: Option<&SourceType>) -> f64 {
+  fn size(&self, module: &rspack_core::ModuleView<'_>, source_type: Option<&SourceType>) -> f64 {
     match source_type.unwrap_or(&SourceType::Css) {
       SourceType::JavaScript => 42.0,
       SourceType::Css => module.source().map_or(0, |source| source.size()) as f64,
@@ -272,9 +276,14 @@ impl ParserAndGenerator for CssParserAndGenerator {
   async fn generate(
     &self,
     source: &BoxSource,
-    module: &dyn rspack_core::Module,
+    module: &rspack_core::ModuleView<'_>,
     generate_context: &mut GenerateContext,
   ) -> Result<BoxSource> {
+    let module = generate_context
+      .compilation
+      .get_module_graph()
+      .module_by_identifier(&module.identifier())
+      .expect("module exists");
     let build_info = module.build_info();
     let css_build_info = build_info
       .css
@@ -310,7 +319,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
   fn get_concatenation_bailout_reason(
     &self,
-    module: &dyn rspack_core::Module,
+    module: &rspack_core::ModuleView<'_>,
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
@@ -342,7 +351,15 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let mut hasher = RspackHasher::from(&compilation.options.output);
     self.es_module.hash(&mut hasher);
     self.exports_only.hash(&mut hasher);
-    self.effective_export_type(module).hash(&mut hasher);
+    self
+      .effective_export_type(
+        &compilation
+          .get_module_graph()
+          .module_by_identifier(&(module as &dyn Module).identifier())
+          .expect("module exists")
+          .view(),
+      )
+      .hash(&mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 

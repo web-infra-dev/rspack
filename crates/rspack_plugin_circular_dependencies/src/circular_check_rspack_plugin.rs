@@ -4,7 +4,7 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use itertools::Itertools;
 use rspack_core::{
-  CircularModulesInfo, Compilation, CompilationOptimizeModules, CompilerId, CompilerMake, Module,
+  CircularModulesInfo, Compilation, CompilationOptimizeModules, CompilerId, CompilerMake,
   ModuleIdentifier, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
@@ -12,7 +12,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_regex::RspackRegex;
 
 pub type CircularCheckHandlerFn = Arc<
-  dyn for<'a> Fn(CompilerId, &'a dyn Module, Vec<String>) -> BoxFuture<'a, Result<()>>
+  dyn for<'a> Fn(CompilerId, &'a rspack_core::BuiltModule, Vec<String>) -> BoxFuture<'a, Result<()>>
     + Send
     + Sync,
 >;
@@ -89,7 +89,7 @@ impl CircularCheckRspackPlugin {
     };
 
     if let Some(callback) = &self.options.on_detected {
-      return callback(compilation.compiler_id(), module.as_ref(), paths).await;
+      return callback(compilation.compiler_id(), module, paths).await;
     }
 
     let diagnostic_factory = if self.options.fail_on_error {

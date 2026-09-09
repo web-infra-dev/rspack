@@ -56,10 +56,14 @@ pub async fn update_module_graph(
   )
   .await?;
   cutout.fix_artifact(&mut artifact);
-  let module_graph = artifact.get_module_graph();
-  for id in artifact.affected_modules.active() {
-    if let Some(module) = module_graph.module_by_identifier(id) {
-      module.freeze_build_meta();
+  let ids = artifact
+    .affected_modules
+    .active()
+    .copied()
+    .collect::<Vec<_>>();
+  for id in ids {
+    if let Some(module) = artifact.module_graph.build_metadata_mut(&id) {
+      module.finish_build_meta();
     }
   }
   Ok((artifact, exports_info_artifact))

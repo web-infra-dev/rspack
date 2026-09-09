@@ -31,7 +31,7 @@ use crate::{
   ChunkGroupOptions, CodeGenerationResultBuilder, Compilation, Context, ContextElementDependency,
   DependenciesBlock, DependenciesBlockData, DependencyCategory, DependencyId, DependencyLocation,
   DependencyRef, DynamicImportMode, ExportsType, FactoryMetaStore, FakeNamespaceObjectMode,
-  FreezeLock, GroupOptions, ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
+  GroupOptions, ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
   ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
   RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, contextify, get_exports_type_with_strict,
@@ -273,8 +273,7 @@ pub struct ContextModule {
   identifier: Identifier,
   options: ContextModuleOptions,
   factory_meta: FactoryMetaStore,
-  build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
+  strict: bool,
   #[debug(skip)]
   #[cacheable(with=Unsupported)]
   resolve_dependencies: ResolveContextModuleDependencies,
@@ -286,21 +285,12 @@ impl ContextModule {
     options: ContextModuleOptions,
     strict: Option<bool>,
   ) -> Self {
-    let mut build_info = BuildInfo::default();
-    if let Some(strict) = strict {
-      build_info.strict = strict;
-    }
-
     Self {
       dependencies_block: Default::default(),
       identifier: create_identifier(&options, None),
       options,
       factory_meta: Default::default(),
-      build_info: build_info.into(),
-      build_meta: BuildMeta::default()
-        .with_exports_type(BuildMetaExportsType::Default)
-        .with_default_object(BuildMetaDefaultObject::RedirectWarn)
-        .into(),
+      strict: strict.unwrap_or_default(),
       source_map_kind: SourceMapKind::empty(),
       resolve_dependencies,
     }
@@ -1305,6 +1295,21 @@ impl DependenciesBlock for ContextModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for ContextModule {
+  fn initial_build_info(&self) -> crate::BuildData<BuildInfo> {
+    BuildInfo {
+      strict: self.strict,
+      ..Default::default()
+    }
+    .into()
+  }
+
+  fn initial_build_meta(&self) -> crate::BuildData<BuildMeta> {
+    BuildMeta::default()
+      .with_exports_type(BuildMetaExportsType::Default)
+      .with_default_object(BuildMetaDefaultObject::RedirectWarn)
+      .into()
+  }
+
   impl_module_meta_info!();
 
   fn module_type(&self) -> &ModuleType {
@@ -1337,6 +1342,7 @@ impl Module for ContextModule {
     &self,
     _source_type: Option<&crate::SourceType>,
     _compilation: Option<&Compilation>,
+    _build_data: Option<&crate::ModuleBuildMetadata>,
   ) -> f64 {
     160.0
   }
@@ -1407,6 +1413,7 @@ impl Module for ContextModule {
 
   async fn build(
     mut self: Box<Self>,
+    mut build_data: crate::ModuleBuildMetadata,
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BoxModule> {
@@ -1497,10 +1504,10 @@ impl Module for ContextModule {
     if !self.options.resource.as_str().is_empty() {
       let mut context_dependencies: InternedPathSet = Default::default();
       context_dependencies.insert(self.options.resource.as_std_path().into());
-      self.build_info.get_mut().dependencies.context = context_dependencies;
+      build_data.build_info.get_mut().dependencies.context = context_dependencies;
     }
 
-    Ok(BoxModule::new(self).with_dependencies(
+    Ok(BoxModule::from_parts(self, build_data).with_dependencies(
       dependencies.into_iter().map(Into::into).collect(),
       blocks.into_iter().map(Into::into).collect(),
     ))

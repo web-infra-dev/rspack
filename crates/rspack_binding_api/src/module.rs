@@ -298,6 +298,7 @@ struct OriginalSourceNapiRef {
 pub struct Module {
   pub(crate) identifier: ModuleIdentifier,
   ptr: Option<NonNull<dyn rspack_core::Module>>,
+  metadata_ptr: Option<NonNull<rspack_core::ModuleBuildMetadata>>,
   mutable: bool,
   compiler_id: CompilerId,
   original_source_ref: Option<OriginalSourceNapiRef>,
@@ -359,22 +360,39 @@ impl Module {
 
   pub(crate) fn with_ref<R>(
     &mut self,
-    f: impl FnOnce(&Compilation, &dyn rspack_core::Module) -> napi::Result<R>,
+    f: impl FnOnce(&Compilation, &rspack_core::ModuleView<'_>) -> napi::Result<R>,
   ) -> napi::Result<R> {
     let module_identifier = self.identifier;
     let module_ptr = self.ptr;
+    let metadata_ptr = self.metadata_ptr;
     self.with_compilation(|compilation| {
       if let Some(module) = compilation.module_by_identifier(&module_identifier) {
-        f(compilation, module.as_ref())
-      } else if let Some(ptr) = module_ptr {
+        f(compilation, &module.view())
+      } else if let (Some(ptr), Some(metadata_ptr)) = (module_ptr, metadata_ptr) {
         // SAFETY:
         // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
         // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
-        f(compilation, unsafe { ptr.as_ref() })
+        f(
+          compilation,
+          &rspack_core::ModuleView {
+            module: unsafe { ptr.as_ref() },
+            build_data: unsafe { metadata_ptr.as_ref() },
+          },
+        )
       } else {
         Err(self.module_removed_error())
       }
     })
+  }
+
+  pub(crate) fn build_info_mut(&mut self) -> napi::Result<&mut rspack_core::BuildInfo> {
+    // Apply the same callback/phase checks as mutations of the module implementation.
+    self.as_mut()?;
+    let data = self.metadata_ptr.as_mut().ok_or_else(|| {
+      napi::Error::from_reason("Build metadata is unavailable outside the build callback")
+    })?;
+    // SAFETY: the build/loader callback owns this record until the awaited hook completes.
+    Ok(unsafe { data.as_mut() }.build_info.get_mut())
   }
 
   pub(crate) fn as_mut(&mut self) -> napi::Result<&'static mut dyn rspack_core::Module> {
@@ -576,7 +594,7 @@ impl Module {
     source: JsSourceFromJs,
     object: Option<Object>,
   ) -> napi::Result<()> {
-    let module = self.as_mut()?;
+    let build_info = self.build_info_mut()?;
 
     let asset_info = match object {
       Some(object) => {
@@ -590,7 +608,7 @@ impl Module {
       None => Default::default(),
     };
 
-    module.build_info_mut().assets.insert(
+    build_info.assets.insert(
       filename,
       rspack_core::CompilationAsset {
         source: Some(source.try_into()?),
@@ -642,6 +660,7 @@ pub struct ModuleObject {
   type_id: TypeId,
   identifier: ModuleIdentifier,
   ptr: Option<NonNull<dyn rspack_core::Module>>,
+  metadata_ptr: Option<NonNull<rspack_core::ModuleBuildMetadata>>,
   mutable: bool,
   compiler_id: CompilerId,
 }
@@ -655,18 +674,24 @@ impl ModuleObject {
       type_id: module.as_any().type_id(),
       identifier: module.identifier(),
       ptr: None,
+      metadata_ptr: None,
       mutable: false,
       compiler_id,
     }
   }
 
-  pub fn with_ptr(module_ptr: NonNull<dyn rspack_core::Module>, compiler_id: CompilerId) -> Self {
+  pub fn with_ptr(
+    module_ptr: NonNull<dyn rspack_core::Module>,
+    metadata_ptr: NonNull<rspack_core::ModuleBuildMetadata>,
+    compiler_id: CompilerId,
+  ) -> Self {
     let module = unsafe { module_ptr.as_ref() };
 
     Self {
       type_id: module.as_any().type_id(),
       identifier: module.identifier(),
       ptr: Some(module_ptr),
+      metadata_ptr: Some(metadata_ptr),
       mutable: true,
       compiler_id,
     }
@@ -674,11 +699,12 @@ impl ModuleObject {
 
   pub fn with_readonly_ptr(
     module_ptr: NonNull<dyn rspack_core::Module>,
+    metadata_ptr: NonNull<rspack_core::ModuleBuildMetadata>,
     compiler_id: CompilerId,
   ) -> Self {
     Self {
       mutable: false,
-      ..Self::with_ptr(module_ptr, compiler_id)
+      ..Self::with_ptr(module_ptr, metadata_ptr, compiler_id)
     }
   }
 
@@ -700,11 +726,26 @@ impl ModuleObject {
           && let Some(r) = refs.remove(module_identifier)
         {
           match r {
-            Either5::A(mut normal_module) => normal_module.module.ptr = None,
-            Either5::B(mut concatenated_module) => concatenated_module.module.ptr = None,
-            Either5::C(mut context_module) => context_module.module.ptr = None,
-            Either5::D(mut external_module) => external_module.module.ptr = None,
-            Either5::E(mut module) => module.ptr = None,
+            Either5::A(mut normal_module) => {
+              normal_module.module.ptr = None;
+              normal_module.module.metadata_ptr = None;
+            }
+            Either5::B(mut concatenated_module) => {
+              concatenated_module.module.ptr = None;
+              concatenated_module.module.metadata_ptr = None;
+            }
+            Either5::C(mut context_module) => {
+              context_module.module.ptr = None;
+              context_module.module.metadata_ptr = None;
+            }
+            Either5::D(mut external_module) => {
+              external_module.module.ptr = None;
+              external_module.module.metadata_ptr = None;
+            }
+            Either5::E(mut module) => {
+              module.ptr = None;
+              module.metadata_ptr = None;
+            }
           }
         }
       }
@@ -741,6 +782,7 @@ impl ToNapiValue for ModuleObject {
               Either5::E(module) => &mut **module,
             };
             instance.ptr = val.ptr;
+            instance.metadata_ptr = val.metadata_ptr;
             instance.mutable = val.mutable;
             match instance_ref {
               Either5::A(r) => ToNapiValue::to_napi_value(env, r),
@@ -755,6 +797,7 @@ impl ToNapiValue for ModuleObject {
               identifier: val.identifier,
               compiler_id: val.compiler_id,
               ptr: val.ptr,
+              metadata_ptr: val.metadata_ptr,
               mutable: val.mutable,
               original_source_ref: None,
               build_info_ref: Default::default(),
@@ -814,6 +857,7 @@ impl FromNapiValue for ModuleObject {
           type_id: TypeId::of::<rspack_core::NormalModule>(),
           identifier: normal_module.module.identifier,
           ptr: normal_module.module.ptr,
+          metadata_ptr: normal_module.module.metadata_ptr,
           mutable: normal_module.module.mutable,
           compiler_id: normal_module.module.compiler_id,
         },
@@ -821,6 +865,7 @@ impl FromNapiValue for ModuleObject {
           type_id: TypeId::of::<rspack_core::ConcatenatedModule>(),
           identifier: concatenated_module.module.identifier,
           ptr: concatenated_module.module.ptr,
+          metadata_ptr: concatenated_module.module.metadata_ptr,
           mutable: concatenated_module.module.mutable,
           compiler_id: concatenated_module.module.compiler_id,
         },
@@ -828,6 +873,7 @@ impl FromNapiValue for ModuleObject {
           type_id: TypeId::of::<rspack_core::ContextModule>(),
           identifier: context_module.module.identifier,
           ptr: context_module.module.ptr,
+          metadata_ptr: context_module.module.metadata_ptr,
           mutable: context_module.module.mutable,
           compiler_id: context_module.module.compiler_id,
         },
@@ -835,6 +881,7 @@ impl FromNapiValue for ModuleObject {
           type_id: TypeId::of::<rspack_core::ExternalModule>(),
           identifier: external_module.module.identifier,
           ptr: external_module.module.ptr,
+          metadata_ptr: external_module.module.metadata_ptr,
           mutable: external_module.module.mutable,
           compiler_id: external_module.module.compiler_id,
         },
@@ -842,6 +889,7 @@ impl FromNapiValue for ModuleObject {
           type_id: TypeId::of::<dyn rspack_core::Module>(),
           identifier: module.identifier,
           ptr: module.ptr,
+          metadata_ptr: module.metadata_ptr,
           mutable: module.mutable,
           compiler_id: module.compiler_id,
         },

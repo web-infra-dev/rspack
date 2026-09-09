@@ -329,7 +329,11 @@ impl ChunkGraph {
     use std::hash::Hash;
 
     let mut hasher = FxHasher::default();
-    let strict = module.get_strict_esm_module();
+    let strict = compilation
+      .get_module_graph()
+      .module_by_identifier(&module.identifier())
+      .expect("module exists")
+      .get_strict_esm_module();
     let mg = compilation.get_module_graph();
     let mg_cache = &compilation.module_graph_cache_artifact;
     let side_effects_state_artifact = &compilation

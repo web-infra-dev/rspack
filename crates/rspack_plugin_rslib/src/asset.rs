@@ -2,8 +2,8 @@ use std::borrow::Cow;
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  ChunkGraph, Compilation, GenerateContext, Module, ModuleGraph, NormalModule, ParseContext,
-  ParseResult, ParserAndGenerator, RuntimeSpec, SourceType, rspack_sources::BoxSource,
+  ChunkGraph, Compilation, GenerateContext, ModuleGraph, NormalModule, ParseContext, ParseResult,
+  ParserAndGenerator, RuntimeSpec, SourceType, rspack_sources::BoxSource,
 };
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
@@ -17,7 +17,11 @@ pub(crate) struct RslibAssetParserAndGenerator(pub AssetParserAndGenerator);
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for RslibAssetParserAndGenerator {
-  fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
+  fn source_types(
+    &self,
+    module: &rspack_core::ModuleView<'_>,
+    module_graph: &ModuleGraph,
+  ) -> &[SourceType] {
     let mut source_types = FxHashSet::default();
     let module_id = module.identifier();
     for connection in module_graph.get_incoming_connections(&module_id) {
@@ -51,14 +55,14 @@ impl ParserAndGenerator for RslibAssetParserAndGenerator {
     self.0.parse(parse_context).await
   }
 
-  fn size(&self, module: &dyn Module, source_type: Option<&SourceType>) -> f64 {
+  fn size(&self, module: &rspack_core::ModuleView<'_>, source_type: Option<&SourceType>) -> f64 {
     self.0.size(module, source_type)
   }
 
   async fn generate(
     &self,
     source: &BoxSource,
-    module: &dyn Module,
+    module: &rspack_core::ModuleView<'_>,
     generate_context: &mut GenerateContext,
   ) -> Result<BoxSource> {
     self.0.generate(source, module, generate_context).await
@@ -66,7 +70,7 @@ impl ParserAndGenerator for RslibAssetParserAndGenerator {
 
   fn get_concatenation_bailout_reason(
     &self,
-    module: &dyn Module,
+    module: &rspack_core::ModuleView<'_>,
     mg: &ModuleGraph,
     cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {

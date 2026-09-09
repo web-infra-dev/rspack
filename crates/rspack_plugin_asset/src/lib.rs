@@ -45,7 +45,7 @@ static ASSET_TYPES: &[SourceType; 1] = &[SourceType::Asset];
 
 const DEFAULT_ENCODING: &str = "base64";
 
-fn asset_import_binding(module: &dyn Module, compilation: &Compilation) -> String {
+fn asset_import_binding(module: &rspack_core::ModuleView<'_>, compilation: &Compilation) -> String {
   // Module ids are part of the module graph hash used by the code generation cache. Deriving the
   // binding from the id therefore keeps cached module sources and import metadata in sync across
   // incremental builds.
@@ -138,7 +138,7 @@ impl AssetParserAndGenerator {
     resource_data: &ResourceData,
     data_url: Option<&AssetGeneratorDataUrl>,
     source: &BoxSource,
-    module: &dyn Module,
+    module: &rspack_core::ModuleView<'_>,
     compilation: &Compilation,
   ) -> Option<String> {
     let func_ctx = AssetGeneratorDataUrlFnCtx {
@@ -253,7 +253,11 @@ impl AssetParserAndGenerator {
   ) -> Result<(String, String, AssetInfo)> {
     // PreserveModules may set a per-module asset filename; otherwise use
     // [Rule.generator.filename] or [output.assetModuleFilename].
-    let build_info = module.build_info();
+    let build_info = compilation
+      .get_module_graph()
+      .module_by_identifier(&(module as &dyn Module).identifier())
+      .expect("module exists")
+      .build_info();
     let asset_filename_override = module.asset_filename_override();
     let asset_filename_template = asset_filename_override
       .as_ref()
@@ -340,7 +344,11 @@ const DEFAULT_MAX_SIZE: f64 = 8096.0;
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for AssetParserAndGenerator {
-  fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
+  fn source_types(
+    &self,
+    module: &rspack_core::ModuleView<'_>,
+    module_graph: &ModuleGraph,
+  ) -> &[SourceType] {
     let module_id = module.identifier();
     if self.emit
       && module
@@ -427,7 +435,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     }
   }
 
-  fn size(&self, module: &dyn Module, source_type: Option<&SourceType>) -> f64 {
+  fn size(&self, module: &rspack_core::ModuleView<'_>, source_type: Option<&SourceType>) -> f64 {
     let original_source_size = module.source().map_or(0, |source| source.size()) as f64;
     match source_type.unwrap_or(&SourceType::Asset) {
       SourceType::Asset => original_source_size,
@@ -527,7 +535,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
   async fn generate(
     &self,
     source: &BoxSource,
-    module: &dyn Module,
+    module: &rspack_core::ModuleView<'_>,
     generate_context: &mut GenerateContext,
   ) -> Result<BoxSource> {
     let compilation = generate_context.compilation;
@@ -811,7 +819,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
   fn get_concatenation_bailout_reason(
     &self,
-    _module: &dyn rspack_core::Module,
+    _module: &rspack_core::ModuleView<'_>,
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
@@ -825,7 +833,11 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     _runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHasher::from(&compilation.options.output);
-    let build_info = module.build_info();
+    let build_info = compilation
+      .get_module_graph()
+      .module_by_identifier(&(module as &dyn Module).identifier())
+      .expect("module exists")
+      .build_info();
     let asset_build_info = build_info
       .asset
       .as_ref()

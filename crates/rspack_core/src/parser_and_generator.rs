@@ -17,7 +17,7 @@ use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildInfo, BuildMeta, ChunkGraph,
   CodeGenerationData, Compilation, CompilerOptions, ConcatenationScope, Context,
   DependencyCodeGenerationRef, DependencyId, DependencyLocation, DependencyRange,
-  EvaluatedInlinableValue, FactoryMeta, GeneratorOptions, Module, ModuleCodeTemplate, ModuleGraph,
+  EvaluatedInlinableValue, FactoryMeta, GeneratorOptions, ModuleCodeTemplate, ModuleGraph,
   ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeSpec, SourceType,
 };
 
@@ -136,25 +136,29 @@ pub struct GenerateContext<'a> {
 #[async_trait::async_trait]
 pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
   /// The source types that the generator can generate (the source types you can make requests for)
-  fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType];
+  fn source_types(
+    &self,
+    module: &crate::ModuleView<'_>,
+    module_graph: &ModuleGraph,
+  ) -> &[SourceType];
   /// Parse the source and return the dependencies and the ast or source
   async fn parse<'a>(
     &mut self,
     parse_context: ParseContext<'a>,
   ) -> Result<TWithDiagnosticArray<ParseResult>>;
   /// Size of the original source
-  fn size(&self, module: &dyn Module, source_type: Option<&SourceType>) -> f64;
+  fn size(&self, module: &crate::ModuleView<'_>, source_type: Option<&SourceType>) -> f64;
   /// Generate source or AST based on the built source or AST
   async fn generate(
     &self,
     source: &BoxSource,
-    module: &dyn Module,
+    module: &crate::ModuleView<'_>,
     generate_context: &mut GenerateContext,
   ) -> Result<BoxSource>;
 
   fn get_concatenation_bailout_reason(
     &self,
-    _module: &dyn Module,
+    _module: &crate::ModuleView<'_>,
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>>;

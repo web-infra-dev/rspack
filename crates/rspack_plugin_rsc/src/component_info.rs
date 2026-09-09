@@ -1,8 +1,8 @@
 use derive_more::Debug;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  Compilation, DependencyId, Module, ModuleGraph, ModuleIdentifier, RscMeta, RscModuleType,
-  RuntimeSpec, module_declared_side_effect_free,
+  Compilation, DependencyId, ModuleGraph, ModuleIdentifier, RscMeta, RscModuleType, RuntimeSpec,
+  module_declared_side_effect_free,
 };
 use rspack_intern::{Atom, IndexAtomMap, IndexAtomSet};
 use rspack_plugin_javascript::dependency::{
@@ -74,7 +74,7 @@ pub fn collect_component_info_from_entry_dependency(
   traverse_module(
     compilation,
     runtime,
-    resolved_module.as_ref(),
+    resolved_module,
     &[],
     None,
     false,
@@ -90,7 +90,7 @@ pub fn collect_component_info_from_entry_dependency(
 fn traverse_module(
   compilation: &Compilation,
   runtime: &RuntimeSpec,
-  module: &dyn Module,
+  module: &rspack_core::BuiltModule,
   imported_identifiers: &[Atom],
   current_server_entry: Option<&str>,
   is_under_server_dynamic_import: bool,
@@ -98,7 +98,7 @@ fn traverse_module(
   visited_server_components: &mut VisitedServerComponents,
   component_info: &mut ComponentInfo,
 ) {
-  let resource = get_module_resource(module);
+  let resource = get_module_resource(module.as_ref());
   if resource.is_empty() {
     return;
   }
@@ -118,7 +118,7 @@ fn traverse_module(
       .insert(resource.to_string());
   }
 
-  if is_css_mod(module, resource.as_ref()) {
+  if is_css_mod(module.as_ref(), resource.as_ref()) {
     record_css_import(
       compilation,
       module,
@@ -176,7 +176,7 @@ fn traverse_module(
     traverse_module(
       compilation,
       runtime,
-      resolved_module.as_ref(),
+      resolved_module,
       &imported_ids,
       current_server_entry,
       is_under_server_dynamic_import,
@@ -189,13 +189,13 @@ fn traverse_module(
 
 fn record_css_import(
   compilation: &Compilation,
-  module: &dyn Module,
+  module: &rspack_core::BuiltModule,
   runtime: &RuntimeSpec,
   resource: &str,
   current_server_entry: Option<&str>,
   component_info: &mut ComponentInfo,
 ) {
-  let side_effect_free = module_declared_side_effect_free(module).unwrap_or(false);
+  let side_effect_free = module_declared_side_effect_free(module.as_ref()).unwrap_or(false);
   if side_effect_free {
     let exports_info = compilation
       .exports_info_artifact
@@ -226,7 +226,7 @@ fn record_css_import(
 }
 
 fn record_client_component_import(
-  module: &dyn Module,
+  module: &rspack_core::BuiltModule,
   resource: &str,
   imported_identifiers: &[Atom],
   current_server_entry: Option<&str>,
@@ -266,7 +266,7 @@ fn record_client_component_import(
 }
 
 fn collect_once_per_module(
-  module: &dyn Module,
+  module: &rspack_core::BuiltModule,
   resource: &str,
   component_info: &mut ComponentInfo,
 ) {
@@ -311,7 +311,7 @@ fn get_imported_ids(module_graph: &ModuleGraph, dependency_id: &DependencyId) ->
 }
 
 fn add_client_import_for_server_entry(
-  module: &dyn Module,
+  module: &rspack_core::BuiltModule,
   resource: &str,
   imported_identifiers: &[Atom],
   current_server_entry: Option<&str>,
@@ -347,7 +347,7 @@ fn add_client_import_for_server_entry(
 }
 
 fn add_client_import_to_scope(
-  module: &dyn Module,
+  module: &rspack_core::BuiltModule,
   mod_request: &str,
   imported_identifiers: &[Atom],
   client_component_imports: &mut ClientComponentImports,
@@ -366,7 +366,7 @@ fn add_client_import_to_scope(
 }
 
 fn add_client_import(
-  module: &dyn Module,
+  module: &rspack_core::BuiltModule,
   mod_request: &str,
   imported_identifiers: &[Atom],
   is_first_visit_module: bool,
@@ -422,20 +422,16 @@ fn add_client_import(
 }
 
 // Gives { id: name } record of actions from the build info.
-fn get_actions_from_build_info(
-  module: &dyn Module,
-) -> Option<rspack_core::FreezeReadGuard<'_, IndexAtomMap<Atom>>> {
+fn get_actions_from_build_info(module: &rspack_core::BuiltModule) -> Option<&IndexAtomMap<Atom>> {
   let rsc = get_module_rsc_information(module)?;
-  Some(rsc.map(|rsc| &rsc.action_ids))
+  Some(&rsc.action_ids)
 }
 
-fn get_module_rsc_information(
-  module: &dyn Module,
-) -> Option<rspack_core::FreezeReadGuard<'_, RscMeta>> {
-  module.build_info().try_map(|info| info.rsc.as_ref())
+fn get_module_rsc_information(module: &rspack_core::BuiltModule) -> Option<&RscMeta> {
+  module.build_info().rsc.as_ref()
 }
 
-fn is_client_component_entry_module(module: &dyn Module) -> bool {
+fn is_client_component_entry_module(module: &rspack_core::BuiltModule) -> bool {
   let rsc = get_module_rsc_information(module);
   let has_client_directive = matches!(rsc, Some(rsc) if rsc.module_type == RscModuleType::Client);
   let is_action_layer_entry = is_action_client_layer_module(module);
@@ -447,19 +443,19 @@ fn is_client_component_entry_module(module: &dyn Module) -> bool {
   has_client_directive || is_action_layer_entry || is_image
 }
 
-fn is_server_entry_module(module: &dyn Module) -> bool {
+fn is_server_entry_module(module: &rspack_core::BuiltModule) -> bool {
   get_module_rsc_information(module)
     .is_some_and(|rsc| rsc.module_type == RscModuleType::ServerEntry)
 }
 
 // Determine if the whole module is client action, 'use server' in nested closure in the client module
-fn is_action_client_layer_module(module: &dyn Module) -> bool {
+fn is_action_client_layer_module(module: &rspack_core::BuiltModule) -> bool {
   let rsc = get_module_rsc_information(module);
   matches!(&rsc, Some(rsc) if !rsc.action_ids.is_empty())
     && matches!(&rsc, Some(rsc) if rsc.module_type == RscModuleType::Client)
 }
 
-fn get_assumed_source_type<'a>(module: &dyn Module, source_type: &'a str) -> &'a str {
+fn get_assumed_source_type<'a>(module: &rspack_core::BuiltModule, source_type: &'a str) -> &'a str {
   let rsc = get_module_rsc_information(module);
   let is_cjs = rsc.as_ref().is_some_and(|rsc| rsc.is_cjs);
   let client_refs: &[Wtf8Atom] = rsc

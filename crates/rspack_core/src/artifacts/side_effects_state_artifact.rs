@@ -107,7 +107,7 @@ pub fn module_declared_side_effect_free(module: &dyn Module) -> Option<bool> {
 /// This reads the deferred side-effects overlay first, then falls back to the
 /// module's analyzed `build_meta.side_effect_free`.
 pub fn module_analyzed_side_effect_free(
-  module: &dyn Module,
+  module: &crate::BuiltModule,
   side_effects_state_artifact: &SideEffectsStateArtifact,
 ) -> Option<bool> {
   side_effects_state_artifact

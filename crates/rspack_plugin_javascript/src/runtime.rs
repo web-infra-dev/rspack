@@ -278,13 +278,22 @@ pub async fn render_module(
         args.push_str(argument);
       };
       if need_module || need_exports || need_require {
-        let module_argument = runtime_template.render_module_argument(module.get_module_argument());
+        let module_argument = runtime_template.render_module_argument(
+          compilation
+            .get_module_graph()
+            .build_info(&module.identifier())
+            .module_argument,
+        );
         push_argument(&module_argument, need_module);
       }
 
       if need_exports || need_require {
-        let exports_argument =
-          runtime_template.render_exports_argument(module.get_exports_argument());
+        let exports_argument = runtime_template.render_exports_argument(
+          compilation
+            .get_module_graph()
+            .build_info(&module.identifier())
+            .exports_argument,
+        );
         push_argument(&exports_argument, need_exports);
       }
       if need_require {
@@ -308,7 +317,12 @@ pub async fn render_module(
         container_prefix.push_str(") {\n");
       }
       container_sources.add(RawStringSource::from(container_prefix));
-      if module.build_info().strict && !all_strict {
+      if compilation
+        .get_module_graph()
+        .build_info(&module.identifier())
+        .strict
+        && !all_strict
+      {
         container_sources.add(RawStringSource::from_static("\"use strict\";\n"));
       }
       container_sources.add(render_source.source);

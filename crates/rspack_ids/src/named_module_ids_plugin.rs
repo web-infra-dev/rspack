@@ -249,7 +249,7 @@ async fn module_ids(
           .chunk_graph
           .get_number_of_module_chunks(*module_identifier)
           != 0
-          || should_assign_module_id_without_chunk(module.as_ref()))
+          || should_assign_module_id_without_chunk(module))
     })
     .map(|(m, _)| *m)
     .collect();

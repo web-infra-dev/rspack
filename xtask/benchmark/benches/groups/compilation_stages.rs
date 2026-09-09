@@ -694,7 +694,7 @@ pub(crate) fn create_full_hash_benchmark(c: &mut Criterion, rt: &Runtime) {
 pub(crate) fn create_chunk_assets_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
-  let mut compiler = create_general_stage_compiler(fs.clone());
+  let mut compiler = create_general_stage_compiler_with_assets(fs.clone());
 
   rt.block_on(async {
     fs.create_dir_all("/src".into())
@@ -744,7 +744,7 @@ pub(crate) fn create_chunk_assets_benchmark(c: &mut Criterion, rt: &Runtime) {
 pub(crate) fn create_module_assets_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
-  let mut compiler = create_general_stage_compiler(fs.clone());
+  let mut compiler = create_general_stage_compiler_with_assets(fs.clone());
 
   rt.block_on(async {
     fs.create_dir_all("/src".into())
@@ -1017,10 +1017,23 @@ fn create_general_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
   create_general_stage_compiler_with_ids(fs, "deterministic", "deterministic")
 }
 
+fn create_general_stage_compiler_with_assets(fs: Arc<MemoryFileSystem>) -> Compiler {
+  create_general_stage_compiler_options(fs, "deterministic", "deterministic", true)
+}
+
 fn create_general_stage_compiler_with_ids(
   fs: Arc<MemoryFileSystem>,
   module_ids: &str,
   chunk_ids: &str,
+) -> Compiler {
+  create_general_stage_compiler_options(fs, module_ids, chunk_ids, false)
+}
+
+fn create_general_stage_compiler_options(
+  fs: Arc<MemoryFileSystem>,
+  module_ids: &str,
+  chunk_ids: &str,
+  seed_assets: bool,
 ) -> Compiler {
   Compiler::builder()
     .context("/")
@@ -1038,6 +1051,7 @@ fn create_general_stage_compiler_with_ids(
         .concatenate_modules(false),
     )
     .incremental(IncrementalOptions::empty_passes())
+    .plugin(Box::new(ModuleAssetSeedPlugin(seed_assets)))
     .build()
     .unwrap()
 }
@@ -1089,6 +1103,7 @@ fn create_real_content_hash_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compile
         .concatenate_modules(false),
     )
     .incremental(IncrementalOptions::empty_passes())
+    .plugin(Box::new(ModuleAssetSeedPlugin(true)))
     .build()
     .unwrap()
 }
@@ -1233,7 +1248,7 @@ async fn prepare_for_module_assets(compiler: &mut Compiler) -> Result<()> {
   prepare_for_runtime_requirements(compiler).await?;
   run_runtime_requirements_pass(compiler).await?;
   run_create_hash_pass(compiler).await?;
-  let seeded_module_assets = seed_module_assets(&mut compiler.compilation);
+  let seeded_module_assets = count_module_assets(&compiler.compilation);
   assert!(
     seeded_module_assets > 0,
     "create_module_assets setup should seed module build_info assets"
@@ -1607,41 +1622,48 @@ async fn run_create_module_assets_pass(compilation: &mut Compilation) -> Result<
     .await
 }
 
-fn seed_module_assets(compilation: &mut Compilation) -> usize {
-  let mut module_identifiers = compilation
-    .get_module_graph()
-    .modules_keys()
-    .copied()
-    .filter(|module_identifier| {
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_number_of_module_chunks(*module_identifier)
-        > 0
-    })
-    .collect::<Vec<_>>();
-  module_identifiers.sort_unstable();
-  module_identifiers.truncate(MODULE_ASSET_SEED_COUNT);
+/// Seed benchmark assets while build metadata is exclusively owned. The timed
+/// passes consume the completed records exactly as they would consume loader assets.
+#[derive(Debug)]
+struct ModuleAssetSeedPlugin(bool);
 
-  for (asset_index, module_identifier) in module_identifiers.iter().copied().enumerate() {
-    let module = compilation
-      .get_module_graph()
-      .module_by_identifier(&module_identifier)
-      .expect("seeded module should exist");
-    module.extend_build_assets(
-      [(
+impl rspack_core::Plugin for ModuleAssetSeedPlugin {
+  fn name(&self) -> &'static str {
+    "benchmark:ModuleAssetSeedPlugin"
+  }
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    if self.0 {
+      ctx
+        .compilation_hooks
+        .succeed_module
+        .tap(SeedModuleAssets(Default::default()));
+    }
+    Ok(())
+  }
+}
+
+struct SeedModuleAssets(std::sync::atomic::AtomicUsize);
+
+#[async_trait::async_trait]
+impl rspack_core::CompilationSucceedModule for SeedModuleAssets {
+  async fn run(
+    &self,
+    _compiler_id: rspack_core::CompilerId,
+    _compilation_id: rspack_core::CompilationId,
+    module: &mut rspack_core::BoxModule,
+  ) -> Result<()> {
+    let asset_index = self.0.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    if asset_index < MODULE_ASSET_SEED_COUNT {
+      module.build_info_mut().assets.insert(
         format!("module-assets/module-{asset_index}.txt"),
         CompilationAsset::new(
           Some(RawStringSource::from(format!("module asset fixture {asset_index}")).boxed()),
           Default::default(),
         ),
-      )]
-      .into_iter()
-      .collect(),
-    );
+      );
+    }
+    Ok(())
   }
-
-  module_identifiers.len()
 }
 
 async fn run_create_chunk_assets_pass(compiler: &mut Compiler) -> Result<()> {

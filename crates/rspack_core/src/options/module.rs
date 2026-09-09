@@ -18,7 +18,7 @@ use rustc_hash::FxHashMap as HashMap;
 use smallvec::SmallVec;
 use tokio::sync::OnceCell;
 
-use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve};
+use crate::{Compilation, Filename, ModuleType, PublicPath, Resolve};
 
 #[derive(Debug, Default)]
 pub struct ParserOptionsMap(HashMap<String, ParserOptions>);
@@ -252,7 +252,7 @@ impl From<&str> for ExportPresenceMode {
 }
 
 impl ExportPresenceMode {
-  pub fn get_effective_export_presence(&self, module: &dyn Module) -> Option<bool> {
+  pub fn get_effective_export_presence(&self, module: &crate::BuiltModule) -> Option<bool> {
     match self {
       ExportPresenceMode::None => None,
       ExportPresenceMode::Warn => Some(false),
@@ -1023,7 +1023,7 @@ pub struct AssetGeneratorOptions {
 
 pub struct AssetGeneratorDataUrlFnCtx<'a> {
   pub filename: String,
-  pub module: &'a dyn Module,
+  pub module: &'a crate::ModuleView<'a>,
   pub compilation: &'a Compilation,
 }
 

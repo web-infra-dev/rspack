@@ -21,6 +21,7 @@ pub struct RunnerContext {
   pub file_system_info: FileSystemInfo,
   pub resolver_factory: Arc<ResolverFactory>,
   pub module: Box<NormalModule>,
+  pub build_data: crate::ModuleBuildMetadata,
   pub source_map_kind: SourceMapKind,
 }
 

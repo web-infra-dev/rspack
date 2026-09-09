@@ -69,9 +69,10 @@ impl PassExt for BuildModuleGraphPhasePass {
         )
         .await?;
     }
-    for (_, module) in compilation.get_module_graph().modules() {
-      module.freeze_build_info();
-    }
+    compilation
+      .build_module_graph_artifact
+      .module_graph
+      .finish_build_info();
     cache.after_build_module_graph(compilation).await;
     Ok(())
   }

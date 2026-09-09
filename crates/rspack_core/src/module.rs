@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{As, AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
+  with::{As, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -357,12 +357,6 @@ impl Default for BuildInfo {
       extras: Default::default(),
       deferred_pure_checks: HashSet::default(),
     }
-  }
-}
-
-impl crate::FreezeLock<BuildInfo> {
-  pub fn extend_assets(&self, assets: CompilationAssets) {
-    self.update(|build_info| build_info.assets.extend(assets));
   }
 }
 
@@ -737,12 +731,18 @@ pub trait Module:
 
   /// The size of the original source, which will used as a parameter for code-splitting.
   /// Only when calculating the size of the RuntimeModule is the Compilation depended on
-  fn size(&self, source_type: Option<&SourceType>, compilation: Option<&Compilation>) -> f64;
+  fn size(
+    &self,
+    source_type: Option<&SourceType>,
+    compilation: Option<&Compilation>,
+    build_data: Option<&ModuleBuildMetadata>,
+  ) -> f64;
 
   /// The actual build of the module, which will be called by the `Compilation`.
   /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
   async fn build(
     self: Box<Self>,
+    build_data: ModuleBuildMetadata,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule>;
@@ -751,27 +751,11 @@ pub trait Module:
 
   fn set_factory_meta(&self, factory_meta: FactoryMeta);
 
-  fn build_info(&self) -> crate::FreezeReadGuard<'_, BuildInfo>;
-
-  /// Finalize build information after loader assets and the cache snapshot.
-  fn freeze_build_info(&self);
-
-  /// Merge assets from loader execution before build information is frozen.
-  fn extend_build_assets(&self, assets: CompilationAssets);
-
-  fn build_info_mut(&mut self) -> &mut BuildInfo;
-
-  fn build_meta(&self) -> crate::FreezeReadGuard<'_, BuildMeta>;
-
-  /// Publish build metadata after failed-rebuild recovery has finished.
-  fn freeze_build_meta(&self) -> &triomphe::Arc<BuildMeta>;
-
-  fn get_exports_argument(&self) -> ExportsArgument {
-    self.build_info().exports_argument
+  fn initial_build_info(&self) -> crate::BuildData<BuildInfo> {
+    Default::default()
   }
-
-  fn get_module_argument(&self) -> ModuleArgument {
-    self.build_info().module_argument
+  fn initial_build_meta(&self) -> crate::BuildData<BuildMeta> {
+    Default::default()
   }
 
   fn get_exports_type(
@@ -784,16 +768,15 @@ pub trait Module:
     module_graph_cache.cached_get_exports_type((self.identifier(), strict), || {
       get_exports_type_impl(
         self.identifier(),
-        &self.build_meta(),
+        module_graph
+          .module_by_identifier(&self.identifier())
+          .expect("module exists")
+          .build_meta(),
         module_graph,
         exports_info_artifact,
         strict,
       )
     })
-  }
-
-  fn get_strict_esm_module(&self) -> bool {
-    self.build_meta().strict_esm_module()
   }
 
   /// The actual code generation of the module, which will be called by the `Compilation`.
@@ -884,27 +867,34 @@ pub trait Module:
     ConnectionState::Active(true)
   }
 
-  /// Determines whether a module needs to be rebuilt using the complete build
-  /// context.
-  ///
-  /// Implementations may inspect or mutate module state and perform asynchronous
-  /// work. As in webpack's base `Module`, the default is conservative: module
-  /// types that can prove an existing build is valid should override this.
-  async fn need_build(&mut self, _context: &NeedBuildContext<'_>) -> Result<bool> {
-    Ok(true)
-  }
-
   /// Performs the synchronous rebuild decision used by incremental make.
   ///
   /// This preserves the pre-existing incremental-make behavior: it only checks
   /// cacheability, value dependencies, and build errors. Filesystem changes are
   /// handled separately by the make artifact. It is intentionally narrower than
   /// [`Module::need_build`] and must not be used as the general rebuild check.
-  fn need_build_for_incremental(&self, value_cache_version: &ValueCacheVersions) -> bool {
-    let build_info = self.build_info();
+  fn need_build_for_incremental(
+    &self,
+    build_info: &BuildInfo,
+    versions: &ValueCacheVersions,
+  ) -> bool {
     !build_info.cacheable
-      || value_cache_version.has_diff(&build_info.value_dependencies)
-      || self.diagnostics().iter().any(|item| item.is_error())
+      || versions.has_diff(&build_info.value_dependencies)
+      || self.diagnostics().iter().any(|d| d.is_error())
+  }
+
+  /// Determines whether a module needs to be rebuilt using the complete build
+  /// context.
+  ///
+  /// Implementations may inspect or mutate module state and perform asynchronous
+  /// work. As in webpack's base `Module`, the default is conservative: module
+  /// types that can prove an existing build is valid should override this.
+  async fn need_build(
+    &mut self,
+    _build_info: &BuildInfo,
+    _context: &NeedBuildContext<'_>,
+  ) -> Result<bool> {
+    Ok(true)
   }
 
   fn need_id(&self) -> bool {
@@ -1047,28 +1037,24 @@ pub trait ModuleExt {
 
 impl<T: Module> ModuleExt for T {
   fn boxed(self) -> BoxModule {
-    BoxModule(Box::new(self))
+    BoxModule::new(Box::new(self))
   }
 }
 
-/// A newtype wrapper around `Box<dyn Module>` for improved type safety.
-#[cacheable(with=AsInner)]
-#[repr(transparent)]
-pub struct BoxModule(Box<dyn Module>);
+/// An exclusively owned module implementation and its independently owned build metadata.
+#[cacheable]
+pub struct BoxModule {
+  module: Box<dyn Module>,
+  pub build_data: ModuleBuildMetadata,
+}
 
 /// A built module shared by the module graph and the in-memory build cache.
-/// Build metadata has its own publication boundary. Shared modules only expose
-/// field-specific updates; obtaining mutable access to the whole module is not supported.
+/// Build metadata is held separately by `BuiltModule`; sharing the implementation
+/// does not share mutable access to the build record.
 #[cacheable]
 #[derive(Debug, Clone)]
 #[repr(transparent)]
 pub struct ModuleRef(Arc<dyn Module>);
-
-impl From<BoxModule> for ModuleRef {
-  fn from(module: BoxModule) -> Self {
-    Self(Arc::from(module.0))
-  }
-}
 
 impl std::ops::Deref for ModuleRef {
   type Target = dyn Module;
@@ -1091,7 +1077,26 @@ impl Identifiable for ModuleRef {
 }
 
 impl BoxModule {
-  /// Installs a module's complete build output before it is published into the graph.
+  pub fn view(&self) -> ModuleView<'_> {
+    ModuleView {
+      module: self.as_ref(),
+      build_data: &self.build_data,
+    }
+  }
+  pub fn size(&self, source_type: Option<&SourceType>, compilation: Option<&Compilation>) -> f64 {
+    self.view().size(source_type, compilation)
+  }
+
+  pub fn new(module: Box<dyn Module>) -> Self {
+    let build_data = ModuleBuildMetadata {
+      build_info: module.initial_build_info(),
+      build_meta: module.initial_build_meta(),
+    };
+    Self { module, build_data }
+  }
+  pub fn from_parts(module: Box<dyn Module>, build_data: ModuleBuildMetadata) -> Self {
+    Self { module, build_data }
+  }
   pub fn with_dependencies(
     mut self,
     dependencies: Vec<DependencyRef>,
@@ -1100,76 +1105,180 @@ impl BoxModule {
     *self.dependencies_block_mut() = DependenciesBlockData::new(dependencies, blocks);
     self
   }
-
-  /// Create a new BoxModule from a boxed Module trait object.
-  pub fn new(module: Box<dyn Module>) -> Self {
-    BoxModule(module)
-  }
-
   pub async fn build(
     self,
     build_context: BuildContext,
     compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
-    self.0.build(build_context, compilation).await
+    self
+      .module
+      .build(self.build_data, build_context, compilation)
+      .await
+  }
+  pub fn build_info(&self) -> &BuildInfo {
+    self.build_data.build_info.read()
+  }
+  pub fn build_meta(&self) -> &BuildMeta {
+    self.build_data.build_meta.read()
+  }
+  pub fn build_info_mut(&mut self) -> &mut BuildInfo {
+    self.build_data.build_info.get_mut()
   }
 }
-
-impl AsInnerConverter for BoxModule {
-  type Inner = Box<dyn Module>;
-
-  fn to_inner(&self) -> &Self::Inner {
-    &self.0
-  }
-
-  fn from_inner(data: Self::Inner) -> Self {
-    BoxModule(data)
-  }
-}
-
 impl std::ops::Deref for BoxModule {
   type Target = Box<dyn Module>;
-
   fn deref(&self) -> &Self::Target {
-    &self.0
+    &self.module
   }
 }
-
 impl std::ops::DerefMut for BoxModule {
   fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.0
+    &mut self.module
   }
 }
-
 impl From<Box<dyn Module>> for BoxModule {
-  fn from(inner: Box<dyn Module>) -> Self {
-    BoxModule(inner)
+  fn from(module: Box<dyn Module>) -> Self {
+    Self::new(module)
   }
 }
-
 impl AsRef<dyn Module> for BoxModule {
   fn as_ref(&self) -> &dyn Module {
-    self.0.as_ref()
+    self.module.as_ref()
   }
 }
-
 impl AsMut<dyn Module> for BoxModule {
   fn as_mut(&mut self) -> &mut dyn Module {
-    self.0.as_mut()
+    self.module.as_mut()
   }
 }
-
 impl Debug for BoxModule {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-    self.0.fmt(f)
+    self.module.fmt(f)
+  }
+}
+impl Identifiable for BoxModule {
+  fn identifier(&self) -> Identifier {
+    self.module.identifier()
   }
 }
 
-impl Identifiable for BoxModule {
-  /// Uniquely identify a module. If two modules share the same module identifier, then they are considered as the same module.
-  /// e.g `javascript/auto|<absolute-path>/index.js` and `javascript/auto|<absolute-path>/index.js` are considered as the same.
+/// Metadata owned separately from the module implementation throughout construction.
+#[cacheable]
+#[derive(Debug, Default)]
+pub struct ModuleBuildMetadata {
+  pub build_info: crate::BuildData<BuildInfo>,
+  pub build_meta: crate::BuildData<BuildMeta>,
+}
+
+/// A graph-owned build record. Its module can be shared before its metadata is finalized.
+#[cacheable]
+#[derive(Debug)]
+pub struct BuiltModule {
+  module: ModuleRef,
+  pub(crate) build_data: ModuleBuildMetadata,
+}
+impl From<BoxModule> for BuiltModule {
+  fn from(value: BoxModule) -> Self {
+    Self {
+      module: ModuleRef(Arc::from(value.module)),
+      build_data: value.build_data,
+    }
+  }
+}
+impl std::ops::Deref for BuiltModule {
+  type Target = ModuleRef;
+  fn deref(&self) -> &ModuleRef {
+    &self.module
+  }
+}
+impl Identifiable for BuiltModule {
   fn identifier(&self) -> Identifier {
-    self.0.as_ref().identifier()
+    self.module.identifier()
+  }
+}
+impl BuiltModule {
+  pub fn view(&self) -> ModuleView<'_> {
+    ModuleView {
+      module: self.as_ref(),
+      build_data: &self.build_data,
+    }
+  }
+  pub fn size(&self, source_type: Option<&SourceType>, compilation: Option<&Compilation>) -> f64 {
+    self.view().size(source_type, compilation)
+  }
+
+  pub fn build_info(&self) -> &BuildInfo {
+    self.build_data.build_info.read()
+  }
+  pub fn build_meta(&self) -> &BuildMeta {
+    self.build_data.build_meta.read()
+  }
+  pub fn shared_build_meta(&self) -> &SharedBuildMeta {
+    self
+      .build_data
+      .build_meta
+      .shared()
+      .expect("build metadata is finalized")
+  }
+  pub(crate) fn finish_build_info(&mut self) {
+    self.build_data.build_info.finish();
+  }
+  pub(crate) fn finish_build_meta(&mut self) {
+    self.build_data.build_meta.finish();
+  }
+  pub(crate) fn restore_build_meta(&mut self, meta: SharedBuildMeta) {
+    self.build_data.build_meta = meta.into();
+  }
+  pub(crate) fn extend_build_assets(&mut self, assets: CompilationAssets) {
+    self.build_data.build_info.get_mut().assets.extend(assets);
+  }
+  pub(crate) fn set_cache_snapshot(&mut self, snapshot: Option<Snapshot>) {
+    self.build_data.build_info.get_mut().snapshot = snapshot;
+  }
+  pub fn get_exports_argument(&self) -> ExportsArgument {
+    self.build_info().exports_argument
+  }
+  pub fn get_module_argument(&self) -> ModuleArgument {
+    self.build_info().module_argument
+  }
+  pub fn get_strict_esm_module(&self) -> bool {
+    self.build_meta().strict_esm_module()
+  }
+  pub fn need_build_for_incremental(&self, versions: &ValueCacheVersions) -> bool {
+    self
+      .module
+      .need_build_for_incremental(self.build_info(), versions)
+  }
+  pub(crate) fn cache_entry(&self) -> CachedModule {
+    CachedModule {
+      module: self.module.clone(),
+      build_info: self
+        .build_data
+        .build_info
+        .shared()
+        .expect("build info is finalized")
+        .clone(),
+      build_meta: self.shared_build_meta().clone(),
+    }
+  }
+}
+/// Shared completed build output, retained by Cache independently of graph lifetime.
+#[cacheable]
+#[derive(Debug, Clone)]
+pub(crate) struct CachedModule {
+  pub module: ModuleRef,
+  pub build_info: triomphe::Arc<BuildInfo>,
+  pub build_meta: SharedBuildMeta,
+}
+impl From<CachedModule> for BuiltModule {
+  fn from(value: CachedModule) -> Self {
+    Self {
+      module: value.module,
+      build_data: ModuleBuildMetadata {
+        build_info: value.build_info.into(),
+        build_meta: value.build_meta.into(),
+      },
+    }
   }
 }
 
@@ -1192,30 +1301,6 @@ macro_rules! impl_module_meta_info {
 
     fn set_factory_meta(&self, v: $crate::FactoryMeta) {
       self.factory_meta.set(Some(std::sync::Arc::new(v)));
-    }
-
-    fn build_info(&self) -> $crate::FreezeReadGuard<'_, $crate::BuildInfo> {
-      self.build_info.read()
-    }
-
-    fn freeze_build_info(&self) {
-      self.build_info.freeze();
-    }
-
-    fn extend_build_assets(&self, assets: $crate::CompilationAssets) {
-      self.build_info.extend_assets(assets);
-    }
-
-    fn build_info_mut(&mut self) -> &mut $crate::BuildInfo {
-      self.build_info.get_mut()
-    }
-
-    fn build_meta(&self) -> $crate::FreezeReadGuard<'_, $crate::BuildMeta> {
-      self.build_meta.read()
-    }
-
-    fn freeze_build_meta(&self) -> &$crate::SharedBuildMeta {
-      self.build_meta.freeze()
     }
   };
 }
@@ -1265,6 +1350,44 @@ pub struct LibIdentOptions<'me> {
   pub context: &'me str,
 }
 
+/// A borrowed module together with its independently owned build metadata.
+pub struct ModuleView<'a> {
+  pub module: &'a dyn Module,
+  pub build_data: &'a ModuleBuildMetadata,
+}
+impl<'a> ModuleView<'a> {
+  pub fn build_info(&self) -> &'a BuildInfo {
+    self.build_data.build_info.read()
+  }
+  pub fn build_meta(&self) -> &'a BuildMeta {
+    self.build_data.build_meta.read()
+  }
+  pub fn get_exports_argument(&self) -> ExportsArgument {
+    self.build_info().exports_argument
+  }
+  pub fn get_module_argument(&self) -> ModuleArgument {
+    self.build_info().module_argument
+  }
+  pub fn get_strict_esm_module(&self) -> bool {
+    self.build_meta().strict_esm_module()
+  }
+  pub fn size(&self, source_type: Option<&SourceType>, compilation: Option<&Compilation>) -> f64 {
+    self
+      .module
+      .size(source_type, compilation, Some(self.build_data))
+  }
+}
+impl<'a> std::ops::Deref for ModuleView<'a> {
+  type Target = dyn Module;
+  fn deref(&self) -> &Self::Target {
+    self.module
+  }
+}
+impl Identifiable for ModuleView<'_> {
+  fn identifier(&self) -> Identifier {
+    self.module.identifier()
+  }
+}
 #[cfg(test)]
 mod test {
   use std::borrow::Cow;
@@ -1328,6 +1451,7 @@ mod test {
           &self,
           _source_type: Option<&SourceType>,
           _compilation: Option<&Compilation>,
+          _build_data: Option<&crate::ModuleBuildMetadata>,
         ) -> f64 {
           unreachable!()
         }
@@ -1338,6 +1462,7 @@ mod test {
 
         async fn build(
           self: Box<Self>,
+          _build_data: crate::ModuleBuildMetadata,
           _build_context: BuildContext,
           _compilation: Option<&Compilation>,
         ) -> Result<BoxModule> {
@@ -1360,30 +1485,6 @@ mod test {
         }
 
         fn factory_meta(&self) -> Option<std::sync::Arc<crate::FactoryMeta>> {
-          unreachable!()
-        }
-
-        fn build_info(&self) -> crate::FreezeReadGuard<'_, crate::BuildInfo> {
-          unreachable!()
-        }
-
-        fn freeze_build_info(&self) {
-          unreachable!()
-        }
-
-        fn extend_build_assets(&self, _: crate::CompilationAssets) {
-          unreachable!()
-        }
-
-        fn build_info_mut(&mut self) -> &mut crate::BuildInfo {
-          unreachable!()
-        }
-
-        fn build_meta(&self) -> crate::FreezeReadGuard<'_, crate::BuildMeta> {
-          unreachable!()
-        }
-
-        fn freeze_build_meta(&self) -> &crate::SharedBuildMeta {
           unreachable!()
         }
 

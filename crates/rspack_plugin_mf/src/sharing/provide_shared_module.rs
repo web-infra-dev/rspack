@@ -4,9 +4,9 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
-  FactoryMetaStore, FreezeLock, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
+  FactoryMetaStore, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
   ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
   impl_source_map_config, module_update_hash, rspack_sources::BoxSource, runtime_mode::RuntimeMode,
 };
@@ -41,8 +41,6 @@ pub struct ProvideSharedModule {
   strict_version: Option<bool>,
   tree_shaking_mode: Option<String>,
   factory_meta: FactoryMetaStore,
-  build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
 }
 
 impl ProvideSharedModule {
@@ -80,12 +78,6 @@ impl ProvideSharedModule {
       strict_version,
       tree_shaking_mode,
       factory_meta: Default::default(),
-      build_info: BuildInfo {
-        strict: true,
-        ..Default::default()
-      }
-      .into(),
-      build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -125,9 +117,22 @@ impl DependenciesBlock for ProvideSharedModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for ProvideSharedModule {
+  fn initial_build_info(&self) -> rspack_core::BuildData<BuildInfo> {
+    BuildInfo {
+      strict: true,
+      ..Default::default()
+    }
+    .into()
+  }
+
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(
+    &self,
+    _source_type: Option<&SourceType>,
+    _compilation: Option<&Compilation>,
+    _build_data: Option<&rspack_core::ModuleBuildMetadata>,
+  ) -> f64 {
     42.0
   }
 
@@ -153,6 +158,7 @@ impl Module for ProvideSharedModule {
 
   async fn build(
     mut self: Box<Self>,
+    build_data: rspack_core::ModuleBuildMetadata,
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BoxModule> {
@@ -166,7 +172,7 @@ impl Module for ProvideSharedModule {
       blocks.push(Box::new(block));
     }
 
-    Ok(BoxModule::new(self).with_dependencies(
+    Ok(BoxModule::from_parts(self, build_data).with_dependencies(
       dependencies.into_iter().map(Into::into).collect(),
       blocks.into_iter().map(Into::into).collect(),
     ))

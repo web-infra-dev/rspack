@@ -773,7 +773,14 @@ var {} = {{}};
         "(function() {\n"
       }));
     }
-    if !all_strict && all_modules.iter().all(|m| m.build_info().strict) {
+    if !all_strict
+      && all_modules.iter().all(|m| {
+        compilation
+          .get_module_graph()
+          .build_info(&m.identifier())
+          .strict
+      })
+    {
       if let Some(strict_bailout) = hooks
         .strict_runtime_bailout
         .call(compilation, chunk_ukey)
@@ -1060,7 +1067,13 @@ var {} = {{}};
     hooks: &JavascriptModulesPluginHooks,
     runtime_template: &RuntimeCodeTemplate,
   ) -> Result<Option<IdentifierMap<Arc<dyn Source>>>> {
-    let inner_strict = !all_strict && all_modules.iter().all(|m| m.build_info().strict);
+    let inner_strict = !all_strict
+      && all_modules.iter().all(|m| {
+        compilation
+          .get_module_graph()
+          .build_info(&m.identifier())
+          .strict
+      });
     let is_multiple_entries = inlined_modules.len() > 1;
     let single_entry_with_modules = inlined_modules.len() == 1 && has_chunk_modules_result;
 
@@ -1152,7 +1165,11 @@ var {} = {{}};
               if let Some(ident_info_with_hash) =
                 self.rename_module_cache.get_inlined_info(&m.identifier())
                 && let (Some(hash_current), Some(hash_cache)) = (
-                  m.build_info().hash.as_ref(),
+                  compilation
+                    .get_module_graph()
+                    .build_info(&m.identifier())
+                    .hash
+                    .as_ref(),
                   ident_info_with_hash.hash.as_ref(),
                 )
                 && *hash_current == *hash_cache
@@ -1164,8 +1181,14 @@ var {} = {{}};
             } else if let Some(idents_with_hash) = self
               .rename_module_cache
               .get_non_inlined_idents(&m.identifier())
-              && let (Some(hash_current), Some(hash_cache)) =
-                (m.build_info().hash.as_ref(), idents_with_hash.hash.as_ref())
+              && let (Some(hash_current), Some(hash_cache)) = (
+                compilation
+                  .get_module_graph()
+                  .build_info(&m.identifier())
+                  .hash
+                  .as_ref(),
+                idents_with_hash.hash.as_ref(),
+              )
               && *hash_current == *hash_cache
             {
               acc
@@ -1413,7 +1436,14 @@ var {} = {{}};
       .chunk_graph
       .get_chunk_modules_by_source_type(chunk_ukey, SourceType::JavaScript, module_graph);
     let mut sources = ConcatSource::default();
-    if !all_strict && chunk_modules.iter().all(|m| m.build_info().strict) {
+    if !all_strict
+      && chunk_modules.iter().all(|m| {
+        compilation
+          .get_module_graph()
+          .build_info(&m.identifier())
+          .strict
+      })
+    {
       if let Some(strict_bailout) = hooks
         .strict_runtime_bailout
         .call(compilation, chunk_ukey)

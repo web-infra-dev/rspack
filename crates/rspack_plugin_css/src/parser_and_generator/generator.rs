@@ -77,7 +77,7 @@ struct CssImportedModule {
 
 pub(crate) struct CssModuleGenerator<'a, 'g> {
   source: BoxSource,
-  module: &'a dyn Module,
+  module: &'a rspack_core::BuiltModule,
   css_build_info: &'a CssBuildInfo,
   generate_context: &'a mut GenerateContext<'g>,
   with_hmr: bool,
@@ -93,7 +93,7 @@ pub(crate) struct CssModuleGenerator<'a, 'g> {
 impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   pub fn new(
     source: BoxSource,
-    module: &'a dyn Module,
+    module: &'a rspack_core::BuiltModule,
     css_build_info: &'a CssBuildInfo,
     generate_context: &'a mut GenerateContext<'g>,
     with_hmr: bool,
@@ -210,7 +210,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let generated_source = self.concat_source.source().into_string_lossy().into_owned();
     if self.module.get_source_map_kind().enabled() {
       let source_name = css_javascript_source_map_module_name(
-        self.module,
+        self.module.as_ref(),
         &self.generate_context.compilation.options.context,
       );
       Ok(OriginalSource::new(generated_source, source_name).boxed())
@@ -267,7 +267,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   fn child_generator<'b>(
     &'b mut self,
     source: BoxSource,
-    module: &'b dyn Module,
+    module: &'b rspack_core::BuiltModule,
     css_build_info: &'b CssBuildInfo,
   ) -> CssModuleGenerator<'b, 'g> {
     CssModuleGenerator::new(
@@ -286,7 +286,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let mut init_fragments = ModuleInitFragments::default();
     let mut context = TemplateContext {
       compilation,
-      module: self.module,
+      module: self.module.as_ref(),
       runtime: self.generate_context.runtime,
       init_fragments: &mut init_fragments,
       concatenation_scope: self.generate_context.concatenation_scope.take(),
@@ -381,11 +381,8 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         .css
         .as_deref()
         .expect("imported CSS module should have build info");
-      let mut child = self.child_generator(
-        imported_source.clone(),
-        imported_module.as_ref(),
-        css_build_info,
-      );
+      let mut child =
+        self.child_generator(imported_source.clone(), imported_module, css_build_info);
       child.render_ordered_css_sources(builder, &css_import.render_conditions, seen);
     }
   }
@@ -544,7 +541,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       };
 
       if matches!(
-        css_module_export_type(imported_module.as_ref()),
+        css_module_export_type(imported_module),
         Some(CssExportType::Style)
       ) && has_render_condition
         && css_import.render_conditions.is_empty()
@@ -588,8 +585,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         .css
         .as_deref()
         .expect("imported CSS module should have build info");
-      let mut child =
-        self.child_generator(source.clone(), imported_module.as_ref(), css_build_info);
+      let mut child = self.child_generator(source.clone(), imported_module, css_build_info);
       code.push_str(&child.render_style_imports(visited_inlined_modules));
       let css_source = child.render_css_module_source();
       let css = child.css_text_expr(css_source, &css_import.render_conditions);
@@ -783,8 +779,11 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   }
 
   fn render_local_css_export(&self, ident: &str) -> String {
-    let ident =
-      replace_css_module_id_placeholder(ident, self.generate_context.compilation, self.module);
+    let ident = replace_css_module_id_placeholder(
+      ident,
+      self.generate_context.compilation,
+      self.module.as_ref(),
+    );
     json_stringify_str(&ident)
   }
 
@@ -939,7 +938,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       .contains(&SourceType::JavaScript)
     {
       let resolved = state
-        .resolve_static_export(from.as_ref(), ident)
+        .resolve_static_export(from, ident)
         .expect("should resolve static css export");
       json_stringify_str(&resolved)
     } else {
@@ -1021,8 +1020,8 @@ struct CssConcatenationState<'a> {
 }
 
 struct StaticCssExportFrame<'a> {
-  module: &'a dyn Module,
-  css_build_info: rspack_core::FreezeReadGuard<'a, CssBuildInfo>,
+  module: &'a rspack_core::BuiltModule,
+  css_build_info: &'a CssBuildInfo,
   export_name: SmolStr,
   next_index: usize,
   resolved: String,
@@ -1038,7 +1037,11 @@ impl<'a> CssConcatenationState<'a> {
     }
   }
 
-  fn resolve_static_export(&mut self, module: &'a dyn Module, export_name: &str) -> Option<String> {
+  fn resolve_static_export(
+    &mut self,
+    module: &'a rspack_core::BuiltModule,
+    export_name: &str,
+  ) -> Option<String> {
     self.seen_static_exports.clear();
     self.static_export_queue.clear();
 
@@ -1058,8 +1061,11 @@ impl<'a> CssConcatenationState<'a> {
         }
         StaticCssExportStep::Resolve { module, css_export } => match css_export.from.as_deref() {
           None => {
-            let value =
-              replace_css_module_id_placeholder(&css_export.ident, self.compilation, module);
+            let value = replace_css_module_id_placeholder(
+              &css_export.ident,
+              self.compilation,
+              module.as_ref(),
+            );
             if let Some(frame) = self.static_export_queue.back_mut() {
               push_joined(&mut frame.resolved, value.as_ref(), " ");
             }
@@ -1067,7 +1073,7 @@ impl<'a> CssConcatenationState<'a> {
           Some(from_request) => {
             let Some(target_identifier) = find_static_export_target(
               self.compilation,
-              module,
+              module.as_ref(),
               from_request,
               css_export.id.as_ref(),
             ) else {
@@ -1076,7 +1082,7 @@ impl<'a> CssConcatenationState<'a> {
             let Some(target_module) = module_graph.module_by_identifier(&target_identifier) else {
               continue;
             };
-            let _ = self.push_static_export_frame(target_module.as_ref(), &css_export.ident);
+            let _ = self.push_static_export_frame(target_module, &css_export.ident);
           }
         },
       }
@@ -1085,13 +1091,16 @@ impl<'a> CssConcatenationState<'a> {
     None
   }
 
-  fn push_static_export_frame(&mut self, module: &'a dyn Module, export_name: &str) -> Option<()> {
-    let css_build_info = module.build_info().map(|info| {
-      info
-        .css
-        .as_deref()
-        .expect("CssParserAndGenerator should populate BuildInfo.css during parse")
-    });
+  fn push_static_export_frame(
+    &mut self,
+    module: &'a rspack_core::BuiltModule,
+    export_name: &str,
+  ) -> Option<()> {
+    let css_build_info = module
+      .build_info()
+      .css
+      .as_deref()
+      .expect("CssParserAndGenerator should populate BuildInfo.css during parse");
     css_build_info.exports.get(export_name)?;
     let module_identifier = module.identifier();
     if !self
@@ -1139,7 +1148,7 @@ impl<'a> CssConcatenationState<'a> {
 
 enum StaticCssExportStep<'a> {
   Resolve {
-    module: &'a dyn Module,
+    module: &'a rspack_core::BuiltModule,
     css_export: CssExport,
   },
   Complete(String),

@@ -8,9 +8,9 @@ use super::{
   TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  AsyncDependenciesBlockRef, BoxModule, BuildContext, CacheFacade, CompilationId, CompilerId,
-  CompilerOptions, DependenciesBlock, DependencyParents, DependencyRef, FileSystemInfo,
-  ModuleCodeTemplate, ModuleRef, ResolverFactory, SharedPluginDriver,
+  AsyncDependenciesBlockRef, BoxModule, BuildContext, BuiltModule, CacheFacade, CompilationId,
+  CompilerId, CompilerOptions, DependenciesBlock, DependencyParents, DependencyRef, FileSystemInfo,
+  ModuleCodeTemplate, ResolverFactory, SharedPluginDriver,
   compilation::build_module_graph::{
     ForwardedIdSet, HasLazyDependencies, LazyDependencies, module_build_cache::ModuleBuildCache,
   },
@@ -99,7 +99,7 @@ impl Task<TaskContext> for BuildTask {
 #[derive(Debug)]
 pub(super) enum ModuleBuildResult {
   Built(BoxModule),
-  Cached(ModuleRef),
+  Cached(BuiltModule),
 }
 
 #[derive(Debug)]
@@ -127,13 +127,13 @@ impl Task<TaskContext> for BuildResultTask {
           .succeed_module
           .call(context.compiler_id, context.compilation_id, &mut module)
           .await?;
-        ModuleRef::from(module)
+        BuiltModule::from(module)
       }
       ModuleBuildResult::Cached(module) => {
         plugin_driver
           .compilation_hooks
           .still_valid_module
-          .call(context.compiler_id, context.compilation_id, module.as_ref())
+          .call(context.compiler_id, context.compilation_id, &module)
           .await?;
         module
       }
@@ -171,7 +171,6 @@ impl Task<TaskContext> for BuildResultTask {
       .artifact
       .build_dependencies
       .add_files(&resource_id, &build_info.dependencies.build);
-    drop(build_info);
 
     let module_graph = &mut context.artifact.module_graph;
     let mut lazy_dependencies = LazyDependencies::default();

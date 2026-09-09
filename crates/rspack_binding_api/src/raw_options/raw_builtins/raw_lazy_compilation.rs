@@ -48,13 +48,14 @@ impl LazyCompilationTestCheck for LazyCompilationTestFn {
     &self,
     compiler_id: CompilerId,
     _compilation_id: CompilationId,
-    m: &dyn rspack_core::Module,
+    m: &rspack_core::BoxModule,
   ) -> bool {
     #[allow(clippy::unwrap_used)]
     let res = self
       .tsfn
       .call_with_sync(ModuleObject::with_readonly_ptr(
-        NonNull::new(m as *const dyn Module as *mut dyn Module).unwrap(),
+        NonNull::new(m.as_ref() as *const dyn Module as *mut dyn Module).unwrap(),
+        NonNull::from(&m.build_data),
         compiler_id,
       ))
       .await

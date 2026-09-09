@@ -4,12 +4,11 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder,
-  Compilation, Context, DependenciesBlock, DependenciesBlockData, FactoryMetaStore, FreezeLock,
-  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleDependency,
-  ModuleGraph, ModuleId, ModuleType, NeedBuildContext, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec, ValueCacheVersions, impl_module_meta_info,
-  impl_source_map_config, module_update_hash,
+  BoxDependency, BoxModule, BuildContext, CodeGenerationResultBuilder, Compilation, Context,
+  DependenciesBlock, DependenciesBlockData, FactoryMetaStore, LibIdentOptions, Module,
+  ModuleArgument, ModuleCodeGenerationContext, ModuleDependency, ModuleGraph, ModuleId, ModuleType,
+  NeedBuildContext, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
+  ValueCacheVersions, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -33,8 +32,6 @@ pub struct DelegatedModule {
   delegate_data: DllManifestContentItem,
   dependencies_block: DependenciesBlockData,
   factory_meta: FactoryMetaStore,
-  build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
 }
 
 impl DelegatedModule {
@@ -86,12 +83,18 @@ impl Module for DelegatedModule {
     .into()
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(
+    &self,
+    _source_type: Option<&SourceType>,
+    _compilation: Option<&Compilation>,
+    _build_data: Option<&rspack_core::ModuleBuildMetadata>,
+  ) -> f64 {
     42.0
   }
 
   async fn build(
     mut self: Box<Self>,
+    mut build_data: rspack_core::ModuleBuildMetadata,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
@@ -108,9 +111,9 @@ impl Module for DelegatedModule {
         false,
       )),
     ];
-    self.build_meta = self.delegate_data.build_meta.clone().into();
+    build_data.build_meta = self.delegate_data.build_meta.clone().into();
     Ok(
-      BoxModule::new(self)
+      BoxModule::from_parts(self, build_data)
         .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![]),
     )
   }
@@ -183,11 +186,19 @@ impl Module for DelegatedModule {
     Ok(code_generation_result)
   }
 
-  fn need_build_for_incremental(&self, _value_cache_versions: &ValueCacheVersions) -> bool {
+  fn need_build_for_incremental(
+    &self,
+    _build_info: &rspack_core::BuildInfo,
+    _value_cache_versions: &ValueCacheVersions,
+  ) -> bool {
     false
   }
 
-  async fn need_build(&mut self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+  async fn need_build(
+    &mut self,
+    _build_info: &rspack_core::BuildInfo,
+    _context: &NeedBuildContext<'_>,
+  ) -> Result<bool> {
     Ok(false)
   }
 

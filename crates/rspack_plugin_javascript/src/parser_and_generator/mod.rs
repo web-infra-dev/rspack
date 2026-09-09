@@ -11,10 +11,10 @@ use rspack_cacheable::{
 use rspack_core::{
   ArcComputed, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
   COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, ChunkGraph, CollectedTypeScriptInfo, Compilation,
-  DependenciesBlock, Dependency, GenerateContext, ImportMeta, Module, ModuleArgument,
-  ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
-  ResolvedModuleOptions, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable,
-  SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
+  DependenciesBlock, Dependency, GenerateContext, ImportMeta, ModuleArgument, ModuleCodeTemplate,
+  ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, ResolvedModuleOptions,
+  RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable, SideEffectsBailoutItem, SourceType,
+  TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
@@ -221,11 +221,15 @@ static SOURCE_TYPES: &[SourceType; 1] = &[SourceType::JavaScript];
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for JavaScriptParserAndGenerator {
-  fn source_types(&self, _module: &dyn Module, _module_graph: &ModuleGraph) -> &[SourceType] {
+  fn source_types(
+    &self,
+    _module: &rspack_core::ModuleView<'_>,
+    _module_graph: &ModuleGraph,
+  ) -> &[SourceType] {
     SOURCE_TYPES
   }
 
-  fn size(&self, module: &dyn Module, _source_type: Option<&SourceType>) -> f64 {
+  fn size(&self, module: &rspack_core::ModuleView<'_>, _source_type: Option<&SourceType>) -> f64 {
     module.source().map_or(0, |source| source.size()) as f64
   }
 
@@ -415,7 +419,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   async fn generate(
     &self,
     source: &BoxSource,
-    module: &dyn Module,
+    module: &rspack_core::ModuleView<'_>,
     generate_context: &mut GenerateContext,
   ) -> Result<BoxSource> {
     if matches!(
@@ -427,7 +431,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       let mut init_fragments = vec![];
       let mut context = TemplateContext {
         compilation,
-        module,
+        module: module.module,
         init_fragments: &mut init_fragments,
         runtime: generate_context.runtime,
         concatenation_scope: generate_context.concatenation_scope.take(),
@@ -471,7 +475,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
   fn get_concatenation_bailout_reason(
     &self,
-    module: &dyn rspack_core::Module,
+    module: &rspack_core::ModuleView<'_>,
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {

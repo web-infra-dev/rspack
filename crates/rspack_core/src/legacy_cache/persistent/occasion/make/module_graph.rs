@@ -8,10 +8,9 @@ use rustc_hash::FxHashSet;
 
 use super::alternatives::{TempDependency, TempModule};
 use crate::{
-  AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockRef, BoxDependency, Dependency,
-  DependencyId, DependencyParents, DependencyRef, FactorizationArtifact, FactorizeInfo,
-  ModuleGraph, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, ModuleRef,
-  RayonConsumer,
+  AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockRef, BoxDependency, BuiltModule,
+  Dependency, DependencyId, DependencyParents, DependencyRef, FactorizationArtifact, FactorizeInfo,
+  ModuleGraph, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, RayonConsumer,
   cache::CacheCodec,
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
   legacy_cache::persistent::storage::Storage,
@@ -29,7 +28,7 @@ type CachedDependency<'a> = (
 #[cacheable]
 struct Node<'a> {
   pub mgm: OwnedOrRef<'a, ModuleGraphModule>,
-  pub module: OwnedOrRef<'a, ModuleRef>,
+  pub module: OwnedOrRef<'a, BuiltModule>,
   pub dependencies: Vec<CachedDependency<'a>>,
   pub connections: Vec<OwnedOrRef<'a, ModuleGraphConnection>>,
   pub blocks: Vec<OwnedOrRef<'a, AsyncDependenciesBlockRef>>,

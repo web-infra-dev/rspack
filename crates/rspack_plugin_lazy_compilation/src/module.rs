@@ -3,12 +3,12 @@ use std::{borrow::Cow, sync::Arc};
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsVec};
 use rspack_collections::Identifiable;
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, ChunkGraph,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
-  DependencyRange, FactoryMetaStore, FreezeLock, ImportPhase, LibIdentOptions, Module,
-  ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, NeedBuildContext, OutputOptions, RuntimeGlobals,
-  RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info, module_update_hash,
+  DependencyRange, FactoryMetaStore, ImportPhase, LibIdentOptions, Module, ModuleArgument,
+  ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleLayer,
+  ModuleType, NeedBuildContext, OutputOptions, RuntimeGlobals, RuntimeSpec, SourceType,
+  ValueCacheVersions, impl_module_meta_info, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -47,8 +47,6 @@ fn has_closure_library(output: &OutputOptions) -> bool {
 #[cacheable]
 #[derive(Debug)]
 pub(crate) struct LazyCompilationProxyModule {
-  build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
   factory_meta: FactoryMetaStore,
 
   readable_identifier: String,
@@ -106,8 +104,6 @@ impl LazyCompilationProxyModule {
     };
 
     Self {
-      build_info: Default::default(),
-      build_meta: Default::default(),
       factory_meta: Default::default(),
       readable_identifier,
       lib_ident,
@@ -155,7 +151,12 @@ impl Module for LazyCompilationProxyModule {
     self.layer.as_ref()
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(
+    &self,
+    _source_type: Option<&SourceType>,
+    _compilation: Option<&Compilation>,
+    _build_data: Option<&rspack_core::ModuleBuildMetadata>,
+  ) -> f64 {
     200f64
   }
 
@@ -171,7 +172,11 @@ impl Module for LazyCompilationProxyModule {
     self.lib_ident.as_ref().map(|s| Cow::Borrowed(s.as_str()))
   }
 
-  fn need_build_for_incremental(&self, value_cache_versions: &ValueCacheVersions) -> bool {
+  fn need_build_for_incremental(
+    &self,
+    _build_info: &rspack_core::BuildInfo,
+    value_cache_versions: &ValueCacheVersions,
+  ) -> bool {
     if self.need_build.load(std::sync::atomic::Ordering::Relaxed) {
       return true;
     }
@@ -186,12 +191,17 @@ impl Module for LazyCompilationProxyModule {
     }
   }
 
-  async fn need_build(&mut self, context: &NeedBuildContext<'_>) -> Result<bool> {
-    Ok(self.need_build_for_incremental(context.value_cache_versions))
+  async fn need_build(
+    &mut self,
+    _build_info: &rspack_core::BuildInfo,
+    context: &NeedBuildContext<'_>,
+  ) -> Result<bool> {
+    Ok(self.need_build_for_incremental(_build_info, context.value_cache_versions))
   }
 
   async fn build(
     mut self: Box<Self>,
+    build_data: rspack_core::ModuleBuildMetadata,
     build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
@@ -233,7 +243,7 @@ impl Module for LazyCompilationProxyModule {
       }
     }
 
-    Ok(BoxModule::new(self).with_dependencies(
+    Ok(BoxModule::from_parts(self, build_data).with_dependencies(
       dependencies.into_iter().map(Into::into).collect(),
       blocks.into_iter().map(Into::into).collect(),
     ))

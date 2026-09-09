@@ -45,7 +45,7 @@ pub(crate) fn source_order_to_i32(source_order: u32) -> i32 {
   source_order.try_into().unwrap_or(i32::MAX)
 }
 
-pub(crate) fn css_module_export_type(module: &dyn Module) -> Option<CssExportType> {
+pub(crate) fn css_module_export_type(module: &rspack_core::BuiltModule) -> Option<CssExportType> {
   module
     .build_info()
     .css
@@ -63,26 +63,33 @@ pub(crate) fn css_module_export_type(module: &dyn Module) -> Option<CssExportTyp
 
 pub(crate) fn css_render_conditions_from_module(
   module: &dyn Module,
+  compilation: &Compilation,
 ) -> Vec<CssModuleRenderCondition> {
-  module
-    .build_info()
+  compilation
+    .get_module_graph()
+    .build_info(&module.identifier())
     .css
     .as_deref()
     .map(|css| css.render_conditions().cloned().collect())
     .unwrap_or_default()
 }
 
-pub(crate) fn css_module_has_charset(module: &dyn Module) -> bool {
-  module
-    .build_info()
+pub(crate) fn css_module_has_charset(module: &dyn Module, compilation: &Compilation) -> bool {
+  compilation
+    .get_module_graph()
+    .build_info(&module.identifier())
     .css
     .as_deref()
     .is_some_and(|css| css.has_charset)
 }
 
-pub(crate) fn css_module_is_import_dependency(module: &dyn Module) -> bool {
-  module
-    .build_info()
+pub(crate) fn css_module_is_import_dependency(
+  module: &dyn Module,
+  compilation: &Compilation,
+) -> bool {
+  compilation
+    .get_module_graph()
+    .build_info(&module.identifier())
     .css
     .as_deref()
     .is_some_and(|css| css.css_import_dependency)
@@ -412,7 +419,10 @@ fn css_module_id_for_local_ident(compilation: &Compilation, module: &dyn Module)
     .expect("css module should have module id when rendering local ident");
   let module_id = module_id.as_str();
 
-  let needs_stable_long_id = module
+  let needs_stable_long_id = compilation
+    .get_module_graph()
+    .module_by_identifier(&module.identifier())
+    .expect("module exists")
     .build_info()
     .css
     .as_deref()

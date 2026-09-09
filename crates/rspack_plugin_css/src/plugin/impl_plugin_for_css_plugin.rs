@@ -167,7 +167,7 @@ impl CssPlugin {
       .iter()
       .map(|module| {
         let module_id = &module.identifier();
-        let render_conditions = css_render_conditions_from_module(*module);
+        let render_conditions = css_render_conditions_from_module(*module, compilation);
         let code_gen_result = compilation
           .code_generation_results
           .get(module_id, Some(chunk.runtime()));
@@ -202,7 +202,7 @@ impl CssPlugin {
                 if builder.push_css_source(
                   cur_source.clone(),
                   &render_conditions,
-                  css_module_has_charset(module),
+                  css_module_has_charset(module, compilation),
                 ) {
                   builder.push_line();
                 }
@@ -242,19 +242,21 @@ impl CssPlugin {
       .into_iter()
       .collect::<IdentifierMap<_>>();
     Ok(Self::render_ordered_css_sources(
+      compilation,
       ordered_css_modules,
       &module_sources,
     ))
   }
 
   fn render_ordered_css_sources(
+    compilation: &Compilation,
     ordered_css_modules: &[&dyn Module],
     module_sources: &IdentifierMap<CssModuleRenderSources>,
   ) -> BoxSource {
     let mut non_import_css_sources = HashMap::<_, Vec<_>>::default();
     for module in ordered_css_modules
       .iter()
-      .filter(|module| !css_module_is_import_dependency(**module))
+      .filter(|module| !css_module_is_import_dependency(**module, compilation))
     {
       let identifier = module.identifier();
       if let Some(resource) = css_module_resource(*module)
@@ -270,8 +272,8 @@ impl CssPlugin {
     let mut builder = CssSourceBuilder::new(false, true, Default::default());
     for module in ordered_css_modules {
       let identifier = module.identifier();
-      if css_module_is_import_dependency(*module)
-        && css_render_conditions_from_module(*module).is_empty()
+      if css_module_is_import_dependency(*module, compilation)
+        && css_render_conditions_from_module(*module, compilation).is_empty()
         && let Some(resource) = css_module_resource(*module)
         && let Some(source) = module_sources.get(&identifier)
         && non_import_css_sources.get(resource).is_some_and(|sources| {
@@ -281,14 +283,14 @@ impl CssPlugin {
           })
         })
       {
-        if css_module_has_charset(*module) {
+        if css_module_has_charset(*module, compilation) {
           builder.set_has_charset();
         }
         continue;
       }
 
       if let Some(source) = module_sources.get(&identifier) {
-        if css_module_has_charset(*module) {
+        if css_module_has_charset(*module, compilation) {
           builder.set_has_charset();
         }
         builder.push_css_source(source.rendered_source.clone(), &[], false);

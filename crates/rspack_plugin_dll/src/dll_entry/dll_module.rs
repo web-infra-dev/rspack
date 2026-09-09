@@ -4,11 +4,11 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder,
-  Compilation, Context, DependenciesBlock, DependenciesBlockData, EntryDependency,
-  FactoryMetaStore, FreezeLock, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleType, NeedBuildContext, RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions,
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  BoxDependency, BoxModule, BuildContext, CodeGenerationResultBuilder, Compilation, Context,
+  DependenciesBlock, DependenciesBlockData, EntryDependency, FactoryMetaStore, Module,
+  ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleType, NeedBuildContext,
+  RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info,
+  impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -24,10 +24,6 @@ pub struct DllModule {
   name: String,
 
   factory_meta: FactoryMetaStore,
-
-  build_info: FreezeLock<BuildInfo>,
-
-  build_meta: FreezeLock<BuildMeta>,
 
   dependencies_block: DependenciesBlockData,
 
@@ -77,6 +73,7 @@ impl Module for DllModule {
 
   async fn build(
     mut self: Box<Self>,
+    build_data: rspack_core::ModuleBuildMetadata,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
@@ -89,7 +86,7 @@ impl Module for DllModule {
       .collect::<Vec<_>>();
 
     Ok(
-      BoxModule::new(self)
+      BoxModule::from_parts(self, build_data)
         .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![]),
     )
   }
@@ -116,15 +113,28 @@ impl Module for DllModule {
     Ok(code_generation_result)
   }
 
-  fn need_build_for_incremental(&self, _value_cache_versions: &ValueCacheVersions) -> bool {
+  fn need_build_for_incremental(
+    &self,
+    _build_info: &rspack_core::BuildInfo,
+    _value_cache_versions: &ValueCacheVersions,
+  ) -> bool {
     false
   }
 
-  async fn need_build(&mut self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+  async fn need_build(
+    &mut self,
+    _build_info: &rspack_core::BuildInfo,
+    _context: &NeedBuildContext<'_>,
+  ) -> Result<bool> {
     Ok(false)
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(
+    &self,
+    _source_type: Option<&SourceType>,
+    _compilation: Option<&Compilation>,
+    _build_data: Option<&rspack_core::ModuleBuildMetadata>,
+  ) -> f64 {
     12.0
   }
 

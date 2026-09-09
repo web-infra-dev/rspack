@@ -8,6 +8,7 @@ use crate::{
   ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ConcatenatedModule,
   ModuleGraph, ModuleIdentifier,
 };
+mod build_data;
 #[cfg(feature = "codspeed")]
 mod codspeed;
 mod comment;
@@ -19,7 +20,6 @@ mod extract_url_and_global;
 mod fast_actions;
 mod file_counter;
 mod find_graph_roots;
-mod freeze_lock;
 mod fs_trim;
 pub mod incremental_info;
 mod steal_cell;
@@ -37,10 +37,10 @@ pub mod task_loop;
 mod template;
 mod to_path;
 mod topological_sort;
+pub use build_data::BuildData;
 pub use compile_boolean_matcher::*;
 pub use concatenated_module_visitor::*;
 pub use concatenation_scope::*;
-pub use freeze_lock::{FreezeLock, FreezeReadGuard};
 pub use memory_gc::MemoryGCStorage;
 pub use rspack_parallel::{FutureConsumer, RayonConsumer};
 pub use steal_cell::StealCell;

@@ -11,7 +11,7 @@ use std::{borrow::Cow, sync::LazyLock};
 
 use regex::Regex;
 use rspack_core::{
-  ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, ModuleRef, SourceType,
+  BuiltModule, ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, SourceType,
   incremental::Mutation, module_chunk_condition,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -108,7 +108,7 @@ fn sum_size(size: &mut SplitChunkSizes, items: &[GroupItem]) {
   items.iter().for_each(|item| size.add_by(&item.size));
 }
 
-fn get_size(module: &dyn Module, compilation: &Compilation) -> SplitChunkSizes {
+fn get_size(module: &BuiltModule, compilation: &Compilation) -> SplitChunkSizes {
   let module_graph = compilation.get_module_graph();
   SplitChunkSizes(
     module
@@ -255,21 +255,17 @@ fn get_key(module: &dyn Module, delimiter: &str, compilation: &Compilation) -> S
 
 fn deterministic_grouping_for_modules(
   compilation: &Compilation,
-  items: &[&ModuleRef],
+  items: &[&BuiltModule],
   allow_max_size: &SplitChunkSizes,
   min_size: &SplitChunkSizes,
   delimiter: &str,
 ) -> Vec<Group> {
   let nodes = items
     .iter()
-    .map(|module| {
-      let module: &dyn Module = module.as_ref();
-
-      GroupItem {
-        module: module.identifier(),
-        size: get_size(module, compilation),
-        key: get_key(module, delimiter, compilation),
-      }
+    .map(|module| GroupItem {
+      module: module.identifier(),
+      size: get_size(module, compilation),
+      key: get_key(module.as_ref(), delimiter, compilation),
     })
     .collect::<Vec<_>>();
 

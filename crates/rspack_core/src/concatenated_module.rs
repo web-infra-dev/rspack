@@ -36,7 +36,7 @@ use swc_experimental_ecma_ast::{ClassExpr, Ident, ObjectPatProp, Program, Prop, 
 use swc_experimental_ecma_semantic::resolver::Semantic;
 
 use crate::{
-  BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph, ChunkInitFragments,
+  BoxModule, BuildContext, BuildInfo, ChunkGraph, ChunkInitFragments,
   CodeGenerationDataChunkInitFragments, CodeGenerationDataTopLevelDeclarations,
   CodeGenerationPublicPathAutoReplace, CodeGenerationResultBuilder,
   CodeGenerationRuntimeRequirementsWrite, Compilation, ConcatenatedModuleIdent,
@@ -45,7 +45,7 @@ use crate::{
   ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM,
   DependenciesBlock, DependenciesBlockData, Dependency, DependencyCodeGenerationRef, DependencyId,
   DependencyType, ExportProvided, ExportsArgument, ExportsInfoArtifact, FactoryMeta,
-  FactoryMetaStore, FreezeLock, ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage,
+  FactoryMetaStore, ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage,
   LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition,
@@ -83,7 +83,6 @@ pub struct RootModuleContext {
   pub layer: Option<ModuleLayer>,
   pub side_effect_connection_state: ConnectionState,
   pub factory_meta: FactoryMetaStore,
-  pub build_meta: FreezeLock<BuildMeta>,
   pub exports_argument: ExportsArgument,
   pub module_argument: ModuleArgument,
 }
@@ -526,7 +525,6 @@ pub struct ConcatenatedModule {
   #[cacheable(with=As<SourceSizeCacheSerde>)]
   cached_source_sizes: SourceSizeCache,
   diagnostics: Vec<Diagnostic>,
-  build_info: FreezeLock<BuildInfo>,
 }
 
 #[allow(unused)]
@@ -537,11 +535,6 @@ impl ConcatenatedModule {
     mut modules: Vec<ConcatenatedInnerModule>,
     runtime: Option<RuntimeSpec>,
   ) -> Self {
-    let RootModuleContext {
-      module_argument,
-      exports_argument,
-      ..
-    } = root_module_ctxt;
     Self {
       id,
       root_module_ctxt,
@@ -550,15 +543,6 @@ impl ConcatenatedModule {
       dependencies_block: Default::default(),
       cached_source_sizes: SourceSizeCache::default(),
       diagnostics: vec![],
-      build_info: BuildInfo {
-        cacheable: true,
-        strict: true,
-        module_argument,
-        exports_argument,
-        top_level_declarations: Some(Default::default()),
-        ..Default::default()
-      }
-      .into(),
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -722,6 +706,18 @@ pub fn render_imports(source: &str, attr: Option<&str>, import_spec: &ImportSpec
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for ConcatenatedModule {
+  fn initial_build_info(&self) -> crate::BuildData<BuildInfo> {
+    BuildInfo {
+      cacheable: true,
+      strict: true,
+      module_argument: self.root_module_ctxt.module_argument,
+      exports_argument: self.root_module_ctxt.exports_argument,
+      top_level_declarations: Some(Default::default()),
+      ..Default::default()
+    }
+    .into()
+  }
+
   fn module_type(&self) -> &ModuleType {
     // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L688
     &ModuleType::JsEsm
@@ -733,30 +729,6 @@ impl Module for ConcatenatedModule {
 
   fn set_factory_meta(&self, v: FactoryMeta) {
     self.root_module_ctxt.factory_meta.set(Some(Arc::new(v)));
-  }
-
-  fn build_info(&self) -> crate::FreezeReadGuard<'_, BuildInfo> {
-    self.build_info.read()
-  }
-
-  fn freeze_build_info(&self) {
-    self.build_info.freeze();
-  }
-
-  fn extend_build_assets(&self, assets: crate::CompilationAssets) {
-    self.build_info.extend_assets(assets);
-  }
-
-  fn build_info_mut(&mut self) -> &mut BuildInfo {
-    self.build_info.get_mut()
-  }
-
-  fn build_meta(&self) -> crate::FreezeReadGuard<'_, BuildMeta> {
-    self.root_module_ctxt.build_meta.read()
-  }
-
-  fn freeze_build_meta(&self) -> &triomphe::Arc<BuildMeta> {
-    self.root_module_ctxt.build_meta.freeze()
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
@@ -780,7 +752,12 @@ impl Module for ConcatenatedModule {
     ))
   }
 
-  fn size(&self, source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(
+    &self,
+    source_type: Option<&SourceType>,
+    _compilation: Option<&Compilation>,
+    _build_data: Option<&crate::ModuleBuildMetadata>,
+  ) -> f64 {
     if let Some(source_type) = source_type {
       // Shared cache: builtin SourceType uses fixed atomic slots, Custom uses map fallback.
       if let Some(size) = self.cached_source_sizes.get(source_type) {
@@ -797,6 +774,7 @@ impl Module for ConcatenatedModule {
   /// the compilation is asserted to be `Some(Compilation)`, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L394-L418
   async fn build(
     mut self: Box<Self>,
+    mut build_data: crate::ModuleBuildMetadata,
     _build_context: BuildContext,
     compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
@@ -810,7 +788,7 @@ impl Module for ConcatenatedModule {
       .expect("should have root module");
 
     // populate root inline_exports
-    self.build_info.get_mut().inline_exports = root_module.build_info().inline_exports;
+    build_data.build_info.get_mut().inline_exports = root_module.build_info().inline_exports;
 
     let dependency_parts = self
       .modules
@@ -846,7 +824,7 @@ impl Module for ConcatenatedModule {
 
       // populate cacheable
       if !cur_build_info.cacheable {
-        self.build_info.get_mut().cacheable = false;
+        build_data.build_info.get_mut().cacheable = false;
       }
 
       // populate blocks
@@ -859,26 +837,27 @@ impl Module for ConcatenatedModule {
       // populate topLevelDeclarations
       let module_build_info = module.build_info();
       if let Some(decls) = &module_build_info.top_level_declarations
-        && let Some(top_level_declarations) = &mut self.build_info.get_mut().top_level_declarations
+        && let Some(top_level_declarations) =
+          &mut build_data.build_info.get_mut().top_level_declarations
       {
         top_level_declarations.extend(decls.iter().cloned());
       } else {
-        self.build_info.get_mut().top_level_declarations = None;
+        build_data.build_info.get_mut().top_level_declarations = None;
       }
 
       if module_build_info.need_create_require {
-        self.build_info.get_mut().need_create_require = true;
+        build_data.build_info.get_mut().need_create_require = true;
       }
 
       // populate assets
-      self.build_info.get_mut().assets.extend(
+      build_data.build_info.get_mut().assets.extend(
         module_build_info
           .assets
           .iter()
           .map(|(name, asset)| (name.clone(), asset.clone())),
       );
     }
-    Ok(BoxModule::new(self))
+    Ok(BoxModule::from_parts(self, build_data))
   }
 
   // #[tracing::instrument("ConcatenatedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
@@ -1388,7 +1367,7 @@ impl Module for ConcatenatedModule {
         })
         .collect();
 
-      let exports_argument = self.get_exports_argument();
+      let exports_argument = self.root_module_ctxt.exports_argument;
 
       let should_skip_render_definitions = compilation
         .plugin_driver
@@ -1407,7 +1386,8 @@ impl Module for ConcatenatedModule {
         if should_add_esm_flag {
           result.add(RawStringSource::from_static("// ESM COMPAT FLAG\n"));
           result.add(RawStringSource::from(
-            runtime_template.define_es_module_flag_statement(self.get_exports_argument()),
+            runtime_template
+              .define_es_module_flag_statement(self.root_module_ctxt.exports_argument),
           ));
         }
 

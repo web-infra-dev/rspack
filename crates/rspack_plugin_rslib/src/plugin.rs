@@ -374,7 +374,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mut module_resources = Vec::new();
   let module_graph = compilation.get_module_graph();
   for (_, module) in module_graph.modules() {
-    let module = module.as_ref();
     if let Some(isolated_dts) = module.build_info().isolated_dts.as_deref() {
       dts_outputs.push(isolated_dts.clone());
     }

@@ -11,7 +11,7 @@ use rspack_sources::SourceMap;
 use rspack_util::time::current_time;
 
 use crate::{
-  CacheFacade, CacheValue, Etag, FileSystemInfo, IsolatedDts, ItemCacheFacade, Module, RscMeta,
+  CacheFacade, CacheValue, Etag, FileSystemInfo, IsolatedDts, ItemCacheFacade, RscMeta,
   RunnerContext,
   cache::SnapshotStrategyOptions,
   new_cache::{Snapshot, SnapshotValidationResult},
@@ -206,12 +206,13 @@ pub(crate) async fn before_normal_loader(
   // Source maps are intentionally excluded from the etag as a performance trade-off. The minimal
   // cache treats source-map-only changes as equivalent inputs.
   let existing_dependencies = context.existing_dependencies();
+  let build_info = context.context.build_data.build_info.read();
   if context.additional_data().is_some()
     || !context.parse_meta.is_empty()
-    || !context.context.module.build_info().assets.is_empty()
-    || !context.context.module.build_info().extras.is_empty()
-    || context.context.module.build_info().isolated_dts.is_some()
-    || context.context.module.build_info().rsc.is_some()
+    || !build_info.assets.is_empty()
+    || !build_info.extras.is_empty()
+    || build_info.isolated_dts.is_some()
+    || build_info.rsc.is_some()
     || !existing_dependencies.context.is_empty()
     || !existing_dependencies.missing.is_empty()
   {
@@ -253,7 +254,7 @@ pub(crate) async fn before_normal_loader(
     restore_loader_cache_dependencies(&entry.dependency_snapshot, &mut dependencies);
     context.add_dependencies(&dependencies);
     context.parse_meta = entry.parse_meta.clone();
-    let build_info = context.context.module.build_info_mut();
+    let build_info = context.context.build_data.build_info.get_mut();
     build_info.isolated_dts = entry.isolated_dts.clone();
     build_info.rsc = entry.rsc.clone();
     context.__finish_with((content, source_map, None));
@@ -267,10 +268,11 @@ pub(crate) async fn after_normal_loader(
   context: &LoaderContext<RunnerContext>,
   state: &LoaderCacheMissState,
 ) {
+  let build_info = context.context.build_data.build_info.read();
   if !context.cacheable
     || context.diagnostics.len() != state.diagnostics_len
-    || !context.context.module.build_info().assets.is_empty()
-    || !context.context.module.build_info().extras.is_empty()
+    || !build_info.assets.is_empty()
+    || !build_info.extras.is_empty()
     || context.additional_data().is_some()
   {
     return;
@@ -299,8 +301,8 @@ pub(crate) async fn after_normal_loader(
     source_map: context.source_map().map(SourceMap::to_json),
     dependency_snapshot,
     parse_meta: context.parse_meta.clone(),
-    isolated_dts: context.context.module.build_info().isolated_dts.clone(),
-    rsc: context.context.module.build_info().rsc.clone(),
+    isolated_dts: build_info.isolated_dts.clone(),
+    rsc: build_info.rsc.clone(),
   };
   let loader_name = context.current_loader().loader_name();
   let module_identifier = context.context.module.identifier();

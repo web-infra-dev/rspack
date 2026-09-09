@@ -11,12 +11,12 @@ use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
 use crate::{
-  BoxModule, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, ChunkGraph,
-  ChunkInitFragments, ChunkUkey, CodeGenerationDataChunkInitFragments, CodeGenerationDataUrl,
+  BoxModule, BuildContext, BuildInfo, BuildMetaExportsType, ChunkGraph, ChunkInitFragments,
+  ChunkUkey, CodeGenerationDataChunkInitFragments, CodeGenerationDataUrl,
   CodeGenerationResultBuilder, Compilation, ConcatenationScope, Context, CssLayer,
   CssModuleRenderCondition, DependenciesBlock, DependenciesBlockData, DependencyRef,
-  ExportProvided, ExternalType, FactoryMetaStore, FreezeLock, ImportAttributes, ImportPhase,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
+  ExportProvided, ExternalType, FactoryMetaStore, ImportAttributes, ImportPhase, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
   NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
   StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
@@ -457,8 +457,6 @@ pub struct ExternalModule {
   /// Request intended by user (without loaders from config)
   user_request: String,
   factory_meta: FactoryMetaStore,
-  build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
   dependency_meta: DependencyMeta,
   place_in_initial: bool,
 }
@@ -521,13 +519,6 @@ impl ExternalModule {
       external_type,
       user_request,
       factory_meta: Default::default(),
-      build_info: BuildInfo {
-        top_level_declarations: Some(Default::default()),
-        strict: true,
-        ..Default::default()
-      }
-      .into(),
-      build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
       dependency_meta,
       place_in_initial,
@@ -1080,6 +1071,15 @@ impl DependenciesBlock for ExternalModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for ExternalModule {
+  fn initial_build_info(&self) -> crate::BuildData<BuildInfo> {
+    BuildInfo {
+      top_level_declarations: Some(Default::default()),
+      strict: true,
+      ..Default::default()
+    }
+    .into()
+  }
+
   impl_module_meta_info!();
 
   fn get_concatenation_bailout_reason(
@@ -1143,7 +1143,12 @@ impl Module for ExternalModule {
     ))
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(
+    &self,
+    _source_type: Option<&SourceType>,
+    _compilation: Option<&Compilation>,
+    _build_data: Option<&crate::ModuleBuildMetadata>,
+  ) -> f64 {
     // copied from webpack `ExternalModule`
     // roughly for url
     42.0
@@ -1151,10 +1156,11 @@ impl Module for ExternalModule {
 
   async fn build(
     mut self: Box<Self>,
+    mut build_data: crate::ModuleBuildMetadata,
     build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BoxModule> {
-    self.build_info.get_mut().module = build_context.compiler_options.output.module;
+    build_data.build_info.get_mut().module = build_context.compiler_options.output.module;
     let resolved_external_type = self.resolve_external_type();
     let request = match &self.request {
       ExternalRequest::Single(request) => Some(request),
@@ -1165,7 +1171,7 @@ impl Module for ExternalModule {
 
     #[allow(clippy::collapsible_match)]
     match resolved_external_type {
-      "this" => self.build_info.get_mut().strict = false,
+      "this" => build_data.build_info.get_mut().strict = false,
       "system" => {
         if !request.is_some_and(|r| r.has_rest()) {
           exports_type = BuildMetaExportsType::Namespace;
@@ -1173,22 +1179,31 @@ impl Module for ExternalModule {
         }
       }
       "module" => {
-        if self.build_info.get_mut().module {
+        if build_data.build_info.get_mut().module {
           if !request.is_some_and(|r| r.has_rest()) {
             exports_type = BuildMetaExportsType::Namespace;
             can_mangle = true;
           }
         } else {
-          self.build_meta.get_mut().set_has_top_level_await(true);
+          build_data
+            .build_meta
+            .get_mut()
+            .set_has_top_level_await(true);
           if !request.is_some_and(|r| r.has_rest()) {
             exports_type = BuildMetaExportsType::Namespace;
             can_mangle = false;
           }
         }
       }
-      "script" | "promise" => self.build_meta.get_mut().set_has_top_level_await(true),
+      "script" | "promise" => build_data
+        .build_meta
+        .get_mut()
+        .set_has_top_level_await(true),
       "import" => {
-        self.build_meta.get_mut().set_has_top_level_await(true);
+        build_data
+          .build_meta
+          .get_mut()
+          .set_has_top_level_await(true);
         if !request.is_some_and(|r| r.has_rest()) {
           exports_type = BuildMetaExportsType::Namespace;
           can_mangle = false;
@@ -1196,8 +1211,11 @@ impl Module for ExternalModule {
       }
       _ => {}
     }
-    self.build_meta.get_mut().set_exports_type(exports_type);
-    Ok(BoxModule::new(self).with_dependencies(
+    build_data
+      .build_meta
+      .get_mut()
+      .set_exports_type(exports_type);
+    Ok(BoxModule::from_parts(self, build_data).with_dependencies(
       vec![DependencyRef::new(StaticExportsDependency::new(
         StaticExportsSpec::True,
         can_mangle,

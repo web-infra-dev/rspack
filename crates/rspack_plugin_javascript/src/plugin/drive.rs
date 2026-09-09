@@ -1,8 +1,8 @@
 #![allow(clippy::too_many_arguments)]
 
 use rspack_core::{
-  AssetInfo, Chunk, ChunkInitFragments, ChunkUkey, Compilation, Module, ModuleIdentifier,
-  ModuleRef, RuntimeCodeTemplate, RuntimeGlobals, rspack_sources::BoxSource,
+  AssetInfo, BuiltModule, Chunk, ChunkInitFragments, ChunkUkey, Compilation, Module,
+  ModuleIdentifier, RuntimeCodeTemplate, RuntimeGlobals, rspack_sources::BoxSource,
 };
 use rspack_hash::RspackHasher;
 use rspack_hook::define_hook;
@@ -18,7 +18,7 @@ define_hook!(JavascriptModulesRenderModuleContainer: Series(compilation: &Compil
 define_hook!(JavascriptModulesRenderModulePackage: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, module: &dyn Module, source: &mut RenderSource, init_fragments: &mut ChunkInitFragments, runtime_template: &RuntimeCodeTemplate),tracing=false);
 define_hook!(JavascriptModulesChunkHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHasher));
 define_hook!(JavascriptModulesInlineInRuntimeBailout: SeriesBail(compilation: &Compilation) -> String);
-define_hook!(JavascriptModulesEmbedInRuntimeBailout: SeriesBail(compilation: &Compilation, module: &ModuleRef, chunk: &Chunk) -> String);
+define_hook!(JavascriptModulesEmbedInRuntimeBailout: SeriesBail(compilation: &Compilation, module: &BuiltModule, chunk: &Chunk) -> String);
 define_hook!(JavascriptModulesStrictRuntimeBailout: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> String);
 
 #[derive(Debug, Default)]

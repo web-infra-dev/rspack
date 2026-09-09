@@ -890,9 +890,10 @@ impl From<AssetGeneratorDataUrlFnCtx<'_>> for RawAssetGeneratorDataUrlFnCtx {
       filename: value.filename,
       module: ModuleObject::with_readonly_ptr(
         NonNull::new(
-          value.module as *const dyn rspack_core::Module as *mut dyn rspack_core::Module,
+          value.module.module as *const dyn rspack_core::Module as *mut dyn rspack_core::Module,
         )
         .unwrap(),
+        NonNull::from(value.module.build_data),
         value.compilation.compiler_id(),
       ),
     }

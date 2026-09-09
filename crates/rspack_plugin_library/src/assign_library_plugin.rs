@@ -3,12 +3,13 @@ use std::sync::LazyLock;
 use futures::future::join_all;
 use regex::Regex;
 use rspack_core::{
-  AsyncModulesArtifact, CanInlineUse, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations,
-  Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules,
-  CompilationParams, CompilerCompilation, EntryData, ExportProvided, ExportsInfoArtifact, Filename,
-  LibraryExport, LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, ModuleRef,
-  PathData, Plugin, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeVariable,
-  SideEffectsStateArtifact, SourceType, UsageState, get_entry_runtime, property_access,
+  AsyncModulesArtifact, BuiltModule, CanInlineUse, Chunk, ChunkUkey,
+  CodeGenerationDataTopLevelDeclarations, Compilation,
+  CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
+  CompilerCompilation, EntryData, ExportProvided, ExportsInfoArtifact, Filename, LibraryExport,
+  LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeVariable, SideEffectsStateArtifact,
+  SourceType, UsageState, get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -385,7 +386,7 @@ async fn js_chunk_hash(
 async fn embed_in_runtime_bailout(
   &self,
   compilation: &Compilation,
-  module: &ModuleRef,
+  module: &BuiltModule,
   chunk: &Chunk,
 ) -> Result<Option<String>> {
   let Some(options) = self.get_options_for_chunk(compilation, &chunk.ukey())? else {

@@ -170,7 +170,6 @@ impl BuildModuleGraphArtifact {
     self
       .build_dependencies
       .remove_files(&resource_id, &build_info.dependencies.build);
-    drop(build_info);
     self.make_failed_module.remove(module_identifier);
 
     // clean incoming & all_dependencies(outgoing) factorize info

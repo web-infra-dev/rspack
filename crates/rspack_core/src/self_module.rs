@@ -10,10 +10,10 @@ use rspack_sources::BoxSource;
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
-  BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkUkey, CodeGenerationResultBuilder,
-  Compilation, Context, DependenciesBlock, DependenciesBlockData, FactoryMetaStore, FreezeLock,
-  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType,
-  RuntimeSpec, SourceType, impl_module_meta_info,
+  BoxModule, BuildContext, BuildInfo, ChunkUkey, CodeGenerationResultBuilder, Compilation, Context,
+  DependenciesBlock, DependenciesBlockData, FactoryMetaStore, LibIdentOptions, Module,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  impl_module_meta_info,
 };
 
 #[impl_source_map_config]
@@ -24,8 +24,6 @@ pub struct SelfModule {
   readable_identifier: String,
   dependencies_block: DependenciesBlockData,
   factory_meta: FactoryMetaStore,
-  build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
 }
 
 impl SelfModule {
@@ -36,12 +34,6 @@ impl SelfModule {
       readable_identifier: identifier,
       dependencies_block: Default::default(),
       factory_meta: Default::default(),
-      build_info: BuildInfo {
-        strict: true,
-        ..Default::default()
-      }
-      .into(),
-      build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -66,9 +58,22 @@ impl DependenciesBlock for SelfModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for SelfModule {
+  fn initial_build_info(&self) -> crate::BuildData<BuildInfo> {
+    BuildInfo {
+      strict: true,
+      ..Default::default()
+    }
+    .into()
+  }
+
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(
+    &self,
+    _source_type: Option<&SourceType>,
+    _compilation: Option<&Compilation>,
+    _build_data: Option<&crate::ModuleBuildMetadata>,
+  ) -> f64 {
     self.identifier.len() as f64
   }
 
@@ -118,10 +123,11 @@ impl Module for SelfModule {
 
   async fn build(
     self: Box<Self>,
+    build_data: crate::ModuleBuildMetadata,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
-    Ok(BoxModule::new(self))
+    Ok(BoxModule::from_parts(self, build_data))
   }
 }
 

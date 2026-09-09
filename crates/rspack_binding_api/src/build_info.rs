@@ -86,7 +86,7 @@ impl KnownBuildInfo {
 
   pub fn with_ref<T>(
     &mut self,
-    f: impl FnOnce(&dyn rspack_core::Module) -> napi::Result<T>,
+    f: impl FnOnce(&rspack_core::ModuleView<'_>) -> napi::Result<T>,
   ) -> napi::Result<T> {
     match self.module_reference.get_mut() {
       Some(reference) => reference.with_ref(|_, module| f(module)),
@@ -99,11 +99,11 @@ impl KnownBuildInfo {
 
   pub fn with_mut<T>(
     &mut self,
-    f: impl FnOnce(&mut dyn rspack_core::Module) -> napi::Result<T>,
+    f: impl FnOnce(&mut rspack_core::BuildInfo) -> napi::Result<T>,
   ) -> napi::Result<T> {
     match self.module_reference.get_mut() {
       Some(reference) => {
-        let module = reference.as_mut()?;
+        let module = reference.build_info_mut()?;
         f(module)
       }
       None => Err(napi::Error::from_reason(
@@ -132,7 +132,7 @@ impl BuildInfo {
 
   fn with_ref<T>(
     &mut self,
-    f: impl FnOnce(&dyn rspack_core::Module) -> napi::Result<T>,
+    f: impl FnOnce(&rspack_core::ModuleView<'_>) -> napi::Result<T>,
   ) -> napi::Result<T> {
     match self.module_reference.get_mut() {
       Some(reference) => reference.with_ref(|_, module| f(module)),
@@ -305,7 +305,7 @@ impl ToNapiValue for BuildInfo {
                 }
               }
 
-              module.build_info_mut().extras = extras;
+              module.extras = extras;
 
               Ok(())
             })

@@ -1754,7 +1754,6 @@ async fn create_concatenated_module(
       &mut IdentifierMap::default(),
     ),
     factory_meta: root_module.factory_meta().into(),
-    build_meta: root_module.freeze_build_meta().clone().into(),
     module_argument: root_module.get_module_argument(),
     exports_argument: root_module.get_exports_argument(),
   };
@@ -1780,13 +1779,18 @@ async fn create_concatenated_module(
       }
     })
     .collect::<Vec<_>>();
-  let mut new_module = BoxModule::new(Box::from(ConcatenatedModule::create(
+  let new_module: Box<dyn rspack_core::Module> = Box::new(ConcatenatedModule::create(
     root_module_ctxt,
     modules,
     Some(rspack_hash::HashFunction::Xxhash64),
     config.runtime.clone(),
     compilation,
-  )));
+  ));
+  let build_data = rspack_core::ModuleBuildMetadata {
+    build_info: new_module.initial_build_info(),
+    build_meta: root_module.shared_build_meta().clone().into(),
+  };
+  let mut new_module = BoxModule::from_parts(new_module, build_data);
   let build_result = new_module
     .build(
       rspack_core::BuildContext {

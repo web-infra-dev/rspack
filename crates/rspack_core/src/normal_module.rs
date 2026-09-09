@@ -31,7 +31,7 @@ use crate::{
   BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
   CodeGenerationResultBuilder, Compilation, ConnectionState, Context, DependenciesBlock,
   DependenciesBlockData, DependencyCodeGenerationRef, DependencyId, FactoryMeta, FactoryMetaStore,
-  FreezeLock, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
+  GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   ModuleLayer, ModuleType, NeedBuildContext, OptimizationBailoutItem, OutputOptions, ParseContext,
   ParseResult, ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions,
@@ -69,7 +69,7 @@ impl ModuleIssuer {
     }
   }
 
-  pub fn get_module<'a>(&self, module_graph: &'a ModuleGraph) -> Option<&'a crate::ModuleRef> {
+  pub fn get_module<'a>(&self, module_graph: &'a ModuleGraph) -> Option<&'a crate::BuiltModule> {
     if let Some(id) = self.identifier()
       && let Some(module) = module_graph.module_by_identifier(id)
     {
@@ -144,8 +144,7 @@ pub struct NormalModule {
   diagnostics: Vec<Diagnostic>,
   code_generation_dependencies: Option<Vec<DependencyId>>,
   presentational_dependencies: Option<Vec<DependencyCodeGenerationRef>>,
-  build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
+  import_phase: ImportPhase,
   parsed: bool,
   force_build: bool,
   source_map_kind: SourceMapKind,
@@ -157,16 +156,6 @@ pub struct NormalModule {
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
-  pub(crate) fn restore_build_meta(&self, build_meta: crate::SharedBuildMeta) {
-    self.build_meta.freeze_with(build_meta);
-  }
-
-  pub(crate) fn set_cache_snapshot(&self, snapshot: Option<Snapshot>) {
-    self
-      .build_info
-      .update(|build_info| build_info.snapshot = snapshot);
-  }
-
   fn create_id<'request>(
     module_type: &ModuleType,
     layer: Option<&ModuleLayer>,
@@ -209,10 +198,6 @@ impl NormalModule {
   ) -> Self {
     let module_type = module_type.into();
     let id = Self::create_id(&module_type, layer.as_ref(), &request, import_phase);
-    let build_info = BuildInfo {
-      import_phase,
-      ..Default::default()
-    };
     Self {
       id: ModuleIdentifier::from(id.as_ref()),
       context: Box::new(context.unwrap_or_else(|| get_context(&resource_data))),
@@ -239,8 +224,7 @@ impl NormalModule {
       diagnostics: Default::default(),
       code_generation_dependencies: None,
       presentational_dependencies: None,
-      build_info: build_info.into(),
-      build_meta: Default::default(),
+      import_phase,
       parsed: false,
       // Mirrors webpack's `_forceBuild`: a new module has no reusable build
       // until its first build starts.
@@ -341,6 +325,7 @@ impl NormalModule {
 
   pub(crate) async fn need_build_with_context(
     &self,
+    build_info: &BuildInfo,
     file_system_info: &FileSystemInfo,
     value_cache_versions: &ValueCacheVersions,
   ) -> Result<bool> {
@@ -356,9 +341,6 @@ impl NormalModule {
       return Ok(true);
     }
 
-    let Some(build_info) = self.build_info.frozen() else {
-      return Ok(true);
-    };
     if !build_info.cacheable {
       return Ok(true);
     }
@@ -379,10 +361,11 @@ impl NormalModule {
 
   pub(crate) async fn create_cache_snapshot(
     &self,
+    build_info: &BuildInfo,
     file_system_info: &FileSystemInfo,
     build_start_time: u64,
   ) -> Result<Option<Snapshot>> {
-    if !self.build_info.read().cacheable
+    if !build_info.cacheable
       || self
         .diagnostics
         .iter()
@@ -391,7 +374,6 @@ impl NormalModule {
       return Ok(None);
     }
 
-    let build_info = self.build_info.read();
     Ok(Some(
       file_system_info
         .create_snapshot(
@@ -427,12 +409,26 @@ impl DependenciesBlock for NormalModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for NormalModule {
+  fn initial_build_info(&self) -> crate::BuildData<BuildInfo> {
+    BuildInfo {
+      import_phase: self.import_phase,
+      ..Default::default()
+    }
+    .into()
+  }
+
   fn module_type(&self) -> &ModuleType {
     &self.module_type
   }
 
   fn source_types(&self, module_graph: &ModuleGraph) -> &[SourceType] {
-    self.parser_and_generator.source_types(self, module_graph)
+    self.parser_and_generator.source_types(
+      &module_graph
+        .module_by_identifier(&self.id)
+        .expect("module exists")
+        .view(),
+      module_graph,
+    )
   }
 
   fn source(&self) -> Option<&BoxSource> {
@@ -443,23 +439,54 @@ impl Module for NormalModule {
     Cow::Owned(context.shorten(&self.user_request))
   }
 
-  fn size(&self, source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(
+    &self,
+    source_type: Option<&SourceType>,
+    _compilation: Option<&Compilation>,
+    _build_data: Option<&crate::ModuleBuildMetadata>,
+  ) -> f64 {
     if let Some(source_type) = source_type {
       // Fast-path: lock-free builtin slots / tiny fallback map for custom source types.
       if let Some(size) = self.cached_source_sizes.get(source_type) {
         return size;
       }
 
-      let size = f64::max(1.0, self.parser_and_generator.size(self, Some(source_type)));
+      let size = f64::max(
+        1.0,
+        self.parser_and_generator.size(
+          &crate::ModuleView {
+            module: self,
+            build_data: _build_data.expect("normal module size requires metadata"),
+          },
+          Some(source_type),
+        ),
+      );
       self.cached_source_sizes.get_or_insert(source_type, size)
     } else {
-      f64::max(1.0, self.parser_and_generator.size(self, source_type))
+      f64::max(
+        1.0,
+        self.parser_and_generator.size(
+          &crate::ModuleView {
+            module: self,
+            build_data: _build_data.expect("normal module size requires metadata"),
+          },
+          source_type,
+        ),
+      )
     }
   }
 
-  async fn need_build(&mut self, context: &NeedBuildContext<'_>) -> Result<bool> {
+  async fn need_build(
+    &mut self,
+    _build_info: &crate::BuildInfo,
+    context: &NeedBuildContext<'_>,
+  ) -> Result<bool> {
     self
-      .need_build_with_context(context.file_system_info, context.value_cache_versions)
+      .need_build_with_context(
+        _build_info,
+        context.file_system_info,
+        context.value_cache_versions,
+      )
       .await
   }
 
@@ -472,13 +499,18 @@ impl Module for NormalModule {
   )]
   async fn build(
     mut self: Box<Self>,
+    mut build_data: crate::ModuleBuildMetadata,
     build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
     self.dependencies_block = Default::default();
     self.force_build = false;
-    self.build_info.get_mut().snapshot = None;
-    self.build_info.get_mut().optimization_bailouts.clear();
+    build_data.build_info.get_mut().snapshot = None;
+    build_data
+      .build_info
+      .get_mut()
+      .optimization_bailouts
+      .clear();
 
     // so does webpack
     self.parsed = true;
@@ -521,16 +553,18 @@ impl Module for NormalModule {
         resolver_factory,
         source_map_kind: self.source_map_kind,
         module: self,
+        build_data,
       },
       fs,
     )
     .instrument(info_span!("NormalModule:run_loaders",))
     .await;
     self = loader_result.context.module;
+    build_data = loader_result.context.build_data;
 
     if let Some(err) = err {
-      self.build_info.get_mut().cacheable = loader_result.cacheable;
-      self.build_info.get_mut().dependencies = loader_result.dependencies;
+      build_data.build_info.get_mut().cacheable = loader_result.cacheable;
+      build_data.build_info.get_mut().dependencies = loader_result.dependencies;
 
       self.source = None;
 
@@ -546,11 +580,11 @@ impl Module for NormalModule {
       )));
       self.diagnostics.push(diagnostic);
 
-      self.build_info.get_mut().hash = Some(self.init_build_hash(
+      build_data.build_info.get_mut().hash = Some(self.init_build_hash(
         &build_context.compiler_options.output,
-        &self.build_meta.read(),
+        build_data.build_meta.read(),
       ));
-      return Ok(BoxModule::new(self));
+      return Ok(BoxModule::from_parts(self, build_data));
     };
 
     build_context
@@ -581,8 +615,8 @@ impl Module for NormalModule {
       loader_result.source_map.map(|source_map| *source_map),
     )?;
 
-    self.build_info.get_mut().cacheable = loader_result.cacheable;
-    self.build_info.get_mut().dependencies = loader_result.dependencies;
+    build_data.build_info.get_mut().cacheable = loader_result.cacheable;
+    build_data.build_info.get_mut().dependencies = loader_result.dependencies;
 
     if no_parse {
       self.parsed = false;
@@ -590,12 +624,12 @@ impl Module for NormalModule {
       self.code_generation_dependencies = Some(Vec::new());
       self.presentational_dependencies = Some(Vec::new());
 
-      self.build_info.get_mut().hash = Some(self.init_build_hash(
+      build_data.build_info.get_mut().hash = Some(self.init_build_hash(
         &build_context.compiler_options.output,
-        &self.build_meta.read(),
+        build_data.build_meta.read(),
       ));
 
-      return Ok(BoxModule::new(self));
+      return Ok(BoxModule::from_parts(self, build_data));
     }
 
     let factory_meta = self.factory_meta.get();
@@ -627,15 +661,15 @@ impl Module for NormalModule {
         compiler_options: &build_context.compiler_options,
         additional_data: loader_result.additional_data,
         factory_meta: factory_meta.as_deref(),
-        build_info: self.build_info.get_mut(),
-        build_meta: self.build_meta.get_mut(),
+        build_info: build_data.build_info.get_mut(),
+        build_meta: build_data.build_meta.get_mut(),
         parse_meta: loader_result.parse_meta,
         runtime_template: &build_context.runtime_template,
       })
       .await?
       .split_into_parts();
     if diagnostics.iter().any(|d| d.is_error()) {
-      self.build_meta = Default::default();
+      build_data.build_meta = Default::default();
     }
     if !diagnostics.is_empty() {
       self.add_diagnostics(diagnostics);
@@ -644,15 +678,13 @@ impl Module for NormalModule {
       let short_id = self
         .readable_identifier(&build_context.compiler_options.context)
         .to_string();
-      self
-        .build_info
-        .get_mut()
-        .optimization_bailouts
-        .push(OptimizationBailoutItem::SideEffects {
+      build_data.build_info.get_mut().optimization_bailouts.push(
+        OptimizationBailoutItem::SideEffects {
           node_type: side_effects_bailout.ty,
           loc: side_effects_bailout.msg,
           short_id,
-        });
+        },
+      );
     }
     // Only side effects used in code_generate can stay here
     // Other side effects should be set outside use_cache
@@ -660,12 +692,12 @@ impl Module for NormalModule {
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
 
-    self.build_info.get_mut().hash = Some(self.init_build_hash(
+    build_data.build_info.get_mut().hash = Some(self.init_build_hash(
       &build_context.compiler_options.output,
-      &self.build_meta.read(),
+      build_data.build_meta.read(),
     ));
 
-    Ok(BoxModule::new(self).with_dependencies(
+    Ok(BoxModule::from_parts(self, build_data).with_dependencies(
       dependencies.into_iter().map(Into::into).collect(),
       blocks.into_iter().map(Into::into).collect(),
     ))
@@ -722,7 +754,10 @@ impl Module for NormalModule {
         .parser_and_generator
         .generate(
           source,
-          self,
+          &module_graph
+            .module_by_identifier(&self.id)
+            .expect("module exists")
+            .view(),
           &mut GenerateContext {
             compilation,
             runtime_template,
@@ -750,7 +785,13 @@ impl Module for NormalModule {
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHasher::from(&compilation.options.output);
-    self.build_info.read().hash.hash(&mut hasher);
+    compilation
+      .get_module_graph()
+      .module_by_identifier(&self.id)
+      .expect("module exists")
+      .build_info()
+      .hash
+      .hash(&mut hasher);
     // For built failed NormalModule, hash will be calculated by build_info.hash, which contains error message
     if self.source.is_some() && self.parser_and_generator.has_runtime_hash() {
       let runtime_hash = self
@@ -837,7 +878,13 @@ impl Module for NormalModule {
         return ConnectionState::Active(!side_effect_free);
       }
 
-      if module_analyzed_side_effect_free(self, side_effects_state_artifact) == Some(true) {
+      if module_analyzed_side_effect_free(
+        module_graph
+          .module_by_identifier(&self.id)
+          .expect("module exists"),
+        side_effects_state_artifact,
+      ) == Some(true)
+      {
         // use module chain instead of is_evaluating_side_effects to mut module graph
         if module_chain.contains(&self.identifier()) {
           return ConnectionState::CircularConnection;
@@ -874,9 +921,14 @@ impl Module for NormalModule {
     mg: &ModuleGraph,
     cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
-    self
-      .parser_and_generator
-      .get_concatenation_bailout_reason(self, mg, cg)
+    self.parser_and_generator.get_concatenation_bailout_reason(
+      &mg
+        .module_by_identifier(&self.id)
+        .expect("module exists")
+        .view(),
+      mg,
+      cg,
+    )
   }
 
   fn factory_meta(&self) -> Option<Arc<FactoryMeta>> {
@@ -885,30 +937,6 @@ impl Module for NormalModule {
 
   fn set_factory_meta(&self, factory_meta: FactoryMeta) {
     self.factory_meta.set(Some(Arc::new(factory_meta)));
-  }
-
-  fn build_info(&self) -> crate::FreezeReadGuard<'_, BuildInfo> {
-    self.build_info.read()
-  }
-
-  fn freeze_build_info(&self) {
-    self.build_info.freeze();
-  }
-
-  fn extend_build_assets(&self, assets: crate::CompilationAssets) {
-    self.build_info.extend_assets(assets);
-  }
-
-  fn build_info_mut(&mut self) -> &mut BuildInfo {
-    self.build_info.get_mut()
-  }
-
-  fn build_meta(&self) -> crate::FreezeReadGuard<'_, BuildMeta> {
-    self.build_meta.read()
-  }
-
-  fn freeze_build_meta(&self) -> &triomphe::Arc<BuildMeta> {
-    self.build_meta.freeze()
   }
 }
 

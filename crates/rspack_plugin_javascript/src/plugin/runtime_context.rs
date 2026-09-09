@@ -671,7 +671,14 @@ impl JsPlugin {
         "(function() {\n"
       }));
     }
-    if !all_strict && all_modules.iter().all(|m| m.build_info().strict) {
+    if !all_strict
+      && all_modules.iter().all(|m| {
+        compilation
+          .get_module_graph()
+          .build_info(&m.identifier())
+          .strict
+      })
+    {
       if let Some(strict_bailout) = hooks
         .strict_runtime_bailout
         .call(compilation, chunk_ukey)

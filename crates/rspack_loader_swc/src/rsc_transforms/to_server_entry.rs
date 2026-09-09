@@ -82,7 +82,10 @@ fn to_esm_server_entry(resource: &str, server_refs: &[Wtf8Atom]) -> Result<Strin
   Ok(esm_source)
 }
 
-pub fn to_server_entry(module: &NormalModule) -> Result<Option<String>> {
+pub fn to_server_entry(
+  module: &NormalModule,
+  build_info: &rspack_core::BuildInfo,
+) -> Result<Option<String>> {
   if module
     .get_layer()
     .is_none_or(|layer| layer != "react-server-components")
@@ -90,7 +93,6 @@ pub fn to_server_entry(module: &NormalModule) -> Result<Option<String>> {
     return Ok(None);
   }
 
-  let build_info = module.build_info();
   let Some(rsc) = build_info.rsc.as_ref() else {
     return Ok(None);
   };

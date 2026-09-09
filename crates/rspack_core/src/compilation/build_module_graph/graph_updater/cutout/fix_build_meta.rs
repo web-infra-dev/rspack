@@ -26,16 +26,16 @@ impl FixBuildMeta {
         .expect("should have module");
       self
         .origin_module_build_meta
-        .insert(*module_identifier, module.freeze_build_meta().clone());
+        .insert(*module_identifier, module.shared_build_meta().clone());
     }
   }
 
   pub fn fix_artifact(self, artifact: &mut BuildModuleGraphArtifact) {
-    let module_graph = artifact.get_module_graph();
     for (id, build_meta) in self.origin_module_build_meta {
-      if let Some(module) = module_graph.module_by_identifier(&id)
-        && let Some(module) = module.as_normal_module()
-        && module.first_error().is_some()
+      if let Some(module) = artifact.module_graph.build_metadata_mut(&id)
+        && module
+          .as_normal_module()
+          .is_some_and(|normal_module| normal_module.first_error().is_some())
       {
         module.restore_build_meta(build_meta);
       }

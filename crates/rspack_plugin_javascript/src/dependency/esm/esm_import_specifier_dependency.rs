@@ -252,7 +252,7 @@ impl Dependency for ESMImportSpecifierDependency {
     let module = module_graph.module_by_identifier(module)?;
     let should_error = self
       .export_presence_mode
-      .get_effective_export_presence(module.as_ref())?;
+      .get_effective_export_presence(module)?;
 
     if let Some(branch_guard) = &self.branch_guard
       && is_dependency_export_presence_guarded(branch_guard, self, module_graph)
@@ -555,7 +555,10 @@ impl ESMImportSpecifierDependencyTemplate {
       mg,
       &compilation.module_graph_cache_artifact,
       &compilation.exports_info_artifact,
-      self_module.build_meta().strict_esm_module(),
+      compilation
+        .get_module_graph()
+        .build_meta(&self_module.identifier())
+        .strict_esm_module(),
     );
     let first = ids
       .first()

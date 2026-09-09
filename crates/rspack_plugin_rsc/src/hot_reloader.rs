@@ -69,7 +69,13 @@ fn collect_changed_server_components(
   }
   visited_modules.insert(module_identifier);
 
-  if let Some(rsc) = module.build_info().rsc.as_ref()
+  if let Some(rsc) = compilation
+    .get_module_graph()
+    .module_by_identifier(&module.identifier())
+    .expect("module exists")
+    .build_info()
+    .rsc
+    .as_ref()
     && rsc.module_type == RscModuleType::Client
   {
     return;

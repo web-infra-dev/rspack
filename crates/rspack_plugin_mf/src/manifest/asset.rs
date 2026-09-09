@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use rspack_core::{Compilation, ModuleGraph, ModuleIdentifier, ModuleRef, NormalModule};
+use rspack_core::{BuiltModule, Compilation, ModuleGraph, ModuleIdentifier, NormalModule};
 use rspack_util::{fx_hash::FxHashSet as HashSet, identifier::split_at_query_mark};
 
 use super::{
@@ -187,7 +187,7 @@ pub fn collect_usage_files_for_module(
   collected
 }
 
-pub fn module_source_path(module: &ModuleRef, compilation: &Compilation) -> Option<String> {
+pub fn module_source_path(module: &BuiltModule, compilation: &Compilation) -> Option<String> {
   if let Some(normal_module) = module.as_ref().as_any().downcast_ref::<NormalModule>()
     && let Some(path) = normal_module.resource_resolved_data().path()
   {

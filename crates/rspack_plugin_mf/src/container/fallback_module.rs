@@ -4,11 +4,11 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph, ChunkUkey,
+  BoxDependency, BoxModule, BuildContext, BuildInfo, ChunkGraph, ChunkUkey,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
-  FactoryMetaStore, FreezeLock, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
-  RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  FactoryMetaStore, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
+  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
@@ -29,8 +29,6 @@ pub struct FallbackModule {
   lib_ident: String,
   requests: Vec<String>,
   factory_meta: FactoryMetaStore,
-  build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
 }
 
 impl FallbackModule {
@@ -53,12 +51,6 @@ impl FallbackModule {
       lib_ident,
       requests,
       factory_meta: Default::default(),
-      build_info: BuildInfo {
-        strict: true,
-        ..Default::default()
-      }
-      .into(),
-      build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -83,9 +75,22 @@ impl DependenciesBlock for FallbackModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for FallbackModule {
+  fn initial_build_info(&self) -> rspack_core::BuildData<BuildInfo> {
+    BuildInfo {
+      strict: true,
+      ..Default::default()
+    }
+    .into()
+  }
+
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(
+    &self,
+    _source_type: Option<&SourceType>,
+    _compilation: Option<&Compilation>,
+    _build_data: Option<&rspack_core::ModuleBuildMetadata>,
+  ) -> f64 {
     self.requests.len() as f64 * 5.0 + 42.0
   }
 
@@ -121,6 +126,7 @@ impl Module for FallbackModule {
 
   async fn build(
     mut self: Box<Self>,
+    build_data: rspack_core::ModuleBuildMetadata,
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BoxModule> {
@@ -132,7 +138,7 @@ impl Module for FallbackModule {
     }
 
     Ok(
-      BoxModule::new(self)
+      BoxModule::from_parts(self, build_data)
         .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![]),
     )
   }

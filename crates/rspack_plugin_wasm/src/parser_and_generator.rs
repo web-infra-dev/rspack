@@ -4,8 +4,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::IdentifierIndexMap;
 use rspack_core::{
   AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, CodeGenerationDataItem, Dependency,
-  DependencyId, DependencyType, ExportsArgument, GenerateContext, ImportPhase, Module,
-  ModuleArgument, ModuleDependency, ModuleGraph, ModuleInitFragments, ParseContext, ParseResult,
+  DependencyId, DependencyType, ExportsArgument, GenerateContext, ImportPhase, ModuleArgument,
+  ModuleDependency, ModuleGraph, ModuleInitFragments, ParseContext, ParseResult,
   ParserAndGenerator, PathData, RuntimeGlobals, SourceType, StaticExportsDependency,
   StaticExportsSpec,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
@@ -44,7 +44,11 @@ struct DepModule<'a> {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for AsyncWasmParserAndGenerator {
-  fn source_types(&self, _module: &dyn Module, _module_graph: &ModuleGraph) -> &[SourceType] {
+  fn source_types(
+    &self,
+    _module: &rspack_core::ModuleView<'_>,
+    _module_graph: &ModuleGraph,
+  ) -> &[SourceType] {
     WASM_SOURCE_TYPE
   }
 
@@ -149,7 +153,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     )
   }
 
-  fn size(&self, module: &dyn Module, source_type: Option<&SourceType>) -> f64 {
+  fn size(&self, module: &rspack_core::ModuleView<'_>, source_type: Option<&SourceType>) -> f64 {
     match source_type.unwrap_or(&SourceType::Wasm) {
       SourceType::JavaScript => {
         40.0
@@ -166,7 +170,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
   async fn generate(
     &self,
     source: &BoxSource,
-    module: &dyn Module,
+    module: &rspack_core::ModuleView<'_>,
     generate_context: &mut GenerateContext,
   ) -> Result<BoxSource> {
     let GenerateContext {
@@ -276,7 +280,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           .iter()
           .map(|(_, dep_module)| {
             runtime_template.import_statement(
-              module,
+              module.module,
               compilation,
               &dep_module.deps[0].0,
               &dep_module.import_var,
@@ -374,7 +378,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
   fn get_concatenation_bailout_reason(
     &self,
-    _module: &dyn Module,
+    _module: &rspack_core::ModuleView<'_>,
     _mg: &rspack_core::ModuleGraph,
     _cg: &rspack_core::ChunkGraph,
   ) -> Option<Cow<'static, str>> {

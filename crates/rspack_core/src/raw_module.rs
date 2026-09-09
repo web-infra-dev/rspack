@@ -12,11 +12,11 @@ use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
-  BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder, Compilation,
-  ConnectionState, Context, DependenciesBlock, DependenciesBlockData, FactoryMetaStore, FreezeLock,
-  Module, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleType, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
-  impl_module_meta_info, module_declared_side_effect_free, module_update_hash,
+  BoxModule, BuildContext, BuildInfo, CodeGenerationResultBuilder, Compilation, ConnectionState,
+  Context, DependenciesBlock, DependenciesBlockData, FactoryMetaStore, Module,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, impl_module_meta_info,
+  module_declared_side_effect_free, module_update_hash,
 };
 
 #[impl_source_map_config]
@@ -31,8 +31,6 @@ pub struct RawModule {
   readable_identifier: String,
   runtime_requirements: RuntimeGlobals,
   factory_meta: FactoryMetaStore,
-  build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
 }
 
 static RAW_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -52,13 +50,6 @@ impl RawModule {
       readable_identifier,
       runtime_requirements,
       factory_meta: Default::default(),
-      build_info: BuildInfo {
-        cacheable: true,
-        strict: true,
-        ..Default::default()
-      }
-      .into(),
-      build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -83,6 +74,15 @@ impl DependenciesBlock for RawModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for RawModule {
+  fn initial_build_info(&self) -> crate::BuildData<BuildInfo> {
+    BuildInfo {
+      cacheable: true,
+      strict: true,
+      ..Default::default()
+    }
+    .into()
+  }
+
   impl_module_meta_info!();
 
   fn module_type(&self) -> &ModuleType {
@@ -101,7 +101,12 @@ impl Module for RawModule {
     Cow::Borrowed(&self.readable_identifier)
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(
+    &self,
+    _source_type: Option<&SourceType>,
+    _compilation: Option<&Compilation>,
+    _build_data: Option<&crate::ModuleBuildMetadata>,
+  ) -> f64 {
     f64::max(1.0, self.source_str.len() as f64)
   }
 
@@ -156,10 +161,11 @@ impl Module for RawModule {
 
   async fn build(
     self: Box<Self>,
+    build_data: crate::ModuleBuildMetadata,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
-    Ok(BoxModule::new(self))
+    Ok(BoxModule::from_parts(self, build_data))
   }
 }
 

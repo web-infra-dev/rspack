@@ -1273,6 +1273,7 @@ impl CompilationBuildModule for CompilationBuildModuleTap {
       .function
       .call_with_sync(ModuleObject::with_ptr(
         NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
+        NonNull::from(&mut module.build_data),
         compiler_id,
       ))
       .await?;
@@ -1290,12 +1291,13 @@ impl CompilationStillValidModule for CompilationStillValidModuleTap {
     &self,
     compiler_id: CompilerId,
     _compilation_id: CompilationId,
-    module: &dyn Module,
+    module: &rspack_core::BuiltModule,
   ) -> rspack_error::Result<()> {
     let _ = self
       .function
       .call_with_sync(ModuleObject::with_readonly_ptr(
-        NonNull::from(module),
+        NonNull::from(module.as_ref()),
+        NonNull::from(module.view().build_data),
         compiler_id,
       ))
       .await?;
@@ -1320,6 +1322,7 @@ impl CompilationSucceedModule for CompilationSucceedModuleTap {
       .function
       .call_with_sync(ModuleObject::with_ptr(
         NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
+        NonNull::from(&mut module.build_data),
         compiler_id,
       ))
       .await?;

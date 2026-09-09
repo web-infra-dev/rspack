@@ -135,8 +135,7 @@ pub fn impl_runtime_module(
       fn size(
         &self,
         _source_type: Option<&::rspack_core::SourceType>,
-        _compilation: Option<&::rspack_core::Compilation>,
-      ) -> f64 {
+        _compilation: Option<&::rspack_core::Compilation>, _build_data: Option<&rspack_core::ModuleBuildMetadata>) -> f64 {
         self.common.size()
       }
 
@@ -155,29 +154,9 @@ pub fn impl_runtime_module(
 
       fn set_factory_meta(&self, v: ::rspack_core::FactoryMeta) {}
 
-      fn build_info(&self) -> ::rspack_core::FreezeReadGuard<'_, ::rspack_core::BuildInfo> {
-        unreachable!()
-      }
 
-      fn freeze_build_info(&self) {
-        unreachable!()
-      }
 
-      fn extend_build_assets(&self, _: ::rspack_core::CompilationAssets) {
-        unreachable!()
-      }
 
-      fn build_info_mut(&mut self) -> &mut ::rspack_core::BuildInfo {
-        unreachable!()
-      }
-
-      fn build_meta(&self) -> ::rspack_core::FreezeReadGuard<'_, ::rspack_core::BuildMeta> {
-        unreachable!()
-      }
-
-      fn freeze_build_meta(&self) -> &::rspack_core::SharedBuildMeta {
-        unreachable!()
-      }
 
       async fn code_generation(
         &self,
@@ -196,6 +175,7 @@ pub fn impl_runtime_module(
 
       async fn build(
         self: Box<Self>,
+        _build_data: ::rspack_core::ModuleBuildMetadata,
         _build_context: ::rspack_core::BuildContext,
         _compilation: Option<&::rspack_core::Compilation>,
       ) -> ::rspack_error::Result<::rspack_core::BoxModule> {

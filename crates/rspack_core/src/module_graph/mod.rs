@@ -22,8 +22,8 @@ mod connection;
 pub use connection::*;
 
 use crate::{
-  BoxDependency, DependencyCondition, DependencyId, DependencyRef, ExportsInfoArtifact,
-  ModuleIdentifier, ModuleRef,
+  BoxDependency, BuiltModule, DependencyCondition, DependencyId, DependencyRef,
+  ExportsInfoArtifact, ModuleIdentifier,
 };
 
 // TODO Here request can be used Atom
@@ -95,7 +95,7 @@ pub(crate) struct ModuleGraphData {
   /****** only modified during Make Phase */
   /// Module indexed by `ModuleIdentifier`.
   pub(crate) modules:
-    rollback::RollbackMap<ModuleIdentifier, ModuleRef, BuildHasherDefault<IdentifierHasher>>,
+    rollback::RollbackMap<ModuleIdentifier, BuiltModule, BuildHasherDefault<IdentifierHasher>>,
 
   /// Dependencies indexed by `DependencyId`.
   dependencies: rollback::DenseDependencyIdMap<DependencyRef>,
@@ -180,14 +180,14 @@ impl ModuleGraph {
   }
 
   #[inline]
-  pub fn modules(&self) -> impl Iterator<Item = (&ModuleIdentifier, &ModuleRef)> {
+  pub fn modules(&self) -> impl Iterator<Item = (&ModuleIdentifier, &BuiltModule)> {
     self.inner.modules.iter()
   }
 
   #[inline]
   pub fn modules_par(
     &self,
-  ) -> impl rayon::prelude::ParallelIterator<Item = (&ModuleIdentifier, &ModuleRef)> {
+  ) -> impl rayon::prelude::ParallelIterator<Item = (&ModuleIdentifier, &BuiltModule)> {
     self.inner.modules.par_iter()
   }
 
@@ -517,7 +517,7 @@ impl ModuleGraph {
     }
   }
 
-  pub fn add_module(&mut self, module: impl Into<ModuleRef>) {
+  pub fn add_module(&mut self, module: impl Into<BuiltModule>) {
     let module = module.into();
     self.inner.modules.insert(module.identifier(), module);
   }
@@ -654,7 +654,7 @@ impl ModuleGraph {
       .map(|con| con.module_identifier())
   }
 
-  pub fn get_module_by_dependency_id(&self, dep_id: &DependencyId) -> Option<&ModuleRef> {
+  pub fn get_module_by_dependency_id(&self, dep_id: &DependencyId) -> Option<&BuiltModule> {
     self
       .module_identifier_by_dependency_id(dep_id)
       .and_then(|module_id| self.inner.modules.get(module_id))
@@ -726,11 +726,36 @@ impl ModuleGraph {
   }
 
   /// Uniquely identify a module by its identifier and return the aliased reference
-  pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&ModuleRef> {
+  pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BuiltModule> {
     self.inner.modules.get(identifier)
   }
 
   /// Uniquely identify a module graph module by its module's identifier and return the aliased reference
+  pub fn build_info(&self, identifier: &ModuleIdentifier) -> &crate::BuildInfo {
+    self
+      .module_by_identifier(identifier)
+      .expect("module exists")
+      .build_info()
+  }
+  pub fn build_meta(&self, identifier: &ModuleIdentifier) -> &crate::BuildMeta {
+    self
+      .module_by_identifier(identifier)
+      .expect("module exists")
+      .build_meta()
+  }
+
+  pub(crate) fn build_metadata_mut(
+    &mut self,
+    identifier: &ModuleIdentifier,
+  ) -> Option<&mut BuiltModule> {
+    self.inner.modules.get_mut(identifier)
+  }
+  pub(crate) fn finish_build_info(&mut self) {
+    for module in self.inner.modules.values_mut() {
+      module.finish_build_info();
+    }
+  }
+
   pub fn module_graph_module_by_identifier(
     &self,
     identifier: &ModuleIdentifier,
@@ -869,7 +894,7 @@ impl ModuleGraph {
       .and_then(|mgm| mgm.post_order_index)
   }
 
-  pub fn get_issuer(&self, module_id: &ModuleIdentifier) -> Option<&ModuleRef> {
+  pub fn get_issuer(&self, module_id: &ModuleIdentifier) -> Option<&BuiltModule> {
     self
       .module_graph_module_by_identifier(module_id)
       .and_then(|mgm| mgm.issuer().get_module(self))

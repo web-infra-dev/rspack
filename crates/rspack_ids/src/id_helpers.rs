@@ -12,10 +12,10 @@ use itertools::{
 };
 use rspack_collections::Identifier;
 use rspack_core::{
-  Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind,
+  BuiltModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind,
   ChunkNamedIdArtifact, ChunkUkey, Compilation, CompilerId, DependencyLocation,
   ExportsInfoArtifact, Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleIdsArtifact, ModuleRef, SideEffectsStateArtifact, compare_runtime,
+  ModuleIdsArtifact, SideEffectsStateArtifact, compare_runtime,
 };
 use rspack_error::{Result, error};
 use rspack_util::{
@@ -28,7 +28,7 @@ use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
 pub type ModuleFilterFn =
   Arc<dyn for<'a> Fn(CompilerId, &'a dyn Module) -> BoxFuture<'a, Result<bool>> + Send + Sync>;
 
-pub(crate) fn should_assign_module_id_without_chunk(module: &dyn Module) -> bool {
+pub(crate) fn should_assign_module_id_without_chunk(module: &BuiltModule) -> bool {
   let build_meta = module.build_meta();
   build_meta.is_css_module() || build_meta.need_id_in_concatenation()
 }
@@ -38,7 +38,7 @@ pub(crate) fn should_assign_module_id_without_chunk(module: &dyn Module) -> bool
 pub fn get_used_module_ids_and_modules_with_artifact(
   compilation: &Compilation,
   module_ids_artifact: &ModuleIdsArtifact,
-  filter: Option<Box<dyn Fn(&ModuleRef) -> bool>>,
+  filter: Option<Box<dyn Fn(&BuiltModule) -> bool>>,
 ) -> (FxHashSet<String>, Vec<ModuleIdentifier>) {
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let mut modules = vec![];
@@ -63,7 +63,7 @@ pub fn get_used_module_ids_and_modules_with_artifact(
       } else {
         if filter.as_ref().is_none_or(|f| (f)(module))
           && (chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
-            || should_assign_module_id_without_chunk(module.as_ref()))
+            || should_assign_module_id_without_chunk(module))
         {
           modules.push(module.identifier());
         }
@@ -91,7 +91,7 @@ pub async fn get_used_module_ids_and_modules_with_async_filter(
     if let Some(module_id) = module_id {
       used_ids.insert(module_id.to_string());
     } else if (chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
-      || should_assign_module_id_without_chunk(module.as_ref()))
+      || should_assign_module_id_without_chunk(module))
       && match filter {
         Some(filter) => filter(compilation.compiler_id(), module.as_ref()).await?,
         None => true,
@@ -104,7 +104,7 @@ pub async fn get_used_module_ids_and_modules_with_async_filter(
   Ok((used_ids, modules))
 }
 
-pub fn get_short_module_name(module: &ModuleRef, context: &str) -> String {
+pub fn get_short_module_name(module: &BuiltModule, context: &str) -> String {
   let lib_ident = module.lib_ident(rspack_core::LibIdentOptions { context });
   if let Some(lib_ident) = lib_ident {
     return avoid_number(&lib_ident).to_string();
@@ -117,7 +117,7 @@ pub fn get_short_module_name(module: &ModuleRef, context: &str) -> String {
 }
 
 pub(crate) fn get_short_module_name_with_graph(
-  module: &ModuleRef,
+  module: &BuiltModule,
   context: &str,
   module_graph: &ModuleGraph,
 ) -> String {
@@ -172,13 +172,13 @@ fn avoid_number(s: &str) -> Cow<'_, str> {
   Cow::Borrowed(s)
 }
 
-pub fn get_long_module_name(short_name: &str, module: &ModuleRef, context: &str) -> String {
+pub fn get_long_module_name(short_name: &str, module: &BuiltModule, context: &str) -> String {
   let full_name = get_full_module_name(module, context);
 
   format!("{}?{}", short_name, get_hash(full_name, 4))
 }
 
-pub fn get_full_module_name(module: &ModuleRef, context: &str) -> String {
+pub fn get_full_module_name(module: &BuiltModule, context: &str) -> String {
   make_paths_relative(context, &module.identifier())
 }
 
@@ -258,11 +258,11 @@ pub(crate) fn assign_deterministic_ids_with_hash<T>(
 
 pub fn assign_ascending_module_ids(
   used_ids: &FxHashSet<String>,
-  modules: Vec<&ModuleRef>,
+  modules: Vec<&BuiltModule>,
   module_ids: &mut ModuleIdsArtifact,
 ) {
   let mut next_id = 0;
-  let mut assign_id = |module: &ModuleRef| {
+  let mut assign_id = |module: &BuiltModule| {
     if ChunkGraph::get_module_id(module_ids, module.identifier()).is_none() {
       while used_ids.contains(&next_id.to_string()) {
         next_id += 1;

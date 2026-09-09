@@ -152,7 +152,10 @@ fn resolve_css_export_value(
     return None;
   }
 
-  let build_info = module.build_info();
+  let build_info = compilation
+    .get_module_graph()
+    .module_by_identifier(&module.identifier())?
+    .build_info();
   let css_build_info = build_info.css.as_deref()?;
   let exports = css_build_info.exports()?;
   let css_exports = exports.get(name)?;

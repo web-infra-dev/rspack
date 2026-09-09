@@ -4,15 +4,15 @@ use rspack_collections::{Identifiable, IdentifierDashMap};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 
 use crate::{
-  BoxModule, BuildModuleGraphArtifact, FileSystemInfo, ModuleGraph, ModuleIdentifier, ModuleRef,
-  ValueCacheVersions,
+  BoxModule, BuildModuleGraphArtifact, BuiltModule, CachedModule, FileSystemInfo, ModuleGraph,
+  ModuleIdentifier, ValueCacheVersions,
   new_cache::{CacheFacade, CacheValue},
 };
 
 /// Cache for completed normal module builds.
 ///
-/// Memory entries share the built module with the graph. Persistent entries
-/// encode the same module directly, including its dependencies and build metadata.
+/// Memory entries share the built module and completed metadata with the graph.
+/// Persistent entries encode these objects together, including module-owned dependencies.
 #[derive(Debug, Clone)]
 pub(crate) struct ModuleBuildCache {
   cache: CacheFacade,
@@ -38,29 +38,31 @@ impl ModuleBuildCache {
     module: &BoxModule,
     file_system_info: &FileSystemInfo,
     value_cache_versions: &ValueCacheVersions,
-  ) -> Result<Option<ModuleRef>> {
+  ) -> Result<Option<BuiltModule>> {
     if module.as_normal_module().is_none() {
       return Ok(None);
     }
 
     let identifier = module.identifier();
-    let Some(result) = self.cache.get::<ModuleRef>(identifier.as_str(), None) else {
+    let Some(result) = self.cache.get::<CachedModule>(identifier.as_str(), None) else {
       return Ok(None);
     };
     if result
+      .module
       .as_normal_module()
       .expect("module cache entries contain normal modules")
-      .need_build_with_context(file_system_info, value_cache_versions)
+      .need_build_with_context(&result.build_info, file_system_info, value_cache_versions)
       .await?
     {
       return Ok(None);
     }
 
     result
+      .module
       .as_normal_module()
       .expect("module cache entries contain normal modules")
       .reset_for_compilation(module.factory_meta());
-    Ok(Some(result.as_arc().as_ref().clone()))
+    Ok(Some(result.as_arc().as_ref().clone().into()))
   }
 
   /// Stores modules built during this phase from the final module graph.
@@ -88,11 +90,11 @@ impl ModuleBuildCache {
           let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
             return Ok(None);
           };
-          let Some(module) = module.as_normal_module() else {
+          let Some(normal_module) = module.as_normal_module() else {
             return Ok(None);
           };
-          let snapshot = module
-            .create_cache_snapshot(file_system_info, build_start_time)
+          let snapshot = normal_module
+            .create_cache_snapshot(module.build_info(), file_system_info, build_start_time)
             .await?;
           Ok(Some((module_identifier, snapshot)))
         });
@@ -108,10 +110,10 @@ impl ModuleBuildCache {
       .flatten()
       .filter_map(|(module_identifier, snapshot)| {
         let module = artifact
-          .get_module_graph()
-          .module_by_identifier(&module_identifier)?;
-        module.as_normal_module()?.set_cache_snapshot(snapshot);
-        module.freeze_build_info();
+          .module_graph
+          .build_metadata_mut(&module_identifier)?;
+        module.set_cache_snapshot(snapshot);
+        module.finish_build_info();
         Some(module_identifier)
       })
       .collect::<Vec<_>>();
@@ -146,9 +148,9 @@ impl ModuleBuildCache {
 fn create_cache_entry(
   module_graph: &ModuleGraph,
   module_identifier: ModuleIdentifier,
-) -> ModuleRef {
+) -> CachedModule {
   let source_module = module_graph
     .module_by_identifier(&module_identifier)
     .expect("pending module should exist in the final module graph");
-  source_module.clone()
+  source_module.cache_entry()
 }

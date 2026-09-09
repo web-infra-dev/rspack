@@ -7,7 +7,7 @@ use std::{
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation, CompilerId,
-  CompilerMake, DependencyId, DependencyType, EntryDependency, LibIdentOptions, Module, ModuleExt,
+  CompilerMake, DependencyId, DependencyType, EntryDependency, LibIdentOptions, ModuleExt,
   ModuleFactory, ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData,
   NormalModuleFactoryModule, Plugin,
 };
@@ -40,7 +40,7 @@ pub trait LazyCompilationTestCheck: Send + Sync + Debug {
     &'a self,
     compiler_id: CompilerId,
     compilation_id: CompilationId,
-    module: &'a dyn Module,
+    module: &'a BoxModule,
   ) -> impl Future<Output = bool> + Send + 'a;
 }
 
@@ -49,7 +49,7 @@ impl<F: LazyCompilationTestCheck> LazyCompilationTest<F> {
     &self,
     compiler_id: CompilerId,
     compilation_id: CompilationId,
-    module: &dyn Module,
+    module: &BoxModule,
   ) -> bool {
     match self {
       LazyCompilationTest::Regex(regex) => {
@@ -99,9 +99,7 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
     module: &BoxModule,
   ) -> bool {
     if let Some(test) = &self.inner.test {
-      test
-        .test(compiler_id, compilation_id, module.as_ref())
-        .await
+      test.test(compiler_id, compilation_id, module).await
     } else {
       true
     }

@@ -8,42 +8,45 @@ use rspack_sources::BoxSource;
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
-  BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder, Compilation, Context,
-  DependenciesBlock, DependenciesBlockData, FactoryMeta, FreezeLock, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
-  ValueCacheVersions,
+  BoxModule, BuildContext, BuildInfo, CodeGenerationResultBuilder, Compilation, Context,
+  DependenciesBlock, DependenciesBlockData, FactoryMeta, Module, ModuleCodeGenerationContext,
+  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, ValueCacheVersions,
 };
 
 #[cacheable]
 #[derive(Debug)]
 pub struct TempModule {
   id: ModuleIdentifier,
-  build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
   dependencies_block: DependenciesBlockData,
 }
 
 impl TempModule {
-  pub fn transform_from(module: OwnedOrRef<crate::ModuleRef>) -> OwnedOrRef<crate::ModuleRef> {
+  pub fn transform_from(module: OwnedOrRef<crate::BuiltModule>) -> OwnedOrRef<crate::BuiltModule> {
     let m = module.as_ref();
-    let module = BoxModule::new(Box::new(Self {
-      id: m.identifier(),
+    let build_data = crate::ModuleBuildMetadata {
       build_info: BuildInfo {
         dependencies: m.build_info().dependencies.clone(),
         ..Default::default()
       }
       .into(),
-      build_meta: m.freeze_build_meta().clone().into(),
-      dependencies_block: DependenciesBlockData::new(
-        m.get_dependencies()
-          .iter()
-          .map(|dependency| super::TempDependency::transform_from(dependency.into()).into_owned())
-          .collect(),
-        Vec::new(),
-      ),
-    }));
-    module.freeze_build_info();
-    OwnedOrRef::Owned(module.into())
+      build_meta: m.shared_build_meta().clone().into(),
+    };
+    let mut module: crate::BuiltModule = BoxModule::from_parts(
+      Box::new(Self {
+        id: m.identifier(),
+        dependencies_block: DependenciesBlockData::new(
+          m.get_dependencies()
+            .iter()
+            .map(|dependency| super::TempDependency::transform_from(dependency.into()).into_owned())
+            .collect(),
+          Vec::new(),
+        ),
+      }),
+      build_data,
+    )
+    .into();
+    module.finish_build_info();
+    OwnedOrRef::Owned(module)
   }
 }
 
@@ -70,30 +73,6 @@ impl Module for TempModule {
     unreachable!()
   }
 
-  fn build_info(&self) -> crate::FreezeReadGuard<'_, BuildInfo> {
-    self.build_info.read()
-  }
-
-  fn freeze_build_info(&self) {
-    self.build_info.freeze();
-  }
-
-  fn extend_build_assets(&self, assets: crate::CompilationAssets) {
-    self.build_info.extend_assets(assets);
-  }
-
-  fn build_info_mut(&mut self) -> &mut BuildInfo {
-    self.build_info.get_mut()
-  }
-
-  fn build_meta(&self) -> crate::FreezeReadGuard<'_, BuildMeta> {
-    self.build_meta.read()
-  }
-
-  fn freeze_build_meta(&self) -> &triomphe::Arc<BuildMeta> {
-    self.build_meta.freeze()
-  }
-
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     unreachable!()
   }
@@ -102,7 +81,12 @@ impl Module for TempModule {
     unreachable!()
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(
+    &self,
+    _source_type: Option<&SourceType>,
+    _compilation: Option<&Compilation>,
+    _build_data: Option<&crate::ModuleBuildMetadata>,
+  ) -> f64 {
     unreachable!()
   }
 
@@ -114,7 +98,11 @@ impl Module for TempModule {
     unreachable!()
   }
 
-  fn need_build_for_incremental(&self, _value_cache_versions: &ValueCacheVersions) -> bool {
+  fn need_build_for_incremental(
+    &self,
+    _build_info: &crate::BuildInfo,
+    _value_cache_versions: &ValueCacheVersions,
+  ) -> bool {
     // return true to make sure this module always rebuild
     true
   }
@@ -136,10 +124,11 @@ impl Module for TempModule {
 
   async fn build(
     self: Box<Self>,
+    build_data: crate::ModuleBuildMetadata,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
-    Ok(BoxModule::new(self))
+    Ok(BoxModule::from_parts(self, build_data))
   }
 }
 

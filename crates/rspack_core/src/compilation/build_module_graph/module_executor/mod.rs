@@ -138,18 +138,16 @@ impl ModuleExecutor {
     )
     .await?;
 
-    let mg = compilation.build_module_graph_artifact.get_module_graph();
+    let mg = &mut compilation.build_module_graph_artifact.module_graph;
     let module_assets = std::mem::take(&mut self.module_assets);
     for (original_module_identifier, assets) in module_assets {
       // recursive import module may not exist the module, just skip it
-      if let Some(module) = mg.module_by_identifier(&original_module_identifier) {
+      if let Some(module) = mg.build_metadata_mut(&original_module_identifier) {
         module.extend_build_assets(assets);
       }
     }
 
-    for (_, module) in make_artifact.get_module_graph().modules() {
-      module.freeze_build_info();
-    }
+    make_artifact.module_graph.finish_build_info();
 
     let diagnostics = make_artifact.diagnostics();
     compilation.extend_diagnostics(diagnostics);

@@ -10,9 +10,9 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock,
-  DependenciesBlockData, DependencyRange, FactoryMetaStore, FreezeLock, ImportPhase,
-  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer,
-  ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
+  DependenciesBlockData, DependencyRange, FactoryMetaStore, ImportPhase, LibIdentOptions, Module,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType,
+  ReferencedSpecifier, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
   impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
@@ -45,8 +45,6 @@ pub struct RscEntryModule {
   /// When true, client modules are loaded eagerly (not as code-split points).
   is_server_side_rendering: bool,
   factory_meta: FactoryMetaStore,
-  build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
   layer: Option<ModuleLayer>,
 }
 
@@ -85,15 +83,6 @@ impl RscEntryModule {
       name,
       is_server_side_rendering,
       factory_meta: Default::default(),
-      build_info: BuildInfo {
-        strict: true,
-        top_level_declarations: Some(Default::default()),
-        ..Default::default()
-      }
-      .into(),
-      build_meta: BuildMeta::default()
-        .with_exports_type(BuildMetaExportsType::Namespace)
-        .into(),
       source_map_kind: SourceMapKind::empty(),
       layer,
     }
@@ -205,9 +194,29 @@ impl DependenciesBlock for RscEntryModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for RscEntryModule {
+  fn initial_build_info(&self) -> rspack_core::BuildData<BuildInfo> {
+    BuildInfo {
+      strict: true,
+      top_level_declarations: Some(Default::default()),
+      ..Default::default()
+    }
+    .into()
+  }
+
+  fn initial_build_meta(&self) -> rspack_core::BuildData<BuildMeta> {
+    BuildMeta::default()
+      .with_exports_type(BuildMetaExportsType::Namespace)
+      .into()
+  }
+
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(
+    &self,
+    _source_type: Option<&SourceType>,
+    _compilation: Option<&Compilation>,
+    _build_data: Option<&rspack_core::ModuleBuildMetadata>,
+  ) -> f64 {
     42.0
   }
 
@@ -237,6 +246,7 @@ impl Module for RscEntryModule {
 
   async fn build(
     mut self: Box<Self>,
+    build_data: rspack_core::ModuleBuildMetadata,
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BoxModule> {
@@ -258,7 +268,7 @@ impl Module for RscEntryModule {
         dependencies.push(BoxDependency::new(dep));
       }
       Ok(
-        BoxModule::new(self)
+        BoxModule::from_parts(self, build_data)
           .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![]),
       )
     } else {
@@ -360,7 +370,7 @@ impl Module for RscEntryModule {
         blocks.push(Box::new(block));
       }
 
-      Ok(BoxModule::new(self).with_dependencies(
+      Ok(BoxModule::from_parts(self, build_data).with_dependencies(
         dependencies.into_iter().map(Into::into).collect(),
         blocks.into_iter().map(Into::into).collect(),
       ))

@@ -149,13 +149,14 @@ impl From<RawCircularCheckRspackPluginOptions> for CircularCheckRspackPluginOpti
     let on_detected: Option<CircularCheckHandlerFn> = match value.on_detected {
       Some(callback) => Some(Arc::new(
         move |compiler_id: CompilerId,
-              module: &dyn Module,
+              module: &rspack_core::BuiltModule,
               paths: Vec<String>|
               -> BoxFuture<'_, rspack_error::Result<()>> {
           let callback = callback.clone();
           let module = ModuleObject::with_readonly_ptr(
-            NonNull::new(module as *const dyn Module as *mut dyn Module)
+            NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module)
               .expect("module pointer should not be null"),
+            NonNull::from(module.view().build_data),
             compiler_id,
           );
           Box::pin(async move {
