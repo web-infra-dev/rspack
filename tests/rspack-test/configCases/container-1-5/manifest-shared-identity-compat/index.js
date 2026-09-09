@@ -30,7 +30,9 @@ const sharedIdentityFields = ({
 });
 
 const sortedSharedIdentities = (output) =>
-  output.shared.map(sharedIdentityFields).sort((a, b) => a.id.localeCompare(b.id));
+  output.shared.map(sharedIdentityFields).sort((a, b) =>
+    a.id.localeCompare(b.id) || a.name.localeCompare(b.name),
+  );
 
 it('preserves legacy IDs and analyzed/disabled identity parity', () => {
   expect(sortedSharedIdentities(analyzedStats)).toEqual(
@@ -62,6 +64,22 @@ it('preserves legacy IDs and analyzed/disabled identity parity', () => {
       shared.identityId.startsWith('container:shared:'),
     ),
   ).toBe(true);
+
+  for (const output of [
+    analyzedStats,
+    analyzedManifest,
+    disabledStats,
+    disabledManifest,
+  ]) {
+    const layered = output.shared.find((shared) => shared.name === 'pkg');
+    const legacy = output.shared.find(
+      (shared) => shared.name === 'shared:10:s7:defaultl6:server3:pkg',
+    );
+    expect(legacy.id).toBe(layered.id);
+    expect(legacy.identityId).toEqual(expect.any(String));
+    expect(new Set(output.shared.map((shared) => shared.identityId || shared.id)).size)
+      .toBe(output.shared.length);
+  }
 });
 
 it('keeps exposes with the same import as separate public identities', () => {
@@ -103,9 +121,13 @@ it('loads the configured shared identities after an async boundary', async () =>
     import('legacy'),
     import('legacy-a'),
     import('legacy-b'),
+    import('layered'),
+    import('structural-collision'),
   ]);
   expect(modules.map((module) => module.default)).toEqual([
     'legacy',
+    'legacy-a',
+    'legacy-b',
     'legacy-a',
     'legacy-b',
   ]);

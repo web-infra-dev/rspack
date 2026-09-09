@@ -195,7 +195,7 @@ pub fn finalize_shared_ids(shared: &mut [StatsShared], container_name: &str) {
       .unwrap_or_else(|| ShareScope::Single("default".to_string()));
     let identity = SharedIdentity::new(&share_scope, &entry.name, entry.layer.as_deref());
     entry.id = compose_shared_id(container_name, &identity);
-    entry.identity_id = if has_scope_collision
+    entry.identity_id = if (has_scope_collision || entry.name.starts_with("shared:"))
       && entry.layer.is_none()
       && matches!(share_scope, ShareScope::Single(_))
     {

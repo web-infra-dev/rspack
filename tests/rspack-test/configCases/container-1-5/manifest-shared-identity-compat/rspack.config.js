@@ -33,6 +33,19 @@ const createConfig = (fileName, disableAssetsAnalyze) => ({
         },
       },
       shared: {
+        layered: {
+          import: 'legacy-a',
+          version: '1.0.0',
+          shareKey: 'pkg',
+          layer: 'server',
+          requiredVersion: false,
+        },
+        'structural-collision': {
+          import: 'legacy-b',
+          version: '1.0.0',
+          shareKey: 'shared:10:s7:defaultl6:server3:pkg',
+          requiredVersion: false,
+        },
         legacy: {
           version: false,
           requiredVersion: false,

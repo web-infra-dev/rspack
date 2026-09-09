@@ -235,6 +235,15 @@ new rspack.container.ModuleFederationPlugin({
 
 当相同共享键、共享作用域和层对应多个具体提供者时，共享条目会包含可选的 `providers` 数组。每个提供者记录其 `version`、相对于构建上下文解析后的 `import` 和 `assets`。原有共享条目及其字段会保留，以兼容旧版读取器。只有一个提供者的条目不会输出 `providers`；读取器也应接受不包含此字段的 manifest。
 
+使用层的构建会在这两种输出中添加可选的身份字段：
+
+- `layer` 表示暴露条目或共享条目所属的层；未指定层时省略此字段。
+- 共享条目通过 `shareScope` 表示非默认作用域或有序作用域数组。省略此字段时，表示标量作用域 `"default"`。
+- 使用标量作用域且未指定层的共享条目保留原有 `id`。当原有 ID 冲突或共享键以保留前缀 `shared:` 开头时，`identityId` 用于区分条目。读取器应使用 `identityId ?? id` 作为共享条目的身份标识，不应解析其内部格式。
+- 当仅凭共享名称不足以区分依赖时，暴露条目会包含 `requiredShared`。每项包含 `name`，以及可选的 `shareScope` 和 `layer`；stats 输出同时保留仅包含共享键的 `requires` 列表。禁用产物分析时，不输出推断出的依赖关系。
+
+读取器应兼容不包含这些可选字段的旧版 manifest。
+
 其中 `ManifestConfig` 选项说明如下：
 
 - filePath：manifest 文件路径，设置后同时作用于 stats 。
