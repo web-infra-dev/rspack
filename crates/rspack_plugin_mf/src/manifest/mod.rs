@@ -20,7 +20,7 @@ pub use options::{
   ManifestExposeOption, ManifestSharedOption, ModuleFederationManifestPluginOptions,
   RemoteAliasTarget,
 };
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   Compilation, CompilationAsset, CompilationProcessAssets, DependenciesBlock, ModuleIdentifier,
   ModuleType, NormalModule, Plugin, PublicPath, contextify,
@@ -306,9 +306,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
     let mut exposes_map: HashMap<ExposeIdentity, StatsExpose> = HashMap::default();
     let mut expose_imports: HashMap<ExposeIdentity, String> = HashMap::default();
-    let mut expose_identities_by_module: HashMap<ModuleIdentifier, Vec<ExposeIdentity>> =
-      HashMap::default();
-    let mut expose_module_paths: HashMap<ModuleIdentifier, String> = HashMap::default();
+    let mut expose_identities_by_module: IdentifierMap<Vec<ExposeIdentity>> = Default::default();
+    let mut expose_module_paths: IdentifierMap<String> = Default::default();
     let mut expose_chunk_keys: HashMap<ExposeIdentity, rspack_core::ChunkUkey> = HashMap::default();
     let mut expose_fallback_chunk_keys: HashMap<ExposeIdentity, rspack_core::ChunkUkey> =
       HashMap::default();

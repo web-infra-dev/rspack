@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use rspack_collections::IdentifierMap;
 use rspack_core::{Compilation, ModuleGraph, ModuleIdentifier};
 use rspack_util::fx_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -281,8 +282,8 @@ pub fn collect_expose_requirements(
   shared_map: &mut HashMap<SharedIdentity, StatsShared>,
   exposes_map: &mut HashMap<ExposeIdentity, StatsExpose>,
   links: Vec<(SharedIdentity, ModuleIdentifier)>,
-  expose_identities_by_module: &HashMap<ModuleIdentifier, Vec<ExposeIdentity>>,
-  expose_module_paths: &HashMap<ModuleIdentifier, String>,
+  expose_identities_by_module: &IdentifierMap<Vec<ExposeIdentity>>,
+  expose_module_paths: &IdentifierMap<String>,
 ) {
   for (identity, module_id) in links {
     let identity_count = shared_map
