@@ -302,6 +302,57 @@ module.exports = [
   },
   {
     description:
+      'keeps scalar primary binding when the host name is also an additional scope',
+    build() {},
+    check: async () => {
+      const {
+        runtimeRequire: containerRequire,
+        shareScopeMap: containerScopeMap,
+      } = createRuntime({
+        realInitContainerEntry: true,
+        containerShareScope: 'default',
+        additionalInitScopes: ['host-custom'],
+      });
+      const { runtimeRequire, shareScopeMap } = createRuntime({
+        external: { init: containerRequire.initContainer },
+        hasContainer: false,
+        remoteShareScope: 'host-custom',
+      });
+
+      await runtimeRequire.I('host-custom', []);
+
+      expect(containerScopeMap.default).toBe(shareScopeMap['host-custom']);
+      expect(containerScopeMap['host-custom']).toBe(
+        shareScopeMap['host-custom'],
+      );
+    },
+  },
+  {
+    description: 'binds a configured array scope by name when initialized alone',
+    build() {},
+    check: async () => {
+      const {
+        runtimeRequire: containerRequire,
+        shareScopeMap: containerScopeMap,
+      } = createRuntime({
+        realInitContainerEntry: true,
+        containerShareScope: 'default',
+        additionalInitScopes: ['primary', 'secondary'],
+      });
+      const { runtimeRequire, shareScopeMap } = createRuntime({
+        external: { init: containerRequire.initContainer },
+        hasContainer: false,
+        remoteShareScope: ['primary', 'secondary'],
+      });
+
+      await runtimeRequire.I('secondary', []);
+
+      expect(containerScopeMap.secondary).toBe(shareScopeMap.secondary);
+      expect(containerScopeMap.default).not.toBe(shareScopeMap.secondary);
+    },
+  },
+  {
+    description:
       'binds an additional scope by name when the host initializes it, leaving the primary pool alone',
     build() {},
     check: async () => {
@@ -310,7 +361,7 @@ module.exports = [
       // scope only; aliasing the primary `default` pool to it mixes scopes.
       const {
         initializedScopes,
-        runtimeRequire,
+        runtimeRequire: containerRequire,
         shareScopeMap: containerScopeMap,
       } = createRuntime({
         realInitContainerEntry: true,
@@ -318,19 +369,15 @@ module.exports = [
         remoteShareScope: 'default',
         additionalInitScopes: ['layered-components'],
       });
-      const shareScopeMap = {
-        default: { tag: 'host-default' },
-        'layered-components': { tag: 'host-layered' },
-      };
+      const { runtimeRequire, shareScopeMap } = createRuntime({
+        external: { init: containerRequire.initContainer },
+        hasContainer: false,
+        remoteShareScope: 'default',
+      });
+      shareScopeMap.default = { tag: 'host-default' };
+      shareScopeMap['layered-components'] = { tag: 'host-layered' };
 
-      await runtimeRequire.initContainer(
-        shareScopeMap['layered-components'],
-        [],
-        {
-          shareScopeKeys: 'layered-components',
-          shareScopeMap,
-        },
-      );
+      await runtimeRequire.I('layered-components', []);
       expect(containerScopeMap['layered-components']).toBe(
         shareScopeMap['layered-components'],
       );
@@ -339,10 +386,7 @@ module.exports = [
       );
       expect(initializedScopes).toContain('layered-components');
 
-      await runtimeRequire.initContainer(shareScopeMap.default, [], {
-        shareScopeKeys: 'default',
-        shareScopeMap,
-      });
+      await runtimeRequire.I('default', []);
       expect(containerScopeMap.default).toBe(shareScopeMap.default);
       expect(containerScopeMap['layered-components']).toBe(
         shareScopeMap['layered-components'],
