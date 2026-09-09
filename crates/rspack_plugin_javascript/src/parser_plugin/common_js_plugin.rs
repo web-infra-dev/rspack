@@ -4,13 +4,13 @@ use rspack_core::{
   ConstDependency, JavascriptParserCommonjsExportsOption, OverrideStrict, RuntimeGlobals,
   RuntimeRequirementsDependency,
 };
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   AssignExpr, CallExpr, Ident, MemberExpr, NewExpr, Program, Span, UnaryExpr,
 };
 
 use super::JavascriptParserPlugin;
 use crate::{
+  Atom,
   utils::eval::{BasicEvaluatedExpression, evaluate_to_identifier},
   visitors::{JavascriptParser, Statement, expr_name},
 };
