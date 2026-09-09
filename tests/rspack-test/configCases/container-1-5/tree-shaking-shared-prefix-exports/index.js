@@ -22,6 +22,7 @@ it('collects exports under expanded prefix identities with normal request preced
 
   for (const filename of ['mf-stats.json', 'mf-manifest.json']) {
     const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, filename), 'utf-8'));
+    expect(manifest.shared.find(shared => shared.name === 'directorysub.js').fallback).toEqual(expect.any(String));
     for (const [key, exports] of Object.entries(expected)) {
       expect(manifest.shared.find(shared => shared.name === key).usedExports).toEqual(exports);
     }

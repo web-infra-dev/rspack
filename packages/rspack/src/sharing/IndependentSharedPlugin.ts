@@ -225,9 +225,7 @@ const getShareRequests = (
   fallbackImport: string,
 ) => {
   const configuredShareKey = resolveShareKey(shareConfig.shareKey, shareName);
-  const isPrefix =
-    resolveShareRequest(shareConfig.request, shareName).endsWith('/') ||
-    fallbackImport.endsWith('/');
+  const isPrefix = resolveShareRequest(shareConfig.request, shareName).endsWith('/');
   const expectedScope = normalizeShareScope(
     resolveShareScope(shareConfig.shareScope, rootShareScope),
     true,
