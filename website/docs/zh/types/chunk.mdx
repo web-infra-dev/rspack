@@ -7,7 +7,7 @@ type Chunk = {
   chunkReason?: Readonly<string>;
   contentHash: Readonly<Record<string, string>>;
   cssFilenameTemplate?: Readonly<string>;
-  filenameTemplate?: Readonly<string>;
+  filenameTemplate?: Filename;
   files: ReadonlySet<string>;
   getAllAsyncChunks(): Iterable<Chunk>;
   getAllInitialChunks(): Iterable<Chunk>;
