@@ -1805,7 +1805,7 @@ return {}
       .block_by_id(block_id)
       .expect("should have block");
     let dep = block
-      .get_dependencies()
+      .get_dependency_ids()
       .next()
       .expect("should have dependency");
     let ensure_chunk = self.block_promise(Some(block_id), compilation, "");

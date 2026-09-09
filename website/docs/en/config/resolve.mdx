@@ -89,9 +89,39 @@ export default {
 ## resolve.aliasFields
 
 - **Type:** `string[]`
-- **Default:** `['browser']`
+- **Default:** Depends on [target](/config/target) and [how modules are referenced](#resolvebydependency).
 
-Define a field, such as `browser`, that should be parsed in accordance with [this specification](https://github.com/defunctzombie/package-browser-field-spec).
+Specifies which `package.json` fields provide module aliases for replacing modules with alternative implementations.
+
+Common defaults are:
+
+| Scenario                                          | Default       |
+| ------------------------------------------------- | ------------- |
+| Module imports targeting `'web'` or `'webworker'` | `['browser']` |
+| Module imports targeting Node.js                  | `[]`          |
+| CSS `@import` or URL references                   | `[]`          |
+
+For example, this configuration uses the alias mappings in the `browser` field to replace modules with browser implementations provided by the package. The mappings follow the [browser field specification](https://github.com/defunctzombie/package-browser-field-spec).
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    aliasFields: ['browser'],
+  },
+};
+```
+
+For example, a package's `package.json` contains this mapping:
+
+```json title="package.json"
+{
+  "browser": {
+    "./storage.js": "./storage.browser.js"
+  }
+}
+```
+
+With the configuration above, `import './storage.js'` in the package's root-level `index.js` resolves to `storage.browser.js` in the same directory.
 
 ## resolve.byDependency
 
@@ -184,28 +214,34 @@ export default {
 
 ### Default value
 
-Rspack's default `conditionNames` are determined by [mode](/config/mode), [target](/config/target) and module type.
+Rspack's default `conditionNames` are determined by [mode](/config/mode), [target](/config/target), and [dependency type](#resolvebydependency). Typical defaults are:
 
 ```js
-// For ES modules
-['import', 'module', 'webpack', mode, target];
+// ES module requests
+['import', 'module', 'webpack', modeCondition, ...targetConditions];
 
-// For CommonJS
-['require', 'module', 'webpack', mode, target];
+// CommonJS requests
+['require', 'module', 'webpack', modeCondition, ...targetConditions];
 
-// For CSS module
-[mode, 'style'];
+// CSS @import requests
+[modeCondition, 'style'];
 ```
 
-In the above example:
+Here, `modeCondition` is `'development'` in development mode and `'production'` otherwise, including when `mode` is `'none'`.
 
-- `mode` is determined by [mode](/config/mode) config, which is `development` in development mode and `production` in other modes.
-- `target` is determined by [target](/config/target) config:
-  - If `target` includes `web`, it will be `browser`.
-  - If `target` includes `node`, it will be `node`.
-  - If `target` includes `webworker`, it will be `worker`.
-  - If `target` includes `electron`, it will be `electron`.
-  - If `target` includes `nwjs`, it will be `nwjs`.
+`targetConditions` depend on the target:
+
+| Target                                      | `targetConditions`                |
+| ------------------------------------------- | --------------------------------- |
+| `'web'`                                     | `['browser']`                     |
+| `'webworker'`                               | `['worker', 'browser']`           |
+| `'node'`                                    | `['node']`                        |
+| `'electron-main'`                           | `['node', 'electron']`            |
+| `'electron-preload'`, `'electron-renderer'` | `['node', 'browser', 'electron']` |
+| `'nwjs'`                                    | `['node', 'browser', 'nwjs']`     |
+| `false`, `'es2022'`                         | `[]`                              |
+
+CSS `@import` requests use their own condition names and do not include these platform conditions by default.
 
 ### Example
 
@@ -262,15 +298,7 @@ export default {
 };
 ```
 
-Alternatively, to prioritize the default value first and then add your custom condition names:
-
-```js title="rspack.config.mjs"
-export default {
-  resolve: {
-    conditionNames: ['...', 'my-custom-condition'],
-  },
-};
-```
+The order of `conditionNames`, including the position of `'...'`, does not affect priority; the package's `exports` key order determines matching priority.
 
 ## resolve.descriptionFiles
 
@@ -520,11 +548,11 @@ When this configuration is `["testImports", "imports"]`, the result of `import v
 ## resolve.mainFields
 
 - **Type:** `string[]`
-- **Default:** Based on the [target](/config/target) option
+- **Default:** Depends on [target](/config/target) and [dependency type](#resolvebydependency).
 
 Controls the priority of fields in a package.json used to locate a package's entry file. It is the ordered list of package.json fields Rspack will try when resolving an npm package's entry point.
 
-If `target` is `'web'`, `'webworker'`, or not specified, the default value is `["browser", "module", "main"]`.
+For JavaScript requests targeting `'web'` or `'webworker'`, the default is `["browser", "module", "main"]`.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -534,7 +562,7 @@ export default {
 };
 ```
 
-For any other `target` (including `'node'`), the default value is `["module", "main"]`.
+For Node.js, the default for JavaScript requests is `["module", "main"]`.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -543,6 +571,8 @@ export default {
   },
 };
 ```
+
+CSS `@import` requests default to `["style", "main"]`; URL requests default to `["main"]`. Use [resolve.byDependency](#resolvebydependency) to configure these separately.
 
 For example, consider an arbitrary library called `foo` with a `package.json` that contains the following fields:
 
@@ -554,7 +584,7 @@ For example, consider an arbitrary library called `foo` with a `package.json` th
 }
 ```
 
-When `import foo from 'foo'`, Rspack resolves to the module in the `browser` field, because the `browser` field has the highest priority in `mainFields` array.
+With `mainFields: ['browser', 'module', 'main']`, `import foo from 'foo'` resolves to the module in the `browser` field, because that field has the highest priority in the array.
 
 Note that the [`exports` field](https://nodejs.org/api/packages.html#packages_exports) takes precedence over `mainFields`. If an entry is resolved via `exports`, Rspack ignores the `browser`, `module`, and `main` fields.
 

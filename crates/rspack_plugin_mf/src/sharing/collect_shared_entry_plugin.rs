@@ -161,7 +161,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
         };
         (
           consume.shared_identity(),
-          consume.get_dependencies(),
+          consume.get_dependency_ids(),
           consume.get_blocks(),
           None,
           Vec::new(),
@@ -176,7 +176,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
         };
         (
           provide.shared_identity(),
-          provide.get_dependencies(),
+          provide.get_dependency_ids(),
           provide.get_blocks(),
           Some(provide.manifest_version().to_string()),
           module_graph
@@ -202,7 +202,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
     let mut dependency_ids: Vec<_> = dependencies.copied().collect();
     for block_id in blocks {
       if let Some(block) = module_graph.block_by_id(block_id) {
-        dependency_ids.extend(block.get_dependencies().copied());
+        dependency_ids.extend(block.get_dependency_ids().copied());
       }
     }
     let mut target_modules = Vec::new();
