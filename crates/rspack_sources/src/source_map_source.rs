@@ -161,13 +161,30 @@ impl Source for SourceMapSource {
   }
 }
 
+/// Hash only the content-relevant source map fields. Path-like fields such as
+/// `sources`, `sourceRoot`, and `file` may include sandbox roots that differ
+/// across otherwise identical builds.
+fn hash_source_map_content<H: Hasher>(source_map: &SourceMap<'_>, state: &mut H) {
+  source_map.mappings().hash(state);
+  source_map.names().hash(state);
+  source_map.sources_content().hash(state);
+  source_map.ignore_list().hash(state);
+  source_map.get_debug_id().hash(state);
+}
+
 impl Hash for SourceMapSource {
   fn hash<H: Hasher>(&self, state: &mut H) {
     "SourceMapSource".hash(state);
     self.buffer().hash(state);
-    self.source_map.hash(state);
+    hash_source_map_content(&self.source_map, state);
     self.original_source.hash(state);
-    self.inner_source_map.hash(state);
+    match &self.inner_source_map {
+      Some(inner) => {
+        true.hash(state);
+        hash_source_map_content(inner, state);
+      }
+      None => false.hash(state),
+    }
     self.remove_original_source.hash(state);
   }
 }
@@ -355,7 +372,32 @@ mod tests {
 
     let mut hasher = twox_hash::XxHash64::default();
     sms1.hash(&mut hasher);
-    assert_eq!(format!("{:x}", hasher.finish()), "736934c6e249aa6e");
+    assert_eq!(format!("{:x}", hasher.finish()), "23217f6b1bca9508");
+  }
+
+  #[test]
+  fn should_hash_independently_of_source_map_paths() {
+    let source = |sandbox: &str| {
+      SourceMapSource::new(SourceMapSourceOptions {
+        value: "console.log(1);\n".to_string(),
+        name: "mod.js".to_string(),
+        source_map: SourceMap::from_json(format!(
+          r#"{{"version":3,"file":"{sandbox}/dist/mod.js","sources":["{sandbox}/app/src/mod.ts"],"sourceRoot":"{sandbox}","names":[],"sourcesContent":["console.log(1)"],"mappings":"AAAA"}}"#
+        ))
+        .unwrap(),
+        original_source: None,
+        inner_source_map: None,
+        remove_original_source: false,
+      })
+    };
+
+    let mut a = twox_hash::XxHash64::default();
+    source("/mnt/engflow/worker/work/0/exec").hash(&mut a);
+
+    let mut b = twox_hash::XxHash64::default();
+    source("/mnt/engflow/worker/work/7/exec").hash(&mut b);
+
+    assert_eq!(a.finish(), b.finish());
   }
 
   #[test]
