@@ -1,18 +1,43 @@
 use std::sync::Arc;
 
+use rspack_cacheable::cacheable;
 use rspack_collections::{Identifiable, IdentifierDashMap};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 
 use crate::{
-  BoxModule, BuildModuleGraphArtifact, FileSystemInfo, ModuleGraph, ModuleIdentifier,
-  NormalModuleState, ValueCacheVersions,
+  BoxModule, BuildModuleGraphArtifact, ContextModuleState, FileSystemInfo, ModuleGraph,
+  ModuleIdentifier, NormalModuleState, ValueCacheVersions,
   new_cache::{CacheFacade, CacheValue},
 };
 
-/// Cache for completed normal module builds.
+/// Completed build state. Cloning copies build metadata and containers for the
+/// restored module, while dependency and block objects keep shared identity.
+#[cacheable]
+#[derive(Debug, Clone)]
+pub(crate) enum ModuleBuildCacheEntry {
+  Normal(NormalModuleState),
+  Context(ContextModuleState),
+}
+
+impl ModuleBuildCacheEntry {
+  pub(crate) fn restore(self, module: &mut BoxModule) {
+    match self {
+      Self::Normal(state) => module
+        .as_normal_module_mut()
+        .expect("normal module cache entry")
+        .restore_module_state(state),
+      Self::Context(state) => module
+        .as_context_module_mut()
+        .expect("context module cache entry")
+        .restore_module_state(state),
+    }
+  }
+}
+
+/// Cache for completed normal and context module builds.
 ///
-/// Cache entries store [`NormalModuleState`], including its dependency and block
-/// objects. Factory-owned module data is supplied by the fresh module.
+/// Cache entries include their dependency and block objects. Factory-owned
+/// module data is supplied by the fresh module.
 #[derive(Debug, Clone)]
 pub(crate) struct ModuleBuildCache {
   cache: CacheFacade,
@@ -38,22 +63,32 @@ impl ModuleBuildCache {
     module: &BoxModule,
     file_system_info: &FileSystemInfo,
     value_cache_versions: &ValueCacheVersions,
-  ) -> Result<Option<NormalModuleState>> {
-    if module.as_normal_module().is_none() {
+  ) -> Result<Option<ModuleBuildCacheEntry>> {
+    if module.as_normal_module().is_none() && module.as_context_module().is_none() {
       return Ok(None);
     }
 
     let identifier = module.identifier();
     let Some(result) = self
       .cache
-      .get::<NormalModuleState>(identifier.as_str(), None)
+      .get::<ModuleBuildCacheEntry>(identifier.as_str(), None)
     else {
       return Ok(None);
     };
-    if result
-      .need_build_with_context(file_system_info, value_cache_versions)
-      .await?
-    {
+    let need_build = match &*result {
+      ModuleBuildCacheEntry::Normal(state) if module.as_normal_module().is_some() => {
+        state
+          .need_build_with_context(file_system_info, value_cache_versions)
+          .await?
+      }
+      ModuleBuildCacheEntry::Context(state) if module.as_context_module().is_some() => {
+        state
+          .need_build_with_context(file_system_info, value_cache_versions)
+          .await?
+      }
+      _ => true,
+    };
+    if need_build {
       return Ok(None);
     }
 
@@ -85,12 +120,17 @@ impl ModuleBuildCache {
           let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
             return Ok(None);
           };
-          let Some(module) = module.as_normal_module() else {
+          let snapshot = if let Some(module) = module.as_normal_module() {
+            module
+              .create_cache_snapshot(file_system_info, build_start_time)
+              .await?
+          } else if let Some(module) = module.as_context_module() {
+            module
+              .create_cache_snapshot(file_system_info, build_start_time)
+              .await?
+          } else {
             return Ok(None);
           };
-          let snapshot = module
-            .create_cache_snapshot(file_system_info, build_start_time)
-            .await?;
           Ok(Some((module_identifier, snapshot)))
         });
       }
@@ -142,13 +182,18 @@ impl ModuleBuildCache {
 fn create_cache_entry(
   module_graph: &ModuleGraph,
   module_identifier: ModuleIdentifier,
-) -> NormalModuleState {
+) -> ModuleBuildCacheEntry {
   let source_module = module_graph
     .module_by_identifier(&module_identifier)
     .expect("pending module should exist in the final module graph");
-  source_module
-    .as_normal_module()
-    .expect("only normal modules are marked pending for the module build cache")
-    .module_state()
-    .clone()
+  if let Some(module) = source_module.as_normal_module() {
+    ModuleBuildCacheEntry::Normal(module.module_state().clone())
+  } else {
+    ModuleBuildCacheEntry::Context(
+      source_module
+        .as_context_module()
+        .expect("only normal and context modules have cache entries")
+        .module_state(),
+    )
+  }
 }

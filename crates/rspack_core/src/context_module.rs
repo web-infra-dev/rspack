@@ -31,11 +31,13 @@ use crate::{
   ChunkGroupOptions, CodeGenerationResultBuilder, Compilation, Context, ContextElementDependency,
   DependenciesBlock, DependenciesBlockData, DependencyCategory, DependencyId, DependencyLocation,
   DependencyRef, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode,
-  GroupOptions, ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
-  ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
-  RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, contextify, get_exports_type_with_strict,
-  get_outgoing_async_modules, impl_module_meta_info, module_update_hash, property_access, to_path,
+  FileSystemInfo, GroupOptions, ImportAttributes, ImportPhase, LibIdentOptions, Module,
+  ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId,
+  ModuleIdsArtifact, ModuleLayer, ModuleType, NeedBuildContext, RealDependencyLocation,
+  ReferencedSpecifier, Resolve, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, Snapshot,
+  SnapshotValidationResult, SourceType, ValueCacheVersions, contextify,
+  get_exports_type_with_strict, get_outgoing_async_modules, impl_module_meta_info,
+  module_update_hash, property_access, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -280,7 +282,93 @@ pub struct ContextModule {
   resolve_dependencies: ResolveContextModuleDependencies,
 }
 
+/// Build-owned context state. Cloning gives each restored module its own build
+/// metadata and dependency containers while sharing dependency and block objects.
+/// Factory options and the dependency-resolution callback stay on the fresh module.
+#[cacheable]
+#[derive(Debug, Clone)]
+pub(crate) struct ContextModuleState {
+  dependencies_block: DependenciesBlockData,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
+  source_map_kind: SourceMapKind,
+}
+
+impl ContextModuleState {
+  pub(crate) async fn need_build_with_context(
+    &self,
+    file_system_info: &FileSystemInfo,
+    value_cache_versions: &ValueCacheVersions,
+  ) -> Result<bool> {
+    context_needs_build(
+      &self.build_info,
+      &NeedBuildContext::new(file_system_info, value_cache_versions),
+    )
+    .await
+  }
+}
+
+async fn context_needs_build(
+  build_info: &BuildInfo,
+  context: &NeedBuildContext<'_>,
+) -> Result<bool> {
+  if !build_info.cacheable
+    || context
+      .value_cache_versions
+      .has_diff(&build_info.value_dependencies)
+  {
+    return Ok(true);
+  }
+  let Some(snapshot) = &build_info.snapshot else {
+    return Ok(true);
+  };
+  Ok(matches!(
+    context
+      .file_system_info
+      .check_snapshot_valid(snapshot)
+      .await?,
+    SnapshotValidationResult::Invalid { .. }
+  ))
+}
+
 impl ContextModule {
+  pub(crate) fn module_state(&self) -> ContextModuleState {
+    ContextModuleState {
+      dependencies_block: self.dependencies_block.clone(),
+      build_info: self.build_info.clone(),
+      build_meta: self.build_meta.clone(),
+      source_map_kind: self.source_map_kind,
+    }
+  }
+
+  pub(crate) fn restore_module_state(&mut self, state: ContextModuleState) {
+    self.dependencies_block = state.dependencies_block;
+    self.build_info = state.build_info;
+    self.build_meta = state.build_meta;
+    self.source_map_kind = state.source_map_kind;
+  }
+
+  pub(crate) async fn create_cache_snapshot(
+    &self,
+    file_system_info: &FileSystemInfo,
+    build_start_time: u64,
+  ) -> Result<Option<Snapshot>> {
+    if !self.build_info.cacheable {
+      return Ok(None);
+    }
+    Ok(Some(
+      file_system_info
+        .create_snapshot(
+          Some(build_start_time),
+          &self.build_info.dependencies.file,
+          &self.build_info.dependencies.context,
+          &self.build_info.dependencies.missing,
+          file_system_info.context_module_strategy(),
+        )
+        .await?,
+    ))
+  }
+
   pub(crate) fn new_with_strict(
     resolve_dependencies: ResolveContextModuleDependencies,
     options: ContextModuleOptions,
@@ -1304,6 +1392,10 @@ impl DependenciesBlock for ContextModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for ContextModule {
+  async fn need_build(&mut self, context: &NeedBuildContext<'_>) -> Result<bool> {
+    context_needs_build(&self.build_info, context).await
+  }
+
   impl_module_meta_info!();
 
   fn module_type(&self) -> &ModuleType {
