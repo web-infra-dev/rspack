@@ -17,6 +17,18 @@ You can define budget thresholds with `maxAssetSize` and `maxEntrypointSize`, an
 
 <PropertyType type="false | object" />
 
+By default, performance hints are enabled in production mode for browser targets, such as `'web'` and `'webworker'`, including mixed browser and Node.js targets. They are disabled when targeting only Node.js, Electron, or NW.js, and in development and none modes.
+
+For example, when `performance` is omitted:
+
+| `mode`                      | `target`                                     | Default `performance`             |
+| --------------------------- | -------------------------------------------- | --------------------------------- |
+| `'production'`              | `'web'` or `'webworker'`                     | An object with `hints: 'warning'` |
+| `'production'`              | `'node'`, `'electron-renderer'`, or `'nwjs'` | `false`                           |
+| `'development'` or `'none'` | `'web'`                                      | `false`                           |
+
+To enable performance hints for a Node.js production build, set `performance: {}`. To enable them in development or none mode, also set `performance.hints` to `'warning'` or `'error'`.
+
 Set `performance` to `false` to disable the performance hints:
 
 ```js title="rspack.config.mjs"
@@ -30,6 +42,8 @@ export default {
 <PropertyType type="(assetFilename: string) => boolean" />
 
 Used to filter which assets are included in performance hint calculations. Files returning `true` are included, and files returning `false` are ignored.
+
+By default, Rspack excludes assets marked as development assets, such as source maps. A custom `assetFilter` replaces this default filter and applies to both individual asset sizes and entrypoint total sizes.
 
 Ignore CSS files when calculating performance hints:
 
@@ -50,6 +64,8 @@ export default {
     { defaultValue: 'false', mode: 'development' },
   ]}
 />
+
+In none mode, `hints` also defaults to `false`. These defaults apply when `performance` is an object. When `performance` is `false`, performance hints are disabled regardless of the mode.
 
 Controls whether performance hints are enabled and which level to use:
 
