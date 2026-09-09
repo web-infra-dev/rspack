@@ -130,6 +130,11 @@ function getRawSnapshot(snapshot: CacheSnapshotNormalized): RawSnapshotOptions {
     immutablePaths: snapshot.immutablePaths!,
     unmanagedPaths: snapshot.unmanagedPaths!,
     managedPaths: snapshot.managedPaths!,
+    module: snapshot.module,
+    contextModule: snapshot.contextModule,
+    resolve: snapshot.resolve,
+    buildDependencies: snapshot.buildDependencies,
+    resolveBuildDependencies: snapshot.resolveBuildDependencies,
   };
 }
 

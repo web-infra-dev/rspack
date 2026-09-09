@@ -19,6 +19,7 @@ import type {
   Bail,
   BundlerInfoOptions,
   CacheSnapshotOptions,
+  SnapshotStrategy,
   ChunkFilename,
   ChunkLoading,
   ChunkLoadingGlobal,
@@ -137,6 +138,10 @@ const normalizeIgnoreWarnings = (ignoreWarnings?: IgnoreWarnings) => {
 export const getNormalizedRspackOptions = (
   config: RspackOptions,
 ): RspackOptionsNormalized => {
+  const snapshot = getNormalizedCacheSnapshot({
+    ...(typeof config.cache === 'object' ? config.cache.snapshot : undefined),
+    ...config.snapshot,
+  });
   return {
     ignoreWarnings: normalizeIgnoreWarnings(config.ignoreWarnings),
     name: config.name,
@@ -276,12 +281,13 @@ export const getNormalizedRspackOptions = (
         },
     ),
     loader: cloneObject(config.loader),
+    snapshot,
     cache: optionalNestedConfig(config.cache, (cache) => {
       if (cache === false) return false;
       if (cache === true) {
         return {
           type: 'memory',
-          snapshot: getNormalizedCacheSnapshot(),
+          snapshot,
         };
       }
       switch (cache.type) {
@@ -290,7 +296,7 @@ export const getNormalizedRspackOptions = (
           return {
             ...cache,
             type: 'memory',
-            snapshot: getNormalizedCacheSnapshot(cache.snapshot),
+            snapshot,
           };
         case 'persistent': {
           const hasMaxVersions = Object.hasOwn(cache, 'maxVersions');
@@ -312,7 +318,7 @@ export const getNormalizedRspackOptions = (
             buildDependencies: nestedArray(cache.buildDependencies, (deps) =>
               deps.map((d) => path.resolve(context, d)),
             ),
-            snapshot: getNormalizedCacheSnapshot(cache.snapshot),
+            snapshot,
             storage: nestedConfig(cache.storage, (storage) => ({
               type: storage.type,
               directory: optionalNestedConfig(storage.directory, (directory) =>
@@ -509,6 +515,17 @@ const getNormalizedCacheSnapshot = (
     immutablePaths: optionalNestedArray(snapshot.immutablePaths, (p) => [...p]),
     unmanagedPaths: optionalNestedArray(snapshot.unmanagedPaths, (p) => [...p]),
     managedPaths: optionalNestedArray(snapshot.managedPaths, (p) => [...p]),
+    module: optionalNestedConfig(snapshot.module, cloneObject),
+    contextModule: optionalNestedConfig(snapshot.contextModule, cloneObject),
+    resolve: optionalNestedConfig(snapshot.resolve, cloneObject),
+    buildDependencies: optionalNestedConfig(
+      snapshot.buildDependencies,
+      cloneObject,
+    ),
+    resolveBuildDependencies: optionalNestedConfig(
+      snapshot.resolveBuildDependencies,
+      cloneObject,
+    ),
   }));
 
 const nestedConfig = <T, R>(value: T | undefined, fn: (value: T) => R) =>
@@ -640,6 +657,11 @@ export type CacheSnapshotNormalized = {
   immutablePaths?: (string | RegExp)[];
   unmanagedPaths?: (string | RegExp)[];
   managedPaths?: (string | RegExp)[];
+  module?: SnapshotStrategy;
+  contextModule?: SnapshotStrategy;
+  resolve?: SnapshotStrategy;
+  buildDependencies?: SnapshotStrategy;
+  resolveBuildDependencies?: SnapshotStrategy;
 };
 
 export type CacheNormalized =
@@ -710,6 +732,7 @@ export interface RspackOptionsNormalized {
   node: Node;
   loader: Loader;
   cache?: CacheNormalized;
+  snapshot: CacheSnapshotNormalized;
   stats: StatsValue;
   optimization: Optimization;
   plugins: Plugins;

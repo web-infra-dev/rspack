@@ -3119,6 +3119,16 @@ export interface RawSnapshotOptions {
   immutablePaths: Array<string|RegExp>
   unmanagedPaths: Array<string|RegExp>
   managedPaths: Array<string|RegExp>
+  module?: RawSnapshotStrategy
+  contextModule?: RawSnapshotStrategy
+  resolve?: RawSnapshotStrategy
+  buildDependencies?: RawSnapshotStrategy
+  resolveBuildDependencies?: RawSnapshotStrategy
+}
+
+export interface RawSnapshotStrategy {
+  timestamp?: boolean
+  hash?: boolean
 }
 
 export interface RawSplitChunkSizes {

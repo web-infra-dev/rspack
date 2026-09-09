@@ -35,6 +35,11 @@ type CacheOptions =
         immutablePaths?: Array<string | RegExp>;
         unmanagedPaths?: Array<string | RegExp>;
         managedPaths?: Array<string | RegExp>;
+        module?: { timestamp?: boolean; hash?: boolean };
+        contextModule?: { timestamp?: boolean; hash?: boolean };
+        resolve?: { timestamp?: boolean; hash?: boolean };
+        buildDependencies?: { timestamp?: boolean; hash?: boolean };
+        resolveBuildDependencies?: { timestamp?: boolean; hash?: boolean };
       };
       storage?: {
         type: 'filesystem';
@@ -282,7 +287,32 @@ export default {
 };
 ```
 
-启用 `experiments.newCache` 时，快照路径采用 webpack 的目录匹配规则。字符串项匹配目录下的文件，不匹配任意子串或单个文件；匹配单个文件请使用正则表达式。`unmanagedPaths` 的优先级高于 `immutablePaths` 和 `managedPaths`。managed 正则使用第一个捕获组（没有捕获组时使用完整匹配）确定包所在的目录，并根据包根目录的元数据校验缓存，包括 scoped 包及嵌套包。新缓存的 `managedPaths` 默认值为 `/^(.+?[\\/]node_modules[\\/])/`。
+启用 `experiments.newCache` 时，快照路径采用 webpack 的目录匹配规则。字符串项匹配目录下的文件，不匹配任意子串或单个文件；匹配单个文件请使用正则表达式。`unmanagedPaths` 的优先级高于 `immutablePaths` 和 `managedPaths`。managed 正则使用第一个捕获组（没有捕获组时使用完整匹配）确定包所在的目录，并根据包根目录的元数据校验缓存，包括 scoped 包及嵌套包。新缓存的 `managedPaths` 默认为 `/^(.+?[\\/]node_modules[\\/])/`。使用 Yarn PnP 3 时，默认正则还会将 unplugged 包匹配为托管路径，将缓存归档匹配为不可变路径。
+
+启用 `experiments.newCache` 后，内存缓存和持久化缓存均支持 webpack 的顶层 `snapshot` 配置。`cache.snapshot` 保留为兼容入口，同名字段以顶层配置为准。例如：
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: { newCache: true },
+  cache: { type: 'persistent' },
+  snapshot: {
+    module: { hash: true },
+    unmanagedPaths: [/my-linked-package/],
+  },
+};
+```
+
+每个阶段均接受 `{ timestamp?: boolean, hash?: boolean }`：
+
+| 配置                                | Development / none                | Production                        |
+| ----------------------------------- | --------------------------------- | --------------------------------- |
+| `snapshot.module`                   | `{ timestamp: true }`             | `{ timestamp: true, hash: true }` |
+| `snapshot.contextModule`            | `{ timestamp: true }`             | `{ timestamp: true }`             |
+| `snapshot.resolve`                  | `{ timestamp: true }`             | `{ timestamp: true, hash: true }` |
+| `snapshot.buildDependencies`        | `{ timestamp: true, hash: true }` | `{ timestamp: true, hash: true }` |
+| `snapshot.resolveBuildDependencies` | `{ timestamp: true, hash: true }` | `{ timestamp: true, hash: true }` |
+
+仅启用 hash 时，即使时间戳不变也会比较内容。两者同时启用时，时间戳未变可跳过哈希计算；时间戳变化后再比较哈希。空策略使用时间戳。`module` 覆盖普通模块的文件、目录和缺失依赖；`contextModule` 控制由 `require.context` 等上下文请求生成的模块。
 
 #### snapshot.immutablePaths
 

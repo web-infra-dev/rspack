@@ -35,6 +35,11 @@ type CacheOptions =
         immutablePaths?: Array<string | RegExp>;
         unmanagedPaths?: Array<string | RegExp>;
         managedPaths?: Array<string | RegExp>;
+        module?: { timestamp?: boolean; hash?: boolean };
+        contextModule?: { timestamp?: boolean; hash?: boolean };
+        resolve?: { timestamp?: boolean; hash?: boolean };
+        buildDependencies?: { timestamp?: boolean; hash?: boolean };
+        resolveBuildDependencies?: { timestamp?: boolean; hash?: boolean };
       };
       storage?: {
         type: 'filesystem';
@@ -293,7 +298,32 @@ export default {
 };
 ```
 
-With `experiments.newCache` enabled, snapshot paths follow webpack's directory matching rules. String entries match descendants of a directory, not arbitrary substrings or individual files. Use a regular expression to match an individual file. `unmanagedPaths` takes precedence over both `immutablePaths` and `managedPaths`. Managed regular expressions use the first capture group (or the full match when there is no capture) as the directory containing packages; package metadata comes from that package root, including scoped and nested packages. The new cache defaults `managedPaths` to `/^(.+?[\\/]node_modules[\\/])/`.
+With `experiments.newCache` enabled, snapshot paths follow webpack's directory matching rules. String entries match descendants of a directory, not arbitrary substrings or individual files. Use a regular expression to match an individual file. `unmanagedPaths` takes precedence over both `immutablePaths` and `managedPaths`. Managed regular expressions use the first capture group (or the full match when there is no capture) as the directory containing packages; package metadata comes from that package root, including scoped and nested packages. The new cache defaults `managedPaths` to `/^(.+?[\\/]node_modules[\\/])/`. With Yarn PnP 3, the default expressions also match unplugged packages as managed and cache archives as immutable.
+
+With `experiments.newCache` enabled, webpack's top-level `snapshot` option is supported for both memory and persistent cache. `cache.snapshot` remains an alias; top-level options take precedence for the same field. For example:
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: { newCache: true },
+  cache: { type: 'persistent' },
+  snapshot: {
+    module: { hash: true },
+    unmanagedPaths: [/my-linked-package/],
+  },
+};
+```
+
+Each stage accepts `{ timestamp?: boolean, hash?: boolean }`:
+
+| Option                              | Development / none                | Production                        |
+| ----------------------------------- | --------------------------------- | --------------------------------- |
+| `snapshot.module`                   | `{ timestamp: true }`             | `{ timestamp: true, hash: true }` |
+| `snapshot.contextModule`            | `{ timestamp: true }`             | `{ timestamp: true }`             |
+| `snapshot.resolve`                  | `{ timestamp: true }`             | `{ timestamp: true, hash: true }` |
+| `snapshot.buildDependencies`        | `{ timestamp: true, hash: true }` | `{ timestamp: true, hash: true }` |
+| `snapshot.resolveBuildDependencies` | `{ timestamp: true, hash: true }` | `{ timestamp: true, hash: true }` |
+
+Hash-only snapshots compare contents even when timestamps are unchanged. With both enabled, unchanged timestamps can skip hashing; changed timestamps fall back to comparing hashes. An empty strategy uses timestamps. `module` covers a normal module's file, context, and missing dependencies; `contextModule` controls modules created by context requests such as `require.context`.
 
 #### snapshot.immutablePaths
 

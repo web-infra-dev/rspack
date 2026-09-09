@@ -200,7 +200,23 @@ impl FileSystemInfo {
   }
 
   pub fn build_dependencies_strategy(&self) -> SnapshotStrategyOptions {
-    self.inner.options.dependencies_strategy()
+    self.inner.options.build_dependencies
+  }
+
+  pub fn resolve_build_dependencies_strategy(&self) -> SnapshotStrategyOptions {
+    self.inner.options.resolve_build_dependencies
+  }
+
+  pub fn module_strategy(&self) -> SnapshotStrategyOptions {
+    self.inner.options.module
+  }
+
+  pub fn context_module_strategy(&self) -> SnapshotStrategyOptions {
+    self.inner.options.context_module
+  }
+
+  pub fn resolve_strategy(&self) -> SnapshotStrategyOptions {
+    self.inner.options.resolve
   }
 
   /// See webpack's snapshot validation implementation:

@@ -13,7 +13,6 @@ use rspack_util::time::current_time;
 use crate::{
   CacheFacade, CacheValue, Etag, FileSystemInfo, IsolatedDts, ItemCacheFacade, Module, RscMeta,
   RunnerContext,
-  cache::SnapshotStrategyOptions,
   new_cache::{Snapshot, SnapshotValidationResult},
 };
 
@@ -105,7 +104,7 @@ pub async fn loader_cache_dependency_snapshot(
       &files,
       &empty,
       &empty,
-      SnapshotStrategyOptions::timestamp(),
+      file_system_info.module_strategy(),
     )
     .await
     .ok()?;

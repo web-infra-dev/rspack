@@ -105,6 +105,11 @@ pub struct SnapshotOptions {
   managed_paths: Vec<PathMatcher>,
   dependencies: SnapshotStrategyOptions,
   context_dependencies: SnapshotStrategyOptions,
+  pub module: SnapshotStrategyOptions,
+  pub context_module: SnapshotStrategyOptions,
+  pub resolve: SnapshotStrategyOptions,
+  pub build_dependencies: SnapshotStrategyOptions,
+  pub resolve_build_dependencies: SnapshotStrategyOptions,
 }
 
 impl Default for SnapshotOptions {
@@ -115,6 +120,11 @@ impl Default for SnapshotOptions {
       managed_paths: Default::default(),
       dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
       context_dependencies: SnapshotStrategyOptions::timestamp(),
+      module: SnapshotStrategyOptions::timestamp(),
+      context_module: SnapshotStrategyOptions::timestamp(),
+      resolve: SnapshotStrategyOptions::timestamp(),
+      build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
+      resolve_build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
     }
   }
 }

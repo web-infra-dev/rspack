@@ -2072,7 +2072,7 @@ export type Loader = Record<string, any>;
 /**
  * Snapshot options for determining which files have been modified.
  */
-export type CacheSnapshotOptions = {
+export type SnapshotOptions = {
   /**
    * An array of paths to immutable files, changes to these paths will be ignored during hot restart.
    */
@@ -2086,7 +2086,26 @@ export type CacheSnapshotOptions = {
    * @default [/[\\/]node_modules[\\/][^.]/]
    */
   managedPaths?: (string | RegExp)[];
+  /** Strategy for snapshots of normal modules, including their context dependencies. */
+  module?: SnapshotStrategy;
+  /** Strategy for snapshots of context modules such as `require.context`. */
+  contextModule?: SnapshotStrategy;
+  /** Strategy for snapshots of module and loader resolution. */
+  resolve?: SnapshotStrategy;
+  /** Strategy for snapshots of build dependency contents. */
+  buildDependencies?: SnapshotStrategy;
+  /** Strategy for snapshots of build dependency resolution. */
+  resolveBuildDependencies?: SnapshotStrategy;
 };
+
+/** Controls whether snapshots compare modification times, content hashes, or both. */
+export type SnapshotStrategy = {
+  timestamp?: boolean;
+  hash?: boolean;
+};
+
+/** Compatibility name for snapshot options under `cache.snapshot`. */
+export type CacheSnapshotOptions = SnapshotOptions;
 
 /**
  * Storage options for persistent cache.
@@ -3427,6 +3446,11 @@ export type RspackOptions = {
    * Options for caching.
    */
   cache?: CacheOptions;
+  /**
+   * Options for detecting changes to cached dependencies. Top-level values take
+   * precedence over the corresponding `cache.snapshot` options.
+   */
+  snapshot?: SnapshotOptions;
   /**
    * The context in which the compilation should occur.
    */

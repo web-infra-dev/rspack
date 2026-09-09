@@ -21,6 +21,7 @@ import { assertNotNill } from '../util/assertNotNil';
 import { cleverMerge } from '../util/cleverMerge';
 import type {
   CacheNormalized,
+  CacheSnapshotNormalized,
   EntryDescriptionNormalized,
   EntryNormalized,
   ExperimentsNormalized,
@@ -101,14 +102,19 @@ export const applyRspackOptionsDefaults = (
   D(options, 'bail', false);
 
   F(options, 'cache', () =>
-    development ? { type: 'memory' as const, snapshot: {} } : false,
+    development
+      ? { type: 'memory' as const, snapshot: options.snapshot }
+      : false,
   );
+  applySnapshotDefaults(options.snapshot, {
+    newCache: Boolean(options.experiments.newCache),
+    production,
+  });
   applyCacheDefaults(options.cache!, {
     context: options.context!,
     name: options.name || DEFAULT_CACHE_NAME,
     mode: options.mode || 'production',
     compilerIndex,
-    newCache: Boolean(options.experiments.newCache),
   });
 
   applyIncrementalDefaults(options);
@@ -219,23 +225,14 @@ const applyCacheDefaults = (
     name,
     mode,
     compilerIndex,
-    newCache,
   }: {
     context: string;
     name: Name;
     mode: Mode;
     compilerIndex?: number;
-    newCache: boolean;
   },
 ) => {
   if (cache === false) return;
-  F(cache.snapshot, 'immutablePaths', () => []);
-  F(cache.snapshot, 'unmanagedPaths', () => []);
-  F(cache.snapshot, 'managedPaths', () =>
-    newCache
-      ? [/^(.+?[\\/]node_modules[\\/])/]
-      : [/[\\/]node_modules[\\/][^.]/],
-  );
   switch (cache.type) {
     case 'memory':
       break;
@@ -261,6 +258,48 @@ const applyCacheDefaults = (
       D(cache, 'readonly', false);
       break;
   }
+};
+
+const applySnapshotDefaults = (
+  snapshot: CacheSnapshotNormalized,
+  {
+    newCache,
+    production,
+  }: {
+    newCache: boolean;
+    production: boolean;
+  },
+) => {
+  if (!newCache) {
+    F(snapshot, 'managedPaths', () => [/[\\/]node_modules[\\/][^.]/]);
+    F(snapshot, 'immutablePaths', () => []);
+  } else {
+    F(snapshot, 'managedPaths', () =>
+      process.versions.pnp === '3'
+        ? [
+            /^(.+?(?:[\\/]\.yarn[\\/]unplugged[\\/][^\\/]+)?[\\/]node_modules[\\/])/,
+          ]
+        : [/^(.+?[\\/]node_modules[\\/])/],
+    );
+    F(snapshot, 'immutablePaths', () =>
+      process.versions.pnp === '3'
+        ? [/^(.+?[\\/]cache[\\/][^\\/]+\.zip[\\/]node_modules[\\/])/]
+        : [],
+    );
+  }
+  F(snapshot, 'unmanagedPaths', () => []);
+  F(snapshot, 'module', () =>
+    production ? { timestamp: true, hash: true } : { timestamp: true },
+  );
+  F(snapshot, 'contextModule', () => ({ timestamp: true }));
+  F(snapshot, 'resolve', () =>
+    production ? { timestamp: true, hash: true } : { timestamp: true },
+  );
+  F(snapshot, 'buildDependencies', () => ({ timestamp: true, hash: true }));
+  F(snapshot, 'resolveBuildDependencies', () => ({
+    timestamp: true,
+    hash: true,
+  }));
 };
 
 export const applyRspackOptionsBaseDefaults = (

@@ -36,9 +36,7 @@ use crate::{
   OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult, ParserAndGenerator,
   ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext,
   RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SnapshotValidationResult, SourceType,
-  ValueCacheVersions,
-  cache::SnapshotStrategyOptions,
-  contextify,
+  ValueCacheVersions, contextify,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -404,8 +402,7 @@ impl NormalModuleState {
           &self.build_info.dependencies.file,
           &self.build_info.dependencies.context,
           &self.build_info.dependencies.missing,
-          // Rspack does not expose webpack's `snapshot.module` strategy yet.
-          SnapshotStrategyOptions::timestamp(),
+          file_system_info.module_strategy(),
         )
         .await?,
     ))
