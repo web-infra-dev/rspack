@@ -882,6 +882,8 @@ impl Module for ConcatenatedModule {
           .map(|(name, asset)| (name.clone(), asset.clone())),
       );
     }
+    // Created during seal, after the build module graph phase freezes other modules.
+    self.build_info.freeze();
     Ok(BoxModule::new(self))
   }
 
