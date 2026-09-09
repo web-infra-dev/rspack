@@ -7,6 +7,7 @@ import {
   type ModuleFederationManifestPluginOptions,
 } from '../container/ModuleFederationManifestPlugin';
 import { createHash } from '../util/createHash';
+import { absoluteToRequest } from '../util/identifier';
 import {
   CollectSharedEntryPlugin,
   type ShareRequestsMap,
@@ -76,6 +77,7 @@ export type ShareFallbackVariant = {
   shareScope: ShareScope;
   layer?: string;
   import: string;
+  resource: string;
 };
 
 export type ShareFallbackVariants = Record<string, ShareFallbackVariant[]>;
@@ -357,7 +359,7 @@ export class IndependentSharedPlugin {
           shareRequestsMap,
           compiler.context,
         );
-        this.prepareBuildAssets(buildRequests);
+        this.prepareBuildAssets(buildRequests, compiler.context);
         await this.createIndependentCompilers(compiler, buildRequests);
         this.onBuildAssets?.(this.buildAssets, this.buildAssetVariants);
       },
@@ -507,7 +509,10 @@ export class IndependentSharedPlugin {
     return buildRequests;
   }
 
-  private prepareBuildAssets(buildRequests: SharedBuildRequest[]) {
+  private prepareBuildAssets(
+    buildRequests: SharedBuildRequest[],
+    context: string,
+  ) {
     const { outputDir } = this;
     const buildAssets: ShareFallback = {};
     const buildAssetRecords: SharedBuildAsset[] = [];
@@ -536,6 +541,7 @@ export class IndependentSharedPlugin {
         shareScope: request.shareScope,
         layer: request.layer,
         import: request.fallbackImport,
+        resource: absoluteToRequest(context, request.request),
       });
       buildAssetRecords.push({ ...request, entry, globalName });
     });

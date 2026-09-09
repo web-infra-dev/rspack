@@ -147,7 +147,11 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
           )
         };
         let layer_data = if enhanced {
-          format!(", layer: {}", json_stringify(&data.layer))
+          format!(
+            ", layer: {}, resource: {}",
+            json_stringify(&data.layer),
+            json_stringify(&data.resource)
+          )
         } else {
           String::new()
         };
@@ -286,6 +290,7 @@ pub struct CodeGenerationDataConsumeShared {
   pub share_scope: ShareScope,
   pub share_key: String,
   pub import: Option<String>,
+  pub resource: Option<String>,
   pub required_version: Option<ConsumeVersion>,
   pub strict_version: bool,
   pub singleton: bool,
