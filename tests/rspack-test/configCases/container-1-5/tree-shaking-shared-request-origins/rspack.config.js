@@ -27,6 +27,12 @@ module.exports = {
       name: 'tree_shaking_shared_request_origins',
       library: { type: 'commonjs-module' },
       shared: {
+        'relative-share': {
+          import: './shared',
+          shareKey: 'relative',
+          requiredVersion: false,
+          treeShaking: { mode: 'runtime-infer' },
+        },
         'alias-a': {
           import: 'pkg-a',
           shareKey: 'same-key',
@@ -54,7 +60,7 @@ module.exports = {
           treeShaking: { mode: 'runtime-infer' },
         },
         'alias-a-query': {
-          import: 'pkg-a?copy',
+          import: 'pkg-a?copy#fragment',
           shareKey: 'same-key',
           requiredVersion: false,
           treeShaking: { mode: 'runtime-infer' },

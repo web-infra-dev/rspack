@@ -7,14 +7,14 @@ use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
   ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, RuntimeGlobals, RuntimeSpec, SourceType,
   impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
-use rspack_util::{json_stringify_str, source_map::SourceMapKind};
+use rspack_util::{identifier::absolute_to_request, json_stringify_str, source_map::SourceMapKind};
 
 use super::{
   consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
@@ -282,12 +282,32 @@ impl Module for ConsumeSharedModule {
       SourceType::ConsumeShared,
       RawStringSource::from(factory.clone().unwrap_or_else(|| "undefined".to_string())).boxed(),
     );
+    let module_graph = compilation.get_module_graph();
+    let fallback_dependency = self.get_dependency_ids().next().or_else(|| {
+      self
+        .get_blocks()
+        .first()
+        .and_then(|block| module_graph.block_by_id(block))
+        .and_then(|block| block.get_dependency_ids().next())
+    });
+    let resource = fallback_dependency
+      .and_then(|dependency| module_graph.get_module_by_dependency_id(dependency))
+      .and_then(|module| {
+        module.name_for_condition().map(|name| {
+          let resource = module.as_any().downcast_ref::<NormalModule>().map_or_else(
+            || name.into(),
+            |module| module.resource_resolved_data().resource().to_string(),
+          );
+          absolute_to_request(compilation.options.context.as_str(), &resource).into_owned()
+        })
+      });
     code_generation_result
       .data_mut()
       .insert(CodeGenerationDataConsumeShared {
         share_scope: self.options.share_scope.clone(),
         share_key: self.options.share_key.clone(),
         import: self.options.import.clone(),
+        resource,
         required_version: self.options.required_version.clone(),
         strict_version: self.options.strict_version,
         singleton: self.options.singleton,
