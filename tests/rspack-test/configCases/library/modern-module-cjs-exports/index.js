@@ -26,6 +26,32 @@ it('should preserve assignments to declared exports in strict ES modules', () =>
   expect(require('./declaration-esm.mjs').exports).toBe(43);
 });
 
+it('should deconflict destructured runtime exports bindings', () => {
+  expect({ ...require('./declaration-runtime-object.js') }).toEqual({
+    rspackExports: 42,
+    __rspack_exports: 43,
+    __webpack_exports__: 44,
+  });
+  const array = require('./declaration-runtime-array.js');
+  expect({ ...array }).toEqual({
+    rspackExports: 43,
+    __webpack_exports__: 45,
+    update: expect.any(Function),
+  });
+  array.update();
+  expect(array.rspackExports).toBe(44);
+  expect(array.__webpack_exports__).toBe(46);
+
+  const defaulted = require('./declaration-runtime-default.js');
+  expect(defaulted.rspackExports).toBe(42);
+  expect(defaulted.__webpack_exports__).toBe(44);
+  expect(defaulted.read({ rspackExports: 43, __webpack_exports__: 45 })).toEqual([
+    43,
+    45,
+  ]);
+  expect(defaulted.read({})).toEqual([7, 9]);
+});
+
 it('should preserve global exports assignments in strict ES modules', () => {
   const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'exports');
   const original = { original: true };

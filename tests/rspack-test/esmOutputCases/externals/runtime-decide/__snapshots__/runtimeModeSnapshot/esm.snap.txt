@@ -21,12 +21,12 @@ def(exports)
 /*!***************************!*\
   !*** ./runtime-decide.js ***!
   \***************************/
-(__unused_rspack_module, __rspack_exports) {
+(__unused_rspack_module, rspackExports) {
 /* import */ var _dynamic_exports__rspack_import_0 = rspackRequire(/*! ./dynamic-exports */ "./dynamic-exports.js");
 /* import */ var _dynamic_exports__rspack_import_0_default = /*#__PURE__*/compatGetDefaultExport(_dynamic_exports__rspack_import_0);
-if(hasOwnProperty(_dynamic_exports__rspack_import_0, "readFile")) definePropertyGetters(__rspack_exports, { readFile: function() { return _dynamic_exports__rspack_import_0.readFile; } });
+if(hasOwnProperty(_dynamic_exports__rspack_import_0, "readFile")) definePropertyGetters(rspackExports, { readFile: function() { return _dynamic_exports__rspack_import_0.readFile; } });
 /* import */ var fs__rspack_import_1 = rspackRequire(/*! fs */ "fs");
-if(hasOwnProperty(fs__rspack_import_1, "readFile")) definePropertyGetters(__rspack_exports, { readFile: function() { return fs__rspack_import_1.readFile; } });
+if(hasOwnProperty(fs__rspack_import_1, "readFile")) definePropertyGetters(rspackExports, { readFile: function() { return fs__rspack_import_1.readFile; } });
 
 
 // side effects

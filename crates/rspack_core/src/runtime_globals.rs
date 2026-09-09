@@ -519,7 +519,7 @@ pub fn rspack_export_runtime_variable_name(runtime_variable: &RuntimeVariable) -
     RuntimeVariable::Modules => "modules",
     RuntimeVariable::ModuleCache => "moduleCache",
     // ESM factories must not shadow a source-level reference to global `exports`.
-    RuntimeVariable::Exports => "__rspack_exports",
+    RuntimeVariable::Exports => "rspackExports",
     RuntimeVariable::Module => "module",
     RuntimeVariable::StartupExec => "startupExec",
   }

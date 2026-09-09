@@ -8,7 +8,7 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /declaration-(object|array|default)\.js$/,
+        test: /declaration-(?:runtime-)?(object|array|default)\.js$/,
         type: 'javascript/auto',
       },
     ],

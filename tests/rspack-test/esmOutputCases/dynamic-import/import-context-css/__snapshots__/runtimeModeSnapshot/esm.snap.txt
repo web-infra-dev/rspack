@@ -16,13 +16,13 @@ moduleFactories.add({
 /*!**********************!*\
   !*** ./modules/a.js ***!
   \**********************/
-(__unused_rspack_module, __rspack_exports) {
-makeNamespaceObject(__rspack_exports);
+(__unused_rspack_module, rspackExports) {
+makeNamespaceObject(rspackExports);
 
 
 /* export default */ const __rspack_default_export = ("a");
 
-definePropertyGetters(__rspack_exports, {
+definePropertyGetters(rspackExports, {
 }, {
   "default": __rspack_default_export
 });
