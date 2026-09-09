@@ -70,7 +70,7 @@ For every included item, link the upstream PR or commit and explain the concrete
 
 Search open and recent Rspack issues using the symptoms, syntax, transform names, and error text from notable SWC fixes. Read candidate issues and confirm the behavior matches from the available issue details, upstream fix, and local integration code. Do not run tests as part of this workflow. Record verified issue links for the PR.
 
-Keep issue correlation as an analysis step, not a reporting requirement. If no Rspack issue is verified, omit the bug fix and omit the related-links section entirely. Never list upstream bug fixes solely to summarize the SWC release.
+Keep issue correlation as an analysis step, not a reporting requirement. If no Rspack issue is verified, omit the bug fix and issue links. Never list upstream bug fixes solely to summarize the SWC release.
 
 ## 4. Adapt and validate
 
@@ -94,10 +94,14 @@ chore: bump `swc_core` from FROM_LABEL to TO_LABEL
 
 Use the same subject for the commit unless repository history indicates a necessary commit-only variation. Stage only intended paths, review the staged diff, commit, push the current feature branch, and open the PR against `main`.
 
-Build the PR description from `.github/PULL_REQUEST_TEMPLATE.md`. Keep it brief and evidence-based:
+Read `.github/PULL_REQUEST_TEMPLATE.md` and follow its current structure. Keep the description brief and evidence-based. With the Motivation/Changes template:
 
 ```markdown
-## Summary
+## Motivation
+
+<Explain why this upgrade matters to Rspack using the verified upstream changes. Include verified Rspack issue links when available; use `Fixes #NNNN` only for confirmed fixes.>
+
+## Changes
 
 Bumps `swc_core` from `OLD_VERSION` to `NEW_VERSION` and aligns the compatible SWC dependency pins.
 
@@ -107,19 +111,6 @@ Bumps `swc_core` from `OLD_VERSION` to `NEW_VERSION` and aligns the compatible S
 - **Features:** <new capabilities available through Rspack; omit when empty>
 - **Performance:** <improvements likely to benefit Rspack; omit when empty>
 - **Fixes:** <only fixes matched to verified Rspack issues; omit when empty>
-
-## Related links
-
-<Include this section only when verified Rspack issue links exist. Use `Fixes #NNNN` only for confirmed fixes.>
-
-## Checklist
-
-- [x] Tests updated (or not required).
-- [x] Documentation updated (or not required).
-
-## Validation
-
-- `<exact command>`
 ```
 
-Include only useful changelog detail in the PR body; do not dump the raw commit list. Prefer omitting a low-confidence or low-impact item over making reviewers evaluate it. Remove empty optional bullets and sections from the final body. Mark a checklist item complete only when true, and state why tests or docs are not required when that is not obvious. After creation, report the PR URL, exact version range, changed files, validation results, and any remaining risks.
+Include only useful changelog detail in the PR body; do not dump the raw commit list. Prefer omitting a low-confidence or low-impact item over making reviewers evaluate it. Remove empty optional bullets from the final body. After creation, report the PR URL, exact version range, changed files, validation results, and any remaining risks to the user.
