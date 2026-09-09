@@ -34,6 +34,13 @@ fn is_create_require_tag(tag: &str, include_create_require_fn: bool) -> bool {
 }
 
 impl JavascriptParser<'_> {
+  pub(crate) fn in_semantic_scope<T>(&mut self, node: NodeId, f: impl FnOnce(&mut Self) -> T) -> T {
+    let previous = self.definitions_db.enter_semantic_scope(self.ast, node);
+    let result = f(self);
+    self.definitions_db.leave_semantic_scope(previous);
+    result
+  }
+
   fn in_block_scope<F>(&mut self, in_executed_path: bool, f: F)
   where
     F: FnOnce(&mut Self),
