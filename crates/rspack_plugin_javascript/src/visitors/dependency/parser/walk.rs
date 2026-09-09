@@ -827,7 +827,11 @@ impl JavascriptParser<'_> {
       let rhs_name = ast.get_utf8(rhs.name(ast));
       self
         .has_create_require_tag(rhs_name, false)
-        .then(|| self.get_variable_info(rhs_name).map(|info| info.snapshot()))
+        .then(|| {
+          self
+            .get_variable_info(rhs_name)
+            .map(|info| info.binding_state())
+        })
         .flatten()
     }) {
       self.set_variable(
@@ -1079,7 +1083,7 @@ impl JavascriptParser<'_> {
     let resolved_root = name_info.name;
     let root_info = name_info.info.map_or_else(
       || ExportedVariableInfo::Name(root_name.into()),
-      |info| ExportedVariableInfo::VariableInfo(info.snapshot()),
+      |info| ExportedVariableInfo::VariableInfo(info.binding_state()),
     );
     let mut members: AtomMembers = member_nodes
       .iter()
@@ -1529,7 +1533,7 @@ impl JavascriptParser<'_> {
         {
           let variable = parser
             .get_variable_info(&rename_identifier)
-            .map(|info| ExportedVariableInfo::VariableInfo(info.snapshot()))
+            .map(|info| ExportedVariableInfo::VariableInfo(info.binding_state()))
             .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
           return Some(variable);
         }
@@ -1942,7 +1946,7 @@ impl JavascriptParser<'_> {
         {
           let variable = self
             .get_variable_info(&rename_identifier)
-            .map(|info| ExportedVariableInfo::VariableInfo(info.snapshot()))
+            .map(|info| ExportedVariableInfo::VariableInfo(info.binding_state()))
             .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
           self.set_variable(Atom::from(ast.get_utf8(ident.name(ast))), variable);
         }

@@ -1191,7 +1191,7 @@ impl<'parser> JavascriptParser<'parser> {
           call: expr,
           root_info: root_info.map_or_else(
             || ExportedVariableInfo::Name(Atom::from(resolved_root)),
-            |i| ExportedVariableInfo::VariableInfo(i.snapshot()),
+            |i| ExportedVariableInfo::VariableInfo(i.binding_state()),
           ),
           callee_members: root_members,
           members,
@@ -1217,7 +1217,7 @@ impl<'parser> JavascriptParser<'parser> {
           name,
           root_info: root_info.map_or_else(
             || ExportedVariableInfo::Name(Atom::from(resolved_root)),
-            |i| ExportedVariableInfo::VariableInfo(i.snapshot()),
+            |i| ExportedVariableInfo::VariableInfo(i.binding_state()),
           ),
           members,
           members_optionals,
@@ -1709,7 +1709,7 @@ impl<'parser> JavascriptParser<'parser> {
               let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
               eval.set_identifier(
                 name.to_owned(),
-                ExportedVariableInfo::VariableInfo(info.snapshot()),
+                ExportedVariableInfo::VariableInfo(info.binding_state()),
                 None,
                 None,
                 None,

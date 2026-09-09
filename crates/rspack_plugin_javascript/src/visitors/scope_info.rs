@@ -36,7 +36,7 @@ dense_id!(ScopeInfoId);
 dense_id!(VariableMetadataId);
 dense_id!(TagInfoId);
 
-/// A copyable snapshot, not a second identity for a static binding. Ordinary
+/// Copyable binding state, not a second identity for a static binding. Ordinary
 /// variables carry their declaration scope directly; only cold metadata needs
 /// another lookup. Aliases copy this state rather than follow another symbol.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -299,7 +299,7 @@ impl<'ast> ScopeInfoDB<'ast> {
   fn declared_binding_state(&self, binding: &Binding) -> Option<BindingState> {
     let mut state = self.binding_state(binding.target);
     if let BindingTarget::Symbol(symbol) = binding.target {
-      // Enumerating an active ancestor needs its own snapshot, not a temporary
+      // Enumerating an active ancestor needs its own binding state, not a temporary
       // override in a descendant (for example a separately parsed expression).
       for &(overridden, previous, owner) in self.overrides.iter().rev() {
         if overridden == symbol && self.is_descendant_of(owner, binding.scope) {
@@ -509,7 +509,7 @@ struct VariableMetadata {
   pub tag_info: Option<TagInfoId>,
 }
 
-/// A borrowed view of a binding snapshot. Normal variables are represented
+/// A borrowed view of binding state. Normal variables are represented
 /// directly, without allocating or looking up a metadata record.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct VariableInfo<'a> {
@@ -541,7 +541,7 @@ impl VariableInfo<'_> {
     BindingState::Metadata(id)
   }
 
-  pub fn snapshot(self) -> BindingState {
+  pub fn binding_state(self) -> BindingState {
     self.state
   }
 

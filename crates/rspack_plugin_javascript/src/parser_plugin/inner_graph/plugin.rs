@@ -753,7 +753,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
       ) {
         let class_var = parser
           .get_variable_info(&top_level_symbol_variable_name)
-          .map(|info| ExportedVariableInfo::VariableInfo(info.snapshot()))
+          .map(|info| ExportedVariableInfo::VariableInfo(info.binding_state()))
           .unwrap_or(ExportedVariableInfo::Name(top_level_symbol_variable_name));
         if let Some(class_ident) = class_decl_or_expr.ident(parser.ast.ast) {
           parser.set_variable(
