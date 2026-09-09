@@ -1,48 +1,65 @@
+use std::num::NonZeroU32;
+
 use bitflags::bitflags;
 use rspack_intern::{AtomMap, AtomRef};
-use slotmap::{KeyData, SlotMap, new_key_type};
 use smallvec::SmallVec;
 
 use crate::Atom;
 
-new_key_type! {
-  pub struct ScopeInfoId;
-  pub struct VariableInfoId;
-  pub struct TagInfoId;
+macro_rules! dense_id {
+  ($name:ident) => {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct $name(NonZeroU32);
+
+    impl $name {
+      fn from_index(index: usize) -> Self {
+        let value = u32::try_from(index)
+          .ok()
+          .and_then(|index| index.checked_add(1))
+          .filter(|value| *value < u32::MAX - 1)
+          .unwrap_or_else(|| panic!("too many {} entries", stringify!($name)));
+        Self(NonZeroU32::new(value).expect("dense ids start at one"))
+      }
+
+      fn index(self) -> usize {
+        (self.0.get() - 1) as usize
+      }
+    }
+  };
 }
+
+dense_id!(ScopeInfoId);
+dense_id!(VariableInfoId);
+dense_id!(TagInfoId);
 
 impl VariableInfoId {
   pub fn tombstone() -> Self {
-    Self::from(KeyData::from_ffi(u64::MAX))
+    Self(NonZeroU32::new(u32::MAX).expect("u32::MAX is non-zero"))
   }
   pub fn undefined() -> Self {
-    Self::from(KeyData::from_ffi(u64::MAX - 1))
+    Self(NonZeroU32::new(u32::MAX - 1).expect("u32::MAX - 1 is non-zero"))
   }
 }
 
 #[derive(Debug, Default)]
 pub struct VariableInfoDB {
-  map: SlotMap<VariableInfoId, VariableInfo>,
+  map: Vec<VariableInfo>,
 }
 
 impl VariableInfoDB {
   fn new() -> Self {
-    Self {
-      map: SlotMap::with_key(),
-    }
+    Self { map: Vec::new() }
   }
 }
 
 #[derive(Debug, Default)]
 pub struct TagInfoDB {
-  pub map: SlotMap<TagInfoId, TagInfo>,
+  pub map: Vec<TagInfo>,
 }
 
 impl TagInfoDB {
   fn new() -> Self {
-    Self {
-      map: SlotMap::with_key(),
-    }
+    Self { map: Vec::new() }
   }
 }
 
@@ -67,7 +84,9 @@ struct Binding {
 /// before its parent receives further operations.
 #[derive(Debug)]
 pub struct ScopeInfoDB {
-  map: SlotMap<ScopeInfoId, ScopeInfo>,
+  // Entries are append-only for this parser's lifetime. IDs are local to
+  // each database and never need generations or slot reuse.
+  map: Vec<ScopeInfo>,
   /// For each name, the stack of active bindings, innermost last.
   bindings: AtomMap<SmallVec<[Binding; 2]>>,
   /// The innermost active scope, used to validate the stack discipline.
@@ -85,7 +104,7 @@ impl Default for ScopeInfoDB {
 impl ScopeInfoDB {
   pub fn new() -> Self {
     Self {
-      map: SlotMap::with_key(),
+      map: Vec::new(),
       bindings: AtomMap::default(),
       current: None,
       variable_info_db: VariableInfoDB::new(),
@@ -103,7 +122,8 @@ impl ScopeInfoDB {
       parent,
       defined: Vec::new(),
     };
-    let id = self.map.insert(info);
+    let id = ScopeInfoId::from_index(self.map.len());
+    self.map.push(info);
     self.current = Some(id);
     id
   }
@@ -148,14 +168,14 @@ impl ScopeInfoDB {
   pub fn expect_get_scope(&self, id: ScopeInfoId) -> &ScopeInfo {
     self
       .map
-      .get(id)
+      .get(id.index())
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
   pub fn expect_get_mut_scope(&mut self, id: ScopeInfoId) -> &mut ScopeInfo {
     self
       .map
-      .get_mut(id)
+      .get_mut(id.index())
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
@@ -163,7 +183,7 @@ impl ScopeInfoDB {
     self
       .variable_info_db
       .map
-      .get(id)
+      .get(id.index())
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
@@ -171,7 +191,7 @@ impl ScopeInfoDB {
     self
       .tag_info_db
       .map
-      .get(id)
+      .get(id.index())
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
@@ -179,7 +199,7 @@ impl ScopeInfoDB {
     self
       .tag_info_db
       .map
-      .get_mut(id)
+      .get_mut(id.index())
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
@@ -258,7 +278,9 @@ impl TagInfo {
     next: Option<TagInfoId>,
   ) -> TagInfoId {
     let tag_info = TagInfo { tag, data, next };
-    definitions_db.tag_info_db.map.insert(tag_info)
+    let id = TagInfoId::from_index(definitions_db.tag_info_db.map.len());
+    definitions_db.tag_info_db.map.push(tag_info);
+    id
   }
 }
 
@@ -344,16 +366,15 @@ impl VariableInfo {
     flags: VariableInfoFlags,
     tag_info: Option<TagInfoId>,
   ) -> VariableInfoId {
-    definitions_db
-      .variable_info_db
-      .map
-      .insert_with_key(|id| VariableInfo {
-        id,
-        declared_scope,
-        name,
-        flags,
-        tag_info,
-      })
+    let id = VariableInfoId::from_index(definitions_db.variable_info_db.map.len());
+    definitions_db.variable_info_db.map.push(VariableInfo {
+      id,
+      declared_scope,
+      name,
+      flags,
+      tag_info,
+    });
+    id
   }
 
   pub fn id(&self) -> VariableInfoId {
