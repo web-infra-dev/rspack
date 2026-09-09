@@ -2060,7 +2060,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     if let Some(ident) = expr.as_identifier_reference(ast)
       && let Some(name_info) = parser.get_name_info_from_variable(ast.get_utf8(ident.name(ast)))
       && let Some(info) = name_info.info
-      && let Some(name) = info.name.clone()
+      && let Some(name) = info.name.cloned()
       && parser
         .get_tag_data::<RequireTagData>(&name, COMMONJS_REQUIRE_TAG)
         .is_some()

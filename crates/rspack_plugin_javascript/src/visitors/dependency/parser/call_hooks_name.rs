@@ -3,7 +3,7 @@ use swc_next_ecma_ast::{ChainExpression, Expr, MemberExpression};
 use super::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo};
 use crate::{
   Atom,
-  visitors::{ExprRef, scope_info::VariableInfoId},
+  visitors::{ExprRef, scope_info::BindingState},
 };
 
 /// callHooksForName/callHooksForInfo in webpack
@@ -29,7 +29,10 @@ impl CallHooksName for Atom {
   where
     F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
   {
-    if let Some(id) = parser.get_variable_info(self).map(|info| info.id()) {
+    if let Some(id) = parser
+      .get_variable_info(self)
+      .map(|info| info.binding_state())
+    {
       // resolved variable info
       call_hooks_info(id, parser, hook_call)
     } else {
@@ -48,7 +51,10 @@ impl CallHooksName for &str {
   where
     F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
   {
-    if let Some(id) = parser.get_variable_info(*self).map(|info| info.id()) {
+    if let Some(id) = parser
+      .get_variable_info(*self)
+      .map(|info| info.binding_state())
+    {
       // resolved variable info
       call_hooks_info(id, parser, hook_call)
     } else {
@@ -140,7 +146,7 @@ impl CallHooksName for ChainExpression {
 }
 
 fn call_hooks_info<'parser, F, T>(
-  id: VariableInfoId,
+  id: BindingState,
   parser: &mut JavascriptParser<'parser>,
   hook_call: F,
 ) -> Option<T>
@@ -163,7 +169,7 @@ where
   }
 
   let info = parser.definitions_db.expect_get_variable(id);
-  if let Some(name) = &info.name
+  if let Some(name) = info.name
     && (info.is_free() || info.is_tagged())
   {
     let result = hook_call(parser, &name.clone());

@@ -54,7 +54,7 @@ use crate::{
     ParsedJavaScriptAst, ScanDependenciesResult,
     dependency::parser::{ast::ExprRef, location_advancer::DependencyLocationAdvancer},
     scope_info::{
-      ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags, VariableInfoId,
+      BindingState, ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags,
     },
   },
 };
@@ -251,7 +251,7 @@ pub struct ExpressionExpressionInfo {
 #[derive(Debug, Clone)]
 pub enum ExportedVariableInfo {
   Name(Atom),
-  VariableInfo(VariableInfoId),
+  VariableInfo(BindingState),
 }
 
 fn object_and_members_to_name(object: &str, members_reversed: &[impl AsRef<str>]) -> String {
@@ -327,7 +327,7 @@ impl RootName for MetaProperty {
 
 pub struct NameInfo<'a> {
   pub name: &'a str,
-  pub info: Option<&'a VariableInfo>,
+  pub info: Option<VariableInfo<'a>>,
 }
 
 pub enum PatRef {
@@ -926,7 +926,7 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn get_variable_info<'key>(
     &mut self,
     name: impl Into<AtomRef<'key>>,
-  ) -> Option<&VariableInfo> {
+  ) -> Option<VariableInfo<'_>> {
     let id = self.definitions_db.get(self.definitions, name)?;
     Some(self.definitions_db.expect_get_variable(id))
   }
@@ -999,7 +999,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn get_variable_tag_data<Data: TagInfoData>(
     &self,
-    id: VariableInfoId,
+    id: BindingState,
     tag: &'static str,
   ) -> Option<&Data> {
     self
@@ -1020,9 +1020,7 @@ impl<'parser> JavascriptParser<'parser> {
         info: None,
       });
     };
-    let Some(name) = &info.name else {
-      return None;
-    };
+    let name = info.name?;
     if !info.is_free() {
       return None;
     }
@@ -1043,9 +1041,7 @@ impl<'parser> JavascriptParser<'parser> {
         info: None,
       });
     };
-    let Some(name) = &info.name else {
-      return None;
-    };
+    let name = info.name?;
     if !info.is_free() && !info.is_tagged() {
       return None;
     }
@@ -1057,7 +1053,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn get_all_variables_from_current_scope(
     &self,
-  ) -> impl Iterator<Item = (&Atom, VariableInfoId)> {
+  ) -> impl Iterator<Item = (&Atom, BindingState)> {
     self.definitions_db.scope_variables(self.definitions)
   }
 
@@ -1142,7 +1138,7 @@ impl<'parser> JavascriptParser<'parser> {
       if let Some(old_tag_info) = old_info.tag_info {
         let declared_scope = old_info.declared_scope;
         // FIXME: remove `.clone`
-        let name = old_info.name.clone();
+        let name = old_info.name.cloned();
         let flags = old_info.flags | flags;
         let tag_info = Some(TagInfo::create(
           &mut self.definitions_db,
@@ -1217,7 +1213,7 @@ impl<'parser> JavascriptParser<'parser> {
           call: expr,
           root_info: root_info.map_or_else(
             || ExportedVariableInfo::Name(Atom::from(root_name)),
-            |i| ExportedVariableInfo::VariableInfo(i.id()),
+            |i| ExportedVariableInfo::VariableInfo(i.binding_state()),
           ),
           callee_members: root_members,
           members,
@@ -1245,7 +1241,7 @@ impl<'parser> JavascriptParser<'parser> {
           name,
           root_info: root_info.map_or_else(
             || ExportedVariableInfo::Name(Atom::from(root_name)),
-            |i| ExportedVariableInfo::VariableInfo(i.id()),
+            |i| ExportedVariableInfo::VariableInfo(i.binding_state()),
           ),
           members,
           members_optionals,
@@ -1721,13 +1717,13 @@ impl<'parser> JavascriptParser<'parser> {
           .or_else(|| {
             let info = self.get_variable_info(name);
             if let Some(info) = info {
-              if let Some(name) = &info.name
+              if let Some(name) = info.name
                 && (info.is_free() || info.is_tagged())
               {
                 let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
                 eval.set_identifier(
                   name.to_owned(),
-                  ExportedVariableInfo::VariableInfo(info.id()),
+                  ExportedVariableInfo::VariableInfo(info.binding_state()),
                   None,
                   None,
                   None,
@@ -1770,7 +1766,7 @@ impl<'parser> JavascriptParser<'parser> {
             .evaluate_identifier(self, "this", None, span.real_lo(), span.real_hi())
             .or_else(default_eval);
         };
-        if let Some(name) = &info.name
+        if let Some(name) = info.name
           && (info.is_free() || info.is_tagged())
         {
           let name = name.clone();

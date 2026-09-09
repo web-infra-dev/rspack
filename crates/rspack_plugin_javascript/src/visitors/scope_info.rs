@@ -29,26 +29,33 @@ macro_rules! dense_id {
 }
 
 dense_id!(ScopeInfoId);
-dense_id!(VariableInfoId);
+dense_id!(VariableMetadataId);
 dense_id!(TagInfoId);
 
-impl VariableInfoId {
+/// Copyable binding state, not a second identity for a static binding. Ordinary
+/// variables carry their declaration scope directly; only cold metadata needs
+/// another lookup. Aliases copy this state rather than follow another symbol.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum BindingState {
+  Normal(ScopeInfoId),
+  Metadata(VariableMetadataId),
+  Tombstone,
+  Undefined,
+}
+
+impl BindingState {
   pub fn tombstone() -> Self {
-    Self(NonZeroU32::new(u32::MAX).expect("u32::MAX is non-zero"))
+    Self::Tombstone
   }
   pub fn undefined() -> Self {
-    Self(NonZeroU32::new(u32::MAX - 1).expect("u32::MAX - 1 is non-zero"))
+    Self::Undefined
   }
-}
 
-#[derive(Debug, Default)]
-pub struct VariableInfoDB {
-  map: Vec<VariableInfo>,
-}
-
-impl VariableInfoDB {
-  fn new() -> Self {
-    Self { map: Vec::new() }
+  fn defined(self) -> Option<Self> {
+    match self {
+      Self::Normal(_) | Self::Metadata(_) => Some(self),
+      Self::Tombstone | Self::Undefined => None,
+    }
   }
 }
 
@@ -67,7 +74,7 @@ impl TagInfoDB {
 #[derive(Debug, Clone, Copy)]
 struct Binding {
   scope: ScopeInfoId,
-  value: VariableInfoId,
+  value: BindingState,
 }
 
 /// Scoped symbol table.
@@ -91,7 +98,7 @@ pub struct ScopeInfoDB {
   bindings: AtomMap<SmallVec<[Binding; 2]>>,
   /// The innermost active scope, used to validate the stack discipline.
   current: Option<ScopeInfoId>,
-  variable_info_db: VariableInfoDB,
+  variable_metadata: Vec<VariableMetadata>,
   tag_info_db: TagInfoDB,
 }
 
@@ -107,7 +114,7 @@ impl ScopeInfoDB {
       map: Vec::new(),
       bindings: AtomMap::default(),
       current: None,
-      variable_info_db: VariableInfoDB::new(),
+      variable_metadata: Vec::new(),
       tag_info_db: TagInfoDB::new(),
     }
   }
@@ -179,12 +186,27 @@ impl ScopeInfoDB {
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
-  pub fn expect_get_variable(&self, id: VariableInfoId) -> &VariableInfo {
-    self
-      .variable_info_db
-      .map
-      .get(id.index())
-      .unwrap_or_else(|| panic!("{id:#?} should exist"))
+  pub fn expect_get_variable(&self, state: BindingState) -> VariableInfo<'_> {
+    match state {
+      BindingState::Normal(declared_scope) => VariableInfo {
+        state,
+        declared_scope,
+        name: None,
+        flags: VariableInfoFlags::NORMAL,
+        tag_info: None,
+      },
+      BindingState::Metadata(id) => {
+        let info = &self.variable_metadata[id.index()];
+        VariableInfo {
+          state,
+          declared_scope: info.declared_scope,
+          name: info.name.as_ref(),
+          flags: info.flags,
+          tag_info: info.tag_info,
+        }
+      }
+      BindingState::Tombstone | BindingState::Undefined => panic!("{state:#?} is not defined"),
+    }
   }
 
   pub fn expect_get_tag_info(&self, id: TagInfoId) -> &TagInfo {
@@ -208,22 +230,17 @@ impl ScopeInfoDB {
     &mut self,
     id: ScopeInfoId,
     key: impl Into<AtomRef<'key>>,
-  ) -> Option<VariableInfoId> {
+  ) -> Option<BindingState> {
     debug_assert_eq!(
       self.current,
       Some(id),
       "lookup must start from the innermost active scope"
     );
     let binding = self.bindings.get(key)?.last()?;
-    let value = binding.value;
-    if value == VariableInfoId::tombstone() || value == VariableInfoId::undefined() {
-      None
-    } else {
-      Some(value)
-    }
+    binding.value.defined()
   }
 
-  pub fn set(&mut self, id: ScopeInfoId, key: Atom, variable_info_id: VariableInfoId) {
+  pub fn set(&mut self, id: ScopeInfoId, key: Atom, state: BindingState) {
     // debug_assert_eq!(
     //   self.current,
     //   Some(id),
@@ -233,23 +250,23 @@ impl ScopeInfoDB {
     if let Some(top) = stack.last_mut()
       && top.scope == id
     {
-      top.value = variable_info_id;
+      top.value = state;
       return;
     }
     stack.push(Binding {
       scope: id,
-      value: variable_info_id,
+      value: state,
     });
     self.expect_get_mut_scope(id).defined.push(key);
   }
 
   pub fn delete(&mut self, id: ScopeInfoId, key: &Atom) {
-    self.set(id, key.clone(), VariableInfoId::tombstone());
+    self.set(id, key.clone(), BindingState::tombstone());
   }
 
   /// The variables bound in scope `id` itself (not in enclosing scopes).
   /// `id` must be an active scope.
-  pub fn scope_variables(&self, id: ScopeInfoId) -> impl Iterator<Item = (&Atom, VariableInfoId)> {
+  pub fn scope_variables(&self, id: ScopeInfoId) -> impl Iterator<Item = (&Atom, BindingState)> {
     let scope = self.expect_get_scope(id);
     scope.defined.iter().filter_map(move |name| {
       let binding = self
@@ -258,7 +275,7 @@ impl ScopeInfoDB {
         .iter()
         .rev()
         .find(|binding| binding.scope == id)?;
-      (binding.value != VariableInfoId::tombstone()).then_some((name, binding.value))
+      (binding.value != BindingState::tombstone()).then_some((name, binding.value))
     })
   }
 }
@@ -294,12 +311,10 @@ bitflags! {
   }
 }
 
-/// Similar to `VariableInfo` in webpack but more general.
-/// For example, webpack will only store a string when both
-/// `free_name` and `tag_info` are `None`, but we use `VariableInfo` instead.
+/// Metadata for aliases, tags, and other non-default binding states.
+/// Ordinary variables store their declaration scope directly in `BindingState`.
 #[derive(Debug, PartialEq, Eq)]
-pub struct VariableInfo {
-  id: VariableInfoId,
+struct VariableMetadata {
   pub declared_scope: ScopeInfoId,
 
   /// `name` is alias name for free variable or tagged variable.
@@ -358,27 +373,40 @@ pub struct VariableInfo {
   pub tag_info: Option<TagInfoId>,
 }
 
-impl VariableInfo {
+/// A borrowed view of binding state. Normal variables are represented
+/// directly, without allocating or looking up a metadata record.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct VariableInfo<'a> {
+  state: BindingState,
+  pub declared_scope: ScopeInfoId,
+  pub name: Option<&'a Atom>,
+  pub flags: VariableInfoFlags,
+  pub tag_info: Option<TagInfoId>,
+}
+
+impl VariableInfo<'_> {
   pub fn create(
     definitions_db: &mut ScopeInfoDB,
     declared_scope: ScopeInfoId,
     name: Option<Atom>,
     flags: VariableInfoFlags,
     tag_info: Option<TagInfoId>,
-  ) -> VariableInfoId {
-    let id = VariableInfoId::from_index(definitions_db.variable_info_db.map.len());
-    definitions_db.variable_info_db.map.push(VariableInfo {
-      id,
+  ) -> BindingState {
+    if name.is_none() && flags == VariableInfoFlags::NORMAL && tag_info.is_none() {
+      return BindingState::Normal(declared_scope);
+    }
+    let id = VariableMetadataId::from_index(definitions_db.variable_metadata.len());
+    definitions_db.variable_metadata.push(VariableMetadata {
       declared_scope,
       name,
       flags,
       tag_info,
     });
-    id
+    BindingState::Metadata(id)
   }
 
-  pub fn id(&self) -> VariableInfoId {
-    self.id
+  pub fn binding_state(self) -> BindingState {
+    self.state
   }
 
   pub fn is_free(&self) -> bool {
@@ -400,10 +428,10 @@ pub struct ScopeInfo {
 
 #[cfg(test)]
 mod tests {
-  use super::{ScopeInfoDB, VariableInfo, VariableInfoFlags, VariableInfoId};
+  use super::{BindingState, ScopeInfoDB, VariableInfo, VariableInfoFlags};
   use crate::Atom;
 
-  fn new_variable(db: &mut ScopeInfoDB, scope: super::ScopeInfoId) -> VariableInfoId {
+  fn new_variable(db: &mut ScopeInfoDB, scope: super::ScopeInfoId) -> BindingState {
     VariableInfo::create(db, scope, None, VariableInfoFlags::NORMAL, None)
   }
 
