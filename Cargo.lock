@@ -6023,8 +6023,9 @@ dependencies = [
 
 [[package]]
 name = "simd-utf16-len"
-version = "0.1.0"
-source = "git+https://github.com/SyMind/simd-utf16-len.git?rev=2f230d9c7c55bf3e103259bf58895de2040b297c#2f230d9c7c55bf3e103259bf58895de2040b297c"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08765f7253d069ccd9adbe45ae962652c1c662e6f274a7575e8c9701c6ab5afa"
 
 [[package]]
 name = "simdutf8"
