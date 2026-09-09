@@ -1,13 +1,11 @@
-use std::{
-  collections::HashMap,
-  sync::{LazyLock, Mutex},
-};
+use std::sync::{LazyLock, Mutex};
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{CompilerId, Loader, LoaderContext, RunnerContext};
 use rspack_error::Result;
 use rspack_loader_runner::{DisplayWithSuffix, Identifier};
+use rspack_util::fx_hash::FxHashMap;
 use serde_json::json;
 
 #[cacheable]
@@ -108,7 +106,7 @@ impl Loader<RunnerContext> for NoPassthroughLoader {
 pub const NO_PASS_THROUGH_LOADER_IDENTIFIER: &str = "builtin:test-no-passthrough-loader";
 
 // Keep counts across rebuilds without sharing them between compilers or resources.
-static DEPENDENCY_LOADER_RUNS: LazyLock<Mutex<HashMap<(CompilerId, Identifier), usize>>> =
+static DEPENDENCY_LOADER_RUNS: LazyLock<Mutex<FxHashMap<(CompilerId, Identifier), usize>>> =
   LazyLock::new(Default::default);
 
 #[cacheable]
