@@ -4,7 +4,10 @@ mod codec;
 mod options;
 mod snapshot;
 
-pub(crate) use build_dependencies::{Helper as BuildDependencyHelper, is_node_package_path};
+pub(crate) use build_dependencies::{
+  BuildDependencyResolveData, BuildDependencyResolveResults, Helper as BuildDependencyHelper,
+  is_node_package_path,
+};
 pub use cache_entry::{
   CachedExtractedComments, CachedMinimizeEntry, CachedSourceMapDevToolPluginEntry,
 };

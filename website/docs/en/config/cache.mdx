@@ -325,6 +325,8 @@ Each stage accepts `{ timestamp?: boolean, hash?: boolean }`:
 
 Hash-only snapshots compare contents even when timestamps are unchanged. With both enabled, unchanged timestamps can skip hashing; changed timestamps fall back to comparing hashes. An empty strategy uses timestamps. `module` covers a normal module's file, context, and missing dependencies; `contextModule` controls modules created by context requests such as `require.context`.
 
+Build dependencies use two snapshots: `buildDependencies` tracks their contents, while `resolveBuildDependencies` tracks files and missing candidates consulted during resolution. When only the resolution snapshot changes, Rspack resolves the requests again and keeps the cache if all targets are unchanged.
+
 #### snapshot.immutablePaths
 
 - **Type:** `(RegExp | string)[]`

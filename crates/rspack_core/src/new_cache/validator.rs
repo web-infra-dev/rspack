@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{
+  Arc, Mutex, MutexGuard,
+  atomic::{AtomicBool, Ordering},
+};
 
 use rspack_cacheable::cacheable;
 use rspack_error::Result;
@@ -6,7 +9,9 @@ use rspack_paths::InternedPathSet;
 
 use super::snapshot::{FileSystemInfo, Snapshot};
 use crate::{
-  InfrastructureLogger, Logger, cache::CacheCodec, new_cache::snapshot::SnapshotValidationResult,
+  InfrastructureLogger, Logger,
+  cache::{BuildDependencyResolveResults, CacheCodec},
+  new_cache::snapshot::SnapshotValidationResult,
 };
 
 #[cacheable]
@@ -16,6 +21,8 @@ struct CacheValidatorData {
   cache_version: String,
   build_dependencies: InternedPathSet,
   build_dependencies_snapshot: Option<Snapshot>,
+  resolve_build_dependencies_snapshot: Option<Snapshot>,
+  resolve_results: BuildDependencyResolveResults,
 }
 
 impl CacheValidatorData {
@@ -25,6 +32,8 @@ impl CacheValidatorData {
       cache_version,
       build_dependencies: Default::default(),
       build_dependencies_snapshot: None,
+      resolve_build_dependencies_snapshot: None,
+      resolve_results: Default::default(),
     }
   }
 
@@ -49,6 +58,7 @@ pub(super) struct CacheValidator {
   codec: Arc<CacheCodec>,
   file_system_info: FileSystemInfo,
   logger: Arc<InfrastructureLogger>,
+  needs_update: AtomicBool,
 }
 
 impl CacheValidator {
@@ -64,6 +74,7 @@ impl CacheValidator {
       codec,
       file_system_info,
       logger,
+      needs_update: AtomicBool::new(false),
     }
   }
 
@@ -77,7 +88,7 @@ impl CacheValidator {
     let Some(data) = data else {
       return Ok(CacheValidatorResult::InvalidError);
     };
-    let validator = self.codec.decode::<CacheValidatorData>(data)?;
+    let mut validator = self.codec.decode::<CacheValidatorData>(data)?;
     if !validator.has_same_version(&self.data()) {
       return Ok(CacheValidatorResult::InvalidVersion);
     }
@@ -90,20 +101,57 @@ impl CacheValidator {
       .check_snapshot_valid(build_dependencies_snapshot)
       .await;
     self.logger.time_end(start);
-    let validation = validation?;
-    Ok(match validation {
-      SnapshotValidationResult::Valid => {
-        *self.data() = validator;
-        CacheValidatorResult::Valid
+    if let SnapshotValidationResult::Invalid {
+      modified_files,
+      removed_files,
+    } = validation?
+    {
+      return Ok(CacheValidatorResult::InvalidBuildDependencies {
+        modified_files,
+        removed_files,
+      });
+    }
+
+    let Some(resolve_snapshot) = &validator.resolve_build_dependencies_snapshot else {
+      return Ok(CacheValidatorResult::InvalidError);
+    };
+    if let SnapshotValidationResult::Invalid {
+      modified_files,
+      removed_files,
+    } = self
+      .file_system_info
+      .check_snapshot_valid(resolve_snapshot)
+      .await?
+    {
+      self
+        .logger
+        .debug("Build dependency resolution changed; resolving again".to_string());
+      let resolved = self
+        .file_system_info
+        .resolve_build_dependencies(validator.build_dependencies.iter().cloned())
+        .await;
+      if resolved.resolution.results != validator.resolve_results {
+        return Ok(CacheValidatorResult::InvalidBuildDependencies {
+          modified_files,
+          removed_files,
+        });
       }
-      SnapshotValidationResult::Invalid {
-        modified_files,
-        removed_files,
-      } => CacheValidatorResult::InvalidBuildDependencies {
-        modified_files,
-        removed_files,
-      },
-    })
+      validator.resolve_build_dependencies_snapshot = Some(
+        self
+          .file_system_info
+          .create_snapshot(
+            None,
+            &resolved.resolution.files,
+            &Default::default(),
+            &resolved.resolution.missing,
+            self.file_system_info.resolve_build_dependencies_strategy(),
+          )
+          .await?,
+      );
+      self.needs_update.store(true, Ordering::Relaxed);
+    }
+    *self.data() = validator;
+    Ok(CacheValidatorResult::Valid)
   }
 
   /// See webpack's build dependency resolution and snapshot persistence:
@@ -115,7 +163,10 @@ impl CacheValidator {
     {
       let data = self.data();
       new_build_dependencies.retain(|path| !data.build_dependencies.contains(path));
-      if new_build_dependencies.is_empty() && data.build_dependencies_snapshot.is_some() {
+      if new_build_dependencies.is_empty()
+        && data.build_dependencies_snapshot.is_some()
+        && !self.needs_update.load(Ordering::Relaxed)
+      {
         return Ok(None);
       }
     }
@@ -144,6 +195,16 @@ impl CacheValidator {
       .await;
     self.logger.time_end(start);
     let snapshot = snapshot?;
+    let resolve_snapshot = self
+      .file_system_info
+      .create_snapshot(
+        None,
+        &resolved.resolution.files,
+        &Default::default(),
+        &resolved.resolution.missing,
+        self.file_system_info.resolve_build_dependencies_strategy(),
+      )
+      .await?;
     let mut data = self.data();
     data.build_dependencies_snapshot = Some(
       if let Some(current) = data.build_dependencies_snapshot.take() {
@@ -153,6 +214,18 @@ impl CacheValidator {
       },
     );
     data.build_dependencies.extend(new_build_dependencies);
-    Ok(Some(self.codec.encode(&*data)?))
+    data.resolve_build_dependencies_snapshot = Some(
+      if let Some(current) = data.resolve_build_dependencies_snapshot.take() {
+        self
+          .file_system_info
+          .merge_snapshots(current, resolve_snapshot)
+      } else {
+        resolve_snapshot
+      },
+    );
+    data.resolve_results.extend(resolved.resolution.results);
+    let encoded = self.codec.encode(&*data)?;
+    self.needs_update.store(false, Ordering::Relaxed);
+    Ok(Some(encoded))
   }
 }

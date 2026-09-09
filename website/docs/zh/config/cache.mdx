@@ -314,6 +314,8 @@ export default {
 
 仅启用 hash 时，即使时间戳不变也会比较内容。两者同时启用时，时间戳未变可跳过哈希计算；时间戳变化后再比较哈希。空策略使用时间戳。`module` 覆盖普通模块的文件、目录和缺失依赖；`contextModule` 控制由 `require.context` 等上下文请求生成的模块。
 
+构建依赖使用两份快照：`buildDependencies` 跟踪文件内容，`resolveBuildDependencies` 跟踪解析时读取的文件和缺失候选路径。仅解析快照变化时，Rspack 会重新解析请求；所有目标均未改变则保留缓存。
+
 #### snapshot.immutablePaths
 
 - **类型：** `(RegExp | string)[]`

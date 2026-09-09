@@ -1,0 +1,5 @@
+{"name":"resolution-package","main":"a.js"}
+---
+{"name":"resolution-package","main":"a.js","description":"unrelated metadata change"}
+---
+{"name":"resolution-package","main":"b.js"}

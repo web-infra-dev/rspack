@@ -15,8 +15,8 @@ use super::{
 use crate::{
   CompilationLogger, InfrastructureLogger, LogType, Logger,
   cache::{
-    BuildDependencyHelper, SnapshotOptions, SnapshotPath, SnapshotStrategyOptions,
-    is_node_package_path,
+    BuildDependencyHelper, BuildDependencyResolveData, SnapshotOptions, SnapshotPath,
+    SnapshotStrategyOptions, is_node_package_path,
   },
 };
 
@@ -52,6 +52,7 @@ pub struct ResolvedBuildDependencies {
   pub(crate) files: InternedPathSet,
   pub(crate) contexts: InternedPathSet,
   pub(crate) missing: InternedPathSet,
+  pub(crate) resolution: BuildDependencyResolveData,
 }
 
 #[derive(Debug)]
@@ -251,7 +252,8 @@ impl FileSystemInfo {
     &self,
     paths: impl Iterator<Item = InternedPath>,
   ) -> ResolvedBuildDependencies {
-    let mut helper = BuildDependencyHelper::new(self.inner.fs.clone(), self.inner.logger.clone());
+    let mut helper = BuildDependencyHelper::new(self.inner.fs.clone(), self.inner.logger.clone())
+      .with_resolution_tracking();
     let mut resolved = ResolvedBuildDependencies::default();
     let mut visited = InternedPathSet::default();
     let mut queue = VecDeque::new();
@@ -284,6 +286,7 @@ impl FileSystemInfo {
       }
     }
 
+    resolved.resolution = helper.into_resolution();
     resolved
   }
 

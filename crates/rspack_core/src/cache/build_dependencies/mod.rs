@@ -3,11 +3,12 @@ mod visitor;
 
 use std::sync::Arc;
 
+use rspack_cacheable::cacheable;
 use rspack_fs::ReadableFileSystem;
 use rspack_javascript_compiler::JavaScriptCompiler;
-use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
+use rspack_paths::{AssertUtf8, InternedPath, InternedPathSet, Utf8Path, Utf8PathBuf};
 use rspack_resolver::ResolveError;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
   base::config::IsModule,
   common::FileName,
@@ -20,6 +21,23 @@ use crate::{
   CompilationLogger, Logger, Resolve as ResolveOption, ResolveInnerError, ResolveResult, Resolver,
 };
 
+#[cacheable(hashable)]
+#[derive(Debug, Hash, PartialEq, Eq)]
+pub(crate) struct BuildDependencyResolveKey {
+  context: InternedPath,
+  request: String,
+}
+
+pub(crate) type BuildDependencyResolveResults =
+  HashMap<BuildDependencyResolveKey, Option<InternedPath>>;
+
+#[derive(Debug, Default)]
+pub(crate) struct BuildDependencyResolveData {
+  pub files: InternedPathSet,
+  pub missing: InternedPathSet,
+  pub results: BuildDependencyResolveResults,
+}
+
 /// A toolkit to recursively calculate files used by build dependencies.
 ///
 /// The toolkit will use ast to analyze the build dependency files and resolve the requests in them,
@@ -28,6 +46,7 @@ use crate::{
 pub struct Helper<L = CompilationLogger> {
   resolver: Resolver,
   logger: L,
+  resolution: Option<BuildDependencyResolveData>,
 }
 
 impl<L: Logger> Helper<L> {
@@ -51,7 +70,19 @@ impl<L: Logger> Helper<L> {
         fs,
       ),
       logger,
+      resolution: None,
     }
+  }
+
+  pub(crate) fn with_resolution_tracking(mut self) -> Self {
+    self.resolution = Some(Default::default());
+    self
+  }
+
+  pub(crate) fn into_resolution(self) -> BuildDependencyResolveData {
+    self
+      .resolution
+      .expect("resolution tracking should be enabled")
   }
 
   /// Resolve a directory.
@@ -125,7 +156,32 @@ impl<L: Logger> Helper<L> {
     let mut result = HashSet::default();
     let dirname = file.parent().expect("can not get parent dir");
     for req in visitor.requests {
-      match self.resolver.resolve(dirname.as_std_path(), &req).await {
+      let resolved = if let Some(resolution) = &mut self.resolution {
+        let (resolved, dependencies) = self
+          .resolver
+          .resolve_with_context(dirname.as_std_path(), &req)
+          .await;
+        resolution.files.extend(dependencies.file_dependencies);
+        resolution.missing.extend(dependencies.missing_dependencies);
+        let target = match &resolved {
+          Ok(ResolveResult::Resource(resource)) => {
+            Some(InternedPath::from(resource.path.as_std_path()))
+          }
+          Err(ResolveInnerError::RspackResolver(ResolveError::Builtin(_))) => continue,
+          _ => None,
+        };
+        resolution.results.insert(
+          BuildDependencyResolveKey {
+            context: InternedPath::from(dirname.as_std_path()),
+            request: req.clone(),
+          },
+          target,
+        );
+        resolved
+      } else {
+        self.resolver.resolve(dirname.as_std_path(), &req).await
+      };
+      match resolved {
         Ok(ResolveResult::Resource(resource)) => {
           result.insert(resource.path);
           if let Some(data) = resource.description_data {
