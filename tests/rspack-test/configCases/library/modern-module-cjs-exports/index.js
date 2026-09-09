@@ -26,4 +26,35 @@ it('should preserve assignments to declared exports in strict ES modules', () =>
   expect(require('./declaration-esm.mjs').exports).toBe(43);
 });
 
+it('should preserve global exports assignments in strict ES modules', () => {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'exports');
+  const original = { original: true };
+  globalThis.exports = original;
+  try {
+    const namespace = require('./assignment-global-esm.mjs');
+    expect(namespace.before).toBe(original);
+    expect(namespace.after).toEqual({ value: 1 });
+    expect(namespace.after).toBe(globalThis.exports);
+
+    const reassigned = { value: 2 };
+    expect(namespace.assign(reassigned)).toBe(reassigned);
+    expect(globalThis.exports).toBe(reassigned);
+
+    const destructured = { value: 3 };
+    expect(namespace.destructure({ exports: destructured })).toBe(destructured);
+    expect(globalThis.exports).toBe(destructured);
+
+    delete globalThis.exports;
+    expect(() => namespace.assign({})).toThrow(ReferenceError);
+    expect(() => namespace.destructure({ exports: {} })).toThrow(ReferenceError);
+    expect(Object.hasOwn(globalThis, 'exports')).toBe(false);
+  } finally {
+    if (descriptor) {
+      Object.defineProperty(globalThis, 'exports', descriptor);
+    } else {
+      delete globalThis.exports;
+    }
+  }
+});
+
 export default engines;

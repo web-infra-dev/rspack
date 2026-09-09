@@ -5,11 +5,11 @@ moduleFactories.add({
 /*!************************!*\
   !*** ./modules-a/a.js ***!
   \************************/
-(__unused_rspack_module, exports) {
-makeNamespaceObject(exports);
+(__unused_rspack_module, __rspack_exports) {
+makeNamespaceObject(__rspack_exports);
 /* export default */ const __rspack_default_export = ("a");
 
-definePropertyGetters(exports, {
+definePropertyGetters(__rspack_exports, {
 }, {
   "default": __rspack_default_export
 });
@@ -28,11 +28,11 @@ moduleFactories.add({
 /*!************************!*\
   !*** ./modules-b/b.js ***!
   \************************/
-(__unused_rspack_module, exports) {
-makeNamespaceObject(exports);
+(__unused_rspack_module, __rspack_exports) {
+makeNamespaceObject(__rspack_exports);
 /* export default */ const __rspack_default_export = ("b");
 
-definePropertyGetters(exports, {
+definePropertyGetters(__rspack_exports, {
 }, {
   "default": __rspack_default_export
 });
