@@ -75,6 +75,20 @@ impl Snapshot {
     })
   }
 
+  /// Finds expected paths that have no stored snapshot record.
+  pub(crate) fn find_missing_paths<'a>(
+    &self,
+    expected: impl Iterator<Item = &'a InternedPath>,
+    loaded: &InternedPathSet,
+  ) -> InternedPathSet {
+    expected
+      .filter(|path| {
+        !loaded.contains(*path) && !self.options.is_immutable_path(&path.to_string_lossy())
+      })
+      .cloned()
+      .collect()
+  }
+
   #[tracing::instrument("Cache::Snapshot::reset", skip_all)]
   pub fn reset(&self, storage: &mut dyn Storage) {
     storage.reset(SnapshotScope::FILE.name());
@@ -175,7 +189,7 @@ mod tests {
   use std::sync::Arc;
 
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
-  use rspack_paths::InternedPath;
+  use rspack_paths::{InternedPath, InternedPathSet};
 
   use super::{super::storage::MemoryStorage, Snapshot, SnapshotScope};
   use crate::cache::{CacheCodec, PathMatcher, SnapshotOptions};
@@ -287,5 +301,28 @@ mod tests {
     assert!(modified_paths.contains(&p!("/node_modules/project/file1")));
     assert!(modified_paths.contains(&p!("/node_modules/lib/file1")));
     assert_eq!(no_change_paths.len(), 1);
+  }
+
+  #[test]
+  fn should_find_missing_non_immutable_paths() {
+    let fs = Arc::new(MemoryFileSystem::default());
+    let codec = Arc::new(CacheCodec::new(None));
+    let options = SnapshotOptions::new(
+      vec![PathMatcher::String("immutable".into())],
+      vec![],
+      vec![],
+    );
+    let snapshot = Snapshot::new(options, fs, codec);
+    let expected = [p!("/loaded"), p!("/missing"), p!("/immutable/file")]
+      .into_iter()
+      .collect::<InternedPathSet>();
+    let loaded = [p!("/loaded")].into_iter().collect::<InternedPathSet>();
+
+    let missing = snapshot.find_missing_paths(expected.iter(), &loaded);
+
+    assert_eq!(
+      missing,
+      [p!("/missing")].into_iter().collect::<InternedPathSet>()
+    );
   }
 }
