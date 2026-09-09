@@ -23,12 +23,10 @@ pub(crate) async fn loader_yield(
   // Skip a JavaScript execution span when no remaining loader needs pitching.
   if loader_context.state() == LoaderState::Pitching {
     let loaders_without_pitch = self.loaders_without_pitch.read().await;
-    let end = usize::from(
-      loader_context
-        .current_chain()
-        .expect("pitching requires a current execution chain")
-        .end(),
-    );
+    let end = loader_context
+      .current_chain()
+      .expect("pitching requires a current execution chain")
+      .end();
     let start = loader_context.loader_index as usize;
     let needs_pitch = loader_context.loader_items()[start..end]
       .iter()
