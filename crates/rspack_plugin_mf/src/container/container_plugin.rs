@@ -53,7 +53,6 @@ impl ContainerPlugin {
     mut expose_layers: Vec<Option<ModuleLayer>>,
   ) -> Self {
     expose_layers.resize(options.exposes.len(), None);
-    expose_layers.truncate(options.exposes.len());
     Self::new_inner(options, expose_layers)
   }
 }
