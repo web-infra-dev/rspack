@@ -130,7 +130,8 @@ pub(crate) struct ModuleGraphData {
     rollback::OverlayMap<ModuleIdentifier, ModuleGraphModule, BuildHasherDefault<IdentifierHasher>>,
 
   /// The primary connection for each source dependency.
-  dependency_id_to_connection_id: rollback::DependencyConnectionIndex,
+  dependency_id_to_connection_id:
+    rollback::DenseIdOverlayMap<DependencyId, ModuleGraphConnectionId>,
   /// ModuleGraphConnection indexed by its own ID, including connections created during seal.
   /// modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/module_concatenation_plugin.rs#L820
   connections: rollback::DenseIdOverlayMap<ModuleGraphConnectionId, ModuleGraphConnection>,
@@ -290,7 +291,11 @@ impl ModuleGraph {
     let module_identifier = self.module_identifier_by_dependency_id(dep_id).copied();
     let parent_block = self.get_parent_block(dep_id).copied();
 
-    let connection_id = self.inner.dependency_id_to_connection_id.get(dep_id);
+    let connection_id = self
+      .inner
+      .dependency_id_to_connection_id
+      .get(dep_id)
+      .copied();
     if let Some(connection_id) = connection_id {
       self.inner.connections.remove(&connection_id);
       self.inner.dependency_id_to_connection_id.remove(dep_id);
@@ -790,7 +795,7 @@ impl ModuleGraph {
       .inner
       .dependency_id_to_connection_id
       .get(dependency_id)?;
-    self.connection_by_id(&connection_id)
+    self.connection_by_id(connection_id)
   }
 
   pub fn connection_by_id(
@@ -847,7 +852,7 @@ impl ModuleGraph {
     &mut self,
     dependency_id: &DependencyId,
   ) -> Option<&mut ModuleGraphConnection> {
-    let connection_id = self
+    let connection_id = *self
       .inner
       .dependency_id_to_connection_id
       .get(dependency_id)?;
