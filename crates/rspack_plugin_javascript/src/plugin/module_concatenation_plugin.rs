@@ -1151,12 +1151,12 @@ impl ModuleConcatenationPlugin {
 
         let connections = module
           .get_dependencies()
-          .filter_map(|d| {
-            let dep = module_graph.dependency_by_id(d);
-            if !is_esm_dep_like(dep) {
+          .iter()
+          .filter_map(|dep| {
+            if !is_esm_dep_like(dep.as_ref()) {
               return None;
             }
-            let con = module_graph.connection_by_dependency_id(d)?;
+            let con = module_graph.connection_by_dependency_id(dep.id())?;
             let module_dep = dep.as_module_dependency().expect("should be module dep");
             let imported_names = module_dep.get_referenced_exports(
               module_graph,

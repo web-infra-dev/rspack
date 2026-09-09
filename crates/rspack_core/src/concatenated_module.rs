@@ -812,7 +812,7 @@ impl Module for ConcatenatedModule {
           .expect("should have module");
 
         module
-          .get_dependency_refs()
+          .get_dependencies()
           .iter()
           .filter(|dep| {
             let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep.id());

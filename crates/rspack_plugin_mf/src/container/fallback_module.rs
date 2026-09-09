@@ -149,7 +149,7 @@ impl Module for FallbackModule {
     let mut codegen = CodeGenerationResultBuilder::default();
     let module_graph = compilation.get_module_graph();
     let ids: Vec<_> = self
-      .get_dependencies()
+      .get_dependency_ids()
       .filter_map(|dep| module_graph.get_module_by_dependency_id(dep))
       .filter_map(|module| {
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())

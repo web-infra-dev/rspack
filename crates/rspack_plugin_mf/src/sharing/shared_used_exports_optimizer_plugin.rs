@@ -189,7 +189,7 @@ fn collect_processed_modules<'a>(
 
   for block_id in module_blocks {
     if let Some(block) = module_graph.block_by_id(block_id) {
-      for dep_id in block.get_dependencies() {
+      for dep_id in block.get_dependency_ids() {
         if let Some(target_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
           out.push(*target_id);
         }
@@ -237,7 +237,7 @@ async fn optimize_dependencies(
             collect_processed_modules(
               module_graph,
               consume_shared_module.get_blocks(),
-              consume_shared_module.get_dependencies(),
+              consume_shared_module.get_dependency_ids(),
               &mut modules_to_process,
             );
             consume_shared_module.shared_identity()
@@ -247,7 +247,7 @@ async fn optimize_dependencies(
             collect_processed_modules(
               module_graph,
               provide_shared_module.get_blocks(),
-              provide_shared_module.get_dependencies(),
+              provide_shared_module.get_dependency_ids(),
               &mut modules_to_process,
             );
             provide_shared_module.shared_identity()
@@ -258,7 +258,7 @@ async fn optimize_dependencies(
             collect_processed_modules(
               module_graph,
               share_container_entry_module.get_blocks(),
-              share_container_entry_module.get_dependencies(),
+              share_container_entry_module.get_dependency_ids(),
               &mut modules_to_process,
             );
             share_container_entry_module.shared_identity()?

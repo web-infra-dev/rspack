@@ -1574,7 +1574,7 @@ var {} = {{}};
     };
 
     for dep in module.get_dependencies() {
-      let Some(conn) = module_graph.connection_by_dependency_id(dep) else {
+      let Some(conn) = module_graph.connection_by_dependency_id(dep.id()) else {
         continue;
       };
 
@@ -1588,7 +1588,6 @@ var {} = {{}};
         continue;
       }
 
-      let dep = module_graph.dependency_by_id(dep);
       if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
         && dep.name.is_none()
       {
@@ -2546,10 +2545,8 @@ var {} = {{}};
         // eg.
         // import './foo.cjs'
         // should be rendered as __rspack_require('./foo.cjs')
-        for dep_id in module.get_dependencies() {
-          let dep = module_graph.dependency_by_id(dep_id);
-
-          let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
+        for dep in module.get_dependencies() {
+          let Some(conn) = module_graph.connection_by_dependency_id(dep.id()) else {
             continue;
           };
 
@@ -2747,7 +2744,7 @@ var {} = {{}};
         let module = module_graph
           .module_by_identifier(m)
           .expect("should have module");
-        for dep_id in module.get_dependencies() {
+        for dep_id in module.get_dependency_ids() {
           let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
             continue;
           };
