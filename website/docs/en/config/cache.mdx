@@ -327,6 +327,8 @@ Hash-only snapshots compare contents even when timestamps are unchanged. With bo
 
 Build dependencies use two snapshots: `buildDependencies` tracks their contents, while `resolveBuildDependencies` tracks files and missing candidates consulted during resolution. When only the resolution snapshot changes, Rspack resolves the requests again and keeps the cache if all targets are unchanged.
 
+`snapshot.resolve` validates cached module, context, and loader resolution. Cache hits restore the resolved resource and its file and missing dependencies; resolver options and dependency categories use separate cache entries. Each compilation uses a fresh snapshot service, including repeated runs of the same compiler.
+
 #### snapshot.immutablePaths
 
 - **Type:** `(RegExp | string)[]`

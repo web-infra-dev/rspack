@@ -27,6 +27,7 @@ pub struct FactorizeTask {
   pub resolve_options: Option<Arc<Resolve>>,
   pub options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
+  pub resolver_cache: Option<crate::ResolverCache>,
   pub from_unlazy: bool,
 }
 
@@ -85,6 +86,7 @@ impl Task<TaskContext> for FactorizeTask {
       issuer_identifier: self.original_module_identifier,
       issuer_layer,
       resolver_factory: self.resolver_factory,
+      resolver_cache: self.resolver_cache,
 
       file_dependencies: Default::default(),
       missing_dependencies: Default::default(),

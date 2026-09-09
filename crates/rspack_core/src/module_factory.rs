@@ -21,6 +21,7 @@ pub struct ModuleFactoryCreateData {
   pub issuer_identifier: Option<ModuleIdentifier>,
   pub issuer_layer: Option<ModuleLayer>,
   pub resolver_factory: Arc<ResolverFactory>,
+  pub resolver_cache: Option<crate::ResolverCache>,
 
   pub file_dependencies: InternedPathSet,
   pub context_dependencies: InternedPathSet,

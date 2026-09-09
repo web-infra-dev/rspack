@@ -735,6 +735,11 @@ impl NormalModuleFactory {
 
     let plugin_driver = &self.plugin_driver;
     let loader_resolver = self.get_loader_resolver();
+    let loader_resolver = if let Some(cache) = &data.resolver_cache {
+      loader_resolver.with_cache(cache.child("loader"))
+    } else {
+      loader_resolver
+    };
 
     let mut match_resource_data = None;
     let mut match_module_type = None;
@@ -910,6 +915,7 @@ impl NormalModuleFactory {
           resolve_options: data.resolve_options.clone(),
           resolve_to_context: false,
           optional: dependency_optional,
+          cache: data.resolver_cache.as_ref(),
         };
 
         let (resource_data, resolve_dependencies) = resolve(resolve_args, plugin_driver).await;

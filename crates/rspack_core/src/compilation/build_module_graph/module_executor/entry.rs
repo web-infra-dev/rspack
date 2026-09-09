@@ -75,6 +75,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
           resolve_options: None,
           options: origin_context.compiler_options.clone(),
           resolver_factory: origin_context.resolver_factory.clone(),
+          resolver_cache: origin_context.resolver_cache.clone(),
           from_unlazy: false,
         })]));
         (*v.insert(dep_id), true)

@@ -8,6 +8,7 @@ use std::{
 };
 
 use regex::Regex;
+use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_error::Error;
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::{DescriptionData, ResourceData};
@@ -21,7 +22,7 @@ pub use self::{
 };
 use crate::{
   Context, DependencyCategory, DependencyRange, DependencyType, ModuleIdentifier, Resolve,
-  SharedPluginDriver,
+  ResolverCache, SharedPluginDriver,
 };
 
 static RELATIVE_PATH_REGEX: LazyLock<Regex> =
@@ -42,9 +43,11 @@ pub struct ResolveArgs<'a> {
   pub resolve_options: Option<Arc<Resolve>>,
   pub resolve_to_context: bool,
   pub optional: bool,
+  pub cache: Option<&'a ResolverCache>,
 }
 
 /// A successful path resolution or an ignored path.
+#[cacheable]
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ResolveResult {
   Resource(Resource),
@@ -55,7 +58,9 @@ pub enum ResolveResult {
 ///
 /// Contains the raw `package.json` value if there is one.
 #[derive(Clone)]
+#[cacheable]
 pub struct Resource {
+  #[cacheable(with=AsPreset)]
   pub path: Utf8PathBuf,
   pub query: String,
   pub fragment: String,
@@ -318,6 +323,11 @@ pub async fn resolve(
   };
 
   let resolver = plugin_driver.resolver_factory.get(dep);
+  let resolver = if let Some(cache) = args.cache {
+    resolver.with_cache(cache.child("normal"))
+  } else {
+    resolver
+  };
   let (result, dependencies) = resolver
     .resolve_with_context(args.context.as_ref(), args.specifier)
     .await;

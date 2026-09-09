@@ -250,6 +250,11 @@ impl ContextModuleFactory {
 
         let mut loader_result = Vec::with_capacity(loaders.len());
         let loader_resolver = self.get_loader_resolver();
+        let loader_resolver = if let Some(cache) = &data.resolver_cache {
+          loader_resolver.with_cache(cache.child("loader"))
+        } else {
+          loader_resolver
+        };
         for loader_request in loaders {
           let resolve_result = loader_resolver
             .resolve(data.context.as_ref(), loader_request)
@@ -298,6 +303,7 @@ impl ContextModuleFactory {
       resolve_options: data.resolve_options.clone(),
       resolve_to_context: true,
       optional: dependency.get_optional(),
+      cache: data.resolver_cache.as_ref(),
     };
 
     let (resource_data, resolve_dependencies) = resolve(resolve_args, plugin_driver).await;

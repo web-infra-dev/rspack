@@ -242,6 +242,7 @@ pub struct Compilation {
   cache: Cache,
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
   pub file_system_info: FileSystemInfo,
+  pub(crate) resolver_cache: Option<crate::ResolverCache>,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -378,6 +379,18 @@ impl Compilation {
       snapshot_options,
       options.output.hash_function,
     );
+    let resolver_cache = (options.experiments.new_cache.is_enabled()
+      && !matches!(&options.cache, CacheOptions::Disabled))
+    .then(|| {
+      // Clear the resolver's filesystem memoization between compilations. The
+      // external resolution cache validates its entries with this fresh FSI.
+      resolver_factory.clear_cache();
+      loader_resolver_factory.clear_cache();
+      crate::ResolverCache::new(
+        cache.facade("ResolverCachePlugin"),
+        file_system_info.clone(),
+      )
+    });
 
     Self {
       id: CompilationId::new(),
@@ -402,6 +415,7 @@ impl Compilation {
       cache,
       module_build_cache,
       file_system_info,
+      resolver_cache,
       plugin_driver,
       buildtime_plugin_driver,
       resolver_factory,

@@ -316,6 +316,8 @@ export default {
 
 构建依赖使用两份快照：`buildDependencies` 跟踪文件内容，`resolveBuildDependencies` 跟踪解析时读取的文件和缺失候选路径。仅解析快照变化时，Rspack 会重新解析请求；所有目标均未改变则保留缓存。
 
+`snapshot.resolve` 校验模块、上下文和 loader 的解析缓存。命中时恢复解析结果及其文件、缺失依赖；不同 resolver 配置和依赖类别使用独立缓存项。同一 compiler 的连续构建也会使用新的快照服务。
+
 #### snapshot.immutablePaths
 
 - **类型：** `(RegExp | string)[]`

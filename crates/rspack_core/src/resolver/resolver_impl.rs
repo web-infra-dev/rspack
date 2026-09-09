@@ -1,21 +1,27 @@
 use std::{
   fmt,
+  hash::{Hash, Hasher},
   path::{Path, PathBuf},
   sync::Arc,
 };
 
+use rspack_cacheable::cacheable;
 use rspack_error::{Error, Severity, cyan, yellow};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
 use rspack_paths::{AssertUtf8, InternedPathSet};
 use rspack_util::location::byte_line_column_to_offset;
+use rustc_hash::FxHasher;
 
 use super::{ResolveResult, Resource, boxfs::BoxFS};
 use crate::{
   Alias, AliasMap, DependencyCategory, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
+  ResolverCache, Snapshot, SnapshotValidationResult, new_cache::CacheValue,
 };
 
-#[derive(Debug, Default)]
+/// Cloning returns independently owned dependency sets to callers on cache hits.
+#[cacheable]
+#[derive(Debug, Default, Clone)]
 pub struct ResolveDependencies {
   /// Files that were found on file system; entries carry the precomputed
   /// `FxHash` from `rspack_resolver`.
@@ -23,6 +29,14 @@ pub struct ResolveDependencies {
   /// Dependencies that were not found on file system; entries carry the
   /// precomputed `FxHash` from `rspack_resolver`.
   pub missing_dependencies: InternedPathSet,
+}
+
+#[cacheable]
+#[derive(Debug)]
+struct CachedResolution {
+  result: ResolveResult,
+  dependencies: ResolveDependencies,
+  snapshot: Snapshot,
 }
 
 /// Proxy to [nodejs_resolver::Error] or [rspack_resolver::ResolveError]
@@ -89,7 +103,9 @@ impl ResolveInnerOptions<'_> {
 #[derive(Debug)]
 pub struct Resolver {
   inner_fs: Arc<dyn ReadableFileSystem>,
-  resolver: rspack_resolver::ResolverGeneric<BoxFS>,
+  resolver: Arc<rspack_resolver::ResolverGeneric<BoxFS>>,
+  options_key: u64,
+  cache: Option<ResolverCache>,
 }
 
 impl Resolver {
@@ -98,12 +114,17 @@ impl Resolver {
   }
 
   fn new_rspack_resolver(options: Resolve, fs: Arc<dyn ReadableFileSystem>) -> Self {
+    let mut hasher = FxHasher::default();
+    options.hash(&mut hasher);
+    let options_key = hasher.finish();
     let options = to_rspack_resolver_options(options, false, DependencyCategory::Unknown);
     let boxfs = BoxFS::new(fs.clone());
     let resolver = rspack_resolver::ResolverGeneric::new_with_file_system(boxfs, options);
     Self {
       inner_fs: fs,
-      resolver,
+      resolver: Arc::new(resolver),
+      options_key,
+      cache: None,
     }
   }
 
@@ -118,6 +139,10 @@ impl Resolver {
     options: Resolve,
     options_with_dependency_type: &ResolveOptionsWithDependencyType,
   ) -> Self {
+    let mut hasher = FxHasher::default();
+    options.hash(&mut hasher);
+    options_with_dependency_type.hash(&mut hasher);
+    let options_key = hasher.finish();
     let resolver = &self.resolver;
     let options = to_rspack_resolver_options(
       options,
@@ -128,8 +153,19 @@ impl Resolver {
     let resolver = resolver.clone_with_options(options);
     Self {
       inner_fs: self.inner_fs.clone(),
-      resolver,
+      resolver: Arc::new(resolver),
+      options_key,
+      cache: self.cache.clone(),
     }
+  }
+
+  pub(crate) fn with_cache(&self, cache: ResolverCache) -> Arc<Self> {
+    Arc::new(Self {
+      inner_fs: self.inner_fs.clone(),
+      resolver: self.resolver.clone(),
+      options_key: self.options_key,
+      cache: Some(cache),
+    })
   }
 
   /// Return the options from the resolver
@@ -143,6 +179,9 @@ impl Resolver {
     path: &Path,
     request: &str,
   ) -> Result<ResolveResult, ResolveInnerError> {
+    if self.cache.is_some() {
+      return self.resolve_with_context(path, request).await.0;
+    }
     match self.resolver.resolve(path, request).await {
       Ok(r) => Ok(ResolveResult::Resource(Resource {
         path: r.path().to_path_buf().assert_utf8(),
@@ -166,6 +205,30 @@ impl Resolver {
     Result<ResolveResult, ResolveInnerError>,
     ResolveDependencies,
   ) {
+    let item = self.cache.as_ref().map(|cache| {
+      let mut hasher = FxHasher::default();
+      self.options_key.hash(&mut hasher);
+      path.hash(&mut hasher);
+      request.hash(&mut hasher);
+      cache.file_system_info.resolve_strategy().hash(&mut hasher);
+      cache
+        .cache
+        .get_item_cache(&format!("{:016x}", hasher.finish()), None)
+    });
+    if let Some(item) = &item
+      && let Some(cached) = item.get::<CachedResolution>()
+      && let Some(cache) = &self.cache
+      && matches!(
+        cache
+          .file_system_info
+          .check_snapshot_valid(&cached.snapshot)
+          .await,
+        Ok(SnapshotValidationResult::Valid)
+      )
+    {
+      return (Ok(cached.result.clone()), cached.dependencies.clone());
+    }
+    let start_time = rspack_util::current_time();
     let resolver = &self.resolver;
     let mut context = Default::default();
     let result = resolver
@@ -187,6 +250,24 @@ impl Resolver {
       Err(rspack_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
       Err(error) => Err(ResolveInnerError::RspackResolver(error)),
     };
+    if let (Some(item), Some(cache), Ok(result)) = (item, &self.cache, &result)
+      && let Ok(snapshot) = cache
+        .file_system_info
+        .create_snapshot(
+          Some(start_time),
+          &dependencies.file_dependencies,
+          &Default::default(),
+          &dependencies.missing_dependencies,
+          cache.file_system_info.resolve_strategy(),
+        )
+        .await
+    {
+      item.store(CacheValue::new(CachedResolution {
+        result: result.clone(),
+        dependencies: dependencies.clone(),
+        snapshot,
+      }));
+    }
     (result, dependencies)
   }
 

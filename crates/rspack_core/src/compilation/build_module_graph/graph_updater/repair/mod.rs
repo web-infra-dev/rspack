@@ -59,6 +59,7 @@ pub async fn repair(
             resolve_options: None,
             options: compilation.options.clone(),
             resolver_factory: compilation.resolver_factory.clone(),
+            resolver_cache: compilation.resolver_cache.clone(),
             from_unlazy: false,
           }) as Box<dyn Task<TaskContext>>
         })

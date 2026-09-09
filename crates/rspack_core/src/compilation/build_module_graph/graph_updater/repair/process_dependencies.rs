@@ -110,6 +110,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
         resolve_options: module.get_resolve_options(),
         options: context.compiler_options.clone(),
         resolver_factory: context.resolver_factory.clone(),
+        resolver_cache: context.resolver_cache.clone(),
         from_unlazy,
       }));
     }
