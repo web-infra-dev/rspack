@@ -527,7 +527,9 @@ Paths resolved through [resolve.mainFields](#resolvemainfields), [resolve.aliasF
 
 ### Default behavior
 
-To match [Node.js native ESM requirements for fully specified import paths](https://nodejs.org/api/esm.html#mandatory-file-extensions), Rspack enables this option by default for ESM imports in:
+The top-level `resolve.fullySpecified` defaults to `false`. The `resolve` options in module rules take precedence over the top-level configuration.
+
+To match [Node.js native ESM requirements for fully specified import paths](https://nodejs.org/api/esm.html#mandatory-file-extensions), Rspack's default module rules set `fullySpecified: true` for ESM imports in:
 
 - `.mjs` files.
 - `.js` files whose package declares `"type": "module"` in `package.json`.

@@ -527,7 +527,9 @@ export default {
 
 ### 默认行为
 
-为与 [Node.js 原生 ESM 对完整导入路径的要求](https://nodejs.org/api/esm.html#mandatory-file-extensions)保持一致，Rspack 默认对以下文件中的 ESM 导入启用此选项：
+顶层的 `resolve.fullySpecified` 默认为 `false`。模块规则中的 `resolve` 配置优先于顶层配置。
+
+为与 [Node.js 原生 ESM 对完整导入路径的要求](https://nodejs.org/api/esm.html#mandatory-file-extensions)保持一致，Rspack 的默认模块规则会对以下文件中的 ESM 导入设置 `fullySpecified: true`：
 
 - `.mjs` 文件。
 - 所属包的 `package.json` 设置了 `"type": "module"` 的 `.js` 文件。
