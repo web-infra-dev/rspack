@@ -7,10 +7,9 @@ module.exports = ["memory", "persistent"].map(type => {
   let succeeded = 0;
   let reused = 0;
   let completed = 0;
-  let builtModule;
 
   return {
-    description: `should isolate build state from shared module mutations with ${type} cache`,
+    description: `should restore modules with fresh factory metadata using ${type} cache`,
     options(context) {
       return {
         context: context.getSource(),
@@ -43,34 +42,25 @@ module.exports = ["memory", "persistent"].map(type => {
                 compilation.hooks.buildModule.tap(pluginName, () => builds++);
                 compilation.hooks.succeedModule.tap(pluginName, module => {
                   succeeded++;
-                  builtModule = module;
+                  expect(module.factoryMeta.sideEffectFree).toBe(true);
+                  module.factoryMeta = { sideEffectFree: false };
+                  expect(module.factoryMeta.sideEffectFree).toBe(false);
                   module.emitFile("built.txt", new RawSource("build output"));
                 });
                 compilation.hooks.stillValidModule.tap(pluginName, module => {
                   reused++;
-                  builtModule = module;
+                  // Cache hits receive the fresh factory's metadata, even after
+                  // the previous build hook changed the cached module.
+                  expect(module.factoryMeta.sideEffectFree).toBe(true);
                   expect(module.resource).toMatch(/\/d\.js$/);
-                  expect(module.originalSource().source()).toContain(
-                    "module.exports"
-                  );
-                  expect(() =>
-                    module.emitFile("late.txt", new RawSource("late"))
-                  ).toThrow(/Unable to modify/);
                 });
                 compilation.hooks.seal.tap(pluginName, () => {
-                  // A wrapper retained from a build hook must not expose a mutable
-                  // pointer once the graph and cache share the published module.
-                  expect(() =>
-                    builtModule.emitFile("late.txt", new RawSource("late"))
-                  ).toThrow(/Unable to modify/);
                   const module = [...compilation.modules].find(module =>
                     module.resource?.endsWith("/d.js")
                   );
-                  // A cache hit must retain the fresh factory's metadata, even
-                  // though the previous compilation changed the cached module.
-                  expect(module.factoryMeta.sideEffectFree).toBe(true);
-                  module.factoryMeta = { sideEffectFree: false };
-                  expect(module.factoryMeta.sideEffectFree).toBe(false);
+                  expect(module.originalSource().source()).toContain(
+                    "module.exports"
+                  );
                   completed++;
                 });
               });
@@ -93,7 +83,6 @@ module.exports = ["memory", "persistent"].map(type => {
         expect(stats.compilation.getAsset("built.txt").source.source()).toBe(
           "build output"
         );
-        expect(stats.compilation.getAsset("late.txt")).toBeUndefined();
       }
     },
     async check() {

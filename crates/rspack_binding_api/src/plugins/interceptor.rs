@@ -1294,10 +1294,7 @@ impl CompilationStillValidModule for CompilationStillValidModuleTap {
   ) -> rspack_error::Result<()> {
     let _ = self
       .function
-      .call_with_sync(ModuleObject::with_readonly_ptr(
-        NonNull::from(module),
-        compiler_id,
-      ))
+      .call_with_sync(ModuleObject::with_ptr(NonNull::from(module), compiler_id))
       .await?;
     Ok(())
   }

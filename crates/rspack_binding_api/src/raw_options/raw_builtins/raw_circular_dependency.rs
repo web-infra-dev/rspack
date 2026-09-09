@@ -153,7 +153,7 @@ impl From<RawCircularCheckRspackPluginOptions> for CircularCheckRspackPluginOpti
               paths: Vec<String>|
               -> BoxFuture<'_, rspack_error::Result<()>> {
           let callback = callback.clone();
-          let module = ModuleObject::with_readonly_ptr(
+          let module = ModuleObject::with_ptr(
             NonNull::new(module as *const dyn Module as *mut dyn Module)
               .expect("module pointer should not be null"),
             compiler_id,
