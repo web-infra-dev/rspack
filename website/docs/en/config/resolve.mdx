@@ -89,11 +89,39 @@ export default {
 ## resolve.aliasFields
 
 - **Type:** `string[]`
-- **Default:** Depends on [target](/config/target) and [dependency type](#resolvebydependency).
+- **Default:** Depends on [target](/config/target) and [how modules are referenced](#resolvebydependency).
 
-Define a field, such as `browser`, that should be parsed in accordance with [this specification](https://github.com/defunctzombie/package-browser-field-spec).
+Specifies which `package.json` fields provide module aliases for replacing modules with alternative implementations.
 
-For typical JavaScript requests, the default is `['browser']` when targeting the web, web workers, or Electron renderers. For Node.js, Electron main and preload scripts, and NW.js, it is `[]`. CSS `@import` and URL requests use `[]` by default.
+Common defaults are:
+
+| Scenario                                          | Default       |
+| ------------------------------------------------- | ------------- |
+| Module imports targeting `'web'` or `'webworker'` | `['browser']` |
+| Module imports targeting Node.js                  | `[]`          |
+| CSS `@import` or URL references                   | `[]`          |
+
+For example, this configuration uses the alias mappings in the `browser` field to replace modules with browser implementations provided by the package. The mappings follow the [browser field specification](https://github.com/defunctzombie/package-browser-field-spec).
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    aliasFields: ['browser'],
+  },
+};
+```
+
+For example, a package's `package.json` contains this mapping:
+
+```json title="package.json"
+{
+  "browser": {
+    "./storage.js": "./storage.browser.js"
+  }
+}
+```
+
+With the configuration above, `import './storage.js'` in the package's root-level `index.js` resolves to `storage.browser.js` in the same directory.
 
 ## resolve.byDependency
 
@@ -201,7 +229,7 @@ Rspack's default `conditionNames` are determined by [mode](/config/mode), [targe
 
 Here, `modeCondition` is `'development'` in development mode and `'production'` otherwise, including when `mode` is `'none'`.
 
-`targetConditions` are derived from the target's platform capabilities. A target can enable several conditions:
+`targetConditions` depend on the target:
 
 | Target                                      | `targetConditions`                |
 | ------------------------------------------- | --------------------------------- |
@@ -270,15 +298,7 @@ export default {
 };
 ```
 
-You can also place `'...'` before the custom condition. Both configurations enable the same conditions; changing their order does not change resolution priority. Priority is determined by the key order in the package's `exports` object.
-
-```js title="rspack.config.mjs"
-export default {
-  resolve: {
-    conditionNames: ['...', 'my-custom-condition'],
-  },
-};
-```
+The order of `conditionNames`, including the position of `'...'`, does not affect priority; the package's `exports` key order determines matching priority.
 
 ## resolve.descriptionFiles
 
@@ -532,7 +552,7 @@ When this configuration is `["testImports", "imports"]`, the result of `import v
 
 Controls the priority of fields in a package.json used to locate a package's entry file. It is the ordered list of package.json fields Rspack will try when resolving an npm package's entry point.
 
-For typical JavaScript requests, the default is `["browser", "module", "main"]` when targeting the web, web workers, or Electron renderers.
+For JavaScript requests targeting `'web'` or `'webworker'`, the default is `["browser", "module", "main"]`.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -542,7 +562,7 @@ export default {
 };
 ```
 
-For Node.js, Electron main and preload scripts, and NW.js, the default for JavaScript requests is `["module", "main"]`.
+For Node.js, the default for JavaScript requests is `["module", "main"]`.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -552,7 +572,7 @@ export default {
 };
 ```
 
-CSS `@import` requests use `["style", "main"]` by default. URL requests use the top-level default, `["main"]`. Rspack combines top-level resolve options with the matching [resolve.byDependency](#resolvebydependency) options for each request.
+CSS `@import` requests default to `["style", "main"]`; URL requests default to `["main"]`. Use [resolve.byDependency](#resolvebydependency) to configure these separately.
 
 For example, consider an arbitrary library called `foo` with a `package.json` that contains the following fields:
 
