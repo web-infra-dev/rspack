@@ -17,15 +17,15 @@ You can define budget thresholds with `maxAssetSize` and `maxEntrypointSize`, an
 
 <PropertyType type="false | object" />
 
-By default, performance hints are enabled in production mode for browser targets, such as `'web'` and `'webworker'`, including mixed browser and Node.js targets. They are disabled when targeting only Node.js, Electron, or NW.js, and in development and none modes.
+By default, performance hints are enabled only in production mode for browser targets.
 
 For example, when `performance` is omitted:
 
-| `mode`                      | `target`                                     | Default `performance`             |
-| --------------------------- | -------------------------------------------- | --------------------------------- |
-| `'production'`              | `'web'` or `'webworker'`                     | An object with `hints: 'warning'` |
-| `'production'`              | `'node'`, `'electron-renderer'`, or `'nwjs'` | `false`                           |
-| `'development'` or `'none'` | `'web'`                                      | `false`                           |
+| `mode`                      | `target`                 | Default `performance`  |
+| --------------------------- | ------------------------ | ---------------------- |
+| `'production'`              | `'web'` or `'webworker'` | `{ hints: 'warning' }` |
+| `'production'`              | `'node'`                 | `false`                |
+| `'development'` or `'none'` | `'web'`                  | `false`                |
 
 To enable performance hints for a Node.js production build, set `performance: {}`. To enable them in development or none mode, also set `performance.hints` to `'warning'` or `'error'`.
 

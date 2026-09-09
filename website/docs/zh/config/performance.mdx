@@ -17,15 +17,15 @@ import Attribution from '@components/Attribution';
 
 <PropertyType type="false | object" />
 
-默认情况下，性能提示在 production 模式下为 `'web'`、`'webworker'` 等浏览器目标启用，包括混合浏览器和 Node.js 的目标。目标仅包含 Node.js、Electron 或 NW.js 时，以及 development 和 none 模式下，性能提示默认禁用。
+默认情况下，性能提示仅在 production 模式下为浏览器目标启用。
 
 例如，未配置 `performance` 时：
 
-| `mode`                      | `target`                                    | 默认的 `performance`           |
-| --------------------------- | ------------------------------------------- | ------------------------------ |
-| `'production'`              | `'web'` 或 `'webworker'`                    | 包含 `hints: 'warning'` 的对象 |
-| `'production'`              | `'node'`、`'electron-renderer'` 或 `'nwjs'` | `false`                        |
-| `'development'` 或 `'none'` | `'web'`                                     | `false`                        |
+| `mode`                      | `target`                 | 默认的 `performance`   |
+| --------------------------- | ------------------------ | ---------------------- |
+| `'production'`              | `'web'` 或 `'webworker'` | `{ hints: 'warning' }` |
+| `'production'`              | `'node'`                 | `false`                |
+| `'development'` 或 `'none'` | `'web'`                  | `false`                |
 
 如需在 Node.js 的 production 构建中启用性能提示，可设置 `performance: {}`。如需在 development 或 none 模式下启用，还需要将 `performance.hints` 设为 `'warning'` 或 `'error'`。
 
