@@ -183,6 +183,8 @@ pub trait Interceptor<H: Hook> {
 pub trait Hook {
   type Tap;
 
+  fn common(&self) -> &HookCommon;
+
   fn used_stages(&self) -> Vec<i32>;
 
   fn intercept(&mut self, interceptor: impl Interceptor<Self> + Send + Sync + 'static)

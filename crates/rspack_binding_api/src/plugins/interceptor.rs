@@ -50,7 +50,7 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 use rspack_hash::RspackHasher;
-use rspack_hook::{Hook, Interceptor};
+use rspack_hook::{Hook, HookCommon, Interceptor};
 use rspack_napi::threadsafe_function::DynThreadsafeFunction;
 use rspack_paths::Utf8PathBuf;
 use rspack_plugin_html::{
@@ -209,7 +209,7 @@ impl<T, R> ThreadsafeJsTapFunction<T, R> {
 impl<T, R> ThreadsafeJsTapFunction<T, R>
 where
   T: 'static + JsValuesTupleIntoVec,
-  R: 'static + FromNapiValue,
+  R: 'static + FromNapiValue + Send,
 {
   async fn call_with_sync(&self, value: T) -> rspack_error::Result<R> {
     self.inner.call_with_sync::<T, R>(value).await
@@ -219,7 +219,7 @@ where
 impl<T, R> ThreadsafeJsTapFunction<T, Promise<R>>
 where
   T: 'static + JsValuesTupleIntoVec,
-  R: 'static + FromNapiValue,
+  R: 'static + FromNapiValue + Send,
 {
   async fn call_with_promise(&self, value: T) -> rspack_error::Result<R> {
     self.inner.call_with_promise::<T, R>(value).await
@@ -288,7 +288,7 @@ impl RegisterJsTapsInner {
 
   pub async fn call_register(
     &self,
-    hook: &impl Hook,
+    hook: &HookCommon,
   ) -> rspack_error::Result<RegisterFunctionOutput> {
     if let RegisterJsTapsCache::Cache(rw) = &self.cache {
       let cache = {
@@ -315,11 +315,9 @@ impl RegisterJsTapsInner {
 
   async fn call_register_impl(
     &self,
-    hook: &impl Hook,
+    hook: &HookCommon,
   ) -> rspack_error::Result<RegisterFunctionOutput> {
-    let mut used_stages = Vec::from_iter(hook.used_stages());
-    used_stages.sort_unstable();
-    self.register.call_with_sync(used_stages).await
+    self.register.call_with_sync(hook.used_stages()).await
   }
 
   fn clear_cache(&self) {
@@ -425,7 +423,7 @@ macro_rules! define_register {
         if let Some(non_skippable_registers) = &self.inner.non_skippable_registers && !non_skippable_registers.is_non_skippable(&$kind) {
           return Ok(Vec::new());
         }
-        let js_taps = self.inner.call_register(hook).await?;
+        let js_taps = self.inner.call_register(hook.common()).await?;
         let js_taps = js_taps
           .iter()
           .map(|t| Box::new($tap_name::new(t.clone())) as <$tap_hook as Hook>::Tap)
