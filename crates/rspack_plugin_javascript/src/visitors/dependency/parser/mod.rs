@@ -1760,6 +1760,9 @@ impl<'parser> JavascriptParser<'parser> {
           let state = self
             .definitions_db
             .resolve_identifier(self.ast, ident, resolution);
+          if matches!(state, Some(BindingState::Normal(_))) {
+            return None;
+          }
           let info = state.map(|state| self.definitions_db.expect_get_variable(state));
           if let Some(info) = info {
             if let Some(name) = info.name
