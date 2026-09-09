@@ -1,8 +1,11 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::{
+  collections::HashMap,
+  sync::{LazyLock, Mutex},
+};
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_core::{Loader, LoaderContext, RunnerContext};
+use rspack_core::{CompilerId, Loader, LoaderContext, RunnerContext};
 use rspack_error::Result;
 use rspack_loader_runner::{DisplayWithSuffix, Identifier};
 use serde_json::json;
@@ -104,7 +107,9 @@ impl Loader<RunnerContext> for NoPassthroughLoader {
 }
 pub const NO_PASS_THROUGH_LOADER_IDENTIFIER: &str = "builtin:test-no-passthrough-loader";
 
-static DEPENDENCY_LOADER_RUNS: AtomicUsize = AtomicUsize::new(0);
+// Keep counts across rebuilds without sharing them between compilers or resources.
+static DEPENDENCY_LOADER_RUNS: LazyLock<Mutex<HashMap<(CompilerId, Identifier), usize>>> =
+  LazyLock::new(Default::default);
 
 #[cacheable]
 pub struct DependencyLoader;
@@ -161,7 +166,19 @@ impl Loader<RunnerContext> for DependencyLoader {
       .fs
       .read_to_string(&dependency)
       .await?;
-    let runs = DEPENDENCY_LOADER_RUNS.fetch_add(1, Ordering::Relaxed) + 1;
+    let runs = {
+      let mut runs = DEPENDENCY_LOADER_RUNS
+        .lock()
+        .expect("dependency loader run counter lock should not be poisoned");
+      let count = runs
+        .entry((
+          loader_context.context.compiler_id,
+          loader_context.resource().into(),
+        ))
+        .or_default();
+      *count += 1;
+      *count
+    };
     loader_context.finish_with(format!(
       "module.exports = {{ value: {}, runs: {runs} }};",
       json!(value.trim())
