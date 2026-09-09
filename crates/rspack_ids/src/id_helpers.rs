@@ -121,16 +121,13 @@ pub(crate) fn get_short_module_name_with_graph(
   context: &str,
   module_graph: &ModuleGraph,
 ) -> String {
-  if module.as_external_module().is_some()
-    && let Some(module_graph_module) =
-      module_graph.module_graph_module_by_identifier(&module.identifier())
-  {
-    let mut requests = module_graph_module
-      .incoming_connections()
-      .iter()
-      .filter_map(|dependency_id| {
+  if module.as_external_module().is_some() {
+    let module_identifier = module.identifier();
+    let mut requests = module_graph
+      .get_incoming_connections(&module_identifier)
+      .filter_map(|connection| {
         module_graph
-          .dependency_by_id(dependency_id)
+          .dependency_by_id(&connection.dependency_id)
           .as_module_dependency()
       })
       .map(|dependency| dependency.request());
