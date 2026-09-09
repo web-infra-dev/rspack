@@ -459,7 +459,7 @@ impl CompilerBuilder {
     let output_filesystem = self.output_filesystem.take();
     let compiler_context = CURRENT_COMPILER_CONTEXT.try_with(|v| v.clone()).ok();
     Ok(Compiler::new(
-      String::new(),
+      Arc::default(),
       compiler_options,
       plugins,
       vec![],

@@ -7,13 +7,12 @@ mod etag;
 mod file_cache_strategy;
 mod idle_file_cache;
 mod memory_cache;
-mod meta;
 pub(crate) mod snapshot;
 mod validator;
 
 use std::sync::Arc;
 
-pub use cache::Cache;
+pub use cache::{Cache, CompilerCache};
 pub use cache_facade::{CacheFacade, ItemCacheFacade, MultiItemCache};
 pub use cache_key::CacheKey;
 pub use cache_value::CacheValue;
@@ -21,7 +20,6 @@ pub use etag::Etag;
 pub use file_cache_strategy::FileCacheStrategy;
 pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
-pub use meta::Meta;
 use rspack_fs::ReadableFileSystem;
 pub use snapshot::{FileSystemInfo, Snapshot, SnapshotValidationResult};
 
@@ -30,25 +28,25 @@ use crate::{
   cache::{CacheCodec, MaxMemoryGenerations},
 };
 
+/// Creates cache storage independently of a compiler's namespace.
 pub fn create_cache(
-  compiler_path: String,
   compiler_options: Arc<CompilerOptions>,
   input_filesystem: Arc<dyn ReadableFileSystem>,
   infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
 ) -> Cache {
   if !compiler_options.experiments.new_cache.is_enabled() {
-    return Cache::new_disabled(compiler_path);
+    return Cache::new_disabled();
   }
 
   let options = match &compiler_options.cache {
     crate::CacheOptions::Disabled => {
-      return Cache::new_disabled(compiler_path);
+      return Cache::new_disabled();
     }
     crate::CacheOptions::Memory {
       max_generations: _, /* TODO: old cache default to 1, change to 5 and pass to MemoryCache */
       ..
     } => {
-      return Cache::new(compiler_path, Some(MemoryCache::new(5)), None);
+      return Cache::new(Some(MemoryCache::new(5)), None);
     }
     crate::CacheOptions::Persistent(options) => options,
   };
@@ -99,5 +97,5 @@ pub fn create_cache(
     MaxMemoryGenerations::Finite(max_generations) => Some(MemoryCache::new(max_generations)),
   };
 
-  Cache::new(compiler_path, memory_cache, Some(idle_file_cache))
+  Cache::new(memory_cache, Some(idle_file_cache))
 }

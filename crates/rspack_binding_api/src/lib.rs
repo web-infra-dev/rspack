@@ -392,7 +392,7 @@ impl JsCompiler {
       let platform = Arc::new(CompilerPlatform::from(platform));
 
       let rspack = rspack_core::Compiler::new(
-        compiler_path,
+        compiler_path.into(),
         compiler_options,
         plugins,
         buildtime_plugins::buildtime_plugins(),

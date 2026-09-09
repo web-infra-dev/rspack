@@ -1,3 +1,4 @@
+mod meta;
 mod rebuild;
 use std::{
   sync::{Arc, atomic::AtomicU32},
@@ -17,6 +18,7 @@ use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::Semaphore;
 use tracing::instrument;
 
+use self::meta::Meta;
 pub use self::rebuild::CompilationRecords;
 use crate::{
   BoxPlugin, CacheOptions, CleanOptions, Compilation, CompilationAsset, CompilationLogging,
@@ -28,7 +30,7 @@ use crate::{
   incremental::{Incremental, IncrementalPasses},
   legacy_cache::{Cache as LegacyCache, create_cache as create_legacy_cache},
   logger::Logger,
-  new_cache::{Cache, CacheFacade, Meta, create_cache},
+  new_cache::{CacheFacade, CacheValue, CompilerCache, create_cache},
   trim_dir,
 };
 
@@ -96,7 +98,7 @@ const EMIT_ASSETS_CONCURRENCY_LIMIT: usize = 15;
 #[derive(Debug)]
 pub struct Compiler {
   id: CompilerId,
-  pub compiler_path: String,
+  pub compiler_path: Arc<str>,
   pub options: Arc<CompilerOptions>,
   pub output_filesystem: Arc<dyn WritableFileSystem>,
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
@@ -108,7 +110,7 @@ pub struct Compiler {
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub cache: Box<dyn LegacyCache>,
   incremental_artifacts: IncrementalArtifacts,
-  new_cache: Cache,
+  new_cache: CompilerCache,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
@@ -120,7 +122,7 @@ pub struct Compiler {
 impl Compiler {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    compiler_path: String,
+    compiler_path: Arc<str>,
     options: CompilerOptions,
     plugins: Vec<BoxPlugin>,
     buildtime_plugins: Vec<BoxPlugin>,
@@ -168,11 +170,13 @@ impl Compiler {
     let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());
     let buildtime_plugin_driver =
       PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
-    let new_cache = create_cache(
+    let new_cache = CompilerCache::new(
+      Arc::new(create_cache(
+        options.clone(),
+        input_filesystem.clone(),
+        infrastructure_log_sink,
+      )),
       compiler_path.clone(),
-      options.clone(),
-      input_filesystem.clone(),
-      infrastructure_log_sink,
     );
     let cache = create_legacy_cache(
       &compiler_path,
@@ -256,9 +260,13 @@ impl Compiler {
         .new_cache
         .store_build_dependencies(build_dependencies.cloned().collect())
     };
-    self.new_cache.store_meta(Meta {
-      max_dependency_id: self.compiler_context.dependency_id(),
-    });
+    self.get_cache("meta").store(
+      "state",
+      None,
+      CacheValue::new(Meta {
+        max_dependency_id: self.compiler_context.dependency_id(),
+      }),
+    );
     self.new_cache.begin_idle(build_time);
   }
 
@@ -295,7 +303,7 @@ impl Compiler {
 
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
   async fn build_inner(&mut self) -> Result<()> {
-    if let Some(restored) = self.new_cache.restore_meta()? {
+    if let Some(restored) = self.get_cache("meta").get::<Meta>("state", None) {
       let current = self.compiler_context.dependency_id();
       if current < restored.max_dependency_id {
         self
