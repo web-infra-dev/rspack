@@ -94,23 +94,8 @@ chore: bump `swc_core` from FROM_LABEL to TO_LABEL
 
 Use the same subject for the commit unless repository history indicates a necessary commit-only variation. Stage only intended paths, review the staged diff, commit, push the current feature branch, and open the PR against `main`.
 
-Read `.github/PULL_REQUEST_TEMPLATE.md` and follow its current structure. Keep the description brief and evidence-based. With the Motivation/Changes template:
+Read `.github/PULL_REQUEST_TEMPLATE.md` when drafting the PR description and follow its current headings and guidance.
 
-```markdown
-## Motivation
+Explain why the upgrade matters to Rspack using the verified upstream changes. Include the exact `swc_core` version range, compatible dependency alignment, and upstream tag comparison link. Include verified Rspack issue links when available; use `Fixes #NNNN` only for confirmed fixes.
 
-<Explain why this upgrade matters to Rspack using the verified upstream changes. Include verified Rspack issue links when available; use `Fixes #NNNN` only for confirmed fixes.>
-
-## Changes
-
-Bumps `swc_core` from `OLD_VERSION` to `NEW_VERSION` and aligns the compatible SWC dependency pins.
-
-[Upstream tag comparison](COMPARE_URL)
-
-- **Breaking:** <only Rspack-impacting breaking changes or required adaptations; omit when empty>
-- **Features:** <new capabilities available through Rspack; omit when empty>
-- **Performance:** <improvements likely to benefit Rspack; omit when empty>
-- **Fixes:** <only fixes matched to verified Rspack issues; omit when empty>
-```
-
-Include only useful changelog detail in the PR body; do not dump the raw commit list. Prefer omitting a low-confidence or low-impact item over making reviewers evaluate it. Remove empty optional bullets from the final body. After creation, report the PR URL, exact version range, changed files, validation results, and any remaining risks to the user.
+Keep the description brief and evidence-based, using the Rspack-relevant changelog from step 3. Do not dump the raw commit list or include empty categories. Prefer omitting a low-confidence or low-impact item over making reviewers evaluate it. After creation, report the PR URL, exact version range, changed files, validation results, and any remaining risks to the user.
