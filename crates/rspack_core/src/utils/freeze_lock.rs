@@ -13,9 +13,13 @@ use triomphe::{Arc, UniqueArc};
 
 /// Metadata with independent build and publication lifetimes.
 ///
+/// Inspired by [rustc's `FreezeLock`], adapted for shared, cacheable metadata.
+///
 /// Building owns a `UniqueArc`; freezing converts it to an `Arc` without moving
 /// the value. Reads after publication do not acquire the build lock. Restored
 /// cache values are already frozen and cannot be made mutable again.
+///
+/// [rustc's `FreezeLock`]: https://github.com/rust-lang/rust/blob/main/compiler/rustc_data_structures/src/sync/freeze.rs
 pub struct FreezeLock<T> {
   frozen: OnceLock<Arc<T>>,
   building: RwLock<Option<UniqueArc<T>>>,
