@@ -80,7 +80,8 @@ export default function () {
         );
       };
       const requestMatches = (variant) =>
-        !variant.import || variant.import === data.import;
+        (!variant.import || variant.import === data.import) &&
+        (!variant.resource || variant.resource === data.resource);
       let matches = variants.filter(
         (variant) =>
           requestMatches(variant) &&
