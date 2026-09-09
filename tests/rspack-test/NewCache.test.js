@@ -23,8 +23,6 @@ const excludes = {
 		/^common\/update-file$/,
 		// Moving the source directory rebuilds the immutable module (3 instead of 1).
 		/^portable\/basic$/,
-		// A later restart rebuilds the module despite an unchanged context timestamp.
-		/^snapshot\/context-dependencies-timestamp$/,
 		// Restart restores the pre-HMR module value (1 instead of 2).
 		/^snapshot\/default_value$/,
 		/^snapshot\/immutable-paths$/,
