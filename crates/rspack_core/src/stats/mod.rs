@@ -1336,12 +1336,7 @@ impl Stats<'_> {
         let module = module_graph
           .module_by_identifier(&identifier)
           .expect("should have module");
-        let mut assets = module
-          .build_info()
-          .assets
-          .keys()
-          .map(|s| s.as_str())
-          .collect_vec();
+        let mut assets = module.build_info().assets.keys().cloned().collect_vec();
         assets.sort_unstable();
         Some(assets)
       };

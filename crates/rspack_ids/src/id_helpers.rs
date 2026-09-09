@@ -117,7 +117,7 @@ pub fn get_short_module_name(module: &ModuleRef, context: &str) -> String {
 }
 
 pub(crate) fn get_short_module_name_with_graph(
-  module: &BoxModule,
+  module: &ModuleRef,
   context: &str,
   module_graph: &ModuleGraph,
 ) -> String {

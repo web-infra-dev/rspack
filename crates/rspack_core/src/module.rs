@@ -30,8 +30,8 @@ use swc_core::atoms::Wtf8Atom;
 use crate::{
   AsyncDependenciesBlockRef, BindingCell, CacheFacade, ChunkGraph, ChunkUkey,
   CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation, CompilationAsset,
-  CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
-  ContextModule, CssExportType, DependenciesBlock, DependenciesBlockData,
+  CompilationAssets, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
+  ConnectionState, Context, ContextModule, CssExportType, DependenciesBlock, DependenciesBlockData,
   DependencyCodeGenerationRef, DependencyId, DependencyRef, ExportProvided, ExportsInfoArtifact,
   ExternalModule, FileSystemInfo, Filename, GetTargetResult, ImportPhase, ModuleCodeTemplate,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
@@ -357,6 +357,12 @@ impl Default for BuildInfo {
       extras: Default::default(),
       deferred_pure_checks: HashSet::default(),
     }
+  }
+}
+
+impl crate::FreezeLock<BuildInfo> {
+  pub fn extend_assets(&self, assets: CompilationAssets) {
+    self.update(|build_info| build_info.assets.extend(assets));
   }
 }
 
@@ -690,6 +696,8 @@ impl From<Option<Arc<FactoryMeta>>> for FactoryMetaStore {
   }
 }
 
+pub type SharedBuildMeta = triomphe::Arc<BuildMeta>;
+
 pub type ModuleIdentifier = Identifier;
 pub type ResourceIdentifier = Identifier;
 
@@ -743,13 +751,20 @@ pub trait Module:
 
   fn set_factory_meta(&self, factory_meta: FactoryMeta);
 
-  fn build_info(&self) -> &BuildInfo;
+  fn build_info(&self) -> crate::FreezeReadGuard<'_, BuildInfo>;
+
+  /// Finalize build information after loader assets and the cache snapshot.
+  fn freeze_build_info(&self);
+
+  /// Merge assets from loader execution before build information is frozen.
+  fn extend_build_assets(&self, assets: CompilationAssets);
 
   fn build_info_mut(&mut self) -> &mut BuildInfo;
 
-  fn build_meta(&self) -> &BuildMeta;
+  fn build_meta(&self) -> crate::FreezeReadGuard<'_, BuildMeta>;
 
-  fn build_meta_mut(&mut self) -> &mut BuildMeta;
+  /// Publish build metadata after failed-rebuild recovery has finished.
+  fn freeze_build_meta(&self) -> &triomphe::Arc<BuildMeta>;
 
   fn get_exports_argument(&self) -> ExportsArgument {
     self.build_info().exports_argument
@@ -769,7 +784,7 @@ pub trait Module:
     module_graph_cache.cached_get_exports_type((self.identifier(), strict), || {
       get_exports_type_impl(
         self.identifier(),
-        self.build_meta(),
+        &self.build_meta(),
         module_graph,
         exports_info_artifact,
         strict,
@@ -1042,20 +1057,12 @@ impl<T: Module> ModuleExt for T {
 pub struct BoxModule(Box<dyn Module>);
 
 /// A built module shared by the module graph and the in-memory build cache.
-/// Build state can only be mutated while this is the sole owner. Mutations
-/// after publication must use the module's explicit interior-mutable APIs.
+/// Build metadata has its own publication boundary. Shared modules only expose
+/// field-specific updates; obtaining mutable access to the whole module is not supported.
 #[cacheable]
 #[derive(Debug, Clone)]
 #[repr(transparent)]
 pub struct ModuleRef(Arc<dyn Module>);
-
-impl ModuleRef {
-  /// Restricted to audited module graph updates while this is the sole owner.
-  /// Shared modules must use their explicit interior-mutability APIs.
-  pub(crate) fn get_mut(&mut self) -> Option<&mut (dyn Module + 'static)> {
-    Arc::get_mut(&mut self.0)
-  }
-}
 
 impl From<BoxModule> for ModuleRef {
   fn from(module: BoxModule) -> Self {
@@ -1187,20 +1194,28 @@ macro_rules! impl_module_meta_info {
       self.factory_meta.set(Some(std::sync::Arc::new(v)));
     }
 
-    fn build_info(&self) -> &$crate::BuildInfo {
-      &self.build_info
+    fn build_info(&self) -> $crate::FreezeReadGuard<'_, $crate::BuildInfo> {
+      self.build_info.read()
+    }
+
+    fn freeze_build_info(&self) {
+      self.build_info.freeze();
+    }
+
+    fn extend_build_assets(&self, assets: $crate::CompilationAssets) {
+      self.build_info.extend_assets(assets);
     }
 
     fn build_info_mut(&mut self) -> &mut $crate::BuildInfo {
-      &mut self.build_info
+      self.build_info.get_mut()
     }
 
-    fn build_meta(&self) -> &$crate::BuildMeta {
-      &self.build_meta
+    fn build_meta(&self) -> $crate::FreezeReadGuard<'_, $crate::BuildMeta> {
+      self.build_meta.read()
     }
 
-    fn build_meta_mut(&mut self) -> &mut $crate::BuildMeta {
-      &mut self.build_meta
+    fn freeze_build_meta(&self) -> &$crate::SharedBuildMeta {
+      self.build_meta.freeze()
     }
   };
 }
@@ -1348,7 +1363,15 @@ mod test {
           unreachable!()
         }
 
-        fn build_info(&self) -> &crate::BuildInfo {
+        fn build_info(&self) -> crate::FreezeReadGuard<'_, crate::BuildInfo> {
+          unreachable!()
+        }
+
+        fn freeze_build_info(&self) {
+          unreachable!()
+        }
+
+        fn extend_build_assets(&self, _: crate::CompilationAssets) {
           unreachable!()
         }
 
@@ -1356,11 +1379,11 @@ mod test {
           unreachable!()
         }
 
-        fn build_meta(&self) -> &crate::BuildMeta {
+        fn build_meta(&self) -> crate::FreezeReadGuard<'_, crate::BuildMeta> {
           unreachable!()
         }
 
-        fn build_meta_mut(&mut self) -> &mut crate::BuildMeta {
+        fn freeze_build_meta(&self) -> &crate::SharedBuildMeta {
           unreachable!()
         }
 

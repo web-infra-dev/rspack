@@ -251,10 +251,10 @@ impl<'a> ArtifactComparator<'a> {
       normalized.all_star_exports.clear();
       rspack_cacheable::to_bytes(&normalized, &ctx)
     };
-    let bytes1 = normalize(build_info1).map_err(|e| {
+    let bytes1 = normalize(&build_info1).map_err(|e| {
       rspack_error::error!("Failed to normalize BuildInfo 1: {:?}\n{}", e, debug_info)
     })?;
-    let bytes2 = normalize(build_info2).map_err(|e| {
+    let bytes2 = normalize(&build_info2).map_err(|e| {
       rspack_error::error!("Failed to normalize BuildInfo 2: {:?}\n{}", e, debug_info)
     })?;
 

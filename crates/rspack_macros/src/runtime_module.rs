@@ -155,7 +155,15 @@ pub fn impl_runtime_module(
 
       fn set_factory_meta(&self, v: ::rspack_core::FactoryMeta) {}
 
-      fn build_info(&self) -> &::rspack_core::BuildInfo {
+      fn build_info(&self) -> ::rspack_core::FreezeReadGuard<'_, ::rspack_core::BuildInfo> {
+        unreachable!()
+      }
+
+      fn freeze_build_info(&self) {
+        unreachable!()
+      }
+
+      fn extend_build_assets(&self, _: ::rspack_core::CompilationAssets) {
         unreachable!()
       }
 
@@ -163,11 +171,11 @@ pub fn impl_runtime_module(
         unreachable!()
       }
 
-      fn build_meta(&self) -> &::rspack_core::BuildMeta {
+      fn build_meta(&self) -> ::rspack_core::FreezeReadGuard<'_, ::rspack_core::BuildMeta> {
         unreachable!()
       }
 
-      fn build_meta_mut(&mut self) -> &mut ::rspack_core::BuildMeta {
+      fn freeze_build_meta(&self) -> &::rspack_core::SharedBuildMeta {
         unreachable!()
       }
 

@@ -6,8 +6,8 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder,
   Compilation, Context, DependenciesBlock, DependenciesBlockData, EntryDependency,
-  FactoryMetaStore, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleType,
-  NeedBuildContext, RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions,
+  FactoryMetaStore, FreezeLock, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
+  ModuleType, NeedBuildContext, RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions,
   impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
@@ -25,9 +25,9 @@ pub struct DllModule {
 
   factory_meta: FactoryMetaStore,
 
-  build_info: BuildInfo,
+  build_info: FreezeLock<BuildInfo>,
 
-  build_meta: BuildMeta,
+  build_meta: FreezeLock<BuildMeta>,
 
   dependencies_block: DependenciesBlockData,
 

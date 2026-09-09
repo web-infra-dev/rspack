@@ -41,7 +41,8 @@ pub fn collect_json_module_sizes(
       continue;
     }
 
-    let Some(json_data) = module.build_info().json_data.as_ref() else {
+    let build_info = module.build_info();
+    let Some(json_data) = build_info.json_data.as_ref() else {
       continue;
     };
 

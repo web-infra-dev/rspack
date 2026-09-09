@@ -2,7 +2,7 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Diagnosable;
 
 use super::BuildModuleGraphArtifact;
-use crate::BuildMeta;
+use crate::SharedBuildMeta;
 
 /// A toolkit for cutout to fix build meta
 ///
@@ -10,7 +10,7 @@ use crate::BuildMeta;
 /// This toolkit will restore build meta from successful build to keep importing state.
 #[derive(Debug, Default)]
 pub struct FixBuildMeta {
-  origin_module_build_meta: IdentifierMap<BuildMeta>,
+  origin_module_build_meta: IdentifierMap<SharedBuildMeta>,
 }
 
 impl FixBuildMeta {
@@ -26,25 +26,18 @@ impl FixBuildMeta {
         .expect("should have module");
       self
         .origin_module_build_meta
-        .insert(*module_identifier, module.build_meta().clone());
+        .insert(*module_identifier, module.freeze_build_meta().clone());
     }
   }
 
   pub fn fix_artifact(self, artifact: &mut BuildModuleGraphArtifact) {
-    let module_graph = artifact.get_module_graph_mut();
+    let module_graph = artifact.get_module_graph();
     for (id, build_meta) in self.origin_module_build_meta {
       if let Some(module) = module_graph.module_by_identifier(&id)
         && let Some(module) = module.as_normal_module()
         && module.first_error().is_some()
       {
-        #[expect(
-          clippy::disallowed_methods,
-          reason = "Restore metadata on a freshly rebuilt failed module before cache publication."
-        )]
-        let module = module_graph
-          .module_by_identifier_mut(&id)
-          .expect("failed module should exist");
-        *module.build_meta_mut() = build_meta;
+        module.restore_build_meta(build_meta);
       }
     }
   }

@@ -171,6 +171,7 @@ impl Task<TaskContext> for BuildResultTask {
       .artifact
       .build_dependencies
       .add_files(&resource_id, &build_info.dependencies.build);
+    drop(build_info);
 
     let module_graph = &mut context.artifact.module_graph;
     let mut lazy_dependencies = LazyDependencies::default();

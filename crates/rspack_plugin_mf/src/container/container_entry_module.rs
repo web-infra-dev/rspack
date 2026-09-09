@@ -7,7 +7,7 @@ use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, ChunkGroupOptions, CodeGenerationDataItem, CodeGenerationResultBuilder,
   CodeGenerationRuntimeRequirementsWrite, Compilation, Context, DependenciesBlock,
-  DependenciesBlockData, Dependency, DependencyType, ExportsArgument, FactoryMetaStore,
+  DependenciesBlockData, Dependency, DependencyType, ExportsArgument, FactoryMetaStore, FreezeLock,
   GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleCodeTemplate,
   ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
   RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
@@ -37,8 +37,8 @@ pub struct ContainerEntryModule {
   exposes: Vec<(String, ExposeOptions)>,
   share_scope: ShareScope,
   factory_meta: FactoryMetaStore,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
   enhanced: bool,
   request: Option<String>,
   version: Option<String>,
@@ -71,8 +71,11 @@ impl ContainerEntryModule {
         strict: true,
         top_level_declarations: Some(Default::default()),
         ..Default::default()
-      },
-      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
+      }
+      .into(),
+      build_meta: BuildMeta::default()
+        .with_exports_type(BuildMetaExportsType::Namespace)
+        .into(),
       enhanced,
       request: None,
       version: None,
@@ -101,8 +104,11 @@ impl ContainerEntryModule {
         strict: true,
         top_level_declarations: Some(Default::default()),
         ..Default::default()
-      },
-      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
+      }
+      .into(),
+      build_meta: BuildMeta::default()
+        .with_exports_type(BuildMetaExportsType::Namespace)
+        .into(),
       enhanced: false,
       request: Some(request),
       version: Some(version),

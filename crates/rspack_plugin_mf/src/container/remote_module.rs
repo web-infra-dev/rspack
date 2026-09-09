@@ -6,9 +6,9 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
-  Dependency, ExportsType, FactoryMetaStore, LibIdentOptions, Module, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, impl_module_meta_info,
-  impl_source_map_config, module_update_hash,
+  Dependency, ExportsType, FactoryMetaStore, FreezeLock, LibIdentOptions, Module,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
@@ -39,8 +39,8 @@ pub struct RemoteModule {
   pub share_scope: ShareScope,
   pub remote_key: String,
   factory_meta: FactoryMetaStore,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
 }
 
 impl RemoteModule {
@@ -74,7 +74,8 @@ impl RemoteModule {
       build_info: BuildInfo {
         strict: true,
         ..Default::default()
-      },
+      }
+      .into(),
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }

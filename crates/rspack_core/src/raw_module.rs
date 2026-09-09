@@ -13,10 +13,10 @@ use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
   BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder, Compilation,
-  ConnectionState, Context, DependenciesBlock, DependenciesBlockData, FactoryMetaStore, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, impl_module_meta_info,
-  module_declared_side_effect_free, module_update_hash,
+  ConnectionState, Context, DependenciesBlock, DependenciesBlockData, FactoryMetaStore, FreezeLock,
+  Module, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleType, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
+  impl_module_meta_info, module_declared_side_effect_free, module_update_hash,
 };
 
 #[impl_source_map_config]
@@ -31,8 +31,8 @@ pub struct RawModule {
   readable_identifier: String,
   runtime_requirements: RuntimeGlobals,
   factory_meta: FactoryMetaStore,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
 }
 
 static RAW_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -56,7 +56,8 @@ impl RawModule {
         cacheable: true,
         strict: true,
         ..Default::default()
-      },
+      }
+      .into(),
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }

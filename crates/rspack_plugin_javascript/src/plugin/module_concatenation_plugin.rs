@@ -1754,7 +1754,7 @@ async fn create_concatenated_module(
       &mut IdentifierMap::default(),
     ),
     factory_meta: root_module.factory_meta().into(),
-    build_meta: root_module.build_meta().clone(),
+    build_meta: root_module.freeze_build_meta().clone().into(),
     module_argument: root_module.get_module_argument(),
     exports_argument: root_module.get_exports_argument(),
   };

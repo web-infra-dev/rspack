@@ -1624,20 +1624,20 @@ fn seed_module_assets(compilation: &mut Compilation) -> usize {
   module_identifiers.truncate(MODULE_ASSET_SEED_COUNT);
 
   for (asset_index, module_identifier) in module_identifiers.iter().copied().enumerate() {
-    #[expect(
-      clippy::disallowed_methods,
-      reason = "The benchmark seeds asset fixtures on uniquely owned modules with caching disabled."
-    )]
     let module = compilation
-      .get_module_graph_mut()
-      .module_by_identifier_mut(&module_identifier)
+      .get_module_graph()
+      .module_by_identifier(&module_identifier)
       .expect("seeded module should exist");
-    module.build_info_mut().assets.insert(
-      format!("module-assets/module-{asset_index}.txt"),
-      CompilationAsset::new(
-        Some(RawStringSource::from(format!("module asset fixture {asset_index}")).boxed()),
-        Default::default(),
-      ),
+    module.extend_build_assets(
+      [(
+        format!("module-assets/module-{asset_index}.txt"),
+        CompilationAsset::new(
+          Some(RawStringSource::from(format!("module asset fixture {asset_index}")).boxed()),
+          Default::default(),
+        ),
+      )]
+      .into_iter()
+      .collect(),
     );
   }
 

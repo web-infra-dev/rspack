@@ -5,7 +5,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder,
-  Compilation, Context, DependenciesBlock, DependenciesBlockData, FactoryMetaStore,
+  Compilation, Context, DependenciesBlock, DependenciesBlockData, FactoryMetaStore, FreezeLock,
   LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleDependency,
   ModuleGraph, ModuleId, ModuleType, NeedBuildContext, RuntimeSpec, SourceType,
   StaticExportsDependency, StaticExportsSpec, ValueCacheVersions, impl_module_meta_info,
@@ -33,8 +33,8 @@ pub struct DelegatedModule {
   delegate_data: DllManifestContentItem,
   dependencies_block: DependenciesBlockData,
   factory_meta: FactoryMetaStore,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
 }
 
 impl DelegatedModule {
@@ -108,7 +108,7 @@ impl Module for DelegatedModule {
         false,
       )),
     ];
-    self.build_meta = self.delegate_data.build_meta.clone();
+    self.build_meta = self.delegate_data.build_meta.clone().into();
     Ok(
       BoxModule::new(self)
         .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![]),

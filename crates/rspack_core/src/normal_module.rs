@@ -31,7 +31,7 @@ use crate::{
   BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
   CodeGenerationResultBuilder, Compilation, ConnectionState, Context, DependenciesBlock,
   DependenciesBlockData, DependencyCodeGenerationRef, DependencyId, FactoryMeta, FactoryMetaStore,
-  GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
+  FreezeLock, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   ModuleLayer, ModuleType, NeedBuildContext, OptimizationBailoutItem, OutputOptions, ParseContext,
   ParseResult, ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions,
@@ -144,8 +144,8 @@ pub struct NormalModule {
   diagnostics: Vec<Diagnostic>,
   code_generation_dependencies: Option<Vec<DependencyId>>,
   presentational_dependencies: Option<Vec<DependencyCodeGenerationRef>>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
   parsed: bool,
   force_build: bool,
   source_map_kind: SourceMapKind,
@@ -157,6 +157,16 @@ pub struct NormalModule {
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
+  pub(crate) fn restore_build_meta(&self, build_meta: crate::SharedBuildMeta) {
+    self.build_meta.freeze_with(build_meta);
+  }
+
+  pub(crate) fn set_cache_snapshot(&self, snapshot: Option<Snapshot>) {
+    self
+      .build_info
+      .update(|build_info| build_info.snapshot = snapshot);
+  }
+
   fn create_id<'request>(
     module_type: &ModuleType,
     layer: Option<&ModuleLayer>,
@@ -229,7 +239,7 @@ impl NormalModule {
       diagnostics: Default::default(),
       code_generation_dependencies: None,
       presentational_dependencies: None,
-      build_info,
+      build_info: build_info.into(),
       build_meta: Default::default(),
       parsed: false,
       // Mirrors webpack's `_forceBuild`: a new module has no reusable build
@@ -346,15 +356,18 @@ impl NormalModule {
       return Ok(true);
     }
 
-    if !self.build_info.cacheable {
+    let Some(build_info) = self.build_info.frozen() else {
+      return Ok(true);
+    };
+    if !build_info.cacheable {
       return Ok(true);
     }
 
-    let Some(snapshot) = &self.build_info.snapshot else {
+    let Some(snapshot) = &build_info.snapshot else {
       return Ok(true);
     };
 
-    if value_cache_versions.has_diff(&self.build_info.value_dependencies) {
+    if value_cache_versions.has_diff(&build_info.value_dependencies) {
       return Ok(true);
     }
 
@@ -369,7 +382,7 @@ impl NormalModule {
     file_system_info: &FileSystemInfo,
     build_start_time: u64,
   ) -> Result<Option<Snapshot>> {
-    if !self.build_info.cacheable
+    if !self.build_info.read().cacheable
       || self
         .diagnostics
         .iter()
@@ -378,13 +391,14 @@ impl NormalModule {
       return Ok(None);
     }
 
+    let build_info = self.build_info.read();
     Ok(Some(
       file_system_info
         .create_snapshot(
           Some(build_start_time),
-          &self.build_info.dependencies.file,
-          &self.build_info.dependencies.context,
-          &self.build_info.dependencies.missing,
+          &build_info.dependencies.file,
+          &build_info.dependencies.context,
+          &build_info.dependencies.missing,
           // Rspack does not expose webpack's `snapshot.module` strategy yet.
           SnapshotStrategyOptions::timestamp(),
         )
@@ -463,8 +477,8 @@ impl Module for NormalModule {
   ) -> Result<BoxModule> {
     self.dependencies_block = Default::default();
     self.force_build = false;
-    self.build_info.snapshot = None;
-    self.build_info.optimization_bailouts.clear();
+    self.build_info.get_mut().snapshot = None;
+    self.build_info.get_mut().optimization_bailouts.clear();
 
     // so does webpack
     self.parsed = true;
@@ -515,8 +529,8 @@ impl Module for NormalModule {
     self = loader_result.context.module;
 
     if let Some(err) = err {
-      self.build_info.cacheable = loader_result.cacheable;
-      self.build_info.dependencies = loader_result.dependencies;
+      self.build_info.get_mut().cacheable = loader_result.cacheable;
+      self.build_info.get_mut().dependencies = loader_result.dependencies;
 
       self.source = None;
 
@@ -532,8 +546,10 @@ impl Module for NormalModule {
       )));
       self.diagnostics.push(diagnostic);
 
-      self.build_info.hash =
-        Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
+      self.build_info.get_mut().hash = Some(self.init_build_hash(
+        &build_context.compiler_options.output,
+        &self.build_meta.read(),
+      ));
       return Ok(BoxModule::new(self));
     };
 
@@ -565,8 +581,8 @@ impl Module for NormalModule {
       loader_result.source_map.map(|source_map| *source_map),
     )?;
 
-    self.build_info.cacheable = loader_result.cacheable;
-    self.build_info.dependencies = loader_result.dependencies;
+    self.build_info.get_mut().cacheable = loader_result.cacheable;
+    self.build_info.get_mut().dependencies = loader_result.dependencies;
 
     if no_parse {
       self.parsed = false;
@@ -574,8 +590,10 @@ impl Module for NormalModule {
       self.code_generation_dependencies = Some(Vec::new());
       self.presentational_dependencies = Some(Vec::new());
 
-      self.build_info.hash =
-        Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
+      self.build_info.get_mut().hash = Some(self.init_build_hash(
+        &build_context.compiler_options.output,
+        &self.build_meta.read(),
+      ));
 
       return Ok(BoxModule::new(self));
     }
@@ -609,8 +627,8 @@ impl Module for NormalModule {
         compiler_options: &build_context.compiler_options,
         additional_data: loader_result.additional_data,
         factory_meta: factory_meta.as_deref(),
-        build_info: &mut self.build_info,
-        build_meta: &mut self.build_meta,
+        build_info: self.build_info.get_mut(),
+        build_meta: self.build_meta.get_mut(),
         parse_meta: loader_result.parse_meta,
         runtime_template: &build_context.runtime_template,
       })
@@ -628,6 +646,7 @@ impl Module for NormalModule {
         .to_string();
       self
         .build_info
+        .get_mut()
         .optimization_bailouts
         .push(OptimizationBailoutItem::SideEffects {
           node_type: side_effects_bailout.ty,
@@ -641,8 +660,10 @@ impl Module for NormalModule {
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
 
-    self.build_info.hash =
-      Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
+    self.build_info.get_mut().hash = Some(self.init_build_hash(
+      &build_context.compiler_options.output,
+      &self.build_meta.read(),
+    ));
 
     Ok(BoxModule::new(self).with_dependencies(
       dependencies.into_iter().map(Into::into).collect(),
@@ -729,7 +750,7 @@ impl Module for NormalModule {
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHasher::from(&compilation.options.output);
-    self.build_info.hash.hash(&mut hasher);
+    self.build_info.read().hash.hash(&mut hasher);
     // For built failed NormalModule, hash will be calculated by build_info.hash, which contains error message
     if self.source.is_some() && self.parser_and_generator.has_runtime_hash() {
       let runtime_hash = self
@@ -866,20 +887,28 @@ impl Module for NormalModule {
     self.factory_meta.set(Some(Arc::new(factory_meta)));
   }
 
-  fn build_info(&self) -> &BuildInfo {
-    &self.build_info
+  fn build_info(&self) -> crate::FreezeReadGuard<'_, BuildInfo> {
+    self.build_info.read()
+  }
+
+  fn freeze_build_info(&self) {
+    self.build_info.freeze();
+  }
+
+  fn extend_build_assets(&self, assets: crate::CompilationAssets) {
+    self.build_info.extend_assets(assets);
   }
 
   fn build_info_mut(&mut self) -> &mut BuildInfo {
-    &mut self.build_info
+    self.build_info.get_mut()
   }
 
-  fn build_meta(&self) -> &BuildMeta {
-    &self.build_meta
+  fn build_meta(&self) -> crate::FreezeReadGuard<'_, BuildMeta> {
+    self.build_meta.read()
   }
 
-  fn build_meta_mut(&mut self) -> &mut BuildMeta {
-    &mut self.build_meta
+  fn freeze_build_meta(&self) -> &triomphe::Arc<BuildMeta> {
+    self.build_meta.freeze()
   }
 }
 

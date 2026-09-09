@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder, Compilation,
-  CompilerOptions, DependenciesBlock, DependenciesBlockData, FactoryMetaStore, Module,
+  CompilerOptions, DependenciesBlock, DependenciesBlockData, FactoryMetaStore, FreezeLock, Module,
   ModuleCodeGenerationContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
   ModuleFactoryResult, ModuleGraph, ModuleLayer, RuntimeSpec, SourceType, impl_module_meta_info,
   impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
@@ -31,8 +31,8 @@ pub(crate) struct CssModule {
   pub(crate) identifier_index: u32,
 
   factory_meta: FactoryMetaStore,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
 
   dependencies_block: DependenciesBlockData,
 
@@ -70,7 +70,8 @@ impl CssModule {
         strict: true,
         dependencies: dep.dependencies.clone(),
         ..Default::default()
-      },
+      }
+      .into(),
       build_meta: Default::default(),
       source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
       identifier__,
@@ -164,7 +165,7 @@ impl Module for CssModule {
     build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
-    self.build_info.hash = Some(self.compute_hash(&build_context.compiler_options));
+    self.build_info.get_mut().hash = Some(self.compute_hash(&build_context.compiler_options));
     Ok(BoxModule::new(self))
   }
 
@@ -183,7 +184,7 @@ impl Module for CssModule {
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHasher::from(&compilation.options.output);
     module_update_hash(self, &mut hasher, compilation, runtime);
-    self.build_info.hash.hash(&mut hasher);
+    self.build_info.read().hash.hash(&mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 

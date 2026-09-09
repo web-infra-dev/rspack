@@ -3811,6 +3811,7 @@ dependencies = [
  "rkyv_derive 0.8.18",
  "smallvec",
  "tinyvec",
+ "triomphe",
  "uuid",
 ]
 
@@ -4234,6 +4235,7 @@ dependencies = [
  "napi",
  "num-bigint",
  "once_cell",
+ "parking_lot",
  "paste",
  "pretty_assertions",
  "rayon",

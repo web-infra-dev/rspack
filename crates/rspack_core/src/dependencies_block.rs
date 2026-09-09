@@ -68,8 +68,7 @@ impl ExactSizeIterator for DependencyIds<'_> {}
 
 /// Build-owned dependency objects and blocks. The graph indexes the same shared objects.
 /// Dependency IDs are read from the objects; block IDs remain a contiguous read index.
-/// Cloning copies these containers for normal-module state cache entries; the dependency
-/// and block objects themselves remain shared.
+/// Cloning copies these containers; the dependency and block objects themselves remain shared.
 #[cacheable]
 #[derive(Debug, Default, Clone)]
 pub struct DependenciesBlockData {
@@ -99,15 +98,6 @@ impl DependenciesBlockData {
   pub(crate) fn add_block(&mut self, block: AsyncDependenciesBlockRef) {
     self.block_ids.push(block.identifier());
     self.blocks.push(block);
-  }
-
-  pub(crate) fn replace_block(&mut self, block: AsyncDependenciesBlockRef) {
-    let existing = self
-      .blocks
-      .iter_mut()
-      .find(|existing| existing.identifier() == block.identifier())
-      .expect("the parent module should own the block being replaced");
-    *existing = block;
   }
 }
 

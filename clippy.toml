@@ -13,6 +13,4 @@ disallowed-methods = [
   { path = "async_std::task::block_on", reason = "block_on can cause deadlock easily" },
   { path = "pollster::block_on", reason = "block_on can cause deadlock easily" },
   { path = "napi::tokio_runtime::block_on", reason = "block_on can cause deadlock easily", allow-invalid = true },
-  { path = "rspack_core::module::ModuleRef::get_mut", reason = "Mutable module access is restricted to audited ModuleGraph operations; shared modules must use explicit interior-mutability APIs.", allow-invalid = true },
-  { path = "rspack_core::module_graph::ModuleGraph::module_by_identifier_mut", reason = "Mutable module access requires an audited call site that guarantees unique ownership.", allow-invalid = true },
 ]

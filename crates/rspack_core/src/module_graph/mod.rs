@@ -290,6 +290,13 @@ impl ModuleGraph {
     let module_identifier = self.module_identifier_by_dependency_id(dep_id).copied();
     let parent_block = self.get_parent_block(dep_id).copied();
 
+    if force {
+      assert!(
+        original_module_identifier.is_none_or(|id| self.inner.modules.get(&id).is_none()),
+        "revoke the parent module before removing its dependencies"
+      );
+    }
+
     let connection_id = self
       .inner
       .dependency_id_to_connection_id
@@ -303,18 +310,6 @@ impl ModuleGraph {
       self.inner.dependencies.remove(dep_id);
       self.inner.dependency_id_to_parents.remove(dep_id);
       self.inner.connection_to_condition.remove(dep_id);
-      if let Some(m_id) = original_module_identifier
-        && let Some(module) = self.inner.modules.get_mut(&m_id)
-      {
-        #[expect(
-          clippy::disallowed_methods,
-          reason = "Removing a dependency requires a uniquely owned parent module."
-        )]
-        module
-          .get_mut()
-          .expect("shared modules must be revoked before their dependencies")
-          .remove_dependency_id(*dep_id);
-      }
       if let Some(b_id) = parent_block
         && let Some(block) = self.inner.blocks.get_mut(&b_id)
       {
@@ -323,11 +318,6 @@ impl ModuleGraph {
           block.remove_dependency_id(*dep_id);
         } else {
           *block = Arc::new(block.without_dependency(*dep_id));
-        }
-        if let Some(module_id) = original_module_identifier
-          && let Some(module) = self.inner.modules.get_mut(&module_id)
-        {
-          module.dependencies_block_mut().replace_block(block.clone());
         }
       }
     }
@@ -738,23 +728,6 @@ impl ModuleGraph {
   /// Uniquely identify a module by its identifier and return the aliased reference
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&ModuleRef> {
     self.inner.modules.get(identifier)
-  }
-
-  /// Access uniquely owned build state from an audited call site.
-  /// Updates to shared modules must use explicit interior-mutability APIs.
-  #[expect(
-    clippy::disallowed_methods,
-    reason = "Centralize the unique-ownership check for audited build-state updates."
-  )]
-  pub fn module_by_identifier_mut(
-    &mut self,
-    identifier: &ModuleIdentifier,
-  ) -> Option<&mut dyn crate::Module> {
-    self.inner.modules.get_mut(identifier).map(|module| {
-      module
-        .get_mut()
-        .expect("shared modules must be rebuilt before mutating build state")
-    })
   }
 
   /// Uniquely identify a module graph module by its module's identifier and return the aliased reference

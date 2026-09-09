@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use rspack_core::{ModuleRef, Compilation, ModuleGraph, ModuleIdentifier, NormalModule};
+use rspack_core::{Compilation, ModuleGraph, ModuleIdentifier, ModuleRef, NormalModule};
 use rspack_util::{fx_hash::FxHashSet as HashSet, identifier::split_at_query_mark};
 
 use super::{
