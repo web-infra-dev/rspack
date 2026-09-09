@@ -84,10 +84,10 @@ pub enum JsLoaderState {
 impl From<LoaderState> for JsLoaderState {
   fn from(value: LoaderState) -> Self {
     match value {
-      LoaderState::Init | LoaderState::ProcessResource | LoaderState::Finished => {
+      LoaderState::ProcessResource | LoaderState::Finished => {
         panic!("Unexpected loader runner state: {value:?}")
       }
-      LoaderState::Pitching => JsLoaderState::Pitching,
+      LoaderState::Init | LoaderState::Pitching => JsLoaderState::Pitching,
       LoaderState::Normal => JsLoaderState::Normal,
     }
   }

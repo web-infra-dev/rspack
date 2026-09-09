@@ -23,7 +23,6 @@ import {
 } from 'webpack-sources';
 
 import { commitCustomFieldsToRust } from '../BuildInfo';
-import type { Compilation } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import {
   BUILTIN_LOADER_PREFIX,
@@ -36,7 +35,7 @@ import {
 import { NormalModule } from '../NormalModule';
 import type { ResolveContext } from '../Resolver';
 import { NonErrorEmittedError, type RspackError } from '../RspackError';
-import { JavaScriptTracer } from '../trace';
+import { type ChromeEvent, JavaScriptTracer } from '../trace';
 import {
   isNil,
   serializeObject,
@@ -229,33 +228,13 @@ function getCurrentLoader(
   return null;
 }
 
-export async function runLoaders(
+export function createLoaderContext(
   compiler: Compiler,
   context: JsLoaderContext,
-): Promise<JsLoaderContext> {
-  const loaderState = context.loaderState;
-  const pitch = loaderState === JsLoaderState.Pitching;
-
+  dependencies: LoaderDependenciesState,
+  traceData?: Pick<ChromeEvent, 'uuid' | 'args'>,
+): LoaderContext {
   const { resource } = context;
-  const traceData = JavaScriptTracer.isEnabled()
-    ? {
-        uuid: JavaScriptTracer.uuid(),
-        args: {
-          is_pitch: pitch,
-          resource: resource,
-        },
-      }
-    : undefined;
-
-  if (traceData) {
-    JavaScriptTracer.startAsync({
-      name: 'run_js_loaders',
-      processName: LOADER_PROCESS_NAME,
-      uuid: traceData.uuid,
-      ph: 'b',
-      args: traceData.args,
-    });
-  }
   const splittedResource = resource && parseResource(resource);
   const resourcePath = splittedResource ? splittedResource.path : undefined;
   const resourceQuery = splittedResource ? splittedResource.query : undefined;
@@ -263,12 +242,6 @@ export async function runLoaders(
     ? splittedResource.fragment
     : undefined;
   const contextDirectory = resourcePath ? dirname(resourcePath) : null;
-
-  // execution state
-  const dependencies = new LoaderDependenciesState(context.dependencies);
-  const loaderCache = context.__internal__loaderCache
-    ? new LoaderCache(context, dependencies)
-    : undefined;
 
   /// Construct `loaderContext`
   const loaderContext = {} as LoaderContext;
@@ -702,23 +675,6 @@ export async function runLoaders(
     return options;
   };
 
-  let compilation: Compilation | undefined = compiler._lastCompilation;
-  let step = 0;
-  while (compilation) {
-    NormalModule.getCompilationHooks(compilation).loader.call(
-      loaderContext,
-      loaderContext._module,
-    );
-    compilation = compilation.compiler.parentCompilation;
-    step++;
-    if (step > 1000) {
-      throw Error(
-        'Too many nested child compiler, exceeded max limitation 1000',
-      );
-    }
-  }
-  dependencies.mergeChanges();
-
   /// Sync with `context`
   Object.defineProperty(loaderContext, 'loaderIndex', {
     enumerable: true,
@@ -744,6 +700,48 @@ export async function runLoaders(
   loaderContext.__internal__setParseMeta = (key: string, value: string) => {
     context.__internal__parseMeta[key] = value;
   };
+
+  return loaderContext;
+}
+
+export async function runLoaders(
+  compiler: Compiler,
+  context: JsLoaderContext,
+): Promise<JsLoaderContext> {
+  const loaderState = context.loaderState;
+  const pitch = loaderState === JsLoaderState.Pitching;
+
+  const { resource } = context;
+  const traceData = JavaScriptTracer.isEnabled()
+    ? {
+        uuid: JavaScriptTracer.uuid(),
+        args: {
+          is_pitch: pitch,
+          resource: resource,
+        },
+      }
+    : undefined;
+
+  const dependencies = new LoaderDependenciesState(context.dependencies);
+  const loaderCache = context.__internal__loaderCache
+    ? new LoaderCache(context, dependencies)
+    : undefined;
+  const loaderContext = createLoaderContext(
+    compiler,
+    context,
+    dependencies,
+    traceData,
+  );
+
+  if (traceData) {
+    JavaScriptTracer.startAsync({
+      name: 'run_js_loaders',
+      processName: LOADER_PROCESS_NAME,
+      uuid: traceData.uuid,
+      ph: 'b',
+      args: traceData.args,
+    });
+  }
 
   const getWorkerLoaderContext = () => {
     const normalModule =

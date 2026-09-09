@@ -125,6 +125,7 @@ pub(crate) fn merge_loader_context(
   to.__finish_with((content, source_map, additional_data));
 
   // update loader status
+  let to_state = to.state();
   to.loader_items = to
     .loader_items
     .drain(..)
@@ -137,8 +138,10 @@ pub(crate) fn merge_loader_context(
         to.set_pitch_executed()
       }
       to.set_data(from.data);
-      // JS loader should always be considered as finished
-      to.set_finish_called();
+      // The loader hook also merges a snapshot, before any loader has run.
+      if to_state != LoaderState::Init {
+        to.set_finish_called();
+      }
       to
     })
     .collect();
