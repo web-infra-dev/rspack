@@ -14,13 +14,13 @@ exports.bar = 2
 /*!****************!*\
   !*** ./foo.js ***!
   \****************/
-(__unused_rspack_module, rspackExports) {
-makeNamespaceObject(rspackExports);
+(__unused_rspack_module, exports) {
+makeNamespaceObject(exports);
 /* import */ var _bar__rspack_import_0 = rspackRequire(/*! ./bar */ "./bar.js");
 const foo = 1
 
 
-definePropertyGetters(rspackExports, {
+definePropertyGetters(exports, {
   bar: () => (/* reexport safe */ _bar__rspack_import_0.bar)
 }, {
   foo: foo

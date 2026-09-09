@@ -73,7 +73,7 @@ var entryModuleId;
 // rspack/runtime/async_module
 var hasSymbol = typeof Symbol === "function";
 var rspackQueues = hasSymbol ? Symbol("rspack queues") : "__rspack_queues";
-var asyncModuleExportSymbol = hasSymbol ? Symbol("rspack exports") : "rspackExports";
+var asyncModuleExportSymbol = hasSymbol ? Symbol("rspack exports") : "exports";
 var rspackExports = asyncModuleExportSymbol;
 var rspackError = hasSymbol ? Symbol("rspack error") : "__rspack_error";
 var rspackDone = hasSymbol ? Symbol("rspack done") : "__rspack_done";
@@ -206,10 +206,10 @@ moduleFactories.add({
 /*!*************************!*\
   !*** ./worker-async.js ***!
   \*************************/
-(module, rspackExports) {
+(module, exports) {
 asyncModule(module, async function (__rspack_load_async_deps, __rspack_async_done) { try {
-makeNamespaceObject(rspackExports);
-definePropertyGetters(rspackExports, {
+makeNamespaceObject(exports);
+definePropertyGetters(exports, {
   "default": () => (__rspack_default_export)
 });
 if ((moduleCache[entryModuleId] === module)) {

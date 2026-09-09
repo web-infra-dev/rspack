@@ -5,11 +5,11 @@ moduleFactories.add({
 /*!**********************!*\
   !*** ./modules/a.js ***!
   \**********************/
-(__unused_rspack_module, rspackExports) {
-makeNamespaceObject(rspackExports);
+(__unused_rspack_module, exports) {
+makeNamespaceObject(exports);
 /* export default */ const __rspack_default_export = ("a");
 
-definePropertyGetters(rspackExports, {
+definePropertyGetters(exports, {
 }, {
   "default": __rspack_default_export
 });
@@ -27,13 +27,13 @@ moduleFactories.add({
 /*!**********************!*\
   !*** ./modules/b.js ***!
   \**********************/
-(__unused_rspack_module, rspackExports) {
-makeNamespaceObject(rspackExports);
+(__unused_rspack_module, exports) {
+makeNamespaceObject(exports);
 import("./c.mjs").then(rspackRequire.bind(rspackRequire, /*! ./c */ "./modules/c.js"));
 
 /* export default */ const __rspack_default_export = ("b");
 
-definePropertyGetters(rspackExports, {
+definePropertyGetters(exports, {
 }, {
   "default": __rspack_default_export
 });
@@ -51,11 +51,11 @@ moduleFactories.add({
 /*!**********************!*\
   !*** ./modules/c.js ***!
   \**********************/
-(__unused_rspack_module, rspackExports) {
-makeNamespaceObject(rspackExports);
+(__unused_rspack_module, exports) {
+makeNamespaceObject(exports);
 /* export default */ const __rspack_default_export = ("c");
 
-definePropertyGetters(rspackExports, {
+definePropertyGetters(exports, {
 }, {
   "default": __rspack_default_export
 });

@@ -20,8 +20,8 @@ console.log.bind((rspackRequire(/*! fs */ "fs")/* .readFile */.readFile))
 /*!******************!*\
   !*** ./index.js ***!
   \******************/
-(module, rspackExports) {
-makeNamespaceObject(rspackExports);
+(module, exports) {
+makeNamespaceObject(exports);
 /* import */ var _cjs__rspack_import_0 = rspackRequire(/*! ./cjs */ "./cjs.js");
 /* module decorator */ module = esmModuleDecorator(module);
 

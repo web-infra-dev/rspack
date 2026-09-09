@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rspack_core::{
-  ConstDependency, ContextDependency, DependencyCodeGenerationRef, DependencyRange,
+  ConstDependency, ContextDependency, DependencyCodeGenerationRef, DependencyRange, ExportsArgument,
 };
 use rspack_util::{SpanExt, itoa};
 use swc_experimental_ecma_ast::{CallExpr, GetSpan, Ident, Program, VarDeclarator};
@@ -184,6 +184,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     // hook can bail out, including targets inside destructuring assignments.
     if for_name == NESTED_IDENTIFIER_TAG && parser.in_assignment_pattern {
       return self.identifier(parser, ident, for_name);
+    }
+    // Do not interpret assignments to the CommonJS factory parameter as
+    // declarations of a nested runtime binding. Automatic modules can also be
+    // ESM, so check the actual factory binding rather than the module type.
+    if for_name == "exports"
+      && parser.in_assignment_pattern
+      && parser.build_info.exports_argument == ExportsArgument::Exports
+    {
+      return None;
     }
     if for_name == parser.parser_runtime_requirements.exports {
       self.tag_nested_require_data(

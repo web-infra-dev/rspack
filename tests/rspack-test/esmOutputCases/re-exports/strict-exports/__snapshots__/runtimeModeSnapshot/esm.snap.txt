@@ -34,10 +34,10 @@ it('should only contains needed exports', async () => {
 	await import("./chunk.mjs")
 	expect((0,cjs.p)()).toBe(42)
 
-	const exports = await import(/*webpackIgnore: true*/'./main.mjs')
+	const __nested_rspack_exports__ = await import(/*webpackIgnore: true*/'./main.mjs')
 
-	expect(Reflect.ownKeys(exports).filter(t => typeof t === 'string').length).toBe(1)
-	const {value} = exports
+	expect(Reflect.ownKeys(__nested_rspack_exports__).filter(t => typeof t === 'string').length).toBe(1)
+	const {value} = __nested_rspack_exports__
 
 	expect(value()()).toBe(42)
 })

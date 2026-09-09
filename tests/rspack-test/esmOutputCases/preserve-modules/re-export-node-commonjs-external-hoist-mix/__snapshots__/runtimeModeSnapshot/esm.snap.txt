@@ -149,7 +149,7 @@ moduleFactories.add({
 /*!************************!*\
   !*** ./src/wrapped.js ***!
   \************************/
-(module, rspackExports) {
+(module, exports) {
 /* import */ var fs__rspack_import_0 = rspackRequire(/*! fs */ "fs");
 /* import */ var fs__rspack_import_0_default = /*#__PURE__*/compatGetDefaultExport(fs__rspack_import_0);
 /* module decorator */ module = esmModuleDecorator(module);
@@ -157,7 +157,7 @@ moduleFactories.add({
 
 console.log.bind(module)
 
-definePropertyGetters(rspackExports, {
+definePropertyGetters(exports, {
   E: () => (/* reexport safe */ fs__rspack_import_0.readFile),
   Z: () => (/* reexport safe */ fs__rspack_import_0.readFileSync)
 });

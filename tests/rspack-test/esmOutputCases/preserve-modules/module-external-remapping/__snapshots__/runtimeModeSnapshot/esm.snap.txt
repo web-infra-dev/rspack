@@ -141,14 +141,14 @@ moduleFactories.add({
 /*!************************!*\
   !*** ./src/wrapped.js ***!
   \************************/
-(module, rspackExports) {
+(module, exports) {
 /* import */ var node_events__rspack_import_0 = rspackRequire(/*! node:events */ "node:events?df85");
 /* module decorator */ module = esmModuleDecorator(module);
 
 
 console.log.bind(module);
 
-definePropertyGetters(rspackExports, {
+definePropertyGetters(exports, {
   a: () => (/* reexport safe */ node_events__rspack_import_0.a),
   b: () => (/* reexport safe */ node_events__rspack_import_0.b)
 });

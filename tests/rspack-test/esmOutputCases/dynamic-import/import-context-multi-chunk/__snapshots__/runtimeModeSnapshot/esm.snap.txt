@@ -7,14 +7,14 @@ moduleFactories.add({
 /*!**********************!*\
   !*** ./modules/a.js ***!
   \**********************/
-(__unused_rspack_module, rspackExports) {
-makeNamespaceObject(rspackExports);
+(__unused_rspack_module, exports) {
+makeNamespaceObject(exports);
 /* import */ var _shared__rspack_import_0 = rspackRequire(/*! ../shared */ "./shared.js");
 
 
 /* export default */ const __rspack_default_export = (_shared__rspack_import_0/* .value */.U);
 
-definePropertyGetters(rspackExports, {
+definePropertyGetters(exports, {
 }, {
   "default": __rspack_default_export
 });
@@ -35,14 +35,14 @@ moduleFactories.add({
 /*!**********************!*\
   !*** ./modules/b.js ***!
   \**********************/
-(__unused_rspack_module, rspackExports) {
-makeNamespaceObject(rspackExports);
+(__unused_rspack_module, exports) {
+makeNamespaceObject(exports);
 /* import */ var _shared__rspack_import_0 = rspackRequire(/*! ../shared */ "./shared.js");
 
 
 /* export default */ const __rspack_default_export = (_shared__rspack_import_0/* .value */.U + 1);
 
-definePropertyGetters(rspackExports, {
+definePropertyGetters(exports, {
 }, {
   "default": __rspack_default_export
 });
@@ -234,10 +234,10 @@ moduleFactories.add({
 /*!*******************!*\
   !*** ./shared.js ***!
   \*******************/
-(__unused_rspack_module, rspackExports) {
+(__unused_rspack_module, exports) {
 const value = globalThis.__rspack_test_value || 42;
 
-definePropertyGetters(rspackExports, {
+definePropertyGetters(exports, {
 }, {
   U: value
 });
