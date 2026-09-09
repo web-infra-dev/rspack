@@ -282,6 +282,8 @@ export default {
 };
 ```
 
+启用 `experiments.newCache` 时，快照路径采用 webpack 的目录匹配规则。字符串项匹配目录下的文件，不匹配任意子串或单个文件；匹配单个文件请使用正则表达式。`unmanagedPaths` 的优先级高于 `immutablePaths` 和 `managedPaths`。managed 正则使用第一个捕获组（没有捕获组时使用完整匹配）确定包所在的目录，并根据包根目录的元数据校验缓存，包括 scoped 包及嵌套包。新缓存的 `managedPaths` 默认值为 `/^(.+?[\\/]node_modules[\\/])/`。
+
 #### snapshot.immutablePaths
 
 - **类型：** `(RegExp | string)[]`

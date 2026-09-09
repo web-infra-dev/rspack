@@ -293,6 +293,8 @@ export default {
 };
 ```
 
+With `experiments.newCache` enabled, snapshot paths follow webpack's directory matching rules. String entries match descendants of a directory, not arbitrary substrings or individual files. Use a regular expression to match an individual file. `unmanagedPaths` takes precedence over both `immutablePaths` and `managedPaths`. Managed regular expressions use the first capture group (or the full match when there is no capture) as the directory containing packages; package metadata comes from that package root, including scoped and nested packages. The new cache defaults `managedPaths` to `/^(.+?[\\/]node_modules[\\/])/`.
+
 #### snapshot.immutablePaths
 
 - **Type:** `(RegExp | string)[]`
