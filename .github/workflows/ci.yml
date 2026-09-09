@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - main
+      - release/2.3.0
       - v1.x
     paths-ignore:
       - '**/*.md'
@@ -19,7 +20,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'v1.x' }}
+  cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'release/2.3.0' && github.ref_name != 'v1.x' }}
 
 permissions:
   # Allow commenting on issues for `reusable-build.yml`
@@ -100,7 +101,7 @@ jobs:
   bench-rust-walltime:
     name: Rust Bench Walltime
     needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/2.3.0'))) }}
     uses: ./.github/workflows/bench-rust.yml
     with:
       target: x86_64-unknown-linux-gnu
@@ -154,7 +155,7 @@ jobs:
   build-riscv64:
     name: Build riscv64
     needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/2.3.0') }}
     uses: ./.github/workflows/reusable-build-build.yml
     with:
       target: riscv64gc-unknown-linux-gnu
@@ -164,7 +165,7 @@ jobs:
   build-ppc64:
     name: Build ppc64
     needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/2.3.0') }}
     uses: ./.github/workflows/reusable-build-build.yml
     with:
       target: powerpc64le-unknown-linux-gnu
@@ -174,7 +175,7 @@ jobs:
   build-s390x:
     name: Build s390x
     needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/2.3.0') }}
     uses: ./.github/workflows/reusable-build-build.yml
     with:
       target: s390x-unknown-linux-gnu
@@ -245,7 +246,8 @@ jobs:
                 needs.test-windows.result != 'success' ||
                 needs.test-mac.result != 'success' ||
                 needs.build-wasm.result != 'success' ||
-                (github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+                (github.event_name == 'push' &&
+                  (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/2.3.0') &&
                   (needs.build-riscv64.result != 'success' ||
                     needs.build-ppc64.result != 'success' ||
                     needs.build-s390x.result != 'success')) ||
