@@ -23,6 +23,7 @@ module.exports = cases.map((test) => {
   const lockfileLocation = path.join(directory, 'rspack.lock');
   const cacheLocation = path.join(directory, 'rspack.lock.data');
   const resolved = new URL(test.resolved || 'module.js', url).href;
+  const lockedUrl = new URL(test.lockAt || 'module.js', url).href;
   const redirects = test.redirect
     ? [
         url,
@@ -46,7 +47,8 @@ module.exports = cases.map((test) => {
         : JSON.stringify({
             version: 1,
             entries: {
-              [url]: typeof test.locked === 'string' ? test.locked : entry,
+              [lockedUrl]:
+                typeof test.locked === 'string' ? test.locked : entry,
             },
           });
   if (beforeLock !== undefined) fs.writeFileSync(lockfileLocation, beforeLock);
@@ -82,7 +84,12 @@ module.exports = cases.map((test) => {
           if (redirectIndex >= 0 && redirectIndex < redirects.length - 1) {
             return {
               status: 302,
-              headers: { location: redirects[redirectIndex + 1] },
+              headers: {
+                location: redirects[redirectIndex + 1],
+                ...(test.redirectNoCache
+                  ? { 'cache-control': 'no-cache' }
+                  : {}),
+              },
               body: Buffer.from(''),
             };
           }
@@ -144,9 +151,8 @@ module.exports = cases.map((test) => {
             }
           }
           if (
-            (beforeCache !== undefined && !test.upgrade) ||
-            test.invalidLockfile ||
-            (test.locked === false && frozen)
+            (beforeCache !== undefined && !test.upgrade && !test.lockAt) ||
+            test.invalidLockfile
           ) {
             assert.equal(
               requests.size,

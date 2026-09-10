@@ -106,12 +106,32 @@ impl HttpCache {
   ) -> Result<ContentFetchResult> {
     // The lockfile remains authoritative even if its content cache is missing or disabled.
     let mut locked = self.lockfile_cache.get_entry(url).await?;
-    if locked.is_none() && options.frozen {
-      return Err(error!("{url} has no lockfile entry and lockfile is frozen"));
+    let mut current_url = url.to_string();
+    let mut redirect_count = 0;
+    let mut store_lock = true;
+    // Older lockfiles stored redirected imports only under the final URL.
+    // Follow redirects to find that entry, but never accept unlocked content.
+    while locked.is_none() && options.frozen {
+      let FetchResultType::Redirect(redirect) = self.fetch_content_raw(&current_url, None).await?
+      else {
+        return Err(error!("{url} has no lockfile entry and lockfile is frozen"));
+      };
+      current_url = validate_redirect_location(&redirect.location, &current_url, options)?;
+      if redirect_count == MAX_REDIRECTS {
+        return Err(error!("Too many redirects"));
+      }
+      redirect_count += 1;
+      store_lock &= redirect.meta.store_lock;
+      locked = self.lockfile_cache.get_entry(&current_url).await?;
     }
 
     let mut cached_result = match &locked {
       Some(LockfileValue::Content(entry)) => {
+        if options.frozen && !store_lock {
+          return Err(error!(
+            "{url} has a lockfile entry and is no-cache now, but lockfile is frozen"
+          ));
+        }
         if entry.resolved != url {
           validate_redirect_location(&entry.resolved, url, options)?;
         }
@@ -155,7 +175,10 @@ impl HttpCache {
     }
 
     let had_cached_content = cached_result.is_some();
-    let result = self.resolve_content(url, cached_result, options).await?;
+    let mut result = self
+      .resolve_content(current_url, cached_result, options, redirect_count)
+      .await?;
+    result.meta.store_lock &= store_lock;
     match &locked {
       Some(LockfileValue::Content(entry)) if options.frozen => {
         if !result.meta.store_lock {
@@ -201,14 +224,14 @@ impl HttpCache {
 
   async fn resolve_content(
     &self,
-    url: &str,
+    mut current_url: String,
     cached_result: Option<ContentFetchResult>,
     options: &HttpUriPluginOptions,
+    redirect_count: usize,
   ) -> Result<ContentFetchResult> {
-    let mut current_url = url.to_string();
     let mut cached_result = cached_result;
     let mut store_lock = true;
-    for redirect_count in 0..=MAX_REDIRECTS {
+    for redirect_count in redirect_count..=MAX_REDIRECTS {
       // The cached content and its validators belong only to the locked resolved URL.
       let cached = cached_result.take_if(|cached| cached.entry.resolved == current_url);
       match self.fetch_content_raw(&current_url, cached).await? {
