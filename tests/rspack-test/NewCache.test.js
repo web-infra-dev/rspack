@@ -19,17 +19,13 @@ for (const source of selectedSuites) {
 const excludes = {
 	cache: [
 		// Restarts rerun loaders that these legacy assertions expect to stay cached.
-		/^common\/readonly$/,
 		/^common\/update-file$/,
-		// Moving the source directory rebuilds the immutable module (3 instead of 1).
-		/^portable\/basic$/,
 		// Restart restores the pre-HMR module value (1 instead of 2).
 		/^snapshot\/default_value$/,
 		/^snapshot\/immutable-paths$/,
 		/^snapshot\/managed-paths$/,
 		/^snapshot\/unmanaged-paths$/,
-		// The harness overrides storage paths; these cases assert the legacy locations.
-		/^storage\/directory$/,
+		// Expects legacy storage metadata; newCache does not implement maxAge yet.
 		/^storage\/max-age$/
 	],
 	normal: [

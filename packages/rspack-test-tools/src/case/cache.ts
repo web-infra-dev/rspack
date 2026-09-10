@@ -44,7 +44,7 @@ const builtModulesByCompilation = new WeakMap<Compilation, Set<string>>();
 
 interface CacheState {
   compilerIndex: number;
-  nextStart: (advance?: boolean, move?: boolean) => Promise<StatsCompilation>;
+  nextStart: (advance?: boolean) => Promise<StatsCompilation>;
   nextHmr: (module: any, options?: any) => Promise<StatsCompilation>;
 }
 
@@ -139,7 +139,7 @@ function createCacheProcessor(
       await updatePlugin?.initialize();
       const state: CacheState = {
         compilerIndex: 0,
-        nextStart: async (advance = true, move = false) => {
+        nextStart: async (advance = true) => {
           const env = testEnv;
           if (state.compilerIndex >= 100) {
             throw new Error('NEXT_START has been called more than 100 times');
@@ -147,13 +147,6 @@ function createCacheProcessor(
           const manager = context.getCompiler();
           // close() flushes the filesystem cache before a fresh compiler reads it.
           await manager.close();
-          if (move) {
-            const tempDir = updatePlugin!.moveTempDir();
-            manager.setOptions(
-              await generateOptions(context, tempDir, target, updatePlugin!),
-            );
-            if (caseOptions.newCache) enableNewCache(context, temp);
-          }
           const advanceUpdate = !!(
             advance &&
             updatePlugin &&
@@ -167,14 +160,14 @@ function createCacheProcessor(
           manager.createCompiler();
           await manager.build();
           const jsonStats = await checkRestart(env, context, advanceUpdate);
-          checkCache(env, context, !advanceUpdate && !move);
+          checkCache(env, context, !advanceUpdate);
 
           // Every restart needs fresh runners, including every child of a MultiCompiler.
           context.setValue('modules', []);
           context.setValue('runned', new Set<string>());
           context.setValue('multiFileIndexMap', {});
           env.it(
-            `${move ? 'NEXT_MOVE_DIR_START' : 'NEXT_START'} run with compilerIndex==${state.compilerIndex}`,
+            `NEXT_START run with compilerIndex==${state.compilerIndex}`,
             async () => {
               await base.run(createRuntimeEnv(env), context);
             },
@@ -322,13 +315,17 @@ function enableNewCache(context: ITestContext, temp: string) {
       newCache: config.experiments?.newCache || true,
     };
     const cache = typeof config.cache === 'object' ? config.cache : {};
+    const storage = cache.type === 'persistent' ? cache.storage : undefined;
     config.cache = {
       ...cache,
       type: 'persistent',
-      storage: {
-        type: 'filesystem',
-        directory: path.join(temp, '.cache', String(index)),
-      },
+      storage:
+        storage?.directory !== undefined || storage?.location !== undefined
+          ? storage
+          : {
+              type: 'filesystem',
+              directory: path.join(temp, '.cache', String(index)),
+            },
     };
     config.plugins ??= [];
     config.plugins.push({
@@ -573,7 +570,6 @@ function createRunner(
       scope.COMPILER_INDEX = compilerIndex;
       scope.NEXT_HMR = state.nextHmr;
       scope.NEXT_START = () => state.nextStart();
-      scope.NEXT_MOVE_DIR_START = () => state.nextStart(true, true);
       return scope;
     },
   };

@@ -1,3 +1,11 @@
+const fs = require('fs/promises');
+const path = require('path');
+
+// Reusing a file version must restore its timestamp as well as its content.
+// Keep both timestamps before the builds so safe-time checks allow cache hits.
+const firstTime = new Date('2000-01-01T00:00:00Z');
+const secondTime = new Date('2000-01-02T00:00:00Z');
+const fileTimes = [firstTime, secondTime, firstTime, secondTime, secondTime];
 let index = 0;
 
 /** @type {import("@rspack/core").Configuration} */
@@ -20,6 +28,15 @@ module.exports = {
   plugins: [
     {
       apply(compiler) {
+        compiler.hooks.beforeRun.tapPromise('PLUGIN', async () => {
+          const time = fileTimes[index];
+          await fs.utimes(
+            path.resolve(compiler.options.context, 'file.js'),
+            time,
+            time,
+          );
+        });
+
         let shouldRebuildFile = true;
         if (index == 0) {
           compiler.options.cache.readonly = false;
