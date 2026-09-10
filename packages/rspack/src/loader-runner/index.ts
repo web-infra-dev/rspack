@@ -243,8 +243,7 @@ export function createLoaderContext(
   dependencies: LoaderDependenciesState,
   traceData?: Pick<ChromeEvent, 'uuid' | 'args'>,
 ): LoaderContext {
-  const state = context.__internal__loaderContextState as
-    LoaderContextState | undefined;
+  const state = context.loaderContextState as LoaderContextState | undefined;
   if (state) {
     state.update(context, dependencies, traceData);
     return state.loaderContext;
@@ -719,7 +718,7 @@ export function createLoaderContext(
   // Rust retains this state only for the current run_loaders invocation. Update
   // the captured snapshot on every entry so hook-installed closures use the
   // current loader index, dependencies and module pointer across native loaders.
-  context.__internal__loaderContextState = {
+  context.loaderContextState = {
     loaderContext,
     update(nextContext, nextDependencies, nextTraceData) {
       context = nextContext;

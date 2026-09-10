@@ -965,7 +965,7 @@ export interface JsLoaderCacheEntry {
 }
 
 export interface JsLoaderContext {
-  __internal__loaderContextState?: object | undefined
+  loaderContextState?: object | undefined
   resource: string
   _module: Module
   hot: Readonly<boolean>

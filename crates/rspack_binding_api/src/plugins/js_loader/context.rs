@@ -171,10 +171,7 @@ impl From<JsLoaderDependencies> for LoaderDependencies {
 
 #[napi(object)]
 pub struct JsLoaderContext {
-  #[napi(
-    js_name = "__internal__loaderContextState",
-    ts_type = "object | undefined"
-  )]
+  #[napi(ts_type = "object | undefined")]
   pub loader_context_state: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
   pub resource: String,
   #[napi(js_name = "_module", ts_type = "Module")]
