@@ -152,7 +152,8 @@ fn resolve_css_export_value(
     return None;
   }
 
-  let css_build_info = module.build_info().css.as_deref()?;
+  let build_info = module.build_info();
+  let css_build_info = build_info.css.as_deref()?;
   let exports = css_build_info.exports()?;
   let css_exports = exports.get(name)?;
   let mut resolved = Vec::with_capacity(css_exports.len());
