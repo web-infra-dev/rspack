@@ -1,4 +1,4 @@
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect } from './base';
 import { pathInfoFixtures } from './pathInfo';
 import { rspackFixtures, type RspackOptions } from './rspack';
 import { fileActionFixtures } from './fileAction';
