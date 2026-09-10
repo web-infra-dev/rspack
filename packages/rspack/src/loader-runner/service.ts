@@ -142,6 +142,7 @@ export enum RequestType {
   SetCacheable = 'SetCacheable',
   ImportModule = 'ImportModule',
   UpdateLoaderObjects = 'UpdateLoaderObjects',
+  UpdateBuildInfo = 'UpdateBuildInfo',
   LoaderCacheGet = 'LoaderCacheGet',
   LoaderCacheStore = 'LoaderCacheStore',
   CompilationGetPath = 'CompilationGetPath',
