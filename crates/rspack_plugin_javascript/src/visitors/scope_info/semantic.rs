@@ -150,7 +150,7 @@ impl<'ast> SemanticStore<'ast> {
   }
 
   /// Finds a value symbol in the active AST, then in saved fragment callers.
-  #[inline(always)]
+  #[inline(never)]
   pub(super) fn symbol_for_name(
     &self,
     context: &SemanticContext<'_>,
@@ -161,22 +161,37 @@ impl<'ast> SemanticStore<'ast> {
       .lookup(context.scope, name.as_bytes(), ReferenceSpace::Value)
       .map(|symbol| symbol_binding(semantic, context.symbol_start, context.scope_start, symbol))
       .or_else(|| {
-        context.parents.iter().rev().find_map(|&(ast, scope)| {
-          let info = &self.asts[ast];
-          info
-            .ast
-            .semantic
-            .lookup(scope, name.as_bytes(), ReferenceSpace::Value)
-            .map(|symbol| {
-              symbol_binding(
-                info.ast.semantic,
-                info.symbol_start,
-                info.scope_start,
-                symbol,
-              )
-            })
-        })
+        if context.parents.is_empty() {
+          None
+        } else {
+          self.symbol_in_parent_ast(context, name)
+        }
       })
+  }
+
+  /// Keeps fragment-only caller lookup out of the inlined ordinary-name path.
+  #[cold]
+  #[inline(never)]
+  fn symbol_in_parent_ast(
+    &self,
+    context: &SemanticContext<'_>,
+    name: &str,
+  ) -> Option<SymbolBinding> {
+    context.parents.iter().rev().find_map(|&(ast, scope)| {
+      let info = &self.asts[ast];
+      info
+        .ast
+        .semantic
+        .lookup(scope, name.as_bytes(), ReferenceSpace::Value)
+        .map(|symbol| {
+          symbol_binding(
+            info.ast.semantic,
+            info.symbol_start,
+            info.scope_start,
+            symbol,
+          )
+        })
+    })
   }
 
   /// Returns the innermost semantic scope owned by a node in the active AST.
@@ -373,7 +388,7 @@ impl<'ast> ScopeInfoDB<'ast> {
   ) -> Option<BindingState> {
     let ast = parsed.ast;
     if let IdentifierResolution::Name = resolution {
-      return self.resolve(ast.get_utf8(identifier.name(ast)));
+      return self.resolve_identifier_fallback(parsed, identifier, resolution);
     }
     if let IdentifierResolution::Symbol(symbol) = resolution {
       let index = self.semantic_context.symbol_start as usize + symbol.index();
@@ -386,20 +401,39 @@ impl<'ast> ScopeInfoDB<'ast> {
       if let Some(owner) = self.semantic_scope_owners[scope] {
         return Some(BindingState::Normal(owner));
       }
+      return self.resolve_identifier_fallback(parsed, identifier, resolution);
+    }
+    self.get(self.current_scope(), ast.get_utf8(identifier.name(ast)))
+  }
+
+  /// Shares dynamic-name and inactive-symbol handling instead of inlining it at every use.
+  #[cold]
+  #[inline(never)]
+  fn resolve_identifier_fallback(
+    &mut self,
+    parsed: &ParsedJavaScriptAst<'_>,
+    identifier: IdentifierReference,
+    resolution: IdentifierResolution,
+  ) -> Option<BindingState> {
+    let ast = parsed.ast;
+    let name = ast.get_utf8(identifier.name(ast));
+    if let IdentifierResolution::Name = resolution {
+      return self.resolve(name);
+    }
+    if let IdentifierResolution::Symbol(symbol) = resolution {
       let symbol = symbol_binding(
         parsed.semantic,
         self.semantic_context.symbol_start,
         self.semantic_context.scope_start,
         symbol,
       );
-      let name = ast.get_utf8(identifier.name(ast));
       if let Some(state) = self.bind_existing_symbol(self.current_scope(), name, symbol) {
         return state.defined();
       }
       // Replacement trees and legacy scope mappings can still introduce a
       // binding through the name-based overlay.
     }
-    self.get(self.current_scope(), ast.get_utf8(identifier.name(ast)))
+    self.get(self.current_scope(), name)
   }
 
   /// Defines a normal binding in the current scope without replacing its existing plugin tags.
