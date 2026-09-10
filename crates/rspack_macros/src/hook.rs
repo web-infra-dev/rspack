@@ -209,10 +209,6 @@ impl DefineHookInput {
       impl #hook_name {
         pub #call_fn
 
-        pub fn tap_stages(&self) -> &[i32] {
-          self.common.tap_stages()
-        }
-
         pub fn tap(&mut self, tap: impl #trait_name + Send + Sync + 'static) {
           let stage = tap.stage();
           let index = self.common.tap_insert_position(stage);
