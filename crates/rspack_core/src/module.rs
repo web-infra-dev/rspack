@@ -754,7 +754,12 @@ pub trait Module:
   /// Refresh factory metadata and clear compilation-specific state on cache reuse.
   fn reset_for_compilation(&self, factory_meta: Option<Arc<FactoryMeta>>);
 
+  /// Read metadata during build or in codegen helpers also used by `importModule`.
   fn build_info(&self) -> crate::FreezeReadGuard<'_, BuildInfo>;
+
+  /// Read finalized metadata during seal without a build borrow guard.
+  /// Panics if the metadata has not been frozen yet.
+  fn build_info_unchecked(&self) -> &BuildInfo;
 
   /// Finalize build information after loader assets and the cache snapshot.
   fn freeze_build_info(&self);
@@ -764,7 +769,12 @@ pub trait Module:
 
   fn build_info_mut(&mut self) -> &mut BuildInfo;
 
+  /// Read metadata during build or in codegen helpers also used by `importModule`.
   fn build_meta(&self) -> crate::FreezeReadGuard<'_, BuildMeta>;
+
+  /// Read finalized metadata during seal without a build borrow guard.
+  /// Panics if the metadata has not been frozen yet.
+  fn build_meta_unchecked(&self) -> &BuildMeta;
 
   /// Publish build metadata after failed-rebuild recovery has finished.
   fn freeze_build_meta(&self) -> &triomphe::Arc<BuildMeta>;
@@ -1214,6 +1224,10 @@ macro_rules! impl_module_meta_info {
       self.build_info.read()
     }
 
+    fn build_info_unchecked(&self) -> &$crate::BuildInfo {
+      self.build_info.get_unchecked()
+    }
+
     fn freeze_build_info(&self) {
       self.build_info.freeze();
     }
@@ -1228,6 +1242,10 @@ macro_rules! impl_module_meta_info {
 
     fn build_meta(&self) -> $crate::FreezeReadGuard<'_, $crate::BuildMeta> {
       self.build_meta.read()
+    }
+
+    fn build_meta_unchecked(&self) -> &$crate::BuildMeta {
+      self.build_meta.get_unchecked()
     }
 
     fn freeze_build_meta(&self) -> &$crate::SharedBuildMeta {
@@ -1387,6 +1405,10 @@ mod test {
           unreachable!()
         }
 
+        fn build_info_unchecked(&self) -> &crate::BuildInfo {
+          unreachable!()
+        }
+
         fn freeze_build_info(&self) {
           unreachable!()
         }
@@ -1400,6 +1422,10 @@ mod test {
         }
 
         fn build_meta(&self) -> crate::FreezeReadGuard<'_, crate::BuildMeta> {
+          unreachable!()
+        }
+
+        fn build_meta_unchecked(&self) -> &crate::BuildMeta {
           unreachable!()
         }
 

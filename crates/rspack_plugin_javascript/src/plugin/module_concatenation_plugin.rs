@@ -963,7 +963,7 @@ impl ModuleConcatenationPlugin {
           return (false, false, module_id, bailout_reason);
         }
 
-        if !m.build_info().strict {
+        if !m.build_info_unchecked().strict {
           bailout_reason.push("Module is not in strict mode".into());
           return (false, false, module_id, bailout_reason);
         }

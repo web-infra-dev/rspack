@@ -29,7 +29,7 @@ pub type ModuleFilterFn =
   Arc<dyn for<'a> Fn(CompilerId, &'a dyn Module) -> BoxFuture<'a, Result<bool>> + Send + Sync>;
 
 pub(crate) fn should_assign_module_id_without_chunk(module: &dyn Module) -> bool {
-  let build_meta = module.build_meta();
+  let build_meta = module.build_meta_unchecked();
   build_meta.is_css_module() || build_meta.need_id_in_concatenation()
 }
 

@@ -318,7 +318,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       Some("Module Concatenation is not implemented for CommonJS css exports".into())
     } else if self.effective_export_type(module) == Some(CssExportType::Style)
       && module
-        .build_info()
+        .build_info_unchecked()
         .css
         .as_deref()
         .is_some_and(|css_build_info| css_build_info.has_render_conditions())

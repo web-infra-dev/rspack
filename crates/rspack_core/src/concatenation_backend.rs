@@ -399,7 +399,7 @@ impl<'a> ConcatenationBindingResolver<'a> {
               let mut plan = self.resolve_inner(
                 &ref_info.id(),
                 target_export_name,
-                module.build_meta().strict_esm_module(),
+                module.build_meta_unchecked().strict_esm_module(),
                 visited_exports,
               );
               plan.reexport_deferred.get_or_insert(reexport.defer);
@@ -521,7 +521,7 @@ impl ConcatenationNameAllocator {
       .module_graph
       .module_by_identifier(&module)
       .expect("should have module")
-      .build_meta();
+      .build_meta_unchecked();
     let exports_type: BuildMetaExportsType = build_meta.exports_type();
     let default_object: BuildMetaDefaultObject = build_meta.default_object();
     let module_identifier = context.module_identifier(&module);

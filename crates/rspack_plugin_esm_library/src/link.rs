@@ -669,7 +669,7 @@ impl EsmLibraryPlugin {
             .expect("should have box module");
           let module_readable_identifier =
             box_module.readable_identifier(&compilation.options.context);
-          let strict_esm_module = box_module.build_meta().strict_esm_module();
+          let strict_esm_module = box_module.build_meta_unchecked().strict_esm_module();
 
           // scope hoisted module can only exist in only 1 chunk
           // so it's safe to use module_info.namespace_object_name, which is
@@ -824,7 +824,7 @@ impl EsmLibraryPlugin {
             let target_strict_esm_module = module_graph
               .module_by_identifier(&target_module)
               .expect("should have target module")
-              .build_meta()
+              .build_meta_unchecked()
               .strict_esm_module();
 
             self.get_binding(
@@ -1852,7 +1852,7 @@ var {} = {{}};
       module_graph,
       binding_resolver.context.module_graph_cache,
       binding_resolver.context.exports_info_artifact,
-      module.build_meta().strict_esm_module(),
+      module.build_meta_unchecked().strict_esm_module(),
     );
 
     if matches!(exports_type, ExportsType::DefaultOnly) {
@@ -1883,7 +1883,7 @@ var {} = {{}};
           needed_namespace_objects,
           false,
           false,
-          module.build_meta().strict_esm_module(),
+          module.build_meta_unchecked().strict_esm_module(),
           None,
           required,
           &mut chunk_link.name_allocator,
@@ -2637,7 +2637,7 @@ var {} = {{}};
               needed_namespace_objects,
               options.call,
               !options.direct_import,
-              module.build_meta().strict_esm_module(),
+              module.build_meta_unchecked().strict_esm_module(),
               options.asi_safe,
               required,
               &mut chunk_link.name_allocator,

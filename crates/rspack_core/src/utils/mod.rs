@@ -163,9 +163,12 @@ pub fn get_module_hashbang(
       let root_module_id = concatenated_module.get_root();
       module_graph
         .module_by_identifier(&root_module_id)
-        .map_or_else(|| module.build_info(), |m| m.build_info())
+        .map_or_else(
+          || module.build_info_unchecked(),
+          |m| m.build_info_unchecked(),
+        )
     } else {
-      module.build_info()
+      module.build_info_unchecked()
     };
 
   build_info
@@ -190,9 +193,12 @@ pub fn get_module_directives(
       let root_module_id = concatenated_module.get_root();
       module_graph
         .module_by_identifier(&root_module_id)
-        .map_or_else(|| module.build_info(), |m| m.build_info())
+        .map_or_else(
+          || module.build_info_unchecked(),
+          |m| m.build_info_unchecked(),
+        )
     } else {
-      module.build_info()
+      module.build_info_unchecked()
     };
 
   build_info

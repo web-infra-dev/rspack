@@ -71,6 +71,17 @@ impl<T> FreezeLock<T> {
     self.get()
   }
 
+  /// Read published metadata without a build borrow guard.
+  ///
+  /// Only build borrow checking is skipped: publication is checked in all builds.
+  /// Panics if the metadata has not been frozen yet.
+  #[inline]
+  pub fn get_unchecked(&self) -> &T {
+    self
+      .frozen()
+      .expect("metadata must be frozen before unchecked access")
+  }
+
   fn frozen_arc(&self) -> Option<&Arc<T>> {
     if !self.published.load(Ordering::Acquire) {
       return None;

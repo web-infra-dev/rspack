@@ -743,6 +743,10 @@ impl Module for ConcatenatedModule {
     self.build_info.read()
   }
 
+  fn build_info_unchecked(&self) -> &BuildInfo {
+    self.build_info.get_unchecked()
+  }
+
   fn freeze_build_info(&self) {
     self.build_info.freeze();
   }
@@ -757,6 +761,10 @@ impl Module for ConcatenatedModule {
 
   fn build_meta(&self) -> crate::FreezeReadGuard<'_, BuildMeta> {
     self.root_module_ctxt.build_meta.read()
+  }
+
+  fn build_meta_unchecked(&self) -> &BuildMeta {
+    self.root_module_ctxt.build_meta.get_unchecked()
   }
 
   fn freeze_build_meta(&self) -> &triomphe::Arc<BuildMeta> {
@@ -814,7 +822,7 @@ impl Module for ConcatenatedModule {
       .expect("should have root module");
 
     // populate root inline_exports
-    self.build_info.get_mut().inline_exports = root_module.build_info().inline_exports;
+    self.build_info.get_mut().inline_exports = root_module.build_info_unchecked().inline_exports;
 
     let dependency_parts = self
       .modules
@@ -846,7 +854,7 @@ impl Module for ConcatenatedModule {
       let module = module_graph
         .module_by_identifier(&m.id)
         .expect("should have module");
-      let cur_build_info = module.build_info();
+      let cur_build_info = module.build_info_unchecked();
 
       // populate cacheable
       if !cur_build_info.cacheable {
@@ -861,7 +869,7 @@ impl Module for ConcatenatedModule {
       self.diagnostics.extend(module.diagnostics().into_owned());
 
       // populate topLevelDeclarations
-      let module_build_info = module.build_info();
+      let module_build_info = module.build_info_unchecked();
       if let Some(decls) = &module_build_info.top_level_declarations
         && let Some(top_level_declarations) = &mut self.build_info.get_mut().top_level_declarations
       {
@@ -1203,7 +1211,7 @@ impl Module for ConcatenatedModule {
         let module = module_graph
           .module_by_identifier(&info.module)
           .expect("should have module");
-        let build_meta = module.build_meta();
+        let build_meta = module.build_meta_unchecked();
         let mut refs = vec![];
         for reference in info.global_scope_ident.iter() {
           let name = &reference.id.sym;
@@ -1298,7 +1306,7 @@ impl Module for ConcatenatedModule {
     let root_module = module_graph
       .module_by_identifier(&root_module_id)
       .expect("should have box module");
-    let strict_esm_module = root_module.build_meta().strict_esm_module();
+    let strict_esm_module = root_module.build_meta_unchecked().strict_esm_module();
 
     let exports_info = compilation
       .exports_info_artifact
@@ -1461,7 +1469,7 @@ impl Module for ConcatenatedModule {
         &compilation.module_static_cache,
         &context,
       );
-      let strict_esm_module = box_module.build_meta().strict_esm_module();
+      let strict_esm_module = box_module.build_meta_unchecked().strict_esm_module();
       let name_space_name = module_info.namespace_object_name.clone();
 
       if let Some(ref _namespace_export_symbol) = module_info.namespace_export_symbol {
@@ -1558,7 +1566,7 @@ impl Module for ConcatenatedModule {
             module_graph,
             &compilation.module_graph_cache_artifact,
             &compilation.exports_info_artifact,
-            root_module.build_meta().strict_esm_module(),
+            root_module.build_meta_unchecked().strict_esm_module(),
           ),
           &module_id,
           // an async module will opt-out of the concat module optimization.
@@ -1592,7 +1600,7 @@ impl Module for ConcatenatedModule {
               module_graph,
               &compilation.module_graph_cache_artifact,
               &compilation.exports_info_artifact,
-              root_module.build_meta().strict_esm_module(),
+              root_module.build_meta_unchecked().strict_esm_module(),
             )),
           )));
         }
@@ -2495,7 +2503,7 @@ impl ConcatenatedModule {
       .module_by_identifier(&info.id())
       .expect("should have module");
     let is_module_deferred = matches!(info, ModuleInfo::External(info) if info.deferred)
-      && !module.build_meta().has_top_level_await();
+      && !module.build_meta_unchecked().has_top_level_await();
     let is_deferred = reexport_deferred.unwrap_or(dep_deferred) && is_module_deferred;
 
     match target {

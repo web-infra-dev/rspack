@@ -161,6 +161,10 @@ pub fn impl_runtime_module(
         unreachable!()
       }
 
+      fn build_info_unchecked(&self) -> &::rspack_core::BuildInfo {
+        unreachable!()
+      }
+
       fn freeze_build_info(&self) {
         unreachable!()
       }
@@ -174,6 +178,10 @@ pub fn impl_runtime_module(
       }
 
       fn build_meta(&self) -> ::rspack_core::FreezeReadGuard<'_, ::rspack_core::BuildMeta> {
+        unreachable!()
+      }
+
+      fn build_meta_unchecked(&self) -> &::rspack_core::BuildMeta {
         unreachable!()
       }
 

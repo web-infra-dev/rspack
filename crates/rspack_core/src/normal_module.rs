@@ -894,6 +894,10 @@ impl Module for NormalModule {
     self.build_info.read()
   }
 
+  fn build_info_unchecked(&self) -> &BuildInfo {
+    self.build_info.get_unchecked()
+  }
+
   fn freeze_build_info(&self) {
     self.build_info.freeze();
   }
@@ -908,6 +912,10 @@ impl Module for NormalModule {
 
   fn build_meta(&self) -> crate::FreezeReadGuard<'_, BuildMeta> {
     self.build_meta.read()
+  }
+
+  fn build_meta_unchecked(&self) -> &BuildMeta {
+    self.build_meta.get_unchecked()
   }
 
   fn freeze_build_meta(&self) -> &triomphe::Arc<BuildMeta> {
