@@ -499,9 +499,9 @@ impl CompilerBuilder {
       resolver_factory,
       loader_resolver_factory,
       compiler_context,
-      infrastructure_log_sink,
       Arc::new(platform),
       cache,
+      infrastructure_log_sink,
     ))
   }
 }

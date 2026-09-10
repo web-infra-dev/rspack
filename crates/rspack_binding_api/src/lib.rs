@@ -401,9 +401,9 @@ impl JsCompiler {
         resolver_factory,
         loader_resolver_factory,
         Some(compiler_context.clone()),
-        infrastructure_log_sink,
         platform,
         cache,
+        infrastructure_log_sink,
       );
 
       Ok(Self {

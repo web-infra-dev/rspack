@@ -4,7 +4,7 @@ use std::sync::{Arc, atomic::AtomicU32};
 use futures::future::join_all;
 use rspack_cacheable::cacheable;
 use rspack_error::Result;
-use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
+use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hook::define_hook;
 use rspack_paths::{InternedPath, Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
@@ -25,7 +25,7 @@ use crate::{
   incremental::{Incremental, IncrementalPasses},
   legacy_cache::{Cache as LegacyCache, create_cache as create_legacy_cache},
   logger::Logger,
-  new_cache::{Cache, CacheFacade, CacheValue, CompilerCache, create_cache},
+  new_cache::{Cache, CacheFacade, CacheValue, CompilerCache},
   trim_dir,
 };
 
@@ -133,9 +133,9 @@ impl Compiler {
     resolver_factory: Arc<ResolverFactory>,
     loader_resolver_factory: Arc<ResolverFactory>,
     compiler_context: Option<Arc<CompilerContext>>,
-    infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
     platform: Arc<CompilerPlatform>,
     cache: Arc<Cache>,
+    _infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
   ) -> Self {
     #[cfg(debug_assertions)]
     {
