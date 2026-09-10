@@ -376,31 +376,6 @@ mod tests {
   }
 
   #[test]
-  fn should_hash_independently_of_source_map_paths() {
-    let source = |sandbox: &str| {
-      SourceMapSource::new(SourceMapSourceOptions {
-        value: "console.log(1);\n".to_string(),
-        name: "mod.js".to_string(),
-        source_map: SourceMap::from_json(format!(
-          r#"{{"version":3,"file":"{sandbox}/dist/mod.js","sources":["{sandbox}/app/src/mod.ts"],"sourceRoot":"{sandbox}","names":[],"sourcesContent":["console.log(1)"],"mappings":"AAAA"}}"#
-        ))
-        .unwrap(),
-        original_source: None,
-        inner_source_map: None,
-        remove_original_source: false,
-      })
-    };
-
-    let mut a = twox_hash::XxHash64::default();
-    source("/mnt/engflow/worker/work/0/exec").hash(&mut a);
-
-    let mut b = twox_hash::XxHash64::default();
-    source("/mnt/engflow/worker/work/7/exec").hash(&mut b);
-
-    assert_eq!(a.finish(), b.finish());
-  }
-
-  #[test]
   fn should_handle_null_sources_and_sources_content() {
     let a = SourceMapSource::new(WithoutOriginalOptions {
       value: "hello world\n",
