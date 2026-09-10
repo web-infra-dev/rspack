@@ -660,3 +660,15 @@ Node SSR 下分别覆盖：
 MF runtime 负责定义语义和清理顺序；bundler runtime 负责清 remote module 和受影响消费者；SDK Node loader 负责清 remoteEntry 加载缓存；Node runtime plugin 负责清 SSR Node 侧 chunk 与模块缓存。
 
 这次方案的关键变化是：`clearCache` 只清缓存并保留 remote 注册；remote 更新不是只清生产者缓存，还必须让已经缓存的消费者链路在下一次 SSR 请求中重新执行。shared 第一版必须保守：未加载可清，已加载保留。这样能解决 remote 更新后的旧缓存残留问题，同时避免破坏 SSR 进程内的 shared 单例稳定性。
+
+## 2026-09-10：选择性 provider 清理与完整静态父链
+
+增强 container 新增可选导出 `__webpack_clear_exposed_cache__()`。它删除模块执行缓存中不属于 shared 依赖闭包的条目；旧的 `__webpack_clear_cache__()` 继续完整删除执行缓存。
+
+编译期从 `ProvideShared` 和 `ConsumeShared` 模块出发，遍历出向依赖（包含异步依赖），生成需要保留的模块 ID 集合。所有声明的 shared 都保守保留，不依赖 Modern 路由或运行时框架状态。因此已加载的 shared 及之后首次执行的 lazy 依赖可以继续使用，独立的非 shared exports 可以释放。如果业务模块同时也是 shared 的依赖，它会保留；模块工厂、业务已持有的 exports 和任意全局副作用不在清理范围内。
+
+MF runtime 在仍有 shared 使用或加载时检测此能力。旧 provider 没有该方法时保留执行缓存，不能退回完整清理。此方法不意味着 provider 整体可 GC，也不提供请求排空、框架资源发布或 shared 版本替换。
+
+`consumerModuleIdToParentModuleIds` 从直接 consumer 开始继续遍历到全部可表示的静态父节点，用 visited 集合终止循环，并保留多父节点。它是编译器模块图元数据，不是路由图：动态消费、框架入口映射及完整性判断仍由 MF/Modern JS 层负责，不能凭此承诺任意动态变量可分析。
+
+原生回归位于 `configCases/container/mf-clear-cache-metadata` 和 `configCases/container/mf-selective-provider-cache`。覆盖多层/多父节点/循环父链，以及拼接开关、数字 ID、压缩、更新后首次 lazy 加载和再次清理后的严格身份保持。外部 MF 基线另有 WeakRef/GC 和真实 Modern antd consumer 验证。当前完整 Modern CI 仍存在独立的 runtime capture 断言失败，不代表整个生产生命周期已经验收。
