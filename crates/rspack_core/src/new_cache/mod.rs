@@ -30,7 +30,7 @@ use crate::{
 
 /// Creates cache storage independently of a compiler's namespace.
 pub fn create_cache(
-  compiler_options: Arc<CompilerOptions>,
+  compiler_options: &CompilerOptions,
   input_filesystem: Arc<dyn ReadableFileSystem>,
   infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
 ) -> Cache {

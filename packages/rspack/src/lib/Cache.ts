@@ -8,6 +8,8 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import { createRequire } from 'node:module';
+import type binding from '@rspack/binding';
 import {
   AsyncParallelHook,
   AsyncSeriesBailHook,
@@ -16,6 +18,8 @@ import {
 
 import { makeWebpackError, makeWebpackErrorCallback } from './HookWebpackError';
 import type { WebpackError } from './WebpackError';
+
+const require = createRequire(import.meta.url);
 
 export interface Etag {
   toString(): string;
@@ -50,6 +54,8 @@ export class Cache {
   static STAGE_DEFAULT = 0;
   static STAGE_NETWORK = 20;
 
+  #binding: binding.JsCache;
+
   hooks: {
     get: AsyncSeriesBailHook<[string, Etag | null, GotHandler[]], any>;
     store: AsyncParallelHook<[string, Etag | null, any]>;
@@ -68,6 +74,12 @@ export class Cache {
       endIdle: new AsyncParallelHook([]),
       shutdown: new AsyncParallelHook([]),
     };
+    const { JsCache } = require('@rspack/binding') as typeof binding;
+    this.#binding = new JsCache();
+  }
+  
+  static __to_binding(cache: Cache): binding.JsCache {
+    return cache.#binding;
   }
 
   /**
@@ -142,6 +154,7 @@ export class Cache {
 
   beginIdle() {
     this.hooks.beginIdle.call();
+    this.#binding.beginIdle();
   }
 
   /**
@@ -149,6 +162,7 @@ export class Cache {
    * @returns
    */
   endIdle(callback: CallbackCache<void>) {
+    this.#binding.endIdle();
     this.hooks.endIdle.callAsync(
       makeWebpackErrorCallback(callback, 'Cache.hooks.endIdle'),
     );
@@ -159,9 +173,11 @@ export class Cache {
    * @returns
    */
   shutdown(callback: CallbackCache<void>) {
-    this.hooks.shutdown.callAsync(
-      makeWebpackErrorCallback(callback, 'Cache.hooks.shutdown'),
-    );
+    this.#binding.shutdown().then(() => {
+      this.hooks.shutdown.callAsync(
+        makeWebpackErrorCallback(callback, 'Cache.hooks.shutdown')
+      );
+    });
   }
 }
 

@@ -59,20 +59,17 @@ impl JsResolverFactory {
 
   pub fn update_options(
     &mut self,
-    input_filesystem: Option<Arc<dyn ReadableFileSystem>>,
+    input_filesystem: Arc<dyn ReadableFileSystem>,
     resolve_options: Resolve,
     loader_resolve_options: Resolve,
   ) {
-    if input_filesystem.is_some()
-      || self.resolve_options != resolve_options
+    if self.resolve_options != resolve_options
       || self.loader_resolve_options != loader_resolve_options
     {
       self.resolver_factory = None;
       self.loader_resolver_factory = None;
     }
-    if let Some(input_filesystem) = input_filesystem {
-      self.input_filesystem = input_filesystem;
-    }
+    self.input_filesystem = input_filesystem;
     self.resolve_options = resolve_options;
     self.loader_resolve_options = loader_resolve_options;
   }

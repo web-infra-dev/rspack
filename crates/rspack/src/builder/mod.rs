@@ -53,9 +53,10 @@ use rspack_core::{
   MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
   ModuleType, NewCacheOptions, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption,
   Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo,
-  PrintlnInfrastructureLogSink, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
-  SideEffectOption, SnapshotOptions, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading,
-  WasmLoadingType, incremental::IncrementalOptions, runtime_mode::RuntimeMode,
+  PrintlnInfrastructureLogSink, PublicPath, Resolve, ResolverFactory, RuleSetCondition,
+  RuleSetLogicalConditions, SideEffectOption, SnapshotOptions, StatsOptions, TrustedTypes,
+  UsedExportsOption, WasmLoading, WasmLoadingType, create_cache, incremental::IncrementalOptions,
+  runtime_mode::RuntimeMode,
 };
 use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -454,23 +455,53 @@ impl CompilerBuilder {
     let platform = builder_context.take_platform();
     plugins.append(&mut self.plugins);
 
-    let input_filesystem = self.input_filesystem.take();
-    let intermediate_filesystem = self.intermediate_filesystem.take();
-    let output_filesystem = self.output_filesystem.take();
+    // pnp is only meaningful for input_filesystem, so disable it for intermediate_filesystem and output_filesystem
+    let pnp = compiler_options.resolve.pnp.unwrap_or(false);
+    let input_filesystem = self
+      .input_filesystem
+      .take()
+      .unwrap_or_else(|| Arc::new(NativeFileSystem::new(pnp)));
+    let intermediate_filesystem = self
+      .intermediate_filesystem
+      .take()
+      .unwrap_or_else(|| Arc::new(NativeFileSystem::new(false)));
+    let output_filesystem = self
+      .output_filesystem
+      .take()
+      .unwrap_or_else(|| Arc::new(NativeFileSystem::new(false)));
+
+    let resolver_factory = Arc::new(ResolverFactory::new(
+      compiler_options.resolve.clone(),
+      input_filesystem.clone(),
+    ));
+    let loader_resolver_factory = Arc::new(ResolverFactory::new(
+      compiler_options.resolve_loader.clone(),
+      input_filesystem.clone(),
+    ));
+
     let compiler_context = CURRENT_COMPILER_CONTEXT.try_with(|v| v.clone()).ok();
+
+    let infrastructure_log_sink = Arc::new(PrintlnInfrastructureLogSink);
+    let cache = Arc::new(create_cache(
+      &compiler_options,
+      input_filesystem,
+      infrastructure_log_sink.clone(),
+    ));
+
     Ok(Compiler::new(
       Arc::default(),
       compiler_options,
       plugins,
       vec![],
+      input_filesystem,
       output_filesystem,
       intermediate_filesystem,
-      input_filesystem,
-      None,
-      None,
+      resolver_factory,
+      loader_resolver_factory,
       compiler_context,
-      Arc::new(PrintlnInfrastructureLogSink),
+      infrastructure_log_sink,
       Arc::new(platform),
+      cache,
     ))
   }
 }
