@@ -663,11 +663,11 @@ MF runtime 负责定义语义和清理顺序；bundler runtime 负责清 remote 
 
 ## 2026-09-10：选择性 provider 清理与完整静态父链
 
-增强 container 新增可选导出 `__webpack_clear_exposed_cache__()`。它删除模块执行缓存中不属于 shared 依赖闭包的条目；旧的 `__webpack_clear_cache__()` 继续完整删除执行缓存。
+增强 container 新增导出 `__webpack_clear_exposed_cache__()`。它删除模块执行缓存中不属于 shared 依赖闭包的条目；旧的 `__webpack_clear_cache__()` 继续完整删除执行缓存。
 
 编译期从 `ProvideShared` 和 `ConsumeShared` 模块出发，遍历出向依赖（包含异步依赖），生成需要保留的模块 ID 集合。所有声明的 shared 都保守保留，不依赖 Modern 路由或运行时框架状态。因此已加载的 shared 及之后首次执行的 lazy 依赖可以继续使用，独立的非 shared exports 可以释放。如果业务模块同时也是 shared 的依赖，它会保留；模块工厂、业务已持有的 exports 和任意全局副作用不在清理范围内。
 
-MF runtime 在仍有 shared 使用或加载时检测此能力。旧 provider 没有该方法时保留执行缓存，不能退回完整清理。此方法不意味着 provider 整体可 GC，也不提供请求排空、框架资源发布或 shared 版本替换。
+MF runtime 在仍有 shared 使用或加载时直接调用此方法。当前实现尚未正式发布，host 与 provider 必须使用配套版本；不兼容缺少此方法的中间产物，也不回退到保留全部缓存或完整清理。此方法不意味着 provider 整体可 GC，也不提供请求排空、框架资源发布或 shared 版本替换。
 
 `consumerModuleIdToParentModuleIds` 从直接 consumer 开始继续遍历到全部可表示的静态父节点，用 visited 集合终止循环，并保留多父节点。它是编译器模块图元数据，不是路由图：动态消费、框架入口映射及完整性判断仍由 MF/Modern JS 层负责，不能凭此承诺任意动态变量可分析。
 
