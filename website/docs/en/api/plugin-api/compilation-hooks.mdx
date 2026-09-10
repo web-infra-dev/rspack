@@ -436,6 +436,8 @@ type ExecuteModuleContext = {
 
 Executed when a module has been built successfully.
 
+Inside the hook callback, use `module.originalSource()` to read the module's source. Modules without a source return `null`. Access the module only while the callback is active, following the [object lifetime rules](/api/javascript-api/architecture#compilation-and-object-lifetimes).
+
 - **Type:** `SyncHook<[Module]>`
 - **Arguments:**
   - `Module`: module instance
