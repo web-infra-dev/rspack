@@ -13,6 +13,7 @@ pub struct ProvideSharedDependency {
   id: DependencyId,
   request: String,
   pub(crate) original_request: String,
+  pub(crate) version_inferred: bool,
   pub share_scope: ShareScope,
   pub layer: Option<ModuleLayer>,
   pub name: String,
@@ -51,6 +52,7 @@ impl ProvideSharedDependency {
     Self {
       id: DependencyId::new(),
       original_request: request.clone(),
+      version_inferred: false,
       request,
       share_scope,
       layer,
@@ -64,11 +66,13 @@ impl ProvideSharedDependency {
       resource_identifier,
     }
   }
-  pub(crate) fn with_original_request(mut self, request: String) -> Self {
+  pub(crate) fn with_request_origin(mut self, request: String, version_inferred: bool) -> Self {
     let mut resource_identifier = self.resource_identifier.to_string();
     push_identifier_component(&mut resource_identifier, &request);
+    resource_identifier.push(if version_inferred { '1' } else { '0' });
     self.resource_identifier = resource_identifier.into();
     self.original_request = request;
+    self.version_inferred = version_inferred;
     self
   }
 }

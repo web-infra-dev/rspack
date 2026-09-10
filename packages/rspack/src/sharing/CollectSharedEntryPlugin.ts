@@ -26,7 +26,7 @@ export type ShareRequestVariant = {
   shareScope: ShareScope;
   layer?: string;
   requests: [string, string][];
-  requestOrigins?: [string, string, string][];
+  requestOrigins?: [string, string, string, boolean][];
 };
 
 export type ShareRequestsMap = Record<
