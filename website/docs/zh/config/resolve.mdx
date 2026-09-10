@@ -515,9 +515,45 @@ export default {
 ## resolve.fullySpecified
 
 - **类型：** `boolean`
-- **默认值：** `false`
 
-不再解析扩展名，不再解析 package.json 中的 mainFiles（但不会影响来自 mainFiles, browser, alias 的请求）。
+控制模块导入路径是否必须包含完整的文件名和扩展名。
+
+设为 `true` 时，Rspack 不会自动补全导入路径：
+
+- 导入文件时，写成 `import './utils.js'`，不能省略为 `import './utils'`。
+- 导入目录中的入口文件时，写成 `import './components/index.js'`，不能省略为 `import './components'`。
+
+通过 [resolve.mainFields](#resolvemainfields)、[resolve.aliasFields](#resolvealiasfields) 或 [resolve.alias](#resolvealias) 解析得到的路径不受此选项影响。
+
+### 默认行为
+
+顶层的 `resolve.fullySpecified` 默认为 `false`。模块规则中的 `resolve` 配置优先于顶层配置。
+
+为与 [Node.js 原生 ESM 对完整导入路径的要求](https://nodejs.org/api/esm.html#mandatory-file-extensions)保持一致，Rspack 的默认模块规则会对以下文件中的 ESM 导入设置 `fullySpecified: true`：
+
+- `.mjs` 文件。
+- 所属包的 `package.json` 设置了 `"type": "module"` 的 `.js` 文件。
+
+### 示例
+
+如果第三方包省略了导入路径的扩展名，导致构建时报错，可以通过 [module.rules[].resolve](/config/module-rules#rulesresolve) 允许这种写法：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.m?js$/,
+        resolve: {
+          fullySpecified: false,
+        },
+      },
+    ],
+  },
+};
+```
+
+配置后，`.js` 和 `.mjs` 文件中的导入路径可以省略扩展名或目录入口文件名，Rspack 会根据 [resolve.extensions](#resolveextensions) 和 [resolve.mainFiles](#resolvemainfiles) 自动补全。由于默认的 ESM 规则优先于顶层配置，需要在 `module.rules` 中设置 `resolve.fullySpecified: false`。
 
 ## resolve.importsFields
 

@@ -4,6 +4,10 @@ class MySucceedModulePlugin {
 	apply(compiler) {
 		compiler.hooks.compilation.tap("MySucceedModulePlugin", compilation => {
 			compilation.hooks.succeedModule.tap("MySucceedModulePlugin", module => {
+				if (module.resource) {
+					const source = module.originalSource();
+					expect(source).not.toBeNull();
+				}
 				mockFn();
 			});
 		});

@@ -6,9 +6,9 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
-  ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, RuntimeGlobals, RuntimeSpec, SourceType,
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  ExportsType, FactoryMetaStore, FreezeLock, LibIdentOptions, Module, ModuleCodeGenerationContext,
+  ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, RuntimeGlobals,
+  RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
@@ -36,9 +36,9 @@ pub struct ConsumeSharedModule {
   readable_identifier: String,
   context: Context,
   options: ConsumeOptions,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  factory_meta: FactoryMetaStore,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
 }
 
 impl ConsumeSharedModule {
@@ -133,7 +133,7 @@ impl ConsumeSharedModule {
       readable_identifier,
       context,
       options,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: Default::default(),
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
@@ -196,12 +196,36 @@ impl Module for ConsumeSharedModule {
 
   fn get_exports_type(
     &self,
-    _module_graph: &ModuleGraph,
-    _module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
-    _exports_info_artifact: &rspack_core::ExportsInfoArtifact,
-    _strict: bool,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
+    exports_info_artifact: &rspack_core::ExportsInfoArtifact,
+    strict: bool,
   ) -> ExportsType {
-    ExportsType::Dynamic
+    if self.options.import.is_none() {
+      return ExportsType::Dynamic;
+    }
+
+    let fallback_dependency = if self.options.eager {
+      self.get_dependency_ids().next()
+    } else {
+      self
+        .get_blocks()
+        .first()
+        .and_then(|block_id| module_graph.block_by_id(block_id))
+        .and_then(|block| block.get_dependency_ids().next())
+    };
+    let Some(fallback_module) =
+      fallback_dependency.and_then(|dep_id| module_graph.get_module_by_dependency_id(dep_id))
+    else {
+      return ExportsType::Dynamic;
+    };
+
+    fallback_module.get_exports_type(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      strict,
+    )
   }
 
   async fn build(

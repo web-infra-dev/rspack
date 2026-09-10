@@ -45,14 +45,14 @@ use crate::{
   ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM,
   DependenciesBlock, DependenciesBlockData, Dependency, DependencyCodeGenerationRef, DependencyId,
   DependencyType, ExportProvided, ExportsArgument, ExportsInfoArtifact, FactoryMeta,
-  ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage, LibIdentOptions, Module,
-  ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType,
-  NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
-  analyze_module_scope, escape_identifier, fast_set, filter_runtime, get_runtime_key,
-  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
-  module_update_hash, property_access, property_name,
+  FactoryMetaStore, FreezeLock, ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage,
+  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
+  ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState,
+  UsedName, UsedNameItem, analyze_module_scope, escape_identifier, fast_set, filter_runtime,
+  get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   subtract_runtime_condition, to_normal_comment,
@@ -82,8 +82,8 @@ pub struct RootModuleContext {
   pub context: Option<Context>,
   pub layer: Option<ModuleLayer>,
   pub side_effect_connection_state: ConnectionState,
-  pub factory_meta: Option<FactoryMeta>,
-  pub build_meta: BuildMeta,
+  pub factory_meta: FactoryMetaStore,
+  pub build_meta: FreezeLock<BuildMeta>,
   pub exports_argument: ExportsArgument,
   pub module_argument: ModuleArgument,
 }
@@ -526,7 +526,7 @@ pub struct ConcatenatedModule {
   #[cacheable(with=As<SourceSizeCacheSerde>)]
   cached_source_sizes: SourceSizeCache,
   diagnostics: Vec<Diagnostic>,
-  build_info: BuildInfo,
+  build_info: FreezeLock<BuildInfo>,
 }
 
 #[allow(unused)]
@@ -557,7 +557,8 @@ impl ConcatenatedModule {
         exports_argument,
         top_level_declarations: Some(Default::default()),
         ..Default::default()
-      },
+      }
+      .into(),
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -726,28 +727,40 @@ impl Module for ConcatenatedModule {
     &ModuleType::JsEsm
   }
 
-  fn factory_meta(&self) -> Option<&FactoryMeta> {
-    self.root_module_ctxt.factory_meta.as_ref()
+  fn factory_meta(&self) -> Option<Arc<FactoryMeta>> {
+    self.root_module_ctxt.factory_meta.get()
   }
 
-  fn set_factory_meta(&mut self, v: FactoryMeta) {
-    self.root_module_ctxt.factory_meta = Some(v);
+  fn set_factory_meta(&self, v: FactoryMeta) {
+    self.root_module_ctxt.factory_meta.set(Some(Arc::new(v)));
   }
 
-  fn build_info(&self) -> &BuildInfo {
-    &self.build_info
+  fn reset_for_compilation(&self, factory_meta: Option<Arc<FactoryMeta>>) {
+    self.root_module_ctxt.factory_meta.set(factory_meta);
+  }
+
+  fn build_info(&self) -> crate::FreezeReadGuard<'_, BuildInfo> {
+    self.build_info.read()
+  }
+
+  fn freeze_build_info(&self) {
+    self.build_info.freeze();
+  }
+
+  fn extend_build_assets(&self, assets: crate::CompilationAssets) {
+    self.build_info.extend_assets(assets);
   }
 
   fn build_info_mut(&mut self) -> &mut BuildInfo {
-    &mut self.build_info
+    self.build_info.get_mut()
   }
 
-  fn build_meta(&self) -> &BuildMeta {
-    &self.root_module_ctxt.build_meta
+  fn build_meta(&self) -> crate::FreezeReadGuard<'_, BuildMeta> {
+    self.root_module_ctxt.build_meta.read()
   }
 
-  fn build_meta_mut(&mut self) -> &mut BuildMeta {
-    &mut self.root_module_ctxt.build_meta
+  fn freeze_build_meta(&self) -> &triomphe::Arc<BuildMeta> {
+    self.root_module_ctxt.build_meta.freeze()
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
@@ -801,7 +814,7 @@ impl Module for ConcatenatedModule {
       .expect("should have root module");
 
     // populate root inline_exports
-    self.build_info.inline_exports = root_module.build_info().inline_exports;
+    self.build_info.get_mut().inline_exports = root_module.build_info().inline_exports;
 
     let dependency_parts = self
       .modules
@@ -837,7 +850,7 @@ impl Module for ConcatenatedModule {
 
       // populate cacheable
       if !cur_build_info.cacheable {
-        self.build_info.cacheable = false;
+        self.build_info.get_mut().cacheable = false;
       }
 
       // populate blocks
@@ -850,25 +863,27 @@ impl Module for ConcatenatedModule {
       // populate topLevelDeclarations
       let module_build_info = module.build_info();
       if let Some(decls) = &module_build_info.top_level_declarations
-        && let Some(top_level_declarations) = &mut self.build_info.top_level_declarations
+        && let Some(top_level_declarations) = &mut self.build_info.get_mut().top_level_declarations
       {
         top_level_declarations.extend(decls.iter().cloned());
       } else {
-        self.build_info.top_level_declarations = None;
+        self.build_info.get_mut().top_level_declarations = None;
       }
 
       if module_build_info.need_create_require {
-        self.build_info.need_create_require = true;
+        self.build_info.get_mut().need_create_require = true;
       }
 
       // populate assets
-      self.build_info.assets.extend(
+      self.build_info.get_mut().assets.extend(
         module_build_info
           .assets
           .iter()
           .map(|(name, asset)| (name.clone(), asset.clone())),
       );
     }
+    // Created during seal, after the build module graph phase freezes other modules.
+    self.build_info.freeze();
     Ok(BoxModule::new(self))
   }
 

@@ -922,7 +922,7 @@ impl NormalModuleFactory {
             let ident = format!("{}/{}", &data.context, resource);
             let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
-            let mut raw_module = if matches!(
+            let raw_module = if matches!(
               dependency_type,
               DependencyType::CssUrl | DependencyType::NewUrl
             ) {

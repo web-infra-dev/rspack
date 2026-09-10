@@ -1290,15 +1290,11 @@ impl CompilationStillValidModule for CompilationStillValidModuleTap {
     &self,
     compiler_id: CompilerId,
     _compilation_id: CompilationId,
-    module: &mut BoxModule,
+    module: &dyn Module,
   ) -> rspack_error::Result<()> {
-    #[allow(clippy::unwrap_used)]
     let _ = self
       .function
-      .call_with_sync(ModuleObject::with_ptr(
-        NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
-        compiler_id,
-      ))
+      .call_with_sync(ModuleObject::with_ptr(NonNull::from(module), compiler_id))
       .await?;
     Ok(())
   }
