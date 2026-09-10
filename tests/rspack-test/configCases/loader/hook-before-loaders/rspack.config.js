@@ -56,7 +56,13 @@ module.exports = [
                   42,
                 );
               }
-              if (stage === Infinity) assert.equal(context.hot, true);
+              if (stage === Infinity) {
+                assert.equal(context.hot, true);
+                if (name === 'no-loaders') {
+                  context.emitError(new Error('error from loader hook'));
+                  context.emitWarning(new Error('warning from loader hook'));
+                }
+              }
               context.addDependency(dependency);
               context.cacheable(false);
             });
@@ -75,6 +81,22 @@ module.exports = [
             );
             assert(module.buildInfo.fileDependencies.has(dependency));
           });
+          if (name === 'no-loaders') {
+            compilation.hooks.processAssets.tap('LoaderHook', () => {
+              assert.equal(compilation.errors.length, 1);
+              assert.match(
+                compilation.errors[0].message,
+                /Module Error \(from \(not in loader scope\)\):.*error from loader hook/s,
+              );
+              assert.equal(compilation.warnings.length, 1);
+              assert.match(
+                compilation.warnings[0].message,
+                /Module Warning \(from \(not in loader scope\)\):.*warning from loader hook/s,
+              );
+              compilation.errors = [];
+              compilation.warnings = [];
+            });
+          }
         });
       },
     },

@@ -553,6 +553,10 @@ export function createLoaderContext(
     );
   };
   loaderContext.rootContext = compiler.context;
+  const getCurrentLoaderName = () => {
+    const loader = getCurrentLoader(loaderContext);
+    return loader ? stringifyLoaderObject(loader) : '(not in loader scope)';
+  };
   // The public API intentionally accepts only Error instances. Keep these runtime checks for
   // untyped JavaScript loaders that pass strings or other non-Error values.
   loaderContext.emitError = function emitError(e) {
@@ -560,9 +564,7 @@ export function createLoaderContext(
       e = new NonErrorEmittedError(e);
     }
     const error = new ModuleError(e, {
-      from: stringifyLoaderObject(
-        loaderContext.loaders[loaderContext.loaderIndex],
-      ),
+      from: getCurrentLoaderName(),
     });
     error.module = loaderContext._module;
     compiler._lastCompilation!.__internal__pushRspackDiagnostic({
@@ -575,9 +577,7 @@ export function createLoaderContext(
       e = new NonErrorEmittedError(e);
     }
     const warning = new ModuleWarning(e, {
-      from: stringifyLoaderObject(
-        loaderContext.loaders[loaderContext.loaderIndex],
-      ),
+      from: getCurrentLoaderName(),
     });
     warning.module = loaderContext._module;
     compiler._lastCompilation!.__internal__pushRspackDiagnostic({
