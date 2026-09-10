@@ -5,26 +5,16 @@ use super::{Cache, CacheKey, CacheValue, Etag, cache_value::CacheValueData};
 /// A namespaced view of the shared cache.
 ///
 /// This is the minimal equivalent of webpack's `CacheFacade`: it prefixes
-/// identifiers with a fixed namespace and creates child or item facades.
+/// identifiers with a fixed namespace and creates item facades.
 #[derive(Debug, Clone)]
 pub struct CacheFacade {
-  cache: Cache,
-  name: Arc<str>,
+  cache: Arc<Cache>,
+  name: String,
 }
 
 impl CacheFacade {
-  pub(crate) fn new(cache: Cache, name: impl Into<Arc<str>>) -> Self {
-    Self {
-      cache,
-      name: name.into(),
-    }
-  }
-
-  pub fn get_child_cache(&self, name: &str) -> Self {
-    Self {
-      cache: self.cache.clone(),
-      name: join_name(&self.name, name, true),
-    }
+  pub(crate) fn new(cache: Arc<Cache>, name: String) -> Self {
+    Self { cache, name }
   }
 
   pub fn get_item_cache(&self, identifier: &str, etag: Option<Etag>) -> ItemCacheFacade {
@@ -53,14 +43,14 @@ impl CacheFacade {
   }
 
   fn key(&self, identifier: &str) -> CacheKey {
-    CacheKey::from(join_name(&self.name, identifier, true))
+    CacheKey::from([self.name.as_ref(), identifier].join("|"))
   }
 }
 
 /// A cache facade with a fixed identifier and etag.
 #[derive(Debug, Clone)]
 pub struct ItemCacheFacade {
-  cache: Cache,
+  cache: Arc<Cache>,
   key: CacheKey,
   etag: Option<Etag>,
 }
@@ -105,14 +95,4 @@ impl MultiItemCache {
       item.store(value.clone());
     }
   }
-}
-
-fn join_name(prefix: &str, name: &str, with_separator: bool) -> Arc<str> {
-  let mut result = String::with_capacity(prefix.len() + name.len() + usize::from(with_separator));
-  result.push_str(prefix);
-  if with_separator {
-    result.push('|');
-  }
-  result.push_str(name);
-  result.into()
 }
