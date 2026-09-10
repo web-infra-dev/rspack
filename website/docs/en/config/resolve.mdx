@@ -515,9 +515,45 @@ export default {
 ## resolve.fullySpecified
 
 - **Type:** `boolean`
-- **Default:** `false`
 
-No longer resolve extensions, no longer resolve mainFiles in package.json (but does not affect requests from mainFiles, browser, alias).
+Controls whether module import paths must include the full filename and extension.
+
+When set to `true`, Rspack will not complete import paths automatically:
+
+- To import a file, use `import './utils.js'`, not `import './utils'`.
+- To import a directory's entry file, use `import './components/index.js'`, not `import './components'`.
+
+Paths resolved through [resolve.mainFields](#resolvemainfields), [resolve.aliasFields](#resolvealiasfields), or [resolve.alias](#resolvealias) are not affected.
+
+### Default behavior
+
+The top-level `resolve.fullySpecified` defaults to `false`. The `resolve` options in module rules take precedence over the top-level configuration.
+
+To match [Node.js native ESM requirements for fully specified import paths](https://nodejs.org/api/esm.html#mandatory-file-extensions), Rspack's default module rules set `fullySpecified: true` for ESM imports in:
+
+- `.mjs` files.
+- `.js` files whose package declares `"type": "module"` in `package.json`.
+
+### Example
+
+If a third-party package causes build errors by omitting file extensions in its imports, use [module.rules[].resolve](/config/module-rules#rulesresolve) to allow these imports:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.m?js$/,
+        resolve: {
+          fullySpecified: false,
+        },
+      },
+    ],
+  },
+};
+```
+
+With this configuration, imports in `.js` and `.mjs` files can omit extensions or directory entry filenames. Rspack completes these paths using [resolve.extensions](#resolveextensions) and [resolve.mainFiles](#resolvemainfiles). Set `resolve.fullySpecified: false` in `module.rules` because the default ESM rules take precedence over the top-level configuration.
 
 ## resolve.importsFields
 

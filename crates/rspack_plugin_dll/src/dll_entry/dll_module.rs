@@ -5,10 +5,10 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder,
-  Compilation, Context, DependenciesBlock, DependenciesBlockData, EntryDependency, FactoryMeta,
-  Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleType, NeedBuildContext,
-  RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info,
-  impl_source_map_config, module_update_hash,
+  Compilation, Context, DependenciesBlock, DependenciesBlockData, EntryDependency,
+  FactoryMetaStore, FreezeLock, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
+  ModuleType, NeedBuildContext, RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -23,11 +23,11 @@ pub struct DllModule {
   // TODO: it should be set to EntryDependency.loc
   name: String,
 
-  factory_meta: Option<FactoryMeta>,
+  factory_meta: FactoryMetaStore,
 
-  build_info: BuildInfo,
+  build_info: FreezeLock<BuildInfo>,
 
-  build_meta: BuildMeta,
+  build_meta: FreezeLock<BuildMeta>,
 
   dependencies_block: DependenciesBlockData,
 
@@ -120,7 +120,7 @@ impl Module for DllModule {
     false
   }
 
-  async fn need_build(&mut self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+  async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
     Ok(false)
   }
 

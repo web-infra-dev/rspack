@@ -422,13 +422,17 @@ fn add_client_import(
 }
 
 // Gives { id: name } record of actions from the build info.
-fn get_actions_from_build_info(module: &dyn Module) -> Option<&IndexAtomMap<Atom>> {
+fn get_actions_from_build_info(
+  module: &dyn Module,
+) -> Option<rspack_core::FreezeReadGuard<'_, IndexAtomMap<Atom>>> {
   let rsc = get_module_rsc_information(module)?;
-  Some(&rsc.action_ids)
+  Some(rsc.map(|rsc| &rsc.action_ids))
 }
 
-fn get_module_rsc_information(module: &dyn Module) -> Option<&RscMeta> {
-  module.build_info().rsc.as_ref()
+fn get_module_rsc_information(
+  module: &dyn Module,
+) -> Option<rspack_core::FreezeReadGuard<'_, RscMeta>> {
+  module.build_info().try_map(|info| info.rsc.as_ref())
 }
 
 fn is_client_component_entry_module(module: &dyn Module) -> bool {

@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use rspack_cacheable::{cacheable, cacheable_dyn, utils::OwnedOrRef};
 use rspack_collections::Identifiable;
@@ -9,29 +9,31 @@ use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
   BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder, Compilation, Context,
-  DependenciesBlock, DependenciesBlockData, FactoryMeta, Module, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, ValueCacheVersions,
+  DependenciesBlock, DependenciesBlockData, FactoryMeta, FreezeLock, Module,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  ValueCacheVersions,
 };
 
 #[cacheable]
 #[derive(Debug)]
 pub struct TempModule {
   id: ModuleIdentifier,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
   dependencies_block: DependenciesBlockData,
 }
 
 impl TempModule {
-  pub fn transform_from(module: OwnedOrRef<BoxModule>) -> OwnedOrRef<BoxModule> {
+  pub fn transform_from(module: OwnedOrRef<crate::ModuleRef>) -> OwnedOrRef<crate::ModuleRef> {
     let m = module.as_ref();
-    OwnedOrRef::Owned(BoxModule::new(Box::new(Self {
+    let module = BoxModule::new(Box::new(Self {
       id: m.identifier(),
       build_info: BuildInfo {
         dependencies: m.build_info().dependencies.clone(),
         ..Default::default()
-      },
-      build_meta: m.build_meta().clone(),
+      }
+      .into(),
+      build_meta: m.freeze_build_meta().clone().into(),
       dependencies_block: DependenciesBlockData::new(
         m.get_dependencies()
           .iter()
@@ -39,7 +41,9 @@ impl TempModule {
           .collect(),
         Vec::new(),
       ),
-    })))
+    }));
+    module.freeze_build_info();
+    OwnedOrRef::Owned(module.into())
   }
 }
 
@@ -58,28 +62,40 @@ impl ModuleSourceMapConfig for TempModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for TempModule {
-  fn factory_meta(&self) -> Option<&FactoryMeta> {
+  fn factory_meta(&self) -> Option<Arc<FactoryMeta>> {
     unreachable!()
   }
 
-  fn set_factory_meta(&mut self, _factory_meta: FactoryMeta) {
+  fn set_factory_meta(&self, _factory_meta: FactoryMeta) {
     unreachable!()
   }
 
-  fn build_info(&self) -> &BuildInfo {
-    &self.build_info
+  fn reset_for_compilation(&self, _factory_meta: Option<Arc<FactoryMeta>>) {
+    unreachable!()
+  }
+
+  fn build_info(&self) -> crate::FreezeReadGuard<'_, BuildInfo> {
+    self.build_info.read()
+  }
+
+  fn freeze_build_info(&self) {
+    self.build_info.freeze();
+  }
+
+  fn extend_build_assets(&self, assets: crate::CompilationAssets) {
+    self.build_info.extend_assets(assets);
   }
 
   fn build_info_mut(&mut self) -> &mut BuildInfo {
-    &mut self.build_info
+    self.build_info.get_mut()
   }
 
-  fn build_meta(&self) -> &BuildMeta {
-    &self.build_meta
+  fn build_meta(&self) -> crate::FreezeReadGuard<'_, BuildMeta> {
+    self.build_meta.read()
   }
 
-  fn build_meta_mut(&mut self) -> &mut BuildMeta {
-    &mut self.build_meta
+  fn freeze_build_meta(&self) -> &triomphe::Arc<BuildMeta> {
+    self.build_meta.freeze()
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {

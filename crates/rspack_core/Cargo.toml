@@ -8,6 +8,7 @@ version.workspace = true
 
 [dependencies]
 anymap                     = { workspace = true }
+arc-swap                   = { workspace = true }
 async-recursion            = { workspace = true }
 async-trait                = { workspace = true }
 bitflags                   = { workspace = true }
@@ -32,6 +33,7 @@ mime_guess                 = { workspace = true }
 napi                       = { workspace = true, optional = true }
 num-bigint                 = { workspace = true }
 once_cell                  = { workspace = true }
+parking_lot                = { workspace = true }
 paste                      = { workspace = true }
 rayon                      = { workspace = true }
 regex                      = { workspace = true }

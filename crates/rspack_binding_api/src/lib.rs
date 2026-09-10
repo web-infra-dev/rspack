@@ -55,6 +55,7 @@ mod asset_condition;
 mod async_dependency_block;
 mod browserslist;
 mod build_info;
+mod cache;
 mod chunk;
 mod chunk_graph;
 mod chunk_group;
@@ -123,6 +124,7 @@ use swc_core::common::util::take::Take;
 
 use crate::{
   async_dependency_block::AsyncDependenciesBlockWrapper,
+  cache::JsCache,
   chunk::ChunkWrapper,
   chunk_group::ChunkGroupWrapper,
   compilation::JsCompilationWrapper,
@@ -245,7 +247,7 @@ impl JsCompiler {
   #[allow(clippy::too_many_arguments)]
   #[napi(
     constructor,
-    ts_args_type = "compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void"
+    ts_args_type = "compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache"
   )]
   pub fn new(
     env: Env,
@@ -261,6 +263,7 @@ impl JsCompiler {
     unsafe_fast_drop: bool,
     platform: RawCompilerPlatform,
     raw_infrastructure_log_callback: Unknown<'static>,
+    cache: Reference<JsCache>,
   ) -> Result<Self> {
     tracing::info!(name:"rspack_version", version = rspack_workspace::rspack_pkg_version!());
 
@@ -323,8 +326,8 @@ impl JsCompiler {
 
       tracing::debug!(name:"normalized_options", options=?&compiler_options);
 
-      let mut input_file_system: Option<Arc<dyn ReadableFileSystem>> =
-        input_filesystem.and_then(|fs| {
+      let mut input_file_system: Arc<dyn ReadableFileSystem> = input_filesystem
+        .and_then(|fs| {
           use_input_fs.and_then(|use_input_file_system| {
             let node_fs = NodeFileSystem::new(fs).expect("Failed to create readable filesystem");
 
@@ -343,7 +346,8 @@ impl JsCompiler {
               }
             }
           })
-        });
+        })
+        .unwrap_or_else(|| Arc::new(NativeFileSystem::new(pnp)));
 
       let mut virtual_file_store: Option<Arc<RwLock<dyn VirtualFileStore>>> = None;
       if let Some(list) = virtual_files {
@@ -354,19 +358,7 @@ impl JsCompiler {
           }
           Arc::new(RwLock::new(store))
         };
-        input_file_system = input_file_system
-          .map(|real_fs| {
-            let binding: Arc<dyn ReadableFileSystem> =
-              Arc::new(VirtualFileSystem::new(real_fs, store.clone()));
-            binding
-          })
-          .or_else(|| {
-            let binding: Arc<dyn ReadableFileSystem> = Arc::new(VirtualFileSystem::new(
-              Arc::new(NativeFileSystem::new(pnp)),
-              store.clone(),
-            ));
-            Some(binding)
-          });
+        input_file_system = Arc::new(VirtualFileSystem::new(input_file_system, store.clone()));
         virtual_file_store = Some(store);
       }
 
@@ -378,36 +370,40 @@ impl JsCompiler {
       let resolver_factory = resolver_factory_reference.get_resolver_factory();
       let loader_resolver_factory = resolver_factory_reference.get_loader_resolver_factory();
 
-      let intermediate_filesystem: Option<Arc<dyn IntermediateFileSystem>> =
+      let intermediate_filesystem: Arc<dyn IntermediateFileSystem> =
         if let Some(fs) = intermediate_filesystem {
-          Some(Arc::new(
-            NodeFileSystem::new(fs).to_napi_result_with_message(|e| {
-              format!("Failed to create intermediate filesystem: {e}")
-            })?,
-          ))
+          Arc::new(NodeFileSystem::new(fs).to_napi_result_with_message(|e| {
+            format!("Failed to create intermediate filesystem: {e}")
+          })?)
         } else {
-          None
+          Arc::new(NativeFileSystem::new(false))
         };
 
       let platform = Arc::new(CompilerPlatform::from(platform));
+      let output_filesystem = Arc::new(
+        NodeFileSystem::new(output_filesystem)
+          .to_napi_result_with_message(|e| format!("Failed to create writable filesystem: {e}"))?,
+      );
+      let cache = cache.get_or_initialize(
+        &compiler_options,
+        input_file_system.clone(),
+        infrastructure_log_sink.clone(),
+      );
 
       let rspack = rspack_core::Compiler::new(
-        compiler_path,
+        compiler_path.into(),
         compiler_options,
         plugins,
         buildtime_plugins::buildtime_plugins(),
-        Some(Arc::new(
-          NodeFileSystem::new(output_filesystem).to_napi_result_with_message(|e| {
-            format!("Failed to create writable filesystem: {e}")
-          })?,
-        )),
-        intermediate_filesystem,
         input_file_system,
-        Some(resolver_factory),
-        Some(loader_resolver_factory),
+        output_filesystem,
+        intermediate_filesystem,
+        resolver_factory,
+        loader_resolver_factory,
         Some(compiler_context.clone()),
-        infrastructure_log_sink,
         platform,
+        cache,
+        infrastructure_log_sink,
       );
 
       Ok(Self {

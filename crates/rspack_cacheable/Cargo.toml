@@ -11,6 +11,7 @@ noop = []
 
 [dependencies]
 allocative              = { workspace = true, optional = true }
+arc-swap                = { workspace = true }
 camino                  = { workspace = true }
 dashmap                 = { workspace = true }
 hashlink                = { workspace = true }
@@ -20,7 +21,7 @@ json                    = { workspace = true }
 lightningcss            = { workspace = true }
 once_cell               = { workspace = true }
 regex                   = { workspace = true }
-rkyv                    = { workspace = true }
+rkyv                    = { workspace = true, features = ["triomphe-0_1"] }
 rspack_cacheable_macros = { workspace = true }
 rspack_intern           = { workspace = true, features = ["atom"] }
 rspack_sources          = { workspace = true }

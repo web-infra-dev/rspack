@@ -1,22 +1,34 @@
+use std::{marker::PhantomData, ops::Deref};
+
 use super::OverlayValue;
-use crate::DependencyId;
 
 #[derive(Debug)]
-pub struct DenseDependencyIdOverlayMap<V> {
+pub struct DenseIdOverlayMap<K, V> {
   base: Vec<Option<V>>,
   overlay: Option<Vec<Option<OverlayValue<V>>>>,
+  key: PhantomData<K>,
 }
 
-impl<V> Default for DenseDependencyIdOverlayMap<V> {
+impl<K, V> Default for DenseIdOverlayMap<K, V> {
   fn default() -> Self {
     Self {
       base: Vec::new(),
       overlay: None,
+      key: PhantomData,
     }
   }
 }
 
-impl<V> DenseDependencyIdOverlayMap<V> {
+impl<K: Deref<Target = u32>, V> DenseIdOverlayMap<K, V> {
+  /// The first index beyond all allocated slots in the current graph snapshot.
+  #[inline]
+  pub fn next_index(&self) -> usize {
+    self
+      .base
+      .len()
+      .max(self.overlay.as_ref().map_or(0, Vec::len))
+  }
+
   #[inline]
   pub fn checkpoint(&mut self) {
     self.overlay.get_or_insert_with(Vec::new);
@@ -28,8 +40,8 @@ impl<V> DenseDependencyIdOverlayMap<V> {
   }
 
   #[inline]
-  pub fn insert(&mut self, key: DependencyId, value: V) {
-    let index = key.as_u32() as usize;
+  pub fn insert(&mut self, key: K, value: V) {
+    let index = *key as usize;
     if self.overlay.is_some() {
       Self::ensure_len(self.overlay(), index);
       self.overlay.as_mut().expect("overlay checked above")[index] =
@@ -41,8 +53,8 @@ impl<V> DenseDependencyIdOverlayMap<V> {
   }
 
   #[inline]
-  pub fn remove(&mut self, key: &DependencyId) {
-    let index = key.as_u32() as usize;
+  pub fn remove(&mut self, key: &K) {
+    let index = **key as usize;
     if self.overlay.is_some() {
       Self::ensure_len(self.overlay(), index);
       self.overlay.as_mut().expect("overlay checked above")[index] = Some(OverlayValue::Tombstone);
@@ -52,8 +64,8 @@ impl<V> DenseDependencyIdOverlayMap<V> {
   }
 
   #[inline]
-  pub fn get(&self, key: &DependencyId) -> Option<&V> {
-    let index = key.as_u32() as usize;
+  pub fn get(&self, key: &K) -> Option<&V> {
+    let index = **key as usize;
     if let Some(overlay) = &self.overlay
       && let Some(Some(value)) = overlay.get(index)
     {
@@ -66,11 +78,11 @@ impl<V> DenseDependencyIdOverlayMap<V> {
   }
 
   #[inline]
-  pub fn get_mut(&mut self, key: &DependencyId) -> Option<&mut V>
+  pub fn get_mut(&mut self, key: &K) -> Option<&mut V>
   where
     V: Clone,
   {
-    let index = key.as_u32() as usize;
+    let index = **key as usize;
     if self.overlay.is_some() {
       self.materialize_overlay_value(index);
       let overlay = self.overlay.as_mut().expect("overlay checked above");
@@ -115,11 +127,11 @@ impl<V> DenseDependencyIdOverlayMap<V> {
 
 #[cfg(test)]
 mod tests {
-  use crate::{DependencyId, module_graph::rollback::DenseDependencyIdOverlayMap};
+  use crate::{DependencyId, module_graph::rollback::DenseIdOverlayMap};
 
   #[test]
   fn checkpoint_inserts_apply_only_to_overlay() {
-    let mut map = DenseDependencyIdOverlayMap::default();
+    let mut map = DenseIdOverlayMap::default();
     let a = DependencyId::from(0);
     let b = DependencyId::from(1);
 
@@ -139,7 +151,7 @@ mod tests {
 
   #[test]
   fn remove_in_overlay_masks_base() {
-    let mut map = DenseDependencyIdOverlayMap::default();
+    let mut map = DenseIdOverlayMap::default();
     let a = DependencyId::from(0);
     let b = DependencyId::from(7);
 
@@ -159,7 +171,7 @@ mod tests {
 
   #[test]
   fn get_mut_clones_base_into_overlay() {
-    let mut map = DenseDependencyIdOverlayMap::default();
+    let mut map = DenseIdOverlayMap::default();
     let a = DependencyId::from(3);
 
     map.insert(a, 1);

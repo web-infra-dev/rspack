@@ -3811,6 +3811,7 @@ dependencies = [
  "rkyv_derive 0.8.18",
  "smallvec",
  "tinyvec",
+ "triomphe",
  "uuid",
 ]
 
@@ -4140,6 +4141,7 @@ dependencies = [
 name = "rspack_cacheable"
 version = "0.102.3"
 dependencies = [
+ "arc-swap",
  "camino",
  "dashmap",
  "hashlink",
@@ -4208,6 +4210,7 @@ name = "rspack_core"
 version = "0.102.3"
 dependencies = [
  "anymap3",
+ "arc-swap",
  "async-recursion",
  "async-trait",
  "bitflags 2.13.1",
@@ -4232,6 +4235,7 @@ dependencies = [
  "napi",
  "num-bigint",
  "once_cell",
+ "parking_lot",
  "paste",
  "pretty_assertions",
  "rayon",
@@ -6032,9 +6036,9 @@ dependencies = [
 
 [[package]]
 name = "simd-utf16-len"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c17a83ac53a3ccce2d4fec2031c22b539d12dc95498e75935a6da589b7b4372"
+checksum = "08765f7253d069ccd9adbe45ae962652c1c662e6f274a7575e8c9701c6ab5afa"
 
 [[package]]
 name = "simdutf8"

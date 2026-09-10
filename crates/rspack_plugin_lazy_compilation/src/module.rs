@@ -5,10 +5,10 @@ use rspack_collections::Identifiable;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
-  DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleLayer,
-  ModuleType, NeedBuildContext, OutputOptions, RuntimeGlobals, RuntimeSpec, SourceType,
-  ValueCacheVersions, impl_module_meta_info, module_update_hash,
+  DependencyRange, FactoryMetaStore, FreezeLock, ImportPhase, LibIdentOptions, Module,
+  ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph,
+  ModuleIdentifier, ModuleLayer, ModuleType, NeedBuildContext, OutputOptions, RuntimeGlobals,
+  RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -47,9 +47,9 @@ fn has_closure_library(output: &OutputOptions) -> bool {
 #[cacheable]
 #[derive(Debug)]
 pub(crate) struct LazyCompilationProxyModule {
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
-  factory_meta: Option<FactoryMeta>,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
+  factory_meta: FactoryMetaStore,
 
   readable_identifier: String,
   identifier: ModuleIdentifier,
@@ -69,7 +69,8 @@ pub(crate) struct LazyCompilationProxyModule {
   // slice so each clones the `Arc`, not the whole list.
   #[cacheable(with=AsVec)]
   reserved_externals: Arc<[String]>,
-  need_build: bool,
+  #[cacheable(with=rspack_cacheable::rkyv::with::AtomicLoad<rspack_cacheable::rkyv::with::Relaxed>)]
+  need_build: std::sync::atomic::AtomicBool,
 }
 
 impl ModuleSourceMapConfig for LazyCompilationProxyModule {
@@ -107,7 +108,7 @@ impl LazyCompilationProxyModule {
     Self {
       build_info: Default::default(),
       build_meta: Default::default(),
-      factory_meta: None,
+      factory_meta: Default::default(),
       readable_identifier,
       lib_ident,
       identifier,
@@ -120,12 +121,14 @@ impl LazyCompilationProxyModule {
       active,
       client,
       reserved_externals,
-      need_build: false,
+      need_build: false.into(),
     }
   }
 
-  pub fn invalid(&mut self) {
-    self.need_build = true;
+  pub fn invalid(&self) {
+    self
+      .need_build
+      .store(true, std::sync::atomic::Ordering::Relaxed);
   }
 }
 
@@ -169,7 +172,7 @@ impl Module for LazyCompilationProxyModule {
   }
 
   fn need_build_for_incremental(&self, value_cache_versions: &ValueCacheVersions) -> bool {
-    if self.need_build {
+    if self.need_build.load(std::sync::atomic::Ordering::Relaxed) {
       return true;
     }
     // check client changes
@@ -183,7 +186,7 @@ impl Module for LazyCompilationProxyModule {
     }
   }
 
-  async fn need_build(&mut self, context: &NeedBuildContext<'_>) -> Result<bool> {
+  async fn need_build(&self, context: &NeedBuildContext<'_>) -> Result<bool> {
     Ok(self.need_build_for_incremental(context.value_cache_versions))
   }
 

@@ -25,10 +25,10 @@ mod r#struct;
 pub use r#struct::*;
 
 use crate::{
-  BoxModule, BoxRuntimeModule, BuildChunkGraphArtifact, BuildModuleGraphArtifact, Chunk,
-  ChunkGraph, ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact, ChunkUkey, Compilation,
+  BoxRuntimeModule, BuildChunkGraphArtifact, BuildModuleGraphArtifact, Chunk, ChunkGraph,
+  ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact, ChunkUkey, Compilation,
   CompilationAssets, CompilationLogging, CompilerOptions, ExportsInfoArtifact, LogType,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleRef,
   OptimizationBailoutItem, ProvidedExports, RuntimeSpec, SourceType, StealCell, UsedExports,
   compilation::build_module_graph::{ExecutedRuntimeModule, ModuleExecutor},
   rspack_sources::BoxSource,
@@ -1140,7 +1140,7 @@ impl Stats<'_> {
     exports_info_artifact: &'a ExportsInfoArtifact,
     build_module_graph_artifact: &'a BuildModuleGraphArtifact,
     module_ids_artifact: &'a ModuleIdsArtifact,
-    module: &'a BoxModule,
+    module: &'a ModuleRef,
     executed: bool,
     concatenated: bool,
     root_modules: Option<&IdentifierSet>,
@@ -1336,12 +1336,7 @@ impl Stats<'_> {
         let module = module_graph
           .module_by_identifier(&identifier)
           .expect("should have module");
-        let mut assets = module
-          .build_info()
-          .assets
-          .keys()
-          .map(|s| s.as_str())
-          .collect_vec();
+        let mut assets = module.build_info().assets.keys().cloned().collect_vec();
         assets.sort_unstable();
         Some(assets)
       };
@@ -1351,9 +1346,9 @@ impl Stats<'_> {
       let mut reasons: Vec<StatsModuleReason> = mgm
         .incoming_connections()
         .iter()
-        .filter_map(|dep_id| {
+        .filter_map(|connection_id| {
           // the connection is removed
-          let connection = module_graph.connection_by_dependency_id(dep_id)?;
+          let connection = module_graph.connection_by_id(connection_id)?;
           let (module_name, module_id) = connection
             .original_module_identifier
             .and_then(|i| module_graph.module_by_identifier(&i))

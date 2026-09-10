@@ -428,6 +428,11 @@ impl Module {
     let module = {
       if let Some(module) = compilation.module_by_identifier(&self.identifier) {
         module.as_ref()
+      } else if let Some(ptr) = self.ptr {
+        // SAFETY:
+        // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
+        // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
+        unsafe { ptr.as_ref() }
       } else {
         return Ok(Either::B(()));
       }

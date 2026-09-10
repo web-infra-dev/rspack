@@ -5,11 +5,11 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder,
-  Compilation, Context, DependenciesBlock, DependenciesBlockData, FactoryMeta, LibIdentOptions,
-  Module, ModuleArgument, ModuleCodeGenerationContext, ModuleDependency, ModuleGraph, ModuleId,
-  ModuleType, NeedBuildContext, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, ValueCacheVersions, impl_module_meta_info, impl_source_map_config,
-  module_update_hash,
+  Compilation, Context, DependenciesBlock, DependenciesBlockData, FactoryMetaStore, FreezeLock,
+  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleDependency,
+  ModuleGraph, ModuleId, ModuleType, NeedBuildContext, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec, ValueCacheVersions, impl_module_meta_info,
+  impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -32,9 +32,9 @@ pub struct DelegatedModule {
   original_request: Option<String>,
   delegate_data: DllManifestContentItem,
   dependencies_block: DependenciesBlockData,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  factory_meta: FactoryMetaStore,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
 }
 
 impl DelegatedModule {
@@ -108,7 +108,7 @@ impl Module for DelegatedModule {
         false,
       )),
     ];
-    self.build_meta = self.delegate_data.build_meta.clone();
+    self.build_meta = self.delegate_data.build_meta.clone().into();
     Ok(
       BoxModule::new(self)
         .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![]),
@@ -187,7 +187,7 @@ impl Module for DelegatedModule {
     false
   }
 
-  async fn need_build(&mut self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+  async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
     Ok(false)
   }
 

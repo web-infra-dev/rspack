@@ -981,7 +981,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
           let mut outgoing = Vec::with_capacity(outgoing_connections.len());
           for id in outgoing_connections {
-            if let Some(con) = mg.connection_by_dependency_id(id) {
+            if let Some(con) = mg.connection_by_id(id) {
               outgoing.push(*con.module_identifier());
             }
           }
