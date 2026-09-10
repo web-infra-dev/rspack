@@ -1,6 +1,8 @@
 use memchr;
 use rspack_core::{DependencyLocation, DependencyRange, RealDependencyLocation, SourcePosition};
 
+const CHECKPOINT_INTERVAL: usize = 1024;
+
 /// For pure-ASCII slices (the common case, e.g. minified vendor sources) the
 /// UTF-16 code-unit count equals the byte length, and `is_ascii` is a
 /// SIMD-accelerated byte scan — much cheaper than decoding every char.
@@ -14,13 +16,16 @@ fn utf16_len(s: &str) -> usize {
 }
 
 /// Advances source positions incrementally to compute dependency locations efficiently.
-/// This optimization reduces repeated source scans when processing dependencies
-/// in increasing source order (common for import statements).
+/// Reuses the last start position for forward queries and sparse checkpoints
+/// for backwards or overlapping ranges. Each parser uses one immutable source.
 #[derive(Debug, Default)]
 pub struct DependencyLocationAdvancer {
   last_range: Option<DependencyRange>,
   last_location: Option<DependencyLocation>,
   last_start_pos: Option<SourcePosition>,
+  /// Position just before each KiB boundary, aligned to UTF-8 character boundaries.
+  /// Built lazily through the furthest requested offset, including on long single lines.
+  checkpoints: Vec<(usize, SourcePosition)>,
 }
 
 impl DependencyLocationAdvancer {
@@ -64,6 +69,42 @@ impl DependencyLocationAdvancer {
     }
   }
 
+  /// Continue from the nearest known position without rescanning a long prefix.
+  fn advance_to(
+    &mut self,
+    source: &str,
+    mut from_off: usize,
+    mut from_pos: SourcePosition,
+    to_off: usize,
+  ) -> Option<SourcePosition> {
+    if to_off < from_off || to_off > source.len() {
+      return None;
+    }
+
+    let checkpoint_index = to_off / CHECKPOINT_INTERVAL;
+    while self.checkpoints.len() < checkpoint_index {
+      let (start, position) = self
+        .checkpoints
+        .last()
+        .copied()
+        .unwrap_or((0, SourcePosition { line: 1, column: 1 }));
+      let mut end = (self.checkpoints.len() + 1) * CHECKPOINT_INTERVAL;
+      while !source.is_char_boundary(end) {
+        end -= 1;
+      }
+      let position = Self::advance_pos(source, start, position, end)?;
+      self.checkpoints.push((end, position));
+    }
+    if checkpoint_index != 0 {
+      let (offset, position) = self.checkpoints[checkpoint_index - 1];
+      if offset > from_off {
+        from_off = offset;
+        from_pos = position;
+      }
+    }
+    Self::advance_pos(source, from_off, from_pos, to_off)
+  }
+
   /// Compute dependency location for a range, using cached results for incremental calculation.
   pub fn compute_dependency_location(
     &mut self,
@@ -90,10 +131,10 @@ impl DependencyLocationAdvancer {
       (0, SourcePosition { line: 1, column: 1 })
     };
 
-    // Uniformly use advance_pos for both incremental and fallback calculations
+    // Keep incremental positions when closer than the source checkpoints.
     let result = (|| {
-      let start_pos = Self::advance_pos(source, base_offset, base_pos, start)?;
-      let end_pos = Self::advance_pos(source, start, start_pos, end)?;
+      let start_pos = self.advance_to(source, base_offset, base_pos, start)?;
+      let end_pos = self.advance_to(source, start, start_pos, end)?;
 
       // Uniformly construct the Location return value
       if start_pos.line == end_pos.line && start_pos.column == end_pos.column {
