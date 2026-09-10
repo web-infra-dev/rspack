@@ -35,8 +35,8 @@ catalogs:
       specifier: ^7.59.0
       version: 7.59.0
     '@module-federation/runtime-tools':
-      specifier: 2.9.0
-      version: 2.9.0
+      specifier: 0.0.0-feat-mf-ssr-clear-cache-20260617024751
+      version: 0.0.0-feat-mf-ssr-clear-cache-20260617024751
     '@napi-rs/cli':
       specifier: 3.7.4
       version: 3.7.4
@@ -463,7 +463,7 @@ importers:
         version: 2.0.6(prettier@3.9.6)
       rstack:
         specifier: 'catalog:'
-        version: 0.7.3(@microsoft/api-extractor@7.59.0)(@module-federation/runtime-tools@2.9.0)(@rspress/core@2.0.21)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3)
+        version: 0.7.3(@microsoft/api-extractor@7.59.0)(@rspress/core@2.0.21)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -678,7 +678,7 @@ importers:
     devDependencies:
       rstack:
         specifier: 'catalog:'
-        version: 0.7.3(@microsoft/api-extractor@7.59.0)(@module-federation/runtime-tools@2.9.0)(@rspress/core@2.0.21)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3)
+        version: 0.7.3(@microsoft/api-extractor@7.59.0)(@rspress/core@2.0.21)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -733,7 +733,7 @@ importers:
         version: 1.6.5(typescript@6.0.3)
       rstack:
         specifier: 'catalog:'
-        version: 0.7.3(@microsoft/api-extractor@7.59.0)(@module-federation/runtime-tools@2.9.0)(@rspress/core@2.0.21)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3)
+        version: 0.7.3(@microsoft/api-extractor@7.59.0)(@rspress/core@2.0.21)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3)
       tinypool:
         specifier: 'catalog:'
         version: 2.1.2
@@ -811,7 +811,7 @@ importers:
         version: 1.0.1
       rstack:
         specifier: 'catalog:'
-        version: 0.7.3(@microsoft/api-extractor@7.59.0)(@module-federation/runtime-tools@2.9.0)(@rspress/core@2.0.21)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3)
+        version: 0.7.3(@microsoft/api-extractor@7.59.0)(@rspress/core@2.0.21)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -875,7 +875,7 @@ importers:
         version: 30.0.0
       rstack:
         specifier: 'catalog:'
-        version: 0.7.3(@microsoft/api-extractor@7.59.0)(@module-federation/runtime-tools@2.9.0)(@rspress/core@2.0.21)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3)
+        version: 0.7.3(@microsoft/api-extractor@7.59.0)(@rspress/core@2.0.21)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -914,7 +914,7 @@ importers:
         version: 7.29.7(@babel/core@7.29.7)(supports-color@8.1.1)
       '@module-federation/runtime-tools':
         specifier: 'catalog:'
-        version: 2.9.0
+        version: 0.0.0-feat-mf-ssr-clear-cache-20260617024751
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.62.1
@@ -986,7 +986,7 @@ importers:
         version: link:../../packages/rspack-browser
       rstack:
         specifier: 'catalog:'
-        version: 0.7.3(@microsoft/api-extractor@7.59.0)(@module-federation/runtime-tools@2.9.0)(@rspress/core@2.0.21)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3)
+        version: 0.7.3(@microsoft/api-extractor@7.59.0)(@rspress/core@2.0.21)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -998,7 +998,7 @@ importers:
         version: 7.29.7(supports-color@8.1.1)
       '@module-federation/runtime-tools':
         specifier: 'catalog:'
-        version: 2.9.0
+        version: 0.0.0-feat-mf-ssr-clear-cache-20260617024751
       '@prefresh/core':
         specifier: 'catalog:'
         version: 1.5.11(preact@10.29.8)
@@ -1151,7 +1151,7 @@ importers:
         version: 5.0.10
       rstack:
         specifier: 'catalog:'
-        version: 0.7.3(@microsoft/api-extractor@7.59.0)(@module-federation/runtime-tools@2.9.0)(@rspress/core@2.0.21)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3)
+        version: 0.7.3(@microsoft/api-extractor@7.59.0)(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(@rspress/core@2.0.21)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3)
       sass-loader:
         specifier: 'catalog:'
         version: 17.0.1(@rspack/core@packages+rspack)(sass-embedded@1.100.0)(sass@1.100.0)
@@ -1251,7 +1251,7 @@ importers:
         version: 2.0.3(@rsbuild/core@2.2.3)(@rspack/core@2.2.2)
       '@rspress/core':
         specifier: 'catalog:'
-        version: 2.0.21(@module-federation/runtime-tools@2.9.0)(@rspack/core@2.2.2)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
+        version: 2.0.21(@rspack/core@2.2.2)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
       '@rspress/plugin-algolia':
         specifier: 'catalog:'
         version: 2.0.21(@rspress/core@2.0.21)(@types/react@19.2.18)(react-dom@19.2.8)(react@19.2.8)
@@ -1296,7 +1296,7 @@ importers:
         version: 1.0.4(@rspress/core@2.0.21)
       rstack:
         specifier: 'catalog:'
-        version: 0.7.3(@microsoft/api-extractor@7.59.0)(@module-federation/runtime-tools@2.9.0)(@rspress/core@2.0.21)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3)
+        version: 0.7.3(@microsoft/api-extractor@7.59.0)(@rspress/core@2.0.21)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3)
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.3
@@ -2267,23 +2267,28 @@ packages:
   '@microsoft/tsdoc@0.16.0':
     resolution: {integrity: sha512-xgAyonlVVS+q7Vc7qLW0UrJU7rSFcETRWsqdXZtjzRU8dF+6CkozTK4V4y1LwOX7j8r/vHphjDeMeGI4tNGeGA==}
 
-  '@module-federation/error-codes@2.9.0':
-    resolution: {integrity: sha512-IGpd+VRlji3NyGOGGTsk7YEmPRKcDoBK4YHqIuP+OQwyb2YhHCUHO2vW9RXeQxCuKwi+c6xkTweRYG+Umy+0Zw==}
+  '@module-federation/error-codes@0.0.0-feat-mf-ssr-clear-cache-20260617024751':
+    resolution: {integrity: sha512-lyrMyoFXpAV0q7Jgm3f0G6A2QonswJzKxJy4xxc8WrOKDVgzsC5o48qzh00bKlv0NKWfuljXjMZMj4n0HaFFrg==}
 
-  '@module-federation/runtime-core@2.9.0':
-    resolution: {integrity: sha512-dLykRYfpbEJBTdk2NlbNoVVTB196O3qujawTBguLABJkPCWETJNk60NR1yZO34eI+DTH+eGwHU3m7FddAWnbnw==}
+  '@module-federation/runtime-core@0.0.0-feat-mf-ssr-clear-cache-20260617024751':
+    resolution: {integrity: sha512-eEU0Cd5qdyzQjwmXpNdZ/aST1X6Zj4GOGKT0I7B3KzICq8zsTqNKyTwPzn5ysJs8XWeAZBCimHUgBWqSCp7ung==}
 
-  '@module-federation/runtime-tools@2.9.0':
-    resolution: {integrity: sha512-u2puqsaHiw1bVvLNk1uh98iPo6UzaBuci/aTvOFwKvbT/RF18C3vGGnm+ShHPKQEnoN6ctPtnygyOZDPR+8cgg==}
+  '@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751':
+    resolution: {integrity: sha512-aB/9ukZ2RtiqDAVaeH1far9eCGGK5RV4icO+tJkr9457Emd9g4UXyj3dgQYCXTA56iEWEjSPikQzuZ0mRQGOFA==}
 
-  '@module-federation/runtime@2.9.0':
-    resolution: {integrity: sha512-3cyAav0hWP+dNvB7qrcK9CKxQn+JvkbRvLtZz3zS2g0EyxtDFDjgbHY0Afcf7oHf8IHhKeEdzb/3Kjr1Pjmr7A==}
+  '@module-federation/runtime@0.0.0-feat-mf-ssr-clear-cache-20260617024751':
+    resolution: {integrity: sha512-mpSEJYakGygsj0rPLJBs6yxnMwXdeSYO2We88WTtHQbRQoSxQ4Yyrn+TMePCjqC4je+5VtgSn7phqfu9kBNslg==}
 
-  '@module-federation/sdk@2.9.0':
-    resolution: {integrity: sha512-IMjObgBGQTXd33jTTCYcxvz8iOQGLsZ2QIPOj90rDxuBtJsN4WJwYyXqligrhY/e5p/BipUPdbIgKmWL7zFhTw==}
+  '@module-federation/sdk@0.0.0-feat-mf-ssr-clear-cache-20260617024751':
+    resolution: {integrity: sha512-EMIqf+wDqsIHfCT4tn4U+lTZH4wH45W80a4IhnU8txFLV05GIUw0LfvXOAjnqYo0NMmJOD/GBzI9UBHr2iOrQw==}
+    peerDependencies:
+      node-fetch: ^2.7.0 || ^3.3.2
+    peerDependenciesMeta:
+      node-fetch:
+        optional: true
 
-  '@module-federation/webpack-bundler-runtime@2.9.0':
-    resolution: {integrity: sha512-MdU6NQibT57MaJG3KPBjC30IVBrz5eU7IcjHoVDYnMh7OmASw3stagBu7hYjdMTP31luNdtzUn85s9axvdwTlw==}
+  '@module-federation/webpack-bundler-runtime@0.0.0-feat-mf-ssr-clear-cache-20260617024751':
+    resolution: {integrity: sha512-lrV8Dy2HozXgTnIHv1GQSHHIj3XTxOW6wURw4xd6CZuV0PMuVUo0evuWGmXZj8KE2TRZDI/qvoQxbAMmOTl+1A==}
 
   '@napi-rs/cli@3.7.4':
     resolution: {integrity: sha512-idELIUceJ9zPgx/shcMt1fSSsteFG68v56RIXi4qUm7OYuJOt7CoMj2KnHVmbOqXgUHWQU1lCULrtQdZDG4F5A==}
@@ -8652,31 +8657,39 @@ snapshots:
 
   '@microsoft/tsdoc@0.16.0': {}
 
-  '@module-federation/error-codes@2.9.0': {}
+  '@module-federation/error-codes@0.0.0-feat-mf-ssr-clear-cache-20260617024751': {}
 
-  '@module-federation/runtime-core@2.9.0':
+  '@module-federation/runtime-core@0.0.0-feat-mf-ssr-clear-cache-20260617024751':
     dependencies:
-      '@module-federation/error-codes': 2.9.0
-      '@module-federation/sdk': 2.9.0
+      '@module-federation/error-codes': 0.0.0-feat-mf-ssr-clear-cache-20260617024751
+      '@module-federation/sdk': 0.0.0-feat-mf-ssr-clear-cache-20260617024751
+    transitivePeerDependencies:
+      - node-fetch
 
-  '@module-federation/runtime-tools@2.9.0':
+  '@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751':
     dependencies:
-      '@module-federation/runtime': 2.9.0
-      '@module-federation/webpack-bundler-runtime': 2.9.0
+      '@module-federation/runtime': 0.0.0-feat-mf-ssr-clear-cache-20260617024751
+      '@module-federation/webpack-bundler-runtime': 0.0.0-feat-mf-ssr-clear-cache-20260617024751
+    transitivePeerDependencies:
+      - node-fetch
 
-  '@module-federation/runtime@2.9.0':
+  '@module-federation/runtime@0.0.0-feat-mf-ssr-clear-cache-20260617024751':
     dependencies:
-      '@module-federation/error-codes': 2.9.0
-      '@module-federation/runtime-core': 2.9.0
-      '@module-federation/sdk': 2.9.0
+      '@module-federation/error-codes': 0.0.0-feat-mf-ssr-clear-cache-20260617024751
+      '@module-federation/runtime-core': 0.0.0-feat-mf-ssr-clear-cache-20260617024751
+      '@module-federation/sdk': 0.0.0-feat-mf-ssr-clear-cache-20260617024751
+    transitivePeerDependencies:
+      - node-fetch
 
-  '@module-federation/sdk@2.9.0': {}
+  '@module-federation/sdk@0.0.0-feat-mf-ssr-clear-cache-20260617024751': {}
 
-  '@module-federation/webpack-bundler-runtime@2.9.0':
+  '@module-federation/webpack-bundler-runtime@0.0.0-feat-mf-ssr-clear-cache-20260617024751':
     dependencies:
-      '@module-federation/error-codes': 2.9.0
-      '@module-federation/runtime': 2.9.0
-      '@module-federation/sdk': 2.9.0
+      '@module-federation/error-codes': 0.0.0-feat-mf-ssr-clear-cache-20260617024751
+      '@module-federation/runtime': 0.0.0-feat-mf-ssr-clear-cache-20260617024751
+      '@module-federation/sdk': 0.0.0-feat-mf-ssr-clear-cache-20260617024751
+    transitivePeerDependencies:
+      - node-fetch
 
   '@napi-rs/cli@3.7.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@types/node@20.19.43)(node-addon-api@7.1.1)(supports-color@8.1.1)':
     dependencies:
@@ -9160,18 +9173,18 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.62.2':
     optional: true
 
-  '@rsbuild/core@2.2.2(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)':
+  '@rsbuild/core@2.2.2(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)':
     dependencies:
-      '@rspack/core': 2.2.2(@module-federation/runtime-tools@2.9.0)(@swc/helpers@0.5.23)
+      '@rspack/core': 2.2.2(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(@swc/helpers@0.5.23)
       '@swc/helpers': 0.5.23
     optionalDependencies:
       core-js: 3.50.0
     transitivePeerDependencies:
       - '@module-federation/runtime-tools'
 
-  '@rsbuild/core@2.2.3(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)':
+  '@rsbuild/core@2.2.3(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)':
     dependencies:
-      '@rspack/core': 2.2.2(@module-federation/runtime-tools@2.9.0)(@swc/helpers@0.5.23)
+      '@rspack/core': 2.2.2(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(@swc/helpers@0.5.23)
       '@swc/helpers': 0.5.23
     optionalDependencies:
       core-js: 3.50.0
@@ -9204,16 +9217,26 @@ snapshots:
       util: 0.12.5
       vm-browserify: 1.1.2
     optionalDependencies:
-      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)
 
   '@rsbuild/plugin-react@2.1.0(@rsbuild/core@2.2.3)(@rspack/core@2.2.2)':
     dependencies:
       '@rspack/plugin-react-refresh': 2.0.2(@rspack/core@2.2.2)(react-refresh@0.18.0)
       react-refresh: 0.18.0
     optionalDependencies:
-      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)
     transitivePeerDependencies:
       - '@rspack/core'
+
+  '@rsbuild/plugin-react@2.1.0(@rsbuild/core@2.2.3)(@rspack/core@packages+rspack)':
+    dependencies:
+      '@rspack/plugin-react-refresh': 2.0.2(@rspack/core@packages+rspack)(react-refresh@0.18.0)
+      react-refresh: 0.18.0
+    optionalDependencies:
+      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)
+    transitivePeerDependencies:
+      - '@rspack/core'
+    optional: true
 
   '@rsbuild/plugin-sass@2.0.1(@rsbuild/core@2.2.3)':
     dependencies:
@@ -9223,20 +9246,20 @@ snapshots:
       reduce-configs: 2.0.1
       sass-embedded: 1.100.0
     optionalDependencies:
-      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)
 
   '@rsbuild/plugin-tailwindcss@2.0.3(@rsbuild/core@2.2.3)(@rspack/core@2.2.2)':
     dependencies:
       '@tailwindcss/webpack': 4.3.3(@rspack/core@2.2.2)
     optionalDependencies:
-      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)
     transitivePeerDependencies:
       - '@rspack/core'
       - webpack
 
-  '@rslib/core@1.0.0(@microsoft/api-extractor@7.59.0)(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)(typescript@6.0.3)':
+  '@rslib/core@1.0.0(@microsoft/api-extractor@7.59.0)(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)(typescript@6.0.3)':
     dependencies:
-      '@rsbuild/core': 2.2.2(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.2(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)
       rsbuild-plugin-dts: 1.0.0(@microsoft/api-extractor@7.59.0)(@rsbuild/core@2.2.2)(typescript@6.0.3)
     optionalDependencies:
       '@microsoft/api-extractor': 7.59.0(@types/node@20.19.43)
@@ -9346,11 +9369,11 @@ snapshots:
       '@rspack/binding-win32-ia32-msvc': 2.2.2
       '@rspack/binding-win32-x64-msvc': 2.2.2
 
-  '@rspack/core@2.2.2(@module-federation/runtime-tools@2.9.0)(@swc/helpers@0.5.23)':
+  '@rspack/core@2.2.2(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(@swc/helpers@0.5.23)':
     dependencies:
       '@rspack/binding': 2.2.2
     optionalDependencies:
-      '@module-federation/runtime-tools': 2.9.0
+      '@module-federation/runtime-tools': 0.0.0-feat-mf-ssr-clear-cache-20260617024751
       '@swc/helpers': 0.5.23
 
   '@rspack/dev-middleware@2.0.3(@rspack/core@packages+rspack)':
@@ -9377,7 +9400,7 @@ snapshots:
     dependencies:
       react-refresh: 0.18.0
     optionalDependencies:
-      '@rspack/core': 2.2.2(@module-federation/runtime-tools@2.9.0)(@swc/helpers@0.5.23)
+      '@rspack/core': 2.2.2(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(@swc/helpers@0.5.23)
 
   '@rspack/plugin-react-refresh@2.0.2(@rspack/core@packages+rspack)(react-refresh@0.18.0)':
     dependencies:
@@ -9385,13 +9408,62 @@ snapshots:
     optionalDependencies:
       '@rspack/core': link:packages/rspack
 
-  '@rspress/core@2.0.21(@module-federation/runtime-tools@2.9.0)(@rspack/core@2.2.2)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)':
+  '@rspress/core@2.0.21(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(@rspack/core@packages+rspack)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)':
     dependencies:
       '@mdx-js/mdx': 3.1.1(supports-color@8.1.1)
       '@mdx-js/react': 3.1.1(@types/react@19.2.18)(react@19.2.8)
-      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)
+      '@rsbuild/plugin-react': 2.1.0(@rsbuild/core@2.2.3)(@rspack/core@packages+rspack)
+      '@rspress/shared': 2.0.21(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)(supports-color@8.1.1)
+      '@shikijs/rehype': 4.4.2
+      '@types/mdast': 4.0.4
+      '@types/react': 19.2.18
+      '@unhead/react': 2.1.17(react@19.2.8)
+      body-scroll-lock: 4.0.0-beta.0
+      clsx: 2.1.1
+      copy-to-clipboard: 3.3.3
+      flexsearch: 0.8.212
+      hast-util-heading-rank: 3.0.0
+      hast-util-to-jsx-runtime: 2.3.6(supports-color@8.1.1)
+      mdast-util-mdx: 3.0.0(supports-color@8.1.1)
+      mdast-util-mdxjs-esm: 2.0.1(supports-color@8.1.1)
+      medium-zoom: 1.1.0
+      nprogress: 0.2.0
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+      react-lazy-with-preload: 2.2.1
+      react-render-to-markdown: 19.1.0(react@19.2.8)
+      react-router-dom: 7.18.2(react-dom@19.2.8)(react@19.2.8)
+      rehype-external-links: 3.0.0
+      rehype-raw: 7.0.0
+      remark-cjk-friendly: 2.3.1(@types/mdast@4.0.4)(micromark-util-types@2.0.2)(micromark@4.0.2)(unified@11.0.5)
+      remark-cjk-friendly-gfm-strikethrough: 2.3.1(@types/mdast@4.0.4)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)(unified@11.0.5)
+      remark-gfm: 4.0.1(supports-color@8.1.1)
+      remark-mdx: 3.1.1(supports-color@8.1.1)
+      remark-parse: 11.0.0(supports-color@8.1.1)
+      remark-stringify: 11.0.0
+      scroll-into-view-if-needed: 3.1.0
+      shiki: 4.4.2
+      unified: 11.0.5
+      unist-util-visit: 5.1.0
+      unist-util-visit-children: 3.0.0
+      vfile: 6.0.3
+    transitivePeerDependencies:
+      - '@module-federation/runtime-tools'
+      - '@rspack/core'
+      - core-js
+      - micromark
+      - micromark-util-types
+      - supports-color
+    optional: true
+
+  '@rspress/core@2.0.21(@rspack/core@2.2.2)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)':
+    dependencies:
+      '@mdx-js/mdx': 3.1.1(supports-color@8.1.1)
+      '@mdx-js/react': 3.1.1(@types/react@19.2.18)(react@19.2.8)
+      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)
       '@rsbuild/plugin-react': 2.1.0(@rsbuild/core@2.2.3)(@rspack/core@2.2.2)
-      '@rspress/shared': 2.0.21(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)(supports-color@8.1.1)
+      '@rspress/shared': 2.0.21(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)(supports-color@8.1.1)
       '@shikijs/rehype': 4.4.2
       '@types/mdast': 4.0.4
       '@types/react': 19.2.18
@@ -9437,7 +9509,7 @@ snapshots:
     dependencies:
       '@docsearch/css': 4.7.0
       '@docsearch/react': 4.7.0(@types/react@19.2.18)(react-dom@19.2.8)(react@19.2.8)
-      '@rspress/core': 2.0.21(@module-federation/runtime-tools@2.9.0)(@rspack/core@2.2.2)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
+      '@rspress/core': 2.0.21(@rspack/core@2.2.2)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
     transitivePeerDependencies:
@@ -9448,20 +9520,20 @@ snapshots:
 
   '@rspress/plugin-client-redirects@2.0.21(@rspress/core@2.0.21)':
     dependencies:
-      '@rspress/core': 2.0.21(@module-federation/runtime-tools@2.9.0)(@rspack/core@2.2.2)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
+      '@rspress/core': 2.0.21(@rspack/core@2.2.2)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
 
   '@rspress/plugin-rss@2.0.21(@rspress/core@2.0.21)':
     dependencies:
-      '@rspress/core': 2.0.21(@module-federation/runtime-tools@2.9.0)(@rspack/core@2.2.2)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
+      '@rspress/core': 2.0.21(@rspack/core@2.2.2)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
       feed: 5.2.1
 
   '@rspress/plugin-sitemap@2.0.21(@rspress/core@2.0.21)':
     dependencies:
-      '@rspress/core': 2.0.21(@module-federation/runtime-tools@2.9.0)(@rspack/core@2.2.2)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
+      '@rspress/core': 2.0.21(@rspack/core@2.2.2)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
 
-  '@rspress/shared@2.0.21(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)(supports-color@8.1.1)':
+  '@rspress/shared@2.0.21(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)(supports-color@8.1.1)':
     dependencies:
-      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)
       '@shikijs/rehype': 4.4.2
       '@types/react': 19.2.18
       mdast-util-mdx-jsx: 3.2.0(supports-color@8.1.1)
@@ -9514,15 +9586,15 @@ snapshots:
 
   '@rstackjs/doc-ui@1.14.11(@rspress/core@2.0.21)':
     optionalDependencies:
-      '@rspress/core': 2.0.21(@module-federation/runtime-tools@2.9.0)(@rspack/core@2.2.2)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
+      '@rspress/core': 2.0.21(@rspack/core@2.2.2)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
 
   '@rstackjs/load-config@0.1.2(jiti@2.7.0)':
     optionalDependencies:
       jiti: 2.7.0
 
-  '@rstest/core@0.11.12(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)(jsdom@30.0.1)':
+  '@rstest/core@0.11.12(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)(jsdom@30.0.1)':
     dependencies:
-      '@rsbuild/core': 2.2.2(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.2(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)
       '@types/chai': 5.2.3
     optionalDependencies:
       jsdom: 30.0.1
@@ -9726,7 +9798,7 @@ snapshots:
       '@tailwindcss/oxide': 4.3.3
       tailwindcss: 4.3.3
     optionalDependencies:
-      '@rspack/core': 2.2.2(@module-federation/runtime-tools@2.9.0)(@swc/helpers@0.5.23)
+      '@rspack/core': 2.2.2(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(@swc/helpers@0.5.23)
 
   '@taplo/core@0.2.0': {}
 
@@ -10031,7 +10103,7 @@ snapshots:
       '@vue/shared': 3.5.42
       estree-walker: 2.0.2
       magic-string: 0.30.21
-      postcss: 8.5.26
+      postcss: 8.5.28
       source-map-js: 1.2.1
 
   '@vue/compiler-ssr@3.5.42':
@@ -13402,18 +13474,18 @@ snapshots:
   rsbuild-plugin-dts@1.0.0(@microsoft/api-extractor@7.59.0)(@rsbuild/core@2.2.2)(typescript@6.0.3):
     dependencies:
       '@ast-grep/napi': 0.45.2
-      '@rsbuild/core': 2.2.2(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.2(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)
     optionalDependencies:
       '@microsoft/api-extractor': 7.59.0(@types/node@20.19.43)
       typescript: 6.0.3
 
   rsbuild-plugin-google-analytics@1.0.6(@rsbuild/core@2.2.3):
     optionalDependencies:
-      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)
 
   rsbuild-plugin-open-graph@1.1.3(@rsbuild/core@2.2.3):
     optionalDependencies:
-      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)
 
   rspack-merge@1.0.1: {}
 
@@ -13428,19 +13500,52 @@ snapshots:
 
   rspress-plugin-font-open-sans@1.0.4(@rspress/core@2.0.21):
     dependencies:
-      '@rspress/core': 2.0.21(@module-federation/runtime-tools@2.9.0)(@rspack/core@2.2.2)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
+      '@rspress/core': 2.0.21(@rspack/core@2.2.2)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
 
-  rstack@0.7.3(@microsoft/api-extractor@7.59.0)(@module-federation/runtime-tools@2.9.0)(@rspress/core@2.0.21)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3):
+  rstack@0.7.3(@microsoft/api-extractor@7.59.0)(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(@rspress/core@2.0.21)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3):
     dependencies:
-      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
-      '@rslib/core': 1.0.0(@microsoft/api-extractor@7.59.0)(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)(typescript@6.0.3)
+      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)
+      '@rslib/core': 1.0.0(@microsoft/api-extractor@7.59.0)(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)(typescript@6.0.3)
       '@rslint/core': 0.9.1(jiti@2.7.0)
-      '@rstest/core': 0.11.12(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)(jsdom@30.0.1)
+      '@rstest/core': 0.11.12(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)(jsdom@30.0.1)
       prettier: 3.9.6
       tinypool: 2.1.2
       yuku-parser: 0.9.3
     optionalDependencies:
-      '@rspress/core': 2.0.21(@module-federation/runtime-tools@2.9.0)(@rspack/core@2.2.2)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
+      '@rspress/core': 2.0.21(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(@rspack/core@packages+rspack)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
+      '@rstackjs/cli-darwin-arm64': 0.7.3
+      '@rstackjs/cli-darwin-x64': 0.7.3
+      '@rstackjs/cli-linux-arm64-gnu': 0.7.3
+      '@rstackjs/cli-linux-arm64-musl': 0.7.3
+      '@rstackjs/cli-linux-ppc64-gnu': 0.7.3
+      '@rstackjs/cli-linux-riscv64-gnu': 0.7.3
+      '@rstackjs/cli-linux-riscv64-musl': 0.7.3
+      '@rstackjs/cli-linux-s390x-gnu': 0.7.3
+      '@rstackjs/cli-linux-x64-gnu': 0.7.3
+      '@rstackjs/cli-linux-x64-musl': 0.7.3
+      '@rstackjs/cli-win32-arm64-msvc': 0.7.3
+      '@rstackjs/cli-win32-ia32-msvc': 0.7.3
+      '@rstackjs/cli-win32-x64-msvc': 0.7.3
+    transitivePeerDependencies:
+      - '@microsoft/api-extractor'
+      - '@module-federation/runtime-tools'
+      - core-js
+      - happy-dom
+      - jiti
+      - jsdom
+      - typescript
+
+  rstack@0.7.3(@microsoft/api-extractor@7.59.0)(@rspress/core@2.0.21)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3):
+    dependencies:
+      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)
+      '@rslib/core': 1.0.0(@microsoft/api-extractor@7.59.0)(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)(typescript@6.0.3)
+      '@rslint/core': 0.9.1(jiti@2.7.0)
+      '@rstest/core': 0.11.12(@module-federation/runtime-tools@0.0.0-feat-mf-ssr-clear-cache-20260617024751)(core-js@3.50.0)(jsdom@30.0.1)
+      prettier: 3.9.6
+      tinypool: 2.1.2
+      yuku-parser: 0.9.3
+    optionalDependencies:
+      '@rspress/core': 2.0.21(@rspack/core@2.2.2)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
       '@rstackjs/cli-darwin-arm64': 0.7.3
       '@rstackjs/cli-darwin-x64': 0.7.3
       '@rstackjs/cli-linux-arm64-gnu': 0.7.3

@@ -2,7 +2,7 @@ use std::fmt::Write as _;
 
 use rspack_core::{
   Chunk, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, PathData, RuntimeCodeTemplate,
-  SourceType,
+  RuntimeGlobals, SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdSet},
   get_js_chunk_filename_template, get_undo_path,
 };
@@ -97,6 +97,101 @@ pub fn render_chunk_loading_hmr_state_expression(
     ChunkLoading::Disable => "disable",
   };
   render_hmr_runtime_state_expression(runtime_template, key)
+}
+
+pub fn generate_chunk_cache_controls(
+  runtime_template: &RuntimeCodeTemplate,
+  loading_type: &str,
+  installed_chunks: &str,
+  loaded_state: u8,
+) -> String {
+  let require_scope = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE_SCOPE);
+  let generation_var = format!(
+    "chunkGenerations_{}",
+    loading_type
+      .chars()
+      .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+      .collect::<String>()
+  );
+  let loading_type = rspack_util::json_stringify_str(loading_type);
+  format!(
+    r#"
+var chunkCacheControls = {require_scope}.chunkCacheControls = {require_scope}.chunkCacheControls || {{}};
+var {generation_var} = {{}};
+chunkCacheControls[{loading_type}] = {{
+  clear: function(chunkIds) {{
+    var cleared = [];
+    for (var i = 0; i < chunkIds.length; i++) {{
+      var chunkId = chunkIds[i];
+      if ({installed_chunks}[chunkId] !== undefined) {{
+        {installed_chunks}[chunkId] = undefined;
+        cleared.push(chunkId);
+      }}
+    }}
+    return cleared;
+  }},
+  invalidate: function(chunkIds) {{
+    var generations = {{}};
+    for (var i = 0; i < chunkIds.length; i++) {{
+      var chunkId = chunkIds[i];
+      {generation_var}[chunkId] = ({generation_var}[chunkId] || 0) + 1;
+      generations[chunkId] = {generation_var}[chunkId];
+    }}
+    return generations;
+  }},
+  wait: function(chunkIds) {{
+    var promises = [];
+    for (var i = 0; i < chunkIds.length; i++) {{
+      var chunkId = chunkIds[i];
+      var installedChunkData = {installed_chunks}[chunkId];
+      if (installedChunkData && installedChunkData !== {loaded_state} && installedChunkData[2]) {{
+        promises.push(installedChunkData[2].catch(function() {{}}));
+      }}
+    }}
+    return Promise.all(promises);
+  }},
+  snapshot: function(chunkIds) {{
+    var states = {{}};
+    for (var i = 0; i < chunkIds.length; i++) {{
+      var chunkId = chunkIds[i];
+      if ({installed_chunks}[chunkId] !== undefined) {{
+        states[chunkId] = {{
+          had: true,
+          value: {installed_chunks}[chunkId]
+        }};
+      }} else {{
+        states[chunkId] = {{
+          had: false
+        }};
+      }}
+    }}
+    return states;
+  }},
+  restore: function(states) {{
+    for (var chunkId in states) {{
+      var state = states[chunkId];
+      if (state && state.had) {installed_chunks}[chunkId] = state.value;
+      else {installed_chunks}[chunkId] = undefined;
+    }}
+  }},
+  restoreGenerations: function(generations) {{
+    for (var chunkId in generations) {{
+      if (generations[chunkId]) {generation_var}[chunkId] = generations[chunkId];
+      else {generation_var}[chunkId] = undefined;
+    }}
+  }},
+  getGeneration: function(chunkId) {{
+    return {generation_var}[chunkId] || 0;
+  }},
+  isStale: function(chunkId, generation) {{
+    return ({generation_var}[chunkId] || 0) !== generation;
+  }},
+  getState: function(chunkId) {{
+    return {installed_chunks}[chunkId];
+  }}
+}};
+"#
+  )
 }
 
 pub fn chunk_has_css(chunk: &ChunkUkey, compilation: &Compilation) -> bool {
