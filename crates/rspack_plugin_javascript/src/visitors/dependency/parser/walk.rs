@@ -5,8 +5,7 @@ use swc_next_ecma_ast::*;
 
 use super::{
   AllowedMemberTypes, CallHooksName, ExpressionExpressionInfo, JavascriptParser,
-  MemberExpressionInfo, MemberRanges, OptionalMembers, PatRef, RootName, ScopeTerminated,
-  TopLevelScope,
+  MemberExpressionInfo, OptionalMembers, PatRef, RootName, ScopeTerminated, TopLevelScope,
   estree::{
     ClassDeclOrExpr, ExportDefaultDeclaration, MaybeNamedClassDecl, MaybeNamedFunctionDecl,
     Statement, formal_parameter_patterns, formal_parameters_are_simple_identifiers,
@@ -23,7 +22,7 @@ use crate::{
   utils::eval::{BasicEvaluatedExpression, eval_member_expression_with_info},
   visitors::{
     AtomMembers, ExportedVariableInfo, ExprRef, Identifier, VariableDeclaration, VariableInfo,
-    VariableInfoFlags, get_non_optional_part,
+    VariableInfoFlags,
   },
 };
 
@@ -1049,13 +1048,9 @@ impl JavascriptParser<'_> {
   fn walk_jsx_member_expr(&mut self, member: JsxMemberExpression) {
     let ast = self.ast.ast;
     let mut current = member;
-    let mut members_optionals = OptionalMembers::new();
-    let mut member_ranges = MemberRanges::new();
     let mut member_nodes = SmallVec::<[JsxMemberExpression; 2]>::new();
     let root = loop {
       let object = current.object(ast);
-      members_optionals.push(false);
-      member_ranges.push(object.span(ast));
       member_nodes.push(current);
       match ast.jsx_member_expression_object_data(object) {
         JsxMemberExpressionObjectData::JsxIdentifier(identifier) => break identifier,
@@ -1079,9 +1074,12 @@ impl JavascriptParser<'_> {
       .collect();
     let name = object_and_members_to_name(resolved_root, &members);
     members.reverse();
-    members_optionals.reverse();
-    member_ranges.reverse();
     member_nodes.reverse();
+    let members_optionals = std::iter::repeat_n(false, member_nodes.len()).collect();
+    let member_ranges = member_nodes
+      .iter()
+      .map(|member| member.object(ast).span(ast))
+      .collect();
 
     let expression_info = ExpressionExpressionInfo {
       name,
@@ -1825,29 +1823,21 @@ impl JavascriptParser<'_> {
     Option<(ImportExpression, AtomMembers, AwaitExpression)>,
   ) {
     let ast = self.ast.ast;
-    let super::RawExtractedMemberExpressionChainData {
-      object,
-      members,
-      mut members_optionals,
-      member_ranges,
-    } = self.extract_member_expression_chain_raw(ExprRef::Member(expr));
+    let super::RawExtractedMemberExpressionChainData { object, members } =
+      self.extract_member_expression_chain_raw(ExprRef::Member(expr));
     if let ExprRef::Await(await_expr) = object
       && let Some(call) = await_expr.argument(ast).as_import_expression(ast)
     {
-      let mut members = super::materialize_member_atoms(ast, members);
-      members.reverse();
-      members_optionals.reverse();
-      let members = get_non_optional_part(&members, &members_optionals);
-      return (None, Some((call, members.into(), await_expr)));
+      let members = members
+        .iter()
+        .rev()
+        .take_while(|member| !member.optional)
+        .map(|member| member.atom(ast))
+        .collect();
+      return (None, Some((call, members, await_expr)));
     }
     (
-      self._get_member_expression_info(
-        object,
-        members,
-        members_optionals,
-        member_ranges,
-        AllowedMemberTypes::all(),
-      ),
+      self._get_member_expression_info(object, members, AllowedMemberTypes::all()),
       None,
     )
   }
