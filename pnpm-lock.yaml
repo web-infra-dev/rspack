@@ -359,8 +359,8 @@ catalogs:
       specifier: 1.0.1
       version: 1.0.1
     rspack-vue-loader:
-      specifier: ^17.6.2
-      version: 17.6.2
+      specifier: ^17.7.0
+      version: 17.7.0
     rspress-plugin-font-open-sans:
       specifier: 1.0.4
       version: 1.0.4
@@ -974,7 +974,7 @@ importers:
         version: 0.18.0
       rspack-vue-loader:
         specifier: 'catalog:'
-        version: 17.6.2(@rspack/core@packages+rspack)(@vue/compiler-sfc@3.5.42)(vue@3.5.42)
+        version: 17.7.0(@rspack/core@packages+rspack)(@vue/compiler-sfc@3.5.42)(vue@3.5.42)
       rstack:
         specifier: 'catalog:'
         version: 0.7.3(@microsoft/api-extractor@7.59.0)(@module-federation/runtime-tools@2.9.0)(@rspress/core@2.0.21)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3)
@@ -6762,8 +6762,8 @@ packages:
   rspack-merge@1.0.1:
     resolution: {integrity: sha512-W/mzCdxfV+EXOdpfwcLWc2TZ9EYa2LYumAMgpTn27bSEOO0BQz/SA8qfnJRCMkJyNST2URxmwqBmQbh5tLFwsg==}
 
-  rspack-vue-loader@17.6.2:
-    resolution: {integrity: sha512-ojnONLyFz0SCLYSDrC8NwHqUBgj/lHFNVmv1hCWk4vaPYjfdBRCLJEGla+P7PtkBkc4eKFgfRSMbSNVyM8EwaQ==}
+  rspack-vue-loader@17.7.0:
+    resolution: {integrity: sha512-lNBfU5rUrCOYEGdVwdqkF218Pm+plwIGN6Daf5+sjVQLkfB9jlvY1qXsTw36aaoDkViFVnLySMpPTWuO7aScYw==}
     peerDependencies:
       '@rspack/core': ^1.0.0 || ^2.0.0
       '@vue/compiler-sfc': '*'
@@ -13351,7 +13351,7 @@ snapshots:
 
   rspack-merge@1.0.1: {}
 
-  rspack-vue-loader@17.6.2(@rspack/core@packages+rspack)(@vue/compiler-sfc@3.5.42)(vue@3.5.42):
+  rspack-vue-loader@17.7.0(@rspack/core@packages+rspack)(@vue/compiler-sfc@3.5.42)(vue@3.5.42):
     dependencies:
       '@rspack/lite-tapable': 1.1.5
       chalk: 4.1.2

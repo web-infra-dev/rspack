@@ -137,7 +137,7 @@ catalog:
   'rsbuild-plugin-google-analytics': '1.0.6'
   'rsbuild-plugin-open-graph': '1.1.3'
   'rspack-merge': '1.0.1'
-  'rspack-vue-loader': '^17.6.2'
+  'rspack-vue-loader': '^17.7.0'
   'rspress-plugin-font-open-sans': '1.0.4'
   'rstack': '^0.7.3'
   'sass-loader': '^17.0.1'
