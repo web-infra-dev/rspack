@@ -29,7 +29,7 @@ pub(crate) async fn loader_yield(
       .await
       .contains(loader_context.current_loader().path().as_str())
   {
-    loader_context.current_loader().set_pitch_executed();
+    loader_context.set_current_loader_pitch_executed();
     loader_context.loader_index += 1;
     return Ok(());
   }
@@ -107,24 +107,22 @@ pub(crate) fn merge_loader_context(
   });
   to.__finish_with((content, source_map, additional_data));
 
-  // update loader status
-  to.loader_items = to
-    .loader_items
-    .drain(..)
+  // update per-run loader status without mutating the shared loader metadata
+  for (to, from) in to
+    .loader_item_states
+    .iter_mut()
     .zip(from.loader_items.drain(..))
-    .map(|(mut to, from)| {
-      if from.normal_executed {
-        to.set_normal_executed()
-      }
-      if from.pitch_executed {
-        to.set_pitch_executed()
-      }
-      to.set_data(from.data);
-      // JS loader should always be considered as finished
-      to.set_finish_called();
-      to
-    })
-    .collect();
+  {
+    if from.normal_executed {
+      to.set_normal_executed();
+    }
+    if from.pitch_executed {
+      to.set_pitch_executed();
+    }
+    to.set_data(from.data);
+    // JS loader should always be considered as finished
+    to.set_finish_called();
+  }
   to.loader_index = from.loader_index;
   to.parse_meta.extend(
     from
@@ -141,7 +139,7 @@ fn collect_loaders_without_pitch(
   js_ctx: &JsLoaderContext,
 ) -> Vec<String> {
   let mut list = Vec::new();
-  for (js_loader_item, loader_item) in js_ctx.loader_items.iter().zip(ctx.loader_items.iter()) {
+  for (js_loader_item, loader_item) in js_ctx.loader_items.iter().zip(ctx.loader_items().iter()) {
     if js_loader_item.no_pitch {
       list.push(loader_item.path().to_string());
     }

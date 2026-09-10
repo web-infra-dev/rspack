@@ -6,9 +6,11 @@ use rspack_error::Diagnostic;
 use rspack_paths::{InternedPath, InternedPathSet, Utf8Path};
 use rspack_sources::SourceMap;
 
+#[cfg(feature = "test-loader")]
+use crate::loader::LoaderItemList;
 use crate::{
-  AdditionalData, Content, LoaderItem, LoaderRunnerPlugin, ParseMeta, ResourceData,
-  loader::LoaderItemList,
+  AdditionalData, Content, LoaderItem, LoaderItemState, LoaderRunnerPlugin, Loaders, ParseMeta,
+  ResourceData,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -51,6 +53,10 @@ impl LoaderDependencies {
   }
 }
 
+pub trait LoaderRunnerContext: Send + Sized {
+  fn loaders(&self) -> &Loaders<Self>;
+}
+
 #[derive(Debug)]
 pub struct LoaderContext<Context: Send> {
   pub hot: bool,
@@ -77,7 +83,7 @@ pub struct LoaderContext<Context: Send> {
   /// Loader States
   pub(crate) state: State,
   pub loader_index: i32,
-  pub loader_items: Vec<LoaderItem<Context>>,
+  pub loader_item_states: Vec<LoaderItemState>,
   #[debug(skip)]
   pub plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
 }
@@ -281,21 +287,62 @@ impl<Context: Send> LoaderContext<Context> {
     self.added_dependencies.context.clear();
     self.added_dependencies.missing.clear();
   }
+}
 
-  pub fn remaining_request(&self) -> LoaderItemList<'_, Context> {
-    if self.loader_index >= self.loader_items.len() as i32 - 1 {
-      return Default::default();
-    }
-    LoaderItemList(&self.loader_items[self.loader_index as usize + 1..])
+impl<Context: LoaderRunnerContext> LoaderContext<Context> {
+  #[inline]
+  pub fn loader_items(&self) -> &[LoaderItem<Context>] {
+    self.context.loaders().loader_items()
   }
 
+  #[cfg(feature = "test-loader")]
+  pub fn remaining_request(&self) -> LoaderItemList<'_, Context> {
+    if self.loader_index >= self.loader_items().len() as i32 - 1 {
+      return Default::default();
+    }
+    LoaderItemList(&self.loader_items()[self.loader_index as usize + 1..])
+  }
+
+  #[cfg(feature = "test-loader")]
   pub fn previous_request(&self) -> LoaderItemList<'_, Context> {
-    LoaderItemList(&self.loader_items[..self.loader_index as usize])
+    LoaderItemList(&self.loader_items()[..self.loader_index as usize])
   }
 
   #[inline]
   pub fn current_loader(&self) -> &LoaderItem<Context> {
-    &self.loader_items[self.loader_index as usize]
+    &self.loader_items()[self.loader_index as usize]
+  }
+}
+
+impl<Context: Send> LoaderContext<Context> {
+  #[inline]
+  pub fn loader_item_state(&self, index: usize) -> &LoaderItemState {
+    &self.loader_item_states[index]
+  }
+
+  #[inline]
+  pub fn loader_item_state_mut(&mut self, index: usize) -> &mut LoaderItemState {
+    &mut self.loader_item_states[index]
+  }
+
+  pub fn current_loader_state(&self) -> &LoaderItemState {
+    self.loader_item_state(self.loader_index as usize)
+  }
+
+  pub fn current_loader_state_mut(&mut self) -> &mut LoaderItemState {
+    self.loader_item_state_mut(self.loader_index as usize)
+  }
+
+  pub fn set_current_loader_pitch_executed(&mut self) {
+    self.current_loader_state_mut().set_pitch_executed();
+  }
+
+  pub fn set_current_loader_normal_executed(&mut self) {
+    self.current_loader_state_mut().set_normal_executed();
+  }
+
+  pub fn set_current_loader_finish_called(&mut self) {
+    self.current_loader_state_mut().set_finish_called();
   }
 
   /// Emit a diagnostic, it can be a `warning` or `error`.
@@ -361,14 +408,14 @@ impl<Context: Send> LoaderContext<Context> {
 
   pub fn finish_with(&mut self, patch: impl Into<LoaderPatch>) {
     self.__finish_with(patch);
-    self.current_loader().set_finish_called();
+    self.set_current_loader_finish_called();
   }
 
   pub fn finish_with_empty(&mut self) {
     self.content = None;
     self.source_map = None;
     self.additional_data = None;
-    self.current_loader().set_finish_called();
+    self.set_current_loader_finish_called();
   }
 
   #[inline]
