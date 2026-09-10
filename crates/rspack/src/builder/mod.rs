@@ -59,7 +59,7 @@ use rspack_core::{
   runtime_mode::RuntimeMode,
 };
 use rspack_error::{Error, Result};
-use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
+use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
 use rspack_regex::RspackRegex;
@@ -484,7 +484,7 @@ impl CompilerBuilder {
     let infrastructure_log_sink = Arc::new(PrintlnInfrastructureLogSink);
     let cache = Arc::new(create_cache(
       &compiler_options,
-      input_filesystem,
+      input_filesystem.clone(),
       infrastructure_log_sink.clone(),
     ));
 
