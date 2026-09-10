@@ -15,13 +15,13 @@ use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
   CompilerOptions, Context, CssAutoOrModuleParserOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, Dependency, DependencyCategory, DependencyType, FactoryMeta, FuncUseCtx,
-  GeneratorOptions, MatchContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
+  GeneratorOptions, Loaders, MatchContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
   ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect, ModuleRuleEnforce,
   ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
   ParserOptionsMap, RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
-  ResolveResult, ResolvedModuleOptions, ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory,
-  ResourceData, ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
-  diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
+  ResolveResult, ResolvedLoader, ResolvedModuleOptions, ResolvedModuleOptionsCacheKey, Resolver,
+  ResolverFactory, ResourceData, ResourceParsedData, RunnerContext, RuntimeGlobals,
+  SharedPluginDriver, diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
   stringify_loaders_and_resource,
 };
 
@@ -1100,24 +1100,7 @@ module.exports = "data:,";
     } else {
       resource_data.resource().to_owned()
     };
-    let has_cached_loader = resolved_loaders
-      .iter()
-      .any(|resolved| resolved.options.cache);
-    let (loaders, loader_options) = if has_cached_loader {
-      let (loaders, loader_options) = resolved_loaders
-        .into_iter()
-        .map(|resolved| (resolved.loader, resolved.options))
-        .unzip();
-      (loaders, Some(loader_options))
-    } else {
-      (
-        resolved_loaders
-          .into_iter()
-          .map(|resolved| resolved.loader)
-          .collect(),
-        None,
-      )
-    };
+    let loaders = Loaders::new(resolved_loaders);
 
     let resolved_module_type = self.calculate_module_type(match_module_type, &matched_module_rules);
     let resolved_module_layer =
@@ -1199,7 +1182,6 @@ module.exports = "data:,";
         resource_resolve_data,
         resolved_resolve_options,
         loaders,
-        loader_options,
         create_data.context.clone().map(|x| x.into()),
         resolved_extract_source_map,
         dependency_phase,
@@ -1366,20 +1348,6 @@ async fn resolve_each(
     .call(context, loader_resolver, l)
     .await?
     .ok_or_else(|| error!("Unable to resolve loader {}", l.loader))
-}
-
-struct ResolvedLoader {
-  loader: BoxLoader,
-  options: LoaderRunnerOptions,
-}
-
-impl ResolvedLoader {
-  fn uncached(loader: BoxLoader) -> Self {
-    Self {
-      loader,
-      options: LoaderRunnerOptions::default(),
-    }
-  }
 }
 
 async fn resolve_each_with_options(

@@ -29,16 +29,19 @@ pub struct JsLoaderItem {
   pub no_pitch: bool,
 }
 
-impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
-  fn from(value: &rspack_loader_runner::LoaderItem<RunnerContext>) -> Self {
+impl JsLoaderItem {
+  fn from_parts(
+    value: &rspack_loader_runner::LoaderItem<RunnerContext>,
+    state: &rspack_loader_runner::LoaderItemState,
+  ) -> Self {
     JsLoaderItem {
       loader: value.request().to_string(),
       r#type: value.r#type().to_string(),
       cache: value.cache(),
 
-      data: value.data().clone(),
-      normal_executed: value.normal_executed(),
-      pitch_executed: value.pitch_executed(),
+      data: state.data().clone(),
+      normal_executed: state.normal_executed(),
+      pitch_executed: state.pitch_executed(),
 
       no_pitch: false,
     }
@@ -239,12 +242,17 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       cacheable: cx.cacheable,
       dependencies: cx.dependencies().as_ref().into(),
 
-      loader_items: cx.loader_items.iter().map(Into::into).collect(),
+      loader_items: cx
+        .loader_items()
+        .iter()
+        .zip(cx.loader_item_states.iter())
+        .map(|(item, state)| JsLoaderItem::from_parts(item, state))
+        .collect(),
       loader_index: cx.loader_index,
       loader_state: cx.state().into(),
       error: None,
       loader_cache: cx
-        .loader_items
+        .loader_items()
         .iter()
         .any(|loader| loader.cache())
         .then(|| {
@@ -252,7 +260,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
             cx.context.loader_cache.clone(),
             cx.context.file_system_info.clone(),
             module.identifier().to_string(),
-            cx.loader_items
+            cx.loader_items()
               .iter()
               .map(|loader| loader.cache_options().cloned().unwrap_or_default())
               .collect(),

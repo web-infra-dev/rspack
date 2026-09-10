@@ -14,11 +14,11 @@ use rspack_util::{ext::AsAny, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildInfo, BuildMeta, ChunkGraph,
-  CodeGenerationData, Compilation, CompilerOptions, ConcatenationScope, Context,
-  DependencyCodeGenerationRef, DependencyId, DependencyLocation, DependencyRange,
-  EvaluatedInlinableValue, FactoryMeta, GeneratorOptions, Module, ModuleCodeTemplate, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeSpec, SourceType,
+  AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, ChunkGraph, CodeGenerationData,
+  Compilation, CompilerOptions, ConcatenationScope, Context, DependencyCodeGenerationRef,
+  DependencyId, DependencyLocation, DependencyRange, EvaluatedInlinableValue, FactoryMeta,
+  GeneratorOptions, Module, ModuleCodeTemplate, ModuleGraph, ModuleIdentifier, ModuleLayer,
+  ModuleType, NormalModule, ParserOptions, ResolvedLoader, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -34,7 +34,7 @@ pub struct ParseContext<'a> {
   pub module_source_map_kind: SourceMapKind,
   pub module_match_resource: Option<&'a ResourceData>,
   #[debug(skip)]
-  pub loaders: &'a [BoxLoader],
+  pub loaders: &'a [ResolvedLoader],
   pub resource_data: &'a ResourceData,
   pub compiler_options: &'a CompilerOptions,
   pub additional_data: Option<AdditionalData>,

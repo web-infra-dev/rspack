@@ -116,12 +116,12 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
       LoaderCacheAction::Disabled
     };
     if matches!(cache_action, LoaderCacheAction::Hit) {
-      context.current_loader().set_finish_called();
+      context.set_current_loader_finish_called();
       return Ok(());
     }
 
     loader.run(context).await?;
-    if !context.current_loader().finish_called() {
+    if !context.current_loader_state().finish_called() {
       context.finish_with_empty();
     }
     if let LoaderCacheAction::Miss(state) = cache_action {
