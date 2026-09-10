@@ -395,11 +395,11 @@ function {}(moduleId) {{
             let top_level_decls = codegen
               .data()
               .get::<CodeGenerationDataTopLevelDeclarations>()
-              .map(|d| d.inner())
+              .map(|_| ())
               .or_else(|| {
                 module_graph
                   .module_by_identifier(module)
-                  .and_then(|m| m.build_info().top_level_declarations.as_ref())
+                  .and_then(|m| m.build_info().top_level_declarations.as_ref().map(|_| ()))
               });
             top_level_decls.is_none()
           } {
@@ -923,20 +923,8 @@ impl JsPlugin {
     if iife {
       sources.add(RawStringSource::from_static("})()\n"));
     }
-    let mut render_source = RenderSource {
-      source: sources.boxed(),
-    };
-    hooks
-      .render_content
-      .call(
-        compilation,
-        chunk_ukey,
-        &mut render_source,
-        runtime_template,
-      )
-      .await?;
     let final_source = render_init_fragments(
-      render_source.source,
+      sources.boxed(),
       chunk_init_fragments,
       &mut ChunkRenderContext {},
     )?;

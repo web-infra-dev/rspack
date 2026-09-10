@@ -4,9 +4,9 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, ChunkGraph, ChunkUkey, CodeGenerationResultBuilder, Compilation, Context,
-  DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleArgument,
+  BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph, ChunkUkey,
+  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
+  FactoryMetaStore, FreezeLock, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
   RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
@@ -23,15 +23,14 @@ use crate::utils::{json_stringify, module_identifier_namespace};
 #[cacheable]
 #[derive(Debug)]
 pub struct FallbackModule {
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  dependencies: Vec<DependencyId>,
+  dependencies_block: DependenciesBlockData,
   identifier: ModuleIdentifier,
   readable_identifier: String,
   lib_ident: String,
   requests: Vec<String>,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  factory_meta: FactoryMetaStore,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
 }
 
 impl FallbackModule {
@@ -48,17 +47,17 @@ impl FallbackModule {
       requests_len_minus_one
     );
     Self {
-      blocks: Default::default(),
-      dependencies: Default::default(),
+      dependencies_block: Default::default(),
       identifier: ModuleIdentifier::from(identifier.as_str()),
       readable_identifier: identifier,
       lib_ident,
       requests,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         strict: true,
         ..Default::default()
-      },
+      }
+      .into(),
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
@@ -72,24 +71,12 @@ impl Identifiable for FallbackModule {
 }
 
 impl DependenciesBlock for FallbackModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency)
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }
 
@@ -136,7 +123,7 @@ impl Module for FallbackModule {
     mut self: Box<Self>,
     _build_context: BuildContext,
     _: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<BoxModule> {
     let mut dependencies: Vec<BoxDependency> = Vec::new();
     for request in &self.requests {
       dependencies.push(BoxDependency::new(FallbackItemDependency::new(
@@ -144,12 +131,10 @@ impl Module for FallbackModule {
       )))
     }
 
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies,
-      blocks: vec![],
-      optimization_bailouts: vec![],
-    })
+    Ok(
+      BoxModule::new(self)
+        .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![]),
+    )
   }
 
   // #[tracing::instrument("FallbackModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
@@ -165,8 +150,7 @@ impl Module for FallbackModule {
     let mut codegen = CodeGenerationResultBuilder::default();
     let module_graph = compilation.get_module_graph();
     let ids: Vec<_> = self
-      .get_dependencies()
-      .iter()
+      .get_dependency_ids()
       .filter_map(|dep| module_graph.get_module_by_dependency_id(dep))
       .filter_map(|module| {
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())

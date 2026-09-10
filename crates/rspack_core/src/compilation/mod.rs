@@ -88,7 +88,8 @@ use crate::{
   SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
   cache::SnapshotOptions,
   compilation::build_module_graph::{
-    BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
+    BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, module_build_cache::ModuleBuildCache,
+    update_module_graph,
   },
   compiler::{CompilationRecords, CompilerId},
   get_runtime_key,
@@ -104,7 +105,7 @@ use crate::{
 define_hook!(CompilationAddEntry: Series(entry_name: Option<&str>, options: &mut EntryOptions));
 define_hook!(CompilationBuildModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationRevokedModules: Series(compilation: &Compilation, revoked_modules: &IdentifierSet));
-define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
+define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &dyn crate::Module));
 define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &[Identifier], code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
@@ -130,7 +131,6 @@ define_hook!(CompilationBeforeModuleIds: Series(compilation: &Compilation, modul
 define_hook!(CompilationModuleIds: Series(compilation: &Compilation, module_ids: &mut ModuleIdsArtifact, preserved_module_ids: &ModuleIdsArtifact, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationRecordModules: Series(compilation: &Compilation, module_ids: &ModuleIdsArtifact));
 define_hook!(CompilationChunkIds: Series(compilation: &Compilation, chunk_by_ukey: &mut ChunkByUkey, named_chunk_ids_artifact: &mut ChunkNamedIdArtifact, diagnostics: &mut Vec<Diagnostic>));
-define_hook!(CompilationAfterOptimizeChunkIds: Series(compilation: &Compilation));
 define_hook!(CompilationRuntimeModule: Series(compilation: &Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey, runtime_modules: &mut IdentifierMap<Box<dyn RuntimeModule>>));
 define_hook!(CompilationAdditionalModuleRuntimeRequirements: Series(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &mut RuntimeGlobals),tracing=false);
 define_hook!(CompilationRuntimeRequirementInModule: SeriesBail(compilation: &Compilation, module_identifier: &ModuleIdentifier, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals),tracing=false);
@@ -173,7 +173,6 @@ pub struct CompilationHooks {
   pub module_ids: CompilationModuleIdsHook,
   pub record_modules: CompilationRecordModulesHook,
   pub chunk_ids: CompilationChunkIdsHook,
-  pub after_optimize_chunk_ids: CompilationAfterOptimizeChunkIdsHook,
   pub runtime_module: CompilationRuntimeModuleHook,
   pub additional_module_runtime_requirements: CompilationAdditionalModuleRuntimeRequirementsHook,
   pub runtime_requirement_in_module: CompilationRuntimeRequirementInModuleHook,
@@ -241,6 +240,7 @@ pub struct Compilation {
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   cache: Cache,
+  pub(crate) module_build_cache: Option<ModuleBuildCache>,
   pub file_system_info: FileSystemInfo,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
@@ -361,6 +361,12 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
+    // Incremental make reuses the previous module graph and owns its own
+    // invalidation path. Keep that fast path unchanged.
+    let module_build_cache = (options.experiments.new_cache.module
+      && !is_rebuild
+      && !matches!(&options.cache, CacheOptions::Disabled))
+    .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules")));
     let snapshot_options = match &options.cache {
       CacheOptions::Disabled => SnapshotOptions::default(),
       CacheOptions::Memory { snapshot, .. } => snapshot.clone(),
@@ -394,6 +400,7 @@ impl Compilation {
       diagnostics: Default::default(),
       logging,
       cache,
+      module_build_cache,
       file_system_info,
       plugin_driver,
       buildtime_plugin_driver,
@@ -488,7 +495,7 @@ impl Compilation {
   }
 
   // it will return None during make phase since mg is incomplete
-  pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
+  pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&crate::ModuleRef> {
     if self.build_module_graph_artifact.is_stolen() {
       return None;
     }
@@ -625,7 +632,7 @@ impl Compilation {
   pub fn get_import_var(
     &self,
     module: ModuleIdentifier,
-    target_module: Option<&BoxModule>,
+    target_module: Option<&crate::ModuleRef>,
     user_request: &str,
     phase: ImportPhase,
     runtime: Option<&RuntimeSpec>,
@@ -1087,7 +1094,7 @@ impl Compilation {
     &mut self,
     module_identifiers: IdentifierSet,
     exports_info_artifact: &mut ExportsInfoArtifact,
-    f: impl Fn(Vec<&BoxModule>) -> T,
+    f: impl Fn(Vec<&crate::ModuleRef>) -> T,
   ) -> Result<T> {
     let artifact = self.build_module_graph_artifact.steal();
 

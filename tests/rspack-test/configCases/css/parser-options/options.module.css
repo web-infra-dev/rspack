@@ -1,9 +1,9 @@
-@import "./imported.css";
+@import /* webpackIgnore: 1 */ "./imported.css";
 
 .a {
   --brand-color: red;
   color: var(--brand-color);
-  background: url("./missing.png");
+  background: /* rspackIgnore: 1 */ url("./missing.png");
   background-color: --transparent(var(--brand-color), 0.8);
   container-name: summary;
   container: card / inline-size;

@@ -9,15 +9,15 @@ use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
+  with::{As, AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher, write_u64_hex};
+use rspack_intern::{Atom, AtomSet, IndexAtomMap};
 use rspack_sources::BoxSource;
 use rspack_util::{
-  atom::Atom,
   ext::AsAny,
   fx_hash::{FxIndexMap, FxIndexSet},
   source_map::ModuleSourceMapConfig,
@@ -28,14 +28,15 @@ use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
-  AsyncDependenciesBlock, BindingCell, BoxDependency, CacheFacade, ChunkGraph, ChunkUkey,
+  AsyncDependenciesBlockRef, BindingCell, CacheFacade, ChunkGraph, ChunkUkey,
   CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation, CompilationAsset,
-  CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
-  ContextModule, CssExportType, DependenciesBlock, DependencyCodeGenerationRef, DependencyId,
-  ExportProvided, ExportsInfoArtifact, ExternalModule, FileSystemInfo, Filename, GetTargetResult,
-  ImportPhase, ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType,
-  NormalModule, OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec,
-  SelfModule, SharedPluginDriver, SideEffectsStateArtifact, Snapshot, SourceType,
+  CompilationAssets, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
+  ConnectionState, Context, ContextModule, CssExportType, DependenciesBlock, DependenciesBlockData,
+  DependencyCodeGenerationRef, DependencyId, DependencyRef, ExportProvided, ExportsInfoArtifact,
+  ExternalModule, FileSystemInfo, Filename, GetTargetResult, ImportPhase, ModuleCodeTemplate,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
+  OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
+  SharedPluginDriver, SideEffectsStateArtifact, Snapshot, SourceType,
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
   get_target, value_cache_versions::ValueCacheVersions,
 };
@@ -57,17 +58,18 @@ pub struct BuildContext {
 /// This follows webpack's `NeedBuildContext` shape and provides the shared
 /// filesystem snapshot service used to validate a previous module build.
 pub struct NeedBuildContext<'a> {
-  pub compilation: &'a Compilation,
   pub file_system_info: &'a FileSystemInfo,
   pub value_cache_versions: &'a ValueCacheVersions,
 }
 
 impl<'a> NeedBuildContext<'a> {
-  pub fn new(compilation: &'a Compilation) -> Self {
+  pub fn new(
+    file_system_info: &'a FileSystemInfo,
+    value_cache_versions: &'a ValueCacheVersions,
+  ) -> Self {
     Self {
-      compilation,
-      file_system_info: &compilation.file_system_info,
-      value_cache_versions: &compilation.value_cache_versions,
+      file_system_info,
+      value_cache_versions,
     }
   }
 }
@@ -109,7 +111,7 @@ pub struct RscMeta {
   pub is_cjs: bool,
 
   #[cacheable(with=AsMap<AsPreset, AsPreset>)]
-  pub action_ids: FxIndexMap<Atom, Atom>,
+  pub action_ids: IndexAtomMap<Atom>,
 }
 
 #[cacheable]
@@ -280,7 +282,7 @@ pub struct AssetBuildInfo {
 }
 
 #[cacheable]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
   pub cacheable: bool,
@@ -289,8 +291,9 @@ pub struct BuildInfo {
   pub module_argument: ModuleArgument,
   pub exports_argument: ExportsArgument,
   pub dependencies: crate::LoaderDependencies,
-  /// Reserved for full `need_build` snapshot validation. Module builds do not
-  /// populate it yet to avoid adding snapshot creation overhead.
+  /// Snapshot used by full `need_build` validation. `NormalModule` populates
+  /// this when the module build cache is enabled; other builds leave it empty
+  /// to avoid snapshot creation overhead.
   pub snapshot: Option<Snapshot>,
   pub value_dependencies: HashMap<String, String>,
   #[cacheable(with=AsVec<AsPreset>)]
@@ -302,9 +305,11 @@ pub struct BuildInfo {
   pub asset: Option<Box<AssetBuildInfo>>,
   pub css: Option<Box<CssBuildInfo>>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
-  pub side_effects_free: Option<HashSet<Atom>>,
+  pub side_effects_free: Option<AtomSet>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
-  pub top_level_declarations: Option<HashSet<Atom>>,
+  pub top_level_declarations: Option<AtomSet>,
+  /// Bailouts produced during module builds, before compilation-specific optimizations.
+  pub optimization_bailouts: Vec<OptimizationBailoutItem>,
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
@@ -340,6 +345,7 @@ impl Default for BuildInfo {
       css: None,
       side_effects_free: None,
       top_level_declarations: None,
+      optimization_bailouts: Vec::new(),
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,
@@ -351,6 +357,12 @@ impl Default for BuildInfo {
       extras: Default::default(),
       deferred_pure_checks: HashSet::default(),
     }
+  }
+}
+
+impl crate::FreezeLock<BuildInfo> {
+  pub fn extend_assets(&self, assets: CompilationAssets) {
+    self.update(|build_info| build_info.assets.extend(assets));
   }
 }
 
@@ -654,21 +666,37 @@ impl RspackHash for ExportsArgument {
   }
 }
 
-// webpack build info
-#[derive(Debug)]
-pub struct BuildResult {
-  pub module: BoxModule,
-  /// Whether the result is cacheable, i.e shared between builds.
-  pub dependencies: Vec<BoxDependency>,
-  pub blocks: Vec<Box<AsyncDependenciesBlock>>,
-  pub optimization_bailouts: Vec<OptimizationBailoutItem>,
-}
-
 #[cacheable]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct FactoryMeta {
   pub side_effect_free: Option<bool>,
 }
+
+/// Atomically replaceable factory metadata. Readers retain an `Arc` snapshot
+/// without holding a lock or copying the metadata.
+#[cacheable]
+#[derive(Debug, Default)]
+pub struct FactoryMetaStore(
+  #[cacheable(with=As<Option<Arc<FactoryMeta>>>)] arc_swap::ArcSwapOption<FactoryMeta>,
+);
+
+impl FactoryMetaStore {
+  pub fn get(&self) -> Option<Arc<FactoryMeta>> {
+    self.0.load_full()
+  }
+
+  pub fn set(&self, value: Option<Arc<FactoryMeta>>) {
+    self.0.store(value);
+  }
+}
+
+impl From<Option<Arc<FactoryMeta>>> for FactoryMetaStore {
+  fn from(value: Option<Arc<FactoryMeta>>) -> Self {
+    Self(value.into())
+  }
+}
+
+pub type SharedBuildMeta = triomphe::Arc<BuildMeta>;
 
 pub type ModuleIdentifier = Identifier;
 pub type ResourceIdentifier = Identifier;
@@ -717,19 +745,29 @@ pub trait Module:
     self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult>;
+  ) -> Result<BoxModule>;
 
-  fn factory_meta(&self) -> Option<&FactoryMeta>;
+  fn factory_meta(&self) -> Option<Arc<FactoryMeta>>;
 
-  fn set_factory_meta(&mut self, factory_meta: FactoryMeta);
+  fn set_factory_meta(&self, factory_meta: FactoryMeta);
 
-  fn build_info(&self) -> &BuildInfo;
+  /// Refresh factory metadata and clear compilation-specific state on cache reuse.
+  fn reset_for_compilation(&self, factory_meta: Option<Arc<FactoryMeta>>);
+
+  fn build_info(&self) -> crate::FreezeReadGuard<'_, BuildInfo>;
+
+  /// Finalize build information after loader assets and the cache snapshot.
+  fn freeze_build_info(&self);
+
+  /// Merge assets from loader execution before build information is frozen.
+  fn extend_build_assets(&self, assets: CompilationAssets);
 
   fn build_info_mut(&mut self) -> &mut BuildInfo;
 
-  fn build_meta(&self) -> &BuildMeta;
+  fn build_meta(&self) -> crate::FreezeReadGuard<'_, BuildMeta>;
 
-  fn build_meta_mut(&mut self) -> &mut BuildMeta;
+  /// Publish build metadata after failed-rebuild recovery has finished.
+  fn freeze_build_meta(&self) -> &triomphe::Arc<BuildMeta>;
 
   fn get_exports_argument(&self) -> ExportsArgument {
     self.build_info().exports_argument
@@ -749,7 +787,7 @@ pub trait Module:
     module_graph_cache.cached_get_exports_type((self.identifier(), strict), || {
       get_exports_type_impl(
         self.identifier(),
-        self.build_meta(),
+        &self.build_meta(),
         module_graph,
         exports_info_artifact,
         strict,
@@ -852,11 +890,20 @@ pub trait Module:
   /// Determines whether a module needs to be rebuilt using the complete build
   /// context.
   ///
-  /// Implementations may inspect or mutate module state and perform asynchronous
+  /// Implementations inspect reusable build state and may perform asynchronous
   /// work. As in webpack's base `Module`, the default is conservative: module
   /// types that can prove an existing build is valid should override this.
-  async fn need_build(&mut self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+  async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
     Ok(true)
+  }
+
+  /// Prepare module-specific validity data before build information is frozen and cached.
+  async fn prepare_for_cache(
+    &self,
+    _file_system_info: &FileSystemInfo,
+    _build_start_time: u64,
+  ) -> Result<()> {
+    Ok(())
   }
 
   /// Performs the synchronous rebuild decision used by incremental make.
@@ -1021,7 +1068,51 @@ impl<T: Module> ModuleExt for T {
 #[repr(transparent)]
 pub struct BoxModule(Box<dyn Module>);
 
+/// A built module shared by the module graph and the in-memory build cache.
+/// Build metadata has its own publication boundary. Shared modules only expose
+/// field-specific updates; obtaining mutable access to the whole module is not supported.
+#[cacheable]
+#[derive(Debug, Clone)]
+#[repr(transparent)]
+pub struct ModuleRef(Arc<dyn Module>);
+
+impl From<BoxModule> for ModuleRef {
+  fn from(module: BoxModule) -> Self {
+    Self(Arc::from(module.0))
+  }
+}
+
+impl std::ops::Deref for ModuleRef {
+  type Target = dyn Module;
+
+  fn deref(&self) -> &Self::Target {
+    self.0.as_ref()
+  }
+}
+
+impl AsRef<dyn Module> for ModuleRef {
+  fn as_ref(&self) -> &dyn Module {
+    self.0.as_ref()
+  }
+}
+
+impl Identifiable for ModuleRef {
+  fn identifier(&self) -> Identifier {
+    self.0.identifier()
+  }
+}
+
 impl BoxModule {
+  /// Installs a module's complete build output before it is published into the graph.
+  pub fn with_dependencies(
+    mut self,
+    dependencies: Vec<DependencyRef>,
+    blocks: Vec<AsyncDependenciesBlockRef>,
+  ) -> Self {
+    *self.dependencies_block_mut() = DependenciesBlockData::new(dependencies, blocks);
+    self
+  }
+
   /// Create a new BoxModule from a boxed Module trait object.
   pub fn new(module: Box<dyn Module>) -> Self {
     BoxModule(module)
@@ -1031,7 +1122,7 @@ impl BoxModule {
     self,
     build_context: BuildContext,
     compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<BoxModule> {
     self.0.build(build_context, compilation).await
   }
 }
@@ -1107,28 +1198,40 @@ impl dyn Module {
 #[macro_export]
 macro_rules! impl_module_meta_info {
   () => {
-    fn factory_meta(&self) -> Option<&$crate::FactoryMeta> {
-      self.factory_meta.as_ref()
+    fn factory_meta(&self) -> Option<std::sync::Arc<$crate::FactoryMeta>> {
+      self.factory_meta.get()
     }
 
-    fn set_factory_meta(&mut self, v: $crate::FactoryMeta) {
-      self.factory_meta = Some(v);
+    fn set_factory_meta(&self, v: $crate::FactoryMeta) {
+      self.factory_meta.set(Some(std::sync::Arc::new(v)));
     }
 
-    fn build_info(&self) -> &$crate::BuildInfo {
-      &self.build_info
+    fn reset_for_compilation(&self, factory_meta: Option<std::sync::Arc<$crate::FactoryMeta>>) {
+      self.factory_meta.set(factory_meta);
+    }
+
+    fn build_info(&self) -> $crate::FreezeReadGuard<'_, $crate::BuildInfo> {
+      self.build_info.read()
+    }
+
+    fn freeze_build_info(&self) {
+      self.build_info.freeze();
+    }
+
+    fn extend_build_assets(&self, assets: $crate::CompilationAssets) {
+      self.build_info.extend_assets(assets);
     }
 
     fn build_info_mut(&mut self) -> &mut $crate::BuildInfo {
-      &mut self.build_info
+      self.build_info.get_mut()
     }
 
-    fn build_meta(&self) -> &$crate::BuildMeta {
-      &self.build_meta
+    fn build_meta(&self) -> $crate::FreezeReadGuard<'_, $crate::BuildMeta> {
+      self.build_meta.read()
     }
 
-    fn build_meta_mut(&mut self) -> &mut $crate::BuildMeta {
-      &mut self.build_meta
+    fn freeze_build_meta(&self) -> &$crate::SharedBuildMeta {
+      self.build_meta.freeze()
     }
   };
 }
@@ -1191,9 +1294,8 @@ mod test {
 
   use super::{BoxModule, Module};
   use crate::{
-    AsyncDependenciesBlockIdentifier, BuildContext, BuildResult, CodeGenerationResultBuilder,
-    Compilation, Context, DependenciesBlock, DependencyId, ModuleCodeGenerationContext, ModuleExt,
-    ModuleGraph, ModuleType, RuntimeSpec, SourceType,
+    BuildContext, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock,
+    ModuleCodeGenerationContext, ModuleExt, ModuleGraph, ModuleType, RuntimeSpec, SourceType,
   };
 
   #[cacheable]
@@ -1215,23 +1317,10 @@ mod test {
       impl_empty_diagnosable_trait!($ident);
 
       impl DependenciesBlock for $ident {
-        fn add_block_id(&mut self, _: AsyncDependenciesBlockIdentifier) {
+        fn dependencies_block(&self) -> &$crate::DependenciesBlockData {
           unreachable!()
         }
-
-        fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-          unreachable!()
-        }
-
-        fn add_dependency_id(&mut self, _: DependencyId) {
-          unreachable!()
-        }
-
-        fn remove_dependency_id(&mut self, _: DependencyId) {
-          unreachable!()
-        }
-
-        fn get_dependencies(&self) -> &[DependencyId] {
+        fn dependencies_block_mut(&mut self) -> &mut $crate::DependenciesBlockData {
           unreachable!()
         }
       }
@@ -1267,7 +1356,7 @@ mod test {
           self: Box<Self>,
           _build_context: BuildContext,
           _compilation: Option<&Compilation>,
-        ) -> Result<BuildResult> {
+        ) -> Result<BoxModule> {
           unreachable!()
         }
 
@@ -1286,11 +1375,23 @@ mod test {
           unreachable!()
         }
 
-        fn factory_meta(&self) -> Option<&crate::FactoryMeta> {
+        fn factory_meta(&self) -> Option<std::sync::Arc<crate::FactoryMeta>> {
           unreachable!()
         }
 
-        fn build_info(&self) -> &crate::BuildInfo {
+        fn reset_for_compilation(&self, _: Option<std::sync::Arc<crate::FactoryMeta>>) {
+          unreachable!()
+        }
+
+        fn build_info(&self) -> crate::FreezeReadGuard<'_, crate::BuildInfo> {
+          unreachable!()
+        }
+
+        fn freeze_build_info(&self) {
+          unreachable!()
+        }
+
+        fn extend_build_assets(&self, _: crate::CompilationAssets) {
           unreachable!()
         }
 
@@ -1298,15 +1399,15 @@ mod test {
           unreachable!()
         }
 
-        fn build_meta(&self) -> &crate::BuildMeta {
+        fn build_meta(&self) -> crate::FreezeReadGuard<'_, crate::BuildMeta> {
           unreachable!()
         }
 
-        fn build_meta_mut(&mut self) -> &mut crate::BuildMeta {
+        fn freeze_build_meta(&self) -> &crate::SharedBuildMeta {
           unreachable!()
         }
 
-        fn set_factory_meta(&mut self, _: crate::FactoryMeta) {
+        fn set_factory_meta(&self, _: crate::FactoryMeta) {
           unreachable!()
         }
       }

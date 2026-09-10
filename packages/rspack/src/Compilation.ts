@@ -276,7 +276,6 @@ export class Compilation {
       void
     >;
     beforeModuleIds: liteTapable.SyncHook<[Iterable<Module>]>;
-    afterOptimizeChunkIds: liteTapable.SyncHook<[Iterable<Chunk>]>;
     finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
     chunkHash: liteTapable.SyncHook<[Chunk, Hash]>;
     chunkAsset: liteTapable.SyncHook<[Chunk, string]>;
@@ -412,7 +411,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
         'modules',
       ]),
       beforeModuleIds: new liteTapable.SyncHook(['modules']),
-      afterOptimizeChunkIds: new liteTapable.SyncHook(['chunks']),
       finishModules: new liteTapable.AsyncSeriesHook(['modules']),
       chunkHash: new liteTapable.SyncHook(['chunk', 'hash']),
       chunkAsset: new liteTapable.SyncHook(['chunk', 'filename']),

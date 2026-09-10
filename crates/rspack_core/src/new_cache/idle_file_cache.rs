@@ -2,22 +2,21 @@ use std::{
   sync::{
     Arc,
     atomic::{AtomicU64, Ordering},
-    mpsc as sync_mpsc,
   },
   thread,
   time::Duration,
 };
 
 use rspack_error::Result;
-use rspack_paths::InternedPathSet;
+use rspack_paths::{InternedPathSet, Utf8PathBuf};
 use tokio::{
-  sync::{mpsc, oneshot},
+  sync::mpsc,
   time::{Instant, sleep_until},
 };
 
 use super::{
   CacheKey, CacheValue, Etag, FileCacheStrategy, Meta,
-  cache_value::{CacheValueData, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
+  cache_value::{CacheValueData, ErasedCacheValue},
 };
 use crate::{InfrastructureLogger, Logger};
 
@@ -28,29 +27,9 @@ const MAX_IDLE_COMPACTION_PASSES: usize = 10;
 
 #[derive(Debug)]
 enum Command {
-  Store {
-    key: CacheKey,
-    etag: Option<Etag>,
-    value: ErasedCacheValue,
-    encoder: CacheValueEncoder,
-  },
-  Restore {
-    key: CacheKey,
-    etag: Option<Etag>,
-    decoder: CacheValueDecoder,
-    result: sync_mpsc::SyncSender<Result<Option<ErasedCacheValue>>>,
-  },
-  StoreBuildDependencies(InternedPathSet),
-  StoreMeta(Meta),
-  RestoreMeta {
-    result: sync_mpsc::SyncSender<Result<Option<Meta>>>,
-  },
-  RecordBuildTime(Duration),
-  BeginIdle {
-    epoch: u64,
-  },
+  BeginIdle { epoch: u64, build_time: Duration },
   EndIdle,
-  Shutdown(oneshot::Sender<Result<()>>),
+  Shutdown,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -60,10 +39,9 @@ struct IdleDeadline {
 }
 
 struct BackgroundJob {
-  strategy: FileCacheStrategy,
+  strategy: Arc<FileCacheStrategy>,
   logger: Arc<InfrastructureLogger>,
   command_receiver: mpsc::UnboundedReceiver<Command>,
-  // A deadline remains valid only while this still matches its captured epoch.
   idle_epoch: Arc<AtomicU64>,
   idle_deadline: Option<IdleDeadline>,
   idle_timeout: Duration,
@@ -74,19 +52,16 @@ struct BackgroundJob {
 }
 
 impl BackgroundJob {
-  async fn run(mut self) {
-    if let Err(error) = self.strategy.db_validation().await {
-      self
-        .logger
-        .warn(format!("Validating cache database failed: {error}"));
-      return;
-    }
+  async fn run(mut self, database_paths: (Utf8PathBuf, Utf8PathBuf)) {
+    self.strategy.db_init(database_paths).await;
 
     let idle_epoch = Arc::clone(&self.idle_epoch);
+    let strategy = Arc::clone(&self.strategy);
     loop {
       let idle_deadline = self.idle_deadline;
       let command = tokio::select! {
         biased;
+        _ = strategy.wait_until_unavailable() => return,
         command = self.command_receiver.recv() => command,
         epoch = async {
           match idle_deadline {
@@ -98,9 +73,7 @@ impl BackgroundJob {
           }
         } => {
           self.idle_deadline = None;
-          self
-            .process_idle_tasks(|| idle_epoch.load(Ordering::Acquire) != epoch)
-            .await;
+          self.process_idle_tasks(|| idle_epoch.load(Ordering::Acquire) != epoch).await;
           continue;
         }
       };
@@ -113,43 +86,17 @@ impl BackgroundJob {
         }
         return;
       };
-      if self.handle_command(command).await {
-        return;
-      }
+      self.handle_command(command).await;
     }
   }
 
-  async fn handle_command(&mut self, command: Command) -> bool {
+  async fn handle_command(&mut self, command: Command) {
     match command {
-      Command::Store {
-        key,
-        etag,
-        value,
-        encoder,
-      } => {
-        self.strategy.store(key, etag, value, encoder);
-      }
-      Command::StoreBuildDependencies(dependencies) => {
-        self.strategy.store_build_dependencies(dependencies);
-      }
-      Command::StoreMeta(meta) => {
-        self.strategy.store_meta(meta);
-      }
-      Command::Restore {
-        key,
-        etag,
-        decoder,
-        result,
-      } => {
-        let _ = result.send(self.strategy.restore(&key, etag.as_ref(), decoder));
-      }
-      Command::RecordBuildTime(build_time) => {
+      Command::BeginIdle { epoch, build_time } => {
         self.time_spent_in_build = self
           .time_spent_in_build
           .mul_f64(0.9)
           .saturating_add(build_time);
-      }
-      Command::BeginIdle { epoch } => {
         if self.idle_epoch.load(Ordering::Acquire) == epoch {
           let is_initial_store = self.avg_time_spent_in_store.is_none();
           let is_large_change = self.time_spent_in_build
@@ -173,28 +120,19 @@ impl BackgroundJob {
       Command::EndIdle => {
         self.idle_deadline = None;
       }
-      Command::Shutdown(result) => {
+      Command::Shutdown => {
         self.idle_deadline = None;
-        let _ = result.send(self.strategy.shutdown().await);
-        return true;
-      }
-      Command::RestoreMeta { result } => {
-        let _ = result.send(self.strategy.restore_meta());
+        self.strategy.shutdown().await;
       }
     }
-    false
   }
 
   async fn process_idle_tasks(&mut self, check_idle_ended: impl FnMut() -> bool) {
     let start = Instant::now();
-    if let Err(error) = self
+    self
       .strategy
       .after_all_stored(MAX_IDLE_COMPACTION_PASSES, check_idle_ended)
-      .await
-    {
-      self.logger.warn(format!("Caching failed: {error}"));
-      return;
-    }
+      .await;
     let time_spent_in_store = start.elapsed();
     self.avg_time_spent_in_store = Some(
       self
@@ -211,12 +149,15 @@ impl BackgroundJob {
 /// Runs filesystem cache operations in one persistent background job.
 #[derive(Debug)]
 pub struct IdleFileCache {
+  strategy: Arc<FileCacheStrategy>,
+  logger: Arc<InfrastructureLogger>,
   command_sender: mpsc::UnboundedSender<Command>,
   idle_epoch: Arc<AtomicU64>,
 }
 
 impl IdleFileCache {
   pub fn new(
+    database_paths: (Utf8PathBuf, Utf8PathBuf),
     strategy: FileCacheStrategy,
     logger: Arc<InfrastructureLogger>,
     idle_timeout: Option<Duration>,
@@ -230,9 +171,10 @@ impl IdleFileCache {
       idle_timeout_after_large_changes.unwrap_or(DEFAULT_IDLE_TIMEOUT_AFTER_LARGE_CHANGES);
     let (command_sender, command_receiver) = mpsc::unbounded_channel();
     let idle_epoch = Arc::new(AtomicU64::new(0));
+    let strategy = Arc::new(strategy);
     let background_job = BackgroundJob {
-      strategy,
-      logger,
+      strategy: Arc::clone(&strategy),
+      logger: Arc::clone(&logger),
       command_receiver,
       idle_epoch: Arc::clone(&idle_epoch),
       idle_deadline: None,
@@ -249,93 +191,71 @@ impl IdleFileCache {
           .enable_time()
           .build()
           .expect("failed to create idle file cache runtime");
-        runtime.block_on(background_job.run());
+        runtime.block_on(background_job.run(database_paths));
       })
       .expect("failed to spawn idle file cache background thread");
 
     Self {
+      strategy,
+      logger,
       command_sender,
       idle_epoch,
     }
   }
 
-  fn send(&self, command: Command) -> Result<()> {
-    self
-      .command_sender
-      .send(command)
-      .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))
+  fn send(&self, command: Command) {
+    if self.strategy.is_available()
+      && let Err(e) = self.command_sender.send(command)
+    {
+      self.logger.warn(format!(
+        "Failed to send command to idle file cache background job: {e}"
+      ));
+    }
   }
 
-  pub fn store<T: CacheValueData>(
-    &self,
-    key: CacheKey,
-    etag: Option<Etag>,
-    value: CacheValue<T>,
-  ) -> Result<()> {
-    self.send(Command::Store {
-      key,
-      etag,
-      value: value.erase(),
-      encoder: CacheValue::<T>::encoder(),
-    })
+  pub fn store<T: CacheValueData>(&self, key: CacheKey, etag: Option<Etag>, value: CacheValue<T>) {
+    self
+      .strategy
+      .store(key, etag, value.erase(), CacheValue::<T>::encoder());
   }
 
   pub fn restore<T: CacheValueData>(
     &self,
     key: CacheKey,
     etag: Option<Etag>,
-  ) -> Result<Option<CacheValue<T>>> {
-    let (result, result_receiver) = sync_mpsc::sync_channel(1);
-    self.send(Command::Restore {
-      key,
-      etag,
-      decoder: CacheValue::<T>::decoder(),
-      result,
-    })?;
-    Ok(
-      result_receiver
-        .recv()
-        .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))??
-        .and_then(ErasedCacheValue::downcast),
-    )
+  ) -> Option<CacheValue<T>> {
+    let restored = self
+      .strategy
+      .restore(&key, etag.as_ref(), CacheValue::<T>::decoder());
+    restored.and_then(ErasedCacheValue::downcast)
   }
 
-  pub fn store_build_dependencies(&self, dependencies: InternedPathSet) -> Result<()> {
-    self.send(Command::StoreBuildDependencies(dependencies))
+  pub fn store_build_dependencies(&self, dependencies: InternedPathSet) {
+    self.strategy.store_build_dependencies(dependencies);
   }
 
-  pub fn store_meta(&self, meta: Meta) -> Result<()> {
-    self.send(Command::StoreMeta(meta))
+  pub fn store_meta(&self, meta: Meta) {
+    self.strategy.store_meta(meta);
   }
 
   pub fn restore_meta(&self) -> Result<Option<Meta>> {
-    let (result, result_receiver) = sync_mpsc::sync_channel(1);
-    self.send(Command::RestoreMeta { result })?;
-    result_receiver
-      .recv()
-      .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))?
+    self.strategy.restore_meta()
   }
 
-  pub fn record_build_time(&self, build_time: Duration) -> Result<()> {
-    self.send(Command::RecordBuildTime(build_time))
-  }
-
-  pub fn begin_idle(&self) -> Result<()> {
+  pub fn begin_idle(&self, build_time: Duration) {
     self.send(Command::BeginIdle {
       epoch: self.idle_epoch.load(Ordering::Acquire),
-    })
+      build_time,
+    });
   }
 
-  pub fn end_idle(&self) -> Result<()> {
+  pub fn end_idle(&self) {
     self.idle_epoch.fetch_add(1, Ordering::Release);
-    self.send(Command::EndIdle)
+    self.send(Command::EndIdle);
   }
 
-  pub async fn shutdown(&self) -> Result<()> {
-    let (result, result_receiver) = oneshot::channel();
-    self.send(Command::Shutdown(result))?;
-    result_receiver
-      .await
-      .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))?
+  pub async fn shutdown(&self) {
+    self.send(Command::Shutdown);
+    self.command_sender.closed().await;
   }
 }

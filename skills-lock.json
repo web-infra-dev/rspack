@@ -18,13 +18,13 @@
       "ref": "main",
       "sourceType": "github",
       "skillPath": ".agents/skills/rstack-cli-docs/SKILL.md",
-      "computedHash": "3bd67c05c2cb4121edd24be65d118e0e7402177bca8a0f1b5bb0ce55dee5e61c"
+      "computedHash": "8b5451af88d29195dc2f257543013ad66aa14a7791e401ab4cffdb11941cf27a"
     },
     "rstack-eco-ci-debug": {
       "source": "rstackjs/agent-skills",
       "sourceType": "github",
       "skillPath": ".agents/skills/rstack-eco-ci-debug/SKILL.md",
-      "computedHash": "440fea0403b77e6f7bfcd91fc62ca06bf0cb19f147bbe5181667aed6c75a56a8"
+      "computedHash": "a6fad19176a719f4da1bef05671765a7061e7ccf0cad7cf797a8f37503480cd7"
     }
   }
 }

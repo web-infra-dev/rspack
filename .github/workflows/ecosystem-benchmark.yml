@@ -10,9 +10,11 @@ on:
   push:
     branches:
       - main
+      - release/2.3.0
       - v1.x
     paths-ignore:
       - '**/*.md'
+      - '.agents/**'
       - 'website/**'
     tags-ignore:
       - '**'

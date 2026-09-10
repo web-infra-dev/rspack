@@ -646,10 +646,9 @@ impl FileSystemInfo {
       return Ok(Some(value));
     }
 
-    let metadata = self
-      .metadata(path)
-      .await?
-      .expect("symlink metadata proved that the path exists");
+    let Some(metadata) = self.metadata(path).await? else {
+      return Ok(None);
+    };
     if !metadata.is_directory {
       return self.file_context_value(path, mode).await;
     }

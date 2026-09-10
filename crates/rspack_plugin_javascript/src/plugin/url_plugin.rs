@@ -83,7 +83,13 @@ pub async fn replace_static_url_placeholders(
     let Some(module) = module_graph.module_identifier_by_dependency_id(&dep_id) else {
       continue;
     };
-    let codegen_result = compilation.code_generation_results.get(module, runtime);
+    // The asset may be extracted into a shared chunk whose runtime is the union
+    // of the referencing chunks' runtimes. Fall back to the unique code generation
+    // result when the referencing runtime has no exact entry.
+    let codegen_result = compilation
+      .code_generation_results
+      .try_get(module, runtime)
+      .or_else(|_| compilation.code_generation_results.try_get(module, None))?;
     let Some(filename) = codegen_result.data().get::<CodeGenerationDataFilename>() else {
       unreachable!()
     };

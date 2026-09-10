@@ -53,7 +53,7 @@ impl CacheCodec {
   where
     T: for<'a> Serialize<Serializer<'a>>,
   {
-    to_bytes(data, &self.context).map_err(|e| rspack_error::error!(e.to_string()))
+    to_bytes(data, &self.context).map_err(rspack_error::Error::from_error)
   }
 
   pub fn decode<T>(&self, bytes: &[u8]) -> Result<T>
@@ -61,6 +61,6 @@ impl CacheCodec {
     T: Archive,
     T::Archived: for<'a> CheckBytes<Validator<'a>> + Deserialize<T, Deserializer>,
   {
-    from_bytes(bytes, &self.context).map_err(|e| rspack_error::error!(e.to_string()))
+    from_bytes(bytes, &self.context).map_err(rspack_error::Error::from_error)
   }
 }

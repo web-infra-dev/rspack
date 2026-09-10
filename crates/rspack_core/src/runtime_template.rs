@@ -11,10 +11,10 @@ use regex::{Captures, Regex};
 use rspack_collections::{Identifier, IdentifierSet};
 use rspack_dojang::{Context, Dojang, FunctionContainer, Operand};
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt, error};
+use rspack_intern::Atom;
 use rspack_util::{fx_hash::FxIndexSet, json_stringify};
 use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 use serde_json::{Value, json};
-use swc_core::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
@@ -1804,9 +1804,12 @@ return {}
     let block = module_graph
       .block_by_id(block_id)
       .expect("should have block");
-    let dep = block.get_dependencies()[0];
+    let dep = block
+      .get_dependency_ids()
+      .next()
+      .expect("should have dependency");
     let ensure_chunk = self.block_promise(Some(block_id), compilation, "");
-    let return_value = self.module_raw(compilation, &dep, request, false);
+    let return_value = self.module_raw(compilation, dep, request, false);
     let factory = self.returning_function(&return_value, "");
     self.returning_function(
       &if ensure_chunk.starts_with("Promise.resolve(") {

@@ -10,9 +10,9 @@ use rspack_core::{
   RuntimeSpec, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, UsedName,
   property_access_with_optional,
 };
-use swc_atoms::Atom;
 
 use super::ExportsBase;
+use crate::Atom;
 
 #[cacheable]
 #[derive(Debug)]

@@ -101,7 +101,7 @@ const watching = compiler.watch(
 Watching 对象提供如下方法：
 
 - `watch`:
-  - **类型：** `(files: string[], dirs: string[], missing: string[]): void`
+  - **类型：** `(files: Iterable<string>, dirs: Iterable<string>, missing: Iterable<string>): void`
   - **用途：** 添加需要被监听的文件和目录
 - `invalidate`:
   - **类型：** `(callback: () => void): void`

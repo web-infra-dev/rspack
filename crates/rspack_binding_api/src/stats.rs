@@ -12,11 +12,12 @@ use rspack_core::{
   rspack_sources::{RawBufferSource, Source, SourceValue},
 };
 use rspack_error::Severity;
+use rspack_intern::Atom;
 use rspack_napi::napi::{
   Either,
   bindgen_prelude::{Buffer, Result, SharedReference, ToNapiValue},
 };
-use rspack_util::{atom::Atom, numeric_id_value};
+use rspack_util::numeric_id_value;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -400,7 +401,7 @@ pub struct JsStatsModuleCommonAttributes<'a> {
   pub chunks: Option<Vec<JsStatsChunkId<'a>>>,
 
   // moduleAssets
-  pub assets: Option<Vec<&'a str>>,
+  pub assets: Option<Vec<String>>,
 
   // reasons
   pub reasons: Option<Vec<JsStatsModuleReason<'a>>>,

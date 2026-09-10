@@ -13,8 +13,10 @@ import { cleverMerge } from '../util/cleverMerge';
 import { createHash } from '../util/createHash';
 import { absolutify, contextify } from '../util/identifier';
 import { memoize } from '../util/memoize';
+import type { WorkerCacheResult } from './cache';
 import loadLoader from './loadLoader';
 import {
+  deserializeError,
   isWorkerResponseErrorMessage,
   isWorkerResponseMessage,
   RequestSyncType,
@@ -535,6 +537,7 @@ async function loaderImpl(
       while (loaderContext.loaderIndex >= 0) {
         const currentLoaderObject =
           loaderContext.loaders[loaderContext.loaderIndex];
+        let cacheResult: WorkerCacheResult | undefined;
 
         if (shouldYieldToMainThread(currentLoaderObject)) break;
         if (currentLoaderObject.normalExecuted) {
@@ -549,20 +552,22 @@ async function loaderImpl(
         try {
           if (currentLoaderObject.loaderItem.cache) {
             waitForPendingRequest(pendingDependencyRequest);
-            const hit = await sendRequest(
+            const result: WorkerCacheResult = await sendRequest(
               RequestType.LoaderCacheGet,
               loaderContext.loaderIndex,
               args[0],
               args[2],
             );
-            if (hit) {
+            cacheResult = result;
+            if (result.type === 'hit') {
+              const { entry } = result;
               currentLoaderObject.normalExecuted = true;
               args = [
-                typeof hit.content === 'string'
-                  ? hit.content
-                  : hit.content && Buffer.from(hit.content),
-                hit.sourceMap
-                  ? toObject(Buffer.from(hit.sourceMap))
+                typeof entry.content === 'string'
+                  ? entry.content
+                  : entry.content && Buffer.from(entry.content),
+                entry.sourceMap
+                  ? toObject(Buffer.from(entry.sourceMap))
                   : undefined,
                 undefined,
               ];
@@ -576,7 +581,7 @@ async function loaderImpl(
           if (!fn) continue;
           convertArgs(args, !!currentLoaderObject.raw);
           args = (await runSyncOrAsync(fn, loaderContext, args)) || [];
-          if (currentLoaderObject.loaderItem.cache) {
+          if (cacheResult?.type === 'miss') {
             waitForPendingRequest(pendingDependencyRequest);
             await sendRequest(
               RequestType.LoaderCacheStore,
@@ -630,7 +635,7 @@ function handleIncomingResponses(workerMessage: WorkerMessage) {
     const callback = responseCallbacks[id];
     if (callback) {
       delete responseCallbacks[id];
-      callback(error, undefined);
+      callback(deserializeError(error), undefined);
     } else {
       throw new Error(`No callback found for response with id ${id}`);
     }
@@ -746,7 +751,7 @@ function createSendRequestSync(
       return message.data;
     }
 
-    throw message.error;
+    throw deserializeError(message.error);
   };
 }
 

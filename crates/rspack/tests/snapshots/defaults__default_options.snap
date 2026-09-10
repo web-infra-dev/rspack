@@ -1751,6 +1751,7 @@ CompilerOptions {
         css: false,
         new_cache: NewCacheOptions {
             code_generation: false,
+            module: false,
             devtool: false,
             loader: false,
             minimize: false,

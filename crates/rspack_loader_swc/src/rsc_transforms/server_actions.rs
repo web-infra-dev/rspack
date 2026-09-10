@@ -10,6 +10,7 @@ use std::{
 
 use indoc::formatdoc;
 use rspack_core::{RscMeta, RscModuleType};
+use rspack_intern::{Atom as RspackAtom, IndexAtomMap};
 use rspack_util::fx_hash::FxIndexMap;
 use rustc_hash::FxHashSet;
 use serde::Deserialize;
@@ -763,8 +764,13 @@ impl<'a, C: Comments> ServerActions<'a, C> {
   ) {
     let action_ids = export_names_ordered_by_reference_id
       .iter()
-      .map(|(ref_id, export_name)| ((**ref_id).clone(), export_name.atom().into_owned()))
-      .collect::<FxIndexMap<_, _>>();
+      .map(|(ref_id, export_name)| {
+        (
+          RspackAtom::from(*ref_id),
+          RspackAtom::from(export_name.atom().as_ref()),
+        )
+      })
+      .collect::<IndexAtomMap<_>>();
 
     let mut rsc_meta = self.rsc_meta.borrow_mut();
     match rsc_meta.as_mut() {

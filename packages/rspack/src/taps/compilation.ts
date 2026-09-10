@@ -439,20 +439,6 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
         };
       },
     ),
-    registerCompilationAfterOptimizeChunkIdsTaps: createTap(
-      binding.RegisterJsTapKind.CompilationAfterOptimizeChunkIds,
-
-      function () {
-        return getCompiler().__internal__get_compilation()!.hooks
-          .afterOptimizeChunkIds;
-      },
-
-      function (queried) {
-        return function () {
-          queried.call(getCompiler().__internal__get_compilation()!.chunks);
-        };
-      },
-    ),
     registerCompilationChunkHashTaps: createTap(
       binding.RegisterJsTapKind.CompilationChunkHash,
 

@@ -1812,7 +1812,10 @@ export type ExternalsType =
   | 'modern-module'
   | 'script'
   | 'node-commonjs'
-  | 'commonjs-import';
+  | 'commonjs-import'
+  | 'asset'
+  | 'asset-url'
+  | 'css-import';
 //#endregion
 
 //#region Externals
@@ -3150,6 +3153,8 @@ export type UseInputFileSystem = false | RegExp[];
 export type NewCache = {
   /** Enable the module code generation cache. @default true */
   codeGeneration?: boolean;
+  /** Enable the module build cache. @default true */
+  module?: boolean;
   /** Enable the devtool asset cache. @default true */
   devtool?: boolean;
   /** Enable the per-loader cache. @default true */
@@ -3263,8 +3268,10 @@ export type WatchOptions = {
 
   /**
    * Ignore some files from being watched.
+   * A function receives each entry and must return `true` to ignore it; unlike
+   * the other forms, its path keeps the platform separators.
    */
-  ignored?: string | RegExp | string[];
+  ignored?: string | RegExp | string[] | ((entry: string) => boolean);
 
   /**
    * Turn on polling by passing true, or specifying a poll interval in milliseconds.

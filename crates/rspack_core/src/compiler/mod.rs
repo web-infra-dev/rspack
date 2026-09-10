@@ -1,7 +1,7 @@
 mod rebuild;
 use std::{
   sync::{Arc, atomic::AtomicU32},
-  time::Instant,
+  time::{Duration, Instant},
 };
 
 use futures::future::join_all;
@@ -236,18 +236,13 @@ impl Compiler {
     self.new_cache.facade(name)
   }
 
-  fn end_idle(&self) -> Result<Instant> {
-    self.new_cache.end_idle()?;
-    Ok(Instant::now())
+  fn end_idle(&self) -> Instant {
+    self.new_cache.end_idle();
+    Instant::now()
   }
 
-  fn begin_idle(&mut self, started_at: Instant, successful: bool) -> Result<()> {
-    let record_build_time = if successful {
-      self.new_cache.record_build_time(started_at.elapsed())
-    } else {
-      Ok(())
-    };
-    let store_build_dependencies = if successful && self.new_cache.has_file_cache() {
+  fn begin_idle(&mut self, build_time: Duration) {
+    if self.new_cache.has_file_cache() {
       if let CacheOptions::Persistent(options) = &self.options.cache {
         self.compilation.build_dependencies.extend(
           options
@@ -260,18 +255,11 @@ impl Compiler {
       self
         .new_cache
         .store_build_dependencies(build_dependencies.cloned().collect())
-    } else {
-      Ok(())
     };
-    let store_meta = self.new_cache.store_meta(Meta {
+    self.new_cache.store_meta(Meta {
       max_dependency_id: self.compiler_context.dependency_id(),
     });
-    let begin_idle = self.new_cache.begin_idle();
-
-    record_build_time
-      .and(store_build_dependencies)
-      .and(store_meta)
-      .and(begin_idle)
+    self.new_cache.begin_idle(build_time);
   }
 
   pub async fn run(&mut self) -> Result<()> {
@@ -280,7 +268,7 @@ impl Compiler {
   }
 
   pub async fn build(&mut self) -> Result<()> {
-    let start = self.end_idle()?;
+    let start = self.end_idle();
     let compiler_context = self.compiler_context.clone();
     let result = match within_compiler_context(compiler_context, self.build_inner()).await {
       Ok(_) => {
@@ -301,8 +289,8 @@ impl Compiler {
         failed.and(Err(e))
       }
     };
-    let cache_result = self.begin_idle(start, result.is_ok());
-    result.and(cache_result)
+    self.begin_idle(start.elapsed());
+    result
   }
 
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
@@ -674,7 +662,8 @@ impl Compiler {
       .await?;
 
     self.cache.close().await;
-    self.new_cache.shutdown().await
+    self.new_cache.shutdown().await;
+    Ok(())
   }
 }
 

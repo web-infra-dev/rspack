@@ -4,10 +4,10 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
-  ModuleDependency, ModuleGraph, ModuleId, ModuleType, NeedBuildContext, RuntimeSpec, SourceType,
+  BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder,
+  Compilation, Context, DependenciesBlock, DependenciesBlockData, FactoryMetaStore, FreezeLock,
+  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleDependency,
+  ModuleGraph, ModuleId, ModuleType, NeedBuildContext, RuntimeSpec, SourceType,
   StaticExportsDependency, StaticExportsSpec, ValueCacheVersions, impl_module_meta_info,
   impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource},
@@ -31,11 +31,10 @@ pub struct DelegatedModule {
   user_request: String,
   original_request: Option<String>,
   delegate_data: DllManifestContentItem,
-  dependencies: Vec<DependencyId>,
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  dependencies_block: DependenciesBlockData,
+  factory_meta: FactoryMetaStore,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
 }
 
 impl DelegatedModule {
@@ -95,7 +94,7 @@ impl Module for DelegatedModule {
     mut self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<BoxModule> {
     let dependencies = vec![
       BoxDependency::new(DelegatedSourceDependency::new(self.source_request.clone())),
       BoxDependency::new(StaticExportsDependency::new(
@@ -109,13 +108,11 @@ impl Module for DelegatedModule {
         false,
       )),
     ];
-    self.build_meta = self.delegate_data.build_meta.clone();
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies,
-      blocks: vec![],
-      optimization_bailouts: vec![],
-    })
+    self.build_meta = self.delegate_data.build_meta.clone().into();
+    Ok(
+      BoxModule::new(self)
+        .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![]),
+    )
   }
 
   async fn code_generation(
@@ -130,11 +127,13 @@ impl Module for DelegatedModule {
 
     let mut code_generation_result = CodeGenerationResultBuilder::default();
 
-    let dep = self.dependencies[0];
+    let dep = self
+      .get_dependencies()
+      .first()
+      .expect("should have source dependency");
     let mg = compilation.get_module_graph();
-    let source_module = mg.get_module_by_dependency_id(&dep);
-    let dependency = mg
-      .dependency_by_id(&dep)
+    let source_module = mg.get_module_by_dependency_id(dep.id());
+    let dependency = dep
       .downcast_ref::<DelegatedSourceDependency>()
       .expect("Should be module dependency");
 
@@ -143,7 +142,7 @@ impl Module for DelegatedModule {
         let mut s = format!(
           "{}.exports = ({})",
           runtime_template.render_module_argument(ModuleArgument::Module),
-          runtime_template.module_raw(compilation, &dep, dependency.request(), false,)
+          runtime_template.module_raw(compilation, dep.id(), dependency.request(), false,)
         );
 
         let request = json_stringify(
@@ -188,7 +187,7 @@ impl Module for DelegatedModule {
     false
   }
 
-  async fn need_build(&mut self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+  async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
     Ok(false)
   }
 
@@ -222,24 +221,12 @@ impl Identifiable for DelegatedModule {
 }
 
 impl DependenciesBlock for DelegatedModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block);
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency);
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }
 

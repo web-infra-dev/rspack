@@ -10,7 +10,6 @@ import RuntimeModuleType from '../../types/runtime-module.mdx';
 import SourceType from '../../types/source.mdx';
 import HashType from '../../types/hash.mdx';
 import CompilerType from '../../types/compiler.mdx';
-import { ApiMeta } from '@components/ApiMeta';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 import Columns from '@components/Columns';
 import { NoSSR } from '@rspress/core/runtime';
@@ -233,9 +232,9 @@ direction LR
     HookReviveChunks(hooks.reviveChunks) --> HookBeforeChunkIds(hooks.beforeChunkIds)
     HookBeforeChunkIds --> HookChunkIds(hooks.moduleIds)
     HookChunkIds --> HookOptimizeChunkIds(hooks.optimizeChunkIds)
-    HookOptimizeChunkIds --> HookAfterOptimizeChunkIds(<a href="#afteroptimizechunkids">hooks.afterOptimizeChunkIds</a>)
+    HookOptimizeChunkIds --> HookAfterOptimizeChunkIds(hooks.afterOptimizeChunkIds)
 
-    class HookReviveChunks,HookChunkIds,HookBeforeChunkIds,HookOptimizeChunkIds flow-hook-non-support
+    class HookReviveChunks,HookChunkIds,HookBeforeChunkIds,HookOptimizeChunkIds,HookAfterOptimizeChunkIds flow-hook-non-support
     end
 
     CreateChunkIds --> CreateRecords
@@ -458,9 +457,9 @@ type ExecuteModuleContext = {
 
 当所有模块都没有错误地构建完成时调用。
 
-- **类型：** `AsyncSeriesHook<[Module[]]>`
+- **类型：** `AsyncSeriesHook<[Iterable<Module>]>`
 - **参数：**
-  - `Module[]`：所有模块列表
+  - `Iterable<Module>`：模块实例的可迭代对象
 
 <Collapse>
   <CollapsePanel
@@ -478,9 +477,9 @@ type ExecuteModuleContext = {
 
 在模块优化阶段开始时调用。
 
-- **类型：** `SyncBailHook<[Module[]]>`
+- **类型：** `SyncBailHook<[Iterable<Module>]>`
 - **参数：**
-  - `Module[]`：所有模块列表
+  - `Iterable<Module>`：模块实例的可迭代对象
 
 <Collapse>
   <CollapsePanel
@@ -504,9 +503,9 @@ type ExecuteModuleContext = {
 
 在模块优化完成之后调用。
 
-- **类型：** `SyncBailHook<[Module[]]>`
+- **类型：** `SyncHook<[Iterable<Module>]>`
 - **参数：**
-  - `Module[]`：所有模块列表
+  - `Iterable<Module>`：模块实例的可迭代对象
 
 <Collapse>
   <CollapsePanel
@@ -524,10 +523,10 @@ type ExecuteModuleContext = {
 
 在优化依赖树之前调用。
 
-- **类型：** `AsyncSeriesHook<[Chunk[], Module[]]>`
+- **类型：** `AsyncSeriesHook<[Iterable<Chunk>, Iterable<Module>]>`
 - **参数：**
-  - `Chunk[]`：Chunk 列表：
-  - `Module[]`：模块列表
+  - `Iterable<Chunk>`：Chunk 实例的可迭代对象
+  - `Iterable<Module>`：模块实例的可迭代对象
 
 <Collapse>
   <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
@@ -548,10 +547,10 @@ type ExecuteModuleContext = {
 
 在树优化之后，chunk 模块优化开始时调用。
 
-- **类型：** `AsyncSeriesBailHook<[Chunk[], Module[]]>`
+- **类型：** `AsyncSeriesBailHook<[Iterable<Chunk>, Iterable<Module>]>`
 - **参数：**
-  - `Chunk[]`：Chunk 列表：
-  - `Module[]`：模块列表
+  - `Iterable<Chunk>`：Chunk 实例的可迭代对象
+  - `Iterable<Module>`：模块实例的可迭代对象
 
 <Collapse>
   <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
@@ -563,24 +562,6 @@ type ExecuteModuleContext = {
     key="Module"
   >
     <ModuleType />
-  </CollapsePanel>
-</Collapse>
-
-## `afterOptimizeChunkIds`
-
-<ApiMeta addedVersion="2.2.3" />
-
-<Badge text="只读" type="info" />
-
-在 chunk id 优化阶段结束之后调用。
-
-- **类型：** `SyncHook<[Chunk[]]>`
-- **参数：**
-  - `Chunk[]`：所有 chunk 列表
-
-<Collapse>
-  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
-    <ChunkType />
   </CollapsePanel>
 </Collapse>
 

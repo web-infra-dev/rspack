@@ -30,8 +30,9 @@ use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, Ide
 use rspack_core::{
   ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
-  ExportsArgument, Module, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable, SourceType,
-  concatenated_module::{collect_ident, find_new_name},
+  ConcatenationNameAllocator, ExportsArgument, Module, RuntimeCodeTemplate, RuntimeGlobals,
+  RuntimeVariable, SourceType,
+  concatenated_module::collect_ident,
   render_init_fragments,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -44,15 +45,15 @@ use rspack_util::SpanExt;
 #[cfg(allocative)]
 use rspack_util::allocative;
 pub use side_effects_flag_plugin::*;
-use swc_atoms::Atom;
 use swc_experimental_allocator::Allocator;
 use swc_experimental_ecma_ast::EsVersion;
 use swc_experimental_ecma_parser::{EsSyntax, Lexer, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::resolver;
 use tokio::sync::RwLock;
 
-use crate::runtime::{
-  render_chunk_modules, render_module, render_runtime_modules, stringify_array,
+use crate::{
+  Atom,
+  runtime::{render_chunk_modules, render_module, render_runtime_modules, stringify_array},
 };
 
 #[cfg_attr(allocative, allocative::root)]
@@ -481,11 +482,11 @@ var {} = {{}};
             let top_level_decls = codegen
               .data()
               .get::<CodeGenerationDataTopLevelDeclarations>()
-              .map(|d| d.inner())
+              .map(|_| ())
               .or_else(|| {
                 module_graph
                   .module_by_identifier(module)
-                  .and_then(|m| m.build_info().top_level_declarations.as_ref())
+                  .and_then(|m| m.build_info().top_level_declarations.as_ref().map(|_| ()))
               });
             top_level_decls.is_none()
           } {
@@ -1018,20 +1019,8 @@ var {} = {{}};
     if iife {
       sources.add(RawStringSource::from_static("})()\n"));
     }
-    let mut render_source = RenderSource {
-      source: sources.boxed(),
-    };
-    hooks
-      .render_content
-      .call(
-        compilation,
-        chunk_ukey,
-        &mut render_source,
-        runtime_template,
-      )
-      .await?;
     let final_source = render_init_fragments(
-      render_source.source,
+      sources.boxed(),
       chunk_init_fragments,
       &mut ChunkRenderContext {},
     )?;
@@ -1181,7 +1170,7 @@ var {} = {{}};
             {
               acc
                 .all_used_names
-                .extend(idents_with_hash.value.iter().map(|v| v.id.sym.clone()));
+                .extend(idents_with_hash.value.iter().map(|v| Atom::from(&v.id.sym)));
               acc
                 .non_inlined_module_through_idents
                 .extend(idents_with_hash.value.clone());
@@ -1215,11 +1204,11 @@ var {} = {{}};
                       || scope_id != module_scope_id
                       || ident.is_class_expr_with_ident
                     {
-                      acc.all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+                      acc.all_used_names.insert(Atom::from(&ident.id.sym));
                     }
 
                     if scope_id == module_scope_id {
-                      acc.all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+                      acc.all_used_names.insert(Atom::from(&ident.id.sym));
                       module_scope_idents.push(Arc::new(ident.to_legacy(&semantic)));
                     }
                   }
@@ -1258,7 +1247,7 @@ var {} = {{}};
                   for ident in collector_ids {
                     if semantic.node_scope(&ident.id) == global_scope_id {
                       let ident = ident.to_legacy(&semantic);
-                      acc.all_used_names.insert(ident.id.sym.clone());
+                      acc.all_used_names.insert(Atom::from(&ident.id.sym));
                       idents_vec.push(ident.clone());
                       acc.non_inlined_module_through_idents.push(ident);
                     }
@@ -1319,6 +1308,7 @@ var {} = {{}};
       }
       Err(e) => return Err(e),
     }
+    let mut name_allocator = ConcatenationNameAllocator::new(all_used_names);
 
     for (_ident, info) in inlined_modules_to_info.iter_mut() {
       for module_scope_ident in info.module_scope_idents.iter() {
@@ -1380,7 +1370,7 @@ var {} = {{}};
           let context = compilation.options.context.clone();
           let readable_identifier = module.readable_identifier(&context).to_string();
           let splitted_readable_identifier = split_readable_identifier(&readable_identifier);
-          let new_name = find_new_name(name, &all_used_names, &splitted_readable_identifier);
+          let new_name = name_allocator.find_new_name(name, &splitted_readable_identifier);
 
           for identifier in refs.iter() {
             let span = identifier.id.span;
@@ -1394,8 +1384,6 @@ var {} = {{}};
 
             replace_source.replace(low, high, new_name.to_string(), None);
           }
-
-          all_used_names.insert(new_name);
         }
       }
 
@@ -1455,15 +1443,6 @@ var {} = {{}};
     };
     hooks
       .render_chunk
-      .call(
-        compilation,
-        chunk_ukey,
-        &mut render_source,
-        runtime_template,
-      )
-      .await?;
-    hooks
-      .render_content
       .call(
         compilation,
         chunk_ukey,

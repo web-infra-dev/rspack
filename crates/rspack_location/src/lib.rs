@@ -8,7 +8,7 @@ use rspack_cacheable::cacheable;
 /// - Both line and column are 1-based.
 /// - Column counts UTF-16 code units (not Unicode scalar values or UTF-8 bytes).
 #[cacheable]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SourcePosition {
   pub line: u32,
   pub column: u32,
@@ -26,7 +26,7 @@ impl From<(u32, u32)> for SourcePosition {
 /// Represents the real location of a dependency in a source file, including both start and optional end positions.
 /// These positions are described in terms of lines and columns in the source code.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RealDependencyLocation {
   pub start: SourcePosition,
   pub end: Option<SourcePosition>,
@@ -158,7 +158,7 @@ impl fmt::Display for RealDependencyLocation {
 
 /// Represents a synthetic dependency location, such as a generated dependency.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SyntheticDependencyLocation {
   pub name: String,
 }
@@ -177,8 +177,10 @@ impl fmt::Display for SyntheticDependencyLocation {
   }
 }
 
+/// Real source locations sort before synthetic locations. Real locations are
+/// ordered by their start position and then their optional end position.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DependencyLocation {
   Real(RealDependencyLocation),
   Synthetic(SyntheticDependencyLocation),

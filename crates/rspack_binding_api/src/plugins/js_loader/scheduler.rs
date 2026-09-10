@@ -88,6 +88,9 @@ pub(crate) fn merge_loader_context(
   to.replace_dependencies(from.dependencies.into());
 
   if let Some(error) = from.error {
+    if let Some(diagnostic) = error.rust_diagnostic.as_ref() {
+      return Err(diagnostic.error.clone());
+    }
     return Err(error.with_parent_error_name("ModuleBuildError").into());
   }
 

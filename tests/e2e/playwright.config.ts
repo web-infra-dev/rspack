@@ -17,6 +17,8 @@ export default defineConfig<RspackOptions>({
   build: {
     external: [
       '**/moduleFederationDefaultRuntime.js',
+      // Fixture configs are native ESM and do not need Playwright transforms.
+      '**/rspack.config.js',
       // E2E tests load @rspack/core through both import and require.
       // Skip Playwright transforms and let Node load its dist files natively.
       '**/packages/rspack/dist/**',

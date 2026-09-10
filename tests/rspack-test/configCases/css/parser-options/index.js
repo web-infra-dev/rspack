@@ -38,7 +38,7 @@ it("should support disabling dashed and custom identifier renaming", () => {
 
 it("should support disabling import and url handling", () => {
   const content = css();
-  expect(content).toContain('@import "./imported.css";');
-  expect(content).toContain('url("./missing.png")');
+  expect(content).toContain('@import /* webpackIgnore: 1 */ "./imported.css";');
+  expect(content).toContain('/* rspackIgnore: 1 */ url("./missing.png")');
   expect(content).not.toContain(".imported");
 });

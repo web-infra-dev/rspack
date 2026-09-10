@@ -13,7 +13,13 @@ export type LoaderCacheEntry = {
   sourceMap?: Uint8Array;
   addedDependencies: LoaderDependencies;
   removedDependencies: LoaderDependencies;
+  parseMeta: Record<string, string>;
 };
+
+export type WorkerCacheResult =
+  | { type: 'disabled' }
+  | { type: 'miss' }
+  | { type: 'hit'; entry: LoaderCacheEntry };
 
 type LoaderCacheApi = {
   get(
@@ -61,6 +67,7 @@ export class LoaderCache {
     );
     if (hit) {
       this.#dependencies.addDependencies(hit.addedDependencies);
+      Object.assign(context.__internal__parseMeta, hit.parseMeta);
     }
     return hit;
   }
@@ -72,11 +79,7 @@ export class LoaderCache {
     additionalData: unknown,
   ) {
     const context = this.#context;
-    if (
-      !context.cacheable ||
-      !isNil(additionalData) ||
-      Object.keys(context.__internal__parseMeta).length > 0
-    ) {
+    if (!context.cacheable || !isNil(additionalData)) {
       return;
     }
 
@@ -85,6 +88,7 @@ export class LoaderCache {
       sourceMap,
       addedDependencies: this.#dependencies.added,
       removedDependencies: this.#dependencies.removed,
+      parseMeta: { ...context.__internal__parseMeta },
     });
   }
 
@@ -92,10 +96,11 @@ export class LoaderCache {
     loaderIndex: number,
     content: LoaderCacheContent | null | undefined,
     additionalData: unknown,
-  ) {
+  ): Promise<WorkerCacheResult> {
     const hit = await this.get(loaderIndex, content, additionalData);
-    if (!hit) return undefined;
-    return hit;
+    if (hit === undefined) return { type: 'disabled' };
+    if (hit === null) return { type: 'miss' };
+    return { type: 'hit', entry: hit };
   }
 
   async workerStore(

@@ -11,7 +11,7 @@ use rspack_cacheable::{
 use rspack_core::{
   ArcComputed, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
   COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, ChunkGraph, CollectedTypeScriptInfo, Compilation,
-  DependenciesBlock, DependencyId, GenerateContext, ImportMeta, Module, ModuleArgument,
+  DependenciesBlock, Dependency, GenerateContext, ImportMeta, Module, ModuleArgument,
   ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
   ResolvedModuleOptions, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable,
   SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
@@ -184,8 +184,8 @@ impl JavaScriptParserAndGenerator {
       .block_by_id(block_id)
       .expect("should have block");
     //    let block = block_id.expect_get(compilation);
-    block.get_dependencies().iter().for_each(|dependency_id| {
-      self.source_dependency(compilation, dependency_id, source, context)
+    block.get_dependencies().iter().for_each(|dependency| {
+      self.source_dependency(compilation, dependency.as_ref(), source, context)
     });
     block
       .get_blocks()
@@ -196,15 +196,11 @@ impl JavaScriptParserAndGenerator {
   fn source_dependency(
     &self,
     compilation: &Compilation,
-    dependency_id: &DependencyId,
+    dependency: &dyn Dependency,
     source: &mut TemplateReplaceSource,
     context: &mut TemplateContext,
   ) {
-    if let Some(dependency) = compilation
-      .get_module_graph()
-      .dependency_by_id(dependency_id)
-      .as_dependency_code_generation()
-    {
+    if let Some(dependency) = dependency.as_dependency_code_generation() {
       if let Some(template) = dependency
         .dependency_template()
         .and_then(|template_type| compilation.get_dependency_template(template_type))
@@ -259,8 +255,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let mut diagnostics: Vec<Diagnostic> = vec![];
 
     if let Some(collected_ts_info) = parse_meta.remove(COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY)
-      && let Ok(collected_ts_info) =
-        (collected_ts_info as Box<dyn std::any::Any>).downcast::<CollectedTypeScriptInfo>()
+      && let Ok(collected_ts_info) = collected_ts_info
+        .into_any()
+        .downcast::<CollectedTypeScriptInfo>()
     {
       build_info.collected_typescript_info = Some(*collected_ts_info);
     }
@@ -438,8 +435,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         runtime_template: generate_context.runtime_template,
       };
 
-      module.get_dependencies().iter().for_each(|dependency_id| {
-        self.source_dependency(compilation, dependency_id, &mut source, &mut context)
+      module.get_dependencies().iter().for_each(|dependency| {
+        self.source_dependency(compilation, dependency.as_ref(), &mut source, &mut context)
       });
 
       if let Some(dependencies) = module.get_presentational_dependencies() {

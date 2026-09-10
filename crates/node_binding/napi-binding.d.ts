@@ -877,7 +877,7 @@ export interface JsExecuteModuleResult {
   missingDependencies: Array<string>
   cacheable: boolean
   id: number
-  error?: string
+  errors: Array<RspackError>
 }
 
 export interface JsFactoryMeta {
@@ -961,6 +961,7 @@ export interface JsLoaderCacheEntry {
   sourceMap?: Uint8Array
   addedDependencies: JsLoaderDependencies
   removedDependencies: JsLoaderDependencies
+  parseMeta: Record<string, string>
 }
 
 export interface JsLoaderContext {
@@ -1060,15 +1061,12 @@ export interface JsRealContentHashPluginUpdateHashData {
   oldHash: string
 }
 
-export interface JsRenderContentArgs {
-  source: JsSourceToJs
-  chunk: Chunk
-}
-
 export interface JsResolveData {
   request: string
   context: string
   contextInfo: ContextInfo
+  /** The import attributes of the dependency that triggered this resolution, read-only. */
+  attributes?: Record<string, string>
   fileDependencies: Array<string>
   contextDependencies: Array<string>
   missingDependencies: Array<string>
@@ -1821,9 +1819,10 @@ export interface NativeWatcherOptions {
   aggregateTimeout?: number
   /**
    * The ignored paths for the watcher.
-   * It can be a single path, an array of paths, or a regular expression.
+   * It can be a single path, an array of paths, a regular expression, or a
+   * predicate returning `true` for entries to ignore.
    */
-  ignored?: string | string[] | RegExp
+  ignored?: string | string[] | RegExp | ((entry: string) => boolean)
 }
 
 /**
@@ -2785,6 +2784,7 @@ export interface RawModuleRuleUse {
 
 export interface RawNewCache {
   codeGeneration: boolean
+  module: boolean
   devtool: boolean
   loader: boolean
   minimize: boolean
@@ -3263,43 +3263,41 @@ export declare enum RegisterJsTapKind {
   CompilationOptimizeTree = 16,
   CompilationOptimizeChunkModules = 17,
   CompilationBeforeModuleIds = 18,
-  CompilationAfterOptimizeChunkIds = 19,
-  CompilationAdditionalTreeRuntimeRequirements = 20,
-  CompilationRuntimeRequirementInTree = 21,
-  CompilationRuntimeModule = 22,
-  CompilationChunkHash = 23,
-  CompilationChunkAsset = 24,
-  CompilationProcessAssets = 25,
-  CompilationAfterProcessAssets = 26,
-  CompilationSeal = 27,
-  CompilationAfterSeal = 28,
-  NormalModuleFactoryBeforeResolve = 29,
-  NormalModuleFactoryFactorize = 30,
-  NormalModuleFactoryResolve = 31,
-  NormalModuleFactoryAfterResolve = 32,
-  NormalModuleFactoryCreateModule = 33,
-  NormalModuleFactoryResolveForScheme = 34,
-  ContextModuleFactoryBeforeResolve = 35,
-  ContextModuleFactoryAfterResolve = 36,
-  ExternalModuleChunkCondition = 37,
-  JavascriptModulesChunkHash = 38,
-  JavascriptModulesRenderContent = 39,
-  HtmlPluginBeforeAssetTagGeneration = 40,
-  HtmlPluginAlterAssetTags = 41,
-  HtmlPluginAlterAssetTagGroups = 42,
-  HtmlPluginAfterTemplateExecution = 43,
-  HtmlPluginBeforeEmit = 44,
-  HtmlPluginAfterEmit = 45,
-  RuntimePluginCreateScript = 46,
-  RuntimePluginCreateLink = 47,
-  RuntimePluginLinkPreload = 48,
-  RuntimePluginLinkPrefetch = 49,
-  RealContentHashPluginUpdateHash = 50,
-  RsdoctorPluginModuleGraph = 51,
-  RsdoctorPluginChunkGraph = 52,
-  RsdoctorPluginModuleIds = 53,
-  RsdoctorPluginModuleSources = 54,
-  RsdoctorPluginAssets = 55
+  CompilationAdditionalTreeRuntimeRequirements = 19,
+  CompilationRuntimeRequirementInTree = 20,
+  CompilationRuntimeModule = 21,
+  CompilationChunkHash = 22,
+  CompilationChunkAsset = 23,
+  CompilationProcessAssets = 24,
+  CompilationAfterProcessAssets = 25,
+  CompilationSeal = 26,
+  CompilationAfterSeal = 27,
+  NormalModuleFactoryBeforeResolve = 28,
+  NormalModuleFactoryFactorize = 29,
+  NormalModuleFactoryResolve = 30,
+  NormalModuleFactoryAfterResolve = 31,
+  NormalModuleFactoryCreateModule = 32,
+  NormalModuleFactoryResolveForScheme = 33,
+  ContextModuleFactoryBeforeResolve = 34,
+  ContextModuleFactoryAfterResolve = 35,
+  ExternalModuleChunkCondition = 36,
+  JavascriptModulesChunkHash = 37,
+  HtmlPluginBeforeAssetTagGeneration = 38,
+  HtmlPluginAlterAssetTags = 39,
+  HtmlPluginAlterAssetTagGroups = 40,
+  HtmlPluginAfterTemplateExecution = 41,
+  HtmlPluginBeforeEmit = 42,
+  HtmlPluginAfterEmit = 43,
+  RuntimePluginCreateScript = 44,
+  RuntimePluginCreateLink = 45,
+  RuntimePluginLinkPreload = 46,
+  RuntimePluginLinkPrefetch = 47,
+  RealContentHashPluginUpdateHash = 48,
+  RsdoctorPluginModuleGraph = 49,
+  RsdoctorPluginChunkGraph = 50,
+  RsdoctorPluginModuleIds = 51,
+  RsdoctorPluginModuleSources = 52,
+  RsdoctorPluginAssets = 53
 }
 
 export interface RegisterJsTaps {
@@ -3325,7 +3323,6 @@ export interface RegisterJsTaps {
   registerCompilationOptimizeTreeTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
   registerCompilationOptimizeChunkModulesTaps: (stages: Array<number>) => Array<{ function: (() => Promise<boolean | undefined>); stage: number; }>
   registerCompilationBeforeModuleIdsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeModuleIdsArg) => JsBeforeModuleIdsResult); stage: number; }>
-  registerCompilationAfterOptimizeChunkIdsTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationChunkHashTaps: (stages: Array<number>) => Array<{ function: ((arg: Chunk) => Buffer); stage: number; }>
   registerCompilationChunkAssetTaps: (stages: Array<number>) => Array<{ function: ((arg: JsChunkAssetArgs) => void); stage: number; }>
   registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
@@ -3342,7 +3339,6 @@ export interface RegisterJsTaps {
   registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>
   registerExternalModuleChunkConditionTaps: (stages: Array<number>) => Array<{ function: ((chunk: Chunk) => boolean | undefined); stage: number; }>
   registerJavascriptModulesChunkHashTaps: (stages: Array<number>) => Array<{ function: ((arg: Chunk) => Buffer); stage: number; }>
-  registerJavascriptModulesRenderContentTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRenderContentArgs) => JsSourceToJs | undefined); stage: number; }>
   registerHtmlPluginBeforeAssetTagGenerationTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeAssetTagGenerationData) => JsBeforeAssetTagGenerationData); stage: number; }>
   registerHtmlPluginAlterAssetTagsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAlterAssetTagsData) => JsAlterAssetTagsData); stage: number; }>
   registerHtmlPluginAlterAssetTagGroupsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAlterAssetTagGroupsData) => JsAlterAssetTagGroupsData); stage: number; }>

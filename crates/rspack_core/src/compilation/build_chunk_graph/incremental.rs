@@ -340,7 +340,7 @@ impl CodeSplitter {
           .build_chunk_graph_artifact
           .chunk_by_ukey
           .expect_get(chunk_ukey);
-        chunk_groups.extend(chunk.groups().clone());
+        chunk_groups.extend(chunk.groups().iter().copied());
       }
     }
     for group in chunk_groups {
@@ -348,11 +348,11 @@ impl CodeSplitter {
         .chunk_group_info_map
         .get(&group)
         .expect("should have chunk group");
-      let Some(blocks) = self.incoming_blocks_by_cgi.get(cgi).cloned() else {
+      let Some(blocks) = self.incoming_blocks_by_cgi.get(cgi) else {
         continue;
       };
 
-      for block in blocks {
+      for &block in blocks {
         if let DependenciesBlockIdentifier::AsyncDependenciesBlock(async_block) = block {
           removed.insert(async_block);
         }

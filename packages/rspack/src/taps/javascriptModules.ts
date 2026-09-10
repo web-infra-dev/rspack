@@ -1,7 +1,6 @@
 import binding from '@rspack/binding';
 import { JavascriptModulesPlugin } from '../builtin-plugin';
 import { createHash } from '../util/createHash';
-import { SourceAdapter } from '../util/source';
 import type { CreatePartialRegisters } from './types';
 
 export const createJavaScriptModulesHooksRegisters: CreatePartialRegisters<
@@ -35,34 +34,6 @@ export const createJavaScriptModulesHooksRegisters: CreatePartialRegisters<
           return typeof digestResult === 'string'
             ? Buffer.from(digestResult)
             : digestResult;
-        };
-      },
-    ),
-
-    registerJavascriptModulesRenderContentTaps: createTap(
-      binding.RegisterJsTapKind.JavascriptModulesRenderContent,
-
-      function () {
-        return JavascriptModulesPlugin.getCompilationHooks(
-          getCompiler().__internal__get_compilation()!,
-        ).renderContent;
-      },
-
-      function (queried) {
-        return function ({ source, chunk }: binding.JsRenderContentArgs) {
-          const original = SourceAdapter.fromBinding(source);
-          const result = queried.call(original, { chunk });
-          if (!result) {
-            throw new Error(
-              'JavascriptModulesPlugin error: JavascriptModulesPlugin.getCompilationHooks().renderContent plugins should return something',
-            );
-          }
-          // Sending the source back through the binding rebuilds it from its
-          // string form, so keep the Rust side untouched when no plugin
-          // replaced it.
-          return result === original
-            ? undefined
-            : SourceAdapter.toBinding(result);
         };
       },
     ),

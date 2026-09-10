@@ -82,10 +82,11 @@ async fn chunk_ids(
 
   let mut chunks_with_hashes = chunks
     .into_par_iter()
-    .map(|chunk| {
+    .map(|chunk| -> Result<_> {
       let name = get_full_chunk_name(
         chunk,
         chunk_graph,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
         module_graph,
         module_graph_cache,
         &compilation
@@ -93,10 +94,10 @@ async fn chunk_ids(
           .side_effects_state_artifact,
         context,
         &compilation.exports_info_artifact,
-      );
-      (chunk, hash_lowercase_alphanumeric(&name))
+      )?;
+      Ok((chunk, hash_lowercase_alphanumeric(&name)))
     })
-    .collect::<Vec<_>>();
+    .collect::<Result<Vec<_>>>()?;
 
   let mut chunk_compare_cache = NaturalChunkCompareCache::default();
   chunks_with_hashes.sort_unstable_by(|(a, _), (b, _)| {

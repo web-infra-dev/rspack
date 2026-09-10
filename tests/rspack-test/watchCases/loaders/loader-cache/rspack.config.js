@@ -11,8 +11,28 @@ module.exports = {
       minimize: false,
     },
   },
+  optimization: {
+    inlineExports: true,
+  },
+  resolve: {
+    extensions: ['.ts', '...'],
+  },
   module: {
     rules: [
+      {
+        test: /enum\.ts$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              collectTypeScriptInfo: {
+                exportedEnum: true,
+              },
+            },
+            cache: true,
+          },
+        ],
+      },
       {
         test: /value\.js$/,
         use: [

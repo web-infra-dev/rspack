@@ -34,8 +34,23 @@ permissions:
   issues: write
 
 jobs:
+  validate:
+    name: Validate Npm Tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check tag matches tag_confirm
+        run: |
+          if [ "${{ inputs.tag }}" != "${{ inputs.tag_confirm }}" ]; then
+            echo "Error: tag and tag_confirm must match"
+            echo "tag: ${{ inputs.tag }}"
+            echo "tag_confirm: ${{ inputs.tag_confirm }}"
+            exit 1
+          fi
+          echo "npm tag validation passed: ${{ inputs.tag }}"
+
   build:
     name: Build ${{ matrix.array.target }}${{ matrix.array.binding_postfix }}
+    needs: validate
     strategy:
       fail-fast: false # for better utilize ci runners
       matrix:
