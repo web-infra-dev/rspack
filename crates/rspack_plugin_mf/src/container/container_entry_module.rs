@@ -7,11 +7,11 @@ use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, ChunkGroupOptions, CodeGenerationDataItem, CodeGenerationResultBuilder,
   CodeGenerationRuntimeRequirementsWrite, Compilation, Context, DependenciesBlock,
-  DependenciesBlockData, Dependency, DependencyType, ExportsArgument, FactoryMeta, GroupOptions,
-  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeGlobalsRenderMode,
-  RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, impl_module_meta_info,
-  impl_source_map_config, module_update_hash,
+  DependenciesBlockData, Dependency, DependencyType, ExportsArgument, FactoryMetaStore, FreezeLock,
+  GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleCodeTemplate,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals,
+  RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
@@ -37,9 +37,9 @@ pub struct ContainerEntryModule {
   exposes: Vec<(String, ExposeOptions)>,
   expose_layers: Vec<Option<ModuleLayer>>,
   share_scope: ShareScope,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  factory_meta: FactoryMetaStore,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
   enhanced: bool,
   request: Option<String>,
   version: Option<String>,
@@ -92,13 +92,16 @@ impl ContainerEntryModule {
       exposes,
       expose_layers,
       share_scope,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         strict: true,
         top_level_declarations: Some(Default::default()),
         ..Default::default()
-      },
-      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
+      }
+      .into(),
+      build_meta: BuildMeta::default()
+        .with_exports_type(BuildMetaExportsType::Namespace)
+        .into(),
       enhanced,
       request: None,
       version: None,
@@ -130,13 +133,16 @@ impl ContainerEntryModule {
       exposes: vec![],
       expose_layers: vec![],
       share_scope,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         strict: true,
         top_level_declarations: Some(Default::default()),
         ..Default::default()
-      },
-      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
+      }
+      .into(),
+      build_meta: BuildMeta::default()
+        .with_exports_type(BuildMetaExportsType::Namespace)
+        .into(),
       enhanced: false,
       request: Some(request),
       version: Some(version),

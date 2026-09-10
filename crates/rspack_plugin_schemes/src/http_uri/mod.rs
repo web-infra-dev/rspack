@@ -282,7 +282,22 @@ impl HttpUriOptionsAllowedUris {
   }
 
   pub fn is_allowed(&self, uri: &str) -> bool {
-    self.conditions.try_match(uri)
+    let Ok(parsed_uri) = Url::parse(uri) else {
+      return false;
+    };
+
+    // Normalize both URLs so a host-only rule includes the trailing slash and
+    // cannot match a different host through userinfo or a shared hostname prefix.
+    let matches = |condition: &AssetCondition| match condition {
+      AssetCondition::String(allowed) => Url::parse(allowed)
+        .is_ok_and(|parsed_allowed| parsed_uri.as_str().starts_with(parsed_allowed.as_str())),
+      AssetCondition::Regexp(regexp) => regexp.test(parsed_uri.as_str()),
+    };
+
+    match &self.conditions {
+      AssetConditions::Single(condition) => matches(condition),
+      AssetConditions::Multiple(conditions) => conditions.iter().any(matches),
+    }
   }
 
   pub fn get_allowed_uris_description(&self) -> String {

@@ -15,7 +15,7 @@
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "^2.2.1",
-    "rspack-vue-loader": "^17.6.2",
+    "rspack-vue-loader": "^17.7.0",
     "typescript": "^6.0.3"
   }
 }

@@ -14,7 +14,7 @@ module.exports = {
   },
   experiments: {
     buildHttp: {
-      allowedUris: ['https://'],
+      allowedUris: ['https://raw.githubusercontent.com/'],
       lockfileLocation: path.resolve(__dirname, './lock-files/lock.json'),
       cacheLocation: path.resolve(__dirname, './lock-files/test'),
     },

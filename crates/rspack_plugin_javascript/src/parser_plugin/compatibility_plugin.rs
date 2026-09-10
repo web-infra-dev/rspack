@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rspack_core::{
-  ConstDependency, ContextDependency, DependencyCodeGenerationRef, DependencyRange,
+  ConstDependency, ContextDependency, DependencyCodeGenerationRef, DependencyRange, ExportsArgument,
 };
 use rspack_util::{SpanExt, itoa};
 use swc_experimental_ecma_ast::{CallExpr, GetSpan, Ident, Program, VarDeclarator};
@@ -10,7 +10,7 @@ use super::JavascriptParserPlugin;
 use crate::{
   Atom,
   dependency::CommonJsRequireContextDependency,
-  visitors::{JavascriptParser, Statement, TagInfoData, VariableDeclaration, expr_name},
+  visitors::{JavascriptParser, PatRef, Statement, TagInfoData, VariableDeclaration, expr_name},
 };
 
 pub const NESTED_IDENTIFIER_TAG: &str = "_identifier__nested_rspack_identifier__";
@@ -132,7 +132,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     decl: &VarDeclarator,
     _statement: VariableDeclaration<'_>,
   ) -> Option<bool> {
-    let ident = decl.name.as_ident()?;
+    let Some(ident) = decl.name.as_ident() else {
+      // Register nested bindings before other pre-declarator hooks define them,
+      // which can prevent the subsequent pattern hooks from seeing their names.
+      parser.enter_pattern(PatRef::Borrowed(&decl.name), |_, _| {});
+      return None;
+    };
 
     if ident.id.sym == self.nested_require_name(parser) {
       let span = ident.span();
@@ -175,6 +180,20 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
+    // Keep the declaration tag and rewrite the target before another assignment
+    // hook can bail out, including targets inside destructuring assignments.
+    if for_name == NESTED_IDENTIFIER_TAG && parser.in_assignment_pattern {
+      return self.identifier(parser, ident, for_name);
+    }
+    // Do not interpret assignments to the CommonJS factory parameter as
+    // declarations of a nested runtime binding. Automatic modules can also be
+    // ESM, so check the actual factory binding rather than the module type.
+    if for_name == "exports"
+      && parser.in_assignment_pattern
+      && parser.build_info.exports_argument == ExportsArgument::Exports
+    {
+      return None;
+    }
     if for_name == parser.parser_runtime_requirements.exports {
       self.tag_nested_require_data(
         parser,

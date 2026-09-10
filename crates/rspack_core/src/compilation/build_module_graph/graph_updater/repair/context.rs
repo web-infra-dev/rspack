@@ -10,7 +10,7 @@ use crate::{
   DependencyTemplateType, DependencyType, ExportsInfoArtifact, FileSystemInfo, ModuleFactory,
   ResolverFactory, RuntimeTemplate, SharedPluginDriver, ValueCacheVersions,
   compilation::build_module_graph::module_build_cache::ModuleBuildCache, incremental::Incremental,
-  module_graph::ModuleGraph, new_cache::Cache,
+  module_graph::ModuleGraph, new_cache::CompilerCache,
 };
 
 #[derive(Debug)]
@@ -31,7 +31,7 @@ pub struct TaskContext {
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_template: RuntimeTemplate,
-  pub(crate) cache: Cache,
+  pub(crate) cache: CompilerCache,
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
   pub value_cache_versions: ValueCacheVersions,
 

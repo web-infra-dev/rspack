@@ -10,7 +10,7 @@ use super::{
 use crate::{
   AsyncDependenciesBlockRef, BoxModule, BuildContext, CacheFacade, CompilationId, CompilerId,
   CompilerOptions, DependenciesBlock, DependencyParents, DependencyRef, FileSystemInfo,
-  ModuleCodeTemplate, ResolverFactory, SharedPluginDriver,
+  ModuleCodeTemplate, ModuleRef, ResolverFactory, SharedPluginDriver,
   compilation::build_module_graph::{
     ForwardedIdSet, HasLazyDependencies, LazyDependencies, module_build_cache::ModuleBuildCache,
   },
@@ -89,7 +89,7 @@ impl Task<TaskContext> for BuildTask {
     }
 
     Ok(vec![Box::new(BuildResultTask {
-      module: result,
+      build_result: ModuleBuildResult::Built(result),
       plugin_driver,
       forwarded_ids,
     })])
@@ -97,8 +97,14 @@ impl Task<TaskContext> for BuildTask {
 }
 
 #[derive(Debug)]
+pub(super) enum ModuleBuildResult {
+  Built(BoxModule),
+  Cached(ModuleRef),
+}
+
+#[derive(Debug)]
 pub(super) struct BuildResultTask {
-  pub module: BoxModule,
+  pub build_result: ModuleBuildResult,
   pub plugin_driver: SharedPluginDriver,
   pub forwarded_ids: ForwardedIdSet,
 }
@@ -110,15 +116,28 @@ impl Task<TaskContext> for BuildResultTask {
   }
   async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let BuildResultTask {
-      mut module,
+      build_result,
       plugin_driver,
       mut forwarded_ids,
     } = *self;
-    plugin_driver
-      .compilation_hooks
-      .succeed_module
-      .call(context.compiler_id, context.compilation_id, &mut module)
-      .await?;
+    let module = match build_result {
+      ModuleBuildResult::Built(mut module) => {
+        plugin_driver
+          .compilation_hooks
+          .succeed_module
+          .call(context.compiler_id, context.compilation_id, &mut module)
+          .await?;
+        ModuleRef::from(module)
+      }
+      ModuleBuildResult::Cached(module) => {
+        plugin_driver
+          .compilation_hooks
+          .still_valid_module
+          .call(context.compiler_id, context.compilation_id, module.as_ref())
+          .await?;
+        module
+      }
+    };
 
     let build_info = module.build_info();
 
@@ -152,6 +171,7 @@ impl Task<TaskContext> for BuildResultTask {
       .artifact
       .build_dependencies
       .add_files(&resource_id, &build_info.dependencies.build);
+    drop(build_info);
 
     let module_graph = &mut context.artifact.module_graph;
     let mut lazy_dependencies = LazyDependencies::default();

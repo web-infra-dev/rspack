@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: common_js_2.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 42679
+- Update: main.LAST_HASH.hot-update.js, size: 40979
 
 ## Manifest
 
@@ -27,9 +27,7 @@
 - ./module.js
 
 #### Changed Runtime Modules
-- webpack/runtime/compat_get_default_export
 - webpack/runtime/consumes_loading
-- webpack/runtime/create_fake_namespace_object
 - webpack/runtime/get_full_hash
 - webpack/runtime/jsonp_chunk_loading
 
@@ -40,60 +38,18 @@ self["rspackHotUpdate"]("main", {
 "./module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (/* reexport default from dynamic */ common__rspack_import_0_default.a),
+  "default": () => (/* reexport safe */ common__rspack_import_0["default"]),
   getValue: () => (getValue)
 });
 /* import */ var common__rspack_import_0 = __webpack_require__("webpack/sharing/consume/default/common/./common?1");
-/* import */ var common__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(common__rspack_import_0);
 
 
-const getValue = () => __webpack_require__.e(/* import() */ "webpack_sharing_consume_default_common2_common_2").then(__webpack_require__.t.bind(__webpack_require__, "webpack/sharing/consume/default/common2/./common?2", 23));
+const getValue = () => __webpack_require__.e(/* import() */ "webpack_sharing_consume_default_common2_common_2").then(__webpack_require__.bind(__webpack_require__, "webpack/sharing/consume/default/common2/./common?2"));
 
 
 },
 
 },function(__webpack_require__) {
-// webpack/runtime/compat_get_default_export
-(() => {
-// getDefaultExport function for compatibility with non-ESM modules
-__webpack_require__.n = (module) => {
-	var getter = module && module.__esModule ?
-		() => (module['default']) :
-		() => (module);
-	__webpack_require__.d(getter, { a: getter });
-	return getter;
-};
-
-})();
-// webpack/runtime/create_fake_namespace_object
-(() => {
-var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
-var leafPrototypes;
-// create a fake namespace object
-// mode & 1: value is a module id, require it
-// mode & 2: merge all properties of value into the ns
-// mode & 4: return value when already ns object
-// mode & 16: return value when it's Promise-like
-// mode & 8|1: behave like require
-__webpack_require__.t = function(value, mode) {
-	if(mode & 1) value = this(value);
-	if(mode & 8) return value;
-	if(typeof value === 'object' && value) {
-		if((mode & 4) && value.__esModule) return value;
-		if((mode & 16) && typeof value.then === 'function') return value;
-	}
-	var ns = Object.create(null);
-  __webpack_require__.r(ns);
-	var def = {};
-	leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
-	for(var current = mode & 2 && value; (typeof current == 'object' || typeof current == 'function') && !~leafPrototypes.indexOf(current); current = getProto(current)) {
-		Object.getOwnPropertyNames(current).forEach((key) => { def[key] = () => (value[key]) });
-	}
-	def['default'] = () => (value);
-	__webpack_require__.d(ns, def);
-	return ns;
-};
-})();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
