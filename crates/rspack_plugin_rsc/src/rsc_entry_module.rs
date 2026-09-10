@@ -10,9 +10,9 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock,
-  DependenciesBlockData, DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType,
-  ReferencedSpecifier, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
+  DependenciesBlockData, DependencyRange, FactoryMetaStore, FreezeLock, ImportPhase,
+  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer,
+  ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
   impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
@@ -44,9 +44,9 @@ pub struct RscEntryModule {
   name: Arc<str>,
   /// When true, client modules are loaded eagerly (not as code-split points).
   is_server_side_rendering: bool,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  factory_meta: FactoryMetaStore,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
   layer: Option<ModuleLayer>,
 }
 
@@ -84,13 +84,16 @@ impl RscEntryModule {
       css_imports_by_server_entry,
       name,
       is_server_side_rendering,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         strict: true,
         top_level_declarations: Some(Default::default()),
         ..Default::default()
-      },
-      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
+      }
+      .into(),
+      build_meta: BuildMeta::default()
+        .with_exports_type(BuildMetaExportsType::Namespace)
+        .into(),
       source_map_kind: SourceMapKind::empty(),
       layer,
     }

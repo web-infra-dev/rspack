@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use arc_swap::ArcSwapOption;
 use rkyv::{
   Archive, Archived, Deserialize, Place, Resolver, Serialize,
   de::Pooling,
@@ -13,6 +16,16 @@ pub trait AsConverter<T> {
   where
     Self: Sized;
   fn deserialize(self, guard: &ContextGuard) -> Result<T>;
+}
+
+impl<T> AsConverter<ArcSwapOption<T>> for Option<Arc<T>> {
+  fn serialize(data: &ArcSwapOption<T>, _guard: &ContextGuard) -> Result<Self> {
+    Ok(data.load_full())
+  }
+
+  fn deserialize(self, _guard: &ContextGuard) -> Result<ArcSwapOption<T>> {
+    Ok(self.into())
+  }
 }
 
 pub struct As<A> {

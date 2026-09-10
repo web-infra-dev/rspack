@@ -482,11 +482,11 @@ var {} = {{}};
             let top_level_decls = codegen
               .data()
               .get::<CodeGenerationDataTopLevelDeclarations>()
-              .map(|d| d.inner())
+              .map(|_| ())
               .or_else(|| {
                 module_graph
                   .module_by_identifier(module)
-                  .and_then(|m| m.build_info().top_level_declarations.as_ref())
+                  .and_then(|m| m.build_info().top_level_declarations.as_ref().map(|_| ()))
               });
             top_level_decls.is_none()
           } {

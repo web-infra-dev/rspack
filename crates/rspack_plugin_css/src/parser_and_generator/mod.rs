@@ -275,11 +275,17 @@ impl ParserAndGenerator for CssParserAndGenerator {
     module: &dyn rspack_core::Module,
     generate_context: &mut GenerateContext,
   ) -> Result<BoxSource> {
+    let build_info = module.build_info();
+    let css_build_info = build_info
+      .css
+      .as_deref()
+      .expect("CSS module should have build info");
     match generate_context.requested_source_type {
       SourceType::Css => Ok(
         CssModuleGenerator::new(
           source.clone(),
           module,
+          css_build_info,
           generate_context,
           self.hot,
           self.es_module,
@@ -289,6 +295,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       SourceType::JavaScript => CssModuleGenerator::new(
         source.clone(),
         module,
+        css_build_info,
         generate_context,
         self.hot,
         self.es_module,

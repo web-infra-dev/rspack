@@ -401,7 +401,7 @@ pub struct JsStatsModuleCommonAttributes<'a> {
   pub chunks: Option<Vec<JsStatsChunkId<'a>>>,
 
   // moduleAssets
-  pub assets: Option<Vec<&'a str>>,
+  pub assets: Option<Vec<String>>,
 
   // reasons
   pub reasons: Option<Vec<JsStatsModuleReason<'a>>>,

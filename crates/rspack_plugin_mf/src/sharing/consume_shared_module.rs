@@ -6,9 +6,10 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
-  ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
-  impl_source_map_config, module_update_hash, rspack_sources::BoxSource, runtime_mode::RuntimeMode,
+  ExportsType, FactoryMetaStore, FreezeLock, LibIdentOptions, Module, ModuleCodeGenerationContext,
+  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
+  runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
@@ -31,9 +32,9 @@ pub struct ConsumeSharedModule {
   readable_identifier: String,
   context: Context,
   options: ConsumeOptions,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  factory_meta: FactoryMetaStore,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
 }
 
 impl ConsumeSharedModule {
@@ -89,7 +90,7 @@ impl ConsumeSharedModule {
       readable_identifier: identifier,
       context,
       options,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: Default::default(),
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),

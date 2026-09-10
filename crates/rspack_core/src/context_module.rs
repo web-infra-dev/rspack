@@ -30,8 +30,8 @@ use crate::{
   BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph,
   ChunkGroupOptions, CodeGenerationResultBuilder, Compilation, Context, ContextElementDependency,
   DependenciesBlock, DependenciesBlockData, DependencyCategory, DependencyId, DependencyLocation,
-  DependencyRef, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode,
-  GroupOptions, ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
+  DependencyRef, DynamicImportMode, ExportsType, FactoryMetaStore, FakeNamespaceObjectMode,
+  FreezeLock, GroupOptions, ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
   ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
   RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, contextify, get_exports_type_with_strict,
@@ -272,9 +272,9 @@ pub struct ContextModule {
   dependencies_block: DependenciesBlockData,
   identifier: Identifier,
   options: ContextModuleOptions,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  factory_meta: FactoryMetaStore,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
   #[debug(skip)]
   #[cacheable(with=Unsupported)]
   resolve_dependencies: ResolveContextModuleDependencies,
@@ -295,11 +295,12 @@ impl ContextModule {
       dependencies_block: Default::default(),
       identifier: create_identifier(&options, None),
       options,
-      factory_meta: None,
-      build_info,
+      factory_meta: Default::default(),
+      build_info: build_info.into(),
       build_meta: BuildMeta::default()
         .with_exports_type(BuildMetaExportsType::Default)
-        .with_default_object(BuildMetaDefaultObject::RedirectWarn),
+        .with_default_object(BuildMetaDefaultObject::RedirectWarn)
+        .into(),
       source_map_kind: SourceMapKind::empty(),
       resolve_dependencies,
     }
@@ -1496,7 +1497,7 @@ impl Module for ContextModule {
     if !self.options.resource.as_str().is_empty() {
       let mut context_dependencies: InternedPathSet = Default::default();
       context_dependencies.insert(self.options.resource.as_std_path().into());
-      self.build_info.dependencies.context = context_dependencies;
+      self.build_info.get_mut().dependencies.context = context_dependencies;
     }
 
     Ok(BoxModule::new(self).with_dependencies(
