@@ -1,12 +1,11 @@
 import { test as base, expect } from './base';
 import { pathInfoFixtures } from './pathInfo';
-import { rspackFixtures, type RspackOptions } from './rspack';
+import { rspackFixtures } from './rspack';
 import { fileActionFixtures } from './fileAction';
 
 const test = base
   .extend(pathInfoFixtures)
-  .extend(rspackFixtures())
+  .extend(rspackFixtures)
   .extend(fileActionFixtures);
 
-export type { RspackOptions };
 export { test, expect };
