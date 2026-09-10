@@ -10,7 +10,7 @@ use rspack_util::fx_hash::FxDashMap;
 use tokio::sync::Notify;
 
 use super::{
-  CacheKey, Etag, Meta,
+  CacheKey, Etag,
   cache_value::{CacheEntry, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
   db::{Database, DatabaseFamily},
   snapshot::FileSystemInfo,
@@ -19,13 +19,11 @@ use super::{
 use crate::{InfrastructureLogger, Logger, cache::CacheCodec, new_cache::db::TurboDatabase};
 
 const VALIDATOR_KEY: &str = "validator";
-const META_KEY: &str = "meta";
 
 #[derive(Debug, Default)]
 struct PendingWrites {
   entries: FxDashMap<CacheKey, PendingWrite>,
   new_build_dependencies: Mutex<Option<InternedPathSet>>,
-  meta: Mutex<Option<Meta>>,
 }
 
 #[derive(Debug)]
@@ -39,12 +37,8 @@ impl PendingWrites {
     self.new_build_dependencies.lock().expect("should lock")
   }
 
-  fn meta(&self) -> MutexGuard<'_, Option<Meta>> {
-    self.meta.lock().expect("should lock")
-  }
-
   fn is_empty(&self) -> bool {
-    self.entries.is_empty() && self.new_build_dependencies().is_none() && self.meta().is_none()
+    self.entries.is_empty() && self.new_build_dependencies().is_none()
   }
 }
 
@@ -272,34 +266,6 @@ impl FileCacheStrategy {
       .extend(dependencies);
   }
 
-  pub fn store_meta(&self, meta: Meta) {
-    if self.readonly {
-      return;
-    }
-    let state = self.read_state();
-    let Some(state) = state.as_ref() else {
-      return;
-    };
-    *state.pending_writes.meta() = Some(meta);
-  }
-
-  pub fn restore_meta(&self) -> Result<Option<Meta>> {
-    let state_guard = self.read_state();
-    let Some(state) = state_guard.as_ref() else {
-      return Ok(None);
-    };
-    if let Some(pending) = state.pending_writes.meta().as_ref() {
-      return Ok(Some(pending.clone()));
-    }
-
-    let result = state
-      .database
-      .get(DatabaseFamily::Meta, &CacheKey::new(META_KEY))
-      .and_then(|entry| entry.map(|entry| self.codec.decode(&entry)).transpose());
-    drop(state_guard);
-    result.inspect_err(|error| self.session_unavailable(Some(error)))
-  }
-
   pub(super) fn restore(
     &self,
     key: &CacheKey,
@@ -364,7 +330,6 @@ impl FileCacheStrategy {
       let codec = &self.codec;
       let mut writes;
       let new_build_dependencies;
-      let meta;
       {
         let mut state = self.write_state();
         let Some(state) = state.as_mut() else {
@@ -387,7 +352,6 @@ impl FileCacheStrategy {
           .collect::<Vec<_>>();
 
         new_build_dependencies = state.pending_writes.new_build_dependencies().take();
-        meta = state.pending_writes.meta().take();
       }
 
       if let Some(dependencies) = new_build_dependencies
@@ -398,11 +362,6 @@ impl FileCacheStrategy {
           CacheKey::from(VALIDATOR_KEY),
           validator,
         ));
-      }
-
-      if let Some(meta) = meta {
-        let meta = codec.encode(&meta)?;
-        writes.push((DatabaseFamily::Meta, CacheKey::from(META_KEY), meta));
       }
 
       let writes_len = writes.len();
