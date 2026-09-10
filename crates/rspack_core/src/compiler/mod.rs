@@ -1,4 +1,3 @@
-mod meta;
 mod rebuild;
 use std::sync::{Arc, atomic::AtomicU32};
 
@@ -15,7 +14,6 @@ use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::Semaphore;
 use tracing::instrument;
 
-use self::meta::Meta;
 pub use self::rebuild::CompilationRecords;
 use crate::{
   BoxPlugin, CacheOptions, CleanOptions, Compilation, CompilationAsset, CompilationLogging,
@@ -30,6 +28,12 @@ use crate::{
   new_cache::{Cache, CacheFacade, CacheValue, CompilerCache, create_cache},
   trim_dir,
 };
+
+#[cacheable]
+#[derive(Debug)]
+struct Meta {
+  pub max_dependency_id: u32,
+}
 
 // should be SyncHook, but rspack need call js hook
 define_hook!(CompilerThisCompilation: Series(compilation: &mut Compilation, params: &mut CompilationParams));
@@ -221,15 +225,15 @@ impl Compiler {
       let (build_dependencies, _, _, _) = self.compilation.build_dependencies();
       self
         .new_cache
-        .store_build_dependencies(build_dependencies.cloned().collect())
+        .store_build_dependencies(build_dependencies.cloned().collect());
+      self.get_cache("meta").store(
+        "state",
+        None,
+        CacheValue::new(Meta {
+          max_dependency_id: self.compiler_context.dependency_id(),
+        }),
+      );
     };
-    self.get_cache("meta").store(
-      "state",
-      None,
-      CacheValue::new(Meta {
-        max_dependency_id: self.compiler_context.dependency_id(),
-      }),
-    );
   }
 
   pub async fn run(&mut self) -> Result<()> {
@@ -264,7 +268,9 @@ impl Compiler {
 
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
   async fn build_inner(&mut self) -> Result<()> {
-    if let Some(restored) = self.get_cache("meta").get::<Meta>("state", None) {
+    if self.new_cache.has_file_cache()
+      && let Some(restored) = self.get_cache("meta").get::<Meta>("state", None)
+    {
       let current = self.compiler_context.dependency_id();
       if current < restored.max_dependency_id {
         self
