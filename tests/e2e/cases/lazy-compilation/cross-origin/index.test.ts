@@ -4,12 +4,8 @@ import { test as base, expect } from '@playwright/test';
 import fs from 'fs-extra';
 import { type Compiler, type Configuration, rspack } from '@rspack/core';
 import { RspackDevServer } from '@rspack/dev-server';
-import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const tempDir = path.resolve(__dirname, '../../temp');
+import { pathToFileURL } from 'node:url';
+import { calcPathInfo } from '@/fixtures/pathInfo';
 
 // Create a separate lazy compilation server on a different port (cross-origin)
 function createLazyCompilationServer(
@@ -43,21 +39,7 @@ const test = base.extend<{
   crossOriginSetup: [
     async ({ page }, use, testInfo) => {
       const workerId = String(testInfo.workerIndex);
-      const testProjectDir = path.dirname(testInfo.file);
-      const tempProjectDir = path.join(tempDir, `cross-origin-${workerId}`);
-
-      // Copy test project to temp directory
-      if (await fs.exists(tempProjectDir)) {
-        await fs.remove(tempProjectDir);
-      }
-      await fs.copy(testProjectDir, tempProjectDir);
-
-      // Clear require cache for temp directory
-      for (const modulePath of Object.keys(require.cache)) {
-        if (modulePath.startsWith(tempProjectDir)) {
-          delete require.cache[modulePath];
-        }
-      }
+      const { tempProjectDir } = await calcPathInfo(testInfo.file, workerId);
 
       // Use different ports for frontend and lazy compilation server
       const basePort = 8500;
@@ -66,8 +48,9 @@ const test = base.extend<{
 
       // Load and modify config
       const configPath = path.resolve(tempProjectDir, 'rspack.config.js');
-      const config: Configuration = require(configPath);
-      delete require.cache[configPath];
+      const { default: config }: { default: Configuration } = await import(
+        pathToFileURL(configPath).href
+      );
 
       config.context = tempProjectDir;
       config.output = {
