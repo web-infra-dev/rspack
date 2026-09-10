@@ -72,6 +72,7 @@ let unchangedFile;
 let outputFile;
 let compilerOptions;
 let cleanupWaiter;
+let openFds;
 
 function write(file, content) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -145,8 +146,22 @@ function waitForTempCleanup() {
   });
 }
 
+function closeDescriptors() {
+  let closeError;
+  for (const fd of openFds) {
+    try {
+      fs.closeSync(fd);
+      openFds.delete(fd);
+    } catch (error) {
+      if (!closeError) closeError = error;
+    }
+  }
+  return closeError;
+}
+
 function createIntermediateFileSystem() {
   cleanupWaiter = undefined;
+  openFds = new Set();
   return {
     ...fs,
     // The bridge currently consumes the returned buffer without using bytesRead.
@@ -154,6 +169,18 @@ function createIntermediateFileSystem() {
       fs.read(fd, options, (error, bytesRead, buffer) => {
         if (error) return callback(error, bytesRead, buffer);
         callback(error, bytesRead, buffer.subarray(0, bytesRead));
+      });
+    },
+    open(file, flags, callback) {
+      fs.open(file, flags, (error, fd) => {
+        if (!error) openFds.add(fd);
+        callback(error, fd);
+      });
+    },
+    close(fd, callback) {
+      fs.close(fd, (error) => {
+        if (!error) openFds.delete(fd);
+        callback(error);
       });
     },
     rmdir(directory, callback) {
@@ -165,8 +192,13 @@ function createIntermediateFileSystem() {
           !relativeDirectory.startsWith(`..${path.sep}`) &&
           relativeDirectory !== ".."
         ) {
+          // Legacy cache streams do not explicitly close their JavaScript descriptors.
+          // Release them before returning to Rust; subsequent metadata refresh has not started.
+          const closeError = closeDescriptors();
+          const effectiveError = error || closeError;
           const waiter = cleanupWaiter;
-          if (waiter) waiter(error || null);
+          if (waiter) waiter(effectiveError || null);
+          return callback(effectiveError);
         }
         callback(error);
       });
@@ -288,26 +320,41 @@ module.exports = {
   },
   async build(context, compiler) {
     const modifiedValue = () => ({ modifiedFiles: new Set([valueFile]) });
-    await runStage(compiler, "initial build", "A");
-    await runStage(compiler, "ordinary rebuild", "B", modifiedValue());
+    let buildError;
+    try {
+      await runStage(compiler, "initial build", "A");
+      await runStage(compiler, "ordinary rebuild", "B", modifiedValue());
 
-    fs.rmSync(cacheDirectory, { recursive: true, force: true });
-    await runStage(
-      compiler,
-      "first rebuild after deleting cache",
-      "C",
-      modifiedValue(),
-    );
+      fs.rmSync(cacheDirectory, { recursive: true, force: true });
+      await runStage(
+        compiler,
+        "first rebuild after deleting cache",
+        "C",
+        modifiedValue(),
+      );
 
-    fs.rmSync(cacheDirectory, { recursive: true, force: true });
-    await runStage(
-      compiler,
-      "second rebuild after deleting cache",
-      "D",
-      modifiedValue(),
-    );
+      fs.rmSync(cacheDirectory, { recursive: true, force: true });
+      await runStage(
+        compiler,
+        "second rebuild after deleting cache",
+        "D",
+        modifiedValue(),
+      );
+    } catch (error) {
+      buildError = error;
+    }
 
-    await context.getCompiler().close();
+    let compilerCloseError;
+    try {
+      await context.getCompiler().close();
+    } catch (error) {
+      compilerCloseError = error;
+    }
+    const descriptorError = closeDescriptors();
+    if (buildError) throw buildError;
+    if (compilerCloseError) throw compilerCloseError;
+    if (descriptorError) throw descriptorError;
+
     const fresh = buildFreshProcess();
     context.setValue("freshProcess", fresh);
   },
