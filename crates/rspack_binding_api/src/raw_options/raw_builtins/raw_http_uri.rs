@@ -24,8 +24,8 @@ pub struct RawHttpUriPluginOptions {
   pub lockfile_location: Option<String>,
   pub cache_location: Option<String>,
   pub upgrade: bool,
+  pub frozen: bool,
   // pub proxy: Option<String>,
-  // pub frozen: Option<bool>,
   #[napi(ts_type = "(url: string, headers: Record<string, string>) => Promise<JsHttpResponseRaw>")]
   pub http_client: HttpClientRequest,
 }
@@ -93,8 +93,8 @@ fn create_http_uri_plugin_options(
     lockfile_location: options.lockfile_location,
     cache_location: options.cache_location,
     upgrade: options.upgrade,
+    frozen: options.frozen,
     // proxy: options.proxy,
-    // frozen: options.frozen,
     http_client,
     filesystem,
   }

@@ -3,7 +3,7 @@ mod lockfile;
 
 use std::{fmt::Debug, sync::Arc};
 
-use http_cache::{ContentFetchResult, FetchResultType, fetch_content};
+use http_cache::{ContentFetchResult, HttpCache};
 pub use http_cache::{HttpClient, HttpResponse};
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -11,7 +11,7 @@ use rspack_core::{
   Content, ModuleFactoryCreateData, NormalModuleFactoryResolveForScheme,
   NormalModuleFactoryResolveInScheme, NormalModuleReadResource, Plugin, ResourceData, Scheme,
 };
-use rspack_error::{AnyhowResultToRspackResultExt, Result, error};
+use rspack_error::{Result, error};
 use rspack_fs::{ReadableFileSystem, WritableFileSystem};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
@@ -24,9 +24,14 @@ static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
 #[derive(Debug)]
 pub struct HttpUriPlugin {
   options: HttpUriPluginOptions,
+  http_cache: HttpCache,
 }
 
-async fn get_info(url: &str, options: &HttpUriPluginOptions) -> Result<ContentFetchResult> {
+async fn get_info(
+  url: &str,
+  options: &HttpUriPluginOptions,
+  http_cache: &HttpCache,
+) -> Result<ContentFetchResult> {
   // Check if the URL is allowed
   if !options.allowed_uris.is_allowed(url) {
     return Err(error!(
@@ -35,7 +40,7 @@ async fn get_info(url: &str, options: &HttpUriPluginOptions) -> Result<ContentFe
       options.allowed_uris.get_allowed_uris_description(),
     ));
   }
-  resolve_content(url, options, 0).await
+  http_cache.fetch_content(url, options).await
 }
 
 const MAX_REDIRECTS: usize = 5;
@@ -87,36 +92,6 @@ fn validate_redirect_location(
   Ok(next_url.to_string())
 }
 
-// recursively handle http redirect
-async fn resolve_content(
-  url: &str,
-  options: &HttpUriPluginOptions,
-  redirect_count: usize,
-) -> Result<ContentFetchResult> {
-  let result = fetch_content(url, options)
-    .await
-    .to_rspack_result_from_anyhow()?;
-  match result {
-    FetchResultType::Content(content) => Ok(content),
-    FetchResultType::Redirect(redirect) => {
-      // Validate redirect before following
-      let validated_location = validate_redirect_location(&redirect.location, url, options)?;
-
-      // Check redirect limit
-      if redirect_count >= MAX_REDIRECTS {
-        return Err(error!("Too many redirects"));
-      }
-
-      Box::pin(resolve_content(
-        &validated_location,
-        options,
-        redirect_count + 1,
-      ))
-      .await
-    }
-  }
-}
-
 /// Scheme only for http and https
 fn parse_url_as_http(url: &str) -> Option<Url> {
   let url = Url::parse(url).ok()?;
@@ -128,7 +103,13 @@ fn parse_url_as_http(url: &str) -> Option<Url> {
 
 impl HttpUriPlugin {
   pub fn new(options: HttpUriPluginOptions) -> Self {
-    Self::new_inner(options)
+    let http_cache = HttpCache::new(
+      options.cache_location.clone(),
+      options.lockfile_location.clone(),
+      options.filesystem.clone(),
+      options.http_client.clone(),
+    );
+    Self::new_inner(options, http_cache)
   }
   pub async fn respond_with_url_module(
     &self,
@@ -136,7 +117,7 @@ impl HttpUriPlugin {
     url: &Url,
     mimetype: Option<String>,
   ) -> Result<bool> {
-    let resolved_result = get_info(url.as_str(), &self.options).await?;
+    let resolved_result = get_info(url.as_str(), &self.options, &self.http_cache).await?;
 
     let context = get_resource_context(&resolved_result.entry.resolved);
     resource_data.set_context(context);
@@ -161,8 +142,8 @@ pub struct HttpUriPluginOptions {
   pub lockfile_location: Option<String>,
   pub cache_location: Option<String>,
   pub upgrade: bool,
+  pub frozen: bool,
   // pub proxy: Option<String>,
-  // pub frozen: Option<bool>,
   pub filesystem: Arc<dyn WritableFileSystem>,
   pub http_client: Arc<dyn HttpClient>,
 }
@@ -242,7 +223,8 @@ async fn read_resource(
   if (resource_data.get_scheme().is_http() || resource_data.get_scheme().is_https())
     && EXTERNAL_HTTP_REQUEST.is_match(resource_data.resource())
   {
-    let content_result = get_info(resource_data.resource(), &self.options).await?;
+    let content_result =
+      get_info(resource_data.resource(), &self.options, &self.http_cache).await?;
 
     return Ok(Some(Content::from(content_result.content().to_vec())));
   }

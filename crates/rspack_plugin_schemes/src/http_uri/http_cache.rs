@@ -1,32 +1,26 @@
-use std::{fmt::Debug, path::PathBuf, sync::Arc};
+use std::{fmt::Debug, io, path::PathBuf, sync::Arc};
 
-use anyhow::Result;
 use async_trait::async_trait;
 use cow_utils::CowUtils;
 use napi::bindgen_prelude::Buffer;
-use rspack_fs::WritableFileSystem;
+use rspack_error::{Result, error};
+use rspack_fs::{FsResultToIoResultExt, WritableFileSystem};
 use rspack_paths::Utf8Path;
 use rspack_util::{base64, current_time, fx_hash::FxHashMap};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
 use url::Url;
 
-use super::lockfile::{LockfileCache, LockfileEntry};
-use crate::http_uri::HttpUriPluginOptions;
+use super::{
+  HttpUriPluginOptions, MAX_REDIRECTS,
+  lockfile::{LockfileCache, LockfileEntry, LockfileValue},
+  validate_redirect_location,
+};
 
 /// This enum is used for avoiding [Buffer::to_vec] overhead
 pub enum BufferOrBytes {
   Buffer(Buffer),
   Bytes(Vec<u8>),
-}
-
-impl Clone for BufferOrBytes {
-  fn clone(&self) -> Self {
-    match self {
-      Self::Buffer(buffer) => Self::Bytes(buffer.to_vec()),
-      Self::Bytes(bytes) => Self::Bytes(bytes.clone()),
-    }
-  }
 }
 
 pub struct HttpResponse {
@@ -37,7 +31,11 @@ pub struct HttpResponse {
 
 #[async_trait]
 pub trait HttpClient: Send + Sync + std::fmt::Debug {
-  async fn get(&self, url: &str, headers: &FxHashMap<String, String>) -> Result<HttpResponse>;
+  async fn get(
+    &self,
+    url: &str,
+    headers: &FxHashMap<String, String>,
+  ) -> anyhow::Result<HttpResponse>;
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -49,7 +47,6 @@ pub struct FetchResultMeta {
   fresh: bool,
 }
 
-#[derive(Clone)]
 pub struct ContentFetchResult {
   pub(crate) entry: LockfileEntry,
   content: BufferOrBytes,
@@ -74,10 +71,10 @@ pub struct RedirectFetchResult {
 
 pub enum FetchResultType {
   Content(ContentFetchResult),
-  #[allow(dead_code)]
   Redirect(RedirectFetchResult),
 }
 
+#[derive(Debug)]
 pub struct HttpCache {
   cache_location: Option<PathBuf>,
   lockfile_cache: LockfileCache,
@@ -106,16 +103,130 @@ impl HttpCache {
     &self,
     url: &str,
     options: &HttpUriPluginOptions,
-  ) -> Result<FetchResultType> {
-    let cached_result = self.read_from_cache(url).await?;
-
-    if let Some(ref cached) = cached_result
-      && (!options.upgrade || cached.meta.fresh)
-    {
-      return Ok(FetchResultType::Content(cached.clone()));
+  ) -> Result<ContentFetchResult> {
+    // The lockfile remains authoritative even if its content cache is missing or disabled.
+    let mut locked = self.lockfile_cache.get_entry(url).await?;
+    if locked.is_none() && options.frozen {
+      return Err(error!("{url} has no lockfile entry and lockfile is frozen"));
     }
 
-    self.fetch_content_raw(url, cached_result).await
+    let mut cached_result = match &locked {
+      Some(LockfileValue::Content(entry)) => {
+        if entry.resolved != url {
+          validate_redirect_location(&entry.resolved, url, options)?;
+        }
+        self.read_from_cache(entry).await?
+      }
+      _ => None,
+    };
+
+    if let Some(cached) = &mut cached_result {
+      let integrity = compute_integrity(cached.content());
+      if cached.entry.integrity != "ignore" && integrity != cached.entry.integrity {
+        if options.frozen {
+          return Err(error!(
+            "{} integrity mismatch, expected content with integrity {} but got {}",
+            cached.entry.resolved, cached.entry.integrity, integrity
+          ));
+        }
+
+        // Git may have converted LF to CRLF. Restore bytes matching the existing lock first.
+        let normalized = std::str::from_utf8(cached.content())
+          .ok()
+          .map(|content| content.cow_replace("\r\n", "\n").into_owned().into_bytes());
+        if let Some(content) = normalized
+          && compute_integrity(&content) == cached.entry.integrity
+        {
+          cached.content = BufferOrBytes::Bytes(content);
+        } else {
+          // Like webpack, an unfrozen lockfile accepts edits to the committed content cache.
+          cached.entry.integrity = integrity;
+        }
+        self.store_result(url, cached).await?;
+        locked = Some(LockfileValue::Content(cached.entry.clone()));
+      }
+    }
+
+    if let Some(cached) = cached_result.take() {
+      if !options.upgrade || cached.meta.fresh {
+        return Ok(cached);
+      }
+      cached_result = Some(cached);
+    }
+
+    let had_cached_content = cached_result.is_some();
+    let result = self.resolve_content(url, cached_result, options).await?;
+    match &locked {
+      Some(LockfileValue::Content(entry)) if options.frozen => {
+        if !result.meta.store_lock {
+          return Err(error!(
+            "{url} has a lockfile entry and is no-cache now, but lockfile is frozen"
+          ));
+        }
+        if !entry.has_same_content(&result.entry) {
+          return Err(error!(
+            "{url} has an outdated lockfile entry, but lockfile is frozen\nLockfile: {entry:?}\nReceived: {:?}",
+            result.entry
+          ));
+        }
+        if !had_cached_content && self.cache_location.is_some() {
+          return Err(error!(
+            "{url} is missing content in the lockfile cache, but lockfile is frozen"
+          ));
+        }
+      }
+      Some(LockfileValue::Tag(tag)) => {
+        if tag == "ignore" || !result.meta.store_lock {
+          return Ok(result);
+        }
+        if options.frozen {
+          return Err(error!(
+            "{url} used to have {tag} lockfile entry and has content now, but lockfile is frozen"
+          ));
+        }
+        if !options.upgrade {
+          return Err(error!(
+            "{url} used to have {tag} lockfile entry and has content now, but upgrading is not enabled"
+          ));
+        }
+      }
+      _ => {}
+    }
+
+    if !options.frozen {
+      self.store_result(url, &result).await?;
+    }
+    Ok(result)
+  }
+
+  async fn resolve_content(
+    &self,
+    url: &str,
+    cached_result: Option<ContentFetchResult>,
+    options: &HttpUriPluginOptions,
+  ) -> Result<ContentFetchResult> {
+    let mut current_url = url.to_string();
+    let mut cached_result = cached_result;
+    let mut store_lock = true;
+    for redirect_count in 0..=MAX_REDIRECTS {
+      match self
+        .fetch_content_raw(&current_url, cached_result.take())
+        .await?
+      {
+        FetchResultType::Content(mut result) => {
+          result.meta.store_lock &= store_lock;
+          return Ok(result);
+        }
+        FetchResultType::Redirect(redirect) => {
+          current_url = validate_redirect_location(&redirect.location, &current_url, options)?;
+          if redirect_count == MAX_REDIRECTS {
+            return Err(error!("Too many redirects"));
+          }
+          store_lock &= redirect.meta.store_lock;
+        }
+      }
+    }
+    unreachable!("The redirect limit is checked before following each redirect")
   }
 
   async fn fetch_content_raw(
@@ -165,46 +276,11 @@ impl HttpCache {
       }));
     }
 
-    // Improved handling of redirects to match webpack
     if let Some(location) = location
       && (301..=308).contains(&status)
     {
-      // Resolve relative redirects like webpack does
-      let absolute_location = match Url::parse(&location) {
-        Ok(loc) => loc.to_string(), // Already absolute
-        Err(_) => {
-          // Relative URL, resolve against original
-          match Url::parse(url) {
-            Ok(base_url) => base_url
-              .join(&location)
-              .map(|u| u.to_string())
-              .unwrap_or(location.clone()),
-            Err(_) => location.clone(), // Can't resolve, use as is
-          }
-        }
-      };
-
-      // If we had a cached redirect that's unchanged, use the cached meta
-      // if let Some(cached) = &cached_result
-      //   && let FetchResultType::Redirect(cached_redirect) =
-      //     fetch_cache_result_to_fetch_result_type(cached)
-      //   && cached_redirect.location == absolute_location
-      //   && cached_redirect.meta.valid_until >= valid_until
-      //   && cached_redirect.meta.store_lock == store_lock
-      //   && cached_redirect.meta.store_cache == store_cache
-      //   && cached_redirect.meta.etag == etag
-      // {
-      //   return Ok(FetchResultType::Redirect(RedirectFetchResult {
-      //     meta: FetchResultMeta {
-      //       fresh: true,
-      //       ..cached_redirect.meta
-      //     },
-      //     ..cached_redirect
-      //   }));
-      // }
-
       return Ok(FetchResultType::Redirect(RedirectFetchResult {
-        location: absolute_location,
+        location,
         meta: FetchResultMeta {
           fresh: true,
           store_lock,
@@ -216,7 +292,7 @@ impl HttpCache {
     }
 
     if !(200..=299).contains(&status) {
-      return Err(anyhow::anyhow!(
+      return Err(error!(
         "Request failed with status: {}\n{}",
         status,
         String::from_utf8_lossy(&response.body)
@@ -232,60 +308,49 @@ impl HttpCache {
 
     let entry = LockfileEntry {
       resolved: url.to_string(),
-      integrity: integrity.clone(),
+      integrity,
       content_type,
       valid_until,
       etag: etag.clone(),
     };
 
     let result = ContentFetchResult {
-      entry: entry.clone(),
+      entry,
       content: BufferOrBytes::Buffer(content),
       meta: FetchResultMeta {
         fresh: true,
         store_lock,
         store_cache,
         valid_until,
-        etag: etag.clone(),
+        etag,
       },
     };
-
-    if store_cache || store_lock {
-      let should_update = cached_result.is_none_or(|cached| {
-        valid_until > cached.meta.valid_until
-          || etag != cached.meta.etag
-          || integrity != cached.entry.integrity
-      });
-
-      if should_update {
-        if store_cache {
-          self.write_to_cache(url, result.content()).await?;
-        }
-
-        let lockfile = self.lockfile_cache.get_lockfile().await?;
-        let mut lock_guard = lockfile.lock().await;
-
-        // Update the lockfile entry
-        lock_guard.entries_mut().insert(url.to_string(), entry);
-        drop(lock_guard);
-        self.lockfile_cache.save_lockfile().await?;
-      }
-    }
 
     Ok(FetchResultType::Content(result))
   }
 
-  async fn read_from_cache(&self, resource: &str) -> Result<Option<ContentFetchResult>> {
+  async fn store_result(&self, url: &str, result: &ContentFetchResult) -> Result<()> {
+    // Only commit a response after checking the original URL's locked entry, including redirects.
+    let entry = if result.meta.store_lock {
+      self
+        .write_to_cache(&result.entry.resolved, result.content())
+        .await?;
+      LockfileValue::Content(result.entry.clone())
+    } else {
+      LockfileValue::Tag("no-cache".to_string())
+    };
+    self.lockfile_cache.store_entry(url, entry).await?;
+    Ok(())
+  }
+
+  async fn read_from_cache(&self, entry: &LockfileEntry) -> Result<Option<ContentFetchResult>> {
     if let Some(cache_location) = &self.cache_location {
-      let lockfile = self.lockfile_cache.get_lockfile().await?;
-      let lock_guard = lockfile.lock().await;
+      let cache_key = self.get_cache_key(&entry.resolved);
+      let cache_path_buf = cache_location.join(&cache_key);
+      let cache_path = Utf8Path::from_path(&cache_path_buf).expect("Invalid cache path");
 
-      if let Some(entry) = lock_guard.get_entry(resource) {
-        let cache_key = self.get_cache_key(&entry.resolved);
-        let cache_path_buf = cache_location.join(&cache_key);
-        let cache_path = Utf8Path::from_path(&cache_path_buf).expect("Invalid cache path");
-
-        if let Ok(content) = self.filesystem.read_file(cache_path).await {
+      match self.filesystem.read_file(cache_path).await.to_io_result() {
+        Ok(content) => {
           let meta = FetchResultMeta {
             store_cache: true,
             store_lock: true,
@@ -302,6 +367,8 @@ impl HttpCache {
 
           return Ok(Some(result));
         }
+        Err(e) if e.kind() == io::ErrorKind::NotFound => {}
+        Err(e) => return Err(error!("Unable to read HTTP cache {cache_path}: {e}")),
       }
     }
     Ok(None)
@@ -320,11 +387,11 @@ impl HttpCache {
       if let Some(parent) = cache_path.parent() {
         let parent_path = parent.to_string();
         let parent_utf8_path = Utf8Path::new(&parent_path);
-        self.filesystem.create_dir_all(parent_utf8_path).await.ok();
+        self.filesystem.create_dir_all(parent_utf8_path).await?;
       }
 
       // Write the cache file
-      self.filesystem.write(cache_path, content).await.ok();
+      self.filesystem.write(cache_path, content).await?;
     }
     Ok(())
   }
@@ -420,17 +487,6 @@ impl HttpCache {
     }
     result
   }
-}
-
-pub async fn fetch_content(url: &str, options: &HttpUriPluginOptions) -> Result<FetchResultType> {
-  let http_cache = HttpCache::new(
-    options.cache_location.clone(),
-    options.lockfile_location.clone(),
-    options.filesystem.clone(),
-    options.http_client.clone(),
-  );
-
-  http_cache.fetch_content(url, options).await
 }
 
 fn parse_cache_control(cache_control: &Option<String>, request_time: u64) -> (bool, bool, u64) {

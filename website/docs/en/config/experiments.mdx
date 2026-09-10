@@ -59,6 +59,11 @@ type HttpUriOptions = {
    */
   upgrade?: boolean;
   /**
+   * Freeze the remote resources and lockfile
+   * @default true in production mode, false otherwise
+   */
+  frozen?: boolean;
+  /**
    * Custom http client
    */
   httpClient?: (
@@ -79,6 +84,12 @@ By default, Rspack will generate `rspack.lock` and `rspack.lock.data` in the [co
 :::note
 You should commit the files at `lockfileLocation` and `cacheLocation` to the version control system so that no network requests will be made during the production build.
 :::
+
+Rspack checks cached content against the SHA-512 integrity recorded in the lockfile. `frozen` defaults to `true` in production mode and `false` otherwise. When frozen, missing lockfile entries, corrupted cached content, missing cache files, and changes to a resource's content, resolved URL, or content type cause a build error. The lockfile and its content cache are not updated. With `cacheLocation: false`, downloaded content must still match the locked entry.
+
+To populate the lockfile and cache, run a development build or explicitly set `frozen: false`. To check for remote updates, also set `upgrade: true`, then review and commit the resulting changes. `upgrade: false` prefers cached content; it does not prevent lockfile updates when content must be downloaded. An unfrozen build can also repair the lockfile to accept locally edited cache files, matching webpack's behavior.
+
+Resources recorded as `"no-cache"` or `"ignore"` are fetched without pinning their content, including in frozen mode. Integrity checks rely on a trusted lockfile and do not authenticate the first download. To prevent Git from changing the cached bytes' line endings, add `**/*rspack.lock.data/** -text` to `.gitattributes`, adapting the pattern if you use a custom cache location.
 
 For example:
 
