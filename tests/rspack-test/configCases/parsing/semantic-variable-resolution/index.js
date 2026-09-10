@@ -73,3 +73,38 @@ it('restores the caller environment after walking replacement scopes', () => {
   expect(require('./context/' + LOCAL_EXPRESSION + '.js')).toBe('fragment dependency');
   expect(require('./value')).toBe('bundled');
 });
+
+it('initializes replacement declarations before walking their scopes', () => {
+  // A context request forces the retained replacement expression through the
+  // walker. Missing requests must stay calls to the fragment's local bindings.
+  expect(require('./context/' + SCOPED_EXPRESSION + '.js')).toBe('fragment dependency');
+  expect(require('./context/' + SCOPED_EXPRESSION + '.js')).toBe('fragment dependency');
+  expect(require('./value')).toBe('bundled');
+});
+
+it('resolves free replacement names in the caller rather than the fragment body', () => {
+  const load = require;
+  {
+    const require = () => 'fragment';
+    // The parameter default belongs to the parameter environment, not the body
+    // that declares another require. Neither fragment may capture the other's IDs.
+    expect(load('./context/' + DEFAULT_EXPRESSION + '.js')).toBe('fragment dependency');
+    expect(load('./context/' + CALLER_EXPRESSION + '.js')).toBe('fragment dependency');
+  }
+  expect(load('./value')).toBe('bundled');
+});
+
+it('restores semantic contexts across nested replacement evaluation', () => {
+  // Evaluating the outer definition evaluates another separately parsed definition.
+  if (NESTED_CONDITION) {
+    expect(require('./value')).toBe('bundled');
+  } else {
+    throw new Error('nested definition was not evaluated');
+  }
+  {
+    const NESTED_LITERAL = 0;
+    // A caller-local name must prevent the inner definition from being expanded.
+    if (NESTED_CONDITION) throw new Error('replacement lost its caller binding');
+  }
+  expect(require('./value')).toBe('bundled');
+});

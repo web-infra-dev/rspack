@@ -20,6 +20,7 @@ pub trait CallHooksName {
 }
 
 impl CallHooksName for IdentifierReference {
+  /// Dispatches hooks through the semantic binding, or the free name when no binding is active.
   fn call_hooks_name<'parser, F, T>(
     &self,
     parser: &mut JavascriptParser<'parser>,
@@ -28,7 +29,14 @@ impl CallHooksName for IdentifierReference {
   where
     F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
   {
-    if let Some(state) = parser.definitions_db.resolve_identifier(parser.ast, *self) {
+    let resolution = parser
+      .definitions_db
+      .semantic_context
+      .identifier_resolution(parser.ast, *self);
+    if let Some(state) = parser
+      .definitions_db
+      .resolve_identifier(parser.ast, *self, resolution)
+    {
       call_hooks_info(state, parser, hook_call)
     } else {
       let ast = parser.ast.ast;
@@ -157,7 +165,7 @@ impl CallHooksName for ChainExpression {
   }
 }
 
-fn call_hooks_info<'parser, F, T>(
+pub(super) fn call_hooks_info<'parser, F, T>(
   id: BindingState,
   parser: &mut JavascriptParser<'parser>,
   hook_call: F,

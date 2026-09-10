@@ -43,3 +43,21 @@ it('restores nested parameter aliases independently from their sources', () => {
   })(load);
   expect(load('./value')).toBe('bundled');
 });
+
+it('keeps ancestor invalidation across multiple nested scope exits', () => {
+  let load = createRequire(import.meta.url);
+  const alias = load;
+  // The ancestor write must survive nested scope exits without changing
+  // the binding-state snapshot captured by the alias.
+  {
+    {
+      {
+        load = request => request;
+        expect(alias('./value')).toBe('bundled');
+      }
+      expect(alias('./value')).toBe('bundled');
+      expect(load('./missing-after-inner')).toBe('./missing-after-inner');
+    }
+  }
+  expect(load('./missing-after-both')).toBe('./missing-after-both');
+});

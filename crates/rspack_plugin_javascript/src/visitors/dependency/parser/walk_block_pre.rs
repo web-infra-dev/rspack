@@ -66,7 +66,6 @@ impl JavascriptParser<'_> {
       statement,
       |parser, node| drive.block_pre_statement(parser, node).unwrap_or_default(),
       |parser, node| match node {
-        Statement::Class(declaration) => parser.block_pre_walk_class_declaration(declaration),
         Statement::Var(declaration) => parser.block_pre_walk_variable_declaration(declaration),
         Statement::Expr(expression) => parser.block_pre_walk_expression_statement(expression),
         _ => (),
@@ -87,12 +86,6 @@ impl JavascriptParser<'_> {
   pub(super) fn block_pre_walk_variable_declaration(&mut self, declaration: VariableDeclaration) {
     if declaration.kind(self.ast.ast) != VariableDeclarationKind::Var {
       self._pre_walk_variable_declaration(declaration);
-    }
-  }
-
-  fn block_pre_walk_class_declaration(&mut self, declaration: MaybeNamedClassDecl) {
-    if let Some(identifier) = declaration.ident(self.ast.ast) {
-      self.define_variable(identifier);
     }
   }
 

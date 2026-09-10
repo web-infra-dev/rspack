@@ -3,11 +3,12 @@ use std::num::NonZeroU32;
 use bitflags::bitflags;
 use rspack_intern::{AtomMap, AtomRef};
 use smallvec::SmallVec;
-use swc_next_ecma_ast::{ScopeId, SymbolId};
 
 use crate::{Atom, visitors::ParsedJavaScriptAst};
 
 mod semantic;
+
+use semantic::{SemanticContext, SemanticStore};
 
 macro_rules! dense_id {
   ($name:ident) => {
@@ -32,6 +33,7 @@ macro_rules! dense_id {
 }
 
 dense_id!(ScopeInfoId);
+dense_id!(SemanticScopeId);
 dense_id!(VariableMetadataId);
 dense_id!(TagInfoId);
 
@@ -54,6 +56,7 @@ impl BindingState {
     Self::Undefined
   }
 
+  /// Filters out tombstone and undefined states when looking up a usable binding.
   fn defined(self) -> Option<Self> {
     match self {
       Self::Normal(_) | Self::Metadata(_) => Some(self),
@@ -82,8 +85,22 @@ struct Binding {
 
 #[derive(Debug, Clone, Copy)]
 enum BindingTarget {
-  Symbol(SymbolId),
+  Symbol(SymbolBinding),
   Local(BindingState),
+}
+
+/// A symbol's override slot and default owner scope, both mapped across retained ASTs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct SymbolBinding {
+  index: NonZeroU32,
+  scope: SemanticScopeId,
+}
+
+impl SymbolBinding {
+  /// Converts the nonzero symbol index into a zero-based storage offset.
+  fn index(self) -> usize {
+    (self.index.get() - 1) as usize
+  }
 }
 
 /// Scoped symbol table.
@@ -98,24 +115,28 @@ enum BindingTarget {
 /// ancestor when invalidating plugin tags. `create_child` must use the current
 /// scope as parent, and child scopes must be exited in reverse creation order.
 pub struct ScopeInfoDB<'ast> {
-  // Entries are append-only for the lifetime of this parser, so IDs never
-  // need generations or slot reuse.
+  /// Append-only Rspack scopes indexed by `ScopeInfoId`, with no ID reuse.
   map: Vec<ScopeInfo>,
-  /// For each name, the stack of active bindings, innermost last.
+  /// Name-based binding overlay, with each name's innermost active binding last.
   bindings: AtomMap<SmallVec<[Binding; 2]>>,
-  /// The innermost active scope, used to validate the stack discipline.
+  /// Innermost active Rspack scope, used for binding ownership and scope-exit checks.
   current: Option<ScopeInfoId>,
+  /// Metadata for non-default bindings such as aliases and tagged variables.
   variable_metadata: Vec<VariableMetadata>,
+  /// Plugin tag payloads and linked tag chains indexed by `TagInfoId`.
   tag_info_db: TagInfoDB,
-  // Read-only SWC semantics belong to the original module, never to temporary
-  // expression trees. All mutable binding state is owned by this database.
-  ast: Option<&'ast ParsedJavaScriptAst<'ast>>,
-  scopes_by_node: Vec<Option<ScopeId>>,
-  /// Block-function compatibility names, grouped by their enclosing hoist scope.
-  function_aliases: Vec<(ScopeId, SymbolId)>,
-  semantic_scope: ScopeId,
+  /// Registered ASTs and their immutable semantic lookup data.
+  pub(crate) semantic: SemanticStore<'ast>,
+  /// Active semantic environment and the context stack for replacement ASTs.
+  pub(crate) semantic_context: SemanticContext<'ast>,
+  /// Binding overrides in disjoint per-AST ranges; `None` uses the active semantic scope's default.
   symbols: Vec<Option<BindingState>>,
-  overrides: Vec<(SymbolId, Option<BindingState>, ScopeInfoId)>,
+  /// Active Rspack owner of each semantic scope, shared by all its ordinary bindings.
+  semantic_scope_owners: Vec<Option<ScopeInfoId>>,
+  /// Semantic scopes activated during the walk, cleared when their Rspack owner exits.
+  scope_activations: Vec<SemanticScopeId>,
+  /// Scope-exit undo log of (global symbol index, previous state, owning Rspack scope).
+  overrides: Vec<(SymbolBinding, Option<BindingState>, ScopeInfoId)>,
 }
 
 impl Default for ScopeInfoDB<'_> {
@@ -132,11 +153,11 @@ impl<'ast> ScopeInfoDB<'ast> {
       current: None,
       variable_metadata: Vec::new(),
       tag_info_db: TagInfoDB::new(),
-      ast: None,
-      scopes_by_node: Vec::new(),
-      function_aliases: Vec::new(),
-      semantic_scope: ScopeId::ROOT,
+      semantic: SemanticStore::default(),
+      semantic_context: SemanticContext::default(),
       symbols: Vec::new(),
+      semantic_scope_owners: Vec::new(),
+      scope_activations: Vec::new(),
       overrides: Vec::new(),
     }
   }
@@ -151,6 +172,7 @@ impl<'ast> ScopeInfoDB<'ast> {
       parent,
       defined: Vec::new(),
       overrides_start: self.overrides.len(),
+      activations_start: self.scope_activations.len(),
     };
     let id = ScopeInfoId::from_index(self.map.len());
     self.map.push(info);
@@ -162,14 +184,12 @@ impl<'ast> ScopeInfoDB<'ast> {
     self._create(None)
   }
 
+  /// Returns the innermost active Rspack scope.
   pub fn current_scope(&self) -> ScopeInfoId {
     self.current.expect("an active scope should exist")
   }
 
-  pub fn is_root_scope(&self, id: ScopeInfoId) -> bool {
-    self.expect_get_scope(id).parent.is_none()
-  }
-
+  /// Checks strict ancestry, excluding the scope itself.
   pub fn is_descendant_of(&self, mut scope: ScopeInfoId, ancestor: ScopeInfoId) -> bool {
     while let Some(parent) = self.expect_get_scope(scope).parent {
       if parent == ancestor {
@@ -200,6 +220,7 @@ impl<'ast> ScopeInfoDB<'ast> {
     let scope = self.expect_get_mut_scope(id);
     let defined = std::mem::take(&mut scope.defined);
     let overrides_start = scope.overrides_start;
+    let activations_start = scope.activations_start;
     self.current = scope.parent;
     for key in &defined {
       if let Some(stack) = self.bindings.get_mut(key)
@@ -213,6 +234,10 @@ impl<'ast> ScopeInfoDB<'ast> {
     while self.overrides.len() > overrides_start {
       let (symbol, previous, _) = self.overrides.pop().expect("valid scope override range");
       self.symbols[symbol.index()] = previous;
+    }
+    while self.scope_activations.len() > activations_start {
+      let scope = self.scope_activations.pop().expect("active semantic scope");
+      self.semantic_scope_owners[scope.index()] = None;
     }
   }
 
@@ -230,6 +255,7 @@ impl<'ast> ScopeInfoDB<'ast> {
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
+  /// Builds a variable view from inline defaults or stored metadata for a defined binding.
   pub fn expect_get_variable(&self, state: BindingState) -> VariableInfo<'_> {
     match state {
       BindingState::Normal(declared_scope) => VariableInfo {
@@ -278,6 +304,7 @@ impl<'ast> ScopeInfoDB<'ast> {
     self.get_raw(id, key)?.defined()
   }
 
+  /// Reads the innermost name-overlay binding without filtering tombstone or undefined states.
   pub fn get_raw<'key>(
     &self,
     id: ScopeInfoId,
@@ -291,32 +318,20 @@ impl<'ast> ScopeInfoDB<'ast> {
     self.binding_state(self.bindings.get(key)?.last()?.target)
   }
 
+  /// Reads a binding's inline state or its shared semantic-symbol slot.
   fn binding_state(&self, target: BindingTarget) -> Option<BindingState> {
     match target {
-      BindingTarget::Symbol(symbol) => self.symbols.get(symbol.index()).copied().flatten(),
+      BindingTarget::Symbol(symbol) => self.symbol_state(symbol),
       BindingTarget::Local(state) => Some(state),
     }
   }
 
-  fn declared_binding_state(&self, binding: &Binding) -> Option<BindingState> {
-    let mut state = self.binding_state(binding.target);
-    if let BindingTarget::Symbol(symbol) = binding.target {
-      // Enumerating an active ancestor needs its own binding state, not a temporary
-      // override in a descendant (for example a separately parsed expression).
-      for &(overridden, previous, owner) in self.overrides.iter().rev() {
-        if overridden == symbol && self.is_descendant_of(owner, binding.scope) {
-          state = previous;
-        }
-      }
-    }
-    state
-  }
-
+  /// Attaches a compatible current-scope overlay binding to its semantic symbol.
   fn bind_existing_symbol<'key>(
     &mut self,
     id: ScopeInfoId,
     key: impl Into<AtomRef<'key>>,
-    symbol: SymbolId,
+    symbol: SymbolBinding,
   ) -> Option<BindingState> {
     debug_assert_eq!(self.current, Some(id));
     let binding = self.bindings.get_mut(key)?.last_mut()?;
@@ -330,7 +345,8 @@ impl<'ast> ScopeInfoDB<'ast> {
         if existing != symbol {
           return None;
         }
-        self.symbols.get(symbol.index()).copied().flatten()?
+        self.symbols[symbol.index()]
+          .or_else(|| self.semantic_scope_owners[symbol.scope.index()].map(BindingState::Normal))?
       }
       BindingTarget::Local(state) => state,
     };
@@ -339,19 +355,33 @@ impl<'ast> ScopeInfoDB<'ast> {
     Some(state)
   }
 
+  /// Writes a scoped name binding and synchronizes any associated semantic-symbol state.
   pub fn set(&mut self, id: ScopeInfoId, key: Atom, state: BindingState) {
-    let symbol = self.symbol_for_name(&key);
+    self.set_resolved(id, key, state, None);
+  }
+
+  /// Reuses an immediate name lookup; `Some(None)` preserves a known semantic miss.
+  pub(crate) fn set_resolved(
+    &mut self,
+    id: ScopeInfoId,
+    key: Atom,
+    state: BindingState,
+    symbol: Option<Option<SymbolBinding>>,
+  ) {
+    let resolve_symbol =
+      || symbol.unwrap_or_else(|| self.semantic.symbol_for_name(&self.semantic_context, &key));
     let stack = self.bindings.entry(key.clone()).or_default();
     let symbol = if let Some(top) = stack.last_mut()
       && top.scope == id
     {
       let symbol = match top.target {
         BindingTarget::Symbol(symbol) => Some(symbol),
-        BindingTarget::Local(_) => symbol,
+        BindingTarget::Local(_) => resolve_symbol(),
       };
       top.target = symbol.map_or(BindingTarget::Local(state), BindingTarget::Symbol);
       symbol
     } else {
+      let symbol = resolve_symbol();
       stack.push(Binding {
         scope: id,
         target: symbol.map_or(BindingTarget::Local(state), BindingTarget::Symbol),
@@ -393,16 +423,7 @@ impl<'ast> ScopeInfoDB<'ast> {
       .map(|(name, declared, _)| (name, declared))
   }
 
-  /// Names bound in `id`, paired with their innermost visible variable metadata.
-  pub fn resolved_scope_variables(
-    &self,
-    id: ScopeInfoId,
-  ) -> impl Iterator<Item = (&Atom, BindingState)> {
-    self
-      .scope_variable_bindings(id)
-      .filter_map(|(name, _, visible)| visible.defined().map(|visible| (name, visible)))
-  }
-
+  /// Enumerates scope-owned overlay names with their declared and currently visible states.
   fn scope_variable_bindings(
     &self,
     id: ScopeInfoId,
@@ -411,7 +432,19 @@ impl<'ast> ScopeInfoDB<'ast> {
     scope.defined.iter().filter_map(move |name| {
       let bindings = self.bindings.get(name)?;
       let binding = bindings.iter().rev().find(|binding| binding.scope == id)?;
-      let value = self.declared_binding_state(binding)?;
+      let mut state = self.binding_state(binding.target);
+      if let BindingTarget::Symbol(symbol) = binding.target {
+        // Enumerating an active ancestor needs its own binding state, not a temporary
+        // override in a descendant (for example a separately parsed expression).
+        for &(overridden, previous, owner) in self.overrides.iter().rev() {
+          if overridden == symbol && self.is_descendant_of(owner, binding.scope) {
+            state = previous.or_else(|| {
+              self.semantic_scope_owners[symbol.scope.index()].map(BindingState::Normal)
+            });
+          }
+        }
+      }
+      let value = state?;
       if value == BindingState::tombstone() {
         return None;
       }
@@ -549,6 +582,7 @@ impl VariableInfo<'_> {
     BindingState::Metadata(id)
   }
 
+  /// Returns the copyable binding state used to retain this variable's metadata in an alias.
   pub fn binding_state(self) -> BindingState {
     self.state
   }
@@ -568,6 +602,7 @@ pub struct ScopeInfo {
   /// Names bound in this scope, in definition order.
   defined: Vec<Atom>,
   overrides_start: usize,
+  activations_start: usize,
   pub is_strict: bool,
 }
 

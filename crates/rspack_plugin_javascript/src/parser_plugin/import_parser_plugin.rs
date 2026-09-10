@@ -11,8 +11,8 @@ use rspack_util::{
 };
 use rustc_hash::FxHashMap;
 use swc_next_ecma_ast::{
-  ArrowFunctionBodyData, BindingPattern, BindingPatternData, CallExpression, Expr, ExprData,
-  GetSpan, ImportExpression, ObjectPattern, Span, VariableDeclarator,
+  BindingPattern, BindingPatternData, CallExpression, Expr, ExprData, GetSpan, ImportExpression,
+  ObjectPattern, Span, VariableDeclarator,
 };
 
 use super::{JavascriptParserPlugin, import_phase::get_import_phase};
@@ -107,7 +107,6 @@ fn track_dynamic_import_pattern(
   match ast.binding_pattern_data(pattern) {
     BindingPatternData::BindingIdentifier(binding) => {
       let name = Atom::from(ast.get_utf8(binding.name(ast)));
-      parser.define_variable(binding);
       tag_dynamic_import_referenced(parser, import_call, name);
     }
     BindingPatternData::ObjectPattern(pattern) => {
@@ -289,7 +288,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         && let Some(binding) = declarator.id(ast).as_binding_identifier(ast)
       {
         let name = Atom::from(ast.get_utf8(binding.name(ast)));
-        parser.define_variable(binding);
         tag_dynamic_import_referenced(parser, import, name);
       }
       track_dynamic_imports_in_promise_all(parser, declarator);
@@ -818,22 +816,7 @@ fn walk_import_then_fulfilled_callback(
       for pattern in formal_parameter_patterns(parser.ast.ast, params) {
         parser.walk_pattern(pattern);
       }
-      match parser.ast.ast.expr_data(fulfilled_callback) {
-        ExprData::Function(function) => {
-          parser.walk_function_body(function.body(parser.ast.ast));
-        }
-        ExprData::ArrowFunctionExpression(function) => {
-          match parser
-            .ast
-            .ast
-            .arrow_function_body_data(function.body(parser.ast.ast))
-          {
-            ArrowFunctionBodyData::FunctionBody(body) => parser.walk_function_body(body),
-            ArrowFunctionBodyData::Expr(expression) => parser.walk_expression(expression),
-          }
-        }
-        _ => unreachable!(),
-      }
+      parser.walk_function_expression_body(fulfilled_callback);
     });
   });
   parser.top_level_scope = was_top_level_scope;

@@ -33,10 +33,15 @@ fn is_create_require_tag(tag: &str, include_create_require_fn: bool) -> bool {
 }
 
 impl JavascriptParser<'_> {
+  /// Runs a walker operation in a node's semantic scope, then restores the previous scope.
   pub(crate) fn in_semantic_scope<T>(&mut self, node: NodeId, f: impl FnOnce(&mut Self) -> T) -> T {
-    let previous = self.definitions_db.enter_semantic_scope(self.ast, node);
+    let db = &mut self.definitions_db;
+    let previous = db.semantic_context.scope;
+    if let Some(scope) = db.semantic.scope_for_node(&db.semantic_context, node) {
+      db.semantic_context.scope = scope;
+    }
     let result = f(self);
-    self.definitions_db.leave_semantic_scope(previous);
+    self.definitions_db.semantic_context.scope = previous;
     result
   }
 
@@ -85,14 +90,12 @@ impl JavascriptParser<'_> {
       .definitions_db
       .create_child(self.definitions_db.current_scope());
 
-    self.initialize_semantic_scope_bindings();
+    self.definitions_db.initialize_scope_bindings();
     if has_this {
       self.undefined_variable(&"this".into());
     }
 
-    self.enter_patterns(params, |this, identifier, _| {
-      this.define_variable(identifier);
-    });
+    self.enter_patterns(params, |_, _, _| {});
 
     f(self);
 
@@ -115,15 +118,13 @@ impl JavascriptParser<'_> {
     let definitions = self
       .definitions_db
       .create_child(self.definitions_db.current_scope());
-    self.initialize_semantic_scope_bindings();
+    self.definitions_db.initialize_scope_bindings();
     self.in_tagged_template_tag = false;
     self.terminated = None;
     if has_this {
       self.undefined_variable(&"this".into());
     }
-    self.enter_patterns(params, |this, identifier, _| {
-      this.define_variable(identifier);
-    });
+    self.enter_patterns(params, |_, _, _| {});
     f(self);
 
     self.definitions_db.exit_scope(definitions);
@@ -316,12 +317,10 @@ impl JavascriptParser<'_> {
 
   fn walk_catch_clause(&mut self, catch_clause: CatchClause) {
     self.in_block_scope(true, |this| {
-      this.initialize_semantic_scope_bindings();
+      this.definitions_db.initialize_scope_bindings();
       let ast = this.ast.ast;
       if let Some(param) = catch_clause.param(ast) {
-        this.enter_pattern(PatRef::Borrowed(param), |this, identifier, _| {
-          this.define_variable(identifier);
-        });
+        this.enter_pattern(PatRef::Borrowed(param), |_, _, _| {});
         this.walk_pattern(param)
       }
       let body = catch_clause.body(ast);
@@ -339,7 +338,7 @@ impl JavascriptParser<'_> {
 
   fn walk_switch_cases(&mut self, cases: TypedSubRange<SwitchCase>) {
     self.in_block_scope(false, |this| {
-      this.initialize_semantic_scope_bindings();
+      this.definitions_db.initialize_scope_bindings();
       let ast = this.ast.ast;
       for case in ast.nodes(cases) {
         let consequent = case.consequent(ast);
@@ -440,7 +439,7 @@ impl JavascriptParser<'_> {
 
   fn walk_for_statement(&mut self, stmt: ForStatement) {
     self.in_block_scope(false, |this| {
-      this.initialize_semantic_scope_bindings();
+      this.definitions_db.initialize_scope_bindings();
       let ast = this.ast.ast;
       if let Some(init) = stmt.init(ast) {
         match ast.for_statement_init_data(init) {
@@ -459,25 +458,13 @@ impl JavascriptParser<'_> {
       if let Some(update) = stmt.update(ast) {
         this.walk_expression(update)
       }
-      let body = stmt.body(ast);
-      if let Some(body) = body.as_block_statement(ast) {
-        let statements = body.body(ast);
-        this.in_semantic_scope(body.node_id(), |this| {
-          this.initialize_semantic_scope_bindings();
-          let prev = this.prev_statement;
-          this.block_pre_walk_statements(statements);
-          this.prev_statement = prev;
-          this.walk_statements(statements);
-        });
-      } else {
-        this.walk_nested_statement(body);
-      }
+      this.walk_loop_body(stmt.body(ast));
     });
   }
 
   fn walk_for_of_statement(&mut self, stmt: ForOfStatement) {
     self.in_block_scope(false, |this| {
-      this.initialize_semantic_scope_bindings();
+      this.definitions_db.initialize_scope_bindings();
       let ast = this.ast.ast;
       let left = stmt.left(ast);
       this.walk_for_head(left);
@@ -485,25 +472,13 @@ impl JavascriptParser<'_> {
       if this.javascript_options.is_create_require_enabled() {
         this.clear_created_require_tags_in_for_head(left);
       }
-      let body = stmt.body(ast);
-      if let Some(body) = body.as_block_statement(ast) {
-        let statements = body.body(ast);
-        this.in_semantic_scope(body.node_id(), |this| {
-          this.initialize_semantic_scope_bindings();
-          let prev = this.prev_statement;
-          this.block_pre_walk_statements(statements);
-          this.prev_statement = prev;
-          this.walk_statements(statements);
-        });
-      } else {
-        this.walk_nested_statement(body);
-      }
+      this.walk_loop_body(stmt.body(ast));
     });
   }
 
   fn walk_for_in_statement(&mut self, stmt: ForInStatement) {
     self.in_block_scope(false, |this| {
-      this.initialize_semantic_scope_bindings();
+      this.definitions_db.initialize_scope_bindings();
       let ast = this.ast.ast;
       let left = stmt.left(ast);
       this.walk_for_head(left);
@@ -511,20 +486,26 @@ impl JavascriptParser<'_> {
       if this.javascript_options.is_create_require_enabled() {
         this.clear_created_require_tags_in_for_head(left);
       }
-      let body = stmt.body(ast);
-      if let Some(body) = body.as_block_statement(ast) {
-        let statements = body.body(ast);
-        this.in_semantic_scope(body.node_id(), |this| {
-          this.initialize_semantic_scope_bindings();
-          let prev = this.prev_statement;
-          this.block_pre_walk_statements(statements);
-          this.prev_statement = prev;
-          this.walk_statements(statements);
-        });
-      } else {
-        this.walk_nested_statement(body);
-      }
+      this.walk_loop_body(stmt.body(ast));
     });
+  }
+
+  /// Walks a loop body, initializing block bindings without creating another Rspack scope.
+  #[inline]
+  fn walk_loop_body(&mut self, body: Stmt) {
+    let ast = self.ast.ast;
+    if let Some(body) = body.as_block_statement(ast) {
+      let statements = body.body(ast);
+      self.in_semantic_scope(body.node_id(), |this| {
+        this.definitions_db.initialize_scope_bindings();
+        let prev = this.prev_statement;
+        this.block_pre_walk_statements(statements);
+        this.prev_statement = prev;
+        this.walk_statements(statements);
+      });
+    } else {
+      self.walk_nested_statement(body);
+    }
   }
 
   fn walk_for_head(&mut self, for_head: ForStatementLeft) {
@@ -1488,16 +1469,49 @@ impl JavascriptParser<'_> {
     formal_parameter_patterns(ast, params).map(move |pattern| pattern.as_binding_identifier(ast))
   }
 
+  /// Walk only the body; the caller owns parameter handling and scope setup.
+  #[inline]
+  pub(crate) fn walk_function_expression_body(&mut self, function: Expr) {
+    let ast = self.ast.ast;
+    match ast.expr_data(function) {
+      ExprData::Function(function) => self.walk_function_body(function.body(ast)),
+      ExprData::ArrowFunctionExpression(arrow) => {
+        match ast.arrow_function_body_data(arrow.body(ast)) {
+          ArrowFunctionBodyData::FunctionBody(body) => self.walk_function_body(body),
+          ArrowFunctionBodyData::Expr(expression) => self.walk_expression(expression),
+        }
+      }
+      _ => unreachable!("expected a function or arrow expression"),
+    }
+  }
+
+  /// Walks a function body with its semantic scope, declarations, and directives activated.
   pub(crate) fn walk_function_body(&mut self, body: FunctionBody) {
     self.in_semantic_scope(body.node_id(), |this| {
-      this
-        .definitions_db
-        .initialize_function_body_bindings(this.ast, body);
+      // Only parameter expressions create a separate function-body environment.
+      let db = &mut this.definitions_db;
+      if db
+        .semantic
+        .scope_for_node(&db.semantic_context, body.node_id())
+        .is_some()
+      {
+        db.initialize_scope_bindings();
+      }
       let ast = this.ast.ast;
-      for directive in ast.nodes(body.directives(ast)) {
-        if ast.get_utf8(directive.value(ast)) == "use strict" {
-          this.set_strict(true);
-          break;
+      // Only scan explicit directives when inherited strictness may differ from Semantic.
+      if !this.is_strict()
+        && this
+          .ast
+          .semantic
+          .scope(this.definitions_db.semantic_context.scope)
+          .flags
+          .strict
+      {
+        for directive in ast.nodes(body.directives(ast)) {
+          if ast.get_utf8(directive.value(ast)) == "use strict" {
+            this.set_strict(true);
+            break;
+          }
         }
       }
       let statements = body.body(ast);
@@ -1547,10 +1561,7 @@ impl JavascriptParser<'_> {
           .call_hooks_name(parser, |this, for_name| drive.rename(this, expr, for_name))
           .unwrap_or_default()
         {
-          let variable = parser
-            .get_variable_info(&rename_identifier)
-            .map(|info| ExportedVariableInfo::VariableInfo(info.binding_state()))
-            .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
+          let variable = parser.get_variable_alias(rename_identifier);
           return Some(variable);
         }
         return None;
@@ -1646,20 +1657,7 @@ impl JavascriptParser<'_> {
           }
         }
 
-        match parser.ast.ast.expr_data(expr) {
-          ExprData::Function(function) => parser.walk_function_body(function.body(parser.ast.ast)),
-          ExprData::ArrowFunctionExpression(arrow) => {
-            match parser
-              .ast
-              .ast
-              .arrow_function_body_data(arrow.body(parser.ast.ast))
-            {
-              ArrowFunctionBodyData::FunctionBody(body) => parser.walk_function_body(body),
-              ArrowFunctionBodyData::Expr(expression) => parser.walk_expression(expression),
-            }
-          }
-          _ => unreachable!(),
-        }
+        parser.walk_function_expression_body(expr);
       });
     });
     self.top_level_scope = was_top_level_scope;
@@ -1932,10 +1930,7 @@ impl JavascriptParser<'_> {
           .call_hooks_name(self, |this, for_name| drive.rename(this, right, for_name))
           .unwrap_or_default()
         {
-          let variable = self
-            .get_variable_info(&rename_identifier)
-            .map(|info| ExportedVariableInfo::VariableInfo(info.binding_state()))
-            .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
+          let variable = self.get_variable_alias(rename_identifier);
           self.set_variable(Atom::from(ast.get_utf8(ident.name(ast))), variable);
         }
         return;
@@ -1989,7 +1984,7 @@ impl JavascriptParser<'_> {
           })
           .unwrap_or_default()
         {
-          this.define_variable(Atom::from(name));
+          this.definitions_db.define(Atom::from(name));
         }
       });
       self.walk_array_pattern(array);
@@ -2013,7 +2008,7 @@ impl JavascriptParser<'_> {
           })
           .unwrap_or_default()
         {
-          this.define_variable(Atom::from(name));
+          this.definitions_db.define(Atom::from(name));
         }
       });
       self.walk_object_pattern(object);
@@ -2102,7 +2097,7 @@ impl JavascriptParser<'_> {
     let ast = self.ast.ast;
     let statements = stmt.body(ast);
     self.in_block_scope(true, |this| {
-      this.initialize_semantic_scope_bindings();
+      this.definitions_db.initialize_scope_bindings();
       let prev = this.prev_statement;
       this.block_pre_walk_statements(statements);
       this.prev_statement = prev;
@@ -2315,7 +2310,7 @@ impl JavascriptParser<'_> {
               let statements = block.body(ast);
               this.in_semantic_scope(block.node_id(), |this| {
                 this.in_block_scope(true, |this| {
-                  this.initialize_semantic_scope_bindings();
+                  this.definitions_db.initialize_scope_bindings();
                   let prev = this.prev_statement;
                   this.block_pre_walk_statements(statements);
                   this.prev_statement = prev;

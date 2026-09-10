@@ -245,12 +245,7 @@ impl JavascriptParser<'_> {
         .pre_declarator(self, declarator, decl)
         .unwrap_or_default()
       {
-        self.enter_pattern(
-          PatRef::Borrowed(declarator.id(ast)),
-          |this, identifier, _| {
-            this.define_variable(identifier);
-          },
-        );
+        self.enter_pattern(PatRef::Borrowed(declarator.id(ast)), |_, _, _| {});
       }
     }
   }

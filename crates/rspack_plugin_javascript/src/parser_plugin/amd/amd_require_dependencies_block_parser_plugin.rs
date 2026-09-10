@@ -10,9 +10,7 @@ use rspack_core::{
 use rspack_error::{Error, Severity};
 use rspack_intern::Atom;
 use rspack_util::{SpanExt, swc::AstSubRangeExt};
-use swc_next_ecma_ast::{
-  Argument, ArrowFunctionBodyData, Ast, BindingPattern, CallExpression, GetSpan,
-};
+use swc_next_ecma_ast::{Argument, Ast, BindingPattern, CallExpression, Expr, GetSpan};
 
 use crate::{
   JavascriptParserPlugin,
@@ -260,13 +258,11 @@ impl AMDRequireDependenciesBlockParserPlugin {
             for (name, variable) in reserved {
               parser.set_variable(name, variable);
             }
-            match func_expr.func {
-              Either::Left(function) => parser.walk_function_body(function.body(ast)),
-              Either::Right(arrow) => match ast.arrow_function_body_data(arrow.body(ast)) {
-                ArrowFunctionBodyData::FunctionBody(body) => parser.walk_function_body(body),
-                ArrowFunctionBodyData::Expr(expr) => parser.walk_expression(expr),
-              },
-            }
+            parser.walk_function_expression_body(
+              func_expr
+                .func
+                .either(Expr::Function, Expr::ArrowFunctionExpression),
+            );
           },
         );
       });

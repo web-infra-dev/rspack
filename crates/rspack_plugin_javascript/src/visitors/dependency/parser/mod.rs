@@ -252,23 +252,6 @@ pub enum ExportedVariableInfo {
   VariableInfo(BindingState),
 }
 
-pub enum VariableDefinition {
-  Name(Atom),
-  Identifier(BindingIdentifier),
-}
-
-impl From<Atom> for VariableDefinition {
-  fn from(name: Atom) -> Self {
-    Self::Name(name)
-  }
-}
-
-impl From<BindingIdentifier> for VariableDefinition {
-  fn from(identifier: BindingIdentifier) -> Self {
-    Self::Identifier(identifier)
-  }
-}
-
 fn object_and_members_to_name(object: &str, members_reversed: &[impl AsRef<str>]) -> String {
   let total_len = object.len()
     + members_reversed.len()
@@ -501,7 +484,7 @@ pub struct JavascriptParser<'parser> {
   // ===== inputs =======
   pub(crate) source: &'parser str,
   pub ast: &'parser ParsedJavaScriptAst<'parser>,
-  synthetic_asts: Vec<&'parser ParsedJavaScriptAst<'parser>>,
+  synthetic_asts: Vec<(&'parser ParsedJavaScriptAst<'parser>, usize)>,
   active_synthetic_ast: Option<usize>,
   pub parse_meta: ParseMeta,
   pub factory_meta: Option<&'parser FactoryMeta>,
@@ -1063,11 +1046,19 @@ impl<'parser> JavascriptParser<'parser> {
     })
   }
 
+  /// Resolves a member-chain root for alias- and tag-aware hook dispatch.
   fn get_name_info_from_root(&mut self, root: ExprRef) -> Option<NameInfo<'_>> {
     let ExprRef::Ident(identifier) = root else {
       return self.get_name_info_from_variable(root.get_root_name(self.ast.ast)?);
     };
-    let Some(state) = self.definitions_db.resolve_identifier(self.ast, identifier) else {
+    let resolution = self
+      .definitions_db
+      .semantic_context
+      .identifier_resolution(self.ast, identifier);
+    let Some(state) = self
+      .definitions_db
+      .resolve_identifier(self.ast, identifier, resolution)
+    else {
       let ast = self.ast.ast;
       return Some(NameInfo {
         name: ast.get_utf8(identifier.name(ast)),
@@ -1084,19 +1075,12 @@ impl<'parser> JavascriptParser<'parser> {
     })
   }
 
-  pub fn define_variable(&mut self, variable: impl Into<VariableDefinition>) {
-    match variable.into() {
-      // Name-based writes can reset aliases after initialization; declaration
-      // handles reuse semantic bindings and only define replacement-AST names.
-      VariableDefinition::Name(name) => self.definitions_db.define(name),
-      VariableDefinition::Identifier(identifier) => {
-        self.definitions_db.define_identifier(self.ast, identifier);
-      }
-    }
-  }
-
-  fn initialize_semantic_scope_bindings(&mut self) {
-    self.definitions_db.initialize_scope_bindings(self.ast);
+  /// Captures a variable's current binding state, or keeps its free name for an alias.
+  pub(crate) fn get_variable_alias(&mut self, name: Atom) -> ExportedVariableInfo {
+    self
+      .get_variable_info(&name)
+      .map(|info| ExportedVariableInfo::VariableInfo(info.binding_state()))
+      .unwrap_or(ExportedVariableInfo::Name(name))
   }
 
   pub fn set_variable(&mut self, name: Atom, variable: ExportedVariableInfo) {
@@ -1160,47 +1144,51 @@ impl<'parser> JavascriptParser<'parser> {
   ) {
     let flags = flags.unwrap_or(VariableInfoFlags::TAGGED);
     let scope = self.definitions_db.current_scope();
-    let new_info = if let Some(old_info) = self.get_variable_info(&name) {
-      if let Some(old_tag_info) = old_info.tag_info {
-        let declared_scope = old_info.declared_scope;
-        // FIXME: remove `.clone`
-        let name = old_info.name.cloned();
-        let flags = old_info.flags | flags;
-        let tag_info = Some(TagInfo::create(
-          &mut self.definitions_db,
-          tag,
-          data,
-          Some(old_tag_info),
-        ));
-        VariableInfo::create(
-          &mut self.definitions_db,
-          declared_scope,
-          name,
-          flags,
-          tag_info,
-        )
+    let (state, symbol) = self.definitions_db.resolve_with_symbol(&name);
+    let new_info =
+      if let Some(old_info) = state.map(|state| self.definitions_db.expect_get_variable(state)) {
+        if let Some(old_tag_info) = old_info.tag_info {
+          let declared_scope = old_info.declared_scope;
+          // FIXME: remove `.clone`
+          let name = old_info.name.cloned();
+          let flags = old_info.flags | flags;
+          let tag_info = Some(TagInfo::create(
+            &mut self.definitions_db,
+            tag,
+            data,
+            Some(old_tag_info),
+          ));
+          VariableInfo::create(
+            &mut self.definitions_db,
+            declared_scope,
+            name,
+            flags,
+            tag_info,
+          )
+        } else {
+          let declared_scope = old_info.declared_scope;
+          let tag_info = Some(TagInfo::create(&mut self.definitions_db, tag, data, None));
+          VariableInfo::create(
+            &mut self.definitions_db,
+            declared_scope,
+            Some(name.clone()),
+            flags,
+            tag_info,
+          )
+        }
       } else {
-        let declared_scope = old_info.declared_scope;
         let tag_info = Some(TagInfo::create(&mut self.definitions_db, tag, data, None));
         VariableInfo::create(
           &mut self.definitions_db,
-          declared_scope,
+          scope,
           Some(name.clone()),
           flags,
           tag_info,
         )
-      }
-    } else {
-      let tag_info = Some(TagInfo::create(&mut self.definitions_db, tag, data, None));
-      VariableInfo::create(
-        &mut self.definitions_db,
-        scope,
-        Some(name.clone()),
-        flags,
-        tag_info,
-      )
-    };
-    self.definitions_db.set(scope, name, new_info);
+      };
+    self
+      .definitions_db
+      .set_resolved(scope, name, new_info, Some(symbol));
   }
 
   fn _get_member_expression_info(
@@ -1619,6 +1607,17 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn detect_mode(&mut self, program: Program) {
+    // Semantic can rule out strict directives; module classification still follows Rspack.
+    if self.is_strict()
+      || !self
+        .ast
+        .semantic
+        .scope(self.definitions_db.semantic_context.scope)
+        .flags
+        .strict
+    {
+      return;
+    }
     let ast = self.ast.ast;
     for directive in ast.nodes(program.directives(ast)) {
       if ast.get_utf8(directive.value(ast)) == "use strict" {
@@ -1655,7 +1654,8 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn add_synthetic_ast(&mut self, ast: &'parser ParsedJavaScriptAst<'parser>) -> usize {
     let index = self.synthetic_asts.len();
-    self.synthetic_asts.push(ast);
+    let semantic = self.definitions_db.register_ast(ast);
+    self.synthetic_asts.push((ast, semantic));
     index
   }
 
@@ -1665,10 +1665,12 @@ impl<'parser> JavascriptParser<'parser> {
     ast: &'parser ParsedJavaScriptAst<'parser>,
   ) -> BasicEvaluatedExpression<'parser> {
     let ast = self.add_synthetic_ast(ast);
-    let synthetic_ast = self.synthetic_asts[ast];
+    let (synthetic_ast, semantic) = self.synthetic_asts[ast];
     let previous_ast = std::mem::replace(&mut self.ast, synthetic_ast);
     let previous_synthetic_ast = self.active_synthetic_ast.replace(ast);
+    self.definitions_db.enter_ast(semantic);
     let evaluated = self.evaluate_expression(expression);
+    self.definitions_db.leave_ast();
     self.active_synthetic_ast = previous_synthetic_ast;
     self.ast = previous_ast;
     evaluated
@@ -1679,10 +1681,12 @@ impl<'parser> JavascriptParser<'parser> {
       self.walk_expression(expression);
       return;
     };
-    let synthetic_ast = self.synthetic_asts[ast];
+    let (synthetic_ast, semantic) = self.synthetic_asts[ast];
     let previous_ast = std::mem::replace(&mut self.ast, synthetic_ast);
     let previous_synthetic_ast = self.active_synthetic_ast.replace(ast);
+    self.definitions_db.enter_ast(semantic);
     self.walk_expression(expression);
+    self.definitions_db.leave_ast();
     self.active_synthetic_ast = previous_synthetic_ast;
     self.ast = previous_ast;
   }
@@ -1735,42 +1739,56 @@ impl<'parser> JavascriptParser<'parser> {
           return Some(eval);
         }
         let drive = self.plugin_drive.clone();
-        ident
-          .call_hooks_name(self, |parser, name| {
-            drive.evaluate_identifier(parser, name, None, span.real_lo(), span.real_hi())
-          })
-          .or_else(|| {
-            let state = self.definitions_db.resolve_identifier(self.ast, ident);
-            let info = state.map(|state| self.definitions_db.expect_get_variable(state));
-            if let Some(info) = info {
-              if let Some(name) = info.name
-                && (info.is_free() || info.is_tagged())
-              {
-                let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
-                eval.set_identifier(
-                  name.to_owned(),
-                  ExportedVariableInfo::VariableInfo(info.binding_state()),
-                  None,
-                  None,
-                  None,
-                );
-                Some(eval)
-              } else {
-                None
-              }
-            } else {
-              let name = Atom::from(name);
+        let resolution = self
+          .definitions_db
+          .semantic_context
+          .identifier_resolution(self.ast, ident);
+        let evaluate = |parser: &mut Self, name: &str| {
+          drive.evaluate_identifier(parser, name, None, span.real_lo(), span.real_hi())
+        };
+        let result = if let Some(state) = self
+          .definitions_db
+          .resolve_identifier(self.ast, ident, resolution)
+        {
+          call_hooks_name::call_hooks_info(state, self, evaluate)
+        } else {
+          evaluate(self, name)
+        };
+        result.or_else(|| {
+          // Hooks can change binding state, but not this AST's resolution.
+          let state = self
+            .definitions_db
+            .resolve_identifier(self.ast, ident, resolution);
+          let info = state.map(|state| self.definitions_db.expect_get_variable(state));
+          if let Some(info) = info {
+            if let Some(name) = info.name
+              && (info.is_free() || info.is_tagged())
+            {
               let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
               eval.set_identifier(
-                name.clone(),
-                ExportedVariableInfo::Name(name),
+                name.to_owned(),
+                ExportedVariableInfo::VariableInfo(info.binding_state()),
                 None,
                 None,
                 None,
               );
               Some(eval)
+            } else {
+              None
             }
-          })
+          } else {
+            let name = Atom::from(name);
+            let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
+            eval.set_identifier(
+              name.clone(),
+              ExportedVariableInfo::Name(name),
+              None,
+              None,
+              None,
+            );
+            Some(eval)
+          }
+        })
       }
       ExprData::ThisExpression(this) => {
         let span = this.span(ast);
