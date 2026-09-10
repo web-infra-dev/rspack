@@ -437,8 +437,6 @@ type ExecuteModuleContext = {
 
 在模块成功构建后调用。
 
-在钩子回调中，可以使用 `module.originalSource()` 读取模块源码。没有源码的模块会返回 `null`。请遵循[对象生命周期规则](/api/javascript-api/architecture#compilation-和对象生命周期)，仅在回调执行期间访问模块。
-
 - **类型：** `SyncHook<[Module]>`
 - **参数：**
   - `Module`：模块实例
