@@ -23,6 +23,12 @@ module.exports = cases.map((test) => {
   const lockfileLocation = path.join(directory, 'rspack.lock');
   const cacheLocation = path.join(directory, 'rspack.lock.data');
   const resolved = new URL(test.resolved || 'module.js', url).href;
+  const redirects = test.redirect
+    ? [
+        url,
+        ...[test.redirect].flat().map((target) => new URL(target, url).href),
+      ]
+    : [];
   const contentPath = cachePath(cacheLocation, resolved);
   const entry = {
     resolved,
@@ -54,7 +60,8 @@ module.exports = cases.map((test) => {
     fs.mkdirSync(path.dirname(contentPath), { recursive: true });
     fs.writeFileSync(contentPath, beforeCache);
   }
-  let requests = 0;
+  // Resolution and resource reading may request the same URL more than once.
+  const requests = new Map();
   const frozen = test.frozen ?? test.mode !== 'development';
   return {
     name: test.name,
@@ -68,16 +75,17 @@ module.exports = cases.map((test) => {
         ...(test.frozen === undefined ? {} : { frozen: test.frozen }),
         upgrade: test.upgrade || false,
         httpClient: async (request, headers) => {
-          requests++;
-          if (test.redirect && request === url) {
+          const validators = requests.get(request) || new Set();
+          validators.add(headers['if-none-match']);
+          requests.set(request, validators);
+          const redirectIndex = redirects.indexOf(request);
+          if (redirectIndex >= 0 && redirectIndex < redirects.length - 1) {
             return {
               status: 302,
-              headers: { location: `./${test.redirect}` },
+              headers: { location: redirects[redirectIndex + 1] },
               body: Buffer.from(''),
             };
           }
-          if (test.status === 304)
-            assert.equal(headers['if-none-match'], '"original"');
           return {
             status: test.status || 200,
             headers: {
@@ -85,7 +93,9 @@ module.exports = cases.map((test) => {
               'cache-control': test.noCache ? 'no-cache' : 'max-age=3600',
               etag: '"refreshed"',
             },
-            body: Buffer.from(source(test.remote || 'trusted')),
+            body: Buffer.from(
+              test.status === 304 ? '' : source(test.remote || 'trusted'),
+            ),
           };
         },
       },
@@ -123,11 +133,7 @@ module.exports = cases.map((test) => {
                 updated.integrity,
                 integrity(source(test.expected || 'trusted')),
               );
-              assert.equal(
-                updated.resolved,
-                new URL(test.redirect || test.resolved || 'module.js', url)
-                  .href,
-              );
+              assert.equal(updated.resolved, redirects.at(-1) || resolved);
               assert.equal(
                 fs.readFileSync(
                   cachePath(cacheLocation, updated.resolved),
@@ -143,12 +149,27 @@ module.exports = cases.map((test) => {
             (test.locked === false && frozen)
           ) {
             assert.equal(
-              requests,
+              requests.size,
               0,
               `${test.name}: unexpected network request`,
             );
           } else {
-            assert.ok(requests > 0, `${test.name}: expected a network request`);
+            assert.ok(
+              requests.size > 0,
+              `${test.name}: expected a network request`,
+            );
+          }
+          if (test.requests) {
+            assert.deepEqual(
+              requests,
+              new Map(
+                test.requests.map(([request, etag]) => [
+                  new URL(request, url).href,
+                  new Set([etag]),
+                ]),
+              ),
+              `${test.name}: unexpected request URLs or validators`,
+            );
           }
         });
       },

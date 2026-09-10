@@ -209,10 +209,9 @@ impl HttpCache {
     let mut cached_result = cached_result;
     let mut store_lock = true;
     for redirect_count in 0..=MAX_REDIRECTS {
-      match self
-        .fetch_content_raw(&current_url, cached_result.take())
-        .await?
-      {
+      // The cached content and its validators belong only to the locked resolved URL.
+      let cached = cached_result.take_if(|cached| cached.entry.resolved == current_url);
+      match self.fetch_content_raw(&current_url, cached).await? {
         FetchResultType::Content(mut result) => {
           result.meta.store_lock &= store_lock;
           return Ok(result);

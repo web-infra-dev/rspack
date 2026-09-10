@@ -87,6 +87,7 @@ module.exports = [
     name: 'frozen-not-modified',
     upgrade: true,
     status: 304,
+    requests: [['module.js', '"original"']],
   },
   {
     name: 'frozen-metadata-refresh',
@@ -95,6 +96,37 @@ module.exports = [
   {
     name: 'frozen-cached-redirect',
     resolved: 'target.js',
+  },
+  {
+    name: 'frozen-redirect-not-modified',
+    resolved: 'target.js',
+    redirect: 'target.js',
+    upgrade: true,
+    status: 304,
+    requests: [
+      ['module.js', undefined],
+      ['target.js', '"original"'],
+    ],
+  },
+  {
+    name: 'frozen-multiple-redirects-not-modified',
+    resolved: 'target.js',
+    redirect: ['intermediate.js', 'target.js'],
+    upgrade: true,
+    status: 304,
+    requests: [
+      ['module.js', undefined],
+      ['intermediate.js', undefined],
+      ['target.js', '"original"'],
+    ],
+  },
+  {
+    name: 'frozen-original-not-modified',
+    resolved: 'target.js',
+    upgrade: true,
+    status: 304,
+    requests: [['module.js', undefined]],
+    error: 'Request failed with status: 304',
   },
   {
     name: 'frozen-redirect-changed-content',
@@ -109,6 +141,10 @@ module.exports = [
     resolved: 'target.js',
     redirect: 'other.js',
     upgrade: true,
+    requests: [
+      ['module.js', undefined],
+      ['other.js', undefined],
+    ],
     error: 'has an outdated lockfile entry, but lockfile is frozen',
   },
   {
