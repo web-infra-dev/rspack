@@ -39,7 +39,23 @@ module.exports = [
                 ),
               );
               // The native HMR tap runs at stage 0.
-              if (stage === -10) assert.equal(context.hot, false);
+              if (stage === -10) {
+                assert.equal(context.hot, false);
+                context.hookValue = 'from loader hook';
+                context[Symbol.for('loader-hook-value')] = { value: 42 };
+                Object.defineProperty(context, 'hookContext', {
+                  get: () => context,
+                });
+                const addDependency = context.addDependency;
+                context.addHookDependency = () => addDependency(dependency);
+              } else {
+                assert.equal(context.hookValue, 'from loader hook');
+                assert.equal(context.hookContext, context);
+                assert.equal(
+                  context[Symbol.for('loader-hook-value')].value,
+                  42,
+                );
+              }
               if (stage === Infinity) assert.equal(context.hot, true);
               context.addDependency(dependency);
               context.cacheable(false);

@@ -7,9 +7,14 @@ const { NormalModule } = require('@rspack/core');
 var testPlugin = (compiler) => {
   compiler.hooks.compilation.tap('TestPlugin', (compilation) => {
     let shouldReplace = false;
+    const loaderContexts = new WeakSet();
     NormalModule.getCompilationHooks(compilation).loader.tap(
       'TestPlugin',
       (loaderContext) => {
+        if (loaderContexts.has(loaderContext)) {
+          throw new Error('A rebuilt module must receive a new loader context');
+        }
+        loaderContexts.add(loaderContext);
         /** @type {any} */ (loaderContext).shouldReplace = shouldReplace;
       },
     );

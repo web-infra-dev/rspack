@@ -228,12 +228,27 @@ function getCurrentLoader(
   return null;
 }
 
+interface LoaderContextState {
+  loaderContext: LoaderContext;
+  update(
+    context: JsLoaderContext,
+    dependencies: LoaderDependenciesState,
+    traceData?: Pick<ChromeEvent, 'uuid' | 'args'>,
+  ): void;
+}
+
 export function createLoaderContext(
   compiler: Compiler,
   context: JsLoaderContext,
   dependencies: LoaderDependenciesState,
   traceData?: Pick<ChromeEvent, 'uuid' | 'args'>,
 ): LoaderContext {
+  const state = context.__internal__loaderContextState as
+    LoaderContextState | undefined;
+  if (state) {
+    state.update(context, dependencies, traceData);
+    return state.loaderContext;
+  }
   const { resource } = context;
   const splittedResource = resource && parseResource(resource);
   const resourcePath = splittedResource ? splittedResource.path : undefined;
@@ -700,6 +715,23 @@ export function createLoaderContext(
   loaderContext.__internal__setParseMeta = (key: string, value: string) => {
     context.__internal__parseMeta[key] = value;
   };
+
+  // Rust retains this state only for the current run_loaders invocation. Update
+  // the captured snapshot on every entry so hook-installed closures use the
+  // current loader index, dependencies and module pointer across native loaders.
+  context.__internal__loaderContextState = {
+    loaderContext,
+    update(nextContext, nextDependencies, nextTraceData) {
+      context = nextContext;
+      dependencies = nextDependencies;
+      traceData = nextTraceData;
+      loaderContext.hot = context.hot;
+      loaderContext._module = context._module;
+      loaderContext.loaders = context.loaderItems.map((item) =>
+        LoaderObject.__from_binding(item, compiler),
+      );
+    },
+  } satisfies LoaderContextState;
 
   return loaderContext;
 }
