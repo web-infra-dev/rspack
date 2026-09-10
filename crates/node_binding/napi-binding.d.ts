@@ -3134,6 +3134,7 @@ export interface RawSplitChunkSizes {
 }
 
 export interface RawSplitChunksOptions {
+  optimizeForSize?: boolean
   fallbackCacheGroup?: RawFallbackCacheGroupOptions
   name?: string | false | ((ctx: JsChunkOptionNameCtx) => string | undefined)
   nameBatch?: ((batch: JsChunkOptionNameBatch) => (string | undefined)[])

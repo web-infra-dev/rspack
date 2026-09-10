@@ -62,6 +62,7 @@ export default {
   optimization: {
     splitChunks: {
       chunks: 'async',
+      optimizeForSize: false,
       minChunks: 1,
       minSize: 20000,
       maxAsyncRequests: 30,
@@ -94,6 +95,28 @@ export default {
 Rspack 不允许将 entry 名称传递给 `{cacheGroup}.test` 或者为 `{cacheGroup}.name` 使用现有的 chunk 的名称。
 
 :::
+
+### splitChunks.optimizeForSize
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+花费额外的构建时间，寻找更多可以抽离的公共模块，以减小产物体积。如果愿意用更长的构建时间换取更小的生产产物，可以开启此选项：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      optimizeForSize: true,
+    },
+  },
+};
+```
+
+此选项为未指定名称的缓存组发现更多抽离候选。抽离仍遵守缓存组的模块与 chunk 筛选条件、优先级、体积和请求数限制，并保持模块执行语义。开启后，chunk 边界和文件名可能发生变化。体积收益和构建耗时取决于项目，建议测量后再启用。
+
+此选项配置在 `splitChunks` 上，不支持配置在单个缓存组中。
 
 ### splitChunks.cacheGroups
 

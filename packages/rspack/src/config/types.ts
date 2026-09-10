@@ -2816,6 +2816,12 @@ export type OptimizationSplitChunksCacheGroup = {
 /** Tell Rspack how to splitting chunks. */
 export type OptimizationSplitChunksOptions = {
   /**
+   * Discover additional shared-module groups to reduce output size at the cost
+   * of additional build time. Defaults to `false`.
+   */
+  optimizeForSize?: boolean;
+
+  /**
    * Options for module cache group
    * */
   cacheGroups?: Record<string, false | OptimizationSplitChunksCacheGroup>;

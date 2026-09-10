@@ -64,6 +64,7 @@ export default {
   optimization: {
     splitChunks: {
       chunks: 'async',
+      optimizeForSize: false,
       minChunks: 1,
       minSize: 20000,
       maxAsyncRequests: 30,
@@ -96,6 +97,28 @@ When files paths are processed by Rspack, they always contain `/` on UNIX system
 Passing an entry name to `{cacheGroup}.test` and using a name of an existing chunk for `{cacheGroup}.name` is no longer allowed.
 
 :::
+
+### splitChunks.optimizeForSize
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Spend additional build time looking for shared modules that can be extracted to reduce output size. Enable this option when smaller production assets are worth a longer build:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      optimizeForSize: true,
+    },
+  },
+};
+```
+
+This option discovers additional extraction candidates for unnamed cache groups. Extraction still respects the cache group's module and chunk filters, priorities, size limits, and request limits, and preserves module execution semantics. It can change chunk boundaries and filenames. The size benefit and build-time cost depend on the project; measure both before enabling it.
+
+Configure this option on `splitChunks`, not on individual cache groups.
 
 ### splitChunks.cacheGroups
 

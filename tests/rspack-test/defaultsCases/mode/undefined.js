@@ -51,8 +51,9 @@ module.exports = {
 			+       "maxInitialRequests": 30,
 			@@ ... @@
 			-       "minSize": 10000,
-			-       "usedExports": false,
 			+       "minSize": 20000,
+			@@ ... @@
+			-       "usedExports": false,
 			+       "usedExports": true,
 			@@ ... @@
 			-     "usedExports": false,
