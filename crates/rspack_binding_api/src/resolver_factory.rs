@@ -63,7 +63,8 @@ impl JsResolverFactory {
     resolve_options: Resolve,
     loader_resolve_options: Resolve,
   ) {
-    if self.resolve_options != resolve_options
+    if !Arc::ptr_eq(&self.input_filesystem, &input_filesystem)
+      || self.resolve_options != resolve_options
       || self.loader_resolve_options != loader_resolve_options
     {
       self.resolver_factory = None;

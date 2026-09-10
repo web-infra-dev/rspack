@@ -12,7 +12,7 @@ use rspack_fs::{NativeFileSystem, ReadableFileSystem};
 #[napi]
 pub struct JsCache {
   cache: OnceLock<Arc<Cache>>,
-  build_start: Option<Instant>,
+  build_start: Instant,
 }
 
 impl JsCache {
@@ -38,16 +38,13 @@ impl JsCache {
   pub fn new() -> Self {
     Self {
       cache: OnceLock::new(),
-      build_start: Some(Instant::now()),
+      build_start: Instant::now(),
     }
   }
 
   #[napi]
   pub fn begin_idle(&mut self) {
-    let build_time = self
-      .build_start
-      .take()
-      .map_or(Duration::ZERO, |start| start.elapsed());
+    let build_time = self.build_start.elapsed();
     if let Some(cache) = self.cache.get() {
       cache.begin_idle(build_time);
     }
@@ -58,7 +55,7 @@ impl JsCache {
     if let Some(cache) = self.cache.get() {
       cache.end_idle();
     }
-    self.build_start = Some(Instant::now());
+    self.build_start = Instant::now();
   }
 
   #[napi(ts_return_type = "Promise<void>")]
