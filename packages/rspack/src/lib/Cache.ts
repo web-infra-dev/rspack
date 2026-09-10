@@ -77,7 +77,7 @@ export class Cache {
     const { JsCache } = require('@rspack/binding') as typeof binding;
     this.#binding = new JsCache();
   }
-  
+
   static __to_binding(cache: Cache): binding.JsCache {
     return cache.#binding;
   }
@@ -175,7 +175,7 @@ export class Cache {
   shutdown(callback: CallbackCache<void>) {
     this.#binding.shutdown().then(() => {
       this.hooks.shutdown.callAsync(
-        makeWebpackErrorCallback(callback, 'Cache.hooks.shutdown')
+        makeWebpackErrorCallback(callback, 'Cache.hooks.shutdown'),
       );
     });
   }
