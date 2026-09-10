@@ -68,6 +68,21 @@ Rspack 的测试用例包括如下：
   NAPI_RS_FORCE_WASI=1 WASM=1 NODE_NO_WARNINGS=1 pnpm run test:unit
   ```
 
+### E2E 测试
+
+`tests/e2e` 和 `tests/e2e-browser` 通过 `rs test` 使用 Rstest，并使用 `@rstest/playwright` 提供的浏览器 fixture。运行 `pnpm run test:e2e` 前，需要构建原生 binding 和 JavaScript 包。运行 `pnpm run test:e2e-browser` 前，需要通过 `pnpm run build:cli:dev:browser` 构建浏览器 binding 和相关包。
+
+在本地使用 `pnpm --dir tests/e2e exec playwright install chromium` 安装 Chromium。CI 使用匹配版本的 Playwright Docker 镜像。
+
+运行指定用例或项目：
+
+```bash
+pnpm --dir tests/e2e test cases/react/basic --project chromium
+pnpm --dir tests/e2e test --project chromium-incremental
+```
+
+测试结果输出到终端，并保存到各测试包的 `test-results/results.json`。浏览器 trace 保存在 `.rstest/playwright-traces`；默认重试次数为零，仅在第一次重试时记录 trace。共享 `expect` fixture 默认将 Locator 和 Page 断言的超时时间设为 `rstack.config.ts` 中的套件 `testTimeout`，个别断言仍可通过 `{ timeout }` 覆盖。
+
 ### 目录规范
 
 文件夹 `tests/rspack-test` 的结构如下所示：

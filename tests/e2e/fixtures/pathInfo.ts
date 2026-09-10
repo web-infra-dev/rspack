@@ -1,6 +1,6 @@
 import path from 'node:path';
 import fs from 'fs-extra';
-import type { Fixtures } from '@playwright/test';
+import type { Fixtures } from 'rstack/test';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -16,7 +16,7 @@ export type PathInfoFixtures = {
 };
 
 const tempDir = path.resolve(import.meta.dirname, '../temp');
-async function calcPathInfo(
+export async function calcPathInfo(
   testFile: string,
   workerId: string,
 ): Promise<PathInfo> {
@@ -33,6 +33,11 @@ async function calcPathInfo(
     await fs.remove(tempProjectDir);
   }
   await fs.copy(testProjectDir, tempProjectDir);
+  // Load fixture configs natively as CommonJS, including cases with ESM sources.
+  await fs.copyFile(
+    path.join(tempProjectDir, 'rspack.config.js'),
+    path.join(tempProjectDir, 'rspack.config.cjs'),
+  );
   for (const modulePath of Object.keys(require.cache)) {
     if (modulePath.startsWith(tempProjectDir)) {
       delete require.cache[modulePath];
@@ -47,8 +52,11 @@ async function calcPathInfo(
 }
 
 export const pathInfoFixtures: Fixtures<PathInfoFixtures> = {
-  pathInfo: async ({ page: _ }: any, use, { file, workerIndex }) => {
-    const pathInfo: PathInfo = await calcPathInfo(file, String(workerIndex));
+  pathInfo: async ({ task }, use) => {
+    const pathInfo: PathInfo = await calcPathInfo(
+      task.filepath!,
+      process.env.RSTEST_WORKER_ID!,
+    );
     await use(pathInfo);
     await fs.remove(pathInfo.tempProjectDir);
   },
