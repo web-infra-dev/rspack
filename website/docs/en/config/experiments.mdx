@@ -79,6 +79,8 @@ type HttpUriOptions = {
 
 After enabling this feature, Rspack can build remote resources that start with the `http(s):` protocol. Rspack will download the resources to the local machine and then bundle them.
 
+String entries in `allowedUris` must be valid absolute URLs. Rspack normalizes both the requested URL and each string entry before comparing their prefixes. For example, `'https://example.com'` is normalized to `'https://example.com/'`. Invalid string entries, such as `'https://'`, are ignored. Regular expressions are tested against the normalized URL; use `/^https:\/\//` if you intend to allow any HTTPS URL. Redirect targets must also match `allowedUris`.
+
 By default, Rspack will generate `rspack.lock` and `rspack.lock.data` in the [context](/config/context) folder as the locations of the Lockfile and the cache respectively. You can also configure them through `lockfileLocation` and `cacheLocation`.
 
 :::note
@@ -99,7 +101,7 @@ import path from 'node:path';
 export default {
   experiments: {
     buildHttp: {
-      allowedUris: ['https://'],
+      allowedUris: ['https://example.com/'],
       lockfileLocation: path.join(import.meta.dirname, 'my_project.lock'),
       cacheLocation: path.join(import.meta.dirname, 'my_project.lock.data'),
     },

@@ -80,6 +80,8 @@ type HttpUriOptions = {
 
 启用此功能后，Rspack 可以构建以 `http(s):` 协议开头的远程资源。Rspack 会将资源下载到本地，然后再进行打包。
 
+`allowedUris` 中的字符串必须是有效的绝对 URL。Rspack 会先规范化请求 URL 和各个字符串规则，再比较前缀。例如，`'https://example.com'` 会被规范化为 `'https://example.com/'`。无效字符串（如 `'https://'`）会被忽略。正则表达式匹配的是规范化后的 URL；如果你希望允许任意 HTTPS URL，可以使用 `/^https:\/\//`。重定向目标也必须匹配 `allowedUris`。
+
 默认情况下，Rspack 会在 [context](/config/context) 文件夹下生成 `rspack.lock` 和 `rspack.lock.data` 分别作为 Lockfile 和缓存的位置，你也可以通过 `lockfileLocation` 和 `cacheLocation` 进行配置。
 
 :::note
@@ -100,7 +102,7 @@ import path from 'node:path';
 export default {
   experiments: {
     buildHttp: {
-      allowedUris: ['https://'],
+      allowedUris: ['https://example.com/'],
       lockfileLocation: path.join(import.meta.dirname, 'my_project.lock'),
       cacheLocation: path.join(import.meta.dirname, 'my_project.lock.data'),
     },
