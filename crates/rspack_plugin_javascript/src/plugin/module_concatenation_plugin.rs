@@ -10,10 +10,10 @@ use rspack_collections::{
   Identifiable, IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
-  BoxModule, ChunkUkey, Compilation, CompilationOptimizeChunkModules, Dependency, DependencyId,
-  DependencyType, ExportProvided, ExportsInfoArtifact, GetTargetResult,
-  ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
+  BoxModule, ChunkUkey, Compilation, CompilationOptimizeChunkModules, Dependency, DependencyType,
+  ExportProvided, ExportsInfoArtifact, GetTargetResult, ImportedByDeferModulesArtifact,
+  LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ModuleGraphConnectionId, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
   ProvidedExports, RuntimeCondition, RuntimeSpec, RuntimeSpecMap, SideEffectsStateArtifact,
   SourceType,
   concatenated_module::{
@@ -1187,9 +1187,9 @@ impl ModuleConcatenationPlugin {
           .expect("should have mgm")
           .incoming_connections();
         let mut incomings = IncomingConnections::default();
-        for dependency_id in incoming_connection_ids {
+        for connection_id in incoming_connection_ids {
           let connection = module_graph
-            .connection_by_dependency_id(dependency_id)
+            .connection_by_id(connection_id)
             .expect("should have connection");
           let origin_module = connection.original_module_identifier;
           let connection = CachedIncomingConnection::new(
@@ -1467,10 +1467,9 @@ impl ModuleConcatenationPlugin {
         s.spawn(move |compilation| async move {
           let modules_set = config.get_modules();
           let new_module = create_concatenated_module(compilation, &config).await?;
-          let new_module_id = new_module.identifier();
           let connections = prepare_concatenated_module_connections(
             compilation,
-            &new_module_id,
+            &config.root_module,
             modules_set,
             |m, con, dep| {
               con.original_module_identifier.as_ref() == Some(m)
@@ -1510,6 +1509,7 @@ impl ModuleConcatenationPlugin {
     .map(|r| r.to_rspack_result())
     .collect::<Result<Vec<_>>>()?;
 
+    let mut copy_connection_tasks = vec![];
     let mut set_original_mid_tasks = vec![];
     let mut set_mid_tasks = vec![];
     let mut add_connection_tasks = vec![];
@@ -1521,15 +1521,20 @@ impl ModuleConcatenationPlugin {
       let root_module_id = config.root_module;
       add_concatenated_module(compilation, new_module, config);
 
-      for connection in outgoings.iter().chain(root_outgoings.iter()) {
+      for connection in outgoings {
+        copy_connection_tasks.push((connection, new_module_id));
+      }
+      for connection in &root_outgoings {
         set_original_mid_tasks.push((*connection, new_module_id));
       }
       for connection in root_incomings.iter() {
         set_mid_tasks.push((*connection, new_module_id));
       }
-      let mut all_outgoings = outgoings;
-      all_outgoings.extend(root_outgoings.iter().copied());
-      add_connection_tasks.push((new_module_id, all_outgoings, root_incomings.clone()));
+      add_connection_tasks.push((
+        new_module_id,
+        root_outgoings.clone(),
+        root_incomings.clone(),
+      ));
       remove_connection_tasks.push((root_module_id, root_outgoings, root_incomings));
     }
 
@@ -1538,6 +1543,10 @@ impl ModuleConcatenationPlugin {
     module_graph.batch_set_connections_module(set_mid_tasks);
     module_graph.batch_add_connections(add_connection_tasks);
     module_graph.batch_remove_connections(remove_connection_tasks);
+    // Copy after moving root connections so references to another concatenated
+    // root already point to its replacement. Inner modules may occur in multiple
+    // groups, so their original connections must remain available to every copy.
+    module_graph.batch_copy_connections(copy_connection_tasks);
 
     Ok(())
   }
@@ -1744,8 +1753,8 @@ async fn create_concatenated_module(
       &mut IdentifierSet::default(),
       &mut IdentifierMap::default(),
     ),
-    factory_meta: root_module.factory_meta().cloned(),
-    build_meta: root_module.build_meta().clone(),
+    factory_meta: root_module.factory_meta().into(),
+    build_meta: root_module.freeze_build_meta().clone().into(),
     module_argument: root_module.get_module_argument(),
     exports_argument: root_module.get_exports_argument(),
   };
@@ -1801,19 +1810,19 @@ async fn create_concatenated_module(
 
 fn prepare_concatenated_module_connections<F>(
   compilation: &Compilation,
-  new_module: &ModuleIdentifier,
+  root_module: &ModuleIdentifier,
   modules_set: &IdentifierIndexSet,
   filter_connection: F,
-) -> Vec<DependencyId>
+) -> Vec<ModuleGraphConnectionId>
 where
   F: Fn(&ModuleIdentifier, &ModuleGraphConnection, &dyn Dependency) -> bool + Sync,
 {
   let mg = compilation.get_module_graph();
 
-  let dependency_parts = modules_set
+  let connection_parts = modules_set
     .par_iter()
     .filter_map(|m| {
-      if m == new_module {
+      if m == root_module {
         return None;
       }
       let old_mgm_connections = mg
@@ -1822,13 +1831,13 @@ where
         .outgoing_connections();
 
       let mut part = vec![];
-      for dep_id in old_mgm_connections {
+      for connection_id in old_mgm_connections {
         let connection = mg
-          .connection_by_dependency_id(dep_id)
+          .connection_by_id(connection_id)
           .expect("should have connection");
-        let dep = mg.dependency_by_id(dep_id);
+        let dep = mg.dependency_by_id(&connection.dependency_id);
         if filter_connection(m, connection, dep) {
-          part.push(*dep_id);
+          part.push(*connection_id);
         }
       }
       Some(part)
@@ -1836,7 +1845,7 @@ where
     .collect::<Vec<_>>();
 
   let mut res = vec![];
-  for part in dependency_parts {
+  for part in connection_parts {
     res.extend(part);
   }
   res
@@ -1846,7 +1855,7 @@ fn prepare_concatenated_root_module_connections<F>(
   compilation: &Compilation,
   root_module_id: &ModuleIdentifier,
   filter_connection: F,
-) -> (Vec<DependencyId>, Vec<DependencyId>)
+) -> (Vec<ModuleGraphConnectionId>, Vec<ModuleGraphConnectionId>)
 where
   F: Fn(&ModuleIdentifier, &ModuleGraphConnection, &dyn Dependency) -> bool,
 {
@@ -1857,14 +1866,14 @@ where
     .expect("should have mgm")
     .outgoing_connections();
 
-  for dep_id in old_mgm_connections {
+  for connection_id in old_mgm_connections {
     let connection = mg
-      .connection_by_dependency_id(dep_id)
+      .connection_by_id(connection_id)
       .expect("should have connection");
 
-    let dep = mg.dependency_by_id(dep_id);
+    let dep = mg.dependency_by_id(&connection.dependency_id);
     if filter_connection(root_module_id, connection, dep) {
-      outgoings.push(*dep_id);
+      outgoings.push(*connection_id);
     }
   }
 
@@ -1874,13 +1883,13 @@ where
     .expect("should have mgm")
     .incoming_connections();
 
-  for dep_id in incoming_connections {
+  for connection_id in incoming_connections {
     let connection = mg
-      .connection_by_dependency_id(dep_id)
+      .connection_by_id(connection_id)
       .expect("should have connection");
-    let dependency = mg.dependency_by_id(dep_id);
+    let dependency = mg.dependency_by_id(&connection.dependency_id);
     if filter_connection(root_module_id, connection, dependency) {
-      incomings.push(*dep_id);
+      incomings.push(*connection_id);
     }
   }
 

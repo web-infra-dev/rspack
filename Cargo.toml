@@ -79,6 +79,7 @@ once_cell           = { version = "1.21.4", default-features = false }
 oneshot             = { version = "0.2.1", default-features = false, features = ["std", "async"] }
 owo-colors          = { version = "4.0.0", default-features = false, features = ["supports-colors"] }
 parcel_sourcemap    = { version = "2.1.1", default-features = false }
+parking_lot         = { version = "0.12.5", default-features = false, features = ["send_guard"] }
 paste               = { version = "1.0.15", default-features = false }
 path-clean          = { version = "1.0.1", default-features = false }
 pathdiff            = { version = "0.2.3", default-features = false }

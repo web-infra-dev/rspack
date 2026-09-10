@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
+  with::{As, AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -30,8 +30,8 @@ use swc_core::atoms::Wtf8Atom;
 use crate::{
   AsyncDependenciesBlockRef, BindingCell, CacheFacade, ChunkGraph, ChunkUkey,
   CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation, CompilationAsset,
-  CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
-  ContextModule, CssExportType, DependenciesBlock, DependenciesBlockData,
+  CompilationAssets, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
+  ConnectionState, Context, ContextModule, CssExportType, DependenciesBlock, DependenciesBlockData,
   DependencyCodeGenerationRef, DependencyId, DependencyRef, ExportProvided, ExportsInfoArtifact,
   ExternalModule, FileSystemInfo, Filename, GetTargetResult, ImportPhase, ModuleCodeTemplate,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
@@ -360,6 +360,12 @@ impl Default for BuildInfo {
   }
 }
 
+impl crate::FreezeLock<BuildInfo> {
+  pub fn extend_assets(&self, assets: CompilationAssets) {
+    self.update(|build_info| build_info.assets.extend(assets));
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -661,10 +667,36 @@ impl RspackHash for ExportsArgument {
 }
 
 #[cacheable]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct FactoryMeta {
   pub side_effect_free: Option<bool>,
 }
+
+/// Atomically replaceable factory metadata. Readers retain an `Arc` snapshot
+/// without holding a lock or copying the metadata.
+#[cacheable]
+#[derive(Debug, Default)]
+pub struct FactoryMetaStore(
+  #[cacheable(with=As<Option<Arc<FactoryMeta>>>)] arc_swap::ArcSwapOption<FactoryMeta>,
+);
+
+impl FactoryMetaStore {
+  pub fn get(&self) -> Option<Arc<FactoryMeta>> {
+    self.0.load_full()
+  }
+
+  pub fn set(&self, value: Option<Arc<FactoryMeta>>) {
+    self.0.store(value);
+  }
+}
+
+impl From<Option<Arc<FactoryMeta>>> for FactoryMetaStore {
+  fn from(value: Option<Arc<FactoryMeta>>) -> Self {
+    Self(value.into())
+  }
+}
+
+pub type SharedBuildMeta = triomphe::Arc<BuildMeta>;
 
 pub type ModuleIdentifier = Identifier;
 pub type ResourceIdentifier = Identifier;
@@ -715,17 +747,27 @@ pub trait Module:
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule>;
 
-  fn factory_meta(&self) -> Option<&FactoryMeta>;
+  fn factory_meta(&self) -> Option<Arc<FactoryMeta>>;
 
-  fn set_factory_meta(&mut self, factory_meta: FactoryMeta);
+  fn set_factory_meta(&self, factory_meta: FactoryMeta);
 
-  fn build_info(&self) -> &BuildInfo;
+  /// Refresh factory metadata and clear compilation-specific state on cache reuse.
+  fn reset_for_compilation(&self, factory_meta: Option<Arc<FactoryMeta>>);
+
+  fn build_info(&self) -> crate::FreezeReadGuard<'_, BuildInfo>;
+
+  /// Finalize build information after loader assets and the cache snapshot.
+  fn freeze_build_info(&self);
+
+  /// Merge assets from loader execution before build information is frozen.
+  fn extend_build_assets(&self, assets: CompilationAssets);
 
   fn build_info_mut(&mut self) -> &mut BuildInfo;
 
-  fn build_meta(&self) -> &BuildMeta;
+  fn build_meta(&self) -> crate::FreezeReadGuard<'_, BuildMeta>;
 
-  fn build_meta_mut(&mut self) -> &mut BuildMeta;
+  /// Publish build metadata after failed-rebuild recovery has finished.
+  fn freeze_build_meta(&self) -> &triomphe::Arc<BuildMeta>;
 
   fn get_exports_argument(&self) -> ExportsArgument {
     self.build_info().exports_argument
@@ -745,7 +787,7 @@ pub trait Module:
     module_graph_cache.cached_get_exports_type((self.identifier(), strict), || {
       get_exports_type_impl(
         self.identifier(),
-        self.build_meta(),
+        &self.build_meta(),
         module_graph,
         exports_info_artifact,
         strict,
@@ -848,11 +890,20 @@ pub trait Module:
   /// Determines whether a module needs to be rebuilt using the complete build
   /// context.
   ///
-  /// Implementations may inspect or mutate module state and perform asynchronous
+  /// Implementations inspect reusable build state and may perform asynchronous
   /// work. As in webpack's base `Module`, the default is conservative: module
   /// types that can prove an existing build is valid should override this.
-  async fn need_build(&mut self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+  async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
     Ok(true)
+  }
+
+  /// Prepare module-specific validity data before build information is frozen and cached.
+  async fn prepare_for_cache(
+    &self,
+    _file_system_info: &FileSystemInfo,
+    _build_start_time: u64,
+  ) -> Result<()> {
+    Ok(())
   }
 
   /// Performs the synchronous rebuild decision used by incremental make.
@@ -1017,6 +1068,40 @@ impl<T: Module> ModuleExt for T {
 #[repr(transparent)]
 pub struct BoxModule(Box<dyn Module>);
 
+/// A built module shared by the module graph and the in-memory build cache.
+/// Build metadata has its own publication boundary. Shared modules only expose
+/// field-specific updates; obtaining mutable access to the whole module is not supported.
+#[cacheable]
+#[derive(Debug, Clone)]
+#[repr(transparent)]
+pub struct ModuleRef(Arc<dyn Module>);
+
+impl From<BoxModule> for ModuleRef {
+  fn from(module: BoxModule) -> Self {
+    Self(Arc::from(module.0))
+  }
+}
+
+impl std::ops::Deref for ModuleRef {
+  type Target = dyn Module;
+
+  fn deref(&self) -> &Self::Target {
+    self.0.as_ref()
+  }
+}
+
+impl AsRef<dyn Module> for ModuleRef {
+  fn as_ref(&self) -> &dyn Module {
+    self.0.as_ref()
+  }
+}
+
+impl Identifiable for ModuleRef {
+  fn identifier(&self) -> Identifier {
+    self.0.identifier()
+  }
+}
+
 impl BoxModule {
   /// Installs a module's complete build output before it is published into the graph.
   pub fn with_dependencies(
@@ -1113,28 +1198,40 @@ impl dyn Module {
 #[macro_export]
 macro_rules! impl_module_meta_info {
   () => {
-    fn factory_meta(&self) -> Option<&$crate::FactoryMeta> {
-      self.factory_meta.as_ref()
+    fn factory_meta(&self) -> Option<std::sync::Arc<$crate::FactoryMeta>> {
+      self.factory_meta.get()
     }
 
-    fn set_factory_meta(&mut self, v: $crate::FactoryMeta) {
-      self.factory_meta = Some(v);
+    fn set_factory_meta(&self, v: $crate::FactoryMeta) {
+      self.factory_meta.set(Some(std::sync::Arc::new(v)));
     }
 
-    fn build_info(&self) -> &$crate::BuildInfo {
-      &self.build_info
+    fn reset_for_compilation(&self, factory_meta: Option<std::sync::Arc<$crate::FactoryMeta>>) {
+      self.factory_meta.set(factory_meta);
+    }
+
+    fn build_info(&self) -> $crate::FreezeReadGuard<'_, $crate::BuildInfo> {
+      self.build_info.read()
+    }
+
+    fn freeze_build_info(&self) {
+      self.build_info.freeze();
+    }
+
+    fn extend_build_assets(&self, assets: $crate::CompilationAssets) {
+      self.build_info.extend_assets(assets);
     }
 
     fn build_info_mut(&mut self) -> &mut $crate::BuildInfo {
-      &mut self.build_info
+      self.build_info.get_mut()
     }
 
-    fn build_meta(&self) -> &$crate::BuildMeta {
-      &self.build_meta
+    fn build_meta(&self) -> $crate::FreezeReadGuard<'_, $crate::BuildMeta> {
+      self.build_meta.read()
     }
 
-    fn build_meta_mut(&mut self) -> &mut $crate::BuildMeta {
-      &mut self.build_meta
+    fn freeze_build_meta(&self) -> &$crate::SharedBuildMeta {
+      self.build_meta.freeze()
     }
   };
 }
@@ -1278,11 +1375,23 @@ mod test {
           unreachable!()
         }
 
-        fn factory_meta(&self) -> Option<&crate::FactoryMeta> {
+        fn factory_meta(&self) -> Option<std::sync::Arc<crate::FactoryMeta>> {
           unreachable!()
         }
 
-        fn build_info(&self) -> &crate::BuildInfo {
+        fn reset_for_compilation(&self, _: Option<std::sync::Arc<crate::FactoryMeta>>) {
+          unreachable!()
+        }
+
+        fn build_info(&self) -> crate::FreezeReadGuard<'_, crate::BuildInfo> {
+          unreachable!()
+        }
+
+        fn freeze_build_info(&self) {
+          unreachable!()
+        }
+
+        fn extend_build_assets(&self, _: crate::CompilationAssets) {
           unreachable!()
         }
 
@@ -1290,15 +1399,15 @@ mod test {
           unreachable!()
         }
 
-        fn build_meta(&self) -> &crate::BuildMeta {
+        fn build_meta(&self) -> crate::FreezeReadGuard<'_, crate::BuildMeta> {
           unreachable!()
         }
 
-        fn build_meta_mut(&mut self) -> &mut crate::BuildMeta {
+        fn freeze_build_meta(&self) -> &crate::SharedBuildMeta {
           unreachable!()
         }
 
-        fn set_factory_meta(&mut self, _: crate::FactoryMeta) {
+        fn set_factory_meta(&self, _: crate::FactoryMeta) {
           unreachable!()
         }
       }

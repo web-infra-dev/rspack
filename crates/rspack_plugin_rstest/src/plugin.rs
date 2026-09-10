@@ -631,9 +631,9 @@ async fn optimize_dependencies(
   };
 
   let mut updated_mocked_module_ids = IdentifierSet::default();
-  let module_graph = build_module_graph_artifact.get_module_graph_mut();
+  let module_graph = build_module_graph_artifact.get_module_graph();
   for module_id in mocked_module_ids {
-    if let Some(module) = module_graph.module_by_identifier_mut(&module_id)
+    if let Some(module) = module_graph.module_by_identifier(&module_id)
       && module_declared_side_effect_free(module.as_ref()) == Some(true)
     {
       module.set_factory_meta(FactoryMeta {

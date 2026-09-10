@@ -1,9 +1,9 @@
-const path = require('node:path');
-const { rspack } = require('@rspack/core');
-const { ReactRefreshRspackPlugin } = require('@rspack/plugin-react-refresh');
+import path from 'node:path';
+import { rspack } from '@rspack/core';
+import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
 
-module.exports = {
-  context: __dirname,
+export default {
+  context: import.meta.dirname,
   mode: 'development',
   entry: {
     main: './src/main.jsx',
@@ -51,7 +51,10 @@ module.exports = {
               postcssOptions: {
                 plugins: {
                   tailwindcss: {
-                    config: path.join(__dirname, './tailwind.config.js'),
+                    config: path.join(
+                      import.meta.dirname,
+                      './tailwind.config.js',
+                    ),
                   },
                 },
               },
