@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import type { Fixtures, PlaywrightTestArgs } from '@playwright/test';
 import {
   type Compiler,
@@ -8,9 +9,6 @@ import {
 } from '@rspack/core';
 import { RspackDevServer } from '@rspack/dev-server';
 import type { PathInfoFixtures } from './pathInfo';
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
 
 class Rspack {
   private config: RspackConfig;
@@ -21,11 +19,10 @@ class Rspack {
   private onDone: Array<() => void> = [];
   constructor(
     projectDir: string,
+    config: Configuration,
     handleRspackConfig: (config: Configuration) => Configuration,
   ) {
-    const configPath = path.resolve(projectDir, 'rspack.config.js');
-    this.config = handleRspackConfig(require(configPath));
-    delete require.cache[configPath];
+    this.config = handleRspackConfig(config);
     this.projectDir = projectDir;
     this.outDir = this.config.output!.path!;
   }
@@ -113,7 +110,11 @@ export const rspackFixtures = (): RspackFixtures => {
       async ({ page, pathInfo, rspackConfig }, use, { workerIndex }) => {
         const { tempProjectDir } = pathInfo;
         const port = rspackConfig.basePort + workerIndex;
-        const rspack = new Rspack(tempProjectDir, (config) => {
+        const configPath = path.join(tempProjectDir, 'rspack.config.js');
+        const { default: config } = await import(
+          pathToFileURL(configPath).href
+        );
+        const rspack = new Rspack(tempProjectDir, config, (config) => {
           // rewrite port
           if (!config.devServer) {
             config.devServer = {};
