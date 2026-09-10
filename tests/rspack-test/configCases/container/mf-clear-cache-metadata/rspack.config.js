@@ -1,22 +1,23 @@
-const { ModuleFederationPlugin } = require('@rspack/core').container;
+const { ModuleFederationPlugin } = require("@rspack/core").container;
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-  target: 'node',
-  entry: './index.js',
+  target: "node",
+  entry: "./index.js",
   output: {
-    filename: 'bundle.js',
-    uniqueName: 'mf-clear-cache-metadata',
+    filename: "bundle.js",
+    uniqueName: "mf-clear-cache-metadata",
   },
   optimization: {
-    chunkIds: 'named',
-    moduleIds: 'named',
+    concatenateModules: false,
+    chunkIds: "named",
+    moduleIds: "named",
   },
   plugins: [
     new ModuleFederationPlugin({
-      name: 'host',
+      name: "host",
       remotes: {
-        remoteA: 'promise Promise.resolve({ init() {}, get() {} })',
+        remoteA: "promise Promise.resolve({ init() {}, get() {} })",
       },
     }),
   ],
