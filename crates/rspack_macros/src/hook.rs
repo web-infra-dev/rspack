@@ -180,8 +180,8 @@ impl DefineHookInput {
       impl ::rspack_hook::Hook for #hook_name {
         type Tap = Box<dyn #trait_name + Send + Sync>;
 
-        fn common(&self) -> &::rspack_hook::HookCommon {
-          &self.common
+        fn tap_stages(&self) -> &[i32] {
+          self.common.tap_stages()
         }
 
         fn used_stages(&self) -> Vec<i32> {

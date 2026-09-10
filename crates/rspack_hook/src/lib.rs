@@ -183,7 +183,8 @@ pub trait Interceptor<H: Hook> {
 pub trait Hook {
   type Tap;
 
-  fn common(&self) -> &HookCommon;
+  /// Returns tap stages in ascending order, including duplicates.
+  fn tap_stages(&self) -> &[i32];
 
   fn used_stages(&self) -> Vec<i32>;
 

@@ -50,7 +50,7 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 use rspack_hash::RspackHasher;
-use rspack_hook::{Hook, HookCommon, Interceptor};
+use rspack_hook::{Hook, Interceptor};
 use rspack_napi::threadsafe_function::DynThreadsafeFunction;
 use rspack_paths::Utf8PathBuf;
 use rspack_plugin_html::{
@@ -288,7 +288,7 @@ impl RegisterJsTapsInner {
 
   pub async fn call_register(
     &self,
-    hook: &HookCommon,
+    stages: &[i32],
   ) -> rspack_error::Result<RegisterFunctionOutput> {
     if let RegisterJsTapsCache::Cache(rw) = &self.cache {
       let cache = {
@@ -298,7 +298,7 @@ impl RegisterJsTapsInner {
       Ok(match cache {
         Some(js_taps) => js_taps,
         None => {
-          let js_taps = self.call_register_impl(hook).await?;
+          let js_taps = self.call_register_impl(stages).await?;
           {
             #[allow(clippy::unwrap_used)]
             let mut cache = rw.write().unwrap();
@@ -308,16 +308,19 @@ impl RegisterJsTapsInner {
         }
       })
     } else {
-      let js_taps = self.call_register_impl(hook).await?;
+      let js_taps = self.call_register_impl(stages).await?;
       Ok(js_taps)
     }
   }
 
   async fn call_register_impl(
     &self,
-    hook: &HookCommon,
+    stages: &[i32],
   ) -> rspack_error::Result<RegisterFunctionOutput> {
-    self.register.call_with_sync(hook.used_stages()).await
+    let mut used_stages = stages.to_vec();
+    // Hook tap stages are already sorted, so duplicate stages are adjacent.
+    used_stages.dedup();
+    self.register.call_with_sync(used_stages).await
   }
 
   fn clear_cache(&self) {
@@ -423,7 +426,7 @@ macro_rules! define_register {
         if let Some(non_skippable_registers) = &self.inner.non_skippable_registers && !non_skippable_registers.is_non_skippable(&$kind) {
           return Ok(Vec::new());
         }
-        let js_taps = self.inner.call_register(hook.common()).await?;
+        let js_taps = self.inner.call_register(hook.tap_stages()).await?;
         let js_taps = js_taps
           .iter()
           .map(|t| Box::new($tap_name::new(t.clone())) as <$tap_hook as Hook>::Tap)
