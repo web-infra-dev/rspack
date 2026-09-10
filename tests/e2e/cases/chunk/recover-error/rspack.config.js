@@ -1,9 +1,9 @@
-const { rspack } = require('@rspack/core');
-const { ReactRefreshRspackPlugin } = require('@rspack/plugin-react-refresh');
+import { rspack } from '@rspack/core';
+import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
 
-module.exports = {
+export default {
   mode: 'development',
-  context: __dirname,
+  context: import.meta.dirname,
   entry: {
     main: './src/main.jsx',
   },
