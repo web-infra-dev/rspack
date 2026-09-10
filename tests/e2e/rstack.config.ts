@@ -19,7 +19,6 @@ define.test({
       output: {
         // Native ESM configs and bundled tests must share one native core instance.
         externals: { '@rspack/core': 'commonjs @rspack/core' },
-        module: false,
       },
     }),
   ),

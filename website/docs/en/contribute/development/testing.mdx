@@ -68,21 +68,6 @@ You can run these test cases in the following ways:
   NAPI_RS_FORCE_WASI=1 WASM=1 NODE_NO_WARNINGS=1 pnpm run test:unit
   ```
 
-### E2E tests
-
-The `tests/e2e` and `tests/e2e-browser` suites use Rstest through `rs test`, with browser fixtures from `@rstest/playwright`. Build the native binding and JavaScript packages before running `pnpm run test:e2e`. For `pnpm run test:e2e-browser`, first build the browser binding and packages with `pnpm run build:cli:dev:browser`.
-
-Install Chromium locally with `pnpm --dir tests/e2e exec playwright install chromium`. CI uses the matching Playwright Docker image.
-
-To run a specific case or project:
-
-```bash
-pnpm --dir tests/e2e test cases/react/basic --project chromium
-pnpm --dir tests/e2e test --project chromium-incremental
-```
-
-The suites print results to the terminal and write `test-results/results.json` in each package. Browser traces use `.rstest/playwright-traces`; tracing remains enabled on the first retry, and retries default to zero. The shared `expect` fixture defaults locator and page assertion timeouts to the suite's `testTimeout` in `rstack.config.ts`. Individual assertions can override this with `{ timeout }`.
-
 ### Directory structure
 
 The structure of the `tests/rspack-test` folder is as follows:

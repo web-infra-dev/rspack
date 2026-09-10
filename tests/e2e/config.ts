@@ -13,7 +13,6 @@ function checkOnly(tests: TestInfo[]) {
 }
 
 export function e2eConfig(timeout: number, ciWorkers: number): RstestConfig {
-  const collectedFiles: TestFileInfo[] = [];
   return {
     // These tests run in Node; do not inherit the browser app's Rsbuild config.
     extends: {},
@@ -30,12 +29,7 @@ export function e2eConfig(timeout: number, ciWorkers: number): RstestConfig {
       ...(process.env.CI
         ? [
             {
-              onTestFileReady: (file: TestFileInfo) => {
-                collectedFiles.push(file);
-              },
-              onTestRunEnd: () => {
-                for (const { tests } of collectedFiles) checkOnly(tests);
-              },
+              onTestFileReady: ({ tests }: TestFileInfo) => checkOnly(tests),
             },
           ]
         : []),

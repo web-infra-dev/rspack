@@ -12,7 +12,6 @@ export const test = base.extend({
     async ({ context }, use) => {
       // Let the test timeout bound actions and navigation, as Playwright Test did.
       context.setDefaultTimeout(0);
-      context.setDefaultNavigationTimeout(0);
       await use(undefined);
     },
     { auto: true },
