@@ -184,25 +184,45 @@ where
 pub type AtomMembers = SmallVec<[Atom; 2]>;
 pub type OptionalMembers = SmallVec<[bool; 2]>;
 pub type MemberRanges = SmallVec<[Span; 2]>;
-type RawAtomMembers = SmallVec<[PropertyKeyData; 2]>;
+type RawMembers = SmallVec<[RawMember; 2]>;
 
-struct RawExtractedMemberExpressionChainData {
-  object: ExprRef,
-  members: RawAtomMembers,
-  members_optionals: OptionalMembers,
-  member_ranges: MemberRanges,
+/// Keep each segment together until its root needs member hooks. Spans and
+/// owned names are only read when materializing the parallel hook arguments.
+struct RawMember {
+  property: PropertyKeyData,
+  object: Expr,
+  optional: bool,
 }
 
-fn materialize_member_atoms(ast: &Ast<'_>, members: RawAtomMembers) -> AtomMembers {
-  let mut atoms = AtomMembers::with_capacity(members.len());
-  for property in members {
-    atoms.push(match property {
+impl RawMember {
+  fn atom(&self, ast: &Ast<'_>) -> Atom {
+    match self.property {
       PropertyKeyData::IdentifierName(identifier) => Atom::from(ast.get_utf8(identifier.name(ast))),
       property => member_property_key_data_to_atom(ast, property)
         .expect("validated computed member property should convert to an atom"),
-    });
+    }
   }
-  atoms
+}
+
+struct RawExtractedMemberExpressionChainData {
+  object: ExprRef,
+  members: RawMembers,
+}
+
+/// Preserve extraction order (outermost first) for consumers that reverse it.
+fn materialize_members(
+  ast: &Ast<'_>,
+  members: RawMembers,
+) -> (AtomMembers, OptionalMembers, MemberRanges) {
+  let mut atoms = AtomMembers::with_capacity(members.len());
+  let mut optionals = OptionalMembers::with_capacity(members.len());
+  let mut ranges = MemberRanges::with_capacity(members.len());
+  for member in members {
+    atoms.push(member.atom(ast));
+    optionals.push(member.optional);
+    ranges.push(member.object.span(ast));
+  }
+  (atoms, optionals, ranges)
 }
 
 #[derive(Debug)]
@@ -1195,9 +1215,7 @@ impl<'parser> JavascriptParser<'parser> {
   fn _get_member_expression_info(
     &mut self,
     object: ExprRef,
-    members: RawAtomMembers,
-    mut members_optionals: OptionalMembers,
-    mut member_ranges: MemberRanges,
+    members: RawMembers,
     allowed_types: AllowedMemberTypes,
   ) -> Option<MemberExpressionInfo> {
     let ast = self.ast.ast;
@@ -1211,16 +1229,20 @@ impl<'parser> JavascriptParser<'parser> {
           let extracted = self.extract_member_expression_chain_raw(ExprRef::Member(member));
           (extracted.object, extracted.members)
         } else {
-          (ExprRef::from_expr(ast, callee), RawAtomMembers::new())
+          (ExprRef::from_expr(ast, callee), RawMembers::new())
         };
         let NameInfo {
           name: resolved_root,
           info: root_info,
         } = self.get_name_info_from_root(root)?;
 
-        let mut root_members = materialize_member_atoms(ast, root_members);
-        let mut members = materialize_member_atoms(ast, members);
-        root_members.reverse();
+        let root_members = root_members
+          .iter()
+          .rev()
+          .map(|member| member.atom(ast))
+          .collect();
+        let (mut members, mut members_optionals, mut member_ranges) =
+          materialize_members(ast, members);
         members.reverse();
         members_optionals.reverse();
         member_ranges.reverse();
@@ -1245,7 +1267,8 @@ impl<'parser> JavascriptParser<'parser> {
           info: root_info,
         } = self.get_name_info_from_root(object)?;
 
-        let mut members = materialize_member_atoms(ast, members);
+        let (mut members, mut members_optionals, mut member_ranges) =
+          materialize_members(ast, members);
         let name = object_and_members_to_name(resolved_root, &members);
         members.reverse();
         members_optionals.reverse();
@@ -1275,13 +1298,7 @@ impl<'parser> JavascriptParser<'parser> {
       ExprRef::Member(_) | ExprRef::OptChain(_) => {
         self.get_member_expression_info(expr_ref, allowed_types)
       }
-      _ => self._get_member_expression_info(
-        expr_ref,
-        RawAtomMembers::new(),
-        OptionalMembers::new(),
-        MemberRanges::new(),
-        allowed_types,
-      ),
+      _ => self._get_member_expression_info(expr_ref, RawMembers::new(), allowed_types),
     }
   }
 
@@ -1290,34 +1307,21 @@ impl<'parser> JavascriptParser<'parser> {
     expr: ExprRef,
     allowed_types: AllowedMemberTypes,
   ) -> Option<MemberExpressionInfo> {
-    let RawExtractedMemberExpressionChainData {
-      object,
-      members,
-      members_optionals,
-      member_ranges,
-    } = self.extract_member_expression_chain_raw(expr);
-    self._get_member_expression_info(
-      object,
-      members,
-      members_optionals,
-      member_ranges,
-      allowed_types,
-    )
+    let RawExtractedMemberExpressionChainData { object, members } =
+      self.extract_member_expression_chain_raw(expr);
+    self._get_member_expression_info(object, members, allowed_types)
   }
 
   pub fn extract_member_expression_chain(
     &self,
     expr: ExprRef,
   ) -> ExtractedMemberExpressionChainData {
-    let RawExtractedMemberExpressionChainData {
-      object,
-      members,
-      members_optionals,
-      member_ranges,
-    } = self.extract_member_expression_chain_raw(expr);
+    let RawExtractedMemberExpressionChainData { object, members } =
+      self.extract_member_expression_chain_raw(expr);
+    let (members, members_optionals, member_ranges) = materialize_members(self.ast.ast, members);
     ExtractedMemberExpressionChainData {
       object,
-      members: materialize_member_atoms(self.ast.ast, members),
+      members,
       members_optionals,
       member_ranges,
     }
@@ -1329,9 +1333,7 @@ impl<'parser> JavascriptParser<'parser> {
   ) -> RawExtractedMemberExpressionChainData {
     let ast = self.ast.ast;
     let mut object = expr;
-    let mut members = RawAtomMembers::new();
-    let mut members_optionals = OptionalMembers::new();
-    let mut member_ranges = MemberRanges::new();
+    let mut members = RawMembers::new();
     let mut in_optional_chain = self.member_expr_in_optional_chain;
     loop {
       match object {
@@ -1348,10 +1350,12 @@ impl<'parser> JavascriptParser<'parser> {
           } else {
             break;
           };
-          members.push(property_data);
           let member_object = expr.object(ast);
-          member_ranges.push(member_object.span(ast));
-          members_optionals.push(in_optional_chain || expr.optional(ast));
+          members.push(RawMember {
+            property: property_data,
+            object: member_object,
+            optional: in_optional_chain || expr.optional(ast),
+          });
           object = ExprRef::from_expr(ast, member_object);
           in_optional_chain = false;
         }
@@ -1367,12 +1371,7 @@ impl<'parser> JavascriptParser<'parser> {
         _ => break,
       }
     }
-    RawExtractedMemberExpressionChainData {
-      object,
-      members,
-      members_optionals,
-      member_ranges,
-    }
+    RawExtractedMemberExpressionChainData { object, members }
   }
 
   fn enter_ident<F>(&mut self, ident: BindingIdentifier, on_ident: F)
