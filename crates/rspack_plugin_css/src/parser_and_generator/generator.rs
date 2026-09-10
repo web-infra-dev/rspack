@@ -20,6 +20,7 @@ use rspack_util::{
   itoa, json_stringify, json_stringify_str,
 };
 use rustc_hash::FxHashSet as HashSet;
+use smol_str::SmolStr;
 
 use crate::{
   css_syntax::unescape_identifier,
@@ -93,15 +94,11 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   pub fn new(
     source: BoxSource,
     module: &'a dyn Module,
+    css_build_info: &'a CssBuildInfo,
     generate_context: &'a mut GenerateContext<'g>,
     with_hmr: bool,
     es_module: bool,
   ) -> Self {
-    let css_build_info = module
-      .build_info()
-      .css
-      .as_deref()
-      .expect("CssParserAndGenerator should populate BuildInfo.css during parse");
     let generator_options = css_generator_options(generate_context.module_generator_options);
 
     Self {
@@ -271,10 +268,12 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     &'b mut self,
     source: BoxSource,
     module: &'b dyn Module,
+    css_build_info: &'b CssBuildInfo,
   ) -> CssModuleGenerator<'b, 'g> {
     CssModuleGenerator::new(
       source,
       module,
+      css_build_info,
       self.generate_context,
       self.with_hmr,
       self.es_module,
@@ -377,7 +376,16 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         continue;
       };
 
-      let mut child = self.child_generator(imported_source.clone(), imported_module.as_ref());
+      let build_info = imported_module.build_info();
+      let css_build_info = build_info
+        .css
+        .as_deref()
+        .expect("imported CSS module should have build info");
+      let mut child = self.child_generator(
+        imported_source.clone(),
+        imported_module.as_ref(),
+        css_build_info,
+      );
       child.render_ordered_css_sources(builder, &css_import.render_conditions, seen);
     }
   }
@@ -575,7 +583,13 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         continue;
       }
 
-      let mut child = self.child_generator(source.clone(), imported_module.as_ref());
+      let build_info = imported_module.build_info();
+      let css_build_info = build_info
+        .css
+        .as_deref()
+        .expect("imported CSS module should have build info");
+      let mut child =
+        self.child_generator(source.clone(), imported_module.as_ref(), css_build_info);
       code.push_str(&child.render_style_imports(visited_inlined_modules));
       let css_source = child.render_css_module_source();
       let css = child.css_text_expr(css_source, &css_import.render_conditions);
@@ -1002,14 +1016,14 @@ if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_
 struct CssConcatenationState<'a> {
   compilation: &'a rspack_core::Compilation,
   used_identifiers: HashSet<String>,
-  seen_static_exports: HashSet<(rspack_core::ModuleIdentifier, &'a str)>,
+  seen_static_exports: HashSet<(rspack_core::ModuleIdentifier, SmolStr)>,
   static_export_queue: VecDeque<StaticCssExportFrame<'a>>,
 }
 
 struct StaticCssExportFrame<'a> {
   module: &'a dyn Module,
-  css_build_info: &'a CssBuildInfo,
-  export_name: &'a str,
+  css_build_info: rspack_core::FreezeReadGuard<'a, CssBuildInfo>,
+  export_name: SmolStr,
   next_index: usize,
   resolved: String,
 }
@@ -1024,11 +1038,7 @@ impl<'a> CssConcatenationState<'a> {
     }
   }
 
-  fn resolve_static_export(
-    &mut self,
-    module: &'a dyn Module,
-    export_name: &'a str,
-  ) -> Option<String> {
+  fn resolve_static_export(&mut self, module: &'a dyn Module, export_name: &str) -> Option<String> {
     self.seen_static_exports.clear();
     self.static_export_queue.clear();
 
@@ -1075,28 +1085,25 @@ impl<'a> CssConcatenationState<'a> {
     None
   }
 
-  fn push_static_export_frame(
-    &mut self,
-    module: &'a dyn Module,
-    export_name: &'a str,
-  ) -> Option<()> {
-    let css_build_info = module
-      .build_info()
-      .css
-      .as_deref()
-      .expect("CssParserAndGenerator should populate BuildInfo.css during parse");
+  fn push_static_export_frame(&mut self, module: &'a dyn Module, export_name: &str) -> Option<()> {
+    let css_build_info = module.build_info().map(|info| {
+      info
+        .css
+        .as_deref()
+        .expect("CssParserAndGenerator should populate BuildInfo.css during parse")
+    });
     css_build_info.exports.get(export_name)?;
     let module_identifier = module.identifier();
     if !self
       .seen_static_exports
-      .insert((module_identifier, export_name))
+      .insert((module_identifier, export_name.into()))
     {
       return None;
     }
     self.static_export_queue.push_back(StaticCssExportFrame {
       module,
       css_build_info,
-      export_name,
+      export_name: export_name.into(),
       next_index: 0,
       resolved: String::new(),
     });
@@ -1108,13 +1115,15 @@ impl<'a> CssConcatenationState<'a> {
     if let Some(css_export) = frame
       .css_build_info
       .exports
-      .get(frame.export_name)
+      .get(frame.export_name.as_str())
       .and_then(|elements| elements.get_index(frame.next_index))
     {
       frame.next_index += 1;
       Some(StaticCssExportStep::Resolve {
         module: frame.module,
-        css_export,
+        // The frame retains the metadata guard while the next step mutates
+        // the queue. Retain just this export's small strings for that step.
+        css_export: css_export.clone(),
       })
     } else {
       Some(StaticCssExportStep::Complete(
@@ -1131,7 +1140,7 @@ impl<'a> CssConcatenationState<'a> {
 enum StaticCssExportStep<'a> {
   Resolve {
     module: &'a dyn Module,
-    css_export: &'a CssExport,
+    css_export: CssExport,
   },
   Complete(String),
 }

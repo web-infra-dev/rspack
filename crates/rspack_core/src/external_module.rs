@@ -15,8 +15,8 @@ use crate::{
   ChunkInitFragments, ChunkUkey, CodeGenerationDataChunkInitFragments, CodeGenerationDataUrl,
   CodeGenerationResultBuilder, Compilation, ConcatenationScope, Context, CssLayer,
   CssModuleRenderCondition, DependenciesBlock, DependenciesBlockData, DependencyRef,
-  ExportProvided, ExternalType, FactoryMeta, ImportAttributes, ImportPhase, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
+  ExportProvided, ExternalType, FactoryMetaStore, FreezeLock, ImportAttributes, ImportPhase,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
   NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
   StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
@@ -456,9 +456,9 @@ pub struct ExternalModule {
   pub external_type: ExternalType,
   /// Request intended by user (without loaders from config)
   user_request: String,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  factory_meta: FactoryMetaStore,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
   dependency_meta: DependencyMeta,
   place_in_initial: bool,
 }
@@ -520,12 +520,13 @@ impl ExternalModule {
       request,
       external_type,
       user_request,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         top_level_declarations: Some(Default::default()),
         strict: true,
         ..Default::default()
-      },
+      }
+      .into(),
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
       dependency_meta,
@@ -1153,7 +1154,7 @@ impl Module for ExternalModule {
     build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BoxModule> {
-    self.build_info.module = build_context.compiler_options.output.module;
+    self.build_info.get_mut().module = build_context.compiler_options.output.module;
     let resolved_external_type = self.resolve_external_type();
     let request = match &self.request {
       ExternalRequest::Single(request) => Some(request),
@@ -1164,7 +1165,7 @@ impl Module for ExternalModule {
 
     #[allow(clippy::collapsible_match)]
     match resolved_external_type {
-      "this" => self.build_info.strict = false,
+      "this" => self.build_info.get_mut().strict = false,
       "system" => {
         if !request.is_some_and(|r| r.has_rest()) {
           exports_type = BuildMetaExportsType::Namespace;
@@ -1172,22 +1173,22 @@ impl Module for ExternalModule {
         }
       }
       "module" => {
-        if self.build_info.module {
+        if self.build_info.get_mut().module {
           if !request.is_some_and(|r| r.has_rest()) {
             exports_type = BuildMetaExportsType::Namespace;
             can_mangle = true;
           }
         } else {
-          self.build_meta.set_has_top_level_await(true);
+          self.build_meta.get_mut().set_has_top_level_await(true);
           if !request.is_some_and(|r| r.has_rest()) {
             exports_type = BuildMetaExportsType::Namespace;
             can_mangle = false;
           }
         }
       }
-      "script" | "promise" => self.build_meta.set_has_top_level_await(true),
+      "script" | "promise" => self.build_meta.get_mut().set_has_top_level_await(true),
       "import" => {
-        self.build_meta.set_has_top_level_await(true);
+        self.build_meta.get_mut().set_has_top_level_await(true);
         if !request.is_some_and(|r| r.has_rest()) {
           exports_type = BuildMetaExportsType::Namespace;
           can_mangle = false;
@@ -1195,7 +1196,7 @@ impl Module for ExternalModule {
       }
       _ => {}
     }
-    self.build_meta.set_exports_type(exports_type);
+    self.build_meta.get_mut().set_exports_type(exports_type);
     Ok(BoxModule::new(self).with_dependencies(
       vec![DependencyRef::new(StaticExportsDependency::new(
         StaticExportsSpec::True,

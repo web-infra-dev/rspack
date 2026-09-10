@@ -11,17 +11,15 @@ use crate::new_cache::CacheKey;
 pub enum DatabaseFamily {
   Cache,
   Validator,
-  Meta,
 }
 
 impl DatabaseFamily {
-  pub const COUNT: usize = 3;
+  pub const COUNT: usize = 2;
 
   pub const fn index(self) -> usize {
     match self {
       Self::Cache => 0,
       Self::Validator => 1,
-      Self::Meta => 2,
     }
   }
 }

@@ -16,8 +16,8 @@ pub use compilation::{
 };
 pub use exports::*;
 pub use new_cache::{
-  Cache, CacheFacade, CacheValue, Etag, FileSystemInfo, ItemCacheFacade, MultiItemCache, Snapshot,
-  SnapshotValidationResult,
+  Cache, CacheFacade, CacheValue, CompilerCache, Etag, FileSystemInfo, ItemCacheFacade,
+  MultiItemCache, Snapshot, SnapshotValidationResult, create_cache,
 };
 pub use transient_cache::*;
 pub use value_cache_versions::ValueCacheVersions;

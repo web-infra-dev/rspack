@@ -291,8 +291,8 @@ async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
     .build_module_graph_artifact
     .get_module_graph_mut();
   for module_id in &to_invalidate {
-    if let Some(active_module) = module_graph.module_by_identifier_mut(module_id)
-      && let Some(active_module) = active_module.downcast_mut::<LazyCompilationProxyModule>()
+    if let Some(active_module) = module_graph.module_by_identifier(module_id)
+      && let Some(active_module) = active_module.downcast_ref::<LazyCompilationProxyModule>()
     {
       active_module.invalid();
     }
