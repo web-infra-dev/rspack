@@ -1,8 +1,5 @@
 use napi::{Either, bindgen_prelude::JsValuesTupleIntoVec};
-use rspack_core::{
-  AdditionalData, BUILTIN_LOADER_PREFIX, LoaderContext, NormalModuleLoaderShouldYield,
-  NormalModuleLoaderStartYielding, RunnerContext,
-};
+use rspack_core::{AdditionalData, LoaderContext, NormalModuleLoaderStartYielding, RunnerContext};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
@@ -18,39 +15,25 @@ impl JsLoaderRspackPlugin {
   }
 }
 
-#[plugin_hook(NormalModuleLoaderShouldYield for JsLoaderRspackPlugin, tracing=false)]
-pub(crate) async fn loader_should_yield(
-  &self,
-  loader_context: &LoaderContext<RunnerContext>,
-) -> Result<Option<bool>> {
-  match loader_context.state() {
-    s @ (LoaderState::Init | LoaderState::ProcessResource | LoaderState::Finished) => {
-      panic!("Unexpected loader runner state: {s:?}")
-    }
-    LoaderState::Pitching => {
-      let current_loader = loader_context.current_loader();
-      if current_loader.request().starts_with(BUILTIN_LOADER_PREFIX) {
-        Ok(Some(false))
-      } else {
-        let loaders_without_pitch = self.loaders_without_pitch.read().await;
-        let should_yield = !loaders_without_pitch.contains(current_loader.path().as_str());
-        Ok(Some(should_yield))
-      }
-    }
-    LoaderState::Normal => Ok(Some(
-      !loader_context
-        .current_loader()
-        .request()
-        .starts_with(BUILTIN_LOADER_PREFIX),
-    )),
-  }
-}
-
 #[plugin_hook(NormalModuleLoaderStartYielding for JsLoaderRspackPlugin,tracing=false)]
 pub(crate) async fn loader_yield(
   &self,
   loader_context: &mut LoaderContext<RunnerContext>,
 ) -> Result<()> {
+  // Keep pitch capability discovery on the JS side of the runtime boundary.
+  // A loader known not to have a pitch function does not need a JS callback.
+  if loader_context.state() == LoaderState::Pitching
+    && self
+      .loaders_without_pitch
+      .read()
+      .await
+      .contains(loader_context.current_loader().path().as_str())
+  {
+    loader_context.current_loader().set_pitch_executed();
+    loader_context.loader_index += 1;
+    return Ok(());
+  }
+
   let runner = self.runner.lock().expect("should get lock").clone();
   let runner = runner
     .get_or_try_init(|| async {
