@@ -1,9 +1,6 @@
 import path from 'node:path';
 import fs from 'fs-extra';
 import type { Fixtures } from 'rstack/test';
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
 
 type PathInfo = {
   testFile: string;
@@ -28,21 +25,10 @@ export async function calcPathInfo(
     throw new Error(`rspack config not exist in ${testProjectDir}`);
   }
 
-  const tempProjectDir = path.join(tempDir, workerId);
-  if (await fs.exists(tempProjectDir)) {
-    await fs.remove(tempProjectDir);
-  }
+  // Native ESM modules are cached by URL. Give each test a fresh module graph.
+  await fs.ensureDir(tempDir);
+  const tempProjectDir = await fs.mkdtemp(path.join(tempDir, `${workerId}-`));
   await fs.copy(testProjectDir, tempProjectDir);
-  // Load fixture configs natively as CommonJS, including cases with ESM sources.
-  await fs.copyFile(
-    path.join(tempProjectDir, 'rspack.config.js'),
-    path.join(tempProjectDir, 'rspack.config.cjs'),
-  );
-  for (const modulePath of Object.keys(require.cache)) {
-    if (modulePath.startsWith(tempProjectDir)) {
-      delete require.cache[modulePath];
-    }
-  }
 
   return {
     testFile,

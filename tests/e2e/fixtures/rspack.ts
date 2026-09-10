@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import type { Fixtures } from 'rstack/test';
 import type { PlaywrightFixture } from '@rstest/playwright';
 import {
@@ -9,10 +10,7 @@ import {
 } from '@rspack/core';
 import { RspackDevServer } from '@rspack/dev-server';
 import type { PathInfoFixtures } from './pathInfo';
-import { createRequire } from 'node:module';
 import { expect } from './base';
-
-const require = createRequire(import.meta.url);
 
 // Test plugins expose these fields, and dev middleware supplies a synchronous filesystem.
 type FixtureCompiler = Compiler & {
@@ -31,11 +29,10 @@ class Rspack {
   private onDone: Array<() => void> = [];
   constructor(
     projectDir: string,
+    config: Configuration,
     handleRspackConfig: (config: Configuration) => Configuration,
   ) {
-    const configPath = path.resolve(projectDir, 'rspack.config.cjs');
-    this.config = handleRspackConfig(require(configPath));
-    delete require.cache[configPath];
+    this.config = handleRspackConfig(config);
     this.projectDir = projectDir;
     this.outDir = this.config.output!.path!;
   }
@@ -139,7 +136,11 @@ export const rspackFixtures = (): Fixtures<
         const { tempProjectDir } = pathInfo;
         const port =
           rspackConfig.basePort + Number(process.env.RSTEST_WORKER_ID);
-        const rspack = new Rspack(tempProjectDir, (config) => {
+        const configPath = path.join(tempProjectDir, 'rspack.config.js');
+        const { default: config } = await import(
+          /* webpackIgnore: true */ pathToFileURL(configPath).href
+        );
+        const rspack = new Rspack(tempProjectDir, config, (config) => {
           // rewrite port
           if (!config.devServer) {
             config.devServer = {};

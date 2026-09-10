@@ -1,14 +1,14 @@
-const { rspack } = require('@rspack/core');
-const path = require('path');
+import { rspack } from '@rspack/core';
+import path from 'node:path';
 
 const sharedObj = {
   time: 1,
 };
 
 /** @type {import("@rspack/core").Configuration} */
-module.exports = {
+export default {
   entry: './index.js',
-  context: __dirname,
+  context: import.meta.dirname,
   cache: true,
   experiments: {
     cache: true,
@@ -17,7 +17,7 @@ module.exports = {
   module: {
     rules: [
       {
-        include: path.resolve(__dirname, 'reexport.js'),
+        include: path.resolve(import.meta.dirname, 'reexport.js'),
         sideEffects: true,
       },
     ],

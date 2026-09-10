@@ -17,7 +17,7 @@ define.test({
         RSPACK_E2E_INCREMENTAL: String(incremental),
       },
       output: {
-        // Configs loaded with require and test imports must share one native core instance.
+        // Native ESM configs and bundled tests must share one native core instance.
         externals: { '@rspack/core': 'commonjs @rspack/core' },
         module: false,
       },

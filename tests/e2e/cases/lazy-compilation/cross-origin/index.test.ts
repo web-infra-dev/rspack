@@ -1,13 +1,11 @@
 import http from 'node:http';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { test as base, expect } from '@/fixtures/base';
 import fs from 'fs-extra';
 import { type Compiler, type Configuration, rspack } from '@rspack/core';
 import { RspackDevServer } from '@rspack/dev-server';
 import { calcPathInfo } from '@/fixtures/pathInfo';
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
 
 // Create a separate lazy compilation server on a different port (cross-origin)
 function createLazyCompilationServer(
@@ -49,9 +47,10 @@ const test = base.extend<{
       const lazyCompilationPort = frontendPort + 100;
 
       // Load and modify config
-      const configPath = path.resolve(tempProjectDir, 'rspack.config.cjs');
-      const config: Configuration = require(configPath);
-      delete require.cache[configPath];
+      const configPath = path.resolve(tempProjectDir, 'rspack.config.js');
+      const { default: config }: { default: Configuration } = await import(
+        /* webpackIgnore: true */ pathToFileURL(configPath).href
+      );
 
       config.context = tempProjectDir;
       config.output = {

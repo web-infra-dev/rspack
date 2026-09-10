@@ -22,8 +22,8 @@ mod connection;
 pub use connection::*;
 
 use crate::{
-  BoxDependency, BoxModule, DependencyCondition, DependencyId, DependencyRef, ExportsInfoArtifact,
-  ModuleIdentifier,
+  BoxDependency, DependencyCondition, DependencyId, DependencyRef, ExportsInfoArtifact,
+  ModuleIdentifier, ModuleRef,
 };
 
 // TODO Here request can be used Atom
@@ -95,7 +95,7 @@ pub(crate) struct ModuleGraphData {
   /****** only modified during Make Phase */
   /// Module indexed by `ModuleIdentifier`.
   pub(crate) modules:
-    rollback::RollbackMap<ModuleIdentifier, BoxModule, BuildHasherDefault<IdentifierHasher>>,
+    rollback::RollbackMap<ModuleIdentifier, ModuleRef, BuildHasherDefault<IdentifierHasher>>,
 
   /// Dependencies indexed by `DependencyId`.
   dependencies: rollback::DenseDependencyIdMap<DependencyRef>,
@@ -180,14 +180,14 @@ impl ModuleGraph {
   }
 
   #[inline]
-  pub fn modules(&self) -> impl Iterator<Item = (&ModuleIdentifier, &BoxModule)> {
+  pub fn modules(&self) -> impl Iterator<Item = (&ModuleIdentifier, &ModuleRef)> {
     self.inner.modules.iter()
   }
 
   #[inline]
   pub fn modules_par(
     &self,
-  ) -> impl rayon::prelude::ParallelIterator<Item = (&ModuleIdentifier, &BoxModule)> {
+  ) -> impl rayon::prelude::ParallelIterator<Item = (&ModuleIdentifier, &ModuleRef)> {
     self.inner.modules.par_iter()
   }
 
@@ -290,6 +290,13 @@ impl ModuleGraph {
     let module_identifier = self.module_identifier_by_dependency_id(dep_id).copied();
     let parent_block = self.get_parent_block(dep_id).copied();
 
+    if force {
+      assert!(
+        original_module_identifier.is_none_or(|id| self.inner.modules.get(&id).is_none()),
+        "revoke the parent module before removing its dependencies"
+      );
+    }
+
     let connection_id = self
       .inner
       .dependency_id_to_connection_id
@@ -303,11 +310,6 @@ impl ModuleGraph {
       self.inner.dependencies.remove(dep_id);
       self.inner.dependency_id_to_parents.remove(dep_id);
       self.inner.connection_to_condition.remove(dep_id);
-      if let Some(m_id) = original_module_identifier
-        && let Some(module) = self.inner.modules.get_mut(&m_id)
-      {
-        module.remove_dependency_id(*dep_id);
-      }
       if let Some(b_id) = parent_block
         && let Some(block) = self.inner.blocks.get_mut(&b_id)
       {
@@ -316,11 +318,6 @@ impl ModuleGraph {
           block.remove_dependency_id(*dep_id);
         } else {
           *block = Arc::new(block.without_dependency(*dep_id));
-        }
-        if let Some(module_id) = original_module_identifier
-          && let Some(module) = self.inner.modules.get_mut(&module_id)
-        {
-          module.dependencies_block_mut().replace_block(block.clone());
         }
       }
     }
@@ -520,7 +517,8 @@ impl ModuleGraph {
     }
   }
 
-  pub fn add_module(&mut self, module: BoxModule) {
+  pub fn add_module(&mut self, module: impl Into<ModuleRef>) {
+    let module = module.into();
     self.inner.modules.insert(module.identifier(), module);
   }
 
@@ -656,7 +654,7 @@ impl ModuleGraph {
       .map(|con| con.module_identifier())
   }
 
-  pub fn get_module_by_dependency_id(&self, dep_id: &DependencyId) -> Option<&BoxModule> {
+  pub fn get_module_by_dependency_id(&self, dep_id: &DependencyId) -> Option<&ModuleRef> {
     self
       .module_identifier_by_dependency_id(dep_id)
       .and_then(|module_id| self.inner.modules.get(module_id))
@@ -728,15 +726,8 @@ impl ModuleGraph {
   }
 
   /// Uniquely identify a module by its identifier and return the aliased reference
-  pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
+  pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&ModuleRef> {
     self.inner.modules.get(identifier)
-  }
-
-  pub fn module_by_identifier_mut(
-    &mut self,
-    identifier: &ModuleIdentifier,
-  ) -> Option<&mut BoxModule> {
-    self.inner.modules.get_mut(identifier)
   }
 
   /// Uniquely identify a module graph module by its module's identifier and return the aliased reference
@@ -878,7 +869,7 @@ impl ModuleGraph {
       .and_then(|mgm| mgm.post_order_index)
   }
 
-  pub fn get_issuer(&self, module_id: &ModuleIdentifier) -> Option<&BoxModule> {
+  pub fn get_issuer(&self, module_id: &ModuleIdentifier) -> Option<&ModuleRef> {
     self
       .module_graph_module_by_identifier(module_id)
       .and_then(|mgm| mgm.issuer().get_module(self))

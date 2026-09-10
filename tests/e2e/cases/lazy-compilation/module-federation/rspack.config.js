@@ -1,9 +1,10 @@
-const { rspack } = require('@rspack/core');
-const { ReactRefreshRspackPlugin } = require('@rspack/plugin-react-refresh');
+import { fileURLToPath } from 'node:url';
+import { rspack } from '@rspack/core';
+import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
 
 /** @type { import('@rspack/core').RspackOptions } */
-module.exports = {
-  context: __dirname,
+export default {
+  context: import.meta.dirname,
   entry: './src/index.jsx',
   mode: 'development',
   devtool: false,
@@ -47,7 +48,9 @@ module.exports = {
         react: {},
         'react-dom': {},
       },
-      runtimePlugins: [require.resolve('./runtime-plugin.js')],
+      runtimePlugins: [
+        fileURLToPath(import.meta.resolve('./runtime-plugin.js')),
+      ],
     }),
     new ReactRefreshRspackPlugin(),
   ],
