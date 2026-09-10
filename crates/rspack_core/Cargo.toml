@@ -11,6 +11,7 @@ anymap                     = { workspace = true }
 arc-swap                   = { workspace = true }
 async-recursion            = { workspace = true }
 async-trait                = { workspace = true }
+atomic_refcell             = { workspace = true }
 bitflags                   = { workspace = true }
 concat-string              = { workspace = true }
 cow-utils                  = { workspace = true }

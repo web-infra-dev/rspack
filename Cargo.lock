@@ -4213,6 +4213,7 @@ dependencies = [
  "arc-swap",
  "async-recursion",
  "async-trait",
+ "atomic_refcell",
  "bitflags 2.13.1",
  "concat-string",
  "cow-utils",
