@@ -1,6 +1,6 @@
 const { ModuleFederationPlugin } = require('@rspack/core').container;
 
-const createConfig = (name, identity) => ({
+const createConfig = (name, identity, disableAssetsAnalyze = false) => ({
   target: 'async-node',
   experiments: { layers: true },
   optimization: { chunkIds: 'named', moduleIds: 'named' },
@@ -13,7 +13,7 @@ const createConfig = (name, identity) => ({
     new ModuleFederationPlugin({
       name: 'shared_providers',
       filename: `${name}/container.js`,
-      manifest: { fileName: `${name}.json` },
+      manifest: { fileName: `${name}.json`, disableAssetsAnalyze },
       exposes: { './consumer': './consumer.js' },
       shared: {
         './first': {
@@ -44,4 +44,10 @@ const createConfig = (name, identity) => ({
 module.exports = [
   createConfig('layered', { shareScope: 'custom', layer: 'server' }),
   createConfig('default', {}),
+  createConfig(
+    'layered-disabled',
+    { shareScope: 'custom', layer: 'server' },
+    true,
+  ),
+  createConfig('default-disabled', {}, true),
 ];

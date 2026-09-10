@@ -246,30 +246,29 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
       })
       .collect::<Vec<_>>();
-    let shared = self
-      .options
-      .shared
-      .iter()
-      .map(|shared| {
-        let identity =
-          SharedIdentity::new(&shared.share_scope, &shared.name, shared.layer.as_deref());
-        StatsShared {
-          id: compose_shared_id(&container_name, &identity),
+    let mut shared_map: HashMap<SharedIdentity, StatsShared> = HashMap::default();
+    for shared in &self.options.shared {
+      let identity =
+        SharedIdentity::new(&shared.share_scope, &shared.name, shared.layer.as_deref());
+      shared_map
+        .entry(identity)
+        .or_insert_with_key(|identity| StatsShared {
+          id: compose_shared_id(&container_name, identity),
           identity_id: None,
           name: shared.name.clone(),
           version: shared.version.clone().unwrap_or_default(),
           requiredVersion: shared.required_version.clone(),
           layer: shared.layer.clone(),
-          share_scope: manifest_share_scope(&identity),
+          share_scope: manifest_share_scope(identity),
           // default singleton to true when not provided by user
           singleton: shared.singleton.or(Some(true)),
           assets: StatsAssetsGroup::default(),
           usedIn: Vec::new(),
           usedExports: Vec::new(),
           providers: Vec::new(),
-        }
-      })
-      .collect::<Vec<_>>();
+        });
+    }
+    let shared = shared_map.into_values().collect::<Vec<_>>();
     let remote_list = self
       .options
       .remote_alias_map

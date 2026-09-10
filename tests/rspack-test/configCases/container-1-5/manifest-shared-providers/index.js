@@ -9,6 +9,18 @@ it('retains one shared row with concrete provider versions, imports and assets',
       );
       const shares = output.shared.filter(({ name }) => name === 'multiple');
       expect(shares).toHaveLength(1);
+      const disabledFilename = filename.replace(name, `${name}-disabled`);
+      const disabled = JSON.parse(
+        fs.readFileSync(path.join(__dirname, '..', disabledFilename), 'utf-8'),
+      );
+      expect(disabled.shared.map(({ id, identityId }) => identityId ?? id).sort()).toEqual(
+        output.shared.map(({ id, identityId }) => identityId ?? id).sort(),
+      );
+      for (const entry of disabled.shared) {
+        expect(entry).not.toHaveProperty('providers');
+        expect(entry.assets.js).toEqual({ sync: [], async: [] });
+        expect(entry.assets.css).toEqual({ sync: [], async: [] });
+      }
       const [shared] = shares;
       if (name === 'layered') {
         expect(shared).toEqual(
