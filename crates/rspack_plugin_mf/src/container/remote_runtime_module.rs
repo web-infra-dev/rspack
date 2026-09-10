@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-use rspack_collections::Identifiable;
+use rspack_collections::{Identifiable, IdentifierSet};
 use rspack_core::{
   ChunkGraph, Compilation, DependenciesBlock, ModuleGraph, ModuleId, ModuleIdentifier,
   RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements,
@@ -119,12 +119,19 @@ impl RuntimeModule for RemoteRuntimeModule {
           .iter()
           .map(|(_, module_id)| module_id.clone())
           .collect::<Vec<_>>();
-        for (consumer_module_identifier, consumer_module_id) in &consumer_modules {
+        let mut pending_consumers = consumer_modules.clone();
+        let mut visited_consumers = IdentifierSet::default();
+        while let Some((consumer_identifier, consumer_id)) = pending_consumers.pop() {
+          if !visited_consumers.insert(consumer_identifier) {
+            continue;
+          }
+          let parents = get_consumer_modules(compilation, module_graph, &consumer_identifier);
           add_to_mapping(
             &mut consumer_module_id_to_parent_module_ids,
-            consumer_module_id.clone(),
-            get_parent_module_ids(compilation, module_graph, consumer_module_identifier),
+            consumer_id,
+            parents.iter().map(|(_, id)| id.clone()).collect(),
           );
+          pending_consumers.extend(parents);
         }
         add_to_mapping(
           &mut remote_key_to_remote_module_ids,
@@ -244,18 +251,6 @@ fn get_consumer_modules(
       let module_id = get_module_id(compilation, module_identifier)?;
       Some((*module_identifier, module_id))
     })
-    .collect()
-}
-
-fn get_parent_module_ids(
-  compilation: &Compilation,
-  module_graph: &ModuleGraph,
-  consumer_module_identifier: &ModuleIdentifier,
-) -> Vec<ModuleId> {
-  module_graph
-    .get_incoming_connections(consumer_module_identifier)
-    .filter_map(|connection| connection.original_module_identifier.as_ref())
-    .filter_map(|module_identifier| get_module_id(compilation, module_identifier))
     .collect()
 }
 
