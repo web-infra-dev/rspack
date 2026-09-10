@@ -20,9 +20,11 @@ it('should keep fallback resources associated with their configured imports', as
   const fallbacks = __webpack_require__.federation.sharedFallback;
   for (const [key, expected] of [
     ['same-key', [
+      ['0', 'a'],
       ['1.0.0', 'a'],
       ['1.0.0', 'a'],
       ['1.0.0', 'query'],
+      ['2.0.0', 'a'],
       ['2.0.0', 'b'],
       ['3.0.0', 'b'],
     ]],

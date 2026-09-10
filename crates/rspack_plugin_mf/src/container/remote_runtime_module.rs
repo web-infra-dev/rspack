@@ -10,7 +10,7 @@ use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 
-use super::remote_module::RemoteModule;
+use super::{fallback_module::FallbackModule, remote_module::RemoteModule};
 use crate::{
   ShareScope,
   utils::{runtime_require_scope_name, runtime_require_scope_requirement},
@@ -105,26 +105,28 @@ impl RuntimeModule for RemoteRuntimeModule {
         let external_module = module_graph
           .get_module_by_dependency_id(dep)
           .expect("should have module");
-        let remote_info = if self.enhanced {
+        let remote_infos = if self.enhanced {
           if let Some(external_module) = external_module.downcast_ref::<ExternalModule>() {
-            let external_type = external_module.get_external_type().as_str();
-            let name = if external_type == "script" {
-              match extract_url_and_global(external_module.get_request().primary()) {
-                Ok(url_and_global) => url_and_global.global,
-                Err(_) => "",
-              }
-            } else {
-              ""
-            };
-            Some(RemoteInfo {
-              external_type,
-              name,
-            })
+            vec![RemoteInfo::from(external_module)]
+          } else if let Some(fallback_module) = external_module.downcast_ref::<FallbackModule>() {
+            fallback_module
+              .get_dependency_ids()
+              .map(|dep| {
+                module_graph
+                  .get_module_by_dependency_id(dep)
+                  .and_then(|module| module.downcast_ref::<ExternalModule>())
+                  .map(RemoteInfo::from)
+                  .unwrap_or(RemoteInfo {
+                    external_type: "",
+                    name: "",
+                  })
+              })
+              .collect()
           } else {
-            None
+            vec![]
           }
         } else {
-          None
+          vec![]
         };
         let external_module_id = ChunkGraph::get_module_id(
           &compilation.module_ids_artifact,
@@ -139,7 +141,7 @@ impl RuntimeModule for RemoteRuntimeModule {
             name,
             external_module_id,
             remote_name: &m.remote_key,
-            remote_info,
+            remote_infos,
           },
         );
       }
@@ -189,8 +191,8 @@ struct RemoteData<'a> {
   name: &'a str,
   external_module_id: &'a ModuleId,
   remote_name: &'a str,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  remote_info: Option<RemoteInfo<'a>>,
+  #[serde(skip_serializing_if = "Vec::is_empty")]
+  remote_infos: Vec<RemoteInfo<'a>>,
 }
 
 #[derive(Serialize)]
@@ -198,6 +200,24 @@ struct RemoteData<'a> {
 struct RemoteInfo<'a> {
   external_type: &'a str,
   name: &'a str,
+}
+
+impl<'a> From<&'a ExternalModule> for RemoteInfo<'a> {
+  fn from(external_module: &'a ExternalModule) -> Self {
+    let external_type = external_module.get_external_type().as_str();
+    let name = if external_type == "script" {
+      match extract_url_and_global(external_module.get_request().primary()) {
+        Ok(url_and_global) => url_and_global.global,
+        Err(_) => "",
+      }
+    } else {
+      ""
+    };
+    Self {
+      external_type,
+      name,
+    }
+  }
 }
 
 #[derive(Serialize)]

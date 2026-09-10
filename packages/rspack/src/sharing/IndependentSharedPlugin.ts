@@ -254,8 +254,9 @@ const getShareRequests = (
         requests: variant.requestOrigins
           ? variant.requestOrigins
               .filter(
-                ([, version, originalImport]) =>
+                ([, version, originalImport, versionInferred]) =>
                   originalImport === requestImport &&
+                  versionInferred === (shareConfig.version === undefined) &&
                   (shareConfig.version === undefined ||
                     version ===
                       (shareConfig.version === false
@@ -502,6 +503,18 @@ export class IndependentSharedPlugin {
       });
     });
 
+    const uniqueBuildRequests = Array.from(
+      new Map(
+        buildRequests.map((request) => [
+          JSON.stringify({
+            ...request,
+            configIndex: undefined,
+            config: this.sharedOptions[request.configIndex],
+          }),
+          request,
+        ]),
+      ).values(),
+    );
     const emittedPath = (request: SharedBuildRequest) =>
       JSON.stringify([
         resolvePublicOutputDir(this.outputDir, request.shareKey),
@@ -516,13 +529,13 @@ export class IndependentSharedPlugin {
       );
     const pathCounts = new Map<string, number>();
     const globalCounts = new Map<string, number>();
-    for (const request of buildRequests) {
+    for (const request of uniqueBuildRequests) {
       const path = emittedPath(request);
       const global = emittedGlobal(request);
       pathCounts.set(path, (pathCounts.get(path) || 0) + 1);
       globalCounts.set(global, (globalCounts.get(global) || 0) + 1);
     }
-    for (const request of buildRequests) {
+    for (const request of uniqueBuildRequests) {
       if (
         request.layer !== undefined ||
         pathCounts.get(emittedPath(request))! > 1 ||
@@ -532,7 +545,7 @@ export class IndependentSharedPlugin {
       }
     }
 
-    return buildRequests;
+    return uniqueBuildRequests;
   }
 
   private prepareBuildAssets(

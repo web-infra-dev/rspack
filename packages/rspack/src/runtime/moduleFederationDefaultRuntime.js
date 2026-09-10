@@ -389,9 +389,7 @@ export default function () {
           const info =
             existingInfos.length > 0
               ? existingInfos
-              : remoteData.remoteInfo
-                ? [remoteData.remoteInfo]
-                : [];
+              : remoteData.remoteInfos || [];
           if (info.length > 0) idToRemoteMap[id] = info;
         }
         return idToRemoteMap;

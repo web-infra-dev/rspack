@@ -49,6 +49,7 @@ pub struct ProvideOptions {
 pub struct VersionedProvideOptions {
   config_id: usize,
   original_request: String,
+  version_inferred: bool,
   pub request: Option<String>,
   pub layer: Option<String>,
   pub share_key: String,
@@ -66,6 +67,7 @@ impl ProvideOptions {
     VersionedProvideOptions {
       config_id: self.config_id,
       original_request: request.to_string(),
+      version_inferred: self.version.is_none(),
       request: self.request.clone(),
       layer: self.layer.clone(),
       share_key: self.share_key.clone(),
@@ -160,7 +162,7 @@ fn provide_dependencies(
           config.layer.clone(),
           config.tree_shaking_mode.clone(),
         )
-        .with_original_request(config.original_request.clone())
+        .with_request_origin(config.original_request.clone(), config.version_inferred)
       })
     })
     .collect()
@@ -245,6 +247,7 @@ impl ProvideSharedPlugin {
         VersionedProvideOptions {
           config_id,
           original_request: key.to_string(),
+          version_inferred: false,
           request: Some(resource.to_string()),
           layer: layer.clone(),
           share_key: share_key.to_string(),
@@ -274,6 +277,7 @@ impl ProvideSharedPlugin {
           VersionedProvideOptions {
             config_id,
             original_request: key.to_string(),
+            version_inferred: true,
             request: Some(resource.to_string()),
             layer: layer.clone(),
             share_key: share_key.to_string(),

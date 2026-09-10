@@ -28,7 +28,7 @@ struct CollectSharedEntryVariant {
   layer: Option<String>,
   requests: Vec<[String; 2]>,
   #[serde(rename = "requestOrigins", skip_serializing_if = "Vec::is_empty")]
-  request_origins: Vec<[String; 3]>,
+  request_origins: Vec<(String, String, String, bool)>,
 }
 
 #[derive(Debug, Serialize)]
@@ -37,7 +37,7 @@ struct CollectSharedEntryAssetItem<'a> {
   share_scope: &'a ShareScope,
   requests: &'a [[String; 2]],
   #[serde(rename = "requestOrigins", skip_serializing_if = "Option::is_none")]
-  request_origins: Option<&'a [[String; 3]]>,
+  request_origins: Option<&'a [(String, String, String, bool)]>,
   #[serde(skip_serializing_if = "Option::is_none")]
   variants: Option<&'a [CollectSharedEntryVariant]>,
 }
@@ -185,7 +185,12 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
               module_graph
                 .dependency_by_id(&connection.dependency_id)
                 .downcast_ref::<ProvideSharedDependency>()
-                .map(|dependency| dependency.original_request.clone())
+                .map(|dependency| {
+                  (
+                    dependency.original_request.clone(),
+                    dependency.version_inferred,
+                  )
+                })
             })
             .collect(),
         )
@@ -214,7 +219,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
             .dependency_by_id(&dep_id)
             .as_module_dependency()
         {
-          original_requests.push(dependency.request().to_string());
+          original_requests.push((dependency.request().to_string(), true));
         }
       }
     }
@@ -238,12 +243,12 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
         );
         let original_requests = original_requests
           .iter()
-          .filter(|original_request| {
+          .filter(|(original_request, _)| {
             provided_version.is_some()
               || !entry
                 .request_origins
                 .iter()
-                .any(|[request, _, import]| request == &resource && import == *original_request)
+                .any(|(request, _, import, _)| request == &resource && import == original_request)
           })
           .collect::<Vec<_>>();
         if provided_version.is_none() && original_requests.is_empty() {
@@ -260,8 +265,13 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
         if !entry.requests.contains(&pair) {
           entry.requests.push(pair.clone());
         }
-        for original_request in original_requests {
-          let origin = [pair[0].clone(), pair[1].clone(), original_request.clone()];
+        for (original_request, version_inferred) in original_requests {
+          let origin = (
+            pair[0].clone(),
+            pair[1].clone(),
+            original_request.clone(),
+            *version_inferred,
+          );
           if !entry.request_origins.contains(&origin) {
             entry.request_origins.push(origin);
           }
