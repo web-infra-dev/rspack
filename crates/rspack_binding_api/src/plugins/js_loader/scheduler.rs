@@ -20,18 +20,32 @@ pub(crate) async fn loader_yield(
   &self,
   loader_context: &mut LoaderContext<RunnerContext>,
 ) -> Result<()> {
-  // Keep pitch capability discovery on the JS side of the runtime boundary.
-  // A loader known not to have a pitch function does not need a JS callback.
-  if loader_context.state() == LoaderState::Pitching
-    && self
-      .loaders_without_pitch
-      .read()
-      .await
-      .contains(loader_context.current_loader().path().as_str())
-  {
-    loader_context.set_current_loader_pitch_executed();
-    loader_context.loader_index += 1;
-    return Ok(());
+  // Skip a JavaScript execution span when no remaining loader needs pitching.
+  if loader_context.state() == LoaderState::Pitching {
+    let loaders_without_pitch = self.loaders_without_pitch.read().await;
+    let end = loader_context
+      .current_chain()
+      .expect("pitching requires a current execution chain")
+      .end();
+    let start = loader_context.loader_index as usize;
+    let needs_pitch = loader_context.loader_items()[start..end]
+      .iter()
+      .enumerate()
+      .any(|(offset, loader)| {
+        !loader_context
+          .loader_item_state(start + offset)
+          .pitch_executed()
+          && !loaders_without_pitch.contains(loader.path().as_str())
+      });
+    if !needs_pitch {
+      for index in start..end {
+        loader_context
+          .loader_item_state_mut(index)
+          .set_pitch_executed();
+      }
+      loader_context.loader_index = end as i32;
+      return Ok(());
+    }
   }
 
   let runner = self.runner.lock().expect("should get lock").clone();
@@ -68,7 +82,11 @@ pub(crate) fn merge_loader_context(
   mut from: JsLoaderContext,
 ) -> Result<()> {
   to.cacheable = from.cacheable;
-  to.replace_dependencies(from.dependencies.into());
+  to.replace_dependencies(
+    from.dependencies.into(),
+    from.added_dependencies.into(),
+    from.removed_dependencies.into(),
+  );
 
   if let Some(error) = from.error {
     if let Some(diagnostic) = error.rust_diagnostic.as_ref() {
@@ -108,20 +126,19 @@ pub(crate) fn merge_loader_context(
   to.__finish_with((content, source_map, additional_data));
 
   // update per-run loader status without mutating the shared loader metadata
-  for (to, from) in to
-    .loader_item_states
-    .iter_mut()
-    .zip(from.loader_items.drain(..))
-  {
-    if from.normal_executed {
-      to.set_normal_executed();
+  for (index, from) in from.loader_items.drain(..).enumerate() {
+    if let Some(to) = to.loader_item_states.get_mut(index) {
+      if from.normal_executed {
+        to.set_normal_executed();
+        // A JavaScript normal loader that returned to Rust has completed even
+        // when it produced an empty result.
+        to.set_finish_called();
+      }
+      if from.pitch_executed {
+        to.set_pitch_executed()
+      }
+      to.set_data(from.data);
     }
-    if from.pitch_executed {
-      to.set_pitch_executed();
-    }
-    to.set_data(from.data);
-    // JS loader should always be considered as finished
-    to.set_finish_called();
   }
   to.loader_index = from.loader_index;
   to.parse_meta.extend(

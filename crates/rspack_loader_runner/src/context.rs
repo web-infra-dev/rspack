@@ -9,8 +9,8 @@ use rspack_sources::SourceMap;
 #[cfg(feature = "test-loader")]
 use crate::loader::LoaderItemList;
 use crate::{
-  AdditionalData, Content, LoaderItem, LoaderItemState, LoaderRunnerPlugin, Loaders, ParseMeta,
-  ResourceData,
+  AdditionalData, Content, LoaderChain, LoaderItem, LoaderItemState, LoaderRunnerPlugin, Loaders,
+  ParseMeta, ResourceData,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -72,10 +72,12 @@ pub struct LoaderContext<Context: Send> {
   pub cacheable: bool,
   /// Dependencies committed by resource processing and preceding loaders.
   pub(crate) dependencies: LoaderDependencies,
-  /// Dependencies added by the current native loader. A dependency remains
-  /// here even when it was already present in `dependencies`.
+  /// Dependencies added by the current loader (pitch) or root chain (normal).
+  /// Repeated registrations remain here even after merging into `dependencies`.
   pub(crate) added_dependencies: LoaderDependencies,
-  /// Dependencies removed by the current native loader.
+  /// Dependencies removed by the current loader (pitch) or root chain (normal).
+  /// A later addition takes precedence for the effective set, but retains the
+  /// removal record so the chain is not cached.
   pub(crate) removed_dependencies: LoaderDependencies,
 
   pub diagnostics: Vec<Diagnostic>,
@@ -172,17 +174,18 @@ impl<Context: Send> LoaderContext<Context> {
     self.removed_dependencies = Default::default();
   }
 
+  /// Update the effective dependencies while retaining the chain's change records.
   #[doc(hidden)]
   pub fn merge_dependency_changes(&mut self) {
     macro_rules! merge_dependencies {
       ($field:ident) => {{
-        for dependency in self.removed_dependencies.$field.drain() {
-          self.dependencies.$field.remove(&dependency);
+        for dependency in &self.removed_dependencies.$field {
+          self.dependencies.$field.remove(dependency);
         }
         self
           .dependencies
           .$field
-          .extend(self.added_dependencies.$field.drain());
+          .extend(self.added_dependencies.$field.iter().cloned());
       }};
     }
 
@@ -193,9 +196,15 @@ impl<Context: Send> LoaderContext<Context> {
   }
 
   #[doc(hidden)]
-  pub fn replace_dependencies(&mut self, dependencies: LoaderDependencies) {
+  pub fn replace_dependencies(
+    &mut self,
+    dependencies: LoaderDependencies,
+    added: LoaderDependencies,
+    removed: LoaderDependencies,
+  ) {
     self.dependencies = dependencies;
-    self.reset_dependency_changes();
+    self.added_dependencies = added;
+    self.removed_dependencies = removed;
   }
 
   #[doc(hidden)]
@@ -216,25 +225,21 @@ impl<Context: Send> LoaderContext<Context> {
 
   pub fn add_file_dependency(&mut self, dependency: impl Into<InternedPath>) {
     let dependency = dependency.into();
-    self.removed_dependencies.file.remove(&dependency);
     self.added_dependencies.file.insert(dependency);
   }
 
   pub fn add_context_dependency(&mut self, dependency: impl Into<InternedPath>) {
     let dependency = dependency.into();
-    self.removed_dependencies.context.remove(&dependency);
     self.added_dependencies.context.insert(dependency);
   }
 
   pub fn add_missing_dependency(&mut self, dependency: impl Into<InternedPath>) {
     let dependency = dependency.into();
-    self.removed_dependencies.missing.remove(&dependency);
     self.added_dependencies.missing.insert(dependency);
   }
 
   pub fn add_build_dependency(&mut self, dependency: impl Into<InternedPath>) {
     let dependency = dependency.into();
-    self.removed_dependencies.build.remove(&dependency);
     self.added_dependencies.build.insert(dependency);
   }
 
@@ -311,6 +316,26 @@ impl<Context: LoaderRunnerContext> LoaderContext<Context> {
   #[inline]
   pub fn current_loader(&self) -> &LoaderItem<Context> {
     &self.loader_items()[self.loader_index as usize]
+  }
+
+  #[inline]
+  pub fn current_root_chain(&self) -> Option<&LoaderChain> {
+    let loader_index = usize::try_from(self.loader_index).ok()?;
+    self
+      .context
+      .loaders()
+      .loader_chains()
+      .root_chain(loader_index)
+  }
+
+  #[inline]
+  pub fn current_chain(&self) -> Option<&LoaderChain> {
+    let loader_index = usize::try_from(self.loader_index).ok()?;
+    self
+      .context
+      .loaders()
+      .loader_chains()
+      .execution_chain(loader_index)
   }
 }
 
