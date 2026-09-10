@@ -27,12 +27,8 @@ class Rspack {
   compiler!: FixtureCompiler;
   devServer!: RspackDevServer;
   private onDone: Array<() => void> = [];
-  constructor(
-    projectDir: string,
-    config: Configuration,
-    handleRspackConfig: (config: Configuration) => Configuration,
-  ) {
-    this.config = handleRspackConfig(config);
+  constructor(projectDir: string, config: Configuration) {
+    this.config = config;
     this.projectDir = projectDir;
     this.outDir = this.config.output!.path!;
   }
@@ -71,7 +67,6 @@ class Rspack {
         item();
       }
     });
-    const DevServerConstructor = RspackDevServer;
     if (compiler.options.lazyCompilation) {
       const middleware = rspack.lazyCompilationMiddleware(compiler);
       const devServerOptions = compiler.options.devServer || {};
@@ -84,7 +79,7 @@ class Rspack {
         return [middleware, ...old];
       };
     }
-    this.devServer = new DevServerConstructor(
+    this.devServer = new RspackDevServer(
       compiler.options.devServer ?? ({} as any),
       compiler,
     );
@@ -98,82 +93,51 @@ class Rspack {
   }
 }
 
-export type RspackOptions = {
-  rspackConfig: {
-    handleConfig(config: Configuration): Configuration;
-    basePort: number;
-  };
-};
+export type RspackFixtures = { rspack: Rspack };
 
-export type RspackFixtures = RspackOptions & { rspack: Rspack };
-
-export const rspackFixtures = (): Fixtures<
+export const rspackFixtures: Fixtures<
   RspackFixtures,
   PlaywrightFixture & PathInfoFixtures
-> => {
-  return {
-    rspackConfig: {
-      basePort: process.env.RSPACK_E2E_INCREMENTAL === 'true' ? 8200 : 8000,
-      handleConfig(config) {
-        if (process.env.RSPACK_E2E_INCREMENTAL === 'true') {
-          if (config.incremental == undefined) {
-            config.incremental = true;
-          }
-          const cache = config.cache;
-          if (typeof cache === 'object' && cache.type === 'persistent') {
-            cache.storage = {
-              type: 'filesystem',
-              ...cache.storage,
-              location: 'node_modules/.cache/incremental',
-            };
-          }
-        }
-        return config;
-      },
+> = {
+  rspack: [
+    async ({ page, pathInfo }, use) => {
+      const { tempProjectDir } = pathInfo;
+      const port = 8000 + Number(process.env.RSTEST_WORKER_ID);
+      const configPath = path.join(tempProjectDir, 'rspack.config.js');
+      const { default: config }: { default: Configuration } = await import(
+        /* webpackIgnore: true */ pathToFileURL(configPath).href
+      );
+      // rewrite port
+      if (!config.devServer) {
+        config.devServer = {};
+      }
+      config.devServer.port = port;
+
+      // set default context
+      if (!config.context) {
+        config.context = tempProjectDir;
+      }
+
+      // set default output path
+      if (!config.output) {
+        config.output = {};
+      }
+      config.output.path = path.resolve(tempProjectDir, 'dist');
+
+      const rspack = new Rspack(tempProjectDir, config);
+      await rspack.start();
+
+      await page.goto(`http://localhost:${port}`);
+      // Initial HTML can render before the client connects. Wait before tests
+      // edit files, otherwise the browser can miss the first HMR notification.
+      await expect
+        .poll(() => rspack.devServer.webSocketServer?.clients.length ?? 0)
+        .toBeGreaterThan(0);
+
+      await use(rspack);
+
+      await rspack.stop();
     },
-    rspack: [
-      async ({ page, pathInfo, rspackConfig }, use) => {
-        const { tempProjectDir } = pathInfo;
-        const port =
-          rspackConfig.basePort + Number(process.env.RSTEST_WORKER_ID);
-        const configPath = path.join(tempProjectDir, 'rspack.config.js');
-        const { default: config } = await import(
-          /* webpackIgnore: true */ pathToFileURL(configPath).href
-        );
-        const rspack = new Rspack(tempProjectDir, config, (config) => {
-          // rewrite port
-          if (!config.devServer) {
-            config.devServer = {};
-          }
-          config.devServer.port = port;
-
-          // set default context
-          if (!config.context) {
-            config.context = tempProjectDir;
-          }
-
-          // set default output path
-          if (!config.output) {
-            config.output = {};
-          }
-          config.output.path = path.resolve(tempProjectDir, 'dist');
-
-          return rspackConfig.handleConfig(config);
-        });
-        await rspack.start();
-
-        await page.goto(`http://localhost:${port}`);
-        // Initial HTML can render before the client connects. Wait before tests
-        // edit files, otherwise the browser can miss the first HMR notification.
-        await expect
-          .poll(() => rspack.devServer.webSocketServer?.clients.length ?? 0)
-          .toBeGreaterThan(0);
-
-        await use(rspack);
-
-        await rspack.stop();
-      },
-      { auto: true },
-    ],
-  };
+    { auto: true },
+  ],
 };
