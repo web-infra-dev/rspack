@@ -19,13 +19,13 @@ use crate::{
 
 /// Collects comment token ranges and, in local mode, dashed identifiers.
 #[derive(Debug, Default)]
-pub struct DashedIdentCollector {
+pub struct DependencyMetadataCollector {
   occurrences: Vec<Range>,
   comments: Vec<Range>,
   enabled: bool,
 }
 
-impl DashedIdentCollector {
+impl DependencyMetadataCollector {
   #[inline(always)]
   fn set_enabled(&mut self, enabled: bool) {
     self.enabled = enabled;
@@ -46,7 +46,7 @@ impl DashedIdentCollector {
   }
 }
 
-impl LexerVisitor for DashedIdentCollector {
+impl LexerVisitor for DependencyMetadataCollector {
   fn visit_comment(&mut self, range: Range) {
     // Lookahead and selector fast paths may encounter the same token again.
     if self
@@ -70,8 +70,8 @@ impl LexerVisitor for DashedIdentCollector {
   }
 }
 
-type DependencyLexer<'s> = Lexer<'s, DashedIdentCollector>;
-type DependencyTokenStream<'a, 's> = TokenStream<'a, 's, DashedIdentCollector>;
+type DependencyLexer<'s> = Lexer<'s, DependencyMetadataCollector>;
+type DependencyTokenStream<'a, 's> = TokenStream<'a, 's, DependencyMetadataCollector>;
 
 #[derive(Debug)]
 enum Scope<'s> {

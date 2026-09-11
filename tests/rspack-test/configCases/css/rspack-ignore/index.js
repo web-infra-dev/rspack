@@ -37,6 +37,6 @@ it("should preserve comment token ranges through CSS scanning paths", () => {
 
 it("should resolve ordinary comments and comments separated from a URL by a token", () => {
 	const css = document.getElementsByTagName("link")[1].sheet.css;
-	expect(css).not.toContain("./img.png");
+	expect(css).not.toContain("../url/img.png");
 	expect(css.match(/resolved-img\.png/g)).toHaveLength(2);
 });

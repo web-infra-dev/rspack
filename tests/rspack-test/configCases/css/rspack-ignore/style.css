@@ -17,6 +17,6 @@
 }
 
 .resolved {
-	background: /* rspackIgnore: true */ red url("./img.png");
-	background-image: /* ordinary comment */ url("./img.png");
+	background: /* rspackIgnore: true */ red url("../url/img.png");
+	background-image: /* ordinary comment */ url("../url/img.png");
 }
