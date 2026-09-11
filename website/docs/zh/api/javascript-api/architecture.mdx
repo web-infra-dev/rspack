@@ -112,19 +112,19 @@ Builtin loader 可以在 Rust 侧执行，减少 JavaScript 排队和跨语言�
 
 ### Loader 元数据和执行状态
 
-NormalModule 持有可复用的 loader 元数据，包括各 loader 的 request、type 和缓存选项。每次运行 loader 都独立创建新的 pitch data 和执行标记。
+NormalModule 持有可复用的 loader 元数据，包括各 loader 的 request、type 和缓存选项。每次运行 loader 都独立创建新的 pitch data 和执行标记。原生上下文将 pitch data 存在 `loader_data` 中，与 `loader_item_states` 中的执行标记分开。两个集合都按 loader 位置索引：每个 loader 的 pitch data 属于该 loader，并保留到它的 normal 阶段。
 
-在 JavaScript 边界，Rspack 传入普通的 `JsLoaderContext` 对象，其中包含 loader 元数据、只读执行信息和一个 `JsLoaderContextState` 对象。loader-context 封装通过 JavaScript getter/setter 访问和更新 state。JavaScript runner 返回这个 state 对象，Rust 合并其中的内容、source map、附加数据、依赖、parse metadata 和执行标记。不可变的 loader 元数据无需随返回结果再次转换到 Rust。并行 loader 同样分开传递元数据和执行状态。
+在 JavaScript 边界，Rspack 传入普通的 `JsLoaderContext` 对象，其中包含 loader 元数据、只读执行信息、`loaderData` 数组和一个 `JsLoaderContextState` 对象。loader-context 封装通过 JavaScript getter/setter 访问和更新 data 与 state。JavaScript runner 在一次调用中返回 `{ loaderData, state }`，Rust 分别写回 pitch data 和执行状态。内容、source map 和附加数据在 `state` 中为整条管线各保存一份当前值，与依赖、parse metadata 和执行标记一起管理。不可变的 loader 元数据无需随返回结果再次转换到 Rust。并行 loader 同样将 data 与执行标记分开。
 
 ```text
 Rust LoaderContext：保持原生所有权
-  ↓ 元数据 + state 快照
-JavaScript loader-context 封装：getter/setter 访问 state
-  ↓ 返回 state 对象
-Rust runner：合并执行状态并继续
+  ↓ 元数据 + loaderData + state 快照
+JavaScript loader-context 封装：getter/setter 访问 data 和 state
+  ↓ 返回 { loaderData, state }
+Rust runner：写回 pitch data 和执行状态，然后继续
 ```
 
-例如，内置 loader 前面的 JavaScript loader 可以修改 pitch data 和依赖。这些改动通过 state 对象传回，loader 的 request 和 type 则保留为元数据。内容和 source map 沿用原有的 Buffer 传递表示；这层拆分不会改变 loader hook 的执行时机或原生上下文的所有权。
+例如，内置 loader 两侧的 JavaScript loader 都可以在 pitch 阶段设置 `this.data`。进入 normal 阶段后，每个 loader 读取自己的 data，而内容从一个 loader 传递到下一个。pitch data 通过 `loaderData` 传回，依赖改动通过 `state` 传回，loader 的 request 和 type 则保留为元数据。内容和 source map 沿用原有的 Buffer 传递表示；这层拆分不会改变 loader hook 的执行时机或原生上下文的所有权。
 
 ## 高效用法
 

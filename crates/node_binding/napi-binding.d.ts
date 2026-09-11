@@ -971,12 +971,14 @@ export interface JsLoaderContext {
   loaderItems: Array<JsLoaderMetadata>
   loaderState: Readonly<JsLoaderState>
   __internal__loaderCache?: JsLoaderCache | undefined
+  /** Each loader's pitch data, separate from execution flags. */
+  loaderData: Array<any>
   state: JsLoaderContextState
 }
 
 /**
- * Owned per-invocation state. JavaScript mutates this object and returns it as a
- * batch; the native runner keeps ownership of its LoaderContext throughout.
+ * Per-invocation execution state, separate from each loader's pitch data.
+ * The native runner keeps ownership of its LoaderContext throughout.
  */
 export interface JsLoaderContextState {
   /** Content may be empty in the pitching stage. */
@@ -1012,7 +1014,6 @@ export interface JsLoaderItem {
 }
 
 export interface JsLoaderItemState {
-  data: any
   normalExecuted: boolean
   pitchExecuted: boolean
   noPitch: boolean
@@ -1023,6 +1024,12 @@ export interface JsLoaderMetadata {
   loader: string
   type: string
   cache: boolean
+}
+
+/** The two mutable parts returned in one crossing, without loader metadata. */
+export interface JsLoaderResult {
+  loaderData: Array<any>
+  state: JsLoaderContextState
 }
 
 export declare enum JsLoaderState {

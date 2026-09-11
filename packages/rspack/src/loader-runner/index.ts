@@ -11,7 +11,7 @@ import querystring from 'node:querystring';
 import {
   formatDiagnostic,
   type JsLoaderContext,
-  type JsLoaderContextState,
+  type JsLoaderResult,
   type JsLoaderMetadata,
   type JsLoaderItemState,
   JsLoaderState,
@@ -94,13 +94,18 @@ export class LoaderObject {
    */
   readonly loaderItem: JsLoaderMetadata;
   readonly state: JsLoaderItemState;
+  readonly #loaderData: JsLoaderResult['loaderData'];
+  readonly #index: number;
 
   constructor(
     loaderItem: JsLoaderMetadata,
-    state: JsLoaderItemState,
+    context: JsLoaderResult,
+    index: number,
     compiler: Compiler,
   ) {
-    this.state = state;
+    this.state = context.state.loaderItemStates[index];
+    this.#loaderData = context.loaderData;
+    this.#index = index;
     const splittedRequest = parseResourceWithoutFragment(loaderItem.loader);
     this.path = splittedRequest.path;
     this.fragment = '';
@@ -149,7 +154,15 @@ export class LoaderObject {
         ) as LoaderObject['parallel'])
       : false;
     this.loaderItem = loaderItem;
-    this.state.data = this.state.data ?? {};
+    this.data ??= {};
+  }
+
+  get data(): JsLoaderResult['loaderData'][number] {
+    return this.#loaderData[this.#index];
+  }
+
+  set data(value: JsLoaderResult['loaderData'][number]) {
+    this.#loaderData[this.#index] = value;
   }
 
   get pitchExecuted() {
@@ -229,8 +242,8 @@ function getCurrentLoader(
 export async function runLoaders(
   compiler: Compiler,
   context: JsLoaderContext,
-): Promise<JsLoaderContextState> {
-  const { state } = context;
+): Promise<JsLoaderResult> {
+  const { loaderData, state } = context;
   const loaderState = context.loaderState;
   const pitch = loaderState === JsLoaderState.Pitching;
 
@@ -272,8 +285,7 @@ export async function runLoaders(
   const loaderContext = {} as LoaderContext;
 
   loaderContext.loaders = context.loaderItems.map(
-    (item, index) =>
-      new LoaderObject(item, state.loaderItemStates[index], compiler),
+    (item, index) => new LoaderObject(item, context, index, compiler),
   );
 
   loaderContext.hot = context.hot;
@@ -734,9 +746,9 @@ export async function runLoaders(
   });
   Object.defineProperty(loaderContext, 'data', {
     enumerable: true,
-    get: () => loaderContext.loaders[loaderContext.loaderIndex].state.data,
+    get: () => loaderContext.loaders[loaderContext.loaderIndex].data,
     set: (data) =>
-      (loaderContext.loaders[loaderContext.loaderIndex].state.data = data),
+      (loaderContext.loaders[loaderContext.loaderIndex].data = data),
   });
 
   /// Rspack private
@@ -772,6 +784,7 @@ export async function runLoaders(
         }
         return {
           ...item,
+          data: item.data,
           options,
           pitch: undefined,
           normal: undefined,
@@ -932,7 +945,7 @@ export async function runLoaders(
             const updates = args[0];
             loaderContext.loaders.forEach((item, index) => {
               const update = updates[index];
-              item.state.data = update.data;
+              item.data = update.data;
               if (update.pitchExecuted) {
                 item.pitchExecuted = true;
               }
@@ -1092,7 +1105,7 @@ export async function runLoaders(
             args = await isomorphoicRun(fn, [
               loaderContext.remainingRequest,
               loaderContext.previousRequest,
-              currentLoaderObject.state.data,
+              currentLoaderObject.data,
             ]);
           } finally {
             dependencies.mergeChanges();
@@ -1220,5 +1233,5 @@ export async function runLoaders(
     commitCustomFieldsToRust(context._module.buildInfo);
   }
 
-  return state;
+  return { loaderData, state };
 }

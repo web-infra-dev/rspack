@@ -130,6 +130,7 @@ fn create_loader_context<Context: LoaderRunnerContext>(
   }
 
   let loader_items = context.loaders().loader_items();
+  let loader_data = vec![serde_json::Value::Null; loader_items.len()];
   let loader_item_states = (0..loader_items.len())
     .map(|_| LoaderItemState::default())
     .collect();
@@ -147,6 +148,7 @@ fn create_loader_context<Context: LoaderRunnerContext>(
     state: State::Init,
     loader_index: 0,
     loader_item_states,
+    loader_data,
     plugin,
     resource_data,
     diagnostics: vec![],

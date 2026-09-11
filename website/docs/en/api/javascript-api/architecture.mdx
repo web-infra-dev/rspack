@@ -114,19 +114,19 @@ Builtin loaders run on the Rust side, reducing JavaScript queueing and cross-lan
 
 ### Loader metadata and execution state
 
-A normal module owns reusable loader metadata, including each loader's request, type and cache options. Each loader run creates fresh pitch data and execution flags independently of that metadata.
+A normal module owns reusable loader metadata, including each loader's request, type and cache options. Each loader run creates fresh pitch data and execution flags independently of that metadata. The native context stores pitch data in `loader_data`, separately from the flags in `loader_item_states`. Both collections are indexed by loader position: a loader's pitch data belongs to that loader and remains available to its normal stage.
 
-At the JavaScript boundary, Rspack passes a plain `JsLoaderContext` object containing loader metadata, read-only execution information and a `JsLoaderContextState` object. The loader-context wrapper reads and updates the state through JavaScript getters and setters. The JavaScript runner returns that state object, and Rust merges its content, source map, additional data, dependencies, parse metadata and execution flags. Immutable loader metadata is not converted back to Rust with the result. Parallel loaders also keep their metadata and execution state separate.
+At the JavaScript boundary, Rspack passes a plain `JsLoaderContext` object containing loader metadata, read-only execution information, a `loaderData` array and a `JsLoaderContextState` object. The loader-context wrapper reads and updates data and state through JavaScript getters and setters. The JavaScript runner returns `{ loaderData, state }` in one call, and Rust writes back pitch data separately from execution state. Content, source map and additional data have one current value for the whole pipeline in `state`, alongside dependencies, parse metadata and execution flags. Immutable loader metadata is not converted back to Rust with the result. Parallel loaders also keep their data separate from execution flags.
 
 ```text
 Rust LoaderContext: retains native ownership
-  ↓ metadata + state snapshot
-JavaScript loader-context wrapper: getters/setters access state
-  ↓ return the state object
-Rust runner: merge execution state and continue
+  ↓ metadata + loaderData + state snapshot
+JavaScript loader-context wrapper: getters/setters access data and state
+  ↓ return { loaderData, state }
+Rust runner: write back pitch data and execution state, then continue
 ```
 
-For example, a JavaScript loader before a builtin loader can update pitch data and dependencies. Those changes travel back in the state object, while the loader's request and type remain metadata. Content and source maps keep their existing Buffer-based transfer representation; this separation does not change when loader hooks run or how the native context is owned.
+For example, two JavaScript loaders on either side of a builtin loader can each set `this.data` during pitch. Each loader reads its own data during its normal stage, while content passes from one loader to the next. Pitch data travels back in `loaderData`, dependency changes in `state`, and the loader's request and type remain metadata. Content and source maps keep their existing Buffer-based transfer representation; this separation does not change when loader hooks run or how the native context is owned.
 
 ## Efficient usage
 

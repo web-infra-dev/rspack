@@ -19,7 +19,11 @@ module.exports = {
           const run = plugin.options;
           plugin.options = async (context) => {
             calls++;
-            const state = context.state;
+            const { state, loaderData } = context;
+            expect(loaderData).toHaveLength(context.loaderItems.length);
+            expect(
+              state.loaderItemStates.every((item) => !('data' in item)),
+            ).toBe(true);
             expect(Object.getPrototypeOf(state)).toBe(Object.prototype);
             expect(state.loaderItemStates).toHaveLength(
               context.loaderItems.length,
@@ -35,16 +39,18 @@ module.exports = {
             if (context.loaderState === 'Normal' && state.loaderIndex === 0) {
               expect(state.cacheable).toBe(false);
             }
-            expect(await run(context)).toBe(state);
+            const result = await run(context);
+            expect(result.state).toBe(state);
+            expect(result.loaderData).toBe(loaderData);
             expect('loaderItems' in state).toBe(false);
             expect('resource' in state).toBe(false);
-            // The return conversion must only consume state, never metadata.
+            // The return conversion consumes data and state, never metadata.
             Object.defineProperty(context, 'loaderItems', {
               get() {
                 throw new Error('metadata must not be read on return');
               },
             });
-            return state;
+            return result;
           };
         });
         compiler.hooks.afterCompile.tap('LoaderStateRoundtrip', () => {

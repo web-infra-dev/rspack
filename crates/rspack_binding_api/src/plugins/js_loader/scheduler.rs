@@ -4,7 +4,9 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
 
-use super::{JsLoaderContextState, JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
+use super::{
+  JsLoaderContextState, JsLoaderResult, JsLoaderRspackPlugin, JsLoaderRspackPluginInner,
+};
 
 impl JsLoaderRspackPlugin {
   async fn update_loaders_without_pitch(&self, list: Vec<String>) {
@@ -44,7 +46,7 @@ pub(crate) async fn loader_yield(
     .await
     .to_rspack_result()?;
 
-  let new_cx = runner
+  let result = runner
     .call_async(loader_context.try_into()?)
     .await
     .to_rspack_result()?
@@ -52,21 +54,25 @@ pub(crate) async fn loader_yield(
     .to_rspack_result()?;
 
   if loader_context.state() == LoaderState::Pitching {
-    let list = collect_loaders_without_pitch(loader_context, &new_cx);
+    let list = collect_loaders_without_pitch(loader_context, &result.state);
     if !list.is_empty() {
       self.update_loaders_without_pitch(list).await;
     }
   }
 
-  merge_loader_state(loader_context, new_cx)?;
+  merge_loader_result(loader_context, result)?;
 
   Ok(())
 }
 
-pub(crate) fn merge_loader_state(
+pub(crate) fn merge_loader_result(
   to: &mut LoaderContext<RunnerContext>,
-  mut from: JsLoaderContextState,
+  result: JsLoaderResult,
 ) -> Result<()> {
+  let JsLoaderResult {
+    loader_data,
+    state: mut from,
+  } = result;
   to.cacheable = from.cacheable;
   to.replace_dependencies(from.dependencies.into());
 
@@ -120,7 +126,10 @@ pub(crate) fn merge_loader_state(
     if from.pitch_executed {
       to.set_pitch_executed();
     }
-    to.set_data(from.data);
+  }
+  // Pitch data and execution flags have independent storage and writeback.
+  for (to, data) in to.loader_data.iter_mut().zip(loader_data) {
+    *to = data;
   }
   to.loader_index = from.loader_index;
   to.parse_meta.extend(

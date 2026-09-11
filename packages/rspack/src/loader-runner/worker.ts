@@ -484,9 +484,9 @@ async function loaderImpl(
 
   Object.defineProperty(loaderContext, 'data', {
     enumerable: true,
-    get: () => loaderContext.loaders[loaderContext.loaderIndex].state.data,
+    get: () => loaderContext.loaders[loaderContext.loaderIndex].data,
     set: (value) => {
-      loaderContext.loaders[loaderContext.loaderIndex].state.data = value;
+      loaderContext.loaders[loaderContext.loaderIndex].data = value;
     },
   });
 
@@ -523,7 +523,7 @@ async function loaderImpl(
           (await runSyncOrAsync(fn, loaderContext, [
             loaderContext.remainingRequest,
             loaderContext.previousRequest,
-            currentLoaderObject.state.data,
+            currentLoaderObject.data,
           ])) || [];
 
         const hasArg = args.some((value) => value !== undefined);
@@ -604,7 +604,7 @@ async function loaderImpl(
     RequestType.UpdateLoaderObjects,
     loaderContext.loaders.map((item) => {
       return {
-        data: item.state.data,
+        data: item.data,
         normalExecuted: item.normalExecuted,
         pitchExecuted: item.pitchExecuted,
       };

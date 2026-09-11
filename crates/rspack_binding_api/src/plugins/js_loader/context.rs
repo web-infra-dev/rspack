@@ -38,7 +38,6 @@ pub struct JsLoaderMetadata {
 
 #[napi(object)]
 pub struct JsLoaderItemState {
-  pub data: serde_json::Value,
   pub normal_executed: bool,
   pub pitch_executed: bool,
   pub no_pitch: bool,
@@ -184,11 +183,20 @@ pub struct JsLoaderContext {
     ts_type = "JsLoaderCache | undefined"
   )]
   pub loader_cache: Option<JsLoaderCacheObject>,
+  /// Each loader's pitch data, separate from execution flags.
+  pub loader_data: Vec<serde_json::Value>,
   pub state: JsLoaderContextState,
 }
 
-/// Owned per-invocation state. JavaScript mutates this object and returns it as a
-/// batch; the native runner keeps ownership of its LoaderContext throughout.
+/// The two mutable parts returned in one crossing, without loader metadata.
+#[napi(object)]
+pub struct JsLoaderResult {
+  pub loader_data: Vec<serde_json::Value>,
+  pub state: JsLoaderContextState,
+}
+
+/// Per-invocation execution state, separate from each loader's pitch data.
+/// The native runner keeps ownership of its LoaderContext throughout.
 #[napi(object)]
 pub struct JsLoaderContextState {
   /// Content may be empty in the pitching stage.
@@ -223,6 +231,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         cx.context.compiler_id,
       ),
       hot: cx.hot,
+      loader_data: cx.loader_data.clone(),
       state: JsLoaderContextState {
         content: match cx.content() {
           Some(c) => Either::B(c.to_owned().into_bytes().into()),
@@ -245,7 +254,6 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
           .loader_item_states
           .iter()
           .map(|state| JsLoaderItemState {
-            data: state.data().clone(),
             normal_executed: state.normal_executed(),
             pitch_executed: state.pitch_executed(),
             no_pitch: false,

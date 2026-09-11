@@ -80,6 +80,10 @@ pub struct LoaderContext<Context: Send> {
 
   pub diagnostics: Vec<Diagnostic>,
 
+  /// Per-loader data shared between its pitch and normal stages.
+  /// Indexed by loader position, independently of the execution flags.
+  pub loader_data: Vec<serde_json::Value>,
+
   /// Loader States
   pub(crate) state: State,
   pub loader_index: i32,

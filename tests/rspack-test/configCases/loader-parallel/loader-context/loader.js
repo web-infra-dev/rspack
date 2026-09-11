@@ -56,6 +56,7 @@ module.exports = function () {
             null,
             `module.exports = ${JSON.stringify({
               version: this.version,
+              data: this.data,
               logger: typeof logger.clear === 'function',
               resolve: resolveRequest?.path.endsWith('dependency.js'),
               getResolve: getResolveRequest?.path.endsWith('dependency.js'),
@@ -76,4 +77,9 @@ module.exports = function () {
       );
     },
   );
+};
+
+module.exports.pitch = function (_remainingRequest, _previousRequest, data) {
+  data.fromArgument = true;
+  this.data = { fromArgument: data.fromArgument, fromPitch: true };
 };

@@ -43,8 +43,6 @@ pub struct LoaderItem<Context: Send> {
 
 #[derive(Debug, Default)]
 pub struct LoaderItemState {
-  /// Data shared between pitching and normal.
-  data: serde_json::Value,
   pitch_executed: bool,
   normal_executed: bool,
   /// Whether loader was called with [LoaderContext::finish_with].
@@ -117,17 +115,6 @@ impl<C: Send> LoaderItem<C> {
 }
 
 impl LoaderItemState {
-  #[inline]
-  pub fn data(&self) -> &serde_json::Value {
-    &self.data
-  }
-
-  #[inline]
-  #[doc(hidden)]
-  pub fn set_data(&mut self, data: serde_json::Value) {
-    self.data = data;
-  }
-
   #[inline]
   #[doc(hidden)]
   pub fn pitch_executed(&self) -> bool {
