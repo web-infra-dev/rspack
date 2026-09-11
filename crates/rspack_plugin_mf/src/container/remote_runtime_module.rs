@@ -115,11 +115,13 @@ impl RuntimeModule for RemoteRuntimeModule {
                 module_graph
                   .get_module_by_dependency_id(dep)
                   .and_then(|module| module.downcast_ref::<ExternalModule>())
-                  .map(RemoteInfo::from)
-                  .unwrap_or(RemoteInfo {
-                    external_type: "",
-                    name: "",
-                  })
+                  .map_or(
+                    RemoteInfo {
+                      external_type: "",
+                      name: "",
+                    },
+                    RemoteInfo::from,
+                  )
               })
               .collect()
           } else {
