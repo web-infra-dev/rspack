@@ -59,6 +59,11 @@ type HttpUriOptions = {
    */
   upgrade?: boolean;
   /**
+   * Freeze the remote resources and lockfile
+   * @default true in production mode, false otherwise
+   */
+  frozen?: boolean;
+  /**
    * Custom http client
    */
   httpClient?: (
@@ -79,8 +84,16 @@ String entries in `allowedUris` must be valid absolute URLs. Rspack normalizes b
 By default, Rspack will generate `rspack.lock` and `rspack.lock.data` in the [context](/config/context) folder as the locations of the Lockfile and the cache respectively. You can also configure them through `lockfileLocation` and `cacheLocation`.
 
 :::note
-You should commit the files at `lockfileLocation` and `cacheLocation` to the version control system so that no network requests will be made during the production build.
+You should commit the files at `lockfileLocation` and `cacheLocation` to the version control system so that production builds can use the cached content.
 :::
+
+Rspack checks cached content against the SHA-512 integrity recorded in the lockfile. `frozen` defaults to `true` in production mode and `false` otherwise. When frozen, missing lockfile entries, corrupted cached content, missing cache files, and changes to a resource's content, resolved URL, or content type cause a build error. The lockfile and its content cache are not updated. With `cacheLocation: false`, downloaded content must still match the locked entry.
+
+Older lockfiles may record a redirected import only under its final URL. If the original URL has no entry, a frozen build makes network requests to follow allowed redirects until it finds an existing locked entry, then verifies its content without rewriting the lockfile or cache. Imports that do not reach a locked resource still fail. If the original URL already has an entry, that entry remains authoritative.
+
+To populate the lockfile and cache, run a development build or explicitly set `frozen: false`. To check for remote updates, also set `upgrade: true`, then review and commit the resulting changes. `upgrade: false` prefers cached content; it does not prevent lockfile updates when content must be downloaded. An unfrozen build can also repair the lockfile to accept locally edited cache files, matching webpack's behavior.
+
+Resources recorded as `"no-cache"` or `"ignore"` are fetched without pinning their content, including in frozen mode. Integrity checks rely on a trusted lockfile and do not authenticate the first download. To prevent Git from changing the cached bytes' line endings, add `**/*rspack.lock.data/** -text` to `.gitattributes`, adapting the pattern if you use a custom cache location.
 
 For example:
 

@@ -60,6 +60,11 @@ type HttpUriOptions = {
    */
   upgrade?: boolean;
   /**
+   * Freeze the remote resources and lockfile
+   * @default true in production mode, false otherwise
+   */
+  frozen?: boolean;
+  /**
    * Custom http client
    */
   httpClient?: (
@@ -80,8 +85,16 @@ type HttpUriOptions = {
 默认情况下，Rspack 会在 [context](/config/context) 文件夹下生成 `rspack.lock` 和 `rspack.lock.data` 分别作为 Lockfile 和缓存的位置，你也可以通过 `lockfileLocation` 和 `cacheLocation` 进行配置。
 
 :::note
-你应该将 `lockfileLocation` 和 `cacheLocation` 的文件提交到版本控制系统中，这样在生产构建期间不会发出网络请求。
+你应该将 `lockfileLocation` 和 `cacheLocation` 的文件提交到版本控制系统中，以便生产构建使用缓存内容。
 :::
+
+Rspack 会根据 lockfile 中记录的 SHA-512 校验缓存内容。`frozen` 在生产模式下默认为 `true`，其他模式下默认为 `false`。冻结时，缺少锁定条目、缓存内容损坏、缓存文件缺失，以及资源内容、最终 URL 或内容类型发生变化，都会导致构建报错。此时不会更新 lockfile 及其内容缓存。即使设置了 `cacheLocation: false`，下载的内容也必须与锁定条目一致。
+
+旧版 lockfile 可能只在重定向的最终 URL 下记录条目。如果原始 URL 没有条目，冻结构建会发起网络请求，沿允许的重定向查找已有锁定条目，然后校验其内容，不会重写 lockfile 或缓存。未能到达锁定资源的导入仍会报错。如果原始 URL 已有条目，则始终以该条目为准。
+
+首次生成 lockfile 和缓存时，请运行开发模式构建，或显式设置 `frozen: false`。若需检查远程更新，还应设置 `upgrade: true`，随后审查并提交文件变化。`upgrade: false` 表示优先使用缓存，不代表需要下载内容时禁止更新 lockfile。与 webpack 一致，非冻结构建也可以更新 lockfile，以接受本地修改过的缓存文件。
+
+记录为 `"no-cache"` 或 `"ignore"` 的资源不会锁定下载内容，冻结模式下也一样。完整性检查依赖可信的 lockfile，无法验证首次下载的真实性。为防止 Git 转换缓存文件的换行符，请在 `.gitattributes` 中加入 `**/*rspack.lock.data/** -text`；使用自定义缓存位置时，请调整匹配路径。
 
 示例：
 

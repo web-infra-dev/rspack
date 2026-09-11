@@ -31,14 +31,14 @@ export type HttpUriPluginOptions = {
    * Detect changes to remote resources and upgrade them automatically
    */
   upgrade?: boolean;
+  /**
+   * Freeze the remote resources and lockfile. Changes result in an error.
+   */
+  frozen?: boolean;
   // /**
   //  * Specify the proxy server to use for fetching remote resources
   //  */
   // proxy?: string;
-  // /**
-  //  * Freeze the remote resources and lockfile. Any modification to the lockfile or resource contents will result in an error
-  //  */
-  // frozen?: boolean;
   /**
    * Custom http client
    */
@@ -180,7 +180,7 @@ export class HttpUriPlugin extends RspackBuiltinPlugin {
       lockfileLocation,
       cacheLocation,
       upgrade: options.upgrade ?? false,
-      // frozen: options.frozen,
+      frozen: options.frozen ?? false,
       // proxy: options.proxy,
       httpClient: options.httpClient ?? defaultHttpClient,
     };

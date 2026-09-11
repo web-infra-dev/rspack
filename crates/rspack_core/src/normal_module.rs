@@ -515,12 +515,14 @@ impl Module for NormalModule {
         file_system_info: build_context.file_system_info,
         resolver_factory,
         source_map_kind: self.source_map_kind,
+        loader_context_data: Default::default(),
         module: self,
       },
       fs,
     )
     .instrument(info_span!("NormalModule:run_loaders",))
     .await;
+    drop(loader_result.context.loader_context_data);
     self = loader_result.context.module;
 
     if let Some(err) = err {
