@@ -116,7 +116,7 @@ Builtin loaders run on the Rust side, reducing JavaScript queueing and cross-lan
 
 The native loader runner keeps its `LoaderContext` in a `Box` and passes content and mappings together as a `BoxSource`. Builtin loaders can preserve source graphs: for example, a refresh loader appends runtime code with `ConcatSource`, and lightningcss returns a `SourceMapSource` without first flattening its map.
 
-When execution reaches JavaScript, a native `JsLoaderContext` class owns the boxed context for that invocation. Its getters materialize content and source maps only when the JavaScript runner reads them. The JavaScript loader-context wrapper keeps local execution state and commits its result in one call before returning. A pitch that produces no output leaves the native source graph intact. The native loader hook uses the same ownership and commit boundary before loaders run. Hook-installed properties and closures survive later builtin and JavaScript loaders through a shared JavaScript wrapper, whose captured execution state is refreshed on each entry.
+When execution reaches JavaScript, a native `JsLoaderContext` class directly owns an `Option<Box<LoaderContext>>` for that invocation. Its getters materialize content and source maps only when the JavaScript runner reads them. The JavaScript loader-context wrapper keeps local execution state and commits its result in one call before returning. A pitch that produces no output leaves the native source graph intact. The native loader hook uses the same ownership and commit boundary before loaders run. Hook-installed properties and closures survive later builtin and JavaScript loaders through a shared JavaScript wrapper, whose captured execution state is refreshed on each entry.
 
 ```text
 Native loader: BoxSource
@@ -128,7 +128,7 @@ JavaScript loader-context wrapper: local changes
 Native runner: recover boxed LoaderContext and continue
 ```
 
-After the JavaScript invocation finishes, the native runner recovers the context and revokes access through that `JsLoaderContext` instance. This is an internal bridge; loaders continue to use the webpack-compatible `this` context, string/Buffer content, source-map objects, and callbacks.
+JavaScript returns the same class instance on success or with a captured error. The return-value conversion takes its boxed context on the JavaScript thread before moving it back to the native runner. The instance is left with `None`, revoking further access without a shared ownership slot or per-access locking. This is an internal bridge; loaders continue to use the webpack-compatible `this` context, string/Buffer content, source-map objects, and callbacks.
 
 ## Efficient usage
 

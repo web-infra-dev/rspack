@@ -626,7 +626,7 @@ pub struct RegisterJsTaps {
   )]
   pub register_compilation_after_seal_taps: RegisterFunction,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => void); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => JsLoaderContext); stage: number; }>"
   )]
   pub register_normal_module_loader_taps: RegisterFunction,
   #[napi(
@@ -942,7 +942,7 @@ define_register!(
 /* NormalModule Hooks */
 define_register!(
   RegisterNormalModuleLoaderTaps,
-  tap = NormalModuleLoaderTap<JsLoaderContext, ()> @ NormalModuleLoaderHook,
+  tap = NormalModuleLoaderTap<JsLoaderContext, JsLoaderContext> @ NormalModuleLoaderHook,
   cache = true,
   kind = RegisterJsTapKind::NormalModuleLoader,
   skip = true,
@@ -1708,17 +1708,14 @@ impl NormalModuleLoader for NormalModuleLoaderTap {
     &self,
     context: &mut Option<Box<LoaderContext<RunnerContext>>>,
   ) -> rspack_error::Result<()> {
-    let js_context = JsLoaderContext::new(context.take().expect("loader context is available"));
-    let inner = js_context.inner.clone();
-    let result = self.function.call_with_sync(js_context).await;
-    // Revoke retained handles and restore ownership even if a loader hook throws.
-    let inner = inner
-      .lock()
-      .expect("should get loader context lock")
-      .take()
-      .expect("loader context is available");
-    *context = Some(inner.context);
-    result
+    let mut js_context = self
+      .function
+      .call_with_sync(JsLoaderContext::new(
+        context.take().expect("loader context is available"),
+      ))
+      .await?;
+    *context = js_context.context.take();
+    js_context.take_error()
   }
 
   fn stage(&self) -> i32 {
