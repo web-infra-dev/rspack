@@ -83,7 +83,8 @@ export type ShareFallbackVariant = {
 export type ShareFallbackVariants = Record<string, ShareFallbackVariant[]>;
 
 type SharedBuildRequest = {
-  configIndex: number;
+  // Equivalent configurations share one build, but all remain owners of it.
+  configIndices: number[];
   configKey: string;
   shareKey: string;
   shareScope: ShareScope;
@@ -192,15 +193,35 @@ const shareScopesEqual = (left: ShareScope, right: ShareScope) => {
   );
 };
 
+const getBuildSettings = (
+  config: SharedConfig,
+  request: SharedBuildRequest,
+) => ({
+  shareScope: request.shareScope,
+  eager: !!config.eager,
+  singleton: !!config.singleton,
+  requiredVersion: config.requiredVersion,
+  strictVersion: config.strictVersion,
+  packageName: config.packageName,
+  treeShakingMode: config.treeShaking?.mode,
+  usedExports: config.treeShaking?.usedExports,
+  filename:
+    request.independentShareFileName || `${request.version}/share-entry.js`,
+});
+
 const createArtifactIdentity = (
   request: SharedBuildRequest,
   context: string,
+  buildSettings?: ReturnType<typeof getBuildSettings>,
 ) => {
   const hash = createHash('xxhash64');
   const resourceIdentity = relative(context, request.request).replaceAll(
     '\\',
     '/',
   );
+  if (buildSettings) {
+    hash.update(Buffer.from(JSON.stringify(buildSettings)));
+  }
   hash.update(
     Buffer.from(
       JSON.stringify([
@@ -488,7 +509,7 @@ export class IndependentSharedPlugin {
 
       requests.forEach(({ request, version, shareKey, fallbackImport }) => {
         buildRequests.push({
-          configIndex,
+          configIndices: [configIndex],
           configKey,
           shareKey,
           shareScope,
@@ -503,18 +524,26 @@ export class IndependentSharedPlugin {
       });
     });
 
-    const uniqueBuildRequests = Array.from(
-      new Map(
-        buildRequests.map((request) => [
-          JSON.stringify({
-            ...request,
-            configIndex: undefined,
-            config: this.sharedOptions[request.configIndex],
-          }),
-          request,
-        ]),
-      ).values(),
-    );
+    const resolvedRequests = new Map<string, SharedBuildRequest>();
+    for (const request of buildRequests) {
+      const buildSettings = getBuildSettings(
+        this.sharedOptions[request.configIndices[0]][1],
+        request,
+      );
+      const key = JSON.stringify({
+        ...request,
+        configIndices: undefined,
+        independentShareFileName: buildSettings.filename,
+        buildSettings,
+      });
+      const existing = resolvedRequests.get(key);
+      if (existing) {
+        existing.configIndices.push(...request.configIndices);
+      } else {
+        resolvedRequests.set(key, request);
+      }
+    }
+    const uniqueBuildRequests = Array.from(resolvedRequests.values());
     const emittedPath = (request: SharedBuildRequest) =>
       JSON.stringify([
         resolvePublicOutputDir(this.outputDir, request.shareKey),
@@ -535,6 +564,7 @@ export class IndependentSharedPlugin {
       pathCounts.set(path, (pathCounts.get(path) || 0) + 1);
       globalCounts.set(global, (globalCounts.get(global) || 0) + 1);
     }
+    const artifactCounts = new Map<string, number>();
     for (const request of uniqueBuildRequests) {
       if (
         request.layer !== undefined ||
@@ -542,6 +572,26 @@ export class IndependentSharedPlugin {
         globalCounts.get(emittedGlobal(request))! > 1
       ) {
         request.artifactIdentity = createArtifactIdentity(request, context);
+        artifactCounts.set(
+          request.artifactIdentity,
+          (artifactCounts.get(request.artifactIdentity) || 0) + 1,
+        );
+      }
+    }
+    for (const request of uniqueBuildRequests) {
+      if (
+        request.artifactIdentity &&
+        artifactCounts.get(request.artifactIdentity)! > 1
+      ) {
+        // Keep existing identities unless build settings also need disambiguation.
+        request.artifactIdentity = createArtifactIdentity(
+          request,
+          context,
+          getBuildSettings(
+            this.sharedOptions[request.configIndices[0]][1],
+            request,
+          ),
+        );
       }
     }
 
@@ -659,7 +709,7 @@ export class IndependentSharedPlugin {
     finalPlugins.push(
       new ConsumeSharedPlugin({
         consumes: sharedOptions
-          .filter((_, index) => index !== currentShare.configIndex)
+          .filter((_, index) => !currentShare.configIndices.includes(index))
           .map(([key, options]) => ({
             [key]: {
               import: false,
@@ -685,7 +735,7 @@ export class IndependentSharedPlugin {
         new SharedUsedExportsOptimizerPlugin(
           sharedOptions.map<[string, SharedConfig]>(([key, options], index) => [
             key,
-            index === currentShare.configIndex
+            currentShare.configIndices.includes(index)
               ? {
                   ...options,
                   request: currentShare.request,
@@ -702,7 +752,7 @@ export class IndependentSharedPlugin {
     finalPlugins.push(
       new VirtualEntryPlugin(
         sharedOptions.map(([key, options], index) =>
-          index === currentShare.configIndex
+          currentShare.configIndices.includes(index)
             ? currentShare.request
             : resolveShareRequest(options.request, key),
         ),
