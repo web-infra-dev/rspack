@@ -1133,10 +1133,13 @@ export async function runLoaders(
 
           if (hasArg) {
             const [content, sourceMap, additionalData] = args;
-            context.content = isNil(content) ? null : toBuffer(content);
+            context.content = isNil(content)
+              ? null
+              : typeof content === 'string'
+                ? content
+                : toBuffer(content);
             context.sourceMap = serializeObject(sourceMap);
             context.additionalData = additionalData || undefined;
-            context.__internal__utf8Hint = typeof content === 'string';
             break;
           }
         }
@@ -1145,9 +1148,7 @@ export async function runLoaders(
       }
       case JsLoaderState.Normal: {
         let content: Parameters<typeof toBuffer>[0] | null | undefined =
-          context.__internal__utf8Hint && context.content
-            ? context.content.toString('utf-8')
-            : context.content;
+          context.content;
         const rawSourceMap = context.sourceMap;
         let sourceMap: string | object | undefined;
         let sourceMapParsed = false;
@@ -1219,12 +1220,15 @@ export async function runLoaders(
           }
         }
 
-        context.content = isNil(content) ? null : toBuffer(content);
+        context.content = isNil(content)
+          ? null
+          : typeof content === 'string'
+            ? content
+            : toBuffer(content);
         context.sourceMap = sourceMapParsed
           ? JsSourceMap.__to_binding(sourceMap)
           : rawSourceMap;
         context.additionalData = additionalData || undefined;
-        context.__internal__utf8Hint = typeof content === 'string';
 
         break;
       }

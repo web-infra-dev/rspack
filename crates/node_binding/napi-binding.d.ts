@@ -978,7 +978,7 @@ export interface JsLoaderContext {
   _module: Module
   hot: Readonly<boolean>
   /** Content maybe empty in pitching stage */
-  content: null | Buffer
+  content: string | Buffer | null
   additionalData?: any
   __internal__parseMeta: Record<string, string>
   sourceMap?: Buffer
@@ -989,11 +989,6 @@ export interface JsLoaderContext {
   loaderState: Readonly<JsLoaderState>
   __internal__error?: RspackError
   __internal__loaderCache?: JsLoaderCache | undefined
-  /**
-   * UTF-8 hint for `content`
-   * - Some(true): `content` is a `UTF-8` encoded sequence
-   */
-  __internal__utf8Hint?: boolean
 }
 
 export interface JsLoaderDependencies {
