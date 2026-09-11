@@ -485,7 +485,7 @@ impl Module {
           "Module.blocks is unavailable while the module graph is under construction (e.g. inside a loader during compilation.rebuildModule)",
         ));
       };
-      let blocks = module.get_blocks();
+      let blocks = module_graph.module_dependencies_block(module).get_blocks();
       Ok(
         blocks
           .iter()
@@ -508,7 +508,7 @@ impl Module {
         ));
       };
       // Only expose dependencies that are still present in the current graph.
-      let dependencies = module.get_dependency_ids();
+      let dependencies = module_graph.module_dependencies_block(module).get_dependency_ids();
       Ok(
         dependencies
           .filter_map(|dependency_id| {

@@ -28,15 +28,15 @@ use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
-  AsyncDependenciesBlockRef, BindingCell, CacheFacade, ChunkGraph, ChunkUkey,
-  CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation, CompilationAsset,
-  CompilationAssets, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
-  ConnectionState, Context, ContextModule, CssExportType, DependenciesBlock, DependenciesBlockData,
-  DependencyCodeGenerationRef, DependencyId, DependencyRef, ExportProvided, ExportsInfoArtifact,
-  ExternalModule, FileSystemInfo, Filename, GetTargetResult, ImportPhase, ModuleCodeTemplate,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
-  OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
-  SharedPluginDriver, SideEffectsStateArtifact, Snapshot, SourceType,
+  AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockRef, BindingCell, CacheFacade,
+  ChunkGraph, ChunkUkey, CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation,
+  CompilationAsset, CompilationAssets, CompilationId, CompilerId, CompilerOptions,
+  ConcatenationScope, ConnectionState, Context, ContextModule, CssExportType, DependenciesBlock,
+  DependenciesBlockData, DependencyCodeGenerationRef, DependencyId, DependencyIds, DependencyRef,
+  ExportProvided, ExportsInfoArtifact, ExternalModule, FileSystemInfo, Filename, GetTargetResult,
+  ImportPhase, ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType,
+  NormalModule, OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec,
+  SelfModule, SharedPluginDriver, SideEffectsStateArtifact, Snapshot, SourceType,
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
   get_target, value_cache_versions::ValueCacheVersions,
 };
@@ -1044,9 +1044,12 @@ pub fn module_update_hash(
       dep.update_hash(hasher, compilation, runtime);
     }
   }
+  let dependencies_block = compilation
+    .get_module_graph()
+    .module_dependencies_block(module);
   dependencies_block_update_hash(
-    module.get_dependencies(),
-    module.get_blocks(),
+    dependencies_block.get_dependencies(),
+    dependencies_block.get_blocks(),
     hasher,
     compilation,
     runtime,
@@ -1071,14 +1074,56 @@ pub struct BoxModule(Box<dyn Module>);
 /// A built module shared by the module graph and the in-memory build cache.
 /// Build metadata has its own publication boundary. Shared modules only expose
 /// field-specific updates; obtaining mutable access to the whole module is not supported.
+/// Graph-local dependency changes use a copy-on-write view, leaving the cached module intact.
 #[cacheable]
 #[derive(Debug, Clone)]
-#[repr(transparent)]
-pub struct ModuleRef(Arc<dyn Module>);
+pub struct ModuleRef {
+  module: Arc<dyn Module>,
+  dependencies_block: Option<Arc<DependenciesBlockData>>,
+}
 
 impl From<BoxModule> for ModuleRef {
   fn from(module: BoxModule) -> Self {
-    Self(Arc::from(module.0))
+    Self {
+      module: Arc::from(module.0),
+      dependencies_block: None,
+    }
+  }
+}
+
+impl DependenciesBlock for ModuleRef {
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    self
+      .dependencies_block
+      .as_deref()
+      .unwrap_or_else(|| self.module.dependencies_block())
+  }
+
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    let dependencies_block = self
+      .dependencies_block
+      .get_or_insert_with(|| Arc::new(self.module.dependencies_block().clone()));
+    Arc::make_mut(dependencies_block)
+  }
+}
+
+impl ModuleRef {
+  // Keep graph reads on this view even when only `Module`, rather than `DependenciesBlock`,
+  // is in scope. Dereferencing to the shared module would bypass graph-local changes.
+  pub fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+    DependenciesBlock::get_blocks(self)
+  }
+
+  pub fn get_block_refs(&self) -> &[AsyncDependenciesBlockRef] {
+    DependenciesBlock::get_block_refs(self)
+  }
+
+  pub fn get_dependencies(&self) -> &[DependencyRef] {
+    DependenciesBlock::get_dependencies(self)
+  }
+
+  pub fn get_dependency_ids(&self) -> DependencyIds<'_> {
+    DependenciesBlock::get_dependency_ids(self)
   }
 }
 
@@ -1086,19 +1131,19 @@ impl std::ops::Deref for ModuleRef {
   type Target = dyn Module;
 
   fn deref(&self) -> &Self::Target {
-    self.0.as_ref()
+    self.module.as_ref()
   }
 }
 
 impl AsRef<dyn Module> for ModuleRef {
   fn as_ref(&self) -> &dyn Module {
-    self.0.as_ref()
+    self.module.as_ref()
   }
 }
 
 impl Identifiable for ModuleRef {
   fn identifier(&self) -> Identifier {
-    self.0.identifier()
+    self.module.identifier()
   }
 }
 

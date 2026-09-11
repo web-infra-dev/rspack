@@ -13,7 +13,7 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
   AsyncDependenciesBlockRef, AsyncModulesArtifact, Compilation, DependenciesBlock, Dependency,
-  ExportInfo, ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact, RuntimeSpec,
+  ExportInfo, ImportedByDeferModulesArtifact, Module, ModuleGraphCacheArtifact, RuntimeSpec,
   SideEffectsStateArtifact, UsedNameItem,
 };
 mod module;
@@ -102,6 +102,13 @@ pub(crate) struct ModuleGraphData {
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: AsyncDependenciesBlockIdentifierMap<AsyncDependenciesBlockRef>,
 
+  /// Finish-modules promotions are graph-local and must be undone before the next make phase.
+  promoted_blocks: Vec<(
+    DependencyId,
+    DependencyParents,
+    AsyncDependenciesBlockIdentifier,
+  )>,
+
   /// Dependency_id to parent module identifier and parent block
   ///
   /// # Example
@@ -149,6 +156,10 @@ impl ModuleGraphData {
   }
   // reset to checkpoint
   fn recover(&mut self) {
+    for (dependency_id, parents, block_id) in self.promoted_blocks.drain(..) {
+      self.dependency_id_to_parents.insert(dependency_id, parents);
+      self.blocks.remove(&block_id);
+    }
     self.modules.reset();
     self.module_graph_modules.reset();
     self.connections.reset();
@@ -524,6 +535,65 @@ impl ModuleGraph {
 
   pub fn add_block(&mut self, block: AsyncDependenciesBlockRef) {
     self.inner.blocks.insert(block.identifier(), block);
+  }
+
+  /// Move a direct module dependency into an async block without mutating the shared build result.
+  pub fn move_dependency_to_block(
+    &mut self,
+    dependency_id: DependencyId,
+    mut block: Box<AsyncDependenciesBlock>,
+  ) {
+    let origin_module = *block.parent();
+    let block_id = block.identifier();
+    let parents = self
+      .inner
+      .dependency_id_to_parents
+      .get(&dependency_id)
+      .expect("dependency should have parents")
+      .clone();
+    assert_eq!(parents.module, origin_module);
+    assert!(
+      parents.block.is_none(),
+      "dependency should be directly owned by its module"
+    );
+    assert!(
+      !self.inner.blocks.contains_key(&block_id),
+      "promoted block should be new"
+    );
+    self
+      .inner
+      .promoted_blocks
+      .push((dependency_id, parents, block_id));
+    let index_in_block = block.get_dependencies().len();
+    block.add_dependency(self.dependency_ref_by_id(&dependency_id).clone());
+    let block: AsyncDependenciesBlockRef = block.into();
+    let mut module = self
+      .module_by_identifier(&origin_module)
+      .expect("dependency should have an origin module")
+      .clone();
+    module.remove_dependency_id(dependency_id);
+    module.add_block(block.clone());
+    // Replace the graph handle so rollback restores the original dependency view.
+    self.add_module(module);
+    self.set_parents(
+      dependency_id,
+      DependencyParents {
+        block: Some(block_id),
+        module: origin_module,
+        index_in_block,
+      },
+    );
+    self.add_block(block);
+  }
+
+  /// Resolve the current graph's dependency view when a caller holds the shared module itself.
+  pub fn module_dependencies_block<'a>(
+    &'a self,
+    module: &'a dyn Module,
+  ) -> &'a dyn DependenciesBlock {
+    self
+      .module_by_identifier(&module.identifier())
+      .map_or(module as &dyn DependenciesBlock, |module| module)
   }
 
   pub fn set_parents(&mut self, dependency_id: DependencyId, parents: DependencyParents) {

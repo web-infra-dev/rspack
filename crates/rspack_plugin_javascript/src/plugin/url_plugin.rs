@@ -4,12 +4,11 @@ use concat_string::concat_string;
 use rspack_core::{
   AsyncDependenciesBlock, AsyncModulesArtifact, ChunkInitFragments, ChunkUkey,
   CodeGenerationDataFilename, Compilation, CompilationFinishModules, CompilationParams,
-  CompilerCompilation, DependenciesBlock, DependencyId, DependencyParents, EntryOptions,
-  ExportsInfoArtifact, Filename, GroupOptions, ImportMetaKnownProperties, JavascriptParserUrl,
-  Module, ModuleDependency, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, PathData, Plugin, PublicPath, RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec,
-  SideEffectsStateArtifact, SourceType, URLStaticMode, get_css_chunk_filename_template,
-  get_js_chunk_filename_template, get_undo_path,
+  CompilerCompilation, DependencyId, EntryOptions, ExportsInfoArtifact, Filename, GroupOptions,
+  ImportMetaKnownProperties, JavascriptParserUrl, Module, ModuleDependency, ModuleType,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin, PublicPath,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
+  URLStaticMode, get_css_chunk_filename_template, get_js_chunk_filename_template, get_undo_path,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
 use rspack_error::Result;
@@ -164,7 +163,6 @@ async fn finish_modules(
           Vec::new(),
           Some(request.to_string()),
         ));
-        block.add_dependency_id(dependency_id);
         block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
           runtime: Some(runtime.into()),
           ..Default::default()
@@ -177,22 +175,7 @@ async fn finish_modules(
 
   let module_graph = compilation.get_module_graph_mut();
   for (dependency_id, block) in blocks {
-    let origin_module = *block.parent();
-    let block_id = block.identifier();
-    let module = module_graph
-      .module_by_identifier_mut(&origin_module)
-      .expect("URL dependency should have an origin module");
-    module.remove_dependency_id(dependency_id);
-    module.add_block_id(block_id);
-    module_graph.set_parents(
-      dependency_id,
-      DependencyParents {
-        block: Some(block_id),
-        module: origin_module,
-        index_in_block: 0,
-      },
-    );
-    module_graph.add_block(block.into());
+    module_graph.move_dependency_to_block(dependency_id, block);
   }
 
   Ok(())

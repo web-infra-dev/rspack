@@ -175,7 +175,7 @@ fn render_url_expression(
   expression: &str,
   comment: &str,
 ) {
-  let runtime_template = &mut context.runtime_template;
+  let runtime_template = &mut *context.runtime_template;
   if matches!(dep.mode, Some(JavascriptParserUrl::Relative)) {
     let relative_url = runtime_template.render_runtime_globals(&RuntimeGlobals::RELATIVE_URL);
     source.replace(

@@ -2,9 +2,12 @@ const { rspack } = require('@rspack/core');
 
 class CheckUrlEntryBlocksPlugin {
   apply(compiler) {
+    let buildIndex = 0;
     compiler.hooks.compilation.tap(
       'CheckUrlEntryBlocksPlugin',
       (compilation) => {
+        const currentBuild = buildIndex++;
+        const hasCssEntry = currentBuild !== 2;
         compilation.hooks.processAssets.tap(
           {
             name: 'CheckUrlEntryBlocksPlugin',
@@ -15,7 +18,7 @@ class CheckUrlEntryBlocksPlugin {
               (module) => module.rawRequest === './index.js',
             );
             expect(originModule).toBeDefined();
-            expect(originModule.blocks).toHaveLength(2);
+            expect(originModule.blocks).toHaveLength(hasCssEntry ? 2 : 1);
             for (const block of originModule.blocks) {
               expect(block.dependencies).toHaveLength(1);
               expect(block.dependencies[0].type).toBe('new URL()');
@@ -32,7 +35,26 @@ class CheckUrlEntryBlocksPlugin {
             ).toHaveLength(2);
             expect(
               assets.filter((asset) => asset.endsWith('.css')),
-            ).toHaveLength(1);
+            ).toHaveLength(hasCssEntry ? 1 : 0);
+            const jsAsset = compilation
+              .getAssets()
+              .find(
+                (asset) =>
+                  asset.name.startsWith('url-') && asset.name.endsWith('.js'),
+              );
+            expect(jsAsset.source.source().toString()).toContain(
+              currentBuild === 0 ? 'initial' : 'updated',
+            );
+            if (hasCssEntry) {
+              const cssAsset = compilation
+                .getAssets()
+                .find((asset) => asset.name.endsWith('.css'));
+              expect(cssAsset.source.source().toString()).toContain(
+                currentBuild === 4
+                  ? '.url-entry-rebuilt'
+                  : '.url-entry-rebuild-target',
+              );
+            }
           },
         );
       },
@@ -41,7 +63,7 @@ class CheckUrlEntryBlocksPlugin {
 }
 
 /** @type {import("@rspack/core").Configuration} */
-module.exports = {
+const config = {
   mode: 'development',
   devtool: false,
   target: 'web',
@@ -65,5 +87,24 @@ module.exports = {
       },
     ],
   },
-  plugins: [new CheckUrlEntryBlocksPlugin()],
 };
+
+// Exercise both a cached unchanged origin and module-graph rollback independently.
+module.exports = [false, true].flatMap((cache) =>
+  [false, undefined].map((incremental) => {
+    const name = `cache-${cache}-incremental-${incremental !== false}`;
+    return {
+      ...config,
+      name,
+      cache,
+      incremental,
+      output: {
+        ...config.output,
+        filename: `bundle-${name}.js`,
+        chunkFilename: `url-${name}-[id].js`,
+        cssChunkFilename: `url-${name}-[id].css`,
+      },
+      plugins: [new CheckUrlEntryBlocksPlugin()],
+    };
+  }),
+);
