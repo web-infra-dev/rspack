@@ -8,9 +8,9 @@ use super::{
   TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  AsyncDependenciesBlock, BoxModule, BuildContext, BuildResult, CacheFacade, CompilationId,
-  CompilerId, CompilerOptions, DependencyParents, DependencyRef, FileSystemInfo,
-  ModuleCodeTemplate, ResolverFactory, SharedPluginDriver,
+  AsyncDependenciesBlockRef, BoxModule, BuildContext, CacheFacade, CompilationId, CompilerId,
+  CompilerOptions, DependenciesBlock, DependencyParents, DependencyRef, FileSystemInfo,
+  ModuleCodeTemplate, ModuleRef, ResolverFactory, SharedPluginDriver,
   compilation::build_module_graph::{
     ForwardedIdSet, HasLazyDependencies, LazyDependencies, module_build_cache::ModuleBuildCache,
   },
@@ -85,11 +85,11 @@ impl Task<TaskContext> for BuildTask {
     if let (Some(module_build_cache), Some(build_start_time)) =
       (module_build_cache, build_start_time)
     {
-      module_build_cache.mark_pending(result.module.identifier(), build_start_time);
+      module_build_cache.mark_pending(result.identifier(), build_start_time);
     }
 
     Ok(vec![Box::new(BuildResultTask {
-      build_result: Box::new(result),
+      build_result: ModuleBuildResult::Built(result),
       plugin_driver,
       forwarded_ids,
     })])
@@ -97,8 +97,14 @@ impl Task<TaskContext> for BuildTask {
 }
 
 #[derive(Debug)]
+pub(super) enum ModuleBuildResult {
+  Built(BoxModule),
+  Cached(ModuleRef),
+}
+
+#[derive(Debug)]
 pub(super) struct BuildResultTask {
-  pub build_result: Box<BuildResult>,
+  pub build_result: ModuleBuildResult,
   pub plugin_driver: SharedPluginDriver,
   pub forwarded_ids: ForwardedIdSet,
 }
@@ -114,13 +120,24 @@ impl Task<TaskContext> for BuildResultTask {
       plugin_driver,
       mut forwarded_ids,
     } = *self;
-    let mut module = build_result.module;
-
-    plugin_driver
-      .compilation_hooks
-      .succeed_module
-      .call(context.compiler_id, context.compilation_id, &mut module)
-      .await?;
+    let module = match build_result {
+      ModuleBuildResult::Built(mut module) => {
+        plugin_driver
+          .compilation_hooks
+          .succeed_module
+          .call(context.compiler_id, context.compilation_id, &mut module)
+          .await?;
+        ModuleRef::from(module)
+      }
+      ModuleBuildResult::Cached(module) => {
+        plugin_driver
+          .compilation_hooks
+          .still_valid_module
+          .call(context.compiler_id, context.compilation_id, module.as_ref())
+          .await?;
+        module
+      }
+    };
 
     let build_info = module.build_info();
 
@@ -136,7 +153,7 @@ impl Task<TaskContext> for BuildResultTask {
       .artifact
       .module_graph
       .get_optimization_bailout_mut(&module.identifier())
-      .extend(build_result.optimization_bailouts);
+      .extend_from_slice(&build_info.optimization_bailouts);
     let resource_id = ResourceId::from(module.identifier());
     context
       .artifact
@@ -154,47 +171,40 @@ impl Task<TaskContext> for BuildResultTask {
       .artifact
       .build_dependencies
       .add_files(&resource_id, &build_info.dependencies.build);
+    drop(build_info);
 
     let module_graph = &mut context.artifact.module_graph;
     let mut lazy_dependencies = LazyDependencies::default();
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
-    let mut handle_block = |dependencies: Vec<DependencyRef>,
-                            blocks: Vec<Box<AsyncDependenciesBlock>>,
-                            current_block: Option<Box<AsyncDependenciesBlock>>|
-     -> Vec<Box<AsyncDependenciesBlock>> {
-      for (index_in_block, dependency) in dependencies.into_iter().enumerate() {
-        let dependency_id = *dependency.id();
-        if let Some(until) = dependency.lazy() {
-          lazy_dependencies.insert(&dependency, until);
+    let mut handle_block =
+      |dependencies: &[DependencyRef], current_block: Option<&AsyncDependenciesBlockRef>| {
+        for (index_in_block, dependency) in dependencies.iter().enumerate() {
+          let dependency_id = *dependency.id();
+          if let Some(until) = dependency.lazy() {
+            lazy_dependencies.insert(dependency, until);
+          }
+          all_dependencies.push(dependency_id);
+          module_graph.set_parents(
+            dependency_id,
+            DependencyParents {
+              block: current_block.map(|block| block.identifier()),
+              module: module.identifier(),
+              index_in_block,
+            },
+          );
+          module_graph.add_dependency_ref(dependency.clone());
         }
-        if current_block.is_none() {
-          module.add_dependency_id(dependency_id);
+        if let Some(current_block) = current_block {
+          module_graph.add_block(current_block.clone());
         }
-        all_dependencies.push(dependency_id);
-        module_graph.set_parents(
-          dependency_id,
-          DependencyParents {
-            block: current_block.as_ref().map(|block| block.identifier()),
-            module: module.identifier(),
-            index_in_block,
-          },
-        );
-        module_graph.add_dependency_ref(dependency);
-      }
-      if let Some(current_block) = current_block {
-        module.add_block_id(current_block.identifier());
-        module_graph.add_block(current_block);
-      }
-      blocks
-    };
-    let blocks = handle_block(build_result.dependencies, build_result.blocks, None);
-    queue.extend(blocks);
+      };
+    handle_block(module.get_dependencies(), None);
+    queue.extend(module.get_block_refs().iter().cloned());
 
-    while let Some(mut block) = queue.pop_front() {
-      let dependencies = block.take_dependencies();
-      let blocks = handle_block(dependencies, block.take_blocks(), Some(block));
-      queue.extend(blocks);
+    while let Some(block) = queue.pop_front() {
+      handle_block(block.get_dependencies(), Some(&block));
+      queue.extend(block.get_block_refs().iter().cloned());
     }
 
     {

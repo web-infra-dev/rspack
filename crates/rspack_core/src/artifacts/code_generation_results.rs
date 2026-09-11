@@ -1,6 +1,5 @@
 use std::{collections::hash_map::Entry, fmt::Debug, sync::Arc};
 
-use dyn_clone::{DynClone, clone_trait_object};
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsCacheable, AsInner, AsMap, AsPreset, AsVec},
@@ -20,7 +19,7 @@ use crate::{
 };
 
 #[cacheable]
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct CodeGenerationDataUrl {
   inner: String,
 }
@@ -37,15 +36,15 @@ impl CodeGenerationDataUrl {
 
 // For performance, mark the js modules containing AUTO_PUBLIC_PATH_PLACEHOLDER
 #[cacheable]
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct CodeGenerationPublicPathAutoReplace(pub bool);
 
 #[cacheable]
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct URLStaticMode;
 
 #[cacheable]
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct CodeGenerationDataFilename {
   filename: String,
   public_path: String,
@@ -69,7 +68,7 @@ impl CodeGenerationDataFilename {
 }
 
 #[cacheable]
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct CodeGenerationDataAssetInfo {
   inner: AssetInfo,
 }
@@ -115,7 +114,7 @@ impl RspackHash for CodeGenerationDataPreservedAssetImport {
 }
 
 #[cacheable]
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct CodeGenerationDataTopLevelDeclarations {
   #[cacheable(with=AsVec<AsPreset>)]
   inner: AtomSet,
@@ -132,14 +131,12 @@ impl CodeGenerationDataTopLevelDeclarations {
 }
 
 #[cacheable_dyn]
-pub trait CodeGenerationDataItem: Debug + DynClone + AsAny + IntoAny + Send + Sync {
+pub trait CodeGenerationDataItem: Debug + AsAny + IntoAny + Send + Sync {
   fn update_hash(&self, _hasher: &mut RspackHasher) {}
 }
 
-clone_trait_object!(CodeGenerationDataItem);
-
 #[cacheable]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct CodeGenerationDataChunkInitFragments {
   inner: ChunkInitFragments,
 }
@@ -202,7 +199,7 @@ impl CodeGenerationDataItem for CodeGenerationDataChunkInitFragments {
 impl CodeGenerationDataItem for CodeGenerationDataConcatenationScopeOutput {}
 
 #[cacheable]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct CodeGenerationData {
   inner: Vec<Box<dyn CodeGenerationDataItem>>,
 }
@@ -383,7 +380,7 @@ impl CodeGenerationResultBuilder {
   }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct CodeGenerationResults {
   map: IdentifierMap<RuntimeSpecMap<BindingCell<CodeGenerationResult>>>,
 }

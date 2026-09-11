@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use rspack_cacheable::{cacheable, cacheable_dyn, utils::OwnedOrRef};
 use rspack_collections::Identifiable;
@@ -8,36 +8,42 @@ use rspack_sources::BoxSource;
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId, FactoryMeta,
-  Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec,
-  SourceType, ValueCacheVersions,
+  BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder, Compilation, Context,
+  DependenciesBlock, DependenciesBlockData, FactoryMeta, FreezeLock, Module,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  ValueCacheVersions,
 };
 
 #[cacheable]
 #[derive(Debug)]
 pub struct TempModule {
   id: ModuleIdentifier,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
-  dependencies: Vec<DependencyId>,
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
+  dependencies_block: DependenciesBlockData,
 }
 
 impl TempModule {
-  pub fn transform_from(module: OwnedOrRef<BoxModule>) -> OwnedOrRef<BoxModule> {
+  pub fn transform_from(module: OwnedOrRef<crate::ModuleRef>) -> OwnedOrRef<crate::ModuleRef> {
     let m = module.as_ref();
-    OwnedOrRef::Owned(BoxModule::new(Box::new(Self {
+    let module = BoxModule::new(Box::new(Self {
       id: m.identifier(),
       build_info: BuildInfo {
         dependencies: m.build_info().dependencies.clone(),
         ..Default::default()
-      },
-      build_meta: m.build_meta().clone(),
-      dependencies: m.get_dependencies().to_vec(),
-      // clean all of blocks
-      blocks: vec![],
-    })))
+      }
+      .into(),
+      build_meta: m.freeze_build_meta().clone().into(),
+      dependencies_block: DependenciesBlockData::new(
+        m.get_dependencies()
+          .iter()
+          .map(|dependency| super::TempDependency::transform_from(dependency.into()).into_owned())
+          .collect(),
+        Vec::new(),
+      ),
+    }));
+    module.freeze_build_info();
+    OwnedOrRef::Owned(module.into())
   }
 }
 
@@ -56,28 +62,40 @@ impl ModuleSourceMapConfig for TempModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for TempModule {
-  fn factory_meta(&self) -> Option<&FactoryMeta> {
+  fn factory_meta(&self) -> Option<Arc<FactoryMeta>> {
     unreachable!()
   }
 
-  fn set_factory_meta(&mut self, _factory_meta: FactoryMeta) {
+  fn set_factory_meta(&self, _factory_meta: FactoryMeta) {
     unreachable!()
   }
 
-  fn build_info(&self) -> &BuildInfo {
-    &self.build_info
+  fn reset_for_compilation(&self, _factory_meta: Option<Arc<FactoryMeta>>) {
+    unreachable!()
+  }
+
+  fn build_info(&self) -> crate::FreezeReadGuard<'_, BuildInfo> {
+    self.build_info.read()
+  }
+
+  fn freeze_build_info(&self) {
+    self.build_info.freeze();
+  }
+
+  fn extend_build_assets(&self, assets: crate::CompilationAssets) {
+    self.build_info.extend_assets(assets);
   }
 
   fn build_info_mut(&mut self) -> &mut BuildInfo {
-    &mut self.build_info
+    self.build_info.get_mut()
   }
 
-  fn build_meta(&self) -> &BuildMeta {
-    &self.build_meta
+  fn build_meta(&self) -> crate::FreezeReadGuard<'_, BuildMeta> {
+    self.build_meta.read()
   }
 
-  fn build_meta_mut(&mut self) -> &mut BuildMeta {
-    &mut self.build_meta
+  fn freeze_build_meta(&self) -> &triomphe::Arc<BuildMeta> {
+    self.build_meta.freeze()
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
@@ -124,13 +142,8 @@ impl Module for TempModule {
     self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies: vec![],
-      blocks: vec![],
-      optimization_bailouts: vec![],
-    })
+  ) -> Result<BoxModule> {
+    Ok(BoxModule::new(self))
   }
 }
 
@@ -141,19 +154,11 @@ impl Identifiable for TempModule {
 }
 
 impl DependenciesBlock for TempModule {
-  fn add_block_id(&mut self, _block: AsyncDependenciesBlockIdentifier) {
-    unreachable!()
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-  fn add_dependency_id(&mut self, _dependency: DependencyId) {
-    unreachable!()
-  }
-  fn remove_dependency_id(&mut self, _dependency: DependencyId) {
-    unreachable!()
-  }
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }

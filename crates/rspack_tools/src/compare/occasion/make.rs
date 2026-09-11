@@ -179,8 +179,8 @@ impl<'a> ArtifactComparator<'a> {
   /// So we compare dependency_type in order and build a mapping from dep_id1 to dep_id2.
   fn compare_module_dependencies_and_build_map(
     &self,
-    module1: &rspack_core::BoxModule,
-    module2: &rspack_core::BoxModule,
+    module1: &rspack_core::ModuleRef,
+    module2: &rspack_core::ModuleRef,
     debug_info: &DebugInfo,
     dep_id_map: &mut HashMap<DependencyId, DependencyId>,
   ) -> Result<()> {
@@ -198,11 +198,8 @@ impl<'a> ArtifactComparator<'a> {
     }
 
     // Compare each dependency by type in order and build mapping
-    for (i, (dep_id1, dep_id2)) in deps1.iter().zip(deps2.iter()).enumerate() {
+    for (i, (dep1, dep2)) in deps1.iter().zip(deps2).enumerate() {
       let dep_debug_info = debug_info.with_field("dependency_index", &i.to_string());
-
-      let dep1 = self.mg1.dependency_by_id(dep_id1);
-      let dep2 = self.mg2.dependency_by_id(dep_id2);
 
       // Compare dependency types
       let type1 = dep1.dependency_type();
@@ -219,7 +216,7 @@ impl<'a> ArtifactComparator<'a> {
       }
 
       // Build mapping: dep_id1 -> dep_id2
-      dep_id_map.insert(*dep_id1, *dep_id2);
+      dep_id_map.insert(*dep1.id(), *dep2.id());
     }
 
     Ok(())
@@ -230,8 +227,8 @@ impl<'a> ArtifactComparator<'a> {
   /// direct comparison.
   fn compare_module_build_info(
     &self,
-    module1: &rspack_core::BoxModule,
-    module2: &rspack_core::BoxModule,
+    module1: &rspack_core::ModuleRef,
+    module2: &rspack_core::ModuleRef,
     debug_info: &DebugInfo,
     dep_id_map: &HashMap<DependencyId, DependencyId>,
   ) -> Result<()> {
@@ -254,10 +251,10 @@ impl<'a> ArtifactComparator<'a> {
       normalized.all_star_exports.clear();
       rspack_cacheable::to_bytes(&normalized, &ctx)
     };
-    let bytes1 = normalize(build_info1).map_err(|e| {
+    let bytes1 = normalize(&build_info1).map_err(|e| {
       rspack_error::error!("Failed to normalize BuildInfo 1: {:?}\n{}", e, debug_info)
     })?;
-    let bytes2 = normalize(build_info2).map_err(|e| {
+    let bytes2 = normalize(&build_info2).map_err(|e| {
       rspack_error::error!("Failed to normalize BuildInfo 2: {:?}\n{}", e, debug_info)
     })?;
 

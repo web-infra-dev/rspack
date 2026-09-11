@@ -110,23 +110,11 @@ pub fn impl_runtime_module(
     }
 
     impl #impl_generics ::rspack_core::DependenciesBlock for #name #ty_generics #where_clause {
-      fn add_block_id(&mut self, _: ::rspack_core::AsyncDependenciesBlockIdentifier) {
+      fn dependencies_block(&self) -> &::rspack_core::DependenciesBlockData {
         unreachable!()
       }
 
-      fn get_blocks(&self) -> &[::rspack_core::AsyncDependenciesBlockIdentifier] {
-        unreachable!()
-      }
-
-      fn add_dependency_id(&mut self, _: ::rspack_core::DependencyId) {
-        unreachable!()
-      }
-
-      fn remove_dependency_id(&mut self, _: ::rspack_core::DependencyId) {
-        unreachable!()
-      }
-
-      fn get_dependencies(&self) -> &[::rspack_core::DependencyId] {
+      fn dependencies_block_mut(&mut self) -> &mut ::rspack_core::DependenciesBlockData {
         unreachable!()
       }
     }
@@ -161,13 +149,23 @@ pub fn impl_runtime_module(
         None
       }
 
-      fn factory_meta(&self) -> Option<&::rspack_core::FactoryMeta> {
+      fn factory_meta(&self) -> Option<::std::sync::Arc<::rspack_core::FactoryMeta>> {
         None
       }
 
-      fn set_factory_meta(&mut self, v: ::rspack_core::FactoryMeta) {}
+      fn set_factory_meta(&self, v: ::rspack_core::FactoryMeta) {}
 
-      fn build_info(&self) -> &::rspack_core::BuildInfo {
+      fn reset_for_compilation(&self, _: Option<::std::sync::Arc<::rspack_core::FactoryMeta>>) {}
+
+      fn build_info(&self) -> ::rspack_core::FreezeReadGuard<'_, ::rspack_core::BuildInfo> {
+        unreachable!()
+      }
+
+      fn freeze_build_info(&self) {
+        unreachable!()
+      }
+
+      fn extend_build_assets(&self, _: ::rspack_core::CompilationAssets) {
         unreachable!()
       }
 
@@ -175,11 +173,11 @@ pub fn impl_runtime_module(
         unreachable!()
       }
 
-      fn build_meta(&self) -> &::rspack_core::BuildMeta {
+      fn build_meta(&self) -> ::rspack_core::FreezeReadGuard<'_, ::rspack_core::BuildMeta> {
         unreachable!()
       }
 
-      fn build_meta_mut(&mut self) -> &mut ::rspack_core::BuildMeta {
+      fn freeze_build_meta(&self) -> &::rspack_core::SharedBuildMeta {
         unreachable!()
       }
 
@@ -202,13 +200,8 @@ pub fn impl_runtime_module(
         self: Box<Self>,
         _build_context: ::rspack_core::BuildContext,
         _compilation: Option<&::rspack_core::Compilation>,
-      ) -> ::rspack_error::Result<::rspack_core::BuildResult> {
-        Ok(::rspack_core::BuildResult {
-          module: ::rspack_core::BoxModule::new(self),
-          dependencies: vec![],
-          blocks: vec![],
-          optimization_bailouts: vec![],
-        })
+      ) -> ::rspack_error::Result<::rspack_core::BoxModule> {
+        Ok(::rspack_core::BoxModule::new(self))
       }
     }
 

@@ -310,7 +310,22 @@ pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
   })
 }
 
-fn path_query_fragment(mut input: &str) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
+#[cfg(not(windows))]
+fn path_query_fragment(input: &str) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
+  path_query_fragment_impl(input)
+}
+
+#[cfg(windows)]
+fn path_query_fragment(input: &str) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
+  let prefix_len = rspack_paths::dos_device_path_prefix_len(input);
+  let (path, query, fragment) = path_query_fragment_impl(&input[prefix_len..])?;
+  let path = &input[..prefix_len + path.len()];
+  Ok((path, query, fragment))
+}
+
+fn path_query_fragment_impl(
+  mut input: &str,
+) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
   use winnow::{
     combinator::{alt, opt, repeat},
     prelude::*,

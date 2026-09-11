@@ -12,6 +12,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::plugin_hook;
 use rspack_paths::Utf8Path;
+use rspack_util::identifier::split_at_query_mark;
 
 use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner, cache::loader_cache_version};
 
@@ -70,13 +71,8 @@ pub(crate) async fn resolve_loader(
 ) -> Result<Option<BoxLoader>> {
   let context = context.as_path();
   let loader_request = &l.loader;
-  let mut rest = None;
-  let prev = if let Some(index) = loader_request.find('?') {
-    rest = Some(&loader_request[index..]);
-    Utf8Path::new(&loader_request[0..index])
-  } else {
-    Utf8Path::new(loader_request)
-  };
+  let (loader_path, rest) = split_at_query_mark(loader_request);
+  let prev = Utf8Path::new(loader_path);
   #[cfg(feature = "test-loader")]
   if loader_request.starts_with("builtin:test") {
     return Ok(get_builtin_test_loader(loader_request));
@@ -121,6 +117,14 @@ pub(crate) async fn resolve_loader(
             .and_then(|t| t.as_str().map(|t| Cow::Owned(t.to_owned())))
         })
       };
+      #[cfg(windows)]
+      let path = {
+        // Node's module loader may interpret a namespaced drive path as only
+        // its drive component. Filesystem access and cache versioning above
+        // still use the original namespaced path.
+        rspack_paths::strip_dos_device_path_prefix(path)
+      };
+
       // favor explicit loader query over aliased query, see webpack issue-3320
       let resource = if let Some(rest) = rest
         && !rest.is_empty()

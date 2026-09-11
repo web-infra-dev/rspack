@@ -98,14 +98,14 @@ use crate::{
   legacy_cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
-  new_cache::{Cache, CacheFacade},
+  new_cache::{CacheFacade, CompilerCache},
   to_identifier,
 };
 
 define_hook!(CompilationAddEntry: Series(entry_name: Option<&str>, options: &mut EntryOptions));
 define_hook!(CompilationBuildModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationRevokedModules: Series(compilation: &Compilation, revoked_modules: &IdentifierSet));
-define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
+define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &dyn crate::Module));
 define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &[Identifier], code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
@@ -239,7 +239,7 @@ pub struct Compilation {
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
-  cache: Cache,
+  cache: CompilerCache,
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
   pub file_system_info: FileSystemInfo,
   pub plugin_driver: SharedPluginDriver,
@@ -352,7 +352,7 @@ impl Compilation {
     incremental: Incremental,
     module_executor: Option<ModuleExecutor>,
     logging: CompilationLogging,
-    cache: Cache,
+    cache: CompilerCache,
     modified_files: InternedPathSet,
     removed_files: InternedPathSet,
     input_filesystem: Arc<dyn ReadableFileSystem>,
@@ -366,7 +366,7 @@ impl Compilation {
     let module_build_cache = (options.experiments.new_cache.module
       && !is_rebuild
       && !matches!(&options.cache, CacheOptions::Disabled))
-    .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules"), &options));
+    .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules")));
     let snapshot_options = match &options.cache {
       CacheOptions::Disabled => SnapshotOptions::default(),
       CacheOptions::Memory { snapshot, .. } => snapshot.clone(),
@@ -495,7 +495,7 @@ impl Compilation {
   }
 
   // it will return None during make phase since mg is incomplete
-  pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
+  pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&crate::ModuleRef> {
     if self.build_module_graph_artifact.is_stolen() {
       return None;
     }
@@ -632,7 +632,7 @@ impl Compilation {
   pub fn get_import_var(
     &self,
     module: ModuleIdentifier,
-    target_module: Option<&BoxModule>,
+    target_module: Option<&crate::ModuleRef>,
     user_request: &str,
     phase: ImportPhase,
     runtime: Option<&RuntimeSpec>,
@@ -1094,7 +1094,7 @@ impl Compilation {
     &mut self,
     module_identifiers: IdentifierSet,
     exports_info_artifact: &mut ExportsInfoArtifact,
-    f: impl Fn(Vec<&BoxModule>) -> T,
+    f: impl Fn(Vec<&crate::ModuleRef>) -> T,
   ) -> Result<T> {
     let artifact = self.build_module_graph_artifact.steal();
 

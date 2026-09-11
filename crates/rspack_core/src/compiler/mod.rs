@@ -1,13 +1,10 @@
 mod rebuild;
-use std::{
-  sync::{Arc, atomic::AtomicU32},
-  time::Instant,
-};
+use std::sync::{Arc, atomic::AtomicU32};
 
 use futures::future::join_all;
 use rspack_cacheable::cacheable;
 use rspack_error::Result;
-use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
+use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hook::define_hook;
 use rspack_paths::{InternedPath, Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
@@ -28,9 +25,15 @@ use crate::{
   incremental::{Incremental, IncrementalPasses},
   legacy_cache::{Cache as LegacyCache, create_cache as create_legacy_cache},
   logger::Logger,
-  new_cache::{Cache, CacheFacade, Meta, create_cache},
+  new_cache::{Cache, CacheFacade, CacheValue, CompilerCache},
   trim_dir,
 };
+
+#[cacheable]
+#[derive(Debug)]
+struct Meta {
+  pub max_dependency_id: u32,
+}
 
 // should be SyncHook, but rspack need call js hook
 define_hook!(CompilerThisCompilation: Series(compilation: &mut Compilation, params: &mut CompilationParams));
@@ -96,7 +99,7 @@ const EMIT_ASSETS_CONCURRENCY_LIMIT: usize = 15;
 #[derive(Debug)]
 pub struct Compiler {
   id: CompilerId,
-  pub compiler_path: String,
+  pub compiler_path: Arc<str>,
   pub options: Arc<CompilerOptions>,
   pub output_filesystem: Arc<dyn WritableFileSystem>,
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
@@ -108,7 +111,7 @@ pub struct Compiler {
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub cache: Box<dyn LegacyCache>,
   incremental_artifacts: IncrementalArtifacts,
-  new_cache: Cache,
+  new_cache: CompilerCache,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
@@ -120,20 +123,19 @@ pub struct Compiler {
 impl Compiler {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    compiler_path: String,
+    compiler_path: Arc<str>,
     options: CompilerOptions,
     plugins: Vec<BoxPlugin>,
     buildtime_plugins: Vec<BoxPlugin>,
-    output_filesystem: Option<Arc<dyn WritableFileSystem>>,
-    intermediate_filesystem: Option<Arc<dyn IntermediateFileSystem>>,
-    // only supports passing input_filesystem in rust api, no support for js api
-    input_filesystem: Option<Arc<dyn ReadableFileSystem>>,
-    // no need to pass resolve_factory in rust api
-    resolver_factory: Option<Arc<ResolverFactory>>,
-    loader_resolver_factory: Option<Arc<ResolverFactory>>,
+    input_filesystem: Arc<dyn ReadableFileSystem>,
+    output_filesystem: Arc<dyn WritableFileSystem>,
+    intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
+    resolver_factory: Arc<ResolverFactory>,
+    loader_resolver_factory: Arc<ResolverFactory>,
     compiler_context: Option<Arc<CompilerContext>>,
-    infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
     platform: Arc<CompilerPlatform>,
+    cache: Arc<Cache>,
+    _infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
   ) -> Self {
     #[cfg(debug_assertions)]
     {
@@ -141,39 +143,13 @@ impl Compiler {
         debug_info.with_context(options.context.to_string());
       }
     }
-    let pnp = options.resolve.pnp.unwrap_or(false);
-    // pnp is only meaningful for input_filesystem, so disable it for intermediate_filesystem and output_filesystem
-    let input_filesystem = input_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem::new(pnp)));
-
-    let output_filesystem =
-      output_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem::new(false)));
-    let intermediate_filesystem =
-      intermediate_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem::new(false)));
-
-    let resolver_factory = resolver_factory.unwrap_or_else(|| {
-      Arc::new(ResolverFactory::new(
-        options.resolve.clone(),
-        input_filesystem.clone(),
-      ))
-    });
-    let loader_resolver_factory = loader_resolver_factory.unwrap_or_else(|| {
-      Arc::new(ResolverFactory::new(
-        options.resolve_loader.clone(),
-        input_filesystem.clone(),
-      ))
-    });
 
     let options = Arc::new(options);
     let compilation_logging: CompilationLogging = Default::default();
     let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());
     let buildtime_plugin_driver =
       PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
-    let new_cache = create_cache(
-      compiler_path.clone(),
-      options.clone(),
-      input_filesystem.clone(),
-      infrastructure_log_sink,
-    );
+    let new_cache = CompilerCache::new(cache, compiler_path.clone());
     let cache = create_legacy_cache(
       &compiler_path,
       options.clone(),
@@ -236,18 +212,8 @@ impl Compiler {
     self.new_cache.facade(name)
   }
 
-  fn end_idle(&self) -> Result<Instant> {
-    self.new_cache.end_idle()?;
-    Ok(Instant::now())
-  }
-
-  fn begin_idle(&mut self, started_at: Instant, successful: bool) -> Result<()> {
-    let record_build_time = if successful {
-      self.new_cache.record_build_time(started_at.elapsed())
-    } else {
-      Ok(())
-    };
-    if successful && self.new_cache.has_file_cache() {
+  fn store_cache_metadata(&mut self) {
+    if self.new_cache.has_file_cache() {
       if let CacheOptions::Persistent(options) = &self.options.cache {
         self.compilation.build_dependencies.extend(
           options
@@ -259,14 +225,15 @@ impl Compiler {
       let (build_dependencies, _, _, _) = self.compilation.build_dependencies();
       self
         .new_cache
-        .store_build_dependencies(build_dependencies.cloned().collect())
+        .store_build_dependencies(build_dependencies.cloned().collect());
+      self.get_cache("meta").store(
+        "state",
+        None,
+        CacheValue::new(Meta {
+          max_dependency_id: self.compiler_context.dependency_id(),
+        }),
+      );
     };
-    self.new_cache.store_meta(Meta {
-      max_dependency_id: self.compiler_context.dependency_id(),
-    });
-    let begin_idle = self.new_cache.begin_idle();
-
-    record_build_time.and(begin_idle)
   }
 
   pub async fn run(&mut self) -> Result<()> {
@@ -275,7 +242,6 @@ impl Compiler {
   }
 
   pub async fn build(&mut self) -> Result<()> {
-    let start = self.end_idle()?;
     let compiler_context = self.compiler_context.clone();
     let result = match within_compiler_context(compiler_context, self.build_inner()).await {
       Ok(_) => {
@@ -296,13 +262,15 @@ impl Compiler {
         failed.and(Err(e))
       }
     };
-    let cache_result = self.begin_idle(start, result.is_ok());
-    result.and(cache_result)
+    self.store_cache_metadata();
+    result
   }
 
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
   async fn build_inner(&mut self) -> Result<()> {
-    if let Some(restored) = self.new_cache.restore_meta()? {
+    if self.new_cache.has_file_cache()
+      && let Some(restored) = self.get_cache("meta").get::<Meta>("state", None)
+    {
       let current = self.compiler_context.dependency_id();
       if current < restored.max_dependency_id {
         self
@@ -669,7 +637,7 @@ impl Compiler {
       .await?;
 
     self.cache.close().await;
-    self.new_cache.shutdown().await
+    Ok(())
   }
 }
 

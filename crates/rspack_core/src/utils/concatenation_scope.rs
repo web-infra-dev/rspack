@@ -37,7 +37,7 @@ pub struct ModuleReferenceOptions {
 /// [`ConcatenationScope`]. The ESM library plugin opts into collecting this
 /// output because it consumes the mutations after the module codegen pass.
 #[cacheable]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct CodeGenerationDataConcatenationScopeOutput {
   #[cacheable(with=AsOption<AsPreset>)]
   namespace_export_symbol: Option<Atom>,

@@ -23,7 +23,6 @@ import {
 } from 'webpack-sources';
 
 import { commitCustomFieldsToRust } from '../BuildInfo';
-import type { Compilation } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import {
   BUILTIN_LOADER_PREFIX,
@@ -36,7 +35,7 @@ import {
 import { NormalModule } from '../NormalModule';
 import type { ResolveContext } from '../Resolver';
 import { NonErrorEmittedError, type RspackError } from '../RspackError';
-import { JavaScriptTracer } from '../trace';
+import { type ChromeEvent, JavaScriptTracer } from '../trace';
 import {
   isNil,
   serializeObject,
@@ -229,33 +228,27 @@ function getCurrentLoader(
   return null;
 }
 
-export async function runLoaders(
+interface LoaderContextState {
+  loaderContext: LoaderContext;
+  update(
+    context: JsLoaderContext,
+    dependencies: LoaderDependenciesState,
+    traceData?: Pick<ChromeEvent, 'uuid' | 'args'>,
+  ): void;
+}
+
+export function createLoaderContext(
   compiler: Compiler,
   context: JsLoaderContext,
-): Promise<JsLoaderContext> {
-  const loaderState = context.loaderState;
-  const pitch = loaderState === JsLoaderState.Pitching;
-
-  const { resource } = context;
-  const traceData = JavaScriptTracer.isEnabled()
-    ? {
-        uuid: JavaScriptTracer.uuid(),
-        args: {
-          is_pitch: pitch,
-          resource: resource,
-        },
-      }
-    : undefined;
-
-  if (traceData) {
-    JavaScriptTracer.startAsync({
-      name: 'run_js_loaders',
-      processName: LOADER_PROCESS_NAME,
-      uuid: traceData.uuid,
-      ph: 'b',
-      args: traceData.args,
-    });
+  dependencies: LoaderDependenciesState,
+  traceData?: Pick<ChromeEvent, 'uuid' | 'args'>,
+): LoaderContext {
+  const state = context.loaderContextState as LoaderContextState | undefined;
+  if (state) {
+    state.update(context, dependencies, traceData);
+    return state.loaderContext;
   }
+  const { resource } = context;
   const splittedResource = resource && parseResource(resource);
   const resourcePath = splittedResource ? splittedResource.path : undefined;
   const resourceQuery = splittedResource ? splittedResource.query : undefined;
@@ -263,12 +256,6 @@ export async function runLoaders(
     ? splittedResource.fragment
     : undefined;
   const contextDirectory = resourcePath ? dirname(resourcePath) : null;
-
-  // execution state
-  const dependencies = new LoaderDependenciesState(context.dependencies);
-  const loaderCache = context.__internal__loaderCache
-    ? new LoaderCache(context, dependencies)
-    : undefined;
 
   /// Construct `loaderContext`
   const loaderContext = {} as LoaderContext;
@@ -363,11 +350,23 @@ export async function runLoaders(
               args: traceData.args,
             });
           }
-          if (res.error) {
-            onError(
-              compiler.__internal__takeModuleExecutionResult(res.id) ??
-                new Error(res.error),
-            );
+          if (res.errors.length > 0) {
+            const executionError =
+              compiler.__internal__takeModuleExecutionResult(res.id);
+            if (executionError != null) {
+              onError(executionError);
+            } else if (res.errors.length === 1) {
+              onError(res.errors[0]);
+            } else {
+              const error = new AggregateError(
+                res.errors,
+                res.errors
+                  .map((error: RspackError) => error.message)
+                  .join('\n'),
+              );
+              (error as RspackError).hideStack = true;
+              onError(error);
+            }
           } else {
             onDone(compiler.__internal__takeModuleExecutionResult(res.id));
           }
@@ -554,6 +553,10 @@ export async function runLoaders(
     );
   };
   loaderContext.rootContext = compiler.context;
+  const getCurrentLoaderName = () => {
+    const loader = getCurrentLoader(loaderContext);
+    return loader ? stringifyLoaderObject(loader) : '(not in loader scope)';
+  };
   // The public API intentionally accepts only Error instances. Keep these runtime checks for
   // untyped JavaScript loaders that pass strings or other non-Error values.
   loaderContext.emitError = function emitError(e) {
@@ -561,9 +564,7 @@ export async function runLoaders(
       e = new NonErrorEmittedError(e);
     }
     const error = new ModuleError(e, {
-      from: stringifyLoaderObject(
-        loaderContext.loaders[loaderContext.loaderIndex],
-      ),
+      from: getCurrentLoaderName(),
     });
     error.module = loaderContext._module;
     compiler._lastCompilation!.__internal__pushRspackDiagnostic({
@@ -576,9 +577,7 @@ export async function runLoaders(
       e = new NonErrorEmittedError(e);
     }
     const warning = new ModuleWarning(e, {
-      from: stringifyLoaderObject(
-        loaderContext.loaders[loaderContext.loaderIndex],
-      ),
+      from: getCurrentLoaderName(),
     });
     warning.module = loaderContext._module;
     compiler._lastCompilation!.__internal__pushRspackDiagnostic({
@@ -690,23 +689,6 @@ export async function runLoaders(
     return options;
   };
 
-  let compilation: Compilation | undefined = compiler._lastCompilation;
-  let step = 0;
-  while (compilation) {
-    NormalModule.getCompilationHooks(compilation).loader.call(
-      loaderContext,
-      loaderContext._module,
-    );
-    compilation = compilation.compiler.parentCompilation;
-    step++;
-    if (step > 1000) {
-      throw Error(
-        'Too many nested child compiler, exceeded max limitation 1000',
-      );
-    }
-  }
-  dependencies.mergeChanges();
-
   /// Sync with `context`
   Object.defineProperty(loaderContext, 'loaderIndex', {
     enumerable: true,
@@ -732,6 +714,65 @@ export async function runLoaders(
   loaderContext.__internal__setParseMeta = (key: string, value: string) => {
     context.__internal__parseMeta[key] = value;
   };
+
+  // Rust retains this state only for the current run_loaders invocation. Update
+  // the captured snapshot on every entry so hook-installed closures use the
+  // current loader index, dependencies and module pointer across native loaders.
+  context.loaderContextState = {
+    loaderContext,
+    update(nextContext, nextDependencies, nextTraceData) {
+      context = nextContext;
+      dependencies = nextDependencies;
+      traceData = nextTraceData;
+      loaderContext.hot = context.hot;
+      loaderContext._module = context._module;
+      loaderContext.loaders = context.loaderItems.map((item) =>
+        LoaderObject.__from_binding(item, compiler),
+      );
+    },
+  } satisfies LoaderContextState;
+
+  return loaderContext;
+}
+
+export async function runLoaders(
+  compiler: Compiler,
+  context: JsLoaderContext,
+): Promise<JsLoaderContext> {
+  const loaderState = context.loaderState;
+  const pitch = loaderState === JsLoaderState.Pitching;
+
+  const { resource } = context;
+  const traceData = JavaScriptTracer.isEnabled()
+    ? {
+        uuid: JavaScriptTracer.uuid(),
+        args: {
+          is_pitch: pitch,
+          resource: resource,
+        },
+      }
+    : undefined;
+
+  const dependencies = new LoaderDependenciesState(context.dependencies);
+  const loaderCache = context.__internal__loaderCache
+    ? new LoaderCache(context, dependencies)
+    : undefined;
+  const loaderContext = createLoaderContext(
+    compiler,
+    context,
+    dependencies,
+    traceData,
+  );
+
+  if (traceData) {
+    JavaScriptTracer.startAsync({
+      name: 'run_js_loaders',
+      processName: LOADER_PROCESS_NAME,
+      uuid: traceData.uuid,
+      ph: 'b',
+      args: traceData.args,
+    });
+  }
 
   const getWorkerLoaderContext = () => {
     const normalModule =
