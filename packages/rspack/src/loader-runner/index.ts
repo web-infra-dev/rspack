@@ -1136,6 +1136,7 @@ export async function runLoaders(
             context.content = isNil(content) ? null : toBuffer(content);
             context.sourceMap = serializeObject(sourceMap);
             context.additionalData = additionalData || undefined;
+            context.__internal__utf8Hint = typeof content === 'string';
             break;
           }
         }
