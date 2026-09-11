@@ -1,5 +1,6 @@
 use std::sync::LazyLock;
 
+use concat_string::concat_string;
 use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
@@ -113,7 +114,8 @@ pub struct URLDependencyTemplate;
 
 pub static URL_STATIC_PLACEHOLDER: &str = "RSPACK_AUTO_URL_STATIC_PLACEHOLDER_";
 pub static URL_STATIC_PLACEHOLDER_RE: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(&format!(r#"{URL_STATIC_PLACEHOLDER}(?<dep>\d+)"#)).expect("should be valid regex")
+  Regex::new(&concat_string!(URL_STATIC_PLACEHOLDER, r#"(?<dep>\d+)"#))
+    .expect("should be valid regex")
 });
 
 pub(crate) fn url_entry_source_type(module_type: &ModuleType) -> Option<SourceType> {
@@ -155,16 +157,14 @@ fn render_static_url(
   context
     .data
     .insert(CodeGenerationPublicPathAutoReplace(true));
+  let url = rspack_util::json_stringify_str(&format!(
+    "{AUTO_PUBLIC_PATH_PLACEHOLDER}{URL_STATIC_PLACEHOLDER}{}",
+    dep.id.as_u32()
+  ));
   source.replace(
     dep.range.start,
     dep.range.end,
-    format!(
-      "new URL({}, import.meta.url)",
-      rspack_util::json_stringify_str(&format!(
-        "{AUTO_PUBLIC_PATH_PLACEHOLDER}{URL_STATIC_PLACEHOLDER}{}",
-        dep.id.as_u32()
-      )),
-    ),
+    concat_string!("new URL(", url, ", import.meta.url)"),
     None,
   );
 }
@@ -178,23 +178,19 @@ fn render_url_expression(
 ) {
   let runtime_template = &mut context.runtime_template;
   if matches!(dep.mode, Some(JavascriptParserUrl::Relative)) {
+    let relative_url = runtime_template.render_runtime_globals(&RuntimeGlobals::RELATIVE_URL);
     source.replace(
       dep.range.start,
       dep.range.end,
-      format!(
-        "{comment} new {}({expression})",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::RELATIVE_URL),
-      ),
+      concat_string!(comment, " new ", relative_url, "(", expression, ")"),
       None,
     );
   } else {
+    let base_uri = runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI);
     source.replace(
       dep.range_url.start,
       dep.range_url.end,
-      format!(
-        "{comment}{expression}, {}",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI),
-      ),
+      concat_string!(comment, expression, ", ", base_uri),
       None,
     );
   }
@@ -244,21 +240,17 @@ impl DependencyTemplate for URLDependencyTemplate {
           Some(SourceType::Css) => RuntimeGlobals::GET_CHUNK_CSS_FILENAME,
           _ => RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
         };
+        let public_path = runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH);
+        let chunk_filename = runtime_template.render_runtime_globals(&chunk_filename_global);
         (
-          format!(
-            "{} + {}({chunk_id})",
-            runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH),
-            runtime_template.render_runtime_globals(&chunk_filename_global),
-          ),
+          concat_string!(public_path, " + ", chunk_filename, "(", chunk_id, ")"),
           "/* entry url */",
         )
       } else {
+        let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+        let module_id = runtime_template.module_id(compilation, &dep.id, &dep.request, false);
         (
-          format!(
-            "{}({})",
-            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-            runtime_template.module_id(compilation, &dep.id, &dep.request, false),
-          ),
+          concat_string!(require, "(", module_id, ")"),
           "/* asset import */",
         )
       };

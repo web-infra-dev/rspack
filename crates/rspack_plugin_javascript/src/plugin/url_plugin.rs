@@ -153,7 +153,8 @@ async fn finish_modules(
         origin_module.hash(&mut hasher);
         request.hash(&mut hasher);
         range.hash(&mut hasher);
-        let runtime = format!("url-{}", hasher.digest(&HashDigest::Hex).rendered(16));
+        let hash = hasher.digest(&HashDigest::Hex);
+        let runtime = concat_string!("url-", hash.rendered(16));
 
         let modifier = format!("url-entry-{}-{}", range.start, range.end);
         let mut block = Box::new(AsyncDependenciesBlock::new(
