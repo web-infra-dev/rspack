@@ -1,19 +1,43 @@
-use std::sync::{Arc, Mutex};
+use std::{
+  cell::RefCell,
+  sync::{Arc, Mutex},
+};
 
 use napi::{Ref, bindgen_prelude::*};
 
 use crate::JsCallback;
 
+type Dropper = JsCallback<Box<dyn FnOnce(Env)>>;
+
+thread_local! {
+  // A `JsCallback` is a napi ThreadsafeFunction, which registers a `uv_async_t` on the
+  // event loop, and libuv walks every async handle on the loop on each wakeup. The handle
+  // only needs a way back to the JS thread that owns the `Ref`, so one dropper per thread
+  // serves every value ref created on it, instead of the walk growing with the live refs.
+  static VALUE_REF_DROPPER: RefCell<Option<Dropper>> = const { RefCell::new(None) };
+}
+
+fn thread_dropper(env: Env) -> Result<Dropper> {
+  VALUE_REF_DROPPER.with(|cell| {
+    if let Some(dropper) = cell.borrow().as_ref() {
+      return Ok(dropper.clone());
+    }
+    let dropper = unsafe { JsCallback::new(env.raw()) }?;
+    cell.replace(Some(dropper.clone()));
+    Ok(dropper)
+  })
+}
+
 struct ThreadsafeJsValueRefHandle<T: JsValue<'static>> {
   value_ref: Arc<Mutex<Ref<T>>>,
-  drop_handle: JsCallback<Box<dyn FnOnce(Env)>>,
+  drop_handle: Dropper,
 }
 
 impl<T: JsValue<'static>> ThreadsafeJsValueRefHandle<T> {
   fn new(env: Env, js_ref: Ref<T>) -> Result<Self> {
     Ok(Self {
       value_ref: Arc::new(Mutex::new(js_ref)),
-      drop_handle: unsafe { JsCallback::new(env.raw()) }?,
+      drop_handle: thread_dropper(env)?,
     })
   }
 }
