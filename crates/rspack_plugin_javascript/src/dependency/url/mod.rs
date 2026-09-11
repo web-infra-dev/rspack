@@ -7,8 +7,8 @@ use rspack_core::{
   AsContextDependency, ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation,
   ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
   DependencyConditionFn, DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ExportsInfoArtifact, JavascriptParserUrl, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleType, RuntimeGlobals, RuntimeSpec,
+  DependencyType, ExportsInfoArtifact, JavascriptParserUrl, Module, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeGlobals, RuntimeSpec,
   SideEffectsStateArtifact, SourceType, TemplateContext, TemplateReplaceSource, URLStaticMode,
   UsedByExports,
 };
@@ -117,14 +117,10 @@ pub static URL_STATIC_PLACEHOLDER_RE: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(&format!(r#"{URL_STATIC_PLACEHOLDER}(?<dep>\d+)"#)).expect("should be valid regex")
 });
 
-pub(crate) fn url_entry_source_type(module_type: &ModuleType) -> Option<SourceType> {
-  match module_type {
-    ModuleType::Css | ModuleType::CssAuto | ModuleType::CssModule | ModuleType::CssGlobal => {
-      Some(SourceType::Css)
-    }
-    _ if module_type.is_js_like() => Some(SourceType::JavaScript),
-    _ => None,
-  }
+pub(crate) fn url_entry_has_js(module: &dyn Module, module_graph: &ModuleGraph) -> bool {
+  module
+    .source_types(module_graph)
+    .contains(&SourceType::JavaScript)
 }
 
 pub(crate) fn get_dependency_entry_chunk(
@@ -231,13 +227,14 @@ impl DependencyTemplate for URLDependencyTemplate {
           .id()
           .map(rspack_util::json_stringify)
           .expect("URL entry should have a chunk id");
-        let target_module = compilation
-          .get_module_graph()
+        let module_graph = compilation.get_module_graph();
+        let target_module = module_graph
           .get_module_by_dependency_id(&dep.id)
           .expect("URL entry should have a target module");
-        let chunk_filename_global = match url_entry_source_type(target_module.module_type()) {
-          Some(SourceType::Css) => RuntimeGlobals::GET_CHUNK_CSS_FILENAME,
-          _ => RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
+        let chunk_filename_global = if url_entry_has_js(target_module.as_ref(), module_graph) {
+          RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME
+        } else {
+          RuntimeGlobals::GET_CHUNK_CSS_FILENAME
         };
         let public_path = runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH);
         let chunk_filename = runtime_template.render_runtime_globals(&chunk_filename_global);

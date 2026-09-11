@@ -19,7 +19,7 @@ class CheckUrlEntriesPlugin {
             (module) => module.rawRequest === './index.js',
           );
           expect(originModule).toBeDefined();
-          expect(originModule.blocks).toHaveLength(3);
+          expect(originModule.blocks).toHaveLength(7);
           for (const block of originModule.blocks) {
             expect(block.dependencies).toHaveLength(1);
             expect(block.dependencies[0].type).toBe('new URL()');
@@ -62,16 +62,31 @@ class CheckUrlEntriesPlugin {
             scriptAssets.filter((asset) =>
               asset.startsWith(`url-${this.name}-`),
             ),
-          ).toHaveLength(2);
+          ).toHaveLength(6);
+          const cssExportScripts = compilationAssets.filter(
+            (asset) =>
+              asset.name.startsWith(`url-${this.name}-`) &&
+              asset.name.endsWith(`.${this.scriptExtension}`) &&
+              asset.source.source().toString().includes('.url-entry-export'),
+          );
+          expect(cssExportScripts).toHaveLength(3);
           const cssAssets = compilationAssets.filter(
             (asset) =>
               asset.name.startsWith(`url-${this.name}-`) &&
               asset.name.endsWith('.css'),
           );
-          expect(cssAssets).toHaveLength(1);
-          const cssSource = cssAssets[0].source.source().toString();
+          expect(cssAssets).toHaveLength(2);
+          const cssSources = cssAssets.map((asset) =>
+            asset.source.source().toString(),
+          );
+          const cssSource = cssSources.find((source) =>
+            source.includes('.url-entry-target'),
+          );
           expect(cssSource).toContain('.url-entry-imported');
           expect(cssSource).toContain('.url-entry-target');
+          expect(
+            cssSources.some((source) => source.includes('.url-entry-module')),
+          ).toBe(true);
           expect(assets).toContain(`target-${this.name}.png`);
           expect(assets).toContain(`target-asset-${this.name}.js`);
           expect(assets).toContain(`target-asset-${this.name}.css`);
@@ -117,6 +132,19 @@ const createConfig = (name, parserUrl, outputModule = false) => {
           test: /target-imported\.css$/,
           type: 'css',
         },
+        {
+          test: /target-module\.css$/,
+          dependency: 'url',
+          type: 'css/module',
+          generator: { localIdentName: '[local]' },
+        },
+        ...['text', 'style', 'css-style-sheet'].map((exportType) => ({
+          test: /target-export\.css$/,
+          resourceQuery: `?${exportType}`,
+          dependency: 'url',
+          type: 'css',
+          parser: { exportType },
+        })),
         {
           test: /target\.png$/,
           dependency: 'url',

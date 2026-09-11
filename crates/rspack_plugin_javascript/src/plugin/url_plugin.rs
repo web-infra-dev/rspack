@@ -19,7 +19,7 @@ use crate::{
   dependency::{
     URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE, URLDependency,
     WORKER_STATIC_URL_PLACEHOLDER, WORKER_STATIC_URL_PLACEHOLDER_RE, WorkerDependency,
-    get_dependency_entry_chunk, url_entry_source_type,
+    get_dependency_entry_chunk, url_entry_has_js,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
 };
@@ -87,14 +87,13 @@ async fn get_url_entry_output_path(
   dependency_id: &DependencyId,
   chunk_ukey: ChunkUkey,
 ) -> Result<String> {
-  let target_module = compilation
-    .get_module_graph()
+  let module_graph = compilation.get_module_graph();
+  let target_module = module_graph
     .get_module_by_dependency_id(dependency_id)
     .expect("URL entry should have a target module");
-  if matches!(
-    url_entry_source_type(target_module.module_type()),
-    Some(SourceType::Css)
-  ) {
+  if url_entry_has_js(target_module.as_ref(), module_graph) {
+    get_js_chunk_output_path(compilation, chunk_ukey).await
+  } else {
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
@@ -105,8 +104,6 @@ async fn get_url_entry_output_path(
       &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
     );
     get_chunk_output_path(compilation, chunk_ukey, filename_template, SourceType::Css).await
-  } else {
-    get_js_chunk_output_path(compilation, chunk_ukey).await
   }
 }
 
@@ -129,9 +126,14 @@ async fn before_finish_module_graph(&self, compilation: &mut Compilation) -> Res
           return None;
         }
         let target_module = module_graph.get_module_by_dependency_id(&dependency_id)?;
+        let module_type = target_module.module_type();
         if target_module.as_external_module().is_some()
           || target_module.identifier().as_str().starts_with("ignored|")
-          || url_entry_source_type(target_module.module_type()).is_none()
+          || !(module_type.is_js_like()
+            || matches!(
+              module_type,
+              ModuleType::Css | ModuleType::CssAuto | ModuleType::CssModule | ModuleType::CssGlobal
+            ))
         {
           return None;
         }
