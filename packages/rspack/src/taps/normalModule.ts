@@ -1,9 +1,9 @@
 import binding from '@rspack/binding';
 import { commitCustomFieldsToRust } from '../BuildInfo';
-import { createLoaderContext, LoaderObject } from '../loader-runner';
+import { createLoaderContext } from '../loader-runner';
 import {
   LoaderContextState,
-  setLoaderContextError,
+  toLoaderContextError,
 } from '../loader-runner/context';
 import { LoaderDependenciesState } from '../loader-runner/dependencies';
 import { NormalModule } from '../NormalModule';
@@ -18,7 +18,7 @@ export const createNormalModuleHooksRegisters: CreatePartialRegisters<
       NormalModule.getCompilationHooks(
         getCompiler().__internal__get_compilation()!,
       ).loader,
-    (queried) => (nativeContext: binding.JsLoaderContext) => {
+    (queried) => (nativeContext: binding.JsLoaderHookContext) => {
       try {
         const context = new LoaderContextState(nativeContext);
         const compiler = getCompiler();
@@ -30,17 +30,13 @@ export const createNormalModuleHooksRegisters: CreatePartialRegisters<
         );
         queried.call(loaderContext, loaderContext._module);
         dependencies.mergeChanges();
-        context.loaderItems = loaderContext.loaders.map(
-          LoaderObject.__to_binding,
-        );
         if (compiler.options.cache) {
           commitCustomFieldsToRust(context._module.buildInfo);
         }
-        context.commit();
       } catch (error) {
-        setLoaderContextError(nativeContext, error);
+        nativeContext.state.error = toLoaderContextError(error);
       }
-      return nativeContext;
+      return nativeContext.state;
     },
   ),
 });

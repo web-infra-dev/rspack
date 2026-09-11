@@ -1,5 +1,5 @@
 mod cache;
-mod context;
+pub(crate) mod context;
 mod resolver;
 mod scheduler;
 
@@ -11,7 +11,9 @@ use std::{
 };
 
 pub use cache::{JsLoaderCache, JsLoaderCacheEntry};
-pub use context::{JsLoaderContext, JsLoaderDependencies, JsLoaderItem};
+pub use context::{
+  JsLoaderContext, JsLoaderContextState, JsLoaderDependencies, JsLoaderHookContext, JsLoaderItem,
+};
 use napi::{
   bindgen_prelude::*,
   sys::{napi_call_threadsafe_function, napi_threadsafe_function},
@@ -208,10 +210,8 @@ impl Plugin for JsLoaderRspackPlugin {
       .resolve_loader
       .tap(resolver::resolve_loader::new(self));
 
-    ctx
-      .normal_module_hooks
-      .loader_yield
-      .tap(scheduler::loader_yield::new(self));
+    ctx.normal_module_hooks.javascript_loader_runner =
+      Some(Arc::new(Self::from_inner(self.inner())));
 
     // TODO: tap compiler done hook will be better.
     ctx.compiler_hooks.emit.tap(done::new(self));

@@ -17,7 +17,7 @@ pub use loader::{
   DisplayWithSuffix, Loader, LoaderExecutionKind, LoaderItem, LoaderItemState, ResourceParsedData,
   parse_resource,
 };
-pub use plugin::LoaderRunnerPlugin;
+pub use plugin::{LoaderRunner, LoaderRunnerPlugin};
 pub use rspack_collections::{Identifiable, Identifier};
 pub use runner::{LoaderResult, Loaders, ResolvedLoader, run_loaders};
 pub use scheme::{Scheme, get_scheme};

@@ -16,8 +16,8 @@ module.exports = {
           });
         });
         compiler.hooks.afterCompile.tap('RejectLoaderHook', () => {
-          // A failed hook must restore the boxed native context so compilation
-          // can report the module error and finish normally.
+          // Hooks only borrow the native context. A failed hook must report
+          // the module error while leaving the runner able to finish normally.
           expect(calls).toBe(1);
         });
       },

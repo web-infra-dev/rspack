@@ -63,7 +63,8 @@ function $RefreshReg$(type, id) { $ReactRefreshRuntime$.register(type, __webpack
 Promise.resolve().then(function() { $ReactRefreshRuntime$.refresh(__webpack_module__.id, __webpack_module__.hot) });
 "#
     };
-    let source = ConcatSource::new([content, RawStringSource::from(runtime).boxed()]).boxed();
+    let source =
+      ConcatSource::new([content, RawStringSource::from_static(runtime).boxed()]).boxed();
     let additional_data = loader_context.take_additional_data();
     loader_context.finish_with((source, additional_data));
     Ok(())

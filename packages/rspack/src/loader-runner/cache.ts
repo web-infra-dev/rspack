@@ -50,7 +50,7 @@ export class LoaderCache {
     additionalData: unknown,
   ): Promise<LoaderCacheEntry | null | undefined> {
     const context = this.#context;
-    const loader = context.loaderItems[loaderIndex];
+    const loader = context.state.loaderItemStates[loaderIndex];
     if (
       !context.cacheable ||
       !loader ||

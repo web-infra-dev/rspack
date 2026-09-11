@@ -425,26 +425,28 @@ export declare class JsLoaderCache {
  * moves the context back to Rust and leaves retained JavaScript instances empty.
  */
 export declare class JsLoaderContext {
-  get loaderContextState(): object | undefined
+  /**
+   * Snapshot the mutable execution state in one crossing. Output remains lazy:
+   * leaving it absent on writeback preserves the native BoxSource graph.
+   */
+  get state(): JsLoaderContextState
   get resource(): string
   get _module(): Module
-  get hot(): boolean
   /** Content may be empty in the pitching stage. */
   get content(): null | Buffer | string
   get additionalData(): any
   get sourceMap(): Buffer | null
-  get cacheable(): boolean
-  get dependencies(): JsLoaderDependencies
-  get loaderItems(): Array<JsLoaderItem>
-  get loaderIndex(): number
-  get loaderState(): JsLoaderState
+  get loaderItems(): Array<JsLoaderMetadata>
   get __internal__loaderCache(): JsLoaderCache | undefined
   /**
    * Commit the JavaScript wrapper's state in one crossing. An absent output
    * preserves the native source graph when pitching did not produce content.
    */
-  set __internal__result(result: JsLoaderResult)
-  /** Return unexpected JavaScript failures together with the owned context. */
+  set state(result: JsLoaderContextState)
+  /**
+   * Return unexpected JavaScript failures together with the owned context,
+   * even when reading or converting the state object itself failed.
+   */
   set __internal__error(error: RspackError)
 }
 
@@ -1000,11 +1002,37 @@ export interface JsLoaderCacheEntry {
   parseMeta: Record<string, string>
 }
 
+export interface JsLoaderContextState {
+  loaderContextState?: object | undefined
+  cacheable: boolean
+  dependencies: JsLoaderDependencies
+  hot: boolean
+  /** The native scheduler owns phase transitions; writeback does not change it. */
+  loaderState: JsLoaderState
+  loaderItemStates: Array<JsLoaderItemState>
+  loaderIndex: number
+  /** JavaScript additions, merged into the native typed parse metadata. */
+  parseMeta: Record<string, string>
+  output?: JsLoaderOutput
+  error?: RspackError
+}
+
 export interface JsLoaderDependencies {
   fileDependencies: Array<string>
   contextDependencies: Array<string>
   missingDependencies: Array<string>
   buildDependencies: Array<string>
+}
+
+/**
+ * The before-loaders hook borrows the native context and exchanges only owned
+ * snapshots. It neither moves the Box nor materializes source content/maps.
+ */
+export interface JsLoaderHookContext {
+  state: JsLoaderContextState
+  resource: string
+  _module: Module
+  loaderItems?: Array<JsLoaderMetadata>
 }
 
 export interface JsLoaderItem {
@@ -1017,21 +1045,24 @@ export interface JsLoaderItem {
   noPitch: boolean
 }
 
+export interface JsLoaderItemState {
+  data: any
+  normalExecuted: boolean
+  pitchExecuted: boolean
+  noPitch: boolean
+}
+
+/** Immutable loader metadata, materialized once for the JavaScript facade. */
+export interface JsLoaderMetadata {
+  loader: string
+  type: string
+  cache: boolean
+}
+
 export interface JsLoaderOutput {
   content: null | Buffer | string
   sourceMap?: Buffer
   additionalData?: any
-}
-
-export interface JsLoaderResult {
-  loaderContextState?: object | undefined
-  cacheable: boolean
-  dependencies: JsLoaderDependencies
-  loaderItems: Array<JsLoaderItem>
-  loaderIndex: number
-  parseMeta: Record<string, string>
-  output?: JsLoaderOutput
-  error?: RspackError
 }
 
 export declare enum JsLoaderState {
@@ -3360,7 +3391,7 @@ export interface RegisterJsTaps {
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilationSealTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationAfterSealTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
-  registerNormalModuleLoaderTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => JsLoaderContext); stage: number; }>
+  registerNormalModuleLoaderTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLoaderHookContext) => JsLoaderContextState); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
   registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
   registerNormalModuleFactoryResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>

@@ -25,10 +25,7 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     "rspack-loader-runner"
   }
 
-  async fn before_all(
-    &self,
-    context: &mut Option<Box<LoaderContext<Self::Context>>>,
-  ) -> Result<()> {
+  async fn before_all(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
     self
       .plugin_driver
       .normal_module_hooks
@@ -101,14 +98,22 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
 
   async fn start_yielding(
     &self,
-    context: &mut Option<Box<LoaderContext<Self::Context>>>,
-  ) -> Result<()> {
-    self
+    context: Box<LoaderContext<Self::Context>>,
+  ) -> (Box<LoaderContext<Self::Context>>, Result<()>) {
+    if let Some(runner) = &self
       .plugin_driver
       .normal_module_hooks
-      .loader_yield
-      .call(context)
-      .await
+      .javascript_loader_runner
+    {
+      runner.run(context).await
+    } else {
+      (
+        context,
+        Err(rspack_error::error!(
+          "JavaScript loader runner is not registered"
+        )),
+      )
+    }
   }
 
   async fn run_normal_loader(

@@ -112,17 +112,21 @@ Builtin loader 可以在 Rust 侧执行，减少 JavaScript 排队和跨语言�
 
 ### Loader 源码的所有权
 
-原生 loader runner 用 `Box` 持有 `LoaderContext`，通过 `BoxSource` 一起传递内容和映射。内置 loader 可以保留 Source 的组合结构：例如 refresh loader 用 `ConcatSource` 追加运行时代码，lightningcss 直接返回 `SourceMapSource`，无需先展开其 source map。
+原生 loader runner 用 `Box` 持有 `LoaderContext`，通过 `BoxSource` 一起传递内容和映射。需要持有文本的消费者使用 `Source::into_source_value`：独占的原始或带映射的叶节点直接 move 其内容分配，共享 Source 仅在必要时复制，避免先借用 buffer 再复制全文构造另一个 Source。内置 loader 可以保留 Source 的组合结构：例如 refresh loader 用 `ConcatSource` 追加运行时代码，lightningcss 直接返回 `SourceMapSource`，无需先展开其 source map。
 
-执行切换到 JavaScript 时，原生 `JsLoaderContext` class 在本次调用期间直接持有 `Option<Box<LoaderContext>>`。只有 JavaScript runner 读取对应 getter 时，才转换内容和 source map。JavaScript 侧的 loader-context 封装保存本地执行状态，在返回前一次性写回结果。pitch 没有产生输出时，会保留原生 Source 的结构。loader 执行前的原生 loader hook 也使用相同的所有权和写回边界。hook 安装的属性和闭包通过共享的 JavaScript 封装跨内置及 JavaScript loader 保留，每次进入 JavaScript 时都会更新封装捕获的执行状态。
+执行切换到 JavaScript 时，原生 `JsLoaderContext` class 在本次调用期间直接持有 `Option<Box<LoaderContext>>`。只有 JavaScript runner 读取对应 getter 时，才转换内容和 source map。
+
+JavaScript 侧的 loader-context 封装读取一个普通的 `JsLoaderContextState` 对象（`#[napi(object)]`），通过 JavaScript getter/setter 访问其中的可变字段，并在返回前将同一个 state 对象整体传回。loader 元数据只在创建封装时读取一次，各 loader 的 data 和执行标记随 state 往返。复用的 loader 对象会在每次内置 loader 执行后读取最新 state。只有 JavaScript 产生输出时，state 才携带可选的 output。pitch 没有产生输出时，会保留原生 Source 的结构。
+
+loader 执行前，Rust hook 借用 `&mut LoaderContext`。JavaScript loader hook 接收 `JsLoaderHookContext` 快照，只返回 state；Box 的所有权始终留在原生 runner。只有 JavaScript loader runner 会接收并归还 Box，同时返回 loader 的执行结果。hook 安装的属性和闭包通过共享的 JavaScript 封装跨内置及 JavaScript loader 保留，每次进入 JavaScript 时都会更新封装捕获的执行状态。
 
 ```text
 原生 loader：BoxSource
   ↓ move 装箱的 LoaderContext
-JsLoaderContext：按需 getter
+JsLoaderContext：state 快照 + 按需 source getter
   ↓
-JavaScript loader-context 封装：本地修改
-  ↓ 整体写回一次结果
+JavaScript loader-context 封装：getter/setter 访问 state
+  ↓ 整体传回 state 对象
 原生 runner：收回装箱的 LoaderContext 并继续执行
 ```
 

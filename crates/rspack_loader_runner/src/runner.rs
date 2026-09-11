@@ -10,7 +10,7 @@ use tracing::{Instrument, info_span};
 
 use crate::{
   LoaderExecutionKind, LoaderRunnerOptions, ParseMeta,
-  content::{AdditionalData, Content, ResourceData},
+  content::{AdditionalData, ResourceData},
   context::{LoaderContext, LoaderDependencies, LoaderRunnerContext, State},
   loader::{Loader, LoaderItem, LoaderItemState},
   plugin::LoaderRunnerPlugin,
@@ -68,17 +68,12 @@ impl<Context: Send> Loaders<Context> {
   }
 }
 
-async fn start_yielding<Context: LoaderRunnerContext>(
-  context: &mut Option<Box<LoaderContext<Context>>>,
-) -> Result<bool> {
-  let cx = context.as_ref().expect("loader context is available");
-  if let Some(plugin) = cx.plugin.clone()
-    && cx.current_loader().execution_kind() == LoaderExecutionKind::JavaScript
-  {
-    plugin.start_yielding(context).await?;
-    return Ok(true);
-  }
-  Ok(false)
+fn yielding_plugin<Context: LoaderRunnerContext>(
+  context: &LoaderContext<Context>,
+) -> Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>> {
+  (context.current_loader().execution_kind() == LoaderExecutionKind::JavaScript)
+    .then(|| context.plugin.clone())
+    .flatten()
 }
 
 #[tracing::instrument("LoaderRunner:process_resource",
@@ -159,33 +154,29 @@ pub async fn run_loaders<Context: LoaderRunnerContext>(
   context: Context,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> (LoaderResult<Context>, Option<Error>) {
-  let mut cx = Some(Box::new(create_loader_context(
-    resource_data,
-    plugin,
-    context,
-  )));
-  let result = run_loaders_impl(&mut cx, fs).await;
-  (
-    LoaderResult::new(*cx.expect("loader context is restored after yielding")),
-    result.err(),
-  )
+  let cx = Box::new(create_loader_context(resource_data, plugin, context));
+  let (cx, result) = run_loaders_impl(cx, fs).await;
+  (LoaderResult::new(*cx), result.err())
 }
 
 async fn run_loaders_impl<Context: LoaderRunnerContext>(
-  context: &mut Option<Box<LoaderContext<Context>>>,
+  mut cx: Box<LoaderContext<Context>>,
   fs: Arc<dyn ReadableFileSystem>,
-) -> Result<()> {
-  let cx = context.as_mut().expect("loader context is available");
-  if let Some(plugin) = cx.plugin.clone() {
-    plugin.before_all(context).await?;
+) -> (Box<LoaderContext<Context>>, Result<()>) {
+  macro_rules! try_with_context {
+    ($result:expr) => {
+      match $result {
+        Ok(value) => value,
+        Err(error) => return (cx, Err(error)),
+      }
+    };
   }
-  let cx = context
-    .as_mut()
-    .expect("loader context is restored after hooks");
+  if let Some(plugin) = cx.plugin.clone() {
+    try_with_context!(plugin.before_all(&mut cx).await);
+  }
   let resource = cx.resource().to_owned();
   let resource = resource.as_str();
   loop {
-    let cx = context.as_mut().expect("loader context is available");
     match cx.state {
       State::Init => {
         cx.state.transition(State::Pitching);
@@ -196,10 +187,10 @@ async fn run_loaders_impl<Context: LoaderRunnerContext>(
           continue;
         }
         let span = info_span!("run_loader:pitch:yield_to_js", resource);
-        if start_yielding(context).instrument(span).await? {
-          let cx = context
-            .as_mut()
-            .expect("loader context is restored after yielding");
+        if let Some(plugin) = yielding_plugin(&cx) {
+          let result;
+          (cx, result) = plugin.start_yielding(cx).instrument(span).await;
+          try_with_context!(result);
           if cx.source.is_some() {
             cx.state.transition(State::Normal);
             cx.loader_index -= 1;
@@ -207,7 +198,6 @@ async fn run_loaders_impl<Context: LoaderRunnerContext>(
           continue;
         }
 
-        let cx = context.as_mut().expect("loader context is available");
         if cx.current_loader_state().pitch_executed() {
           cx.loader_index += 1;
           continue;
@@ -217,9 +207,9 @@ async fn run_loaders_impl<Context: LoaderRunnerContext>(
         let loader = cx.current_loader().loader().clone();
         let span = info_span!("run_loader:pitch", resource);
         cx.reset_dependency_changes();
-        let result = loader.pitch(cx).instrument(span).await;
+        let result = loader.pitch(&mut cx).instrument(span).await;
         cx.merge_dependency_changes();
-        result?;
+        try_with_context!(result);
         if cx.source.is_some() {
           cx.state.transition(State::Normal);
           cx.loader_index -= 1;
@@ -227,7 +217,7 @@ async fn run_loaders_impl<Context: LoaderRunnerContext>(
       }
       State::ProcessResource => {
         let span = info_span!("run_loader:process_resource", resource);
-        process_resource(cx, fs.clone()).instrument(span).await?;
+        try_with_context!(process_resource(&mut cx, fs.clone()).instrument(span).await);
         cx.loader_index = cx.loader_items().len() as i32 - 1;
         cx.state.transition(State::Normal);
       }
@@ -242,11 +232,13 @@ async fn run_loaders_impl<Context: LoaderRunnerContext>(
           continue;
         }
         let span = info_span!("run_loader:yield_to_js", resource);
-        if start_yielding(context).instrument(span).await? {
+        if let Some(plugin) = yielding_plugin(&cx) {
+          let result;
+          (cx, result) = plugin.start_yielding(cx).instrument(span).await;
+          try_with_context!(result);
           continue;
         }
 
-        let cx = context.as_mut().expect("loader context is available");
         if cx.current_loader_state().normal_executed() {
           cx.loader_index -= 1;
           continue;
@@ -258,9 +250,12 @@ async fn run_loaders_impl<Context: LoaderRunnerContext>(
         let span = info_span!("run_loader:normal", resource);
         cx.reset_dependency_changes();
         let result = if let Some(plugin) = cx.plugin.clone() {
-          plugin.run_normal_loader(cx, loader).instrument(span).await
+          plugin
+            .run_normal_loader(&mut cx, loader)
+            .instrument(span)
+            .await
         } else {
-          let result = loader.run(cx).instrument(span).await;
+          let result = loader.run(&mut cx).instrument(span).await;
           if result.is_ok() && !cx.current_loader_state().finish_called() {
             // If nothing is returned from this loader,
             // we set everything to [None] and move to the next loader.
@@ -270,25 +265,27 @@ async fn run_loaders_impl<Context: LoaderRunnerContext>(
           result
         };
         cx.merge_dependency_changes();
-        result?;
+        try_with_context!(result);
       }
       State::Finished => break,
     }
   }
 
-  let cx = context.as_ref().expect("loader context is available");
   if cx.source.is_none() {
     if !cx.loader_items().is_empty() {
       let loader = cx.loader_items()[0].to_string();
-      return Err(error!(
-        "Final loader({loader}) didn't return a Buffer or String"
-      ));
+      return (
+        cx,
+        Err(error!(
+          "Final loader({loader}) didn't return a Buffer or String"
+        )),
+      );
     } else {
       panic!("content should be available");
     }
   }
 
-  Ok(())
+  (cx, Ok(()))
 }
 
 #[derive(Debug)]
@@ -362,10 +359,7 @@ mod test {
       "test-content"
     }
 
-    async fn before_all(
-      &self,
-      _context: &mut Option<Box<LoaderContext<Self::Context>>>,
-    ) -> Result<()> {
+    async fn before_all(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
       Ok(())
     }
 

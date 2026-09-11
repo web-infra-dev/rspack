@@ -41,22 +41,17 @@ impl<'a> SourceValue<'a> {
     match self {
       SourceValue::String(cow) => cow,
       SourceValue::Buffer(cow) => match cow {
-        Cow::Borrowed(bytes) => String::from_utf8_lossy(bytes),
+        Cow::Borrowed(bytes) => match simdutf8::basic::from_utf8(bytes) {
+          Ok(value) => Cow::Borrowed(value),
+          Err(_) => String::from_utf8_lossy(bytes),
+        },
         Cow::Owned(bytes) => {
-          match String::from_utf8_lossy(&bytes) {
-            Cow::Borrowed(_) => {
-              // SAFETY: When `String::from_utf8_lossy` returns `Cow::Borrowed(_)`,
-              // it guarantees that the input slice contains only valid UTF-8 bytes.
-              // Since we're operating on the exact same `bytes` that were just
-              // validated by `from_utf8_lossy`, we can safely skip the UTF-8
-              // validation in `String::from_utf8_unchecked`.
-              //
-              // This optimization avoids the redundant UTF-8 validation that would
-              // occur if we used `String::from_utf8(bytes).unwrap()` or similar.
-              #[allow(unsafe_code)]
-              Cow::Owned(unsafe { String::from_utf8_unchecked(bytes) })
-            }
-            Cow::Owned(s) => Cow::Owned(s),
+          if simdutf8::basic::from_utf8(&bytes).is_ok() {
+            // SAFETY: The buffer was validated above; retain its allocation.
+            #[allow(unsafe_code)]
+            Cow::Owned(unsafe { String::from_utf8_unchecked(bytes) })
+          } else {
+            Cow::Owned(String::from_utf8_lossy(&bytes).into_owned())
           }
         }
       },
@@ -111,6 +106,16 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
   /// Get the source code.
   fn source(&self) -> SourceValue<'_>;
 
+  /// Consume a source when a caller needs owned content. Leaves can move their
+  /// backing allocation when uniquely owned; shared sources copy and composite
+  /// sources materialize only at this explicit content boundary.
+  fn into_source_value(self: Arc<Self>) -> SourceValue<'static> {
+    match self.source() {
+      SourceValue::String(value) => SourceValue::String(Cow::Owned(value.into_owned())),
+      SourceValue::Buffer(value) => SourceValue::Buffer(Cow::Owned(value.into_owned())),
+    }
+  }
+
   /// Return a lightweight "rope" view of the source as borrowed string slices.
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str));
 
@@ -140,6 +145,10 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
 }
 
 impl Source for BoxSource {
+  fn into_source_value(self: Arc<Self>) -> SourceValue<'static> {
+    Arc::unwrap_or_clone(self).into_source_value()
+  }
+
   #[inline]
   fn source(&self) -> SourceValue<'_> {
     self.as_ref().source()

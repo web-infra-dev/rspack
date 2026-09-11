@@ -60,6 +60,14 @@ impl From<&str> for RawStringSource {
 }
 
 impl Source for RawStringSource {
+  fn into_source_value(self: Arc<Self>) -> SourceValue<'static> {
+    let value = match Arc::try_unwrap(self) {
+      Ok(source) => source.0,
+      Err(source) => source.0.clone(),
+    };
+    SourceValue::String(value)
+  }
+
   fn source(&self) -> SourceValue<'_> {
     SourceValue::String(Cow::Borrowed(&self.0))
   }
@@ -208,6 +216,14 @@ impl From<&[u8]> for RawBufferSource {
 }
 
 impl Source for RawBufferSource {
+  fn into_source_value(self: Arc<Self>) -> SourceValue<'static> {
+    let value = match Arc::try_unwrap(self) {
+      Ok(source) => source.value,
+      Err(source) => source.value.clone(),
+    };
+    SourceValue::Buffer(Cow::Owned(value))
+  }
+
   fn source(&self) -> SourceValue<'_> {
     SourceValue::Buffer(Cow::Borrowed(&self.value))
   }

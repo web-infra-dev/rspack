@@ -35,3 +35,55 @@ fn test_rspack_source() {
   assert_eq!(source.buffer().as_ref(), buffer.as_slice());
   test_data(Data(source));
 }
+
+#[test]
+fn consuming_sources_reuses_unique_allocations_before_and_after_cache() {
+  fn check(source: BoxSource) {
+    let expected = source.buffer().into_owned();
+    let pointer = source.buffer().as_ptr();
+    let value = source.into_source_value();
+    assert_eq!(value.as_bytes(), expected);
+    assert_eq!(value.as_bytes().as_ptr(), pointer);
+  }
+  let map = || {
+    SourceMap::from_json(
+      r#"{"version":3,"sources":["input.js"],"names":[],"mappings":"AAAA"}"#.to_string(),
+    )
+    .unwrap()
+  };
+  let sources = [
+    RawBufferSource::from("héllo".as_bytes().to_vec()).boxed(),
+    RawStringSource::from("héllo".to_owned()).boxed(),
+    rspack_sources::OriginalSource::new("héllo", "input.js").boxed(),
+    SourceMapSource::from_buffer(b"hello".to_vec(), "input.js", map()).boxed(),
+    SourceMapSource::from_buffer(vec![0xff, 0, 0xfe], "input.js", map()).boxed(),
+  ];
+  for source in sources {
+    let data = Data(source);
+    let serialized = to_bytes(&data, &()).unwrap();
+    let restored: Data = from_bytes(&serialized, &()).unwrap();
+    check(data.0);
+    check(restored.0);
+  }
+}
+
+#[test]
+fn consuming_shared_sources_preserves_the_other_owner() {
+  for source in [
+    RawBufferSource::from(vec![0xff, 0, 0xfe]).boxed(),
+    RawStringSource::from("shared text".to_owned()).boxed(),
+  ] {
+    let expected = source.buffer().into_owned();
+    let value = source.clone().into_source_value();
+    assert_eq!(value.as_bytes(), expected);
+    assert_eq!(source.buffer().as_ref(), expected);
+  }
+  for bytes in [Vec::new(), "héllo".as_bytes().to_vec(), vec![0xff, 0, 0xfe]] {
+    let expected = String::from_utf8_lossy(&bytes).into_owned();
+    let value = RawBufferSource::from(bytes)
+      .boxed()
+      .into_source_value()
+      .into_string_lossy();
+    assert_eq!(value, expected);
+  }
+}

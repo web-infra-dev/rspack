@@ -1,73 +1,98 @@
 import type {
   JsLoaderContext,
+  JsLoaderHookContext,
   JsLoaderOutput,
   RspackError,
 } from '@rspack/binding';
 
-/** Local execution state; commit once each JavaScript hook or runner finishes. */
+/** One owned snapshot per entry, written back as the same object on return. */
 export class LoaderContextState {
-  readonly native: JsLoaderContext;
-  readonly loaderState: JsLoaderContext['loaderState'];
-  loaderItems: JsLoaderContext['loaderItems'];
-  loaderIndex: number;
-  loaderContextState?: object;
-  cacheable: boolean;
-  dependencies: JsLoaderContext['dependencies'];
-  __internal__parseMeta: Record<string, string> = {};
-  __internal__error?: RspackError;
-  readonly __internal__loaderCache: JsLoaderContext['__internal__loaderCache'];
+  readonly native: JsLoaderContext | JsLoaderHookContext;
+  readonly state: JsLoaderContext['state'];
   #module?: JsLoaderContext['_module'];
-  #output?: JsLoaderOutput;
+  #loaderCache?: JsLoaderContext['__internal__loaderCache'];
 
-  constructor(native: JsLoaderContext) {
+  constructor(native: JsLoaderContext | JsLoaderHookContext) {
     this.native = native;
-    this.loaderContextState = native.loaderContextState;
-    this.loaderState = native.loaderState;
-    this.loaderItems = native.loaderItems;
-    this.loaderIndex = native.loaderIndex;
-    this.cacheable = native.cacheable;
-    this.dependencies = native.dependencies;
-    this.__internal__loaderCache = native.__internal__loaderCache;
+    this.state = native.state;
+    for (const item of this.state.loaderItemStates) item.data ??= {};
   }
 
+  get loaderState() {
+    return this.state.loaderState;
+  }
+  get loaderIndex() {
+    return this.state.loaderIndex;
+  }
+  set loaderIndex(value: number) {
+    this.state.loaderIndex = value;
+  }
+  get loaderContextState() {
+    return this.state.loaderContextState;
+  }
+  set loaderContextState(value: object | undefined) {
+    this.state.loaderContextState = value;
+  }
+  get cacheable() {
+    return this.state.cacheable;
+  }
+  set cacheable(value: boolean) {
+    this.state.cacheable = value;
+  }
+  get dependencies() {
+    return this.state.dependencies;
+  }
+  get __internal__parseMeta() {
+    return this.state.parseMeta;
+  }
+  set __internal__error(value: RspackError) {
+    this.state.error = value;
+  }
+  get __internal__loaderCache() {
+    return '__internal__loaderCache' in this.native
+      ? (this.#loaderCache ??= this.native.__internal__loaderCache)
+      : undefined;
+  }
   get resource() {
     return this.native.resource;
   }
   get hot() {
-    return this.native.hot;
+    return this.state.hot;
+  }
+  set hot(value: boolean) {
+    this.state.hot = value;
   }
   get _module() {
     return (this.#module ??= this.native._module);
   }
   get content() {
-    return this.#output ? this.#output.content : this.native.content;
+    return this.state.output
+      ? this.state.output.content
+      : 'content' in this.native
+        ? this.native.content
+        : null;
   }
   get sourceMap() {
-    return this.#output
-      ? this.#output.sourceMap
-      : (this.native.sourceMap ?? undefined);
+    return this.state.output
+      ? this.state.output.sourceMap
+      : 'sourceMap' in this.native
+        ? (this.native.sourceMap ?? undefined)
+        : undefined;
   }
   get additionalData() {
-    return this.#output
-      ? this.#output.additionalData
-      : (this.native.additionalData ?? undefined);
+    return this.state.output
+      ? this.state.output.additionalData
+      : 'additionalData' in this.native
+        ? (this.native.additionalData ?? undefined)
+        : undefined;
   }
 
   finish(output: JsLoaderOutput) {
-    this.#output = output;
+    this.state.output = output;
   }
 
   commit() {
-    this.native.__internal__result = {
-      loaderContextState: this.loaderContextState,
-      cacheable: this.cacheable,
-      dependencies: this.dependencies,
-      loaderItems: this.loaderItems,
-      loaderIndex: this.loaderIndex,
-      parseMeta: this.__internal__parseMeta,
-      output: this.#output,
-      error: this.__internal__error,
-    };
+    this.native.state = this.state;
   }
 }
 
@@ -76,14 +101,18 @@ export function setLoaderContextError(
   context: JsLoaderContext,
   error: unknown,
 ) {
+  context.__internal__error = toLoaderContextError(error);
+}
+
+export function toLoaderContextError(error: unknown): RspackError {
   if (typeof error !== 'object' || error === null) {
     const wrapped = new Error(
       `(Emitted value instead of an instance of Error) ${String(error)}`,
     );
     wrapped.name = 'NonErrorEmittedError';
-    context.__internal__error = wrapped;
+    return wrapped;
   } else {
-    context.__internal__error = error as RspackError;
+    return error as RspackError;
   }
 }
 

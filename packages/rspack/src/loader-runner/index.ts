@@ -11,7 +11,8 @@ import querystring from 'node:querystring';
 import {
   formatDiagnostic,
   type JsLoaderContext,
-  type JsLoaderItem,
+  type JsLoaderMetadata,
+  type JsLoaderItemState,
   JsLoaderState,
   JsRspackSeverity,
 } from '@rspack/binding';
@@ -90,9 +91,15 @@ export class LoaderObject {
   /**
    * @internal This field is rspack internal. Do not edit.
    */
-  loaderItem: JsLoaderItem;
+  readonly loaderItem: JsLoaderMetadata;
+  readonly #getState: () => JsLoaderItemState;
 
-  constructor(loaderItem: JsLoaderItem, compiler: Compiler) {
+  constructor(
+    loaderItem: JsLoaderMetadata,
+    getState: () => JsLoaderItemState,
+    compiler: Compiler,
+  ) {
+    this.#getState = getState;
     const splittedRequest = parseResourceWithoutFragment(loaderItem.loader);
     this.path = splittedRequest.path;
     this.fragment = '';
@@ -141,11 +148,14 @@ export class LoaderObject {
         ) as LoaderObject['parallel'])
       : false;
     this.loaderItem = loaderItem;
-    this.loaderItem.data = this.loaderItem.data ?? {};
+  }
+
+  get state() {
+    return this.#getState();
   }
 
   get pitchExecuted() {
-    return this.loaderItem.pitchExecuted;
+    return this.state.pitchExecuted;
   }
 
   set pitchExecuted(value: boolean) {
@@ -153,11 +163,11 @@ export class LoaderObject {
       throw new Error('pitchExecuted should be true');
     }
 
-    this.loaderItem.pitchExecuted = true;
+    this.state.pitchExecuted = true;
   }
 
   get normalExecuted() {
-    return this.loaderItem.normalExecuted;
+    return this.state.normalExecuted;
   }
 
   set normalExecuted(value: boolean) {
@@ -165,29 +175,18 @@ export class LoaderObject {
       throw new Error('normalExecuted should be true');
     }
 
-    this.loaderItem.normalExecuted = true;
+    this.state.normalExecuted = true;
   }
 
   set noPitch(value: boolean) {
     if (!value) {
       throw new Error('noPitch should be true');
     }
-    this.loaderItem.noPitch = true;
+    this.state.noPitch = true;
   }
 
   shouldYield() {
     return this.request.startsWith(BUILTIN_LOADER_PREFIX);
-  }
-
-  static __from_binding(
-    loaderItem: JsLoaderItem,
-    compiler: Compiler,
-  ): LoaderObject {
-    return new this(loaderItem, compiler);
-  }
-
-  static __to_binding(loader: LoaderObject): JsLoaderItem {
-    return loader.loaderItem;
   }
 }
 
@@ -262,11 +261,22 @@ export function createLoaderContext(
   /// Construct `loaderContext`
   const loaderContext = {} as LoaderContext;
 
-  loaderContext.loaders = context.loaderItems.map((item) => {
-    return LoaderObject.__from_binding(item, compiler);
-  });
+  loaderContext.loaders = context.native.loaderItems!.map(
+    (item, index) =>
+      new LoaderObject(
+        item,
+        () => context.state.loaderItemStates[index],
+        compiler,
+      ),
+  );
 
-  loaderContext.hot = context.hot;
+  Object.defineProperty(loaderContext, 'hot', {
+    enumerable: true,
+    get: () => context.hot,
+    set: (hot: boolean) => {
+      context.hot = hot;
+    },
+  });
   loaderContext.context = contextDirectory;
   loaderContext.resourcePath = resourcePath!;
   loaderContext.resourceQuery = resourceQuery!;
@@ -707,9 +717,9 @@ export function createLoaderContext(
   });
   Object.defineProperty(loaderContext, 'data', {
     enumerable: true,
-    get: () => loaderContext.loaders[loaderContext.loaderIndex].loaderItem.data,
+    get: () => loaderContext.loaders[loaderContext.loaderIndex].state.data,
     set: (data) =>
-      (loaderContext.loaders[loaderContext.loaderIndex].loaderItem.data = data),
+      (loaderContext.loaders[loaderContext.loaderIndex].state.data = data),
   });
 
   /// Rspack private
@@ -726,11 +736,7 @@ export function createLoaderContext(
       context = nextContext;
       dependencies = nextDependencies;
       traceData = nextTraceData;
-      loaderContext.hot = context.hot;
       loaderContext._module = context._module;
-      loaderContext.loaders = context.loaderItems.map((item) =>
-        LoaderObject.__from_binding(item, compiler),
-      );
     },
   } satisfies SharedLoaderContextState;
 
@@ -805,6 +811,7 @@ export async function runLoaders(
         }
         return {
           ...item,
+          state: item.state,
           options,
           pitch: undefined,
           normal: undefined,
@@ -963,16 +970,15 @@ export async function runLoaders(
           }
           case RequestType.UpdateLoaderObjects: {
             const updates = args[0];
-            loaderContext.loaders = loaderContext.loaders.map((item, index) => {
+            loaderContext.loaders.forEach((item, index) => {
               const update = updates[index];
-              item.loaderItem.data = update.data;
+              item.state.data = update.data;
               if (update.pitchExecuted) {
                 item.pitchExecuted = true;
               }
               if (update.normalExecuted) {
                 item.normalExecuted = true;
               }
-              return item;
             });
             break;
           }
@@ -1126,7 +1132,7 @@ export async function runLoaders(
             args = await isomorphoicRun(fn, [
               loaderContext.remainingRequest,
               loaderContext.previousRequest,
-              currentLoaderObject.loaderItem.data,
+              currentLoaderObject.state.data,
             ]);
           } finally {
             dependencies.mergeChanges();
@@ -1244,11 +1250,6 @@ export async function runLoaders(
       default:
         throw new Error(`Unexpected loader runner state: ${loaderState}`);
     }
-
-    // update loader state
-    context.loaderItems = loaderContext.loaders.map((item) =>
-      LoaderObject.__to_binding(item),
-    );
   } catch (e) {
     if (typeof e !== 'object' || e === null) {
       const error = new Error(

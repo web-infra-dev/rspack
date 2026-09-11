@@ -1,6 +1,6 @@
 import type { JsLoaderContext } from '@rspack/binding';
 
-export type LoaderDependencies = JsLoaderContext['dependencies'];
+export type LoaderDependencies = JsLoaderContext['state']['dependencies'];
 
 const DEPENDENCY_KEYS = [
   'fileDependencies',

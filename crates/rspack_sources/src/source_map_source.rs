@@ -148,6 +148,19 @@ impl SourceMapSource {
 }
 
 impl Source for SourceMapSource {
+  fn into_source_value(self: Arc<Self>) -> SourceValue<'static> {
+    match Arc::try_unwrap(self) {
+      Ok(source) => match source.original_buffer {
+        Some(buffer) => SourceValue::Buffer(Cow::Owned(buffer.into_vec())),
+        None => SourceValue::String(Cow::Owned(String::from(source.value))),
+      },
+      Err(source) => match source.source() {
+        SourceValue::Buffer(value) => SourceValue::Buffer(Cow::Owned(value.into_owned())),
+        SourceValue::String(value) => SourceValue::String(Cow::Owned(value.into_owned())),
+      },
+    }
+  }
+
   fn source(&self) -> SourceValue<'_> {
     match &self.original_buffer {
       Some(buffer) => SourceValue::Buffer(Cow::Borrowed(buffer)),

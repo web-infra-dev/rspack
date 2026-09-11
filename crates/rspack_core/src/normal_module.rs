@@ -78,8 +78,7 @@ impl ModuleIssuer {
 }
 
 define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData, fs: &Arc<dyn ReadableFileSystem>) -> Content,tracing=false);
-define_hook!(NormalModuleLoader: Series(loader_context: &mut Option<Box<LoaderContext<RunnerContext>>>),tracing=false);
-define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut Option<Box<LoaderContext<RunnerContext>>>),tracing=false);
+define_hook!(NormalModuleLoader: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
 define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule),tracing=false);
 define_hook!(NormalModuleAdditionalData: Series(additional_data: &mut Option<&mut AdditionalData>),tracing=false);
 
@@ -87,7 +86,8 @@ define_hook!(NormalModuleAdditionalData: Series(additional_data: &mut Option<&mu
 pub struct NormalModuleHooks {
   pub read_resource: NormalModuleReadResourceHook,
   pub loader: NormalModuleLoaderHook,
-  pub loader_yield: NormalModuleLoaderStartYieldingHook,
+  pub javascript_loader_runner:
+    Option<Arc<dyn rspack_loader_runner::LoaderRunner<Context = RunnerContext>>>,
   pub before_loaders: NormalModuleBeforeLoadersHook,
   pub additional_data: NormalModuleAdditionalDataHook,
 }
@@ -926,21 +926,24 @@ impl Diagnosable for NormalModule {
 impl NormalModule {
   fn create_source(&self, source: BoxSource, is_binary: bool) -> BoxSource {
     if is_binary {
-      if source.as_any().is::<RawBufferSource>() {
+      if source.as_ref().as_any().is::<RawBufferSource>() {
         return source;
       }
-      return RawBufferSource::from(source.buffer().into_owned()).boxed();
+      return RawBufferSource::from(source.into_source_value().into_bytes().into_owned()).boxed();
     }
     if !self.get_source_map_kind().enabled() {
-      if source.as_any().is::<RawStringSource>() {
+      if source.as_ref().as_any().is::<RawStringSource>() {
         return source;
       }
-      return RawStringSource::from(source.source().into_string_lossy().into_owned()).boxed();
+      return RawStringSource::from(source.into_source_value().into_string_lossy().into_owned())
+        .boxed();
     }
     // Only raw loader output needs an identity map. Keep transformed source graphs intact.
-    if source.as_any().is::<RawBufferSource>() || source.as_any().is::<RawStringSource>() {
+    if source.as_ref().as_any().is::<RawBufferSource>()
+      || source.as_ref().as_any().is::<RawStringSource>()
+    {
       return OriginalSource::new(
-        source.source().into_string_lossy().into_owned(),
+        source.into_source_value().into_string_lossy().into_owned(),
         self.request(),
       )
       .boxed();

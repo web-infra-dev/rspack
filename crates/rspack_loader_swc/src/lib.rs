@@ -129,7 +129,7 @@ impl SwcLoader {
     let filename = Arc::new(FileName::Real(resource_path.clone().into_std_path_buf()));
     let comments = Rc::new(SingleThreadedComments::default());
 
-    let source = content.source().into_string_lossy().into_owned();
+    let source = content.into_source_value().into_string_lossy().into_owned();
     let is_typescript =
       matches!(swc_options.config.jsc.syntax, Some(syntax) if syntax.typescript());
     let isolated_dts_context = (is_typescript

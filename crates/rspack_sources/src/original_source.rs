@@ -62,6 +62,14 @@ impl OriginalSource {
 }
 
 impl Source for OriginalSource {
+  fn into_source_value(self: Arc<Self>) -> SourceValue<'static> {
+    let value = match Arc::try_unwrap(self) {
+      Ok(source) => String::from(source.value),
+      Err(source) => source.value.to_string(),
+    };
+    SourceValue::String(Cow::Owned(value))
+  }
+
   fn source(&self) -> SourceValue<'_> {
     SourceValue::String(Cow::Borrowed(&self.value))
   }

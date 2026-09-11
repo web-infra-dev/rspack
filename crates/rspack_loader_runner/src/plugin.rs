@@ -18,22 +18,17 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     "unknown"
   }
 
-  /// Hooks may move the boxed context into JavaScript and must restore it before
-  /// returning, including on error.
-  async fn before_all(
-    &self,
-    _context: &mut Option<Box<LoaderContext<Self::Context>>>,
-  ) -> Result<()> {
+  async fn before_all(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
     Ok(())
   }
 
-  /// A yielding plugin may take ownership of the boxed context, but must restore
-  /// it before returning, including on error.
+  /// Transfer the same allocation to the foreign runner and back, including on
+  /// loader errors. Native hooks and loaders only borrow the context.
   async fn start_yielding(
     &self,
-    _context: &mut Option<Box<LoaderContext<Self::Context>>>,
-  ) -> Result<()> {
-    Ok(())
+    context: Box<LoaderContext<Self::Context>>,
+  ) -> (Box<LoaderContext<Self::Context>>, Result<()>) {
+    (context, Ok(()))
   }
 
   async fn run_normal_loader(
@@ -53,4 +48,15 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     resource_data: &ResourceData,
     fs: Arc<dyn ReadableFileSystem>,
   ) -> Result<Option<(Content, Option<SourceMap<'static>>, InternedPathSet)>>;
+}
+
+/// A foreign loader runner owns the context for the duration of its invocation.
+#[async_trait::async_trait]
+pub trait LoaderRunner: std::fmt::Debug + Send + Sync {
+  type Context: LoaderRunnerContext;
+
+  async fn run(
+    &self,
+    context: Box<LoaderContext<Self::Context>>,
+  ) -> (Box<LoaderContext<Self::Context>>, Result<()>);
 }

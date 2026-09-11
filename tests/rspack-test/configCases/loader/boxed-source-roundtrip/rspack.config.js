@@ -20,13 +20,8 @@ module.exports = {
           );
           const run = plugin.options;
           plugin.options = async (context) => {
-            contexts.push(context);
             const prototype = Object.getPrototypeOf(context);
             expect(prototype.constructor.name).toBe('JsLoaderContext');
-            const pitch = context.loaderState === 'Pitching';
-            if (!pitch && context.loaderIndex === 0) {
-              expect(context.cacheable).toBe(false);
-            }
             let reads = 0;
             let commits = 0;
             for (const key of ['content', 'sourceMap']) {
@@ -41,28 +36,69 @@ module.exports = {
                 },
               });
             }
-            const result = Object.getOwnPropertyDescriptor(
+            let stateReads = 0;
+            let metadataReads = 0;
+            let snapshot;
+            let reused;
+            const state = Object.getOwnPropertyDescriptor(prototype, 'state');
+            const metadata = Object.getOwnPropertyDescriptor(
               prototype,
-              '__internal__result',
+              'loaderItems',
             );
-            Object.defineProperty(context, '__internal__result', {
+            Object.defineProperty(context, 'loaderItems', {
+              get() {
+                metadataReads++;
+                const items = metadata.get.call(context);
+                expect(items.every((item) => !('data' in item))).toBe(true);
+                return items;
+              },
+            });
+            Object.defineProperty(context, 'state', {
+              get() {
+                stateReads++;
+                snapshot = state.get.call(context);
+                expect(Object.getPrototypeOf(snapshot)).toBe(Object.prototype);
+                expect(
+                  snapshot.loaderItemStates.every(
+                    (item) => !('loader' in item),
+                  ),
+                ).toBe(true);
+                reused = !!snapshot.loaderContextState;
+                if (
+                  snapshot.loaderState === 'Normal' &&
+                  snapshot.loaderIndex === 0
+                ) {
+                  expect(snapshot.cacheable).toBe(false);
+                }
+                return snapshot;
+              },
               set(value) {
                 commits++;
-                result.set.call(context, value);
+                expect(value).toBe(snapshot);
+                state.set.call(context, value);
               },
             });
             expect(await run(context)).toBe(context);
+            expect(stateReads).toBe(1);
             expect(commits).toBe(1);
-            if (pitch) expect(reads).toBe(0);
+            expect(metadataReads).toBe(reused ? 0 : 1);
+            contexts.push({ context, snapshot });
+            if (snapshot.loaderState === 'Pitching') expect(reads).toBe(0);
           };
         });
         compiler.hooks.afterCompile.tap(
           'BoxedSourceRoundtrip',
           (compilation) => {
             expect(contexts.length).toBeGreaterThan(0);
-            for (const context of contexts) {
+            for (const { context, snapshot } of contexts) {
               expect(() => context.content).toThrow('no longer available');
               expect(() => context._module).toThrow('no longer available');
+              expect(() => context.state).toThrow('no longer available');
+              // Owned state remains readable after the native class is revoked.
+              expect(Array.isArray(snapshot.loaderItemStates)).toBe(true);
+              expect(() => {
+                context.state = snapshot;
+              }).toThrow('no longer available');
               expect(() => {
                 context.__internal__error = new Error('late write');
               }).toThrow('no longer available');

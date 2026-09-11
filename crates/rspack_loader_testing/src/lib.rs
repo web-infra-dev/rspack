@@ -102,7 +102,8 @@ impl Loader<RunnerContext> for NoPassthroughLoader {
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     let (source, _) = loader_context.take_all();
     loader_context.finish_with(source.map(|source| {
-      rspack_core::Content::Buffer(source.buffer().into_owned()).into_source(None, "")
+      rspack_core::Content::Buffer(source.into_source_value().into_bytes().into_owned())
+        .into_source(None, "")
     }));
     Ok(())
   }

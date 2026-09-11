@@ -114,17 +114,21 @@ Builtin loaders run on the Rust side, reducing JavaScript queueing and cross-lan
 
 ### Loader source ownership
 
-The native loader runner keeps its `LoaderContext` in a `Box` and passes content and mappings together as a `BoxSource`. Builtin loaders can preserve source graphs: for example, a refresh loader appends runtime code with `ConcatSource`, and lightningcss returns a `SourceMapSource` without first flattening its map.
+The native loader runner keeps its `LoaderContext` in a `Box` and passes content and mappings together as a `BoxSource`. Consumers that require owned text use `Source::into_source_value`: uniquely owned raw and mapped leaves move their backing allocation, while shared sources copy only when necessary. This avoids borrowing a buffer and then copying it to construct another source. Builtin loaders can preserve source graphs: for example, a refresh loader appends runtime code with `ConcatSource`, and lightningcss returns a `SourceMapSource` without first flattening its map.
 
-When execution reaches JavaScript, a native `JsLoaderContext` class directly owns an `Option<Box<LoaderContext>>` for that invocation. Its getters materialize content and source maps only when the JavaScript runner reads them. The JavaScript loader-context wrapper keeps local execution state and commits its result in one call before returning. A pitch that produces no output leaves the native source graph intact. The native loader hook uses the same ownership and commit boundary before loaders run. Hook-installed properties and closures survive later builtin and JavaScript loaders through a shared JavaScript wrapper, whose captured execution state is refreshed on each entry.
+When execution reaches JavaScript, a native `JsLoaderContext` class directly owns an `Option<Box<LoaderContext>>` for that invocation. Its getters materialize content and source maps only when the JavaScript runner reads them.
+
+The JavaScript loader-context wrapper reads one plain `JsLoaderContextState` object (`#[napi(object)]`), accesses its mutable fields through JavaScript getters and setters, and passes the same state object back in one call before returning. Loader metadata is read once when the wrapper is created; per-loader data and execution flags travel in the state object. Reused loader objects read the latest state after each native loader. The state carries an optional output only when JavaScript produces one. A pitch that produces no output leaves the native source graph intact.
+
+Before loaders run, Rust loader hooks borrow `&mut LoaderContext`. A JavaScript loader hook receives a `JsLoaderHookContext` snapshot and returns only its state; the native runner keeps ownership of the Box throughout. Only the JavaScript loader runner takes and returns the Box, together with the loader result. Hook-installed properties and closures survive later builtin and JavaScript loaders through a shared JavaScript wrapper, whose captured execution state is refreshed on each entry.
 
 ```text
 Native loader: BoxSource
   ↓ move boxed LoaderContext
-JsLoaderContext: lazy getters
+JsLoaderContext: state snapshot + lazy source getters
   ↓
-JavaScript loader-context wrapper: local changes
-  ↓ commit one result
+JavaScript loader-context wrapper: getters/setters access state
+  ↓ pass the whole state object back
 Native runner: recover boxed LoaderContext and continue
 ```
 

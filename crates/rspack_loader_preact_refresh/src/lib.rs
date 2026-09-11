@@ -45,7 +45,7 @@ impl Loader<RunnerContext> for PreactRefreshLoader {
     };
     let source = ConcatSource::new([
       content,
-      RawStringSource::from(concat!("\n", include_str!("runtime.js"))).boxed(),
+      RawStringSource::from_static(concat!("\n", include_str!("runtime.js"))).boxed(),
     ])
     .boxed();
     let additional_data = loader_context.take_additional_data();
