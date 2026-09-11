@@ -204,6 +204,14 @@ impl ParserAndGenerator for CssParserAndGenerator {
       return CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST;
     }
 
+    if module.build_meta().is_css_module() {
+      return if self.exports_only {
+        CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST
+      } else {
+        CSS_MODULE_AND_JS_SOURCE_TYPE_LIST
+      };
+    }
+
     let module_identifier = module.identifier();
     let mut incoming_connections = module_graph.get_incoming_connections(&module_identifier);
 
