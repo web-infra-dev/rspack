@@ -62,6 +62,7 @@ impl<V, N> From<WithoutOriginalOptions<V, N>> for SourceMapSourceOptions<V, N> {
 #[derive(Eq)]
 pub struct SourceMapSource {
   value: Box<str>,
+  pub(crate) original_buffer: Option<Box<[u8]>>,
   name: Box<str>,
   source_map: SourceMap<'static>,
   original_source: Option<Box<str>>,
@@ -80,11 +81,38 @@ impl SourceMapSource {
     let options = options.into();
     Self {
       value: Box::from(options.value.into()),
+      original_buffer: None,
       name: Box::from(options.name.into()),
       source_map: options.source_map,
       original_source: options.original_source,
       inner_source_map: options.inner_source_map,
       remove_original_source: options.remove_original_source,
+    }
+  }
+
+  /// Preserve non-UTF-8 bytes received alongside a source map. Mapping operations
+  /// use the lossy text view, while byte-oriented consumers retain the exact input.
+  pub fn from_buffer(
+    value: Vec<u8>,
+    name: impl Into<String>,
+    source_map: SourceMap<'static>,
+  ) -> Self {
+    match String::from_utf8(value) {
+      Ok(value) => Self::new(WithoutOriginalOptions {
+        value,
+        name,
+        source_map,
+      }),
+      Err(error) => {
+        let buffer = error.into_bytes();
+        let mut source = Self::new(WithoutOriginalOptions {
+          value: String::from_utf8_lossy(&buffer).into_owned(),
+          name,
+          source_map,
+        });
+        source.original_buffer = Some(buffer.into_boxed_slice());
+        source
+      }
     }
   }
 
@@ -121,7 +149,10 @@ impl SourceMapSource {
 
 impl Source for SourceMapSource {
   fn source(&self) -> SourceValue<'_> {
-    SourceValue::String(Cow::Borrowed(&self.value))
+    match &self.original_buffer {
+      Some(buffer) => SourceValue::Buffer(Cow::Borrowed(buffer)),
+      None => SourceValue::String(Cow::Borrowed(&self.value)),
+    }
   }
 
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
@@ -129,11 +160,19 @@ impl Source for SourceMapSource {
   }
 
   fn buffer(&self) -> Cow<'_, [u8]> {
-    Cow::Borrowed(self.value.as_bytes())
+    Cow::Borrowed(
+      self
+        .original_buffer
+        .as_deref()
+        .unwrap_or(self.value.as_bytes()),
+    )
   }
 
   fn size(&self) -> usize {
-    self.value.len()
+    self
+      .original_buffer
+      .as_ref()
+      .map_or(self.value.len(), |buffer| buffer.len())
   }
 
   fn map<'a>(&'a self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap<'a>> {
@@ -157,7 +196,7 @@ impl Source for SourceMapSource {
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-    writer.write_all(self.value.as_bytes())
+    writer.write_all(&self.buffer())
   }
 }
 
@@ -175,6 +214,7 @@ impl Hash for SourceMapSource {
 impl PartialEq for SourceMapSource {
   fn eq(&self, other: &Self) -> bool {
     self.value == other.value
+      && self.original_buffer == other.original_buffer
       && self.name == other.name
       && self.source_map == other.source_map
       && self.original_source == other.original_source

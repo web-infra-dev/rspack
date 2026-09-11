@@ -101,7 +101,7 @@ use crate::{
     JsCreateData, JsNormalModuleFactoryCreateModuleArgs, JsResolveData, JsResolveForSchemeArgs,
     JsResolveForSchemeOutput,
   },
-  plugins::js_loader::{JsLoaderContext, merge_loader_context},
+  plugins::js_loader::JsLoaderContext,
   rsdoctor::{
     JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
     JsRsdoctorModuleSourcesPatch,
@@ -1704,12 +1704,18 @@ impl CompilationAfterSeal for CompilationAfterSealTap {
 
 #[async_trait]
 impl NormalModuleLoader for NormalModuleLoaderTap {
-  async fn run(&self, context: &mut LoaderContext<RunnerContext>) -> rspack_error::Result<()> {
-    let data = self
+  async fn run(
+    &self,
+    context: &mut Option<Box<LoaderContext<RunnerContext>>>,
+  ) -> rspack_error::Result<()> {
+    let mut js_context = self
       .function
-      .call_with_sync(JsLoaderContext::try_from(&mut *context)?)
+      .call_with_sync(JsLoaderContext::new(
+        context.take().expect("loader context is available"),
+      ))
       .await?;
-    merge_loader_context(context, data)
+    *context = js_context.context.take();
+    js_context.take_error()
   }
 
   fn stage(&self) -> i32 {

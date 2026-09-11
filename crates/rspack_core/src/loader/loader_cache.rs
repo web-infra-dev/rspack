@@ -1,13 +1,16 @@
 use std::path::Path;
 
 use bitflags::bitflags;
-use rspack_cacheable::{cacheable, with::AsMap};
+use rspack_cacheable::{
+  cacheable,
+  with::{AsMap, AsOption, AsPreset},
+};
 use rspack_collections::Identifiable;
 use rspack_error::Result;
-use rspack_hash::{HashFunction, RspackHasher};
-use rspack_loader_runner::{Content, LoaderContext, LoaderDependencies, ParseMeta};
+use rspack_hash::{HashFunction, RspackHash, RspackHasher};
+use rspack_loader_runner::{LoaderContext, LoaderDependencies, ParseMeta};
 use rspack_paths::{InternedPath, InternedPathSet};
-use rspack_sources::SourceMap;
+use rspack_sources::BoxSource;
 use rspack_util::time::current_time;
 
 use crate::{
@@ -16,6 +19,14 @@ use crate::{
   cache::SnapshotStrategyOptions,
   new_cache::{Snapshot, SnapshotValidationResult},
 };
+
+struct LoaderCacheContent<'a>(&'a [u8]);
+
+impl RspackHash for LoaderCacheContent<'_> {
+  fn hash(&self, state: &mut RspackHasher) {
+    state.write(self.0);
+  }
+}
 
 fn loader_cache_key(module_identifier: &str, loader_name: &str) -> String {
   let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
@@ -34,7 +45,7 @@ fn sorted_dependency_paths(paths: &InternedPathSet) -> Vec<&Path> {
 
 #[doc(hidden)]
 pub fn loader_cache_etag(
-  content: &Content,
+  content: &[u8],
   existing: &LoaderDependencies,
   options_cache_key: &str,
   loader_version: &str,
@@ -44,7 +55,7 @@ pub fn loader_cache_etag(
   // disable lookup, and entries that add either kind are skipped at store time. This trade-off lets
   // the etag omit both kinds entirely.
   rspack_hash::rspack_hash_object!(&mut hasher, {
-    "content" => content,
+    "content" => LoaderCacheContent(content),
     "file_dependencies" => sorted_dependency_paths(&existing.file),
     "build_dependencies" => sorted_dependency_paths(&existing.build),
     "options" => options_cache_key,
@@ -158,9 +169,8 @@ pub fn loader_cache_item(
 
 #[cacheable]
 struct LoaderCacheEntry {
-  content: Option<Vec<u8>>,
-  content_is_string: bool,
-  source_map: Option<String>,
+  #[cacheable(with=AsOption<AsPreset>)]
+  source: Option<BoxSource>,
   dependency_snapshot: LoaderCacheDependencySnapshot,
   #[cacheable(with=AsMap)]
   parse_meta: ParseMeta,
@@ -189,7 +199,7 @@ fn cache_miss_action(context: &LoaderContext<RunnerContext>, etag: Etag) -> Load
 fn input_etag(context: &LoaderContext<RunnerContext>) -> Option<Etag> {
   let loader = context.current_loader();
   Some(loader_cache_etag(
-    context.content()?,
+    &context.source()?.buffer(),
     context.existing_dependencies(),
     loader.options_cache_key(),
     loader.loader_version(),
@@ -236,19 +246,6 @@ pub(crate) async fn before_normal_loader(
     )
     .await
   {
-    let content = match (&entry.content, entry.content_is_string) {
-      (Some(content), true) => {
-        // SAFETY: String cache entries are written exclusively from `Content::String`.
-        let content = unsafe { String::from_utf8_unchecked(content.clone()) };
-        Some(Content::String(content))
-      }
-      (Some(content), false) => Some(Content::Buffer(content.clone())),
-      (None, _) => None,
-    };
-    let source_map = entry
-      .source_map
-      .clone()
-      .and_then(|source_map| SourceMap::from_json(source_map).ok());
     let mut dependencies = LoaderDependencies::default();
     restore_loader_cache_dependencies(&entry.dependency_snapshot, &mut dependencies);
     context.add_dependencies(&dependencies);
@@ -256,7 +253,7 @@ pub(crate) async fn before_normal_loader(
     let build_info = context.context.module.build_info_mut();
     build_info.isolated_dts = entry.isolated_dts.clone();
     build_info.rsc = entry.rsc.clone();
-    context.__finish_with((content, source_map, None));
+    context.__finish_with((entry.source.clone(), None));
     return Ok(LoaderCacheAction::Hit);
   }
 
@@ -288,15 +285,8 @@ pub(crate) async fn after_normal_loader(
     return;
   };
 
-  let (content, content_is_string) = match context.content() {
-    Some(Content::String(content)) => (Some(content.as_bytes().to_vec()), true),
-    Some(Content::Buffer(content)) => (Some(content.clone()), false),
-    None => (None, false),
-  };
   let entry = LoaderCacheEntry {
-    content,
-    content_is_string,
-    source_map: context.source_map().map(SourceMap::to_json),
+    source: context.source().cloned(),
     dependency_snapshot,
     parse_meta: context.parse_meta.clone(),
     isolated_dts: context.context.module.build_info().isolated_dts.clone(),

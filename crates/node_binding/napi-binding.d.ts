@@ -420,6 +420,34 @@ export declare class JsLoaderCache {
   store(loaderIndex: number, output: JsLoaderCacheEntry): Promise<void>
 }
 
+/**
+ * Owns the boxed native context while JavaScript executes. Returning the class
+ * moves the context back to Rust and leaves retained JavaScript instances empty.
+ */
+export declare class JsLoaderContext {
+  get loaderContextState(): object | undefined
+  get resource(): string
+  get _module(): Module
+  get hot(): boolean
+  /** Content may be empty in the pitching stage. */
+  get content(): null | Buffer | string
+  get additionalData(): any
+  get sourceMap(): Buffer | null
+  get cacheable(): boolean
+  get dependencies(): JsLoaderDependencies
+  get loaderItems(): Array<JsLoaderItem>
+  get loaderIndex(): number
+  get loaderState(): JsLoaderState
+  get __internal__loaderCache(): JsLoaderCache | undefined
+  /**
+   * Commit the JavaScript wrapper's state in one crossing. An absent output
+   * preserves the native source graph when pitching did not produce content.
+   */
+  set __internal__result(result: JsLoaderResult)
+  /** Return unexpected JavaScript failures together with the owned context. */
+  set __internal__error(error: RspackError)
+}
+
 export declare class JsModuleGraph {
   getModule(dependency: Dependency): Module | null
   getResolvedModule(dependency: Dependency): Module | null
@@ -972,30 +1000,6 @@ export interface JsLoaderCacheEntry {
   parseMeta: Record<string, string>
 }
 
-export interface JsLoaderContext {
-  loaderContextState?: object | undefined
-  resource: string
-  _module: Module
-  hot: Readonly<boolean>
-  /** Content maybe empty in pitching stage */
-  content: null | Buffer
-  additionalData?: any
-  __internal__parseMeta: Record<string, string>
-  sourceMap?: Buffer
-  cacheable: boolean
-  dependencies: JsLoaderDependencies
-  loaderItems: Array<JsLoaderItem>
-  loaderIndex: number
-  loaderState: Readonly<JsLoaderState>
-  __internal__error?: RspackError
-  __internal__loaderCache?: JsLoaderCache | undefined
-  /**
-   * UTF-8 hint for `content`
-   * - Some(true): `content` is a `UTF-8` encoded sequence
-   */
-  __internal__utf8Hint?: boolean
-}
-
 export interface JsLoaderDependencies {
   fileDependencies: Array<string>
   contextDependencies: Array<string>
@@ -1011,6 +1015,23 @@ export interface JsLoaderItem {
   normalExecuted: boolean
   pitchExecuted: boolean
   noPitch: boolean
+}
+
+export interface JsLoaderOutput {
+  content: null | Buffer | string
+  sourceMap?: Buffer
+  additionalData?: any
+}
+
+export interface JsLoaderResult {
+  loaderContextState?: object | undefined
+  cacheable: boolean
+  dependencies: JsLoaderDependencies
+  loaderItems: Array<JsLoaderItem>
+  loaderIndex: number
+  parseMeta: Record<string, string>
+  output?: JsLoaderOutput
+  error?: RspackError
 }
 
 export declare enum JsLoaderState {

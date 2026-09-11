@@ -64,14 +64,11 @@ impl LightningCssLoader {
 
     let filename = resource_path.as_str().to_string();
 
-    let Some(content) = loader_context.take_content() else {
+    let Some(input_source) = loader_context.take_source() else {
       return Ok(());
     };
 
-    let content_str = match &content {
-      rspack_core::Content::String(s) => Cow::Borrowed(s.as_str()),
-      rspack_core::Content::Buffer(buf) => String::from_utf8_lossy(buf),
-    };
+    let content_str = input_source.source().into_string_lossy();
 
     let mut parser_flags = ParserFlags::empty();
     parser_flags.set(
@@ -263,16 +260,17 @@ impl LightningCssLoader {
 
       let posix_name = filename.cow_replace("\\", "/");
       let source_map_source = SourceMapSource::new(SourceMapSourceOptions {
-        value: content.code.clone(),
+        value: content.code,
         name: posix_name,
         source_map: rspack_source_map,
         original_source: None,
-        inner_source_map: loader_context.take_source_map(),
+        inner_source_map: input_source
+          .clone()
+          .map_static(&ObjectPool::default(), &MapOptions::default()),
         remove_original_source: false,
       })
       .boxed();
-      let source_map = source_map_source.map_static(&ObjectPool::default(), &MapOptions::default());
-      loader_context.finish_with((content.code, source_map));
+      loader_context.finish_with(source_map_source);
     } else {
       loader_context.finish_with(content.code);
     }

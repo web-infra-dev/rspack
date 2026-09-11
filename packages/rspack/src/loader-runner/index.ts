@@ -23,6 +23,7 @@ import {
 } from 'webpack-sources';
 
 import { commitCustomFieldsToRust } from '../BuildInfo';
+import { LoaderContextState } from './context';
 import type { Compiler } from '../Compiler';
 import {
   BUILTIN_LOADER_PREFIX,
@@ -228,10 +229,10 @@ function getCurrentLoader(
   return null;
 }
 
-interface LoaderContextState {
+interface SharedLoaderContextState {
   loaderContext: LoaderContext;
   update(
-    context: JsLoaderContext,
+    context: LoaderContextState,
     dependencies: LoaderDependenciesState,
     traceData?: Pick<ChromeEvent, 'uuid' | 'args'>,
   ): void;
@@ -239,11 +240,12 @@ interface LoaderContextState {
 
 export function createLoaderContext(
   compiler: Compiler,
-  context: JsLoaderContext,
+  context: LoaderContextState,
   dependencies: LoaderDependenciesState,
   traceData?: Pick<ChromeEvent, 'uuid' | 'args'>,
 ): LoaderContext {
-  const state = context.loaderContextState as LoaderContextState | undefined;
+  const state = context.loaderContextState as
+    SharedLoaderContextState | undefined;
   if (state) {
     state.update(context, dependencies, traceData);
     return state.loaderContext;
@@ -730,15 +732,16 @@ export function createLoaderContext(
         LoaderObject.__from_binding(item, compiler),
       );
     },
-  } satisfies LoaderContextState;
+  } satisfies SharedLoaderContextState;
 
   return loaderContext;
 }
 
 export async function runLoaders(
   compiler: Compiler,
-  context: JsLoaderContext,
+  nativeContext: JsLoaderContext,
 ): Promise<JsLoaderContext> {
+  const context = new LoaderContextState(nativeContext);
   const loaderState = context.loaderState;
   const pitch = loaderState === JsLoaderState.Pitching;
 
@@ -1133,9 +1136,15 @@ export async function runLoaders(
 
           if (hasArg) {
             const [content, sourceMap, additionalData] = args;
-            context.content = isNil(content) ? null : toBuffer(content);
-            context.sourceMap = serializeObject(sourceMap);
-            context.additionalData = additionalData || undefined;
+            context.finish({
+              content: isNil(content)
+                ? null
+                : typeof content === 'string'
+                  ? content
+                  : toBuffer(content),
+              sourceMap: serializeObject(sourceMap),
+              additionalData: additionalData || undefined,
+            });
             break;
           }
         }
@@ -1145,7 +1154,7 @@ export async function runLoaders(
       case JsLoaderState.Normal: {
         let content: Parameters<typeof toBuffer>[0] | null | undefined =
           context.content;
-        const rawSourceMap = context.sourceMap;
+        let outputChanged = false;
         let sourceMap: string | object | undefined;
         let sourceMapParsed = false;
         let additionalData = context.additionalData;
@@ -1176,6 +1185,7 @@ export async function runLoaders(
             if (cached) {
               currentLoaderObject.normalExecuted = true;
               content = cached.content;
+              outputChanged = true;
               sourceMap = JsSourceMap.__from_binding(cached.sourceMap);
               sourceMapParsed = true;
               loaderContext.loaderIndex--;
@@ -1193,7 +1203,7 @@ export async function runLoaders(
 
             // Parse source map lazily only when a JavaScript loader consumes it.
             if (!sourceMapParsed) {
-              sourceMap = JsSourceMap.__from_binding(rawSourceMap);
+              sourceMap = JsSourceMap.__from_binding(context.sourceMap);
               sourceMapParsed = true;
             }
 
@@ -1203,6 +1213,7 @@ export async function runLoaders(
               additionalData,
             ]);
 
+            outputChanged = true;
             if (cached === null) {
               await loaderCache?.store(
                 loaderContext.loaderIndex,
@@ -1216,12 +1227,17 @@ export async function runLoaders(
           }
         }
 
-        context.content = isNil(content) ? null : toBuffer(content);
-        context.sourceMap = sourceMapParsed
-          ? JsSourceMap.__to_binding(sourceMap)
-          : rawSourceMap;
-        context.additionalData = additionalData || undefined;
-        context.__internal__utf8Hint = typeof content === 'string';
+        if (outputChanged) {
+          context.finish({
+            content: isNil(content)
+              ? null
+              : typeof content === 'string'
+                ? content
+                : toBuffer(content),
+            sourceMap: JsSourceMap.__to_binding(sourceMap),
+            additionalData: additionalData || undefined,
+          });
+        }
 
         break;
       }
@@ -1256,5 +1272,6 @@ export async function runLoaders(
     commitCustomFieldsToRust(context._module.buildInfo);
   }
 
-  return context;
+  context.commit();
+  return nativeContext;
 }
