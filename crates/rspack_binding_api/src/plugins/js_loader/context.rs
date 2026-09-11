@@ -4,7 +4,6 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_collections::Identifiable;
 use rspack_core::{LoaderContext, LoaderDependencies, Module, RunnerContext};
-use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
 use rustc_hash::FxHashMap as HashMap;
@@ -29,23 +28,20 @@ pub struct JsLoaderItem {
   pub no_pitch: bool,
 }
 
-impl JsLoaderItem {
-  fn from_parts(
-    value: &rspack_loader_runner::LoaderItem<RunnerContext>,
-    state: &rspack_loader_runner::LoaderItemState,
-  ) -> Self {
-    JsLoaderItem {
-      loader: value.request().to_string(),
-      r#type: value.r#type().to_string(),
-      cache: value.cache(),
+/// Immutable loader metadata, separate from the state returned by JavaScript.
+#[napi(object)]
+pub struct JsLoaderMetadata {
+  pub loader: String,
+  pub r#type: String,
+  pub cache: bool,
+}
 
-      data: state.data().clone(),
-      normal_executed: state.normal_executed(),
-      pitch_executed: state.pitch_executed(),
-
-      no_pitch: false,
-    }
-  }
+#[napi(object)]
+pub struct JsLoaderItemState {
+  pub data: serde_json::Value,
+  pub normal_executed: bool,
+  pub pitch_executed: bool,
+  pub no_pitch: bool,
 }
 
 impl<C> From<&Arc<dyn rspack_core::Loader<C>>> for JsLoaderItem
@@ -180,31 +176,34 @@ pub struct JsLoaderContext {
   #[napi(ts_type = "Readonly<boolean>")]
   pub hot: bool,
 
-  /// Content maybe empty in pitching stage
-  pub content: Either<Null, Buffer>,
-  #[napi(ts_type = "any")]
-  pub additional_data: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
-  #[napi(js_name = "__internal__parseMeta")]
-  pub parse_meta: HashMap<String, String>,
-  pub source_map: Option<Buffer>,
-  pub cacheable: bool,
-  pub dependencies: JsLoaderDependencies,
-
-  pub loader_items: Vec<JsLoaderItem>,
-  pub loader_index: i32,
+  pub loader_items: Vec<JsLoaderMetadata>,
   #[napi(ts_type = "Readonly<JsLoaderState>")]
   pub loader_state: JsLoaderState,
-  #[napi(js_name = "__internal__error")]
-  pub error: Option<RspackError>,
   #[napi(
     js_name = "__internal__loaderCache",
     ts_type = "JsLoaderCache | undefined"
   )]
   pub loader_cache: Option<JsLoaderCacheObject>,
+  pub state: JsLoaderContextState,
+}
 
-  /// UTF-8 hint for `content`
-  /// - Some(true): `content` is a `UTF-8` encoded sequence
-  #[napi(js_name = "__internal__utf8Hint")]
+/// Owned per-invocation state. JavaScript mutates this object and returns it as a
+/// batch; the native runner keeps ownership of its LoaderContext throughout.
+#[napi(object)]
+pub struct JsLoaderContextState {
+  /// Content may be empty in the pitching stage.
+  pub content: Either<Null, Buffer>,
+  #[napi(ts_type = "any")]
+  pub additional_data: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
+  pub source_map: Option<Buffer>,
+  pub cacheable: bool,
+  pub dependencies: JsLoaderDependencies,
+  pub loader_item_states: Vec<JsLoaderItemState>,
+  pub loader_index: i32,
+  /// Additions from JavaScript, merged into the native typed parse metadata.
+  pub parse_meta: HashMap<String, String>,
+  pub error: Option<RspackError>,
+  /// Some(true) means content is a UTF-8 encoded sequence.
   pub utf8_hint: Option<bool>,
 }
 
@@ -224,33 +223,47 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         cx.context.compiler_id,
       ),
       hot: cx.hot,
-      content: match cx.content() {
-        Some(c) => Either::B(c.to_owned().into_bytes().into()),
-        None => Either::A(Null),
-      },
-      // Since js side only set parse meta, and can't read it, so we can use Default here to only bring the
-      // set values from js side to rust side.
-      parse_meta: Default::default(),
-      additional_data: cx
-        .additional_data()
-        .and_then(|data| data.get::<ThreadsafeJsValueRef<Unknown>>())
-        .cloned(),
-      source_map: cx
-        .source_map()
-        .map(|v| v.to_json())
-        .map(|v| v.into_bytes().into()),
-      cacheable: cx.cacheable,
-      dependencies: cx.dependencies().as_ref().into(),
+      state: JsLoaderContextState {
+        content: match cx.content() {
+          Some(c) => Either::B(c.to_owned().into_bytes().into()),
+          None => Either::A(Null),
+        },
+        parse_meta: Default::default(),
+        additional_data: cx
+          .additional_data()
+          .and_then(|data| data.get::<ThreadsafeJsValueRef<Unknown>>())
+          .cloned(),
+        source_map: cx
+          .source_map()
+          .map(|v| v.to_json())
+          .map(|v| v.into_bytes().into()),
+        cacheable: cx.cacheable,
+        dependencies: cx.dependencies().as_ref().into(),
 
+        loader_index: cx.loader_index,
+        loader_item_states: cx
+          .loader_item_states
+          .iter()
+          .map(|state| JsLoaderItemState {
+            data: state.data().clone(),
+            normal_executed: state.normal_executed(),
+            pitch_executed: state.pitch_executed(),
+            no_pitch: false,
+          })
+          .collect(),
+        error: None,
+        utf8_hint: None,
+      },
       loader_items: cx
         .loader_items()
         .iter()
-        .zip(cx.loader_item_states.iter())
-        .map(|(item, state)| JsLoaderItem::from_parts(item, state))
+        .map(|item| JsLoaderMetadata {
+          loader: item.request().to_string(),
+          r#type: item.r#type().to_string(),
+          cache: item.cache(),
+        })
         .collect(),
-      loader_index: cx.loader_index,
       loader_state: cx.state().into(),
-      error: None,
       loader_cache: cx
         .loader_items()
         .iter()
@@ -266,7 +279,6 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
               .collect(),
           )
         }),
-      utf8_hint: None,
     })
   }
 }

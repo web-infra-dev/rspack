@@ -968,23 +968,30 @@ export interface JsLoaderContext {
   resource: string
   _module: Module
   hot: Readonly<boolean>
-  /** Content maybe empty in pitching stage */
+  loaderItems: Array<JsLoaderMetadata>
+  loaderState: Readonly<JsLoaderState>
+  __internal__loaderCache?: JsLoaderCache | undefined
+  state: JsLoaderContextState
+}
+
+/**
+ * Owned per-invocation state. JavaScript mutates this object and returns it as a
+ * batch; the native runner keeps ownership of its LoaderContext throughout.
+ */
+export interface JsLoaderContextState {
+  /** Content may be empty in the pitching stage. */
   content: null | Buffer
   additionalData?: any
-  __internal__parseMeta: Record<string, string>
   sourceMap?: Buffer
   cacheable: boolean
   dependencies: JsLoaderDependencies
-  loaderItems: Array<JsLoaderItem>
+  loaderItemStates: Array<JsLoaderItemState>
   loaderIndex: number
-  loaderState: Readonly<JsLoaderState>
-  __internal__error?: RspackError
-  __internal__loaderCache?: JsLoaderCache | undefined
-  /**
-   * UTF-8 hint for `content`
-   * - Some(true): `content` is a `UTF-8` encoded sequence
-   */
-  __internal__utf8Hint?: boolean
+  /** Additions from JavaScript, merged into the native typed parse metadata. */
+  parseMeta: Record<string, string>
+  error?: RspackError
+  /** Some(true) means content is a UTF-8 encoded sequence. */
+  utf8Hint?: boolean
 }
 
 export interface JsLoaderDependencies {
@@ -1002,6 +1009,20 @@ export interface JsLoaderItem {
   normalExecuted: boolean
   pitchExecuted: boolean
   noPitch: boolean
+}
+
+export interface JsLoaderItemState {
+  data: any
+  normalExecuted: boolean
+  pitchExecuted: boolean
+  noPitch: boolean
+}
+
+/** Immutable loader metadata, separate from the state returned by JavaScript. */
+export interface JsLoaderMetadata {
+  loader: string
+  type: string
+  cache: boolean
 }
 
 export declare enum JsLoaderState {

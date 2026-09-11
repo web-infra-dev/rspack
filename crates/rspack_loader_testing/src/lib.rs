@@ -104,6 +104,22 @@ impl Loader<RunnerContext> for NoPassthroughLoader {
 }
 pub const NO_PASS_THROUGH_LOADER_IDENTIFIER: &str = "builtin:test-no-passthrough-loader";
 
+/// Explicitly returns no output, unlike the default Loader::run passthrough.
+#[cacheable]
+pub struct NoFinishLoader;
+#[cacheable_dyn]
+#[async_trait]
+impl Loader<RunnerContext> for NoFinishLoader {
+  fn identifier(&self) -> Identifier {
+    NO_FINISH_LOADER_IDENTIFIER.into()
+  }
+
+  async fn run(&self, _loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
+    Ok(())
+  }
+}
+pub const NO_FINISH_LOADER_IDENTIFIER: &str = "builtin:test-no-finish-loader";
+
 static DEPENDENCY_LOADER_RUNS: AtomicUsize = AtomicUsize::new(0);
 
 #[cacheable]

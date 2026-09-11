@@ -49,11 +49,11 @@ export class LoaderCache {
     const context = this.#context;
     const loader = context.loaderItems[loaderIndex];
     if (
-      !context.cacheable ||
+      !context.state.cacheable ||
       !loader ||
       isNil(content) ||
       !isNil(additionalData) ||
-      Object.keys(context.__internal__parseMeta).length > 0 ||
+      Object.keys(context.state.parseMeta).length > 0 ||
       this.#dependencies.contextDependencies().length > 0 ||
       this.#dependencies.missingDependencies().length > 0
     ) {
@@ -67,7 +67,7 @@ export class LoaderCache {
     );
     if (hit) {
       this.#dependencies.addDependencies(hit.addedDependencies);
-      Object.assign(context.__internal__parseMeta, hit.parseMeta);
+      Object.assign(context.state.parseMeta, hit.parseMeta);
     }
     return hit;
   }
@@ -79,7 +79,7 @@ export class LoaderCache {
     additionalData: unknown,
   ) {
     const context = this.#context;
-    if (!context.cacheable || !isNil(additionalData)) {
+    if (!context.state.cacheable || !isNil(additionalData)) {
       return;
     }
 
@@ -88,7 +88,7 @@ export class LoaderCache {
       sourceMap,
       addedDependencies: this.#dependencies.added,
       removedDependencies: this.#dependencies.removed,
-      parseMeta: { ...context.__internal__parseMeta },
+      parseMeta: { ...context.state.parseMeta },
     });
   }
 

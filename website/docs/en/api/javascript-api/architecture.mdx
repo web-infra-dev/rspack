@@ -112,6 +112,22 @@ When equivalent functionality is available, prefer an Rspack builtin loader. For
 
 Builtin loaders run on the Rust side, reducing JavaScript queueing and cross-language data conversion while making better use of Rspack's parallelism.
 
+### Loader metadata and execution state
+
+A normal module owns reusable loader metadata, including each loader's request, type and cache options. Each loader run creates fresh pitch data and execution flags independently of that metadata.
+
+At the JavaScript boundary, Rspack passes a plain `JsLoaderContext` object containing loader metadata, read-only execution information and a `JsLoaderContextState` object. The loader-context wrapper reads and updates the state through JavaScript getters and setters. The JavaScript runner returns that state object, and Rust merges its content, source map, additional data, dependencies, parse metadata and execution flags. Immutable loader metadata is not converted back to Rust with the result. Parallel loaders also keep their metadata and execution state separate.
+
+```text
+Rust LoaderContext: retains native ownership
+  ↓ metadata + state snapshot
+JavaScript loader-context wrapper: getters/setters access state
+  ↓ return the state object
+Rust runner: merge execution state and continue
+```
+
+For example, a JavaScript loader before a builtin loader can update pitch data and dependencies. Those changes travel back in the state object, while the loader's request and type remain metadata. Content and source maps keep their existing Buffer-based transfer representation; this separation does not change when loader hooks run or how the native context is owned.
+
 ## Efficient usage
 
 ### Read only the assets you need

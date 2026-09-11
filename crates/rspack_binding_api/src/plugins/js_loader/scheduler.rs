@@ -4,7 +4,7 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
 
-use super::{JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
+use super::{JsLoaderContextState, JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
 impl JsLoaderRspackPlugin {
   async fn update_loaders_without_pitch(&self, list: Vec<String>) {
@@ -58,14 +58,14 @@ pub(crate) async fn loader_yield(
     }
   }
 
-  merge_loader_context(loader_context, new_cx)?;
+  merge_loader_state(loader_context, new_cx)?;
 
   Ok(())
 }
 
-pub(crate) fn merge_loader_context(
+pub(crate) fn merge_loader_state(
   to: &mut LoaderContext<RunnerContext>,
-  mut from: JsLoaderContext,
+  mut from: JsLoaderContextState,
 ) -> Result<()> {
   to.cacheable = from.cacheable;
   to.replace_dependencies(from.dependencies.into());
@@ -111,17 +111,16 @@ pub(crate) fn merge_loader_context(
   for (to, from) in to
     .loader_item_states
     .iter_mut()
-    .zip(from.loader_items.drain(..))
+    .zip(from.loader_item_states.drain(..))
   {
     if from.normal_executed {
       to.set_normal_executed();
+      to.set_finish_called();
     }
     if from.pitch_executed {
       to.set_pitch_executed();
     }
     to.set_data(from.data);
-    // JS loader should always be considered as finished
-    to.set_finish_called();
   }
   to.loader_index = from.loader_index;
   to.parse_meta.extend(
@@ -136,10 +135,14 @@ pub(crate) fn merge_loader_context(
 
 fn collect_loaders_without_pitch(
   ctx: &LoaderContext<RunnerContext>,
-  js_ctx: &JsLoaderContext,
+  js_ctx: &JsLoaderContextState,
 ) -> Vec<String> {
   let mut list = Vec::new();
-  for (js_loader_item, loader_item) in js_ctx.loader_items.iter().zip(ctx.loader_items().iter()) {
+  for (js_loader_item, loader_item) in js_ctx
+    .loader_item_states
+    .iter()
+    .zip(ctx.loader_items().iter())
+  {
     if js_loader_item.no_pitch {
       list.push(loader_item.path().to_string());
     }
