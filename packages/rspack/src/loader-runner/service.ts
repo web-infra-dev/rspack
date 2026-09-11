@@ -268,28 +268,60 @@ export function deserializeError(error: WorkerError): WorkerError {
   return deserializedError;
 }
 
-// check which props are not cloneable
-function checkCloneableProps(obj: any, loaderName: string) {
-  const errors = [];
+const UNCLONEABLE_PATH_DEPTH = 6;
 
-  for (const key of Object.keys(obj)) {
-    try {
-      structuredClone(obj[key]);
-    } catch (e: any) {
-      errors.push({ key, type: typeof obj[key], reason: e.message });
+function findUncloneablePath(
+  value: unknown,
+  path: string,
+  depth: number,
+): { path: string; reason: string } | undefined {
+  try {
+    structuredClone(value);
+    return undefined;
+  } catch (e: any) {
+    if (depth > 0 && typeof value === 'object' && value !== null) {
+      for (const key of Object.keys(value)) {
+        const deeper = findUncloneablePath(
+          (value as Record<string, unknown>)[key],
+          `${path}.${key}`,
+          depth - 1,
+        );
+        if (deeper) {
+          return deeper;
+        }
+      }
+    }
+    return { path, reason: e.message };
+  }
+}
+
+const readablePath = (path: string) =>
+  path
+    .replace(/^loaderContext\._module\.buildInfo/, 'module.buildInfo')
+    .replace(/^loaderContext\.loaders\.\d+\.options/, 'options')
+    .replace(/^loaderContext\.?/, '');
+
+function checkCloneableProps(task: any, loaderName: string) {
+  const found = [];
+
+  for (const key of Object.keys(task)) {
+    const uncloneable = findUncloneablePath(
+      task[key],
+      key,
+      UNCLONEABLE_PATH_DEPTH,
+    );
+    if (uncloneable) {
+      found.push(uncloneable);
     }
   }
 
-  if (errors.length > 0) {
-    const errorMsg = errors
-      .map(
-        (err) =>
-          `option "${err.key}" (type: ${err.type}) is not cloneable: ${err.reason}`,
-      )
+  if (found.length > 0) {
+    const details = found
+      .map((item) => `  ${readablePath(item.path)}: ${item.reason}`)
       .join('\n');
 
     throw new Error(
-      `The options for ${loaderName} are not cloneable, which is not supported by parallelLoader. Consider disabling parallel for this loader or removing the non-cloneable properties from the options:\n${errorMsg}`,
+      `${loaderName} cannot run with \`parallel: true\`. A parallel loader runs in a worker thread and receives its loader context through a structured clone, so the loader options and the custom \`module.buildInfo\` fields the module already carries all have to be cloneable:\n${details}\nEither remove \`parallel\` from this loader, or keep the value above out of the loader options and \`module.buildInfo\`.`,
     );
   }
 }
