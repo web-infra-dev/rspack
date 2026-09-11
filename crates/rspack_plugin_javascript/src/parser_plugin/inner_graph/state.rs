@@ -79,7 +79,6 @@ pub(crate) struct InnerGraphState {
   pub(super) statement_pure_part: HashMap<Span, Span>,
   pub(super) class_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
   pub(super) decl_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
-  pub(super) pure_declarators: HashSet<Span>,
 }
 
 impl InnerGraphState {
