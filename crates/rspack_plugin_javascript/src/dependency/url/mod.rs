@@ -114,8 +114,7 @@ pub struct URLDependencyTemplate;
 
 pub static URL_STATIC_PLACEHOLDER: &str = "RSPACK_AUTO_URL_STATIC_PLACEHOLDER_";
 pub static URL_STATIC_PLACEHOLDER_RE: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(&concat_string!(URL_STATIC_PLACEHOLDER, r#"(?<dep>\d+)"#))
-    .expect("should be valid regex")
+  Regex::new(&format!(r#"{URL_STATIC_PLACEHOLDER}(?<dep>\d+)"#)).expect("should be valid regex")
 });
 
 pub(crate) fn url_entry_source_type(module_type: &ModuleType) -> Option<SourceType> {
