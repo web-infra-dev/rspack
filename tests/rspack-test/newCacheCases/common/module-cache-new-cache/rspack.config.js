@@ -71,7 +71,8 @@ module.exports = {
               'stable.js',
             ]);
           } else {
-            expect(builtModules).toEqual(['changed.js']);
+            // Whole-module persistence skips the JSON module's custom parser callback.
+            expect(builtModules).toEqual(['changed.js', 'data.json']);
           }
           loaderOptions.builtModules = [];
           compilerIndex++;
