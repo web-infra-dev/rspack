@@ -1179,7 +1179,11 @@ export async function runLoaders(
         context.sourceMap = sourceMapParsed
           ? JsSourceMap.__to_binding(sourceMap)
           : rawSourceMap;
-        context.additionalData = additionalData || undefined;
+        // Rust has no consumer after the chain finishes; avoid creating an unused JS reference.
+        context.additionalData =
+          loaderContext.loaderIndex < 0
+            ? undefined
+            : additionalData || undefined;
         context.__internal__utf8Hint = typeof content === 'string';
 
         break;

@@ -94,7 +94,7 @@ const loader: LoaderDefinition = function loader(content) {
   }
 };
 
-export const pitch: LoaderDefinition['pitch'] = function (request, _, data) {
+export const pitch: LoaderDefinition['pitch'] = function (request) {
   if (
     this._module &&
     (this._module.type === 'css' ||
@@ -273,7 +273,7 @@ export const pitch: LoaderDefinition['pitch'] = function (request, _, data) {
       this.__internal__setParseMeta(PLUGIN_NAME, JSON.stringify(dependencies));
     }
 
-    callback(null, resultSource, undefined, data);
+    callback(null, resultSource);
   };
 
   this.importModule(

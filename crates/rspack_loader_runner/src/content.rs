@@ -343,7 +343,7 @@ impl DescriptionData {
   }
 }
 
-pub type AdditionalData = anymap::Map<dyn CloneAny + Send + Sync>;
+pub type AdditionalData = anymap::Map<dyn Any + Send + Sync>;
 
 #[cacheable_dyn]
 pub trait ParseMetaValue: CloneAny + Send + Sync {

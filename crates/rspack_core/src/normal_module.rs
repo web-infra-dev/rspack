@@ -17,7 +17,7 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{
-  AdditionalData, Content, LoaderContext, LoaderRunnerOptions, ResourceData, run_loaders,
+  Content, LoaderContext, LoaderRunnerOptions, ResourceData, run_loaders,
 };
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt, SourceMap,
@@ -85,7 +85,6 @@ define_hook!(NormalModuleLoader: Series(loader_context: &mut LoaderContext<Runne
 define_hook!(NormalModuleLoaderShouldYield: SeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool,tracing=false);
 define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
 define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule),tracing=false);
-define_hook!(NormalModuleAdditionalData: Series(additional_data: &mut Option<&mut AdditionalData>),tracing=false);
 
 #[derive(Debug, Default)]
 pub struct NormalModuleHooks {
@@ -94,7 +93,6 @@ pub struct NormalModuleHooks {
   pub loader_should_yield: NormalModuleLoaderShouldYieldHook,
   pub loader_yield: NormalModuleLoaderStartYieldingHook,
   pub before_loaders: NormalModuleBeforeLoadersHook,
-  pub additional_data: NormalModuleAdditionalDataHook,
 }
 
 /// Build-owned state of a [`NormalModule`].
@@ -524,7 +522,7 @@ impl Module for NormalModule {
     let compiler_options = build_context.compiler_options.clone();
     let resolver_factory = build_context.resolver_factory.clone();
     let fs = build_context.fs.clone();
-    let (mut loader_result, err) = run_loaders(
+    let (loader_result, err) = run_loaders(
       self.loaders.clone(),
       self.loader_options.clone(),
       self.resource_data.clone(),
@@ -576,12 +574,6 @@ impl Module for NormalModule {
       });
     };
 
-    build_context
-      .plugin_driver
-      .normal_module_hooks
-      .additional_data
-      .call(&mut loader_result.additional_data.as_mut())
-      .await?;
     self.add_diagnostics(loader_result.diagnostics);
 
     let is_binary = self

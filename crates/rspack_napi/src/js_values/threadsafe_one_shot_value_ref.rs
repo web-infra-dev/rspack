@@ -36,6 +36,17 @@ pub struct ThreadsafeOneShotRef {
   thread_id: ThreadId,
 }
 
+// SAFETY: Moving the wrapper only transfers opaque Node-API handles. Off-thread
+// Drop queues their deletion through the TSFN instead of accessing JS directly.
+// This requires the shared TSFN to belong to the originating environment and
+// remain valid until the deletion is queued.
+unsafe impl Send for ThreadsafeOneShotRef {}
+
+// SAFETY: Shared references do not mutate the stored handles. JS value lookup
+// through ToNapiValue must still run on the originating JS thread with its env;
+// sharing this wrapper does not make the underlying JS value thread-safe.
+unsafe impl Sync for ThreadsafeOneShotRef {}
+
 impl ThreadsafeOneShotRef {
   pub fn new<T: ToNapiValue>(env: napi_env, val: T) -> Result<Self> {
     let napi_value = unsafe { ToNapiValue::to_napi_value(env, val)? };
