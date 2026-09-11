@@ -50,7 +50,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
   ) -> Option<BasicEvaluatedExpression<'p>> {
     (for_name == "require.ensure").then(|| {
       let span = expr.span(_parser.ast.ast);
-      eval::evaluate_to_string("function".to_string(), span.real_lo(), span.real_hi())
+      eval::evaluate_to_string("function", span.real_lo(), span.real_hi())
     })
   }
 

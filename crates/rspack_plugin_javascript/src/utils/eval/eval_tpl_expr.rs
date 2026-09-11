@@ -14,23 +14,18 @@ fn get_simplified_template_result<'parser>(
   parser: &mut JavascriptParser<'parser>,
   kind: TemplateStringKind,
   template: TemplateLiteral,
-) -> (
-  Vec<BasicEvaluatedExpression<'parser>>,
-  Vec<BasicEvaluatedExpression<'parser>>,
-) {
+) -> Vec<BasicEvaluatedExpression<'parser>> {
   let ast = parser.ast.ast;
   let quasis_nodes = template.quasis(ast);
   let mut expressions = ast.nodes(template.expressions(ast));
-  let mut quasis: Vec<BasicEvaluatedExpression<'parser>> = Vec::new();
   let mut parts: Vec<BasicEvaluatedExpression<'parser>> = Vec::new();
   for (index, quasi_node) in ast.nodes(quasis_nodes).enumerate() {
     let quasi = match kind {
-      TemplateStringKind::Cooked if !quasi_node.is_cooked_undefined(ast) => ast
-        .get_wtf8(quasi_node.cooked(ast))
-        .to_string_lossy()
-        .into_owned(),
+      TemplateStringKind::Cooked if !quasi_node.is_cooked_undefined(ast) => {
+        ast.get_wtf8(quasi_node.cooked(ast)).to_string_lossy()
+      }
       TemplateStringKind::Cooked | TemplateStringKind::Raw => {
-        ast.get_utf8(quasi_node.raw(ast)).to_string()
+        ast.get_utf8(quasi_node.raw(ast)).into()
       }
     };
     let quasi_span = quasi_node.span(ast);
@@ -47,25 +42,16 @@ fn get_simplified_template_result<'parser>(
         previous.set_string(format!("{}{}{}", previous.string(), value, quasi));
         previous.set_range(previous.range().0, quasi_span.real_hi());
         previous.set_expression(None);
-
-        let previous_quasi = quasis.last_mut().expect("template has a preceding quasi");
-        previous_quasi.set_string(format!("{}{}{}", previous_quasi.string(), value, quasi));
-        previous_quasi.set_range(previous_quasi.range().0, quasi_span.real_hi());
-        previous_quasi.set_expression(None);
         continue;
       }
       parts.push(expression);
     }
-    let part = || {
-      let mut part = BasicEvaluatedExpression::new();
-      part.set_string(quasi.clone());
-      part.set_range(quasi_span.real_lo(), quasi_span.real_hi());
-      part
-    };
-    quasis.push(part());
-    parts.push(part());
+    let mut part = BasicEvaluatedExpression::new();
+    part.set_string(quasi);
+    part.set_range(quasi_span.real_lo(), quasi_span.real_hi());
+    parts.push(part);
   }
-  (quasis, parts)
+  parts
 }
 
 #[inline]
@@ -74,7 +60,7 @@ pub fn eval_tpl_expression<'parser>(
   template: TemplateLiteral,
 ) -> Option<BasicEvaluatedExpression<'parser>> {
   let kind = TemplateStringKind::Cooked;
-  let (quasis, mut parts) = get_simplified_template_result(parser, kind, template);
+  let mut parts = get_simplified_template_result(parser, kind, template);
   let span = template.span(parser.ast.ast);
   if parts.len() == 1 {
     let mut part = parts.remove(0);
@@ -82,7 +68,7 @@ pub fn eval_tpl_expression<'parser>(
     Some(part)
   } else {
     let mut result = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
-    result.set_template_string(quasis, parts, kind);
+    result.set_template_string(parts, kind);
     Some(result)
   }
 }
@@ -98,9 +84,9 @@ pub fn eval_tagged_tpl_expression<'parser>(
     return None;
   }
   let kind = TemplateStringKind::Raw;
-  let (quasis, parts) = get_simplified_template_result(parser, kind, tagged.quasi(ast));
+  let parts = get_simplified_template_result(parser, kind, tagged.quasi(ast));
   let span = tagged.span(ast);
   let mut result = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
-  result.set_template_string(quasis, parts, kind);
+  result.set_template_string(parts, kind);
   Some(result)
 }

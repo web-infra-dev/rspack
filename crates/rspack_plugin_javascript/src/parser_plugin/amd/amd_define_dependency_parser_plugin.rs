@@ -124,7 +124,7 @@ impl AMDDefineDependencyParserPlugin {
       let items = param.items();
       for (idx, item) in items.iter().enumerate() {
         if item.is_string() {
-          let item = item.string().as_str();
+          let item = item.string();
           if RESERVED_NAMES.contains(&item) {
             identifiers.insert(idx, item.into());
           }
@@ -219,8 +219,7 @@ impl AMDDefineDependencyParserPlugin {
         parser.add_presentational_dependency(dep);
         return Some(true);
       } else {
-        let mut dep =
-          AMDRequireItemDependency::new(Atom::new(param_str.as_str()), Some(range.into()));
+        let mut dep = AMDRequireItemDependency::new(Atom::new(param_str), Some(range.into()));
         dep.set_optional(parser.in_try);
         parser.add_dependency(BoxDependency::new(dep));
         return Some(true);

@@ -149,8 +149,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
         parser.add_presentational_dependency(dep);
         return Some(true);
       } else {
-        let mut dep =
-          AMDRequireItemDependency::new(Atom::new(param_str.as_str()), Some(range.into()));
+        let mut dep = AMDRequireItemDependency::new(Atom::new(param_str), Some(range.into()));
         dep.set_optional(parser.in_try);
         block_deps.push(BoxDependency::new(dep));
       }
@@ -216,7 +215,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
         return Some(result.map(|item| item.expect("")).join("|"));
       }
     } else if param.is_string() {
-      return Some(param.string().clone());
+      return Some(param.string().to_owned());
     }
     None
   }

@@ -975,8 +975,6 @@ fn evaluate_created_require<'p>(
     evaluated_name.clone(),
     ExportedVariableInfo::Name(evaluated_name),
     None,
-    None,
-    None,
   );
   evaluated.set_side_effects(has_side_effects);
   evaluated.set_truthy();
@@ -1719,7 +1717,7 @@ impl CommonJsImportsParserPlugin {
       if let Some(context) = request_context {
         parser.add_dependency(BoxDependency::new(
           RequireResolveDependency::new_contextual(
-            param.string().clone(),
+            param.string().to_owned(),
             param.range().into(),
             weak,
             parser.in_try,
@@ -1728,7 +1726,7 @@ impl CommonJsImportsParserPlugin {
         ));
       } else {
         parser.add_dependency(BoxDependency::new(RequireResolveDependency::new(
-          param.string().clone(),
+          param.string().to_owned(),
           param.range().into(),
           weak,
           parser.in_try,
@@ -1827,7 +1825,7 @@ impl CommonJsImportsParserPlugin {
           });
       let mut dep = if let Some(context) = request_context {
         CommonJsRequireDependency::new_contextual(
-          param.string().clone(),
+          param.string().to_owned(),
           range_expr,
           Some(span.into()),
           parser.in_try,
@@ -1836,7 +1834,7 @@ impl CommonJsImportsParserPlugin {
         )
       } else {
         CommonJsRequireDependency::new(
-          param.string().clone(),
+          param.string().to_owned(),
           range_expr,
           Some(span.into()),
           parser.in_try,
@@ -2425,7 +2423,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         || for_name == expr_name::REQUIRE_RESOLVE_WEAK))
       || should_handle_create_require_specifier(parser, for_name)
       || for_name == CREATED_REQUIRE_IDENTIFIER_TAG)
-      .then(|| eval::evaluate_to_string("function".to_string(), span.real_lo(), span.real_hi()))
+      .then(|| eval::evaluate_to_string("function", span.real_lo(), span.real_hi()))
   }
 
   fn evaluate_identifier(
@@ -2501,9 +2499,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     parser: &mut JavascriptParser<'p>,
     property: &str,
     expr: CallExpression,
-    param: BasicEvaluatedExpression<'p>,
+    param: &BasicEvaluatedExpression<'p>,
   ) -> Option<BasicEvaluatedExpression<'p>> {
-    if !is_create_require_namespace_member_param(parser, property, &param) {
+    if !is_create_require_namespace_member_param(parser, property, param) {
       return None;
     }
     evaluate_create_require_call_expression(parser, expr)
