@@ -7,8 +7,8 @@ use rspack_core::{
 };
 use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{
-  ArrowFunctionBodyData, ArrowFunctionExpression, Ast, CallExpression, Expr, ExprData, Function,
-  GetSpan, PropertyKeyData, StmtData, UnaryExpression,
+  ArrowFunctionExpression, Ast, CallExpression, Expr, ExprData, Function, GetSpan, PropertyKeyData,
+  StmtData, UnaryExpression,
 };
 
 use super::JavascriptParserPlugin;
@@ -19,6 +19,26 @@ use crate::{
 };
 
 pub struct RequireEnsureDependenciesBlockParserPlugin;
+
+/// Walks a require.ensure callback with the legacy free-name treatment of its parameters.
+fn walk_require_ensure_callback(parser: &mut JavascriptParser, callback: FunctionExpression) {
+  let (node, has_this) = match callback.func {
+    Either::Left(function) => (function.node_id(), true),
+    Either::Right(arrow) => (arrow.node_id(), false),
+  };
+  parser.in_semantic_scope(node, |parser| {
+    parser.in_function_scope(has_this, std::iter::empty(), |parser| {
+      // require.ensure supplies its runtime require to the callback. Keep the
+      // legacy free-name handling explicitly, after initializing all bindings.
+      parser.definitions_db.suppress_scope_parameters();
+      parser.walk_function_expression_body(
+        callback
+          .func
+          .either(Expr::Function, Expr::ArrowFunctionExpression),
+      );
+    });
+  });
+}
 
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockParserPlugin {
@@ -129,22 +149,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
     }
     deps = parser.collect_dependencies_for_block(parser.next_block_idx(), deps, |parser| {
       if let Some(success_expr) = success_expr {
-        let old_terminated = parser.terminated;
-        match success_expr.func {
-          Either::Left(func) => {
-            let body = func.body(parser.ast.ast);
-            parser.walk_function_body(body);
-          }
-          Either::Right(arrow) => match parser
-            .ast
-            .ast
-            .arrow_function_body_data(arrow.body(parser.ast.ast))
-          {
-            ArrowFunctionBodyData::FunctionBody(body) => parser.walk_function_body(body),
-            ArrowFunctionBodyData::Expr(expr) => parser.walk_expression(expr),
-          },
-        }
-        parser.terminated = old_terminated;
+        walk_require_ensure_callback(parser, success_expr);
       }
     });
 
@@ -160,20 +165,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
       parser.walk_expression(success_arg);
     }
     match error_expr {
-      Some(error_expr) => match error_expr.func {
-        Either::Left(func) => {
-          let body = func.body(parser.ast.ast);
-          parser.walk_function_body(body);
-        }
-        Either::Right(arrow) => match parser
-          .ast
-          .ast
-          .arrow_function_body_data(arrow.body(parser.ast.ast))
-        {
-          ArrowFunctionBodyData::FunctionBody(body) => parser.walk_function_body(body),
-          ArrowFunctionBodyData::Expr(expr) => parser.walk_expression(expr),
-        },
-      },
+      Some(error_expr) => walk_require_ensure_callback(parser, error_expr),
       None => {
         error_arg.inspect(|error_arg| parser.walk_arguments(std::iter::once(*error_arg)));
       }
