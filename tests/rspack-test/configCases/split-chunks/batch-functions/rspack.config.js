@@ -1,5 +1,5 @@
 const callbackStats = {
-  batches: 0,
+  turns: 0,
   calls: 0,
   active: false,
 };
@@ -10,18 +10,18 @@ function trackCallback() {
   callbackStats.calls++;
   if (!callbackStats.active) {
     callbackStats.active = true;
-    callbackStats.batches++;
+    callbackStats.turns++;
     queueMicrotask(() => {
       callbackStats.active = false;
     });
   }
 }
 
-class AssertBatchCallbacksPlugin {
+class AssertIndividualCallbacksPlugin {
   apply(compiler) {
-    compiler.hooks.done.tap('AssertBatchCallbacksPlugin', () => {
+    compiler.hooks.done.tap('AssertIndividualCallbacksPlugin', () => {
       expect(callbackStats.calls).toBe(6);
-      expect(callbackStats.batches).toBeLessThan(callbackStats.calls);
+      expect(callbackStats.turns).toBe(callbackStats.calls);
       expect(callbackStats.active).toBe(false);
       expect(nameChunkArrays.size).toBe(6);
       expect(new Set(nameModuleOrder.slice(0, 3)).size).toBe(3);
@@ -83,5 +83,5 @@ module.exports = {
       },
     },
   },
-  plugins: [new AssertBatchCallbacksPlugin()],
+  plugins: [new AssertIndividualCallbacksPlugin()],
 };

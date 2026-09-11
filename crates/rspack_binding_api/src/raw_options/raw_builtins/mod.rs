@@ -494,17 +494,10 @@ impl<'a> BuiltinPlugin<'a> {
       }
       BuiltinPluginName::SplitChunksPlugin => {
         use rspack_plugin_split_chunks::SplitChunksPlugin;
-        let options = RawSplitChunksOptions::normalize(
-          downcast_into::<RawSplitChunksOptions>(self.options)
-            .map_err(|report| napi::Error::from_reason(report.to_string()))?,
-        );
-        plugins.push(
-          SplitChunksPlugin::new_with_name_batch_getters(
-            options.options,
-            options.name_batch_getters,
-          )
-          .boxed(),
-        );
+        let options = downcast_into::<RawSplitChunksOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?
+          .into();
+        plugins.push(SplitChunksPlugin::new(options).boxed());
       }
       BuiltinPluginName::RemoveDuplicateModulesPlugin => {
         plugins.push(RemoveDuplicateModulesPlugin::default().boxed());

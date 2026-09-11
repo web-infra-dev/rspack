@@ -8,13 +8,10 @@ use std::sync::Arc;
 use derive_more::Debug;
 use napi::{Either, JsString, bindgen_prelude::Either3};
 use napi_derive::napi;
-use raw_split_chunk_name::{
-  RawChunkOptionName, RawChunkOptionNameBatch, normalize_raw_chunk_name,
-  normalize_raw_chunk_name_batch,
-};
+use raw_split_chunk_name::{RawChunkOptionName, normalize_raw_chunk_name};
 use rspack_core::{DEFAULT_DELIMITER, Filename, SourceType};
 use rspack_napi::string::JsStringExt;
-use rspack_plugin_split_chunks::{ChunkNameGetter, SplitChunksNameBatchFn};
+use rspack_plugin_split_chunks::ChunkNameGetter;
 use rspack_regex::RspackRegex;
 
 use self::{
@@ -36,9 +33,6 @@ pub struct RawSplitChunksOptions<'a> {
   #[napi(ts_type = "string | false | ((ctx: JsChunkOptionNameCtx) => string | undefined)")]
   #[debug(skip)]
   pub name: Option<RawChunkOptionName>,
-  #[napi(ts_type = "((batch: JsChunkOptionNameBatch) => (string | undefined)[])")]
-  #[debug(skip)]
-  pub name_batch: Option<RawChunkOptionNameBatch>,
   pub filename: Option<JsFilename>,
   pub cache_groups: Option<Vec<RawCacheGroupOptions<'a>>>,
   /// What kind of chunks should be selected.
@@ -104,26 +98,17 @@ pub struct RawCacheGroupOptions<'a> {
   #[napi(ts_type = "string | false | ((ctx: JsChunkOptionNameCtx) => string | undefined)")]
   #[debug(skip)]
   pub name: Option<RawChunkOptionName>,
-  #[napi(ts_type = "((batch: JsChunkOptionNameBatch) => (string | undefined)[])")]
-  #[debug(skip)]
-  pub name_batch: Option<RawChunkOptionNameBatch>,
   // used_exports: bool,
   pub reuse_existing_chunk: Option<bool>,
   pub enforce: Option<bool>,
   pub used_exports: Option<bool>,
 }
 
-pub(crate) struct NormalizedSplitChunksOptions {
-  pub options: rspack_plugin_split_chunks::PluginOptions,
-  pub name_batch_getters: Vec<Option<SplitChunksNameBatchFn>>,
-}
-
-impl<'a> RawSplitChunksOptions<'a> {
-  pub(crate) fn normalize(raw_opts: Self) -> NormalizedSplitChunksOptions {
+impl<'a> From<RawSplitChunksOptions<'a>> for rspack_plugin_split_chunks::PluginOptions {
+  fn from(raw_opts: RawSplitChunksOptions) -> Self {
     use rspack_plugin_split_chunks::SplitChunkSizes;
 
     let mut cache_groups = vec![];
-    let mut name_batch_getters = vec![];
 
     let overall_filename = raw_opts.filename.map(Filename::from);
 
@@ -134,7 +119,6 @@ impl<'a> RawSplitChunksOptions<'a> {
     let overall_name_getter = raw_opts.name.map_or(default_chunk_option_name(), |name| {
       normalize_raw_chunk_name(name)
     });
-    let overall_name_batch_getter = raw_opts.name_batch.map(normalize_raw_chunk_name_batch);
 
     let default_size_types = raw_opts
       .default_size_types
@@ -222,12 +206,9 @@ impl<'a> RawSplitChunksOptions<'a> {
           let mut name = v.name.map_or(default_chunk_option_name(), |name| {
             normalize_raw_chunk_name(name)
           });
-          let mut name_batch_getter = v.name_batch.map(normalize_raw_chunk_name_batch);
-          if name_batch_getter.is_none() && matches!(name, ChunkNameGetter::Disabled) {
+          if matches!(name, ChunkNameGetter::Disabled) {
             name = overall_name_getter.clone();
-            name_batch_getter = overall_name_batch_getter.clone();
           }
-          name_batch_getters.push(name_batch_getter);
           rspack_plugin_split_chunks::CacheGroup {
             id_hint: v.id_hint.unwrap_or_else(|| v.key.clone()),
             key: v.key,
@@ -289,32 +270,23 @@ impl<'a> RawSplitChunksOptions<'a> {
       .merge(&overall_max_initial_size)
       .merge(&overall_max_size);
 
-    NormalizedSplitChunksOptions {
-      options: rspack_plugin_split_chunks::PluginOptions {
-        cache_groups,
-        fallback_cache_group: rspack_plugin_split_chunks::FallbackCacheGroup {
-          chunks_filter: fallback_chunks_filter.unwrap_or_else(|| {
-            overall_chunk_filter
-              .clone()
-              .unwrap_or_else(rspack_plugin_split_chunks::create_all_chunk_filter)
-          }),
-          min_size: fallback_min_size,
-          max_async_size: fallback_max_async_size,
-          max_initial_size: fallback_max_initial_size,
-          automatic_name_delimiter: raw_fallback_cache_group
-            .automatic_name_delimiter
-            .unwrap_or(overall_automatic_name_delimiter.clone()),
-        },
-        hide_path_info: raw_opts.hide_path_info,
+    rspack_plugin_split_chunks::PluginOptions {
+      cache_groups,
+      fallback_cache_group: rspack_plugin_split_chunks::FallbackCacheGroup {
+        chunks_filter: fallback_chunks_filter.unwrap_or_else(|| {
+          overall_chunk_filter
+            .clone()
+            .unwrap_or_else(rspack_plugin_split_chunks::create_all_chunk_filter)
+        }),
+        min_size: fallback_min_size,
+        max_async_size: fallback_max_async_size,
+        max_initial_size: fallback_max_initial_size,
+        automatic_name_delimiter: raw_fallback_cache_group
+          .automatic_name_delimiter
+          .unwrap_or(overall_automatic_name_delimiter.clone()),
       },
-      name_batch_getters,
+      hide_path_info: raw_opts.hide_path_info,
     }
-  }
-}
-
-impl<'a> From<RawSplitChunksOptions<'a>> for rspack_plugin_split_chunks::PluginOptions {
-  fn from(raw_opts: RawSplitChunksOptions) -> Self {
-    RawSplitChunksOptions::normalize(raw_opts).options
   }
 }
 

@@ -62,11 +62,11 @@ class CompareChunkOutputPlugin {
 
             if (observedOutputs.size === 2) {
               const nativeOutput = observedOutputs.get('native');
-              const batchOutput = observedOutputs.get('batch');
-              expect([...batchOutput.keys()].sort()).toEqual(
+              const callbackOutput = observedOutputs.get('callback');
+              expect([...callbackOutput.keys()].sort()).toEqual(
                 [...nativeOutput.keys()].sort(),
               );
-              for (const [name, source] of batchOutput) {
+              for (const [name, source] of callbackOutput) {
                 expect(source).toEqual(nativeOutput.get(name));
               }
             }
@@ -111,7 +111,7 @@ function createConfig(label, name) {
 /** @type {import('@rspack/core').Configuration[]} */
 module.exports = [
   createConfig('native', false),
-  createConfig('batch', (_module, chunks) => {
+  createConfig('callback', (_module, chunks) => {
     expect(chunks.map((chunk) => chunk.name).sort()).toEqual(
       [...entryNames].sort(),
     );
