@@ -47,7 +47,7 @@ pub fn eval_call_expression<'parser>(
       parser,
       ast.get_utf8(identifier.name(ast)),
       expression,
-      parameter,
+      &parameter,
     );
   }
   if parser.javascript_options.is_create_require_enabled()

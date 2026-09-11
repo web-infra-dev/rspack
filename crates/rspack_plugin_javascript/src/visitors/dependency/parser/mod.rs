@@ -1791,8 +1791,6 @@ impl<'parser> JavascriptParser<'parser> {
                 name.to_owned(),
                 ExportedVariableInfo::VariableInfo(info.binding_state()),
                 None,
-                None,
-                None,
               );
               Some(eval)
             } else {
@@ -1801,13 +1799,7 @@ impl<'parser> JavascriptParser<'parser> {
           } else {
             let name = Atom::from(name);
             let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
-            eval.set_identifier(
-              name.clone(),
-              ExportedVariableInfo::Name(name),
-              None,
-              None,
-              None,
-            );
+            eval.set_identifier(name.clone(), ExportedVariableInfo::Name(name), None);
             Some(eval)
           }
         })
@@ -1820,8 +1812,6 @@ impl<'parser> JavascriptParser<'parser> {
           eval.set_identifier(
             "this".into(),
             ExportedVariableInfo::Name("this".into()),
-            None,
-            None,
             None,
           );
           Some(eval)
