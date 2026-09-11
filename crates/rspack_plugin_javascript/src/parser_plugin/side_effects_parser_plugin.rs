@@ -8,17 +8,17 @@ use rspack_util::{
   SpanExt,
   swc::{AstSubRangeExt, RspackComments},
 };
-use rustc_hash::FxHashMap;
+use rustc_hash::FxHashSet;
 use swc_next_ecma_ast::{
   ArgumentData, ArrowFunctionBodyData, ArrowFunctionExpression, AssignmentExpression,
   AssignmentOperator, AssignmentTargetData, Ast, BindingPattern, BindingPatternData,
   CallExpression, Class, ClassElement, ClassElementData, CommentKind, Decl, DeclData,
   ExportDefaultDeclarationKindData, Expr, ExprData, ForStatementInitData, FormalParameterItemData,
-  FormalParameterPatternData, Function, GetSpan, ImportDeclarationSpecifierData,
-  MethodDefinitionKind, ModuleExportName, ModuleExportNameData, Program, PropertyKey,
-  PropertyKeyData, SimpleAssignmentTargetData, Span, Stmt, StmtData,
-  VariableDeclaration as AstVariableDeclaration, VariableKind,
+  FormalParameterPatternData, Function, GetSpan, MethodDefinitionKind, ModuleExportName,
+  ModuleExportNameData, Program, PropertyKey, PropertyKeyData, ScopeId, SimpleAssignmentTargetData,
+  SourceType, Span, Stmt, StmtData, VariableDeclaration as AstVariableDeclaration, VariableKind,
 };
+use swc_next_ecma_semantic::Semantic;
 
 use super::side_effects_analysis::{SideEffectsContext, may_have_side_effects};
 use crate::{
@@ -78,141 +78,48 @@ fn has_pure_comment(comments: &RspackComments<'_>, pos: u32) -> bool {
   })
 }
 
-fn visit_pattern_binding_names<'ast>(
-  ast: &'ast Ast<'_>,
-  pattern: BindingPattern,
-  f: &mut impl FnMut(&'ast str),
-) {
-  match ast.binding_pattern_data(pattern) {
-    BindingPatternData::BindingIdentifier(identifier) => f(ast.get_utf8(identifier.name(ast))),
-    BindingPatternData::ArrayPattern(array) => {
-      for element in ast.nodes(array.elements(ast)).flatten() {
-        visit_pattern_binding_names(ast, element, f);
-      }
-      if let Some(rest) = array.rest(ast) {
-        visit_pattern_binding_names(ast, rest.argument(ast), f);
-      }
-    }
-    BindingPatternData::ObjectPattern(object) => {
-      for property in ast.nodes(object.properties(ast)) {
-        visit_pattern_binding_names(ast, property.value(ast), f);
-      }
-      if let Some(rest) = object.rest(ast) {
-        visit_pattern_binding_names(ast, rest.argument(ast), f);
-      }
-    }
-    BindingPatternData::AssignmentPattern(assignment) => {
-      visit_pattern_binding_names(ast, assignment.left(ast), f);
-    }
-    BindingPatternData::BindingRestElement(rest) => {
-      visit_pattern_binding_names(ast, rest.argument(ast), f);
-    }
-    BindingPatternData::SimpleAssignmentTarget(_) => {}
+fn top_level_scope(ast: &Ast<'_>) -> ScopeId {
+  match ast.source_type() {
+    SourceType::Script => ScopeId::ROOT,
+    SourceType::Module | SourceType::CommonJs => ScopeId::MODULE,
+    SourceType::Unambiguous => unreachable!("parser should resolve unambiguous source type"),
   }
 }
 
-fn visit_decl_binding_names<'ast>(
-  ast: &'ast Ast<'_>,
-  declaration: Decl,
-  f: &mut impl FnMut(&'ast str),
-) {
-  match ast.decl_data(declaration) {
-    DeclData::Function(function) => {
-      if let Some(identifier) = function.id(ast) {
-        f(ast.get_utf8(identifier.name(ast)));
-      }
-    }
-    DeclData::Class(class) => {
-      if let Some(identifier) = class.id(ast) {
-        f(ast.get_utf8(identifier.name(ast)));
-      }
-    }
-    DeclData::VariableDeclaration(variable) => {
-      for declarator in ast.nodes(variable.declarators(ast)) {
-        visit_pattern_binding_names(ast, declarator.id(ast), f);
-      }
-    }
-    _ => {}
+fn collect_defined_configured_side_effects_free(
+  ast: &Ast<'_>,
+  program: Program,
+  configured: &[String],
+  semantic: &Semantic<'_>,
+) -> AtomSet {
+  let scope = top_level_scope(ast);
+  let configured_names = configured
+    .iter()
+    .map(String::as_str)
+    .collect::<FxHashSet<_>>();
+  let mut defined = configured
+    .iter()
+    .filter(|name| semantic.binding(scope, name.as_bytes()).is_some())
+    .map(|name| Atom::from(name.as_str()))
+    .collect::<AtomSet>();
+  if configured_names.is_empty() {
+    return defined;
   }
-}
-
-fn visit_stmt_defined_binding_names<'ast>(
-  ast: &'ast Ast<'_>,
-  statement: Stmt,
-  f: &mut impl FnMut(&'ast str),
-) {
-  match ast.stmt_data(statement) {
-    StmtData::Declaration(declaration) => visit_decl_binding_names(ast, declaration, f),
-    StmtData::ImportDeclaration(import) => {
-      for specifier in ast.nodes(import.specifiers(ast)) {
-        let local = match ast.import_declaration_specifier_data(specifier) {
-          ImportDeclarationSpecifierData::ImportSpecifier(specifier) => specifier.local(ast),
-          ImportDeclarationSpecifierData::ImportDefaultSpecifier(specifier) => specifier.local(ast),
-          ImportDeclarationSpecifierData::ImportNamespaceSpecifier(specifier) => {
-            specifier.local(ast)
-          }
-        };
-        f(ast.get_utf8(local.name(ast)));
-      }
-    }
-    StmtData::ExportNamedDeclaration(export) => {
-      if let Some(declaration) = export.declaration(ast) {
-        visit_decl_binding_names(ast, declaration, f);
-      }
-    }
-    StmtData::ExportDefaultDeclaration(export) => {
-      match ast.export_default_declaration_kind_data(export.declaration(ast)) {
-        ExportDefaultDeclarationKindData::Function(function) => {
-          if let Some(identifier) = function.id(ast) {
-            f(ast.get_utf8(identifier.name(ast)));
-          }
-        }
-        ExportDefaultDeclarationKindData::Class(class) => {
-          if let Some(identifier) = class.id(ast) {
-            f(ast.get_utf8(identifier.name(ast)));
-          }
-        }
-        ExportDefaultDeclarationKindData::Expr(expression) => match ast.expr_data(expression) {
-          ExprData::Function(function) => {
-            if let Some(identifier) = function.id(ast) {
-              f(ast.get_utf8(identifier.name(ast)));
-            }
-          }
-          ExprData::Class(class) => {
-            if let Some(identifier) = class.id(ast) {
-              f(ast.get_utf8(identifier.name(ast)));
-            }
-          }
-          _ => {}
-        },
-        _ => {}
-      }
-    }
-    _ => {}
-  }
-}
-
-fn collect_pure_function_acceptable_names(ast: &Ast<'_>, program: Program) -> AtomSet {
-  let statements = program.body(ast);
-  let mut names = AtomSet::default();
-  for statement in ast.nodes(statements) {
-    visit_stmt_defined_binding_names(ast, statement, &mut |name| {
-      names.insert(Atom::from(name));
-    });
-  }
-
-  let local_bindings = names.clone();
-  for statement in ast.nodes(statements) {
+  for statement in ast.nodes(program.body(ast)) {
     match ast.stmt_data(statement) {
       StmtData::ExportNamedDeclaration(export) if export.source(ast).is_none() => {
         for specifier in ast.nodes(export.specifiers(ast)) {
+          let exported = module_export_name(ast, specifier.exported(ast));
+          if !configured_names.contains(exported.as_ref()) {
+            continue;
+          }
           let local = module_export_name(ast, specifier.local(ast));
-          if local_bindings.contains(local.as_ref()) {
-            names.insert(Atom::from(module_export_name(ast, specifier.exported(ast))));
+          if semantic.binding(scope, local.as_bytes()).is_some() {
+            defined.insert(Atom::from(exported));
           }
         }
       }
-      StmtData::ExportDefaultDeclaration(export) => {
+      StmtData::ExportDefaultDeclaration(export) if configured_names.contains("default") => {
         let is_function = match ast.export_default_declaration_kind_data(export.declaration(ast)) {
           ExportDefaultDeclarationKindData::Function(_) => true,
           ExportDefaultDeclarationKindData::Expr(expression) => matches!(
@@ -222,39 +129,13 @@ fn collect_pure_function_acceptable_names(ast: &Ast<'_>, program: Program) -> At
           _ => false,
         };
         if is_function {
-          names.insert(Atom::from("default"));
+          defined.insert(Atom::from("default"));
         }
       }
       _ => {}
     }
   }
-  names
-}
-
-fn collect_defined_configured_side_effects_free(
-  ast: &Ast<'_>,
-  program: Program,
-  configured_side_effects_free: &[String],
-) -> AtomSet {
-  let acceptable = collect_pure_function_acceptable_names(ast, program);
-  configured_side_effects_free
-    .iter()
-    .filter_map(|name| acceptable.get(name).cloned())
-    .collect()
-}
-
-fn collect_duplicate_top_level_names(ast: &Ast<'_>, program: Program) -> AtomSet {
-  let mut counts = FxHashMap::<&str, usize>::default();
-  for statement in ast.nodes(program.body(ast)) {
-    visit_stmt_defined_binding_names(ast, statement, &mut |name| {
-      *counts.entry(name).or_default() += 1;
-    });
-  }
-  counts
-    .into_iter()
-    .filter(|(_, count)| *count > 1)
-    .map(|(name, _)| Atom::from(name))
-    .collect()
+  defined
 }
 
 fn collect_annotation_from_variable(
@@ -386,9 +267,13 @@ fn mark_side_effects_free(parser: &mut JavascriptParser, name: &str, export_name
 fn already_marked_or_duplicate(
   parser: &JavascriptParser,
   name: &str,
-  duplicate_names: &AtomSet,
+  identifier: swc_next_ecma_ast::BindingIdentifier,
 ) -> bool {
-  duplicate_names.contains(name)
+  parser
+    .ast
+    .semantic
+    .symbol_of(identifier.node_id())
+    .is_some_and(|symbol| parser.ast.semantic.declarations(symbol).len() > 1)
     || parser
       .build_info
       .side_effects_free
@@ -401,7 +286,6 @@ fn try_mark_auto_side_effects_free_variable(
   analyze_side_effects_free: bool,
   variable: AstVariableDeclaration,
   export_name: Option<&str>,
-  duplicate_names: &AtomSet,
 ) {
   let ast = parser.ast.ast;
   if variable.kind(ast) != VariableKind::Const {
@@ -414,7 +298,7 @@ fn try_mark_auto_side_effects_free_variable(
       continue;
     };
     let name = ast.get_utf8(identifier.name(ast));
-    if already_marked_or_duplicate(parser, name, duplicate_names) {
+    if already_marked_or_duplicate(parser, name, identifier) {
       continue;
     }
     let Some(initializer) = declarator.init(ast) else {
@@ -440,7 +324,6 @@ fn try_mark_auto_side_effects_free_decl(
   analyze_side_effects_free: bool,
   declaration: Decl,
   export_name: Option<&str>,
-  duplicate_names: &AtomSet,
 ) {
   let ast = parser.ast.ast;
   match ast.decl_data(declaration) {
@@ -449,7 +332,7 @@ fn try_mark_auto_side_effects_free_decl(
         return;
       };
       let name = ast.get_utf8(identifier.name(ast));
-      if !already_marked_or_duplicate(parser, name, duplicate_names)
+      if !already_marked_or_duplicate(parser, name, identifier)
         && is_side_effects_free_function_body(parser, analyze_side_effects_free, function)
       {
         mark_side_effects_free(parser, name, export_name);
@@ -460,7 +343,6 @@ fn try_mark_auto_side_effects_free_decl(
       analyze_side_effects_free,
       variable,
       export_name,
-      duplicate_names,
     ),
     _ => {}
   }
@@ -470,18 +352,13 @@ fn mark_auto_side_effects_free_program(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   program: Program,
-  duplicate_names: &AtomSet,
 ) {
   let ast = parser.ast.ast;
   for statement in ast.nodes(program.body(ast)) {
     match ast.stmt_data(statement) {
-      StmtData::Declaration(declaration) => try_mark_auto_side_effects_free_decl(
-        parser,
-        analyze_side_effects_free,
-        declaration,
-        None,
-        duplicate_names,
-      ),
+      StmtData::Declaration(declaration) => {
+        try_mark_auto_side_effects_free_decl(parser, analyze_side_effects_free, declaration, None)
+      }
       StmtData::ExportNamedDeclaration(export) => {
         if let Some(declaration) = export.declaration(ast) {
           try_mark_auto_side_effects_free_decl(
@@ -489,7 +366,6 @@ fn mark_auto_side_effects_free_program(
             analyze_side_effects_free,
             declaration,
             None,
-            duplicate_names,
           );
         }
       }
@@ -500,7 +376,7 @@ fn mark_auto_side_effects_free_program(
               continue;
             };
             let name = ast.get_utf8(identifier.name(ast));
-            if !already_marked_or_duplicate(parser, name, duplicate_names)
+            if !already_marked_or_duplicate(parser, name, identifier)
               && is_side_effects_free_function_body(parser, analyze_side_effects_free, function)
             {
               mark_side_effects_free(parser, name, Some("default"));
@@ -511,7 +387,7 @@ fn mark_auto_side_effects_free_program(
               && let Some(identifier) = function.id(ast)
             {
               let name = ast.get_utf8(identifier.name(ast));
-              if !already_marked_or_duplicate(parser, name, duplicate_names)
+              if !already_marked_or_duplicate(parser, name, identifier)
                 && is_side_effects_free_function_body(parser, analyze_side_effects_free, function)
               {
                 mark_side_effects_free(parser, name, Some("default"));
@@ -544,7 +420,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
       }
 
       if let Some(configured) = &parser.javascript_options.side_effects_free {
-        let defined = collect_defined_configured_side_effects_free(ast, program, configured);
+        let defined = collect_defined_configured_side_effects_free(
+          ast,
+          program,
+          configured,
+          parser.ast.semantic,
+        );
         if !defined.is_empty() {
           parser
             .build_info
@@ -554,19 +435,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
         }
       }
 
-      let duplicate_names = collect_duplicate_top_level_names(ast, program);
       loop {
         let previous_len = parser
           .build_info
           .side_effects_free
           .as_ref()
           .map_or(0, |side_effects_free| side_effects_free.len());
-        mark_auto_side_effects_free_program(
-          parser,
-          self.analyze_side_effects_free,
-          program,
-          &duplicate_names,
-        );
+        mark_auto_side_effects_free_program(parser, self.analyze_side_effects_free, program);
         let next_len = parser
           .build_info
           .side_effects_free
@@ -701,6 +576,7 @@ enum ExplicitSideEffectsFreeCallee {
 
 fn resolve_explicit_side_effects_free_callee(
   parser: &mut JavascriptParser,
+  identifier: swc_next_ecma_ast::IdentifierReference,
   ident: &str,
   span: Span,
   allow_unresolved_marked: bool,
@@ -725,6 +601,29 @@ fn resolve_explicit_side_effects_free_callee(
     }
   }
 
+  if parser.active_synthetic_ast.is_none() {
+    let reference = parser
+      .ast
+      .semantic
+      .reference_of(identifier.node_id())
+      .map(|reference| parser.ast.semantic.reference(reference));
+    return match reference {
+      Some(reference) if reference.flags.is_dynamic() => ExplicitSideEffectsFreeCallee::Invalid,
+      Some(reference) if reference.symbol.is_some() => {
+        if reference.symbol.is_some_and(|symbol| {
+          parser.ast.semantic.scope_of(symbol) == top_level_scope(parser.ast.ast)
+        }) {
+          ExplicitSideEffectsFreeCallee::Direct
+        } else {
+          ExplicitSideEffectsFreeCallee::Invalid
+        }
+      }
+      _ if allow_unresolved_marked => ExplicitSideEffectsFreeCallee::Direct,
+      _ => ExplicitSideEffectsFreeCallee::Invalid,
+    };
+  }
+
+  // Separately parsed replacement expressions resolve names in the caller's environment.
   if let Some((declared_scope, is_free)) = parser
     .get_variable_info(ident)
     .map(|info| (info.declared_scope, info.is_free()))
@@ -799,13 +698,6 @@ fn arguments_are_pure(
   true
 }
 
-fn identifier_expression_name<'ast>(ast: &'ast Ast<'_>, expression: Expr) -> Option<&'ast str> {
-  let ExprData::IdentifierReference(identifier) = ast.expr_data(expression) else {
-    return None;
-  };
-  Some(ast.get_utf8(identifier.name(ast)))
-}
-
 fn is_pure_call_expression(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
@@ -828,9 +720,11 @@ fn is_pure_call_expression(
     );
   }
 
-  if analyze_side_effects_free && let Some(name) = identifier_expression_name(ast, callee) {
+  if analyze_side_effects_free && let Some(identifier) = callee.as_identifier_reference(ast) {
+    let name = ast.get_utf8(identifier.name(ast));
     match resolve_explicit_side_effects_free_callee(
       parser,
+      identifier,
       name,
       callee.span(ast),
       callees.is_none(),

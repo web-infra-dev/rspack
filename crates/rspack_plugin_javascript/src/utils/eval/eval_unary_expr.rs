@@ -15,16 +15,16 @@ fn eval_typeof<'parser>(
   debug_assert_eq!(expression.operator(ast), UnaryOperator::Typeof);
   let argument = expression.argument(ast);
   let hook_result = match ast.expr_data(argument) {
-    ExprData::IdentifierReference(identifier) => ast
-      .get_utf8(identifier.name(ast))
-      .call_hooks_name(parser, |parser, name| {
+    ExprData::IdentifierReference(identifier) => {
+      parser.call_hooks_name(ast.get_utf8(identifier.name(ast)), |parser, name| {
         parser
           .plugin_drive
           .clone()
           .evaluate_typeof(parser, expression, name)
-      }),
+      })
+    }
     ExprData::MetaProperty(meta) => meta.get_root_name(ast).and_then(|name| {
-      name.call_hooks_name(parser, |parser, name| {
+      parser.call_hooks_name(name, |parser, name| {
         parser
           .plugin_drive
           .clone()
