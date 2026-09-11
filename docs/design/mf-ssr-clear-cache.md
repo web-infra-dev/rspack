@@ -672,3 +672,54 @@ MF runtime 在仍有 shared 使用或加载时直接调用此方法。当前实�
 `consumerModuleIdToParentModuleIds` 从直接 consumer 开始继续遍历到全部可表示的静态父节点，用 visited 集合终止循环，并保留多父节点。它是编译器模块图元数据，不是路由图：动态消费、框架入口映射及完整性判断仍由 MF/Modern JS 层负责，不能凭此承诺任意动态变量可分析。
 
 原生回归位于 `configCases/container/mf-clear-cache-metadata` 和 `configCases/container/mf-selective-provider-cache`。覆盖多层/多父节点/循环父链，以及拼接开关、数字 ID、压缩、更新后首次 lazy 加载和再次清理后的严格身份保持。外部 MF 基线另有 WeakRef/GC 和真实 Modern antd consumer 验证。当前完整 Modern CI 仍存在独立的 runtime capture 断言失败，不代表整个生产生命周期已经验收。
+
+
+## Concatenated consumer ownership (2026-09-11)
+
+A shared source module can be concatenated into several emitted page/loader
+modules. Its dependency IDs are shared; the incoming-connection view can retain
+only one rewritten origin, even though each emitted module's outgoing edges still
+include the remote. Building invalidation ancestors solely from incoming
+connections therefore misses other consumers. Reverse the outgoing edges of
+modules with emitted IDs, deduplicate the resulting consumer lists, and traverse
+that graph for both immediate remote consumers and their ancestors. This is
+compiler-level MF metadata, with no Modern route or request policy in Rspack.
+
+The optimized regression emits three independent entries, each asynchronously
+loading a different concatenated copy of a common remote consumer. It requires
+all three emitted consumers and an ancestor path back to each entry. It runs under
+both standard and runtime-module-mode Config harnesses. With the old native binding
+both cases fail; with the correction both pass. Existing metadata cases (2), SSR
+serial cache cases (2), and the external native MF/Modern baseline (23) also pass.
+
+The companion Modern artifact test now requires selective success with numeric
+IDs, minification and concatenation enabled. It validates page/loader refresh,
+unrelated entry identity and traffic, producer draining, HTML-cache isolation,
+failed-update recovery and explicit incomplete-graph fallback. Code merged inside
+an affected emitted module necessarily executes again; an unrelated emitted module
+does not. No claim is made to preserve individual source modules inside that unit.
+
+Commands from `/private/tmp/rspack-mf-concat` unless noted:
+
+```sh
+corepack enable
+pnpm install --frozen-lockfile
+CARGO_TARGET_DIR=/Users/bytedance/outter/rspack/target pnpm run build:binding:dev
+pnpm run build:js
+pnpm --dir tests/rspack-test run test --project base -t mf-concatenated-consumer-metadata
+pnpm --dir tests/rspack-test run test --project base -t mf-clear-cache-metadata
+pnpm --dir tests/rspack-test run test --project base -t mf-ssr-clear-cache
+NAPI_RS_NATIVE_LIBRARY_PATH=/Users/bytedance/outter/rspack/crates/node_binding/rspack.darwin-arm64.node pnpm --dir tests/rspack-test run test --project base -t mf-concatenated-consumer-metadata
+rustfmt --edition 2024 --check crates/rspack_plugin_mf/src/container/remote_runtime_module.rs
+pnpm exec rs fmt --check tests/rspack-test/configCases/container/mf-concatenated-consumer-metadata
+# From /private/tmp/mf-r4-static-update:
+SSR_CACHE_STRICT=1 SSR_CACHE_EXPECT_NATIVE=1 SSR_CACHE_RSPACK_ENTRY=/private/tmp/rspack-mf-concat/packages/rspack/dist/index.js SSR_CACHE_MODERN_ENTRY=/private/tmp/modern-r4-static-update/packages/server/core/dist/cjs/adapters/node/index.js node --test tools/ssr-cache/baseline.test.cjs
+```
+
+The old-binding invocation is intentionally a red test. Initial filter strings
+containing a pipe matched no tests in this runner; the single-name invocations
+above are the executed regressions. Full Rust/workspace tests, browser/HMR matrices
+and performance benchmarks are not rerun for this MF metadata correction; native
+compilation and focused artifact regressions cover the changed paths. No binding
+binary is committed or package published. The existing preview remains unchanged
+until this fix is included in a new compiler release/preview.

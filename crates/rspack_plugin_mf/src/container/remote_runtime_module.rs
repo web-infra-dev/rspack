@@ -83,6 +83,7 @@ impl RuntimeModule for RemoteRuntimeModule {
     let mut consumer_module_id_to_parent_module_ids = FxHashMap::default();
     let mut remote_key_to_chunk_ids = FxHashMap::default();
     let module_graph = compilation.get_module_graph();
+    let consumers = collect_consumers(compilation, module_graph);
     // Match enhanced/webpack behavior: include all referenced chunks so async ones are mapped too
     for chunk in
       chunk.get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
@@ -114,7 +115,7 @@ impl RuntimeModule for RemoteRuntimeModule {
         )
         .expect("should have module_id at <RemoteRuntimeModule as RuntimeModule>::generate");
         let remote_key = m.remote_key.clone();
-        let consumer_modules = get_consumer_modules(compilation, module_graph, &m.identifier());
+        let consumer_modules = consumers.get(&m.identifier()).cloned().unwrap_or_default();
         let consumer_module_ids = consumer_modules
           .iter()
           .map(|(_, module_id)| module_id.clone())
@@ -125,7 +126,10 @@ impl RuntimeModule for RemoteRuntimeModule {
           if !visited_consumers.insert(consumer_identifier) {
             continue;
           }
-          let parents = get_consumer_modules(compilation, module_graph, &consumer_identifier);
+          let parents = consumers
+            .get(&consumer_identifier)
+            .cloned()
+            .unwrap_or_default();
           add_to_mapping(
             &mut consumer_module_id_to_parent_module_ids,
             consumer_id,
@@ -239,19 +243,31 @@ fn get_module_id(
   ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier).cloned()
 }
 
-fn get_consumer_modules(
+// A source module may be concatenated into several emitted modules. Its dependency
+// IDs are shared, so incoming connections can retain only one rewritten origin.
+// Reverse each emitted module's outgoing edges instead: every concatenation owner
+// must be invalidated, even when the dependency's recorded origin is another owner.
+fn collect_consumers(
   compilation: &Compilation,
   module_graph: &ModuleGraph,
-  remote_module_identifier: &ModuleIdentifier,
-) -> Vec<(ModuleIdentifier, ModuleId)> {
-  module_graph
-    .get_incoming_connections(remote_module_identifier)
-    .filter_map(|connection| connection.original_module_identifier.as_ref())
-    .filter_map(|module_identifier| {
-      let module_id = get_module_id(compilation, module_identifier)?;
-      Some((*module_identifier, module_id))
-    })
-    .collect()
+) -> FxHashMap<ModuleIdentifier, Vec<(ModuleIdentifier, ModuleId)>> {
+  let mut consumers = FxHashMap::<_, Vec<_>>::default();
+  for (identifier, _) in module_graph.modules() {
+    let Some(id) = get_module_id(compilation, identifier) else {
+      continue;
+    };
+    for connection in module_graph.get_outgoing_connections(identifier) {
+      consumers
+        .entry(*connection.module_identifier())
+        .or_default()
+        .push((*identifier, id.clone()));
+    }
+  }
+  for entries in consumers.values_mut() {
+    entries.sort_unstable();
+    entries.dedup();
+  }
+  consumers
 }
 
 #[derive(Debug, Serialize)]
