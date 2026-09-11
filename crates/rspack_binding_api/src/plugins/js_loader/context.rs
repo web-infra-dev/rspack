@@ -265,7 +265,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
               .collect(),
           )
         }),
-      utf8_hint: None,
+      utf8_hint: cx.content().map(|content| !content.is_buffer()),
     })
   }
 }

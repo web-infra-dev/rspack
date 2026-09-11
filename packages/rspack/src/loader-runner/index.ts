@@ -1144,7 +1144,9 @@ export async function runLoaders(
       }
       case JsLoaderState.Normal: {
         let content: Parameters<typeof toBuffer>[0] | null | undefined =
-          context.content;
+          context.__internal__utf8Hint && context.content
+            ? context.content.toString('utf-8')
+            : context.content;
         const rawSourceMap = context.sourceMap;
         let sourceMap: string | object | undefined;
         let sourceMapParsed = false;
