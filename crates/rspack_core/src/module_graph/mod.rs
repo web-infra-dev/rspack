@@ -555,8 +555,8 @@ impl ModuleGraph {
       .inner
       .modules
       .get_mut(&origin_module)
-      .expect("dependency should have an origin module")
-      .dependencies_block_mut()
+      .expect("dependency should have an origin module");
+    let module = Arc::get_mut(&mut module.0)
       .expect("module dependencies must be updated before the module is shared");
     module.remove_dependency_id(dependency_id);
     module.add_block(block.clone());

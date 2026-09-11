@@ -1074,17 +1074,11 @@ pub struct BoxModule(Box<dyn Module>);
 #[cacheable]
 #[derive(Debug, Clone)]
 #[repr(transparent)]
-pub struct ModuleRef(Arc<dyn Module>);
+pub struct ModuleRef(pub(crate) Arc<dyn Module>);
 
 impl From<BoxModule> for ModuleRef {
   fn from(module: BoxModule) -> Self {
     Self(Arc::from(module.0))
-  }
-}
-
-impl ModuleRef {
-  pub(crate) fn dependencies_block_mut(&mut self) -> Option<&mut dyn DependenciesBlock> {
-    Arc::get_mut(&mut self.0).map(|module| module as &mut dyn DependenciesBlock)
   }
 }
 
