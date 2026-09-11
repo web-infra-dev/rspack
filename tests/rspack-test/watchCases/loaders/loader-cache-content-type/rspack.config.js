@@ -4,6 +4,9 @@ module.exports = [false, true].flatMap((cache) =>
   [false, true].flatMap((parallel) =>
     [false, true].map((mixed) => ({
       mode: 'development',
+      output: {
+        filename: `bundle-${cache}-${parallel}-${mixed}.js`,
+      },
       incremental: false,
       cache: cache ? { type: 'memory' } : false,
       experiments: {
