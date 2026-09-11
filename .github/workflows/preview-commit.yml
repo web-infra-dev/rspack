@@ -124,4 +124,4 @@ jobs:
         run: ls -R npm
 
       - name: Release
-        run: npx --yes pkg-pr-new@0.0.88 publish --compact --commentWithSha --pnpm './npm/*' './crates/node_binding' './packages/rspack' './packages/rspack-cli'
+        run: npx --yes pkg-pr-new@0.0.88 publish --compact --comment=off --pnpm './npm/*' './crates/node_binding' './packages/rspack' './packages/rspack-cli'
