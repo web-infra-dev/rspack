@@ -51,42 +51,27 @@ impl JavascriptParser<'_> {
           let local = named.local(ast);
           let identifier_name = Atom::from(ast.get_utf8(local.name(ast)));
           let export_name = module_export_name_to_atom(ast, named.imported(ast));
-          if drive
-            .import_specifier(
-              self,
-              declaration,
-              &source_atom,
-              Some(&export_name),
-              &identifier_name,
-            )
-            .unwrap_or_default()
-          {
-            self.define_variable(identifier_name);
-          }
+          drive.import_specifier(
+            self,
+            declaration,
+            &source_atom,
+            Some(&export_name),
+            &identifier_name,
+          );
         }
         ImportDeclarationSpecifierData::ImportDefaultSpecifier(default) => {
           let identifier_name = Atom::from(ast.get_utf8(default.local(ast).name(ast)));
-          if drive
-            .import_specifier(
-              self,
-              declaration,
-              &source_atom,
-              Some(&JS_DEFAULT_KEYWORD),
-              &identifier_name,
-            )
-            .unwrap_or_default()
-          {
-            self.define_variable(identifier_name);
-          }
+          drive.import_specifier(
+            self,
+            declaration,
+            &source_atom,
+            Some(&JS_DEFAULT_KEYWORD),
+            &identifier_name,
+          );
         }
         ImportDeclarationSpecifierData::ImportNamespaceSpecifier(namespace) => {
           let identifier_name = Atom::from(ast.get_utf8(namespace.local(ast).name(ast)));
-          if drive
-            .import_specifier(self, declaration, &source_atom, None, &identifier_name)
-            .unwrap_or_default()
-          {
-            self.define_variable(identifier_name);
-          }
+          drive.import_specifier(self, declaration, &source_atom, None, &identifier_name);
         }
       }
     }

@@ -1201,7 +1201,6 @@ fn pre_tag_created_require_declarator(
     replace_argument: _,
   } = argument;
   let name = Atom::from(ast.get_utf8(binding.name(ast)));
-  parser.define_variable(name.clone());
   parser.tag_variable(
     name,
     CREATED_REQUIRE_IDENTIFIER_TAG,
@@ -1247,7 +1246,7 @@ fn tag_created_require_declarator(
   } = argument;
   let deferred = deferred_callee.is_some();
   let binding_name = Atom::from(parser.ast.ast.get_utf8(binding.name(parser.ast.ast)));
-  parser.define_variable(binding_name.clone());
+  parser.definitions_db.define(binding_name.clone());
   parser.tag_variable(
     binding_name,
     CREATED_REQUIRE_IDENTIFIER_TAG,
@@ -1544,8 +1543,7 @@ pub(crate) fn is_require_call_expr(parser: &mut JavascriptParser, call: CallExpr
   let callee = call.callee(ast);
 
   if let Some(ident) = callee.as_identifier_reference(ast) {
-    return ast
-      .get_utf8(ident.name(ast))
+    return ident
       .call_hooks_name(parser, |_, for_name| {
         (for_name == expr_name::REQUIRE).then_some(true)
       })
@@ -2065,7 +2063,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     if let Some(ident) = expr.as_identifier_reference(ast)
       && let Some(name_info) = parser.get_name_info_from_variable(ast.get_utf8(ident.name(ast)))
       && let Some(info) = name_info.info
-      && let Some(name) = info.name.clone()
+      && let Some(name) = info.name.cloned()
       && parser
         .get_tag_data::<RequireTagData>(&name, COMMONJS_REQUIRE_TAG)
         .is_some()
@@ -2097,7 +2095,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && is_require_call_expr(parser, call)
     {
       let name = Atom::from(ast.get_utf8(binding.name(ast)));
-      parser.define_variable(name.clone());
       tag_commonjs_require_referenced(parser, call, name);
     }
     None
@@ -2125,7 +2122,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && let Some(binding) = declarator.id(ast).as_binding_identifier(ast)
     {
       let name = Atom::from(ast.get_utf8(binding.name(ast)));
-      parser.define_variable(name.clone());
+      parser.definitions_db.define(name.clone());
       parser.tag_variable(
         name,
         CREATED_REQUIRE_IDENTIFIER_TAG,
@@ -2142,7 +2139,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && let Some(binding) = declarator.id(ast).as_binding_identifier(ast)
     {
       let name = Atom::from(ast.get_utf8(binding.name(ast)));
-      parser.define_variable(name.clone());
+      parser.definitions_db.define(name.clone());
       tag_create_require(parser, name);
     }
 
@@ -2150,7 +2147,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
 
     if is_create_require_namespace_member(parser, init) {
       let name = Atom::from(ast.get_utf8(binding.name(ast)));
-      parser.define_variable(name.clone());
+      parser.definitions_db.define(name.clone());
       tag_create_require(parser, name);
     }
 
@@ -2202,7 +2199,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       )
       .is_some()
     {
-      parser.define_variable(Atom::from(
+      parser.definitions_db.define(Atom::from(
         parser.ast.ast.get_utf8(binding.name(parser.ast.ast)),
       ));
       parser.walk_expression(init);
