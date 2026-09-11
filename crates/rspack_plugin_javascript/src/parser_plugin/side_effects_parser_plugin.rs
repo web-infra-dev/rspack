@@ -729,7 +729,7 @@ fn resolve_explicit_side_effects_free_callee(
     .get_variable_info(ident)
     .map(|info| (info.declared_scope, info.is_free()))
   {
-    if !is_free && declared_scope == parser.definitions {
+    if !is_free && declared_scope == parser.definitions_db.current_scope() {
       return ExplicitSideEffectsFreeCallee::Direct;
     }
     return ExplicitSideEffectsFreeCallee::Invalid;
