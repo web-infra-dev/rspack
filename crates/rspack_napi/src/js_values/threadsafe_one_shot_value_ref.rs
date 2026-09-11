@@ -15,6 +15,12 @@ use napi::{
 
 use crate::{CLEANUP_ENV_HOOK, GLOBAL_CLEANUP_FLAG};
 
+// This process-global dropper assumes all references belong to one Node environment.
+// Parallel loader workers send loader state and results back to the compiler's JS
+// thread before they become references here; they do not transfer these references
+// directly to Rust. This does not cover compilers created in separate worker_threads
+// isolates: that requires a TSFN per napi_env, removed during environment cleanup,
+// so napi_delete_reference always receives the environment that owns the reference.
 static DELETE_REF_TS_FN: AtomicPtr<napi_threadsafe_function__> = AtomicPtr::new(ptr::null_mut());
 
 extern "C" fn napi_js_callback(
