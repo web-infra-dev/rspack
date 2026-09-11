@@ -9,12 +9,12 @@ pub fn eval_lit_expr<'a>(ast: &Ast<'_>, expr: Expr) -> Option<BasicEvaluatedExpr
   let mut result = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
   match ast.expr_data(expr) {
     ExprData::StringLiteral(string) => {
-      result.set_string(
-        ast
-          .get_wtf8(string.value(ast))
-          .to_string_lossy()
-          .into_owned(),
-      );
+      let value = ast.get_wtf8(string.value(ast));
+      // Skip WTF-8's surrogate scan for valid UTF-8; preserve its lossy fallback otherwise.
+      result.set_string(match std::str::from_utf8(value.as_bytes()) {
+        Ok(value) => value.to_owned(),
+        Err(_) => value.to_string_lossy().into_owned(),
+      });
     }
     ExprData::RegExpLiteral(regexp) => result.set_regexp(
       ast.get_utf8(regexp.pattern(ast)).to_string(),
