@@ -1,6 +1,6 @@
 name: nodejs and pnpm setup
 
-description: Install Node.js with pnpm global cache
+description: Install Node.js and pnpm
 
 inputs:
   node-version:
@@ -25,14 +25,4 @@ runs:
         node-version: ${{ inputs.node-version }}
 
     - name: Install pnpm
-      shell: bash
-      run: |
-        if [[ "${{runner.os}}" == "Windows" ]]; then
-          # add the npm prefix to PATH to ensure the installed corepack work properly
-          NPM_PREFIX=$(cygpath -u "$(npm config get prefix)")
-          export PATH="$NPM_PREFIX:$PATH"
-        fi
-        npm install -g corepack@0.31.0 --force
-        echo "Corepack version: $(corepack --version)"
-        corepack enable
-        pnpm --version
+      uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
