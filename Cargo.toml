@@ -147,11 +147,12 @@ inventory = { version = "0.3.17", default-features = false }
 rkyv      = { version = "=0.8.18", default-features = false, features = ["std", "bytecheck", "smallvec-1"] }
 
 # Must be pinned with the same swc versions
-pnp                 = { version = "0.12.11", default-features = false }
-swc                 = { version = "75.0.1", default-features = false }
+pnp = { version = "0.12.11", default-features = false }
+# swc 76.0.1 requires an AMD module_root field missing from its published dependencies.
+swc                 = { version = "=76.0.0", default-features = false }
 swc_config          = { version = "6.0.0", default-features = false }
-swc_core            = { version = "77.1.2", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_minifier   = { version = "61.0.4", default-features = false }
+swc_core            = { version = "=78.0.0", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_minifier   = { version = "61.0.6", default-features = false }
 swc_error_reporters = { version = "28.0.0", default-features = false }
 swc_html            = { version = "38.0.0", default-features = false }
 swc_html_minifier   = { version = "61.0.0", default-features = false }
@@ -307,31 +308,31 @@ strip    = "none"
 # React Compiler is an opt-in transform, but these crates contribute significantly to the
 # release binding size. Keep inference, lowering, and reactive scopes at the release default
 # (`3`) because they are performance-sensitive; use `s` for the remaining crates.
-[profile.release.package.forked_react_compiler]
+[profile.release.package.react_compiler]
 opt-level = "s"
 
-[profile.release.package.forked_react_compiler_ast]
+[profile.release.package.react_compiler_ast]
 opt-level = "s"
 
-[profile.release.package.forked_react_compiler_diagnostics]
+[profile.release.package.react_compiler_diagnostics]
 opt-level = "s"
 
-[profile.release.package.forked_react_compiler_hir]
+[profile.release.package.react_compiler_hir]
 opt-level = "s"
 
-[profile.release.package.forked_react_compiler_optimization]
+[profile.release.package.react_compiler_optimization]
 opt-level = "s"
 
-[profile.release.package.forked_react_compiler_ssa]
+[profile.release.package.react_compiler_ssa]
 opt-level = "s"
 
-[profile.release.package.forked_react_compiler_typeinference]
+[profile.release.package.react_compiler_typeinference]
 opt-level = "s"
 
-[profile.release.package.forked_react_compiler_utils]
+[profile.release.package.react_compiler_utils]
 opt-level = "s"
 
-[profile.release.package.forked_react_compiler_validation]
+[profile.release.package.react_compiler_validation]
 opt-level = "s"
 
 [profile.release.package.swc_ecma_react_compiler]
