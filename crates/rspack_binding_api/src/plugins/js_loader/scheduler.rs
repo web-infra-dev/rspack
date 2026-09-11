@@ -67,6 +67,9 @@ pub(crate) fn merge_loader_context(
   to: &mut LoaderContext<RunnerContext>,
   mut from: JsLoaderContext,
 ) -> Result<()> {
+  if let Some(state) = from.loader_context_state.take() {
+    to.context.loader_context_data.insert(state);
+  }
   to.cacheable = from.cacheable;
   to.replace_dependencies(from.dependencies.into());
 
@@ -107,6 +110,7 @@ pub(crate) fn merge_loader_context(
   });
   to.__finish_with((content, source_map, additional_data));
 
+  let to_state = to.state();
   // update per-run loader status without mutating the shared loader metadata
   for (to, from) in to
     .loader_item_states
@@ -120,8 +124,9 @@ pub(crate) fn merge_loader_context(
       to.set_pitch_executed();
     }
     to.set_data(from.data);
-    // JS loader should always be considered as finished
-    to.set_finish_called();
+    if to_state != LoaderState::Init {
+      to.set_finish_called();
+    }
   }
   to.loader_index = from.loader_index;
   to.parse_meta.extend(

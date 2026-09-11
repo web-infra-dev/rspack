@@ -87,10 +87,10 @@ pub enum JsLoaderState {
 impl From<LoaderState> for JsLoaderState {
   fn from(value: LoaderState) -> Self {
     match value {
-      LoaderState::Init | LoaderState::ProcessResource | LoaderState::Finished => {
+      LoaderState::ProcessResource | LoaderState::Finished => {
         panic!("Unexpected loader runner state: {value:?}")
       }
-      LoaderState::Pitching => JsLoaderState::Pitching,
+      LoaderState::Init | LoaderState::Pitching => JsLoaderState::Pitching,
       LoaderState::Normal => JsLoaderState::Normal,
     }
   }
@@ -174,6 +174,8 @@ impl From<JsLoaderDependencies> for LoaderDependencies {
 
 #[napi(object)]
 pub struct JsLoaderContext {
+  #[napi(ts_type = "object | undefined")]
+  pub loader_context_state: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
   pub resource: String,
   #[napi(js_name = "_module", ts_type = "Module")]
   pub module: ModuleObject,
@@ -218,6 +220,11 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
 
     #[allow(clippy::unwrap_used)]
     Ok(JsLoaderContext {
+      loader_context_state: cx
+        .context
+        .loader_context_data
+        .get::<ThreadsafeJsValueRef<Unknown>>()
+        .cloned(),
       resource: cx.resource_data.resource().to_owned(),
       module: ModuleObject::with_ptr(
         NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module).unwrap(),

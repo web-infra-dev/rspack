@@ -37,16 +37,17 @@ use rspack_core::{
   CompilerShouldEmitHook, CompilerThisCompilation, CompilerThisCompilationHook,
   ContextModuleFactoryAfterResolve, ContextModuleFactoryAfterResolveHook,
   ContextModuleFactoryBeforeResolve, ContextModuleFactoryBeforeResolveHook, ExecuteModuleId,
-  ExternalModuleChunkCondition, ExternalModuleChunkConditionHook, Module, ModuleFactoryCreateData,
-  ModuleId, ModuleIdentifier, ModuleIdsArtifact, NormalModuleCreateData,
+  ExternalModuleChunkCondition, ExternalModuleChunkConditionHook, LoaderContext, Module,
+  ModuleFactoryCreateData, ModuleId, ModuleIdentifier, ModuleIdsArtifact, NormalModuleCreateData,
   NormalModuleFactoryAfterResolve, NormalModuleFactoryAfterResolveHook,
   NormalModuleFactoryBeforeResolve, NormalModuleFactoryBeforeResolveHook,
   NormalModuleFactoryCreateModule, NormalModuleFactoryCreateModuleHook,
   NormalModuleFactoryFactorize, NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
-  NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleGenerateContext, Scheme,
-  build_module_graph::BuildModuleGraphArtifact, parse_resource, rspack_sources::RawStringSource,
+  NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, NormalModuleLoader,
+  NormalModuleLoaderHook, ResourceData, RunnerContext, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleGenerateContext, Scheme, build_module_graph::BuildModuleGraphArtifact,
+  parse_resource, rspack_sources::RawStringSource,
 };
 use rspack_error::Diagnostic;
 use rspack_hash::RspackHasher;
@@ -100,6 +101,7 @@ use crate::{
     JsCreateData, JsNormalModuleFactoryCreateModuleArgs, JsResolveData, JsResolveForSchemeArgs,
     JsResolveForSchemeOutput,
   },
+  plugins::js_loader::{JsLoaderContext, merge_loader_context},
   rsdoctor::{
     JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
     JsRsdoctorModuleSourcesPatch,
@@ -493,6 +495,7 @@ pub enum RegisterJsTapKind {
   RsdoctorPluginModuleIds,
   RsdoctorPluginModuleSources,
   RsdoctorPluginAssets,
+  NormalModuleLoader,
 }
 
 #[derive(Default, Clone)]
@@ -621,6 +624,10 @@ pub struct RegisterJsTaps {
     ts_type = "(stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>"
   )]
   pub register_compilation_after_seal_taps: RegisterFunction,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => JsLoaderContext); stage: number; }>"
+  )]
+  pub register_normal_module_loader_taps: RegisterFunction,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>"
   )]
@@ -928,6 +935,15 @@ define_register!(
   tap = CompilationAfterSealTap<(), Promise<()>> @ CompilationAfterSealHook,
   cache = false,
   kind = RegisterJsTapKind::CompilationAfterSeal,
+  skip = true,
+);
+
+/* NormalModule Hooks */
+define_register!(
+  RegisterNormalModuleLoaderTaps,
+  tap = NormalModuleLoaderTap<JsLoaderContext, JsLoaderContext> @ NormalModuleLoaderHook,
+  cache = true,
+  kind = RegisterJsTapKind::NormalModuleLoader,
   skip = true,
 );
 
@@ -1678,6 +1694,21 @@ impl CompilationSeal for CompilationSealTap {
 impl CompilationAfterSeal for CompilationAfterSealTap {
   async fn run(&self, _compilation: &Compilation) -> rspack_error::Result<()> {
     self.function.call_with_promise(()).await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl NormalModuleLoader for NormalModuleLoaderTap {
+  async fn run(&self, context: &mut LoaderContext<RunnerContext>) -> rspack_error::Result<()> {
+    let data = self
+      .function
+      .call_with_sync(JsLoaderContext::try_from(&mut *context)?)
+      .await?;
+    merge_loader_context(context, data)
   }
 
   fn stage(&self) -> i32 {
