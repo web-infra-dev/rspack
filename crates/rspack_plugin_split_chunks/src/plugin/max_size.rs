@@ -11,7 +11,7 @@ use std::{borrow::Cow, sync::LazyLock};
 
 use regex::Regex;
 use rspack_core::{
-  BoxModule, ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, SourceType,
+  ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, ModuleRef, SourceType,
   incremental::Mutation, module_chunk_condition,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -255,7 +255,7 @@ fn get_key(module: &dyn Module, delimiter: &str, compilation: &Compilation) -> S
 
 fn deterministic_grouping_for_modules(
   compilation: &Compilation,
-  items: &[&BoxModule],
+  items: &[&ModuleRef],
   allow_max_size: &SplitChunkSizes,
   min_size: &SplitChunkSizes,
   delimiter: &str,

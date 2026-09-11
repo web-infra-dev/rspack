@@ -301,13 +301,9 @@ async fn use_new_cache<F>(
 where
   F: Future<Output = Result<CodeGenerationResult>>,
 {
-  match cache.get::<CodeGenerationResult>() {
-    Ok(Some(cached)) => {
-      let result = cached.as_arc().as_ref().clone();
-      return (Ok(result), true);
-    }
-    Ok(None) => {}
-    Err(error) => return (Err(error), false),
+  if let Some(cached) = cache.get::<CodeGenerationResult>() {
+    let result = cached.as_arc().as_ref().clone();
+    return (Ok(result), true);
   }
 
   match generator.await {

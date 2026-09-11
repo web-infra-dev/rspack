@@ -8,7 +8,6 @@ use crate::new_cache::{
 pub struct NoopDatabase;
 
 impl NoopDatabase {
-  #[cfg(target_family = "wasm")]
   pub fn open(
     _base_path: rspack_paths::Utf8PathBuf,
     _path: rspack_paths::Utf8PathBuf,
@@ -35,6 +34,10 @@ impl Database for NoopDatabase {
     Ok(())
   }
 
+  fn has_unrecoverable_write_error(&self) -> bool {
+    false
+  }
+
   fn reset(&mut self) -> Result<()> {
     Ok(())
   }
@@ -43,7 +46,7 @@ impl Database for NoopDatabase {
     Ok(())
   }
 
-  fn shutdown(&self) -> Result<()> {
+  fn shutdown(self: Box<Self>) -> Result<()> {
     Ok(())
   }
 }

@@ -10,8 +10,9 @@ module.exports = {
     function ({ request, dependencyType }, callback) {
       if (/^(\/\/|custom?:\/\/)/.test(request)) {
         if (dependencyType === 'css-import')
-          return callback(null, `css-import ${request}`);
-        if (dependencyType === 'url') return callback(null, `asset ${request}`);
+          return callback(null, request, 'css-import');
+        if (dependencyType === 'url')
+          return callback(null, request, 'asset-url');
         return callback(null, `var '${request}'`);
       }
       return callback();

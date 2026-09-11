@@ -1,15 +1,15 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGenerationResultBuilder, Compilation, CompilerOptions, DependenciesBlock, DependencyId,
-  FactoryMeta, Module, ModuleCodeGenerationContext, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleLayer, RuntimeSpec, SourceType,
-  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
+  BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder, Compilation,
+  CompilerOptions, DependenciesBlock, DependenciesBlockData, FactoryMetaStore, FreezeLock, Module,
+  ModuleCodeGenerationContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
+  ModuleFactoryResult, ModuleGraph, ModuleLayer, RuntimeSpec, SourceType, impl_module_meta_info,
+  impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
-use rspack_util::itoa;
+use rspack_util::{identifier::split_at_query_mark, itoa};
 
 use crate::{
   css_dependency::CssDependency,
@@ -30,12 +30,11 @@ pub(crate) struct CssModule {
   pub(crate) css_layer: Option<String>,
   pub(crate) identifier_index: u32,
 
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  factory_meta: FactoryMetaStore,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
 
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  dependencies: Vec<DependencyId>,
+  dependencies_block: DependenciesBlockData,
 
   identifier__: Identifier,
 }
@@ -64,15 +63,15 @@ impl CssModule {
       supports: dep.supports.clone(),
       source_map: dep.source_map.clone(),
       identifier_index: dep.identifier_index,
-      blocks: vec![],
-      dependencies: vec![],
-      factory_meta: None,
+      dependencies_block: Default::default(),
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         cacheable: dep.cacheable,
         strict: true,
         dependencies: dep.dependencies.clone(),
         ..Default::default()
-      },
+      }
+      .into(),
       build_meta: Default::default(),
       source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
       identifier__,
@@ -138,7 +137,7 @@ impl Module for CssModule {
       .identifier
       .split('!')
       .next_back()
-      .map(|resource| resource.split('?').next().unwrap_or(resource).into())
+      .map(|resource| split_at_query_mark(resource).0.into())
   }
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
@@ -165,14 +164,9 @@ impl Module for CssModule {
     mut self: Box<Self>,
     build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
-    self.build_info.hash = Some(self.compute_hash(&build_context.compiler_options));
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies: vec![],
-      blocks: vec![],
-      optimization_bailouts: vec![],
-    })
+  ) -> Result<BoxModule> {
+    self.build_info.get_mut().hash = Some(self.compute_hash(&build_context.compiler_options));
+    Ok(BoxModule::new(self))
   }
 
   // #[tracing::instrument("ExtractCssModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
@@ -190,7 +184,7 @@ impl Module for CssModule {
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHasher::from(&compilation.options.output);
     module_update_hash(self, &mut hasher, compilation, runtime);
-    self.build_info.hash.hash(&mut hasher);
+    self.build_info.read().hash.hash(&mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 
@@ -206,24 +200,12 @@ impl Identifiable for CssModule {
 }
 
 impl DependenciesBlock for CssModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency)
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }
 

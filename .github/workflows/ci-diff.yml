@@ -12,6 +12,7 @@ on:
   push:
     branches:
       - main
+      - release/2.3.0
       - v1.x
     # Ignore files that do not affect build output to skip unnecessary builds
     paths-ignore:
@@ -29,7 +30,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'v1.x' }}
+  cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'release/2.3.0' && github.ref_name != 'v1.x' }}
 
 permissions:
   # Allow commenting on issues for `reusable-build.yml`
@@ -104,5 +105,5 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           file_path: '../build-tools-performance/**/dist/rsdoctor-data.json'
-          target_branch: ${{ inputs.target_branch || 'main' }}
+          target_branch: ${{ github.event_name == 'push' && github.ref_name || github.event_name == 'pull_request' && github.base_ref || inputs.target_branch || 'main' }}
           ai_model: qwen3.5-plus

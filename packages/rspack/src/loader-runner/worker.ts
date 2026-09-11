@@ -16,6 +16,7 @@ import { memoize } from '../util/memoize';
 import type { WorkerCacheResult } from './cache';
 import loadLoader from './loadLoader';
 import {
+  deserializeError,
   isWorkerResponseErrorMessage,
   isWorkerResponseMessage,
   RequestSyncType,
@@ -359,6 +360,7 @@ async function loaderImpl(
   } as LoaderContext['_compilation'];
 
   const _module = loaderContext._module as any;
+  const buildInfo: Record<string, unknown> = { ...(_module.buildInfo ?? {}) };
   loaderContext._module = {
     type: _module.type,
     identifier() {
@@ -368,7 +370,8 @@ async function loaderImpl(
     request: _module.request,
     userRequest: _module.userRequest,
     rawRequest: _module.rawRequest,
-  } as NormalModule;
+    buildInfo,
+  } as unknown as NormalModule;
 
   // @ts-expect-error
   loaderContext.importModule = function importModule(
@@ -610,6 +613,8 @@ async function loaderImpl(
     }),
   );
 
+  sendRequest(RequestType.UpdateBuildInfo, buildInfo);
+
   return args;
 }
 
@@ -634,7 +639,7 @@ function handleIncomingResponses(workerMessage: WorkerMessage) {
     const callback = responseCallbacks[id];
     if (callback) {
       delete responseCallbacks[id];
-      callback(error, undefined);
+      callback(deserializeError(error), undefined);
     } else {
       throw new Error(`No callback found for response with id ${id}`);
     }
@@ -750,7 +755,7 @@ function createSendRequestSync(
       return message.data;
     }
 
-    throw message.error;
+    throw deserializeError(message.error);
   };
 }
 

@@ -309,12 +309,13 @@ pub type BoxDependency = UniqueDependency;
 pub struct DependencyRef(TriompheArc<dyn Dependency>);
 
 impl DependencyRef {
-  pub fn new<D: Dependency + 'static>(dependency: D) -> Self {
-    UniqueDependency::new(dependency).shareable()
+  /// Parser construction may mutate a dependency until its reference is published.
+  pub(crate) fn get_mut(&mut self) -> Option<&mut (dyn Dependency + 'static)> {
+    TriompheArc::get_mut(&mut self.0)
   }
 
-  pub fn get_mut(&mut self) -> Option<&mut (dyn Dependency + 'static)> {
-    TriompheArc::get_mut(&mut self.0)
+  pub fn new<D: Dependency + 'static>(dependency: D) -> Self {
+    UniqueDependency::new(dependency).shareable()
   }
 }
 

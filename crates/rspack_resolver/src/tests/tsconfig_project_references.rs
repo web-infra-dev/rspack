@@ -84,6 +84,42 @@ async fn tsconfig_file_as_file_dependencies() {
   }
 }
 
+// A relative specifier never goes through `paths`, so the tsconfig is not
+// loaded for it and none of the reference tree is a file dependency.
+#[tokio::test]
+async fn relative_specifier_skips_tsconfig() {
+  let f = super::fixture_root().join("tsconfig/cases/project_references");
+
+  let resolver = Resolver::new(ResolveOptions {
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("app"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+  let mut ctx = ResolveContext::default();
+
+  let resolved_path = resolver
+    .resolve_with_context(&f.join("project_a"), "./index.ts", &mut ctx)
+    .await
+    .map(|f| f.full_path());
+  assert_eq!(resolved_path, Ok(f.join("project_a/index.ts")));
+
+  // The nearest `package.json` sits above `cases`; every `.json` below it is a tsconfig.
+  let cases = super::fixture_root().join("tsconfig/cases");
+  let tsconfig_dependencies = ctx
+    .file_dependencies
+    .iter()
+    .filter(|dependency| {
+      dependency.starts_with(&cases) && dependency.extension().is_some_and(|ext| ext == "json")
+    })
+    .collect::<Vec<_>>();
+  assert!(
+    tsconfig_dependencies.is_empty(),
+    "{tsconfig_dependencies:?}"
+  );
+}
+
 #[tokio::test]
 async fn disabled() {
   let f = super::fixture_root().join("tsconfig/cases/project_references");

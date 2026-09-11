@@ -2,7 +2,7 @@ use rspack_error::Result;
 
 use super::{
   TaskContext,
-  build::{BuildResultTask, BuildTask},
+  build::{BuildResultTask, BuildTask, ModuleBuildResult},
   lazy::process_unlazy_dependencies,
 };
 use crate::{
@@ -109,7 +109,7 @@ impl Task<TaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    let cached_build_result = if let Some(module_build_cache) = &context.module_build_cache {
+    let cached_module = if let Some(module_build_cache) = &context.module_build_cache {
       module_build_cache
         .restore(
           &module,
@@ -142,9 +142,9 @@ impl Task<TaskContext> for AddTask {
       .affected_modules
       .mark_as_add(&module_identifier);
 
-    if let Some(cached_build_result) = cached_build_result {
+    if let Some(module) = cached_module {
       return Ok(vec![Box::new(BuildResultTask {
-        build_result: Box::new(cached_build_result.into_build_result(module)),
+        build_result: ModuleBuildResult::Cached(module),
         plugin_driver: context.plugin_driver.clone(),
         forwarded_ids,
       })]);

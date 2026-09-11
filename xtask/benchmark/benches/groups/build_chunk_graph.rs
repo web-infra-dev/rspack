@@ -5,8 +5,8 @@ use criterion::BatchSize;
 use rspack::builder::{Builder as _, CompilerBuilder};
 use rspack_benchmark::Criterion;
 use rspack_core::{
-  Cache, Compilation, Compiler, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleUse,
-  ModuleRuleUseLoader, Optimization, RuleSetCondition, build_chunk_graph,
+  Cache, Compilation, Compiler, CompilerCache, ModuleOptions, ModuleRule, ModuleRuleEffect,
+  ModuleRuleUse, ModuleRuleUseLoader, Optimization, RuleSetCondition, build_chunk_graph,
   build_module_graph::{build_module_graph_pass, finish_build_module_graph},
   fast_set,
   incremental::{Incremental, IncrementalOptions},
@@ -368,7 +368,10 @@ fn reset_compilation_state(compiler: &mut Compiler) {
 
   let compiler_id = compiler.id();
   let compiler_context = CURRENT_COMPILER_CONTEXT.get();
-  let cache = Cache::new_disabled(compiler.compiler_path.clone());
+  let cache = CompilerCache::new(
+    Arc::new(Cache::new_disabled()),
+    compiler.compiler_path.clone(),
+  );
   fast_set(
     &mut compiler.compilation,
     Compilation::new(

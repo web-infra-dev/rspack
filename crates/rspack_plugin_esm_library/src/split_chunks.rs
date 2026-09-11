@@ -127,8 +127,7 @@ fn get_module_deps(module: ModuleIdentifier, module_graph: &ModuleGraph) -> Vec<
   module_graph
     .module_by_identifier(&module)
     .expect("should have module")
-    .get_dependencies()
-    .iter()
+    .get_dependency_ids()
     .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
     .copied()
     .collect()
@@ -410,7 +409,7 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
       );
     }
 
-    splitted_modules.extend(match_group.modules.clone());
+    splitted_modules.extend(match_group.modules);
   }
 
   Ok(())

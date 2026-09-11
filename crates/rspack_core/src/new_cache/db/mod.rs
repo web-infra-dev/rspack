@@ -1,8 +1,8 @@
+#[cfg(target_family = "wasm")]
 mod noop;
 #[cfg(not(target_family = "wasm"))]
 mod turbo;
 
-pub use noop::NoopDatabase;
 use rspack_error::Result;
 
 use crate::new_cache::CacheKey;
@@ -11,17 +11,15 @@ use crate::new_cache::CacheKey;
 pub enum DatabaseFamily {
   Cache,
   Validator,
-  Meta,
 }
 
 impl DatabaseFamily {
-  pub const COUNT: usize = 3;
+  pub const COUNT: usize = 2;
 
   pub const fn index(self) -> usize {
     match self {
       Self::Cache => 0,
       Self::Validator => 1,
-      Self::Meta => 2,
     }
   }
 }
@@ -44,9 +42,11 @@ pub(crate) trait Database: Send + Sync {
 
   fn compact(&self) -> Result<()>;
 
+  fn has_unrecoverable_write_error(&self) -> bool;
+
   fn reset(&mut self) -> Result<()>;
 
   fn cleanup_stale(&self) -> Result<()>;
 
-  fn shutdown(&self) -> Result<()>;
+  fn shutdown(self: Box<Self>) -> Result<()>;
 }

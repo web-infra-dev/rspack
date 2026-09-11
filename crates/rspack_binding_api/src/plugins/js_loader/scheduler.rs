@@ -84,10 +84,16 @@ pub(crate) fn merge_loader_context(
   to: &mut LoaderContext<RunnerContext>,
   mut from: JsLoaderContext,
 ) -> Result<()> {
+  if let Some(state) = from.loader_context_state.take() {
+    to.context.loader_context_data.insert(state);
+  }
   to.cacheable = from.cacheable;
   to.replace_dependencies(from.dependencies.into());
 
   if let Some(error) = from.error {
+    if let Some(diagnostic) = error.rust_diagnostic.as_ref() {
+      return Err(diagnostic.error.clone());
+    }
     return Err(error.with_parent_error_name("ModuleBuildError").into());
   }
 
@@ -122,6 +128,7 @@ pub(crate) fn merge_loader_context(
   to.__finish_with((content, source_map, additional_data));
 
   // update loader status
+  let to_state = to.state();
   to.loader_items = to
     .loader_items
     .drain(..)
@@ -134,8 +141,10 @@ pub(crate) fn merge_loader_context(
         to.set_pitch_executed()
       }
       to.set_data(from.data);
-      // JS loader should always be considered as finished
-      to.set_finish_called();
+      // The loader hook also merges a snapshot, before any loader has run.
+      if to_state != LoaderState::Init {
+        to.set_finish_called();
+      }
       to
     })
     .collect();
