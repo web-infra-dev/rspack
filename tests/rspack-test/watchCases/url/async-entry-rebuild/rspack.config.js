@@ -8,10 +8,10 @@ class CheckUrlEntryBlocksPlugin {
       (compilation) => {
         const currentBuild = buildIndex++;
         const hasCssEntry = currentBuild !== 2;
-        compilation.hooks.processAssets.tap(
+        compilation.hooks.finishModules.tap(
           {
             name: 'CheckUrlEntryBlocksPlugin',
-            stage: rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONS,
+            stage: -100,
           },
           () => {
             const originModule = Array.from(compilation.modules).find(
@@ -28,7 +28,14 @@ class CheckUrlEntryBlocksPlugin {
                 (dependency) => dependency.type === 'new URL()',
               ),
             ).toHaveLength(0);
-
+          },
+        );
+        compilation.hooks.processAssets.tap(
+          {
+            name: 'CheckUrlEntryBlocksPlugin',
+            stage: rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONS,
+          },
+          () => {
             const assets = compilation.getAssets().map((asset) => asset.name);
             expect(
               assets.filter((asset) => asset.endsWith('.js')),

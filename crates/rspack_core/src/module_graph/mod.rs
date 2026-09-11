@@ -102,13 +102,6 @@ pub(crate) struct ModuleGraphData {
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: AsyncDependenciesBlockIdentifierMap<AsyncDependenciesBlockRef>,
 
-  /// Finish-modules promotions are graph-local and must be undone before the next make phase.
-  promoted_blocks: Vec<(
-    DependencyId,
-    DependencyParents,
-    AsyncDependenciesBlockIdentifier,
-  )>,
-
   /// Dependency_id to parent module identifier and parent block
   ///
   /// # Example
@@ -156,10 +149,6 @@ impl ModuleGraphData {
   }
   // reset to checkpoint
   fn recover(&mut self) {
-    for (dependency_id, parents, block_id) in self.promoted_blocks.drain(..) {
-      self.dependency_id_to_parents.insert(dependency_id, parents);
-      self.blocks.remove(&block_id);
-    }
     self.modules.reset();
     self.module_graph_modules.reset();
     self.connections.reset();
@@ -549,21 +538,16 @@ impl ModuleGraph {
       .inner
       .dependency_id_to_parents
       .get(&dependency_id)
-      .expect("dependency should have parents")
-      .clone();
-    assert_eq!(parents.module, origin_module);
-    assert!(
+      .expect("dependency should have parents");
+    debug_assert_eq!(parents.module, origin_module);
+    debug_assert!(
       parents.block.is_none(),
       "dependency should be directly owned by its module"
     );
-    assert!(
+    debug_assert!(
       !self.inner.blocks.contains_key(&block_id),
       "promoted block should be new"
     );
-    self
-      .inner
-      .promoted_blocks
-      .push((dependency_id, parents, block_id));
     let index_in_block = block.get_dependencies().len();
     block.add_dependency(self.dependency_ref_by_id(&dependency_id).clone());
     let block: AsyncDependenciesBlockRef = block.into();
@@ -573,7 +557,7 @@ impl ModuleGraph {
       .clone();
     module.remove_dependency_id(dependency_id);
     module.add_block(block.clone());
-    // Replace the graph handle so rollback restores the original dependency view.
+    // Replace only the graph handle, leaving any cached build result intact.
     self.add_module(module);
     self.set_parents(
       dependency_id,

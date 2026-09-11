@@ -2,12 +2,11 @@
 
 use concat_string::concat_string;
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncModulesArtifact, ChunkInitFragments, ChunkUkey,
-  CodeGenerationDataFilename, Compilation, CompilationFinishModules, CompilationParams,
-  CompilerCompilation, DependencyId, EntryOptions, ExportsInfoArtifact, Filename, GroupOptions,
-  ImportMetaKnownProperties, JavascriptParserUrl, Module, ModuleDependency, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin, PublicPath,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
+  AsyncDependenciesBlock, ChunkInitFragments, ChunkUkey, CodeGenerationDataFilename, Compilation,
+  CompilationBeforeFinishModuleGraph, CompilationParams, CompilerCompilation, DependencyId,
+  EntryOptions, Filename, GroupOptions, ImportMetaKnownProperties, JavascriptParserUrl, Module,
+  ModuleDependency, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
+  PathData, Plugin, PublicPath, RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, SourceType,
   URLStaticMode, get_css_chunk_filename_template, get_js_chunk_filename_template, get_undo_path,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
@@ -118,16 +117,8 @@ fn parse_placeholder_dependency_id(value: &str) -> DependencyId {
     .into()
 }
 
-const URL_FINISH_MODULES_STAGE: i32 = -10;
-
-#[plugin_hook(CompilationFinishModules for URLPlugin, stage = URL_FINISH_MODULES_STAGE)]
-async fn finish_modules(
-  &self,
-  compilation: &mut Compilation,
-  _async_modules_artifact: &mut AsyncModulesArtifact,
-  _exports_info_artifact: &mut ExportsInfoArtifact,
-  _side_effects_state_artifact: &mut SideEffectsStateArtifact,
-) -> Result<()> {
+#[plugin_hook(CompilationBeforeFinishModuleGraph for URLPlugin)]
+async fn before_finish_module_graph(&self, compilation: &mut Compilation) -> Result<()> {
   let blocks = {
     let module_graph = compilation.get_module_graph();
     module_graph
@@ -357,8 +348,8 @@ impl Plugin for URLPlugin {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
       .compilation_hooks
-      .finish_modules
-      .tap(finish_modules::new(self));
+      .before_finish_module_graph
+      .tap(before_finish_module_graph::new(self));
     ctx
       .normal_module_factory_hooks
       .parser

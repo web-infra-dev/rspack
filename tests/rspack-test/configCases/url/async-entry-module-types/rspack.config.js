@@ -8,10 +8,11 @@ class CheckUrlEntriesPlugin {
 
   apply(compiler) {
     compiler.hooks.compilation.tap('CheckUrlEntriesPlugin', (compilation) => {
-      compilation.hooks.processAssets.tap(
+      compilation.hooks.finishModules.tap(
         {
           name: 'CheckUrlEntriesPlugin',
-          stage: rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONS,
+          // URL entries must exist before even the earliest finishModules analysis.
+          stage: -100,
         },
         () => {
           const originModule = Array.from(compilation.modules).find(
@@ -44,7 +45,14 @@ class CheckUrlEntriesPlugin {
             expect(assetModule).toBeDefined();
             expect(assetModule.type).toBe('asset/resource');
           }
-
+        },
+      );
+      compilation.hooks.processAssets.tap(
+        {
+          name: 'CheckUrlEntriesPlugin',
+          stage: rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONS,
+        },
+        () => {
           const compilationAssets = compilation.getAssets();
           const assets = compilationAssets.map((asset) => asset.name);
           const scriptAssets = assets.filter((asset) =>
