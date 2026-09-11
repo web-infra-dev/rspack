@@ -1,0 +1,14 @@
+[
+  {
+    "module build cache": {
+      "hits": 2,
+      "total": 4,
+      "hitRate": 50
+    },
+    "module code generation cache": {
+      "hits": 0,
+      "total": 1,
+      "hitRate": 0
+    }
+  }
+]
