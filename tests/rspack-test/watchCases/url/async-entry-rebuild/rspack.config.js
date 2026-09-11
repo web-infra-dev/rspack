@@ -97,13 +97,15 @@ const config = {
 };
 
 // Exercise both a cached unchanged origin and module-graph rollback independently.
-module.exports = [false, true].flatMap((cache) =>
+module.exports = [false, true, 'module'].flatMap((cache) =>
   [false, undefined].map((incremental) => {
     const name = `cache-${cache}-incremental-${incremental !== false}`;
     return {
       ...config,
       name,
-      cache,
+      cache: cache !== false,
+      experiments:
+        cache === 'module' ? { newCache: { module: true, loader: false } } : {},
       incremental,
       output: {
         ...config.output,

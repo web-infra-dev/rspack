@@ -13,7 +13,7 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
   AsyncDependenciesBlockRef, AsyncModulesArtifact, Compilation, DependenciesBlock, Dependency,
-  ExportInfo, ImportedByDeferModulesArtifact, Module, ModuleGraphCacheArtifact, RuntimeSpec,
+  ExportInfo, ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact, RuntimeSpec,
   SideEffectsStateArtifact, UsedNameItem,
 };
 mod module;
@@ -526,7 +526,7 @@ impl ModuleGraph {
     self.inner.blocks.insert(block.identifier(), block);
   }
 
-  /// Move a direct module dependency into an async block without mutating the shared build result.
+  /// Move a direct module dependency into an async block before publishing the module to the cache.
   pub fn move_dependency_to_block(
     &mut self,
     dependency_id: DependencyId,
@@ -551,14 +551,15 @@ impl ModuleGraph {
     let index_in_block = block.get_dependencies().len();
     block.add_dependency(self.dependency_ref_by_id(&dependency_id).clone());
     let block: AsyncDependenciesBlockRef = block.into();
-    let mut module = self
-      .module_by_identifier(&origin_module)
+    let module = self
+      .inner
+      .modules
+      .get_mut(&origin_module)
       .expect("dependency should have an origin module")
-      .clone();
+      .dependencies_block_mut()
+      .expect("module dependencies must be updated before the module is shared");
     module.remove_dependency_id(dependency_id);
     module.add_block(block.clone());
-    // Replace only the graph handle, leaving any cached build result intact.
-    self.add_module(module);
     self.set_parents(
       dependency_id,
       DependencyParents {
@@ -568,16 +569,6 @@ impl ModuleGraph {
       },
     );
     self.add_block(block);
-  }
-
-  /// Resolve the current graph's dependency view when a caller holds the shared module itself.
-  pub fn module_dependencies_block<'a>(
-    &'a self,
-    module: &'a dyn Module,
-  ) -> &'a dyn DependenciesBlock {
-    self
-      .module_by_identifier(&module.identifier())
-      .map_or(module as &dyn DependenciesBlock, |module| module)
   }
 
   pub fn set_parents(&mut self, dependency_id: DependencyId, parents: DependencyParents) {

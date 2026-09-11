@@ -435,15 +435,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         runtime_template: generate_context.runtime_template,
       };
 
-      let dependencies_block = compilation
-        .get_module_graph()
-        .module_dependencies_block(module);
-      dependencies_block
-        .get_dependencies()
-        .iter()
-        .for_each(|dependency| {
-          self.source_dependency(compilation, dependency.as_ref(), &mut source, &mut context)
-        });
+      module.get_dependencies().iter().for_each(|dependency| {
+        self.source_dependency(compilation, dependency.as_ref(), &mut source, &mut context)
+      });
 
       if let Some(dependencies) = module.get_presentational_dependencies() {
         dependencies.iter().for_each(|dependency| {
@@ -461,7 +455,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         });
       };
 
-      dependencies_block
+      module
         .get_blocks()
         .iter()
         .for_each(|block_id| self.source_block(compilation, block_id, &mut source, &mut context));

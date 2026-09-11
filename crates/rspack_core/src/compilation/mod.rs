@@ -159,7 +159,6 @@ pub struct CompilationHooks {
   pub still_valid_module: CompilationStillValidModuleHook,
   pub succeed_module: CompilationSucceedModuleHook,
   pub execute_module: CompilationExecuteModuleHook,
-  /// Final graph mutations after finish-make hooks, before graph cleanup and cache publication.
   pub before_finish_module_graph: CompilationBeforeFinishModuleGraphHook,
   pub finish_modules: CompilationFinishModulesHook,
   pub external_module_chunk_condition: ExternalModuleChunkConditionHook,
