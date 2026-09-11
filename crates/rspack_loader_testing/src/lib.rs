@@ -17,10 +17,10 @@ impl Loader<RunnerContext> for SimpleLoader {
   }
 
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
-    let Some(content) = loader_context.take_content() else {
+    let Some(content) = loader_context.take_source() else {
       return Ok(());
     };
-    let export = format!("{}-simple", content.try_into_string()?);
+    let export = format!("{}-simple", content.source().into_string_lossy());
     loader_context.finish_with(format!("module.exports = {}", json!(export)));
     Ok(())
   }
@@ -37,10 +37,13 @@ impl Loader<RunnerContext> for SimpleAsyncLoader {
   }
 
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
-    let Some(content) = loader_context.take_content() else {
+    let Some(content) = loader_context.take_source() else {
       return Ok(());
     };
-    loader_context.finish_with(format!("{}-async-simple", content.try_into_string()?));
+    loader_context.finish_with(format!(
+      "{}-async-simple",
+      content.source().into_string_lossy()
+    ));
     Ok(())
   }
 }
@@ -97,8 +100,10 @@ impl Loader<RunnerContext> for NoPassthroughLoader {
   }
 
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
-    let (content, _, _) = loader_context.take_all();
-    loader_context.finish_with(content);
+    let (source, _) = loader_context.take_all();
+    loader_context.finish_with(source.map(|source| {
+      rspack_core::Content::Buffer(source.buffer().into_owned()).into_source(None, "")
+    }));
     Ok(())
   }
 }

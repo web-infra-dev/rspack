@@ -16,6 +16,10 @@ use rspack_cacheable::{
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_sources::{
+  BoxSource, RawBufferSource, RawStringSource, SourceExt, SourceMap, SourceMapSource,
+  WithoutOriginalOptions,
+};
 use rustc_hash::FxHashMap;
 
 use crate::{Scheme, get_scheme, parse_resource};
@@ -36,6 +40,25 @@ impl RspackHash for Content {
 }
 
 impl Content {
+  /// Construct a source once at a content boundary. Native loaders pass the source on directly.
+  pub fn into_source(self, source_map: Option<SourceMap<'static>>, name: &str) -> BoxSource {
+    if let Some(source_map) = source_map {
+      return match self {
+        Self::String(value) => SourceMapSource::new(WithoutOriginalOptions {
+          value,
+          name,
+          source_map,
+        })
+        .boxed(),
+        Self::Buffer(value) => SourceMapSource::from_buffer(value, name, source_map).boxed(),
+      };
+    }
+    match self {
+      Self::String(content) => RawStringSource::from(content).boxed(),
+      Self::Buffer(content) => RawBufferSource::from(content).boxed(),
+    }
+  }
+
   pub fn try_into_string(self) -> Result<String> {
     match self {
       Content::String(s) => Ok(s),
