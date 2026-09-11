@@ -50,9 +50,11 @@ impl<T, E> WorkerJobFailure<T, E> {
   }
 }
 
+type WorkerJobResult<T, E> = Result<Box<T>, WorkerJobFailure<T, E>>;
+
 pub struct WorkerJob<T, E> {
   input: Option<Box<T>>,
-  result_tx: Option<oneshot::Sender<Result<Box<T>, WorkerJobFailure<T, E>>>>,
+  result_tx: Option<oneshot::Sender<WorkerJobResult<T, E>>>,
 }
 
 impl<T, E> WorkerJob<T, E> {

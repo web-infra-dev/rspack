@@ -1,3 +1,4 @@
+import { guardWorkerFunctionHooks } from './util/workerFunctionHooks';
 /**
  * The following code is modified based on
  * https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Compilation.js
@@ -438,6 +439,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
       afterSeal: new liteTapable.AsyncSeriesHook([]),
       needAdditionalPass: new liteTapable.SyncBailHook([]),
     };
+
+    guardWorkerFunctionHooks(this.hooks);
 
     // Wrap hooks with a Proxy to provide helpful error messages when
     // webpack plugins try to access hooks that don't exist in rspack

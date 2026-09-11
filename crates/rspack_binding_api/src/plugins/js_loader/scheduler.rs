@@ -11,7 +11,7 @@ use rspack_tasks::WorkerFailure;
 use tracing::{Instrument, info_span};
 
 use super::{JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
-use crate::worker::{WorkerTaskPayload, dispatch_worker_task};
+use crate::worker::{LoaderTaskPayload, WorkerTaskPayload, dispatch_worker_task};
 
 impl JsLoaderRspackPlugin {
   async fn update_loaders_without_pitch(&self, list: Vec<String>) {
@@ -96,14 +96,14 @@ pub(crate) async fn loader_yield(
       Ok(mut hook_context) => {
         let hook_extensions = hook_context.hook_extensions.take();
         merge_loader_hook_context(context.as_mut(), hook_context);
-        let result = dispatch_worker_task(Box::new(WorkerTaskPayload {
-          loader_context: *context,
+        let result = dispatch_worker_task(Box::new(WorkerTaskPayload::Loader(LoaderTaskPayload {
+          loader_context: context,
           loaders_without_pitch: Vec::new(),
           hook_extensions,
-        }))
+        })))
         .instrument(info_span!("JsLoader:queue_wait_and_execute"))
         .await;
-        let (mut payload, error) = match result {
+        let (payload, error) = match result {
           Ok(payload) => (payload, None),
           Err(failure) => {
             let (error, payload) = failure.into_parts();
@@ -116,7 +116,10 @@ pub(crate) async fn loader_yield(
             )
           }
         };
-        context = Box::new(payload.loader_context);
+        let WorkerTaskPayload::Loader(mut payload) = *payload else {
+          unreachable!("loader task must return loader payload")
+        };
+        context = payload.loader_context;
         if is_pitching && !payload.loaders_without_pitch.is_empty() {
           self
             .update_loaders_without_pitch(std::mem::take(&mut payload.loaders_without_pitch))
@@ -126,7 +129,7 @@ pub(crate) async fn loader_yield(
       }
     }
   } else {
-    let result = async {
+    async {
       let new_context = self.run_on_main(context.as_mut(), false).await?;
       if is_pitching {
         let list = collect_loaders_without_pitch(&context, &new_context);
@@ -137,8 +140,7 @@ pub(crate) async fn loader_yield(
       merge_loader_context(&mut context, new_context)
     }
     .instrument(info_span!("JsLoader:main_execute"))
-    .await;
-    result
+    .await
   };
 
   *loader_context = Some(context);

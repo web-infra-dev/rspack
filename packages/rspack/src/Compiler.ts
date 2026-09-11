@@ -1,3 +1,5 @@
+import type { HookRegisterTap, MainJsTap } from './taps/types';
+import { guardWorkerFunctionHooks } from './util/workerFunctionHooks';
 /**
  * The following code is modified based on
  * https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Compiler.js
@@ -9,8 +11,16 @@
  */
 
 import { createRequire } from 'node:module';
-import type binding from '@rspack/binding';
+import binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
+import { getWorkerFunctionDescriptor } from './workerFunction';
+import {
+  ensureNativeLoaderWorkers,
+  serializeWorkerFunction,
+} from './loader-runner/service';
+
+let nextWorkerFunctionCompilerId = 1;
+const workerFunctionCompilerIds = new WeakMap<Compiler, number>();
 import type Watchpack from 'watchpack';
 import type { Source } from 'webpack-sources';
 import {
@@ -268,6 +278,8 @@ class Compiler {
       entryOption: new liteTapable.SyncBailHook(['context', 'entry']),
       additionalPass: new liteTapable.AsyncSeriesHook([]),
     };
+
+    guardWorkerFunctionHooks(this.hooks);
 
     // Wrap hooks with a Proxy to provide helpful error messages when
     // webpack plugins try to access hooks that don't exist in rspack
@@ -1071,10 +1083,15 @@ class Compiler {
   }
 
   #decorateJsTaps(jsTaps: binding.JsTap[]) {
-    if (jsTaps.length > 0) {
-      const last = jsTaps[jsTaps.length - 1];
-      const old = last.function;
-      last.function = (...args: any[]) => {
+    // Any worker segment can bail before the last callback, including in a later native
+    // stage interval. Publish dynamic registrations after every main segment in that plan.
+    const decorated = jsTaps.some((tap) => typeof tap.function !== 'function')
+      ? jsTaps
+      : jsTaps.slice(-1);
+    for (const tap of decorated) {
+      const old = tap.function;
+      if (typeof old !== 'function') continue;
+      tap.function = (...args: any[]) => {
         const result = old(...args);
         if (result && typeof result.then === 'function') {
           return result.then((r: any) => {
@@ -1092,11 +1109,11 @@ class Compiler {
    * Note: This is not a webpack public API, maybe removed in future.
    * @internal
    */
-  #createHookRegisterTaps<T, R, A>(
-    registerKind: binding.RegisterJsTapKind,
+  #createHookRegisterTaps<T, R, A, K extends binding.RegisterJsTapKind>(
+    registerKind: K,
     getHook: () => liteTapable.Hook<T, R, A>,
     createTap: (queried: liteTapable.QueriedHook<T, R, A>) => any,
-  ): (stages: number[]) => binding.JsTap[] {
+  ): (stages: number[]) => HookRegisterTap<K>[] {
     const that = new WeakRef(this);
     const getTaps = (stages: number[]) => {
       const compiler = that.deref()!;
@@ -1114,13 +1131,73 @@ class Compiler {
         const stageRange = [from, to] as const;
         const queried = hook.queryStageRange(stageRange);
         if (!queried.isUsed()) continue;
-        jsTaps.push({
-          function: createTap(queried),
-          stage: liteTapable.safeStage(from + 1),
-        });
+        const workerTaps = queried.tapsInRange.filter((tap) =>
+          getWorkerFunctionDescriptor(tap.fn),
+        );
+        const stage = liteTapable.safeStage(from + 1);
+        if (workerTaps.length === 0) {
+          jsTaps.push({ function: createTap(queried), stage });
+          continue;
+        }
+        if (
+          registerKind !==
+            binding.RegisterJsTapKind.NormalModuleFactoryBeforeResolve ||
+          workerTaps.some((tap) => tap.type !== 'promise')
+        ) {
+          throw new Error(
+            'workerFunction hook scheduling only supports NormalModuleFactory.beforeResolve.tapPromise',
+          );
+        }
+        if (queried.hook.interceptors.length) {
+          throw new Error(
+            'workerFunction beforeResolve does not support JavaScript hook interceptors',
+          );
+        }
+        if (IS_BROWSER || process.env.WASM) {
+          throw new Error(
+            'workerFunction hook scheduling requires native Node.js workers',
+          );
+        }
+        ensureNativeLoaderWorkers();
+        let compilerId = workerFunctionCompilerIds.get(compiler);
+        if (compilerId === undefined) {
+          compilerId = nextWorkerFunctionCompilerId++;
+          workerFunctionCompilerIds.set(compiler, compilerId);
+        }
+        // Keep the sorted tap order, including `before` and identical stages. Every segment in
+        // this native interval has the same stage; Rust preserves their input order.
+        for (let start = 0; start < queried.tapsInRange.length;) {
+          const worker = !!getWorkerFunctionDescriptor(
+            queried.tapsInRange[start].fn,
+          );
+          let end = start + 1;
+          while (
+            end < queried.tapsInRange.length &&
+            !!getWorkerFunctionDescriptor(queried.tapsInRange[end].fn) ===
+              worker
+          )
+            end++;
+          const taps = queried.tapsInRange.slice(start, end);
+          if (worker) {
+            jsTaps.push({
+              function: taps.map((tap) => ({
+                version: 1,
+                compilerId,
+                hook: 'NormalModuleFactory.beforeResolve',
+                value: serializeWorkerFunction(tap.fn, compiler),
+              })),
+              stage,
+            });
+          } else {
+            const segment = hook.queryStageRange(stageRange);
+            segment.tapsInRange = taps;
+            jsTaps.push({ function: createTap(segment), stage });
+          }
+          start = end;
+        }
       }
       compiler.#decorateJsTaps(jsTaps);
-      return jsTaps;
+      return jsTaps as HookRegisterTap<K>[];
     };
     getTaps.registerKind = registerKind;
     getTaps.getHook = getHook;
@@ -1135,7 +1212,7 @@ class Compiler {
     registerKind: binding.RegisterJsTapKind,
     getHookMap: () => liteTapable.HookMap<H>,
     createTap: (queried: liteTapable.QueriedHookMap<H>) => any,
-  ): (stages: number[]) => binding.JsTap[] {
+  ): (stages: number[]) => MainJsTap[] {
     const that = new WeakRef(this);
     const getTaps = (stages: number[]) => {
       const compiler = that.deref()!;
@@ -1146,7 +1223,7 @@ class Compiler {
         ...stages,
         liteTapable.maxStage,
       ];
-      const jsTaps: binding.JsTap[] = [];
+      const jsTaps: MainJsTap[] = [];
       for (let i = 0; i < breakpoints.length - 1; i++) {
         const from = breakpoints[i];
         const to = breakpoints[i + 1];

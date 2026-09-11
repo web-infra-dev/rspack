@@ -238,3 +238,79 @@ impl<T: 'static + JsValuesTupleIntoVec, R> TypeName for CompilerScopedTsFnHandle
     ValueType::Function
   }
 }
+
+/// Taps are parsed after the register callback returns, outside the construction scope.
+/// Carry a compiler-owned registry across that boundary without retaining expired taps.
+type DynamicSlot = AtomicRefCell<Option<rspack_napi::threadsafe_function::DynThreadsafeFunction>>;
+
+#[derive(Clone)]
+pub(crate) struct CompilerScopedDynTsFnHandle(Arc<DynamicSlot>);
+
+impl CompilerScopedDynTsFnHandle {
+  pub(crate) fn new(function: rspack_napi::threadsafe_function::DynThreadsafeFunction) -> Self {
+    Self(Arc::new(AtomicRefCell::new(Some(function))))
+  }
+
+  fn active(
+    &self,
+  ) -> rspack_error::Result<rspack_napi::threadsafe_function::DynThreadsafeFunction> {
+    self
+      .0
+      .borrow()
+      .clone()
+      .ok_or_else(|| error!("Rspack compiler has already been closed by `compiler.close()`"))
+  }
+
+  pub(crate) async fn call_with_sync<
+    T: 'static + JsValuesTupleIntoVec,
+    R: 'static + FromNapiValue,
+  >(
+    &self,
+    value: T,
+  ) -> rspack_error::Result<R> {
+    self.active()?.call_with_sync(value).await
+  }
+
+  pub(crate) async fn call_with_promise<
+    T: 'static + JsValuesTupleIntoVec,
+    R: 'static + FromNapiValue,
+  >(
+    &self,
+    value: T,
+  ) -> rspack_error::Result<R> {
+    self.active()?.call_with_promise(value).await
+  }
+}
+
+#[derive(Clone)]
+pub(crate) struct CompilerScopedDynTsFnRegistry {
+  slots: Arc<std::sync::Mutex<Vec<std::sync::Weak<DynamicSlot>>>>,
+}
+
+impl CompilerScopedDynTsFnRegistry {
+  pub(crate) fn current() -> napi::Result<Self> {
+    let manager = CompilerScopedTsFnManager::current_context()
+      .ok_or_else(|| napi::Error::from_reason("Hook register parsed outside compiler scope"))?;
+    let slots = Arc::new(std::sync::Mutex::new(
+      Vec::<std::sync::Weak<DynamicSlot>>::new(),
+    ));
+    let owned = slots.clone();
+    manager.register_releaser(Box::new(move || {
+      for slot in owned
+        .lock()
+        .expect("dynamic tap registry lock")
+        .drain(..)
+        .filter_map(|slot| slot.upgrade())
+      {
+        *slot.borrow_mut() = None;
+      }
+    }));
+    Ok(Self { slots })
+  }
+
+  pub(crate) fn track<'a>(&self, functions: impl Iterator<Item = &'a CompilerScopedDynTsFnHandle>) {
+    let mut slots = self.slots.lock().expect("dynamic tap registry lock");
+    slots.retain(|slot| slot.strong_count() != 0);
+    slots.extend(functions.map(|function| Arc::downgrade(&function.0)));
+  }
+}

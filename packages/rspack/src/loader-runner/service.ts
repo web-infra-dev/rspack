@@ -2,6 +2,16 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { registerMainThreadJsValueRelease } from '@rspack/binding';
 
+import type { Compiler } from '../Compiler';
+import {
+  WORKER_FUNCTION_MARKER,
+  createWorkerFunctionPlaceholder,
+  getWorkerFunctionDescriptor,
+  validateWorkerFunctionDescriptor,
+  markResolvedWorkerFunction,
+} from '../workerFunction';
+import { loadModule } from './loadModule';
+
 const require = createRequire(import.meta.url);
 
 let nativeWorkers: Set<import('node:worker_threads').Worker> | undefined;
@@ -48,6 +58,7 @@ type LoaderFunctionHandle = { id: number; owner: LoaderFunctionOwner };
 type LoaderOptionsOwner = object & {
   context?: string;
   inputFileSystem?: any;
+  resolverFactory?: Compiler['resolverFactory'];
   options?: {
     loader?: Record<string, any>;
     mode?: string;
@@ -444,6 +455,39 @@ export function markLoaderFunctionThis(
 function encodeFunctionBridgeValue(value: any, owner?: object): any {
   const normalized = new WeakMap<object, any>();
   const normalize = (current: any): any => {
+    if (
+      current &&
+      (typeof current === 'object' || typeof current === 'function')
+    ) {
+      const existing = normalized.get(current);
+      if (existing) return existing;
+    }
+    const descriptor = getWorkerFunctionDescriptor(current);
+    if (descriptor) {
+      const compiler = owner as LoaderOptionsOwner | undefined;
+      const module = compiler?.resolverFactory
+        ? compiler.resolverFactory
+            .get('loader')
+            .__internal__resolveModule(
+              compiler.context ?? '',
+              descriptor.target,
+            )
+        : descriptor.module;
+      if (!module)
+        throw new Error(
+          `workerFunction ${descriptor.target} requires a compiler resolver`,
+        );
+      const result = {
+        [WORKER_FUNCTION_MARKER]: {
+          ...descriptor,
+          module,
+          options: undefined as any,
+        },
+      };
+      normalized.set(current, result);
+      result[WORKER_FUNCTION_MARKER].options = normalize(descriptor.options);
+      return result;
+    }
     if (typeof current === 'function') {
       let handle = proxyFunctionIds.get(current);
       if (!handle) {
@@ -558,6 +602,17 @@ function decodeFunctionBridgeValue(
   const revived = new WeakMap<object, any>();
   const revive = (current: any): any => {
     if (!current || typeof current !== 'object') return current;
+    const previous = revived.get(current);
+    if (previous) return previous;
+    if (Object.hasOwn(current, WORKER_FUNCTION_MARKER)) {
+      const descriptor = current[WORKER_FUNCTION_MARKER];
+      validateWorkerFunctionDescriptor(descriptor);
+      const restored = { ...descriptor, options: undefined };
+      const placeholder = createWorkerFunctionPlaceholder(restored);
+      revived.set(current, placeholder);
+      restored.options = revive(descriptor.options);
+      return placeholder;
+    }
     if (current[LOADER_VALUE_TYPE_MARKER] === 'URL') {
       return new URL(current.value);
     }
@@ -992,4 +1047,118 @@ export function ensureNativeLoaderWorkers(workerOptions?: {
   };
 
   for (let index = 0; index < count; index++) spawnWorker(index, 0);
+}
+
+/** Serialize an owned function execution item, never a main-isolate function handle. */
+export function serializeWorkerFunction(
+  fn: Function,
+  compiler: Compiler,
+): string {
+  return (require('node:v8') as typeof import('node:v8'))
+    .serialize(encodeFunctionBridgeValue(fn, compiler))
+    .toString('base64');
+}
+
+/** Load every ESM export before exposing synchronous options/getOptions to user code. */
+export async function prepareWorkerFunctionValue<T>(
+  value: T,
+  owner?: object,
+): Promise<T> {
+  const visited = new WeakSet<object>();
+  const contains = (current: any): boolean => {
+    if (getWorkerFunctionDescriptor(current)) return true;
+    if (!current || typeof current !== 'object' || visited.has(current))
+      return false;
+    visited.add(current);
+    if (current instanceof Map)
+      return [...current].some(
+        ([key, item]) => contains(key) || contains(item),
+      );
+    if (current instanceof Set) return [...current].some(contains);
+    return Object.getOwnPropertyNames(current).some((key) =>
+      contains(current[key]),
+    );
+  };
+  if (!contains(value)) return value;
+  // Clone only values containing worker functions. Keep ordinary loader option identity intact.
+  const cloned = decodeFunctionBridgeValue(
+    encodeFunctionBridgeValue(value, owner),
+  );
+  const restored = new WeakMap<object, any>();
+  const pending: Promise<void>[] = [];
+  const resolve = (current: any): any => {
+    if (
+      !current ||
+      (typeof current !== 'object' && typeof current !== 'function')
+    )
+      return current;
+    const previous = restored.get(current);
+    if (previous) return previous;
+    const descriptor = getWorkerFunctionDescriptor(current);
+    if (descriptor) {
+      let implementation: Function;
+      const fn = function (this: any, ...args: any[]) {
+        return Reflect.apply(implementation, this, [...args, options]);
+      };
+      restored.set(current, fn);
+      const options = resolve(descriptor.options);
+      markResolvedWorkerFunction(fn, { ...descriptor, options });
+      const module = descriptor.module!;
+      pending.push(
+        new Promise<void>((done, reject) => {
+          loadModule(
+            module.path,
+            module.type,
+            undefined,
+            (error, exported: any) => {
+              if (error) return reject(error);
+              implementation =
+                typeof exported === 'function' ? exported : exported?.default;
+              if (typeof implementation !== 'function')
+                return reject(
+                  new TypeError(
+                    `workerFunction module '${module.path}' must export a function (CJS or ESM default)`,
+                  ),
+                );
+              done();
+            },
+          );
+        }),
+      );
+      return fn;
+    }
+    if (typeof current === 'function') return current;
+    restored.set(current, current);
+    if (current instanceof Map) {
+      const entries = [...current];
+      current.clear();
+      for (const [key, item] of entries)
+        current.set(resolve(key), resolve(item));
+    } else if (current instanceof Set) {
+      const entries = [...current];
+      current.clear();
+      for (const item of entries) current.add(resolve(item));
+    } else if (
+      !(current instanceof ArrayBuffer) &&
+      !ArrayBuffer.isView(current) &&
+      !(current instanceof Date) &&
+      !(current instanceof RegExp) &&
+      !(current instanceof Error) &&
+      !(current instanceof URL) &&
+      !(current instanceof URLSearchParams)
+    ) {
+      for (const key of Object.getOwnPropertyNames(current)) {
+        const property = Object.getOwnPropertyDescriptor(current, key)!;
+        if ('value' in property)
+          Object.defineProperty(current, key, {
+            ...property,
+            value: resolve(property.value),
+          });
+      }
+    }
+    return current;
+  };
+  const result = resolve(cloned);
+  await Promise.all(pending);
+  return result;
 }

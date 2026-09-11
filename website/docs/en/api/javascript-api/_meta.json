@@ -9,5 +9,6 @@
   "cache",
   "swc",
   "resolver",
+  "worker-function",
   "browser"
 ]

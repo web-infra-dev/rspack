@@ -1,3 +1,4 @@
+import { guardWorkerFunctionHooks } from './util/workerFunctionHooks';
 import type binding from '@rspack/binding';
 
 import * as liteTapable from '@rspack/lite-tapable';
@@ -44,6 +45,7 @@ export class NormalModuleFactory {
         'resolveData',
       ]),
     };
+    guardWorkerFunctionHooks(this.hooks, 'beforeResolve');
     this.resolverFactory = resolverFactory;
   }
 

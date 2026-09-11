@@ -47,6 +47,14 @@ export class Resolver {
     this.#binding = binding;
   }
 
+  /** @internal */
+  __internal__resolveModule(
+    path: string,
+    request: string,
+  ): binding.JsResolvedModule {
+    return this.#binding.resolveModuleSync(path, request);
+  }
+
   resolveSync(_context: object, path: string, request: string): string | false {
     return this.#binding.resolveSync(path, request) ?? false;
   }

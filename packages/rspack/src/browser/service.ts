@@ -111,3 +111,14 @@ export function deserializeLoaderOptions(value: string): unknown {
 export function markLoaderFunctionThis(): void {
   // The browser build has no worker-thread function bridge.
 }
+
+export function prepareWorkerFunctionValue<T>(value: T): Promise<T> {
+  return Promise.resolve(value);
+}
+
+export function serializeWorkerFunction(
+  _fn: Function,
+  _compiler: object,
+): string {
+  throw new Error('workerFunction requires native Node.js workers');
+}

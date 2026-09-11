@@ -85,7 +85,9 @@ use crate::{
   asset::JsAssetEmittedArgs,
   chunk::{ChunkWrapper, JsChunkAssetArgs},
   compilation::JsCompilationWrapper,
-  compiler_scoped_tsfn::CompilerScopedTsFnHandle,
+  compiler_scoped_tsfn::{
+    CompilerScopedDynTsFnHandle, CompilerScopedDynTsFnRegistry, CompilerScopedTsFnHandle,
+  },
   context_module_factory::{
     JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
     JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
@@ -110,6 +112,7 @@ use crate::{
     JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult, JsRuntimeSpec,
   },
   source::JsSourceToJs,
+  worker::{FunctionTaskPayload, JsWorkerFunction, WorkerTaskPayload, dispatch_worker_task},
 };
 
 #[napi(object)]
@@ -149,21 +152,44 @@ pub struct JsRealContentHashPluginUpdateHashData {
 
 #[napi(object)]
 pub struct JsTap<'f> {
-  #[napi(ts_type = "(...args: any[]) => any")]
-  pub function: Function<'f>,
+  #[napi(ts_type = "((...args: any[]) => any) | JsWorkerFunction[]")]
+  pub function: Either<Function<'f>, Vec<JsWorkerFunction>>,
   pub stage: i32,
 }
 
 #[derive(Clone)]
+pub(crate) enum JsTapExecution {
+  Main(CompilerScopedDynTsFnHandle),
+  Worker(Vec<JsWorkerFunction>),
+}
+
+#[derive(Clone)]
 pub struct ThreadsafeJsTap {
-  pub function: DynThreadsafeFunction,
+  pub(crate) function: JsTapExecution,
   pub stage: i32,
 }
 
 impl ThreadsafeJsTap {
   pub fn from_js_tap(js_tap: JsTap, env: Env) -> napi::Result<Self> {
-    let function =
-      unsafe { DynThreadsafeFunction::from_napi_value(env.raw(), js_tap.function.raw()) }?;
+    let function = match js_tap.function {
+      Either::A(function) => JsTapExecution::Main(CompilerScopedDynTsFnHandle::new(unsafe {
+        DynThreadsafeFunction::from_napi_value(env.raw(), function.raw())
+      }?)),
+      Either::B(functions) => {
+        if functions.is_empty()
+          || functions.iter().any(|function| {
+            function.version != 1
+              || function.hook != "NormalModuleFactory.beforeResolve"
+              || function.value.is_empty()
+          })
+        {
+          return Err(napi::Error::from_reason(
+            "Invalid workerFunction hook execution item",
+          ));
+        }
+        JsTapExecution::Worker(functions)
+      }
+    };
     Ok(Self {
       function,
       stage: js_tap.stage,
@@ -184,7 +210,7 @@ impl FromNapiValue for ThreadsafeJsTap {
 }
 
 struct ThreadsafeJsTapFunction<T, R> {
-  inner: DynThreadsafeFunction,
+  inner: JsTapExecution,
   _marker: PhantomData<fn(T) -> R>,
 }
 
@@ -198,7 +224,7 @@ impl<T, R> Clone for ThreadsafeJsTapFunction<T, R> {
 }
 
 impl<T, R> ThreadsafeJsTapFunction<T, R> {
-  fn new(inner: DynThreadsafeFunction) -> Self {
+  fn new(inner: JsTapExecution) -> Self {
     Self {
       inner,
       _marker: PhantomData,
@@ -212,7 +238,12 @@ where
   R: 'static + FromNapiValue,
 {
   async fn call_with_sync(&self, value: T) -> rspack_error::Result<R> {
-    self.inner.call_with_sync::<T, R>(value).await
+    match &self.inner {
+      JsTapExecution::Main(function) => function.call_with_sync::<T, R>(value).await,
+      JsTapExecution::Worker(_) => Err(rspack_error::error!(
+        "workerFunction is not supported by this hook"
+      )),
+    }
   }
 }
 
@@ -222,16 +253,47 @@ where
   R: 'static + FromNapiValue,
 {
   async fn call_with_promise(&self, value: T) -> rspack_error::Result<R> {
-    self.inner.call_with_promise::<T, R>(value).await
+    match &self.inner {
+      JsTapExecution::Main(function) => function.call_with_promise::<T, R>(value).await,
+      JsTapExecution::Worker(_) => Err(rspack_error::error!(
+        "workerFunction is not supported by this hook"
+      )),
+    }
   }
 }
 
 type RegisterFunctionOutput = Vec<ThreadsafeJsTap>;
-// The register callback itself is compiler-scoped because it can capture compiler or
-// compilation JS objects across builds. The taps returned by that callback stay as ordinary
-// TSFNs: uncached taps die with the returned vector, while cached taps are explicitly
-// released by `clear_cache()`.
-type RegisterFunction = CompilerScopedTsFnHandle<Vec<i32>, RegisterFunctionOutput>;
+// Both register callbacks and their returned main-thread taps are compiler-scoped.
+#[derive(Clone)]
+pub struct RegisterFunction {
+  callback: CompilerScopedTsFnHandle<Vec<i32>, RegisterFunctionOutput>,
+  taps: CompilerScopedDynTsFnRegistry,
+}
+
+impl FromNapiValue for RegisterFunction {
+  unsafe fn from_napi_value(
+    env: napi::sys::napi_env,
+    value: napi::sys::napi_value,
+  ) -> napi::Result<Self> {
+    Ok(Self {
+      callback: unsafe { CompilerScopedTsFnHandle::from_napi_value(env, value) }?,
+      taps: CompilerScopedDynTsFnRegistry::current()?,
+    })
+  }
+}
+
+impl RegisterFunction {
+  async fn call_with_sync(&self, stages: Vec<i32>) -> rspack_error::Result<RegisterFunctionOutput> {
+    let taps = self.callback.call_with_sync(stages).await?;
+    self
+      .taps
+      .track(taps.iter().filter_map(|tap| match &tap.function {
+        JsTapExecution::Main(function) => Some(function),
+        JsTapExecution::Worker(_) => None,
+      }));
+    Ok(taps)
+  }
+}
 
 struct RegisterJsTapsInner {
   register: RegisterFunction,
@@ -622,7 +684,7 @@ pub struct RegisterJsTaps {
   )]
   pub register_compilation_after_seal_taps: RegisterFunction,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>) | JsWorkerFunction[]; stage: number; }>"
   )]
   pub register_normal_module_factory_before_resolve_taps: RegisterFunction,
   #[napi(
@@ -1692,17 +1754,38 @@ impl CompilationAfterSeal for CompilationAfterSealTap {
 #[async_trait]
 impl NormalModuleFactoryBeforeResolve for NormalModuleFactoryBeforeResolveTap {
   async fn run(&self, data: &mut ModuleFactoryCreateData) -> rspack_error::Result<Option<bool>> {
-    match self
-      .function
-      .call_with_promise(JsResolveData::from_nmf_data(data, None))
-      .await
-    {
-      Ok((ret, resolve_data)) => {
-        resolve_data.update_nmf_data(data, None);
-        Ok(ret)
+    let input = JsResolveData::from_nmf_data(data, None);
+    let (result, resolved) = match &self.function.inner {
+      JsTapExecution::Main(function) => {
+        function
+          .call_with_promise::<_, (Option<bool>, JsResolveData)>(input)
+          .await?
       }
-      Err(err) => Err(err),
-    }
+      JsTapExecution::Worker(functions) => {
+        let payload =
+          dispatch_worker_task(Box::new(WorkerTaskPayload::Function(FunctionTaskPayload {
+            functions: functions.clone(),
+            data: Some(Box::new(input)),
+            result: None,
+          })))
+          .await
+          .map_err(|failure| {
+            let (error, _) = failure.into_parts();
+            rspack_error::error!(error.to_string())
+          })?;
+        let WorkerTaskPayload::Function(payload) = *payload else {
+          unreachable!("function task must return function payload")
+        };
+        (
+          payload.result,
+          *payload.data.ok_or_else(|| {
+            rspack_error::error!("Worker function completed without resolve data")
+          })?,
+        )
+      }
+    };
+    resolved.update_nmf_data(data, None);
+    Ok(result)
   }
 
   fn stage(&self) -> i32 {

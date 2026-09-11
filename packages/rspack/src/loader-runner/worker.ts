@@ -5,6 +5,8 @@ import { createWorkerLoaderCompiler, runLoaders } from '.';
 import {
   clearWorkerLoaderBridgeData,
   setLoaderFunctionBridge,
+  deserializeLoaderOptions,
+  prepareWorkerFunctionValue,
 } from './service';
 
 async function runWorkerLoop(): Promise<never> {
@@ -12,14 +14,41 @@ async function runWorkerLoop(): Promise<never> {
   parentPort?.postMessage({ type: 'rspack-loader-worker-ready' });
   while (true) {
     const task = await recvWorkerTask();
-    const context = task.takeContext();
     try {
-      const result = await runLoaders(
-        createWorkerLoaderCompiler(context, task),
-        context,
-        true,
-      );
-      task.complete(result);
+      if (task.kind === 'function') {
+        const { functions, data } = task.takeFunction();
+        let result: false | undefined;
+        for (const item of functions) {
+          if (
+            item.version !== 1 ||
+            item.hook !== 'NormalModuleFactory.beforeResolve'
+          ) {
+            throw new Error('Unsupported workerFunction hook codec');
+          }
+          const fn = await prepareWorkerFunctionValue(
+            deserializeLoaderOptions(item.value),
+          );
+          const value = await fn(data);
+          if (value !== undefined && value !== false) {
+            throw new TypeError(
+              'workerFunction beforeResolve must return false or undefined',
+            );
+          }
+          if (value === false) {
+            result = false;
+            break;
+          }
+        }
+        task.completeFunction(data, result);
+      } else {
+        const context = task.takeContext();
+        const result = await runLoaders(
+          createWorkerLoaderCompiler(context, task),
+          context,
+          true,
+        );
+        task.complete(result);
+      }
     } catch (error) {
       task.fail(
         error instanceof Error ? (error.stack ?? error.message) : String(error),

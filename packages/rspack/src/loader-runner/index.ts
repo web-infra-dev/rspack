@@ -59,6 +59,7 @@ import { LoaderCache, type LoaderCacheEntry } from './cache';
 import { LoaderDependenciesState } from './dependencies';
 import {
   deserializeLoaderOptions,
+  prepareWorkerFunctionValue,
   getLoaderAdditionalData,
   getLoaderCompilerBridge,
   getLoaderInputFileSystem,
@@ -247,7 +248,7 @@ function getCurrentLoader(
   return null;
 }
 
-function runLoadersInternal(
+async function runLoadersInternal(
   compiler: Compiler,
   context: JsLoaderContext,
   worker = false,
@@ -297,6 +298,20 @@ function runLoadersInternal(
   loaderContext.loaders = context.loaderItems.map((item) => {
     return LoaderObject.__from_binding(item, compiler);
   });
+  // LoaderObject also handles lazy `??ident` lookups. Prepare after that lookup and before
+  // exposing options to pitch/normal functions, without changing synchronous getOptions().
+  await Promise.all(
+    loaderContext.loaders.map(async (loader) => {
+      loader.options = await prepareWorkerFunctionValue(
+        loader.options,
+        worker ? undefined : compiler,
+      );
+    }),
+  );
+  const compilerLoaderOptions = await prepareWorkerFunctionValue(
+    compiler.options.loader,
+    worker ? undefined : compiler,
+  );
 
   loaderContext.hot = context.hot;
   loaderContext.context = contextDirectory;
@@ -500,7 +515,7 @@ function runLoadersInternal(
     ? isUseSourceMap(compiler.options.devtool)
     : (context._module.useSourceMap ?? false);
   loaderContext.mode = compiler.options.mode;
-  Object.assign(loaderContext, compiler.options.loader);
+  Object.assign(loaderContext, compilerLoaderOptions);
   let hookLoaderContextExtensions: Record<string, any> = {};
 
   const getResolveContext = () => {
@@ -739,7 +754,7 @@ function runLoadersInternal(
   dependencies.mergeChanges();
   if (hooksOnly) {
     const hookExtensions: Record<string, any> = {
-      ...(compiler.options.loader ?? {}),
+      ...(compilerLoaderOptions ?? {}),
     };
     for (const key of Reflect.ownKeys(loaderContext)) {
       const before = contextBeforeHooks!.get(key);
@@ -755,21 +770,24 @@ function runLoadersInternal(
         hookExtensions[key] = after.value;
       }
     }
-    context.__internal__hookExtensions = serializeLoaderOptions(hookExtensions);
+    context.__internal__hookExtensions = serializeLoaderOptions(
+      hookExtensions,
+      compiler,
+    );
     context.loaderItems = loaderContext.loaders.map((item) =>
       LoaderObject.__to_binding(item),
     );
     return Promise.resolve(context);
   }
   if (worker && context.__internal__hookExtensions) {
-    hookLoaderContextExtensions = deserializeLoaderOptions(
-      context.__internal__hookExtensions,
+    hookLoaderContextExtensions = await prepareWorkerFunctionValue(
+      deserializeLoaderOptions(context.__internal__hookExtensions),
     );
     Object.assign(loaderContext, hookLoaderContextExtensions);
   }
 
   markLoaderFunctionThis(loaderContext, {
-    ...(compiler.options.loader ?? {}),
+    ...(compilerLoaderOptions ?? {}),
     ...hookLoaderContextExtensions,
   });
 

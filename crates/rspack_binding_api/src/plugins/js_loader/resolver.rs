@@ -109,18 +109,11 @@ pub(crate) async fn resolve_loader(
         None
       };
 
-      let r#type = if path.ends_with(".mjs") {
-        Some(Cow::Borrowed("module"))
-      } else if path.ends_with(".cjs") {
-        Some(Cow::Borrowed("commonjs"))
-      } else {
-        description_data.as_ref().and_then(|data| {
-          data
-            .json()
-            .get("type")
-            .and_then(|t| t.as_str().map(|t| Cow::Owned(t.to_owned())))
-        })
-      };
+      let r#type = crate::resolver::javascript_module_type(
+        path,
+        description_data.as_ref().map(|data| data.json()),
+      )
+      .map(Cow::Owned);
       // favor explicit loader query over aliased query, see webpack issue-3320
       let resource = if let Some(rest) = rest
         && !rest.is_empty()

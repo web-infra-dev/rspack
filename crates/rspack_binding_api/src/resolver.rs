@@ -35,6 +35,28 @@ impl From<rspack_core::Resource> for ResolveRequest {
   }
 }
 
+pub(crate) fn javascript_module_type(
+  path: &str,
+  description: Option<&serde_json::Value>,
+) -> Option<String> {
+  if path.ends_with(".mjs") {
+    Some("module".to_owned())
+  } else if path.ends_with(".cjs") {
+    Some("commonjs".to_owned())
+  } else {
+    description
+      .and_then(|data| data.get("type"))
+      .and_then(|value| value.as_str())
+      .map(str::to_owned)
+  }
+}
+
+#[napi(object)]
+pub struct JsResolvedModule {
+  pub path: String,
+  pub r#type: Option<String>,
+}
+
 #[napi]
 #[derive(Debug)]
 pub struct JsResolver {
@@ -48,6 +70,40 @@ impl JsResolver {
 }
 #[napi]
 impl JsResolver {
+  /// Resolve a JavaScript module without loader query, pitch, raw or builtin semantics.
+  #[napi]
+  pub fn resolve_module_sync(
+    &self,
+    path: String,
+    request: String,
+  ) -> napi::Result<JsResolvedModule> {
+    #[allow(clippy::disallowed_methods)]
+    rspack_napi::runtime::block_on(async {
+      match self.resolver.resolve(Path::new(&path), &request).await {
+        Ok(rspack_core::ResolveResult::Resource(resource)) => {
+          if !resource.query.is_empty() || !resource.fragment.is_empty() {
+            return Err(napi::Error::from_reason(
+              "workerFunction target must not contain a query or fragment",
+            ));
+          }
+          Ok(JsResolvedModule {
+            r#type: javascript_module_type(
+              resource.path.as_str(),
+              resource.description_data.as_ref().map(|data| data.json()),
+            ),
+            path: resource.path.to_string(),
+          })
+        }
+        Ok(rspack_core::ResolveResult::Ignored) => Err(napi::Error::from_reason(
+          "workerFunction target was ignored by resolveLoader",
+        )),
+        Err(error) => Err(napi::Error::from_reason(format!(
+          "Cannot resolve workerFunction {request}: {error:?}"
+        ))),
+      }
+    })
+  }
+
   #[napi]
   pub fn resolve_sync(&self, path: String, request: String) -> napi::Result<Either<String, ()>> {
     #[allow(clippy::disallowed_methods)]

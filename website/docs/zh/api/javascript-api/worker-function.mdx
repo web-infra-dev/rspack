@@ -1,0 +1,72 @@
+---
+description: '在 Rspack 原生 worker 中执行独立模块导出的 hook 函数。'
+---
+
+# workerFunction
+
+`workerFunction` 用于描述独立模块导出的函数，让 Rust 将受支持的 hook 直接分派到与并行 loader 共用的 worker 池。
+
+```ts
+function workerFunction<Fn extends Function>(target: string, options: any): Fn;
+```
+
+首个支持的 hook 是 `NormalModuleFactory.beforeResolve.tapPromise`：
+
+```js title="rspack.config.cjs"
+const path = require('node:path');
+const { workerFunction } = require('@rspack/core');
+
+module.exports = {
+  plugins: [
+    {
+      apply(compiler) {
+        compiler.hooks.normalModuleFactory.tap('RewriteRequests', (factory) => {
+          factory.hooks.beforeResolve.tapPromise(
+            'RewriteRequests',
+            workerFunction(path.join(__dirname, 'rewrite.cjs'), {
+              from: 'virtual-entry',
+              to: './src/index.js',
+            }),
+          );
+        });
+      },
+    },
+  ],
+};
+```
+
+```js title="rewrite.cjs"
+module.exports = async function (resolveData, options) {
+  if (resolveData.request === options.from) {
+    resolveData.request = options.to;
+  }
+};
+```
+
+目标模块必须导出 CJS 函数或 ESM default 函数。调用时，`options` 追加在 hook 参数末尾。`beforeResolve` 返回 `undefined` 表示继续，返回 `false` 表示忽略请求。受支持的 resolveData 字段和依赖数组的修改会写回 Rust。参数是数据快照，保留它不会保留原生 compiler 对象的访问能力。
+
+相对路径以 `compiler.context` 为基准解析，包名和 alias 使用 `resolveLoader` 配置。推荐用绝对路径引用配置文件旁的模块。目标不支持 loader query、fragment、builtin loader 标识或 `pitch`、`raw` 等 loader 导出约定。
+
+普通 tap 和 worker tap 保留排序后的执行顺序，包括 `stage` 和 `before`。只有 worker hook 的构建也会启动共享 worker 池，池大小受 `RSPACK_LOADER_WORKER_THREADS` 控制。模块状态属于各自 worker，不保证连续调用会分配到同一个 worker；每次调用的状态应放在参数中。
+
+## Options 中的函数
+
+Options 支持可传输数据、循环引用、`Map`、`Set` 及嵌套的 `workerFunction`。嵌套函数在使用 options 的 isolate 内执行。ESM 模块会在进入用户代码前准备完成，因此读取 loader options 仍然是同步操作：
+
+```js
+{
+  loader: require.resolve('./transform.cjs'),
+  parallel: true,
+  options: {
+    transform: workerFunction(require.resolve('./transform-value.cjs'), { prefix: 'hello' }),
+  },
+}
+```
+
+Loader 可以调用 `this.getOptions().transform(value)`。普通 loader 在主线程执行恢复后的函数，并行 loader 在自己的 worker 中执行。同一模块搭配不同 options 会生成不同的绑定函数。普通函数保留 loader 现有的函数 RPC 行为，包括同步返回的限制，不会自动搬运闭包。
+
+## 支持环境与限制
+
+原生 hook 调度需要 Node.js worker，暂不支持 browser 和 WASI。其他 hook、`tap`、`tapAsync`、HookMap 中的 worker 注册会明确报错。暂不支持 worker tap 与 JavaScript hook interceptor 组合使用。
+
+工厂返回的是用于 Rspack 注册和数据准备的带标记占位符，请勿直接调用。泛型 `Fn` 只描述暴露的签名，运行时仍会校验描述符和模块导出。失败或被中断的 worker 任务会使构建报错，不会自动重试用户函数。

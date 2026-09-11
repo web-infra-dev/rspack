@@ -1,0 +1,72 @@
+---
+description: 'Run module-exported hook functions on native Rspack workers.'
+---
+
+# workerFunction
+
+`workerFunction` describes a function exported by an independent module. Native Rspack can dispatch supported hooks directly from Rust to its shared loader worker pool.
+
+```ts
+function workerFunction<Fn extends Function>(target: string, options: any): Fn;
+```
+
+The initial supported hook is `NormalModuleFactory.beforeResolve.tapPromise`:
+
+```js title="rspack.config.cjs"
+const path = require('node:path');
+const { workerFunction } = require('@rspack/core');
+
+module.exports = {
+  plugins: [
+    {
+      apply(compiler) {
+        compiler.hooks.normalModuleFactory.tap('RewriteRequests', (factory) => {
+          factory.hooks.beforeResolve.tapPromise(
+            'RewriteRequests',
+            workerFunction(path.join(__dirname, 'rewrite.cjs'), {
+              from: 'virtual-entry',
+              to: './src/index.js',
+            }),
+          );
+        });
+      },
+    },
+  ],
+};
+```
+
+```js title="rewrite.cjs"
+module.exports = async function (resolveData, options) {
+  if (resolveData.request === options.from) {
+    resolveData.request = options.to;
+  }
+};
+```
+
+The target must export a CJS function or an ESM default function. Rspack appends `options` after the hook arguments. For `beforeResolve`, return `undefined` to continue or `false` to ignore the request. Changes to the supported resolve-data fields and dependency arrays are copied back into Rust. The data is a snapshot; retaining it does not grant access to native compiler objects.
+
+Relative targets resolve from `compiler.context`. Package requests and aliases use `resolveLoader`; absolute paths are recommended for modules beside the configuration file. Targets do not accept loader queries, fragments, builtin-loader identifiers, or loader export conventions such as `pitch` and `raw`.
+
+Ordinary and worker taps retain their sorted order, including `stage` and `before`. Worker-only builds start the same pool used by parallel loaders. `RSPACK_LOADER_WORKER_THREADS` controls the pool size. Worker functions should keep per-invocation state in their arguments: module state is local to each worker, and scheduling does not guarantee that successive calls use the same worker.
+
+## Functions in options
+
+Options support transferable data, cycles, `Map`, `Set`, and nested `workerFunction` values. Nested worker functions execute in the isolate using the options. ESM exports are prepared before user code runs, so reading loader options stays synchronous:
+
+```js
+{
+  loader: require.resolve('./transform.cjs'),
+  parallel: true,
+  options: {
+    transform: workerFunction(require.resolve('./transform-value.cjs'), { prefix: 'hello' }),
+  },
+}
+```
+
+A loader can call `this.getOptions().transform(value)`. An ordinary main-thread loader executes this function in the main isolate; a parallel loader executes it in its worker. Different options create different bound functions even when they reference the same module. Ordinary functions in options retain the existing loader function RPC behavior, including its synchronous return limitation; closures are not moved between isolates.
+
+## Supported environments and restrictions
+
+Native hook scheduling requires Node.js workers. Browser and WASI hook scheduling are unsupported. Other hooks, `tap`, `tapAsync`, and HookMap registrations reject worker functions. Combining worker taps with JavaScript hook interceptors is currently unsupported and produces an explicit error.
+
+The returned value is a marked placeholder for Rspack registration and data preparation. Do not invoke the placeholder directly. The generic `Fn` describes the exposed signature; Rspack separately validates the descriptor and the module export at runtime. A failed or interrupted worker task is reported to the build and is not automatically retried.

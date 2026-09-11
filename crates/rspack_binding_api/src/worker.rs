@@ -19,10 +19,35 @@ use crate::{
   resolver::JsResolver,
 };
 
-/// Process-wide native worker payload. The generic queue has one payload kind today; when another
-/// native worker task is added this can become an enum without changing the queue lifecycle.
-pub(crate) struct WorkerTaskPayload {
-  pub(crate) loader_context: LoaderContext<RunnerContext>,
+pub(crate) enum WorkerTaskPayload {
+  Loader(LoaderTaskPayload),
+  Function(FunctionTaskPayload),
+}
+
+#[derive(Clone)]
+#[napi(object)]
+pub struct JsWorkerFunction {
+  pub version: u32,
+  pub compiler_id: u32,
+  pub hook: String,
+  /// Versioned, resolved descriptor graph encoded by the shared JS value codec.
+  pub value: String,
+}
+
+pub(crate) struct FunctionTaskPayload {
+  pub(crate) functions: Vec<JsWorkerFunction>,
+  pub(crate) data: Option<Box<crate::normal_module_factory::JsResolveData>>,
+  pub(crate) result: Option<bool>,
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsFunctionTask {
+  pub functions: Vec<JsWorkerFunction>,
+  pub data: crate::normal_module_factory::JsResolveData,
+}
+
+pub(crate) struct LoaderTaskPayload {
+  pub(crate) loader_context: Box<LoaderContext<RunnerContext>>,
   pub(crate) loaders_without_pitch: Vec<String>,
   pub(crate) hook_extensions: Option<String>,
 }
@@ -41,7 +66,7 @@ pub(crate) async fn dispatch_worker_task(
   NativeWorkerJob::dispatch(&WORKER_QUEUE.0, input).await
 }
 
-/// Owns one Rust loader context received from the process-wide native MPMC queue.
+/// Owns one Rust loader or function task received from the process-wide native MPMC queue.
 #[napi]
 pub struct WorkerTask {
   job: Option<Box<NativeWorkerJob>>,
@@ -49,6 +74,29 @@ pub struct WorkerTask {
 }
 
 impl WorkerTask {
+  fn loader(&self) -> napi::Result<&LoaderTaskPayload> {
+    match self
+      .job
+      .as_ref()
+      .ok_or_else(|| napi::Error::from_reason("Worker task has already finished"))?
+      .input()
+    {
+      WorkerTaskPayload::Loader(payload) => Ok(payload),
+      _ => Err(napi::Error::from_reason("Expected a loader worker task")),
+    }
+  }
+
+  fn loader_mut(&mut self) -> napi::Result<&mut LoaderTaskPayload> {
+    match self
+      .job
+      .as_mut()
+      .ok_or_else(|| napi::Error::from_reason("Worker task has already finished"))?
+      .input_mut()
+    {
+      WorkerTaskPayload::Loader(payload) => Ok(payload),
+      _ => Err(napi::Error::from_reason("Expected a loader worker task")),
+    }
+  }
   fn take_job(&mut self) -> napi::Result<Box<NativeWorkerJob>> {
     self
       .job
@@ -68,28 +116,24 @@ impl WorkerTask {
         "Worker task context has already been taken",
       ));
     }
-    let job = self
-      .job
+    let payload = self.loader_mut()?;
+    let loader_compilation = payload.loader_context.context.compilation;
+    let mut context: JsLoaderContext = payload
+      .loader_context
       .as_mut()
-      .ok_or_else(|| napi::Error::from_reason("Worker task has already finished"))?;
-    let loader_compilation = job.input().loader_context.context.compilation;
-    let mut context: JsLoaderContext = (&mut job.input_mut().loader_context)
       .try_into()
       .map_err(|error: rspack_error::Error| napi::Error::from_reason(error.to_string()))?;
     context.module.set_loader_compilation(loader_compilation);
-    context.hook_extensions = job.input_mut().hook_extensions.take();
+    context.hook_extensions = payload.hook_extensions.take();
     self.context_taken = true;
     Ok(context)
   }
 
-  #[napi]
+  #[napi(ts_return_type = "JsCompilation")]
   pub fn get_compilation(&self) -> napi::Result<JsCompilationWrapper> {
-    let job = self
-      .job
-      .as_ref()
-      .ok_or_else(|| napi::Error::from_reason("Worker task has already finished"))?;
+    let payload = self.loader()?;
     Ok(JsCompilationWrapper::new(
-      job.input().loader_context.context.compilation.as_ref(),
+      payload.loader_context.context.compilation.as_ref(),
     ))
   }
 
@@ -98,10 +142,7 @@ impl WorkerTask {
     &self,
     options: Option<RawResolveOptionsWithDependencyType>,
   ) -> napi::Result<JsResolver> {
-    let job = self
-      .job
-      .as_ref()
-      .ok_or_else(|| napi::Error::from_reason("Worker task has already finished"))?;
+    let payload = self.loader()?;
     let options = match options {
       Some(options) => normalize_raw_resolve_options_with_dependency_type(Some(options), false)
         .map_err(|error| napi::Error::from_reason(error.to_string()))?,
@@ -112,8 +153,7 @@ impl WorkerTask {
       },
     };
     Ok(JsResolver::new(
-      job
-        .input()
+      payload
         .loader_context
         .context
         .compilation
@@ -125,12 +165,8 @@ impl WorkerTask {
 
   #[napi]
   pub fn log(&self, name: String, log_type: String, message: Option<String>) -> napi::Result<()> {
-    let job = self
-      .job
-      .as_ref()
-      .ok_or_else(|| napi::Error::from_reason("Worker task has already finished"))?;
-    let logger = job
-      .input()
+    let payload = self.loader()?;
+    let logger = payload
       .loader_context
       .context
       .compilation
@@ -164,16 +200,25 @@ impl WorkerTask {
 
   #[napi]
   pub fn complete(&mut self, context: JsLoaderContext) -> napi::Result<()> {
+    self.loader()?;
+    if !self.context_taken {
+      return Err(napi::Error::from_reason(
+        "Worker task context has not been taken",
+      ));
+    }
     let mut job = self.take_job()?;
-    ModuleObject::cleanup_by_compiler_id(&job.input().loader_context.context.compiler_id);
-    let loaders_without_pitch = context
+    let WorkerTaskPayload::Loader(payload) = job.input_mut() else {
+      unreachable!()
+    };
+    ModuleObject::cleanup_by_compiler_id(&payload.loader_context.context.compiler_id);
+    payload.loaders_without_pitch = context
       .loader_items
       .iter()
-      .zip(&job.input().loader_context.loader_items)
-      .filter_map(|(js_item, item)| js_item.no_pitch.then(|| item.path().to_string()))
+      .zip(&payload.loader_context.loader_items)
+      .filter(|(js_item, _)| js_item.no_pitch)
+      .map(|(_, item)| item.path().to_string())
       .collect();
-    job.input_mut().loaders_without_pitch = loaders_without_pitch;
-    if let Err(error) = merge_loader_context(&mut job.input_mut().loader_context, context) {
+    if let Err(error) = merge_loader_context(&mut payload.loader_context, context) {
       job.fail(error);
       return Ok(());
     }
@@ -181,10 +226,67 @@ impl WorkerTask {
     Ok(())
   }
 
+  #[napi(getter)]
+  pub fn kind(&self) -> napi::Result<&'static str> {
+    let job = self
+      .job
+      .as_ref()
+      .ok_or_else(|| napi::Error::from_reason("Worker task has already finished"))?;
+    Ok(match job.input() {
+      WorkerTaskPayload::Loader(_) => "loader",
+      WorkerTaskPayload::Function(_) => "function",
+    })
+  }
+
+  #[napi]
+  pub fn take_function(&mut self) -> napi::Result<JsFunctionTask> {
+    let job = self
+      .job
+      .as_mut()
+      .ok_or_else(|| napi::Error::from_reason("Worker task has already finished"))?;
+    let WorkerTaskPayload::Function(payload) = job.input_mut() else {
+      return Err(napi::Error::from_reason("Expected a function worker task"));
+    };
+    let data = payload.data.take().ok_or_else(|| {
+      napi::Error::from_reason("Worker function arguments have already been taken")
+    })?;
+    self.context_taken = true;
+    Ok(JsFunctionTask {
+      functions: payload.functions.clone(),
+      data: *data,
+    })
+  }
+
+  #[napi]
+  pub fn complete_function(
+    &mut self,
+    data: crate::normal_module_factory::JsResolveData,
+    result: Option<bool>,
+  ) -> napi::Result<()> {
+    let job = self
+      .job
+      .as_mut()
+      .ok_or_else(|| napi::Error::from_reason("Worker task has already finished"))?;
+    let WorkerTaskPayload::Function(payload) = job.input_mut() else {
+      return Err(napi::Error::from_reason("Expected a function worker task"));
+    };
+    if !self.context_taken {
+      return Err(napi::Error::from_reason(
+        "Worker function arguments have not been taken",
+      ));
+    }
+    payload.data = Some(Box::new(data));
+    payload.result = result;
+    self.take_job()?.complete();
+    Ok(())
+  }
+
   #[napi]
   pub fn fail(&mut self, error: String) -> napi::Result<()> {
     let job = self.take_job()?;
-    ModuleObject::cleanup_by_compiler_id(&job.input().loader_context.context.compiler_id);
+    if let WorkerTaskPayload::Loader(payload) = job.input() {
+      ModuleObject::cleanup_by_compiler_id(&payload.loader_context.context.compiler_id);
+    }
     job.fail(rspack_error::error!(error));
     Ok(())
   }

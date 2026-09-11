@@ -429,6 +429,8 @@ export declare class JsModuleGraph {
 }
 
 export declare class JsResolver {
+  /** Resolve a JavaScript module without loader query, pitch, raw or builtin semantics. */
+  resolveModuleSync(path: string, request: string): JsResolvedModule
   resolveSync(path: string, request: string): string | undefined
   resolve(path: string, request: string, callback: (err: null | Error, req?: string) => void): void
 }
@@ -513,17 +515,20 @@ export declare class VirtualFileStore {
 }
 export type JsVirtualFileStore = VirtualFileStore
 
-/** Owns one Rust loader context received from the process-wide native MPMC queue. */
+/** Owns one Rust loader or function task received from the process-wide native MPMC queue. */
 export declare class WorkerTask {
   /**
    * Materializes the ordinary JsLoaderContext DTO in the worker isolate. Until this boundary the
    * queue contains only the canonical Rust LoaderContext.
    */
   takeContext(): JsLoaderContext
-  getCompilation(): JsCompilationWrapper
+  getCompilation(): JsCompilation
   getResolver(options?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
   log(name: string, logType: string, message?: string | undefined | null): void
   complete(context: JsLoaderContext): void
+  get kind(): string
+  takeFunction(): JsFunctionTask
+  completeFunction(data: JsResolveData, result?: boolean | undefined | null): void
   fail(error: string): void
 }
 
@@ -898,6 +903,11 @@ export interface JsFactoryMeta {
   sideEffectFree?: boolean
 }
 
+export interface JsFunctionTask {
+  functions: Array<JsWorkerFunction>
+  data: JsResolveData
+}
+
 export interface JsHtmlPluginAssets {
   publicPath: string
   js: Array<string>
@@ -1087,6 +1097,11 @@ export interface JsResolveData {
   contextDependencies: Array<string>
   missingDependencies: Array<string>
   createData?: JsCreateData
+}
+
+export interface JsResolvedModule {
+  path: string
+  type?: string
 }
 
 export interface JsResolveForSchemeArgs {
@@ -1605,13 +1620,21 @@ export interface JsStatsSize {
 }
 
 export interface JsTap {
-  function: (...args: any[]) => any
+  function: ((...args: any[]) => any) | JsWorkerFunction[]
   stage: number
 }
 
 export interface JsVirtualFile {
   path: string
   content: string
+}
+
+export interface JsWorkerFunction {
+  version: number
+  compilerId: number
+  hook: string
+  /** Versioned, resolved descriptor graph encoded by the shared JS value codec. */
+  value: string
 }
 
 export interface KnownAssetInfo {
@@ -3350,7 +3373,7 @@ export interface RegisterJsTaps {
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilationSealTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationAfterSealTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
-  registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
+  registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>) | JsWorkerFunction[]; stage: number; }>
   registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
   registerNormalModuleFactoryResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
   registerNormalModuleFactoryResolveForSchemeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveForSchemeArgs) => Promise<[boolean | undefined, JsResolveForSchemeArgs]>); stage: number; }>

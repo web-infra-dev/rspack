@@ -1,3 +1,4 @@
+import { guardWorkerFunctionHooks } from './util/workerFunctionHooks';
 import * as liteTapable from '@rspack/lite-tapable';
 import type {
   ContextModuleFactoryAfterResolveResult,
@@ -20,5 +21,6 @@ export class ContextModuleFactory {
       beforeResolve: new liteTapable.AsyncSeriesWaterfallHook(['resolveData']),
       afterResolve: new liteTapable.AsyncSeriesWaterfallHook(['resolveData']),
     };
+    guardWorkerFunctionHooks(this.hooks);
   }
 }

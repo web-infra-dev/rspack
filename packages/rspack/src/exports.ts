@@ -498,3 +498,5 @@ export const experiments: Experiments = {
   },
   rsc,
 };
+
+export { workerFunction } from './workerFunction';
