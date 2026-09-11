@@ -5,7 +5,7 @@ use super::BasicEvaluatedExpression;
 use crate::{
   parser_plugin::{evaluate_create_require_new_expression, is_create_require_specifier},
   utils::eval,
-  visitors::{CallHooksName, JavascriptParser},
+  visitors::JavascriptParser,
 };
 
 #[inline]
@@ -20,7 +20,7 @@ pub fn eval_new_expression<'parser>(
     if let Some(identifier) = identifier {
       let name = ast.get_utf8(identifier.name(ast));
       if is_create_require_specifier(parser, name) {
-        let evaluated = name.call_hooks_name(parser, |parser, for_name| {
+        let evaluated = parser.call_hooks_name(name, |parser, for_name| {
           evaluate_create_require_new_expression(parser, for_name, Some(callee), expression)
         });
         if evaluated.is_some() {

@@ -485,7 +485,8 @@ pub struct JavascriptParser<'parser> {
   pub(crate) source: &'parser str,
   pub ast: &'parser ParsedJavaScriptAst<'parser>,
   synthetic_asts: Vec<(&'parser ParsedJavaScriptAst<'parser>, usize)>,
-  active_synthetic_ast: Option<usize>,
+  /// Active replacement AST index; `None` means the original module AST.
+  pub(crate) active_synthetic_ast: Option<usize>,
   pub parse_meta: ParseMeta,
   pub factory_meta: Option<&'parser FactoryMeta>,
   pub build_meta: &'parser mut BuildMeta,
@@ -1761,6 +1762,9 @@ impl<'parser> JavascriptParser<'parser> {
           let state = self
             .definitions_db
             .resolve_identifier(self.ast, ident, resolution);
+          if matches!(state, Some(BindingState::Normal(_))) {
+            return None;
+          }
           let info = state.map(|state| self.definitions_db.expect_get_variable(state));
           if let Some(info) = info {
             if let Some(name) = info.name
