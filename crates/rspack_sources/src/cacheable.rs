@@ -53,6 +53,8 @@ pub enum CacheableSource {
   },
   /// [`SourceMapSource`]
   SourceMap {
+    /// Original bytes when the source is not valid UTF-8.
+    original_buffer: Option<Vec<u8>>,
     /// The source value.
     value: String,
     /// The source name.
@@ -117,6 +119,7 @@ pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
 
   if let Some(s) = source.as_any().downcast_ref::<SourceMapSource>() {
     return CacheableSource::SourceMap {
+      original_buffer: s.original_buffer.as_ref().map(|buffer| buffer.to_vec()),
       value: s.value().to_string(),
       name: s.name().to_string(),
       source_map: s.source_map().to_json(),
@@ -170,6 +173,7 @@ pub fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
     CacheableSource::RawString { value } => RawStringSource::from(value).boxed(),
     CacheableSource::Original { value, name } => OriginalSource::new(value, name).boxed(),
     CacheableSource::SourceMap {
+      original_buffer,
       value,
       name,
       source_map,
@@ -179,15 +183,16 @@ pub fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
     } => {
       let source_map = SourceMap::from_json(source_map).expect("invalid source map JSON");
       let inner_source_map = inner_source_map.and_then(|json| SourceMap::from_json(json).ok());
-      SourceMapSource::new(SourceMapSourceOptions {
+      let mut source = SourceMapSource::new(SourceMapSourceOptions {
         value,
         name,
         source_map,
         original_source: original_source.map(|s| s.into()),
         inner_source_map,
         remove_original_source,
-      })
-      .boxed()
+      });
+      source.original_buffer = original_buffer.map(Vec::into_boxed_slice);
+      source.boxed()
     }
     CacheableSource::Concat { children } => {
       let children: Vec<BoxSource> = children.into_iter().map(from_cacheable).collect();

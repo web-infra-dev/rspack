@@ -638,8 +638,11 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
 }
 
 #[plugin_hook(NormalModuleLoader for HotModuleReplacementPlugin)]
-async fn normal_module_loader(&self, context: &mut LoaderContext<RunnerContext>) -> Result<()> {
-  context.hot = true;
+async fn normal_module_loader(
+  &self,
+  context: &mut Option<Box<LoaderContext<RunnerContext>>>,
+) -> Result<()> {
+  context.as_mut().expect("loader context is available").hot = true;
   Ok(())
 }
 

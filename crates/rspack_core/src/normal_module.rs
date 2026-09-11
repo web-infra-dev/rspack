@@ -18,8 +18,7 @@ use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{AdditionalData, Content, LoaderContext, ResourceData, run_loaders};
 use rspack_sources::{
-  BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt, SourceMap,
-  SourceMapSource, WithoutOriginalOptions,
+  BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt,
 };
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 use serde_json::json;
@@ -28,13 +27,13 @@ use tracing::{Instrument, info_span};
 use crate::{
   BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph, CodeGenerationResultBuilder,
   Compilation, ConnectionState, Context, DependenciesBlock, DependenciesBlockData,
-  DependencyCodeGenerationRef, DependencyId, FactoryMeta, FactoryMetaStore, FreezeLock, GenerateContext, GeneratorOptions,
-  ImportPhase, LibIdentOptions, Loaders, Module, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleType, NeedBuildContext,
-  OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult, ParserAndGenerator,
-  ParserOptions, Resolve, ResolvedLoader, ResolvedModuleOptions, RspackLoaderRunnerPlugin,
-  RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SnapshotValidationResult,
-  SourceType,
+  DependencyCodeGenerationRef, DependencyId, FactoryMeta, FactoryMetaStore, FreezeLock,
+  GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Loaders, Module,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleLayer, ModuleType, NeedBuildContext, OptimizationBailoutItem, OutputOptions, ParseContext,
+  ParseResult, ParserAndGenerator, ParserOptions, Resolve, ResolvedLoader, ResolvedModuleOptions,
+  RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
+  SnapshotValidationResult, SourceType,
   cache::SnapshotStrategyOptions,
   contextify,
   diagnostics::ModuleBuildError,
@@ -79,8 +78,8 @@ impl ModuleIssuer {
 }
 
 define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData, fs: &Arc<dyn ReadableFileSystem>) -> Content,tracing=false);
-define_hook!(NormalModuleLoader: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
-define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
+define_hook!(NormalModuleLoader: Series(loader_context: &mut Option<Box<LoaderContext<RunnerContext>>>),tracing=false);
+define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut Option<Box<LoaderContext<RunnerContext>>>),tracing=false);
 define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule),tracing=false);
 define_hook!(NormalModuleAdditionalData: Series(additional_data: &mut Option<&mut AdditionalData>),tracing=false);
 
@@ -559,15 +558,7 @@ impl Module for NormalModule {
       })
       .unwrap_or_else(|| self.module_type.is_binary());
 
-    let content = if is_binary {
-      Content::Buffer(loader_result.content.into_bytes())
-    } else {
-      Content::String(loader_result.content.into_string_lossy())
-    };
-    let source = self.create_source(
-      content,
-      loader_result.source_map.map(|source_map| *source_map),
-    )?;
+    let source = self.create_source(loader_result.source, is_binary);
 
     self.build_info.get_mut().cacheable = loader_result.cacheable;
     self.build_info.get_mut().dependencies = loader_result.dependencies;
@@ -933,33 +924,27 @@ impl Diagnosable for NormalModule {
 }
 
 impl NormalModule {
-  fn create_source(
-    &self,
-    content: Content,
-    source_map: Option<SourceMap<'static>>,
-  ) -> Result<BoxSource> {
-    if content.is_buffer() {
-      return Ok(RawBufferSource::from(content.into_bytes()).boxed());
+  fn create_source(&self, source: BoxSource, is_binary: bool) -> BoxSource {
+    if is_binary {
+      if source.as_any().is::<RawBufferSource>() {
+        return source;
+      }
+      return RawBufferSource::from(source.buffer().into_owned()).boxed();
     }
-    let source_map_kind = self.get_source_map_kind();
-    if source_map_kind.enabled()
-      && let Some(source_map) = source_map
-    {
-      let content = content.into_string_lossy();
-      return Ok(
-        SourceMapSource::new(WithoutOriginalOptions {
-          value: content,
-          name: self.request(),
-          source_map,
-        })
-        .boxed(),
-      );
+    if !self.get_source_map_kind().enabled() {
+      if source.as_any().is::<RawStringSource>() {
+        return source;
+      }
+      return RawStringSource::from(source.source().into_string_lossy().into_owned()).boxed();
     }
-    if source_map_kind.enabled()
-      && let Content::String(content) = content
-    {
-      return Ok(OriginalSource::new(content, self.request()).boxed());
+    // Only raw loader output needs an identity map. Keep transformed source graphs intact.
+    if source.as_any().is::<RawBufferSource>() || source.as_any().is::<RawStringSource>() {
+      return OriginalSource::new(
+        source.source().into_string_lossy().into_owned(),
+        self.request(),
+      )
+      .boxed();
     }
-    Ok(RawStringSource::from(content.into_string_lossy()).boxed())
+    source
   }
 }

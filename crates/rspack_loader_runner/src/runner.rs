@@ -5,7 +5,7 @@ use rspack_cacheable::{cacheable, with::Skip};
 use rspack_error::{Diagnostic, Error, Result, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::Utf8PathBuf;
-use rspack_sources::SourceMap;
+use rspack_sources::{BoxSource, RawStringSource, SourceExt};
 use tracing::{Instrument, info_span};
 
 use crate::{
@@ -68,16 +68,17 @@ impl<Context: Send> Loaders<Context> {
   }
 }
 
-impl<Context: LoaderRunnerContext> LoaderContext<Context> {
-  async fn start_yielding(&mut self) -> Result<bool> {
-    if self.current_loader().execution_kind() == LoaderExecutionKind::JavaScript
-      && let Some(plugin) = &self.plugin
-    {
-      plugin.clone().start_yielding(self).await?;
-      return Ok(true);
-    }
-    Ok(false)
+async fn start_yielding<Context: LoaderRunnerContext>(
+  context: &mut Option<Box<LoaderContext<Context>>>,
+) -> Result<bool> {
+  let cx = context.as_ref().expect("loader context is available");
+  if let Some(plugin) = cx.plugin.clone()
+    && cx.current_loader().execution_kind() == LoaderExecutionKind::JavaScript
+  {
+    plugin.start_yielding(context).await?;
+    return Ok(true);
   }
+  Ok(false)
 }
 
 #[tracing::instrument("LoaderRunner:process_resource",
@@ -93,8 +94,7 @@ async fn process_resource<Context: LoaderRunnerContext>(
       .process_resource(&loader_context.resource_data, fs)
       .await?
   {
-    loader_context.content = Some(content);
-    loader_context.source_map = source_map.map(Box::new);
+    loader_context.source = Some(content.into_source(source_map, loader_context.resource()));
     for dependency in file_dependencies {
       loader_context.add_file_dependency(dependency);
     }
@@ -140,9 +140,8 @@ fn create_loader_context<Context: LoaderRunnerContext>(
     dependencies,
     added_dependencies: Default::default(),
     removed_dependencies: Default::default(),
-    content: None,
+    source: None,
     context,
-    source_map: None,
     additional_data: None,
     state: State::Init,
     loader_index: 0,
@@ -160,21 +159,33 @@ pub async fn run_loaders<Context: LoaderRunnerContext>(
   context: Context,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> (LoaderResult<Context>, Option<Error>) {
-  let mut cx = create_loader_context(resource_data, plugin, context);
+  let mut cx = Some(Box::new(create_loader_context(
+    resource_data,
+    plugin,
+    context,
+  )));
   let result = run_loaders_impl(&mut cx, fs).await;
-  (LoaderResult::new(cx), result.err())
+  (
+    LoaderResult::new(*cx.expect("loader context is restored after yielding")),
+    result.err(),
+  )
 }
 
 async fn run_loaders_impl<Context: LoaderRunnerContext>(
-  cx: &mut LoaderContext<Context>,
+  context: &mut Option<Box<LoaderContext<Context>>>,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
+  let cx = context.as_mut().expect("loader context is available");
   if let Some(plugin) = cx.plugin.clone() {
-    plugin.before_all(cx).await?;
+    plugin.before_all(context).await?;
   }
+  let cx = context
+    .as_mut()
+    .expect("loader context is restored after hooks");
   let resource = cx.resource().to_owned();
   let resource = resource.as_str();
   loop {
+    let cx = context.as_mut().expect("loader context is available");
     match cx.state {
       State::Init => {
         cx.state.transition(State::Pitching);
@@ -185,14 +196,18 @@ async fn run_loaders_impl<Context: LoaderRunnerContext>(
           continue;
         }
         let span = info_span!("run_loader:pitch:yield_to_js", resource);
-        if cx.start_yielding().instrument(span).await? {
-          if cx.content.is_some() {
+        if start_yielding(context).instrument(span).await? {
+          let cx = context
+            .as_mut()
+            .expect("loader context is restored after yielding");
+          if cx.source.is_some() {
             cx.state.transition(State::Normal);
             cx.loader_index -= 1;
           }
           continue;
         }
 
+        let cx = context.as_mut().expect("loader context is available");
         if cx.current_loader_state().pitch_executed() {
           cx.loader_index += 1;
           continue;
@@ -205,7 +220,7 @@ async fn run_loaders_impl<Context: LoaderRunnerContext>(
         let result = loader.pitch(cx).instrument(span).await;
         cx.merge_dependency_changes();
         result?;
-        if cx.content.is_some() {
+        if cx.source.is_some() {
           cx.state.transition(State::Normal);
           cx.loader_index -= 1;
         }
@@ -227,10 +242,11 @@ async fn run_loaders_impl<Context: LoaderRunnerContext>(
           continue;
         }
         let span = info_span!("run_loader:yield_to_js", resource);
-        if cx.start_yielding().instrument(span).await? {
+        if start_yielding(context).instrument(span).await? {
           continue;
         }
 
+        let cx = context.as_mut().expect("loader context is available");
         if cx.current_loader_state().normal_executed() {
           cx.loader_index -= 1;
           continue;
@@ -260,7 +276,8 @@ async fn run_loaders_impl<Context: LoaderRunnerContext>(
     }
   }
 
-  if cx.content.is_none() {
+  let cx = context.as_ref().expect("loader context is available");
+  if cx.source.is_none() {
     if !cx.loader_items().is_empty() {
       let loader = cx.loader_items()[0].to_string();
       return Err(error!(
@@ -280,8 +297,7 @@ pub struct LoaderResult<Context> {
   pub cacheable: bool,
   pub dependencies: LoaderDependencies,
   pub diagnostics: Vec<Diagnostic>,
-  pub content: Content,
-  pub source_map: Option<Box<SourceMap<'static>>>,
+  pub source: BoxSource,
   pub additional_data: Option<AdditionalData>,
   pub parse_meta: ParseMeta,
   pub current_loader: Option<Utf8PathBuf>,
@@ -302,10 +318,9 @@ impl<Context: LoaderRunnerContext> LoaderResult<Context> {
       cacheable: loader_context.cacheable,
       dependencies: loader_context.dependencies,
       diagnostics: loader_context.diagnostics,
-      content: loader_context
-        .content
-        .unwrap_or(Content::String(String::new())),
-      source_map: loader_context.source_map,
+      source: loader_context
+        .source
+        .unwrap_or_else(|| RawStringSource::from(String::new()).boxed()),
       additional_data: loader_context.additional_data,
       parse_meta: loader_context.parse_meta,
       current_loader,
@@ -347,7 +362,10 @@ mod test {
       "test-content"
     }
 
-    async fn before_all(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
+    async fn before_all(
+      &self,
+      _context: &mut Option<Box<LoaderContext<Self::Context>>>,
+    ) -> Result<()> {
       Ok(())
     }
 
@@ -468,7 +486,7 @@ mod test {
 
       async fn pitch(&self, loader_context: &mut LoaderContext<TestContext>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("pitch-normal-pitch".to_string()));
-        loader_context.content = Some(Content::Buffer(vec![]));
+        loader_context.source = Some(Content::Buffer(vec![]).into_source(None, ""));
         Ok(())
       }
     }
@@ -490,7 +508,7 @@ mod test {
 
       async fn pitch(&self, loader_context: &mut LoaderContext<TestContext>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("pitch-normal-pitch-2".to_string()));
-        loader_context.content = Some(Content::Buffer(vec![]));
+        loader_context.source = Some(Content::Buffer(vec![]).into_source(None, ""));
         Ok(())
       }
     }
@@ -569,7 +587,7 @@ mod test {
           .get::<&str>()
           .unwrap();
         assert_eq!(*data, "additional-data");
-        loader_context.finish_with((String::new(), None, None));
+        loader_context.finish_with(String::new());
         Ok(())
       }
     }
@@ -587,7 +605,10 @@ mod test {
       async fn run(&self, loader_context: &mut LoaderContext<TestContext>) -> Result<()> {
         let mut additional_data: AdditionalData = Default::default();
         additional_data.insert("additional-data");
-        loader_context.finish_with((String::new(), None, Some(additional_data)));
+        loader_context.finish_with((
+          Content::String(String::new()).into_source(None, ""),
+          Some(additional_data),
+        ));
         Ok(())
       }
     }
@@ -625,7 +646,7 @@ mod test {
       }
 
       async fn run(&self, loader_context: &mut LoaderContext<TestContext>) -> Result<()> {
-        assert!(loader_context.content.is_some());
+        assert!(loader_context.source.is_some());
         // Does not call `LoaderContext::finish_with`
         Ok(())
       }
@@ -646,9 +667,8 @@ mod test {
       }
 
       async fn run(&self, loader_context: &mut LoaderContext<TestContext>) -> Result<()> {
-        let (content, source_map, additional_data) = loader_context.take_all();
-        assert!(content.is_none());
-        assert!(source_map.is_none());
+        let (source, additional_data) = loader_context.take_all();
+        assert!(source.is_none());
         assert!(additional_data.is_none());
         Ok(())
       }

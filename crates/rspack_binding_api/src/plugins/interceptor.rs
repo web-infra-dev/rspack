@@ -101,7 +101,7 @@ use crate::{
     JsCreateData, JsNormalModuleFactoryCreateModuleArgs, JsResolveData, JsResolveForSchemeArgs,
     JsResolveForSchemeOutput,
   },
-  plugins::js_loader::{JsLoaderContext, merge_loader_context},
+  plugins::js_loader::JsLoaderContext,
   rsdoctor::{
     JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
     JsRsdoctorModuleSourcesPatch,
@@ -626,7 +626,7 @@ pub struct RegisterJsTaps {
   )]
   pub register_compilation_after_seal_taps: RegisterFunction,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => JsLoaderContext); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => void); stage: number; }>"
   )]
   pub register_normal_module_loader_taps: RegisterFunction,
   #[napi(
@@ -942,7 +942,7 @@ define_register!(
 /* NormalModule Hooks */
 define_register!(
   RegisterNormalModuleLoaderTaps,
-  tap = NormalModuleLoaderTap<JsLoaderContext, JsLoaderContext> @ NormalModuleLoaderHook,
+  tap = NormalModuleLoaderTap<JsLoaderContext, ()> @ NormalModuleLoaderHook,
   cache = true,
   kind = RegisterJsTapKind::NormalModuleLoader,
   skip = true,
@@ -1704,12 +1704,21 @@ impl CompilationAfterSeal for CompilationAfterSealTap {
 
 #[async_trait]
 impl NormalModuleLoader for NormalModuleLoaderTap {
-  async fn run(&self, context: &mut LoaderContext<RunnerContext>) -> rspack_error::Result<()> {
-    let data = self
-      .function
-      .call_with_sync(JsLoaderContext::try_from(&mut *context)?)
-      .await?;
-    merge_loader_context(context, data)
+  async fn run(
+    &self,
+    context: &mut Option<Box<LoaderContext<RunnerContext>>>,
+  ) -> rspack_error::Result<()> {
+    let js_context = JsLoaderContext::new(context.take().expect("loader context is available"));
+    let inner = js_context.inner.clone();
+    let result = self.function.call_with_sync(js_context).await;
+    // Revoke retained handles and restore ownership even if a loader hook throws.
+    let inner = inner
+      .lock()
+      .expect("should get loader context lock")
+      .take()
+      .expect("loader context is available");
+    *context = Some(inner.context);
+    result
   }
 
   fn stage(&self) -> i32 {

@@ -4,7 +4,7 @@ use derive_more::Debug;
 use rspack_cacheable::cacheable;
 use rspack_error::Diagnostic;
 use rspack_paths::{InternedPath, InternedPathSet, Utf8Path};
-use rspack_sources::SourceMap;
+use rspack_sources::BoxSource;
 
 #[cfg(feature = "test-loader")]
 use crate::loader::LoaderItemList;
@@ -65,8 +65,7 @@ pub struct LoaderContext<Context: Send> {
   pub context: Context,
   pub parse_meta: ParseMeta,
 
-  pub(crate) content: Option<Content>,
-  pub(crate) source_map: Option<Box<SourceMap<'static>>>,
+  pub(crate) source: Option<BoxSource>,
   pub(crate) additional_data: Option<AdditionalData>,
 
   pub cacheable: bool,
@@ -368,42 +367,24 @@ impl<Context: Send> LoaderContext<Context> {
     self.resource_data.query()
   }
 
-  pub fn content(&self) -> Option<&Content> {
-    self.content.as_ref()
-  }
-
-  pub fn source_map(&self) -> Option<&SourceMap<'static>> {
-    self.source_map.as_deref()
+  pub fn source(&self) -> Option<&BoxSource> {
+    self.source.as_ref()
   }
 
   pub fn additional_data(&self) -> Option<&AdditionalData> {
     self.additional_data.as_ref()
   }
 
-  pub fn take_content(&mut self) -> Option<Content> {
-    self.content.take()
-  }
-
-  pub fn take_source_map(&mut self) -> Option<SourceMap<'static>> {
-    self.source_map.take().map(|source_map| *source_map)
+  pub fn take_source(&mut self) -> Option<BoxSource> {
+    self.source.take()
   }
 
   pub fn take_additional_data(&mut self) -> Option<AdditionalData> {
     self.additional_data.take()
   }
 
-  pub fn take_all(
-    &mut self,
-  ) -> (
-    Option<Content>,
-    Option<SourceMap<'static>>,
-    Option<AdditionalData>,
-  ) {
-    (
-      self.content.take(),
-      self.take_source_map(),
-      self.additional_data.take(),
-    )
+  pub fn take_all(&mut self) -> (Option<BoxSource>, Option<AdditionalData>) {
+    (self.source.take(), self.additional_data.take())
   }
 
   pub fn finish_with(&mut self, patch: impl Into<LoaderPatch>) {
@@ -412,8 +393,7 @@ impl<Context: Send> LoaderContext<Context> {
   }
 
   pub fn finish_with_empty(&mut self) {
-    self.content = None;
-    self.source_map = None;
+    self.source = None;
     self.additional_data = None;
     self.set_current_loader_finish_called();
   }
@@ -426,155 +406,60 @@ impl<Context: Send> LoaderContext<Context> {
   #[doc(hidden)]
   pub fn __finish_with(&mut self, patch: impl Into<LoaderPatch>) {
     let patch = patch.into();
-    self.content = patch.content;
-    self.source_map = patch.source_map.map(Box::new);
+    self.source = patch.source;
     self.additional_data = patch.additional_data;
   }
 }
 
 pub struct LoaderPatch {
-  pub(crate) content: Option<Content>,
-  pub(crate) source_map: Option<SourceMap<'static>>,
+  pub(crate) source: Option<BoxSource>,
   pub(crate) additional_data: Option<AdditionalData>,
 }
 
-impl<T> From<T> for LoaderPatch
-where
-  T: Into<Content>,
-{
-  fn from(content: T) -> Self {
+impl From<BoxSource> for LoaderPatch {
+  fn from(source: BoxSource) -> Self {
     Self {
-      content: Some(content.into()),
-      source_map: None,
+      source: Some(source),
       additional_data: None,
     }
   }
 }
 
-impl<T> From<(T, SourceMap<'static>)> for LoaderPatch
-where
-  T: Into<Content>,
-{
-  fn from(value: (T, SourceMap<'static>)) -> Self {
+impl From<Option<BoxSource>> for LoaderPatch {
+  fn from(source: Option<BoxSource>) -> Self {
     Self {
-      content: Some(value.0.into()),
-      source_map: Some(value.1),
+      source,
       additional_data: None,
     }
   }
 }
 
-impl<T> From<(T, Option<SourceMap<'static>>)> for LoaderPatch
-where
-  T: Into<Content>,
-{
-  fn from(value: (T, Option<SourceMap<'static>>)) -> Self {
+impl From<(BoxSource, Option<AdditionalData>)> for LoaderPatch {
+  fn from((source, additional_data): (BoxSource, Option<AdditionalData>)) -> Self {
     Self {
-      content: Some(value.0.into()),
-      source_map: value.1,
-      additional_data: None,
+      source: Some(source),
+      additional_data,
     }
   }
 }
 
-impl<T> From<(T, SourceMap<'static>, AdditionalData)> for LoaderPatch
-where
-  T: Into<Content>,
-{
-  fn from(value: (T, SourceMap<'static>, AdditionalData)) -> Self {
+impl From<(Option<BoxSource>, Option<AdditionalData>)> for LoaderPatch {
+  fn from((source, additional_data): (Option<BoxSource>, Option<AdditionalData>)) -> Self {
     Self {
-      content: Some(value.0.into()),
-      source_map: Some(value.1),
-      additional_data: Some(value.2),
+      source,
+      additional_data,
     }
   }
 }
 
-impl<T> From<(T, Option<SourceMap<'static>>, Option<AdditionalData>)> for LoaderPatch
-where
-  T: Into<Content>,
-{
-  fn from(value: (T, Option<SourceMap<'static>>, Option<AdditionalData>)) -> Self {
-    Self {
-      content: Some(value.0.into()),
-      source_map: value.1,
-      additional_data: value.2,
-    }
+impl From<String> for LoaderPatch {
+  fn from(content: String) -> Self {
+    Content::from(content).into_source(None, "").into()
   }
 }
 
-impl<T> From<Option<T>> for LoaderPatch
-where
-  T: Into<Content>,
-{
-  fn from(content: Option<T>) -> Self {
-    Self {
-      content: content.map(|c| c.into()),
-      source_map: None,
-      additional_data: None,
-    }
-  }
-}
-
-impl<T> From<(Option<T>, SourceMap<'static>)> for LoaderPatch
-where
-  T: Into<Content>,
-{
-  fn from(value: (Option<T>, SourceMap<'static>)) -> Self {
-    Self {
-      content: value.0.map(|c| c.into()),
-      source_map: Some(value.1),
-      additional_data: None,
-    }
-  }
-}
-
-impl<T> From<(Option<T>, Option<SourceMap<'static>>)> for LoaderPatch
-where
-  T: Into<Content>,
-{
-  fn from(value: (Option<T>, Option<SourceMap<'static>>)) -> Self {
-    Self {
-      content: value.0.map(|c| c.into()),
-      source_map: value.1,
-      additional_data: None,
-    }
-  }
-}
-
-impl<T> From<(Option<T>, SourceMap<'static>, AdditionalData)> for LoaderPatch
-where
-  T: Into<Content>,
-{
-  fn from(value: (Option<T>, SourceMap<'static>, AdditionalData)) -> Self {
-    Self {
-      content: value.0.map(|c| c.into()),
-      source_map: Some(value.1),
-      additional_data: Some(value.2),
-    }
-  }
-}
-
-impl<T>
-  From<(
-    Option<T>,
-    Option<SourceMap<'static>>,
-    Option<AdditionalData>,
-  )> for LoaderPatch
-where
-  T: Into<Content>,
-{
-  fn from(
-    value: (
-      Option<T>,
-      Option<SourceMap<'static>>,
-      Option<AdditionalData>,
-    ),
-  ) -> Self {
-    Self {
-      content: value.0.map(|c| c.into()),
-      source_map: value.1,
-      additional_data: value.2,
-    }
+impl From<Vec<u8>> for LoaderPatch {
+  fn from(content: Vec<u8>) -> Self {
+    Content::from(content).into_source(None, "").into()
   }
 }

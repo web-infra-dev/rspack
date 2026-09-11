@@ -18,11 +18,21 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     "unknown"
   }
 
-  async fn before_all(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
+  /// Hooks may move the boxed context into JavaScript and must restore it before
+  /// returning, including on error.
+  async fn before_all(
+    &self,
+    _context: &mut Option<Box<LoaderContext<Self::Context>>>,
+  ) -> Result<()> {
     Ok(())
   }
 
-  async fn start_yielding(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
+  /// A yielding plugin may take ownership of the boxed context, but must restore
+  /// it before returning, including on error.
+  async fn start_yielding(
+    &self,
+    _context: &mut Option<Box<LoaderContext<Self::Context>>>,
+  ) -> Result<()> {
     Ok(())
   }
 

@@ -14,10 +14,13 @@ use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RscMeta, RunnerContext};
+use rspack_core::{
+  COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RscMeta, RunnerContext,
+  rspack_sources::{MapOptions, ObjectPool},
+};
 use rspack_error::{Diagnostic, Error, Result, SerdeResultToRspackResultExt};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
-use rspack_loader_runner::{Identifier, Loader, LoaderContext};
+use rspack_loader_runner::{Content, Identifier, Loader, LoaderContext};
 #[cfg(allocative)]
 use rspack_util::allocative;
 pub use rspack_workspace::rspack_swc_core_version;
@@ -65,7 +68,7 @@ impl SwcLoader {
       .map(|p| p.to_path_buf())
       .unwrap_or_default();
     loader_context.context.module.build_info_mut().isolated_dts = None;
-    let Some(content) = loader_context.take_content() else {
+    let Some(content) = loader_context.take_source() else {
       return Ok(());
     };
     let swc_options = {
@@ -93,7 +96,7 @@ impl SwcLoader {
       }
 
       if loader_context.context.source_map_kind.enabled() {
-        if let Some(pre_source_map) = loader_context.source_map() {
+        if let Some(pre_source_map) = content.map(&ObjectPool::default(), &MapOptions::default()) {
           swc_options.config.input_source_map = Some(InputSourceMap::Str(pre_source_map.to_json()))
         }
       } else {
@@ -126,7 +129,7 @@ impl SwcLoader {
     let filename = Arc::new(FileName::Real(resource_path.clone().into_std_path_buf()));
     let comments = Rc::new(SingleThreadedComments::default());
 
-    let source = content.into_string_lossy();
+    let source = content.source().into_string_lossy().into_owned();
     let is_typescript =
       matches!(swc_options.config.jsc.syntax, Some(syntax) if syntax.typescript());
     let isolated_dts_context = (is_typescript
@@ -294,7 +297,8 @@ impl SwcLoader {
     }
 
     let additional_data = loader_context.take_additional_data();
-    loader_context.finish_with((code, map, additional_data));
+    let source = Content::String(code).into_source(map, resource_path.as_str());
+    loader_context.finish_with((source, additional_data));
 
     Ok(())
   }

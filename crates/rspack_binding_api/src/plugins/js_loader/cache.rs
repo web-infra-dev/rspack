@@ -4,10 +4,9 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_cacheable::{cacheable, with::AsMap};
 use rspack_core::{
-  CacheFacade, CacheValue, Content, Etag, FileSystemInfo, LoaderCacheDependencySnapshot,
-  LoaderDependencies, Resolver, loader_cache_dependency_snapshot,
-  loader_cache_dependency_snapshot_is_valid, loader_cache_etag, loader_cache_item,
-  restore_loader_cache_dependencies,
+  CacheFacade, CacheValue, Etag, FileSystemInfo, LoaderCacheDependencySnapshot, LoaderDependencies,
+  Resolver, loader_cache_dependency_snapshot, loader_cache_dependency_snapshot_is_valid,
+  loader_cache_etag, loader_cache_item, restore_loader_cache_dependencies,
 };
 use rspack_error::Result;
 use rspack_hash::{HashFunction, RspackHasher};
@@ -148,7 +147,7 @@ impl JsLoaderCache {
     };
     let existing: LoaderDependencies = existing.into();
     let etag = loader_cache_etag(
-      &Content::Buffer(content),
+      &content,
       &existing,
       &loader.options_cache_key,
       &loader.loader_version,

@@ -1,5 +1,5 @@
-use napi::{Either, bindgen_prelude::JsValuesTupleIntoVec};
-use rspack_core::{AdditionalData, LoaderContext, NormalModuleLoaderStartYielding, RunnerContext};
+use napi::bindgen_prelude::JsValuesTupleIntoVec;
+use rspack_core::{LoaderContext, NormalModuleLoaderStartYielding, RunnerContext};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
@@ -18,19 +18,22 @@ impl JsLoaderRspackPlugin {
 #[plugin_hook(NormalModuleLoaderStartYielding for JsLoaderRspackPlugin,tracing=false)]
 pub(crate) async fn loader_yield(
   &self,
-  loader_context: &mut LoaderContext<RunnerContext>,
+  loader_context: &mut Option<Box<LoaderContext<RunnerContext>>>,
 ) -> Result<()> {
+  let cx = loader_context
+    .as_mut()
+    .expect("loader context is available");
   // Keep pitch capability discovery on the JS side of the runtime boundary.
   // A loader known not to have a pitch function does not need a JS callback.
-  if loader_context.state() == LoaderState::Pitching
+  if cx.state() == LoaderState::Pitching
     && self
       .loaders_without_pitch
       .read()
       .await
-      .contains(loader_context.current_loader().path().as_str())
+      .contains(cx.current_loader().path().as_str())
   {
-    loader_context.set_current_loader_pitch_executed();
-    loader_context.loader_index += 1;
+    cx.set_current_loader_pitch_executed();
+    cx.loader_index += 1;
     return Ok(());
   }
 
@@ -44,110 +47,39 @@ pub(crate) async fn loader_yield(
     .await
     .to_rspack_result()?;
 
-  let new_cx = runner
-    .call_async(loader_context.try_into()?)
-    .await
-    .to_rspack_result()?
-    .await
-    .to_rspack_result()?;
-
-  if loader_context.state() == LoaderState::Pitching {
-    let list = collect_loaders_without_pitch(loader_context, &new_cx);
-    if !list.is_empty() {
-      self.update_loaders_without_pitch(list).await;
-    }
+  let js_context =
+    JsLoaderContext::new(loader_context.take().expect("loader context is available"));
+  let inner = js_context.inner.clone();
+  let result = async {
+    runner
+      .call_async(js_context)
+      .await
+      .to_rspack_result()?
+      .await
+      .to_rspack_result()
   }
+  .await;
 
-  merge_loader_context(loader_context, new_cx)?;
+  // Always recover ownership, including when the callback throws or its Promise rejects.
+  // Taking the slot also prevents retained JS instances from accessing native state.
+  let inner = inner
+    .lock()
+    .expect("should get loader context lock")
+    .take()
+    .expect("loader context is available");
+  *loader_context = Some(inner.context);
+  result?;
 
-  Ok(())
-}
-
-pub(crate) fn merge_loader_context(
-  to: &mut LoaderContext<RunnerContext>,
-  mut from: JsLoaderContext,
-) -> Result<()> {
-  if let Some(state) = from.loader_context_state.take() {
-    to.context.loader_context_data.insert(state);
+  if !inner.loaders_without_pitch.is_empty() {
+    self
+      .update_loaders_without_pitch(inner.loaders_without_pitch)
+      .await;
   }
-  to.cacheable = from.cacheable;
-  to.replace_dependencies(from.dependencies.into());
-
-  if let Some(error) = from.error {
+  if let Some(error) = inner.error {
     if let Some(diagnostic) = error.rust_diagnostic.as_ref() {
       return Err(diagnostic.error.clone());
     }
     return Err(error.with_parent_error_name("ModuleBuildError").into());
   }
-
-  let content = match from.content {
-    Either::A(_) => None,
-    Either::B(c) => {
-      // perf: Ignore UTF-8 check when JavaScript passed in an UTF-8 encoded value
-      let content = if let Some(utf8_hint) = from.utf8_hint
-        && utf8_hint
-      {
-        rspack_core::Content::from(
-          // SAFETY: UTF-8 passed from JavaScript loader runner should ensure it does not pass non-UTF-8 encoded sequence when `utf_hint` is set to `true`. This invariant should be followed on the JavaScript side.
-          unsafe { String::from_utf8_unchecked(c.into()) },
-        )
-      } else {
-        rspack_core::Content::from(Into::<Vec<u8>>::into(c))
-      };
-
-      Some(content)
-    }
-  };
-  let source_map = from
-    .source_map
-    .map(|buffer| rspack_core::rspack_sources::SourceMap::from_bytes(buffer.into()))
-    .transpose()
-    .to_rspack_result()?;
-  let additional_data = from.additional_data.take().map(|data| {
-    let mut additional = AdditionalData::default();
-    additional.insert(data);
-    additional
-  });
-  to.__finish_with((content, source_map, additional_data));
-
-  let to_state = to.state();
-  // update per-run loader status without mutating the shared loader metadata
-  for (to, from) in to
-    .loader_item_states
-    .iter_mut()
-    .zip(from.loader_items.drain(..))
-  {
-    if from.normal_executed {
-      to.set_normal_executed();
-    }
-    if from.pitch_executed {
-      to.set_pitch_executed();
-    }
-    to.set_data(from.data);
-    if to_state != LoaderState::Init {
-      to.set_finish_called();
-    }
-  }
-  to.loader_index = from.loader_index;
-  to.parse_meta.extend(
-    from
-      .parse_meta
-      .into_iter()
-      .map(|(k, v)| (k, Box::new(v) as _)),
-  );
-
   Ok(())
-}
-
-fn collect_loaders_without_pitch(
-  ctx: &LoaderContext<RunnerContext>,
-  js_ctx: &JsLoaderContext,
-) -> Vec<String> {
-  let mut list = Vec::new();
-  for (js_loader_item, loader_item) in js_ctx.loader_items.iter().zip(ctx.loader_items().iter()) {
-    if js_loader_item.no_pitch {
-      list.push(loader_item.path().to_string());
-    }
-  }
-  list
 }

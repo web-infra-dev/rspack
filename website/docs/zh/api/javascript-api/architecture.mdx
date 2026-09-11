@@ -110,6 +110,24 @@ Rspack 可以同时处理多个文件，但 JavaScript loader 需要在 JavaScri
 
 Builtin loader 可以在 Rust 侧执行，减少 JavaScript 排队和跨语言数据转换，并更好地利用 Rspack 的并行能力。
 
+### Loader 源码的所有权
+
+原生 loader runner 用 `Box` 持有 `LoaderContext`，通过 `BoxSource` 一起传递内容和映射。内置 loader 可以保留 Source 的组合结构：例如 refresh loader 用 `ConcatSource` 追加运行时代码，lightningcss 直接返回 `SourceMapSource`，无需先展开其 source map。
+
+执行切换到 JavaScript 时，原生 `JsLoaderContext` class 在本次调用期间持有装箱的上下文。只有 JavaScript runner 读取对应 getter 时，才转换内容和 source map。JavaScript 侧的 loader-context 封装保存本地执行状态，在返回前一次性写回结果。pitch 没有产生输出时，会保留原生 Source 的结构。loader 执行前的原生 loader hook 也使用相同的所有权和写回边界。hook 安装的属性和闭包通过共享的 JavaScript 封装跨内置及 JavaScript loader 保留，每次进入 JavaScript 时都会更新封装捕获的执行状态。
+
+```text
+原生 loader：BoxSource
+  ↓ move 装箱的 LoaderContext
+JsLoaderContext：按需 getter
+  ↓
+JavaScript loader-context 封装：本地修改
+  ↓ 整体写回一次结果
+原生 runner：收回装箱的 LoaderContext 并继续执行
+```
+
+JavaScript 调用结束后，原生 runner 收回上下文，该 `JsLoaderContext` 实例的访问随即失效。这是内部桥接机制；loader 仍然使用兼容 webpack 的 `this` 上下文、字符串或 Buffer 内容、source-map 对象以及回调。
+
 ## 高效用法
 
 ### 只读取需要的资源

@@ -25,7 +25,10 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     "rspack-loader-runner"
   }
 
-  async fn before_all(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
+  async fn before_all(
+    &self,
+    context: &mut Option<Box<LoaderContext<Self::Context>>>,
+  ) -> Result<()> {
     self
       .plugin_driver
       .normal_module_hooks
@@ -96,7 +99,10 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     Ok(None)
   }
 
-  async fn start_yielding(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
+  async fn start_yielding(
+    &self,
+    context: &mut Option<Box<LoaderContext<Self::Context>>>,
+  ) -> Result<()> {
     self
       .plugin_driver
       .normal_module_hooks
