@@ -61,39 +61,20 @@ pub(crate) async fn loader_yield(
     .await
     .to_rspack_result()?;
 
-  let js_context =
-    JsLoaderContext::new(loader_context.take().expect("loader context is available"));
-  let inner = js_context.inner.clone();
-  let result = async {
-    runner
-      .call_async(js_context)
-      .await
-      .to_rspack_result()?
-      .await
-      .to_rspack_result()
-  }
-  .await;
+  let mut js_context = runner
+    .call_async(JsLoaderContext::new(
+      loader_context.take().expect("loader context is available"),
+    ))
+    .await
+    .to_rspack_result()?
+    .await
+    .to_rspack_result()?;
+  *loader_context = js_context.context.take();
 
-  // Always recover ownership, including when the callback throws or its Promise rejects.
-  // Taking the slot also prevents retained JS instances from accessing native state.
-  let inner = inner
-    .lock()
-    .expect("should get loader context lock")
-    .take()
-    .expect("loader context is available");
-  *loader_context = Some(inner.context);
-  result?;
-
-  if !inner.loaders_without_pitch.is_empty() {
+  if !js_context.loaders_without_pitch.is_empty() {
     self
-      .update_loaders_without_pitch(inner.loaders_without_pitch)
+      .update_loaders_without_pitch(std::mem::take(&mut js_context.loaders_without_pitch))
       .await;
   }
-  if let Some(error) = inner.error {
-    if let Some(diagnostic) = error.rust_diagnostic.as_ref() {
-      return Err(diagnostic.error.clone());
-    }
-    return Err(error.with_parent_error_name("ModuleBuildError").into());
-  }
-  Ok(())
+  js_context.take_error()
 }

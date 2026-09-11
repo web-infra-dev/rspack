@@ -70,3 +70,32 @@ export class LoaderContextState {
     };
   }
 }
+
+/** Preserve ownership when a runner fails before it can commit its local state. */
+export function setLoaderContextError(
+  context: JsLoaderContext,
+  error: unknown,
+) {
+  if (typeof error !== 'object' || error === null) {
+    const wrapped = new Error(
+      `(Emitted value instead of an instance of Error) ${String(error)}`,
+    );
+    wrapped.name = 'NonErrorEmittedError';
+    context.__internal__error = wrapped;
+  } else {
+    context.__internal__error = error as RspackError;
+  }
+}
+
+/** The native boundary always receives its class back, including on rejection. */
+export async function runWithLoaderContext(
+  context: JsLoaderContext,
+  run: (context: JsLoaderContext) => unknown,
+): Promise<JsLoaderContext> {
+  try {
+    await run(context);
+  } catch (error) {
+    setLoaderContextError(context, error);
+  }
+  return context;
+}

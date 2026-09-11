@@ -51,7 +51,7 @@ module.exports = {
                 result.set.call(context, value);
               },
             });
-            await run(context);
+            expect(await run(context)).toBe(context);
             expect(commits).toBe(1);
             if (pitch) expect(reads).toBe(0);
           };
@@ -63,6 +63,9 @@ module.exports = {
             for (const context of contexts) {
               expect(() => context.content).toThrow('no longer available');
               expect(() => context._module).toThrow('no longer available');
+              expect(() => {
+                context.__internal__error = new Error('late write');
+              }).toThrow('no longer available');
             }
             const modules = [...compilation.modules].filter((module) =>
               module.resource?.includes('input.js'),

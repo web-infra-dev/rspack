@@ -49,6 +49,7 @@ import type { FileSystemInfoEntry } from './FileSystemInfo';
 import type { rspack } from './index';
 import Cache from './lib/Cache';
 import CacheFacade from './lib/CacheFacade';
+import { runWithLoaderContext } from './loader-runner/context';
 import { Logger, type LogTypeEnum } from './logging/Logger';
 import { NormalModuleFactory } from './NormalModuleFactory';
 import { ResolverFactory } from './ResolverFactory';
@@ -976,7 +977,20 @@ class Compiler {
       this.#instance = new instanceBinding.JsCompiler(
         this.compilerPath,
         this.#rawOptions,
-        this.#builtinPlugins,
+        this.#builtinPlugins.map((plugin) =>
+          plugin.name === instanceBinding.BuiltinPluginName.JsLoaderRspackPlugin
+            ? {
+                ...plugin,
+                options: (context: binding.JsLoaderContext) =>
+                  runWithLoaderContext(
+                    context,
+                    plugin.options as (
+                      context: binding.JsLoaderContext,
+                    ) => Promise<binding.JsLoaderContext>,
+                  ),
+              }
+            : plugin,
+        ),
         this.#registers,
         ThreadsafeOutputNodeFS.__to_binding(this.outputFileSystem!),
         this.intermediateFileSystem

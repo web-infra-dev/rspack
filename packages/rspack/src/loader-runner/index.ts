@@ -740,7 +740,7 @@ export function createLoaderContext(
 export async function runLoaders(
   compiler: Compiler,
   nativeContext: JsLoaderContext,
-): Promise<void> {
+): Promise<JsLoaderContext> {
   const context = new LoaderContextState(nativeContext);
   const loaderState = context.loaderState;
   const pitch = loaderState === JsLoaderState.Pitching;
@@ -1273,4 +1273,5 @@ export async function runLoaders(
   }
 
   context.commit();
+  return nativeContext;
 }

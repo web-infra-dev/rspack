@@ -28,8 +28,15 @@ use tokio::sync::{OnceCell, RwLock};
 
 use crate::{COMPILER_REFERENCES, error::RspackResultToNapiResultExt};
 
-pub type JsLoaderRunner =
-  ThreadsafeFunction<JsLoaderContext, Promise<()>, JsLoaderContext, Status, false, true, 0>;
+pub type JsLoaderRunner = ThreadsafeFunction<
+  JsLoaderContext,
+  Promise<JsLoaderContext>,
+  JsLoaderContext,
+  Status,
+  false,
+  true,
+  0,
+>;
 
 struct JsLoaderRunnerGetterData {
   compiler_id: CompilerId,
@@ -57,7 +64,7 @@ extern "C" fn napi_js_callback(
         Object::from_napi_value(env, napi_value)?
       };
       let run_loader = compiler_object
-        .get_named_property::<Function<JsLoaderContext, Promise<()>>>("_runLoader")?;
+        .get_named_property::<Function<JsLoaderContext, Promise<JsLoaderContext>>>("_runLoader")?;
       let ts_fn: JsLoaderRunner = run_loader
         .build_threadsafe_function::<JsLoaderContext>()
         .weak::<true>()

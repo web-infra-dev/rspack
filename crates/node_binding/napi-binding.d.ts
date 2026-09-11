@@ -421,10 +421,8 @@ export declare class JsLoaderCache {
 }
 
 /**
- * Owns the native context while the JavaScript loader runner is active.
- * The scheduler shares only the ownership slot so it can recover the context even
- * if the JavaScript Promise rejects. Taking the slot revokes every accessor before
- * native execution resumes; retained JavaScript instances cannot access the module.
+ * Owns the boxed native context while JavaScript executes. Returning the class
+ * moves the context back to Rust and leaves retained JavaScript instances empty.
  */
 export declare class JsLoaderContext {
   get loaderContextState(): object | undefined
@@ -446,6 +444,8 @@ export declare class JsLoaderContext {
    * preserves the native source graph when pitching did not produce content.
    */
   set __internal__result(result: JsLoaderResult)
+  /** Return unexpected JavaScript failures together with the owned context. */
+  set __internal__error(error: RspackError)
 }
 
 export declare class JsModuleGraph {
@@ -3360,7 +3360,7 @@ export interface RegisterJsTaps {
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilationSealTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationAfterSealTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
-  registerNormalModuleLoaderTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => void); stage: number; }>
+  registerNormalModuleLoaderTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => JsLoaderContext); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
   registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
   registerNormalModuleFactoryResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
