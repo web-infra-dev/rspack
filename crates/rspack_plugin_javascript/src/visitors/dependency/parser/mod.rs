@@ -53,9 +53,7 @@ use crate::{
   visitors::{
     ParsedJavaScriptAst, PatternIdentifier, ScanDependenciesResult,
     dependency::parser::{ast::ExprRef, location_advancer::DependencyLocationAdvancer},
-    scope_info::{
-      ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags, VariableInfoId,
-    },
+    scope_info::{BindingState, ScopeInfoDB, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags},
   },
 };
 
@@ -251,7 +249,7 @@ pub struct ExpressionExpressionInfo {
 #[derive(Debug, Clone)]
 pub enum ExportedVariableInfo {
   Name(Atom),
-  VariableInfo(VariableInfoId),
+  VariableInfo(BindingState),
 }
 
 fn object_and_members_to_name(object: &str, members_reversed: &[impl AsRef<str>]) -> String {
@@ -327,7 +325,7 @@ impl RootName for MetaProperty {
 
 pub struct NameInfo<'a> {
   pub name: &'a str,
-  pub info: Option<&'a VariableInfo>,
+  pub info: Option<VariableInfo<'a>>,
 }
 
 pub enum PatRef {
@@ -486,7 +484,7 @@ pub struct JavascriptParser<'parser> {
   // ===== inputs =======
   pub(crate) source: &'parser str,
   pub ast: &'parser ParsedJavaScriptAst<'parser>,
-  synthetic_asts: Vec<&'parser ParsedJavaScriptAst<'parser>>,
+  synthetic_asts: Vec<(&'parser ParsedJavaScriptAst<'parser>, usize)>,
   active_synthetic_ast: Option<usize>,
   pub parse_meta: ParseMeta,
   pub factory_meta: Option<&'parser FactoryMeta>,
@@ -501,8 +499,7 @@ pub struct JavascriptParser<'parser> {
   pub module_identifier: &'parser ModuleIdentifier,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   // ===== states =======
-  pub(crate) definitions_db: ScopeInfoDB,
-  pub(crate) definitions: ScopeInfoId,
+  pub(crate) definitions_db: ScopeInfoDB<'parser>,
   pub(crate) top_level_scope: TopLevelScope,
   pub(crate) current_tag_info: Option<TagInfoId>,
   pub in_try: bool,
@@ -666,7 +663,6 @@ impl<'parser> JavascriptParser<'parser> {
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
-    let mut db = ScopeInfoDB::new();
 
     Self {
       last_esm_import_order: 0,
@@ -687,8 +683,7 @@ impl<'parser> JavascriptParser<'parser> {
       top_level_scope: TopLevelScope::Top,
       is_esm: matches!(module_type, ModuleType::JsEsm),
       in_tagged_template_tag: false,
-      definitions: db.create(),
-      definitions_db: db,
+      definitions_db: ScopeInfoDB::with_semantic(ast),
       plugin_drive,
       resource_data,
       factory_meta,
@@ -928,9 +923,9 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn get_variable_info<'key>(
     &mut self,
     name: impl Into<AtomRef<'key>>,
-  ) -> Option<&VariableInfo> {
-    let id = self.definitions_db.get(self.definitions, name)?;
-    Some(self.definitions_db.expect_get_variable(id))
+  ) -> Option<VariableInfo<'_>> {
+    let state = self.definitions_db.resolve(name)?;
+    Some(self.definitions_db.expect_get_variable(state))
   }
 
   fn get_tag_data_by_id<Data: TagInfoData>(
@@ -1001,12 +996,12 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn get_variable_tag_data<Data: TagInfoData>(
     &self,
-    id: VariableInfoId,
+    state: BindingState,
     tag: &'static str,
   ) -> Option<&Data> {
     self
       .definitions_db
-      .expect_get_variable(id)
+      .expect_get_variable(state)
       .tag_info
       .and_then(|tag_info_id| self.get_tag_data_by_id(tag_info_id, tag))
   }
@@ -1022,9 +1017,7 @@ impl<'parser> JavascriptParser<'parser> {
         info: None,
       });
     };
-    let Some(name) = &info.name else {
-      return None;
-    };
+    let name = info.name?;
     if !info.is_free() {
       return None;
     }
@@ -1045,9 +1038,7 @@ impl<'parser> JavascriptParser<'parser> {
         info: None,
       });
     };
-    let Some(name) = &info.name else {
-      return None;
-    };
+    let name = info.name?;
     if !info.is_free() && !info.is_tagged() {
       return None;
     }
@@ -1057,32 +1048,45 @@ impl<'parser> JavascriptParser<'parser> {
     })
   }
 
-  pub fn get_all_variables_from_current_scope(
-    &self,
-  ) -> impl Iterator<Item = (&Atom, VariableInfoId)> {
-    self.definitions_db.scope_variables(self.definitions)
+  /// Resolves a member-chain root for alias- and tag-aware hook dispatch.
+  fn get_name_info_from_root(&mut self, root: ExprRef) -> Option<NameInfo<'_>> {
+    let ExprRef::Ident(identifier) = root else {
+      return self.get_name_info_from_variable(root.get_root_name(self.ast.ast)?);
+    };
+    let resolution = self
+      .definitions_db
+      .semantic_context
+      .identifier_resolution(self.ast, identifier);
+    let Some(state) = self
+      .definitions_db
+      .resolve_identifier(self.ast, identifier, resolution)
+    else {
+      let ast = self.ast.ast;
+      return Some(NameInfo {
+        name: ast.get_utf8(identifier.name(ast)),
+        info: None,
+      });
+    };
+    let info = self.definitions_db.expect_get_variable(state);
+    if !info.is_free() && !info.is_tagged() {
+      return None;
+    }
+    Some(NameInfo {
+      name: info.name?,
+      info: Some(info),
+    })
   }
 
-  pub fn define_variable(&mut self, name: Atom) {
-    let definitions = self.definitions;
-    if let Some(variable_info) = self.get_variable_info(&name)
-      && variable_info.tag_info.is_some()
-      && definitions == variable_info.declared_scope
-    {
-      return;
-    }
-    let info = VariableInfo::create(
-      &mut self.definitions_db,
-      definitions,
-      None,
-      VariableInfoFlags::NORMAL,
-      None,
-    );
-    self.definitions_db.set(definitions, name, info);
+  /// Captures a variable's current binding state, or keeps its free name for an alias.
+  pub(crate) fn get_variable_alias(&mut self, name: Atom) -> ExportedVariableInfo {
+    self
+      .get_variable_info(&name)
+      .map(|info| ExportedVariableInfo::VariableInfo(info.binding_state()))
+      .unwrap_or(ExportedVariableInfo::Name(name))
   }
 
   pub fn set_variable(&mut self, name: Atom, variable: ExportedVariableInfo) {
-    let scope_id = self.definitions;
+    let scope_id = self.definitions_db.current_scope();
     match variable {
       ExportedVariableInfo::Name(variable) => {
         if name == variable {
@@ -1105,7 +1109,9 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn undefined_variable(&mut self, name: &Atom) {
-    self.definitions_db.delete(self.definitions, name)
+    self
+      .definitions_db
+      .delete(self.definitions_db.current_scope(), name)
   }
 
   pub fn tag_variable<Data: TagInfoData>(
@@ -1139,48 +1145,52 @@ impl<'parser> JavascriptParser<'parser> {
     flags: Option<VariableInfoFlags>,
   ) {
     let flags = flags.unwrap_or(VariableInfoFlags::TAGGED);
-    let new_info = if let Some(old_info_id) = self.definitions_db.get(self.definitions, &name) {
-      let old_info = self.definitions_db.expect_get_variable(old_info_id);
-      if let Some(old_tag_info) = old_info.tag_info {
-        let declared_scope = old_info.declared_scope;
-        // FIXME: remove `.clone`
-        let name = old_info.name.clone();
-        let flags = old_info.flags | flags;
-        let tag_info = Some(TagInfo::create(
-          &mut self.definitions_db,
-          tag,
-          data,
-          Some(old_tag_info),
-        ));
-        VariableInfo::create(
-          &mut self.definitions_db,
-          declared_scope,
-          name,
-          flags,
-          tag_info,
-        )
+    let scope = self.definitions_db.current_scope();
+    let (state, symbol) = self.definitions_db.resolve_with_symbol(&name);
+    let new_info =
+      if let Some(old_info) = state.map(|state| self.definitions_db.expect_get_variable(state)) {
+        if let Some(old_tag_info) = old_info.tag_info {
+          let declared_scope = old_info.declared_scope;
+          // FIXME: remove `.clone`
+          let name = old_info.name.cloned();
+          let flags = old_info.flags | flags;
+          let tag_info = Some(TagInfo::create(
+            &mut self.definitions_db,
+            tag,
+            data,
+            Some(old_tag_info),
+          ));
+          VariableInfo::create(
+            &mut self.definitions_db,
+            declared_scope,
+            name,
+            flags,
+            tag_info,
+          )
+        } else {
+          let declared_scope = old_info.declared_scope;
+          let tag_info = Some(TagInfo::create(&mut self.definitions_db, tag, data, None));
+          VariableInfo::create(
+            &mut self.definitions_db,
+            declared_scope,
+            Some(name.clone()),
+            flags,
+            tag_info,
+          )
+        }
       } else {
-        let declared_scope = old_info.declared_scope;
         let tag_info = Some(TagInfo::create(&mut self.definitions_db, tag, data, None));
         VariableInfo::create(
           &mut self.definitions_db,
-          declared_scope,
+          scope,
           Some(name.clone()),
           flags,
           tag_info,
         )
-      }
-    } else {
-      let tag_info = Some(TagInfo::create(&mut self.definitions_db, tag, data, None));
-      VariableInfo::create(
-        &mut self.definitions_db,
-        self.definitions,
-        Some(name.clone()),
-        flags,
-        tag_info,
-      )
-    };
-    self.definitions_db.set(self.definitions, name, new_info);
+      };
+    self
+      .definitions_db
+      .set_resolved(scope, name, new_info, Some(symbol));
   }
 
   fn _get_member_expression_info(
@@ -1198,16 +1208,16 @@ impl<'parser> JavascriptParser<'parser> {
           return None;
         }
         let callee = expr.callee(ast);
-        let (root_name, root_members) = if let Some(member) = callee.as_member_expression(ast) {
+        let (root, root_members) = if let Some(member) = callee.as_member_expression(ast) {
           let extracted = self.extract_member_expression_chain_raw(ExprRef::Member(member));
-          let root_name = extracted.object.get_root_name(ast)?;
-          (root_name, extracted.members)
+          (extracted.object, extracted.members)
         } else {
-          (callee.get_root_name(ast)?, RawAtomMembers::new())
+          (ExprRef::from_expr(ast, callee), RawAtomMembers::new())
         };
         let NameInfo {
-          info: root_info, ..
-        } = self.get_name_info_from_variable(root_name)?;
+          name: resolved_root,
+          info: root_info,
+        } = self.get_name_info_from_root(root)?;
 
         let mut root_members = materialize_member_atoms(ast, root_members);
         let mut members = materialize_member_atoms(ast, members);
@@ -1218,8 +1228,8 @@ impl<'parser> JavascriptParser<'parser> {
         Some(MemberExpressionInfo::Call(CallExpressionInfo {
           call: expr,
           root_info: root_info.map_or_else(
-            || ExportedVariableInfo::Name(Atom::from(root_name)),
-            |i| ExportedVariableInfo::VariableInfo(i.id()),
+            || ExportedVariableInfo::Name(Atom::from(resolved_root)),
+            |i| ExportedVariableInfo::VariableInfo(i.binding_state()),
           ),
           callee_members: root_members,
           members,
@@ -1231,12 +1241,10 @@ impl<'parser> JavascriptParser<'parser> {
         if !allowed_types.contains(AllowedMemberTypes::Expression) {
           return None;
         }
-        let root_name = object.get_root_name(ast)?;
-
         let NameInfo {
           name: resolved_root,
           info: root_info,
-        } = self.get_name_info_from_variable(root_name)?;
+        } = self.get_name_info_from_root(object)?;
 
         let mut members = materialize_member_atoms(ast, members);
         let name = object_and_members_to_name(resolved_root, &members);
@@ -1246,8 +1254,8 @@ impl<'parser> JavascriptParser<'parser> {
         Some(MemberExpressionInfo::Expression(ExpressionExpressionInfo {
           name,
           root_info: root_info.map_or_else(
-            || ExportedVariableInfo::Name(Atom::from(root_name)),
-            |i| ExportedVariableInfo::VariableInfo(i.id()),
+            || ExportedVariableInfo::Name(Atom::from(resolved_root)),
+            |i| ExportedVariableInfo::VariableInfo(i.binding_state()),
           ),
           members,
           members_optionals,
@@ -1375,12 +1383,9 @@ impl<'parser> JavascriptParser<'parser> {
     let ast = self.ast.ast;
     let name = ast.get_utf8(ident.name(ast));
     let drive = self.plugin_drive.clone();
-    if !name
-      .call_hooks_name(self, |parser, for_name| {
-        drive.pattern(parser, PatternIdentifier::Binding(ident), for_name)
-      })
-      .unwrap_or_default()
-    {
+    // Declaration hooks inspect the declared name, even when its semantic
+    // binding is already initialized as a normal local variable.
+    if !drive.pattern(self, PatternIdentifier::Binding(ident), name).unwrap_or_default() {
       on_ident(self, ident, name);
     }
   }
@@ -1597,11 +1602,24 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn set_strict(&mut self, value: bool) {
-    let current_scope = self.definitions_db.expect_get_mut_scope(self.definitions);
+    let current_scope = self
+      .definitions_db
+      .expect_get_mut_scope(self.definitions_db.current_scope());
     current_scope.is_strict = value;
   }
 
   pub fn detect_mode(&mut self, program: Program) {
+    // Semantic can rule out strict directives; module classification still follows Rspack.
+    if self.is_strict()
+      || !self
+        .ast
+        .semantic
+        .scope(self.definitions_db.semantic_context.scope)
+        .flags
+        .strict
+    {
+      return;
+    }
     let ast = self.ast.ast;
     for directive in ast.nodes(program.directives(ast)) {
       if ast.get_utf8(directive.value(ast)) == "use strict" {
@@ -1612,7 +1630,9 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn is_strict(&mut self) -> bool {
-    let scope = self.definitions_db.expect_get_scope(self.definitions);
+    let scope = self
+      .definitions_db
+      .expect_get_scope(self.definitions_db.current_scope());
     scope.is_strict
   }
 
@@ -1636,7 +1656,8 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn add_synthetic_ast(&mut self, ast: &'parser ParsedJavaScriptAst<'parser>) -> usize {
     let index = self.synthetic_asts.len();
-    self.synthetic_asts.push(ast);
+    let semantic = self.definitions_db.register_ast(ast);
+    self.synthetic_asts.push((ast, semantic));
     index
   }
 
@@ -1646,10 +1667,12 @@ impl<'parser> JavascriptParser<'parser> {
     ast: &'parser ParsedJavaScriptAst<'parser>,
   ) -> BasicEvaluatedExpression<'parser> {
     let ast = self.add_synthetic_ast(ast);
-    let synthetic_ast = self.synthetic_asts[ast];
+    let (synthetic_ast, semantic) = self.synthetic_asts[ast];
     let previous_ast = std::mem::replace(&mut self.ast, synthetic_ast);
     let previous_synthetic_ast = self.active_synthetic_ast.replace(ast);
+    self.definitions_db.enter_ast(semantic);
     let evaluated = self.evaluate_expression(expression);
+    self.definitions_db.leave_ast();
     self.active_synthetic_ast = previous_synthetic_ast;
     self.ast = previous_ast;
     evaluated
@@ -1660,10 +1683,12 @@ impl<'parser> JavascriptParser<'parser> {
       self.walk_expression(expression);
       return;
     };
-    let synthetic_ast = self.synthetic_asts[ast];
+    let (synthetic_ast, semantic) = self.synthetic_asts[ast];
     let previous_ast = std::mem::replace(&mut self.ast, synthetic_ast);
     let previous_synthetic_ast = self.active_synthetic_ast.replace(ast);
+    self.definitions_db.enter_ast(semantic);
     self.walk_expression(expression);
+    self.definitions_db.leave_ast();
     self.active_synthetic_ast = previous_synthetic_ast;
     self.ast = previous_ast;
   }
@@ -1716,41 +1741,56 @@ impl<'parser> JavascriptParser<'parser> {
           return Some(eval);
         }
         let drive = self.plugin_drive.clone();
-        name
-          .call_hooks_name(self, |parser, name| {
-            drive.evaluate_identifier(parser, name, None, span.real_lo(), span.real_hi())
-          })
-          .or_else(|| {
-            let info = self.get_variable_info(name);
-            if let Some(info) = info {
-              if let Some(name) = &info.name
-                && (info.is_free() || info.is_tagged())
-              {
-                let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
-                eval.set_identifier(
-                  name.to_owned(),
-                  ExportedVariableInfo::VariableInfo(info.id()),
-                  None,
-                  None,
-                  None,
-                );
-                Some(eval)
-              } else {
-                None
-              }
-            } else {
-              let name = Atom::from(name);
+        let resolution = self
+          .definitions_db
+          .semantic_context
+          .identifier_resolution(self.ast, ident);
+        let evaluate = |parser: &mut Self, name: &str| {
+          drive.evaluate_identifier(parser, name, None, span.real_lo(), span.real_hi())
+        };
+        let result = if let Some(state) = self
+          .definitions_db
+          .resolve_identifier(self.ast, ident, resolution)
+        {
+          call_hooks_name::call_hooks_info(state, self, evaluate)
+        } else {
+          evaluate(self, name)
+        };
+        result.or_else(|| {
+          // Hooks can change binding state, but not this AST's resolution.
+          let state = self
+            .definitions_db
+            .resolve_identifier(self.ast, ident, resolution);
+          let info = state.map(|state| self.definitions_db.expect_get_variable(state));
+          if let Some(info) = info {
+            if let Some(name) = info.name
+              && (info.is_free() || info.is_tagged())
+            {
               let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
               eval.set_identifier(
-                name.clone(),
-                ExportedVariableInfo::Name(name),
+                name.to_owned(),
+                ExportedVariableInfo::VariableInfo(info.binding_state()),
                 None,
                 None,
                 None,
               );
               Some(eval)
+            } else {
+              None
             }
-          })
+          } else {
+            let name = Atom::from(name);
+            let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
+            eval.set_identifier(
+              name.clone(),
+              ExportedVariableInfo::Name(name),
+              None,
+              None,
+              None,
+            );
+            Some(eval)
+          }
+        })
       }
       ExprData::ThisExpression(this) => {
         let span = this.span(ast);
@@ -1772,7 +1812,7 @@ impl<'parser> JavascriptParser<'parser> {
             .evaluate_identifier(self, "this", None, span.real_lo(), span.real_hi())
             .or_else(default_eval);
         };
-        if let Some(name) = &info.name
+        if let Some(name) = info.name
           && (info.is_free() || info.is_tagged())
         {
           let name = name.clone();

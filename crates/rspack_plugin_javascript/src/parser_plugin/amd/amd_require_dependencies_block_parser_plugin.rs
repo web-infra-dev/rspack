@@ -10,9 +10,7 @@ use rspack_core::{
 use rspack_error::{Error, Severity};
 use rspack_intern::Atom;
 use rspack_util::{SpanExt, swc::AstSubRangeExt};
-use swc_next_ecma_ast::{
-  Argument, ArrowFunctionBodyData, Ast, BindingPattern, CallExpression, GetSpan,
-};
+use swc_next_ecma_ast::{Argument, Ast, BindingPattern, CallExpression, Expr, GetSpan};
 
 use crate::{
   JavascriptParserPlugin,
@@ -27,8 +25,8 @@ use crate::{
   parser_plugin::require_ensure_dependencies_block_parse_plugin::GetFunctionExpression,
   utils::eval::BasicEvaluatedExpression,
   visitors::{
-    JavascriptParser, PatRef, context_reg_exp, create_context_dependency, create_traceable_error,
-    formal_parameter_patterns,
+    ExportedVariableInfo, JavascriptParser, PatRef, context_reg_exp, create_context_dependency,
+    create_traceable_error, formal_parameter_patterns,
   },
 };
 
@@ -232,33 +230,42 @@ impl AMDRequireDependenciesBlockParserPlugin {
     };
 
     if let Some(func_expr) = func_arg_expr.get_function_expr(ast) {
-      match func_expr.func {
-        Either::Left(func) => {
-          parser.in_function_scope(
-            true,
-            formal_parameter_patterns(ast, func.params(ast))
-              .filter(|param| !is_reserved_param(ast, *param))
-              .map(PatRef::Borrowed),
-            |parser| parser.walk_function_body(func.body(parser.ast.ast)),
+      let (node, params) = match func_expr.func {
+        Either::Left(function) => (function.node_id(), function.params(ast)),
+        Either::Right(arrow) => (arrow.node_id(), arrow.params(ast)),
+      };
+      let reserved = formal_parameter_patterns(ast, params)
+        .filter(|param| is_reserved_param(ast, *param))
+        .map(|param| {
+          let identifier = param
+            .as_binding_identifier(ast)
+            .expect("reserved parameter");
+          let name = Atom::from(ast.get_utf8(identifier.name(ast)));
+          let variable = parser.get_variable_info(&name).map_or_else(
+            || ExportedVariableInfo::Name(name.clone()),
+            |info| ExportedVariableInfo::VariableInfo(info.binding_state()),
           );
-        }
-        Either::Right(arrow) => {
-          parser.in_function_scope(
-            true,
-            formal_parameter_patterns(ast, arrow.params(ast))
-              .filter(|param| !is_reserved_param(ast, *param))
-              .map(PatRef::Borrowed),
-            |parser| match parser
-              .ast
-              .ast
-              .arrow_function_body_data(arrow.body(parser.ast.ast))
-            {
-              ArrowFunctionBodyData::FunctionBody(body) => parser.walk_function_body(body),
-              ArrowFunctionBodyData::Expr(expr) => parser.walk_expression(expr),
-            },
-          );
-        }
-      }
+          (name, variable)
+        })
+        .collect::<Vec<_>>();
+      parser.in_semantic_scope(node, |parser| {
+        parser.in_function_scope(
+          true,
+          formal_parameter_patterns(ast, params)
+            .filter(|param| !is_reserved_param(ast, *param))
+            .map(PatRef::Borrowed),
+          |parser| {
+            for (name, variable) in reserved {
+              parser.set_variable(name, variable);
+            }
+            parser.walk_function_expression_body(
+              func_expr
+                .func
+                .either(Expr::Function, Expr::ArrowFunctionExpression),
+            );
+          },
+        );
+      });
 
       if let Some(bind_expr) = func_expr.expressions {
         parser.walk_expression(bind_expr);

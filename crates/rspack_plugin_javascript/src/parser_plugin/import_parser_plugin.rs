@@ -11,8 +11,8 @@ use rspack_util::{
 };
 use rustc_hash::FxHashMap;
 use swc_next_ecma_ast::{
-  ArrowFunctionBodyData, BindingPattern, BindingPatternData, CallExpression, Expr, ExprData,
-  GetSpan, ImportExpression, ObjectPattern, Span, VariableDeclarator,
+  BindingPattern, BindingPatternData, CallExpression, Expr, ExprData, GetSpan, ImportExpression,
+  ObjectPattern, Span, VariableDeclarator,
 };
 
 use super::{JavascriptParserPlugin, import_phase::get_import_phase};
@@ -107,7 +107,6 @@ fn track_dynamic_import_pattern(
   match ast.binding_pattern_data(pattern) {
     BindingPatternData::BindingIdentifier(binding) => {
       let name = Atom::from(ast.get_utf8(binding.name(ast)));
-      parser.define_variable(name.clone());
       tag_dynamic_import_referenced(parser, import_call, name);
     }
     BindingPatternData::ObjectPattern(pattern) => {
@@ -265,7 +264,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
     if let Some(ident) = expr.as_identifier_reference(ast)
       && let Some(name_info) = parser.get_name_info_from_variable(ast.get_utf8(ident.name(ast)))
       && let Some(info) = name_info.info
-      && let Some(name) = info.name.clone()
+      && let Some(name) = info.name.cloned()
       && parser
         .get_tag_data::<ImportTagData>(&name, DYNAMIC_IMPORT_TAG)
         .is_some()
@@ -289,7 +288,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         && let Some(binding) = declarator.id(ast).as_binding_identifier(ast)
       {
         let name = Atom::from(ast.get_utf8(binding.name(ast)));
-        parser.define_variable(name.clone());
         tag_dynamic_import_referenced(parser, import, name);
       }
       track_dynamic_imports_in_promise_all(parser, declarator);
@@ -786,53 +784,40 @@ fn walk_import_then_fulfilled_callback(
     TopLevelScope::False
   };
 
-  parser.in_function_scope(is_function, scope_params, |parser| {
-    let ast = parser.ast.ast;
-    if let Some(ns_obj) = namespace_obj_arg.as_binding_identifier(ast) {
-      tag_dynamic_import_referenced(
-        parser,
-        import_call,
-        Atom::from(ast.get_utf8(ns_obj.name(ast))),
-      );
-    } else if let Some(ns_obj) = namespace_obj_arg.as_object_pattern(ast) {
-      if let Some(keys) =
-        parser.collect_destructuring_assignment_properties_from_object_pattern(ns_obj)
-      {
-        let import_span = import_call.span(parser.ast.ast);
-        parser.dynamic_import_references.add_import(import_span);
-        let import_references = parser
-          .dynamic_import_references
-          .get_import_mut_expect(&import_span);
-        let mut refs = Vec::new();
-        keys.traverse_on_leaf(&mut |stack| {
-          refs.push(stack.iter().map(|p| p.id.clone()).collect::<Vec<Atom>>());
-        });
-        for ids in refs {
-          import_references.add_reference(ids);
-        }
-      }
-    } else {
-      unreachable!()
-    }
-    for pattern in formal_parameter_patterns(parser.ast.ast, params) {
-      parser.walk_pattern(pattern);
-    }
-    match parser.ast.ast.expr_data(fulfilled_callback) {
-      ExprData::Function(function) => {
-        parser.walk_function_body(function.body(parser.ast.ast));
-      }
-      ExprData::ArrowFunctionExpression(function) => {
-        match parser
-          .ast
-          .ast
-          .arrow_function_body_data(function.body(parser.ast.ast))
+  parser.in_semantic_scope(fulfilled_callback.node_id(), |parser| {
+    parser.in_function_scope(is_function, scope_params, |parser| {
+      let ast = parser.ast.ast;
+      if let Some(ns_obj) = namespace_obj_arg.as_binding_identifier(ast) {
+        tag_dynamic_import_referenced(
+          parser,
+          import_call,
+          Atom::from(ast.get_utf8(ns_obj.name(ast))),
+        );
+      } else if let Some(ns_obj) = namespace_obj_arg.as_object_pattern(ast) {
+        if let Some(keys) =
+          parser.collect_destructuring_assignment_properties_from_object_pattern(ns_obj)
         {
-          ArrowFunctionBodyData::FunctionBody(body) => parser.walk_function_body(body),
-          ArrowFunctionBodyData::Expr(expression) => parser.walk_expression(expression),
+          let import_span = import_call.span(parser.ast.ast);
+          parser.dynamic_import_references.add_import(import_span);
+          let import_references = parser
+            .dynamic_import_references
+            .get_import_mut_expect(&import_span);
+          let mut refs = Vec::new();
+          keys.traverse_on_leaf(&mut |stack| {
+            refs.push(stack.iter().map(|p| p.id.clone()).collect::<Vec<Atom>>());
+          });
+          for ids in refs {
+            import_references.add_reference(ids);
+          }
         }
+      } else {
+        unreachable!()
       }
-      _ => unreachable!(),
-    }
+      for pattern in formal_parameter_patterns(parser.ast.ast, params) {
+        parser.walk_pattern(pattern);
+      }
+      parser.walk_function_expression_body(fulfilled_callback);
+    });
   });
   parser.top_level_scope = was_top_level_scope;
 }
