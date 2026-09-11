@@ -24,7 +24,8 @@ class BeforeLoadersPlugin {
 						assert.strictEqual(loaders.length, 1);
 						assert.strictEqual(loaders[0].loader, tagLoader);
 						assert.deepStrictEqual(loaders[0].options, { tag: "+config" });
-						assert.strictEqual(loaders[0].type, null);
+						// Absent rather than null, as for `LoaderObject.type` and in webpack.
+						assert.strictEqual(loaders[0].type, undefined);
 						configuredIdent = loaders[0].ident;
 						assert.ok(configuredIdent);
 					}

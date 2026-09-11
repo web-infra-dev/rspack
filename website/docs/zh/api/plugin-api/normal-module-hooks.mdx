@@ -39,7 +39,7 @@ export default {
 - `loader`：loader 的绝对路径，不含 options 查询串。
 - `options`：配置该 loader 时传入的 options 对象；若通过查询串配置则为原始查询串；没有 options 时为 `undefined`。
 - `ident`：`options` 注册时使用的 key；options 来自内联查询串时为 `null`。
-- `type`：loader 自身的模块类型（`'module'`、`'commonjs'` 或 `null`），由其文件扩展名以及最近的 `package.json` 中的 `type` 字段推导得出。
+- `type`：loader 自身的模块类型（`'module'`、`'commonjs'` 或 `undefined`），由其文件扩展名以及最近的 `package.json` 中的 `type` 字段推导得出。
 
 若要修改某个 loader 的配置，请**替换** `options`，而不要原地修改该对象。与 webpack 一样，同一条 rule 匹配到的所有模块共享同一个 options 对象，原地修改会影响到所有这些模块；此外 Rspack 无法感知共享对象发生了变化，该 loader 会沿用解析时的缓存 key，因而 `Rule.use[].cache` 可能返回使用旧 options 产出的结果。
 

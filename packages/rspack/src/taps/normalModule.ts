@@ -55,7 +55,7 @@ function toLoaderItem(
     loader: path,
     options,
     ident,
-    type: item.type ?? null,
+    type: item.type,
   };
   Object.defineProperty(loaderItem, ORIGINAL, {
     value: { ...loaderItem, index, cache: item.cache, parallel } as Snapshot,

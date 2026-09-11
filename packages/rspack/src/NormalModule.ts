@@ -52,8 +52,12 @@ export interface LoaderItem {
   options?: string | (object & { ident?: string }) | null;
   /** Key the options object is registered under, `null` for inline options. */
   ident: string | null;
-  /** Module type of the loader itself, derived from its file extension. */
-  type: string | null;
+  /**
+   * Module type of the loader itself, derived from its file extension and the
+   * `type` field of the closest `package.json`; `undefined` when it has none,
+   * matching `LoaderObject.type` and webpack.
+   */
+  type?: string | null;
 }
 
 export interface NormalModuleCompilationHooks {
