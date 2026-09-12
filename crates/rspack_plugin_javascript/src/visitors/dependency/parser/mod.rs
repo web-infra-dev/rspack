@@ -1385,7 +1385,10 @@ impl<'parser> JavascriptParser<'parser> {
     let drive = self.plugin_drive.clone();
     // Declaration hooks inspect the declared name, even when its semantic
     // binding is already initialized as a normal local variable.
-    if !drive.pattern(self, PatternIdentifier::Binding(ident), name).unwrap_or_default() {
+    if !drive
+      .pattern(self, PatternIdentifier::Binding(ident), name)
+      .unwrap_or_default()
+    {
       on_ident(self, ident, name);
     }
   }
