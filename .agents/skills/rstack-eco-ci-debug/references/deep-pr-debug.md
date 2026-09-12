@@ -1,4 +1,4 @@
-# Deep PR Debug Tool
+# Deep PR debug tool
 
 Use this tool after a candidate source PR is identified and the user needs the technical reason for the eco-ci failure.
 
@@ -35,7 +35,7 @@ git -C <upstream-path> show --find-renames --find-copies <sha>
 
 Focus on changed code paths that can affect the failure signature. Ignore unrelated cleanup unless it changes behavior near the failing path.
 
-## Connect Logs to Code
+## Connect logs to code
 
 1. Extract the terminal failure block from the log.
 2. Identify the failing command and assertion or stack frame.
@@ -52,7 +52,7 @@ Use short log snippets only:
 <2-5 key lines of failure>
 ```
 
-## When Diff and Logs Are Not Enough
+## When diff and logs are not enough
 
 This tool is for analysis: connect the PR diff to the failure signature through code and logs. If the mechanism still cannot be explained from code review and log inspection alone, do not run artifact tests here. Return to Phase 1 and choose the fallback for the selected ecosystem:
 
@@ -60,7 +60,7 @@ This tool is for analysis: connect the PR diff to the failure signature through 
 - For any other ecosystem, use an ecosystem-specific commit build or release artifact only when the repository already provides a documented way to produce it.
 - If no reliable ecosystem-specific artifact path exists, return `inconclusive` and state the missing before/after evidence. Never substitute Rspack canaries for a non-Rspack upstream.
 
-## Diagnosis Rules
+## Diagnosis rules
 
 - State what changed mechanically, not only which PR changed.
 - Separate confirmed evidence from inference.
@@ -71,7 +71,7 @@ This tool is for analysis: connect the PR diff to the failure signature through 
 - If the PR only exposed a downstream fragile assertion, say so.
 - If the downstream suite changed independently, include that interaction.
 
-## Output Format
+## Output format
 
 ```text
 Candidate PR: <pr-number> <title>

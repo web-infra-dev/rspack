@@ -1,4 +1,4 @@
-# Canary Date Bisect Tool
+# Canary date bisect tool
 
 Use this tool when eco-ci history or release versions are too coarse to locate the Rspack PR or date that introduced or fixed a suite failure.
 
@@ -13,7 +13,7 @@ The goal is to test downstream code against specific `@rspack-canary/core` versi
 - Work in a clean downstream tree or record existing local changes first.
 - Do not leave dependency overrides or lockfile changes behind unless the user asks.
 
-## Find Candidate Canaries
+## Find candidate canaries
 
 Fetch available versions and publish times:
 
@@ -31,7 +31,7 @@ git -C <rspack-path> rev-parse <short-sha>
 git -C <rspack-path> log -1 --pretty=format:'%h %s' <sha>
 ```
 
-## Apply a Canary With pnpm.overrides
+## Apply a canary with pnpm.overrides
 
 Prefer editing the downstream workspace root `package.json` and adding a temporary `pnpm.overrides` entry:
 
@@ -56,7 +56,7 @@ pnpm -C <downstream-path> why @rspack/core --depth 0
 
 The test is invalid if `pnpm why` does not show the intended canary.
 
-## Binary Search Loop
+## Binary search loop
 
 1. Pick a known-good canary and a known-bad canary.
 2. Sort intermediate canaries by publish time, or by Rspack commit ancestry if publish time is misleading.
@@ -70,7 +70,7 @@ canary version | publish time | Rspack commit | result | signature
 5. Continue until the first bad canary or first fixed canary is isolated.
 6. If signatures differ, keep bisecting the signature change, not just pass/fail.
 
-## Map the Date to a PR
+## Map the date to a PR
 
 Use the isolated commit to find the PR:
 
@@ -88,7 +88,7 @@ git -C <rspack-path> ls-remote origin | rg '<short-sha>|<full-sha>'
 
 Then inspect the PR diff and compare it to the failure signature before calling it the source.
 
-## Restore Downstream State
+## Restore downstream state
 
 After testing, remove the temporary override and reinstall if needed:
 
@@ -101,7 +101,7 @@ pnpm -C <downstream-path> why @rspack/core --depth 0
 
 Only restore files that were actually changed by this workflow and are tracked by git. If files had pre-existing local changes, do not restore them blindly. Ask the user how to proceed.
 
-## Output Format
+## Output format
 
 ```text
 First bad canary: <version> (<publish-time>, <sha>)
