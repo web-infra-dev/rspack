@@ -17,6 +17,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMTopLevelThisParserPlugin {
     _for_name: &str,
   ) -> Option<bool> {
     (parser.is_esm && parser.is_top_level_this()).then(|| {
+      parser.build_info.top_level_this += 1;
       parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         expr.span.into(),
         "undefined".into(),

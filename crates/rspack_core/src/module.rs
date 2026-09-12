@@ -308,6 +308,8 @@ pub struct BuildInfo {
   pub side_effects_free: Option<AtomSet>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<AtomSet>,
+  /// Number of top-level `this` expressions that are replaced in an ES module.
+  pub top_level_this: u32,
   /// Bailouts produced during module builds, before compilation-specific optimizations.
   pub optimization_bailouts: Vec<OptimizationBailoutItem>,
   pub module_concatenation_bailout: Option<String>,
@@ -345,6 +347,7 @@ impl Default for BuildInfo {
       css: None,
       side_effects_free: None,
       top_level_declarations: None,
+      top_level_this: 0,
       optimization_bailouts: Vec::new(),
       module_concatenation_bailout: None,
       assets: Default::default(),
