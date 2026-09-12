@@ -287,7 +287,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     _parser: &mut JavascriptParser<'p>,
     _property: &str,
     _expr: CallExpression,
-    _param: BasicEvaluatedExpression<'p>,
+    _param: &BasicEvaluatedExpression<'p>,
   ) -> Option<BasicEvaluatedExpression<'p>> {
     None
   }

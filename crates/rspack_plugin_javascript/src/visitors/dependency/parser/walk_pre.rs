@@ -18,12 +18,7 @@ fn eval_property_key<'parser>(
   let mut evaluated = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
   match ast.property_key_data(key) {
     PropertyKeyData::StringLiteral(string) => {
-      evaluated.set_string(
-        ast
-          .get_wtf8(string.value(ast))
-          .to_string_lossy()
-          .into_owned(),
-      );
+      evaluated.set_string(ast.get_wtf8(string.value(ast)).to_string_lossy());
     }
     PropertyKeyData::NumericLiteral(number) => evaluated.set_number(number.value(ast)),
     PropertyKeyData::BigIntLiteral(bigint) => {
@@ -32,10 +27,10 @@ fn eval_property_key<'parser>(
       }
     }
     PropertyKeyData::IdentifierName(identifier) => {
-      evaluated.set_string(ast.get_utf8(identifier.name(ast)).to_string());
+      evaluated.set_string(ast.get_utf8(identifier.name(ast)));
     }
     PropertyKeyData::PrivateIdentifier(identifier) => {
-      evaluated.set_string(ast.get_utf8(identifier.name(ast)).to_string());
+      evaluated.set_string(ast.get_utf8(identifier.name(ast)));
     }
     PropertyKeyData::Expr(expression) => return parser.evaluate_expression(expression),
   }

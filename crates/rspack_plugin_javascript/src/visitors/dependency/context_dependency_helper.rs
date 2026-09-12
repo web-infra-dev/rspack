@@ -34,19 +34,19 @@ pub fn create_context_dependency(
     .source();
 
   if param.is_template_string() {
-    let quasis = param.quasis();
-    let Some(prefix) = quasis.first() else {
+    let mut quasis = param.quasis();
+    let Some(prefix) = quasis.next() else {
       unreachable!("the len of quasis should be great than 0")
     };
     // SAFETY: the type of `quasis` must be string
     let prefix_raw = prefix.string();
-    let postfix_raw = if quasis.len() > 1 {
-      Cow::Borrowed(quasis[quasis.len() - 1].string())
+    let postfix_raw = if let Some(postfix) = quasis.next_back() {
+      Cow::Borrowed(postfix.string())
     } else {
       Cow::Owned(String::new())
     };
 
-    let (context, prefix) = split_context_from_prefix(prefix_raw.clone());
+    let (context, prefix) = split_context_from_prefix(prefix_raw.to_owned());
     let (postfix, query, fragment) = match parse_resource(&postfix_raw) {
       Some(data) => (
         data.path.as_str().to_string(),
@@ -58,14 +58,9 @@ pub fn create_context_dependency(
 
     // When there are more than two quasis, the generated RegExp can be more precise
     // We join the quasis with the expression regexp
-    let inner_quasis = if quasis.len() > 1 {
-      quasis[1..quasis.len() - 1]
-        .iter()
-        .map(|q| quote_meta(q.string().as_str()) + wrapped_context_reg_exp)
-        .join("")
-    } else {
-      String::new()
-    };
+    let inner_quasis = quasis
+      .map(|q| quote_meta(q.string()) + wrapped_context_reg_exp)
+      .join("");
 
     let reg = format!(
       "^{}{}{}{}$",

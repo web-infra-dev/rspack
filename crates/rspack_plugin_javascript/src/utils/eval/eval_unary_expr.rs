@@ -51,7 +51,7 @@ fn eval_typeof<'parser>(
   let span = expression.span(ast);
   if argument.is_function(ast) {
     let mut result = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
-    result.set_string("function".to_string());
+    result.set_string("function");
     return Some(result);
   }
   let argument_eval = parser.evaluate_expression(argument);
@@ -84,7 +84,7 @@ fn eval_typeof<'parser>(
     None
   }?;
   let mut result = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
-  result.set_string(type_name.to_string());
+  result.set_string(type_name);
   if argument_eval.is_wrapped() {
     result.set_side_effects(argument_eval.could_have_side_effects());
   }

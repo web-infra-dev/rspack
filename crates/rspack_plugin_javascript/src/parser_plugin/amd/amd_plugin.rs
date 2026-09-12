@@ -109,18 +109,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDParserPlugin {
     let span = expr.span(parser.ast.ast);
     if for_name == DEFINE || for_name == REQUIRE {
       return Some(evaluate_to_string(
-        "function".to_string(),
+        "function",
         span.real_lo(),
         span.real_hi(),
       ));
     }
 
     if for_name == DEFINE_AMD || for_name == REQUIRE_AMD {
-      return Some(evaluate_to_string(
-        "object".to_string(),
-        span.real_lo(),
-        span.real_hi(),
-      ));
+      return Some(evaluate_to_string("object", span.real_lo(), span.real_hi()));
     }
 
     None
