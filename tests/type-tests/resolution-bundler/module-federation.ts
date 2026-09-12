@@ -1,7 +1,12 @@
 import rspack, {
   type ConsumesConfig,
   type ConsumeSharedPluginOptions,
+  type ContainerPluginOptions,
   type EnhancedConsumeSharedPluginOptions,
+  type EnhancedContainerPluginOptions,
+  type EnhancedModuleFederationPluginV1Options,
+  type ExposesConfig,
+  type ModuleFederationPluginV1Options,
 } from '@rspack/core';
 
 interface ExtendedConsumesConfig extends ConsumesConfig {
@@ -63,4 +68,88 @@ new rspack.sharing.ConsumeSharedPlugin({
   consumes: {
     react: { request: 'react-server' },
   },
+});
+
+new rspack.container.ContainerPlugin({
+  name: 'enhanced',
+  enhanced: true,
+  exposes: {
+    './entry': { import: './index', layer: 'server' },
+  },
+});
+
+const reusableEnhancedContainer: EnhancedContainerPluginOptions = {
+  name: 'reusable-enhanced-container',
+  enhanced: true,
+  exposes: {
+    './entry': { import: './index', layer: 'server' },
+  },
+};
+new rspack.container.ContainerPlugin(reusableEnhancedContainer);
+
+interface ExtendedContainerOptions extends ContainerPluginOptions {
+  customRuntimeFlag?: boolean;
+}
+const extendedContainer: ExtendedContainerOptions = {
+  name: 'extended-container',
+  exposes: { './entry': { import: './index' } },
+  customRuntimeFlag: true,
+};
+new rspack.container.ContainerPlugin(extendedContainer);
+
+const reusableLegacyExpose: ExposesConfig = { import: './index' };
+new rspack.container.ContainerPlugin({
+  name: 'dynamic-enhanced',
+  enhanced: dynamicEnhanced,
+  exposes: { './entry': reusableLegacyExpose },
+});
+
+// @ts-expect-error Expose layers require the enhanced runtime gate.
+new rspack.container.ContainerPlugin({
+  name: 'legacy',
+  exposes: {
+    './entry': { import: './index', layer: 'server' },
+  },
+});
+
+const enhancedV1Options: EnhancedModuleFederationPluginV1Options = {
+  name: 'enhanced-v1',
+  enhanced: true,
+  exposes: {
+    './entry': { import: './index', layer: 'server' },
+  },
+};
+new rspack.container.ModuleFederationPluginV1(enhancedV1Options);
+
+const legacyV1Options: ModuleFederationPluginV1Options = {
+  name: 'legacy-v1',
+  // @ts-expect-error Expose layers require the enhanced runtime gate.
+  exposes: {
+    './entry': { import: './index', layer: 'server' },
+  },
+};
+new rspack.container.ModuleFederationPluginV1(legacyV1Options);
+
+interface ExtendedV1Options extends ModuleFederationPluginV1Options {
+  customRuntimeFlag?: boolean;
+}
+const extendedV1Options: ExtendedV1Options = {
+  name: 'extended-v1',
+  customRuntimeFlag: true,
+};
+new rspack.container.ModuleFederationPluginV1(extendedV1Options);
+
+new rspack.container.ModuleFederationPluginV1({
+  name: 'legacy-v1-inferred',
+  enhanced: false,
+  // @ts-expect-error Expose layers require enhanced: true.
+  exposes: {
+    './entry': { import: './index', layer: 'server' },
+  },
+});
+
+new rspack.container.ModuleFederationPluginV1({
+  name: 'dynamic-v1',
+  enhanced: dynamicEnhanced,
+  exposes: { './entry': reusableLegacyExpose },
 });

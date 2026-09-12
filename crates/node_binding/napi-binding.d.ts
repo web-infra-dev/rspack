@@ -2351,6 +2351,7 @@ export interface RawExperiments {
 export interface RawExposeOptions {
   key: string
   name?: string
+  layer?: string
   import: Array<string>
 }
 
