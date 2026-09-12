@@ -5,8 +5,14 @@ module.exports = {
   module: {
     rules: [
       {
+        test: /\.png$/,
+        type: 'asset/resource',
+        generator: { filename: 'resolved-[name][ext]' },
+      },
+      {
         test: /\.css$/,
         type: 'css/auto',
+        parser: { pure: true },
       },
     ],
   },

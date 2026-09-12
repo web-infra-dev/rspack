@@ -317,21 +317,15 @@ fn generic_value_fast_forward_keeps_raw_depth_across_candidates() {
   let mut lexer = Lexer::new(input, ());
   let mut stream = TokenStream::from_lexer(&mut lexer);
 
-  stream.fast_forward_generic_value_if_buffer_empty(
-    false,
-    false,
-    false,
-    |ident| ident == "imported",
-    |_| false,
-  );
+  stream.fast_forward_generic_value_if_buffer_empty(false, false, |ident| ident == "imported");
   assert_eq!(stream.consumed_pos(), 11);
   assert_eq!(stream.next(false).token.kind, TokenKind::Ident);
 
-  stream.fast_forward_generic_value_if_buffer_empty(false, false, false, |_| false, |_| false);
+  stream.fast_forward_generic_value_if_buffer_empty(false, false, |_| false);
   assert_eq!(stream.consumed_pos(), 21);
   assert_eq!(stream.next(false).token.kind, TokenKind::Url);
 
-  stream.fast_forward_generic_value_if_buffer_empty(false, false, false, |_| false, |_| false);
+  stream.fast_forward_generic_value_if_buffer_empty(false, false, |_| false);
   assert_eq!(stream.byte_at(stream.consumed_pos()), Some(b';'));
   assert_eq!(stream.next(false).token.kind, TokenKind::Semicolon);
   assert_eq!(stream.next(false).token.kind, TokenKind::Eof);
@@ -344,13 +338,7 @@ fn generic_value_fast_forward_buffers_plain_ascii_candidate_once() {
   let mut stream = TokenStream::from_lexer(&mut lexer);
 
   assert_eq!(stream.consumed_pos(), stream.lexer().scan_pos());
-  stream.fast_forward_generic_value_if_buffer_empty(
-    false,
-    false,
-    false,
-    |ident| ident == "imported",
-    |_| false,
-  );
+  stream.fast_forward_generic_value_if_buffer_empty(false, false, |ident| ident == "imported");
   assert_eq!(stream.consumed_pos(), 4);
   assert_eq!(stream.lexer().scan_pos(), 12);
 
