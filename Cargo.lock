@@ -3938,7 +3938,7 @@ dependencies = [
 name = "rspack_allocator"
 version = "0.102.3"
 dependencies = [
- "mimalloc",
+ "rspack_mimalloc",
  "sftrace-setup",
  "tracy-client",
 ]
@@ -3949,7 +3949,6 @@ version = "0.102.3"
 dependencies = [
  "async-trait",
  "codspeed-criterion-compat",
- "mimalloc",
  "rayon",
  "rspack",
  "rspack_cacheable",
@@ -3959,6 +3958,7 @@ dependencies = [
  "rspack_fs",
  "rspack_hash",
  "rspack_javascript_compiler",
+ "rspack_mimalloc",
  "rspack_plugin_javascript",
  "rspack_plugin_split_chunks",
  "rspack_regex",
@@ -4565,6 +4565,14 @@ dependencies = [
  "tokio",
  "tracing",
  "trybuild",
+]
+
+[[package]]
+name = "rspack_mimalloc"
+version = "0.102.3"
+dependencies = [
+ "libmimalloc-sys",
+ "mimalloc",
 ]
 
 [[package]]

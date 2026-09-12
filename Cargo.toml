@@ -64,6 +64,7 @@ itoa                = { version = "1.0.18", default-features = false }
 json                = { version = "0.12.4", default-features = false }
 json-escape-simd    = { version = "3.1.1", default-features = false }
 json-strip-comments = { version = "3.1.1", default-features = false }
+libmimalloc-sys     = { version = "0.1.44", default-features = false }
 lightningcss        = { version = "1.0.0-alpha.71", default-features = false, features = ["serde"] }
 linked-hash-map     = { version = "0.5.6", default-features = false }
 md4                 = { version = "0.10.2", default-features = false }
@@ -199,6 +200,7 @@ rspack_loader_swc                      = { version = "=0.102.3", path = "crates/
 rspack_loader_testing                  = { version = "=0.102.3", path = "crates/rspack_loader_testing", default-features = false }
 rspack_location                        = { version = "=0.102.3", path = "crates/rspack_location", default-features = false }
 rspack_macros                          = { version = "=0.102.3", path = "crates/rspack_macros", default-features = false }
+rspack_mimalloc                        = { version = "=0.102.3", path = "crates/rspack_mimalloc", default-features = false }
 rspack_napi                            = { version = "=0.102.3", path = "crates/rspack_napi", default-features = false }
 rspack_napi_macros                     = { version = "=0.102.3", path = "crates/rspack_napi_macros", default-features = false }
 rspack_parallel                        = { version = "=0.102.3", path = "crates/rspack_parallel", default-features = false }

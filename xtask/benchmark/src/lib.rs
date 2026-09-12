@@ -51,8 +51,8 @@ impl BenchMode {
 
 #[global_allocator]
 #[cfg(not(target_family = "wasm"))]
-static GLOBAL: NeverGrowInPlaceAllocator<mimalloc::MiMalloc> =
-  NeverGrowInPlaceAllocator::new(mimalloc::MiMalloc);
+static GLOBAL: NeverGrowInPlaceAllocator<rspack_mimalloc::MiMalloc> =
+  NeverGrowInPlaceAllocator::new(rspack_mimalloc::MiMalloc);
 
 #[global_allocator]
 #[cfg(target_family = "wasm")]
@@ -61,8 +61,8 @@ static GLOBAL: NeverGrowInPlaceAllocator<System> = NeverGrowInPlaceAllocator::ne
 /// From Oxc: https://github.com/oxc-project/oxc/blob/main/tasks/benchmark/src/lib.rs
 /// Global allocator for use in benchmarks.
 ///
-/// A thin wrapper around [`mimalloc::MiMalloc`] allocator. It passes through `alloc`
-/// and `dealloc` methods to [`mimalloc::MiMalloc`], but does not implement
+/// A thin wrapper around [`rspack_mimalloc::MiMalloc`] allocator. It passes through `alloc`
+/// and `dealloc` methods to [`rspack_mimalloc::MiMalloc`], but does not implement
 /// [`GlobalAlloc::realloc`].
 ///
 /// Rationale for this is:
