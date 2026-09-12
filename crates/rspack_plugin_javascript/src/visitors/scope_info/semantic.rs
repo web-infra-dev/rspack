@@ -1,6 +1,6 @@
 use std::num::NonZeroU32;
 
-use swc_next_ecma_ast::{IdentifierReference, NodeId, ScopeId, SymbolId};
+use swc_next_ecma_ast::{BindingIdentifier, IdentifierReference, NodeId, ScopeId, SymbolId};
 use swc_next_ecma_semantic::{ReferenceSpace, Semantic, SymbolFlags, scope::ScopeKind};
 
 use super::{
@@ -434,6 +434,33 @@ impl<'ast> ScopeInfoDB<'ast> {
       // binding through the name-based overlay.
     }
     self.get(self.current_scope(), name)
+  }
+
+  /// Reuses a declaration's semantic symbol while still observing mutable tags and aliases.
+  pub(crate) fn resolve_binding(
+    &mut self,
+    parsed: &ParsedJavaScriptAst<'_>,
+    identifier: BindingIdentifier,
+  ) -> (Option<BindingState>, Option<SymbolBinding>) {
+    debug_assert!(
+      self
+        .semantic_context
+        .ast
+        .is_some_and(|ast| std::ptr::eq(ast, parsed))
+    );
+    if let Some(symbol) = parsed.semantic.symbol_of(identifier.node_id()) {
+      let symbol = symbol_binding(
+        parsed.semantic,
+        self.semantic_context.symbol_start,
+        self.semantic_context.scope_start,
+        symbol,
+      );
+      if let Some(state) = self.symbol_state(symbol) {
+        return (state.defined(), Some(symbol));
+      }
+    }
+    // Pre-walked block declarations may not have an active semantic owner yet.
+    self.resolve_with_symbol(parsed.ast.get_utf8(identifier.name(parsed.ast)))
   }
 
   /// Defines a normal binding in the current scope without replacing its existing plugin tags.
