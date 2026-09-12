@@ -740,6 +740,17 @@ export interface JsBeforeEmitData {
   uid?: number
 }
 
+/**
+ * Loaders already on the module when `beforeLoaders` runs. A tap hands back
+ * either the index of one it left alone, so that its resolved loader and cache
+ * options are reused, or a `RawModuleRuleUse` to resolve like a `module.rules`
+ * entry.
+ */
+export interface JsBeforeLoadersArgs {
+  loaders: Array<JsLoaderItem>
+  module: Module
+}
+
 export interface JsBeforeModuleIdsArg {
   modules: Array<JsModuleForIds>
 }
@@ -3308,7 +3319,8 @@ export declare enum RegisterJsTapKind {
   RsdoctorPluginModuleIds = 51,
   RsdoctorPluginModuleSources = 52,
   RsdoctorPluginAssets = 53,
-  NormalModuleLoader = 54
+  NormalModuleLoader = 54,
+  NormalModuleBeforeLoaders = 55
 }
 
 export interface RegisterJsTaps {
@@ -3351,6 +3363,7 @@ export interface RegisterJsTaps {
   registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>
   registerExternalModuleChunkConditionTaps: (stages: Array<number>) => Array<{ function: ((chunk: Chunk) => boolean | undefined); stage: number; }>
   registerJavascriptModulesChunkHashTaps: (stages: Array<number>) => Array<{ function: ((arg: Chunk) => Buffer); stage: number; }>
+  registerNormalModuleBeforeLoadersTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeLoadersArgs) => Array<number | RawModuleRuleUse> | undefined); stage: number; }>
   registerHtmlPluginBeforeAssetTagGenerationTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeAssetTagGenerationData) => JsBeforeAssetTagGenerationData); stage: number; }>
   registerHtmlPluginAlterAssetTagsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAlterAssetTagsData) => JsAlterAssetTagsData); stage: number; }>
   registerHtmlPluginAlterAssetTagGroupsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAlterAssetTagGroupsData) => JsAlterAssetTagGroupsData); stage: number; }>

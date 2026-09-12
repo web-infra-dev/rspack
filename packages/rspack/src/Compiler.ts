@@ -1026,6 +1026,7 @@ class Compiler {
         createTap,
         createMapTap,
       ),
+      ...createNormalModuleHooksRegisters(getCompiler, createTap, createMapTap),
       ...createContextModuleFactoryHooksRegisters(
         getCompiler,
         createTap,
