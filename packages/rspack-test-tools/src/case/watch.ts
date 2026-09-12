@@ -287,25 +287,50 @@ export function createWatchStepProcessor(
   };
   processor.build = async (context: ITestContext) => {
     const compiler = context.getCompiler();
-    const task = new Promise((resolve, reject) => {
-      compiler.getEmitter().once(ECompilerEvent.Build, (e, stats) => {
-        if (e) return reject(e);
-        resolve(stats);
-      });
-    });
-    // wait compiler to ready watch the files and diretories
+    const emitter = compiler.getEmitter();
 
-    // Native Watcher using [notify](https://github.com/notify-rs/notify) to watch files.
-    // After tests, notify will cost many milliseconds to watch in windows OS when jest run concurrently.
-    // So we need to wait a while to ensure the watcher is ready.
-    // If we don't wait, copyDiff will happen before the watcher is ready,
-    // which will cause the compiler not rebuild when the files change.
-    // The timeout is set to 400ms for windows OS and 100ms for other OS.
-    // TODO: This is a workaround, we can remove it when notify support windows better.
-    const timeout = nativeWatcher && process.platform === 'win32' ? 400 : 100;
-    await new Promise((resolve) => setTimeout(resolve, timeout));
-    copyDiff(path.join(context.getSource(), step), tempDir, false);
-    await task;
+    // Native Watcher (notify) needs a moment to be ready to detect the change;
+    // 400ms on windows, 100ms elsewhere.
+    const readyTimeout =
+      nativeWatcher && process.platform === 'win32' ? 400 : 100;
+    // Must exceed the watcher aggregateTimeout (see `watch()`) so a slow or extra
+    // rebuild cannot be mistaken for a settled result.
+    const settleWindow = 2000;
+
+    // Resolve on the LAST build this step settles on, not merely the first one.
+    //
+    // Under load the watcher can emit an extra rebuild during the step transition
+    // that still carries the previous step's content; capturing the first Build
+    // would run that stale bundle. We instead keep waiting until no new build has
+    // arrived for `settleWindow`, so the build the runner observes always reflects
+    // the current sources. The listener is armed before copyDiff so a rebuild the
+    // step legitimately relies on that is already pending (e.g. a metadata touch
+    // from the previous step) is still captured.
+    await new Promise<void>((resolve, reject) => {
+      let settleTimer: ReturnType<typeof setTimeout> | undefined;
+      let finished = false;
+      const finish = (fn: () => void) => {
+        if (finished) return;
+        finished = true;
+        emitter.removeListener(ECompilerEvent.Build, onBuild);
+        fn();
+      };
+      const settle = () => {
+        if (settleTimer) clearTimeout(settleTimer);
+        settleTimer = setTimeout(() => finish(resolve), settleWindow);
+      };
+      const onBuild = (e: Error | null) => {
+        if (finished) return;
+        if (e) return finish(() => reject(e));
+        settle();
+      };
+      emitter.on(ECompilerEvent.Build, onBuild);
+
+      (async () => {
+        await new Promise((r) => setTimeout(r, readyTimeout));
+        copyDiff(path.join(context.getSource(), step), tempDir, false);
+      })();
+    });
   };
   return processor;
 }
