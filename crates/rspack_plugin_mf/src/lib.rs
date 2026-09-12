@@ -4,8 +4,14 @@ mod sharing;
 
 use rspack_hash::{RspackHash, RspackHasher};
 
-#[rspack_cacheable::cacheable]
-#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize)]
+pub(crate) fn push_identifier_component(key: &mut String, value: &str) {
+  key.push_str(&value.len().to_string());
+  key.push(':');
+  key.push_str(value);
+}
+
+#[rspack_cacheable::cacheable(hashable)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
 pub enum ShareScope {
   Single(String),
@@ -15,8 +21,36 @@ pub enum ShareScope {
 impl ShareScope {
   pub fn key(&self) -> String {
     match self {
-      ShareScope::Single(s) => s.clone(),
-      ShareScope::Multiple(v) => v.join("|"),
+      ShareScope::Single(scope) => scope.clone(),
+      ShareScope::Multiple(scopes) => scopes.join("|"),
+    }
+  }
+
+  /// Stable, collision-free representation for internal module identifiers.
+  /// Runtime and display values must continue to use [`Self::scopes`] or [`Self::key`].
+  pub(crate) fn identifier_key(&self) -> String {
+    let mut key = String::new();
+    match self {
+      ShareScope::Single(scope) => {
+        key.push('s');
+        push_identifier_component(&mut key, scope);
+      }
+      ShareScope::Multiple(scopes) => {
+        key.push('m');
+        key.push_str(&scopes.len().to_string());
+        key.push(':');
+        for scope in scopes {
+          push_identifier_component(&mut key, scope);
+        }
+      }
+    }
+    key
+  }
+
+  pub(crate) fn identifier_fragment(&self) -> String {
+    match self {
+      ShareScope::Single(scope) => format!("({scope})"),
+      ShareScope::Multiple(_) => format!("[{}]", self.identifier_key()),
     }
   }
 
@@ -32,6 +66,38 @@ impl ShareScope {
       ShareScope::Single(_) => false,
       ShareScope::Multiple(v) => v.is_empty(),
     }
+  }
+}
+
+/// Cloned to key independent provider, consumer, and export-usage maps with the same identity.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub(crate) struct SharedIdentity {
+  pub(crate) share_scope: ShareScope,
+  pub(crate) share_key: String,
+  pub(crate) layer: Option<String>,
+}
+
+impl SharedIdentity {
+  pub(crate) fn new(share_scope: &ShareScope, share_key: &str, layer: Option<&str>) -> Self {
+    Self {
+      share_scope: share_scope.clone(),
+      share_key: share_key.to_string(),
+      layer: layer.map(str::to_string),
+    }
+  }
+
+  pub(crate) fn identifier_key(&self) -> String {
+    let mut key = String::new();
+    push_identifier_component(&mut key, &self.share_scope.identifier_key());
+    match &self.layer {
+      Some(layer) => {
+        key.push('l');
+        push_identifier_component(&mut key, layer);
+      }
+      None => key.push('n'),
+    }
+    push_identifier_component(&mut key, &self.share_key);
+    key
   }
 }
 

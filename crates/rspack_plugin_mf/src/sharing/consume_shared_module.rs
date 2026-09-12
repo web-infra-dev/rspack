@@ -7,19 +7,23 @@ use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
   ExportsType, FactoryMetaStore, FreezeLock, LibIdentOptions, Module, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
+  ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, RuntimeGlobals,
+  RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
-use rspack_util::{json_stringify, json_stringify_str, source_map::SourceMapKind};
+use rspack_util::{identifier::absolute_to_request, json_stringify_str, source_map::SourceMapKind};
 
 use super::{
   consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
   consume_shared_runtime_module::CodeGenerationDataConsumeShared,
 };
-use crate::{ConsumeOptions, ShareScope, utils::module_identifier_namespace};
+use crate::{
+  ConsumeOptions, ShareScope, SharedIdentity,
+  utils::{json_stringify, module_identifier_namespace},
+};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -38,16 +42,39 @@ pub struct ConsumeSharedModule {
 }
 
 impl ConsumeSharedModule {
+  pub(crate) fn shared_identity(&self) -> SharedIdentity {
+    SharedIdentity::new(
+      &self.options.share_scope,
+      &self.options.share_key,
+      self.options.layer.as_deref(),
+    )
+  }
+
   pub fn share_scope(&self) -> &ShareScope {
     &self.options.share_scope
+  }
+
+  pub(crate) fn required_version(&self) -> Option<&crate::ConsumeVersion> {
+    self.options.required_version.as_ref()
   }
 
   pub fn new(context: Context, options: ConsumeOptions, runtime_mode: RuntimeMode) -> Self {
     let scopes_key = options.share_scope.key();
     let namespace = module_identifier_namespace(runtime_mode);
-    let identifier = format!(
-      "consume shared module ({}) {}@{}{}{}{}{}",
+    let identity_key = SharedIdentity::new(
+      &options.share_scope,
+      &options.share_key,
+      options.layer.as_deref(),
+    )
+    .identifier_key();
+    let readable_identifier = format!(
+      "consume shared module ({}){} {}@{}{}{}{}{}",
       &scopes_key,
+      options
+        .layer
+        .as_ref()
+        .map(|layer| format!(" ({layer})"))
+        .unwrap_or_default(),
       &options.share_key,
       options
         .required_version
@@ -74,20 +101,36 @@ impl ConsumeSharedModule {
         Default::default()
       },
     );
+    // Same layout convention as webpack's shared modules: `(scope)`, then
+    // ` (layer)` when layered, then `shareKey@requiredVersion` and flags.
+    // External manifest readers parse it by token position.
+    let identifier = format!("{readable_identifier} [identity:{identity_key}]");
     Self {
       dependencies_block: Default::default(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),
-      lib_ident: format!(
-        "{namespace}/sharing/consume/{}/{}{}",
-        &scopes_key,
-        &options.share_key,
-        options
-          .import
-          .as_ref()
-          .map(|r| format!("/{r}"))
-          .unwrap_or_default()
-      ),
-      readable_identifier: identifier,
+      lib_ident: if options.layer.is_none() && matches!(&options.share_scope, ShareScope::Single(_))
+      {
+        format!(
+          "{namespace}/sharing/consume/{}/{}{}",
+          &scopes_key,
+          &options.share_key,
+          options
+            .import
+            .as_ref()
+            .map(|r| format!("/{r}"))
+            .unwrap_or_default()
+        )
+      } else {
+        format!(
+          "{namespace}/sharing/consume/{identity_key}{}",
+          options
+            .import
+            .as_ref()
+            .map(|r| format!("/{r}"))
+            .unwrap_or_default()
+        )
+      },
+      readable_identifier,
       context,
       options,
       factory_meta: Default::default(),
@@ -143,6 +186,10 @@ impl Module for ConsumeSharedModule {
     Some(self.lib_ident.as_str().into())
   }
 
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.options.layer.as_ref()
+  }
+
   fn get_context(&self) -> Option<Box<Context>> {
     Some(Box::new(self.context.clone()))
   }
@@ -189,7 +236,10 @@ impl Module for ConsumeSharedModule {
     let mut blocks = vec![];
     let mut dependencies = vec![];
     if let Some(fallback) = &self.options.import {
-      let dep = BoxDependency::new(ConsumeSharedFallbackDependency::new(fallback.to_owned()));
+      let dep = BoxDependency::new(ConsumeSharedFallbackDependency::new(
+        fallback.to_owned(),
+        self.options.layer.clone(),
+      ));
       if self.options.eager {
         dependencies.push(dep);
       } else {
@@ -252,16 +302,41 @@ impl Module for ConsumeSharedModule {
         runtime_template.async_module_factory(&self.get_blocks()[0], fallback, compilation)
       }
     });
+    code_generation_result.add(
+      SourceType::ConsumeShared,
+      RawStringSource::from(factory.clone().unwrap_or_else(|| "undefined".to_string())).boxed(),
+    );
+    let module_graph = compilation.get_module_graph();
+    let fallback_dependency = self.get_dependency_ids().next().or_else(|| {
+      self
+        .get_blocks()
+        .first()
+        .and_then(|block| module_graph.block_by_id(block))
+        .and_then(|block| block.get_dependency_ids().next())
+    });
+    let resource = fallback_dependency
+      .and_then(|dependency| module_graph.get_module_by_dependency_id(dependency))
+      .and_then(|module| {
+        module.name_for_condition().map(|name| {
+          let resource = module.as_any().downcast_ref::<NormalModule>().map_or_else(
+            || name.into(),
+            |module| module.resource_resolved_data().resource().to_string(),
+          );
+          absolute_to_request(compilation.options.context.as_str(), &resource).into_owned()
+        })
+      });
     code_generation_result
       .data_mut()
       .insert(CodeGenerationDataConsumeShared {
         share_scope: self.options.share_scope.clone(),
         share_key: self.options.share_key.clone(),
         import: self.options.import.clone(),
+        resource,
         required_version: self.options.required_version.clone(),
         strict_version: self.options.strict_version,
         singleton: self.options.singleton,
         eager: self.options.eager,
+        layer: self.options.layer.clone(),
         fallback: factory,
         tree_shaking_mode: self.options.tree_shaking_mode.clone(),
       });

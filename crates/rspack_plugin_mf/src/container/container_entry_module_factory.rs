@@ -25,6 +25,12 @@ impl ModuleFactory for ContainerEntryModuleFactory {
           dep.name.clone(),
           dep.request.clone().expect("should have request"),
           dep.version.clone().expect("should have version"),
+          dep.share_scope.clone(),
+          dep
+            .share_key
+            .clone()
+            .expect("share container entry should have a share key"),
+          dep.layer.clone(),
           data.options.experiments.runtime_mode,
         )
         .boxed(),
