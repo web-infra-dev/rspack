@@ -1,14 +1,32 @@
 use std::path::Path;
 
+use rspack_collections::IdentifierMap;
 use rspack_core::{Compilation, ModuleGraph, ModuleIdentifier};
 use rspack_util::fx_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{
-  data::{StatsAssetsGroup, StatsExpose, StatsRemote, StatsShared},
+  data::{StatsAssetsGroup, StatsExpose, StatsRemote, StatsShared, StatsSharedRequirement},
   options::RemoteAliasTarget,
 };
+use crate::{ShareScope, SharedIdentity};
 
 const HOT_UPDATE_SUFFIX: &str = ".hot-update";
+
+/// Cloned because one expose participates in multiple import and asset lookup maps.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub(crate) struct ExposeIdentity {
+  pub(crate) path: String,
+  pub(crate) layer: Option<String>,
+}
+
+impl ExposeIdentity {
+  pub(crate) fn new(path: &str, layer: Option<&str>) -> Self {
+    Self {
+      path: path.to_string(),
+      layer: layer.map(str::to_string),
+    }
+  }
+}
 
 pub fn ensure_configured_remotes(
   remote_list: &mut Vec<StatsRemote>,
@@ -133,6 +151,61 @@ pub fn compose_id_with_separator(container: &str, name: &str) -> String {
   format!("{container}:{name}")
 }
 
+fn compose_structural_shared_id(container: &str, identity: &SharedIdentity) -> String {
+  compose_id_with_separator(container, &format!("shared:{}", identity.identifier_key()))
+}
+
+pub fn compose_shared_id(container: &str, identity: &SharedIdentity) -> String {
+  if matches!(&identity.share_scope, ShareScope::Single(_)) && identity.layer.is_none() {
+    compose_id_with_separator(container, &identity.share_key)
+  } else {
+    compose_structural_shared_id(container, identity)
+  }
+}
+
+pub fn finalize_shared_ids(shared: &mut [StatsShared], container_name: &str) {
+  let scope_collisions = shared
+    .iter()
+    .map(|entry| {
+      if entry.layer.is_some() {
+        return false;
+      }
+      let share_scope = entry
+        .share_scope
+        .clone()
+        .unwrap_or_else(|| ShareScope::Single("default".to_string()));
+      matches!(share_scope, ShareScope::Single(_))
+        && shared.iter().any(|candidate| {
+          if candidate.layer.is_some() || candidate.name != entry.name {
+            return false;
+          }
+          let candidate_scope = candidate
+            .share_scope
+            .clone()
+            .unwrap_or_else(|| ShareScope::Single("default".to_string()));
+          matches!(candidate_scope, ShareScope::Single(_)) && candidate_scope != share_scope
+        })
+    })
+    .collect::<Vec<_>>();
+
+  for (entry, has_scope_collision) in shared.iter_mut().zip(scope_collisions) {
+    let share_scope = entry
+      .share_scope
+      .clone()
+      .unwrap_or_else(|| ShareScope::Single("default".to_string()));
+    let identity = SharedIdentity::new(&share_scope, &entry.name, entry.layer.as_deref());
+    entry.id = compose_shared_id(container_name, &identity);
+    entry.identity_id = if (has_scope_collision || entry.name.starts_with("shared:"))
+      && entry.layer.is_none()
+      && matches!(share_scope, ShareScope::Single(_))
+    {
+      Some(compose_structural_shared_id(container_name, &identity))
+    } else {
+      None
+    };
+  }
+}
+
 pub fn is_hot_file(file: &str) -> bool {
   file.contains(HOT_UPDATE_SUFFIX)
 }
@@ -154,88 +227,98 @@ pub fn strip_ext(path: &str) -> String {
 }
 
 pub fn ensure_shared_entry<'a>(
-  shared_map: &'a mut HashMap<String, StatsShared>,
+  shared_map: &'a mut HashMap<SharedIdentity, StatsShared>,
+  identity: &SharedIdentity,
   container_name: &str,
-  pkg: &str,
 ) -> &'a mut StatsShared {
   shared_map
-    .entry(pkg.to_string())
+    .entry(identity.clone())
     .or_insert_with(|| StatsShared {
-      id: compose_id_with_separator(container_name, pkg),
-      name: pkg.to_string(),
+      id: compose_shared_id(container_name, identity),
+      identity_id: None,
+      name: identity.share_key.clone(),
       version: String::new(),
       requiredVersion: None,
+      layer: identity.layer.clone(),
+      share_scope: manifest_share_scope(identity),
       // default singleton to true
       singleton: Some(true),
       assets: super::data::StatsAssetsGroup::default(),
       usedIn: Vec::new(),
       usedExports: Vec::new(),
+      providers: Vec::new(),
     })
 }
 
+pub(crate) fn manifest_share_scope(identity: &SharedIdentity) -> Option<ShareScope> {
+  match &identity.share_scope {
+    ShareScope::Single(scope) if scope == "default" => None,
+    share_scope => Some(share_scope.clone()),
+  }
+}
+
 pub fn record_shared_usage(
-  shared_usage_links: &mut Vec<(String, String)>,
-  pkg: &str,
+  shared_usage_links: &mut Vec<(SharedIdentity, ModuleIdentifier)>,
+  identity: &SharedIdentity,
   module_identifier: &ModuleIdentifier,
   module_graph: &ModuleGraph,
-  compilation: &Compilation,
 ) {
-  fn strip_aggregate_suffix(s: &str) -> String {
-    if let Some((before, _)) = s.split_once(" + ") {
-      before.to_string()
-    } else {
-      s.to_string()
-    }
+  // A direct expose resolves to the shared module itself, not an ordinary issuer.
+  shared_usage_links.push((identity.clone(), *module_identifier));
+  if let Some(issuer) = module_graph.get_issuer(module_identifier) {
+    shared_usage_links.push((identity.clone(), issuer.identifier()));
   }
-  if let Some(issuer_module) = module_graph.get_issuer(module_identifier) {
-    let issuer_name = issuer_module
-      .readable_identifier(&compilation.options.context)
-      .to_string();
-    if !issuer_name.is_empty() {
-      let key = strip_ext(&strip_aggregate_suffix(&issuer_name));
-      shared_usage_links.push((pkg.to_string(), key));
-    }
-  }
-  if let Some(mgm) = module_graph.module_graph_module_by_identifier(module_identifier) {
-    for connection_id in mgm.incoming_connections() {
-      let Some(connection) = module_graph.connection_by_id(connection_id) else {
-        continue;
-      };
-      let dependency = module_graph.dependency_by_id(&connection.dependency_id);
-      let maybe_request = dependency
-        .as_module_dependency()
-        .map(|dep| dep.user_request().to_string())
-        .or_else(|| {
-          dependency
-            .as_context_dependency()
-            .map(|dep| dep.request().to_string())
-        });
-      if let Some(request) = maybe_request {
-        let key = strip_ext(&strip_aggregate_suffix(&request));
-        shared_usage_links.push((pkg.to_string(), key));
-      }
+  for connection in module_graph.get_incoming_connections(module_identifier) {
+    if let Some(issuer) = connection
+      .original_module_identifier
+      .or(connection.resolved_original_module_identifier)
+    {
+      shared_usage_links.push((identity.clone(), issuer));
     }
   }
 }
 
 pub fn collect_expose_requirements(
-  shared_map: &mut HashMap<String, StatsShared>,
-  exposes_map: &mut HashMap<String, StatsExpose>,
-  links: Vec<(String, String)>,
-  expose_module_paths: &HashMap<String, String>,
+  shared_map: &mut HashMap<SharedIdentity, StatsShared>,
+  exposes_map: &mut HashMap<ExposeIdentity, StatsExpose>,
+  links: Vec<(SharedIdentity, ModuleIdentifier)>,
+  expose_identities_by_module: &IdentifierMap<Vec<ExposeIdentity>>,
+  expose_module_paths: &IdentifierMap<String>,
 ) {
-  for (pkg, expose_key) in links {
-    if let Some(expose) = exposes_map.get_mut(&expose_key) {
-      if !expose.requires.contains(&pkg) {
-        expose.requires.push(pkg.clone());
+  for (identity, module_id) in links {
+    let identity_count = shared_map
+      .keys()
+      .filter(|candidate| candidate.share_key == identity.share_key)
+      .count();
+    let Some(shared) = shared_map.get_mut(&identity) else {
+      continue;
+    };
+    let Some(expose_identities) = expose_identities_by_module.get(&module_id) else {
+      continue;
+    };
+    let required_shared = StatsSharedRequirement {
+      name: identity.share_key.clone(),
+      layer: identity.layer.clone(),
+      share_scope: manifest_share_scope(&identity),
+    };
+    let emit_structured_requirement = identity_count > 1
+      || required_shared.layer.is_some()
+      || required_shared.share_scope.is_some();
+    for expose_identity in expose_identities {
+      let Some(expose) = exposes_map.get_mut(expose_identity) else {
+        continue;
+      };
+      if !expose.requires.contains(&shared.name) {
+        expose.requires.push(shared.name.clone());
       }
-      if let Some(shared) = shared_map.get_mut(&pkg) {
-        let target = expose_module_paths
-          .get(&expose_key)
-          .cloned()
-          .unwrap_or_else(|| expose.path.clone());
-        shared.usedIn.push(target);
+      if emit_structured_requirement && !expose.required_shared.contains(&required_shared) {
+        expose.required_shared.push(required_shared.clone());
       }
+      let target = expose_module_paths
+        .get(&module_id)
+        .cloned()
+        .unwrap_or_else(|| expose.path.clone());
+      shared.usedIn.push(target);
     }
   }
 }

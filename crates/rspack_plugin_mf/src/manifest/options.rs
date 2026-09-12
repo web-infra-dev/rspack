@@ -1,6 +1,6 @@
 use rspack_util::fx_hash::FxHashMap as HashMap;
 
-use crate::manifest::data::StatsBuildInfo;
+use crate::{ShareScope, manifest::data::StatsBuildInfo};
 
 #[derive(Debug, Clone)]
 pub struct RemoteAliasTarget {
@@ -12,6 +12,7 @@ pub struct RemoteAliasTarget {
 pub struct ManifestExposeOption {
   pub path: String,
   pub name: String,
+  pub layer: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -19,6 +20,8 @@ pub struct ManifestSharedOption {
   pub name: String,
   pub version: Option<String>,
   pub required_version: Option<String>,
+  pub share_scope: ShareScope,
+  pub layer: Option<String>,
   pub singleton: Option<bool>,
 }
 

@@ -17,18 +17,34 @@ it("should omit asset details from stats when disableAssetsAnalyze is true", () 
 	expect(stats.shared).toHaveLength(1);
 	expect(stats.shared[0].assets.js.sync).toEqual([]);
 	expect(stats.shared[0].assets.js.async).toEqual([]);
+	expect(stats.shared[0]).toEqual(
+		expect.objectContaining({
+			id: "container:shared:20:m2:6:server7:defaultl6:server5:react",
+			layer: "server",
+			shareScope: ["server", "default"]
+		})
+	);
 	expect(stats.exposes).toHaveLength(1);
 	expect(stats.exposes[0].assets.js.sync).toEqual([]);
 	expect(stats.exposes[0].assets.js.async).toEqual([]);
+	expect(stats.exposes[0].layer).toBe("server");
 });
 
 it("should omit asset details from manifest when disableAssetsAnalyze is true", () => {
 	expect(manifest.shared).toHaveLength(1);
 	expect(manifest.shared[0].assets.js.sync).toEqual([]);
 	expect(manifest.shared[0].assets.js.async).toEqual([]);
+	expect(manifest.shared[0]).toEqual(
+		expect.objectContaining({
+			id: "container:shared:20:m2:6:server7:defaultl6:server5:react",
+			layer: "server",
+			shareScope: ["server", "default"]
+		})
+	);
 	expect(manifest.exposes).toHaveLength(1);
 	expect(manifest.exposes[0].assets.js.sync).toEqual([]);
 	expect(manifest.exposes[0].assets.js.async).toEqual([]);
+	expect(manifest.exposes[0].layer).toBe("server");
 });
 
 it("should mark remote usage locations as UNKNOWN", () => {

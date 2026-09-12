@@ -25,40 +25,55 @@ use super::{
 };
 use crate::{ShareScope, SharedIdentity, container::container_entry_module::ContainerEntryModule};
 
-#[inline(always)]
-fn referenced_exports_for_output(
-  shared_referenced_exports: &FxHashMap<SharedIdentity, FxHashSet<String>>,
+fn shared_identity_from_output(
   share_key: &str,
-) -> Option<FxHashSet<String>> {
-  let mut matching = FxHashSet::default();
-  let mut found = false;
-  for (identity, exports) in shared_referenced_exports {
-    if identity.share_key != share_key {
-      continue;
-    }
-    found = true;
-    matching.extend(exports.iter().cloned());
+  share_scope: Option<&ShareScope>,
+  layer: Option<&str>,
+) -> SharedIdentity {
+  let default_scope = ShareScope::Single("default".to_string());
+  SharedIdentity::new(share_scope.unwrap_or(&default_scope), share_key, layer)
+}
+
+fn share_scope_from_json(value: Option<&Value>) -> Option<Option<ShareScope>> {
+  match value {
+    None => Some(None),
+    Some(Value::String(scope)) => Some(Some(ShareScope::Single(scope.clone()))),
+    Some(Value::Array(scopes)) => scopes
+      .iter()
+      .map(|scope| scope.as_str().map(str::to_string))
+      .collect::<Option<Vec<_>>>()
+      .map(ShareScope::Multiple)
+      .map(Some),
+    Some(_) => None,
   }
-  found.then_some(matching)
 }
 
 fn update_shared_exports(
   content: &str,
   shared_referenced_exports: &FxHashMap<SharedIdentity, FxHashSet<String>>,
+  update_reference_exports: bool,
 ) -> Option<String> {
   let mut root = serde_json::from_str::<Value>(content).ok()?;
   for shared in root.get_mut("shared")?.as_array_mut()? {
-    let share_key = shared.get("name")?.as_str()?;
-    let Some(exports_set) = referenced_exports_for_output(shared_referenced_exports, share_key)
-    else {
+    let (share_key, share_scope, layer) = {
+      let shared = shared.as_object()?;
+      let share_key = shared.get("name")?.as_str()?;
+      let share_scope = share_scope_from_json(shared.get("shareScope"))?;
+      let layer = shared.get("layer").and_then(Value::as_str);
+      (share_key, share_scope, layer)
+    };
+    let identity = shared_identity_from_output(share_key, share_scope.as_ref(), layer);
+    let Some(exports_set) = shared_referenced_exports.get(&identity) else {
       continue;
     };
     let mut exports = exports_set.iter().cloned().collect::<Vec<_>>();
     exports.sort_unstable();
-    shared.as_object_mut()?.insert(
-      "usedExports".to_string(),
-      Value::Array(exports.into_iter().map(Value::String).collect()),
-    );
+    let exports = exports.into_iter().map(Value::String).collect::<Vec<_>>();
+    let shared = shared.as_object_mut()?;
+    shared.insert("usedExports".to_string(), Value::Array(exports.clone()));
+    if update_reference_exports {
+      shared.insert("referenceExports".to_string(), Value::Array(exports));
+    }
   }
   serde_json::to_string_pretty(&root).ok()
 }
@@ -366,12 +381,19 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .shared_referenced_exports
     .read()
     .expect("lock poisoned");
-  for file_name in [&self.stats_file_name, &self.manifest_file_name] {
+  for (file_name, update_reference_exports) in [
+    (&self.stats_file_name, false),
+    (&self.manifest_file_name, true),
+  ] {
     if let Some(file_name) = file_name
       && let Some(file) = compilation.assets().get(file_name)
       && let Some(source) = file.get_source()
       && let SourceValue::String(content) = source.source()
-      && let Some(updated_content) = update_shared_exports(&content, &shared_referenced_exports)
+      && let Some(updated_content) = update_shared_exports(
+        &content,
+        &shared_referenced_exports,
+        update_reference_exports,
+      )
     {
       compilation.update_asset(file_name, |_, info| {
         Ok((RawStringSource::from(updated_content).boxed(), info))

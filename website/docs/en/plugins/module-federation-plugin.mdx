@@ -235,11 +235,22 @@ When enabled, the plugin emits both `mf-manifest.json` and `mf-stats.json` (you 
 - `mf-stats.json`: Contains full build statistics, including the asset lists for exposes/shared/remotes, `metaData` (plugin version, build info, `remoteEntry`, etc.), and extra asset analysis data, making it suitable for later aggregation or diagnostics.
 - `mf-manifest.json`: A runtime manifest distilled from the stats file. The structure stays stable and can be consumed by Module Federation clients when loading remote modules. The exposes/shared/remotes sections describe what is publicly exposed.
 
+When a shared key, scope, and layer has multiple concrete providers, its shared entry includes an optional `providers` array. Each provider records its `version`, resolved `import` relative to the build context, and `assets`. The existing shared entry and its fields are retained for older readers. Single-provider entries omit `providers`; readers must also accept manifests without this field.
+
+Layer-aware builds add optional identity fields to both outputs:
+
+- `layer` identifies the layer of an exposed or shared entry; entries without a layer omit it.
+- Shared entries include `shareScope` for non-default scopes or ordered scope arrays. An omitted scope means the scalar `"default"` scope.
+- Shares with a scalar scope and no layer retain the legacy `id`. `identityId` disambiguates colliding legacy IDs and shared keys beginning with the reserved `shared:` prefix. Use `identityId ?? id` as the shared entry's identity and treat it as opaque.
+- Exposes include `requiredShared` when shared names alone are insufficient. Each requirement contains `name` and optional `shareScope` and `layer`; the stats output also retains the key-only `requires` list. Inferred requirements are omitted when asset analysis is disabled.
+
+Readers must accept older manifests without these optional fields.
+
 `ManifestConfig` provides the following options:
 
 - `filePath`: Target directory for the manifest files. Applies to both manifest and stats outputs.
 - `fileName`: Manifest file name. When set, the stats file automatically appends a `-stats` suffix (for example, `fileName: 'mf.json'` produces `mf.json` and `mf-stats.json`). All files are emitted into the directory defined by `filePath` (if provided).
-- `disableAssetsAnalyze`: Disables asset analysis. When `true`, the manifest omits the `shared` and `exposes` fields, and the `remotes` entries will not include asset information.
+- `disableAssetsAnalyze`: Disables asset analysis. Shared and exposed modules are described from configuration, with empty asset lists. Resolved provider details are omitted.
 
 ### injectTreeShakingUsedExports
 
