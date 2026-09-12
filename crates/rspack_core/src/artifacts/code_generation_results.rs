@@ -343,7 +343,9 @@ impl CodeGenerationResultBuilder {
     hash_salt: &HashSalt,
   ) {
     let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
-    for (source_type, source) in self.value.sources.as_ref() {
+    let mut entries = self.value.sources.as_ref().iter().collect::<Vec<_>>();
+    entries.sort_unstable_by_key(|(source_type, _)| **source_type);
+    for (source_type, source) in entries {
       source_type.hash(&mut hasher);
       std::hash::Hash::hash(source, &mut hasher);
     }
@@ -365,7 +367,9 @@ impl CodeGenerationResultBuilder {
   ) {
     let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
     runtime_hash.hash(&mut hasher);
-    for source_type in self.value.sources.as_ref().keys() {
+    let mut source_types = self.value.sources.as_ref().keys().collect::<Vec<_>>();
+    source_types.sort_unstable();
+    for source_type in source_types {
       source_type.hash(&mut hasher);
     }
     self.value.data.update_hash(&mut hasher);

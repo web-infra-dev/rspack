@@ -161,13 +161,30 @@ impl Source for SourceMapSource {
   }
 }
 
+/// Hash only the content-relevant source map fields. Path-like fields such as
+/// `sources`, `sourceRoot`, and `file` may include sandbox roots that differ
+/// across otherwise identical builds.
+fn hash_source_map_content<H: Hasher>(source_map: &SourceMap<'_>, state: &mut H) {
+  source_map.mappings().hash(state);
+  source_map.names().hash(state);
+  source_map.sources_content().hash(state);
+  source_map.ignore_list().hash(state);
+  source_map.get_debug_id().hash(state);
+}
+
 impl Hash for SourceMapSource {
   fn hash<H: Hasher>(&self, state: &mut H) {
     "SourceMapSource".hash(state);
     self.buffer().hash(state);
-    self.source_map.hash(state);
+    hash_source_map_content(&self.source_map, state);
     self.original_source.hash(state);
-    self.inner_source_map.hash(state);
+    match &self.inner_source_map {
+      Some(inner) => {
+        true.hash(state);
+        hash_source_map_content(inner, state);
+      }
+      None => false.hash(state),
+    }
     self.remove_original_source.hash(state);
   }
 }
@@ -355,7 +372,7 @@ mod tests {
 
     let mut hasher = twox_hash::XxHash64::default();
     sms1.hash(&mut hasher);
-    assert_eq!(format!("{:x}", hasher.finish()), "736934c6e249aa6e");
+    assert_eq!(format!("{:x}", hasher.finish()), "23217f6b1bca9508");
   }
 
   #[test]
