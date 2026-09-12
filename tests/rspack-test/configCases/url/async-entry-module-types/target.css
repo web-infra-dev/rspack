@@ -1,0 +1,5 @@
+@import "./target-imported.css";
+
+.url-entry-target {
+	color: red;
+}

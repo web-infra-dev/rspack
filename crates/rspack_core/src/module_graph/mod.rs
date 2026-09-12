@@ -526,6 +526,51 @@ impl ModuleGraph {
     self.inner.blocks.insert(block.identifier(), block);
   }
 
+  /// Move a direct module dependency into an async block before publishing the module to the cache.
+  pub fn move_dependency_to_block(
+    &mut self,
+    dependency_id: DependencyId,
+    mut block: Box<AsyncDependenciesBlock>,
+  ) {
+    let origin_module = *block.parent();
+    let block_id = block.identifier();
+    let parents = self
+      .inner
+      .dependency_id_to_parents
+      .get(&dependency_id)
+      .expect("dependency should have parents");
+    debug_assert_eq!(parents.module, origin_module);
+    debug_assert!(
+      parents.block.is_none(),
+      "dependency should be directly owned by its module"
+    );
+    debug_assert!(
+      !self.inner.blocks.contains_key(&block_id),
+      "promoted block should be new"
+    );
+    let index_in_block = block.get_dependencies().len();
+    block.add_dependency(self.dependency_ref_by_id(&dependency_id).clone());
+    let block: AsyncDependenciesBlockRef = block.into();
+    let module = self
+      .inner
+      .modules
+      .get_mut(&origin_module)
+      .expect("dependency should have an origin module");
+    let module = Arc::get_mut(&mut module.0)
+      .expect("module dependencies must be updated before the module is shared");
+    module.remove_dependency_id(dependency_id);
+    module.add_block(block.clone());
+    self.set_parents(
+      dependency_id,
+      DependencyParents {
+        block: Some(block_id),
+        module: origin_module,
+        index_in_block,
+      },
+    );
+    self.add_block(block);
+  }
+
   pub fn set_parents(&mut self, dependency_id: DependencyId, parents: DependencyParents) {
     self
       .inner

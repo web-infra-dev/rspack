@@ -1,0 +1,1 @@
+globalThis.URL_ENTRY_JS_ASSET_EXECUTED = true;

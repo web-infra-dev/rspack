@@ -20,6 +20,13 @@ pub async fn finish_module_graph_pass(compilation: &mut Compilation) -> Result<(
 #[instrument("Compilation:finish",target=TRACING_BENCH_TARGET, skip_all)]
 pub async fn finish_build_module_graph_pass(compilation: &mut Compilation) -> Result<()> {
   compilation.in_finish_make.store(false, Ordering::Release);
+  compilation
+    .plugin_driver
+    .clone()
+    .compilation_hooks
+    .before_finish_module_graph
+    .call(compilation)
+    .await?;
   // clean up the entry deps
   let make_artifact = compilation.build_module_graph_artifact.steal();
   let exports_info_artifact = compilation.exports_info_artifact.steal();

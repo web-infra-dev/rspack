@@ -1074,7 +1074,7 @@ pub struct BoxModule(Box<dyn Module>);
 #[cacheable]
 #[derive(Debug, Clone)]
 #[repr(transparent)]
-pub struct ModuleRef(Arc<dyn Module>);
+pub struct ModuleRef(pub(crate) Arc<dyn Module>);
 
 impl From<BoxModule> for ModuleRef {
   fn from(module: BoxModule) -> Self {
