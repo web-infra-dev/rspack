@@ -122,11 +122,11 @@ catalogs:
       specifier: ^20.19.43
       version: 20.19.43
     '@types/react':
-      specifier: ^19.2.18
-      version: 19.2.18
+      specifier: ^19.3.0
+      version: 19.3.0
     '@types/react-dom':
-      specifier: ^19.2.7
-      version: 19.2.7
+      specifier: ^19.3.0
+      version: 19.3.0
     '@types/semver':
       specifier: ^7.8.0
       version: 7.8.0
@@ -335,14 +335,14 @@ catalogs:
       specifier: ^4.0.2
       version: 4.0.2
     react:
-      specifier: ^19.2.8
-      version: 19.2.8
+      specifier: ^19.3.0
+      version: 19.3.0
     react-dom:
-      specifier: ^19.2.8
-      version: 19.2.8
+      specifier: ^19.3.0
+      version: 19.3.0
     react-refresh:
-      specifier: ^0.18.0
-      version: 0.18.0
+      specifier: ^0.19.0
+      version: 0.19.0
     react-server-dom-rspack:
       specifier: 0.1.0
       version: 0.1.0
@@ -593,10 +593,10 @@ importers:
     dependencies:
       react:
         specifier: 'catalog:'
-        version: 19.2.8
+        version: 19.3.0
       react-dom:
         specifier: 'catalog:'
-        version: 19.2.8(react@19.2.8)
+        version: 19.3.0(react@19.3.0)
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
@@ -609,16 +609,16 @@ importers:
         version: 2.2.1(@rspack/core@packages+rspack)
       '@rspack/plugin-react-refresh':
         specifier: 'catalog:'
-        version: 2.0.2(@rspack/core@packages+rspack)(react-refresh@0.18.0)
+        version: 2.0.2(@rspack/core@packages+rspack)(react-refresh@0.19.0)
       '@types/react':
         specifier: 'catalog:'
-        version: 19.2.18
+        version: 19.3.0
       '@types/react-dom':
         specifier: 'catalog:'
-        version: 19.2.7(@types/react@19.2.18)
+        version: 19.3.0(@types/react@19.3.0)
       react-refresh:
         specifier: 'catalog:'
-        version: 0.18.0
+        version: 0.19.0
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -929,7 +929,7 @@ importers:
         version: 2.2.1(@rspack/core@packages+rspack)
       '@rspack/plugin-react-refresh':
         specifier: 'catalog:'
-        version: 2.0.2(@rspack/core@packages+rspack)(react-refresh@0.18.0)
+        version: 2.0.2(@rspack/core@packages+rspack)(react-refresh@0.19.0)
       '@rstest/core':
         specifier: 'catalog:'
         version: 0.11.12(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)(jsdom@30.0.1)
@@ -965,13 +965,13 @@ importers:
         version: 8.2.1(@rspack/core@packages+rspack)(postcss@8.5.28)(typescript@6.0.3)
       react:
         specifier: 'catalog:'
-        version: 19.2.8
+        version: 19.3.0
       react-dom:
         specifier: 'catalog:'
-        version: 19.2.8(react@19.2.8)
+        version: 19.3.0(react@19.3.0)
       react-refresh:
         specifier: 'catalog:'
-        version: 0.18.0
+        version: 0.19.0
       rspack-vue-loader:
         specifier: 'catalog:'
         version: 17.7.0(@rspack/core@packages+rspack)(@vue/compiler-sfc@3.5.42)(vue@3.5.42)
@@ -1040,7 +1040,7 @@ importers:
         version: 2.0.1(@prefresh/core@1.5.11)(@prefresh/utils@1.2.1)(@rspack/core@packages+rspack)
       '@rspack/plugin-react-refresh':
         specifier: 'catalog:'
-        version: 2.0.2(@rspack/core@packages+rspack)(react-refresh@0.18.0)
+        version: 2.0.2(@rspack/core@packages+rspack)(react-refresh@0.19.0)
       '@rspack/test-tools':
         specifier: workspace:*
         version: link:../../packages/rspack-test-tools
@@ -1058,10 +1058,10 @@ importers:
         version: 30.0.0
       '@types/react':
         specifier: 'catalog:'
-        version: 19.2.18
+        version: 19.3.0
       '@types/react-dom':
         specifier: 'catalog:'
-        version: 19.2.7(@types/react@19.2.18)
+        version: 19.3.0(@types/react@19.3.0)
       '@webdiscus/pug-loader':
         specifier: 'catalog:'
         version: 2.11.1(enhanced-resolve@5.24.5)
@@ -1157,16 +1157,16 @@ importers:
         version: 4.0.2
       react:
         specifier: 'catalog:'
-        version: 19.2.8
+        version: 19.3.0
       react-dom:
         specifier: 'catalog:'
-        version: 19.2.8(react@19.2.8)
+        version: 19.3.0(react@19.3.0)
       react-refresh:
         specifier: 'catalog:'
-        version: 0.18.0
+        version: 0.19.0
       react-server-dom-rspack:
         specifier: 'catalog:'
-        version: 0.1.0(@rspack/core@packages+rspack)(react-dom@19.2.8)(react@19.2.8)
+        version: 0.1.0(@rspack/core@packages+rspack)(react-dom@19.3.0)(react@19.3.0)
       rimraf:
         specifier: 'catalog:'
         version: 5.0.10
@@ -1229,7 +1229,7 @@ importers:
     dependencies:
       react:
         specifier: 'catalog:'
-        version: 19.2.8
+        version: 19.3.0
 
   tests/type-tests:
     devDependencies:
@@ -1250,16 +1250,16 @@ importers:
         version: 1.14.11(@rspress/core@2.0.21)
       markdown-to-jsx:
         specifier: 'catalog:'
-        version: 9.10.2(react@19.2.8)(vue@3.5.42)
+        version: 9.10.2(react@19.3.0)(vue@3.5.42)
       mermaid:
         specifier: 'catalog:'
         version: 11.17.2
       react:
         specifier: 'catalog:'
-        version: 19.2.8
+        version: 19.3.0
       react-dom:
         specifier: 'catalog:'
-        version: 19.2.8(react@19.2.8)
+        version: 19.3.0(react@19.3.0)
       semver:
         specifier: 'catalog:'
         version: 7.8.5
@@ -1275,7 +1275,7 @@ importers:
         version: 2.0.21(@module-federation/runtime-tools@2.9.0)(@rspack/core@2.2.3)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
       '@rspress/plugin-algolia':
         specifier: 'catalog:'
-        version: 2.0.21(@rspress/core@2.0.21)(@types/react@19.2.18)(react-dom@19.2.8)(react@19.2.8)
+        version: 2.0.21(@rspress/core@2.0.21)(@types/react@19.3.0)(react-dom@19.3.0)(react@19.3.0)
       '@rspress/plugin-client-redirects':
         specifier: 'catalog:'
         version: 2.0.21(@rspress/core@2.0.21)
@@ -1293,7 +1293,7 @@ importers:
         version: 20.19.43
       '@types/react':
         specifier: 'catalog:'
-        version: 19.2.18
+        version: 19.3.0
       '@types/semver':
         specifier: 'catalog:'
         version: 7.8.0
@@ -3712,13 +3712,16 @@ packages:
   '@types/node@26.1.1':
     resolution: {integrity: sha512-nxAkRSVkN1Y0JC1W8ky/fTfkGsMmcrRsbx+3XoZE+rMOX71kLYTV7fLXpqud1GpbpP5TuffXFqfX7fH2GgZREw==}
 
-  '@types/react-dom@19.2.7':
-    resolution: {integrity: sha512-I8bPpDLcHBv1qiIiXDCy71Rt8eQDKJP0sMSWJphDdAcdqiJ1sGpZamavoEIRZmYzjia9LuEb2HlYdDpmoENpvQ==}
+  '@types/react-dom@19.3.0':
+    resolution: {integrity: sha512-ZI7bU42mZXXKHn/qNLEw2IrbiINU7X5+vfgdixBHkCNpYWXjKgfQ/P+uyGb5CjOLB9UcnTeg3rylQtV2hym44Q==}
     peerDependencies:
-      '@types/react': ^19.2.0
+      '@types/react': ^19.3.0
 
   '@types/react@19.2.18':
     resolution: {integrity: sha512-AnzbBERsrLKtk2XSfTbYRLjQPdy116Sty4q+T+Bp3IC4l6jNBvreVPAHmpq9qhXQM7CXZPjLVmGMw9sy+hxQ3w==}
+
+  '@types/react@19.3.0':
+    resolution: {integrity: sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==}
 
   '@types/semver@7.8.0':
     resolution: {integrity: sha512-1mAINjtQCXXeLkJ9ehXkwOcBpqtLxiVtKhpUf83DdRNdQKV0iXZpaHYqRr7nj+wvxuJzoAmAwXI+sCNMv1CzLQ==}
@@ -6541,6 +6544,11 @@ packages:
     peerDependencies:
       react: ^19.2.8
 
+  react-dom@19.3.0:
+    resolution: {integrity: sha512-JDk8dgif51OjFoDE70+OT9ICyYr+69HlmihNwp1+Nsfbna3t5sIiCa9ZJktDmQ4/1b/rn26hIAR2uYXDMr5r0Q==}
+    peerDependencies:
+      react: ^19.3.0
+
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
 
@@ -6561,6 +6569,10 @@ packages:
 
   react-refresh@0.18.0:
     resolution: {integrity: sha512-QgT5//D3jfjJb6Gsjxv0Slpj23ip+HtOpnNgnb2S5zU3CB26G/IDPGoy4RJB42wzFE46DRsstbW6tKHoKbhAxw==}
+    engines: {node: '>=0.10.0'}
+
+  react-refresh@0.19.0:
+    resolution: {integrity: sha512-5HdstYgoJBbBofjapO5qCPcovECJCBfvjLb+iTcsmqDFVMRdqy0qs7iiInBJTUXmIFc2bjoc5b2HVLp2zRtYhQ==}
     engines: {node: '>=0.10.0'}
 
   react-render-to-markdown@19.1.0:
@@ -6595,6 +6607,10 @@ packages:
 
   react@19.2.8:
     resolution: {integrity: sha512-PWaYA1L/q9u2u7xYQi+Y3L3Yfnie7XyLeaJICV1MGD6LprsBxcAqGjYyr0eY3p+QdsA+x/Irkt4Qif8D63+Sbw==}
+    engines: {node: '>=0.10.0'}
+
+  react@19.3.0:
+    resolution: {integrity: sha512-E8LUcbtBWt20bbl2YoHfx4ZDBdxVTfOKtCZn9cDSJ4l6/nuoApcpIBcj47t2wZoVX8g2ZHuMHbiShgCR1T5Sog==}
     engines: {node: '>=0.10.0'}
 
   read-cache@1.0.0:
@@ -6977,6 +6993,9 @@ packages:
 
   scheduler@0.27.0:
     resolution: {integrity: sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q==}
+
+  scheduler@0.28.0:
+    resolution: {integrity: sha512-juorfCmIkIw8tT+p5BXSm6PJjQF/ycEYmKyzURCIt/RaZIhL+PulbQ9Yu2z1HdOJDdqDTlxA1+xKBmHXJsczAw==}
 
   schema-utils@3.3.0:
     resolution: {integrity: sha512-pN/yOAvcC+5rQ5nERGuwrjLlYvLTbCibnZ1I7B1LaiAz9BRBlE9GMgE/eqV30P7aJQUf7Ddimy/RsbYO/GrVGg==}
@@ -8198,23 +8217,23 @@ snapshots:
 
   '@discoveryjs/json-ext@1.1.0': {}
 
-  '@docsearch/core@4.7.0(@types/react@19.2.18)(react-dom@19.2.8)(react@19.2.8)':
+  '@docsearch/core@4.7.0(@types/react@19.3.0)(react-dom@19.3.0)(react@19.3.0)':
     optionalDependencies:
-      '@types/react': 19.2.18
-      react: 19.2.8
-      react-dom: 19.2.8(react@19.2.8)
+      '@types/react': 19.3.0
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
 
   '@docsearch/css@4.7.0': {}
 
-  '@docsearch/react@4.7.0(@types/react@19.2.18)(react-dom@19.2.8)(react@19.2.8)':
+  '@docsearch/react@4.7.0(@types/react@19.3.0)(react-dom@19.3.0)(react@19.3.0)':
     dependencies:
       '@algolia/autocomplete-core': 1.19.2
-      '@docsearch/core': 4.7.0(@types/react@19.2.18)(react-dom@19.2.8)(react@19.2.8)
+      '@docsearch/core': 4.7.0(@types/react@19.3.0)(react-dom@19.3.0)(react@19.3.0)
       '@docsearch/css': 4.7.0
     optionalDependencies:
-      '@types/react': 19.2.18
-      react: 19.2.8
-      react-dom: 19.2.8(react@19.2.8)
+      '@types/react': 19.3.0
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
     transitivePeerDependencies:
       - '@algolia/client-search'
       - algoliasearch
@@ -9175,12 +9194,12 @@ snapshots:
     optionalDependencies:
       '@rsbuild/core': 2.2.5(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
 
-  '@rsbuild/plugin-react@2.1.0(@rsbuild/core@2.2.3)(@rspack/core@2.2.3)':
+  '@rsbuild/plugin-react@2.1.0(@rsbuild/core@2.2.5)(@rspack/core@2.2.3)':
     dependencies:
       '@rspack/plugin-react-refresh': 2.0.2(@rspack/core@2.2.3)(react-refresh@0.18.0)
       react-refresh: 0.18.0
     optionalDependencies:
-      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.5(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
     transitivePeerDependencies:
       - '@rspack/core'
 
@@ -9346,9 +9365,9 @@ snapshots:
     optionalDependencies:
       '@rspack/core': 2.2.3(@module-federation/runtime-tools@2.9.0)(@swc/helpers@0.5.23)
 
-  '@rspack/plugin-react-refresh@2.0.2(@rspack/core@packages+rspack)(react-refresh@0.18.0)':
+  '@rspack/plugin-react-refresh@2.0.2(@rspack/core@packages+rspack)(react-refresh@0.19.0)':
     dependencies:
-      react-refresh: 0.18.0
+      react-refresh: 0.19.0
     optionalDependencies:
       '@rspack/core': link:packages/rspack
 
@@ -9356,8 +9375,8 @@ snapshots:
     dependencies:
       '@mdx-js/mdx': 3.1.1(supports-color@8.1.1)
       '@mdx-js/react': 3.1.1(@types/react@19.2.18)(react@19.2.8)
-      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
-      '@rsbuild/plugin-react': 2.1.0(@rsbuild/core@2.2.3)(@rspack/core@2.2.3)
+      '@rsbuild/core': 2.2.5(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
+      '@rsbuild/plugin-react': 2.1.0(@rsbuild/core@2.2.5)(@rspack/core@2.2.3)
       '@rspress/shared': 2.0.21(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)(supports-color@8.1.1)
       '@shikijs/rehype': 4.4.2
       '@types/mdast': 4.0.4
@@ -9400,13 +9419,13 @@ snapshots:
       - micromark-util-types
       - supports-color
 
-  '@rspress/plugin-algolia@2.0.21(@rspress/core@2.0.21)(@types/react@19.2.18)(react-dom@19.2.8)(react@19.2.8)':
+  '@rspress/plugin-algolia@2.0.21(@rspress/core@2.0.21)(@types/react@19.3.0)(react-dom@19.3.0)(react@19.3.0)':
     dependencies:
       '@docsearch/css': 4.7.0
-      '@docsearch/react': 4.7.0(@types/react@19.2.18)(react-dom@19.2.8)(react@19.2.8)
+      '@docsearch/react': 4.7.0(@types/react@19.3.0)(react-dom@19.3.0)(react@19.3.0)
       '@rspress/core': 2.0.21(@module-federation/runtime-tools@2.9.0)(@rspack/core@2.2.3)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
-      react: 19.2.8
-      react-dom: 19.2.8(react@19.2.8)
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
     transitivePeerDependencies:
       - '@algolia/client-search'
       - '@types/react'
@@ -9428,7 +9447,7 @@ snapshots:
 
   '@rspress/shared@2.0.21(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)(supports-color@8.1.1)':
     dependencies:
-      '@rsbuild/core': 2.2.3(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.5(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
       '@shikijs/rehype': 4.4.2
       '@types/react': 19.2.18
       mdast-util-mdx-jsx: 3.2.0(supports-color@8.1.1)
@@ -9888,11 +9907,15 @@ snapshots:
     dependencies:
       undici-types: 8.3.0
 
-  '@types/react-dom@19.2.7(@types/react@19.2.18)':
+  '@types/react-dom@19.3.0(@types/react@19.3.0)':
     dependencies:
-      '@types/react': 19.2.18
+      '@types/react': 19.3.0
 
   '@types/react@19.2.18':
+    dependencies:
+      csstype: 3.2.3
+
+  '@types/react@19.3.0':
     dependencies:
       csstype: 3.2.3
 
@@ -11962,9 +11985,9 @@ snapshots:
 
   markdown-table@3.0.4: {}
 
-  markdown-to-jsx@9.10.2(react@19.2.8)(vue@3.5.42):
+  markdown-to-jsx@9.10.2(react@19.3.0)(vue@3.5.42):
     optionalDependencies:
-      react: 19.2.8
+      react: 19.3.0
       vue: 3.5.42(typescript@6.0.3)
 
   marked@16.4.2: {}
@@ -13070,6 +13093,11 @@ snapshots:
       react: 19.2.8
       scheduler: 0.27.0
 
+  react-dom@19.3.0(react@19.3.0):
+    dependencies:
+      react: 19.3.0
+      scheduler: 0.28.0
+
   react-is@16.13.1: {}
 
   react-is@18.3.1: {}
@@ -13084,6 +13112,8 @@ snapshots:
       scheduler: 0.27.0
 
   react-refresh@0.18.0: {}
+
+  react-refresh@0.19.0: {}
 
   react-render-to-markdown@19.1.0(react@19.2.8):
     dependencies:
@@ -13104,13 +13134,15 @@ snapshots:
     optionalDependencies:
       react-dom: 19.2.8(react@19.2.8)
 
-  react-server-dom-rspack@0.1.0(@rspack/core@packages+rspack)(react-dom@19.2.8)(react@19.2.8):
+  react-server-dom-rspack@0.1.0(@rspack/core@packages+rspack)(react-dom@19.3.0)(react@19.3.0):
     dependencies:
       '@rspack/core': link:packages/rspack
-      react: 19.2.8
-      react-dom: 19.2.8(react@19.2.8)
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
 
   react@19.2.8: {}
+
+  react@19.3.0: {}
 
   read-cache@1.0.0:
     dependencies:
@@ -13549,6 +13581,8 @@ snapshots:
       xmlchars: 2.2.0
 
   scheduler@0.27.0: {}
+
+  scheduler@0.28.0: {}
 
   schema-utils@3.3.0:
     dependencies:
