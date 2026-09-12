@@ -2,7 +2,7 @@ use rspack_intern::AtomRef;
 use swc_next_ecma_ast::{ChainExpression, Expr, IdentifierReference, MemberExpression};
 
 use super::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo};
-use crate::visitors::{ExprRef, scope_info::BindingState};
+use crate::visitors::{ExprRef, PatternIdentifier, scope_info::BindingState};
 
 /// callHooksForName/callHooksForInfo in webpack
 /// webpack use HookMap and filter at callHooksForName/callHooksForInfo
@@ -39,6 +39,22 @@ impl CallHooksName for IdentifierReference {
     } else {
       let ast = parser.ast.ast;
       hook_call(parser, ast.get_utf8(self.name(ast)))
+    }
+  }
+}
+
+impl CallHooksName for PatternIdentifier {
+  fn call_hooks_name<'parser, F, T>(
+    &self,
+    parser: &mut JavascriptParser<'parser>,
+    hook_call: F,
+  ) -> Option<T>
+  where
+    F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
+  {
+    match self {
+      Self::Reference(identifier) => identifier.call_hooks_name(parser, hook_call),
+      Self::Binding(_) => parser.call_hooks_name(self.name(parser.ast.ast), hook_call),
     }
   }
 }
