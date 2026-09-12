@@ -72,7 +72,7 @@ pub fn resolve_call_trailing_comma_range(
   call_expr: CallExpression,
 ) -> Option<DependencyRange> {
   let ast = parser.ast.ast;
-  let argument = ast.get_node_in_sub_range(call_expr.arguments(ast).iter().last()?);
+  let argument = ast.nodes(call_expr.arguments(ast)).next_back()?;
   let start = argument.span(ast).real_hi();
   let end = call_expr.span(ast).real_hi();
   let tail = parser.source().get(start as usize..end as usize)?;

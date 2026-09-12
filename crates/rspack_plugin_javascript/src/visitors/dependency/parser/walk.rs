@@ -21,8 +21,8 @@ use crate::{
   },
   utils::eval::{BasicEvaluatedExpression, eval_member_expression_with_info},
   visitors::{
-    AtomMembers, ExportedVariableInfo, ExprRef, Identifier, PatternIdentifier, VariableDeclaration, VariableInfo,
-    VariableInfoFlags,
+    AtomMembers, ExportedVariableInfo, ExprRef, Identifier, PatternIdentifier, VariableDeclaration,
+    VariableInfo, VariableInfoFlags,
   },
 };
 
@@ -1950,10 +1950,8 @@ impl JavascriptParser<'_> {
         .as_identifier_reference(ast)
         .map(PatternIdentifier::Reference),
       BindingPatternData::ArrayPattern(array) => {
-        for slot in array.elements(ast).iter() {
-          if let Some(element) = ast.get_node_in_sub_range(slot) {
-            self.enter_assignment_target_pattern(element, on_ident);
-          }
+        for element in ast.nodes(array.elements(ast)).flatten() {
+          self.enter_assignment_target_pattern(element, on_ident);
         }
         if let Some(rest) = array.rest(ast) {
           self.enter_assignment_target_pattern(rest.argument(ast), on_ident);
@@ -1961,8 +1959,7 @@ impl JavascriptParser<'_> {
         None
       }
       BindingPatternData::ObjectPattern(object) => {
-        for slot in object.properties(ast).iter() {
-          let property = ast.get_node_in_sub_range(slot);
+        for property in ast.nodes(object.properties(ast)) {
           let old = self.in_short_hand;
           if property.shorthand(ast) {
             self.in_short_hand = true;
@@ -1985,9 +1982,8 @@ impl JavascriptParser<'_> {
       }
     };
     if let Some(identifier) = identifier {
-      let name = Atom::from(identifier.name(ast));
       let drive = self.plugin_drive.clone();
-      if !name
+      if !identifier
         .call_hooks_name(self, |parser, for_name| {
           drive.pattern(parser, identifier, for_name)
         })
@@ -2087,7 +2083,8 @@ impl JavascriptParser<'_> {
           this.definitions_db.define(Atom::from(name));
         }
       });
-      self.walk_array_pattern(array);
+      // Pattern hooks already visited the assignment identifiers.
+      self.walk_array_pattern(array, false);
     } else if let Some(object) = left.as_object_assignment_target(ast) {
       self.walk_expression(right);
       if self.javascript_options.is_create_require_enabled() {
@@ -2112,7 +2109,7 @@ impl JavascriptParser<'_> {
           this.definitions_db.define(Atom::from(name));
         }
       });
-      self.walk_object_pattern(object);
+      self.walk_object_pattern(object, false);
     } else if let Some(member) = left
       .as_simple_assignment_target(ast)
       .and_then(|target| target.as_member_expression(ast))
@@ -2248,14 +2245,27 @@ impl JavascriptParser<'_> {
   }
 
   pub fn walk_pattern(&mut self, pattern: BindingPattern) {
-    match self.ast.ast.binding_pattern_data(pattern) {
-      BindingPatternData::ArrayPattern(array) => self.walk_array_pattern(array),
+    self.walk_pattern_with_identifiers(pattern, true);
+  }
+
+  fn walk_pattern_with_identifiers(&mut self, pattern: BindingPattern, walk_identifiers: bool) {
+    let ast = self.ast.ast;
+    match ast.binding_pattern_data(pattern) {
+      BindingPatternData::ArrayPattern(array) => self.walk_array_pattern(array, walk_identifiers),
       BindingPatternData::AssignmentPattern(assignment) => {
-        self.walk_assignment_pattern(assignment);
+        self.walk_assignment_pattern(assignment, walk_identifiers);
       }
-      BindingPatternData::ObjectPattern(object) => self.walk_object_pattern(object),
-      BindingPatternData::BindingRestElement(rest) => self.walk_rest_element(rest),
-      BindingPatternData::SimpleAssignmentTarget(target) => self.walk_simple_assign_target(target),
+      BindingPatternData::ObjectPattern(object) => {
+        self.walk_object_pattern(object, walk_identifiers)
+      }
+      BindingPatternData::BindingRestElement(rest) => {
+        self.walk_rest_element(rest, walk_identifiers)
+      }
+      BindingPatternData::SimpleAssignmentTarget(target) => {
+        if walk_identifiers || !target.is_identifier_reference(ast) {
+          self.walk_simple_assign_target(target);
+        }
+      }
       BindingPatternData::BindingIdentifier(_) => (),
     }
   }
@@ -2287,41 +2297,43 @@ impl JavascriptParser<'_> {
       AssignmentTargetData::SimpleAssignmentTarget(target) => {
         self.walk_simple_assign_target(target);
       }
-      AssignmentTargetData::ArrayAssignmentTarget(array) => self.walk_array_pattern(array),
-      AssignmentTargetData::ObjectAssignmentTarget(object) => self.walk_object_pattern(object),
+      AssignmentTargetData::ArrayAssignmentTarget(array) => self.walk_array_pattern(array, true),
+      AssignmentTargetData::ObjectAssignmentTarget(object) => {
+        self.walk_object_pattern(object, true)
+      }
     }
   }
 
-  fn walk_rest_element(&mut self, rest: BindingRestElement) {
-    self.walk_pattern(rest.argument(self.ast.ast));
+  fn walk_rest_element(&mut self, rest: BindingRestElement, walk_identifiers: bool) {
+    self.walk_pattern_with_identifiers(rest.argument(self.ast.ast), walk_identifiers);
   }
 
-  fn walk_object_pattern(&mut self, object: ObjectPattern) {
+  fn walk_object_pattern(&mut self, object: ObjectPattern, walk_identifiers: bool) {
     let ast = self.ast.ast;
     for property in ast.nodes(object.properties(ast)) {
       if property.computed(ast) {
         self.walk_property_key(property.key(ast));
       }
-      self.walk_pattern(property.value(ast));
+      self.walk_pattern_with_identifiers(property.value(ast), walk_identifiers);
     }
     if let Some(rest) = object.rest(ast) {
-      self.walk_rest_element(rest);
+      self.walk_rest_element(rest, walk_identifiers);
     }
   }
 
-  fn walk_assignment_pattern(&mut self, pattern: AssignmentPattern) {
+  fn walk_assignment_pattern(&mut self, pattern: AssignmentPattern, walk_identifiers: bool) {
     let ast = self.ast.ast;
     self.walk_expression(pattern.right(ast));
-    self.walk_pattern(pattern.left(ast));
+    self.walk_pattern_with_identifiers(pattern.left(ast), walk_identifiers);
   }
 
-  fn walk_array_pattern(&mut self, pattern: ArrayPattern) {
+  fn walk_array_pattern(&mut self, pattern: ArrayPattern, walk_identifiers: bool) {
     let ast = self.ast.ast;
     for element in ast.nodes(pattern.elements(ast)).flatten() {
-      self.walk_pattern(element);
+      self.walk_pattern_with_identifiers(element, walk_identifiers);
     }
     if let Some(rest) = pattern.rest(ast) {
-      self.walk_rest_element(rest);
+      self.walk_rest_element(rest, walk_identifiers);
     }
   }
 
