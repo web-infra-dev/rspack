@@ -119,11 +119,10 @@ function applyPlugin(
   activeModules: Set<string>,
 ) {
   const plugin = new BuiltinLazyCompilationPlugin(
-    () => {
-      const res = new Set(activeModules);
-      activeModules.clear();
-      return res;
-    },
+    // Keep the set across compilations. The client re-sends its whole active set
+    // after every HMR apply, so forgetting it here would make each re-send look
+    // like a fresh activation and trigger another rebuild.
+    () => new Set(activeModules),
     options.entries ?? true,
     options.imports ?? true,
     `${options.client || getDefaultClient(compiler)}?${encodeURIComponent(getFullServerUrl(options))}`,

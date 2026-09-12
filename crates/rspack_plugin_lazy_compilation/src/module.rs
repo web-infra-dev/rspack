@@ -130,6 +130,10 @@ impl LazyCompilationProxyModule {
       .need_build
       .store(true, std::sync::atomic::Ordering::Relaxed);
   }
+
+  pub fn is_active(&self) -> bool {
+    self.active
+  }
 }
 
 impl_empty_diagnosable_trait!(LazyCompilationProxyModule);
