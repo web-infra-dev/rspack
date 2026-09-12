@@ -10,7 +10,7 @@ import {
 import { ExternalsPlugin } from '../builtin-plugin/ExternalsPlugin';
 import type { Compiler } from '../Compiler';
 import type { ExternalsType } from '../config';
-import { type ShareScope, validateShareScope } from '../sharing/SharePlugin';
+import { normalizeShareScope, type ShareScope } from '../sharing/SharePlugin';
 import { ShareRuntimePlugin } from '../sharing/ShareRuntimePlugin';
 import { parseOptions } from './options';
 
@@ -38,33 +38,30 @@ export class ContainerReferencePlugin extends RspackBuiltinPlugin {
   constructor(options: ContainerReferencePluginOptions) {
     super();
     const enhanced = options.enhanced ?? false;
-    if (options.shareScope) {
-      validateShareScope(
-        options.shareScope,
-        enhanced,
-        'ContainerReferencePlugin',
-      );
-    }
+    const shareScope = options.shareScope
+      ? normalizeShareScope(
+          options.shareScope,
+          enhanced,
+          'ContainerReferencePlugin',
+        )
+      : undefined;
     const remotes = parseOptions(
       options.remotes,
       (item) => ({
         external: Array.isArray(item) ? item : [item],
-        shareScope: options.shareScope || 'default',
+        shareScope: shareScope || 'default',
       }),
       (item) => ({
         external: Array.isArray(item.external)
           ? item.external
           : [item.external],
-        shareScope: item.shareScope || options.shareScope || 'default',
+        shareScope: normalizeShareScope(
+          item.shareScope || shareScope || 'default',
+          enhanced,
+          'ContainerReferencePlugin',
+        ),
       }),
     );
-    for (const [, config] of remotes) {
-      validateShareScope(
-        config.shareScope,
-        enhanced,
-        'ContainerReferencePlugin',
-      );
-    }
     this._options = {
       remoteType: options.remoteType,
       remotes,

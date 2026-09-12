@@ -25,6 +25,7 @@ use super::{
 };
 use crate::{ShareScope, SharedIdentity, container::container_entry_module::ContainerEntryModule};
 
+#[inline(always)]
 fn referenced_exports_for_output(
   shared_referenced_exports: &FxHashMap<SharedIdentity, FxHashSet<String>>,
   share_key: &str,
