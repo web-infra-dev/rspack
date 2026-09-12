@@ -17,6 +17,12 @@ use rspack_util::identifier::strip_zero_width_space_for_fragment;
 
 use super::{LoaderContext, LoaderRunnerOptions};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LoaderExecutionKind {
+  Native,
+  JavaScript,
+}
+
 #[derive(Debug)]
 pub struct LoaderItem<Context: Send> {
   #[debug("{}", loader.identifier())]
@@ -39,6 +45,7 @@ pub struct LoaderItem<Context: Send> {
   data: serde_json::Value,
   r#type: String,
   cache_options: Option<Box<LoaderRunnerOptions>>,
+  execution_kind: LoaderExecutionKind,
   pitch_executed: AtomicBool,
   normal_executed: AtomicBool,
   /// Whether loader was called with [LoaderContext::finish_with].
@@ -52,6 +59,11 @@ pub struct LoaderItem<Context: Send> {
 }
 
 impl<C: Send> LoaderItem<C> {
+  #[inline]
+  pub fn execution_kind(&self) -> LoaderExecutionKind {
+    self.execution_kind
+  }
+
   pub fn loader(&self) -> &Arc<dyn Loader<C>> {
     &self.loader
   }
@@ -236,6 +248,11 @@ where
   fn cache_version(&self) -> Option<&str> {
     None
   }
+
+  /// Selects the runtime responsible for executing this loader.
+  fn execution_kind(&self) -> LoaderExecutionKind {
+    LoaderExecutionKind::Native
+  }
 }
 
 impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
@@ -248,6 +265,7 @@ impl<C: Send> LoaderItem<C> {
   pub(crate) fn new(loader: Arc<dyn Loader<C>>, options: LoaderRunnerOptions) -> Self {
     let cache_options = options.cache.then(|| Box::new(options));
     let ident = &**loader.identifier();
+    let execution_kind = loader.execution_kind();
     if let Some(r#type) = loader.r#type() {
       let ResourceParsedData {
         path,
@@ -264,6 +282,7 @@ impl<C: Send> LoaderItem<C> {
         data: serde_json::Value::Null,
         r#type: ty,
         cache_options,
+        execution_kind,
         pitch_executed: AtomicBool::new(false),
         normal_executed: AtomicBool::new(false),
         finish_called: AtomicBool::new(false),
@@ -284,6 +303,7 @@ impl<C: Send> LoaderItem<C> {
       data: serde_json::Value::Null,
       r#type: String::default(),
       cache_options,
+      execution_kind,
       pitch_executed: AtomicBool::new(false),
       normal_executed: AtomicBool::new(false),
       finish_called: AtomicBool::new(false),
