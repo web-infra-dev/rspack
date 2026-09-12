@@ -1,4 +1,4 @@
-# PR Report Comment Tool
+# PR report comment tool
 
 Use this tool to comment on a merged source PR only when the eco-ci failure is strictly attributed to that PR. The source PR can be either:
 
@@ -20,7 +20,7 @@ Use this tool to comment on a merged source PR only when the eco-ci failure is s
 <agent: daily-job rstack ecosystem-ci>
 ```
 
-## Required Evidence Before Commenting
+## Required evidence before commenting
 
 Collect and state these facts first:
 
@@ -37,7 +37,7 @@ Collect and state these facts first:
 
 If any item is missing, do not post. Continue investigation or provide a draft-only note.
 
-## Comment Workflow
+## Comment workflow
 
 1. Check PR metadata:
 
@@ -62,7 +62,7 @@ gh pr view <source-pr-number> --repo <source-owner/repo> --json number,title,sta
 gh pr comment <source-pr-number> --repo <source-owner/repo> --body-file <comment-file>
 ```
 
-## Comment Template
+## Comment template
 
 Keep the conclusion and next action visible without expanding anything. Put supporting proof in `<details>` so maintainers can audit the attribution without making the default view noisy. Do not convert a required-but-missing check into a statement that the check passed.
 
