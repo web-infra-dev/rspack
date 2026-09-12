@@ -11,8 +11,8 @@ use rspack_macros::AstObject;
 use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_next_ecma_ast::{
-  Argument, ArgumentData, CallExpression, GetSpan, NewExpression, Span,
-  TypedSubRange, VariableDeclarator,
+  Argument, ArgumentData, CallExpression, GetSpan, NewExpression, Span, TypedSubRange,
+  VariableDeclarator,
 };
 use url::Url;
 

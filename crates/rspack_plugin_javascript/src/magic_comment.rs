@@ -589,7 +589,7 @@ fn analyze_comments(
     .iter()
     .filter(|comment| matches!(comment.kind, CommentKind::Block))
     .map(|comment| RawMagicComment {
-      text: &comment.text,
+      text: comment.text,
       span: comment.span.into(),
     })
     .collect::<Vec<_>>();
@@ -830,7 +830,7 @@ mod tests_extract_magic_comment_object {
     name: &str,
     f: impl FnOnce(&Ast<'_>, Expr) -> Option<R>,
   ) -> Option<R> {
-    let allocator = Allocator::default();
+    let allocator = Allocator::new();
     let (ast, _) = parse_magic_comment_object(&allocator, raw)?;
     let object = ast.root_expression().as_object_expression(&ast)?;
     for property in ast.nodes(object.properties(&ast)) {
