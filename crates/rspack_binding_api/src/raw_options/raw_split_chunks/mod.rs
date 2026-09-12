@@ -94,7 +94,7 @@ pub struct RawCacheGroupOptions<'a> {
   pub min_size_reduction: Option<Either<f64, RawSplitChunkSizes>>,
   //   pub min_size_reduction: usize,
   pub enforce_size_threshold: Option<Either<f64, RawSplitChunkSizes>>,
-  //   pub min_remaining_size: usize,
+  pub min_remaining_size: Option<Either<f64, RawSplitChunkSizes>>,
   // layer: String,
   pub max_size: Option<Either<f64, RawSplitChunkSizes>>,
   pub max_async_size: Option<Either<f64, RawSplitChunkSizes>>,
@@ -154,6 +154,9 @@ impl<'a> RawSplitChunksOptions<'a> {
 
     let overall_min_size_reduction = create_sizes(raw_opts.min_size_reduction);
 
+    let overall_min_remaining_size =
+      create_sizes(raw_opts.min_remaining_size).merge(&overall_min_size);
+
     let overall_enforce_size_threshold = create_sizes(raw_opts.enforce_size_threshold);
 
     let overall_max_size = create_sizes(raw_opts.max_size);
@@ -174,7 +177,16 @@ impl<'a> RawSplitChunksOptions<'a> {
         .map(|v| {
           let enforce = v.enforce.unwrap_or_default();
 
-          let min_size = create_sizes(v.min_size).merge(if enforce {
+          let min_size = create_sizes(v.min_size);
+          let min_remaining_size =
+            create_sizes(v.min_remaining_size)
+              .merge(&min_size)
+              .merge(if enforce {
+                &empty_sizes
+              } else {
+                &overall_min_remaining_size
+              });
+          let min_size = min_size.merge(if enforce {
             &empty_sizes
           } else {
             &overall_min_size
@@ -247,8 +259,12 @@ impl<'a> RawSplitChunksOptions<'a> {
             min_chunks,
             min_size,
             min_size_reduction,
-            enforce_size_threshold: create_sizes(v.enforce_size_threshold)
-              .merge(&overall_enforce_size_threshold),
+            min_remaining_size,
+            enforce_size_threshold: create_sizes(v.enforce_size_threshold).merge(if enforce {
+              &empty_sizes
+            } else {
+              &overall_enforce_size_threshold
+            }),
             automatic_name_delimiter: v
               .automatic_name_delimiter
               .unwrap_or(overall_automatic_name_delimiter.clone()),
