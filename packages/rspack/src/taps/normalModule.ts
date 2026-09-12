@@ -32,11 +32,11 @@ type TrackedLoaderItem = LoaderItem & {
 };
 
 function toLoaderItem(
-  item: binding.JsBeforeLoadersLoaderItem,
+  item: binding.JsLoaderItem,
   index: number,
   compiler: Compiler,
 ): TrackedLoaderItem {
-  const { path, query } = parseResourceWithoutFragment(item.request);
+  const { path, query } = parseResourceWithoutFragment(item.loader);
   let options: LoaderItem['options'] = query ? query.slice(1) : undefined;
   let ident: string | null = null;
   let parallel: Snapshot['parallel'];
@@ -55,7 +55,9 @@ function toLoaderItem(
     loader: path,
     options,
     ident,
-    type: item.type,
+    // The binding uses the empty string for a loader with no type, the same
+    // convention `LoaderObject` normalizes away.
+    type: item.type === '' ? undefined : item.type,
   };
   Object.defineProperty(loaderItem, ORIGINAL, {
     value: { ...loaderItem, index, cache: item.cache, parallel } as Snapshot,
@@ -81,7 +83,7 @@ function toBinding(
   identPath: string,
   composeOptions: ComposeJsUseOptions,
   configured: Map<string, Snapshot>,
-): number | binding.JsAddedLoaderItem {
+): number | binding.RawModuleRuleUse {
   const original = item[ORIGINAL];
   if (original !== undefined && isUntouched(item, original.index)) {
     return original.index;
@@ -116,12 +118,7 @@ function toBinding(
     `${identPath}[${position}]`,
     composeOptions,
   );
-  return {
-    loader: use.loader,
-    options: use.options,
-    cache: use.cache,
-    optionsCacheKey: use.optionsCacheKey,
-  };
+  return use;
 }
 
 export const createNormalModuleHooksRegisters: CreatePartialRegisters<

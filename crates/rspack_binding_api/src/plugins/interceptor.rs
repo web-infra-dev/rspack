@@ -107,6 +107,7 @@ use crate::{
     JsLoaderItem,
     js_loader::{JsLoaderContext, merge_loader_context},
   },
+  raw_options::RawModuleRuleUse,
   rsdoctor::{
     JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
     JsRsdoctorModuleSourcesPatch,
@@ -148,37 +149,15 @@ pub struct JsBeforeModuleIdsResult {
   pub assignments: FxHashMap<String, Either<String, u32>>,
 }
 
+/// Loaders already on the module when `beforeLoaders` runs. A tap hands back
+/// either the index of one it left alone, so that its resolved loader and cache
+/// options are reused, or a `RawModuleRuleUse` to resolve like a `module.rules`
+/// entry.
 #[napi(object, object_from_js = false)]
 pub struct JsBeforeLoadersArgs {
-  pub loaders: Vec<JsBeforeLoadersLoaderItem>,
+  pub loaders: Vec<JsLoaderItem>,
   #[napi(ts_type = "Module")]
   pub module: ModuleObject,
-}
-
-/// A loader already on the module when `beforeLoaders` runs.
-///
-/// Deliberately not `JsLoaderItem`: that one is built for the loader runner and
-/// derives its fields from the loader identifier, which loses the loader type.
-/// Here the type and the cache flag are read from the loader itself.
-#[napi(object, object_from_js = false)]
-pub struct JsBeforeLoadersLoaderItem {
-  /// Loader request, that is its path plus the options query.
-  pub request: String,
-  /// Module type of the loader itself, `None` when it has none.
-  pub r#type: Option<String>,
-  /// Whether `Rule.use[].cache` was enabled for this loader.
-  pub cache: bool,
-}
-
-/// A loader a `beforeLoaders` tap added to the list. Loaders that were already
-/// on the module are handed back as their index instead, so that their resolved
-/// loader and cache options can be reused.
-#[napi(object, object_to_js = false)]
-pub struct JsAddedLoaderItem {
-  pub loader: String,
-  pub options: Option<String>,
-  pub cache: bool,
-  pub options_cache_key: String,
 }
 
 #[napi(object, object_from_js = false)]
@@ -709,7 +688,7 @@ pub struct RegisterJsTaps {
   )]
   pub register_javascript_modules_chunk_hash_taps: RegisterFunction,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsBeforeLoadersArgs) => Array<number | JsAddedLoaderItem> | undefined); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsBeforeLoadersArgs) => Array<number | RawModuleRuleUse> | undefined); stage: number; }>"
   )]
   pub register_normal_module_before_loaders_taps: RegisterFunction,
   // html plugin
@@ -1069,7 +1048,7 @@ define_register!(
 );
 define_register!(
   RegisterNormalModuleBeforeLoadersTaps,
-  tap = NormalModuleBeforeLoadersTap<JsBeforeLoadersArgs, Option<Vec<Either<u32, JsAddedLoaderItem>>>> @ NormalModuleBeforeLoadersHook,
+  tap = NormalModuleBeforeLoadersTap<JsBeforeLoadersArgs, Option<Vec<Either<u32, RawModuleRuleUse>>>> @ NormalModuleBeforeLoadersHook,
   cache = true,
   kind = RegisterJsTapKind::NormalModuleBeforeLoaders,
   skip = true,
@@ -2007,12 +1986,19 @@ impl NormalModuleBeforeLoaders for NormalModuleBeforeLoadersTap {
       .loaders()
       .iter()
       .enumerate()
-      .map(|(index, loader)| JsBeforeLoadersLoaderItem {
-        request: loader.identifier().to_string(),
-        r#type: loader.r#type().map(|t| t.to_string()),
+      // Built here rather than through `JsLoaderItem::from`, which derives its
+      // fields by splitting the loader identifier and so loses the loader type.
+      // The empty string is the absent type, as everywhere else in the binding.
+      .map(|(index, loader)| JsLoaderItem {
+        loader: loader.identifier().to_string(),
+        r#type: loader.r#type().unwrap_or_default().to_string(),
         cache: loader_options
           .and_then(|options| options.get(index))
           .is_some_and(|options| options.cache),
+        data: serde_json::Value::Null,
+        normal_executed: false,
+        pitch_executed: false,
+        no_pitch: false,
       })
       .collect::<Vec<_>>();
     let module: &mut dyn Module = module;

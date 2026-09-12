@@ -60,7 +60,7 @@ hooks.beforeLoaders.tap('MyPlugin', (loaders, module) => {
 });
 ```
 
-loader 的执行顺序是从右到左，因此通过 `push` 追加的 loader 会最先执行。对于配置中不存在的新增 loader，Rspack 会按照解析 `module.rules` 中 loader 的方式来解析它，因此 `resolveLoader` 与内联的 `builtin:` loader 在这里同样生效。新增 loader 的 `type` 会在该解析过程中推导得出，传入的值会被忽略。
+loader 的执行顺序是从右到左，因此通过 `push` 追加的 loader 会最先执行。对于配置中不存在的新增 loader，Rspack 会按照解析 `module.rules` 中 loader 的方式来解析它，因此 `resolveLoader` 与内联的 `builtin:` loader 在这里同样生效。`type` 总是在该解析过程中推导得出——无论是新增的条目还是被改写的已有条目——因此 tap 写入的值会被忽略。webpack 则会采纳它，并据此决定加载 loader 时使用 `import()` 还是 `require()`；在 Rspack 中，请通过改变 loader 的文件扩展名或其 `package.json` 中的 `type` 字段来改变它的加载方式。
 
 :::warning 与 webpack 的差异
 webpack 会向 `beforeLoaders` 传入第三个参数 `loaderContext`，Rspack 没有传入。因为模块的 loader context 要等到 loader runner 启动后才会创建，而这发生在该钩子执行之后。

@@ -60,7 +60,7 @@ hooks.beforeLoaders.tap('MyPlugin', (loaders, module) => {
 });
 ```
 
-Loaders execute from right to left, so pushing appends a loader that runs first. Adding a loader that was not part of the configuration makes Rspack resolve it the same way loaders coming from `module.rules` are resolved, which means `resolveLoader` and inline `builtin:` loaders work here as well. The `type` of an added loader is derived during that resolution, so the value passed in is ignored.
+Loaders execute from right to left, so pushing appends a loader that runs first. Adding a loader that was not part of the configuration makes Rspack resolve it the same way loaders coming from `module.rules` are resolved, which means `resolveLoader` and inline `builtin:` loaders work here as well. `type` is always derived during that resolution, for a rewritten entry as much as for an added one, so a value a tap writes to it is ignored. webpack instead honours it, and uses it to pick between `import()` and `require()` when loading the loader; in Rspack, change the loader's file extension or the `type` field of its `package.json` to change how it is loaded.
 
 :::warning Differences with webpack
 webpack passes a third `loaderContext` argument to `beforeLoaders`. Rspack does not, because a module's loader context is only created once the loader runner starts, which is after this hook has run.
