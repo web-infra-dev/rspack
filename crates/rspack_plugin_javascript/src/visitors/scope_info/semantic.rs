@@ -156,6 +156,11 @@ impl<'ast> SemanticStore<'ast> {
     context: &SemanticContext<'_>,
     name: &str,
   ) -> Option<SymbolBinding> {
+    // These roots cannot name lexical bindings. Their aliases and tags live in
+    // the Rspack overlay, including when looking through a replacement AST.
+    if matches!(name, "this" | "import.meta" | "new.target") {
+      return None;
+    }
     let semantic = context.ast?.semantic;
     semantic
       .lookup(context.scope, name.as_bytes(), ReferenceSpace::Value)
