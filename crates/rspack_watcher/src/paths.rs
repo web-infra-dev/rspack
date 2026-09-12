@@ -387,11 +387,8 @@ mod tests {
     let all = path_tracker.all;
 
     assert_eq!(all.len(), 1);
-    assert!(
-      all
-        .iter()
-        .any(|p| p.to_string_lossy().contains("src/index.js"))
-    )
+    // Compare by components: on Windows the interned spelling is native (`src\index.js`).
+    assert!(all.iter().any(|p| p.ends_with("src/index.js")))
   }
 
   #[tokio::test]
@@ -416,8 +413,9 @@ mod tests {
     let accessor = PathAccessor::new(&path_manager);
     let mut all_paths = vec![];
 
+    // Keep `PathBuf`s so `ends_with` compares components, not separators.
     for path in accessor.all() {
-      all_paths.push(path.to_string_lossy().to_string());
+      all_paths.push(path.to_path_buf());
     }
 
     all_paths.sort();
@@ -461,10 +459,8 @@ mod tests {
       .unwrap();
 
     let accessor = path_manager.access();
-    let mut all_paths = accessor
-      .all()
-      .map(|p| p.to_string_lossy().to_string())
-      .collect::<Vec<_>>();
+    // Keep `PathBuf`s so `ends_with` compares components, not separators.
+    let mut all_paths = accessor.all().map(|p| p.to_path_buf()).collect::<Vec<_>>();
 
     all_paths.sort();
 
