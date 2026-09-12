@@ -176,9 +176,6 @@ mod napi_binding {
     jsobject: OnceCell<ThreadsafeOneShotRef>,
   }
 
-  unsafe impl Send for Heap {}
-  unsafe impl Sync for Heap {}
-
   #[derive(Debug)]
   pub struct BindingCell<T: ?Sized> {
     ptr: *mut T,

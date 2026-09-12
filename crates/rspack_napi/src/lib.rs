@@ -12,7 +12,6 @@ pub use callback::JsCallback;
 
 pub mod runtime;
 pub mod threadsafe_function;
-pub mod threadsafe_js_value_ref;
 
 pub mod string {
   pub use crate::ext::js_string_ext::JsStringExt;
