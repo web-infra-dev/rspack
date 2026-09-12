@@ -34,7 +34,7 @@ export {
 } from './ExternalModule';
 export type { ResolveData, ResourceDataWithData } from './Module';
 export { Module } from './Module';
-export type { default as ModuleGraph } from './ModuleGraph';
+export { default as ModuleGraph } from './ModuleGraph';
 export {
   ModuleGraphConnection,
   type ConnectionState,
