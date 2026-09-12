@@ -18,6 +18,15 @@ type Target = false | string | string[];
 
 - **默认值：** 当项目中包含标准的 Browserslist 配置时为 `browserslist`，否则为 `web`
 
+## 默认行为 \{#default-behavior}
+
+未设置 `target` 时，Rspack 会从 [`context`](/config/context) 指定的目录开始查找 [Browserslist 配置](#browserslist)：
+
+- 找到配置时，`target` 默认为 `browserslist`，并使用该配置。
+- 找不到配置时，`target` 默认为 `web`，表示浏览器环境，但不指定浏览器版本或 ECMAScript 版本。
+
+如果显式设置 `target: 'browserslist'`，则必须提供 Browserslist 配置或设置 `BROWSERSLIST` 环境变量，否则 Rspack 会报错。
+
 ## 推荐配置
 
 ### 浏览器

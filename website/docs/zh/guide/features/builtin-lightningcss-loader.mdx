@@ -127,10 +127,12 @@ type LightningcssLoaderOptions = {
 
 browserslist 查询字符串或指定浏览器版本的 `Targets` 对象。
 
-:::tip 来自 Rspack 的默认 Targets
-如果未配置 `targets`，当 Rspack 的 [`target`](/config/target) 配置使用与 browserslist 相关的 targets（例如 `browserslist` 或 `browserslist:modern`）时，`builtin:lightningcss-loader` 将自动从 Rspack 的 [`target`](/config/target) 配置中推断出默认 targets，因为 Lightning CSS 仅支持浏览器相关的 targets，所以像 `node` 这样的非浏览器 target 不会为此 loader 提供默认 targets。
+:::tip 默认目标浏览器
+未设置 `targets` 时，loader 会根据 Rspack 的 [`target`](/config/target) 确定需要兼容的浏览器。例如，如果 `target` 为 `browserslist` 或 `browserslist:modern`，loader 就会使用相应的浏览器配置，无需重复设置。Lightning CSS 只支持浏览器环境，因此无法继承 `node` 等非浏览器 target。
 
-这意味着你可以依赖 Rspack 的 `target` 配置，而无需在 loader 选项中手动指定相同的 targets。
+即使没有显式设置 Rspack 的 `target`，loader 也会尝试继承它的默认值，详见 [`target` 的默认行为](/config/target#default-behavior)。
+
+如果没有设置 `target`，也找不到 Browserslist 配置，Rspack 就会使用默认值 `web`。由于 `web` 不包含浏览器版本信息，loader 不会自动设置 `targets`，需要时可以手动配置。
 :::
 
 下面是一些 targets 的用法示例。
