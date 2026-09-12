@@ -1132,6 +1132,27 @@ impl ModuleCodeTemplate {
           .insert(RuntimeGlobals::HAS_FETCH_PRIORITY);
       }
 
+      if compilation.chunk_array_loading_enabled() {
+        self
+          .runtime_requirements
+          .insert(RuntimeGlobals::HAS_CHUNK_ARRAY);
+        return format!(
+          "{}({comment}[{}]{})",
+          self.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
+          chunks
+            .iter()
+            .map(
+              |chunk| simd_json::to_string(chunk.id().expect("should have chunk.id"))
+                .expect("should able to json stringify")
+            )
+            .collect::<Vec<_>>()
+            .join(", "),
+          fetch_priority
+            .map(|priority| format!(r#", "{priority}""#))
+            .unwrap_or_default()
+        );
+      }
+
       format!(
         "Promise.all({comment}[{}])",
         chunks

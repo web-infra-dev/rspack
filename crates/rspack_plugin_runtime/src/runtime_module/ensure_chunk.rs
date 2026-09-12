@@ -1,6 +1,6 @@
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
-  impl_runtime_module,
+  RuntimeTemplateRenderMode, impl_runtime_module,
 };
 
 use crate::get_chunk_runtime_requirements;
@@ -20,6 +20,7 @@ impl EnsureChunkRuntimeModule {
 enum TemplateId {
   Raw,
   WithInline,
+  WithInlineArray,
 }
 
 impl EnsureChunkRuntimeModule {
@@ -27,6 +28,7 @@ impl EnsureChunkRuntimeModule {
     match id {
       TemplateId::Raw => self.id().to_string(),
       TemplateId::WithInline => format!("{}_inline", self.id()),
+      TemplateId::WithInlineArray => format!("{}_inline_array", self.id()),
     }
   }
 }
@@ -46,6 +48,10 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
       (
         self.template_id(TemplateId::WithInline),
         include_str!("runtime/ensure_chunk_with_inline.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithInlineArray),
+        include_str!("runtime/ensure_chunk_with_inline_array.ejs").to_string(),
       ),
     ]
   }
@@ -69,6 +75,14 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
         &self.template_id(TemplateId::Raw),
         Some(serde_json::json!({
           "_fetch_priority": fetch_priority,
+          "_chunk_array": render_ensure_chunk_array(context, runtime_requirements),
+        })),
+      )?
+    } else if runtime_requirements.contains(RuntimeGlobals::HAS_CHUNK_ARRAY) {
+      runtime_template.render(
+        &self.template_id(TemplateId::WithInlineArray),
+        Some(serde_json::json!({
+          "_chunk_array": render_ensure_chunk_array(context, runtime_requirements),
         })),
       )?
     } else {
@@ -98,7 +112,43 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies,
       define,
+      force_context: if compilation.runtime_template.render_mode()
+        == RuntimeTemplateRenderMode::Rspack
+        && self.chunk().is_some_and(|chunk| {
+          get_chunk_runtime_requirements(compilation, &chunk)
+            .contains(RuntimeGlobals::HAS_CHUNK_ARRAY)
+        }) {
+        RuntimeGlobals::ENSURE_CHUNK
+      } else {
+        RuntimeGlobals::default()
+      },
       ..Default::default()
     }
   }
+}
+
+/// Shared by the regular and modern-module loaders. Keep per-chunk Promise.all results
+/// nested, and look up the current loader for each ID so wrappers and receivers still work.
+pub fn render_ensure_chunk_array(
+  context: &RuntimeModuleGenerateContext<'_>,
+  requirements: &RuntimeGlobals,
+) -> String {
+  if !requirements.contains(RuntimeGlobals::HAS_CHUNK_ARRAY) {
+    return String::new();
+  }
+  let ensure_chunk = context
+    .compilation
+    .runtime_template
+    .create_module_code_template()
+    .render_runtime_globals_without_adding(&RuntimeGlobals::ENSURE_CHUNK);
+  let call = if requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY) {
+    format!(
+      "fetchPriority === undefined ? {ensure_chunk}(chunkId[i]) : {ensure_chunk}(chunkId[i], fetchPriority)"
+    )
+  } else {
+    format!("{ensure_chunk}(chunkId[i])")
+  };
+  format!(
+    "\tif (Array.isArray(chunkId)) {{\n\t\tvar promises = [];\n\t\tfor (var i = 0; i < chunkId.length; i++) {{\n\t\t\tpromises.push({call});\n\t\t}}\n\t\treturn Promise.all(promises);\n\t}}\n"
+  )
 }

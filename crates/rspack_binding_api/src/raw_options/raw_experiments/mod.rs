@@ -20,6 +20,7 @@ pub struct RawExperiments {
   pub defer_import: bool,
   pub source_import: bool,
   pub pure_functions: bool,
+  pub chunk_array_loading: bool,
   #[napi(ts_type = "\"webpack\" | \"rspack\"")]
   pub runtime_mode: Option<String>,
 }
@@ -41,6 +42,7 @@ impl From<RawExperiments> for Experiments {
       defer_import: value.defer_import,
       source_import: value.source_import,
       pure_functions: value.pure_functions,
+      chunk_array_loading: value.chunk_array_loading,
       runtime_mode,
     }
   }

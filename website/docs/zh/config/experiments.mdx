@@ -279,6 +279,30 @@ export default {
 这个选项依赖 `optimization.sideEffects`。如果你关闭了 [`optimization.sideEffects`](/config/optimization#optimizationsideeffects)，pure function 相关提示将不会被分析。
 :::
 
+## experiments.chunkArrayLoading
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+让现有 runtime 的 `ensureChunk` 函数支持有序 chunk ID 数组，减少调用点中重复的加载代码：
+
+```js title="rspack.config.mjs"
+export default {
+  mode: 'production',
+  experiments: {
+    chunkArrayLoading: true,
+  },
+};
+```
+
+例如，`Promise.all([__webpack_require__.e(12), __webpack_require__.e(34)])` 会变为 `__webpack_require__.e([12, 34])`。数组保留在调用点，不创建共享表或额外的 runtime 属性。
+
+只有至少加载两个 chunk 的调用使用数组。零个或单个 chunk 的调用保持原有形式，没有数组调用的 runtime 也不会增加数组处理代码。覆盖动态导入、`require.ensure`、AMD 异步依赖和 `lazy-once` context；普通 lazy context、startup、prefetch 和 preload 保持原有生成方式。
+
+runtime 按顺序将每个 ID 及 fetch priority 传给原有单 chunk 加载函数，保留 Promise 中各 chunk 的结果顺序、并发和失败重试行为。包装 `ensureChunk` 的插件需要同时接受单个 ID 和 ID 数组，或原样转发参数。
+
+该选项仅在生产模式且未启用 HMR 时生效。它会增加少量 runtime 分支代码，并缩短每个多 chunk 调用点；启用前应测量应用产物的总体积。
+
 ## experiments.runtimeMode
 
 <ApiMeta addedVersion="2.2.0" />
