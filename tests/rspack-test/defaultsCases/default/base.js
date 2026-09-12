@@ -393,6 +393,7 @@ module.exports = {
 			      maxInitialRequests: Infinity,
 			      minChunks: 1,
 			      minSize: 10000,
+			      optimizeForSize: false,
 			      usedExports: false,
 			    },
 			    usedExports: false,

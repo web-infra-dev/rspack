@@ -226,8 +226,27 @@ pub(crate) fn create_named_module_ids_benchmark(c: &mut Criterion, rt: &Runtime)
 }
 
 pub(crate) fn split_chunks_benchmark(c: &mut Criterion, rt: &Runtime) {
+  split_chunks_benchmark_with_min_size(c, rt, 0.0, false, "rust@split_chunks");
+}
+
+pub(crate) fn split_chunks_optimize_for_size_benchmark(c: &mut Criterion, rt: &Runtime) {
+  for (optimize_for_size, name) in [
+    (false, "rust@split_chunks_optimize_for_size_disabled"),
+    (true, "rust@split_chunks_optimize_for_size_enabled"),
+  ] {
+    split_chunks_benchmark_with_min_size(c, rt, 128.0, optimize_for_size, name);
+  }
+}
+
+fn split_chunks_benchmark_with_min_size(
+  c: &mut Criterion,
+  rt: &Runtime,
+  min_size: f64,
+  optimize_for_size: bool,
+  name: &str,
+) {
   let fs = Arc::new(MemoryFileSystem::default());
-  let mut compiler = create_split_chunks_stage_compiler(fs.clone());
+  let mut compiler = create_split_chunks_stage_compiler(fs.clone(), min_size, optimize_for_size);
 
   rt.block_on(async {
     fs.create_dir_all("/src".into())
@@ -307,7 +326,7 @@ pub(crate) fn split_chunks_benchmark(c: &mut Criterion, rt: &Runtime) {
   restore_initial_chunk_state(&mut compiler.compilation);
 
   let compiler = RefCell::new(compiler);
-  c.bench_function("rust@split_chunks", |b| {
+  c.bench_function(name, |b| {
     b.iter_batched_ref(
       || {
         let mut compiler = compiler.borrow_mut();
@@ -1094,7 +1113,11 @@ fn create_real_content_hash_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compile
     .unwrap()
 }
 
-fn create_split_chunks_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
+fn create_split_chunks_stage_compiler(
+  fs: Arc<MemoryFileSystem>,
+  min_size: f64,
+  optimize_for_size: bool,
+) -> Compiler {
   let mut builder = Compiler::builder();
   builder
     .context("/")
@@ -1111,7 +1134,10 @@ fn create_split_chunks_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
         .concatenate_modules(false),
     )
     .incremental(IncrementalOptions::empty_passes())
-    .plugin(Box::new(create_split_chunks_plugin()));
+    .plugin(Box::new(create_split_chunks_plugin(
+      min_size,
+      optimize_for_size,
+    )));
   for entry_index in 0..SPLIT_CHUNKS_ENTRY_COUNT {
     builder.entry(
       format!("entry-{entry_index}"),
@@ -1967,10 +1993,11 @@ fn count_assigned_export_used_names(compilation: &Compilation) -> usize {
     .sum()
 }
 
-fn create_split_chunks_plugin() -> SplitChunksPlugin {
+fn create_split_chunks_plugin(min_size: f64, optimize_for_size: bool) -> SplitChunksPlugin {
   let js_zero_sizes = SplitChunkSizes::with_initial_value(&[SourceType::JavaScript], 0.0);
 
   SplitChunksPlugin::new(PluginOptions {
+    optimize_for_size,
     cache_groups: vec![CacheGroup {
       key: "shared-modules".to_string(),
       chunk_filter: create_all_chunk_filter(),
@@ -1979,7 +2006,7 @@ fn create_split_chunks_plugin() -> SplitChunksPlugin {
       layer: create_default_module_layer_filter(),
       name: ChunkNameGetter::Disabled,
       priority: 0.0,
-      min_size: js_zero_sizes.clone(),
+      min_size: SplitChunkSizes::with_initial_value(&[SourceType::JavaScript], min_size),
       min_size_reduction: js_zero_sizes.clone(),
       enforce_size_threshold: SplitChunkSizes::default(),
       reuse_existing_chunk: false,

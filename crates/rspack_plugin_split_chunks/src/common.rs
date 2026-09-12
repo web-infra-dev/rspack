@@ -1,6 +1,6 @@
 use std::{
   ops::{Deref, DerefMut},
-  sync::Arc,
+  sync::{Arc, LazyLock},
 };
 
 use derive_more::Debug;
@@ -11,6 +11,7 @@ use rspack_core::{ChunkUkey, Compilation, Module, ModuleIdentifier, SourceType};
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap, FxHashSet};
+use smallvec::SmallVec;
 
 pub type ChunkFilterFunc =
   Arc<dyn Fn(&ChunkUkey, &Compilation) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
@@ -70,12 +71,25 @@ pub type ModuleTypeFilter = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
 pub type ModuleLayerFilter =
   Arc<dyn Fn(Option<String>) -> BoxFuture<'static, Result<bool>> + Send + Sync>;
 
+static DEFAULT_MODULE_TYPE_FILTER: LazyLock<ModuleTypeFilter> =
+  LazyLock::new(|| Arc::new(|_| true));
+static DEFAULT_MODULE_LAYER_FILTER: LazyLock<ModuleLayerFilter> =
+  LazyLock::new(|| Arc::new(|_| Box::pin(async move { Ok(true) })));
+
 pub fn create_default_module_type_filter() -> ModuleTypeFilter {
-  Arc::new(|_| true)
+  Arc::clone(&DEFAULT_MODULE_TYPE_FILTER)
 }
 
 pub fn create_default_module_layer_filter() -> ModuleLayerFilter {
-  Arc::new(|_| Box::pin(async move { Ok(true) }))
+  Arc::clone(&DEFAULT_MODULE_LAYER_FILTER)
+}
+
+pub(crate) fn is_default_module_type_filter(filter: &ModuleTypeFilter) -> bool {
+  Arc::ptr_eq(filter, &DEFAULT_MODULE_TYPE_FILTER)
+}
+
+pub(crate) fn is_default_module_layer_filter(filter: &ModuleLayerFilter) -> bool {
+  Arc::ptr_eq(filter, &DEFAULT_MODULE_LAYER_FILTER)
 }
 
 pub fn create_async_chunk_filter() -> ChunkFilter {
@@ -216,7 +230,10 @@ pub fn get_module_sizes<T: ParallelIterator<Item = ModuleIdentifier>>(
         .iter()
         .map(|ty| (*ty, module.size(Some(ty), Some(compilation))))
         .collect::<FxHashMap<_, _>>();
-      (module.identifier(), sizes)
+      (
+        module.identifier(),
+        ModuleSourceSizes(sizes.into_iter().collect()),
+      )
     })
     .collect::<IdentifierMap<_>>()
 }
@@ -231,7 +248,38 @@ pub struct FallbackCacheGroup {
   pub automatic_name_delimiter: String,
 }
 
-pub type ModuleSizes = IdentifierMap<FxHashMap<SourceType, f64>>;
+/// Immutable module sizes are traversed for many different candidates. Keep the
+/// common single source type inline, retaining the original map's iteration
+/// order so size accumulation performs the same floating-point operations.
+#[derive(Debug)]
+pub struct ModuleSourceSizes(SmallVec<[(SourceType, f64); 1]>);
+
+impl ModuleSourceSizes {
+  pub fn iter(&self) -> impl Iterator<Item = (&SourceType, &f64)> {
+    self.0.iter().map(|(ty, size)| (ty, size))
+  }
+
+  pub fn values(&self) -> impl Iterator<Item = &f64> {
+    self.0.iter().map(|(_, size)| size)
+  }
+
+  pub fn get(&self, ty: &SourceType) -> Option<&f64> {
+    self
+      .0
+      .iter()
+      .find_map(|(source_type, size)| (source_type == ty).then_some(size))
+  }
+
+  pub fn contains_key(&self, ty: &SourceType) -> bool {
+    self.get(ty).is_some()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.0.is_empty()
+  }
+}
+
+pub type ModuleSizes = IdentifierMap<ModuleSourceSizes>;
 pub(crate) type ModuleChunks = Vec<FxHashSet<ChunkUkey>>;
 
 /// Returns a lossy mask for quickly proving that two chunk sets are disjoint. Chunk keys may
