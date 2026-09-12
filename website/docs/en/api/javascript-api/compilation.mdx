@@ -143,6 +143,47 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   </CollapsePanel>
 </Collapse>
 
+### getAssetSource
+
+Read an asset as text or binary data with an optional serialized source map.
+This Rspack-specific API avoids parsing a map into a JavaScript object when
+passing it to a native processor.
+
+```ts
+getAssetSource(filename: string):
+  | { source: string | Buffer; map?: string }
+  | undefined;
+```
+
+The result is a snapshot, not a live view. Mutating a returned Buffer does not
+change the compilation. Binary sources have no map. A missing asset, or an
+asset without a source, returns `undefined`.
+
+### setAssetSource
+
+Set an asset's content and optional serialized source map without parsing the
+map in JavaScript. This Rspack-specific API preserves existing asset information,
+or creates an asset with default information if the filename is new.
+
+```ts
+setAssetSource(
+  filename: string,
+  source: { source: string | Buffer; map?: string },
+): void;
+```
+
+Omit `map` for unmapped text. A Buffer represents binary data and ignores `map`,
+matching the `Source` adapter. Invalid serialized maps on text sources throw.
+The map is final: this method does not compose it with the previous asset's map.
+Use `updateAsset` when also updating asset information or requiring an existing
+asset.
+
+Sources obtained through `assets`, `getAsset` and `getAssets` retain their
+original content after replacement, deletion or compiler closure. Reading their
+text with `source()` or `size()` defers map materialization. Map, buffer, chunk
+stream and hash operations use the existing source adapter, preserving map
+options and mutable buffer behavior.
+
 ### renameAsset
 
 Rename an existing asset.

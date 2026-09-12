@@ -289,6 +289,7 @@ export declare class JsCompilation {
   getAssets(): Readonly<JsAsset>[]
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsSource | null
+  getAssetSourceSnapshot(name: string): JsSourceSnapshot | null
   get modules(): Array<Module>
   get builtModules(): Array<Module>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
@@ -444,6 +445,11 @@ export declare class JsResolver {
 export declare class JsResolverFactory {
   constructor(pnp: boolean, jsResolveOptions: RawResolveOptions, jsLoaderResolveOptions: RawResolveOptions)
   get(type: string, options?: RawResolveOptionsWithDependencyType): JsResolver
+}
+
+export declare class JsSourceSnapshot {
+  source(): string | Buffer
+  sourceAndMap(): JsSource
 }
 
 export declare class JsStats {
