@@ -4,12 +4,12 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder,
-  Compilation, Context, DependenciesBlock, DependenciesBlockData, FactoryMetaStore, FreezeLock,
-  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleDependency,
-  ModuleGraph, ModuleId, ModuleType, NeedBuildContext, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec, ValueCacheVersions, impl_module_meta_info,
-  impl_source_map_config, module_update_hash,
+  BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
+  FactoryMetaStore, FreezeLock, LibIdentOptions, Module, ModuleArgument,
+  ModuleCodeGenerationContext, ModuleDependency, ModuleGraph, ModuleId, ModuleType,
+  NeedBuildContext, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
+  ValueCacheVersions, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -94,7 +94,7 @@ impl Module for DelegatedModule {
     mut self: Box<Self>,
     _build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
-  ) -> Result<BoxModule> {
+  ) -> Result<BuildResult> {
     let dependencies = vec![
       BoxDependency::new(DelegatedSourceDependency::new(self.source_request.clone())),
       BoxDependency::new(StaticExportsDependency::new(
@@ -111,7 +111,8 @@ impl Module for DelegatedModule {
     self.build_meta = self.delegate_data.build_meta.clone().into();
     Ok(
       BoxModule::new(self)
-        .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![]),
+        .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![])
+        .into(),
     )
   }
 

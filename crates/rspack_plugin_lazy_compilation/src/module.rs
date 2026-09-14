@@ -3,12 +3,13 @@ use std::{borrow::Cow, sync::Arc};
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsVec};
 use rspack_collections::Identifiable;
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
-  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
-  DependencyRange, FactoryMetaStore, FreezeLock, ImportPhase, LibIdentOptions, Module,
-  ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, NeedBuildContext, OutputOptions, RuntimeGlobals,
-  RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info, module_update_hash,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  BuildResult, ChunkGraph, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock,
+  DependenciesBlockData, DependencyRange, FactoryMetaStore, FreezeLock, ImportPhase,
+  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData,
+  ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, NeedBuildContext, OutputOptions,
+  RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info,
+  module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -194,7 +195,7 @@ impl Module for LazyCompilationProxyModule {
     mut self: Box<Self>,
     build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
-  ) -> Result<BoxModule> {
+  ) -> Result<BuildResult> {
     let client_dep = CommonJsRequireDependency::new(
       self.client.clone(),
       DependencyRange::new(0, 0),
@@ -233,10 +234,14 @@ impl Module for LazyCompilationProxyModule {
       }
     }
 
-    Ok(BoxModule::new(self).with_dependencies(
-      dependencies.into_iter().map(Into::into).collect(),
-      blocks.into_iter().map(Into::into).collect(),
-    ))
+    Ok(
+      BoxModule::new(self)
+        .with_dependencies(
+          dependencies.into_iter().map(Into::into).collect(),
+          blocks.into_iter().map(Into::into).collect(),
+        )
+        .into(),
+    )
   }
 
   // #[tracing::instrument("LazyCompilationProxyModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]

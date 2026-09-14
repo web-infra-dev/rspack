@@ -4,11 +4,12 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder,
-  Compilation, Context, DependenciesBlock, DependenciesBlockData, EntryDependency,
-  FactoryMetaStore, FreezeLock, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleType, NeedBuildContext, RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions,
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
+  EntryDependency, FactoryMetaStore, FreezeLock, Module, ModuleArgument,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleType, NeedBuildContext, RuntimeGlobals,
+  RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info, impl_source_map_config,
+  module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -79,7 +80,7 @@ impl Module for DllModule {
     mut self: Box<Self>,
     _build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
-  ) -> Result<BoxModule> {
+  ) -> Result<BuildResult> {
     let dependencies = self
       .entries
       .clone()
@@ -90,7 +91,8 @@ impl Module for DllModule {
 
     Ok(
       BoxModule::new(self)
-        .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![]),
+        .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![])
+        .into(),
     )
   }
 

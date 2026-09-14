@@ -30,7 +30,14 @@ module.exports = {
     new NormalModuleReplacementPlugin(/replace-target\.txt$/, './target.js'),
     new NormalModuleReplacementPlugin(/replace-target\.js$/, './target.txt'),
     (compiler) => {
-      compiler.hooks.compilation.tap('CheckTypeProbe', (compilation) => {
+      compiler.hooks.compilation.tap('CheckTypeProbe', (compilation, { normalModuleFactory }) => {
+        const factorizations = [];
+        normalModuleFactory.hooks.beforeResolve.tap(
+          { name: 'CheckTypeProbe', stage: -1000 },
+          ({ request }) => {
+            factorizations.push(request);
+          },
+        );
         const builds = [];
         compilation.hooks.buildModule.tap('CheckTypeProbe', (module) => {
           builds.push(module.resource);
@@ -40,6 +47,9 @@ module.exports = {
             (module) => module.rawRequest === './index.js',
           );
           expect(issuer.blocks).toHaveLength(1);
+          for (const request of ['./replace-target.txt', './replace-target.js']) {
+            expect(factorizations.filter((value) => value === request)).toHaveLength(1);
+          }
           expect(
             issuer.dependencies.filter((dep) => dep.type === 'new URL()'),
           ).toHaveLength(1);

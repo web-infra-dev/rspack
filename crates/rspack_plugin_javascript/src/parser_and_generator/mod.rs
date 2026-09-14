@@ -33,7 +33,7 @@ use swc_experimental_ecma_transforms_base::remove_paren::remove_paren;
 
 use crate::{
   BoxJavascriptParserPlugin,
-  dependency::ESMCompatibilityDependency,
+  dependency::{ESMCompatibilityDependency, is_url_value_module},
   visitors::{ParsedJavaScriptAst, ScanDependenciesResult, scan_dependencies, semicolon},
 };
 
@@ -254,6 +254,8 @@ impl JavaScriptParserAndGenerator {
     let default_with_diagnostics = |source: Arc<dyn Source>, diagnostics: Vec<Diagnostic>| {
       Ok(
         ParseResult {
+          modules: vec![],
+          module_connections: vec![],
           source,
           dependencies: vec![],
           blocks: vec![],
@@ -387,6 +389,8 @@ impl JavaScriptParserAndGenerator {
 
     Ok(
       ParseResult {
+        modules: vec![],
+        module_connections: vec![],
         source,
         dependencies,
         blocks,
@@ -434,11 +438,22 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       .split_into_parts();
 
     let mut promoted_dependencies = FxHashSet::default();
+    let mut modules = Vec::new();
+    let mut module_connections = Vec::new();
     for dependency in url::iter_url_dependencies(&result) {
-      if url::should_promote_url_dependency(dependency, &mut parse_context).await {
+      let Some((module, connection)) =
+        url::factorize_url_dependency(dependency, &mut parse_context).await
+      else {
+        continue;
+      };
+      if !is_url_value_module(module.as_ref()) && module.module_type().is_js_like() {
         promoted_dependencies.insert(*dependency.id());
       }
+      modules.push(module);
+      module_connections.push(connection);
     }
+    result.modules = modules;
+    result.module_connections = module_connections;
     if !promoted_dependencies.is_empty() {
       url::apply_url_dependency_promotions(&mut result, &parse_context, &promoted_dependencies);
     }
