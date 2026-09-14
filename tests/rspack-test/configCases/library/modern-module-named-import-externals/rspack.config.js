@@ -30,48 +30,42 @@ module.exports = {
         compilation.hooks.processAssets.tap('testcase', (assets) => {
           const source = assets['test.js'].source();
           expect(source).toMatchInlineSnapshot(`
-						import { HomeLayout as external_externals0_HomeLayout, a } from "externals0";
-						import { a as external_externals1_a } from "externals1";
-						import externals2 from "externals2";
-						import * as __rspack_external_externals3 from "externals3";
-						import "externals4";
+            import { HomeLayout as lib_HomeLayout, a } from "externals0";
+            import { a as test_a } from "externals1";
+            import externals2 from "externals2";
+            import * as namespace from "externals3";
+            import "externals4";
+
+
+
+            (function Layout(props) {
+              const { HomeLayout = lib_HomeLayout } = props;
+              call({ HomeLayout });
+            })()
+
+            // re export
+
+
+            // named import
+            ;
+
+            // default import
+
+
+            // namespace import
+
+
+            // side effect only import
 
 
 
 
+            test_a;
+            externals2;
+            namespace;
 
-
-
-
-
-						(function Layout(props) {
-						  const { HomeLayout = external_externals0_HomeLayout } = props;
-						  call({ HomeLayout });
-						})()
-
-						// re export
-
-
-						// named import
-						;
-
-						// default import
-
-
-						// namespace import
-
-
-						// side effect only import
-
-
-
-
-						external_externals1_a;
-						externals2;
-						__rspack_external_externals3;
-
-						export { a };
-					`);
+            export { a };
+          `);
         });
       };
       this.hooks.compilation.tap('testcase', handler);

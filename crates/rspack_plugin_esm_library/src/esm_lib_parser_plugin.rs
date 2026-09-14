@@ -1,14 +1,29 @@
 use std::sync::Arc;
 
-use rspack_core::DependencyType;
+use rspack_core::{DependencyType, collect_ident};
 use rspack_plugin_javascript::{
   JavascriptParserPlugin, dependency::ESMCompatibilityDependency, visitors::JavascriptParser,
 };
+
+use crate::dependency::ExternalBindingBailout;
+
 pub struct EsmLibParserPlugin;
 
 #[rspack_plugin_javascript::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for EsmLibParserPlugin {
   fn finish(&self, parser: &mut JavascriptParser<'p>) -> Option<bool> {
+    // These bindings are introduced after parsing. A source-level collision
+    // cannot be repaired by the linker's top-level deconfliction, especially
+    // inside wrapped modules or function parameters. Inspect decoded AST names
+    // so escaped identifiers are covered as well.
+    if !parser.get_dependencies().is_empty()
+      && collect_ident(parser.ast.allocator, parser.ast.program)
+        .iter()
+        .any(|ident| ident.id.sym.as_str().starts_with("__rspack_"))
+    {
+      parser.add_presentational_dependency(Arc::new(ExternalBindingBailout));
+    }
+
     if parser.module_type.is_js_auto()
       && matches!(
         parser.build_meta.exports_type(),

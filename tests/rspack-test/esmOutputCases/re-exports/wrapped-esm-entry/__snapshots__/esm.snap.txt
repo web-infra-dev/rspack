@@ -9,7 +9,7 @@ __webpack_require__.add({
   \******************/
 (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* import */ var fs__rspack_import_0 = __webpack_require__(/*! fs */ "fs");
+var fs__rspack_import_0 = __rspack_external_fs;
 
 /* reexport */ var __rspack_reexport = {};
 /* reexport */ for( const __rspack_import_key in fs__rspack_import_0) if(["r","named","default","fs","starExports","readFile"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => fs__rspack_import_0[__rspack_import_key]
@@ -45,16 +45,6 @@ __webpack_require__.d(__webpack_exports__, {
   readFile: () => (/* reexport safe */ fs__rspack_import_0.readFile),
   starExports: () => (/* reexport safe */ (/* inlined export _lib2__rspack_import_2 */42))
 });
-
-
-},
-"fs"
-/*!*********************!*\
-  !*** external "fs" ***!
-  \*********************/
-(module) {
-
-module.exports = __rspack_external_fs;
 
 
 },

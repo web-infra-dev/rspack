@@ -10,7 +10,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{As, AsOption, AsPreset, AsVec},
+  with::{As, AsMap, AsPreset, AsVec},
 };
 use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
@@ -184,10 +184,11 @@ impl ConcatenationEntryExternal {
 #[cacheable]
 #[derive(Clone, Debug, Default)]
 pub struct ConcatenatedImportMapItem {
+  /// Local binding to the original external export name.
+  #[cacheable(with=AsMap<AsPreset, AsPreset>)]
+  pub specifiers: HashMap<Atom, Atom>,
   #[cacheable(with=AsVec<AsPreset>)]
-  pub specifiers: HashSet<Atom>,
-  #[cacheable(with=AsOption<AsPreset>)]
-  pub namespace: Option<Atom>,
+  pub namespaces: HashSet<Atom>,
 }
 
 pub type ConcatenatedImportMap =
@@ -707,7 +708,7 @@ pub fn render_imports(source: &str, attr: Option<&str>, import_spec: &ImportSpec
           if atom == internal {
             atom.to_string()
           } else {
-            format!("{atom} as {internal}")
+            format!("{} as {internal}", crate::to_module_export_name(atom))
           }
         })
         .collect::<Vec<String>>()
@@ -1050,7 +1051,7 @@ impl Module for ConcatenatedModule {
             for ((source, attr), imported) in import_map {
               let total_imported_atoms = import_stmts.entry((source.clone(), attr)).or_default();
 
-              if let Some(ns_import) = imported.namespace {
+              for ns_import in imported.namespaces {
                 if let Some(internal_ns_import) = total_imported_atoms.ns_import.as_ref() {
                   info
                     .internal_names
@@ -1075,10 +1076,21 @@ impl Module for ConcatenatedModule {
                 }
               }
 
-              for atom in imported.specifiers {
-                let existing_name = total_imported_atoms.atoms.get(&atom).cloned();
+              for (local_name, imported_name) in imported.specifiers {
+                let existing_name = total_imported_atoms
+                  .atoms
+                  .get(&imported_name)
+                  .or_else(|| {
+                    if imported_name == "default" {
+                      total_imported_atoms.default_import.as_ref()
+                    } else {
+                      None
+                    }
+                  })
+                  .cloned();
                 let new_name = name_allocator.assign_import_binding_name(
-                  &atom,
+                  &local_name,
+                  &imported_name,
                   existing_name.as_ref(),
                   &source,
                   info,
@@ -1086,10 +1098,10 @@ impl Module for ConcatenatedModule {
                 );
 
                 if existing_name.is_none() {
-                  if atom == "default" {
+                  if imported_name == "default" {
                     total_imported_atoms.default_import = Some(new_name);
                   } else {
-                    total_imported_atoms.atoms.insert(atom, new_name);
+                    total_imported_atoms.atoms.insert(imported_name, new_name);
                   }
                 }
               }
@@ -3028,11 +3040,10 @@ pub fn collect_ident<'a>(
       }
     }
 
-    /// https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1173-L1197
+    /// Reserve every class expression's inner name, even without a superclass,
+    /// so renaming an outer binding cannot make it captured by the class scope.
     fn visit_class_expr(&mut self, node: &ClassExpr<'a>) {
-      if let Some(ident) = &node.ident
-        && node.class.super_class.is_some()
-      {
+      if let Some(ident) = &node.ident {
         self.ids.push(NewConcatenatedModuleIdent {
           id: ident.as_ref().clone_in(self.allocator),
           shorthand: false,

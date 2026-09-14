@@ -2,10 +2,6 @@
 import { sep } from "path";
 import * as __rspack_external_fs from "fs";
 
-// path
-
-// fs
-
 // ./index.js
 
 

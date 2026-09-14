@@ -10,14 +10,10 @@ __webpack_require__.d(file_namespaceObject, {
   value: () => (value) });
 
 
-// fs?42cb
-
 // ./sharding.js
 
 
 const value = fs;
-
-// fs?5257
 
 // ./file.js
 

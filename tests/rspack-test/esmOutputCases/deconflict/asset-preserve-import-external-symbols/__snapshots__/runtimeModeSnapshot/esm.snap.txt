@@ -1,0 +1,12 @@
+```mjs title=main.mjs
+import fileURLToPath from "./assets/fileURLToPath.mjs";
+import readFile from "./assets/readFile.mjs";
+import { readFile as external_fs_readFile } from "fs";
+import { fileURLToPath as external_node_url_fileURLToPath } from "node:url";
+import {fileURLToPath as __rspack_fileURLToPath} from "node:url";
+var __rspack_import_meta_dirname__ = __rspack_dirname(__rspack_fileURLToPath(import.meta.url));
+module.exports = fileURLToPath;
+module.exports = readFile;
+const generatedDirname = __rspack_import_meta_dirname__
+export { external_fs_readFile as readFile, external_node_url_fileURLToPath as fileURLToPath, fileURLToPath_0 as fileURLToPathAsset, generatedDirname, index_rspack_fileURLToPath as applicationHelperValue, readFile_0 as readFileAsset };
+```

@@ -1,21 +1,17 @@
 ```mjs title=main.mjs
-import * as __rspack_external_fs from "fs";
-import * as __rspack_external_path from "path";
-
-// fs
-
-// path
+import * as fsNs from "fs";
+import * as pathNs from "path";
 
 // ./index.js
 
 
 
 /* export default */ const index = ({
-  fsTag: __rspack_external_fs[Symbol.toStringTag],
-  fsText: Object.prototype.toString.call(__rspack_external_fs),
-  pathTag: __rspack_external_path[Symbol.toStringTag],
-  pathText: Object.prototype.toString.call(__rspack_external_path),
-  basename: __rspack_external_path.basename("a/b.txt"),
+  fsTag: fsNs[Symbol.toStringTag],
+  fsText: Object.prototype.toString.call(fsNs),
+  pathTag: pathNs[Symbol.toStringTag],
+  pathText: Object.prototype.toString.call(pathNs),
+  basename: pathNs.basename("a/b.txt"),
 });
 
 it("should preserve module toStringTag on external namespace imports", async () => {

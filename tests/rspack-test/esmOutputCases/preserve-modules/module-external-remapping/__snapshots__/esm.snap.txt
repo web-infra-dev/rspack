@@ -1,5 +1,5 @@
 ```mjs title=hoisted.mjs
-import { once, EventEmitter } from "./node_events-node_events.mjs";
+import { EventEmitter, once } from "node:events";
 
 // ./src/hoisted.js
 
@@ -41,32 +41,6 @@ it('should keep module external exports correct for hoisted named imports and wr
 });
 
 export {};
-
-```
-
-```mjs title=node_events-node_events.mjs
-import { __webpack_require__ } from "./runtime.mjs";
-
-import * as __rspack_external_node_events_3969b2b3 from "node:events";
-__webpack_require__.add({
-"node:events?df85"
-/*!******************************!*\
-  !*** external "node:events" ***!
-  \******************************/
-(module, __unused_rspack_exports, __webpack_require__) {
-var __rspack_create_module_external_namespace_node_events_3969b2b3 = (y) => {
-var x = {};
-__webpack_require__.d(x, y);
-return x;
-};
-var __rspack_wrap_module_external_namespace_node_events_3969b2b3 = (x) => (() => (x));
-module.exports = __rspack_create_module_external_namespace_node_events_3969b2b3({["a"]: () => (__rspack_external_node_events_3969b2b3.EventEmitter), ["b"]: () => (__rspack_external_node_events_3969b2b3.once)});
-
-},
-});
-// node:events?41dc
-
-export { EventEmitter, once } from "node:events";
 
 ```
 
@@ -140,15 +114,20 @@ export { __webpack_require__ };
 
 ```mjs title=wrapped.mjs
 import { __webpack_require__ } from "./runtime.mjs";
-import "./node_events-node_events.mjs";
 
+import * as __rspack_external_node_events_3969b2b3 from "node:events";
 __webpack_require__.add({
 "./src/wrapped.js"
 /*!************************!*\
   !*** ./src/wrapped.js ***!
   \************************/
 (module, __webpack_exports__, __webpack_require__) {
-/* import */ var node_events__rspack_import_0 = __webpack_require__(/*! node:events */ "node:events?df85");
+var __rspack_create_module_external_namespace_node_events_3969b2b3 = (y) => {
+var x = {};
+__webpack_require__.d(x, y);
+return x;
+};
+var __rspack_wrap_module_external_namespace_node_events_3969b2b3 = (x) => (() => (x));var node_events__rspack_import_0 = __rspack_create_module_external_namespace_node_events_3969b2b3({["a"]: () => (__rspack_external_node_events_3969b2b3.EventEmitter), ["b"]: () => (__rspack_external_node_events_3969b2b3.once)});
 /* module decorator */ module = __webpack_require__.hmd(module);
 
 
