@@ -24,10 +24,11 @@ const clear = (dependencies: string[]) => {
 
 export class LoaderDependenciesState {
   readonly existing: LoaderDependencies;
-  readonly added = createDependencies();
-  readonly removed = createDependencies();
-
-  constructor(existing: LoaderDependencies) {
+  constructor(
+    existing: LoaderDependencies,
+    readonly added = createDependencies(),
+    readonly removed = createDependencies(),
+  ) {
     this.existing = existing;
   }
 
@@ -39,6 +40,7 @@ export class LoaderDependenciesState {
   }
 
   mergeChanges() {
+    // Keep the change records until the root chain finishes on the Rust side.
     for (const key of DEPENDENCY_KEYS) {
       if (this.added[key].length === 0 && this.removed[key].length === 0) {
         continue;
@@ -47,7 +49,6 @@ export class LoaderDependenciesState {
       clear(this.existing[key]);
       this.existing[key].push(...dependencies);
     }
-    this.resetChanges();
   }
 
   addDependencies(dependencies: LoaderDependencies) {
@@ -93,10 +94,7 @@ export class LoaderDependenciesState {
   }
 
   private add(key: DependencyKey, dependency: string) {
-    const removed = this.removed[key];
-    for (let index = removed.length - 1; index >= 0; index--) {
-      if (removed[index] === dependency) removed.splice(index, 1);
-    }
+    // Additions win in get(), but keep removals to prevent caching this chain.
     if (!this.added[key].includes(dependency)) {
       this.added[key].push(dependency);
     }
@@ -114,8 +112,11 @@ export class LoaderDependenciesState {
   }
 
   private clear(key: DependencyKey) {
-    clear(this.removed[key]);
-    this.removed[key].push(...this.existing[key]);
+    for (const dependency of this.existing[key]) {
+      if (!this.removed[key].includes(dependency)) {
+        this.removed[key].push(dependency);
+      }
+    }
     clear(this.added[key]);
   }
 }

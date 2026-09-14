@@ -1,6 +1,7 @@
 #![feature(string_from_utf8_lossy_owned)]
 
 mod cache;
+mod chain;
 mod content;
 mod context;
 mod loader;
@@ -9,6 +10,7 @@ mod runner;
 mod scheme;
 
 pub use cache::LoaderRunnerOptions;
+pub use chain::LoaderChain;
 pub use content::{
   AdditionalData, Content, DescriptionData, ParseMeta, ParseMetaValue, ResourceData,
 };

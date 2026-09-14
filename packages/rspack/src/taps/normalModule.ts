@@ -18,6 +18,8 @@ export const createNormalModuleHooksRegisters: CreatePartialRegisters<
       const compiler = getCompiler();
       const dependencies = new LoaderDependenciesState(
         context.state.dependencies,
+        context.state.addedDependencies,
+        context.state.removedDependencies,
       );
       const loaderContext = createLoaderContext(
         compiler,

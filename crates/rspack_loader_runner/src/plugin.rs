@@ -6,7 +6,7 @@ use rspack_paths::InternedPathSet;
 use rspack_sources::SourceMap;
 
 use crate::{
-  Loader, LoaderContext, LoaderRunnerContext,
+  LoaderContext, LoaderRunnerContext,
   content::{Content, ResourceData},
 };
 
@@ -26,16 +26,8 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     Ok(())
   }
 
-  async fn run_normal_loader(
-    &self,
-    context: &mut LoaderContext<Self::Context>,
-    loader: Arc<dyn Loader<Self::Context>>,
-  ) -> Result<()> {
-    loader.run(context).await?;
-    if !context.current_loader_state().finish_called() {
-      context.finish_with_empty();
-    }
-    Ok(())
+  async fn run_normal_chain(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
+    context.run_normal_chain().await
   }
 
   async fn process_resource(
