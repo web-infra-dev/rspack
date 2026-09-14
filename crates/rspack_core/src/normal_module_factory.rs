@@ -1368,9 +1368,9 @@ async fn resolve_each(
     .ok_or_else(|| error!("Unable to resolve loader {}", l.loader))
 }
 
-pub(crate) struct ResolvedLoader {
-  pub(crate) loader: BoxLoader,
-  pub(crate) options: LoaderRunnerOptions,
+struct ResolvedLoader {
+  loader: BoxLoader,
+  options: LoaderRunnerOptions,
 }
 
 impl ResolvedLoader {
@@ -1382,7 +1382,7 @@ impl ResolvedLoader {
   }
 }
 
-pub(crate) async fn resolve_each_with_options(
+async fn resolve_each_with_options(
   plugin_driver: &SharedPluginDriver,
   options: &CompilerOptions,
   loader_resolver: &Resolver,
