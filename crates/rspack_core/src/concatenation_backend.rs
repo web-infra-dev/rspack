@@ -9,11 +9,7 @@ use rspack_util::{
   fx_hash::{FxHashMap, FxHashSet},
   itoa,
 };
-use swc_core::{
-  atoms::Atom as SwcAtom,
-  common::{BytePos, SyntaxContext},
-  ecma::visit::swc_ecma_ast,
-};
+use swc_core::common::SyntaxContext;
 use swc_next_allocator::Allocator;
 use swc_next_ecma_ast::{
   Ast, BindingIdentifier, Class, ClassType, DeclData, ExportDefaultDeclarationKind,
@@ -22,7 +18,7 @@ use swc_next_ecma_ast::{
   JsxMemberExpressionObjectData, LabelIdentifier, Lang, ModuleExportNameData, ObjectProperty,
   SourceType as SwcSourceType, Stmt, StmtData, Visit, VisitWith,
 };
-use swc_next_ecma_parser::{Options as SwcParserOptions, Parser, TokenParserConfig};
+use swc_next_ecma_parser::{CommentMode, NoTokenParserConfig, Options as SwcParserOptions, Parser};
 use swc_next_ecma_semantic::name_resolver::{JsNameResolver, SymbolNode, resolver};
 
 use crate::{
@@ -560,30 +556,10 @@ impl ConcatenationNameAllocator {
 }
 
 #[derive(Debug)]
-pub struct NewConcatenatedModuleIdent {
-  pub id: swc_ecma_ast::Ident,
-  pub scope: SyntaxContext,
-  pub shorthand: bool,
-  pub is_class_expr_with_ident: bool,
-}
-
-impl NewConcatenatedModuleIdent {
-  pub fn to_legacy(&self) -> ConcatenatedModuleIdent {
-    ConcatenatedModuleIdent {
-      id: self.id.clone(),
-      is_class_expr_with_ident: self.is_class_expr_with_ident,
-      shorthand: self.shorthand,
-    }
-  }
-}
-
-#[derive(Debug)]
 pub struct ConcatenatedModuleIdentifierAnalysis {
   pub module_ctxt: SyntaxContext,
   pub global_ctxt: SyntaxContext,
-  pub identifiers: Vec<NewConcatenatedModuleIdent>,
-  /// Position of a missing final statement semicolon, before any trailing comments.
-  pub trailing_semicolon_position: Option<u32>,
+  pub identifiers: Vec<ConcatenatedModuleIdent>,
 }
 
 /// Analyze a generated JavaScript program without requiring it to parse as an ES module.
@@ -594,14 +570,23 @@ pub fn analyze_program_identifiers(
   source: &str,
   jsx: bool,
 ) -> Result<ConcatenatedModuleIdentifierAnalysis> {
-  analyze_identifiers(source, jsx, SwcSourceType::Unambiguous)
+  analyze_identifiers(source, jsx, SwcSourceType::Unambiguous, |ast, semantic| {
+    let mut identifiers = Vec::new();
+    collect_ident(ast, semantic, |identifier| identifiers.push(identifier));
+    ConcatenatedModuleIdentifierAnalysis {
+      module_ctxt: SyntaxContext::from_u32(semantic.top_level_scope_id().raw()),
+      global_ctxt: SyntaxContext::from_u32(semantic.unresolved_scope_id().raw()),
+      identifiers,
+    }
+  })
 }
 
-fn analyze_identifiers(
+fn analyze_identifiers<T>(
   source: &str,
   jsx: bool,
   source_type: SwcSourceType,
-) -> Result<ConcatenatedModuleIdentifierAnalysis> {
+  analyze: impl FnOnce(&Ast<'_>, &JsNameResolver<'_>) -> T,
+) -> Result<T> {
   let allocator = Allocator::new();
   let parse_return = Parser::init(
     &allocator,
@@ -609,10 +594,10 @@ fn analyze_identifiers(
     SwcParserOptions {
       source_type,
       lang: if jsx { Lang::Jsx } else { Lang::Js },
-      preserve_parens: false,
-      ..Default::default()
+      preserve_parens: true,
+      comments: CommentMode::None,
     },
-    TokenParserConfig,
+    NoTokenParserConfig,
   )
   .parse();
   if let Some(diagnostic) = parse_return.diagnostics.into_iter().next() {
@@ -627,41 +612,7 @@ fn analyze_identifiers(
 
   let ast = parse_return.ast;
   let semantic = resolver(&ast);
-  let module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
-  let global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
-  let identifiers = collect_ident(&ast, &semantic);
-  // Use the statement's end so the separator precedes trailing comments.
-  let program = ast.root_program();
-  let body = program.body(&ast);
-  let trailing_semicolon_position = if body.is_empty() {
-    None
-  } else {
-    body.get_node(&ast, body.len() - 1)
-  }
-  .and_then(|item| {
-    let needs_semicolon = match ast.stmt_data(item) {
-      StmtData::ImportDeclaration(_)
-      | StmtData::ExportAllDeclaration(_)
-      | StmtData::TsExportAssignment(_)
-      | StmtData::TsNamespaceExportDeclaration(_) => false,
-      StmtData::ExportDefaultDeclaration(decl) => matches!(
-        ast.export_default_declaration_kind_data(decl.declaration(&ast)),
-        ExportDefaultDeclarationKindData::Expr(_)
-      ),
-      StmtData::ExportNamedDeclaration(decl) => decl
-        .declaration(&ast)
-        .is_some_and(|decl| matches!(ast.decl_data(decl), DeclData::VariableDeclaration(_))),
-      _ => statement_needs_semicolon(&ast, item),
-    };
-    let end = item.span(&ast).real_hi();
-    (needs_semicolon && source.as_bytes()[end as usize - 1] != b';').then_some(end)
-  });
-  Ok(ConcatenatedModuleIdentifierAnalysis {
-    module_ctxt,
-    global_ctxt,
-    identifiers,
-    trailing_semicolon_position,
-  })
+  Ok(analyze(&ast, &semantic))
 }
 
 /// Collects the identifier occurrences needed by concatenated-module renaming.
@@ -669,18 +620,22 @@ fn analyze_identifiers(
 /// over those symbols. This visitor only enumerates the legacy collector's
 /// occurrences and records shorthand/class-expression metadata; all scope
 /// resolution still comes directly from `JsNameResolver`.
-/// The returned records own their strings and spans so SWC Next arena handles
-/// never escape this analysis boundary.
-fn collect_ident(ast: &Ast<'_>, semantic: &JsNameResolver<'_>) -> Vec<NewConcatenatedModuleIdent> {
-  struct IdentCollector<'a, 'semantic> {
+/// Emit occurrences directly to the consumer so module analysis does not need
+/// an intermediate array of owned identifiers.
+fn collect_ident(
+  ast: &Ast<'_>,
+  semantic: &JsNameResolver<'_>,
+  on_ident: impl FnMut(ConcatenatedModuleIdent),
+) {
+  struct IdentCollector<'a, 'semantic, F> {
     ast: &'a Ast<'a>,
     semantic: &'semantic JsNameResolver<'a>,
-    ids: Vec<NewConcatenatedModuleIdent>,
+    on_ident: F,
     shorthand_binding: Option<BindingIdentifier>,
     skipped_class_expression_binding: Option<BindingIdentifier>,
   }
 
-  impl IdentCollector<'_, '_> {
+  impl<F: FnMut(ConcatenatedModuleIdent)> IdentCollector<'_, '_, F> {
     fn push(
       &mut self,
       name: &str,
@@ -689,14 +644,10 @@ fn collect_ident(ast: &Ast<'_>, semantic: &JsNameResolver<'_>) -> Vec<NewConcate
       shorthand: bool,
       is_class_expr_with_ident: bool,
     ) {
-      // swc_core BytePos is one-based while SWC Next spans are zero-based.
-      let span = swc_core::common::Span::new(
-        BytePos(span.start.saturating_add(1)),
-        BytePos(span.end.saturating_add(1)),
-      );
       let scope = SyntaxContext::from_u32(scope.raw());
-      self.ids.push(NewConcatenatedModuleIdent {
-        id: swc_ecma_ast::Ident::new(SwcAtom::from(name), span, scope),
+      (self.on_ident)(ConcatenatedModuleIdent {
+        name: Atom::from(name),
+        span,
         scope,
         shorthand,
         is_class_expr_with_ident,
@@ -781,7 +732,7 @@ fn collect_ident(ast: &Ast<'_>, semantic: &JsNameResolver<'_>) -> Vec<NewConcate
     }
   }
 
-  impl<'a> Visit<'a> for IdentCollector<'a, '_> {
+  impl<'a, F: FnMut(ConcatenatedModuleIdent)> Visit<'a> for IdentCollector<'a, '_, F> {
     fn ast(&self) -> &Ast<'a> {
       self.ast
     }
@@ -868,12 +819,11 @@ fn collect_ident(ast: &Ast<'_>, semantic: &JsNameResolver<'_>) -> Vec<NewConcate
   let mut collector = IdentCollector {
     ast,
     semantic,
-    ids: Vec::new(),
+    on_ident,
     shorthand_binding: None,
     skipped_class_expression_binding: None,
   };
   ast.root_program().visit_with(&mut collector);
-  collector.ids
 }
 
 fn statement_needs_semicolon(ast: &Ast<'_>, stmt: Stmt) -> bool {
@@ -898,68 +848,129 @@ fn statement_needs_semicolon(ast: &Ast<'_>, stmt: Stmt) -> bool {
   }
 }
 
+/// Position of a missing final statement semicolon, before any trailing comments.
+fn trailing_semicolon_position(ast: &Ast<'_>, source: &str) -> Option<u32> {
+  let program = ast.root_program();
+  let body = program.body(ast);
+  if body.is_empty() {
+    return None;
+  }
+  let item = body.get_node(ast, body.len() - 1)?;
+  let needs_semicolon = match ast.stmt_data(item) {
+    StmtData::ImportDeclaration(_)
+    | StmtData::ExportAllDeclaration(_)
+    | StmtData::TsExportAssignment(_)
+    | StmtData::TsNamespaceExportDeclaration(_) => false,
+    StmtData::ExportDefaultDeclaration(decl) => matches!(
+      ast.export_default_declaration_kind_data(decl.declaration(ast)),
+      ExportDefaultDeclarationKindData::Expr(_)
+    ),
+    StmtData::ExportNamedDeclaration(decl) => decl
+      .declaration(ast)
+      .is_some_and(|decl| matches!(ast.decl_data(decl), DeclData::VariableDeclaration(_))),
+    _ => statement_needs_semicolon(ast, item),
+  };
+  let end = item.span(ast).real_hi();
+  (needs_semicolon && source.as_bytes()[end as usize - 1] != b';').then_some(end)
+}
+
 pub fn analyze_module_scope(
   source: &str,
   jsx: bool,
   module_info: &mut ConcatenatedModuleInfo,
 ) -> Result<()> {
-  let analysis = analyze_identifiers(source, jsx, SwcSourceType::Module)?;
-  let identifiers = analysis.identifiers;
-  module_info.module_ctxt = analysis.module_ctxt;
-  module_info.global_ctxt = analysis.global_ctxt;
-  module_info.trailing_semicolon_position = analysis.trailing_semicolon_position;
+  analyze_identifiers(source, jsx, SwcSourceType::Module, |ast, semantic| {
+    module_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
+    module_info.global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
+    module_info.trailing_semicolon_position = trailing_semicolon_position(ast, source);
+    module_info.all_used_names.clear();
+    module_info.binding_to_ref.clear();
 
-  module_info.all_used_names.clear();
-  module_info.binding_to_ref.clear();
-  module_info.all_used_names.reserve(identifiers.len());
-  module_info.idents.reserve(identifiers.len());
-  let mut binding_groups: FxHashMap<(Atom, SyntaxContext), u32> = FxHashMap::default();
-  let mut binding_refs: Vec<(u32, u32)> = Vec::with_capacity(identifiers.len());
+    let mut binding_groups: FxHashMap<(Atom, SyntaxContext), u32> = FxHashMap::default();
+    let mut binding_refs: Vec<(u32, u32)> = Vec::new();
 
-  for identifier in identifiers {
-    let scope = identifier.scope;
-    let is_global = scope == module_info.global_ctxt;
-    let legacy = if is_global {
-      let legacy = identifier.to_legacy();
-      module_info.global_scope_ident.push(legacy.clone());
-      module_info
-        .all_used_names
-        .insert(legacy.id.sym.clone().into());
-      Some(legacy)
-    } else {
-      None
-    };
+    collect_ident(ast, semantic, |identifier| {
+      let scope = identifier.scope;
+      let name = identifier.name.clone();
+      if scope == module_info.global_ctxt {
+        module_info.global_scope_ident.push(identifier.clone());
+      }
+      if scope != module_info.module_ctxt || identifier.is_class_expr_with_ident {
+        module_info.all_used_names.insert(name.clone());
+      }
+      if identifier.is_class_expr_with_ident {
+        return;
+      }
 
-    if identifier.is_class_expr_with_ident {
-      module_info
-        .all_used_names
-        .insert(Atom::from(identifier.id.sym.as_str()));
-      continue;
-    }
+      module_info.idents.push(identifier.clone());
+      let index =
+        u32::try_from(module_info.idents.len() - 1).expect("too many identifiers in one module");
+      let group = match binding_groups.entry((name.clone(), scope)) {
+        Entry::Occupied(occupied) => *occupied.get(),
+        Entry::Vacant(vacant) => {
+          *vacant.insert(module_info.binding_to_ref.push_binding(name, scope))
+        }
+      };
+      binding_refs.push((group, index));
+    });
 
-    if scope != module_info.module_ctxt {
-      module_info
-        .all_used_names
-        .insert(Atom::from(identifier.id.sym.as_str()));
-    }
+    module_info.binding_to_ref.finish(binding_refs);
 
-    let legacy = legacy.unwrap_or_else(|| identifier.to_legacy());
-    module_info.idents.push(legacy.clone());
-    let name: Atom = legacy.id.sym.clone().into();
-    let ctxt = legacy.id.ctxt;
-    let index =
-      u32::try_from(module_info.idents.len() - 1).expect("too many identifiers in one module");
-    let group = match binding_groups.entry((name.clone(), ctxt)) {
-      Entry::Occupied(occupied) => *occupied.get(),
-      Entry::Vacant(vacant) => *vacant.insert(module_info.binding_to_ref.push_binding(name, ctxt)),
-    };
-    binding_refs.push((group, index));
+    module_info.has_ast = true;
+  })
+}
+
+/// Whether the program's decoded names mention an identifier with the given
+/// prefix. References, bindings, property names and labels are all inspected so
+/// escaped identifier forms are covered as well.
+pub fn program_has_ident_with_prefix(ast: &Ast<'_>, prefix: &str) -> bool {
+  struct PrefixFinder<'a> {
+    ast: &'a Ast<'a>,
+    prefix: &'a str,
+    found: bool,
   }
 
-  module_info.binding_to_ref.finish(binding_refs);
+  impl<'a> Visit<'a> for PrefixFinder<'a> {
+    fn ast(&self) -> &Ast<'a> {
+      self.ast
+    }
 
-  module_info.has_ast = true;
-  Ok(())
+    fn visit_identifier_reference(&mut self, node: IdentifierReference) {
+      self.found |= self
+        .ast
+        .get_utf8(node.name(self.ast))
+        .starts_with(self.prefix);
+    }
+
+    fn visit_binding_identifier(&mut self, node: BindingIdentifier) {
+      self.found |= self
+        .ast
+        .get_utf8(node.name(self.ast))
+        .starts_with(self.prefix);
+    }
+
+    fn visit_identifier_name(&mut self, node: IdentifierName) {
+      self.found |= self
+        .ast
+        .get_utf8(node.name(self.ast))
+        .starts_with(self.prefix);
+    }
+
+    fn visit_label_identifier(&mut self, node: LabelIdentifier) {
+      self.found |= self
+        .ast
+        .get_utf8(node.name(self.ast))
+        .starts_with(self.prefix);
+    }
+  }
+
+  let mut finder = PrefixFinder {
+    ast,
+    prefix,
+    found: false,
+  };
+  ast.root_program().visit_with(&mut finder);
+  finder.found
 }
 
 impl<'a> ConcatenationContext<'a> {
