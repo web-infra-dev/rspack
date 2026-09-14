@@ -1,12 +1,8 @@
 ```mjs title=main.mjs
-// fs?f23b
-
 // ./module.js
 
 
 console.log.bind(console)
-
-// fs?771d
 
 // ./index.js
 

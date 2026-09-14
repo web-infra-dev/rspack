@@ -71,14 +71,10 @@ __webpack_require__.d(b_namespaceObject, {
   resolve: () => (resolve) });
 
 
-// path?2d49
-
 // ./a.js
 
 
 
-
-// path?2b46
 
 // ./b.js
 

@@ -1,8 +1,6 @@
 ```mjs title=main.mjs
 import { readFile } from "fs";
 
-// virtual-fs
-
 // ./index.js
 
 

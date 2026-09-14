@@ -5,16 +5,17 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
+use rspack_intern::Atom;
 use rspack_macros::impl_source_map_config;
 use rspack_util::{json_stringify_str, source_map::SourceMapKind};
 use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
 use crate::{
-  BoxChunkInitFragment, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, ChunkGraph,
-  ChunkInitFragments, ChunkUkey, CodeGenerationDataChunkInitFragments, CodeGenerationDataUrl,
-  CodeGenerationResultBuilder, Compilation, ConcatenationScope, Context, CssLayer,
-  CssModuleRenderCondition, DependenciesBlock, DependenciesBlockData, DependencyRef,
+  BoxChunkInitFragment, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType,
+  ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationDataChunkInitFragments,
+  CodeGenerationDataUrl, CodeGenerationResultBuilder, Compilation, ConcatenationScope, Context,
+  CssLayer, CssModuleRenderCondition, DependenciesBlock, DependenciesBlockData, DependencyRef,
   ExportProvided, ExternalType, FactoryMetaStore, FreezeLock, ImportAttributes, ImportPhase,
   InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
@@ -85,43 +86,9 @@ impl CommonJsExternalRequireKind {
     let require = self.render_callee(compilation, chunk_init_fragments);
     format!(
       "{require}({}){}",
-      request
-        .map(json_stringify_str)
-        .unwrap_or_else(|| "undefined".to_string()),
+      request.map_or_else(|| "undefined".to_string(), json_stringify_str),
       property_access(properties, 0)
     )
-  }
-
-  fn render_external_request(
-    self,
-    request: Option<&ExternalRequestValue>,
-    compilation: &Compilation,
-    chunk_init_fragments: &mut ChunkInitFragments,
-  ) -> String {
-    match request {
-      Some(request) => self.render_expression(
-        Some(request.primary()),
-        request.iter().skip(1),
-        compilation,
-        chunk_init_fragments,
-      ),
-      // Preserve the existing fallback for a missing object-form request:
-      // ESM node-commonjs used the undefined value while other CommonJS
-      // renderers requested the literal module name "undefined".
-      None if matches!(self, Self::NodeCommonJs) && compilation.options.output.module => self
-        .render_expression(
-          None,
-          iter::empty::<&str>(),
-          compilation,
-          chunk_init_fragments,
-        ),
-      None => self.render_expression(
-        Some("undefined"),
-        iter::empty::<&str>(),
-        compilation,
-        chunk_init_fragments,
-      ),
-    }
   }
 
   /// Renders only the require callee and installs its required init fragment.
@@ -588,6 +555,37 @@ pub struct DependencyMeta {
 }
 
 impl ExternalModule {
+  fn create_identifier(
+    request: &ExternalRequest,
+    external_type: &str,
+    dependency_meta: &DependencyMeta,
+  ) -> Identifier {
+    let resolved_type = resolve_external_type(external_type, dependency_meta);
+    let request_str = simd_json::to_string(request).expect("invalid json to_string");
+    let attrs_str = dependency_meta
+      .attributes
+      .as_ref()
+      .map_or(String::new(), |attrs| {
+        format!(
+          " {}",
+          simd_json::to_string(attrs).expect("invalid json to_string")
+        )
+      });
+    let phase_str = if dependency_meta.phase == ImportPhase::Evaluation {
+      String::new()
+    } else {
+      format!(" phase={}", dependency_meta.phase.as_str())
+    };
+    let css_import_str =
+      css_module_render_conditions_identifier(dependency_meta.css_import_conditions.iter())
+        .map_or(String::new(), |conditions| {
+          format!(" css-import-conditions={}", json_stringify_str(&conditions))
+        });
+    Identifier::from(format!(
+      "external {resolved_type} {request_str}{attrs_str}{phase_str}{css_import_str}"
+    ))
+  }
+
   pub fn new(
     request: ExternalRequest,
     external_type: ExternalType,
@@ -597,30 +595,7 @@ impl ExternalModule {
   ) -> Self {
     Self {
       dependencies_block: Default::default(),
-      id: Identifier::from({
-        let resolved_type = resolve_external_type(external_type.as_str(), &dependency_meta);
-        let request_str = simd_json::to_string(&request).expect("invalid json to_string");
-        let attrs_str = dependency_meta
-          .attributes
-          .as_ref()
-          .map_or(String::new(), |attrs| {
-            format!(
-              " {}",
-              simd_json::to_string(attrs).expect("invalid json to_string")
-            )
-          });
-        let phase_str = if dependency_meta.phase == ImportPhase::Evaluation {
-          String::new()
-        } else {
-          format!(" phase={}", dependency_meta.phase.as_str())
-        };
-        let css_import_str =
-          css_module_render_conditions_identifier(dependency_meta.css_import_conditions.iter())
-            .map_or(String::new(), |conditions| {
-              format!(" css-import-conditions={}", json_stringify_str(&conditions))
-            });
-        format!("external {resolved_type} {request_str}{attrs_str}{phase_str}{css_import_str}")
-      }),
+      id: Self::create_identifier(&request, &external_type, &dependency_meta),
       request,
       external_type,
       user_request,
@@ -652,6 +627,98 @@ impl ExternalModule {
 
   pub fn get_import_phase(&self) -> ImportPhase {
     self.dependency_meta.phase
+  }
+
+  fn module_import_identifier(&self, compilation: &Compilation) -> String {
+    let request = self.get_request();
+    if to_identifier(&request.primary) == request.primary
+      && self.dependency_meta.attributes.is_none()
+    {
+      return request.primary.clone();
+    }
+    let mut hasher = RspackHasher::from(&compilation.options.output);
+    use rspack_hash::RspackHash as _;
+    request.primary.hash(&mut hasher);
+    if let Some(attributes) = &self.dependency_meta.attributes {
+      simd_json::to_string(attributes)
+        .expect("json stringify failed")
+        .hash(&mut hasher);
+    }
+    let hash_suffix = hasher.digest(&compilation.options.output.hash_digest);
+    format!(
+      "{}_{}",
+      to_identifier(&request.primary),
+      hash_suffix.rendered(8)
+    )
+  }
+
+  /// Register a native import owned by the referencing module's scope.
+  pub fn register_module_import(
+    &self,
+    compilation: &Compilation,
+    scope: &mut ConcatenationScope,
+    imported: Option<&Atom>,
+    local: Option<&Atom>,
+  ) -> String {
+    let request = self.get_request();
+    let attributes = self.module_import_attributes();
+    let namespace = format!(
+      "__rspack_external_{}",
+      self.module_import_identifier(compilation)
+    );
+    if let Some(imported) = imported {
+      let local = local.map_or_else(
+        || format!("{namespace}_{}", hex::encode(imported.as_bytes())),
+        ToString::to_string,
+      );
+      scope.register_import_as(
+        request.primary.clone(),
+        attributes,
+        imported.clone(),
+        local.clone().into(),
+      );
+      local
+    } else {
+      let local = local.cloned().unwrap_or_else(|| namespace.into());
+      scope.register_namespace_import(request.primary.clone(), attributes, local.clone());
+      local.to_string()
+    }
+  }
+
+  pub fn module_import_attributes(&self) -> Option<String> {
+    self.dependency_meta.attributes.as_ref().map(|attributes| {
+      format!(
+        " with {}",
+        simd_json::to_string(attributes).expect("json stringify failed")
+      )
+    })
+  }
+
+  pub fn register_module_side_effect(&self, scope: &mut ConcatenationScope) {
+    scope.register_import(
+      self.get_request().primary.clone(),
+      self.module_import_attributes(),
+      None,
+    );
+  }
+
+  pub fn render_module_namespace(
+    &self,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+    runtime_template: &mut ModuleCodeTemplate,
+  ) -> (Option<String>, String, ChunkInitFragments) {
+    get_source_for_module_external(
+      self.get_request(),
+      &self.module_import_identifier(compilation),
+      &self.dependency_meta,
+      &compilation.exports_info_artifact,
+      compilation
+        .exports_info_artifact
+        .get_exports_info_data(&self.identifier()),
+      runtime,
+      runtime_template,
+    )
   }
 
   pub fn resolve_external_type(&self) -> &str {
@@ -691,6 +758,7 @@ impl ExternalModule {
       map.insert(new_type.clone(), request);
     }
     self.external_type = new_type;
+    self.id = Self::create_identifier(&self.request, &self.external_type, &self.dependency_meta);
   }
 
   pub fn get_request(&self) -> &ExternalRequestValue {
@@ -741,8 +809,19 @@ impl ExternalModule {
         get_source_for_global_variable_external(request, &compilation.options.output.global_object)
       ),
       _ if let Some(require_kind) = commonjs_require_kind => {
-        let require_expression =
-          require_kind.render_external_request(request, compilation, &mut chunk_init_fragments);
+        // For a missing object-form request, only ESM node-commonjs uses the
+        // undefined value; other CommonJS types request the name "undefined".
+        let fallback = (require_kind != CommonJsExternalRequireKind::NodeCommonJs
+          || !compilation.options.output.module)
+          .then_some("undefined");
+        let require_expression = require_kind.render_expression(
+          request.map(ExternalRequestValue::primary).or(fallback),
+          request
+            .into_iter()
+            .flat_map(|request| request.iter().skip(1)),
+          compilation,
+          &mut chunk_init_fragments,
+        );
         format!(
           "{} = {require_expression};",
           get_namespace_object_export(concatenation_scope, supports_const, runtime_template)
@@ -822,26 +901,7 @@ impl ExternalModule {
         if compilation.options.output.module
           && let Some(request) = request
         {
-          let id: Cow<'_, str> = if to_identifier(&request.primary) != request.primary
-            || self.dependency_meta.attributes.is_some()
-          {
-            let mut hasher = RspackHasher::from(&compilation.options.output);
-            use rspack_hash::RspackHash as _;
-            request.primary.hash(&mut hasher);
-            if let Some(attributes) = &self.dependency_meta.attributes {
-              simd_json::to_string(attributes)
-                .expect("json stringify failed")
-                .hash(&mut hasher);
-            }
-            let hash_suffix = hasher.digest(&compilation.options.output.hash_digest);
-            Cow::Owned(format!(
-              "{}_{}",
-              to_identifier(&request.primary),
-              hash_suffix.rendered(8)
-            ))
-          } else {
-            to_identifier(&request.primary)
-          };
+          let id = self.module_import_identifier(compilation);
           if let Some(concatenation_scope) = concatenation_scope {
             let exports_info = compilation
               .exports_info_artifact
@@ -858,12 +918,7 @@ impl ExternalModule {
                       .ns_access()
                   })
             );
-            let attributes = self.dependency_meta.attributes.as_ref().map(|meta| {
-              format!(
-                " with {}",
-                simd_json::to_string(meta).expect("json stringify failed"),
-              )
-            });
+            let attributes = self.module_import_attributes();
 
             #[derive(Clone, Copy)]
             struct ExternalImportOptimize(pub bool);

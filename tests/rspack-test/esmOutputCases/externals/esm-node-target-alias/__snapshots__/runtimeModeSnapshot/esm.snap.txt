@@ -22,10 +22,6 @@ exports.g = nodeUrl.parse;
 
 },
 });
-// node:fs
-
-// node:url
-
 // ./index.js
 const cjs_consumer = rspackRequire("./cjs-consumer.cjs");
 var g = cjs_consumer.g;

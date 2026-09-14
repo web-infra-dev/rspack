@@ -48,7 +48,8 @@ async fn after_factorize(
           DependencyType::CjsRequire | DependencyType::CjsFullRequire
         ) || (matches!(dep.dependency_type(), DependencyType::CjsExportRequire)
           && data
-            .options
+            .build_context
+            .compiler_options
             .output
             .enabled_library_types
             .as_ref()

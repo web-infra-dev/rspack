@@ -5,18 +5,20 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   BuildModuleGraphArtifact, CodeGenerationDataItem, CommonJsExternalRequireKind, Dependency,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate, TemplateContext,
-  TemplateReplaceSource, UsedName, property_access,
+  TemplateReplaceSource,
 };
 use rspack_plugin_javascript::dependency::{
-  CommonJsExportRequireDependency, CommonJsFullRequireDependency, CommonJsRequireDependency,
-  RequireHeaderDependency,
+  CommonJsExportRequireDependency, CommonJsExportRequireDependencyTemplate,
+  CommonJsFullRequireDependency, CommonJsRequireDependency, RequireHeaderDependency,
 };
 use rspack_util::{
   fx_hash::{FxHashMap, FxHashSet},
   json_stringify_str,
 };
 
-pub type DirectCommonJsExternalDependencies = Arc<AtomicRefCell<Arc<FxHashSet<DependencyId>>>>;
+use super::ExternalBindingBailout;
+
+pub type DirectCommonJsExternalDependencies = Arc<AtomicRefCell<FxHashSet<DependencyId>>>;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -25,21 +27,13 @@ struct DirectExternalRequireHeaders(Vec<(DependencyRange, CommonJsExternalRequir
 #[cacheable_dyn]
 impl CodeGenerationDataItem for DirectExternalRequireHeaders {}
 
-fn is_relative_external_request(request: &str) -> bool {
+pub(super) fn is_relative_external_request(request: &str) -> bool {
   request == "."
     || request == ".."
     || request.starts_with("./")
     || request.starts_with("../")
     || request.starts_with(".\\")
     || request.starts_with("..\\")
-}
-
-fn can_render_direct_request(request: &str) -> bool {
-  // Both ambient `require` and `createRequire(import.meta.url)` resolve
-  // relative requests from the emitted asset containing the call. Keep those
-  // requests on the external-module path because direct rendering can move the
-  // call into an issuer emitted in another directory.
-  !is_relative_external_request(request)
 }
 
 pub fn cutout_commonjs_externals(
@@ -49,6 +43,9 @@ pub fn cutout_commonjs_externals(
   let mut direct_dependencies = FxHashSet::default();
 
   for (_, module) in module_graph.modules() {
+    if ExternalBindingBailout::is_present(module.as_ref()) {
+      continue;
+    }
     let require_header_ranges = module
       .get_presentational_dependencies()
       .into_iter()
@@ -63,8 +60,9 @@ pub fn cutout_commonjs_externals(
     let mut dependencies_by_range = FxHashMap::<DependencyRange, (DependencyId, usize)>::default();
     let mut self_rendering_require_dependencies = Vec::new();
 
-    for dependency_id in module.get_dependencies() {
-      let dependency = module_graph.dependency_by_id(dependency_id);
+    for dependency in module.get_dependencies() {
+      let dependency = dependency.as_ref();
+      let dependency_id = dependency.id();
       if dependency.as_any().is::<CommonJsFullRequireDependency>()
         || dependency.as_any().is::<CommonJsExportRequireDependency>()
       {
@@ -91,21 +89,13 @@ pub fn cutout_commonjs_externals(
     }
 
     let direct_require_candidates = dependencies_by_range
-      .into_values()
-      .filter_map(|(dependency_id, count)| {
-        if count != 1 {
-          return None;
-        }
-        let expression_range = module_graph
-          .dependency_by_id(&dependency_id)
-          .range()
-          .expect("grouped CommonJS require should have an expression range");
-        require_header_ranges
-          .iter()
-          .any(|header_range| {
+      .into_iter()
+      .filter_map(|(expression_range, (dependency_id, count))| {
+        (count == 1
+          && require_header_ranges.iter().any(|header_range| {
             expression_range.start <= header_range.start && header_range.end <= expression_range.end
-          })
-          .then_some(dependency_id)
+          }))
+        .then_some(dependency_id)
       })
       .chain(self_rendering_require_dependencies);
     for dependency_id in direct_require_candidates {
@@ -130,7 +120,8 @@ pub fn cutout_commonjs_externals(
       if CommonJsExternalRequireKind::from_external_type(external_module.resolve_external_type())
         .is_some()
         && !request.has_rest()
-        && can_render_direct_request(request.primary())
+        // Relative calls must stay in the external module's emitted directory.
+        && !is_relative_external_request(request.primary())
       {
         direct_dependencies.insert(dependency_id);
       }
@@ -150,10 +141,9 @@ pub fn cutout_commonjs_externals(
 
 fn get_direct_external_require(
   dependency_id: &DependencyId,
-  expression_range: DependencyRange,
   direct_dependencies: &DirectCommonJsExternalDependencies,
   context: &TemplateContext,
-) -> Option<(String, DependencyRange, CommonJsExternalRequireKind)> {
+) -> Option<(String, CommonJsExternalRequireKind)> {
   if !direct_dependencies.borrow().contains(dependency_id) {
     return None;
   }
@@ -166,108 +156,38 @@ fn get_direct_external_require(
 
   Some((
     external_module.get_request().primary().to_string(),
-    expression_range,
     CommonJsExternalRequireKind::from_external_type(external_module.resolve_external_type())?,
   ))
 }
 
-fn render_direct_require(
-  request: &str,
-  properties: &[rspack_util::atom::Atom],
-  kind: CommonJsExternalRequireKind,
-  context: &mut TemplateContext,
-) -> String {
-  let compilation = context.compilation;
-  kind.render_expression(
-    Some(request),
-    properties,
-    compilation,
-    context.chunk_init_fragments(),
-  )
-}
-
 #[derive(Debug)]
-pub struct DirectCommonJsRequireDependencyTemplate {
+pub struct DirectCommonJsDependencyTemplate {
   pub direct_dependencies: DirectCommonJsExternalDependencies,
   pub template: Option<Arc<dyn DependencyTemplate>>,
 }
 
-impl DependencyTemplate for DirectCommonJsRequireDependencyTemplate {
+impl DependencyTemplate for DirectCommonJsDependencyTemplate {
   fn render(
     &self,
     dependency: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     context: &mut TemplateContext,
   ) {
-    let dependency = dependency
+    let require = dependency
       .as_any()
-      .downcast_ref::<CommonJsRequireDependency>()
-      .expect(
-        "DirectCommonJsRequireDependencyTemplate should only be used for CommonJsRequireDependency",
-      );
-
-    let Some(expression_range) = dependency.range() else {
-      if let Some(template) = &self.template {
-        template.render(dependency, source, context);
-      }
-      return;
-    };
-    let Some((request, expression_range, kind)) = get_direct_external_require(
-      dependency.id(),
-      expression_range,
-      &self.direct_dependencies,
-      context,
-    ) else {
-      if let Some(template) = &self.template {
-        template.render(dependency, source, context);
-      }
-      return;
-    };
-
-    let request_range = dependency.request_range();
-    source.replace(
-      request_range.start,
-      request_range.end,
-      json_stringify_str(&request),
-      None,
-    );
-
-    if context.data.get::<DirectExternalRequireHeaders>().is_none() {
-      context
-        .data
-        .insert(DirectExternalRequireHeaders(Vec::new()));
-    }
-    context
-      .data
-      .get_mut::<DirectExternalRequireHeaders>()
-      .expect("direct external require headers should be initialized")
-      .0
-      .push((expression_range, kind));
-  }
-}
-
-#[derive(Debug)]
-pub struct DirectCommonJsExportRequireDependencyTemplate {
-  pub direct_dependencies: DirectCommonJsExternalDependencies,
-  pub template: Option<Arc<dyn DependencyTemplate>>,
-}
-
-impl DependencyTemplate for DirectCommonJsExportRequireDependencyTemplate {
-  fn render(
-    &self,
-    dependency: &dyn DependencyCodeGeneration,
-    source: &mut TemplateReplaceSource,
-    context: &mut TemplateContext,
-  ) {
-    let dependency = dependency
+      .downcast_ref::<CommonJsRequireDependency>();
+    let full_require = dependency
       .as_any()
-      .downcast_ref::<CommonJsExportRequireDependency>()
-      .expect(
-        "DirectCommonJsExportRequireDependencyTemplate should only be used for CommonJsExportRequireDependency",
-      );
-    let range = dependency.range();
-    let Some((request, _, kind)) =
-      get_direct_external_require(dependency.id(), range, &self.direct_dependencies, context)
+      .downcast_ref::<CommonJsFullRequireDependency>();
+    let export_require = dependency
+      .as_any()
+      .downcast_ref::<CommonJsExportRequireDependency>();
+    let id = require
+      .map(Dependency::id)
+      .or_else(|| full_require.map(Dependency::id))
+      .or_else(|| export_require.map(Dependency::id))
+      .expect("only CommonJS dependency templates are wrapped");
+    let Some((request, kind)) = get_direct_external_require(id, &self.direct_dependencies, context)
     else {
       if let Some(template) = &self.template {
         template.render(dependency, source, context);
@@ -275,86 +195,46 @@ impl DependencyTemplate for DirectCommonJsExportRequireDependencyTemplate {
       return;
     };
 
-    let module_graph = context.compilation.get_module_graph();
-    let module = module_graph
-      .module_by_identifier(&context.module.identifier())
-      .expect("CommonJS export require should have a module graph module");
-    let base = dependency.base();
-    let base = if base.is_exports() {
-      context
-        .runtime_template
-        .render_exports_argument(module.get_exports_argument())
-    } else if base.is_module_exports() {
-      format!(
-        "{}.exports",
+    if let Some(dep) = require {
+      let range = dep.request_range();
+      source.replace(range.start, range.end, json_stringify_str(&request), None);
+      let header = (
+        dep.range().expect("direct require has an expression range"),
+        kind,
+      );
+      if let Some(headers) = context.data.get_mut::<DirectExternalRequireHeaders>() {
+        headers.0.push(header);
+      } else {
         context
-          .runtime_template
-          .render_module_argument(module.get_module_argument())
-      )
-    } else if base.is_this() {
-      context.runtime_template.render_this_exports()
-    } else {
-      unreachable!("CommonJS export require should use an expression base")
-    };
-    let used = context
-      .compilation
-      .exports_info_artifact
-      .get_exports_info_data(&module.identifier())
-      .get_used_name(
-        &context.compilation.exports_info_artifact,
-        context.runtime,
-        dependency.names(),
+          .data
+          .insert(DirectExternalRequireHeaders(vec![header]));
+      }
+    } else if let Some(dep) = full_require {
+      let mut expression = kind.render_expression(
+        Some(&request),
+        dep.names(),
+        context.compilation,
+        context.chunk_init_fragments(),
       );
-    let require_expression =
-      render_direct_require(&request, dependency.get_ids(module_graph), kind, context);
-
-    let expression = match used {
-      Some(UsedName::Normal(used)) => {
-        format!("{base}{} = {require_expression}", property_access(used, 0))
+      if dep.asi_safe() {
+        expression = format!("({expression})");
       }
-      Some(UsedName::Inlined(_)) => {
-        format!("/* inlined reexport */ {require_expression}")
-      }
-      None => format!("/* unused reexport */ {require_expression}"),
-    };
-    source.replace(range.start, range.end, expression, None);
-  }
-}
-
-#[derive(Debug)]
-pub struct DirectCommonJsFullRequireDependencyTemplate {
-  pub direct_dependencies: DirectCommonJsExternalDependencies,
-  pub template: Option<Arc<dyn DependencyTemplate>>,
-}
-
-impl DependencyTemplate for DirectCommonJsFullRequireDependencyTemplate {
-  fn render(
-    &self,
-    dependency: &dyn DependencyCodeGeneration,
-    source: &mut TemplateReplaceSource,
-    context: &mut TemplateContext,
-  ) {
-    let dependency = dependency
-      .as_any()
-      .downcast_ref::<CommonJsFullRequireDependency>()
-      .expect(
-        "DirectCommonJsFullRequireDependencyTemplate should only be used for CommonJsFullRequireDependency",
+      let range = dep.range();
+      source.replace(range.start, range.end, expression, None);
+    } else if let Some(dep) = export_require {
+      let expression = kind.render_expression(
+        Some(&request),
+        dep.get_ids(context.compilation.get_module_graph()),
+        context.compilation,
+        context.chunk_init_fragments(),
       );
-    let range = dependency.range();
-    let Some((request, _, kind)) =
-      get_direct_external_require(dependency.id(), range, &self.direct_dependencies, context)
-    else {
-      if let Some(template) = &self.template {
-        template.render(dependency, source, context);
-      }
-      return;
-    };
-
-    let mut expression = render_direct_require(&request, dependency.names(), kind, context);
-    if dependency.asi_safe() {
-      expression = format!("({expression})");
+      CommonJsExportRequireDependencyTemplate.render_with_require(
+        dep,
+        source,
+        context,
+        Some(expression),
+      );
     }
-    source.replace(range.start, range.end, expression, None);
   }
 }
 
@@ -392,19 +272,11 @@ impl DependencyTemplate for DirectRequireHeaderDependencyTemplate {
             .map(|(_, kind)| *kind)
         });
 
-    match direct_require_kind {
-      Some(kind) => {
-        let compilation = context.compilation;
-        let require = kind
-          .render_callee(compilation, context.chunk_init_fragments())
-          .to_string();
-        source.replace(header_range.start, header_range.end, require, None);
-      }
-      None => {
-        if let Some(template) = &self.template {
-          template.render(dependency, source, context);
-        }
-      }
+    if let Some(kind) = direct_require_kind {
+      let require = kind.render_callee(context.compilation, context.chunk_init_fragments());
+      source.replace_static(header_range.start, header_range.end, require, None);
+    } else if let Some(template) = &self.template {
+      template.render(dependency, source, context);
     }
   }
 }

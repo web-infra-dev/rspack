@@ -2,12 +2,8 @@
 import * as __rspack_external_fs from "fs";
 import { readFile } from "fs";
 
-// fs?f137
-
 // ./lib.js
 
-
-// fs?303b
 
 // ./lib2.js
 

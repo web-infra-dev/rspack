@@ -1,38 +1,15 @@
-```mjs title=fs-fs.mjs
-import { rspackRequire, moduleFactories } from "./runtime.mjs";
-import * as __rspack_external_fs from "fs";
-moduleFactories.add({
-"fs?2159"
-/*!*********************!*\
-  !*** external "fs" ***!
-  \*********************/
-(module) {
-
-module.exports = __rspack_external_fs;
-
-
-},
-});
-// fs?82ef
-
-export { readFile as readFileHoisted, readFileSync as readFileSyncHoisted } from "fs";
-
-```
-
 ```mjs title=hoisted.mjs
-
 // ./src/hoisted.js
 
 
-export { readFileHoisted, readFileSyncHoisted } from "./fs-fs.mjs";
+export { readFile as readFileHoisted, readFileSync as readFileSyncHoisted } from "fs";
 
 ```
 
 ```mjs title=index.mjs
 import { rspackRequire } from "./runtime.mjs";
 import "./wrapped.mjs";
-import "./hoisted.mjs";
-import { readFileSyncHoisted as readFileSync, readFileHoisted as readFile } from "./fs-fs.mjs";
+import { readFileSyncHoisted as readFileSync, readFileHoisted as readFile } from "./hoisted.mjs";
 
 // ./src/index.js
 const wrapped_0 = rspackRequire("./src/wrapped.js");
@@ -125,15 +102,14 @@ var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, p
 
 ```mjs title=wrapped.mjs
 import { rspackRequire, moduleFactories, definePropertyGetters, esmModuleDecorator } from "./runtime.mjs";
-import "./fs-fs.mjs";
-
+import * as __rspack_external_fs from "fs";
 moduleFactories.add({
 "./src/wrapped.js"
 /*!************************!*\
   !*** ./src/wrapped.js ***!
   \************************/
 (module, exports) {
-/* import */ var fs__rspack_import_0 = rspackRequire(/*! fs */ "fs?2159");
+var fs__rspack_import_0 = __rspack_external_fs;
 /* module decorator */ module = esmModuleDecorator(module);
 
 

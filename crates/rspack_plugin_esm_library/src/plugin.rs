@@ -5,22 +5,20 @@ use std::{
 
 use atomic_refcell::AtomicRefCell;
 use regex::Regex;
-use rspack_collections::{
-  Identifiable, Identifier, IdentifierIndexMap, IdentifierMap, IdentifierSet,
-};
+use rspack_collections::{Identifiable, IdentifierIndexMap, IdentifierMap, IdentifierSet};
 use rspack_core::{
   ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact, ChunkUkey,
   Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAdditionalModuleRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements,
   CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
-  CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationOptimizeDependencies,
-  CompilationParams, CompilationProcessAssets, CompilationRuntimeRequirementInTree,
-  CompilerCompilation, ConcatenatedModuleInfo, ConcatenationScope, DependencyType,
-  ExportsInfoArtifact, ExternalModuleInfo, GetTargetResult, JavascriptParserUrl, Logger,
-  ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType,
-  NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
-  Plugin, REQUIRE_SCOPE_GLOBALS, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
-  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, get_target, is_esm_dep_like,
+  CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationParams,
+  CompilationProcessAssets, CompilationRuntimeRequirementInTree, CompilerCompilation,
+  ConcatenatedModuleInfo, ConcatenationScope, DependencyType, ExportsInfoArtifact,
+  ExternalModuleInfo, GetTargetResult, JavascriptParserUrl, Logger, ModuleFactoryCreateData,
+  ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, REQUIRE_SCOPE_GLOBALS,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact,
+  SideEffectsStateArtifact, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -30,7 +28,9 @@ use rspack_plugin_javascript::{
   JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
   dependency::{
     CommonJsExportRequireDependencyTemplate, CommonJsFullRequireDependencyTemplate,
-    CommonJsRequireDependencyTemplate, ImportDependencyTemplate, RequireHeaderDependencyTemplate,
+    CommonJsRequireDependencyTemplate, ESMExportImportedSpecifierDependencyTemplate,
+    ESMImportSideEffectDependencyTemplate, ESMImportSpecifierDependencyTemplate,
+    ImportDependencyTemplate, RequireHeaderDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
 };
@@ -46,12 +46,16 @@ use tokio::sync::RwLock;
 use crate::{
   chunk_link::ChunkLinkContext,
   dependency::{
+    ExternalBindingBailout,
     commonjs_external::{
-      DirectCommonJsExportRequireDependencyTemplate, DirectCommonJsExternalDependencies,
-      DirectCommonJsFullRequireDependencyTemplate, DirectCommonJsRequireDependencyTemplate,
+      DirectCommonJsDependencyTemplate, DirectCommonJsExternalDependencies,
       DirectRequireHeaderDependencyTemplate, cutout_commonjs_externals,
     },
     dyn_import::DynamicImportDependencyTemplate,
+    esm_external::{
+      DirectEsmExternalDependencies, DirectEsmExternalDependencyTemplate, cutout_esm_externals,
+      requires_issuer_identity,
+    },
   },
   esm_lib_parser_plugin::EsmLibParserPlugin,
   optimize_chunks::{
@@ -85,6 +89,7 @@ pub struct EsmLibraryPlugin {
   pub(crate) all_dyn_targets: AtomicRefCell<IdentifierSet>,
   pub(crate) namespace_targets: AtomicRefCell<IdentifierSet>,
   pub(crate) direct_commonjs_external_dependencies: DirectCommonJsExternalDependencies,
+  pub(crate) direct_esm_external_dependencies: DirectEsmExternalDependencies,
   /// module_id → namespace export name in the chunk, for modules whose exports
   /// were renamed in a multi-module chunk. Written during link, read during code generation.
   pub(crate) dyn_import_ns_map: Arc<AtomicRefCell<IdentifierMap<Atom>>>,
@@ -95,6 +100,7 @@ impl EsmLibraryPlugin {
     Self::new_inner(
       preserve_modules,
       split_chunks,
+      Default::default(),
       Default::default(),
       Default::default(),
       Default::default(),
@@ -282,6 +288,26 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
+  self.direct_esm_external_dependencies.borrow_mut().clear();
+  compilation.set_dependency_template(
+    ExternalBindingBailout::template_type(),
+    Arc::new(ExternalBindingBailout),
+  );
+  for template_type in [
+    ESMImportSideEffectDependencyTemplate::template_type(),
+    ESMImportSpecifierDependencyTemplate::template_type(),
+    ESMExportImportedSpecifierDependencyTemplate::template_type(),
+  ] {
+    if let Some(template) = compilation.get_dependency_template(template_type.clone()) {
+      compilation.set_dependency_template(
+        template_type,
+        Arc::new(DirectEsmExternalDependencyTemplate {
+          direct: self.direct_esm_external_dependencies.clone(),
+          template,
+        }),
+      );
+    }
+  }
   let hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   let mut hooks = hooks.write().await;
   hooks
@@ -295,33 +321,20 @@ async fn compilation(
       dyn_import_ns_map: self.dyn_import_ns_map.clone(),
     }),
   );
-  let commonjs_require_template =
-    compilation.get_dependency_template(CommonJsRequireDependencyTemplate::template_type());
-  compilation.set_dependency_template(
+  for template_type in [
     CommonJsRequireDependencyTemplate::template_type(),
-    Arc::new(DirectCommonJsRequireDependencyTemplate {
-      direct_dependencies: self.direct_commonjs_external_dependencies.clone(),
-      template: commonjs_require_template,
-    }),
-  );
-  let commonjs_export_require_template =
-    compilation.get_dependency_template(CommonJsExportRequireDependencyTemplate::template_type());
-  compilation.set_dependency_template(
     CommonJsExportRequireDependencyTemplate::template_type(),
-    Arc::new(DirectCommonJsExportRequireDependencyTemplate {
-      direct_dependencies: self.direct_commonjs_external_dependencies.clone(),
-      template: commonjs_export_require_template,
-    }),
-  );
-  let commonjs_full_require_template =
-    compilation.get_dependency_template(CommonJsFullRequireDependencyTemplate::template_type());
-  compilation.set_dependency_template(
     CommonJsFullRequireDependencyTemplate::template_type(),
-    Arc::new(DirectCommonJsFullRequireDependencyTemplate {
-      direct_dependencies: self.direct_commonjs_external_dependencies.clone(),
-      template: commonjs_full_require_template,
-    }),
-  );
+  ] {
+    let template = compilation.get_dependency_template(template_type.clone());
+    compilation.set_dependency_template(
+      template_type,
+      Arc::new(DirectCommonJsDependencyTemplate {
+        direct_dependencies: self.direct_commonjs_external_dependencies.clone(),
+        template,
+      }),
+    );
+  }
   let require_header_template =
     compilation.get_dependency_template(RequireHeaderDependencyTemplate::template_type());
   compilation.set_dependency_template(
@@ -723,121 +736,18 @@ async fn after_factorize(
   data: &mut ModuleFactoryCreateData,
   module: &mut BoxModule,
 ) -> Result<()> {
-  // Check if this is an external module using the existing downcast helper
-  if let Some(external_module) = module.as_external_module_mut()
-    && external_module.resolve_external_type() == "module"
-    && (external_module.get_external_type() != "modern-module"
-      || data
-        .dependencies
-        .first()
-        .is_some_and(|dependency| is_esm_dep_like(dependency.as_ref())))
+  if let Some(external) = module.as_external_module_mut()
+    && external.resolve_external_type() == "module"
+    && requires_issuer_identity(external)
+    && let Some(issuer) = &data.issuer_identifier
   {
-    // If there's an issuer, append it to the module id
-    if let Some(issuer_identifier) = &data.issuer_identifier {
-      let current_id = external_module.identifier();
-      let new_id = Identifier::from(format!("{current_id}|{issuer_identifier}"));
-      external_module.set_id(new_id);
-    }
+    external.set_id(format!("{}|{issuer}", external.identifier()).into());
   }
   Ok(())
 }
 
-#[plugin_hook(CompilationOptimizeChunkModules for EsmLibraryPlugin, stage = 100)]
-async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
-  // Group duplicate external modules by (base_id, chunk) so we only merge
-  // duplicates within the same chunk. Merging across chunks would cause a
-  // module to appear in multiple chunks, which violates get_module_chunk's
-  // single-chunk assumption.
-  let mut groups: FxHashMap<(String, ChunkUkey), Vec<ModuleIdentifier>> = FxHashMap::default();
-  let mg = compilation.get_module_graph();
-  let cg = &compilation.build_chunk_graph_artifact.chunk_graph;
-
-  let modules_map = self.concatenated_modules_map.read().await;
-
-  for (id, module) in mg.modules() {
-    if module.as_external_module().is_some() {
-      let id_str = id.as_str();
-      if modules_map[id].is_external()
-        && let Some(pipe_pos) = id_str.rfind('|')
-        && let Some(chunks) = cg.try_get_module_chunks(id)
-        && !chunks.is_empty()
-      {
-        let base = id_str[..pipe_pos].to_string();
-        for &chunk in chunks {
-          groups.entry((base.clone(), chunk)).or_default().push(*id);
-        }
-      }
-    }
-  }
-
-  // Phase 2: Merge duplicates within the same chunk
-  for mut module_ids in groups.into_values() {
-    module_ids.sort_unstable();
-    module_ids.dedup();
-    if module_ids.len() <= 1 {
-      continue;
-    }
-
-    let canonical_id = module_ids[0];
-
-    let mut used_exports = FxHashSet::default();
-    let mut used_in_unknown = false;
-
-    for dup_id in &module_ids[1..] {
-      let dup_id_used = compilation
-        .exports_info_artifact
-        .get_exports_info_data(dup_id);
-      if !matches!(
-        dup_id_used.other_exports_info().get_used(None),
-        rspack_core::UsageState::Unused
-      ) {
-        used_in_unknown = true;
-        break;
-      } else {
-        let used = dup_id_used.exports().iter().filter_map(|(name, export)| {
-          if matches!(export.get_used(None), rspack_core::UsageState::Used) {
-            Some(name.clone())
-          } else {
-            None
-          }
-        });
-
-        used_exports.extend(used);
-      }
-    }
-
-    if used_in_unknown {
-      // used in unknown way, we should make canonical_id the same used in unknown way
-      let exports_info = compilation
-        .exports_info_artifact
-        .get_exports_info_data_mut(&canonical_id);
-      exports_info.set_used_in_unknown_way(None);
-    } else {
-      for name in used_exports {
-        let exports_info = compilation
-          .exports_info_artifact
-          .get_exports_info_data_mut(&canonical_id);
-
-        let info = exports_info.ensure_export_info(&name);
-        let info = info.as_data_mut(&mut compilation.exports_info_artifact);
-        info.set_used(rspack_core::UsageState::Used, None);
-      }
-    }
-
-    for &dup_id in &module_ids[1..] {
-      let cg = &mut compilation.build_chunk_graph_artifact.chunk_graph;
-      cg.replace_module(&dup_id, &canonical_id);
-
-      // 1. Move incoming connections from duplicate to canonical
-      let mg = compilation.get_module_graph_mut();
-      mg.move_module_connections(&dup_id, &canonical_id, |_, _| true);
-    }
-  }
-
-  Ok(None)
-}
-
-#[plugin_hook(CompilationOptimizeDependencies for EsmLibraryPlugin)]
+// Cut out placement edges only after dependency optimizers have settled.
+#[plugin_hook(CompilationOptimizeDependencies for EsmLibraryPlugin, stage = i32::MAX)]
 async fn optimize_dependencies(
   &self,
   compilation: &Compilation,
@@ -847,7 +757,13 @@ async fn optimize_dependencies(
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   let direct_dependencies = cutout_commonjs_externals(build_module_graph_artifact);
-  *self.direct_commonjs_external_dependencies.borrow_mut() = Arc::new(direct_dependencies);
+  *self.direct_commonjs_external_dependencies.borrow_mut() = direct_dependencies;
+  cutout_esm_externals(
+    compilation,
+    build_module_graph_artifact,
+    exports_info_artifact,
+    &self.direct_esm_external_dependencies,
+  );
   cutout_dyn_import_externals(
     false,
     compilation.options.output.module,
@@ -928,11 +844,6 @@ impl Plugin for EsmLibraryPlugin {
       .compilation_hooks
       .optimize_chunks
       .tap(optimize_runtime_chunk_hook::new(self));
-
-    ctx
-      .compilation_hooks
-      .optimize_chunk_modules
-      .tap(optimize_chunk_modules::new(self));
 
     ctx.normal_module_factory_hooks.parser.tap(parse::new(self));
     ctx

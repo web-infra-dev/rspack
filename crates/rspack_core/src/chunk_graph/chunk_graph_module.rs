@@ -357,8 +357,17 @@ impl ChunkGraph {
           side_effects_state_artifact,
           &compilation.exports_info_artifact,
         );
-        if active_state.is_false() {
+        let is_external = mg
+          .module_by_identifier(module_identifier)
+          .is_some_and(|module| module.as_external_module().is_some());
+        if active_state.is_false() && !is_external {
           return None;
+        }
+        // Direct external templates still read the request/type and export
+        // names after the placement connection is cut out. Such modules may
+        // have no chunk module id, so also hash their semantic identity.
+        if is_external {
+          module_identifier.hash(&mut hasher);
         }
         visited_modules.insert(*module_identifier);
         for_each_runtime(
