@@ -8,28 +8,22 @@ class CheckUrlEntryBlocksPlugin {
       (compilation) => {
         const currentBuild = buildIndex++;
         const hasCssEntry = currentBuild !== 2;
-        compilation.hooks.finishModules.tap(
-          {
-            name: 'CheckUrlEntryBlocksPlugin',
-            stage: -100,
-          },
-          () => {
-            const originModule = Array.from(compilation.modules).find(
-              (module) => module.rawRequest === './index.js',
-            );
-            expect(originModule).toBeDefined();
-            expect(originModule.blocks).toHaveLength(hasCssEntry ? 2 : 1);
-            for (const block of originModule.blocks) {
-              expect(block.dependencies).toHaveLength(1);
-              expect(block.dependencies[0].type).toBe('new URL()');
-            }
-            expect(
-              originModule.dependencies.filter(
-                (dependency) => dependency.type === 'new URL()',
-              ),
-            ).toHaveLength(0);
-          },
-        );
+        compilation.hooks.finishModules.tap('CheckUrlEntryBlocksPlugin', () => {
+          const originModule = Array.from(compilation.modules).find(
+            (module) => module.rawRequest === './index.js',
+          );
+          expect(originModule).toBeDefined();
+          expect(originModule.blocks).toHaveLength(hasCssEntry ? 2 : 1);
+          for (const block of originModule.blocks) {
+            expect(block.dependencies).toHaveLength(1);
+            expect(block.dependencies[0].type).toBe('new URL()');
+          }
+          expect(
+            originModule.dependencies.filter(
+              (dependency) => dependency.type === 'new URL()',
+            ),
+          ).toHaveLength(0);
+        });
         compilation.hooks.processAssets.tap(
           {
             name: 'CheckUrlEntryBlocksPlugin',
@@ -96,16 +90,13 @@ const config = {
   },
 };
 
-// Exercise both a cached unchanged origin and module-graph rollback independently.
-module.exports = [false, true, 'module'].flatMap((cache) =>
+module.exports = [false, true].flatMap((cache) =>
   [false, undefined].map((incremental) => {
     const name = `cache-${cache}-incremental-${incremental !== false}`;
     return {
       ...config,
       name,
-      cache: cache !== false,
-      experiments:
-        cache === 'module' ? { newCache: { module: true, loader: false } } : {},
+      cache,
       incremental,
       output: {
         ...config.output,

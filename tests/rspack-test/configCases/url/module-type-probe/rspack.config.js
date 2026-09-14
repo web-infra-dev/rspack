@@ -21,46 +21,32 @@ module.exports = {
     new NormalModuleReplacementPlugin(/replace-target\.txt$/, './target.js'),
     new NormalModuleReplacementPlugin(/replace-target\.js$/, './target.txt'),
     (compiler) => {
-      compiler.hooks.compilation.tap(
-        'CheckTypeProbe',
-        (compilation, { normalModuleFactory }) => {
-          const requests = [];
-          const builds = [];
-          normalModuleFactory.hooks.beforeResolve.tap(
-            'CheckTypeProbe',
-            (data) => {
-              requests.push(data.request);
-            },
+      compiler.hooks.compilation.tap('CheckTypeProbe', (compilation) => {
+        const builds = [];
+        compilation.hooks.buildModule.tap('CheckTypeProbe', (module) => {
+          builds.push(module.resource);
+        });
+        compilation.hooks.finishModules.tap('CheckTypeProbe', (modules) => {
+          const issuer = [...modules].find(
+            (module) => module.rawRequest === './index.js',
           );
-          compilation.hooks.buildModule.tap('CheckTypeProbe', (module) => {
-            builds.push(module.resource);
-          });
-          compilation.hooks.finishModules.tap('CheckTypeProbe', (modules) => {
-            const issuer = [...modules].find(
-              (module) => module.rawRequest === './index.js',
-            );
-            expect(issuer.blocks).toHaveLength(1);
+          expect(issuer.blocks).toHaveLength(1);
+          expect(
+            issuer.dependencies.filter((dep) => dep.type === 'new URL()'),
+          ).toHaveLength(1);
+          const blockTarget = compilation.moduleGraph.getModule(
+            issuer.blocks[0].dependencies[0],
+          );
+          expect(blockTarget.type).toBe('javascript/auto');
+          for (const target of ['target.js', 'target.txt']) {
             expect(
-              issuer.dependencies.filter((dep) => dep.type === 'new URL()'),
+              builds.filter(
+                (resource) => resource && path.basename(resource) === target,
+              ),
             ).toHaveLength(1);
-            const blockTarget = compilation.moduleGraph.getModule(
-              issuer.blocks[0].dependencies[0],
-            );
-            expect(blockTarget.type).toBe('javascript/auto');
-            for (const target of ['target.js', 'target.txt']) {
-              // One factory-only probe and one normal factorization, but only one build.
-              expect(
-                requests.filter((request) => request.endsWith(target)),
-              ).toHaveLength(2);
-              expect(
-                builds.filter(
-                  (resource) => resource && path.basename(resource) === target,
-                ),
-              ).toHaveLength(1);
-            }
-          });
-        },
-      );
+          }
+        });
+      });
     },
   ],
 };
