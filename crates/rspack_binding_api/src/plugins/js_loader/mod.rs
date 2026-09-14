@@ -1,4 +1,3 @@
-mod cache;
 mod context;
 mod resolver;
 mod scheduler;
@@ -8,7 +7,6 @@ use std::{
   sync::{Arc, Mutex},
 };
 
-pub use cache::{JsLoaderCache, JsLoaderCacheEntry};
 pub use context::{JsLoaderContext, JsLoaderDependencies, JsLoaderItem};
 use napi::{
   bindgen_prelude::*,

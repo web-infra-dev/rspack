@@ -13,7 +13,7 @@ export default defineConfig([
             {
               loader: './simple-async-loader.mjs',
               parallel: true,
-              options: {},
+              options: { uncloneable: () => {} },
             },
           ],
         },
