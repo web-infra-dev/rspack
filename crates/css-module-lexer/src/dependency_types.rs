@@ -185,13 +185,13 @@ pub enum Dependency<'s> {
     request: &'s str,
     range: Range,
     kind: UrlRangeKind,
-    magic_comments: Option<&'s str>,
+    magic_comments: Option<Range>,
   },
   Import {
     request: &'s str,
     range: Range,
     attributes: DependencyIndex<ImportAttributes<'s>>,
-    magic_comments: Option<&'s str>,
+    magic_comments: Option<Range>,
   },
   ICSSImportUrl {
     name: &'s str,
@@ -314,6 +314,7 @@ pub enum Dependency<'s> {
 pub struct DependencyContext<'s> {
   dependencies: Vec<Dependency<'s>>,
   dashed_ident_occurrences: Vec<Range>,
+  comments: Vec<Range>,
   import_attributes: Vec<ImportAttributes<'s>>,
   composes_local_classes: Vec<&'s str>,
   composes_names: Vec<&'s str>,
@@ -367,6 +368,19 @@ impl<'s> DependencyContext<'s> {
     &self.dashed_ident_occurrences
   }
 
+  /// Complete comment token ranges contained in a dependency's leading trivia.
+  pub fn comments_in_range(&self, range: Range) -> &[Range] {
+    let start = self
+      .comments
+      .partition_point(|comment| comment.start < range.start);
+    let end = start + self.comments[start..].partition_point(|comment| comment.end <= range.end);
+    &self.comments[start..end]
+  }
+
+  pub(crate) fn set_comments(&mut self, comments: Vec<Range>) {
+    self.comments = comments;
+  }
+
   pub(crate) fn set_dashed_ident_occurrences(&mut self, occurrences: Vec<Range>) {
     self.dashed_ident_occurrences = occurrences;
   }
@@ -405,7 +419,7 @@ impl<'s> DependencyContext<'s> {
     layer: Option<&'s str>,
     supports: Option<&'s str>,
     media: Option<&'s str>,
-    magic_comments: Option<&'s str>,
+    magic_comments: Option<Range>,
   ) {
     let attributes = DependencyIndex::from_index(self.import_attributes.len());
     self

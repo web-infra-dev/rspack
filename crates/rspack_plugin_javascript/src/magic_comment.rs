@@ -369,11 +369,20 @@ fn raw_value_with_offset<'a>(
   comment_text.get(start..end).map(str::trim)
 }
 
+#[cfg(test)]
 fn parse_magic_comment_object<'a>(
   allocator: &'a Allocator,
   comment_text: &str,
 ) -> Option<(Expr<'a>, usize)> {
-  let magic_comment_start = find_magic_comment_start(comment_text)?;
+  let start = find_magic_comment_start(comment_text)?;
+  parse_magic_comment_object_at(allocator, comment_text, start).map(|expr| (expr, start))
+}
+
+fn parse_magic_comment_object_at<'a>(
+  allocator: &'a Allocator,
+  comment_text: &str,
+  magic_comment_start: usize,
+) -> Option<Expr<'a>> {
   let comment_text = comment_text.get(magic_comment_start..)?;
   let source = format!("({{{comment_text}}})");
   let source = allocator.alloc_str(&source);
@@ -386,7 +395,7 @@ fn parse_magic_comment_object<'a>(
   )
   .ok()?;
   remove_paren(&mut expr, allocator, None);
-  Some((expr, magic_comment_start))
+  Some(expr)
 }
 
 static WEBPACK_COMMENT_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
@@ -582,12 +591,14 @@ fn analyze_comments(
     .map(|comment| RawMagicComment {
       text: &comment.text,
       span: comment.span.into(),
-    })
-    .collect::<Vec<_>>();
+    });
+  let mut parsed_comments = FxHashSet::default();
+  let comments =
+    magic_comment_candidates(comments).filter(|(comment, _)| parsed_comments.insert(comment.span));
   analyze_raw_comments(
     allocator,
     source,
-    &comments,
+    comments,
     error_span.into(),
     warning_diagnostics,
     result,
@@ -596,24 +607,29 @@ fn analyze_comments(
   );
 }
 
+// Detect candidates once, before allocating parsing or deduplication state.
+fn magic_comment_candidates<'c>(
+  comments: impl DoubleEndedIterator<Item = RawMagicComment<'c>>,
+) -> impl Iterator<Item = (RawMagicComment<'c>, usize)> {
+  comments
+    .rev()
+    .filter_map(|comment| find_magic_comment_start(comment.text).map(|start| (comment, start)))
+}
+
 #[allow(clippy::too_many_arguments)]
-fn analyze_raw_comments(
+fn analyze_raw_comments<'c>(
   allocator: &Allocator,
   source: &str,
-  comments: &[RawMagicComment<'_>],
+  comments: impl Iterator<Item = (RawMagicComment<'c>, usize)>,
   error_span: DependencyRange,
   warning_diagnostics: &mut Vec<Diagnostic>,
   result: &mut RspackCommentMap,
   warn_on_same_prefix: bool,
   warn_on_parse_error: bool,
 ) {
-  let mut parsed_comment = FxHashSet::<DependencyRange>::default();
-  for comment in comments.iter().rev() {
-    if !parsed_comment.insert(comment.span) {
-      continue;
-    }
-    let Some((expr, comment_offset)) = parse_magic_comment_object(allocator, comment.text) else {
-      if warn_on_parse_error && find_magic_comment_start(comment.text).is_some() {
+  for (comment, comment_offset) in comments {
+    let Some(expr) = parse_magic_comment_object_at(allocator, comment.text, comment_offset) else {
+      if warn_on_parse_error {
         let mut error: Error = create_traceable_error(
           "Magic comments parse failed".into(),
           format!(
@@ -784,18 +800,24 @@ fn analyze_raw_comments(
   }
 }
 
-pub fn try_extract_magic_comment_from_comments(
+/// Analyze unique comments in source order, using the same parser as JavaScript.
+/// The caller supplies lexer token ranges, so no additional deduplication is needed.
+pub fn try_extract_magic_comment_from_comments<'c>(
   source: &str,
-  comments: &[RawMagicComment<'_>],
+  comments: impl DoubleEndedIterator<Item = RawMagicComment<'c>>,
   error_span: DependencyRange,
 ) -> (RspackCommentMap, Vec<Diagnostic>) {
-  let allocator = Allocator::new();
   let mut result = RspackCommentMap::new();
   let mut warning_diagnostics = Vec::new();
+  let mut comments = magic_comment_candidates(comments);
+  let Some(first) = comments.next() else {
+    return (result, warning_diagnostics);
+  };
+  let allocator = Allocator::new();
   analyze_raw_comments(
     &allocator,
     source,
-    comments,
+    std::iter::once(first).chain(comments),
     error_span,
     &mut warning_diagnostics,
     &mut result,

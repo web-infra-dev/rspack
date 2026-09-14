@@ -7,8 +7,7 @@ use smallvec::SmallVec;
 use crate::{
   Range,
   css_syntax::{
-    MAX_CSS_KEYWORD_LEN, decode_css_keyword, is_css_modules_pure_magic_comment,
-    lowercase_ascii_keyword, strip_vendor_prefix,
+    MAX_CSS_KEYWORD_LEN, decode_css_keyword, lowercase_ascii_keyword, strip_vendor_prefix,
   },
   dependencies::{PropertyKind, special_value_is_candidate},
 };
@@ -232,6 +231,9 @@ pub struct TokenWithTrivia {
 
 pub trait LexerVisitor {
   fn visit_ident(&mut self, name: &str, range: Range);
+
+  /// Record a complete comment token, including comments skipped by fast paths.
+  fn visit_comment(&mut self, _range: Range) {}
 }
 
 impl LexerVisitor for () {
@@ -292,20 +294,18 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
   /// Skip value text that cannot produce a dependency or change the block
   /// structure. Delimiters of ordinary functions are tracked without
   /// manufacturing tokens, and the scanner stops before dependency-bearing
-  /// functions, ICSS symbols, selector-independent magic comments, or a
-  /// declaration boundary.
-  fn fast_forward_generic_value<F, C>(
+  /// functions, ICSS symbols, comments, or a declaration boundary. Ordinary
+  /// values are specialized separately to avoid property-specific checks.
+  fn fast_forward_generic_value<F, const SPECIAL_VALUE: bool>(
     &mut self,
     state: &mut GenericValueScanState,
     options: GenericValueScanOptions,
     stop_at_top_level_left_curly: bool,
     mut is_candidate: F,
-    mut is_comment_candidate: C,
     icss_symbols: Option<&FxHashSet<&str>>,
   ) -> Option<PrescannedIdent>
   where
     F: FnMut(&str) -> bool,
-    C: FnMut(&str) -> bool,
   {
     let mut position = self.scan_pos as usize;
     let scan_start = position;
@@ -317,23 +317,10 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
         continue;
       }
 
+      // Let the token stream consume comment trivia once. This keeps comment
+      // bookkeeping out of the common value-scanning loop.
       if byte == C_SOLIDUS && self.value.get(position + 1) == Some(&C_ASTERISK) {
-        let (kind, end, _, _, _) = self.scan_comment(position);
-        if options.keep_comments && kind == TokenKind::Comment {
-          let content = &self.value[position + 2..end.saturating_sub(2)];
-          let mut first = 0usize;
-          while content.get(first).is_some_and(|byte| is_white_space(*byte)) {
-            first += 1;
-          }
-          if content.get(first) == Some(&b'c') {
-            let content = unsafe { str::from_utf8_unchecked(content) };
-            if is_comment_candidate(content) {
-              break;
-            }
-          }
-        }
-        position = end;
-        continue;
+        break;
       }
 
       if matches!(byte, C_QUOTATION_MARK | C_APOSTROPHE) {
@@ -358,9 +345,10 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
         let is_function = self.value.get(end) == Some(&C_LEFT_PARENTHESIS);
         let is_candidate = !flags.has_escape()
           && (is_candidate(name)
-            || options
-              .property
-              .is_some_and(|property| special_value_is_candidate(property, name, icss_symbols)));
+            || SPECIAL_VALUE
+              && options
+                .property
+                .is_some_and(|property| special_value_is_candidate(property, name, icss_symbols)));
         if flags.has_escape()
           || is_candidate
           || (is_function && is_dependency_value_function(name))
@@ -503,7 +491,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
       }
 
       if byte == C_SOLIDUS && self.value.get(position + 1) == Some(&C_ASTERISK) {
-        let (kind, end, _, _, _) = self.scan_comment(position);
+        let (kind, end, _, _, _) = self.scan_comment_with_visitor(position);
         if keep_comments && kind == TokenKind::Comment {
           let content = &self.value[position + 2..end.saturating_sub(2)];
           // SAFETY: comments are slices of the original UTF-8 input.
@@ -927,7 +915,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
       }
       C_SOLIDUS => {
         if self.value.get(start + 1) == Some(&C_ASTERISK) {
-          self.scan_comment(start)
+          self.scan_comment_with_visitor(start)
         } else {
           (
             TokenKind::Delim,
@@ -1036,6 +1024,19 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
       end += 1;
     }
     (TokenKind::WhiteSpace, end, start, end, TokenFlags::ascii())
+  }
+
+  fn scan_comment_with_visitor(
+    &mut self,
+    start: usize,
+  ) -> (TokenKind, usize, usize, usize, TokenFlags) {
+    let token = self.scan_comment(start);
+    if token.0 == TokenKind::Comment {
+      self
+        .visitor
+        .visit_comment(Range::new(start as Pos, token.1 as Pos));
+    }
+    token
   }
 
   fn scan_comment(&self, start: usize) -> (TokenKind, usize, usize, usize, TokenFlags) {
@@ -1535,6 +1536,7 @@ pub(crate) struct TokenStream<'a, 's, V: LexerVisitor = ()> {
   generic_value_state: GenericValueScanState,
   at_rule_state: GenericValueScanState,
   special_value_state: GenericValueScanState,
+  pending_comment_start: Option<Pos>,
 }
 
 #[derive(Debug, Default)]
@@ -1546,7 +1548,6 @@ pub(crate) struct GenericValueScanState {
 
 #[derive(Debug, Clone, Copy)]
 struct GenericValueScanOptions {
-  keep_comments: bool,
   preserve_strings: bool,
   preserve_delimiters: bool,
   property: Option<PropertyKind>,
@@ -1591,6 +1592,7 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       generic_value_state: GenericValueScanState::default(),
       at_rule_state: GenericValueScanState::default(),
       special_value_state: GenericValueScanState::default(),
+      pending_comment_start: None,
     }
   }
 
@@ -1730,31 +1732,26 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
   /// The position of the next yet-untokenized source byte. The buffer may
   /// still hold tokens; callers must drain `next` before fast-forwarding.
   #[inline]
-  pub(crate) fn fast_forward_generic_value_if_buffer_empty<F, C>(
+  pub(crate) fn fast_forward_generic_value_if_buffer_empty<F>(
     &mut self,
-    keep_comments: bool,
     preserve_strings: bool,
     preserve_delimiters: bool,
     mut is_candidate: F,
-    mut is_comment_candidate: C,
   ) where
     F: FnMut(&str) -> bool,
-    C: FnMut(&str) -> bool,
   {
     if !self.buffered.is_empty() {
       return;
     }
-    let candidate = self.lexer.fast_forward_generic_value(
+    let candidate = self.lexer.fast_forward_generic_value::<_, false>(
       &mut self.generic_value_state,
       GenericValueScanOptions {
-        keep_comments,
         preserve_strings,
         preserve_delimiters,
         property: None,
       },
       false,
       &mut is_candidate,
-      &mut is_comment_candidate,
       None,
     );
     self.finish_value_fast_forward(candidate);
@@ -1769,16 +1766,14 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
     if !self.buffered.is_empty() {
       return;
     }
-    let candidate = self.lexer.fast_forward_generic_value(
+    let candidate = self.lexer.fast_forward_generic_value::<_, false>(
       &mut self.generic_value_state,
       GenericValueScanOptions {
-        keep_comments: false,
         preserve_strings,
         preserve_delimiters,
         property: None,
       },
       false,
-      never_fast_forward_candidate,
       never_fast_forward_candidate,
       None,
     );
@@ -1786,31 +1781,26 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
   }
 
   #[inline]
-  pub(crate) fn fast_forward_at_rule_if_buffer_empty<F, C>(
+  pub(crate) fn fast_forward_at_rule_if_buffer_empty<F>(
     &mut self,
-    keep_comments: bool,
     preserve_strings: bool,
     preserve_delimiters: bool,
     mut is_candidate: F,
-    mut is_comment_candidate: C,
   ) where
     F: FnMut(&str) -> bool,
-    C: FnMut(&str) -> bool,
   {
     if !self.buffered.is_empty() {
       return;
     }
-    let candidate = self.lexer.fast_forward_generic_value(
+    let candidate = self.lexer.fast_forward_generic_value::<_, false>(
       &mut self.at_rule_state,
       GenericValueScanOptions {
-        keep_comments,
         preserve_strings,
         preserve_delimiters,
         property: None,
       },
       true,
       &mut is_candidate,
-      &mut is_comment_candidate,
       None,
     );
     self.finish_value_fast_forward(candidate);
@@ -1824,7 +1814,6 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
   #[inline]
   pub(crate) fn fast_forward_special_value_if_buffer_empty(
     &mut self,
-    keep_comments: bool,
     preserve_strings: bool,
     preserve_delimiters: bool,
     property: PropertyKind,
@@ -1833,17 +1822,15 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
     if !self.buffered.is_empty() {
       return;
     }
-    let candidate = self.lexer.fast_forward_generic_value(
+    let candidate = self.lexer.fast_forward_generic_value::<_, true>(
       &mut self.special_value_state,
       GenericValueScanOptions {
-        keep_comments,
         preserve_strings,
         preserve_delimiters,
         property: Some(property),
       },
       false,
       never_fast_forward_candidate,
-      is_css_modules_pure_magic_comment,
       icss_symbols,
     );
     self.finish_value_fast_forward(candidate);
@@ -1999,7 +1986,11 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
   fn read_significant(&mut self, keep_comments: bool) -> TokenWithTrivia {
     let start = self.lexer.scan_pos();
     let mut end = start;
-    let mut first_comment_start = None;
+    let mut first_comment_start = if keep_comments {
+      self.pending_comment_start.take()
+    } else {
+      None
+    };
     let mut has_white_space = false;
     loop {
       let token = self.lexer.next_token();
@@ -2014,8 +2005,11 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
         end = token.range.end;
         continue;
       }
+      if keep_comments && token.kind == TokenKind::Comment {
+        self.pending_comment_start = first_comment_start.or(Some(token.range.start));
+      }
       let leading = Trivia {
-        range: Range::new(start, end),
+        range: Range::new(first_comment_start.unwrap_or(start), end),
         end,
         first_comment_start,
         has_white_space,

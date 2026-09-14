@@ -17,14 +17,15 @@ use crate::{
   lexer::{LexerVisitor, Token, TokenFlags, TokenKind, TokenStream},
 };
 
-/// Collects dashed identifiers while the dependency parser is in local mode.
+/// Collects comment token ranges and, in local mode, dashed identifiers.
 #[derive(Debug, Default)]
-pub struct DashedIdentCollector {
+pub struct DependencyMetadataCollector {
   occurrences: Vec<Range>,
+  comments: Vec<Range>,
   enabled: bool,
 }
 
-impl DashedIdentCollector {
+impl DependencyMetadataCollector {
   #[inline(always)]
   fn set_enabled(&mut self, enabled: bool) {
     self.enabled = enabled;
@@ -45,7 +46,18 @@ impl DashedIdentCollector {
   }
 }
 
-impl LexerVisitor for DashedIdentCollector {
+impl LexerVisitor for DependencyMetadataCollector {
+  fn visit_comment(&mut self, range: Range) {
+    // Lookahead and selector fast paths may encounter the same token again.
+    if self
+      .comments
+      .last()
+      .is_none_or(|last| last.end <= range.start)
+    {
+      self.comments.push(range);
+    }
+  }
+
   #[inline(always)]
   fn visit_ident(&mut self, name: &str, range: Range) {
     if self.enabled
@@ -58,8 +70,8 @@ impl LexerVisitor for DashedIdentCollector {
   }
 }
 
-type DependencyLexer<'s> = Lexer<'s, DashedIdentCollector>;
-type DependencyTokenStream<'a, 's> = TokenStream<'a, 's, DashedIdentCollector>;
+type DependencyLexer<'s> = Lexer<'s, DependencyMetadataCollector>;
+type DependencyTokenStream<'a, 's> = TokenStream<'a, 's, DependencyMetadataCollector>;
 
 #[derive(Debug)]
 enum Scope<'s> {
@@ -122,7 +134,7 @@ impl ScanContext {
 #[derive(Debug)]
 struct ImportData<'s> {
   start: Pos,
-  magic_comments: Option<&'s str>,
+  magic_comments: Option<Range>,
   prelude: ImportPrelude<'s>,
   url: Option<&'s str>,
   url_flags: TokenFlags,
@@ -330,7 +342,6 @@ impl BalancedStack {
 struct BalancedItem {
   kind: BalancedItemKind,
   range: Range,
-  magic_comments: Option<Range>,
 }
 
 impl BalancedItem {
@@ -346,7 +357,6 @@ impl BalancedItem {
     Self {
       kind,
       range: Range::new(start, end),
-      magic_comments: None,
     }
   }
 
@@ -354,7 +364,6 @@ impl BalancedItem {
     Self {
       kind: BalancedItemKind::new(name),
       range: Range::new(start, end),
-      magic_comments: None,
     }
   }
 
@@ -362,7 +371,6 @@ impl BalancedItem {
     Self {
       kind: BalancedItemKind::Other,
       range: Range::new(start, end),
-      magic_comments: None,
     }
   }
 
@@ -370,7 +378,6 @@ impl BalancedItem {
     Self {
       kind: BalancedItemKind::Curly,
       range: Range::new(start, end),
-      magic_comments: None,
     }
   }
 }
@@ -422,29 +429,6 @@ impl BalancedItemKind {
   pub fn is_mode_class(&self) -> bool {
     matches!(self, Self::LocalClass | Self::GlobalClass)
   }
-}
-
-fn preceding_comment_range(input: &str) -> Option<Range> {
-  let bytes = input.as_bytes();
-  let mut cursor = bytes.len();
-  let end = cursor as Pos;
-  let mut start = None;
-
-  loop {
-    while cursor > 0 && is_css_space_byte(bytes[cursor - 1]) {
-      cursor -= 1;
-    }
-    if cursor < 2 || &bytes[cursor - 2..cursor] != b"*/" {
-      break;
-    }
-    let Some(comment_start) = input[..cursor - 2].rfind("/*") else {
-      break;
-    };
-    start = Some(comment_start as Pos);
-    cursor = comment_start;
-  }
-
-  start.map(|start| Range::new(start, end))
 }
 
 fn trivia_only(input: &str) -> bool {
@@ -1367,6 +1351,9 @@ pub struct LexDependencies<'s, W> {
   block_nesting_level: u32,
   allow_import_at_rule: bool,
   balanced: BalancedStack,
+  // Leading trivia for commented dependency tokens, in source order.
+  // Keep this rare state out of the common balanced stack.
+  leading_comments: Vec<(Pos, Range)>,
   is_next_rule_prelude: bool,
   scan_context: ScanContext,
   selector_square_depth: u32,
@@ -1407,6 +1394,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       block_nesting_level: 0,
       allow_import_at_rule: true,
       balanced: Default::default(),
+      leading_comments: Vec::new(),
       is_next_rule_prelude: true,
       scan_context: ScanContext::TopLevel,
       selector_square_depth: 0,
@@ -1478,6 +1466,9 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     self
       .dependency_context
       .set_dashed_ident_occurrences(source.visitor_mut().take());
+    self
+      .dependency_context
+      .set_comments(std::mem::take(&mut source.visitor_mut().comments));
   }
 
   #[inline]
@@ -1554,6 +1545,17 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         }
       }
 
+      if let Some(comment_start) = item.leading.first_comment_start
+        && matches!(
+          token.kind,
+          TokenKind::Url | TokenKind::Function | TokenKind::QuotedString | TokenKind::BadString
+        )
+      {
+        self.leading_comments.push((
+          token.range.start,
+          Range::new(comment_start, token.range.start),
+        ));
+      }
       let mut result = Some(());
       match token.kind {
         TokenKind::Comment | TokenKind::BadComment => {
@@ -1711,19 +1713,19 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       }
       self.update_dashed_ident_collection(stream);
       match self.scan_context {
-        ScanContext::Selector if self.selector_fast_forward_enabled => {
+        ScanContext::Selector if self.selector_fast_forward_enabled && !is_trivia => {
           self.fast_forward_selector(stream, keep_comments, has_mode);
         }
         ScanContext::AtRule
-          if !matches!(self.scope, Scope::InAtImport(_) | Scope::AtImportInvalid) =>
+          if !is_trivia && !matches!(self.scope, Scope::InAtImport(_) | Scope::AtImportInvalid) =>
         {
-          self.fast_forward_at_rule(stream, keep_comments);
+          self.fast_forward_at_rule(stream);
         }
-        ScanContext::SpecialValue(property) => {
-          self.fast_forward_special_value(stream, property, keep_comments);
+        ScanContext::SpecialValue(property) if !is_trivia => {
+          self.fast_forward_special_value(stream, property);
         }
         ScanContext::GenericValue if !is_trivia => {
-          self.fast_forward_generic_value(stream, keep_comments);
+          self.fast_forward_generic_value(stream);
         }
         _ => {}
       }
@@ -1755,46 +1757,36 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
   }
 
   #[inline]
-  fn fast_forward_generic_value(
-    &self,
-    stream: &mut DependencyTokenStream<'_, 's>,
-    keep_comments: bool,
-  ) {
+  fn fast_forward_generic_value(&self, stream: &mut DependencyTokenStream<'_, 's>) {
     let preserve_strings = matches!(
         self.balanced.last(),
         Some(last) if matches!(last.kind, BalancedItemKind::Url | BalancedItemKind::ImageSet)
     );
     let preserve_delimiters = !self.balanced.is_empty();
-    if self.icss_symbols.is_empty() && !keep_comments {
+    if self.icss_symbols.is_empty() {
       stream.fast_forward_generic_value_without_candidates_if_buffer_empty(
         preserve_strings,
         preserve_delimiters,
       );
     } else {
       stream.fast_forward_generic_value_if_buffer_empty(
-        keep_comments,
         preserve_strings,
         preserve_delimiters,
         |ident| self.contains_icss_symbol(ident),
-        is_css_modules_pure_magic_comment,
       );
     }
   }
 
   #[inline]
-  fn fast_forward_at_rule(&self, stream: &mut DependencyTokenStream<'_, 's>, keep_comments: bool) {
+  fn fast_forward_at_rule(&self, stream: &mut DependencyTokenStream<'_, 's>) {
     let preserve_strings = matches!(
         self.balanced.last(),
         Some(last) if matches!(last.kind, BalancedItemKind::Url | BalancedItemKind::ImageSet)
     );
     let preserve_delimiters = !self.balanced.is_empty();
-    stream.fast_forward_at_rule_if_buffer_empty(
-      keep_comments,
-      preserve_strings,
-      preserve_delimiters,
-      |ident| self.contains_icss_symbol(ident),
-      is_css_modules_pure_magic_comment,
-    );
+    stream.fast_forward_at_rule_if_buffer_empty(preserve_strings, preserve_delimiters, |ident| {
+      self.contains_icss_symbol(ident)
+    });
   }
 
   #[inline]
@@ -1802,7 +1794,6 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     &self,
     stream: &mut DependencyTokenStream<'_, 's>,
     property: PropertyKind,
-    keep_comments: bool,
   ) {
     // An animation name may be any top-level identifier, so the raw
     // scanner usually stops immediately. Continue tokenizing directly.
@@ -1817,7 +1808,6 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     let preserve_delimiters = !self.balanced.is_empty();
     let icss_symbols = (!self.icss_symbols.is_empty()).then_some(&self.icss_symbols);
     stream.fast_forward_special_value_if_buffer_empty(
-      keep_comments,
       preserve_strings,
       preserve_delimiters,
       property,
@@ -3114,10 +3104,19 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
 }
 
 impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
-  fn magic_comments_before(lexer: &DependencyLexer<'s>, start: Pos) -> Option<&'s str> {
-    let input = lexer.slice(0, start)?;
-    let range = preceding_comment_range(input)?;
-    lexer.slice(range.start, range.end)
+  fn magic_comments_at(&self, start: Pos) -> Option<Range> {
+    let &(last_start, range) = self.leading_comments.last()?;
+    if last_start == start {
+      return Some(range);
+    }
+    if last_start < start {
+      return None;
+    }
+    self
+      .leading_comments
+      .binary_search_by_key(&start, |(start, _)| *start)
+      .ok()
+      .map(|index| self.leading_comments[index].1)
   }
 
   fn handle_comment(
@@ -3161,7 +3160,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       _ => false,
     };
     let magic_comments = can_be_dependency
-      .then(|| Self::magic_comments_before(lexer, start))
+      .then(|| self.magic_comments_at(start))
       .flatten();
     match self.scope {
       Scope::InAtImport(ref mut import_data) => {
@@ -3220,12 +3219,13 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       _ => false,
     };
     let mut magic_comments = can_be_dependency
-      .then(|| Self::magic_comments_before(lexer, start))
+      .then(|| self.magic_comments_at(start))
       .flatten();
     if magic_comments.is_none()
-      && let Some(range) = self.balanced.last().and_then(|item| item.magic_comments)
+      && inside_url
+      && let Some(last) = self.balanced.last()
     {
-      magic_comments = lexer.slice(range.start, range.end);
+      magic_comments = self.magic_comments_at(last.range.start);
     }
     match self.scope {
       Scope::InAtImport(ref mut import_data) => {
@@ -3572,25 +3572,25 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     } else {
       lowercase_ascii_keyword(name, &mut normalized)
     };
-    let mut item = normalized_name.map_or_else(
+    let item = normalized_name.map_or_else(
       || BalancedItem::new_other(start, end),
       |name| BalancedItem::new_normalized(name, start, end),
     );
-    if normalized_name == Some("url(") {
-      item.magic_comments = preceding_comment_range(stream.slice_trusted(0, start));
-    }
-    let magic_comments = item.magic_comments;
     let at_import_top_level =
       matches!(self.scope, Scope::InAtImport(_)) && self.balanced.is_empty();
     self.balanced.push(item, self.mode_data.as_mut());
+    let magic_comments = if at_import_top_level && normalized_name == Some("url(") {
+      self.magic_comments_at(start)
+    } else {
+      None
+    };
 
     if let Scope::InAtImport(ref mut import_data) = self.scope {
       if at_import_top_level && normalized_name == Some("url(") {
         import_data.prelude.push(ImportPreludeNode::Url {
           range: Range::new(start, end),
         });
-        import_data.magic_comments =
-          magic_comments.map(|range| stream.slice_trusted(range.start, range.end));
+        import_data.magic_comments = magic_comments;
       } else if at_import_top_level && normalized_name == Some("layer(") {
         import_data.prelude.push(ImportPreludeNode::Layer {
           range: Range::new(start, end),
