@@ -1,6 +1,9 @@
-const path = require("node:path");
-const { readFileSync, writeFileSync, renameSync, appendFileSync } = require("node:fs");
-const { values, positionals } = require("node:util").parseArgs({
+import { spawn, spawnSync } from "node:child_process";
+import path from "node:path";
+import { readFileSync, writeFileSync, renameSync, appendFileSync } from "node:fs";
+import { parseArgs } from "node:util";
+
+const { values, positionals } = parseArgs({
 	args: process.argv.slice(2),
 	options: {
 		profile: {
@@ -10,8 +13,6 @@ const { values, positionals } = require("node:util").parseArgs({
 	strict: true,
 	allowPositionals: true
 });
-
-const { spawn, spawnSync } = require("node:child_process");
 
 const NAPI_BINDING_DTS = "napi-binding.d.ts"
 const CARGO_SAFELY_EXIT_CODE = 0;
@@ -42,7 +43,7 @@ async function build() {
 			// "--no-const-enum",
 			"--no-dts-header",
 			"--pipe",
-			`"node ${path.resolve(__dirname, "dts-header.js")}"`
+			`"node ${path.resolve(import.meta.dirname, "dts-header.mjs")}"`
 		];
 		const rustflags = []
 		const features = [];
@@ -152,7 +153,7 @@ async function build() {
 		cp.on("close", (code) => {
 			if (code === CARGO_SAFELY_EXIT_CODE) {
 				// Fix an issue where napi cli does not generate `string_enum` with `enum`s.
-				const dts = path.resolve(__dirname, "..", NAPI_BINDING_DTS);
+				const dts = path.resolve(import.meta.dirname, "..", NAPI_BINDING_DTS);
 				writeFileSync(dts,
 					readFileSync(dts, "utf8")
 						.replaceAll("const enum", "enum")
@@ -171,7 +172,7 @@ async function build() {
 				if (process.env.TRACY) {
 					// split debug symbols for tracy
 					spawnSync('dsymutil', [
-						path.resolve(__dirname, "..", "rspack.darwin-arm64.node")
+						path.resolve(import.meta.dirname, "..", "rspack.darwin-arm64.node")
 					], {
 						stdio: "inherit",
 						shell: true,

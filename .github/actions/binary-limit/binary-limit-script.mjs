@@ -1,11 +1,11 @@
-const fs = require('node:fs');
-const { setTimeout: sleep } = require('node:timers/promises');
+import fs from 'node:fs';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 /**
  * @param {import("@octokit/rest")} github
  * @param {Number} limit
  */
-module.exports = async function action({ github, context, limit }) {
+export default async function action({ github, context, limit }) {
   const headSize = fs.statSync(
     './crates/node_binding/rspack.linux-x64-gnu.node',
   ).size;
@@ -42,7 +42,7 @@ module.exports = async function action({ github, context, limit }) {
       `Binary size increased by ${increasedSize} bytes, exceeding the limit of ${limit} bytes`,
     );
   }
-};
+}
 
 const PER_PAGE = 30;
 const MAX_PAGES = 4;

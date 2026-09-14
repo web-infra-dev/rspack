@@ -1,11 +1,11 @@
-const NodeFS = require("node:fs");
-const NodePath = require("node:path");
+import NodeFS from "node:fs";
+import NodePath from "node:path";
 const [_1, _2, file] = process.argv;
 
 if (file && NodePath.basename(file) === "napi-binding.d.ts") {
 	const raw = getContent(NodeFS.readFileSync(file));
 	const banner = getContent(
-		NodeFS.readFileSync(NodePath.resolve(__dirname, "banner.d.ts"))
+		NodeFS.readFileSync(NodePath.resolve(import.meta.dirname, "banner.d.ts"))
 	);
 	const hasBOM = raw.hasBOM || banner.hasBOM;
 	const content = Buffer.concat([

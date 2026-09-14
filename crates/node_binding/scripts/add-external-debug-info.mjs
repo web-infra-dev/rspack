@@ -1,10 +1,10 @@
-const path = require("node:path");
-const { pathToFileURL } = require("node:url");
-const {
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+import {
 	existsSync,
 	readFileSync,
 	writeFileSync,
-} = require("node:fs");
+} from "node:fs";
 
 // WebAssembly DWARF external file convention:
 // https://yurydelendik.github.io/webassembly-dwarf/#external-dwarf-file
@@ -149,7 +149,7 @@ function stripCustomSection(wasmBuffer, sectionName) {
 	]);
 }
 
-function addExternalDebugInfo(wasmFile, debugFile) {
+export function addExternalDebugInfo(wasmFile, debugFile) {
 	const wasmFilePath = path.resolve(wasmFile);
 	const debugFilePath = path.resolve(debugFile);
 
@@ -183,12 +183,12 @@ function addExternalDebugInfo(wasmFile, debugFile) {
 	);
 }
 
-if (require.main === module) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
 	const [, , wasmFile, debugFile] = process.argv;
 
 	if (!wasmFile || !debugFile) {
 		console.error(
-			"Usage: node scripts/add-external-debug-info.js <wasm-file> <debug-wasm-file>"
+			"Usage: node scripts/add-external-debug-info.mjs <wasm-file> <debug-wasm-file>"
 		);
 		process.exit(1);
 	}
@@ -200,7 +200,3 @@ if (require.main === module) {
 		process.exit(1);
 	}
 }
-
-module.exports = {
-	addExternalDebugInfo,
-};

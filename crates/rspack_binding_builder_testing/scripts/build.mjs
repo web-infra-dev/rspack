@@ -1,4 +1,7 @@
-const { positionals } = require("node:util").parseArgs({
+import { spawn } from "node:child_process";
+import { parseArgs } from "node:util";
+
+const { positionals } = parseArgs({
 	args: process.argv.slice(2),
 	options: {
 		profile: {
@@ -8,8 +11,6 @@ const { positionals } = require("node:util").parseArgs({
 	strict: true,
 	allowPositionals: true
 });
-
-const { spawn } = require("node:child_process");
 
 const CARGO_SAFELY_EXIT_CODE = 0;
 

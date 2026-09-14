@@ -1,5 +1,5 @@
-const path = require("node:path");
-const fs = require("node:fs");
+import path from "node:path";
+import fs from "node:fs";
 
 const abslutePathBindingList = fs
 	.readdirSync(".")
@@ -10,13 +10,13 @@ const abslutePathBindingList = fs
 		const [_, platform] = p.split(".");
 		return {
 			platform: platform,
-			path: path.join(__dirname, "..", p),
+			path: path.join(import.meta.dirname, "..", p),
 			fileName: p
 		};
 	});
 
 abslutePathBindingList.forEach(bindingInfo => {
-	const npmPath = path.join(__dirname, "../../../npm");
+	const npmPath = path.join(import.meta.dirname, "../../../npm");
 	const packagePath = path.join(npmPath, bindingInfo.platform);
 	fs.copyFileSync(
 		bindingInfo.path,

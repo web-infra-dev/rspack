@@ -1,15 +1,15 @@
 // Uploads the ci-profile binary size of a main/v1.x commit to the benchmark data
 // branch, so PRs can read a baseline minutes after the binding build instead of
 // waiting for the ecosystem benchmark (release build + 40min bench) to finish.
-const { execFileSync } = require('node:child_process');
-const fs = require('node:fs');
-const path = require('node:path');
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const BINARY = 'crates/node_binding/rspack.linux-x64-gnu.node';
 const DATA_DIR = '.benchmark-data';
 const PUSH_RETRIES = 3;
 
-module.exports = function uploadBinarySize({ sha, token }) {
+export default function uploadBinarySize({ sha, token }) {
   if (!sha || !token) {
     throw new Error('sha and token are required');
   }
@@ -84,4 +84,4 @@ module.exports = function uploadBinarySize({ sha, token }) {
       git('reset', '--hard', 'FETCH_HEAD');
     }
   }
-};
+}
