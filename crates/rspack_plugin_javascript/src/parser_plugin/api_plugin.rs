@@ -762,9 +762,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     parser: &mut JavascriptParser,
     member_expr: HookMemberExpression,
     for_name: &str,
-    members: &[Atom],
-    _members_optionals: &[bool],
-    member_ranges: &[Span],
+    members: &crate::visitors::MemberPathView<'_, '_>,
   ) -> Option<bool> {
     let span = member_expr.span(parser.ast.ast);
     let len = members.len();
@@ -783,7 +781,17 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
       return None;
     }
-    static_require_member_chain(parser, for_name, members, Some(member_ranges), span, None)
+    if for_name != API_REQUIRE {
+      return None;
+    }
+    static_require_member_chain(
+      parser,
+      for_name,
+      members,
+      Some(members.ranges()),
+      span,
+      None,
+    )
   }
 
   fn call_member_chain(
@@ -840,11 +848,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     &self,
     parser: &mut JavascriptParser,
     expr: AssignmentExpression,
-    members: &[Atom],
-    member_ranges: &[Span],
+    members: &crate::visitors::MemberPathView<'_, '_>,
     for_name: &str,
   ) -> Option<bool> {
     if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
+      return None;
+    }
+    if for_name != API_REQUIRE {
       return None;
     }
     let ast = parser.ast.ast;
@@ -852,7 +862,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       parser,
       for_name,
       members,
-      Some(member_ranges),
+      Some(members.ranges()),
       expr.left(ast).span(ast),
       Some(expr),
     );

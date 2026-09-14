@@ -4,8 +4,8 @@ use smallvec::SmallVec;
 use swc_next_ecma_ast::*;
 
 use super::{
-  AllowedMemberTypes, CallHooksName, ExpressionExpressionInfo, JavascriptParser,
-  MemberExpressionInfo, PatRef, RootName, ScopeTerminated, TopLevelScope,
+  AllowedMemberTypes, CallHooksName, JavascriptParser, MemberExpressionInfo, PatRef, RootName,
+  ScopeTerminated, TopLevelScope,
   estree::{
     ClassDeclOrExpr, ExportDefaultDeclaration, MaybeNamedClassDecl, MaybeNamedFunctionDecl,
     Statement, formal_parameter_patterns, formal_parameters_are_simple_identifiers,
@@ -32,7 +32,7 @@ fn is_create_require_tag(tag: &str, include_create_require_fn: bool) -> bool {
       && (tag == CREATE_REQUIRE_SPECIFIER_TAG || tag == CREATE_REQUIRE_EVALUATED_TAG))
 }
 
-impl JavascriptParser<'_> {
+impl<'parser> JavascriptParser<'parser> {
   /// Runs a walker operation in a node's semantic scope, then restores the previous scope.
   pub(crate) fn in_semantic_scope<T>(&mut self, node: NodeId, f: impl FnOnce(&mut Self) -> T) -> T {
     let db = &mut self.definitions_db;
@@ -913,7 +913,7 @@ impl JavascriptParser<'_> {
           .root_info
           .call_hooks_name(self, |this, for_name| drive.r#typeof(this, expr, for_name))
       } else {
-        drive.r#typeof(self, expr, &expr_info.name)
+        drive.r#typeof(self, expr, expr_info.name())
       };
       if handled.unwrap_or_default() {
         return;
@@ -1075,46 +1075,36 @@ impl JavascriptParser<'_> {
     let name = object_and_members_to_name(resolved_root, &members);
     members.reverse();
     member_nodes.reverse();
-    let members_optionals = std::iter::repeat_n(false, member_nodes.len()).collect();
-    let member_ranges = member_nodes
+    let members_optionals: super::OptionalMembers =
+      std::iter::repeat_n(false, member_nodes.len()).collect();
+    let member_ranges: super::MemberRanges = member_nodes
       .iter()
       .map(|member| member.object(ast).span(ast))
       .collect();
 
-    let expression_info = ExpressionExpressionInfo {
-      name,
-      root_info,
-      members,
-      members_optionals,
-      member_ranges,
+    let path = super::MemberPath::new(ast, super::RawMembers::new());
+    let members = super::MemberPathView {
+      path: &path,
+      atoms: std::cell::OnceCell::from(members),
+      optionals: std::cell::OnceCell::from(members_optionals),
+      ranges: std::cell::OnceCell::from(member_ranges),
     };
     let drive = self.plugin_drive.clone();
-    if drive
-      .member(self, member.into(), &expression_info.name)
-      .unwrap_or_default()
-    {
+    if drive.member(self, member.into(), &name).unwrap_or_default() {
       return;
     }
-    if expression_info
-      .root_info
+    if root_info
       .call_hooks_name(self, |this, for_name| {
-        drive.member_chain(
-          this,
-          member.into(),
-          for_name,
-          &expression_info.members,
-          &expression_info.members_optionals,
-          &expression_info.member_ranges,
-        )
+        drive.member_chain(this, member.into(), for_name, &members)
       })
       .unwrap_or_default()
     {
       return;
     }
 
-    let mut prefix_name = expression_info.name.as_str();
+    let mut prefix_name = name.as_str();
     for index in (0..member_nodes.len().saturating_sub(1)).rev() {
-      let removed_member = &expression_info.members[index + 1];
+      let removed_member = members.name(index + 1).expect("JSX member");
       prefix_name = &prefix_name[..prefix_name.len() - removed_member.len() - 1];
       if drive
         .member(self, member_nodes[index].into(), prefix_name)
@@ -1125,7 +1115,7 @@ impl JavascriptParser<'_> {
     }
 
     if !drive
-      .unhandled_expression_member_chain(self, &expression_info.root_info, member.into())
+      .unhandled_expression_member_chain(self, &root_info, member.into())
       .unwrap_or_default()
     {
       self.walk_identifier_name(root_name, root.span(ast));
@@ -1199,7 +1189,7 @@ impl JavascriptParser<'_> {
         self
           .plugin_drive
           .clone()
-          .new_expression(self, expr, &info.name)
+          .new_expression(self, expr, info.name())
       };
       if result.unwrap_or_default() {
         return;
@@ -1294,22 +1284,16 @@ impl JavascriptParser<'_> {
       match expr_info {
         MemberExpressionInfo::Expression(expr_info) => {
           if drive
-            .member(self, expr.into(), &expr_info.name)
+            .member(self, expr.into(), expr_info.name())
             .unwrap_or_default()
           {
             return;
           }
+          let members = expr_info.members.view();
           if expr_info
             .root_info
             .call_hooks_name(self, |this, for_name| {
-              drive.member_chain(
-                this,
-                expr.into(),
-                for_name,
-                &expr_info.members,
-                &expr_info.members_optionals,
-                &expr_info.member_ranges,
-              )
+              drive.member_chain(this, expr.into(), for_name, &members)
             })
             .unwrap_or_default()
           {
@@ -1317,8 +1301,9 @@ impl JavascriptParser<'_> {
           }
           self.walk_member_expression_with_expression_name(
             expr,
-            &expr_info.name,
-            &expr_info.members,
+            expr_info.name(),
+            &members,
+            members.len(),
             Some(|this: &mut Self| {
               drive.unhandled_expression_member_chain(this, &expr_info.root_info, expr.into())
             }),
@@ -1326,16 +1311,17 @@ impl JavascriptParser<'_> {
           return;
         }
         MemberExpressionInfo::Call(expr_info) => {
+          let callee_members = expr_info.callee_members.view();
+          let members = expr_info.members.view();
           if expr_info
             .root_info
             .call_hooks_name(self, |this, for_name| {
               drive.member_chain_of_call_member_chain(
                 this,
                 expr,
-                &expr_info.callee_members,
+                &callee_members,
                 expr_info.call,
-                &expr_info.members,
-                &expr_info.member_ranges,
+                &members,
                 for_name,
               )
             })
@@ -1398,7 +1384,8 @@ impl JavascriptParser<'_> {
     &mut self,
     expr: MemberExpression,
     name: &str,
-    members: &[Atom],
+    members: &super::MemberPathView<'_, '_>,
+    member_count: usize,
     on_unhandled: Option<F>,
   ) where
     F: FnOnce(&mut Self) -> Option<bool>,
@@ -1412,7 +1399,9 @@ impl JavascriptParser<'_> {
       _ => None,
     };
     if let Some(member) = member
-      && let Some(property) = members.last()
+      && let Some(property) = member_count
+        .checked_sub(1)
+        .and_then(|index| members.name(index))
     {
       let origin = name.len();
       let name = &name[0..origin - 1 - property.len()];
@@ -1427,7 +1416,8 @@ impl JavascriptParser<'_> {
       self.walk_member_expression_with_expression_name(
         member,
         name,
-        &members[..members.len() - 1],
+        members,
+        member_count - 1,
         on_unhandled,
       );
     } else if on_unhandled.is_none() {
@@ -1696,7 +1686,9 @@ impl JavascriptParser<'_> {
       let (member_info, await_import_member) =
         self.get_member_expression_info_and_await_import(member);
       match member_info {
-        Some(MemberExpressionInfo::Call(expr_info))
+        Some(MemberExpressionInfo::Call(expr_info)) => {
+          let callee_members = expr_info.callee_members.view();
+          let members = expr_info.members.view();
           if expr_info
             .root_info
             .call_hooks_name(self, |this, for_name| {
@@ -1706,16 +1698,16 @@ impl JavascriptParser<'_> {
                 .call_member_chain_of_call_member_chain(
                   this,
                   expr,
-                  &expr_info.callee_members,
+                  &callee_members,
                   expr_info.call,
-                  &expr_info.members,
-                  &expr_info.member_ranges,
+                  &members,
                   for_name,
                 )
             })
-            .unwrap_or_default() =>
-        {
-          return;
+            .unwrap_or_default()
+          {
+            return;
+          }
         }
         Some(MemberExpressionInfo::Expression(info)) => callee_expression_info = Some(info),
         _ => {}
@@ -1808,7 +1800,7 @@ impl JavascriptParser<'_> {
     &mut self,
     expr: MemberExpression,
   ) -> (
-    Option<MemberExpressionInfo>,
+    Option<MemberExpressionInfo<'parser>>,
     Option<(ImportExpression, AtomMembers, AwaitExpression)>,
   ) {
     let ast = self.ast.ast;
@@ -2105,20 +2097,17 @@ impl JavascriptParser<'_> {
     {
       if let Some(MemberExpressionInfo::Expression(expr_name)) =
         self.get_member_expression_info(ExprRef::Member(member), AllowedMemberTypes::Expression)
-        && expr_name
+      {
+        let members = expr_name.members.view();
+        if expr_name
           .root_info
           .call_hooks_name(self, |parser, for_name| {
-            drive.assign_member_chain(
-              parser,
-              expr,
-              &expr_name.members,
-              &expr_name.member_ranges,
-              for_name,
-            )
+            drive.assign_member_chain(parser, expr, &members, for_name)
           })
           .unwrap_or_default()
-      {
-        return;
+        {
+          return;
+        }
       }
       self.walk_expression(right);
       self.walk_assignment_target(left);

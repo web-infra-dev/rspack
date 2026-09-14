@@ -332,9 +332,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
     parser: &mut JavascriptParser<'p>,
     _expr: HookMemberExpression,
     for_name: &str,
-    members: &[Atom],
-    members_optionals: &[bool],
-    _member_ranges: &[Span],
+    members: &crate::visitors::MemberPathView<'_, '_>,
   ) -> Option<bool> {
     if for_name != DYNAMIC_IMPORT_TAG {
       return None;
@@ -343,7 +341,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
     let data = ImportTagData::downcast(tag_info.data.clone()?);
-    let ids = get_non_optional_part(members, members_optionals);
+    let ids = get_non_optional_part(members, members.optionals());
     parser
       .dynamic_import_references
       .get_import_mut_expect(&data.import_span)

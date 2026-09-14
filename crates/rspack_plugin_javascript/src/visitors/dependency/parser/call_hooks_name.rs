@@ -109,11 +109,10 @@ impl CallHooksName for MemberExpression {
       return None;
     };
 
-    let members = expr_name.members;
-    if members.is_empty() {
+    if expr_name.members.is_empty() {
       expr_name.root_info.call_hooks_name(parser, hook_call)
     } else {
-      hook_call(parser, &expr_name.name)
+      hook_call(parser, expr_name.name())
     }
   }
 }
@@ -136,11 +135,10 @@ impl CallHooksName for ChainExpression {
       return None;
     };
 
-    let members = expr_name.members;
-    if members.is_empty() {
+    if expr_name.members.is_empty() {
       expr_name.root_info.call_hooks_name(parser, hook_call)
     } else {
-      hook_call(parser, &expr_name.name)
+      hook_call(parser, expr_name.name())
     }
   }
 }

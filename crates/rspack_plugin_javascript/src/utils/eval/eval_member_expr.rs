@@ -28,7 +28,7 @@ pub fn eval_member_expression_with_info<'parser>(
   parser: &mut JavascriptParser<'parser>,
   member: MemberExpression,
   expression: Expr,
-  info: Option<ExpressionExpressionInfo>,
+  info: Option<ExpressionExpressionInfo<'parser>>,
 ) -> Option<BasicEvaluatedExpression<'parser>> {
   let result = if let Some(info) = info {
     let span = member.span(parser.ast.ast);
@@ -44,7 +44,7 @@ pub fn eval_member_expression_with_info<'parser>(
     drive
       .evaluate_identifier(
         parser,
-        &info.name,
+        info.name(),
         Some(&info),
         span.real_lo(),
         span.real_hi(),
@@ -54,9 +54,9 @@ pub fn eval_member_expression_with_info<'parser>(
       .or_else(|| {
         let mut evaluated = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
         evaluated.set_identifier(
-          info.name.into(),
+          info.name().into(),
           info.root_info,
-          Some((info.members, info.members_optionals, info.member_ranges)),
+          Some(info.members.into_owned()),
         );
         Some(evaluated)
       })

@@ -47,7 +47,7 @@ pub fn is_meta_url(parser: &mut JavascriptParser, expr: MemberExpression) -> boo
       .get_root_name(ast)
       .is_some_and(|name| name == "import.meta")
       && chain.members.len() == 1
-      && chain.members.first().is_some_and(|member| member == "url");
+      && chain.members.name(0).is_some_and(|member| member == "url");
   }
   false
 }

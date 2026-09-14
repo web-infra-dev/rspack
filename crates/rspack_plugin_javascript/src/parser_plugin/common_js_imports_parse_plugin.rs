@@ -2261,24 +2261,19 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     parser: &mut JavascriptParser<'p>,
     _expr: HookMemberExpression,
     for_name: &str,
-    members: &[Atom],
-    members_optionals: &[bool],
-    member_ranges: &[Span],
+    members: &crate::visitors::MemberPathView<'_, '_>,
   ) -> Option<bool> {
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      if members
-        .first()
-        .is_some_and(|member| member.as_ref() == "cache")
-      {
+      if members.name(0).is_some_and(|member| member == "cache") {
         add_require_cache_dependency(
           parser,
-          require_cache_range(parser.ast.ast, _expr, member_ranges, members).into(),
+          require_cache_range(parser.ast.ast, _expr, members.ranges(), members).into(),
         );
       } else if !preserve_unhandled_created_require(parser) {
         handle_created_require_member(
           parser,
           _expr.span(parser.ast.ast),
-          require_cache_range(parser.ast.ast, _expr, member_ranges, members),
+          require_cache_range(parser.ast.ast, _expr, members.ranges(), members),
           members,
           "undefined".into(),
         );
@@ -2293,7 +2288,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
     let data = RequireTagData::downcast(tag_info.data.clone()?);
-    let ids = get_non_optional_part(members, members_optionals);
+    let ids = get_non_optional_part(members, members.optionals());
     parser
       .common_js_require_references
       .get_require_mut_expect(&data.require_span)
@@ -2630,10 +2625,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     &self,
     parser: &mut JavascriptParser<'p>,
     member_expr: MemberExpression,
-    callee_members: &[Atom],
+    callee_members: &crate::visitors::MemberPathView<'_, '_>,
     call_expr: CallExpression,
-    members: &[Atom],
-    member_ranges: &[Span],
+    members: &crate::visitors::MemberPathView<'_, '_>,
     for_name: &str,
   ) -> Option<bool> {
     if callee_members.is_empty()
@@ -2648,14 +2642,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       handle_created_require_member(
         parser,
         member_span,
-        require_cache_range(parser.ast.ast, member_expr.into(), member_ranges, members),
+        require_cache_range(
+          parser.ast.ast,
+          member_expr.into(),
+          members.ranges(),
+          members,
+        ),
         members,
         unsupported_replacement,
       );
-      if members
-        .first()
-        .is_some_and(|member| member.as_ref() == "cache")
-      {
+      if members.name(0).is_some_and(|member| member == "cache") {
         wrap_span_with_side_effects(parser, member_span, &side_effects);
       }
       walk_create_require_ignored_args(parser, call_expr);
@@ -2677,16 +2673,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     &self,
     parser: &mut JavascriptParser<'p>,
     call_expr: CallExpression,
-    callee_members: &[Atom],
+    callee_members: &crate::visitors::MemberPathView<'_, '_>,
     inner_call_expr: CallExpression,
-    members: &[Atom],
-    member_ranges: &[Span],
+    members: &crate::visitors::MemberPathView<'_, '_>,
     for_name: &str,
   ) -> Option<bool> {
     if callee_members.is_empty()
       && should_handle_create_require_specifier(parser, for_name)
       && members.len() == 1
-      && members[0].as_ref() == "resolve"
+      && members.name(0).is_some_and(|name| name == "resolve")
     {
       let ast = parser.ast.ast;
       let call_args = call_expr.arguments(ast);
@@ -2728,16 +2723,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         require_cache_range(
           parser.ast.ast,
           callee.as_member_expression(parser.ast.ast)?.into(),
-          member_ranges,
+          members.ranges(),
           members,
         ),
         members,
         unsupported_replacement,
       );
-      if members
-        .first()
-        .is_some_and(|member| member.as_ref() == "cache")
-      {
+      if members.name(0).is_some_and(|member| member == "cache") {
         wrap_span_with_side_effects(parser, member_span, &side_effects);
       }
       walk_create_require_ignored_args(parser, inner_call_expr);

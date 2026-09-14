@@ -19,9 +19,9 @@ pub use self::{
   parser::{
     AllowedMemberTypes, AtomMembers, CallExpressionInfo, CallHooksName,
     DestructuringAssignmentProperties, DestructuringAssignmentProperty, ExportedVariableInfo,
-    ExpressionExpressionInfo, JavascriptParser, MemberExpressionInfo, MemberRanges,
-    OptionalMembers, PatRef, RootName, ScopeTerminated, TagInfoData, TopLevelScope, ast::*,
-    estree::*,
+    ExpressionExpressionInfo, JavascriptParser, MemberExpressionInfo, MemberPath, MemberPathView,
+    MemberRanges, OptionalMembers, PatRef, RootName, ScopeTerminated, TagInfoData, TopLevelScope,
+    ast::*, estree::*,
   },
   util::*,
 };

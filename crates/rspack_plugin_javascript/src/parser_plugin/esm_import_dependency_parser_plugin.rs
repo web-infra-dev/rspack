@@ -401,9 +401,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
     parser: &mut JavascriptParser<'p>,
     member_expr: HookMemberExpression,
     for_name: &str,
-    members: &[Atom],
-    members_optionals: &[bool],
-    _member_ranges: &[Span],
+    members: &crate::visitors::MemberPathView<'_, '_>,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
     if for_name != ESM_SPECIFIER_TAG {
@@ -414,7 +412,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       .expect_get_tag_info(parser.current_tag_info?);
     let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
 
-    let non_optional_members = get_non_optional_part(members, members_optionals);
+    let non_optional_members = get_non_optional_part(members, members.optionals());
     let span = if members.len() > non_optional_members.len() {
       let expr = get_non_optional_member_chain_from_member(
         ast,

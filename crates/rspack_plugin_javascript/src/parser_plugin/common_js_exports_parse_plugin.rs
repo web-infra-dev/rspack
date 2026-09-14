@@ -283,8 +283,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     &self,
     parser: &mut JavascriptParser<'p>,
     assign_expr: AssignmentExpression,
-    remaining: &[Atom],
-    _member_ranges: &[Span],
+    remaining: &crate::visitors::MemberPathView<'_, '_>,
     for_name: &str,
   ) -> Option<bool> {
     if self.should_skip_handler(parser) {
@@ -294,7 +293,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
       // exports.x = y;
       return handle_assign_export(parser, assign_expr, remaining, ExportsBase::Exports);
     }
-    if for_name == "module" && matches!(remaining.first(), Some(first) if first == "exports") {
+    if for_name == "module" && remaining.name(0).is_some_and(|name| name == "exports") {
       // module.exports.x = y;
       return handle_assign_export(
         parser,
@@ -455,9 +454,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     parser: &mut JavascriptParser<'p>,
     expr: HookMemberExpression,
     for_name: &str,
-    members: &[Atom],
-    members_optionals: &[bool],
-    _member_ranges: &[Span],
+    members: &crate::visitors::MemberPathView<'_, '_>,
   ) -> Option<bool> {
     if self.should_skip_handler(parser) {
       return None;
@@ -469,19 +466,19 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
         parser,
         expr.span(parser.ast.ast),
         members,
-        members_optionals,
+        members.optionals(),
         ExportsBase::Exports,
         None,
       );
     }
 
-    if for_name == "module" && matches!(members.first(), Some(first) if first == "exports") {
+    if for_name == "module" && members.name(0).is_some_and(|name| name == "exports") {
       // module.exports.a.b.c
       return handle_access_export(
         parser,
         expr.span(parser.ast.ast),
         &members[1..],
-        &members_optionals[1..],
+        &members.optionals()[1..],
         ExportsBase::ModuleExports,
         None,
       );
@@ -493,7 +490,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
         parser,
         expr.span(parser.ast.ast),
         members,
-        members_optionals,
+        members.optionals(),
         ExportsBase::This,
         None,
       );

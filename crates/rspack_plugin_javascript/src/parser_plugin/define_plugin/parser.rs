@@ -164,14 +164,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
   ) -> Option<bool> {
     if let MemberExpressionInfo::Expression(info) =
       parser.get_member_expression_info_from_expr(expr, AllowedMemberTypes::Expression)?
-      && (self
-        .walk_data
-        .define_record
-        .contains_key(info.name.as_str())
+      && (self.walk_data.define_record.contains_key(info.name())
         || self
           .walk_data
           .object_define_record
-          .contains_key(info.name.as_str()))
+          .contains_key(info.name()))
     {
       return Some(true);
     }

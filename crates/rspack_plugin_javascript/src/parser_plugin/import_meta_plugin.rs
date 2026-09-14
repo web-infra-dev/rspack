@@ -780,14 +780,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
     &self,
     parser: &mut JavascriptParser,
     expr: AssignmentExpression,
-    members: &[Atom],
-    member_ranges: &[Span],
+    members: &crate::visitors::MemberPathView<'_, '_>,
     for_name: &str,
   ) -> Option<bool> {
     if for_name != expr_name::IMPORT_META {
       return None;
     }
-    let property = members.first()?;
+    let property = members.name(0)?;
     let api = import_meta_runtime_api_from_property(property.as_ref())?;
     if !self.runtime_api_enabled(api) {
       return None;
@@ -797,7 +796,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
     let span = if full_assignment {
       expr.left(ast).span(ast)
     } else {
-      member_ranges
+      members
+        .ranges()
         .get(1)
         .copied()
         .unwrap_or_else(|| expr.left(ast).span(ast))
@@ -838,15 +838,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
       return None;
     }
 
-    let first_property = info.members.first()?;
-    if self.preserve_property(Some(first_property.as_str())) {
+    let first_property = info.members.name(0)?;
+    if self.preserve_property(Some(first_property.as_ref())) {
       return None;
     }
 
-    let optional_after_first_property = info
-      .members_optionals
-      .get(1)
-      .is_some_and(|optional| *optional);
+    let optional_after_first_property = info.members.optional(1) == Some(true);
     if !optional_after_first_property {
       return None;
     }
@@ -900,21 +897,17 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
             )));
             return Some(true);
           };
-          if self.preserve_property(members.members.first().map(Atom::as_ref)) {
+          if self.preserve_property(members.members.name(0).as_deref()) {
             return Some(true);
           }
-          let unknown_members = members.members.as_slice();
-          let dep = if members.members.get(1).is_some()
-            && members
-              .members_optionals
-              .get(1)
-              .is_some_and(|optional| *optional)
-          {
+          let dep = if members.members.len() > 1 && members.members.optional(1) == Some(true) {
             ConstDependency::new(expr.span(parser.ast.ast).into(), "undefined".into())
           } else {
             ConstDependency::new(
               expr.span(parser.ast.ast).into(),
-              self.import_meta_unknown_property(unknown_members).into(),
+              self
+                .import_meta_unknown_property(&members.members.view())
+                .into(),
             )
           };
 

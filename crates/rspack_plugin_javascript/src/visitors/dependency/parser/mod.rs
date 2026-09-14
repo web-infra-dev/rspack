@@ -10,6 +10,8 @@ mod walk_module_pre;
 mod walk_pre;
 
 use std::{
+  borrow::Cow,
+  cell::OnceCell,
   fmt::Display,
   hash::{Hash, Hasher},
   rc::Rc,
@@ -69,21 +71,18 @@ pub trait TagInfoData: Clone + Sized + 'static {
   fn downcast_mut(any: &mut dyn anymap::CloneAny) -> &mut Self;
 }
 
-fn atom_from_wtf8(value: &swc_next_allocator::wtf8::Wtf8) -> Atom {
-  Atom::from(value.to_string_lossy().as_ref())
-}
-
-pub(crate) fn member_property_to_atom(ast: &Ast<'_>, expr: Expr) -> Option<Atom> {
+fn member_property_name<'a>(ast: &'a Ast<'_>, expr: Expr) -> Option<Cow<'a, str>> {
   Some(match ast.expr_data(expr) {
-    ExprData::StringLiteral(node) => atom_from_wtf8(ast.get_wtf8(node.value(ast))),
-    ExprData::BooleanLiteral(node) => Atom::from(if node.value(ast) { "true" } else { "false" }),
-    ExprData::NullLiteral(_) => Atom::from("null"),
-    ExprData::NumericLiteral(node) => {
-      Atom::from(rspack_util::ryu_js::Buffer::new().format(node.value(ast)))
-    }
-    ExprData::BigIntLiteral(node) => {
-      Atom::from(eval::parse_bigint_literal(ast.get_utf8(node.raw(ast)))?.to_string())
-    }
+    ExprData::StringLiteral(node) => ast.get_wtf8(node.value(ast)).to_string_lossy(),
+    ExprData::BooleanLiteral(node) => (if node.value(ast) { "true" } else { "false" }).into(),
+    ExprData::NullLiteral(_) => "null".into(),
+    ExprData::NumericLiteral(node) => rspack_util::ryu_js::Buffer::new()
+      .format(node.value(ast))
+      .to_owned()
+      .into(),
+    ExprData::BigIntLiteral(node) => eval::parse_bigint_literal(ast.get_utf8(node.raw(ast)))?
+      .to_string()
+      .into(),
     ExprData::RegExpLiteral(node) => {
       let pattern = ast.get_utf8(node.pattern(ast));
       let mut flags = ast.get_utf8(node.flags(ast)).chars().collect::<Vec<_>>();
@@ -93,16 +92,16 @@ pub(crate) fn member_property_to_atom(ast: &Ast<'_>, expr: Expr) -> Option<Atom>
       property.push_str(pattern);
       property.push('/');
       property.extend(flags);
-      Atom::from(property)
+      property.into()
     }
     ExprData::TemplateLiteral(node)
       if node.expressions(ast).is_empty() && node.quasis(ast).len() == 1 =>
     {
       let quasi = ast.first(node.quasis(ast))?;
       if quasi.is_cooked_undefined(ast) {
-        Atom::from(ast.get_utf8(quasi.raw(ast)))
+        ast.get_utf8(quasi.raw(ast)).into()
       } else {
-        atom_from_wtf8(ast.get_wtf8(quasi.cooked(ast)))
+        ast.get_wtf8(quasi.cooked(ast)).to_string_lossy()
       }
     }
     _ => return None,
@@ -119,15 +118,35 @@ pub(crate) fn member_property_key_to_atom(ast: &Ast<'_>, key: PropertyKey) -> Op
 }
 
 fn member_property_key_data_to_atom(ast: &Ast<'_>, key: PropertyKeyData) -> Option<Atom> {
+  let number = match key {
+    PropertyKeyData::NumericLiteral(node) => Some(node),
+    PropertyKeyData::Expr(expr) => expr.as_numeric_literal(ast),
+    _ => None,
+  };
+  if let Some(number) = number {
+    // Intern directly from the formatting buffer, without an intermediate String.
+    return Some(Atom::from(
+      rspack_util::ryu_js::Buffer::new().format(number.value(ast)),
+    ));
+  }
+  member_property_key_name(ast, key).map(|name| Atom::from(name.as_ref()))
+}
+
+fn member_property_key_name<'a>(ast: &'a Ast<'_>, key: PropertyKeyData) -> Option<Cow<'a, str>> {
   match key {
-    PropertyKeyData::StringLiteral(node) => Some(atom_from_wtf8(ast.get_wtf8(node.value(ast)))),
-    PropertyKeyData::NumericLiteral(node) => Some(Atom::from(
-      rspack_util::ryu_js::Buffer::new().format(node.value(ast)),
-    )),
-    PropertyKeyData::BigIntLiteral(node) => Some(Atom::from(
-      eval::parse_bigint_literal(ast.get_utf8(node.raw(ast)))?.to_string(),
-    )),
-    PropertyKeyData::Expr(expr) => member_property_to_atom(ast, expr),
+    PropertyKeyData::StringLiteral(node) => Some(ast.get_wtf8(node.value(ast)).to_string_lossy()),
+    PropertyKeyData::NumericLiteral(node) => Some(
+      rspack_util::ryu_js::Buffer::new()
+        .format(node.value(ast))
+        .to_owned()
+        .into(),
+    ),
+    PropertyKeyData::BigIntLiteral(node) => Some(
+      eval::parse_bigint_literal(ast.get_utf8(node.raw(ast)))?
+        .to_string()
+        .into(),
+    ),
+    PropertyKeyData::Expr(expr) => member_property_name(ast, expr),
     PropertyKeyData::IdentifierName(_) | PropertyKeyData::PrivateIdentifier(_) => None,
   }
 }
@@ -197,11 +216,19 @@ struct RawMember {
 }
 
 impl RawMember {
+  fn name<'a>(&self, ast: &'a Ast<'_>) -> Cow<'a, str> {
+    match self.property {
+      PropertyKeyData::IdentifierName(identifier) => ast.get_utf8(identifier.name(ast)).into(),
+      property => member_property_key_name(ast, property).expect("validated computed member key"),
+    }
+  }
+
   fn atom(&self, ast: &Ast<'_>) -> Atom {
     match self.property {
       PropertyKeyData::IdentifierName(identifier) => Atom::from(ast.get_utf8(identifier.name(ast))),
-      property => member_property_key_data_to_atom(ast, property)
-        .expect("validated computed member property should convert to an atom"),
+      property => {
+        member_property_key_data_to_atom(ast, property).expect("validated computed member key")
+      }
     }
   }
 }
@@ -211,28 +238,147 @@ struct RawExtractedMemberExpressionChainData {
   members: RawMembers,
 }
 
-/// Preserve extraction order (outermost first) for consumers that reverse it.
-fn materialize_members(
-  ast: &Ast<'_>,
-  members: RawMembers,
-) -> (AtomMembers, OptionalMembers, MemberRanges) {
-  let mut atoms = AtomMembers::with_capacity(members.len());
-  let mut optionals = OptionalMembers::with_capacity(members.len());
-  let mut ranges = MemberRanges::with_capacity(members.len());
-  for member in members {
-    atoms.push(member.atom(ast));
-    optionals.push(member.optional);
-    ranges.push(member.object.span(ast));
-  }
-  (atoms, optionals, ranges)
+/// Compact raw path tied to its original AST; returning analysis does not move hook caches.
+pub struct MemberPath<'ast> {
+  ast: &'ast Ast<'ast>,
+  raw: RawMembers,
 }
 
-#[derive(Debug)]
-pub struct ExtractedMemberExpressionChainData {
+impl<'ast> MemberPath<'ast> {
+  fn new(ast: &'ast Ast<'ast>, raw: RawMembers) -> Self {
+    Self { ast, raw }
+  }
+
+  pub fn len(&self) -> usize {
+    self.raw.len()
+  }
+  pub fn is_empty(&self) -> bool {
+    self.raw.is_empty()
+  }
+
+  /// Read a property name without interning ordinary identifier/string keys.
+  pub fn name(&self, index: usize) -> Option<Cow<'_, str>> {
+    self
+      .raw
+      .iter()
+      .rev()
+      .nth(index)
+      .map(|member| member.name(self.ast))
+  }
+
+  /// Inspect one optional boundary without creating the hook's flag array.
+  pub fn optional(&self, index: usize) -> Option<bool> {
+    self
+      .raw
+      .iter()
+      .rev()
+      .nth(index)
+      .map(|member| member.optional)
+  }
+
+  /// Keep materialization caches at the consuming hook call, not in returned analysis records.
+  pub fn view(&self) -> MemberPathView<'_, 'ast> {
+    MemberPathView {
+      path: self,
+      atoms: OnceCell::new(),
+      optionals: OnceCell::new(),
+      ranges: OnceCell::new(),
+    }
+  }
+
+  /// Evaluators retain owned data beyond hook dispatch.
+  pub fn into_owned(self) -> (AtomMembers, OptionalMembers, MemberRanges) {
+    let mut atoms = AtomMembers::with_capacity(self.len());
+    let mut optionals = OptionalMembers::with_capacity(self.len());
+    let mut ranges = MemberRanges::with_capacity(self.len());
+    for member in self.raw.into_iter().rev() {
+      atoms.push(member.atom(self.ast));
+      optionals.push(member.optional);
+      ranges.push(member.object.span(self.ast));
+    }
+    (atoms, optionals, ranges)
+  }
+}
+
+/// Root-first hook arguments, independently materialized and reused across plugin dispatch.
+pub struct MemberPathView<'path, 'ast> {
+  path: &'path MemberPath<'ast>,
+  atoms: OnceCell<AtomMembers>,
+  optionals: OnceCell<OptionalMembers>,
+  ranges: OnceCell<MemberRanges>,
+}
+
+impl MemberPathView<'_, '_> {
+  pub fn len(&self) -> usize {
+    self
+      .atoms
+      .get()
+      .map_or(self.path.len(), |atoms| atoms.len())
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.len() == 0
+  }
+
+  /// Name-only consumers do not need an Atom array.
+  pub fn name(&self, index: usize) -> Option<Cow<'_, str>> {
+    if let Some(atoms) = self.atoms.get() {
+      return atoms.get(index).map(|atom| Cow::Borrowed(atom.as_str()));
+    }
+    self.path.name(index)
+  }
+
+  /// Materialize owned names only when a hook needs Atom keys or stores a dependency.
+  pub fn atoms(&self) -> &[Atom] {
+    self.atoms.get_or_init(|| {
+      self
+        .path
+        .raw
+        .iter()
+        .rev()
+        .map(|member| member.atom(self.path.ast))
+        .collect()
+    })
+  }
+
+  /// Optional flags are independent of property names and source ranges.
+  pub fn optionals(&self) -> &[bool] {
+    self.optionals.get_or_init(|| {
+      self
+        .path
+        .raw
+        .iter()
+        .rev()
+        .map(|member| member.optional)
+        .collect()
+    })
+  }
+
+  /// Decode object spans only for consumers that need replacement ranges.
+  pub fn ranges(&self) -> &[Span] {
+    self.ranges.get_or_init(|| {
+      self
+        .path
+        .raw
+        .iter()
+        .rev()
+        .map(|member| member.object.span(self.path.ast))
+        .collect()
+    })
+  }
+}
+
+pub struct ExtractedMemberExpressionChainData<'ast> {
   pub object: ExprRef,
-  pub members: AtomMembers,
-  pub members_optionals: OptionalMembers,
-  pub member_ranges: MemberRanges,
+  pub members: MemberPath<'ast>,
+}
+
+impl std::ops::Deref for MemberPathView<'_, '_> {
+  type Target = [Atom];
+
+  fn deref(&self) -> &Self::Target {
+    self.atoms()
+  }
 }
 
 bitflags! {
@@ -243,29 +389,46 @@ bitflags! {
   }
 }
 
-#[derive(Debug)]
-pub enum MemberExpressionInfo {
-  Call(CallExpressionInfo),
-  Expression(ExpressionExpressionInfo),
+pub enum MemberExpressionInfo<'ast> {
+  Call(CallExpressionInfo<'ast>),
+  Expression(ExpressionExpressionInfo<'ast>),
 }
 
-#[derive(Debug)]
-pub struct CallExpressionInfo {
+pub struct CallExpressionInfo<'ast> {
   pub call: CallExpression,
   pub root_info: ExportedVariableInfo,
-  pub callee_members: AtomMembers,
-  pub members: AtomMembers,
-  pub members_optionals: OptionalMembers,
-  pub member_ranges: MemberRanges,
+  pub callee_members: MemberPath<'ast>,
+  pub members: MemberPath<'ast>,
 }
 
-#[derive(Debug)]
-pub struct ExpressionExpressionInfo {
-  pub name: String,
+pub struct ExpressionExpressionInfo<'ast> {
+  root_name: Atom,
+  name: OnceCell<String>,
   pub root_info: ExportedVariableInfo,
-  pub members: AtomMembers,
-  pub members_optionals: OptionalMembers,
-  pub member_ranges: MemberRanges,
+  pub members: MemberPath<'ast>,
+}
+
+impl ExpressionExpressionInfo<'_> {
+  /// Assemble the qualified name from the captured root only if requested.
+  pub fn name(&self) -> &str {
+    if self.members.is_empty() {
+      return self.root_name.as_str();
+    }
+    self.name.get_or_init(|| {
+      let capacity = self.root_name.len()
+        + self.members.len()
+        + (0..self.members.len())
+          .map(|index| self.members.name(index).expect("member index").len())
+          .sum::<usize>();
+      let mut name = String::with_capacity(capacity);
+      name.push_str(self.root_name.as_str());
+      for index in 0..self.members.len() {
+        name.push('.');
+        name.push_str(&self.members.name(index).expect("member index"));
+      }
+      name
+    })
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -1233,7 +1396,7 @@ impl<'parser> JavascriptParser<'parser> {
     object: ExprRef,
     members: RawMembers,
     allowed_types: AllowedMemberTypes,
-  ) -> Option<MemberExpressionInfo> {
+  ) -> Option<MemberExpressionInfo<'parser>> {
     let ast = self.ast.ast;
     match object {
       ExprRef::Call(expr) => {
@@ -1252,26 +1415,14 @@ impl<'parser> JavascriptParser<'parser> {
           info: root_info,
         } = self.get_name_info_from_root(root)?;
 
-        let root_members = root_members
-          .iter()
-          .rev()
-          .map(|member| member.atom(ast))
-          .collect();
-        let (mut members, mut members_optionals, mut member_ranges) =
-          materialize_members(ast, members);
-        members.reverse();
-        members_optionals.reverse();
-        member_ranges.reverse();
         Some(MemberExpressionInfo::Call(CallExpressionInfo {
           call: expr,
           root_info: root_info.map_or_else(
             || ExportedVariableInfo::Name(Atom::from(resolved_root)),
             |i| ExportedVariableInfo::VariableInfo(i.binding_state()),
           ),
-          callee_members: root_members,
-          members,
-          members_optionals,
-          member_ranges,
+          callee_members: MemberPath::new(ast, root_members),
+          members: MemberPath::new(ast, members),
         }))
       }
       ExprRef::MetaProp(_) | ExprRef::Ident(_) | ExprRef::This(_) => {
@@ -1283,21 +1434,20 @@ impl<'parser> JavascriptParser<'parser> {
           info: root_info,
         } = self.get_name_info_from_root(object)?;
 
-        let (mut members, mut members_optionals, mut member_ranges) =
-          materialize_members(ast, members);
-        let name = object_and_members_to_name(resolved_root, &members);
-        members.reverse();
-        members_optionals.reverse();
-        member_ranges.reverse();
+        let (root_name, root_info) = if let Some(info) = root_info {
+          (
+            info.name.expect("resolved root name").clone(),
+            ExportedVariableInfo::VariableInfo(info.binding_state()),
+          )
+        } else {
+          let root_name = Atom::from(resolved_root);
+          (root_name.clone(), ExportedVariableInfo::Name(root_name))
+        };
         Some(MemberExpressionInfo::Expression(ExpressionExpressionInfo {
-          name,
-          root_info: root_info.map_or_else(
-            || ExportedVariableInfo::Name(Atom::from(resolved_root)),
-            |i| ExportedVariableInfo::VariableInfo(i.binding_state()),
-          ),
-          members,
-          members_optionals,
-          member_ranges,
+          root_name,
+          name: OnceCell::new(),
+          root_info,
+          members: MemberPath::new(ast, members),
         }))
       }
       _ => None,
@@ -1308,7 +1458,7 @@ impl<'parser> JavascriptParser<'parser> {
     &mut self,
     expr: Expr,
     allowed_types: AllowedMemberTypes,
-  ) -> Option<MemberExpressionInfo> {
+  ) -> Option<MemberExpressionInfo<'parser>> {
     let expr_ref = ExprRef::from_expr(self.ast.ast, expr);
     match expr_ref {
       ExprRef::Member(_) | ExprRef::OptChain(_) => {
@@ -1322,7 +1472,7 @@ impl<'parser> JavascriptParser<'parser> {
     &mut self,
     expr: ExprRef,
     allowed_types: AllowedMemberTypes,
-  ) -> Option<MemberExpressionInfo> {
+  ) -> Option<MemberExpressionInfo<'parser>> {
     let RawExtractedMemberExpressionChainData { object, members } =
       self.extract_member_expression_chain_raw(expr);
     self._get_member_expression_info(object, members, allowed_types)
@@ -1331,15 +1481,12 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn extract_member_expression_chain(
     &self,
     expr: ExprRef,
-  ) -> ExtractedMemberExpressionChainData {
+  ) -> ExtractedMemberExpressionChainData<'parser> {
     let RawExtractedMemberExpressionChainData { object, members } =
       self.extract_member_expression_chain_raw(expr);
-    let (members, members_optionals, member_ranges) = materialize_members(self.ast.ast, members);
     ExtractedMemberExpressionChainData {
       object,
-      members,
-      members_optionals,
-      member_ranges,
+      members: MemberPath::new(self.ast.ast, members),
     }
   }
 

@@ -344,9 +344,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     _parser: &mut JavascriptParser<'p>,
     _expr: HookMemberExpression,
     _for_name: &str,
-    _members: &[Atom],
-    _members_optionals: &[bool],
-    _member_ranges: &[Span],
+    _members: &crate::visitors::MemberPathView<'_, '_>,
   ) -> Option<bool> {
     None
   }
@@ -365,10 +363,9 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     &self,
     _parser: &mut JavascriptParser<'p>,
     _member_expr: MemberExpression,
-    _callee_members: &[Atom],
+    _callee_members: &crate::visitors::MemberPathView<'_, '_>,
     _call_expr: CallExpression,
-    _members: &[Atom],
-    _member_ranges: &[Span],
+    _members: &crate::visitors::MemberPathView<'_, '_>,
     _for_name: &str,
   ) -> Option<bool> {
     None
@@ -379,10 +376,9 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     &self,
     _parser: &mut JavascriptParser<'p>,
     _call_expr: CallExpression,
-    _callee_members: &[Atom],
+    _callee_members: &crate::visitors::MemberPathView<'_, '_>,
     _inner_call_expr: CallExpression,
-    _members: &[Atom],
-    _member_ranges: &[Span],
+    _members: &crate::visitors::MemberPathView<'_, '_>,
     _for_name: &str,
   ) -> Option<bool> {
     None
@@ -505,8 +501,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     &self,
     _parser: &mut JavascriptParser<'p>,
     _expr: AssignmentExpression,
-    _members: &[Atom],
-    _member_ranges: &[Span],
+    _members: &crate::visitors::MemberPathView<'_, '_>,
     _for_name: &str,
   ) -> Option<bool> {
     None

@@ -182,19 +182,10 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
     parser: &mut JavascriptParser<'p>,
     expr: HookMemberExpression,
     for_name: &str,
-    members: &[Atom],
-    members_optionals: &[bool],
-    member_ranges: &[Span],
+    members: &crate::visitors::MemberPathView<'_, '_>,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::MemberChain) {
-      let res = plugin.member_chain(
-        parser,
-        expr,
-        for_name,
-        members,
-        members_optionals,
-        member_ranges,
-      );
+      let res = plugin.member_chain(parser, expr, for_name, members);
       // `SyncBailHook`
       if res.is_some() {
         return res;
@@ -244,10 +235,9 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
     &self,
     parser: &mut JavascriptParser<'p>,
     member_expr: MemberExpression,
-    callee_members: &[Atom],
+    callee_members: &crate::visitors::MemberPathView<'_, '_>,
     call_expr: CallExpression,
-    members: &[Atom],
-    member_ranges: &[Span],
+    members: &crate::visitors::MemberPathView<'_, '_>,
     for_name: &str,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::MemberChainOfCallMemberChain) {
@@ -257,7 +247,6 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
         callee_members,
         call_expr,
         members,
-        member_ranges,
         for_name,
       );
       // `SyncBailHook`
@@ -272,10 +261,9 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
     &self,
     parser: &mut JavascriptParser<'p>,
     call_expr: CallExpression,
-    callee_members: &[Atom],
+    callee_members: &crate::visitors::MemberPathView<'_, '_>,
     inner_call_expr: CallExpression,
-    members: &[Atom],
-    member_ranges: &[Span],
+    members: &crate::visitors::MemberPathView<'_, '_>,
     for_name: &str,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::CallMemberChainOfCallMemberChain) {
@@ -285,7 +273,6 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
         callee_members,
         inner_call_expr,
         members,
-        member_ranges,
         for_name,
       );
       // `SyncBailHook`
@@ -317,12 +304,11 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
     &self,
     parser: &mut JavascriptParser<'p>,
     expr: AssignmentExpression,
-    members: &[Atom],
-    member_ranges: &[Span],
+    members: &crate::visitors::MemberPathView<'_, '_>,
     for_name: &str,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::AssignMemberChain) {
-      let res = plugin.assign_member_chain(parser, expr, members, member_ranges, for_name);
+      let res = plugin.assign_member_chain(parser, expr, members, for_name);
       // `SyncBailHook`
       if res.is_some() {
         return res;
