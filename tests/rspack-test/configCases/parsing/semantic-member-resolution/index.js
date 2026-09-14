@@ -15,3 +15,29 @@ it('shares await-import member analysis for reads and calls', async () => {
   expect((await import('./value')).nested?.call()).toBe('value');
   expect((await import('./value')).missing?.call()).toBeUndefined();
 });
+
+it('keeps special-root bindings in function, arrow and replacement-AST contexts', () => {
+  (function() {
+    // The IIFE aliases this to require; its arrow must inherit the same alias.
+    const read = () => this('./value').nested.value;
+    expect(read()).toBe('value');
+  }).call(require);
+
+  function readThis() {
+    // DefinePlugin parses this replacement as a separate AST.
+    return THIS_VALUE;
+  }
+  expect(readThis.call({ value: 'receiver' })).toBe('receiver');
+
+  class Receiver {
+    value = 'instance';
+    read = () => this.value;
+  }
+  expect(new Receiver().read()).toBe('instance');
+
+  function Target() {
+    this.target = new.target;
+  }
+  expect(new Target().target).toBe(Target);
+  expect(import.meta.webpack).toBeDefined();
+});
