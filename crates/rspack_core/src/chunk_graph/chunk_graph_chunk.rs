@@ -864,7 +864,7 @@ impl ChunkGraph {
     module_identifier: ModuleIdentifier,
   ) {
     let chunk_graph_module = self.expect_chunk_graph_module_mut(module_identifier);
-    chunk_graph_module.chunks.remove(chunk);
+    chunk_graph_module.entry_in_chunks.remove(chunk);
 
     let chunk_graph_chunk = self.expect_chunk_graph_chunk_mut(*chunk);
     chunk_graph_chunk.entry_modules.remove(&module_identifier);
