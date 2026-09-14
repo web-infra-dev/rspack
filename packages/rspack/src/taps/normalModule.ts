@@ -1,6 +1,6 @@
 import binding from '@rspack/binding';
 import { commitCustomFieldsToRust } from '../BuildInfo';
-import { createLoaderContext, LoaderObject } from '../loader-runner';
+import { createLoaderContext } from '../loader-runner';
 import { LoaderDependenciesState } from '../loader-runner/dependencies';
 import { NormalModule } from '../NormalModule';
 import type { CreatePartialRegisters } from './types';
@@ -16,7 +16,9 @@ export const createNormalModuleHooksRegisters: CreatePartialRegisters<
       ).loader,
     (queried) => (context: binding.JsLoaderContext) => {
       const compiler = getCompiler();
-      const dependencies = new LoaderDependenciesState(context.dependencies);
+      const dependencies = new LoaderDependenciesState(
+        context.state.dependencies,
+      );
       const loaderContext = createLoaderContext(
         compiler,
         context,
@@ -24,13 +26,10 @@ export const createNormalModuleHooksRegisters: CreatePartialRegisters<
       );
       queried.call(loaderContext, loaderContext._module);
       dependencies.mergeChanges();
-      context.loaderItems = loaderContext.loaders.map(
-        LoaderObject.__to_binding,
-      );
       if (compiler.options.cache) {
         commitCustomFieldsToRust(context._module.buildInfo);
       }
-      return context;
+      return { loaderData: context.loaderData, state: context.state };
     },
   ),
 });
