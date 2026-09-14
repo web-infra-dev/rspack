@@ -236,6 +236,8 @@ export default {
 
 Enable parsing of `new URL()` syntax.
 
+To reference bundled JavaScript or CSS modules with `new URL()`, configure [`module.rules[].dependency`](/config/module-rules#rulesdependency) as `'url'` and set the corresponding module `type`.
+
 - `true`: Generate absolute URLs that include the root URL (default behavior).
 - `'relative'`: Generate relative URLs without the root URL.
 - `'new-url-relative'`: Generate static relative URLs that are replaced at compile-time with the correct public path.
