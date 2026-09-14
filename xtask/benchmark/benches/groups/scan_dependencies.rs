@@ -20,14 +20,14 @@ use rspack_plugin_javascript::{
   parser_and_generator::ParserRuntimeRequirementsData,
   visitors::{
     ParsedJavaScriptAst, ScanDependenciesResult, scan_dependencies as run_scan_dependencies,
-    semicolon::InsertedSemicolons,
+    semicolon,
   },
 };
 use rspack_tasks::within_compiler_context_for_testing_sync;
 use rspack_util::swc::RspackComments;
 use rustc_hash::FxHashSet;
 use swc_next_allocator::Allocator;
-use swc_next_ecma_ast::{Lang, SourceType as SwcSourceType, VisitWith};
+use swc_next_ecma_ast::{Lang, SourceType as SwcSourceType};
 use swc_next_ecma_parser::{CommentMode, Options, Parser, TokenParserConfig};
 use swc_next_ecma_semantic::{AnalyzeOptions, analyze};
 
@@ -227,7 +227,7 @@ fn parse_benchmark_program(
   let program = ast.root_program();
 
   let mut semicolons = FxHashSet::default();
-  program.visit_with(&mut InsertedSemicolons::new(ast, &mut semicolons, &tokens));
+  semicolon::collect(ast, &mut semicolons, &tokens);
 
   PreparedScanDependenciesProgram {
     parsed_ast: ParsedJavaScriptAst {
