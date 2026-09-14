@@ -194,6 +194,9 @@ export type TTestConfig = {
 
   // Only valid for Hot tests
   checkSteps?: boolean;
+  // Expected percentages for unchanged NewCache restarts, keyed by cache label.
+  // Unspecified caches are expected to hit 100%.
+  cacheHitRate?: Record<string, number>;
   // Only valid for Watch tests
   ignoreNotFriendlyForIncrementalWarnings?: boolean;
   resourceLoader?: (

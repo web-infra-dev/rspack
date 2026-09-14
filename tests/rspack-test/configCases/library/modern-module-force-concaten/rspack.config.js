@@ -69,7 +69,10 @@ module.exports = {
             path.join(__dirname, '__snapshot__', 'g.js.txt'),
             'harmony export should concat, even with bailout reason',
           );
-          expect(assets['h.js']).toBeDefined();
+          expect(assets['h.js']).toBeUndefined();
+          expect(
+            Object.keys(assets).filter((name) => name.endsWith('.png')),
+          ).toHaveLength(1);
         });
       };
       this.hooks.compilation.tap('testcase', handler);
