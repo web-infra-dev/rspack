@@ -415,11 +415,6 @@ export declare class JsExportsInfo {
   getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
 }
 
-export declare class JsLoaderCache {
-  get(loaderIndex: number, content: string | Uint8Array, existing: JsLoaderDependencies): Promise<JsLoaderCacheEntry | null>
-  store(loaderIndex: number, output: JsLoaderCacheEntry): Promise<void>
-}
-
 export declare class JsModuleGraph {
   getModule(dependency: Dependency): Module | null
   getResolvedModule(dependency: Dependency): Module | null
@@ -964,20 +959,11 @@ export interface JsLinkPreloadData {
   chunk: Chunk
 }
 
-export interface JsLoaderCacheEntry {
-  content: null | string | Uint8Array
-  sourceMap?: Uint8Array
-  addedDependencies: JsLoaderDependencies
-  removedDependencies: JsLoaderDependencies
-  parseMeta: Record<string, string>
-}
-
 export interface JsLoaderContext {
   resource: string
   _module: Module
   hot: Readonly<boolean>
   loaderItems: Array<JsLoaderItem>
-  __internal__loaderCache?: JsLoaderCache | undefined
   state: JsLoaderContextState
 }
 
@@ -986,6 +972,9 @@ export interface JsLoaderContext {
  * The native runner keeps ownership of its LoaderContext throughout.
  */
 export interface JsLoaderContextState {
+  /** Inclusive start and exclusive end of the current JavaScript execution span. */
+  loaderChainStart: number
+  loaderChainEnd: number
   /** The native scheduler controls phase transitions between invocations. */
   loaderState: Readonly<JsLoaderState>
   loaderContextState?: object | undefined
@@ -995,6 +984,8 @@ export interface JsLoaderContextState {
   sourceMap?: Buffer
   cacheable: boolean
   dependencies: JsLoaderDependencies
+  addedDependencies: JsLoaderDependencies
+  removedDependencies: JsLoaderDependencies
   loaderItemStates: Array<JsLoaderItemState>
   loaderIndex: number
   /** Additions from JavaScript, merged into the native typed parse metadata. */

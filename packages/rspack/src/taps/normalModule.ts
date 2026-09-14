@@ -18,6 +18,8 @@ export const createNormalModuleHooksRegisters: CreatePartialRegisters<
       const compiler = getCompiler();
       const dependencies = new LoaderDependenciesState(
         context.state.dependencies,
+        context.state.addedDependencies,
+        context.state.removedDependencies,
       );
       const loaderContext = createLoaderContext(
         compiler,
@@ -29,6 +31,8 @@ export const createNormalModuleHooksRegisters: CreatePartialRegisters<
       if (compiler.options.cache) {
         commitCustomFieldsToRust(context._module.buildInfo);
       }
+      context.state.addedDependencies = dependencies.added;
+      context.state.removedDependencies = dependencies.removed;
       return context.state;
     },
   ),
