@@ -100,7 +100,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireContextDependencyParserPl
         recursive,
         pattern: reg_exp.into(),
         category: DependencyCategory::CommonJS,
-        request: request_expr.string().clone(),
+        request: request_expr.string().to_owned(),
         context: get_context(parser.resource_data).to_string(),
         compiler_context: parser.compiler_options.context.clone(),
         start: expr.span(ast).real_lo(),

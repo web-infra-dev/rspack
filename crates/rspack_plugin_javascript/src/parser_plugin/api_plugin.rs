@@ -588,13 +588,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
         "string"
       };
       Some(eval::evaluate_to_string(
-        value.to_string(),
+        value,
         span.real_lo(),
         span.real_hi(),
       ))
     } else {
       get_typeof_evaluate_of_api(for_name)
-        .map(|res| eval::evaluate_to_string(res.to_string(), span.real_lo(), span.real_hi()))
+        .map(|res| eval::evaluate_to_string(res, span.real_lo(), span.real_hi()))
     }
   }
 
@@ -700,7 +700,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
   ) -> Option<eval::BasicEvaluatedExpression<'p>> {
     if for_name == API_LAYER {
       if let Some(layer) = parser.module_layer {
-        Some(eval::evaluate_to_string(layer.into(), start, end))
+        Some(eval::evaluate_to_string(layer.as_str(), start, end))
       } else {
         Some(eval::evaluate_to_null(start, end))
       }
@@ -953,7 +953,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
         let span = call_expr.span(ast);
         parser.add_dependency(BoxDependency::new(IsIncludeDependency::new(
           (span.real_lo(), span.real_hi()).into(),
-          request.string().clone(),
+          request.string().to_owned(),
         )));
         return Some(true);
       }

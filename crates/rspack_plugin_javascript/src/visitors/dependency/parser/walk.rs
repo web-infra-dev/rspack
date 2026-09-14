@@ -5,7 +5,7 @@ use swc_next_ecma_ast::*;
 
 use super::{
   AllowedMemberTypes, CallHooksName, ExpressionExpressionInfo, JavascriptParser,
-  MemberExpressionInfo, OptionalMembers, PatRef, RootName, ScopeTerminated, TopLevelScope,
+  MemberExpressionInfo, PatRef, RootName, ScopeTerminated, TopLevelScope,
   estree::{
     ClassDeclOrExpr, ExportDefaultDeclaration, MaybeNamedClassDecl, MaybeNamedFunctionDecl,
     Statement, formal_parameter_patterns, formal_parameters_are_simple_identifiers,
@@ -1761,19 +1761,8 @@ impl JavascriptParser<'_> {
       self.evaluate_expression(callee)
     };
     if evaluated_callee.is_identifier() {
-      let members = evaluated_callee.members().map_or(&[][..], Vec::as_slice);
-      let owned_members_optionals;
-      let members_optionals = match evaluated_callee.members_optionals() {
-        Some(members_optionals) => members_optionals.as_slice(),
-        None => {
-          owned_members_optionals =
-            std::iter::repeat_n(false, members.len()).collect::<OptionalMembers>();
-          owned_members_optionals.as_slice()
-        }
-      };
-      let member_ranges = evaluated_callee
-        .member_ranges()
-        .map_or(&[][..], Vec::as_slice);
+      let (members, members_optionals, member_ranges) =
+        evaluated_callee.member_path().unwrap_or((&[], &[], &[]));
       let drive = self.plugin_drive.clone();
       if evaluated_callee
         .root_info()

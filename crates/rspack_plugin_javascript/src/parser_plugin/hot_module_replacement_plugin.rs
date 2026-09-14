@@ -31,20 +31,14 @@ fn extract_deps(
   {
     let expr = parser.evaluate_expression(first_arg);
     if expr.is_string() {
-      dependencies.push(create_dependency(
-        expr.string().as_str().into(),
-        expr.range().into(),
-      ));
+      dependencies.push(create_dependency(expr.string().into(), expr.range().into()));
     } else if expr.is_array() {
       expr
         .items()
         .iter()
         .filter(|item| item.is_string())
         .for_each(|expr| {
-          dependencies.push(create_dependency(
-            expr.string().as_str().into(),
-            expr.range().into(),
-          ));
+          dependencies.push(create_dependency(expr.string().into(), expr.range().into()));
         });
     }
   }
