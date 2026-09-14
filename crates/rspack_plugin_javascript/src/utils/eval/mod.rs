@@ -9,7 +9,7 @@ mod eval_source;
 mod eval_tpl_expr;
 mod eval_unary_expr;
 
-use std::fmt;
+use std::{borrow::Cow, fmt};
 
 use bitflags::bitflags;
 use cow_utils::CowUtils;
@@ -29,7 +29,10 @@ pub use self::{
   eval_tpl_expr::{TemplateStringKind, eval_tagged_tpl_expression, eval_tpl_expression},
   eval_unary_expr::eval_unary_expression,
 };
-use crate::{Atom, visitors::ExportedVariableInfo};
+use crate::{
+  Atom,
+  visitors::{AtomMembers, ExportedVariableInfo, MemberRanges, OptionalMembers},
+};
 
 type Boolean = bool;
 type Number = f64;
@@ -71,9 +74,15 @@ pub(crate) fn parse_bigint_literal(raw: &str) -> Option<BigInt> {
 struct IdentifierData {
   identifier: Atom,
   root_info: ExportedVariableInfo,
-  members: Option<Vec<Atom>>,
-  members_optionals: Option<Vec<bool>>,
-  member_ranges: Option<Vec<Span>>,
+  member_path: Option<MemberPathData>,
+}
+
+/// Keeps short member paths inline when transferring them from the parser.
+#[derive(Debug, Clone)]
+struct MemberPathData {
+  members: AtomMembers,
+  members_optionals: OptionalMembers,
+  member_ranges: MemberRanges,
 }
 
 #[derive(Debug, Clone)]
@@ -85,7 +94,7 @@ struct WrappedData<'a> {
 
 #[derive(Debug, Clone)]
 struct TemplateStringData<'a> {
-  quasis: Vec<BasicEvaluatedExpression<'a>>,
+  // Static quasis occupy the even slots; intervening slots are dynamic expressions.
   parts: Vec<BasicEvaluatedExpression<'a>>,
   kind: TemplateStringKind,
 }
@@ -125,7 +134,8 @@ enum Payload<'a> {
   // Compile time value
   Undefined,
   Null,
-  String(String),
+  // AST-backed strings borrow their storage; computed strings own it.
+  String(Cow<'a, str>),
   Number(Number),
   Boolean(Boolean),
   RegExp(Box<Regexp>),
@@ -168,7 +178,6 @@ pub struct BasicEvaluatedExpression<'a> {
   truthy: bool,
   side_effects: bool,
   nullish: Option<bool>,
-  marker: std::marker::PhantomData<&'a ()>,
 }
 
 impl Default for BasicEvaluatedExpression<'_> {
@@ -187,7 +196,6 @@ impl<'a> BasicEvaluatedExpression<'a> {
       truthy: false,
       side_effects: true,
       nullish: None,
-      marker: std::marker::PhantomData,
     }
   }
 
@@ -330,7 +338,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
     } else if self.is_undefined() {
       Some("undefined".to_string())
     } else if self.is_string() {
-      Some(self.string().clone())
+      Some(self.string().to_owned())
     } else if self.is_number() {
       Some(self.number().to_string())
     } else if self.is_array() {
@@ -484,16 +492,18 @@ impl<'a> BasicEvaluatedExpression<'a> {
     &mut self,
     name: Atom,
     root_info: ExportedVariableInfo,
-    members: Option<Vec<Atom>>,
-    members_optionals: Option<Vec<bool>>,
-    member_ranges: Option<Vec<Span>>,
+    member_path: Option<(AtomMembers, OptionalMembers, MemberRanges)>,
   ) {
     self.payload = Payload::Identifier(Box::new(IdentifierData {
       identifier: name,
       root_info,
-      members,
-      members_optionals,
-      member_ranges,
+      member_path: member_path.map(
+        |(members, members_optionals, member_ranges)| MemberPathData {
+          members,
+          members_optionals,
+          member_ranges,
+        },
+      ),
     }));
     self.side_effects = true;
   }
@@ -514,20 +524,15 @@ impl<'a> BasicEvaluatedExpression<'a> {
 
   pub fn set_template_string(
     &mut self,
-    quasis: Vec<BasicEvaluatedExpression<'a>>,
     parts: Vec<BasicEvaluatedExpression<'a>>,
     kind: TemplateStringKind,
   ) {
     self.side_effects = parts.iter().any(|p| p.side_effects);
-    self.payload = Payload::TemplateString(Box::new(TemplateStringData {
-      quasis,
-      parts,
-      kind,
-    }));
+    self.payload = Payload::TemplateString(Box::new(TemplateStringData { parts, kind }));
   }
 
-  pub fn set_string(&mut self, string: String) {
-    self.payload = Payload::String(string);
+  pub fn set_string(&mut self, string: impl Into<Cow<'a, str>>) {
+    self.payload = Payload::String(string.into());
     self.side_effects = false;
   }
 
@@ -550,7 +555,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
     self.side_effects = true;
   }
 
-  pub fn string(&self) -> &String {
+  pub fn string(&self) -> &str {
     match &self.payload {
       Payload::String(string) => string,
       _ => panic!("make sure string exist"),
@@ -580,26 +585,24 @@ impl<'a> BasicEvaluatedExpression<'a> {
     }
   }
 
-  pub fn members(&self) -> Option<&Vec<Atom>> {
+  pub fn members(&self) -> Option<&AtomMembers> {
     assert!(self.is_identifier());
     match &self.payload {
-      Payload::Identifier(identifier) => identifier.members.as_ref(),
+      Payload::Identifier(identifier) => identifier.member_path.as_ref().map(|path| &path.members),
       _ => panic!("make sure identifier exist"),
     }
   }
 
-  pub fn members_optionals(&self) -> Option<&Vec<bool>> {
+  pub fn member_path(&self) -> Option<(&[Atom], &[bool], &[Span])> {
     assert!(self.is_identifier());
     match &self.payload {
-      Payload::Identifier(identifier) => identifier.members_optionals.as_ref(),
-      _ => panic!("make sure identifier exist"),
-    }
-  }
-
-  pub fn member_ranges(&self) -> Option<&Vec<Span>> {
-    assert!(self.is_identifier());
-    match &self.payload {
-      Payload::Identifier(identifier) => identifier.member_ranges.as_ref(),
+      Payload::Identifier(identifier) => identifier.member_path.as_ref().map(|path| {
+        (
+          path.members.as_slice(),
+          path.members_optionals.as_slice(),
+          path.member_ranges.as_slice(),
+        )
+      }),
       _ => panic!("make sure identifier exist"),
     }
   }
@@ -673,12 +676,10 @@ impl<'a> BasicEvaluatedExpression<'a> {
     }
   }
 
-  pub fn quasis(&self) -> &Vec<BasicEvaluatedExpression<'a>> {
-    assert!(self.is_template_string(),);
-    match &self.payload {
-      Payload::TemplateString(tpl) => &tpl.quasis,
-      _ => panic!("quasis must exists for template string"),
-    }
+  pub fn quasis(
+    &self,
+  ) -> impl DoubleEndedIterator<Item = &BasicEvaluatedExpression<'a>> + ExactSizeIterator {
+    self.parts().iter().step_by(2)
   }
 
   pub fn items(&self) -> &Vec<BasicEvaluatedExpression<'_>> {
@@ -764,7 +765,11 @@ impl<'a> BasicEvaluatedExpression<'a> {
   }
 }
 
-pub fn evaluate_to_string<'a>(value: String, start: u32, end: u32) -> BasicEvaluatedExpression<'a> {
+pub fn evaluate_to_string<'a>(
+  value: impl Into<Cow<'a, str>>,
+  start: u32,
+  end: u32,
+) -> BasicEvaluatedExpression<'a> {
   let mut eval = BasicEvaluatedExpression::with_range(start, end);
   eval.set_string(value);
   eval
@@ -802,13 +807,7 @@ pub fn evaluate_to_identifier<'a>(
   end: u32,
 ) -> BasicEvaluatedExpression<'a> {
   let mut eval = BasicEvaluatedExpression::with_range(start, end);
-  eval.set_identifier(
-    identifier,
-    ExportedVariableInfo::Name(root_info),
-    None,
-    None,
-    None,
-  );
+  eval.set_identifier(identifier, ExportedVariableInfo::Name(root_info), None);
   eval.set_side_effects(false);
   match truthy {
     Some(v) => {

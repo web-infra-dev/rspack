@@ -192,7 +192,7 @@ fn handle_assign_export(
     // this.aaa = require('xx');
     let range: DependencyRange = assign_span.into();
     parser.add_dependency(BoxDependency::new(CommonJsExportRequireDependency::new(
-      arg.string().clone(),
+      arg.string().to_owned(),
       parser.in_try,
       range,
       base,
@@ -569,6 +569,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
 
     let span = expr.span(parser.ast.ast);
     (for_name == "module" || for_name == "exports")
-      .then(|| eval::evaluate_to_string("object".to_string(), span.real_lo(), span.real_hi()))
+      .then(|| eval::evaluate_to_string("object", span.real_lo(), span.real_hi()))
   }
 }
