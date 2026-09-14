@@ -55,7 +55,12 @@ pub fn contextify_source_url(context: &str, source: &str) -> String {
 /// Aligned with webpack's `contextifySourceMap`:
 /// <https://github.com/webpack/webpack/blob/main/lib/NormalModule.js>
 pub fn contextify_source_map(context: &str, source_map: &mut SourceMap<'static>) {
-  let source_root = source_map.source_root().map(str::to_string);
+  // webpack checks `!sourceRoot`, so an empty `sourceRoot` is treated as absent
+  // instead of being joined onto every source as a leading `/`.
+  let source_root = source_map
+    .source_root()
+    .filter(|source_root| !source_root.is_empty())
+    .map(str::to_string);
   let sources: Vec<String> = source_map
     .sources()
     .iter()
