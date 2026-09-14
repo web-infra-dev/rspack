@@ -12,7 +12,7 @@ system-allocator = []
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 rspack_mimalloc = { workspace = true }
 sftrace-setup   = { workspace = true, optional = true }
-tracy-client   = { workspace = true, optional = true }
+tracy-client    = { workspace = true, optional = true }
 
 [lints]
 workspace = true
