@@ -174,6 +174,53 @@ impl JavaScriptParserAndGenerator {
     self.parser_plugins.push(parser_plugin);
   }
 
+  fn source_block(
+    &self,
+    compilation: &Compilation,
+    block_id: &AsyncDependenciesBlockIdentifier,
+    source: &mut TemplateReplaceSource,
+    context: &mut TemplateContext,
+  ) {
+    let module_graph = compilation.get_module_graph();
+    let block = module_graph
+      .block_by_id(block_id)
+      .expect("should have block");
+    //    let block = block_id.expect_get(compilation);
+    block.get_dependencies().iter().for_each(|dependency| {
+      self.source_dependency(compilation, dependency.as_ref(), source, context)
+    });
+    block
+      .get_blocks()
+      .iter()
+      .for_each(|block_id| self.source_block(compilation, block_id, source, context));
+  }
+
+  fn source_dependency(
+    &self,
+    compilation: &Compilation,
+    dependency: &dyn Dependency,
+    source: &mut TemplateReplaceSource,
+    context: &mut TemplateContext,
+  ) {
+    if let Some(dependency) = dependency.as_dependency_code_generation() {
+      if let Some(template) = dependency
+        .dependency_template()
+        .and_then(|template_type| compilation.get_dependency_template(template_type))
+      {
+        template.render(dependency, source, context)
+      } else {
+        panic!(
+          "Can not find dependency template of {:?}",
+          dependency.dependency_template()
+        );
+      }
+    }
+  }
+}
+
+static SOURCE_TYPES: &[SourceType; 1] = &[SourceType::JavaScript];
+
+impl JavaScriptParserAndGenerator {
   fn parse_javascript<'a>(
     &mut self,
     parse_context: ParseContext<'a>,
@@ -353,52 +400,7 @@ impl JavaScriptParserAndGenerator {
       )),
     )
   }
-
-  fn source_block(
-    &self,
-    compilation: &Compilation,
-    block_id: &AsyncDependenciesBlockIdentifier,
-    source: &mut TemplateReplaceSource,
-    context: &mut TemplateContext,
-  ) {
-    let module_graph = compilation.get_module_graph();
-    let block = module_graph
-      .block_by_id(block_id)
-      .expect("should have block");
-    //    let block = block_id.expect_get(compilation);
-    block.get_dependencies().iter().for_each(|dependency| {
-      self.source_dependency(compilation, dependency.as_ref(), source, context)
-    });
-    block
-      .get_blocks()
-      .iter()
-      .for_each(|block_id| self.source_block(compilation, block_id, source, context));
-  }
-
-  fn source_dependency(
-    &self,
-    compilation: &Compilation,
-    dependency: &dyn Dependency,
-    source: &mut TemplateReplaceSource,
-    context: &mut TemplateContext,
-  ) {
-    if let Some(dependency) = dependency.as_dependency_code_generation() {
-      if let Some(template) = dependency
-        .dependency_template()
-        .and_then(|template_type| compilation.get_dependency_template(template_type))
-      {
-        template.render(dependency, source, context)
-      } else {
-        panic!(
-          "Can not find dependency template of {:?}",
-          dependency.dependency_template()
-        );
-      }
-    }
-  }
 }
-
-static SOURCE_TYPES: &[SourceType; 1] = &[SourceType::JavaScript];
 
 #[cacheable_dyn]
 #[async_trait::async_trait]

@@ -298,14 +298,12 @@ impl InnerGraphParserPlugin {
     for (operation, used_by_exports) in
       Self::infer_dependency_usage(state, &deferred_pure_checks_by_symbol)
     {
-      let dep = match operation {
+      let dep_idx = match operation {
         InnerGraphUsageOperation::PureExpression(dep_idx)
         | InnerGraphUsageOperation::ESMImportSpecifier(dep_idx)
-        | InnerGraphUsageOperation::URLDependency(dep_idx) => {
-          dependencies.get_mut(dep_idx).map(|dep| dep.as_mut())
-        }
+        | InnerGraphUsageOperation::URLDependency(dep_idx) => dep_idx,
       };
-      let Some(dep) = dep else {
+      let Some(dep) = dependencies.get_mut(dep_idx) else {
         continue;
       };
       match operation {
