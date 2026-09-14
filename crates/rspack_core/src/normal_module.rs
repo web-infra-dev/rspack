@@ -82,7 +82,6 @@ impl ModuleIssuer {
 
 define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData, fs: &Arc<dyn ReadableFileSystem>) -> Content,tracing=false);
 define_hook!(NormalModuleLoader: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
-define_hook!(NormalModuleLoaderShouldYield: SeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool,tracing=false);
 define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
 define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule),tracing=false);
 define_hook!(NormalModuleAdditionalData: Series(additional_data: &mut Option<&mut AdditionalData>),tracing=false);
@@ -91,7 +90,6 @@ define_hook!(NormalModuleAdditionalData: Series(additional_data: &mut Option<&mu
 pub struct NormalModuleHooks {
   pub read_resource: NormalModuleReadResourceHook,
   pub loader: NormalModuleLoaderHook,
-  pub loader_should_yield: NormalModuleLoaderShouldYieldHook,
   pub loader_yield: NormalModuleLoaderStartYieldingHook,
   pub before_loaders: NormalModuleBeforeLoadersHook,
   pub additional_data: NormalModuleAdditionalDataHook,
@@ -515,12 +513,14 @@ impl Module for NormalModule {
         file_system_info: build_context.file_system_info,
         resolver_factory,
         source_map_kind: self.source_map_kind,
+        loader_context_data: Default::default(),
         module: self,
       },
       fs,
     )
     .instrument(info_span!("NormalModule:run_loaders",))
     .await;
+    drop(loader_result.context.loader_context_data);
     self = loader_result.context.module;
 
     if let Some(err) = err {

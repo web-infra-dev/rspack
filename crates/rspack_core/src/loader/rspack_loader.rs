@@ -68,12 +68,14 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
               .map(|deps| deps.into_iter().map(Into::into).collect())
               .unwrap_or_default();
 
-            // Return the content with source map extracted and file dependencies
-            return Ok(Some((
-              Content::String(extract_result.source),
-              extract_result.source_map,
-              file_deps,
-            )));
+            // Preserve the input type: non-raw JS loaders strip a BOM only from buffers.
+            let content = if content.is_buffer() {
+              Content::Buffer(extract_result.source.into_bytes())
+            } else {
+              Content::String(extract_result.source)
+            };
+
+            return Ok(Some((content, extract_result.source_map, file_deps)));
           }
           Err(e) => {
             // If extraction fails, return original content with empty dependencies
@@ -94,21 +96,6 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
 
     // If no plugin handled it, return None so the default logic can handle it
     Ok(None)
-  }
-
-  async fn should_yield(&self, context: &LoaderContext<Self::Context>) -> Result<bool> {
-    let res = self
-      .plugin_driver
-      .normal_module_hooks
-      .loader_should_yield
-      .call(context)
-      .await?;
-
-    if let Some(res) = res {
-      return Ok(res);
-    }
-
-    Ok(false)
   }
 
   async fn start_yielding(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
