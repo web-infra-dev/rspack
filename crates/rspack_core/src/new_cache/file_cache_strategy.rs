@@ -16,7 +16,7 @@ use super::{
   snapshot::FileSystemInfo,
   validator::{CacheValidator, CacheValidatorResult},
 };
-use crate::{InfrastructureLogger, Logger, cache::CacheCodec, new_cache::db::TurboDatabase};
+use crate::{InfrastructureLogger, Logger, cache::CacheCodec};
 
 const VALIDATOR_KEY: &str = "validator";
 
@@ -43,7 +43,7 @@ impl PendingWrites {
 }
 
 struct State {
-  database: Box<dyn Database>,
+  database: Database,
   pending_writes: PendingWrites,
 }
 
@@ -94,7 +94,7 @@ impl FileCacheStrategy {
   }
 
   pub async fn db_init(&self, (base_path, path): (Utf8PathBuf, Utf8PathBuf)) {
-    fn set_initialized(strategy: &FileCacheStrategy, database: Box<dyn Database>) {
+    fn set_initialized(strategy: &FileCacheStrategy, database: Database) {
       strategy
         .state
         .set(RwLock::new(Some(State {
@@ -105,8 +105,8 @@ impl FileCacheStrategy {
     }
 
     let start = self.logger.time("open cache database");
-    let mut database = match TurboDatabase::open(base_path, path, self.readonly) {
-      Ok(database) => Box::new(database) as Box<dyn Database>,
+    let mut database = match Database::open(base_path, path, self.readonly) {
+      Ok(database) => database,
       Err(error) => {
         self.session_unavailable(Some(&error));
         return;
@@ -120,7 +120,7 @@ impl FileCacheStrategy {
     }
 
     let start = self.logger.time("validate cache database");
-    if let Err(e) = self.db_validate(&mut *database).await {
+    if let Err(e) = self.db_validate(&mut database).await {
       self.shutdown_database(database);
       self.session_unavailable(Some(&e));
       return;
@@ -130,7 +130,7 @@ impl FileCacheStrategy {
     set_initialized(self, database);
   }
 
-  async fn db_validate(&self, database: &mut dyn Database) -> Result<()> {
+  async fn db_validate(&self, database: &mut Database) -> Result<()> {
     let data = database.get(DatabaseFamily::Validator, &CacheKey::new(VALIDATOR_KEY))?;
     let validation = self.validator.validate(data.as_deref()).await?;
     match validation {
@@ -220,7 +220,7 @@ impl FileCacheStrategy {
     self.unavailable.notify_one();
   }
 
-  fn shutdown_database(&self, database: Box<dyn Database>) {
+  fn shutdown_database(&self, database: Database) {
     if let Err(error) = database.shutdown() {
       self
         .logger
@@ -328,50 +328,52 @@ impl FileCacheStrategy {
       self.logger.log("Storing cache...");
       let start = self.logger.time("store cache");
       let codec = &self.codec;
-      let mut writes;
-      let new_build_dependencies;
-      {
+
+      let (entries, new_build_dependencies) = {
         let mut state = self.write_state();
         let Some(state) = state.as_mut() else {
           return Ok(());
         };
+        (
+          std::mem::take(&mut state.pending_writes.entries),
+          state.pending_writes.new_build_dependencies().take(),
+        )
+      };
 
-        writes = std::mem::take(&mut state.pending_writes.entries)
-          .into_par_iter()
-          .filter_map(
-            |(key, pending)| match (pending.encoder)(&pending.entry, codec) {
-              Ok(value) => Some((DatabaseFamily::Cache, key, value)),
-              Err(error) => {
-                self.logger.warn(format!(
-                  "Failed to encode cache entry for key {key}: {error}"
-                ));
-                None
-              }
-            },
+      let validator = if let Some(dependencies) = new_build_dependencies {
+        self.validator.update(dependencies).await?
+      } else {
+        None
+      };
+
+      let writes = entries
+        .into_par_iter()
+        .filter_map(
+          |(key, pending)| match (pending.encoder)(&pending.entry, codec) {
+            Ok(value) => Some((DatabaseFamily::Cache, key, value)),
+            Err(error) => {
+              self.logger.warn(format!(
+                "Failed to encode cache entry for key {key}: {error}"
+              ));
+              None
+            }
+          },
+        )
+        .chain(validator.into_par_iter().map(|validator| {
+          (
+            DatabaseFamily::Validator,
+            CacheKey::from(VALIDATOR_KEY),
+            validator,
           )
-          .collect::<Vec<_>>();
+        }));
 
-        new_build_dependencies = state.pending_writes.new_build_dependencies().take();
-      }
-
-      if let Some(dependencies) = new_build_dependencies
-        && let Some(validator) = self.validator.update(dependencies).await?
-      {
-        writes.push((
-          DatabaseFamily::Validator,
-          CacheKey::from(VALIDATOR_KEY),
-          validator,
-        ));
-      }
-
-      let writes_len = writes.len();
-      if writes_len > 0 {
+      let writes_len = {
         let state = self.read_state();
         let Some(state) = state.as_ref() else {
           return Ok(());
         };
-        state.database.write_batch(writes)?;
-      }
+        state.database.write_batch(writes)?
+      };
       self.logger.time_end(start);
 
       self
