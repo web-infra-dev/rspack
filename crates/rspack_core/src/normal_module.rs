@@ -28,7 +28,7 @@ use serde_json::json;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
+  BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
   CodeGenerationResultBuilder, Compilation, ConnectionState, Context, DependenciesBlock,
   DependenciesBlockData, DependencyCodeGenerationRef, DependencyId, FactoryMeta, FactoryMetaStore,
   FreezeLock, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
@@ -467,7 +467,7 @@ impl Module for NormalModule {
     mut self: Box<Self>,
     build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
-  ) -> Result<BoxModule> {
+  ) -> Result<BuildResult> {
     self.dependencies_block = Default::default();
     self.force_build = false;
     self.build_info.get_mut().snapshot = None;
@@ -545,7 +545,7 @@ impl Module for NormalModule {
         &build_context.compiler_options.output,
         &self.build_meta.read(),
       ));
-      return Ok(BoxModule::new(self));
+      return Ok(BoxModule::new(self).into());
     };
 
     build_context
@@ -590,12 +590,14 @@ impl Module for NormalModule {
         &self.build_meta.read(),
       ));
 
-      return Ok(BoxModule::new(self));
+      return Ok(BoxModule::new(self).into());
     }
 
     let factory_meta = self.factory_meta.get();
     let (
       ParseResult {
+        modules,
+        module_connections,
         source,
         dependencies,
         blocks,
@@ -662,10 +664,14 @@ impl Module for NormalModule {
       &self.build_meta.read(),
     ));
 
-    Ok(BoxModule::new(self).with_dependencies(
-      dependencies.into_iter().map(Into::into).collect(),
-      blocks.into_iter().map(Into::into).collect(),
-    ))
+    Ok(BuildResult {
+      module: BoxModule::new(self).with_dependencies(
+        dependencies.into_iter().map(Into::into).collect(),
+        blocks.into_iter().map(Into::into).collect(),
+      ),
+      modules,
+      module_connections,
+    })
   }
 
   // #[tracing::instrument("NormalModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]

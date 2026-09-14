@@ -4,6 +4,7 @@ const rspack = require('@rspack/core');
 
 let issuerBuilds = 0;
 let issuerCacheHits = 0;
+let targetFactorizations = 0;
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
@@ -12,6 +13,7 @@ module.exports = {
   options(context) {
     issuerBuilds = 0;
     issuerCacheHits = 0;
+    targetFactorizations = 0;
     const root = context.getDist('src');
     fs.mkdirSync(root, { recursive: true });
     fs.writeFileSync(
@@ -56,7 +58,13 @@ module.exports = {
         (compiler) => {
           compiler.hooks.compilation.tap(
             'CheckUrlProbeCache',
-            (compilation) => {
+            (compilation, { normalModuleFactory }) => {
+              normalModuleFactory.hooks.beforeResolve.tap(
+                'CheckUrlProbeCache',
+                ({ request }) => {
+                  if (request === './target') targetFactorizations++;
+                },
+              );
               compilation.hooks.buildModule.tap(
                 'CheckUrlProbeCache',
                 (module) => {
@@ -104,6 +112,7 @@ module.exports = {
           );
         });
         expect(stats.hasErrors()).toBe(false);
+        expect(targetFactorizations).toBe(step + 1);
         const compilation = stats.compilation;
         const issuer = [...compilation.modules].find(
           (module) => module.rawRequest === './index.js',

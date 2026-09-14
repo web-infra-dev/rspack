@@ -1,7 +1,8 @@
 use concat_string::concat_string;
 use rspack_core::{
-  AsyncDependenciesBlock, DependencyRef, EntryOptions, GroupOptions, ModuleDependency,
-  ModuleFactoryCreateData, ModuleType, ParseContext, ParseResult,
+  AsyncDependenciesBlock, DependencyRef, EntryOptions, FactorizeInfo, GroupOptions,
+  ModuleDependency, ModuleFactoryCreateData, ModuleType, ParseContext, ParseResult,
+  ParsedModuleConnection,
 };
 use rspack_hash::{HashDigest, RspackHash, RspackHasher};
 use rspack_util::identifier::split_at_query_mark;
@@ -43,37 +44,47 @@ pub(super) async fn promote_url_dependencies(
       Some(context.module_identifier),
       context.module_layer.cloned(),
     );
-    // The probe does not build or retain the target module. Its resolution inputs
-    // belong to the issuer too, since its dependency layout depends on the result.
+    // Resolution inputs also belong to the issuer: its dependency layout depends
+    // on the target type even when the issuer is restored from the module cache.
     let factory_result = factory.create(&mut create_data).await;
     context
       .build_info
       .dependencies
       .file
-      .extend(create_data.file_dependencies);
+      .extend(create_data.file_dependencies.iter().cloned());
     context
       .build_info
       .dependencies
       .context
-      .extend(create_data.context_dependencies);
+      .extend(create_data.context_dependencies.iter().cloned());
     context
       .build_info
       .dependencies
       .missing
-      .extend(create_data.missing_dependencies);
+      .extend(create_data.missing_dependencies.iter().cloned());
     // Let normal factorization report failures with its usual diagnostics and
     // bail behavior, instead of turning a failed probe into an issuer build error.
-    let promote = factory_result
-      .ok()
-      .and_then(|result| result.module)
-      .is_some_and(|module| {
-        !is_url_value_module(module.as_ref())
-          && (module.module_type().is_js_like()
-            || matches!(
-              module.module_type(),
-              ModuleType::Css | ModuleType::CssAuto | ModuleType::CssModule
-            ))
-      });
+    let Some(module) = factory_result.ok().and_then(|result| result.module) else {
+      result.dependencies.push(dependency);
+      continue;
+    };
+    let promote = !is_url_value_module(module.as_ref())
+      && (module.module_type().is_js_like()
+        || matches!(
+          module.module_type(),
+          ModuleType::Css | ModuleType::CssAuto | ModuleType::CssModule
+        ));
+    result.module_connections.push(ParsedModuleConnection {
+      module_identifier: module.identifier(),
+      factorize_info: FactorizeInfo::new(
+        create_data.diagnostics,
+        vec![*dependency.id()],
+        create_data.file_dependencies,
+        create_data.context_dependencies,
+        create_data.missing_dependencies,
+      ),
+    });
+    result.modules.push(module);
     if !promote {
       result.dependencies.push(dependency);
       continue;

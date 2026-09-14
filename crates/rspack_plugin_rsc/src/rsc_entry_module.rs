@@ -9,11 +9,11 @@ use rspack_cacheable::{
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildMetaExportsType, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock,
-  DependenciesBlockData, DependencyRange, FactoryMetaStore, FreezeLock, ImportPhase,
-  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer,
-  ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
-  impl_source_map_config, module_update_hash,
+  BuildMetaExportsType, BuildResult, CodeGenerationResultBuilder, Compilation, Context,
+  DependenciesBlock, DependenciesBlockData, DependencyRange, FactoryMetaStore, FreezeLock,
+  ImportPhase, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier,
+  ModuleLayer, ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType, contextify,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -239,7 +239,7 @@ impl Module for RscEntryModule {
     mut self: Box<Self>,
     _build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
-  ) -> Result<BoxModule> {
+  ) -> Result<BuildResult> {
     if self.is_server_side_rendering {
       // Eager: no code-split points; use ImportEagerDependency (CSS filtering done at call site).
       let all_client_modules = self.all_client_modules();
@@ -259,7 +259,8 @@ impl Module for RscEntryModule {
       }
       Ok(
         BoxModule::new(self)
-          .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![]),
+          .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![])
+          .into(),
       )
     } else {
       // Non-eager: code-split points; use AsyncDependenciesBlock + ClientReferenceDependency.
@@ -360,10 +361,14 @@ impl Module for RscEntryModule {
         blocks.push(Box::new(block));
       }
 
-      Ok(BoxModule::new(self).with_dependencies(
-        dependencies.into_iter().map(Into::into).collect(),
-        blocks.into_iter().map(Into::into).collect(),
-      ))
+      Ok(
+        BoxModule::new(self)
+          .with_dependencies(
+            dependencies.into_iter().map(Into::into).collect(),
+            blocks.into_iter().map(Into::into).collect(),
+          )
+          .into(),
+      )
     }
   }
 

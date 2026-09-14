@@ -200,8 +200,8 @@ pub fn impl_runtime_module(
         self: Box<Self>,
         _build_context: ::std::sync::Arc<::rspack_core::BuildContext>,
         _compilation: Option<&::rspack_core::Compilation>,
-      ) -> ::rspack_error::Result<::rspack_core::BoxModule> {
-        Ok(::rspack_core::BoxModule::new(self))
+      ) -> ::rspack_error::Result<::rspack_core::BuildResult> {
+        Ok(::rspack_core::BoxModule::new(self).into())
       }
     }
 

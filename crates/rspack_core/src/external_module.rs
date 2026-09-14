@@ -11,7 +11,7 @@ use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
 use crate::{
-  BoxModule, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, ChunkGraph,
+  BoxModule, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGraph,
   ChunkInitFragments, ChunkUkey, CodeGenerationDataChunkInitFragments, CodeGenerationDataUrl,
   CodeGenerationResultBuilder, Compilation, ConcatenationScope, Context, CssLayer,
   CssModuleRenderCondition, DependenciesBlock, DependenciesBlockData, DependencyRef,
@@ -1153,7 +1153,7 @@ impl Module for ExternalModule {
     mut self: Box<Self>,
     build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
-  ) -> Result<BoxModule> {
+  ) -> Result<BuildResult> {
     self.build_info.get_mut().module = build_context.compiler_options.output.module;
     let resolved_external_type = self.resolve_external_type();
     let request = match &self.request {
@@ -1197,13 +1197,17 @@ impl Module for ExternalModule {
       _ => {}
     }
     self.build_meta.get_mut().set_exports_type(exports_type);
-    Ok(BoxModule::new(self).with_dependencies(
-      vec![DependencyRef::new(StaticExportsDependency::new(
-        StaticExportsSpec::True,
-        can_mangle,
-      ))],
-      Vec::new(),
-    ))
+    Ok(
+      BoxModule::new(self)
+        .with_dependencies(
+          vec![DependencyRef::new(StaticExportsDependency::new(
+            StaticExportsSpec::True,
+            can_mangle,
+          ))],
+          Vec::new(),
+        )
+        .into(),
+    )
   }
 
   // #[tracing::instrument("ExternalModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]

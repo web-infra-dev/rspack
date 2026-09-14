@@ -1,14 +1,17 @@
 use std::sync::Arc;
 
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Result;
+use rustc_hash::FxHashSet;
 
 use super::{
   TaskContext,
   build::{BuildResultTask, BuildTask, ModuleBuildResult},
   lazy::process_unlazy_dependencies,
+  process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  BoxModule, BuildContext, DependencyRef, ModuleIdentifier,
+  BoxModule, BuildContext, DependencyRef, ModuleIdentifier, ParsedModuleConnection,
   compilation::build_module_graph::ForwardedIdSet,
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -178,4 +181,81 @@ fn set_resolved_module(
     module_graph.add_dependency_ref(dependency);
   }
   Ok(())
+}
+
+/// Prepares AddTasks for parser-created modules and removes their connections
+/// from the dependencies that still need factorization.
+pub(super) fn add_parsed_modules(
+  context: &mut TaskContext,
+  modules: Vec<BoxModule>,
+  module_connections: Vec<ParsedModuleConnection>,
+  process_dependencies: &mut ProcessDependenciesTask,
+) -> Vec<Box<dyn Task<TaskContext>>> {
+  let issuer = process_dependencies.original_module_identifier;
+  let dependencies_to_process = process_dependencies
+    .dependencies
+    .iter()
+    .copied()
+    .collect::<FxHashSet<_>>();
+  let mut resolved_dependencies = FxHashSet::default();
+  let mut dependencies_by_module: IdentifierMap<Vec<DependencyRef>> = IdentifierMap::default();
+  let mut connected_modules = IdentifierSet::default();
+  let mut modules_by_identifier = IdentifierMap::default();
+  for module in modules {
+    modules_by_identifier
+      .entry(module.identifier())
+      .or_insert(module);
+  }
+
+  for ParsedModuleConnection {
+    module_identifier,
+    factorize_info,
+  } in module_connections
+  {
+    connected_modules.insert(module_identifier);
+    // Lazy dependencies are processed later, without retaining parser-created modules.
+    if !modules_by_identifier.contains_key(&module_identifier)
+      || !factorize_info
+        .related_dep_ids()
+        .iter()
+        .all(|id| dependencies_to_process.contains(id))
+    {
+      continue;
+    }
+    let dependencies = dependencies_by_module.entry(module_identifier).or_default();
+    for id in factorize_info.related_dep_ids() {
+      resolved_dependencies.insert(*id);
+      context.artifact.affected_dependencies.mark_as_add(id);
+      dependencies.push(
+        context
+          .artifact
+          .module_graph
+          .dependency_ref_by_id(id)
+          .clone(),
+      );
+    }
+    context.artifact.record_factorization(factorize_info);
+  }
+
+  let mut tasks: Vec<Box<dyn Task<TaskContext>>> = vec![];
+  for (module_identifier, module) in modules_by_identifier {
+    let dependencies = dependencies_by_module.remove(&module_identifier);
+    if dependencies.is_none() && connected_modules.contains(&module_identifier) {
+      continue;
+    }
+    let mut module_graph_module = ModuleGraphModule::new(module_identifier);
+    module_graph_module.set_issuer_if_unset(Some(issuer));
+    tasks.push(Box::new(AddTask {
+      build_context: context.build_context.clone(),
+      original_module_identifier: Some(issuer),
+      module,
+      module_graph_module: Box::new(module_graph_module),
+      dependencies: dependencies.unwrap_or_default(),
+      from_unlazy: false,
+    }));
+  }
+  process_dependencies
+    .dependencies
+    .retain(|id| !resolved_dependencies.contains(id));
+  tasks
 }
