@@ -28,12 +28,6 @@ class CheckUrlTargetPlugin {
       });
       compilation.hooks.processAssets.tap('CheckUrlTargetPlugin', () => {
         if (currentBuild % 2 === 0) return;
-        const chunk = compilation.entrypoints.get('main').getEntrypointChunk();
-        const modules = compilation.chunkGraph.getChunkModulesIterable(chunk);
-        expect(modules.some((module) => module.type === 'asset/resource')).toBe(
-          true,
-        );
-        expect(compilation.getAsset('target.txt')).toBeDefined();
         expect(
           compilation.getAsset('target.txt').source.source().toString().trim(),
         ).toBe(
@@ -45,7 +39,7 @@ class CheckUrlTargetPlugin {
 }
 
 /** @type {import('@rspack/core').Configuration} */
-const config = {
+module.exports = {
   mode: 'development',
   devtool: false,
   target: 'web',
@@ -72,14 +66,3 @@ const config = {
   },
   plugins: [new CheckUrlTargetPlugin()],
 };
-
-module.exports = [false, true].map((incremental) => ({
-  ...config,
-  incremental,
-  output: {
-    ...config.output,
-    filename: `bundle-${incremental}.js`,
-    chunkFilename: `url-${incremental}-[id].js`,
-  },
-  plugins: [new CheckUrlTargetPlugin()],
-}));

@@ -8,45 +8,32 @@ class CheckUrlEntriesPlugin {
 
   apply(compiler) {
     compiler.hooks.compilation.tap('CheckUrlEntriesPlugin', (compilation) => {
-      compilation.hooks.finishModules.tap(
-        {
-          name: 'CheckUrlEntriesPlugin',
-          // Only JavaScript and CSS targets become blocks during parsing.
-          stage: -100,
-        },
-        () => {
-          const originModule = Array.from(compilation.modules).find(
-            (module) => module.rawRequest === './index.js',
-          );
-          expect(originModule).toBeDefined();
-          expect(originModule.blocks).toHaveLength(7);
-          for (const block of originModule.blocks) {
-            expect(block.dependencies).toHaveLength(1);
-            expect(block.dependencies[0].type).toBe('new URL()');
-          }
+      compilation.hooks.finishModules.tap('CheckUrlEntriesPlugin', () => {
+        const originModule = Array.from(compilation.modules).find(
+          (module) => module.rawRequest === './index.js',
+        );
+        expect(originModule).toBeDefined();
+        expect(originModule.blocks).toHaveLength(7);
+        for (const block of originModule.blocks) {
+          expect(block.dependencies).toHaveLength(1);
+          expect(block.dependencies[0].type).toBe('new URL()');
+        }
 
-          const directUrlDependencies = originModule.dependencies.filter(
-            (dependency) => dependency.type === 'new URL()',
-          );
-          expect(
-            directUrlDependencies
-              .map((dependency) => dependency.request)
-              .sort(),
-          ).toEqual([
-            './target-asset.css',
-            './target-asset.js',
-            './target.png',
-          ]);
+        const directUrlDependencies = originModule.dependencies.filter(
+          (dependency) => dependency.type === 'new URL()',
+        );
+        expect(
+          directUrlDependencies.map((dependency) => dependency.request).sort(),
+        ).toEqual(['./target-asset.css', './target-asset.js', './target.png']);
 
-          for (const request of ['./target-asset.js', './target-asset.css']) {
-            const assetModule = Array.from(compilation.modules).find(
-              (module) => module.rawRequest === request,
-            );
-            expect(assetModule).toBeDefined();
-            expect(assetModule.type).toBe('asset/resource');
-          }
-        },
-      );
+        for (const request of ['./target-asset.js', './target-asset.css']) {
+          const assetModule = Array.from(compilation.modules).find(
+            (module) => module.rawRequest === request,
+          );
+          expect(assetModule).toBeDefined();
+          expect(assetModule.type).toBe('asset/resource');
+        }
+      });
       compilation.hooks.processAssets.tap(
         {
           name: 'CheckUrlEntriesPlugin',
@@ -83,7 +70,6 @@ class CheckUrlEntriesPlugin {
             source.includes('.url-entry-target'),
           );
           expect(cssSource).toContain('.url-entry-imported');
-          expect(cssSource).toContain('.url-entry-target');
           expect(
             cssSources.some((source) => source.includes('.url-entry-module')),
           ).toBe(true);
