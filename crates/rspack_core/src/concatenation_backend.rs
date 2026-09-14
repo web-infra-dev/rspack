@@ -592,7 +592,7 @@ fn analyze_identifiers<T>(
     SwcParserOptions {
       source_type,
       lang: if jsx { Lang::Jsx } else { Lang::Js },
-      preserve_parens: false,
+      preserve_parens: true,
       comments: CommentMode::None,
     },
     NoTokenParserConfig,
