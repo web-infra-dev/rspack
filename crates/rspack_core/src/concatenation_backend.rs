@@ -20,7 +20,7 @@ use swc_next_ecma_ast::{
   JsxMemberExpressionObjectData, LabelIdentifier, Lang, ModuleExportNameData, ObjectProperty,
   SourceType as SwcSourceType, Visit, VisitWith,
 };
-use swc_next_ecma_parser::{Options as SwcParserOptions, Parser, TokenParserConfig};
+use swc_next_ecma_parser::{CommentMode, NoTokenParserConfig, Options as SwcParserOptions, Parser};
 use swc_next_ecma_semantic::name_resolver::{JsNameResolver, SymbolNode, resolver};
 
 use crate::{
@@ -615,9 +615,9 @@ fn analyze_identifiers<T>(
       source_type,
       lang: if jsx { Lang::Jsx } else { Lang::Js },
       preserve_parens: false,
-      ..Default::default()
+      comments: CommentMode::None,
     },
-    TokenParserConfig,
+    NoTokenParserConfig,
   )
   .parse();
   if let Some(diagnostic) = parse_return.diagnostics.into_iter().next() {
