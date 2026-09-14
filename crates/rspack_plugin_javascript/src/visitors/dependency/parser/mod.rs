@@ -660,6 +660,7 @@ impl<'parser> JavascriptParser<'parser> {
       InnerGraphParserPlugin::finalize_dependency_usage(
         &mut self.inner_graph,
         &mut self.dependencies,
+        &mut self.blocks,
       );
       // Keep flat indices stable for dependency analysis, then assemble the tree
       // from children to parents while preserving each block's insertion order.
