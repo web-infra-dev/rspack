@@ -255,12 +255,9 @@ async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
       let Some(active_module) = module_graph.module_by_identifier(module_id) else {
         continue;
       };
-      if active_module
-        .downcast_ref::<LazyCompilationProxyModule>()
-        .is_none()
-      {
+      let Some(proxy) = active_module.downcast_ref::<LazyCompilationProxyModule>() else {
         continue;
-      }
+      };
 
       // Drop the proxy only when its sole incoming edge is an entry dep
       // that no longer belongs to any current entry. Any other shape
@@ -283,7 +280,13 @@ async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
         continue;
       }
 
-      to_invalidate.insert(*module_id);
+      // The backend reports every module the client currently keeps alive, so a
+      // proxy that already carries its lazy block needs no rebuild. Rebuilding it
+      // would emit a hot update, which makes the client re-activate and request
+      // another rebuild — an endless loop.
+      if !proxy.is_active() {
+        to_invalidate.insert(*module_id);
+      }
     }
   }
 
