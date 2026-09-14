@@ -295,7 +295,7 @@ const applyExperimentsDefaults = (
   D(experiments, 'buildHttp', undefined);
   if (experiments.buildHttp && typeof experiments.buildHttp === 'object') {
     D(experiments.buildHttp, 'upgrade', false);
-    D(experiments.buildHttp, 'frozen', production);
+    // D(experiments.buildHttp, "frozen", false);
   }
 
   // Enable `useInputFileSystem` will introduce much more fs overheads,  So disable by default.

@@ -3,7 +3,6 @@ module.exports = {
   target: 'web',
   experiments: {
     buildHttp: {
-      frozen: false,
       allowedUris: [
         'not a URL',
         'HTTP://ALLOWED.EXAMPLE:80',

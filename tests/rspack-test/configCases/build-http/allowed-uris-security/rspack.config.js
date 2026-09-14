@@ -3,7 +3,6 @@ module.exports = {
   target: 'web',
   experiments: {
     buildHttp: {
-      frozen: false,
       allowedUris: [
         'http://allowed.example',
         'http://path.example/modules/',
