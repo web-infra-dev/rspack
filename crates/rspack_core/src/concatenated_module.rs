@@ -27,7 +27,7 @@ use rspack_util::{
   source_map::SourceMapKind, swc::join_atom,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_core::common::{Spanned, SyntaxContext};
+use swc_core::common::SyntaxContext;
 
 use crate::{
   BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph, ChunkInitFragments,
@@ -1028,7 +1028,7 @@ impl Module for ConcatenatedModule {
 
             let source = info.source.as_mut().expect("should have source");
             for identifier in refs {
-              let span = identifier.id.span();
+              let span = identifier.span;
               let low = span.real_lo();
               let high = span.real_hi();
               if identifier.shorthand {
@@ -1200,7 +1200,7 @@ impl Module for ConcatenatedModule {
         let build_meta = module.build_meta();
         let mut refs = vec![];
         for reference in info.global_scope_ident.iter() {
-          let name = &reference.id.sym;
+          let name = &reference.name;
           let match_result = ConcatenationScope::match_module_reference(name.as_str());
           if let Some(match_info) = match_result {
             let referenced_info_id = &references_info[match_info.index].0;
@@ -1245,7 +1245,7 @@ impl Module for ConcatenatedModule {
           );
 
           // We assume this should be concatenated module info because previous loop
-          let span = reference_ident.id.span();
+          let span = reference_ident.span;
           let low = span.real_lo();
           let high = span.real_hi();
           // let source = info.source.as_mut().expect("should have source");

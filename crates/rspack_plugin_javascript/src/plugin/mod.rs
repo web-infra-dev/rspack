@@ -1164,7 +1164,7 @@ var {} = {{}};
             {
               acc
                 .all_used_names
-                .extend(idents_with_hash.value.iter().map(|v| Atom::from(&v.id.sym)));
+                .extend(idents_with_hash.value.iter().map(|v| v.name.clone()));
               acc
                 .non_inlined_module_through_idents
                 .extend(idents_with_hash.value.clone());
@@ -1187,12 +1187,12 @@ var {} = {{}};
                       || scope_id != module_scope_id
                       || ident.is_class_expr_with_ident
                     {
-                      acc.all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+                      acc.all_used_names.insert(ident.name.clone());
                     }
 
                     if scope_id == module_scope_id {
-                      acc.all_used_names.insert(Atom::from(ident.id.sym.as_str()));
-                      module_scope_idents.push(Arc::new(ident.to_legacy()));
+                      acc.all_used_names.insert(ident.name.clone());
+                      module_scope_idents.push(Arc::new(ident));
                     }
                   }
 
@@ -1229,8 +1229,7 @@ var {} = {{}};
 
                   for ident in collector_ids {
                     if ident.scope == global_scope_id {
-                      let ident = ident.to_legacy();
-                      acc.all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+                      acc.all_used_names.insert(ident.name.clone());
                       idents_vec.push(ident.clone());
                       acc.non_inlined_module_through_idents.push(ident);
                     }
@@ -1296,7 +1295,7 @@ var {} = {{}};
     for (_ident, info) in inlined_modules_to_info.iter_mut() {
       for module_scope_ident in info.module_scope_idents.iter() {
         for non_inlined_module_through_ident in non_inlined_module_through_idents.iter() {
-          if module_scope_ident.id.sym == non_inlined_module_through_ident.id.sym {
+          if module_scope_ident.name == non_inlined_module_through_ident.name {
             info
               .used_in_non_inlined
               .push(Arc::clone(module_scope_ident));
@@ -1328,10 +1327,7 @@ var {} = {{}};
       let mut binding_to_ref = FxHashMap::<_, Vec<ConcatenatedModuleIdent>>::default();
 
       for module_scope_ident in module_scope_idents.iter() {
-        match binding_to_ref.entry((
-          module_scope_ident.id.sym.clone(),
-          module_scope_ident.id.ctxt,
-        )) {
+        match binding_to_ref.entry((module_scope_ident.name.clone(), module_scope_ident.scope)) {
           Entry::Occupied(mut occ) => {
             occ.get_mut().push(module_scope_ident.deref().clone());
           }
@@ -1345,7 +1341,7 @@ var {} = {{}};
         let name = &id.0;
         let ident_used = !used_in_non_inlined
           .iter()
-          .filter(|v| v.id.sym == *name)
+          .filter(|v| v.name == *name)
           .collect::<Vec<_>>()
           .is_empty();
 
@@ -1356,7 +1352,7 @@ var {} = {{}};
           let new_name = name_allocator.find_new_name(name, &splitted_readable_identifier);
 
           for identifier in refs.iter() {
-            let span = identifier.id.span;
+            let span = identifier.span;
             let low = span.real_lo();
             let high = span.real_hi();
 
