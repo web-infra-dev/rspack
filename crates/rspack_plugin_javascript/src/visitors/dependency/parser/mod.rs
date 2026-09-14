@@ -657,7 +657,6 @@ impl<'parser> JavascriptParser<'parser> {
       InnerGraphParserPlugin::finalize_dependency_usage(
         &mut self.inner_graph,
         &mut self.dependencies,
-        &mut self.blocks,
       );
       Ok(ScanDependenciesResult {
         dependencies: self.dependencies,

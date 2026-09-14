@@ -1790,6 +1790,7 @@ async fn create_concatenated_module(
   let build_result = new_module
     .build(
       Arc::new(rspack_core::BuildContext {
+        dependency_factories: Arc::new(compilation.dependency_factories.clone()),
         compiler_id: compilation.compiler_id(),
         compilation_id: compilation.id(),
         resolver_factory: compilation.resolver_factory.clone(),

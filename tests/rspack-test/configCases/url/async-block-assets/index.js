@@ -5,7 +5,7 @@ const inlineUrl = new URL('./inline.txt', import.meta.url);
 const sourceUrl = new URL('./source.txt', import.meta.url);
 const customUrl = new URL('./custom.txt', import.meta.url);
 
-it('should retain synchronous asset URLs after moving assets out of URL entries', () => {
+it('should retain synchronous asset URLs after probing target module types', () => {
   expect(resourceUrl.pathname).toBe('/path/resource.txt');
   expect(sharedUrl.href).toBe(resourceUrl.href);
   expect(inlineUrl.protocol).toBe('data:');

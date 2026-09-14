@@ -11,7 +11,7 @@ class CheckUrlEntriesPlugin {
       compilation.hooks.finishModules.tap(
         {
           name: 'CheckUrlEntriesPlugin',
-          // Every URL dependency already belongs to a block after parsing.
+          // Only JavaScript and CSS targets become blocks during parsing.
           stage: -100,
         },
         () => {
@@ -19,7 +19,7 @@ class CheckUrlEntriesPlugin {
             (module) => module.rawRequest === './index.js',
           );
           expect(originModule).toBeDefined();
-          expect(originModule.blocks).toHaveLength(10);
+          expect(originModule.blocks).toHaveLength(7);
           for (const block of originModule.blocks) {
             expect(block.dependencies).toHaveLength(1);
             expect(block.dependencies[0].type).toBe('new URL()');
@@ -32,7 +32,11 @@ class CheckUrlEntriesPlugin {
             directUrlDependencies
               .map((dependency) => dependency.request)
               .sort(),
-          ).toEqual([]);
+          ).toEqual([
+            './target-asset.css',
+            './target-asset.js',
+            './target.png',
+          ]);
 
           for (const request of ['./target-asset.js', './target-asset.css']) {
             const assetModule = Array.from(compilation.modules).find(
@@ -51,20 +55,8 @@ class CheckUrlEntriesPlugin {
         () => {
           const compilationAssets = compilation.getAssets();
           const assets = compilationAssets.map((asset) => asset.name);
-          // Ignore the empty URL entries retained by the asset-folding phase.
-          const populatedChunkFiles = new Set(
-            [...compilation.chunks]
-              .filter(
-                (chunk) =>
-                  compilation.chunkGraph.getChunkModulesIterable(chunk).length >
-                  0,
-              )
-              .flatMap((chunk) => [...chunk.files]),
-          );
-          const scriptAssets = assets.filter(
-            (asset) =>
-              populatedChunkFiles.has(asset) &&
-              asset.endsWith(`.${this.scriptExtension}`),
+          const scriptAssets = assets.filter((asset) =>
+            asset.endsWith(`.${this.scriptExtension}`),
           );
           expect(
             scriptAssets.filter((asset) =>
