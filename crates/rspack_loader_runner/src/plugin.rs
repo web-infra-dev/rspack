@@ -6,13 +6,13 @@ use rspack_paths::InternedPathSet;
 use rspack_sources::SourceMap;
 
 use crate::{
-  Loader, LoaderContext,
+  Loader, LoaderContext, LoaderRunnerContext,
   content::{Content, ResourceData},
 };
 
 #[async_trait::async_trait]
 pub trait LoaderRunnerPlugin: Send + Sync {
-  type Context: Send;
+  type Context: LoaderRunnerContext;
 
   fn name(&self) -> &'static str {
     "unknown"
@@ -32,7 +32,7 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     loader: Arc<dyn Loader<Self::Context>>,
   ) -> Result<()> {
     loader.run(context).await?;
-    if !context.current_loader().finish_called() {
+    if !context.current_loader_state().finish_called() {
       context.finish_with_empty();
     }
     Ok(())
