@@ -68,12 +68,14 @@ module.exports = [false, true].flatMap((split) =>
                 );
                 expect(modules).toContain(asset);
               }
-              // The shared issuer retains its parser-created block in the module graph.
+              // Asset URL dependencies stay synchronous after the factory probe.
               const issuer = [...compilation.modules].find(
                 (module) => module.rawRequest === './shared.js',
               );
-              expect(issuer.blocks).toHaveLength(1);
-              expect(issuer.blocks[0].dependencies[0].type).toBe('new URL()');
+              expect(issuer.blocks).toHaveLength(0);
+              expect(
+                issuer.dependencies.some((dep) => dep.type === 'new URL()'),
+              ).toBe(true);
             },
           );
           compilation.hooks.processAssets.tap(

@@ -1,3 +1,5 @@
+mod url;
+
 use std::{
   borrow::Cow,
   sync::{Arc, LazyLock},
@@ -172,67 +174,7 @@ impl JavaScriptParserAndGenerator {
     self.parser_plugins.push(parser_plugin);
   }
 
-  fn source_block(
-    &self,
-    compilation: &Compilation,
-    block_id: &AsyncDependenciesBlockIdentifier,
-    source: &mut TemplateReplaceSource,
-    context: &mut TemplateContext,
-  ) {
-    let module_graph = compilation.get_module_graph();
-    let block = module_graph
-      .block_by_id(block_id)
-      .expect("should have block");
-    //    let block = block_id.expect_get(compilation);
-    block.get_dependencies().iter().for_each(|dependency| {
-      self.source_dependency(compilation, dependency.as_ref(), source, context)
-    });
-    block
-      .get_blocks()
-      .iter()
-      .for_each(|block_id| self.source_block(compilation, block_id, source, context));
-  }
-
-  fn source_dependency(
-    &self,
-    compilation: &Compilation,
-    dependency: &dyn Dependency,
-    source: &mut TemplateReplaceSource,
-    context: &mut TemplateContext,
-  ) {
-    if let Some(dependency) = dependency.as_dependency_code_generation() {
-      if let Some(template) = dependency
-        .dependency_template()
-        .and_then(|template_type| compilation.get_dependency_template(template_type))
-      {
-        template.render(dependency, source, context)
-      } else {
-        panic!(
-          "Can not find dependency template of {:?}",
-          dependency.dependency_template()
-        );
-      }
-    }
-  }
-}
-
-static SOURCE_TYPES: &[SourceType; 1] = &[SourceType::JavaScript];
-
-#[cacheable_dyn]
-#[async_trait::async_trait]
-impl ParserAndGenerator for JavaScriptParserAndGenerator {
-  fn source_types(&self, _module: &dyn Module, _module_graph: &ModuleGraph) -> &[SourceType] {
-    SOURCE_TYPES
-  }
-
-  fn size(&self, module: &dyn Module, _source_type: Option<&SourceType>) -> f64 {
-    module.source().map_or(0, |source| source.size()) as f64
-  }
-
-  #[tracing::instrument("JavaScriptParser:parse", skip_all,fields(
-    resource = parse_context.resource_data.resource()
-  ))]
-  async fn parse<'a>(
+  fn parse_javascript<'a>(
     &mut self,
     parse_context: ParseContext<'a>,
   ) -> Result<TWithDiagnosticArray<ParseResult>> {
@@ -410,6 +352,86 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         loaders,
       )),
     )
+  }
+
+  fn source_block(
+    &self,
+    compilation: &Compilation,
+    block_id: &AsyncDependenciesBlockIdentifier,
+    source: &mut TemplateReplaceSource,
+    context: &mut TemplateContext,
+  ) {
+    let module_graph = compilation.get_module_graph();
+    let block = module_graph
+      .block_by_id(block_id)
+      .expect("should have block");
+    //    let block = block_id.expect_get(compilation);
+    block.get_dependencies().iter().for_each(|dependency| {
+      self.source_dependency(compilation, dependency.as_ref(), source, context)
+    });
+    block
+      .get_blocks()
+      .iter()
+      .for_each(|block_id| self.source_block(compilation, block_id, source, context));
+  }
+
+  fn source_dependency(
+    &self,
+    compilation: &Compilation,
+    dependency: &dyn Dependency,
+    source: &mut TemplateReplaceSource,
+    context: &mut TemplateContext,
+  ) {
+    if let Some(dependency) = dependency.as_dependency_code_generation() {
+      if let Some(template) = dependency
+        .dependency_template()
+        .and_then(|template_type| compilation.get_dependency_template(template_type))
+      {
+        template.render(dependency, source, context)
+      } else {
+        panic!(
+          "Can not find dependency template of {:?}",
+          dependency.dependency_template()
+        );
+      }
+    }
+  }
+}
+
+static SOURCE_TYPES: &[SourceType; 1] = &[SourceType::JavaScript];
+
+#[cacheable_dyn]
+#[async_trait::async_trait]
+impl ParserAndGenerator for JavaScriptParserAndGenerator {
+  fn source_types(&self, _module: &dyn Module, _module_graph: &ModuleGraph) -> &[SourceType] {
+    SOURCE_TYPES
+  }
+
+  fn size(&self, module: &dyn Module, _source_type: Option<&SourceType>) -> f64 {
+    module.source().map_or(0, |source| source.size()) as f64
+  }
+
+  #[tracing::instrument("JavaScriptParser:parse", skip_all, fields(
+    resource = parse_context.resource_data.resource()
+  ))]
+  async fn parse<'a>(
+    &mut self,
+    mut parse_context: ParseContext<'a>,
+  ) -> Result<TWithDiagnosticArray<ParseResult>> {
+    // Keep the AST and allocator in the synchronous scan, outside factory awaits.
+    let (mut result, diagnostics) = self
+      .parse_javascript(ParseContext {
+        source: parse_context.source.clone(),
+        module_resolve_options: parse_context.module_resolve_options.clone(),
+        additional_data: parse_context.additional_data.take(),
+        parse_meta: std::mem::take(&mut parse_context.parse_meta),
+        build_info: &mut *parse_context.build_info,
+        build_meta: &mut *parse_context.build_meta,
+        ..parse_context
+      })?
+      .split_into_parts();
+    url::promote_url_dependencies(&mut result, &mut parse_context).await;
+    Ok(result.with_diagnostic(diagnostics))
   }
 
   async fn generate(

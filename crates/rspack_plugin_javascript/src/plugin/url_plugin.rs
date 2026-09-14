@@ -2,25 +2,22 @@
 
 use concat_string::concat_string;
 use rspack_core::{
-  ChunkInitFragments, ChunkUkey, CodeGenerationDataFilename, Compilation,
-  CompilationOptimizeChunks, CompilationParams, CompilerCompilation, DependencyId, Filename,
-  ImportMetaKnownProperties, JavascriptParserUrl, Module, ModuleType, NormalModuleFactoryParser,
-  ParserAndGenerator, ParserOptions, PathData, Plugin, PublicPath, RuntimeCodeTemplate,
-  RuntimeGlobals, RuntimeSpec, SourceType, URLStaticMode, get_css_chunk_filename_template,
-  get_js_chunk_filename_template, get_undo_path,
-  incremental::Mutation,
+  ChunkInitFragments, ChunkUkey, CodeGenerationDataFilename, Compilation, CompilationParams,
+  CompilerCompilation, DependencyId, Filename, ImportMetaKnownProperties, JavascriptParserUrl,
+  Module, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData,
+  Plugin, PublicPath, RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, SourceType, URLStaticMode,
+  get_css_chunk_filename_template, get_js_chunk_filename_template, get_undo_path,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rustc_hash::FxHashSet;
 
 use crate::{
   JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
   dependency::{
-    URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE, URLDependency,
-    WORKER_STATIC_URL_PLACEHOLDER, WORKER_STATIC_URL_PLACEHOLDER_RE, WorkerDependency,
-    get_dependency_entry_chunk, is_url_value_module, url_entry_has_js,
+    URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE, WORKER_STATIC_URL_PLACEHOLDER,
+    WORKER_STATIC_URL_PLACEHOLDER_RE, WorkerDependency, get_dependency_entry_chunk,
+    url_entry_has_js,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
 };
@@ -113,85 +110,6 @@ fn parse_placeholder_dependency_id(value: &str) -> DependencyId {
     .parse::<u32>()
     .unwrap_or_else(|_| panic!("should be valid dependency id \"{value}\""))
     .into()
-}
-
-// Restore synchronous asset ownership before SplitChunks applies the user's cache groups.
-#[plugin_hook(CompilationOptimizeChunks for URLPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_BASIC - 1)]
-async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
-  let moves = {
-    let module_graph = compilation.get_module_graph();
-    let artifact = &compilation.build_chunk_graph_artifact;
-    let chunk_graph = &artifact.chunk_graph;
-    artifact
-      .async_entrypoints
-      .iter()
-      .filter_map(|group_ukey| {
-        let group = artifact.chunk_group_by_ukey.expect_get(group_ukey);
-        let chunk = group.get_entrypoint_chunk();
-        let modules = chunk_graph.get_chunk_modules_identifier(&chunk);
-        if modules.is_empty()
-          || !modules.iter().all(|module| {
-            module_graph
-              .module_by_identifier(module)
-              .is_some_and(|module| is_url_value_module(module.as_ref()))
-          })
-        {
-          return None;
-        }
-        let moves = modules
-          .iter()
-          .map(|module| {
-            let mut referencing_chunks = FxHashSet::default();
-            for connection in module_graph.get_incoming_connections(module) {
-              let dependency = module_graph.dependency_by_id(&connection.dependency_id);
-              if !dependency.is::<URLDependency>() {
-                continue;
-              }
-              let Some(block) = module_graph.get_parent_block(&connection.dependency_id) else {
-                continue;
-              };
-              if chunk_graph
-                .get_block_chunk_group(block, &artifact.chunk_group_by_ukey)
-                .is_none_or(|group| group.ukey != *group_ukey)
-              {
-                continue;
-              }
-              if let Some(origin) = connection.original_module_identifier {
-                referencing_chunks.extend(
-                  chunk_graph
-                    .get_module_chunks(origin)
-                    .iter()
-                    .copied()
-                    .filter(|origin_chunk| *origin_chunk != chunk),
-                );
-              }
-            }
-            (!referencing_chunks.is_empty()).then_some((*module, referencing_chunks))
-          })
-          .collect::<Option<Vec<_>>>()?;
-        Some((chunk, moves))
-      })
-      .collect::<Vec<_>>()
-  };
-
-  for (chunk, modules) in moves {
-    for (module, referencing_chunks) in modules {
-      let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
-      chunk_graph.disconnect_chunk_and_entry_module(&chunk, module);
-      chunk_graph.disconnect_chunk_and_module(&chunk, module);
-      for referencing_chunk in referencing_chunks {
-        chunk_graph.connect_chunk_and_module(referencing_chunk, module);
-        if let Some(mut mutations) = compilation.incremental.mutations_write() {
-          mutations.add(Mutation::ChunkSplit {
-            from: chunk,
-            to: referencing_chunk,
-          });
-        }
-      }
-    }
-  }
-  // Empty async entries are intentionally retained for now.
-  Ok(None)
 }
 
 fn is_relative_public_path(public_path: &str) -> bool {
@@ -368,10 +286,6 @@ impl Plugin for URLPlugin {
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
-    ctx
-      .compilation_hooks
-      .optimize_chunks
-      .tap(optimize_chunks::new(self));
     ctx
       .normal_module_factory_hooks
       .parser

@@ -8,9 +8,7 @@ class CheckUrlTargetPlugin {
         if (module.rawRequest === './index.js') issuerBuilds++;
       });
       compilation.hooks.finishModules.tap('CheckUrlTargetPlugin', (modules) => {
-        if (compiler.options.incremental !== false) {
-          expect(issuerBuilds).toBe(1);
-        }
+        expect(issuerBuilds).toBe(currentBuild + 1);
         const issuer = [...modules].find(
           (module) => module.rawRequest === './index.js',
         );
@@ -21,8 +19,12 @@ class CheckUrlTargetPlugin {
         expect(compilation.moduleGraph.getModule(dependency).type).toBe(
           currentBuild % 2 === 0 ? 'javascript/auto' : 'asset/resource',
         );
-        expect(issuer.blocks).toHaveLength(1);
-        expect(issuer.blocks[0].dependencies).toHaveLength(1);
+        expect(issuer.blocks).toHaveLength(currentBuild % 2 === 0 ? 1 : 0);
+        if (currentBuild % 2 === 0) {
+          expect(issuer.blocks[0].dependencies).toHaveLength(1);
+        } else {
+          expect(issuer.dependencies).toContain(dependency);
+        }
       });
       compilation.hooks.processAssets.tap('CheckUrlTargetPlugin', () => {
         if (currentBuild % 2 === 0) return;

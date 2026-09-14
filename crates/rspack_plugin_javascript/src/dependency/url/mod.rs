@@ -6,18 +6,20 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation,
   ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
-  DependencyConditionFn, DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ExportsInfoArtifact, JavascriptParserUrl, Module, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleType, RuntimeGlobals, RuntimeSpec,
-  SideEffectsStateArtifact, SourceType, TemplateContext, TemplateReplaceSource, URLStaticMode,
-  UsedByExports,
+  DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, JavascriptParserUrl, Module,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleType,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, TemplateContext,
+  TemplateReplaceSource, URLStaticMode, UsedByExports,
 };
 
 use crate::{Atom, connection_active_used_by_exports, runtime::AUTO_PUBLIC_PATH_PLACEHOLDER};
 
 #[cacheable]
-#[derive(Debug)]
+// Cloned for a factory-only type probe while the parser retains the original dependency.
+#[derive(Debug, Clone)]
 pub struct URLDependency {
+  pub(crate) loc: Option<DependencyLocation>,
   id: DependencyId,
   #[cacheable(with=AsPreset)]
   request: Atom,
@@ -35,6 +37,7 @@ impl URLDependency {
     mode: Option<JavascriptParserUrl>,
   ) -> Self {
     Self {
+      loc: None,
       id: DependencyId::new(),
       request,
       range,
@@ -68,6 +71,10 @@ impl URLDependency {
 impl Dependency for URLDependency {
   fn id(&self) -> &DependencyId {
     &self.id
+  }
+
+  fn loc(&self) -> Option<DependencyLocation> {
+    self.loc.clone()
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -144,16 +151,6 @@ pub(crate) fn get_dependency_entry_chunk(
   compilation: &Compilation,
   dependency_id: &DependencyId,
 ) -> Option<ChunkUkey> {
-  let module_graph = compilation.get_module_graph();
-  if module_graph
-    .dependency_by_id(dependency_id)
-    .is::<URLDependency>()
-    && module_graph
-      .get_module_by_dependency_id(dependency_id)
-      .is_some_and(|module| is_url_value_module(module.as_ref()))
-  {
-    return None;
-  }
   compilation
     .get_module_graph()
     .get_parent_block(dependency_id)
