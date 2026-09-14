@@ -23,7 +23,7 @@ const base = (name, devtool) => ({
   entry: {
     main: {
       import: './index',
-      layer: path.resolve(__dirname, name),
+      layer: 'my-layer',
     },
   },
   context: path.resolve(__dirname, name),

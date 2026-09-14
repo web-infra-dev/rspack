@@ -1,7 +1,8 @@
 use std::borrow::Cow;
 
 use rspack_paths::Utf8Path;
-use rspack_util::identifier::push_absolute_to_request;
+use rspack_sources::SourceMap;
+use rspack_util::identifier::{make_paths_relative, push_absolute_to_request};
 use swc_core::ecma::utils::is_valid_prop_ident;
 
 use crate::BoxLoader;
@@ -29,6 +30,50 @@ pub fn contextify(context: impl AsRef<Utf8Path>, request: &str) -> String {
 
   push_absolute_to_request(context, &request[last..], &mut result);
   result
+}
+
+/// Turns a source path into a `webpack://`-prefixed, context-relative source URL,
+/// as used for the `sources` of module-level source maps.
+///
+/// Aligned with webpack's `contextifySourceUrl`:
+/// <https://github.com/webpack/webpack/blob/main/lib/util/identifier.js>
+pub fn contextify_source_url(context: &str, source: &str) -> String {
+  if source.starts_with("webpack://") {
+    return source.to_string();
+  }
+  let mut result = String::with_capacity("webpack://".len() + context.len() + source.len());
+  result.push_str("webpack://");
+  result.push_str(&make_paths_relative(context, source));
+  result
+}
+
+/// Normalizes a loader-provided source map before it is stored on a module:
+/// path-like fields (`sources`, `sourceRoot`, `file`) are rewritten so that
+/// machine-specific absolute paths (e.g. sandboxed CI worker paths) do not leak
+/// into module hashes, cache keys, or emitted assets.
+///
+/// Aligned with webpack's `contextifySourceMap`:
+/// <https://github.com/webpack/webpack/blob/main/lib/NormalModule.js>
+pub fn contextify_source_map(context: &str, source_map: &mut SourceMap<'static>) {
+  let source_root = source_map.source_root().map(str::to_string);
+  let sources: Vec<String> = source_map
+    .sources()
+    .iter()
+    .map(|source| {
+      let source = match &source_root {
+        None => source.to_string(),
+        Some(source_root) => match (source_root.ends_with('/'), source.starts_with('/')) {
+          (true, true) => format!("{}{source}", &source_root[..source_root.len() - 1]),
+          (true, false) | (false, true) => format!("{source_root}{source}"),
+          (false, false) => format!("{source_root}/{source}"),
+        },
+      };
+      contextify_source_url(context, &source)
+    })
+    .collect();
+  source_map.set_file(Some(Cow::Borrowed("x")));
+  source_map.set_source_root(None);
+  source_map.set_sources(sources);
 }
 
 #[inline]
