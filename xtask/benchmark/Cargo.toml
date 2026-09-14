@@ -13,7 +13,7 @@ rayon     = { workspace = true }
 tokio     = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-rspack_mimalloc = { workspace = true }
+rspack_allocator = { workspace = true }
 
 [dev-dependencies]
 # Make rust analyzer happy
