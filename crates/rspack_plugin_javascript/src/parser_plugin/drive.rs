@@ -591,11 +591,10 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
     parser: &mut JavascriptParser<'p>,
     property: &str,
     expr: CallExpression,
-    param: BasicEvaluatedExpression<'p>,
+    param: &BasicEvaluatedExpression<'p>,
   ) -> Option<BasicEvaluatedExpression<'p>> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::EvaluateCallExpressionMember) {
-      let cloned_param = param.clone();
-      let res = plugin.evaluate_call_expression_member(parser, property, expr, cloned_param);
+      let res = plugin.evaluate_call_expression_member(parser, property, expr, param);
       // `SyncBailHook`
       if res.is_some() {
         return res;

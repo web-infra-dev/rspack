@@ -91,7 +91,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
     if self.walk_data.object_define_record.contains_key(for_name) {
       self.add_value_dependency(parser, for_name);
       return Some(evaluate_to_string(
-        "object".to_string(),
+        "object",
         expr.span(parser.ast.ast).real_lo(),
         expr.span(parser.ast.ast).real_hi(),
       ));

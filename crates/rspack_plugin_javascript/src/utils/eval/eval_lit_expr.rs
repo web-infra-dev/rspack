@@ -1,10 +1,12 @@
+use std::borrow::Cow;
+
 use rspack_util::SpanExt;
 use swc_next_ecma_ast::{Ast, Expr, ExprData, GetSpan};
 
 use super::{BasicEvaluatedExpression, parse_bigint_literal};
 
 #[inline]
-pub fn eval_lit_expr<'a>(ast: &Ast<'_>, expr: Expr) -> Option<BasicEvaluatedExpression<'a>> {
+pub fn eval_lit_expr<'a>(ast: &'a Ast<'_>, expr: Expr) -> Option<BasicEvaluatedExpression<'a>> {
   let span = expr.span(ast);
   let mut result = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
   match ast.expr_data(expr) {
@@ -12,8 +14,8 @@ pub fn eval_lit_expr<'a>(ast: &Ast<'_>, expr: Expr) -> Option<BasicEvaluatedExpr
       let value = ast.get_wtf8(string.value(ast));
       // Skip WTF-8's surrogate scan for valid UTF-8; preserve its lossy fallback otherwise.
       result.set_string(match std::str::from_utf8(value.as_bytes()) {
-        Ok(value) => value.to_owned(),
-        Err(_) => value.to_string_lossy().into_owned(),
+        Ok(value) => Cow::Borrowed(value),
+        Err(_) => value.to_string_lossy(),
       });
     }
     ExprData::RegExpLiteral(regexp) => result.set_regexp(
