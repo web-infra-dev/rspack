@@ -324,10 +324,18 @@ pub struct Compilation {
   ///
   /// Rebuild will include previous compilation data, so persistent cache will not recovery anything
   pub is_rebuild: bool,
+  /// HMR wraps require per module; keep its chunk-loading calls in their scalar form.
+  pub hot_module_replacement_enabled: bool,
   pub compiler_context: Arc<CompilerContext>,
 }
 
 impl Compilation {
+  pub fn chunk_array_loading_enabled(&self) -> bool {
+    self.options.experiments.chunk_array_loading
+      && self.options.mode == crate::Mode::Production
+      && !self.hot_module_replacement_enabled
+  }
+
   pub const OPTIMIZE_CHUNKS_STAGE_BASIC: i32 = -10;
   pub const OPTIMIZE_CHUNKS_STAGE_ADVANCED: i32 = 10;
 
@@ -383,6 +391,7 @@ impl Compilation {
       id: CompilationId::new(),
       compiler_id,
       hot_index: 0,
+      hot_module_replacement_enabled: false,
       runtime_template: RuntimeTemplate::new(options.clone()),
       records,
       options: options.clone(),

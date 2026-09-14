@@ -55,5 +55,6 @@ pub struct Experiments {
   pub defer_import: bool,
   pub source_import: bool,
   pub pure_functions: bool,
+  pub chunk_array_loading: bool,
   pub runtime_mode: RuntimeMode,
 }

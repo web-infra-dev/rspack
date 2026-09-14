@@ -1,0 +1,4 @@
+// All referenced chunks are already included, but array calls still return ordered results.
+<%- define(ENSURE_CHUNK) %> = <%- basicFunction("chunkId, fetchPriority") %> {
+<%- _chunk_array %>	return Promise.resolve();
+};

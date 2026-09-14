@@ -3236,6 +3236,12 @@ export type Experiments = {
    * @default false
    */
   pureFunctions?: boolean;
+
+  /**
+   * Load asynchronous chunk lists with a single ensureChunk array call.
+   * Only takes effect in production mode without HMR. Defaults to false.
+   */
+  chunkArrayLoading?: boolean;
   /**
    * Select runtime proxy context behavior. `webpack` keeps the webpack startup hook,
    * while `rspack` uses `__rspack_context`.

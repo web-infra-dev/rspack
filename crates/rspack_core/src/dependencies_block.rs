@@ -284,6 +284,9 @@ impl AsyncDependenciesBlock {
     runtime: Option<&RuntimeSpec>,
   ) {
     self.group_options.hash(hasher);
+    if compilation.chunk_array_loading_enabled() {
+      "chunk array loading".hash(hasher);
+    }
     if let Some(chunk_group) = compilation
       .build_chunk_graph_artifact
       .chunk_graph

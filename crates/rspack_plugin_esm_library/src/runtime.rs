@@ -1,8 +1,9 @@
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage,
-  RuntimeTemplate, impl_runtime_module,
+  RuntimeTemplate, RuntimeTemplateRenderMode, impl_runtime_module,
 };
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
+use rspack_plugin_runtime::{get_chunk_runtime_requirements, render_ensure_chunk_array};
 use rspack_util::json_stringify_str;
 
 const ESM_CHUNK_LOADING_RUNTIME_MODULE_VARIABLES: &[&str] = &["esmInstalledChunks", "esmChunkMap"];
@@ -76,12 +77,19 @@ impl RuntimeModule for EsmEnsureChunkRuntimeModule {
     Ok(format!(
       r#"{ensure_chunk_handlers_definition} = {{}};
 {ensure_chunk_definition} = function(chunkId, fetchPriority) {{
-	return Promise.all(Object.keys({ensure_chunk_handlers}).reduce(function(promises, key) {{
+{chunk_array}	return Promise.all(Object.keys({ensure_chunk_handlers}).reduce(function(promises, key) {{
 		{ensure_chunk_handlers}[key](chunkId, promises, fetchPriority);
 		return promises;
 	}}, []));
 }};
 "#,
+      chunk_array = render_ensure_chunk_array(
+        context,
+        get_chunk_runtime_requirements(
+          context.compilation,
+          &self.chunk().expect("should have chunk")
+        )
+      ),
       ensure_chunk_definition = context
         .runtime_template
         .render_runtime_global_definition(&RuntimeGlobals::ENSURE_CHUNK),
@@ -95,11 +103,21 @@ impl RuntimeModule for EsmEnsureChunkRuntimeModule {
   }
   fn runtime_requirements(
     &self,
-    _compilation: &Compilation,
+    compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: RuntimeGlobals::REQUIRE_SCOPE | RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
       define: { RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_HANDLERS },
+      force_context: if compilation.runtime_template.render_mode()
+        == RuntimeTemplateRenderMode::Rspack
+        && self.chunk().is_some_and(|chunk| {
+          get_chunk_runtime_requirements(compilation, &chunk)
+            .contains(RuntimeGlobals::HAS_CHUNK_ARRAY)
+        }) {
+        RuntimeGlobals::ENSURE_CHUNK
+      } else {
+        RuntimeGlobals::default()
+      },
       ..Default::default()
     }
   }

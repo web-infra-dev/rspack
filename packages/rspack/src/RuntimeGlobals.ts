@@ -245,6 +245,9 @@ enum RuntimeGlobals {
    */
   hasFetchPriority,
 
+  /** A capability flag for ensureChunk array arguments, not a runtime property. */
+  hasChunkArray,
+
   /**
    * the chunk name of the chunk with the runtime
    */
@@ -614,6 +617,8 @@ function renderRuntimeGlobals(
       return `${scope_name}.tt`;
     case RuntimeGlobals.hasFetchPriority:
       return `has fetch priority`;
+    case RuntimeGlobals.hasChunkArray:
+      return `has chunk array`;
     case RuntimeGlobals.chunkName:
       return `${scope_name}.cn`;
     case RuntimeGlobals.runtimeId:
