@@ -590,14 +590,23 @@ pub fn analyze_program_identifiers(
   source: &str,
   jsx: bool,
 ) -> Result<ConcatenatedModuleIdentifierAnalysis> {
-  analyze_identifiers(source, jsx, SwcSourceType::Unambiguous)
+  analyze_identifiers(source, jsx, SwcSourceType::Unambiguous, |ast, semantic| {
+    let mut identifiers = Vec::new();
+    collect_ident(ast, semantic, |identifier| identifiers.push(identifier));
+    ConcatenatedModuleIdentifierAnalysis {
+      module_ctxt: SyntaxContext::from_u32(semantic.top_level_scope_id().raw()),
+      global_ctxt: SyntaxContext::from_u32(semantic.unresolved_scope_id().raw()),
+      identifiers,
+    }
+  })
 }
 
-fn analyze_identifiers(
+fn analyze_identifiers<T>(
   source: &str,
   jsx: bool,
   source_type: SwcSourceType,
-) -> Result<ConcatenatedModuleIdentifierAnalysis> {
+  analyze: impl FnOnce(&Ast<'_>, &JsNameResolver<'_>) -> T,
+) -> Result<T> {
   let allocator = Allocator::new();
   let parse_return = Parser::init(
     &allocator,
@@ -623,14 +632,7 @@ fn analyze_identifiers(
 
   let ast = parse_return.ast;
   let semantic = resolver(&ast);
-  let module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
-  let global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
-  let identifiers = collect_ident(&ast, &semantic);
-  Ok(ConcatenatedModuleIdentifierAnalysis {
-    module_ctxt,
-    global_ctxt,
-    identifiers,
-  })
+  Ok(analyze(&ast, &semantic))
 }
 
 /// Collects the identifier occurrences needed by concatenated-module renaming.
@@ -638,18 +640,22 @@ fn analyze_identifiers(
 /// over those symbols. This visitor only enumerates the legacy collector's
 /// occurrences and records shorthand/class-expression metadata; all scope
 /// resolution still comes directly from `JsNameResolver`.
-/// The returned records own their strings and spans so SWC Next arena handles
-/// never escape this analysis boundary.
-fn collect_ident(ast: &Ast<'_>, semantic: &JsNameResolver<'_>) -> Vec<NewConcatenatedModuleIdent> {
-  struct IdentCollector<'a, 'semantic> {
+/// Emit occurrences directly to the consumer so module analysis does not need
+/// an intermediate array of owned identifiers.
+fn collect_ident(
+  ast: &Ast<'_>,
+  semantic: &JsNameResolver<'_>,
+  on_ident: impl FnMut(NewConcatenatedModuleIdent),
+) {
+  struct IdentCollector<'a, 'semantic, F> {
     ast: &'a Ast<'a>,
     semantic: &'semantic JsNameResolver<'a>,
-    ids: Vec<NewConcatenatedModuleIdent>,
+    on_ident: F,
     shorthand_binding: Option<BindingIdentifier>,
     skipped_class_expression_binding: Option<BindingIdentifier>,
   }
 
-  impl IdentCollector<'_, '_> {
+  impl<F: FnMut(NewConcatenatedModuleIdent)> IdentCollector<'_, '_, F> {
     fn push(
       &mut self,
       name: &str,
@@ -664,7 +670,7 @@ fn collect_ident(ast: &Ast<'_>, semantic: &JsNameResolver<'_>) -> Vec<NewConcate
         BytePos(span.end.saturating_add(1)),
       );
       let scope = SyntaxContext::from_u32(scope.raw());
-      self.ids.push(NewConcatenatedModuleIdent {
+      (self.on_ident)(NewConcatenatedModuleIdent {
         id: swc_ecma_ast::Ident::new(SwcAtom::from(name), span, scope),
         scope,
         shorthand,
@@ -750,7 +756,7 @@ fn collect_ident(ast: &Ast<'_>, semantic: &JsNameResolver<'_>) -> Vec<NewConcate
     }
   }
 
-  impl<'a> Visit<'a> for IdentCollector<'a, '_> {
+  impl<'a, F: FnMut(NewConcatenatedModuleIdent)> Visit<'a> for IdentCollector<'a, '_, F> {
     fn ast(&self) -> &Ast<'a> {
       self.ast
     }
@@ -837,12 +843,11 @@ fn collect_ident(ast: &Ast<'_>, semantic: &JsNameResolver<'_>) -> Vec<NewConcate
   let mut collector = IdentCollector {
     ast,
     semantic,
-    ids: Vec::new(),
+    on_ident,
     shorthand_binding: None,
     skipped_class_expression_binding: None,
   };
   ast.root_program().visit_with(&mut collector);
-  collector.ids
 }
 
 pub fn analyze_module_scope(
@@ -850,56 +855,40 @@ pub fn analyze_module_scope(
   jsx: bool,
   module_info: &mut ConcatenatedModuleInfo,
 ) -> Result<()> {
-  let analysis = analyze_identifiers(source, jsx, SwcSourceType::Module)?;
-  let identifiers = analysis.identifiers;
-  module_info.module_ctxt = analysis.module_ctxt;
-  module_info.global_ctxt = analysis.global_ctxt;
+  analyze_identifiers(source, jsx, SwcSourceType::Module, |ast, semantic| {
+    module_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
+    module_info.global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
+    module_info.all_used_names.clear();
+    module_info.binding_to_ref.clear();
 
-  module_info.all_used_names.clear();
-  module_info.binding_to_ref.clear();
-  module_info.all_used_names.reserve(identifiers.len());
-  module_info.idents.reserve(identifiers.len());
-  module_info.global_scope_ident.reserve(identifiers.len());
-  module_info.binding_to_ref.reserve(identifiers.len());
+    collect_ident(ast, semantic, |identifier| {
+      let scope = identifier.scope;
+      let name = Atom::from(&identifier.id.sym);
+      let legacy = ConcatenatedModuleIdent {
+        id: identifier.id,
+        shorthand: identifier.shorthand,
+        is_class_expr_with_ident: identifier.is_class_expr_with_ident,
+      };
+      if scope == module_info.global_ctxt {
+        module_info.global_scope_ident.push(legacy.clone());
+      }
+      if scope != module_info.module_ctxt || legacy.is_class_expr_with_ident {
+        module_info.all_used_names.insert(name.clone());
+      }
+      if legacy.is_class_expr_with_ident {
+        return;
+      }
 
-  for identifier in identifiers {
-    let scope = identifier.scope;
-    let is_global = scope == module_info.global_ctxt;
-    let legacy = if is_global {
-      let legacy = identifier.to_legacy();
-      module_info.global_scope_ident.push(legacy.clone());
+      module_info.idents.push(legacy.clone());
       module_info
-        .all_used_names
-        .insert(legacy.id.sym.clone().into());
-      Some(legacy)
-    } else {
-      None
-    };
+        .binding_to_ref
+        .entry((name, scope))
+        .or_default()
+        .push(legacy);
+    });
 
-    if identifier.is_class_expr_with_ident {
-      module_info
-        .all_used_names
-        .insert(Atom::from(identifier.id.sym.as_str()));
-      continue;
-    }
-
-    if scope != module_info.module_ctxt {
-      module_info
-        .all_used_names
-        .insert(Atom::from(identifier.id.sym.as_str()));
-    }
-
-    let legacy = legacy.unwrap_or_else(|| identifier.to_legacy());
-    module_info.idents.push(legacy.clone());
-    module_info
-      .binding_to_ref
-      .entry((legacy.id.sym.clone().into(), legacy.id.ctxt))
-      .or_default()
-      .push(legacy);
-  }
-
-  module_info.has_ast = true;
-  Ok(())
+    module_info.has_ast = true;
+  })
 }
 
 impl<'a> ConcatenationContext<'a> {
