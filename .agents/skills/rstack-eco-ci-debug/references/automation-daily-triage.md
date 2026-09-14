@@ -1,4 +1,4 @@
-# Automation Daily Triage
+# Automation daily triage
 
 Use this reference for recurring Rstack ecosystem CI automation runs and latest-status monitoring tasks.
 
@@ -47,7 +47,7 @@ Resolve the ecosystem set explicitly. Supported values are `rspack`, `rsbuild`, 
     - delivery message id, if any,
     - PR comment links, if any.
 
-## Report Notes
+## Report notes
 
 Start with a compact matrix summary. Every selected ecosystem must appear, including green ecosystems:
 

@@ -973,11 +973,12 @@ export interface JsLoaderCacheEntry {
 }
 
 export interface JsLoaderContext {
+  loaderContextState?: object | undefined
   resource: string
   _module: Module
   hot: Readonly<boolean>
   /** Content maybe empty in pitching stage */
-  content: null | Buffer
+  content: string | Buffer | null
   additionalData?: any
   __internal__parseMeta: Record<string, string>
   sourceMap?: Buffer
@@ -988,11 +989,6 @@ export interface JsLoaderContext {
   loaderState: Readonly<JsLoaderState>
   __internal__error?: RspackError
   __internal__loaderCache?: JsLoaderCache | undefined
-  /**
-   * UTF-8 hint for `content`
-   * - Some(true): `content` is a `UTF-8` encoded sequence
-   */
-  __internal__utf8Hint?: boolean
 }
 
 export interface JsLoaderDependencies {
@@ -2470,6 +2466,7 @@ export interface RawHttpUriPluginOptions {
   lockfileLocation?: string
   cacheLocation?: string
   upgrade: boolean
+  frozen: boolean
   httpClient: (url: string, headers: Record<string, string>) => Promise<JsHttpResponseRaw>
 }
 
@@ -3321,7 +3318,8 @@ export declare enum RegisterJsTapKind {
   RsdoctorPluginChunkGraph = 50,
   RsdoctorPluginModuleIds = 51,
   RsdoctorPluginModuleSources = 52,
-  RsdoctorPluginAssets = 53
+  RsdoctorPluginAssets = 53,
+  NormalModuleLoader = 54
 }
 
 export interface RegisterJsTaps {
@@ -3353,6 +3351,7 @@ export interface RegisterJsTaps {
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilationSealTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationAfterSealTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
+  registerNormalModuleLoaderTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => JsLoaderContext); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
   registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
   registerNormalModuleFactoryResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
