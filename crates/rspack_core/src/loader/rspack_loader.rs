@@ -68,12 +68,14 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
               .map(|deps| deps.into_iter().map(Into::into).collect())
               .unwrap_or_default();
 
-            // Return the content with source map extracted and file dependencies
-            return Ok(Some((
-              Content::String(extract_result.source),
-              extract_result.source_map,
-              file_deps,
-            )));
+            // Preserve the input type: non-raw JS loaders strip a BOM only from buffers.
+            let content = if content.is_buffer() {
+              Content::Buffer(extract_result.source.into_bytes())
+            } else {
+              Content::String(extract_result.source)
+            };
+
+            return Ok(Some((content, extract_result.source_map, file_deps)));
           }
           Err(e) => {
             // If extraction fails, return original content with empty dependencies

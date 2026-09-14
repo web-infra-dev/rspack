@@ -1,4 +1,4 @@
-use napi::{Either, bindgen_prelude::JsValuesTupleIntoVec};
+use napi::bindgen_prelude::{Either3, JsValuesTupleIntoVec};
 use rspack_core::{
   AdditionalData, BUILTIN_LOADER_PREFIX, LoaderContext, NormalModuleLoaderShouldYield,
   NormalModuleLoaderStartYielding, RunnerContext,
@@ -98,22 +98,9 @@ pub(crate) fn merge_loader_context(
   }
 
   let content = match from.content {
-    Either::A(_) => None,
-    Either::B(c) => {
-      // perf: Ignore UTF-8 check when JavaScript passed in an UTF-8 encoded value
-      let content = if let Some(utf8_hint) = from.utf8_hint
-        && utf8_hint
-      {
-        rspack_core::Content::from(
-          // SAFETY: UTF-8 passed from JavaScript loader runner should ensure it does not pass non-UTF-8 encoded sequence when `utf_hint` is set to `true`. This invariant should be followed on the JavaScript side.
-          unsafe { String::from_utf8_unchecked(c.into()) },
-        )
-      } else {
-        rspack_core::Content::from(Into::<Vec<u8>>::into(c))
-      };
-
-      Some(content)
-    }
+    Either3::A(content) => Some(rspack_core::Content::String(content)),
+    Either3::B(content) => Some(rspack_core::Content::Buffer(content.into())),
+    Either3::C(_) => None,
   };
   let source_map = from
     .source_map
