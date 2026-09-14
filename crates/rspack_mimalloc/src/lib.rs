@@ -7,9 +7,9 @@ pub struct MiMalloc;
 
 #[inline]
 fn use_unaligned_api(layout: Layout) -> bool {
-  // The pinned mimalloc v3 build supports alignments up to 16 bytes for ordinary
-  // allocations when the requested alignment does not exceed the size.
-  layout.align() <= 16 && layout.align() <= layout.size()
+  // Mimalloc's ordinary blocks are word aligned. Keep requests whose alignment
+  // exceeds their size on the explicit aligned API as well.
+  layout.align() <= align_of::<usize>() && layout.align() <= layout.size()
 }
 
 // SAFETY: Both paths allocate from the same mimalloc instance. The ordinary
