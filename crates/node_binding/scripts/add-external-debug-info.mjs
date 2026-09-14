@@ -183,7 +183,7 @@ export function addExternalDebugInfo(wasmFile, debugFile) {
 	);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (import.meta.main) {
 	const [, , wasmFile, debugFile] = process.argv;
 
 	if (!wasmFile || !debugFile) {
