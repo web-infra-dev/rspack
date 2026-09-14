@@ -140,7 +140,7 @@ impl Module for TempModule {
 
   async fn build(
     self: Box<Self>,
-    _build_context: BuildContext,
+    _build_context: &BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
     Ok(BoxModule::new(self))

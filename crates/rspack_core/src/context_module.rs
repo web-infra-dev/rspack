@@ -1407,7 +1407,7 @@ impl Module for ContextModule {
 
   async fn build(
     mut self: Box<Self>,
-    _build_context: BuildContext,
+    _build_context: &BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BoxModule> {
     let resolve_dependencies = &self.resolve_dependencies;

@@ -41,6 +41,7 @@ use crate::{
   get_target, value_cache_versions::ValueCacheVersions,
 };
 
+#[derive(Debug)]
 pub struct BuildContext {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
@@ -743,7 +744,7 @@ pub trait Module:
   /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
   async fn build(
     self: Box<Self>,
-    _build_context: BuildContext,
+    _build_context: &BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule>;
 
@@ -1120,7 +1121,7 @@ impl BoxModule {
 
   pub async fn build(
     self,
-    build_context: BuildContext,
+    build_context: &BuildContext,
     compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
     self.0.build(build_context, compilation).await
@@ -1354,7 +1355,7 @@ mod test {
 
         async fn build(
           self: Box<Self>,
-          _build_context: BuildContext,
+          _build_context: &BuildContext,
           _compilation: Option<&Compilation>,
         ) -> Result<BoxModule> {
           unreachable!()

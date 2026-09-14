@@ -198,7 +198,7 @@ pub fn impl_runtime_module(
 
       async fn build(
         self: Box<Self>,
-        _build_context: ::rspack_core::BuildContext,
+        _build_context: &::rspack_core::BuildContext,
         _compilation: Option<&::rspack_core::Compilation>,
       ) -> ::rspack_error::Result<::rspack_core::BoxModule> {
         Ok(::rspack_core::BoxModule::new(self))

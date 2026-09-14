@@ -850,7 +850,8 @@ impl NormalModuleFactory {
             loader: r.to_owned(),
             options: ident.and_then(|ident| {
               data
-                .options
+                .build_context
+                .compiler_options
                 .__references
                 .get(ident)
                 .map(|object| object.to_string())

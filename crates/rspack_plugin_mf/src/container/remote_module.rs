@@ -143,7 +143,7 @@ impl Module for RemoteModule {
 
   async fn build(
     mut self: Box<Self>,
-    build_context: BuildContext,
+    build_context: &BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
     let mut dependencies: Vec<BoxDependency> = Vec::new();

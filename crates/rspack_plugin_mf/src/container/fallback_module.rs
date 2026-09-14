@@ -121,7 +121,7 @@ impl Module for FallbackModule {
 
   async fn build(
     mut self: Box<Self>,
-    _build_context: BuildContext,
+    _build_context: &BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BoxModule> {
     let mut dependencies: Vec<BoxDependency> = Vec::new();

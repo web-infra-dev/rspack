@@ -1151,7 +1151,7 @@ impl Module for ExternalModule {
 
   async fn build(
     mut self: Box<Self>,
-    build_context: BuildContext,
+    build_context: &BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BoxModule> {
     self.build_info.get_mut().module = build_context.compiler_options.output.module;
