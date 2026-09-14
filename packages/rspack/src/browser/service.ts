@@ -12,6 +12,10 @@ let nextLoaderOptionsHandle = 1;
 let nextLoaderAdditionalDataHandle = 1;
 let mainThreadJsValueReleaseRegistered = false;
 
+export function startNativeLoaderWorkers(): void {}
+
+export function waitForNativeLoaderWorkers(): undefined {}
+
 export function ensureNativeLoaderWorkers(): void {
   // Node worker threads are unavailable in the browser build.
 }

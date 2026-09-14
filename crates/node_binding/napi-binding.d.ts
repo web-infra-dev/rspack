@@ -529,6 +529,8 @@ export declare class WorkerTask {
   get kind(): string
   takeFunction(): JsFunctionTask
   completeFunction(data: JsResolveData, result?: boolean | undefined | null): void
+  takeSplitChunkName(): JsSplitChunkNameTask
+  completeSplitChunkName(result?: string | undefined | null): void
   fail(error: string): void
 }
 
@@ -1384,6 +1386,11 @@ export interface JsSourceToJs {
   map?: string
 }
 
+export interface JsSplitChunkNameTask {
+  function: JsWorkerFunction
+  data: string
+}
+
 export interface JsStatsAsset {
   type: string
   name: string
@@ -1972,7 +1979,7 @@ export interface RawCacheGroupOptions {
   maxInitialSize?: number | RawSplitChunkSizes
   maxAsyncRequests?: number
   maxInitialRequests?: number
-  name?: string | false | ((ctx: JsChunkOptionNameCtx) => string | undefined)
+  name?: string | false | ((ctx: JsChunkOptionNameCtx) => string | undefined) | JsWorkerFunction
   reuseExistingChunk?: boolean
   enforce?: boolean
   usedExports?: boolean
@@ -3157,7 +3164,7 @@ export interface RawSplitChunkSizes {
 
 export interface RawSplitChunksOptions {
   fallbackCacheGroup?: RawFallbackCacheGroupOptions
-  name?: string | false | ((ctx: JsChunkOptionNameCtx) => string | undefined)
+  name?: string | false | ((ctx: JsChunkOptionNameCtx) => string | undefined) | JsWorkerFunction
   filename?: JsFilename
   cacheGroups?: Array<RawCacheGroupOptions>
   /** What kind of chunks should be selected. */

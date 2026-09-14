@@ -600,6 +600,7 @@ function resolveStringifyLoaders(
   if (parallelism) {
     ensureNativeLoaderWorkers(
       typeof parallelism === 'object' ? parallelism : undefined,
+      compiler,
     );
   }
 

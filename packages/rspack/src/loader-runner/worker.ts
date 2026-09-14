@@ -40,6 +40,45 @@ async function runWorkerLoop(): Promise<never> {
           }
         }
         task.completeFunction(data, result);
+      } else if (task.kind === 'splitChunkName') {
+        const { function: item, data } = task.takeSplitChunkName();
+        if (
+          item.version !== 1 ||
+          item.hook !== 'optimization.splitChunks.name'
+        ) {
+          throw new Error('Unsupported workerFunction splitChunks.name codec');
+        }
+        const fn = await prepareWorkerFunctionValue(
+          deserializeLoaderOptions(item.value),
+        );
+        const snapshot = JSON.parse(data) as {
+          module: {
+            identifier: string;
+            nameForCondition: string | null;
+            type: string;
+            layer: string | null;
+          };
+          chunks: { name: string | null }[];
+          cacheGroupKey: string;
+        };
+        const module = Object.freeze({
+          identifier: () => snapshot.module.identifier,
+          nameForCondition: () => snapshot.module.nameForCondition ?? undefined,
+          type: snapshot.module.type,
+          layer: snapshot.module.layer ?? undefined,
+        });
+        const chunks = Object.freeze(
+          snapshot.chunks.map((chunk) =>
+            Object.freeze({ name: chunk.name ?? undefined }),
+          ),
+        );
+        const result = await fn(module, chunks, snapshot.cacheGroupKey);
+        if (result !== undefined && typeof result !== 'string') {
+          throw new TypeError(
+            'workerFunction splitChunks.name must return a string or undefined',
+          );
+        }
+        task.completeSplitChunkName(result);
       } else {
         const context = task.takeContext();
         const result = await runLoaders(

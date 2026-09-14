@@ -1,10 +1,10 @@
 ---
-description: 'Run module-exported hook functions on native Rspack workers.'
+description: 'Run module-exported callbacks on native Rspack workers.'
 ---
 
 # workerFunction
 
-`workerFunction` describes a function exported by an independent module. Native Rspack can dispatch supported hooks directly from Rust to its shared loader worker pool.
+`workerFunction` describes a function exported by an independent module. Native Rspack can dispatch supported hooks and splitChunks name callbacks directly from Rust to its shared loader worker pool.
 
 ```ts
 function workerFunction<Fn extends Function>(target: string, options: any): Fn;
@@ -47,7 +47,33 @@ The target must export a CJS function or an ESM default function. Rspack appends
 
 Relative targets resolve from `compiler.context`. Package requests and aliases use `resolveLoader`; absolute paths are recommended for modules beside the configuration file. Targets do not accept loader queries, fragments, builtin-loader identifiers, or loader export conventions such as `pitch` and `raw`.
 
-Ordinary and worker taps retain their sorted order, including `stage` and `before`. Worker-only builds start the same pool used by parallel loaders. `RSPACK_LOADER_WORKER_THREADS` controls the pool size. Worker functions should keep per-invocation state in their arguments: module state is local to each worker, and scheduling does not guarantee that successive calls use the same worker.
+Ordinary and worker taps retain their sorted order, including `stage` and `before`. Loading Rspack in native Node.js starts prewarming the shared pool used by worker functions and parallel loaders. Compilers using these workers wait for readiness before starting the native build; ordinary builds do not wait. Idle workers do not keep the process alive. Set `RSPACK_LOADER_WORKER_THREADS` before importing Rspack to control the prewarmed pool size. The first pool user can still select its size with loader `parallel.maxWorkers`. Worker functions should keep per-invocation state in their arguments: module state is local to each worker, and scheduling does not guarantee that successive calls use the same worker.
+
+## splitChunks names
+
+Both `optimization.splitChunks.name` and `optimization.splitChunks.cacheGroups.*.name` accept `workerFunction`:
+
+```js title="rspack.config.cjs"
+const { workerFunction } = require('@rspack/core');
+
+module.exports = {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      name: workerFunction('./chunk-name.cjs', { prefix: 'shared' }),
+    },
+  },
+};
+```
+
+```js title="chunk-name.cjs"
+module.exports = (module, chunks, cacheGroupKey, options) =>
+  `${options.prefix}-${cacheGroupKey}-${chunks.map((chunk) => chunk.name ?? 'unnamed').join('-')}`;
+```
+
+The function may return a string or `undefined`, synchronously or through a Promise. Other return values and worker failures fail the build. Rust dispatches each naming call directly to the shared native worker queue.
+
+Arguments are frozen, owned snapshots, with a deliberately limited API: `module.identifier()`, `module.nameForCondition()`, `module.type`, `module.layer`, and `chunks[].name`. An absent condition name, layer, or chunk name is `undefined`. Native Module/Chunk methods and compilation graphs are unavailable in workers. Retaining snapshots is safe, and they cannot mutate the compilation. Ordinary name callbacks keep their existing Module and Chunk objects. Module state is per worker; use deterministic naming because call order and worker assignment are unspecified.
 
 ## Functions in options
 
@@ -67,6 +93,6 @@ A loader can call `this.getOptions().transform(value)`. An ordinary main-thread 
 
 ## Supported environments and restrictions
 
-Native hook scheduling requires Node.js workers. Browser and WASI hook scheduling are unsupported. Other hooks, `tap`, `tapAsync`, and HookMap registrations reject worker functions. Combining worker taps with JavaScript hook interceptors is currently unsupported and produces an explicit error.
+Native scheduling requires Node.js workers. Browser and WASI scheduling are unsupported. Other hooks, `tap`, `tapAsync`, and HookMap registrations reject worker functions. Combining worker taps with JavaScript hook interceptors is currently unsupported and produces an explicit error.
 
 The returned value is a marked placeholder for Rspack registration and data preparation. Do not invoke the placeholder directly. The generic `Fn` describes the exposed signature; Rspack separately validates the descriptor and the module export at runtime. A failed or interrupted worker task is reported to the build and is not automatically retried.

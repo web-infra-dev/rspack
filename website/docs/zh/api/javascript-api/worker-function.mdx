@@ -1,10 +1,10 @@
 ---
-description: '在 Rspack 原生 worker 中执行独立模块导出的 hook 函数。'
+description: '在 Rspack 原生 worker 中执行独立模块导出的回调函数。'
 ---
 
 # workerFunction
 
-`workerFunction` 用于描述独立模块导出的函数，让 Rust 将受支持的 hook 直接分派到与并行 loader 共用的 worker 池。
+`workerFunction` 用于描述独立模块导出的函数，让 Rust 将受支持的 hook 和 splitChunks 名称回调直接分派到与并行 loader 共用的 worker 池。
 
 ```ts
 function workerFunction<Fn extends Function>(target: string, options: any): Fn;
@@ -47,7 +47,33 @@ module.exports = async function (resolveData, options) {
 
 相对路径以 `compiler.context` 为基准解析，包名和 alias 使用 `resolveLoader` 配置。推荐用绝对路径引用配置文件旁的模块。目标不支持 loader query、fragment、builtin loader 标识或 `pitch`、`raw` 等 loader 导出约定。
 
-普通 tap 和 worker tap 保留排序后的执行顺序，包括 `stage` 和 `before`。只有 worker hook 的构建也会启动共享 worker 池，池大小受 `RSPACK_LOADER_WORKER_THREADS` 控制。模块状态属于各自 worker，不保证连续调用会分配到同一个 worker；每次调用的状态应放在参数中。
+普通 tap 和 worker tap 保留排序后的执行顺序，包括 `stage` 和 `before`。在原生 Node.js 中加载 Rspack 时，会提前启动 workerFunction 和 parallel loader 共用的 worker 池。使用这些 worker 的 compiler 会在开始 native build 前等待就绪，普通构建不会等待。空闲 worker 不会阻止进程退出。在导入 Rspack 前设置 `RSPACK_LOADER_WORKER_THREADS` 可控制预启动的池大小；首次使用池时仍可通过 loader 的 `parallel.maxWorkers` 指定数量。模块状态属于各自 worker，不保证连续调用会分配到同一个 worker；每次调用的状态应放在参数中。
+
+## splitChunks 名称
+
+`optimization.splitChunks.name` 和 `optimization.splitChunks.cacheGroups.*.name` 都支持 `workerFunction`：
+
+```js title="rspack.config.cjs"
+const { workerFunction } = require('@rspack/core');
+
+module.exports = {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      name: workerFunction('./chunk-name.cjs', { prefix: 'shared' }),
+    },
+  },
+};
+```
+
+```js title="chunk-name.cjs"
+module.exports = (module, chunks, cacheGroupKey, options) =>
+  `${options.prefix}-${cacheGroupKey}-${chunks.map((chunk) => chunk.name ?? 'unnamed').join('-')}`;
+```
+
+函数可以同步或通过 Promise 返回字符串或 `undefined`。其他返回值及 worker 错误会使构建失败。Rust 将每次命名调用直接派发到共享的原生 worker 队列。
+
+参数是冻结的独立快照，仅支持 `module.identifier()`、`module.nameForCondition()`、`module.type`、`module.layer` 和 `chunks[].name`。缺失的 condition name、layer 和 chunk 名称为 `undefined`。worker 无法访问原生 Module/Chunk 的其他方法或 compilation graph。可以安全保留快照，快照无法修改编译状态。普通名称回调仍使用原有的 Module 和 Chunk 对象。模块状态在每个 worker 中独立存在；调用顺序及 worker 分配不固定，命名函数应返回确定的结果。
 
 ## Options 中的函数
 
@@ -67,6 +93,6 @@ Loader 可以调用 `this.getOptions().transform(value)`。普通 loader 在主�
 
 ## 支持环境与限制
 
-原生 hook 调度需要 Node.js worker，暂不支持 browser 和 WASI。其他 hook、`tap`、`tapAsync`、HookMap 中的 worker 注册会明确报错。暂不支持 worker tap 与 JavaScript hook interceptor 组合使用。
+原生调度需要 Node.js worker，暂不支持 browser 和 WASI。其他 hook、`tap`、`tapAsync`、HookMap 中的 worker 注册会明确报错。暂不支持 worker tap 与 JavaScript hook interceptor 组合使用。
 
 工厂返回的是用于 Rspack 注册和数据准备的带标记占位符，请勿直接调用。泛型 `Fn` 只描述暴露的签名，运行时仍会校验描述符和模块导出。失败或被中断的 worker 任务会使构建报错，不会自动重试用户函数。

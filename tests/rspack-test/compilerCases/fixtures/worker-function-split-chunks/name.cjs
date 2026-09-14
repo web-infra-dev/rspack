@@ -1,0 +1,20 @@
+const assert = require('node:assert/strict');
+const { threadId } = require('node:worker_threads');
+module.exports = async (module, chunks, key, options) => {
+  assert(threadId > 0);
+  assert.equal(typeof module.identifier(), 'string');
+  assert.equal(typeof module.nameForCondition(), 'string');
+  assert.equal(module.type, 'javascript/auto');
+  assert.equal(module.layer, undefined);
+  assert.deepEqual(chunks.map(chunk => chunk.name), ['main']);
+  assert.equal(key, 'shared');
+  assert(Object.isFrozen(module));
+  assert(Object.isFrozen(chunks));
+  assert(Object.isFrozen(chunks[0]));
+  if (options.kind === 'throw') throw new Error('split name worker failure');
+  if (options.kind === 'crash') process.exit(1);
+  if (options.kind === 'invalid') return {};
+  if (options.kind === 'null') return null;
+  if (options.kind === 'undefined') return undefined;
+  return options.transform ? options.transform(options.name) : options.name;
+};

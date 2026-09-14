@@ -175,3 +175,18 @@ module.exports = [
     },
   },
 ];
+
+module.exports.push(...["worker-startup.cjs", "parallel-worker-startup.cjs"].map(script => ({
+  description: `prewarms workers at import, waits only when used and exits normally: ${script}`,
+  async build() {
+    await runChild(path.join(__dirname, "fixtures", "tsfn-lifecycle", script), 15_000, "worker-startup-complete");
+  },
+})));
+
+module.exports.push({
+  description: "reports worker startup failures without hanging or keeping the process alive",
+  async build() {
+    await runChild(path.join(__dirname, "fixtures", "tsfn-lifecycle", "worker-startup-failure.cjs"),
+      15_000, "worker-startup-failure-complete");
+  },
+});

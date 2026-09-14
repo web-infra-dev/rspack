@@ -13,6 +13,12 @@ import type {
   OptimizationSplitChunksOptions,
 } from '../config';
 import type { Module } from '../Module';
+import { getWorkerFunctionDescriptor } from '../workerFunction';
+import {
+  ensureNativeLoaderWorkers,
+  getWorkerFunctionCompilerId,
+  serializeWorkerFunction,
+} from '../loader-runner/service';
 import { JsSplitChunkSizes } from '../util/SplitChunkSize';
 import { createBuiltinPlugin, RspackBuiltinPlugin } from './base';
 
@@ -48,6 +54,21 @@ export function toRawSplitChunksOptions(
       cacheGroupKey: string;
     }
 
+    if (getWorkerFunctionDescriptor(name)) {
+      if (IS_BROWSER || process.env.WASM) {
+        throw new Error(
+          'workerFunction splitChunks.name requires native Node.js workers',
+        );
+      }
+      const value = serializeWorkerFunction(name, compiler);
+      ensureNativeLoaderWorkers(undefined, compiler);
+      return {
+        version: 1,
+        compilerId: getWorkerFunctionCompilerId(compiler),
+        hook: 'optimization.splitChunks.name',
+        value,
+      };
+    }
     if (typeof name === 'function') {
       return (ctx: Context) => {
         if (typeof ctx.module === 'undefined') {

@@ -16,11 +16,11 @@ import * as liteTapable from '@rspack/lite-tapable';
 import { getWorkerFunctionDescriptor } from './workerFunction';
 import {
   ensureNativeLoaderWorkers,
+  waitForNativeLoaderWorkers,
+  getWorkerFunctionCompilerId,
   serializeWorkerFunction,
 } from './loader-runner/service';
 
-let nextWorkerFunctionCompilerId = 1;
-const workerFunctionCompilerIds = new WeakMap<Compiler, number>();
 import type Watchpack from 'watchpack';
 import type { Source } from 'webpack-sources';
 import {
@@ -857,16 +857,21 @@ class Compiler {
       if (error) {
         return callback(error);
       }
-      if (!this.#initial) {
-        instance!.rebuild(
-          Array.from(this.modifiedFiles || []),
-          Array.from(this.removedFiles || []),
-          callback,
-        );
-        return;
-      }
-      this.#initial = false;
-      instance!.build(callback);
+      const build = () => {
+        if (!this.#initial) {
+          instance!.rebuild(
+            Array.from(this.modifiedFiles || []),
+            Array.from(this.removedFiles || []),
+            callback,
+          );
+          return;
+        }
+        this.#initial = false;
+        instance!.build(callback);
+      };
+      const ready = waitForNativeLoaderWorkers(this);
+      if (ready) ready.then(build, callback);
+      else build();
     });
   }
 
@@ -883,16 +888,20 @@ class Compiler {
       if (error) {
         return callback?.(error);
       }
-      instance!.rebuild(
-        Array.from(modifiedFiles || []),
-        Array.from(removedFiles || []),
-        (error) => {
-          if (error) {
-            return callback?.(error);
-          }
-          callback?.(null);
-        },
-      );
+      const rebuild = () =>
+        instance!.rebuild(
+          Array.from(modifiedFiles || []),
+          Array.from(removedFiles || []),
+          (error) => {
+            if (error) {
+              return callback?.(error);
+            }
+            callback?.(null);
+          },
+        );
+      const ready = waitForNativeLoaderWorkers(this);
+      if (ready) ready.then(rebuild, (error) => callback?.(error));
+      else rebuild();
     });
   }
 
@@ -1158,12 +1167,8 @@ class Compiler {
             'workerFunction hook scheduling requires native Node.js workers',
           );
         }
-        ensureNativeLoaderWorkers();
-        let compilerId = workerFunctionCompilerIds.get(compiler);
-        if (compilerId === undefined) {
-          compilerId = nextWorkerFunctionCompilerId++;
-          workerFunctionCompilerIds.set(compiler, compilerId);
-        }
+        ensureNativeLoaderWorkers(undefined, compiler);
+        const compilerId = getWorkerFunctionCompilerId(compiler);
         // Keep the sorted tap order, including `before` and identical stages. Every segment in
         // this native interval has the same stage; Rust preserves their input order.
         for (let start = 0; start < queried.tapsInRange.length;) {

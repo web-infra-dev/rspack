@@ -22,6 +22,7 @@ use crate::{
 pub(crate) enum WorkerTaskPayload {
   Loader(LoaderTaskPayload),
   Function(FunctionTaskPayload),
+  SplitChunkName(SplitChunkNameTaskPayload),
 }
 
 #[derive(Clone)]
@@ -44,6 +45,19 @@ pub(crate) struct FunctionTaskPayload {
 pub struct JsFunctionTask {
   pub functions: Vec<JsWorkerFunction>,
   pub data: crate::normal_module_factory::JsResolveData,
+}
+
+pub(crate) struct SplitChunkNameTaskPayload {
+  pub(crate) function: JsWorkerFunction,
+  /// Owned snapshots only: native Module and Chunk wrappers must not cross isolates.
+  pub(crate) data: Option<String>,
+  pub(crate) result: Option<String>,
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsSplitChunkNameTask {
+  pub function: JsWorkerFunction,
+  pub data: String,
 }
 
 pub(crate) struct LoaderTaskPayload {
@@ -235,6 +249,7 @@ impl WorkerTask {
     Ok(match job.input() {
       WorkerTaskPayload::Loader(_) => "loader",
       WorkerTaskPayload::Function(_) => "function",
+      WorkerTaskPayload::SplitChunkName(_) => "splitChunkName",
     })
   }
 
@@ -276,6 +291,48 @@ impl WorkerTask {
       ));
     }
     payload.data = Some(Box::new(data));
+    payload.result = result;
+    self.take_job()?.complete();
+    Ok(())
+  }
+
+  #[napi]
+  pub fn take_split_chunk_name(&mut self) -> napi::Result<JsSplitChunkNameTask> {
+    let job = self
+      .job
+      .as_mut()
+      .ok_or_else(|| napi::Error::from_reason("Worker task has already finished"))?;
+    let WorkerTaskPayload::SplitChunkName(payload) = job.input_mut() else {
+      return Err(napi::Error::from_reason(
+        "Expected a splitChunks.name worker task",
+      ));
+    };
+    let data = payload.data.take().ok_or_else(|| {
+      napi::Error::from_reason("Worker function arguments have already been taken")
+    })?;
+    self.context_taken = true;
+    Ok(JsSplitChunkNameTask {
+      function: payload.function.clone(),
+      data,
+    })
+  }
+
+  #[napi]
+  pub fn complete_split_chunk_name(&mut self, result: Option<String>) -> napi::Result<()> {
+    let job = self
+      .job
+      .as_mut()
+      .ok_or_else(|| napi::Error::from_reason("Worker task has already finished"))?;
+    let WorkerTaskPayload::SplitChunkName(payload) = job.input_mut() else {
+      return Err(napi::Error::from_reason(
+        "Expected a splitChunks.name worker task",
+      ));
+    };
+    if !self.context_taken {
+      return Err(napi::Error::from_reason(
+        "Worker function arguments have not been taken",
+      ));
+    }
     payload.result = result;
     self.take_job()?.complete();
     Ok(())

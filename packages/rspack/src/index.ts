@@ -1,6 +1,9 @@
 import './checkNodeVersion';
+import { startNativeLoaderWorkers } from './loader-runner/service';
 import * as rspackExports from './exports';
 import { rspack as rspackFn } from './rspack';
+
+startNativeLoaderWorkers();
 
 // add exports on rspack() function
 type Rspack = typeof rspackFn &

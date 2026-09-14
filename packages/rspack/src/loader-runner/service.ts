@@ -14,6 +14,18 @@ import { loadModule } from './loadModule';
 
 const require = createRequire(import.meta.url);
 
+let nextWorkerFunctionCompilerId = 1;
+const workerFunctionCompilerIds = new WeakMap<Compiler, number>();
+
+export function getWorkerFunctionCompilerId(compiler: Compiler): number {
+  let id = workerFunctionCompilerIds.get(compiler);
+  if (id === undefined) {
+    id = nextWorkerFunctionCompilerId++;
+    workerFunctionCompilerIds.set(compiler, id);
+  }
+  return id;
+}
+
 let nativeWorkers: Set<import('node:worker_threads').Worker> | undefined;
 const LOADER_FUNCTION_MARKER = '__rspack_loader_function__';
 const LOADER_FUNCTION_THIS_MARKER = '__rspack_loader_function_this__';
@@ -988,65 +1000,167 @@ function handleLoaderFunctionCall(
   Atomics.notify(state, 0);
 }
 
-/** Starts process-wide workers which directly receive tasks from the native MPMC queue. */
-export function ensureNativeLoaderWorkers(workerOptions?: {
-  maxWorkers?: number;
-}): void {
-  if (nativeWorkers) return;
+type NativeWorkerSlot = {
+  worker?: import('node:worker_threads').Worker;
+  timer?: ReturnType<typeof setTimeout>;
+  ready: boolean;
+  stopped: boolean;
+  error?: Error;
+};
+const nativeWorkerSlots: NativeWorkerSlot[] = [];
+const nativeWorkerCompilers = new WeakSet<Compiler>();
+const nativeWorkerWaiters = new Set<{
+  resolve: () => void;
+  reject: (error: Error) => void;
+}>();
+let nativeWorkerCountConfigured = false;
 
+function updateNativeWorkerReferences(): void {
+  for (const slot of nativeWorkerSlots) {
+    if (nativeWorkerWaiters.size) {
+      slot.worker?.ref();
+      slot.timer?.ref();
+    } else {
+      slot.worker?.unref();
+      slot.timer?.unref();
+    }
+  }
+}
+
+function settleNativeWorkerWaiters(error?: Error): void {
+  if (!error && !nativeWorkerSlots.every((slot) => slot.ready)) return;
+  for (const waiter of nativeWorkerWaiters) {
+    if (error) waiter.reject(error);
+    else waiter.resolve();
+  }
+  nativeWorkerWaiters.clear();
+  updateNativeWorkerReferences();
+}
+
+function spawnNativeLoaderWorker(
+  slot: NativeWorkerSlot,
+  restartCount = 0,
+): void {
   const { MessageChannel, Worker } =
     require('node:worker_threads') as typeof import('node:worker_threads');
+  const { port1: mainFunctionPort, port2: workerFunctionPort } =
+    new MessageChannel();
+  listenForLoaderFunctionCalls(mainFunctionPort);
+  mainFunctionPort.unref();
+  slot.timer = undefined;
+  slot.error = undefined;
+  slot.ready = false;
+  const worker = new Worker(path.resolve(import.meta.dirname, 'worker.js'), {
+    workerData: { rspackNativeLoaderWorker: true, workerFunctionPort },
+    transferList: [workerFunctionPort],
+  });
+  slot.worker = worker;
+  nativeWorkers!.add(worker);
+  worker.on('message', (message) => {
+    if (slot.stopped || message?.type !== 'rspack-loader-worker-ready') return;
+    slot.ready = true;
+    settleNativeWorkerWaiters();
+  });
+  worker.once('error', (error) => {
+    if (!slot.stopped && !slot.ready) {
+      slot.error = error;
+      settleNativeWorkerWaiters(error);
+    }
+  });
+  worker.once('exit', () => {
+    nativeWorkers!.delete(worker);
+    mainFunctionPort.close();
+    slot.worker = undefined;
+    if (slot.stopped) return;
+    const restartDelay = Math.min(10 * 2 ** restartCount, 1000);
+    const nextRestartCount = slot.ready ? 0 : Math.min(restartCount + 1, 7);
+    slot.ready = false;
+    slot.timer = setTimeout(
+      () => spawnNativeLoaderWorker(slot, nextRestartCount),
+      restartDelay,
+    );
+    updateNativeWorkerReferences();
+  });
+  // Prewarming alone must not keep a process alive. Active readiness waits must.
+  updateNativeWorkerReferences();
+}
+
+function resizeNativeLoaderWorkers(count: number): void {
+  while (nativeWorkerSlots.length > count) {
+    const slot = nativeWorkerSlots.pop()!;
+    slot.stopped = true;
+    clearTimeout(slot.timer);
+    if (slot.worker) void slot.worker.terminate();
+  }
+  while (nativeWorkerSlots.length < count) {
+    const slot: NativeWorkerSlot = { ready: false, stopped: false };
+    nativeWorkerSlots.push(slot);
+    spawnNativeLoaderWorker(slot);
+  }
+}
+
+function nativeLoaderWorkerCount(workerOptions?: {
+  maxWorkers?: number;
+}): number {
   const cpus = require('node:os').cpus().length;
-  const availableThreads = Math.max(cpus - 1, 1);
-  const configuredWorkers = workerOptions?.maxWorkers
-    ? Math.max(Math.floor(workerOptions.maxWorkers), 1)
-    : undefined;
-  const rawWorkersFromEnv = Number.parseInt(
+  const configured = workerOptions?.maxWorkers;
+  const fromEnv = Number.parseInt(
     process.env.RSPACK_LOADER_WORKER_THREADS || '',
     10,
   );
-  const workersFromEnv =
-    Number.isFinite(rawWorkersFromEnv) && rawWorkersFromEnv > 0
-      ? Math.floor(rawWorkersFromEnv)
-      : undefined;
-  const count = configuredWorkers || workersFromEnv || availableThreads;
+  return configured
+    ? Math.max(Math.floor(configured), 1)
+    : Number.isFinite(fromEnv) && fromEnv > 0
+      ? fromEnv
+      : Math.max(cpus - 1, 1);
+}
+
+/** Start loading workers during import, before compiler configuration or building. */
+export function startNativeLoaderWorkers(): void {
+  if (IS_BROWSER || process.env.WASM || nativeWorkers) return;
+  const { workerData } =
+    require('node:worker_threads') as typeof import('node:worker_threads');
+  // Rspack may itself be hosted in a user worker; only our pool workers must skip prewarming.
+  if (workerData?.rspackNativeLoaderWorker) return;
   nativeWorkers = new Set();
+  resizeNativeLoaderWorkers(nativeLoaderWorkerCount());
+}
 
-  const spawnWorker = (slot: number, restartCount: number): void => {
-    const { port1: mainFunctionPort, port2: workerFunctionPort } =
-      new MessageChannel();
-    listenForLoaderFunctionCalls(mainFunctionPort);
-    mainFunctionPort.unref();
-    const worker = new Worker(path.resolve(import.meta.dirname, 'worker.js'), {
-      workerData: { rspackNativeLoaderWorker: true, workerFunctionPort },
-      transferList: [workerFunctionPort],
-    });
-    nativeWorkers!.add(worker);
-    let workerReady = false;
-    worker.on('message', (message) => {
-      if (message?.type !== 'rspack-loader-worker-ready') return;
-      workerReady = true;
-    });
-    // A worker error is followed by exit. Installing the listener prevents Node from turning a
-    // recoverable worker-slot failure into an uncaught exception in the compiler's main isolate.
-    worker.once('error', () => {});
-    worker.once('exit', () => {
-      nativeWorkers?.delete(worker);
-      mainFunctionPort.close();
-      const nextRestartCount = workerReady ? 0 : Math.min(restartCount + 1, 7);
-      const restartDelay = Math.min(10 * 2 ** nextRestartCount, 1000);
-      const timer = setTimeout(
-        () => spawnWorker(slot, nextRestartCount),
-        restartDelay,
-      );
-      timer.unref();
-    });
-    // Workers are persistent and shared by every compiler in this process, but they should not
-    // keep an otherwise idle process alive.
-    worker.unref();
-  };
+/** Claim the prewarmed pool, preserving the first user's worker-count options. */
+export function ensureNativeLoaderWorkers(
+  workerOptions?: { maxWorkers?: number },
+  compiler?: Compiler,
+): void {
+  startNativeLoaderWorkers();
+  if (!nativeWorkers) return;
+  if (compiler) nativeWorkerCompilers.add(compiler);
+  if (!nativeWorkerCountConfigured) {
+    nativeWorkerCountConfigured = true;
+    resizeNativeLoaderWorkers(nativeLoaderWorkerCount(workerOptions));
+  }
+}
 
-  for (let index = 0; index < count; index++) spawnWorker(index, 0);
+/** Only compilers using workers wait; ordinary builds can start immediately. */
+export function waitForNativeLoaderWorkers(
+  compiler: Compiler,
+): Promise<void> | undefined {
+  if (IS_BROWSER || process.env.WASM) return;
+  const beforeResolve =
+    compiler.__internal__get_compilation_params()?.normalModuleFactory.hooks
+      .beforeResolve;
+  if (
+    !nativeWorkerCompilers.has(compiler) &&
+    !beforeResolve?.taps.some((tap) => getWorkerFunctionDescriptor(tap.fn))
+  )
+    return;
+  ensureNativeLoaderWorkers(undefined, compiler);
+  const error = nativeWorkerSlots.find((slot) => slot.error)?.error;
+  if (error) return Promise.reject(error);
+  if (nativeWorkerSlots.every((slot) => slot.ready)) return;
+  return new Promise<void>((resolve, reject) => {
+    nativeWorkerWaiters.add({ resolve, reject });
+    updateNativeWorkerReferences();
+  });
 }
 
 /** Serialize an owned function execution item, never a main-isolate function handle. */
