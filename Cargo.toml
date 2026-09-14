@@ -200,7 +200,6 @@ rspack_loader_swc                      = { version = "=0.102.3", path = "crates/
 rspack_loader_testing                  = { version = "=0.102.3", path = "crates/rspack_loader_testing", default-features = false }
 rspack_location                        = { version = "=0.102.3", path = "crates/rspack_location", default-features = false }
 rspack_macros                          = { version = "=0.102.3", path = "crates/rspack_macros", default-features = false }
-rspack_mimalloc                        = { version = "=0.102.3", path = "crates/rspack_mimalloc", default-features = false }
 rspack_napi                            = { version = "=0.102.3", path = "crates/rspack_napi", default-features = false }
 rspack_napi_macros                     = { version = "=0.102.3", path = "crates/rspack_napi_macros", default-features = false }
 rspack_parallel                        = { version = "=0.102.3", path = "crates/rspack_parallel", default-features = false }

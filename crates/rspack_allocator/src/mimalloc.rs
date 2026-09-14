@@ -1,5 +1,3 @@
-#![cfg(not(target_family = "wasm"))]
-
 use std::alloc::{GlobalAlloc, Layout};
 
 /// Mimalloc with a direct allocation entry point for ordinary alignments.
@@ -24,7 +22,7 @@ unsafe impl GlobalAlloc for MiMalloc {
       unsafe { libmimalloc_sys::mi_malloc(layout.size()).cast() }
     } else {
       // SAFETY: Forward the caller's GlobalAlloc contract unchanged.
-      unsafe { mimalloc::MiMalloc.alloc(layout) }
+      unsafe { ::mimalloc::MiMalloc.alloc(layout) }
     }
   }
 
@@ -36,20 +34,20 @@ unsafe impl GlobalAlloc for MiMalloc {
       unsafe { libmimalloc_sys::mi_zalloc(layout.size()).cast() }
     } else {
       // SAFETY: Forward the caller's GlobalAlloc contract unchanged.
-      unsafe { mimalloc::MiMalloc.alloc_zeroed(layout) }
+      unsafe { ::mimalloc::MiMalloc.alloc_zeroed(layout) }
     }
   }
 
   #[inline]
   unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
     // SAFETY: Both allocation paths return mimalloc-owned pointers.
-    unsafe { mimalloc::MiMalloc.dealloc(ptr, layout) }
+    unsafe { ::mimalloc::MiMalloc.dealloc(ptr, layout) }
   }
 
   #[inline]
   unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
     // SAFETY: Both allocation paths return mimalloc-owned pointers; the
     // upstream aligned realloc preserves the requested alignment on moves.
-    unsafe { mimalloc::MiMalloc.realloc(ptr, layout, new_size) }
+    unsafe { ::mimalloc::MiMalloc.realloc(ptr, layout, new_size) }
   }
 }
