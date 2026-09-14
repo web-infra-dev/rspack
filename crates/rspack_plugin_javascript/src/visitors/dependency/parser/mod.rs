@@ -53,7 +53,9 @@ use crate::{
   visitors::{
     ParsedJavaScriptAst, PatternIdentifier, ScanDependenciesResult,
     dependency::parser::{ast::ExprRef, location_advancer::DependencyLocationAdvancer},
-    scope_info::{BindingState, ScopeInfoDB, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags},
+    scope_info::{
+      BindingState, ScopeInfoDB, SymbolBinding, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags,
+    },
   },
 };
 
@@ -1166,8 +1168,20 @@ impl<'parser> JavascriptParser<'parser> {
     flags: Option<VariableInfoFlags>,
   ) {
     let flags = flags.unwrap_or(VariableInfoFlags::TAGGED);
+    let resolution = self.definitions_db.resolve_with_symbol(&name);
+    self.tag_variable_resolved(name, tag, data, flags, resolution);
+  }
+
+  /// Attaches a tag using an immediate binding lookup, preserving aliases and scope restoration.
+  pub(crate) fn tag_variable_resolved(
+    &mut self,
+    name: Atom,
+    tag: &'static str,
+    data: Option<Box<dyn anymap::CloneAny>>,
+    flags: VariableInfoFlags,
+    (state, symbol): (Option<BindingState>, Option<SymbolBinding>),
+  ) {
     let scope = self.definitions_db.current_scope();
-    let (state, symbol) = self.definitions_db.resolve_with_symbol(&name);
     let new_info =
       if let Some(old_info) = state.map(|state| self.definitions_db.expect_get_variable(state)) {
         if let Some(old_tag_info) = old_info.tag_info {
