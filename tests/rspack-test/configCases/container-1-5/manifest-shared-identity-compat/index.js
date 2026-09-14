@@ -11,7 +11,6 @@ const disabledManifest = readJson('disabled.json');
 
 const sharedIdentityFields = ({
   id,
-  identityId,
   name,
   version,
   requiredVersion,
@@ -20,7 +19,6 @@ const sharedIdentityFields = ({
   singleton,
 }) => ({
   id,
-  identityId,
   name,
   version,
   requiredVersion,
@@ -58,12 +56,10 @@ it('preserves legacy IDs and analyzed/disabled identity parity', () => {
   expect(new Set(collisions.map((shared) => shared.id))).toEqual(
     new Set(['container:collision']),
   );
-  expect(new Set(collisions.map((shared) => shared.identityId)).size).toBe(2);
-  expect(
-    collisions.every((shared) =>
-      shared.identityId.startsWith('container:shared:'),
-    ),
-  ).toBe(true);
+  expect(collisions.map((shared) => shared.shareScope).sort()).toEqual([
+    'scope-a',
+    'scope-b',
+  ]);
 
   for (const output of [
     analyzedStats,
@@ -76,9 +72,16 @@ it('preserves legacy IDs and analyzed/disabled identity parity', () => {
       (shared) => shared.name === 'shared:10:s7:defaultl6:server3:pkg',
     );
     expect(legacy.id).toBe(layered.id);
-    expect(legacy.identityId).toEqual(expect.any(String));
-    expect(new Set(output.shared.map((shared) => shared.identityId || shared.id)).size)
-      .toBe(output.shared.length);
+    for (const shared of output.shared) {
+      expect(shared).not.toHaveProperty('identityId');
+    }
+    expect(
+      new Set(output.shared.map((shared) => JSON.stringify([
+        shared.name,
+        shared.shareScope ?? 'default',
+        shared.layer ?? null,
+      ]))).size,
+    ).toBe(output.shared.length);
   }
 });
 

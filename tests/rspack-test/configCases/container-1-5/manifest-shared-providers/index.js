@@ -13,8 +13,8 @@ it('retains one shared row with concrete provider versions, imports and assets',
       const disabled = JSON.parse(
         fs.readFileSync(path.join(__dirname, '..', disabledFilename), 'utf-8'),
       );
-      expect(disabled.shared.map(({ id, identityId }) => identityId ?? id).sort()).toEqual(
-        output.shared.map(({ id, identityId }) => identityId ?? id).sort(),
+      expect(disabled.shared.map(({ id }) => id).sort()).toEqual(
+        output.shared.map(({ id }) => id).sort(),
       );
       for (const entry of disabled.shared) {
         expect(entry).not.toHaveProperty('providers');

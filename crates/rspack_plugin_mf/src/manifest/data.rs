@@ -72,8 +72,6 @@ pub struct StatsSharedProvider {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct StatsShared {
   pub id: String,
-  #[serde(rename = "identityId", skip_serializing_if = "Option::is_none")]
-  pub identity_id: Option<String>,
   pub name: String,
   pub version: String,
   #[serde(default)]
@@ -162,8 +160,6 @@ pub struct ManifestExpose {
 #[derive(Debug, Serialize, Clone)]
 pub struct ManifestShared {
   pub id: String,
-  #[serde(rename = "identityId", skip_serializing_if = "Option::is_none")]
-  pub identity_id: Option<String>,
   pub name: String,
   pub version: String,
   #[serde(default)]

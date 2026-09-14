@@ -31,8 +31,8 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use utils::{
   ExposeIdentity, collect_entry_files, collect_expose_requirements, compose_id_with_separator,
-  compose_shared_id, ensure_configured_remotes, ensure_shared_entry, filter_assets,
-  finalize_shared_ids, is_hot_file, manifest_share_scope, record_shared_usage, strip_ext,
+  compose_shared_id, ensure_configured_remotes, ensure_shared_entry, filter_assets, is_hot_file,
+  manifest_share_scope, record_shared_usage, strip_ext,
 };
 
 use crate::{
@@ -254,7 +254,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .entry(identity)
         .or_insert_with_key(|identity| StatsShared {
           id: compose_shared_id(&container_name, identity),
-          identity_id: None,
           name: shared.name.clone(),
           version: shared.version.clone().unwrap_or_default(),
           requiredVersion: shared.required_version.clone(),
@@ -848,14 +847,20 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .collect::<Vec<_>>();
     (exposes, shared, remote_list)
   };
-  finalize_shared_ids(&mut shared, &container_name);
   sort_small_by(&mut exposes, |a, b| {
     a.id.cmp(&b.id).then_with(|| a.layer.cmp(&b.layer))
   });
   sort_small_by(&mut shared, |a, b| {
     a.id
       .cmp(&b.id)
-      .then_with(|| a.identity_id.cmp(&b.identity_id))
+      .then_with(|| a.name.cmp(&b.name))
+      .then_with(|| a.layer.cmp(&b.layer))
+      .then_with(|| {
+        a.share_scope
+          .as_ref()
+          .map(ShareScope::identifier_key)
+          .cmp(&b.share_scope.as_ref().map(ShareScope::identifier_key))
+      })
   });
   // Ensure all configured remotes exist in stats, add missing with defaults
   let mut remote_list = remote_list;
@@ -910,7 +915,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let used_exports = s.usedExports;
         ManifestShared {
           id: s.id,
-          identity_id: s.identity_id,
           name: s.name,
           version: s.version,
           requiredVersion: s.requiredVersion,

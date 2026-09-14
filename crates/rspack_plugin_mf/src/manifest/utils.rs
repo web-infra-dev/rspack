@@ -163,49 +163,6 @@ pub fn compose_shared_id(container: &str, identity: &SharedIdentity) -> String {
   }
 }
 
-pub fn finalize_shared_ids(shared: &mut [StatsShared], container_name: &str) {
-  let scope_collisions = shared
-    .iter()
-    .map(|entry| {
-      if entry.layer.is_some() {
-        return false;
-      }
-      let share_scope = entry
-        .share_scope
-        .clone()
-        .unwrap_or_else(|| ShareScope::Single("default".to_string()));
-      matches!(share_scope, ShareScope::Single(_))
-        && shared.iter().any(|candidate| {
-          if candidate.layer.is_some() || candidate.name != entry.name {
-            return false;
-          }
-          let candidate_scope = candidate
-            .share_scope
-            .clone()
-            .unwrap_or_else(|| ShareScope::Single("default".to_string()));
-          matches!(candidate_scope, ShareScope::Single(_)) && candidate_scope != share_scope
-        })
-    })
-    .collect::<Vec<_>>();
-
-  for (entry, has_scope_collision) in shared.iter_mut().zip(scope_collisions) {
-    let share_scope = entry
-      .share_scope
-      .clone()
-      .unwrap_or_else(|| ShareScope::Single("default".to_string()));
-    let identity = SharedIdentity::new(&share_scope, &entry.name, entry.layer.as_deref());
-    entry.id = compose_shared_id(container_name, &identity);
-    entry.identity_id = if (has_scope_collision || entry.name.starts_with("shared:"))
-      && entry.layer.is_none()
-      && matches!(share_scope, ShareScope::Single(_))
-    {
-      Some(compose_structural_shared_id(container_name, &identity))
-    } else {
-      None
-    };
-  }
-}
-
 pub fn is_hot_file(file: &str) -> bool {
   file.contains(HOT_UPDATE_SUFFIX)
 }
@@ -235,7 +192,6 @@ pub fn ensure_shared_entry<'a>(
     .entry(identity.clone())
     .or_insert_with(|| StatsShared {
       id: compose_shared_id(container_name, identity),
-      identity_id: None,
       name: identity.share_key.clone(),
       version: String::new(),
       requiredVersion: None,
