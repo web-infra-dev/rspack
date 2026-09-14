@@ -510,7 +510,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
     let dep_locator = if param.is_string() {
       if matches!(mode, DynamicImportMode::Eager) {
         let mut dep = ImportEagerDependency::new(
-          param.string().as_str().into(),
+          param.string().into(),
           import_call_span.into(),
           attributes,
           phase,
@@ -527,7 +527,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         }
       } else if matches!(mode, DynamicImportMode::Weak) {
         let mut dep = ImportWeakDependency::new(
-          param.string().as_str().into(),
+          param.string().into(),
           import_call_span.into(),
           attributes,
           phase,
@@ -545,7 +545,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         }
       } else {
         let mut dep = ImportDependency::new(
-          param.string().as_str().into(),
+          param.string().into(),
           import_call_span.into(),
           attributes,
           phase,
@@ -568,7 +568,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           loc,
           None,
           vec![BoxDependency::new(dep)],
-          Some(param.string().clone()),
+          Some(param.string().to_owned()),
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
           chunk_name,
