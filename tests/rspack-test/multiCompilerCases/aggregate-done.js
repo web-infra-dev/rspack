@@ -153,6 +153,60 @@ module.exports = [
     }
   },
   {
+    description: "should aggregate independent runs after watch setup fails on busy children",
+    options,
+    async build(context, compiler) {
+      const events = [];
+      const releases = [];
+      const entered = compiler.compilers.map((child, index) => new Promise(resolve => {
+        let first = true;
+        child.hooks.make.tapAsync("Gate", (_, callback) => {
+          if (!first) return callback();
+          first = false;
+          releases[index] = () => {
+            if (callback) {
+              const release = callback;
+              callback = undefined;
+              release();
+            }
+          };
+          resolve();
+        });
+        child.hooks.done.tap("Trace", () => { events.push(`${child.name}.done`); });
+        child.hooks.afterDone.tap("Trace", () => { events.push(`${child.name}.afterDone`); });
+      }));
+      compiler.hooks.done.tap("Trace", () => { events.push("parent.done"); });
+      const run = child => new Promise((resolve, reject) => {
+        child.run(error => {
+          events.push(`${child.name}.callback`);
+          error ? reject(error) : resolve();
+        });
+      });
+      const initial = compiler.compilers.map(run);
+      try {
+        await Promise.all(entered);
+        const error = await new Promise(resolve => compiler.watch({}, resolve));
+        expect(error.name).toBe("ConcurrentCompilationError");
+        expect(compiler.compilers.every(child => child.watching === undefined)).toBe(true);
+        events.push("watch.error");
+        for (let i = 0; i < initial.length; i++) {
+          releases[i]();
+          await initial[i];
+        }
+        await run(compiler.compilers[0]);
+        expect(events).toEqual([
+          "watch.error", "a.done", "a.callback", "a.afterDone",
+          "parent.done", "b.done", "b.callback", "b.afterDone",
+          "parent.done", "a.done", "a.callback", "a.afterDone"
+        ]);
+      } finally {
+        for (const release of releases) release();
+        await Promise.all(initial);
+        await close(compiler);
+      }
+    }
+  },
+  {
     description: "should recover from watchRun errors and publish after closing and rewatching",
     options,
     async build(context, compiler) {

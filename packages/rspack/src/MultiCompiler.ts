@@ -376,11 +376,15 @@ export class MultiCompiler {
     const parallelism = this._options.parallelism!;
 
     this.#isGraphReady = () => {
-      // Once these watchers close, independently running a child should use
-      // the constructor's original aggregation behavior again.
+      // If watching never started or all these watchers closed, independent
+      // child runs should use the original constructor-level aggregation.
       if (
         watch &&
-        nodes.every((node) => node.compiler.watching !== node.setupResult)
+        nodes.every(
+          (node) =>
+            node.setupResult === undefined ||
+            node.compiler.watching !== node.setupResult,
+        )
       ) {
         return true;
       }
