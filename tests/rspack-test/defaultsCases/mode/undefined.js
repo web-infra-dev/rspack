@@ -41,6 +41,9 @@ module.exports = {
 			-     "sideEffects": "flag",
 			+     "sideEffects": true,
 			@@ ... @@
+			-       "dedupDepth": 0,
+			+       "dedupDepth": 1,
+			@@ ... @@
 			-       "enforceSizeThreshold": 30000,
 			-       "hidePathInfo": false,
 			-       "maxAsyncRequests": Infinity,
