@@ -232,7 +232,7 @@ impl RstestPlugin {
       resolve_to_context: false,
       dependency_category,
     };
-    let resolver = data.resolver_factory.get(dep);
+    let resolver = data.build_context.resolver_factory.get(dep);
 
     let resolved_directory_target = if stripped.starts_with('.') {
       let (resolve_result, resolve_dependencies) = resolver
