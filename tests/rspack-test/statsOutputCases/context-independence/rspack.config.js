@@ -12,10 +12,7 @@ const base = (name, devtool) => ({
     rules: [
       {
         test: /chunk/,
-        // require.resolve yields the loader's realpath inside the pnpm
-        // store on every OS, so deterministic module/chunk ids don't depend
-        // on pnpm's symlink (POSIX) vs junction (Windows) layout.
-        loader: require.resolve('babel-loader'),
+        loader: 'babel-loader',
         options: {},
       },
     ],
