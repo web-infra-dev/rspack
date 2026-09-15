@@ -56,33 +56,41 @@ pub struct CodeGenerationDataConcatenationScopeOutput {
 
 impl Hash for CodeGenerationDataConcatenationScopeOutput {
   fn hash<H: std::hash::Hasher>(&self, hasher: &mut H) {
+    fn hash_entries<H: std::hash::Hasher>(entries: &mut [(&str, &str)], hasher: &mut H) {
+      // Map keys are unique, so comparing values cannot change their order.
+      entries.sort_unstable_by_key(|(name, _)| *name);
+      entries.hash(hasher);
+    }
+
     // Native imports/reexports are emitted by the linker, not the module
     // source. They must participate in the chunk-render cache key as well.
     self.namespace_export_symbol.hash(hasher);
+    let mut entries = Vec::new();
     for map in [&self.export_map, &self.raw_export_map] {
-      let mut entries = map
-        .iter()
-        .flat_map(|map| map.iter())
-        .map(|(name, value)| (name.as_str(), value.as_str()))
-        .collect::<Vec<_>>();
-      entries.sort_unstable();
-      entries.hash(hasher);
+      entries.clear();
+      if let Some(map) = map {
+        entries.reserve(map.len());
+        for (name, value) in map {
+          entries.push((name.as_str(), value.as_str()));
+        }
+      }
+      hash_entries(&mut entries, hasher);
     }
     if let Some(import_map) = &self.import_map {
+      let mut namespaces = Vec::new();
       for (source, imports) in import_map {
         source.hash(hasher);
-        let mut specifiers = imports
-          .specifiers
-          .iter()
-          .map(|(local, imported)| (local.as_str(), imported.as_str()))
-          .collect::<Vec<_>>();
-        specifiers.sort_unstable();
-        specifiers.hash(hasher);
-        let mut namespaces = imports
-          .namespaces
-          .iter()
-          .map(Atom::as_str)
-          .collect::<Vec<_>>();
+        entries.clear();
+        entries.reserve(imports.specifiers.len());
+        for (local, imported) in &imports.specifiers {
+          entries.push((local.as_str(), imported.as_str()));
+        }
+        hash_entries(&mut entries, hasher);
+        namespaces.clear();
+        namespaces.reserve(imports.namespaces.len());
+        for namespace in &imports.namespaces {
+          namespaces.push(namespace.as_str());
+        }
         namespaces.sort_unstable();
         namespaces.hash(hasher);
       }

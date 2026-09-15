@@ -58,7 +58,6 @@ impl ExternalRequestValue {
 }
 
 /// The CommonJS require form used to render an external request.
-#[cacheable]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CommonJsExternalRequireKind {
   CommonJs,
@@ -631,9 +630,8 @@ impl ExternalModule {
 
   fn module_import_identifier(&self, compilation: &Compilation) -> String {
     let request = self.get_request();
-    if to_identifier(&request.primary) == request.primary
-      && self.dependency_meta.attributes.is_none()
-    {
+    let identifier = to_identifier(&request.primary);
+    if identifier == request.primary && self.dependency_meta.attributes.is_none() {
       return request.primary.clone();
     }
     let mut hasher = RspackHasher::from(&compilation.options.output);
@@ -645,11 +643,7 @@ impl ExternalModule {
         .hash(&mut hasher);
     }
     let hash_suffix = hasher.digest(&compilation.options.output.hash_digest);
-    format!(
-      "{}_{}",
-      to_identifier(&request.primary),
-      hash_suffix.rendered(8)
-    )
+    format!("{identifier}_{}", hash_suffix.rendered(8))
   }
 
   /// Register a native import owned by the referencing module's scope.
@@ -675,7 +669,7 @@ impl ExternalModule {
         request.primary.clone(),
         attributes,
         imported.clone(),
-        local.clone().into(),
+        local.as_str().into(),
       );
       local
     } else {
@@ -798,8 +792,8 @@ impl ExternalModule {
       let require_expression = require_kind.render_expression(
         request.map(ExternalRequestValue::primary).or(fallback),
         request
-          .into_iter()
-          .flat_map(|request| request.iter().skip(1)),
+          .and_then(ExternalRequestValue::rest)
+          .unwrap_or_default(),
         compilation,
         &mut chunk_init_fragments,
       );
