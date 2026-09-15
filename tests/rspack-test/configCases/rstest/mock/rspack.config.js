@@ -242,6 +242,16 @@ module.exports = [
       },
     },
   },
+  rstestEntry('./packageManualMockExtensions.js'),
+  {
+    ...rstestEntry('./packageManualMockExtensionsRequire.js'),
+    resolve: {
+      byDependency: {
+        // Mock target dependencies currently use the ESM category even for mockRequire.
+        esm: { conditionNames: ['require'] },
+      },
+    },
+  },
   rstestEntry('./packageManualMockRoot.js'),
   rstestEntry('./packageManualMockAdjacent.js', {
     manualMockRoot: path.resolve(__dirname, 'missing-manual-mocks'),

@@ -292,6 +292,25 @@ impl RstestPlugin {
         data.add_file_dependencies(dependencies.file_dependencies);
         data.add_missing_dependencies(dependencies.missing_dependencies);
         manual_mock_result = result;
+
+        // Preserve format-specific mocks before trying a shared mock via resolve.extensions.
+        if matches!(
+          &manual_mock_result,
+          Err(ResolveInnerError::RspackResolver(
+            rspack_resolver::ResolveError::NotFound(_)
+              | rspack_resolver::ResolveError::MatchedAliasNotFound(_, _)
+          ))
+        ) && let Some(stem) = resource.path.file_stem()
+          && stem != file_name
+        {
+          resolved_request = parent.join("__mocks__").join(stem).to_string();
+          let (result, dependencies) = resolver
+            .resolve_with_context(data.context.as_ref(), &resolved_request)
+            .await;
+          data.add_file_dependencies(dependencies.file_dependencies);
+          data.add_missing_dependencies(dependencies.missing_dependencies);
+          manual_mock_result = result;
+        }
       }
     }
 
