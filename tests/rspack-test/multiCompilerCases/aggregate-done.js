@@ -189,17 +189,36 @@ module.exports = [
     }
   },
   ...[false, true].map(watch => ({
-    description: `should report aggregate done errors through the ${watch ? "watch" : "run"} callback`,
-    options,
+    description: `should report aggregate done errors through failed and the ${watch ? "watch" : "run"} callback`,
+    options: () => {
+      const configs = options();
+      // Finish a last, so failure attribution cannot use array order.
+      configs[0].dependencies = ["b"];
+      return configs;
+    },
     async build(context, compiler) {
       const failure = new Error("aggregate done failure");
+      const events = [];
+      compiler.compilers.forEach(child => {
+        child.hooks.failed.tap("Capture", error => {
+          events.push(["failed", child.name, error]);
+        });
+      });
       compiler.hooks.done.tap("Fail", () => { throw failure; });
       try {
         const error = await new Promise(resolve => {
-          if (watch) compiler.watch({}, error => resolve(error));
-          else compiler.run(error => resolve(error));
+          const callback = error => {
+            events.push(["callback", error]);
+            resolve(error);
+          };
+          if (watch) compiler.watch({}, callback);
+          else compiler.run(callback);
         });
         expect(error).toBe(failure);
+        expect(events).toEqual([
+          ["failed", "a", failure],
+          ["callback", failure]
+        ]);
       } finally {
         await close(compiler);
       }

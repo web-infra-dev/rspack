@@ -343,6 +343,7 @@ export class MultiCompiler {
     }
     let errored = false;
     let running = 0;
+    let lastCompletedCompiler: Compiler | undefined;
     const parallelism = this._options.parallelism!;
 
     const handleError = (err: Error): void => {
@@ -367,6 +368,7 @@ export class MultiCompiler {
     ): void => {
       if (errored) return;
       if (err) return handleError(err);
+      lastCompletedCompiler = node.compiler;
       node.result = stats;
       node.hasUnreportedResult = true;
       running--;
@@ -482,7 +484,11 @@ export class MultiCompiler {
           try {
             this.hooks.done.call(new MultiStats(allStats));
           } catch (err) {
-            return handleError(err as Error);
+            const error = err as Error;
+            // Aggregate done used to run inside the last child's done hook,
+            // whose error path notified that child's failed hook.
+            lastCompletedCompiler!.hooks.failed.call(error);
+            return handleError(error);
           }
           callback(null, new MultiStats(stats));
         }
