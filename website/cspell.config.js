@@ -1,6 +1,8 @@
-const { banWords } = require('cspell-ban-words');
+import cspellBanWords from 'cspell-ban-words';
 
-module.exports = {
+const { banWords } = cspellBanWords;
+
+export default {
   $schema:
     'https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json',
   version: '0.2',

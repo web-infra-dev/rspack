@@ -1,7 +1,7 @@
 // @ts-nocheck
-const path = require('node:path');
-const fs = require('node:fs');
-const assert = require('node:assert');
+import path from 'node:path';
+import fs from 'node:fs';
+import assert from 'node:assert';
 
 // Generates binding packages based on artifacts.
 // Note: it's dedicated to work with pnpm workspaces.
@@ -91,8 +91,12 @@ Rspack is [MIT licensed](https://github.com/web-infra-dev/rspack/blob/main/LICEN
   return README;
 }
 
-const ARTIFACTS = path.resolve(__dirname, '../artifacts');
-const NPM = path.resolve(__dirname, '../npm');
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+}
+
+const ARTIFACTS = path.resolve(import.meta.dirname, '../artifacts');
+const NPM = path.resolve(import.meta.dirname, '../npm');
 
 try {
   // Error tolerant if the directory already exists
@@ -123,7 +127,7 @@ for (const binding of bindings) {
     }
 
     const output = path.join(NPM, 'wasm32-wasi');
-    const pkgJson = require(path.join(output, 'package.json'));
+    const pkgJson = readJson(path.join(output, 'package.json'));
 
     optionalDependencies[pkgJson.name] = 'workspace:*';
 
@@ -135,7 +139,7 @@ for (const binding of bindings) {
 
     // Copy wasm js runtimes from the node_binding crate
     const NODE_BINDING_CRATE = path.resolve(
-      __dirname,
+      import.meta.dirname,
       '../crates/node_binding/',
     );
     for (const file of [
@@ -191,8 +195,8 @@ for (const binding of bindings) {
     fs.mkdirSync(output);
   } catch {}
 
-  const coreJson = require(
-    path.resolve(__dirname, '../packages/rspack/package.json'),
+  const coreJson = readJson(
+    path.resolve(import.meta.dirname, '../packages/rspack/package.json'),
   );
   const pkgJson = {};
   pkgJson.name = `@rspack/binding-${platformArchABI}`;
@@ -233,7 +237,7 @@ const dirent = fs.readdirSync(NPM, {
 for (const item of dirent) {
   if (item.isDirectory()) {
     const dir = path.join(NPM, item.name);
-    const pkg = require(`${dir}/package.json`);
+    const pkg = readJson(`${dir}/package.json`);
 
     if (releasingPackages.includes(pkg.name)) {
       // releasing
@@ -249,10 +253,10 @@ for (const item of dirent) {
 }
 
 const bindingJsonPath = path.resolve(
-  __dirname,
+  import.meta.dirname,
   '../crates/node_binding/package.json',
 );
-const bindingJson = require(bindingJsonPath);
+const bindingJson = readJson(bindingJsonPath);
 
 // The original `optionalDependencies` field in `package.json` is used to publish locally, so we have to override it for CI.
 bindingJson.optionalDependencies = optionalDependencies;
