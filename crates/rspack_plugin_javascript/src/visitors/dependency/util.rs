@@ -3,7 +3,8 @@ use std::sync::LazyLock;
 use rspack_core::DependencyRange;
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
-use swc_experimental_ecma_ast::{Expr, Lit, MemberExpr, OptChainBase};
+use rspack_util::SpanExt;
+use swc_experimental_ecma_ast::{CallExpr, Expr, GetSpan, Lit, MemberExpr, OptChainBase};
 
 use super::JavascriptParser;
 use crate::Atom;
@@ -63,6 +64,23 @@ pub fn static_string_from_expr(expr: &Expr) -> Option<String> {
       }
       None
     })
+}
+
+/// Range from the end of the sole argument to the end of the call, to be
+/// replaced by a bare `)`. Replacing a `resolve` callee with a comment turns the
+/// argument list into a parenthesized expression, where a trailing comma is a
+/// syntax error.
+pub fn resolve_call_trailing_comma_range(
+  parser: &JavascriptParser,
+  call_expr: &CallExpr,
+) -> Option<DependencyRange> {
+  let start = call_expr.args.last()?.span().real_hi();
+  let end = call_expr.span().real_hi();
+  let tail = parser.source().get(start as usize..end as usize)?;
+
+  // There is exactly one argument, so any comma here is the trailing one or
+  // sits inside a comment that is fine to drop along with it.
+  tail.contains(',').then(|| DependencyRange::new(start, end))
 }
 
 pub fn create_traceable_error(

@@ -14,7 +14,7 @@ use turbo_persistence::{
 
 use crate::new_cache::{
   CacheKey,
-  db::{Database, DatabaseFamily, DatabaseValue},
+  db::{DatabaseFamily, DatabaseValue},
 };
 
 const STALE_DIRECTORY: &str = "_stale";
@@ -213,27 +213,36 @@ impl TurboDatabase {
       readonly,
     })
   }
-}
 
-impl Database for TurboDatabase {
-  fn get(&self, family: DatabaseFamily, key: &CacheKey) -> Result<Option<DatabaseValue>> {
+  pub fn get(&self, family: DatabaseFamily, key: &CacheKey) -> Result<Option<DatabaseValue>> {
     Ok(self.inner.get(family.index(), &key)?)
   }
 
-  fn is_empty(&self) -> bool {
+  pub fn is_empty(&self) -> bool {
     self.inner.is_empty()
   }
 
-  fn write_batch(&self, writes: Vec<(DatabaseFamily, CacheKey, Vec<u8>)>) -> Result<()> {
+  pub fn write_batch(
+    &self,
+    writes: impl ParallelIterator<Item = (DatabaseFamily, CacheKey, Vec<u8>)>,
+  ) -> Result<usize> {
     let batch = self.inner.write_batch::<CacheKey>()?;
-    writes
-      .into_par_iter()
-      .try_for_each(|(family, key, value)| batch.put(family.index() as u32, key, value.into()))?;
-    self.inner.commit_write_batch(batch)?;
-    Ok(())
+    let writes_len = writes
+      .try_fold(
+        || 0,
+        |count, (family, key, value)| -> Result<usize> {
+          batch.put(family.index() as u32, key, value.into())?;
+          Ok(count + 1)
+        },
+      )
+      .try_reduce(|| 0, |a, b| Ok(a + b))?;
+    if writes_len > 0 {
+      self.inner.commit_write_batch(batch)?;
+    }
+    Ok(writes_len)
   }
 
-  fn compact(&self) -> Result<()> {
+  pub fn compact(&self) -> Result<()> {
     if self.readonly || self.inner.is_empty() {
       return Ok(());
     }
@@ -241,11 +250,11 @@ impl Database for TurboDatabase {
     Ok(())
   }
 
-  fn has_unrecoverable_write_error(&self) -> bool {
+  pub fn has_unrecoverable_write_error(&self) -> bool {
     self.inner.has_unrecoverable_write_error()
   }
 
-  fn reset(&mut self) -> Result<()> {
+  pub fn reset(&mut self) -> Result<()> {
     let old_database = std::mem::replace(
       &mut self.inner,
       Inner::empty_in_memory_with_config(database_config()),
@@ -261,7 +270,7 @@ impl Database for TurboDatabase {
     Ok(())
   }
 
-  fn cleanup_stale(&self) -> Result<()> {
+  pub fn cleanup_stale(&self) -> Result<()> {
     let stale_directory = stale_directory(&self.base_path);
     match std::fs::remove_dir_all(stale_directory) {
       Ok(()) => Ok(()),
@@ -270,7 +279,7 @@ impl Database for TurboDatabase {
     }
   }
 
-  fn shutdown(self: Box<Self>) -> Result<()> {
+  pub fn shutdown(self) -> Result<()> {
     self.inner.clear_cache();
     self.inner.shutdown()?;
     Ok(())

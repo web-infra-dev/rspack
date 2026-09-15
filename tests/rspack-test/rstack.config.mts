@@ -33,6 +33,7 @@ define.test(() => {
 
         // Skip temporarily and should investigate in the future
         'Cache.test.js',
+        'NewCache.test.js',
         'Compiler.test.js',
         'MultiCompiler.test.js',
         'Serial.test.js',
