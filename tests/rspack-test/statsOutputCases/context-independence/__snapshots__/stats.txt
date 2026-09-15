@@ -23,7 +23,7 @@ cacheable modules xx bytes
 Rspack x.x.x compiled successfully in X s
 
 asset main-b879dd4b2e5ef224.js xx KiB [emitted] [immutable] (name: main)
-asset 270-806285e792fc8bdc.js xx KiB [emitted] [immutable]
+asset 270-806285e792fc8bdc.js xx bytes [emitted] [immutable]
 runtime modules xx KiB 9 modules
 orphan modules xx bytes [orphan] 1 module
 cacheable modules xx bytes
@@ -35,7 +35,7 @@ cacheable modules xx bytes
 Rspack x.x.x compiled successfully in X s
 
 asset main-b879dd4b2e5ef224.js xx KiB [emitted] [immutable] (name: main)
-asset 270-806285e792fc8bdc.js xx KiB [emitted] [immutable]
+asset 270-806285e792fc8bdc.js xx bytes [emitted] [immutable]
 runtime modules xx KiB 9 modules
 orphan modules xx bytes [orphan] 1 module
 cacheable modules xx bytes

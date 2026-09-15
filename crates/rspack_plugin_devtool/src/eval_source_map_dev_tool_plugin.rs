@@ -244,14 +244,6 @@ async fn render_module_content(
       }
 
       map.set_source_root(self.source_root.as_ref().map(|s| Cow::Borrowed(s.as_str())));
-      map.set_file(Some(Cow::Borrowed(module.identifier().as_str())));
-
-      if self.debug_ids {
-        map.set_debug_id(Some(Cow::Owned(generate_debug_id(
-          module.identifier().as_str(),
-          source.as_bytes(),
-        ))));
-      }
 
       let module_ids = &compilation.module_ids_artifact;
       // align with https://github.com/webpack/webpack/blob/3919c844eca394d73ca930e4fc5506fb86e2b094/lib/EvalSourceMapDevToolPlugin.js#L171
@@ -261,6 +253,23 @@ async fn render_module_content(
         } else {
           "unknown"
         };
+      // Align with webpack: the map's `file` is the module id (with a `.js`
+      // suffix for numeric ids), never the absolute module identifier, so the
+      // emitted content does not depend on the build machine's paths.
+      // <https://github.com/webpack/webpack/blob/main/lib/EvalSourceMapDevToolPlugin.js>
+      let map_file = if module_id.bytes().all(|b| b.is_ascii_digit()) {
+        format!("{module_id}.js")
+      } else {
+        module_id.to_owned()
+      };
+      map.set_file(Some(Cow::Owned(map_file.clone())));
+
+      if self.debug_ids {
+        map.set_debug_id(Some(Cow::Owned(generate_debug_id(
+          &map_file,
+          source.as_bytes(),
+        ))));
+      }
       let source_map = map.to_json();
       let base64 = base64::encode_to_string(&source_map);
       let footer = format!(

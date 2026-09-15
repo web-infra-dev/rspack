@@ -56,32 +56,6 @@ const base = (name, devtool) => ({
   resolveLoader: {
     symlinks: false,
   },
-  plugins: [
-    // TEMP: dump module identifiers and chunk ids for CI diagnostics.
-    (compiler) => {
-      compiler.hooks.compilation.tap('DumpIdents', (compilation) => {
-        compilation.hooks.processAssets.tap(
-          { name: 'DumpIdents', stage: 10000 },
-          () => {
-            for (const m of compilation.modules) {
-              console.log(
-                '[context-independence] module identifier:',
-                m.identifier(),
-              );
-            }
-            for (const c of compilation.chunks) {
-              console.log(
-                '[context-independence] chunk',
-                c.id,
-                c.name,
-                [...c.files].join(','),
-              );
-            }
-          },
-        );
-      });
-    },
-  ],
 });
 
 /** @type {import("@rspack/core").Configuration[]} */

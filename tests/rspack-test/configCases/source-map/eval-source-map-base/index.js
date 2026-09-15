@@ -1,5 +1,3 @@
-const path = require("path");
-
 it("basic", () => {
 	const fs = require("fs");
 	const source = fs.readFileSync(__filename, "utf-8");
@@ -16,5 +14,6 @@ it("basic", () => {
 	expect(map.sources[0]).toMatch(
 		new RegExp(`${scheme}:\\/\\/\\/\\.\\/index\\.js\\?[a-zA-Z0-9]+`)
 	);
-	expect(map.file).toBe(path.join(CONTEXT, "index.js"));
+	// Align with webpack: `file` is the module id, not the absolute path
+	expect(map.file).toBe("./index.js");
 });
