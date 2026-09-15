@@ -1,7 +1,7 @@
 // @ts-nocheck
-const fs = require('node:fs');
-const path = require('node:path');
-const { rimrafSync } = require('rimraf');
+import fs from 'node:fs';
+import path from 'node:path';
+import { rimrafSync } from 'rimraf';
 
 export function copyDiff(src, dest, initial) {
   fs.mkdirSync(dest, { recursive: true });

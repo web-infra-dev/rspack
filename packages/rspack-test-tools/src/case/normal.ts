@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import TerserPlugin from 'terser-webpack-plugin';
 import {
   type Compiler,
   HotModuleReplacementPlugin,
@@ -118,7 +119,6 @@ function defaultOptions(
   if (fs.existsSync(testConfigPath)) {
     testConfig = require(testConfigPath);
   }
-  const TerserPlugin = require('terser-webpack-plugin');
   const terserForTesting = new TerserPlugin({
     parallel: false,
   });

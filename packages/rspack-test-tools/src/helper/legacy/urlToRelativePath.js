@@ -1,5 +1,5 @@
 // @ts-nocheck
-const URL = require('url').URL;
+import { URL } from 'node:url';
 
 function urlToRelativePath(url) {
   if (url.startsWith('https://') || url.startsWith('file://')) {
