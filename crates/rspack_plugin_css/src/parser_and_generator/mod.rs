@@ -59,13 +59,11 @@ pub struct CssParserAndGenerator {
 
 impl CssParserAndGenerator {
   pub fn new(module_options: Arc<ResolvedModuleOptions>) -> Self {
-    let export_type = module_options
+    let parser_options = module_options
       .parser_options()
-      .and_then(|options| options.get_css_module())
-      .and_then(|options| options.export_type);
-    let runtime_public_path = module_options
-      .parser_options()
-      .and_then(|options| options.get_css_module())
+      .and_then(|options| options.get_css_module());
+    let export_type = parser_options.and_then(|options| options.export_type);
+    let runtime_public_path = parser_options
       .and_then(|options| options.runtime_public_path)
       .unwrap_or(false);
     let generator_options = css_generator_options(module_options.generator_options());

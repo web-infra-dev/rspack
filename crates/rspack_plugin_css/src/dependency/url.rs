@@ -43,8 +43,7 @@ impl CssUrlDependency {
     // url points to asset modules, and asset modules should have same codegen results for all runtimes
     let code_gen_result = compilation.code_generation_results.get_one(identifier);
 
-    // Injected styles run in JavaScript, so their asset URLs must observe
-    // import.meta.rspackPublicPath just like assets imported from JavaScript do.
+    // When enabled, injected asset URLs use import.meta.rspackPublicPath.
     // An explicit asset generator publicPath still takes precedence.
     if runtime_public_path
       && let Some(data) = code_gen_result.data().get::<CodeGenerationDataFilename>()
@@ -153,24 +152,23 @@ impl DependencyTemplate for CssUrlDependencyTemplate {
       .downcast_ref::<CssUrlDependency>()
       .expect("CssUrlDependencyTemplate should be used for CssUrlDependency");
 
+    let module = code_generatable_context.module;
+    let runtime_public_path = css_module_export_type(module) == Some(CssExportType::Style)
+      && module
+        .as_normal_module()
+        .and_then(|module| {
+          module
+            .parser_and_generator()
+            .downcast_ref::<CssParserAndGenerator>()
+        })
+        .is_some_and(|parser| parser.runtime_public_path);
+
     let TemplateContext { compilation, .. } = code_generatable_context;
     if let Some(mgm) = compilation
       .get_module_graph()
       .module_graph_module_by_dependency_id(dep.id())
-      && let Some(target_url) = dep.get_target_url(
-        &mgm.module_identifier,
-        compilation,
-        css_module_export_type(code_generatable_context.module) == Some(CssExportType::Style)
-          && code_generatable_context
-            .module
-            .as_normal_module()
-            .is_some_and(|module| {
-              module
-                .parser_and_generator()
-                .downcast_ref::<CssParserAndGenerator>()
-                .is_some_and(|parser| parser.runtime_public_path)
-            }),
-      )
+      && let Some(target_url) =
+        dep.get_target_url(&mgm.module_identifier, compilation, runtime_public_path)
     {
       let target_url = serialize_url_value(&target_url);
       let content = if dep.replace_function {
