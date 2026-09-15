@@ -1,5 +1,5 @@
 asset main-xxx.js xx KiB [emitted] [immutable] (name: main)
-asset 270-xxx.js xx bytes [emitted] [immutable]
+asset 948-xxx.js xx bytes [emitted] [immutable]
 runtime modules xx KiB 9 modules
 orphan modules xx bytes [orphan] 1 module
 cacheable modules xx bytes
@@ -11,7 +11,7 @@ cacheable modules xx bytes
 Rspack x.x.x compiled successfully in X s
 
 asset main-xxx.js xx KiB [emitted] [immutable] (name: main)
-asset 270-xxx.js xx bytes [emitted] [immutable]
+asset 948-xxx.js xx bytes [emitted] [immutable]
 runtime modules xx KiB 9 modules
 orphan modules xx bytes [orphan] 1 module
 cacheable modules xx bytes
@@ -23,7 +23,7 @@ cacheable modules xx bytes
 Rspack x.x.x compiled successfully in X s
 
 asset main-xxx.js xx KiB [emitted] [immutable] (name: main)
-asset 270-xxx.js xx bytes [emitted] [immutable]
+asset 948-xxx.js xx bytes [emitted] [immutable]
 runtime modules xx KiB 9 modules
 orphan modules xx bytes [orphan] 1 module
 cacheable modules xx bytes
@@ -35,7 +35,7 @@ cacheable modules xx bytes
 Rspack x.x.x compiled successfully in X s
 
 asset main-xxx.js xx KiB [emitted] [immutable] (name: main)
-asset 270-xxx.js xx bytes [emitted] [immutable]
+asset 948-xxx.js xx bytes [emitted] [immutable]
 runtime modules xx KiB 9 modules
 orphan modules xx bytes [orphan] 1 module
 cacheable modules xx bytes
@@ -47,7 +47,7 @@ cacheable modules xx bytes
 Rspack x.x.x compiled successfully in X s
 
 asset main-xxx.js xx KiB [emitted] [immutable] (name: main)
-asset 270-xxx.js xx bytes [emitted] [immutable]
+asset 948-xxx.js xx bytes [emitted] [immutable]
 runtime modules xx KiB 9 modules
 orphan modules xx bytes [orphan] 1 module
 cacheable modules xx bytes
@@ -59,7 +59,7 @@ cacheable modules xx bytes
 Rspack x.x.x compiled successfully in X s
 
 asset main-xxx.js xx KiB [emitted] [immutable] (name: main)
-asset 270-xxx.js xx bytes [emitted] [immutable]
+asset 948-xxx.js xx bytes [emitted] [immutable]
 runtime modules xx KiB 9 modules
 orphan modules xx bytes [orphan] 1 module
 cacheable modules xx bytes

@@ -12,7 +12,10 @@ const base = (name, devtool) => ({
     rules: [
       {
         test: /chunk/,
-        loader: 'babel-loader',
+        // require.resolve yields the loader's realpath inside the pnpm
+        // store on every OS, so deterministic module/chunk ids don't depend
+        // on pnpm's symlink (POSIX) vs junction (Windows) layout.
+        loader: require.resolve('babel-loader'),
         options: {},
       },
     ],
@@ -43,18 +46,6 @@ const base = (name, devtool) => ({
         path.resolve(__dirname, name, 'cc'),
       ],
     },
-  },
-  // Load-bearing for cross-OS snapshot stability, do not remove: pnpm links
-  // packages with symlinks on POSIX but with junctions on Windows, and
-  // junctions are not reported as symlinks to the resolver, so the resolved
-  // babel-loader path keeps the `node_modules/...` spelling on Windows while
-  // POSIX canonicalizes it into the `.pnpm` store. The two spellings yield
-  // different deterministic module/chunk ids (e.g. async chunk `270` vs
-  // `191`), which end up in emitted file names where hash normalization
-  // cannot paper over them. Skipping symlink resolution keeps the loader
-  // path spelling identical on every platform.
-  resolveLoader: {
-    symlinks: false,
   },
 });
 
