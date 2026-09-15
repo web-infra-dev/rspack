@@ -14,7 +14,10 @@ use super::{
 };
 use crate::{
   CompilationLogger, InfrastructureLogger, LogType, Logger,
-  cache::{BuildDependencyHelper, SnapshotOptions, SnapshotStrategyOptions, is_node_package_path},
+  cache::{
+    BuildDependencyHelper, SnapshotOptions, SnapshotPath, SnapshotStrategyOptions,
+    is_node_package_path,
+  },
 };
 
 #[derive(Debug, Clone)]
@@ -277,18 +280,21 @@ impl FileSystemInfo {
     let mut captured = Vec::with_capacity(paths.len());
     for path in paths {
       let path_str = path.to_string_lossy();
-      if self.inner.options.is_immutable_path(&path_str) {
+      if matches!(
+        self.inner.options.classify_path(&path_str),
+        SnapshotPath::Immutable
+      ) {
         managed_paths(snapshot, kind).insert(path.clone());
         continue;
       }
-      if self.inner.options.is_managed_path(&path_str)
-        && let Some((managed_item, info)) = self.find_managed_item(path).await?
-      {
+      if let Some((managed_item, info)) = self.find_managed_item(path).await? {
         managed_paths(snapshot, kind).insert(path.clone());
-        snapshot
-          .managed_files
-          .get_or_insert_default()
-          .insert(InternedPath::from(managed_item.join("package.json")));
+        if !info.starts_with('*') {
+          snapshot
+            .managed_files
+            .get_or_insert_default()
+            .insert(InternedPath::from(managed_item.join("package.json")));
+        }
         snapshot
           .managed_item_info
           .get_or_insert_default()
@@ -679,15 +685,13 @@ impl FileSystemInfo {
     for child in children {
       let child_path = InternedPath::from(path.join(child));
       let child_path_str = child_path.to_string_lossy();
-      let child_value = if self.inner.options.is_immutable_path(&child_path_str) {
-        None
-      } else if self.inner.options.is_managed_path(&child_path_str) {
-        self
-          .find_managed_item(&child_path)
-          .await?
-          .map(|(_, info)| self.context_leaf(info.as_bytes(), mode, 0))
-      } else {
-        self.context_value(&child_path, mode, visiting).await?
+      let child_value = match self.inner.options.classify_path(&child_path_str) {
+        SnapshotPath::Immutable => None,
+        SnapshotPath::Managed(_) => match self.find_managed_item(&child_path).await? {
+          Some((_, info)) => Some(self.context_leaf(info.as_bytes(), mode, 0)),
+          None => self.context_value(&child_path, mode, visiting).await?,
+        },
+        SnapshotPath::Unmanaged => self.context_value(&child_path, mode, visiting).await?,
       };
 
       let Some(child_value) = child_value else {
@@ -773,26 +777,17 @@ impl FileSystemInfo {
   }
 
   async fn find_managed_item(&self, path: &InternedPath) -> Result<Option<(InternedPath, String)>> {
-    let mut current = if self
-      .metadata(path)
-      .await?
-      .is_some_and(|metadata| metadata.is_directory)
-    {
-      Some(path.clone())
-    } else {
-      path.parent().map(InternedPath::from)
+    let path_str = path.to_string_lossy();
+    let SnapshotPath::Managed(item) = self.inner.options.classify_path(&path_str) else {
+      return Ok(None);
     };
-    while let Some(directory) = current {
-      let directory_str = directory.to_string_lossy();
-      if !self.inner.options.is_managed_path(&directory_str) {
-        break;
-      }
-      if let Some(info) = self.managed_item_info(&directory).await? {
-        return Ok(Some((directory, info)));
-      }
-      current = directory.parent().map(InternedPath::from);
-    }
-    Ok(None)
+    let item = InternedPath::from(item);
+    Ok(
+      self
+        .managed_item_info(&item)
+        .await?
+        .map(|info| (item, info)),
+    )
   }
 
   /// See webpack's managed item metadata implementation:
@@ -801,12 +796,35 @@ impl FileSystemInfo {
     if let Some(info) = self.inner.managed_items.get(path) {
       return Ok(info.clone());
     }
+    let Some(metadata) = self.metadata(path).await? else {
+      let info = "*missing".to_string();
+      self
+        .inner
+        .managed_items
+        .insert(path.clone(), Some(info.clone()));
+      return Ok(Some(info));
+    };
+    if !metadata.is_directory {
+      self.inner.managed_items.insert(path.clone(), None);
+      return Ok(None);
+    }
+    if path.file_name().is_some_and(|name| name == "node_modules") {
+      let info = "*node_modules".to_string();
+      self
+        .inner
+        .managed_items
+        .insert(path.clone(), Some(info.clone()));
+      return Ok(Some(info));
+    }
     let package_json = InternedPath::from(path.join("package.json"));
     let mut content = match self.inner.fs.read(package_json.assert_utf8()).await {
       Ok(content) => content,
       Err(error) if is_not_found(&error) => {
-        self.inner.managed_items.insert(path.clone(), None);
-        return Ok(None);
+        let children = self.inner.fs.read_dir(path.assert_utf8()).await?;
+        let info =
+          (children.len() == 1 && children[0] == "node_modules").then(|| "*nested".to_string());
+        self.inner.managed_items.insert(path.clone(), info.clone());
+        return Ok(info);
       }
       Err(error) => return Err(error.into()),
     };

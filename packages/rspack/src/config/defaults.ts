@@ -108,6 +108,7 @@ export const applyRspackOptionsDefaults = (
     name: options.name || DEFAULT_CACHE_NAME,
     mode: options.mode || 'production',
     compilerIndex,
+    newCache: Boolean(options.experiments.newCache),
   });
 
   applyIncrementalDefaults(options);
@@ -218,17 +219,23 @@ const applyCacheDefaults = (
     name,
     mode,
     compilerIndex,
+    newCache,
   }: {
     context: string;
     name: Name;
     mode: Mode;
     compilerIndex?: number;
+    newCache: boolean;
   },
 ) => {
   if (cache === false) return;
   F(cache.snapshot, 'immutablePaths', () => []);
   F(cache.snapshot, 'unmanagedPaths', () => []);
-  F(cache.snapshot, 'managedPaths', () => [/[\\/]node_modules[\\/][^.]/]);
+  F(cache.snapshot, 'managedPaths', () =>
+    newCache
+      ? [/^(.+?[\\/]node_modules[\\/])/]
+      : [/[\\/]node_modules[\\/][^.]/],
+  );
   switch (cache.type) {
     case 'memory':
       break;

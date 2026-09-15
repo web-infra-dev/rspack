@@ -10,4 +10,5 @@ pub use cache_entry::{
 };
 pub use codec::CacheCodec;
 pub use options::{BuildDepsOptions, MaxMemoryGenerations, PersistentCacheOptions, StorageOptions};
+pub(crate) use snapshot::SnapshotPath;
 pub use snapshot::{PathMatcher, SnapshotOptions, SnapshotStrategyOptions};

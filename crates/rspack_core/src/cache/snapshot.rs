@@ -16,6 +16,80 @@ impl PathMatcher {
       Self::Regexp(regex) => regex.test(path),
     }
   }
+
+  fn matches_directory(&self, path: &str) -> bool {
+    match self {
+      Self::String(directory) => directory_prefix_length(directory, path).is_some(),
+      Self::Regexp(regex) => regex.test(path),
+    }
+  }
+
+  fn managed_root_length(&self, path: &str) -> Option<usize> {
+    match self {
+      Self::String(directory) => directory_prefix_length(directory, path),
+      Self::Regexp(regex) => regex.first_capture_or_match(path).map(str::len),
+    }
+  }
+}
+
+fn directory_prefix_length(directory: &str, path: &str) -> Option<usize> {
+  let directory = directory.trim_end_matches(['/', '\\']);
+  let rest = path.strip_prefix(directory)?;
+  rest.starts_with(['/', '\\']).then_some(directory.len() + 1)
+}
+
+/// Classification used by the new cache. Legacy snapshots retain their
+/// historical substring matching through `is_immutable_path`/`is_managed_path`.
+pub(crate) enum SnapshotPath<'a> {
+  Unmanaged,
+  Immutable,
+  Managed(&'a str),
+}
+
+// Follow webpack's getManagedItem: a managed root contains packages, including
+// scoped packages and packages with their own nested node_modules directory.
+fn managed_item(path: &str, root_length: usize) -> Option<&str> {
+  let bytes = path.as_bytes();
+  let mut index = root_length;
+  let mut segments = 1;
+  let mut starting = true;
+  while index < bytes.len() {
+    match bytes[index] {
+      b'/' | b'\\' => {
+        segments -= 1;
+        if segments == 0 {
+          break;
+        }
+        starting = true;
+      }
+      b'.' if starting => return None,
+      b'@' => {
+        if !starting {
+          return None;
+        }
+        segments += 1;
+      }
+      _ => starting = false,
+    }
+    index += 1;
+  }
+  if index == bytes.len() {
+    segments -= 1;
+  }
+  if segments != 0 {
+    return None;
+  }
+  if let Some(rest) = path.get(index + 1..)
+    && let Some(rest) = rest.strip_prefix("node_modules")
+  {
+    if rest.is_empty() {
+      return Some(path);
+    }
+    if rest.starts_with(['/', '\\']) {
+      return managed_item(path, index + 14);
+    }
+  }
+  path.get(..index)
 }
 
 /// Snapshot options
@@ -77,6 +151,31 @@ impl Default for SnapshotStrategyOptions {
 }
 
 impl SnapshotOptions {
+  pub(crate) fn classify_path<'a>(&self, path: &'a str) -> SnapshotPath<'a> {
+    if self
+      .unmanaged_paths
+      .iter()
+      .any(|item| item.matches_directory(path))
+    {
+      return SnapshotPath::Unmanaged;
+    }
+    if self
+      .immutable_paths
+      .iter()
+      .any(|item| item.matches_directory(path))
+    {
+      return SnapshotPath::Immutable;
+    }
+    for matcher in &self.managed_paths {
+      if let Some(root_length) = matcher.managed_root_length(path)
+        && let Some(item) = managed_item(path, root_length)
+      {
+        return SnapshotPath::Managed(item);
+      }
+    }
+    SnapshotPath::Unmanaged
+  }
+
   pub fn new(
     immutable_paths: Vec<PathMatcher>,
     unmanaged_paths: Vec<PathMatcher>,

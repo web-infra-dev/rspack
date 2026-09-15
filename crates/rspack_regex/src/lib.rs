@@ -47,6 +47,28 @@ impl Debug for RspackRegex {
 }
 
 impl RspackRegex {
+  /// Return the first capture, or the full match when that capture is absent.
+  /// Snapshot managed paths use this to identify the package-manager root.
+  pub fn first_capture_or_match<'a>(&self, text: &'a str) -> Option<&'a str> {
+    match self.algo.as_ref() {
+      Algo::Regress(regex) => {
+        let matched = regex.regex.find(text)?;
+        text.get(matched.group(1).unwrap_or(matched.range))
+      }
+      Algo::RustRegex(regex) => {
+        let matched = regex.regex.captures(text)?;
+        Some(matched.get(1).or_else(|| matched.get(0))?.as_str())
+      }
+      Algo::EndWith { .. } => {
+        // The boolean suffix optimization does not retain capture locations.
+        let regex = regress::Regex::with_flags(&self.source, self.flags.as_str())
+          .expect("an existing regexp should compile");
+        let matched = regex.find(text)?;
+        text.get(matched.group(1).unwrap_or(matched.range))
+      }
+    }
+  }
+
   #[inline]
   pub fn test(&self, text: &str) -> bool {
     self.algo.test(text)
