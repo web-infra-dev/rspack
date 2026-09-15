@@ -40,7 +40,7 @@ impl RuntimeModule for ReexportRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let environment = context.compilation.options.output.environment;
+    let environment = context.compilation.options().output.environment;
     let supports_const = environment.supports_const();
     let getter = if environment.supports_arrow_function() && supports_const {
       "() => source[key]"

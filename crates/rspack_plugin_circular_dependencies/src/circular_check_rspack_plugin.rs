@@ -52,7 +52,7 @@ impl CircularCheckRspackPlugin {
         .filter_map(|module_id| {
           compilation.module_by_identifier(module_id).map(|module| {
             module
-              .readable_identifier(&compilation.options.context)
+              .readable_identifier(&compilation.options().context)
               .into_owned()
           })
         })

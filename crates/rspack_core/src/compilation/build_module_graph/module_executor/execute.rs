@@ -49,7 +49,7 @@ fn create_execute_runtime_source(
   chunk_ukey: &ChunkUkey,
   runtime_modules: &[Identifier],
 ) -> Option<(Identifier, CodeGenerationResult)> {
-  if compilation.options.experiments.runtime_mode != RuntimeMode::Rspack {
+  if compilation.options().experiments.runtime_mode != RuntimeMode::Rspack {
     return None;
   }
 
@@ -105,14 +105,14 @@ fn create_execute_runtime_source(
       .get(&SourceType::JavaScript)
       .expect("runtime module should have runtime source");
     let should_isolate =
-      runtime_module.should_isolate(compilation.options.experiments.runtime_mode);
+      runtime_module.should_isolate(compilation.options().experiments.runtime_mode);
     source.push_str(
       &render_runtime_module_source(
         runtime_module.identifier(),
         runtime_module_source.clone(),
         should_isolate,
         compilation
-          .options
+          .options()
           .output
           .environment
           .supports_arrow_function(),
@@ -324,8 +324,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     }
 
     let mut compilation = origin_context.transform_to_temp_compilation();
-    let main_compilation_plugin_driver = compilation.plugin_driver.clone();
-    compilation.plugin_driver = compilation.buildtime_plugin_driver.clone();
+    let main_compilation_plugin_driver = origin_context.build_context.plugin_driver.clone();
     tracing::debug!("modules: {:?}", &modules);
 
     let mut chunk_graph = ChunkGraph::default();
@@ -396,7 +395,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     create_module_hashes(&mut compilation, modules.clone()).await?;
 
     code_generation_modules(&mut compilation, None, modules.clone()).await?;
-    let plugin_driver = compilation.plugin_driver.clone();
+    let plugin_driver = compilation.plugin_driver().clone();
     process_modules_runtime_requirements(&mut compilation, modules.clone(), plugin_driver.clone())
       .await?;
     process_chunks_runtime_requirements(
@@ -519,7 +518,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         ExecutedRuntimeModule {
           identifier,
           name: runtime_module
-            .readable_identifier(&compilation.options.context)
+            .readable_identifier(&compilation.options().context)
             .into(),
           name_for_condition: runtime_module.name_for_condition().map(|n| n.to_string()),
           module_type: *runtime_module.module_type(),

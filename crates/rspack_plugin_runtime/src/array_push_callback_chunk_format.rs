@@ -81,7 +81,7 @@ async fn js_chunk_hash(
   }
 
   PLUGIN_NAME.hash(hasher);
-  let output = &compilation.options.output;
+  let output = &compilation.options().output;
   output.global_object.hash(hasher);
   output.chunk_loading_global.hash(hasher);
   output.hot_update_global.hash(hasher);
@@ -117,8 +117,8 @@ async fn render_chunk(
     .build_chunk_graph_artifact
     .chunk_graph
     .has_chunk_runtime_modules(chunk_ukey);
-  let global_object = &compilation.options.output.global_object;
-  let hot_update_global = &compilation.options.output.hot_update_global;
+  let global_object = &compilation.options().output.global_object;
+  let hot_update_global = &compilation.options().output.hot_update_global;
   let mut source = ConcatSource::default();
 
   if matches!(chunk.kind(), ChunkKind::HotUpdate) {
@@ -135,11 +135,11 @@ async fn render_chunk(
     }
     source.add(RawStringSource::from_static(")"));
   } else {
-    let chunk_loading_global = &compilation.options.output.chunk_loading_global;
+    let chunk_loading_global = &compilation.options().output.chunk_loading_global;
     let chunk_loading_global_expr = format!(r#"{global_object}["{chunk_loading_global}"]"#);
 
     let chunk_loading_global_init = if compilation
-      .options
+      .options()
       .output
       .environment
       .supports_logical_assignment()

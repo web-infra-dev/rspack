@@ -71,7 +71,7 @@ async fn generate_html(
   let mut template = HtmlTemplate::new(config, compilation).await?;
 
   let template_file_name = compilation
-    .options
+    .options()
     .output
     .path
     .join(template.filename.clone());
@@ -195,7 +195,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let filename = {
       let filename_path = Path::new(filename.as_ref());
       if filename_path.is_absolute() {
-        let output_path = &compilation.options.output.path;
+        let output_path = &compilation.options().output.path;
         Cow::from(
           filename_path
             .relative(output_path)

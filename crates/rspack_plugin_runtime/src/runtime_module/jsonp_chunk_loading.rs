@@ -293,7 +293,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     let with_hmr_manifest = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
     let with_callback = runtime_requirements.contains(RuntimeGlobals::CHUNK_CALLBACK);
     let with_prefetch = runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS)
-      && compilation.options.output.environment.supports_document()
+      && compilation.options().output.environment.supports_document()
       && chunk.has_child_by_order(
         compilation,
         &ChunkGroupOrderKey::Prefetch,
@@ -301,7 +301,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         &chunk_has_js,
       );
     let with_preload = runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS)
-      && compilation.options.output.environment.supports_document()
+      && compilation.options().output.environment.supports_document()
       && chunk.has_child_by_order(
         compilation,
         &ChunkGroupOrderKey::Preload,
@@ -309,8 +309,8 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         &chunk_has_js,
       );
     let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
-    let cross_origin_loading = &compilation.options.output.cross_origin_loading;
-    let script_type = &compilation.options.output.script_type;
+    let cross_origin_loading = &compilation.options().output.cross_origin_loading;
+    let script_type = &compilation.options().output.script_type;
 
     let hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
 
@@ -444,8 +444,8 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     if with_hmr {
       let source_with_hmr = runtime_template
         .render(&self.template_id(TemplateId::WithHmr), Some(serde_json::json!({
-          "_global_object": &compilation.options.output.global_object,
-          "_hot_update_global": &rspack_util::json_stringify_str(&compilation.options.output.hot_update_global),
+          "_global_object": &compilation.options().output.global_object,
+          "_hot_update_global": &rspack_util::json_stringify_str(&compilation.options().output.hot_update_global),
         })))?;
 
       source.push_str(&source_with_hmr);
@@ -472,11 +472,11 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     }
 
     if with_callback || with_loading {
-      let global_object = &compilation.options.output.global_object;
-      let chunk_loading_global = &compilation.options.output.chunk_loading_global;
+      let global_object = &compilation.options().output.global_object;
+      let chunk_loading_global = &compilation.options().output.chunk_loading_global;
       let chunk_loading_global_expr = format!(r#"{global_object}["{chunk_loading_global}"]"#);
       let chunk_loading_global_init_expr = if compilation
-        .options
+        .options()
         .output
         .environment
         .supports_logical_assignment()

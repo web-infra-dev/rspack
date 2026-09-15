@@ -305,7 +305,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       Some(serde_json::json!({
         "_set_attributes": &attr,
         "_set_linktype": self.link_type.clone().unwrap_or_default(),
-        "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
+        "_cross_origin": compilation.options().output.cross_origin_loading.to_string(),
         "_with_fetch_priority": with_fetch_priority,
       })),
     )?;
@@ -411,7 +411,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       let link_prefetch_raw = runtime_template.render(
         &self.template_id(TemplateId::WithPrefetchLink),
         Some(serde_json::json!({
-          "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
+          "_cross_origin": compilation.options().output.cross_origin_loading.to_string(),
           "_get_chunk_css_filename": render_mini_css_chunk_filename(runtime_template),
         })),
       )?;
@@ -445,7 +445,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       let link_preload_raw = runtime_template.render(
         &self.template_id(TemplateId::WithPreloadLink),
         Some(serde_json::json!({
-          "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
+          "_cross_origin": compilation.options().output.cross_origin_loading.to_string(),
           "_get_chunk_css_filename": render_mini_css_chunk_filename(runtime_template),
         })),
       )?;

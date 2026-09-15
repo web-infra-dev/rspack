@@ -46,7 +46,7 @@ async fn chunk_ids(
   let context = self
     .context
     .clone()
-    .unwrap_or_else(|| compilation.options.context.as_str().to_string());
+    .unwrap_or_else(|| compilation.options().context.as_str().to_string());
 
   let max_length = 3;
   let expand_factor = 10;

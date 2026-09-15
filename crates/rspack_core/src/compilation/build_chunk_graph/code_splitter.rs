@@ -597,6 +597,7 @@ impl CodeSplitter {
       )));
     };
 
+    let output_options = &compilation.build_context.compiler_options.output;
     let mut modules = vec![];
     let options = &entry_data.options;
     let dependencies = [
@@ -682,12 +683,10 @@ impl CodeSplitter {
           options
             .chunk_loading
             .as_ref()
-            .unwrap_or(&compilation.options.output.chunk_loading),
+            .unwrap_or(&output_options.chunk_loading),
           ChunkLoading::Disable
         ),
-        options
-          .async_chunks
-          .unwrap_or(compilation.options.output.async_chunks),
+        options.async_chunks.unwrap_or(output_options.async_chunks),
       )
     };
 

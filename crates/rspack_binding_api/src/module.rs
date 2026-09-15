@@ -398,7 +398,7 @@ impl Module {
     self.with_ref(|compilation, module| {
       Ok(
         module
-          .readable_identifier(&compilation.options.context)
+          .readable_identifier(&compilation.options().context)
           .to_string(),
       )
     })

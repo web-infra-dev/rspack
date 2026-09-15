@@ -28,19 +28,23 @@ use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
-  AsyncDependenciesBlockRef, BindingCell, CacheFacade, ChunkGraph, ChunkUkey,
+  AsyncDependenciesBlockRef, BindingCell, CacheFacade, CacheOptions, ChunkGraph, ChunkUkey,
   CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation, CompilationAsset,
-  CompilationAssets, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
-  ConnectionState, Context, ContextModule, CssExportType, DependenciesBlock, DependenciesBlockData,
-  DependencyCodeGenerationRef, DependencyId, DependencyRef, ExportProvided, ExportsInfoArtifact,
-  ExternalModule, FileSystemInfo, Filename, GetTargetResult, ImportPhase, ModuleCodeTemplate,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
-  OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
-  SharedPluginDriver, SideEffectsStateArtifact, Snapshot, SourceType,
+  CompilationAssets, CompilationId, CompilationLogger, CompilationLogging, CompilerId,
+  CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule, CssExportType,
+  DependenciesBlock, DependenciesBlockData, DependencyCodeGenerationRef, DependencyId,
+  DependencyRef, ExportProvided, ExportsInfoArtifact, ExternalModule, FileSystemInfo, Filename,
+  GetTargetResult, ImportPhase, ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleLayer, ModuleType, NormalModule, OptimizationBailoutItem, RawModule, Resolve,
+  ResolverFactory, RuntimeSpec, RuntimeTemplate, SelfModule, SharedPluginDriver,
+  SideEffectsStateArtifact, Snapshot, SourceType, cache::SnapshotOptions,
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
   get_target, value_cache_versions::ValueCacheVersions,
 };
 
+/// Shared inputs for module builds within one compilation.
+///
+/// New compilations must get a fresh identity and filesystem snapshot cache.
 #[derive(Debug)]
 pub struct BuildContext {
   pub compiler_id: CompilerId,
@@ -52,6 +56,56 @@ pub struct BuildContext {
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+}
+
+impl BuildContext {
+  #[allow(clippy::too_many_arguments)]
+  pub fn new(
+    compiler_id: CompilerId,
+    compiler_options: Arc<CompilerOptions>,
+    loader_cache: CacheFacade,
+    resolver_factory: Arc<ResolverFactory>,
+    plugin_driver: SharedPluginDriver,
+    fs: Arc<dyn ReadableFileSystem>,
+    logging: CompilationLogging,
+  ) -> Self {
+    let snapshot_options = match &compiler_options.cache {
+      CacheOptions::Disabled => SnapshotOptions::default(),
+      CacheOptions::Memory { snapshot, .. } => snapshot.clone(),
+      CacheOptions::Persistent(options) => options.snapshot.clone(),
+    };
+    let file_system_info = FileSystemInfo::new(
+      fs.clone(),
+      CompilationLogger::new("rspack.FileSystemInfo", logging),
+      snapshot_options,
+      compiler_options.output.hash_function,
+    );
+    Self {
+      compiler_id,
+      compilation_id: CompilationId::new(),
+      runtime_template: RuntimeTemplate::new(compiler_options.clone())
+        .create_module_code_template(),
+      compiler_options,
+      loader_cache,
+      file_system_info,
+      resolver_factory,
+      plugin_driver,
+      fs,
+    }
+  }
+
+  /// Reuse compiler-wide inputs, but reset compilation-local identity and snapshots.
+  pub fn for_new_compilation(&self, logging: CompilationLogging) -> Self {
+    Self::new(
+      self.compiler_id,
+      self.compiler_options.clone(),
+      self.loader_cache.clone(),
+      self.resolver_factory.clone(),
+      self.plugin_driver.clone(),
+      self.fs.clone(),
+      logging,
+    )
+  }
 }
 
 /// Context used to decide whether a previously built module is still valid.

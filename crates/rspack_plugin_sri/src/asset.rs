@@ -38,7 +38,7 @@ fn process_chunks(
   let batches = digest_chunks(compilation);
 
   if matches!(
-    compilation.options.output.cross_origin_loading,
+    compilation.options().output.cross_origin_loading,
     CrossOriginLoading::Disable
   ) {
     compilation.push_diagnostic(Diagnostic::warn(
@@ -87,7 +87,7 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
             chunk_id,
             hash_funcs,
             &hash_by_placeholders,
-            compilation.options.output.hot_update_global.as_str(),
+            compilation.options().output.hot_update_global.as_str(),
           )
         } else {
           ProcessChunkResult {
@@ -119,7 +119,7 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
         hash_by_placeholders.insert(placeholder, integrity.clone());
       }
 
-      let real_content_hash = compilation.options.optimization.real_content_hash;
+      let real_content_hash = compilation.options().optimization.real_content_hash;
 
       if let Some(source) = result.source
         && let Some(error) = compilation

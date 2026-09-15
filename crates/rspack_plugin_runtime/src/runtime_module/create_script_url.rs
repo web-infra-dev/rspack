@@ -25,7 +25,7 @@ impl RuntimeModule for CreateScriptUrlRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: {
-        if compilation.options.output.trusted_types.is_some() {
+        if compilation.options().output.trusted_types.is_some() {
           RuntimeGlobals::GET_TRUSTED_TYPES_POLICY
         } else {
           RuntimeGlobals::default()
@@ -51,7 +51,7 @@ impl RuntimeModule for CreateScriptUrlRuntimeModule {
     let source = context.runtime_template.render(
       self.id(),
       Some(serde_json::json!({
-        "_trusted_types": compilation.options.output.trusted_types.is_some(),
+        "_trusted_types": compilation.options().output.trusted_types.is_some(),
       })),
     )?;
 

@@ -17,7 +17,7 @@ impl PassExt for CreateChunkAssetsPass {
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
-    let plugin_driver = compilation.plugin_driver.clone();
+    let plugin_driver = compilation.plugin_driver().clone();
     create_chunk_assets(compilation, plugin_driver).await?;
     Ok(())
   }
@@ -28,19 +28,19 @@ pub async fn create_chunk_assets(
   compilation: &mut Compilation,
   plugin_driver: SharedPluginDriver,
 ) -> Result<()> {
-  let filename_has_hash_placeholder = compilation.options.output.filename.has_hash_placeholder()
+  let filename_has_hash_placeholder = compilation.options().output.filename.has_hash_placeholder()
     || compilation
-      .options
+      .options()
       .output
       .chunk_filename
       .has_hash_placeholder()
     || compilation
-      .options
+      .options()
       .output
       .css_filename
       .has_hash_placeholder()
     || compilation
-      .options
+      .options()
       .output
       .css_chunk_filename
       .has_hash_placeholder()

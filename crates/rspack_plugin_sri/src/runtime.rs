@@ -73,7 +73,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
         let id = chunk.id()?;
         let rendered_hash = chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
-          compilation.options.output.hash_digest_length,
+          compilation.options().output.hash_digest_length,
         )?;
         Some((id, rendered_hash))
       })

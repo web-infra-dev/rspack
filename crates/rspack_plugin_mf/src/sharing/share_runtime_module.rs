@@ -182,7 +182,7 @@ impl RuntimeModule for ShareRuntimeModule {
       require_name = runtime_require_scope_name(runtime_template),
       share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
       scope_to_data_init = scope_to_data_init,
-      unique_name = json_stringify_str(&compilation.options.output.unique_name),
+      unique_name = json_stringify_str(&compilation.options().output.unique_name),
       initialize_sharing_impl = initialize_sharing_impl,
     ))
   }

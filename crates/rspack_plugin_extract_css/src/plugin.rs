@@ -368,7 +368,7 @@ despite it was not able to fulfill desired ordering with these modules:
               .name()
               .or_else(|| chunk.id().map(|id| id.as_str()))
               .unwrap_or_default(),
-            fallback_module.readable_identifier(&compilation.options.context),
+            fallback_module.readable_identifier(&compilation.options().context),
             conflict
               .reasons
               .iter()
@@ -379,7 +379,7 @@ despite it was not able to fulfill desired ordering with these modules:
 
                 format!(
                   " * {}\n  - couldn't fulfill desired order of chunk group(s) {}{}",
-                  m.readable_identifier(&compilation.options.context),
+                  m.readable_identifier(&compilation.options().context),
                   failed_reasons
                     .as_ref()
                     .map(|s| s.as_str())
@@ -412,7 +412,7 @@ despite it was not able to fulfill desired ordering with these modules:
 
     for module in used_modules {
       let content = Cow::Borrowed(module.content.as_str());
-      let readable_identifier = module.readable_identifier(&compilation.options.context);
+      let readable_identifier = module.readable_identifier(&compilation.options().context);
       // Loaders such as dart-sass prepend a BOM. It only carries meaning at the head
       // of a file: left in place it hides the `@import url` prefix from the check
       // below, and it lands mid-chunk, where it invalidates the rule after it.
@@ -471,7 +471,7 @@ despite it was not able to fulfill desired ordering with these modules:
         // different from webpack, add `enforce_relative` to preserve './'
         let undo_path = get_undo_path(
           filename,
-          compilation.options.output.path.to_string(),
+          compilation.options().output.path.to_string(),
           self.options.enforce_relative,
         );
 
@@ -640,7 +640,7 @@ async fn content_hash(
 
   let hasher = hashes
     .entry(SOURCE_TYPE[0])
-    .or_insert_with(|| RspackHasher::from(&compilation.options.output));
+    .or_insert_with(|| RspackHasher::from(&compilation.options().output));
 
   used_modules
     .iter()
@@ -701,13 +701,13 @@ async fn render_manifest(
         .chunk_id_optional(chunk.id().map(|id| id.as_str()))
         .chunk_hash_optional(chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
-          compilation.options.output.hash_digest_length,
+          compilation.options().output.hash_digest_length,
         ))
         .chunk_name_optional(chunk.name_for_filename_template())
         .content_hash_optional(chunk.rendered_content_hash_by_source_type(
           &compilation.chunk_hashes_artifact,
           &SOURCE_TYPE[0],
-          compilation.options.output.hash_digest_length,
+          compilation.options().output.hash_digest_length,
         )),
       &mut asset_info,
     )

@@ -640,7 +640,7 @@ impl<'a> ConcatenationContext<'a> {
     let module_graph_cache = &compilation.module_graph_cache_artifact;
     let module_static_cache = &compilation.module_static_cache;
     let exports_info_artifact = &compilation.exports_info_artifact;
-    let compiler_context = &compilation.options.context;
+    let compiler_context = &compilation.options().context;
     let (escaped_name_entries, escaped_identifier_entries) = module_to_info_map
       .par_values()
       .map(|info| {

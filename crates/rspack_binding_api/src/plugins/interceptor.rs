@@ -1580,7 +1580,7 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
           .cow_replace(runtime_module_prefix, "")
           .into_owned(),
         stage: module.stage().into(),
-        isolate: module.should_isolate(compilation.options.experiments.runtime_mode),
+        isolate: module.should_isolate(compilation.options().experiments.runtime_mode),
       },
       chunk: ChunkWrapper::new(*chunk_ukey, compilation),
     };

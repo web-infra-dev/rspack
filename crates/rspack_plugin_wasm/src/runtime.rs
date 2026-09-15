@@ -114,7 +114,7 @@ impl RuntimeModule for AsyncWasmCompileRuntimeModule {
         .generate_load_binary_code
         .cow_replace(
           "$IMPORT_META_NAME",
-          compilation.options.output.import_meta_name.as_str(),
+          compilation.options().output.import_meta_name.as_str(),
         )
         .cow_replace("$PATH", "wasmModuleFilename"),
       &self
@@ -122,7 +122,7 @@ impl RuntimeModule for AsyncWasmCompileRuntimeModule {
         .cow_replace("$PATH", "wasmModuleFilename"),
       &self.generate_before_compile_streaming,
       self.supports_streaming,
-      compilation.options.output.wasm_streaming_fallback,
+      compilation.options().output.wasm_streaming_fallback,
       runtime_template,
     ))
   }
@@ -161,7 +161,7 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
         .generate_load_binary_code
         .cow_replace(
           "$IMPORT_META_NAME",
-          compilation.options.output.import_meta_name.as_str(),
+          compilation.options().output.import_meta_name.as_str(),
         )
         .cow_replace("$PATH", "wasmModuleFilename"),
       &self
@@ -169,7 +169,7 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
         .cow_replace("$PATH", "wasmModuleFilename"),
       &self.generate_before_instantiate_streaming,
       self.supports_streaming,
-      compilation.options.output.wasm_streaming_fallback,
+      compilation.options().output.wasm_streaming_fallback,
       runtime_template,
     ))
   }

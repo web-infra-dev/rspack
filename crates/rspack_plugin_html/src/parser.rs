@@ -126,7 +126,7 @@ impl<'a> HtmlCompiler<'a> {
   pub fn codegen(&self, ast: &mut CompiledDocument, compilation: &Compilation) -> Result<String> {
     let writer_config = BasicHtmlWriterConfig::default();
     let minify = self.config.minify.unwrap_or(matches!(
-      compilation.options.mode,
+      compilation.options().mode,
       rspack_core::Mode::Production
     ));
     let codegen_config = CodegenConfig {

@@ -228,7 +228,7 @@ pub async fn preserve_modules(
         .chunk_by_ukey
         .get(&chunk)
         .and_then(|c| c.filename_template().cloned())
-        .unwrap_or_else(|| compilation.options.output.filename.clone());
+        .unwrap_or_else(|| compilation.options().output.filename.clone());
       let ext = extension
         .template()
         .and_then(|tpl| EXTENSION_RE.captures(tpl).map(|c| c[1].to_string()))

@@ -12,7 +12,7 @@ impl PassExt for AfterSealPass {
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
-    let plugin_driver = compilation.plugin_driver.clone();
+    let plugin_driver = compilation.plugin_driver().clone();
     after_seal(compilation, plugin_driver).await?;
     Ok(())
   }

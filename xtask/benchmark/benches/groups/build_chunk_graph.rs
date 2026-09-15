@@ -366,30 +366,31 @@ fn reset_compilation_state(compiler: &mut Compiler) {
   let previous_compilation_id = compiler.compilation.id();
   compiler.plugin_driver.clear_cache(previous_compilation_id);
 
-  let compiler_id = compiler.id();
   let compiler_context = CURRENT_COMPILER_CONTEXT.get();
   let cache = CompilerCache::new(
     Arc::new(Cache::new_disabled()),
     compiler.compiler_path.clone(),
   );
+  let logging = rspack_core::CompilationLogging::default();
+  let mut build_context = compiler
+    .compilation
+    .build_context
+    .for_new_compilation(logging.clone());
+  build_context.loader_cache = cache.facade("loader");
   fast_set(
     &mut compiler.compilation,
     Compilation::new(
-      compiler_id,
-      compiler.options.clone(),
+      Arc::new(build_context),
       compiler.platform.clone(),
-      compiler.plugin_driver.clone(),
       compiler.buildtime_plugin_driver.clone(),
-      compiler.resolver_factory.clone(),
       compiler.loader_resolver_factory.clone(),
       None,
       Incremental::new_cold(compiler.options.incremental),
       Some(Default::default()),
-      Default::default(),
+      logging,
       cache,
       Default::default(),
       Default::default(),
-      compiler.input_filesystem.clone(),
       compiler.intermediate_filesystem.clone(),
       compiler.output_filesystem.clone(),
       false,

@@ -67,7 +67,7 @@ pub fn get_options_for_chunk<'a>(
   chunk
     .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
     .and_then(|options| options.library.as_ref())
-    .or(compilation.options.output.library.as_ref())
+    .or(compilation.options().output.library.as_ref())
 }
 
 pub const COMMON_LIBRARY_NAME_MESSAGE: &str = "Common configuration options that specific library names are 'output.library[.name]', 'entry.xyz.library[.name]', 'ModuleFederationPlugin.name' and 'ModuleFederationPlugin.library[.name]'.";

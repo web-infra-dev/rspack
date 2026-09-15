@@ -160,7 +160,7 @@ pub async fn render_module(
     // fragment as ExternalModuleDependency, after the final output-relative request is known.
     let relative = get_undo_path(
       output_path,
-      compilation.options.output.path.to_string(),
+      compilation.options().output.path.to_string(),
       true,
     );
     let request = asset_import
@@ -200,7 +200,7 @@ pub async fn render_module(
       for (start, end) in auto_public_path_matches {
         let relative = get_undo_path(
           output_path,
-          compilation.options.output.path.to_string(),
+          compilation.options().output.path.to_string(),
           true,
         );
         replace.replace(start as u32, end as u32, relative, None);
@@ -226,7 +226,7 @@ pub async fn render_module(
   "./module.js": (function(module) { code })
   */
   let use_method_shorthand = compilation
-    .options
+    .options()
     .output
     .environment
     .supports_method_shorthand();
@@ -377,7 +377,7 @@ pub async fn render_chunk_runtime_modules(
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
   let runtime_modules_sources =
-    if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
+    if compilation.options().experiments.runtime_mode == RuntimeMode::Rspack {
       let chunk = compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
@@ -426,7 +426,7 @@ pub async fn render_runtime_modules(
   chunk_ukey: &ChunkUkey,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
-  if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
+  if compilation.options().experiments.runtime_mode == RuntimeMode::Rspack {
     render_rspack_runtime_modules(compilation, chunk_ukey, runtime_template).await
   } else {
     render_webpack_runtime_modules(compilation, chunk_ukey).await
@@ -440,7 +440,7 @@ pub(crate) async fn render_runtime_module_sources(
   chunk_ukey: &ChunkUkey,
   reject_custom_runtime_modules: bool,
 ) -> Result<Vec<RuntimeModuleSourceItem>> {
-  let runtime_mode = compilation.options.experiments.runtime_mode;
+  let runtime_mode = compilation.options().experiments.runtime_mode;
   let runtime_module_sources = rspack_parallel::scope::<_, Result<_>>(|token| {
     compilation
       .build_chunk_graph_artifact
@@ -480,7 +480,7 @@ pub(crate) async fn render_runtime_module_sources(
               ));
             }
             let supports_arrow_function = compilation
-              .options
+              .options()
               .output
               .environment
               .supports_arrow_function();

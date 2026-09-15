@@ -111,7 +111,7 @@ impl DependencyTemplate for ExternalURLDependencyTemplate {
     if let Some(external_module) = external_module
       && should_cutout_url_external(
         self.cutout_all_externals,
-        compilation.options.output.module,
+        compilation.options().output.module,
         url_dependency,
         external_module,
       )

@@ -103,7 +103,7 @@ impl DependencyTemplate for ExternalWorkerDependencyTemplate {
     if let Some(external_module) = external_module
       && should_cutout_worker_external(
         self.cutout_all_externals,
-        compilation.options.output.module,
+        compilation.options().output.module,
         external_module,
       )
     {

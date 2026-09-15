@@ -20,7 +20,7 @@ impl PassExt for SealPass {
     // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
     let mut diagnostics = vec![];
     compilation
-      .plugin_driver
+      .plugin_driver()
       .clone()
       .compilation_hooks
       .seal

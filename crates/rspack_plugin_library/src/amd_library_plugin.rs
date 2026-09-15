@@ -118,7 +118,7 @@ async fn render(
   let externals_deps_array = externals_dep_array(&modules)?;
   let external_arguments = external_arguments(&modules, compilation);
   let mut fn_start = format!("function({external_arguments}){{\n");
-  if compilation.options.output.iife
+  if compilation.options().output.iife
     || !chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
   {
     fn_start.push_str(" return ");
@@ -141,13 +141,13 @@ async fn render(
           .chunk_id_optional(chunk.id().map(|id| id.as_str()))
           .chunk_hash_optional(chunk.rendered_hash(
             &compilation.chunk_hashes_artifact,
-            compilation.options.output.hash_digest_length,
+            compilation.options().output.hash_digest_length,
           ))
           .chunk_name_optional(chunk.name_for_filename_template())
           .content_hash_optional(chunk.rendered_content_hash_by_source_type(
             &compilation.chunk_hashes_artifact,
             &SourceType::JavaScript,
-            compilation.options.output.hash_digest_length,
+            compilation.options().output.hash_digest_length,
           )),
       )
       .await?;

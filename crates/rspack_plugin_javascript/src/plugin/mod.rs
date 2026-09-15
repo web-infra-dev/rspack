@@ -155,7 +155,7 @@ impl JsPlugin {
       .copied()
       .unwrap_or_default();
 
-    let strict_module_error_handling = compilation.options.output.strict_module_error_handling;
+    let strict_module_error_handling = compilation.options().output.strict_module_error_handling;
     let need_module_defer =
       runtime_requirements.contains(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
     let callable_require = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
@@ -292,7 +292,7 @@ var module = ({module_cache}[moduleId] = {{"#,
     let mut startup: Vec<Cow<str>> = Vec::new();
     let mut allow_inline_startup = true;
     let supports_arrow_function = compilation
-      .options
+      .options()
       .output
       .environment
       .supports_arrow_function();
@@ -731,7 +731,7 @@ var {} = {{}};
       .chunk_by_ukey
       .expect_get(chunk_ukey);
     let supports_arrow_function = compilation
-      .options
+      .options()
       .output
       .environment
       .supports_arrow_function();
@@ -741,8 +741,8 @@ var {} = {{}};
       .copied()
       .unwrap_or_default();
     let mut chunk_init_fragments = ChunkInitFragments::default();
-    let iife = compilation.options.output.iife;
-    let mut all_strict = compilation.options.output.module;
+    let iife = compilation.options().output.iife;
+    let mut all_strict = compilation.options().output.module;
     let RenderBootstrapResult {
       header,
       startup,
@@ -854,7 +854,7 @@ var {} = {{}};
         )));
       }
 
-      let renamed_inline_modules = if compilation.options.optimization.avoid_entry_iife {
+      let renamed_inline_modules = if compilation.options().optimization.avoid_entry_iife {
         self
           .get_renamed_inline_module(
             &all_modules,
@@ -1367,7 +1367,7 @@ var {} = {{}};
           .is_empty();
 
         if ident_used {
-          let context = compilation.options.context.clone();
+          let context = compilation.options().context.clone();
           let readable_identifier = module.readable_identifier(&context).to_string();
           let splitted_readable_identifier = split_readable_identifier(&readable_identifier);
           let new_name = name_allocator.find_new_name(name, &splitted_readable_identifier);
@@ -1406,8 +1406,8 @@ var {} = {{}};
       .try_read()
       .expect("should have js plugin drive");
     let module_graph = &compilation.get_module_graph();
-    let is_module = compilation.options.output.module;
-    let mut all_strict = compilation.options.output.module;
+    let is_module = compilation.options().output.module;
+    let mut all_strict = compilation.options().output.module;
     let chunk_modules = compilation
       .build_chunk_graph_artifact
       .chunk_graph

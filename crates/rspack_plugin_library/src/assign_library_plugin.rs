@@ -47,7 +47,7 @@ pub enum Prefix {
 impl Prefix {
   pub fn value(&self, compilation: &Compilation) -> Vec<String> {
     match self {
-      Prefix::Global => vec![compilation.options.output.global_object.clone()],
+      Prefix::Global => vec![compilation.options().output.global_object.clone()],
       Prefix::Array(v) => v.clone(),
     }
   }
@@ -158,13 +158,13 @@ impl AssignLibraryPlugin {
               .chunk_id_optional(chunk.id().map(|id| id.as_str()))
               .chunk_hash_optional(chunk.rendered_hash(
                 &compilation.chunk_hashes_artifact,
-                compilation.options.output.hash_digest_length,
+                compilation.options().output.hash_digest_length,
               ))
               .chunk_name_optional(chunk.name_for_filename_template())
               .content_hash_optional(chunk.rendered_content_hash_by_source_type(
                 &compilation.chunk_hashes_artifact,
                 &SourceType::JavaScript,
-                compilation.options.output.hash_digest_length,
+                compilation.options().output.hash_digest_length,
               )),
           )
           .await
@@ -459,7 +459,7 @@ async fn finish_modules(
     let library_options = options
       .library
       .as_ref()
-      .or_else(|| compilation.options.output.library.as_ref());
+      .or_else(|| compilation.options().output.library.as_ref());
     let module_of_last_dep = dependencies
       .last()
       .and_then(|dep| module_graph.get_module_by_dependency_id(dep));

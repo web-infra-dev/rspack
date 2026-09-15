@@ -688,7 +688,7 @@ impl Module for NormalModule {
         .source_types(module_graph)
         .contains(&SourceType::JavaScript)
       {
-        let error = error.render_report(compilation.options.stats.colors)?;
+        let error = error.render_report(compilation.options().stats.colors)?;
         code_generation_result.add(
           SourceType::JavaScript,
           RawStringSource::from(format!("throw new Error({});\n", json!(error))).boxed(),
@@ -744,7 +744,7 @@ impl Module for NormalModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHasher::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options().output);
     self.build_info.read().hash.hash(&mut hasher);
     // For built failed NormalModule, hash will be calculated by build_info.hash, which contains error message
     if self.source.is_some() && self.parser_and_generator.has_runtime_hash() {
@@ -755,7 +755,7 @@ impl Module for NormalModule {
       runtime_hash.hash(&mut hasher);
     }
     module_update_hash(self, &mut hasher, compilation, runtime);
-    Ok(hasher.digest(&compilation.options.output.hash_digest))
+    Ok(hasher.digest(&compilation.options().output.hash_digest))
   }
 
   fn name_for_condition(&self) -> Option<Box<str>> {
