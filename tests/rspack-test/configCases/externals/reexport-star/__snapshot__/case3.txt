@@ -1,7 +1,6 @@
 import "external1-alias";
 
 
-
 const foo = 2
 
 

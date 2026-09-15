@@ -12,11 +12,11 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
   DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportProvided, ExportsInfoArtifact,
-  ExportsType, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, ProvidedExports, ReferencedExport, ResourceIdentifier, RuntimeCondition,
-  RuntimeSpec, SideEffectsStateArtifact, SourceType, TemplateContext, TemplateReplaceSource,
-  TypeReexportPresenceMode, filter_runtime,
+  ExportsType, ExternalModule, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, ProvidedExports,
+  ReferencedExport, ResourceIdentifier, RuntimeCondition, RuntimeSpec, SideEffectsStateArtifact,
+  SourceType, TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 
@@ -112,6 +112,42 @@ impl ESMImportSideEffectDependency {
   fn missing_module_active(&self) -> bool {
     !self.lazy_make.load(Ordering::Relaxed)
   }
+}
+
+/// The wrapped-module path uses the same namespace remapping as ExternalModule codegen.
+pub fn esm_import_external(
+  external: &ExternalModule,
+  dependency: &dyn Dependency,
+  context: &mut TemplateContext,
+) -> String {
+  let compilation = context.compilation;
+  let target = compilation
+    .get_module_graph()
+    .get_module_by_dependency_id(dependency.id());
+  let import_var = compilation.get_import_var(
+    context.module.identifier(),
+    target,
+    external.user_request(),
+    dependency.get_phase(),
+    context.runtime,
+  );
+  let (init, expression, fragments) =
+    external.render_module_namespace(compilation, context.runtime, context.runtime_template);
+  context.chunk_init_fragments().extend(fragments);
+  context.init_fragments.push(
+    NormalInitFragment::new(
+      format!(
+        "{}var {import_var} = {expression};\n",
+        init.unwrap_or_default()
+      ),
+      InitFragmentStage::StageESMImports,
+      dependency.source_order().unwrap_or_default(),
+      InitFragmentKey::Const(format!("direct external {import_var}")),
+      None,
+    )
+    .boxed(),
+  );
+  import_var
 }
 
 pub fn esm_import_dependency_apply<T: ModuleDependency>(

@@ -63,7 +63,7 @@ module.exports = {
           );
           expect(assets['f.js']._value).toMatchFileSnapshotSync(
             path.join(__dirname, '__snapshot__', 'f.js.txt'),
-            'external module should bail out when bundling',
+            'CJS module with a direct external should bail out when bundling',
           );
           expect(assets['g.js']._value).toMatchFileSnapshotSync(
             path.join(__dirname, '__snapshot__', 'g.js.txt'),

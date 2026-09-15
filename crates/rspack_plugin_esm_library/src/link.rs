@@ -32,6 +32,7 @@ use rspack_util::fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet};
 use crate::{
   EsmLibraryPlugin,
   chunk_link::{ChunkLinkContext, ExternalInterop, RawImportSource, ReExportFrom, Ref, SymbolRef},
+  dependency::esm_external::DirectEsmExternalDependencies,
 };
 
 pub(crate) trait GetMut<K, V> {
@@ -473,18 +474,17 @@ impl EsmLibraryPlugin {
         let raw_import_source = RawImportSource::Source((source.clone(), attr.clone()));
 
         if imported_atoms
-          .namespace
-          .as_ref()
-          .is_some_and(|namespace| namespace == local_name)
-          || info.namespace_object_name.as_ref() == Some(local_name)
+          .namespaces
+          .iter()
+          .any(|namespace| info.get_internal_name(namespace).unwrap_or(namespace) == local_name)
+          || (info.namespace_export_symbol.is_some()
+            && info.namespace_object_name.as_ref() == Some(local_name))
         {
           return Some((raw_import_source, ExternalImportBinding::Namespace));
         }
 
-        for imported_name in &imported_atoms.specifiers {
-          let internal_name = info
-            .get_internal_name(imported_name)
-            .unwrap_or(imported_name);
+        for (local, imported_name) in &imported_atoms.specifiers {
+          let internal_name = info.get_internal_name(local).unwrap_or(local);
           if internal_name != local_name {
             continue;
           }
@@ -501,7 +501,9 @@ impl EsmLibraryPlugin {
       }
     }
 
-    if info.namespace_object_name.as_ref() == Some(local_name) {
+    if info.namespace_export_symbol.is_some()
+      && info.namespace_object_name.as_ref() == Some(local_name)
+    {
       return Self::collect_module_external_namespace_imports(&info.chunk_init_fragments)
         .into_iter()
         .next()
@@ -818,28 +820,57 @@ impl EsmLibraryPlugin {
               .build_module_graph_artifact
               .side_effects_state_artifact,
             binding_resolver.context.exports_info_artifact,
+            &self.direct_esm_external_dependencies,
             &mut namespace_re_export_star_cache,
           )
           .and_then(|target_module| {
+            if let Some(external) = module_graph
+              .module_by_identifier(&target_module)
+              .and_then(|module| module.as_external_module())
+              && compilation
+                .build_chunk_graph_artifact
+                .chunk_graph
+                .try_get_module_chunks(&target_module)
+                .is_none_or(|chunks| chunks.is_empty())
+            {
+              let import_source = RawImportSource::Source((
+                external.get_request().primary().into(),
+                external.module_import_attributes(),
+              ));
+              let existing = chunk_link
+                .module_external_namespace_imports
+                .get(&import_source)
+                .cloned();
+              let imports = chunk_link
+                .raw_import_stmts
+                .entry(import_source)
+                .or_default();
+              let local = imports.ns_import.get_or_insert_with(|| {
+                existing.unwrap_or_else(|| chunk_link.name_allocator.find_new_name("external", &[]))
+              });
+              return Some(local.to_string());
+            }
             let target_strict_esm_module = module_graph
               .module_by_identifier(&target_module)
               .expect("should have target module")
               .build_meta()
               .strict_esm_module();
 
-            self.get_binding(
-              None,
-              &mut binding_resolver,
-              &target_module,
-              vec![],
-              &mut needed_namespace_objects,
-              false,
-              false,
-              target_strict_esm_module,
-              None,
-              &mut chunk_link.required,
-              &mut chunk_link.name_allocator,
-            )
+            self
+              .get_binding(
+                None,
+                &mut binding_resolver,
+                &target_module,
+                vec![],
+                &mut needed_namespace_objects,
+                false,
+                false,
+                target_strict_esm_module,
+                None,
+                &mut chunk_link.required,
+                &mut chunk_link.name_allocator,
+              )
+              .map(|binding| binding.render().into_owned())
           });
           let star_re_export_getters = if let Some(binding) = star_re_export_binding {
             let star_exports_base = format!("{name}_starExports");
@@ -856,7 +887,7 @@ Object.keys({}).forEach(function(key) {{
 }});
 "#,
               star_exports_name,
-              binding.render(),
+              binding,
               star_exports_name,
               runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
               name,
@@ -1107,57 +1138,40 @@ var {} = {{}};
         if let Some(import_map) = concate_info.import_map.take() {
           for ((source, attr), imported_atoms) in &import_map {
             let raw_import_source = RawImportSource::Source((source.clone(), attr.clone()));
-            let existing_namespace_import = chunk_link
+            let mut existing_namespace_import = chunk_link
               .module_external_namespace_imports
               .get(&raw_import_source)
+              .or_else(|| {
+                chunk_link
+                  .raw_import_stmts
+                  .get(&raw_import_source)
+                  .and_then(|spec| spec.ns_import.as_ref())
+              })
               .cloned();
-            let mut total_imported_atoms = None;
-
-            if imported_atoms.namespace.is_none()
-              && imported_atoms.specifiers.is_empty()
-              && existing_namespace_import.is_none()
-            {
-              total_imported_atoms = Some(
+            for ns_import in &imported_atoms.namespaces {
+              let local = existing_namespace_import.get_or_insert_with(|| {
+                let local = name_allocator.find_new_name(ns_import, &[]);
                 chunk_link
                   .raw_import_stmts
                   .entry(raw_import_source.clone())
-                  .or_default(),
-              );
+                  .or_default()
+                  .ns_import = Some(local.clone());
+                local
+              });
+              concate_info
+                .internal_names
+                .insert(ns_import.clone(), local.clone());
             }
 
-            if let Some(ns_import) = &imported_atoms.namespace {
-              if let Some(existing_local) = existing_namespace_import.as_ref() {
-                if existing_local != ns_import {
-                  concate_info
-                    .internal_names
-                    .insert(ns_import.clone(), existing_local.clone());
-                }
-              } else {
-                total_imported_atoms = Some(
-                  chunk_link
-                    .raw_import_stmts
-                    .entry(raw_import_source.clone())
-                    .or_default(),
-                );
-                total_imported_atoms
-                  .as_mut()
-                  .expect("should have import spec")
-                  .ns_import = Some(ns_import.clone());
-              }
+            if imported_atoms.specifiers.is_empty() && existing_namespace_import.is_some() {
+              continue;
             }
-
-            for atom in &imported_atoms.specifiers {
-              if total_imported_atoms.is_none() {
-                total_imported_atoms = Some(
-                  chunk_link
-                    .raw_import_stmts
-                    .entry(raw_import_source.clone())
-                    .or_default(),
-                );
-              }
-              let total_imported_atoms = total_imported_atoms
-                .as_mut()
-                .expect("should have import spec");
+            // Also register side-effect-only imports when no namespace already covers them.
+            let total_imported_atoms = chunk_link
+              .raw_import_stmts
+              .entry(raw_import_source)
+              .or_default();
+            for (local_name, atom) in &imported_atoms.specifiers {
               let existing_name = total_imported_atoms.atoms.get(atom).or_else(|| {
                 if atom == "default"
                   && let Some(default_symbol) = &total_imported_atoms.default_import
@@ -1168,6 +1182,7 @@ var {} = {{}};
                 }
               });
               let new_name = name_allocator.assign_import_binding_name(
+                local_name,
                 atom,
                 existing_name,
                 source,
@@ -1534,12 +1549,14 @@ var {} = {{}};
     require_info
   }
 
+  #[allow(clippy::too_many_arguments)]
   fn resolve_re_export_star_from_unknown(
     module_id: ModuleIdentifier,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
+    direct: &DirectEsmExternalDependencies,
     collect_own_exports: bool,
     cache: &mut IdentifierMap<FxIndexSet<Either<Atom, ModuleIdentifier>>>,
   ) -> FxIndexSet<Either<Atom, ModuleIdentifier>> {
@@ -1573,8 +1590,12 @@ var {} = {{}};
       FxIndexSet::default()
     };
 
+    let connections = direct.borrow();
     for dep in module.get_dependencies() {
-      let Some(conn) = module_graph.connection_by_dependency_id(dep.id()) else {
+      let Some(conn) = connections
+        .get(dep.id())
+        .or_else(|| module_graph.connection_by_dependency_id(dep.id()))
+      else {
         continue;
       };
 
@@ -1606,6 +1627,7 @@ var {} = {{}};
             module_graph_cache,
             side_effects_state_artifact,
             exports_info_artifact,
+            direct,
             true,
             cache,
           ));
@@ -1626,6 +1648,7 @@ var {} = {{}};
     module_graph_cache: &ModuleGraphCacheArtifact,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
+    direct: &DirectEsmExternalDependencies,
     cache: &mut IdentifierMap<FxIndexSet<Either<Atom, ModuleIdentifier>>>,
   ) -> Option<ModuleIdentifier> {
     let mut star_target = None;
@@ -1635,6 +1658,7 @@ var {} = {{}};
       module_graph_cache,
       side_effects_state_artifact,
       exports_info_artifact,
+      direct,
       false,
       cache,
     ) {
@@ -1830,6 +1854,7 @@ var {} = {{}};
         .build_module_graph_artifact
         .side_effects_state_artifact,
       binding_resolver.context.exports_info_artifact,
+      &self.direct_esm_external_dependencies,
       // When filter_unused is true, own exports are already collected and filtered
       // by usage above — only collect `export *` targets here.
       // When filter_unused is false (entry modules), also collect own exports.
@@ -2797,6 +2822,14 @@ var {} = {{}};
             None
           }
         })
+        .chain(chunk_link.hoisted_modules.iter().flat_map(|module| {
+          let info = binding_resolver.module_to_info_map[module].as_concatenated();
+          info.idents.iter().filter_map(move |ident| {
+            (ident.id.ctxt == info.module_ctxt)
+              .then(|| info.get_internal_name(&ident.id.sym))
+              .flatten()
+          })
+        }))
         .collect::<FxHashSet<_>>();
 
       let all_chunk_exported_symbols = &exports[&chunk_link.chunk].exports;
@@ -2822,7 +2855,9 @@ var {} = {{}};
           continue;
         };
 
-        if specifiers.atoms.is_empty() && specifiers.default_import.is_none() {
+        if (specifiers.atoms.is_empty() && specifiers.default_import.is_none())
+          || specifiers.ns_import.is_some()
+        {
           // import 'externals'
           continue;
         }

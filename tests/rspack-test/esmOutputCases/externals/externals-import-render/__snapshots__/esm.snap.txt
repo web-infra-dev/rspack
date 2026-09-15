@@ -2,10 +2,6 @@
 import fs from "fs";
 import { join, resolve } from "path";
 
-// fs
-
-// path
-
 // ./index.js
 
 

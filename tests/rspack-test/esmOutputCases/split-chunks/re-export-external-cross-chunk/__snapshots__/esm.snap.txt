@@ -16,10 +16,6 @@ export { join, readFile } from "./wrapper-chunk.mjs";
 ```
 
 ```mjs title=wrapper-chunk.mjs
-// fs
-
-// path
-
 // ./wrapper.js
 
 

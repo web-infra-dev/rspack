@@ -13,9 +13,7 @@ export { a, b } from "./proxy-main.mjs";
 ```
 
 ```mjs title=proxy-main.mjs
-import * as __rspack_external_fs from "fs";
-
-// fs
+import "fs";
 
 // ./lib.js
 // side effect

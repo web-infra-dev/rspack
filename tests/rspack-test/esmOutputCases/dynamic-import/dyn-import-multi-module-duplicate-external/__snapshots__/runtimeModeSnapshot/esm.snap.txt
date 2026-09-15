@@ -68,13 +68,11 @@ definePropertyGetters(b_namespaceObject, {
   readFile: () => (readFile) });
 
 
-// fs?2aa6
+// fs
 
 // ./a.js
 
 
-
-// fs?f4d4
 
 // ./b.js
 

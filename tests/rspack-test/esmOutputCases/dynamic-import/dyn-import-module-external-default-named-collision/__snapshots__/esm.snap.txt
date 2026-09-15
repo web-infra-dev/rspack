@@ -18,14 +18,10 @@ export {};
 ```mjs title=shared.mjs
 import fs, { readFile } from "fs";
 
-// fs?2aa6
-
 // ./a.js
 
 
 const defaultImport = fs
-
-// fs?f4d4
 
 // ./b.js
 

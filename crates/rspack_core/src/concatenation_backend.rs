@@ -20,7 +20,7 @@ use crate::{
   ExportInfo, ExportProvided, ExportsInfoArtifact, ExportsType, FindTargetResult, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, ModuleStaticCache, RuntimeSpec, UsedName,
   collect_ident, escape_name_atom_ref, find_target, get_cached_readable_identifier,
-  split_readable_identifier, to_identifier_with_escaped,
+  split_readable_identifier, to_identifier, to_identifier_with_escaped,
 };
 
 /// Reusable read-only context shared by concatenation implementations.
@@ -447,7 +447,7 @@ impl ConcatenationNameAllocator {
   ) {
     let escaped_identifier = context.module_identifier(&module_info.module);
     for (name, ctxt) in module_info.binding_to_ref.keys() {
-      if ctxt != &module_info.module_ctxt {
+      if ctxt != &module_info.module_ctxt || module_info.internal_names.contains_key(name) {
         continue;
       }
 
@@ -472,15 +472,19 @@ impl ConcatenationNameAllocator {
 
   pub fn assign_import_binding_name(
     &mut self,
+    local_name: &Atom,
     imported_name: &Atom,
     existing_name: Option<&Atom>,
     source: &str,
     module_info: &mut ConcatenatedModuleInfo,
     context: &ConcatenationContext,
   ) -> Atom {
-    let should_update_raw_export = existing_name.is_some() || self.contains(imported_name);
+    let needs_rename = self.contains(imported_name)
+      || imported_name.is_empty()
+      || to_identifier(imported_name) != imported_name.as_str();
+    let should_update_raw_export = existing_name.is_some() || needs_rename;
     let internal_name = existing_name.cloned().unwrap_or_else(|| {
-      if !self.contains(imported_name) {
+      if !needs_rename {
         self.insert(imported_name.clone());
         return imported_name.clone();
       }
@@ -501,13 +505,13 @@ impl ConcatenationNameAllocator {
 
     if should_update_raw_export
       && let Some(raw_export_map) = module_info.raw_export_map.as_mut()
-      && raw_export_map.contains_key(imported_name)
+      && raw_export_map.contains_key(local_name)
     {
-      raw_export_map.insert(imported_name.clone(), internal_name.to_string());
+      raw_export_map.insert(local_name.clone(), internal_name.to_string());
     }
     module_info
       .internal_names
-      .insert(imported_name.clone(), internal_name.clone());
+      .insert(local_name.clone(), internal_name.clone());
     internal_name
   }
 
@@ -590,9 +594,19 @@ pub fn analyze_module_scope(
   module_info.global_scope_ident.reserve(identifiers.len());
   module_info.binding_to_ref.reserve(identifiers.len());
 
+  let imported_bindings = module_info
+    .import_map
+    .iter()
+    .flat_map(|map| map.values())
+    .flat_map(|item| item.specifiers.keys().chain(item.namespaces.iter()))
+    .map(|atom| atom.as_str())
+    .collect::<FxHashSet<_>>();
   for identifier in identifiers {
     let scope = semantic.node_scope(&identifier.id);
-    let is_global = SyntaxContext::from_u32(scope.raw()) == module_info.global_ctxt;
+    let is_import = scope != top_level_scope_id
+      && imported_bindings.contains(identifier.id.sym.as_str())
+      && SyntaxContext::from_u32(scope.raw()) == module_info.global_ctxt;
+    let is_global = !is_import && SyntaxContext::from_u32(scope.raw()) == module_info.global_ctxt;
     let legacy = if is_global {
       let legacy = identifier.to_legacy(&semantic);
       module_info.global_scope_ident.push(legacy.clone());
@@ -611,13 +625,16 @@ pub fn analyze_module_scope(
       continue;
     }
 
-    if scope != top_level_scope_id {
+    if scope != top_level_scope_id && !is_import {
       module_info
         .all_used_names
         .insert(Atom::from(identifier.id.sym.as_str()));
     }
 
-    let legacy = legacy.unwrap_or_else(|| identifier.to_legacy(&semantic));
+    let mut legacy = legacy.unwrap_or_else(|| identifier.to_legacy(&semantic));
+    if is_import {
+      legacy.id.ctxt = module_info.module_ctxt;
+    }
     module_info.idents.push(legacy.clone());
     module_info
       .binding_to_ref
@@ -651,9 +668,7 @@ impl<'a> ConcatenationContext<'a> {
             let imported_names = import_map.map_or(0, |map| {
               map
                 .values()
-                .map(|imported| {
-                  imported.specifiers.len() + usize::from(imported.namespace.is_some())
-                })
+                .map(|imported| imported.specifiers.len() + imported.namespaces.len())
                 .sum::<usize>()
             });
             (
@@ -689,12 +704,16 @@ impl<'a> ConcatenationContext<'a> {
                 source.clone(),
                 split_readable_identifier(source.as_str()),
               ));
-              for atom in &imported.specifiers {
+              for atom in imported
+                .specifiers
+                .keys()
+                .chain(imported.specifiers.values())
+              {
                 escaped_names
                   .entry(atom.clone())
                   .or_insert_with(|| escape_name_atom_ref(atom));
               }
-              if let Some(namespace) = &imported.namespace {
+              for namespace in &imported.namespaces {
                 escaped_names
                   .entry(namespace.clone())
                   .or_insert_with(|| escape_name_atom_ref(namespace));

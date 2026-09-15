@@ -1,8 +1,6 @@
 ```mjs title=main.mjs
 import { createRequire } from "node:module";
 
-// node:module
-
 // ./index.js
 
 

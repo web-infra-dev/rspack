@@ -1,39 +1,15 @@
-```mjs title=fs-fs.mjs
-import { __webpack_require__ } from "./runtime.mjs";
-
-import * as __rspack_external_fs from "fs";
-__webpack_require__.add({
-"fs?2159"
-/*!*********************!*\
-  !*** external "fs" ***!
-  \*********************/
-(module) {
-
-module.exports = __rspack_external_fs;
-
-
-},
-});
-// fs?82ef
-
-export { readFile as readFileHoisted, readFileSync as readFileSyncHoisted } from "fs";
-
-```
-
 ```mjs title=hoisted.mjs
-
 // ./src/hoisted.js
 
 
-export { readFileHoisted, readFileSyncHoisted } from "./fs-fs.mjs";
+export { readFile as readFileHoisted, readFileSync as readFileSyncHoisted } from "fs";
 
 ```
 
 ```mjs title=index.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 import "./wrapped.mjs";
-import "./hoisted.mjs";
-import { readFileSyncHoisted as readFileSync, readFileHoisted as readFile } from "./fs-fs.mjs";
+import { readFileSyncHoisted as readFileSync, readFileHoisted as readFile } from "./hoisted.mjs";
 
 // ./src/index.js
 const wrapped_0 = __webpack_require__("./src/wrapped.js");
@@ -131,15 +107,15 @@ export { __webpack_require__ };
 
 ```mjs title=wrapped.mjs
 import { __webpack_require__ } from "./runtime.mjs";
-import "./fs-fs.mjs";
 
+import * as __rspack_external_fs from "fs";
 __webpack_require__.add({
 "./src/wrapped.js"
 /*!************************!*\
   !*** ./src/wrapped.js ***!
   \************************/
 (module, __webpack_exports__, __webpack_require__) {
-/* import */ var fs__rspack_import_0 = __webpack_require__(/*! fs */ "fs?2159");
+var fs__rspack_import_0 = __rspack_external_fs;
 /* module decorator */ module = __webpack_require__.hmd(module);
 
 
