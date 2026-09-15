@@ -2,7 +2,7 @@ use concat_string::concat_string;
 use rspack_core::{
   AsyncDependenciesBlock, DependencyRef, EntryOptions, FactorizeInfo, GroupOptions,
   ModuleDependency, ModuleFactoryCreateData, ModuleType, ParseContext, ParseResult,
-  ParsedModuleConnection,
+  ParserCreatedModuleConnection,
 };
 use rspack_hash::{HashDigest, RspackHash, RspackHasher};
 use rspack_util::identifier::split_at_query_mark;
@@ -74,16 +74,18 @@ pub(super) async fn promote_url_dependencies(
           module.module_type(),
           ModuleType::Css | ModuleType::CssAuto | ModuleType::CssModule
         ));
-    result.module_connections.push(ParsedModuleConnection {
-      module_identifier: module.identifier(),
-      factorize_info: FactorizeInfo::new(
-        create_data.diagnostics,
-        vec![*dependency.id()],
-        create_data.file_dependencies,
-        create_data.context_dependencies,
-        create_data.missing_dependencies,
-      ),
-    });
+    result
+      .module_connections
+      .push(ParserCreatedModuleConnection {
+        module_identifier: module.identifier(),
+        factorize_info: FactorizeInfo::new(
+          create_data.diagnostics,
+          vec![*dependency.id()],
+          create_data.file_dependencies,
+          create_data.context_dependencies,
+          create_data.missing_dependencies,
+        ),
+      });
     result.modules.push(module);
     if !promote {
       result.dependencies.push(dependency);

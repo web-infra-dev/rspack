@@ -4,8 +4,8 @@ use rspack_util::time::current_time;
 use rustc_hash::FxHashSet;
 
 use super::{
-  TaskContext, add::add_parsed_modules, lazy::process_unlazy_dependencies,
-  process_dependencies::ProcessDependenciesTask,
+  TaskContext, add::prepare_add_tasks_for_parser_created_modules,
+  lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
   AsyncDependenciesBlockRef, BoxModule, BuildContext, BuildResult, DependenciesBlock,
@@ -240,7 +240,7 @@ impl Task<TaskContext> for BuildResultTask {
       from_unlazy: false,
     };
     if !modules.is_empty() {
-      tasks.extend(add_parsed_modules(
+      tasks.extend(prepare_add_tasks_for_parser_created_modules(
         context,
         modules,
         module_connections,
