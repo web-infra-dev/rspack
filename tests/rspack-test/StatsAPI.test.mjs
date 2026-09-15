@@ -1,8 +1,8 @@
-const { createStatsAPICase, describeByWalk } = require("@rspack/test-tools");
-const srcDir = __dirname;
+import { createStatsAPICase, describeByWalk } from "@rspack/test-tools";
+const srcDir = import.meta.dirname;
 
 describeByWalk(
-	__filename,
+	import.meta.filename,
 	(name, testConfig, dist) => {
 		createStatsAPICase(name, srcDir, "none", testConfig);
 	},
