@@ -941,7 +941,7 @@ impl SplitChunksPlugin {
 
         None
       })
-      .flatten()
+      .filter_map(std::convert::identity)
       .collect::<Vec<_>>();
 
     let removed = keys_of_invalid_group
