@@ -1,7 +1,7 @@
-const { createStatsOutputCase, describeByWalk } = require("@rspack/test-tools");
+import { createStatsOutputCase, describeByWalk } from "@rspack/test-tools";
 
 describeByWalk(
-	__filename,
+	import.meta.filename,
 	(name, src, dist) => {
 		createStatsOutputCase(name, src, dist);
 	},

@@ -1,5 +1,5 @@
-const path = require("path");
-const { describeByWalk, createCacheCase } = require("@rspack/test-tools");
+import path from "node:path";
+import { describeByWalk, createCacheCase } from "@rspack/test-tools";
 
 // Keep compatibility runs opt-in while newCache coverage is being completed.
 const suites = [
@@ -41,7 +41,7 @@ for (const [source, type] of suites) {
 		continue;
 	}
 	describeByWalk(
-		__filename,
+		import.meta.filename,
 		(name, src, dist) => {
 			createCacheCase(
 				name,
@@ -49,19 +49,19 @@ for (const [source, type] of suites) {
 				dist,
 				"async-node",
 				path.join(
-					__dirname,
+					import.meta.dirname,
 					"js",
 					"temp",
 					"new-cache",
 					source,
-					path.relative(path.join(__dirname, source), src)
+					path.relative(path.join(import.meta.dirname, source), src)
 				),
 				{ type, newCache: true }
 			);
 		},
 		{
-			source: path.join(__dirname, source),
-			dist: path.join(__dirname, "js", "new-cache", source),
+			source: path.join(import.meta.dirname, source),
+			dist: path.join(import.meta.dirname, "js", "new-cache", source),
 			exclude: excludes[type]
 		}
 	);

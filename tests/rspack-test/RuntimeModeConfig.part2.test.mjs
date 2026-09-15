@@ -1,5 +1,5 @@
-const path = require("path");
-const { describeByWalk, createConfigCase } = require("@rspack/test-tools");
+import path from "node:path";
+import { describeByWalk, createConfigCase } from "@rspack/test-tools";
 
 const rspackRuntimeModeOptions = {
 	experiments: {
@@ -10,13 +10,13 @@ globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK = true;
 
 // Part 2: Test cases starting with e-o
 describeByWalk(
-	__filename,
+	import.meta.filename,
 	(name, src, dist) => {
 		createConfigCase(name, src, dist, rspackRuntimeModeOptions);
 	},
 	{
-		source: path.join(__dirname, "configCases"),
-		dist: path.resolve(__dirname, "./js/runtime-mode-config"),
+		source: path.join(import.meta.dirname, "configCases"),
+		dist: path.resolve(import.meta.dirname, "./js/runtime-mode-config"),
 		exclude: [
 			// Exclude a-d
 			/^[a-d]/,
