@@ -19,9 +19,9 @@ pub(super) struct Intersection {
 
 // A bitmap is hashed once when discovered, then reused during original-set
 // lookup and task-table merging. Equality still compares every bitmap word.
-#[derive(Clone, PartialEq, Eq)]
-struct HashedBitmap {
-  bitmap: ChunkBitmap,
+#[derive(PartialEq, Eq)]
+struct HashedBitmap<T = ChunkBitmap> {
+  bitmap: T,
   hash: u64,
 }
 
@@ -42,10 +42,25 @@ impl HashedBitmap {
   }
 }
 
-impl Hash for HashedBitmap {
+impl<T> Hash for HashedBitmap<T> {
   fn hash<H: Hasher>(&self, state: &mut H) {
     state.write_u64(self.hash);
   }
+}
+
+// Borrow the immutable round inputs. The lookup keeps the same exact word
+// comparisons without allocating another copy of every original bitmap.
+type KnownBitmaps<'a> = FxHashSet<HashedBitmap<&'a [u64]>>;
+
+fn has_min_size(rows: impl Iterator<Item = usize>, sizes: &[u64], min_size: u64) -> bool {
+  let mut size = 0u64;
+  for row in rows {
+    if size >= min_size {
+      break;
+    }
+    size = size.saturating_add(sizes.get(row).copied().unwrap_or(u64::MAX));
+  }
+  size >= min_size
 }
 
 struct CandidateGenerator {
@@ -69,7 +84,7 @@ impl CandidateTable {
     bitmap: &HashedBitmap,
     order: (usize, usize),
     inputs: &[ChunkBitmap],
-    originals: Option<&FxHashSet<HashedBitmap>>,
+    originals: Option<&KnownBitmaps<'_>>,
   ) {
     let head = self.heads.get(&bitmap.hash).copied();
     let mut current = head;
@@ -84,7 +99,12 @@ impl CandidateTable {
       }
       current = entry.next;
     }
-    if originals.is_some_and(|originals| originals.contains(bitmap)) {
+    if originals.is_some_and(|originals| {
+      originals.contains(&HashedBitmap {
+        bitmap: bitmap.bitmap.words(),
+        hash: bitmap.hash,
+      })
+    }) {
       return;
     }
     self.heads.insert(bitmap.hash, self.entries.len());
@@ -100,7 +120,7 @@ fn discover_intersections(
   bitmaps: &[ChunkBitmap],
   lengths: &[usize],
   first: usize,
-  known: &FxHashSet<HashedBitmap>,
+  known: &KnownBitmaps<'_>,
   excluded: Option<&ChunkBitmap>,
   min_chunks: usize,
   chunk_count: usize,
@@ -198,7 +218,7 @@ pub(super) fn collect_intersections(
   min_chunks: usize,
   dedup_depth: u32,
 ) -> Vec<Intersection> {
-  if dedup_depth == 0 {
+  if dedup_depth == 0 || originals.len() < 2 {
     return vec![];
   }
   let min_chunks = min_chunks.max(1);
@@ -218,29 +238,31 @@ pub(super) fn collect_intersections(
     .enumerate()
     .map(|(i, c)| (*c, i))
     .collect();
+  let mut counts = vec![0usize; coordinates.len()];
+  let mut chunk_bounds = vec![0u64; coordinates.len()];
   let mut bitmaps = originals
     .iter()
-    .map(|row| {
+    .enumerate()
+    .map(|(i, row)| {
+      let size = sizes.get(i).copied().unwrap_or(u64::MAX);
       let mut bitmap = ChunkBitmap::new(coordinates.len());
       for chunk in row {
-        bitmap.insert(positions[chunk]);
+        let position = positions[chunk];
+        bitmap.insert(position);
+        counts[position] += 1;
+        chunk_bounds[position] = chunk_bounds[position].saturating_add(size);
       }
       bitmap
     })
     .collect::<Vec<_>>();
-  let mut known: FxHashSet<_> = bitmaps.iter().cloned().map(HashedBitmap::new).collect();
-  let mut inverted = vec![ChunkBitmap::new(originals.len()); coordinates.len()];
-  let mut counts = vec![0usize; coordinates.len()];
-  let mut chunk_bounds = vec![0u64; coordinates.len()];
-  for (i, row) in originals.iter().enumerate() {
-    let size = sizes.get(i).copied().unwrap_or(u64::MAX);
-    for chunk in row {
-      let position = positions[chunk];
-      inverted[position].insert(i);
-      counts[position] += 1;
-      chunk_bounds[position] = chunk_bounds[position].saturating_add(size);
-    }
-  }
+  let mut hashes = bitmaps
+    .iter()
+    .map(|bitmap| {
+      let mut hasher = FxHasher::default();
+      bitmap.hash(&mut hasher);
+      hasher.finish()
+    })
+    .collect::<Vec<_>>();
   let mut excluded = ChunkBitmap::new(coordinates.len());
   let mut has_excluded = false;
   for (chunk, size) in chunk_bounds.into_iter().enumerate() {
@@ -256,6 +278,14 @@ pub(super) fn collect_intersections(
     // A smaller descendant may discard an excluded chunk, so pruning an
     // intermediate intersection here could hide a valid later candidate.
     let excluded = (has_excluded && round + 1 == dedup_depth).then_some(&excluded);
+    let known = bitmaps
+      .iter()
+      .zip(&hashes)
+      .map(|(bitmap, &hash)| HashedBitmap {
+        bitmap: bitmap.words(),
+        hash,
+      })
+      .collect::<KnownBitmaps<'_>>();
     let next = discover_intersections(
       &bitmaps,
       &lengths,
@@ -265,6 +295,7 @@ pub(super) fn collect_intersections(
       min_chunks,
       coordinates.len(),
     );
+    drop(known);
     if next.is_empty() {
       break;
     }
@@ -273,9 +304,7 @@ pub(super) fn collect_intersections(
       for entry in &next {
         let mut bitmap = ChunkBitmap::new(coordinates.len());
         lengths.push(bitmap.assign_intersection(&bitmaps[entry.order.0], &bitmaps[entry.order.1]));
-        // The exact deduplication table owns its key while the pair loop keeps
-        // immutable bitmap inputs. Allocate these copies only for another round.
-        known.insert(HashedBitmap::new(bitmap.clone()));
+        hashes.push(entry.hash);
         bitmaps.push(bitmap);
       }
     }
@@ -285,29 +314,62 @@ pub(super) fn collect_intersections(
       candidates.extend(next);
     }
   }
+  if candidates.is_empty() {
+    return vec![];
+  }
+
+  // Lists use less space than a bitmap for rare chunks. Dense supports retain
+  // word-wise intersections. Build either representation only after discovery.
+  let words = originals.len().div_ceil(64);
+  let mut sparse = counts
+    .iter()
+    .map(|&count| Vec::with_capacity(if count <= words { count } else { 0 }))
+    .collect::<Vec<_>>();
+  let mut dense = counts
+    .iter()
+    .map(|&count| ChunkBitmap::new(if count > words { originals.len() } else { 0 }))
+    .collect::<Vec<_>>();
+  for (row, chunks) in originals.iter().enumerate() {
+    for chunk in chunks {
+      let position = positions[chunk];
+      if counts[position] <= words {
+        sparse[position].push(row);
+      } else {
+        dense[position].insert(row);
+      }
+    }
+  }
   let collect_support = |(bitmap, common): &mut (ChunkBitmap, ChunkBitmap),
                          entry: CandidateGenerator| {
     bitmap.assign_intersection(&bitmaps[entry.order.0], &bitmaps[entry.order.1]);
     let anchor = bitmap.ones().min_by_key(|chunk| counts[*chunk])?;
-    common.assign(&inverted[anchor]);
-    for chunk in bitmap.ones() {
-      if chunk != anchor && !common.intersect_assign(&inverted[chunk]) {
+    let support = if counts[anchor] <= words {
+      // Start with the rarest chunk's postings and verify complete containment.
+      // The input bitmaps already encode every other chunk in each row.
+      let matching = || {
+        sparse[anchor]
+          .iter()
+          .copied()
+          .filter(|&row| bitmap.is_subset(&bitmaps[row]))
+      };
+      if !has_min_size(matching(), sizes, min_size) {
         return None;
       }
-    }
-    // Compute the conservative bound before allocating the support list. The
-    // complete bitmap remains available even when its bound is reached early.
-    let mut size = 0u64;
-    for row in common.ones() {
-      if size >= min_size {
-        break;
+      matching().collect()
+    } else {
+      // The rarest support is dense, so every other support is dense too.
+      // Separate storage keeps representation checks out of the word-wise loop.
+      common.assign(&dense[anchor]);
+      for chunk in bitmap.ones() {
+        if chunk != anchor && !common.intersect_assign(&dense[chunk]) {
+          return None;
+        }
       }
-      size = size.saturating_add(sizes.get(row).copied().unwrap_or(u64::MAX));
-    }
-    if size < min_size {
-      return None;
-    }
-    let support = common.ones().collect::<Vec<_>>();
+      if !has_min_size(common.ones(), sizes, min_size) {
+        return None;
+      }
+      common.ones().collect()
+    };
     let chunks = bitmap.ones().map(|chunk| coordinates[chunk]).collect();
     Some(Intersection { chunks, support })
   };

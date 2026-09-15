@@ -194,5 +194,11 @@ export function toRawSplitChunksOptions(
     maxAsyncSize: JsSplitChunkSizes.__to_binding(maxAsyncSize),
     maxInitialSize: JsSplitChunkSizes.__to_binding(maxInitialSize),
     ...passThrough,
+    dedupDepth:
+      dedupDepth ??
+      (compiler.options.mode === 'development' ||
+      compiler.options.mode === 'none'
+        ? 0
+        : 1),
   };
 }

@@ -693,6 +693,9 @@ impl Combinator {
       preparation.dedup_depth,
     );
     Self::index_original_sets(combinations, &chunk_sets_by_count);
+    if intersections.is_empty() {
+      return None;
+    }
     if preparation.use_direct_candidates() {
       return Some(CandidateRelations {
         intersections,
