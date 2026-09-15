@@ -1,4 +1,4 @@
-const { Template } = require("@rspack/core");
+import { Template } from "@rspack/core";
 
 describe("Template.getFunctionContent", () => {
 	it("should strip named function wrappers", () => {

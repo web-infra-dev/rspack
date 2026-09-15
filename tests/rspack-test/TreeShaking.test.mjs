@@ -1,7 +1,7 @@
-const { createTreeShakingCase, describeByWalk } = require("@rspack/test-tools");
+import { createTreeShakingCase, describeByWalk } from "@rspack/test-tools";
 
 describeByWalk(
-	__filename,
+	import.meta.filename,
 	(name, src, dist) => {
 		createTreeShakingCase(name, src, dist);
 	},
