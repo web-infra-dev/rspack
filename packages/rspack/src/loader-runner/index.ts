@@ -22,7 +22,11 @@ import {
   SourceMapSource,
 } from 'webpack-sources';
 
-import { commitCustomFieldsToRust } from '../BuildInfo';
+import {
+  commitCustomFieldsToRust,
+  pickCustomBuildInfoFields,
+  replaceCustomBuildInfoFields,
+} from '../BuildInfo';
 import type { Compiler } from '../Compiler';
 import {
   BUILTIN_LOADER_PREFIX,
@@ -844,6 +848,7 @@ export async function runLoaders(
         request: normalModule?.request,
         userRequest: normalModule?.userRequest,
         rawRequest: normalModule?.rawRequest,
+        buildInfo: pickCustomBuildInfoFields(normalModule?.buildInfo),
       },
     } as any;
     Object.assign(workerLoaderContext, compiler.options.loader);
@@ -971,6 +976,17 @@ export async function runLoaders(
               }
               return item;
             });
+            break;
+          }
+          case RequestType.UpdateBuildInfo: {
+            const buildInfo = loaderContext._module?.buildInfo as
+              Record<string, unknown> | undefined;
+            if (buildInfo) {
+              replaceCustomBuildInfoFields(
+                buildInfo,
+                pickCustomBuildInfoFields(args[0]),
+              );
+            }
             break;
           }
           case RequestType.LoaderCacheGet: {
