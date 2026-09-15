@@ -787,8 +787,28 @@ impl ExternalModule {
     let mut chunk_init_fragments: ChunkInitFragments = Default::default();
     let supports_const = compilation.options.output.environment.supports_const();
     let resolved_external_type = self.resolve_external_type();
-    let commonjs_require_kind =
-      CommonJsExternalRequireKind::from_external_type(resolved_external_type);
+    if let Some(require_kind) =
+      CommonJsExternalRequireKind::from_external_type(resolved_external_type)
+    {
+      // For a missing object-form request, only ESM node-commonjs uses the
+      // undefined value; other CommonJS types request the name "undefined".
+      let fallback = (require_kind != CommonJsExternalRequireKind::NodeCommonJs
+        || !compilation.options.output.module)
+        .then_some("undefined");
+      let require_expression = require_kind.render_expression(
+        request.map(ExternalRequestValue::primary).or(fallback),
+        request
+          .into_iter()
+          .flat_map(|request| request.iter().skip(1)),
+        compilation,
+        &mut chunk_init_fragments,
+      );
+      let source = format!(
+        "{} = {require_expression};",
+        get_namespace_object_export(concatenation_scope, supports_const, runtime_template)
+      );
+      return Ok((RawStringSource::from(source).boxed(), chunk_init_fragments));
+    }
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
 
@@ -808,25 +828,6 @@ impl ExternalModule {
         get_namespace_object_export(concatenation_scope, supports_const, runtime_template),
         get_source_for_global_variable_external(request, &compilation.options.output.global_object)
       ),
-      _ if let Some(require_kind) = commonjs_require_kind => {
-        // For a missing object-form request, only ESM node-commonjs uses the
-        // undefined value; other CommonJS types request the name "undefined".
-        let fallback = (require_kind != CommonJsExternalRequireKind::NodeCommonJs
-          || !compilation.options.output.module)
-          .then_some("undefined");
-        let require_expression = require_kind.render_expression(
-          request.map(ExternalRequestValue::primary).or(fallback),
-          request
-            .into_iter()
-            .flat_map(|request| request.iter().skip(1)),
-          compilation,
-          &mut chunk_init_fragments,
-        );
-        format!(
-          "{} = {require_expression};",
-          get_namespace_object_export(concatenation_scope, supports_const, runtime_template)
-        )
-      }
       "amd" | "amd-require" | "umd" | "umd2" | "system" | "jsonp" => {
         let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.identifier())
           .map(|s| s.as_str())

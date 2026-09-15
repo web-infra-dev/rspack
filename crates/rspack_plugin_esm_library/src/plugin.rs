@@ -5,7 +5,9 @@ use std::{
 
 use atomic_refcell::AtomicRefCell;
 use regex::Regex;
-use rspack_collections::{Identifiable, Identifier, IdentifierIndexMap, IdentifierMap, IdentifierSet};
+use rspack_collections::{
+  Identifiable, Identifier, IdentifierIndexMap, IdentifierMap, IdentifierSet,
+};
 use rspack_core::{
   ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact, ChunkUkey,
   Compilation, CompilationAdditionalChunkRuntimeRequirements,

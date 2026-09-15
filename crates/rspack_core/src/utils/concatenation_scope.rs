@@ -60,17 +60,29 @@ impl Hash for CodeGenerationDataConcatenationScopeOutput {
     // source. They must participate in the chunk-render cache key as well.
     self.namespace_export_symbol.hash(hasher);
     for map in [&self.export_map, &self.raw_export_map] {
-      let mut entries = map.iter().flat_map(|map| map.iter()).collect::<Vec<_>>();
+      let mut entries = map
+        .iter()
+        .flat_map(|map| map.iter())
+        .map(|(name, value)| (name.as_str(), value.as_str()))
+        .collect::<Vec<_>>();
       entries.sort_unstable();
       entries.hash(hasher);
     }
     if let Some(import_map) = &self.import_map {
       for (source, imports) in import_map {
         source.hash(hasher);
-        let mut specifiers = imports.specifiers.iter().collect::<Vec<_>>();
+        let mut specifiers = imports
+          .specifiers
+          .iter()
+          .map(|(local, imported)| (local.as_str(), imported.as_str()))
+          .collect::<Vec<_>>();
         specifiers.sort_unstable();
         specifiers.hash(hasher);
-        let mut namespaces = imports.namespaces.iter().collect::<Vec<_>>();
+        let mut namespaces = imports
+          .namespaces
+          .iter()
+          .map(Atom::as_str)
+          .collect::<Vec<_>>();
         namespaces.sort_unstable();
         namespaces.hash(hasher);
       }
