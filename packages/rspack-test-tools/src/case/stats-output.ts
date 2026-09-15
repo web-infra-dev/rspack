@@ -219,6 +219,14 @@ function check(
       .replace(/[0-9]+(\.[0-9]+)? ms/g, 'xx ms');
   }
 
+  if (context.getTestConfig().normalizeHash) {
+    // Align with webpack's StatsTestCases normalization: replace content
+    // hashes in emitted file names with a placeholder so the snapshot does
+    // not depend on the emitted content. The `(?!\d+-)` guard keeps
+    // deterministic chunk ids like `270-` intact.
+    actual = actual.replace(/(?!\d+-)[0-9a-f]{6,32}(?=\.)/g, 'xxx');
+  }
+
   actual = actual
     .split('\n')
     .filter((line) => !line.includes('@rstest/core/dist'))

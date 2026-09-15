@@ -1,5 +1,5 @@
-asset main-9fd762b353acf5cf.js xx KiB [emitted] [immutable] (name: main)
-asset 270-66d1916f6929472e.js xx bytes [emitted] [immutable]
+asset main-xxx.js xx KiB [emitted] [immutable] (name: main)
+asset 270-xxx.js xx bytes [emitted] [immutable]
 runtime modules xx KiB 9 modules
 orphan modules xx bytes [orphan] 1 module
 cacheable modules xx bytes
@@ -10,8 +10,8 @@ cacheable modules xx bytes
   ./c/a.js (in my-layer) xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
-asset main-9fd762b353acf5cf.js xx KiB [emitted] [immutable] (name: main)
-asset 270-66d1916f6929472e.js xx bytes [emitted] [immutable]
+asset main-xxx.js xx KiB [emitted] [immutable] (name: main)
+asset 270-xxx.js xx bytes [emitted] [immutable]
 runtime modules xx KiB 9 modules
 orphan modules xx bytes [orphan] 1 module
 cacheable modules xx bytes
@@ -22,8 +22,8 @@ cacheable modules xx bytes
   ./c/a.js (in my-layer) xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
-asset main-b879dd4b2e5ef224.js xx KiB [emitted] [immutable] (name: main)
-asset 270-806285e792fc8bdc.js xx bytes [emitted] [immutable]
+asset main-xxx.js xx KiB [emitted] [immutable] (name: main)
+asset 270-xxx.js xx bytes [emitted] [immutable]
 runtime modules xx KiB 9 modules
 orphan modules xx bytes [orphan] 1 module
 cacheable modules xx bytes
@@ -34,8 +34,8 @@ cacheable modules xx bytes
   ./c/a.js (in my-layer) xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
-asset main-b879dd4b2e5ef224.js xx KiB [emitted] [immutable] (name: main)
-asset 270-806285e792fc8bdc.js xx bytes [emitted] [immutable]
+asset main-xxx.js xx KiB [emitted] [immutable] (name: main)
+asset 270-xxx.js xx bytes [emitted] [immutable]
 runtime modules xx KiB 9 modules
 orphan modules xx bytes [orphan] 1 module
 cacheable modules xx bytes
@@ -46,8 +46,8 @@ cacheable modules xx bytes
   ./c/a.js (in my-layer) xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
-asset main-11248fb1f4c4c601.js xx KiB [emitted] [immutable] (name: main)
-asset 270-276269fcea67202a.js xx bytes [emitted] [immutable]
+asset main-xxx.js xx KiB [emitted] [immutable] (name: main)
+asset 270-xxx.js xx bytes [emitted] [immutable]
 runtime modules xx KiB 9 modules
 orphan modules xx bytes [orphan] 1 module
 cacheable modules xx bytes
@@ -58,8 +58,8 @@ cacheable modules xx bytes
   ./c/a.js (in my-layer) xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
-asset main-11248fb1f4c4c601.js xx KiB [emitted] [immutable] (name: main)
-asset 270-276269fcea67202a.js xx bytes [emitted] [immutable]
+asset main-xxx.js xx KiB [emitted] [immutable] (name: main)
+asset 270-xxx.js xx bytes [emitted] [immutable]
 runtime modules xx KiB 9 modules
 orphan modules xx bytes [orphan] 1 module
 cacheable modules xx bytes

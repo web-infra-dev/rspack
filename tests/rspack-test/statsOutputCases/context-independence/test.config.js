@@ -1,4 +1,5 @@
 module.exports = {
+	normalizeHash: true,
 	validate(stats) {
 		for (let i = 0; i < stats.stats.length; i += 2) {
 			const a = stats.stats[i].compilation.hash;
