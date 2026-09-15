@@ -9,11 +9,11 @@ use std::path::Path;
 
 use asset::{
   collect_assets_for_module, collect_assets_from_chunk, collect_usage_files_for_module,
-  empty_assets_group, merge_assets_group, module_source_path, normalize_assets_group,
+  empty_assets_group, module_source_path, normalize_assets_group,
 };
 use data::{
   BasicStatsMetaData, ManifestExpose, ManifestRemote, ManifestRoot, ManifestShared,
-  RemoteEntryMeta, StatsAssetsGroup, StatsExpose, StatsRemote, StatsShared, StatsSharedProvider,
+  RemoteEntryMeta, StatsAssetsGroup, StatsExpose, StatsRemote, StatsShared,
 };
 pub use data::{StatsBuildInfo, StatsRoot};
 pub use options::{
@@ -23,7 +23,7 @@ pub use options::{
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   Compilation, CompilationAsset, CompilationProcessAssets, DependenciesBlock, ModuleIdentifier,
-  ModuleType, NormalModule, Plugin, PublicPath, contextify,
+  ModuleType, Plugin, PublicPath,
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -264,7 +264,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           assets: StatsAssetsGroup::default(),
           usedIn: Vec::new(),
           usedExports: Vec::new(),
-          providers: Vec::new(),
         });
     }
     let shared = shared_map.into_values().collect::<Vec<_>>();
@@ -312,8 +311,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let mut shared_map: HashMap<SharedIdentity, StatsShared> = HashMap::default();
     let mut shared_usage_links: Vec<(SharedIdentity, ModuleIdentifier)> = Vec::new();
     let mut shared_module_targets: HashMap<SharedIdentity, IdentifierSet> = HashMap::default();
-    let mut provider_module_targets: HashMap<(SharedIdentity, String, String), IdentifierSet> =
-      HashMap::default();
     let mut module_ids_by_name: HashMap<String, ModuleIdentifier> = HashMap::default();
     let mut remote_module_ids: Vec<ModuleIdentifier> = Vec::new();
     let mut container_entry_module: Option<ModuleIdentifier> = None;
@@ -519,24 +516,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               targets.insert(resolved);
             }
           }
-          let provider_request = targets
-            .iter()
-            .filter_map(|id| module_graph.module_by_identifier(id))
-            .find_map(|module| {
-              module
-                .as_any()
-                .downcast_ref::<NormalModule>()
-                .map(|module| module.resource_resolved_data().resource())
-            })
-            .unwrap_or_else(|| provide.request());
-          provider_module_targets
-            .entry((
-              identity.clone(),
-              provide.manifest_version().to_string(),
-              contextify(compilation.options.context.as_path(), provider_request),
-            ))
-            .or_default()
-            .extend(targets.iter().copied());
           shared_module_targets
             .entry(identity.clone())
             .or_default()
@@ -658,36 +637,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       shared_asset_files.extend(assets.css.sync.iter().cloned());
       if let Some(shared_entry) = shared_map.get_mut(&identity) {
         shared_entry.assets = assets;
-      }
-    }
-
-    for ((identity, version, import), module_ids) in provider_module_targets {
-      let mut assets = empty_assets_group();
-      for module_id in module_ids {
-        if let Some(module_assets) =
-          collect_assets_for_module(compilation, &module_id, &entry_point_names)
-        {
-          merge_assets_group(&mut assets, module_assets);
-        }
-      }
-      normalize_assets_group(&mut assets);
-      if let Some(shared) = shared_map.get_mut(&identity) {
-        shared.providers.push(StatsSharedProvider {
-          version,
-          import,
-          assets,
-        });
-      }
-    }
-    for shared in shared_map.values_mut() {
-      if shared.providers.len() < 2 {
-        shared.providers.clear();
-      } else {
-        shared.providers.sort_unstable_by(|a, b| {
-          a.version
-            .cmp(&b.version)
-            .then_with(|| a.import.cmp(&b.import))
-        });
       }
     }
 
@@ -924,7 +873,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           referenceExports: used_exports.clone(),
           usedExports: used_exports,
           assets: s.assets,
-          providers: s.providers,
         }
       })
       .collect(),

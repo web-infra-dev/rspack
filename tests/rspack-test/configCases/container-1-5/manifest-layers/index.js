@@ -18,6 +18,11 @@ it("should render layered local and remote shared React", async () => {
 it("should emit manifest files", () => {
   expect(fs.existsSync(statsPath)).toBe(true);
   expect(fs.existsSync(manifestPath)).toBe(true);
+  for (const output of [stats, manifest]) {
+    for (const shared of output.shared) {
+      expect(shared).not.toHaveProperty("providers");
+    }
+  }
 });
 
 it("should include the layered consumed shared entry in stats", () => {

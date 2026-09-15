@@ -7,7 +7,7 @@ import {
   type ModuleFederationManifestPluginOptions,
 } from '../container/ModuleFederationManifestPlugin';
 import { createHash } from '../util/createHash';
-import { absoluteToRequest, contextify } from '../util/identifier';
+import { absoluteToRequest } from '../util/identifier';
 import {
   CollectSharedEntryPlugin,
   type ShareRequestsMap,
@@ -417,12 +417,6 @@ export class IndependentSharedPlugin {
                     shareScope?: ShareScope;
                     fallback?: string;
                     fallbackName?: string;
-                    providers?: {
-                      version: string;
-                      import: string;
-                      fallback?: string;
-                      fallbackName?: string;
-                    }[];
                   }[];
                 };
 
@@ -441,24 +435,6 @@ export class IndependentSharedPlugin {
                     targetShared.fallback = candidates[0].entry;
                     targetShared.fallbackName = candidates[0].globalName;
                   }
-                  targetShared.providers?.forEach((provider) => {
-                    const providers = this.buildAssetRecords.filter(
-                      ({ shareKey, version, layer, shareScope, request }) =>
-                        shareKey === targetShared.name &&
-                        version === provider.version &&
-                        layer === targetShared.layer &&
-                        shareScopesEqual(
-                          shareScope,
-                          targetShared.shareScope ?? 'default',
-                        ) &&
-                        contextify(compiler.context, request, compiler) ===
-                          provider.import,
-                    );
-                    if (providers.length === 1) {
-                      provider.fallback = providers[0].entry;
-                      provider.fallbackName = providers[0].globalName;
-                    }
-                  });
                 });
 
                 compilation.updateAsset(

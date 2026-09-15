@@ -35,14 +35,6 @@ it('attaches fallback metadata when the resolved artifact is unambiguous', () =>
       expect(shared).not.toHaveProperty('fallback');
       expect(shared).not.toHaveProperty('fallbackName');
     }
-    if (CASE_NAME.startsWith('provider-')) {
-      expect(shared.providers.map(({ version }) => version)).toEqual(['1.0.0', '2.0.0']);
-      for (const provider of shared.providers) {
-        const fallback = fallbacks.find(([, version]) => version === provider.version);
-        expect(fallback).toBeDefined();
-        expect(provider.fallback).toBe(fallback[0]);
-        expect(provider.fallbackName).toBe(fallback[2]);
-      }
-    }
+    expect(shared).not.toHaveProperty('providers');
   }
 });
