@@ -1,4 +1,6 @@
+mod bitmap;
 mod chunk;
+mod intersections;
 mod max_request;
 pub mod max_size;
 pub mod min_size;
@@ -36,6 +38,7 @@ pub type SplitChunksNameBatchFn = Arc<
 
 #[derive(Debug)]
 pub struct PluginOptions {
+  pub dedup_depth: u32,
   pub cache_groups: Vec<CacheGroup>,
   pub fallback_cache_group: FallbackCacheGroup,
   pub hide_path_info: Option<bool>,
@@ -43,6 +46,7 @@ pub struct PluginOptions {
 
 #[plugin]
 pub struct SplitChunksPlugin {
+  dedup_depth: u32,
   cache_groups: Box<[CacheGroup]>,
   name_batch_getters: Option<Box<[Option<SplitChunksNameBatchFn>]>>,
   fallback_cache_group: FallbackCacheGroup,
@@ -53,6 +57,7 @@ impl SplitChunksPlugin {
   pub fn new(options: PluginOptions) -> Self {
     tracing::debug!("Create `SplitChunksPlugin` with {:#?}", options);
     Self::new_inner(
+      options.dedup_depth,
       options.cache_groups.into(),
       None,
       options.fallback_cache_group,
@@ -76,6 +81,7 @@ impl SplitChunksPlugin {
       .then(|| name_batch_getters.into());
     tracing::debug!("Create `SplitChunksPlugin` with {:#?}", options);
     Self::new_inner(
+      options.dedup_depth,
       options.cache_groups.into(),
       name_batch_getters,
       options.fallback_cache_group,
@@ -187,6 +193,39 @@ impl SplitChunksPlugin {
       // throughout candidate preparation and selection.
       let previous = std::mem::take(&mut combinator);
       rayon::spawn(move || drop(previous));
+      let intersection_settings = |used_exports| {
+        if self.dedup_depth == 0 {
+          return None;
+        }
+        let intersection_cache_groups = cache_groups
+          .iter()
+          .filter(|indexed_cache_group| {
+            let cache_group = indexed_cache_group.cache_group;
+            let has_name_batch_getter = self.name_batch_getters.as_deref().is_some_and(|getters| {
+              getters
+                .get(indexed_cache_group.cache_group_index as usize)
+                .is_some_and(Option::is_some)
+            });
+            cache_group.used_exports == used_exports
+              && module_group::cache_group_uses_intersections(cache_group, has_name_batch_getter)
+          })
+          .collect::<Vec<_>>();
+        let min_chunks = intersection_cache_groups
+          .iter()
+          .map(|indexed_cache_group| (indexed_cache_group.cache_group.min_chunks as usize).max(1))
+          .min();
+        min_chunks.map(|min_chunks| {
+          (
+            min_chunks,
+            intersection_cache_groups
+              .into_iter()
+              .map(|group| group.cache_group)
+              .collect(),
+          )
+        })
+      };
+      let non_used_exports_intersection_settings = intersection_settings(false);
+      let used_exports_intersection_settings = intersection_settings(true);
       let non_used_exports_min_chunks = cache_groups
         .iter()
         .filter(|cache_group| !cache_group.cache_group.used_exports)
@@ -199,6 +238,12 @@ impl SplitChunksPlugin {
           available_module_chunks,
           &chunk_index_map,
           min_chunks,
+          module_group::IntersectionPreparation {
+            dedup_depth: self.dedup_depth,
+            settings: non_used_exports_intersection_settings,
+            module_sizes: &module_sizes,
+            compilation,
+          },
         );
       }
 
@@ -212,6 +257,12 @@ impl SplitChunksPlugin {
           &compilation.build_chunk_graph_artifact.chunk_by_ukey,
           available_module_chunks,
           &chunk_index_map,
+          module_group::IntersectionPreparation {
+            dedup_depth: self.dedup_depth,
+            settings: used_exports_intersection_settings,
+            module_sizes: &module_sizes,
+            compilation,
+          },
         );
       }
 

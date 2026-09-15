@@ -382,6 +382,7 @@ module.exports = {
 			        },
 			      },
 			      chunks: async,
+			      dedupDepth: 0,
 			      defaultSizeTypes: Array [
 			        javascript,
 			        css,
