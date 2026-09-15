@@ -11,7 +11,9 @@ import querystring from 'node:querystring';
 import {
   formatDiagnostic,
   type JsLoaderContext,
-  type JsLoaderItem,
+  type JsLoaderResult,
+  type JsLoaderMetadata,
+  type JsLoaderItemState,
   JsLoaderState,
   JsRspackSeverity,
 } from '@rspack/binding';
@@ -89,9 +91,20 @@ export class LoaderObject {
   /**
    * @internal This field is rspack internal. Do not edit.
    */
-  loaderItem: JsLoaderItem;
+  readonly loaderItem: JsLoaderMetadata;
+  readonly state: JsLoaderItemState;
+  readonly #loaderData: JsLoaderResult['loaderData'];
+  readonly #index: number;
 
-  constructor(loaderItem: JsLoaderItem, compiler: Compiler) {
+  constructor(
+    loaderItem: JsLoaderMetadata,
+    context: JsLoaderResult,
+    index: number,
+    compiler: Compiler,
+  ) {
+    this.state = context.state.loaderItemStates[index];
+    this.#loaderData = context.loaderData;
+    this.#index = index;
     const splittedRequest = parseResourceWithoutFragment(loaderItem.loader);
     this.path = splittedRequest.path;
     this.fragment = '';
@@ -140,11 +153,19 @@ export class LoaderObject {
         ) as LoaderObject['parallel'])
       : false;
     this.loaderItem = loaderItem;
-    this.loaderItem.data = this.loaderItem.data ?? {};
+    this.data ??= {};
+  }
+
+  get data(): JsLoaderResult['loaderData'][number] {
+    return this.#loaderData[this.#index];
+  }
+
+  set data(value: JsLoaderResult['loaderData'][number]) {
+    this.#loaderData[this.#index] = value;
   }
 
   get pitchExecuted() {
-    return this.loaderItem.pitchExecuted;
+    return this.state.pitchExecuted;
   }
 
   set pitchExecuted(value: boolean) {
@@ -152,11 +173,11 @@ export class LoaderObject {
       throw new Error('pitchExecuted should be true');
     }
 
-    this.loaderItem.pitchExecuted = true;
+    this.state.pitchExecuted = true;
   }
 
   get normalExecuted() {
-    return this.loaderItem.normalExecuted;
+    return this.state.normalExecuted;
   }
 
   set normalExecuted(value: boolean) {
@@ -164,29 +185,18 @@ export class LoaderObject {
       throw new Error('normalExecuted should be true');
     }
 
-    this.loaderItem.normalExecuted = true;
+    this.state.normalExecuted = true;
   }
 
   set noPitch(value: boolean) {
     if (!value) {
       throw new Error('noPitch should be true');
     }
-    this.loaderItem.noPitch = true;
+    this.state.noPitch = true;
   }
 
   shouldYield() {
     return this.request.startsWith(BUILTIN_LOADER_PREFIX);
-  }
-
-  static __from_binding(
-    loaderItem: JsLoaderItem,
-    compiler: Compiler,
-  ): LoaderObject {
-    return new this(loaderItem, compiler);
-  }
-
-  static __to_binding(loader: LoaderObject): JsLoaderItem {
-    return loader.loaderItem;
   }
 }
 
@@ -243,11 +253,13 @@ export function createLoaderContext(
   dependencies: LoaderDependenciesState,
   traceData?: Pick<ChromeEvent, 'uuid' | 'args'>,
 ): LoaderContext {
-  const state = context.loaderContextState as LoaderContextState | undefined;
-  if (state) {
-    state.update(context, dependencies, traceData);
-    return state.loaderContext;
+  const contextState = context.state.loaderContextState as
+    LoaderContextState | undefined;
+  if (contextState) {
+    contextState.update(context, dependencies, traceData);
+    return contextState.loaderContext;
   }
+  let { state } = context;
   const { resource } = context;
   const splittedResource = resource && parseResource(resource);
   const resourcePath = splittedResource ? splittedResource.path : undefined;
@@ -260,9 +272,9 @@ export function createLoaderContext(
   /// Construct `loaderContext`
   const loaderContext = {} as LoaderContext;
 
-  loaderContext.loaders = context.loaderItems.map((item) => {
-    return LoaderObject.__from_binding(item, compiler);
-  });
+  loaderContext.loaders = context.loaderItems.map(
+    (item, index) => new LoaderObject(item, context, index, compiler),
+  );
 
   loaderContext.hot = context.hot;
   loaderContext.context = contextDirectory;
@@ -293,7 +305,7 @@ export function createLoaderContext(
   };
   loaderContext.clearDependencies = function clearDependencies() {
     dependencies.clearDependencies();
-    context.cacheable = true;
+    state.cacheable = true;
   };
 
   loaderContext.importModule = function importModule(
@@ -692,42 +704,43 @@ export function createLoaderContext(
   /// Sync with `context`
   Object.defineProperty(loaderContext, 'loaderIndex', {
     enumerable: true,
-    get: () => context.loaderIndex,
-    set: (loaderIndex) => (context.loaderIndex = loaderIndex),
+    get: () => state.loaderIndex,
+    set: (loaderIndex) => (state.loaderIndex = loaderIndex),
   });
   Object.defineProperty(loaderContext, 'cacheable', {
     enumerable: true,
     get: () => (cacheable?: boolean) => {
       if (cacheable === false) {
-        context.cacheable = cacheable;
+        state.cacheable = cacheable;
       }
     },
   });
   Object.defineProperty(loaderContext, 'data', {
     enumerable: true,
-    get: () => loaderContext.loaders[loaderContext.loaderIndex].loaderItem.data,
+    get: () => loaderContext.loaders[loaderContext.loaderIndex].data,
     set: (data) =>
-      (loaderContext.loaders[loaderContext.loaderIndex].loaderItem.data = data),
+      (loaderContext.loaders[loaderContext.loaderIndex].data = data),
   });
 
   /// Rspack private
   loaderContext.__internal__setParseMeta = (key: string, value: string) => {
-    context.__internal__parseMeta[key] = value;
+    state.parseMeta[key] = value;
   };
 
   // Rust retains this state only for the current run_loaders invocation. Update
   // the captured snapshot on every entry so hook-installed closures use the
   // current loader index, dependencies and module pointer across native loaders.
-  context.loaderContextState = {
+  state.loaderContextState = {
     loaderContext,
     update(nextContext, nextDependencies, nextTraceData) {
       context = nextContext;
+      state = context.state;
       dependencies = nextDependencies;
       traceData = nextTraceData;
       loaderContext.hot = context.hot;
       loaderContext._module = context._module;
-      loaderContext.loaders = context.loaderItems.map((item) =>
-        LoaderObject.__from_binding(item, compiler),
+      loaderContext.loaders = context.loaderItems.map(
+        (item, index) => new LoaderObject(item, context, index, compiler),
       );
     },
   } satisfies LoaderContextState;
@@ -738,7 +751,8 @@ export function createLoaderContext(
 export async function runLoaders(
   compiler: Compiler,
   context: JsLoaderContext,
-): Promise<JsLoaderContext> {
+): Promise<JsLoaderResult> {
+  const { loaderData, state } = context;
   const loaderState = context.loaderState;
   const pitch = loaderState === JsLoaderState.Pitching;
 
@@ -753,7 +767,7 @@ export async function runLoaders(
       }
     : undefined;
 
-  const dependencies = new LoaderDependenciesState(context.dependencies);
+  const dependencies = new LoaderDependenciesState(state.dependencies);
   const loaderCache = context.__internal__loaderCache
     ? new LoaderCache(context, dependencies)
     : undefined;
@@ -802,6 +816,7 @@ export async function runLoaders(
         }
         return {
           ...item,
+          data: item.data,
           options,
           pitch: undefined,
           normal: undefined,
@@ -960,16 +975,15 @@ export async function runLoaders(
           }
           case RequestType.UpdateLoaderObjects: {
             const updates = args[0];
-            loaderContext.loaders = loaderContext.loaders.map((item, index) => {
+            loaderContext.loaders.forEach((item, index) => {
               const update = updates[index];
-              item.loaderItem.data = update.data;
+              item.data = update.data;
               if (update.pitchExecuted) {
                 item.pitchExecuted = true;
               }
               if (update.normalExecuted) {
                 item.normalExecuted = true;
               }
-              return item;
             });
             break;
           }
@@ -1123,7 +1137,7 @@ export async function runLoaders(
             args = await isomorphoicRun(fn, [
               loaderContext.remainingRequest,
               loaderContext.previousRequest,
-              currentLoaderObject.loaderItem.data,
+              currentLoaderObject.data,
             ]);
           } finally {
             dependencies.mergeChanges();
@@ -1133,13 +1147,13 @@ export async function runLoaders(
 
           if (hasArg) {
             const [content, sourceMap, additionalData] = args;
-            context.content = isNil(content)
+            state.content = isNil(content)
               ? null
               : typeof content === 'string'
                 ? content
                 : toBuffer(content);
-            context.sourceMap = serializeObject(sourceMap);
-            context.additionalData = additionalData || undefined;
+            state.sourceMap = serializeObject(sourceMap);
+            state.additionalData = additionalData || undefined;
             break;
           }
         }
@@ -1148,11 +1162,11 @@ export async function runLoaders(
       }
       case JsLoaderState.Normal: {
         let content: Parameters<typeof toBuffer>[0] | null | undefined =
-          context.content;
-        const rawSourceMap = context.sourceMap;
+          state.content;
+        const rawSourceMap = state.sourceMap;
         let sourceMap: string | object | undefined;
         let sourceMapParsed = false;
-        let additionalData = context.additionalData;
+        let additionalData = state.additionalData;
 
         while (loaderContext.loaderIndex >= 0) {
           const currentLoaderObject =
@@ -1220,35 +1234,30 @@ export async function runLoaders(
           }
         }
 
-        context.content = isNil(content)
+        state.content = isNil(content)
           ? null
           : typeof content === 'string'
             ? content
             : toBuffer(content);
-        context.sourceMap = sourceMapParsed
+        state.sourceMap = sourceMapParsed
           ? JsSourceMap.__to_binding(sourceMap)
           : rawSourceMap;
-        context.additionalData = additionalData || undefined;
+        state.additionalData = additionalData || undefined;
 
         break;
       }
       default:
         throw new Error(`Unexpected loader runner state: ${loaderState}`);
     }
-
-    // update loader state
-    context.loaderItems = loaderContext.loaders.map((item) =>
-      LoaderObject.__to_binding(item),
-    );
   } catch (e) {
     if (typeof e !== 'object' || e === null) {
       const error = new Error(
         `(Emitted value instead of an instance of Error) ${e}`,
       );
       error.name = 'NonErrorEmittedError';
-      context.__internal__error = error;
+      state.error = error;
     } else {
-      context.__internal__error = e as RspackError;
+      state.error = e as RspackError;
     }
   }
   if (traceData) {
@@ -1263,5 +1272,5 @@ export async function runLoaders(
     commitCustomFieldsToRust(context._module.buildInfo);
   }
 
-  return context;
+  return { loaderData, state };
 }

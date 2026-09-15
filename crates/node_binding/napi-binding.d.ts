@@ -973,22 +973,34 @@ export interface JsLoaderCacheEntry {
 }
 
 export interface JsLoaderContext {
-  loaderContextState?: object | undefined
   resource: string
   _module: Module
   hot: Readonly<boolean>
-  /** Content maybe empty in pitching stage */
+  loaderItems: Array<JsLoaderMetadata>
+  loaderState: Readonly<JsLoaderState>
+  __internal__loaderCache?: JsLoaderCache | undefined
+  /** Each loader's pitch data, separate from execution flags. */
+  loaderData: Array<any>
+  state: JsLoaderContextState
+}
+
+/**
+ * Per-invocation execution state, separate from each loader's pitch data.
+ * The native runner keeps ownership of its LoaderContext throughout.
+ */
+export interface JsLoaderContextState {
+  loaderContextState?: object | undefined
+  /** Content may be empty in the pitching stage. */
   content: string | Buffer | null
   additionalData?: any
-  __internal__parseMeta: Record<string, string>
   sourceMap?: Buffer
   cacheable: boolean
   dependencies: JsLoaderDependencies
-  loaderItems: Array<JsLoaderItem>
+  loaderItemStates: Array<JsLoaderItemState>
   loaderIndex: number
-  loaderState: Readonly<JsLoaderState>
-  __internal__error?: RspackError
-  __internal__loaderCache?: JsLoaderCache | undefined
+  /** Additions from JavaScript, merged into the native typed parse metadata. */
+  parseMeta: Record<string, string>
+  error?: RspackError
 }
 
 export interface JsLoaderDependencies {
@@ -1006,6 +1018,25 @@ export interface JsLoaderItem {
   normalExecuted: boolean
   pitchExecuted: boolean
   noPitch: boolean
+}
+
+export interface JsLoaderItemState {
+  normalExecuted: boolean
+  pitchExecuted: boolean
+  noPitch: boolean
+}
+
+/** Immutable loader metadata, separate from the state returned by JavaScript. */
+export interface JsLoaderMetadata {
+  loader: string
+  type: string
+  cache: boolean
+}
+
+/** The two mutable parts returned in one crossing, without loader metadata. */
+export interface JsLoaderResult {
+  loaderData: Array<any>
+  state: JsLoaderContextState
 }
 
 export declare enum JsLoaderState {
@@ -3335,7 +3366,7 @@ export interface RegisterJsTaps {
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilationSealTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationAfterSealTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
-  registerNormalModuleLoaderTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => JsLoaderContext); stage: number; }>
+  registerNormalModuleLoaderTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => JsLoaderResult); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
   registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
   registerNormalModuleFactoryResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>

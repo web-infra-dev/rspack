@@ -101,7 +101,7 @@ use crate::{
     JsCreateData, JsNormalModuleFactoryCreateModuleArgs, JsResolveData, JsResolveForSchemeArgs,
     JsResolveForSchemeOutput,
   },
-  plugins::js_loader::{JsLoaderContext, merge_loader_context},
+  plugins::js_loader::{JsLoaderContext, JsLoaderResult, merge_loader_result},
   rsdoctor::{
     JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
     JsRsdoctorModuleSourcesPatch,
@@ -626,7 +626,7 @@ pub struct RegisterJsTaps {
   )]
   pub register_compilation_after_seal_taps: RegisterFunction,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => JsLoaderContext); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => JsLoaderResult); stage: number; }>"
   )]
   pub register_normal_module_loader_taps: RegisterFunction,
   #[napi(
@@ -942,7 +942,7 @@ define_register!(
 /* NormalModule Hooks */
 define_register!(
   RegisterNormalModuleLoaderTaps,
-  tap = NormalModuleLoaderTap<JsLoaderContext, JsLoaderContext> @ NormalModuleLoaderHook,
+  tap = NormalModuleLoaderTap<JsLoaderContext, JsLoaderResult> @ NormalModuleLoaderHook,
   cache = true,
   kind = RegisterJsTapKind::NormalModuleLoader,
   skip = true,
@@ -1709,7 +1709,7 @@ impl NormalModuleLoader for NormalModuleLoaderTap {
       .function
       .call_with_sync(JsLoaderContext::try_from(&mut *context)?)
       .await?;
-    merge_loader_context(context, data)
+    merge_loader_result(context, data)
   }
 
   fn stage(&self) -> i32 {
