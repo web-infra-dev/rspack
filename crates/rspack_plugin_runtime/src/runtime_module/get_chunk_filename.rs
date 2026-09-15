@@ -148,7 +148,12 @@ impl GetChunkFilenameRuntimeModule {
             .build_chunk_graph_artifact
             .chunk_group_by_ukey
             .expect_get(&entrypoint);
-          chunks.insert(entrypoint.get_entrypoint_chunk());
+          if self.source_type == SourceType::Css {
+            // A CSS URL entry can be extracted into another chunk in the group.
+            chunks.extend(entrypoint.chunks.iter().copied());
+          } else {
+            chunks.insert(entrypoint.get_entrypoint_chunk());
+          }
         }
         chunks
       })

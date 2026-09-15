@@ -17,7 +17,7 @@ use crate::{
   dependency::{
     URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE, WORKER_STATIC_URL_PLACEHOLDER,
     WORKER_STATIC_URL_PLACEHOLDER_RE, WorkerDependency, get_dependency_entry_chunk,
-    url_entry_has_js,
+    get_url_dependency_chunk, url_entry_has_js,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
 };
@@ -135,7 +135,7 @@ pub async fn replace_static_url_placeholders(
     let Some(module_identifier) = module_graph.module_identifier_by_dependency_id(&dep_id) else {
       continue;
     };
-    if let Some(chunk_ukey) = get_dependency_entry_chunk(compilation, &dep_id) {
+    if let Some(chunk_ukey) = get_url_dependency_chunk(compilation, &dep_id) {
       let filename = get_url_entry_output_path(compilation, &dep_id, chunk_ukey).await?;
       replace_source.replace(start as u32, end as u32, filename, None);
       continue;
