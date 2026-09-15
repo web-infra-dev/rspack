@@ -153,6 +153,62 @@ module.exports = [
     }
   },
   {
+    description: "should retain child completion when a concurrent run is rejected during done",
+    options,
+    async build(context, compiler) {
+      const events = [];
+      const [a, b] = compiler.compilers;
+      let release;
+      let active;
+      try {
+        await new Promise((resolve, reject) => compiler.run(error => error ? reject(error) : resolve()));
+        compiler.hooks.done.tap("Trace", () => { events.push("parent.done"); });
+        let enter;
+        const entered = new Promise(resolve => { enter = resolve; });
+        a.hooks.done.tapAsync("Gate", (_, callback) => {
+          events.push("a.done:start");
+          release = () => {
+            if (callback) {
+              const finish = callback;
+              callback = undefined;
+              events.push("a.done:end");
+              finish();
+            }
+          };
+          enter();
+        });
+        b.hooks.done.tap("Trace", () => { events.push("b.done"); });
+        for (const child of compiler.compilers) {
+          child.hooks.failed.tap("Trace", () => { events.push(`${child.name}.failed`); });
+          child.hooks.afterDone.tap("Trace", () => { events.push(`${child.name}.afterDone`); });
+        }
+        const run = child => new Promise((resolve, reject) => child.run(error => {
+          events.push(`${child.name}.callback`);
+          error ? reject(error) : resolve();
+        }));
+        active = run(a);
+        await entered;
+        const error = await new Promise(resolve => compiler.run(error => {
+          events.push("multi.callback:error");
+          resolve(error);
+        }));
+        expect(error.name).toBe("ConcurrentCompilationError");
+        release();
+        await active;
+        await run(b);
+        expect(events).toEqual([
+          "parent.done", "a.done:start", "multi.callback:error",
+          "a.done:end", "a.callback", "a.afterDone",
+          "parent.done", "b.done", "b.callback", "b.afterDone"
+        ]);
+      } finally {
+        release?.();
+        if (active) await active;
+        await close(compiler);
+      }
+    }
+  },
+  {
     description: "should aggregate independent runs after watch setup fails on busy children",
     options,
     async build(context, compiler) {

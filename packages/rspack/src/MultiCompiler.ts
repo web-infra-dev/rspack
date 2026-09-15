@@ -604,7 +604,8 @@ export class MultiCompiler {
       this.#runGraph(
         () => {},
         (compiler, _, callback) => {
-          this.#resetCompilerDone.get(compiler)!();
+          // A rejected concurrent run must retain the active run's completion.
+          if (!compiler.running) this.#resetCompilerDone.get(compiler)!();
           compiler.run(callback, options);
         },
         (err, stats) => {
