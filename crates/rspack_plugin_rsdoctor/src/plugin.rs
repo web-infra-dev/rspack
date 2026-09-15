@@ -388,7 +388,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     &modules,
     module_graph,
     chunk_graph,
-    &compilation.options.context,
+    &compilation.options().context,
   ));
 
   {

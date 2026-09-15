@@ -26,7 +26,7 @@ impl PassExt for RuntimeRequirementsPass {
 }
 
 async fn runtime_requirements_pass_impl(compilation: &mut Compilation) -> Result<()> {
-  let plugin_driver = compilation.plugin_driver.clone();
+  let plugin_driver = compilation.plugin_driver().clone();
   let process_runtime_requirements_modules = if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
@@ -387,7 +387,7 @@ pub async fn process_chunks_runtime_requirements(
     })
     .await?;
 
-    if compilation.options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack {
+    if compilation.options().experiments.runtime_mode == ExperimentRuntimeMode::Rspack {
       set = set.with_require_scope();
     }
 
@@ -480,7 +480,7 @@ pub async fn process_chunks_runtime_requirements(
       }
     }
 
-    if compilation.options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack {
+    if compilation.options().experiments.runtime_mode == ExperimentRuntimeMode::Rspack {
       all_runtime_requirements = all_runtime_requirements.with_require_scope();
     }
 
@@ -518,7 +518,7 @@ pub async fn process_chunks_runtime_requirements(
   compilation.runtime_modules = runtime_modules;
 
   compilation.runtime_proxy_metadata_artifact.clear();
-  if compilation.options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
+  if compilation.options().experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
     logger.time_end(start);
     return Ok(());
   }

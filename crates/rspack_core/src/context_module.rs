@@ -1277,12 +1277,12 @@ impl ContextModule {
   fn get_source(&self, source_string: String, compilation: &Compilation) -> BoxSource {
     let source_map_kind = self.get_source_map_kind();
     if source_map_kind.enabled() {
-      let source_protocol = compilation.options.experiments.runtime_mode.to_string();
+      let source_protocol = compilation.options().experiments.runtime_mode.to_string();
       OriginalSource::new(
         source_string,
         format!(
           "{source_protocol}://{}",
-          make_paths_relative(&compilation.options.context, self.identifier.as_str(),)
+          make_paths_relative(&compilation.options().context, self.identifier.as_str(),)
         ),
       )
       .boxed()
@@ -1531,9 +1531,9 @@ impl Module for ContextModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHasher::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options().output);
     module_update_hash(self, &mut hasher, compilation, runtime);
-    Ok(hasher.digest(&compilation.options.output.hash_digest))
+    Ok(hasher.digest(&compilation.options().output.hash_digest))
   }
 }
 

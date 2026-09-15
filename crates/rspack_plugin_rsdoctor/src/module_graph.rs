@@ -190,7 +190,7 @@ pub fn collect_module_original_sources(
   module_graph: &ModuleGraph,
   compilation: &Compilation,
 ) -> Vec<RsdoctorModuleOriginalSource> {
-  let ifs = compilation.input_filesystem.clone();
+  let ifs = compilation.input_filesystem().clone();
 
   let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
   modules

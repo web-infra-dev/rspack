@@ -489,7 +489,11 @@ impl PublicPath {
   }
 
   pub fn render_auto_public_path(compilation: &Compilation, filename: &str) -> String {
-    let public_path = get_undo_path(filename, compilation.options.output.path.to_string(), false);
+    let public_path = get_undo_path(
+      filename,
+      compilation.options().output.path.to_string(),
+      false,
+    );
     Self::ensure_ends_with_slash(public_path)
   }
 }

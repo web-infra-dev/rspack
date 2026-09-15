@@ -52,7 +52,7 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
     let params = Some(
-      if context.compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
+      if context.compilation.options().experiments.runtime_mode == RuntimeMode::Rspack {
         serde_json::json!({
           "__this": "(typeof this === \"function\" ? this : this.r)"
         })

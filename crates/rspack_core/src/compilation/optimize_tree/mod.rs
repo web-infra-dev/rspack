@@ -13,7 +13,7 @@ impl PassExt for OptimizeTreePass {
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     compilation
-      .plugin_driver
+      .plugin_driver()
       .clone()
       .compilation_hooks
       .optimize_tree

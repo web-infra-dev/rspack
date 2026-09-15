@@ -231,12 +231,12 @@ fn sum_for_types(size: &SplitChunkSizes, ty: &FxHashSet<SourceType>) -> f64 {
 
 fn get_key(module: &dyn Module, delimiter: &str, compilation: &Compilation) -> String {
   let ident = make_paths_relative(
-    compilation.options.context.as_str(),
+    compilation.options().context.as_str(),
     module.identifier().as_str(),
   );
   let name = if let Some(name_for_condition) = module.name_for_condition() {
     Cow::Owned(make_paths_relative(
-      compilation.options.context.as_str(),
+      compilation.options().context.as_str(),
       &name_for_condition,
     ))
   } else {
@@ -247,7 +247,7 @@ fn get_key(module: &dyn Module, delimiter: &str, compilation: &Compilation) -> S
     "{}{}{}",
     name,
     delimiter,
-    hash_filename(&ident, &compilation.options)
+    hash_filename(&ident, compilation.options())
   );
 
   request_to_id(&full_key)
@@ -644,7 +644,7 @@ impl SplitChunksPlugin {
       for (index, group) in results.into_iter().enumerate() {
         let group_key = if let Some(key) = group.key {
           if self.hide_path_info {
-            hash_filename(&key, &compilation.options)
+            hash_filename(&key, compilation.options())
           } else {
             key
           }
@@ -664,7 +664,7 @@ impl SplitChunksPlugin {
           && n.len() > 100
         {
           let s = &n[0..100];
-          let k = hash_filename(&n, &compilation.options);
+          let k = hash_filename(&n, &compilation.build_context.compiler_options);
           name = Some(format!("{s}{delimiter}{k}"));
         }
 

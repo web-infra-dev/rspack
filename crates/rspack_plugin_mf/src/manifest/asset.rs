@@ -191,7 +191,7 @@ pub fn module_source_path(module: &ModuleRef, compilation: &Compilation) -> Opti
   if let Some(normal_module) = module.as_ref().as_any().downcast_ref::<NormalModule>()
     && let Some(path) = normal_module.resource_resolved_data().path()
   {
-    let context_path = compilation.options.context.as_path();
+    let context_path = compilation.options().context.as_path();
     let relative = Path::new(path.as_str())
       .strip_prefix(context_path)
       .unwrap_or_else(|_| Path::new(path.as_str()));
@@ -218,7 +218,7 @@ pub fn module_source_path(module: &ModuleRef, compilation: &Compilation) -> Opti
   }
 
   let mut identifier = module
-    .readable_identifier(&compilation.options.context)
+    .readable_identifier(&compilation.options().context)
     .to_string();
   if identifier.is_empty() {
     return None;

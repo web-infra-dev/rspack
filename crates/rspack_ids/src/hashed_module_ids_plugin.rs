@@ -73,7 +73,7 @@ async fn module_ids(
   let context = self
     .context
     .as_deref()
-    .unwrap_or(compilation.options.context.as_ref());
+    .unwrap_or(compilation.options().context.as_ref());
 
   let (used_ids, mut modules) =
     get_used_module_ids_and_modules_with_artifact(compilation, module_ids, None);

@@ -170,7 +170,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .name
     .clone()
     .filter(|s| !s.is_empty())
-    .unwrap_or_else(|| compilation.options.output.unique_name.clone());
+    .unwrap_or_else(|| compilation.options().output.unique_name.clone());
 
   let entry_files = collect_entry_files(compilation, &container_name);
   let global_name = self
@@ -180,7 +180,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .filter(|s| !s.is_empty())
     .or_else(|| {
       compilation
-        .options
+        .options()
         .output
         .library
         .as_ref()
@@ -193,7 +193,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     })
     .unwrap_or_else(|| container_name.clone());
   let entry_name = get_remote_entry_name(compilation, &container_name).unwrap_or_default();
-  let public_path = match &compilation.options.output.public_path {
+  let public_path = match &compilation.options().output.public_path {
     PublicPath::Auto => Some("auto".to_string()),
     PublicPath::Filename(f) => Some(PublicPath::render_filename(compilation, f).await),
   };
@@ -206,7 +206,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       name: entry_name.clone(),
       path: String::new(),
       r#type: compilation
-        .options
+        .options()
         .output
         .library
         .as_ref()

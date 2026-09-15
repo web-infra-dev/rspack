@@ -471,8 +471,8 @@ impl RscClientPlugin {
     compilation: &Compilation,
     plugin_state: &mut PluginState,
   ) -> Result<()> {
-    let public_path = &compilation.options.output.public_path;
-    let configured_cross_origin_loading = &compilation.options.output.cross_origin_loading;
+    let public_path = &compilation.options().output.public_path;
+    let configured_cross_origin_loading = &compilation.options().output.cross_origin_loading;
 
     let prefix = match public_path {
       rspack_core::PublicPath::Filename(filename) => match filename.template() {
@@ -692,7 +692,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
     for request in &entry_state.root_css_imports {
       let dependency = BoxDependency::new(EntryDependency::new(
         request.clone(),
-        compilation.options.context.clone(),
+        compilation.options().context.clone(),
         None,
         false,
       ));

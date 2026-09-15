@@ -185,7 +185,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .chunk(chunk.ukey(), compilation)
             .chunk_hash_optional(chunk.rendered_hash(
               &compilation.chunk_hashes_artifact,
-              compilation.options.output.hash_digest_length,
+              compilation.options().output.hash_digest_length,
             ))
             .chunk_id_optional(chunk.id().map(|id| id.as_str()))
             .chunk_name_optional(chunk.name_for_filename_template())

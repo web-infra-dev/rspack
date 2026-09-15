@@ -60,7 +60,7 @@ async fn runtime_requirements_in_tree(
     | RuntimeGlobals::ON_CHUNKS_LOADED;
 
   if runtime_requirements.intersects(has_chunk_loading_runtime_globals) {
-    let with_create_script_url = compilation.options.output.trusted_types.is_some();
+    let with_create_script_url = compilation.options().output.trusted_types.is_some();
     if with_create_script_url {
       runtime_requirements_mut.insert(RuntimeGlobals::CREATE_SCRIPT_URL);
     }
@@ -93,7 +93,7 @@ async fn runtime_requirements_in_tree(
   if all_runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
     runtime_requirements_mut
       .extend(ImportScriptsChunkLoadingRuntimeModule::get_runtime_requirements_with_hmr());
-    if compilation.options.experiments.runtime_mode
+    if compilation.options().experiments.runtime_mode
       == rspack_core::runtime_mode::RuntimeMode::Rspack
     {
       runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);

@@ -51,7 +51,7 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let trusted_types = compilation
-      .options
+      .options()
       .output
       .trusted_types
       .as_ref()

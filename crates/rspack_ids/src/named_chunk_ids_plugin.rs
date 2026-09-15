@@ -307,7 +307,7 @@ async fn chunk_ids(
   let named_chunks_len = chunks_len - chunks.len();
 
   let module_graph = compilation.get_module_graph();
-  let context = compilation.options.context.as_str();
+  let context = compilation.options().context.as_str();
   let unnamed_chunks = assign_named_chunk_ids(
     chunks,
     chunk_by_ukey,

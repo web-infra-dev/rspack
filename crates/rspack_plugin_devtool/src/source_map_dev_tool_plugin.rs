@@ -128,7 +128,7 @@ fn compute_source_references(
         .strip_prefix("webpack://")
         .or_else(|| source_name.strip_prefix("rspack://"))
       {
-        let source_name = make_paths_absolute(compilation.options.context.as_str(), stripped);
+        let source_name = make_paths_absolute(compilation.options().context.as_str(), stripped);
         let identifier = ModuleIdentifier::from(source_name.as_str());
         match compilation
           .get_module_graph()
@@ -599,7 +599,7 @@ impl SourceMapDevToolPlugin {
     };
     let tls = ThreadLocal::new();
     let default_module_filename_template =
-      default_source_map_module_filename_template(compilation.options.experiments.runtime_mode);
+      default_source_map_module_filename_template(compilation.options().experiments.runtime_mode);
     let module_filename_template = self
       .module_filename_template
       .as_ref()
@@ -660,7 +660,7 @@ impl SourceMapDevToolPlugin {
                   .chunk_name_optional(chunk.name())
                   .chunk_hash_optional(chunk.rendered_hash(
                     &compilation.chunk_hashes_artifact,
-                    compilation.options.output.hash_digest_length,
+                    compilation.options().output.hash_digest_length,
                   )),
                 None => PathData::default(),
               };
@@ -684,7 +684,7 @@ impl SourceMapDevToolPlugin {
                   source_reference,
                   compilation,
                   template,
-                  &compilation.options.output,
+                  &compilation.options().output,
                   &namespace,
                   unresolved_source_map_path.as_ref().map(|p| p.as_path()),
                 );
@@ -777,7 +777,7 @@ impl SourceMapDevToolPlugin {
                   source_reference,
                   compilation,
                   f,
-                  &compilation.options.output,
+                  &compilation.options().output,
                   &plugin.namespace,
                   unresolved_source_map_path.as_ref().map(|p| p.as_path()),
                 )
@@ -833,14 +833,14 @@ impl SourceMapDevToolPlugin {
     compilation: &Compilation,
     reference_to_source_name_mapping: &mut ReferenceToSourceNameMapping,
   ) -> Result<()> {
-    let output_options = &compilation.options.output;
+    let output_options = &compilation.options().output;
     let mut used_names_set = HashSet::<SourceName>::with_capacity_and_hasher(
       reference_to_source_name_mapping.len(),
       Default::default(),
     );
     let default_fallback_module_filename_template =
       default_source_map_fallback_module_filename_template(
-        compilation.options.experiments.runtime_mode,
+        compilation.options().experiments.runtime_mode,
       );
     let fallback_module_filename_template = self
       .fallback_module_filename_template
@@ -1105,9 +1105,9 @@ impl SourceMapDevToolPlugin {
 
       let content_hash_digest =
         if chunk.is_some() && source_map_filename_config.has_content_hash_placeholder() {
-          let mut hasher = RspackHasher::from(&compilation.options.output);
+          let mut hasher = RspackHasher::from(&compilation.options().output);
           source_map_json.hash(&mut hasher);
-          let digest = hasher.digest(&compilation.options.output.hash_digest);
+          let digest = hasher.digest(&compilation.options().output.hash_digest);
           Some(digest)
         } else {
           None
@@ -1120,7 +1120,7 @@ impl SourceMapDevToolPlugin {
           .chunk_id_optional(chunk.id().map(|id| id.as_str()))
           .chunk_hash_optional(chunk.rendered_hash(
             &compilation.chunk_hashes_artifact,
-            compilation.options.output.hash_digest_length,
+            compilation.options().output.hash_digest_length,
           ))
           .chunk_name_optional(chunk.name_for_filename_template())
           .content_hash_optional(content_hash_digest.as_ref().map(|digest| digest.encoded())),
@@ -1241,7 +1241,7 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  if !compilation.options.experiments.new_cache.devtool {
+  if !compilation.options().experiments.new_cache.devtool {
     compilation.use_source_map_dev_tool_plugin_cache = true;
   }
   Ok(())
@@ -1275,14 +1275,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let output_path = Utf8PathBuf::from(
     compilation
       .get_path(
-        &Filename::from(&compilation.options.output.path),
+        &Filename::from(&compilation.options().output.path),
         Default::default(),
       )
       .await?,
   );
 
   let new_cache = compilation
-    .options
+    .options()
     .experiments
     .new_cache
     .devtool

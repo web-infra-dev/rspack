@@ -54,7 +54,7 @@ impl PassExt for ModuleIdsPass {
 
     // Call reviveModules hook - allows plugins to restore IDs from records
     if !compilation
-      .plugin_driver
+      .plugin_driver()
       .compilation_hooks
       .revive_modules
       .is_empty()
@@ -62,7 +62,7 @@ impl PassExt for ModuleIdsPass {
       let modules_needing_ids =
         get_modules_needing_ids(compilation, &preserved_module_ids_artifact);
       compilation
-        .plugin_driver
+        .plugin_driver()
         .clone()
         .compilation_hooks
         .revive_modules
@@ -77,7 +77,7 @@ impl PassExt for ModuleIdsPass {
 
     // Call beforeModuleIds hook - allows plugins to assign custom IDs
     if !compilation
-      .plugin_driver
+      .plugin_driver()
       .compilation_hooks
       .before_module_ids
       .is_empty()
@@ -85,7 +85,7 @@ impl PassExt for ModuleIdsPass {
       let modules_needing_ids =
         get_modules_needing_ids(compilation, &preserved_module_ids_artifact);
       compilation
-        .plugin_driver
+        .plugin_driver()
         .clone()
         .compilation_hooks
         .before_module_ids
@@ -119,7 +119,7 @@ impl PassExt for ModuleIdsPass {
     }
 
     compilation
-      .plugin_driver
+      .plugin_driver()
       .clone()
       .compilation_hooks
       .module_ids
@@ -133,13 +133,13 @@ impl PassExt for ModuleIdsPass {
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.moduleIds"))?;
 
     if !compilation
-      .plugin_driver
+      .plugin_driver()
       .compilation_hooks
       .record_modules
       .is_empty()
     {
       compilation
-        .plugin_driver
+        .plugin_driver()
         .clone()
         .compilation_hooks
         .record_modules

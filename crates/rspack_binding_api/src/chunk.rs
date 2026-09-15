@@ -184,7 +184,7 @@ impl Chunk {
       Ok(
         match chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
-          compilation.options.output.hash_digest_length,
+          compilation.options().output.hash_digest_length,
         ) {
           Some(hash) => Either::A(env.create_string(hash)?),
           None => Either::B(()),

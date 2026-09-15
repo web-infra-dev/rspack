@@ -498,7 +498,7 @@ async fn content_hash(
     .expect_get(chunk_ukey);
   let hasher = hashes
     .entry(SourceType::JavaScript)
-    .or_insert_with(|| RspackHasher::from(&compilation.options.output));
+    .or_insert_with(|| RspackHasher::from(&compilation.options().output));
 
   if !chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
     chunk.id().hash(hasher);
@@ -559,7 +559,7 @@ async fn render_manifest(
     .expect_get(chunk_ukey);
   let filename_template = get_js_chunk_filename_template(
     chunk,
-    &compilation.options.output,
+    &compilation.options().output,
     &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
   );
   if let Some(name) = chunk.name()
@@ -588,7 +588,7 @@ async fn render_manifest(
     }
   }
   let mut asset_info = AssetInfo::default().with_asset_type(ManifestAssetType::JavaScript);
-  asset_info.set_javascript_module(compilation.options.output.module);
+  asset_info.set_javascript_module(compilation.options().output.module);
   let output_path = compilation
     .get_path_with_info(
       &filename_template,
@@ -596,14 +596,14 @@ async fn render_manifest(
         .chunk(*chunk_ukey, compilation)
         .chunk_hash_optional(chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
-          compilation.options.output.hash_digest_length,
+          compilation.options().output.hash_digest_length,
         ))
         .chunk_id_optional(chunk.id().map(|id| id.as_str()))
         .chunk_name_optional(chunk.name_for_filename_template())
         .content_hash_optional(chunk.rendered_content_hash_by_source_type(
           &compilation.chunk_hashes_artifact,
           &SourceType::JavaScript,
-          compilation.options.output.hash_digest_length,
+          compilation.options().output.hash_digest_length,
         ))
         .runtime(chunk.runtime().as_str()),
       &mut asset_info,

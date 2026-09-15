@@ -42,7 +42,7 @@ async fn render_module_content(
 ) -> Result<()> {
   if module.build_info().need_create_require {
     let need_prefix = compilation
-      .options
+      .options()
       .output
       .environment
       .supports_node_prefix_for_core_modules();
@@ -52,12 +52,12 @@ async fn render_module_content(
         format!(
           "import {{ createRequire as __rspack_createRequire }} from \"{}\";\n{} __rspack_createRequire_require = __rspack_createRequire({}.url);\n",
           if need_prefix { "node:module" } else { "module" },
-          if compilation.options.output.environment.supports_const() {
+          if compilation.options().output.environment.supports_const() {
             "const"
           } else {
             "var"
           },
-          compilation.options.output.import_meta_name
+          compilation.options().output.import_meta_name
         ),
         InitFragmentStage::StageESMImports,
         0,

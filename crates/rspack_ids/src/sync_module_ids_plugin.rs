@@ -130,7 +130,7 @@ async fn revive_modules(
   let context = self
     .context
     .as_deref()
-    .unwrap_or(compilation.options.context.as_str());
+    .unwrap_or(compilation.options().context.as_str());
 
   for module_identifier in modules {
     let Some(module) = module_graph.module_by_identifier(module_identifier) else {
@@ -194,7 +194,7 @@ async fn record_modules(
   let context = self
     .context
     .as_deref()
-    .unwrap_or(compilation.options.context.as_str());
+    .unwrap_or(compilation.options().context.as_str());
 
   for (_, module) in module_graph.modules() {
     if let Some(test) = &self.test

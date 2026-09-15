@@ -68,7 +68,7 @@ impl DependencyTemplate for ExternalModuleDependencyTemplate {
       .expect("ExternalModuleDependencyTemplate should only be used for ExternalModuleDependency");
     let need_prefix = code_generatable_context
       .compilation
-      .options
+      .options()
       .output
       .environment
       .supports_node_prefix_for_core_modules();

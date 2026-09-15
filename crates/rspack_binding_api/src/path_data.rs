@@ -119,7 +119,7 @@ impl JsPathData {
     let chunk_hash = chunk.and_then(|chunk| {
       chunk.rendered_hash(
         &compilation.chunk_hashes_artifact,
-        compilation.options.output.hash_digest_length,
+        compilation.options().output.hash_digest_length,
       )
     });
     let chunk_name = chunk

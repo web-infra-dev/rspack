@@ -70,22 +70,23 @@ pub use self::{
   runtime_requirements::RuntimeRequirementsPass,
 };
 use crate::{
-  AsyncModulesArtifact, BindingCell, BoxModule, BuildChunkGraphArtifact, CacheCount, CacheOptions,
-  CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact, Chunk,
-  ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
-  ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact, ChunkRenderCacheArtifact,
-  ChunkRenderResult, ChunkUkey, CircularModulesInfo, CodeGenerateCacheArtifact, CodeGenerationJob,
-  CodeGenerationResult, CodeGenerationResultBuilder, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
-  DependenciesDiagnosticsArtifact, Dependency, DependencyId, DependencyRef, DependencyTemplate,
-  DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
-  ExecuteModuleId, ExportsInfoArtifact, ExternalModuleChunkConditionHook, FileSystemInfo, Filename,
-  ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact, ModuleFactory, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
-  ProcessRuntimeRequirementsCacheArtifact, ReferencedExport, ResolverFactory, RuntimeGlobals,
-  RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec,
-  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
-  SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
+  AsyncModulesArtifact, BindingCell, BoxModule, BuildChunkGraphArtifact, BuildContext, CacheCount,
+  CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact,
+  Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
+  ChunkHashesArtifact, ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact,
+  ChunkRenderCacheArtifact, ChunkRenderResult, ChunkUkey, CircularModulesInfo,
+  CodeGenerateCacheArtifact, CodeGenerationJob, CodeGenerationResult, CodeGenerationResultBuilder,
+  CodeGenerationResults, CompilationLogger, CompilationLogging, CompilerOptions, CompilerPlatform,
+  ConcatenationScope, DependenciesDiagnosticsArtifact, Dependency, DependencyId, DependencyRef,
+  DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions,
+  EntryRuntime, Entrypoint, ExecuteModuleId, ExportsInfoArtifact, ExternalModuleChunkConditionHook,
+  FileSystemInfo, Filename, ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact,
+  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
+  ModuleStaticCache, PathData, ProcessRuntimeRequirementsCacheArtifact, ReferencedExport,
+  ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule,
+  RuntimeProxyMetadataArtifact, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, SourceType, Stats, StatsContext,
+  StealCell, ValueCacheVersions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, module_build_cache::ModuleBuildCache,
     update_module_graph,
@@ -214,9 +215,8 @@ static COMPILATION_ID: AtomicU32 = AtomicU32::new(0);
 /// https://github.com/Boshen/cargo-shear/issues/143
 #[derive(Debug)]
 pub struct Compilation {
-  /// get_compilation_hooks(compilation.id)
-  id: CompilationId,
-  compiler_id: CompilerId,
+  /// Inputs shared with all module build tasks in this compilation.
+  pub build_context: Arc<BuildContext>,
   // Mark compilation status, because the hash of `[hash].hot-update.js/json` is previous compilation hash.
   // Status A(hash: A) -> Status B(hash: B) will generate `A.hot-update.js`
   // Status A(hash: A) -> Status C(hash: C) will generate `A.hot-update.js`
@@ -224,7 +224,6 @@ pub struct Compilation {
   // So use compilation hash update `hot_index` to fix it.
   pub hot_index: u32,
   pub records: Option<Arc<CompilationRecords>>,
-  pub options: Arc<CompilerOptions>,
   pub platform: Arc<CompilerPlatform>,
   pub entries: Entry,
   pub global_entry: EntryData,
@@ -240,10 +239,7 @@ pub struct Compilation {
   logging: CompilationLogging,
   cache: CompilerCache,
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
-  pub file_system_info: FileSystemInfo,
-  pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
-  pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub runtime_template: RuntimeTemplate,
 
@@ -314,7 +310,6 @@ pub struct Compilation {
   pub modified_files: InternedPathSet,
   pub removed_files: InternedPathSet,
   pub build_module_graph_artifact: StealCell<BuildModuleGraphArtifact>,
-  pub input_filesystem: Arc<dyn ReadableFileSystem>,
 
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   pub output_filesystem: Arc<dyn WritableFileSystem>,
@@ -340,12 +335,9 @@ impl Compilation {
 
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    compiler_id: CompilerId,
-    options: Arc<CompilerOptions>,
+    build_context: Arc<BuildContext>,
     platform: Arc<CompilerPlatform>,
-    plugin_driver: SharedPluginDriver,
     buildtime_plugin_driver: SharedPluginDriver,
-    resolver_factory: Arc<ResolverFactory>,
     loader_resolver_factory: Arc<ResolverFactory>,
     records: Option<Arc<CompilationRecords>>,
     incremental: Incremental,
@@ -354,12 +346,12 @@ impl Compilation {
     cache: CompilerCache,
     modified_files: InternedPathSet,
     removed_files: InternedPathSet,
-    input_filesystem: Arc<dyn ReadableFileSystem>,
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
     output_filesystem: Arc<dyn WritableFileSystem>,
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
+    let options = &build_context.compiler_options;
     // Rebuilds own their invalidation path, so skip module restoration while
     // still publishing rebuilt modules for subsequent compilations.
     let module_build_cache = options
@@ -367,20 +359,11 @@ impl Compilation {
       .new_cache
       .module
       .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules"), !is_rebuild));
-    let file_system_info = FileSystemInfo::new(
-      input_filesystem.clone(),
-      CompilationLogger::new("rspack.FileSystemInfo", logging.clone()),
-      options.snapshot.clone(),
-      options.output.hash_function,
-    );
 
     Self {
-      id: CompilationId::new(),
-      compiler_id,
       hot_index: 0,
       runtime_template: RuntimeTemplate::new(options.clone()),
       records,
-      options: options.clone(),
       platform,
       dependency_factories: Default::default(),
       dependency_templates: Default::default(),
@@ -396,10 +379,7 @@ impl Compilation {
       logging,
       cache,
       module_build_cache,
-      file_system_info,
-      plugin_driver,
       buildtime_plugin_driver,
-      resolver_factory,
       loader_resolver_factory,
 
       async_modules_artifact: StealCell::new(AsyncModulesArtifact::default()),
@@ -426,9 +406,9 @@ impl Compilation {
           _ => 1,
         },
       )),
-      code_generate_cache_artifact: StealCell::new(CodeGenerateCacheArtifact::new(&options)),
+      code_generate_cache_artifact: StealCell::new(CodeGenerateCacheArtifact::new(options)),
       process_runtime_requirements_cache_artifact: StealCell::new(
-        ProcessRuntimeRequirementsCacheArtifact::new(&options),
+        ProcessRuntimeRequirementsCacheArtifact::new(options),
       ),
       minimize_persistent_cache: None,
       use_source_map_dev_tool_plugin_cache: false,
@@ -454,12 +434,12 @@ impl Compilation {
       build_module_graph_artifact: StealCell::new(BuildModuleGraphArtifact::new()),
       modified_files,
       removed_files,
-      input_filesystem,
 
       intermediate_filesystem,
       output_filesystem,
       is_rebuild,
       compiler_context,
+      build_context,
     }
   }
 
@@ -468,11 +448,31 @@ impl Compilation {
   }
 
   pub fn id(&self) -> CompilationId {
-    self.id
+    self.build_context.compilation_id
   }
 
   pub fn compiler_id(&self) -> CompilerId {
-    self.compiler_id
+    self.build_context.compiler_id
+  }
+
+  pub fn options(&self) -> &Arc<CompilerOptions> {
+    &self.build_context.compiler_options
+  }
+
+  pub fn plugin_driver(&self) -> &SharedPluginDriver {
+    &self.build_context.plugin_driver
+  }
+
+  pub fn resolver_factory(&self) -> &Arc<ResolverFactory> {
+    &self.build_context.resolver_factory
+  }
+
+  pub fn file_system_info(&self) -> &FileSystemInfo {
+    &self.build_context.file_system_info
+  }
+
+  pub fn input_filesystem(&self) -> &Arc<dyn ReadableFileSystem> {
+    &self.build_context.fs
   }
 
   pub fn get_module_graph(&self) -> &ModuleGraph {
@@ -666,7 +666,7 @@ impl Compilation {
   pub async fn add_entry(&mut self, entry: DependencyRef, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
     let entry_name: Option<String> = options.name.clone();
-    let plugin_driver = self.plugin_driver.clone();
+    let plugin_driver = self.plugin_driver().clone();
     self
       .build_module_graph_artifact
       .add_unfactorized_dependency(entry);
@@ -1218,7 +1218,7 @@ impl Compilation {
     self
       .hash
       .as_ref()
-      .map(|hash| hash.rendered(self.options.output.hash_digest_length))
+      .map(|hash| hash.rendered(self.options().output.hash_digest_length))
   }
 
   pub async fn get_path<'b, 'a: 'b>(

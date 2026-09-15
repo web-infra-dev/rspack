@@ -21,7 +21,7 @@ fn is_modern_module_library_chunk(chunk_ukey: &ChunkUkey, compilation: &Compilat
   chunk
     .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
     .and_then(|options| options.library.as_ref())
-    .or(compilation.options.output.library.as_ref())
+    .or(compilation.options().output.library.as_ref())
     .is_some_and(|library| library.library_type == "modern-module")
 }
 
@@ -140,7 +140,7 @@ async fn runtime_requirements_in_tree(
   if all_runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
     runtime_requirements_mut
       .extend(ModuleChunkLoadingRuntimeModule::get_runtime_requirements_with_hmr());
-    if compilation.options.experiments.runtime_mode
+    if compilation.options().experiments.runtime_mode
       == rspack_core::runtime_mode::RuntimeMode::Rspack
     {
       runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);

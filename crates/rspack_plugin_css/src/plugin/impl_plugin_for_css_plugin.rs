@@ -145,8 +145,8 @@ impl CssPlugin {
             chunk
               .name()
               .unwrap_or(chunk.id().expect("should have chunk id").as_str()),
-            failed_module.readable_identifier(&compilation.options.context),
-            selected_module.readable_identifier(&compilation.options.context)
+            failed_module.readable_identifier(&compilation.options().context),
+            selected_module.readable_identifier(&compilation.options().context)
           ),
         );
         diagnostic.file = Some(output_path.to_owned().into());
@@ -450,7 +450,7 @@ async fn runtime_requirements_in_tree(
   // scan is only reached under HMR, so non-watch builds pay nothing.
   let has_css_rule = all_runtime_requirements
     .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
-    && has_css_module_rule(&compilation.options.module.rules);
+    && has_css_module_rule(&compilation.options().module.rules);
   let hmr_needs_css_runtime =
     has_css_rule && !all_runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES);
   let needs_css_loading_runtime = runtime_requirements.intersects(
@@ -542,7 +542,7 @@ async fn content_hash(
     Self::get_ordered_chunk_css_modules(chunk, compilation, css_import_modules, css_modules);
   let hasher = hashes
     .entry(SourceType::Css)
-    .or_insert_with(|| RspackHasher::from(&compilation.options.output));
+    .or_insert_with(|| RspackHasher::from(&compilation.options().output));
 
   ordered_modules
     .iter()
@@ -597,7 +597,7 @@ async fn render_manifest(
 
   let filename_template = get_css_chunk_filename_template(
     chunk,
-    &compilation.options.output,
+    &compilation.options().output,
     &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
   );
   let mut asset_info = AssetInfo::default().with_asset_type(ManifestAssetType::Css);
@@ -611,13 +611,13 @@ async fn render_manifest(
         .chunk_id_optional(chunk.id().map(|id| id.as_str()))
         .chunk_hash_optional(chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
-          compilation.options.output.hash_digest_length,
+          compilation.options().output.hash_digest_length,
         ))
         .chunk_name_optional(chunk.name_for_filename_template())
         .content_hash_optional(chunk.rendered_content_hash_by_source_type(
           &compilation.chunk_hashes_artifact,
           &SourceType::Css,
-          compilation.options.output.hash_digest_length,
+          compilation.options().output.hash_digest_length,
         ))
         .runtime(chunk.runtime().as_str()),
       &mut asset_info,

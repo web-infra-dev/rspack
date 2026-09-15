@@ -196,12 +196,12 @@ impl Module for DelegatedModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHasher::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options().output);
     self.delegation_type.hash(&mut hasher);
     self.request.hash(&mut hasher);
     module_update_hash(self, &mut hasher, compilation, runtime);
 
-    Ok(hasher.digest(&compilation.options.output.hash_digest))
+    Ok(hasher.digest(&compilation.options().output.hash_digest))
   }
 }
 

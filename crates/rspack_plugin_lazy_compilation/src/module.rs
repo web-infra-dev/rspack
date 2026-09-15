@@ -341,11 +341,11 @@ impl Module for LazyCompilationProxyModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHasher::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options().output);
     module_update_hash(self, &mut hasher, compilation, runtime);
     self.active.hash(&mut hasher);
     self.identifier.hash(&mut hasher);
-    Ok(hasher.digest(&compilation.options.output.hash_digest))
+    Ok(hasher.digest(&compilation.options().output.hash_digest))
   }
 }
 

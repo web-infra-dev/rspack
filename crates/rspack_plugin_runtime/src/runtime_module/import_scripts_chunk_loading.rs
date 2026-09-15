@@ -262,11 +262,11 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     }
 
     if with_loading || with_callback {
-      let global_object = &compilation.options.output.global_object;
-      let chunk_loading_global = &compilation.options.output.chunk_loading_global;
+      let global_object = &compilation.options().output.global_object;
+      let chunk_loading_global = &compilation.options().output.chunk_loading_global;
       let chunk_loading_global_expr = format!(r#"{global_object}["{chunk_loading_global}"]"#);
       let chunk_loading_global_init_expr = if compilation
-        .options
+        .options()
         .output
         .environment
         .supports_logical_assignment()
@@ -300,8 +300,8 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     if with_hmr {
       let source_with_hmr = runtime_template.render(&self.template_id(TemplateId::WithHmr), Some(serde_json::json!({
         "_with_create_script_url": self.with_create_script_url,
-        "_global_object": &compilation.options.output.global_object.as_str(),
-        "_hot_update_global": &rspack_util::json_stringify_str(&compilation.options.output.hot_update_global),
+        "_global_object": &compilation.options().output.global_object.as_str(),
+        "_hot_update_global": &rspack_util::json_stringify_str(&compilation.options().output.hot_update_global),
       })))?;
       source.push_str(&source_with_hmr);
       let hmr_runtime = generate_javascript_hmr_runtime(

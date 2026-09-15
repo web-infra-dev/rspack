@@ -17,7 +17,7 @@ impl PassExt for OptimizeChunkModulesPass {
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     compilation
-      .plugin_driver
+      .plugin_driver()
       .clone()
       .compilation_hooks
       .optimize_chunk_modules

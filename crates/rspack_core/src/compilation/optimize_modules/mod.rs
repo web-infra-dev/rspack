@@ -16,7 +16,7 @@ impl PassExt for OptimizeModulesPass {
     let mut circular_modules = compilation.circular_modules.steal();
     while matches!(
       compilation
-        .plugin_driver
+        .plugin_driver()
         .clone()
         .compilation_hooks
         .optimize_modules
@@ -29,7 +29,7 @@ impl PassExt for OptimizeModulesPass {
     compilation.extend_diagnostics(diagnostics);
 
     compilation
-      .plugin_driver
+      .plugin_driver()
       .clone()
       .compilation_hooks
       .after_optimize_modules

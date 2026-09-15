@@ -70,7 +70,7 @@ async fn module_ids(
     get_used_module_ids_and_modules_with_artifact(compilation, module_ids, None);
 
   let mut module_ids_map = std::mem::take(module_ids);
-  let context = compilation.options.context.as_ref();
+  let context = compilation.options().context.as_ref();
   let module_graph = compilation.get_module_graph();
   let modules = modules
     .into_iter()
