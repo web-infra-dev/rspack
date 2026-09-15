@@ -320,5 +320,6 @@ jobs:
           PERF_DATA_TOKEN: ${{ secrets.PERF_DATA_TOKEN }}
         with:
           script: |
-            const upload = require('./.github/actions/binary-limit/upload-binary-size.js');
+            const { pathToFileURL } = require('node:url');
+            const { default: upload } = await import(pathToFileURL(`${process.env.GITHUB_WORKSPACE}/.github/actions/binary-limit/upload-binary-size.mjs`).href);
             upload({ sha: context.sha, token: process.env.PERF_DATA_TOKEN });

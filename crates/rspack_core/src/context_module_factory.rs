@@ -395,7 +395,7 @@ impl ContextModuleFactory {
     let context_module_options = &mut options;
     let context_options = &context_module_options.context_options;
     let after_resolve_data = AfterResolveData {
-      compilation_id: data.compilation_id,
+      compilation_id: data.build_context.compilation_id,
       resource: context_module_options.resource.clone(),
       context: resolve_context,
       dependencies: data.dependencies.clone(),

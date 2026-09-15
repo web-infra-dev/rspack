@@ -41,6 +41,7 @@ use crate::{
   get_target, value_cache_versions::ValueCacheVersions,
 };
 
+#[derive(Debug)]
 pub struct BuildContext {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
@@ -48,7 +49,6 @@ pub struct BuildContext {
   pub loader_cache: CacheFacade,
   pub file_system_info: FileSystemInfo,
   pub resolver_factory: Arc<ResolverFactory>,
-  pub loader_resolver_factory: Arc<ResolverFactory>,
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
@@ -744,7 +744,7 @@ pub trait Module:
   /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
   async fn build(
     self: Box<Self>,
-    _build_context: BuildContext,
+    _build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule>;
 
@@ -1121,7 +1121,7 @@ impl BoxModule {
 
   pub async fn build(
     self,
-    build_context: BuildContext,
+    build_context: Arc<BuildContext>,
     compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
     self.0.build(build_context, compilation).await
@@ -1284,7 +1284,7 @@ pub struct LibIdentOptions<'me> {
 
 #[cfg(test)]
 mod test {
-  use std::borrow::Cow;
+  use std::{borrow::Cow, sync::Arc};
 
   use rspack_cacheable::cacheable;
   use rspack_collections::{Identifiable, Identifier};
@@ -1355,7 +1355,7 @@ mod test {
 
         async fn build(
           self: Box<Self>,
-          _build_context: BuildContext,
+          _build_context: Arc<BuildContext>,
           _compilation: Option<&Compilation>,
         ) -> Result<BoxModule> {
           unreachable!()

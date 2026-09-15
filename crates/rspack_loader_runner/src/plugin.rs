@@ -22,10 +22,6 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     Ok(())
   }
 
-  async fn should_yield(&self, _context: &LoaderContext<Self::Context>) -> Result<bool> {
-    Ok(false)
-  }
-
   async fn start_yielding(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
     Ok(())
   }

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_error::Result;
 
 use super::{
@@ -6,7 +8,7 @@ use super::{
   lazy::process_unlazy_dependencies,
 };
 use crate::{
-  BoxModule, DependencyRef, ModuleIdentifier,
+  BoxModule, BuildContext, DependencyRef, ModuleIdentifier,
   compilation::build_module_graph::ForwardedIdSet,
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -14,6 +16,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct AddTask {
+  pub build_context: Arc<BuildContext>,
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module: BoxModule,
   pub module_graph_module: Box<ModuleGraphModule>,
@@ -28,6 +31,7 @@ impl Task<TaskContext> for AddTask {
   }
   async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let Self {
+      build_context,
       original_module_identifier,
       module,
       module_graph_module,
@@ -113,7 +117,7 @@ impl Task<TaskContext> for AddTask {
       module_build_cache
         .restore(
           &module,
-          &context.file_system_info,
+          &context.build_context.file_system_info,
           &context.value_cache_versions,
         )
         .await?
@@ -145,23 +149,14 @@ impl Task<TaskContext> for AddTask {
     if let Some(module) = cached_module {
       return Ok(vec![Box::new(BuildResultTask {
         build_result: ModuleBuildResult::Cached(module),
-        plugin_driver: context.plugin_driver.clone(),
+        plugin_driver: context.build_context.plugin_driver.clone(),
         forwarded_ids,
       })]);
     }
 
     Ok(vec![Box::new(BuildTask {
-      compiler_id: context.compiler_id,
-      compilation_id: context.compilation_id,
+      build_context,
       module,
-      resolver_factory: context.resolver_factory.clone(),
-      loader_resolver_factory: context.loader_resolver_factory.clone(),
-      compiler_options: context.compiler_options.clone(),
-      loader_cache: context.cache.facade("loader"),
-      file_system_info: context.file_system_info.clone(),
-      plugin_driver: context.plugin_driver.clone(),
-      runtime_template: context.runtime_template.create_module_code_template(),
-      fs: context.fs.clone(),
       forwarded_ids,
       module_build_cache: context.module_build_cache.clone(),
     })])
