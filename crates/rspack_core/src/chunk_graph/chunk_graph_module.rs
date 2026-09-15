@@ -98,6 +98,13 @@ impl ChunkGraphModule {
 }
 
 impl ChunkGraph {
+  pub(crate) fn reserve_modules(&mut self, total: usize) {
+    let additional = total.saturating_sub(self.chunk_graph_module_by_module_identifier.len());
+    self
+      .chunk_graph_module_by_module_identifier
+      .reserve(additional);
+  }
+
   pub fn modules(&self) -> IdentifierSet {
     self
       .chunk_graph_module_by_module_identifier
