@@ -46,27 +46,22 @@ struct ChunkCombination {
 
 struct ChunkCombinationData {
   chunks: FxHashSet<ChunkUkey>,
-  bitmap: super::bitmap::ChunkBitmap,
 }
 
 impl ChunkCombination {
   fn new(
     key: ChunksKey,
     chunks: FxHashSet<ChunkUkey>,
-    indices: &FxHashMap<ChunkUkey, u32>,
+    _indices: &FxHashMap<ChunkUkey, u32>,
   ) -> Self {
-    let mut bitmap = super::bitmap::ChunkBitmap::new(indices.len() + 1);
-    for chunk in &chunks {
-      bitmap.insert(indices[chunk] as usize);
-    }
     Self {
       key,
-      data: Arc::new(ChunkCombinationData { chunks, bitmap }),
+      data: Arc::new(ChunkCombinationData { chunks }),
     }
   }
 
   fn is_subset(&self, other: &Self) -> bool {
-    self.data.bitmap.is_subset(&other.data.bitmap)
+    self.data.chunks.is_subset(&other.data.chunks)
   }
 }
 

@@ -1,4 +1,3 @@
-mod bitmap;
 mod chunk;
 mod max_request;
 pub mod max_size;
