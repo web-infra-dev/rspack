@@ -9,11 +9,11 @@ use std::path::Path;
 
 use asset::{
   collect_assets_for_module, collect_assets_from_chunk, collect_usage_files_for_module,
-  empty_assets_group, module_source_path, normalize_assets_group,
+  empty_assets_group, merge_assets_group, module_source_path, normalize_assets_group,
 };
 use data::{
   BasicStatsMetaData, ManifestExpose, ManifestRemote, ManifestRoot, ManifestShared,
-  RemoteEntryMeta, StatsAssetsGroup, StatsExpose, StatsRemote, StatsShared,
+  RemoteEntryMeta, StatsAssetsGroup, StatsExpose, StatsRemote, StatsShared, StatsSharedProvider,
 };
 pub use data::{StatsBuildInfo, StatsRoot};
 pub use options::{
@@ -22,8 +22,8 @@ pub use options::{
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  Compilation, CompilationAsset, CompilationProcessAssets, ModuleIdentifier, ModuleType, Plugin,
-  PublicPath,
+  Compilation, CompilationAsset, CompilationProcessAssets, ModuleIdentifier, ModuleType,
+  NormalModule, Plugin, PublicPath, contextify,
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -35,7 +35,10 @@ use utils::{
   parse_consume_shared_identifier, parse_provide_shared_identifier, record_shared_usage, strip_ext,
 };
 
-use crate::container::{container_entry_module::ContainerEntryModule, remote_module::RemoteModule};
+use crate::{
+  container::{container_entry_module::ContainerEntryModule, remote_module::RemoteModule},
+  sharing::provide_shared_module::ProvideSharedModule,
+};
 
 #[plugin]
 #[derive(Debug)]
@@ -245,6 +248,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         assets: StatsAssetsGroup::default(),
         usedIn: Vec::new(),
         usedExports: Vec::new(),
+        providers: Vec::new(),
       })
       .collect::<Vec<_>>();
     let remote_list = self
@@ -288,6 +292,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let mut shared_map: HashMap<String, StatsShared> = HashMap::default();
     let mut shared_usage_links: Vec<(String, String)> = Vec::new();
     let mut shared_module_targets: HashMap<String, IdentifierSet> = HashMap::default();
+    let mut provider_module_targets: HashMap<(String, String, String), IdentifierSet> =
+      HashMap::default();
     let mut module_ids_by_name: HashMap<String, ModuleIdentifier> = HashMap::default();
     let mut remote_module_ids: Vec<ModuleIdentifier> = Vec::new();
     let mut container_entry_module: Option<ModuleIdentifier> = None;
@@ -421,7 +427,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               entry.version = cfg_ver;
             }
           }
-          let targets = shared_module_targets.entry(pkg.clone()).or_default();
+          let mut targets = IdentifierSet::default();
           for connection in module_graph.get_outgoing_connections(&module_identifier) {
             let referenced = *connection.module_identifier();
             if should_collect_module(&referenced) {
@@ -432,6 +438,30 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               targets.insert(resolved);
             }
           }
+          if let Some(provide) = module.as_any().downcast_ref::<ProvideSharedModule>() {
+            let provider_request = targets
+              .iter()
+              .filter_map(|id| module_graph.module_by_identifier(id))
+              .find_map(|module| {
+                module
+                  .as_any()
+                  .downcast_ref::<NormalModule>()
+                  .map(|module| module.resource_resolved_data().resource())
+              })
+              .unwrap_or_else(|| provide.request());
+            provider_module_targets
+              .entry((
+                provide.share_key().to_string(),
+                provide.version().unwrap_or("0").to_string(),
+                contextify(compilation.options.context.as_path(), provider_request),
+              ))
+              .or_default()
+              .extend(targets.iter().copied());
+          }
+          shared_module_targets
+            .entry(pkg.clone())
+            .or_default()
+            .extend(targets);
           record_shared_usage(
             &mut shared_usage_links,
             &pkg,
@@ -554,6 +584,36 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       shared_asset_files.extend(assets.css.sync.iter().cloned());
       if let Some(shared_entry) = shared_map.get_mut(&pkg) {
         shared_entry.assets = assets;
+      }
+    }
+
+    for ((name, version, import), module_ids) in provider_module_targets {
+      let mut assets = empty_assets_group();
+      for module_id in module_ids {
+        if let Some(module_assets) =
+          collect_assets_for_module(compilation, &module_id, &entry_point_names)
+        {
+          merge_assets_group(&mut assets, module_assets);
+        }
+      }
+      normalize_assets_group(&mut assets);
+      if let Some(shared) = shared_map.get_mut(&name) {
+        shared.providers.push(StatsSharedProvider {
+          version,
+          import,
+          assets,
+        });
+      }
+    }
+    for shared in shared_map.values_mut() {
+      if shared.providers.len() < 2 {
+        shared.providers.clear();
+      } else {
+        shared.providers.sort_unstable_by(|a, b| {
+          a.version
+            .cmp(&b.version)
+            .then_with(|| a.import.cmp(&b.import))
+        });
       }
     }
 
@@ -750,6 +810,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         requiredVersion: s.requiredVersion,
         singleton: s.singleton,
         assets: s.assets,
+        providers: s.providers,
       })
       .collect(),
     remotes: remote_list

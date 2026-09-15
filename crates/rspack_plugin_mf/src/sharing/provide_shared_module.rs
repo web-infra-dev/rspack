@@ -94,6 +94,10 @@ impl ProvideSharedModule {
     &self.name
   }
 
+  pub fn request(&self) -> &str {
+    &self.request
+  }
+
   pub fn share_scope(&self) -> &ShareScope {
     &self.share_scope
   }
