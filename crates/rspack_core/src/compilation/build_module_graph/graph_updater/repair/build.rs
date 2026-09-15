@@ -52,7 +52,7 @@ impl Task<TaskContext> for BuildTask {
       )
       .await?;
 
-    let result = module.build(&build_context, None).await?;
+    let result = module.build(build_context, None).await?;
 
     if let (Some(module_build_cache), Some(build_start_time)) =
       (module_build_cache, build_start_time)

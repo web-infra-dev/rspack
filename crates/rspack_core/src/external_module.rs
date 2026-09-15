@@ -1,4 +1,4 @@
-use std::{borrow::Cow, iter};
+use std::{borrow::Cow, iter, sync::Arc};
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
@@ -1151,7 +1151,7 @@ impl Module for ExternalModule {
 
   async fn build(
     mut self: Box<Self>,
-    build_context: &BuildContext,
+    build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
   ) -> Result<BoxModule> {
     self.build_info.get_mut().module = build_context.compiler_options.output.module;

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
@@ -162,7 +164,7 @@ impl Module for CssModule {
 
   async fn build(
     mut self: Box<Self>,
-    build_context: &BuildContext,
+    build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
     self.build_info.get_mut().hash = Some(self.compute_hash(&build_context.compiler_options));

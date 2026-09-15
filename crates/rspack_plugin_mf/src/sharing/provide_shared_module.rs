@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
@@ -153,7 +153,7 @@ impl Module for ProvideSharedModule {
 
   async fn build(
     mut self: Box<Self>,
-    _build_context: &BuildContext,
+    _build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
   ) -> Result<BoxModule> {
     let mut blocks = vec![];

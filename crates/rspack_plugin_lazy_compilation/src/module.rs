@@ -192,7 +192,7 @@ impl Module for LazyCompilationProxyModule {
 
   async fn build(
     mut self: Box<Self>,
-    build_context: &BuildContext,
+    build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
     let client_dep = CommonJsRequireDependency::new(

@@ -465,7 +465,7 @@ impl Module for NormalModule {
   )]
   async fn build(
     mut self: Box<Self>,
-    build_context: &BuildContext,
+    build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
     self.dependencies_block = Default::default();

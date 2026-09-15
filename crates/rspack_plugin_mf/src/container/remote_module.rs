@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
@@ -143,7 +143,7 @@ impl Module for RemoteModule {
 
   async fn build(
     mut self: Box<Self>,
-    build_context: &BuildContext,
+    build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
     let mut dependencies: Vec<BoxDependency> = Vec::new();
