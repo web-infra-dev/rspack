@@ -43,7 +43,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct BuildContext {
-  pub dependency_factories: Arc<HashMap<DependencyType, Arc<dyn ModuleFactory>>>,
+  pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub compiler_options: Arc<CompilerOptions>,
