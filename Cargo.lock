@@ -5435,6 +5435,7 @@ dependencies = [
  "rspack_regex",
  "rspack_util",
  "rustc-hash",
+ "smallvec",
  "tracing",
 ]
 

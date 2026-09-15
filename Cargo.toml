@@ -305,6 +305,10 @@ strip    = "none"
 
 [profile.release.package]
 
+# Keep SplitChunks' iterator and async code in one codegen unit in derived profiles too.
+[profile.release.package.rspack_plugin_split_chunks]
+codegen-units = 1
+
 # React Compiler is an opt-in transform, but these crates contribute significantly to the
 # release binding size. Keep inference, lowering, and reactive scopes at the release default
 # (`3`) because they are performance-sensitive; use `s` for the remaining crates.
