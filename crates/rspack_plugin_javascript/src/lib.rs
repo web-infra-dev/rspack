@@ -1,3 +1,4 @@
+#![feature(unique_rc_arc)]
 #![recursion_limit = "256"]
 
 extern crate self as rspack_plugin_javascript;

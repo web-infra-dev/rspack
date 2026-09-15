@@ -117,7 +117,7 @@ impl Module for SelfModule {
   }
 
   async fn build(
-    self: Box<Self>,
+    self: std::sync::UniqueArc<Self>,
     _build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {

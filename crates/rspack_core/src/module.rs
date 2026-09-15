@@ -2,14 +2,19 @@ use std::{
   any::Any,
   borrow::Cow,
   fmt::{Debug, Display, Formatter},
-  sync::Arc,
+  sync::{Arc, UniqueArc},
 };
 
 use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{As, AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
+  rkyv::{
+    Archive, ArchiveUnsized, Deserialize, Place, Serialize as RkyvSerialize, SerializeUnsized,
+    boxed::{ArchivedBox, BoxResolver},
+    rancor::Fallible,
+  },
+  with::{As, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -718,6 +723,7 @@ pub trait Module:
   + Sync
   + Any
   + AsAny
+  + ModuleExt
   + Identifiable
   + DependenciesBlock
   + Diagnosable
@@ -743,7 +749,7 @@ pub trait Module:
   /// The actual build of the module, which will be called by the `Compilation`.
   /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
   async fn build(
-    self: Box<Self>,
+    self: std::sync::UniqueArc<Self>,
     _build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule>;
@@ -1056,18 +1062,27 @@ pub fn module_update_hash(
 
 pub trait ModuleExt {
   fn boxed(self) -> BoxModule;
+
+  /// Moves an existing boxed module into the allocation used for shared ownership.
+  fn into_box_module(self: Box<Self>) -> BoxModule;
 }
 
 impl<T: Module> ModuleExt for T {
   fn boxed(self) -> BoxModule {
-    BoxModule(Box::new(self))
+    BoxModule(UniqueArc::new(self))
+  }
+
+  fn into_box_module(self: Box<Self>) -> BoxModule {
+    (*self).boxed()
   }
 }
 
-/// A newtype wrapper around `Box<dyn Module>` for improved type safety.
-#[cacheable(with=AsInner)]
+/// A module with unique ownership during construction and building.
+///
+/// Uses the same allocation as [`ModuleRef`], so publishing a built module does not
+/// reallocate or move it.
 #[repr(transparent)]
-pub struct BoxModule(Box<dyn Module>);
+pub struct BoxModule(UniqueArc<dyn Module>);
 
 /// A built module shared by the module graph and the in-memory build cache.
 /// Build metadata has its own publication boundary. Shared modules only expose
@@ -1079,7 +1094,13 @@ pub struct ModuleRef(Arc<dyn Module>);
 
 impl From<BoxModule> for ModuleRef {
   fn from(module: BoxModule) -> Self {
-    Self(Arc::from(module.0))
+    Self(module.into())
+  }
+}
+
+impl From<BoxModule> for Arc<dyn Module> {
+  fn from(module: BoxModule) -> Self {
+    UniqueArc::into_arc(module.0)
   }
 }
 
@@ -1114,8 +1135,8 @@ impl BoxModule {
     self
   }
 
-  /// Create a new BoxModule from a boxed Module trait object.
-  pub fn new(module: Box<dyn Module>) -> Self {
+  /// Wraps a uniquely owned module without reallocating it.
+  pub fn new(module: UniqueArc<dyn Module>) -> Self {
     BoxModule(module)
   }
 
@@ -1128,35 +1149,55 @@ impl BoxModule {
   }
 }
 
-impl AsInnerConverter for BoxModule {
-  type Inner = Box<dyn Module>;
+// Keep the boxed archive representation; deserialization moves the recovered
+// concrete module into a UniqueArc through ModuleExt.
+impl Archive for BoxModule {
+  type Archived = ArchivedBox<<dyn Module as ArchiveUnsized>::Archived>;
+  type Resolver = BoxResolver;
 
-  fn to_inner(&self) -> &Self::Inner {
-    &self.0
+  fn resolve(&self, resolver: Self::Resolver, out: Place<Self::Archived>) {
+    ArchivedBox::resolve_from_ref(self.as_ref(), resolver, out);
   }
+}
 
-  fn from_inner(data: Self::Inner) -> Self {
-    BoxModule(data)
+impl<S> RkyvSerialize<S> for BoxModule
+where
+  dyn Module: SerializeUnsized<S>,
+  S: Fallible + ?Sized,
+{
+  fn serialize(&self, serializer: &mut S) -> std::result::Result<Self::Resolver, S::Error> {
+    ArchivedBox::serialize_from_ref(self.as_ref(), serializer)
+  }
+}
+
+impl<D> Deserialize<BoxModule, D> for ArchivedBox<<dyn Module as ArchiveUnsized>::Archived>
+where
+  Self: Deserialize<Box<dyn Module>, D>,
+  D: Fallible + ?Sized,
+{
+  fn deserialize(&self, deserializer: &mut D) -> std::result::Result<BoxModule, D::Error> {
+    let module: Box<dyn Module> = self.deserialize(deserializer)?;
+    Ok(module.into())
   }
 }
 
 impl std::ops::Deref for BoxModule {
-  type Target = Box<dyn Module>;
+  type Target = dyn Module;
 
   fn deref(&self) -> &Self::Target {
-    &self.0
+    &*self.0
   }
 }
 
 impl std::ops::DerefMut for BoxModule {
   fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.0
+    &mut *self.0
   }
 }
 
 impl From<Box<dyn Module>> for BoxModule {
   fn from(inner: Box<dyn Module>) -> Self {
-    BoxModule(inner)
+    inner.into_box_module()
   }
 }
 
@@ -1354,7 +1395,7 @@ mod test {
         }
 
         async fn build(
-          self: Box<Self>,
+          self: std::sync::UniqueArc<Self>,
           _build_context: Arc<BuildContext>,
           _compilation: Option<&Compilation>,
         ) -> Result<BoxModule> {
