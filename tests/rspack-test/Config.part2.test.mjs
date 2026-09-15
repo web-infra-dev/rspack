@@ -1,15 +1,15 @@
-const path = require("path");
-const { describeByWalk, createConfigCase } = require("@rspack/test-tools");
+import path from "node:path";
+import { describeByWalk, createConfigCase } from "@rspack/test-tools";
 
 // Part 2: Test cases starting with e-o (43 dirs, 31.6%)
 describeByWalk(
-	__filename,
+	import.meta.filename,
 	(name, src, dist) => {
 		createConfigCase(name, src, dist);
 	},
 	{
-		source: require("path").join(__dirname, "configCases"),
-		dist: path.resolve(__dirname, `./js/config`),
+		source: path.join(import.meta.dirname, "configCases"),
+		dist: path.resolve(import.meta.dirname, `./js/config`),
 		exclude: [
 			// Exclude a-d
 			/^[a-d]/,
