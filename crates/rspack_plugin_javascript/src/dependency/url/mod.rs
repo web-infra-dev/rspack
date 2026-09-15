@@ -7,9 +7,9 @@ use rspack_core::{
   AsContextDependency, ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation,
   ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
   DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, JavascriptParserUrl, Module,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, TemplateContext,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, GroupOptions, JavascriptParserUrl,
+  Module, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ModuleType, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, TemplateContext,
   TemplateReplaceSource, URLStaticMode, UsedByExports,
 };
 
@@ -151,9 +151,15 @@ pub(crate) fn get_dependency_entry_chunk(
   compilation: &Compilation,
   dependency_id: &DependencyId,
 ) -> Option<ChunkUkey> {
-  compilation
-    .get_module_graph()
+  let module_graph = compilation.get_module_graph();
+  module_graph
     .get_parent_block(dependency_id)
+    .filter(|block| {
+      matches!(
+        module_graph.block_by_id_expect(block).get_group_options(),
+        Some(GroupOptions::Entrypoint(_))
+      )
+    })
     .map(|block| {
       compilation
         .build_chunk_graph_artifact
