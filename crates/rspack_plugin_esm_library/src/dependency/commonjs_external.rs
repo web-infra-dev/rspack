@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   BuildModuleGraphArtifact, CodeGenerationDataItem, CommonJsExternalRequireKind, Dependency,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate, TemplateContext,
@@ -22,7 +22,11 @@ pub type DirectCommonJsExternalDependencies = Arc<AtomicRefCell<FxHashSet<Depend
 
 #[cacheable]
 #[derive(Debug, Clone)]
-struct DirectExternalRequireHeaders(Vec<(DependencyRange, CommonJsExternalRequireKind)>);
+struct DirectExternalRequireHeaders(
+  // Only shared between dependency templates during codegen. Cached sources
+  // already contain the rendered callee and never consume these ranges again.
+  #[cacheable(with=Skip)] Vec<(DependencyRange, CommonJsExternalRequireKind)>,
+);
 
 #[cacheable_dyn]
 impl CodeGenerationDataItem for DirectExternalRequireHeaders {}
