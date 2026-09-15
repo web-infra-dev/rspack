@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Result;
-use rustc_hash::FxHashSet;
+use rspack_util::fx_hash::FxHashSet;
 
 use super::{
   TaskContext,
