@@ -1,4 +1,4 @@
-const path = __non_webpack_require__("path");
+const path = require("path");
 
 it("css modules localIdentName with hash", () => {
 	const style = require("./index.css");

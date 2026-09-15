@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { rimrafSync } from 'rimraf';
 
-import createLazyTestEnv from '../helper/legacy/createLazyTestEnv';
+import { createLazyTestEnv } from '../helper/legacy/createLazyTestEnv';
 import type {
   ITestContext,
   ITestEnv,

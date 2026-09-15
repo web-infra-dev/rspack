@@ -90,6 +90,7 @@ module.exports = {
     description: "The hooks should access the correct closure",
     options(context) {
         return {
+            incremental: false,
             context: context.getSource(),
             entry: "./d",
             output: {

@@ -5,13 +5,14 @@
  * Author Donny/강동윤
  * Copyright (c)
  */
-use std::{fs::File, path::PathBuf, sync::Arc};
+use std::{cell::RefCell, path::PathBuf, rc::Rc, sync::Arc};
 
 use anyhow::{Context, bail};
-use base64::prelude::*;
 use indoc::formatdoc;
 use rspack_error::Result;
-use rspack_util::{source_map::SourceMapKind, swc::minify_file_comments};
+use rspack_sources::SourceMap as RspackSourceMap;
+use rspack_util::{base64, source_map::SourceMapKind};
+use rustc_hash::FxHashSet as HashSet;
 use swc_config::{is_module::IsModule, merge::Merge};
 pub use swc_core::base::config::Options as SwcOptions;
 use swc_core::{
@@ -20,29 +21,51 @@ use swc_core::{
     config::{
       BuiltInput, Config, InputSourceMap, JsMinifyCommentOption, OutputCharset, SourceMapsConfig,
     },
-    sourcemap,
   },
   common::{
     FileName, GLOBALS, Mark, SourceFile, SourceMap,
     comments::{Comments, SingleThreadedComments},
-    errors::Handler,
+    errors::{DiagnosticId, Handler},
   },
   ecma::{
-    ast::{EsVersion, Pass, Program},
+    ast::{
+      EsVersion, ExportAll, ImportDecl, NamedExport, Pass, Program, TsExternalModuleRef,
+      TsImportType,
+    },
+    codegen::{
+      self, Emitter, Node,
+      text_writer::{self, WriteJs},
+    },
     parser::{
       Syntax, TsSyntax, parse_file_as_commonjs, parse_file_as_module, parse_file_as_program,
       parse_file_as_script,
     },
-    transforms::base::helpers::{self, Helpers},
+    transforms::base::{
+      helpers::{self, Helpers},
+      resolver,
+    },
+    visit::{Visit, VisitMutWith, VisitWith},
   },
 };
 use swc_error_reporters::handler::try_with_handler;
+use swc_typescript::fast_dts::FastDts;
 use url::Url;
 
 use super::{
-  JavaScriptCompiler, TransformOutput,
+  IsolatedDtsTransformOutput, JavaScriptCompiler, TransformOutput,
+  minify::minify_file_comments,
   stringify::{PrintOptions, SourceMapConfig},
 };
+use crate::error::swc_diagnostics_to_rspack_error;
+
+const SWC_SYNTAX_ERROR_CODE: &str = "Syntax Error";
+
+fn emit_syntax_error(error: swc_core::ecma::parser::error::Error, handler: &Handler) {
+  error
+    .into_diagnostic(handler)
+    .code(DiagnosticId::Error(SWC_SYNTAX_ERROR_CODE.into()))
+    .emit();
+}
 
 impl JavaScriptCompiler {
   /// Transforms the given JavaScript source code according to the provided options and source map kind.
@@ -69,6 +92,181 @@ impl JavaScriptCompiler {
       JavaScriptTransformer::new(self.cm.clone(), fm, comments, self, options)?;
 
     javascript_transformer.transform(inspect_parsed_ast, before_pass, module_source_map_kind)
+  }
+
+  pub fn emit_isolated_dts(
+    &self,
+    program: &Program,
+    filename: Arc<FileName>,
+    unresolved_mark: Mark,
+    target: EsVersion,
+    comments: &SingleThreadedComments,
+  ) -> Result<IsolatedDtsTransformOutput> {
+    self.run(|| {
+      let (leading, trailing) = comments.borrow_all();
+      let comments = SingleThreadedComments::from_leading_and_trailing(
+        Rc::new(RefCell::new(leading.clone())),
+        Rc::new(RefCell::new(trailing.clone())),
+      );
+
+      // FastDts mutates the cloned program into declaration form. Re-print it with
+      // declaration-safe codegen settings instead of reusing the JS output pipeline.
+      let mut program = program.clone();
+      let mut checker = FastDts::new(filename, unresolved_mark, Default::default());
+      let diagnostics = match checker.transform(&mut program) {
+        issues if issues.is_empty() => Vec::new(),
+        issues => {
+          let result = try_with_handler(self.cm.clone(), Default::default(), |handler| {
+            for issue in issues {
+              handler
+                .struct_span_err(issue.range.span, &issue.message)
+                .emit();
+            }
+
+            Ok(())
+          });
+
+          match result {
+            Ok(()) => Vec::new(),
+            Err(error) => vec![error.to_pretty_string()],
+          }
+        }
+      };
+
+      // Collect declaration references from the FastDts output AST before codegen.
+      // Rslib uses these references to complete type-only declaration outputs without
+      // parsing the generated .d.ts string again.
+      let mut collector = DtsReferenceCollector::default();
+      program.visit_with(&mut collector);
+      let references = collector.references;
+
+      let code = {
+        let mut buf = Vec::new();
+        {
+          let wr = Box::new(text_writer::JsWriter::new(
+            self.cm.clone(),
+            "\n",
+            &mut buf,
+            None,
+          )) as Box<dyn WriteJs>;
+          let mut emitter = Emitter {
+            cfg: codegen::Config::default().with_target(target),
+            comments: Some(&comments as &dyn Comments),
+            cm: self.cm.clone(),
+            wr,
+          };
+          program.emit_with(&mut emitter)?;
+        }
+        // SAFETY: SWC will emit valid utf8 for sure
+        unsafe { String::from_utf8_unchecked(buf) }
+      };
+
+      Ok(IsolatedDtsTransformOutput {
+        code,
+        references,
+        diagnostics,
+      })
+    })
+  }
+
+  /// Generate isolated declaration output from a source string for callers that
+  /// are outside the normal loader transform path.
+  pub fn emit_isolated_dts_from_source(
+    &self,
+    source: String,
+    filename: Arc<FileName>,
+    syntax: Syntax,
+    target: EsVersion,
+  ) -> Result<IsolatedDtsTransformOutput> {
+    self.run(|| {
+      let comments = SingleThreadedComments::default();
+      let fm = self.cm.new_source_file(filename.clone(), source);
+      let unresolved_mark = Mark::new();
+      let top_level_mark = Mark::new();
+      let is_typescript = syntax.typescript();
+      let mut program = try_with_handler(self.cm.clone(), Default::default(), |handler| {
+        let mut had_error = false;
+        let mut errors = vec![];
+        let program = parse_file_as_program(&fm, syntax, target, Some(&comments), &mut errors);
+
+        for error in errors {
+          emit_syntax_error(error, handler);
+          had_error = true;
+        }
+
+        let program = program.map_err(|error| {
+          emit_syntax_error(error, handler);
+          anyhow::Error::msg(SWC_SYNTAX_ERROR_CODE)
+        })?;
+
+        if had_error {
+          bail!(SWC_SYNTAX_ERROR_CODE);
+        }
+
+        Ok(program)
+      })
+      .map_err(|error| {
+        swc_diagnostics_to_rspack_error(error.diagnostics(), &self.cm)
+          .unwrap_or_else(|| error.to_pretty_error().into())
+      })?;
+      program.visit_mut_with(&mut resolver(
+        unresolved_mark,
+        top_level_mark,
+        is_typescript,
+      ));
+
+      self.emit_isolated_dts(&program, filename, unresolved_mark, target, &comments)
+    })
+  }
+}
+
+#[derive(Default)]
+struct DtsReferenceCollector {
+  references: Vec<String>,
+  seen: HashSet<String>,
+}
+
+impl DtsReferenceCollector {
+  fn push(&mut self, value: String) {
+    if self.seen.insert(value.clone()) {
+      self.references.push(value);
+    }
+  }
+}
+
+impl Visit for DtsReferenceCollector {
+  fn visit_import_decl(&mut self, node: &ImportDecl) {
+    // Matches import declarations, for example:
+    //   import type { Foo } from "./foo";
+    //   import "./foo";
+    self.push(node.src.value.to_string_lossy().into_owned());
+  }
+
+  fn visit_export_all(&mut self, node: &ExportAll) {
+    // Matches export-all declarations, for example:
+    //   export * from "./foo";
+    self.push(node.src.value.to_string_lossy().into_owned());
+  }
+
+  fn visit_named_export(&mut self, node: &NamedExport) {
+    // Matches named re-exports, for example:
+    //   export type { Foo } from "./foo";
+    if let Some(src) = &node.src {
+      self.push(src.value.to_string_lossy().into_owned());
+    }
+  }
+
+  fn visit_ts_import_type(&mut self, node: &TsImportType) {
+    // Matches inline import types, for example:
+    //   export type Foo = import("./foo").Foo;
+    self.push(node.arg.value.to_string_lossy().into_owned());
+    node.visit_children_with(self);
+  }
+
+  fn visit_ts_external_module_ref(&mut self, node: &TsExternalModuleRef) {
+    // Matches TypeScript import-equals declarations, for example:
+    //   import Foo = require("./foo");
+    self.push(node.expr.value.to_string_lossy().into_owned());
   }
 }
 
@@ -135,9 +333,7 @@ impl<'a> JavaScriptTransformer<'a> {
     };
     let minify = built_input.minify;
     let source_map_config = SourceMapConfig {
-      enable: source_map_kind.source_map(),
-      inline_sources_content: source_map_kind.source_map(),
-      emit_columns: !source_map_kind.cheap(),
+      source_map_kind,
       names: Default::default(),
     };
 
@@ -155,7 +351,7 @@ impl<'a> JavaScriptTransformer<'a> {
       source_map: self.cm.clone(),
       target,
       source_map_config,
-      input_source_map: input_source_map.as_ref(),
+      input_source_map,
       minify,
       comments: Some(&self.comments as &dyn Comments),
       preamble: &built_input.output.preamble,
@@ -195,17 +391,17 @@ impl<'a> JavaScriptTransformer<'a> {
     };
 
     for e in errors {
-      e.into_diagnostic(handler).emit();
+      emit_syntax_error(e, handler);
       error = true;
     }
 
     let res = program_result.map_err(|e| {
-      e.into_diagnostic(handler).emit();
-      anyhow::Error::msg("Syntax Error")
+      emit_syntax_error(e, handler);
+      anyhow::Error::msg(SWC_SYNTAX_ERROR_CODE)
     });
 
     if error {
-      return Err(anyhow::anyhow!("Syntax Error"));
+      return Err(anyhow::anyhow!(SWC_SYNTAX_ERROR_CODE));
     }
     res
   }
@@ -223,14 +419,16 @@ impl<'a> JavaScriptTransformer<'a> {
           &self.cm.clone(),
           &self.fm.name,
           move |syntax, target, is_module| {
-            self.parse_js(
-              self.fm.clone(),
-              handler,
-              target,
-              syntax,
-              is_module,
-              Some(&self.comments).map(|c| c as &dyn Comments),
-            )
+            self
+              .parse_js(
+                self.fm.clone(),
+                handler,
+                target,
+                syntax,
+                is_module,
+                Some(&self.comments).map(|c| c as &dyn Comments),
+              )
+              .map(|program| (program, false))
           },
           self.options.output_path.as_deref(),
           self.options.source_root.clone(),
@@ -242,7 +440,10 @@ impl<'a> JavaScriptTransformer<'a> {
           before_pass,
         )
       })
-      .map_err(|e| e.to_pretty_error().into())
+      .map_err(|error| {
+        swc_diagnostics_to_rspack_error(error.diagnostics(), &self.cm)
+          .unwrap_or_else(|| error.to_pretty_error().into())
+      })
     })
   }
 
@@ -286,20 +487,20 @@ impl<'a> JavaScriptTransformer<'a> {
             None => false,
           }) {
             // swc errors includes plugin error;
-            let error_msg = err.to_pretty_string();
             let swc_core_version = rspack_workspace::rspack_swc_core_version!();
-            // FIXME: with_help has bugs, use with_help when diagnostic print is fixed
             let help_msg = formatdoc!{"
               The version of the SWC Wasm plugin you're using might not be compatible with `builtin:swc-loader`.
               The `swc_core` version of the current `rspack_core` is {swc_core_version}. 
               Please check the `swc_core` version of SWC Wasm plugin to make sure these versions are within the compatible range.
               See this guide as a reference for selecting SWC Wasm plugin versions: https://rspack.rs/errors/swc-plugin-version"};
-            let mut error = rspack_error::error!(format!("{error_msg}{help_msg}"));
+            let mut error = swc_diagnostics_to_rspack_error(err.diagnostics(), &self.cm)
+              .unwrap_or_else(|| rspack_error::error!(err.to_pretty_string()));
+            error.help = Some(help_msg);
             error.code = Some(SWC_MIETTE_DIAGNOSTIC_CODE.into());
             error
           } else {
-            let error_msg = err.to_pretty_string();
-            let mut error = rspack_error::error!(error_msg);
+            let mut error = swc_diagnostics_to_rspack_error(err.diagnostics(), &self.cm)
+              .unwrap_or_else(|| rspack_error::error!(err.to_pretty_string()));
             error.code = Some(SWC_MIETTE_DIAGNOSTIC_CODE.into());
             error
           }
@@ -328,11 +529,11 @@ impl<'a> JavaScriptTransformer<'a> {
   pub fn input_source_map(
     &self,
     input_src_map: &InputSourceMap,
-  ) -> Result<Option<sourcemap::SourceMap>, anyhow::Error> {
+  ) -> Result<Option<RspackSourceMap<'static>>, anyhow::Error> {
     let fm = &self.fm;
     let name = &self.fm.name;
     let read_inline_sourcemap =
-      |data_url: Option<&str>| -> Result<Option<sourcemap::SourceMap>, anyhow::Error> {
+      |data_url: Option<&str>| -> Result<Option<RspackSourceMap<'static>>, anyhow::Error> {
         match data_url {
           Some(data_url) => {
             let url = Url::parse(data_url)
@@ -347,11 +548,10 @@ impl<'a> JavaScriptTransformer<'a> {
 
             let content = url.path()[idx + "base64,".len()..].trim();
 
-            let res = BASE64_STANDARD
-              .decode(content.as_bytes())
+            let res = base64::decode_to_vec(content.as_bytes())
               .context("failed to decode base64-encoded source map")?;
 
-            Ok(Some(sourcemap::SourceMap::from_slice(&res).context(
+            Ok(Some(RspackSourceMap::from_bytes(res).context(
               "failed to read input source map from inlined base64 encoded \
                                 string",
             )?))
@@ -363,7 +563,7 @@ impl<'a> JavaScriptTransformer<'a> {
       };
 
     let read_file_sourcemap =
-      |data_url: Option<&str>| -> Result<Option<sourcemap::SourceMap>, anyhow::Error> {
+      |data_url: Option<&str>| -> Result<Option<RspackSourceMap<'static>>, anyhow::Error> {
         match name.as_ref() {
           FileName::Real(filename) => {
             let dir = match filename.parent() {
@@ -411,12 +611,12 @@ impl<'a> JavaScriptTransformer<'a> {
             match map_path {
               Some(map_path) => {
                 let path = map_path.display().to_string();
-                let file = File::open(&path);
+                let content = std::fs::read(&path);
 
                 // Old behavior.
-                let file = file?;
+                let content = content?;
 
-                Ok(Some(sourcemap::SourceMap::from_reader(file).with_context(
+                Ok(Some(RspackSourceMap::from_bytes(content).with_context(
                   || {
                     format!(
                       "failed to read input source map
@@ -432,7 +632,7 @@ impl<'a> JavaScriptTransformer<'a> {
         }
       };
 
-    let read_sourcemap = || -> Option<sourcemap::SourceMap> {
+    let read_sourcemap = || -> Option<RspackSourceMap<'static>> {
       let s = "sourceMappingURL=";
       let idx = fm.src.rfind(s);
 
@@ -463,10 +663,9 @@ impl<'a> JavaScriptTransformer<'a> {
           Ok(read_sourcemap())
         } else {
           // Load source map passed by user
-          Ok(Some(
-            sourcemap::SourceMap::from_slice(s.as_bytes())
-              .context("failed to read input source map from user-provided sourcemap")?,
-          ))
+          Ok(Some(RspackSourceMap::from_json(s.clone()).context(
+            "failed to read input source map from user-provided sourcemap",
+          )?))
         }
       }
     }

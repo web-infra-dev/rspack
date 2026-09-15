@@ -39,7 +39,7 @@ impl Sources {
     let source_type = rspack_core::SourceType::from(source_type.as_str());
     self.with_ref(|sources| match sources.get(&source_type) {
       Some(source) => {
-        let source = source.as_ref().try_into()?;
+        let source = source.try_into()?;
         Ok(Some(source))
       }
       None => Ok(None),
@@ -74,7 +74,7 @@ impl CodeGenerationResult {
 impl CodeGenerationResult {
   #[napi(getter, ts_return_type = "Sources")]
   pub fn sources(&self) -> napi::Result<Reflector> {
-    self.with_ref(|i| Ok(i.inner.reflector()))
+    self.with_ref(|i| Ok(i.sources_cell().reflector()))
   }
 }
 
@@ -114,7 +114,9 @@ impl CodeGenerationResults {
         Either::B(vec) => vec.into_iter().map(Into::into).collect(),
       });
 
-      let code_generation_result = code_generation_results.get(&module.identifier, rt.as_ref());
+      let code_generation_result = code_generation_results
+        .try_get(&module.identifier, rt.as_ref())
+        .map_err(|error| napi::Error::from_reason(error.to_string()))?;
       Ok(code_generation_result.reflector())
     })
   }

@@ -1,4 +1,4 @@
-const findOutputFiles = require("@rspack/test-tools/helper/legacy/findOutputFiles");
+const { findOutputFiles } = require("@rspack/test-tools/helper/legacy/findOutputFiles");
 
 module.exports = {
 	findBundle: function (i, options) {
@@ -12,6 +12,9 @@ module.exports = {
 		const link = scope.window.document.createElement("link");
 		link.rel = "stylesheet";
 		link.href = bundle;
+		scope.WAITING.push(new Promise(resolve => {
+			link.onload = link.onerror = () => resolve();
+		}));
 		scope.window.document.head.appendChild(link);
 	}
 };

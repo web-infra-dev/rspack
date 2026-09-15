@@ -2,10 +2,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Script } from 'node:vm';
-import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
+import {
+  JSDOM,
+  requestInterceptor,
+  type ResourcesOptions,
+  VirtualConsole,
+} from 'jsdom';
 import { escapeSep } from '../../helper';
-import EventSource from '../../helper/legacy/EventSourceForNode';
-import urlToRelativePath from '../../helper/legacy/urlToRelativePath';
+import { EventSource } from '../../helper/legacy/EventSourceForNode';
+import { urlToRelativePath } from '../../helper/legacy/urlToRelativePath';
 import type { TRunnerFile, TRunnerRequirer } from '../../type';
 import { type INodeRunnerOptions, NodeRunner } from '../node';
 
@@ -31,9 +36,9 @@ export class WebRunner extends NodeRunner {
   constructor(protected _webOptions: IWebRunnerOptions) {
     super(_webOptions);
 
-    const virtualConsole = new VirtualConsole({});
-    virtualConsole.sendTo(console, {
-      omitJSDOMErrors: true,
+    const virtualConsole = new VirtualConsole();
+    virtualConsole.forwardTo(console, {
+      jsdomErrors: 'none',
     });
     this.dom = new JSDOM(
       `
@@ -45,7 +50,7 @@ export class WebRunner extends NodeRunner {
     `,
       {
         url: this._webOptions.location,
-        resources: this.createResourceLoader(),
+        resources: this.createResourcesOptions(),
         runScripts: 'dangerously',
         virtualConsole,
       },
@@ -54,6 +59,29 @@ export class WebRunner extends NodeRunner {
     this.dom.window.console = console;
     // compat with FakeDocument
     this.dom.window.eval(`
+      var linkSheetDescriptor = Object.getOwnPropertyDescriptor(HTMLLinkElement.prototype, "sheet");
+      Object.defineProperty(HTMLLinkElement.prototype, "sheet", {
+        get: function() {
+          var sheet = linkSheetDescriptor && linkSheetDescriptor.get
+            ? linkSheetDescriptor.get.call(this)
+            : undefined;
+          var css = window.__LINK_SHEET__ && window.__LINK_SHEET__[this.href];
+          if (sheet) {
+            if (css !== undefined && sheet.css === undefined) {
+              Object.defineProperty(sheet, "css", {
+                configurable: true,
+                value: css,
+              });
+            }
+            return sheet;
+          }
+          if (css !== undefined) {
+            return { css: css };
+          }
+          return sheet;
+        },
+      });
+
       Object.defineProperty(document.head, "_children", {
         get: function() {
           return Array.from(document.head.children).map(function(ele) {
@@ -86,8 +114,10 @@ export class WebRunner extends NodeRunner {
       const cssElement = this.dom.window.document.createElement('link');
       cssElement.href = file;
       cssElement.rel = 'stylesheet';
-      this.dom.window.document.head.appendChild(cssElement);
-      return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        cssElement.onload = cssElement.onerror = () => resolve();
+        this.dom.window.document.head.appendChild(cssElement);
+      });
     }
     return super.run(file);
   }
@@ -100,56 +130,63 @@ export class WebRunner extends NodeRunner {
     this._options.logs?.push(`[WebRunner] ${message}`);
   }
 
-  protected createResourceLoader() {
-    const that = this;
-    class CustomResourceLoader extends ResourceLoader {
-      fetch(url: string, options: { element: HTMLScriptElement }) {
-        if (that._options.testConfig.resourceLoader) {
-          that.log(`resource custom loader: start ${url}`);
-          const content = that._options.testConfig.resourceLoader(
-            url,
-            options.element,
-          );
-          if (content !== undefined) {
-            that.log(`resource custom loader: accepted`);
-            return Promise.resolve(content) as any;
+  protected createResourcesOptions(): ResourcesOptions {
+    return {
+      interceptors: [
+        requestInterceptor((request, { element }) => {
+          // ResourceLoader only handled DOM subresources. Let requests from
+          // XMLHttpRequest and WebSocket continue through jsdom's dispatcher.
+          if (element === null) {
+            return;
+          }
+
+          const url = request.url;
+          if (this._options.testConfig.resourceLoader) {
+            this.log(`resource custom loader: start ${url}`);
+            const content = this._options.testConfig.resourceLoader(
+              url,
+              element as HTMLScriptElement,
+            );
+            if (content !== undefined) {
+              this.log(`resource custom loader: accepted`);
+              if (content === null) {
+                throw new Error(`Resource was not loaded: ${url}`);
+              }
+              return new Response(new Uint8Array(content));
+            } else {
+              this.log(`resource custom loader: not found`);
+            }
+          }
+
+          const filePath = this.urlToPath(url);
+          this.log(`resource loader: ${url} -> ${filePath}`);
+          let finalCode: string | Buffer;
+
+          if (path.extname(filePath) === '.js') {
+            const currentDirectory = path.dirname(filePath);
+            const file = this.getFile(filePath, currentDirectory);
+            if (!file) {
+              throw new Error(`File not found: ${filePath}`);
+            }
+
+            const [_m, code] = this.getModuleContent(file);
+            finalCode = code;
           } else {
-            that.log(`resource custom loader: not found`);
-          }
-        }
-
-        const filePath = that.urlToPath(url);
-        that.log(`resource loader: ${url} -> ${filePath}`);
-        let finalCode: string | Buffer | void;
-
-        if (path.extname(filePath) === '.js') {
-          const currentDirectory = path.dirname(filePath);
-          const file = that.getFile(filePath, currentDirectory);
-          if (!file) {
-            throw new Error(`File not found: ${filePath}`);
+            finalCode = fs.readFileSync(filePath);
           }
 
-          const [_m, code] = that.getModuleContent(file);
-          finalCode = code;
-        } else {
-          finalCode = fs.readFileSync(filePath);
-        }
-
-        try {
-          that.dom.window.__LINK_SHEET__ ??= {};
-          that.dom.window.__LINK_SHEET__[url] = finalCode!.toString();
-          return Promise.resolve(finalCode!) as any;
-        } catch (err) {
-          console.error(err);
-          if ((err as { code: string }).code === 'ENOENT') {
-            return null;
-          }
-          throw err;
-        }
-      }
-    }
-
-    return new CustomResourceLoader();
+          this.dom.window.__LINK_SHEET__ ??= {};
+          this.dom.window.__LINK_SHEET__[url] = finalCode.toString();
+          return new Response(
+            new Uint8Array(
+              typeof finalCode === 'string'
+                ? Buffer.from(finalCode)
+                : finalCode,
+            ),
+          );
+        }),
+      ],
+    };
   }
 
   private urlToPath(url: string) {
@@ -190,7 +227,8 @@ export class WebRunner extends NodeRunner {
         return {
           status: 200,
           ok: true,
-          json: async () => JSON.parse(buffer.toString('utf-8')),
+          json: () =>
+            Promise.resolve().then(() => JSON.parse(buffer.toString('utf-8'))),
         };
       } catch (err) {
         if ((err as { code: string }).code === 'ENOENT') {
@@ -307,6 +345,19 @@ export class WebRunner extends NodeRunner {
     ) => {
       return originIt(description, async (...args: any[]) => {
         try {
+          if (fn.length > 0) {
+            return await new Promise<void>((resolve, reject) => {
+              const done = (err?: Error) => (err ? reject(err) : resolve());
+              try {
+                const result = fn(...args, done);
+                if (result && typeof result.then === 'function') {
+                  result.then(resolve, reject);
+                }
+              } catch (e) {
+                reject(e);
+              }
+            });
+          }
           return await fn(...args);
         } catch (e) {
           throw locatedError(e as Error, file);

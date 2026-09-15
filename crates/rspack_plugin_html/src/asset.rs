@@ -1,7 +1,6 @@
 use std::{
   borrow::Cow,
   env,
-  hash::Hasher,
   path::{Path, PathBuf},
 };
 
@@ -14,7 +13,7 @@ use rspack_core::{
   rspack_sources::{RawBufferSource, RawStringSource, SourceExt},
 };
 use rspack_error::{AnyhowResultToRspackResultExt, Result};
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::Utf8PathBuf;
 use rspack_util::fx_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -278,17 +277,8 @@ pub fn generate_posix_path(path: &str) -> Cow<'_, str> {
 }
 
 fn url_encode_path(file_path: &str) -> String {
-  let query_string_start = file_path.find('?');
-  let url_path = if let Some(query_string_start) = query_string_start {
-    &file_path[..query_string_start]
-  } else {
-    file_path
-  };
-  let query_string = if let Some(query_string_start) = query_string_start {
-    &file_path[query_string_start..]
-  } else {
-    ""
-  };
+  let (url_path, query_string) = rspack_util::identifier::split_at_query_mark(file_path);
+  let query_string = query_string.unwrap_or_default();
 
   format!(
     "{}{}",
@@ -338,8 +328,8 @@ pub async fn create_html_asset(
   template_file_name: &str,
   compilation: &Compilation,
 ) -> Result<(String, CompilationAsset)> {
-  let mut hasher = RspackHash::from(&compilation.options.output);
-  hasher.write(html.as_bytes());
+  let mut hasher = RspackHasher::from(&compilation.options.output);
+  html.hash(&mut hasher);
   let hash_digest = hasher.digest(&compilation.options.output.hash_digest);
   let content_hash = hash_digest.encoded();
 

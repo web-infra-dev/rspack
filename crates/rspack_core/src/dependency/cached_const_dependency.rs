@@ -1,5 +1,5 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_util::ext::DynHash;
+use rspack_hash::{RspackHash, RspackHasher};
 
 use super::DependencyRange;
 use crate::{
@@ -9,20 +9,81 @@ use crate::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, Default, Hash, PartialEq, Eq)]
+pub enum CachedConstDependencyPlace {
+  #[default]
+  Module = 10,
+  Chunk = 20,
+}
+
+impl CachedConstDependencyPlace {
+  fn order(self) -> i32 {
+    self as i32
+  }
+}
+
+impl RspackHash for CachedConstDependencyPlace {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.order().hash(state);
+  }
+}
+
+#[cacheable]
+#[derive(Debug)]
 pub struct CachedConstDependency {
-  pub range: DependencyRange,
+  pub place: CachedConstDependencyPlace,
   pub identifier: Box<str>,
+  pub range: Option<DependencyRange>,
   pub content: Box<str>,
 }
 
 impl CachedConstDependency {
   pub fn new(range: DependencyRange, identifier: Box<str>, content: Box<str>) -> Self {
-    Self {
+    Self::new_with_place(
       range,
       identifier,
       content,
+      CachedConstDependencyPlace::Module,
+    )
+  }
+
+  pub fn new_with_place(
+    range: DependencyRange,
+    identifier: Box<str>,
+    content: Box<str>,
+    place: CachedConstDependencyPlace,
+  ) -> Self {
+    Self {
+      place,
+      range: Some(range),
+      identifier,
+      content,
     }
+  }
+
+  pub fn new_without_replacement(
+    identifier: Box<str>,
+    content: Box<str>,
+    place: CachedConstDependencyPlace,
+  ) -> Self {
+    Self {
+      place,
+      range: None,
+      identifier,
+      content,
+    }
+  }
+}
+
+impl RspackHash for CachedConstDependency {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.place.hash(state);
+    self.identifier.hash(state);
+    match self.range {
+      Some(range) => range.hash(state),
+      None => state.write(b"null"),
+    }
+    self.content.hash(state);
   }
 }
 
@@ -34,18 +95,16 @@ impl DependencyCodeGeneration for CachedConstDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
+    hasher: &mut RspackHasher,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    self.identifier.dyn_hash(hasher);
-    self.range.dyn_hash(hasher);
-    self.content.dyn_hash(hasher);
+    RspackHash::hash(self, hasher);
   }
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct CachedConstDependencyTemplate;
 
 impl CachedConstDependencyTemplate {
@@ -66,21 +125,35 @@ impl DependencyTemplate for CachedConstDependencyTemplate {
       .downcast_ref::<CachedConstDependency>()
       .expect("CachedConstDependencyTemplate should be used for CachedConstDependency");
 
-    code_generatable_context.init_fragments.push(
-      NormalInitFragment::new(
-        format!("var {} = {};\n", dep.identifier, dep.content),
-        InitFragmentStage::StageConstants,
-        0,
-        InitFragmentKey::Const(dep.identifier.to_string()),
-        None,
-      )
-      .boxed(),
-    );
-    source.replace(
-      dep.range.start,
-      dep.range.end,
-      dep.identifier.to_string(),
-      None,
-    );
+    match dep.place {
+      CachedConstDependencyPlace::Module => {
+        code_generatable_context.init_fragments.push(
+          NormalInitFragment::new(
+            format!("var {} = {};\n", dep.identifier, dep.content),
+            InitFragmentStage::StageConstants,
+            dep.place.order(),
+            InitFragmentKey::Const(dep.identifier.to_string()),
+            None,
+          )
+          .boxed(),
+        );
+      }
+      CachedConstDependencyPlace::Chunk => {
+        code_generatable_context.chunk_init_fragments().push(
+          NormalInitFragment::new(
+            format!("var {} = {};\n", dep.identifier, dep.content),
+            InitFragmentStage::StageConstants,
+            dep.place.order(),
+            InitFragmentKey::Const(dep.identifier.to_string()),
+            None,
+          )
+          .boxed(),
+        );
+      }
+    }
+
+    if let Some(range) = dep.range {
+      source.replace(range.start, range.end, dep.identifier.to_string(), None);
+    }
   }
 }

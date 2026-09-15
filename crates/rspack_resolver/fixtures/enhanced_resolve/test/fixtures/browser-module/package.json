@@ -1,0 +1,33 @@
+{
+  "exports": {
+    "./lib/index.js": "./lib/index.js"
+  },
+  "browser": {
+    "./lib/ignore.js": false,
+    "./lib/replaced.js": "./lib/browser",
+    "module-a": "./browser/module-a.js",
+    "module-b": "module-c",
+    "module-c": "module-c",
+    "./toString": "./lib/toString.js",
+    "./lib/main.js": "./lib/main.js",
+    "./main.js": "./lib/main.js",
+    "./lib/xyz.js": "./xyz.js",
+    "./xyz.js": "./lib/xyz.js",
+    "./lib/non-existent.js": "./lib/non-existent.js",
+    ".": false,
+    "./number": 1,
+    "./foo": "./lib/replaced.js?query"
+  },
+  "innerBrowser1": {
+    "field": {
+      "browser": {
+        "./lib/main1.js": "./lib/main.js"
+      }
+    }
+  },
+  "innerBrowser2": {
+    "browser": {
+      "./lib/main2.js": "./lib/replaced.js"
+    }
+  }
+}

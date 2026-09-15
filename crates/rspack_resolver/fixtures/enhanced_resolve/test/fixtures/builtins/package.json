@@ -1,0 +1,12 @@
+{
+  "name": "builtins",
+  "private": true,
+  "imports": {
+    "#fs": {
+      "default": "fs"
+    },
+    "#http": {
+      "node": "node:http"
+    }
+  }
+}

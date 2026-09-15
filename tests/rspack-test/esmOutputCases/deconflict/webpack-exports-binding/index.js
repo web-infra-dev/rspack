@@ -1,0 +1,7 @@
+export const __webpack_exports__ = 45;
+
+it("should export a binding named __webpack_exports__", async () => {
+	expect(__webpack_exports__).toBe(45);
+	const namespace = await import(/* webpackIgnore: true */ "./main.mjs");
+	expect(namespace.__webpack_exports__).toBe(45);
+});

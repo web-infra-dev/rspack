@@ -2,11 +2,9 @@
 description: '本节涵盖了使用 Rspack 编译代码时所有可用的变量。模块将能够通过 module 和其他变量访问来自编译过程的特定数据。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import Columns from '@components/Columns';
 import { ApiMeta, Stability } from '@components/ApiMeta';
-
-<WebpackLicense from="https://webpack.docschina.org/api/module-variables/" />
 
 # 模块变量
 
@@ -98,7 +96,7 @@ __dirname
 
 `import.meta` 将特定上下文的元数据暴露给 JavaScript 模块，例如模块的 URL。它仅在支持 ESM（[模块类型](/misc/glossary#module-type模块类型)为 `javascript/auto` 或 `javascript/esm`）的模块中可用。
 
-通常情况下，未知的 `import.meta` 元数据默认会被替换为 `undefined`。当使用 [ESM 格式](/guide/features/esm)输出时，[`module.parser.javascript.importMeta`](/config/module#moduleparserjavascriptimportmeta) 的默认值为 `'preserve-unknown'`，因此未知的元数据会被保留并在运行时被计算。
+通常情况下，未知的 `import.meta` 元数据默认会被替换为 `undefined`。当使用 [ESM 格式](/guide/features/esm)输出时，[`module.parser.javascript.importMeta`](/config/module-parser#javascriptimportmeta) 的默认值为 `'preserve-unknown'`，因此未知的元数据会被保留并在运行时被计算。你也可以使用 `module.parser.javascript.importMeta` 的对象形式，分别控制已知的 `import.meta` 字段。
 
 Rspack 在编译时会静态分析将 `import.meta` 的属性替换为具体值，因此不支持动态访问 `import.meta`（如 `Object.keys(import.meta)`），否则会抛出警告。你应该通过属性访问或解构赋值的方式来访问 `import.meta` 上的元数据。
 
@@ -199,14 +197,148 @@ img.src = './src/img.png'; // img.png 的模块 ID
 </Columns>
 
 :::warning
-`import.meta.resolve()` 目前仍是实验性功能，需要通过 [`module.parser.javascript.importMetaResolve`](/config/module#moduleparserjavascriptimportmetaresolve) 开启，未来会优先[对齐标准实现](https://github.com/openjs-foundation/bundler-collab-space/issues/8)，因此该 API 行为可能会发生变化，请谨慎使用。
+`import.meta.resolve()` 目前仍是实验性功能，需要通过 [`module.parser.javascript.importMetaResolve`](/config/module-parser#javascriptimportmetaresolve) 开启，未来会优先[对齐标准实现](https://github.com/openjs-foundation/bundler-collab-space/issues/8)，因此该 API 行为可能会发生变化，请谨慎使用。
+:::
+
+### import.meta.glob
+
+<ApiMeta specific={['Rspack']} addedVersion="2.0.5" />
+
+`import.meta.glob` 允许你使用 glob 模式一次导入多个模块。Rspack 将在构建时解析并引用匹配的模块。
+
+- **类型：**
+
+```ts
+interface ImportMetaGlobOptions<Eager extends boolean = boolean> {
+  /**
+   * 如果为 `true`，模块将同步加载
+   *
+   * @default false
+   */
+  eager?: Eager;
+  /**
+   * 只导入指定的具名导出。设置为 `default` 时会导入默认导出。
+   */
+  import?: string;
+  /**
+   * 为每个匹配模块请求追加 query。
+   */
+  query?: string | Record<string, string | number | boolean>;
+  /**
+   * 搜索 `node_modules` 和隐藏路径中的文件。
+   *
+   * @default false
+   */
+  exhaustive?: boolean;
+  /**
+   * 用于解析相对 glob 模式和返回 key 的 base 路径。
+   */
+  base?: string;
+  /**
+   * 是否区分文件路径大小写。
+   *
+   * @default true
+   */
+  caseSensitive?: boolean;
+}
+
+function glob(
+  /**
+   * 匹配文件的 glob 模式，或 glob 模式数组
+   */
+  pattern: string | readonly string[],
+  options?: ImportMetaGlobOptions<false>,
+): Record<string, () => Promise<any>>;
+
+function glob(
+  /**
+   * 匹配文件的 glob 模式，或 glob 模式数组
+   */
+  pattern: string | readonly string[],
+  options: ImportMetaGlobOptions<true>,
+): Record<string, any>;
+```
+
+- **参数：**
+  - `pattern`：匹配文件的 glob 模式字符串，或 glob 模式字符串数组（例如 `'./dir/*.js'`）。支持 `*`、`?`、`[abc]`、`{a,b}` 以及 `**`（递归匹配）。数组模式也可以包含负向模式，例如 `'!**/bar.js'`。
+  - `options.eager`：设置为 `true` 时，模块直接包含在 bundle 中并同步加载。默认为 `false`，模块会延迟加载，每个值是一个返回 `Promise` 的 thunk 函数。
+  - `options.import`：只导入每个匹配模块的指定导出。例如使用 `'default'` 获取默认导出，或使用 `'setup'` 这样的具名导出。
+  - `options.query`：为每个匹配模块请求追加 query。可以是 `'?raw'` 这样的 query 字符串，也可以是会序列化为 URL query 字符串的对象。`import.meta.glob()` 返回对象中的 key 不包含 query。
+  - `options.exhaustive`：搜索 `node_modules` 和隐藏路径中的文件。默认关闭，因为可能增加构建时间。
+  - `options.base`：用于解析相对 glob 模式和返回 key 的 base 路径。绝对 glob 模式仍从项目根目录解析，但返回 key 会相对于 `base`。
+  - `options.caseSensitive`：是否区分文件路径大小写。设置为 `false` 时忽略大小写匹配，返回对象的 key 保留文件系统原始大小写。默认为 `true`。
+
+- **示例：**
+
+```js
+// 延迟加载（默认）：每个值是一个 () => Promise<module> 函数
+const modules = import.meta.glob('./dir/*.js');
+
+// 所有匹配的模块都可以通过异步 thunk 访问
+const foo = await modules['./dir/foo.js']();
+console.log(foo.default);
+
+// 同步加载：每个值直接是模块对象
+const eagerModules = import.meta.glob('./dir/*.js', { eager: true });
+console.log(eagerModules['./dir/foo.js'].default);
+
+// 只导入每个匹配模块的默认导出
+const defaultModules = import.meta.glob('./dir/*.js', { import: 'default' });
+const fooDefault = await defaultModules['./dir/foo.js']();
+console.log(fooDefault);
+
+// 将同步加载和指定导出结合使用
+const eagerDefaultModules = import.meta.glob('./dir/*.js', {
+  eager: true,
+  import: 'default',
+});
+console.log(eagerDefaultModules['./dir/foo.js']);
+
+// 为每个匹配的 import 追加 query
+const rawModules = import.meta.glob('./dir/*.js', {
+  query: '?raw',
+  import: 'default',
+});
+const rawFoo = await rawModules['./dir/foo.js']();
+
+// query 对象会被序列化为 URL query 字符串
+const dataModules = import.meta.glob('./dir/*.js', {
+  query: { type: 'data', inline: true },
+  eager: true,
+});
+
+// 从 ./base 解析文件，并暴露相对于 ./base 的 key
+const modulesWithBase = import.meta.glob('./**/*.js', {
+  base: './base',
+});
+
+// 包含 node_modules 和隐藏路径中的匹配文件
+const exhaustiveModules = import.meta.glob(
+  ['./node_modules/**/*.js', './.config/*.js'],
+  {
+    exhaustive: true,
+  },
+);
+
+// 使用 ** 进行递归匹配
+const allModules = import.meta.glob('./components/**/*.js', { eager: true });
+```
+
+:::tip
+Rspack 在编译时会通过静态分析来解析 `import.meta.glob()` 的参数，因此 `pattern` 参数必须是字符串字面量或字符串字面量数组，`options` 参数必须是对象字面量。不支持使用变量或动态构造的值。
+:::
+
+:::warning
+`import.meta.glob()` 会在构建时匹配文件系统中的文件并将其包含在 bundle 中。避免使用过于宽泛的 glob 模式，否则可能导致构建时间和产物体积明显增加。
 :::
 
 ### import.meta.webpackContext
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-`import.meta.webpackContext` 是 [`require.context()`](/api/runtime-api/module-methods#requirecontext) 的 ESM 等价写法，它允许你动态地引入一组模块。
+`import.meta.webpackContext` 是 [`require.context()`](/api/runtime-api/module-methods#requirecontext) 的 ESM 等价写法，它允许你动态地引入一组模块，并用于兼容 webpack 的 context module 行为。
+
+在不需要兼容 webpack context 行为的新 Rspack 代码中，我们更推荐使用 [`import.meta.glob`](#importmetaglob)。
 
 你可以在代码中使用 `import.meta.webpackContext`，Rspack 将在构建时进行解析并引用匹配的模块。
 
@@ -325,17 +457,15 @@ componentsContext.keys().forEach((fileName) => {
 
 是 [`module.hot`](#modulehot) 的 ESM 等价写法，`import.meta.webpackHot` 可以在严格 ESM 模块（模块类型为 `javascript/esm`）中使用，而 `module.hot` 不能。
 
-## Runtime
+### import.meta.rspackHash
 
-### \_\_webpack_hash\_\_
-
-<ApiMeta specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
 
 提供对编译过程中（compilation）的 hash 信息的访问。
 
 <Columns>
 ```js title=源码
-__webpack_hash__
+import.meta.rspackHash;
 ```
 
 ```js title=产物
@@ -348,6 +478,158 @@ __webpack_require__.h = function () {
 ```
 
 </Columns>
+
+### import.meta.rspackPublicPath
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+等于配置选项的 [output.publicPath](/config/output#outputpublicpath)。
+
+<Columns>
+```js title=源码
+import.meta.rspackPublicPath;
+```
+
+```js title=产物
+__webpack_require__.p;
+
+// output.publicPath !== "auto"
+__webpack_require__.p = 'output.publicPath';
+// output.publicPath === "auto"，
+__webpack_require__.p = '由 document/location 计算得来';
+```
+
+</Columns>
+
+> 查看 [动态设置 publicPath](/guide/features/asset-base-path#动态设置-publicpath) 了解更多关于 `import.meta.rspackPublicPath` 的用法。
+
+### import.meta.rspackBaseUri
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+运行时获取或修改 Base URI。
+
+<Columns>
+```js title=源码
+import.meta.rspackBaseUri;
+```
+
+```js title=产物
+__webpack_require__.b;
+
+// chunk loading
+__webpack_require__.b = document.baseURI || self.location.href;
+```
+
+</Columns>
+
+### import.meta.rspackNonce
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+Rspack 能够为其加载的所有脚本添加 nonce，即一次性随机数。在入口文件中设置 `import.meta.rspackNonce` 变量以激活此功能。
+
+<Columns>
+```js title=源码
+import.meta.rspackNonce = 'your_nonce_code';
+```
+
+```js title=产物
+__webpack_require__.nc = '2312312';
+
+// webpack/runtime/load_script
+if (__webpack_require__.nc) {
+  script.setAttribute('nonce', __webpack_require__.nc);
+}
+```
+
+</Columns>
+
+### import.meta.rspackShareScopes
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+用于存储 module federation 中的一个远程容器共享作用域 (shared scope) 相关信息。
+
+<Columns>
+```js title=源码
+import.meta.rspackShareScopes;
+```
+
+```js title=产物
+__webpack_require__.S;
+```
+
+</Columns>
+
+### import.meta.rspackInitSharing
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+用于初始化 module federation 中的一个远程容器共享作用域 (shared scope) 并加载相关模块。
+
+<Columns>
+```js title=源码
+import.meta.rspackInitSharing('default');
+```
+
+```js title=产物
+__webpack_require__.I('default');
+```
+
+</Columns>
+
+### import.meta.rspackVersion
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+当前使用的 Rspack 版本，默认从 `@rspack/core/package.json` 读取。可以通过
+`output.bundlerInfo.version` 修改。
+
+<Columns>
+```js title=源码
+import.meta.rspackVersion;
+```
+
+```js title=产物
+__webpack_require__.rv();
+
+// webpack/runtime/rspack_version
+__webpack_require__.rv = () => '0.7.4';
+```
+
+</Columns>
+
+### import.meta.rspackUniqueId
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+当前打包工具的 ID，值为 `bundler={bundler}@{version}`。其中：
+
+- `bundler`：默认为 `"rspack"` 可以通过 [output.bundlerInfo.bundler](/config/output#outputbundlerinfo) 修改。
+- `version`：默认从 `@rspack/core/package.json` 读取，可以通过 [output.bundlerInfo.version](/config/output#outputbundlerinfo) 修改。
+
+<Columns>
+```js title=源码
+import.meta.rspackUniqueId;
+```
+
+```js title=产物
+__webpack_require__.ruid;
+
+// webpack/runtime/rspack_unique_id
+__webpack_require__.ruid = 'bundler=rspack@2.1.2';
+```
+
+</Columns>
+
+## Runtime
+
+### \_\_webpack_hash\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} stability={Stability.Deprecated} />
+
+是 [`import.meta.rspackHash`](#importmetarspackhash) 在 CommonJS 下的等价写法。
 
 ### \_\_webpack_runtime_id\_\_
 
@@ -371,67 +653,21 @@ __webpack_require__.j = '909';
 
 ### \_\_webpack_public_path\_\_
 
-<ApiMeta specific={['Rspack', 'Webpack']} />
-等于配置选项的 [output.publicPath](/config/output#outputpublicpath)。
+<ApiMeta specific={['Rspack', 'Webpack']} stability={Stability.Deprecated} />
 
-<Columns>
-```js title=源码
-__webpack_public_path__
-```
-
-```js title=产物
-__webpack_require__.p;
-
-// output.publicPath !== "auto"
-__webpack_require__.p = 'output.publicPath';
-// output.publicPath === "auto"，
-__webpack_require__.p = '由 document/location 计算得来';
-```
-
-</Columns>
-
-> 查看 [动态设置 publicPath](/guide/features/asset-base-path#动态设置-publicpath) 了解更多关于 `__webpack_public_path__` 的用法。
+是 [`import.meta.rspackPublicPath`](#importmetarspackpublicpath) 在 CommonJS 下的等价写法。
 
 ### \_\_webpack_base_uri\_\_
 
-<ApiMeta specific={['Rspack', 'Webpack']} />
-运行时获取或修改 Base URI。
+<ApiMeta specific={['Rspack', 'Webpack']} stability={Stability.Deprecated} />
 
-<Columns>
-```js title=源码
-__webpack_base_uri__
-```
-
-```js title=产物
-__webpack_require__.b;
-
-// chunk loading
-__webpack_require__.b = document.baseURI || self.location.href;
-```
-
-</Columns>
+是 [`import.meta.rspackBaseUri`](#importmetarspackbaseuri) 在 CommonJS 下的等价写法。
 
 ### \_\_webpack_nonce\_\_
 
-<ApiMeta specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} stability={Stability.Deprecated} />
 
-Rspack 能够为其加载的所有脚本添加 nonce，即一次性随机数。在入口文件中设置 `__webpack_nonce__` 变量以激活此功能。
-
-<Columns>
-```js title=源码
-__webpack_nonce__ = 'your_nonce_code';
-```
-
-```js title=产物
-__webpack_require__.nc = '2312312';
-
-// webpack/runtime/load_script
-if (__webpack_require__.nc) {
-  script.setAttribute('nonce', __webpack_require__.nc);
-}
-```
-
-</Columns>
+是 [`import.meta.rspackNonce`](#importmetarspacknonce) 在 CommonJS 下的等价写法。
 
 ## Modules
 
@@ -491,6 +727,25 @@ __webpack_module__.id
 "main.js": function(renamed_module) {
   renamed_module.id
 }
+```
+
+</Columns>
+
+### \_\_webpack_layer\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+访问当前模块的 [layer](/guide/advanced/layer)。它的值是配置的 layer 名称；如果模块未分配 layer，则为 `null`。
+
+Rspack 会在编译时替换 `__webpack_layer__`，使优化器能够移除不可达的特定 layer 分支。
+
+<Columns>
+```js title=源码
+const currentLayer = __webpack_layer__;
+```
+
+```js title=产物
+const currentLayer = 'client';
 ```
 
 </Columns>
@@ -577,7 +832,7 @@ __resourceQuery
 
 ### \_\_webpack_exports_info\_\_
 
-<ApiMeta addedVersion="1.0.0" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 在模块中通过 `__webpack_exports_info__` 可以读取如下导出信息：
 
@@ -635,6 +890,8 @@ __webpack_require__.cn = 'main';
 
 ### \_\_webpack_chunk_load\_\_
 
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
 内部 chunk 载入函数，有一个输入参数：
 
 - `chunkId`: 需要载入的 chunk id
@@ -663,7 +920,7 @@ const publicPaths = ['a', 'b', 'c'];
 __webpack_chunk_load__ = async (id) => {
   let error;
   for (const path of publicPaths) {
-    __webpack_public_path__ = path;
+    import.meta.rspackPublicPath = path;
     try {
       return await originalLoad(id);
     } catch (e) {
@@ -679,7 +936,7 @@ import('./module-a').then((moduleA) => {
 
 ### \_\_webpack_get_script_filename\_\_
 
-<ApiMeta addedVersion="1.0.0" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 通过 chunk 的 id 获取 chunk 的文件名。
 
@@ -714,15 +971,15 @@ __webpack_get_script_filename__ = (chunkId) => {
 
 ### \_\_webpack_share_scopes\_\_
 
-<ApiMeta specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} stability={Stability.Deprecated} />
 
-用于存储 module federation 中的一个远程容器共享作用域 (shared scope) 相关信息。
+是 [`import.meta.rspackShareScopes`](#importmetarspacksharescopes) 在 CommonJS 下的等价写法。
 
 ### \_\_webpack_init_sharing\_\_
 
-<ApiMeta specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} stability={Stability.Deprecated} />
 
-用于初始化 module federation 中的一个远程容器共享作用域 (shared scope) 并加载相关模块。
+是 [`import.meta.rspackInitSharing`](#importmetarspackinitsharing) 在 CommonJS 下的等价写法。
 
 ## System.js
 
@@ -736,43 +993,14 @@ __webpack_get_script_filename__ = (chunkId) => {
 
 ### \_\_rspack_version\_\_
 
-<ApiMeta specific={['Rspack']} />
-当前使用的 Rspack 版本，默认从 `@rspack/core/package.json` 读取。可以通过
-`output.bundlerInfo.version` 修改。
+<ApiMeta specific={['Rspack']} stability={Stability.Deprecated} />
 
-<Columns>
-```js title=源码
-__rspack_version__
-```
-
-```js title=产物
-__webpack_require__.rv;
-
-// webpack/runtime/rspack_version
-__webpack_require__.rv = '0.7.4';
-```
-
-</Columns>
+是 [`import.meta.rspackVersion`](#importmetarspackversion) 在 CommonJS 下的等价写法。
 
 ### \_\_rspack_unique_id\_\_
 
-<ApiMeta addedVersion="1.0.0" specific={['Rspack']} />
+<ApiMeta specific={['Rspack']} stability={Stability.Deprecated} />
 
-当前打包工具的 ID，值为 `{bundler}@{version}`。其中：
+是 [`import.meta.rspackUniqueId`](#importmetarspackuniqueid) 在 CommonJS 下的等价写法。
 
-- `bundler`：默认为 `"rspack"` 可以通过 [output.bundlerInfo.bundler](/config/output#outputbundlerinfo) 修改。
-- `version`：默认从 `@rspack/core/package.json` 读取，可以通过 [output.bundlerInfo.version](/config/output#outputbundlerinfo) 修改。
-
-<Columns>
-```js title=源码
-__rspack_unique_id__
-```
-
-```js title=产物
-__webpack_require__.ruid;
-
-// webpack/runtime/rspack_unique_id
-__webpack_require__.ruid = 'bundler=rspack@0.7.4';
-```
-
-</Columns>
+<Attribution url="https://webpack.docschina.org/api/module-variables/" />

@@ -1,6 +1,6 @@
 // JSONP chunk loading for javascript
-var installedChunkData = <%- HAS_OWN_PROPERTY %>(installedChunks, chunkId)
-	? installedChunks[chunkId]
+var installedChunkData = <%- HAS_OWN_PROPERTY %>(jsonpInstalledChunks, chunkId)
+	? jsonpInstalledChunks[chunkId]
 	: undefined;
 if (installedChunkData !== 0) {
 	// 0 means "already installed".
@@ -11,7 +11,7 @@ if (installedChunkData !== 0) {
 	} else {
 		if (<%- _js_matcher %>) {
 			// setup Promise in chunk cache
-			var promise = new Promise(<%- expressionFunction("installedChunkData = installedChunks[chunkId] = [resolve, reject]", "resolve, reject") %>);
+			var promise = new Promise(<%- expressionFunction("installedChunkData = jsonpInstalledChunks[chunkId] = [resolve, reject]", "resolve, reject") %>);
 			promises.push((installedChunkData[2] = promise));
 
 			// start chunk loading
@@ -19,9 +19,9 @@ if (installedChunkData !== 0) {
 			// create error before stack unwound to get useful stacktrace later
 			var error = new Error();
 			var loadingEnded = function (event) {
-				if (<%- HAS_OWN_PROPERTY %>(installedChunks, chunkId)) {
-					installedChunkData = installedChunks[chunkId];
-					if (installedChunkData !== 0) installedChunks[chunkId] = undefined;
+				if (<%- HAS_OWN_PROPERTY %>(jsonpInstalledChunks, chunkId)) {
+					installedChunkData = jsonpInstalledChunks[chunkId];
+					if (installedChunkData !== 0) jsonpInstalledChunks[chunkId] = undefined;
 					if (installedChunkData) {
 						var errorType =
 							event && (event.type === 'load' ? 'missing' : event.type);
@@ -42,6 +42,6 @@ if (installedChunkData !== 0) {
 				}
 			};
 			<%- LOAD_SCRIPT %>(url, loadingEnded, "chunk-" + chunkId, chunkId<%- _fetch_priority %>);
-		} <% if (_js_matcher != "true") { %>else installedChunks[chunkId] = 0; <% } %>
+		} <% if (_js_matcher != "true") { %>else jsonpInstalledChunks[chunkId] = 0;<% } %>
 	}
 }

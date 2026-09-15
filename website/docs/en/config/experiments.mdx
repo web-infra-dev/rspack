@@ -2,11 +2,10 @@
 description: 'In minor releases, Rspack may change the APIs of experimental features'
 ---
 
-import { ApiMeta } from '../../../components/ApiMeta';
-import WebpackLicense from '@components/WebpackLicense';
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
+import Attribution from '@components/Attribution';
 import PropertyType from '@components/PropertyType';
-
-<WebpackLicense from="https://webpack.js.org/configuration/experiments/" />
+import { Tabs, Tab } from '@theme';
 
 # Experiments
 
@@ -60,6 +59,11 @@ type HttpUriOptions = {
    */
   upgrade?: boolean;
   /**
+   * Freeze the remote resources and lockfile
+   * @default true in production mode, false otherwise
+   */
+  frozen?: boolean;
+  /**
    * Custom http client
    */
   httpClient?: (
@@ -75,21 +79,33 @@ type HttpUriOptions = {
 
 After enabling this feature, Rspack can build remote resources that start with the `http(s):` protocol. Rspack will download the resources to the local machine and then bundle them.
 
+String entries in `allowedUris` must be valid absolute URLs. Rspack normalizes both the requested URL and each string entry before comparing their prefixes. For example, `'https://example.com'` is normalized to `'https://example.com/'`. Invalid string entries, such as `'https://'`, are ignored. Regular expressions are tested against the normalized URL; use `/^https:\/\//` if you intend to allow any HTTPS URL. Redirect targets must also match `allowedUris`.
+
 By default, Rspack will generate `rspack.lock` and `rspack.lock.data` in the [context](/config/context) folder as the locations of the Lockfile and the cache respectively. You can also configure them through `lockfileLocation` and `cacheLocation`.
 
 :::note
-You should commit the files at `lockfileLocation` and `cacheLocation` to the version control system so that no network requests will be made during the production build.
+You should commit the files at `lockfileLocation` and `cacheLocation` to the version control system so that production builds can use the cached content.
 :::
+
+Rspack checks cached content against the SHA-512 integrity recorded in the lockfile. `frozen` defaults to `true` in production mode and `false` otherwise. When frozen, missing lockfile entries, corrupted cached content, missing cache files, and changes to a resource's content, resolved URL, or content type cause a build error. The lockfile and its content cache are not updated. With `cacheLocation: false`, downloaded content must still match the locked entry.
+
+Older lockfiles may record a redirected import only under its final URL. If the original URL has no entry, a frozen build makes network requests to follow allowed redirects until it finds an existing locked entry, then verifies its content without rewriting the lockfile or cache. Imports that do not reach a locked resource still fail. If the original URL already has an entry, that entry remains authoritative.
+
+To populate the lockfile and cache, run a development build or explicitly set `frozen: false`. To check for remote updates, also set `upgrade: true`, then review and commit the resulting changes. `upgrade: false` prefers cached content; it does not prevent lockfile updates when content must be downloaded. An unfrozen build can also repair the lockfile to accept locally edited cache files, matching webpack's behavior.
+
+Resources recorded as `"no-cache"` or `"ignore"` are fetched without pinning their content, including in frozen mode. Integrity checks rely on a trusted lockfile and do not authenticate the first download. To prevent Git from changing the cached bytes' line endings, add `**/*rspack.lock.data/** -text` to `.gitattributes`, adapting the pattern if you use a custom cache location.
 
 For example:
 
 ```js title="rspack.config.mjs"
+import path from 'node:path';
+
 export default {
   experiments: {
     buildHttp: {
-      allowedUris: ['https://'],
-      lockfileLocation: path.join(__dirname, 'my_project.lock'),
-      cacheLocation: path.join(__dirname, 'my_project.lock.data'),
+      allowedUris: ['https://example.com/'],
+      lockfileLocation: path.join(import.meta.dirname, 'my_project.lock'),
+      cacheLocation: path.join(import.meta.dirname, 'my_project.lock.data'),
     },
   },
 };
@@ -145,6 +161,48 @@ import defer * as __rspack_external_jquery from 'jquery';
 
 :::
 
+## experiments.sourceImport
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.0.8" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Enables support for the TC39 [Source Phase Imports](https://github.com/tc39/proposal-source-phase-imports) proposal.
+
+Source phase imports let you import a module before it is evaluated. In Rspack, this support is currently designed for WebAssembly modules: importing a `.wasm` module in the source phase returns a compiled [`WebAssembly.Module`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Module), so you can instantiate it yourself, instantiate it more than once with different imports, or transfer it to a worker.
+
+Enable `experiments.sourceImport`:
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    sourceImport: true,
+  },
+};
+```
+
+You can use the static source-phase syntax:
+
+```js
+import source wasmModule from './module.wasm';
+
+const instance = await WebAssembly.instantiate(wasmModule, {
+  // imports...
+});
+```
+
+Or the dynamic syntax:
+
+```js
+const wasmModule = await import.source('./module.wasm');
+const instance = await WebAssembly.instantiate(wasmModule);
+```
+
+:::note
+For a normal WebAssembly import, Rspack instantiates the module and exposes its exports. For a source phase import, Rspack returns the compiled `WebAssembly.Module` instead, and your code is responsible for calling `WebAssembly.instantiate`.
+:::
+
 ## experiments.futureDefaults
 
 - **Type:** `boolean`
@@ -191,13 +249,13 @@ export default {
 <ApiMeta addedVersion="2.0.0" />
 
 - **Type:** `boolean`
-- **Default:** `false`
+- **Default:** `true` in production mode, `false` otherwise
 
-Enables cross-module side-effect-free function call optimization, including the `/*#__NO_SIDE_EFFECTS__*/` annotation and [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions). Functions marked through annotations or user configuration are omitted from the output when they are not actually used.
+Enables cross-module side-effect-free function call optimization, including the `/*#__NO_SIDE_EFFECTS__*/` annotation and [`module.parser.javascript.pureFunctions`](/config/module-parser#javascriptpurefunctions). Functions marked through annotations or user configuration are omitted from the output when they are not actually used.
 
 For more background, see [pureFunctions](/guide/optimization/tree-shaking#purefunctions) and [NO_SIDE_EFFECTS annotation](/guide/optimization/tree-shaking#no_side_effects-annotation).
 
-Use this option to turn on the capability itself. To manually mark exported functions in matched third-party modules, configure [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) through `module.rules[i].parser` so the rule only applies to the intended modules.
+This capability is enabled by default in production mode. To disable pure-function analysis, set this option to `false`. To manually mark identifiers in matched modules — exported functions in a third-party module, or imports/locals in your own files — configure [`module.parser.javascript.pureFunctions`](/config/module-parser#javascriptpurefunctions) through `module.rules[i].parser` so the rule only applies to the intended modules.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -221,6 +279,85 @@ export default {
 This option depends on `optimization.sideEffects`. If you disable [`optimization.sideEffects`](/config/optimization#optimizationsideeffects), pure-function hints will not be analyzed.
 :::
 
+## experiments.runtimeMode
+
+<ApiMeta addedVersion="2.2.0" />
+
+- **Type:** `'webpack' | 'rspack'`
+- **Default:** `'webpack'`
+
+Setting `experiments.runtimeMode` to `'rspack'` enables Rspack's experimental runtime output. This output mode is still under development, so use it with caution. It currently generates cleaner output when [`output.module`](/config/output#outputmodule) is `true` and [`output.library.type`](/config/output#outputlibrarytype) is `'modern-module'`. In this case, instead of exporting one `__webpack_require__` function with runtime helpers attached as properties, the runtime exports the loader, module factories, and helpers as named ESM bindings. Each output chunk can import only the bindings it needs.
+
+### Example
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    runtimeMode: 'rspack',
+  },
+  output: {
+    module: true,
+    library: {
+      type: 'modern-module',
+    },
+  },
+  optimization: {
+    runtimeChunk: 'single',
+  },
+};
+```
+
+The generated runtime and a chunk that consumes it are organized like this (simplified):
+
+<Tabs>
+  <Tab label="runtimeMode: 'webpack'">
+
+```js
+// runtime.js
+var __webpack_modules__ = {};
+function __webpack_require__(moduleId) {
+  /* ... */
+}
+__webpack_require__.m = __webpack_modules__;
+__webpack_require__.n = (module) => {
+  /* ... */
+};
+
+export { __webpack_require__ };
+
+// main.js
+import { __webpack_require__ } from './runtime.js';
+
+const value = __webpack_require__(moduleId);
+const getDefault = __webpack_require__.n(value);
+```
+
+  </Tab>
+  <Tab label="runtimeMode: 'rspack'">
+
+```js
+// runtime.js
+var modules = {};
+function rspackRequire(moduleId) {
+  /* ... */
+}
+var moduleFactories = modules;
+var compatGetDefaultExport = (module) => {
+  /* ... */
+};
+
+export { rspackRequire, moduleFactories, compatGetDefaultExport };
+
+// main.js
+import { rspackRequire, compatGetDefaultExport } from './runtime.js';
+
+const value = rspackRequire(moduleId);
+const getDefault = compatGetDefaultExport(value);
+```
+
+  </Tab>
+</Tabs>
+
 ## experiments.useInputFileSystem
 
 <ApiMeta addedVersion="1.3.14" />
@@ -241,7 +378,7 @@ In below example, you can simply replace the default input file system to any fi
 The replacing of `compiler.inputFileSystem` will only take effect before `compiler.run` called; Replacing after `compiler.run` will not take effect.
 :::
 
-More detailed case can be found [here](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/configCases/input-file-system/webpack.config.js)
+More detailed case can be found [here](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/configCases/input-file-system/rspack.config.js)
 
 ```js title="rspack.config.mjs"
 export default {
@@ -275,16 +412,16 @@ export default {
 ```js title="rspack.config.mjs"
 import VirtualModulesPlugin from 'webpack-virtual-modules';
 
-var virtualModules = new VirtualModulesPlugin({
-  'virtual_entry.js': `
-    require("./src/another_virtual.js");
-    require("./src/disk_file.js")
+const virtualModules = new VirtualModulesPlugin({
+  'virtual-entry.js': `
+    import "./src/another-virtual.js";
+    import "./src/disk-file.js";
     `,
-  'src/another_virtual.js': 'module.exports = 42',
+  'src/another-virtual.js': 'export default 42;',
 });
 
 export default {
-  entry: './virtual_entry.js',
+  entry: './virtual-entry.js',
   plugins: [virtualModules],
   experiments: {
     useInputFileSystem: [/.*virtual.*\.js$/],
@@ -292,5 +429,7 @@ export default {
 };
 ```
 
-When access to `virtual_entry.js` and `src/another_virtual.js` which match the regular expressions of `experiments.useInputFileSystem`,
-Rspack will use the input file system wrapped by `VirtualModulesPlugin`; other than that, `src/disk_file.js` will be accessed by the native file system.
+When access to `virtual-entry.js` and `src/another-virtual.js` which match the regular expressions of `experiments.useInputFileSystem`,
+Rspack will use the input file system wrapped by `VirtualModulesPlugin`; other than that, `src/disk-file.js` will be accessed by the native file system.
+
+<Attribution url="https://webpack.js.org/configuration/experiments/" />

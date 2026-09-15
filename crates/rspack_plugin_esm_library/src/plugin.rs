@@ -11,29 +11,31 @@ use rspack_collections::{
 use rspack_core::{
   ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact, ChunkUkey,
   Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration,
-  CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunkModules,
-  CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationParams,
-  CompilationProcessAssets, CompilationRuntimeRequirementInTree, CompilerCompilation,
-  ConcatenatedModuleInfo, ConcatenationScope, DependencyType, ExportsInfoArtifact,
-  ExternalModuleInfo, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
-  ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PrefetchExportsInfoMode,
-  REQUIRE_SCOPE_GLOBALS, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
+  CompilationAdditionalModuleRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
+  CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationOptimizeDependencies,
+  CompilationParams, CompilationProcessAssets, CompilationRuntimeRequirementInTree,
+  CompilerCompilation, ConcatenatedModuleInfo, ConcatenationScope, DependencyType,
+  ExportsInfoArtifact, ExternalModuleInfo, GetTargetResult, JavascriptParserUrl, Logger,
+  ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType,
+  NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
+  Plugin, REQUIRE_SCOPE_GLOBALS, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
   SideEffectsOptimizeArtifact, SideEffectsStateArtifact, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
+use rspack_intern::Atom;
 use rspack_plugin_javascript::{
   JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
   dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
 };
-use rspack_plugin_split_chunks::CacheGroup;
-use rspack_util::{
-  atom::Atom,
-  fx_hash::{FxHashMap, FxHashSet},
+use rspack_plugin_rslib::{
+  dyn_import_external::cutout_dyn_import_externals,
+  worker_external::{ExternalWorkerDependencyTemplate, cutout_worker_externals},
 };
+use rspack_plugin_split_chunks::CacheGroup;
+use rspack_util::fx_hash::{FxHashMap, FxHashSet};
 use sugar_path::SugarPath;
 use tokio::sync::RwLock;
 
@@ -43,10 +45,12 @@ use crate::{
   esm_lib_parser_plugin::EsmLibParserPlugin,
   optimize_chunks::{
     analyze_dyn_import_targets, assign_dyn_import_chunk_short_names, ensure_entry_exports,
-    extract_tla_shared_modules, optimize_runtime_chunks,
+    extract_tla_shared_modules, mark_facade_chunks, optimize_runtime_chunks,
   },
   preserve_modules::preserve_modules,
-  runtime::EsmRegisterModuleRuntimeModule,
+  runtime::{
+    EsmChunkLoadingRuntimeModule, EsmEnsureChunkRuntimeModule, EsmRegisterModuleRuntimeModule,
+  },
 };
 
 pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
@@ -126,8 +130,14 @@ impl EsmLibraryPlugin {
         .any(|dep| {
           !is_esm_dep_like(dep)
             && !matches!(
-              dep.dependency_type(),
-              DependencyType::Entry | DependencyType::DynamicImport
+              (dep.dependency_type(), dep.url_mode()),
+              (
+                DependencyType::Entry | DependencyType::DynamicImport | DependencyType::NewWorker,
+                _
+              ) | (
+                DependencyType::NewUrl,
+                Some(JavascriptParserUrl::NewUrlRelative)
+              )
             )
         })
       {
@@ -139,8 +149,7 @@ impl EsmLibraryPlugin {
 
       // if we reach here, check exports info
       if should_scope_hoisting {
-        let exports_info = exports_info_artifact
-          .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
+        let exports_info = exports_info_artifact.get_exports_info_data(module_identifier);
 
         let relevant_exports = exports_info.get_relevant_exports(None);
         let unknown_exports = relevant_exports
@@ -273,6 +282,16 @@ async fn compilation(
       dyn_import_ns_map: self.dyn_import_ns_map.clone(),
     }),
   );
+  let worker_template = compilation.get_dependency_template(
+    rspack_core::DependencyTemplateType::Dependency(DependencyType::NewWorker),
+  );
+  compilation.set_dependency_template(
+    rspack_core::DependencyTemplateType::Dependency(DependencyType::NewWorker),
+    Arc::new(ExternalWorkerDependencyTemplate {
+      cutout_all_externals: false,
+      template: worker_template,
+    }),
+  );
   Ok(())
 }
 
@@ -282,7 +301,7 @@ async fn render_chunk_content(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   asset_info: &mut AssetInfo,
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<Option<RenderSource>> {
   self
     .render_chunk(compilation, chunk_ukey, asset_info, runtime_template)
@@ -298,134 +317,6 @@ async fn finish_modules(
   _side_effects_state_artifact: &mut SideEffectsStateArtifact,
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
-  let mut modules_map = IdentifierIndexMap::default();
-  let mut modules = module_graph.modules().collect::<Vec<_>>();
-  modules.sort_by_key(|(m1, _)| *m1);
-  let logger = compilation.get_logger("rspack.EsmLibraryPlugin");
-
-  for (idx, (module_identifier, module)) in modules.into_iter().enumerate() {
-    // make sure all exports are provided
-    let mut should_scope_hoisting = true;
-
-    if let Some(reason) = module.get_concatenation_bailout_reason(
-      module_graph,
-      &compilation.build_chunk_graph_artifact.chunk_graph,
-    ) {
-      logger.debug(format!(
-        "module {module_identifier} has bailout reason: {reason}",
-      ));
-      should_scope_hoisting = false;
-    }
-    // TODO: support config to disable scope hoisting for non strict module
-    //  else if !module.build_info().strict {
-    //   logger.debug(format!("module {module_identifier} is not strict module"));
-    //   should_scope_hoisting = false;
-    // }
-    else if module_graph
-      .get_incoming_connections(module_identifier)
-      .map(|conn| module_graph.dependency_by_id(&conn.dependency_id))
-      .any(|dep| {
-        !is_esm_dep_like(dep)
-          && !matches!(
-            dep.dependency_type(),
-            DependencyType::Entry | DependencyType::DynamicImport
-          )
-      })
-    {
-      logger.debug(format!(
-        "module {module_identifier} is referenced by non esm dependency"
-      ));
-      should_scope_hoisting = false;
-    }
-
-    // if we reach here, check exports info
-    if should_scope_hoisting {
-      let exports_info = exports_info_artifact
-        .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
-
-      let relevant_exports = exports_info.get_relevant_exports(None);
-      let unknown_exports = relevant_exports
-        .iter()
-        .filter(|export_info| {
-          export_info.is_reexport()
-            && !matches!(
-              get_target(
-                export_info,
-                module_graph,
-                exports_info_artifact,
-                &|_| true,
-                &mut Default::default()
-              ),
-              Some(GetTargetResult::Target(_))
-            )
-        })
-        .copied()
-        .collect::<Vec<_>>();
-
-      if !unknown_exports.is_empty() {
-        logger.debug(format!(
-          "module {module_identifier} has unknown reexport: {:?}",
-          unknown_exports.iter().map(|e| e.name()).collect::<Vec<_>>()
-        ));
-        should_scope_hoisting = false;
-      }
-    }
-
-    if should_scope_hoisting {
-      modules_map.insert(
-        *module_identifier,
-        ModuleInfo::Concatenated(Box::new(ConcatenatedModuleInfo {
-          index: idx,
-          module: *module_identifier,
-          ..Default::default()
-        })),
-      );
-    } else {
-      modules_map.insert(
-        *module_identifier,
-        ModuleInfo::External(ExternalModuleInfo::new(idx, *module_identifier)),
-      );
-    }
-  }
-
-  // we should mark all wrapped modules' children as wrapped
-  let mut visited = IdentifierSet::default();
-  let mut stack = modules_map
-    .iter()
-    .filter(|(_, info)| matches!(info, ModuleInfo::External(_)))
-    .map(|(id, _)| *id)
-    .collect::<Vec<_>>();
-
-  let module_graph = compilation.get_module_graph();
-  while let Some(m) = stack.pop() {
-    if !visited.insert(m) {
-      continue;
-    }
-
-    for dep in module_graph.get_outgoing_deps_in_order(&m) {
-      let Some(dep_module) = module_graph.module_identifier_by_dependency_id(dep) else {
-        continue;
-      };
-
-      if let Some(info) = modules_map.get_mut(dep_module)
-        && let ModuleInfo::Concatenated(concate_info) = info
-      {
-        *info = ModuleInfo::External(ExternalModuleInfo::new(
-          concate_info.index,
-          concate_info.module,
-        ));
-        stack.push(*dep_module);
-      }
-    }
-  }
-
-  // only used for scope
-  // we mutably modify data in `self.concatenated_modules_map`
-  let mut map = self.concatenated_modules_map_for_codegen.borrow_mut();
-  *map = Arc::new(modules_map.clone());
-  drop(map);
-
-  *self.concatenated_modules_map.write().await = modules_map;
   // mark all entry exports as used
   let mut entry_modules = IdentifierSet::default();
   for entry_data in compilation.entries.values() {
@@ -460,11 +351,12 @@ async fn concatenation_scope(
   let ModuleInfo::Concatenated(current_module) = current_module else {
     return Ok(None);
   };
-  let scope = ConcatenationScope::new(
+  let mut scope = ConcatenationScope::new(
     current_module.module,
     modules_map.clone(),
     current_module.as_ref().clone(),
   );
+  scope.enable_codegen_data_collection();
   Ok(Some(scope))
 }
 
@@ -493,38 +385,52 @@ async fn after_code_generation(
   Ok(())
 }
 
+#[plugin_hook(CompilationAdditionalModuleRuntimeRequirements for EsmLibraryPlugin)]
+async fn additional_module_runtime_requirements(
+  &self,
+  _compilation: &Compilation,
+  module_identifier: &ModuleIdentifier,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  let info_map = self.concatenated_modules_map.read().await;
+  let Some(info) = info_map.get(module_identifier) else {
+    return Ok(());
+  };
+
+  runtime_requirements.extend(*info.get_runtime_requirements());
+
+  if info.get_interop_default_access_used() {
+    runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
+  }
+
+  if info.get_interop_namespace_object2_used() || info.get_interop_namespace_object_used() {
+    runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+  }
+
+  Ok(())
+}
+
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for EsmLibraryPlugin)]
 async fn additional_chunk_runtime_requirements(
   &self,
-  compilation: &Compilation,
+  _compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
   _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
-  let info_map = self.concatenated_modules_map.read().await;
-
-  for m in compilation
-    .build_chunk_graph_artifact
-    .chunk_graph
-    .get_chunk_modules_identifier(chunk_ukey)
+  if let Some(chunk_link) = self.links.borrow().get(chunk_ukey)
+    && chunk_link
+      .required
+      .values()
+      .any(|interop| interop.default_access.is_some())
   {
-    let info = info_map.get(m).expect("should have this info map");
-
-    runtime_requirements.extend(*info.get_runtime_requirements());
-
-    if info.get_interop_default_access_used() {
-      runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
-    }
-
-    if info.get_interop_namespace_object2_used() || info.get_interop_namespace_object_used() {
-      runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
-    }
+    runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
   }
 
   // Add REQUIRE_SCOPE only when runtime_requirements actually contain globals
-  // that live on the __webpack_require__ object (same check the runtime plugin
+  // that live on the __rspack_require object (same check the runtime plugin
   // uses in handle_scope_globals). This avoids pulling in an empty
-  // `var __webpack_require__ = {};` for chunks whose only requirements are
+  // `var __rspack_require = {};` for chunks whose only requirements are
   // unrelated to the require scope (e.g. STARTUP_NO_DEFAULT added at tree level).
   if runtime_requirements
     .iter()
@@ -546,7 +452,9 @@ async fn runtime_requirements_in_tree(
   _runtime_requirements_mut: &mut RuntimeGlobals,
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
-  if runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES) {
+  if runtime_requirements
+    .intersects(RuntimeGlobals::MODULE_FACTORIES | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY)
+  {
     runtime_modules_to_add.push((
       *chunk_ukey,
       Box::new(EsmRegisterModuleRuntimeModule::new(
@@ -561,11 +469,21 @@ async fn runtime_requirements_in_tree(
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for EsmLibraryPlugin, stage = -100)]
 async fn additional_tree_runtime_requirements(
   &self,
-  _compilation: &Compilation,
+  compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
-  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
+  runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
+  if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK) {
+    runtime_requirements.remove(RuntimeGlobals::ENSURE_CHUNK);
+    runtime_modules.push(Box::new(EsmEnsureChunkRuntimeModule::new(
+      &compilation.runtime_template,
+    )));
+    runtime_modules.push(Box::new(EsmChunkLoadingRuntimeModule::new(
+      &compilation.runtime_template,
+    )));
+  }
+
   // avoid generate startup runtime, eg. entry dependent chunk loading runtime
   runtime_requirements.insert(RuntimeGlobals::STARTUP_NO_DEFAULT);
 
@@ -732,6 +650,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 #[plugin_hook(CompilationOptimizeChunks for EsmLibraryPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED + 1)]
 async fn optimize_runtime_chunk_hook(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   optimize_runtime_chunks(compilation);
+  mark_facade_chunks(compilation);
   Ok(None)
 }
 
@@ -758,7 +677,12 @@ async fn after_factorize(
 ) -> Result<()> {
   // Check if this is an external module using the existing downcast helper
   if let Some(external_module) = module.as_external_module_mut()
-    && external_module.get_external_type().starts_with("module")
+    && external_module.resolve_external_type() == "module"
+    && (external_module.get_external_type() != "modern-module"
+      || data
+        .dependencies
+        .first()
+        .is_some_and(|dependency| is_esm_dep_like(dependency.as_ref())))
   {
     // If there's an issuer, append it to the module id
     if let Some(issuer_identifier) = &data.issuer_identifier {
@@ -874,6 +798,17 @@ async fn optimize_dependencies(
   exports_info_artifact: &mut ExportsInfoArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
+  cutout_dyn_import_externals(
+    false,
+    compilation.options.output.module,
+    build_module_graph_artifact,
+  );
+  cutout_worker_externals(
+    false,
+    compilation.options.output.module,
+    build_module_graph_artifact,
+  );
+
   self
     .mark_modules(
       compilation,
@@ -916,6 +851,11 @@ impl Plugin for EsmLibraryPlugin {
 
     ctx
       .compilation_hooks
+      .additional_module_runtime_requirements
+      .tap(additional_module_runtime_requirements::new(self));
+
+    ctx
+      .compilation_hooks
       .additional_chunk_runtime_requirements
       .tap(additional_chunk_runtime_requirements::new(self));
 
@@ -938,11 +878,6 @@ impl Plugin for EsmLibraryPlugin {
       .compilation_hooks
       .optimize_chunks
       .tap(optimize_runtime_chunk_hook::new(self));
-
-    ctx
-      .compilation_hooks
-      .optimize_dependencies
-      .tap(optimize_dependencies::new(self));
 
     ctx
       .compilation_hooks

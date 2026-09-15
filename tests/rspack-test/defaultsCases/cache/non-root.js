@@ -17,8 +17,11 @@ module.exports = {
 			-   "cache": false,
 			+   "cache": Object {
 			+     "buildDependencies": Array [],
-			+     "portable": undefined,
-			+     "readonly": undefined,
+			+     "maxAge": 604800,
+			+     "maxMemoryGenerations": Infinity,
+			+     "name": "none",
+			+     "portable": false,
+			+     "readonly": false,
 			+     "snapshot": Object {
 			+       "immutablePaths": Array [],
 			+       "managedPaths": Array [
@@ -28,6 +31,7 @@ module.exports = {
 			+     },
 			+     "storage": Object {
 			+       "directory": "<cwd>/fixtures/node_modules/.cache/rspack",
+			+       "location": "<cwd>/fixtures/node_modules/.cache/rspack/none",
 			+       "type": "filesystem",
 			+     },
 			+     "type": "persistent",

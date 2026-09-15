@@ -15,6 +15,14 @@ module.exports = {
     ],
   },
   devtool: 'cheap-source-map',
-  externals: ['source-map'],
+  externals: [
+    {
+      fs: 'node-commonjs fs',
+    },
+    {
+      'source-map': 'commonjs source-map',
+    },
+    'source-map',
+  ],
   externalsType: 'commonjs',
 };

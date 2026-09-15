@@ -2,9 +2,7 @@
 description: 'Rspack 支持多种 loader 类型，包括同步 loader、异步 loader、ESM loader、Raw loader 和 Pitching loader 等。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.docschina.org/api/loaders/#examples" />
+import Attribution from '@components/Attribution';
 
 # 编写 Loader
 
@@ -144,11 +142,9 @@ Raw Loader 在处理图片压缩、二进制资源转换、文件编码等场景
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   module: {
     rules: [
       {
-        //...
         use: ['a-loader', 'b-loader', 'c-loader'],
       },
     ],
@@ -332,3 +328,43 @@ export default async function myLoader(source, inputSourceMap) {
   }
 }
 ```
+
+## 发布 loader
+
+### 声明 peer dependencies
+
+将 loader 发布为 npm 包时，如果这个 loader 仅面向 Rspack，将 `@rspack/core` 声明为 optional peer dependency 即可。版本范围应根据 loader 实际依赖的 API 来决定；如果使用了某个 Rspack 新版本引入的 API，需要将最低版本限制为该版本。
+
+```json title="package.json"
+{
+  "peerDependencies": {
+    "@rspack/core": "^1.0.0 || ^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@rspack/core": {
+      "optional": true
+    }
+  }
+}
+```
+
+如果这个 loader 同时适配 Rspack 和 webpack，则将 `@rspack/core` 和 `webpack` 都声明为 optional peer dependencies：
+
+```json title="package.json"
+{
+  "peerDependencies": {
+    "@rspack/core": "^1.0.0 || ^2.0.0",
+    "webpack": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@rspack/core": {
+      "optional": true
+    },
+    "webpack": {
+      "optional": true
+    }
+  }
+}
+```
+
+<Attribution url="https://webpack.docschina.org/api/loaders/#examples" />

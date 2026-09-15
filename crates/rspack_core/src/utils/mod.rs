@@ -8,6 +8,8 @@ use crate::{
   ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ConcatenatedModule,
   ModuleGraph, ModuleIdentifier,
 };
+#[cfg(feature = "codspeed")]
+mod codspeed;
 mod comment;
 mod compile_boolean_matcher;
 mod concatenated_module_visitor;
@@ -17,11 +19,11 @@ mod extract_url_and_global;
 mod fast_actions;
 mod file_counter;
 mod find_graph_roots;
+mod freeze_lock;
 mod fs_trim;
 pub mod incremental_info;
 mod steal_cell;
 pub use fs_trim::*;
-mod hash;
 mod identifier;
 mod memory_gc;
 mod module_rules;
@@ -34,13 +36,17 @@ mod source_size_cache;
 pub mod task_loop;
 mod template;
 mod to_path;
+mod topological_sort;
 pub use compile_boolean_matcher::*;
 pub use concatenated_module_visitor::*;
 pub use concatenation_scope::*;
+pub use freeze_lock::{FreezeLock, FreezeReadGuard};
 pub use memory_gc::MemoryGCStorage;
 pub use rspack_parallel::{FutureConsumer, RayonConsumer};
 pub use steal_cell::StealCell;
 
+#[cfg(feature = "codspeed")]
+pub use self::codspeed::*;
 pub use self::{
   comment::*,
   extract_source_map::*,
@@ -48,7 +54,6 @@ pub use self::{
   fast_actions::*,
   file_counter::{FileCounter, ResourceId},
   find_graph_roots::*,
-  hash::*,
   identifier::*,
   module_rules::*,
   property_access::*,
@@ -59,6 +64,7 @@ pub use self::{
   source_size_cache::*,
   template::*,
   to_path::to_path,
+  topological_sort::*,
 };
 
 /// join string component in a more human readable way

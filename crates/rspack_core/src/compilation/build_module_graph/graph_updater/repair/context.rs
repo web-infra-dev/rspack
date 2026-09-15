@@ -1,33 +1,31 @@
 use std::sync::Arc;
 
-use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
+use rspack_fs::{IntermediateFileSystem, WritableFileSystem};
 use rspack_tasks::CURRENT_COMPILER_CONTEXT;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::BuildModuleGraphArtifact;
 use crate::{
-  Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory, ResolverFactory,
-  RuntimeTemplate, SharedPluginDriver, incremental::Incremental, module_graph::ModuleGraph,
+  BuildContext, Compilation, CompilerPlatform, DependencyTemplate, DependencyTemplateType,
+  DependencyType, ExportsInfoArtifact, ModuleFactory, ResolverFactory, RuntimeTemplate,
+  SharedPluginDriver, ValueCacheVersions,
+  compilation::build_module_graph::module_build_cache::ModuleBuildCache, incremental::Incremental,
+  module_graph::ModuleGraph, new_cache::CompilerCache,
 };
 
 #[derive(Debug)]
 pub struct TaskContext {
-  pub compiler_id: CompilerId,
-  // compilation info
-  pub compilation_id: CompilationId,
-  pub plugin_driver: SharedPluginDriver,
+  pub build_context: Arc<BuildContext>,
   pub buildtime_plugin_driver: SharedPluginDriver,
-  pub fs: Arc<dyn ReadableFileSystem>,
   pub intermediate_fs: Arc<dyn IntermediateFileSystem>,
   pub output_fs: Arc<dyn WritableFileSystem>,
-  pub compiler_options: Arc<CompilerOptions>,
   pub platform: Arc<CompilerPlatform>,
-  pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
-  pub runtime_template: RuntimeTemplate,
+  pub(crate) cache: CompilerCache,
+  pub(crate) module_build_cache: Option<ModuleBuildCache>,
+  pub value_cache_versions: ValueCacheVersions,
 
   pub artifact: BuildModuleGraphArtifact,
   pub exports_info_artifact: ExportsInfoArtifact,
@@ -40,20 +38,28 @@ impl TaskContext {
     exports_info_artifact: ExportsInfoArtifact,
   ) -> Self {
     Self {
-      compiler_id: compilation.compiler_id(),
-      compilation_id: compilation.id(),
-      plugin_driver: compilation.plugin_driver.clone(),
+      build_context: Arc::new(BuildContext {
+        compiler_id: compilation.compiler_id(),
+        compilation_id: compilation.id(),
+        compiler_options: compilation.options.clone(),
+        loader_cache: compilation.get_cache("loader"),
+        file_system_info: compilation.file_system_info.clone(),
+        resolver_factory: compilation.resolver_factory.clone(),
+        runtime_template: RuntimeTemplate::new(compilation.options.clone())
+          .create_module_code_template(),
+        plugin_driver: compilation.plugin_driver.clone(),
+        fs: compilation.input_filesystem.clone(),
+      }),
       buildtime_plugin_driver: compilation.buildtime_plugin_driver.clone(),
-      compiler_options: compilation.options.clone(),
       platform: compilation.platform.clone(),
-      resolver_factory: compilation.resolver_factory.clone(),
       loader_resolver_factory: compilation.loader_resolver_factory.clone(),
       dependency_factories: compilation.dependency_factories.clone(),
       dependency_templates: compilation.dependency_templates.clone(),
-      fs: compilation.input_filesystem.clone(),
       intermediate_fs: compilation.intermediate_filesystem.clone(),
       output_fs: compilation.output_filesystem.clone(),
-      runtime_template: RuntimeTemplate::new(compilation.options.clone()),
+      module_build_cache: compilation.module_build_cache.clone(),
+      cache: compilation.cache.clone(),
+      value_cache_versions: compilation.value_cache_versions.clone(),
       artifact,
       exports_info_artifact,
     }
@@ -70,25 +76,31 @@ impl TaskContext {
   pub fn transform_to_temp_compilation(&mut self) -> Compilation {
     let compiler_context = CURRENT_COMPILER_CONTEXT.get();
     let mut compilation = Compilation::new(
-      self.compiler_id,
-      self.compiler_options.clone(),
+      self.build_context.compiler_id,
+      self.build_context.compiler_options.clone(),
       self.platform.clone(),
-      self.plugin_driver.clone(),
+      self.build_context.plugin_driver.clone(),
       self.buildtime_plugin_driver.clone(),
-      self.resolver_factory.clone(),
+      self.build_context.resolver_factory.clone(),
       self.loader_resolver_factory.clone(),
       None,
-      Incremental::new_cold(self.compiler_options.incremental),
+      Incremental::new_cold(self.build_context.compiler_options.incremental),
       None,
       Default::default(),
+      self.cache.clone(),
       Default::default(),
-      self.fs.clone(),
+      Default::default(),
+      self.build_context.fs.clone(),
       self.intermediate_fs.clone(),
       self.output_fs.clone(),
-      // used at module executor which not support persistent cache, set as false
+      // Preserve the module executor's initial-compilation behavior. Its module
+      // cache is disabled explicitly below.
       false,
       compiler_context,
     );
+    compilation.module_build_cache = None;
+    compilation.runtime_template =
+      RuntimeTemplate::for_module_execution(self.build_context.compiler_options.clone());
     compilation.dependency_factories = self.dependency_factories.clone();
     compilation.dependency_templates = self.dependency_templates.clone();
     std::mem::swap(

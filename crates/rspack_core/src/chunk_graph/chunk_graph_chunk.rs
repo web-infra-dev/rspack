@@ -1,29 +1,26 @@
 //!  There are methods whose verb is `ChunkGraphChunk`
 
-use std::{
-  collections::VecDeque,
-  fmt,
-  hash::{BuildHasherDefault, Hash},
-};
+use std::{collections::VecDeque, fmt, hash::BuildHasherDefault};
 
 use hashlink::LinkedHashMap;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_collections::{IdentifierHasher, IdentifierLinkedMap, IdentifierMap, IdentifierSet};
+use rspack_hash::RspackHasher;
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Serialize, Serializer};
 use ustr::Ustr;
 
 use crate::{
-  BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGraphModule, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkUkey, Compilation, ExportsInfoArtifact, Module, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact, SourceType,
+  Chunk, ChunkByUkey, ChunkGraph, ChunkGraphModule, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey,
+  Compilation, ExportsInfoArtifact, Module, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, ModuleRef, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact, SourceType,
   find_graph_roots, merge_runtime,
 };
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct ChunkSizeOptions {
   // constant overhead for a chunk
   pub chunk_overhead: Option<f64>,
@@ -81,6 +78,12 @@ impl ChunkId {
   }
 }
 
+impl rspack_hash::RspackHash for ChunkId {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.0.as_str().hash(state);
+  }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraphChunk {
   /// URI of modules => ChunkGroupUkey
@@ -94,21 +97,12 @@ pub struct ChunkGraphChunk {
 }
 
 impl ChunkGraphChunk {
-  pub fn new() -> Self {
-    Self {
-      entry_modules: Default::default(),
-      modules: Default::default(),
-      runtime_modules: Default::default(),
-      source_types_by_module: Default::default(),
-    }
-  }
-
   pub fn modules(&self) -> &IdentifierSet {
     &self.modules
   }
 }
 
-fn get_modules_size(modules: &[&BoxModule], compilation: &Compilation) -> f64 {
+fn get_modules_size(modules: &[&ModuleRef], compilation: &Compilation) -> f64 {
   let mut size = 0f64;
   let module_graph = compilation.get_module_graph();
   for module in modules {
@@ -379,7 +373,7 @@ impl ChunkGraph {
     &self,
     chunk: &ChunkUkey,
     module_graph: &'module ModuleGraph,
-  ) -> Vec<&'module BoxModule> {
+  ) -> Vec<&'module ModuleRef> {
     let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
     chunk_graph_chunk
       .modules
@@ -408,7 +402,7 @@ impl ChunkGraph {
     &self,
     chunk: &ChunkUkey,
     module_graph: &'module ModuleGraph,
-  ) -> Vec<&'module BoxModule> {
+  ) -> Vec<&'module ModuleRef> {
     let mut modules = self.get_chunk_modules(chunk, module_graph);
     // SAFETY: module identifier is unique
     modules.sort_unstable_by_key(|m| m.identifier().as_str());
@@ -522,52 +516,6 @@ impl ChunkGraph {
         }
       })
       .collect::<Vec<_>>()
-  }
-
-  pub fn get_chunk_modules_size(&self, chunk: &ChunkUkey, compilation: &Compilation) -> f64 {
-    let module_graph = &compilation.get_module_graph();
-    self
-      .get_chunk_modules(chunk, module_graph)
-      .iter()
-      .fold(0.0, |acc, m| {
-        acc
-          + m
-            .source_types(module_graph)
-            .iter()
-            .fold(0.0, |acc, t| acc + m.size(Some(t), Some(compilation)))
-      })
-  }
-
-  pub fn get_chunk_modules_sizes(
-    &self,
-    chunk: &ChunkUkey,
-    compilation: &Compilation,
-  ) -> FxHashMap<SourceType, f64> {
-    let mut sizes = FxHashMap::<SourceType, f64>::default();
-    let cgc = self.expect_chunk_graph_chunk(chunk);
-    let module_graph = &compilation.get_module_graph();
-    for identifier in &cgc.modules {
-      let module = module_graph.module_by_identifier(identifier);
-      if let Some(module) = module {
-        for source_type in module.source_types(module_graph) {
-          let size = module.size(Some(source_type), Some(compilation));
-          sizes
-            .entry(*source_type)
-            .and_modify(|s| *s += size)
-            .or_insert(size);
-        }
-      } else {
-        let runtime_module = compilation.runtime_modules.get(identifier);
-        if let Some(runtime_module) = runtime_module {
-          let size = runtime_module.size(Some(&SourceType::Runtime), Some(compilation));
-          sizes
-            .entry(SourceType::Runtime)
-            .and_modify(|s| *s += size)
-            .or_insert(size);
-        }
-      }
-    }
-    sizes
   }
 
   pub fn get_number_of_chunk_modules(&self, chunk: &ChunkUkey) -> usize {
@@ -734,14 +682,12 @@ impl ChunkGraph {
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Vec<ModuleIdentifier> {
     let cgc = self.expect_chunk_graph_chunk(chunk);
-    let mut input = cgc.modules.iter().copied().collect::<Vec<_>>();
-    input.sort_unstable();
+    let input = cgc.modules.iter().copied().collect::<Vec<_>>();
 
-    let mut modules = find_graph_roots(input, |module| {
-      let mut set: IdentifierSet = Default::default();
+    let mut modules = find_graph_roots(input, |module, add_dependency| {
       fn add_dependencies(
         module: ModuleIdentifier,
-        set: &mut IdentifierSet,
+        add_dependency: &mut dyn FnMut(ModuleIdentifier),
         module_graph: &ModuleGraph,
         module_graph_cache: &ModuleGraphCacheArtifact,
         side_effects_state_artifact: &SideEffectsStateArtifact,
@@ -763,7 +709,7 @@ impl ChunkGraph {
             crate::ConnectionState::TransitiveOnly => {
               add_dependencies(
                 *connection.module_identifier(),
-                set,
+                add_dependency,
                 module_graph,
                 module_graph_cache,
                 side_effects_state_artifact,
@@ -773,19 +719,18 @@ impl ChunkGraph {
             }
             _ => {}
           }
-          set.insert(*connection.module_identifier());
+          add_dependency(*connection.module_identifier());
         }
       }
 
       add_dependencies(
         module,
-        &mut set,
+        add_dependency,
         module_graph,
         module_graph_cache,
         side_effects_state_artifact,
         exports_info_artifact,
       );
-      set.into_iter().collect()
     });
 
     modules.sort_unstable();
@@ -949,8 +894,8 @@ impl ChunkGraph {
     let is_available_chunk = |a: &Chunk, b: &Chunk| {
       let mut queue = b
         .groups()
-        .clone()
-        .into_iter()
+        .iter()
+        .copied()
         .collect::<FxIndexSet<ChunkGroupUkey>>();
       let mut index: usize = 0;
       while index < queue.len() {
@@ -1000,7 +945,7 @@ impl ChunkGraph {
     compilation: &Compilation,
   ) -> f64 {
     let cgc = self.expect_chunk_graph_chunk(chunk_ukey);
-    let modules: Vec<&BoxModule> = cgc
+    let modules: Vec<&ModuleRef> = cgc
       .modules
       .iter()
       .filter_map(|id| module_graph.module_by_identifier(id))
@@ -1031,7 +976,7 @@ impl ChunkGraph {
   ) -> f64 {
     let cgc_a = self.expect_chunk_graph_chunk(chunk_a_ukey);
     let cgc_b = self.expect_chunk_graph_chunk(chunk_b_ukey);
-    let mut all_modules: Vec<&BoxModule> = cgc_a
+    let mut all_modules: Vec<&ModuleRef> = cgc_a
       .modules
       .iter()
       .filter_map(|id| module_graph.module_by_identifier(id))
@@ -1163,7 +1108,7 @@ impl ChunkGraph {
   pub fn get_chunk_module_source_types(
     &self,
     chunk: &ChunkUkey,
-    module: &BoxModule,
+    module: &ModuleRef,
     module_graph: &ModuleGraph,
   ) -> FxHashSet<SourceType> {
     self
@@ -1186,25 +1131,25 @@ mod tests {
 
   #[test]
   fn chunk_id_serialize_matches_runtime_numeric_rules() {
-    assert_eq!(serde_json::to_string(&ChunkId::from("903")).unwrap(), "903");
+    assert_eq!(simd_json::to_string(&ChunkId::from("903")).unwrap(), "903");
     assert_eq!(
-      serde_json::to_string(&ChunkId::from("01")).unwrap(),
+      simd_json::to_string(&ChunkId::from("01")).unwrap(),
       "\"01\""
     );
     assert_eq!(
-      serde_json::to_string(&ChunkId::from("main")).unwrap(),
+      simd_json::to_string(&ChunkId::from("main")).unwrap(),
       "\"main\""
     );
     assert_eq!(
-      serde_json::to_string(&ChunkId::from("4294967295")).unwrap(),
+      simd_json::to_string(&ChunkId::from("4294967295")).unwrap(),
       "4294967295"
     );
     assert_eq!(
-      serde_json::to_string(&ChunkId::from("4294967296")).unwrap(),
+      simd_json::to_string(&ChunkId::from("4294967296")).unwrap(),
       "\"4294967296\""
     );
     assert_eq!(
-      serde_json::to_string(&vec![ChunkId::from("01"), ChunkId::from("903")]).unwrap(),
+      simd_json::to_string(&vec![ChunkId::from("01"), ChunkId::from("903")]).unwrap(),
       "[\"01\",903]"
     );
   }

@@ -1,7 +1,6 @@
 import "./style.css";
 
 it("should compile", () => {
-	const path = __non_webpack_require__("path");
 	const links = Array.from(document.getElementsByTagName("link"));
 	const css = [];
 
@@ -10,7 +9,7 @@ it("should compile", () => {
 		css.push(getLinkSheet(link));
 	}
 
-	expect(css).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, `css.txt`));
+	expect(css).toMatchFileSnapshotSync(`${__SNAPSHOT__}/css.txt`);
 	expect(Object.keys(__webpack_modules__).length).toBe(6);
 	expect(__webpack_modules__['./index.js']).toBeDefined();
 	expect(__webpack_modules__['./shared-external.png']).toBeDefined();

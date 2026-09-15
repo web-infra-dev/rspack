@@ -7,12 +7,12 @@ use rspack_core::{
   RuntimeCondition, RuntimeSpec, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource,
   UsedByExports,
 };
-use rspack_util::ext::DynHash;
+use rspack_hash::{RspackHash, RspackHasher};
 
 use crate::runtime_condition_used_by_exports;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct PureExpressionDependency {
   pub range: DependencyRange,
   used_by_exports: Option<UsedByExports>,
@@ -84,12 +84,12 @@ impl DependencyCodeGeneration for PureExpressionDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
+    hasher: &mut RspackHasher,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) {
     let runtime_condition = self.get_runtime_condition(compilation, runtime);
-    runtime_condition.dyn_hash(hasher);
+    runtime_condition.hash(hasher);
   }
 }
 

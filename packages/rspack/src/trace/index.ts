@@ -15,15 +15,15 @@ type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
 type PartialChromeEvent = MakeOptional<ChromeEvent, 'ts' | 'ph'>;
 
-// this is a tracer for nodejs
-// FIXME: currently we only support chrome layer and do nothing for logger layer
+// this is a tracer for nodejs, using chrome trace-style events before syncing
+// them into the selected Rust tracing layer
 export class JavaScriptTracer {
   static state: 'uninitialized' | 'on' | 'off' = 'uninitialized';
   // baseline time, we use offset time for tracing to align with rust side time
   static startTime: bigint;
   static events: ChromeEvent[];
   static layer: string;
-  // tracing file path, same as rust tracing-chrome's
+  // tracing output path, same as the Rust tracing output
   static output: string;
   // inspector session for CPU Profiler
   static session: import('node:inspector').Session;
@@ -48,8 +48,11 @@ export class JavaScriptTracer {
   static uuid() {
     return this.counter++;
   }
+  static isEnabled() {
+    return this.state === 'on';
+  }
   static initCpuProfiler() {
-    if (this.layer) {
+    if (this.isEnabled()) {
       this.session.connect();
       this.session.post('Profiler.enable');
       this.session.post('Profiler.start');
@@ -66,7 +69,7 @@ export class JavaScriptTracer {
         'JavaScriptTracer is not initialized, please call initJavaScriptTrace first',
       );
     }
-    if (!this.layer || this.state === 'off') {
+    if (!this.isEnabled()) {
       return;
     }
     const profileHandler = (
@@ -158,7 +161,7 @@ export class JavaScriptTracer {
   }
   // start an chrome async event
   static startAsync(events: PartialChromeEvent) {
-    if (!this.layer) {
+    if (!this.isEnabled()) {
       return;
     }
     this.pushEvent({
@@ -169,7 +172,7 @@ export class JavaScriptTracer {
   }
   // end an chrome async event
   static endAsync(events: PartialChromeEvent) {
-    if (!this.layer) {
+    if (!this.isEnabled()) {
       return;
     }
     this.pushEvent({

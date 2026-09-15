@@ -10,14 +10,19 @@ import type {
 } from '@rspack/core';
 import { createFsFromVolume, Volume } from 'memfs';
 import { BasicCaseCreator } from '../test/creator';
-import type { ITestContext, ITestEnv, ITestProcessor } from '../type';
+import type {
+  ITestContext,
+  ITestEnv,
+  ITestProcessor,
+  MaybePromise,
+} from '../type';
 
 function createMultiCompilerProcessor(
   name: string,
   caseConfig: TMultiCompilerCaseConfig,
 ) {
   return {
-    config: async (context: ITestContext) => {
+    config: (context: ITestContext) => {
       const compiler = context.getCompiler();
       const options = Object.assign(
         [
@@ -99,8 +104,7 @@ export function createMultiCompilerCase(
   testConfig: string,
 ) {
   let caseConfigList:
-    | TMultiCompilerCaseConfig
-    | TMultiCompilerCaseConfig[] = require(testConfig);
+    TMultiCompilerCaseConfig | TMultiCompilerCaseConfig[] = require(testConfig);
   if (!Array.isArray(caseConfigList)) {
     caseConfigList = [caseConfigList];
   }
@@ -122,8 +126,8 @@ export type TMultiCompilerCaseConfig = {
   error?: boolean;
   skip?: boolean;
   options?: (context: ITestContext) => RspackOptions;
-  compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
-  build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+  compiler?: (context: ITestContext, compiler: Compiler) => MaybePromise<void>;
+  build?: (context: ITestContext, compiler: Compiler) => MaybePromise<void>;
   check?: ({
     context,
     stats,
@@ -136,6 +140,6 @@ export type TMultiCompilerCaseConfig = {
     files?: Record<string, string>;
     compiler: Compiler;
     compilation?: Compilation;
-  }) => Promise<void>;
+  }) => MaybePromise<void>;
   compilerCallback?: (error: Error | null, stats: Stats | null) => void;
 };

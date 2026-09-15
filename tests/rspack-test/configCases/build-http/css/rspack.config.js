@@ -2,6 +2,9 @@ const path = require('path');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    path: 'node-commonjs path',
+  },
   target: 'web',
   mode: 'development',
   output: {
@@ -17,7 +20,7 @@ module.exports = {
   },
   experiments: {
     buildHttp: {
-      allowedUris: ['https://'],
+      allowedUris: ['https://raw.githubusercontent.com/'],
       lockfileLocation: path.resolve(__dirname, './lock-files/lock.json'),
       cacheLocation: path.resolve(__dirname, './lock-files/test'),
     },

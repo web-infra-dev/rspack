@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./src",
+    "paths": {
+      "@components/*": ["components/*"],
+      // This is a comment which makes JSON invalid
+      "@utils/*": ["utils/*"
+    }
+  }
+}

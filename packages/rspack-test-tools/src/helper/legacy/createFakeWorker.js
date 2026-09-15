@@ -3,7 +3,7 @@
 
 const path = require('path');
 
-module.exports = (env, { outputDirectory }) =>
+export const createFakeWorker = (env, { outputDirectory }) =>
   class Worker {
     constructor(resource, options = {}) {
       const isFileURL = /^file:/i.test(resource);

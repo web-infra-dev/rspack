@@ -9,20 +9,8 @@ pub struct TWithDiagnosticArray<T: std::fmt::Debug> {
 }
 
 impl<T: std::fmt::Debug> TWithDiagnosticArray<T> {
-  pub fn new(inner: T, diagnostic: Vec<Diagnostic>) -> Self {
-    Self { inner, diagnostic }
-  }
-
-  pub fn diagnostics(&self) -> &Vec<Diagnostic> {
-    &self.diagnostic
-  }
-
   pub fn split_into_parts(self) -> (T, Vec<Diagnostic>) {
     (self.inner, self.diagnostic)
-  }
-
-  pub fn get(&self) -> &T {
-    &self.inner
   }
 }
 

@@ -26,6 +26,10 @@ on:
       binding_postfix: # Use when building multiple profiles in one workflow run; appends a postfix to the uploaded artifact name to distinguish each build.
         required: false
         type: string
+      force-rebuild: # Disable Rust cache and build from scratch, e.g. for release builds
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   # Allow commenting on issues
@@ -40,8 +44,12 @@ jobs:
       profile: ${{ inputs.profile }}
       ref: ${{ inputs.ref }}
       binding_postfix: ${{ inputs.binding_postfix }}
+      force-rebuild: ${{ inputs.force-rebuild }}
   test:
-    if: inputs.test
+    name: Test ${{ inputs.target }}
+    # The wasm browser variant is a build-only artifact; the wasi (node) variant
+    # already runs the wasm tests (node + browser e2e via a renamed copy).
+    if: inputs.test && inputs.binding_postfix != '-browser'
     needs: build
     uses: ./.github/workflows/reusable-build-test.yml
     with:

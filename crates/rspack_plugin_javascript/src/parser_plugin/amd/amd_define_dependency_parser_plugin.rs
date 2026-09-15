@@ -1,19 +1,14 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use rspack_core::{
-  BoxDependencyTemplate, BuildMetaDefaultObject, BuildMetaExportsType, ContextDependency,
-  ContextMode, ContextNameSpaceObject, ContextOptions, Dependency, DependencyCategory,
-  RuntimeGlobals, RuntimeRequirementsDependency,
+  BoxDependency, BuildMetaDefaultObject, ContextDependency, ContextMode, ContextOptions,
+  Dependency, DependencyCategory, DependencyCodeGenerationRef, RuntimeGlobals,
+  RuntimeRequirementsDependency, get_context,
 };
-use rspack_util::{SpanExt, atom::Atom};
+use rspack_intern::Atom;
+use rspack_util::SpanExt;
 use rustc_hash::FxHashMap;
-use swc_core::{
-  common::Spanned,
-  ecma::{
-    ast::{BlockStmtOrExpr, CallExpr, Callee, Expr, Lit, Pat},
-    utils::ExprExt,
-  },
-};
+use swc_experimental_ecma_ast::{BlockStmtOrExpr, CallExpr, Callee, Expr, GetSpan, Lit};
 
 use crate::{
   JavascriptParserPlugin,
@@ -26,14 +21,15 @@ use crate::{
   },
   utils::eval::BasicEvaluatedExpression,
   visitors::{
-    ExportedVariableInfo, JavascriptParser, Statement, context_reg_exp, create_context_dependency,
+    ExportedVariableInfo, JavascriptParser, PatRef, Statement, context_reg_exp,
+    create_context_dependency,
   },
 };
 
 pub struct AMDDefineDependencyParserPlugin;
 
 fn is_unbound_function_expression(expr: &Expr) -> bool {
-  expr.is_fn_expr() || expr.is_arrow()
+  expr.is_fn() || expr.is_arrow()
 }
 
 fn is_bound_function_expression(expr: &Expr) -> bool {
@@ -55,7 +51,7 @@ fn is_bound_function_expression(expr: &Expr) -> bool {
       if callee_member.prop.is_computed() {
         return false;
       }
-      if !callee_member.obj.is_fn_expr() {
+      if !callee_member.obj.is_fn() {
         return false;
       }
       if !callee_member.prop.is_ident_with("bind") {
@@ -100,13 +96,16 @@ const RESERVED_NAMES: [&str; 3] = [REQUIRE, EXPORTS, MODULE];
 
 fn get_lit_str(expr: &Expr) -> Option<Atom> {
   expr.as_lit().and_then(|lit| match lit {
-    Lit::Str(s) => Some(s.value.to_atom_lossy().into_owned()),
+    Lit::Str(s) => Some(Atom::new(s.value.as_wtf8().to_string_lossy().as_ref())),
     _ => None,
   })
 }
 
-fn get_ident_name(pat: &Pat) -> Atom {
-  pat.as_ident().map_or("".into(), |ident| ident.sym.clone())
+fn get_ident_name(pat: &PatRef<'_>) -> Atom {
+  pat
+    .as_pat()
+    .as_ident()
+    .map_or("".into(), |ident| Atom::new(ident.id.sym.as_str()))
 }
 
 impl AMDDefineDependencyParserPlugin {
@@ -155,11 +154,11 @@ impl AMDDefineDependencyParserPlugin {
           let mut dep = AMDRequireItemDependency::new(request.as_str().into(), None);
           dep.set_optional(parser.in_try);
           deps.push(AMDRequireArrayItem::AMDRequireItemDependency { dep_id: *dep.id() });
-          parser.add_dependency(Box::new(dep));
+          parser.add_dependency(BoxDependency::new(dep));
         }
       }
       let dep = AMDRequireArrayDependency::new(deps, param.range().into());
-      parser.add_presentational_dependency(Box::new(dep));
+      parser.add_presentational_dependency(Arc::new(dep));
       return Some(true);
     }
     None
@@ -187,18 +186,18 @@ impl AMDDefineDependencyParserPlugin {
       let param_str = param.string();
       let range = param.range();
 
-      let dep: BoxDependencyTemplate = if param_str == "require" {
-        Box::new(RuntimeRequirementsDependency::new(
+      let dep: DependencyCodeGenerationRef = if param_str == "require" {
+        Arc::new(RuntimeRequirementsDependency::new(
           range.into(),
           RuntimeGlobals::REQUIRE,
         ))
       } else if param_str == "exports" {
-        Box::new(RuntimeRequirementsDependency::new(
+        Arc::new(RuntimeRequirementsDependency::new(
           range.into(),
           RuntimeGlobals::EXPORTS,
         ))
       } else if param_str == "module" {
-        Box::new(RuntimeRequirementsDependency::new(
+        Arc::new(RuntimeRequirementsDependency::new(
           range.into(),
           RuntimeGlobals::MODULE,
         ))
@@ -209,7 +208,7 @@ impl AMDDefineDependencyParserPlugin {
           .unwrap_or(param_str.into()),
       ) {
         local_module.flag_used();
-        let dep = Box::new(LocalModuleDependency::new(
+        let dep = Arc::new(LocalModuleDependency::new(
           local_module.clone(),
           Some(range.into()),
           false,
@@ -217,12 +216,10 @@ impl AMDDefineDependencyParserPlugin {
         parser.add_presentational_dependency(dep);
         return Some(true);
       } else {
-        let mut dep = Box::new(AMDRequireItemDependency::new(
-          Atom::new(param_str.as_str()),
-          Some(range.into()),
-        ));
+        let mut dep =
+          AMDRequireItemDependency::new(Atom::new(param_str.as_str()), Some(range.into()));
         dep.set_optional(parser.in_try);
-        parser.add_dependency(dep);
+        parser.add_dependency(BoxDependency::new(dep));
         return Some(true);
       };
       // TODO: how to implement this?
@@ -239,32 +236,28 @@ impl AMDDefineDependencyParserPlugin {
     call_expr: &CallExpr,
     param: &BasicEvaluatedExpression,
   ) -> Option<bool> {
-    let call_span = call_expr.span();
+    let call_span = call_expr.span;
     let param_range = param.range();
 
     let result = create_context_dependency(param, parser);
+    let request = result.request();
 
     let options = ContextOptions {
       mode: ContextMode::Sync,
       recursive: true,
-      reg_exp: context_reg_exp(&result.reg, "", Some(call_expr.span().into()), parser),
-      include: None,
-      exclude: None,
+      pattern: context_reg_exp(&result.reg, "", Some(call_span.into()), parser).into(),
       category: DependencyCategory::Amd,
-      request: format!("{}{}{}", result.context, result.query, result.fragment),
-      context: result.context,
-      namespace_object: ContextNameSpaceObject::Unset,
-      group_options: None,
+      request,
+      context: get_context(parser.resource_data).to_string(),
+      compiler_context: parser.compiler_options.context.clone(),
       replaces: result.replaces,
       start: call_span.real_lo(),
       end: call_span.real_hi(),
-      referenced_specifiers: None,
-      attributes: None,
-      phase: None,
+      ..Default::default()
     };
-    let mut dep = AMDRequireContextDependency::new(options, param_range.into(), parser.in_try);
-    *dep.critical_mut() = result.critical;
-    parser.add_dependency(Box::new(dep));
+    let dep = AMDRequireContextDependency::new(options, param_range.into(), parser.in_try);
+    dep.set_critical(result.critical);
+    parser.add_dependency(BoxDependency::new(dep));
     Some(true)
   }
 
@@ -358,7 +351,7 @@ impl AMDDefineDependencyParserPlugin {
         if !first_arg.expr.is_lit() {
           return None;
         }
-        if !second_arg.expr.is_array_lit() {
+        if !second_arg.expr.is_array() {
           return None;
         }
 
@@ -385,13 +378,15 @@ impl AMDDefineDependencyParserPlugin {
       // DynamicExports.bailout(parser.state);
       //  TODO: consider how to share this code
       if parser.parser_exports_state.is_some_and(|x| x) {
-        parser.build_meta.exports_type = BuildMetaExportsType::Unset;
-        parser.build_meta.default_object = BuildMetaDefaultObject::False;
+        parser.build_meta.clear_exports_type();
+        parser
+          .build_meta
+          .set_default_object(BuildMetaDefaultObject::False);
       }
       parser.parser_exports_state = Some(false);
     }
 
-    let mut fn_params: Option<Vec<Cow<'_, Pat>>> = None;
+    let mut fn_params: Option<Vec<PatRef<'_>>> = None;
     let mut fn_params_offset = 0usize;
     if let Some(func) = func {
       if is_unbound_function_expression(func) {
@@ -401,10 +396,10 @@ impl AMDDefineDependencyParserPlugin {
               .function
               .params
               .iter()
-              .map(|param| Cow::Borrowed(&param.pat))
+              .map(|param| PatRef::Borrowed(&param.pat))
               .collect(),
           ),
-          Expr::Arrow(array_func) => Some(array_func.params.iter().map(Cow::Borrowed).collect()),
+          Expr::Arrow(array_func) => Some(array_func.params.iter().map(PatRef::Borrowed).collect()),
           _ => None,
         };
       } else if is_bound_function_expression(func) {
@@ -418,7 +413,7 @@ impl AMDDefineDependencyParserPlugin {
           .as_member()
           .expect("call_expr.callee is supposed to be MemberExpr")
           .obj
-          .as_fn_expr()
+          .as_fn()
           .expect("call_expr.callee.obj is supposed to be FnExpr");
 
         fn_params = Some(
@@ -426,7 +421,7 @@ impl AMDDefineDependencyParserPlugin {
             .function
             .params
             .iter()
-            .map(|param| Cow::Borrowed(&param.pat))
+            .map(|param| PatRef::Borrowed(&param.pat))
             .collect(),
         );
 
@@ -493,7 +488,7 @@ impl AMDDefineDependencyParserPlugin {
 
           parser.in_try = in_try;
 
-          if let Some(func) = func.and_then(|f| f.as_fn_expr()) {
+          if let Some(func) = func.and_then(|f| f.as_fn()) {
             if let Some(body) = &func.function.body {
               parser.detect_mode(&body.stmts);
               let prev = parser.prev_statement;
@@ -502,7 +497,7 @@ impl AMDDefineDependencyParserPlugin {
               parser.walk_statement(Statement::Block(body));
             }
           } else if let Some(func) = func.and_then(|f| f.as_arrow()) {
-            match &*func.body {
+            match &func.body {
               BlockStmtOrExpr::BlockStmt(stmt) => {
                 parser.detect_mode(&stmt.stmts);
                 let prev = parser.prev_statement;
@@ -523,7 +518,7 @@ impl AMDDefineDependencyParserPlugin {
           .callee
           .as_expr()
           .and_then(|expr| expr.as_member())
-          .and_then(|member_expr| member_expr.obj.as_fn_expr());
+          .and_then(|member_expr| member_expr.obj.as_fn());
 
         if let Some(func_expr) = object {
           parser.in_function_scope(
@@ -532,11 +527,12 @@ impl AMDDefineDependencyParserPlugin {
               .function
               .params
               .iter()
-              .map(|param| Cow::Borrowed(&param.pat))
+              .map(|param| PatRef::Borrowed(&param.pat))
               .filter(|pat| {
                 pat
+                  .as_pat()
                   .as_ident()
-                  .is_some_and(|ident| !RESERVED_NAMES.contains(&ident.sym.as_str()))
+                  .is_some_and(|ident| !RESERVED_NAMES.contains(&ident.id.sym.as_str()))
               }),
             |parser| {
               for (name, rename_identifier) in fn_renames.iter() {
@@ -573,7 +569,7 @@ impl AMDDefineDependencyParserPlugin {
       parser.add_local_module(name, dep_idx);
     }
 
-    let dep = Box::new(AMDDefineDependency::new(
+    let dep = Arc::new(AMDDefineDependency::new(
       call_expr.span.into(),
       array.map(|expr| expr.span().into()),
       func.map(|expr| expr.span().into()),
@@ -588,10 +584,10 @@ impl AMDDefineDependencyParserPlugin {
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for AMDDefineDependencyParserPlugin {
+impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDDefineDependencyParserPlugin {
   fn call(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -602,7 +598,7 @@ impl JavascriptParserPlugin for AMDDefineDependencyParserPlugin {
     }
   }
 
-  fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
+  fn finish(&self, parser: &mut JavascriptParser<'p>) -> Option<bool> {
     for local_module in std::mem::take(&mut parser.local_modules) {
       let dep_idx = local_module.amd_dep_idx();
       if let Some(dep) = parser.get_presentational_dependency_mut(dep_idx)

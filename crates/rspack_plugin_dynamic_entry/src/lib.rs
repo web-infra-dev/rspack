@@ -4,8 +4,8 @@ use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_core::{
-  BoxDependency, Compilation, CompilationParams, CompilerCompilation, CompilerMake, Context,
-  DependencyId, DependencyType, EntryDependency, EntryOptions, Plugin,
+  Compilation, CompilationParams, CompilerCompilation, CompilerMake, Context, DependencyId,
+  DependencyRef, DependencyType, EntryDependency, EntryOptions, Plugin,
   incremental::IncrementalPasses, internal,
 };
 use rspack_error::Result;
@@ -69,18 +69,18 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
       for entry in import {
         let module_graph = compilation.get_module_graph();
 
-        let entry_dependency: BoxDependency = if let Some(map) =
+        let entry_dependency: DependencyRef = if let Some(map) =
           imported_dependencies.get(entry.as_str())
           && let Some(dependency_id) = map.get(&options)
-          && let Some(dependency) = internal::try_dependency_by_id(module_graph, dependency_id)
+          && let Some(dependency) = internal::try_dependency_ref_by_id(module_graph, dependency_id)
         {
           next_imported_dependencies
             .entry(entry.into())
             .or_default()
             .insert(options.clone(), *dependency_id);
-          dependency.clone()
+          dependency
         } else {
-          let dependency: BoxDependency = Box::new(EntryDependency::new(
+          let dependency = DependencyRef::new(EntryDependency::new(
             entry.clone(),
             self.context.clone(),
             options.layer.clone(),
@@ -100,19 +100,30 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 
     *imported_dependencies = next_imported_dependencies;
   } else {
+    // Cold branch must still seed `imported_dependencies` — otherwise the
+    // next Hot rebuild reallocates dep ids and breaks every downstream
+    // lookup that relies on dep id continuity across compiles.
+    let mut imported_dependencies = self.imported_dependencies.borrow_mut();
+    let mut next_imported_dependencies: FxHashMap<Arc<str>, FxHashMap<EntryOptions, DependencyId>> =
+      Default::default();
     for EntryDynamicResult { import, options } in decs {
       for entry in import {
-        let entry_dependency: BoxDependency = Box::new(EntryDependency::new(
+        let entry_dependency = DependencyRef::new(EntryDependency::new(
           entry.clone(),
           self.context.clone(),
           options.layer.clone(),
           false,
         ));
+        next_imported_dependencies
+          .entry(entry.clone().into())
+          .or_default()
+          .insert(options.clone(), *entry_dependency.id());
         compilation
           .add_entry(entry_dependency, options.clone())
           .await?;
       }
     }
+    *imported_dependencies = next_imported_dependencies;
   }
 
   Ok(())

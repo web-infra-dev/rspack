@@ -12,7 +12,7 @@ console.log(_json_json__rspack_import_0,_string_json__rspack_import_1)
 
 },
 "./json.json"(module) {
-module.exports = JSON.parse('{"hello":"world is better \'","b":"\\\\"}')
+module.exports = /*#__PURE__*/JSON.parse('{"hello":"world is better \'","b":"\\\\"}')
 
 },
 "./string.json"(module) {

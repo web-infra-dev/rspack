@@ -1,9 +1,14 @@
-use std::{borrow::Cow, fmt::Debug};
+use std::{borrow::Cow, fmt::Debug, sync::Arc};
 
 use cow_utils::CowUtils;
-use fast_glob::glob_match;
+use futures::future::BoxFuture;
+use regex::Regex;
 use rspack_regex::RspackRegex;
 
+pub type IgnoredFn = Arc<dyn Fn(String) -> BoxFuture<'static, bool> + Send + Sync>;
+
+/// One entry of the `Mixed` form: an array may hold glob patterns and regular
+/// expressions side by side.
 pub enum FsWatcherIgnoredItem {
   Path(String),
   Regex(RspackRegex),
@@ -25,6 +30,7 @@ pub enum FsWatcherIgnored {
   Path(String),
   Paths(Vec<String>),
   Regex(RspackRegex),
+  Function(IgnoredFn),
   Mixed(Vec<FsWatcherIgnoredItem>),
 }
 
@@ -35,6 +41,7 @@ impl Debug for FsWatcherIgnored {
       FsWatcherIgnored::Path(s) => write!(f, "FsWatcherIgnored::Path({s})"),
       FsWatcherIgnored::Paths(s) => write!(f, "FsWatcherIgnored::Paths({s:?})"),
       FsWatcherIgnored::Regex(reg) => write!(f, "FsWatcherIgnored::Regex({reg:?})"),
+      FsWatcherIgnored::Function(_) => write!(f, "FsWatcherIgnored::Function"),
       FsWatcherIgnored::Mixed(items) => write!(f, "FsWatcherIgnored::Mixed({items:?})"),
     }
   }
@@ -46,43 +53,179 @@ fn normalize_path<'a>(path: &'a str) -> Cow<'a, str> {
   path.cow_replace("\\", "/")
 }
 
-fn glob_match_path(pattern: &str, normalized_path: &str) -> bool {
-  if glob_match(pattern, normalized_path.as_bytes()) {
-    return true;
-  }
-
-  let mut current = normalized_path;
-  while let Some(index) = current.rfind('/') {
-    current = &current[..index];
-    if current.is_empty() {
-      break;
+/// Faithful port of watchpack's `lib/util/globToRegExp.js` (specialized for
+/// `extended` + `globstar`, see webpack/watchpack#312): translates a glob to a
+/// regex source WITHOUT anchors. `compile` adds the `^` and the `(?:$|/)`
+/// subtree suffix, exactly as watchpack's `stringToRegexp` does — so a
+/// directory match also covers its whole subtree. Keeping it in lockstep with
+/// watchpack means `{a,b}` brace groups, `[...]` classes, `?` and globstar all
+/// behave identically to the watcher rspack mirrors.
+fn glob_to_regexp(glob: &str) -> String {
+  let bytes = glob.as_bytes();
+  let len = bytes.len();
+  let mut re = String::new();
+  let mut in_group = false;
+  // Start of the current run of literal characters, copied with one slice.
+  let mut literal_start = 0;
+  let mut i = 0;
+  while i < len {
+    let token_start = i;
+    let mapped: &str = match bytes[i] {
+      b'/' => "\\/",
+      b'$' => "\\$",
+      b'^' => "\\^",
+      b'+' => "\\+",
+      b'.' => "\\.",
+      b'(' => "\\(",
+      b')' => "\\)",
+      b'=' => "\\=",
+      b'!' => "\\!",
+      b'|' => "\\|",
+      b'?' => ".",
+      b'[' => "[",
+      b']' => "]",
+      b'{' => {
+        in_group = true;
+        "("
+      }
+      b'}' => {
+        in_group = false;
+        ")"
+      }
+      b',' => {
+        if in_group {
+          "|"
+        } else {
+          "\\,"
+        }
+      }
+      b'*' => {
+        let at_start = i == 0;
+        let after_slash = !at_start && bytes[i - 1] == b'/';
+        while i + 1 < len && bytes[i + 1] == b'*' {
+          i += 1;
+        }
+        let multi_star = i > token_start;
+        let at_end = i + 1 == len;
+        let before_slash = !at_end && bytes[i + 1] == b'/';
+        if multi_star && (at_start || after_slash) && (at_end || before_slash) {
+          i += 1; // consume the trailing "/" — globstar spans whole segments
+          "((?:[^/]*(?:\\/|$))*)"
+        } else {
+          "([^/]*)"
+        }
+      }
+      // Literal character — extend the current run, flushed lazily.
+      _ => {
+        i += 1;
+        continue;
+      }
+    };
+    if literal_start < token_start {
+      re.push_str(&glob[literal_start..token_start]);
     }
-    if glob_match(pattern, current.as_bytes()) {
-      return true;
-    }
+    re.push_str(mapped);
+    literal_start = i + 1;
+    i += 1;
   }
-
-  false
+  if literal_start < len {
+    re.push_str(&glob[literal_start..]);
+  }
+  re
 }
 
-impl FsWatcherIgnored {
-  pub fn should_be_ignored(&self, p: &str) -> bool {
-    match self {
-      FsWatcherIgnored::None => false,
-      FsWatcherIgnored::Path(path) => glob_match_path(path, &normalize_path(p)),
-      FsWatcherIgnored::Paths(paths) => {
-        let normalized_path = normalize_path(p);
-        paths
-          .iter()
-          .any(|path| glob_match_path(path, &normalized_path))
-      }
-      FsWatcherIgnored::Regex(reg) => reg.test(&normalize_path(p)),
-      FsWatcherIgnored::Mixed(items) => {
-        let normalized_path = normalize_path(p);
-        items.iter().any(|item| match item {
-          FsWatcherIgnoredItem::Path(path) => glob_match_path(path, &normalized_path),
-          FsWatcherIgnoredItem::Regex(reg) => reg.test(&normalized_path),
+/// watchpack-style ignore matcher. Exactly one classification strategy is live
+/// per watch: glob patterns are rewritten to match their subtree and folded
+/// into one precompiled regex (a single `is_match` per event), while a
+/// user-supplied `Regex` is applied as-is and a user-supplied `Function` is
+/// asked about each entry. `None` short-circuits before normalizing the path.
+/// `Mixed` is the one strategy that combines two of them, for an array holding
+/// both globs and regular expressions.
+#[derive(Default)]
+pub enum IgnoredMatcher {
+  #[default]
+  None,
+  Globs(Regex),
+  Regex(RspackRegex),
+  Function(IgnoredFn),
+  Mixed {
+    globs: Option<Regex>,
+    regexes: Vec<RspackRegex>,
+  },
+}
+
+impl IgnoredMatcher {
+  pub fn new(ignored: FsWatcherIgnored) -> Self {
+    fn compile_globs(patterns: &[String]) -> Option<Regex> {
+      let parts: Vec<String> = patterns
+        .iter()
+        .filter(|g| !g.is_empty())
+        .map(|g| {
+          // watchpack assumes forward-slash globs; rspack may hand us
+          // Windows-form absolute paths, so normalize separators before
+          // translating — `is_ignored` normalizes the haystack the same way.
+          let g = g.cow_replace('\\', "/");
+          format!("(?:^{}(?:$|/))", glob_to_regexp(&g))
         })
+        .collect();
+      if parts.is_empty() {
+        return None;
+      }
+      match Regex::new(&parts.join("|")) {
+        Ok(re) => Some(re),
+        // Glob escaping guarantees valid syntax, so the only realistic failure
+        // is the regex size limit on a pathological `ignored` config. Degrade
+        // to "no glob filtering" (events flow, no missed changes) but surface
+        // it — never disable ignores silently.
+        Err(e) => {
+          tracing::error!("failed to compile ignored patterns, ignore filtering disabled: {e}");
+          None
+        }
+      }
+    }
+    fn globs(patterns: &[String]) -> IgnoredMatcher {
+      compile_globs(patterns).map_or(IgnoredMatcher::None, IgnoredMatcher::Globs)
+    }
+    match ignored {
+      FsWatcherIgnored::None => IgnoredMatcher::None,
+      FsWatcherIgnored::Path(p) => globs(&[p]),
+      FsWatcherIgnored::Paths(ps) => globs(&ps),
+      FsWatcherIgnored::Regex(reg) => IgnoredMatcher::Regex(reg),
+      FsWatcherIgnored::Function(f) => IgnoredMatcher::Function(f),
+      FsWatcherIgnored::Mixed(items) => {
+        let mut patterns = Vec::new();
+        let mut regexes = Vec::new();
+        for item in items {
+          match item {
+            FsWatcherIgnoredItem::Path(p) => patterns.push(p),
+            FsWatcherIgnoredItem::Regex(reg) => regexes.push(reg),
+          }
+        }
+        if regexes.is_empty() {
+          return globs(&patterns);
+        }
+        IgnoredMatcher::Mixed {
+          globs: compile_globs(&patterns),
+          regexes,
+        }
+      }
+    }
+  }
+
+  /// Whether `path` is ignored — directly or by living inside an ignored
+  /// directory. Single regex test against the normalized path.
+  pub async fn is_ignored(&self, path: &str) -> bool {
+    match self {
+      IgnoredMatcher::None => false,
+      IgnoredMatcher::Globs(re) => re.is_match(&normalize_path(path)),
+      IgnoredMatcher::Regex(re) => re.test(&normalize_path(path)),
+      // watchpack hands the arbitrary function the raw entry — it is the only
+      // form whose path keeps the platform separators.
+      IgnoredMatcher::Function(f) => f(path.to_owned()).await,
+      IgnoredMatcher::Mixed { globs, regexes } => {
+        let normalized = normalize_path(path);
+        globs.as_ref().is_some_and(|re| re.is_match(&normalized))
+          || regexes.iter().any(|re| re.test(&normalized))
       }
     }
   }
@@ -90,19 +233,137 @@ impl FsWatcherIgnored {
 
 #[cfg(test)]
 mod tests {
-  use rspack_regex::RspackRegex;
+  use super::*;
 
-  use super::{FsWatcherIgnored, FsWatcherIgnoredItem};
+  fn matcher(pattern: &str) -> IgnoredMatcher {
+    IgnoredMatcher::new(FsWatcherIgnored::Path(pattern.to_owned()))
+  }
 
-  #[test]
-  fn should_match_mixed_glob_and_regex_patterns() {
-    let ignored = FsWatcherIgnored::Mixed(vec![
-      FsWatcherIgnoredItem::Path("**/dist".to_string()),
-      FsWatcherIgnoredItem::Regex(RspackRegex::new(r"\.cache[\\/]").expect("valid regex")),
-    ]);
+  #[tokio::test]
+  async fn subtree_match_catches_directory_and_its_files() {
+    let m = matcher("**/dist/.rstest-temp");
+    assert!(m.is_ignored("/proj/dist/.rstest-temp").await);
+    assert!(m.is_ignored("/proj/dist/.rstest-temp/foo.mjs").await);
+    assert!(m.is_ignored("/proj/dist/.rstest-temp/nested/bar.mjs").await);
+  }
 
-    assert!(ignored.should_be_ignored("/project/dist/index.js"));
-    assert!(ignored.should_be_ignored("/project/.cache/output.js"));
-    assert!(!ignored.should_be_ignored("/project/src/index.js"));
+  #[tokio::test]
+  async fn subtree_match_keeps_unrelated_paths() {
+    let m = matcher("**/dist/.rstest-temp");
+    assert!(!m.is_ignored("/proj/src/index.js").await);
+    assert!(!m.is_ignored("/proj/dist/main.js").await);
+    // Must not match a sibling directory that merely shares a prefix.
+    assert!(!m.is_ignored("/proj/dist/.rstest-temp-old/x.js").await);
+  }
+
+  #[tokio::test]
+  async fn none_matches_nothing() {
+    assert!(
+      !IgnoredMatcher::default()
+        .is_ignored("/anything/at/all")
+        .await
+    );
+  }
+
+  #[tokio::test]
+  async fn combines_multiple_globs() {
+    // watchpack: `ignored: ["**/foo", "**/bar"]` — folded into one regex.
+    let m = IgnoredMatcher::new(FsWatcherIgnored::Paths(vec![
+      "**/foo".to_owned(),
+      "**/bar".to_owned(),
+    ]));
+    assert!(m.is_ignored("/x/foo").await);
+    assert!(m.is_ignored("/x/bar").await);
+    assert!(!m.is_ignored("/x/baz").await);
+  }
+
+  #[tokio::test]
+  async fn empty_patterns_match_nothing() {
+    // watchpack treats "", [] and an all-empty array as ignoring nothing.
+    let cases = [
+      FsWatcherIgnored::Path(String::new()),
+      FsWatcherIgnored::Paths(vec![]),
+      FsWatcherIgnored::Paths(vec![String::new(), String::new()]),
+    ];
+    for ignored in cases {
+      assert!(!IgnoredMatcher::new(ignored).is_ignored("any").await);
+    }
+  }
+
+  #[tokio::test]
+  async fn user_regex_matches_like_watchpack() {
+    // watchpack: `ignored: /ignoredPattern/` is applied to the path as-is.
+    let m = IgnoredMatcher::new(FsWatcherIgnored::Regex(
+      RspackRegex::new("ignoredPattern").unwrap(),
+    ));
+    assert!(m.is_ignored("/foo/ignoredPattern/bar").await);
+    assert!(!m.is_ignored("/foo/keep").await);
+  }
+
+  #[tokio::test]
+  async fn extended_glob_syntax_matches_watchpack() {
+    // The full port gives us brace groups, character classes and `?` — the
+    // syntax the minimal translator used to swallow as literals.
+    let braces = matcher("**/*.{js,ts}");
+    assert!(braces.is_ignored("/p/a.js").await);
+    assert!(braces.is_ignored("/p/pkg/b.ts").await);
+    assert!(!braces.is_ignored("/p/a.css").await);
+
+    let class = matcher("**/foo[0-9]");
+    assert!(class.is_ignored("/p/foo1").await);
+    assert!(!class.is_ignored("/p/fooX").await);
+
+    let question = matcher("**/a?c");
+    assert!(question.is_ignored("/p/abc").await);
+    assert!(!question.is_ignored("/p/ac").await);
+  }
+
+  #[tokio::test]
+  async fn windows_form_paths_match_after_normalization() {
+    // Windows delivers backslash, drive-letter paths; `is_ignored` normalizes
+    // the haystack, so matching is separator-agnostic. Plain-string input keeps
+    // this portable — it runs on any host.
+    let nm = matcher("**/node_modules");
+    assert!(nm.is_ignored(r"C:\proj\node_modules\pkg\index.js").await);
+    assert!(
+      nm.is_ignored(r"C:\proj\packages\app\node_modules\dep\lib.js")
+        .await
+    );
+    assert!(!nm.is_ignored(r"C:\proj\src\index.ts").await);
+
+    let temp = matcher("**/dist/.rstest-temp");
+    assert!(
+      temp
+        .is_ignored(r"C:\proj\dist\.rstest-temp\spec.test.mjs")
+        .await
+    );
+    assert!(!temp.is_ignored(r"C:\proj\dist\main.js").await);
+    // mixed separators must work too
+    assert!(temp.is_ignored("C:/proj/dist/.rstest-temp/x.mjs").await);
+  }
+
+  #[tokio::test]
+  async fn mixed_array_applies_globs_and_regexes() {
+    // `ignored: ["**/dist", /\.cache\//]` — watchpack itself cannot take a
+    // mixed array, so both halves are classified here.
+    let m = IgnoredMatcher::new(FsWatcherIgnored::Mixed(vec![
+      FsWatcherIgnoredItem::Path("**/dist".to_owned()),
+      FsWatcherIgnoredItem::Regex(RspackRegex::new(r"\.cache/").unwrap()),
+    ]));
+    assert!(m.is_ignored("/project/dist/index.js").await);
+    assert!(m.is_ignored("/project/.cache/output.js").await);
+    assert!(!m.is_ignored("/project/src/index.js").await);
+  }
+
+  #[tokio::test]
+  async fn mixed_array_of_only_globs_folds_into_one_regex() {
+    let m = IgnoredMatcher::new(FsWatcherIgnored::Mixed(vec![
+      FsWatcherIgnoredItem::Path("**/foo".to_owned()),
+      FsWatcherIgnoredItem::Path("**/bar".to_owned()),
+    ]));
+    assert!(matches!(m, IgnoredMatcher::Globs(_)));
+    assert!(m.is_ignored("/x/foo/a.js").await);
+    assert!(m.is_ignored("/x/bar").await);
+    assert!(!m.is_ignored("/x/baz").await);
   }
 }

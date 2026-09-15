@@ -1,7 +1,6 @@
 use std::{
   borrow::Cow,
-  collections::{HashMap, hash_map::Entry},
-  hash::Hash,
+  collections::hash_map::Entry,
   ops::Deref,
   sync::{Arc, LazyLock, RwLock as SyncRwLock},
 };
@@ -17,6 +16,7 @@ pub mod infer_async_modules_plugin;
 mod inline_exports_plugin;
 mod mangle_exports_plugin;
 pub mod module_concatenation_plugin;
+mod runtime_context;
 mod side_effects_flag_plugin;
 pub mod url_plugin;
 
@@ -30,31 +30,30 @@ use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, Ide
 use rspack_core::{
   ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
-  ExportsArgument, IdentCollector, Module, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable,
-  SourceType,
-  concatenated_module::find_new_name,
+  ConcatenationNameAllocator, ExportsArgument, Module, RuntimeCodeTemplate, RuntimeGlobals,
+  RuntimeVariable, SourceType,
+  concatenated_module::collect_ident,
   render_init_fragments,
-  reserved_names::RESERVED_NAMES,
+  reserved_names::RESERVED_NAMES_ATOM_SET,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
   split_readable_identifier,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::plugin;
-use rspack_javascript_compiler::ast::Ast;
 use rspack_util::SpanExt;
 #[cfg(allocative)]
 use rspack_util::allocative;
 pub use side_effects_flag_plugin::*;
-use swc_core::{
-  atoms::Atom,
-  common::{FileName, Spanned, SyntaxContext, comments::SingleThreadedComments},
-  ecma::transforms::base::resolver,
-};
+use swc_experimental_allocator::Allocator;
+use swc_experimental_ecma_ast::EsVersion;
+use swc_experimental_ecma_parser::{EsSyntax, Lexer, Parser, StringSource, Syntax};
+use swc_experimental_ecma_semantic::resolver::resolver;
 use tokio::sync::RwLock;
 
-use crate::runtime::{
-  render_chunk_modules, render_module, render_runtime_modules, stringify_array,
+use crate::{
+  Atom,
+  runtime::{render_chunk_modules, render_module, render_runtime_modules, stringify_array},
 };
 
 #[cfg_attr(allocative, allocative::root)]
@@ -136,21 +135,40 @@ impl JsPlugin {
   pub fn render_require<'me>(
     chunk_ukey: &ChunkUkey,
     compilation: &'me Compilation,
-    runtime_template: &RuntimeCodeTemplate<'_>,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> Vec<Cow<'me, str>> {
-    let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
+    if runtime_template.render_mode().is_legacy() {
+      Self::render_webpack_require(chunk_ukey, compilation, runtime_template)
+    } else {
+      Self::render_rspack_require(chunk_ukey, compilation, runtime_template)
+    }
+  }
+
+  pub fn render_webpack_require<'me>(
+    chunk_ukey: &ChunkUkey,
+    compilation: &'me Compilation,
+    runtime_template: &RuntimeCodeTemplate,
+  ) -> Vec<Cow<'me, str>> {
+    let runtime_requirements = compilation
+      .cgc_runtime_requirements_artifact
+      .get(chunk_ukey)
+      .copied()
+      .unwrap_or_default();
 
     let strict_module_error_handling = compilation.options.output.strict_module_error_handling;
     let need_module_defer =
       runtime_requirements.contains(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
+    let callable_require = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
+    let require_argument = runtime_template.render_runtime_argument();
+    let module_factories = runtime_template.render_runtime_variable(&RuntimeVariable::Modules);
+    let module_cache = runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache);
     let mut sources: Vec<Cow<str>> = Vec::new();
 
     sources.push(
       format!(
         r#"// Check if module is in cache
-var cachedModule = {}[moduleId];
+var cachedModule = {module_cache}[moduleId];
 if (cachedModule !== undefined) {{"#,
-        runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache)
       )
       .into(),
     );
@@ -164,8 +182,7 @@ if (cachedModule !== undefined) {{"#,
         r#"return cachedModule.exports;
 }}
 // Create a new module (and put it into the cache)
-var module = ({}[moduleId] = {{"#,
-        runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache)
+var module = ({module_cache}[moduleId] = {{"#,
       )
       .into(),
     );
@@ -185,39 +202,29 @@ var module = ({}[moduleId] = {{"#,
     }
     sources.push("});\n// Execute the module function".into());
 
-    let module_execution =
-      if runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION) {
-        format!(
-          r#"
+    let module_execution = if runtime_requirements
+      .contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
+    {
+      format!(
+        r#"
         var execOptions = {{ id: moduleId, module: module, factory: {}[moduleId], require: {} }};
         {}.forEach(function(handler) {{ handler(execOptions); }});
         module = execOptions.module;
-        if (!execOptions.factory) {{
-          console.error("undefined factory", moduleId);
-          throw Error("RuntimeError: factory is undefined (" + moduleId + ")");
-        }}
         execOptions.factory.call(module.exports, module, module.exports, execOptions.require);
       "#,
-          runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
-          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-          runtime_template.render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
+        module_factories,
+        callable_require,
+        runtime_template.render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
+      )
+      .into()
+    } else if runtime_requirements.contains(RuntimeGlobals::THIS_AS_EXPORTS) {
+      format!(
+          "{module_factories}[moduleId].call(module.exports, module, module.exports, {require_argument});\n"
         )
         .into()
-      } else if runtime_requirements.contains(RuntimeGlobals::THIS_AS_EXPORTS) {
-        format!(
-          "{}[moduleId].call(module.exports, module, module.exports, {});\n",
-          runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
-          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-        )
-        .into()
-      } else {
-        format!(
-          "{}[moduleId](module, module.exports, {});\n",
-          runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
-          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-        )
-        .into()
-      };
+    } else {
+      format!("{module_factories}[moduleId](module, module.exports, {require_argument});\n").into()
+    };
 
     if strict_module_error_handling {
       sources.push("try {\n".into());
@@ -247,9 +254,25 @@ var module = ({}[moduleId] = {{"#,
   pub async fn render_bootstrap<'me>(
     chunk_ukey: &ChunkUkey,
     compilation: &'me Compilation,
-    runtime_template: &RuntimeCodeTemplate<'_>,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> Result<RenderBootstrapResult<'me>> {
-    let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
+    if runtime_template.render_mode().is_legacy() {
+      Self::render_webpack_bootstrap(chunk_ukey, compilation, runtime_template).await
+    } else {
+      Self::render_rspack_bootstrap(chunk_ukey, compilation, runtime_template).await
+    }
+  }
+
+  pub async fn render_webpack_bootstrap<'me>(
+    chunk_ukey: &ChunkUkey,
+    compilation: &'me Compilation,
+    runtime_template: &RuntimeCodeTemplate,
+  ) -> Result<RenderBootstrapResult<'me>> {
+    let runtime_requirements = compilation
+      .cgc_runtime_requirements_artifact
+      .get(chunk_ukey)
+      .copied()
+      .unwrap_or_default();
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
@@ -260,7 +283,8 @@ var module = ({}[moduleId] = {{"#,
     let intercept_module_execution =
       runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
     let module_used = runtime_requirements.contains(RuntimeGlobals::MODULE);
-    let require_scope_used = runtime_requirements.contains(RuntimeGlobals::REQUIRE_SCOPE);
+    let require_scope_used = runtime_requirements.contains(RuntimeGlobals::REQUIRE_SCOPE)
+      || !runtime_requirements.renderable_require_scope().is_empty();
     let need_module_defer =
       runtime_requirements.contains(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
     let use_require = require_function || intercept_module_execution || module_used;
@@ -272,7 +296,6 @@ var module = ({}[moduleId] = {{"#,
       .output
       .environment
       .supports_arrow_function();
-
     if allow_inline_startup && module_factories {
       startup.push("// module factories are used so entry inlining is disabled".into());
       allow_inline_startup = false;
@@ -317,7 +340,7 @@ var __rspack_deferred_exports = {};
           r#"// The require function
 function {}(moduleId) {{
 "#,
-          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+          runtime_template.render_runtime_variable(&RuntimeVariable::Require)
         )
         .into(),
       );
@@ -338,7 +361,7 @@ function {}(moduleId) {{
           r#"// The require scope
 var {} = {{}};
 "#,
-          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+          runtime_template.render_runtime_variable(&RuntimeVariable::Require)
         )
         .into(),
       );
@@ -346,26 +369,29 @@ var {} = {{}};
 
     if module_factories || runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY)
     {
+      let module_factories =
+        runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES);
       header.push(
         format!(
           r#"// expose the modules object ({modules})
 {module_factories} = {modules};
 "#,
           modules = runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
-          module_factories =
-            runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
+          module_factories = module_factories
         )
         .into(),
       );
     }
 
     if runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE) {
+      let module_cache_runtime_global =
+        runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_CACHE);
       header.push(
         format!(
           r#"// expose the module cache
 {} = {};
 "#,
-          runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_CACHE),
+          module_cache_runtime_global,
           runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
         )
         .into(),
@@ -373,12 +399,13 @@ var {} = {{}};
     }
 
     if intercept_module_execution {
+      let intercept_module_execution =
+        runtime_template.render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
       header.push(
         format!(
           r#"// expose the module execution interceptor
-{} = [];
+{intercept_module_execution} = [];
 "#,
-          runtime_template.render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
         )
         .into(),
       );
@@ -453,13 +480,13 @@ var {} = {{}};
               .get(module, Some(chunk.runtime()));
             let module_graph = compilation.get_module_graph();
             let top_level_decls = codegen
-              .data
+              .data()
               .get::<CodeGenerationDataTopLevelDeclarations>()
-              .map(|d| d.inner())
+              .map(|_| ())
               .or_else(|| {
                 module_graph
                   .module_by_identifier(module)
-                  .and_then(|m| m.build_info().top_level_declarations.as_ref())
+                  .and_then(|m| m.build_info().top_level_declarations.as_ref().map(|_| ()))
               });
             top_level_decls.is_none()
           } {
@@ -563,7 +590,7 @@ var {} = {{}};
                   } else {
                     "{}".to_string()
                   },
-                  runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+                  runtime_template.render_runtime_argument()
                 )
                 .into(),
               );
@@ -675,7 +702,25 @@ var {} = {{}};
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
     output_path: &str,
-    runtime_template: &RuntimeCodeTemplate<'_>,
+    runtime_template: &RuntimeCodeTemplate,
+  ) -> Result<BoxSource> {
+    if runtime_template.render_mode().is_legacy() {
+      self
+        .render_webpack_main(compilation, chunk_ukey, output_path, runtime_template)
+        .await
+    } else {
+      self
+        .render_rspack_main(compilation, chunk_ukey, output_path, runtime_template)
+        .await
+    }
+  }
+
+  pub async fn render_webpack_main(
+    &self,
+    compilation: &Compilation,
+    chunk_ukey: &ChunkUkey,
+    output_path: &str,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> Result<BoxSource> {
     let js_plugin_hooks = Self::get_compilation_hooks(compilation.id());
     let hooks = js_plugin_hooks
@@ -690,7 +735,11 @@ var {} = {{}};
       .output
       .environment
       .supports_arrow_function();
-    let runtime_requirements = ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
+    let runtime_requirements = compilation
+      .cgc_runtime_requirements_artifact
+      .get(chunk_ukey)
+      .copied()
+      .unwrap_or_default();
     let mut chunk_init_fragments = ChunkInitFragments::default();
     let iife = compilation.options.output.iife;
     let mut all_strict = compilation.options.output.module;
@@ -784,7 +833,6 @@ var {} = {{}};
       header.push('\n');
       sources.add(RawStringSource::from(header));
     }
-
     if compilation
       .build_chunk_graph_artifact
       .chunk_graph
@@ -828,15 +876,17 @@ var {} = {{}};
         let m = module_graph
           .module_by_identifier(m_identifier)
           .expect("should have module");
-        let Some((mut rendered_module, fragments, additional_fragments)) = render_module(
+        let Some((mut rendered_module, fragments)) = render_module(
           compilation,
           chunk_ukey,
           m.as_ref(),
           all_strict,
           false,
+          true,
           output_path,
           &hooks,
           runtime_template,
+          None,
         )
         .await?
         else {
@@ -849,9 +899,7 @@ var {} = {{}};
         {
           rendered_module = source.clone();
         };
-
         chunk_init_fragments.extend(fragments);
-        chunk_init_fragments.extend(additional_fragments);
         let inner_strict = !all_strict && m.build_info().strict;
         let module_runtime_requirements =
           ChunkGraph::get_module_runtime_requirements(compilation, *m_identifier, chunk.runtime());
@@ -1010,7 +1058,7 @@ var {} = {{}};
     has_chunk_modules_result: bool,
     output_path: &str,
     hooks: &JavascriptModulesPluginHooks,
-    runtime_template: &RuntimeCodeTemplate<'_>,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> Result<Option<IdentifierMap<Arc<dyn Source>>>> {
     let inner_strict = !all_strict && all_modules.iter().all(|m| m.build_info().strict);
     let is_multiple_entries = inlined_modules.len() > 1;
@@ -1026,8 +1074,7 @@ var {} = {{}};
 
     let mut inlined_modules_to_info: IdentifierMap<InlinedModuleInfo> = IdentifierMap::default();
     let mut non_inlined_module_through_idents: Vec<ConcatenatedModuleIdent> = Vec::new();
-    let mut all_used_names: HashSet<Atom> =
-      RESERVED_NAMES.iter().map(|item| Atom::new(*item)).collect();
+    let mut all_used_names: HashSet<Atom> = RESERVED_NAMES_ATOM_SET.clone();
     let mut renamed_inline_modules: IdentifierMap<Arc<dyn Source>> = IdentifierMap::default();
 
     let render_module_results = rspack_parallel::scope::<_, _>(|token| {
@@ -1059,9 +1106,11 @@ var {} = {{}};
               *module,
               all_strict,
               false,
+              true,
               output_path,
               hooks,
               runtime_template,
+              None,
             )
             .await
           },
@@ -1089,7 +1138,7 @@ var {} = {{}};
           Ok(RenameInfoPatch {
             inlined_modules_to_info: IdentifierMap::default(),
             non_inlined_module_through_idents: Vec::new(),
-            all_used_names: RESERVED_NAMES.iter().map(|item| Atom::new(*item)).collect(),
+            all_used_names: RESERVED_NAMES_ATOM_SET.clone(),
           })
         },
         |mut acc, (rendered_module, m)| {
@@ -1121,7 +1170,7 @@ var {} = {{}};
             {
               acc
                 .all_used_names
-                .extend(idents_with_hash.value.iter().map(|v| v.id.sym.clone()));
+                .extend(idents_with_hash.value.iter().map(|v| Atom::from(&v.id.sym)));
               acc
                 .non_inlined_module_through_idents
                 .extend(idents_with_hash.value.clone());
@@ -1129,54 +1178,38 @@ var {} = {{}};
             }
 
             if !use_cache {
-              let cm: Arc<swc_core::common::SourceMap> = Default::default();
-              let fm = cm.new_source_file(
-                Arc::new(FileName::Custom(m.identifier().to_string())),
-                code.source().into_string_lossy().into_owned(),
+              let code_string = code.source().into_string_lossy();
+              let allocator = Allocator::new();
+              let lexer = Lexer::new(
+                &allocator,
+                Syntax::Es(EsSyntax::default()),
+                EsVersion::EsNext,
+                StringSource::new(code_string.as_ref()),
+                None,
               );
-              let comments = SingleThreadedComments::default();
-              let mut errors = vec![];
+              let mut parser = Parser::new_from(&allocator, lexer);
 
-              if let Ok(program) = swc_core::ecma::parser::parse_file_as_program(
-                &fm,
-                swc_core::ecma::parser::Syntax::default(),
-                swc_core::ecma::ast::EsVersion::EsNext,
-                Some(&comments),
-                &mut errors,
-              ) {
-                let mut ast: Ast = Ast::new(program, cm, Some(comments));
-                let mut global_ctxt = SyntaxContext::empty();
-                let mut module_ctxt = SyntaxContext::empty();
-
-                ast.transform(|program, context| {
-                  global_ctxt = global_ctxt.apply_mark(context.unresolved_mark);
-                  module_ctxt = module_ctxt.apply_mark(context.top_level_mark);
-                  program.visit_mut_with(&mut resolver(
-                    context.unresolved_mark,
-                    context.top_level_mark,
-                    false,
-                  ));
-                });
-
-                let mut collector = IdentCollector::default();
-                ast.visit(|program, _ctxt| {
-                  program.visit_with(&mut collector);
-                });
+              if let Ok(program) = parser.parse_program() {
+                let semantic = resolver(&program);
+                let global_scope_id = semantic.unresolved_scope_id();
+                let module_scope_id = semantic.top_level_scope_id();
+                let collector_ids = collect_ident(&allocator, &program);
 
                 if is_inlined_module {
                   let mut module_scope_idents = Vec::new();
 
-                  for ident in collector.ids {
-                    if ident.id.ctxt == global_ctxt
-                      || ident.id.ctxt != module_ctxt
+                  for ident in collector_ids {
+                    let scope_id = semantic.node_scope(&ident.id);
+                    if scope_id == global_scope_id
+                      || scope_id != module_scope_id
                       || ident.is_class_expr_with_ident
                     {
-                      acc.all_used_names.insert(ident.id.sym.clone());
+                      acc.all_used_names.insert(Atom::from(&ident.id.sym));
                     }
 
-                    if ident.id.ctxt == module_ctxt {
-                      acc.all_used_names.insert(ident.id.sym.clone());
-                      module_scope_idents.push(Arc::new(ident));
+                    if scope_id == module_scope_id {
+                      acc.all_used_names.insert(Atom::from(&ident.id.sym));
+                      module_scope_idents.push(Arc::new(ident.to_legacy(&semantic)));
                     }
                   }
 
@@ -1211,9 +1244,10 @@ var {} = {{}};
                     .expect_get(chunk_ukey)
                     .runtime();
 
-                  for ident in collector.ids {
-                    if ident.id.ctxt == global_ctxt {
-                      acc.all_used_names.insert(ident.clone().id.sym.clone());
+                  for ident in collector_ids {
+                    if semantic.node_scope(&ident.id) == global_scope_id {
+                      let ident = ident.to_legacy(&semantic);
+                      acc.all_used_names.insert(Atom::from(&ident.id.sym));
                       idents_vec.push(ident.clone());
                       acc.non_inlined_module_through_idents.push(ident);
                     }
@@ -1243,7 +1277,7 @@ var {} = {{}};
           Ok(RenameInfoPatch {
             inlined_modules_to_info: IdentifierMap::default(),
             non_inlined_module_through_idents: Vec::new(),
-            all_used_names: RESERVED_NAMES.iter().map(|item| Atom::new(*item)).collect(),
+            all_used_names: RESERVED_NAMES_ATOM_SET.clone(),
           })
         },
         |acc, chunk| match acc {
@@ -1274,6 +1308,7 @@ var {} = {{}};
       }
       Err(e) => return Err(e),
     }
+    let mut name_allocator = ConcatenationNameAllocator::new(all_used_names);
 
     for (_ident, info) in inlined_modules_to_info.iter_mut() {
       for module_scope_ident in info.module_scope_idents.iter() {
@@ -1307,8 +1342,7 @@ var {} = {{}};
         continue;
       }
 
-      let mut binding_to_ref: FxHashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
-        HashMap::default();
+      let mut binding_to_ref = FxHashMap::<_, Vec<ConcatenatedModuleIdent>>::default();
 
       for module_scope_ident in module_scope_idents.iter() {
         match binding_to_ref.entry((
@@ -1336,10 +1370,10 @@ var {} = {{}};
           let context = compilation.options.context.clone();
           let readable_identifier = module.readable_identifier(&context).to_string();
           let splitted_readable_identifier = split_readable_identifier(&readable_identifier);
-          let new_name = find_new_name(name, &all_used_names, &splitted_readable_identifier);
+          let new_name = name_allocator.find_new_name(name, &splitted_readable_identifier);
 
           for identifier in refs.iter() {
-            let span = identifier.id.span();
+            let span = identifier.id.span;
             let low = span.real_lo();
             let high = span.real_hi();
 
@@ -1350,8 +1384,6 @@ var {} = {{}};
 
             replace_source.replace(low, high, new_name.to_string(), None);
           }
-
-          all_used_names.insert(new_name);
         }
       }
 
@@ -1367,7 +1399,7 @@ var {} = {{}};
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
     output_path: &str,
-    runtime_template: &RuntimeCodeTemplate<'_>,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> Result<BoxSource> {
     let js_plugin_hooks = Self::get_compilation_hooks(compilation.id());
     let hooks = js_plugin_hooks
@@ -1447,7 +1479,7 @@ var {} = {{}};
     &self,
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
-    hasher: &mut RspackHash,
+    hasher: &mut RspackHasher,
   ) -> Result<()> {
     let hooks = Self::get_compilation_hooks(compilation.id());
     hooks
@@ -1464,18 +1496,13 @@ var {} = {{}};
     &self,
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
-    hasher: &mut RspackHash,
+    hasher: &mut RspackHasher,
   ) -> Result<()> {
-    let runtime_template = compilation.runtime_template.create_runtime_code_template();
+    let runtime_template = compilation.runtime_template.create_chunk_code_template();
     // sample hash use content
-    let RenderBootstrapResult {
-      header,
-      startup,
-      allow_inline_startup,
-    } = Self::render_bootstrap(chunk_ukey, compilation, &runtime_template).await?;
-    header.hash(hasher);
-    startup.hash(hasher);
-    allow_inline_startup.hash(hasher);
+    Self::render_bootstrap(chunk_ukey, compilation, &runtime_template)
+      .await?
+      .hash(hasher);
     Ok(())
   }
 }
@@ -1486,7 +1513,7 @@ pub struct ExtractedCommentsInfo {
   pub comments_file_name: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, RspackHash)]
 pub struct RenderBootstrapResult<'a> {
   pub header: Vec<Cow<'a, str>>,
   pub startup: Vec<Cow<'a, str>>,

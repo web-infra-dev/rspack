@@ -1,19 +1,17 @@
-use std::{
-  cmp::Ordering,
-  fmt::{self, Display},
-};
+use std::fmt::{self, Display};
 
 use itertools::Itertools;
 use rspack_cacheable::cacheable;
 use rspack_collections::IdentifierMap;
 use rspack_error::{Result, error};
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_util::fx_hash::FxIndexSet;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 
 use crate::{
   Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
   DependencyLocation, DynamicImportFetchPriority, Filename, LibraryOptions, ModuleIdentifier,
-  ModuleLayer, PublicPath, WasmLoading, compare_chunk_group,
+  ModuleLayer, PublicPath, WasmLoading,
 };
 
 #[derive(Debug, Clone)]
@@ -321,50 +319,6 @@ impl ChunkGroup {
     &self.origins
   }
 
-  pub fn get_children_by_orders(
-    &self,
-    compilation: &Compilation,
-  ) -> HashMap<ChunkGroupOrderKey, Vec<ChunkGroupUkey>> {
-    let mut children_by_orders = HashMap::<ChunkGroupOrderKey, Vec<ChunkGroupUkey>>::default();
-
-    let orders = vec![ChunkGroupOrderKey::Preload, ChunkGroupOrderKey::Prefetch];
-
-    for order_key in orders {
-      let mut list = vec![];
-      for child_ukey in &self.children {
-        let Some(child_group) = compilation
-          .build_chunk_graph_artifact
-          .chunk_group_by_ukey
-          .get(child_ukey)
-        else {
-          continue;
-        };
-        if let Some(order) = child_group
-          .kind
-          .get_normal_options()
-          .and_then(|o| match order_key {
-            ChunkGroupOrderKey::Prefetch => o.prefetch_order,
-            ChunkGroupOrderKey::Preload => o.preload_order,
-          })
-        {
-          list.push((order, child_group.ukey));
-        }
-      }
-
-      list.sort_by(|a, b| {
-        let cmp = b.0.cmp(&a.0);
-        match cmp {
-          Ordering::Equal => compare_chunk_group(&a.1, &b.1, compilation),
-          _ => cmp,
-        }
-      });
-
-      children_by_orders.insert(order_key, list.iter().map(|i| i.1).collect_vec());
-    }
-
-    children_by_orders
-  }
-
   pub fn set_is_over_size_limit(&mut self, v: bool) {
     self.is_over_size_limit = Some(v);
   }
@@ -432,18 +386,29 @@ impl From<String> for EntryRuntime {
   }
 }
 
-impl EntryRuntime {
-  pub fn as_string(&self) -> Option<&str> {
+impl EntryRuntime {}
+
+impl RspackHash for EntryRuntime {
+  fn hash(&self, state: &mut RspackHasher) {
     match self {
-      EntryRuntime::String(s) => Some(s),
-      EntryRuntime::False => None,
+      EntryRuntime::String(s) => s.hash(state),
+      EntryRuntime::False => "false".hash(state),
+    }
+  }
+}
+
+impl Display for EntryRuntime {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      EntryRuntime::String(s) => f.write_str(s),
+      EntryRuntime::False => f.write_str("false"),
     }
   }
 }
 
 // pub type EntryRuntime = String;
 #[cacheable]
-#[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq, rspack_hash::RspackHash)]
 pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<EntryRuntime>,
@@ -516,7 +481,7 @@ impl Display for ChunkGroupOrderKey {
 }
 
 #[cacheable]
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHash)]
 pub struct ChunkGroupOptions {
   pub name: Option<String>,
   pub preload_order: Option<i32>,
@@ -545,10 +510,25 @@ impl ChunkGroupOptions {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GroupOptions {
   Entrypoint(Box<EntryOptions>),
   ChunkGroup(ChunkGroupOptions),
+}
+
+impl RspackHash for GroupOptions {
+  fn hash(&self, state: &mut RspackHasher) {
+    match self {
+      GroupOptions::Entrypoint(options) => {
+        "entrypoint".hash(state);
+        options.hash(state);
+      }
+      GroupOptions::ChunkGroup(options) => {
+        "chunk-group".hash(state);
+        options.hash(state);
+      }
+    }
+  }
 }
 
 impl GroupOptions {

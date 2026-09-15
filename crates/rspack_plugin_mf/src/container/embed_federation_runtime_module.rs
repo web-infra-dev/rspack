@@ -4,14 +4,28 @@
 //! execute before other modules. Generates a "prevStartup wrapper" pattern with defensive
 //! checks that intercepts and modifies the startup execution order.
 
+use std::sync::LazyLock;
+
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  DependencyId, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
-  impl_runtime_module,
+  Compilation, DependencyId, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
 };
 use rspack_error::Result;
+use rspack_plugin_runtime::extract_runtime_module_variables_from_ejs;
 
 use super::module_federation_runtime_plugin::ModuleFederationRuntimeExperimentsOptions;
+
+static EMBED_FEDERATION_RUNTIME_ASYNC_TEMPLATE: &str =
+  include_str!("./embed_federation_runtime_async.ejs");
+static EMBED_FEDERATION_RUNTIME_SYNC_TEMPLATE: &str =
+  include_str!("./embed_federation_runtime_sync.ejs");
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+  extract_runtime_module_variables_from_ejs(&[
+    EMBED_FEDERATION_RUNTIME_ASYNC_TEMPLATE,
+    EMBED_FEDERATION_RUNTIME_SYNC_TEMPLATE,
+  ])
+});
 
 #[cacheable]
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
@@ -43,23 +57,42 @@ enum TemplateId {
 impl EmbedFederationRuntimeModule {
   fn template_id(&self, template_id: TemplateId) -> String {
     match template_id {
-      TemplateId::Async => format!("{}_async", self.id),
-      TemplateId::Sync => format!("{}_sync", self.id),
+      TemplateId::Async => format!("{}_async", self.id()),
+      TemplateId::Sync => format!("{}_sync", self.id()),
     }
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for EmbedFederationRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES.as_slice()
+  }
+
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    let mut define = RuntimeGlobals::STARTUP;
+    if self.options.experiments.async_startup {
+      define.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
+    }
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      define,
+      force_context: RuntimeGlobals::ENSURE_CHUNK_HANDLERS | RuntimeGlobals::HAS_OWN_PROPERTY,
+      ..Default::default()
+    }
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![
       (
         self.template_id(TemplateId::Async),
-        include_str!("./embed_federation_runtime_async.ejs").to_string(),
+        EMBED_FEDERATION_RUNTIME_ASYNC_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::Sync),
-        include_str!("./embed_federation_runtime_sync.ejs").to_string(),
+        EMBED_FEDERATION_RUNTIME_SYNC_TEMPLATE.to_string(),
       ),
     ]
   }
@@ -67,7 +100,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
   async fn generate(&self, context: &RuntimeModuleGenerateContext<'_>) -> Result<String> {
     let compilation = context.compilation;
     let chunk_ukey = self
-      .chunk
+      .chunk()
       .expect("Chunk should be attached to RuntimeModule");
 
     let collected_deps = &self.options.collected_dependency_ids;
@@ -118,7 +151,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
         })
         .collect::<Vec<_>>();
       let entry_chunk_ids_literal =
-        serde_json::to_string(&entry_chunk_ids).expect("Invalid json to string");
+        simd_json::to_string(&entry_chunk_ids).expect("Invalid json to string");
       Ok(context.runtime_template.render(
         &self.template_id(TemplateId::Async),
         Some(serde_json::json!({

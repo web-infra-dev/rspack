@@ -20,6 +20,7 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
     private type: string,
     private externals: Externals,
     private placeInInitial?: boolean,
+    private fallbackType?: string,
   ) {
     super();
   }
@@ -29,6 +30,7 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
     const externals = this.externals;
     const raw: RawExternalsPluginOptions = {
       type,
+      fallbackType: this.fallbackType,
       externals: (Array.isArray(externals) ? externals : [externals])
         .filter(Boolean)
         .map((item) => this.#getRawExternalItem(item)),

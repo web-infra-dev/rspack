@@ -1,6 +1,6 @@
 use rspack_core::{
   ChunkGraph, Compilation, CompilerEmit, Context, EntryDependency, Filename, LibIdentOptions,
-  PathData, Plugin, PrefetchExportsInfoMode, ProvidedExports, SourceType,
+  PathData, Plugin, ProvidedExports, SourceType,
 };
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
@@ -66,6 +66,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
       .get_path(
         &self.options.path,
         PathData::default()
+          .chunk(chunk.ukey(), compilation)
           .chunk_id_optional(chunk.id().map(|id| id.as_str()))
           .chunk_hash_optional(chunk.rendered_hash(
             &compilation.chunk_hashes_artifact,
@@ -85,6 +86,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
           .get_path(
             name,
             PathData::default()
+              .chunk(chunk.ukey(), compilation)
               .chunk_id_optional(chunk.id().map(|id| id.as_str()))
               .chunk_hash_optional(chunk.rendered_hash(
                 &compilation.chunk_hashes_artifact,
@@ -123,12 +125,19 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
         None => &compilation.options.context,
       };
 
-      let ident = module.lib_ident(LibIdentOptions { context });
+      // Match webpack by deriving the library identifier from the concatenation root.
+      let module_for_ident = module
+        .as_concatenated_module()
+        .and_then(|concatenated_module| {
+          module_graph.module_by_identifier(&concatenated_module.get_root())
+        })
+        .unwrap_or(module);
+      let ident = module_for_ident.lib_ident(LibIdentOptions { context });
 
       if let Some(ident) = ident {
         let exports_info = compilation
           .exports_info_artifact
-          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
+          .get_exports_info_data(&module.identifier());
 
         let provided_exports = match exports_info.get_provided_exports() {
           ProvidedExports::ProvidedNames(vec) => Some(DllManifestContentItemExports::Vec(vec)),
@@ -160,7 +169,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
     let manifest_json = if format {
       serde_json::to_string_pretty(&manifest).to_rspack_result()?
     } else {
-      serde_json::to_string(&manifest).to_rspack_result()?
+      simd_json::to_string(&manifest).to_rspack_result()?
     };
 
     manifests.insert(target_path, manifest_json);

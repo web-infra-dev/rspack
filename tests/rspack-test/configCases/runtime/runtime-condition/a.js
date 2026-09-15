@@ -7,8 +7,8 @@ it("should have correct runtime id", () => {
 });
 
 it("should include runtime condition check code", () => {
-	const fs = __non_webpack_require__("fs");
-	const path = __non_webpack_require__("path");
+	const fs = require("fs");
+	const path = require("path");
 
 	const source = fs.readFileSync(
 		path.join(
@@ -17,7 +17,13 @@ it("should include runtime condition check code", () => {
 		),
 		"utf-8"
 	);
-	expect(source).toContain(`"a-runtime" == __webpack_require__.j`)
-	expect(source).toContain(`"b-runtime" == __webpack_require__.j`);
-	expect(source).toContain(`/^[ab]x\\-name$/.test(__webpack_require__.j)`);
+	if (source.includes("__rspack_context.j")) {
+		expect(source).toContain(`"a-runtime" == __rspack_context.j`)
+		expect(source).toContain(`"b-runtime" == __rspack_context.j`);
+		expect(source).toContain(`/^[ab]x\\-name$/.test(__rspack_context.j)`);
+	} else {
+		expect(source).toContain(`"a-runtime" == __webpack_require__.j`)
+		expect(source).toContain(`"b-runtime" == __webpack_require__.j`);
+		expect(source).toContain(`/^[ab]x\\-name$/.test(__webpack_require__.j)`);
+	}
 })

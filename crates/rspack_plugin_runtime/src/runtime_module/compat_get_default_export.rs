@@ -1,16 +1,10 @@
-use std::sync::LazyLock;
-
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
   impl_runtime_module,
 };
 
-use crate::extract_runtime_globals_from_ejs;
-
 static COMPAT_GET_DEFAULT_EXPORT_TEMPLATE: &str =
   include_str!("runtime/compat_get_default_export.ejs");
-static COMPAT_GET_DEFAULT_EXPORT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| extract_runtime_globals_from_ejs(COMPAT_GET_DEFAULT_EXPORT_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -24,9 +18,24 @@ impl CompatGetDefaultExportRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for CompatGetDefaultExportRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+      define: { RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT },
+      ..Default::default()
+    }
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       COMPAT_GET_DEFAULT_EXPORT_TEMPLATE.to_string(),
     )]
   }
@@ -35,12 +44,8 @@ impl RuntimeModule for CompatGetDefaultExportRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let source = context.runtime_template.render(&self.id, None)?;
+    let source = context.runtime_template.render(self.id(), None)?;
 
     Ok(source)
-  }
-
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    *COMPAT_GET_DEFAULT_EXPORT_RUNTIME_REQUIREMENTS
   }
 }

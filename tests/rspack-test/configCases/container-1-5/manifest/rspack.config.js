@@ -3,6 +3,10 @@ const path = require('path');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
   optimization: {
     chunkIds: 'named',
     moduleIds: 'named',

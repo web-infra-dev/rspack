@@ -8,7 +8,10 @@ use std::{
   sync::Arc,
 };
 
-use napi::{bindgen_prelude::Either, tokio::runtime};
+use napi::{
+  Env,
+  bindgen_prelude::{Either, PromiseRaw},
+};
 use napi_derive::napi;
 use rspack_resolver::{ResolveOptions, Resolver};
 
@@ -44,16 +47,20 @@ async fn resolve(resolver: &Resolver, path: &Path, request: &str) -> ResolveResu
 pub fn sync(path: String, request: String) -> ResolveResult {
   let path = PathBuf::from(path);
   let resolver = Resolver::new(ResolveOptions::default());
-  napi::bindgen_prelude::within_runtime_if_available(|| {
-    runtime::Handle::current().block_on(resolve(&resolver, &path, &request))
-  })
+  rspack_napi::runtime::block_on(resolve(&resolver, &path, &request))
 }
 
 #[napi(js_name = "async")]
-pub async fn async_(path: String, request: String) -> ResolveResult {
+pub fn async_<'env>(
+  env: &'env Env,
+  path: String,
+  request: String,
+) -> napi::Result<PromiseRaw<'env, ResolveResult>> {
   let path = PathBuf::from(path);
   let resolver = Resolver::new(ResolveOptions::default());
-  resolve(&resolver, &path, &request).await
+  rspack_napi::runtime::promise_from_future(env, async move {
+    Ok(resolve(&resolver, &path, &request).await)
+  })
 }
 
 #[napi]
@@ -103,18 +110,23 @@ impl ResolverFactory {
   #[napi]
   pub fn sync(&self, directory: String, request: String) -> ResolveResult {
     let path = PathBuf::from(directory);
-    napi::bindgen_prelude::within_runtime_if_available(|| {
-      runtime::Handle::current().block_on(resolve(&self.resolver, &path, &request))
-    })
+    rspack_napi::runtime::block_on(resolve(&self.resolver, &path, &request))
   }
 
   /// Asynchronously resolve `specifier` at an absolute path to a `directory`.
   #[allow(clippy::needless_pass_by_value)]
   #[napi(js_name = "async")]
-  pub async fn resolve_async(&self, directory: String, request: String) -> ResolveResult {
+  pub fn resolve_async<'env>(
+    &self,
+    env: &'env Env,
+    directory: String,
+    request: String,
+  ) -> napi::Result<PromiseRaw<'env, ResolveResult>> {
     let path = PathBuf::from(directory);
     let resolver = self.resolver.clone();
-    resolve(&resolver, &path, &request).await
+    rspack_napi::runtime::promise_from_future(env, async move {
+      Ok(resolve(&resolver, &path, &request).await)
+    })
   }
 
   fn normalize_options(op: NapiResolveOptions) -> ResolveOptions {

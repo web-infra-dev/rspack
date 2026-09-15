@@ -1,21 +1,21 @@
 use std::sync::LazyLock;
 
+use concat_string::concat_string;
 use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, CodeGenerationPublicPathAutoReplace, ConnectionState, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, FactorizeInfo, JavascriptParserUrl, ModuleDependency, ModuleGraph,
+  ExportsInfoArtifact, JavascriptParserUrl, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeGlobals, RuntimeSpec,
   SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, URLStaticMode, UsedByExports,
 };
-use swc_core::ecma::atoms::Atom;
 
-use crate::{connection_active_used_by_exports, runtime::AUTO_PUBLIC_PATH_PLACEHOLDER};
+use crate::{Atom, connection_active_used_by_exports, runtime::AUTO_PUBLIC_PATH_PLACEHOLDER};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct URLDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
@@ -24,7 +24,6 @@ pub struct URLDependency {
   range_url: DependencyRange,
   used_by_exports: Option<UsedByExports>,
   mode: Option<JavascriptParserUrl>,
-  factorize_info: FactorizeInfo,
 }
 
 impl URLDependency {
@@ -41,12 +40,26 @@ impl URLDependency {
       range_url,
       used_by_exports: None,
       mode,
-      factorize_info: Default::default(),
     }
   }
 
   pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
     self.used_by_exports = used_by_exports;
+  }
+
+  pub fn used_by_exports(&self) -> Option<&UsedByExports> {
+    self.used_by_exports.as_ref()
+  }
+
+  /// Replace the arguments of `new URL(request, import.meta.url)` with the given
+  /// request, keeping the `new URL(...)` call itself untouched.
+  pub fn replace_request(&self, source: &mut TemplateReplaceSource, request: String) {
+    source.replace(
+      self.range_url.start,
+      self.range_url.end,
+      concat_string!(request, ", import.meta.url"),
+      None,
+    );
   }
 }
 
@@ -62,6 +75,10 @@ impl Dependency for URLDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::NewUrl
+  }
+
+  fn url_mode(&self) -> Option<JavascriptParserUrl> {
+    self.mode
   }
 
   fn range(&self) -> Option<DependencyRange> {
@@ -85,14 +102,6 @@ impl ModuleDependency for URLDependency {
 
   fn get_condition(&self) -> Option<DependencyCondition> {
     Some(DependencyCondition::new(URLDependencyCondition))
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

@@ -1,0 +1,143 @@
+```mjs title=main.mjs
+import { rspackRequire, moduleFactories, definePropertyGetters, makeNamespaceObject, esmModuleDecorator } from "./runtime.mjs";
+import * as __rspack_external_fs from "fs";
+moduleFactories.add({
+"./index.js"
+/*!******************!*\
+  !*** ./index.js ***!
+  \******************/
+(module, exports) {
+makeNamespaceObject(exports);
+/* import */ var fs__rspack_import_0 = rspackRequire(/*! fs */ "fs");
+
+/* reexport */ var __rspack_reexport = {};
+/* reexport */ for( const __rspack_import_key in fs__rspack_import_0) if(["r","named","default","fs","starExports","readFile"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => fs__rspack_import_0[__rspack_import_key]
+/* reexport */ definePropertyGetters(exports, __rspack_reexport);
+/* module decorator */ module = esmModuleDecorator(module);
+
+
+
+
+
+
+
+console.log.bind(module)
+
+it('should compile and import success', async () => {
+	const {
+		fs,
+		/* star re-exported */ readFileSync,
+		/* renamed re-exported */ r,
+		readFile
+	} = await import(/*webpackIgnore: true*/'./main.mjs')
+
+	expect(fs).toBeDefined()
+	expect(readFileSync).toBeDefined()
+	expect(r).toBeDefined()
+	expect(readFile).toBeDefined()
+})
+
+definePropertyGetters(exports, {
+  fs: () => (/* reexport safe */ fs__rspack_import_0["default"]),
+  named: () => (/* reexport safe */ (/* inlined export _lib__rspack_import_1 */42)),
+  r: () => (/* reexport safe */ fs__rspack_import_0.readFile),
+  readFile: () => (/* reexport safe */ fs__rspack_import_0.readFile),
+  starExports: () => (/* reexport safe */ (/* inlined export _lib2__rspack_import_2 */42))
+});
+
+
+},
+"fs"
+/*!*********************!*\
+  !*** external "fs" ***!
+  \*********************/
+(module) {
+
+module.exports = __rspack_external_fs;
+
+
+},
+});
+const index = rspackRequire("./index.js");
+var fs = index.fs;
+var named = index.named;
+var r = index.r;
+var readFile = index.readFile;
+var starExports = index.starExports;
+
+export { fs, named, r, readFile, starExports };
+export * from "fs";
+
+```
+
+```mjs title=runtime.mjs
+
+var modules = {};
+// The module cache
+var moduleCache = {};
+// The require function
+function rspackRequire(moduleId) {
+// Check if module is in cache
+var cachedModule = moduleCache[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (moduleCache[moduleId] = {
+id: moduleId,
+exports: {}
+});
+// Execute the module function
+modules[moduleId](module, module.exports, rspackRequire);
+
+// Return the exports of the module
+return module.exports;
+}
+export { rspackRequire };
+// expose the modules object (modules)
+var moduleFactories = modules;
+export { moduleFactories };
+
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+export { definePropertyGetters };
+// rspack/runtime/esm_module_decorator
+var esmModuleDecorator = (module) => {
+  module = Object.create(module);
+  if (!module.children) module.children = [];
+  Object.defineProperty(module, 'exports', {
+      enumerable: true,
+      set: () => {
+          throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + module.id);
+      }
+  });
+  return module;
+};;
+export { esmModuleDecorator };
+// rspack/runtime/esm_register_module
+moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
+;
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+export { makeNamespaceObject };
+
+
+```

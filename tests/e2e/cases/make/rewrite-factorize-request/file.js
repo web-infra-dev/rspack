@@ -1,1 +1,1 @@
-export default <time> + 1;
+export default _$TIME_ + 1;

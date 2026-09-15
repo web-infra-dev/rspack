@@ -11,11 +11,11 @@ export function createDefaultsCase(name: string, src: string) {
   const caseConfig = require(src) as TDefaultsCaseConfig;
   it(`should generate the correct defaults from ${caseConfig.description}`, async () => {
     await run(name, {
-      config: async (context: ITestContext) => {
+      config: (context: ITestContext) => {
         const compiler = context.getCompiler();
         compiler.setOptions(options(context, caseConfig.options));
       },
-      compiler: async (context: ITestContext) => {
+      compiler: (context: ITestContext) => {
         const compiler = context.getCompiler();
         compiler.createCompiler();
       },

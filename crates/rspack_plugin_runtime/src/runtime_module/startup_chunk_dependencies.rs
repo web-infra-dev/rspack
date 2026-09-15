@@ -1,10 +1,18 @@
-use std::iter;
+use std::{iter, sync::LazyLock};
 
 use itertools::Itertools;
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
   impl_runtime_module,
 };
+
+use crate::extract_runtime_module_variables_from_ejs;
+
+static STARTUP_CHUNK_DEPENDENCIES_TEMPLATE: &str =
+  include_str!("runtime/startup_chunk_dependencies.ejs");
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+  extract_runtime_module_variables_from_ejs(&[STARTUP_CHUNK_DEPENDENCIES_TEMPLATE])
+});
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -20,10 +28,31 @@ impl StartupChunkDependenciesRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES.as_slice()
+  }
+
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    let mut dependencies = RuntimeGlobals::STARTUP
+      | RuntimeGlobals::ENSURE_CHUNK
+      | RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES;
+    if self.async_chunk_loading {
+      dependencies.insert(RuntimeGlobals::REQUIRE);
+    }
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies,
+      define: { RuntimeGlobals::STARTUP },
+      ..Default::default()
+    }
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
-      include_str!("runtime/startup_chunk_dependencies.ejs").to_string(),
+      self.id().to_string(),
+      STARTUP_CHUNK_DEPENDENCIES_TEMPLATE.to_string(),
     )]
   }
 
@@ -33,7 +62,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
-    if let Some(chunk_ukey) = self.chunk {
+    if let Some(chunk_ukey) = self.chunk() {
       let chunk_ids = compilation
         .build_chunk_graph_artifact
         .chunk_graph
@@ -72,7 +101,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
           ),
           _ => format!(
             "return Promise.all({}.map({}, {})).then(next);",
-            serde_json::to_string(&chunk_ids).expect("Invalid json to string"),
+            simd_json::to_string(&chunk_ids).expect("invalid json to_string"),
             runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
             runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
           ),
@@ -92,7 +121,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
       };
 
       let source = runtime_template.render(
-        &self.id,
+        self.id(),
         Some(serde_json::json!({
           "_body": body,
         })),
@@ -102,11 +131,5 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
     } else {
       unreachable!("should have chunk for StartupChunkDependenciesRuntimeModule")
     }
-  }
-
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::STARTUP
-      | RuntimeGlobals::ENSURE_CHUNK
-      | RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES
   }
 }

@@ -1,12 +1,12 @@
 use napi::Either;
 use napi_derive::napi;
 use rspack_core::ModuleId;
+use rspack_intern::Atom;
 use rspack_plugin_dll::{
   DllEntryPluginOptions, DllManifest, DllManifestContent, DllManifestContentItem,
   DllManifestContentItemExports, DllReferenceAgencyPluginOptions, LibManifestPluginOptions,
 };
 use rustc_hash::FxHashMap as HashMap;
-use swc_core::atoms::Atom;
 
 use crate::{filename::JsFilename, module::JsBuildMeta};
 

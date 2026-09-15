@@ -1,29 +1,37 @@
-use std::sync::LazyLock;
+use std::{collections::BTreeMap, sync::LazyLock};
 
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  Chunk, ChunkGraph, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, SourceType,
-  impl_runtime_module,
+  Chunk, ChunkGraph, CodeGenerationDataItem, Compilation, ModuleIdentifier, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements,
+  RuntimeModuleStage, RuntimeTemplate, SourceType, impl_runtime_module,
 };
-use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
+use rspack_plugin_runtime::{
+  extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
+};
 use rspack_util::json_stringify_str;
-use rustc_hash::FxHashMap;
 
 use super::consume_shared_plugin::ConsumeVersion;
-use crate::{ShareScope, utils::json_stringify};
+use crate::{
+  ShareScope,
+  utils::{json_stringify, runtime_require_scope_name, runtime_require_scope_requirement},
+};
 
 static CONSUMES_COMMON_TEMPLATE: &str = include_str!("./consumesCommon.ejs");
 static CONSUMES_INITIAL_TEMPLATE: &str = include_str!("./consumesInitial.ejs");
 static CONSUMES_LOADING_TEMPLATE: &str = include_str!("./consumesLoading.ejs");
-static CONSUMES_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static CONSUMES_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(CONSUMES_COMMON_TEMPLATE));
-static CONSUMES_INITIAL_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static CONSUMES_INITIAL_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(CONSUMES_INITIAL_TEMPLATE));
-static CONSUMES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
-  let mut res = extract_runtime_globals_from_ejs(CONSUMES_LOADING_TEMPLATE);
-  // ensure chunk handlers is optional
-  res.remove(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
-  res
+static CONSUMES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CONSUMES_LOADING_TEMPLATE));
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+  extract_runtime_module_variables_from_ejs(&[
+    CONSUMES_COMMON_TEMPLATE,
+    CONSUMES_INITIAL_TEMPLATE,
+    CONSUMES_LOADING_TEMPLATE,
+  ])
 });
 
 #[impl_runtime_module]
@@ -39,9 +47,9 @@ impl ConsumeSharedRuntimeModule {
 
   fn get_template_id(&self, template_id: TemplateId) -> String {
     match template_id {
-      TemplateId::Common => format!("{}_consumesCommon", self.id),
-      TemplateId::Initial => format!("{}_consumesInitial", self.id),
-      TemplateId::Loading => format!("{}_consumesLoading", self.id),
+      TemplateId::Common => format!("{}_consumesCommon", self.id()),
+      TemplateId::Initial => format!("{}_consumesInitial", self.id()),
+      TemplateId::Loading => format!("{}_consumesLoading", self.id()),
     }
   }
 }
@@ -54,6 +62,24 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ConsumeSharedRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES.as_slice()
+  }
+
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    let dependencies = CONSUMES_RUNTIME_REQUIREMENTS.dependencies
+      | CONSUMES_INITIAL_RUNTIME_REQUIREMENTS.dependencies
+      | CONSUMES_LOADING_RUNTIME_REQUIREMENTS.dependencies
+      | runtime_require_scope_requirement(compilation);
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies,
+      ..Default::default()
+    }
+  }
+
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }
@@ -82,15 +108,15 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
     let chunk_ukey = self
-      .chunk
+      .chunk()
       .expect("should have chunk in <ConsumeSharedRuntimeModule as RuntimeModule>::generate");
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
       .expect_get(&chunk_ukey);
     let module_graph = compilation.get_module_graph();
-    let mut chunk_to_module_mapping = FxHashMap::default();
-    let mut module_id_to_consume_data_mapping = FxHashMap::default();
+    let mut chunk_to_module_mapping = BTreeMap::default();
+    let mut module_id_to_consume_data_mapping = BTreeMap::default();
     let mut initial_consumes = Vec::new();
     let enhanced = self.enhanced;
     let mut add_module = |module: ModuleIdentifier, chunk: &Chunk, ids: &mut Vec<String>| {
@@ -101,7 +127,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       let code_gen = compilation
         .code_generation_results
         .get(&module, Some(chunk.runtime()));
-      if let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>() {
+      if let Some(data) = code_gen.data().get::<CodeGenerationDataConsumeShared>() {
         let share_scope_json = if enhanced {
           json_stringify(&data.share_scope)
         } else {
@@ -131,7 +157,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     for chunk in
       chunk.get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
     {
-      let modules = compilation
+      let mut modules = compilation
         .build_chunk_graph_artifact
         .chunk_graph
         .get_chunk_modules_identifier_by_source_type(
@@ -139,6 +165,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
           SourceType::ConsumeShared,
           module_graph,
         );
+      modules.sort_unstable();
       let chunk = compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
@@ -153,7 +180,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       chunk_to_module_mapping.insert(
         chunk
           .id()
-          .map(ToOwned::to_owned)
+          .map(|id| id.to_string())
           .expect("should have chunkId at <ConsumeSharedRuntimeModule as RuntimeModule>::generate"),
         ids,
       );
@@ -161,7 +188,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     for chunk in
       chunk.get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
     {
-      let modules = compilation
+      let mut modules = compilation
         .build_chunk_graph_artifact
         .chunk_graph
         .get_chunk_modules_identifier_by_source_type(
@@ -169,6 +196,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
           SourceType::ConsumeShared,
           module_graph,
         );
+      modules.sort_unstable();
       let chunk = compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
@@ -199,7 +227,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     } else {
       json_stringify(&initial_consumes)
     };
-    let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let require_name = runtime_require_scope_name(runtime_template);
     let mut source = format!(
       r#"
 {require_name}.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {module_id_to_consume_data_mapping}, initialConsumes: {initial_consumes_json} }};
@@ -228,14 +256,9 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     }
     Ok(source)
   }
-
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    *CONSUMES_RUNTIME_REQUIREMENTS
-      | *CONSUMES_INITIAL_RUNTIME_REQUIREMENTS
-      | *CONSUMES_LOADING_RUNTIME_REQUIREMENTS
-  }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataConsumeShared {
   pub share_scope: ShareScope,
@@ -248,3 +271,6 @@ pub struct CodeGenerationDataConsumeShared {
   pub fallback: Option<String>,
   pub tree_shaking_mode: Option<String>,
 }
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataConsumeShared {}

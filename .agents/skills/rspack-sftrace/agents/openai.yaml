@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Rspack Sftrace'
+  short_description: 'Trace Rspack Rust function calls with sftrace'
+  default_prompt: 'Use $rspack-sftrace to trace and analyze Rust function calls for the requested Rspack workload.'
+
+policy:
+  allow_implicit_invocation: false

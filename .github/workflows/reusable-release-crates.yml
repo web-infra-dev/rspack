@@ -18,9 +18,6 @@ jobs:
   rust_tests:
     name: Run Rust Tests
     uses: ./.github/workflows/reusable-rust-test.yml
-    with:
-      # Use separated strategy to check all crates
-      cargo-check-strategy: 'separated'
 
   release_crates:
     environment: crate
@@ -33,7 +30,7 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
@@ -43,7 +40,7 @@ jobs:
           save-if: true
           key: release
 
-      - uses: cargo-bins/cargo-binstall@0b24824336e2b3800b0f89d9e08b2c08bfa3dcdd # v1.17.9
+      - uses: cargo-bins/cargo-binstall@75b4bfae1b2c753a6806bbce6e6cb89b602de33c # v1.22.0
 
       - name: Install cargo-workspaces
         run: cargo binstall --no-confirm cargo-workspaces@0.4.0 --force
@@ -57,11 +54,11 @@ jobs:
       - name: Run Cargo codegen
         run: cargo codegen
 
-      - uses: rust-lang/crates-io-auth-action@bbd81622f20ce9e2dd9622e3218b975523e45bbe # v1.0.4
+      - uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
         id: auth
 
       - name: Publish Crates
         run: |
-          ./x crate-publish --token $CARGO_REGISTRY_TOKEN ${{ inputs.dry_run && '--dry-run' || '' }} ${{ inputs.push_tags && '--push-tags' || '' }}
+          ./x crate-publish ${{ inputs.dry_run && '--dry-run' || '' }} ${{ inputs.push_tags && '--push-tags' || '' }}
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}

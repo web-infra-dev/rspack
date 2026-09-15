@@ -1,0 +1,107 @@
+```mjs title=main.mjs
+import { rspackRequire, moduleFactories, definePropertyGetters, esmModuleDecorator } from "./runtime.mjs";
+moduleFactories.add({
+"./wrapped.js"
+/*!********************!*\
+  !*** ./wrapped.js ***!
+  \********************/
+(module, exports) {
+/* module decorator */ module = esmModuleDecorator(module);
+const __nested_rspack_exports__ = 44;
+
+// Accessing module prevents this module from being scope hoisted.
+console.log.bind(module);
+
+definePropertyGetters(exports, {
+  A: () => (__nested_rspack_exports__)
+});
+
+
+},
+});
+// ./before-export.js
+var __nested_rspack_exports__ = 43;
+
+
+// ./index.js
+const index_nested_rspack_exports_ = 42;
+
+
+
+it("should preserve direct and deconflicted exports bindings", async () => {
+	expect(index_nested_rspack_exports_).toBe(42);
+	const namespace = await import(/* webpackIgnore: true */ "./main.mjs");
+	expect(namespace.exports).toBe(42);
+	expect(namespace.beforeExport).toBe(43);
+	expect(namespace.wrappedExports).toBe(44);
+});
+
+const wrapped = rspackRequire("./wrapped.js");
+var A = wrapped.A;
+
+export { A as wrappedExports, __nested_rspack_exports__ as beforeExport, index_nested_rspack_exports_ as exports };
+
+```
+
+```mjs title=runtime.mjs
+
+var modules = {};
+// The module cache
+var moduleCache = {};
+// The require function
+function rspackRequire(moduleId) {
+// Check if module is in cache
+var cachedModule = moduleCache[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (moduleCache[moduleId] = {
+id: moduleId,
+exports: {}
+});
+// Execute the module function
+modules[moduleId](module, module.exports, rspackRequire);
+
+// Return the exports of the module
+return module.exports;
+}
+export { rspackRequire };
+// expose the modules object (modules)
+var moduleFactories = modules;
+export { moduleFactories };
+
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+export { definePropertyGetters };
+// rspack/runtime/esm_module_decorator
+var esmModuleDecorator = (module) => {
+  module = Object.create(module);
+  if (!module.children) module.children = [];
+  Object.defineProperty(module, 'exports', {
+      enumerable: true,
+      set: () => {
+          throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + module.id);
+      }
+  });
+  return module;
+};;
+export { esmModuleDecorator };
+// rspack/runtime/esm_register_module
+moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
+;
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+
+
+```

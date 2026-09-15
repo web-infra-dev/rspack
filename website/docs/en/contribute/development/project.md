@@ -17,6 +17,9 @@ This is a **monorepo** containing both Rust crates and JavaScript packages:
 - **`rspack_napi`**: NAPI (Node-API) support layer for interoperability between Rust and Node.js
 - **`rspack_allocator`**: Memory allocator using mimalloc to optimize memory allocation performance (Linux/macOS)
 
+See [JavaScript API architecture](/api/javascript-api/architecture) for the ownership, threading,
+hook bridge, and lifecycle relationships between these crates and `@rspack/core`.
+
 ### Build & binding crates
 
 - **`rspack_binding_build`**: Binding build script for building Node.js native bindings
@@ -214,9 +217,17 @@ End-to-end tests for Rspack, covering real-world scenarios and integration testi
 - **`fixtures/`**: Shared fixtures and utilities for E2E tests
 - **`utils/`**: Utility functions for E2E test execution
 
-### Benchmarks (`bench/`)
+### JavaScript benchmarks (`bench/`)
 
 Performance benchmarks for tracking Rspack JavaScript API performance and preventing performance degradation:
 
 - **`fixtures/`**: Benchmark test fixtures (e.g., `ts-react` project for benchmarking)
 - Benchmark files for measuring build performance and API execution time
+
+### Rust benchmarks (`xtask/benchmark/`)
+
+CodSpeed benchmarks for tracking Rust compilation pipeline performance:
+
+- **`cases/`**: End-to-end benchmark cases for module graph, chunk graph, bundling, scanning dependencies, and persistent cache
+- **`stages/`**: Focused benchmark cases for individual compilation stages
+- See **`xtask/benchmark/README.md`** for local CodSpeed CPU simulation commands and Valgrind temporary file locations

@@ -13,6 +13,7 @@ import type {
   ChunkGroup,
   Dependency,
   ExternalObject,
+  JsAsset,
   JsCompilation,
   JsPathData,
   JsSource,
@@ -24,11 +25,13 @@ export type { AssetInfo } from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import type { Source } from 'webpack-sources';
 import type { EntryOptions, EntryPlugin } from './builtin-plugin';
+import './Chunk';
 import type { Chunk } from './Chunk';
 import type { ChunkGraph } from './ChunkGraph';
 import type { Compiler } from './Compiler';
 import type { ContextModuleFactory } from './ContextModuleFactory';
 import type {
+  Filename,
   OutputNormalized,
   RspackOptionsNormalized,
   RspackPluginInstance,
@@ -41,11 +44,11 @@ import WebpackError from './lib/WebpackError';
 import { Logger, LogType } from './logging/Logger';
 import type { Module } from './Module';
 import ModuleGraph from './ModuleGraph';
-import type { NormalModuleCompilationHooks } from './NormalModule';
 import type { NormalModuleFactory } from './NormalModuleFactory';
 import type { ResolverFactory } from './ResolverFactory';
 import type { RspackError } from './RspackError';
 import { RuntimeModule } from './RuntimeModule';
+import { RuntimeTemplate } from './RuntimeTemplate';
 import {
   Stats,
   type StatsAsset,
@@ -60,8 +63,6 @@ import { createFakeCompilationDependencies } from './util/fake';
 import type { InputFileSystem } from './util/fs';
 import type Hash from './util/hash';
 import { SourceAdapter } from './util/source';
-// patch Chunk
-import './Chunk';
 // patch Chunks
 import './Chunks';
 // patch ChunkGraph
@@ -78,23 +79,57 @@ export interface Asset {
   info: AssetInfo;
 }
 
-export type ChunkPathData = {
-  id?: string;
-  name?: string;
-  hash?: string;
-  contentHash?: Record<string, string>;
-};
-
 export type PathData = {
   filename?: string;
   hash?: string;
   contentHash?: string;
   runtime?: string;
   url?: string;
-  id?: string;
+  id?: string | number;
   chunk?: Chunk | ChunkPathData;
   contentHashType?: string;
 };
+
+export type ChunkPathData = {
+  id?: string | number;
+  name?: string;
+  hash?: string;
+  contentHash?: Record<string, string> | string;
+};
+
+function normalizePathData(data: PathData = {}): JsPathData {
+  const pathData: JsPathData = {
+    filename: data.filename,
+    hash: data.hash,
+    contentHash: data.contentHash,
+    runtime: data.runtime,
+    url: data.url,
+  };
+
+  if (data.id !== undefined) {
+    pathData.id = String(data.id);
+  }
+
+  const chunk = data.chunk;
+  if (chunk) {
+    pathData.chunk = chunk;
+  }
+
+  if (chunk && pathData.contentHash === undefined) {
+    const contentHash = chunk.contentHash;
+    if (typeof contentHash === 'string') {
+      pathData.contentHash = contentHash;
+    } else if (
+      data.contentHashType &&
+      contentHash &&
+      typeof contentHash === 'object'
+    ) {
+      pathData.contentHash = contentHash[data.contentHashType];
+    }
+  }
+
+  return pathData;
+}
 
 export interface LogEntry {
   type: string;
@@ -203,12 +238,27 @@ export const checkCompilation = (compilation: Compilation) => {
   }
 };
 
+export const getOrCreateCompilationHooks = <T>(
+  compilation: Compilation,
+  key: object,
+  createHooks: () => T,
+): T => {
+  const compilationHooksMap = compilation[binding.COMPILATION_HOOKS_MAP_SYMBOL];
+  let hooks = compilationHooksMap.get(key) as T | undefined;
+  if (hooks === undefined) {
+    hooks = createHooks();
+    compilationHooksMap.set(key, hooks);
+  }
+  return hooks;
+};
+
 export class Compilation {
   #inner: JsCompilation;
   #shutdown: boolean;
   #errors?: RspackError[];
   #warnings?: RspackError[];
   #chunks?: ReadonlySet<Chunk>;
+  #assetsProxy?: Assets;
 
   hooks: Readonly<{
     processAssets: liteTapable.AsyncSeriesHook<Assets>;
@@ -266,6 +316,7 @@ export class Compilation {
   inputFileSystem: InputFileSystem | null;
   options: RspackOptionsNormalized;
   outputOptions: OutputNormalized;
+  runtimeTemplate: RuntimeTemplate;
   logging: Map<string, LogEntry[]>;
   childrenCounters: Record<string, number>;
   children: Compilation[];
@@ -282,10 +333,7 @@ export class Compilation {
   #addIncludeDispatcher: AddEntryItemDispatcher;
   #addEntryDispatcher: AddEntryItemDispatcher;
 
-  [binding.COMPILATION_HOOKS_MAP_SYMBOL]: WeakMap<
-    Compilation,
-    NormalModuleCompilationHooks
-  >;
+  [binding.COMPILATION_HOOKS_MAP_SYMBOL]: WeakMap<object, unknown>;
 
   constructor(compiler: Compiler, inner: JsCompilation) {
     this.#inner = inner;
@@ -416,6 +464,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     this.inputFileSystem = compiler.inputFileSystem;
     this.options = compiler.options;
     this.outputOptions = compiler.options.output;
+    this.runtimeTemplate = new RuntimeTemplate(this, this.outputOptions);
     this.logging = new Map();
     this.childrenCounters = {};
     this.children = [];
@@ -445,19 +494,23 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
    * Get a map of all assets.
    */
   get assets(): Record<string, Source> {
-    return this.#createCachedAssets();
+    if (!this.#assetsProxy) {
+      this.#assetsProxy = this.#createAssetsProxy();
+    }
+    return this.#assetsProxy;
   }
 
   /**
    * Get a map of all entrypoints.
    */
   get entrypoints(): ReadonlyMap<string, Entrypoint> {
-    return new Map(
-      this.#inner.entrypoints.map((entrypoint) => [
-        entrypoint.name!,
-        entrypoint,
-      ]),
-    );
+    const entrypoints = new Map<string, Entrypoint>();
+    const rawEntryPoints = this.#inner.entrypoints;
+    for (let i = 0; i < rawEntryPoints.length; i++) {
+      const entrypoint = rawEntryPoints[i];
+      entrypoints.set(entrypoint.name!, entrypoint);
+    }
+    return entrypoints;
   }
 
   get chunkGroups(): readonly ChunkGroup[] {
@@ -525,7 +578,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     return this.#inner.codeGenerationResults;
   }
 
-  #createCachedAssets() {
+  #createAssetsProxy() {
     return new Proxy(
       {},
       {
@@ -621,8 +674,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     filename: string,
     newSourceOrFunction: Source | ((source: Source) => Source),
     assetInfoUpdateOrFunction?:
-      | AssetInfo
-      | ((assetInfo: AssetInfo) => AssetInfo | undefined),
+      AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined),
   ) {
     let compatNewSourceOrFunction: JsSource | ((source: JsSource) => JsSource);
 
@@ -668,16 +720,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   getAssets(): readonly Asset[] {
     const assets = this.#inner.getAssets();
 
-    return assets.map((asset) => {
-      return Object.defineProperties(asset, {
-        info: {
-          value: asset.info,
-        },
-        source: {
-          get: () => this.__internal__getAssetSource(asset.name),
-        },
-      }) as unknown as Asset;
-    });
+    return assets.map((asset) => this.#createAsset(asset));
   }
 
   getAsset(name: string): Readonly<Asset> | void {
@@ -685,14 +728,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     if (!asset) {
       return;
     }
-    return Object.defineProperties(asset, {
-      info: {
-        value: asset.info,
-      },
-      source: {
-        get: () => this.__internal__getAssetSource(asset.name),
-      },
-    }) as unknown as Asset;
+    return this.#createAsset(asset);
+  }
+
+  #createAsset(asset: JsAsset): Asset {
+    Object.defineProperty(asset, 'source', {
+      get: () => this.__internal__getAssetSource(asset.name),
+    });
+    return asset as unknown as Asset;
   }
 
   /**
@@ -750,36 +793,40 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     this.#warnings.splice(0, this.#warnings.length, ...warnings);
   }
 
-  getPath(filename: string, data: PathData = {}) {
-    const pathData: JsPathData = { ...data };
-    if (data.contentHashType && data.chunk?.contentHash) {
-      pathData.contentHash = data.chunk.contentHash[data.contentHashType];
+  getPath(filename: Filename, data: PathData = {}) {
+    if (!data.hash) {
+      data = {
+        hash: this.hash ?? undefined,
+        ...data,
+      };
     }
-    return this.#inner.getPath(filename, pathData);
+    return this.getAssetPath(filename, data);
   }
 
-  getPathWithInfo(filename: string, data: PathData = {}) {
-    const pathData: JsPathData = { ...data };
-    if (data.contentHashType && data.chunk?.contentHash) {
-      pathData.contentHash = data.chunk.contentHash[data.contentHashType];
+  getPathWithInfo(filename: Filename, data: PathData = {}) {
+    if (!data.hash) {
+      data = {
+        hash: this.hash ?? undefined,
+        ...data,
+      };
     }
-    return this.#inner.getPathWithInfo(filename, pathData);
+    return this.getAssetPathWithInfo(filename, data);
   }
 
-  getAssetPath(filename: string, data: PathData = {}) {
-    const pathData: JsPathData = { ...data };
-    if (data.contentHashType && data.chunk?.contentHash) {
-      pathData.contentHash = data.chunk.contentHash[data.contentHashType];
-    }
-    return this.#inner.getAssetPath(filename, pathData);
+  getAssetPath(filename: Filename, data: PathData = {}) {
+    const template = typeof filename === 'function' ? filename(data) : filename;
+    const pathData = normalizePathData(data);
+    return this.#inner.getAssetPath(template, pathData);
   }
 
-  getAssetPathWithInfo(filename: string, data: PathData = {}) {
-    const pathData: JsPathData = { ...data };
-    if (data.contentHashType && data.chunk?.contentHash) {
-      pathData.contentHash = data.chunk.contentHash[data.contentHashType];
-    }
-    return this.#inner.getAssetPathWithInfo(filename, pathData);
+  getAssetPathWithInfo(filename: Filename, data: PathData = {}) {
+    const info: AssetInfo = {};
+    const template =
+      typeof filename === 'function' ? filename(data, info) : filename;
+    const pathData = normalizePathData(data);
+    const result = this.#inner.getAssetPathWithInfo(template, pathData, info);
+    Object.assign(info, result.info);
+    return { path: result.path, info };
   }
 
   getLogger(name: string | (() => string)) {
@@ -1130,8 +1177,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 // Based on this limitation, the AddEntryItemDispatcher class needs to properly coordinate and schedule the calls to ensure compliance with this execution rule.
 class AddEntryItemDispatcher {
   #inner:
-    | binding.JsCompilation['addInclude']
-    | binding.JsCompilation['addEntry'];
+    binding.JsCompilation['addInclude'] | binding.JsCompilation['addEntry'];
   #running: boolean;
   #args: [
     string,
@@ -1171,8 +1217,7 @@ class AddEntryItemDispatcher {
 
   constructor(
     binding:
-      | binding.JsCompilation['addInclude']
-      | binding.JsCompilation['addEntry'],
+      binding.JsCompilation['addInclude'] | binding.JsCompilation['addEntry'],
   ) {
     this.#inner = binding;
     this.#running = false;

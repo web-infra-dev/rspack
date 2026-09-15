@@ -22,6 +22,9 @@ module.exports = {
     generator: {
       'css/auto': {
         exportsConvention: 'as-is',
+        localIdentHashDigest: 'hex',
+        localIdentHashDigestLength: 16,
+        localIdentHashFunction: 'xxhash64',
         localIdentName: '[hash]-[local]',
       },
     },
@@ -39,6 +42,9 @@ module.exports = {
         },
         generator: {
           exportsConvention: 'camel-case',
+          localIdentHashDigest: 'hex',
+          localIdentHashDigestLength: 16,
+          localIdentHashFunction: 'xxhash64',
           localIdentName: '[hash]-[local]',
         },
       },

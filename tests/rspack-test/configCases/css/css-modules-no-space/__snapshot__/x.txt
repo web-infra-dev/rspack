@@ -1,3 +1,0 @@
-Object {
-  class: _style_module_css-class,
-}

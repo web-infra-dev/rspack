@@ -2,11 +2,8 @@
 description: 'Rspack Entry 配置项参考，涵盖单入口、多入口、动态入口函数以及入口描述对象的配置方式与行为。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-import { ApiMeta, Stability } from '../../../components/ApiMeta';
+import Attribution from '@components/Attribution';
 import PropertyType from '@components/PropertyType';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/entry-context/#entry" />
 
 # Entry
 
@@ -14,9 +11,7 @@ import PropertyType from '@components/PropertyType';
 
 ```ts
 type EntryStatic =
-  | string
-  | string[]
-  | Record<string, string | string[] | EntryDescription>;
+  string | string[] | Record<string, string | string[] | EntryDescription>;
 
 type Entry = EntryStatic | (() => EntryStatic | Promise<EntryStatic>);
 ```
@@ -59,7 +54,7 @@ export default {
 import path from 'node:path';
 
 export default {
-  entry: path.join(__dirname, './src/index.js'),
+  entry: path.join(import.meta.dirname, './src/index.js'),
 };
 ```
 
@@ -181,7 +176,7 @@ export default {
 #### EntryDescription.publicPath
 
 <PropertyType
-  type="'auto' | string | (pathData: PathData, assetInfo?: AssetInfo) => string"
+  type="'auto' | string | ((pathData: PathData, assetInfo?: AssetInfo) => string)"
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
@@ -199,7 +194,7 @@ export default {
 #### EntryDescription.filename
 
 <PropertyType
-  type="string"
+  type="string | ((pathData: PathData, assetInfo?: AssetInfo) => string)"
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
@@ -224,20 +219,18 @@ export default {
 #### EntryDescription.wasmLoading
 
 <PropertyType
-  type="'fetch' | 'async-node'"
+  type="false | 'fetch' | 'async-node' | 'universal'"
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-设置当前入口加载 WebAssembly 模块的方式。默认可使用的方式有 `'fetch'`（web/WebWorker），`'async-node'`（Node.js），其他额外方式可由插件提供。
+设置当前入口加载 WebAssembly 模块的方式。省略时使用 [`output.wasmLoading`](/config/output#outputwasmloading) 的值。
 
-其默认值会根据 [target](/config/target) 的变化而变化：
+[`output.wasmLoading`](/config/output#outputwasmloading) 的默认值会根据 [target](/config/target) 的变化而变化：
 
 - 如果 target 设置为 `'web'`，`'webworker'`，`'electron-renderer'` 或 `'node-webkit'` 其中之一，其默认值为 `'fetch'`。
 - 如果 target 设置为 `'node'`，`'async-node'`，`'electron-main'` 或 `'electron-preload'`，其默认值为 `'async-node'`。
 
 #### EntryDescription.layer
-
-<ApiMeta addedVersion={'1.0.0-beta.1'} />
 
 <PropertyType
   type="string | null | undefined"
@@ -246,7 +239,7 @@ export default {
 
 指定当前入口的模块所在的 layer。用于在 split chunks, [rules](/config/module-rules#rulesissuerlayer)、stats、externals 中通过 layer 匹配使对应的配置生效。
 
-更多关于 layer 的信息，请参考 [Layer 指南](/guide/features/layer)。
+更多关于 layer 的信息，请参考[模块分层指南](/guide/advanced/layer)。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -290,3 +283,5 @@ export default {
 ```
 
 当和 [output.library](/config/output#outputlibrary) 选项结合：如果传入的是一个数组，只有数组的最后一个条目会被导出。
+
+<Attribution url="https://webpack.docschina.org/configuration/entry-context/#entry" />

@@ -1,0 +1,26 @@
+ERROR in × Module build failed (from <PNPM_INNER>/css-loader/dist/cjs.js):
+  ╰─▶   ×
+        │ SyntaxError
+        │
+        │ (1:1) <TEST_ROOT>/diagnosticsCases/module-build-failed/css-extract-syntax-error/style.css Unclosed block
+        │
+        │ > 1 | .foo {
+        │     | ^
+        │   2 |   color: red;
+        │   3 |
+        │
+
+ERROR in ./style.css
+  × Module build failed (from ../../../../../packages/rspack/dist/cssExtractLoader.js):
+  ├─▶   × Module build failed (from <PNPM_INNER>/css-loader/dist/cjs.js):
+  │   
+  ╰─▶   ×
+        │ SyntaxError
+        │
+        │ (1:1) <TEST_ROOT>/diagnosticsCases/module-build-failed/css-extract-syntax-error/style.css Unclosed block
+        │
+        │ > 1 | .foo {
+        │     | ^
+        │   2 |   color: red;
+        │   3 |
+        │

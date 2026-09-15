@@ -1,20 +1,23 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, Context, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  ExportsInfoArtifact, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport,
+  ResourceIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
+use super::create_resource_identifier_for_contextual_commonjs_dependency;
+
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RequireResolveDependency {
   pub id: DependencyId,
   pub request: String,
   pub weak: bool,
   range: DependencyRange,
   optional: bool,
-  factorize_info: FactorizeInfo,
+  context: Option<Context>,
+  resource_identifier: ResourceIdentifier,
 }
 
 impl RequireResolveDependency {
@@ -25,7 +28,28 @@ impl RequireResolveDependency {
       weak,
       optional,
       id: DependencyId::new(),
-      factorize_info: Default::default(),
+      context: None,
+      resource_identifier: Default::default(),
+    }
+  }
+
+  pub fn new_contextual(
+    request: String,
+    range: DependencyRange,
+    weak: bool,
+    optional: bool,
+    context: Context,
+  ) -> Self {
+    let resource_identifier = create_resource_identifier_for_contextual_commonjs_dependency(
+      "require.resolve",
+      &context,
+      &request,
+    )
+    .into();
+    Self {
+      context: Some(context),
+      resource_identifier,
+      ..Self::new(request, range, weak, optional)
     }
   }
 }
@@ -44,6 +68,17 @@ impl Dependency for RequireResolveDependency {
     &DependencyType::RequireResolve
   }
 
+  fn get_context(&self) -> Option<&Context> {
+    self.context.as_ref()
+  }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    self
+      .context
+      .as_ref()
+      .map(|_| self.resource_identifier.as_str())
+  }
+
   fn range(&self) -> Option<DependencyRange> {
     Some(self.range)
   }
@@ -54,7 +89,7 @@ impl Dependency for RequireResolveDependency {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     vec![]
   }
 
@@ -79,14 +114,6 @@ impl ModuleDependency for RequireResolveDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

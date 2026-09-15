@@ -1,7 +1,6 @@
 use std::{
   borrow::Cow,
   fmt::{self, Debug},
-  hash::Hash,
   str::FromStr,
   string::ParseError,
   sync::LazyLock,
@@ -9,15 +8,15 @@ use std::{
 
 use regex::Regex;
 use rspack_cacheable::cacheable;
-use rspack_hash::RspackHash;
 pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_macros::MergeFrom;
 use rspack_paths::Utf8PathBuf;
 #[cfg(allocative)]
 use rspack_util::allocative;
 
 use super::CleanOptions;
-use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation, Filename};
+use crate::{Chunk, ChunkGroupByUkey, ChunkKind, ChunkUkey, Compilation, Filename};
 
 #[derive(Debug)]
 pub enum PathInfo {
@@ -36,6 +35,7 @@ pub struct OutputOptions {
   pub public_path: PublicPath,
   pub asset_module_filename: Filename,
   pub wasm_loading: WasmLoading,
+  pub wasm_streaming_fallback: bool,
   pub webassembly_module_filename: Filename,
   pub unique_name: String,
   pub chunk_loading: ChunkLoading,
@@ -72,7 +72,7 @@ pub struct OutputOptions {
   pub compare_before_emit: bool,
 }
 
-impl From<&OutputOptions> for RspackHash {
+impl From<&OutputOptions> for RspackHasher {
   fn from(value: &OutputOptions) -> Self {
     Self::with_salt(&value.hash_function, &value.hash_salt)
   }
@@ -125,6 +125,12 @@ impl ChunkLoading {
   }
 }
 
+impl RspackHash for ChunkLoading {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.as_str().hash(state);
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChunkLoadingType {
@@ -168,11 +174,38 @@ impl ChunkLoadingType {
   }
 }
 
+impl RspackHash for ChunkLoadingType {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.as_str().hash(state);
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum WasmLoading {
   Enable(WasmLoadingType),
   Disable,
+}
+
+impl RspackHash for WasmLoading {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.as_str().hash(state);
+  }
+}
+
+impl fmt::Display for WasmLoading {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.write_str(self.as_str())
+  }
+}
+
+impl WasmLoading {
+  fn as_str(&self) -> &str {
+    match self {
+      WasmLoading::Enable(ty) => ty.as_str(),
+      WasmLoading::Disable => "false",
+    }
+  }
 }
 
 impl From<&str> for WasmLoading {
@@ -190,6 +223,28 @@ pub enum WasmLoadingType {
   Fetch,
   AsyncNode,
   Universal,
+}
+
+impl RspackHash for WasmLoadingType {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.as_str().hash(state);
+  }
+}
+
+impl fmt::Display for WasmLoadingType {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.write_str(self.as_str())
+  }
+}
+
+impl WasmLoadingType {
+  fn as_str(&self) -> &'static str {
+    match self {
+      WasmLoadingType::Fetch => "fetch",
+      WasmLoadingType::AsyncNode => "async-node",
+      WasmLoadingType::Universal => "universal",
+    }
+  }
 }
 
 impl From<&str> for WasmLoadingType {
@@ -224,6 +279,7 @@ impl fmt::Display for CrossOriginLoading {
 #[derive(Default, Clone, Copy, Debug)]
 pub struct PathData<'a> {
   pub filename: Option<&'a str>,
+  pub chunk: Option<PathDataChunk<'a>>,
   pub chunk_name: Option<&'a str>,
   pub chunk_hash: Option<&'a str>,
   pub chunk_id: Option<&'a str>,
@@ -233,6 +289,12 @@ pub struct PathData<'a> {
   pub runtime: Option<&'a str>,
   pub url: Option<&'a str>,
   pub id: Option<&'a str>,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct PathDataChunk<'a> {
+  pub chunk_ukey: ChunkUkey,
+  pub compilation: &'a Compilation,
 }
 
 static MATCH_ID_REGEX: LazyLock<Regex> =
@@ -254,6 +316,14 @@ impl<'a> PathData<'a> {
 
   pub fn filename(mut self, v: &'a str) -> Self {
     self.filename = Some(v);
+    self
+  }
+
+  pub fn chunk(mut self, chunk_ukey: ChunkUkey, compilation: &'a Compilation) -> Self {
+    self.chunk = Some(PathDataChunk {
+      chunk_ukey,
+      compilation,
+    });
     self
   }
 
@@ -333,6 +403,15 @@ impl<'a> PathData<'a> {
 pub enum PublicPath {
   Filename(Filename),
   Auto,
+}
+
+impl RspackHash for PublicPath {
+  fn hash(&self, state: &mut RspackHasher) {
+    match self {
+      PublicPath::Filename(filename) => filename.hash(state),
+      PublicPath::Auto => "auto".hash(state),
+    }
+  }
 }
 
 //https://github.com/webpack/webpack/blob/001cab14692eb9a833c6b56709edbab547e291a1/lib/util/identifier.js#L378
@@ -475,7 +554,7 @@ pub fn get_js_chunk_filename_template(
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHash)]
 pub struct LibraryOptions {
   pub name: Option<LibraryName>,
   pub export: Option<LibraryExport>,
@@ -491,7 +570,7 @@ pub type LibraryType = String;
 pub type LibraryExport = Vec<String>;
 
 #[cacheable]
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHash)]
 pub struct LibraryAuxiliaryComment {
   pub root: Option<String>,
   pub commonjs: Option<String>,
@@ -506,6 +585,15 @@ pub enum LibraryName {
   UmdObject(LibraryCustomUmdObject),
 }
 
+impl RspackHash for LibraryName {
+  fn hash(&self, state: &mut RspackHasher) {
+    match self {
+      LibraryName::NonUmdObject(value) => value.hash(state),
+      LibraryName::UmdObject(value) => value.hash(state),
+    }
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LibraryNonUmdObject {
@@ -513,8 +601,17 @@ pub enum LibraryNonUmdObject {
   String(String),
 }
 
+impl RspackHash for LibraryNonUmdObject {
+  fn hash(&self, state: &mut RspackHasher) {
+    match self {
+      LibraryNonUmdObject::Array(value) => value.hash(state),
+      LibraryNonUmdObject::String(value) => value.hash(state),
+    }
+  }
+}
+
 #[cacheable]
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHash)]
 pub struct LibraryCustomUmdObject {
   pub amd: Option<String>,
   pub commonjs: Option<String>,
@@ -524,6 +621,7 @@ pub struct LibraryCustomUmdObject {
 #[derive(Debug, Default, Copy, Clone)]
 pub struct Environment {
   pub r#const: bool,
+  pub computed_property: bool,
   pub method_shorthand: bool,
   pub arrow_function: bool,
   pub node_prefix_for_core_modules: bool,
@@ -536,6 +634,7 @@ pub struct Environment {
   pub global_this: bool,
   pub module: bool,
   pub optional_chaining: bool,
+  pub logical_assignment: bool,
   pub template_literal: bool,
   pub dynamic_import_in_worker: bool,
   pub import_meta_dirname_and_filename: bool,
@@ -544,6 +643,10 @@ pub struct Environment {
 impl Environment {
   pub fn supports_const(&self) -> bool {
     self.r#const
+  }
+
+  pub fn supports_computed_property(&self) -> bool {
+    self.computed_property
   }
 
   pub fn supports_method_shorthand(&self) -> bool {
@@ -562,14 +665,6 @@ impl Environment {
     self.import_meta_dirname_and_filename
   }
 
-  pub fn supports_async_function(&self) -> bool {
-    self.async_function
-  }
-
-  pub fn supports_big_int_literal(&self) -> bool {
-    self.big_int_literal
-  }
-
   pub fn supports_destructuring(&self) -> bool {
     self.destructuring
   }
@@ -582,27 +677,7 @@ impl Environment {
     self.dynamic_import
   }
 
-  pub fn supports_dynamic_import_in_worker(&self) -> bool {
-    self.dynamic_import_in_worker
-  }
-
-  pub fn supports_for_of(&self) -> bool {
-    self.for_of
-  }
-
-  pub fn supports_global_this(&self) -> bool {
-    self.global_this
-  }
-
-  pub fn supports_module(&self) -> bool {
-    self.module
-  }
-
-  pub fn supports_optional_chaining(&self) -> bool {
-    self.optional_chaining
-  }
-
-  pub fn supports_template_literal(&self) -> bool {
-    self.template_literal
+  pub fn supports_logical_assignment(&self) -> bool {
+    self.logical_assignment
   }
 }

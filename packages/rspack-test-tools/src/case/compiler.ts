@@ -7,7 +7,12 @@ import type {
   StatsCompilation,
 } from '@rspack/core';
 import { BasicCaseCreator } from '../test/creator';
-import type { ITestContext, ITestEnv, ITestProcessor } from '../type';
+import type {
+  ITestContext,
+  ITestEnv,
+  ITestProcessor,
+  MaybePromise,
+} from '../type';
 
 function createCompilerProcessor(
   name: string,
@@ -19,7 +24,7 @@ function createCompilerProcessor(
   };
   const files = {} as Record<string, string>;
   return {
-    config: async (context: ITestContext) => {
+    config: (context: ITestContext) => {
       const compiler = context.getCompiler();
       const options = caseConfig.options?.(context) || {};
       options.mode ??= 'production';
@@ -189,8 +194,8 @@ export type TCompilerCaseConfig = {
   error?: boolean;
   skip?: boolean;
   options?: (context: ITestContext) => RspackOptions;
-  compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
-  build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+  compiler?: (context: ITestContext, compiler: Compiler) => MaybePromise<void>;
+  build?: (context: ITestContext, compiler: Compiler) => MaybePromise<void>;
   check?: ({
     context,
     stats,
@@ -203,6 +208,6 @@ export type TCompilerCaseConfig = {
     files?: Record<string, string>;
     compiler: Compiler;
     compilation?: Compilation;
-  }) => Promise<void>;
+  }) => MaybePromise<void>;
   compilerCallback?: (error: Error | null, stats: Stats | null) => void;
 };

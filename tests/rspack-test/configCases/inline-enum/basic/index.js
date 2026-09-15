@@ -7,7 +7,7 @@ import * as notOnlyPropertiesUsed from "./enum.not-only-properties-used";
 import * as exportAs from "./enum.export-as";
 import * as reexportDestructuring from "./re-export.reexprt-destructuring";
 
-const generated = /** @type {string} */ (__non_webpack_require__("fs").readFileSync(__filename, "utf-8"));
+const generated = /** @type {string} */ (require("fs").readFileSync(__filename, "utf-8"));
 
 it("should inline enums", () => {
   // START:A

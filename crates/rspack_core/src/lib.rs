@@ -5,6 +5,8 @@ mod compilation;
 mod transient_cache;
 
 mod exports;
+pub mod legacy_cache;
+mod new_cache;
 mod value_cache_versions;
 pub use artifacts::*;
 pub use binding::*;
@@ -13,14 +15,21 @@ pub use compilation::{
   *,
 };
 pub use exports::*;
+pub use new_cache::{
+  Cache, CacheFacade, CacheValue, CompilerCache, Etag, FileSystemInfo, ItemCacheFacade,
+  MultiItemCache, Snapshot, SnapshotValidationResult, create_cache,
+};
 pub use transient_cache::*;
 pub use value_cache_versions::ValueCacheVersions;
+mod concatenation_backend;
 mod dependencies_block;
+pub use concatenation_backend::*;
 pub mod diagnostics;
 pub mod incremental;
 pub use dependencies_block::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
-  AsyncDependenciesBlockIdentifierSet, DependenciesBlock,
+  AsyncDependenciesBlockIdentifierSet, AsyncDependenciesBlockRef, DependenciesBlock,
+  DependenciesBlockData, DependencyIds,
 };
 mod fake_namespace_object;
 pub use fake_namespace_object::*;
@@ -42,13 +51,20 @@ pub use module::*;
 pub use parser_and_generator::*;
 mod runtime_globals;
 pub use normal_module::*;
-pub use runtime_globals::{MODULE_GLOBALS, REQUIRE_SCOPE_GLOBALS, RuntimeGlobals, RuntimeVariable};
+pub use runtime_globals::{
+  MODULE_GLOBALS, REQUIRE_SCOPE_GLOBALS, RuntimeGlobals, RuntimeVariable, runtime_variable_name,
+};
+mod runtime_module_source;
+pub use runtime_module_source::render_runtime_module_source;
 mod plugin;
 pub use plugin::*;
 mod context_module;
 pub use context_module::*;
 mod context_module_factory;
 pub use context_module_factory::*;
+mod glob_utils;
+pub(crate) use glob_utils::walk_dir;
+pub use glob_utils::*;
 mod init_fragment;
 pub use init_fragment::*;
 mod module_factory;
@@ -99,7 +115,9 @@ pub use rspack_location::{
 };
 pub mod concatenated_module;
 pub mod reserved_names;
+pub use inventory;
 use rspack_cacheable::{cacheable, with::AsPreset};
+use rspack_hash::{RspackHash, RspackHasher};
 pub use rspack_loader_runner::{
   AdditionalData, BUILTIN_LOADER_PREFIX, ParseMeta, ResourceData, ResourceParsedData, Scheme,
   get_scheme, parse_resource,
@@ -111,11 +129,15 @@ pub use rspack_sources;
 pub mod debug_info;
 
 #[cacheable]
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+  Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, rspack_macros::StringEnum,
+)]
+#[string_enum(rename_all = "kebab-case")]
 pub enum SourceType {
+  #[string_enum(rename = "javascript")]
   JavaScript,
   Css,
-  CssUrl,
+  AssetUrl,
   Wasm,
   Asset,
   Expose,
@@ -123,6 +145,7 @@ pub enum SourceType {
   ShareInit,
   ConsumeShared,
   ShareContainerShared,
+  #[string_enum(fallback)]
   Custom(#[cacheable(with=AsPreset)] Ustr),
   #[default]
   Unknown,
@@ -130,43 +153,17 @@ pub enum SourceType {
   Runtime,
 }
 
+pub static NO_SOURCE_TYPE_LIST: &[SourceType; 0] = &[];
+
 impl std::fmt::Display for SourceType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self {
-      SourceType::JavaScript => write!(f, "javascript"),
-      SourceType::Css => write!(f, "css"),
-      SourceType::CssUrl => write!(f, "css-url"),
-      SourceType::Wasm => write!(f, "wasm"),
-      SourceType::Asset => write!(f, "asset"),
-      SourceType::Expose => write!(f, "expose"),
-      SourceType::Remote => write!(f, "remote"),
-      SourceType::ShareInit => write!(f, "share-init"),
-      SourceType::ConsumeShared => write!(f, "consume-shared"),
-      SourceType::ShareContainerShared => write!(f, "share-container-shared"),
-      SourceType::Unknown => write!(f, "unknown"),
-      SourceType::CssImport => write!(f, "css-import"),
-      SourceType::Custom(source_type) => f.write_str(source_type),
-      SourceType::Runtime => write!(f, "runtime"),
-    }
+    f.write_str(self.as_str())
   }
 }
 
-impl From<&str> for SourceType {
-  fn from(value: &str) -> Self {
-    match value {
-      "javascript" => Self::JavaScript,
-      "css" => Self::Css,
-      "wasm" => Self::Wasm,
-      "asset" => Self::Asset,
-      "expose" => Self::Expose,
-      "remote" => Self::Remote,
-      "share-init" => Self::ShareInit,
-      "consume-shared" => Self::ConsumeShared,
-      "share-container-shared" => Self::ShareContainerShared,
-      "unknown" => Self::Unknown,
-      "css-import" => Self::CssImport,
-      other => SourceType::Custom(other.into()),
-    }
+impl RspackHash for SourceType {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.as_str().hash(state);
   }
 }
 
@@ -174,7 +171,9 @@ impl From<&ModuleType> for SourceType {
   fn from(value: &ModuleType) -> Self {
     match value {
       ModuleType::JsAuto | ModuleType::JsEsm | ModuleType::JsDynamic => Self::JavaScript,
-      ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto => Self::Css,
+      ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto | ModuleType::CssGlobal => {
+        Self::Css
+      }
       ModuleType::WasmSync | ModuleType::WasmAsync => Self::Wasm,
       ModuleType::Asset | ModuleType::AssetInline | ModuleType::AssetResource => Self::Asset,
       ModuleType::ConsumeShared => Self::ConsumeShared,
@@ -191,6 +190,7 @@ pub enum ModuleType {
   Css,
   CssModule,
   CssAuto,
+  CssGlobal,
   JsAuto,
   JsDynamic,
   JsEsm,
@@ -244,7 +244,7 @@ impl ModuleType {
 
   /// Webpack arbitrary determines the binary type from [NormalModule.binary](https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/NormalModule.js#L302)
   pub fn is_binary(&self) -> bool {
-    self.is_asset_like() || self.is_wasm_like()
+    matches!(self, ModuleType::AssetBytes) || self.is_asset_like() || self.is_wasm_like()
   }
 
   pub fn as_str(&self) -> &'static str {
@@ -256,6 +256,7 @@ impl ModuleType {
       ModuleType::Css => "css",
       ModuleType::CssModule => "css/module",
       ModuleType::CssAuto => "css/auto",
+      ModuleType::CssGlobal => "css/global",
 
       ModuleType::Json => "json",
 
@@ -298,6 +299,7 @@ impl From<&str> for ModuleType {
       "css" => Self::Css,
       "css/module" => Self::CssModule,
       "css/auto" => Self::CssAuto,
+      "css/global" => Self::CssGlobal,
 
       "json" => Self::Json,
 
@@ -393,12 +395,9 @@ impl ChunkByUkey {
     self.inner.iter_mut()
   }
 
+  #[allow(clippy::len_without_is_empty)]
   pub fn len(&self) -> usize {
     self.inner.len()
-  }
-
-  pub fn is_empty(&self) -> bool {
-    self.inner.is_empty()
   }
 }
 
@@ -414,13 +413,6 @@ impl ChunkGroupByUkey {
 
   pub fn get_mut(&mut self, ukey: &ChunkGroupUkey) -> Option<&mut ChunkGroup> {
     self.inner.get_mut(ukey)
-  }
-
-  pub fn get_many_mut<const N: usize>(
-    &mut self,
-    ukeys: [&ChunkGroupUkey; N],
-  ) -> [Option<&mut ChunkGroup>; N] {
-    self.inner.get_disjoint_mut(ukeys)
   }
 
   pub fn expect_get(&self, ukey: &ChunkGroupUkey) -> &ChunkGroup {
@@ -445,13 +437,6 @@ impl ChunkGroupByUkey {
     self.inner.remove(ukey)
   }
 
-  pub fn entry(
-    &mut self,
-    ukey: ChunkGroupUkey,
-  ) -> std::collections::hash_map::Entry<'_, ChunkGroupUkey, ChunkGroup> {
-    self.inner.entry(ukey)
-  }
-
   pub fn contains(&self, ukey: &ChunkGroupUkey) -> bool {
     self.inner.contains_key(ukey)
   }
@@ -464,15 +449,7 @@ impl ChunkGroupByUkey {
     self.inner.values()
   }
 
-  pub fn values_mut(&mut self) -> impl Iterator<Item = &mut ChunkGroup> {
-    self.inner.values_mut()
-  }
-
   pub fn iter(&self) -> impl Iterator<Item = (&ChunkGroupUkey, &ChunkGroup)> {
     self.inner.iter()
-  }
-
-  pub fn iter_mut(&mut self) -> impl Iterator<Item = (&ChunkGroupUkey, &mut ChunkGroup)> {
-    self.inner.iter_mut()
   }
 }

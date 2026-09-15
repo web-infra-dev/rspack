@@ -11,6 +11,7 @@ version.workspace = true
 allocative               = { workspace = true, optional = true }
 async-trait              = { workspace = true }
 atomic_refcell           = { workspace = true }
+cow-utils                = { workspace = true }
 dashmap                  = { workspace = true }
 derive_more              = { workspace = true }
 form_urlencoded          = { workspace = true }
@@ -24,12 +25,12 @@ rspack_core              = { workspace = true }
 rspack_error             = { workspace = true }
 rspack_hash              = { workspace = true }
 rspack_hook              = { workspace = true }
+rspack_intern            = { workspace = true, features = ["atom"] }
 rspack_loader_runner     = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_util              = { workspace = true }
 rustc-hash               = { workspace = true }
 serde                    = { workspace = true }
-serde_json               = { workspace = true }
 simd-json                = { workspace = true }
 swc_core                 = { workspace = true }
 tokio                    = { workspace = true }

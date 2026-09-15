@@ -1,4 +1,6 @@
 ```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 // fs
@@ -23,7 +25,7 @@ const joinFn = Reflect.get(external_path_namespaceObject, "join");
 
 it("should deconflict concatenated namespace imports that match generated node-commonjs names", async () => {
   const mod = await import(/* webpackIgnore: true */ "./main.mjs");
-  const { createRequire } = await import("node:module");
+  const { createRequire } = await import("node:module").then(function(module) { return __webpack_require__.t(module.createRequire(import.meta.url)("node:module"), 22) });
   const require = createRequire('<ROOT>/tests/rspack-test/esmOutputCases/externals/node-commonjs-namespace-name-collision-across-modules/index.js');
   const fs = require("fs");
   const path = require("path");
@@ -35,10 +37,74 @@ it("should deconflict concatenated namespace imports that match generated node-c
   expect(mod.joinFn).toBe(path.join);
 });
 
-// node:module
-const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
 var readFile = external_fs_namespaceObject.readFile;
 var readFileSync = external_fs_namespaceObject.readFileSync;
 export { external_path_namespaceObject as pathNs, joinFn, readFile, readFileSync };
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/create_fake_namespace_object
+(() => {
+var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
+var leafPrototypes;
+// create a fake namespace object
+// mode & 1: value is a module id, require it
+// mode & 2: merge all properties of value into the ns
+// mode & 4: return value when already ns object
+// mode & 16: return value when it's Promise-like
+// mode & 8|1: behave like require
+__webpack_require__.t = function(value, mode) {
+	if(mode & 1) value = this(value);
+	if(mode & 8) return value;
+	if(typeof value === 'object' && value) {
+		if((mode & 4) && value.__esModule) return value;
+		if((mode & 16) && typeof value.then === 'function') return value;
+	}
+	var ns = Object.create(null);
+  __webpack_require__.r(ns);
+	var def = {};
+	leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
+	for(var current = mode & 2 && value; (typeof current == 'object' || typeof current == 'function') && !~leafPrototypes.indexOf(current); current = getProto(current)) {
+		Object.getOwnPropertyNames(current).forEach((key) => { def[key] = () => (value[key]) });
+	}
+	def['default'] = () => (value);
+	__webpack_require__.d(ns, def);
+	return ns;
+};
+})();
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
 
 ```

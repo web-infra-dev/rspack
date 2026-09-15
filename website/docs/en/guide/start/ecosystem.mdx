@@ -1,5 +1,5 @@
 ---
-description: 'Rstack is a unified JavaScript toolchain centered on Rspack, with high performance and consistent architecture'
+description: 'Explore the Rstack toolchain and community integrations in the Rspack ecosystem'
 ---
 
 import { Tag } from '@components/Tag';
@@ -8,7 +8,7 @@ import { Tag } from '@components/Tag';
 
 ## Rstack
 
-Rstack is a unified JavaScript toolchain centered on Rspack, with high performance and consistent architecture.
+Rspack is part of Rstack, the fast, unified JavaScript toolchain for developers and agents.
 
 ### Rsbuild
 
@@ -33,13 +33,13 @@ Rstack is a unified JavaScript toolchain centered on Rspack, with high performan
 
 <Tag color="geekblue">Build analyzer</Tag>
 
-[Rsdoctor](https://github.com/web-infra-dev/rsdoctor) is a build analyzer that can visually display the build process, such as compilation time, code changes before and after compilation, module reference relationships, duplicate modules, etc.
+[Rsdoctor](/guide/diagnostics/use-rsdoctor) is a build analyzer that can visually display the build process, such as compilation time, code changes before and after compilation, module reference relationships, duplicate modules, etc.
 
 ### Rstest
 
 <Tag color="geekblue">Testing framework</Tag>
 
-[Rstest](https://github.com/web-infra-dev/rstest) is a testing framework powered by Rspack. It delivers comprehensive, first-class support for the Rspack ecosystem, enabling seamless integration into existing Rspack-based projects.
+[Rstest](/guide/integrations/rstest) is a testing framework powered by Rspack. It delivers comprehensive, first-class support for the Rspack ecosystem, enabling seamless integration into existing Rspack-based projects.
 
 ### Rslint
 
@@ -65,12 +65,21 @@ Rstack is a unified JavaScript toolchain centered on Rspack, with high performan
 
 Docusaurus supports Rspack as the bundler since v3.6, see [Docusaurus Faster](https://docusaurus.io/blog/releases/3.6#docusaurus-faster) for details.
 
+### Extension.js
+
+<Tag color="geekblue">Build tool</Tag>
+<Tag color="purple">Browser extensions</Tag>
+
+[Extension.js](https://extension.js.org/) is a framework for creating, developing and building browser extensions for Chrome, Edge, Firefox and Safari from a single codebase.
+
+Extension.js builds with Rspack and resolves the entry points declared in `manifest.json` into the Rspack entry graph.
+
 ### Modern.js
 
 <Tag color="geekblue">Web framework</Tag>
 <Tag color="purple">React</Tag>
 
-[Modern.js](https://modernjs.dev/en/) is a Rsbuild-based progressive React framework that supports nested routes, SSR, and provides out-of-the-box CSS solutions such as styled components and Tailwind CSS.
+[Modern.js](https://modernjs.dev/) is a Rsbuild-based progressive React framework that supports nested routes, SSR, and provides out-of-the-box CSS solutions such as styled components and Tailwind CSS.
 
 ### Meteor
 
@@ -87,7 +96,7 @@ Docusaurus supports Rspack as the bundler since v3.6, see [Docusaurus Faster](ht
 
 [Next.js](https://nextjs.org/) is a React framework for building full-stack web applications. You use React Components to build user interfaces, and Next.js for additional features and optimizations.
 
-Rspack team and Next.js team have partnered to provide the `next-rspack` plugin. This plugin allows you to use Rspack as the bundler for Next.js, see [Next.js guide](/guide/tech/next) for details.
+Rspack team and Next.js team have partnered to provide the `next-rspack` plugin. This plugin allows you to use Rspack as the bundler for Next.js, see [Next.js guide](/guide/integrations/next) for details.
 
 ### Nuxt
 
@@ -123,11 +132,46 @@ Rspack team and Nx team have collaborated to provide the [Rspack Nx plugin](http
 
 Re.Pack v5 uses Rspack and React Native community CLI's plugin system to allow you to bundle your application using Rspack and easily switch from Metro.
 
+### Remotion
+
+<Tag color="geekblue">Video framework</Tag>
+<Tag color="purple">React</Tag>
+
+[Remotion](https://www.remotion.dev/) is a React-based framework for creating videos programmatically.
+
+The [`@remotion/bundler`](https://www.remotion.dev/docs/bundle#rspack) package can use Rspack to bundle Remotion projects.
+
+### Shakapacker
+
+<Tag color="geekblue">Build tool</Tag>
+<Tag color="purple">Rails</Tag>
+
+[Shakapacker](https://shakapacker.com/) handles compiling rails frontend assets. See [Rspack setup Docs](https://github.com/shakacode/shakapacker/blob/main/docs/rspack.md)
+
 ### Storybook
 
 <Tag color="geekblue">UI development</Tag>
 
 [Storybook Rsbuild](https://storybook.rsbuild.rs/) allows you to use Rsbuild as the build tool for Storybook, and provides UI framework integrations like React and Vue.
+
+### TanStack Router
+
+<Tag color="geekblue">Router</Tag>
+<Tag color="purple">React</Tag>
+
+[TanStack Router](https://tanstack.com/router/latest) is a type-safe router for building React applications with features like nested routes, route-level data loading, and search params APIs.
+
+You can integrate TanStack Router with Rspack through the [Rspack plugin](https://tanstack.com/router/latest/docs/installation/with-rspack).
+
+### TanStack Start
+
+<Tag color="geekblue">Web framework</Tag>
+<Tag color="purple">React</Tag>
+<Tag color="purple">Solid</Tag>
+
+[TanStack Start](https://tanstack.com/start/latest) is a full-stack framework powered by TanStack Router for React and Solid.
+
+TanStack Start provides official support for Rsbuild, allowing you to use Rsbuild to build full-stack web applications. See [TanStack Start Adds First-Class Rsbuild Support](https://tanstack.com/blog/start-adds-rsbuild-support) for details.
 
 ## More
 

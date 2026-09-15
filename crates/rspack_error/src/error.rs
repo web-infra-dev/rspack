@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, sync::Arc};
 
 use miette::{Diagnostic as MietteDiagnostic, LabeledSpan};
 use rspack_cacheable::cacheable;
@@ -35,7 +35,7 @@ pub struct ErrorData {
   /// Message.
   pub message: String,
   /// Source code.
-  pub src: Option<String>,
+  pub src: Option<Arc<str>>,
   /// Labels displayed in source code.
   ///
   /// The source code block will be displayed only if both source code and labels exist.
@@ -101,6 +101,16 @@ impl Error {
 
   pub fn from_string(
     src: Option<String>,
+    start: usize,
+    end: usize,
+    title: String,
+    message: String,
+  ) -> Self {
+    Self::from_shared_source(src.map(Into::into), start, end, title, message)
+  }
+
+  pub fn from_shared_source(
+    src: Option<Arc<str>>,
     start: usize,
     end: usize,
     title: String,
@@ -238,8 +248,11 @@ impl From<anyhow::Error> for Error {
 
 #[cfg(test)]
 mod test {
+  use owo_colors::with_override;
+
   use super::{Error, ErrorData, Label};
   use crate::{Renderer, Severity};
+
   #[test]
   fn should_error_display() {
     let renderer = Renderer::new(false);
@@ -315,9 +328,12 @@ mod test {
          ╰────
         help: Maybe you should remove it.
 "#;
-    assert_eq!(
-      renderer.render(&root_err).unwrap().trim(),
-      expect_display.trim()
-    );
+    // Force color support to prove the renderer respects its own theme
+    with_override(true, || {
+      assert_eq!(
+        renderer.render(&root_err).unwrap().trim(),
+        expect_display.trim()
+      );
+    });
   }
 }

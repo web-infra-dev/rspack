@@ -45,11 +45,6 @@ it('should deconflict many modules with same local variable names', async () => 
 	expect(mod.eHelper).toBe('E');
 });
 
-var index_aValue = (/* inlined export .aValue */"a");
-var index_bValue = (/* inlined export .bValue */"b");
-var index_cValue = (/* inlined export .cValue */"c");
-var index_dValue = (/* inlined export .dValue */"d");
-var index_eValue = (/* inlined export .eValue */"e");
-export { b_helper as bHelper, c_helper as cHelper, d_helper as dHelper, e_helper as eHelper, helper as aHelper, index_aValue as aValue, index_bValue as bValue, index_cValue as cValue, index_dValue as dValue, index_eValue as eValue };
+export { b_helper as bHelper, b_value as bValue, c_helper as cHelper, c_value as cValue, d_helper as dHelper, d_value as dValue, e_helper as eHelper, e_value as eValue, helper as aHelper, value as aValue };
 
 ```

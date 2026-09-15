@@ -1,0 +1,6 @@
+{
+  "output": {
+    "filename": "base.bundle.js"
+  },
+  "mode": "development"
+}

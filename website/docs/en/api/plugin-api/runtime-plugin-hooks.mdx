@@ -30,7 +30,7 @@ export default {
 
 ## `createScript`
 
-`SyncWaterallHook<[string, chunk]>`
+`SyncWaterfallHook<[string, Chunk]>`
 
 Can modify the code executed when creating the `<script>` tag.
 
@@ -40,24 +40,41 @@ As in the following code, the `crossorigin` attribute can be added to the `<scri
 hooks.createScript.tap('MyPlugin', (code, chunk) => {
   return `
     ${code}
-    script.crossorigin = 'anonymous';
+    script.crossOrigin = 'anonymous';
   `;
 });
 ```
 
 <Collapse>
-  <CollapsePanel
-    className="collapse-code-panel"
-    header="CreateScript.ts"
-    key="CreateScript"
-  >
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
+
+## `createLink`
+
+`SyncWaterfallHook<[string, Chunk]>`
+
+Can modify the code executed when creating a generic `<link>` tag.
+
+```js
+hooks.createLink.tap('MyPlugin', (code, chunk) => {
+  return `
+    ${code}
+    link.crossOrigin = 'anonymous';
+  `;
+});
+```
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
     <ChunkType />
   </CollapsePanel>
 </Collapse>
 
 ## `linkPrefetch`
 
-`SyncWaterallHook<[string, chunk]>`
+`SyncWaterfallHook<[string, Chunk]>`
 
 Can modify the code executed when creating the [prefetch](/guide/optimization/code-splitting#prefetchingpreloading-modules) `<link rel="prefetch">` tag.
 
@@ -67,24 +84,20 @@ As in the following code, the `crossorigin` attribute can be added to the `<link
 hooks.linkPrefetch.tap('MyPlugin', (code, chunk) => {
   return `
     ${code}
-    link.crossorigin = 'anonymous';
+    link.crossOrigin = 'anonymous';
   `;
 });
 ```
 
 <Collapse>
-  <CollapsePanel
-    className="collapse-code-panel"
-    header="CreateScript.ts"
-    key="CreateScript"
-  >
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
     <ChunkType />
   </CollapsePanel>
 </Collapse>
 
 ## `linkPreload`
 
-`SyncWaterallHook<[string, chunk]>`
+`SyncWaterfallHook<[string, Chunk]>`
 
 Can modify the code executed when creating the [preload](/guide/optimization/code-splitting#prefetchingpreloading-modules) `<link rel="preload">` tag.
 
@@ -94,17 +107,13 @@ As in the following code, the `crossorigin` attribute can be added to the `<link
 hooks.linkPreload.tap('MyPlugin', (code, chunk) => {
   return `
     ${code}
-    link.crossorigin = 'anonymous';
+    link.crossOrigin = 'anonymous';
   `;
 });
 ```
 
 <Collapse>
-  <CollapsePanel
-    className="collapse-code-panel"
-    header="CreateScript.ts"
-    key="CreateScript"
-  >
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
     <ChunkType />
   </CollapsePanel>
 </Collapse>

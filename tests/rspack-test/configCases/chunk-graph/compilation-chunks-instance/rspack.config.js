@@ -19,6 +19,9 @@ class Plugin {
         chunks.forEach(mockFn);
         expect(mockFn).toHaveBeenCalledTimes(1);
 
+        expect(typeof chunk.id).toBe('number');
+        expect(chunk.ids).toStrictEqual([chunk.id]);
+
         const entries = chunks.entries();
         expect(entries.next()).toStrictEqual({
           value: [chunk, chunk],
@@ -34,6 +37,9 @@ class Plugin {
 module.exports = {
   entry: {
     main: './index.js',
+  },
+  optimization: {
+    chunkIds: 'deterministic',
   },
   plugins: [new Plugin()],
 };

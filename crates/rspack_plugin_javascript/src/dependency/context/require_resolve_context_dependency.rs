@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AffectType, AsModuleDependency, ContextDependency, ContextOptions, ContextTypePrefix, Dependency,
-  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
+  AffectType, AsModuleDependency, Context, ContextDependency, ContextOptions, ContextTypePrefix,
+  Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleGraph,
   ModuleGraphCacheArtifact, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
@@ -10,28 +10,36 @@ use rspack_error::Diagnostic;
 use super::{context_dependency_template_as_id, create_resource_identifier_for_context_dependency};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RequireResolveContextDependency {
   id: DependencyId,
   options: ContextOptions,
   range: DependencyRange,
+  context: Option<Context>,
   resource_identifier: ResourceIdentifier,
   optional: bool,
-  critical: Option<Diagnostic>,
-  factorize_info: FactorizeInfo,
+  critical: rspack_core::DependencyCriticalState,
 }
 
 impl RequireResolveContextDependency {
-  pub fn new(options: ContextOptions, range: DependencyRange, optional: bool) -> Self {
-    let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
+  pub fn new(
+    options: ContextOptions,
+    range: DependencyRange,
+    optional: bool,
+    context: Option<Context>,
+  ) -> Self {
+    let resource_identifier = create_resource_identifier_for_context_dependency(
+      context.as_ref().map(|c| c.as_str()),
+      &options,
+    );
     Self {
       id: DependencyId::new(),
       options,
       range,
+      context,
       resource_identifier,
       optional,
-      critical: None,
-      factorize_info: Default::default(),
+      critical: Default::default(),
     }
   }
 }
@@ -50,6 +58,10 @@ impl Dependency for RequireResolveContextDependency {
     &DependencyType::RequireResolveContext
   }
 
+  fn get_context(&self) -> Option<&Context> {
+    self.context.as_ref()
+  }
+
   fn range(&self) -> Option<DependencyRange> {
     Some(self.range)
   }
@@ -65,7 +77,7 @@ impl Dependency for RequireResolveContextDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     if let Some(critical) = self.critical() {
-      return Some(vec![critical.clone()]);
+      return Some(vec![critical]);
     }
     None
   }
@@ -81,7 +93,7 @@ impl ContextDependency for RequireResolveContextDependency {
   }
 
   fn get_context(&self) -> Option<&str> {
-    None
+    self.context.as_ref().map(|c| c.as_str())
   }
 
   fn resource_identifier(&self) -> &str {
@@ -96,20 +108,12 @@ impl ContextDependency for RequireResolveContextDependency {
     ContextTypePrefix::Normal
   }
 
-  fn critical(&self) -> &Option<Diagnostic> {
-    &self.critical
+  fn critical(&self) -> Option<Diagnostic> {
+    self.critical.get()
   }
 
-  fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
-    &mut self.critical
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
+  fn set_critical(&self, critical: Option<Diagnostic>) {
+    self.critical.set(critical);
   }
 }
 

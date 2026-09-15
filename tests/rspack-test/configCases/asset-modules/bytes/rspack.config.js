@@ -9,7 +9,7 @@ module.exports = [
     module: {
       rules: [
         {
-          test: /\.svg$/,
+          test: /\.(png|svg)$/,
           type: 'asset/bytes',
         },
         {
@@ -26,7 +26,7 @@ module.exports = [
     module: {
       rules: [
         {
-          test: /\.svg$/,
+          test: /\.(png|svg)$/,
           type: 'asset/bytes',
         },
         {
@@ -46,7 +46,7 @@ module.exports = [
     module: {
       rules: [
         {
-          test: /\.svg$/,
+          test: /\.(png|svg)$/,
           type: 'asset/bytes',
         },
         {

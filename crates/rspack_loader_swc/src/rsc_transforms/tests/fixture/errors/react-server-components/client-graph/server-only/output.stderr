@@ -1,0 +1,8 @@
+  x You're importing a module that depends on "server-only". This package only works in a Server Component or a top-level `"use server"` module.
+  | 
+  | 
+   ,-[input.js:9:1]
+ 8 | 
+ 9 | import 'server-only'
+   : ^^^^^^^^^^^^^^^^^^^^
+   `----

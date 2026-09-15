@@ -3,8 +3,8 @@ script = document.createElement('script');
 script.type = '<%- _script_type %>';
 <% } %>
 script.timeout = <%- _chunk_load_timeout %>;
-if (<%- SCRIPT_NONCE %>) {
-  script.setAttribute("nonce", <%- SCRIPT_NONCE %>);
+if (<%- weak(SCRIPT_NONCE) %>) {
+  script.setAttribute("nonce", <%- weak(SCRIPT_NONCE) %>);
 }
 <% if (_unique_prefix) { %>
 script.setAttribute("data-rspack", uniqueName + key);
@@ -15,7 +15,7 @@ if(fetchPriority) {
 }
 <% } %>
 <% if (_with_create_script_url) { %>
-script.src = <%- CREATE_SCRIPT_URL %>(url);
+script.src = <%- weak(CREATE_SCRIPT_URL) %>(url);
 <% } else { %>
 script.src = url;
 <% } %>

@@ -15,11 +15,7 @@ pub struct IdentCollector {
   pub ids: Vec<ConcatenatedModuleIdent>,
 }
 
-impl IdentCollector {
-  pub fn new(ids: Vec<ConcatenatedModuleIdent>) -> Self {
-    Self { ids }
-  }
-}
+impl IdentCollector {}
 
 impl Visit for IdentCollector {
   noop_visit_type!();

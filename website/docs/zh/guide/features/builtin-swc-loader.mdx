@@ -4,7 +4,7 @@ description: 'SWC（Speedy Web Compiler）是基于 Rust 语言编写的高性�
 
 import { ApiMeta, Stability } from '@components/ApiMeta';
 
-# 内置 swc-loader
+# SWC loader
 
 [SWC](https://github.com/swc-project/swc)（Speedy Web Compiler）是基于 Rust 语言编写的高性能 JavaScript 和 TypeScript 转译和压缩工具。SWC 提供与 Babel 和 Terser 相似的能力，在单线程上它比 Babel 快 20 倍，在四核上它比 Babel 快 70 倍。
 
@@ -29,7 +29,6 @@ export default {
         options: {
           detectSyntax: 'auto',
         },
-        type: 'javascript/auto',
       },
     ],
   },
@@ -62,7 +61,6 @@ export default {
             },
           },
         },
-        type: 'javascript/auto',
       },
     ],
   },
@@ -313,9 +311,6 @@ Rspack 支持在 `builtin:swc-loader` 里加载 SWC 的 Wasm 插件, 你可以�
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   module: {
@@ -327,7 +322,10 @@ export default {
           options: {
             jsc: {
               experimental: {
-                cacheRoot: path.join(__dirname, './node_modules/.cache/swc'),
+                cacheRoot: path.join(
+                  import.meta.dirname,
+                  './node_modules/.cache/swc',
+                ),
               },
             },
           },
@@ -499,7 +497,7 @@ Rspack 内置的实验性功能。
 - **类型：** `boolean`
 - **默认值：** `false`
 
-是否收集类型导出信息，提供给 [`typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 使用，用于 `'tolerant'` 模式下检查子模块的类型导出。
+是否收集类型导出信息，提供给 [`typeReexportsPresence`](/config/module-parser#javascripttypereexportspresence) 使用，用于 `'tolerant'` 模式下检查子模块的类型导出。
 
 详细示例可参考：[type reexports presence 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence)
 

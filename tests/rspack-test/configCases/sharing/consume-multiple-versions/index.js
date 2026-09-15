@@ -1,4 +1,5 @@
-const expectWarning = require("@rspack/test-tools/helper/util/expectWarningFactory")();
+const { expectWarningFactory } = require("@rspack/test-tools/helper/util/expectWarningFactory");
+const expectWarning = expectWarningFactory();
 
 it("should be able to consume different shared module version depending on context", async () => {
 	__webpack_share_scopes__["default"] = {

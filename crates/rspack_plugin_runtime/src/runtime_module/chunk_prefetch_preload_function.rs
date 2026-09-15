@@ -28,9 +28,13 @@ impl ChunkPrefetchPreloadFunctionRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       include_str!("runtime/chunk_prefetch_preload_function.ejs").to_string(),
     )]
   }
@@ -41,17 +45,26 @@ impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
   ) -> rspack_error::Result<String> {
     let runtime_template = context.runtime_template;
     let source = runtime_template.render(
-      &self.id,
+      self.id(),
       Some(serde_json::json!({
         "_runtime_handlers":  runtime_template.render_runtime_globals(&self.runtime_handlers),
+        "_runtime_handlers_define":  runtime_template.render_runtime_global_definition(&self.runtime_handlers),
         "_runtime_function": runtime_template.render_runtime_globals(&self.runtime_function),
+        "_runtime_function_define": runtime_template.render_runtime_global_definition(&self.runtime_function),
       })),
     )?;
 
     Ok(source)
   }
-
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    self.runtime_handlers
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: { self.runtime_handlers },
+      define: { self.runtime_function | self.runtime_handlers },
+      force_context: self.runtime_function,
+      ..Default::default()
+    }
   }
 }

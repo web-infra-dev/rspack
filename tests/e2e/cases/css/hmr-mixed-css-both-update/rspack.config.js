@@ -1,0 +1,36 @@
+import { rspack } from '@rspack/core';
+
+/** @type { import('@rspack/core').RspackOptions } */
+export default {
+  context: import.meta.dirname,
+  mode: 'development',
+  entry: {
+    main: './src/index.js',
+  },
+  // batch the two css edits into a single rebuild
+  watchOptions: {
+    aggregateTimeout: 300,
+  },
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      template: './src/index.html',
+      inject: 'body',
+    }),
+    new rspack.CssExtractRspackPlugin({
+      filename: 'extract-[name].css',
+    }),
+  ],
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        type: 'javascript/auto',
+        use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+      },
+      {
+        test: /\.ncss$/,
+        type: 'css',
+      },
+    ],
+  },
+};

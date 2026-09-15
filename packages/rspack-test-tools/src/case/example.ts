@@ -20,7 +20,7 @@ function overrideOptions(
 
 function createExampleProcessor(name: string): ITestProcessor {
   return {
-    config: async (context: ITestContext) => {
+    config: (context: ITestContext) => {
       configMultiCompiler(
         context,
         name,
@@ -38,7 +38,7 @@ function createExampleProcessor(name: string): ITestProcessor {
     run: async (env: ITestEnv, context: ITestContext) => {
       // no need to run, just check the building
     },
-    check: async (env: ITestEnv, context: ITestContext) => {
+    check: (env: ITestEnv, context: ITestContext) => {
       const compiler = context.getCompiler();
       const stats = compiler.getStats();
       if (stats?.hasErrors()) {

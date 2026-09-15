@@ -1,0 +1,4 @@
+{
+  "used": "kept",
+  "unused": "this property should not contribute to the reported module size"
+}

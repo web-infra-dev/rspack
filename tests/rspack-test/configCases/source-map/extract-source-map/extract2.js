@@ -10,6 +10,10 @@ it("should extract source map - 2", () => {
 		.readFileSync(path.resolve(__dirname, "bundle1.js.map"))
 		.toString("utf-8");
 	const { sources } = JSON.parse(fileData);
-	expect(sources).toContain("webpack:///./external-source-map.txt");
-	expect(sources).toContain("webpack:///./extract2.js");
+	let sourceUrl = source => `webpack:///${source}`;
+	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+		sourceUrl = source => `rspack:///${source}`;
+	}
+	expect(sources).toContain(sourceUrl("./external-source-map.txt"));
+	expect(sources).toContain(sourceUrl("./extract2.js"));
 });

@@ -1,5 +1,6 @@
 use std::{borrow::Cow, fmt::Write, hash::Hash, sync::Arc};
 
+use concat_string::concat_string;
 use cow_utils::CowUtils;
 use derive_more::Debug;
 use futures::future::BoxFuture;
@@ -11,9 +12,9 @@ use rspack_cacheable::{
 };
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_macros::impl_source_map_config;
-use rspack_paths::{ArcPathSet, Utf8PathBuf};
+use rspack_paths::{InternedPathSet, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
 use rspack_util::{
@@ -26,15 +27,15 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph,
-  ChunkGroupOptions, CodeGenerationResult, Compilation, ContextElementDependency,
-  DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
-  DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
-  ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
+  BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph,
+  ChunkGroupOptions, CodeGenerationResultBuilder, Compilation, Context, ContextElementDependency,
+  DependenciesBlock, DependenciesBlockData, DependencyCategory, DependencyId, DependencyLocation,
+  DependencyRef, DynamicImportMode, ExportsType, FactoryMetaStore, FakeNamespaceObjectMode,
+  FreezeLock, GroupOptions, ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
   ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
-  RuntimeSpec, SourceType, contextify, get_exports_type_with_strict, get_outgoing_async_modules,
-  impl_module_meta_info, module_update_hash, to_path,
+  RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, contextify, get_exports_type_with_strict,
+  get_outgoing_async_modules, impl_module_meta_info, module_update_hash, property_access, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -64,16 +65,6 @@ impl ContextMode {
   }
 }
 
-impl From<&str> for ContextMode {
-  fn from(value: &str) -> Self {
-    match try_convert_str_to_context_mode(value) {
-      Some(m) => m,
-      // TODO should give warning
-      _ => panic!("unknown context mode"),
-    }
-  }
-}
-
 impl From<DynamicImportMode> for ContextMode {
   fn from(value: DynamicImportMode) -> Self {
     match value {
@@ -85,6 +76,8 @@ impl From<DynamicImportMode> for ContextMode {
   }
 }
 
+/// Returns `None` for unknown context modes, callers are expected to emit a
+/// diagnostic (and pick a fallback) when this happens.
 pub fn try_convert_str_to_context_mode(s: &str) -> Option<ContextMode> {
   match s {
     "sync" => Some(ContextMode::Sync),
@@ -93,7 +86,6 @@ pub fn try_convert_str_to_context_mode(s: &str) -> Option<ContextMode> {
     "lazy" => Some(ContextMode::Lazy),
     "lazy-once" => Some(ContextMode::LazyOnce),
     "async-weak" => Some(ContextMode::AsyncWeak),
-    // TODO should give warning
     _ => None,
   }
 }
@@ -122,15 +114,72 @@ pub enum ContextTypePrefix {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+pub enum ContextModulePattern {
+  None,
+  RegExp(RspackRegex),
+  Glob(Vec<String>),
+}
+
+impl ContextModulePattern {
+  pub fn reg_exp(&self) -> Option<&RspackRegex> {
+    match self {
+      Self::RegExp(reg_exp) => Some(reg_exp),
+      Self::None | Self::Glob(_) => None,
+    }
+  }
+
+  pub fn glob_patterns(&self) -> Option<&[String]> {
+    match self {
+      Self::None | Self::RegExp(_) => None,
+      Self::Glob(glob_patterns) => Some(glob_patterns),
+    }
+  }
+
+  pub fn is_empty(&self) -> bool {
+    matches!(self, Self::None)
+  }
+
+  pub fn glob_patterns_to_string(glob_patterns: &[String]) -> String {
+    glob_patterns.iter().join(", ")
+  }
+
+  pub fn to_pretty_string(&self, source: bool) -> Option<String> {
+    match self {
+      Self::None => None,
+      Self::RegExp(reg_exp) => Some(reg_exp.to_pretty_string(source)),
+      Self::Glob(glob_patterns) => Some(Self::glob_patterns_to_string(glob_patterns)),
+    }
+  }
+}
+
+impl From<Option<RspackRegex>> for ContextModulePattern {
+  fn from(reg_exp: Option<RspackRegex>) -> Self {
+    match reg_exp {
+      Some(reg_exp) => Self::RegExp(reg_exp),
+      None => Self::None,
+    }
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
 pub struct ContextOptions {
   pub mode: ContextMode,
   pub recursive: bool,
-  pub reg_exp: Option<RspackRegex>,
+  pub pattern: ContextModulePattern,
   pub include: Option<RspackRegex>,
   pub exclude: Option<RspackRegex>,
   pub category: DependencyCategory,
+  /// The context request passed to the resolver.
   pub request: String,
+  /// The base directory used to resolve relative context requests. For glob patterns, this is the
+  /// parser-derived request context (the importer directory or the explicit `base`) and remains
+  /// the matching coordinate even when context module factory hooks relocate the scan request.
   pub context: String,
+  /// The compiler `options.context`. Root-relative glob patterns are resolved from this directory.
+  /// This value is stable for the lifetime of a compilation and must not be changed by context
+  /// module factory hooks.
+  pub compiler_context: Context,
   pub namespace_object: ContextNameSpaceObject,
   pub group_options: Option<GroupOptions>,
   pub replaces: Vec<(String, u32, u32)>,
@@ -138,8 +187,50 @@ pub struct ContextOptions {
   pub end: u32,
   #[cacheable(with=AsOption<AsVec<AsCacheable>>)]
   pub referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
+  pub glob_import: Option<String>,
+  pub glob_exhaustive: bool,
+  pub glob_case_sensitive: bool,
   pub attributes: Option<ImportAttributes>,
   pub phase: Option<ImportPhase>,
+}
+
+impl Default for ContextOptions {
+  fn default() -> Self {
+    Self {
+      mode: ContextMode::Sync,
+      recursive: false,
+      pattern: ContextModulePattern::None,
+      include: None,
+      exclude: None,
+      category: DependencyCategory::Unknown,
+      request: String::new(),
+      context: String::new(),
+      compiler_context: Context::default(),
+      namespace_object: ContextNameSpaceObject::Unset,
+      group_options: None,
+      replaces: Vec::new(),
+      start: 0,
+      end: 0,
+      referenced_specifiers: None,
+      glob_import: None,
+      glob_exhaustive: false,
+      glob_case_sensitive: true,
+      attributes: None,
+      phase: None,
+    }
+  }
+}
+
+/// Returns the compiler-context-relative form of a context when it needs to be part of an
+/// identifier. The compiler context itself is implicit, so encoding it as `./.` would only change
+/// existing identifiers without distinguishing different resolution behavior.
+pub fn context_identifier(compiler_context: &str, context: &str) -> Option<String> {
+  if context.is_empty() {
+    return None;
+  }
+
+  let context = contextify(compiler_context, context);
+  (context != "./.").then_some(context)
 }
 
 #[cacheable]
@@ -162,6 +253,12 @@ pub enum FakeMapValue {
   Map(HashMap<String, FakeNamespaceObjectMode>),
 }
 
+struct ContextBlockInfo {
+  user_request: String,
+  dep_id: DependencyId,
+  block_id: AsyncDependenciesBlockIdentifier,
+}
+
 pub type ResolveContextModuleDependencies = Arc<
   dyn Fn(ContextModuleOptions) -> BoxFuture<'static, Result<Vec<ContextElementDependency>>>
     + Send
@@ -172,35 +269,38 @@ pub type ResolveContextModuleDependencies = Arc<
 #[cacheable]
 #[derive(Debug)]
 pub struct ContextModule {
-  dependencies: Vec<DependencyId>,
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  dependencies_block: DependenciesBlockData,
   identifier: Identifier,
   options: ContextModuleOptions,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  factory_meta: FactoryMetaStore,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
   #[debug(skip)]
   #[cacheable(with=Unsupported)]
   resolve_dependencies: ResolveContextModuleDependencies,
 }
 
 impl ContextModule {
-  pub fn new(
+  pub(crate) fn new_with_strict(
     resolve_dependencies: ResolveContextModuleDependencies,
     options: ContextModuleOptions,
+    strict: Option<bool>,
   ) -> Self {
+    let mut build_info = BuildInfo::default();
+    if let Some(strict) = strict {
+      build_info.strict = strict;
+    }
+
     Self {
-      dependencies: Vec::new(),
-      blocks: Vec::new(),
+      dependencies_block: Default::default(),
       identifier: create_identifier(&options, None),
       options,
-      factory_meta: None,
-      build_info: Default::default(),
-      build_meta: BuildMeta {
-        exports_type: BuildMetaExportsType::Default,
-        default_object: BuildMetaDefaultObject::RedirectWarn,
-        ..Default::default()
-      },
+      factory_meta: Default::default(),
+      build_info: build_info.into(),
+      build_meta: BuildMeta::default()
+        .with_exports_type(BuildMetaExportsType::Default)
+        .with_default_object(BuildMetaDefaultObject::RedirectWarn)
+        .into(),
       source_map_kind: SourceMapKind::empty(),
       resolve_dependencies,
     }
@@ -293,7 +393,7 @@ impl ContextModule {
     let mut map: HashMap<String, Vec<ModuleId>> = HashMap::default();
     for dep_id in dependencies {
       if let Some(module) = module_graph.get_module_by_dependency_id(dep_id)
-        && !module.build_meta().has_top_level_await
+        && !module.build_meta().has_top_level_await()
       {
         let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier());
         if let Some(id) = id {
@@ -330,19 +430,18 @@ impl ContextModule {
           runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
         )
       } else {
-        format!(
-          "{}(id, {}{})",
-          runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
-          bit,
-          if async_module { " | 16" } else { "" },
+        Self::render_create_fake_namespace_object(
+          runtime_template,
+          format!("{bit}{}", if async_module { " | 16" } else { "" }),
         )
       }
     } else {
-      format!(
-        "{}(id, {}{})",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
-        fake_map_data_expr,
-        if async_module { " | 16" } else { "" },
+      Self::render_create_fake_namespace_object(
+        runtime_template,
+        format!(
+          "{fake_map_data_expr}{}",
+          if async_module { " | 16" } else { "" }
+        ),
       )
     };
 
@@ -368,16 +467,29 @@ impl ContextModule {
     source
   }
 
-  fn get_user_request_map<'a>(
+  fn render_create_fake_namespace_object(
+    runtime_template: &mut ModuleCodeTemplate,
+    mode: String,
+  ) -> String {
+    let create_fake_namespace_object =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+    if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport {
+      let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+      format!("{create_fake_namespace_object}.call({require}, id, {mode})")
+    } else {
+      format!("{create_fake_namespace_object}(id, {mode})")
+    }
+  }
+
+  fn get_user_request_map(
     &self,
-    dependencies: impl IntoIterator<Item = &'a DependencyId>,
+    dependencies: &[DependencyRef],
     compilation: &Compilation,
   ) -> FxIndexMap<String, Option<String>> {
     let module_graph = compilation.get_module_graph();
-    let dependencies = dependencies.into_iter();
     dependencies
-      .filter_map(|dep_id| {
-        let dependency = module_graph.dependency_by_id(dep_id);
+      .iter()
+      .filter_map(|dependency| {
         let dep = if let Some(d) = dependency.as_module_dependency() {
           Some(d.user_request().to_string())
         } else {
@@ -386,7 +498,7 @@ impl ContextModule {
             .map(|d| d.request().to_string())
         };
         let module_id = module_graph
-          .module_identifier_by_dependency_id(dep_id)
+          .module_identifier_by_dependency_id(dependency.id())
           .and_then(|module| ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module))
           .map(|s| s.to_string());
         // module_id could be None in weak mode
@@ -402,7 +514,7 @@ impl ContextModule {
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     formatdoc! {r#"
-      function webpackEmptyAsyncContext(req) {{
+      function __rspack_empty_async_context(req) {{
         // Here Promise.resolve().then() is used instead of new Promise() to prevent
         // uncaught exception popping up in devtools
         return Promise.resolve().then(function() {{
@@ -411,10 +523,10 @@ impl ContextModule {
           throw e;
         }});
       }}
-      webpackEmptyAsyncContext.keys = {keys};
-      webpackEmptyAsyncContext.resolve = webpackEmptyAsyncContext;
-      webpackEmptyAsyncContext.id = {id};
-      {module}.exports = webpackEmptyAsyncContext;
+      __rspack_empty_async_context.keys = {keys};
+      __rspack_empty_async_context.resolve = __rspack_empty_async_context;
+      __rspack_empty_async_context.id = {id};
+      {module}.exports = __rspack_empty_async_context;
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
       keys = runtime_template.returning_function("[]", ""),
@@ -428,19 +540,175 @@ impl ContextModule {
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     formatdoc! {r#"
-      function webpackEmptyContext(req) {{
+      function __rspack_empty_context(req) {{
         var e = new Error("Cannot find module '" + req + "'");
         e.code = 'MODULE_NOT_FOUND';
         throw e;
       }}
-      webpackEmptyContext.keys = {keys};
-      webpackEmptyContext.resolve = webpackEmptyContext;
-      webpackEmptyContext.id = {id};
-      {module}.exports = webpackEmptyContext;
+      __rspack_empty_context.keys = {keys};
+      __rspack_empty_context.resolve = __rspack_empty_context;
+      __rspack_empty_context.id = {id};
+      {module}.exports = __rspack_empty_context;
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
       keys = runtime_template.returning_function("[]", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
+    }
+  }
+
+  fn get_empty_object_export_source(&self, runtime_template: &mut ModuleCodeTemplate) -> String {
+    concat_string!(
+      "\n",
+      runtime_template.render_module_argument(ModuleArgument::Module),
+      ".exports = {};\n"
+    )
+  }
+
+  fn append_glob_map_entry(entries: &mut String, index: usize, user_request: &str, value: &str) {
+    if index > 0 {
+      entries.push_str(",\n");
+    }
+    entries.push_str("\n  ");
+    entries.push_str(&json_stringify(user_request));
+    entries.push_str(": ");
+    entries.push_str(value);
+  }
+
+  fn get_glob_object_export_source(
+    &self,
+    runtime_template: &mut ModuleCodeTemplate,
+    entries: String,
+  ) -> String {
+    concat_string!(
+      "\n",
+      runtime_template.render_module_argument(ModuleArgument::Module),
+      ".exports = {\n",
+      entries,
+      "\n};\n"
+    )
+  }
+
+  fn get_glob_import_property_access(&self) -> Option<String> {
+    self
+      .options
+      .context_options
+      .glob_import
+      .as_deref()
+      .filter(|import| *import != "*")
+      .map(|import| property_access([import], 0))
+  }
+
+  fn get_sorted_context_block_info(&self, compilation: &Compilation) -> Vec<ContextBlockInfo> {
+    let module_graph = compilation.get_module_graph();
+    let mut block_info: Vec<_> = self
+      .get_blocks()
+      .iter()
+      .filter_map(|b| {
+        let block = module_graph.block_by_id(b)?;
+        let dependency = block.get_dependencies().first()?;
+        let user_request = dependency
+          .as_module_dependency()
+          .map(|d| d.user_request().to_string())
+          .or_else(|| {
+            dependency
+              .as_context_dependency()
+              .map(|d| d.request().to_string())
+          })?;
+        Some(ContextBlockInfo {
+          user_request,
+          dep_id: *dependency.id(),
+          block_id: block.identifier(),
+        })
+      })
+      .collect();
+    block_info.sort_unstable_by(|a, b| a.user_request.cmp(&b.user_request));
+    block_info
+  }
+
+  fn get_glob_source(
+    &self,
+    compilation: &Compilation,
+    runtime_template: &mut ModuleCodeTemplate,
+  ) -> String {
+    match &self.options.context_options.mode {
+      ContextMode::Lazy => {
+        if self.get_blocks().is_empty() {
+          return self.get_empty_object_export_source(runtime_template);
+        }
+        let block_info = self.get_sorted_context_block_info(compilation);
+
+        let mut entries = String::with_capacity(block_info.len() * 96);
+        for (i, info) in block_info.iter().enumerate() {
+          let mut import_promise = runtime_template.module_namespace_promise(
+            compilation,
+            self.identifier,
+            &info.dep_id,
+            Some(&info.block_id),
+            &info.user_request,
+            DependencyCategory::Esm.as_str(),
+            false,
+            self.options.context_options.phase.unwrap_or_default(),
+          );
+          if let Some(access) = self.get_glob_import_property_access() {
+            import_promise = concat_string!(
+              import_promise,
+              ".then(function(m) { return m",
+              access,
+              "; })"
+            );
+          }
+          Self::append_glob_map_entry(
+            &mut entries,
+            i,
+            &info.user_request,
+            &concat_string!("function() { return ", import_promise, "; }"),
+          );
+        }
+
+        self.get_glob_object_export_source(runtime_template, entries)
+      }
+      _ => {
+        if self.get_dependencies().is_empty() {
+          return self.get_empty_object_export_source(runtime_template);
+        }
+        let map = self.get_user_request_map(self.get_dependencies(), compilation);
+        let fake_map = self.get_fake_map(self.get_dependency_ids(), compilation);
+        let return_module_object = self.get_return_module_object_source(
+          &fake_map,
+          false,
+          None,
+          "fakeMap[id]",
+          runtime_template,
+        );
+
+        let mut entries = String::with_capacity(map.len() * 64);
+        let glob_import_access = self.get_glob_import_property_access();
+        for (i, (user_request, module_id)) in map.iter().enumerate() {
+          let module_id_expr = if let Some(id) = module_id {
+            let mut module_expr = format!(
+              "function() {{ var id = {}; return {return_module_object}; }}()",
+              json_stringify(id)
+            );
+            if let Some(access) = &glob_import_access {
+              module_expr.push_str(access);
+            }
+            module_expr
+          } else {
+            concat_string!("undefined /* ", json_stringify(user_request), " */")
+          };
+          Self::append_glob_map_entry(&mut entries, i, user_request, &module_id_expr);
+        }
+
+        concat_string!(
+          "\n",
+          self.get_fake_map_init_statement(&fake_map),
+          "\n",
+          runtime_template.render_module_argument(ModuleArgument::Module),
+          ".exports = {\n",
+          entries,
+          "\n};\n"
+        )
+      }
     }
   }
 
@@ -450,6 +718,10 @@ impl ContextModule {
     compilation: &Compilation,
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
+    if let ContextModulePattern::Glob(_) = &self.options.context_options.pattern {
+      return self.get_glob_source(compilation, runtime_template);
+    }
+
     match self.options.context_options.mode {
       ContextMode::Lazy => {
         if !self.get_blocks().is_empty() {
@@ -509,7 +781,7 @@ impl ContextModule {
     let block_and_first_dependency_list = blocks
       .clone()
       .filter_map(|b| b.get_dependencies().first().map(|d| (b, d)));
-    let first_dependencies = block_and_first_dependency_list.clone().map(|(_, d)| d);
+    let first_dependencies = block_and_first_dependency_list.clone().map(|(_, d)| d.id());
     let mut has_multiple_or_no_chunks = false;
     let mut has_no_chunk = true;
     let mut has_no_module_deferred = true;
@@ -517,7 +789,7 @@ impl ContextModule {
     let has_fake_map = matches!(fake_map, FakeMapValue::Map(_));
 
     let mut items = block_and_first_dependency_list
-      .filter_map(|(b, d)| {
+      .filter_map(|(b, dependency)| {
         let chunks: Vec<_> = compilation
           .build_chunk_graph_artifact
           .chunk_graph
@@ -543,7 +815,6 @@ impl ContextModule {
         if chunks.len() != 1 {
           has_multiple_or_no_chunks = true;
         }
-        let dependency = compilation.get_module_graph().dependency_by_id(d);
         let user_request = dependency
           .as_module_dependency()
           .map(|d| d.user_request().to_string())
@@ -552,7 +823,7 @@ impl ContextModule {
               .as_context_dependency()
               .map(|d| d.request().to_string())
           })?;
-        let module = module_graph.get_module_by_dependency_id(d)?;
+        let module = module_graph.get_module_by_dependency_id(dependency.id())?;
         let module_id =
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())?;
         let async_deps = (self
@@ -561,11 +832,11 @@ impl ContextModule {
           .phase
           .unwrap_or_default()
           .is_defer()
-          && !module.build_meta().has_top_level_await)
-          .then(|| {
-            has_no_module_deferred = false;
-            get_outgoing_async_modules(compilation, module.as_ref())
-          });
+          && !module.build_meta().has_top_level_await())
+        .then(|| {
+          has_no_module_deferred = false;
+          get_outgoing_async_modules(compilation, module.as_ref())
+        });
         Some((user_request, module_id.to_string(), chunks, async_deps))
       })
       .collect::<Vec<_>>();
@@ -595,20 +866,40 @@ impl ContextModule {
 
     let chunks_position = if has_fake_map { 2 } else { 1 };
     let async_deps_position = chunks_position + 1;
+    let fetch_priority = match &self.options.context_options.group_options {
+      Some(GroupOptions::ChunkGroup(group)) => group.fetch_priority,
+      _ => None,
+    };
+    let fetch_priority_arg = fetch_priority
+      .map(|x| format!(r#", "{x}""#))
+      .unwrap_or_default();
+    if fetch_priority.is_some() {
+      runtime_template
+        .runtime_requirements_mut()
+        .insert(RuntimeGlobals::HAS_FETCH_PRIORITY);
+    }
+
     let request_prefix = if has_no_chunk {
       "Promise.resolve()".to_string()
     } else if has_multiple_or_no_chunks {
-      format!(
-        "Promise.all(ids[{chunks_position}].map({}))",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK)
-      )
+      let ensure_chunk = runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK);
+      if fetch_priority.is_some() {
+        format!(
+          r#"Promise.all(ids[{chunks_position}].map(function(chunkId) {{ return {ensure_chunk}(chunkId{fetch_priority_arg}); }}))"#
+        )
+      } else {
+        format!(
+          "Promise.all(ids[{chunks_position}].map(function(chunkId) {{ return {ensure_chunk}(chunkId); }}))"
+        )
+      }
     } else {
       let mut chunks_position_buffer = itoa::Buffer::new();
       let chunks_position_str = chunks_position_buffer.format(chunks_position);
       format!(
-        "{}(ids[{}][0])",
+        "{}(ids[{}][0]{})",
         runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
-        chunks_position_str
+        chunks_position_str,
+        fetch_priority_arg
       )
     };
     let return_module_object = self.get_return_module_object_source(
@@ -695,17 +986,16 @@ impl ContextModule {
   ) -> String {
     let mg = compilation.get_module_graph();
     let block = mg.block_by_id_expect(block_id);
-    let dependencies = block.get_dependencies();
     let promise = runtime_template.block_promise(Some(block_id), compilation, "lazy-once context");
-    let map = self.get_user_request_map(dependencies, compilation);
-    let fake_map = self.get_fake_map(dependencies, compilation);
+    let map = self.get_user_request_map(block.get_dependencies(), compilation);
+    let fake_map = self.get_fake_map(block.get_dependency_ids(), compilation);
     let async_deps_map = self
       .options
       .context_options
       .phase
       .unwrap_or_default()
       .is_defer()
-      .then(|| self.get_module_deferred_async_deps_map(dependencies, compilation));
+      .then(|| self.get_module_deferred_async_deps_map(block.get_dependency_ids(), compilation));
 
     let return_module_object_source = self.get_return_module_object_source(
       &fake_map,
@@ -762,16 +1052,15 @@ impl ContextModule {
     compilation: &Compilation,
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
-    let dependencies = self.get_dependencies();
-    let map = self.get_user_request_map(dependencies, compilation);
-    let fake_map = self.get_fake_map(dependencies, compilation);
+    let map = self.get_user_request_map(self.get_dependencies(), compilation);
+    let fake_map = self.get_fake_map(self.get_dependency_ids(), compilation);
     let async_deps_map = self
       .options
       .context_options
       .phase
       .unwrap_or_default()
       .is_defer()
-      .then(|| self.get_module_deferred_async_deps_map(dependencies, compilation));
+      .then(|| self.get_module_deferred_async_deps_map(self.get_dependency_ids(), compilation));
 
     let return_module_object = self.get_return_module_object_source(
       &fake_map,
@@ -841,17 +1130,16 @@ impl ContextModule {
     compilation: &Compilation,
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
-    let dependencies = self.get_dependencies();
-    let map = self.get_user_request_map(dependencies, compilation);
-    let fake_map = self.get_fake_map(dependencies, compilation);
+    let map = self.get_user_request_map(self.get_dependencies(), compilation);
+    let fake_map = self.get_fake_map(self.get_dependency_ids(), compilation);
     let return_module_object =
       self.get_return_module_object_source(&fake_map, true, None, "fakeMap[id]", runtime_template);
     formatdoc! {r#"
       var map = {map};
       {fake_map_init_statement}
 
-      function __rspack_context(req) {{
-        var id = __rspack_context_resolve(req);
+      function __rspack_context_module(req) {{
+        var id = __rspack_context_module_resolve(req);
         if(!{module_factories}[id]) {{
           var e = new Error("Module '" + req + "' ('" + id + "') is not available (weak dependency)");
           e.code = 'MODULE_NOT_FOUND';
@@ -859,7 +1147,7 @@ impl ContextModule {
         }}
         return {return_module_object};
       }}
-      function __rspack_context_resolve(req) {{
+      function __rspack_context_module_resolve(req) {{
         if(!{has_own_property}(map, req)) {{
           var e = new Error("Cannot find module '" + req + "'");
           e.code = 'MODULE_NOT_FOUND';
@@ -867,10 +1155,10 @@ impl ContextModule {
         }}
         return map[req];
       }}
-      __rspack_context.keys = {keys};
-      __rspack_context.resolve = __rspack_context_resolve;
-      __rspack_context.id = {id};
-      {module}.exports = __rspack_context;
+      __rspack_context_module.keys = {keys};
+      __rspack_context_module.resolve = __rspack_context_module_resolve;
+      __rspack_context_module.id = {id};
+      {module}.exports = __rspack_context_module;
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify_pretty(&map),
@@ -887,16 +1175,15 @@ impl ContextModule {
     compilation: &Compilation,
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
-    let dependencies = self.get_dependencies();
-    let map = self.get_user_request_map(dependencies, compilation);
-    let fake_map = self.get_fake_map(dependencies, compilation);
+    let map = self.get_user_request_map(self.get_dependencies(), compilation);
+    let fake_map = self.get_fake_map(self.get_dependency_ids(), compilation);
     let async_deps_map = self
       .options
       .context_options
       .phase
       .unwrap_or_default()
       .is_defer()
-      .then(|| self.get_module_deferred_async_deps_map(dependencies, compilation));
+      .then(|| self.get_module_deferred_async_deps_map(self.get_dependency_ids(), compilation));
     let return_module_object_source = self.get_return_module_object_source(
       &fake_map,
       true,
@@ -953,20 +1240,19 @@ impl ContextModule {
     compilation: &Compilation,
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
-    let dependencies = self.get_dependencies();
-    let map = self.get_user_request_map(dependencies, compilation);
-    let fake_map = self.get_fake_map(dependencies, compilation);
+    let map = self.get_user_request_map(self.get_dependencies(), compilation);
+    let fake_map = self.get_fake_map(self.get_dependency_ids(), compilation);
     let return_module_object =
       self.get_return_module_object_source(&fake_map, false, None, "fakeMap[id]", runtime_template);
     formatdoc! {r#"
       var map = {map};
       {fake_map_init_statement}
 
-      function __rspack_context(req) {{
-        var id = __rspack_context_resolve(req);
+      function __rspack_context_module(req) {{
+        var id = __rspack_context_module_resolve(req);
         return {return_module_object};
       }}
-      function __rspack_context_resolve(req) {{
+      function __rspack_context_module_resolve(req) {{
         if(!{has_own_property}(map, req)) {{
           var e = new Error("Cannot find module '" + req + "'");
           e.code = 'MODULE_NOT_FOUND';
@@ -974,10 +1260,10 @@ impl ContextModule {
         }}
         return map[req];
       }}
-      __rspack_context.keys = {keys};
-      __rspack_context.resolve = __rspack_context_resolve;
-      {module}.exports = __rspack_context;
-      __rspack_context.id = {id};
+      __rspack_context_module.keys = {keys};
+      __rspack_context_module.resolve = __rspack_context_module_resolve;
+      {module}.exports = __rspack_context_module;
+      __rspack_context_module.id = {id};
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify_pretty(&map),
@@ -991,10 +1277,11 @@ impl ContextModule {
   fn get_source(&self, source_string: String, compilation: &Compilation) -> BoxSource {
     let source_map_kind = self.get_source_map_kind();
     if source_map_kind.enabled() {
+      let source_protocol = compilation.options.experiments.runtime_mode.to_string();
       OriginalSource::new(
         source_string,
         format!(
-          "webpack://{}",
+          "{source_protocol}://{}",
           make_paths_relative(&compilation.options.context, self.identifier.as_str(),)
         ),
       )
@@ -1006,24 +1293,12 @@ impl ContextModule {
 }
 
 impl DependenciesBlock for ContextModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency)
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }
 
@@ -1090,9 +1365,9 @@ impl Module for ContextModule {
       id += " ";
       id += &self.options.addon;
     }
-    if let Some(regexp) = &self.options.context_options.reg_exp {
+    if let Some(regexp) = self.options.context_options.pattern.to_pretty_string(true) {
       id += " ";
-      id += &regexp.to_pretty_string(true);
+      id += &regexp;
     }
     if let Some(include) = &self.options.context_options.include {
       id += " include: ";
@@ -1116,14 +1391,25 @@ impl Module for ContextModule {
         })
         .join(", ");
     }
+    if let Some(import) = &self.options.context_options.glob_import {
+      id += " globImport: ";
+      id += import;
+    }
+    if self.options.context_options.glob_exhaustive {
+      id += " globExhaustive";
+    }
+    append_context_identifier(&mut id, &self.options.context_options, " context: ");
+    if !self.options.context_options.glob_case_sensitive {
+      id += " globCaseInsensitive";
+    }
     Some(Cow::Owned(id))
   }
 
   async fn build(
     mut self: Box<Self>,
-    _build_context: BuildContext,
+    _build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<BoxModule> {
     let resolve_dependencies = &self.resolve_dependencies;
     let context_element_dependencies = resolve_dependencies(self.options.clone()).await?;
 
@@ -1146,7 +1432,7 @@ impl Module for ContextModule {
         None,
         context_element_dependencies
           .into_iter()
-          .map(|dep| Box::new(dep) as Box<dyn Dependency>)
+          .map(BoxDependency::new)
           .collect(),
         None,
       );
@@ -1190,7 +1476,7 @@ impl Module for ContextModule {
           (*self.identifier).into(),
           None,
           Some(&context_element_dependency.user_request.clone()),
-          vec![Box::new(context_element_dependency)],
+          vec![BoxDependency::new(context_element_dependency)],
           Some(self.options.context_options.request.clone()),
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
@@ -1204,48 +1490,38 @@ impl Module for ContextModule {
     } else {
       dependencies = context_element_dependencies
         .into_iter()
-        .map(|d| Box::new(d) as BoxDependency)
+        .map(BoxDependency::new)
         .collect();
     }
 
     if !self.options.resource.as_str().is_empty() {
-      let mut context_dependencies: ArcPathSet = Default::default();
+      let mut context_dependencies: InternedPathSet = Default::default();
       context_dependencies.insert(self.options.resource.as_std_path().into());
-      self.build_info.context_dependencies = context_dependencies;
+      self.build_info.get_mut().dependencies.context = context_dependencies;
     }
 
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies,
-      blocks,
-      optimization_bailouts: vec![],
-    })
+    Ok(BoxModule::new(self).with_dependencies(
+      dependencies.into_iter().map(Into::into).collect(),
+      blocks.into_iter().map(Into::into).collect(),
+    ))
   }
 
   // #[tracing::instrument("ContextModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime_template,
       ..
     } = code_generation_context;
-    let mut code_generation_result = CodeGenerationResult::default();
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
     let source = self.get_source(
       self.get_source_string(compilation, runtime_template),
       compilation,
     );
     code_generation_result.add(SourceType::JavaScript, source);
-    let mut all_deps = self.get_dependencies().to_vec();
-    let module_graph = compilation.get_module_graph();
-    for block in self.get_blocks() {
-      let block = module_graph
-        .block_by_id(block)
-        .expect("should have block in ContextModule code_generation");
-      all_deps.extend(block.get_dependencies());
-    }
 
     Ok(code_generation_result)
   }
@@ -1255,7 +1531,7 @@ impl Module for ContextModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHash::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options.output);
     module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
@@ -1294,9 +1570,9 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
     id += "|";
     id += &options.addon;
   }
-  if let Some(regexp) = &options.context_options.reg_exp {
+  if let Some(pattern) = options.context_options.pattern.to_pretty_string(false) {
     id += "|";
-    id += &regexp.to_pretty_string(false);
+    id += &pattern;
   }
   if let Some(include) = &options.context_options.include {
     id += "|include: ";
@@ -1318,6 +1594,17 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
         }
       })
       .join(", ");
+  }
+  if let Some(import) = &options.context_options.glob_import {
+    id += "|globImport: ";
+    id += import;
+  }
+  if options.context_options.glob_exhaustive {
+    id += "|globExhaustive";
+  }
+  append_context_identifier(&mut id, &options.context_options, "|context: ");
+  if !options.context_options.glob_case_sensitive {
+    id += "|globCaseInsensitive";
   }
 
   if let Some(GroupOptions::ChunkGroup(group)) = &options.context_options.group_options {
@@ -1344,7 +1631,7 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
   };
   if let Some(attributes) = &options.context_options.attributes {
     id += "|importAttributes: ";
-    id += &serde_json::to_string(attributes).expect("json stringify failed");
+    id += &simd_json::to_string(attributes).expect("json stringify failed");
   }
   if let Some(phase) = &options.context_options.phase {
     id += "|importPhase: ";
@@ -1355,4 +1642,15 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
     id += layer;
   }
   id.into()
+}
+
+fn append_context_identifier(id: &mut String, options: &ContextOptions, prefix: &str) {
+  if !matches!(options.pattern, ContextModulePattern::Glob(_)) {
+    return;
+  }
+  let Some(context) = context_identifier(&options.compiler_context, &options.context) else {
+    return;
+  };
+  id.push_str(prefix);
+  id.push_str(&context);
 }

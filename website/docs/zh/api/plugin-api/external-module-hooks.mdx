@@ -1,0 +1,56 @@
+---
+description: 'ExternalModule 钩子用于控制外部模块如何分配到 chunk。'
+---
+
+import { Collapse, CollapsePanel } from '@components/Collapse';
+import ChunkType from '../../types/chunk.mdx';
+import CompilationType from '../../types/compilation.mdx';
+
+# ExternalModule 钩子
+
+`ExternalModule` 表示由运行时环境提供实现、而不由 Rspack 打包的依赖。它提供了用于控制外部模块如何分配到 chunk 的钩子。
+
+你可以通过以下方式获取这些钩子：
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    {
+      apply(compiler) {
+        const { ExternalModule } = compiler.rspack;
+        compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
+          const hooks = ExternalModule.getCompilationHooks(compilation);
+          // ...
+        });
+      },
+    },
+  ],
+};
+```
+
+## `chunkCondition`
+
+`SyncBailHook<[Chunk, Compilation], boolean | undefined>`
+
+控制外部模块能否被包含在指定 chunk 中。返回 `true` 表示允许，返回 `false` 表示不允许，返回 `undefined` 则继续执行后续 tap，并最终使用 Rspack 的默认行为。
+
+以下示例仅允许外部模块被包含在入口 chunk 中：
+
+```js
+hooks.chunkCondition.tap('MyPlugin', (chunk, compilation) => {
+  return compilation.chunkGraph.getNumberOfEntryModules(chunk) > 0;
+});
+```
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
+  </CollapsePanel>
+</Collapse>

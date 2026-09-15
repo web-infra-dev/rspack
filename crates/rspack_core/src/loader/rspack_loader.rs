@@ -2,11 +2,15 @@ use std::sync::Arc;
 
 use rspack_error::{Diagnostic, Result};
 use rspack_fs::ReadableFileSystem;
-use rspack_loader_runner::{Content, LoaderContext, LoaderRunnerPlugin, ResourceData};
+use rspack_loader_runner::{Content, Loader, LoaderContext, LoaderRunnerPlugin, ResourceData};
+use rspack_paths::InternedPathSet;
 use rspack_sources::SourceMap;
-use rustc_hash::FxHashSet as HashSet;
 
-use crate::{RunnerContext, SharedPluginDriver, utils::extract_source_map};
+use crate::{
+  RunnerContext, SharedPluginDriver,
+  loader::loader_cache::{LoaderCacheAction, after_normal_loader, before_normal_loader},
+  utils::extract_source_map,
+};
 
 pub struct RspackLoaderRunnerPlugin {
   pub plugin_driver: SharedPluginDriver,
@@ -34,7 +38,7 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     &self,
     resource_data: &ResourceData,
     fs: Arc<dyn ReadableFileSystem>,
-  ) -> Result<Option<(Content, Option<SourceMap>, HashSet<std::path::PathBuf>)>> {
+  ) -> Result<Option<(Content, Option<SourceMap<'static>>, InternedPathSet)>> {
     // First try the plugin's read_resource hook
     let result = self
       .plugin_driver
@@ -48,25 +52,30 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
         // Try to extract source map from the content
         let extract_result = match &content {
           Content::String(s) => extract_source_map(fs, s, resource_data.resource()).await,
-          Content::Buffer(b) => {
-            extract_source_map(fs, &String::from_utf8_lossy(b), resource_data.resource()).await
-          }
+          Content::Buffer(b) => match simdutf8::basic::from_utf8(b) {
+            Ok(s) => extract_source_map(fs, s, resource_data.resource()).await,
+            Err(_) => {
+              extract_source_map(fs, &String::from_utf8_lossy(b), resource_data.resource()).await
+            }
+          },
         };
 
         match extract_result {
           Ok(extract_result) => {
-            // Convert file dependencies to FxHashSet for consistency
+            // Convert file dependencies to interned paths for reuse across cache contexts.
             let file_deps = extract_result
               .file_dependencies
-              .map(|deps| deps.into_iter().collect::<HashSet<_>>())
+              .map(|deps| deps.into_iter().map(Into::into).collect())
               .unwrap_or_default();
 
-            // Return the content with source map extracted and file dependencies
-            return Ok(Some((
-              Content::String(extract_result.source),
-              extract_result.source_map,
-              file_deps,
-            )));
+            // Preserve the input type: non-raw JS loaders strip a BOM only from buffers.
+            let content = if content.is_buffer() {
+              Content::Buffer(extract_result.source.into_bytes())
+            } else {
+              Content::String(extract_result.source)
+            };
+
+            return Ok(Some((content, extract_result.source_map, file_deps)));
           }
           Err(e) => {
             // If extraction fails, return original content with empty dependencies
@@ -77,31 +86,16 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
               .lock()
               .expect("should get lock")
               .push(Diagnostic::warn("extractSourceMap".into(), e));
-            return Ok(Some((content, None, HashSet::default())));
+            return Ok(Some((content, None, InternedPathSet::default())));
           }
         }
       }
       // Return original content with empty dependencies when extract_source_map is disabled
-      return Ok(Some((content, None, HashSet::default())));
+      return Ok(Some((content, None, InternedPathSet::default())));
     }
 
     // If no plugin handled it, return None so the default logic can handle it
     Ok(None)
-  }
-
-  async fn should_yield(&self, context: &LoaderContext<Self::Context>) -> Result<bool> {
-    let res = self
-      .plugin_driver
-      .normal_module_hooks
-      .loader_should_yield
-      .call(context)
-      .await?;
-
-    if let Some(res) = res {
-      return Ok(res);
-    }
-
-    Ok(false)
   }
 
   async fn start_yielding(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
@@ -111,5 +105,30 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
       .loader_yield
       .call(context)
       .await
+  }
+
+  async fn run_normal_loader(
+    &self,
+    context: &mut LoaderContext<Self::Context>,
+    loader: Arc<dyn Loader<Self::Context>>,
+  ) -> Result<()> {
+    let cache_action = if context.current_loader().cache() {
+      before_normal_loader(context).await?
+    } else {
+      LoaderCacheAction::Disabled
+    };
+    if matches!(cache_action, LoaderCacheAction::Hit) {
+      context.current_loader().set_finish_called();
+      return Ok(());
+    }
+
+    loader.run(context).await?;
+    if !context.current_loader().finish_called() {
+      context.finish_with_empty();
+    }
+    if let LoaderCacheAction::Miss(state) = cache_action {
+      after_normal_loader(context, &state).await;
+    }
+    Ok(())
   }
 }

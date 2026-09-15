@@ -1,5 +1,5 @@
 use rspack_core::OverrideStrict;
-use swc_core::ecma::ast::Program;
+use swc_experimental_ecma_ast::Program;
 
 use super::JavascriptParserPlugin;
 use crate::visitors::JavascriptParser;
@@ -8,8 +8,8 @@ use crate::visitors::JavascriptParser;
 pub struct OverrideStrictPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for OverrideStrictPlugin {
-  fn program(&self, parser: &mut JavascriptParser, _: &Program) -> Option<bool> {
+impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for OverrideStrictPlugin {
+  fn program(&self, parser: &mut JavascriptParser<'p>, _: &Program) -> Option<bool> {
     if let Some(strict) = parser.javascript_options.override_strict {
       parser.build_info.strict = matches!(strict, OverrideStrict::Strict);
     }

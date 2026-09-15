@@ -7,18 +7,18 @@ use rspack_cacheable::{
 };
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
-use rspack_loader_runner::{AdditionalData, ParseMeta, ResourceData};
+use rspack_intern::Atom;
+use rspack_loader_runner::{AdditionalData, ParseMeta, ParseMetaValue, ResourceData};
 use rspack_sources::BoxSource;
 use rspack_util::{ext::AsAny, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap, FxHashSet};
-use swc_core::atoms::Atom;
 
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BoxLoader, BoxModuleDependency,
-  BuildInfo, BuildMeta, ChunkGraph, CodeGenerationData, Compilation, CompilerOptions,
-  ConcatenationScope, Context, DependencyLocation, DependencyRange, EvaluatedInlinableValue,
-  FactoryMeta, Module, ModuleCodeTemplate, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType,
-  NormalModule, ParserOptions, RuntimeSpec, SourceType,
+  AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildInfo, BuildMeta, ChunkGraph,
+  CodeGenerationData, Compilation, CompilerOptions, ConcatenationScope, Context,
+  DependencyCodeGenerationRef, DependencyId, DependencyLocation, DependencyRange,
+  EvaluatedInlinableValue, FactoryMeta, GeneratorOptions, Module, ModuleCodeTemplate, ModuleGraph,
+  ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -30,6 +30,7 @@ pub struct ParseContext<'a> {
   pub module_layer: Option<&'a ModuleLayer>,
   pub module_user_request: &'a str,
   pub module_parser_options: Option<&'a ParserOptions>,
+  pub module_generator_options: Option<&'a GeneratorOptions>,
   pub module_source_map_kind: SourceMapKind,
   pub module_match_resource: Option<&'a ResourceData>,
   #[debug(skip)]
@@ -51,6 +52,17 @@ pub struct CollectedTypeScriptInfo {
   pub type_exports: FxHashSet<Atom>,
   #[cacheable(with=AsMap<AsPreset>)]
   pub exported_enums: FxHashMap<Atom, TSEnumValue>,
+}
+
+#[cacheable_dyn]
+impl ParseMetaValue for CollectedTypeScriptInfo {
+  fn clone_parse_meta(&self) -> Box<dyn ParseMetaValue> {
+    Box::new(self.clone())
+  }
+
+  fn into_any(self: Box<Self>) -> Box<dyn Any + Send + Sync> {
+    self
+  }
 }
 
 pub const COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY: &str = "rspack-collected-ts-info";
@@ -82,11 +94,7 @@ pub struct SideEffectsBailoutItem {
   pub ty: String,
 }
 
-impl SideEffectsBailoutItem {
-  pub fn new(msg: String, ty: String) -> Self {
-    Self { msg, ty }
-  }
-}
+impl SideEffectsBailoutItem {}
 
 #[derive(Debug)]
 pub struct SideEffectsBailoutItemWithSpan {
@@ -106,8 +114,8 @@ impl SideEffectsBailoutItemWithSpan {
 pub struct ParseResult {
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
-  pub presentational_dependencies: Vec<BoxDependencyTemplate>,
-  pub code_generation_dependencies: Vec<BoxModuleDependency>,
+  pub presentational_dependencies: Vec<DependencyCodeGenerationRef>,
+  pub code_generation_dependencies: Vec<DependencyId>,
   pub source: BoxSource,
   pub side_effects_bailout: Option<SideEffectsBailoutItem>,
 }
@@ -118,6 +126,8 @@ pub struct GenerateContext<'a> {
   pub runtime_template: &'a mut ModuleCodeTemplate,
   pub data: &'a mut CodeGenerationData,
   pub requested_source_type: SourceType,
+  pub module_parser_options: Option<&'a ParserOptions>,
+  pub module_generator_options: Option<&'a GeneratorOptions>,
   pub runtime: Option<&'a RuntimeSpec>,
   pub concatenation_scope: Option<&'a mut ConcatenationScope>,
 }
@@ -159,6 +169,10 @@ pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
       &[],
       &compilation.options.output.hash_digest,
     ))
+  }
+
+  fn has_runtime_hash(&self) -> bool {
+    false
   }
 }
 

@@ -11,6 +11,13 @@
     margin: 0 !important;
     border-radius: 0 !important;
   }
+
+  .rp-codeblock:only-child {
+    margin: 0 -1rem;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
 }
 
 .dark {

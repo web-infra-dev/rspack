@@ -77,3 +77,67 @@ it("should correctly analyze usage of variable for var declaration", async () =>
 	expect(m.a).toBe(1);
 	expect(m.usedExports).toEqual(true);
 });
+
+it("should analyze dynamic imports destructured from Promise.all", async () => {
+	const [namespace, { foo, usedExports: destructuredUsedExports }] = await Promise.all([
+		import("./promise-all/a"),
+		import("./promise-all/b")
+	]);
+
+	expect(namespace.bar).toBe("bar");
+	expect(namespace.usedExports).toEqual(["bar", "usedExports"]);
+	expect(foo).toBe("foo");
+	expect(destructuredUsedExports).toEqual(["foo", "usedExports"]);
+});
+
+it("should retain parent exports for empty nested patterns in Promise.all", async () => {
+	const [{ bar: {}, usedExports }] = await Promise.all([
+		import("./promise-all/a?empty-nested-pattern")
+	]);
+
+	expect(usedExports).toEqual(["bar", "usedExports"]);
+});
+
+it("should keep Promise.all imports without a matching pattern fully referenced", async () => {
+	const [namespace] = await Promise.all([
+		import("./promise-all/a?unmatched-pattern"),
+		import("./promise-all/b?unmatched-pattern")
+	]);
+
+	expect(namespace.bar).toBe("bar");
+	expect(namespace.usedExports).toEqual(["bar", "usedExports"]);
+
+	const unmatched = await import("./promise-all/b?unmatched-pattern");
+	expect(unmatched.usedExports).toBe(true);
+});
+
+it("should not analyze Promise.all when Promise is shadowed", async () => {
+	await (async Promise => {
+		const [{ foo, usedExports: destructuredUsedExports }, namespace] = await Promise.all([
+			import("./promise-all/a?shadowed"),
+			import("./promise-all/b?shadowed")
+		]);
+
+		expect(foo).toBe("foo");
+		expect(destructuredUsedExports).toBe(true);
+		expect(namespace.bar).toBe("bar");
+		expect(namespace.usedExports).toBe(true);
+	})({
+		all(values) {
+			return globalThis.Promise.all(values).then(([a, b]) => [b, a]);
+		}
+	});
+});
+
+it("should not analyze Promise.all when its input contains a spread", async () => {
+	const imports = [import("./promise-all/a?spread")];
+	const [namespace, { foo, usedExports: destructuredUsedExports }] = await Promise.all([
+		...imports,
+		import("./promise-all/b?spread")
+	]);
+
+	expect(namespace.bar).toBe("bar");
+	expect(namespace.usedExports).toBe(true);
+	expect(foo).toBe("foo");
+	expect(destructuredUsedExports).toBe(true);
+});

@@ -1,0 +1,1195 @@
+---
+description: 'Generates HTML files and injects entry scripts, styles, and configured tags'
+---
+
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# HtmlRspackPlugin
+
+<ApiMeta specific={['Rspack']} />
+
+`rspack.HtmlRspackPlugin` generates HTML files for Rspack builds and injects the JavaScript and CSS files required by their entry points. It can also set the document title, add a favicon, and generate `<base>` and `<meta>` tags.
+
+- [Examples](#examples): Explore common use cases.
+- [Options](#options): Review types, defaults, and examples.
+- [Template syntax](#template-syntax): See supported interpolation and control statements.
+- [Hooks](#hooks): Modify asset URLs, tags, and HTML.
+
+For help choosing between the built-in plugin and the JavaScript `html-rspack-plugin`, see the [HTML guide](/guide/languages/html#choose-a-plugin).
+
+## Examples
+
+### Default output
+
+By default, the plugin emits `index.html` with the assets required by every entry point.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [new rspack.HtmlRspackPlugin()],
+};
+```
+
+With the built-in template, the generated `dist/index.html` is equivalent to:
+
+```html
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>rspack</title>
+    <script defer src="main.js"></script>
+  </head>
+  <body></body>
+</html>
+```
+
+By default, the plugin injects scripts with `defer` into `<head>`. If an entry also produces CSS, the corresponding `<link>` tags are inserted into `<head>`. With multiple entry points, the HTML includes assets from all of them.
+
+### Generate multiple HTML files
+
+To generate a separate HTML file for each entry point, register multiple `rspack.HtmlRspackPlugin` instances:
+
+- Use `filename` to name each HTML file.
+- Use `chunks` to select the entry-point assets included in each HTML file.
+
+The following configuration emits `foo.html` and `bar.html`. Each file contains the assets required by its matching entry point, including runtime and shared assets.
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    foo: './foo.js',
+    bar: './bar.js',
+  },
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      filename: 'foo.html',
+      chunks: ['foo'],
+    }),
+    new rspack.HtmlRspackPlugin({
+      filename: 'bar.html',
+      chunks: ['bar'],
+    }),
+  ],
+};
+```
+
+### Module scripts
+
+When [`output.module`](/config/output#outputmodule) is enabled and `scriptLoading` is not set, the plugin emits `<script type="module">` instead of `<script defer>`:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    module: true,
+  },
+  plugins: [new rspack.HtmlRspackPlugin()],
+};
+```
+
+```html
+<script src="main.js" type="module"></script>
+```
+
+### Production minification
+
+In production mode (`mode: 'production'`), the plugin minifies the generated HTML when `minify` is not set. In other modes, HTML is minified only when `minify` is enabled explicitly.
+
+```js title="rspack.config.mjs"
+export default {
+  mode: 'production',
+  plugins: [new rspack.HtmlRspackPlugin()],
+};
+```
+
+### Use a template file
+
+If `src/index.ejs` exists in the Rspack [`context`](/config/context), the plugin uses it as the template automatically. Otherwise, it uses the built-in template.
+
+To customize the HTML structure, you can also use `template` to specify an HTML file. The plugin injects the required JavaScript, CSS, and favicon tags into it.
+
+```html title="index.html"
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title><%= htmlRspackPlugin.options.title %></title>
+  </head>
+  <body></body>
+</html>
+```
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      title: 'My HTML Template',
+      template: 'index.html',
+    }),
+  ],
+};
+```
+
+### Use template string
+
+You can also provide the HTML template directly through `templateContent`:
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      title: 'My HTML Template',
+      templateContent: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title><%= htmlRspackPlugin.options.title %></title>
+          </head>
+          <body></body>
+        </html>
+      `,
+    }),
+  ],
+};
+```
+
+### Use template function
+
+For dynamically generated template content, use a function in either of these forms:
+
+- Pass the function directly to `templateContent`:
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      title: 'My HTML Template',
+      templateContent: ({ htmlRspackPlugin }) => `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>${htmlRspackPlugin.options.title}</title>
+          </head>
+          <body></body>
+        </html>
+      `,
+    }),
+  ],
+};
+```
+
+- Specify a `.js` or `.cjs` file in `template`:
+
+```js title="template.js"
+module.exports = ({ htmlRspackPlugin }) => `
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <title>${htmlRspackPlugin.options.title}</title>
+    </head>
+    <body></body>
+  </html>
+`;
+```
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      title: 'My HTML Template',
+      template: 'template.js',
+    }),
+  ],
+};
+```
+
+### Template parameters
+
+Use `templateParameters` to customize the values passed when rendering an HTML template. Templates receive the following serializable parameters by default:
+
+- `htmlRspackPlugin`: Data exposed by the plugin
+  - `htmlRspackPlugin.options`: Normalized plugin options
+  - `htmlRspackPlugin.tags`: Generated tags prepared for insertion
+    - `htmlRspackPlugin.tags.headTags`: List of `<base>`, `<meta>`, `<title>`, `<link>`, and `<script>` tags for injection in `<head>`
+    - `htmlRspackPlugin.tags.bodyTags`: List of `<script>` tags for injection in `<body>`
+  - `htmlRspackPlugin.files`: Asset URLs selected for the current HTML file
+    - `htmlRspackPlugin.files.js`: Selected JavaScript asset URLs
+    - `htmlRspackPlugin.files.css`: Selected CSS asset URLs
+    - `htmlRspackPlugin.files.favicon`: Generated favicon URL when `favicon` is configured
+    - `htmlRspackPlugin.files.publicPath`: Effective public path used for asset URLs
+- `rspackConfig`: Selected Rspack settings
+  - `rspackConfig.mode`: Current build mode
+  - `rspackConfig.output.publicPath`: Effective public path for the current HTML file, including a [`publicPath`](#publicpath) override
+  - `rspackConfig.output.crossOriginLoading`: Configured cross-origin loading value
+
+When a JavaScript function renders the template, it can also access the Rspack `compilation` object. That object is not passed when `templateParameters` is `false` or a function.
+
+In a built-in template, use EJS-style interpolation to read these parameters:
+
+```js title="rspack.config.mjs"
+export default {
+  mode: 'development',
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      title: 'My application',
+      templateContent: `
+        <!doctype html>
+        <html>
+          <head></head>
+          <body>
+            <h1><%- htmlRspackPlugin.options.title %></h1>
+            <p>Mode: <%- rspackConfig.mode %></p>
+          </body>
+        </html>
+      `,
+    }),
+  ],
+};
+```
+
+In a JavaScript template function, the parameters are passed as an ordinary JavaScript object:
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      templateContent: ({ htmlRspackPlugin }) => `
+        <!doctype html>
+        <html>
+          <head></head>
+          <body>
+            <p>Scripts: ${htmlRspackPlugin.files.js.join(', ')}</p>
+          </body>
+        </html>
+      `,
+    }),
+  ],
+};
+```
+
+In templates rendered by the built-in engine, call `toHtml()` to convert a tag or tag list to HTML. In JavaScript template functions, tags and tag lists provide `toString()` and can be interpolated directly.
+
+:::warning
+If the template inserts `htmlRspackPlugin.tags` manually, set `inject` to `false`; otherwise, the plugin inserts those tags twice.
+:::
+
+:::info Differences
+Compared with HtmlWebpackPlugin:
+
+- Template paths do not support loader syntax such as `loader!./template.html`
+- The `compilation` object is only available when [using a template function](#use-template-function), with the `templateParameters` restrictions described above
+
+:::
+
+## Options
+
+Pass the following options to `new rspack.HtmlRspackPlugin()`. All examples reuse the `rspack` import from the first example.
+
+### title
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+Sets the `<title>` of the generated HTML. When automatic injection is enabled, the plugin replaces an existing `<title>` in the template or adds one to `<head>`.
+
+When omitted, a custom template keeps its own title. The built-in template uses `rspack`. Setting [`inject`](#inject) to `false` prevents `title` from being applied automatically, but the value remains available as `htmlRspackPlugin.options.title`.
+
+```js
+new rspack.HtmlRspackPlugin({
+  title: 'My application',
+});
+```
+
+Generated HTML fragment:
+
+```html
+<title>My application</title>
+```
+
+### filename
+
+- **Type:**
+
+  ```ts
+  type HtmlFilenameFunction = (entry: string) => string;
+  type HtmlFilename = string | HtmlFilenameFunction;
+  ```
+
+- **Default:** `'index.html'`
+
+Sets the HTML asset path and filename relative to [`output.path`](/config/output#outputpath). When omitted, the plugin emits `index.html` in the output directory.
+
+- **String:** Emits the HTML at the specified path. The value can include a subdirectory and filename placeholders such as `[name]` and `[contenthash]`. A `[name]` placeholder emits one HTML file for each statically configured entry.
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    filename: 'pages/index.html',
+  });
+  ```
+
+- **Function:** Calls the function once for each statically configured entry, passing its name as the argument. The return value becomes the corresponding HTML filename.
+
+  ```js
+  export default {
+    entry: {
+      app: './src/app.js',
+      admin: './src/admin.js',
+    },
+    plugins: [
+      new rspack.HtmlRspackPlugin({
+        filename: (entry) => `pages/${entry}.html`,
+      }),
+    ],
+  };
+  ```
+
+The `[name]` and function forms do not support a function-valued Rspack [`entry`](/config/entry). They only control HTML filenames; every generated file still receives the same entry assets selected by [`chunks`](#chunks) and [`excludeChunks`](#excludechunks). Register separate plugin instances when each page needs a different asset set.
+
+### template
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+Sets the template file. Relative paths are resolved from the Rspack [`context`](/config/context). [`templateContent`](#templatecontent) takes precedence when both options are set.
+
+When omitted, the plugin looks for `src/index.ejs` in `context` and falls back to its built-in HTML document if the file does not exist.
+
+- **HTML file:** Reads the file as text, renders it with the built-in [template syntax](#template-syntax), and injects the generated tags.
+
+  ```html title="index.html"
+  <!doctype html>
+  <html>
+    <head>
+      <title><%= htmlRspackPlugin.options.title %></title>
+    </head>
+    <body></body>
+  </html>
+  ```
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    title: 'My application',
+    template: './index.html',
+  });
+  ```
+
+- **JavaScript module:** A path ending in `.js` or `.cjs` is loaded as a CommonJS module. Its exported function receives the template parameters and returns the HTML string, either directly or through a promise.
+
+  ```js title="template.cjs"
+  module.exports = ({ htmlRspackPlugin }) => `
+    <!doctype html>
+    <html>
+      <head><title>${htmlRspackPlugin.options.title}</title></head>
+      <body></body>
+    </html>
+  `;
+  ```
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    title: 'My application',
+    template: './template.cjs',
+  });
+  ```
+
+### templateContent
+
+- **Type:**
+
+  ```ts
+  type TemplateRenderFunction = (
+    params: Record<string, any>,
+  ) => string | Promise<string>;
+
+  type TemplateContent = string | TemplateRenderFunction;
+  ```
+
+- **Default:** `undefined`
+
+Provides the template directly without reading a file. When set, it takes precedence over [`template`](#template) and the default template lookup.
+
+- **String:** Renders the string with the built-in [template syntax](#template-syntax), then injects the generated tags.
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    templateContent: `
+      <!doctype html>
+      <html>
+        <head><title>My application</title></head>
+        <body></body>
+      </html>
+    `,
+  });
+  ```
+
+- **Function:** Calls the function with the final template parameters. The returned string becomes the HTML template result and is not processed as EJS. The function can be asynchronous.
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    title: 'My application',
+    templateContent: ({ htmlRspackPlugin }) => `
+      <!doctype html>
+      <html>
+        <head><title>${htmlRspackPlugin.options.title}</title></head>
+        <body></body>
+      </html>
+    `,
+  });
+  ```
+
+When omitted, the plugin first uses [`template`](#template) if it is set. Otherwise, it looks for `src/index.ejs` and then falls back to the built-in document.
+
+### templateParameters
+
+- **Type:**
+
+  ```ts
+  type TemplateParamFunction = (
+    params: Record<string, any>,
+  ) => Record<string, any> | Promise<Record<string, any>>;
+
+  type TemplateParameters =
+    Record<string, string> | boolean | TemplateParamFunction;
+  ```
+
+- **Default:** `undefined`
+
+Controls the parameters passed to an HTML template or template function. The built-in values are described in [Template parameters](#template-parameters).
+
+- **Object:** Merges the object's string properties into the built-in parameters. Properties with the same name replace the built-in value.
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    templateContent: '<main><%= environment %></main>',
+    templateParameters: {
+      environment: 'production',
+    },
+  });
+  ```
+
+- **Boolean:** `true` preserves the built-in parameters and is equivalent to omitting the option. `false` passes an empty object to the template.
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    templateContent: () => '<main>Static page</main>',
+    templateParameters: false,
+  });
+  ```
+
+- **Function:** Calls the function with the serializable built-in parameters and uses its returned object as the complete final parameter object. Return the original properties when the template still needs them. The function can be asynchronous.
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    templateContent: ({ buildName }) => `<main>${buildName}</main>`,
+    templateParameters: (params) => ({
+      ...params,
+      buildName: 'documentation',
+    }),
+  });
+  ```
+
+The `compilation` parameter is available only to a JavaScript template function when `templateParameters` is omitted, `true`, or an object. It is not passed to string templates, a `templateParameters` function, or a template function when `templateParameters` is `false`.
+
+### inject
+
+- **Type:** `boolean | 'head' | 'body'`
+- **Default:** `true`
+
+Controls automatic insertion of the tags generated by the plugin. When injection is enabled, stylesheets, the title, `<base>`, `<meta>`, and favicon tags are inserted into `<head>`. The `'head'` and `'body'` values change only the placement of `<script>` tags.
+
+- **`true`:** Inserts scripts into `<body>` when [`scriptLoading`](#scriptloading) is `'blocking'`; otherwise, inserts them into `<head>`. This is also the behavior when `inject` is omitted.
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    inject: true,
+  });
+  ```
+
+- **`'head'` or `'body'`:** Inserts scripts into the selected element, regardless of `scriptLoading`. Stylesheet and metadata tags remain in `<head>`.
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    inject: 'body',
+  });
+  ```
+
+- **`false`:** Disables automatic insertion of all generated tags, including scripts, stylesheets, title, `<base>`, `<meta>`, and favicon tags. Tags already present in the template are not removed.
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    inject: false,
+  });
+  ```
+
+With `false`, the generated tags remain available through `htmlRspackPlugin.tags`. A template rendered by the built-in engine can insert them with `toHtml()`; a JavaScript template function can interpolate them directly. A configured favicon is still emitted as an asset.
+
+### publicPath
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+Sets the URL prefix for JavaScript, CSS, and favicon URLs in the generated HTML. The plugin adds a trailing slash when needed. This option takes precedence over [`output.publicPath`](/config/output#outputpublicpath).
+
+When omitted, the plugin uses `output.publicPath`. An `auto` output public path is resolved relative to each HTML filename, so an HTML file in a subdirectory can reference assets with paths such as `../main.js`.
+
+```js
+new rspack.HtmlRspackPlugin({
+  publicPath: '/assets/',
+});
+```
+
+### base
+
+- **Type:**
+
+  ```ts
+  type HtmlBase =
+    | string
+    | {
+        href?: string;
+        target?: '_self' | '_blank' | '_parent' | '_top';
+      };
+  ```
+
+- **Default:** `undefined`
+
+Creates a [`<base>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base) tag in `<head>`. When omitted, no base tag is generated. [`inject: false`](#inject) prevents the tag from being inserted automatically.
+
+- **String:** Uses the string as the `href` attribute.
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    base: 'https://example.com/app/',
+  });
+  ```
+
+  Generated HTML fragment:
+
+  ```html
+  <base href="https://example.com/app/" />
+  ```
+
+- **Object:** Sets the optional `href` and `target` attributes. An object with neither attribute produces no tag.
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    base: {
+      href: 'https://example.com/app/',
+      target: '_blank',
+    },
+  });
+  ```
+
+  Generated HTML fragment:
+
+  ```html
+  <base href="https://example.com/app/" target="_blank" />
+  ```
+
+### scriptLoading
+
+- **Type:** `'blocking' | 'defer' | 'module' | 'systemjs-module'`
+- **Default:** `'module'` when `output.module` is enabled, otherwise `'defer'`
+
+Sets the attributes on generated `<script>` tags and determines their default injection position. An explicit [`inject: 'head'`](#inject) or `inject: 'body'` overrides that position. This option does not change the format of the emitted JavaScript.
+
+- **`'blocking'`:** Adds no loading attribute. With the default `inject`, scripts are inserted into `<body>`.
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    scriptLoading: 'blocking',
+  });
+  ```
+
+  Generated HTML fragment:
+
+  ```html
+  <script src="main.js"></script>
+  ```
+
+- **`'defer'`:** Adds the boolean `defer` attribute. With the default `inject`, scripts are inserted into `<head>`.
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    scriptLoading: 'defer',
+  });
+  ```
+
+  Generated HTML fragment:
+
+  ```html
+  <script defer src="main.js"></script>
+  ```
+
+- **`'module'`:** Adds `type="module"`. Module scripts are deferred by browsers, and the default `inject` inserts them into `<head>`.
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    scriptLoading: 'module',
+  });
+  ```
+
+  Generated HTML fragment:
+
+  ```html
+  <script src="main.js" type="module"></script>
+  ```
+
+- **`'systemjs-module'`:** Adds `type="systemjs-module"`. The default `inject` inserts these scripts into `<head>`.
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    scriptLoading: 'systemjs-module',
+  });
+  ```
+
+  Generated HTML fragment:
+
+  ```html
+  <script src="main.js" type="systemjs-module"></script>
+  ```
+
+### chunks
+
+- **Type:** `string[]`
+- **Default:** `undefined`
+
+Selects entry points whose JavaScript and CSS files are included in the HTML. Each value is compared with an entry point name using exact string equality; it does not match an arbitrary chunk ID, asset filename, or module path. Unknown names are ignored.
+
+When omitted, every entry point is selected before [`excludeChunks`](#excludechunks) is applied. Selecting an entry point also includes the runtime and shared files required by that entry.
+
+With the default [`chunksSortMode: 'auto'`](#chunkssortmode), `chunks` first limits the entry points and `excludeChunks` then removes matches. With `'manual'`, a provided `chunks` array instead becomes the final ordered entry list. If `chunks` is omitted, `excludeChunks` still filters the compilation's entry point order.
+
+```js
+export default {
+  entry: {
+    app: './src/app.js',
+    admin: './src/admin.js',
+  },
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      chunks: ['app'],
+    }),
+  ],
+};
+```
+
+### excludeChunks
+
+- **Type:** `string[]`
+- **Default:** `undefined`
+
+Excludes entry points from the generated HTML. Each value is compared with an entry point name using exact string equality; it does not match asset filenames, module paths, or non-entry chunks. Unknown names have no effect.
+
+In the default [`chunksSortMode: 'auto'`](#chunkssortmode), exclusions are applied after [`chunks`](#chunks), so an entry present in both arrays is excluded. With `'manual'`, a provided `chunks` array is the final ordered list and `excludeChunks` is not applied; when `chunks` is omitted, exclusions still apply to the compilation's entry point order. If `excludeChunks` is omitted, no selected entry point is excluded.
+
+```js
+export default {
+  entry: {
+    app: './src/app.js',
+    admin: './src/admin.js',
+  },
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      excludeChunks: ['admin'],
+    }),
+  ],
+};
+```
+
+### chunksSortMode
+
+- **Type:** `'auto' | 'manual'`
+- **Default:** `'auto'`
+
+Controls the order in which selected entry points contribute their files to the generated tags.
+
+- **`'auto'`:** Uses the compilation's entry point order after applying `chunks` and `excludeChunks`.
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    chunksSortMode: 'auto',
+  });
+  ```
+
+- **`'manual'`:** Uses the order of [`chunks`](#chunks), ignoring unknown entry names. When `chunks` is omitted, it uses the compilation's entry point order after applying [`excludeChunks`](#excludechunks). When `chunks` is present, `excludeChunks` is not applied.
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    chunks: ['admin', 'app'],
+    chunksSortMode: 'manual',
+  });
+  ```
+
+### minify
+
+- **Type:** `boolean`
+- **Default:** `true` in production mode, otherwise `false`
+
+Controls whether the generated HTML is minified after template rendering and tag injection. An explicit value overrides the mode-dependent default.
+
+```js
+new rspack.HtmlRspackPlugin({
+  minify: false,
+});
+```
+
+### favicon
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+Sets the path of a favicon file. Relative paths are resolved from the Rspack [`context`](/config/context). The plugin emits the file at the output root using its basename and generates a `<link rel="icon">` tag whose URL follows [`publicPath`](#publicpath).
+
+When omitted, no favicon asset or tag is generated. With [`inject: false`](#inject), the asset is still emitted and exposed as `htmlRspackPlugin.files.favicon`, but the `<link>` tag is not inserted automatically.
+
+```js
+new rspack.HtmlRspackPlugin({
+  favicon: './src/favicon.ico',
+});
+```
+
+Generated HTML fragment:
+
+```html
+<link href="favicon.ico" rel="icon" />
+```
+
+### meta
+
+- **Type:**
+
+  ```ts
+  type HtmlMeta = Record<string, string | Record<string, string>>;
+  ```
+
+- **Default:** `{}`
+
+Creates additional `<meta>` tags in `<head>`. Each top-level key becomes the default `name` attribute. The built-in template's `<meta charset="utf-8">` is independent of this option. When the object is empty or the option is omitted, no additional meta tags are generated. [`inject: false`](#inject) prevents them from being inserted automatically.
+
+- **String value:** Uses the top-level key as `name` and the string as `content`.
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    meta: {
+      viewport: 'width=device-width,initial-scale=1',
+    },
+  });
+  ```
+
+  Generated HTML fragment:
+
+  ```html
+  <meta content="width=device-width,initial-scale=1" name="viewport" />
+  ```
+
+- **Object value:** Adds every property as an attribute. A `name` property overrides the name derived from the top-level key.
+
+  ```js
+  new rspack.HtmlRspackPlugin({
+    meta: {
+      viewport: {
+        name: 'viewport',
+        content: 'width=device-width,initial-scale=1',
+        'data-origin': 'rspack',
+      },
+    },
+  });
+  ```
+
+  Generated HTML fragment:
+
+  ```html
+  <meta
+    content="width=device-width,initial-scale=1"
+    data-origin="rspack"
+    name="viewport"
+  />
+  ```
+
+### hash
+
+- **Type:** `boolean`
+- **Default:** `undefined`
+
+If `true`, appends the Rspack compilation hash as a query string to generated JavaScript, CSS, and favicon URLs. This changes references in the HTML, not the emitted asset filenames. When omitted or `false`, the plugin leaves those URLs unchanged.
+
+```js
+new rspack.HtmlRspackPlugin({
+  hash: true,
+});
+```
+
+## Template syntax
+
+The built-in template engine supports EJS-style interpolation and basic control flow, but it does not execute arbitrary JavaScript. The following examples show the commonly used forms.
+
+#### Escaped output `<%-`
+
+Escapes the content within the interpolation:
+
+```html title="ejs"
+<p>Hello, <%- name %>.</p>
+<p>Hello, <%- 'the Most Honorable ' + name %>.</p>
+```
+
+```json title="locals"
+{
+  "name": "Rspack<y>"
+}
+```
+
+```html title="html"
+<p>Hello, Rspack&lt;y&gt;.</p>
+<p>Hello, the Most Honorable Rspack&lt;y&gt;.</p>
+```
+
+#### Unescaped output `<%=`
+
+Does not escape the content within the interpolation:
+
+```html title="ejs"
+<p>Hello, <%- myHtml %>.</p>
+<p>Hello, <%= myHtml %>.</p>
+
+<p>Hello, <%- myMaliciousHtml %>.</p>
+<p>Hello, <%= myMaliciousHtml %>.</p>
+```
+
+```json title="locals"
+{
+  "myHtml": "<strong>Rspack</strong>",
+  "myMaliciousHtml": "</p><script>document.write()</script><p>"
+}
+```
+
+```html title="html"
+<p>Hello, &lt;strong&gt;Rspack&lt;/strong&gt;.</p>
+<p>Hello, <strong>Rspack</strong>.</p>
+
+<p>Hello, &lt;/p&gt;&lt;script&gt;document.write()&lt;/script&gt;&lt;p&gt;.</p>
+<p>Hello,</p>
+<script>
+  document.write();
+</script>
+<p>.</p>
+```
+
+#### Control statements
+
+The following example combines `for in` iteration with an `if` condition:
+
+```txt title="ejs"
+<% for tag in htmlRspackPlugin.tags.headTags { %>
+  <% if tag.tagName=="script" { %>
+    <%= toHtml(tag) %>
+  <% } %>
+<% } %>
+```
+
+## Hooks
+
+HtmlRspackPlugin exposes hooks for modifying generated tags and HTML. Call `rspack.HtmlRspackPlugin.getCompilationHooks` to access them:
+
+Hook data exposes the original constructor options as `data.plugin.options`. Additional custom fields are preserved there for hook consumers but do not affect HTML generation by themselves.
+
+```js title="rspack.config.mjs"
+const HtmlModifyPlugin = {
+  apply(compiler) {
+    compiler.hooks.compilation.tap('HtmlModifyPlugin', (compilation) => {
+      const hooks = rspack.HtmlRspackPlugin.getCompilationHooks(compilation);
+      // hooks.beforeAssetTagGeneration.tapPromise()
+      // hooks.alterAssetTags.tapPromise()
+      // hooks.alterAssetTagGroups.tapPromise()
+      // hooks.afterTemplateExecution.tapPromise()
+      // hooks.beforeEmit.tapPromise()
+      // hooks.afterEmit.tapPromise()
+    });
+  },
+};
+
+export default {
+  plugins: [new rspack.HtmlRspackPlugin(), HtmlModifyPlugin],
+};
+```
+
+### beforeAssetTagGeneration
+
+This hook runs after the plugin collects asset URLs from the compilation and before it creates tags.
+
+Modify `assets.js`, `assets.css`, or `assets.favicon` to add or replace URLs used to create tags. Values added by the hook are used as-is: the hook does not prepend `publicPath` or emit the referenced files.
+
+- **Type:** `AsyncSeriesWaterfallHook<[BeforeAssetTagGenerationData]>`
+- **Parameters:**
+  ```ts
+  type BeforeAssetTagGenerationData = {
+    assets: {
+      publicPath: string;
+      js: Array<string>;
+      css: Array<string>;
+      favicon?: string;
+      jsIntegrity?: Array<string | undefined | null>;
+      cssIntegrity?: Array<string | undefined | null>;
+    };
+    outputName: string;
+    plugin: {
+      options: HtmlRspackPluginOptions;
+    };
+  };
+  ```
+
+:::warning
+Only changes to `assets.js`, `assets.css`, and `assets.favicon` affect the tags generated automatically by the plugin. Other fields do not affect automatic tag generation, but templates can still read them through `htmlRspackPlugin.files`.
+:::
+
+The following code adds the URL `extra-script.js`, which produces a `<script defer src="extra-script.js"></script>` tag in the final HTML.
+
+```js title="rspack.config.mjs"
+const AddScriptPlugin = {
+  apply(compiler) {
+    compiler.hooks.compilation.tap('AddScriptPlugin', (compilation) => {
+      const hooks = rspack.HtmlRspackPlugin.getCompilationHooks(compilation);
+      hooks.beforeAssetTagGeneration.tapPromise(
+        'AddScriptPlugin',
+        async (data) => {
+          data.assets.js.push('extra-script.js');
+        },
+      );
+    });
+  },
+};
+
+export default {
+  plugins: [new rspack.HtmlRspackPlugin(), AddScriptPlugin],
+};
+```
+
+### alterAssetTags
+
+This hook runs after asset tags are created and before they are assigned to `<head>` or `<body>`.
+
+Modify `assetTags` to add, remove, or update tags.
+
+- **Type:** `AsyncSeriesWaterfallHook<[AlterAssetTagsData]>`
+- **Parameters:**
+
+  ```ts
+  type HtmlTag = {
+    tagName: string;
+    attributes: Record<string, string | boolean | undefined | null>;
+    voidTag: boolean;
+    innerHTML?: string;
+    asset?: string;
+  };
+
+  type AlterAssetTagsData = {
+    assetTags: {
+      scripts: Array<HtmlTag>;
+      styles: Array<HtmlTag>;
+      meta: Array<HtmlTag>;
+    };
+    publicPath: string;
+    outputName: string;
+    plugin: {
+      options: HtmlRspackPluginOptions;
+    };
+  };
+  ```
+
+:::warning
+Only changes to `assetTags` affect the generated HTML. Changes to other fields are ignored by this plugin.
+:::
+
+Attribute names are normalized to lowercase. Attribute values are handled as follows:
+
+- **`true`:** Adds a valueless attribute, for example `<script defer specialattribute src="main.js"></script>`.
+- **String:** Adds an attribute with that value, for example `<script defer specialattribute="some value" src="main.js"></script>`.
+- **`false`, `undefined`, or `null`:** Removes the attribute.
+
+The following code adds the `specialAttribute` attribute to every `<script>` tag:
+
+```js title="rspack.config.mjs"
+const AddAttributePlugin = {
+  apply(compiler) {
+    compiler.hooks.compilation.tap('AddAttributePlugin', (compilation) => {
+      const hooks = rspack.HtmlRspackPlugin.getCompilationHooks(compilation);
+      hooks.alterAssetTags.tapPromise('AddAttributePlugin', async (data) => {
+        data.assetTags.scripts = data.assetTags.scripts.map((tag) => {
+          if (tag.tagName === 'script') {
+            tag.attributes.specialAttribute = true;
+          }
+          return tag;
+        });
+      });
+    });
+  },
+};
+
+export default {
+  plugins: [new rspack.HtmlRspackPlugin(), AddAttributePlugin],
+};
+```
+
+### alterAssetTagGroups
+
+This hook runs after tags are grouped for `<head>` and `<body>`, but before the template is rendered.
+
+Modify `headTags` and `bodyTags` to move or update the grouped tags.
+
+- **Type:** `AsyncSeriesWaterfallHook<[AlterAssetTagGroupsData]>`
+- **Parameters:**
+  ```ts
+  type AlterAssetTagGroupsData = {
+    headTags: Array<HtmlTag>;
+    bodyTags: Array<HtmlTag>;
+    publicPath: string;
+    outputName: string;
+    plugin: {
+      options: HtmlRspackPluginOptions;
+    };
+  };
+  ```
+
+:::warning
+Only changes to `headTags` and `bodyTags` affect the generated HTML. Changes to other fields are ignored by this plugin.
+:::
+
+The following code moves all `<script>` tags from `<body>` to `<head>`:
+
+```js title="rspack.config.mjs"
+const MoveTagsPlugin = {
+  apply(compiler) {
+    compiler.hooks.compilation.tap('MoveTagsPlugin', (compilation) => {
+      const hooks = rspack.HtmlRspackPlugin.getCompilationHooks(compilation);
+      hooks.alterAssetTagGroups.tapPromise('MoveTagsPlugin', async (data) => {
+        const scripts = data.bodyTags.filter((tag) => tag.tagName === 'script');
+        data.headTags.push(...scripts);
+        data.bodyTags = data.bodyTags.filter((tag) => tag.tagName !== 'script');
+      });
+    });
+  },
+};
+
+export default {
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      inject: 'body',
+    }),
+    MoveTagsPlugin,
+  ],
+};
+```
+
+### afterTemplateExecution
+
+This hook runs after template rendering and before automatic tag injection.
+
+Modify `html`, `headTags`, or `bodyTags` to change the rendered template or the tags that will be injected.
+
+With a function-valued `templateContent` or a `.js`/`.cjs` `template`, `html` is the string returned by the template function. With a string or markup file template, it is the result produced by the built-in template engine.
+
+- **Type:** `AsyncSeriesWaterfallHook<[AfterTemplateExecutionData]>`
+- **Parameters:**
+  ```ts
+  type AfterTemplateExecutionData = {
+    html: string;
+    headTags: Array<HtmlTag>;
+    bodyTags: Array<HtmlTag>;
+    outputName: string;
+    plugin: {
+      options: HtmlRspackPluginOptions;
+    };
+  };
+  ```
+
+:::warning
+Only changes to `html`, `headTags`, and `bodyTags` affect the generated HTML. Changes to other fields are ignored by this plugin.
+:::
+
+The following code adds `Injected by plugin` at the end of `<body>`. The tags are then injected after that text, producing `Injected by plugin<script defer src="main.js"></script></body>`:
+
+```js title="rspack.config.mjs"
+const InjectContentPlugin = {
+  apply(compiler) {
+    compiler.hooks.compilation.tap('InjectContentPlugin', (compilation) => {
+      const hooks = rspack.HtmlRspackPlugin.getCompilationHooks(compilation);
+      hooks.afterTemplateExecution.tapPromise(
+        'InjectContentPlugin',
+        async (data) => {
+          data.html = data.html.replace('</body>', 'Injected by plugin</body>');
+        },
+      );
+    });
+  },
+};
+
+export default {
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      inject: 'body',
+    }),
+    InjectContentPlugin,
+  ],
+};
+```
+
+### beforeEmit
+
+This hook runs immediately before the HTML asset is emitted and is the final chance to modify its content.
+
+- **Type:** `AsyncSeriesWaterfallHook<[BeforeEmitData]>`
+- **Parameters:**
+  ```ts
+  type BeforeEmitData = {
+    html: string;
+    outputName: string;
+    plugin: {
+      options: HtmlRspackPluginOptions;
+    };
+  };
+  ```
+
+:::warning
+Only changes to `html` affect the emitted asset. Changes to other fields are ignored by this plugin.
+:::
+
+The following code adds `Injected by plugin` at the end of `<body>`. The final sequence is `<script defer src="main.js"></script>Injected by plugin</body>`:
+
+```js title="rspack.config.mjs"
+const InjectContentPlugin = {
+  apply(compiler) {
+    compiler.hooks.compilation.tap('InjectContentPlugin', (compilation) => {
+      const hooks = rspack.HtmlRspackPlugin.getCompilationHooks(compilation);
+      hooks.beforeEmit.tapPromise('InjectContentPlugin', async (data) => {
+        data.html = data.html.replace('</body>', 'Injected by plugin</body>');
+      });
+    });
+  },
+};
+
+export default {
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      inject: 'body',
+    }),
+    InjectContentPlugin,
+  ],
+};
+```
+
+### afterEmit
+
+This hook runs after the HTML asset is emitted and is intended for notification only.
+
+- **Type:** `AsyncSeriesWaterfallHook<[AfterEmitData]>`
+- **Parameters:**
+  ```ts
+  type AfterEmitData = {
+    outputName: string;
+    plugin: {
+      options: HtmlRspackPluginOptions;
+    };
+  };
+  ```

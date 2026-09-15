@@ -1,5 +1,8 @@
 import type { RspackOptions } from '@rspack/core';
-import { BasicCaseCreator } from '../test/creator';
+import {
+  BasicCaseCreator,
+  type IBasicCaseCreatorOptions,
+} from '../test/creator';
 import type { ITestContext, ITestEnv } from '../type';
 import {
   afterExecute,
@@ -11,7 +14,12 @@ import {
   findMultiCompilerBundle,
   run,
 } from './common';
+import { applyRuntimeModeTestDefines } from './runtime-mode';
 import { createMultiCompilerRunner, getMultiCompilerRunnerKey } from './runner';
+
+type TEsmOutputCaseOptions = Partial<IBasicCaseCreatorOptions> & {
+  rspackOptions?: RspackOptions;
+};
 
 const creator = new BasicCaseCreator({
   clean: true,
@@ -27,15 +35,21 @@ const creator = new BasicCaseCreator({
       return res;
     };
   },
-  steps: ({ name }) => [
+  steps: ({ name, rspackOptions }) => [
     {
-      config: async (context: ITestContext) => {
+      config: (context: ITestContext) => {
         configMultiCompiler(
           context,
           name,
           ['rspack.config.cjs', 'rspack.config.js', 'webpack.config.js'],
           defaultOptions,
-          () => {},
+          (_index, _context, options) => {
+            mergeRspackOptions(
+              options,
+              rspackOptions as RspackOptions | undefined,
+            );
+            applyRuntimeModeTestDefines(options);
+          },
         );
       },
       compiler: async (context: ITestContext) => {
@@ -82,6 +96,19 @@ const creator = new BasicCaseCreator({
   concurrent: 1,
 });
 
+function mergeRspackOptions(options: RspackOptions, override?: RspackOptions) {
+  if (!override) return;
+
+  const { experiments, ...rest } = override;
+  Object.assign(options, rest);
+  if (experiments) {
+    options.experiments = {
+      ...options.experiments,
+      ...experiments,
+    };
+  }
+}
+
 const defaultOptions = (
   _index: number,
   context: ITestContext,
@@ -121,11 +148,18 @@ const defaultOptions = (
     runtimeChunk: 'single',
   },
   externals: {
-    fs: 'module-import fs',
-    path: 'module-import path',
+    fs: 'fs',
+    path: 'path',
   },
 });
 
-export function createEsmOutputCase(name: string, src: string, dist: string) {
-  creator.create(name, src, dist);
+export function createEsmOutputCase(
+  name: string,
+  src: string,
+  dist: string,
+  rspackOptions?: RspackOptions,
+) {
+  creator.create(name, src, dist, undefined, {
+    rspackOptions,
+  } satisfies TEsmOutputCaseOptions);
 }

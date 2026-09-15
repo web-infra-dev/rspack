@@ -1,4 +1,4 @@
-const System = require("@rspack/test-tools/helper/legacy/fakeSystem");
+const { System } = require("@rspack/test-tools/helper/legacy/fakeSystem");
 
 /** @type {import("../../../..").TConfigCaseConfig} */
 module.exports = {

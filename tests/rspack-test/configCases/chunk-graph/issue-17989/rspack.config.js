@@ -10,6 +10,8 @@ module.exports = {
     usedExports: true,
     concatenateModules: false,
     moduleIds: 'named',
+    // avoid inlineExports to change to chunk graph structure
+    inlineExports: false,
   },
   output: {
     filename: '[name].js',

@@ -1,0 +1,5 @@
+function privateHelper() {
+  unreachable();
+}
+
+privateHelper();

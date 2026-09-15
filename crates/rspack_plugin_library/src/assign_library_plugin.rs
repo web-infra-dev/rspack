@@ -1,26 +1,24 @@
-use std::{hash::Hash, sync::LazyLock};
+use std::sync::LazyLock;
 
 use futures::future::join_all;
 use regex::Regex;
 use rspack_core::{
-  AsyncModulesArtifact, BoxModule, CanInlineUse, Chunk, ChunkUkey,
-  CodeGenerationDataTopLevelDeclarations, Compilation,
-  CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
-  CompilerCompilation, EntryData, ExportProvided, ExportsInfoArtifact, Filename, LibraryExport,
-  LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin,
-  PrefetchExportsInfoMode, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeVariable,
+  AsyncModulesArtifact, CanInlineUse, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations,
+  Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules,
+  CompilationParams, CompilerCompilation, EntryData, ExportProvided, ExportsInfoArtifact, Filename,
+  LibraryExport, LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, ModuleRef,
+  PathData, Plugin, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeVariable,
   SideEffectsStateArtifact, SourceType, UsageState, get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error, error_bail};
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesEmbedInRuntimeBailout, JavascriptModulesRender,
   JavascriptModulesRenderStartup, JavascriptModulesStrictRuntimeBailout, JsPlugin, RenderSource,
 };
-use swc_core::atoms::Atom;
 
 use crate::utils::{COMMON_LIBRARY_NAME_MESSAGE, get_options_for_chunk};
 
@@ -156,6 +154,7 @@ impl AssignLibraryPlugin {
           .get_path(
             &Filename::from(v),
             PathData::default()
+              .chunk(chunk.ukey(), compilation)
               .chunk_id_optional(chunk.id().map(|id| id.as_str()))
               .chunk_hash_optional(chunk.rendered_hash(
                 &compilation.chunk_hashes_artifact,
@@ -213,7 +212,7 @@ async fn render(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
-  _runtime_template: &RuntimeCodeTemplate<'_>,
+  _runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
@@ -248,7 +247,7 @@ async fn render_startup(
   chunk_ukey: &ChunkUkey,
   module: &ModuleIdentifier,
   render_source: &mut RenderSource,
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
@@ -271,10 +270,10 @@ async fn render_startup(
     let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
     let exports_info = compilation
       .exports_info_artifact
-      .get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
+      .get_exports_info_data(module);
     let mut provided = vec![];
     let exports_name = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
-    for (_, export_info) in exports_info.exports() {
+    for export_info in exports_info.exports().values() {
       if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
       }
@@ -301,7 +300,7 @@ async fn render_startup(
     if has_provided {
       source.add(RawStringSource::from(format!(
         "  if({}.indexOf(__rspack_i) === -1) {{\n",
-        serde_json::to_string(&provided).to_rspack_result()?
+        simd_json::to_string(&provided).to_rspack_result()?
       )));
     }
     source.add(RawStringSource::from(format!(
@@ -356,7 +355,7 @@ async fn js_chunk_hash(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  hasher: &mut RspackHash,
+  hasher: &mut RspackHasher,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
@@ -386,7 +385,7 @@ async fn js_chunk_hash(
 async fn embed_in_runtime_bailout(
   &self,
   compilation: &Compilation,
-  module: &BoxModule,
+  module: &ModuleRef,
   chunk: &Chunk,
 ) -> Result<Option<String>> {
   let Some(options) = self.get_options_for_chunk(compilation, &chunk.ukey())? else {
@@ -395,17 +394,18 @@ async fn embed_in_runtime_bailout(
   let codegen = compilation
     .code_generation_results
     .get(&module.identifier(), Some(chunk.runtime()));
+  let build_info = module.build_info();
   let top_level_decls = codegen
-    .data
+    .data()
     .get::<CodeGenerationDataTopLevelDeclarations>()
     .map(|d| d.inner())
-    .or_else(|| module.build_info().top_level_declarations.as_ref());
+    .or_else(|| build_info.top_level_declarations.as_ref());
   if let Some(top_level_decls) = top_level_decls {
     let full_name = self
       .get_resolved_full_name(&options, compilation, chunk)
       .await?;
     if let Some(base) = full_name.first()
-      && top_level_decls.contains(&Atom::new(base.as_str()))
+      && top_level_decls.contains(base)
     {
       return Ok(Some(format!(
         "it declares '{base}' on top-level, which conflicts with the current library output."

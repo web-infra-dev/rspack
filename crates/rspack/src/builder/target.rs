@@ -29,6 +29,7 @@ pub struct TargetProperties {
   pub global_this: Option<bool>,
   pub big_int_literal: Option<bool>,
   pub r#const: Option<bool>,
+  pub computed_property: Option<bool>,
   pub method_shorthand: Option<bool>,
   pub arrow_function: Option<bool>,
   pub for_of: Option<bool>,
@@ -103,6 +104,9 @@ impl TargetProperties {
   }
   pub fn r#const(&self) -> bool {
     self.r#const.unwrap_or(false)
+  }
+  pub fn computed_property(&self) -> bool {
+    self.computed_property.unwrap_or(false)
   }
   pub fn arrow_function(&self) -> bool {
     self.arrow_function.unwrap_or(false)
@@ -224,6 +228,7 @@ fn merge_target_properties(target_properties: &[TargetProperties]) -> TargetProp
   merge_field!(global_this);
   merge_field!(big_int_literal);
   merge_field!(r#const);
+  merge_field!(computed_property);
   merge_field!(arrow_function);
   merge_field!(for_of);
   merge_field!(destructuring);
@@ -273,6 +278,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       import_scripts_in_worker: Some(false),
       global_this: Some(version_dependent(12, None, major, minor)),
       r#const: Some(version_dependent(6, None, major, minor)),
+      computed_property: Some(version_dependent(4, None, major, minor)),
       method_shorthand: Some(version_dependent(4, None, major, minor)),
       template_literal: Some(version_dependent(4, None, major, minor)),
       optional_chaining: Some(version_dependent(14, None, major, minor)),
@@ -377,6 +383,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       import_scripts_in_worker: Some(true),
       global_this: Some(version_dependent(5, None, major, minor)),
       r#const: Some(version_dependent(1, Some(1), major, minor)),
+      computed_property: Some(version_dependent(1, Some(1), major, minor)),
       method_shorthand: Some(version_dependent(1, Some(1), major, minor)),
       template_literal: Some(version_dependent(1, Some(1), major, minor)),
       optional_chaining: Some(version_dependent(8, None, major, minor)),
@@ -421,6 +428,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       require: Some(false),
       global_this: Some(version_dependent(0, Some(43), major, minor)),
       r#const: Some(version_dependent(0, Some(15), major, minor)),
+      computed_property: Some(version_dependent(0, Some(15), major, minor)),
       method_shorthand: Some(version_dependent(0, Some(15), major, minor)),
       template_literal: Some(version_dependent(0, Some(13), major, minor)),
       optional_chaining: Some(version_dependent(0, Some(44), major, minor)),
@@ -450,6 +458,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
 
     return TargetProperties {
       r#const: Some(version >= 2015),
+      computed_property: Some(version >= 2015),
       template_literal: Some(version >= 2015),
       optional_chaining: Some(version >= 2020),
       method_shorthand: Some(version >= 2015),

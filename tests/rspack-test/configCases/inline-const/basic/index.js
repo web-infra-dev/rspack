@@ -8,7 +8,9 @@ import * as reexportedDestructingBarrelSideEffects from "./re-export.destructing
 import * as constantsCjs from "./constants.cjs";
 import * as constantsNoInline from "./constants.no-inline.js";
 
-const generated = /** @type {string} */ (__non_webpack_require__("fs").readFileSync(__filename, "utf-8"));
+const fs = require("fs");
+const path = require("path");
+const generated = /** @type {string} */ (fs.readFileSync(__filename, "utf-8"));
 
 it("should inline constants", () => {
   // START:A

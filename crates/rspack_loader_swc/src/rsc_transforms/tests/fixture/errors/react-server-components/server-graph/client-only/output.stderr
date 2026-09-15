@@ -1,0 +1,8 @@
+  x You're importing a module that depends on "client-only". This package only works in a Client Component. To fix, mark the file (or its parent) with the `"use client"` directive.
+  | 
+  | 
+   ,-[input.js:9:1]
+ 8 | 
+ 9 | import 'client-only'
+   : ^^^^^^^^^^^^^^^^^^^^
+   `----

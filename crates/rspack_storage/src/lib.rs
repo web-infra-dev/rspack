@@ -10,7 +10,7 @@ mod memory;
 
 pub use self::{
   error::{Error, Result},
-  filesystem::{FileSystemOptions, FileSystemStorage},
+  filesystem::{CacheDirectory, FileSystemOptions, FileSystemStorage},
   memory::MemoryStorage,
 };
 
@@ -30,20 +30,32 @@ pub trait Storage: std::fmt::Debug + Sync + Send {
 
   /// Enqueues a persistence operation, writing all staged memory changes to storage.
   ///
-  /// The write is performed asynchronously in the background. Call [`Storage::flush`]
-  /// to wait until all enqueued writes have completed.
+  /// The write and any follow-up storage maintenance are performed asynchronously
+  /// in the background. Call [`Storage::flush`] to wait until all enqueued work
+  /// has completed.
   fn save(&mut self);
 
-  /// Waits until all previously enqueued [`Storage::save`] operations have completed.
+  /// Waits until all work enqueued by previous [`Storage::save`] calls has completed.
   ///
   /// Must be called before process exit to ensure no background I/O is lost.
   async fn flush(&self);
 
+  /// Starts best-effort cleanup for stale storage internals.
+  ///
+  /// This cleanup is intentionally detached from [`Storage::flush`].
+  fn cleanup_stale(&self) {}
+
   /// Resets the specified scope, clearing all its data.
   ///
   /// The clean is performed asynchronously in the background. Call [`Storage::flush`]
-  /// to wait until all enqueued writes have completed.
+  /// to wait until all enqueued work has completed.
   fn reset(&mut self, scope: &'static str);
+
+  /// Resets all scopes owned by this storage.
+  ///
+  /// The clean is performed asynchronously in the background. Call [`Storage::flush`]
+  /// to wait until all enqueued work has completed.
+  fn reset_all(&mut self);
 
   /// Gets a list of all available scopes in the storage
   async fn scopes(&self) -> Result<Vec<String>>;

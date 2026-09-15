@@ -4,9 +4,7 @@ description: '它是一个规则数组。每条规则都会在模块被解析和
 
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import PropertyType from '@components/PropertyType';
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
+import Attribution from '@components/Attribution';
 
 # Module rules
 
@@ -243,14 +241,12 @@ export default {
 
 ## rules[].issuerLayer
 
-<ApiMeta addedVersion="1.0.0-beta.1" />
-
-- **Type:** `string`
+- **类型：** [`Condition`](#condition)
 - **默认值：** `undefined`
 
 匹配所有符合这个资源的模块，会与"引入当前模块"的模块的 layer 进行匹配。
 
-更多关于 layer 的信息，请参考 [Layer 指南](/guide/features/layer)。
+更多关于 layer 的信息，请参考[模块分层指南](/guide/advanced/layer)。
 
 一个基础示例：
 
@@ -327,6 +323,51 @@ export default {
 };
 ```
 
+## rules[].phase
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.0.8" />
+
+- **类型：** [`Condition`](#condition)
+- **默认值：** `undefined`
+
+根据引入当前模块的依赖所处的 import phase 来匹配模块。
+
+传给 condition 的值可能是：
+
+- `evaluation`：普通的 `import`、`import()`、`require()`，以及其他没有特殊 import phase 的依赖
+- `defer`：启用 [`experiments.deferImport`](/config/experiments#experimentsdeferimport) 后的 `import defer` 和 `import.defer()` 依赖
+- `source`：启用 [`experiments.sourceImport`](/config/experiments#experimentssourceimport) 后的 `import source` 和 `import.source()` 依赖
+
+当同一个资源需要根据导入方式应用不同 Loader、parser 选项或模块类型时，可以使用该条件。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    deferImport: true,
+    sourceImport: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /module\.js$/,
+        phase: 'evaluation',
+        loader: './evaluation-loader.js',
+      },
+      {
+        test: /module\.js$/,
+        phase: 'defer',
+        loader: './defer-loader.js',
+      },
+      {
+        test: /module\.js$/,
+        phase: 'source',
+        loader: './source-loader.js',
+      },
+    ],
+  },
+};
+```
+
 ## rules[].scheme
 
 - **类型：** [`Condition`](#condition)
@@ -376,23 +417,51 @@ export default {
 - **类型：** `{ [key: string]: Condition }`
 - **默认值：** `undefined`
 
-`descriptionData` 选项允许你通过匹配描述文件（通常是 `package.json`）中的属性值，来决定某个 rule 应该应用于哪些模块。这是一个基于 `package.json` 来应用 rule 的实用方法。
+`descriptionData` 用于匹配模块描述文件（通常是 `package.json`）中的属性值，从而决定规则适用于哪些模块。你可以根据包名、版本等信息，为特定包中的模块配置规则。
 
-`descriptionData` 对象中的 key 对应模块的 `package.json` 中的键，例如 `name`、`version` 等。每个 key 与一个用于匹配 `package.json` 数据的 [`Condition`](#condition) 进行关联。
+`descriptionData` 对象的每个键指定要匹配的属性（如 `name`、`version`），对应的值则是用于检查该属性值的 [`Condition`](#condition)。如果指定了多个属性，它们必须同时满足各自的条件，模块才能通过 `descriptionData` 的匹配。
 
-例如，下面的配置会将 rule 应用于 `package.json` 的 `name` 中包含 `'rspack'` 字符串的 JavaScript 资源。
+字符串条件检查属性值是否以给定字符串开头，下面会匹配 `react`、`react-dom` 等包中的模块：
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     rules: [
       {
-        test: /\.js$/,
-        include: /node_modules/,
+        descriptionData: { name: 'react' },
+        // 其他规则选项...
+      },
+    ],
+  },
+};
+```
+
+正则表达式条件检查属性值是否符合给定模式，下面使用 `^` 和 `$` 仅匹配包名为 `react` 的模块：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        descriptionData: { name: /^react$/ },
+        // 其他规则选项...
+      },
+    ],
+  },
+};
+```
+
+函数条件可自定义匹配逻辑，下面匹配包名中包含 `rspack` 的模块：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
         descriptionData: {
-          name: (packageJsonName) => packageJsonName.includes('rspack'),
+          name: (name) => name.includes('rspack'),
         },
-        // 其他 rule options...
+        // 其他规则选项...
       },
     ],
   },
@@ -400,8 +469,6 @@ export default {
 ```
 
 ## rules[].with
-
-<ApiMeta addedVersion="1.0.0-beta.1" />
 
 - **类型：** `{ [key: string]: Condition }`
 - **默认值：** `undefined`
@@ -452,7 +519,6 @@ export default {
             },
           },
         },
-        type: 'javascript/auto',
       },
     ],
   },
@@ -523,7 +589,7 @@ export default {
 };
 ```
 
-对于特定的解析器选项及其对应的模块类型，你可以参考 [`module.parser`](/config/module#moduleparser)。
+对于特定的解析器选项及其对应的模块类型，你可以参考 [`module.parser`](/config/module-parser#parser)。
 
 ## rules[].generator
 
@@ -548,7 +614,7 @@ export default {
 };
 ```
 
-对于特定的生成器选项及其对应的模块类型，你可以参考 [`module.generator`](/config/module#modulegenerator)。
+对于特定的生成器选项及其对应的模块类型，你可以参考 [`module.generator`](/config/module-generator#generator)。
 
 ## rules[].sideEffects
 
@@ -614,13 +680,20 @@ export default {
 
 ## rules[].type
 
-- **类型：**
+- **类型：** `string`
+
+常见的内置值：
 
 ```ts
-type RuleType =
+type BuiltinRuleType =
   | 'asset'
+  | 'asset/source'
+  | 'asset/resource'
+  | 'asset/inline'
+  | 'asset/bytes'
   | 'css'
   | 'css/auto'
+  | 'css/global'
   | 'css/module'
   | 'javascript/auto'
   | 'javascript/dynamic'
@@ -658,20 +731,18 @@ export default {
 - `'javascript/auto'`：JavaScript 模块，Rspack 会根据文件内容自动判断模块类型，兼容性最佳。
 - `'javascript/esm'`：JavaScript 模块，当作严格 ES modules 处理。
 - `'javascript/dynamic'`：JavaScript 模块，当作 Script 处理。
-- `'json'`：JSON data 模块，参考 [JSON](/guide/tech/json)。
-- `'css' | 'css/module' | 'css/auto'`：CSS 模块，参考 [内置 CSS 支持](/guide/tech/css#内置-css-支持)。
+- `'json'`：JSON data 模块，参考 [JSON](/guide/languages/json)。
+- `'css' | 'css/auto' | 'css/global' | 'css/module'`：CSS 模块，参考 [内置 CSS 支持](/guide/languages/css#内置-css-支持)。
 - `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline' | 'asset/bytes'`：资源模块，参考 [资源模块](/guide/features/asset-module)。
 
 ## rules[].layer
-
-<ApiMeta addedVersion="1.0.0-beta.1" />
 
 - **类型：** `string`
 - **默认值：** `undefined`
 
 用于标识匹配的模块的 layer。可以将一组模块聚合到一个 layer 中，该 layer 随后可以在 split chunks, stats 或 [entry options](/config/entry#entrydescriptionlayer) 中使用。
 
-更多关于 layer 的信息，请参考 [Layer 指南](/guide/features/layer)。
+更多关于 layer 的信息，请参考[模块分层指南](/guide/advanced/layer)。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -692,18 +763,18 @@ export default {
 
 ```ts
 type RuleSetUse =
-  | RuleSetUseItem[]
   | RuleSetUseItem
+  | RuleSetUseItem[]
   | ((ctx: RawFuncUseCtx) => RuleSetUseItem[]);
-type RuleSetUseItem =
-  | { loader: string; options: Record<string, any>; parallel?: boolean }
-  | string;
-interface RawFuncUseCtx {
-  resource?: string;
-  realResource?: string;
-  resourceQuery?: string;
-  issuer?: string;
-}
+
+type RuleSetUseItem = string | RuleSetLoaderWithOptions;
+
+type RuleSetLoaderWithOptions = {
+  ident?: string;
+  loader: string;
+  options?: string | Record<string, any>;
+  parallel?: boolean | { maxWorkers?: number };
+};
 ```
 
 用于传递 Loader 包名与其选项的数组。`string[]` 如: `use: ['svgr-loader']` 是 `use: [ { loader: 'svgr-loader' } ]` 的简写。Loader 会按照从右到左的顺序执行。
@@ -746,6 +817,36 @@ export default {
                   cleanupIDs: { prefix: basename(info.resource) },
                 },
               ],
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+## rules[].use.ident
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+为对象形式的 loader options 提供一个稳定名称。Rspack 构造 loader request 时会使用它，因此在生成规则或复用同一组选项时，可以保持稳定的 `??<ident>` 引用。
+
+大多数配置不需要手动设置它。如果省略，Rspack 会优先使用 `options.ident`，否则生成内部标识符。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.svg$/,
+        use: [
+          {
+            loader: 'svgo-loader',
+            ident: 'svgo-inline',
+            options: {
+              multipass: true,
             },
           },
         ],
@@ -800,6 +901,36 @@ export default {
 
 :::
 
+## rules[].use.parallel.maxWorkers
+
+- **类型：** `number`
+- **默认值：** `undefined`
+
+当 `parallel` 配置为对象时，限制共享 loader worker pool 使用的最大 worker 线程数。请使用正整数。
+
+如果省略 `maxWorkers`，Rspack 会自动选择 worker 数量。loader worker pool 在当前进程内共享；如果多个 loader 都配置 `parallel`，建议使用一致的 `maxWorkers` 值。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: [
+          {
+            loader: 'less-loader',
+            parallel: {
+              maxWorkers: 4,
+            },
+            options: {},
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
 ## rules[].resolve
 
 根据匹配的模块设置具体的模块 [resolve](/config/resolve) 选项。
@@ -821,10 +952,10 @@ export default {
 
 ## rules[].rules
 
-- **类型：** [Rule](#rules)[]
+- **类型：** [Rule](#rule)[]
 - **默认值：** `undefined`
 
-[嵌套 Rule](#nested-rule) 的一种，当其上层 [Rule](#rules) 匹配成功后，会使用这些 Rules 继续进行匹配。
+[嵌套 Rule](#nested-rule) 的一种，当其上层 [Rule](#rule) 匹配成功后，会使用这些 Rules 继续进行匹配。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -855,7 +986,7 @@ export default {
 
 ## rules[].oneOf
 
-- **类型：** ([Rule](#rules) | Falsy)[]
+- **类型：** ([Rule](#rule) | Falsy)[]
 - **默认值：** `undefined`
 
 [嵌套 Rule](#nested-rule) 的一种，当其上层 Rule 匹配成功后会使用这些 Rule 进行匹配，并且只使用匹配成功的第一个 Rule。
@@ -904,3 +1035,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.docschina.org/configuration/module/" />

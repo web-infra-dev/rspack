@@ -45,7 +45,7 @@ Rspack 的测试用例包括如下：
 也可以进入 `tests/rspack-test` 文件夹并运行 `npm run test` 来运行测试用例，并且对测试流程进行更精细的控制：
 
 - **需要刷新测试快照时**：添加 `-u` 参数，如 `npm run test -- -u`
-- **需要过滤测试用例时**：添加 `-t` 参数。匹配支持正则，详见 [rstest](https://rstest.rs/config/test/testNamePattern)
+- **需要过滤测试用例时**：添加 `-t` 参数。匹配支持正则，详见 [rstest](https://rstest.rs/guide/basic/test-filter#filter-by-test-name)
 
 ### 运行测试
 
@@ -92,7 +92,7 @@ Rspack 的测试用例包括如下：
 - [Normal](#normal)：用于测试配置无关的核心构建流程。当你的测试无需添加 `rspack.config.js` 时可使用此测试类型。
 - [Config](#config)：用于测试构建配置项。如果你的测试需要通过 `rspack.config.js` 添加特定配置才可以运行时，且不符合其他场景时可使用此测试类型。
 - [Hot](#hot)：用于测试 HMR 是否正确运行。HotNode 会固定使用 `target=async-node`，HotWeb 会固定使用 `target=web`，HotWorker 会固定使用 `target=webworker`。
-- [HotSnapshot](#hotsnapshot)：用于测试 HMR 能否生成正确的中间产物。与[Hot](#Hot)类型测试共用测试用例。
+- [HotSnapshot](#hotsnapshot)：用于测试 HMR 能否生成正确的中间产物。与[Hot](#hot)类型测试共用测试用例。
 - [Watch](#watch)：用于测试 Watch 模式下修改文件后的增量编译。
 - [StatsOutput](#statsoutput)：用于测试构建结束后控制台输出的日志。
 - [StatsAPI](#stats-api)：用于测试构建结束后生成的 Stats 对象。
@@ -105,27 +105,27 @@ Rspack 的测试用例包括如下：
 - [TreeShaking](#treeshaking)：用于测试 Tree Shaking 相关功能。
 - [Builtin](#builtin)：用于测试内置原生实现的插件。
 
-请优先在以上测试类型中添加用例。{/* 如果没有符合的类型，请按照[添加测试类型](./test-advanced)添加新类型。 */}
+请优先在以上测试类型中添加用例。
 
 ### Normal
 
-| 测试入口 | `tests/Normal.test.js`                                                                                                      |
-| -------- | --------------------------------------------------------------------------------------------------------------------------- |
-| 用例目录 | [`tests/normalCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/normalCases)                      |
-| 产物目录 | `tests/js/normal`                                                                                                           |
-| 默认配置 | [NormalProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/normal.ts#L35) |
-| 产物运行 | `是`                                                                                                                        |
+| 测试入口 | `tests/Normal.test.js`                                                                                             |
+| -------- | ------------------------------------------------------------------------------------------------------------------ |
+| 用例目录 | [`tests/normalCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/normalCases)             |
+| 产物目录 | `tests/js/normal`                                                                                                  |
+| 默认配置 | [NormalProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/normal.ts) |
+| 产物运行 | `是`                                                                                                               |
 
 用例的编写与常规的 rspack 项目相同，但不包含 `rspack.config.js` 文件，会使用固定的配置构建。
 
 ### Config
 
-| 测试入口 | `tests/Config.test.js`                                                                                                      |
-| -------- | --------------------------------------------------------------------------------------------------------------------------- |
-| 用例目录 | [`tests/configCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/configCases)                      |
-| 产物目录 | `tests/js/config`                                                                                                           |
-| 默认配置 | [ConfigProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/config.ts#L51) |
-| 产物运行 | `是`                                                                                                                        |
+| 测试入口 | `tests/Config.test.js`                                                                                             |
+| -------- | ------------------------------------------------------------------------------------------------------------------ |
+| 用例目录 | [`tests/configCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/configCases)             |
+| 产物目录 | `tests/js/config`                                                                                                  |
+| 默认配置 | [ConfigProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/config.ts) |
+| 产物运行 | `是`                                                                                                               |
 
 此测试用例与常规的 rspack 项目相同，可通过添加 `rspack.config.js` 来指定构建配置，并可通过添加 `test.config.js` 来控制测试运行时的各种行为，其结构如下：
 
@@ -154,12 +154,12 @@ module.exports = {
 
 ### Hot
 
-| 测试入口 | `Hot{Target}.test.js`                                                                                                 |
-| -------- | --------------------------------------------------------------------------------------------------------------------- |
-| 用例目录 | [`tests/hotCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/hotCases)                      |
-| 产物目录 | `tests/js/hot-{target}`                                                                                               |
-| 默认配置 | [HotProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/hot.ts#L86) |
-| 产物运行 | `是`                                                                                                                  |
+| 测试入口 | `Hot{Target}.test.js`                                                                                        |
+| -------- | ------------------------------------------------------------------------------------------------------------ |
+| 用例目录 | [`tests/hotCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/hotCases)             |
+| 产物目录 | `tests/js/hot-{target}`                                                                                      |
+| 默认配置 | [HotProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/hot.ts) |
+| 产物运行 | `是`                                                                                                         |
 
 此测试用例与常规的 rspack 项目相同，可通过添加 `rspack.config.js` 来指定构建配置
 
@@ -216,12 +216,12 @@ Snapshot 结构如下：
 
 ### Watch
 
-| 入口文件 | `Watch.test.js`                                                                                                           |
-| -------- | ------------------------------------------------------------------------------------------------------------------------- |
-| 用例目录 | [`tests/watchCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/watchCases)                      |
-| 产物目录 | `tests/js/watch`                                                                                                          |
-| 默认配置 | [WatchProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/watch.ts#L99) |
-| 产物运行 | `是`                                                                                                                      |
+| 入口文件 | `Watch.test.js`                                                                                                  |
+| -------- | ---------------------------------------------------------------------------------------------------------------- |
+| 用例目录 | [`tests/watchCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/watchCases)             |
+| 产物目录 | `tests/js/watch`                                                                                                 |
+| 默认配置 | [WatchProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/watch.ts) |
+| 产物运行 | `是`                                                                                                             |
 
 由于 Watch 构建需要分多步进行，可通过添加 `rspack.config.js` 来指定构建配置。其用例的目录结构较为特殊，会以自增的数字表示变更批次：
 
@@ -237,12 +237,12 @@ Snapshot 结构如下：
 
 ### StatsOutput
 
-| 测试入口 | `StatsOutput.test.js`                                                                                                      |
-| -------- | -------------------------------------------------------------------------------------------------------------------------- |
-| 用例目录 | [`tests/statsOutputCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/statsOutputCases)           |
-| 产物目录 | `tests/js/statsOutput`                                                                                                     |
-| 默认配置 | [StatsProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/stats.ts#L190) |
-| 产物运行 | `否`                                                                                                                       |
+| 测试入口 | `StatsOutput.test.js`                                                                                                   |
+| -------- | ----------------------------------------------------------------------------------------------------------------------- |
+| 用例目录 | [`tests/statsOutputCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/statsOutputCases)        |
+| 产物目录 | `tests/js/statsOutput`                                                                                                  |
+| 默认配置 | [StatsProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/stats-output.ts) |
+| 产物运行 | `否`                                                                                                                    |
 
 用例的编写与常规的 rspack 项目相同，运行后会将控制台输出信息生成快照并存放在 `tests/rspack-test/__snapshots__/StatsOutput.test.js.snap` 中。
 
@@ -252,12 +252,12 @@ Snapshot 结构如下：
 
 ### Stats API
 
-| 入口文件 | `StatsAPI.test.js`                                                                                              |
-| -------- | --------------------------------------------------------------------------------------------------------------- |
-| 用例目录 | `tests/statsAPICases`                                                                                           |
-| 产物目录 | `无`                                                                                                            |
-| 默认配置 | [`无`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/stats-api.ts) |
-| 产物运行 | `否`                                                                                                            |
+| 入口文件 | `StatsAPI.test.js`                                                                                         |
+| -------- | ---------------------------------------------------------------------------------------------------------- |
+| 用例目录 | `tests/statsAPICases`                                                                                      |
+| 产物目录 | `无`                                                                                                       |
+| 默认配置 | [`无`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/stats-api.ts) |
+| 产物运行 | `否`                                                                                                       |
 
 此测试固定使用 `tests/rspack-test/fixtures` 作为构建的源码，因此用例以单文件编写，其输出结构如下：
 
@@ -278,23 +278,23 @@ module.exports = {
 
 ### Diagnostic
 
-| 入口文件 | `Diagnostics.test.js`                                                                                                               |
-| -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 用例目录 | [`tests/diagnosticsCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/diagnosticsCases)                    |
-| 产物目录 | `tests/js/diagnostics`                                                                                                              |
-| 默认配置 | [DiagnosticProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/diagnostic.ts#L71) |
-| 产物运行 | `否`                                                                                                                                |
+| 入口文件 | `Diagnostics.test.js`                                                                                                      |
+| -------- | -------------------------------------------------------------------------------------------------------------------------- |
+| 用例目录 | [`tests/diagnosticsCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/diagnosticsCases)           |
+| 产物目录 | `tests/js/diagnostics`                                                                                                     |
+| 默认配置 | [DiagnosticProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/diagnostic.ts) |
+| 产物运行 | `否`                                                                                                                       |
 
 此测试用例与常规的 rspack 项目相同，可通过添加 `rspack.config.js` 来指定构建配置，但额外会在用例目录下添加 `stats.err` 文件用于存储警告/错误的快照，如需刷新请使用 `-u` 参数。
 
 ### Hash
 
-| 入口文件 | `Hash.test.js`                                                                                                          |
-| -------- | ----------------------------------------------------------------------------------------------------------------------- |
-| 用例目录 | [`tests/hashCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/hashCases)                      |
-| 产物目录 | `无`                                                                                                                    |
-| 默认配置 | [HashProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/hash.ts#L53) |
-| 产物运行 | `否`                                                                                                                    |
+| 入口文件 | `Hash.test.js`                                                                                                 |
+| -------- | -------------------------------------------------------------------------------------------------------------- |
+| 用例目录 | [`tests/hashCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/hashCases)             |
+| 产物目录 | `无`                                                                                                           |
+| 默认配置 | [HashProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/hash.ts) |
+| 产物运行 | `否`                                                                                                           |
 
 此测试用例与常规的 rspack 项目相同，但额外会在用例目录下添加 `test.config.js` 文件，并指定 `validate()` 方法用于在构建结束后检测 stats 对象中的 hash 信息：
 
@@ -312,12 +312,12 @@ module.exports = {
 
 ### Compiler
 
-| 入口文件 | `Compiler.test.js`                                                                                           |
-| -------- | ------------------------------------------------------------------------------------------------------------ |
-| 用例目录 | [`tests/compilerCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/compilerCases)   |
-| 产物目录 | `无`                                                                                                         |
-| 默认配置 | [`无`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/simple.ts) |
-| 产物运行 | `否`                                                                                                         |
+| 入口文件 | `Compiler.test.js`                                                                                         |
+| -------- | ---------------------------------------------------------------------------------------------------------- |
+| 用例目录 | [`tests/compilerCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/compilerCases) |
+| 产物目录 | `无`                                                                                                       |
+| 默认配置 | [`无`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/compiler.ts)  |
+| 产物运行 | `否`                                                                                                       |
 
 此测试固定使用 `tests/rspack-test/fixtures` 作为构建的源码，因此用例以单文件编写，其输出结构如下：
 
@@ -343,12 +343,12 @@ module.exports = {
 
 ### Defaults
 
-| 入口文件 | `Defaults.test.js`                                                                                             |
-| -------- | -------------------------------------------------------------------------------------------------------------- |
-| 用例目录 | [`tests/defaultCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/defaultCases)       |
-| 产物目录 | `无`                                                                                                           |
-| 默认配置 | [`无`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/defaults.ts) |
-| 产物运行 | `否`                                                                                                           |
+| 入口文件 | `Defaults.test.js`                                                                                        |
+| -------- | --------------------------------------------------------------------------------------------------------- |
+| 用例目录 | [`tests/defaultCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/defaultCases)  |
+| 产物目录 | `无`                                                                                                      |
+| 默认配置 | [`无`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/defaults.ts) |
+| 产物运行 | `否`                                                                                                      |
 
 此测试不会执行真实的构建，仅会生成构建配置并观察与默认配置的差异。基础的默认配置会生成快照并存放在 `tests/rspack-test/__snapshots__/Defaults.test.js.snap` 中。
 
@@ -374,12 +374,12 @@ module.exports = {
 
 ### Error
 
-| 入口文件 | `Error.test.js`                                                                                                           |
-| -------- | ------------------------------------------------------------------------------------------------------------------------- |
-| 用例目录 | [`tests/errorCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/errorCases)                      |
-| 产物目录 | `无`                                                                                                                      |
-| 默认配置 | [ErrorProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/error.ts#L84) |
-| 产物运行 | `否`                                                                                                                      |
+| 入口文件 | `Error.test.js`                                                                                                  |
+| -------- | ---------------------------------------------------------------------------------------------------------------- |
+| 用例目录 | [`tests/errorCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/errorCases)             |
+| 产物目录 | `无`                                                                                                             |
+| 默认配置 | [ErrorProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/error.ts) |
+| 产物运行 | `否`                                                                                                             |
 
 此测试的用例固定使用 `tests/rspack-test/fixtures` 作为构建的源码，因此测试用例以特定的配置结构编写：
 
@@ -403,12 +403,12 @@ module.exports = {
 
 ### Hook
 
-| 入口文件 | `Hook.test.js`                                                                                                           |
-| -------- | ------------------------------------------------------------------------------------------------------------------------ |
-| 用例目录 | [`tests/hookCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/hookCases)                       |
-| 产物目录 | `无`                                                                                                                     |
-| 默认配置 | [HookProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/hook.ts#L190) |
-| 产物运行 | `否`                                                                                                                     |
+| 入口文件 | `Hook.test.js`                                                                                                 |
+| -------- | -------------------------------------------------------------------------------------------------------------- |
+| 用例目录 | [`tests/hookCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/hookCases)             |
+| 产物目录 | `无`                                                                                                           |
+| 默认配置 | [HookProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/hook.ts) |
+| 产物运行 | `否`                                                                                                           |
 
 会记录 hook 的出入参并存放在快照 `hooks.snap.txt` 中，最终产物代码的快照存放在 `output.snap.txt` 中。
 
@@ -434,23 +434,23 @@ module.exports = {
 
 ### TreeShaking
 
-| 入口文件 | `TreeShaking.test.js`                                                                                                                 |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| 用例目录 | `tests/treeShakingCases`                                                                                                              |
-| 产物目录 | `tests/js/treeShaking`                                                                                                                |
-| 默认配置 | [TreeShakingProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/treeshaking.ts#L19) |
-| 产物运行 | `否`                                                                                                                                  |
+| 入口文件 | `TreeShaking.test.js`                                                                                                        |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| 用例目录 | `tests/treeShakingCases`                                                                                                     |
+| 产物目录 | `tests/js/treeShaking`                                                                                                       |
+| 默认配置 | [TreeShakingProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/treeshaking.ts) |
+| 产物运行 | `否`                                                                                                                         |
 
 此测试用例与常规的 rspack 项目相同，可通过添加 `rspack.config.js` 来指定构建配置，但会将最终产物生成快照并存放在 `__snapshots__/treeshaking.snap.txt` 中。
 
 ### Builtin
 
-| 入口文件 | `Builtin.test.js`                                                                                                             |
-| -------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| 用例目录 | `tests/builtinCases`                                                                                                          |
-| 产物目录 | `tests/js/builtin`                                                                                                            |
-| 默认配置 | [BuiltinProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/builtin.ts#L27) |
-| 产物运行 | `否`                                                                                                                          |
+| 入口文件 | `Builtin.test.js`                                                                                                    |
+| -------- | -------------------------------------------------------------------------------------------------------------------- |
+| 用例目录 | `tests/builtinCases`                                                                                                 |
+| 产物目录 | `tests/js/builtin`                                                                                                   |
+| 默认配置 | [BuiltinProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/builtin.ts) |
+| 产物运行 | `否`                                                                                                                 |
 
 此测试用例与常规的 rspack 项目相同，可通过添加 `rspack.config.js` 来指定构建配置。
 

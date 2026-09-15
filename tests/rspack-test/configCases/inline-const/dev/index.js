@@ -1,6 +1,6 @@
 const path = require("path");
 
-const generated = /** @type {string} */ (__non_webpack_require__("fs").readFileSync(path.resolve(__dirname, "constants.bundle0.js"), "utf-8"));
+const generated = /** @type {string} */ (require("fs").readFileSync(path.resolve(__dirname, "constants.bundle0.js"), "utf-8"));
 
 it("should have correct exports in development mode", async () => {
   await import(/* webpackChunkName: "constants" */"../basic/constants").then(exports => {

@@ -13,6 +13,7 @@ import type binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import type { Source } from 'webpack-sources';
 import {
+  createRealContentHashPluginHooksRegisters,
   createRsdoctorPluginHooksRegisters,
   createRuntimePluginHooksRegisters,
   JsLoaderRspackPlugin,
@@ -47,7 +48,7 @@ import type { FileSystemInfoEntry } from './FileSystemInfo';
 import type { rspack } from './index';
 import Cache from './lib/Cache';
 import CacheFacade from './lib/CacheFacade';
-import { Logger } from './logging/Logger';
+import { Logger, type LogTypeEnum } from './logging/Logger';
 import { NormalModuleFactory } from './NormalModuleFactory';
 import { ResolverFactory } from './ResolverFactory';
 import { RuleSetCompiler } from './RuleSetCompiler';
@@ -58,9 +59,11 @@ import {
   createCompilationHooksRegisters,
   createCompilerHooksRegisters,
   createContextModuleFactoryHooksRegisters,
+  createExternalModuleHooksRegisters,
   createHtmlPluginHooksRegisters,
   createJavaScriptModulesHooksRegisters,
   createNormalModuleFactoryHooksRegisters,
+  createNormalModuleHooksRegisters,
 } from './taps';
 import { TraceHookPlugin } from './trace/traceHookPlugin';
 import { JavaScriptTracer } from './trace';
@@ -76,6 +79,7 @@ import type {
 import { makePathsRelative } from './util/identifier';
 import { VirtualModulesPlugin } from './VirtualModulesPlugin';
 import { Watching } from './Watching';
+import type { RawOptions } from '@rspack/binding';
 
 const require = createRequire(import.meta.url);
 
@@ -138,8 +142,6 @@ class Compiler {
   #initial: boolean;
 
   #compilation?: Compilation;
-  // TODO: GC issue - manual cleanup needed to prevent memory leaks.
-  // Suspected closure references preventing proper garbage collection.
   #bindingCompilationMap = new WeakMap<binding.JsCompilation, Compilation>();
   #compilationParams?: CompilationParams;
 
@@ -189,6 +191,12 @@ class Compiler {
   #platform: PlatformTargetProperties;
   #target: ExtractedTargetProperties;
   options: RspackOptionsNormalized;
+
+  // Keep the original RawOptions object alive on the JS Compiler instance.
+  // The Rust napi layer only keeps a weak reference to RawOptions so it does not
+  // accidentally keep the Compiler JS object from being garbage collected.
+  #rawOptions?: RawOptions;
+
   /**
    * Whether to skip dropping Rust compiler instance to improve performance.
    * This is an internal option api and could be removed or changed at any time.
@@ -336,7 +344,7 @@ class Compiler {
     new JsLoaderRspackPlugin(this).apply(this);
     new ExecuteModulePlugin().apply(this);
     // Trace hook interception only pays off once global tracing is already on.
-    if (!IS_BROWSER && JavaScriptTracer.state === 'on') {
+    if (!IS_BROWSER && JavaScriptTracer.isEnabled()) {
       new TraceHookPlugin().apply(this);
     }
 
@@ -425,6 +433,18 @@ class Compiler {
     );
   }
 
+  #logInfrastructure(name: string, type: LogTypeEnum, args: any[]): void {
+    if (this.hooks.infrastructureLog.call(name, type, args) === undefined) {
+      this.infrastructureLogger?.(name, type, args);
+    }
+  }
+
+  #logInfrastructureBatch(logs: binding.JsLog[]): void {
+    for (const log of logs) {
+      this.#logInfrastructure(log.name, log.type as LogTypeEnum, log.args);
+    }
+  }
+
   /**
    * @param name - name of the logger, or function called once to get the logger name
    * @returns a logger with that name
@@ -447,14 +467,7 @@ class Compiler {
             );
           }
         } else {
-          if (
-            this.hooks.infrastructureLog.call(normalizedName, type, args) ===
-            undefined
-          ) {
-            if (this.infrastructureLogger !== undefined) {
-              this.infrastructureLogger(normalizedName, type, args);
-            }
-          }
+          this.#logInfrastructure(normalizedName, type, args);
         }
       },
       (childName): any => {
@@ -557,7 +570,6 @@ class Compiler {
     const finalCallback = (err: Error | null, stats?: Stats) => {
       this.idle = true;
       this.cache.beginIdle();
-      this.idle = true;
       this.running = false;
       if (err) {
         this.hooks.failed.call(err);
@@ -624,7 +636,7 @@ class Compiler {
 
     if (this.idle) {
       this.cache.endIdle((err) => {
-        if (err) return callback(err);
+        if (err) return finalCallback(err);
         this.idle = false;
         run();
       });
@@ -797,23 +809,16 @@ class Compiler {
         }
         this.#compilation!.startTime = startTime;
         this.#compilation!.endTime = Date.now();
-        this.hooks.afterCompile.callAsync(this.#compilation!, (err) => {
-          if (err) {
-            return callback(err);
-          }
-          return callback(null, this.#compilation);
-        });
+        // `hooks.afterCompile` is not called here: it is driven from the Rust
+        // side through `registerCompilerAfterCompileTaps`, so that it runs right
+        // after the compilation is sealed and before `shouldEmit`/`emit`, the
+        // same position webpack calls it from.
+        return callback(null, this.#compilation);
       });
     });
   }
 
   close(callback: (error?: Error | null) => void) {
-    if (this.#compilation) {
-      this.#bindingCompilationMap.delete(
-        this.#compilation.__internal_getInner(),
-      );
-    }
-
     if (this.watching) {
       // When there is still an active watching, close this #initial
       this.watching.close(() => {
@@ -822,16 +827,21 @@ class Compiler {
       return;
     }
 
+    const instanceCallback = (error?: Error | null) => {
+      const close = this.#instance?.close();
+      if (close) {
+        close.then(
+          () => callback(error),
+          (closeError) => callback(error || closeError),
+        );
+      } else {
+        callback(error);
+      }
+    };
+
     this.hooks.shutdown.callAsync((err) => {
       if (err) return callback(err);
-      this.cache.shutdown(() => {
-        const closePromise = this.#instance?.close();
-        if (closePromise) {
-          closePromise.then(() => callback(), callback);
-        } else {
-          callback();
-        }
-      });
+      this.cache.shutdown(instanceCallback);
     });
   }
 
@@ -890,8 +900,6 @@ class Compiler {
       compilation = new Compilation(this, native);
       compilation.name = this.name;
       this.#bindingCompilationMap.set(native, compilation);
-    } else {
-      this.#bindingCompilationMap.delete(compilation.__internal_getInner());
     }
 
     this.#compilation = compilation;
@@ -944,12 +952,12 @@ class Compiler {
     }
 
     const { options } = this;
-    const rawOptions = getRawOptions(options, this);
-    rawOptions.__references = Object.fromEntries(
+    this.#rawOptions = getRawOptions(options, this);
+    this.#rawOptions.__references = Object.fromEntries(
       this.#ruleSet.builtinReferences.entries(),
     );
 
-    rawOptions.__virtual_files =
+    this.#rawOptions.__virtual_files =
       VirtualModulesPlugin.__internal__take_virtual_files(this);
 
     const instanceBinding: typeof binding = require('@rspack/binding');
@@ -961,11 +969,12 @@ class Compiler {
       ThreadsafeInputNodeFS.needsBinding(options.experiments.useInputFileSystem)
         ? ThreadsafeInputNodeFS.__to_binding(this.inputFileSystem)
         : undefined;
+    const compilerRef = new WeakRef(this);
 
     try {
       this.#instance = new instanceBinding.JsCompiler(
         this.compilerPath,
-        rawOptions,
+        this.#rawOptions,
         this.#builtinPlugins,
         this.#registers,
         ThreadsafeOutputNodeFS.__to_binding(this.outputFileSystem!),
@@ -978,6 +987,13 @@ class Compiler {
         ResolverFactory.__to_binding(this.resolverFactory),
         this.unsafeFastDrop,
         this.#platform,
+        (logs) => {
+          const compiler = compilerRef.deref();
+          if (compiler) {
+            compiler.#logInfrastructureBatch(logs);
+          }
+        },
+        Cache.__to_binding(this.cache),
       );
 
       callback(null, this.#instance);
@@ -1003,6 +1019,7 @@ class Compiler {
     return {
       ...createCompilerHooksRegisters(getCompiler, createTap, createMapTap),
       ...createCompilationHooksRegisters(getCompiler, createTap, createMapTap),
+      ...createNormalModuleHooksRegisters(getCompiler, createTap, createMapTap),
       ...createNormalModuleFactoryHooksRegisters(
         getCompiler,
         createTap,
@@ -1013,12 +1030,22 @@ class Compiler {
         createTap,
         createMapTap,
       ),
+      ...createExternalModuleHooksRegisters(
+        getCompiler,
+        createTap,
+        createMapTap,
+      ),
       ...createJavaScriptModulesHooksRegisters(
         getCompiler,
         createTap,
         createMapTap,
       ),
       ...createHtmlPluginHooksRegisters(getCompiler, createTap, createMapTap),
+      ...createRealContentHashPluginHooksRegisters(
+        getCompiler,
+        createTap,
+        createMapTap,
+      ),
       ...createRuntimePluginHooksRegisters(
         getCompiler,
         createTap,

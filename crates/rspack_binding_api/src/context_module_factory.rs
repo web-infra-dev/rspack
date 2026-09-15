@@ -2,7 +2,7 @@ use napi::bindgen_prelude::{
   ClassInstance, Either, FromNapiValue, ToNapiValue, TypeName, ValidateNapiValue,
 };
 use napi_derive::napi;
-use rspack_core::{AfterResolveData, BeforeResolveData};
+use rspack_core::{AfterResolveData, BeforeResolveData, ContextModulePattern};
 use rspack_regex::RspackRegex;
 
 use crate::dependency::DependencyWrapper;
@@ -34,7 +34,7 @@ impl JsContextModuleFactoryBeforeResolveData {
 
   #[napi(getter, ts_return_type = "RegExp | undefined")]
   pub fn reg_exp(&self) -> Either<RspackRegex, ()> {
-    match &self.0.reg_exp {
+    match self.0.pattern.reg_exp() {
       Some(r) => Either::A(r.clone()),
       None => Either::B(()),
     }
@@ -42,9 +42,9 @@ impl JsContextModuleFactoryBeforeResolveData {
 
   #[napi(setter, ts_args_type = "rawRegExp: RegExp | undefined")]
   pub fn set_reg_exp(&mut self, raw_reg_exp: Either<RspackRegex, ()>) {
-    self.0.reg_exp = match raw_reg_exp {
-      Either::A(regex) => Some(regex),
-      Either::B(_) => None,
+    self.0.pattern = match raw_reg_exp {
+      Either::A(regex) => ContextModulePattern::RegExp(regex),
+      Either::B(_) => ContextModulePattern::None,
     };
   }
 
@@ -149,7 +149,7 @@ impl JsContextModuleFactoryAfterResolveData {
 
   #[napi(getter, ts_return_type = "RegExp | undefined")]
   pub fn reg_exp(&self) -> Either<RspackRegex, ()> {
-    match &self.0.reg_exp {
+    match self.0.pattern.reg_exp() {
       Some(r) => Either::A(r.clone()),
       None => Either::B(()),
     }
@@ -157,9 +157,9 @@ impl JsContextModuleFactoryAfterResolveData {
 
   #[napi(setter, ts_args_type = "rawRegExp: RegExp | undefined")]
   pub fn set_reg_exp(&mut self, raw_reg_exp: Either<RspackRegex, ()>) {
-    self.0.reg_exp = match raw_reg_exp {
-      Either::A(regex) => Some(regex),
-      Either::B(_) => None,
+    self.0.pattern = match raw_reg_exp {
+      Either::A(regex) => ContextModulePattern::RegExp(regex),
+      Either::B(_) => ContextModulePattern::None,
     };
   }
 

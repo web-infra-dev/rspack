@@ -27,6 +27,10 @@ class Plugin {
 
 /**@type {import("@rspack/core").Configuration}*/
 module.exports = {
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
   target: 'web',
   mode: 'development',
   node: {

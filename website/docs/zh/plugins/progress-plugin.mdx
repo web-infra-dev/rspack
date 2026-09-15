@@ -1,0 +1,88 @@
+---
+description: 'Rspack ProgressPlugin 插件参考，说明用途、可用选项、典型场景、使用方式与常见集成方式。'
+---
+
+# ProgressPlugin
+
+此插件可以用来配置进度条。
+
+Rspack 使用 [indicatif::ProgressBar](https://github.com/console-rs/indicatif) 绘制进度条.
+
+## 示例
+
+为进度条添加前缀：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.ProgressPlugin({ prefix: 'Building' })],
+};
+```
+
+## 选项
+
+### 函数形式
+
+- **类型：** `(percentage: number, message: string, info: ProgressPluginHandlerInfo) => void`
+- **默认值：** `undefined`
+
+将处理函数直接传给 `ProgressPlugin` 构造函数。当 hooks 报告进度时，将使用以下参数调用该函数：
+
+- `percentage`：0 到 1 之间的数字，表示编译的完成百分比
+- `message`：关于当前执行 hook 的简短描述
+- `info`：额外的进度信息
+  - `builtModules`：已构建的模块数量
+  - `moduleIdentifier`：当前活跃模块的标识符（仅在 `build modules` 更新阶段提供）
+
+```js
+const handler = (percentage, message, info) => {
+  // e.g. Output each progress message directly to the console:
+  console.info(percentage, message, info.builtModules, info.moduleIdentifier);
+};
+
+new rspack.ProgressPlugin(handler);
+```
+
+### 对象形式
+
+#### prefix
+
+- **类型：** `string`
+- **默认值：** `''`
+
+进度条前显示文案。
+
+#### profile
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+是否收集进度步骤的性能数据。
+
+#### template
+
+- **类型：** `string`
+- **默认值：** `● {prefix:.bold} {bar:25.green/white.dim} ({percent}%) {wide_msg:.dim}`
+
+进度条的模板。
+
+详情查阅 [indicatif::ProgressBar::with_template](https://docs.rs/indicatif/latest/indicatif/style/struct.ProgressStyle.html#method.with_template).
+
+#### tick
+
+- **类型：** `string | string[] | undefined`
+- **默认值：** `undefined`
+
+Spinner 变化的字符串序列，如果是字符串，则会被拆分为字符。
+
+详情查阅 [indicatif::ProgressBar::tick_strings](https://docs.rs/indicatif/latest/indicatif/style/struct.ProgressStyle.html#method.tick_strings).
+
+#### progressChars
+
+- **类型：** `string`
+- **默认值：** `━━`
+
+组成进度条的字符。
+
+详情查阅 [indicatif::ProgressBar::progress_chars](https://docs.rs/indicatif/latest/indicatif/style/struct.ProgressStyle.html#method.progress_chars).

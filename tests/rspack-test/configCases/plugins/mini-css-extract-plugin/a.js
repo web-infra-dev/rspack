@@ -1,7 +1,7 @@
 import "./a.css";
 
-const fs = __non_webpack_require__("fs");
-const path = __non_webpack_require__("path");
+const fs = require("fs");
+const path = require("path");
 
 it("a should load a chunk with css", () => {
 	const linkStart = Array.from(document.getElementsByTagName("link")).length;
@@ -14,7 +14,7 @@ it("a should load a chunk with css", () => {
 	expect(links.length).toBe(1);
 	expect(scripts.length).toBe(1);
 	links[0].onload({ type: "load" });
-	__non_webpack_require__(
+	eval("require")(
 		scripts[0].src.replace("https://test.cases/path", ".")
 	);
 

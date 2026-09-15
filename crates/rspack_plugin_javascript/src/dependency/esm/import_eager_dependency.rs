@@ -5,16 +5,16 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  FactorizeInfo, ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact,
-  ReferencedSpecifier, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
-  create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
+  ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact, ReferencedSpecifier,
+  ResourceIdentifier, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  create_referenced_exports_by_referenced_specifiers,
 };
-use swc_core::ecma::atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
+use crate::Atom;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ImportEagerDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
@@ -25,32 +25,39 @@ pub struct ImportEagerDependency {
   attributes: Option<ImportAttributes>,
   phase: ImportPhase,
   resource_identifier: ResourceIdentifier,
-  factorize_info: FactorizeInfo,
 }
 
 impl ImportEagerDependency {
   pub fn new(
     request: Atom,
     range: DependencyRange,
-    referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
     attributes: Option<ImportAttributes>,
     phase: ImportPhase,
   ) -> Self {
     let resource_identifier =
-      create_resource_identifier_for_esm_dependency(request.as_str(), attributes.as_ref());
+      create_resource_identifier_for_esm_dependency(request.as_str(), phase, attributes.as_ref());
     Self {
       request,
       range,
       id: DependencyId::new(),
-      referenced_specifiers,
+      referenced_specifiers: None,
       attributes,
       phase,
       resource_identifier,
-      factorize_info: Default::default(),
     }
   }
 
-  pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
+  pub fn set_referenced_specifiers(
+    &mut self,
+    referenced_specifiers: Vec<ReferencedSpecifier>,
+    from_magic_comment: bool,
+  ) {
+    if !from_magic_comment && referenced_specifiers.is_empty() {
+      // If the referenced specifiers are empty, keep it as default (None), since this dependency can't eliminate by side effects optimization,
+      // so if we set it to Some(vec![]), and the dependency still executes, it will cause runtime error because the exports are all tree shaken.
+      // see test case `tests/rspack-test/configCases/tree-shaking/side-effects-free-dynamic-import`
+      return;
+    }
     self.referenced_specifiers = Some(referenced_specifiers);
   }
 }
@@ -91,7 +98,7 @@ impl Dependency for ImportEagerDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&rspack_core::RuntimeSpec>,
-  ) -> Vec<rspack_core::ExtendedReferencedExport> {
+  ) -> Vec<rspack_core::ReferencedExport> {
     if let Some(referenced_specifiers) = &self.referenced_specifiers {
       let module = module_graph
         .get_module_by_dependency_id(&self.id)
@@ -132,14 +139,6 @@ impl ModuleDependency for ImportEagerDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

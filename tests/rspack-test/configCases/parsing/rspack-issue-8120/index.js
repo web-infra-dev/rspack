@@ -1,5 +1,5 @@
-const fs = __non_webpack_require__("node:fs");
-const path = __non_webpack_require__("node:path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const { NODE_ENV, PUBLIC_URL } = process.env.test;
 

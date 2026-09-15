@@ -4,6 +4,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsRefStr, AsVec},
 };
+use rspack_hash::RspackHasher;
 #[cfg(allocative)]
 use rspack_util::allocative;
 use rustc_hash::FxHashMap;
@@ -12,10 +13,11 @@ use ustr::{Ustr, UstrSet};
 use crate::{EntryOptions, EntryRuntime};
 
 #[cacheable]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, rspack_hash::RspackHash)]
 #[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RuntimeSpec {
   #[cacheable(with=AsVec<AsRefStr>)]
+  #[rspack_hash(skip)]
   inner: UstrSet,
   key: String,
 }
@@ -97,7 +99,7 @@ impl RuntimeSpec {
 
   pub fn from_entry(entry: &str, runtime: Option<&EntryRuntime>) -> Self {
     let r = match runtime {
-      Some(EntryRuntime::String(s)) => s,
+      Some(EntryRuntime::String(s)) if !s.is_empty() => s,
       _ => entry,
     }
     .to_string();
@@ -106,7 +108,7 @@ impl RuntimeSpec {
 
   pub fn from_entry_options(options: &EntryOptions) -> Option<Self> {
     let r = match &options.runtime {
-      Some(EntryRuntime::String(s)) => Some(s.to_owned()),
+      Some(EntryRuntime::String(s)) if !s.is_empty() => Some(s.to_owned()),
       _ => options.name.clone(),
     };
     r.map(|r| Self::from_iter([r.into()]))
@@ -115,14 +117,6 @@ impl RuntimeSpec {
   pub fn subtract(&self, b: &RuntimeSpec) -> Self {
     let res = self.inner.difference(&b.inner).copied().collect();
     Self::new(res)
-  }
-
-  pub fn insert(&mut self, r: Ustr) -> bool {
-    let update = self.inner.insert(r);
-    if update {
-      self.update_key();
-    }
-    update
   }
 
   pub fn extend(&mut self, other: &Self) {
@@ -134,16 +128,39 @@ impl RuntimeSpec {
   }
 
   fn update_key(&mut self) {
-    if self.inner.is_empty() {
-      if self.key.is_empty() {
-        return;
+    match self.inner.len() {
+      0 => {
+        self.key.clear();
       }
-      self.key = String::new();
-      return;
+      1 => {
+        self.key.clear();
+        self.key.push_str(
+          self
+            .inner
+            .iter()
+            .next()
+            .expect("should have one runtime")
+            .as_str(),
+        );
+      }
+      _ => {
+        let mut ordered = self.inner.iter().map(|s| s.as_str()).collect::<Vec<_>>();
+        ordered.sort_unstable();
+
+        let capacity = ordered.iter().map(|s| s.len()).sum::<usize>() + ordered.len() - 1;
+        self.key.clear();
+        self.key.reserve(capacity);
+
+        let mut iter = ordered.into_iter();
+        if let Some(first) = iter.next() {
+          self.key.push_str(first);
+        }
+        for runtime in iter {
+          self.key.push('_');
+          self.key.push_str(runtime);
+        }
+      }
     }
-    let mut ordered = self.inner.iter().map(|s| s.as_str()).collect::<Vec<_>>();
-    ordered.sort_unstable();
-    self.key = ordered.join("_");
   }
 
   pub fn as_str(&self) -> &str {
@@ -167,6 +184,7 @@ pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
   a.key == b.key
 }
 
+#[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum RuntimeCondition {
@@ -174,15 +192,11 @@ pub enum RuntimeCondition {
   Spec(RuntimeSpec),
 }
 
-impl std::hash::Hash for RuntimeCondition {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+impl rspack_hash::RspackHash for RuntimeCondition {
+  fn hash(&self, state: &mut RspackHasher) {
     match self {
-      Self::Boolean(v) => v.hash(state),
-      Self::Spec(s) => {
-        for i in s.iter() {
-          i.hash(state);
-        }
-      }
+      RuntimeCondition::Boolean(value) => value.hash(state),
+      RuntimeCondition::Spec(spec) => spec.hash(state),
     }
   }
 }
@@ -217,6 +231,7 @@ pub fn filter_runtime(
 ) -> RuntimeCondition {
   match runtime {
     None => RuntimeCondition::Boolean(filter(None)),
+    Some(runtime) if runtime.len() == 1 => RuntimeCondition::Boolean(filter(Some(runtime))),
     Some(runtime) => {
       let mut some = false;
       let mut every = true;
@@ -450,10 +465,6 @@ pub struct RuntimeSpecSet {
 }
 
 impl RuntimeSpecSet {
-  pub fn get(&self, runtime: &RuntimeSpec) -> Option<&RuntimeSpec> {
-    self.map.get(get_runtime_key(runtime))
-  }
-
   pub fn set(&mut self, runtime: RuntimeSpec) {
     self.map.insert(get_runtime_key(&runtime).clone(), runtime);
   }
@@ -464,10 +475,6 @@ impl RuntimeSpecSet {
 
   pub fn values(&self) -> hash_map::Values<'_, RuntimeKey, RuntimeSpec> {
     self.map.values()
-  }
-
-  pub fn into_values(self) -> hash_map::IntoValues<RuntimeKey, RuntimeSpec> {
-    self.map.into_values()
   }
 
   pub fn len(&self) -> usize {

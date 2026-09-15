@@ -6,11 +6,12 @@ use napi::{
 };
 use napi_derive::napi;
 use rspack_core::rspack_sources::{RawBufferSource, RawStringSource, SourceExt};
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_copy::{
   CopyGlobOptions, CopyPattern, CopyRspackPluginOptions, Info, Related, ToOption, ToType,
   TransformerFn,
 };
+
+use crate::compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction;
 
 type RawTransformer = ThreadsafeFunction<FnArgs<(Buffer, String)>, Promise<Either<String, Buffer>>>;
 
@@ -192,12 +193,7 @@ impl From<RawCopyPattern> for CopyPattern {
       glob_options: CopyGlobOptions {
         case_sensitive_match: glob_options.case_sensitive_match,
         dot: glob_options.dot,
-        ignore: glob_options.ignore.map(|ignore| {
-          ignore
-            .into_iter()
-            .map(|filter| glob::Pattern::new(filter.as_ref()).expect("Invalid pattern option"))
-            .collect()
-        }),
+        ignore: glob_options.ignore,
       },
       copy_permissions,
       transform_fn: transform.map(|transformer| -> TransformerFn {

@@ -9,18 +9,38 @@ it("should correctly self-accept an entrypoint when chunk loading runtime module
 	});
 
 	await NEXT_HMR();
+	hmrData = globalThis.__UPDATE_CHUNK_LOADING_RUNTIME_DATA__ || hmrData;
 	expect(hmrData).toHaveProperty("ok", true);
 	hmrData.test();
 	expect(hmrData.hash).not.toBe(hash);
 	const m = await hmrData.loadChunk();
 	expect(m.default).toBe(42);
+	const firstUpdateHash = hmrData.hash;
+
+	await NEXT_HMR();
+	hmrData = globalThis.__UPDATE_CHUNK_LOADING_RUNTIME_DATA__ || hmrData;
+	hmrData.test();
+	expect(hmrData.hash).not.toBe(firstUpdateHash);
+	const m2 = await hmrData.loadChunk();
+	expect(m2.default).toBe(42);
 });
 import.meta.webpackHot.accept();
 ---
 import value from "vendor";
 import.meta.webpackHot.data.ok = true;
 import.meta.webpackHot.data.loadChunk = () => import("./chunk");
+globalThis.__UPDATE_CHUNK_LOADING_RUNTIME_DATA__ = import.meta.webpackHot.data;
 import.meta.webpackHot.data.test = () => {
 	expect(value).toBe(2);
 };
 import.meta.webpackHot.data.hash = __webpack_hash__;
+import.meta.webpackHot.accept();
+---
+import value from "vendor";
+import.meta.webpackHot.data.loadChunk = () => import("./chunk");
+globalThis.__UPDATE_CHUNK_LOADING_RUNTIME_DATA__ = import.meta.webpackHot.data;
+import.meta.webpackHot.data.test = () => {
+	expect(value).toBe(3);
+};
+import.meta.webpackHot.data.hash = __webpack_hash__;
+import.meta.webpackHot.accept();

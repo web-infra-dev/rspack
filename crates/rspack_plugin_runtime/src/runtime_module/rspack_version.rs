@@ -1,5 +1,6 @@
 use rspack_core::{
-  RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -16,9 +17,24 @@ impl RspackVersionRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RspackVersionRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      define: { RuntimeGlobals::RSPACK_VERSION },
+      force_context: RuntimeGlobals::RSPACK_VERSION,
+      ..Default::default()
+    }
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       include_str!("runtime/get_version.ejs").to_string(),
     )]
   }
@@ -28,7 +44,7 @@ impl RuntimeModule for RspackVersionRuntimeModule {
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
     let source = context.runtime_template.render(
-      &self.id,
+      self.id(),
       Some(serde_json::json!({
         "_version": format!("\"{}\"", &self.version),
       })),

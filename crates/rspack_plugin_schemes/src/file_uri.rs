@@ -8,7 +8,7 @@ use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::AssertUtf8;
-#[cfg(not(target_family = "wasm"))]
+#[cfg(all(not(target_family = "wasm"), not(feature = "codspeed")))]
 use tokio::task::spawn_blocking;
 use url::Url;
 
@@ -56,13 +56,17 @@ async fn read_resource(
   {
     let resource_path_owned = resource_path.to_owned();
     let fs = fs.clone();
-    #[cfg(not(target_family = "wasm"))]
+    #[cfg(all(not(target_family = "wasm"), not(feature = "codspeed")))]
     let result = {
       // Avoid blocking the Tokio worker thread on native targets.
       spawn_blocking(move || fs.read_sync(resource_path_owned.as_path()))
         .await
         .map_err(|e| error!("{e}, spawn task failed"))?
     };
+    #[cfg(all(not(target_family = "wasm"), feature = "codspeed"))]
+    // Keep CodSpeed benchmark file reads on the current runtime thread to avoid
+    // Tokio blocking-pool scheduling noise in simulation measurements.
+    let result = fs.read_sync(resource_path_owned.as_path());
     #[cfg(target_family = "wasm")]
     // Keep WASI filesystem access on the current thread. Under node:wasi,
     // blocking workers may observe a different host-side WASI environment.

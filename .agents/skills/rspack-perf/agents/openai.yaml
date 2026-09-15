@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Rspack Performance'
+  short_description: 'Optimize Rspack CPU and memory hot paths'
+  default_prompt: 'Use $rspack-perf to optimize the requested Rspack performance hot path with evidence-based measurements.'
+
+policy:
+  allow_implicit_invocation: false

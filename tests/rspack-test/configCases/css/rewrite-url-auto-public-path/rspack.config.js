@@ -2,6 +2,10 @@ const { RawSource, ConcatSource } = require('webpack-sources');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
   target: 'web',
   node: {
     __dirname: false,

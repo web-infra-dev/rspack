@@ -2,7 +2,11 @@ use async_trait::async_trait;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::*;
-use crate::{cache::Cache, compilation::pass::PassExt, logger::Logger};
+use crate::{
+  CodeGenerationRuntimeRequirementsWrite, RuntimeProxyMetadata, compilation::pass::PassExt,
+  logger::Logger, runtime_globals::BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS,
+  runtime_mode::RuntimeMode as ExperimentRuntimeMode,
+};
 
 pub struct RuntimeRequirementsPass;
 
@@ -12,18 +16,12 @@ impl PassExt for RuntimeRequirementsPass {
     "runtime requirements"
   }
 
-  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.before_modules_runtime_requirements(compilation).await;
-    cache.before_chunks_runtime_requirements(compilation).await;
+  fn incremental_passes(&self) -> IncrementalPasses {
+    IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS | IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     runtime_requirements_pass_impl(compilation).await
-  }
-
-  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.after_modules_runtime_requirements(compilation).await;
-    cache.after_chunks_runtime_requirements(compilation).await;
   }
 }
 
@@ -347,8 +345,8 @@ pub async fn process_chunks_runtime_requirements(
       })?;
 
     for module in additional_runtime_modules {
-      let additional_runtime_requirements = module.additional_runtime_requirements(compilation);
-      set.extend(additional_runtime_requirements);
+      let runtime_requirements = module.runtime_requirements(compilation);
+      set.extend(runtime_requirements.dependencies);
       compilation.add_runtime_module(&chunk_ukey, module)?;
     }
 
@@ -379,9 +377,8 @@ pub async fn process_chunks_runtime_requirements(
                 e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInChunk")
               })?;
             for runtime_module in runtime_modules_to_add.iter() {
-              let additional_runtime_requirements =
-                runtime_module.additional_runtime_requirements(compilation);
-              runtime_requirements_mut.extend(additional_runtime_requirements);
+              let runtime_requirements = runtime_module.runtime_requirements(compilation);
+              runtime_requirements_mut.extend(runtime_requirements.dependencies);
             }
             Ok(())
           }
@@ -389,6 +386,10 @@ pub async fn process_chunks_runtime_requirements(
       }
     })
     .await?;
+
+    if compilation.options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack {
+      set = set.with_require_scope();
+    }
 
     for module in runtime_modules_to_add {
       compilation.add_runtime_module(&chunk_ukey, module)?;
@@ -399,6 +400,7 @@ pub async fn process_chunks_runtime_requirements(
   logger.time_end(start);
 
   let start = logger.time("runtime requirements.entries");
+  let mut hook_exposed_requirements_by_entry = FxHashMap::default();
   for &entry_ukey in &entries {
     let mut all_runtime_requirements = RuntimeGlobals::default();
     let mut runtime_modules_to_add: Vec<(ChunkUkey, Box<dyn RuntimeModule>)> = Vec::new();
@@ -417,6 +419,7 @@ pub async fn process_chunks_runtime_requirements(
     }
 
     let mut additional_runtime_modules = Vec::new();
+    let runtime_requirements_before_additional_tree_hook = all_runtime_requirements;
     plugin_driver
       .compilation_hooks
       .additional_tree_runtime_requirements
@@ -430,9 +433,13 @@ pub async fn process_chunks_runtime_requirements(
       .map_err(|e| {
         e.wrap_err("caused by plugins in Compilation.hooks.additionalTreeRuntimeRequirements")
       })?;
+    hook_exposed_requirements_by_entry.insert(
+      entry_ukey,
+      all_runtime_requirements.difference(runtime_requirements_before_additional_tree_hook),
+    );
     for module in additional_runtime_modules {
-      let additional_runtime_requirements = module.additional_runtime_requirements(compilation);
-      all_runtime_requirements.extend(additional_runtime_requirements);
+      let runtime_requirements = module.runtime_requirements(compilation);
+      all_runtime_requirements.extend(runtime_requirements.dependencies);
       compilation.add_runtime_module(&entry_ukey, module)?;
     }
 
@@ -460,10 +467,8 @@ pub async fn process_chunks_runtime_requirements(
           })?;
 
         for runtime_module in runtime_modules_to_add.iter() {
-          let additional_runtime_requirements = runtime_module
-            .1
-            .additional_runtime_requirements(compilation);
-          runtime_requirements_to_add.extend(additional_runtime_requirements);
+          let runtime_requirements = runtime_module.1.runtime_requirements(compilation);
+          runtime_requirements_to_add.extend(runtime_requirements.dependencies);
         }
         runtime_requirements_to_add = runtime_requirements_to_add
           .difference(all_runtime_requirements.intersection(runtime_requirements_to_add));
@@ -473,6 +478,10 @@ pub async fn process_chunks_runtime_requirements(
           all_runtime_requirements.insert(runtime_requirements_to_add);
         }
       }
+    }
+
+    if compilation.options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack {
+      all_runtime_requirements = all_runtime_requirements.with_require_scope();
     }
 
     ChunkGraph::set_tree_runtime_requirements(compilation, entry_ukey, all_runtime_requirements);
@@ -507,6 +516,142 @@ pub async fn process_chunks_runtime_requirements(
     }
   }
   compilation.runtime_modules = runtime_modules;
+
+  compilation.runtime_proxy_metadata_artifact.clear();
+  if compilation.options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
+    logger.time_end(start);
+    return Ok(());
+  }
+
+  let metadata_chunk_ukeys = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .keys()
+    .copied()
+    .filter(|chunk_ukey| {
+      let chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(chunk_ukey);
+      chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+        || compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .has_chunk_runtime_modules(chunk_ukey)
+    })
+    .collect::<Vec<_>>();
+
+  for chunk_ukey in metadata_chunk_ukeys {
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(&chunk_ukey);
+    let owns_runtime =
+      chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
+    let mut referenced_chunks = if owns_runtime {
+      chunk.get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+    } else {
+      Default::default()
+    };
+    referenced_chunks.insert(chunk_ukey);
+    let mut metadata = RuntimeProxyMetadata::default();
+
+    for referenced_chunk_ukey in referenced_chunks.iter() {
+      let referenced_chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(referenced_chunk_ukey);
+      for mid in compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_modules_identifier(referenced_chunk_ukey)
+      {
+        if let Some(runtime_requirements) =
+          ChunkGraph::get_module_runtime_requirements(compilation, *mid, referenced_chunk.runtime())
+        {
+          metadata
+            .module_proxy_requirements
+            .insert(*runtime_requirements);
+        }
+        if compilation
+          .get_module_graph()
+          .module_by_identifier(mid)
+          .is_some()
+          && let Some(write_requirements) = compilation
+            .code_generation_results
+            .get(mid, Some(referenced_chunk.runtime()))
+            .data()
+            .get::<CodeGenerationRuntimeRequirementsWrite>()
+        {
+          metadata
+            .context_setter_fields
+            .insert(write_requirements.runtime_requirements);
+        }
+      }
+
+      for runtime_module_id in compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_runtime_modules_iterable(referenced_chunk_ukey)
+      {
+        let runtime_module = compilation
+          .runtime_modules
+          .get(runtime_module_id)
+          .expect("should have runtime module");
+        let runtime_requirements = runtime_module.runtime_requirements(compilation);
+        metadata
+          .runtime_module_requirements
+          .insert(runtime_requirements.dependencies);
+        metadata
+          .tree_runtime_requirements
+          .insert(runtime_requirements.lexical_requirements());
+        metadata
+          .force_context_fields
+          .insert(runtime_requirements.force_context);
+      }
+    }
+
+    if owns_runtime {
+      metadata
+        .tree_runtime_requirements
+        .insert(*ChunkGraph::get_tree_runtime_requirements(
+          compilation,
+          &chunk_ukey,
+        ));
+      if let Some(hook_exposed_requirements) = hook_exposed_requirements_by_entry.get(&chunk_ukey) {
+        metadata
+          .hook_exposed_requirements
+          .insert(*hook_exposed_requirements);
+      }
+    } else {
+      metadata
+        .tree_runtime_requirements
+        .insert(*ChunkGraph::get_chunk_runtime_requirements(
+          compilation,
+          &chunk_ukey,
+        ));
+    }
+    if metadata
+      .tree_runtime_requirements
+      .contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST)
+    {
+      metadata
+        .context_setter_fields
+        .insert(metadata.tree_runtime_requirements);
+      metadata
+        .force_context_fields
+        .insert(metadata.tree_runtime_requirements);
+    }
+    metadata.bootstrap_proxy_requirements.insert(
+      metadata
+        .tree_runtime_requirements
+        .intersection(*BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS),
+    );
+
+    compilation
+      .runtime_proxy_metadata_artifact
+      .insert(chunk_ukey, metadata);
+  }
 
   logger.time_end(start);
   Ok(())

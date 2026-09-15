@@ -4,7 +4,7 @@ description: 'SWC (Speedy Web Compiler) is a transformer and minimizer for JavaS
 
 import { ApiMeta, Stability } from '@components/ApiMeta';
 
-# Builtin swc-loader
+# SWC loader
 
 [SWC](https://github.com/swc-project/swc) (Speedy Web Compiler) is a transformer and minimizer for JavaScript and TypeScript based on Rust. SWC provides similar functionality to Babel and Terser, and it is 20x faster than Babel on a single thread and 70x faster on four cores.
 
@@ -29,7 +29,6 @@ export default {
         options: {
           detectSyntax: 'auto',
         },
-        type: 'javascript/auto',
       },
     ],
   },
@@ -62,7 +61,6 @@ export default {
             },
           },
         },
-        type: 'javascript/auto',
       },
     ],
   },
@@ -313,9 +311,6 @@ When you use SWC's Wasm plugin, SWC will generate cache files in the `.swc` dire
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   module: {
@@ -327,7 +322,10 @@ export default {
           options: {
             jsc: {
               experimental: {
-                cacheRoot: path.join(__dirname, './node_modules/.cache/swc'),
+                cacheRoot: path.join(
+                  import.meta.dirname,
+                  './node_modules/.cache/swc',
+                ),
               },
             },
           },
@@ -497,7 +495,7 @@ To ensure the accuracy of the collected information, users must ensure that subs
 - **Type:** `boolean`
 - **Default:** `false`
 
-Whether to collect type exports information for [`typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence). This is used to check type exports of submodules when running in `'tolerant'` mode.
+Whether to collect type exports information for [`typeReexportsPresence`](/config/module-parser#javascripttypereexportspresence). This is used to check type exports of submodules when running in `'tolerant'` mode.
 
 Please refer to [type reexports presence example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
 

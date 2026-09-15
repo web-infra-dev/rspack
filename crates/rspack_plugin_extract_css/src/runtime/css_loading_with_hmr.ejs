@@ -1,46 +1,79 @@
-var oldTags = [];
-var newTags = [];
-var applyHandler = function (options) {
+<%- var("extractCssOldTags") %> = [];
+<%- var("extractCssNewTags") %> = [];
+<%- var("extractCssApplyHandler") %> = function (options) {
 	return {
-		dispose: function () {
-			for (var i = 0; i < oldTags.length; i++) {
-				var oldTag = oldTags[i];
+		dispose: function () {},
+		apply: function () {
+			for (var i = 0; i < extractCssNewTags.length; i++) extractCssNewTags[i].sheet.disabled = false;
+			for (var i = 0; i < extractCssOldTags.length; i++) {
+				var oldTag = extractCssOldTags[i];
 				if (oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);
 			}
-			oldTags.length = 0;
-		},
-		apply: function () {
-			for (var i = 0; i < newTags.length; i++) newTags[i].rel = "stylesheet";
-			newTags.length = 0;
+			extractCssOldTags.length = 0;
+			extractCssNewTags.length = 0;
 		}
 	}
 }
-<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList) {
-	applyHandlers.push(applyHandler);
-	chunkIds.forEach(function (chunkId) {
-		var href = <%- REQUIRE %>.miniCssF(chunkId);
+<%- var("extractCssInitialChunkIds") %> = <%- _initial_chunk_ids %>;
+// A chunk is present on this page only when the active JavaScript
+// chunk-loading runtime records it as fully loaded.
+<%- var("extractCssChunkIsLoaded") %> = function (chunkId) {
+	return typeof <%- _js_state_expression %> !== "undefined" && <%- _js_state_expression %> && <%- _js_state_expression %>[chunkId] === 0;
+};
+<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss) {
+	applyHandlers.push(extractCssApplyHandler);
+	/**
+		`miniCss` is the hot-update manifest's namespace for extracted CSS:
+		`miniCss.c` lists the chunks whose extracted CSS content actually changed
+		and `miniCss.r` the chunks whose extracted CSS disappeared. It is kept
+		apart from the native css runtime's `css` namespace so neither runtime
+		reacts to the other's stylesheets. Its absence means this update carries
+		no extracted CSS work at all — notably the runtime chunk is in `chunkIds`
+		on every update (its full hash always changes) while its stylesheet
+		rarely does.
+	 */
+	var cssRemovedChunkIds = (miniCss && miniCss.r) || [];
+	var cssChunkIds = (miniCss && miniCss.c) || [];
+	var seen = {};
+	cssRemovedChunkIds.forEach(function (chunkId) {
+		var href = <%- _get_chunk_css_filename %>(chunkId);
+		if (!href) return;
+		var oldTag = extractCssFindStylesheet(href, <%- PUBLIC_PATH %> + href);
+		if (oldTag) extractCssOldTags.push(oldTag);
+	});
+	cssChunkIds.forEach(function (chunkId) {
+		var href = <%- _get_chunk_css_filename %>(chunkId);
+		if (!href) return;
 		var fullhref = <%- PUBLIC_PATH %> + href;
-		var oldTag = findStylesheet(href, fullhref);
-		if (!oldTag) return;
+		if (seen[fullhref]) return;
+		seen[fullhref] = true;
+		var oldTag = extractCssFindStylesheet(href, fullhref);
+		// The manifest is computed from the compilation and also lists chunks this
+		// page never loaded. A missing tag is legitimate only for a chunk that is
+		// actually on the page: an initial chunk gaining its first stylesheet, or
+		// a loaded async chunk whose stylesheet was removed by an earlier update.
+		if (!oldTag && !extractCssInitialChunkIds[chunkId] && !extractCssChunkIsLoaded(chunkId)) return;
 		promises.push(new Promise(function (resolve, reject) {
-			var tag = createStylesheet(
+			var tag = extractCssCreateStylesheet(
 				chunkId,
 
 				/**
-					If dynamically add link tag through dom API and there is already a loaded style link, browsers sometimes treats the new link tag as the same link, and won't fetch the new style.
-					Use query to avoid browser cache the link tag, force to re-fetch new style, this is the same strategy as updateCss API, this can happen during lazy compilation
+					Use a query to bypass the browser cache: with an existing link the
+					browser may treat the new tag as the same resource and skip fetching
+					(this can happen during lazy compilation, same strategy as the
+					updateCss API), and even without a current link the stable filename
+					may still be cached from before the stylesheet was removed.
 				 */
 				`${fullhref}?${Date.now()}`,
 				oldTag,
 				function () {
-					tag.as = "style";
-					tag.rel = "preload";
+					tag.sheet.disabled = true;
+					if (oldTag) extractCssOldTags.push(oldTag);
+					extractCssNewTags.push(tag);
 					resolve();
 				},
 				reject
 			);
-			oldTags.push(oldTag);
-			newTags.push(tag);
 		}))
 	});
 }

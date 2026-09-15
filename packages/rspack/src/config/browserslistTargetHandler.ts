@@ -118,6 +118,25 @@ export const resolve = (
       kaios: [2, 5],
       node: [4, 9],
     }),
+    computedProperty: rawChecker({
+      chrome: 47,
+      and_chr: 47,
+      edge: 12,
+      firefox: 34,
+      and_ff: 34,
+      // ie: Not supported,
+      opera: 34,
+      op_mob: 34,
+      safari: 8,
+      ios_saf: 8,
+      samsung: 5,
+      android: 47,
+      // baidu: Not tracked,
+      and_qq: [14, 9],
+      and_uc: [15, 5],
+      kaios: [2, 5],
+      node: [4, 0],
+    }),
     arrowFunction: rawChecker({
       chrome: 45,
       and_chr: 45,
@@ -259,6 +278,24 @@ export const resolve = (
       // and_uc: Not supported
       kaios: [3, 0],
       node: 14,
+    }),
+    logicalAssignment: rawChecker({
+      chrome: 85,
+      and_chr: 85,
+      edge: 85,
+      firefox: 79,
+      and_ff: 79,
+      // ie: Not supported,
+      opera: 71,
+      op_mob: 60,
+      safari: 14,
+      ios_saf: 14,
+      samsung: 14,
+      android: 85,
+      // and_qq: Not supported
+      // baidu: Not supported
+      // and_uc: Not supported
+      node: 15,
     }),
     templateLiteral: rawChecker({
       chrome: 41,

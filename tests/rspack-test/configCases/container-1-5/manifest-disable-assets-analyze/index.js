@@ -1,5 +1,5 @@
-const fs = __non_webpack_require__("fs");
-const path = __non_webpack_require__("path");
+const fs = require("fs");
+const path = require("path");
 
 const statsPath = path.join(__dirname, "mf-stats.json");
 const manifestPath = path.join(__dirname, "mf-manifest.json");

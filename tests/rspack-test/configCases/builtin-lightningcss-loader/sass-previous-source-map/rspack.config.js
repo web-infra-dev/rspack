@@ -26,7 +26,10 @@ class Plugin {
         expect(fooSource).toBeTruthy();
         expect(barSource).toBeTruthy();
         expect(map.file).toEqual('bundle0.css');
-        const normalizedBarSource = `webpack:///${path.basename(barSource)}`;
+        let normalizedBarSource = `webpack:///${path.basename(barSource)}`;
+        if (compiler.options.experiments?.runtimeMode === 'rspack') {
+          normalizedBarSource = `rspack:///${path.basename(barSource)}`;
+        }
 
         const css = fs.readFileSync(
           path.resolve(outputPath, 'bundle0.css'),

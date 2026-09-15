@@ -2,11 +2,9 @@
 description: 'This section covers all variables available in code compiled with Rspack'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import Columns from '@components/Columns';
 import { ApiMeta, Stability } from '@components/ApiMeta';
-
-<WebpackLicense from="https://webpack.js.org/api/module-variables/" />
 
 # Module variables
 
@@ -98,7 +96,7 @@ __dirname
 
 The `import.meta` exposes context-specific metadata to a JavaScript module, such as the URL of the module. It is only available in modules that support ESM ([module type](/misc/glossary#module-type) is `javascript/auto` or `javascript/esm`).
 
-Normally, unknown `import.meta` metadata is replaced with `undefined` by default. When using [ESM output](/guide/features/esm), [`module.parser.javascript.importMeta`](/config/module#moduleparserjavascriptimportmeta) defaults to `'preserve-unknown'`, so unknown metadata is preserved for runtime evaluation.
+Normally, unknown `import.meta` metadata is replaced with `undefined` by default. When using [ESM output](/guide/features/esm), [`module.parser.javascript.importMeta`](/config/module-parser#javascriptimportmeta) defaults to `'preserve-unknown'`, so unknown metadata is preserved for runtime evaluation. You can also use the object form of `module.parser.javascript.importMeta` to control known `import.meta` properties individually.
 
 Rspack statically analyzes `import.meta` properties and replaces them with concrete values at compile time, so dynamic access to `import.meta` (e.g., `Object.keys(import.meta)`) is not supported and will emit a warning. You should access metadata on `import.meta` via property access or destructuring assignment.
 
@@ -199,14 +197,148 @@ img.src = './src/img.png'; // module ID of img.png
 </Columns>
 
 :::warning
-`import.meta.resolve()` is currently experimental. To use it, you must enable [`module.parser.javascript.importMetaResolve`](/config/module#moduleparserjavascriptimportmetaresolve). Rspack also plans to [align this API with the standard behavior](https://github.com/openjs-foundation/bundler-collab-space/issues/8) in the future, so its behavior may change. Use it with caution.
+`import.meta.resolve()` is currently experimental. To use it, you must enable [`module.parser.javascript.importMetaResolve`](/config/module-parser#javascriptimportmetaresolve). Rspack also plans to [align this API with the standard behavior](https://github.com/openjs-foundation/bundler-collab-space/issues/8) in the future, so its behavior may change. Use it with caution.
+:::
+
+### import.meta.glob
+
+<ApiMeta specific={['Rspack']} addedVersion="2.0.5" />
+
+`import.meta.glob` allows you to import multiple modules at once using glob patterns. Rspack will parse and reference the matching modules during the build process.
+
+- **Type:**
+
+```ts
+interface ImportMetaGlobOptions<Eager extends boolean = boolean> {
+  /**
+   * If `true`, modules are loaded synchronously.
+   *
+   * @default false
+   */
+  eager?: Eager;
+  /**
+   * Import only the specific named export. Set to `default` to import the default export.
+   */
+  import?: string;
+  /**
+   * Append a query to each matched module request.
+   */
+  query?: string | Record<string, string | number | boolean>;
+  /**
+   * Search files inside `node_modules` and hidden paths.
+   *
+   * @default false
+   */
+  exhaustive?: boolean;
+  /**
+   * Base path for resolving relative glob patterns and returned keys.
+   */
+  base?: string;
+  /**
+   * Match file paths case-sensitively.
+   *
+   * @default true
+   */
+  caseSensitive?: boolean;
+}
+
+function glob(
+  /**
+   * A glob pattern, or an array of glob patterns, to match files.
+   */
+  pattern: string | readonly string[],
+  options?: ImportMetaGlobOptions<false>,
+): Record<string, () => Promise<any>>;
+
+function glob(
+  /**
+   * A glob pattern, or an array of glob patterns, to match files.
+   */
+  pattern: string | readonly string[],
+  options: ImportMetaGlobOptions<true>,
+): Record<string, any>;
+```
+
+- **Parameters:**
+  - `pattern`: A glob pattern string, or an array of glob pattern strings, to match files (e.g., `'./dir/*.js'`). Supports `*`, `?`, `[abc]`, `{a,b}`, and `**` for recursive matching. Array patterns can also include negative patterns such as `'!**/bar.js'`.
+  - `options.eager`: When set to `true`, modules are included directly in the bundle and loaded synchronously. By default (`false`), modules are lazily loaded and each value is a thunk function that returns a `Promise` resolving to the module.
+  - `options.import`: Import only the specified export from each matched module. For example, use `'default'` to get default exports, or a named export such as `'setup'`.
+  - `options.query`: Append a query to each matched module request. It can be a query string such as `'?raw'`, or an object that is serialized as a URL query string. The keys returned from `import.meta.glob()` do not include the query.
+  - `options.exhaustive`: Search files inside `node_modules` and hidden paths. This is disabled by default because it can increase build time.
+  - `options.base`: Base path for resolving relative glob patterns and returned keys. Absolute glob patterns are still resolved from the project root, while returned keys are made relative to `base`.
+  - `options.caseSensitive`: Whether to match file paths case-sensitively. When set to `false`, matching ignores case, while returned object keys preserve the filesystem's original casing. Defaults to `true`.
+
+- **Example:**
+
+```js
+// Lazy (default): each value is a function () => Promise<module>
+const modules = import.meta.glob('./dir/*.js');
+
+// All matched modules are available as async thunks
+const foo = await modules['./dir/foo.js']();
+console.log(foo.default);
+
+// Eager: each value is the module object directly
+const eagerModules = import.meta.glob('./dir/*.js', { eager: true });
+console.log(eagerModules['./dir/foo.js'].default);
+
+// Import only the default export from each matched module
+const defaultModules = import.meta.glob('./dir/*.js', { import: 'default' });
+const fooDefault = await defaultModules['./dir/foo.js']();
+console.log(fooDefault);
+
+// Combine eager loading with import selection
+const eagerDefaultModules = import.meta.glob('./dir/*.js', {
+  eager: true,
+  import: 'default',
+});
+console.log(eagerDefaultModules['./dir/foo.js']);
+
+// Append a query to each matched import
+const rawModules = import.meta.glob('./dir/*.js', {
+  query: '?raw',
+  import: 'default',
+});
+const rawFoo = await rawModules['./dir/foo.js']();
+
+// Query objects are serialized as URL query strings
+const dataModules = import.meta.glob('./dir/*.js', {
+  query: { type: 'data', inline: true },
+  eager: true,
+});
+
+// Resolve files from ./base and expose keys relative to ./base
+const modulesWithBase = import.meta.glob('./**/*.js', {
+  base: './base',
+});
+
+// Include matches inside node_modules and hidden paths
+const exhaustiveModules = import.meta.glob(
+  ['./node_modules/**/*.js', './.config/*.js'],
+  {
+    exhaustive: true,
+  },
+);
+
+// Recursive matching with **
+const allModules = import.meta.glob('./components/**/*.js', { eager: true });
+```
+
+:::tip
+Rspack uses static analysis to parse the parameters of `import.meta.glob()` during compilation. Therefore, the `pattern` parameter must be a string literal or an array of string literals, and the `options` parameter must be an object literal. Variables or dynamically constructed values are not supported.
+:::
+
+:::warning
+`import.meta.glob()` matches files on the filesystem at build time and includes them in the bundle. Avoid using overly broad glob patterns, as they can significantly increase build time and output size.
 :::
 
 ### import.meta.webpackContext
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-`import.meta.webpackContext` is the ESM equivalent of [`require.context()`](/api/runtime-api/module-methods#requirecontext). It allows you to dynamically import a set of modules.
+`import.meta.webpackContext` is the ESM equivalent of [`require.context()`](/api/runtime-api/module-methods#requirecontext). It allows you to dynamically import a set of modules and is provided for compatibility with webpack context modules.
+
+For new Rspack code, we recommend using [`import.meta.glob`](#importmetaglob) instead when webpack-compatible context behavior is not required.
 
 You can use `import.meta.webpackContext` in your code, and Rspack will parse and reference the matching modules during the build process.
 
@@ -325,17 +457,15 @@ componentsContext.keys().forEach((fileName) => {
 
 The ESM equivalent of [`module.hot`](#modulehot). `import.meta.webpackHot` can be used in strict ESM modules (module type `javascript/esm`), while `module.hot` cannot.
 
-## Runtime
+### import.meta.rspackHash
 
-### \_\_webpack_hash\_\_
-
-<ApiMeta specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
 
 It provides access to the hash of the compilation.
 
 <Columns>
 ```js title=Source
-__webpack_hash__
+import.meta.rspackHash;
 ```
 
 ```js title=Compiled
@@ -348,6 +478,157 @@ __webpack_require__.h = function () {
 ```
 
 </Columns>
+
+### import.meta.rspackPublicPath
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+Equals the configuration option's [`output.publicPath`](/config/output#outputpublicpath).
+
+<Columns>
+```js title=Source
+import.meta.rspackPublicPath;
+```
+
+```js title=Compiled
+__webpack_require__.p;
+
+// output.publicPath !== "auto"
+__webpack_require__.p = 'output.publicPath';
+// output.publicPath === "auto"
+__webpack_require__.p = 'calculated from document/location';
+```
+
+</Columns>
+
+> See [Dynamically set publicPath](/guide/features/asset-base-path#dynamically-set-publicpath) for more information about the usage of `import.meta.rspackPublicPath`.
+
+### import.meta.rspackBaseUri
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+Get or change base URI at runtime.
+
+<Columns>
+```js title=Source
+import.meta.rspackBaseUri;
+```
+
+```js title=Compiled
+__webpack_require__.b;
+
+// chunk loading
+__webpack_require__.b = document.baseURI || self.location.href;
+```
+
+</Columns>
+
+### import.meta.rspackNonce
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+Rspack is capable of adding a nonce to all scripts that it loads. To activate this feature, set `import.meta.rspackNonce` in your entry script.
+
+<Columns>
+```js title=Source
+import.meta.rspackNonce = 'your_nonce_code';
+```
+
+```js title=Compiled
+__webpack_require__.nc = '2312312';
+
+// webpack/runtime/load_script
+if (__webpack_require__.nc) {
+  script.setAttribute('nonce', __webpack_require__.nc);
+}
+```
+
+</Columns>
+
+### import.meta.rspackShareScopes
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+This object is used as a shared scope in the remote container and is filled with the provided modules from a host.
+
+<Columns>
+```js title=Source
+import.meta.rspackShareScopes;
+```
+
+```js title=Compiled
+__webpack_require__.S;
+```
+
+</Columns>
+
+### import.meta.rspackInitSharing
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+This method is used to initialize modules of a shared scope in the host container.
+
+<Columns>
+```js title=Source
+import.meta.rspackInitSharing('default');
+```
+
+```js title=Compiled
+__webpack_require__.I('default');
+```
+
+</Columns>
+
+### import.meta.rspackVersion
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+Current Rspack version, default to version in `@rspack/core/package.json`, can be modified through `output.bundlerInfo.version`.
+
+<Columns>
+```js title=Source
+import.meta.rspackVersion;
+```
+
+```js title=Compiled
+__webpack_require__.rv();
+
+// webpack/runtime/rspack_version
+__webpack_require__.rv = () => '0.7.4';
+```
+
+</Columns>
+
+### import.meta.rspackUniqueId
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+The ID of the current bundler, the value is `bundler={bundler}@{version}`:
+
+- `bundler`: Default to `"rspack"` and can be modified through [output.bundlerInfo.bundler](/config/output#outputbundlerinfo).
+- `version`: Default to version in `@rspack/core/package.json` and can be modified through [output.bundlerInfo.version](/config/output#outputbundlerinfo).
+
+<Columns>
+```js title=Source
+import.meta.rspackUniqueId;
+```
+
+```js title=Compiled
+__webpack_require__.ruid;
+
+// webpack/runtime/rspack_unique_id
+__webpack_require__.ruid = 'bundler=rspack@2.1.2';
+```
+
+</Columns>
+
+## Runtime
+
+### \_\_webpack_hash\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} stability={Stability.Deprecated} />
+
+The CommonJS equivalent of [`import.meta.rspackHash`](#importmetarspackhash).
 
 ### \_\_webpack_runtime_id\_\_
 
@@ -371,70 +652,21 @@ __webpack_require__.j = '909';
 
 ### \_\_webpack_public_path\_\_
 
-<ApiMeta specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} stability={Stability.Deprecated} />
 
-Equals the configuration option's [`output.publicPath`](/config/output#outputpublicpath).
-
-<Columns>
-```js title=Source
-__webpack_public_path__
-```
-
-```js title=Compiled
-__webpack_require__.p;
-
-// output.publicPath !== "auto"
-__webpack_require__.p = 'output.publicPath';
-// output.publicPath === "auto"
-__webpack_require__.p = 'calculated from document/location';
-```
-
-</Columns>
-
-> See [Dynamically set publicPath](/guide/features/asset-base-path#dynamically-set-publicpath) for more information about the usage of `__webpack_public_path__`.
+The CommonJS equivalent of [`import.meta.rspackPublicPath`](#importmetarspackpublicpath).
 
 ### \_\_webpack_base_uri\_\_
 
-<ApiMeta specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} stability={Stability.Deprecated} />
 
-Get or change base URI at runtime.
-
-<Columns>
-```js title=Source
-__webpack_base_uri__
-```
-
-```js title=Compiled
-__webpack_require__.b;
-
-// chunk loading
-__webpack_require__.b = document.baseURI || self.location.href;
-```
-
-</Columns>
+The CommonJS equivalent of [`import.meta.rspackBaseUri`](#importmetarspackbaseuri).
 
 ### \_\_webpack_nonce\_\_
 
-<ApiMeta specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} stability={Stability.Deprecated} />
 
-Rspack is capable of adding a nonce to all scripts that it loads.
-To activate this feature, set a `__webpack_nonce__` variable and include it in your entry script.
-
-<Columns>
-```js title=Source
-__webpack_nonce__ = 'your_nonce_code';
-```
-
-```js title=Compiled
-__webpack_require__.nc = '2312312';
-
-// webpack/runtime/load_script
-if (__webpack_require__.nc) {
-  script.setAttribute('nonce', __webpack_require__.nc);
-}
-```
-
-</Columns>
+The CommonJS equivalent of [`import.meta.rspackNonce`](#importmetarspacknonce).
 
 ## Modules
 
@@ -494,6 +726,25 @@ __webpack_module__.id
 "main.js": function(renamed_module) {
   renamed_module.id
 }
+```
+
+</Columns>
+
+### \_\_webpack_layer\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+Access the [layer](/guide/advanced/layer) of the current module. Its value is the configured layer name, or `null` when the module has no layer.
+
+Rspack replaces `__webpack_layer__` at compile time, allowing optimizers to remove unreachable layer-specific branches.
+
+<Columns>
+```js title=Source
+const currentLayer = __webpack_layer__;
+```
+
+```js title=Compiled
+const currentLayer = 'client';
 ```
 
 </Columns>
@@ -583,7 +834,7 @@ __resourceQuery
 
 ### \_\_webpack_exports_info\_\_
 
-<ApiMeta addedVersion="1.0.0" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 In modules, `__webpack_exports_info__` is available to allow exports introspection:
 
@@ -671,7 +922,7 @@ const publicPaths = ['a', 'b', 'c'];
 __webpack_chunk_load__ = async (id) => {
   let error;
   for (const path of publicPaths) {
-    __webpack_public_path__ = path;
+    import.meta.rspackPublicPath = path;
     try {
       return await originalLoad(id);
     } catch (e) {
@@ -687,7 +938,7 @@ import('./module-a').then((moduleA) => {
 
 ### \_\_webpack_get_script_filename\_\_
 
-<ApiMeta addedVersion="1.0.0" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 It provides filename of the chunk by its id.
 
@@ -722,15 +973,15 @@ __webpack_get_script_filename__ = (chunkId) => {
 
 ### \_\_webpack_share_scopes\_\_
 
-<ApiMeta specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} stability={Stability.Deprecated} />
 
-This object is used as a shared scope in the remote container and is filled with the provided modules from a host
+The CommonJS equivalent of [`import.meta.rspackShareScopes`](#importmetarspacksharescopes).
 
 ### \_\_webpack_init_sharing\_\_
 
-<ApiMeta specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} stability={Stability.Deprecated} />
 
-This method is used to initialize modules of a shared scope in the host container.
+The CommonJS equivalent of [`import.meta.rspackInitSharing`](#importmetarspackinitsharing).
 
 ## System.js
 
@@ -744,43 +995,14 @@ Context from System.js when `output.library.type="system"`
 
 ### \_\_rspack_version\_\_
 
-<ApiMeta specific={['Rspack']} />
-Current Rspack version, default to version in `@rspack/core/package.json`, can
-be modified through output.bundlerInfo.version.
+<ApiMeta specific={['Rspack']} stability={Stability.Deprecated} />
 
-<Columns>
-```js title=Source
-__rspack_version__
-```
-
-```js title=Compiled
-__webpack_require__.rv;
-
-// webpack/runtime/rspack_version
-__webpack_require__.rv = '0.7.4';
-```
-
-</Columns>
+The CommonJS equivalent of [`import.meta.rspackVersion`](#importmetarspackversion).
 
 ### \_\_rspack_unique_id\_\_
 
-<ApiMeta addedVersion="1.0.0" specific={['Rspack']} />
+<ApiMeta specific={['Rspack']} stability={Stability.Deprecated} />
 
-The ID of the current bundler, the value is `bundler={bundler}@{version}`:
+The CommonJS equivalent of [`import.meta.rspackUniqueId`](#importmetarspackuniqueid).
 
-- `bundler`: Default to `"rspack"` and can be modified through [output.bundlerInfo.bundler](/config/output#outputbundlerinfo).
-- `version`: Default to version in `@rspack/core/package.json` and can be modified through [output.bundlerInfo.version](/config/output#outputbundlerinfo).
-
-<Columns>
-```js title=Source
-__rspack_unique_id__
-```
-
-```js title=Compiled
-__webpack_require__.ruid;
-
-// webpack/runtime/rspack_unique_id
-__webpack_require__.ruid = 'bundler=rspack@0.7.4';
-```
-
-</Columns>
+<Attribution url="https://webpack.js.org/api/module-variables/" />

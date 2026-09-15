@@ -1,17 +1,22 @@
-use std::{borrow::Cow, hash::Hash, sync::atomic::AtomicU32};
+use std::{
+  borrow::Cow,
+  fmt::{Display, Formatter},
+  sync::atomic::AtomicU32,
+};
 
 use either::Either;
 use rspack_cacheable::{
   cacheable,
   with::{AsPreset, AsVec},
 };
-use rspack_util::{atom::Atom, json_stringify, ryu_js};
+use rspack_hash::RspackHasher;
+use rspack_intern::Atom;
+use rspack_util::{json_stringify, ryu_js};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{DependencyId, property_access};
 
 pub static NEXT_EXPORTS_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
-pub static NEXT_EXPORT_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Clone, Hash)]
 pub struct ExportInfoTargetValue {
@@ -42,7 +47,7 @@ pub enum EvaluatedInlinableValue {
   String(#[cacheable(with=AsPreset)] Atom),
 }
 
-impl Hash for EvaluatedInlinableValue {
+impl std::hash::Hash for EvaluatedInlinableValue {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     std::mem::discriminant(self).hash(state);
     match self {
@@ -57,6 +62,12 @@ impl Hash for EvaluatedInlinableValue {
       }
       _ => {}
     }
+  }
+}
+
+impl rspack_hash::RspackHash for EvaluatedInlinableValue {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.render("").hash(state);
   }
 }
 
@@ -115,7 +126,16 @@ pub enum UsedNameItem {
   Inlined(EvaluatedInlinableValue),
 }
 
-#[derive(Debug, Clone)]
+impl rspack_hash::RspackHash for UsedNameItem {
+  fn hash(&self, state: &mut RspackHasher) {
+    match self {
+      UsedNameItem::Str(value) => value.hash(state),
+      UsedNameItem::Inlined(value) => value.hash(state),
+    }
+  }
+}
+
+#[derive(Debug, Clone, rspack_hash::RspackHash)]
 pub struct InlinedUsedName {
   value: EvaluatedInlinableValue,
   suffix: Vec<Atom>,
@@ -169,6 +189,28 @@ pub enum ExportProvided {
   Unknown,
 }
 
+impl rspack_hash::RspackHash for ExportProvided {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.as_str().hash(state);
+  }
+}
+
+impl Display for ExportProvided {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    f.write_str(self.as_str())
+  }
+}
+
+impl ExportProvided {
+  fn as_str(&self) -> &'static str {
+    match self {
+      ExportProvided::Provided => "provided",
+      ExportProvided::NotProvided => "not-provided",
+      ExportProvided::Unknown => "unknown",
+    }
+  }
+}
+
 #[derive(Debug, Hash, PartialEq, Eq, Default, Clone)]
 pub struct UsageKey(pub Vec<Either<Box<UsageKey>, UsageState>>);
 
@@ -177,8 +219,6 @@ impl UsageKey {
     self.0.push(value);
   }
 }
-
-pub type UsageFilterFnTy<T> = Box<dyn Fn(&T) -> bool>;
 
 #[derive(Debug, PartialEq, Copy, Clone, Default, Hash, PartialOrd, Ord, Eq)]
 pub enum UsageState {
@@ -190,12 +230,36 @@ pub enum UsageState {
   Used = 4,
 }
 
+impl rspack_hash::RspackHash for UsageState {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.as_str().hash(state);
+  }
+}
+
+impl Display for UsageState {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    f.write_str(self.as_str())
+  }
+}
+
+impl UsageState {
+  fn as_str(&self) -> &'static str {
+    match self {
+      UsageState::Unused => "unused",
+      UsageState::OnlyPropertiesUsed => "only-properties-used",
+      UsageState::NoInfo => "no-info",
+      UsageState::Unknown => "unknown",
+      UsageState::Used => "used",
+    }
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UsedByExports {
-  pub condition: UsedByExportsCondition,
+  condition: UsedByExportsCondition,
   #[cacheable(with=AsVec)]
-  pub deferred_pure_checks: Vec<UsedByExportsDeferredPureCheck>,
+  deferred_pure_checks: Vec<UsedByExportsDeferredPureCheck>,
 }
 
 impl UsedByExports {
@@ -219,6 +283,23 @@ impl UsedByExports {
   ) -> Self {
     self.deferred_pure_checks = deferred_pure_checks;
     self
+  }
+
+  pub fn condition(&self) -> &UsedByExportsCondition {
+    &self.condition
+  }
+
+  pub fn deferred_pure_checks(&self) -> &[UsedByExportsDeferredPureCheck] {
+    &self.deferred_pure_checks
+  }
+
+  pub fn has_deferred_pure_checks(&self) -> bool {
+    !self.deferred_pure_checks.is_empty()
+  }
+
+  pub fn is_false_without_deferred_pure_checks(&self) -> bool {
+    matches!(&self.condition, UsedByExportsCondition::Bool(false))
+      && !self.has_deferred_pure_checks()
   }
 }
 

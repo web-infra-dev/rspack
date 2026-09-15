@@ -1,0 +1,9 @@
+{
+  "extends": "${configDir}/../b/tsconfig",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@lib/*": ["${configDir}/src/lib/*"]
+    }
+  }
+}

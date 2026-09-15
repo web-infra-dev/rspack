@@ -1,7 +1,10 @@
 use std::{
   borrow::Cow,
   hash::BuildHasherDefault,
-  sync::atomic::{AtomicU8, Ordering},
+  sync::{
+    Arc,
+    atomic::{AtomicU8, Ordering},
+  },
 };
 
 use dashmap::DashSet;
@@ -22,12 +25,11 @@ mod r#struct;
 pub use r#struct::*;
 
 use crate::{
-  BoxModule, BoxRuntimeModule, BuildChunkGraphArtifact, BuildModuleGraphArtifact, Chunk,
-  ChunkGraph, ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact, ChunkUkey, Compilation,
+  BoxRuntimeModule, BuildChunkGraphArtifact, BuildModuleGraphArtifact, Chunk, ChunkGraph,
+  ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact, ChunkUkey, Compilation,
   CompilationAssets, CompilationLogging, CompilerOptions, ExportsInfoArtifact, LogType,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
-  OptimizationBailoutItem, PrefetchExportsInfoMode, ProvidedExports, RuntimeSpec, SourceType,
-  StealCell, UsedExports,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleRef,
+  OptimizationBailoutItem, ProvidedExports, RuntimeSpec, SourceType, StealCell, UsedExports,
   compilation::build_module_graph::{ExecutedRuntimeModule, ModuleExecutor},
   rspack_sources::BoxSource,
 };
@@ -146,10 +148,6 @@ impl<'compilation> Stats<'compilation> {
 
   pub fn artifact_fallback_flags(&self) -> u8 {
     self.artifact_fallback_flags.load(Ordering::Relaxed)
-  }
-
-  pub fn take_artifact_fallback_flags(&self) -> u8 {
-    self.artifact_fallback_flags.swap(0, Ordering::Relaxed)
   }
 
   pub fn artifact_fallback_names(flags: u8) -> Vec<&'static str> {
@@ -862,13 +860,13 @@ impl Stats<'_> {
           ),
         },
         StatschunkGroupChildAssets {
-          preload: get_chunk_group_oreded_child_assets(
+          preload: get_chunk_group_ordered_child_assets(
             &ordered_children,
             &ChunkGroupOrderKey::Preload,
             &build_chunk_graph_artifact.chunk_group_by_ukey,
             &build_chunk_graph_artifact.chunk_by_ukey,
           ),
-          prefetch: get_chunk_group_oreded_child_assets(
+          prefetch: get_chunk_group_ordered_child_assets(
             &ordered_children,
             &ChunkGroupOrderKey::Prefetch,
             &build_chunk_graph_artifact.chunk_group_by_ukey,
@@ -1115,17 +1113,16 @@ impl Stats<'_> {
     f(warnings)
   }
 
-  pub fn get_logging(&self) -> Vec<(String, LogType)> {
+  pub fn get_logging(&self) -> impl Iterator<Item = (Arc<str>, LogType)> {
     self
       .logging()
       .iter()
       .map(|item| {
         let (name, logs) = item.pair();
-        (name.to_owned(), logs.to_owned())
+        (name.clone(), logs.to_owned())
       })
       .sorted_by(|a, b| a.0.cmp(&b.0))
       .flat_map(|item| item.1.into_iter().map(move |log| (item.0.clone(), log)))
-      .collect()
   }
 
   pub fn get_hash(&self) -> Option<&str> {
@@ -1143,7 +1140,7 @@ impl Stats<'_> {
     exports_info_artifact: &'a ExportsInfoArtifact,
     build_module_graph_artifact: &'a BuildModuleGraphArtifact,
     module_ids_artifact: &'a ModuleIdsArtifact,
-    module: &'a BoxModule,
+    module: &'a ModuleRef,
     executed: bool,
     concatenated: bool,
     root_modules: Option<&IdentifierSet>,
@@ -1339,12 +1336,7 @@ impl Stats<'_> {
         let module = module_graph
           .module_by_identifier(&identifier)
           .expect("should have module");
-        let mut assets = module
-          .build_info()
-          .assets
-          .keys()
-          .map(|s| s.as_str())
-          .collect_vec();
+        let mut assets = module.build_info().assets.keys().cloned().collect_vec();
         assets.sort_unstable();
         Some(assets)
       };
@@ -1354,9 +1346,9 @@ impl Stats<'_> {
       let mut reasons: Vec<StatsModuleReason> = mgm
         .incoming_connections()
         .iter()
-        .filter_map(|dep_id| {
+        .filter_map(|connection_id| {
           // the connection is removed
-          let connection = module_graph.connection_by_dependency_id(dep_id)?;
+          let connection = module_graph.connection_by_id(connection_id)?;
           let (module_name, module_id) = connection
             .original_module_identifier
             .and_then(|i| module_graph.module_by_identifier(&i))
@@ -1438,8 +1430,7 @@ impl Stats<'_> {
 
     if options.used_exports {
       stats.used_exports = if !executed && self.options().optimization.used_exports.is_enable() {
-        let exports_info = exports_info_artifact
-          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
+        let exports_info = exports_info_artifact.get_exports_info_data(&module.identifier());
         let used_exports = exports_info.get_used_exports(None);
         match used_exports {
           UsedExports::Unknown => Some(StatsUsedExports::Null),
@@ -1453,8 +1444,7 @@ impl Stats<'_> {
 
     if options.provided_exports {
       stats.provided_exports = if !executed && self.options().optimization.provided_exports {
-        let exports_info = exports_info_artifact
-          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
+        let exports_info = exports_info_artifact.get_exports_info_data(&module.identifier());
         let provided_exports = exports_info.get_provided_exports();
         match provided_exports {
           ProvidedExports::ProvidedNames(v) => Some(v),

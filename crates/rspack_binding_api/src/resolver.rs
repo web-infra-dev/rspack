@@ -1,11 +1,8 @@
 use std::{path::Path, sync::Arc};
 
-use napi::{
-  Either,
-  bindgen_prelude::{Function, block_on},
-};
+use napi::{Either, bindgen_prelude::Function};
 use napi_derive::napi;
-use rspack_core::{ResolveContext, Resolver};
+use rspack_core::Resolver;
 use serde::Serialize;
 
 use crate::{error::ErrorCode, utils::callbackify};
@@ -54,7 +51,7 @@ impl JsResolver {
   #[napi]
   pub fn resolve_sync(&self, path: String, request: String) -> napi::Result<Either<String, ()>> {
     #[allow(clippy::disallowed_methods)]
-    block_on(async {
+    rspack_napi::runtime::block_on(async {
       match self.resolver.resolve(Path::new(&path), &request).await {
         Ok(rspack_core::ResolveResult::Resource(resource)) => Ok(Either::A(resource.full_path())),
         Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(())),
@@ -76,24 +73,23 @@ impl JsResolver {
     callbackify(
       f,
       async move {
-        let mut resolve_context = ResolveContext::default();
-        match resolver
-          .resolve_with_context(Path::new(&path), &request, &mut resolve_context)
-          .await
-        {
+        let (resolve_result, mut resolve_dependencies) = resolver
+          .resolve_with_context(Path::new(&path), &request)
+          .await;
+        match resolve_result {
           Ok(rspack_core::ResolveResult::Resource(resource)) => {
             let mut resolve_request = ResolveRequest::from(resource);
-            resolve_request.file_dependencies = resolve_context
+            resolve_request.file_dependencies = resolve_dependencies
               .file_dependencies
               .drain()
               .map(|path| path.to_string_lossy().into_owned())
               .collect();
-            resolve_request.missing_dependencies = resolve_context
+            resolve_request.missing_dependencies = resolve_dependencies
               .missing_dependencies
               .drain()
               .map(|path| path.to_string_lossy().into_owned())
               .collect();
-            Ok(match serde_json::to_string(&resolve_request) {
+            Ok(match simd_json::to_string(&resolve_request) {
               Ok(json) => Either::<String, ()>::A(json),
               Err(_) => Either::B(()),
             })

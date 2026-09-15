@@ -34,9 +34,9 @@ impl ParserAndGenerator for RslibAssetParserAndGenerator {
     if source_types.is_empty()
       && module
         .build_info()
-        .asset_data_url
+        .asset
         .as_ref()
-        .is_some_and(|config| !config.is_inline() && !config.is_source())
+        .is_some_and(|asset| !asset.data_url.is_inline() && !asset.data_url.is_source())
     {
       return &[SourceType::JavaScript, SourceType::Asset];
     }
@@ -80,5 +80,9 @@ impl ParserAndGenerator for RslibAssetParserAndGenerator {
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
     self.0.get_runtime_hash(module, compilation, runtime).await
+  }
+
+  fn has_runtime_hash(&self) -> bool {
+    self.0.has_runtime_hash()
   }
 }

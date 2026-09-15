@@ -1,5 +1,5 @@
 const { createFsFromVolume, Volume } = require("memfs");
-const deprecationTracking = require("@rspack/test-tools/helper/legacy/deprecationTracking");
+const { start } = require("@rspack/test-tools/helper/legacy/deprecationTracking");
 let tracker = null;
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
@@ -47,7 +47,7 @@ module.exports = [{
 }, {
   description: "should deprecate when watch option is used without callback",
   options(context) {
-    tracker = deprecationTracking.start();
+    tracker = start();
     return {
       watch: true
     };

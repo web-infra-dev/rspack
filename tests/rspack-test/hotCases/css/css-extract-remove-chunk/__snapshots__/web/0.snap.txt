@@ -1,0 +1,13 @@
+# Case css-extract-remove-chunk: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: lazy.chunk.CURRENT_HASH.js
+
+## Manifest
+
+
+## Update

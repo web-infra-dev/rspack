@@ -1,0 +1,98 @@
+```mjs title=foo-runtime.mjs
+export const foo = 'named-foo';
+export default 'default-foo';
+
+```
+
+```mjs title=main.mjs
+// ./index.js
+it('should keep named reexports distinct from default imports in module-external namespace objects', async () => {
+	const a = await import("./shared.mjs").then(m => m.a_namespaceObject)
+	const b = await import("./shared.mjs").then(m => m.b_namespaceObject)
+
+	expect(a.default).toBe('default-foo')
+	expect(a.shared).toBe('a')
+	expect(b.shared).toBe('b')
+	expect(b.namedFoo).toBe('named-foo')
+	expect(b.namedFoo).not.toBe('default-foo')
+})
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var rspackRequire = {};
+export { rspackRequire };
+
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+export { definePropertyGetters };
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+export { makeNamespaceObject };
+
+
+```
+
+```mjs title=shared.mjs
+import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+import foo_runtime, { foo } from "./foo-runtime.mjs";
+
+// NAMESPACE OBJECT: ./a.js
+var a_namespaceObject = {};
+makeNamespaceObject(a_namespaceObject);
+definePropertyGetters(a_namespaceObject, { 
+  "default": () => (a),
+  shared: () => (shared) });
+
+
+// NAMESPACE OBJECT: ./b.js
+var b_namespaceObject = {};
+makeNamespaceObject(b_namespaceObject);
+definePropertyGetters(b_namespaceObject, { 
+  namedFoo: () => (foo),
+  shared: () => (b_shared) });
+
+
+// ./foo-runtime.mjs?4fe1
+
+// ./a.js
+
+
+const shared = 'a'
+
+
+/* export default */ const a = (foo_runtime);
+
+// ./foo-runtime.mjs?ee16
+
+// ./b.js
+
+
+const b_shared = 'b'
+
+
+
+export { a_namespaceObject, b_namespaceObject };
+
+```

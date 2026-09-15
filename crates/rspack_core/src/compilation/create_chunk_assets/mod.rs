@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use rustc_hash::FxHashSet;
 
 use super::*;
-use crate::{cache::Cache, compilation::pass::PassExt, logger::Logger};
+use crate::{compilation::pass::PassExt, logger::Logger};
 
 pub struct CreateChunkAssetsPass;
 
@@ -12,18 +12,14 @@ impl PassExt for CreateChunkAssetsPass {
     "create chunk assets"
   }
 
-  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.before_chunk_asset(compilation).await;
+  fn incremental_passes(&self) -> IncrementalPasses {
+    IncrementalPasses::CHUNK_ASSET
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     let plugin_driver = compilation.plugin_driver.clone();
     create_chunk_assets(compilation, plugin_driver).await?;
     Ok(())
-  }
-
-  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.after_chunk_asset(compilation).await;
   }
 }
 
@@ -32,7 +28,7 @@ pub async fn create_chunk_assets(
   compilation: &mut Compilation,
   plugin_driver: SharedPluginDriver,
 ) -> Result<()> {
-  if (compilation.options.output.filename.has_hash_placeholder()
+  let filename_has_hash_placeholder = compilation.options.output.filename.has_hash_placeholder()
     || compilation
       .options
       .output
@@ -47,7 +43,16 @@ pub async fn create_chunk_assets(
       .options
       .output
       .css_chunk_filename
-      .has_hash_placeholder())
+      .has_hash_placeholder()
+    || compilation.entries.values().any(|entry| {
+      entry
+        .options
+        .filename
+        .as_ref()
+        .is_some_and(|filename| filename.has_hash_placeholder())
+    });
+
+  if filename_has_hash_placeholder
     && let Some(diagnostic) = compilation.incremental.disable_passes(
       IncrementalPasses::CHUNK_ASSET,
       "Chunk filename that dependent on full hash",

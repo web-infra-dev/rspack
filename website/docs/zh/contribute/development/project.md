@@ -17,6 +17,9 @@ description: 'Rspack 项目结构指南，介绍 monorepo 中的 Rust crates、J
 - **`rspack_napi`**: NAPI (Node-API) 支持层，用于 Rust 和 Node.js 之间的互操作性
 - **`rspack_allocator`**: 使用 mimalloc 的内存分配器，用于优化内存分配性能（Linux/macOS）
 
+关于这些 crates 与 `@rspack/core` 之间的所有权、线程、hook bridge 和生命周期关系，请参阅
+[JavaScript API 架构](/api/javascript-api/architecture)。
+
 ### 构建与绑定 Crates
 
 - **`rspack_binding_build`**: 用于构建 Node.js 原生绑定的构建脚本
@@ -214,9 +217,17 @@ Rspack 的端到端测试，涵盖真实场景和集成测试：
 - **`fixtures/`**: E2E 测试的共享 fixtures 和工具
 - **`utils/`**: E2E 测试执行的工具函数
 
-### 基准测试 (`bench/`)
+### JavaScript 基准测试 (`bench/`)
 
 用于跟踪 Rspack JavaScript API 性能并防止性能退化的性能基准测试：
 
 - **`fixtures/`**: 基准测试 fixtures（例如，用于基准测试的 `ts-react` 项目）
 - 用于测量构建性能和 API 执行时间的基准测试文件
+
+### Rust 基准测试 (`xtask/benchmark/`)
+
+用于跟踪 Rust 编译流水线性能的 CodSpeed 基准测试：
+
+- **`cases/`**: 针对 module graph、chunk graph、bundling、依赖扫描和 persistent cache 的端到端基准测试用例
+- **`stages/`**: 针对单个 compilation stage 的基准测试用例
+- 请参考 **`xtask/benchmark/README.md`** 了解本地 CodSpeed CPU simulation 命令和 Valgrind 临时文件位置

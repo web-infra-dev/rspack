@@ -38,17 +38,17 @@ const runtimePlugin = function () {
 
                                      promise = new Promise(function (resolve, reject) {
                                         installedChunkData = installedChunks[chunkId] = [resolve, reject];
-                                        var filename = __non_webpack_require__('path').join(
+                                        var filename = require('path').join(
                                             __dirname, "" + __webpack_require__.u(chunkId));
-                                         __non_webpack_require__('fs').readFile(filename, 'utf-8', function (err, content) {
+                                         require('fs').readFile(filename, 'utf-8', function (err, content) {
                                             if (err) return reject(err);
                                             var chunk = {};
                                             content = content.replace('__HANDLER__', 'PASS')
-                                             __non_webpack_require__('vm').runInThisContext(
+                                             require('vm').runInThisContext(
                                                 '(function(exports, require, __dirname, __filename) {' +
                                                 content + '\n})',
                                                 filename)(
-                                                chunk, __non_webpack_require__, __non_webpack_require__('path').dirname(filename), filename);
+                                                chunk, eval("require"), require('path').dirname(filename), filename);
                                             installChunk(chunk);
                                         });
                                     });

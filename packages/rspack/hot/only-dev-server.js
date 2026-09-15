@@ -2,8 +2,6 @@
 	MIT License http://www.opensource.org/licenses/mit-license.php
 	Author Tobias Koppers @sokra
 */
-/*globals __webpack_hash__ */
-
 import { log, formatError } from './log.js';
 import { emitter as hotEmitter } from './emitter.js';
 import { logApplyResult } from './log-apply-result.js';

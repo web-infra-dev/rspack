@@ -5,9 +5,9 @@ CARGO_WORKSPACE_DIR = { value = "", relative = true }
 [alias]
 lint = "clippy --workspace --all-targets -- --deny warnings"
 # AKA `test-update`, handy cargo rst update without install `cargo-rst` binary
-t  = "test --no-fail-fast"
 codegen = "xtask codegen"
-xtask = "run -p xtask --"
+t       = "test --no-fail-fast"
+xtask   = "run -p xtask --"
 
 [target.'cfg(all())']
 rustflags = [
@@ -32,9 +32,9 @@ rustflags = [
   # "-Wclippy::same_name_method",
 
   "-Aclippy::default_constructed_unit_structs",
-  "-Zshare-generics=y", # make the current crate share its generic instantiations
-  "-Zthreads=8", # parallel frontend https://blog.rust-lang.org/2023/11/09/parallel-rustc.html
-  "-Csymbol-mangling-version=v0", # symbol mangling v0 https://doc.rust-lang.org/stable/rustc/symbol-mangling/v0.html
+  "-Zshare-generics=y",                         # make the current crate share its generic instantiations
+  "-Zthreads=8",                                # parallel frontend https://blog.rust-lang.org/2023/11/09/parallel-rustc.html
+  "-Csymbol-mangling-version=v0",               # symbol mangling v0 https://doc.rust-lang.org/stable/rustc/symbol-mangling/v0.html
 ]
 
 # Fix napi breaking in test environment <https://github.com/napi-rs/napi-rs/issues/1005#issuecomment-1011034770>
@@ -46,11 +46,7 @@ rustflags = ["-C", "link-args=-Wl,-undefined,dynamic_lookup,-no_fixup_chains,-al
 # To be able to run unit tests on Windows, support compilation to 'x86_64-pc-windows-msvc'.
 # Use Hybrid CRT to reduce the size of the binary (Coming by default with Windows 10 and later versions).
 [target.'cfg(target_os = "windows")']
-rustflags = [
-  "-C", "link-args=/FORCE", 
-  "-C", "link-args=/NODEFAULTLIB:libucrt.lib", 
-  "-C", "link-args=/DEFAULTLIB:ucrt.lib"
-]
+rustflags = ["-C", "link-args=/FORCE", "-C", "link-args=/NODEFAULTLIB:libucrt.lib", "-C", "link-args=/DEFAULTLIB:ucrt.lib"]
 
 [target.wasm32-wasip1-threads]
 rustflags = [
@@ -61,7 +57,8 @@ rustflags = [
   # The allocator uses this link-time value to decide whether to call memory.grow,
   # so it must match the runtime initial pages to ensure memory.grow is never called.
   "link-args=--initial-memory=2147483648 --max-memory=2147483648",
-  "--cfg", "tokio_unstable"
+  "--cfg",
+  "tokio_unstable",
 ]
 
 [target.x86_64-pc-windows-msvc]

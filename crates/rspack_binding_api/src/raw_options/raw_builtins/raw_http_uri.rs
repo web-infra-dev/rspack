@@ -4,13 +4,14 @@ use async_trait::async_trait;
 use napi::bindgen_prelude::{Buffer, Either, FnArgs, Promise};
 use napi_derive::napi;
 use rspack_fs::WritableFileSystem;
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_schemes::{
   HttpClient, HttpResponse, HttpUriOptionsAllowedUris, HttpUriPlugin, HttpUriPluginOptions,
 };
 use rspack_regex::RspackRegex;
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
 use rustc_hash::FxHashMap as HashMap;
+
+use crate::compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction;
 
 type HttpClientRequest =
   ThreadsafeFunction<FnArgs<(String, HashMap<String, String>)>, Promise<JsHttpResponseRaw>>;
@@ -23,8 +24,8 @@ pub struct RawHttpUriPluginOptions {
   pub lockfile_location: Option<String>,
   pub cache_location: Option<String>,
   pub upgrade: bool,
+  pub frozen: bool,
   // pub proxy: Option<String>,
-  // pub frozen: Option<bool>,
   #[napi(ts_type = "(url: string, headers: Record<string, string>) => Promise<JsHttpResponseRaw>")]
   pub http_client: HttpClientRequest,
 }
@@ -92,8 +93,8 @@ fn create_http_uri_plugin_options(
     lockfile_location: options.lockfile_location,
     cache_location: options.cache_location,
     upgrade: options.upgrade,
+    frozen: options.frozen,
     // proxy: options.proxy,
-    // frozen: options.frozen,
     http_client,
     filesystem,
   }

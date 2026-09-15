@@ -1,7 +1,8 @@
 use derive_more::Debug;
 use napi_derive::napi;
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_size_limits::{AssetFilterFn, SizeLimitsPluginOptions};
+
+use crate::compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction;
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]

@@ -5,12 +5,12 @@ use rspack_core::{
   DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec,
   ExportsSpec, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
-use rspack_util::ext::DynHash;
+use rspack_hash::{RspackHash, RspackHasher};
 
-use crate::utils::escape_css;
+use crate::{css_syntax::escape_identifier, utils::replace_css_module_id_placeholder};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CssLocalIdentDependency {
   id: DependencyId,
   local_ident: String,
@@ -82,11 +82,11 @@ impl DependencyCodeGeneration for CssLocalIdentDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
+    hasher: &mut RspackHasher,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    self.local_ident.dyn_hash(hasher);
+    self.local_ident.hash(hasher);
   }
 }
 
@@ -108,17 +108,23 @@ impl DependencyTemplate for CssLocalIdentDependencyTemplate {
     &self,
     dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
-    _code_generatable_context: &mut TemplateContext,
+    code_generatable_context: &mut TemplateContext,
   ) {
     let dep = dep
       .as_any()
       .downcast_ref::<CssLocalIdentDependency>()
       .expect("CssLocalIdentDependencyTemplate should be used for CssLocalIdentDependency");
 
+    let local_ident = replace_css_module_id_placeholder(
+      &dep.local_ident,
+      code_generatable_context.compilation,
+      code_generatable_context.module,
+    );
+
     source.replace(
       dep.start,
       dep.end,
-      escape_css(&dep.local_ident).into_owned(),
+      escape_identifier(&local_ident).into_owned(),
       None,
     );
   }

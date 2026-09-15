@@ -1,16 +1,26 @@
-use rspack_core::{ConstDependency, ModuleArgument, RuntimeGlobals, RuntimeRequirementsDependency};
+use std::sync::Arc;
+
+use concat_string::concat_string;
+use rspack_core::{
+  BoxDependency, ConstDependency, DependencyCodeGenerationRef, ImportMetaKnownProperties,
+  ModuleArgument, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeRequirementsDependency,
+  RuntimeRequirementsDependencyWriteOperation, property_access,
+  runtime_mode::RuntimeMode as ExperimentRuntimeMode,
+};
 use rspack_error::{Error, Severity};
-use rspack_util::SpanExt;
-use swc_core::{
-  common::{Span, Spanned},
-  ecma::ast::{CallExpr, Ident, Pat, UnaryExpr},
+use rspack_util::{SpanExt, json_stringify_str};
+use swc_experimental_ecma_ast::{
+  AssignExpr, AssignOp, CallExpr, GetSpan, Ident, MemberExpr, Pat, Span, UnaryExpr, VarDeclarator,
 };
 
 use crate::{
-  dependency::{ModuleArgumentDependency, RequireMainDependency},
+  Atom,
+  dependency::{
+    ExportInfoDependency, IsIncludeDependency, ModuleArgumentDependency, RequireMainDependency,
+  },
   parser_plugin::JavascriptParserPlugin,
   utils::eval::{self, BasicEvaluatedExpression},
-  visitors::{JavascriptParser, Statement, VariableDeclaration, create_traceable_error},
+  visitors::{JavascriptParser, Statement, VariableDeclaration, create_traceable_error, expr_name},
 };
 
 fn expression_not_supported(
@@ -18,7 +28,7 @@ fn expression_not_supported(
   name: &str,
   is_call: bool,
   expr_span: Span,
-) -> (Error, Box<ConstDependency>) {
+) -> (Error, DependencyCodeGenerationRef) {
   let mut error = create_traceable_error(
     "Unsupported feature".into(),
     format!(
@@ -32,29 +42,217 @@ fn expression_not_supported(
   error.hide_stack = Some(true);
   (
     error,
-    Box::new(ConstDependency::new(expr_span.into(), "(void 0)".into())),
+    Arc::new(ConstDependency::new(expr_span.into(), "(void 0)".into())),
   )
 }
 
-const API_HASH: &str = "__webpack_hash__";
+const API_EXPORTS_INFO: &str = "__webpack_exports_info__";
+const API_IS_INCLUDED: &str = "__webpack_is_included__";
 const API_LAYER: &str = "__webpack_layer__";
-const API_PUBLIC_PATH: &str = "__webpack_public_path__";
-const API_MODULES: &str = "__webpack_modules__";
 const API_MODULE: &str = "__webpack_module__";
-const API_CHUNK_LOAD: &str = "__webpack_chunk_load__";
-const API_BASE_URI: &str = "__webpack_base_uri__";
 const API_NON_REQUIRE: &str = "__non_webpack_require__";
-const API_SYSTEM_CONTEXT: &str = "__system_context__";
-const API_SHARE_SCOPES: &str = "__webpack_share_scopes__";
-const API_INIT_SHARING: &str = "__webpack_init_sharing__";
-const API_NONCE: &str = "__webpack_nonce__";
-const API_CHUNK_NAME: &str = "__webpack_chunkname__";
-const API_RUNTIME_ID: &str = "__webpack_runtime_id__";
 const API_REQUIRE: &str = "__webpack_require__";
-const API_GET_SCRIPT_FILENAME: &str = "__webpack_get_script_filename__";
-const API_VERSION: &str = "__rspack_version__";
-const API_UNIQUE_ID: &str = "__rspack_unique_id__";
-const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
+
+#[derive(Clone, Copy)]
+enum RuntimeApiIdentifierMode {
+  Normal,
+  Call,
+  Require,
+}
+
+#[derive(Clone, Copy)]
+struct RuntimeApi {
+  name: &'static str,
+  type_of: Option<&'static str>,
+  runtime_global: Option<RuntimeGlobals>,
+  identifier_mode: Option<RuntimeApiIdentifierMode>,
+}
+
+static RUNTIME_APIS: &[RuntimeApi] = &[
+  RuntimeApi {
+    name: API_REQUIRE,
+    type_of: Some("function"),
+    runtime_global: Some(RuntimeGlobals::REQUIRE),
+    identifier_mode: Some(RuntimeApiIdentifierMode::Require),
+  },
+  RuntimeApi {
+    name: "__webpack_hash__",
+    type_of: Some("string"),
+    runtime_global: Some(RuntimeGlobals::GET_FULL_HASH),
+    identifier_mode: Some(RuntimeApiIdentifierMode::Call),
+  },
+  RuntimeApi {
+    name: "__webpack_public_path__",
+    type_of: Some("string"),
+    runtime_global: Some(RuntimeGlobals::PUBLIC_PATH),
+    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+  },
+  RuntimeApi {
+    name: "__webpack_modules__",
+    type_of: Some("object"),
+    runtime_global: Some(RuntimeGlobals::MODULE_FACTORIES),
+    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+  },
+  RuntimeApi {
+    name: API_MODULE,
+    type_of: Some("object"),
+    runtime_global: None,
+    identifier_mode: None,
+  },
+  RuntimeApi {
+    name: "__webpack_chunk_load__",
+    type_of: Some("function"),
+    runtime_global: Some(RuntimeGlobals::ENSURE_CHUNK),
+    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+  },
+  RuntimeApi {
+    name: "__webpack_base_uri__",
+    type_of: Some("string"),
+    runtime_global: Some(RuntimeGlobals::BASE_URI),
+    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+  },
+  RuntimeApi {
+    name: API_NON_REQUIRE,
+    type_of: None,
+    runtime_global: None,
+    identifier_mode: None,
+  },
+  RuntimeApi {
+    name: "__system_context__",
+    type_of: Some("object"),
+    runtime_global: Some(RuntimeGlobals::SYSTEM_CONTEXT),
+    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+  },
+  RuntimeApi {
+    name: "__webpack_share_scopes__",
+    type_of: Some("object"),
+    runtime_global: Some(RuntimeGlobals::SHARE_SCOPE_MAP),
+    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+  },
+  RuntimeApi {
+    name: "__webpack_init_sharing__",
+    type_of: Some("function"),
+    runtime_global: Some(RuntimeGlobals::INITIALIZE_SHARING),
+    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+  },
+  RuntimeApi {
+    name: "__webpack_nonce__",
+    type_of: Some("string"),
+    runtime_global: Some(RuntimeGlobals::SCRIPT_NONCE),
+    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+  },
+  RuntimeApi {
+    name: "__webpack_chunkname__",
+    type_of: Some("string"),
+    runtime_global: Some(RuntimeGlobals::CHUNK_NAME),
+    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+  },
+  RuntimeApi {
+    name: "__webpack_runtime_id__",
+    type_of: None,
+    runtime_global: Some(RuntimeGlobals::RUNTIME_ID),
+    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+  },
+  RuntimeApi {
+    name: "__webpack_get_script_filename__",
+    type_of: Some("function"),
+    runtime_global: Some(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
+    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+  },
+  RuntimeApi {
+    name: "__rspack_version__",
+    type_of: Some("string"),
+    runtime_global: Some(RuntimeGlobals::RSPACK_VERSION),
+    identifier_mode: Some(RuntimeApiIdentifierMode::Call),
+  },
+  RuntimeApi {
+    name: "__rspack_unique_id__",
+    type_of: Some("string"),
+    runtime_global: Some(RuntimeGlobals::RSPACK_UNIQUE_ID),
+    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+  },
+  RuntimeApi {
+    name: "__rspack_rsc_manifest__",
+    type_of: Some("object"),
+    runtime_global: Some(RuntimeGlobals::RSC_MANIFEST),
+    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+  },
+];
+
+#[derive(Clone, Copy)]
+pub(crate) struct ImportMetaRuntimeApi {
+  pub(crate) name: &'static str,
+  pub(crate) property: ImportMetaKnownProperties,
+  pub(crate) type_of: &'static str,
+  runtime_global: RuntimeGlobals,
+  runtime_call: bool,
+}
+
+impl ImportMetaRuntimeApi {
+  fn property_name(&self) -> &'static str {
+    debug_assert!(self.name.starts_with(expr_name::IMPORT_META_PREFIX));
+    &self.name[expr_name::IMPORT_META_PREFIX.len()..]
+  }
+}
+
+static IMPORT_META_RUNTIME_APIS: &[ImportMetaRuntimeApi] = &[
+  ImportMetaRuntimeApi {
+    name: "import.meta.rspackPublicPath",
+    property: ImportMetaKnownProperties::RSPACK_PUBLIC_PATH,
+    type_of: "string",
+    runtime_global: RuntimeGlobals::PUBLIC_PATH,
+    runtime_call: false,
+  },
+  ImportMetaRuntimeApi {
+    name: "import.meta.rspackBaseUri",
+    property: ImportMetaKnownProperties::RSPACK_BASE_URI,
+    type_of: "string",
+    runtime_global: RuntimeGlobals::BASE_URI,
+    runtime_call: false,
+  },
+  ImportMetaRuntimeApi {
+    name: "import.meta.rspackShareScopes",
+    property: ImportMetaKnownProperties::RSPACK_SHARE_SCOPES,
+    type_of: "object",
+    runtime_global: RuntimeGlobals::SHARE_SCOPE_MAP,
+    runtime_call: false,
+  },
+  ImportMetaRuntimeApi {
+    name: "import.meta.rspackInitSharing",
+    property: ImportMetaKnownProperties::RSPACK_INIT_SHARING,
+    type_of: "function",
+    runtime_global: RuntimeGlobals::INITIALIZE_SHARING,
+    runtime_call: false,
+  },
+  ImportMetaRuntimeApi {
+    name: "import.meta.rspackNonce",
+    property: ImportMetaKnownProperties::RSPACK_NONCE,
+    type_of: "string",
+    runtime_global: RuntimeGlobals::SCRIPT_NONCE,
+    runtime_call: false,
+  },
+  ImportMetaRuntimeApi {
+    name: "import.meta.rspackUniqueId",
+    property: ImportMetaKnownProperties::RSPACK_UNIQUE_ID,
+    type_of: "string",
+    runtime_global: RuntimeGlobals::RSPACK_UNIQUE_ID,
+    runtime_call: false,
+  },
+  ImportMetaRuntimeApi {
+    name: "import.meta.rspackVersion",
+    property: ImportMetaKnownProperties::RSPACK_VERSION,
+    type_of: "string",
+    runtime_global: RuntimeGlobals::RSPACK_VERSION,
+    runtime_call: true,
+  },
+  ImportMetaRuntimeApi {
+    name: "import.meta.rspackHash",
+    property: ImportMetaKnownProperties::RSPACK_HASH,
+    type_of: "string",
+    runtime_global: RuntimeGlobals::GET_FULL_HASH,
+    runtime_call: true,
+  },
+];
 
 pub struct APIPluginOptions {
   module: bool,
@@ -71,36 +269,302 @@ impl APIPlugin {
   }
 }
 
-fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
-  match sym {
-    API_REQUIRE => Some("function"),
-    API_HASH => Some("string"),
-    API_PUBLIC_PATH => Some("string"),
-    API_MODULES => Some("object"),
-    API_MODULE => Some("object"),
-    API_CHUNK_LOAD => Some("function"),
-    API_BASE_URI => Some("string"),
-    API_NON_REQUIRE => None,
-    API_SYSTEM_CONTEXT => Some("object"),
-    API_SHARE_SCOPES => Some("object"),
-    API_INIT_SHARING => Some("function"),
-    API_NONCE => Some("string"),
-    API_CHUNK_NAME => Some("string"),
-    API_RUNTIME_ID => None,
-    API_GET_SCRIPT_FILENAME => Some("function"),
-    API_VERSION => Some("string"),
-    API_UNIQUE_ID => Some("string"),
-    API_RSC_MANIFEST => Some("object"),
+fn runtime_api_from_name(name: &str) -> Option<&'static RuntimeApi> {
+  RUNTIME_APIS.iter().find(|api| api.name == name)
+}
+
+fn is_writable_string_runtime_global(runtime_global: RuntimeGlobals) -> bool {
+  RUNTIME_APIS.iter().any(|api| {
+    api.runtime_global == Some(runtime_global)
+      && api.type_of == Some("string")
+      && matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Normal))
+  })
+}
+
+fn get_typeof_evaluate_of_api(sym: &str) -> Option<&'static str> {
+  runtime_api_from_name(sym).and_then(|api| api.type_of)
+}
+
+pub(crate) fn import_meta_runtime_api_from_name(
+  name: &str,
+) -> Option<&'static ImportMetaRuntimeApi> {
+  IMPORT_META_RUNTIME_APIS.iter().find(|api| api.name == name)
+}
+
+pub(crate) fn import_meta_runtime_api_from_property(
+  property: &str,
+) -> Option<&'static ImportMetaRuntimeApi> {
+  IMPORT_META_RUNTIME_APIS
+    .iter()
+    .find(|api| api.property_name() == property)
+}
+
+pub(crate) fn render_import_meta_runtime_api(
+  parser: &JavascriptParser,
+  api: &ImportMetaRuntimeApi,
+) -> Option<String> {
+  let content = match parser.parser_runtime_requirements.render_mode {
+    RuntimeGlobalsRenderMode::Webpack => format!(
+      "{}{}",
+      parser.parser_runtime_requirements.require,
+      property_access([api.runtime_global.property_name()?], 0)
+    ),
+    RuntimeGlobalsRenderMode::RspackContext => format!(
+      "{}{}",
+      parser.parser_runtime_requirements.context,
+      property_access([api.runtime_global.rspack_context_property_name()?], 0)
+    ),
+    RuntimeGlobalsRenderMode::RspackLexical | RuntimeGlobalsRenderMode::RspackExport => {
+      api.runtime_global.to_lexical_name()?.to_string()
+    }
+  };
+  Some(if api.runtime_call {
+    format!("{content}()")
+  } else {
+    content
+  })
+}
+
+pub(crate) fn render_import_meta_runtime_api_destructuring(
+  parser: &mut JavascriptParser,
+  api: &ImportMetaRuntimeApi,
+) -> Option<String> {
+  parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
+    api.runtime_global,
+  )));
+  Some(format!(
+    "{}: {}",
+    api.property_name(),
+    render_import_meta_runtime_api(parser, api)?
+  ))
+}
+
+pub(crate) fn import_meta_runtime_api_member(
+  parser: &mut JavascriptParser,
+  span: Span,
+  api: &ImportMetaRuntimeApi,
+) -> Option<bool> {
+  let dep = if api.runtime_call {
+    RuntimeRequirementsDependency::call(span.into(), api.runtime_global)
+  } else {
+    RuntimeRequirementsDependency::new(span.into(), api.runtime_global)
+  };
+  parser.add_presentational_dependency(Arc::new(dep));
+  Some(true)
+}
+
+pub(crate) fn import_meta_runtime_api_call(
+  parser: &mut JavascriptParser,
+  call_expr: &CallExpr,
+  api: &ImportMetaRuntimeApi,
+) -> Option<bool> {
+  if api.type_of != "function" {
+    return None;
+  }
+  parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
+    call_expr.callee.span().into(),
+    api.runtime_global,
+  )));
+  parser.walk_expr_or_spread(&call_expr.args);
+  Some(true)
+}
+
+pub(crate) fn import_meta_runtime_api_assign(
+  parser: &mut JavascriptParser,
+  span: Span,
+  value_span: Span,
+  assignment_span: Span,
+  api: &ImportMetaRuntimeApi,
+  full_assignment: bool,
+  operation: AssignOp,
+) -> Option<bool> {
+  if api.runtime_call {
+    let property = api.property_name();
+    let content = if full_assignment {
+      if is_simple_assign_op(operation) {
+        concat_string!("({}).", property)
+      } else {
+        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
+          api.runtime_global,
+        )));
+        concat_string!(
+          "({ ",
+          property,
+          ": ",
+          render_import_meta_runtime_api(parser, api)?,
+          " }).",
+          property
+        )
+      }
+    } else {
+      "({})".to_string()
+    };
+    parser
+      .add_presentational_dependency(Arc::new(ConstDependency::new(span.into(), content.into())));
+    return Some(true);
+  }
+  if parser.parser_runtime_requirements.render_mode == RuntimeGlobalsRenderMode::RspackExport
+    && api.type_of != "string"
+  {
+    return None;
+  }
+  let dependency = if full_assignment {
+    runtime_requirements_write_assignment(
+      parser.parser_runtime_requirements.render_mode,
+      span,
+      value_span,
+      assignment_span,
+      operation,
+      api.runtime_global,
+    )?
+  } else if parser.parser_runtime_requirements.render_mode == RuntimeGlobalsRenderMode::RspackExport
+  {
+    RuntimeRequirementsDependency::new(span.into(), api.runtime_global)
+  } else {
+    RuntimeRequirementsDependency::write(span.into(), api.runtime_global)
+  };
+  parser.add_presentational_dependency(Arc::new(dependency));
+  Some(true)
+}
+
+pub(crate) fn is_simple_assign_op(op: AssignOp) -> bool {
+  matches!(op, AssignOp::Assign)
+}
+
+fn runtime_requirements_write_operation(
+  op: AssignOp,
+) -> Option<RuntimeRequirementsDependencyWriteOperation> {
+  match op {
+    AssignOp::Assign => Some(RuntimeRequirementsDependencyWriteOperation::Assign),
+    AssignOp::AddAssign => Some(RuntimeRequirementsDependencyWriteOperation::Add),
+    AssignOp::AndAssign => Some(RuntimeRequirementsDependencyWriteOperation::LogicalAnd),
+    AssignOp::OrAssign => Some(RuntimeRequirementsDependencyWriteOperation::LogicalOr),
+    AssignOp::NullishAssign => Some(RuntimeRequirementsDependencyWriteOperation::NullishCoalescing),
     _ => None,
   }
 }
 
+fn runtime_requirements_write_assignment(
+  render_mode: RuntimeGlobalsRenderMode,
+  span: Span,
+  value_span: Span,
+  assignment_span: Span,
+  operation: AssignOp,
+  runtime_global: RuntimeGlobals,
+) -> Option<RuntimeRequirementsDependency> {
+  if let Some(operation) = runtime_requirements_write_operation(operation) {
+    return Some(RuntimeRequirementsDependency::write_assignment(
+      span.into(),
+      value_span.into(),
+      assignment_span.into(),
+      operation,
+      runtime_global,
+    ));
+  }
+  (render_mode != RuntimeGlobalsRenderMode::RspackExport)
+    .then(|| RuntimeRequirementsDependency::write(span.into(), runtime_global))
+}
+
+fn static_require_member_chain(
+  parser: &mut JavascriptParser,
+  for_name: &str,
+  members: &[Atom],
+  member_ranges: Option<&[Span]>,
+  expr_span: Span,
+  assignment: Option<&AssignExpr>,
+) -> Option<bool> {
+  if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
+    return None;
+  }
+
+  if for_name == API_REQUIRE
+    && let Some(property) = members.first()
+  {
+    if let Some(runtime_global) =
+      RuntimeGlobals::from_rspack_context_property_name(property.as_ref())
+    {
+      let dep_span = if members.len() > 1 {
+        member_ranges
+          .and_then(|ranges| ranges.get(1))
+          .map_or(expr_span, |range| Span::new(expr_span.start, range.end))
+      } else {
+        expr_span
+      };
+      let dep = if let Some(expr) = assignment {
+        if members.len() == 1 {
+          if parser.parser_runtime_requirements.render_mode
+            == RuntimeGlobalsRenderMode::RspackExport
+            && !is_writable_string_runtime_global(runtime_global)
+          {
+            return None;
+          }
+          runtime_requirements_write_assignment(
+            parser.parser_runtime_requirements.render_mode,
+            dep_span,
+            expr.right.span(),
+            expr.span(),
+            expr.op,
+            runtime_global,
+          )?
+        } else if parser.parser_runtime_requirements.render_mode
+          == RuntimeGlobalsRenderMode::RspackExport
+        {
+          RuntimeRequirementsDependency::new(dep_span.into(), runtime_global)
+        } else {
+          RuntimeRequirementsDependency::write(dep_span.into(), runtime_global)
+        }
+      } else {
+        RuntimeRequirementsDependency::new(dep_span.into(), runtime_global)
+      };
+      parser.add_presentational_dependency(Arc::new(dep));
+    } else {
+      let require_scope = if parser.parser_runtime_requirements.render_mode
+        == RuntimeGlobalsRenderMode::RspackExport
+      {
+        &parser.parser_runtime_requirements.require
+      } else {
+        &parser.parser_runtime_requirements.context
+      };
+      let content = format!(
+        "{}{}",
+        require_scope,
+        property_access(members.iter().map(Atom::as_ref), 0)
+      );
+      parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
+        RuntimeGlobals::REQUIRE_SCOPE,
+      )));
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+        expr_span.into(),
+        content.into(),
+      )));
+    }
+    return Some(true);
+  }
+
+  None
+}
+
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for APIPlugin {
-  fn evaluate_typeof<'a>(
+impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
+  fn r#typeof(
     &self,
-    parser: &mut JavascriptParser,
-    expr: &'a UnaryExpr,
+    parser: &mut JavascriptParser<'p>,
+    expr: &UnaryExpr,
+    for_name: &str,
+  ) -> Option<bool> {
+    (for_name == API_IS_INCLUDED).then(|| {
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+        (expr.span.real_lo(), expr.span.real_hi()).into(),
+        "'function'".into(),
+      )));
+      true
+    })
+  }
+
+  fn evaluate_typeof(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    expr: &'a UnaryExpr<'a>,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression<'a>> {
     if for_name == API_LAYER {
@@ -123,150 +587,87 @@ impl JavascriptParserPlugin for APIPlugin {
 
   fn identifier(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
+    if for_name == API_LAYER {
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+        ident.span.into(),
+        serde_json::to_string(&parser.module_layer)
+          .expect("should stringify JSON")
+          .into(),
+      )));
+      return Some(true);
+    }
+
+    if for_name == API_MODULE {
+      let range = ident.span.into();
+      let loc = parser.to_dependency_location(range);
+      parser
+        .add_presentational_dependency(Arc::new(ModuleArgumentDependency::new(None, range, loc)));
+      return Some(true);
+    }
+
+    if for_name == API_NON_REQUIRE {
+      let content = if self.options.module {
+        parser.build_info.need_create_require = true;
+        "__rspack_createRequire_require".into()
+      } else {
+        "require".into()
+      };
+      parser
+        .add_presentational_dependency(Arc::new(ConstDependency::new(ident.span.into(), content)));
+      return Some(true);
+    }
+
+    if for_name == API_EXPORTS_INFO {
+      let dep = Arc::new(ConstDependency::new(ident.span.into(), "true".into()));
+      parser.add_presentational_dependency(dep);
+      return Some(true);
+    }
+
+    let api = runtime_api_from_name(for_name)?;
+    let runtime_global = api
+      .runtime_global
+      .expect("runtime api identifier should have runtime global");
     match for_name {
-      API_REQUIRE => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+      _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Require))
+        && parser.compiler_options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack =>
+      {
+        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          RuntimeGlobals::REQUIRE,
+          runtime_global,
         )));
         Some(true)
       }
-      API_HASH => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::call(
+      _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Require)) => {
+        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
+          runtime_global,
+        )));
+        None
+      }
+      _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Call)) => {
+        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::call(
           ident.span.into(),
-          RuntimeGlobals::GET_FULL_HASH,
+          runtime_global,
         )));
         Some(true)
       }
       API_LAYER => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           ident.span.into(),
-          serde_json::to_string(&parser.module_layer)
-            .expect("should stringify JSON")
+          parser
+            .module_layer
+            .map_or_else(|| "null".to_string(), |layer| json_stringify_str(layer))
             .into(),
         )));
         Some(true)
       }
-      API_PUBLIC_PATH => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+      _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Normal)) => {
+        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          RuntimeGlobals::PUBLIC_PATH,
-        )));
-        Some(true)
-      }
-      API_MODULES => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-          ident.span.into(),
-          RuntimeGlobals::MODULE_FACTORIES,
-        )));
-        Some(true)
-      }
-      API_CHUNK_LOAD => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-          ident.span.into(),
-          RuntimeGlobals::ENSURE_CHUNK,
-        )));
-        Some(true)
-      }
-      API_MODULE => {
-        let range = ident.span.into();
-        let loc = parser.to_dependency_location(range);
-        parser
-          .add_presentational_dependency(Box::new(ModuleArgumentDependency::new(None, range, loc)));
-        Some(true)
-      }
-      API_BASE_URI => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-          ident.span.into(),
-          RuntimeGlobals::BASE_URI,
-        )));
-        Some(true)
-      }
-      API_NON_REQUIRE => {
-        let content = if self.options.module {
-          parser.build_info.need_create_require = true;
-          "__rspack_createRequire_require".into()
-        } else {
-          "require".into()
-        };
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
-          ident.span.into(),
-          content,
-        )));
-        Some(true)
-      }
-      API_SYSTEM_CONTEXT => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-          ident.span.into(),
-          RuntimeGlobals::SYSTEM_CONTEXT,
-        )));
-        Some(true)
-      }
-      API_SHARE_SCOPES => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-          ident.span.into(),
-          RuntimeGlobals::SHARE_SCOPE_MAP,
-        )));
-        Some(true)
-      }
-      API_INIT_SHARING => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-          ident.span.into(),
-          RuntimeGlobals::INITIALIZE_SHARING,
-        )));
-        Some(true)
-      }
-      API_NONCE => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-          ident.span.into(),
-          RuntimeGlobals::SCRIPT_NONCE,
-        )));
-        Some(true)
-      }
-      API_CHUNK_NAME => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-          ident.span.into(),
-          RuntimeGlobals::CHUNK_NAME,
-        )));
-        Some(true)
-      }
-      API_RUNTIME_ID => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-          ident.span.into(),
-          RuntimeGlobals::RUNTIME_ID,
-        )));
-        Some(true)
-      }
-      API_GET_SCRIPT_FILENAME => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-          ident.span.into(),
-          RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
-        )));
-        Some(true)
-      }
-      // rspack specific
-      API_VERSION => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::call(
-          ident.span.into(),
-          RuntimeGlobals::RSPACK_VERSION,
-        )));
-        Some(true)
-      }
-      API_UNIQUE_ID => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-          ident.span.into(),
-          RuntimeGlobals::RSPACK_UNIQUE_ID,
-        )));
-        Some(true)
-      }
-      API_RSC_MANIFEST => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-          ident.span.into(),
-          RuntimeGlobals::RSC_MANIFEST,
+          runtime_global,
         )));
         Some(true)
       }
@@ -276,11 +677,12 @@ impl JavascriptParserPlugin for APIPlugin {
 
   fn evaluate_identifier(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     for_name: &str,
+    _member_expr_info: Option<&crate::visitors::ExpressionExpressionInfo>,
     start: u32,
     end: u32,
-  ) -> Option<eval::BasicEvaluatedExpression<'static>> {
+  ) -> Option<eval::BasicEvaluatedExpression<'p>> {
     if for_name == API_LAYER {
       if let Some(layer) = parser.module_layer {
         Some(eval::evaluate_to_string(layer.into(), start, end))
@@ -294,8 +696,8 @@ impl JavascriptParserPlugin for APIPlugin {
 
   fn member(
     &self,
-    parser: &mut JavascriptParser,
-    member_expr: &swc_core::ecma::ast::MemberExpr,
+    parser: &mut JavascriptParser<'p>,
+    member_expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "require.extensions"
@@ -314,7 +716,7 @@ impl JavascriptParserPlugin for APIPlugin {
     }
 
     if for_name == "require.cache" {
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+      parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
         member_expr.span().into(),
         RuntimeGlobals::MODULE_CACHE,
       )));
@@ -322,7 +724,7 @@ impl JavascriptParserPlugin for APIPlugin {
     }
 
     if for_name == "require.main" {
-      parser.add_presentational_dependency(Box::new(RequireMainDependency::new(
+      parser.add_presentational_dependency(Arc::new(RequireMainDependency::new(
         member_expr.span().into(),
       )));
       return Some(true);
@@ -331,7 +733,7 @@ impl JavascriptParserPlugin for APIPlugin {
     if for_name == "__webpack_module__.id" {
       let range = member_expr.span.into();
       let loc = parser.to_dependency_location(range);
-      parser.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
+      parser.add_presentational_dependency(Arc::new(ModuleArgumentDependency::new(
         Some("id".into()),
         range,
         loc,
@@ -342,10 +744,147 @@ impl JavascriptParserPlugin for APIPlugin {
     None
   }
 
-  fn pre_declarator(
+  fn member_chain(
     &self,
     parser: &mut JavascriptParser,
-    declarator: &swc_core::ecma::ast::VarDeclarator,
+    member_expr: &MemberExpr,
+    for_name: &str,
+    members: &[Atom],
+    _members_optionals: &[bool],
+    member_ranges: &[Span],
+  ) -> Option<bool> {
+    let len = members.len();
+    if len >= 1 && for_name == API_EXPORTS_INFO {
+      let prop = members[len - 1].clone();
+      let dep = Arc::new(ExportInfoDependency::new(
+        member_expr.span.real_lo(),
+        member_expr.span.real_hi(),
+        members.iter().take(len - 1).cloned().collect::<Vec<_>>(),
+        prop,
+      ));
+      parser.add_presentational_dependency(dep);
+      return Some(true);
+    }
+
+    if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
+      return None;
+    }
+    static_require_member_chain(
+      parser,
+      for_name,
+      members,
+      Some(member_ranges),
+      member_expr.span,
+      None,
+    )
+  }
+
+  fn call_member_chain(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &CallExpr,
+    for_name: &str,
+    members: &[Atom],
+    _members_optionals: &[bool],
+    member_ranges: &[Span],
+  ) -> Option<bool> {
+    if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
+      return None;
+    }
+    let preserve_require_receiver =
+      parser.parser_runtime_requirements.render_mode == RuntimeGlobalsRenderMode::RspackExport
+        && for_name == API_REQUIRE
+        && members.len() == 1
+        && members.first().and_then(|property| {
+          RuntimeGlobals::from_rspack_context_property_name(property.as_ref())
+        }) == Some(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+    let handled = static_require_member_chain(
+      parser,
+      for_name,
+      members,
+      Some(member_ranges),
+      expr.callee.span(),
+      None,
+    );
+    if handled.is_some() {
+      if preserve_require_receiver && let Some(first_arg) = expr.args.first() {
+        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
+          RuntimeGlobals::REQUIRE,
+        )));
+        let callee_end = expr.callee.span().real_hi();
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+          (callee_end, callee_end).into(),
+          ".call".into(),
+        )));
+        let first_arg_start = first_arg.span().real_lo();
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+          (first_arg_start, first_arg_start).into(),
+          format!("{}, ", parser.parser_runtime_requirements.require).into(),
+        )));
+      }
+      parser.walk_expr_or_spread(&expr.args);
+    }
+    handled
+  }
+
+  fn assign_member_chain(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &AssignExpr,
+    members: &[Atom],
+    member_ranges: &[Span],
+    for_name: &str,
+  ) -> Option<bool> {
+    if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
+      return None;
+    }
+    let handled = static_require_member_chain(
+      parser,
+      for_name,
+      members,
+      Some(member_ranges),
+      expr.left.span(),
+      Some(expr),
+    );
+    if handled.is_some() {
+      parser.walk_expression(&expr.right);
+    }
+    handled
+  }
+
+  fn assign(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &AssignExpr,
+    ident: &Ident,
+    for_name: &str,
+  ) -> Option<bool> {
+    if expr.left.as_pat().is_some() {
+      return None;
+    }
+    if let Some(runtime_global) = runtime_api_from_name(for_name).and_then(|api| api.runtime_global)
+      && (parser.parser_runtime_requirements.render_mode != RuntimeGlobalsRenderMode::RspackExport
+        || is_writable_string_runtime_global(runtime_global))
+      && parser.compiler_options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack
+    {
+      let dependency = runtime_requirements_write_assignment(
+        parser.parser_runtime_requirements.render_mode,
+        ident.span,
+        expr.right.span(),
+        expr.span(),
+        expr.op,
+        runtime_global,
+      )?;
+      parser.add_presentational_dependency(Arc::new(dependency));
+      return Some(true);
+    }
+    None
+  }
+
+  fn pre_declarator(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    declarator: &VarDeclarator,
     _declaration: VariableDeclaration<'_>,
   ) -> Option<bool> {
     // Check if we're at top level scope and the declarator is a simple identifier named "module"
@@ -358,7 +897,7 @@ impl JavascriptParserPlugin for APIPlugin {
     None
   }
 
-  fn pre_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
+  fn pre_statement(&self, parser: &mut JavascriptParser<'p>, stmt: Statement) -> Option<bool> {
     // Check if we're at top level scope
     if parser.is_top_level_scope() {
       match stmt {
@@ -386,18 +925,40 @@ impl JavascriptParserPlugin for APIPlugin {
 
   fn call(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
+    if for_name == API_IS_INCLUDED
+      && call_expr.args.len() == 1
+      && call_expr.args[0].spread.is_none()
+    {
+      let request = parser.evaluate_expression(&call_expr.args[0].expr);
+      if request.is_string() {
+        parser.add_dependency(BoxDependency::new(IsIncludeDependency::new(
+          (call_expr.span.real_lo(), call_expr.span.real_hi()).into(),
+          request.string().clone(),
+        )));
+        return Some(true);
+      }
+    }
+
+    if for_name == API_REQUIRE
+      && parser.compiler_options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack
+    {
+      parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
+        RuntimeGlobals::REQUIRE,
+      )));
+      return None;
+    }
+
     if for_name == "require.config"
       || for_name == "require.include"
       || for_name == "require.onError"
       || for_name == "require.main.require"
       || for_name == "module.parent.require"
     {
-      let (warning, dep) =
-        expression_not_supported(parser.source, for_name, true, call_expr.span());
+      let (warning, dep) = expression_not_supported(parser.source, for_name, true, call_expr.span);
       parser.add_warning(warning.into());
       parser.add_presentational_dependency(dep);
       return Some(true);

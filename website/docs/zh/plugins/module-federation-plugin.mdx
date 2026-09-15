@@ -1,0 +1,308 @@
+---
+description: 'ModuleFederationPlugin 用于在 Rspack 中启用模块联邦（Module Federation）能力。'
+---
+
+import { Stability, ApiMeta } from '@components/ApiMeta';
+import { PackageManagerTabs } from '@theme';
+
+# ModuleFederationPlugin
+
+`ModuleFederationPlugin` 用于在 Rspack 中启用模块联邦（Module Federation）能力。
+
+该插件实现了 Module Federation 1.5 规范。如果你希望系统地了解模块联邦的核心概念、使用方式与最佳实践，请参考 [Module Federation 指南](/guide/advanced/module-federation)。
+
+## 安装依赖
+
+该插件依赖运行时包 [@module-federation/runtime-tools](https://www.npmjs.com/package/@module-federation/runtime-tools)，用于提供模块联邦的运行时支持。请先安装该依赖：
+
+<PackageManagerTabs command="add @module-federation/runtime-tools" />
+
+## 示例
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  output: {
+    // set uniqueName explicitly to make HMR works
+    uniqueName: 'app',
+  },
+  plugins: [
+    new rspack.container.ModuleFederationPlugin({
+      name: 'app',
+    }),
+  ],
+};
+```
+
+## 选项
+
+### implementation
+
+- 类型：`string`
+
+传入一个路径，作为 Module Federation 1.5 运行时部分的实现，默认为 [@module-federation/runtime-tools](https://github.com/module-federation/universe/tree/main/packages/runtime-tools)。
+
+### runtimePlugins
+
+- 类型：
+  ```ts
+  type RuntimePlugins =
+    string[] | [plugin: string, options: Record<string, unknown>][];
+  ```
+
+传入 Module Federation 1.5 运行时所需的插件，用于扩展 Module Federation 的行为与能力。可以传入一组模块路径；当插件需要配置时，也可以传入一组 `[模块路径, 配置]` 元组。
+
+### name
+
+- 类型：`string`
+
+定义当前构建中暴露给其他应用的唯一名称。此名称将作为远程应用的全局变量存在。
+
+### filename
+
+- 类型：`string`
+
+指定远程应用入口文件的名称。其他应用将通过该文件加载暴露的模块。
+
+### runtime
+
+- 类型：`string | false`
+
+定义远程应用入口的 runtime chunk。
+
+### library
+
+- 类型：[`LibraryOptions`](/config/output#outputlibrary)
+
+定义远程应用入口的产物格式。默认的 libraryType 为 `"var"`。
+
+### shareScope
+
+- 类型：`string | string[]`
+
+定义当前应用共享依赖的命名空间。通过在不同的应用之间配置命名空间，可以控制模块的共享行为，包括确定哪些模块在不同的应用之间是共享的。默认的命名空间为 `"default"`。
+
+### shareStrategy
+
+- 类型：`'version-first' | 'loaded-first'`
+
+控制共享依赖的加载策略：
+
+- `'version-first'`：版本优先。设置后，会自动加载所有 _remotes_ 入口文件，并**注册**对应的共享依赖，确保能获取到所有的共享依赖版本。当对版本有严格要求时，推荐使用此策略。
+
+- `'loaded-first'`：复用优先。设置后，不会自动加载 _remotes_ 入口文件（仅在有需求时才会加载），优先复用已注册的共享依赖。当对版本没有严格要求且对性能有要求时，推荐使用此策略。
+
+### remoteType
+
+- 类型：[`ExternalsType`](/config/externals#externalstype)
+
+定义如何加载远程应用，默认为 `"script"`，即通过 `<script />` 标签加载。
+
+### remotes
+
+- 类型：
+  ```ts
+  type Remotes = (RemotesItem | RemotesObject)[] | RemotesObject;
+  type RemotesItem = string;
+  type RemotesItems = RemotesItem[];
+  type ShareScope = string | string[];
+  interface RemotesObject {
+    [k: string]: RemotesConfig | RemotesItem | RemotesItems;
+  }
+  interface RemotesConfig {
+    external: RemotesItem | RemotesItems;
+    shareScope?: ShareScope;
+  }
+  ```
+
+定义将要从远程加载的模块及其地址。键是远程应用的名称，值是远程应用暴露的全局变量名和远程应用入口的 URL。你也可以指定 `shareScope` 来控制远程应用是否共享依赖。
+
+### exposes
+
+- 类型：
+  ```ts
+  type Exposes = (ExposesItem | ExposesObject)[] | ExposesObject;
+  type ExposesItem = string;
+  type ExposesItems = ExposesItem[];
+  interface ExposesObject {
+    [k: string]: ExposesConfig | ExposesItem | ExposesItems;
+  }
+  interface ExposesConfig {
+    import: ExposesItem | ExposesItems;
+    name?: string;
+  }
+  ```
+
+定义本地模块如何被远程应用引用。键是该模块在远程应用中作为远程模块引用时的名称，值是相对于当前文件夹的模块路径。你可以提供 `name` 来指定被暴露的本地模块的名称。
+
+### shared
+
+- 类型：
+  ```ts
+  type Shared = (SharedItem | SharedObject)[] | SharedObject;
+  type SharedItem = string;
+  type ShareScope = string | string[];
+  interface TreeShakingConfig {
+    usedExports?: string[];
+    mode?: 'server-calc' | 'runtime-infer';
+    filename?: string;
+  }
+  interface SharedObject {
+    [k: string]: SharedConfig | SharedItem;
+  }
+  interface SharedConfig {
+    import?: false | SharedItem;
+    eager?: boolean;
+    packageName?: string;
+    requiredVersion?: false | string;
+    shareKey?: string;
+    shareScope?: ShareScope;
+    singleton?: boolean;
+    strictVersion?: boolean;
+    version?: false | string;
+    treeShaking?: TreeShakingConfig;
+  }
+  ```
+
+指定哪些依赖应该作为共享依赖。这允许多个微前端应用共享相同的依赖库实例，以避免重复加载相同代码。可以是一个对象字典，其中键是共享模块的名称，值是配置或版本字符串。也可以是一个数组，数组项是被共享的包名或配置。
+
+其中 `SharedConfig` 可以包含以下子选项：
+
+- import：应放置在共享模块的命名空间中的模块。如果在共享模块的命名空间中找不到共享模块或版本无效，则此提供的模块可作为后备模块进行兜底。
+- eager：如果设置为 `true`，则共享模块会在初始 Chunk 中被加载，而不是在使用时才被动态加载。这意味着共享模块会随着主入口点一起加载，而不考虑是否已经被使用。这可以消除动态加载造成的延迟，但是会增加初始包的大小。另外，请注意，启用此配置时，将始终下载所有提供的模块和后备模块。
+- packageName：用于从 `package.json` 中确定所需版本的包名称。仅当无法根据请求自动确定包名称时才需要进行配置。
+- requiredVersion：接受语义版本号。例如 `"^1.2.3"`。用来设定共享模块的版本范围，如果远程应用的模块版本不符合这个范围，模块将不会被加载。
+- shareKey：通过此键在共享模块的命名空间中查找请求的共享模块。默认为共享模块的名称。
+- shareScope：定义共享模块的命名空间。这可以使得不同的构建可以相互独立地使用各自的共享命名空间，而不冲突。默认的命名空间是 `"default"`。
+- singleton：确保共享模块在不同版本间只会被加载一次，遵守单例模式。这对于一些设计为单例运行的库（如 React）是很有必要的，因为这样可以避免由于实例化了多个库实例而导致的各种问题。
+- strictVersion：用来强化 `requiredVersion`。如果设置为 `true`，那么必须精确地匹配 `requiredVersion` 中规定的版本，否则共享模块会报错并且不会加载该模块。如果设置为 `false`，那么可以容忍不精确的匹配。
+- version：显式地设置共享模块的版本。默认会使用 `package.json` 中的版本。
+- treeShaking：配置 shared 依赖的 treeshaking 行为。通过开启 shared 依赖的 treeshaking，可以减少共享依赖的体积。
+  - usedExports：手动**添加**共享依赖被使用的导出成员。
+  - mode：配置 treeshaking 的加载策略。
+    - `runtime-infer`: 根据消费方的 `usedExports` 进行推断，如果提供方的 `usedExports` 符合当前消费方的 `usedExports`，那么就会使用提供方的 `shared`，否则会使用消费方自身的 `shared`，如果都不满足，就使用全量的。
+    - `server-calc`: 根据服务端下发的 snapshot 来决定是否加载共享依赖。
+  - filename：自定义生成的 shared fallback 入口文件名。
+
+### manifest
+
+<ApiMeta addedVersion="1.6.1" />
+
+- 类型：
+  ```ts
+  type Manifest = boolean | ManifestConfig;
+  interface ManifestConfig {
+    filePath?: string;
+    disableAssetsAnalyze?: boolean;
+    fileName?: string;
+  }
+  ```
+
+用于控制是否生成 manifest ，以及对应的生成配置。启用后插件会在每次构建中同时产出 `mf-manifest.json` 与 `mf-stats.json`（名称可通过 `fileName` 自定义），并写入到构建产物中，供其他工具在 `processAssets` 钩子或构建结果中直接读取。
+
+- `mf-stats.json`：包含完整的构建统计信息，如 exposes/shared/remotes 的资源列表、`metaData`（插件版本、构建信息、`remoteEntry` 等）以及额外的资产分析结果，适合用于后续合并或诊断。
+- `mf-manifest.json`：在 stats 基础上提炼出的运行时清单，结构稳定，供 Module Federation 消费端在加载远程模块时读取。文件中的 exposes/shared/remotes 对应线上对外暴露的能力。
+
+其中 `ManifestConfig` 选项说明如下：
+
+- filePath：manifest 文件路径，设置后同时作用于 stats 。
+- fileName：manifest 文件名称，如果设置了 `fileName`，对应的 stats 文件名会自动附加 `-stats` 后缀（例如 `fileName: 'mf.json'` 时会同时生成 `mf.json` 与 `mf-stats.json`）。所有文件都会写入 `filePath`（若配置）指定的子目录。
+- disableAssetsAnalyze：禁用产物分析，如果设置为 true ，那么 manifest 中将不会有 shared 、exposes 字段，且 remotes 中也不会有 assets 。
+
+### injectTreeShakingUsedExports
+
+<ApiMeta addedVersion="2.0.0" />
+
+是否将 shared 使用的 exports 注入到 bundler runtime 中。
+
+- 类型：`boolean`
+- 是否必填：否
+- 默认值：`true`
+
+此选项用于控制是否将共享模块中实际使用的导出信息注入到打包器的运行时中，以便进行更精确的依赖管理和优化。
+
+如果你使用的是 mode 为 'server-calc'，那么推荐将此选项设置为 `false`。
+
+### treeShakingSharedDir
+
+用于输出 tree shaking 共享 fallback 资源的目录。
+
+- 类型：`string`
+- 是否必填：否
+- 默认值：`'independent-packages'`
+
+当启用共享依赖 tree shaking 功能时，Module Federation 会将未使用的共享模块导出拆分出来。该选项指定了这些 fallback 资源的输出目录。
+
+### treeShakingSharedExcludePlugins
+
+配置在构建共享依赖 tree shaking/fallback 过程中需要额外排除的插件名称。
+
+- 类型：`string[]`
+- 是否必填：否
+- 默认值：`[]`
+
+Rspack 已默认排除 Module Federation、tree shaking 相关的辅助插件及常见 HTML 插件。可以通过此选项向排除列表中添加其他插件名称。
+
+### treeShakingSharedPlugins
+
+允许用户显式指定哪些插件应该参与 shared 模块的第二次 treeshaking 过程。
+
+- 类型：`string[]`
+- 是否必填：否
+- 默认值：`undefined`
+
+如果设置了 `shared.treeShaking.mode` 为 'server-calc'，那么在部署服务中，会重新构建需要 tree shaking 的共享依赖，此时仅构建共享依赖，不会加载原项目的构建配置。
+如果你的项目有特殊的构建配置，例如设置了 externals ，那么你可以把这些构建配置集成到一个 NPM Package ，然后在 `treeShakingSharedPlugins` 中填写此插件的名称和版本，这样就可以在第二次 treeshaking 过程中参与 shared 模块的 treeshaking 过程。
+
+例如提供了一个插件 `my-build-plugin`，它会设置 `externals`：
+
+```ts title='my-build-plugin'
+class MyBuildPlugin {
+  apply(compiler) {
+    compiler.options.externals = {
+      react: 'React',
+    };
+  }
+}
+export default MyBuildPlugin;
+```
+
+将此插件发布的版本为 `0.0.2` ，那么此时只需要在 `treeShakingSharedPlugins` 中填写插件的名称和版本即可：
+
+```ts title='module-federation.config.ts'
+export default {
+  // ...
+  treeShakingSharedPlugins: ['my-build-plugin@0.0.2'],
+};
+```
+
+## 常见问题
+
+- 构建产物中存在未降级语法？
+
+  如果你需要兼容低版本浏览器，请添加 [builtin:swc-loader](/guide/features/builtin-swc-loader) 进行语法降级，需要匹配 `@module-federation` scope 下的 npm 包。示例如下：
+
+  ```js title="rspack.config.mjs"
+  export default {
+    module: {
+      rules: [
+        {
+          include: [/@module-federation[\\/]/],
+          use: {
+            loader: 'builtin:swc-loader',
+            options: {
+              jsc: {
+                target: 'es5',
+              },
+            },
+          },
+        },
+      ],
+    },
+  };
+  ```
+
+- Multiple assets emit different content to the same filename mf-manifest.json
+
+  升级 `@module-federation` scope 下的 npm 包至 `0.21.0` 及以上版本。

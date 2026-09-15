@@ -35,6 +35,18 @@ WARNING in ./index.js
 
 WARNING in ./index.js
   ⚠ Module parse warning:
+  ╰─▶   ⚠ Magic comments parse failed: `webpackMode` expected "lazy", "lazy-once", "eager" or "weak", but received: "unknown".
+         ╭─[5:15]
+       3 │   webpackPreload: "aaa",
+       4 │   webpackIgnore: asdf,
+       5 │   webpackMode: "unknown",
+         ·                ─────────
+       6 │   webpackFetchPriority: "unknown",
+       7 │   webpackInclude: unknown,
+         ╰────
+
+WARNING in ./index.js
+  ⚠ Module parse warning:
   ╰─▶   ⚠ Magic comments parse failed: `webpackFetchPriority` expected "low", "high" or "auto", but received: "unknown".
          ╭─[6:24]
        4 │   webpackIgnore: asdf,

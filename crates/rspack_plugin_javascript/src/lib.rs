@@ -8,10 +8,16 @@ pub mod parser_and_generator;
 mod parser_plugin;
 mod plugin;
 pub mod runtime;
+mod runtime_context;
 pub mod utils;
 pub mod visitors;
+pub use magic_comment::{
+  RawMagicComment, RspackCommentMap, try_extract_magic_comment,
+  try_extract_magic_comment_from_comments,
+};
 pub use parser_plugin::*;
 use rspack_core::rspack_sources::SourceMap;
+pub use rspack_intern::Atom;
 pub use rspack_macros::implemented_javascript_parser_hooks;
 
 pub use crate::plugin::{infer_async_modules_plugin::InferAsyncModulesPlugin, *};
@@ -19,7 +25,7 @@ pub use crate::plugin::{infer_async_modules_plugin::InferAsyncModulesPlugin, *};
 #[derive(Debug)]
 pub struct TransformOutput {
   pub code: String,
-  pub map: Option<SourceMap>,
+  pub map: Option<SourceMap<'static>>,
 }
 
 #[derive(Debug)]
@@ -28,17 +34,7 @@ pub enum SourceMapsConfig {
   Str(String),
 }
 
-impl SourceMapsConfig {
-  pub fn enabled(&self) -> bool {
-    match *self {
-      SourceMapsConfig::Bool(b) => b,
-      SourceMapsConfig::Str(ref s) => {
-        assert_eq!(s, "inline", "Source map must be true, false or inline");
-        true
-      }
-    }
-  }
-}
+impl SourceMapsConfig {}
 
 #[derive(Debug)]
 pub enum IsModule {

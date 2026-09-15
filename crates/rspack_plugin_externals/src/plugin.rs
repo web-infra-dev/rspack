@@ -12,6 +12,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_css::dependency::CssImportDependency;
 use rspack_plugin_javascript::dependency::{ESMImportSideEffectDependency, ImportDependency};
 
 static UNSPECIFIED_EXTERNAL_TYPE_REGEXP: LazyLock<Regex> =
@@ -23,11 +24,21 @@ pub struct ExternalsPlugin {
   externals: Vec<ExternalItem>,
   r#type: ExternalType,
   place_in_initial: bool,
+  fallback_type: ExternalType,
 }
 
 impl ExternalsPlugin {
   pub fn new(r#type: ExternalType, externals: Vec<ExternalItem>, place_in_initial: bool) -> Self {
-    Self::new_inner(externals, r#type, place_in_initial)
+    Self::new_with_options(r#type, externals, place_in_initial, "commonjs".to_string())
+  }
+
+  pub fn new_with_options(
+    r#type: ExternalType,
+    externals: Vec<ExternalItem>,
+    place_in_initial: bool,
+    fallback_type: ExternalType,
+  ) -> Self {
+    Self::new_inner(externals, r#type, place_in_initial, fallback_type)
   }
 
   fn handle_external(
@@ -105,37 +116,67 @@ impl ExternalsPlugin {
       None
     }
 
+    let dependency_type = *dependency.dependency_type();
+    let is_import_dependency = dependency
+      .as_any()
+      .downcast_ref::<ImportDependency>()
+      .is_some();
+    let is_esm_import_side_effect_dependency = dependency
+      .as_any()
+      .downcast_ref::<ESMImportSideEffectDependency>()
+      .is_some();
+
     let mut dependency_meta: DependencyMeta = DependencyMeta {
       attributes: dependency.get_attributes().cloned(),
+      phase: dependency.get_phase(),
       external_type: {
-        if dependency
-          .as_any()
-          .downcast_ref::<ImportDependency>()
-          .is_some()
+        if is_import_dependency
+          || matches!(
+            dependency_type,
+            DependencyType::DynamicImport
+              | DependencyType::DynamicImportEager
+              | DependencyType::LazyImport
+          )
         {
           Some(ExternalTypeEnum::Import)
-        } else if dependency
-          .as_any()
-          .downcast_ref::<ESMImportSideEffectDependency>()
-          .is_some()
-        {
+        } else if is_esm_import_side_effect_dependency {
           Some(ExternalTypeEnum::Module)
         } else {
           None
         }
       },
       source_type: None,
+      css_import_conditions: dependency
+        .as_any()
+        .downcast_ref::<CssImportDependency>()
+        .map(|dependency| dependency.render_condition().clone()),
     };
 
-    if r#type.as_ref().is_some_and(|t| t == "asset")
+    let external_module_type = r#type.unwrap_or(external_module_type);
+    if matches!(external_module_type.as_str(), "asset" | "asset-url")
       && matches!(dependency.dependency_type(), DependencyType::CssUrl)
     {
-      dependency_meta.source_type = Some(SourceType::CssUrl);
+      dependency_meta.source_type = Some(SourceType::AssetUrl);
+    }
+
+    if external_module_type == "modern-module"
+      && matches!(
+        dependency_type,
+        DependencyType::CjsRequire
+          | DependencyType::CjsFullRequire
+          | DependencyType::CjsExportRequire
+          | DependencyType::CommonJSRequireContext
+          | DependencyType::RequireContext
+          | DependencyType::RequireResolve
+          | DependencyType::RequireResolveContext
+      )
+    {
+      dependency_meta.external_type = Some(ExternalTypeEnum::CommonJs(self.fallback_type.clone()));
     }
 
     Some(ExternalModule::new(
       external_module_config,
-      r#type.unwrap_or(external_module_type),
+      external_module_type,
       dependency.request().to_owned(),
       dependency_meta,
       self.place_in_initial,
@@ -207,7 +248,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
               .expect("Expected at least one dependency")
               .category(),
           },
-          resolver_factory: data.resolver_factory.clone(),
+          resolver_factory: data.build_context.resolver_factory.clone(),
         })
         .await?;
         if let Some(r) = result.result {

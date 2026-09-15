@@ -3,6 +3,9 @@ const { ModuleFederationPlugin } = rspack.container;
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    './container.js': 'commonjs ./container.js',
+  },
   module: {
     rules: [
       {

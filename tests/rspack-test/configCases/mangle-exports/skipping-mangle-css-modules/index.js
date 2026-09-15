@@ -6,5 +6,5 @@ it("should not mangle css module", () => {
   // Using this to trigger a none provided export
   test.res;
 
-  expect(test.test).toBe("eb8790b5fbf78ed1");
+  expect(test.test).toBe("_64eQtf");
 });

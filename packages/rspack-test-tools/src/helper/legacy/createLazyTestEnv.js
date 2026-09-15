@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-module.exports = (globalTimeout = 2000, nameSuffix = '') => {
+export function createLazyTestEnv(globalTimeout = 2000, nameSuffix = '') {
   const state = global.JEST_STATE_SYMBOL;
   let currentDescribeBlock;
   let currentlyRunningTest;
@@ -62,7 +62,7 @@ module.exports = (globalTimeout = 2000, nameSuffix = '') => {
       fn();
     } catch (e) {
       // avoid leaking memory
-      e.stack;
+      void e.stack;
       throw e;
     }
     state.currentDescribeBlock = oldCurrentDescribeBlock;
@@ -118,8 +118,8 @@ module.exports = (globalTimeout = 2000, nameSuffix = '') => {
         );
       });
     },
-    /** @type {import('@rstest/core').Expect} */
+    /** @type {import('rstack/test').Expect} */
     expect,
     rstest,
   };
-};
+}

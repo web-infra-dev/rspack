@@ -13,7 +13,7 @@ module.exports = {
 			expect(a.assetsByChunkName.lazy).toEqual(b.assetsByChunkName.lazy);
 			expect(a.assetsByChunkName.a).toEqual(b.assetsByChunkName.a);
 			expect(a.assetsByChunkName.b).toEqual(b.assetsByChunkName.b);
-			// expect(a.assetsByChunkName.a).toEqual(a.assetsByChunkName.b);
+			expect(a.assetsByChunkName.a).toEqual(a.assetsByChunkName.b);
 		}
 	}
 };

@@ -1,0 +1,15 @@
+# Case process-assets-moved-module: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: a.js
+- Bundle: b.js
+- Bundle: runtime.js
+- Bundle: shared.js
+
+## Manifest
+
+
+## Update

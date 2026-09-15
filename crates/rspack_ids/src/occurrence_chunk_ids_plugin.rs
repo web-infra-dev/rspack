@@ -7,7 +7,9 @@ use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::id_helpers::{assign_ascending_chunk_ids, compare_chunks_natural};
+use crate::id_helpers::{
+  NaturalChunkCompareCache, assign_ascending_chunk_ids, compare_chunks_natural,
+};
 
 #[derive(Debug)]
 pub struct OccurrenceChunkIdsPluginOptions {
@@ -35,7 +37,7 @@ async fn chunk_ids(
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
-    IncrementalPasses::CHUNK_IDS,
+    IncrementalPasses::CHUNK_IDS | IncrementalPasses::MODULES_HASHES,
     "OccurrenceChunkIdsPlugin (optimization.chunkIds = \"size\")",
     "it requires calculating the id of all the chunks, which is a global effect",
   ) && let Some(diagnostic) = diagnostic
@@ -63,7 +65,7 @@ async fn chunk_ids(
     occurs_in_initial_chunks_map.insert(chunk.ukey(), occurs);
   }
 
-  let mut ordered_chunk_modules_cache = Default::default();
+  let mut chunk_compare_cache = NaturalChunkCompareCache::default();
   let chunks = chunk_by_ukey
     .values()
     .map(|chunk| chunk as &Chunk)
@@ -88,7 +90,7 @@ async fn chunk_ids(
         &compilation.module_ids_artifact,
         a,
         b,
-        &mut ordered_chunk_modules_cache,
+        &mut chunk_compare_cache,
       )
     })
     .map(|chunk| chunk.ukey())

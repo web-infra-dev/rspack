@@ -1,7 +1,5 @@
 import MergeCaller from './MergeCaller';
 
-export type FakeHook<T> = T & { _fakeHook: true };
-
 export function createFakeCompilationDependencies(
   getDeps: () => string[],
   addDeps: (deps: string[]) => void,

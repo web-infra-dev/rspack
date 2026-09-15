@@ -1,5 +1,6 @@
 import * as style from "./style.css";
 import file from "./file.text" with { type: "bytes" };
+import png from "../../asset/_images/file.png" with { type: "bytes" };
 
 it("should work", async () => {
 	const decoder = new TextDecoder('utf-8');
@@ -11,6 +12,8 @@ it("should work", async () => {
 	const dynText = decoder.decode(dyn);
 
 	expect(dynText).toBe("a Ā 𐀀 文 🦄 Text");
+
+	expect(Array.from(png.slice(0, 4))).toEqual([137, 80, 78, 71]);
 
 	if (typeof getComputedStyle === "function") {
 		const style = getComputedStyle(document.body);

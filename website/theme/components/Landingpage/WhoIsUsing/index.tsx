@@ -1,9 +1,9 @@
 import { Link } from '@rspress/core/theme-original';
-import { BuiltWithRspack } from '@rstack-dev/doc-ui/built-with-rspack';
+import { BuiltWithRspack } from '@rstackjs/doc-ui/built-with-rspack';
 import {
   containerStyle,
   innerContainerStyle,
-} from '@rstack-dev/doc-ui/section-style';
+} from '@rstackjs/doc-ui/section-style';
 import { memo } from 'react';
 import { useI18n } from '../../../i18n';
 import abbLogo from './assets/abb.svg';
@@ -15,6 +15,7 @@ import cloudflareLogo from './assets/cloudflare.svg';
 import deepseekLogo from './assets/deepseek.svg';
 import discordLogo from './assets/discord.svg';
 import getaroundLogo from './assets/getaround.svg';
+import githubLogo from './assets/github.svg';
 import googleLogo from './assets/google.svg';
 import intuitLogo from './assets/intuit.svg';
 import khanAcademyLogo from './assets/khan-academy.svg';
@@ -67,6 +68,12 @@ const companyList: Company[] = [
     logo: googleLogo,
     url: 'https://google.com',
     width: 110,
+  },
+  {
+    name: 'GitHub',
+    logo: githubLogo,
+    url: 'https://github.com',
+    width: 140,
   },
   {
     name: 'Alibaba',

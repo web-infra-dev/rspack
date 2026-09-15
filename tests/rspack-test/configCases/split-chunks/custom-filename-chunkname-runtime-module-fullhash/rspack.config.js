@@ -8,10 +8,9 @@ module.exports = {
   output: {
     filename: 'c-[name].js',
     library: { type: 'commonjs2' },
-    // TODO:
-    // here is a webpack bug and also in rspack
-    // if do not set chunkFilename and hash
-    // __webpack_require__.h will not exists
+    // TODO: Both webpack and Rspack fail to define __webpack_require__.h when
+    // [hash] is used only in a splitChunks cache-group filename. Keep [hash]
+    // here as a workaround.
     chunkFilename: '[hash].js',
   },
   optimization: {

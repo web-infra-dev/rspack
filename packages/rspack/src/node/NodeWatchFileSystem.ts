@@ -8,6 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import { EventEmitter } from 'node:events';
 import { createRequire } from 'node:module';
 import util from 'node:util';
 import type Watchpack from 'watchpack';
@@ -21,63 +22,66 @@ import type {
 } from '../util/fs';
 
 const require = createRequire(import.meta.url);
-const globToRegExp = require('../compiled/glob-to-regexp/index.js') as (
-  glob: string,
-  options: { globstar: boolean; extended: boolean },
-) => RegExp;
 
-const stringToRegexp = (ignored: string) => {
-  if (ignored.length === 0) {
-    return;
-  }
-  const source = globToRegExp(ignored, {
-    globstar: true,
-    extended: true,
-  }).source;
-  return `${source.slice(0, source.length - 1)}(?:$|\\/)`;
-};
-
+/**
+ * watchpack accepts a glob, an array of globs, a `RegExp` or a predicate — but
+ * not an array mixing globs and `RegExp`s. Fold that form into the predicate,
+ * reusing watchpack's own glob translation and separator normalization so each
+ * half behaves exactly like it would on its own.
+ */
 const mixedIgnoredToFunction = (
   ignored: (string | RegExp)[],
-): ((path: string) => boolean) => {
-  const stringRegexpSources: string[] = [];
+): ((item: string) => boolean) => {
+  const { util: watchpackUtil } = require('watchpack');
+  const globSources: string[] = [];
   const regexps: RegExp[] = [];
   for (const item of ignored) {
     if (typeof item === 'string') {
-      const regexpSource = stringToRegexp(item);
-      if (regexpSource) {
-        stringRegexpSources.push(regexpSource);
+      if (item.length > 0) {
+        globSources.push(`^${watchpackUtil.globToRegExp(item)}(?:$|\\/)`);
       }
     } else {
       regexps.push(item);
     }
   }
+  const globRegexp =
+    globSources.length > 0 ? new RegExp(globSources.join('|')) : undefined;
 
-  const stringRegexp =
-    stringRegexpSources.length > 0
-      ? new RegExp(stringRegexpSources.join('|'))
-      : undefined;
-
-  if (!stringRegexp && regexps.length === 0) {
-    return () => false;
-  }
-
-  return (path: string) => {
-    const normalizedPath = path.replace(/\\/g, '/');
+  return (item: string) => {
+    const normalized = item.includes('\\') ? item.replace(/\\/g, '/') : item;
     return (
-      stringRegexp?.test(normalizedPath) ||
+      globRegexp?.test(normalized) === true ||
+      // A `RegExp` carrying `g`/`y` keeps `lastIndex` between calls, which would
+      // make the same path match only every other time.
       regexps.some((regexp) => {
         regexp.lastIndex = 0;
-        return regexp.test(normalizedPath);
+        return regexp.test(normalized);
       })
     );
   };
 };
 
+const toWatchpackOptions = (options: WatchOptions): WatchOptions => {
+  const { ignored } = options;
+  if (
+    Array.isArray(ignored) &&
+    ignored.some((item) => item instanceof RegExp)
+  ) {
+    return { ...options, ignored: mixedIgnoredToFunction(ignored) };
+  }
+  return options;
+};
+
+type WatchpackInstance = InstanceType<typeof Watchpack>;
+
 export default class NodeWatchFileSystem implements WatchFileSystem {
   inputFileSystem: InputFileSystem;
   watcherOptions: Watchpack.WatchOptions;
-  watcher?: Watchpack;
+  watcher?: WatchpackInstance;
+  // Long-lived emitter backing the `on`/`once` API. `watch()` replaces
+  // `this.watcher` with a fresh Watchpack each cycle, so listeners must live
+  // here (and be fed from each new watcher) to survive across cycles.
+  #events = new EventEmitter();
 
   constructor(inputFileSystem: InputFileSystem) {
     this.inputFileSystem = inputFileSystem;
@@ -124,20 +128,24 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
     }
 
     const oldWatcher = this.watcher;
-    const Watchpack = require('../compiled/watchpack/index.js');
-    if (
-      Array.isArray(options.ignored) &&
-      options.ignored.some((item) => item instanceof RegExp)
-    ) {
-      (options as Record<string, unknown>).ignored = mixedIgnoredToFunction(
-        options.ignored,
-      );
-    }
-    this.watcher = new Watchpack(options);
+    const Watchpack = require('watchpack');
+    this.watcher = new Watchpack(toWatchpackOptions(options));
 
     if (callbackUndelayed) {
       this.watcher?.once('change', callbackUndelayed);
     }
+
+    // Forward this cycle's watchpack events to the long-lived emitter so
+    // `on`/`once` listeners keep working after the watcher is replaced.
+    this.watcher?.on('change', (filename, mtime) => {
+      this.#events.emit('change', filename, mtime);
+    });
+    this.watcher?.on('remove', (filename) => {
+      this.#events.emit('remove', filename);
+    });
+    this.watcher?.on('aggregated', (changes, removals) => {
+      this.#events.emit('aggregated', changes, removals);
+    });
 
     const fetchTimeInfo = () => {
       const fileTimeInfoEntries = new Map();
@@ -256,5 +264,88 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
         };
       },
     };
+  }
+
+  on(
+    event: 'change',
+    listener: (filename: string, mtime: number) => void,
+  ): this;
+  on(event: 'remove', listener: (filename: string) => void): this;
+  on(
+    event: 'aggregated',
+    listener: (changes: Set<string>, removals: Set<string>) => void,
+  ): this;
+  on(
+    event: 'change' | 'remove' | 'aggregated',
+    listener:
+      | ((filename: string, mtime: number) => void)
+      | ((filename: string) => void)
+      | ((changes: Set<string>, removals: Set<string>) => void),
+  ): this {
+    this.#events.on(event, listener as (...args: unknown[]) => void);
+    return this;
+  }
+
+  once(
+    event: 'change',
+    listener: (filename: string, mtime: number) => void,
+  ): this;
+  once(event: 'remove', listener: (filename: string) => void): this;
+  once(
+    event: 'aggregated',
+    listener: (changes: Set<string>, removals: Set<string>) => void,
+  ): this;
+  once(
+    event: 'change' | 'remove' | 'aggregated',
+    listener:
+      | ((filename: string, mtime: number) => void)
+      | ((filename: string) => void)
+      | ((changes: Set<string>, removals: Set<string>) => void),
+  ): this {
+    this.#events.once(event, listener as (...args: unknown[]) => void);
+    return this;
+  }
+
+  emit(event: 'change', filename: string, mtime: number): boolean;
+  emit(event: 'remove', filename: string): boolean;
+  emit(
+    event: 'aggregated',
+    changes: Set<string>,
+    removals: Set<string>,
+  ): boolean;
+  emit(
+    event: 'change' | 'remove' | 'aggregated',
+    arg1: string | Set<string>,
+    arg2?: number | Set<string>,
+  ): boolean {
+    if (event === 'aggregated') {
+      // `aggregated` is a summary event, not a primitive filesystem event:
+      // notify standard `on`/`once` listeners without re-dispatching it through
+      // watchpack (which would trigger a rebuild), keeping it consistent with
+      // the native side, where no aggregated-injection primitive exists.
+      return this.#events.emit(
+        'aggregated',
+        arg1 as Set<string>,
+        arg2 as Set<string>,
+      );
+    }
+    if (!this.watcher) {
+      return false;
+    }
+    const filename = arg1 as string;
+    // `_onChange`/`_onRemove` emit the public `change`/`remove` events and feed
+    // the aggregated change/removal sets that drive the next rebuild, matching
+    // how watchpack reports a real filesystem event.
+    if (event === 'change') {
+      this.watcher._onChange(
+        filename,
+        (arg2 as number) ?? Date.now(),
+        filename,
+        'change',
+      );
+    } else {
+      this.watcher._onRemove(filename, filename, 'rename');
+    }
+    return true;
   }
 }

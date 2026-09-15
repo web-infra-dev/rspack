@@ -6,11 +6,13 @@ use crate::{
   ArtifactExt, CacheOptions, CodeGenerationJob, CodeGenerationResult, CompilerOptions,
   MemoryGCStorage,
   incremental::{Incremental, IncrementalPasses},
+  runtime_mode::RuntimeMode,
 };
 
 #[derive(Debug, Default)]
 pub struct CodeGenerateCacheArtifact {
   storage: Option<MemoryGCStorage<CodeGenerationResult>>,
+  runtime_mode: RuntimeMode,
 }
 
 impl ArtifactExt for CodeGenerateCacheArtifact {
@@ -26,10 +28,13 @@ impl CodeGenerateCacheArtifact {
   pub fn new(options: &CompilerOptions) -> Self {
     Self {
       storage: match &options.cache {
-        CacheOptions::Memory { max_generations } => Some(MemoryGCStorage::new(*max_generations)),
+        CacheOptions::Memory {
+          max_generations, ..
+        } => Some(MemoryGCStorage::new(*max_generations)),
         CacheOptions::Persistent(_) => Some(MemoryGCStorage::new(1)),
         CacheOptions::Disabled => None,
       },
+      runtime_mode: options.experiments.runtime_mode,
     }
   }
 
@@ -39,25 +44,29 @@ impl CodeGenerateCacheArtifact {
     }
   }
 
-  pub async fn use_cache<G, F>(
+  pub async fn use_cache<F>(
     &self,
     job: &CodeGenerationJob,
-    generator: G,
+    generator: F,
   ) -> (Result<CodeGenerationResult>, bool)
   where
-    G: FnOnce() -> F,
     F: Future<Output = Result<CodeGenerationResult>>,
   {
     let Some(storage) = &self.storage else {
-      let res = generator().await;
+      let res = generator.await;
       return (res, false);
     };
 
-    let cache_key = Identifier::from(format!("{}|{}", job.module, job.hash.encoded()));
+    let cache_key = Identifier::from(format!(
+      "{}|{}|{}",
+      job.module,
+      job.hash.encoded(),
+      self.runtime_mode
+    ));
     if let Some(value) = storage.get(&cache_key) {
       (Ok(value), true)
     } else {
-      match generator().await {
+      match generator.await {
         Ok(res) => {
           storage.set(cache_key, res.clone());
           (Ok(res), false)

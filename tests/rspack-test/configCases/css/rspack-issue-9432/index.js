@@ -4,8 +4,8 @@ styles["switch"];
 styles["default"];
 
 it("should works", async () => {
-	const fs = __non_webpack_require__("fs");
-	const path = __non_webpack_require__("path");
+	const fs = require("fs");
+	const path = require("path");
 	const js = await fs.promises.readFile(
 		path.resolve(__dirname, "./bundle0.js"),
 		"utf-8"

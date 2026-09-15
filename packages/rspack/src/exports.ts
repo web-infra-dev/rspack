@@ -28,7 +28,10 @@ export {
 export type { Chunk } from './Chunk';
 export { ConcatenatedModule } from './ConcatenatedModule';
 export { ContextModule } from './ContextModule';
-export { ExternalModule } from './ExternalModule';
+export {
+  ExternalModule,
+  type ExternalModuleCompilationHooks,
+} from './ExternalModule';
 export type { ResolveData, ResourceDataWithData } from './Module';
 export { Module } from './Module';
 export type { default as ModuleGraph } from './ModuleGraph';
@@ -62,6 +65,8 @@ import * as ModuleFilenameHelpers from './lib/ModuleFilenameHelpers';
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
 export { Template } from './Template';
+export { RuntimeTemplate } from './RuntimeTemplate';
+export type { ConcatenationArg } from './RuntimeTemplate';
 export { ModuleFilenameHelpers };
 
 export const WebpackError = Error;
@@ -134,7 +139,11 @@ export { default as EntryOptionPlugin } from './lib/EntryOptionPlugin';
 export { EnvironmentPlugin } from './lib/EnvironmentPlugin';
 export { LoaderOptionsPlugin } from './lib/LoaderOptionsPlugin';
 export { LoaderTargetPlugin } from './lib/LoaderTargetPlugin';
-export type { OutputFileSystem, WatchFileSystem } from './util/fs';
+export type {
+  InputFileSystem,
+  OutputFileSystem,
+  WatchFileSystem,
+} from './util/fs';
 
 import {
   FetchCompileAsyncWasmPlugin,
@@ -182,13 +191,33 @@ interface Electron {
 
 export const electron: Electron = { ElectronTargetPlugin };
 
-import { HashedModuleIdsPlugin } from './builtin-plugin';
+import {
+  CompactHashedChunkIdsPlugin,
+  CompactHashedModuleIdsPlugin,
+  DeterministicModuleIdsPlugin,
+  HashedModuleIdsPlugin,
+  SyncModuleIdsPlugin,
+} from './builtin-plugin';
 
 interface Ids {
+  CompactHashedChunkIdsPlugin: typeof CompactHashedChunkIdsPlugin;
+  CompactHashedModuleIdsPlugin: typeof CompactHashedModuleIdsPlugin;
+  /** @deprecated Use `CompactHashedChunkIdsPlugin` instead. */
+  CompatHashedChunkIdsPlugin: typeof CompactHashedChunkIdsPlugin;
+  /** @deprecated Use `CompactHashedModuleIdsPlugin` instead. */
+  CompatHashedModuleIdsPlugin: typeof CompactHashedModuleIdsPlugin;
+  DeterministicModuleIdsPlugin: typeof DeterministicModuleIdsPlugin;
   HashedModuleIdsPlugin: typeof HashedModuleIdsPlugin;
 }
 
-export const ids: Ids = { HashedModuleIdsPlugin };
+export const ids: Ids = {
+  CompactHashedChunkIdsPlugin,
+  CompactHashedModuleIdsPlugin,
+  CompatHashedChunkIdsPlugin: CompactHashedChunkIdsPlugin,
+  CompatHashedModuleIdsPlugin: CompactHashedModuleIdsPlugin,
+  DeterministicModuleIdsPlugin,
+  HashedModuleIdsPlugin,
+};
 
 import { EnableLibraryPlugin } from './builtin-plugin';
 
@@ -232,6 +261,7 @@ export const webworker: Webworker = { WebWorkerTemplatePlugin };
 import {
   CssChunkingPlugin,
   LimitChunkCountPlugin,
+  RealContentHashPlugin,
   RemoveDuplicateModulesPlugin,
   RsdoctorPlugin,
   RslibPlugin,
@@ -242,12 +272,14 @@ import {
 
 interface Optimize {
   LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
+  RealContentHashPlugin: typeof RealContentHashPlugin;
   RuntimeChunkPlugin: typeof RuntimeChunkPlugin;
   SplitChunksPlugin: typeof SplitChunksPlugin;
 }
 
 export const optimize: Optimize = {
   LimitChunkCountPlugin,
+  RealContentHashPlugin,
   RuntimeChunkPlugin,
   SplitChunksPlugin,
 };
@@ -337,6 +369,7 @@ export type {
 } from './builtin-loader/swc/index';
 ///// Rspack Postfixed Internal Plugins /////
 export type {
+  CircularCheckRspackPluginOptions,
   CircularDependencyRspackPluginOptions,
   CopyRspackPluginOptions,
   CssExtractRspackLoaderOptions,
@@ -351,6 +384,7 @@ export type {
   SwcJsMinimizerRspackPluginOptions,
 } from './builtin-plugin';
 export {
+  CircularCheckRspackPlugin,
   CircularDependencyRspackPlugin,
   ContextReplacementPlugin,
   CopyRspackPlugin,
@@ -409,6 +443,9 @@ interface Experiments {
   CssChunkingPlugin: typeof CssChunkingPlugin;
   createNativePlugin: typeof createNativePlugin;
   VirtualModulesPlugin: typeof VirtualModulesPlugin;
+  ids: {
+    SyncModuleIdsPlugin: typeof SyncModuleIdsPlugin;
+  };
   rsc: typeof rsc;
 }
 
@@ -460,5 +497,8 @@ export const experiments: Experiments = {
   CssChunkingPlugin,
   createNativePlugin,
   VirtualModulesPlugin,
+  ids: {
+    SyncModuleIdsPlugin,
+  },
   rsc,
 };

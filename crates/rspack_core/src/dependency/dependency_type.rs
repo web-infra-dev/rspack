@@ -25,6 +25,8 @@ pub enum DependencyType {
   DynamicImport,
   // import() eager
   DynamicImportEager,
+  // import() weak
+  DynamicImportWeak,
   // cjs require
   CjsRequire,
   // cjs full require
@@ -65,6 +67,8 @@ pub enum DependencyType {
   CssCompose,
   // css :export
   CssExport,
+  // css icss symbol
+  CssIcssSymbol,
   // css modules local ident
   CssLocalIdent,
   // css modules self reference
@@ -75,6 +79,8 @@ pub enum DependencyType {
   ImportContext,
   // import.meta.webpackContext
   ImportMetaContext,
+  // import.meta.glob
+  ImportMetaGlob,
   // import.meta.resolve
   ImportMetaResolve,
   // import.meta.resolve context
@@ -131,10 +137,14 @@ pub enum DependencyType {
   RstestModulePath,
   RstestMockModuleId,
   RstestHoistMock,
+  RstestDynamicImportOrigin,
+  RstestRequireResolveOrigin,
   /// RSC entry that aggregates all "use client" and CSS modules for one Rspack entry
   RscEntry,
   /// RSC client reference to an individual "use client" or CSS module, not subject to lazy compilation
   RscClientReference,
+  /// `import.meta.rspackRsc` helper API for RSC.
+  ImportMetaRsc,
 }
 
 impl DependencyType {
@@ -150,6 +160,8 @@ impl DependencyType {
       DependencyType::EsmExportExpression => "esm export expression",
       DependencyType::EsmExportHeader => "esm export header",
       DependencyType::DynamicImport => "import()",
+      DependencyType::DynamicImportEager => "import() eager",
+      DependencyType::DynamicImportWeak => "import() weak",
       DependencyType::CjsRequire => "cjs require",
       DependencyType::CjsFullRequire => "cjs full require",
       DependencyType::CjsExports => "cjs exports",
@@ -172,6 +184,7 @@ impl DependencyType {
       DependencyType::CssImport => "css import",
       DependencyType::CssCompose => "css compose",
       DependencyType::CssExport => "css export",
+      DependencyType::CssIcssSymbol => "css icss symbol",
       DependencyType::CssLocalIdent => "css local ident",
       DependencyType::CssSelfReferenceLocalIdent => "css self reference local ident",
       DependencyType::ContextElement(type_prefix) => match type_prefix {
@@ -180,7 +193,6 @@ impl DependencyType {
       },
       // TODO: mode
       DependencyType::ImportContext => "import context",
-      DependencyType::DynamicImportEager => "import() eager",
       DependencyType::CommonJSRequireContext => "commonjs require context",
       DependencyType::RequireContext => "require.context",
       DependencyType::RequireResolve => "require.resolve",
@@ -194,6 +206,7 @@ impl DependencyType {
       DependencyType::ExportInfoApi => "export info api",
       // TODO: mode
       DependencyType::ImportMetaContext => "import.meta context",
+      DependencyType::ImportMetaGlob => "import.meta.glob",
       DependencyType::ImportMetaResolve => "import.meta.resolve",
       DependencyType::ImportMetaResolveContext => "import.meta.resolve context",
       DependencyType::ContainerExposed => "container exposed",
@@ -217,8 +230,11 @@ impl DependencyType {
       DependencyType::RstestModulePath => "rstest module path",
       DependencyType::RstestMockModuleId => "rstest mock module id",
       DependencyType::RstestHoistMock => "rstest hoist mock",
+      DependencyType::RstestDynamicImportOrigin => "rstest dynamic import origin",
+      DependencyType::RstestRequireResolveOrigin => "rstest require.resolve origin",
       DependencyType::RscEntry => "rsc entry",
       DependencyType::RscClientReference => "rsc client reference",
+      DependencyType::ImportMetaRsc => "import.meta.rspackRsc",
     }
   }
 }

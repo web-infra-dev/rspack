@@ -2,6 +2,8 @@ mod container;
 mod manifest;
 mod sharing;
 
+use rspack_hash::{RspackHash, RspackHasher};
+
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(untagged)]
@@ -29,6 +31,15 @@ impl ShareScope {
     match self {
       ShareScope::Single(_) => false,
       ShareScope::Multiple(v) => v.is_empty(),
+    }
+  }
+}
+
+impl RspackHash for ShareScope {
+  fn hash(&self, state: &mut RspackHasher) {
+    match self {
+      ShareScope::Single(scope) => scope.hash(state),
+      ShareScope::Multiple(scopes) => scopes.hash(state),
     }
   }
 }
@@ -69,9 +80,50 @@ pub use sharing::{
 mod utils {
   use std::fmt;
 
+  use rspack_core::{
+    Compilation, ModuleCodeTemplate, RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode,
+    RuntimeVariable, runtime_mode::RuntimeMode,
+  };
   use serde::Serialize;
 
   pub fn json_stringify<T: ?Sized + Serialize + fmt::Debug>(v: &T) -> String {
-    serde_json::to_string(v).unwrap_or_else(|e| panic!("{e}: {v:?} should able to json stringify"))
+    simd_json::to_string(v).unwrap_or_else(|e| panic!("{e}: {v:?} should able to json stringify"))
+  }
+
+  pub fn module_identifier_namespace(runtime_mode: RuntimeMode) -> &'static str {
+    match runtime_mode {
+      RuntimeMode::Webpack => "webpack",
+      RuntimeMode::Rspack => "rspack",
+    }
+  }
+
+  pub fn runtime_require_scope_name(runtime_template: &RuntimeCodeTemplate) -> String {
+    runtime_template.render_runtime_argument()
+  }
+
+  pub fn runtime_require_scope_requirement(compilation: &Compilation) -> RuntimeGlobals {
+    if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
+      RuntimeGlobals::REQUIRE_SCOPE
+    } else {
+      RuntimeGlobals::default()
+    }
+  }
+
+  pub fn module_require_scope_name(
+    compilation: &Compilation,
+    runtime_template: &mut ModuleCodeTemplate,
+  ) -> String {
+    if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
+      runtime_template
+        .runtime_requirements_mut()
+        .insert(RuntimeGlobals::REQUIRE_SCOPE);
+      if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport {
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+      } else {
+        runtime_template.render_runtime_variable(&RuntimeVariable::Context)
+      }
+    } else {
+      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    }
   }
 }

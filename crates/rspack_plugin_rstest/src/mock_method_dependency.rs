@@ -5,9 +5,10 @@ use rspack_core::{
   InitFragmentKey, InitFragmentStage, NormalInitFragment, RuntimeCondition, RuntimeGlobals,
   TemplateContext, TemplateReplaceSource,
 };
+use rspack_util::json_stringify_str;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MockMethodDependency {
   call_expr_range: DependencyRange,
   callee_range: DependencyRange,
@@ -17,6 +18,18 @@ pub struct MockMethodDependency {
   request: String,
   hoist: bool,
   method: MockMethod,
+  /// Byte offset (end of the last call argument's expression, before any
+  /// trailing comma) at which to inject the clean `request` literal as the
+  /// trailing argument of the emitted `rstest_*` call, e.g. turning
+  /// `rstest_mock(id, factory)` into `rstest_mock(id, factory, "request")`.
+  /// `None` skips injection — used for `rs.hoisted` (no request) and the 1-arg
+  /// auto-mock form (whose request is carried by the synthetic-target
+  /// dependency's suffix instead, to avoid colliding at the same offset).
+  args_request_end: Option<u32>,
+  /// Source order of the ESM import that provides the `rs` or `rstest`
+  /// binding. The import must run before hoisted callbacks that use other API
+  /// members such as `rs.fn()`.
+  test_api_import_source_order: Option<i32>,
 }
 
 #[cacheable]
@@ -47,6 +60,8 @@ impl MockMethodDependency {
       request,
       hoist,
       method,
+      args_request_end: None,
+      test_api_import_source_order: None,
     }
   }
 
@@ -65,7 +80,20 @@ impl MockMethodDependency {
       request,
       hoist,
       method,
+      args_request_end: None,
+      test_api_import_source_order: None,
     }
+  }
+
+  /// Set the request-injection offset. See [`Self::args_request_end`].
+  pub fn with_request_arg_end(mut self, end: Option<u32>) -> Self {
+    self.args_request_end = end;
+    self
+  }
+
+  pub fn with_test_api_import_source_order(mut self, source_order: Option<i32>) -> Self {
+    self.test_api_import_source_order = source_order;
+    self
   }
 }
 
@@ -113,13 +141,15 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
     let hoist_flag = Self::get_hoist_flag(&dep.method);
     let mock_method = Self::get_mock_method(&dep.method);
 
-    // Step 1: Add placeholder init fragment for hoistable methods
-    if let Some(flag) = hoist_flag {
+    if dep.hoist
+      && let Some(flag) = hoist_flag
+    {
+      // Step 1: Add placeholder init fragment for hoistable methods
       Self::add_placeholder_fragment(init_fragments, flag, &hoist_id, request);
-    }
 
-    // Step 2: Hoist @rstest/core import to ensure it comes before all hoisted code
-    Self::hoist_rstest_core_import(init_fragments);
+      // Step 2: Hoist the import that provides the test API before all hoisted code
+      Self::hoist_test_api_import(init_fragments, dep.test_api_import_source_order);
+    }
 
     // Step 3: Transform the source code
     Self::transform_source(
@@ -131,6 +161,13 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
       &hoist_id,
       request,
     );
+
+    // Inject the request as the call's trailing arg (before any trailing comma,
+    // valid for `rs.mock('x', f,)`) so a dynamic `import(request)` resolves to the
+    // mock by request. See `args_request_end` for the `None` cases.
+    if let Some(end) = dep.args_request_end {
+      source.replace(end, end, format!(", {}", json_stringify_str(request)), None);
+    }
   }
 }
 
@@ -168,9 +205,19 @@ impl MockMethodDependencyTemplate {
     }
   }
 
-  /// Add a placeholder init fragment that marks where hoisted code should be inserted
+  /// Add a placeholder init fragment that marks where hoisted code should be inserted.
+  ///
+  /// `StageESMImports` ordering contract (position → fragment):
+  /// - `-3`: the hoisted test API import (see [`Self::hoist_test_api_import`])
+  /// - `-2`: this placeholder — mock registrations run before any user module is
+  ///   evaluated, so an `importActual` subgraph still sees mocked transitive deps
+  /// - `-1`: `importActual` imports (see `esm_import_dependency.rs`) — evaluated
+  ///   after mocks are registered (registration does not run mock factories) but
+  ///   before normal imports, so factories that spread an `importActual` binding
+  ///   observe an initialized value once they lazily run
+  /// - `>= 1`: normal ESM imports (`source_order` starts at 1)
   fn add_placeholder_fragment(
-    init_fragments: &mut Vec<Box<dyn rspack_core::InitFragment<rspack_core::GenerateContext<'_>>>>,
+    init_fragments: &mut Vec<Box<dyn rspack_core::InitFragment>>,
     flag: &str,
     hoist_id: &str,
     request: &str,
@@ -178,49 +225,56 @@ impl MockMethodDependencyTemplate {
     let init = NormalInitFragment::new(
       format!("/* RSTEST:{flag}:{hoist_id}:{request}:PLACEHOLDER */;"),
       InitFragmentStage::StageESMImports,
-      0,
+      -2,
       InitFragmentKey::Const(format!("rstest mock_hoist {hoist_id}")),
       None,
     );
     init_fragments.push(init.boxed());
   }
 
-  /// Hoist @rstest/core import to the very top of the module.
+  /// Hoist the ESM import that provides the test API to the very top of the module.
   ///
-  /// This ensures that `@rstest/core` is imported before the hoisted placeholder,
-  /// so that `rs.fn()` and other utilities are available inside `rs.hoisted()` callbacks.
+  /// This ensures that `rs.fn()` and other utilities are available inside
+  /// `rs.hoisted()` callbacks regardless of which module re-exports the API.
   ///
   /// We achieve this by inserting a higher-priority fragment with the same key.
   /// Since ESMImport's merge logic returns the first fragment when its runtime_condition is true,
   /// our new fragment will take precedence and the original will be ignored.
-  fn hoist_rstest_core_import(
-    init_fragments: &mut Vec<Box<dyn rspack_core::InitFragment<rspack_core::GenerateContext<'_>>>>,
+  fn hoist_test_api_import(
+    init_fragments: &mut Vec<Box<dyn rspack_core::InitFragment>>,
+    source_order: Option<i32>,
   ) {
-    let target_key =
-      InitFragmentKey::ESMImport("ESM import external global \"@rstest/core\"".to_string());
-
-    // Find the original @rstest/core import fragment
-    let Some(fragment) = init_fragments.iter().find(|f| f.key() == &target_key) else {
+    let Some(source_order) = source_order else {
       return;
     };
 
+    let Some(fragment) = init_fragments.iter().find(|fragment| {
+      fragment.stage() == InitFragmentStage::StageESMImports
+        && fragment.position() == source_order
+        && matches!(fragment.key(), InitFragmentKey::ESMImport(_))
+    }) else {
+      return;
+    };
+    let target_key = fragment.key().clone();
+
     // Clone and downcast to get the content
-    let cloned: Box<dyn rspack_core::InitFragment<_>> = fragment.clone();
+    let cloned: Box<dyn rspack_core::InitFragment> = fragment.clone();
     let Ok(conditional_fragment) = cloned.into_any().downcast::<ConditionalInitFragment>() else {
       return;
     };
 
-    // Create a new fragment with higher priority (position=-1) and insert at the beginning
+    // Create a new fragment with higher priority (position=-3, before the mock
+    // placeholder at -2 and importActual imports at -1) and insert at the beginning
     let content = conditional_fragment.content().to_string();
-    let rstest_import = ConditionalInitFragment::new(
+    let test_api_import = ConditionalInitFragment::new(
       content,
       InitFragmentStage::StageESMImports,
-      -1, // Higher priority than default (0)
+      -3,
       target_key,
       None,
       RuntimeCondition::Boolean(true),
     );
-    init_fragments.insert(0, rstest_import.boxed());
+    init_fragments.insert(0, test_api_import.boxed());
   }
 
   /// Transform the source code by:
@@ -273,7 +327,7 @@ impl MockMethodDependencyTemplate {
 
   /// Transform for variable declarations that need hoisting.
   /// Example: `const mocks = rs.hoisted(() => {...})`
-  /// Result: `/* HOIST_START */const mocks = __webpack_require__.rstest_hoisted(() => {...})/* HOIST_END */`
+  /// Result: `/* HOIST_START */const mocks = __rspack_require.rstest_hoisted(() => {...})/* HOIST_END */`
   fn transform_with_statement_hoist(
     source: &mut TemplateReplaceSource,
     dep: &MockMethodDependency,
@@ -303,7 +357,7 @@ impl MockMethodDependencyTemplate {
     );
 
     // Comment out original callee and replace with runtime method
-    // `rs.hoisted` -> `/* rs.hoisted */ __webpack_require__.rstest_hoisted`
+    // `rs.hoisted` -> `/* rs.hoisted */ __rspack_require.rstest_hoisted`
     source.replace_static(callee_range.start, callee_range.start, "/* ", None);
     source.replace(
       callee_range.end,
@@ -315,7 +369,7 @@ impl MockMethodDependencyTemplate {
 
   /// Transform for standalone calls that need hoisting.
   /// Example: `rs.mock('./foo', () => {...})`
-  /// Result: `/* rs.mock */ /* HOIST_START */__webpack_require__.rstest_mock('./foo', () => {...})/* HOIST_END */`
+  /// Result: `/* rs.mock */ /* HOIST_START */__rspack_require.rstest_mock('./foo', () => {...})/* HOIST_END */`
   fn transform_with_call_hoist(
     source: &mut TemplateReplaceSource,
     dep: &MockMethodDependency,
@@ -344,7 +398,7 @@ impl MockMethodDependencyTemplate {
 
   /// Transform for calls without hoisting.
   /// Example: `rs.doMock('./foo', () => {...})`
-  /// Result: `/* rs.doMock */ __webpack_require__.rstest_do_mock('./foo', () => {...})`
+  /// Result: `/* rs.doMock */ __rspack_require.rstest_do_mock('./foo', () => {...})`
   fn transform_without_hoist(
     source: &mut TemplateReplaceSource,
     require_name: &str,

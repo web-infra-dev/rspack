@@ -44,6 +44,7 @@ impl From<RawCrossOriginLoading> for CrossOriginLoading {
 #[napi(object)]
 pub struct RawEnvironment {
   pub r#const: bool,
+  pub computed_property: bool,
   pub method_shorthand: bool,
   pub arrow_function: bool,
   pub node_prefix_for_core_modules: bool,
@@ -56,6 +57,7 @@ pub struct RawEnvironment {
   pub global_this: bool,
   pub module: bool,
   pub optional_chaining: bool,
+  pub logical_assignment: bool,
   pub template_literal: bool,
   pub dynamic_import_in_worker: bool,
   pub import_meta_dirname_and_filename: bool,
@@ -65,6 +67,7 @@ impl From<RawEnvironment> for Environment {
   fn from(value: RawEnvironment) -> Self {
     Self {
       r#const: value.r#const,
+      computed_property: value.computed_property,
       method_shorthand: value.method_shorthand,
       arrow_function: value.arrow_function,
       node_prefix_for_core_modules: value.node_prefix_for_core_modules,
@@ -77,6 +80,7 @@ impl From<RawEnvironment> for Environment {
       global_this: value.global_this,
       module: value.module,
       optional_chaining: value.optional_chaining,
+      logical_assignment: value.logical_assignment,
       template_literal: value.template_literal,
       dynamic_import_in_worker: value.dynamic_import_in_worker,
       import_meta_dirname_and_filename: value.import_meta_dirname_and_filename,
@@ -96,6 +100,7 @@ pub struct RawOutputOptions {
   pub asset_module_filename: JsFilename,
   #[napi(ts_type = "string | false")]
   pub wasm_loading: RawWasmLoading,
+  pub wasm_streaming_fallback: bool,
   pub enabled_wasm_loading_types: Vec<String>,
   pub webassembly_module_filename: String,
   pub filename: JsFilename,
@@ -181,6 +186,7 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
       public_path: value.public_path.into(),
       asset_module_filename: value.asset_module_filename.into(),
       wasm_loading: value.wasm_loading.into(),
+      wasm_streaming_fallback: value.wasm_streaming_fallback,
       webassembly_module_filename: value.webassembly_module_filename.into(),
       unique_name: value.unique_name,
       chunk_loading: value.chunk_loading.into(),

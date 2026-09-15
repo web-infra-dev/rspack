@@ -1,6 +1,7 @@
 #![feature(box_patterns)]
 
 mod collect_ts_info;
+mod isolated_dts;
 mod options;
 mod plugin;
 mod rsc_transforms;
@@ -8,6 +9,7 @@ mod transformer;
 
 use std::{cell::RefCell, default::Default, path::Path, rc::Rc, sync::Arc};
 
+use isolated_dts::{handle_isolated_dts_diagnostics, set_build_info};
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
@@ -24,12 +26,12 @@ use swc_config::{merge::Merge, types::MergingOption};
 use swc_core::{
   base::config::{InputSourceMap, TransformConfig},
   common::{FileName, SyntaxContext, comments::SingleThreadedComments},
-  ecma::ast::noop_pass,
+  ecma::ast::{EsVersion, noop_pass},
 };
 
 use crate::{
   collect_ts_info::collect_typescript_info,
-  rsc_transforms::{rsc_pass, to_server_entry},
+  rsc_transforms::{RscTransformOptions, rsc_transform, to_server_entry},
 };
 
 #[cacheable]
@@ -62,10 +64,10 @@ impl SwcLoader {
       .resource_path()
       .map(|p| p.to_path_buf())
       .unwrap_or_default();
+    loader_context.context.module.build_info_mut().isolated_dts = None;
     let Some(content) = loader_context.take_content() else {
       return Ok(());
     };
-
     let swc_options = {
       let mut swc_options = self.options_with_additional.swc_options.clone();
       if let Some(resource_specific_jsc) = self
@@ -91,7 +93,7 @@ impl SwcLoader {
       }
 
       if loader_context.context.source_map_kind.enabled() {
-        if let Some(pre_source_map) = loader_context.source_map().cloned() {
+        if let Some(pre_source_map) = loader_context.source_map() {
           swc_options.config.input_source_map = Some(InputSourceMap::Str(pre_source_map.to_json()))
         }
       } else {
@@ -127,6 +129,21 @@ impl SwcLoader {
     let source = content.into_string_lossy();
     let is_typescript =
       matches!(swc_options.config.jsc.syntax, Some(syntax) if syntax.typescript());
+    let isolated_dts_context = (is_typescript
+      && swc_options
+        .config
+        .jsc
+        .experimental
+        .emit_isolated_dts
+        .into_bool())
+    .then(|| {
+      (
+        swc_options.config.jsc.target.unwrap_or(EsVersion::EsNext),
+        filename.clone(),
+        comments.clone(),
+      )
+    });
+    let mut isolated_dts = Ok(None);
     let mut collected_ts_info = None;
     let rsc_meta: RefCell<Option<RscMeta>> = Default::default();
 
@@ -144,6 +161,19 @@ impl SwcLoader {
         if !is_typescript {
           return;
         }
+
+        if let Some((target, dts_filename, dts_comments)) = &isolated_dts_context {
+          isolated_dts = javascript_compiler
+            .emit_isolated_dts(
+              program,
+              dts_filename.clone(),
+              unresolved_mark,
+              *target,
+              dts_comments,
+            )
+            .map(Some);
+        }
+
         let Some(options) = &self.options_with_additional.collect_typescript_info else {
           return;
         };
@@ -161,17 +191,41 @@ impl SwcLoader {
             .react_server_components
             .enabled
           {
-            swc_core::common::pass::Either::Left(rsc_pass(
-              loader_context,
+            let module = &loader_context.context.module;
+            let is_react_server_layer = module
+              .get_layer()
+              .is_some_and(|layer| layer == "react-server-components");
+
+            // Avoid transforming the redirected server entry module to prevent duplicate RSC metadata generation.
+            let server_entry_proxy = loader_context
+              .resource_query()
+              .is_some_and(|q| q.contains("rsc-server-entry-proxy=true"));
+
+            // Match the RSC manifest resource key from get_module_resource: path + query.
+            let module_resource = match loader_context.resource_query() {
+              Some(query) => format!("{resource_path}{query}"),
+              None => resource_path.to_string(),
+            };
+
+            let disable_client_api_checks = self
+              .options_with_additional
+              .rspack_experiments
+              .react_server_components
+              .disable_client_api_checks;
+
+            swc_core::common::pass::Either::Left(rsc_transform(
               filename,
-              resource_path.as_str(),
+              resource_path.to_string(),
+              module_resource,
               comments,
               &rsc_meta,
-              self
-                .options_with_additional
-                .rspack_experiments
-                .react_server_components
-                .disable_client_api_checks,
+              RscTransformOptions {
+                is_react_server_layer,
+                enable_server_entry: !server_entry_proxy,
+                disable_client_api_checks,
+                is_development: Mode::is_development(&loader_context.context.options.mode),
+                hash_salt: String::new(),
+              },
             ))
           } else {
             swc_core::common::pass::Either::Right(noop_pass())
@@ -186,6 +240,18 @@ impl SwcLoader {
 
     for diagnostic in diagnostics {
       loader_context.emit_diagnostic(Error::warning(diagnostic).into());
+    }
+
+    if let Some(isolated_dts) = isolated_dts? {
+      handle_isolated_dts_diagnostics(isolated_dts.diagnostics)?;
+
+      set_build_info(
+        loader_context.context.module.build_info_mut(),
+        resource_path.as_path(),
+        loader_context.context.options.context.as_path(),
+        isolated_dts.code,
+        isolated_dts.references,
+      );
     }
 
     if let Some(rsc) = rsc_meta.borrow_mut().take() {
@@ -213,14 +279,14 @@ impl SwcLoader {
           .sources()
           .iter()
           .map(|source| {
-            let source_path = Path::new(source);
+            let source_path = Path::new(source.as_ref());
             if source_path.is_relative() {
               source_path
                 .absolutize_with(resource_dir.as_std_path())
                 .to_string_lossy()
                 .into_owned()
             } else {
-              source.clone()
+              source.to_string()
             }
           })
           .collect::<Vec<_>>(),

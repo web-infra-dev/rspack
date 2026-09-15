@@ -1,6 +1,6 @@
 "use strict";
 
-const findOutputFiles = require("@rspack/test-tools/helper/legacy/findOutputFiles");
+const { findOutputFiles } = require("@rspack/test-tools/helper/legacy/findOutputFiles");
 
 module.exports = {
 	findBundle(i, options) {

@@ -1,0 +1,174 @@
+```mjs title=fs.mjs
+import { rspackRequire, moduleFactories } from "./runtime.mjs";
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+moduleFactories.add({
+"fs"
+/*!*********************!*\
+  !*** external "fs" ***!
+  \*********************/
+(module) {
+module.exports = __rspack_createRequire_require("fs");
+
+},
+});
+export {};
+
+```
+
+```mjs title=hoisted.mjs
+import { rspackRequire } from "./runtime.mjs";
+import "./fs.mjs";
+
+// ./src/hoisted.js
+
+
+const external_fs_ = rspackRequire("fs");
+var readFile = external_fs_.readFile;
+var readFileSync = external_fs_.readFileSync;
+
+export { readFile as readFileHoisted, readFileSync as readFileSyncHoisted };
+
+```
+
+```mjs title=index.mjs
+import { rspackRequire } from "./runtime.mjs";
+import "./wrapped.mjs";
+import "./fs.mjs";
+import "./hoisted.mjs";
+
+// ./src/index.js
+const wrapped_0 = rspackRequire("./src/wrapped.js");
+const external_fs_ = rspackRequire("fs");
+
+
+
+it('should preserve node-commonjs externals reexports for hoisted and wrapped modules', async () => {
+	const { createRequire } = await import(/* webpackIgnore: true */ 'node:module')
+	const require = createRequire('<ROOT>/tests/rspack-test/esmOutputCases/preserve-modules/re-export-node-commonjs-external-hoist-mix/src/index.js')
+	const fs = require('fs')
+
+	expect(external_fs_.readFileSync).toBe(fs.readFileSync)
+	expect(external_fs_.readFile).toBe(fs.readFile)
+	expect(wrapped_0.Z).toBe(fs.readFileSync)
+	expect(wrapped_0.E).toBe(fs.readFile)
+
+	const hoisted = await import(/* webpackIgnore: true */ './hoisted.mjs')
+	const wrapped = await import(/* webpackIgnore: true */ './wrapped.mjs')
+
+	expect(hoisted.readFileSyncHoisted).toBe(fs.readFileSync)
+	expect(hoisted.readFileHoisted).toBe(fs.readFile)
+	expect(wrapped.readFileSyncWrapped).toBe(fs.readFileSync)
+	expect(wrapped.readFileWrapped).toBe(fs.readFile)
+})
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+var modules = {};
+// The module cache
+var moduleCache = {};
+// The require function
+function rspackRequire(moduleId) {
+// Check if module is in cache
+var cachedModule = moduleCache[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (moduleCache[moduleId] = {
+id: moduleId,
+exports: {}
+});
+// Execute the module function
+modules[moduleId](module, module.exports, rspackRequire);
+
+// Return the exports of the module
+return module.exports;
+}
+export { rspackRequire };
+// expose the modules object (modules)
+var moduleFactories = modules;
+export { moduleFactories };
+
+// rspack/runtime/compat_get_default_export
+// getDefaultExport function for compatibility with non-ESM modules
+var compatGetDefaultExport = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	definePropertyGetters(getter, { a: getter });
+	return getter;
+};
+;
+export { compatGetDefaultExport };
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+export { definePropertyGetters };
+// rspack/runtime/esm_module_decorator
+var esmModuleDecorator = (module) => {
+  module = Object.create(module);
+  if (!module.children) module.children = [];
+  Object.defineProperty(module, 'exports', {
+      enumerable: true,
+      set: () => {
+          throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + module.id);
+      }
+  });
+  return module;
+};;
+export { esmModuleDecorator };
+// rspack/runtime/esm_register_module
+moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
+;
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+
+
+```
+
+```mjs title=wrapped.mjs
+import { rspackRequire, moduleFactories, definePropertyGetters, compatGetDefaultExport, esmModuleDecorator } from "./runtime.mjs";
+import "./fs.mjs";
+
+moduleFactories.add({
+"./src/wrapped.js"
+/*!************************!*\
+  !*** ./src/wrapped.js ***!
+  \************************/
+(module, exports) {
+/* import */ var fs__rspack_import_0 = rspackRequire(/*! fs */ "fs");
+/* import */ var fs__rspack_import_0_default = /*#__PURE__*/compatGetDefaultExport(fs__rspack_import_0);
+/* module decorator */ module = esmModuleDecorator(module);
+
+
+console.log.bind(module)
+
+definePropertyGetters(exports, {
+  E: () => (/* reexport safe */ fs__rspack_import_0.readFile),
+  Z: () => (/* reexport safe */ fs__rspack_import_0.readFileSync)
+});
+
+
+},
+});
+const wrapped = rspackRequire("./src/wrapped.js");
+var Z = wrapped.Z;
+var E = wrapped.E;
+
+export { E as readFileWrapped, Z as readFileSyncWrapped };
+
+```

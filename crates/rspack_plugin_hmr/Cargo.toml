@@ -18,11 +18,12 @@ rspack_plugin_javascript = { workspace = true }
 rspack_plugin_runtime    = { workspace = true }
 rspack_util              = { workspace = true }
 
-async-trait = { workspace = true }
-rustc-hash  = { workspace = true }
-serde_json  = { workspace = true }
-tokio       = { workspace = true }
-tracing     = { workspace = true }
+async-trait    = { workspace = true }
+atomic_refcell = { workspace = true }
+rustc-hash     = { workspace = true }
+serde_json     = { workspace = true }
+tokio          = { workspace = true }
+tracing        = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing", "rspack_cacheable", "rspack_hash", "tokio"]

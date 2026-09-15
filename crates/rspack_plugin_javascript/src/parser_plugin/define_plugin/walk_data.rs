@@ -8,7 +8,7 @@ use regex::Regex;
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashMap;
 use serde_json::{Map, Value, json};
-use swc_core::common::Span;
+use swc_experimental_ecma_ast::Span;
 
 use super::{
   ConflictingValuesError, DefineValue,
@@ -19,22 +19,22 @@ use crate::{utils::eval::BasicEvaluatedExpression, visitors::JavascriptParser};
 static TYPEOF_OPERATOR_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new("^typeof\\s+").expect("should init `TYPEOF_OPERATOR_REGEXP`"));
 
-type OnEvaluateIdentifier = dyn Fn(
+type OnEvaluateIdentifier = dyn for<'p> Fn(
     &DefineRecord,
-    &mut JavascriptParser,
+    &mut JavascriptParser<'p>,
     &str, /* Ident */
     u32,  /* start */
     u32,  /* end */
-  ) -> Option<BasicEvaluatedExpression<'static>>
+  ) -> Option<BasicEvaluatedExpression<'p>>
   + Send
   + Sync;
 
-type OnEvaluateTypeof = dyn Fn(
+type OnEvaluateTypeof = dyn for<'p> Fn(
     &DefineRecord,
-    &mut JavascriptParser,
+    &mut JavascriptParser<'p>,
     u32, /* start */
     u32, /* end */
-  ) -> Option<BasicEvaluatedExpression<'static>>
+  ) -> Option<BasicEvaluatedExpression<'p>>
   + Send
   + Sync;
 
@@ -138,13 +138,13 @@ impl std::fmt::Debug for ObjectDefineRecord {
   }
 }
 
-type OnObjectEvaluateIdentifier = dyn Fn(
+type OnObjectEvaluateIdentifier = dyn for<'p> Fn(
     &ObjectDefineRecord,
-    &mut JavascriptParser,
+    &mut JavascriptParser<'p>,
     &str, /* Ident */
     u32,  /* start */
     u32,  /* end */
-  ) -> Option<BasicEvaluatedExpression<'static>>
+  ) -> Option<BasicEvaluatedExpression<'p>>
   + Send
   + Sync;
 
@@ -273,7 +273,11 @@ impl WalkData {
           }))
           .with_on_expression(Box::new(
             move |record, parser, span, start, end, for_name| {
-              let code = code_to_string(&record.code, Some(!parser.is_asi_position(span.lo)), None);
+              let code = code_to_string(
+                &record.code,
+                Some(!parser.is_asi_position(span.start)),
+                None,
+              );
               for dep in gen_const_dep(parser, code, for_name, start, end) {
                 parser.add_presentational_dependency(dep);
               }
@@ -332,7 +336,7 @@ impl WalkData {
       }
     }
 
-    fn object_evaluate_identifier(start: u32, end: u32) -> BasicEvaluatedExpression<'static> {
+    fn object_evaluate_identifier<'a>(start: u32, end: u32) -> BasicEvaluatedExpression<'a> {
       let mut evaluated = BasicEvaluatedExpression::new();
       evaluated.set_truthy();
       evaluated.set_side_effects(false);
@@ -349,7 +353,11 @@ impl WalkData {
         }))
         .with_on_expression(Box::new(
           move |record, parser, span, start, end, for_name| {
-            let code = code_to_string(&record.object, Some(!parser.is_asi_position(span.lo)), None);
+            let code = code_to_string(
+              &record.object,
+              Some(!parser.is_asi_position(span.start)),
+              None,
+            );
             for dep in gen_const_dep(parser, code, for_name, start, end) {
               parser.add_presentational_dependency(dep);
             }
@@ -370,7 +378,7 @@ impl WalkData {
           move |record, parser, span, start, end, for_name| {
             let code = code_to_string(
               &record.object,
-              Some(!parser.is_asi_position(span.lo)),
+              Some(!parser.is_asi_position(span.start)),
               parser.destructuring_assignment_properties.get(&span),
             );
             for dep in gen_const_dep(parser, code, for_name, start, end) {

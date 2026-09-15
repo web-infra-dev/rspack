@@ -99,6 +99,20 @@ impl<T> AsVecConverter for Vec<T> {
   }
 }
 
+// for Arc<[T]> — immutable shared slice
+impl<T> AsVecConverter for std::sync::Arc<[T]> {
+  type Item = T;
+  fn len(&self) -> usize {
+    <[T]>::len(self)
+  }
+  fn iter(&self) -> impl Iterator<Item = &Self::Item> {
+    <[T]>::iter(self)
+  }
+  fn from(data: impl Iterator<Item = Result<Self::Item>>) -> Result<Self> {
+    Ok(data.collect::<Result<Vec<_>>>()?.into())
+  }
+}
+
 // for HashSet
 impl<T, S> AsVecConverter for std::collections::HashSet<T, S>
 where
@@ -114,6 +128,24 @@ where
   }
   fn from(data: impl Iterator<Item = Result<Self::Item>>) -> Result<Self> {
     data.collect::<Result<std::collections::HashSet<T, S>>>()
+  }
+}
+
+// for hashlink::LinkedHashSet
+impl<T, S> AsVecConverter for hashlink::LinkedHashSet<T, S>
+where
+  T: std::cmp::Eq + std::hash::Hash,
+  S: core::hash::BuildHasher + Default,
+{
+  type Item = T;
+  fn len(&self) -> usize {
+    self.len()
+  }
+  fn iter(&self) -> impl Iterator<Item = &Self::Item> {
+    self.iter()
+  }
+  fn from(data: impl Iterator<Item = Result<Self::Item>>) -> Result<Self> {
+    data.collect::<Result<hashlink::LinkedHashSet<T, S>>>()
   }
 }
 

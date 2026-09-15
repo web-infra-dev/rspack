@@ -10,6 +10,9 @@ module.exports = {
           namedExports: false,
         },
         generator: {
+          localIdentHashDigest: 'hex',
+          localIdentHashDigestLength: 16,
+          localIdentHashFunction: 'xxhash64',
           localIdentName: '[path]_[name]_[path]_[local]--/__[hash:42]<[hash:3]',
         },
       },

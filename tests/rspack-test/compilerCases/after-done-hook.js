@@ -111,9 +111,13 @@ module.exports = [(() => {
     options(context) {
       return {
         entry: "./c",
+        output: {
+          path: context.getDist()
+        }
       };
     },
-    compilerCallback() {
+    compilerCallback(error) {
+      expect(error).toBeFalsy();
       expect(doneHookCb).toHaveBeenCalled();
       expect(afterDoneHookCb).toHaveBeenCalled();
     },
@@ -122,7 +126,10 @@ module.exports = [(() => {
       compiler.hooks.done.tap("afterDoneRunTest", doneHookCb);
     },
     async build(context, compiler) {
-      compiler.hooks.afterDone.tap("afterDoneRunTest", afterDoneHookCb);
+      await new Promise(resolve => compiler.hooks.afterDone.tap("afterDoneRunTest", () => {
+        afterDoneHookCb()
+        resolve();
+      }));
     }
   };
 })()];

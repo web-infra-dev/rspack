@@ -174,11 +174,7 @@ class WasmHashAdapter extends Hash {
  */
 export const createHash = (
   algorithm:
-    | 'xxhash64'
-    | 'md4'
-    | 'native-md4'
-    | (string & {})
-    | (new () => Hash),
+    'xxhash64' | 'md4' | 'native-md4' | (string & {}) | (new () => Hash),
 ): Hash => {
   if (typeof algorithm === 'function') {
     return new BulkUpdateDecorator(() => new algorithm());

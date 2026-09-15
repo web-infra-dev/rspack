@@ -1,4 +1,4 @@
-<%- RELATIVE_URL %> = function RelativeURL(url) {
+<%- define(RELATIVE_URL) %> = function RelativeURL(url) {
   var realUrl = new URL(url, "x:/");
   var values = {};
   for (var key in realUrl) values[key] = realUrl[key];

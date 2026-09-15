@@ -58,7 +58,7 @@ if (moduleHot) {
       data.moduleExports = __prefresh_utils__.getExports(module);
     });
 
-    moduleHot.accept(function errorRecovery() {
+    moduleHot.accept(function errorRecovery(error) {
       if (
         typeof __prefresh_errors__ !== 'undefined' &&
         __prefresh_errors__ &&

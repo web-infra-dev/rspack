@@ -1,7 +1,4 @@
-use std::{
-  hash::Hash,
-  sync::{Arc, LazyLock},
-};
+use std::sync::{Arc, LazyLock};
 
 use atomic_refcell::AtomicRefCell;
 use rspack_core::{
@@ -12,7 +9,7 @@ use rspack_core::{
   get_js_chunk_filename_template,
 };
 use rspack_error::Result;
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JsPlugin, impl_plugin_for_js_plugin::chunk_has_js,
@@ -35,8 +32,9 @@ use crate::{
     LoadScriptRuntimeModule, MakeDeferredNamespaceObjectRuntimeModule,
     MakeNamespaceObjectRuntimeModule, MakeOptimizedDeferredNamespaceObjectRuntimeModule,
     NodeModuleDecoratorRuntimeModule, NonceRuntimeModule, OnChunkLoadedRuntimeModule,
-    PublicPathRuntimeModule, RelativeUrlRuntimeModule, RuntimeIdRuntimeModule,
-    SystemContextRuntimeModule, ToBinaryRuntimeModule, chunk_has_css, is_enabled_for_chunk,
+    PublicPathRuntimeModule, ReexportRuntimeModule, RelativeUrlRuntimeModule,
+    RuntimeIdRuntimeModule, SystemContextRuntimeModule, ToBinaryRuntimeModule, chunk_has_css,
+    is_enabled_for_chunk,
   },
 };
 
@@ -65,16 +63,10 @@ fn handle_scope_globals(
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) {
-  if runtime_requirements
-    .iter()
-    .any(|requirement| REQUIRE_SCOPE_GLOBALS.contains(requirement))
-  {
+  if runtime_requirements.intersects(*REQUIRE_SCOPE_GLOBALS) {
     runtime_requirements_mut.insert(RuntimeGlobals::REQUIRE_SCOPE);
   }
-  if runtime_requirements
-    .iter()
-    .any(|requirement| MODULE_GLOBALS.contains(requirement))
-  {
+  if runtime_requirements.intersects(*MODULE_GLOBALS) {
     runtime_requirements_mut.insert(RuntimeGlobals::MODULE);
   }
 }
@@ -128,7 +120,7 @@ async fn js_chunk_hash(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  hasher: &mut RspackHash,
+  hasher: &mut RspackHasher,
 ) -> Result<()> {
   for identifier in compilation
     .build_chunk_graph_artifact
@@ -185,7 +177,10 @@ async fn runtime_requirements_in_tree(
     runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
   }
 
-  if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK) {
+  if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK)
+    || (!compilation.options.output.module
+      && runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS))
+  {
     let c = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
@@ -210,7 +205,6 @@ async fn runtime_requirements_in_tree(
       .map(|library| library.library_type.clone())
   };
 
-  let runtime_template = compilation.runtime_template.create_runtime_code_template();
   #[allow(clippy::collapsible_match)]
   for runtime_requirement in runtime_requirements.iter() {
     match runtime_requirement {
@@ -256,15 +250,19 @@ async fn runtime_requirements_in_tree(
         }
       }
       RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME => {
+        let runtime_template = compilation
+          .runtime_template
+          .create_runtime_module_code_template();
         runtime_modules_to_add.push((
           *chunk_ukey,
           GetChunkFilenameRuntimeModule::new(
             &compilation.runtime_template,
-            "javascript",
-            "javascript",
+            ("javascript", "javascript"),
             SourceType::JavaScript,
             runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
-            |_| false,
+            |runtime_requirements| {
+              runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+            },
             |chunk, compilation| {
               chunk_has_js(&chunk.ukey(), compilation).then(|| {
                 get_js_chunk_filename_template(
@@ -274,17 +272,28 @@ async fn runtime_requirements_in_tree(
                 )
               })
             },
+            *chunk_ukey,
+          )
+          .with_full_hash(
+            compilation.options.output.filename.has_full_hash_digest()
+              || compilation
+                .options
+                .output
+                .chunk_filename
+                .has_full_hash_digest(),
           )
           .boxed(),
         ));
       }
       RuntimeGlobals::GET_CHUNK_CSS_FILENAME => {
+        let runtime_template = compilation
+          .runtime_template
+          .create_runtime_module_code_template();
         runtime_modules_to_add.push((
           *chunk_ukey,
           GetChunkFilenameRuntimeModule::new(
             &compilation.runtime_template,
-            "css",
-            "css",
+            ("css", "css"),
             SourceType::Css,
             runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_CSS_FILENAME),
             |runtime_requirements| {
@@ -300,6 +309,19 @@ async fn runtime_requirements_in_tree(
                 .clone()
               })
             },
+            *chunk_ukey,
+          )
+          .with_full_hash(
+            compilation
+              .options
+              .output
+              .css_filename
+              .has_full_hash_digest()
+              || compilation
+                .options
+                .output
+                .css_chunk_filename
+                .has_full_hash_digest(),
           )
           .boxed(),
         ));
@@ -374,6 +396,12 @@ async fn runtime_requirements_in_tree(
         runtime_modules_to_add.push((
           *chunk_ukey,
           DefinePropertyGettersRuntimeModule::new(&compilation.runtime_template).boxed(),
+        ));
+      }
+      RuntimeGlobals::REEXPORT => {
+        runtime_modules_to_add.push((
+          *chunk_ukey,
+          ReexportRuntimeModule::new(&compilation.runtime_template).boxed(),
         ));
       }
       RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => {

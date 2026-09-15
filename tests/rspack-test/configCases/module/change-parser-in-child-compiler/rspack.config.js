@@ -2,6 +2,9 @@
  * @type {import('@rspack/core').RspackOptions}
  */
 module.exports = {
+  externals: {
+    './__child-main.js': 'commonjs ./__child-main.js',
+  },
   plugins: [
     function (compiler) {
       compiler.hooks.make.tapAsync('test', (compilation, callback) => {

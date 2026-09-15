@@ -2,10 +2,10 @@
 
 ```ts
 type ChunkGroup = {
-  name?: Readonly<string>; // 名称
-  index?: Readonly<number>; // 索引序
-  chunks: ReadonlyArray<Chunk>; // 包含的 chunk 列表
-  origins: ReadonlyArray<{
+  readonly name?: string; // 名称
+  readonly index?: number; // 索引序
+  readonly chunks: Chunk[]; // 包含的 chunk 列表
+  readonly origins: Array<{
     // chunk group 被引入的来源模块信息
     module?: Module;
     request?: string;

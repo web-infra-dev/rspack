@@ -72,19 +72,14 @@ function createTestCase(changeTimeout, invalidate) {
               expect(compiler.removedFiles).not.toBe(undefined);
             };
 
-            fs.writeFile(
-              filePath,
-              "require('./file2'); again",
-              "utf-8",
-              handleError
-            );
+            writeFileStep(filePath, "require('./file2'); again");
 
             setTimeout(step3, changeTimeout);
           }
 
           function step3() {
             if (invalidate) watcher.invalidate();
-            fs.writeFile(file2Path, "wrong", "utf-8", handleError);
+            writeFileStep(file2Path, "wrong");
 
             setTimeout(step4, changeTimeout);
           }
@@ -102,7 +97,7 @@ function createTestCase(changeTimeout, invalidate) {
                 step5();
             };
 
-            fs.writeFile(file2Path, "correct", "utf-8", handleError);
+            writeFileStep(file2Path, "correct");
           }
 
           function step5() {
@@ -113,8 +108,12 @@ function createTestCase(changeTimeout, invalidate) {
             });
           }
 
-          function handleError(err) {
-            if (err) reject(err);
+          function writeFileStep(file, content) {
+            try {
+              fs.writeFileSync(file, content, "utf-8");
+            } catch (err) {
+              reject(err);
+            }
           }
         } catch (e) {
           console.error(e);

@@ -48,10 +48,53 @@ config.push(
   })),
 );
 
+config.push(
+  ...values.map((value) => ({
+    target: 'node',
+    devtool: 'eval',
+    node: {
+      __filename: value,
+      __dirname: value,
+    },
+    output: {
+      module: true,
+    },
+    plugins: [
+      new DefinePlugin({
+        NODE_VALUE: typeof value === 'boolean' ? value : JSON.stringify(value),
+        FORMAT: JSON.stringify('esm'),
+      }),
+    ],
+  })),
+);
+
 // ES modules with support `import.meta.dirname` and `import.meta.filename`
 config.push(
   ...values.map((value) => ({
     target: 'node',
+    node: {
+      __filename: value,
+      __dirname: value,
+    },
+    output: {
+      module: true,
+      environment: {
+        importMetaDirnameAndFilename: true,
+      },
+    },
+    plugins: [
+      new DefinePlugin({
+        NODE_VALUE: typeof value === 'boolean' ? value : JSON.stringify(value),
+        FORMAT: JSON.stringify('esm'),
+      }),
+    ],
+  })),
+);
+
+config.push(
+  ...values.map((value) => ({
+    target: 'node',
+    devtool: 'eval',
     node: {
       __filename: value,
       __dirname: value,

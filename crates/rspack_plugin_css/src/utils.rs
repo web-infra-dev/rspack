@@ -1,91 +1,381 @@
 use std::{
   borrow::Cow,
-  fmt::Write,
-  hash::Hasher,
+  hash::{Hash, Hasher},
   path::Path,
   sync::{Arc, LazyLock},
 };
 
 use cow_utils::CowUtils;
 use heck::{ToKebabCase, ToLowerCamelCase};
-use regex::{Captures, Regex};
+use once_cell::sync::OnceCell;
+use regex::Regex;
 use rspack_core::{
-  ChunkGraph, Compilation, CompilerOptions, CssExport, CssExportsConvention, GenerateContext,
-  LocalIdentName, ModuleArgument, ModuleCodeTemplate, PathData, RESERVED_IDENTIFIER, ResourceData,
-  RuntimeGlobals, RuntimeSpec, UsedNameItem,
-  rspack_sources::{ConcatSource, RawStringSource},
-  to_identifier,
+  ChunkGraph, Compilation, CompilerOptions, CssExportType, CssExportsConvention,
+  CssModuleGeneratorOptions, CssModuleRenderCondition, Dependency, FilenameRenderValue,
+  GeneratorOptions, ImportAttributes, LocalIdentName, Module, ModuleType, NormalModuleCreateData,
+  PathData, PlaceholderKind, ResourceData,
 };
-use rspack_error::{Diagnostic, Error, Result, Severity, ToStringResultToRspackResultExt};
-use rspack_hash::RspackHash;
+use rspack_error::{Diagnostic, Error, Result, Severity};
+use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHasher};
 use rspack_util::{
-  atom::Atom,
-  fx_hash::{FxIndexMap, FxIndexSet},
-  identifier::make_paths_relative,
+  identifier::{make_paths_relative, split_at_query_mark},
   itoa, json_stringify_str,
 };
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashSet, FxHasher};
+
+use crate::{
+  dependency::{CssComposeDependency, CssImportDependency},
+  parser_and_generator::CssParserAndGenerator,
+};
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
+pub const CSS_MODULE_ID_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_MODULE_ID__";
 pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^((-?[0-9])|--)").expect("Invalid regexp"));
+
+pub(crate) fn css_generator_options(
+  generator_options: Option<&GeneratorOptions>,
+) -> &CssModuleGeneratorOptions {
+  generator_options
+    .and_then(GeneratorOptions::get_css_module)
+    .expect("should have CssModuleGeneratorOptions")
+}
+
+pub(crate) fn source_order_to_i32(source_order: u32) -> i32 {
+  source_order.try_into().unwrap_or(i32::MAX)
+}
+
+pub(crate) fn css_module_export_type(module: &dyn Module) -> Option<CssExportType> {
+  module
+    .build_info()
+    .css
+    .as_deref()
+    .and_then(|css| css.export_type)
+    .or_else(|| {
+      module.as_normal_module().and_then(|module| {
+        module
+          .parser_and_generator()
+          .downcast_ref::<CssParserAndGenerator>()
+          .and_then(|parser_and_generator| parser_and_generator.export_type)
+      })
+    })
+}
+
+pub(crate) fn css_render_conditions_from_module(
+  module: &dyn Module,
+) -> Vec<CssModuleRenderCondition> {
+  module
+    .build_info()
+    .css
+    .as_deref()
+    .map(|css| css.render_conditions().cloned().collect())
+    .unwrap_or_default()
+}
+
+pub(crate) fn css_module_has_charset(module: &dyn Module) -> bool {
+  module
+    .build_info()
+    .css
+    .as_deref()
+    .is_some_and(|css| css.has_charset)
+}
+
+pub(crate) fn css_module_is_import_dependency(module: &dyn Module) -> bool {
+  module
+    .build_info()
+    .css
+    .as_deref()
+    .is_some_and(|css| css.css_import_dependency)
+}
+
+pub(crate) fn css_module_resource(module: &dyn Module) -> Option<&str> {
+  module
+    .as_normal_module()
+    .map(|module| module.resource_resolved_data().resource())
+}
+
+pub(crate) fn append_css_export_type_key(
+  create_data: &mut NormalModuleCreateData,
+  export_type: CssExportType,
+) {
+  create_data.request.push_str("|css-export-type|");
+  create_data.request.push_str(&export_type.to_string());
+}
+
+pub(crate) fn css_attribute_export_type(
+  attributes: Option<&ImportAttributes>,
+) -> Option<CssExportType> {
+  attributes
+    .and_then(|attributes| attributes.get("type"))
+    .and_then(|value| (value == "css").then_some(CssExportType::CssStyleSheet))
+}
+
+pub(crate) fn css_dependency_export_type(dependency: &dyn Dependency) -> Option<CssExportType> {
+  dependency
+    .downcast_ref::<CssImportDependency>()
+    .and_then(|dep| dep.export_type())
+    .or_else(|| {
+      dependency
+        .downcast_ref::<CssComposeDependency>()
+        .and_then(|dep| dep.export_type())
+    })
+}
+
+pub(crate) struct CssDependencyMeta {
+  pub is_css_import_dependency: bool,
+  pub is_css_dependency: bool,
+  pub render_conditions: Vec<CssModuleRenderCondition>,
+  pub export_type: Option<CssExportType>,
+}
+
+pub(crate) fn css_dependency_meta(dependency: &dyn Dependency) -> CssDependencyMeta {
+  let css_import_dependency = dependency.downcast_ref::<CssImportDependency>();
+  let is_css_import_dependency = css_import_dependency.is_some();
+  let is_css_dependency =
+    is_css_import_dependency || dependency.downcast_ref::<CssComposeDependency>().is_some();
+
+  CssDependencyMeta {
+    is_css_import_dependency,
+    is_css_dependency,
+    render_conditions: css_import_dependency
+      .map(|dep| dep.render_conditions().cloned().collect())
+      .unwrap_or_default(),
+    export_type: css_dependency_export_type(dependency)
+      .or_else(|| css_attribute_export_type(dependency.get_attributes())),
+  }
+}
+
+#[derive(Debug, Clone)]
+pub struct PresentationalDependencyHashUpdate<'a> {
+  pub start: u32,
+  pub end: u32,
+  pub content: &'a str,
+}
+
+#[derive(Debug, Clone)]
+pub struct LocalIdentModuleHashOptions<'a> {
+  pub export_dependency_names: Vec<String>,
+  pub graph_export_names: FxHashSet<String>,
+  pub presentational_dependency_hash_updates: Vec<PresentationalDependencyHashUpdate<'a>>,
+  pub es_module: bool,
+  pub named_exports: bool,
+  pub exports_convention: Option<CssExportsConvention>,
+}
 
 #[derive(Debug, Clone)]
 pub struct LocalIdentOptions<'a> {
   relative_resource: String,
-  local_name_ident: &'a LocalIdentName,
+  module_type: &'static str,
+  source: Arc<str>,
+  module_hash: OnceCell<String>,
   compiler_options: &'a CompilerOptions,
+  local_ident_name: &'a LocalIdentName,
+  local_ident_hash_digest: HashDigest,
+  local_ident_hash_digest_length: usize,
+  local_ident_hash_function: HashFunction,
+  local_ident_hash_salt: &'a HashSalt,
 }
 
 impl<'a> LocalIdentOptions<'a> {
   pub fn new(
     resource_data: &ResourceData,
-    local_name_ident: &'a LocalIdentName,
+    module_type: &ModuleType,
+    source: Arc<str>,
     compiler_options: &'a CompilerOptions,
+    generator_options: &'a CssModuleGeneratorOptions,
   ) -> Self {
     let relative_resource =
       make_paths_relative(&compiler_options.context, resource_data.resource());
+
+    let local_ident_name = generator_options
+      .local_ident_name
+      .as_ref()
+      .expect("should have local_ident_name when calculating css local ident module hash");
+    let local_ident_hash_digest = generator_options
+      .local_ident_hash_digest
+      .expect("should have local_ident_hash_digest when calculating css local ident module hash");
+    let local_ident_hash_digest_length = generator_options
+      .local_ident_hash_digest_length
+      .map(|len| len as usize)
+      .expect(
+        "should have local_ident_hash_digest_length when calculating css local ident module hash",
+      );
+    let local_ident_hash_function = generator_options
+      .local_ident_hash_function
+      .expect("should have local_ident_hash_function when calculating css local ident module hash");
+    let local_ident_hash_salt = &generator_options.local_ident_hash_salt;
+
     Self {
       relative_resource,
-      local_name_ident,
+      module_type: module_type.as_str(),
+      source,
+      module_hash: OnceCell::new(),
       compiler_options,
+      local_ident_name,
+      local_ident_hash_digest,
+      local_ident_hash_digest_length,
+      local_ident_hash_function,
+      local_ident_hash_salt,
     }
   }
 
-  pub async fn get_local_ident(&self, local: &str) -> Result<String> {
-    let output = &self.compiler_options.output;
-    let hash = {
-      let mut hasher = RspackHash::with_salt(&output.hash_function, &output.hash_salt);
-      hasher.write(self.relative_resource.as_bytes());
-      let contains_local = self
-        .local_name_ident
-        .template
-        .template()
-        .map(|t| t.contains("[local]"))
-        .unwrap_or_default();
-      if !contains_local {
-        hasher.write(local.as_bytes());
+  fn module_hash(&self, module_hash_options: &LocalIdentModuleHashOptions<'_>) -> &str {
+    self
+      .module_hash
+      .get_or_init(|| self.get_module_hash(module_hash_options))
+      .as_str()
+  }
+
+  fn get_module_hash(&self, module_hash_options: &LocalIdentModuleHashOptions<'_>) -> String {
+    let local_ident_name = self.local_ident_name.template.as_str();
+    let build_hash = {
+      let mut hasher = RspackHasher::new(&self.local_ident_hash_function);
+      hasher.write(b"source");
+      hasher.write(b"OriginalSource");
+      hasher.write(self.source.as_bytes());
+      hasher.write(
+        format!(
+          "{}://{}|{}",
+          self.compiler_options.experiments.runtime_mode, self.module_type, self.relative_resource
+        )
+        .as_bytes(),
+      );
+      hasher.write(b"meta");
+      if module_hash_options.named_exports {
+        hasher.write(br#"{"isCSSModule":true,"exportsType":"namespace","defaultObject":false}"#);
+      } else {
+        hasher.write(
+          br#"{"isCSSModule":true,"exportsType":"default","defaultObject":"redirect-warn"}"#,
+        );
       }
-      let hash = hasher.digest(&output.hash_digest);
-      LEADING_DIGIT_REGEX
-        .replace(hash.rendered(output.hash_digest_length), "_${1}")
-        .into_owned()
+      hasher.digest(&HashDigest::Hex).encoded().to_string()
     };
-    LocalIdentNameRenderOptions {
+
+    let graph_hash = {
+      let mut graph_exports = module_hash_options
+        .graph_export_names
+        .iter()
+        .collect::<Vec<_>>();
+      graph_exports.sort();
+
+      let mut hasher = RspackHasher::new(&self.local_ident_hash_function);
+      hasher.write(self.relative_resource.as_bytes());
+      hasher.write(b"false");
+      for name in graph_exports {
+        hasher.write(name.as_bytes());
+        hasher.write(b"2truefalse");
+      }
+      hasher.write(b"*side effects only*2undefinedfalse");
+      hasher.write(b"null2falsefalse");
+      hasher.digest(&HashDigest::Hex).encoded().to_string()
+    };
+
+    let mut hasher =
+      RspackHasher::with_salt(&self.local_ident_hash_function, self.local_ident_hash_salt);
+    hasher.write(build_hash.as_bytes());
+    // Local identifiers must be independent of whether CSS is emitted.
+    hasher.write(b"javascript");
+    hasher.write(b"css");
+    hasher.write(if module_hash_options.es_module {
+      b"true"
+    } else {
+      b"false"
+    });
+    hasher.write(b"false");
+    hasher.write(graph_hash.as_bytes());
+    let mut itoa_buffer = itoa::Buffer::new();
+    for update in module_hash_options
+      .presentational_dependency_hash_updates
+      .iter()
+    {
+      hasher.write(itoa_buffer.format(update.start).as_bytes());
+      hasher.write(b",");
+      hasher.write(itoa_buffer.format(update.end).as_bytes());
+      hasher.write(b"|");
+      hasher.write(update.content.as_bytes());
+    }
+    for name in module_hash_options.export_dependency_names.iter() {
+      let convention_names = export_locals_convention(
+        name,
+        module_hash_options
+          .exports_convention
+          .expect("should have convention for module_type css/auto, css/global or css/module"),
+      );
+      let convention_names =
+        simd_json::to_string(&convention_names).expect("css export names should be serializable");
+      let local_ident_name = json_stringify_str(local_ident_name);
+      hasher.write(b"exportsConvention|");
+      hasher.write(convention_names.as_bytes());
+      hasher.write(b"|localIdentName|");
+      hasher.write(local_ident_name.as_bytes());
+    }
+    hasher
+      .digest(&self.local_ident_hash_digest)
+      .rendered(self.local_ident_hash_digest_length)
+      .to_string()
+  }
+
+  pub async fn get_local_ident(
+    &self,
+    local: &str,
+    module_hash_options: &LocalIdentModuleHashOptions<'_>,
+  ) -> Result<String> {
+    let output = &self.compiler_options.output;
+    let local_ident_hash = {
+      let mut hasher =
+        RspackHasher::with_salt(&self.local_ident_hash_function, self.local_ident_hash_salt);
+      if !output.unique_name.is_empty() {
+        hasher.write(output.unique_name.as_bytes());
+      }
+      hasher.write(self.relative_resource.as_bytes());
+      hasher.write(local.as_bytes());
+      let hash = hasher.digest(&self.local_ident_hash_digest);
+      hash
+        .rendered(self.local_ident_hash_digest_length)
+        .to_string()
+    };
+    let content_hash;
+    let content_hash = if self
+      .local_ident_name
+      .template
+      .as_str()
+      .contains("[contenthash")
+    {
+      let mut hasher = RspackHasher::new(&output.hash_function);
+      hasher.write(self.source.as_bytes());
+      let hash = hasher.digest(&output.hash_digest);
+      content_hash = non_numeric_only_hash(hash.encoded(), output.hash_digest_length);
+      content_hash.as_str()
+    } else {
+      ""
+    };
+    let resource_path = split_at_query_mark(&self.relative_resource).0;
+    let resource_path = resource_path.split('#').next().unwrap_or(resource_path);
+    let resource_path = Path::new(resource_path);
+    let chunk_name = resource_path
+      .file_stem()
+      .and_then(|s| s.to_str())
+      .unwrap_or_default();
+    let id = PathData::prepare_id(CSS_MODULE_ID_PLACEHOLDER);
+    let hash = if self
+      .local_ident_name
+      .template
+      .template()
+      .is_some_and(|template| template.contains("[local]"))
+    {
+      self.module_hash(module_hash_options)
+    } else {
+      local_ident_hash.as_str()
+    };
+    let local_ident = LocalIdentNameRenderOptions {
       path_data: PathData::default()
         .filename(&self.relative_resource)
-        .hash(&hash)
-        // TODO: should be moduleId, but we don't have it at parse,
-        // and it's lots of work to move css module compile to generator,
-        // so for now let's use hash for compatibility.
-        .id(&PathData::prepare_id(
-          if self.compiler_options.mode.is_development() {
-            &self.relative_resource
-          } else {
-            &hash
-          },
-        )),
+        .chunk_name(chunk_name)
+        .hash(hash)
+        .content_hash(content_hash)
+        .id(id.as_ref()),
       local,
+      local_ident_hash: &local_ident_hash,
       unique_name: &output.unique_name,
       folder: Path::new(&self.relative_resource)
         .parent()
@@ -93,45 +383,152 @@ impl<'a> LocalIdentOptions<'a> {
         .and_then(|s| s.to_str())
         .unwrap_or(""),
     }
-    .render_local_ident_name(self.local_name_ident)
-    .await
-  }
-}
-
-struct LocalIdentNameRenderOptions<'a> {
-  path_data: PathData<'a>,
-  local: &'a str,
-  unique_name: &'a str,
-  folder: &'a str,
-}
-
-impl LocalIdentNameRenderOptions<'_> {
-  pub async fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> Result<String> {
-    let raw = local_ident_name
-      .template
-      .render(self.path_data, None)
-      .await?;
-    let s: &str = raw.as_ref();
-
+    .render_local_ident_name(self.local_ident_name)
+    .await?;
     Ok(
-      s.cow_replace("[uniqueName]", self.unique_name)
-        .cow_replace("[local]", self.local)
-        .cow_replace("[folder]", self.folder)
+      LEADING_DIGIT_REGEX
+        .replace(&local_ident, "_${1}")
         .into_owned(),
     )
   }
 }
 
-static UNESCAPE_CSS_IDENT_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"([^a-zA-Z0-9_\u0081-\uffff-])").expect("invalid regex"));
+pub fn replace_css_module_id_placeholder<'a>(
+  local_ident: &'a str,
+  compilation: &Compilation,
+  module: &dyn Module,
+) -> Cow<'a, str> {
+  if let Some(custom_property_ident) = local_ident.strip_prefix("--") {
+    let local_ident = replace_css_module_id_placeholder(custom_property_ident, compilation, module);
+    return Cow::Owned(format!("--{local_ident}"));
+  }
 
-pub fn escape_css(s: &str) -> Cow<'_, str> {
-  UNESCAPE_CSS_IDENT_REGEX.replace_all(s, |s: &Captures| format!("\\{}", &s[0]))
+  let module_id = css_module_id_for_local_ident(compilation, module);
+  replace_css_module_id_placeholder_with_id(local_ident, &module_id)
+}
+
+fn css_module_id_for_local_ident(compilation: &Compilation, module: &dyn Module) -> String {
+  let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
+    .expect("css module should have module id when rendering local ident");
+  let module_id = module_id.as_str();
+
+  let needs_stable_long_id = module
+    .build_info()
+    .css
+    .as_deref()
+    .is_some_and(|css_build_info| css_build_info.has_render_conditions());
+  if !needs_stable_long_id {
+    return module_id.to_string();
+  }
+
+  let module_id = module_id.split('?').next().unwrap_or(module_id);
+  let full_name = module
+    .as_normal_module()
+    .and_then(|module| {
+      module
+        .resource_resolved_data()
+        .path()
+        .map(|path| path.as_str())
+    })
+    .unwrap_or_else(|| module.identifier().as_str());
+  let full_name = make_paths_relative(&compilation.options.context, full_name);
+  let hash = get_css_module_id_hash(full_name, 4);
+  let mut stable_id = String::with_capacity(module_id.len() + 1 + hash.len());
+  stable_id.push_str(module_id);
+  stable_id.push('?');
+  stable_id.push_str(&hash);
+  stable_id
+}
+
+fn get_css_module_id_hash(value: impl Hash, length: usize) -> String {
+  let mut hasher = FxHasher::default();
+  value.hash(&mut hasher);
+  let hash = hasher.finish();
+  let mut hash = format!("{hash:x}");
+  hash.truncate(length);
+  hash
+}
+
+pub fn replace_css_module_id_placeholder_with_id<'a>(
+  local_ident: &'a str,
+  module_id: &str,
+) -> Cow<'a, str> {
+  if !local_ident.contains(CSS_MODULE_ID_PLACEHOLDER) {
+    return Cow::Borrowed(local_ident);
+  }
+  let module_id = prepare_css_module_id(module_id);
+  let local_ident = local_ident.cow_replace(CSS_MODULE_ID_PLACEHOLDER, module_id.as_ref());
+  Cow::Owned(
+    LEADING_DIGIT_REGEX
+      .replace(&local_ident, "_${1}")
+      .into_owned(),
+  )
+}
+
+static PREPARE_CSS_MODULE_ID_START_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^([.-]|[^a-zA-Z0-9_-])+").expect("invalid Regex"));
+static PREPARE_CSS_MODULE_ID_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"[^a-zA-Z0-9@_-]+").expect("invalid Regex"));
+
+fn prepare_css_module_id(v: &str) -> Cow<'_, str> {
+  let v = PREPARE_CSS_MODULE_ID_START_REGEX.replace(v, "");
+  Cow::Owned(
+    PREPARE_CSS_MODULE_ID_REGEX
+      .replace_all(&v, "_")
+      .into_owned(),
+  )
+}
+
+struct LocalIdentNameRenderOptions<'a> {
+  path_data: PathData<'a>,
+  local: &'a str,
+  local_ident_hash: &'a str,
+  unique_name: &'a str,
+  folder: &'a str,
+}
+
+fn non_numeric_only_hash(hash: &str, hash_length: usize) -> String {
+  if hash_length < 1 {
+    return String::new();
+  }
+  let len = hash_length.min(hash.len());
+  let slice = &hash[..len];
+  if slice.bytes().any(|b| !b.is_ascii_digit()) {
+    return slice.to_string();
+  }
+  let first = hash
+    .as_bytes()
+    .first()
+    .copied()
+    .filter(u8::is_ascii_digit)
+    .map_or(0, |b| b - b'0');
+  format!("{}{}", char::from(b'a' + (first % 6)), &slice[1..])
+}
+
+impl LocalIdentNameRenderOptions<'_> {
+  pub async fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> Result<String> {
+    local_ident_name
+      .template
+      .render_with(self.path_data, None, |placeholder| {
+        match placeholder.kind() {
+          PlaceholderKind::FullHash => Some(FilenameRenderValue::Value(Cow::Borrowed(
+            self.local_ident_hash,
+          ))),
+          PlaceholderKind::UniqueName => {
+            Some(FilenameRenderValue::Value(Cow::Borrowed(self.unique_name)))
+          }
+          PlaceholderKind::Local => Some(FilenameRenderValue::Value(Cow::Borrowed(self.local))),
+          PlaceholderKind::Folder => Some(FilenameRenderValue::Value(Cow::Borrowed(self.folder))),
+          _ => None,
+        }
+      })
+      .await
+  }
 }
 
 pub(crate) fn export_locals_convention(
   key: &str,
-  locals_convention: &CssExportsConvention,
+  locals_convention: CssExportsConvention,
 ) -> Vec<String> {
   let mut res = Vec::with_capacity(3);
   if locals_convention.as_is() {
@@ -146,348 +543,15 @@ pub(crate) fn export_locals_convention(
   res
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn css_modules_exports_to_string<'a>(
-  exports: FxIndexMap<&'a str, &'a FxIndexSet<CssExport>>,
-  module: &dyn rspack_core::Module,
-  compilation: &Compilation,
-  runtime: Option<&RuntimeSpec>,
-  runtime_template: &mut ModuleCodeTemplate,
-  ns_obj: &str,
-  left: &str,
-  right: &str,
-  with_hmr: bool,
-) -> Result<String> {
-  let (decl_name, exports_string) =
-    stringified_exports(exports, compilation, runtime_template, module, runtime)?;
-
-  let module_argument = runtime_template.render_module_argument(ModuleArgument::Module);
-
-  let hmr_code = if with_hmr {
-    Cow::Owned(format!(
-      "// only invalidate when locals change
-var stringified_exports = JSON.stringify({decl_name});
-if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_argument}.hot.data.exports != stringified_exports) {{
-  {module_argument}.hot.invalidate();
-}} else {{
-  {module_argument}.hot.accept(); 
-}}
-{module_argument}.hot.dispose(function(data) {{ data.exports = stringified_exports; }});"
-    ))
-  } else {
-    Cow::Borrowed("")
-  };
-  let mut code =
-    format!("{exports_string}\n{hmr_code}\n{ns_obj}{left}{module_argument}.exports = {decl_name}",);
-  code += right;
-  code += ";\n";
-  Ok(code)
-}
-
-pub fn stringified_exports<'a>(
-  exports: FxIndexMap<&'a str, &'a FxIndexSet<CssExport>>,
-  compilation: &Compilation,
-  runtime_template: &mut ModuleCodeTemplate,
-  module: &dyn rspack_core::Module,
-  runtime: Option<&RuntimeSpec>,
-) -> Result<(&'static str, String)> {
-  let mut stringified_exports = String::new();
-  let module_graph = compilation.get_module_graph();
-  let exports_info = compilation
-    .exports_info_artifact
-    .get_prefetched_exports_info(
-      &module.identifier(),
-      rspack_core::PrefetchExportsInfoMode::Default,
-    );
-  for (key, elements) in exports {
-    let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
-    let used_name = export_info.get_used_name(None, runtime);
-    let used_name = match used_name {
-      Some(UsedNameItem::Str(name)) => name.to_string(),
-      _ => key.to_string(),
-    };
-
-    let content = elements
-      .iter()
-      .map(
-        |CssExport {
-           ident,
-           from,
-           id: _,
-           orig_name: _,
-         }| match from {
-          None => json_stringify_str(ident),
-          Some(from_name) => {
-            let from = module
-              .get_dependencies()
-              .iter()
-              .find_map(|id| {
-                let dependency = module_graph.dependency_by_id(id);
-                let request = if let Some(d) = dependency.as_module_dependency() {
-                  Some(d.request())
-                } else {
-                  dependency.as_context_dependency().map(|d| d.request())
-                };
-                if let Some(request) = request
-                  && request == from_name
-                {
-                  return module_graph.module_graph_module_by_dependency_id(id);
-                }
-                None
-              })
-              .expect("should have css from module");
-
-            let from_exports_info = compilation
-              .exports_info_artifact
-              .get_prefetched_exports_info(
-                &from.module_identifier,
-                rspack_core::PrefetchExportsInfoMode::Default,
-              );
-            let from_used_name = match from_exports_info
-              .get_read_only_export_info(&Atom::from(ident.as_str()))
-              .get_used_name(None, runtime)
-            {
-              Some(UsedNameItem::Str(name)) => json_stringify_str(&unescape(name.as_str())),
-              _ => json_stringify_str(&unescape(ident)),
-            };
-
-            let from = rspack_util::json_stringify(
-              ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
-                .expect("should have module"),
-            );
-            format!(
-              "{}({from})[{}]",
-              runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-              from_used_name
-            )
-          }
-        },
-      )
-      .collect::<Vec<_>>()
-      .join(" + \" \" + ");
-    writeln!(
-      stringified_exports,
-      "  {}: {},",
-      json_stringify_str(&used_name),
-      content
-    )
-    .to_rspack_result()?;
-  }
-
-  let decl_name = "exports";
-  Ok((
-    decl_name,
-    format!("var {decl_name} = {{\n{stringified_exports}}};"),
-  ))
-}
-
-pub fn css_modules_exports_to_concatenate_module_string<'a>(
-  exports: FxIndexMap<&'a str, &'a FxIndexSet<CssExport>>,
-  module: &dyn rspack_core::Module,
-  generate_context: &mut GenerateContext,
-  concate_source: &mut ConcatSource,
-) -> Result<()> {
-  let GenerateContext {
-    compilation,
-    concatenation_scope,
-    runtime,
-    runtime_template,
-    ..
-  } = generate_context;
-  let Some(scope) = concatenation_scope else {
-    return Ok(());
-  };
-  let module_graph = compilation.get_module_graph();
-  let mut used_identifiers = HashSet::default();
-  let exports_info = compilation
-    .exports_info_artifact
-    .get_prefetched_exports_info(
-      &module.identifier(),
-      rspack_core::PrefetchExportsInfoMode::Default,
-    );
-  for (key, elements) in exports {
-    let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
-    let used_name = export_info.get_used_name(None, *runtime);
-    let used_name = match used_name {
-      Some(UsedNameItem::Str(name)) => name.to_string(),
-      _ => key.to_string(),
-    };
-
-    let content = elements
-      .iter()
-      .map(
-        |CssExport {
-           ident,
-           from,
-           id: _,
-           orig_name: _,
-         }| match from {
-          None => json_stringify_str(ident),
-          Some(from_name) => {
-            let from = module
-              .get_dependencies()
-              .iter()
-              .find_map(|id| {
-                let dependency = module_graph.dependency_by_id(id);
-                let request = if let Some(d) = dependency.as_module_dependency() {
-                  Some(d.request())
-                } else {
-                  dependency.as_context_dependency().map(|d| d.request())
-                };
-                if let Some(request) = request
-                  && request == from_name
-                {
-                  return module_graph.module_graph_module_by_dependency_id(id);
-                }
-                None
-              })
-              .expect("should have css from module");
-
-            let from_exports_info = compilation
-              .exports_info_artifact
-              .get_prefetched_exports_info(
-                &from.module_identifier,
-                rspack_core::PrefetchExportsInfoMode::Default,
-              );
-            let from_used_name = match from_exports_info
-              .get_read_only_export_info(&Atom::from(ident.as_str()))
-              .get_used_name(None, *runtime)
-            {
-              Some(UsedNameItem::Str(name)) => json_stringify_str(&name),
-              _ => json_stringify_str(ident),
-            };
-
-            let from = rspack_util::json_stringify(
-              ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
-                .expect("should have module"),
-            );
-            format!(
-              "{}({from})[{}]",
-              runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-              from_used_name
-            )
-          }
-        },
-      )
-      .collect::<Vec<_>>()
-      .join(" + \" \" + ");
-    let mut identifier: Cow<'_, str> = Cow::Owned(to_identifier(&used_name).into_owned());
-    if RESERVED_IDENTIFIER.contains(identifier.as_ref()) {
-      identifier = Cow::Owned(format!("_{identifier}"));
-    }
-    let mut i = 0;
-    while used_identifiers.contains(&identifier) {
-      let mut i_buffer = itoa::Buffer::new();
-      let i_str = i_buffer.format(i);
-      identifier = Cow::Owned(format!("{identifier}{i_str}"));
-      i += 1;
-    }
-    // TODO: conditional support `const or var` after we finished runtimeTemplate utils
-    concate_source.add(RawStringSource::from(format!(
-      "var {identifier} = {content};\n"
-    )));
-    used_identifiers.insert(identifier.clone());
-    scope.register_export(key.into(), identifier.into_owned());
-  }
-  Ok(())
-}
-
-static STRING_MULTILINE: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\\[\n\r\f]").expect("Invalid RegExp"));
-
-static TRIM_WHITE_SPACES: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"(^[ \t\n\r\f]*|[ \t\n\r\f]*$)").expect("Invalid RegExp"));
-
-static UNESCAPE: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\\([0-9a-fA-F]{1,6}[ \t\n\r\f]?|[\s\S])").expect("Invalid RegExp"));
-
-static DATA: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(?i)data:").expect("Invalid RegExp"));
-
-// `\/foo` in css should be treated as `foo` in js
-pub fn unescape(s: &str) -> Cow<'_, str> {
-  UNESCAPE.replace_all(s.as_ref(), |caps: &Captures| {
-    caps
-      .get(0)
-      .and_then(|m| {
-        let m = m.as_str();
-        if m.len() > 2 {
-          if let Ok(r_u32) = u32::from_str_radix(m[1..].trim(), 16)
-            && let Some(ch) = char::from_u32(r_u32)
-          {
-            return Some(format!("{ch}"));
-          }
-          None
-        } else {
-          Some(m[1..2].to_string())
-        }
-      })
-      .unwrap_or(caps[0].to_string())
-  })
-}
-
-static WHITE_OR_BRACKET_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r#"[\n\t ()'"\\]"#).expect("Invalid Regexp"));
-static QUOTATION_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r#"[\n"\\]"#).expect("Invalid Regexp"));
-static APOSTROPHE_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r#"[\n'\\]"#).expect("Invalid Regexp"));
-
-pub fn css_escape_string(s: &str) -> String {
-  let mut count_white_or_bracket = 0;
-  let mut count_quotation = 0;
-  let mut count_apostrophe = 0;
-  for c in s.chars() {
-    match c {
-      '\t' | '\n' | ' ' | '(' | ')' => count_white_or_bracket += 1,
-      '"' => count_quotation += 1,
-      '\'' => count_apostrophe += 1,
-      _ => {}
-    }
-  }
-  if count_white_or_bracket < 2 {
-    WHITE_OR_BRACKET_REGEX
-      .replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
-      .into_owned()
-  } else if count_quotation <= count_apostrophe {
-    format!(
-      "\"{}\"",
-      QUOTATION_REGEX.replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
-    )
-  } else {
-    format!(
-      "\'{}\'",
-      APOSTROPHE_REGEX.replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
-    )
-  }
-}
-
-pub fn normalize_url(s: &str) -> String {
-  let result = STRING_MULTILINE.replace_all(s, "");
-  let result = TRIM_WHITE_SPACES.replace_all(&result, "");
-  let result = unescape(&result);
-
-  if DATA.is_match(&result) {
-    return result.to_string();
-  }
-  if result.contains('%')
-    && let Ok(r) = urlencoding::decode(&result)
-  {
-    return r.to_string();
-  }
-
-  result.to_string()
-}
-
-#[allow(clippy::rc_buffer)]
 pub fn css_parsing_traceable_error(
-  source_code: Arc<String>,
+  source_code: &str,
   start: css_module_lexer::Pos,
   end: css_module_lexer::Pos,
   message: impl Into<String>,
   severity: Severity,
 ) -> Error {
   let mut error = Error::from_string(
-    Some(source_code.to_string()),
+    Some(source_code.to_owned()),
     start as usize,
     end as usize,
     match severity {
@@ -503,13 +567,13 @@ pub fn css_parsing_traceable_error(
 pub fn replace_module_request_prefix<'s>(
   specifier: &'s str,
   diagnostics: &mut Vec<Diagnostic>,
-  source_code: impl Fn() -> Arc<String>,
+  source_code: &str,
   start: css_module_lexer::Pos,
   end: css_module_lexer::Pos,
 ) -> &'s str {
   if let Some(specifier) = specifier.strip_prefix('~') {
     let mut error = css_parsing_traceable_error(
-      source_code(),
+      source_code,
       start,
       end,
       "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),

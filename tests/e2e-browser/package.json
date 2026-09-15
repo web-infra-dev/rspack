@@ -4,13 +4,15 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "test": "playwright test",
+    "test": "rs test",
     "test:CI": "CI=1 pnpm run test"
   },
   "devDependencies": {
-    "@playwright/test": "1.59.1",
-    "@rsbuild/core": "2.0.0-rc.4",
     "@rspack/browser": "workspace:*",
-    "typescript": "^6.0.3"
+    "@rstest/core": "catalog:",
+    "@rstest/playwright": "catalog:",
+    "playwright": "catalog:",
+    "rstack": "catalog:",
+    "typescript": "catalog:"
   }
 }

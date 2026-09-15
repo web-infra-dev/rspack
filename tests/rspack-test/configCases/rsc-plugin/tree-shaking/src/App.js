@@ -1,7 +1,15 @@
 "use server-entry";
 
-import { Todos } from './Todos';
+import { TodoItem, Todos } from './Todos';
 
 export const App = async () => {
-    return <Todos />;
+    const { DynamicTodo } = await import('./DynamicTodo');
+
+    return (
+        <>
+            <Todos />
+            <TodoItem />
+            <DynamicTodo />
+        </>
+    );
 };

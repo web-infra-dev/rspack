@@ -16,11 +16,7 @@ import { BuildCommand } from './commands/build';
 import { PreviewCommand } from './commands/preview';
 import { ServeCommand } from './commands/serve';
 import type { RspackCLIColors, RspackCLILogger } from './types';
-import {
-  loadExtendedConfig,
-  loadRspackConfig,
-  resolveRspackConfigExport,
-} from './utils/loadConfig';
+import { loadExtendedConfig, loadRspackConfig } from './utils/loadConfig';
 import type {
   CommonOptions,
   CommonOptionsForBuildAndServe,
@@ -100,12 +96,17 @@ export class RspackCLI {
     options: CommonOptionsForBuildAndServe,
     rspackCommand: Command,
   ) {
-    let { config, pathMap } = await this.loadConfig(options);
-    config = await this.buildConfig(config, pathMap, options, rspackCommand);
+    const { config: rawConfig, pathMap } = await this.loadConfig(options);
+    const config = await this.buildConfig(
+      rawConfig,
+      pathMap,
+      options,
+      rspackCommand,
+    );
     return config;
   }
 
-  async createCompiler(
+  createCompiler(
     config: RspackOptions | MultiRspackOptions,
     callback?: (e: Error | null, res?: Stats | MultiStats) => void,
   ) {
@@ -273,19 +274,25 @@ export class RspackCLI {
       }
 
       if (typeof item.stats === 'undefined') {
-        item.stats = { preset: 'errors-warnings', timings: true };
+        item.stats = {
+          preset: 'errors-warnings',
+          timings: true,
+          logging: false,
+        };
       } else if (typeof item.stats === 'boolean') {
         item.stats = item.stats ? { preset: 'normal' } : { preset: 'none' };
       } else if (typeof item.stats === 'string') {
         item.stats = {
           preset: item.stats as
-            | 'normal'
-            | 'none'
-            | 'verbose'
-            | 'errors-only'
-            | 'errors-warnings',
+            'normal' | 'none' | 'verbose' | 'errors-only' | 'errors-warnings',
         };
+      } else if (
+        typeof item.stats.preset === 'undefined' &&
+        item.stats.all !== true
+      ) {
+        item.stats.logging ??= false;
       }
+
       return item;
     };
 
@@ -309,14 +316,9 @@ export class RspackCLI {
     }
 
     const { loadedConfig, configPath } = config;
-    const resolvedConfig = await resolveRspackConfigExport(
-      loadedConfig,
-      options,
-    );
 
-    // Handle extends property if the loaded config is not a function
     const { config: extendedConfig, pathMap } = await loadExtendedConfig(
-      resolvedConfig,
+      loadedConfig,
       configPath,
       process.cwd(),
       options,
@@ -396,20 +398,27 @@ export type RspackConfigAsyncFn = (
 ) => Promise<RspackOptions | MultiRspackOptions>;
 
 export type RspackConfigExport =
-  | RspackOptions
-  | MultiRspackOptions
-  | RspackConfigFn
-  | RspackConfigAsyncFn;
+  RspackOptions | MultiRspackOptions | RspackConfigFn | RspackConfigAsyncFn;
 
 /**
  * This function helps you to autocomplete configuration types.
  * It accepts a Rspack config object, or a function that returns a config.
  */
-export function defineConfig(config: RspackOptions): RspackOptions;
-export function defineConfig(config: MultiRspackOptions): MultiRspackOptions;
-export function defineConfig(config: RspackConfigFn): RspackConfigFn;
-export function defineConfig(config: RspackConfigAsyncFn): RspackConfigAsyncFn;
-export function defineConfig(config: RspackConfigExport): RspackConfigExport;
+export function defineConfig<
+  const Config extends RspackOptions | MultiRspackOptions,
+  const Definition extends
+    | Config
+    | ((...args: Parameters<RspackConfigFn>) => Config)
+    | ((...args: Parameters<RspackConfigFn>) => Promise<Config>),
+>(
+  config: Definition,
+): Definition extends (...args: Parameters<RspackConfigFn>) => Promise<unknown>
+  ? RspackConfigAsyncFn
+  : Definition extends (...args: Parameters<RspackConfigFn>) => unknown
+    ? RspackConfigFn
+    : Definition extends readonly unknown[]
+      ? MultiRspackOptions
+      : RspackOptions;
 export function defineConfig(config: RspackConfigExport) {
   return config;
 }

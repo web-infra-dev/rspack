@@ -4,7 +4,7 @@ const vm = require('node:vm');
 
 const SYNTHETIC_MODULES_STORE = '__SYNTHETIC_MODULES_STORE';
 
-module.exports = async (something, context, unlinked) => {
+export async function asModule(something, context, unlinked) {
   if (
     something instanceof (vm.Module || /* node.js 10 */ vm.SourceTextModule)
   ) {
@@ -28,4 +28,4 @@ module.exports = async (something, context, unlinked) => {
   await m.link(() => {});
   await m.evaluate();
   return m;
-};
+}

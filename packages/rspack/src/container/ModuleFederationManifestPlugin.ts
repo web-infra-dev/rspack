@@ -173,14 +173,17 @@ export function getFileName(
   const insertSuffix = (name: string, suffix: string): string => {
     return name.replace(JSON_EXT, `${suffix}${JSON_EXT}`);
   };
+  // Asset names always use forward slashes, even on Windows where
+  // `path.join` produces backslash separators.
+  const toAssetName = (name: string): string => name.replace(/\\/g, '/');
   const manifestFileName = fileName ? addExt(fileName) : MANIFEST_FILE_NAME;
   const statsFileName = fileName
     ? insertSuffix(manifestFileName, '-stats')
     : STATS_FILE_NAME;
 
   return {
-    statsFileName: join(filePath, statsFileName),
-    manifestFileName: join(filePath, manifestFileName),
+    statsFileName: toAssetName(join(filePath, statsFileName)),
+    manifestFileName: toAssetName(join(filePath, manifestFileName)),
   };
 }
 

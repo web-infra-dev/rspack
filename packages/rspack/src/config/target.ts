@@ -81,6 +81,8 @@ export type EcmaTargetProperties = {
   bigIntLiteral: boolean | null;
   /**  const and let variable declarations are available */
   const: boolean | null;
+  /**  computed property names in object literals are available */
+  computedProperty: boolean | null;
   /**  method shorthand in object is available  */
   methodShorthand: boolean | null;
   /**  arrow functions are available */
@@ -97,6 +99,8 @@ export type EcmaTargetProperties = {
   module: boolean | null;
   /**  optional chaining is available */
   optionalChaining: boolean | null;
+  /**  logical assignment is available */
+  logicalAssignment: boolean | null;
   /**  template literal is available */
   templateLiteral: boolean | null;
   /**  async functions and await are available */
@@ -293,8 +297,10 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
 
         globalThis: v(12),
         const: v(6),
+        computedProperty: v(4),
         templateLiteral: v(4),
         optionalChaining: v(14),
+        logicalAssignment: v(15),
         methodShorthand: v(4),
         arrowFunction: v(6),
         asyncFunction: v(7, 6),
@@ -366,8 +372,10 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
 
         globalThis: v(5),
         const: v(1, 1),
+        computedProperty: v(1, 1),
         templateLiteral: v(1, 1),
         optionalChaining: v(8),
+        logicalAssignment: v(10),
         methodShorthand: v(1, 1),
         arrowFunction: v(1, 1),
         asyncFunction: v(1, 7),
@@ -429,6 +437,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
 
         globalThis: v(0, 43),
         const: v(0, 15),
+        computedProperty: v(0, 15),
         templateLiteral: v(0, 13),
         optionalChaining: v(0, 44),
         methodShorthand: v(0, 15),
@@ -445,7 +454,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
   ],
   [
     'esX',
-    'EcmaScript in this version. Examples: es2020, es5.',
+    'ECMAScript in this version. Examples: es2020, es5.',
     /^es(\d+)$/,
     (version) => {
       let v = +version;
@@ -454,8 +463,10 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         // SWC minifier only supports up to 2022
         esVersion: v > 2022 ? 2022 : v,
         const: v >= 2015,
+        computedProperty: v >= 2015,
         templateLiteral: v >= 2015,
         optionalChaining: v >= 2020,
+        logicalAssignment: v >= 2021,
         methodShorthand: v >= 2015,
         arrowFunction: v >= 2015,
         forOf: v >= 2015,

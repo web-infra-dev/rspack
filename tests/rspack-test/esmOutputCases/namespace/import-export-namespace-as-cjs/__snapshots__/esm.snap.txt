@@ -13,8 +13,6 @@ exports.foo = 123;
 },
 });
 // ./index.js
-const foo = __webpack_require__("./foo.js");
-var foo_namespace = /*#__PURE__*/__webpack_require__.t(foo, 2);
 
 
 
@@ -24,6 +22,9 @@ it("should export an imported CommonJS namespace", async () => {
 
   expect(mod.ns.foo).toBe(123);
 });
+
+const foo = __webpack_require__("./foo.js");
+var foo_namespace = /*#__PURE__*/__webpack_require__.t(foo, 2);
 
 export { foo_namespace as ns };
 
@@ -85,12 +86,16 @@ __webpack_require__.t = function(value, mode) {
 })();
 // webpack/runtime/define_property_getters
 (() => {
-__webpack_require__.d = (exports, definition) => {
-	for(var key in definition) {
-        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-        }
-    }
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
 };
 })();
 // webpack/runtime/esm_register_module

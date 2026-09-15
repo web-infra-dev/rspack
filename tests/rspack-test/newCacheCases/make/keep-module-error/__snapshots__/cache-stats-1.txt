@@ -1,0 +1,9 @@
+[
+  {
+    "module build cache": {
+      "hits": 2,
+      "total": 3,
+      "hitRate": 66.7
+    }
+  }
+]

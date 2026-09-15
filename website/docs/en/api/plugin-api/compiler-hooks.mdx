@@ -211,7 +211,7 @@ Adds a hook right before running the compiler.
 
 :::note
 
-This hook is only triggered when calling [compiler.run()](/api/javascript-api/index#compilerrun) (which is used by the `rspack build` command), and will not be executed in watch mode. You can use the [watchRun](#watchrun) hook in watch mode.
+This hook is only triggered when calling [compiler.run()](/api/javascript-api/#compilerrun) (which is used by the `rspack build` command), and will not be executed in watch mode. You can use the [watchRun](#watchrun) hook in watch mode.
 
 :::
 
@@ -264,7 +264,7 @@ Called at the beginning of a build execution.
 
 :::note
 
-This hook is only triggered when calling [compiler.run()](/api/javascript-api/index#compilerrun) (which is used by the `rspack build` command), and will not be executed in watch mode. You can use the [watchRun](#watchrun) hook in watch mode.
+This hook is only triggered when calling [compiler.run()](/api/javascript-api/#compilerrun) (which is used by the `rspack build` command), and will not be executed in watch mode. You can use the [watchRun](#watchrun) hook in watch mode.
 
 :::
 
@@ -319,7 +319,7 @@ You can use `compiler.modifiedFiles` and `compiler.removedFiles` to get the chan
 
 :::note
 
-This hook is only triggered when calling [compiler.watch()](/api/javascript-api/index#compilerwatch), and will not be called in non-watch mode. You can use the [run](#run) or [beforeRun](#beforerun) hook in non-watch mode.
+This hook is only triggered when calling [compiler.watch()](/api/javascript-api/#compilerwatch), and will not be called in non-watch mode. You can use the [run](#run) or [beforeRun](#beforerun) hook in non-watch mode.
 
 :::
 
@@ -493,9 +493,12 @@ In the make phase, Rspack builds the module graph starting from the entry and us
 
 ## `afterCompile`
 
-Called after the make phase and before the seal phase.
+Called after the compilation has been finished and sealed, and before Rspack
+decides whether to emit the assets ([`shouldEmit`](#shouldemit)).
 
-In the seal phase, Rspack will create chunk graph from the module graph and then generate the assets.
+At this point the assets have been generated and are available on
+`compilation.assets`, but nothing has been written to the output directory yet,
+so a plugin can still fail the build here without leaving stale files behind.
 
 - **Type:** `AsyncSeriesHook<[Compilation]>`
 - **Arguments:**

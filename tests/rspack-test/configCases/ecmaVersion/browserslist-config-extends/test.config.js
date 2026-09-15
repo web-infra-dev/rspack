@@ -32,7 +32,6 @@ fs.writeFileSync(browserslistFile, content);
 
 module.exports = {
 	afterExecute() {
-		fs.unlinkSync(browserslistFile);
-		fs.rmdirSync(browserslistPackage);
+		fs.rmSync(browserslistPackage, { recursive: true, force: true });
 	}
 };

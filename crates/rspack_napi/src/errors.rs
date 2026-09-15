@@ -9,11 +9,12 @@ pub trait NapiErrorToRspackErrorExt {
 
 impl NapiErrorToRspackErrorExt for Error {
   fn to_rspack_error(self, env: &Env) -> RspackError {
-    let (reason, stack, backtrace, hide_stack) =
+    let (reason, stack, backtrace, hide_stack, code) =
       extract_stack_or_message_from_napi_error(env, self);
     let mut err = RspackError::error(format!("{reason}\n{}", backtrace.unwrap_or_default()));
     err.stack = stack;
     err.hide_stack = hide_stack;
+    err.code = code;
     err
   }
 }
@@ -28,7 +29,13 @@ const fn get_backtrace() -> Option<String> {
 fn extract_stack_or_message_from_napi_error(
   env: &Env,
   err: Error,
-) -> (String, Option<String>, Option<String>, Option<bool>) {
+) -> (
+  String,
+  Option<String>,
+  Option<String>,
+  Option<bool>,
+  Option<String>,
+) {
   let maybe_reason = err.reason.clone();
   match unsafe { ToNapiValue::to_napi_value(env.raw(), err) } {
     Ok(napi_error) => {
@@ -40,6 +47,7 @@ fn extract_stack_or_message_from_napi_error(
         Ok(message) => message,
       };
       let stack = try_extract_string_value_from_property(env, napi_error, "stack").ok();
+      let code = try_extract_string_value_from_property(env, napi_error, "code").ok();
       (
         if hide_stack.unwrap_or_default() {
           message
@@ -49,6 +57,7 @@ fn extract_stack_or_message_from_napi_error(
         stack,
         get_backtrace(),
         hide_stack,
+        code,
       )
     }
     Err(e) if maybe_reason.is_empty() => (
@@ -56,8 +65,9 @@ fn extract_stack_or_message_from_napi_error(
       None,
       get_backtrace(),
       None,
+      None,
     ),
-    Err(_) => (maybe_reason, None, None, None),
+    Err(_) => (maybe_reason, None, None, None, None),
   }
 }
 

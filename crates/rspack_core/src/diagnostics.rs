@@ -31,7 +31,7 @@ impl From<EmptyDependency> for Error {
 
 ///////////////////// Module /////////////////////
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ModuleBuildError {
   error: Error,
   from: Option<String>,

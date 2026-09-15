@@ -1,6 +1,6 @@
 use rspack_core::{
   Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeTemplate, SourceType, has_hash_placeholder, impl_runtime_module,
+  RuntimeTemplate, SourceType, impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -28,13 +28,39 @@ impl GetMainFilenameRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetMainFilenameRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: {
+        if compilation
+          .options
+          .output
+          .hot_update_main_filename
+          .has_hash_placeholder()
+        {
+          RuntimeGlobals::GET_FULL_HASH
+        } else {
+          RuntimeGlobals::default()
+        }
+      },
+      define: { self.global },
+      ..Default::default()
+    }
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
-    if let Some(chunk_ukey) = self.chunk {
+    if let Some(chunk_ukey) = self.chunk() {
       let chunk = compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
@@ -43,6 +69,7 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
         .get_path(
           &self.filename,
           PathData::default()
+            .chunk(chunk.ukey(), compilation)
             .chunk_id_optional(chunk.id().map(|id| id.as_str()))
             .chunk_hash_optional(chunk.rendered_hash(
               &compilation.chunk_hashes_artifact,
@@ -70,19 +97,11 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
             return \"{}\";
          }};
         ",
-        runtime_template.render_runtime_globals(&self.global),
+        runtime_template.render_runtime_global_definition(&self.global),
         filename,
       ))
     } else {
       unreachable!("should attach chunk for get_main_filename")
-    }
-  }
-
-  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
-    if has_hash_placeholder(compilation.options.output.hot_update_main_filename.as_str()) {
-      RuntimeGlobals::GET_FULL_HASH
-    } else {
-      RuntimeGlobals::default()
     }
   }
 }

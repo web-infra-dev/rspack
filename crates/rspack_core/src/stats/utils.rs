@@ -11,9 +11,9 @@ use super::{
   StatsModule, StatsModuleTrace,
 };
 use crate::{
-  BoxModule, BoxRuntimeModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
+  BoxRuntimeModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
   ChunkGroupOrderKey, ChunkGroupUkey, CompilationAssets, Context, ModuleGraph, ModuleId,
-  ModuleIdsArtifact, SourceType, compare_chunks_iterables, rspack_sources::BoxSource,
+  ModuleIdsArtifact, ModuleRef, SourceType, compare_chunks_iterables, rspack_sources::BoxSource,
 };
 
 pub fn get_asset_size(file: &str, assets: &CompilationAssets) -> usize {
@@ -42,7 +42,7 @@ pub fn sort_modules(modules: &mut [StatsModule]) {
 }
 
 pub fn get_stats_module_name_and_id<'s>(
-  module: &'s BoxModule,
+  module: &'s ModuleRef,
   module_ids_artifact: &ModuleIdsArtifact,
   context: &Context,
 ) -> (Cow<'s, str>, Option<ModuleId>) {
@@ -77,14 +77,14 @@ pub fn get_chunk_group_ordered_children<'a>(
     .collect::<Vec<_>>()
 }
 
-pub fn get_chunk_group_oreded_child_assets<'a>(
+pub fn get_chunk_group_ordered_child_assets<'a>(
   ordered_children: &HashMap<ChunkGroupOrderKey, Vec<ChunkGroupUkey>>,
   order_key: &ChunkGroupOrderKey,
   chunk_group_by_ukey: &ChunkGroupByUkey,
   chunk_by_ukey: &'a ChunkByUkey,
 ) -> Vec<&'a str> {
   ordered_children
-    .get(&ChunkGroupOrderKey::Preload)
+    .get(order_key)
     .unwrap_or_else(|| panic!("should have {order_key} chunk groups"))
     .iter()
     .flat_map(|ukey| {
@@ -210,7 +210,7 @@ pub fn get_chunk_child_ids_by_order(
   for (_, child_group_ukey) in list {
     let child_group = chunk_group_by_ukey.expect_get(&child_group_ukey);
     for chunk_ukey in child_group.chunks.iter() {
-      if let Some(chunk_id) = chunk_by_ukey.expect_get(chunk_ukey).id().cloned() {
+      if let Some(chunk_id) = chunk_by_ukey.expect_get(chunk_ukey).id() {
         chunk_ids.push(chunk_id.to_string());
       }
     }

@@ -9,15 +9,16 @@ on:
   push:
     branches:
       - main
+      - release/2.3.0
       - v1.x
     tags-ignore:
       - '**'
 jobs:
   lint:
     name: Lint and format
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm/setup
@@ -25,19 +26,13 @@ jobs:
       - name: Pnpm Install
         run: pnpm i
 
-      - name: Lint js
-        run: pnpm run lint-ci:js
-
-      - name: Prettier
-        run: pnpm run format-ci:js
-
-      - name: Check Dependency Version
-        run: pnpm run check-dependency-version
+      - name: Run Rstack checks
+        run: pnpm run lint:js
 
       - name: Website Spell Check
         run: pnpm --dir website run check:spell
 
       - name: Typos Check
-        uses: crate-ci/typos@02ea592e44b3a53c302f697cddca7641cd051c3d # v1.45.0
+        uses: crate-ci/typos@8a48f81b6c64dcfea44b3633223084c4be58ac5f # v1.49.0
         with:
           files: .

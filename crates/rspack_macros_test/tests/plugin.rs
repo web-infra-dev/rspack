@@ -41,24 +41,34 @@ mod named_struct {
     format!("compilation {} {}", self.options, self.state)
   }
 
+  #[plugin_hook(mock_hook::Series<mock_core::Compilation, String> for Plugin, stage = self.state as i32)]
+  fn dynamic_stage(&self, _a: mock_core::Compilation) -> String {
+    format!("dynamic_stage {} {}", self.options, self.state)
+  }
+
   #[test]
   fn test() {
-    let plugin = Plugin::new_inner("aa".to_string(), 0);
+    let plugin = Plugin::new_inner("aa".to_string(), 7);
     let hook1 = &compilation::new(&plugin);
     let hook2 = &make::new(&plugin);
     let hook3 = &process_assets::new(&plugin);
+    let hook4 = &dynamic_stage::new(&plugin);
     let r = mock_hook::Series::run(hook1, mock_core::Compilation);
-    assert_eq!(r, "compilation aa 0");
+    assert_eq!(r, "compilation aa 7");
     let s = mock_hook::Series::stage(hook1);
     assert_eq!(s, 20);
     let r = mock_hook::Series::run(hook2, mock_core::Compilation);
-    assert_eq!(r, "make aa 0");
+    assert_eq!(r, "make aa 7");
     let s = mock_hook::Series::stage(hook2);
     assert_eq!(s, 100);
     let r = mock_hook::Series::run(hook3, mock_core::Compilation);
-    assert_eq!(r, "process_assets aa 0");
+    assert_eq!(r, "process_assets aa 7");
     let s = mock_hook::Series::stage(hook3);
     assert_eq!(s, 0);
+    let r = mock_hook::Series::run(hook4, mock_core::Compilation);
+    assert_eq!(r, "dynamic_stage aa 7");
+    let s = mock_hook::Series::stage(hook4);
+    assert_eq!(s, 7);
   }
 }
 

@@ -1,0 +1,143 @@
+```mjs title=main.mjs
+import { rspackRequire, moduleFactories, makeNamespaceObject, compatGetDefaultExport, esmModuleDecorator } from "./runtime.mjs";
+import * as __rspack_external_fs from "fs";
+moduleFactories.add({
+"./cjs.js"
+/*!****************!*\
+  !*** ./cjs.js ***!
+  \****************/
+() {
+/* import */ var _use_other__rspack_import_0 = rspackRequire(/*! ./use-other */ "./use-other.js");
+/* import */ var _use_other__rspack_import_0_default = /*#__PURE__*/compatGetDefaultExport(_use_other__rspack_import_0);
+
+
+// use export readFile
+console.log.bind((rspackRequire(/*! fs */ "fs")/* .readFile */.readFile))
+
+
+},
+"./index.js"
+/*!******************!*\
+  !*** ./index.js ***!
+  \******************/
+(module, exports) {
+makeNamespaceObject(exports);
+/* import */ var _cjs__rspack_import_0 = rspackRequire(/*! ./cjs */ "./cjs.js");
+/* module decorator */ module = esmModuleDecorator(module);
+
+
+
+
+// access module so entry is not scope hoisted
+console.log.bind(module)
+
+
+},
+"./use-other.js"
+/*!**********************!*\
+  !*** ./use-other.js ***!
+  \**********************/
+() {
+// use export writeFile
+console.log.bind((rspackRequire(/*! fs */ "fs")/* .writeFile */.writeFile))
+
+
+},
+"fs"
+/*!*********************!*\
+  !*** external "fs" ***!
+  \*********************/
+(module) {
+
+module.exports = __rspack_external_fs;
+
+
+},
+});
+rspackRequire("./index.js");
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+var modules = {};
+// The module cache
+var moduleCache = {};
+// The require function
+function rspackRequire(moduleId) {
+// Check if module is in cache
+var cachedModule = moduleCache[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (moduleCache[moduleId] = {
+id: moduleId,
+exports: {}
+});
+// Execute the module function
+modules[moduleId](module, module.exports, rspackRequire);
+
+// Return the exports of the module
+return module.exports;
+}
+export { rspackRequire };
+// expose the modules object (modules)
+var moduleFactories = modules;
+export { moduleFactories };
+
+// rspack/runtime/compat_get_default_export
+// getDefaultExport function for compatibility with non-ESM modules
+var compatGetDefaultExport = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	definePropertyGetters(getter, { a: getter });
+	return getter;
+};
+;
+export { compatGetDefaultExport };
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+// rspack/runtime/esm_module_decorator
+var esmModuleDecorator = (module) => {
+  module = Object.create(module);
+  if (!module.children) module.children = [];
+  Object.defineProperty(module, 'exports', {
+      enumerable: true,
+      set: () => {
+          throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + module.id);
+      }
+  });
+  return module;
+};;
+export { esmModuleDecorator };
+// rspack/runtime/esm_register_module
+moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
+;
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+export { makeNamespaceObject };
+
+
+```

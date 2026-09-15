@@ -2,6 +2,9 @@ const path = require('path');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    './dep-shared_js.js': 'commonjs ./dep-shared_js.js',
+  },
   entry: {
     a: './a',
     b: './b',

@@ -2,6 +2,7 @@ use quote::quote;
 use syn::{
   Pat, PatIdent, Result, Token,
   parse::{Parse, ParseStream, Parser},
+  visit::{self, Visit},
 };
 
 pub fn expand_struct(mut input: syn::ItemStruct) -> proc_macro::TokenStream {
@@ -93,6 +94,25 @@ pub fn expand_struct(mut input: syn::ItemStruct) -> proc_macro::TokenStream {
 fn plugin_inner_ident(ident: &syn::Ident) -> syn::Ident {
   let inner_name = format!("{ident}Inner");
   syn::Ident::new(&inner_name, ident.span())
+}
+
+struct SelfExprVisitor {
+  found: bool,
+}
+
+impl<'ast> Visit<'ast> for SelfExprVisitor {
+  fn visit_expr_path(&mut self, node: &'ast syn::ExprPath) {
+    if node.path.is_ident("self") {
+      self.found = true;
+    }
+    visit::visit_expr_path(self, node);
+  }
+}
+
+fn expr_uses_self(expr: &syn::Expr) -> bool {
+  let mut visitor = SelfExprVisitor { found: false };
+  visitor.visit_expr(expr);
+  visitor.found
 }
 
 pub struct HookArgs {
@@ -192,6 +212,7 @@ pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream 
     }
   });
 
+  let stage_uses_self = stage.as_ref().is_some_and(expr_uses_self);
   let stage_fn = stage.map(|stage| {
     quote! {
       fn stage(&self) -> i32 {
@@ -212,6 +233,17 @@ pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream 
     quote! { #name::#fn_ident(&#name::from_inner(&self.inner), #(#rest_args,)*) }
   };
 
+  let hook_deref = stage_uses_self.then(|| {
+    quote! {
+      impl #impl_generics ::std::ops::Deref for #fn_ident #ty_generics #where_clause {
+        type Target = #inner_ident #ty_generics;
+        fn deref(&self) -> &Self::Target {
+          &self.inner
+        }
+      }
+    }
+  });
+
   let expanded = quote! {
     #[allow(non_camel_case_types)]
     #vis struct #fn_ident #impl_generics #where_clause {
@@ -231,12 +263,7 @@ pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream 
       #real_sig #block
     }
 
-    impl #impl_generics ::std::ops::Deref for #fn_ident #ty_generics #where_clause {
-      type Target = #inner_ident #ty_generics;
-      fn deref(&self) -> &Self::Target {
-        &self.inner
-      }
-    }
+    #hook_deref
 
     #attr
     impl #impl_generics #trait_ for #fn_ident #ty_generics #where_clause {

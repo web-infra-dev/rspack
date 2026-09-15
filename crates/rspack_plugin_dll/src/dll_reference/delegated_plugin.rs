@@ -125,7 +125,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
 async fn nmf_module(
   &self,
   _data: &mut ModuleFactoryCreateData,
-  _create_data: &mut NormalModuleCreateData,
+  _create_data: &NormalModuleCreateData,
   module: &mut BoxModule,
 ) -> Result<()> {
   if self.options.scope.is_none()

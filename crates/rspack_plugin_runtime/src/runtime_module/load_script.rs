@@ -1,13 +1,30 @@
-use std::ptr::NonNull;
+use std::sync::LazyLock;
 
 use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeTemplate, impl_runtime_module,
+  RuntimeModuleRuntimeRequirements, RuntimeTemplate, impl_runtime_module,
 };
 
 use crate::{
-  CreateScriptData, RuntimeModuleChunkWrapper, RuntimePlugin, get_chunk_runtime_requirements,
+  CreateScriptData, RuntimeModuleChunkWrapper, RuntimePlugin, extract_runtime_globals_from_ejs,
+  extract_runtime_module_variables_from_ejs, get_chunk_runtime_requirements,
 };
+
+static LOAD_SCRIPT_TEMPLATE: &str = include_str!("runtime/load_script.ejs");
+static LOAD_SCRIPT_CREATE_SCRIPT_TEMPLATE: &str =
+  include_str!("runtime/load_script_create_script.ejs");
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+  let mut variables = extract_runtime_module_variables_from_ejs(&[
+    LOAD_SCRIPT_TEMPLATE,
+    LOAD_SCRIPT_CREATE_SCRIPT_TEMPLATE,
+  ]);
+  variables.push("uniqueName");
+  variables
+});
+static LOAD_SCRIPT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(LOAD_SCRIPT_TEMPLATE));
+static LOAD_SCRIPT_CREATE_SCRIPT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(LOAD_SCRIPT_CREATE_SCRIPT_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -40,15 +57,38 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for LoadScriptRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES.as_slice()
+  }
+
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: {
+        let mut requirements = LOAD_SCRIPT_RUNTIME_REQUIREMENTS.dependencies
+          | LOAD_SCRIPT_CREATE_SCRIPT_RUNTIME_REQUIREMENTS.dependencies;
+        if self.with_create_script_url {
+          requirements.insert(RuntimeGlobals::CREATE_SCRIPT_URL);
+        }
+        requirements
+      },
+      weak: LOAD_SCRIPT_CREATE_SCRIPT_RUNTIME_REQUIREMENTS.weak,
+      define: LOAD_SCRIPT_RUNTIME_REQUIREMENTS.define,
+      ..Default::default()
+    }
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![
       (
         self.template_id(TemplateId::Raw),
-        include_str!("runtime/load_script.ejs").to_string(),
+        LOAD_SCRIPT_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::CreateScript),
-        include_str!("runtime/load_script_create_script.ejs").to_string(),
+        LOAD_SCRIPT_CREATE_SCRIPT_TEMPLATE.to_string(),
       ),
     ]
   }
@@ -93,7 +133,6 @@ impl RuntimeModule for LoadScriptRuntimeModule {
         chunk: RuntimeModuleChunkWrapper {
           chunk_ukey,
           compilation_id: compilation.id(),
-          compilation: NonNull::from(compilation),
         },
       })
       .await?;
@@ -110,19 +149,11 @@ impl RuntimeModule for LoadScriptRuntimeModule {
 
     Ok(render_source)
   }
-
-  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
-    if compilation.options.output.trusted_types.is_some() {
-      RuntimeGlobals::CREATE_SCRIPT_URL
-    } else {
-      RuntimeGlobals::default()
-    }
-  }
 }
 
 impl LoadScriptRuntimeModule {
   fn template_id(&self, id: TemplateId) -> String {
-    let base_id = self.id.to_string();
+    let base_id = self.id().to_string();
 
     match id {
       TemplateId::Raw => base_id,

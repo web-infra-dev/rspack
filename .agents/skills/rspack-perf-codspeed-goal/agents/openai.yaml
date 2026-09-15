@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Rspack Perf CodSpeed Goal'
+  short_description: 'Optimize Rspack through CI CodSpeed goal loops'
+  default_prompt: 'Use $rspack-perf-codspeed-goal to optimize the requested Rspack benchmark through repeated CI and CodSpeed validation.'
+
+policy:
+  allow_implicit_invocation: false

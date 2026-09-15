@@ -1,5 +1,3 @@
-use std::hash::Hash;
-
 use rspack_core::{
   ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationDependentFullHash, CompilationParams, CompilerCompilation, ModuleIdentifier, Plugin,
@@ -7,7 +5,7 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JavascriptModulesRenderStartup,
@@ -66,6 +64,7 @@ async fn additional_chunk_runtime_requirements(
     .get_number_of_entry_modules(chunk_ukey)
     > 0
   {
+    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     runtime_requirements.insert(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
   }
 
@@ -77,7 +76,7 @@ async fn js_chunk_hash(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  hasher: &mut RspackHash,
+  hasher: &mut RspackHasher,
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
@@ -135,7 +134,7 @@ async fn render_chunk(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation
@@ -143,6 +142,7 @@ async fn render_chunk(
     .chunk_by_ukey
     .expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
+  let chunk_runtime_template = compilation.runtime_template.create_chunk_code_template();
 
   let chunk_id_expr = rspack_util::json_stringify(chunk.expect_id());
 
@@ -181,7 +181,7 @@ async fn render_chunk(
     let runtime_chunk_output_name = get_runtime_chunk_output_name(compilation, chunk_ukey).await?;
     sources.add(RawStringSource::from(format!(
       "import {{ {} }} from '{}';\n",
-      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+      chunk_runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE_SCOPE),
       get_relative_path(
         base_chunk_output_name
           .trim_start_matches("/")
@@ -202,9 +202,9 @@ async fn render_chunk(
 
     startup_source.push(format!(
       "var {} = function(moduleId) {{ return {}({} = moduleId); }}",
-      runtime_template.render_runtime_variable(&RuntimeVariable::StartupExec),
-      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-      runtime_template.render_runtime_globals(&RuntimeGlobals::ENTRY_MODULE_ID)
+      chunk_runtime_template.render_runtime_variable(&RuntimeVariable::StartupExec),
+      chunk_runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+      chunk_runtime_template.render_runtime_globals(&RuntimeGlobals::ENTRY_MODULE_ID)
     ));
 
     let module_graph = compilation.get_module_graph();
@@ -260,7 +260,7 @@ async fn render_chunk(
         let index_str2 = index_buffer2.format(index);
         startup_source.push(format!(
           "{}(__rspack_chunk_{});",
-          runtime_template.render_runtime_globals(&RuntimeGlobals::EXTERNAL_INSTALL_CHUNK),
+          chunk_runtime_template.render_runtime_globals(&RuntimeGlobals::EXTERNAL_INSTALL_CHUNK),
           index_str2
         ));
       }
@@ -280,13 +280,14 @@ async fn render_chunk(
           } else {
             String::new()
           },
-          runtime_template.render_runtime_variable(&RuntimeVariable::StartupExec),
+          chunk_runtime_template.render_runtime_variable(&RuntimeVariable::StartupExec),
         ));
       }
     }
 
     if use_startup_entrypoint && !entry_module_ids.is_empty() {
-      let startup_exec = runtime_template.render_runtime_variable(&RuntimeVariable::StartupExec);
+      let startup_exec =
+        chunk_runtime_template.render_runtime_variable(&RuntimeVariable::StartupExec);
       let module_ids_code = entry_module_ids
         .iter()
         .map(|module_id_expr| format!("{startup_exec}({module_id_expr})"))
@@ -295,7 +296,7 @@ async fn render_chunk(
       startup_source.push(format!(
         "var {} = {}(0, [], function() {{\n        return {};\n      }});",
         runtime_template.render_runtime_variable(&RuntimeVariable::Exports),
-        runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT),
+        chunk_runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT),
         module_ids_code
       ));
     }
@@ -316,7 +317,7 @@ async fn render_chunk(
         chunk_ukey,
         last_entry_module,
         &mut render_source,
-        runtime_template,
+        &chunk_runtime_template,
       )
       .await?;
     sources.add(render_source.source);
@@ -335,7 +336,7 @@ async fn render_startup(
   chunk_ukey: &ChunkUkey,
   _module: &ModuleIdentifier,
   render_source: &mut RenderSource,
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact

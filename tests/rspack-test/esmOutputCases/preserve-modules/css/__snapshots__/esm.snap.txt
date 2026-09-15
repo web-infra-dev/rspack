@@ -34,12 +34,3 @@ it('should preserve modules with native css', () => {
 
 
 ```
-
-```mjs title=runtime.mjs
-// The require scope
-var __webpack_require__ = {};
-
-
-export { __webpack_require__ };
-
-```

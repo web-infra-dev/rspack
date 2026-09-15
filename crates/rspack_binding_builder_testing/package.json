@@ -12,22 +12,22 @@
     "napi-binding.d.ts"
   ],
   "scripts": {
-    "build:dev": "node scripts/build.js",
-    "build:debug": "node scripts/build.js --profile release-debug",
-    "build:ci": "node scripts/build.js --profile ci",
-    "build:profiling": "node scripts/build.js --profile profiling",
-    "build:release": "node scripts/build.js --profile release"
+    "build:dev": "node scripts/build.mjs",
+    "build:debug": "node scripts/build.mjs --profile release-debug",
+    "build:ci": "node scripts/build.mjs --profile ci",
+    "build:profiling": "node scripts/build.mjs --profile profiling",
+    "build:release": "node scripts/build.mjs --profile release"
   },
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
-    "@emnapi/core": "1.10.0",
-    "@emnapi/runtime": "1.10.0",
-    "@napi-rs/cli": "3.6.2",
-    "@napi-rs/wasm-runtime": "1.1.4",
-    "emnapi": "1.10.0",
-    "typescript": "^6.0.3"
+    "@emnapi/core": "catalog:",
+    "@emnapi/runtime": "catalog:",
+    "@napi-rs/cli": "catalog:",
+    "@napi-rs/wasm-runtime": "catalog:",
+    "emnapi": "catalog:",
+    "typescript": "catalog:"
   },
   "napi": {
     "binaryName": "rspack",
@@ -43,7 +43,11 @@
       "aarch64-unknown-linux-gnu",
       "aarch64-apple-darwin",
       "aarch64-unknown-linux-musl",
-      "aarch64-pc-windows-msvc"
+      "aarch64-pc-windows-msvc",
+      "riscv64gc-unknown-linux-gnu",
+      "riscv64gc-unknown-linux-musl",
+      "powerpc64le-unknown-linux-gnu",
+      "s390x-unknown-linux-gnu"
     ],
     "wasm": {
       "initialMemory": 16384,

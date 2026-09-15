@@ -1,29 +1,33 @@
 #![allow(deprecated)]
-use std::{any::TypeId, cell::RefCell, ptr::NonNull, sync::Arc};
+use std::{
+  any::TypeId,
+  cell::RefCell,
+  ptr::NonNull,
+  sync::{Arc, Weak},
+};
 
 use napi::{CallContext, JsObject, JsString, JsSymbol, NapiRaw};
 use napi_derive::napi;
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
-  FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
-  internal,
+  FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleCommon,
+  RuntimeModuleStage, SourceType, internal, rspack_sources::Source,
 };
 use rspack_napi::{
-  OneShotInstanceRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt,
-  threadsafe_function::ThreadsafeFunction,
+  OneShotInstanceRef, OneShotRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt,
 };
 use rspack_plugin_runtime::RuntimeModuleFromJs;
-use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap;
 
 use crate::{
-  COMPILER_REFERENCES, JsCompiler,
+  COMPILER_REFERENCES,
   asset::AssetInfo,
   async_dependency_block::AsyncDependenciesBlockWrapper,
   build_info::BuildInfo,
   chunk::ChunkWrapper,
   codegen_result::JsCodegenerationResults,
+  compiler_scoped_tsfn::CompilerScopedTsFnHandle,
   define_symbols,
   dependency::DependencyWrapper,
   modules::{ConcatenatedModule, ContextModule, ExternalModule, NormalModule},
@@ -59,6 +63,212 @@ thread_local! {
   pub(crate) static MODULE_PROPERTIES_BUFFER: RefCell<Vec<Property>> = RefCell::new(Vec::with_capacity(4));
 }
 
+pub(crate) trait DerivedModule {
+  fn as_module(&mut self) -> &mut Module;
+}
+
+#[js_function]
+fn module_context_getter(ctx: CallContext) -> napi::Result<Either<String, ()>> {
+  let this = ctx.this_unchecked::<JsObject>();
+  let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
+  wrapped_value.with_ref(|_, module| {
+    Ok(match module.get_context() {
+      Some(ctx) => Either::A(ctx.to_string()),
+      None => Either::B(()),
+    })
+  })
+}
+
+#[js_function]
+fn module_layer_getter(ctx: CallContext<'_>) -> napi::Result<Either<JsString<'_>, ()>> {
+  let this = ctx.this_unchecked::<JsObject>();
+  let env = ctx.env;
+  let wrapped_value = unsafe { Module::from_napi_mut_ref(env.raw(), this.raw())? };
+  wrapped_value.with_ref(|_, module| {
+    Ok(match module.get_layer() {
+      Some(layer) => Either::A(env.create_string(layer)?),
+      None => Either::B(()),
+    })
+  })
+}
+
+#[js_function]
+fn module_use_source_map_getter(ctx: CallContext) -> napi::Result<bool> {
+  let this = ctx.this_unchecked::<JsObject>();
+  let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
+  wrapped_value.with_ref(|_, module| Ok(module.get_source_map_kind().source_map()))
+}
+
+#[js_function]
+fn module_use_simple_source_map_getter(ctx: CallContext) -> napi::Result<bool> {
+  let this = ctx.this_unchecked::<JsObject>();
+  let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
+  wrapped_value.with_ref(|_, module| Ok(module.get_source_map_kind().simple_source_map()))
+}
+
+#[js_function]
+fn module_factory_meta_getter(ctx: CallContext) -> napi::Result<JsFactoryMeta> {
+  let this = ctx.this_unchecked::<JsObject>();
+  let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
+  wrapped_value.with_ref(|_, module| {
+    Ok(match module.as_normal_module() {
+      Some(normal_module) => match normal_module.factory_meta() {
+        Some(meta) => JsFactoryMeta {
+          side_effect_free: meta.side_effect_free,
+        },
+        None => JsFactoryMeta {
+          side_effect_free: None,
+        },
+      },
+      None => JsFactoryMeta {
+        side_effect_free: None,
+      },
+    })
+  })
+}
+
+#[js_function(1)]
+fn module_factory_meta_setter(ctx: CallContext) -> napi::Result<()> {
+  let this = ctx.this_unchecked::<JsObject>();
+  let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
+  let module = wrapped_value.as_mut()?;
+  let factory_meta = ctx.get::<JsFactoryMeta>(0)?;
+  module.set_factory_meta(factory_meta.into());
+  Ok(())
+}
+
+#[js_function]
+fn module_build_info_getter(ctx: CallContext) -> napi::Result<Object> {
+  let mut this = ctx.this_unchecked::<JsObject>();
+  let env = ctx.env;
+  let raw_env = env.raw();
+  let mut reference: Reference<Module> =
+    unsafe { Reference::from_napi_value(raw_env, this.raw())? };
+  if let Some(r) = &reference.build_info_ref {
+    return r.as_object(env);
+  }
+  let mut build_info = BuildInfo::new(reference.downgrade()).get_jsobject(env)?;
+  MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
+    let sym = unsafe {
+      #[allow(clippy::unwrap_used)]
+      let napi_val = ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
+      JsSymbol::from_napi_value(env.raw(), napi_val)
+    };
+    this.set_property(sym, build_info)
+  })?;
+  let r = WeakRef::new(raw_env, &mut build_info)?;
+  let result = r.as_object(env);
+  reference.build_info_ref = Some(r);
+  result
+}
+
+#[js_function(1)]
+fn module_build_info_setter(ctx: CallContext) -> napi::Result<()> {
+  let mut this = ctx.this_unchecked::<JsObject>();
+  let input_object = ctx.get::<Object>(0)?;
+  let env = ctx.env;
+  let raw_env = env.raw();
+  let mut reference: Reference<Module> =
+    unsafe { Reference::from_napi_value(raw_env, this.raw())? };
+  let new_build_info = BuildInfo::new(reference.downgrade());
+  let mut new_instance = new_build_info.get_jsobject(env)?;
+
+  let names = input_object.get_all_property_names(
+    napi::KeyCollectionMode::OwnOnly,
+    napi::KeyFilter::AllProperties,
+    napi::KeyConversion::KeepNumbers,
+  )?;
+  let names = Array::from_unknown(names.to_unknown())?;
+  for index in 0..names.len() {
+    if let Some(name) = names.get::<Unknown>(index)? {
+      let name_clone = Object::from_raw(env.raw(), name.raw());
+      let name_str = name_clone.coerce_to_string()?.into_string();
+      // known build info properties
+      if name_str != "assets" {
+        let value = input_object.get_property::<Unknown, Unknown>(name)?;
+        new_instance.set_property::<Unknown, Unknown>(name, value)?;
+      }
+    }
+  }
+
+  MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
+    let sym = unsafe {
+      #[allow(clippy::unwrap_used)]
+      let napi_val = ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
+      JsSymbol::from_napi_value(env.raw(), napi_val)
+    };
+    this.set_property(sym, new_instance)
+  })?;
+  reference.build_info_ref = Some(WeakRef::new(raw_env, &mut new_instance)?);
+  Ok(())
+}
+
+pub(crate) fn define_module_properties(
+  env: &Env,
+  instance: &mut impl DerivedModule,
+  object: &mut Object,
+  properties: &mut Vec<Property>,
+) -> napi::Result<()> {
+  instance.as_module().with_ref(|_, module| {
+    properties.push(
+      Property::new()
+        .with_utf8_name("type")?
+        .with_value(&env.create_string(module.module_type().as_str())?),
+    );
+    properties.push(
+      Property::new()
+        .with_utf8_name("context")?
+        .with_getter(module_context_getter),
+    );
+    properties.push(
+      Property::new()
+        .with_utf8_name("layer")?
+        .with_getter(module_layer_getter),
+    );
+    properties.push(
+      Property::new()
+        .with_utf8_name("useSourceMap")?
+        .with_getter(module_use_source_map_getter),
+    );
+    properties.push(
+      Property::new()
+        .with_utf8_name("useSimpleSourceMap")?
+        .with_getter(module_use_simple_source_map_getter),
+    );
+    properties.push(
+      Property::new()
+        .with_utf8_name("factoryMeta")?
+        .with_getter(module_factory_meta_getter)
+        .with_setter(module_factory_meta_setter),
+    );
+    properties.push(
+      Property::new()
+        .with_utf8_name("buildInfo")?
+        .with_getter(module_build_info_getter)
+        .with_setter(module_build_info_setter),
+    );
+    properties.push(
+      Property::new()
+        .with_utf8_name("buildMeta")?
+        .with_value(&Object::new(env)?),
+    );
+    MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
+      let identifier = env.create_string(module.identifier().as_str())?;
+      #[allow(clippy::unwrap_used)]
+      let symbol = once_cell.get().unwrap();
+      properties.push(
+        Property::new()
+          .with_name(env, symbol)?
+          .with_value(&identifier)
+          .with_property_attributes(PropertyAttributes::Configurable),
+      );
+      Ok::<(), napi::Error>(())
+    })?;
+
+    object.define_properties(properties)
+  })
+}
+
 // ## Clarify Access Methods for napi Module to Rust Module
 // Primary access: Query compilation.module_graph using module_identifier
 // Fallback for unregistered modules: Access via raw pointer when modules aren't yet stored in compilation.module_graph (e.g., during loader execution phase)
@@ -72,242 +282,97 @@ thread_local! {
 // module_identifier query in compilation.module_graph returns undefined
 // Raw pointer stored in napi module becomes None
 // Throw an Error to the JavaScript side
+struct OriginalSourceNapiRef {
+  // Only retain a weak pointer for identity comparison. Holding another BoxSource here would
+  // increment its Arc strong count and keep the native source alive after the Module replaces it.
+  // The Weak pointer lets the Source and its owned buffers drop with the Module while also keeping
+  // the old Arc allocation unavailable for pointer reuse, so identity comparisons remain reliable.
+  related_source: Weak<dyn Source>,
+  // Keep the converted JavaScript object alive and return that exact object on cache hits. The
+  // reference is replaced on the next call after `module.source()` points to a different Source.
+  napi_ref: OneShotRef,
+}
+
 #[napi]
 pub struct Module {
   pub(crate) identifier: ModuleIdentifier,
   ptr: Option<NonNull<dyn rspack_core::Module>>,
   compiler_id: CompilerId,
-  compiler_reference: WeakReference<JsCompiler>,
+  original_source_ref: Option<OriginalSourceNapiRef>,
   pub(crate) build_info_ref: Option<WeakRef>,
 }
 
+impl DerivedModule for Module {
+  fn as_module(&mut self) -> &mut Module {
+    self
+  }
+}
+
 impl Module {
-  pub(crate) fn custom_into_instance(self, env: &Env) -> napi::Result<ClassInstance<'_, Self>> {
+  pub(crate) fn into_module_instance(self, env: &Env) -> napi::Result<ClassInstance<'_, Self>> {
     let mut instance = self.into_instance(env)?;
     let mut object = instance.as_object(env);
-    let (_, module) = (*instance).as_ref()?;
-
-    #[js_function]
-    fn context_getter(ctx: CallContext) -> napi::Result<Either<String, ()>> {
-      let this = ctx.this_unchecked::<JsObject>();
-      let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
-      let (_, module) = wrapped_value.as_ref()?;
-      Ok(match module.get_context() {
-        Some(ctx) => Either::A(ctx.to_string()),
-        None => Either::B(()),
-      })
-    }
-
-    #[js_function]
-    fn layer_getter(ctx: CallContext<'_>) -> napi::Result<Either<&String, ()>> {
-      let this = ctx.this_unchecked::<JsObject>();
-      let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
-      let (_, module) = wrapped_value.as_ref()?;
-      Ok(match module.get_layer() {
-        Some(layer) => Either::A(layer),
-        None => Either::B(()),
-      })
-    }
-
-    #[js_function]
-    fn use_source_map_getter(ctx: CallContext) -> napi::Result<bool> {
-      let this = ctx.this_unchecked::<JsObject>();
-      let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
-      let (_, module) = wrapped_value.as_ref()?;
-      Ok(module.get_source_map_kind().source_map())
-    }
-
-    #[js_function]
-    fn use_simple_source_map_getter(ctx: CallContext) -> napi::Result<bool> {
-      let this = ctx.this_unchecked::<JsObject>();
-      let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
-      let (_, module) = wrapped_value.as_ref()?;
-      Ok(module.get_source_map_kind().source_map())
-    }
-
-    #[js_function]
-    fn factory_meta_getter(ctx: CallContext) -> napi::Result<JsFactoryMeta> {
-      let this = ctx.this_unchecked::<JsObject>();
-      let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
-      let (_, module) = wrapped_value.as_ref()?;
-      Ok(match module.as_normal_module() {
-        Some(normal_module) => match normal_module.factory_meta() {
-          Some(meta) => JsFactoryMeta {
-            side_effect_free: meta.side_effect_free,
-          },
-          None => JsFactoryMeta {
-            side_effect_free: None,
-          },
-        },
-        None => JsFactoryMeta {
-          side_effect_free: None,
-        },
-      })
-    }
-
-    #[js_function(1)]
-    fn factory_meta_setter(ctx: CallContext) -> napi::Result<()> {
-      let this = ctx.this_unchecked::<JsObject>();
-      let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
-      let module = wrapped_value.as_mut()?;
-      let factory_meta = ctx.get::<JsFactoryMeta>(0)?;
-      module.set_factory_meta(factory_meta.into());
-      Ok(())
-    }
-
-    #[js_function]
-    fn build_info_getter(ctx: CallContext) -> napi::Result<Object> {
-      let mut this = ctx.this_unchecked::<JsObject>();
-      let env = ctx.env;
-      let raw_env = env.raw();
-      let mut reference: Reference<Module> =
-        unsafe { Reference::from_napi_value(raw_env, this.raw())? };
-      if let Some(r) = &reference.build_info_ref {
-        return r.as_object(env);
-      }
-      let mut build_info = BuildInfo::new(reference.downgrade()).get_jsobject(env)?;
-      MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
-        let sym = unsafe {
-          #[allow(clippy::unwrap_used)]
-          let napi_val = ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
-          JsSymbol::from_napi_value(env.raw(), napi_val)
-        };
-        this.set_property(sym, build_info)
-      })?;
-      let r = WeakRef::new(raw_env, &mut build_info)?;
-      let result = r.as_object(env);
-      reference.build_info_ref = Some(r);
-      result
-    }
-
-    #[js_function(1)]
-    fn build_info_setter(ctx: CallContext) -> napi::Result<()> {
-      let mut this = ctx.this_unchecked::<JsObject>();
-      let input_object = ctx.get::<Object>(0)?;
-      let env = ctx.env;
-      let raw_env = env.raw();
-      let mut reference: Reference<Module> =
-        unsafe { Reference::from_napi_value(raw_env, this.raw())? };
-      let new_build_info = BuildInfo::new(reference.downgrade());
-      let mut new_instance = new_build_info.get_jsobject(env)?;
-
-      let names = input_object.get_all_property_names(
-        napi::KeyCollectionMode::OwnOnly,
-        napi::KeyFilter::AllProperties,
-        napi::KeyConversion::KeepNumbers,
-      )?;
-      let names = Array::from_unknown(names.to_unknown())?;
-      for index in 0..names.len() {
-        if let Some(name) = names.get::<Unknown>(index)? {
-          let name_clone = Object::from_raw(env.raw(), name.raw());
-          let name_str = name_clone.coerce_to_string()?.into_string();
-          // known build info properties
-          if name_str != "assets" {
-            let value = input_object.get_property::<Unknown, Unknown>(name)?;
-            new_instance.set_property::<Unknown, Unknown>(name, value)?;
-          }
-        }
-      }
-
-      MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
-        let sym = unsafe {
-          #[allow(clippy::unwrap_used)]
-          let napi_val = ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
-          JsSymbol::from_napi_value(env.raw(), napi_val)
-        };
-        this.set_property(sym, new_instance)
-      })?;
-      reference.build_info_ref = Some(WeakRef::new(raw_env, &mut new_instance)?);
-      Ok(())
-    }
 
     MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
       let mut properties = ref_cell.borrow_mut();
       properties.clear();
-      properties.push(
-        Property::new()
-          .with_utf8_name("type")?
-          .with_value(&env.create_string(module.module_type().as_str())?),
-      );
-      properties.push(
-        Property::new()
-          .with_utf8_name("context")?
-          .with_getter(context_getter),
-      );
-      properties.push(
-        Property::new()
-          .with_utf8_name("layer")?
-          .with_getter(layer_getter),
-      );
-      properties.push(
-        Property::new()
-          .with_utf8_name("useSourceMap")?
-          .with_getter(use_source_map_getter),
-      );
-      properties.push(
-        Property::new()
-          .with_utf8_name("useSimpleSourceMap")?
-          .with_getter(use_simple_source_map_getter),
-      );
-      properties.push(
-        Property::new()
-          .with_utf8_name("factoryMeta")?
-          .with_getter(factory_meta_getter)
-          .with_setter(factory_meta_setter),
-      );
-      properties.push(
-        Property::new()
-          .with_utf8_name("buildInfo")?
-          .with_getter(build_info_getter)
-          .with_setter(build_info_setter),
-      );
-      properties.push(
-        Property::new()
-          .with_utf8_name("buildMeta")?
-          .with_value(&Object::new(env)?),
-      );
-      MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
-        let identifier = env.create_string(module.identifier().as_str())?;
-        #[allow(clippy::unwrap_used)]
-        let symbol = once_cell.get().unwrap();
-        properties.push(
-          Property::new()
-            .with_name(env, symbol)?
-            .with_value(&identifier)
-            .with_property_attributes(PropertyAttributes::Configurable),
-        );
-        Ok::<(), napi::Error>(())
-      })?;
-
-      object.define_properties(&properties)
+      define_module_properties(env, &mut *instance, &mut object, &mut properties)
     })?;
 
     Ok(instance)
   }
 
-  pub(crate) fn as_ref(&mut self) -> napi::Result<(&Compilation, &dyn rspack_core::Module)> {
-    match self.compiler_reference.get() {
-      Some(this) => {
-        let compilation = &this.compiler.compilation;
-        if let Some(module) = compilation.module_by_identifier(&self.identifier) {
-          Ok((compilation, module.as_ref()))
-        } else if let Some(ptr) = self.ptr {
-          // SAFETY:
-          // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
-          // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
-          Ok((compilation, unsafe { ptr.as_ref() }))
-        } else {
-          Err(napi::Error::from_reason(format!(
-            "Unable to access module with id = {} now. The module have been removed on the Rust side.",
-            self.identifier
-          )))
-        }
+  fn compiler_garbage_collected_error(&self) -> napi::Error {
+    napi::Error::from_reason(format!(
+      "Unable to access module with id = {} now. The Compiler has been garbage collected by JavaScript.",
+      self.identifier
+    ))
+  }
+
+  fn module_removed_error(&self) -> napi::Error {
+    napi::Error::from_reason(format!(
+      "Unable to access module with id = {} now. The module have been removed on the Rust side.",
+      self.identifier
+    ))
+  }
+
+  pub(crate) fn with_compilation<R>(
+    &self,
+    f: impl FnOnce(&Compilation) -> napi::Result<R>,
+  ) -> napi::Result<R> {
+    let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
+      let references = ref_cell.borrow();
+      references.get(&self.compiler_id).cloned()
+    });
+
+    let Some(this) = compiler_reference
+      .as_ref()
+      .and_then(|compiler_reference| compiler_reference.get())
+    else {
+      return Err(self.compiler_garbage_collected_error());
+    };
+
+    f(&this.compiler.compilation)
+  }
+
+  pub(crate) fn with_ref<R>(
+    &mut self,
+    f: impl FnOnce(&Compilation, &dyn rspack_core::Module) -> napi::Result<R>,
+  ) -> napi::Result<R> {
+    let module_identifier = self.identifier;
+    let module_ptr = self.ptr;
+    self.with_compilation(|compilation| {
+      if let Some(module) = compilation.module_by_identifier(&module_identifier) {
+        f(compilation, module.as_ref())
+      } else if let Some(ptr) = module_ptr {
+        // SAFETY:
+        // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
+        // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
+        f(compilation, unsafe { ptr.as_ref() })
+      } else {
+        Err(self.module_removed_error())
       }
-      None => Err(napi::Error::from_reason(format!(
-        "Unable to access module with id = {} now. The Compiler has been garbage collected by JavaScript.",
-        self.identifier
-      ))),
-    }
+    })
   }
 
   pub(crate) fn as_mut(&mut self) -> napi::Result<&'static mut dyn rspack_core::Module> {
@@ -330,35 +395,81 @@ impl Module {
 impl Module {
   #[napi]
   pub fn readable_identifier(&mut self) -> napi::Result<String> {
-    let (compilation, module) = self.as_ref()?;
-    Ok(
-      module
-        .readable_identifier(&compilation.options.context)
-        .to_string(),
-    )
+    self.with_ref(|compilation, module| {
+      Ok(
+        module
+          .readable_identifier(&compilation.options.context)
+          .to_string(),
+      )
+    })
   }
 
   #[napi(
     js_name = "_originalSource",
-    ts_return_type = "JsSource",
+    ts_return_type = "JsSource | undefined",
     enumerable = false
   )]
-  pub fn original_source(&mut self, env: &Env) -> napi::Result<Either<JsSourceToJs, ()>> {
-    let (_, module) = self.as_ref()?;
+  pub fn original_source<'a>(&mut self, env: &'a Env) -> napi::Result<Either<Unknown<'a>, ()>> {
+    let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
+      let references = ref_cell.borrow();
+      references.get(&self.compiler_id).cloned()
+    });
 
-    Ok(match module.source() {
-      Some(source) => Either::A(source.as_ref().try_into()?),
-      None => Either::B(()),
-    })
+    let compilation = {
+      let Some(this) = compiler_reference
+        .as_ref()
+        .and_then(|compiler_reference| compiler_reference.get())
+      else {
+        return Err(self.compiler_garbage_collected_error());
+      };
+      &this.compiler.compilation
+    };
+
+    let module = {
+      if let Some(module) = compilation.module_by_identifier(&self.identifier) {
+        module.as_ref()
+      } else if let Some(ptr) = self.ptr {
+        // SAFETY:
+        // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
+        // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
+        unsafe { ptr.as_ref() }
+      } else {
+        return Ok(Either::B(()));
+      }
+    };
+
+    let Some(original_source) = module.source() else {
+      self.original_source_ref = None;
+      return Ok(Either::B(()));
+    };
+
+    if let Some(OriginalSourceNapiRef {
+      related_source,
+      napi_ref,
+    }) = &self.original_source_ref
+      && (related_source.ptr_eq(&Arc::downgrade(original_source)))
+    {
+      return Ok(Either::A(ToNapiValue::into_unknown(napi_ref, env)?));
+    }
+
+    let binding = JsSourceToJs::try_from(original_source)?;
+    let mut one_shot_ref = OneShotRef::new(env.raw(), binding)?;
+    let result = ToNapiValue::into_unknown(&mut one_shot_ref, env)?;
+    self.original_source_ref = Some(OriginalSourceNapiRef {
+      related_source: Arc::downgrade(original_source),
+      napi_ref: one_shot_ref,
+    });
+
+    Ok(Either::A(result))
   }
 
   #[napi]
   pub fn name_for_condition(&mut self) -> napi::Result<Either<String, ()>> {
-    let (_, module) = self.as_ref()?;
-
-    Ok(match module.name_for_condition() {
-      Some(s) => Either::A(s.to_string()),
-      None => Either::B(()),
+    self.with_ref(|_, module| {
+      Ok(match module.name_for_condition() {
+        Some(s) => Either::A(s.to_string()),
+        None => Either::B(()),
+      })
     })
   }
 
@@ -368,50 +479,58 @@ impl Module {
     enumerable = false
   )]
   pub fn blocks(&mut self) -> napi::Result<Vec<AsyncDependenciesBlockWrapper>> {
-    let (compilation, module) = self.as_ref()?;
-
-    let module_graph = compilation.get_module_graph();
-    let blocks = module.get_blocks();
-    Ok(
-      blocks
-        .iter()
-        .filter_map(|block_id| {
-          module_graph
-            .block_by_id(block_id)
-            .map(|block| AsyncDependenciesBlockWrapper::new(block, compilation))
-        })
-        .collect::<Vec<_>>(),
-    )
+    self.with_ref(|compilation, module| {
+      let Some(module_graph) = compilation.try_get_module_graph() else {
+        return Err(napi::Error::from_reason(
+          "Module.blocks is unavailable while the module graph is under construction (e.g. inside a loader during compilation.rebuildModule)",
+        ));
+      };
+      let blocks = module.get_blocks();
+      Ok(
+        blocks
+          .iter()
+          .filter_map(|block_id| {
+            module_graph
+              .block_by_id(block_id)
+              .map(|block| AsyncDependenciesBlockWrapper::new(block, compilation))
+          })
+          .collect::<Vec<_>>(),
+      )
+    })
   }
 
   #[napi(getter, ts_return_type = "Dependency[]")]
   pub fn dependencies(&mut self) -> napi::Result<Vec<DependencyWrapper>> {
-    let (compilation, module) = self.as_ref()?;
-
-    let module_graph = compilation.get_module_graph();
-    let dependencies = module.get_dependencies();
-    Ok(
-      dependencies
-        .iter()
-        .filter_map(|dependency_id| {
-          internal::try_dependency_by_id(module_graph, dependency_id).map(|dep| {
-            DependencyWrapper::new(
-              (&**dep) as &dyn rspack_core::Dependency,
-              compilation.id(),
-              Some(compilation),
-            )
+    self.with_ref(|compilation, module| {
+      let Some(module_graph) = compilation.try_get_module_graph() else {
+        return Err(napi::Error::from_reason(
+          "Module.dependencies is unavailable while the module graph is under construction (e.g. inside a loader during compilation.rebuildModule)",
+        ));
+      };
+      // Only expose dependencies that are still present in the current graph.
+      let dependencies = module.get_dependency_ids();
+      Ok(
+        dependencies
+          .filter_map(|dependency_id| {
+            internal::try_dependency_by_id(module_graph, dependency_id).map(|dep| {
+              DependencyWrapper::new(
+                dep,
+                compilation.id(),
+                Some(compilation),
+              )
+            })
           })
-        })
-        .collect::<Vec<_>>(),
-    )
+          .collect::<Vec<_>>(),
+      )
+    })
   }
 
   #[napi]
   pub fn size(&mut self, ty: Option<String>) -> napi::Result<f64> {
-    let (compilation, module) = self.as_ref()?;
-
-    let ty = ty.map(|s| SourceType::from(s.as_str()));
-    Ok(module.size(ty.as_ref(), Some(compilation)))
+    self.with_ref(|compilation, module| {
+      let ty = ty.map(|s| SourceType::from(s.as_str()));
+      Ok(module.size(ty.as_ref(), Some(compilation)))
+    })
   }
 
   #[napi]
@@ -420,15 +539,16 @@ impl Module {
     env: &'a Env,
     options: JsLibIdentOptions,
   ) -> napi::Result<Option<JsString<'a>>> {
-    let (_, module) = self.as_ref()?;
-    Ok(
-      match module.lib_ident(LibIdentOptions {
-        context: &options.context,
-      }) {
-        Some(lib_ident) => Some(env.create_string(lib_ident.as_ref())?),
-        None => None,
-      },
-    )
+    self.with_ref(|_, module| {
+      Ok(
+        match module.lib_ident(LibIdentOptions {
+          context: &options.context,
+        }) {
+          Some(lib_ident) => Some(env.create_string(lib_ident.as_ref())?),
+          None => None,
+        },
+      )
+    })
   }
 
   #[napi(
@@ -574,84 +694,84 @@ impl ToNapiValue for ModuleObject {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     unsafe {
       MODULE_INSTANCE_REFS.with(|refs| {
-      let mut refs_by_compiler_id = refs.borrow_mut();
-      let entry = refs_by_compiler_id.entry(val.compiler_id);
-      let refs = match entry {
-        std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
-        std::collections::hash_map::Entry::Vacant(entry) => {
-          let refs = IdentifierMap::default();
-          entry.insert(refs)
-        }
-      };
+        let mut refs_by_compiler_id = refs.borrow_mut();
+        let entry = refs_by_compiler_id.entry(val.compiler_id);
+        let refs = match entry {
+          std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
+          std::collections::hash_map::Entry::Vacant(entry) => {
+            let refs = IdentifierMap::default();
+            entry.insert(refs)
+          }
+        };
 
-      match refs.entry(val.identifier) {
-        std::collections::hash_map::Entry::Occupied(mut entry) => {
-          let instance_ref = entry.get_mut();
-          let instance = match instance_ref {
-            Either5::A(normal_module) => &mut normal_module.module,
-            Either5::B(concatenated_module) => &mut concatenated_module.module,
-            Either5::C(context_module) => &mut context_module.module,
-            Either5::D(external_module) => &mut external_module.module,
-            Either5::E(module) => &mut **module,
-          };
-          instance.ptr = val.ptr;
-          match instance_ref {
-            Either5::A(r) => ToNapiValue::to_napi_value(env, r),
-            Either5::B(r) => ToNapiValue::to_napi_value(env, r),
-            Either5::C(r) => ToNapiValue::to_napi_value(env, r),
-            Either5::D(r) =>ToNapiValue::to_napi_value(env, r),
-            Either5::E(r) => ToNapiValue::to_napi_value(env, r),
+        match refs.entry(val.identifier) {
+          std::collections::hash_map::Entry::Occupied(mut entry) => {
+            let instance_ref = entry.get_mut();
+            let instance = match instance_ref {
+              Either5::A(normal_module) => &mut normal_module.module,
+              Either5::B(concatenated_module) => &mut concatenated_module.module,
+              Either5::C(context_module) => &mut context_module.module,
+              Either5::D(external_module) => &mut external_module.module,
+              Either5::E(module) => &mut **module,
+            };
+            instance.ptr = val.ptr;
+            match instance_ref {
+              Either5::A(r) => ToNapiValue::to_napi_value(env, r),
+              Either5::B(r) => ToNapiValue::to_napi_value(env, r),
+              Either5::C(r) => ToNapiValue::to_napi_value(env, r),
+              Either5::D(r) => ToNapiValue::to_napi_value(env, r),
+              Either5::E(r) => ToNapiValue::to_napi_value(env, r),
+            }
+          }
+          std::collections::hash_map::Entry::Vacant(entry) => {
+            let js_module = Module {
+              identifier: val.identifier,
+              compiler_id: val.compiler_id,
+              ptr: val.ptr,
+              original_source_ref: None,
+              build_info_ref: Default::default(),
+            };
+            let env_wrapper = Env::from_raw(env);
+
+            let instance_ref = if val.type_id == TypeId::of::<rspack_core::NormalModule>() {
+              let instance = NormalModule::new(js_module).into_module_instance(&env_wrapper)?;
+              entry.insert(Either5::A(OneShotInstanceRef::from_instance(
+                env, instance,
+              )?))
+            } else if val.type_id == TypeId::of::<rspack_core::ConcatenatedModule>() {
+              let instance =
+                ConcatenatedModule { module: js_module }.into_module_instance(&env_wrapper)?;
+              entry.insert(Either5::B(OneShotInstanceRef::from_instance(
+                env, instance,
+              )?))
+            } else if val.type_id == TypeId::of::<rspack_core::ContextModule>() {
+              let instance =
+                ContextModule { module: js_module }.into_module_instance(&env_wrapper)?;
+              entry.insert(Either5::C(OneShotInstanceRef::from_instance(
+                env, instance,
+              )?))
+            } else if val.type_id == TypeId::of::<rspack_core::ExternalModule>() {
+              let instance =
+                ExternalModule { module: js_module }.into_module_instance(&env_wrapper)?;
+              entry.insert(Either5::D(OneShotInstanceRef::from_instance(
+                env, instance,
+              )?))
+            } else {
+              let instance = js_module.into_module_instance(&env_wrapper)?;
+              entry.insert(Either5::E(OneShotInstanceRef::from_instance(
+                env, instance,
+              )?))
+            };
+            match instance_ref {
+              Either5::A(r) => ToNapiValue::to_napi_value(env, r),
+              Either5::B(r) => ToNapiValue::to_napi_value(env, r),
+              Either5::C(r) => ToNapiValue::to_napi_value(env, r),
+              Either5::D(r) => ToNapiValue::to_napi_value(env, r),
+              Either5::E(r) => ToNapiValue::to_napi_value(env, r),
+            }
           }
         }
-        std::collections::hash_map::Entry::Vacant(entry) => {
-          match COMPILER_REFERENCES.with(|ref_cell| {
-            let references = ref_cell.borrow();
-            references.get(&val.compiler_id).cloned()
-          }) {
-            Some(compiler_reference) => {
-              let js_module = Module {
-                identifier: val.identifier,
-                compiler_id: val.compiler_id,
-                ptr: val.ptr,
-                compiler_reference,
-                build_info_ref: Default::default(),
-              };
-              let env_wrapper = Env::from_raw(env);
-
-              let instance_ref = if val.type_id == TypeId::of::<rspack_core::NormalModule>() {
-                let instance = NormalModule::new(js_module).custom_into_instance(&env_wrapper)?;
-                entry.insert(Either5::A(OneShotInstanceRef::from_instance(env, instance)?))
-              } else if val.type_id == TypeId::of::<rspack_core::ConcatenatedModule>() {
-                let instance = ConcatenatedModule { module: js_module }.custom_into_instance(&env_wrapper)?;
-                entry.insert(Either5::B(OneShotInstanceRef::from_instance(env, instance)?))
-              } else if val.type_id == TypeId::of::<rspack_core::ContextModule>() {
-                let instance = ContextModule { module: js_module }.custom_into_instance(&env_wrapper)?;
-                entry.insert(Either5::C(OneShotInstanceRef::from_instance(env, instance)?))
-              } else if val.type_id == TypeId::of::<rspack_core::ExternalModule>() {
-                let instance = ExternalModule { module: js_module }.custom_into_instance(&env_wrapper)?;
-                entry.insert(Either5::D(OneShotInstanceRef::from_instance(env, instance)?))
-              } else {
-                let instance = js_module.custom_into_instance(&env_wrapper)?;
-                entry.insert(Either5::E(OneShotInstanceRef::from_instance(env, instance)?))
-              };
-              match instance_ref {
-                Either5::A(r) => ToNapiValue::to_napi_value(env, r),
-                Either5::B(r) => ToNapiValue::to_napi_value(env, r),
-                Either5::C(r) => ToNapiValue::to_napi_value(env, r),
-                Either5::D(r) => ToNapiValue::to_napi_value(env, r),
-                Either5::E(r) => ToNapiValue::to_napi_value(env, r),
-              }
-            },
-            None => {
-              Err(napi::Error::from_reason(format!(
-                "Unable to construct module with id = {} now. The Compiler has been garbage collected by JavaScript.",
-                val.identifier
-              )))
-            },
-          }
-        }
-      }
-    })
+      })
     }
   }
 }
@@ -754,7 +874,7 @@ pub struct JsRuntimeModuleArg {
   pub chunk: ChunkWrapper,
 }
 
-type GenerateFn = ThreadsafeFunction<(), String>;
+type GenerateFn = CompilerScopedTsFnHandle<(), String>;
 
 #[napi(object, object_to_js = false)]
 pub struct JsAddingRuntimeModule {
@@ -770,8 +890,10 @@ pub struct JsAddingRuntimeModule {
 impl From<JsAddingRuntimeModule> for RuntimeModuleFromJs {
   fn from(value: JsAddingRuntimeModule) -> Self {
     Self {
-      chunk: None,
-      id: Identifier::from(value.name),
+      common: RuntimeModuleCommon {
+        id: Identifier::from(value.name),
+        ..Default::default()
+      },
       full_hash: value.full_hash,
       dependent_hash: value.dependent_hash,
       isolate: value.isolate,
@@ -780,9 +902,6 @@ impl From<JsAddingRuntimeModule> for RuntimeModuleFromJs {
         let generator = value.generator.clone();
         Box::pin(async move { generator.call_with_sync(()).await })
       }),
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-      cached_generated_code: Default::default(),
     }
   }
 }
@@ -797,8 +916,6 @@ pub struct JsBuildMeta {
   #[napi(ts_type = "undefined | 'false' | 'redirect' | 'redirect-warn'")]
   pub default_object: Option<String>,
   pub side_effect_free: Option<bool>,
-  #[napi(ts_type = "Array<[string, string]> | undefined")]
-  pub exports_final_name: Option<Vec<Vec<String>>>,
 }
 
 impl From<JsBuildMeta> for BuildMeta {
@@ -808,60 +925,34 @@ impl From<JsBuildMeta> for BuildMeta {
       has_top_level_await,
       esm,
       default_object: raw_default_object,
-      exports_final_name: raw_exports_final_name,
       side_effect_free,
       exports_type: raw_exports_type,
     } = value;
 
-    let default_object = if let Some(raw_default_object) = raw_default_object {
-      match raw_default_object.as_str() {
+    let default_object =
+      raw_default_object.map(|raw_default_object| match raw_default_object.as_str() {
         "false" => BuildMetaDefaultObject::False,
         "redirect" => BuildMetaDefaultObject::Redirect,
-        "redirect-warn" => BuildMetaDefaultObject::RedirectWarn,
-        _ => unreachable!(),
-      }
-    } else {
-      BuildMetaDefaultObject::False
-    };
+        // Accept webpack/kebab form and the camelCase form previously written by
+        // `#[serde(rename_all = "camelCase")]` on BuildMetaDefaultObject (#15010).
+        "redirect-warn" | "redirectWarn" => BuildMetaDefaultObject::RedirectWarn,
+        other => panic!("Unexpected buildMeta.defaultObject value: {other}"),
+      });
 
-    let exports_type = if let Some(raw_exports_type) = raw_exports_type {
-      match raw_exports_type.as_str() {
-        "unset" => BuildMetaExportsType::Unset,
-        "default" => BuildMetaExportsType::Default,
-        "namespace" => BuildMetaExportsType::Namespace,
-        "flagged" => BuildMetaExportsType::Flagged,
-        "dynamic" => BuildMetaExportsType::Dynamic,
-        _ => unreachable!(),
-      }
-    } else {
-      BuildMetaExportsType::Unset
-    };
+    let exports_type = raw_exports_type
+      .as_deref()
+      .map(BuildMetaExportsType::from)
+      .unwrap_or_default();
 
-    let exports_final_name = raw_exports_final_name.map(|exports_name| {
-      exports_name
-        .into_iter()
-        .map(|export_name| {
-          let first = export_name
-            .first()
-            .expect("The buildMeta exportsFinalName item should have first value")
-            .clone();
-          let second = export_name
-            .get(1)
-            .expect("The buildMeta exportsFinalName item should have second value")
-            .clone();
-          (first, second)
-        })
-        .collect::<Vec<_>>()
-    });
-
-    Self {
-      strict_esm_module: strict_esm_module.unwrap_or_default(),
-      has_top_level_await: has_top_level_await.unwrap_or_default(),
-      esm: esm.unwrap_or_default(),
+    BuildMeta {
+      strict_esm_module,
+      has_top_level_await,
+      esm,
+      is_css_module: None,
+      need_id_in_concatenation: None,
       exports_type,
       default_object,
       side_effect_free,
-      exports_final_name,
     }
   }
 }

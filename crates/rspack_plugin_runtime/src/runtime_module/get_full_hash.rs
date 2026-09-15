@@ -1,5 +1,6 @@
 use rspack_core::{
-  RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -14,9 +15,23 @@ impl GetFullHashRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetFullHashRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      define: { RuntimeGlobals::GET_FULL_HASH },
+      ..Default::default()
+    }
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       include_str!("runtime/get_full_hash.ejs").to_string(),
     )]
   }
@@ -27,13 +42,13 @@ impl RuntimeModule for GetFullHashRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let source = context.runtime_template.render(
-      &self.id,
+      self.id(),
       Some(serde_json::json!({
         "_hash": format!("\"{}\"", compilation.get_hash().unwrap_or("XXXX"))
       })),
     )?;
 
-    Ok(source)
+    Ok(source.trim_end().to_string())
   }
 
   fn full_hash(&self) -> bool {

@@ -27,7 +27,7 @@ function useFooterData() {
         },
         {
           title: t('compatibility'),
-          link: getLink('/guide/compatibility/plugin'),
+          link: getLink('/plugins/community-plugin-compatibility'),
         },
       ],
     },

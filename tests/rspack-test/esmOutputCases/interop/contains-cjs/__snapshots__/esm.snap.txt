@@ -16,8 +16,8 @@ exports.foo = 42
   !*** ./from-esm.cjs ***!
   \**********************/
 (__unused_rspack_module, exports) {
-var __webpack_unused_export__;
-__webpack_unused_export__ = true
+var __rspack_unused_export;
+__rspack_unused_export = true
 exports.A = 'esm'
 
 

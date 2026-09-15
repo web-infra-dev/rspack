@@ -1,16 +1,12 @@
-use std::sync::LazyLock;
-
 use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
   RuntimeTemplate, RuntimeVariable, impl_runtime_module,
 };
 
-use crate::{extract_runtime_globals_from_ejs, get_chunk_runtime_requirements};
+use crate::get_chunk_runtime_requirements;
 
 static MAKE_DEFERRED_NAMESPACE_OBJECT_TEMPLATE: &str =
   include_str!("runtime/make_deferred_namespace_object.ejs");
-static MAKE_DEFERRED_NAMESPACE_OBJECT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| extract_runtime_globals_from_ejs(MAKE_DEFERRED_NAMESPACE_OBJECT_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -26,9 +22,13 @@ impl MakeDeferredNamespaceObjectRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for MakeDeferredNamespaceObjectRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       MAKE_DEFERRED_NAMESPACE_OBJECT_TEMPLATE.to_string(),
     )]
   }
@@ -42,7 +42,7 @@ impl RuntimeModule for MakeDeferredNamespaceObjectRuntimeModule {
     let has_async = get_chunk_runtime_requirements(compilation, &self.chunk_ukey)
       .contains(RuntimeGlobals::ASYNC_MODULE);
     let source = runtime_template.render(
-      &self.id,
+      self.id(),
       Some(serde_json::json!({
         "_module_cache": runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
         "_has_async": has_async,
@@ -51,8 +51,22 @@ impl RuntimeModule for MakeDeferredNamespaceObjectRuntimeModule {
 
     Ok(source)
   }
-
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    *MAKE_DEFERRED_NAMESPACE_OBJECT_RUNTIME_REQUIREMENTS
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    let mut dependencies = RuntimeGlobals::REQUIRE
+      | RuntimeGlobals::MODULE_CACHE
+      | RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT;
+    if get_chunk_runtime_requirements(compilation, &self.chunk_ukey)
+      .contains(RuntimeGlobals::ASYNC_MODULE)
+    {
+      dependencies.insert(RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL);
+    }
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies,
+      define: { RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT },
+      ..Default::default()
+    }
   }
 }

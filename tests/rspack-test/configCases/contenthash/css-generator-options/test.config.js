@@ -1,4 +1,4 @@
-const findOutputFiles = require("@rspack/test-tools/helper/legacy/findOutputFiles");
+const { findOutputFiles } = require("@rspack/test-tools/helper/legacy/findOutputFiles");
 
 const allCss = new Set();
 const allBundles = new Set();

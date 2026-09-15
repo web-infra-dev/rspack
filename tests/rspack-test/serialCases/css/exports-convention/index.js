@@ -5,10 +5,10 @@ const prod = process.env.NODE_ENV === "production";
 const target = process.env.TARGET;
 
 it("concatenation and mangling should work", () => {
-	expect(styles1.class).toBe(prod ? "_204-zg" : "_style_module_css_camel-case_1-class");
-	expect(styles1["default"]).toBe(prod ? "_204-Ay" : "_style_module_css_camel-case_1-default");
-	expect(styles1.fooBar).toBe(prod ? "_204-F0" : "_style_module_css_camel-case_1-foo_bar");
-	expect(styles1.foo_bar).toBe(prod ? "_204-F0" :"_style_module_css_camel-case_1-foo_bar");
+	expect(styles1.class).toBe(prod ? "_204-zg" : "style_module_css_camel-case_1-class");
+	expect(styles1["default"]).toBe(prod ? "_204-Ay" : "style_module_css_camel-case_1-default");
+	expect(styles1.fooBar).toBe(prod ? "_204-F0" : "style_module_css_camel-case_1-foo_bar");
+	expect(styles1.foo_bar).toBe(prod ? "_204-F0" :"style_module_css_camel-case_1-foo_bar");
 
 	if (prod) {
 		expect(styles2).toMatchObject({

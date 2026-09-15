@@ -1,0 +1,80 @@
+# Case export-type: Step 1
+
+## Changed Files
+- imported.css
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: hi_txt.chunk.CURRENT_HASH.js
+- Bundle: stylesheet_css.chunk.CURRENT_HASH.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 45
+- Update: main.LAST_HASH.hot-update.js, size: 397
+- Update: stylesheet_css.LAST_HASH.hot-update.js, size: 344
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main","stylesheet_css"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./imported.css?6c24
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {
+"./imported.css?6c24"(module, __unused_rspack_exports, __webpack_require__) {
+__webpack_require__.r(module.exports = {
+	"default": ".imported-class-updated {\n\tcolor: purple;\n\tfont-style: italic;\n}\n"
+});
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```
+
+
+
+### stylesheet_css.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./imported.css?4c2a
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("stylesheet_css", {
+"./imported.css?4c2a"(module, __unused_rspack_exports, __webpack_require__) {
+var __css_style_sheet = __webpack_require__.css(".imported-class-updated {\n\tcolor: purple;\n\tfont-style: italic;\n}\n");
+__webpack_require__.r(module.exports = {
+	"default": __css_style_sheet
+});
+
+
+},
+
+});
+```

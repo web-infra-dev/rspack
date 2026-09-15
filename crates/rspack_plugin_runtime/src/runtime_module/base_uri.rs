@@ -1,7 +1,8 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -16,13 +17,27 @@ impl BaseUriRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for BaseUriRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      define: { RuntimeGlobals::BASE_URI },
+      ..Default::default()
+    }
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let base_uri = self
-      .chunk
+      .chunk()
       .and_then(|ukey| {
         compilation
           .build_chunk_graph_artifact
@@ -41,7 +56,7 @@ impl RuntimeModule for BaseUriRuntimeModule {
       "{} = {};\n",
       context
         .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::BASE_URI),
+        .render_runtime_global_definition(&RuntimeGlobals::BASE_URI),
       base_uri.as_ref()
     ))
   }

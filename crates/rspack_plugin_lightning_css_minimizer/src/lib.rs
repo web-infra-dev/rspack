@@ -1,6 +1,5 @@
 use std::{
   collections::HashSet,
-  hash::Hash,
   sync::{Arc, LazyLock, RwLock},
 };
 
@@ -16,12 +15,12 @@ use rspack_core::{
   ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
   diagnostics::MinifyError,
   rspack_sources::{
-    MapOptions, ObjectPool, RawStringSource, SourceExt, SourceMap, SourceMapSource,
+    MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMap, SourceMapSource,
     SourceMapSourceOptions,
   },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
-use rspack_hash::RspackHash;
+use rspack_hash::RspackHasher;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::{AssetConditions, AssetConditionsObject, match_object};
 use thread_local::ThreadLocal;
@@ -29,7 +28,7 @@ use thread_local::ThreadLocal;
 static CSS_ASSET_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));
 
-#[derive(Debug, Hash)]
+#[derive(Debug, rspack_hash::RspackHash)]
 pub struct PluginOptions {
   pub test: Option<AssetConditions>,
   pub include: Option<AssetConditions>,
@@ -38,17 +37,17 @@ pub struct PluginOptions {
   pub minimizer_options: MinimizerOptions,
 }
 
-#[derive(Debug, Hash)]
+#[derive(Debug, rspack_hash::RspackHash)]
 pub struct Draft {
   pub custom_media: bool,
 }
 
-#[derive(Debug, Hash)]
+#[derive(Debug, rspack_hash::RspackHash)]
 pub struct NonStandard {
   pub deep_selector_combinator: bool,
 }
 
-#[derive(Debug, Hash)]
+#[derive(Debug, rspack_hash::RspackHash)]
 pub struct PseudoClasses {
   pub hover: Option<String>,
   pub active: Option<String>,
@@ -57,45 +56,16 @@ pub struct PseudoClasses {
   pub focus_within: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, rspack_hash::RspackHash)]
 pub struct MinimizerOptions {
   pub error_recovery: bool,
-  pub targets: Option<Browsers>,
   pub include: Option<u32>,
   pub exclude: Option<u32>,
   pub drafts: Option<Draft>,
   pub non_standard: Option<NonStandard>,
-  pub pseudo_classes: Option<PseudoClasses>,
   pub unused_symbols: Vec<String>,
-}
-
-impl Hash for MinimizerOptions {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.error_recovery.hash(state);
-    self.include.hash(state);
-    self.exclude.hash(state);
-    self.drafts.hash(state);
-    self.non_standard.hash(state);
-    self.unused_symbols.hash(state);
-    if let Some(pseudo_classes) = &self.pseudo_classes {
-      pseudo_classes.hover.hash(state);
-      pseudo_classes.active.hash(state);
-      pseudo_classes.focus.hash(state);
-      pseudo_classes.focus_visible.hash(state);
-      pseudo_classes.focus_within.hash(state);
-    }
-    if let Some(targets) = &self.targets {
-      targets.android.hash(state);
-      targets.chrome.hash(state);
-      targets.edge.hash(state);
-      targets.firefox.hash(state);
-      targets.ie.hash(state);
-      targets.ios_saf.hash(state);
-      targets.opera.hash(state);
-      targets.safari.hash(state);
-      targets.samsung.hash(state);
-    }
-  }
+  pub pseudo_classes: Option<PseudoClasses>,
+  pub targets: Option<Browsers>,
 }
 
 #[plugin]
@@ -115,9 +85,9 @@ async fn chunk_hash(
   &self,
   _compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
-  hasher: &mut RspackHash,
+  hasher: &mut RspackHasher,
 ) -> Result<()> {
-  self.options.hash(hasher);
+  rspack_hash::RspackHash::hash(&self.options, hasher);
   Ok(())
 }
 
@@ -157,7 +127,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       if let Some(original_source) = original.get_source() {
         let input = original_source.source().into_string_lossy().into_owned();
         let object_pool = tls.get_or(ObjectPool::default);
-        let input_source_map = original_source.map(object_pool, &MapOptions::default());
+        let input_source_map =
+          Source::map_static(original_source.clone(), object_pool, &MapOptions::default());
 
         let mut parser_flags = ParserFlags::empty();
         parser_flags.set(
@@ -209,7 +180,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           if self.options.remove_unused_local_idents
             && let Some(css_unused_idents) = original.info.css_unused_idents.take()
           {
-            unused_symbols.extend(css_unused_idents);
+            unused_symbols.extend(css_unused_idents.into_iter().map(String::from));
           }
           stylesheet
             .minify(MinifyOptions {
@@ -263,12 +234,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             value: result.code,
             name: filename,
             source_map: SourceMap::from_json(
-              &source_map
+              source_map
                 .to_json(None)
                 .to_rspack_result()?,
             )
             .expect("should be able to generate source-map"),
-            original_source: Some(Arc::from(input)),
+            original_source: Some(Box::from(input)),
             inner_source_map: input_source_map,
             remove_original_source: true,
           })

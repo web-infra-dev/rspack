@@ -58,12 +58,12 @@ impl ScopeFileSystem {
     Ok(())
   }
 
-  /// Moves a file between two scoped file systems
+  /// Moves a file or directory between two scoped file systems
   ///
   /// # Arguments
   /// * `from` - Source scoped file system
   /// * `to` - Target scoped file system
-  /// * `relative_path` - Relative path of the file
+  /// * `relative_path` - Relative path of the file or directory
   pub async fn move_to(
     from: &ScopeFileSystem,
     to: &ScopeFileSystem,

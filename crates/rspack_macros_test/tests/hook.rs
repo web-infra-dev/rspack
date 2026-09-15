@@ -88,3 +88,92 @@ mod sync_series {
     Ok(())
   }
 }
+
+mod stage_order {
+  use rspack_hook::Hook as _;
+
+  use super::*;
+
+  define_hook!(Render: Sync(source: &mut String));
+
+  struct Tap {
+    label: &'static str,
+    stage: i32,
+  }
+
+  impl Render for Tap {
+    fn run(&self, source: &mut String) -> Result<()> {
+      source.push_str(self.label);
+      Ok(())
+    }
+
+    fn stage(&self) -> i32 {
+      self.stage
+    }
+  }
+
+  struct AdditionalTaps;
+
+  impl rspack_hook::Interceptor<RenderHook> for AdditionalTaps {
+    fn call_blocking(
+      &self,
+      _hook: &RenderHook,
+    ) -> Result<Vec<<RenderHook as rspack_hook::Hook>::Tap>> {
+      Ok(vec![
+        Box::new(Tap {
+          label: "D",
+          stage: 5,
+        }),
+        Box::new(Tap {
+          label: "E",
+          stage: 10,
+        }),
+      ])
+    }
+  }
+
+  #[test]
+  fn sorts_base_taps_at_registration() -> Result<()> {
+    let mut hook = RenderHook::default();
+    hook.tap(Tap {
+      label: "A",
+      stage: 10,
+    });
+    hook.tap(Tap {
+      label: "B",
+      stage: 0,
+    });
+    hook.tap(Tap {
+      label: "C",
+      stage: 10,
+    });
+
+    let mut source = String::new();
+    hook.call(&mut source)?;
+    assert_eq!(source, "BAC");
+    Ok(())
+  }
+
+  #[test]
+  fn sorts_additional_taps_by_stage_indices() -> Result<()> {
+    let mut hook = RenderHook::default();
+    hook.tap(Tap {
+      label: "A",
+      stage: 10,
+    });
+    hook.tap(Tap {
+      label: "B",
+      stage: 0,
+    });
+    hook.tap(Tap {
+      label: "C",
+      stage: 10,
+    });
+    hook.intercept(AdditionalTaps);
+
+    let mut source = String::new();
+    hook.call(&mut source)?;
+    assert_eq!(source, "BDACE");
+    Ok(())
+  }
+}

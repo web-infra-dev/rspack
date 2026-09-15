@@ -6,8 +6,9 @@ import {
   copyFolder,
   create,
   type ESLintTemplateName,
+  type RslintTemplateName,
   select,
-} from 'create-rstack';
+} from '@rstackjs/create-toolkit';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -68,6 +69,16 @@ function mapRstestTemplate(templateName: string): string {
   }
 }
 
+function mapRslintTemplate(templateName: string): RslintTemplateName {
+  switch (templateName) {
+    case 'react-js':
+    case 'react-ts':
+      return templateName;
+    default:
+      return `vanilla-${templateName.split('-')[1]}` as RslintTemplateName;
+  }
+}
+
 create({
   root,
   name: 'rspack',
@@ -80,8 +91,10 @@ create({
     'vue-ts',
   ],
   skipFiles: ['.npmignore'],
+  git: !process.argv.includes('--no-git'),
   getTemplateName,
   mapESLintTemplate,
+  mapRslintTemplate,
   extraTools: [
     {
       value: 'rstest',

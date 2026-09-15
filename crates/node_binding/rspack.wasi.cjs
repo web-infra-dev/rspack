@@ -128,6 +128,7 @@ module.exports.EntryDependency = __napiModule.exports.EntryDependency
 module.exports.EntryOptionsDto = __napiModule.exports.EntryOptionsDto
 module.exports.EntryOptionsDTO = __napiModule.exports.EntryOptionsDTO
 module.exports.ExternalModule = __napiModule.exports.ExternalModule
+module.exports.JsCache = __napiModule.exports.JsCache
 module.exports.JsCompilation = __napiModule.exports.JsCompilation
 module.exports.JsCompiler = __napiModule.exports.JsCompiler
 module.exports.JsContextModuleFactoryAfterResolveData = __napiModule.exports.JsContextModuleFactoryAfterResolveData

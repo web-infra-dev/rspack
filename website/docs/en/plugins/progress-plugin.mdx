@@ -1,0 +1,88 @@
+---
+description: 'This plugin can be used to configure the progress bar'
+---
+
+# ProgressPlugin
+
+This plugin can be used to configure the progress bar.
+
+Rspack uses [indicatif::ProgressBar](https://github.com/console-rs/indicatif) to draw the progress bar.
+
+## Examples
+
+Add a prefix to the progress bar:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.ProgressPlugin({ prefix: 'Building' })],
+};
+```
+
+## Options
+
+### Function form
+
+- **Type:** `(percentage: number, message: string, info: ProgressPluginHandlerInfo) => void`
+- **Default:** `undefined`
+
+Pass a handler function directly to the `ProgressPlugin` constructor. It is called when hooks report progress with the following arguments:
+
+- `percentage`: a number between 0 and 1 indicating the completion percentage of the compilation
+- `message`: a short description of the currently-executing hook
+- `info`: extra progress information
+  - `builtModules`: number of built modules
+  - `moduleIdentifier`: identifier of the active module (only provided during `build modules` updates)
+
+```js
+const handler = (percentage, message, info) => {
+  // e.g. Output each progress message directly to the console:
+  console.info(percentage, message, info.builtModules, info.moduleIdentifier);
+};
+
+new rspack.ProgressPlugin(handler);
+```
+
+### Object form
+
+#### prefix
+
+- **Type:** `string`
+- **Default:** `''`
+
+The text will be displayed before the progress bar.
+
+#### profile
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Tells `ProgressPlugin` to collect profile data for progress steps.
+
+#### template
+
+- **Type:** `string`
+- **Default:** `● {prefix:.bold} {bar:25.green/white.dim} ({percent}%) {wide_msg:.dim}`
+
+The template of progress bar.
+
+Also see [indicatif::ProgressBar::with_template](https://docs.rs/indicatif/latest/indicatif/style/struct.ProgressStyle.html#method.with_template).
+
+#### tick
+
+- **Type:** `string | string[] | undefined`
+- **Default:** `undefined`
+
+The tick string sequence for spinners, if it's string then it will be split into characters.
+
+Also see [indicatif::ProgressBar::tick_strings](https://docs.rs/indicatif/latest/indicatif/style/struct.ProgressStyle.html#method.tick_strings).
+
+#### progressChars
+
+- **Type:** `string`
+- **Default:** `━━`
+
+The progress characters `(filled, current, to do)`.
+
+Also see [indicatif::ProgressBar::progress_chars](https://docs.rs/indicatif/latest/indicatif/style/struct.ProgressStyle.html#method.progress_chars).

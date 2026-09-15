@@ -1,19 +1,19 @@
 import path from 'node:path';
 import type { Compilation, Compiler, RspackOptions, Stats } from '@rspack/core';
 import fs from 'fs-extra';
-import merge from 'webpack-merge';
+import merge from 'rspack-merge';
 import { readConfigFile } from '../helper';
 import { normalizePlaceholder } from '../helper/expect/placeholder';
-import checkArrayExpectation from '../helper/legacy/checkArrayExpectation';
+import { checkArrayExpectation } from '../helper/legacy/checkArrayExpectation';
 import { DEBUG_SCOPES } from '../test/debug';
 import type { ITestContext, ITestEnv } from '../type';
 
-export async function config(
+export function config(
   context: ITestContext,
   name: string,
   configFiles: string[],
   defaultOptions: RspackOptions = {},
-): Promise<RspackOptions> {
+): RspackOptions {
   const compiler = context.getCompiler();
   compiler.setOptions(defaultOptions);
   if (Array.isArray(configFiles)) {
@@ -27,10 +27,7 @@ export async function config(
   return compiler.getOptions() as RspackOptions;
 }
 
-export async function compiler(
-  context: ITestContext,
-  name: string,
-): Promise<Compiler> {
+export function compiler(context: ITestContext, name: string): Compiler {
   const compiler = context.getCompiler();
   compiler.createCompiler();
   return compiler.getCompiler()! as Compiler;
@@ -93,8 +90,7 @@ export async function run(
     const runner = context.getRunner(bundle, env);
     if (__DEBUG__) {
       const runLogs = context.getValue(DEBUG_SCOPES.RunLogs) as
-        | string[]
-        | undefined;
+        string[] | undefined;
       runLogs?.push(
         `Start running entry: ${bundle} in ${runner.constructor.name}(${(runner as any).__key__})`,
       );
@@ -178,6 +174,10 @@ export async function check(
         warnings.push(...statsJson.warnings);
       }
     }
+
+    if (typeof testConfig.validate === 'function') {
+      await testConfig.validate(stats, undefined, options);
+    }
   }
   await checkArrayExpectation(
     context.getSource(),
@@ -203,7 +203,7 @@ export async function check(
   }
 }
 
-export async function checkSnapshot(
+export function checkSnapshot(
   env: ITestEnv,
   context: ITestContext,
   name: string,
@@ -281,7 +281,7 @@ export async function checkSnapshot(
   }
 }
 
-export async function afterExecute(context: ITestContext, name: string) {
+export function afterExecute(context: ITestContext, name: string) {
   const compiler = context.getCompiler();
   const testConfig = context.getTestConfig();
   if (typeof testConfig.afterExecute === 'function') {
@@ -350,14 +350,14 @@ export function configMultiCompiler(
   const multiCompilerOptions: RspackOptions[] = [];
   const caseOptions: RspackOptions[] = Array.isArray(configFiles)
     ? readConfigFile(
-        configFiles!.map((i) => context.getSource(i)),
+        configFiles!.map((i) => context.getCompileSource(i)),
         context,
         {},
         (configs) => {
           return configs.flatMap((c) => {
             if (typeof c === 'function') {
               const options = {
-                testPath: context.getDist(),
+                testPath: context.getCompileDist(),
                 env: undefined,
               };
 

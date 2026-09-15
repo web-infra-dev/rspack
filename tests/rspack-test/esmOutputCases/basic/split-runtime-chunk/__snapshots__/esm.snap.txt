@@ -2,13 +2,27 @@
 import { __webpack_require__ } from "./runtime.mjs";
 import "./other.mjs";
 
+// ./runtime-writes.js
+__webpack_require__.p = ('/assets/')
+__webpack_require__.nc ??= 'nonce'
+__webpack_require__.nc ||= 'fallback'
+__webpack_require__.nc &&= 'nonce-updated'
+__webpack_require__.p += ('nested/')
+
 // ./index.js
 const other = __webpack_require__("./other.js");
 
 
+
 it('should have correct value', () => {
+  const { rspackPublicPath } = ({rspackPublicPath: __webpack_require__.p})
   expect((0,other.U)()).toBe(42)
+  expect(__webpack_require__.p).toBe('/assets/nested/')
+  expect(rspackPublicPath).toBe('/assets/nested/')
+  expect(__webpack_require__.custom).toBeUndefined()
+  expect(__webpack_require__.nc).toBe('nonce-updated')
 })
+
 export {};
 
 ```
@@ -59,6 +73,14 @@ __webpack_require__.m = __webpack_modules__;
 (() => {
 __webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
 
+})();
+// webpack/runtime/nonce
+(() => {
+__webpack_require__.nc = undefined;
+})();
+// webpack/runtime/public_path
+(() => {
+__webpack_require__.p = "";
 })();
 
 export { __webpack_require__ };

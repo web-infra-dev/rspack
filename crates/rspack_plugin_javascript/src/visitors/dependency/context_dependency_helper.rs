@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use concat_string::concat_string;
 use itertools::Itertools;
 use rspack_core::parse_resource;
 use rspack_error::{Diagnostic, Severity};
@@ -233,6 +234,16 @@ pub struct ContextModuleScanResult {
   pub fragment: String,
   pub replaces: Vec<(String, u32, u32)>,
   pub critical: Option<Diagnostic>,
+}
+
+impl ContextModuleScanResult {
+  pub fn request(&self) -> String {
+    concat_string!(
+      self.context.as_str(),
+      self.query.as_str(),
+      self.fragment.as_str()
+    )
+  }
 }
 
 pub(super) fn split_context_from_prefix(prefix: String) -> (String, String) {

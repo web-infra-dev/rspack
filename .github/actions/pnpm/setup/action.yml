@@ -1,6 +1,6 @@
 name: nodejs and pnpm setup
 
-description: Install Node.js with pnpm global cache
+description: Install Node.js and pnpm
 
 inputs:
   node-version:
@@ -13,25 +13,19 @@ runs:
   steps:
     - name: Install Node.js
       if: ${{ startsWith(runner.name, 'rspack-darwin-') }}
-      uses: rstackjs/setup-node@cc72f1c242ef8813f650223fbae3c29d450ae29e # v0.0.1
+      uses: rstackjs/setup-node@3ff0cf4618911930967df3bf1afa93fda4abaf1b # v0.0.2
       with:
         registry-url: https://registry.npmmirror.com
         node-version: ${{ inputs.node-version }}
 
     - name: Install Node.js
       if: ${{ !startsWith(runner.name, 'rspack-darwin-') }}
-      uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
       with:
         node-version: ${{ inputs.node-version }}
 
-    - name: Enable corepack
-      shell: bash
-      run: |
-        if [[ "${{runner.os}}" == "Windows" ]]; then
-          # add the npm prefix to PATH to ensure the installed corepack work properly
-          NPM_PREFIX=$(cygpath -u "$(npm config get prefix)")
-          export PATH="$NPM_PREFIX:$PATH"
-        fi
-        npm install -g corepack@0.31.0 --force
-        echo "Corepack version: $(corepack --version)"
-        corepack enable
+    - name: Install pnpm
+      uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      with:
+        # E2E containers mount the tool cache to access Node.js and pnpm.
+        dest: ${{ runner.tool_cache }}/pnpm

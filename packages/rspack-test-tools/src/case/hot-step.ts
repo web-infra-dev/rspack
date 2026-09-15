@@ -26,6 +26,8 @@ declare let global: {
 const NOOP_SET = new Set();
 
 const escapeLocalName = (str: string) => str.split(/[-<>:"/|?*.]/).join('_');
+const normalizeRuntimeModulePrefix = (str: string) =>
+  str.replaceAll('rspack/runtime/', 'webpack/runtime/');
 
 const SELF_HANDLER = (file: string, options: RspackOptions): string[] => {
   let res: string[] = [];
@@ -134,9 +136,12 @@ function createHotStepProcessor(
           .reduce((str, [raw, replacement]) => {
             return str.split(raw).join(replacement);
           }, str)
+          .replaceAll('rspack/runtime/', 'webpack/runtime/')
           .replace(/\/\/ (\d+)\s+(?=var cssReload)/, '')
           .replaceAll(/var data = "(?:.*)"/g, (match) => {
-            return decodeURIComponent(match).replaceAll(/\\/g, '/');
+            return normalizeRuntimeModulePrefix(
+              decodeURIComponent(match).replaceAll(/\\/g, '/'),
+            );
           }),
       );
     };
@@ -162,9 +167,9 @@ function createHotStepProcessor(
           const modules = getModuleHandler(context.getDist(fileName), options);
           const runtime: string[] = [];
           for (const i of content.matchAll(
-            /\/\/ (webpack\/runtime\/[\w_-]+)\s*\n/g,
+            /\/\/ ((?:webpack|rspack)\/runtime\/[\w_-]+)\s*\n/g,
           )) {
-            runtime.push(i[1]);
+            runtime.push(normalizeRuntimeModulePrefix(i[1]));
           }
           modules.sort();
           runtime.sort();
@@ -181,6 +186,10 @@ function createHotStepProcessor(
           manifest.c?.sort();
           manifest.r?.sort();
           manifest.m?.sort();
+          manifest.css?.c?.sort();
+          manifest.css?.r?.sort();
+          manifest.miniCss?.c?.sort();
+          manifest.miniCss?.r?.sort();
           hotUpdateManifest.push({
             name: renderName,
             content: JSON.stringify(manifest),
@@ -198,6 +207,9 @@ function createHotStepProcessor(
     hotUpdateFile.sort((a, b) => (a.name > b.name ? 1 : -1));
 
     if (runtime?.javascript) {
+      runtime.javascript.updatedRuntime = runtime.javascript.updatedRuntime.map(
+        normalizeRuntimeModulePrefix,
+      );
       runtime.javascript.outdatedModules.sort();
       runtime.javascript.updatedModules.sort();
       runtime.javascript.updatedRuntime.sort();
@@ -361,7 +373,7 @@ ${runtime.javascript.disposedModules.map((i) => `- ${i}`).join('\n')}
     await originRun(env, context);
   };
 
-  processor.check = async function (env, context) {
+  processor.check = function (env, context) {
     const compiler = context.getCompiler();
     const stats = compiler.getStats() as Stats;
     if (!stats || !stats.hash) {

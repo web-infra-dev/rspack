@@ -1,3 +1,4 @@
+mod cache;
 mod context;
 mod resolver;
 mod scheduler;
@@ -9,7 +10,8 @@ use std::{
   sync::{Arc, Mutex},
 };
 
-pub use context::{JsLoaderContext, JsLoaderItem};
+pub use cache::{JsLoaderCache, JsLoaderCacheEntry};
+pub use context::{JsLoaderContext, JsLoaderDependencies, JsLoaderItem};
 use napi::{
   bindgen_prelude::*,
   sys::{napi_call_threadsafe_function, napi_threadsafe_function},
@@ -22,6 +24,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashSet;
+pub(crate) use scheduler::merge_loader_context;
 use tokio::sync::{OnceCell, RwLock};
 
 use crate::{COMPILER_REFERENCES, error::RspackResultToNapiResultExt};
@@ -205,11 +208,6 @@ impl Plugin for JsLoaderRspackPlugin {
       .normal_module_factory_hooks
       .resolve_loader
       .tap(resolver::resolve_loader::new(self));
-
-    ctx
-      .normal_module_hooks
-      .loader_should_yield
-      .tap(scheduler::loader_should_yield::new(self));
 
     ctx
       .normal_module_hooks

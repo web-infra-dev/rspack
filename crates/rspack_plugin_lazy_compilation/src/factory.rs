@@ -31,14 +31,14 @@ impl ModuleFactory for LazyCompilationDependencyFactory {
 
     data
       .file_dependencies
-      .extend(options.file_dependencies.clone());
+      .extend(options.file_dependencies.iter().cloned());
     data
       .context_dependencies
-      .extend(options.context_dependencies.clone());
+      .extend(options.context_dependencies.iter().cloned());
     data
       .missing_dependencies
-      .extend(options.missing_dependencies.clone());
-    data.diagnostics.extend(options.diagnostics.clone());
+      .extend(options.missing_dependencies.iter().cloned());
+    data.diagnostics.extend(options.diagnostics.iter().cloned());
 
     self.normal_module_factory.create(data).await
   }

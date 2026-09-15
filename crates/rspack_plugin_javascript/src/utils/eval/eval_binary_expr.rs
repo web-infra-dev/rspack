@@ -1,11 +1,11 @@
 use rspack_core::DependencyRange;
 use rspack_util::SpanExt;
-use swc_core::{
-  common::Spanned,
-  ecma::ast::{BinExpr, BinaryOp},
-};
+use swc_experimental_ecma_ast::{BinExpr, BinaryOp, GetSpan};
 
-use crate::{utils::eval::BasicEvaluatedExpression, visitors::JavascriptParser};
+use crate::{
+  parser_plugin::JavascriptParserPlugin, utils::eval::BasicEvaluatedExpression,
+  visitors::JavascriptParser,
+};
 
 #[inline]
 fn handle_template_string_compare<'a>(
@@ -76,11 +76,11 @@ fn is_always_different(a: Option<bool>, b: Option<bool>) -> bool {
 
 /// `eql` is `true` for `===` and `false` for `!==`
 #[inline]
-fn handle_strict_equality_comparison<'a>(
+fn handle_strict_equality_comparison<'parser: 'a, 'a>(
   eql: bool,
   left: BasicEvaluatedExpression<'a>,
-  expr: &'a BinExpr,
-  scanner: &mut JavascriptParser,
+  expr: &'a BinExpr<'a>,
+  scanner: &mut JavascriptParser<'parser>,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   assert!(expr.op == BinaryOp::EqEqEq || expr.op == BinaryOp::NotEqEq);
   let right = scanner.evaluate_expression(&expr.right);
@@ -121,11 +121,11 @@ fn handle_strict_equality_comparison<'a>(
 
 /// `eql` is `true` for `==` and `false` for `!=`
 #[inline(always)]
-fn handle_abstract_equality_comparison<'a>(
+fn handle_abstract_equality_comparison<'parser: 'a, 'a>(
   eql: bool,
   left: BasicEvaluatedExpression<'a>,
-  expr: &'a BinExpr,
-  scanner: &mut JavascriptParser,
+  expr: &'a BinExpr<'a>,
+  scanner: &mut JavascriptParser<'parser>,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   assert!(expr.op == BinaryOp::EqEq || expr.op == BinaryOp::NotEq);
   let right = scanner.evaluate_expression(&expr.right);
@@ -150,10 +150,10 @@ fn handle_abstract_equality_comparison<'a>(
 }
 
 #[inline(always)]
-fn handle_nullish_coalescing<'a>(
+fn handle_nullish_coalescing<'parser: 'a, 'a>(
   left: BasicEvaluatedExpression<'a>,
-  expr: &'a BinExpr,
-  scanner: &mut JavascriptParser,
+  expr: &'a BinExpr<'a>,
+  scanner: &mut JavascriptParser<'parser>,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   let left_nullish = left.as_nullish();
   match left_nullish {
@@ -166,7 +166,7 @@ fn handle_nullish_coalescing<'a>(
       Some(right)
     }
     Some(false) => {
-      let mut res = left.clone();
+      let mut res = left;
       res.set_range(expr.span.real_lo(), expr.span.real_hi());
       Some(res)
     }
@@ -175,15 +175,15 @@ fn handle_nullish_coalescing<'a>(
 }
 
 #[inline(always)]
-fn handle_logical_or<'a>(
-  left: BasicEvaluatedExpression<'a>,
-  expr: &'a BinExpr,
-  scanner: &mut JavascriptParser,
+fn handle_logical_or<'parser: 'a, 'a>(
+  mut left: BasicEvaluatedExpression<'a>,
+  expr: &'a BinExpr<'a>,
+  scanner: &mut JavascriptParser<'parser>,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   let left_bool = left.as_bool();
   match left_bool {
     Some(true) => {
-      let mut res = left.clone();
+      let mut res = left;
       res.set_range(expr.span.real_lo(), expr.span.real_hi());
       Some(res)
     }
@@ -195,13 +195,26 @@ fn handle_logical_or<'a>(
       right.set_range(expr.span.real_lo(), expr.span.real_hi());
       Some(right)
     }
-    _ => {
-      let right_bool = scanner.evaluate_expression(&expr.right).as_bool();
-      if right_bool.is_some_and(|x| x) {
+    None => {
+      let right = scanner.evaluate_expression(&expr.right);
+      let right_bool = right.as_bool();
+      if right_bool == Some(true) {
         let mut res =
           BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
         res.set_truthy();
         Some(res)
+      } else if left.is_dependency() {
+        if right_bool == Some(false) {
+          left.set_range(expr.span.real_lo(), expr.span.real_hi());
+          Some(left)
+        } else if right.is_dependency() {
+          let mut res =
+            BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
+          res.set_dependency(left.into_dependency().or(right.into_dependency()));
+          Some(res)
+        } else {
+          None
+        }
       } else {
         None
       }
@@ -210,10 +223,10 @@ fn handle_logical_or<'a>(
 }
 
 #[inline(always)]
-fn handle_logical_and<'a>(
-  left: BasicEvaluatedExpression<'a>,
-  expr: &'a BinExpr,
-  scanner: &mut JavascriptParser,
+fn handle_logical_and<'parser: 'a, 'a>(
+  mut left: BasicEvaluatedExpression<'a>,
+  expr: &'a BinExpr<'a>,
+  scanner: &mut JavascriptParser<'parser>,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   let left_bool = left.as_bool();
   match left_bool {
@@ -226,17 +239,30 @@ fn handle_logical_and<'a>(
       Some(right)
     }
     Some(false) => {
-      let mut res = left.clone();
+      let mut res = left;
       res.set_range(expr.span.real_lo(), expr.span.real_hi());
       Some(res)
     }
     None => {
-      let right_bool = scanner.evaluate_expression(&expr.right).as_bool();
-      if right_bool.is_some_and(|x| !x) {
+      let right = scanner.evaluate_expression(&expr.right);
+      let right_bool = right.as_bool();
+      if right_bool == Some(false) {
         let mut res =
           BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
         res.set_falsy();
         Some(res)
+      } else if left.is_dependency() {
+        if right_bool == Some(true) {
+          left.set_range(expr.span.real_lo(), expr.span.real_hi());
+          Some(left)
+        } else if right.is_dependency() {
+          let mut res =
+            BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
+          res.set_dependency(left.into_dependency().and(right.into_dependency()));
+          Some(res)
+        } else {
+          None
+        }
       } else {
         None
       }
@@ -245,10 +271,10 @@ fn handle_logical_and<'a>(
 }
 
 #[inline(always)]
-fn handle_add<'a>(
+fn handle_add<'parser: 'a, 'a>(
   left: BasicEvaluatedExpression<'a>,
-  expr: &'a BinExpr,
-  scanner: &mut JavascriptParser,
+  expr: &'a BinExpr<'a>,
+  scanner: &mut JavascriptParser<'parser>,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   assert_eq!(expr.op, BinaryOp::Add);
   let right = scanner.evaluate_expression(&expr.right);
@@ -377,10 +403,10 @@ fn handle_add<'a>(
 }
 
 #[inline(always)]
-pub fn handle_const_operation<'a>(
+pub fn handle_const_operation<'parser: 'a, 'a>(
   left: BasicEvaluatedExpression<'a>,
-  expr: &'a BinExpr,
-  scanner: &mut JavascriptParser,
+  expr: &'a BinExpr<'a>,
+  scanner: &mut JavascriptParser<'parser>,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   if !left.is_compile_time_value() {
     return None;
@@ -482,36 +508,39 @@ pub fn handle_const_operation<'a>(
   }
 }
 
-pub fn eval_binary_expression<'a>(
-  scanner: &mut JavascriptParser,
-  expr: &'a BinExpr,
+pub fn eval_binary_expression<'parser: 'a, 'a>(
+  scanner: &mut JavascriptParser<'parser>,
+  expr: &'a BinExpr<'a>,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   let mut stack = vec![expr];
-  let mut expr = &*expr.left;
+  let mut expr = &expr.left;
   while let Some(bin) = expr.as_bin() {
     stack.push(bin);
-    expr = &*bin.left;
+    expr = &bin.left;
   }
   let mut evaluated = None;
   while let Some(expr) = stack.pop() {
     let left = evaluated.unwrap_or_else(|| scanner.evaluate_expression(&expr.left));
-    evaluated = match expr.op {
-      BinaryOp::EqEq => handle_abstract_equality_comparison(true, left, expr, scanner),
-      BinaryOp::NotEq => handle_abstract_equality_comparison(false, left, expr, scanner),
-      BinaryOp::EqEqEq => handle_strict_equality_comparison(true, left, expr, scanner),
-      BinaryOp::NotEqEq => handle_strict_equality_comparison(false, left, expr, scanner),
-      BinaryOp::LogicalAnd => handle_logical_and(left, expr, scanner),
-      BinaryOp::LogicalOr => handle_logical_or(left, expr, scanner),
-      BinaryOp::NullishCoalescing => handle_nullish_coalescing(left, expr, scanner),
-      BinaryOp::Add => handle_add(left, expr, scanner),
-      _ => handle_const_operation(left, expr, scanner),
-    }
-    .or_else(|| {
-      Some(BasicEvaluatedExpression::with_range(
-        expr.span().real_lo(),
-        expr.span().real_hi(),
-      ))
-    });
+    let drive = scanner.plugin_drive.clone();
+    evaluated = drive
+      .evaluate_binary_expression(scanner, expr, &left)
+      .or_else(|| match expr.op {
+        BinaryOp::EqEq => handle_abstract_equality_comparison(true, left, expr, scanner),
+        BinaryOp::NotEq => handle_abstract_equality_comparison(false, left, expr, scanner),
+        BinaryOp::EqEqEq => handle_strict_equality_comparison(true, left, expr, scanner),
+        BinaryOp::NotEqEq => handle_strict_equality_comparison(false, left, expr, scanner),
+        BinaryOp::LogicalAnd => handle_logical_and(left, expr, scanner),
+        BinaryOp::LogicalOr => handle_logical_or(left, expr, scanner),
+        BinaryOp::NullishCoalescing => handle_nullish_coalescing(left, expr, scanner),
+        BinaryOp::Add => handle_add(left, expr, scanner),
+        _ => handle_const_operation(left, expr, scanner),
+      })
+      .or_else(|| {
+        Some(BasicEvaluatedExpression::with_range(
+          expr.span().real_lo(),
+          expr.span().real_hi(),
+        ))
+      });
   }
   evaluated
 }

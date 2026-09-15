@@ -8,16 +8,15 @@ use json::{
   JsonValue,
   number::Number,
   object::Object,
-  stringify,
 };
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoArtifact, ExportsInfoGetter,
-  GenerateContext, Module, ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT, ParseOption,
-  ParserAndGenerator, Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeSpec,
+  BoxDependency, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoArtifact,
+  ExportsInfoData, GenerateContext, GeneratorOptions, Module, ModuleArgument, ModuleGraph,
+  NAMESPACE_OBJECT_EXPORT, ParseOption, ParserAndGenerator, ParserOptions, Plugin, RuntimeSpec,
   SourceType, UsageState, UsedNameItem,
   diagnostics::ModuleParseError,
-  rspack_sources::{BoxSource, OriginalSource, RawStringSource, Source, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, error};
 use rspack_util::{itoa, location::byte_line_column_to_offset};
@@ -46,7 +45,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       .build_info()
       .json_data
       .as_ref()
-      .map_or(0.0, |data| stringify(data.clone()).len() as f64)
+      .map_or(0.0, |data| data.dump().len() as f64)
   }
 
   async fn parse<'a>(
@@ -138,20 +137,20 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       }
     };
 
-    build_info.json_data = Some(data.clone());
+    let is_default_object = data.is_object() || data.is_array();
+    build_info.json_data = Some(data);
     build_info.strict = true;
-    build_meta.exports_type = BuildMetaExportsType::Default;
-    build_meta.default_object = if data.is_object() || data.is_array() {
+    build_meta.set_exports_type(BuildMetaExportsType::Default);
+    build_meta.set_default_object(if is_default_object {
       BuildMetaDefaultObject::RedirectWarn
     } else {
       BuildMetaDefaultObject::False
-    };
+    });
 
     Ok(
       rspack_core::ParseResult {
         presentational_dependencies: vec![],
-        dependencies: vec![Box::new(JsonExportsDependency::new(
-          data,
+        dependencies: vec![BoxDependency::new(JsonExportsDependency::new(
           self.exports_depth,
         ))],
         blocks: vec![],
@@ -183,14 +182,14 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         let module = module_graph
           .module_by_identifier(&module.identifier())
           .expect("should have module identifier");
-        let json_data = module
-          .build_info()
+        let build_info = module.build_info();
+        let json_data = build_info
           .json_data
           .as_ref()
           .expect("should have json data");
         let exports_info = compilation
           .exports_info_artifact
-          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
+          .get_exports_info_data(&module.identifier());
 
         let final_json = match json_data {
           json::JsonValue::Object(_) | json::JsonValue::Array(_)
@@ -199,21 +198,21 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               UsageState::Unused
             ) =>
           {
-            create_object_for_exports_info(
+            Cow::Owned(create_object_for_exports_info(
               json_data.clone(),
-              &exports_info,
+              exports_info,
               *runtime,
               &compilation.exports_info_artifact,
-            )
+            ))
           }
-          _ => json_data.clone(),
+          _ => Cow::Borrowed(json_data),
         };
         let is_js_object = final_json.is_object() || final_json.is_array();
-        let final_json_string = stringify(final_json);
+        let final_json_string = final_json.dump();
         let json_str = utils::escape_json(&final_json_string);
         let json_expr = if self.json_parse && is_js_object && json_str.len() > 20 {
           Cow::Owned(format!(
-            "JSON.parse('{}')",
+            "/*#__PURE__*/JSON.parse('{}')",
             json_str.cow_replace('\\', r"\\").cow_replace('\'', r"\'")
           ))
         } else {
@@ -230,11 +229,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               .render_module_argument(ModuleArgument::Module)
           )
         };
-        if module.get_source_map_kind().enabled() {
-          Ok(OriginalSource::new(content, module.identifier().as_str()).boxed())
-        } else {
-          Ok(RawStringSource::from(content).boxed())
-        }
+        Ok(RawStringSource::from(content).boxed())
       }
       _ => panic!(
         "Unsupported source type: {:?}",
@@ -264,13 +259,13 @@ impl Plugin for JsonPlugin {
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.register_parser_and_generator_builder(
       rspack_core::ModuleType::Json,
-      Box::new(|p, g| {
-        let p = p
-          .and_then(|p| p.get_json())
+      Box::new(|options| {
+        let p = options
+          .parser_options_computed(ParserOptions::get_json)
           .expect("should have JsonParserOptions");
 
-        let g = g
-          .and_then(|g| g.get_json())
+        let g = options
+          .generator_options_computed(GeneratorOptions::get_json)
           .expect("should have JsonGeneratorOptions");
 
         Box::new(JsonParserAndGenerator {
@@ -286,7 +281,7 @@ impl Plugin for JsonPlugin {
 
 pub fn create_object_for_exports_info(
   data: JsonValue,
-  exports_info: &PrefetchedExportsInfoWrapper<'_>,
+  exports_info: &ExportsInfoData,
   runtime: Option<&RuntimeSpec>,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> JsonValue {
@@ -313,12 +308,8 @@ pub fn create_object_for_exports_info(
         {
           // avoid clone
           let temp = std::mem::replace(value, JsonValue::Null);
-          let exports_info = ExportsInfoGetter::prefetch(
-            &exports_info,
-            exports_info_artifact,
-            PrefetchExportsInfoMode::Default,
-          );
-          create_object_for_exports_info(temp, &exports_info, runtime, exports_info_artifact)
+          let exports_info = exports_info.as_data(exports_info_artifact);
+          create_object_for_exports_info(temp, exports_info, runtime, exports_info_artifact)
         } else {
           std::mem::replace(value, JsonValue::Null)
         };
@@ -354,14 +345,10 @@ pub fn create_object_for_exports_info(
           if used == UsageState::OnlyPropertiesUsed
             && let Some(exports_info) = export_info.exports_info()
           {
-            let exports_info = ExportsInfoGetter::prefetch(
-              &exports_info,
-              exports_info_artifact,
-              PrefetchExportsInfoMode::Default,
-            );
+            let exports_info = exports_info.as_data(exports_info_artifact);
             Some(create_object_for_exports_info(
               item,
-              &exports_info,
+              exports_info,
               runtime,
               exports_info_artifact,
             ))

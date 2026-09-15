@@ -1,16 +1,15 @@
-use rspack_core::{BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, RuntimeGlobals};
+use rspack_core::{
+  BoxDependency, BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, RuntimeGlobals,
+};
 use rspack_util::SpanExt;
-use swc_core::{
-  atoms::Atom,
-  common::{Span, Spanned},
-  ecma::ast::{
-    AssignExpr, CallExpr, Expr, ExprOrSpread, Ident, Lit, MemberExpr, ObjectLit, Prop, PropName,
-    PropOrSpread, UnaryExpr, UnaryOp,
-  },
+use swc_experimental_ecma_ast::{
+  AssignExpr, CallExpr, Expr, ExprOrSpread, GetSpan, Ident, Lit, MemberExpr, Prop, PropName,
+  PropOrSpread, Span, ThisExpr, UnaryExpr, UnaryOp,
 };
 
 use super::JavascriptParserPlugin;
 use crate::{
+  Atom,
   dependency::{
     CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsSelfReferenceDependency,
     ExportsBase, ModuleDecoratorDependency,
@@ -20,13 +19,13 @@ use crate::{
   visitors::JavascriptParser,
 };
 
-fn get_value_of_property_description(expr: &Expr) -> Option<&Expr> {
-  if let Expr::Object(ObjectLit { props, .. }) = expr {
-    for prop in props {
+fn get_value_of_property_description<'a>(expr: &'a Expr<'a>) -> Option<&'a Expr<'a>> {
+  if let Expr::Object(obj) = expr {
+    for prop in &obj.props {
       if let PropOrSpread::Prop(prop) = prop
         && let Prop::KeyValue(key_value_prop) = &**prop
         && let PropName::Ident(ident) = &key_value_prop.key
-        && &ident.sym == "value"
+        && ident.sym == "value"
       {
         return Some(&key_value_prop.value);
       }
@@ -63,7 +62,7 @@ fn is_falsy_literal(expr: &Expr) -> bool {
 
 fn is_lit_truthy_literal(lit: &Lit) -> bool {
   match lit {
-    Lit::Str(str) => !str.value.is_empty(),
+    Lit::Str(str) => !str.value.as_wtf8().is_empty(),
     Lit::Bool(bool) => bool.value,
     Lit::Null(_) => false,
     Lit::Num(num) => num.value != 0.0,
@@ -75,8 +74,10 @@ impl JavascriptParser<'_> {
   // can't scan `__esModule` value
   fn bailout(&mut self) {
     if matches!(self.parser_exports_state, Some(true)) {
-      self.build_meta.exports_type = BuildMetaExportsType::Unset;
-      self.build_meta.default_object = BuildMetaDefaultObject::False;
+      self.build_meta.clear_exports_type();
+      self
+        .build_meta
+        .set_default_object(BuildMetaDefaultObject::False);
     }
     self.parser_exports_state = Some(false);
   }
@@ -87,8 +88,12 @@ impl JavascriptParser<'_> {
       return;
     }
     if self.parser_exports_state.is_none() {
-      self.build_meta.exports_type = BuildMetaExportsType::Default;
-      self.build_meta.default_object = BuildMetaDefaultObject::Redirect;
+      self
+        .build_meta
+        .set_exports_type(BuildMetaExportsType::Default);
+      self
+        .build_meta
+        .set_default_object(BuildMetaDefaultObject::Redirect);
     }
     self.parser_exports_state = Some(true);
   }
@@ -98,10 +103,15 @@ impl JavascriptParser<'_> {
     if matches!(self.parser_exports_state, Some(false)) || self.parser_exports_state.is_none() {
       return;
     }
-    if matches!(self.build_meta.exports_type, BuildMetaExportsType::Dynamic) {
+    if matches!(
+      self.build_meta.exports_type(),
+      BuildMetaExportsType::Dynamic
+    ) {
       return;
     }
-    self.build_meta.exports_type = BuildMetaExportsType::Flagged;
+    self
+      .build_meta
+      .set_exports_type(BuildMetaExportsType::Flagged);
   }
 
   // `__esModule` is dynamic, eg `true && true`
@@ -109,7 +119,9 @@ impl JavascriptParser<'_> {
     if matches!(self.parser_exports_state, Some(false)) || self.parser_exports_state.is_none() {
       return;
     }
-    self.build_meta.exports_type = BuildMetaExportsType::Dynamic;
+    self
+      .build_meta
+      .set_exports_type(BuildMetaExportsType::Dynamic);
   }
 
   fn check_namespace(&mut self, top_level: bool, value_expr: Option<&Expr>) {
@@ -127,14 +139,14 @@ impl JavascriptParser<'_> {
   }
 }
 
-fn parse_require_call<'a>(
-  parser: &mut JavascriptParser,
-  mut expr: &'a Expr,
+fn parse_require_call<'p: 'a, 'a>(
+  parser: &mut JavascriptParser<'p>,
+  mut expr: &'a Expr<'a>,
 ) -> Option<(BasicEvaluatedExpression<'a>, Vec<Atom>)> {
   let mut ids = Vec::new();
   while let Some(member) = expr.as_member() {
     if let Some(prop) = member.prop.as_ident() {
-      ids.push(prop.sym.clone());
+      ids.push(Atom::from(&prop.sym));
     } else if let Some(prop) = member.prop.as_computed()
       && let prop = parser.evaluate_expression(&prop.expr)
       && let Some(prop) = prop.as_string()
@@ -143,7 +155,7 @@ fn parse_require_call<'a>(
     } else {
       return None;
     }
-    expr = &*member.obj;
+    expr = &member.obj;
   }
   if let Some(call) = expr.as_call()
     && is_require_call_expr(parser, call)
@@ -184,14 +196,14 @@ fn handle_assign_export(
     // module.exports.aaa = require('xx');
     // this.aaa = require('xx');
     let range: DependencyRange = assign_expr.span.into();
-    parser.add_dependency(Box::new(CommonJsExportRequireDependency::new(
+    parser.add_dependency(BoxDependency::new(CommonJsExportRequireDependency::new(
       arg.string().clone(),
       parser.in_try,
       range,
       base,
       remaining.to_vec(),
       ids,
-      !parser.is_statement_level_expression(assign_expr.span()),
+      !parser.is_statement_level_expression(assign_expr.span),
     )));
     return Some(true);
   }
@@ -211,14 +223,14 @@ fn handle_assign_export(
       // const flagIt = () => (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = false
       // const flagIt = () => { exports.__esModule = true }; => stmt_level = 2, last_stmt_is_expr_stmt = true
       // (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = true
-      parser.statement_path.len() == 1 && parser.is_statement_level_expression(assign_expr.span()),
+      parser.statement_path.len() == 1 && parser.is_statement_level_expression(assign_expr.span),
       Some(&assign_expr.right),
     );
   }
   // exports.a = 1;
   // module.exports.a = 1;
   // this.a = 1;
-  parser.add_dependency(Box::new(CommonJsExportsDependency::new(
+  parser.add_dependency(BoxDependency::new(CommonJsExportsDependency::new(
     assign_expr.left.span().into(),
     None,
     base,
@@ -234,7 +246,7 @@ fn handle_access_export(
   remaining: &[Atom],
   remaining_optionals: &[bool],
   base: ExportsBase,
-  call_args: Option<&Vec<ExprOrSpread>>,
+  call_args: Option<&[ExprOrSpread<'_>]>,
 ) -> Option<bool> {
   if parser.is_esm {
     return None;
@@ -242,7 +254,7 @@ fn handle_access_export(
   if remaining.is_empty() {
     parser.bailout();
   }
-  parser.add_dependency(Box::new(CommonJsSelfReferenceDependency::new(
+  parser.add_dependency(BoxDependency::new(CommonJsSelfReferenceDependency::new(
     expr_span.into(),
     base,
     remaining.to_vec(),
@@ -270,12 +282,13 @@ impl CommonJsExportsParserPlugin {
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
+impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
   fn assign_member_chain(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     assign_expr: &AssignExpr,
     remaining: &[Atom],
+    _member_ranges: &[Span],
     for_name: &str,
   ) -> Option<bool> {
     if self.should_skip_handler(parser) {
@@ -304,7 +317,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
   fn call(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -316,7 +329,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       return None;
     }
     if for_name == "Object.defineProperty"
-      && parser.is_statement_level_expression(call_expr.span())
+      && parser.is_statement_level_expression(call_expr.span)
       && call_expr.args.len() == 3
       && let Some(ExprOrSpread {
         spread: None,
@@ -352,7 +365,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
           get_value_of_property_description(arg2),
         );
       }
-      parser.add_dependency(Box::new(CommonJsExportsDependency::new(
+      parser.add_dependency(BoxDependency::new(CommonJsExportsDependency::new(
         call_expr.span.into(),
         Some(arg2.span().into()),
         base,
@@ -368,7 +381,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
   fn identifier(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
@@ -383,7 +396,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
         RuntimeGlobals::NODE_MODULE_DECORATOR
       };
       parser.bailout();
-      parser.add_dependency(Box::new(ModuleDecoratorDependency::new(
+      parser.add_dependency(BoxDependency::new(ModuleDecoratorDependency::new(
         decorator,
         !parser.is_esm,
       )));
@@ -392,7 +405,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
     if for_name == "exports" {
       // exports
-      return handle_access_export(parser, ident.span(), &[], &[], ExportsBase::Exports, None);
+      return handle_access_export(parser, ident.span, &[], &[], ExportsBase::Exports, None);
     }
 
     None
@@ -400,8 +413,8 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
   fn this(
     &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::ThisExpr,
+    parser: &mut JavascriptParser<'p>,
+    expr: &ThisExpr,
     _for_name: &str,
   ) -> Option<bool> {
     if self.should_skip_handler(parser) {
@@ -410,14 +423,14 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
     if parser.is_top_level_this() {
       // this
-      return handle_access_export(parser, expr.span(), &[], &[], ExportsBase::This, None);
+      return handle_access_export(parser, expr.span, &[], &[], ExportsBase::This, None);
     }
     None
   }
 
   fn member(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -429,7 +442,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       // module.exports
       return handle_access_export(
         parser,
-        expr.span(),
+        expr.span,
         &[],
         &[],
         ExportsBase::ModuleExports,
@@ -441,7 +454,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
   fn member_chain(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     expr: &MemberExpr,
     for_name: &str,
     members: &[Atom],
@@ -456,7 +469,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       // exports.a.b.c
       return handle_access_export(
         parser,
-        expr.span(),
+        expr.span,
         members,
         members_optionals,
         ExportsBase::Exports,
@@ -468,7 +481,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       // module.exports.a.b.c
       return handle_access_export(
         parser,
-        expr.span(),
+        expr.span,
         &members[1..],
         &members_optionals[1..],
         ExportsBase::ModuleExports,
@@ -480,7 +493,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       // this.a.b.c
       return handle_access_export(
         parser,
-        expr.span(),
+        expr.span,
         members,
         members_optionals,
         ExportsBase::This,
@@ -493,7 +506,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
   fn call_member_chain(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     expr: &CallExpr,
     for_name: &str,
     members: &[Atom],
@@ -543,10 +556,10 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     None
   }
 
-  fn evaluate_typeof<'a>(
+  fn evaluate_typeof(
     &self,
-    parser: &mut JavascriptParser,
-    expr: &'a UnaryExpr,
+    parser: &mut JavascriptParser<'p>,
+    expr: &'a UnaryExpr<'a>,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression<'a>> {
     if self.should_skip_handler(parser) {

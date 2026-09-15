@@ -1,0 +1,17 @@
+```mjs title=main.mjs
+import { createRequire } from "node:module";
+
+// node:module
+
+// ./index.js
+
+
+const createRequireName = createRequire.name;
+
+it("should preserve a collision-free external import name", () => {
+	expect(createRequireName).toBe("createRequire");
+});
+
+export { createRequireName };
+
+```

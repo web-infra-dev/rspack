@@ -1,5 +1,6 @@
 use rspack_core::{
-  RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -14,12 +15,26 @@ impl ChunkNameRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ChunkNameRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      define: { RuntimeGlobals::CHUNK_NAME },
+      ..Default::default()
+    }
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
-    if let Some(chunk_ukey) = self.chunk {
+    if let Some(chunk_ukey) = self.chunk() {
       let chunk = compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
@@ -28,8 +43,10 @@ impl RuntimeModule for ChunkNameRuntimeModule {
         "{} = {};",
         context
           .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::CHUNK_NAME),
-        serde_json::to_string(&chunk.name()).expect("Invalid json string")
+          .render_runtime_global_definition(&RuntimeGlobals::CHUNK_NAME),
+        chunk
+          .name()
+          .map_or_else(|| "null".to_string(), rspack_util::json_stringify_str)
       ))
     } else {
       unreachable!("should attach chunk for css_loading")

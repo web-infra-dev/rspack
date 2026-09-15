@@ -1,0 +1,96 @@
+```mjs title=lib_js.mjs
+import { external_node_worker_threads_namespaceObject } from "./node_worker_threads.mjs";
+
+// ./lib.js
+
+
+const workerModuleMarker = "worker result";
+
+if (external_node_worker_threads_namespaceObject.parentPort) external_node_worker_threads_namespaceObject.parentPort.postMessage(workerModuleMarker);
+
+/* export default */ const lib = ("lib");
+
+export default lib;
+
+```
+
+```mjs title=main.mjs
+import { rspackRequire, publicPath, getChunkScriptFilename, baseUri } from "./runtime0.mjs";
+import { external_node_worker_threads_namespaceObject } from "./node_worker_threads.mjs";
+
+// ./index.js
+
+
+it("should keep a duplicated worker entry executable", async () => {
+	const worker = new external_node_worker_threads_namespaceObject.Worker(new URL(/* worker import */publicPath + getChunkScriptFilename("lib_js"), baseUri), { type: "module" });
+	let result;
+
+	try {
+		result = await new Promise((resolve, reject) => {
+			worker.on("message", resolve);
+			worker.on("error", reject);
+			worker.on("exit", code => {
+				reject(new Error(`Worker stopped before responding with exit code ${code}`));
+			});
+		});
+	} finally {
+		await worker.terminate();
+	}
+
+	expect(result).toBe("worker result");
+});
+
+export {};
+
+```
+
+```mjs title=node_worker_threads.mjs
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+// node:worker_threads
+const external_node_worker_threads_namespaceObject = __rspack_createRequire_require("node:worker_threads");
+export { external_node_worker_threads_namespaceObject };
+
+```
+
+```mjs title=runtime0.mjs
+// The require scope
+var rspackRequire = {};
+export { rspackRequire };
+
+var hasOwnProperty, baseUri;
+// rspack/runtime/get javascript chunk filename
+// This function allow to reference chunks
+var getChunkScriptFilename = (chunkId) => {
+  // return url for filenames not based on template
+
+  // return url for filenames based on template
+  return "" + chunkId + ".mjs"
+};
+export { getChunkScriptFilename };
+// rspack/runtime/public_path
+var publicPath = "";;
+export { publicPath };
+// rspack/runtime/module_chunk_loading
+baseUri = new URL("./", import.meta.url);;
+
+      // object to store loaded and loading chunks
+      // undefined = chunk not loaded, null = chunk preloaded/prefetched
+      // [resolve, Promise] = chunk loading, 0 = chunk loaded
+      var moduleInstalledChunks = {"runtime0": 0,};
+      // no install chunk// no chunk on demand loading
+// no external install chunk
+// no on chunks loaded
+// no HMR
+// no HMR manifest
+;
+export { baseUri };
+
+
+```
+
+```mjs title=worker.mjs
+
+export { default } from "./lib_js.mjs";
+
+```

@@ -38,7 +38,7 @@ function normalizeHotOption(
 }
 
 export class ServeCommand implements RspackCommand {
-  async apply(cli: RspackCLI): Promise<void> {
+  apply(cli: RspackCLI): void {
     const command = cli.program
       .command('serve', 'run the rspack dev server.')
       .alias('server')

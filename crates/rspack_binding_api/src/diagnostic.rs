@@ -87,7 +87,7 @@ pub fn format_diagnostic(diagnostic: JsDiagnostic) -> Result<External<Diagnostic
     }]);
   }
 
-  error.src = source_code;
+  error.src = source_code.map(Into::into);
 
   let mut diagnostic = Diagnostic::from(error);
   diagnostic.file = file.map(Into::into);

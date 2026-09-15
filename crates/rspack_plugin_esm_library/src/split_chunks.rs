@@ -1,11 +1,8 @@
-use std::{hash::BuildHasherDefault, sync::Arc};
+use std::hash::BuildHasherDefault;
 
-use futures::future::BoxFuture;
 use rayon::{iter::Either, prelude::*};
 use rspack_collections::{IdentifierIndexSet, IdentifierSet};
-use rspack_core::{
-  BoxModule, Compilation, Filename, Module, ModuleGraph, ModuleIdentifier, SourceType,
-};
+use rspack_core::{Compilation, Filename, Module, ModuleGraph, ModuleIdentifier, SourceType};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_plugin_split_chunks::{
   CacheGroup, CacheGroupTest, CacheGroupTestFnCtx, ChunkNameGetter, ChunkNameGetterFnCtx,
@@ -14,19 +11,6 @@ use rspack_plugin_split_chunks::{
 use rspack_util::fx_hash::FxHashMap as HashMap;
 
 use crate::EsmLibraryPlugin;
-
-pub type GetNameGetter = Either<
-  Option<String>,
-  Arc<
-    dyn for<'a> Fn(&'a BoxModule, &'a Compilation) -> BoxFuture<'static, Result<Option<String>>>
-      + Sync
-      + Send,
-  >,
->;
-pub type ModuleFilter =
-  Arc<dyn for<'a> Fn(&'a BoxModule, &'a Compilation) -> BoxFuture<'static, bool> + Sync + Send>;
-pub type ModuleTypeFilter =
-  Arc<dyn for<'a> Fn(&'a BoxModule, &'a Compilation) -> BoxFuture<'static, bool> + Sync + Send>;
 
 #[derive(Default)]
 struct MatchGroup {
@@ -57,7 +41,7 @@ impl MatchGroup {
     }
   }
 
-  pub fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> SplitChunkSizes {
+  pub fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> &SplitChunkSizes {
     if !self.added.is_empty() {
       let added = std::mem::take(&mut self.added);
       for module in added {
@@ -92,12 +76,12 @@ impl MatchGroup {
       }
     }
 
-    self.sizes.clone()
+    &self.sizes
   }
 }
 
 impl ModulesContainer for MatchGroup {
-  fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> SplitChunkSizes {
+  fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> &SplitChunkSizes {
     MatchGroup::get_sizes(self, module_sizes)
   }
 
@@ -143,8 +127,7 @@ fn get_module_deps(module: ModuleIdentifier, module_graph: &ModuleGraph) -> Vec<
   module_graph
     .module_by_identifier(&module)
     .expect("should have module")
-    .get_dependencies()
-    .iter()
+    .get_dependency_ids()
     .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
     .copied()
     .collect()
@@ -426,7 +409,7 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
       );
     }
 
-    splitted_modules.extend(match_group.modules.clone());
+    splitted_modules.extend(match_group.modules);
   }
 
   Ok(())

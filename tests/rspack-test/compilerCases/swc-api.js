@@ -63,4 +63,43 @@ module.exports = [{
 			check_transform_sourcemap(swc.transformSync)
 		]);
 	}
+}, {
+	description: "should not inherit input sourcemap ignoreList in swc API",
+	async check({ compiler }) {
+		let swc = compiler.rspack.experiments.swc;
+
+		async function check_transform_input_ignore_list(transformApi) {
+			let source = 'console.log("Hello Rspack");';
+			let inputSourceMap = JSON.stringify({
+				version: 3,
+				file: "index.js",
+				sources: ["vendor.js"],
+				sourcesContent: [source],
+				names: [],
+				mappings: "AAAA",
+				ignoreList: [0]
+			});
+
+			let result = await transformApi(source, {
+				filename: "index.js",
+				sourceMaps: true,
+				inputSourceMap,
+				jsc: {
+					parser: {
+						syntax: "ecmascript"
+					}
+				}
+			});
+
+			const sourceMap = JSON.parse(result.map);
+			const ignoredIndex = sourceMap.sources.indexOf("vendor.js");
+			expect(ignoredIndex).not.toBe(-1);
+			expect(sourceMap.ignoreList).toBeUndefined();
+		}
+
+		await Promise.all([
+			check_transform_input_ignore_list(swc.transform),
+			check_transform_input_ignore_list(swc.transformSync)
+		]);
+	}
 }]

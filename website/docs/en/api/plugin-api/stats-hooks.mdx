@@ -8,21 +8,21 @@ description: 'A HookMap, called when generating the specified stats item'
 
 ### StatsFactory.hooks.extract
 
-A HookMap, called when generating the specified stats item.
+A HookMap that is called when generating the specified stats item.
 
 - **Type:** `HookMap<SyncBailHook<[Object, any, StatsFactoryContext], undefined>>`
 - **Arguments:**
-  - `Object`: result stats item object which properties should be added.
-  - `Class`: the original data of the stats item
+  - `object`: result stats item object to which properties should be added
+  - `data`: original data of the stats item
   - `StatsFactoryContext`: generating context
 
 ```ts
+// Only common context fields are listed here. Different stats item types may provide additional fields.
 type StatsFactoryContext = {
   type: string;
-  makePathsRelative?: ((arg0: string) => string) | undefined;
-  compilation?: Compilation | undefined;
-  cachedGetErrors?: ((arg0: Compilation) => JsStatsError[]) | undefined;
-  cachedGetWarnings?: ((arg0: Compilation) => JsStatsWarning[]) | undefined;
+  compilation: Compilation;
+  makePathsRelative?: (value: string) => string;
+  [key: string]: any;
 };
 ```
 
@@ -40,27 +40,26 @@ compilation.hooks.statsFactory.tap('MyPlugin', (statsFactory, options) => {
 
 ### StatsFactory.hooks.result
 
-A HookMap, called after generating the specified stats item.
+A HookMap that is called after generating the specified stats item.
 
-- **Type:** `HookMap<SyncWaterfallHook<[any[], StatsFactoryContext], undefined>>`
+- **Type:** `HookMap<SyncWaterfallHook<[any, StatsFactoryContext]>>`
 - **Arguments:**
-  - `any[]`: generated stats item result
+  - `any`: generated stats item result
   - `StatsFactoryContext`: generating context
 
 ## StatsPrinter
 
 ### StatsPrinter.hooks.print
 
-A HookMap, called
-
-为一个 HookMap, called when generating the printed string of the specified stats item.
+A HookMap that is called when generating the printed string of the specified stats item.
 
 - **Type:** `HookMap<SyncBailHook<[{}, StatsPrinterContext], string>>`
 - **Arguments:**
-  - `Object`: stats item object
+  - `object`: stats item object
   - `StatsPrinterContext`: printing context
 
 ```ts
+// Only common context fields are listed here. Different stats item types may provide additional fields.
 type StatsPrinterContext = {
   type?: string;
   compilation?: StatsCompilation;
@@ -85,14 +84,15 @@ type StatsPrinterContext = {
   formatFlag?: (flag: string) => string;
   formatTime?: (time: number, boldQuantity?: boolean) => string;
   chunkGroupKind?: string;
+  [key: string]: any;
 };
 ```
 
 ### StatsPrinter.hooks.result
 
-A HookMap, called after generating the printed string of the specified stats item.
+A HookMap that is called after generating the printed string of the specified stats item.
 
-- **Type:** `HookMap<SyncBailHook<[{}, StatsPrinterContext], string>>`
+- **Type:** `HookMap<SyncWaterfallHook<[string, StatsPrinterContext]>>`
 - **Arguments:**
-  - `String`: printed string of the stats item
+  - `string`: printed string of the stats item
   - `StatsPrinterContext`: printing context

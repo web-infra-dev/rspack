@@ -1,4 +1,5 @@
 use std::{
+  any::Any,
   fmt::Debug,
   path::{Path, PathBuf},
   sync::Arc,
@@ -7,11 +8,13 @@ use std::{
 use anymap::CloneAny;
 use once_cell::sync::OnceCell;
 use rspack_cacheable::{
-  cacheable,
+  cacheable, cacheable_dyn,
+  rkyv::string::ArchivedString,
   utils::PortablePath,
   with::{As, AsInner, AsOption, AsPreset},
 };
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::FxHashMap;
 
@@ -23,6 +26,15 @@ pub enum Content {
   Buffer(Vec<u8>),
 }
 
+impl RspackHash for Content {
+  fn hash(&self, state: &mut RspackHasher) {
+    match self {
+      Self::String(content) => content.hash(state),
+      Self::Buffer(content) => state.write(content),
+    }
+  }
+}
+
 impl Content {
   pub fn try_into_string(self) -> Result<String> {
     match self {
@@ -31,17 +43,18 @@ impl Content {
     }
   }
 
+  #[allow(unsafe_code)]
   pub fn into_string_lossy(self) -> String {
     match self {
       Content::String(s) => s,
-      Content::Buffer(b) => String::from_utf8_lossy(&b).into_owned(),
-    }
-  }
-
-  pub fn as_bytes(&self) -> &[u8] {
-    match self {
-      Content::String(s) => s.as_bytes(),
-      Content::Buffer(b) => b,
+      Content::Buffer(b) => {
+        if simdutf8::basic::from_utf8(&b).is_ok() {
+          // SAFETY: simdutf8 validated the buffer as UTF-8 above.
+          unsafe { String::from_utf8_unchecked(b) }
+        } else {
+          String::from_utf8_lossy_owned(b)
+        }
+      }
     }
   }
 
@@ -54,10 +67,6 @@ impl Content {
 
   pub fn is_buffer(&self) -> bool {
     matches!(self, Content::Buffer(..))
-  }
-
-  pub fn is_string(&self) -> bool {
-    matches!(self, Content::String(..))
   }
 }
 
@@ -118,7 +127,7 @@ impl Debug for Content {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ResourceData {
   /// Resource with absolute path, query and fragment
   resource: String,
@@ -335,4 +344,34 @@ impl DescriptionData {
 }
 
 pub type AdditionalData = anymap::Map<dyn CloneAny + Send + Sync>;
-pub type ParseMeta = FxHashMap<String, Box<dyn CloneAny + Send + Sync>>;
+
+#[cacheable_dyn]
+pub trait ParseMetaValue: CloneAny + Send + Sync {
+  fn clone_parse_meta(&self) -> Box<dyn ParseMetaValue>;
+  fn into_any(self: Box<Self>) -> Box<dyn Any + Send + Sync>;
+}
+
+impl Clone for Box<dyn ParseMetaValue> {
+  fn clone(&self) -> Self {
+    self.clone_parse_meta()
+  }
+}
+
+impl Debug for dyn ParseMetaValue {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("ParseMetaValue").finish_non_exhaustive()
+  }
+}
+
+#[cacheable_dyn]
+impl ParseMetaValue for String {
+  fn clone_parse_meta(&self) -> Box<dyn ParseMetaValue> {
+    Box::new(self.clone())
+  }
+
+  fn into_any(self: Box<Self>) -> Box<dyn Any + Send + Sync> {
+    self
+  }
+}
+
+pub type ParseMeta = FxHashMap<String, Box<dyn ParseMetaValue>>;

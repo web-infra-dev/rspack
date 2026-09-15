@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding",
-  "version": "2.0.0",
+  "version": "2.2.4",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "binding.js",
@@ -16,30 +16,30 @@
     "webcontainer-fallback.cjs"
   ],
   "scripts": {
-    "build:dev": "node scripts/build.js",
-    "build:debug": "node scripts/build.js --profile release-debug",
-    "build:ci": "node scripts/build.js --profile ci",
-    "build:profiling": "node scripts/build.js --profile profiling",
-    "build:release": "node scripts/build.js --profile release",
-    "build:dev:wasm": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads node scripts/build.js",
-    "build:release:wasm": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads node scripts/build.js --profile release-wasi",
-    "build:dev:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 node scripts/build.js",
-    "build:release:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 node scripts/build.js --profile release-wasi",
-    "move-binding": "node scripts/move-binding",
+    "build:dev": "node scripts/build.mjs",
+    "build:debug": "node scripts/build.mjs --profile release-debug",
+    "build:ci": "node scripts/build.mjs --profile ci",
+    "build:profiling": "node scripts/build.mjs --profile profiling",
+    "build:release": "node scripts/build.mjs --profile release",
+    "build:dev:wasm": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads node scripts/build.mjs",
+    "build:release:wasm": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads node scripts/build.mjs --profile release-wasi",
+    "build:dev:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 node scripts/build.mjs",
+    "build:release:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 node scripts/build.mjs --profile release-wasi",
+    "move-binding": "node scripts/move-binding.mjs",
     "test": "tsc -p tsconfig.type-test.json",
-    "wasm-add-external-debug": "node scripts/add-external-debug-info.js rspack.wasm32-wasi.wasm rspack.wasm32-wasi.debug.wasm"
+    "wasm-add-external-debug": "node scripts/add-external-debug-info.mjs rspack.wasm32-wasi.wasm rspack.wasm32-wasi.debug.wasm"
   },
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
-    "@emnapi/core": "1.10.0",
-    "@emnapi/runtime": "1.10.0",
-    "@napi-rs/cli": "3.6.2",
-    "@napi-rs/wasm-runtime": "1.1.4",
-    "@types/node": "^20.19.39",
-    "emnapi": "1.10.0",
-    "typescript": "^6.0.3"
+    "@emnapi/core": "catalog:",
+    "@emnapi/runtime": "catalog:",
+    "@napi-rs/cli": "catalog:",
+    "@napi-rs/wasm-runtime": "catalog:",
+    "@types/node": "catalog:",
+    "emnapi": "catalog:",
+    "typescript": "catalog:"
   },
   "napi": {
     "binaryName": "rspack",
@@ -55,7 +55,11 @@
       "aarch64-unknown-linux-gnu",
       "aarch64-apple-darwin",
       "aarch64-unknown-linux-musl",
-      "aarch64-pc-windows-msvc"
+      "aarch64-pc-windows-msvc",
+      "riscv64gc-unknown-linux-gnu",
+      "riscv64gc-unknown-linux-musl",
+      "powerpc64le-unknown-linux-gnu",
+      "s390x-unknown-linux-gnu"
     ],
     "wasm": {
       "initialMemory": 16384,
@@ -72,6 +76,10 @@
     "@rspack/binding-darwin-x64": "workspace:*",
     "@rspack/binding-linux-arm64-gnu": "workspace:*",
     "@rspack/binding-linux-arm64-musl": "workspace:*",
+    "@rspack/binding-linux-riscv64-gnu": "workspace:*",
+    "@rspack/binding-linux-riscv64-musl": "workspace:*",
+    "@rspack/binding-linux-ppc64-gnu": "workspace:*",
+    "@rspack/binding-linux-s390x-gnu": "workspace:*",
     "@rspack/binding-linux-x64-gnu": "workspace:*",
     "@rspack/binding-linux-x64-musl": "workspace:*",
     "@rspack/binding-wasm32-wasi": "workspace:*",

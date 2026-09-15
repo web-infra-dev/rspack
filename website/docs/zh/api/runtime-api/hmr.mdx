@@ -2,15 +2,13 @@
 description: '如果你通过 HotModuleReplacementPlugin 启用了模块热替换，它的接口将暴露在 module.hot 和 import.meta.webpackHot 对象下。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.docschina.org/api/hot-module-replacement/" />
+import Attribution from '@components/Attribution';
 
 # 模块热替换
 
 Rspack 提供了与 webpack 相同的接口来实现模块热替换。
 
-如果你通过 [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin) 启用了模块热替换，它的接口将暴露在 `module.hot` 和 `import.meta.webpackHot` 对象下。
+如果你通过 [HotModuleReplacementPlugin](/plugins/hot-module-replacement-plugin) 启用了模块热替换，它的接口将暴露在 `module.hot` 和 `import.meta.webpackHot` 对象下。
 
 注意，在 ESM 中请使用 `import.meta.webpackHot` 来代替 `module.hot`。
 
@@ -215,7 +213,7 @@ if (require.cache[moduleId]) {
 }
 ```
 
-T> 当调用 `invalidate` 时，将最终调用 [`dispose`](#dispose-or-adddisposehandler) 处理函数并填充 `module.hot.data`。如果未注册 [`dispose`](#dispose-or-adddisposehandler) 处理程序，则将空对象提供给 `module.hot.data`.
+T> 当调用 `invalidate` 时，将最终调用 [`dispose`](#dispose或-adddisposehandler) 处理函数并填充 `module.hot.data`。如果未注册 [`dispose`](#dispose或-adddisposehandler) 处理程序，则将空对象提供给 `module.hot.data`.
 
 W> 通过一次次的调用 `invalidate`，不要陷入 `invalidate` 循环。这将导致栈溢出并且 HMR 进入 `fail` 状态。
 
@@ -366,3 +364,5 @@ module.hot.removeStatusHandler(callback);
 // or
 import.meta.webpackHot.removeStatusHandler(callback);
 ```
+
+<Attribution url="https://webpack.docschina.org/api/hot-module-replacement/" />

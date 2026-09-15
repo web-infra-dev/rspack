@@ -3,19 +3,25 @@ use std::sync::LazyLock;
 use rspack_collections::Identifiable;
 use rspack_core::{
   ChunkGraph, Compilation, DependenciesBlock, ModuleId, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, SourceType,
-  impl_runtime_module,
+  RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, RuntimeModuleStage,
+  RuntimeTemplate, SourceType, impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 
 use super::remote_module::RemoteModule;
-use crate::{ShareScope, utils::json_stringify};
+use crate::{
+  ShareScope,
+  utils::{json_stringify, runtime_require_scope_name, runtime_require_scope_requirement},
+};
 
 static REMOTES_LOADING_TEMPLATE: &str = include_str!("./remotesLoading.ejs");
-static REMOTES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| extract_runtime_globals_from_ejs(REMOTES_LOADING_TEMPLATE));
+static REMOTES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
+  LazyLock::new(|| RuntimeModuleRuntimeRequirements {
+    force_context: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
+    ..extract_runtime_globals_from_ejs(REMOTES_LOADING_TEMPLATE)
+  });
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -31,12 +37,29 @@ impl RemoteRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RemoteRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    let dependencies = REMOTES_LOADING_RUNTIME_REQUIREMENTS.dependencies
+      | runtime_require_scope_requirement(compilation);
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies,
+      force_context: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
+      ..Default::default()
+    }
+  }
+
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }
 
   fn template(&self) -> Vec<(String, String)> {
-    vec![(self.id.to_string(), REMOTES_LOADING_TEMPLATE.to_string())]
+    vec![(self.id().to_string(), REMOTES_LOADING_TEMPLATE.to_string())]
   }
 
   async fn generate(
@@ -46,7 +69,7 @@ impl RuntimeModule for RemoteRuntimeModule {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
     let chunk_ukey = self
-      .chunk
+      .chunk()
       .expect("should have chunk in <RemoteRuntimeModule as RuntimeModule>::generate");
     let chunk = compilation
       .build_chunk_graph_artifact
@@ -75,9 +98,12 @@ impl RuntimeModule for RemoteRuntimeModule {
           ShareScope::Single(s) => ShareScopeField::Single(s.as_str()),
           ShareScope::Multiple(v) => ShareScopeField::Multiple(v.as_slice()),
         };
-        let dep = m.get_dependencies()[0];
+        let dep = m
+          .get_dependency_ids()
+          .next()
+          .expect("should have external dependency");
         let external_module = module_graph
-          .get_module_by_dependency_id(&dep)
+          .get_module_by_dependency_id(dep)
           .expect("should have module");
         let external_module_id = ChunkGraph::get_module_id(
           &compilation.module_ids_artifact,
@@ -117,22 +143,18 @@ impl RuntimeModule for RemoteRuntimeModule {
           runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS),
       )
     } else {
-      runtime_template.render(self.id.as_str(), None)?
+      runtime_template.render(self.id().as_str(), None)?
     };
     Ok(format!(
       r#"
 {require_name}.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToRemoteDataMapping: {id_to_remote_data_mapping} }};
 {remotes_loading_impl}
 "#,
-      require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+      require_name = runtime_require_scope_name(runtime_template),
       chunk_mapping = json_stringify(&chunk_to_remotes_mapping),
       id_to_remote_data_mapping = json_stringify(&id_to_remote_data_mapping),
       remotes_loading_impl = remotes_loading_impl,
     ))
-  }
-
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    *REMOTES_LOADING_RUNTIME_REQUIREMENTS
   }
 }
 

@@ -7,8 +7,16 @@ type PathData = {
   contentHash?: string;
   runtime?: string;
   url?: string;
-  id?: string;
-  chunk?: JsChunkPathData;
+  id?: string | number;
+  chunk?: Chunk | ChunkPathData;
+  contentHashType?: string;
+};
+
+type ChunkPathData = {
+  id?: string | number;
+  name?: string;
+  hash?: string;
+  contentHash?: Record<string, string> | string;
 };
 ```
 

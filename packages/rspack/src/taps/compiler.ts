@@ -64,6 +64,19 @@ export const createCompilerHooksRegisters: CreatePartialRegisters<
         };
       },
     ),
+    registerCompilerAfterCompileTaps: createTap(
+      binding.RegisterJsTapKind.CompilerAfterCompile,
+
+      function () {
+        return getCompiler().hooks.afterCompile;
+      },
+
+      function (queried) {
+        return async function () {
+          return queried.promise(getCompiler().__internal__get_compilation()!);
+        };
+      },
+    ),
     registerCompilerShouldEmitTaps: createTap(
       binding.RegisterJsTapKind.CompilerShouldEmit,
 

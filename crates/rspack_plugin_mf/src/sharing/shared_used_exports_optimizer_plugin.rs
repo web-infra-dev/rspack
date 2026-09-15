@@ -4,8 +4,8 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationDependencyReferencedExports,
   CompilationOptimizeDependencies, CompilationProcessAssets, DependenciesBlock, Dependency,
-  DependencyId, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport, Module, ModuleGraph,
-  ModuleIdentifier, Plugin, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec,
+  DependencyId, DependencyType, ExportsInfoArtifact, Module, ModuleGraph, ModuleIdentifier, Plugin,
+  ReferencedExport, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec,
   SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   module_declared_side_effect_free,
@@ -13,8 +13,8 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
+use rspack_intern::Atom;
 use rspack_plugin_javascript::dependency::{ESMImportSpecifierDependency, ImportDependency};
-use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::{
@@ -99,10 +99,10 @@ impl SharedUsedExportsOptimizerPlugin {
   }
 }
 
-fn collect_processed_modules(
+fn collect_processed_modules<'a>(
   module_graph: &ModuleGraph,
   module_blocks: &[AsyncDependenciesBlockIdentifier],
-  module_deps: &[DependencyId],
+  module_deps: impl IntoIterator<Item = &'a DependencyId>,
   out: &mut Vec<ModuleIdentifier>,
 ) {
   for dep_id in module_deps {
@@ -113,7 +113,7 @@ fn collect_processed_modules(
 
   for block_id in module_blocks {
     if let Some(block) = module_graph.block_by_id(block_id) {
-      for dep_id in block.get_dependencies() {
+      for dep_id in block.get_dependency_ids() {
         if let Some(target_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
           out.push(*target_id);
         }
@@ -176,7 +176,7 @@ async fn optimize_dependencies(
             collect_processed_modules(
               module_graph,
               consume_shared_module.get_blocks(),
-              consume_shared_module.get_dependencies(),
+              consume_shared_module.get_dependency_ids(),
               &mut modules_to_process,
             );
             sk
@@ -187,7 +187,7 @@ async fn optimize_dependencies(
             collect_processed_modules(
               module_graph,
               provide_shared_module.get_blocks(),
-              provide_shared_module.get_dependencies(),
+              provide_shared_module.get_dependency_ids(),
               &mut modules_to_process,
             );
             sk
@@ -199,7 +199,7 @@ async fn optimize_dependencies(
             collect_processed_modules(
               module_graph,
               share_container_entry_module.get_blocks(),
-              share_container_entry_module.get_dependencies(),
+              share_container_entry_module.get_dependency_ids(),
               &mut modules_to_process,
             );
             sk
@@ -297,7 +297,7 @@ async fn optimize_dependencies(
           // Mark used exports
           for export_info in exports_info_data.exports_mut().values_mut() {
             export_info.set_used_conditionally(
-              Box::new(|used| *used == rspack_core::UsageState::Unknown),
+              |used| *used == rspack_core::UsageState::Unknown,
               rspack_core::UsageState::Unused,
               None,
             );
@@ -385,7 +385,7 @@ fn dependency_referenced_exports(
   &self,
   compilation: &Compilation,
   dependency_id: &DependencyId,
-  referenced_exports: &Option<Vec<ExtendedReferencedExport>>,
+  referenced_exports: &Option<Vec<ReferencedExport>>,
   _runtime: Option<&RuntimeSpec>,
   module_graph: Option<&ModuleGraph>,
 ) -> Result<()> {
@@ -413,10 +413,7 @@ fn dependency_referenced_exports(
 
   // If it's an import dependency and referenced exports indicate "exports object referenced",
   // clear any recorded shared referenced exports for this share key and stop here.
-  let is_exports_object = matches!(
-    final_exports.as_slice(),
-    [ExtendedReferencedExport::Array(arr)] if arr.is_empty()
-  );
+  let is_exports_object = matches!(final_exports.as_slice(), [export] if export.name.is_empty());
   if dependency
     .as_any()
     .downcast_ref::<ImportDependency>()
@@ -464,21 +461,12 @@ fn dependency_referenced_exports(
       .entry(share_key.to_string())
       .or_default();
 
-    for referenced_export in &final_exports {
-      match referenced_export {
-        ExtendedReferencedExport::Array(exports_array) => {
-          for export in exports_array {
-            export_set.insert(export.to_string());
-          }
-        }
-        ExtendedReferencedExport::Export(referenced) => {
-          if referenced.name.is_empty() {
-            continue;
-          }
-          for atom in &referenced.name {
-            export_set.insert(atom.to_string());
-          }
-        }
+    for referenced in &final_exports {
+      if referenced.name.is_empty() {
+        continue;
+      }
+      for atom in &referenced.name {
+        export_set.insert(atom.to_string());
       }
     }
   }

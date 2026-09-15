@@ -4,7 +4,7 @@ const path = require('path');
 module.exports = {
   entry: './src/index.js',
   externals: {
-    fs: 'module fs',
+    fs: 'fs',
   },
   output: {
     library: {

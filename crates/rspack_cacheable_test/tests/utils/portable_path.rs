@@ -100,3 +100,41 @@ fn test_windows_path() {
   assert_eq!(new_data.path1, PathBuf::from("D:\\workspace\\src\\main.rs"));
   assert_eq!(new_data.path2, PathBuf::from("D:\\workspace\\src\\lib.rs"));
 }
+
+#[test]
+#[cfg(windows)]
+fn test_windows_path_without_context_uses_native_separators() {
+  let context = TestContext(None);
+  let data = PathData {
+    path1: PathBuf::from("C:\\Users\\test\\project\\src\\main.rs"),
+    path2: Utf8PathBuf::from("C:\\Users\\test\\project\\src\\lib.rs"),
+  };
+
+  let bytes = rspack_cacheable::to_bytes(&data, &context).unwrap();
+  let new_data: PathData = rspack_cacheable::from_bytes(&bytes, &context).unwrap();
+
+  assert_eq!(
+    new_data.path1.to_string_lossy(),
+    "C:\\Users\\test\\project\\src\\main.rs"
+  );
+  assert_eq!(
+    new_data.path2.as_str(),
+    "C:\\Users\\test\\project\\src\\lib.rs"
+  );
+}
+
+#[test]
+#[cfg(windows)]
+fn test_windows_relative_paths_preserve_their_representation() {
+  let context = TestContext(None);
+  let data = PathData {
+    path1: PathBuf::from("./build.txt"),
+    path2: Utf8PathBuf::from("node_modules/"),
+  };
+
+  let bytes = rspack_cacheable::to_bytes(&data, &context).unwrap();
+  let new_data: PathData = rspack_cacheable::from_bytes(&bytes, &context).unwrap();
+
+  assert_eq!(new_data.path1.to_string_lossy(), "./build.txt");
+  assert_eq!(new_data.path2.as_str(), "node_modules/");
+}

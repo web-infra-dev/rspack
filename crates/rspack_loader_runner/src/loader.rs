@@ -15,7 +15,13 @@ use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::identifier::strip_zero_width_space_for_fragment;
 
-use super::LoaderContext;
+use super::{LoaderContext, LoaderRunnerOptions};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LoaderExecutionKind {
+  Native,
+  JavaScript,
+}
 
 #[derive(Debug)]
 pub struct LoaderItem<Context: Send> {
@@ -38,6 +44,8 @@ pub struct LoaderItem<Context: Send> {
   /// Data shared between pitching and normal
   data: serde_json::Value,
   r#type: String,
+  cache_options: Option<Box<LoaderRunnerOptions>>,
+  execution_kind: LoaderExecutionKind,
   pitch_executed: AtomicBool,
   normal_executed: AtomicBool,
   /// Whether loader was called with [LoaderContext::finish_with].
@@ -51,6 +59,11 @@ pub struct LoaderItem<Context: Send> {
 }
 
 impl<C: Send> LoaderItem<C> {
+  #[inline]
+  pub fn execution_kind(&self) -> LoaderExecutionKind {
+    self.execution_kind
+  }
+
   pub fn loader(&self) -> &Arc<dyn Loader<C>> {
     &self.loader
   }
@@ -71,13 +84,42 @@ impl<C: Send> LoaderItem<C> {
   }
 
   #[inline]
-  pub fn fragment(&self) -> Option<&str> {
-    self.fragment.as_deref()
+  pub fn r#type(&self) -> &str {
+    &self.r#type
   }
 
   #[inline]
-  pub fn r#type(&self) -> &str {
-    &self.r#type
+  pub fn cache(&self) -> bool {
+    self.cache_options.is_some()
+  }
+
+  #[inline]
+  pub fn loader_name(&self) -> &str {
+    self
+      .cache_options
+      .as_deref()
+      .map_or("", |options| &options.loader_name)
+  }
+
+  #[inline]
+  pub fn options_cache_key(&self) -> &str {
+    self
+      .cache_options
+      .as_deref()
+      .map_or("", |options| &options.options_cache_key)
+  }
+
+  #[inline]
+  pub fn loader_version(&self) -> &str {
+    self
+      .cache_options
+      .as_deref()
+      .map_or("", |options| &options.loader_version)
+  }
+
+  #[inline]
+  pub fn cache_options(&self) -> Option<&LoaderRunnerOptions> {
+    self.cache_options.as_deref()
   }
 
   #[inline]
@@ -201,11 +243,29 @@ where
   fn r#type(&self) -> Option<&str> {
     None
   }
+
+  /// Version identity used by loader caching.
+  fn cache_version(&self) -> Option<&str> {
+    None
+  }
+
+  /// Selects the runtime responsible for executing this loader.
+  fn execution_kind(&self) -> LoaderExecutionKind {
+    LoaderExecutionKind::Native
+  }
 }
 
 impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
   fn from(loader: Arc<dyn Loader<C>>) -> Self {
+    Self::new(loader, LoaderRunnerOptions::default())
+  }
+}
+
+impl<C: Send> LoaderItem<C> {
+  pub(crate) fn new(loader: Arc<dyn Loader<C>>, options: LoaderRunnerOptions) -> Self {
+    let cache_options = options.cache.then(|| Box::new(options));
     let ident = &**loader.identifier();
+    let execution_kind = loader.execution_kind();
     if let Some(r#type) = loader.r#type() {
       let ResourceParsedData {
         path,
@@ -221,6 +281,8 @@ impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
         fragment,
         data: serde_json::Value::Null,
         r#type: ty,
+        cache_options,
+        execution_kind,
         pitch_executed: AtomicBool::new(false),
         normal_executed: AtomicBool::new(false),
         finish_called: AtomicBool::new(false),
@@ -240,6 +302,8 @@ impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
       fragment,
       data: serde_json::Value::Null,
       r#type: String::default(),
+      cache_options,
+      execution_kind,
       pitch_executed: AtomicBool::new(false),
       normal_executed: AtomicBool::new(false),
       finish_called: AtomicBool::new(false),
@@ -266,7 +330,22 @@ pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
   })
 }
 
-fn path_query_fragment(mut input: &str) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
+#[cfg(not(windows))]
+fn path_query_fragment(input: &str) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
+  path_query_fragment_impl(input)
+}
+
+#[cfg(windows)]
+fn path_query_fragment(input: &str) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
+  let prefix_len = rspack_paths::dos_device_path_prefix_len(input);
+  let (path, query, fragment) = path_query_fragment_impl(&input[prefix_len..])?;
+  let path = &input[..prefix_len + path.len()];
+  Ok((path, query, fragment))
+}
+
+fn path_query_fragment_impl(
+  mut input: &str,
+) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
   use winnow::{
     combinator::{alt, opt, repeat},
     prelude::*,

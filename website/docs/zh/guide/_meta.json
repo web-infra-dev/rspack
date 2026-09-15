@@ -11,22 +11,32 @@
   },
   {
     "type": "dir-section-header",
-    "name": "tech",
-    "label": "语言和框架"
+    "name": "advanced",
+    "label": "进阶"
+  },
+  {
+    "type": "dir-section-header",
+    "name": "languages",
+    "label": "语言"
+  },
+  {
+    "type": "dir-section-header",
+    "name": "integrations",
+    "label": "集成"
   },
   {
     "type": "dir-section-header",
     "name": "optimization",
-    "label": "优化"
+    "label": "产物优化"
+  },
+  {
+    "type": "dir-section-header",
+    "name": "diagnostics",
+    "label": "诊断"
   },
   {
     "type": "dir-section-header",
     "name": "migration",
     "label": "迁移"
-  },
-  {
-    "type": "dir-section-header",
-    "name": "compatibility",
-    "label": "兼容"
   }
 ]

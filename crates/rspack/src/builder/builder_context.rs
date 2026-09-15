@@ -12,10 +12,11 @@ use rspack_core::{
 #[repr(u8)]
 pub(super) enum BuiltinPluginOptions {
   // External handling plugins
-  ExternalsPlugin((ExternalType, Vec<ExternalItem>, bool)),
+  ExternalsPlugin((ExternalType, Vec<ExternalItem>, bool, ExternalType)),
   NodeTargetPlugin,
+  CssHttpExternalsRspackPlugin,
   ElectronTargetPlugin(rspack_plugin_externals::ElectronTargetContext),
-  HttpExternalsRspackPlugin((bool /* css */, bool /* web_async */)),
+  HttpExternalsRspackPlugin(bool /* web_async */),
 
   // Chunk format and loading plugins
   ChunkPrefetchPreloadPlugin,
@@ -77,10 +78,12 @@ pub(super) enum BuiltinPluginOptions {
   NamedModuleIdsPlugin,
   NaturalModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
+  CompactHashedModuleIdsPlugin,
   HashedModuleIdsPlugin,
   NaturalChunkIdsPlugin,
   NamedChunkIdsPlugin,
   DeterministicChunkIdsPlugin,
+  CompactHashedChunkIdsPlugin,
   OccurrenceChunkIdsPlugin(rspack_ids::OccurrenceChunkIdsPluginOptions),
 
   // Define and optimization plugins
@@ -118,10 +121,20 @@ impl BuilderContext {
     let mut plugins = Vec::new();
     self.plugins.drain(..).for_each(|plugin| match plugin {
       // External handling plugins
-      BuiltinPluginOptions::ExternalsPlugin((external_type, externals, place_in_initial)) => {
+      BuiltinPluginOptions::ExternalsPlugin((
+        external_type,
+        externals,
+        place_in_initial,
+        fallback_type,
+      )) => {
         plugins.push(
-          rspack_plugin_externals::ExternalsPlugin::new(external_type, externals, place_in_initial)
-            .boxed(),
+          rspack_plugin_externals::ExternalsPlugin::new_with_options(
+            external_type,
+            externals,
+            place_in_initial,
+            fallback_type,
+          )
+          .boxed(),
         );
       }
       BuiltinPluginOptions::NodeTargetPlugin => {
@@ -130,9 +143,12 @@ impl BuilderContext {
       BuiltinPluginOptions::ElectronTargetPlugin(context) => {
         rspack_plugin_externals::electron_target_plugin(context, &mut plugins)
       }
-      BuiltinPluginOptions::HttpExternalsRspackPlugin((css, web_async)) => {
+      BuiltinPluginOptions::CssHttpExternalsRspackPlugin => {
+        plugins.push(rspack_plugin_externals::css_http_externals_rspack_plugin())
+      }
+      BuiltinPluginOptions::HttpExternalsRspackPlugin(web_async) => {
         plugins.push(rspack_plugin_externals::http_externals_rspack_plugin(
-          css, web_async,
+          web_async,
         ));
       }
 
@@ -171,8 +187,7 @@ impl BuilderContext {
         plugins.push(
           rspack_plugin_devtool::SourceMapDevToolModuleOptionsPlugin::new(
             rspack_plugin_devtool::SourceMapDevToolModuleOptionsPluginOptions {
-              module: options.module,
-              cheap: !options.columns,
+              source_map_kind: options.module_source_map_kind(),
             },
           )
           .boxed(),
@@ -183,8 +198,7 @@ impl BuilderContext {
         plugins.push(
           rspack_plugin_devtool::SourceMapDevToolModuleOptionsPlugin::new(
             rspack_plugin_devtool::SourceMapDevToolModuleOptionsPluginOptions {
-              module: options.module,
-              cheap: !options.columns,
+              source_map_kind: options.module_source_map_kind(),
             },
           )
           .boxed(),
@@ -303,6 +317,9 @@ impl BuilderContext {
       BuiltinPluginOptions::DeterministicModuleIdsPlugin => {
         plugins.push(rspack_ids::DeterministicModuleIdsPlugin::default().boxed())
       }
+      BuiltinPluginOptions::CompactHashedModuleIdsPlugin => {
+        plugins.push(rspack_ids::CompactHashedModuleIdsPlugin::default().boxed())
+      }
       BuiltinPluginOptions::HashedModuleIdsPlugin => plugins.push(
         rspack_ids::HashedModuleIdsPlugin::new(rspack_ids::HashedModuleIdsPluginOptions::default())
           .boxed(),
@@ -315,6 +332,9 @@ impl BuilderContext {
       }
       BuiltinPluginOptions::DeterministicChunkIdsPlugin => {
         plugins.push(rspack_ids::DeterministicChunkIdsPlugin::default().boxed())
+      }
+      BuiltinPluginOptions::CompactHashedChunkIdsPlugin => {
+        plugins.push(rspack_ids::CompactHashedChunkIdsPlugin::default().boxed())
       }
       BuiltinPluginOptions::OccurrenceChunkIdsPlugin(options) => {
         plugins.push(rspack_ids::OccurrenceChunkIdsPlugin::new(options).boxed())

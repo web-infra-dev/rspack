@@ -6,11 +6,11 @@ use rspack_core::{
   get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
 };
 
-use crate::extract_runtime_globals_from_ejs;
+use crate::extract_runtime_module_variables_from_ejs;
 
 static AUTO_PUBLIC_PATH_TEMPLATE: &str = include_str!("runtime/auto_public_path.ejs");
-static AUTO_PUBLIC_PATH_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| extract_runtime_globals_from_ejs(AUTO_PUBLIC_PATH_TEMPLATE));
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
+  LazyLock::new(|| extract_runtime_module_variables_from_ejs(&[AUTO_PUBLIC_PATH_TEMPLATE]));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -24,12 +24,16 @@ impl AutoPublicPathRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for AutoPublicPathRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES.as_slice()
+  }
+
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }
 
   fn template(&self) -> Vec<(String, String)> {
-    vec![(self.id.to_string(), AUTO_PUBLIC_PATH_TEMPLATE.to_string())]
+    vec![(self.id().to_string(), AUTO_PUBLIC_PATH_TEMPLATE.to_string())]
   }
 
   async fn generate(
@@ -38,7 +42,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
-    let chunk = self.chunk.expect("The chunk should be attached");
+    let chunk = self.chunk().expect("The chunk should be attached");
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
@@ -52,6 +56,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
       .get_path(
         &filename,
         PathData::default()
+          .chunk(chunk.ukey(), compilation)
           .chunk_id_optional(chunk.id().map(|id| id.as_str()))
           .chunk_hash_optional(chunk.rendered_hash(
             &compilation.chunk_hashes_artifact,
@@ -67,14 +72,25 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
       .await?;
     auto_public_path_template(
       runtime_template,
-      &self.id,
+      self.id(),
       &filename,
       &compilation.options.output,
     )
   }
-
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    *AUTO_PUBLIC_PATH_RUNTIME_REQUIREMENTS
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: if compilation.options.output.script_type == "module" {
+        RuntimeGlobals::default()
+      } else {
+        RuntimeGlobals::GLOBAL
+      },
+      define: { RuntimeGlobals::PUBLIC_PATH },
+      force_context: RuntimeGlobals::PUBLIC_PATH,
+      ..Default::default()
+    }
   }
 }
 

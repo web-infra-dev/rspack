@@ -7,7 +7,7 @@ use rspack_collections::IdentifierSet;
 use rustc_hash::FxHashSet;
 
 use crate::{
-  AffectType, BoxDependency, ChunkUkey, Compilation, DependencyId, ModuleGraph, ModuleIdentifier,
+  AffectType, ChunkUkey, Compilation, Dependency, DependencyId, ModuleGraph, ModuleIdentifier,
 };
 
 #[derive(Debug, Default)]
@@ -75,12 +75,9 @@ impl Mutations {
     self.inner.push(mutation);
   }
 
+  #[allow(clippy::len_without_is_empty)]
   pub fn len(&self) -> usize {
     self.inner.len()
-  }
-
-  pub fn is_empty(&self) -> bool {
-    self.inner.is_empty()
   }
 }
 
@@ -255,7 +252,7 @@ fn compute_affected_modules_with_module_graph(
   built_modules: IdentifierSet,
   built_dependencies: FxHashSet<DependencyId>,
 ) -> IdentifierSet {
-  fn reduce_affect_type<'a>(dependencies: impl Iterator<Item = &'a BoxDependency>) -> AffectType {
+  fn reduce_affect_type<'a>(dependencies: impl Iterator<Item = &'a dyn Dependency>) -> AffectType {
     let mut affected = AffectType::False;
     for dependency in dependencies {
       match dependency.could_affect_referencing_module() {

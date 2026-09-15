@@ -2,20 +2,24 @@
 description: 'The following Node.js options configure whether to polyfill or mock certain Node.js globals'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/configuration/node/" />
+import Attribution from '@components/Attribution';
 
 # Node
 
 The following Node.js options configure whether to polyfill or mock certain [Node.js globals](https://nodejs.org/docs/latest/api/globals.html).
 
+- **Type:** `false | object`
+
+Set `node` to `false` to disable all Node.js global polyfills and mocks. Otherwise, configure the individual options below.
+
 ## node.global
 
 - **Type:** `boolean | 'warn'`
-- **Default:** `'warn'`
+- **Default:** `false` when the [target](/config/target) provides `global` natively, otherwise `'warn'`.
 
 Controls whether Rspack should provide a polyfill for the Node.js `global` object when bundling for non-Node environments.
+
+For example, `target: 'node'` defaults to `false`, while `target: 'web'` defaults to `'warn'`.
 
 See [the Node.js documentation](https://nodejs.org/api/globals.html#globals_global) for the exact behavior of this object.
 
@@ -39,7 +43,7 @@ export default {
 
 ## node.\_\_filename
 
-- **Type:** `boolean | 'mock' | 'warn-mock' | 'eval-only'`
+- **Type:** `boolean | 'mock' | 'warn-mock' | 'eval-only' | 'node-module'`
 - **Default:**
   - If `target` does not include `node`, defaults to `'warn-mock'`.
   - If `target` includes `node`, uses `'node-module'` if [output.module](/config/output#outputmodule) is enabled, otherwise `'eval-only'`.
@@ -83,7 +87,7 @@ export default {
 
 ## node.\_\_dirname
 
-- **Type:** `boolean | 'mock' | 'warn-mock' | 'eval-only'`
+- **Type:** `boolean | 'mock' | 'warn-mock' | 'eval-only' | 'node-module'`
 - **Default:**
   - If `target` does not include `node`, defaults to `'warn-mock'`.
   - If `target` includes `node`, uses `'node-module'` if [output.module](/config/output#outputmodule) is enabled, otherwise `'eval-only'`.
@@ -124,3 +128,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.js.org/configuration/node/" />

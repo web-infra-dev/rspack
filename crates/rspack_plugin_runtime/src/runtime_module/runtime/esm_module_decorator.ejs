@@ -1,4 +1,4 @@
-<%- ESM_MODULE_DECORATOR %> = <%- basicFunction("module") %> {
+<%- define(ESM_MODULE_DECORATOR) %> = <%- basicFunction("module") %> {
   module = Object.create(module);
   if (!module.children) module.children = [];
   Object.defineProperty(module, 'exports', {

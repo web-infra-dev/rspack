@@ -1,6 +1,8 @@
 // Port of https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/optimize/RemoveEmptyChunksPlugin.js
 
-use rspack_core::{Compilation, CompilationOptimizeChunks, Logger, Plugin, incremental::Mutation};
+use rspack_core::{
+  ChunkKind, Compilation, CompilationOptimizeChunks, Logger, Plugin, incremental::Mutation,
+};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
@@ -19,7 +21,8 @@ impl RemoveEmptyChunksPlugin {
       .chunk_by_ukey
       .values()
       .filter(|chunk| {
-        chunk_graph.get_number_of_chunk_modules(&chunk.ukey()) == 0
+        chunk.kind() != ChunkKind::Facade
+          && chunk_graph.get_number_of_chunk_modules(&chunk.ukey()) == 0
           && !chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
           && chunk_graph.get_number_of_entry_modules(&chunk.ukey()) == 0
       })
@@ -46,7 +49,9 @@ impl RemoveEmptyChunksPlugin {
   }
 }
 
-#[plugin_hook(CompilationOptimizeChunks for RemoveEmptyChunksPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED)]
+// Run after advanced chunk optimizers have established their final chunk
+// semantics. In particular, modern-module marks facade chunks at ADVANCED + 1.
+#[plugin_hook(CompilationOptimizeChunks for RemoveEmptyChunksPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED + 2)]
 async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   self.remove_empty_chunks(compilation);
   Ok(None)

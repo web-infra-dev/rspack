@@ -5,13 +5,18 @@ import { type MessagePort, receiveMessageOnPort } from 'node:worker_threads';
 
 import { JsLoaderState, type NormalModule } from '@rspack/binding';
 import type { LoaderContext } from '../config';
+import type { ResolveCallback } from '../config/adapterRuleUse';
+import type { ResolveRequest } from '../Resolver';
 import * as swc from '../swc';
+import { serializeObject, toObject } from '../util';
 import { cleverMerge } from '../util/cleverMerge';
 import { createHash } from '../util/createHash';
 import { absolutify, contextify } from '../util/identifier';
 import { memoize } from '../util/memoize';
+import type { WorkerCacheResult } from './cache';
 import loadLoader from './loadLoader';
 import {
+  deserializeError,
   isWorkerResponseErrorMessage,
   isWorkerResponseMessage,
   RequestSyncType,
@@ -81,6 +86,11 @@ async function loaderImpl(
       sendRequest(RequestType.AddContextDependency, context),
     );
   };
+  loaderContext.addMissingDependency = function addMissingDependency(missing) {
+    pendingDependencyRequest.push(
+      sendRequest(RequestType.AddMissingDependency, missing),
+    );
+  };
   loaderContext.addBuildDependency = function addBuildDependency(file) {
     pendingDependencyRequest.push(
       sendRequest(RequestType.AddBuildDependency, file),
@@ -101,10 +111,20 @@ async function loaderImpl(
   loaderContext.clearDependencies = function clearDependencies() {
     pendingDependencyRequest.push(sendRequest(RequestType.ClearDependencies));
   };
+
+  const beginDependencyChanges = () =>
+    sendRequest(RequestType.BeginDependencyChanges);
+  const mergeDependencyChanges = async () => {
+    if (pendingDependencyRequest.length > 0) {
+      waitForPendingRequest(pendingDependencyRequest);
+      pendingDependencyRequest.length = 0;
+    }
+    await sendRequest(RequestType.MergeDependencyChanges);
+  };
   loaderContext.resolve = function resolve(context, request, callback) {
     sendRequest(RequestType.Resolve, context, request).then(
-      (result) => {
-        callback(null, result);
+      ([result, resolveRequest]) => {
+        callback(null, result, resolveRequest);
       },
       (err) => {
         callback(err);
@@ -112,11 +132,29 @@ async function loaderImpl(
     );
   };
   loaderContext.getResolve = function getResolve(options) {
-    return (context, request, callback) => {
+    function resolveWithOptions(
+      context: string,
+      request: string,
+      callback: ResolveCallback,
+    ): void;
+    function resolveWithOptions(
+      context: string,
+      request: string,
+    ): Promise<string | false | undefined>;
+    function resolveWithOptions(
+      context: string,
+      request: string,
+      callback?: ResolveCallback,
+    ) {
       if (!callback) {
-        return new Promise((resolve, reject) => {
-          sendRequest(RequestType.GetResolve, options, context, request).then(
-            (result) => {
+        return new Promise<string | false | undefined>((resolve, reject) => {
+          sendRequest<[string | false | undefined, ResolveRequest | undefined]>(
+            RequestType.GetResolve,
+            options,
+            context,
+            request,
+          ).then(
+            ([result]) => {
               resolve(result);
             },
             (err) => {
@@ -126,14 +164,16 @@ async function loaderImpl(
         });
       }
       sendRequest(RequestType.GetResolve, options, context, request).then(
-        (result) => {
-          callback(null, result);
+        ([result, resolveRequest]) => {
+          callback(null, result, resolveRequest);
         },
         (err) => {
           callback(err);
         },
       );
-    };
+    }
+
+    return resolveWithOptions;
   };
   loaderContext.getLogger = function getLogger(name) {
     return {
@@ -161,7 +201,7 @@ async function loaderImpl(
         sendRequest(RequestType.GetLogger, 'trace', name, ['Trace']);
       },
       clear() {
-        sendRequest(RequestType.GetLogger, 'clear', name);
+        sendRequest(RequestType.GetLogger, 'clear', name, []);
       },
       status(...args) {
         sendRequest(RequestType.GetLogger, 'status', name, args);
@@ -265,29 +305,57 @@ async function loaderImpl(
 
   loaderContext._compilation = {
     ...loaderContext._compilation,
-    getPath(filename, data) {
-      return sendRequest(RequestType.CompilationGetPath, filename, data).wait();
+    getPath(filename, data = {}) {
+      if (!data.hash) {
+        data = {
+          hash: loaderContext._compilation.hash ?? undefined,
+          ...data,
+        };
+      }
+      const template =
+        typeof filename === 'function' ? filename(data) : filename;
+      return sendRequest(RequestType.CompilationGetPath, template, data).wait();
     },
-    getPathWithInfo(filename, data) {
-      return sendRequest(
+    getPathWithInfo(filename, data = {}) {
+      if (!data.hash) {
+        data = {
+          hash: loaderContext._compilation.hash ?? undefined,
+          ...data,
+        };
+      }
+      const info = {};
+      const template =
+        typeof filename === 'function' ? filename(data, info) : filename;
+      const result = sendRequest(
         RequestType.CompilationGetPathWithInfo,
-        filename,
+        template,
         data,
+        info,
       ).wait();
+      Object.assign(info, result.info);
+      return { path: result.path, info };
     },
-    getAssetPath(filename, data) {
+    getAssetPath(filename, data = {}) {
+      const template =
+        typeof filename === 'function' ? filename(data) : filename;
       return sendRequest(
         RequestType.CompilationGetAssetPath,
-        filename,
+        template,
         data,
       ).wait();
     },
-    getAssetPathWithInfo(filename, data) {
-      return sendRequest(
+    getAssetPathWithInfo(filename, data = {}) {
+      const info = {};
+      const template =
+        typeof filename === 'function' ? filename(data, info) : filename;
+      const result = sendRequest(
         RequestType.CompilationGetAssetPathWithInfo,
-        filename,
+        template,
         data,
+        info,
       ).wait();
+      Object.assign(info, result.info);
+      return { path: result.path, info };
     },
   } as LoaderContext['_compilation'];
 
@@ -469,6 +537,7 @@ async function loaderImpl(
       while (loaderContext.loaderIndex >= 0) {
         const currentLoaderObject =
           loaderContext.loaders[loaderContext.loaderIndex];
+        let cacheResult: WorkerCacheResult | undefined;
 
         if (shouldYieldToMainThread(currentLoaderObject)) break;
         if (currentLoaderObject.normalExecuted) {
@@ -476,12 +545,57 @@ async function loaderImpl(
           continue;
         }
 
-        await loadLoaderAsync(currentLoaderObject, loaderContext._compiler);
-        const fn = currentLoaderObject.normal;
-        currentLoaderObject.normalExecuted = true;
-        if (!fn) continue;
-        convertArgs(args, !!currentLoaderObject.raw);
-        args = (await runSyncOrAsync(fn, loaderContext, args)) || [];
+        const trackDependencies = currentLoaderObject.loaderItem.cache;
+        if (trackDependencies) {
+          await beginDependencyChanges();
+        }
+        try {
+          if (currentLoaderObject.loaderItem.cache) {
+            waitForPendingRequest(pendingDependencyRequest);
+            const result: WorkerCacheResult = await sendRequest(
+              RequestType.LoaderCacheGet,
+              loaderContext.loaderIndex,
+              args[0],
+              args[2],
+            );
+            cacheResult = result;
+            if (result.type === 'hit') {
+              const { entry } = result;
+              currentLoaderObject.normalExecuted = true;
+              args = [
+                typeof entry.content === 'string'
+                  ? entry.content
+                  : entry.content && Buffer.from(entry.content),
+                entry.sourceMap
+                  ? toObject(Buffer.from(entry.sourceMap))
+                  : undefined,
+                undefined,
+              ];
+              continue;
+            }
+          }
+
+          await loadLoaderAsync(currentLoaderObject, loaderContext._compiler);
+          const fn = currentLoaderObject.normal;
+          currentLoaderObject.normalExecuted = true;
+          if (!fn) continue;
+          convertArgs(args, !!currentLoaderObject.raw);
+          args = (await runSyncOrAsync(fn, loaderContext, args)) || [];
+          if (cacheResult?.type === 'miss') {
+            waitForPendingRequest(pendingDependencyRequest);
+            await sendRequest(
+              RequestType.LoaderCacheStore,
+              loaderContext.loaderIndex,
+              args[0],
+              serializeObject(args[1]),
+              args[2],
+            );
+          }
+        } finally {
+          if (trackDependencies) {
+            await mergeDependencyChanges();
+          }
+        }
       }
     }
   }
@@ -521,7 +635,7 @@ function handleIncomingResponses(workerMessage: WorkerMessage) {
     const callback = responseCallbacks[id];
     if (callback) {
       delete responseCallbacks[id];
-      callback(error, undefined);
+      callback(deserializeError(error), undefined);
     } else {
       throw new Error(`No callback found for response with id ${id}`);
     }
@@ -591,11 +705,14 @@ function createSendRequest(
     result.id = id;
     return result;
   }) as SendRequestFunction;
-  sendRequest.sync = createSendRequestSync(workerSyncPort);
+  sendRequest.sync = createSendRequestSync(workerPort, workerSyncPort);
   return sendRequest;
 }
 
-function createSendRequestSync(workerSyncPort: MessagePort) {
+function createSendRequestSync(
+  workerPort: MessagePort,
+  workerSyncPort: MessagePort,
+) {
   return (requestType: RequestSyncType, ...args: any[]) => {
     const id = nextId++;
 
@@ -604,7 +721,7 @@ function createSendRequestSync(workerSyncPort: MessagePort) {
     const sharedBuffer = new SharedArrayBuffer(8);
     const sharedBufferView = new Int32Array(sharedBuffer);
 
-    workerSyncPort.postMessage({
+    workerPort.postMessage({
       type: 'request-sync',
       id,
       requestType,
@@ -634,7 +751,7 @@ function createSendRequestSync(workerSyncPort: MessagePort) {
       return message.data;
     }
 
-    throw message.error;
+    throw deserializeError(message.error);
   };
 }
 

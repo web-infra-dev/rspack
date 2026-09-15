@@ -1,18 +1,17 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, FactorizeInfo, ModuleDependency, ResourceIdentifier,
+  DependencyType, ModuleDependency, ResourceIdentifier,
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ContainerExposedDependency {
   id: DependencyId,
   request: String,
   pub exposed_name: String,
   resource_identifier: ResourceIdentifier,
   dependency_type: DependencyType,
-  factorize_info: FactorizeInfo,
 }
 
 impl ContainerExposedDependency {
@@ -24,7 +23,6 @@ impl ContainerExposedDependency {
       exposed_name,
       resource_identifier,
       dependency_type: DependencyType::ContainerExposed,
-      factorize_info: Default::default(),
     }
   }
 
@@ -36,7 +34,6 @@ impl ContainerExposedDependency {
       exposed_name: String::new(),
       resource_identifier,
       dependency_type: DependencyType::ShareContainerFallback,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -72,14 +69,6 @@ impl ModuleDependency for ContainerExposedDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

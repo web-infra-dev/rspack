@@ -9,6 +9,7 @@ module.exports = [{
   description: "should write emit same content to same file",
   options(context) {
     return {
+      incremental: false,
       output: {
         path: context.getDist(),
         filename: "main.js",
@@ -39,6 +40,7 @@ module.exports = [{
   description: "should write same content to same file",
   options(context) {
     return {
+      incremental: false,
       output: {
         path: context.getDist(),
         filename: "main.js",

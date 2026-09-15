@@ -1,21 +1,22 @@
-use itertools::Itertools;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ExportsInfoArtifact, ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo,
-  GetUsedNameParam, InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, NormalInitFragment, PrefetchExportsInfoMode, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource, UsedName, create_exports_object_referenced,
+  AsContextDependency, AwaitDependenciesInitFragment, BuildMetaExportsType, Compilation,
+  Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyLocation,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
+  InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  NormalInitFragment, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  UsedName, create_exports_object_referenced, property_access, to_normal_comment,
 };
-use rspack_util::ext::DynHash;
-use swc_core::atoms::Atom;
+use rspack_hash::{RspackHash, RspackHasher};
+
+use super::esm_compatibility_dependency::add_async_module_boundary;
+use crate::Atom;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ProvideDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
@@ -25,7 +26,6 @@ pub struct ProvideDependency {
   ids: Vec<Atom>,
   range: DependencyRange,
   loc: Option<DependencyLocation>,
-  factorize_info: FactorizeInfo,
 }
 
 impl ProvideDependency {
@@ -43,7 +43,6 @@ impl ProvideDependency {
       identifier,
       ids,
       id: DependencyId::new(),
-      factorize_info: Default::default(),
     }
   }
 }
@@ -72,11 +71,11 @@ impl Dependency for ProvideDependency {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     if self.ids.is_empty() {
       create_exports_object_referenced()
     } else {
-      vec![ExtendedReferencedExport::Array(self.ids.clone())]
+      vec![ReferencedExport::from(self.ids.as_slice())]
     }
   }
 
@@ -94,14 +93,6 @@ impl ModuleDependency for ProvideDependency {
   fn user_request(&self) -> &str {
     &self.request
   }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
-  }
 }
 
 #[cacheable_dyn]
@@ -112,25 +103,28 @@ impl DependencyCodeGeneration for ProvideDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
+    hasher: &mut RspackHasher,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
   ) {
-    self.identifier.dyn_hash(hasher);
-    self.ids.dyn_hash(hasher);
-  }
-}
-
-fn path_to_string(path: Option<&UsedName>) -> String {
-  match path {
-    Some(p) => match p {
-      UsedName::Normal(vec) if !vec.is_empty() => vec
-        .iter()
-        .map(|part| format!("[\"{}\"]", part.as_str()))
-        .join(""),
-      _ => String::new(),
-    },
-    None => String::new(),
+    self.identifier.hash(hasher);
+    self.ids.hash(hasher);
+    // Case: a ProvidePlugin variable is replaced by an inlined const export,
+    // e.g. `provided = (__rspack_require("./constants"), 2)`. The generated
+    // code embeds the target export's inline literal, so the dependency hash must
+    // include that payload and not only the provided identifier/import ids.
+    let used_name = compilation
+      .get_module_graph()
+      .connection_by_dependency_id(&self.id)
+      .and_then(|connection| {
+        let exports_info = compilation
+          .exports_info_artifact
+          .get_exports_info_data(connection.module_identifier());
+        exports_info.get_used_name(&compilation.exports_info_artifact, runtime, &self.ids)
+      });
+    if let Some(UsedName::Inlined(inlined)) = used_name {
+      inlined.hash(hasher);
+    }
   }
 }
 
@@ -160,6 +154,7 @@ impl DependencyTemplate for ProvideDependencyTemplate {
 
     let TemplateContext {
       compilation,
+      module,
       runtime,
       runtime_template,
       init_fragments,
@@ -171,36 +166,51 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       return;
     };
 
-    let used_name = if dep.ids.is_empty() {
-      let exports_info_used = compilation
-        .exports_info_artifact
-        .get_prefetched_exports_info_used(con.module_identifier(), *runtime);
-      ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithoutNames(&exports_info_used),
-        *runtime,
-        &dep.ids,
-      )
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(con.module_identifier());
+    let used_name =
+      exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.ids);
+    let module_raw = runtime_template.module_raw(compilation, dep.id(), dep.request(), dep.weak());
+    let is_async =
+      ModuleGraph::is_async(&compilation.async_modules_artifact, con.module_identifier());
+    let (provided_expr, post_await_expr) = if is_async {
+      let post_await_expr = match used_name {
+        Some(UsedName::Normal(used_name)) => Some(format!(
+          "{}{}",
+          dep.identifier,
+          property_access(used_name, 0)
+        )),
+        Some(UsedName::Inlined(inlined)) => Some(inlined.render(&to_normal_comment(&format!(
+          "inlined export {}",
+          property_access(&dep.ids, 0)
+        )))),
+        None => None,
+      };
+      (module_raw, post_await_expr)
     } else {
-      let exports_info = compilation
-        .exports_info_artifact
-        .get_prefetched_exports_info(
-          con.module_identifier(),
-          PrefetchExportsInfoMode::Nested(&dep.ids),
-        );
-      ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithNames(&exports_info),
-        *runtime,
-        &dep.ids,
-      )
+      let provided_expr = match used_name {
+        Some(UsedName::Normal(used_name)) => {
+          format!("{module_raw}{}", property_access(used_name, 0))
+        }
+        Some(UsedName::Inlined(inlined)) => format!(
+          "({}, {})",
+          module_raw,
+          inlined.render(&to_normal_comment(&format!(
+            "inlined export {}",
+            property_access(&dep.ids, 0)
+          )))
+        ),
+        None => module_raw,
+      };
+      (provided_expr, None)
     };
 
     init_fragments.push(Box::new(
       NormalInitFragment::new(
         format!(
-          "/* provided dependency */ var {} = {}{};\n",
-          dep.identifier,
-          runtime_template.module_raw(compilation, dep.id(), dep.request(), dep.weak()),
-          path_to_string(used_name.as_ref())
+          "/* provided dependency */ var {} = {};\n",
+          dep.identifier, provided_expr
         ),
         InitFragmentStage::StageProvides,
         1,
@@ -209,6 +219,23 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       )
       .with_top_level_decl_symbols(vec![dep.identifier.clone().into()]),
     ));
+    if is_async {
+      if module.build_meta().exports_type() != BuildMetaExportsType::Namespace {
+        add_async_module_boundary(init_fragments, compilation, *module, runtime_template, true);
+      }
+      init_fragments.push(Box::new(AwaitDependenciesInitFragment::new_single(
+        dep.identifier.clone(),
+      )));
+      if let Some(post_await_expr) = post_await_expr {
+        init_fragments.push(Box::new(NormalInitFragment::new(
+          format!("{} = {post_await_expr};\n", dep.identifier),
+          InitFragmentStage::StageAsyncESMImports,
+          1,
+          InitFragmentKey::ModuleExternal(format!("provided async {}", dep.identifier)),
+          None,
+        )));
+      }
+    }
     source.replace(dep.range.start, dep.range.end, dep.identifier.clone(), None);
   }
 }

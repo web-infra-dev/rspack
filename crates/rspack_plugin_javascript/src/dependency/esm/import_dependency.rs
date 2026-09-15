@@ -3,18 +3,22 @@ use rspack_cacheable::{
   with::{AsCacheable, AsOption, AsPreset, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  FactorizeInfo, ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact,
-  ReferencedSpecifier, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
-  create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyCondition, DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType,
+  DependencyType, ExportsInfoArtifact, ImportAttributes, ImportPhase, ModuleDependency,
+  ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier, TemplateContext,
+  TemplateReplaceSource, create_exports_object_referenced,
+  create_referenced_exports_by_referenced_specifiers,
 };
-use swc_core::ecma::atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
+use crate::{
+  Atom,
+  dependency::{DependencyBranchGuard, compose_dependency_condition},
+};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ImportDependency {
   pub id: DependencyId,
   #[cacheable(with=AsPreset)]
@@ -26,38 +30,55 @@ pub struct ImportDependency {
   phase: ImportPhase,
   pub comments: Vec<(bool, String)>,
   resource_identifier: ResourceIdentifier,
-  factorize_info: FactorizeInfo,
   optional: bool,
+  #[cacheable(with=AsOption<AsCacheable>)]
+  branch_guard: Option<DependencyBranchGuard>,
 }
 
 impl ImportDependency {
   pub fn new(
     request: Atom,
     range: DependencyRange,
-    referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
     attributes: Option<ImportAttributes>,
     phase: ImportPhase,
     optional: bool,
     comments: Vec<(bool, String)>,
   ) -> Self {
     let resource_identifier =
-      create_resource_identifier_for_esm_dependency(request.as_str(), attributes.as_ref());
+      create_resource_identifier_for_esm_dependency(request.as_str(), phase, attributes.as_ref());
     Self {
       request,
       range,
       id: DependencyId::new(),
-      referenced_specifiers,
+      referenced_specifiers: None,
       attributes,
       phase,
       resource_identifier,
-      factorize_info: Default::default(),
       optional,
       comments,
+      branch_guard: None,
     }
   }
 
-  pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
+  pub fn set_referenced_specifiers(
+    &mut self,
+    referenced_specifiers: Vec<ReferencedSpecifier>,
+    from_magic_comment: bool,
+  ) {
+    if !from_magic_comment && referenced_specifiers.is_empty() {
+      // If the referenced specifiers are empty, keep it as default (None), since this dependency can't eliminate by side effects optimization,
+      // so if we set it to Some(vec![]), and the dependency still executes, it will cause runtime error because the exports are all tree shaken.
+      // see test case `tests/rspack-test/configCases/tree-shaking/side-effects-free-dynamic-import`
+      return;
+    }
     self.referenced_specifiers = Some(referenced_specifiers);
+  }
+
+  pub fn set_branch_guard(&mut self, guard: DependencyBranchGuard) {
+    self.branch_guard = Some(match self.branch_guard.take() {
+      Some(old_guard) => old_guard.and(guard),
+      None => guard,
+    });
   }
 }
 
@@ -97,7 +118,7 @@ impl Dependency for ImportDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&rspack_core::RuntimeSpec>,
-  ) -> Vec<rspack_core::ExtendedReferencedExport> {
+  ) -> Vec<rspack_core::ReferencedExport> {
     if let Some(referenced_specifiers) = &self.referenced_specifiers {
       let module = module_graph
         .get_module_by_dependency_id(&self.id)
@@ -140,16 +161,12 @@ impl ModuleDependency for ImportDependency {
     &self.request
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
-  }
-
   fn get_optional(&self) -> bool {
     self.optional
+  }
+
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    compose_dependency_condition(None, self.branch_guard.as_ref())
   }
 }
 
@@ -186,22 +203,26 @@ impl DependencyTemplate for ImportDependencyTemplate {
     let range = dep.range().expect("ImportDependency should have range");
     let module_graph = code_generatable_context.compilation.get_module_graph();
     let block = module_graph.get_parent_block(dep.id());
-    source.replace(
-      range.start,
-      range.end,
-      code_generatable_context
-        .runtime_template
-        .module_namespace_promise(
-          code_generatable_context.compilation,
-          code_generatable_context.module.identifier(),
-          dep.id(),
-          block,
-          dep.request(),
-          dep.dependency_type().as_str(),
-          false,
-          dep.get_phase(),
-        ),
-      None,
-    );
+    let mut content = code_generatable_context
+      .runtime_template
+      .module_namespace_promise(
+        code_generatable_context.compilation,
+        code_generatable_context.module.identifier(),
+        dep.id(),
+        block,
+        dep.request(),
+        dep.dependency_type().as_str(),
+        false,
+        dep.get_phase(),
+      );
+    if dep.get_phase().is_source() {
+      content = format!(
+        "{content}.then({})",
+        code_generatable_context
+          .runtime_template
+          .returning_function("m[\"default\"]", "m")
+      );
+    }
+    source.replace(range.start, range.end, content, None);
   }
 }

@@ -1,6 +1,7 @@
 mod amd_library_plugin;
 mod assign_library_plugin;
 mod export_property_library_plugin;
+mod jsonp_library_plugin;
 mod module_library_plugin;
 mod system_library_plugin;
 mod umd_library_plugin;
@@ -11,6 +12,7 @@ use std::path::PathBuf;
 pub use amd_library_plugin::AmdLibraryPlugin;
 pub use assign_library_plugin::*;
 pub use export_property_library_plugin::ExportPropertyLibraryPlugin;
+pub use jsonp_library_plugin::JsonpLibraryPlugin;
 use rspack_core::{BoxPlugin, PluginExt};
 use rspack_plugin_esm_library::EsmLibraryPlugin;
 use rspack_plugin_split_chunks::CacheGroup;
@@ -134,6 +136,11 @@ pub fn enable_library_plugin(
           .boxed(),
       );
       plugins.push(SystemLibraryPlugin::default().boxed());
+    }
+    "jsonp" => {
+      plugins
+        .push(ExportPropertyLibraryPlugin::new(library_type.clone(), ns_object_used, true).boxed());
+      plugins.push(JsonpLibraryPlugin::new(library_type).boxed());
     }
     _ => {}
   }

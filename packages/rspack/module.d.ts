@@ -171,6 +171,17 @@ declare namespace Rspack {
     (dependency: string): unknown;
   }
 
+  type ImportMetaGlobPattern = string | readonly string[];
+  type ImportMetaGlobQuery = string | Record<string, string | number | boolean>;
+  type ImportMetaGlobOptions<Eager extends boolean = boolean> = {
+    eager?: Eager;
+    import?: string;
+    query?: ImportMetaGlobQuery;
+    exhaustive?: boolean;
+    base?: string;
+    caseSensitive?: boolean;
+  };
+
   interface Module {
     exports: any;
     id: ModuleId;
@@ -235,6 +246,30 @@ interface ImportMeta {
       mode?: 'sync' | 'eager' | 'weak' | 'lazy' | 'lazy-once';
     },
   ) => Rspack.Context;
+  /**
+   * Available in server components when using the RSC plugins.
+   */
+  rspackRsc?: {
+    loadCss(): any;
+  };
+  rspackPublicPath: string;
+  rspackBaseUri: string;
+  rspackShareScopes: typeof __webpack_share_scopes__;
+  rspackInitSharing: typeof __webpack_init_sharing__;
+  rspackNonce: string;
+  rspackUniqueId: string;
+  rspackVersion: string;
+  rspackHash: string;
+  glob: {
+    <T = unknown>(
+      pattern: Rspack.ImportMetaGlobPattern,
+      options?: Rspack.ImportMetaGlobOptions<false>,
+    ): Record<string, () => Promise<T>>;
+    <T = unknown>(
+      pattern: Rspack.ImportMetaGlobPattern,
+      options: Rspack.ImportMetaGlobOptions<true>,
+    ): Record<string, T>;
+  };
 }
 
 declare const __resourceQuery: string;

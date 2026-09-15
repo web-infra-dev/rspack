@@ -56,7 +56,7 @@ const config = {
         test: /\.ts/,
         use: [
           {
-            loader: require.resolve('./ts-loader.js'),
+            loader: require.resolve('./strip-types-loader.js'),
           },
           {
             loader: require.resolve('./babel-loader.js'),

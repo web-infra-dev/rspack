@@ -37,6 +37,13 @@ Object.keys(originalRequire).forEach(key => {
 });
 
 __webpack_require__.rstest_original_modules = {};
+__webpack_require__.rstest_original_module_factories = {};
+
+const captureOriginalFactory = (id) => {
+  if (!Object.hasOwn(__webpack_require__.rstest_original_module_factories, id)) {
+    __webpack_require__.rstest_original_module_factories[id] = __webpack_modules__[id];
+  }
+};
 
 __webpack_require__.rstest_reset_modules = () => {
   const mockedIds = Object.keys(__webpack_require__.rstest_original_modules)
@@ -49,14 +56,26 @@ __webpack_require__.rstest_reset_modules = () => {
 }
 
 __webpack_require__.rstest_unmock = (id) => {
+  const originalFactory = __webpack_require__.rstest_original_module_factories[id];
+  if (originalFactory) {
+    __webpack_modules__[id] = originalFactory;
+  }
   delete __webpack_module_cache__[id]
 }
 
 __webpack_require__.rstest_require_actual = __webpack_require__.rstest_import_actual = (id) => {
-  const originalModule = __webpack_require__.rstest_original_modules[id];
+  if (Object.hasOwn(__webpack_require__.rstest_original_modules, id)) {
+    return __webpack_require__.rstest_original_modules[id];
+  }
+  const originalFactory = __webpack_require__.rstest_original_module_factories[id];
+  if (originalFactory) {
+    const moduleInstance = { exports: {} };
+    originalFactory(moduleInstance, moduleInstance.exports, __webpack_require__);
+    __webpack_require__.rstest_original_modules[id] = moduleInstance.exports;
+    return moduleInstance.exports;
+  }
   // Use fallback module if the module is not mocked.
-  const fallbackMod = __webpack_require__(id);
-  return originalModule ? originalModule : fallbackMod;
+  return __webpack_require__(id);
 }
 
 __webpack_require__.rstest_exec = async (id, modFactory) => {
@@ -69,33 +88,38 @@ __webpack_require__.rstest_exec = async (id, modFactory) => {
 };
 
 __webpack_require__.rstest_mock = (id, modFactory) => {
-  let requiredModule = undefined
-  try {
-    requiredModule = __webpack_require__(id);
-  } catch {
-    // TODO: non-resolved module
-  } finally {
-    __webpack_require__.rstest_original_modules[id] = requiredModule;
+  // Registering a mock must not eagerly evaluate the real module (and its
+  // transitive deps) — only capture what is already evaluated, plus the
+  // original factory so rstest_import_actual can run it lazily.
+  if (__webpack_module_cache__[id]) {
+    __webpack_require__.rstest_original_modules[id] = __webpack_module_cache__[id].exports;
   }
-  if (typeof modFactory === 'string' || typeof modFactory === 'number') {
+  captureOriginalFactory(id);
+  if (modFactory && modFactory.mock === true) {
+    return;
+  } else if (typeof modFactory === 'string' || typeof modFactory === 'number') {
     __webpack_module_cache__[id] = { exports: __webpack_require__(modFactory) };
   } else if (typeof modFactory === 'function') {
-          const finalModFactory = function (
-        __unused_webpack_module,
-        __webpack_exports__,
-        __webpack_require__,
-      ) {
+    const finalModFactory = function (
+      __unused_webpack_module,
+      __webpack_exports__,
+      __webpack_require__,
+    ) {
+      if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+        __webpack_require__.N(__webpack_exports__);
+      } else {
         __webpack_require__.r(__webpack_exports__);
-        const res = modFactory();
-        for (const key in res) {
-          __webpack_require__.d(__webpack_exports__, {
-            [key]: () => res[key],
-          });
-        }
-      };
+      }
+      const res = modFactory();
+      for (const key in res) {
+        __webpack_require__.d(__webpack_exports__, {
+          [key]: () => res[key],
+        });
+      }
+    };
 
-      __webpack_modules__[id] = finalModFactory;
-      delete __webpack_module_cache__[id];
+    __webpack_modules__[id] = finalModFactory;
+    delete __webpack_module_cache__[id];
   }
 };
 
@@ -114,7 +138,11 @@ __webpack_require__.rstest_do_mock = (id, modFactory) => {
     __webpack_module_cache__[id] = { exports: __webpack_require__(modFactory) };
   } else if (typeof modFactory === 'function') {
     const exports = modFactory();
-    __webpack_require__.r(exports);
+    if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+      __rspack_context.N(exports);
+    } else {
+      __webpack_require__.r(exports);
+    }
     __webpack_module_cache__[id] = { exports, id, loaded: true };
   }
 };
@@ -189,11 +217,14 @@ module.exports = [
   rstestEntry('./doMock.js'),
   rstestEntry('./mockFactory.js'),
   rstestEntry('./manualMock.js'),
+  rstestEntry('./autoMockFallback.js'),
   rstestEntry('./builtinManualMock.js'),
   rstestEntry('./nodeModulesManualMock.js'),
   rstestEntry('./directoryManualMock.js'),
   rstestEntry('./importActual.js'),
   rstestEntry('./importActualHoisted.js'),
+  rstestEntry('./importActualTransitive.js'),
+  rstestEntry('./importActualSpreadTransitive.js'),
   rstestEntry('./requireActual.js'),
   rstestEntry('./doMockRequire.js'),
   rstestEntry('./unmockRequire.js'),
@@ -226,6 +257,18 @@ module.exports = [
     ...rstestEntry('./hoisted.js'),
     externals: {
       '@rstest/core': 'global @rstest/core',
+    },
+  },
+  {
+    ...rstestEntry('./hoisted-rstack.js'),
+    externals: {
+      'rstack/test': 'commonjs rstack/test',
+    },
+  },
+  {
+    ...rstestEntry('./hoisted-rstack-reexport.js'),
+    externals: {
+      'rstack/test': 'commonjs rstack/test',
     },
   },
 ];

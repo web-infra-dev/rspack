@@ -16,12 +16,7 @@ export type ResolveContext = {
 export type ResourceData = binding.JsResourceData;
 
 type JsonValueTypes =
-  | null
-  | string
-  | number
-  | boolean
-  | JsonObjectTypes
-  | JsonValueTypes[];
+  null | string | number | boolean | JsonObjectTypes | JsonValueTypes[];
 
 type JsonObjectTypes = { [index: string]: JsonValueTypes } & {
   [index: string]:

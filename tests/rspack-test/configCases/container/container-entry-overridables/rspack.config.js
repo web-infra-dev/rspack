@@ -3,6 +3,9 @@ const { ConsumeSharedPlugin } = require('@rspack/core').sharing;
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    './container-file.js': 'commonjs ./container-file.js',
+  },
   plugins: [
     new ContainerPlugin({
       name: 'container',

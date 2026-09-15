@@ -9,8 +9,8 @@ it('should remove empty chunks', async () => {
   expect(asyncBar).toBe('async-bar');
   expect(asyncFoo).toBe('foo');
 
-  const path = __non_webpack_require__('path')
-  const fs = __non_webpack_require__('fs')
+  const path = require('path')
+  const fs = require('fs')
 
   const summary = fs.readFileSync(path.join(__dirname, 'chunks-summary.txt'), 'utf-8');
   expect(summary).not.toContain('app~app2');

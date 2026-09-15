@@ -16,7 +16,7 @@ const basic = {
     angular: 'angular-alias',
     svelte: 'svelte-alias',
     lit: 'lit-alias',
-    solid: 'solid-alias',
+    solid: 'module solid-alias',
     jquery: 'jquery-alias',
   },
   externalsType: 'module-import',

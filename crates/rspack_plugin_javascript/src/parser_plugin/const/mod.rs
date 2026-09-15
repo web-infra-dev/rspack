@@ -1,11 +1,12 @@
+use std::sync::Arc;
+
+use rspack_util::SpanExt;
 mod if_stmt;
 mod logic_expr;
 
 use rspack_core::{CachedConstDependency, ConstDependency};
-use rspack_util::SpanExt;
-use swc_core::common::Spanned;
+use swc_experimental_ecma_ast::{BinExpr, CondExpr, GetSpan, Ident, IfStmt};
 
-pub use self::logic_expr::is_logic_op;
 use super::JavascriptParserPlugin;
 use crate::{
   utils::eval::evaluate_to_string,
@@ -18,24 +19,24 @@ const RESOURCE_FRAGMENT: &str = "__resourceFragment";
 const RESOURCE_QUERY: &str = "__resourceQuery";
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for ConstPlugin {
+impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ConstPlugin {
   fn expression_logical_operator(
     &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::BinExpr,
+    parser: &mut JavascriptParser<'p>,
+    expr: &BinExpr,
   ) -> Option<bool> {
     self::logic_expr::expression_logic_operator(parser, expr)
   }
 
   fn expression_conditional_operation(
     &self,
-    parser: &mut JavascriptParser,
-    expression: &swc_core::ecma::ast::CondExpr,
+    parser: &mut JavascriptParser<'p>,
+    expression: &CondExpr,
   ) -> Option<bool> {
     let param = parser.evaluate_expression(&expression.test);
     if let Some(bool) = param.as_bool() {
       if !param.could_have_side_effects() {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           param.range().into(),
           format!(" {bool}").into(),
         )));
@@ -43,12 +44,12 @@ impl JavascriptParserPlugin for ConstPlugin {
         parser.walk_expression(&expression.test);
       }
       if bool {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           expression.alt.span().into(),
           "0".into(),
         )));
       } else {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           expression.cons.span().into(),
           "0".into(),
         )));
@@ -59,24 +60,20 @@ impl JavascriptParserPlugin for ConstPlugin {
     }
   }
 
-  fn statement_if(
-    &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::IfStmt,
-  ) -> Option<bool> {
+  fn statement_if(&self, parser: &mut JavascriptParser<'p>, expr: &IfStmt) -> Option<bool> {
     self::if_stmt::statement_if(parser, expr)
   }
 
   fn identifier(
     &self,
-    parser: &mut JavascriptParser,
-    ident: &swc_core::ecma::ast::Ident,
+    parser: &mut JavascriptParser<'p>,
+    ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
     match for_name {
       RESOURCE_FRAGMENT => {
         let resource_fragment = parser.resource_data.fragment().unwrap_or("");
-        parser.add_presentational_dependency(Box::new(CachedConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(CachedConstDependency::new(
           ident.span.into(),
           "__resourceFragment".into(),
           rspack_util::json_stringify_str(resource_fragment).into(),
@@ -85,7 +82,7 @@ impl JavascriptParserPlugin for ConstPlugin {
       }
       RESOURCE_QUERY => {
         let resource_query = parser.resource_data.query().unwrap_or("");
-        parser.add_presentational_dependency(Box::new(CachedConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(CachedConstDependency::new(
           ident.span.into(),
           "__resourceQuery".into(),
           rspack_util::json_stringify_str(resource_query).into(),
@@ -98,11 +95,12 @@ impl JavascriptParserPlugin for ConstPlugin {
 
   fn evaluate_identifier(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     for_name: &str,
+    _member_expr_info: Option<&crate::visitors::ExpressionExpressionInfo>,
     start: u32,
     end: u32,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
+  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'p>> {
     match for_name {
       RESOURCE_QUERY => Some(evaluate_to_string(
         parser
@@ -126,7 +124,7 @@ impl JavascriptParserPlugin for ConstPlugin {
     }
   }
 
-  fn unused_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
+  fn unused_statement(&self, parser: &mut JavascriptParser<'p>, stmt: Statement) -> Option<bool> {
     // Skip top level scope to align with webpack's ConstPlugin behavior.
     if parser.is_top_level_scope() {
       return None;
@@ -139,7 +137,7 @@ impl JavascriptParserPlugin for ConstPlugin {
     let replacement_body = if declarations.is_empty() {
       "{}".to_string()
     } else {
-      let mut names: Vec<&str> = declarations.iter().map(|decl| decl.sym.as_str()).collect();
+      let mut names: Vec<&str> = declarations.iter().copied().collect();
       names.sort_unstable();
       format!("{{ var {} }}", names.join(", "))
     };
@@ -149,7 +147,7 @@ impl JavascriptParserPlugin for ConstPlugin {
     replacement.push_str(&replacement_body);
 
     let span = stmt.span();
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    parser.add_presentational_dependency(Arc::new(ConstDependency::new(
       (span.real_lo(), span.real_hi()).into(),
       replacement.into_boxed_str(),
     )));

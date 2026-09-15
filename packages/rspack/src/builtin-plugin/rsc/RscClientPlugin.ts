@@ -19,7 +19,7 @@ export class RscClientPlugin extends RspackBuiltinPlugin {
     this.#options.coordinator.applyClientCompiler(compiler);
 
     return createBuiltinPlugin(this.name, {
-      // @ts-ignore
+      // @ts-expect-error we use a special API to get the underlying binding instance.
       coordinator: this.#options.coordinator[GET_OR_INIT_BINDING](),
     });
   }

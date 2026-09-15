@@ -244,7 +244,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
     .iter()
     .map(|(resource, config)| {
       (
-        Box::new(ProvideSharedDependency::new(
+        BoxDependency::new(ProvideSharedDependency::new(
           config.share_scope.clone(),
           config.share_key.clone(),
           config.version.clone(),
@@ -254,7 +254,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
           config.required_version.clone(),
           config.strict_version,
           config.tree_shaking_mode.clone(),
-        )) as BoxDependency,
+        )),
         EntryOptions {
           name: None,
           ..Default::default()
@@ -270,11 +270,11 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
 async fn normal_module_factory_module(
   &self,
   data: &mut ModuleFactoryCreateData,
-  create_data: &mut NormalModuleCreateData,
+  create_data: &NormalModuleCreateData,
   _module: &mut BoxModule,
 ) -> Result<()> {
   let resource = create_data.resource_resolve_data.resource();
-  let resource_data = &create_data.resource_resolve_data;
+  let resource_data = create_data.resource_resolve_data.as_ref();
   if self
     .resolved_provide_map
     .read()

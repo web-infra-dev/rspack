@@ -1,5 +1,9 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    './no-trusted-types-policy-name.web.js':
+      'commonjs ./no-trusted-types-policy-name.web.js',
+  },
   target: 'web',
   output: {
     // TODO should be `[name].web.js`

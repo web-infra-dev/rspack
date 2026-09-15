@@ -1,0 +1,4 @@
+Object {
+  card: style.module_module_css-card,
+  local-color: --style.module_module_css-local-color,
+}

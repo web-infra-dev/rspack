@@ -1,5 +1,5 @@
-var prevStartup = <%- STARTUP %>;
-var hasRun = false;
+<%- var("prevStartup") %> = <%- STARTUP %>;
+<%- var("hasRun") %> = false;
 <%- STARTUP %> = function () {
 	if (!hasRun) {
 		hasRun = true;

@@ -4,9 +4,7 @@ description: 'module.rules defines how Rspack processes different types of modul
 
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import PropertyType from '@components/PropertyType';
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
+import Attribution from '@components/Attribution';
 
 # Module rules
 
@@ -243,14 +241,12 @@ export default {
 
 ## rules[].issuerLayer
 
-<ApiMeta addedVersion="1.0.0-beta.1" />
-
-- **Type:** `string`
+- **Type:** [`Condition`](#condition)
 - **Default:** `undefined`
 
 Matches all modules that match this resource, and will match against layer of the module that issued the current module.
 
-For more information about layers, see the [Layer guide](/guide/features/layer).
+For more information about layers, see the [Module layers guide](/guide/advanced/layer).
 
 A basic example:
 
@@ -327,6 +323,51 @@ export default {
 };
 ```
 
+## rules[].phase
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.0.8" />
+
+- **Type:** [`Condition`](#condition)
+- **Default:** `undefined`
+
+Matches modules by the import phase of the dependency that introduced the module.
+
+The value passed to the condition is one of:
+
+- `evaluation`: normal imports such as `import`, `import()`, `require()`, and other dependencies without a special import phase
+- `defer`: `import defer` and `import.defer()` dependencies when [`experiments.deferImport`](/config/experiments#experimentsdeferimport) is enabled
+- `source`: `import source` and `import.source()` dependencies when [`experiments.sourceImport`](/config/experiments#experimentssourceimport) is enabled
+
+This is useful when the same resource needs different loaders, parser options, or module types depending on how it is imported.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    deferImport: true,
+    sourceImport: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /module\.js$/,
+        phase: 'evaluation',
+        loader: './evaluation-loader.js',
+      },
+      {
+        test: /module\.js$/,
+        phase: 'defer',
+        loader: './defer-loader.js',
+      },
+      {
+        test: /module\.js$/,
+        phase: 'source',
+        loader: './source-loader.js',
+      },
+    ],
+  },
+};
+```
+
 ## rules[].scheme
 
 - **Type:** [`Condition`](#condition)
@@ -376,23 +417,51 @@ export default {
 - **Type:** `{ [key: string]: Condition }`
 - **Default:** `undefined`
 
-`descriptionData` option allows you to match values of properties in the description file, typically `package.json`, to determine which modules a rule should apply to. This is a useful way to apply rules to specific modules based on metadata found in their `package.json`.
+`descriptionData` matches property values in a module's description file, typically `package.json`, to determine which modules a rule applies to. This lets you configure rules for modules in specific packages based on metadata such as the package name or version.
 
-The object keys in `descriptionData` correspond to keys in the module's `package.json`, such as `name`, `version`, etc. Each key should be associated with a [`Condition`](#condition) for matching the `package.json` data.
+Each key in the `descriptionData` object specifies a property to match, such as `name` or `version`, and the corresponding value is a [`Condition`](#condition) used to check that property's value. If you specify multiple properties, all must satisfy their conditions for the module to match `descriptionData`.
 
-For example, below we are applying the rule only to JavaScript resources with `'rspack'` string included in their `package.json` `name`.
+A string condition matches property values that start with the given string, so this example matches modules in packages such as `react` and `react-dom`:
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     rules: [
       {
-        test: /\.js$/,
-        include: /node_modules/,
+        descriptionData: { name: 'react' },
+        // Other rule options...
+      },
+    ],
+  },
+};
+```
+
+A regular expression condition tests the property value against a pattern; this example uses `^` and `$` to match only modules in the package named `react`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        descriptionData: { name: /^react$/ },
+        // Other rule options...
+      },
+    ],
+  },
+};
+```
+
+A function condition provides custom matching logic; this example matches modules in packages whose names contain `rspack`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
         descriptionData: {
-          name: (packageJsonName) => packageJsonName.includes('rspack'),
+          name: (name) => name.includes('rspack'),
         },
-        // additional rule options...
+        // Other rule options...
       },
     ],
   },
@@ -400,8 +469,6 @@ export default {
 ```
 
 ## rules[].with
-
-<ApiMeta addedVersion="1.0.0-beta.1" />
 
 - **Type:** `{ [key: string]: Condition }`
 - **Default:** `undefined`
@@ -452,7 +519,6 @@ export default {
             },
           },
         },
-        type: 'javascript/auto',
       },
     ],
   },
@@ -523,7 +589,7 @@ export default {
 };
 ```
 
-For specific parser options and the corresponding module type, you can refer to [`module.parser`](/config/module#moduleparser).
+For specific parser options and the corresponding module type, you can refer to [`module.parser`](/config/module-parser#parser).
 
 ## rules[].generator
 
@@ -548,7 +614,7 @@ export default {
 };
 ```
 
-For specific generator options and the corresponding module type, you can refer to [`module.generator`](/config/module#modulegenerator).
+For specific generator options and the corresponding module type, you can refer to [`module.generator`](/config/module-generator#generator).
 
 ## rules[].sideEffects
 
@@ -616,13 +682,20 @@ There are two phases that all loaders enter one after the other:
 
 ## rules[].type
 
-- **Type:**
+- **Type:** `string`
+
+Common built-in values:
 
 ```ts
-type RuleType =
+type BuiltinRuleType =
   | 'asset'
+  | 'asset/source'
+  | 'asset/resource'
+  | 'asset/inline'
+  | 'asset/bytes'
   | 'css'
   | 'css/auto'
+  | 'css/global'
   | 'css/module'
   | 'javascript/auto'
   | 'javascript/dynamic'
@@ -660,19 +733,17 @@ The meanings of all `type` options are as follows:
 - `'javascript/auto'`: JavaScript modules. Rspack automatically determines the module type based on file content, providing the best compatibility.
 - `'javascript/esm'`: JavaScript modules, treated as strict ES modules.
 - `'javascript/dynamic'`: JavaScript modules, treated as Script.
-- `'json'`: JSON data module, see [JSON](/guide/tech/json).
-- `'css' | 'css/module' | 'css/auto'`: CSS module, see [Built-in CSS support](/guide/tech/css#built-in-css-support).
+- `'json'`: JSON data module, see [JSON](/guide/languages/json).
+- `'css' | 'css/auto' | 'css/global' | 'css/module'`: CSS module, see [Built-in CSS support](/guide/languages/css#built-in-css-support).
 - `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline' | 'asset/bytes'`: Asset module, see [Asset Module](/guide/features/asset-module).
 
 ## rules[].layer
-
-<ApiMeta addedVersion="1.0.0-beta.1" />
 
 - **Type:** `string`
 
 Used to mark the layer of the matching module. A group of modules could be united in one layer which could then be used in split chunks, stats or [entry options](/config/entry#entrydescriptionlayer).
 
-For more information about layers, see the [Layer guide](/guide/features/layer).
+For more information about layers, see the [Module layers guide](/guide/advanced/layer).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -693,16 +764,18 @@ export default {
 
 ```ts
 type RuleSetUse =
-  | RuleSetUseItem[]
   | RuleSetUseItem
+  | RuleSetUseItem[]
   | ((ctx: RawFuncUseCtx) => RuleSetUseItem[]);
-type RuleSetUseItem = { loader: string; options: Record<string, any> } | string;
-interface RawFuncUseCtx {
-  resource?: string;
-  realResource?: string;
-  resourceQuery?: string;
-  issuer?: string;
-}
+
+type RuleSetUseItem = string | RuleSetLoaderWithOptions;
+
+type RuleSetLoaderWithOptions = {
+  ident?: string;
+  loader: string;
+  options?: string | Record<string, any>;
+  parallel?: boolean | { maxWorkers?: number };
+};
 ```
 
 An array to pass the Loader package name and its options. `string[]` e.g.: `use: ['svgr-loader']` is shorthand for `use: [ { loader: 'svgr-loader' } ]`.
@@ -755,11 +828,41 @@ export default {
 };
 ```
 
+## rules[].use.ident
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+Provides a stable name for object-form loader options. Rspack uses it when building the loader request, so generated rules or reused options can keep the same `??<ident>` reference.
+
+Most configurations do not need to set it manually. If omitted, Rspack uses `options.ident` when present, otherwise it generates an internal identifier.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.svg$/,
+        use: [
+          {
+            loader: 'svgo-loader',
+            ident: 'svgo-inline',
+            options: {
+              multipass: true,
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
 ## rules[].use.parallel
 
 <ApiMeta addedVersion="1.3.1" />
 
-- **Type**: `boolean`
+- **Type**: `boolean | { maxWorkers?: number }`
 - **Default:** `false`
 
 Controls whether a given loader should run in worker threads for parallel execution. Loaders marked with `parallel` are scheduled across multiple threads, reducing pressure on the main thread and improving overall build performance.
@@ -800,6 +903,36 @@ When multiple loaders within the same rule have `parallel` enabled, Rspack execu
 
 :::
 
+## rules[].use.parallel.maxWorkers
+
+- **Type:** `number`
+- **Default:** `undefined`
+
+Limits the maximum number of worker threads used by the shared loader worker pool when `parallel` is configured as an object. Use a positive integer.
+
+When `maxWorkers` is omitted, Rspack automatically chooses the worker count. The loader worker pool is shared within the current process, so use a consistent `maxWorkers` value if multiple loaders configure `parallel`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: [
+          {
+            loader: 'less-loader',
+            parallel: {
+              maxWorkers: 4,
+            },
+            options: {},
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
 ## rules[].resolve
 
 Set specific module [resolve](/config/resolve) options based on the matching modules.
@@ -821,7 +954,7 @@ export default {
 
 ## rules[].rules
 
-- **Type:** <code>[Rule](#rules)[]</code>
+- **Type:** <code>[Rule](#rule)[]</code>
 - **Default:** `undefined`
 
 A kind of [Nested Rule](#nested-rule), an array of Rules that is also used when the parent Rule matches.
@@ -855,7 +988,7 @@ export default {
 
 ## rules[].oneOf
 
-- **Type:** <code>([Rule](#rules) | Falsy)[]</code>
+- **Type:** <code>([Rule](#rule) | Falsy)[]</code>
 - **Default:** `undefined`
 
 A kind of [Nested Rule](#nested-rule), an array of Rules from which only the first matching Rule is used when the parent Rule matches.
@@ -904,3 +1037,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.js.org/configuration/module/" />

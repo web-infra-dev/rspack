@@ -8,7 +8,6 @@ import './BuildInfo';
 export type ResourceDataWithData = ResourceData & {
   data?: Record<string, any>;
 };
-export type CreateData = binding.JsCreateData;
 export type ContextInfo = binding.ContextInfo;
 export type ResolveData = binding.JsResolveData;
 
@@ -79,8 +78,7 @@ export class ContextModuleFactoryBeforeResolveData {
 }
 
 export type ContextModuleFactoryBeforeResolveResult =
-  | false
-  | ContextModuleFactoryBeforeResolveData;
+  false | ContextModuleFactoryBeforeResolveData;
 
 export class ContextModuleFactoryAfterResolveData {
   #inner: binding.JsContextModuleFactoryAfterResolveData;
@@ -164,13 +162,13 @@ export class ContextModuleFactoryAfterResolveData {
 }
 
 export type ContextModuleFactoryAfterResolveResult =
-  | false
-  | ContextModuleFactoryAfterResolveData;
+  false | ContextModuleFactoryAfterResolveData;
 
 Object.defineProperty(binding.Module.prototype, 'identifier', {
   enumerable: true,
   configurable: true,
   value(this: binding.Module): string {
+    // @ts-expect-error
     return this[binding.MODULE_IDENTIFIER_SYMBOL];
   },
 });

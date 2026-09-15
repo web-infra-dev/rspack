@@ -1,3 +1,5 @@
+use crate::itoa;
+
 /*
   MIT License http://www.opensource.org/licenses/mit-license.php
   Author Tobias Koppers @sokra
@@ -17,20 +19,43 @@ const FNV_OFFSET_64: u64 = 0xCBF2_9CE4_8422_2325;
 
 const FNV_PRIME_64: u64 = 0x0100_0000_01B3;
 
-fn fnv1a32(s: &str) -> u32 {
-  let mut hash = FNV_OFFSET_32;
+#[derive(Debug, Clone, Copy)]
+pub struct NumberHashState {
+  inner: NumberHashStateInner,
+  range: usize,
+}
 
+#[derive(Debug, Clone, Copy)]
+enum NumberHashStateInner {
+  Fnv32(u32),
+  Fnv64(u64),
+}
+
+fn fnv1a32(s: &str) -> u32 {
+  fnv1a32_update(FNV_OFFSET_32, s) & MASK_31
+}
+
+fn fnv1a32_update(mut hash: u32, s: &str) -> u32 {
   for code_unit in s.encode_utf16() {
     hash ^= code_unit as u32;
     hash = hash.wrapping_mul(FNV_PRIME_32);
   }
 
-  hash & MASK_31
+  hash
 }
 
 fn fnv1a64(s: &str) -> u64 {
   let mut hash = FNV_OFFSET_64;
 
+  for code_unit in s.encode_utf16() {
+    hash ^= code_unit as u64;
+    hash = hash.wrapping_mul(FNV_PRIME_64);
+  }
+
+  hash
+}
+
+fn fnv1a64_update(mut hash: u64, s: &str) -> u64 {
   for code_unit in s.encode_utf16() {
     hash ^= code_unit as u64;
     hash = hash.wrapping_mul(FNV_PRIME_64);
@@ -45,6 +70,33 @@ pub fn get_number_hash(s: &str, range: usize) -> usize {
   } else {
     (fnv1a64(s) % (range as u64)) as usize
   }
+}
+
+pub fn get_number_hash_state(prefix: &str, range: usize) -> NumberHashState {
+  let inner = if range < FNV_64_THRESHOLD {
+    NumberHashStateInner::Fnv32(fnv1a32_update(FNV_OFFSET_32, prefix))
+  } else {
+    NumberHashStateInner::Fnv64(fnv1a64_update(FNV_OFFSET_64, prefix))
+  };
+  NumberHashState { inner, range }
+}
+
+pub fn get_number_hash_combined_from_state(state: NumberHashState, suffix: usize) -> usize {
+  let mut suffix_buffer = itoa::Buffer::new();
+  let suffix = suffix_buffer.format(suffix);
+
+  match state.inner {
+    NumberHashStateInner::Fnv32(hash) => {
+      ((fnv1a32_update(hash, suffix) & MASK_31) as usize) % state.range
+    }
+    NumberHashStateInner::Fnv64(hash) => {
+      (fnv1a64_update(hash, suffix) % (state.range as u64)) as usize
+    }
+  }
+}
+
+pub fn get_number_hash_combined(prefix: &str, suffix: usize, range: usize) -> usize {
+  get_number_hash_combined_from_state(get_number_hash_state(prefix, range), suffix)
 }
 
 #[test]
@@ -93,5 +145,28 @@ fn test_number_hash() {
 
   for (s, range, hash) in test_cases.iter() {
     assert_eq!(get_number_hash(s, *range), *hash);
+  }
+}
+
+#[test]
+fn test_number_hash_combined_matches_concatenated_input() {
+  let test_cases = [
+    ("module/a.js", 0usize, 100usize),
+    ("module/a.js", 7usize, 100usize),
+    ("我能吞下玻璃而不伤身体", 42usize, 100usize),
+    ("vendor/react/index.js", 12345usize, 100usize),
+    ("chunk~main", 9usize, 167_772_160_usize),
+    (
+      "君が笑ってると、僕もうれしくなるんだ。",
+      314_159_usize,
+      167_772_160_usize,
+    ),
+  ];
+
+  for (prefix, suffix, range) in test_cases {
+    assert_eq!(
+      get_number_hash_combined(prefix, suffix, range),
+      get_number_hash(&format!("{prefix}{suffix}"), range)
+    );
   }
 }

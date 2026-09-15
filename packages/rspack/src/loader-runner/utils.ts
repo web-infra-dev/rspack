@@ -33,7 +33,11 @@ export function convertArgs(args: any[], raw: boolean) {
 
   // Ensure `Buffer` is used instead of `Uint8Array`
   if (raw && args[0] instanceof Uint8Array && !Buffer.isBuffer(args[0])) {
-    args[0] = Buffer.from(args[0].buffer);
+    args[0] = Buffer.from(
+      args[0].buffer,
+      args[0].byteOffset,
+      args[0].byteLength,
+    );
   }
 }
 

@@ -1,5 +1,5 @@
 ```js title=main.js
-import * as __rspack_external__static_package_json_fde7981b from "./static-package.json" with {"type":"json"};
+import * as __rspack_external__static_package_json_4ad57751 from "./static-package.json" with {"type":"json"};
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./index.js"() {
 
@@ -7,7 +7,7 @@ import * as __rspack_external__static_package_json_fde7981b from "./static-packa
 
 ;// CONCATENATED MODULE: ./index.js
 
-console.log(__rspack_external__static_package_json_fde7981b);
+console.log(__rspack_external__static_package_json_4ad57751);
 
 
 },

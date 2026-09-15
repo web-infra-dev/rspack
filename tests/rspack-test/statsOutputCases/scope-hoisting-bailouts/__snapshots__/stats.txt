@@ -11,11 +11,11 @@ cacheable modules xx bytes
     ./entry.js xx bytes [built] [code generated]
       ModuleConcatenation bailout: Module is an entry point
     ./cjs.js xx bytes [built] [code generated]
-      Statement with side_effects in source code at ./cjs.js<LINE_COL>-27
+      Statement with side_effects in source code at ./cjs.js<LINE_COL>-8
       ModuleConcatenation bailout: Module is not an ECMAScript module
     ./ref-from-cjs.js xx bytes [built] [code generated]
     ./eval.js xx bytes [built] [code generated]
-      ExportDefaultExpr with side_effects in source code at ./eval.js<LINE_COL>-35
+      ExportDefaultExpr with side_effects in source code at ./eval.js<LINE_COL>-20
       ModuleConcatenation bailout: Module uses eval()
     ./module-id.js xx bytes [built] [code generated]
       ExportDefaultExpr with side_effects in source code at ./module-id.js<LINE_COL>-26

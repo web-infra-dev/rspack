@@ -9,7 +9,10 @@ module.exports = function(params) {
 				const { shareScopeMap, scope, pkgName, version, GlobalFederation } = args;
         args.resolver = function () {
           shareScopeMap[scope][pkgName][version] = {
-						lib: ()=>()=> 'This is react 0.2.1'
+						lib: () => ({
+							__esModule: true,
+							default: () => 'This is react 0.2.1'
+						})
 					};
           return {
             shared: shareScopeMap[scope][pkgName][version],

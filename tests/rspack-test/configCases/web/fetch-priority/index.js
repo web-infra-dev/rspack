@@ -34,7 +34,7 @@ it("should set fetchPriority", () => {
 	const script7 = document.head.children[6];
 	expect(script7.getAttribute("fetchpriority")).toBeFalsy();
 
-	// Webpack context
+	// webpack context
 	const loader = import.meta.webpackContext("./dir", {
 		mode: "lazy",
 		fetchPriority: "high"

@@ -89,10 +89,7 @@ impl KnownBuildInfo {
     f: impl FnOnce(&dyn rspack_core::Module) -> napi::Result<T>,
   ) -> napi::Result<T> {
     match self.module_reference.get_mut() {
-      Some(reference) => {
-        let (_, module) = reference.as_ref()?;
-        f(module)
-      }
+      Some(reference) => reference.with_ref(|_, module| f(module)),
       None => Err(napi::Error::from_reason(
         "Unable to access buildInfo. The Module has been garbage collected by JavaScript."
           .to_string(),
@@ -138,10 +135,7 @@ impl BuildInfo {
     f: impl FnOnce(&dyn rspack_core::Module) -> napi::Result<T>,
   ) -> napi::Result<T> {
     match self.module_reference.get_mut() {
-      Some(reference) => {
-        let (_, module) = reference.as_ref()?;
-        f(module)
-      }
+      Some(reference) => reference.with_ref(|_, module| f(module)),
       None => Err(napi::Error::from_reason(
         "Unable to access buildInfo. The Module has been garbage collected by JavaScript."
           .to_string(),
@@ -178,7 +172,8 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
           let result = wrapped_value.with_ref(|module| {
             module
               .build_info()
-              .file_dependencies
+              .dependencies
+              .file
               .iter()
               .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
               .collect::<napi::Result<Vec<JsString>>>()
@@ -202,7 +197,8 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
           let result = wrapped_value.with_ref(|module| {
             module
               .build_info()
-              .context_dependencies
+              .dependencies
+              .context
               .iter()
               .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
               .collect::<napi::Result<Vec<JsString>>>()
@@ -226,7 +222,8 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
           let result = wrapped_value.with_ref(|module| {
             module
               .build_info()
-              .missing_dependencies
+              .dependencies
+              .missing
               .iter()
               .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
               .collect::<napi::Result<Vec<JsString>>>()
@@ -250,7 +247,8 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
           let result = wrapped_value.with_ref(|module| {
             module
               .build_info()
-              .build_dependencies
+              .dependencies
+              .build
               .iter()
               .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
               .collect::<napi::Result<Vec<JsString>>>()

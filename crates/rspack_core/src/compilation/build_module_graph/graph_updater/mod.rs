@@ -3,7 +3,7 @@ pub mod repair;
 
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
-use rspack_paths::ArcPathSet;
+use rspack_paths::InternedPathSet;
 use rustc_hash::FxHashSet;
 
 use self::{cutout::Cutout, repair::repair};
@@ -18,12 +18,13 @@ pub enum UpdateParam {
   BuildEntry(FxHashSet<DependencyId>),
   /// Build some entries and clean up the entries that not in this list.
   BuildEntryAndClean(FxHashSet<DependencyId>),
-  /// Build the module which module.need_build is true, i.e. modules where loader.cacheable is false
+  /// Build modules whose incremental rebuild check returns true, for example
+  /// modules where `loader.cacheable` is false.
   CheckNeedBuild,
   /// Build the module and dependency which depend on these modified file.
-  ModifiedFiles(ArcPathSet),
+  ModifiedFiles(InternedPathSet),
   /// Build the module and dependency which depend on these removed file.
-  RemovedFiles(ArcPathSet),
+  RemovedFiles(InternedPathSet),
   /// Force build some modules.
   ForceBuildModules(IdentifierSet),
 }
@@ -55,5 +56,11 @@ pub async fn update_module_graph(
   )
   .await?;
   cutout.fix_artifact(&mut artifact);
+  let module_graph = artifact.get_module_graph();
+  for id in artifact.affected_modules.active() {
+    if let Some(module) = module_graph.module_by_identifier(id) {
+      module.freeze_build_meta();
+    }
+  }
   Ok((artifact, exports_info_artifact))
 }

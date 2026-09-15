@@ -1,4 +1,6 @@
-const captureStdio = require('@rspack/test-tools/helper/legacy/captureStdio');
+const {
+  captureStdio,
+} = require('@rspack/test-tools/helper/legacy/captureStdio');
 
 const INCOMPLETE_STATS_WARNING =
   'Stats output may be incomplete because some compilation artifacts were unavailable (exportsInfo). For complete stats data, call `stats.toJson()` inside `compiler.hooks.done`.';

@@ -15,8 +15,7 @@ import type {
   JsStatsError,
   JsStatsModule,
 } from '@rspack/binding';
-import type { Chunk } from '../Chunk';
-import type { NormalizedStatsOptions } from '../Compilation';
+import type { LogEntry, NormalizedStatsOptions } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import type { StatsOptions } from '../config';
 import {
@@ -553,7 +552,12 @@ const SORTERS: Record<
 > = {
   'compilation.chunks': {
     _: (comparators) => {
-      comparators.push(compareSelect((c: StatsChunk) => c.id, compareIds));
+      comparators.push(
+        compareSelect(
+          (c: StatsChunk) => (c.id === undefined ? undefined : String(c.id)),
+          compareIds,
+        ),
+      );
     },
   },
   'compilation.modules': MODULES_SORTER,
@@ -769,12 +773,15 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
           acceptedTypes = getLogTypesBitFlag([]);
         }
         object.logging = {};
-        const compilationLogging = compilation.logging;
+        const compilationLogging = new Map<string, LogEntry[]>();
+        for (const [origin, logEntries] of compilation.logging) {
+          compilationLogging.set(origin, [...logEntries]);
+        }
         for (const { name, ...rest } of context
           .getInner(compilation)
           .getLogging(acceptedTypes)) {
           const value = compilationLogging.get(name);
-          const entry = {
+          const entry: LogEntry = {
             type: rest.type,
             trace: rest.trace,
             args: rest.args ?? [],
@@ -998,24 +1005,15 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
         chunkGroup: entrypoint,
       }));
 
-      const chunks = Array.from(compilation.chunks).reduce<
-        Record<string, Chunk>
-      >((res, chunk) => {
-        res[chunk.id!] = chunk;
-        return res;
-      }, {});
-
       if (entrypoints === 'auto' && !chunkGroups) {
         if (array.length > 5) return;
         if (
           !chunkGroupChildren &&
           array.every(({ chunkGroup }) => {
             if (chunkGroup.chunks.length !== 1) return false;
-            const chunk = chunks[chunkGroup.chunks[0]];
             return (
-              chunk &&
-              chunk.files.size === 1 &&
-              (!chunkGroupAuxiliary || chunk.auxiliaryFiles.size === 0)
+              chunkGroup.assets.length === 1 &&
+              (!chunkGroupAuxiliary || chunkGroup.auxiliaryAssets?.length === 0)
             );
           })
         ) {

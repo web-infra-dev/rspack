@@ -1,27 +1,104 @@
-use std::{
-  borrow::Cow,
-  hash::{BuildHasherDefault, Hash},
-};
+use std::{fmt::Write as _, hash::BuildHasherDefault, sync::Arc};
 
 use rspack_cacheable::cacheable;
 use rspack_collections::{Identifier, IdentifierHasher};
-use rspack_util::ext::DynHash;
+use rspack_hash::{RspackHash, RspackHasher};
 
 use crate::{
-  BoxDependency, Compilation, DependencyId, DependencyLocation, GroupOptions, ModuleIdentifier,
-  RuntimeSpec,
+  BoxDependency, Compilation, Dependency, DependencyId, DependencyLocation, DependencyRef,
+  GroupOptions, ModuleIdentifier, RuntimeSpec,
 };
 
 pub trait DependenciesBlock {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier);
+  fn dependencies_block(&self) -> &DependenciesBlockData;
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier];
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData;
 
-  fn add_dependency_id(&mut self, dependency: DependencyId);
+  fn add_block(&mut self, block: AsyncDependenciesBlockRef) {
+    self.dependencies_block_mut().add_block(block);
+  }
 
-  fn remove_dependency_id(&mut self, _dependency: DependencyId);
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+    &self.dependencies_block().block_ids
+  }
 
-  fn get_dependencies(&self) -> &[DependencyId];
+  fn get_block_refs(&self) -> &[AsyncDependenciesBlockRef] {
+    &self.dependencies_block().blocks
+  }
+
+  fn add_dependency(&mut self, dependency: DependencyRef) {
+    self.dependencies_block_mut().add_dependency(dependency);
+  }
+
+  fn remove_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependencies_block_mut().remove_dependency(dependency);
+  }
+
+  /// Returns dependency IDs in insertion order for graph lookups.
+  fn get_dependency_ids(&self) -> DependencyIds<'_> {
+    DependencyIds(self.get_dependencies().iter())
+  }
+
+  /// Returns the dependency objects owned by this block in insertion order.
+  fn get_dependencies(&self) -> &[DependencyRef] {
+    &self.dependencies_block().dependencies
+  }
+}
+
+/// Iterates dependency IDs directly from their owning references without allocating an ID list.
+/// Cloning only copies the cursor so code generation can traverse the same dependencies multiple times.
+#[derive(Clone)]
+pub struct DependencyIds<'a>(std::slice::Iter<'a, DependencyRef>);
+
+impl<'a> Iterator for DependencyIds<'a> {
+  type Item = &'a DependencyId;
+
+  #[inline]
+  fn next(&mut self) -> Option<Self::Item> {
+    self.0.next().map(|dependency| dependency.id())
+  }
+
+  #[inline]
+  fn size_hint(&self) -> (usize, Option<usize>) {
+    self.0.size_hint()
+  }
+}
+
+impl ExactSizeIterator for DependencyIds<'_> {}
+
+/// Build-owned dependency objects and blocks. The graph indexes the same shared objects.
+/// Dependency IDs are read from the objects; block IDs remain a contiguous read index.
+/// Cloning copies these containers; the dependency and block objects themselves remain shared.
+#[cacheable]
+#[derive(Debug, Default, Clone)]
+pub struct DependenciesBlockData {
+  dependencies: Vec<DependencyRef>,
+  #[cacheable(omit_bounds)]
+  blocks: Vec<AsyncDependenciesBlockRef>,
+  block_ids: Vec<AsyncDependenciesBlockIdentifier>,
+}
+
+impl DependenciesBlockData {
+  pub fn new(dependencies: Vec<DependencyRef>, blocks: Vec<AsyncDependenciesBlockRef>) -> Self {
+    Self {
+      block_ids: blocks.iter().map(|block| block.identifier()).collect(),
+      dependencies,
+      blocks,
+    }
+  }
+
+  fn add_dependency(&mut self, dependency: DependencyRef) {
+    self.dependencies.push(dependency);
+  }
+
+  fn remove_dependency(&mut self, dependency: DependencyId) {
+    self.dependencies.retain(|value| *value.id() != dependency);
+  }
+
+  pub(crate) fn add_block(&mut self, block: AsyncDependenciesBlockRef) {
+    self.block_ids.push(block.identifier());
+    self.blocks.push(block);
+  }
 }
 
 pub type AsyncDependenciesBlockIdentifierMap<V> = std::collections::HashMap<
@@ -33,15 +110,14 @@ pub type AsyncDependenciesBlockIdentifierSet =
   std::collections::HashSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>>;
 
 pub fn dependencies_block_update_hash(
-  deps: &[DependencyId],
+  deps: &[DependencyRef],
   blocks: &[AsyncDependenciesBlockIdentifier],
-  hasher: &mut dyn std::hash::Hasher,
+  hasher: &mut RspackHasher,
   compilation: &Compilation,
   runtime: Option<&RuntimeSpec>,
 ) {
   let mg = compilation.get_module_graph();
-  for dep_id in deps {
-    let dep = mg.dependency_by_id(dep_id);
+  for dep in deps {
     if let Some(dep) = dep.as_dependency_code_generation() {
       dep.update_hash(hasher, compilation, runtime);
     }
@@ -56,6 +132,12 @@ pub fn dependencies_block_update_hash(
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct AsyncDependenciesBlockIdentifier(Identifier);
 
+impl rspack_hash::RspackHash for AsyncDependenciesBlockIdentifier {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.0.as_str().hash(state);
+  }
+}
+
 impl From<String> for AsyncDependenciesBlockIdentifier {
   fn from(value: String) -> Self {
     Self(value.into())
@@ -69,18 +151,11 @@ impl From<Identifier> for AsyncDependenciesBlockIdentifier {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AsyncDependenciesBlock {
   id: AsyncDependenciesBlockIdentifier,
   group_options: Option<GroupOptions>,
-  // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
-  // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
-  #[allow(clippy::vec_box)]
-  #[cacheable(omit_bounds)]
-  blocks: Vec<Box<AsyncDependenciesBlock>>,
-  block_ids: Vec<AsyncDependenciesBlockIdentifier>,
-  dependency_ids: Vec<DependencyId>,
-  dependencies: Vec<BoxDependency>,
+  dependencies_block: DependenciesBlockData,
   loc: Option<DependencyLocation>,
   parent: ModuleIdentifier,
   request: Option<String>,
@@ -95,34 +170,86 @@ impl AsyncDependenciesBlock {
     dependencies: Vec<BoxDependency>,
     request: Option<String>,
   ) -> Self {
-    let loc_str: Cow<str> = loc
-      .clone()
-      .map_or_else(|| "".into(), |loc| format!("|loc={loc}").into());
-
-    let modifier_str: Cow<str> = modifier.map_or_else(
-      || "".into(),
-      |modifier| format!("|modifier={modifier}").into(),
+    let dependencies_resource_identifier_len = dependencies
+      .iter()
+      .filter_map(|dep| dep.resource_identifier())
+      .map(str::len)
+      .sum::<usize>();
+    let modifier_len = modifier.map_or(0, |modifier| "|modifier=".len() + modifier.len());
+    let mut id = String::with_capacity(
+      parent.len() + "|dep=".len() + dependencies_resource_identifier_len + modifier_len,
     );
+    id.push_str(parent.as_str());
+    id.push_str("|dep=");
+
+    for dep in &dependencies {
+      if let Some(resource_identifier) = dep.resource_identifier() {
+        id.push_str(resource_identifier);
+      }
+    }
+
+    if let Some(loc) = loc.as_ref() {
+      write!(id, "|loc={loc}").expect("write to String should not fail");
+    }
+    if let Some(modifier) = modifier {
+      id.push_str("|modifier=");
+      id.push_str(modifier);
+    }
 
     Self {
-      id: format!(
-        "{parent}|dep={}{}{}",
-        dependencies.iter().fold(String::default(), |mut s, dep| {
-          s += dep.resource_identifier().unwrap_or_default();
-          s
-        }),
-        loc_str,
-        modifier_str
-      )
-      .into(),
+      id: id.into(),
       group_options: Default::default(),
-      blocks: Default::default(),
-      block_ids: Default::default(),
-      dependency_ids: dependencies.iter().map(|dep| *dep.id()).collect(),
-      dependencies,
+      dependencies_block: DependenciesBlockData::new(
+        dependencies.into_iter().map(Into::into).collect(),
+        Vec::new(),
+      ),
       loc,
       parent,
       request,
+    }
+  }
+
+  pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut (dyn Dependency + 'static)> {
+    self
+      .dependencies_block
+      .dependencies
+      .get_mut(idx)
+      .and_then(DependencyRef::get_mut)
+  }
+
+  pub fn dependencies_mut(&mut self) -> impl Iterator<Item = &mut (dyn Dependency + 'static)> {
+    self
+      .dependencies_block
+      .dependencies
+      .iter_mut()
+      .map(|dependency| {
+        dependency
+          .get_mut()
+          .expect("parser dependencies must not be published")
+      })
+  }
+}
+
+/// A block and its dependency objects, shared by its owning module and graph indexes.
+pub type AsyncDependenciesBlockRef = Arc<AsyncDependenciesBlock>;
+
+impl AsyncDependenciesBlock {
+  pub(crate) fn without_dependency(&self, dependency: DependencyId) -> Self {
+    Self {
+      id: self.id,
+      group_options: self.group_options.clone(),
+      dependencies_block: DependenciesBlockData::new(
+        self
+          .get_dependencies()
+          .iter()
+          .filter(|value| *value.id() != dependency)
+          .cloned()
+          .collect(),
+        self.get_block_refs().to_vec(),
+      ),
+      loc: self.loc.clone(),
+      parent: self.parent,
+      request: self.request.clone(),
     }
   }
 
@@ -136,24 +263,6 @@ impl AsyncDependenciesBlock {
 
   pub fn get_group_options(&self) -> Option<&GroupOptions> {
     self.group_options.as_ref()
-  }
-
-  pub fn take_dependencies(&mut self) -> Vec<BoxDependency> {
-    std::mem::take(&mut self.dependencies)
-  }
-
-  pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut BoxDependency> {
-    self.dependencies.get_mut(idx)
-  }
-
-  pub fn add_block(&mut self, _block: AsyncDependenciesBlock) {
-    unimplemented!("Nested block are not implemented");
-    // self.block_ids.push(block.id);
-    // self.blocks.push(block);
-  }
-
-  pub fn take_blocks(&mut self) -> Vec<Box<AsyncDependenciesBlock>> {
-    std::mem::take(&mut self.blocks)
   }
 
   pub fn loc(&self) -> Option<DependencyLocation> {
@@ -170,11 +279,11 @@ impl AsyncDependenciesBlock {
 
   pub fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
+    hasher: &mut RspackHasher,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) {
-    self.group_options.dyn_hash(hasher);
+    self.group_options.hash(hasher);
     if let Some(chunk_group) = compilation
       .build_chunk_graph_artifact
       .chunk_graph
@@ -183,7 +292,7 @@ impl AsyncDependenciesBlock {
         &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
       )
     {
-      chunk_group.id(compilation).dyn_hash(hasher);
+      chunk_group.id(compilation).hash(hasher);
     }
     dependencies_block_update_hash(
       self.get_dependencies(),
@@ -196,25 +305,16 @@ impl AsyncDependenciesBlock {
 }
 
 impl DependenciesBlock for AsyncDependenciesBlock {
-  fn add_block_id(&mut self, _block: AsyncDependenciesBlockIdentifier) {
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
+  }
+
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
+  }
+
+  fn add_block(&mut self, _block: AsyncDependenciesBlockRef) {
     unimplemented!("Nested block are not implemented");
-    // self.block_ids.push(block);
-  }
-
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.block_ids
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependency_ids.push(dependency)
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependency_ids.retain(|dep| dep != &dependency);
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependency_ids
   }
 }
 

@@ -40,7 +40,7 @@ impl SourceSizeCache {
     match source_type {
       SourceType::JavaScript => Some(0),
       SourceType::Css => Some(1),
-      SourceType::CssUrl => Some(2),
+      SourceType::AssetUrl => Some(2),
       SourceType::Wasm => Some(3),
       SourceType::Asset => Some(4),
       SourceType::Expose => Some(5),

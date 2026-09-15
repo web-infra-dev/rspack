@@ -4,8 +4,8 @@ import * as namespace from './export-imported'
 namespace;
 
 it('should have correct consistent order', () => {
-	const fs = __non_webpack_require__('fs')
-	const path = __non_webpack_require__('path')
+	const fs = require('fs')
+	const path = require('path')
 	/** @type {string} */
 	const code = fs.readFileSync(path.resolve(__dirname, './bundle.js')).toString()
 

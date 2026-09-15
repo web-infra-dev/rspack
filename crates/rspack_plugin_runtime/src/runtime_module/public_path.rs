@@ -1,6 +1,6 @@
 use rspack_core::{
-  Filename, PublicPath, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeTemplate, has_hash_placeholder, impl_runtime_module,
+  Compilation, Filename, PublicPath, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeTemplate, impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -17,6 +17,21 @@ impl PublicPathRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for PublicPathRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      define: { RuntimeGlobals::PUBLIC_PATH },
+      force_context: RuntimeGlobals::PUBLIC_PATH,
+      ..Default::default()
+    }
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
@@ -26,17 +41,13 @@ impl RuntimeModule for PublicPathRuntimeModule {
       "{} = \"{}\";",
       context
         .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH),
+        .render_runtime_global_definition(&RuntimeGlobals::PUBLIC_PATH),
       &PublicPath::render_filename(compilation, &self.public_path).await,
     ))
   }
 
   // be cacheable only when the template does not contain a hash placeholder
   fn full_hash(&self) -> bool {
-    if let Some(template) = self.public_path.template() {
-      has_hash_placeholder(template)
-    } else {
-      true
-    }
+    self.public_path.has_hash_placeholder()
   }
 }

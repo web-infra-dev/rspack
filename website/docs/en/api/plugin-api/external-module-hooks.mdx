@@ -1,0 +1,56 @@
+---
+description: 'ExternalModule hooks control how external modules are assigned to chunks.'
+---
+
+import { Collapse, CollapsePanel } from '@components/Collapse';
+import ChunkType from '../../types/chunk.mdx';
+import CompilationType from '../../types/compilation.mdx';
+
+# ExternalModule hooks
+
+`ExternalModule` represents a dependency whose implementation is provided by the runtime environment instead of being bundled by Rspack. It provides hooks for controlling how external modules are assigned to chunks.
+
+You can obtain these hooks as follows:
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    {
+      apply(compiler) {
+        const { ExternalModule } = compiler.rspack;
+        compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
+          const hooks = ExternalModule.getCompilationHooks(compilation);
+          // ...
+        });
+      },
+    },
+  ],
+};
+```
+
+## `chunkCondition`
+
+`SyncBailHook<[Chunk, Compilation], boolean | undefined>`
+
+Controls whether an external module can be included in a chunk. Return `true` to allow the external module in the chunk, `false` to disallow it, or `undefined` to continue to subsequent taps and then use Rspack's default behavior.
+
+The following example only allows external modules to be included in entry chunks:
+
+```js
+hooks.chunkCondition.tap('MyPlugin', (chunk, compilation) => {
+  return compilation.chunkGraph.getNumberOfEntryModules(chunk) > 0;
+});
+```
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
+  </CollapsePanel>
+</Collapse>

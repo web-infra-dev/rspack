@@ -6,12 +6,14 @@
 
 use async_trait::async_trait;
 use rspack_core::{
-  BooleanMatcher, Chunk, Compilation, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher,
-  get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
+  BooleanMatcher, Chunk, Compilation, PathData, RuntimeCodeTemplate, RuntimeModule,
+  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, SourceType,
+  compile_boolean_matcher, get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
+
+use crate::utils::{runtime_require_scope_name, runtime_require_scope_requirement};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -24,6 +26,10 @@ impl FederationDataRuntimeModule {
 }
 #[async_trait]
 impl RuntimeModule for FederationDataRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Normal
   }
@@ -34,19 +40,28 @@ impl RuntimeModule for FederationDataRuntimeModule {
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
-      .expect_get(&self.chunk.expect("The chunk should be attached."));
+      .expect_get(&self.chunk().expect("The chunk should be attached."));
     Ok(federation_runtime_template(chunk, runtime_template, compilation).await)
+  }
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: { runtime_require_scope_requirement(compilation) },
+      ..Default::default()
+    }
   }
 }
 
 pub async fn federation_runtime_template(
   chunk: &Chunk,
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &RuntimeCodeTemplate,
   compilation: &Compilation,
 ) -> String {
   let federation_global = format!(
     "{}.federation",
-    runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    runtime_require_scope_name(runtime_template)
   );
 
   let condition_map = compilation
@@ -76,7 +91,23 @@ chunkMatcher: function(chunkId) {{
       &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
     );
     let output_name = compilation
-      .get_path(&filename, Default::default())
+      .get_path(
+        &filename,
+        PathData::default()
+          .chunk(chunk.ukey(), compilation)
+          .chunk_hash_optional(chunk.rendered_hash(
+            &compilation.chunk_hashes_artifact,
+            compilation.options.output.hash_digest_length,
+          ))
+          .chunk_id_optional(chunk.id().map(|id| id.as_str()))
+          .chunk_name_optional(chunk.name_for_filename_template())
+          .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+            &compilation.chunk_hashes_artifact,
+            &SourceType::JavaScript,
+            compilation.options.output.hash_digest_length,
+          ))
+          .runtime(chunk.runtime().as_str()),
+      )
       .await
       .expect("failed to get output path");
     get_undo_path(

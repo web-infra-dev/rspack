@@ -1,4 +1,4 @@
-use std::{borrow::Cow, hash::Hash};
+use std::{borrow::Cow, sync::Arc};
 
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
@@ -6,35 +6,33 @@ use rspack_cacheable::{
 };
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_macros::impl_source_map_config;
 use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
-  BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
-  ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
-  dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info,
-  module_declared_side_effect_free, module_update_hash,
+  BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder, Compilation,
+  ConnectionState, Context, DependenciesBlock, DependenciesBlockData, FactoryMetaStore, FreezeLock,
+  Module, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleType, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
+  impl_module_meta_info, module_declared_side_effect_free, module_update_hash,
 };
 
 #[impl_source_map_config]
 #[cacheable]
 #[derive(Debug)]
 pub struct RawModule {
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  dependencies: Vec<DependencyId>,
+  dependencies_block: DependenciesBlockData,
   source_str: String,
   #[cacheable(with=AsOption<AsPreset>)]
   source: Option<BoxSource>,
   identifier: ModuleIdentifier,
   readable_identifier: String,
   runtime_requirements: RuntimeGlobals,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  factory_meta: FactoryMetaStore,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
 }
 
 static RAW_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -47,19 +45,19 @@ impl RawModule {
     runtime_requirements: RuntimeGlobals,
   ) -> Self {
     Self {
-      blocks: Default::default(),
-      dependencies: Default::default(),
+      dependencies_block: Default::default(),
       source_str,
       source: None,
       identifier,
       readable_identifier,
       runtime_requirements,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         cacheable: true,
         strict: true,
         ..Default::default()
-      },
+      }
+      .into(),
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
@@ -73,24 +71,12 @@ impl Identifiable for RawModule {
 }
 
 impl DependenciesBlock for RawModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency)
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }
 
@@ -123,8 +109,8 @@ impl Module for RawModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
-    let mut cgr = CodeGenerationResult::default();
+  ) -> Result<CodeGenerationResultBuilder> {
+    let mut cgr = CodeGenerationResultBuilder::default();
     code_generation_context
       .runtime_template
       .runtime_requirements_mut()
@@ -148,7 +134,7 @@ impl Module for RawModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHash::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options.output);
     self.source_str.hash(&mut hasher);
     module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
@@ -170,15 +156,10 @@ impl Module for RawModule {
 
   async fn build(
     self: Box<Self>,
-    _build_context: BuildContext,
+    _build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies: vec![],
-      blocks: vec![],
-      optimization_bailouts: vec![],
-    })
+  ) -> Result<BoxModule> {
+    Ok(BoxModule::new(self))
   }
 }
 

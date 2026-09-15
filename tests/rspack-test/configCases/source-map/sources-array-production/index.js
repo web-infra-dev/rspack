@@ -2,7 +2,11 @@ it("should include test.js in SourceMap", function() {
 	var fs = require("fs");
 	var source = fs.readFileSync(__filename + ".map", "utf-8");
 	var map = JSON.parse(source);
-	expect(map.sources).toContain("webpack:///./test.js");
+	let sourceUrl = source => `webpack:///${source}`;
+	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+		sourceUrl = source => `rspack:///${source}`;
+	}
+	expect(map.sources).toContain(sourceUrl("./test.js"));
 });
 
 if (Math.random() < 0) require("./test.js");

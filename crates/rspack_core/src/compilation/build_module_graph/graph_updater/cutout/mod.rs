@@ -50,13 +50,14 @@ impl Cutout {
           clean_entry_dependencies = true;
         }
         UpdateParam::CheckNeedBuild => {
-          force_build_modules.extend(module_graph.modules().filter_map(|(_, module)| {
-            if module.need_build(&compilation.value_cache_versions) {
-              Some(module.identifier())
-            } else {
-              None
-            }
-          }));
+          force_build_modules.extend(
+            module_graph
+              .modules()
+              .filter(|(_, module)| {
+                module.need_build_for_incremental(&compilation.value_cache_versions)
+              })
+              .map(|(_, module)| module.identifier()),
+          );
         }
         UpdateParam::ModifiedFiles(files) | UpdateParam::RemovedFiles(files) => {
           for file in files {
@@ -89,6 +90,25 @@ impl Cutout {
     self
       .fix_build_meta
       .analyze_force_build_modules(artifact, &force_build_modules);
+
+    // Entry deps have no parent — their connection is the only edge back to
+    // the target. Snapshot those targets before revoke deletes the edge, so
+    // `fix_issuers` can still orphan-check them.
+    {
+      let module_graph = artifact.get_module_graph();
+      for dep_id in &force_build_deps {
+        if module_graph.get_parent_module(dep_id).is_some()
+          || module_graph.get_parent_block(dep_id).is_some()
+        {
+          continue;
+        }
+        if let Some(con) = module_graph.connection_by_dependency_id(dep_id) {
+          self
+            .fix_issuers
+            .add_need_check_module(*con.module_identifier());
+        }
+      }
+    }
 
     let mut build_deps = HashSet::default();
 

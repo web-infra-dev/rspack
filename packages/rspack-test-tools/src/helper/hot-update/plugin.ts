@@ -114,28 +114,6 @@ export class HotUpdatePlugin {
     this.updateIndex++;
     await this.updateFiles();
   }
-  async moveTempDir() {
-    // generate next temp dir path.
-    const nextTempDir =
-      this.tempDir.replace(/(___[0-9]+)?[/\\]*$/, '') +
-      '___' +
-      this.updateIndex;
-
-    // update this.files.
-    for (const key of Object.keys(this.files)) {
-      const nextKey = key.replace(this.tempDir, nextTempDir);
-      this.files[nextKey] = this.files[key];
-      delete this.files[key];
-    }
-
-    // move files.
-    rimrafSync(nextTempDir);
-    fs.renameSync(this.tempDir, nextTempDir);
-    this.tempDir = nextTempDir;
-
-    return this.tempDir;
-  }
-
   apply(compiler: Compiler) {
     const RuntimeGlobals = compiler.rspack.RuntimeGlobals;
     const options = compiler.options;
@@ -168,18 +146,25 @@ export class HotUpdatePlugin {
         PLUGIN_NAME,
         (module: any, _set: any) => {
           if (
-            module.constructor.name === 'DefinePropertyGettersRuntimeModule'
+            module.constructor.name === 'DefinePropertyGettersRuntimeModule' &&
+            compiler.options.experiments?.runtimeMode !== 'rspack'
           ) {
+            // HMR tests re-execute modules and redefine the same export keys, so
+            // the test-only runtime keeps export descriptors configurable (`configurable: true`).
             module.source.source = Buffer.from(
               `
-										${RuntimeGlobals.definePropertyGetters} = function (exports, definition) {
-												for (var key in definition) {
-														if (${RuntimeGlobals.hasOwnProperty}(definition, key) && !${RuntimeGlobals.hasOwnProperty}(exports, key)) {
-																Object.defineProperty(exports, key, { configurable: true, enumerable: true, get: definition[key] });
-														}
-												}
-										};
-										`,
+${RuntimeGlobals.definePropertyGetters} = function (exports, getters, values) {
+  var define = function (defs, kind) {
+    for(var key in defs) {
+      if(${RuntimeGlobals.hasOwnProperty}(defs, key) && !${RuntimeGlobals.hasOwnProperty}(exports, key)) {
+        Object.defineProperty(exports, key, { configurable: true, enumerable: true, [kind]: defs[key] });
+      }
+    }
+  }
+  define(getters, "get");
+  define(values, "value");
+};
+`,
               'utf-8',
             );
           }

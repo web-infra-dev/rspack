@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["./aliased/*"]
+    }
+  },
+  "references": [{ "path": "../project_b" }]
+}

@@ -85,7 +85,7 @@ async fn additional_chunk_runtime_requirements_tree(
   let is_enabled = has_runtime || has_entry_modules;
 
   if is_enabled {
-    // Add STARTUP (sync) so the runtime wrapper can always hook __webpack_require__.x,
+    // Add STARTUP (sync) so the runtime wrapper can always hook __rspack_require.x,
     // and STARTUP_ENTRYPOINT (async) when async startup is enabled.
     runtime_requirements.insert(RuntimeGlobals::STARTUP);
     if self.experiments.async_startup {
@@ -183,7 +183,7 @@ async fn render_startup(
   chunk_ukey: &ChunkUkey,
   _module: &ModuleIdentifier,
   render_source: &mut RenderSource,
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact

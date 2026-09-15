@@ -66,14 +66,20 @@ enum ExecEvent {
 
 impl Executor {
   /// Create a new `WatcherExecutor` with the given receiver and optional aggregate timeout.
-  pub fn new(rx: UnboundedReceiver<EventBatch>, aggregate_timeout: Option<u32>) -> Self {
+  /// `paused` is shared with [`crate::FsWatcher`] so pausing stays a lock-free
+  /// synchronous operation.
+  pub fn new(
+    rx: UnboundedReceiver<EventBatch>,
+    aggregate_timeout: Option<u32>,
+    paused: Arc<AtomicBool>,
+  ) -> Self {
     let (exec_aggregate_tx, exec_aggregate_rx) = mpsc::unbounded_channel::<ExecAggregateEvent>();
     let (exec_tx, exec_rx) = mpsc::unbounded_channel::<ExecEvent>();
 
     Self {
       start_waiting: false,
       aggregate_running: Arc::new(AtomicBool::new(false)),
-      paused: Arc::new(AtomicBool::new(false)),
+      paused,
       rx: Arc::new(Mutex::new(rx)),
       files_data: Default::default(),
       exec_aggregate_tx,
@@ -84,13 +90,6 @@ impl Executor {
       execute_handle: None,
       aggregate_timeout: aggregate_timeout.unwrap_or(DEFAULT_AGGREGATE_TIMEOUT),
     }
-  }
-
-  /// Pause the aggregate executor, it will not execute the event handler until resume.
-  pub fn pause(&self) {
-    self
-      .paused
-      .store(true, std::sync::atomic::Ordering::Relaxed);
   }
 
   /// Abort all executor.

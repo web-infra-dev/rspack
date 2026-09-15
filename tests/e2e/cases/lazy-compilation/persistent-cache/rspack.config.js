@@ -1,13 +1,13 @@
-const { rspack } = require('@rspack/core');
+import { rspack } from '@rspack/core';
 
 /** @type { import('@rspack/core').RspackOptions } */
-module.exports = {
-  context: __dirname,
+export default {
+  context: import.meta.dirname,
   entry: {
     main: ['./src/component.js', './src/index.js'],
   },
   stats: 'none',
-  mode: 'production',
+  mode: 'development',
   plugins: [
     new rspack.HtmlRspackPlugin(),
     {

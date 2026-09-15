@@ -9,14 +9,15 @@ import {
   Search as PluginAlgoliaSearch,
   ZH_LOCALES,
 } from '@rspress/plugin-algolia/runtime';
-import { Announcement } from '@rstack-dev/doc-ui/announcement';
-import { ConfigProvider } from '@rstack-dev/doc-ui/antd';
-import { BlogBackButton } from '@rstack-dev/doc-ui/blog-back-button';
-import { NavIcon } from '@rstack-dev/doc-ui/nav-icon';
+import { Announcement } from '@rstackjs/doc-ui/announcement';
+import { ConfigProvider } from '@rstackjs/doc-ui/antd';
+import { BlogBackButton } from '@rstackjs/doc-ui/blog-back-button';
+import { NavIcon } from '@rstackjs/doc-ui/nav-icon';
+import '@rstackjs/doc-ui/theme.css';
 import { HomeLayout } from './pages';
 
 // Enable this when we need a new announcement
-const ANNOUNCEMENT_URL = '/blog/announcing-2-0';
+const ANNOUNCEMENT_URL = '';
 
 const DocLayout = (props: DocLayoutProps) => {
   const { page } = usePage();

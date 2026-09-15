@@ -1,4 +1,3 @@
-
 [package]
 description       = "rspack cacheable macros"
 edition.workspace = true

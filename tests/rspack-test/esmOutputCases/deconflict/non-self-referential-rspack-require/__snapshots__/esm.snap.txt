@@ -1,0 +1,7 @@
+```mjs title=main.mjs
+// ./index.js
+function rspackRequire() {}
+
+export { rspackRequire };
+
+```

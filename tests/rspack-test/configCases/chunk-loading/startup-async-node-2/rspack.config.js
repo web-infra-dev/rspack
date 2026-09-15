@@ -1,7 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
   entry: {
-    main: './index.js',
     async: './async.js',
     other: './other.js',
   },
@@ -31,6 +30,8 @@ module.exports = {
         },
       },
     },
+    // Avoid the default export of lib-*.js is inlined, which causes the splitChunks lib* cache group disappear.
+    inlineExports: false,
   },
   target: 'node',
 };

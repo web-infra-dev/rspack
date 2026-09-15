@@ -1,19 +1,29 @@
-use std::{ptr::NonNull, sync::LazyLock};
+use std::sync::LazyLock;
 
 use itertools::Itertools;
 use rspack_core::{
-  BooleanMatcher, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher,
-  impl_runtime_module,
+  BooleanMatcher, ChunkUkey, Compilation, RuntimeCodeTemplate, RuntimeGlobals,
+  RuntimeGlobalsRenderMode, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeModuleRuntimeRequirements, RuntimeModuleStage, RuntimeTemplate,
+  chunk_graph_chunk::ChunkIdSet, compile_boolean_matcher, impl_runtime_module,
 };
 use rspack_error::Result;
 use rspack_plugin_runtime::{
-  CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
-  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
+  CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimePlugin,
+  extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
+  get_chunk_runtime_requirements, render_chunk_loading_hmr_state_expression, stringify_chunks,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::plugin::{InsertType, SOURCE_TYPE};
+use crate::plugin::{InsertType, MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL, SOURCE_TYPE};
+
+fn render_mini_css_chunk_filename(runtime_template: &RuntimeCodeTemplate) -> String {
+  if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport {
+    MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL.to_string()
+  } else {
+    format!("{}.miniCssF", runtime_template.render_runtime_argument())
+  }
+}
 
 static CSS_LOADING_TEMPLATE: &str = include_str!("./runtime/css_loading.ejs");
 static CSS_LOADING_CREATE_LINK_TEMPLATE: &str =
@@ -29,19 +39,35 @@ static CSS_LOADING_WITH_PRELOAD_TEMPLATE: &str =
   include_str!("./runtime/css_loading_with_preload.ejs");
 static CSS_LOADING_WITH_PRELOAD_LINK_TEMPLATE: &str =
   include_str!("./runtime/css_loading_with_preload_link.ejs");
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+  let mut variables = extract_runtime_module_variables_from_ejs(&[
+    CSS_LOADING_TEMPLATE,
+    CSS_LOADING_CREATE_LINK_TEMPLATE,
+    CSS_LOADING_WITH_HMR_TEMPLATE,
+    CSS_LOADING_WITH_LOADING_TEMPLATE,
+    CSS_LOADING_WITH_PREFETCH_TEMPLATE,
+    CSS_LOADING_WITH_PREFETCH_LINK_TEMPLATE,
+    CSS_LOADING_WITH_PRELOAD_TEMPLATE,
+    CSS_LOADING_WITH_PRELOAD_LINK_TEMPLATE,
+  ]);
+  variables.push(MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL);
+  variables
+});
 
-static CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(CSS_LOADING_TEMPLATE));
-static CSS_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static CSS_LOADING_CREATE_LINK_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CSS_LOADING_CREATE_LINK_TEMPLATE));
+static CSS_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(CSS_LOADING_WITH_LOADING_TEMPLATE));
-static CSS_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static CSS_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(CSS_LOADING_WITH_HMR_TEMPLATE));
-static CSS_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static CSS_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| {
     extract_runtime_globals_from_ejs(CSS_LOADING_WITH_PREFETCH_TEMPLATE)
       | extract_runtime_globals_from_ejs(CSS_LOADING_WITH_PREFETCH_LINK_TEMPLATE)
   });
-static CSS_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static CSS_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| {
     extract_runtime_globals_from_ejs(CSS_LOADING_WITH_PRELOAD_TEMPLATE)
       | extract_runtime_globals_from_ejs(CSS_LOADING_WITH_PRELOAD_LINK_TEMPLATE)
@@ -62,22 +88,22 @@ impl CssLoadingRuntimeModule {
     let mut requirements = RuntimeGlobals::default();
 
     if with_loading || with_hmr {
-      requirements.extend(*CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS);
+      requirements.extend(CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS.dependencies);
     }
 
     if with_loading {
-      requirements.extend(*CSS_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS);
+      requirements.extend(CSS_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS.dependencies);
 
       if runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS) {
-        requirements.extend(*CSS_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS);
+        requirements.extend(CSS_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS.dependencies);
       }
       if runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS) {
-        requirements.extend(*CSS_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS);
+        requirements.extend(CSS_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS.dependencies);
       }
     }
 
     if with_hmr {
-      requirements.extend(*CSS_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS);
+      requirements.extend(CSS_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS.dependencies);
     }
 
     requirements
@@ -105,7 +131,7 @@ impl CssLoadingRuntimeModule {
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
-      .expect_get(self.chunk.as_ref().expect("should attached chunk"));
+      .expect_get(&self.chunk().expect("should attached chunk"));
 
     for chunk in
       chunk.get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
@@ -136,8 +162,57 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for CssLoadingRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES.as_slice()
+  }
+
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
+  }
+
+  fn should_isolate(&self, _runtime_mode: rspack_core::runtime_mode::RuntimeMode) -> bool {
+    true
+  }
+
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    let Some(chunk_ukey) = self.chunk() else {
+      return rspack_core::RuntimeModuleRuntimeRequirements::default();
+    };
+    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
+    let mut dependencies = RuntimeGlobals::default();
+    let mut weak = RuntimeGlobals::default();
+    if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
+      dependencies.insert(
+        CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS.dependencies
+          | CSS_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS.dependencies,
+      );
+      weak.insert(CSS_LOADING_CREATE_LINK_RUNTIME_REQUIREMENTS.weak);
+    }
+    if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
+      dependencies.insert(
+        CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS.dependencies
+          | CSS_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS.dependencies,
+      );
+      weak.insert(CSS_LOADING_CREATE_LINK_RUNTIME_REQUIREMENTS.weak);
+    }
+    if runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS) {
+      let requirements = *CSS_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS;
+      dependencies.insert(requirements.dependencies);
+      weak.insert(requirements.weak);
+    }
+    if runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS) {
+      let requirements = *CSS_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS;
+      dependencies.insert(requirements.dependencies);
+      weak.insert(requirements.weak);
+    }
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies,
+      weak,
+      ..Default::default()
+    }
   }
 
   fn template(&self) -> Vec<(String, String)> {
@@ -181,17 +256,14 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
     let runtime_hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
-    let runtime_requirements = get_chunk_runtime_requirements(
-      compilation,
-      self.chunk.as_ref().expect("should attached chunk"),
-    );
+    let chunk_ukey = self.chunk().expect("should attached chunk");
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(&chunk_ukey);
+    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
 
     let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) && {
-      let chunk = compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .expect_get(self.chunk.as_ref().expect("should attached chunk"));
-
       chunk
         .get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         .iter()
@@ -204,6 +276,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     };
 
     let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+    let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
 
     if !with_hmr && !with_loading {
       return Ok(String::new());
@@ -212,11 +285,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     let condition_map = compilation
       .build_chunk_graph_artifact
       .chunk_graph
-      .get_chunk_condition_map(
-        self.chunk.as_ref().expect("should attached chunk"),
-        compilation,
-        chunk_has_css,
-      );
+      .get_chunk_condition_map(&chunk_ukey, compilation, chunk_has_css);
     let has_css_matcher = compile_boolean_matcher(&condition_map);
 
     let with_prefetch = runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS);
@@ -237,20 +306,20 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         "_set_attributes": &attr,
         "_set_linktype": self.link_type.clone().unwrap_or_default(),
         "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
+        "_with_fetch_priority": with_fetch_priority,
       })),
     )?;
 
     let create_link = runtime_hooks
       .borrow()
       .create_link
-      .call(CreateLinkData {
-        code: create_link_raw,
-        chunk: RuntimeModuleChunkWrapper {
-          chunk_ukey: self.chunk.expect("should attached chunk"),
-          compilation_id: compilation.id(),
-          compilation: NonNull::from(compilation),
+      .call(
+        compilation,
+        CreateLinkData {
+          code: create_link_raw,
+          chunk,
         },
-      })
+      )
       .await?;
 
     let raw = runtime_template.render(
@@ -265,7 +334,8 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           } else {
             document.head.appendChild(linkTag);
           }".to_string(),
-        }
+        },
+        "_get_chunk_css_filename": render_mini_css_chunk_filename(runtime_template),
       })),
     )?;
 
@@ -276,10 +346,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       if chunks.is_empty() {
         res.push("// no chunk loading".to_string());
       } else {
-        let chunk = compilation
-          .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .expect_get(self.chunk.as_ref().expect("should attached chunk"));
         let loading = runtime_template.render(
           &self.template_id(TemplateId::WithLoading),
           Some(serde_json::json!({
@@ -292,9 +358,9 @@ impl RuntimeModule for CssLoadingRuntimeModule {
               chunks
                 .iter()
                 .filter_map(|id| {
-                  let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(id);
+                  let css_chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(id);
 
-                  chunk.id().map(|id| {
+                  css_chunk.id().map(|id| {
                     format!(
                       "{}: 1,\n",
                       rspack_util::json_stringify(id)
@@ -313,7 +379,28 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     }
 
     if with_hmr {
-      let hmr = runtime_template.render(&self.template_id(TemplateId::WithHmr), None)?;
+      let mut all_initial_chunk_ids = ChunkIdSet::default();
+      for chunk_ukey in chunk
+        .get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+        .iter()
+      {
+        if let Some(id) = compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get(chunk_ukey)
+          .id()
+        {
+          all_initial_chunk_ids.insert(id.clone());
+        }
+      }
+      let hmr = runtime_template.render(
+        &self.template_id(TemplateId::WithHmr),
+        Some(serde_json::json!({
+          "_initial_chunk_ids": stringify_chunks(&all_initial_chunk_ids, 1),
+          "_js_state_expression": render_chunk_loading_hmr_state_expression(runtime_template, &chunk_ukey, compilation),
+          "_get_chunk_css_filename": render_mini_css_chunk_filename(runtime_template),
+        })),
+      )?;
       res.push(hmr);
     } else {
       res.push("// no hmr".to_string());
@@ -325,20 +412,20 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         &self.template_id(TemplateId::WithPrefetchLink),
         Some(serde_json::json!({
           "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
+          "_get_chunk_css_filename": render_mini_css_chunk_filename(runtime_template),
         })),
       )?;
 
       let link_prefetch = runtime_hooks
         .borrow()
         .link_prefetch
-        .call(LinkPrefetchData {
-          code: link_prefetch_raw,
-          chunk: RuntimeModuleChunkWrapper {
-            chunk_ukey: self.chunk.expect("should attached chunk"),
-            compilation_id: compilation.id(),
-            compilation: NonNull::from(compilation),
+        .call(
+          compilation,
+          LinkPrefetchData {
+            code: link_prefetch_raw,
+            chunk,
           },
-        })
+        )
         .await?;
 
       let prefetch = runtime_template.render(
@@ -359,20 +446,20 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         &self.template_id(TemplateId::WithPreloadLink),
         Some(serde_json::json!({
           "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
+          "_get_chunk_css_filename": render_mini_css_chunk_filename(runtime_template),
         })),
       )?;
 
       let link_preload = runtime_hooks
         .borrow()
         .link_preload
-        .call(LinkPreloadData {
-          code: link_preload_raw,
-          chunk: RuntimeModuleChunkWrapper {
-            chunk_ukey: self.chunk.expect("should attached chunk"),
-            compilation_id: compilation.id(),
-            compilation: NonNull::from(compilation),
+        .call(
+          compilation,
+          LinkPreloadData {
+            code: link_preload_raw,
+            chunk,
           },
-        })
+        )
         .await?;
 
       let preload = runtime_template.render(
@@ -393,7 +480,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
 impl CssLoadingRuntimeModule {
   fn template_id(&self, id: TemplateId) -> String {
-    let base_id = self.id.to_string();
+    let base_id = self.id().to_string();
 
     match id {
       TemplateId::Raw => base_id,

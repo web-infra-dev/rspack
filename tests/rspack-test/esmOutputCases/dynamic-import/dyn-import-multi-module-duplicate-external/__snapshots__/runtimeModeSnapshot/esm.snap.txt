@@ -1,0 +1,86 @@
+```mjs title=main.mjs
+// ./index.js
+it("should merge duplicate externals inside a dynamic multi-module chunk", async () => {
+	const modA = await import("./shared.mjs").then(m => m.a_namespaceObject);
+	const modB = await import("./shared.mjs").then(m => m.b_namespaceObject);
+
+	expect(modA.fsDefault).toBeDefined();
+	expect(modA.readFileSync).toBeDefined();
+	expect(modB.readFile).toBe(modA.readFile);
+	expect(modB.marker).toBe("b");
+});
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var rspackRequire = {};
+export { rspackRequire };
+
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+export { definePropertyGetters };
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+export { makeNamespaceObject };
+
+
+```
+
+```mjs title=shared.mjs
+import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+import fs, { readFile, readFileSync } from "fs";
+
+// NAMESPACE OBJECT: ./a.js
+var a_namespaceObject = {};
+makeNamespaceObject(a_namespaceObject);
+definePropertyGetters(a_namespaceObject, { 
+  fsDefault: () => (fs),
+  readFile: () => (readFile),
+  readFileSync: () => (readFileSync) });
+
+
+// NAMESPACE OBJECT: ./b.js
+var b_namespaceObject = {};
+makeNamespaceObject(b_namespaceObject);
+definePropertyGetters(b_namespaceObject, { 
+  marker: () => (marker),
+  readFile: () => (readFile) });
+
+
+// fs?2aa6
+
+// ./a.js
+
+
+
+// fs?f4d4
+
+// ./b.js
+
+
+const marker = "b";
+
+export { a_namespaceObject, b_namespaceObject };
+
+```

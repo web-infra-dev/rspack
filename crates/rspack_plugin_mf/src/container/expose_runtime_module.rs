@@ -1,10 +1,10 @@
 use rspack_core::{
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeModuleStage, RuntimeTemplate, SourceType, impl_runtime_module,
+  ChunkUkey, Compilation, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage,
+  RuntimeTemplate, SourceType, impl_runtime_module,
 };
 
 use super::container_entry_module::CodeGenerationDataExpose;
-use crate::utils::json_stringify;
+use crate::utils::{json_stringify, module_require_scope_name, runtime_require_scope_requirement};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -43,7 +43,7 @@ impl ExposeRuntimeModule {
         let code_gen = compilation
           .code_generation_results
           .get(&m, Some(chunk.runtime()));
-        if let Some(data) = code_gen.data.get::<CodeGenerationDataExpose>() {
+        if let Some(data) = code_gen.data().get::<CodeGenerationDataExpose>() {
           return Some(data);
         };
       }
@@ -54,6 +54,26 @@ impl ExposeRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ExposeRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    let mut dependencies = runtime_require_scope_requirement(compilation);
+    if let Some(chunk_ukey) = self.chunk()
+      && let Some(data) = self.find_expose_data(&chunk_ukey, compilation)
+    {
+      dependencies.insert(data.module_map_runtime_requirements);
+    }
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies,
+      ..Default::default()
+    }
+  }
+
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }
@@ -64,14 +84,14 @@ impl RuntimeModule for ExposeRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let chunk_ukey = self
-      .chunk
+      .chunk()
       .expect("should have chunk in <ExposeRuntimeModule as RuntimeModule>::generate");
     let Some(data) = self.find_expose_data(&chunk_ukey, compilation) else {
       return Ok(String::new());
     };
     let mut runtime_template = compilation.runtime_template.create_module_code_template();
     let module_map = data.module_map.render(&mut runtime_template);
-    let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let require_name = module_require_scope_name(compilation, &mut runtime_template);
     let mut source = format!(
       r#"
     {require_name}.initializeExposesData = {{

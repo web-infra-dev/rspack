@@ -48,7 +48,7 @@ export default {
 
 ### Combining multiple loaders
 
-You can chain multiple loaders for a particular [Rule](/config/module-rules#rules) match, with the loaders executed in right-to-left order.
+You can chain multiple loaders for a particular [Rule](/config/module-rules#rule) match, with the loaders executed in right-to-left order.
 
 For example, you can use [less-loader](https://github.com/webpack/less-loader) to do the transformation between Less to CSS types and [postcss-loader](https://github.com/webpack/postcss-loader) for the transformed source code to perform a secondary transformation, which will then get passed to Rspack's CSS post-processor for further processing.
 
@@ -145,7 +145,7 @@ export default {
 };
 ```
 
-For details, you can refer to [loader-api](/api/loader-api/index)
+For details, you can refer to [loader-api](/api/loader-api/)
 
 ### Using built-in loader
 

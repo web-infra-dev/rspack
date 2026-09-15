@@ -4,9 +4,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import vm, { SourceTextModule } from 'node:vm';
 import type { RspackOptions, StatsCompilation } from '@rspack/core';
 import { enableEsmLibraryPlugin } from '../../case/config';
-import asModule from '../../helper/legacy/asModule';
-import createFakeWorker from '../../helper/legacy/createFakeWorker';
-import urlToRelativePath from '../../helper/legacy/urlToRelativePath';
+import { asModule } from '../../helper/legacy/asModule';
+import { createFakeWorker } from '../../helper/legacy/createFakeWorker';
+import { urlToRelativePath } from '../../helper/legacy/urlToRelativePath';
 import {
   EEsmMode,
   type IGlobalContext,
@@ -66,6 +66,7 @@ export class NodeRunner implements ITestRunner {
   protected globalContext: IGlobalContext | null = null;
   protected baseModuleScope: IModuleScope | null = null;
   protected requirers: Map<string, TRunnerRequirer> = new Map();
+  protected runQueue: Promise<void> | undefined;
   constructor(protected _options: INodeRunnerOptions) {}
 
   protected log(message: string) {
@@ -73,6 +74,22 @@ export class NodeRunner implements ITestRunner {
   }
 
   run(file: string): Promise<unknown> {
+    // Keep runs on the same NodeRunner serialized. ESM linking/evaluation can
+    // continue asynchronously after runFile returns a promise; if another run
+    // recreates baseModuleScope/requirers before that continuation finishes,
+    // dynamic lookups through this.requirers may mix SourceTextModules from
+    // different vm.Context instances and Node will reject the link.
+    const run = this.runQueue
+      ? this.runQueue.then(() => this.runFile(file))
+      : this.runFile(file);
+    this.runQueue = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  }
+
+  protected runFile(file: string): Promise<unknown> {
     if (!this.globalContext) {
       this.globalContext = this.createGlobalContext();
     }
@@ -407,7 +424,10 @@ export class NodeRunner implements ITestRunner {
           currentModuleScope.__STATS_I__ = statsIndex;
         }
       }
-      if (file.content.includes('webpack/runtime/startup_chunk_dependencies')) {
+      if (
+        file.content.includes('webpack/runtime/startup_chunk_dependencies') ||
+        file.content.includes('rspack/runtime/startup_chunk_dependencies')
+      ) {
         currentModuleScope.__AFTER_CHUNK_LOADED__ = (next: () => void) => {
           let done;
           const task = new Promise((resolve) => (done = resolve));
@@ -471,7 +491,7 @@ export class NodeRunner implements ITestRunner {
     return (currentDirectory, modulePath, context = {}) => {
       if (!SourceTextModule) {
         throw new Error(
-          "Running this test requires '--experimental-vm-modules'.\nRun with 'node --experimental-vm-modules node_modules/@rstest/core/bin/rstest'.",
+          "Running this test requires '--experimental-vm-modules'.\nRun with 'node --experimental-vm-modules node_modules/rstack/bin/rs.js test'.",
         );
       }
       const _require = this.getRequire();
@@ -510,12 +530,42 @@ export class NodeRunner implements ITestRunner {
           importModuleDynamically: async (
             specifier: any,
             module: { context: any },
+            importAttributes?: { type?: string },
           ) => {
             this.log(`import: ${specifier} from ${file?.path}`);
+            if (importAttributes?.type === 'bytes') {
+              const request = String(specifier).split('?')[0]!;
+              const importedFile = this.getFile(
+                request,
+                path.dirname(file!.path),
+              );
+              if (!importedFile) {
+                throw new Error(`Bytes import not found: ${request}`);
+              }
+              const Uint8ArrayInContext = vm.runInContext(
+                'Uint8Array',
+                module.context,
+              ) as Uint8ArrayConstructor;
+              const bytes = new Uint8ArrayInContext(
+                fs.readFileSync(importedFile.path),
+              );
+              const bytesModule = new vm.SyntheticModule(
+                ['default'],
+                function () {
+                  this.setExport('default', bytes);
+                },
+                { context: module.context },
+              );
+              await bytesModule.link(() => {
+                throw new Error('Unexpected import in bytes module');
+              });
+              await bytesModule.evaluate();
+              return bytesModule;
+            }
             const result = await _require(path.dirname(file!.path), specifier, {
               esmMode: EEsmMode.Evaluated,
             });
-            return await asModule(result, module.context);
+            return asModule(result, module.context);
           },
         } as any);
         esmCache.set(file.path, esm);
@@ -524,7 +574,7 @@ export class NodeRunner implements ITestRunner {
       return (async () => {
         if (esm.status === 'unlinked') {
           await esm.link(async (specifier, referencingModule) => {
-            return await asModule(
+            return asModule(
               await _require(
                 path.dirname(
                   referencingModule.identifier

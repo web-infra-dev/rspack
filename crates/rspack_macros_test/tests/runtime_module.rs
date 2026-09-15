@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use rspack_core::{RuntimeModule, RuntimeModuleGenerateContext, rspack_sources::Source};
+use rspack_core::{RuntimeModule, RuntimeModuleGenerateContext};
 use rspack_macros::impl_runtime_module;
 
 #[allow(dead_code)]
@@ -14,6 +14,10 @@ fn with_generic() {
 
   #[async_trait::async_trait]
   impl<T: std::fmt::Debug + Send + Sync + Eq + 'static> RuntimeModule for Foo<T> {
+    fn runtime_module_variables() -> &'static [&'static str] {
+      &[]
+    }
+
     async fn generate(&self, _: &RuntimeModuleGenerateContext<'_>) -> rspack_error::Result<String> {
       todo!()
     }

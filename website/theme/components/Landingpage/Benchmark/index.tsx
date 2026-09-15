@@ -1,14 +1,14 @@
 import {
   Benchmark as BaseBenchmark,
   type BenchmarkData,
-} from '@rstack-dev/doc-ui/benchmark';
+} from '@rstackjs/doc-ui/benchmark';
 import {
   containerStyle,
   descStyle,
   innerContainerStyle,
   titleAndDescStyle,
   titleStyle,
-} from '@rstack-dev/doc-ui/section-style';
+} from '@rstackjs/doc-ui/section-style';
 import { memo } from 'react';
 import { useI18n } from '../../../i18n';
 import styles from './index.module.scss';

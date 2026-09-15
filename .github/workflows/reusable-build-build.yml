@@ -19,25 +19,35 @@ on:
       binding_postfix: # specify extra postfix for binding artifact
         required: false
         type: string
+      force-rebuild: # Disable Rust cache and build from scratch, e.g. for release builds
+        required: false
+        type: boolean
+        default: false
 
 env:
   # Since CI builds are more akin to from-scratch builds, incremental compilation adds unnecessary dependency-tracking and IO overhead, reducing caching effectiveness.
   # https://github.com/rust-lang/rust-analyzer/blob/25368d24308d6a94ffe8b99f0122bcf5a2175322/.github/workflows/ci.yaml#L11
   CARGO_INCREMENTAL: 0
+  MEASURE_CARGO_FRESH: ${{ inputs.profile == 'ci' && '1' || '' }}
 
 jobs:
   build:
-    name: Build
+    name: Build ${{ inputs.target }}${{ inputs.binding_postfix }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     defaults:
       run:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
+
+      - name: Disable CPU hogs (Windows)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        uses: ./.github/actions/windows-disable-cpu-hogs
 
       - name: Download and install zstd
         if: ${{ runner.os == 'Windows' }}
@@ -54,10 +64,7 @@ jobs:
         uses: ./.github/actions/pnpm/setup
 
       - name: Install Binding Dependencies
-        run: |
-          cd ./crates/node_binding
-          pnpm i --ignore-workspace --no-lockfile
-          cd ../../
+        run: pnpm --filter @rspack/binding install --frozen-lockfile
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -65,6 +72,7 @@ jobs:
           key: ${{ inputs.target }}-${{ inputs.profile }}
           # don't need use cache in self-hosted windows; benefits of build with cargo build are wasted by cache restore
           save-if: true
+          use-cache: ${{ !inputs.force-rebuild }}
 
       - name: Setup Zig for musl build
         if: ${{ contains(inputs.target, 'musl') }}
@@ -74,9 +82,13 @@ jobs:
 
       - name: Install cargo-zigbuild for musl build
         if: ${{ contains(inputs.target, 'musl') }}
-        uses: taiki-e/install-action@0abfcd587b70a713fdaa7fb502c885e2112acb15 # v2
+        uses: taiki-e/install-action@16b05812d776ae1dfaabc8277e421fb6d2506419 # v2
         with:
           tool: cargo-zigbuild
+
+      - name: Install clang with PowerPC and SystemZ backends
+        if: ${{ inputs.target == 'powerpc64le-unknown-linux-gnu' || inputs.target == 's390x-unknown-linux-gnu' }}
+        run: command -v clang-15 || { sudo apt-get update && sudo apt-get install -y clang-15; }
 
       # setup rust target for native runner
       - name: Setup Rust Target
@@ -89,6 +101,10 @@ jobs:
         run: |
           echo $'\n' >> .cargo/config.toml
           echo 'trim-paths = true' >> .cargo/config.toml
+
+      - name: Enable checksum-freshness (CI profile only)
+        if: ${{ inputs.profile == 'ci' }}
+        run: echo 'checksum-freshness = true' >> .cargo/config.toml
 
       # Fix: Resolve disk space error "ENOSPC: no space left on device" on GitHub Actions runners
       - name: Free disk cache
@@ -110,6 +126,17 @@ jobs:
         env:
           TARGET_CC: clang
 
+      # `@napi-rs/cross-toolchain` does not support riscv64 right now
+      - name: Build riscv64gc-unknown-linux-gnu
+        if: ${{ inputs.target == 'riscv64gc-unknown-linux-gnu' }}
+        run: |
+          sudo apt update
+          sudo apt install -y gcc-riscv64-linux-gnu
+          export CC_riscv64gc_unknown_linux_gnu=riscv64-linux-gnu-gcc
+          export CXX_riscv64gc_unknown_linux_gnu=riscv64-linux-gnu-g++
+          export AR_riscv64gc_unknown_linux_gnu=riscv64-linux-gnu-ar
+          RUST_TARGET=riscv64gc-unknown-linux-gnu pnpm build:binding:${{ inputs.profile }}
+
       - name: Build x86_64-unknown-linux-musl
         if: ${{ inputs.target == 'x86_64-unknown-linux-musl' }}
         run: RUST_TARGET=x86_64-unknown-linux-musl USE_ZIG=1 pnpm build:binding:${{ inputs.profile }}
@@ -121,6 +148,24 @@ jobs:
         run: RUST_TARGET=aarch64-unknown-linux-musl USE_ZIG=1 pnpm build:binding:${{ inputs.profile }}
         env:
           TARGET_CC: clang
+
+      - name: Build riscv64gc-unknown-linux-musl
+        if: ${{ inputs.target == 'riscv64gc-unknown-linux-musl' }}
+        run: RUST_TARGET=riscv64gc-unknown-linux-musl USE_ZIG=1 pnpm build:binding:${{ inputs.profile }}
+        env:
+          TARGET_CC: clang
+
+      - name: Build powerpc64le-unknown-linux-gnu
+        if: ${{ inputs.target == 'powerpc64le-unknown-linux-gnu' }}
+        run: RUST_TARGET=powerpc64le-unknown-linux-gnu USE_NAPI_CROSS=1 pnpm build:binding:${{ inputs.profile }}
+        env:
+          TARGET_CC: clang-15
+
+      - name: Build s390x-unknown-linux-gnu
+        if: ${{ inputs.target == 's390x-unknown-linux-gnu' }}
+        run: RUST_TARGET=s390x-unknown-linux-gnu USE_NAPI_CROSS=1 pnpm build:binding:${{ inputs.profile }}
+        env:
+          TARGET_CC: clang-15
 
       # Windows
       - name: Build i686-pc-windows-msvc
@@ -164,17 +209,31 @@ jobs:
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm build:binding:${{ inputs.profile }}
           cp crates/node_binding/rspack.wasm32-wasi.wasm crates/node_binding/rspack.browser.wasm
 
-      # WASM Release (use profile = release-wasi) + wasm-opt
-      - name: Build wasm32-wasip1-threads(release-wasi) with linux
+      - name: Setup binaryen
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' }}
         run: |
-          pnpm --filter @rspack/binding build:release:browser
-          pnpm --filter @rspack/binding build:release:wasm
+          curl -fsSL -o "$RUNNER_TEMP/binaryen.tar.gz" \
+            "https://github.com/WebAssembly/binaryen/releases/download/version_${BINARYEN_VERSION}/binaryen-version_${BINARYEN_VERSION}-x86_64-linux.tar.gz"
+          tar xz -C "$RUNNER_TEMP" -f "$RUNNER_TEMP/binaryen.tar.gz" "binaryen-version_$BINARYEN_VERSION/bin/wasm-opt"
+          echo "$RUNNER_TEMP/binaryen-version_$BINARYEN_VERSION/bin" >> "$GITHUB_PATH"
+        env:
+          BINARYEN_VERSION: '131'
 
-          npm install -g binaryen
-          wasm-opt -Oz crates/node_binding/rspack.wasm32-wasi.wasm -o crates/node_binding/rspack.wasm32-wasi.optimized.wasm & wasm-opt -Oz crates/node_binding/rspack.browser.wasm -o crates/node_binding/rspack.browser.optimized.wasm &
-          wait
+      # WASM Release (use profile = release-wasi) + wasm-opt
+      # The wasi and browser variants are split into two parallel matrix jobs
+      # (see reusable-release-npm.yml) and selected here via binding_postfix.
+      - name: Build wasm32-wasip1-threads wasi variant (release-wasi) with linux
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' && inputs.binding_postfix == '' }}
+        run: |
+          pnpm --filter @rspack/binding build:release:wasm
+          wasm-opt -Oz crates/node_binding/rspack.wasm32-wasi.wasm -o crates/node_binding/rspack.wasm32-wasi.optimized.wasm
           mv crates/node_binding/rspack.wasm32-wasi.optimized.wasm crates/node_binding/rspack.wasm32-wasi.wasm
+
+      - name: Build wasm32-wasip1-threads browser variant (release-wasi) with linux
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' && inputs.binding_postfix == '-browser' }}
+        run: |
+          pnpm --filter @rspack/binding build:release:browser
+          wasm-opt -Oz crates/node_binding/rspack.browser.wasm -o crates/node_binding/rspack.browser.optimized.wasm
           mv crates/node_binding/rspack.browser.optimized.wasm crates/node_binding/rspack.browser.wasm
 
       - name: Diff artifact

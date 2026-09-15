@@ -1,17 +1,17 @@
-use std::hash::Hash;
+use std::sync::Arc;
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGenerationResult, Compilation, CompilerOptions, DependenciesBlock, DependencyId, FactoryMeta,
-  Module, ModuleCodeGenerationContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
+  BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder, Compilation,
+  CompilerOptions, DependenciesBlock, DependenciesBlockData, FactoryMetaStore, FreezeLock, Module,
+  ModuleCodeGenerationContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
   ModuleFactoryResult, ModuleGraph, ModuleLayer, RuntimeSpec, SourceType, impl_module_meta_info,
   impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
-use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_util::{ext::DynHash, itoa};
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
+use rspack_util::{identifier::split_at_query_mark, itoa};
 
 use crate::{
   css_dependency::CssDependency,
@@ -32,18 +32,17 @@ pub(crate) struct CssModule {
   pub(crate) css_layer: Option<String>,
   pub(crate) identifier_index: u32,
 
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  factory_meta: FactoryMetaStore,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
 
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  dependencies: Vec<DependencyId>,
+  dependencies_block: DependenciesBlockData,
 
   identifier__: Identifier,
 }
 
 impl CssModule {
-  pub fn new(dep: CssDependency) -> Self {
+  pub fn new(dep: &CssDependency) -> Self {
     let mut identifier_index_buffer = itoa::Buffer::new();
     let identifier_index_str = identifier_index_buffer.format(dep.identifier_index);
     let identifier__ = format!(
@@ -57,27 +56,24 @@ impl CssModule {
     .into();
 
     Self {
-      identifier: dep.identifier,
-      content: dep.content,
+      identifier: dep.identifier.clone(),
+      content: dep.content.clone(),
       module_layer: dep.module_layer.clone(),
       css_layer: dep.css_layer.clone(),
-      _context: dep.context,
-      media: dep.media,
-      supports: dep.supports,
-      source_map: dep.source_map,
+      _context: dep.context.clone(),
+      media: dep.media.clone(),
+      supports: dep.supports.clone(),
+      source_map: dep.source_map.clone(),
       identifier_index: dep.identifier_index,
-      blocks: vec![],
-      dependencies: vec![],
-      factory_meta: None,
+      dependencies_block: Default::default(),
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         cacheable: dep.cacheable,
         strict: true,
-        file_dependencies: dep.file_dependencies,
-        context_dependencies: dep.context_dependencies,
-        missing_dependencies: dep.missing_dependencies,
-        build_dependencies: dep.build_dependencies,
+        dependencies: dep.dependencies.clone(),
         ..Default::default()
-      },
+      }
+      .into(),
       build_meta: Default::default(),
       source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
       identifier__,
@@ -85,7 +81,7 @@ impl CssModule {
   }
 
   fn compute_hash(&self, options: &CompilerOptions) -> RspackHashDigest {
-    let mut hasher = RspackHash::from(&options.output);
+    let mut hasher = RspackHasher::from(&options.output);
 
     self.content.hash(&mut hasher);
     if let Some(layer) = &self.css_layer {
@@ -143,7 +139,7 @@ impl Module for CssModule {
       .identifier
       .split('!')
       .next_back()
-      .map(|resource| resource.split('?').next().unwrap_or(resource).into())
+      .map(|resource| split_at_query_mark(resource).0.into())
   }
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
@@ -168,24 +164,19 @@ impl Module for CssModule {
 
   async fn build(
     mut self: Box<Self>,
-    build_context: BuildContext,
+    build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
-    self.build_info.hash = Some(self.compute_hash(&build_context.compiler_options));
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies: vec![],
-      blocks: vec![],
-      optimization_bailouts: vec![],
-    })
+  ) -> Result<BoxModule> {
+    self.build_info.get_mut().hash = Some(self.compute_hash(&build_context.compiler_options));
+    Ok(BoxModule::new(self))
   }
 
   // #[tracing::instrument("ExtractCssModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
     _code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
-    Ok(CodeGenerationResult::default())
+  ) -> Result<CodeGenerationResultBuilder> {
+    Ok(CodeGenerationResultBuilder::default())
   }
 
   async fn get_runtime_hash(
@@ -193,9 +184,9 @@ impl Module for CssModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHash::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options.output);
     module_update_hash(self, &mut hasher, compilation, runtime);
-    self.build_info.hash.dyn_hash(&mut hasher);
+    self.build_info.read().hash.hash(&mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 
@@ -211,24 +202,12 @@ impl Identifiable for CssModule {
 }
 
 impl DependenciesBlock for CssModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency)
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }
 
@@ -243,7 +222,7 @@ impl ModuleFactory for CssModuleFactory {
       .expect("unreachable");
 
     Ok(ModuleFactoryResult::new_with_module(
-      CssModule::new(css_dep.clone()).boxed(),
+      CssModule::new(css_dep).boxed(),
     ))
   }
 }

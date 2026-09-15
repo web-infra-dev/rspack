@@ -1,21 +1,27 @@
-use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
+use std::sync::atomic::{AtomicBool, Ordering};
+
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  rkyv::with::{AtomicLoad, Relaxed},
+  with::AsPreset,
+};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AwaitDependenciesInitFragment, BuildMetaDefaultObject, ChunkGraph,
   ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportProvided, ExportsInfoArtifact, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  ForwardId, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  PrefetchExportsInfoMode, ProvidedExports, ResourceIdentifier, RuntimeCondition, RuntimeSpec,
-  SideEffectsStateArtifact, SourceType, TemplateContext, TemplateReplaceSource,
+  DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
+  DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportProvided, ExportsInfoArtifact,
+  ExportsType, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, ProvidedExports, ReferencedExport, ResourceIdentifier, RuntimeCondition,
+  RuntimeSpec, SideEffectsStateArtifact, SourceType, TemplateContext, TemplateReplaceSource,
   TypeReexportPresenceMode, filter_runtime,
 };
 use rspack_error::{Diagnostic, Error, Severity};
-use swc_core::ecma::atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
+use crate::Atom;
 
 // TODO: find a better way to implement this for performance
 // Align with https://github.com/webpack/webpack/blob/51f0f0aeac072f989f8d40247f6c23a1995c5c37/lib/dependencies/HarmonyImportDependency.js#L361-L365
@@ -57,7 +63,7 @@ pub mod import_emitted_runtime {
 
 // ESMImportDependency is merged ESMImportSideEffectDependency.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ESMImportSideEffectDependency {
   #[cacheable(with=AsPreset)]
   request: Atom,
@@ -69,8 +75,8 @@ pub struct ESMImportSideEffectDependency {
   attributes: Option<ImportAttributes>,
   resource_identifier: ResourceIdentifier,
   loc: Option<DependencyLocation>,
-  factorize_info: FactorizeInfo,
-  lazy_make: bool,
+  #[cacheable(with=AtomicLoad<Relaxed>)]
+  lazy_make: AtomicBool,
   star_export: bool,
 }
 
@@ -87,7 +93,7 @@ impl ESMImportSideEffectDependency {
     star_export: bool,
   ) -> Self {
     let resource_identifier =
-      create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
+      create_resource_identifier_for_esm_dependency(&request, phase, attributes.as_ref());
     Self {
       id: DependencyId::new(),
       source_order,
@@ -98,14 +104,13 @@ impl ESMImportSideEffectDependency {
       attributes,
       resource_identifier,
       loc,
-      factorize_info: Default::default(),
-      lazy_make: false,
+      lazy_make: AtomicBool::new(false),
       star_export,
     }
   }
 
   fn missing_module_active(&self) -> bool {
-    !self.lazy_make
+    !self.lazy_make.load(Ordering::Relaxed)
   }
 }
 
@@ -283,6 +288,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
   name: &Atom,
   is_reexport: bool,
   should_error: bool,
+  diagnostics_context: &DependencyDiagnosticsContext,
 ) -> Option<Diagnostic> {
   let imported_module = module_graph.get_module_by_dependency_id(module_dependency.id())?;
   if imported_module.first_error().is_some() {
@@ -298,7 +304,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
     module_graph,
     module_graph_cache,
     exports_info_artifact,
-    parent_module.build_meta().strict_esm_module,
+    parent_module.build_meta().strict_esm_module(),
   );
   let additional_msg = || {
     if is_reexport {
@@ -314,10 +320,10 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       (Severity::Warning, "ESModulesLinkingWarning")
     };
     let mut error = if let Some(span) = module_dependency.range()
-      && let Some(source) = parent_module.source()
+      && let Some(source) = diagnostics_context.module_source(parent_module.as_ref())
     {
-      Error::from_string(
-        Some(source.source().into_string_lossy().into_owned()),
+      Error::from_shared_source(
+        Some(source),
         span.start as usize,
         span.end as usize,
         title.to_string(),
@@ -342,13 +348,10 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       return None;
     }
     let imported_module_identifier = imported_module.identifier();
-    let exports_info = exports_info_artifact.get_prefetched_exports_info(
-      &imported_module_identifier,
-      PrefetchExportsInfoMode::Nested(ids),
-    );
+    let exports_info = exports_info_artifact.get_exports_info_data(&imported_module_identifier);
     if (!matches!(exports_type, ExportsType::DefaultWithNamed) || ids[0] != "default")
       && matches!(
-        exports_info.is_export_provided(ids),
+        exports_info.is_export_provided(exports_info_artifact, ids),
         Some(ExportProvided::NotProvided)
       )
     {
@@ -372,11 +375,9 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         .is_some()
         && ids.len() == 1
         && matches!(
-          exports_info_artifact.get_prefetched_exports_info(
-            parent_module_identifier,
-            PrefetchExportsInfoMode::Default,
-          )
-            .is_export_provided(std::slice::from_ref(name)),
+          exports_info_artifact
+            .get_exports_info_data(parent_module_identifier)
+            .is_export_provided(exports_info_artifact, std::slice::from_ref(name)),
           Some(ExportProvided::Provided)
         )
       {
@@ -396,10 +397,8 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         }
       }
       let mut pos = 0;
-      let mut maybe_exports_info = Some(exports_info_artifact.get_prefetched_exports_info(
-        &imported_module_identifier,
-        PrefetchExportsInfoMode::Nested(ids),
-      ));
+      let mut maybe_exports_info =
+        Some(exports_info_artifact.get_exports_info_data(&imported_module_identifier));
       while pos < ids.len()
         && let Some(exports_info) = &maybe_exports_info
       {
@@ -441,7 +440,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
           maybe_exports_info = None;
           continue;
         };
-        maybe_exports_info = Some(exports_info.redirect(nested_exports_info, true));
+        maybe_exports_info = Some(nested_exports_info.as_data(exports_info_artifact));
       }
       let msg = format!(
         "export {} {} was not found in '{}'",
@@ -476,7 +475,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       if !ids.is_empty()
         && ids[0] != "default"
         && matches!(
-          imported_module.build_meta().default_object,
+          imported_module.build_meta().default_object(),
           BuildMetaDefaultObject::RedirectWarn
         )
         // Ignore the JSON named exports warning: this doesn't follow the standards
@@ -605,7 +604,7 @@ impl Dependency for ESMImportSideEffectDependency {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     vec![]
   }
 
@@ -618,7 +617,7 @@ impl Dependency for ESMImportSideEffectDependency {
   }
 
   fn lazy(&self) -> Option<LazyUntil> {
-    self.lazy_make.then(|| {
+    self.lazy_make.load(Ordering::Relaxed).then(|| {
       if self.star_export {
         LazyUntil::Fallback
       } else {
@@ -627,14 +626,12 @@ impl Dependency for ESMImportSideEffectDependency {
     })
   }
 
-  fn set_lazy(&mut self) {
-    self.lazy_make = true;
+  fn set_lazy(&self) {
+    self.lazy_make.store(true, Ordering::Relaxed);
   }
 
-  fn unset_lazy(&mut self) -> bool {
-    let changed = self.lazy_make;
-    self.lazy_make = false;
-    changed
+  fn unset_lazy(&self) -> bool {
+    self.lazy_make.swap(false, Ordering::Relaxed)
   }
 }
 
@@ -652,14 +649,6 @@ impl ModuleDependency for ESMImportSideEffectDependency {
     Some(DependencyCondition::new(
       ESMImportSideEffectDependencyCondition,
     ))
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

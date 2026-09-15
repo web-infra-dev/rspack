@@ -1,9 +1,9 @@
-const rspack = require('@rspack/core');
+import rspack from '@rspack/core';
 
 /** @type {import("@rspack/core").Configuration} */
-module.exports = {
+export default {
   entry: './index.js',
-  context: __dirname,
+  context: import.meta.dirname,
   // use production mod to make sure
   // the persistent cache will write to disk
   mode: 'production',

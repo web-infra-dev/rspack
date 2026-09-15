@@ -1,0 +1,8 @@
+```mjs title=main.mjs
+export * from "externals";
+// ./index.js
+
+
+export {};
+
+```

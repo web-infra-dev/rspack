@@ -1,4 +1,4 @@
-<%- HMR_DOWNLOAD_MANIFEST %> = <%- basicFunction("") %> {
+<%- define(HMR_DOWNLOAD_MANIFEST) %> = <%- basicFunction("") %> {
 	return Promise.resolve()
 		.then(<%- basicFunction("") %> {
 			return require("./" + <%- GET_UPDATE_MANIFEST_FILENAME %>());

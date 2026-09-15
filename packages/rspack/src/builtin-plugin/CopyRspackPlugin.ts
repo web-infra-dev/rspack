@@ -42,8 +42,7 @@ export const CopyRspackPlugin = create(
         } else {
           pattern.transform = (input, absoluteFilename) =>
             Promise.resolve(originalTransform(input, absoluteFilename)) as
-              | Promise<string>
-              | Promise<Buffer>;
+              Promise<string> | Promise<Buffer>;
         }
       }
 

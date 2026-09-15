@@ -1,11 +1,8 @@
 use std::{
-  hash::{Hash, Hasher},
+  fmt::{Display, Formatter},
+  hash::Hasher,
   path::Path,
-  sync::{
-    LazyLock, Mutex,
-    atomic::{AtomicU32, Ordering},
-    mpsc,
-  },
+  sync::{LazyLock, Mutex, mpsc},
 };
 
 use cow_utils::CowUtils;
@@ -13,19 +10,18 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
-  CompilerCompilation, Logger, Plugin,
-  cache::persistent::occasion::minimize::{
-    CachedExtractedComments, CachedMinimizeEntry, MinimizeCacheKey,
-  },
+  AssetInfo, CacheOptions, CacheValue, ChunkUkey, Compilation, CompilationAsset, CompilationParams,
+  CompilationProcessAssets, CompilerCompilation, Etag, Logger, Plugin,
+  cache::{CachedExtractedComments, CachedMinimizeEntry},
   diagnostics::MinifyError,
+  legacy_cache::persistent::occasion::minimize::MinimizeCacheKey,
   rspack_sources::{
-    ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMapSource,
-    SourceMapSourceOptions,
+    BoxSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt,
+    SourceMapSource, SourceMapSourceOptions,
   },
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_hash::RspackHash;
+use rspack_hash::RspackHasher;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_javascript_compiler::JavaScriptCompiler;
 use rspack_plugin_javascript::{ExtractedCommentsInfo, JavascriptModulesChunkHash, JsPlugin};
@@ -50,7 +46,7 @@ const PLUGIN_NAME: &str = "rspack.SwcJsMinimizerRspackPlugin";
 static JAVASCRIPT_ASSET_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.[cm]?js(\?.*)?$").expect("Invalid RegExp"));
 
-#[derive(Debug, Hash)]
+#[derive(Debug, Hash, rspack_hash::RspackHash)]
 pub struct PluginOptions {
   pub test: Option<AssetConditions>,
   pub include: Option<AssetConditions>,
@@ -76,11 +72,40 @@ pub struct MinimizerOptions {
   pub __format_cache: OnceCell<String>,
 }
 
+impl rspack_hash::RspackHash for MinimizerOptions {
+  fn hash(&self, state: &mut RspackHasher) {
+    rspack_hash::RspackHash::hash(
+      self
+        .__format_cache
+        .get_or_init(|| simd_json::to_string(&self.format).expect("Should be able to serialize")),
+      state,
+    );
+    rspack_hash::RspackHash::hash(
+      self.__compress_cache.get_or_init(|| {
+        self
+          .compress
+          .as_ref()
+          .map(|v| simd_json::to_string(v).expect("Should be able to serialize"))
+      }),
+      state,
+    );
+    rspack_hash::RspackHash::hash(
+      self.__mangle_cache.get_or_init(|| {
+        self
+          .mangle
+          .as_ref()
+          .map(|v| simd_json::to_string(v).expect("Should be able to serialize"))
+      }),
+      state,
+    );
+  }
+}
+
 impl std::hash::Hash for MinimizerOptions {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self
       .__format_cache
-      .get_or_init(|| serde_json::to_string(&self.format).expect("Should be able to serialize"))
+      .get_or_init(|| simd_json::to_string(&self.format).expect("Should be able to serialize"))
       .hash(state);
     self
       .__compress_cache
@@ -88,7 +113,7 @@ impl std::hash::Hash for MinimizerOptions {
         self
           .compress
           .as_ref()
-          .map(|v| serde_json::to_string(v).expect("Should be able to serialize"))
+          .map(|v| simd_json::to_string(v).expect("Should be able to serialize"))
       })
       .hash(state);
     self
@@ -97,27 +122,48 @@ impl std::hash::Hash for MinimizerOptions {
         self
           .mangle
           .as_ref()
-          .map(|v| serde_json::to_string(v).expect("Should be able to serialize"))
+          .map(|v| simd_json::to_string(v).expect("Should be able to serialize"))
       })
       .hash(state);
   }
 }
 
 #[derive(Debug, Hash)]
-pub enum OptionWrapper<T: std::fmt::Debug + Hash> {
+pub enum OptionWrapper<T: std::fmt::Debug + std::hash::Hash> {
   Default,
   Disabled,
   Custom(T),
 }
 
-#[derive(Debug)]
+impl<T: std::fmt::Debug + std::hash::Hash> Display for OptionWrapper<T> {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    f.write_str(match self {
+      OptionWrapper::Default => "default",
+      OptionWrapper::Disabled => "disabled",
+      OptionWrapper::Custom(_) => "custom",
+    })
+  }
+}
+
+impl<T: std::fmt::Debug + std::hash::Hash + rspack_hash::RspackHash> rspack_hash::RspackHash
+  for OptionWrapper<T>
+{
+  fn hash(&self, state: &mut RspackHasher) {
+    rspack_hash::RspackHash::hash(&self.to_string(), state);
+    if let OptionWrapper::Custom(value) = self {
+      rspack_hash::RspackHash::hash(value, state);
+    }
+  }
+}
+
+#[derive(Debug, rspack_hash::RspackHash)]
 pub struct ExtractComments {
   pub condition: String,
   pub condition_flags: String,
   pub banner: OptionWrapper<String>,
 }
 
-impl Hash for ExtractComments {
+impl std::hash::Hash for ExtractComments {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.condition.as_str().hash(state);
     self.condition_flags.as_str().hash(state);
@@ -141,6 +187,8 @@ pub struct SwcJsMinimizerRspackPlugin {
 
 impl SwcJsMinimizerRspackPlugin {
   pub fn new(options: PluginOptions) -> Self {
+    use std::hash::Hash;
+
     let mut hasher = FxHasher::default();
     PLUGIN_NAME.hash(&mut hasher);
     options.hash(&mut hasher);
@@ -166,9 +214,9 @@ async fn js_chunk_hash(
   &self,
   _compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
-  hasher: &mut RspackHash,
+  hasher: &mut RspackHasher,
 ) -> Result<()> {
-  self.options_hash.hash(hasher);
+  rspack_hash::RspackHash::hash(&self.options, hasher);
   Ok(())
 }
 
@@ -177,13 +225,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
 
-  // Take persistent cache out if enabled. When Some, we compute cache keys and
-  // do lookups; when None, we skip all cache overhead entirely.
-  let minimize_persistent_cache = compilation.minimize_persistent_cache_artifact.take();
-  let new_persistent_cache_entries: Mutex<Vec<(MinimizeCacheKey, CachedMinimizeEntry)>> =
+  let new_cache = (compilation.options.experiments.new_cache.minimize
+    && !matches!(&compilation.options.cache, CacheOptions::Disabled))
+  .then(|| compilation.get_cache(PLUGIN_NAME));
+  let minimize_persistent_cache = compilation.minimize_persistent_cache.take();
+  let legacy_cache_entries: Mutex<Vec<(MinimizeCacheKey, CachedMinimizeEntry)>> =
     Mutex::new(Vec::new());
-  let cache_hits = AtomicU32::new(0);
-  let cache_misses = AtomicU32::new(0);
+  let logger = compilation.get_logger(PLUGIN_NAME);
+  let minimize_cache_counter = (new_cache.is_some() || minimize_persistent_cache.is_some())
+    .then(|| logger.cache("minimize persistent cache"));
 
   let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
   // collect all extracted comments info
@@ -216,61 +266,65 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       true
     })
-    .try_for_each_with(tx,|tx, (filename, original)| -> Result<()>  {
+    .try_for_each_with(tx,|tx, (asset_filename, original)| -> Result<()>  {
       let _guard = enter_span.enter();
-      let filename = filename.split('?').next().expect("Should have filename");
+      let filename = asset_filename.split('?').next().expect("Should have filename");
       if let Some(original_source) = original.get_source() {
-        let is_module = if let Some(module) = minimizer_options.module {
-          Some(module)
-        } else if let Some(module) = original.info.javascript_module {
-          Some(module)
-        } else if filename.ends_with(".mjs") {
-          Some(true)
-        } else if filename.ends_with(".cjs") {
-          Some(false)
+        let is_module = get_is_module(minimizer_options, original, filename);
+
+        let new_cache_entry = if let Some(cache) = &new_cache {
+          let etag = Etag::from(format!(
+            "{:016x}",
+            minimize_cache_hash(original_source, self.options_hash, filename, is_module)
+          ));
+          let value = cache.get::<CachedMinimizeEntry>(asset_filename, Some(etag.clone()));
+          Some((cache, etag, value))
         } else {
           None
         };
 
-        // Compute cache key and check persistent cache (only when enabled)
-        let cache_key = if let Some(cache) = &minimize_persistent_cache {
-          let key = {
-            let mut hasher = FxHasher::default();
-            original_source.buffer().hash(&mut hasher);
-            self.options_hash.hash(&mut hasher);
-            filename.hash(&mut hasher);
-            is_module.hash(&mut hasher);
-            MinimizeCacheKey::new(hasher.finish())
-          };
-
-          // Check persistent cache
-          if let Some(cached) = cache.get(key) {
-            cache_hits.fetch_add(1, Ordering::Relaxed);
-            original.set_source(Some(cached.source.clone()));
-            original.get_info_mut().minimized.replace(true);
-            if let Some(ec) = &cached.extracted_comments {
-              all_extracted_comments
-                .lock()
-                .expect("all_extract_comments lock failed")
-                .insert(
-                  filename.to_string(),
-                  ExtractedCommentsInfo {
-                    source: ec.source.clone(),
-                    comments_file_name: ec.comments_file_name.clone(),
-                  },
-                );
-            }
-            return Ok(());
+        let mut cache_key = None;
+        let cached = if let Some((_, _, cached)) = &new_cache_entry {
+          cached.as_deref()
+        } else if let Some(cache) = &minimize_persistent_cache {
+          let key = MinimizeCacheKey::new(minimize_cache_hash(
+            original_source,
+            self.options_hash,
+            filename,
+            is_module,
+          ));
+          cache_key = Some(key);
+          cache.get(key)
+        } else {
+          None
+        };
+        if let Some(cached) = cached {
+          if let Some(counter) = &minimize_cache_counter {
+            counter.hit();
           }
-
-          cache_misses.fetch_add(1, Ordering::Relaxed);
-          Some(key)
-        } else {
-          None
-        };
+          original.set_source(Some(cached.source.clone()));
+          original.get_info_mut().minimized.replace(true);
+          if let Some(ec) = &cached.extracted_comments {
+            all_extracted_comments
+              .lock()
+              .expect("all_extract_comments lock failed")
+              .insert(
+                filename.to_string(),
+                ExtractedCommentsInfo {
+                  source: ec.source.clone(),
+                  comments_file_name: ec.comments_file_name.clone(),
+                },
+              );
+          }
+          return Ok(());
+        }
+        if (new_cache_entry.is_some() || cache_key.is_some()) && let Some(counter) = &minimize_cache_counter {
+          counter.miss();
+        }
         let input = original_source.source().into_string_lossy().into_owned();
         let object_pool = tls.get_or(ObjectPool::default);
-        let input_source_map = original_source.map(object_pool, &MapOptions::default());
+        let input_source_map =
+          Source::map_static(original_source.clone(), object_pool, &MapOptions::default());
 
         let js_minify_options = rspack_javascript_compiler::minify::JsMinifyOptions {
           minify: minimizer_options.minify.unwrap_or(true),
@@ -454,8 +508,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             },
         };
 
-        // Store result in persistent cache (only when enabled)
-        if let Some(cache_key) = cache_key {
+        if new_cache_entry.is_some() || cache_key.is_some() {
           let extracted_comments_for_cache = all_extracted_comments
             .lock()
             .expect("all_extract_comments lock failed")
@@ -464,17 +517,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               source: ec.source.clone(),
               comments_file_name: ec.comments_file_name.clone(),
             });
-
-          new_persistent_cache_entries
-            .lock()
-            .expect("new_cache_entries lock failed")
-            .push((
-              cache_key,
-              CachedMinimizeEntry {
-                source: source.clone(),
-                extracted_comments: extracted_comments_for_cache,
-              },
-            ));
+          let entry = CachedMinimizeEntry {
+            source: source.clone(),
+            extracted_comments: extracted_comments_for_cache,
+          };
+          if let Some((cache, etag, _)) = &new_cache_entry {
+            cache.store(asset_filename, Some(etag.clone()), CacheValue::new(entry));
+          } else if let Some(cache_key) = cache_key {
+            legacy_cache_entries
+              .lock()
+              .expect("legacy_cache_entries lock failed")
+              .push((cache_key, entry));
+          }
         }
 
         original.set_source(Some(source));
@@ -484,23 +538,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       Ok(())
   })?;
 
-  // Restore persistent cache with new entries (only when enabled)
   if let Some(mut cache) = minimize_persistent_cache {
-    for (key, entry) in new_persistent_cache_entries
+    for (key, entry) in legacy_cache_entries
       .into_inner()
-      .expect("new_persistent_cache_entries lock failed")
+      .expect("legacy_cache_entries lock failed")
     {
       cache.insert(key, entry);
     }
-    compilation.minimize_persistent_cache_artifact = Some(cache);
+    compilation.minimize_persistent_cache = Some(cache);
+  }
 
-    // Log cache statistics
-    let hits = cache_hits.load(Ordering::Relaxed);
-    let misses = cache_misses.load(Ordering::Relaxed);
-    let logger = compilation.get_logger(PLUGIN_NAME);
-    logger.log(format!(
-      "minimize persistent cache: {hits} hit, {misses} miss"
-    ));
+  if let Some(counter) = minimize_cache_counter {
+    logger.cache_end(counter);
   }
 
   compilation.extend_diagnostics(rx.into_iter().flatten().collect::<Vec<_>>());
@@ -525,6 +574,38 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     });
 
   Ok(())
+}
+
+fn minimize_cache_hash(
+  source: &BoxSource,
+  options_hash: u64,
+  filename: &str,
+  is_module: Option<bool>,
+) -> u64 {
+  use std::hash::Hash;
+
+  let mut hasher = FxHasher::default();
+  source.buffer().hash(&mut hasher);
+  options_hash.hash(&mut hasher);
+  filename.hash(&mut hasher);
+  is_module.hash(&mut hasher);
+  hasher.finish()
+}
+
+fn get_is_module(
+  minimizer_options: &MinimizerOptions,
+  asset: &CompilationAsset,
+  filename: &str,
+) -> Option<bool> {
+  minimizer_options
+    .module
+    .or(asset.info.javascript_module)
+    .or_else(|| {
+      filename
+        .ends_with(".mjs")
+        .then_some(true)
+        .or_else(|| filename.ends_with(".cjs").then_some(false))
+    })
 }
 
 pub fn match_object(obj: &PluginOptions, str: &str) -> bool {

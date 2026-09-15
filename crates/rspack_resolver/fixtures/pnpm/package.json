@@ -1,0 +1,13 @@
+{
+  "name": "pnpm",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "axios": "1.16.0",
+    "ipaddr.js": "2.2.0",
+    "postcss": "8.5.10",
+    "styled-components": "6.1.1",
+    "mathjs": "15.2.0",
+    "decimal.js": "10.4.3"
+  }
+}

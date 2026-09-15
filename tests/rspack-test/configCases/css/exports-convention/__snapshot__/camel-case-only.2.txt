@@ -1,10 +1,10 @@
 Object {
-  btnInfoIsDisabled: _style_module_css_camel-case-only-btn-info_is-disabled,
-  btnInfoIsDisabled1: _style_module_css_camel-case-only-btn--info_is-disabled_1,
-  class: _style_module_css_camel-case-only-class,
-  default: _style_module_css_camel-case-only-default,
+  btnInfoIsDisabled: style_module_css_camel-case-only-btn-info_is-disabled,
+  btnInfoIsDisabled1: style_module_css_camel-case-only-btn--info_is-disabled_1,
+  class: style_module_css_camel-case-only-class,
+  default: style_module_css_camel-case-only-default,
   foo: bar,
-  fooBar: _style_module_css_camel-case-only-foo_bar,
+  fooBar: style_module_css_camel-case-only-foo_bar,
   myBtnInfoIsDisabled: value,
-  simple: _style_module_css_camel-case-only-simple,
+  simple: style_module_css_camel-case-only-simple,
 }

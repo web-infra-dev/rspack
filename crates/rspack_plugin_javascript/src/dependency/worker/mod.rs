@@ -1,26 +1,32 @@
 mod create_script_url_dependency;
+use std::sync::LazyLock;
+
+use concat_string::concat_string;
 pub use create_script_url_dependency::{
   CreateScriptUrlDependency, CreateScriptUrlDependencyTemplate,
 };
+use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  ExportsInfoArtifact, JavascriptParserWorkerUrl, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, URLStaticMode,
 };
-use rspack_util::ext::DynHash;
+use rspack_hash::{RspackHash, RspackHasher};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct WorkerDependency {
   id: DependencyId,
   request: String,
   public_path: String,
   range: DependencyRange,
   range_path: DependencyRange,
-  factorize_info: FactorizeInfo,
+  range_request: Option<DependencyRange>,
   need_new_url: bool,
+  url_mode: Option<JavascriptParserWorkerUrl>,
 }
 
 impl WorkerDependency {
@@ -29,7 +35,9 @@ impl WorkerDependency {
     public_path: String,
     range: DependencyRange,
     range_path: DependencyRange,
+    range_request: Option<DependencyRange>,
     need_new_url: bool,
+    url_mode: Option<JavascriptParserWorkerUrl>,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -37,9 +45,39 @@ impl WorkerDependency {
       public_path,
       range,
       range_path,
-      factorize_info: Default::default(),
+      range_request,
       need_new_url,
+      url_mode,
     }
+  }
+
+  pub fn public_path(&self) -> &str {
+    &self.public_path
+  }
+
+  pub fn replace_request(&self, source: &mut TemplateReplaceSource, request: String) {
+    if let Some(range_request) = self.range_request {
+      source.replace(range_request.start, range_request.end, request, None);
+    } else if self.need_new_url {
+      source.insert(
+        self.range_path.start,
+        concat_string!("new URL(", request, ", "),
+        None,
+      );
+      source.insert_static(self.range_path.end, ")", None);
+    } else {
+      source.insert(self.range_path.start, concat_string!(request, ", "), None);
+    }
+  }
+}
+
+impl RspackHash for WorkerDependency {
+  fn hash(&self, state: &mut RspackHasher) {
+    rspack_hash::rspack_hash_object!(state, {
+      "publicPath" => self.public_path.as_str(),
+      "needNewUrl" => self.need_new_url,
+      "urlMode" => self.url_mode,
+    });
   }
 }
 
@@ -67,7 +105,7 @@ impl Dependency for WorkerDependency {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     vec![]
   }
 
@@ -85,14 +123,6 @@ impl ModuleDependency for WorkerDependency {
   fn user_request(&self) -> &str {
     &self.request
   }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
-  }
 }
 
 #[cacheable_dyn]
@@ -103,11 +133,11 @@ impl DependencyCodeGeneration for WorkerDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
+    hasher: &mut RspackHasher,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    self.public_path.dyn_hash(hasher);
+    RspackHash::hash(self, hasher);
   }
 }
 
@@ -116,6 +146,15 @@ impl AsContextDependency for WorkerDependency {}
 #[cacheable]
 #[derive(Debug, Clone, Default)]
 pub struct WorkerDependencyTemplate;
+
+pub static WORKER_STATIC_URL_PLACEHOLDER: &str = "RSPACK_AUTO_WORKER_STATIC_URL_PLACEHOLDER_";
+pub static WORKER_STATIC_URL_PLACEHOLDER_RE: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(&concat_string!(
+    WORKER_STATIC_URL_PLACEHOLDER,
+    r#"(?<dep>\d+)"#
+  ))
+  .expect("should be valid regex")
+});
 
 impl WorkerDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
@@ -161,22 +200,36 @@ impl DependencyTemplate for WorkerDependencyTemplate {
       .and_then(|chunk| chunk.id())
       .map(rspack_util::json_stringify)
       .expect("failed to get json stringified chunk id");
-    let worker_import_base_url = if !dep.public_path.is_empty() {
-      format!("\"{}\"", dep.public_path)
+    let mut worker_import_str = if matches!(
+      dep.url_mode,
+      Some(JavascriptParserWorkerUrl::NewUrlRelative)
+    ) && compilation.options.output.module
+    {
+      code_generatable_context.data.insert(URLStaticMode);
+      let request = rspack_util::json_stringify_str(&concat_string!(
+        WORKER_STATIC_URL_PLACEHOLDER,
+        dep.id.as_u32().to_string()
+      ));
+      dep.replace_request(source, request);
+      return;
     } else {
-      runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH)
+      let worker_import_base_url = if !dep.public_path.is_empty() {
+        format!("\"{}\"", dep.public_path)
+      } else {
+        runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH)
+      };
+
+      format!(
+        "/* worker import */{} + {}({}), {}",
+        worker_import_base_url,
+        runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
+        chunk_id,
+        runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI)
+      )
     };
 
-    let mut worker_import_str = format!(
-      "/* worker import */{} + {}({}), {}",
-      worker_import_base_url,
-      runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
-      chunk_id,
-      runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI)
-    );
-
     if dep.need_new_url {
-      worker_import_str = format!("new URL({worker_import_str})");
+      worker_import_str = concat_string!("new URL(", worker_import_str, ")");
     }
 
     source.replace(

@@ -25,6 +25,7 @@ impl ModuleFactory for ContainerEntryModuleFactory {
           dep.name.clone(),
           dep.request.clone().expect("should have request"),
           dep.version.clone().expect("should have version"),
+          data.build_context.compiler_options.experiments.runtime_mode,
         )
         .boxed(),
       ))
@@ -35,6 +36,7 @@ impl ModuleFactory for ContainerEntryModuleFactory {
           dep.exposes.clone(),
           dep.share_scope.clone(),
           dep.enhanced,
+          data.build_context.compiler_options.experiments.runtime_mode,
         )
         .boxed(),
       ))
