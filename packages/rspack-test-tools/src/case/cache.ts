@@ -35,10 +35,7 @@ export type TCacheCaseOptions = {
   newCache?: boolean;
 };
 
-type CacheStats = Record<
-  string,
-  { hits: number; total: number; hitRate: number }
->;
+type CacheStats = Record<string, { hits: number; total: number }>;
 
 const builtModulesByCompilation = new WeakMap<Compilation, Set<string>>();
 
@@ -125,7 +122,8 @@ function createCacheProcessor(
     if (unchanged && !stats.hasErrors()) {
       const expected = context.getTestConfig().cacheHitRate || {};
       for (const [index, compilerStats] of cacheStats.entries()) {
-        for (const [label, { hitRate }] of Object.entries(compilerStats)) {
+        for (const [label, { hits, total }] of Object.entries(compilerStats)) {
+          const hitRate = Number(((hits / total) * 100).toFixed(1));
           env
             .expect(hitRate, `compiler ${index}: ${label} hit rate`)
             .toBe(expected[label] ?? 100);
@@ -384,7 +382,6 @@ function getCacheStats(stats: Stats | MultiStats): CacheStats[] {
         result[label] = {
           hits,
           total,
-          hitRate: Number(((hits / total) * 100).toFixed(1)),
         };
     };
     if (newCache && newCache.module) {

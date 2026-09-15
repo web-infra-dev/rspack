@@ -5,12 +5,12 @@
       "total": 1
     },
     "module build cache": {
-      "hits": 4,
-      "total": 4
+      "hits": 2,
+      "total": 3
     },
     "module code generation cache": {
       "hits": 2,
-      "total": 2
+      "total": 3
     }
   }
 ]

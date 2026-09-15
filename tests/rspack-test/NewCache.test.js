@@ -18,11 +18,6 @@ for (const source of selectedSuites) {
 
 const excludes = {
 	cache: [
-		// Restart restores the pre-HMR module value (1 instead of 2).
-		/^snapshot\/default_value$/,
-		/^snapshot\/immutable-paths$/,
-		/^snapshot\/managed-paths$/,
-		/^snapshot\/unmanaged-paths$/,
 		// Expects legacy storage metadata; newCache does not implement maxAge yet.
 		/^storage\/max-age$/
 	],
