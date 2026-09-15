@@ -114,9 +114,13 @@ Builtin loader 可以在 Rust 侧执行，减少 JavaScript 排队和跨语言�
 
 原生 loader runner 用 `Box` 持有 `LoaderContext`。loader 链内分别保存 `Content::String` 或 `Content::Buffer` 内容以及 source map，保留每个 loader 接收到的内容类型。`NormalModule` 在 loader 链执行结束后构造最终 Source。
 
-执行切换到 JavaScript 时，原生 `JsLoaderContext` class 在本次调用期间直接持有 `Option<Box<LoaderContext>>`。只有 JavaScript runner 读取对应 getter 时，才转换内容和 source map。JavaScript 封装在本次调用中缓存各 getter 的结果，包括空值；下次进入 JavaScript 时，新封装重新读取原生值。JavaScript 产生的输出优先于缓存的输入。
+执行切换到 JavaScript 时，原生 `JsLoaderContext` class 在本次调用期间直接持有 `Option<Box<LoaderContext>>`。只有 JavaScript runner 读取对应 getter 时，才转换内容和 source map。JavaScript 封装在本次调用中缓存各 getter 的结果，包括空值；下次进入 JavaScript 时，同一封装会重置读取缓存。JavaScript 产生的输出优先于缓存的输入。
 
 JavaScript 侧的 loader-context 封装读取一个普通的 `JsLoaderContextState` 对象（`#[napi(object)]`），通过 JavaScript getter/setter 访问其中的可变字段，并在返回前将同一个 state 对象整体传回。loader 元数据只在创建封装时读取一次，各 loader 的 data 和执行标记随 state 往返。复用的 loader 对象会在每次内置 loader 执行后读取最新 state。只有 JavaScript 产生输出时，state 才携带可选的 output。pitch 没有产生输出时，会保留原生内容和 source map。
+
+每个原生 loader context 持有 `rspack_napi` 提供的带类型标记的 `LifecycleGuard`，由 guard 分配进程内唯一的自增 ID。`ThreadLocalReference` 在所属 JavaScript 线程按 ID 缓存对应的 `JsLoaderContext`，并隔离不同 N-API 环境。hook 使用同一个身份关联实例，无需移动 Box。JavaScript `WeakMap` 将 class 与封装和兼容 webpack 的 `this` 对象关联，因此它们不再随可变 state 对象往返。
+
+原生 context 被消耗并转成 loader result 时，guard 析构，向已注册的 JavaScript 环境发送引用清理通知。通知会批量处理，并主动唤醒 JavaScript 线程，即使不再有 loader 调用也能清理。环境退出时也会释放缓存引用。移除引用使对象可以被垃圾回收；用户代码保留的 class 仍受原生访问窗口检查约束。
 
 loader 执行前，Rust hook 借用 `&mut LoaderContext`。JavaScript loader hook 接收 `JsLoaderHookContext` 快照，只返回 state；Box 的所有权始终留在原生 runner。只有 JavaScript loader runner 会接收并归还 Box，同时返回 loader 的执行结果。hook 安装的属性和闭包通过共享的 JavaScript 封装跨内置及 JavaScript loader 保留，每次进入 JavaScript 时都会更新封装捕获的执行状态。
 
@@ -130,7 +134,7 @@ JavaScript loader-context 封装：getter/setter 访问 state
 原生 runner：收回装箱的 LoaderContext 并继续执行
 ```
 
-JavaScript 无论成功还是捕获错误，都会返回同一个 class 实例。返回值转换在 JavaScript 线程取走装箱的上下文，再将其 move 回原生 runner。实例中留下 `None`，后续访问随即失效，不需要共享所有权槽位，也不需要为每次访问加锁。这是内部桥接机制；loader 仍然使用兼容 webpack 的 `this` 上下文、字符串或 Buffer 内容、source-map 对象以及回调。
+JavaScript 无论成功还是捕获错误，都会返回同一个 class 实例。返回值转换在 JavaScript 线程取走装箱的上下文，再将其 move 回原生 runner。实例中留下 `None`，原生访问随即失效，直到下次 loader runner 调用重新放入 Box；不需要共享所有权槽位，也不需要为每次访问加锁。这是内部桥接机制；loader 仍然使用兼容 webpack 的 `this` 上下文、字符串或 Buffer 内容、source-map 对象以及回调。
 
 ## 高效用法
 

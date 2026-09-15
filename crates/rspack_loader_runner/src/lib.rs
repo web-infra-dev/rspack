@@ -12,6 +12,8 @@ pub use cache::LoaderRunnerOptions;
 pub use content::{
   AdditionalData, Content, DescriptionData, ParseMeta, ParseMetaValue, ResourceData,
 };
+#[cfg(feature = "napi")]
+pub use context::LoaderContextLifetime;
 pub use context::{LoaderContext, LoaderDependencies, LoaderRunnerContext, State};
 pub use loader::{
   DisplayWithSuffix, Loader, LoaderExecutionKind, LoaderItem, LoaderItemState, ResourceParsedData,

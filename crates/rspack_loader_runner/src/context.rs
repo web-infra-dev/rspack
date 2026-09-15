@@ -57,8 +57,13 @@ pub trait LoaderRunnerContext: Send + Sized {
   fn loaders(&self) -> &Loaders<Self>;
 }
 
+#[cfg(feature = "napi")]
+pub enum LoaderContextLifetime {}
+
 #[derive(Debug)]
 pub struct LoaderContext<Context: Send> {
+  #[cfg(feature = "napi")]
+  pub lifecycle: rspack_napi::LifecycleGuard<LoaderContextLifetime>,
   pub hot: bool,
   pub resource_data: Arc<ResourceData>,
   #[debug(skip)]

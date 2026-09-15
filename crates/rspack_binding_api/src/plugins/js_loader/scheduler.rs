@@ -3,7 +3,7 @@ use rspack_core::{LoaderContext, RunnerContext};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_loader_runner::State as LoaderState;
 
-use super::{JsLoaderContext, JsLoaderRspackPlugin};
+use super::{JsLoaderRspackPlugin, context::JsLoaderContextObject};
 
 impl JsLoaderRspackPlugin {
   async fn update_loaders_without_pitch(&self, list: Vec<String>) {
@@ -53,7 +53,7 @@ impl rspack_loader_runner::LoaderRunner for JsLoaderRspackPlugin {
     // Once transferred, the JS boundary must return the class even when a loader
     // throws. Transport failures cannot recover an allocation already sent to JS.
     let mut js_context = runner
-      .call_async(JsLoaderContext::new(cx))
+      .call_async(JsLoaderContextObject(cx))
       .await
       .expect("JavaScript loader call must return the owned context")
       .await

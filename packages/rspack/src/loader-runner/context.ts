@@ -7,13 +7,13 @@ import type {
 
 const UNREAD = Symbol('unread');
 
-/** One owned snapshot per entry, written back as the same object on return. */
+/** Reused wrapper with one owned state snapshot and read cache per entry. */
 export class LoaderContextState {
-  readonly native: JsLoaderContext | JsLoaderHookContext;
-  readonly state: JsLoaderContext['state'];
+  native: JsLoaderContext | JsLoaderHookContext;
+  state: JsLoaderContext['state'];
   #module?: JsLoaderContext['_module'];
   #resource?: string;
-  // A new wrapper is created on every native entry. Cache missing values too.
+  // Reset on every native entry. Cache missing values too.
   #loaderCache: JsLoaderContext['__internal__loaderCache'] | typeof UNREAD =
     UNREAD;
   #content: JsLoaderContext['content'] | typeof UNREAD = UNREAD;
@@ -26,6 +26,22 @@ export class LoaderContextState {
     for (const item of this.state.loaderItemStates) item.data ??= {};
   }
 
+  get identity(): JsLoaderContext {
+    return 'identity' in this.native ? this.native.identity : this.native;
+  }
+
+  enter(native: JsLoaderContext | JsLoaderHookContext) {
+    this.native = native;
+    this.state = native.state;
+    for (const item of this.state.loaderItemStates) item.data ??= {};
+    this.#module = undefined;
+    this.#resource = undefined;
+    this.#loaderCache = UNREAD;
+    this.#content = UNREAD;
+    this.#sourceMap = UNREAD;
+    this.#additionalData = UNREAD;
+  }
+
   get loaderState() {
     return this.state.loaderState;
   }
@@ -34,12 +50,6 @@ export class LoaderContextState {
   }
   set loaderIndex(value: number) {
     this.state.loaderIndex = value;
-  }
-  get loaderContextState() {
-    return this.state.loaderContextState;
-  }
-  set loaderContextState(value: object | undefined) {
-    this.state.loaderContextState = value;
   }
   get cacheable() {
     return this.state.cacheable;

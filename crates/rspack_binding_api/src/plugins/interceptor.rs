@@ -101,7 +101,10 @@ use crate::{
     JsCreateData, JsNormalModuleFactoryCreateModuleArgs, JsResolveData, JsResolveForSchemeArgs,
     JsResolveForSchemeOutput,
   },
-  plugins::js_loader::{JsLoaderContextState, JsLoaderHookContext, context::check_loader_error},
+  plugins::js_loader::{
+    JsLoaderContextState, JsLoaderHookContext,
+    context::{JsLoaderHookContextObject, check_loader_error},
+  },
   rsdoctor::{
     JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
     JsRsdoctorModuleSourcesPatch,
@@ -942,7 +945,7 @@ define_register!(
 /* NormalModule Hooks */
 define_register!(
   RegisterNormalModuleLoaderTaps,
-  tap = NormalModuleLoaderTap<JsLoaderHookContext, JsLoaderContextState> @ NormalModuleLoaderHook,
+  tap = NormalModuleLoaderTap<JsLoaderHookContextObject, JsLoaderContextState> @ NormalModuleLoaderHook,
   cache = true,
   kind = RegisterJsTapKind::NormalModuleLoader,
   skip = true,
@@ -1707,7 +1710,7 @@ impl NormalModuleLoader for NormalModuleLoaderTap {
   async fn run(&self, context: &mut LoaderContext<RunnerContext>) -> rspack_error::Result<()> {
     let state = self
       .function
-      .call_with_sync(JsLoaderHookContext::new(context))
+      .call_with_sync(JsLoaderHookContextObject(JsLoaderHookContext::new(context)))
       .await?;
     let (error, _) = state
       .apply(context)

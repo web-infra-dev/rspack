@@ -22,9 +22,8 @@ module.exports = {
           '_module',
           '__internal__loaderCache',
         ];
-        const wrappedStates = new WeakSet();
-        const absentMaps = [];
-        const presentMaps = [];
+        const identities = new Map();
+        const seen = new WeakSet();
         compiler.hooks.beforeRun.tap('BoxedSourceRoundtrip', () => {
           const plugin = compiler.__internal__builtinPlugins.find(
             (plugin) => plugin.name === 'JsLoaderRspackPlugin',
@@ -33,6 +32,15 @@ module.exports = {
           plugin.options = async (context) => {
             const prototype = Object.getPrototypeOf(context);
             expect(prototype.constructor.name).toBe('JsLoaderContext');
+            const reused = seen.has(context);
+            seen.add(context);
+            const resource = Object.getOwnPropertyDescriptor(
+              prototype,
+              'resource',
+            ).get.call(context);
+            if (identities.has(resource))
+              expect(context).toBe(identities.get(resource));
+            else identities.set(resource, context);
             let reads = 0;
             let commits = 0;
             const getterReads = {};
@@ -42,6 +50,7 @@ module.exports = {
                 key,
               );
               Object.defineProperty(context, key, {
+                configurable: true,
                 get() {
                   getterReads[key] = (getterReads[key] ?? 0) + 1;
                   if (key === 'content' || key === 'sourceMap') reads++;
@@ -52,13 +61,13 @@ module.exports = {
             let stateReads = 0;
             let metadataReads = 0;
             let snapshot;
-            let reused;
             const state = Object.getOwnPropertyDescriptor(prototype, 'state');
             const metadata = Object.getOwnPropertyDescriptor(
               prototype,
               'loaderItems',
             );
             Object.defineProperty(context, 'loaderItems', {
+              configurable: true,
               get() {
                 metadataReads++;
                 const items = metadata.get.call(context);
@@ -67,6 +76,7 @@ module.exports = {
               },
             });
             Object.defineProperty(context, 'state', {
+              configurable: true,
               get() {
                 stateReads++;
                 snapshot = state.get.call(context);
@@ -76,7 +86,7 @@ module.exports = {
                     (item) => !('loader' in item),
                   ),
                 ).toBe(true);
-                reused = !!snapshot.loaderContextState;
+                expect('loaderContextState' in snapshot).toBe(false);
                 if (
                   snapshot.loaderState === 'Normal' &&
                   snapshot.loaderIndex === 0
@@ -88,31 +98,6 @@ module.exports = {
               set(value) {
                 commits++;
                 expect(value).toBe(snapshot);
-                const shared = value.loaderContextState;
-                if (shared && !wrappedStates.has(shared)) {
-                  wrappedStates.add(shared);
-                  const update = shared.update;
-                  shared.update = (next, ...args) => {
-                    if (next.loaderState === 'Normal') {
-                      for (const key of cachedKeys) {
-                        const first = next[key];
-                        expect(next[key]).toBe(first);
-                      }
-                      (next.sourceMap === undefined
-                        ? absentMaps
-                        : presentMaps
-                      ).push(next.sourceMap);
-                      const previousOutput = next.state.output;
-                      const output = { content: Buffer.from('new output') };
-                      next.finish(output);
-                      expect(next.content).toBe(output.content);
-                      expect(next.sourceMap).toBeUndefined();
-                      expect(next.additionalData).toBeUndefined();
-                      next.state.output = previousOutput;
-                    }
-                    return update(next, ...args);
-                  };
-                }
                 state.set.call(context, value);
               },
             });
@@ -123,6 +108,10 @@ module.exports = {
             for (const count of Object.values(getterReads)) {
               expect(count).toBe(1);
             }
+            // Restore native accessors before reusing the same class or checking
+            // revoked access with snapshots from earlier entries.
+            for (const key of [...cachedKeys, 'state', 'loaderItems'])
+              delete context[key];
             contexts.push({ context, snapshot });
             if (snapshot.loaderState === 'Pitching') expect(reads).toBe(0);
           };
@@ -131,8 +120,7 @@ module.exports = {
           'BoxedSourceRoundtrip',
           (compilation) => {
             expect(contexts.length).toBeGreaterThan(0);
-            expect(absentMaps.length).toBeGreaterThan(0);
-            expect(presentMaps.length).toBeGreaterThan(0);
+            expect(contexts.length).toBeGreaterThan(identities.size);
             for (const { context, snapshot } of contexts) {
               expect(() => context.content).toThrow('no longer available');
               expect(() => context._module).toThrow('no longer available');

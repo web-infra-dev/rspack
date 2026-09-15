@@ -130,6 +130,8 @@ fn create_loader_context<Context: LoaderRunnerContext>(
     .map(|_| LoaderItemState::default())
     .collect();
   LoaderContext {
+    #[cfg(feature = "napi")]
+    lifecycle: Default::default(),
     hot: false,
     cacheable: true,
     parse_meta: Default::default(),

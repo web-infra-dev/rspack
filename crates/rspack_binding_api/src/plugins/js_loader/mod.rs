@@ -11,6 +11,7 @@ use std::{
 };
 
 pub use cache::{JsLoaderCache, JsLoaderCacheEntry};
+use context::JsLoaderContextObject;
 pub use context::{
   JsLoaderContext, JsLoaderContextState, JsLoaderDependencies, JsLoaderHookContext, JsLoaderItem,
 };
@@ -31,9 +32,9 @@ use tokio::sync::{OnceCell, RwLock};
 use crate::{COMPILER_REFERENCES, error::RspackResultToNapiResultExt};
 
 pub type JsLoaderRunner = ThreadsafeFunction<
-  JsLoaderContext,
+  JsLoaderContextObject,
   Promise<JsLoaderContext>,
-  JsLoaderContext,
+  JsLoaderContextObject,
   Status,
   false,
   true,
@@ -66,9 +67,11 @@ extern "C" fn napi_js_callback(
         Object::from_napi_value(env, napi_value)?
       };
       let run_loader = compiler_object
-        .get_named_property::<Function<JsLoaderContext, Promise<JsLoaderContext>>>("_runLoader")?;
+        .get_named_property::<Function<JsLoaderContextObject, Promise<JsLoaderContext>>>(
+          "_runLoader",
+        )?;
       let ts_fn: JsLoaderRunner = run_loader
-        .build_threadsafe_function::<JsLoaderContext>()
+        .build_threadsafe_function::<JsLoaderContextObject>()
         .weak::<true>()
         .callee_handled::<false>()
         .max_queue_size::<0>()

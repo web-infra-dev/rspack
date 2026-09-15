@@ -2,7 +2,12 @@
 
 mod ext;
 mod js_values;
+mod lifecycle;
+mod thread_local_reference;
 mod utils;
+
+pub use lifecycle::{LifecycleGuard, LifecycleId};
+pub use thread_local_reference::ThreadLocalReference;
 
 mod errors;
 pub use errors::NapiErrorToRspackErrorExt;

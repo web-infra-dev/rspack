@@ -11,6 +11,7 @@ import querystring from 'node:querystring';
 import {
   formatDiagnostic,
   type JsLoaderContext,
+  type JsLoaderHookContext,
   type JsLoaderMetadata,
   type JsLoaderItemState,
   JsLoaderState,
@@ -229,6 +230,7 @@ function getCurrentLoader(
 }
 
 interface SharedLoaderContextState {
+  context: LoaderContextState;
   loaderContext: LoaderContext;
   update(
     context: LoaderContextState,
@@ -237,14 +239,27 @@ interface SharedLoaderContextState {
   ): void;
 }
 
+const loaderContexts = new WeakMap<JsLoaderContext, SharedLoaderContextState>();
+
+export function getLoaderContextState(
+  native: JsLoaderContext | JsLoaderHookContext,
+): LoaderContextState {
+  const identity = 'identity' in native ? native.identity : native;
+  const shared = loaderContexts.get(identity);
+  if (shared) {
+    shared.context.enter(native);
+    return shared.context;
+  }
+  return new LoaderContextState(native);
+}
+
 export function createLoaderContext(
   compiler: Compiler,
   context: LoaderContextState,
   dependencies: LoaderDependenciesState,
   traceData?: Pick<ChromeEvent, 'uuid' | 'args'>,
 ): LoaderContext {
-  const state = context.loaderContextState as
-    SharedLoaderContextState | undefined;
+  const state = loaderContexts.get(context.identity);
   if (state) {
     state.update(context, dependencies, traceData);
     return state.loaderContext;
@@ -727,10 +742,10 @@ export function createLoaderContext(
     context.__internal__parseMeta[key] = value;
   };
 
-  // Rust retains this state only for the current run_loaders invocation. Update
-  // the captured snapshot on every entry so hook-installed closures use the
-  // current loader index, dependencies and module pointer across native loaders.
-  context.loaderContextState = {
+  // The native lifetime cache keeps the key alive across hooks and loaders.
+  // WeakMap entries disappear once Rust releases that class and JS lets it go.
+  loaderContexts.set(context.identity, {
+    context,
     loaderContext,
     update(nextContext, nextDependencies, nextTraceData) {
       context = nextContext;
@@ -738,7 +753,7 @@ export function createLoaderContext(
       traceData = nextTraceData;
       loaderContext._module = context._module;
     },
-  } satisfies SharedLoaderContextState;
+  });
 
   return loaderContext;
 }
@@ -747,7 +762,7 @@ export async function runLoaders(
   compiler: Compiler,
   nativeContext: JsLoaderContext,
 ): Promise<JsLoaderContext> {
-  const context = new LoaderContextState(nativeContext);
+  const context = getLoaderContextState(nativeContext);
   const loaderState = context.loaderState;
   const pitch = loaderState === JsLoaderState.Pitching;
 

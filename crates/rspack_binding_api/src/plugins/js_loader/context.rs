@@ -4,8 +4,10 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_collections::Identifiable;
 use rspack_core::{AdditionalData, Content, LoaderContext, LoaderDependencies, RunnerContext};
-use rspack_loader_runner::State as LoaderState;
-use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
+use rspack_loader_runner::{LoaderContextLifetime, State as LoaderState};
+use rspack_napi::{
+  LifecycleId, ThreadLocalReference, threadsafe_js_value_ref::ThreadsafeJsValueRef,
+};
 use rustc_hash::FxHashMap as HashMap;
 
 use super::cache::JsLoaderCacheObject;
@@ -169,7 +171,8 @@ impl From<JsLoaderDependencies> for LoaderDependencies {
 }
 
 /// Owns the boxed native context while JavaScript executes. Returning the class
-/// moves the context back to Rust and leaves retained JavaScript instances empty.
+/// moves the context back to Rust and leaves the cached JavaScript instance empty.
+/// The same instance is reattached on the next entry for this native lifetime.
 #[napi]
 pub struct JsLoaderContext {
   pub(crate) context: Option<Box<LoaderContext<RunnerContext>>>,
@@ -178,9 +181,9 @@ pub struct JsLoaderContext {
 }
 
 impl JsLoaderContext {
-  pub(crate) fn new(context: Box<LoaderContext<RunnerContext>>) -> Self {
+  fn empty() -> Self {
     Self {
-      context: Some(context),
+      context: None,
       error: None,
       loaders_without_pitch: Vec::new(),
     }
@@ -201,6 +204,45 @@ impl JsLoaderContext {
 
   pub(crate) fn take_error(&mut self) -> rspack_error::Result<()> {
     check_loader_error(self.error.take())
+  }
+}
+
+/// Transport wrapper: only JS-thread conversion accesses the reference cache.
+pub struct JsLoaderContextObject(pub Box<LoaderContext<RunnerContext>>);
+
+impl ToNapiValue for JsLoaderContextObject {
+  unsafe fn to_napi_value(env: sys::napi_env, value: Self) -> napi::Result<sys::napi_value> {
+    let env = Env::from_raw(env);
+    let mut instance =
+      ThreadLocalReference::<LoaderContextLifetime, JsLoaderContext>::get_or_insert_with(
+        &env,
+        value.0.lifecycle.id(),
+        JsLoaderContext::empty,
+      )?;
+    if instance.context.is_some() {
+      return Err(napi::Error::from_reason(
+        "Loader context is already executing in JavaScript",
+      ));
+    }
+    instance.context = Some(value.0);
+    Ok(instance.value)
+  }
+}
+
+/// Hooks identify the same cached class without transferring the native Box.
+pub struct JsLoaderContextIdentity(LifecycleId<LoaderContextLifetime>);
+
+impl ToNapiValue for JsLoaderContextIdentity {
+  unsafe fn to_napi_value(env: sys::napi_env, value: Self) -> napi::Result<sys::napi_value> {
+    let env = Env::from_raw(env);
+    Ok(
+      ThreadLocalReference::<LoaderContextLifetime, JsLoaderContext>::get_or_insert_with(
+        &env,
+        value.0,
+        JsLoaderContext::empty,
+      )?
+      .value,
+    )
   }
 }
 
@@ -341,8 +383,6 @@ pub struct JsLoaderOutput {
 
 #[napi(object)]
 pub struct JsLoaderContextState {
-  #[napi(ts_type = "object | undefined")]
-  pub loader_context_state: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
   pub cacheable: bool,
   pub dependencies: JsLoaderDependencies,
   pub hot: bool,
@@ -359,11 +399,6 @@ pub struct JsLoaderContextState {
 impl JsLoaderContextState {
   pub(crate) fn from_context(cx: &LoaderContext<RunnerContext>) -> Self {
     Self {
-      loader_context_state: cx
-        .context
-        .loader_context_data
-        .get::<ThreadsafeJsValueRef<Unknown>>()
-        .cloned(),
       hot: cx.hot,
       loader_state: cx.state().into(),
       loader_item_states: cx
@@ -389,9 +424,6 @@ impl JsLoaderContextState {
     self,
     cx: &mut LoaderContext<RunnerContext>,
   ) -> napi::Result<(Option<RspackError>, Vec<String>)> {
-    if let Some(state) = self.loader_context_state {
-      cx.context.loader_context_data.insert(state);
-    }
     cx.hot = self.hot;
     cx.cacheable = self.cacheable;
     cx.replace_dependencies(self.dependencies.into());
@@ -452,6 +484,8 @@ impl JsLoaderContextState {
 /// snapshots. It neither moves the Box nor materializes source content/maps.
 #[napi(object, object_from_js = false)]
 pub struct JsLoaderHookContext {
+  #[napi(ts_type = "JsLoaderContext")]
+  pub identity: JsLoaderContextIdentity,
   pub state: JsLoaderContextState,
   pub resource: String,
   #[napi(js_name = "_module", ts_type = "Module")]
@@ -459,10 +493,32 @@ pub struct JsLoaderHookContext {
   pub loader_items: Option<Vec<JsLoaderMetadata>>,
 }
 
+pub struct JsLoaderHookContextObject(pub JsLoaderHookContext);
+
+impl ToNapiValue for JsLoaderHookContextObject {
+  unsafe fn to_napi_value(env: sys::napi_env, mut value: Self) -> napi::Result<sys::napi_value> {
+    let env_wrapper = Env::from_raw(env);
+    let mut created = false;
+    ThreadLocalReference::<LoaderContextLifetime, JsLoaderContext>::get_or_insert_with(
+      &env_wrapper,
+      value.0.identity.0,
+      || {
+        created = true;
+        JsLoaderContext::empty()
+      },
+    )?;
+    // Only the first hook needs to materialize loader metadata for the facade.
+    if !created {
+      value.0.loader_items = None;
+    }
+    unsafe { ToNapiValue::to_napi_value(env, value.0) }
+  }
+}
+
 impl JsLoaderHookContext {
   pub(crate) fn new(cx: &LoaderContext<RunnerContext>) -> Self {
     let state = JsLoaderContextState::from_context(cx);
-    let loader_items = state.loader_context_state.is_none().then(|| {
+    let loader_items = Some({
       cx.loader_items()
         .iter()
         .map(|item| JsLoaderMetadata {
@@ -473,6 +529,7 @@ impl JsLoaderHookContext {
         .collect()
     });
     Self {
+      identity: JsLoaderContextIdentity(cx.lifecycle.id()),
       state,
       resource: cx.resource().to_owned(),
       module: ModuleObject::with_ptr(

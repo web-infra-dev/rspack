@@ -422,7 +422,8 @@ export declare class JsLoaderCache {
 
 /**
  * Owns the boxed native context while JavaScript executes. Returning the class
- * moves the context back to Rust and leaves retained JavaScript instances empty.
+ * moves the context back to Rust and leaves the cached JavaScript instance empty.
+ * The same instance is reattached on the next entry for this native lifetime.
  */
 export declare class JsLoaderContext {
   /**
@@ -1003,7 +1004,6 @@ export interface JsLoaderCacheEntry {
 }
 
 export interface JsLoaderContextState {
-  loaderContextState?: object | undefined
   cacheable: boolean
   dependencies: JsLoaderDependencies
   hot: boolean
@@ -1029,6 +1029,7 @@ export interface JsLoaderDependencies {
  * snapshots. It neither moves the Box nor materializes source content/maps.
  */
 export interface JsLoaderHookContext {
+  identity: JsLoaderContext
   state: JsLoaderContextState
   resource: string
   _module: Module

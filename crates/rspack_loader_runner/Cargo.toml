@@ -7,6 +7,7 @@ repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
 [features]
+napi        = ["dep:rspack_napi"]
 test-loader = []
 
 [dependencies]
@@ -23,6 +24,7 @@ rspack_collections = { workspace = true }
 rspack_error       = { workspace = true }
 rspack_fs          = { workspace = true }
 rspack_hash        = { workspace = true }
+rspack_napi        = { workspace = true, optional = true }
 rspack_paths       = { workspace = true, features = ["cacheable"] }
 rspack_sources     = { workspace = true }
 rspack_util        = { workspace = true }
