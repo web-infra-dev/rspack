@@ -44,7 +44,7 @@ impl CssUrlDependency {
     let code_gen_result = compilation.code_generation_results.get_one(identifier);
 
     // Injected styles run in JavaScript, so their asset URLs must observe
-    // __webpack_public_path__ just like assets imported from JavaScript do.
+    // import.meta.rspackPublicPath just like assets imported from JavaScript do.
     // An explicit asset generator publicPath still takes precedence.
     if runtime_public_path
       && let Some(data) = code_gen_result.data().get::<CodeGenerationDataFilename>()

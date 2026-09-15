@@ -1,1 +1,1 @@
-__webpack_public_path__ = 'https://test.cases/path/';
+import.meta.rspackPublicPath = 'https://test.cases/path/';

@@ -1153,9 +1153,9 @@ export default {
 
 当 `exportType` 为 `'style'` 时，使用运行时公共路径生成输出资源的 URL。此选项不影响其他导出类型。
 
-默认情况下，注入的 CSS 使用构建时解析的资源 URL。当 `output.publicPath: 'auto'` 时，这些 URL 仍相对于文档解析。设置 `runtimePublicPath: true` 可改用运行时公共路径，包括赋给 `__webpack_public_path__` 的值。
+默认情况下，注入的 CSS 使用构建时解析的资源 URL。当 `output.publicPath: 'auto'` 时，这些 URL 仍相对于文档解析。设置 `runtimePublicPath: true` 可改用运行时公共路径，包括赋给 `import.meta.rspackPublicPath` 的值。
 
-如果动态设置 `__webpack_public_path__`，请在导入样式之前执行的独立模块中设置它。显式配置的[资源生成器公共路径](/config/module-generator#assetpublicpath)具有更高优先级。内联 data URL 和外部 URL 保持不变。
+如果动态设置 `import.meta.rspackPublicPath`，请在导入样式之前执行的独立模块中设置它。显式配置的[资源生成器公共路径](/config/module-generator#assetpublicpath)具有更高优先级。内联 data URL 和外部 URL 保持不变。
 
 ```js title="rspack.config.mjs"
 export default {

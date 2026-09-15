@@ -30,13 +30,13 @@ it('should use the runtime public path in lazy CSS', async () => {
 });
 
 it('should observe public path changes before evaluating another CSS module', () => {
-	const publicPath = __webpack_public_path__;
+	const publicPath = import.meta.rspackPublicPath;
 	try {
-		__webpack_public_path__ = 'https://test.cases/changed/';
+		import.meta.rspackPublicPath = 'https://test.cases/changed/';
 		require('./changed.css');
 		expect(getCss()).toContain(`url("${RUNTIME_PUBLIC_PATH ? "https://test.cases/changed/" : ASSET_PREFIX}assets/image.svg")`);
 	} finally {
-		__webpack_public_path__ = publicPath;
+		import.meta.rspackPublicPath = publicPath;
 	}
 });
 
