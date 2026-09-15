@@ -1,5 +1,5 @@
 import EventEmitter from 'node:events';
-import rspack, { Compiler, type RspackOptions, type Stats } from '@rspack/core';
+import { Compiler, rspack, type RspackOptions, type Stats } from '@rspack/core';
 import merge from 'rspack-merge';
 import { DEBUG_SCOPES } from './test/debug';
 import type { ITestCompilerManager, ITestContext } from './type';

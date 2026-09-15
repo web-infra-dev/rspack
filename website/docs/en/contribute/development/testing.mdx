@@ -85,14 +85,6 @@ The structure of the `tests/rspack-test` folder is as follows:
 
 The `{Name}.test.js` is the entry file for tests, which will walk the `{name}Cases` folder and run cases in it. Therefore, when you need to add or modify test cases, add them to the relevant `{name}Cases` folder based on the type of testing.
 
-`@rspack/test-tools` provides ESM and CommonJS entry points. ESM consumers can import helpers directly by name:
-
-```js
-import { createNormalCase, describeByWalk } from '@rspack/test-tools';
-```
-
-CommonJS consumers can continue to use `require("@rspack/test-tools")`. Setup files, helpers, and reporters also provide ESM and CommonJS entry points.
-
 ### Test types
 
 The existing test types are:

@@ -59,8 +59,6 @@
       "require": "./dist/reporter/*.cjs"
     }
   },
-  "main": "dist/index.cjs",
-  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
     "client",

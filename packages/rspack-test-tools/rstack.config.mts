@@ -1,26 +1,38 @@
 import { fileURLToPath } from 'node:url';
 import { define } from 'rstack';
 
+const commonConfig = {
+  syntax: ['es2023'],
+  bundle: false,
+};
+
 define.lib({
-  lib: (['cjs', 'esm'] as const).map((format) => ({
-    format,
-    syntax: ['es2023'],
-    bundle: false,
-    shims: {
-      esm: {
-        require: true,
-      },
+  lib: [
+    {
+      ...commonConfig,
+      format: 'cjs',
     },
-    redirect: {
+    {
+      ...commonConfig,
+      format: 'esm',
+      shims: {
+        esm: {
+          require: true,
+        },
+      },
+      redirect: {
+        dts: {
+          extension: true,
+        },
+      },
       dts: {
-        extension: true,
+        tsgo: true,
+        typescriptPath: fileURLToPath(
+          import.meta.resolve('@typescript/native'),
+        ),
       },
     },
-    dts: format === 'esm' && {
-      tsgo: true,
-      typescriptPath: fileURLToPath(import.meta.resolve('@typescript/native')),
-    },
-  })),
+  ],
   source: {
     tsconfigPath: './tsconfig.build.json',
   },

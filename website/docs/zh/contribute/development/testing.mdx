@@ -85,14 +85,6 @@ Rspack 的测试用例包括如下：
 
 `{Name}.test.js` 作为测试的入口文件，会遍历 `{name}Cases` 并运行其中的用例。因此当你需要添加/修改测试用例时，请根据需要测试的功能类型在相应的 `{name}Cases` 文件夹下添加用例。
 
-`@rspack/test-tools` 提供 ESM 和 CommonJS 入口，ESM 使用方可以直接使用命名导入：
-
-```js
-import { createNormalCase, describeByWalk } from '@rspack/test-tools';
-```
-
-CommonJS 使用方可以继续使用 `require("@rspack/test-tools")`。Setup 文件、辅助函数和 reporter 子路径也提供 ESM 和 CommonJS 入口。
-
 ### 测试类型
 
 目前已有的测试类型有：
