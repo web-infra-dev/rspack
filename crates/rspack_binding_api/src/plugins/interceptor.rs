@@ -101,7 +101,10 @@ use crate::{
     JsCreateData, JsNormalModuleFactoryCreateModuleArgs, JsResolveData, JsResolveForSchemeArgs,
     JsResolveForSchemeOutput,
   },
-  plugins::js_loader::{JsLoaderContext, merge_loader_context},
+  plugins::js_loader::{
+    JsLoaderContextState, JsLoaderHookContext,
+    context::{JsLoaderHookContextObject, check_loader_error},
+  },
   rsdoctor::{
     JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
     JsRsdoctorModuleSourcesPatch,
@@ -626,7 +629,7 @@ pub struct RegisterJsTaps {
   )]
   pub register_compilation_after_seal_taps: RegisterFunction,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => JsLoaderContext); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsLoaderHookContext) => JsLoaderContextState); stage: number; }>"
   )]
   pub register_normal_module_loader_taps: RegisterFunction,
   #[napi(
@@ -942,7 +945,7 @@ define_register!(
 /* NormalModule Hooks */
 define_register!(
   RegisterNormalModuleLoaderTaps,
-  tap = NormalModuleLoaderTap<JsLoaderContext, JsLoaderContext> @ NormalModuleLoaderHook,
+  tap = NormalModuleLoaderTap<JsLoaderHookContextObject, JsLoaderContextState> @ NormalModuleLoaderHook,
   cache = true,
   kind = RegisterJsTapKind::NormalModuleLoader,
   skip = true,
@@ -1705,11 +1708,14 @@ impl CompilationAfterSeal for CompilationAfterSealTap {
 #[async_trait]
 impl NormalModuleLoader for NormalModuleLoaderTap {
   async fn run(&self, context: &mut LoaderContext<RunnerContext>) -> rspack_error::Result<()> {
-    let data = self
+    let state = self
       .function
-      .call_with_sync(JsLoaderContext::try_from(&mut *context)?)
+      .call_with_sync(JsLoaderHookContextObject(JsLoaderHookContext::new(context)))
       .await?;
-    merge_loader_context(context, data)
+    let (error, _) = state
+      .apply(context)
+      .map_err(|error| rspack_error::error!("{error}"))?;
+    check_loader_error(error)
   }
 
   fn stage(&self) -> i32 {

@@ -4471,6 +4471,7 @@ dependencies = [
  "rspack_error",
  "rspack_fs",
  "rspack_hash",
+ "rspack_napi",
  "rspack_paths",
  "rspack_sources",
  "rspack_util",
@@ -4574,6 +4575,7 @@ dependencies = [
  "napi",
  "oneshot",
  "rspack_error",
+ "rustc-hash",
  "serde_json",
  "tokio",
 ]

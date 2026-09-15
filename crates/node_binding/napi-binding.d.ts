@@ -420,6 +420,37 @@ export declare class JsLoaderCache {
   store(loaderIndex: number, output: JsLoaderCacheEntry): Promise<void>
 }
 
+/**
+ * Owns the boxed native context while JavaScript executes. Returning the class
+ * moves the context back to Rust and leaves the cached JavaScript instance empty.
+ * The same instance is reattached on the next entry for this native lifetime.
+ */
+export declare class JsLoaderContext {
+  /**
+   * Snapshot the mutable execution state in one crossing. Output remains lazy:
+   * leaving it absent on writeback preserves native content and source maps.
+   */
+  get state(): JsLoaderContextState
+  get resource(): string
+  get _module(): Module
+  /** Content may be empty in the pitching stage. */
+  get content(): string | Buffer | null
+  get additionalData(): any
+  get sourceMap(): Buffer | null
+  get loaderItems(): Array<JsLoaderMetadata>
+  get __internal__loaderCache(): JsLoaderCache | undefined
+  /**
+   * Commit the JavaScript wrapper's state in one crossing. An absent output
+   * preserves native content and source maps when pitching produces no output.
+   */
+  set state(result: JsLoaderContextState)
+  /**
+   * Return unexpected JavaScript failures together with the owned context,
+   * even when reading or converting the state object itself failed.
+   */
+  set __internal__error(error: RspackError)
+}
+
 export declare class JsModuleGraph {
   getModule(dependency: Dependency): Module | null
   getResolvedModule(dependency: Dependency): Module | null
@@ -972,23 +1003,18 @@ export interface JsLoaderCacheEntry {
   parseMeta: Record<string, string>
 }
 
-export interface JsLoaderContext {
-  loaderContextState?: object | undefined
-  resource: string
-  _module: Module
-  hot: Readonly<boolean>
-  /** Content maybe empty in pitching stage */
-  content: string | Buffer | null
-  additionalData?: any
-  __internal__parseMeta: Record<string, string>
-  sourceMap?: Buffer
+export interface JsLoaderContextState {
   cacheable: boolean
   dependencies: JsLoaderDependencies
-  loaderItems: Array<JsLoaderItem>
+  hot: boolean
+  /** The native scheduler owns phase transitions; writeback does not change it. */
+  loaderState: JsLoaderState
+  loaderItemStates: Array<JsLoaderItemState>
   loaderIndex: number
-  loaderState: Readonly<JsLoaderState>
-  __internal__error?: RspackError
-  __internal__loaderCache?: JsLoaderCache | undefined
+  /** JavaScript additions, merged into the native typed parse metadata. */
+  parseMeta: Record<string, string>
+  output?: JsLoaderOutput
+  error?: RspackError
 }
 
 export interface JsLoaderDependencies {
@@ -996,6 +1022,18 @@ export interface JsLoaderDependencies {
   contextDependencies: Array<string>
   missingDependencies: Array<string>
   buildDependencies: Array<string>
+}
+
+/**
+ * The before-loaders hook borrows the native context and exchanges only owned
+ * snapshots. It neither moves the Box nor materializes source content/maps.
+ */
+export interface JsLoaderHookContext {
+  identity: JsLoaderContext
+  state: JsLoaderContextState
+  resource: string
+  _module: Module
+  loaderItems?: Array<JsLoaderMetadata>
 }
 
 export interface JsLoaderItem {
@@ -1006,6 +1044,26 @@ export interface JsLoaderItem {
   normalExecuted: boolean
   pitchExecuted: boolean
   noPitch: boolean
+}
+
+export interface JsLoaderItemState {
+  data: any
+  normalExecuted: boolean
+  pitchExecuted: boolean
+  noPitch: boolean
+}
+
+/** Immutable loader metadata, materialized once for the JavaScript facade. */
+export interface JsLoaderMetadata {
+  loader: string
+  type: string
+  cache: boolean
+}
+
+export interface JsLoaderOutput {
+  content: string | Buffer | null
+  sourceMap?: Buffer
+  additionalData?: any
 }
 
 export declare enum JsLoaderState {
@@ -3335,7 +3393,7 @@ export interface RegisterJsTaps {
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilationSealTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationAfterSealTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
-  registerNormalModuleLoaderTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => JsLoaderContext); stage: number; }>
+  registerNormalModuleLoaderTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLoaderHookContext) => JsLoaderContextState); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
   registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
   registerNormalModuleFactoryResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>

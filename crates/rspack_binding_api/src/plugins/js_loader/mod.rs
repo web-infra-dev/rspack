@@ -1,5 +1,5 @@
 mod cache;
-mod context;
+pub(crate) mod context;
 mod resolver;
 mod scheduler;
 
@@ -11,7 +11,10 @@ use std::{
 };
 
 pub use cache::{JsLoaderCache, JsLoaderCacheEntry};
-pub use context::{JsLoaderContext, JsLoaderDependencies, JsLoaderItem};
+use context::JsLoaderContextObject;
+pub use context::{
+  JsLoaderContext, JsLoaderContextState, JsLoaderDependencies, JsLoaderHookContext, JsLoaderItem,
+};
 use napi::{
   bindgen_prelude::*,
   sys::{napi_call_threadsafe_function, napi_threadsafe_function},
@@ -24,15 +27,14 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashSet;
-pub(crate) use scheduler::merge_loader_context;
 use tokio::sync::{OnceCell, RwLock};
 
 use crate::{COMPILER_REFERENCES, error::RspackResultToNapiResultExt};
 
 pub type JsLoaderRunner = ThreadsafeFunction<
-  JsLoaderContext,
+  JsLoaderContextObject,
   Promise<JsLoaderContext>,
-  JsLoaderContext,
+  JsLoaderContextObject,
   Status,
   false,
   true,
@@ -65,9 +67,11 @@ extern "C" fn napi_js_callback(
         Object::from_napi_value(env, napi_value)?
       };
       let run_loader = compiler_object
-        .get_named_property::<Function<JsLoaderContext, Promise<JsLoaderContext>>>("_runLoader")?;
+        .get_named_property::<Function<JsLoaderContextObject, Promise<JsLoaderContext>>>(
+          "_runLoader",
+        )?;
       let ts_fn: JsLoaderRunner = run_loader
-        .build_threadsafe_function::<JsLoaderContext>()
+        .build_threadsafe_function::<JsLoaderContextObject>()
         .weak::<true>()
         .callee_handled::<false>()
         .max_queue_size::<0>()
@@ -209,10 +213,8 @@ impl Plugin for JsLoaderRspackPlugin {
       .resolve_loader
       .tap(resolver::resolve_loader::new(self));
 
-    ctx
-      .normal_module_hooks
-      .loader_yield
-      .tap(scheduler::loader_yield::new(self));
+    ctx.normal_module_hooks.javascript_loader_runner =
+      Some(Arc::new(Self::from_inner(self.inner())));
 
     // TODO: tap compiler done hook will be better.
     ctx.compiler_hooks.emit.tap(done::new(self));

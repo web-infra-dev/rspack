@@ -98,13 +98,24 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     Ok(None)
   }
 
-  async fn start_yielding(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
-    self
+  async fn start_yielding(
+    &self,
+    context: Box<LoaderContext<Self::Context>>,
+  ) -> (Box<LoaderContext<Self::Context>>, Result<()>) {
+    if let Some(runner) = &self
       .plugin_driver
       .normal_module_hooks
-      .loader_yield
-      .call(context)
-      .await
+      .javascript_loader_runner
+    {
+      runner.run(context).await
+    } else {
+      (
+        context,
+        Err(rspack_error::error!(
+          "JavaScript loader runner is not registered"
+        )),
+      )
+    }
   }
 
   async fn run_normal_loader(
@@ -118,12 +129,12 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
       LoaderCacheAction::Disabled
     };
     if matches!(cache_action, LoaderCacheAction::Hit) {
-      context.current_loader().set_finish_called();
+      context.set_current_loader_finish_called();
       return Ok(());
     }
 
     loader.run(context).await?;
-    if !context.current_loader().finish_called() {
+    if !context.current_loader_state().finish_called() {
       context.finish_with_empty();
     }
     if let LoaderCacheAction::Miss(state) = cache_action {

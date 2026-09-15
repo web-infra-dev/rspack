@@ -8,17 +8,20 @@ mod plugin;
 mod runner;
 mod scheme;
 
+pub use cache::LoaderRunnerOptions;
 pub use content::{
   AdditionalData, Content, DescriptionData, ParseMeta, ParseMetaValue, ResourceData,
 };
-pub use context::{LoaderContext, LoaderDependencies, State};
+#[cfg(feature = "napi")]
+pub use context::LoaderContextLifetime;
+pub use context::{LoaderContext, LoaderDependencies, LoaderRunnerContext, State};
 pub use loader::{
-  DisplayWithSuffix, Loader, LoaderExecutionKind, LoaderItem, ResourceParsedData, parse_resource,
+  DisplayWithSuffix, Loader, LoaderExecutionKind, LoaderItem, LoaderItemState, ResourceParsedData,
+  parse_resource,
 };
-pub use plugin::LoaderRunnerPlugin;
+pub use plugin::{LoaderRunner, LoaderRunnerPlugin};
 pub use rspack_collections::{Identifiable, Identifier};
-pub use runner::{LoaderResult, run_loaders};
+pub use runner::{LoaderResult, Loaders, ResolvedLoader, run_loaders};
 pub use scheme::{Scheme, get_scheme};
 
 pub const BUILTIN_LOADER_PREFIX: &str = "builtin:";
-pub use cache::LoaderRunnerOptions;

@@ -38,6 +38,12 @@ function runChild(script) {
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 module.exports = [
   {
+    description: "should reuse loader contexts and release references when native lifetimes end",
+    async build() {
+      await runChild(path.join(__dirname, "fixtures", "tsfn-lifecycle", "gc-check-loader-context.cjs"));
+    },
+  },
+  {
     description:
       "should garbage collect hook closures that capture both compilation and compiler",
     async build() {
