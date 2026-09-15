@@ -27,10 +27,6 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
     .modules_keys()
     .copied()
     .collect::<Vec<_>>();
-  compilation
-    .build_chunk_graph_artifact
-    .chunk_graph
-    .reserve_modules(all_modules.len());
 
   // Make sure all modules (particularly weak dependencies) have a CGM before splitting.
   for module_identifier in &all_modules {
