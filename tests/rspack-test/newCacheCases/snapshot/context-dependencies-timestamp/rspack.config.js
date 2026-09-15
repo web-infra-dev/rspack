@@ -13,6 +13,7 @@ module.exports = {
   cache: {
     type: 'persistent',
     snapshot: {
+      module: { timestamp: true },
       immutablePaths: [path.resolve(__dirname, './file.js')],
     },
   },

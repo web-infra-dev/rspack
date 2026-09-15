@@ -2,8 +2,7 @@
   {
     "module build cache": {
       "hits": 3,
-      "total": 4,
-      "hitRate": 75
+      "total": 4
     }
   }
 ]

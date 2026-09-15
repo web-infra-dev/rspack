@@ -248,7 +248,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
               .expect("Expected at least one dependency")
               .category(),
           },
-          resolver_factory: data.resolver_factory.clone(),
+          resolver_factory: data.build_context.resolver_factory.clone(),
         })
         .await?;
         if let Some(r) = result.result {

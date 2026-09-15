@@ -1,6 +1,5 @@
 use std::{collections::VecDeque, sync::Arc};
 
-use rspack_fs::ReadableFileSystem;
 use rspack_util::time::current_time;
 use rustc_hash::FxHashSet;
 
@@ -8,9 +7,8 @@ use super::{
   TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  AsyncDependenciesBlockRef, BoxModule, BuildContext, CacheFacade, CompilationId, CompilerId,
-  CompilerOptions, DependenciesBlock, DependencyParents, DependencyRef, FileSystemInfo,
-  ModuleCodeTemplate, ModuleRef, ResolverFactory, SharedPluginDriver,
+  AsyncDependenciesBlockRef, BoxModule, BuildContext, DependenciesBlock, DependencyParents,
+  DependencyRef, ModuleRef, SharedPluginDriver,
   compilation::build_module_graph::{
     ForwardedIdSet, HasLazyDependencies, LazyDependencies, module_build_cache::ModuleBuildCache,
   },
@@ -22,16 +20,8 @@ use crate::{
 
 #[derive(Debug)]
 pub struct BuildTask {
-  pub compiler_id: CompilerId,
-  pub compilation_id: CompilationId,
+  pub build_context: Arc<BuildContext>,
   pub module: BoxModule,
-  pub resolver_factory: Arc<ResolverFactory>,
-  pub compiler_options: Arc<CompilerOptions>,
-  pub loader_cache: CacheFacade,
-  pub file_system_info: FileSystemInfo,
-  pub runtime_template: ModuleCodeTemplate,
-  pub plugin_driver: SharedPluginDriver,
-  pub fs: Arc<dyn ReadableFileSystem>,
   pub forwarded_ids: ForwardedIdSet,
   pub module_build_cache: Option<ModuleBuildCache>,
 }
@@ -43,44 +33,26 @@ impl Task<TaskContext> for BuildTask {
   }
   async fn background_run(self: Box<Self>) -> TaskResult<TaskContext> {
     let Self {
-      compiler_id,
-      compilation_id,
-      compiler_options,
-      loader_cache,
-      file_system_info,
-      resolver_factory,
-      plugin_driver,
-      runtime_template,
+      build_context,
       mut module,
-      fs,
       forwarded_ids,
       module_build_cache,
     } = *self;
+    let plugin_driver = build_context.plugin_driver.clone();
 
     let build_start_time = module_build_cache.as_ref().map(|_| current_time());
 
     plugin_driver
       .compilation_hooks
       .build_module
-      .call(compiler_id, compilation_id, &mut module)
-      .await?;
-
-    let result = module
-      .build(
-        BuildContext {
-          compiler_id,
-          compilation_id,
-          compiler_options: compiler_options.clone(),
-          loader_cache,
-          file_system_info: file_system_info.clone(),
-          resolver_factory: resolver_factory.clone(),
-          plugin_driver: plugin_driver.clone(),
-          runtime_template,
-          fs: fs.clone(),
-        },
-        None,
+      .call(
+        build_context.compiler_id,
+        build_context.compilation_id,
+        &mut module,
       )
       .await?;
+
+    let result = module.build(build_context, None).await?;
 
     if let (Some(module_build_cache), Some(build_start_time)) =
       (module_build_cache, build_start_time)
@@ -125,7 +97,11 @@ impl Task<TaskContext> for BuildResultTask {
         plugin_driver
           .compilation_hooks
           .succeed_module
-          .call(context.compiler_id, context.compilation_id, &mut module)
+          .call(
+            context.build_context.compiler_id,
+            context.build_context.compilation_id,
+            &mut module,
+          )
           .await?;
         ModuleRef::from(module)
       }
@@ -133,7 +109,11 @@ impl Task<TaskContext> for BuildResultTask {
         plugin_driver
           .compilation_hooks
           .still_valid_module
-          .call(context.compiler_id, context.compilation_id, module.as_ref())
+          .call(
+            context.build_context.compiler_id,
+            context.build_context.compilation_id,
+            module.as_ref(),
+          )
           .await?;
         module
       }
