@@ -9,14 +9,13 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-'use strict';
+import http from 'node:http';
+import https from 'node:https';
 
 export class EventSource {
   constructor(url) {
     this.response = undefined;
-    const request = (
-      url.startsWith('https:') ? require('node:https') : require('node:http')
-    ).request(
+    const request = (url.startsWith('https:') ? https : http).request(
       url,
       {
         agent: false,

@@ -4,7 +4,7 @@ use rspack_fs::IntermediateFileSystem;
 pub use rspack_storage::{BoxStorage, CacheDirectory, MemoryStorage, Storage};
 use rspack_storage::{FileSystemOptions, FileSystemStorage};
 
-use crate::cache::StorageOptions;
+use crate::StorageOptions;
 
 pub fn create_storage(
   options: StorageOptions,

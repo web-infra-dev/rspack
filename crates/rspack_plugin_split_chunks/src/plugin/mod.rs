@@ -8,9 +8,7 @@ use std::{borrow::Cow, cmp::Ordering, fmt::Debug, sync::Arc};
 
 use futures::future::BoxFuture;
 use itertools::Itertools;
-use rayon::iter::{
-  IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
-};
+use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 use rspack_collections::IdentifierMap;
 use rspack_core::{ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};
 use rspack_error::Result;
@@ -99,7 +97,12 @@ impl SplitChunksPlugin {
     all_modules.sort_unstable_by_key(|module| (module.precomputed_hash(), *module));
 
     let module_sizes = get_module_sizes(all_modules.par_iter().copied(), compilation);
-    let module_chunks = Self::get_module_chunks(&all_modules, compilation);
+    let mut module_chunks = Self::get_module_chunks(&all_modules, compilation);
+    let module_indices = all_modules
+      .iter()
+      .enumerate()
+      .map(|(index, module)| (*module, index))
+      .collect::<IdentifierMap<_>>();
     logger.time_end(start);
 
     let chunk_index_map: FxHashMap<ChunkUkey, u32> = {
@@ -165,37 +168,25 @@ impl SplitChunksPlugin {
     let mut max_size_setting_map: FxHashMap<ChunkUkey, MaxSizeSetting> = Default::default();
     let mut removed_module_chunks: IdentifierMap<FxHashSet<ChunkUkey>> = IdentifierMap::default();
 
+    // Each priority uses the remaining original module-chunk edges. Destinations
+    // created by earlier splits never become inputs to candidate enumeration.
+    let mut combinator = module_group::Combinator::default();
     logger.time_end(start);
 
     let start = logger.time("process cache groups");
     let priority_len = priority_cache_groups.len();
     for (index, (_, cache_groups)) in priority_cache_groups.into_iter().enumerate() {
-      // A higher-priority cache group consumes module-chunk edges, not the whole module. Build the
-      // combinations for this priority from the original chunk sets minus the consumed edges so a
-      // lower-priority cache group can still group a newly formed residual chunk set. Do not read
-      // the current chunk graph here because it also contains chunks created by earlier splits.
-      let available_module_chunks = if removed_module_chunks.is_empty() {
-        Cow::Borrowed(&module_chunks)
-      } else {
-        Cow::Owned(
-          all_modules
-            .par_iter()
-            .enumerate()
-            .map(|(module_index, module)| {
-              let chunks = module_chunks
-                .get(module_index)
-                .expect("should have module chunks");
-              if let Some(removed_chunks) = removed_module_chunks.get(module) {
-                chunks.difference(removed_chunks).copied().collect()
-              } else {
-                chunks.clone()
-              }
-            })
-            .collect(),
-        )
-      };
-
-      let mut combinator = module_group::Combinator::default();
+      for (module, removed) in removed_module_chunks.drain() {
+        let remaining = &mut module_chunks[module_indices[&module]];
+        for chunk in removed {
+          remaining.remove(&chunk);
+        }
+      }
+      let available_module_chunks = &module_chunks;
+      // Precompute once for this priority, then reuse the prepared combinations
+      // throughout candidate preparation and selection.
+      let previous = std::mem::take(&mut combinator);
+      rayon::spawn(move || drop(previous));
       let non_used_exports_min_chunks = cache_groups
         .iter()
         .filter(|cache_group| !cache_group.cache_group.used_exports)
@@ -205,7 +196,7 @@ impl SplitChunksPlugin {
       if let Some(min_chunks) = non_used_exports_min_chunks {
         combinator.prepare_group_by_chunks(
           &all_modules,
-          available_module_chunks.as_ref(),
+          available_module_chunks,
           &chunk_index_map,
           min_chunks,
         );
@@ -219,7 +210,7 @@ impl SplitChunksPlugin {
           &all_modules,
           &compilation.exports_info_artifact,
           &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-          available_module_chunks.as_ref(),
+          available_module_chunks,
           &chunk_index_map,
         );
       }
@@ -230,11 +221,10 @@ impl SplitChunksPlugin {
           &all_modules,
           cache_groups,
           compilation,
-          available_module_chunks.as_ref(),
+          available_module_chunks,
           &chunk_index_map,
         )
         .await?;
-      rayon::spawn(move || drop(combinator));
       tracing::trace!("prepared module_group_map {:#?}", module_group_map);
 
       module_group_map
@@ -508,6 +498,7 @@ impl SplitChunksPlugin {
       .await?;
     logger.time_end(start);
 
+    rayon::spawn(move || drop(combinator));
     Ok(())
   }
 }

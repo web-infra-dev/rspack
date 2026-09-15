@@ -237,7 +237,7 @@ impl Module for RscEntryModule {
 
   async fn build(
     mut self: Box<Self>,
-    _build_context: BuildContext,
+    _build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
   ) -> Result<BoxModule> {
     if self.is_server_side_rendering {

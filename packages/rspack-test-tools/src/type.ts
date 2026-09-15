@@ -38,7 +38,7 @@ export interface ITestCompilerManager {
   getCompiler(): Compiler | null;
   createCompiler(): Compiler;
   createCompilerWithCallback(
-    callback: (error: Error | null, stats: Stats | null) => void,
+    callback: (error: Error | null, stats?: Stats) => void,
   ): Compiler;
   build(): Promise<Stats>;
   watch(timeout?: number): void;
@@ -218,7 +218,7 @@ export interface ITestRunner {
 
 export type TCompilerFactory = (
   options: RspackOptions | RspackOptions[],
-  callback?: (error: Error | null, stats: Stats | null) => void,
+  callback?: (error: Error | null, stats?: Stats) => void,
 ) => Compiler;
 
 export interface TRunnerFactory {
