@@ -1,5 +1,6 @@
 import path from 'node:path';
-import rspack, {
+import {
+  rspack,
   type RspackOptions,
   type Stats,
   type StatsCompilation,

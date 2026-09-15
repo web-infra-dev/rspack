@@ -6,7 +6,7 @@ it("should generate correct sourceMap", async () => {
 	const source = fs.readFileSync(__filename + ".map", "utf-8");
 	const map = JSON.parse(source);
 	const sourceContent = fs.readFileSync(
-		__dirname + "/" + require("!!./a.ts?resource"),
+		__dirname + "/" + require("!./a.ts?resource"),
 		"utf-8"
 	);
 	let aSource = "webpack:///./a.ts";

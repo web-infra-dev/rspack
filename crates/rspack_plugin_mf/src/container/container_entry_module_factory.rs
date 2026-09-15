@@ -31,7 +31,7 @@ impl ModuleFactory for ContainerEntryModuleFactory {
             .clone()
             .expect("share container entry should have a share key"),
           dep.layer.clone(),
-          data.options.experiments.runtime_mode,
+          data.build_context.compiler_options.experiments.runtime_mode,
         )
         .boxed(),
       ))
@@ -42,7 +42,7 @@ impl ModuleFactory for ContainerEntryModuleFactory {
           dep.exposes.clone(),
           dep.share_scope.clone(),
           dep.enhanced,
-          data.options.experiments.runtime_mode,
+          data.build_context.compiler_options.experiments.runtime_mode,
         )
         .boxed(),
       ))

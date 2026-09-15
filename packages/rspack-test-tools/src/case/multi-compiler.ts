@@ -28,12 +28,12 @@ function createMultiCompilerProcessor(
         [
           {
             name: 'a',
-            context: path.join(__dirname, 'fixtures'),
+            context: path.join(import.meta.dirname, 'fixtures'),
             entry: './a.js',
           },
           {
             name: 'b',
-            context: path.join(__dirname, 'fixtures'),
+            context: path.join(import.meta.dirname, 'fixtures'),
             entry: './b.js',
           },
         ],
@@ -141,5 +141,5 @@ export type TMultiCompilerCaseConfig = {
     compiler: Compiler;
     compilation?: Compilation;
   }) => MaybePromise<void>;
-  compilerCallback?: (error: Error | null, stats: Stats | null) => void;
+  compilerCallback?: (error: Error | null, stats?: Stats) => void;
 };
