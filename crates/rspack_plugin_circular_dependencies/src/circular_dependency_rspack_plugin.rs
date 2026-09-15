@@ -340,7 +340,7 @@ impl CircularDependencyRspackPlugin {
           .module_by_identifier(module_identifier)
           .map(|module| {
             module
-              .readable_identifier(&compilation.options.context)
+              .readable_identifier(&compilation.options().context)
               .to_string()
               .cow_replace(&cwd, "")
               .trim_start_matches('/')

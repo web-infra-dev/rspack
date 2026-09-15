@@ -784,7 +784,7 @@ pub(crate) fn analyze_dyn_import_targets(
         module_id,
         module_graph,
         &compilation.module_static_cache,
-        &compilation.options.context,
+        &compilation.options().context,
       );
       let escaped_idents = split_readable_identifier(&readable_identifier);
       let name_allocator = chunk_name_allocators.entry(chunk_ukey).or_default();

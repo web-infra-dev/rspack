@@ -77,12 +77,12 @@ pub(crate) async fn complete_isolated_dts_outputs(
     });
   }
 
-  let compiler_root = compilation.options.context.as_path().to_path_buf();
+  let compiler_root = compilation.options().context.as_path().to_path_buf();
   let root_dir = resolve_path(&compiler_root, &options.root_dir);
-  let fs = compilation.input_filesystem.clone();
+  let fs = compilation.input_filesystem().clone();
   let tsconfig = default_tsconfig_options(compilation, &compiler_root, &fs).await;
   let resolver = compilation
-    .resolver_factory
+    .resolver_factory()
     .get(ResolveOptionsWithDependencyType {
       resolve_options: Some(Box::new(type_resolve_options(tsconfig))),
       resolve_to_context: false,
@@ -215,7 +215,7 @@ async fn default_tsconfig_options(
   compiler_root: &Utf8Path,
   fs: &Arc<dyn rspack_fs::ReadableFileSystem>,
 ) -> Option<TsconfigOptions> {
-  if compilation.options.resolve.tsconfig.is_some() {
+  if compilation.options().resolve.tsconfig.is_some() {
     return None;
   }
 

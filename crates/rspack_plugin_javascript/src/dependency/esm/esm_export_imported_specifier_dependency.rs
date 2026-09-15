@@ -791,7 +791,7 @@ impl ESMExportImportedSpecifierDependency {
           let ignored = render_dynamic_reexport_excluded(&ignored);
           format!("/* reexport */ {reexport}({exports}, {import_var}, {ignored});\n")
         } else {
-          let environment = compilation.options.output.environment;
+          let environment = compilation.options().output.environment;
           let supports_arrow_function = environment.supports_arrow_function();
           let supports_const = environment.supports_const();
           let mut content = format!(

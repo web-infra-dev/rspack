@@ -160,7 +160,7 @@ impl EsmLibraryPlugin {
     let runtime_mode_renderer = renderer_for(runtime_template.render_mode());
     let filename_template = get_js_chunk_filename_template(
       chunk,
-      &compilation.options.output,
+      &compilation.options().output,
       &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
     );
 
@@ -173,14 +173,14 @@ impl EsmLibraryPlugin {
           .chunk(chunk.ukey(), compilation)
           .chunk_hash_optional(chunk.rendered_hash(
             &compilation.chunk_hashes_artifact,
-            compilation.options.output.hash_digest_length,
+            compilation.options().output.hash_digest_length,
           ))
           .chunk_id_optional(chunk.id().map(|id| id.as_str()))
           .chunk_name_optional(chunk.name_for_filename_template())
           .content_hash_optional(chunk.rendered_content_hash_by_source_type(
             &compilation.chunk_hashes_artifact,
             &SourceType::JavaScript,
-            compilation.options.output.hash_digest_length,
+            compilation.options().output.hash_digest_length,
           ))
           .runtime(chunk.runtime().as_str()),
         asset_info,
@@ -385,7 +385,7 @@ var {} = {{}};
       }
       let source = Self::render_module(info, chunk_link)?;
 
-      if !matches!(compilation.options.output.pathinfo, PathInfo::Bool(false)) {
+      if !matches!(compilation.options().output.pathinfo, PathInfo::Bool(false)) {
         render_source.add(RawStringSource::from(format!(
           "// {}\n",
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *m).map_or_else(
@@ -394,7 +394,7 @@ var {} = {{}};
                 .module_by_identifier(m)
                 .expect("should have module");
               module
-                .readable_identifier(&compilation.options.context)
+                .readable_identifier(&compilation.options().context)
                 .to_string()
             },
             |id| { id.to_string() },
@@ -745,7 +745,7 @@ var {} = {{}};
         let end = (start as usize + matched.len()) as u32;
         let relative = get_undo_path(
           &output_path,
-          compilation.options.output.path.to_string(),
+          compilation.options().output.path.to_string(),
           true,
         );
         replacement.push((start, end, relative));

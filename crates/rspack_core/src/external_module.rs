@@ -149,11 +149,11 @@ fn get_source_for_import(
   let import_function = if phase != ImportPhase::Evaluation {
     format!(
       "{}.{}",
-      compilation.options.output.import_function_name,
+      compilation.options().output.import_function_name,
       phase.as_str()
     )
   } else {
-    compilation.options.output.import_function_name.clone()
+    compilation.options().output.import_function_name.clone()
   };
 
   format!(
@@ -560,7 +560,7 @@ impl ExternalModule {
     compilation: &Compilation,
   ) -> Result<Option<bool>> {
     if let Some(condition) = compilation
-      .plugin_driver
+      .plugin_driver()
       .compilation_hooks
       .external_module_chunk_condition
       .call(chunk_ukey, compilation)
@@ -604,7 +604,7 @@ impl ExternalModule {
     runtime_template: &mut ModuleCodeTemplate,
   ) -> Result<(BoxSource, ChunkInitFragments)> {
     let mut chunk_init_fragments: ChunkInitFragments = Default::default();
-    let supports_const = compilation.options.output.environment.supports_const();
+    let supports_const = compilation.options().output.environment.supports_const();
     let resolved_external_type = self.resolve_external_type();
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
@@ -623,7 +623,10 @@ impl ExternalModule {
       "global" => format!(
         "{} = {};",
         get_namespace_object_export(concatenation_scope, supports_const, runtime_template),
-        get_source_for_global_variable_external(request, &compilation.options.output.global_object)
+        get_source_for_global_variable_external(
+          request,
+          &compilation.options().output.global_object
+        )
       ),
       "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" => {
         format!(
@@ -634,23 +637,23 @@ impl ExternalModule {
       }
       "node-commonjs" => {
         let need_prefix = compilation
-          .options
+          .options()
           .output
           .environment
           .supports_node_prefix_for_core_modules();
 
-        if compilation.options.output.module {
+        if compilation.options().output.module {
           chunk_init_fragments.push(
             NormalInitFragment::new(
               format!(
                 "import {{ createRequire as __rspack_createRequire }} from \"{}\";\n{} __rspack_createRequire_require = __rspack_createRequire({}.url);\n",
                 if need_prefix { "node:module" } else { "module" },
-                if compilation.options.output.environment.supports_const() {
+                if compilation.options().output.environment.supports_const() {
                   "const"
                 } else {
                   "var"
                 },
-                compilation.options.output.import_meta_name
+                compilation.options().output.import_meta_name
               ),
               InitFragmentStage::StageESMImports,
               0,
@@ -756,13 +759,13 @@ impl ExternalModule {
         )
       }
       "module" => {
-        if compilation.options.output.module
+        if compilation.options().output.module
           && let Some(request) = request
         {
           let id: Cow<'_, str> = if to_identifier(&request.primary) != request.primary
             || self.dependency_meta.attributes.is_some()
           {
-            let mut hasher = RspackHasher::from(&compilation.options.output);
+            let mut hasher = RspackHasher::from(&compilation.options().output);
             use rspack_hash::RspackHash as _;
             request.primary.hash(&mut hasher);
             if let Some(attributes) = &self.dependency_meta.attributes {
@@ -770,7 +773,7 @@ impl ExternalModule {
                 .expect("json stringify failed")
                 .hash(&mut hasher);
             }
-            let hash_suffix = hasher.digest(&compilation.options.output.hash_digest);
+            let hash_suffix = hasher.digest(&compilation.options().output.hash_digest);
             Cow::Owned(format!(
               "{}_{}",
               to_identifier(&request.primary),
@@ -1308,7 +1311,7 @@ impl Module for ExternalModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHasher::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options().output);
     use rspack_hash::RspackHash as _;
     self.id.as_str().hash(&mut hasher);
     let side_effects_state_artifact = &compilation
@@ -1322,7 +1325,7 @@ impl Module for ExternalModule {
     );
     is_optional.hash(&mut hasher);
     module_update_hash(self, &mut hasher, compilation, runtime);
-    Ok(hasher.digest(&compilation.options.output.hash_digest))
+    Ok(hasher.digest(&compilation.options().output.hash_digest))
   }
 }
 

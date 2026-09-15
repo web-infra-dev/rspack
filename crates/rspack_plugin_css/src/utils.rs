@@ -431,7 +431,7 @@ fn css_module_id_for_local_ident(compilation: &Compilation, module: &dyn Module)
         .map(|path| path.as_str())
     })
     .unwrap_or_else(|| module.identifier().as_str());
-  let full_name = make_paths_relative(&compilation.options.context, full_name);
+  let full_name = make_paths_relative(&compilation.options().context, full_name);
   let hash = get_css_module_id_hash(full_name, 4);
   let mut stable_id = String::with_capacity(module_id.len() + 1 + hash.len());
   stable_id.push_str(module_id);

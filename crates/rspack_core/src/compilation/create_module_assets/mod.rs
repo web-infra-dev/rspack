@@ -12,7 +12,7 @@ impl PassExt for CreateModuleAssetsPass {
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
-    let plugin_driver = compilation.plugin_driver.clone();
+    let plugin_driver = compilation.plugin_driver().clone();
     create_module_assets(compilation, plugin_driver).await;
     Ok(())
   }

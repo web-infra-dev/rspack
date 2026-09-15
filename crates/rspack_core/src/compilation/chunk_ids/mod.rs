@@ -28,7 +28,7 @@ impl PassExt for ChunkIdsPass {
     let mut chunk_by_ukey = mem::take(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
     let mut named_chunk_ids_artifact = compilation.named_chunk_ids_artifact.steal();
     compilation
-      .plugin_driver
+      .plugin_driver()
       .clone()
       .compilation_hooks
       .chunk_ids

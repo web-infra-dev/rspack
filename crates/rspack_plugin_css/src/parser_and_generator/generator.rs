@@ -211,7 +211,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     if self.module.get_source_map_kind().enabled() {
       let source_name = css_javascript_source_map_module_name(
         self.module,
-        &self.generate_context.compilation.options.context,
+        &self.generate_context.compilation.options().context,
       );
       Ok(OriginalSource::new(generated_source, source_name).boxed())
     } else {
@@ -434,7 +434,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     CssSourceBuilder::new(
       with_charset,
       !self.module.get_source_map_kind().no_sources(),
-      self.generate_context.compilation.options.context.clone(),
+      self.generate_context.compilation.options().context.clone(),
     )
   }
 
@@ -613,7 +613,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       || {
         self
           .module
-          .readable_identifier(&self.generate_context.compilation.options.context)
+          .readable_identifier(&self.generate_context.compilation.options().context)
           .into_owned()
       },
       |id| id.to_string(),

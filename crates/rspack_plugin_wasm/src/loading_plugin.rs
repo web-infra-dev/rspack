@@ -112,9 +112,9 @@ async fn read_file_compile_async_wasm_plugin_runtime_requirements_in_tree(
     return Ok(None);
   }
 
-  let import_enabled = compilation.options.output.module
+  let import_enabled = compilation.options().output.module
     && compilation
-      .options
+      .options()
       .output
       .environment
       .supports_dynamic_import();
@@ -187,7 +187,7 @@ async fn universal_compile_async_wasm_plugin_runtime_requirements_in_tree(
   let wasm_loading = chunk
     .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
     .and_then(|options| options.wasm_loading.clone())
-    .unwrap_or_else(|| compilation.options.output.wasm_loading.clone());
+    .unwrap_or_else(|| compilation.options().output.wasm_loading.clone());
 
   let is_enabled_for_chunk = matches!(
     wasm_loading,
@@ -199,7 +199,7 @@ async fn universal_compile_async_wasm_plugin_runtime_requirements_in_tree(
   }
 
   // Generate universal loading code
-  let import_meta_name = &compilation.options.output.import_meta_name;
+  let import_meta_name = &compilation.options().output.import_meta_name;
 
   // Generate before load binary code: detect environment and set wasmUrl
   let generate_before_load_binary_code =

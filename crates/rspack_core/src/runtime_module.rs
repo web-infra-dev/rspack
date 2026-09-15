@@ -201,7 +201,7 @@ pub async fn runtime_module_get_runtime_hash(
   compilation: &Compilation,
   _runtime: Option<&RuntimeSpec>,
 ) -> Result<RspackHashDigest> {
-  let mut hasher = RspackHasher::from(&compilation.options.output);
+  let mut hasher = RspackHasher::from(&compilation.options().output);
   module.name().hash(&mut hasher);
   module.stage().hash(&mut hasher);
   if module.full_hash() || module.dependent_hash() {
@@ -220,7 +220,7 @@ pub async fn runtime_module_get_runtime_hash(
       .await?
       .hash(&mut hasher);
   }
-  Ok(hasher.digest(&compilation.options.output.hash_digest))
+  Ok(hasher.digest(&compilation.options().output.hash_digest))
 }
 
 #[async_trait]

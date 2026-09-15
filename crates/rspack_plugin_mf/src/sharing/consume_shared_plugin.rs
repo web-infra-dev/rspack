@@ -88,7 +88,7 @@ pub async fn resolve_matched_configs(
   for (request, config) in configs {
     if RELATIVE_REQUEST.is_match(request) {
       let Ok(ResolveResult::Resource(resource)) = resolver
-        .resolve(compilation.options.context.as_ref(), request)
+        .resolve(compilation.options().context.as_ref(), request)
         .await
       else {
         compilation.push_diagnostic(error!("Can't resolve shared module {request}").into());
@@ -160,7 +160,7 @@ impl ConsumeSharedPlugin {
   fn init_context(&self, compilation: &Compilation) {
     self
       .compiler_context
-      .set(compilation.options.context.clone())
+      .set(compilation.options().context.clone())
       .expect("failed to set compiler context");
   }
 
@@ -177,7 +177,7 @@ impl ConsumeSharedPlugin {
       .resolver
       .set(
         compilation
-          .resolver_factory
+          .resolver_factory()
           .get(ResolveOptionsWithDependencyType {
             resolve_options: None,
             resolve_to_context: false,

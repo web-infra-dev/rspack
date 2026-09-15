@@ -252,7 +252,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         .expect_get(&chunk_ukey);
       let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
 
-      let unique_name = &compilation.options.output.unique_name;
+      let unique_name = &compilation.options().output.unique_name;
       let with_css_modules = runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES);
       let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
       let with_inject_style = runtime_requirements.contains(RuntimeGlobals::CSS_INJECT_STYLE);
@@ -287,7 +287,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         all_initial_chunk_ids.insert(id);
       }
 
-      let environment = &compilation.options.output.environment;
+      let environment = &compilation.options().output.environment;
       let is_neutral_platform = compilation.platform.is_neutral();
       let with_prefetch = with_css_modules
         && runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS)
@@ -332,7 +332,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           &self.template_id(TemplateId::CreateLink),
           Some(serde_json::json!({
             "_with_fetch_priority": with_fetch_priority,
-            "_cross_origin": match &compilation.options.output.cross_origin_loading {
+            "_cross_origin": match &compilation.options().output.cross_origin_loading {
               CrossOriginLoading::Disable => String::new(),
               CrossOriginLoading::Enable(cross_origin) => cross_origin.clone(),
             },
@@ -352,7 +352,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           )
           .await?;
 
-        let chunk_load_timeout = compilation.options.output.chunk_load_timeout.to_string();
+        let chunk_load_timeout = compilation.options().output.chunk_load_timeout.to_string();
         let raw_source = context.runtime_template.render(
           &self.template_id(TemplateId::Raw),
           Some(serde_json::json!({
@@ -378,7 +378,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           let link_prefetch_raw = context.runtime_template.render(
             &self.template_id(TemplateId::WithPrefetchLink),
             Some(serde_json::json!({
-              "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
+              "_cross_origin": compilation.options().output.cross_origin_loading.to_string(),
             })),
           )?;
 
@@ -409,7 +409,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           let link_preload_raw = context.runtime_template.render(
             &self.template_id(TemplateId::WithPreloadLink),
             Some(serde_json::json!({
-              "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
+              "_cross_origin": compilation.options().output.cross_origin_loading.to_string(),
             })),
           )?;
 

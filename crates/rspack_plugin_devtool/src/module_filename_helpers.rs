@@ -99,7 +99,7 @@ impl ModuleFilenameHelpers {
     namespace: &str,
     unresolved_source_map_path: Option<&Utf8Path>,
   ) -> ModuleFilenameTemplateFnCtx {
-    let Compilation { options, .. } = compilation;
+    let options = compilation.options();
     let context = &options.context;
 
     match source_reference {
@@ -307,7 +307,7 @@ fn create_default_module_filename(
   namespace: &str,
   scheme: &str,
 ) -> String {
-  let Compilation { options, .. } = compilation;
+  let options = compilation.options();
   let context = &options.context;
 
   let short_identifier = match source_reference {
@@ -349,7 +349,7 @@ struct ModuleFilenameTemplateStringCtx<'a> {
 impl<'a> ModuleFilenameTemplateStringCtx<'a> {
   pub fn short_identifier(&self) -> &str {
     self.short_identifier.get_or_init(|| {
-      let Compilation { options, .. } = self.compilation;
+      let options = self.compilation.options();
       let context = &options.context;
 
       match &self.source_reference {
@@ -368,7 +368,7 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
   }
 
   pub fn identifier(&self) -> &str {
-    let Compilation { options, .. } = self.compilation;
+    let options = self.compilation.options();
     let context = &options.context;
 
     match &self.source_reference {
@@ -414,7 +414,7 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
         resolve_relative_resource_path(
           absolute_resource_path,
           self.unresolved_source_map_path,
-          self.compilation.options.experiments.runtime_mode,
+          self.compilation.options().experiments.runtime_mode,
         )
         .map(Cow::Owned)
       }

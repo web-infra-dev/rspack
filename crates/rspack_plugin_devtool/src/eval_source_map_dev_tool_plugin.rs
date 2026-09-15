@@ -101,10 +101,10 @@ async fn render_module_content(
   _init_fragments: &mut ChunkInitFragments,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
-  if compilation.options.output.trusted_types.is_some() {
+  if compilation.options().output.trusted_types.is_some() {
     runtime_requirements.insert(RuntimeGlobals::CREATE_SCRIPT);
   }
-  let output_options = &compilation.options.output;
+  let output_options = &compilation.options().output;
   let chunk = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
@@ -153,7 +153,7 @@ async fn render_module_content(
             .strip_prefix("webpack://")
             .or_else(|| source.strip_prefix("rspack://"))
           {
-            let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
+            let source = make_paths_absolute(compilation.options().context.as_str(), stripped);
             let identifier = ModuleIdentifier::from(source.as_str());
             match compilation
               .get_module_graph()
@@ -172,14 +172,14 @@ async fn render_module_content(
           .chunk_name_optional(chunk.name())
           .chunk_hash_optional(chunk.rendered_hash(
             &compilation.chunk_hashes_artifact,
-            compilation.options.output.hash_digest_length,
+            compilation.options().output.hash_digest_length,
           ));
 
         let filename = Filename::from(self.namespace.as_str());
         let namespace = compilation.get_path(&filename, path_data).await?;
 
         let default_module_filename_template =
-          default_eval_module_filename_template(compilation.options.experiments.runtime_mode);
+          default_eval_module_filename_template(compilation.options().experiments.runtime_mode);
         let module_filename_template = self
           .module_filename_template
           .as_ref()
@@ -272,7 +272,7 @@ async fn render_module_content(
       let module_content = json_stringify_str(&format!("{{{source}{footer}\n}}"));
       RawStringSource::from(format!(
         "eval({});",
-        if compilation.options.output.trusted_types.is_some() {
+        if compilation.options().output.trusted_types.is_some() {
           format!(
             "{}({})",
             runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_SCRIPT),
@@ -314,7 +314,7 @@ async fn additional_module_runtime_requirements(
   _module: &ModuleIdentifier,
   runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
-  if compilation.options.output.trusted_types.is_some() {
+  if compilation.options().output.trusted_types.is_some() {
     runtime_requirements.insert(RuntimeGlobals::CREATE_SCRIPT);
   }
 

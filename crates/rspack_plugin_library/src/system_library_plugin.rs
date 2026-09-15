@@ -101,7 +101,7 @@ async fn render(
         .chunk_name_optional(chunk.name())
         .chunk_hash_optional(chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
-          compilation.options.output.hash_digest_length,
+          compilation.options().output.hash_digest_length,
         )),
       None => PathData::default(),
     };

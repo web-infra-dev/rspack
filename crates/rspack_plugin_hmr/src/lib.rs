@@ -124,7 +124,7 @@ async fn content_hash(
   let Some(chunk_id) = chunk.id() else {
     return Ok(());
   };
-  let output = &compilation.options.output;
+  let output = &compilation.options().output;
   let digest_of = |source_type: &SourceType| {
     hashes
       .get(source_type)
@@ -459,7 +459,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let mut manifest = Vec::new();
       let mut diagnostics = Vec::new();
       compilation
-        .plugin_driver
+        .plugin_driver()
         .compilation_hooks
         .render_manifest
         .call(compilation, &ukey, &mut manifest, &mut diagnostics)
@@ -497,14 +497,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         } else {
           compilation
             .get_path(
-              &compilation.options.output.hot_update_chunk_filename,
+              &compilation.options().output.hot_update_chunk_filename,
               PathData::default()
                 .chunk_id_optional(hot_update_chunk.id().map(|id| id.as_str()))
                 .chunk_name_optional(hot_update_chunk.name_for_filename_template())
                 .hash_optional(
                   old_hash
                     .as_ref()
-                    .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
+                    .map(|hash| hash.rendered(compilation.options().output.hash_digest_length)),
                 ),
             )
             .await?
@@ -549,11 +549,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   for (runtime, content) in hot_update_main_content_by_runtime {
     let filename = compilation
       .get_path(
-        &compilation.options.output.hot_update_main_filename,
+        &compilation.options().output.hot_update_main_filename,
         PathData::default().runtime(&runtime).hash_optional(
           old_hash
             .as_ref()
-            .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
+            .map(|hash| hash.rendered(compilation.options().output.hash_digest_length)),
         ),
       )
       .await?;
@@ -622,7 +622,7 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
       filename,
       CompilationAsset::new(
         Some(
-          RawStringSource::from(if compilation.options.output.module {
+          RawStringSource::from(if compilation.options().output.module {
             format!("export default {manifest_content};")
           } else {
             manifest_content

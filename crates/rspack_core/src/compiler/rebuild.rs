@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 
 use rspack_collections::IdentifierMap;
 use rspack_error::Result;
@@ -75,12 +75,14 @@ impl Compiler {
       compilation_logging.clear();
 
       let mut next_compilation = Compilation::new(
-        self.id,
-        self.options.clone(),
+        Arc::new(
+          self
+            .compilation
+            .build_context
+            .for_new_compilation(compilation_logging.clone()),
+        ),
         self.platform.clone(),
-        self.plugin_driver.clone(),
         self.buildtime_plugin_driver.clone(),
-        self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         records,
         Incremental::new_hot(self.options.incremental),
@@ -89,7 +91,6 @@ impl Compiler {
         self.new_cache.clone(),
         modified_files,
         removed_files,
-        self.input_filesystem.clone(),
         self.intermediate_filesystem.clone(),
         self.output_filesystem.clone(),
         true,

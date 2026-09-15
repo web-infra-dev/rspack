@@ -169,13 +169,13 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       dependencies: {
         if (self.source_type == SourceType::JavaScript
           && compilation
-            .options
+            .options()
             .output
             .chunk_filename
             .has_hash_placeholder())
           || (self.source_type == SourceType::Css
             && compilation
-              .options
+              .options()
               .output
               .css_chunk_filename
               .has_hash_placeholder())
@@ -316,7 +316,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                 |c| {
                   c.rendered_hash(
                     &compilation.chunk_hashes_artifact,
-                    compilation.options.output.hash_digest_length,
+                    compilation.options().output.hash_digest_length,
                   )
                   .map(|hash| render_hash(placeholder, hash))
                 },
@@ -331,7 +331,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                   c.rendered_content_hash_by_source_type(
                     &compilation.chunk_hashes_artifact,
                     &self.source_type,
-                    compilation.options.output.hash_digest_length,
+                    compilation.options().output.hash_digest_length,
                   )
                   .map(|hash| render_hash(placeholder, hash))
                 },
@@ -392,14 +392,14 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
             PlaceholderKind::ChunkHash => chunk
               .rendered_hash(
                 &compilation.chunk_hashes_artifact,
-                compilation.options.output.hash_digest_length,
+                compilation.options().output.hash_digest_length,
               )
               .map(|chunk_hash| FilenameRenderValue::Value(Cow::Borrowed(chunk_hash))),
             PlaceholderKind::ContentHash => chunk
               .rendered_content_hash_by_source_type(
                 &compilation.chunk_hashes_artifact,
                 &self.source_type,
-                compilation.options.output.hash_digest_length,
+                compilation.options().output.hash_digest_length,
               )
               .map(|content_hash| FilenameRenderValue::Value(Cow::Borrowed(content_hash))),
             _ => None,

@@ -32,7 +32,7 @@ async fn get_chunk_output_path(compilation: &Compilation, chunk_ukey: ChunkUkey)
     .expect_get(&chunk_ukey);
   let filename_template = get_js_chunk_filename_template(
     chunk,
-    &compilation.options.output,
+    &compilation.options().output,
     &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
   );
 
@@ -43,14 +43,14 @@ async fn get_chunk_output_path(compilation: &Compilation, chunk_ukey: ChunkUkey)
         .chunk(chunk_ukey, compilation)
         .chunk_hash_optional(chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
-          compilation.options.output.hash_digest_length,
+          compilation.options().output.hash_digest_length,
         ))
         .chunk_id_optional(chunk.id().map(|id| id.as_str()))
         .chunk_name_optional(chunk.name_for_filename_template())
         .content_hash_optional(chunk.rendered_content_hash_by_source_type(
           &compilation.chunk_hashes_artifact,
           &SourceType::JavaScript,
-          compilation.options.output.hash_digest_length,
+          compilation.options().output.hash_digest_length,
         ))
         .runtime(chunk.runtime().as_str()),
     )
@@ -133,7 +133,7 @@ pub async fn replace_static_url_placeholders(
     let filename = get_chunk_output_path(compilation, worker_chunk_ukey).await?;
     let public_path = if !worker_public_path.is_empty() {
       worker_public_path
-    } else if let PublicPath::Filename(public_path) = &compilation.options.output.public_path {
+    } else if let PublicPath::Filename(public_path) = &compilation.options().output.public_path {
       PublicPath::ensure_ends_with_slash(
         PublicPath::render_filename(compilation, public_path).await,
       )
@@ -143,7 +143,7 @@ pub async fn replace_static_url_placeholders(
     let undo_path = if is_relative_public_path(&public_path) {
       get_undo_path(
         output_path,
-        compilation.options.output.path.to_string(),
+        compilation.options().output.path.to_string(),
         true,
       )
     } else {

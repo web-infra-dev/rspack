@@ -142,13 +142,13 @@ fn render_lazy_create_require_external_import(
 ) -> String {
   let need_prefix = code_generatable_context
     .compilation
-    .options
+    .options()
     .output
     .environment
     .supports_node_prefix_for_core_modules();
   let import_meta_name = &code_generatable_context
     .compilation
-    .options
+    .options()
     .output
     .import_meta_name;
   let module_request =
@@ -173,7 +173,7 @@ fn render_lazy_commonjs_external_import(
 
   match external_module.resolve_external_type() {
     "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "node-commonjs" => {
-      if code_generatable_context.compilation.options.output.module {
+      if code_generatable_context.compilation.options().output.module {
         Some(render_lazy_create_require_external_import(
           code_generatable_context,
           &create_fake_namespace_object,

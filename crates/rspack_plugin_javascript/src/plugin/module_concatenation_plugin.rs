@@ -105,7 +105,7 @@ impl ConcatenationProblem {
       &module,
       module_graph,
       &compilation.module_static_cache,
-      &compilation.options.context,
+      &compilation.options().context,
     );
 
     match self {
@@ -161,7 +161,7 @@ impl ConcatenationProblem {
                 origin_module,
                 module_graph,
                 &compilation.module_static_cache,
-                &compilation.options.context,
+                &compilation.options().context,
               );
               format!(
                 "{} (expected runtime {}, module is only referenced in {})",
@@ -183,7 +183,7 @@ impl ConcatenationProblem {
               module,
               module_graph,
               &compilation.module_static_cache,
-              &compilation.options.context,
+              &compilation.options().context,
             )
           })
           .collect();
@@ -202,7 +202,7 @@ impl ConcatenationProblem {
               origin_module,
               module_graph,
               &compilation.module_static_cache,
-              &compilation.options.context,
+              &compilation.options().context,
             );
             format!(
               "{} (referenced with {})",
@@ -904,7 +904,7 @@ impl ModuleConcatenationPlugin {
   async fn optimize_chunk_modules_impl(&self, compilation: &mut Compilation) -> Result<()> {
     let logger = compilation.get_logger("rspack.ModuleConcatenationPlugin");
 
-    if compilation.options.experiments.defer_import {
+    if compilation.options().experiments.defer_import {
       let mut imported_by_defer_modules_artifact = ImportedByDeferModulesArtifact::default();
       let module_graph = compilation.get_module_graph();
       for (_, dep) in module_graph.dependencies() {
@@ -1052,7 +1052,7 @@ impl ModuleConcatenationPlugin {
           bailout_reason.push("Module is an entry point".into());
         }
 
-        if compilation.options.experiments.defer_import
+        if compilation.options().experiments.defer_import
           && module_graph.is_deferred(&compilation.imported_by_defer_modules_artifact, &module_id)
         {
           bailout_reason.push("Module is deferred".into());
@@ -1424,7 +1424,7 @@ impl ModuleConcatenationPlugin {
     }
     let module_graph = compilation.get_module_graph();
     let module_static_cache = &compilation.module_static_cache;
-    let compilation_context = &compilation.options.context;
+    let compilation_context = &compilation.options().context;
     readable_identifier_modules
       .into_par_iter()
       .for_each(|module_id| {
@@ -1727,12 +1727,12 @@ async fn create_concatenated_module(
       &root_module_id,
       module_graph,
       &compilation.module_static_cache,
-      &compilation.options.context,
+      &compilation.options().context,
     ),
     name_for_condition: root_module.name_for_condition(),
     lib_indent: root_module
       .lib_ident(LibIdentOptions {
-        context: compilation.options.context.as_str(),
+        context: compilation.options().context.as_str(),
       })
       .map(|id| id.to_string()),
     layer: root_module.get_layer().cloned(),
@@ -1743,7 +1743,7 @@ async fn create_concatenated_module(
     presentational_dependencies: root_module
       .get_presentational_dependencies()
       .map(|deps| deps.to_vec()),
-    context: Some(compilation.options.context.clone()),
+    context: Some(compilation.options().context.clone()),
     side_effect_connection_state: root_module.get_side_effects_connection_state(
       module_graph,
       &compilation.module_graph_cache_artifact,
@@ -1775,7 +1775,7 @@ async fn create_concatenated_module(
           id,
           module_graph,
           &compilation.module_static_cache,
-          &compilation.options.context,
+          &compilation.options().context,
         ),
       }
     })
@@ -1788,20 +1788,7 @@ async fn create_concatenated_module(
     compilation,
   )));
   let build_result = new_module
-    .build(
-      Arc::new(rspack_core::BuildContext {
-        compiler_id: compilation.compiler_id(),
-        compilation_id: compilation.id(),
-        resolver_factory: compilation.resolver_factory.clone(),
-        plugin_driver: compilation.plugin_driver.clone(),
-        compiler_options: compilation.options.clone(),
-        loader_cache: compilation.get_cache("loader"),
-        file_system_info: compilation.file_system_info.clone(),
-        fs: compilation.input_filesystem.clone(),
-        runtime_template: compilation.runtime_template.create_module_code_template(),
-      }),
-      Some(compilation),
-    )
+    .build(compilation.build_context.clone(), Some(compilation))
     .await?;
   new_module = build_result;
 

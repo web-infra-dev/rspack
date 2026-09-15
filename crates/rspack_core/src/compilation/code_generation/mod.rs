@@ -71,7 +71,7 @@ async fn code_generation_pass_impl(compilation: &mut Compilation) -> Result<()> 
 
   let mut diagnostics = vec![];
   compilation
-    .plugin_driver
+    .plugin_driver()
     .clone()
     .compilation_hooks
     .after_code_generation
@@ -86,7 +86,7 @@ async fn code_generation_pass_impl(compilation: &mut Compilation) -> Result<()> 
 #[instrument("Compilation:code_generation",target=TRACING_BENCH_TARGET, skip_all)]
 pub async fn code_generation(compilation: &mut Compilation, modules: IdentifierSet) -> Result<()> {
   let logger = compilation.get_logger("rspack.Compilation");
-  let codegen_cache_counter = match compilation.options.cache {
+  let codegen_cache_counter = match compilation.options().cache {
     CacheOptions::Disabled => None,
     _ => Some(logger.cache("module code generation cache")),
   };
@@ -131,7 +131,7 @@ pub(crate) async fn code_generation_modules(
   modules: IdentifierSet,
 ) -> Result<()> {
   let new_cache = compilation
-    .options
+    .options()
     .experiments
     .new_cache
     .code_generation
@@ -148,7 +148,7 @@ pub(crate) async fn code_generation_modules(
       let hash = ChunkGraph::get_module_hash(compilation, module, runtime)
         .expect("should have cgm.hash in code generation");
       let scope = compilation
-        .plugin_driver
+        .plugin_driver()
         .compilation_hooks
         .concatenation_scope
         .call(compilation, module)
@@ -187,7 +187,7 @@ pub(crate) async fn code_generation_modules(
 
       s.spawn(
         |(this, module_graph, cache_counter, new_cache, job)| async move {
-          let options = &this.options;
+          let options = this.options();
 
           let module = module_graph
             .module_by_identifier(&job.module)
@@ -279,9 +279,9 @@ pub(crate) async fn code_generation_modules(
         compilation.push_diagnostic(diagnostic);
         let mut codegen_result_builder = CodeGenerationResultBuilder::default();
         codegen_result_builder.set_hash(
-          &compilation.options.output.hash_function,
-          &compilation.options.output.hash_digest,
-          &compilation.options.output.hash_salt,
+          &compilation.options().output.hash_function,
+          &compilation.options().output.hash_digest,
+          &compilation.options().output.hash_salt,
         );
         codegen_result_builder.build()
       }

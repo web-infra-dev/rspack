@@ -391,9 +391,9 @@ impl Module for RscEntryModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHasher::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options().output);
     module_update_hash(self, &mut hasher, compilation, runtime);
-    Ok(hasher.digest(&compilation.options.output.hash_digest))
+    Ok(hasher.digest(&compilation.options().output.hash_digest))
   }
 }
 
@@ -505,11 +505,11 @@ fn append_client_modules_debug_section(
     chunk_group,
     chunking,
     server_entry
-      .map(|server_entry| contextify(compilation.options.context.as_path(), server_entry)),
+      .map(|server_entry| contextify(compilation.options().context.as_path(), server_entry)),
   );
   for client_module in client_modules {
     let request = contextify(
-      compilation.options.context.as_path(),
+      compilation.options().context.as_path(),
       client_module.request.as_str(),
     );
     append_debug_module_line(source, &request, &format_referenced_exports(client_module));
@@ -536,14 +536,14 @@ fn append_server_entry_debug_section(
     "server-entry",
     chunking,
     Some(contextify(
-      compilation.options.context.as_path(),
+      compilation.options().context.as_path(),
       server_entry,
     )),
   );
 
   if let Some(css_imports) = css_imports {
     for css_import in sorted_strs(css_imports.iter().map(String::as_str)) {
-      let request = contextify(compilation.options.context.as_path(), css_import);
+      let request = contextify(compilation.options().context.as_path(), css_import);
       append_debug_module_line(source, &request, "side-effect");
     }
   }
@@ -553,7 +553,7 @@ fn append_server_entry_debug_section(
     client_modules.sort_unstable_by(|a, b| a.request.cmp(&b.request));
     for client_module in client_modules {
       let request = contextify(
-        compilation.options.context.as_path(),
+        compilation.options().context.as_path(),
         client_module.request.as_str(),
       );
       append_debug_module_line(source, &request, &format_referenced_exports(client_module));

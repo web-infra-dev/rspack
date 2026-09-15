@@ -184,10 +184,10 @@ impl Module for CssModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHasher::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options().output);
     module_update_hash(self, &mut hasher, compilation, runtime);
     self.build_info.read().hash.hash(&mut hasher);
-    Ok(hasher.digest(&compilation.options.output.hash_digest))
+    Ok(hasher.digest(&compilation.options().output.hash_digest))
   }
 
   fn get_layer(&self) -> Option<&ModuleLayer> {

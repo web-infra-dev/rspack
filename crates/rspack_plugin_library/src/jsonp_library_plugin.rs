@@ -90,13 +90,13 @@ async fn render(
         .chunk_id_optional(chunk.id().map(|id| id.as_str()))
         .chunk_hash_optional(chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
-          compilation.options.output.hash_digest_length,
+          compilation.options().output.hash_digest_length,
         ))
         .chunk_name_optional(chunk.name_for_filename_template())
         .content_hash_optional(chunk.rendered_content_hash_by_source_type(
           &compilation.chunk_hashes_artifact,
           &SourceType::JavaScript,
-          compilation.options.output.hash_digest_length,
+          compilation.options().output.hash_digest_length,
         )),
     )
     .await?;

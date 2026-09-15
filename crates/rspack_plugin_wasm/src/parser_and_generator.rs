@@ -194,7 +194,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         .hash(hash);
       let (filename, asset_info) = compilation
         .get_asset_path_with_info(
-          &compilation.options.output.webassembly_module_filename,
+          &compilation.options().output.webassembly_module_filename,
           path_data,
         )
         .await?;

@@ -110,7 +110,7 @@ pub async fn finish_modules_inner(
   // module graph, so any kind of change that affect these should be done before the
   // finish_modules
   compilation
-    .plugin_driver
+    .plugin_driver()
     .clone()
     .compilation_hooks
     .finish_modules
