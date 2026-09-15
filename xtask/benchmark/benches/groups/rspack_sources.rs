@@ -8,7 +8,7 @@ mod bench_source_map;
 #[path = "rspack_sources_repetitive_react_components.rs"]
 mod benchmark_repetitive_react_components;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, hint::black_box};
 
 use bench_complex_replace_source::{
   benchmark_complex_replace_source_map,
@@ -108,7 +108,7 @@ fn benchmark_concat_generate_string_with_cache(b: &mut Bencher) {
   })
 }
 
-fn benchmark_cached_source_hash(b: &mut Bencher) {
+fn cached_source_for_hash_benchmark() -> BoxSource {
   let sms_minify = SourceMapSource::new(SourceMapSourceOptions {
     value: HELLOWORLD_MIN_JS,
     name: "helloworld.min.js",
@@ -126,13 +126,33 @@ fn benchmark_cached_source_hash(b: &mut Bencher) {
     remove_original_source: false,
   });
   let concat = ConcatSource::new([sms_minify, sms_rollup]);
-  let cached = CachedSource::new(concat).boxed();
+  CachedSource::new(concat).boxed()
+}
+
+fn benchmark_cached_source_hash_lookup(b: &mut Bencher) {
+  let cached = cached_source_for_hash_benchmark();
+  let mut map = HashMap::<BoxSource, ()>::new();
+  // Inserting also populates the source's hash cache before measuring lookups.
+  map.insert(cached.clone(), ());
 
   b.iter(|| {
-    let mut m = HashMap::<BoxSource, ()>::new();
-    m.insert(cached.clone(), ());
-    let _ = std::hint::black_box(|| m.get(&cached));
-    let _ = std::hint::black_box(|| m.get(&cached));
+    let _ = black_box(black_box(&map).get(black_box(&cached)));
+    let _ = black_box(black_box(&map).get(black_box(&cached)));
+  })
+}
+
+fn benchmark_cached_source_hash_map_lifecycle(b: &mut Bencher, batch_size: usize) {
+  let cached = cached_source_for_hash_benchmark();
+
+  b.iter(|| {
+    // Keep allocation, insertion, both lookups and destruction inside the
+    // measurement, including allocator replenishment during longer batches.
+    for _ in 0..batch_size {
+      let mut map = HashMap::<BoxSource, ()>::new();
+      map.insert(cached.clone(), ());
+      let _ = black_box(black_box(&map).get(black_box(&cached)));
+      let _ = black_box(black_box(&map).get(black_box(&cached)));
+    }
   })
 }
 
@@ -180,7 +200,18 @@ fn bench_rspack_sources(criterion: &mut Criterion) {
     benchmark_concat_generate_string,
   );
 
-  group.bench_function("sources@cached_source_hash", benchmark_cached_source_hash);
+  // These measure different work from the old cached_source_hash benchmark,
+  // whose black_box closures never executed the lookups. Use new identities.
+  group.bench_function(
+    "sources@cached_source_hash_lookup",
+    benchmark_cached_source_hash_lookup,
+  );
+  group.bench_function("sources@cached_source_hash_map_lifecycle", |b| {
+    benchmark_cached_source_hash_map_lifecycle(b, 1)
+  });
+  group.bench_function("sources@cached_source_hash_map_lifecycle_batch_1024", |b| {
+    benchmark_cached_source_hash_map_lifecycle(b, 1024)
+  });
 
   group.bench_function(
     "sources@concat_source_add_many",
