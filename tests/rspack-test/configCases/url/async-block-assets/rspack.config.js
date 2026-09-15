@@ -26,7 +26,12 @@ module.exports = {
           const issuer = [...modules].find(
             (module) => module.rawRequest === './index.js',
           );
-          expect(issuer.blocks).toHaveLength(0);
+          expect(issuer.blocks).toHaveLength(1);
+          expect(
+            issuer.blocks[0].dependencies.filter(
+              (dep) => dep.type === 'new URL()',
+            ),
+          ).toHaveLength(4);
           expect(
             issuer.dependencies.filter((dep) => dep.type === 'new URL()'),
           ).toHaveLength(4);
