@@ -214,7 +214,7 @@ impl Compiler {
 
   fn store_cache_metadata(&mut self) {
     if self.new_cache.has_file_cache() {
-      if let CacheOptions::Persistent(options) = &self.options.cache {
+      if let CacheOptions::FileSystem(options) = &self.options.cache {
         self.compilation.build_dependencies.extend(
           options
             .build_dependencies

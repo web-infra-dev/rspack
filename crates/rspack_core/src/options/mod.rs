@@ -27,6 +27,8 @@ mod node;
 pub use node::*;
 mod filename;
 pub use filename::*;
+mod snapshot;
+pub use snapshot::*;
 mod clean_options;
 pub use clean_options::*;
 mod platform;
