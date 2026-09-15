@@ -4,7 +4,7 @@ use concat_string::concat_string;
 use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  AsContextDependency, ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation,
+  AsContextDependency, ChunkGroup, ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation,
   ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
   DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportsInfoArtifact, GroupOptions, JavascriptParserUrl,
@@ -136,10 +136,10 @@ pub(crate) fn is_url_value_module(module: &dyn Module) -> bool {
     || module.identifier().as_str().starts_with("ignored|")
 }
 
-pub(crate) fn get_dependency_entry_chunk(
-  compilation: &Compilation,
+fn get_dependency_entrypoint<'a>(
+  compilation: &'a Compilation,
   dependency_id: &DependencyId,
-) -> Option<ChunkUkey> {
+) -> Option<&'a ChunkGroup> {
   let module_graph = compilation.get_module_graph();
   module_graph
     .get_parent_block(dependency_id)
@@ -158,8 +158,45 @@ pub(crate) fn get_dependency_entry_chunk(
           &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
         )
         .expect("URL dependency should have an entrypoint chunk")
-        .get_entrypoint_chunk()
     })
+}
+
+pub(crate) fn get_dependency_entry_chunk(
+  compilation: &Compilation,
+  dependency_id: &DependencyId,
+) -> Option<ChunkUkey> {
+  get_dependency_entrypoint(compilation, dependency_id).map(ChunkGroup::get_entrypoint_chunk)
+}
+
+pub(crate) fn get_url_dependency_chunk(
+  compilation: &Compilation,
+  dependency_id: &DependencyId,
+) -> Option<ChunkUkey> {
+  let entrypoint = get_dependency_entrypoint(compilation, dependency_id)?;
+  let module_graph = compilation.get_module_graph();
+  let target_module = module_graph
+    .get_module_by_dependency_id(dependency_id)
+    .expect("URL entry should have a target module");
+  if url_entry_has_js(target_module.as_ref(), module_graph) {
+    return Some(entrypoint.get_entrypoint_chunk());
+  }
+
+  // splitChunks can move CSS out of the entry chunk. Restrict the lookup to this
+  // entrypoint because the same module can also occur in unrelated chunks.
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  entrypoint
+    .chunks
+    .iter()
+    .copied()
+    .find(|chunk| {
+      if !chunk_graph.is_module_in_chunk(&target_module.identifier(), *chunk) {
+        return false;
+      }
+      let source_types =
+        chunk_graph.get_chunk_module_source_types(chunk, target_module, module_graph);
+      source_types.contains(&SourceType::Css) || source_types.contains(&SourceType::CssImport)
+    })
+    .or_else(|| Some(entrypoint.get_entrypoint_chunk()))
 }
 
 fn render_static_url(
@@ -238,7 +275,7 @@ impl DependencyTemplate for URLDependencyTemplate {
       ..
     } = code_generatable_context;
     let (expression, comment) =
-      if let Some(chunk_ukey) = get_dependency_entry_chunk(compilation, &dep.id) {
+      if let Some(chunk_ukey) = get_url_dependency_chunk(compilation, &dep.id) {
         let chunk_id = compilation
           .build_chunk_graph_artifact
           .chunk_by_ukey
