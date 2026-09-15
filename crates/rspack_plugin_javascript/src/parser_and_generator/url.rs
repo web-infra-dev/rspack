@@ -2,7 +2,7 @@ use concat_string::concat_string;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, DependenciesBlock, Dependency, DependencyId,
   DependencyRef, EntryOptions, FactorizeInfo, GroupOptions, ModuleFactoryCreateData, ParseContext,
-  ParseResult, ParsedModuleConnection,
+  ParseResult, ParserCreatedModuleConnection,
 };
 use rspack_hash::{HashDigest, RspackHash, RspackHasher};
 use rspack_util::identifier::split_at_query_mark;
@@ -80,7 +80,7 @@ pub(crate) fn apply_url_dependency_promotions(
 pub(crate) async fn factorize_url_dependency(
   url_dependency: &URLDependency,
   context: &mut ParseContext<'_>,
-) -> Option<(BoxModule, ParsedModuleConnection)> {
+) -> Option<(BoxModule, ParserCreatedModuleConnection)> {
   let build_context = context.build_context;
   let factory = build_context
     .dependency_factories
@@ -119,7 +119,7 @@ pub(crate) async fn factorize_url_dependency(
   // Let normal factorization report failures with its usual diagnostics and
   // bail behavior, instead of turning a failed probe into an issuer build error.
   let module = factory_result.ok().and_then(|result| result.module)?;
-  let connection = ParsedModuleConnection {
+  let connection = ParserCreatedModuleConnection {
     module_identifier: module.identifier(),
     factorize_info: FactorizeInfo::new(
       create_data.diagnostics,

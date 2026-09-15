@@ -11,7 +11,7 @@ use super::{
   process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  BoxModule, BuildContext, DependencyRef, ModuleIdentifier, ParsedModuleConnection,
+  BoxModule, BuildContext, DependencyRef, ModuleIdentifier, ParserCreatedModuleConnection,
   compilation::build_module_graph::ForwardedIdSet,
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -185,10 +185,10 @@ fn set_resolved_module(
 
 /// Prepares AddTasks for parser-created modules and removes their connections
 /// from the dependencies that still need factorization.
-pub(super) fn add_parsed_modules(
+pub(super) fn prepare_add_tasks_for_parser_created_modules(
   context: &mut TaskContext,
   modules: Vec<BoxModule>,
-  module_connections: Vec<ParsedModuleConnection>,
+  module_connections: Vec<ParserCreatedModuleConnection>,
   process_dependencies: &mut ProcessDependenciesTask,
 ) -> Vec<Box<dyn Task<TaskContext>>> {
   let issuer = process_dependencies.original_module_identifier;
@@ -207,7 +207,7 @@ pub(super) fn add_parsed_modules(
       .or_insert(module);
   }
 
-  for ParsedModuleConnection {
+  for ParserCreatedModuleConnection {
     module_identifier,
     factorize_info,
   } in module_connections

@@ -116,7 +116,7 @@ impl SideEffectsBailoutItemWithSpan {
 
 /// A parser-created module's connection and factory dependencies.
 #[derive(Debug)]
-pub struct ParsedModuleConnection {
+pub struct ParserCreatedModuleConnection {
   pub module_identifier: ModuleIdentifier,
   pub factorize_info: FactorizeInfo,
 }
@@ -126,7 +126,7 @@ pub struct ParseResult {
   /// Unbuilt modules to add through the module graph task pool.
   pub modules: Vec<BoxModule>,
   /// Connections for modules created by factories during parsing.
-  pub module_connections: Vec<ParsedModuleConnection>,
+  pub module_connections: Vec<ParserCreatedModuleConnection>,
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
   pub presentational_dependencies: Vec<DependencyCodeGenerationRef>,
