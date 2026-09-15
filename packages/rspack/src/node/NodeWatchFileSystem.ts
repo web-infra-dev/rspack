@@ -12,6 +12,7 @@ import { EventEmitter } from 'node:events';
 import { createRequire } from 'node:module';
 import util from 'node:util';
 import type Watchpack from 'watchpack';
+import type { WatchOptions } from '../config';
 
 import type {
   FileSystemInfoEntry,
@@ -21,6 +22,55 @@ import type {
 } from '../util/fs';
 
 const require = createRequire(import.meta.url);
+
+/**
+ * watchpack accepts a glob, an array of globs, a `RegExp` or a predicate — but
+ * not an array mixing globs and `RegExp`s. Fold that form into the predicate,
+ * reusing watchpack's own glob translation and separator normalization so each
+ * half behaves exactly like it would on its own.
+ */
+const mixedIgnoredToFunction = (
+  ignored: (string | RegExp)[],
+): ((item: string) => boolean) => {
+  const { util: watchpackUtil } = require('watchpack');
+  const globSources: string[] = [];
+  const regexps: RegExp[] = [];
+  for (const item of ignored) {
+    if (typeof item === 'string') {
+      if (item.length > 0) {
+        globSources.push(`^${watchpackUtil.globToRegExp(item)}(?:$|\\/)`);
+      }
+    } else {
+      regexps.push(item);
+    }
+  }
+  const globRegexp =
+    globSources.length > 0 ? new RegExp(globSources.join('|')) : undefined;
+
+  return (item: string) => {
+    const normalized = item.includes('\\') ? item.replace(/\\/g, '/') : item;
+    return (
+      globRegexp?.test(normalized) === true ||
+      // A `RegExp` carrying `g`/`y` keeps `lastIndex` between calls, which would
+      // make the same path match only every other time.
+      regexps.some((regexp) => {
+        regexp.lastIndex = 0;
+        return regexp.test(normalized);
+      })
+    );
+  };
+};
+
+const toWatchpackOptions = (options: WatchOptions): WatchOptions => {
+  const { ignored } = options;
+  if (
+    Array.isArray(ignored) &&
+    ignored.some((item) => item instanceof RegExp)
+  ) {
+    return { ...options, ignored: mixedIgnoredToFunction(ignored) };
+  }
+  return options;
+};
 
 type WatchpackInstance = InstanceType<typeof Watchpack>;
 
@@ -45,7 +95,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
     directories: Iterable<string>,
     missing: Iterable<string>,
     startTime: number,
-    options: Watchpack.WatchOptions,
+    options: WatchOptions,
     callback: (
       error: Error | null,
       fileTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>,
@@ -79,7 +129,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 
     const oldWatcher = this.watcher;
     const Watchpack = require('watchpack');
-    this.watcher = new Watchpack(options);
+    this.watcher = new Watchpack(toWatchpackOptions(options));
 
     if (callbackUndelayed) {
       this.watcher?.once('change', callbackUndelayed);
