@@ -10,13 +10,6 @@ module.exports = {
 			@@ ... @@
 			-   "cache": false,
 			+   "cache": Object {
-			+     "snapshot": Object {
-			+       "immutablePaths": Array [],
-			+       "managedPaths": Array [
-			+         /[\\\\/]node_modules[\\\\/][^.]/,
-			+       ],
-			+       "unmanagedPaths": Array [],
-			+     },
 			+     "type": "memory",
 			+   },
 		`)

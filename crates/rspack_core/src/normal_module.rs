@@ -29,16 +29,15 @@ use tracing::{Instrument, info_span};
 
 use crate::{
   BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
-  CodeGenerationResultBuilder, Compilation, ConnectionState, Context, DependenciesBlock,
-  DependenciesBlockData, DependencyCodeGenerationRef, DependencyId, FactoryMeta, FactoryMetaStore,
-  FreezeLock, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleLayer, ModuleType, NeedBuildContext, OptimizationBailoutItem, OutputOptions, ParseContext,
-  ParseResult, ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions,
-  RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  SnapshotValidationResult, SourceType,
-  cache::SnapshotStrategyOptions,
-  contextify,
+  CodeGenerationResultBuilder, Compilation, CompilerId, ConnectionState, Context,
+  DependenciesBlock, DependenciesBlockData, DependencyCategory, DependencyCodeGenerationRef,
+  DependencyId, FactoryMeta, FactoryMetaStore, FreezeLock, GenerateContext, GeneratorOptions,
+  ImportPhase, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleRuleUseLoader, ModuleType,
+  NeedBuildContext, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
+  ParserAndGenerator, ParserOptions, Resolve, ResolveOptionsWithDependencyType,
+  ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, SnapshotValidationResult, SourceType, contextify,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -344,8 +343,7 @@ impl NormalModule {
           &build_info.dependencies.file,
           &build_info.dependencies.context,
           &build_info.dependencies.missing,
-          // Rspack does not expose webpack's `snapshot.module` strategy yet.
-          SnapshotStrategyOptions::timestamp(),
+          file_system_info.module_strategy(),
         )
         .await?,
     ))

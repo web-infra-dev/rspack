@@ -13,8 +13,9 @@ use super::{
   TimestampAndHash,
 };
 use crate::{
-  CompilationLogger, InfrastructureLogger, LogType, Logger,
-  cache::{BuildDependencyHelper, SnapshotOptions, SnapshotStrategyOptions, is_node_package_path},
+  CompilationLogger, InfrastructureLogger, LogType, Logger, SnapshotOptions,
+  SnapshotStrategyOptions,
+  cache::{BuildDependencyHelper, is_node_package_path},
 };
 
 #[derive(Debug, Clone)]
@@ -196,8 +197,12 @@ impl FileSystemInfo {
     first
   }
 
+  pub fn module_strategy(&self) -> SnapshotStrategyOptions {
+    self.inner.options.module
+  }
+
   pub fn build_dependencies_strategy(&self) -> SnapshotStrategyOptions {
-    self.inner.options.dependencies_strategy()
+    self.inner.options.build_dependencies
   }
 
   /// See webpack's snapshot validation implementation:

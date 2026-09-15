@@ -6,9 +6,9 @@
       "hitRate": 0
     },
     "module build cache": {
-      "hits": 3,
-      "total": 5,
-      "hitRate": 60
+      "hits": 4,
+      "total": 4,
+      "hitRate": 100
     },
     "module code generation cache": {
       "hits": 2,

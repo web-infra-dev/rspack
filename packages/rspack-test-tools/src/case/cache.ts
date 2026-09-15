@@ -314,8 +314,11 @@ function enableNewCache(context: ITestContext, temp: string) {
       ...config.experiments,
       newCache: config.experiments?.newCache || true,
     };
-    const cache = typeof config.cache === 'object' ? config.cache : {};
-    const storage = cache.type === 'persistent' ? cache.storage : undefined;
+    const cache =
+      typeof config.cache === 'object' && config.cache.type === 'persistent'
+        ? config.cache
+        : undefined;
+    const storage = cache?.storage;
     config.cache = {
       ...cache,
       type: 'persistent',

@@ -23,26 +23,17 @@ impl PathMatcher {
 #[derive(Debug, Clone, Hash)]
 pub struct SnapshotOptions {
   /// immutable paths, snapshot will ignore them
-  immutable_paths: Vec<PathMatcher>,
+  pub immutable_paths: Vec<PathMatcher>,
   /// unmanaged paths, snapshot will use compile time strategy even if
   /// them are in managed_paths
-  unmanaged_paths: Vec<PathMatcher>,
+  pub unmanaged_paths: Vec<PathMatcher>,
   /// managed_paths, snapshot will use lib version strategy
-  managed_paths: Vec<PathMatcher>,
-  dependencies: SnapshotStrategyOptions,
-  context_dependencies: SnapshotStrategyOptions,
-}
-
-impl Default for SnapshotOptions {
-  fn default() -> Self {
-    Self {
-      immutable_paths: Default::default(),
-      unmanaged_paths: Default::default(),
-      managed_paths: Default::default(),
-      dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
-      context_dependencies: SnapshotStrategyOptions::timestamp(),
-    }
-  }
+  pub managed_paths: Vec<PathMatcher>,
+  pub resolve_build_dependencies: SnapshotStrategyOptions,
+  pub build_dependencies: SnapshotStrategyOptions,
+  pub resolve: SnapshotStrategyOptions,
+  pub module: SnapshotStrategyOptions,
+  pub context_module: SnapshotStrategyOptions,
 }
 
 #[cacheable]
@@ -70,34 +61,7 @@ impl SnapshotStrategyOptions {
   }
 }
 
-impl Default for SnapshotStrategyOptions {
-  fn default() -> Self {
-    Self::timestamp()
-  }
-}
-
 impl SnapshotOptions {
-  pub fn new(
-    immutable_paths: Vec<PathMatcher>,
-    unmanaged_paths: Vec<PathMatcher>,
-    managed_paths: Vec<PathMatcher>,
-  ) -> Self {
-    Self {
-      immutable_paths,
-      unmanaged_paths,
-      managed_paths,
-      ..Default::default()
-    }
-  }
-
-  pub fn dependencies_strategy(&self) -> SnapshotStrategyOptions {
-    self.dependencies
-  }
-
-  pub fn context_dependencies_strategy(&self) -> SnapshotStrategyOptions {
-    self.context_dependencies
-  }
-
   pub fn is_immutable_path(&self, path_str: &str) -> bool {
     for item in &self.immutable_paths {
       if item.try_match(path_str) {
@@ -128,6 +92,7 @@ mod tests {
   use rspack_regex::RspackRegex;
 
   use super::{PathMatcher, SnapshotOptions};
+  use crate::SnapshotStrategyOptions;
 
   #[test]
   fn should_path_matcher_works() {
@@ -145,20 +110,25 @@ mod tests {
 
   #[test]
   fn should_snapshot_options_works() {
-    let options = SnapshotOptions::new(
-      vec![
+    let options = SnapshotOptions {
+      immutable_paths: vec![
         PathMatcher::String("constant".into()),
         PathMatcher::Regexp(RspackRegex::new("global/[A-Z]+").unwrap()),
       ],
-      vec![
+      unmanaged_paths: vec![
         PathMatcher::String("node_modules/test1".into()),
         PathMatcher::Regexp(RspackRegex::new("test_modules/test.+").unwrap()),
       ],
-      vec![
+      managed_paths: vec![
         PathMatcher::String("node_modules".into()),
         PathMatcher::Regexp(RspackRegex::new("test_modules/.+").unwrap()),
       ],
-    );
+      resolve_build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
+      build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
+      resolve: SnapshotStrategyOptions::hash_and_timestamp(),
+      module: SnapshotStrategyOptions::hash_and_timestamp(),
+      context_module: SnapshotStrategyOptions::timestamp(),
+    };
 
     assert!(options.is_immutable_path("/root/project/constant/var.js"));
     assert!(options.is_immutable_path("/root/project/constant1/var.js"));

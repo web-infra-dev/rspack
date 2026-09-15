@@ -24,7 +24,7 @@ use self::{
 use super::Cache;
 use crate::{
   Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger,
-  cache::{CacheCodec, PersistentCacheOptions},
+  PersistentCacheOptions, cache::CacheCodec,
 };
 
 const LOGGER_NAME: &str = "rspack.persistentCache";
@@ -71,7 +71,7 @@ impl PersistentCache {
       intermediate_filesystem,
     );
     let snapshot = Arc::new(Snapshot::new(
-      option.snapshot.clone(),
+      compiler_options.snapshot.clone(),
       input_filesystem.clone(),
       codec.clone(),
     ));

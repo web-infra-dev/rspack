@@ -2,13 +2,13 @@
   {
     "minimize persistent cache": {
       "hits": 0,
-      "total": 1,
+      "total": 2,
       "hitRate": 0
     },
     "module build cache": {
-      "hits": 4,
-      "total": 5,
-      "hitRate": 80
+      "hits": 0,
+      "total": 2,
+      "hitRate": 0
     },
     "module code generation cache": {
       "hits": 1,

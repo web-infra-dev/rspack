@@ -18,8 +18,6 @@ for (const source of selectedSuites) {
 
 const excludes = {
 	cache: [
-		// Restarts rerun loaders that these legacy assertions expect to stay cached.
-		/^common\/update-file$/,
 		// Restart restores the pre-HMR module value (1 instead of 2).
 		/^snapshot\/default_value$/,
 		/^snapshot\/immutable-paths$/,
