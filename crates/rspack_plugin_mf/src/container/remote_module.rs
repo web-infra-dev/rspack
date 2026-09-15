@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
+  BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
   Dependency, ExportsType, FactoryMetaStore, FreezeLock, LibIdentOptions, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
@@ -145,7 +145,7 @@ impl Module for RemoteModule {
     mut self: Box<Self>,
     build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
-  ) -> Result<BoxModule> {
+  ) -> Result<BuildResult> {
     let mut dependencies: Vec<BoxDependency> = Vec::new();
 
     if self.external_requests.len() == 1 {
@@ -180,7 +180,8 @@ impl Module for RemoteModule {
 
     Ok(
       BoxModule::new(self)
-        .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![]),
+        .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![])
+        .into(),
     )
   }
 

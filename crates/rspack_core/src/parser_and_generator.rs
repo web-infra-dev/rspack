@@ -14,12 +14,12 @@ use rspack_util::{ext::AsAny, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
-  CodeGenerationData, Compilation, CompilerOptions, ConcatenationScope, Context,
+  AsyncDependenciesBlock, BoxDependency, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  ChunkGraph, CodeGenerationData, Compilation, CompilerOptions, ConcatenationScope, Context,
   DependencyCodeGenerationRef, DependencyId, DependencyLocation, DependencyRange,
-  EvaluatedInlinableValue, FactoryMeta, GeneratorOptions, Module, ModuleCodeTemplate, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, Resolve, RuntimeSpec,
-  SourceType,
+  EvaluatedInlinableValue, FactorizeInfo, FactoryMeta, GeneratorOptions, Module,
+  ModuleCodeTemplate, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, NormalModule,
+  ParserOptions, Resolve, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -114,8 +114,19 @@ impl SideEffectsBailoutItemWithSpan {
   }
 }
 
+/// A parser-created module's connection and factory dependencies.
+#[derive(Debug)]
+pub struct ParserCreatedModuleConnection {
+  pub module_identifier: ModuleIdentifier,
+  pub factorize_info: FactorizeInfo,
+}
+
 #[derive(Debug)]
 pub struct ParseResult {
+  /// Unbuilt modules to add through the module graph task pool.
+  pub modules: Vec<BoxModule>,
+  /// Connections for modules created by factories during parsing.
+  pub module_connections: Vec<ParserCreatedModuleConnection>,
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
   pub presentational_dependencies: Vec<DependencyCodeGenerationRef>,

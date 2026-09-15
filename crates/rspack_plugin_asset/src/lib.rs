@@ -510,6 +510,8 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
     Ok(
       rspack_core::ParseResult {
+        modules: vec![],
+        module_connections: vec![],
         // different from webpack
         // Rspack: when set asset as entry, output a js chunk with default export
         // webpack: Assets do not have dependencies

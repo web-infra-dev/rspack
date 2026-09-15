@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph, ChunkUkey,
+  BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph, ChunkUkey,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
   FactoryMetaStore, FreezeLock, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
@@ -123,7 +123,7 @@ impl Module for FallbackModule {
     mut self: Box<Self>,
     _build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
-  ) -> Result<BoxModule> {
+  ) -> Result<BuildResult> {
     let mut dependencies: Vec<BoxDependency> = Vec::new();
     for request in &self.requests {
       dependencies.push(BoxDependency::new(FallbackItemDependency::new(
@@ -133,7 +133,8 @@ impl Module for FallbackModule {
 
     Ok(
       BoxModule::new(self)
-        .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![]),
+        .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![])
+        .into(),
     )
   }
 

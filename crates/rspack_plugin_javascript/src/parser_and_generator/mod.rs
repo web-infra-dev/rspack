@@ -254,6 +254,8 @@ impl JavaScriptParserAndGenerator {
     let default_with_diagnostics = |source: Arc<dyn Source>, diagnostics: Vec<Diagnostic>| {
       Ok(
         ParseResult {
+          modules: vec![],
+          module_connections: vec![],
           source,
           dependencies: vec![],
           blocks: vec![],
@@ -387,6 +389,8 @@ impl JavaScriptParserAndGenerator {
 
     Ok(
       ParseResult {
+        modules: vec![],
+        module_connections: vec![],
         source,
         dependencies,
         blocks,
