@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Script } from 'node:vm';
+import iconv from 'iconv-lite';
 import {
   JSDOM,
   requestInterceptor,
@@ -19,7 +20,7 @@ export interface IWebRunnerOptions extends INodeRunnerOptions {
 }
 
 // Compatibility code to suppress iconv-lite warnings
-require('iconv-lite').skipDecodeWarning = true;
+iconv.skipDecodeWarning = true;
 
 const FAKE_HOSTS = [
   'https://example.com/public/path',

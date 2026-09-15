@@ -1,5 +1,5 @@
 import EventEmitter from 'node:events';
-import { Compiler, type RspackOptions, type Stats } from '@rspack/core';
+import rspack, { Compiler, type RspackOptions, type Stats } from '@rspack/core';
 import merge from 'rspack-merge';
 import { DEBUG_SCOPES } from './test/debug';
 import type { ITestCompilerManager, ITestContext } from './type';
@@ -40,9 +40,7 @@ export class TestCompilerManager implements ITestCompilerManager {
   }
 
   createCompiler(): Compiler {
-    this.compilerInstance = require('@rspack/core')(
-      this.compilerOptions,
-    ) as Compiler;
+    this.compilerInstance = rspack(this.compilerOptions) as Compiler;
     if (__DEBUG__) {
       const context = this.context;
       this.compilerInstance = new Proxy(this.compilerInstance, {
@@ -81,12 +79,9 @@ export class TestCompilerManager implements ITestCompilerManager {
   }
 
   createCompilerWithCallback(
-    callback: (error: Error | null, stats: Stats | null) => void,
+    callback: (error: Error | null, stats?: Stats) => void,
   ): Compiler {
-    this.compilerInstance = require('@rspack/core')(
-      this.compilerOptions,
-      callback,
-    ) as Compiler;
+    this.compilerInstance = rspack(this.compilerOptions, callback) as Compiler;
     if (__DEBUG__) {
       const context = this.context;
       this.compilerInstance = new Proxy(this.compilerInstance, {
