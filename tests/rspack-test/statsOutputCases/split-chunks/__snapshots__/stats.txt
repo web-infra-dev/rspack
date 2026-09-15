@@ -118,19 +118,19 @@ manual:
 
 name-too-long:
   Entrypoint main xx KiB = name-too-long/main.js
-  Entrypoint aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa xx KiB = name-too-long/xxx.js
-  Entrypoint bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb xx bytes = name-too-long/xxx.js
-  Entrypoint cccccccccccccccccccccccccccccc xx bytes = name-too-long/xxx.js
+  Entrypoint aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa xx KiB = name-too-long/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.js
+  Entrypoint bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb xx bytes = name-too-long/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.js
+  Entrypoint cccccccccccccccccccccccccccccc xx bytes = name-too-long/cccccccccccccccccccccccccccccc.js
   chunk (runtime: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, main) name-too-long/async-g.js (async-g) xx bytes <{706}> <{724}> [rendered]
     > ./g ./a.js 6:1-48
     ./g.js xx bytes [built] [code generated]
-  chunk (runtime: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb) name-too-long/xxx.js (bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb) xx bytes [entry] [rendered]
+  chunk (runtime: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb) name-too-long/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.js (bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb) xx bytes [entry] [rendered]
     > ./b bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
     ./b.js xx bytes [built] [code generated]
   chunk (runtime: main) name-too-long/async-b.js (async-b) xx bytes <{889}> [rendered]
     > ./b ./index.js 2:1-48
     ./b.js xx bytes [built] [code generated]
-  chunk (runtime: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa) name-too-long/xxx.js (aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa) xx bytes (javascript) xx KiB (runtime) >{138}< [entry] [rendered]
+  chunk (runtime: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa) name-too-long/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.js (aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa) xx bytes (javascript) xx KiB (runtime) >{138}< [entry] [rendered]
     > ./a aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
     ./a.js xx bytes [built] [code generated]
   chunk (runtime: main) name-too-long/async-a.js (async-a) xx bytes <{889}> >{138}< [rendered]
@@ -142,7 +142,7 @@ name-too-long:
   chunk (runtime: main) name-too-long/main.js (main) xx bytes (javascript) xx KiB (runtime) >{701}< >{724}< >{742}< [entry] [rendered]
     > ./ main
     ./index.js xx bytes [built] [code generated]
-  chunk (runtime: cccccccccccccccccccccccccccccc) name-too-long/xxx.js (cccccccccccccccccccccccccccccc) xx bytes [entry] [rendered]
+  chunk (runtime: cccccccccccccccccccccccccccccc) name-too-long/cccccccccccccccccccccccccccccc.js (cccccccccccccccccccccccccccccc) xx bytes [entry] [rendered]
     > ./c cccccccccccccccccccccccccccccc
     ./c.js xx bytes [built] [code generated]
   name-too-long (Rspack x.x.x) compiled successfully

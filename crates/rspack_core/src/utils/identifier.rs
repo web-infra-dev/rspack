@@ -38,7 +38,10 @@ pub fn contextify(context: impl AsRef<Utf8Path>, request: &str) -> String {
 /// Aligned with webpack's `contextifySourceUrl`:
 /// <https://github.com/webpack/webpack/blob/main/lib/util/identifier.js>
 pub fn contextify_source_url(context: &str, source: &str) -> String {
-  if source.starts_with("webpack://") {
+  // `webpack://` and `rspack://` source URLs are already context-independent;
+  // prefixing them again would produce doubly-schemed URLs that downstream
+  // source-map consumers cannot resolve.
+  if source.starts_with("webpack://") || source.starts_with("rspack://") {
     return source.to_string();
   }
   let mut result = String::with_capacity("webpack://".len() + context.len() + source.len());
