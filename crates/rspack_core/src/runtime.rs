@@ -99,7 +99,7 @@ impl RuntimeSpec {
 
   pub fn from_entry(entry: &str, runtime: Option<&EntryRuntime>) -> Self {
     let r = match runtime {
-      Some(EntryRuntime::String(s)) => s,
+      Some(EntryRuntime::String(s)) if !s.is_empty() => s,
       _ => entry,
     }
     .to_string();
@@ -108,7 +108,7 @@ impl RuntimeSpec {
 
   pub fn from_entry_options(options: &EntryOptions) -> Option<Self> {
     let r = match &options.runtime {
-      Some(EntryRuntime::String(s)) => Some(s.to_owned()),
+      Some(EntryRuntime::String(s)) if !s.is_empty() => Some(s.to_owned()),
       _ => options.name.clone(),
     };
     r.map(|r| Self::from_iter([r.into()]))
