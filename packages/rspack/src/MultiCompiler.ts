@@ -34,6 +34,7 @@ interface Node<T> {
   parents: Node<T>[];
   setupResult?: T;
   result?: Stats;
+  hasUnreportedResult: boolean;
   state:
     | 'pending'
     | 'blocked'
@@ -124,30 +125,6 @@ export class MultiCompiler {
     };
     this.dependencies = new WeakMap();
     this.running = false;
-
-    const compilerStats: (Stats | null)[] = this.compilers.map(() => null);
-    let doneCompilers = 0;
-    for (let index = 0; index < this.compilers.length; index++) {
-      const compiler = this.compilers[index];
-      const compilerIndex = index;
-      let compilerDone = false;
-      compiler.hooks.done.tap('MultiCompiler', (stats) => {
-        if (!compilerDone) {
-          compilerDone = true;
-          doneCompilers++;
-        }
-        compilerStats[compilerIndex] = stats;
-        if (doneCompilers === this.compilers.length) {
-          this.hooks.done.call(new MultiStats(compilerStats as Stats[]));
-        }
-      });
-      compiler.hooks.invalid.tap('MultiCompiler', () => {
-        if (compilerDone) {
-          compilerDone = false;
-          doneCompilers--;
-        }
-      });
-    }
   }
 
   set unsafeFastDrop(value: boolean) {
@@ -339,6 +316,7 @@ export class MultiCompiler {
       compiler,
       setupResult: undefined,
       result: undefined,
+      hasUnreportedResult: false,
       state: 'blocked',
       children: [],
       parents: [],
@@ -367,27 +345,30 @@ export class MultiCompiler {
     let running = 0;
     const parallelism = this._options.parallelism!;
 
+    const handleError = (err: Error): void => {
+      errored = true;
+      asyncLib.each(
+        nodes,
+        (node, callback) => {
+          if (node.compiler.watching) {
+            node.compiler.watching.close(callback);
+          } else {
+            callback();
+          }
+        },
+        () => callback(err),
+      );
+    };
+
     const nodeDone = (
       node: Node<SetupResult>,
       err: Error,
       stats: Stats,
     ): void => {
       if (errored) return;
-      if (err) {
-        errored = true;
-        return asyncLib.each(
-          nodes,
-          (node, callback) => {
-            if (node.compiler.watching) {
-              node.compiler.watching.close(callback);
-            } else {
-              callback();
-            }
-          },
-          () => callback(err),
-        );
-      }
+      if (err) return handleError(err);
       node.result = stats;
+      node.hasUnreportedResult = true;
       running--;
       if (node.state === 'running') {
         node.state = 'done';
@@ -488,13 +469,21 @@ export class MultiCompiler {
       ) {
         const stats: Stats[] = [];
         for (const node of nodes) {
-          const result = node.result;
-          if (result) {
-            node.result = undefined;
-            stats.push(result);
+          if (node.hasUnreportedResult) {
+            node.hasUnreportedResult = false;
+            stats.push(node.result!);
           }
         }
         if (stats.length > 0) {
+          // The graph owns completion: outdated, queued and dependent builds
+          // must finish before publishing. Consume updates before calling user
+          // hooks, which may invalidate a compiler again.
+          const allStats = nodes.map((node) => node.result!);
+          try {
+            this.hooks.done.call(new MultiStats(allStats));
+          } catch (err) {
+            return handleError(err as Error);
+          }
           callback(null, new MultiStats(stats));
         }
       }
