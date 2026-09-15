@@ -38,6 +38,7 @@ cssextractrspackplugin
 dail
 darwin
 deconflict
+dedup
 demangle
 demangled
 devongovett
