@@ -256,6 +256,37 @@ module.exports = [
     }
   })),
   {
+    description: "should retain completion of a closed dependent watcher across rebuilds",
+    options: () => {
+      const configs = options();
+      configs[1].dependencies = ["a"];
+      return configs;
+    },
+    async build(context, compiler) {
+      const events = [];
+      const [a, b] = compiler.compilers;
+      compiler.hooks.done.tap("Trace", () => { events.push("parent.done"); });
+      a.hooks.done.tap("Trace", () => { events.push("a.done"); });
+      a.hooks.afterDone.tap("Trace", () => { events.push("a.afterDone"); });
+      try {
+        await new Promise((resolve, reject) => compiler.watch({}, error => error ? reject(error) : resolve()));
+        await new Promise((resolve, reject) => b.watching.close(error => error ? reject(error) : resolve()));
+        for (let round = 0; round < 3; round++) {
+          events.length = 0;
+          await new Promise(resolve => {
+            a.hooks.afterDone.tap(`Round${round}`, resolve);
+            a.watching.invalidate();
+          });
+          // Let the graph attempt to start the detached dependent before the next round.
+          await new Promise(resolve => setImmediate(resolve));
+          expect(events).toEqual(["parent.done", "a.done", "a.afterDone"]);
+        }
+      } finally {
+        await close(compiler);
+      }
+    }
+  },
+  {
     description: "should ignore a closed outdated watcher while other watchers remain active",
     options,
     async build(context, compiler) {

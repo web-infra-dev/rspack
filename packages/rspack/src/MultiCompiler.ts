@@ -506,8 +506,6 @@ export class MultiCompiler {
         ) {
           running++;
           node.state = 'starting';
-          // A graph restart may not emit another public invalid notification.
-          this.#resetCompilerDone.get(node.compiler)!();
           run(
             node.compiler,
             node.setupResult!,
@@ -570,6 +568,9 @@ export class MultiCompiler {
         },
         (compiler, watching, _done) => {
           if (compiler.watching !== watching) return;
+          // A graph restart may not emit another public invalid notification.
+          // Only reset children whose watcher still belongs to this graph.
+          this.#resetCompilerDone.get(compiler)!();
           if (!watching.running) watching.invalidate();
         },
         handler,
@@ -602,7 +603,10 @@ export class MultiCompiler {
     if (this.validateDependencies(callback)) {
       this.#runGraph(
         () => {},
-        (compiler, _, callback) => compiler.run(callback, options),
+        (compiler, _, callback) => {
+          this.#resetCompilerDone.get(compiler)!();
+          compiler.run(callback, options);
+        },
         (err, stats) => {
           this.running = false;
 
