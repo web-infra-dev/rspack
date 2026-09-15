@@ -1,3 +1,5 @@
+#![feature(arbitrary_self_types, unique_rc_arc)]
+
 mod client_plugin;
 mod client_reference_dependency;
 mod component_info;

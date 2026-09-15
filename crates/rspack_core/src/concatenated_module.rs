@@ -800,7 +800,7 @@ impl Module for ConcatenatedModule {
 
   /// the compilation is asserted to be `Some(Compilation)`, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L394-L418
   async fn build(
-    mut self: Box<Self>,
+    mut self: std::sync::UniqueArc<Self>,
     _build_context: Arc<BuildContext>,
     compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
@@ -842,7 +842,8 @@ impl Module for ConcatenatedModule {
       }
     }
 
-    for m in self.modules.iter() {
+    let this = &mut *self;
+    for m in this.modules.iter() {
       let module = module_graph
         .module_by_identifier(&m.id)
         .expect("should have module");
@@ -850,32 +851,32 @@ impl Module for ConcatenatedModule {
 
       // populate cacheable
       if !cur_build_info.cacheable {
-        self.build_info.get_mut().cacheable = false;
+        this.build_info.get_mut().cacheable = false;
       }
 
       // populate blocks
       for block in module.get_block_refs() {
-        self.dependencies_block.add_block(block.clone());
+        this.dependencies_block.add_block(block.clone());
       }
       // populate diagnostic
-      self.diagnostics.extend(module.diagnostics().into_owned());
+      this.diagnostics.extend(module.diagnostics().into_owned());
 
       // populate topLevelDeclarations
       let module_build_info = module.build_info();
       if let Some(decls) = &module_build_info.top_level_declarations
-        && let Some(top_level_declarations) = &mut self.build_info.get_mut().top_level_declarations
+        && let Some(top_level_declarations) = &mut this.build_info.get_mut().top_level_declarations
       {
         top_level_declarations.extend(decls.iter().cloned());
       } else {
-        self.build_info.get_mut().top_level_declarations = None;
+        this.build_info.get_mut().top_level_declarations = None;
       }
 
       if module_build_info.need_create_require {
-        self.build_info.get_mut().need_create_require = true;
+        this.build_info.get_mut().need_create_require = true;
       }
 
       // populate assets
-      self.build_info.get_mut().assets.extend(
+      this.build_info.get_mut().assets.extend(
         module_build_info
           .assets
           .iter()
@@ -883,7 +884,7 @@ impl Module for ConcatenatedModule {
       );
     }
     // Created during seal, after the build module graph phase freezes other modules.
-    self.build_info.freeze();
+    this.build_info.freeze();
     Ok(BoxModule::new(self))
   }
 

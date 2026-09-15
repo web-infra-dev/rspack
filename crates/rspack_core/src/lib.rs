@@ -1,3 +1,5 @@
+#![feature(arbitrary_self_types, unique_rc_arc)]
+
 use std::{fmt, sync::Arc};
 mod artifacts;
 mod binding;

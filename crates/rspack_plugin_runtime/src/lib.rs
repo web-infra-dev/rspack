@@ -1,3 +1,5 @@
+#![feature(arbitrary_self_types, unique_rc_arc)]
+
 mod helpers;
 pub use helpers::*;
 mod common_js_chunk_format;

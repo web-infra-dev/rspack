@@ -1,3 +1,5 @@
+#![feature(arbitrary_self_types, unique_rc_arc)]
+
 mod container;
 mod manifest;
 mod sharing;

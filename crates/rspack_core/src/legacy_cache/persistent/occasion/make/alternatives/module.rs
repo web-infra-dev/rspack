@@ -26,7 +26,7 @@ pub struct TempModule {
 impl TempModule {
   pub fn transform_from(module: OwnedOrRef<crate::ModuleRef>) -> OwnedOrRef<crate::ModuleRef> {
     let m = module.as_ref();
-    let module = BoxModule::new(Box::new(Self {
+    let module = BoxModule::new(std::sync::UniqueArc::new(Self {
       id: m.identifier(),
       build_info: BuildInfo {
         dependencies: m.build_info().dependencies.clone(),
@@ -139,7 +139,7 @@ impl Module for TempModule {
   }
 
   async fn build(
-    self: Box<Self>,
+    self: std::sync::UniqueArc<Self>,
     _build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {

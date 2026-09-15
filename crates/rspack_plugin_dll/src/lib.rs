@@ -1,3 +1,5 @@
+#![feature(arbitrary_self_types, unique_rc_arc)]
+
 use rspack_cacheable::{
   cacheable,
   with::{AsPreset, AsVec},
