@@ -2,19 +2,521 @@ use std::{collections::VecDeque, sync::Arc};
 
 use atomic_refcell::AtomicRefCell;
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierIndexMap, IdentifierMap, IdentifierSet};
 use rspack_core::{
-  ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation, ConcatenationNameAllocator, DependenciesBlock,
-  DependencyType, ExportProvided, ModuleIdentifier, UsageState, get_cached_readable_identifier,
+  BuildMetaExportsType, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
+  ConcatenationNameAllocator, DependenciesBlock, DependencyType, ExportProvided, GetTargetResult,
+  ModuleIdentifier, ModuleInfo, SourceType, UsageState, get_cached_readable_identifier, get_target,
   incremental::Mutation, split_readable_identifier,
 };
 use rspack_intern::Atom;
+use rspack_plugin_javascript::dependency::{
+  ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency,
+};
 use rspack_util::{
   fx_hash::{FxDashSet, FxHashMap, FxHashSet},
   identifier::split_at_query_mark,
 };
 
 use crate::EsmLibraryPlugin;
+
+const ENTRY_NAMESPACE_TARGET_CHUNK_REASON: &str = "entry namespace export target";
+
+#[derive(Debug, Clone)]
+pub(crate) struct EntryNamespaceExport {
+  pub(crate) entry_module: ModuleIdentifier,
+  pub(crate) export_name: Atom,
+  pub(crate) target_module: ModuleIdentifier,
+}
+
+#[derive(Debug, Clone, Default)]
+pub(crate) struct EntryNamespaceExports {
+  pub(crate) initialized: bool,
+  pub(crate) exports: Vec<EntryNamespaceExport>,
+  pub(crate) targets: IdentifierSet,
+}
+
+impl EntryNamespaceExports {
+  pub(crate) fn target(
+    &self,
+    entry_module: ModuleIdentifier,
+    export_name: &Atom,
+  ) -> Option<ModuleIdentifier> {
+    self
+      .exports
+      .iter()
+      .find(|item| item.entry_module == entry_module && &item.export_name == export_name)
+      .map(|item| item.target_module)
+  }
+
+  fn has_safe_entry_order(&self, compilation: &Compilation) -> bool {
+    let module_graph = compilation.get_module_graph();
+    compilation.entries.values().all(|entry| {
+      let modules = entry
+        .all_dependencies()
+        .chain(compilation.global_entry.all_dependencies())
+        .filter_map(|dep| {
+          module_graph
+            .module_identifier_by_dependency_id(dep)
+            .copied()
+        })
+        .collect::<IdentifierSet>();
+      let targets = self
+        .exports
+        .iter()
+        .filter(|item| modules.contains(&item.entry_module))
+        .map(|item| item.target_module)
+        .collect::<IdentifierSet>();
+      targets.is_empty()
+        || (modules.len() == 1
+          && modules
+            .iter()
+            .all(|entry| namespace_targets_are_dependency_prefix(compilation, *entry, &targets)))
+    })
+  }
+
+  pub(crate) fn retain_valid_targets(
+    &mut self,
+    compilation: &Compilation,
+    module_infos: &IdentifierIndexMap<ModuleInfo>,
+    dynamic_targets: &IdentifierSet,
+  ) {
+    let module_graph = compilation.get_module_graph();
+    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+    let namespace_targets = self.targets.clone();
+
+    self.targets.retain(|target| {
+      // Resolve public bindings without modifying the linker. Property reads,
+      // external namespaces and wrappers stay on the existing path.
+      let Some(bindings) = namespace_export_bindings(compilation, *target) else {
+        return false;
+      };
+      if !matches!(module_infos.get(target), Some(ModuleInfo::Concatenated(_)))
+        || bindings.iter().any(|(module, name)| {
+          !matches!(module_infos.get(module), Some(ModuleInfo::Concatenated(info))
+            if info.export_map.as_ref().is_some_and(|map| map.contains_key(name)))
+        })
+      {
+        return false;
+      }
+
+      let chunks = chunk_graph.get_module_chunks(*target);
+      let Some(target_chunk) = chunks.iter().next().copied() else {
+        return false;
+      };
+      if chunks.len() != 1 {
+        return false;
+      }
+      let chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(&target_chunk);
+      if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+        || chunk_graph.get_number_of_entry_modules(&target_chunk) > 0
+      {
+        return false;
+      }
+
+      let actual_modules = chunk_graph.get_chunk_modules_identifier(&target_chunk);
+      // Other roots and cross-chunk consumers of private modules can add exports
+      // to this chunk. Fall back instead of linking and rolling those exports back.
+      actual_modules.iter().all(|module| {
+        !dynamic_targets.contains(module)
+          && (module == target
+            || (!namespace_targets.contains(module)
+              && module_graph
+                .get_incoming_connections(module)
+                .all(|connection| {
+                  !is_active_connection(compilation, &connection.dependency_id)
+                    || connection
+                      .original_module_identifier
+                      .is_some_and(|origin| actual_modules.contains(&origin))
+                })))
+      })
+    });
+
+    self
+      .exports
+      .retain(|item| self.targets.contains(&item.target_module));
+  }
+}
+
+// Keep the optimization to statically known ESM bindings, including ordinary
+// named re-exports. Reuse export-target resolution rather than running the linker.
+fn namespace_export_bindings(
+  compilation: &Compilation,
+  module: ModuleIdentifier,
+) -> Option<Vec<(ModuleIdentifier, Atom)>> {
+  let module_graph = compilation.get_module_graph();
+  let exports_info = compilation
+    .exports_info_artifact
+    .get_exports_info_data(&module);
+  if !matches!(
+    exports_info.other_exports_info().provided(),
+    Some(ExportProvided::NotProvided)
+  ) {
+    return None;
+  }
+  let mut bindings = Vec::new();
+  for (name, export) in exports_info.exports() {
+    if matches!(export.provided(), Some(ExportProvided::NotProvided)) {
+      continue;
+    }
+    if name == "__esModule" || !matches!(export.provided(), Some(ExportProvided::Provided)) {
+      return None;
+    }
+    let binding = match get_target(
+      export,
+      module_graph,
+      &compilation.exports_info_artifact,
+      &|_| true,
+      &mut Default::default(),
+    ) {
+      None if !export.is_reexport() => (module, name.clone()),
+      Some(GetTargetResult::Target(target)) => {
+        let names = target.export?;
+        if names.len() != 1 {
+          return None;
+        }
+        (target.module, names[0].clone())
+      }
+      _ => return None,
+    };
+    let target = module_graph.module_by_identifier(&binding.0)?;
+    if target.as_external_module().is_some()
+      || target.build_meta().exports_type() != BuildMetaExportsType::Namespace
+    {
+      return None;
+    }
+    bindings.push(binding);
+  }
+  Some(bindings)
+}
+
+fn is_active_connection(
+  compilation: &Compilation,
+  dependency_id: &rspack_core::DependencyId,
+) -> bool {
+  let module_graph = compilation.get_module_graph();
+  module_graph
+    .connection_by_dependency_id(dependency_id)
+    .is_some_and(|connection| {
+      connection.is_target_active(
+        module_graph,
+        None,
+        &compilation.module_graph_cache_artifact,
+        &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact,
+        &compilation.exports_info_artifact,
+      )
+    })
+}
+
+fn has_unsafe_namespace_observer(
+  compilation: &Compilation,
+  target_module: ModuleIdentifier,
+  entry_modules: &IdentifierSet,
+) -> bool {
+  let module_graph = compilation.get_module_graph();
+  module_graph
+    .get_incoming_connections(&target_module)
+    .any(|connection| {
+      if !is_active_connection(compilation, &connection.dependency_id) {
+        return false;
+      }
+
+      let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+      if let Some(import) = dependency.downcast_ref::<ESMImportSpecifierDependency>() {
+        return import.get_ids(module_graph).first().is_none_or(|name| {
+          !matches!(
+            compilation
+              .exports_info_artifact
+              .get_exports_info_data(&target_module)
+              .get_export_info_without_mut_module_graph(name)
+              .provided(),
+            Some(ExportProvided::Provided)
+          )
+        });
+      }
+      if let Some(re_export) = dependency.downcast_ref::<ESMExportImportedSpecifierDependency>() {
+        if let Some(name) = re_export.get_ids(module_graph).first() {
+          return !matches!(
+            compilation
+              .exports_info_artifact
+              .get_exports_info_data(&target_module)
+              .get_export_info_without_mut_module_graph(name)
+              .provided(),
+            Some(ExportProvided::Provided)
+          );
+        }
+        let is_namespace_re_export =
+          re_export.name.is_some() && re_export.get_ids(module_graph).is_empty();
+        return is_namespace_re_export
+          && connection
+            .original_module_identifier
+            .is_none_or(|origin| !entry_modules.contains(&origin));
+      }
+
+      !matches!(
+        dependency.dependency_type(),
+        DependencyType::EsmImport | DependencyType::EsmExportImport
+      )
+    })
+}
+
+fn is_active_sync_dependency(
+  compilation: &Compilation,
+  dependency_id: &rspack_core::DependencyId,
+) -> bool {
+  let module_graph = compilation.get_module_graph();
+  let dependency = module_graph.dependency_by_id(dependency_id);
+  !matches!(
+    *dependency.dependency_type(),
+    DependencyType::DynamicImport
+      | DependencyType::DynamicImportEager
+      | DependencyType::DynamicImportWeak
+      | DependencyType::LazyImport
+      | DependencyType::NewWorker
+  ) && is_active_connection(compilation, dependency_id)
+}
+
+fn namespace_targets_are_dependency_prefix(
+  compilation: &Compilation,
+  entry_module: ModuleIdentifier,
+  namespace_targets: &IdentifierSet,
+) -> bool {
+  let module_graph = compilation.get_module_graph();
+  let Some(module) = module_graph.module_by_identifier(&entry_module) else {
+    return false;
+  };
+  let mut seen_namespace_targets = IdentifierSet::default();
+  let mut seen_other_target = false;
+
+  for dependency_id in module.get_dependency_ids() {
+    if !is_active_sync_dependency(compilation, dependency_id) {
+      continue;
+    }
+
+    let Some(target_module) = module_graph
+      .module_identifier_by_dependency_id(dependency_id)
+      .copied()
+    else {
+      continue;
+    };
+    if namespace_targets.contains(&target_module) {
+      if !seen_namespace_targets.contains(&target_module) && seen_other_target {
+        return false;
+      }
+      seen_namespace_targets.insert(target_module);
+    } else {
+      seen_other_target = true;
+    }
+  }
+
+  true
+}
+
+fn collect_entry_namespace_exports(compilation: &Compilation) -> EntryNamespaceExports {
+  let module_graph = compilation.get_module_graph();
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let entry_modules = compilation.entry_modules();
+  let mut sorted_entry_modules = entry_modules.iter().copied().collect::<Vec<_>>();
+  sorted_entry_modules.sort_unstable();
+
+  let mut exports = Vec::new();
+  for entry_module in sorted_entry_modules {
+    let Some(module) = module_graph.module_by_identifier(&entry_module) else {
+      continue;
+    };
+
+    for dependency_id in module.get_dependency_ids() {
+      let dependency = module_graph.dependency_by_id(dependency_id);
+      let Some(dependency) = dependency.downcast_ref::<ESMExportImportedSpecifierDependency>()
+      else {
+        continue;
+      };
+      let Some(export_name) = dependency.name.as_ref() else {
+        continue;
+      };
+      if !dependency.get_ids(module_graph).is_empty()
+        || !is_active_connection(compilation, dependency_id)
+      {
+        continue;
+      }
+
+      let Some(target_module) = module_graph
+        .module_identifier_by_dependency_id(dependency_id)
+        .copied()
+      else {
+        continue;
+      };
+      let Some(target) = module_graph.module_by_identifier(&target_module) else {
+        continue;
+      };
+
+      // Native `export * as` can only describe a real ESM namespace. CommonJS/fake
+      // namespaces and external modules still need the existing runtime interop path.
+      if target.as_external_module().is_some()
+        || target.build_meta().exports_type() != BuildMetaExportsType::Namespace
+        || !target
+          .source_types(module_graph)
+          .contains(&SourceType::JavaScript)
+        || chunk_graph.get_module_chunks(target_module).is_empty()
+        || chunk_graph.is_entry_module(&target_module)
+        || namespace_export_bindings(compilation, target_module).is_none()
+      {
+        continue;
+      }
+
+      // A whole-object or non-ESM observer can make the linker add an internal transport
+      // export to the target chunk. Native `export * as` would expose that internal name,
+      // so keep those targets on the existing synthetic-namespace path. The
+      // import-then-export-only form has no active import observer and remains eligible.
+      if has_unsafe_namespace_observer(compilation, target_module, &entry_modules) {
+        continue;
+      }
+
+      if !exports.iter().any(|item: &EntryNamespaceExport| {
+        item.entry_module == entry_module && item.export_name == *export_name
+      }) {
+        exports.push(EntryNamespaceExport {
+          entry_module,
+          export_name: export_name.clone(),
+          target_module,
+        });
+      }
+    }
+  }
+
+  exports.sort_by(|a, b| {
+    a.entry_module
+      .cmp(&b.entry_module)
+      .then_with(|| a.export_name.cmp(&b.export_name))
+      .then_with(|| a.target_module.cmp(&b.target_module))
+  });
+  let targets = exports.iter().map(|item| item.target_module).collect();
+
+  EntryNamespaceExports {
+    exports,
+    targets,
+    ..Default::default()
+  }
+}
+
+/// Turn an entry's namespace re-export target into an explicit chunking root.
+///
+/// The target's synchronous closure is added to a new chunk without first being removed
+/// from its existing chunks. `RemoveDuplicateModulesPlugin` then applies its normal
+/// ownership-set algorithm: private modules settle in the target chunk, while modules
+/// shared with the entry or another target are extracted into their own shared chunk.
+pub(crate) fn optimize_entry_namespace_exports(
+  compilation: &mut Compilation,
+  split_targets: bool,
+) -> EntryNamespaceExports {
+  let state = collect_entry_namespace_exports(compilation);
+  if state.exports.is_empty() {
+    return state;
+  }
+  // Do not partially split ambiguous entry graphs: pruning one shared target can
+  // change another entry's evaluation order. The ordinary chunking path is safe.
+  if !state.has_safe_entry_order(compilation) {
+    return Default::default();
+  }
+
+  let mut targets = state.targets.iter().copied().collect::<Vec<_>>();
+  targets.sort_unstable();
+
+  let module_graph = compilation.get_module_graph();
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let mut target_closures = IdentifierMap::default();
+  for target in &targets {
+    let mut unsafe_dependency = false;
+    let closure = crate::split_chunks::collect_module_dependencies(
+      [*target],
+      module_graph,
+      |dependency_id, dependency| {
+        if !is_active_sync_dependency(compilation, dependency_id)
+          || chunk_graph.get_module_chunks(dependency).is_empty()
+        {
+          return false;
+        }
+        if chunk_graph.is_entry_module(&dependency)
+          || (state.targets.contains(&dependency) && dependency != *target)
+        {
+          unsafe_dependency = true;
+          return false;
+        }
+        true
+      },
+    );
+    if unsafe_dependency {
+      return Default::default();
+    }
+    target_closures.insert(*target, closure);
+  }
+  if !split_targets {
+    return state;
+  }
+
+  for target in &targets {
+    let target_chunk =
+      Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
+    if let Some(mut mutations) = compilation.incremental.mutations_write() {
+      mutations.add(Mutation::ChunkAdd {
+        chunk: target_chunk,
+      });
+    }
+    {
+      let chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get_mut(&target_chunk);
+      *chunk.chunk_reason_mut() = Some(ENTRY_NAMESPACE_TARGET_CHUNK_REASON.into());
+    }
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .add_chunk(target_chunk);
+
+    let mut source_chunks = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_module_chunks(*target)
+      .iter()
+      .copied()
+      .collect::<Vec<_>>();
+    source_chunks.sort_unstable();
+    for source_chunk in source_chunks {
+      let [Some(origin), Some(destination)] = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .get_many_mut([&source_chunk, &target_chunk])
+      else {
+        continue;
+      };
+      origin.split(
+        destination,
+        &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+      );
+      if let Some(mut mutations) = compilation.incremental.mutations_write() {
+        mutations.add(Mutation::ChunkSplit {
+          from: source_chunk,
+          to: target_chunk,
+        });
+      }
+    }
+
+    for module_id in &target_closures[target] {
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .connect_chunk_and_module(target_chunk, *module_id);
+    }
+  }
+
+  state
+}
 
 /// Scan TLA-awaited async chunks for static dependencies that reside in ancestor
 /// chunks. When a module with top-level await dynamically imports a chunk, and

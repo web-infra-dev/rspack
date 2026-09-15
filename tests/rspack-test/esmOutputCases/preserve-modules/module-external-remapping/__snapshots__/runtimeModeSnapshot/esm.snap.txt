@@ -13,8 +13,8 @@ export { EventEmitterHoisted, onceHoisted };
 
 ```mjs title=index.mjs
 import { rspackRequire } from "./runtime.mjs";
-import "./wrapped.mjs";
 import { EventEmitterHoisted, onceHoisted } from "./hoisted.mjs";
+import "./wrapped.mjs";
 
 // ./src/index.js
 const wrapped_0 = rspackRequire("./src/wrapped.js");

@@ -1,0 +1,97 @@
+```mjs title=live-external.mjs
+export let value = 1;
+export function increment() {
+  value++;
+}
+
+```
+
+```mjs title=main.mjs
+import * as __rspack_external__live_external_mjs_2a9267c9 from "./live-external.mjs";
+import { __webpack_require__ } from "./runtime.mjs";
+
+__webpack_require__.add({
+"./wrapped.js"
+/*!********************!*\
+  !*** ./wrapped.js ***!
+  \********************/
+(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+let value = eval("1");
+function increment() {
+  value++;
+}
+
+__webpack_require__.d(__webpack_exports__, {
+  increment: () => (increment),
+  value: () => (value)
+});
+
+
+},
+});
+// NAMESPACE OBJECT: ./async-target.js
+var async_target_namespaceObject = {};
+__webpack_require__.r(async_target_namespaceObject);
+__webpack_require__.d(async_target_namespaceObject, { 
+  "default": () => (async_target),
+  value: () => (value) });
+
+
+// NAMESPACE OBJECT: ./empty.js
+var empty_namespaceObject = {};
+__webpack_require__.r(empty_namespaceObject);
+
+
+// NAMESPACE OBJECT: ./external-target.js
+var external_target_namespaceObject = {};
+__webpack_require__.r(external_target_namespaceObject);
+__webpack_require__.d(external_target_namespaceObject, { 
+  value: () => (__rspack_external__live_external_mjs_2a9267c9.value) });
+var external_target_namespaceObject_starExports = __rspack_external__live_external_mjs_2a9267c9;
+Object.keys(external_target_namespaceObject_starExports).forEach(function(key) {
+  if (key !== "default" && key !== "__esModule") {
+    __webpack_require__.d(external_target_namespaceObject, { [key]: function() { return external_target_namespaceObject_starExports[key]; } });
+  }
+});
+
+
+// ./empty.js
+
+
+// ./async-target.js
+const value = await Promise.resolve(42);
+/* export default */ const async_target = ("ready");
+
+// live-external
+
+// ./external-target.js
+
+
+
+// ./index.js
+
+
+
+
+
+it("preserves empty namespaces, top-level await and wrapped live bindings", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+  expect(Object.keys(mod.empty)).toEqual([]);
+  expect(Object.keys(mod.asyncTarget)).toEqual(["default", "value"]);
+  expect(mod.asyncTarget.value).toBe(42);
+  expect(mod.asyncTarget.default).toBe("ready");
+  expect(mod.externalTarget.value).toBe(1);
+  mod.externalTarget.increment();
+  expect(mod.externalTarget.value).toBe(2);
+  expect(Object.keys(mod.wrapped).sort()).toEqual(["increment", "value"]);
+  expect(mod.wrapped.value).toBe(1);
+  mod.wrapped.increment();
+  expect(mod.wrapped.value).toBe(2);
+});
+
+const wrapped = __webpack_require__("./wrapped.js");
+
+export { async_target_namespaceObject as asyncTarget, empty_namespaceObject as empty, external_target_namespaceObject as externalTarget, wrapped };
+
+```

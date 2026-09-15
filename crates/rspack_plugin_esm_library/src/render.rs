@@ -479,6 +479,7 @@ var {} = {{}};
     }
 
     // render imports and exports to other chunks
+    let mut registration_chunks = Vec::new();
     for required_module in already_required {
       runtime_requirements.insert(RuntimeGlobals::REQUIRE);
       let target_chunk = Self::get_module_chunk(required_module, compilation)?;
@@ -493,7 +494,7 @@ var {} = {{}};
         {
           continue;
         }
-        imported_chunks.entry(target_chunk).or_default();
+        registration_chunks.push(target_chunk);
       }
     }
 
@@ -537,8 +538,20 @@ var {} = {{}};
       }
     }
 
+    // Registration-only imports must not precede the ordered module dependencies.
+    for chunk in registration_chunks {
+      imported_chunks.entry(chunk).or_default();
+    }
+    for chunk in chunk_link.namespace_re_exports.keys() {
+      imported_chunks.entry(*chunk).or_default();
+    }
     for (chunk, imported) in &imported_chunks {
+      let namespace_export_names = chunk_link.namespace_re_exports.get(chunk);
       if imported.is_empty()
+        && namespace_export_names.is_none()
+        // A re-export rendered later can replace a bare import only when there
+        // is no ordering relative to other chunks to preserve.
+        && imported_chunks.len() == 1
         && chunk_link
           .re_exports()
           .contains_key(&ReExportFrom::Chunk(*chunk))
@@ -551,10 +564,12 @@ var {} = {{}};
         .expect_get(chunk);
 
       if imported.is_empty() {
-        import_source.add(RawStringSource::from(format!(
-          "import \"__RSPACK_ESM_CHUNK_{}\";\n",
-          chunk.expect_id().as_str()
-        )));
+        if namespace_export_names.is_none() {
+          import_source.add(RawStringSource::from(format!(
+            "import \"__RSPACK_ESM_CHUNK_{}\";\n",
+            chunk.expect_id().as_str()
+          )));
+        }
       } else {
         let mut stmt = String::with_capacity(imported.len() * 30 + 40);
         stmt.push_str("import { ");
@@ -576,6 +591,17 @@ var {} = {{}};
         stmt.push_str(chunk.expect_id().as_str());
         stmt.push_str("\";\n");
         import_source.add(RawStringSource::from(stmt));
+      }
+
+      if let Some(export_names) = namespace_export_names {
+        let request = format!("__RSPACK_ESM_CHUNK_{}", chunk.expect_id().as_str());
+        for name in export_names {
+          let name = export_name(name).expect("should have export_name");
+          import_source.add(RawStringSource::from(format!(
+            "export * as {name} from {};\n",
+            rspack_util::json_stringify_str(&request)
+          )));
+        }
       }
     }
 
@@ -648,6 +674,7 @@ var {} = {{}};
       && !runtime_mode_renderer.renders_inline_runtime_exports(compilation, chunk_ukey)
       && export_specifiers.is_empty()
       && chunk_link.raw_star_exports.is_empty()
+      && chunk_link.namespace_re_exports.is_empty()
       && chunk_link.re_exports().is_empty()
       && export_default.is_none();
 

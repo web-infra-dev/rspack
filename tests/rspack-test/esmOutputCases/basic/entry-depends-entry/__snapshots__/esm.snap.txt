@@ -23,6 +23,8 @@ export { entry3 };
 ```
 
 ```mjs title=main.mjs
+import "./entry2.mjs";
+import "./entry3.mjs";
 
 // ./entry1.js
 

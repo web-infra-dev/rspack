@@ -610,6 +610,16 @@ impl EsmLibraryPlugin {
       );
     }
 
+    // Decide eligibility before linking mutates exports or interop state.
+    self
+      .entry_namespace_exports
+      .borrow_mut()
+      .retain_valid_targets(
+        compilation,
+        &concate_modules_map,
+        &self.all_dyn_targets.borrow(),
+      );
+
     let mut binding_resolver = ConcatenationBindingResolver {
       context: &concatenation_context,
       module_to_info_map: &mut concate_modules_map,
@@ -1874,6 +1884,35 @@ var {} = {{}};
           continue;
         }
 
+        let namespace_target = self
+          .entry_namespace_exports
+          .borrow()
+          .target(entry_module, &name);
+        if let Some(namespace_target) = namespace_target {
+          let target_chunk = Self::get_module_chunk(namespace_target, compilation)
+            .expect("validated namespace target");
+
+          if target_chunk != entry_chunk {
+            let exports_context = exports.get_mut_unwrap(&entry_chunk);
+            if !exports_context.exported_symbols.insert(name.clone()) {
+              errors.push(
+                rspack_error::error!(
+                  "Entry {entry_module} has conflict exports: {name} has already been exported"
+                )
+                .into(),
+              );
+              continue;
+            }
+            link
+              .get_mut_unwrap(&entry_chunk)
+              .namespace_re_exports
+              .entry(target_chunk)
+              .or_default()
+              .insert(name);
+            continue;
+          }
+        }
+
         let chunk_link = link.get_mut_unwrap(&current_chunk);
         let Some(binding) = self.get_binding(
           None,
@@ -2141,6 +2180,42 @@ var {} = {{}};
     // const symbol = __rspack_require(module);
     let mut required = FxHashMap::<ChunkUkey, IdentifierIndexMap<ExternalInterop>>::default();
 
+    // A native namespace re-export exposes the target chunk's ESM namespace. Link the
+    // target roots first so their canonical public export names are established before
+    // an entry's additional named re-exports are linked through the same chunk.
+    let namespace_targets = {
+      let state = self.entry_namespace_exports.borrow();
+      let mut targets = state.targets.iter().copied().collect::<Vec<_>>();
+      targets.sort_unstable();
+      targets
+    };
+    for namespace_target in namespace_targets {
+      let target_chunk =
+        Self::get_module_chunk(namespace_target, compilation).expect("validated namespace target");
+      let needed_namespace = needed_namespace_objects_by_ukey
+        .entry(target_chunk)
+        .or_default();
+      let target_imports = imports.entry(target_chunk).or_default();
+      target_imports.entry(namespace_target).or_default();
+      let required = required.entry(target_chunk).or_default();
+
+      errors.extend(self.link_entry_module_exports(
+        namespace_target,
+        target_chunk,
+        target_chunk,
+        compilation,
+        binding_resolver,
+        required,
+        link,
+        needed_namespace,
+        target_imports,
+        &mut exports,
+        false,
+        false,
+        &mut re_export_star_cache,
+      ));
+    }
+
     // link entry direct exports
     for (entry_name, entrypoint_ukey) in compilation.build_chunk_graph_artifact.entrypoints.iter() {
       let entrypoint = compilation
@@ -2287,7 +2362,7 @@ var {} = {{}};
     }
 
     if let Some(root) = &self.preserve_modules {
-      let preserve_entry_modules = compilation
+      let mut preserve_entry_modules = compilation
         .entries
         .values()
         .flat_map(|entry| entry.all_dependencies())
@@ -2295,6 +2370,14 @@ var {} = {{}};
         .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
         .copied()
         .collect::<FxHashSet<_>>();
+      preserve_entry_modules.extend(
+        self
+          .entry_namespace_exports
+          .borrow()
+          .targets
+          .iter()
+          .copied(),
+      );
 
       let mut preserve_modules = module_graph.modules_keys().copied().collect::<Vec<_>>();
       preserve_modules.sort_unstable();

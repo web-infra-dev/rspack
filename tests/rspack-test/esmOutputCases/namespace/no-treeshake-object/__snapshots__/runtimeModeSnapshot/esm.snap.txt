@@ -1,16 +1,6 @@
 ```mjs title=main.mjs
-import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
-// NAMESPACE OBJECT: ./namespace.js
-var namespace_namespaceObject = {};
-makeNamespaceObject(namespace_namespaceObject);
-definePropertyGetters(namespace_namespaceObject, { 
-  foo: () => (foo) });
-
-
-// ./namespace.js
-function foo() {
-  return "foo";
-}
+export * as ns1 from "./namespace_js.mjs";
+export * as ns2 from "./namespace_js.mjs";
 
 // ./index.js
 
@@ -30,39 +20,16 @@ it("should keep namespace object exports when tree shaking is disabled", async (
   expect(mod.b).toBe(2);
 });
 
-export { a, b, namespace_namespaceObject as ns1, namespace_namespaceObject as ns2 };
+export { a, b };
 
 ```
 
-```mjs title=runtime.mjs
-// The require scope
-var rspackRequire = {};
-export { rspackRequire };
+```mjs title=namespace_js.mjs
+// ./namespace.js
+function foo() {
+  return "foo";
+}
 
-// rspack/runtime/define_property_getters
-var definePropertyGetters = (exports, getters, values) => {
-	var define = (defs, kind) => {
-		for(var key in defs) {
-			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
-				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
-			}
-		}
-	};
-	define(getters, "get");
-	define(values, "value");
-};;
-export { definePropertyGetters };
-// rspack/runtime/has_own_property
-var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
-// rspack/runtime/make_namespace_object
-// define __esModule on exports
-var makeNamespaceObject = (exports) => {
-	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-	}
-	Object.defineProperty(exports, '__esModule', { value: true });
-};;
-export { makeNamespaceObject };
-
+export { foo };
 
 ```

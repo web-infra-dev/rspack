@@ -1,4 +1,4 @@
-use std::hash::BuildHasherDefault;
+use std::{collections::VecDeque, hash::BuildHasherDefault};
 
 use rayon::{iter::Either, prelude::*};
 use rspack_collections::{IdentifierIndexSet, IdentifierSet};
@@ -123,14 +123,35 @@ impl ModulesContainer for MatchGroup {
   }
 }
 
-fn get_module_deps(module: ModuleIdentifier, module_graph: &ModuleGraph) -> Vec<ModuleIdentifier> {
-  module_graph
-    .module_by_identifier(&module)
-    .expect("should have module")
-    .get_dependency_ids()
-    .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
-    .copied()
-    .collect()
+pub(crate) fn collect_module_dependencies(
+  roots: impl IntoIterator<Item = ModuleIdentifier>,
+  module_graph: &ModuleGraph,
+  mut include_dependency: impl FnMut(&rspack_core::DependencyId, ModuleIdentifier) -> bool,
+) -> IdentifierSet {
+  let mut modules = IdentifierSet::default();
+  let mut queue = roots.into_iter().collect::<VecDeque<_>>();
+
+  while let Some(module_identifier) = queue.pop_front() {
+    if !modules.insert(module_identifier) {
+      continue;
+    }
+    let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
+      continue;
+    };
+    for dependency_id in module.get_dependency_ids() {
+      let Some(dependency) = module_graph
+        .module_identifier_by_dependency_id(dependency_id)
+        .copied()
+      else {
+        continue;
+      };
+      if include_dependency(dependency_id, dependency) && !modules.contains(&dependency) {
+        queue.push_back(dependency);
+      }
+    }
+  }
+
+  modules
 }
 
 async fn matches_module_to_cache_group(
@@ -175,8 +196,29 @@ async fn matches_module_to_cache_group(
 
 pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) -> Result<()> {
   let modules = compilation.build_chunk_graph_artifact.chunk_graph.modules();
+  let protected_modules = modules
+    .iter()
+    .copied()
+    .filter(|module| {
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_module_chunks(*module)
+        .iter()
+        .any(|chunk| {
+          compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .expect_get(chunk)
+            .prevent_integration()
+        })
+    })
+    .collect::<IdentifierSet>();
   let results: Vec<std::result::Result<_, _>> = rspack_parallel::scope::<_, Result<_>>(|token| {
     modules.iter().copied().for_each(|module_identifier| {
+      if protected_modules.contains(&module_identifier) {
+        return;
+      }
       // SAFETY: `groups` and `compilation` outlive the scope and are only read (not mutated) concurrently.
       let s = unsafe { token.used((groups, &*compilation)) };
       s.spawn(move |(groups, compilation)| async move {
@@ -225,6 +267,8 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
   let modules = compilation.build_chunk_graph_artifact.chunk_graph.modules();
   let mut modules_in_group: IdentifierIndexSet =
     IdentifierIndexSet::with_capacity_and_hasher(modules.len(), BuildHasherDefault::default());
+  // Respect the same integration boundary for matched roots and dependencies.
+  modules_in_group.extend(protected_modules);
   let mut group_modules: HashMap<Either<String, usize>, MatchGroup> =
     HashMap::with_capacity_and_hasher(results.len(), Default::default());
 
@@ -264,17 +308,12 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
       continue;
     };
 
-    let mut stack: Vec<_> = match_group.modules.iter().copied().collect();
-    while let Some(module_identifier) = stack.pop() {
-      for dep in get_module_deps(module_identifier, module_graph) {
-        if !modules_in_group.insert(dep) {
-          continue;
-        }
-        if !match_group.add_module(dep) {
-          continue;
-        }
-        stack.push(dep);
-      }
+    let roots = match_group.modules.iter().copied().collect::<Vec<_>>();
+    let dependencies = collect_module_dependencies(roots, module_graph, |_, dependency| {
+      modules_in_group.insert(dependency)
+    });
+    for dependency in dependencies {
+      match_group.add_module(dependency);
     }
   }
 

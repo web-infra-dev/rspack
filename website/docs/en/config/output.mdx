@@ -1135,6 +1135,12 @@ export default {
 
 This configuration enables Rspack's dedicated rendering pipeline for ESM libraries. It emits direct `import` / `export` statements and supports library-oriented tree shaking, scope hoisting, code splitting, and [`output.library.preserveModules`](#outputlibrarypreservemodules).
 
+Entry namespace re-exports (`export * as ns from './target.js'` and `import * as ns from './target.js'; export { ns };`) are automatically optimized by splitting the target and its synchronous dependencies into separate chunks where possible. This preserves native namespace re-exports so consumers can tree-shake unused exports. With `preserveModules`, existing module chunks are reused. Later `optimization.splitChunks` processing can still move or merge these chunks; if the final chunk's exports cannot represent the target namespace, Rspack uses namespace-object rendering instead.
+
+:::warning
+Splitting shared dependencies for namespace re-exports can change side-effect execution order. Libraries using this optimization should not depend on that order.
+:::
+
 :::tip `module` vs `modern-module`
 
 - `module` stays on the regular chunk / runtime rendering pipeline and is closer to webpack-compatible ESM semantics.
