@@ -129,8 +129,16 @@ impl ModuleFilenameHelpers {
         let absolute_resource_path = match module.as_normal_module() {
           Some(normal_module) => normal_module
             .resource_resolved_data()
-            .resource()
-            .to_string(),
+            .path()
+            .map(|p| p.to_string())
+            .unwrap_or_else(|| {
+              module
+                .identifier()
+                .split('!')
+                .next_back()
+                .unwrap_or("")
+                .to_string()
+            }),
           None => module
             .identifier()
             .split('!')
@@ -424,15 +432,25 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
   }
 
   pub fn relative_resource_path(&self) -> Option<Cow<'_, str>> {
-    // Both module and plain source references resolve against the source map
-    // file's directory, per the documented `[relative-resource-path]` semantics.
+    // Resolve against the source map file's directory when the path is
+    // available; otherwise fall back to the resource identifier for module
+    // references so eval devtool modes do not leave the literal placeholder.
     let absolute_resource_path = self.absolute_resource_path();
-    resolve_relative_resource_path(
+    let resolved = resolve_relative_resource_path(
       absolute_resource_path,
       self.unresolved_source_map_path,
       self.compilation.options.experiments.runtime_mode,
-    )
-    .map(Cow::Owned)
+    );
+
+    match (resolved, &self.source_reference) {
+      (Some(path), _) => Some(Cow::Owned(path)),
+      (None, SourceReference::Module(_)) => {
+        let resource_identifier = self.resource_identifier();
+        let resource = resource_identifier.split('!').next_back().unwrap_or("");
+        Some(Cow::Owned(resource.to_string()))
+      }
+      (None, SourceReference::Source(_)) => None,
+    }
   }
 
   pub fn hash(&self) -> String {
