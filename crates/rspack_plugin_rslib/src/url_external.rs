@@ -16,8 +16,6 @@ fn should_cutout_url_external(
     return false;
   }
 
-  // Only the `new-url-relative` mode emits a bare `new URL(request, import.meta.url)`.
-  // The other modes rely on the module being kept in the graph to be required at runtime.
   if !matches!(
     url_dependency.url_mode(),
     Some(JavascriptParserUrl::NewUrlRelative)
