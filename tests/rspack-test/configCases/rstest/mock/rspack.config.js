@@ -1,4 +1,17 @@
 const path = require('path');
+const fs = require('fs');
+
+const linkedPackage = path.resolve(
+  __dirname,
+  'node_modules/linked-manual-mock',
+);
+if (!fs.existsSync(linkedPackage)) {
+  fs.symlinkSync(
+    path.resolve(__dirname, 'packages/package-with-manual-mock'),
+    linkedPackage,
+    'junction',
+  );
+}
 const {
   experiments: { RstestPlugin },
 } = require('@rspack/core');
@@ -218,6 +231,21 @@ module.exports = [
   rstestEntry('./mockFactory.js'),
   rstestEntry('./manualMock.js'),
   rstestEntry('./autoMockFallback.js'),
+  {
+    ...rstestEntry('./packageManualMock.js'),
+    resolve: {
+      alias: {
+        '@/package': path.resolve(
+          __dirname,
+          'packages/package-with-manual-mock',
+        ),
+      },
+    },
+  },
+  rstestEntry('./packageManualMockRoot.js'),
+  rstestEntry('./packageManualMockAdjacent.js', {
+    manualMockRoot: path.resolve(__dirname, 'missing-manual-mocks'),
+  }),
   rstestEntry('./builtinManualMock.js'),
   rstestEntry('./nodeModulesManualMock.js'),
   rstestEntry('./directoryManualMock.js'),
