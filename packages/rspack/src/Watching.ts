@@ -191,7 +191,6 @@ export class Watching {
     };
 
     this.#closed = true;
-    this.compiler.__internal__onDone = undefined;
     if (this.watcher) {
       this.watcher.close();
       this.watcher = undefined;
@@ -436,7 +435,7 @@ export class Watching {
     const cbs = this.callbacks;
     this.callbacks = [];
 
-    this.compiler.__internal__done(stats, (err) => {
+    this.compiler.hooks.done.callAsync(stats, (err) => {
       if (err) return handleError(err, cbs);
       this.handler(null, stats);
 

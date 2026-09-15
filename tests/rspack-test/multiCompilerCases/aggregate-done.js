@@ -105,7 +105,7 @@ module.exports = [
       const snapshots = new WeakMap();
       compiler.compilers.forEach((child, index) => {
         child.hooks.watchRun.tap("Trace", () => { generations[index]++; });
-        child.hooks.done.tapAsync("Trace", (stats, callback) => {
+        child.hooks.done.tapAsync({ name: "Trace", stage: -1 }, (stats, callback) => {
           setImmediate(() => {
             snapshots.set(stats, generations[index]);
             callback();
@@ -162,7 +162,7 @@ module.exports = [
       compiler.compilers[0].hooks.watchRun.tapAsync("FailOnce", (_, callback) => {
         callback(shouldFail ? failure : null);
       });
-      compiler.hooks.done.tap("Capture", stats => { publications.push(stats); });
+      compiler.hooks.done.tap("Capture", stats => { publications.push([...stats.stats]); });
       const stopWatching = () => new Promise((resolve, reject) => {
         compiler.watching.close(error => error ? reject(error) : resolve());
       });
@@ -179,17 +179,17 @@ module.exports = [
             compiler.watch({}, error => error ? reject(error) : resolve());
           });
           expect(publications).toHaveLength(i + 1);
-          expect(publications[i].stats.map(stat => stat.compilation.name)).toEqual(["a", "b"]);
+          expect(publications[i].map(stat => stat.compilation.name)).toEqual(["a", "b"]);
           await stopWatching();
         }
-        expect(publications[0].stats[0]).not.toBe(publications[1].stats[0]);
+        expect(publications[0][0]).not.toBe(publications[1][0]);
       } finally {
         await close(compiler);
       }
     }
   },
   {
-    description: "should cancel aggregate notification when closing during asynchronous child done",
+    description: "should preserve aggregate notification before closing during asynchronous child done",
     options: () => {
       const configs = options();
       configs[0].dependencies = ["b"];
@@ -214,12 +214,102 @@ module.exports = [
         await new Promise(resolve => compiler.watching.close(resolve));
         release();
         await finished;
-        expect(publications).toHaveLength(0);
+        expect(publications).toHaveLength(1);
       } finally {
         await close(compiler);
       }
     }
   },
+  ...[false, true].flatMap(watch => [false, true].map(throws => ({
+    description: `should preserve interleaved done hooks in ${watch ? "watch" : "run"} with aggregate failure ${throws}`,
+    options,
+    async build(context, compiler) {
+      const events = [];
+      const failure = new Error("aggregate failure");
+      const [a, b] = compiler.compilers;
+      let enter;
+      const entered = new Promise(resolve => { enter = resolve; });
+      let release;
+      let finishA;
+      const finishedA = new Promise(resolve => { finishA = resolve; });
+      a.hooks.done.tapAsync("Gate", (_, callback) => {
+        events.push("a.done:start");
+        release = () => { events.push("a.done:end"); callback(); };
+        enter();
+      });
+      b.hooks.make.tapAsync("Gate", (_, callback) => {
+        entered.then(() => callback());
+      });
+      b.hooks.done.tap("Trace", () => { events.push("b.done"); });
+      for (const child of compiler.compilers) {
+        child.hooks.failed.tap("Trace", error => {
+          events.push(`${child.name}.failed`);
+          if (child === b) setImmediate(release);
+        });
+        child.hooks.afterDone.tap("Trace", stats => {
+          events.push(`${child.name}.afterDone:${Boolean(stats)}`);
+          if (child === b && stats) setImmediate(release);
+          if (child === a) finishA();
+        });
+      }
+      compiler.hooks.done.tap("Trace", () => {
+        events.push("parent.done");
+        if (throws) throw failure;
+      });
+      try {
+        const error = await new Promise(resolve => {
+          const callback = error => {
+            events.push(`callback:${error ? "error" : "success"}`);
+            resolve(error);
+          };
+          if (watch) compiler.watch({}, callback);
+          else compiler.run(callback);
+        });
+        await finishedA;
+        expect(error).toBe(throws ? failure : null);
+        expect(events).toEqual(throws ? [
+          "a.done:start", "parent.done", "b.failed", "callback:error",
+          ...(!watch ? ["b.afterDone:false"] : []),
+          "a.done:end", "a.afterDone:true"
+        ] : [
+          "a.done:start", "parent.done", "b.done", "b.afterDone:true",
+          "a.done:end", "a.afterDone:true", "callback:success"
+        ]);
+      } finally {
+        await close(compiler);
+      }
+    }
+  }))),
+  ...[false, true].map(watch => ({
+    description: `should aggregate independently started children in ${watch ? "watch" : "run"}`,
+    options,
+    async build(context, compiler) {
+      const events = [];
+      compiler.hooks.done.tap("Trace", () => { events.push("parent.done"); });
+      compiler.compilers.forEach(child => {
+        child.hooks.done.tap("Trace", () => { events.push(`${child.name}.done`); });
+        child.hooks.afterDone.tap("Trace", () => { events.push(`${child.name}.afterDone`); });
+      });
+      try {
+        for (const child of compiler.compilers) {
+          await new Promise((resolve, reject) => {
+            const callback = error => {
+              events.push(`${child.name}.callback`);
+              error ? reject(error) : resolve();
+            };
+            if (watch) child.watch({}, callback);
+            else child.run(callback);
+          });
+        }
+        expect(events).toEqual([
+          "a.done", "a.callback", "a.afterDone",
+          "parent.done", "b.done", "b.callback", "b.afterDone"
+        ]);
+      } finally {
+        await close(compiler);
+      }
+    }
+  })),
   ...[false, true].flatMap(watch => [false, true].map(throws => ({
     description: `should preserve completion hook order in ${watch ? "watch" : "run"} with aggregate failure ${throws}`,
     options: () => {
@@ -231,7 +321,7 @@ module.exports = [
       const failure = new Error("aggregate done failure");
       const events = [];
       compiler.compilers.forEach(child => {
-        child.hooks.done.tapAsync("Capture", (_, callback) => {
+        child.hooks.done.tapAsync({ name: "Capture", stage: -1 }, (_, callback) => {
           events.push(["done:start", child.name]);
           setImmediate(() => {
             events.push(["done:end", child.name]);

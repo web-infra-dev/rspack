@@ -34,7 +34,6 @@ interface Node<T> {
   parents: Node<T>[];
   setupResult?: T;
   result?: Stats;
-  hasUnreportedResult: boolean;
   state:
     | 'pending'
     | 'blocked'
@@ -78,6 +77,8 @@ export class MultiCompiler {
     >;
   };
   _options: MultiCompilerOptions;
+  #resetCompilerDone = new WeakMap<Compiler, () => void>();
+  #isGraphReady?: () => boolean;
   running: boolean;
   watching?: MultiWatching;
 
@@ -125,6 +126,35 @@ export class MultiCompiler {
     };
     this.dependencies = new WeakMap();
     this.running = false;
+
+    const compilerStats: (Stats | null)[] = this.compilers.map(() => null);
+    let doneCompilers = 0;
+    for (let index = 0; index < this.compilers.length; index++) {
+      const compiler = this.compilers[index];
+      const compilerIndex = index;
+      let compilerDone = false;
+      compiler.hooks.done.tap('MultiCompiler', (stats) => {
+        if (!compilerDone) {
+          compilerDone = true;
+          doneCompilers++;
+        }
+        compilerStats[compilerIndex] = stats;
+        if (
+          doneCompilers === this.compilers.length &&
+          (!this.#isGraphReady || this.#isGraphReady())
+        ) {
+          this.hooks.done.call(new MultiStats(compilerStats as Stats[]));
+        }
+      });
+      const resetDone = () => {
+        if (compilerDone) {
+          compilerDone = false;
+          doneCompilers--;
+        }
+      };
+      this.#resetCompilerDone.set(compiler, resetDone);
+      compiler.hooks.invalid.tap('MultiCompiler', resetDone);
+    }
   }
 
   set unsafeFastDrop(value: boolean) {
@@ -300,6 +330,7 @@ export class MultiCompiler {
       done: liteTapable.Callback<Error, Stats>,
     ) => void,
     callback: liteTapable.Callback<Error, MultiStats>,
+    watch = false,
   ): SetupResult[] {
     // State transitions for nodes:
     // -> blocked (initial)
@@ -316,7 +347,6 @@ export class MultiCompiler {
       compiler,
       setupResult: undefined,
       result: undefined,
-      hasUnreportedResult: false,
       state: 'blocked',
       children: [],
       parents: [],
@@ -345,19 +375,26 @@ export class MultiCompiler {
     let running = 0;
     const parallelism = this._options.parallelism!;
 
-    const handleError = (err: Error): void => {
-      errored = true;
-      asyncLib.each(
-        nodes,
-        (node, callback) => {
-          node.compiler.__internal__onDone = undefined;
-          if (node.compiler.watching) {
-            node.compiler.watching.close(callback);
-          } else {
-            callback();
-          }
-        },
-        () => callback(err),
+    this.#isGraphReady = () => {
+      // Once these watchers close, independently running a child should use
+      // the constructor's original aggregation behavior again.
+      if (
+        watch &&
+        nodes.every((node) => node.compiler.watching !== node.setupResult)
+      ) {
+        return true;
+      }
+      // A child may still be running its asynchronous done hooks. Its done
+      // counter already records the original hook boundary; only outstanding
+      // compilation work must prevent aggregate publication here.
+      return (
+        !errored &&
+        nodes.every(
+          (node) =>
+            node.state === 'done' ||
+            node.state === 'running' ||
+            node.state === 'starting',
+        )
       );
     };
 
@@ -367,9 +404,21 @@ export class MultiCompiler {
       stats: Stats,
     ): void => {
       if (errored) return;
-      if (err) return handleError(err);
+      if (err) {
+        errored = true;
+        return asyncLib.each(
+          nodes,
+          (node, callback) => {
+            if (node.compiler.watching) {
+              node.compiler.watching.close(callback);
+            } else {
+              callback();
+            }
+          },
+          () => callback(err),
+        );
+      }
       node.result = stats;
-      node.hasUnreportedResult = true;
       running--;
       if (node.state === 'running') {
         node.state = 'done';
@@ -454,23 +503,8 @@ export class MultiCompiler {
         ) {
           running++;
           node.state = 'starting';
-          node.compiler.__internal__onDone = (stats) => {
-            if (
-              !errored &&
-              node.state === 'running' &&
-              nodes.every((other) => other === node || other.state === 'done')
-            ) {
-              // Notify before the child completes so hook errors still flow
-              // through its failed hook, callback and afterDone handling.
-              this.hooks.done.call(
-                new MultiStats(
-                  nodes.map((other) =>
-                    other === node ? stats : other.result!,
-                  ),
-                ),
-              );
-            }
-          };
+          // A graph restart may not emit another public invalid notification.
+          this.#resetCompilerDone.get(node.compiler)!();
           run(
             node.compiler,
             node.setupResult!,
@@ -487,9 +521,10 @@ export class MultiCompiler {
       ) {
         const stats: Stats[] = [];
         for (const node of nodes) {
-          if (node.hasUnreportedResult) {
-            node.hasUnreportedResult = false;
-            stats.push(node.result!);
+          const result = node.result;
+          if (result) {
+            node.result = undefined;
+            stats.push(result);
           }
         }
         if (stats.length > 0) {
@@ -534,6 +569,7 @@ export class MultiCompiler {
           if (!watching.running) watching.invalidate();
         },
         handler,
+        true,
       );
       this.watching = new MultiWatching(watchings, this);
       return this.watching;
@@ -564,6 +600,7 @@ export class MultiCompiler {
         () => {},
         (compiler, _, callback) => compiler.run(callback, options),
         (err, stats) => {
+          this.#isGraphReady = undefined;
           this.running = false;
 
           if (callback !== undefined) {
