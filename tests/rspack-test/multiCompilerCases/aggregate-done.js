@@ -206,6 +206,128 @@ module.exports = [
       }
     }
   },
+  ...[0, 1].map(busyIndex => ({
+    description: `should release a failed watch graph when child ${busyIndex} is busy`,
+    options,
+    async build(context, compiler) {
+      const events = [];
+      compiler.hooks.done.tap("Trace", () => { events.push("parent.done"); });
+      const child = compiler.compilers[busyIndex];
+      child.hooks.done.tap("Trace", () => { events.push("child.done"); });
+      child.hooks.afterDone.tap("Trace", () => { events.push("child.afterDone"); });
+      let release;
+      let initial;
+      try {
+        await new Promise((resolve, reject) => compiler.run(error => error ? reject(error) : resolve()));
+        events.length = 0;
+        let enter;
+        const entered = new Promise(resolve => { enter = resolve; });
+        child.hooks.make.tapAsync("Gate", (_, callback) => {
+          release = () => {
+            if (callback) {
+              const finish = callback;
+              callback = undefined;
+              finish();
+            }
+          };
+          enter();
+        });
+        initial = new Promise((resolve, reject) => child.run(error => {
+          events.push("child.callback");
+          error ? reject(error) : resolve();
+        }));
+        await entered;
+        const error = await new Promise(resolve => compiler.watch({}, resolve));
+        expect(error.name).toBe("ConcurrentCompilationError");
+        events.push("watch.error");
+        // The first setup can fail before a later idle child gets a watcher.
+        // That remaining watcher must not keep an already failed graph active.
+        if (busyIndex === 0) expect(compiler.compilers[1].watching).toBeDefined();
+        release();
+        await initial;
+        expect(events).toEqual([
+          "watch.error", "parent.done", "child.done", "child.callback", "child.afterDone"
+        ]);
+      } finally {
+        release?.();
+        if (initial) await initial;
+        await close(compiler);
+      }
+    }
+  })),
+  {
+    description: "should ignore a closed outdated watcher while other watchers remain active",
+    options,
+    async build(context, compiler) {
+      const events = [];
+      const [a, b] = compiler.compilers;
+      compiler.hooks.done.tap("Trace", () => { events.push("parent.done"); });
+      a.hooks.done.tap("Trace", () => { events.push("a.done"); });
+      a.hooks.afterDone.tap("Trace", () => { events.push("a.afterDone"); });
+      let release;
+      try {
+        await new Promise((resolve, reject) => compiler.watch({}, error => error ? reject(error) : resolve()));
+        events.length = 0;
+        let enter;
+        const entered = new Promise(resolve => { enter = resolve; });
+        let first = true;
+        a.hooks.make.tapAsync("Gate", (_, callback) => {
+          if (!first) return callback();
+          first = false;
+          release = () => {
+            if (callback) {
+              const finish = callback;
+              callback = undefined;
+              finish();
+            }
+          };
+          enter();
+        });
+        a.watching.invalidate();
+        await entered;
+        a.watching.invalidate();
+        const closed = new Promise(resolve => a.watching.close(resolve));
+        release();
+        await closed;
+        expect(b.watching).toBeDefined();
+        await new Promise((resolve, reject) => a.run(error => {
+          events.push("a.callback");
+          error ? reject(error) : resolve();
+        }));
+        expect(events).toEqual(["parent.done", "a.done", "a.callback", "a.afterDone"]);
+        events.length = 0;
+        let enterB;
+        const enteredB = new Promise(resolve => { enterB = resolve; });
+        let finishB;
+        const finishedB = new Promise(resolve => { finishB = resolve; });
+        let builds = 0;
+        b.hooks.make.tapAsync("Gate", (_, callback) => {
+          builds++;
+          if (builds !== 1) return callback();
+          release = () => {
+            if (callback) {
+              const finish = callback;
+              callback = undefined;
+              finish();
+            }
+          };
+          enterB();
+        });
+        b.hooks.done.tap("Trace", () => { events.push(`b.done:${builds}`); });
+        b.hooks.afterDone.tap("Trace", () => { if (builds === 2) finishB(); });
+        b.watching.invalidate();
+        await enteredB;
+        b.watching.invalidate();
+        release();
+        await finishedB;
+        // Ignoring closed a must not bypass b's still-active outdated build.
+        expect(events).toEqual(["b.done:1", "parent.done", "b.done:2"]);
+      } finally {
+        release?.();
+        await close(compiler);
+      }
+    }
+  },
   {
     description: "should recover from watchRun errors and publish after closing and rewatching",
     options,

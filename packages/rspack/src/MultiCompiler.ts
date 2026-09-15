@@ -375,31 +375,29 @@ export class MultiCompiler {
     let running = 0;
     const parallelism = this._options.parallelism!;
 
-    this.#isGraphReady = () => {
-      // If watching never started or all these watchers closed, independent
-      // child runs should use the original constructor-level aggregation.
-      if (
-        watch &&
-        nodes.every(
-          (node) =>
-            node.setupResult === undefined ||
-            node.compiler.watching !== node.setupResult,
-        )
-      ) {
-        return true;
-      }
-      // A child may still be running its asynchronous done hooks. Its done
-      // counter already records the original hook boundary; only outstanding
-      // compilation work must prevent aggregate publication here.
-      return (
-        !errored &&
-        nodes.every(
-          (node) =>
-            node.state === 'done' ||
-            node.state === 'running' ||
-            node.state === 'starting',
-        )
-      );
+    const isGraphReady = () =>
+      !errored &&
+      nodes.every((node) => {
+        // Detached watchers no longer represent work owned by this graph.
+        if (
+          watch &&
+          (node.setupResult === undefined ||
+            node.compiler.watching !== node.setupResult)
+        ) {
+          return true;
+        }
+        // The original done counter includes children still executing their
+        // asynchronous done hooks. Only outstanding compilation work blocks it.
+        return (
+          node.state === 'done' ||
+          node.state === 'running' ||
+          node.state === 'starting'
+        );
+      });
+    this.#isGraphReady = isGraphReady;
+    const releaseGraph = () => {
+      // A callback can start another graph; never clear its readiness check.
+      if (this.#isGraphReady === isGraphReady) this.#isGraphReady = undefined;
     };
 
     const nodeDone = (
@@ -410,6 +408,7 @@ export class MultiCompiler {
       if (errored) return;
       if (err) {
         errored = true;
+        releaseGraph();
         return asyncLib.each(
           nodes,
           (node, callback) => {
@@ -532,6 +531,7 @@ export class MultiCompiler {
           }
         }
         if (stats.length > 0) {
+          if (!watch) releaseGraph();
           callback(null, new MultiStats(stats));
         }
       }
@@ -604,7 +604,6 @@ export class MultiCompiler {
         () => {},
         (compiler, _, callback) => compiler.run(callback, options),
         (err, stats) => {
-          this.#isGraphReady = undefined;
           this.running = false;
 
           if (callback !== undefined) {
