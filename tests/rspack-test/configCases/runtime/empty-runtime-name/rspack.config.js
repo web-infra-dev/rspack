@@ -1,6 +1,6 @@
 const entries = ['main', 'secondary', 'third'];
 
-module.exports = ['function', 'string', 'entry'].map((kind) => ({
+module.exports = ['function', 'string', 'entry'].map((kind, index) => ({
   target: 'node',
   entry: Object.fromEntries(
     entries.map((name) => [
@@ -13,9 +13,9 @@ module.exports = ['function', 'string', 'entry'].map((kind) => ({
   output: {
     filename: ({ chunk }) => {
       expect(chunk.name).toBeTruthy();
-      return `${chunk.name}.js`;
+      return `${index}/${chunk.name}.js`;
     },
-    chunkFilename: 'async-[name].js',
+    chunkFilename: `${index}/async-[name].js`,
   },
   optimization: {
     minimize: false,
