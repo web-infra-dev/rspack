@@ -48,7 +48,7 @@ impl NormalModule {
             module
               .loaders()
               .iter()
-              .map(JsLoaderItem::from)
+              .map(|resolved| JsLoaderItem::from(&resolved.loader))
               .collect::<Vec<_>>(),
           )?
         });

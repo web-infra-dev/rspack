@@ -1,4 +1,4 @@
-import type { JsLoaderContext } from '@rspack/binding';
+import type { LoaderContextState } from './context';
 
 import { isNil } from '../util';
 import {
@@ -32,10 +32,13 @@ type LoaderCacheApi = {
 
 export class LoaderCache {
   readonly #api: LoaderCacheApi;
-  readonly #context: JsLoaderContext;
+  readonly #context: LoaderContextState;
   readonly #dependencies: LoaderDependenciesState;
 
-  constructor(context: JsLoaderContext, dependencies: LoaderDependenciesState) {
+  constructor(
+    context: LoaderContextState,
+    dependencies: LoaderDependenciesState,
+  ) {
     this.#context = context;
     this.#api = (context as any).__internal__loaderCache as LoaderCacheApi;
     this.#dependencies = dependencies;
@@ -47,7 +50,7 @@ export class LoaderCache {
     additionalData: unknown,
   ): Promise<LoaderCacheEntry | null | undefined> {
     const context = this.#context;
-    const loader = context.loaderItems[loaderIndex];
+    const loader = context.state.loaderItemStates[loaderIndex];
     if (
       !context.cacheable ||
       !loader ||

@@ -41,6 +41,8 @@ module.exports = [
               // The native HMR tap runs at stage 0.
               if (stage === -10) {
                 assert.equal(context.hot, false);
+                context.hookLoaders = context.loaders;
+                context.hookLoaderObjects = [...context.loaders];
                 context.hookValue = 'from loader hook';
                 context[Symbol.for('loader-hook-value')] = { value: 42 };
                 Object.defineProperty(context, 'hookContext', {
@@ -49,6 +51,10 @@ module.exports = [
                 const addDependency = context.addDependency;
                 context.addHookDependency = () => addDependency(dependency);
               } else {
+                assert.equal(context.loaders, context.hookLoaders);
+                context.loaders.forEach((loader, index) => {
+                  assert.equal(loader, context.hookLoaderObjects[index]);
+                });
                 assert.equal(context.hookValue, 'from loader hook');
                 assert.equal(context.hookContext, context);
                 assert.equal(
@@ -58,6 +64,8 @@ module.exports = [
               }
               if (stage === Infinity) {
                 assert.equal(context.hot, true);
+                // JS writes must survive the native boundary too.
+                context.hot = false;
                 if (name === 'no-loaders') {
                   context.emitError(new Error('error from loader hook'));
                   context.emitWarning(new Error('warning from loader hook'));

@@ -136,6 +136,7 @@ module.exports.JsContextModuleFactoryBeforeResolveData = __napiModule.exports.Js
 module.exports.JsCoordinator = __napiModule.exports.JsCoordinator
 module.exports.JsDependencies = __napiModule.exports.JsDependencies
 module.exports.JsEntries = __napiModule.exports.JsEntries
+module.exports.JsLoaderContext = __napiModule.exports.JsLoaderContext
 module.exports.JsExportsInfo = __napiModule.exports.JsExportsInfo
 module.exports.JsModuleGraph = __napiModule.exports.JsModuleGraph
 module.exports.JsResolver = __napiModule.exports.JsResolver

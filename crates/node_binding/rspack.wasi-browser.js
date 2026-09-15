@@ -96,6 +96,7 @@ export const JsContextModuleFactoryBeforeResolveData = __napiModule.exports.JsCo
 export const JsCoordinator = __napiModule.exports.JsCoordinator
 export const JsDependencies = __napiModule.exports.JsDependencies
 export const JsEntries = __napiModule.exports.JsEntries
+export const JsLoaderContext = __napiModule.exports.JsLoaderContext
 export const JsExportsInfo = __napiModule.exports.JsExportsInfo
 export const JsModuleGraph = __napiModule.exports.JsModuleGraph
 export const JsResolver = __napiModule.exports.JsResolver

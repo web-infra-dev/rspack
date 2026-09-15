@@ -6,13 +6,13 @@ use rspack_paths::InternedPathSet;
 use rspack_sources::SourceMap;
 
 use crate::{
-  Loader, LoaderContext,
+  Loader, LoaderContext, LoaderRunnerContext,
   content::{Content, ResourceData},
 };
 
 #[async_trait::async_trait]
 pub trait LoaderRunnerPlugin: Send + Sync {
-  type Context: Send;
+  type Context: LoaderRunnerContext;
 
   fn name(&self) -> &'static str {
     "unknown"
@@ -22,8 +22,13 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     Ok(())
   }
 
-  async fn start_yielding(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
-    Ok(())
+  /// Transfer the same allocation to the foreign runner and back, including on
+  /// loader errors. Native hooks and loaders only borrow the context.
+  async fn start_yielding(
+    &self,
+    context: Box<LoaderContext<Self::Context>>,
+  ) -> (Box<LoaderContext<Self::Context>>, Result<()>) {
+    (context, Ok(()))
   }
 
   async fn run_normal_loader(
@@ -32,7 +37,7 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     loader: Arc<dyn Loader<Self::Context>>,
   ) -> Result<()> {
     loader.run(context).await?;
-    if !context.current_loader().finish_called() {
+    if !context.current_loader_state().finish_called() {
       context.finish_with_empty();
     }
     Ok(())
@@ -43,4 +48,15 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     resource_data: &ResourceData,
     fs: Arc<dyn ReadableFileSystem>,
   ) -> Result<Option<(Content, Option<SourceMap<'static>>, InternedPathSet)>>;
+}
+
+/// A foreign loader runner owns the context for the duration of its invocation.
+#[async_trait::async_trait]
+pub trait LoaderRunner: std::fmt::Debug + Send + Sync {
+  type Context: LoaderRunnerContext;
+
+  async fn run(
+    &self,
+    context: Box<LoaderContext<Self::Context>>,
+  ) -> (Box<LoaderContext<Self::Context>>, Result<()>);
 }

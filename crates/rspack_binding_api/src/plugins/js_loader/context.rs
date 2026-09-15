@@ -3,8 +3,7 @@ use std::{ptr::NonNull, sync::Arc};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_collections::Identifiable;
-use rspack_core::{Content, LoaderContext, LoaderDependencies, Module, RunnerContext};
-use rspack_error::ToStringResultToRspackResultExt;
+use rspack_core::{AdditionalData, Content, LoaderContext, LoaderDependencies, RunnerContext};
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
 use rustc_hash::FxHashMap as HashMap;
@@ -29,20 +28,20 @@ pub struct JsLoaderItem {
   pub no_pitch: bool,
 }
 
-impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
-  fn from(value: &rspack_loader_runner::LoaderItem<RunnerContext>) -> Self {
-    JsLoaderItem {
-      loader: value.request().to_string(),
-      r#type: value.r#type().to_string(),
-      cache: value.cache(),
+/// Immutable loader metadata, materialized once for the JavaScript facade.
+#[napi(object)]
+pub struct JsLoaderMetadata {
+  pub loader: String,
+  pub r#type: String,
+  pub cache: bool,
+}
 
-      data: value.data().clone(),
-      normal_executed: value.normal_executed(),
-      pitch_executed: value.pitch_executed(),
-
-      no_pitch: false,
-    }
-  }
+#[napi(object)]
+pub struct JsLoaderItemState {
+  pub data: serde_json::Value,
+  pub normal_executed: bool,
+  pub pitch_executed: bool,
+  pub no_pitch: bool,
 }
 
 impl<C> From<&Arc<dyn rspack_core::Loader<C>>> for JsLoaderItem
@@ -169,98 +168,328 @@ impl From<JsLoaderDependencies> for LoaderDependencies {
   }
 }
 
-#[napi(object)]
+/// Owns the boxed native context while JavaScript executes. Returning the class
+/// moves the context back to Rust and leaves retained JavaScript instances empty.
+#[napi]
 pub struct JsLoaderContext {
-  #[napi(ts_type = "object | undefined")]
-  pub loader_context_state: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
-  pub resource: String,
-  #[napi(js_name = "_module", ts_type = "Module")]
-  pub module: ModuleObject,
-  #[napi(ts_type = "Readonly<boolean>")]
-  pub hot: bool,
-
-  /// Content maybe empty in pitching stage
-  pub content: Either3<String, Buffer, Null>,
-  #[napi(ts_type = "any")]
-  pub additional_data: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
-  #[napi(js_name = "__internal__parseMeta")]
-  pub parse_meta: HashMap<String, String>,
-  pub source_map: Option<Buffer>,
-  pub cacheable: bool,
-  pub dependencies: JsLoaderDependencies,
-
-  pub loader_items: Vec<JsLoaderItem>,
-  pub loader_index: i32,
-  #[napi(ts_type = "Readonly<JsLoaderState>")]
-  pub loader_state: JsLoaderState,
-  #[napi(js_name = "__internal__error")]
-  pub error: Option<RspackError>,
-  #[napi(
-    js_name = "__internal__loaderCache",
-    ts_type = "JsLoaderCache | undefined"
-  )]
-  pub loader_cache: Option<JsLoaderCacheObject>,
+  pub(crate) context: Option<Box<LoaderContext<RunnerContext>>>,
+  pub(crate) error: Option<RspackError>,
+  pub(crate) loaders_without_pitch: Vec<String>,
 }
 
-impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
-  type Error = rspack_error::Error;
+impl JsLoaderContext {
+  pub(crate) fn new(context: Box<LoaderContext<RunnerContext>>) -> Self {
+    Self {
+      context: Some(context),
+      error: None,
+      loaders_without_pitch: Vec::new(),
+    }
+  }
 
-  fn try_from(
-    cx: &mut rspack_core::LoaderContext<RunnerContext>,
-  ) -> std::result::Result<Self, Self::Error> {
-    let module = &cx.context.module;
+  fn unavailable() -> napi::Error {
+    napi::Error::from_reason(
+      "Loader context is no longer available after the JavaScript loader runner has finished",
+    )
+  }
 
-    #[allow(clippy::unwrap_used)]
-    Ok(JsLoaderContext {
+  fn with_context<T>(
+    &self,
+    f: impl FnOnce(&LoaderContext<RunnerContext>) -> napi::Result<T>,
+  ) -> napi::Result<T> {
+    f(self.context.as_deref().ok_or_else(Self::unavailable)?)
+  }
+
+  pub(crate) fn take_error(&mut self) -> rspack_error::Result<()> {
+    check_loader_error(self.error.take())
+  }
+}
+
+impl FromNapiValue for JsLoaderContext {
+  unsafe fn from_napi_value(env: sys::napi_env, value: sys::napi_value) -> napi::Result<Self> {
+    // Conversion runs on the JavaScript thread. Take the Box before sending the
+    // returned value to Rust; later access through the JS class sees None.
+    let mut instance = unsafe { ClassInstance::<Self>::from_napi_value(env, value)? };
+    Ok(Self {
+      context: Some(instance.context.take().ok_or_else(Self::unavailable)?),
+      error: instance.error.take(),
+      loaders_without_pitch: std::mem::take(&mut instance.loaders_without_pitch),
+    })
+  }
+}
+
+#[napi]
+impl JsLoaderContext {
+  /// Snapshot the mutable execution state in one crossing. Output remains lazy:
+  /// leaving it absent on writeback preserves native content and source maps.
+  #[napi(getter)]
+  pub fn state(&self) -> napi::Result<JsLoaderContextState> {
+    self.with_context(|cx| Ok(JsLoaderContextState::from_context(cx)))
+  }
+
+  #[napi(getter)]
+  pub fn resource(&self) -> napi::Result<String> {
+    self.with_context(|cx| Ok(cx.resource().to_owned()))
+  }
+
+  #[napi(getter, js_name = "_module", ts_return_type = "Module")]
+  pub fn module(&self) -> napi::Result<ModuleObject> {
+    self.with_context(|cx| {
+      Ok(ModuleObject::with_ptr(
+        NonNull::from(cx.context.module.as_ref() as &dyn rspack_core::Module),
+        cx.context.compiler_id,
+      ))
+    })
+  }
+
+  /// Content may be empty in the pitching stage.
+  #[napi(getter)]
+  pub fn content(&self) -> napi::Result<Either3<String, Buffer, Null>> {
+    self.with_context(|cx| {
+      Ok(match cx.content() {
+        Some(Content::String(content)) => Either3::A(content.clone()),
+        Some(Content::Buffer(content)) => Either3::B(content.clone().into()),
+        None => Either3::C(Null),
+      })
+    })
+  }
+
+  #[napi(getter, ts_return_type = "any")]
+  pub fn additional_data(&self) -> napi::Result<Option<ThreadsafeJsValueRef<Unknown<'static>>>> {
+    self.with_context(|cx| {
+      Ok(
+        cx.additional_data()
+          .and_then(|data| data.get::<ThreadsafeJsValueRef<Unknown>>())
+          .cloned(),
+      )
+    })
+  }
+
+  #[napi(getter)]
+  pub fn source_map(&self) -> napi::Result<Option<Buffer>> {
+    self.with_context(|cx| Ok(cx.source_map().map(|map| map.to_json().into_bytes().into())))
+  }
+
+  #[napi(getter)]
+  pub fn loader_items(&self) -> napi::Result<Vec<JsLoaderMetadata>> {
+    self.with_context(|cx| {
+      Ok(
+        cx.loader_items()
+          .iter()
+          .map(|item| JsLoaderMetadata {
+            loader: item.request().to_string(),
+            r#type: item.r#type().to_string(),
+            cache: item.cache(),
+          })
+          .collect(),
+      )
+    })
+  }
+
+  #[napi(
+    getter,
+    js_name = "__internal__loaderCache",
+    ts_return_type = "JsLoaderCache | undefined"
+  )]
+  pub fn loader_cache(&self) -> napi::Result<Option<JsLoaderCacheObject>> {
+    self.with_context(|cx| {
+      Ok(
+        cx.loader_items()
+          .iter()
+          .any(|loader| loader.cache())
+          .then(|| {
+            JsLoaderCacheObject::new(
+              cx.context.loader_cache.clone(),
+              cx.context.file_system_info.clone(),
+              cx.context.module.identifier().to_string(),
+              cx.loader_items()
+                .iter()
+                .map(|loader| loader.cache_options().cloned().unwrap_or_default())
+                .collect(),
+            )
+          }),
+      )
+    })
+  }
+  /// Commit the JavaScript wrapper's state in one crossing. An absent output
+  /// preserves native content and source maps when pitching produces no output.
+  #[napi(setter)]
+  pub fn set_state(&mut self, result: JsLoaderContextState) -> napi::Result<()> {
+    let cx = self.context.as_deref_mut().ok_or_else(Self::unavailable)?;
+    let (error, loaders_without_pitch) = result.apply(cx)?;
+    self.error = error;
+    self.loaders_without_pitch.extend(loaders_without_pitch);
+    Ok(())
+  }
+
+  /// Return unexpected JavaScript failures together with the owned context,
+  /// even when reading or converting the state object itself failed.
+  #[napi(setter, js_name = "__internal__error")]
+  pub fn set_error(&mut self, error: RspackError) -> napi::Result<()> {
+    self.context.as_ref().ok_or_else(Self::unavailable)?;
+    self.error = Some(error);
+    Ok(())
+  }
+}
+
+#[napi(object)]
+pub struct JsLoaderOutput {
+  pub content: Either3<String, Buffer, Null>,
+  pub source_map: Option<Buffer>,
+  #[napi(ts_type = "any")]
+  pub additional_data: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
+}
+
+#[napi(object)]
+pub struct JsLoaderContextState {
+  #[napi(ts_type = "object | undefined")]
+  pub loader_context_state: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
+  pub cacheable: bool,
+  pub dependencies: JsLoaderDependencies,
+  pub hot: bool,
+  /// The native scheduler owns phase transitions; writeback does not change it.
+  pub loader_state: JsLoaderState,
+  pub loader_item_states: Vec<JsLoaderItemState>,
+  pub loader_index: i32,
+  /// JavaScript additions, merged into the native typed parse metadata.
+  pub parse_meta: HashMap<String, String>,
+  pub output: Option<JsLoaderOutput>,
+  pub error: Option<RspackError>,
+}
+
+impl JsLoaderContextState {
+  pub(crate) fn from_context(cx: &LoaderContext<RunnerContext>) -> Self {
+    Self {
       loader_context_state: cx
         .context
         .loader_context_data
         .get::<ThreadsafeJsValueRef<Unknown>>()
         .cloned(),
-      resource: cx.resource_data.resource().to_owned(),
-      module: ModuleObject::with_ptr(
-        NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module).unwrap(),
-        cx.context.compiler_id,
-      ),
       hot: cx.hot,
-      content: match cx.content() {
-        Some(Content::String(content)) => Either3::A(content.clone()),
-        Some(Content::Buffer(content)) => Either3::B(content.clone().into()),
-        None => Either3::C(Null),
-      },
-      // Since js side only set parse meta, and can't read it, so we can use Default here to only bring the
-      // set values from js side to rust side.
-      parse_meta: Default::default(),
-      additional_data: cx
-        .additional_data()
-        .and_then(|data| data.get::<ThreadsafeJsValueRef<Unknown>>())
-        .cloned(),
-      source_map: cx
-        .source_map()
-        .map(|v| v.to_json())
-        .map(|v| v.into_bytes().into()),
+      loader_state: cx.state().into(),
+      loader_item_states: cx
+        .loader_item_states
+        .iter()
+        .map(|state| JsLoaderItemState {
+          data: state.data().clone(),
+          normal_executed: state.normal_executed(),
+          pitch_executed: state.pitch_executed(),
+          no_pitch: false,
+        })
+        .collect(),
+      loader_index: cx.loader_index,
       cacheable: cx.cacheable,
       dependencies: cx.dependencies().as_ref().into(),
-
-      loader_items: cx.loader_items.iter().map(Into::into).collect(),
-      loader_index: cx.loader_index,
-      loader_state: cx.state().into(),
+      parse_meta: HashMap::default(),
+      output: None,
       error: None,
-      loader_cache: cx
-        .loader_items
-        .iter()
-        .any(|loader| loader.cache())
-        .then(|| {
-          JsLoaderCacheObject::new(
-            cx.context.loader_cache.clone(),
-            cx.context.file_system_info.clone(),
-            module.identifier().to_string(),
-            cx.loader_items
-              .iter()
-              .map(|loader| loader.cache_options().cloned().unwrap_or_default())
-              .collect(),
-          )
-        }),
-    })
+    }
   }
+
+  pub(crate) fn apply(
+    self,
+    cx: &mut LoaderContext<RunnerContext>,
+  ) -> napi::Result<(Option<RspackError>, Vec<String>)> {
+    if let Some(state) = self.loader_context_state {
+      cx.context.loader_context_data.insert(state);
+    }
+    cx.hot = self.hot;
+    cx.cacheable = self.cacheable;
+    cx.replace_dependencies(self.dependencies.into());
+    if self.error.is_some() {
+      return Ok((self.error, Vec::new()));
+    }
+    if let Some(output) = self.output {
+      let source_map = output
+        .source_map
+        .map(|buffer| rspack_core::rspack_sources::SourceMap::from_bytes(buffer.into()))
+        .transpose()
+        .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+      let content = match output.content {
+        Either3::C(_) => None,
+        Either3::B(buffer) => Some(Content::from(Vec::<u8>::from(buffer))),
+        Either3::A(string) => Some(Content::from(string)),
+      };
+      let additional_data = output.additional_data.map(|value| {
+        let mut data = AdditionalData::default();
+        data.insert(value);
+        data
+      });
+      cx.__finish_with((content, source_map, additional_data));
+    }
+    let mut loaders_without_pitch = Vec::new();
+    let pitching = cx.state() == LoaderState::Pitching;
+    for (index, item) in self
+      .loader_item_states
+      .into_iter()
+      .take(cx.loader_item_states.len())
+      .enumerate()
+    {
+      if item.no_pitch && pitching {
+        loaders_without_pitch.push(cx.loader_items()[index].path().to_string());
+      }
+      let loader = &mut cx.loader_item_states[index];
+      if item.normal_executed {
+        loader.set_normal_executed();
+        loader.set_finish_called();
+      }
+      if item.pitch_executed {
+        loader.set_pitch_executed();
+      }
+      loader.set_data(item.data);
+    }
+    cx.loader_index = self.loader_index;
+    cx.parse_meta.extend(
+      self
+        .parse_meta
+        .into_iter()
+        .map(|(key, value)| (key, Box::new(value) as _)),
+    );
+    Ok((None, loaders_without_pitch))
+  }
+}
+
+/// The before-loaders hook borrows the native context and exchanges only owned
+/// snapshots. It neither moves the Box nor materializes source content/maps.
+#[napi(object, object_from_js = false)]
+pub struct JsLoaderHookContext {
+  pub state: JsLoaderContextState,
+  pub resource: String,
+  #[napi(js_name = "_module", ts_type = "Module")]
+  pub module: ModuleObject,
+  pub loader_items: Option<Vec<JsLoaderMetadata>>,
+}
+
+impl JsLoaderHookContext {
+  pub(crate) fn new(cx: &LoaderContext<RunnerContext>) -> Self {
+    let state = JsLoaderContextState::from_context(cx);
+    let loader_items = state.loader_context_state.is_none().then(|| {
+      cx.loader_items()
+        .iter()
+        .map(|item| JsLoaderMetadata {
+          loader: item.request().to_string(),
+          r#type: item.r#type().to_string(),
+          cache: item.cache(),
+        })
+        .collect()
+    });
+    Self {
+      state,
+      resource: cx.resource().to_owned(),
+      module: ModuleObject::with_ptr(
+        NonNull::from(cx.context.module.as_ref() as &dyn rspack_core::Module),
+        cx.context.compiler_id,
+      ),
+      loader_items,
+    }
+  }
+}
+
+pub(crate) fn check_loader_error(error: Option<RspackError>) -> rspack_error::Result<()> {
+  if let Some(error) = error {
+    if let Some(diagnostic) = error.rust_diagnostic.as_ref() {
+      return Err(diagnostic.error.clone());
+    }
+    return Err(error.with_parent_error_name("ModuleBuildError").into());
+  }
+  Ok(())
 }
