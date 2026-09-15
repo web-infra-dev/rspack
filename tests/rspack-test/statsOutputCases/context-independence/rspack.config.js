@@ -18,6 +18,8 @@ const base = (name, devtool) => ({
     ],
   },
   stats: {
+    assets: true,
+    modules: true,
     relatedAssets: true,
   },
   entry: {
@@ -28,11 +30,12 @@ const base = (name, devtool) => ({
   },
   context: path.resolve(__dirname, name),
   output: {
-    path: path.resolve(
-      __dirname,
-      `../../js/stats/context-independence/${devtool}-${name}`,
-    ),
     filename: '[name]-[chunkhash].js',
+    // Keep the emitted/cached asset status deterministic: all six child
+    // compilations share one dist directory and the a/b pairs produce
+    // identical files, so content comparison would race between "[emitted]"
+    // and "[cached]".
+    compareBeforeEmit: false,
   },
   resolve: {
     alias: {

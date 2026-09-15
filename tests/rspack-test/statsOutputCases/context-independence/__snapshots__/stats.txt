@@ -1,11 +1,71 @@
+asset main-63fac806651c0d72.js xx KiB [emitted] [immutable] (name: main)
+asset 948-e6cb1eb52f617bc1.js xx bytes [emitted] [immutable]
+runtime modules xx KiB 9 modules
+orphan modules xx bytes [orphan] 1 module
+cacheable modules xx bytes
+  modules by path ./*.js xx bytes
+    ./index.js (in my-layer) xx bytes [built] [code generated]
+    ./chunk.js (in my-layer) xx bytes [built] [code generated]
+  ./c|eager|/^\.\/.*$/|referencedExports: default|groupOptions: {}|namespace object|importPhase: evaluation|layer: my-layer xx bytes [built] [code generated]
+  ./c/a.js (in my-layer) xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
+asset main-63fac806651c0d72.js xx KiB [emitted] [immutable] (name: main)
+asset 948-e6cb1eb52f617bc1.js xx bytes [emitted] [immutable]
+runtime modules xx KiB 9 modules
+orphan modules xx bytes [orphan] 1 module
+cacheable modules xx bytes
+  modules by path ./*.js xx bytes
+    ./index.js (in my-layer) xx bytes [built] [code generated]
+    ./chunk.js (in my-layer) xx bytes [built] [code generated]
+  ./c|eager|/^\.\/.*$/|referencedExports: default|groupOptions: {}|namespace object|importPhase: evaluation|layer: my-layer xx bytes [built] [code generated]
+  ./c/a.js (in my-layer) xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
+asset main-c17fa5cfeed78051.js xx KiB [emitted] [immutable] (name: main)
+asset 948-8c7923ba336442c5.js xx KiB [emitted] [immutable]
+runtime modules xx KiB 9 modules
+orphan modules xx bytes [orphan] 1 module
+cacheable modules xx bytes
+  modules by path ./*.js xx bytes
+    ./index.js (in my-layer) xx bytes [built] [code generated]
+    ./chunk.js (in my-layer) xx bytes [built] [code generated]
+  ./c|eager|/^\.\/.*$/|referencedExports: default|groupOptions: {}|namespace object|importPhase: evaluation|layer: my-layer xx bytes [built] [code generated]
+  ./c/a.js (in my-layer) xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
+asset main-c17fa5cfeed78051.js xx KiB [emitted] [immutable] (name: main)
+asset 948-8c7923ba336442c5.js xx KiB [emitted] [immutable]
+runtime modules xx KiB 9 modules
+orphan modules xx bytes [orphan] 1 module
+cacheable modules xx bytes
+  modules by path ./*.js xx bytes
+    ./index.js (in my-layer) xx bytes [built] [code generated]
+    ./chunk.js (in my-layer) xx bytes [built] [code generated]
+  ./c|eager|/^\.\/.*$/|referencedExports: default|groupOptions: {}|namespace object|importPhase: evaluation|layer: my-layer xx bytes [built] [code generated]
+  ./c/a.js (in my-layer) xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
+asset main-a4a40624777243b9.js xx KiB [emitted] [immutable] (name: main)
+asset 948-c564e2bb6cedd5ed.js xx bytes [emitted] [immutable]
+runtime modules xx KiB 9 modules
+orphan modules xx bytes [orphan] 1 module
+cacheable modules xx bytes
+  modules by path ./*.js xx bytes
+    ./index.js (in my-layer) xx bytes [built] [code generated]
+    ./chunk.js (in my-layer) xx bytes [built] [code generated]
+  ./c|eager|/^\.\/.*$/|referencedExports: default|groupOptions: {}|namespace object|importPhase: evaluation|layer: my-layer xx bytes [built] [code generated]
+  ./c/a.js (in my-layer) xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
+asset main-a4a40624777243b9.js xx KiB [emitted] [immutable] (name: main)
+asset 948-c564e2bb6cedd5ed.js xx bytes [emitted] [immutable]
+runtime modules xx KiB 9 modules
+orphan modules xx bytes [orphan] 1 module
+cacheable modules xx bytes
+  modules by path ./*.js xx bytes
+    ./index.js (in my-layer) xx bytes [built] [code generated]
+    ./chunk.js (in my-layer) xx bytes [built] [code generated]
+  ./c|eager|/^\.\/.*$/|referencedExports: default|groupOptions: {}|namespace object|importPhase: evaluation|layer: my-layer xx bytes [built] [code generated]
+  ./c/a.js (in my-layer) xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
