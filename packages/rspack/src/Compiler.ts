@@ -165,6 +165,8 @@ class Compiler {
   outputPath: string;
 
   running: boolean;
+  /** @internal Called after final done hooks, before completing the compiler. */
+  __internal__onDone?: (stats: Stats) => void;
   idle: boolean;
   resolverFactory: ResolverFactory;
   infrastructureLogger: any;
@@ -548,6 +550,23 @@ class Compiler {
     return this.watching;
   }
 
+  /** @internal Complete final done hooks and the multi compiler notification. */
+  __internal__done(stats: Stats, callback: (err: Error | null) => void) {
+    const onDone = this.__internal__onDone;
+    this.hooks.done.callAsync(stats, (err) => {
+      // Closing or restarting a watcher cancels the previous notification.
+      if (this.__internal__onDone !== onDone) return callback(err || null);
+      this.__internal__onDone = undefined;
+      if (err) return callback(err);
+      try {
+        onDone?.(stats);
+      } catch (error) {
+        return callback(error as Error);
+      }
+      callback(null);
+    });
+  }
+
   /**
    * @param callback - signals when the call finishes
    * @param options - additional data like modifiedFiles, removedFiles
@@ -613,7 +632,7 @@ class Compiler {
       compilation.startTime = startTime;
       compilation.endTime = Date.now();
       const stats = new Stats(compilation);
-      this.hooks.done.callAsync(stats, (err) => {
+      this.__internal__done(stats, (err) => {
         if (err) {
           return finalCallback(err);
         }

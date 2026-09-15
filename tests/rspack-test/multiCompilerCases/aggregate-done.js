@@ -121,11 +121,11 @@ module.exports = [
           compiler.watch({}, (error, stats) => {
             if (error) return reject(error);
             callbacks.push(stats.stats.map(stat => stat.compilation.name));
-            if (callbacks.length === 2) resolve();
+            resolve();
           });
         });
         expect(publications).toEqual([[1, 1], [2, dependent ? 2 : 1]]);
-        expect(callbacks).toEqual([["a", "b"], dependent ? ["a", "b"] : ["a"]]);
+        expect(callbacks).toEqual([["a", "b"]]);
       } finally {
         await close(compiler);
       }
@@ -188,11 +188,42 @@ module.exports = [
       }
     }
   },
-  ...[false, true].map(watch => ({
-    description: `should report aggregate done errors through failed and the ${watch ? "watch" : "run"} callback`,
+  {
+    description: "should cancel aggregate notification when closing during asynchronous child done",
     options: () => {
       const configs = options();
-      // Finish a last, so failure attribution cannot use array order.
+      configs[0].dependencies = ["b"];
+      return configs;
+    },
+    async build(context, compiler) {
+      let release;
+      let entered;
+      const waiting = new Promise(resolve => { entered = resolve; });
+      compiler.compilers[0].hooks.done.tapAsync("Gate", (_, callback) => {
+        release = callback;
+        entered();
+      });
+      const publications = [];
+      compiler.hooks.done.tap("Capture", stats => publications.push(stats));
+      let finish;
+      let fail;
+      const finished = new Promise((resolve, reject) => { finish = resolve; fail = reject; });
+      compiler.watch({}, error => error ? fail(error) : finish());
+      try {
+        await waiting;
+        await new Promise(resolve => compiler.watching.close(resolve));
+        release();
+        await finished;
+        expect(publications).toHaveLength(0);
+      } finally {
+        await close(compiler);
+      }
+    }
+  },
+  ...[false, true].flatMap(watch => [false, true].map(throws => ({
+    description: `should preserve completion hook order in ${watch ? "watch" : "run"} with aggregate failure ${throws}`,
+    options: () => {
+      const configs = options();
       configs[0].dependencies = ["b"];
       return configs;
     },
@@ -200,11 +231,24 @@ module.exports = [
       const failure = new Error("aggregate done failure");
       const events = [];
       compiler.compilers.forEach(child => {
+        child.hooks.done.tapAsync("Capture", (_, callback) => {
+          events.push(["done:start", child.name]);
+          setImmediate(() => {
+            events.push(["done:end", child.name]);
+            callback();
+          });
+        });
         child.hooks.failed.tap("Capture", error => {
           events.push(["failed", child.name, error]);
         });
+        child.hooks.afterDone.tap("Capture", stats => {
+          events.push(["afterDone", child.name, Boolean(stats)]);
+        });
       });
-      compiler.hooks.done.tap("Fail", () => { throw failure; });
+      compiler.hooks.done.tap("Capture", () => {
+        events.push(["aggregate done"]);
+        if (throws) throw failure;
+      });
       try {
         const error = await new Promise(resolve => {
           const callback = error => {
@@ -214,14 +258,26 @@ module.exports = [
           if (watch) compiler.watch({}, callback);
           else compiler.run(callback);
         });
-        expect(error).toBe(failure);
-        expect(events).toEqual([
-          ["failed", "a", failure],
-          ["callback", failure]
-        ]);
+        expect(error).toBe(throws ? failure : null);
+        const expected = [
+          ["done:start", "b"],
+          ["done:end", "b"],
+          ["afterDone", "b", true],
+          ["done:start", "a"],
+          ["done:end", "a"],
+          ["aggregate done"]
+        ];
+        if (throws) {
+          expected.push(["failed", "a", failure], ["callback", failure]);
+          if (!watch) expected.push(["afterDone", "a", false]);
+        } else {
+          // Successful multi callbacks are queued; the child's afterDone is not.
+          expected.push(["afterDone", "a", true], ["callback", null]);
+        }
+        expect(events).toEqual(expected);
       } finally {
         await close(compiler);
       }
     }
-  }))
+  })))
 ];

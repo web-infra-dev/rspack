@@ -343,7 +343,6 @@ export class MultiCompiler {
     }
     let errored = false;
     let running = 0;
-    let lastCompletedCompiler: Compiler | undefined;
     const parallelism = this._options.parallelism!;
 
     const handleError = (err: Error): void => {
@@ -351,6 +350,7 @@ export class MultiCompiler {
       asyncLib.each(
         nodes,
         (node, callback) => {
+          node.compiler.__internal__onDone = undefined;
           if (node.compiler.watching) {
             node.compiler.watching.close(callback);
           } else {
@@ -368,7 +368,6 @@ export class MultiCompiler {
     ): void => {
       if (errored) return;
       if (err) return handleError(err);
-      lastCompletedCompiler = node.compiler;
       node.result = stats;
       node.hasUnreportedResult = true;
       running--;
@@ -455,6 +454,23 @@ export class MultiCompiler {
         ) {
           running++;
           node.state = 'starting';
+          node.compiler.__internal__onDone = (stats) => {
+            if (
+              !errored &&
+              node.state === 'running' &&
+              nodes.every((other) => other === node || other.state === 'done')
+            ) {
+              // Notify before the child completes so hook errors still flow
+              // through its failed hook, callback and afterDone handling.
+              this.hooks.done.call(
+                new MultiStats(
+                  nodes.map((other) =>
+                    other === node ? stats : other.result!,
+                  ),
+                ),
+              );
+            }
+          };
           run(
             node.compiler,
             node.setupResult!,
@@ -477,19 +493,6 @@ export class MultiCompiler {
           }
         }
         if (stats.length > 0) {
-          // The graph owns completion: outdated, queued and dependent builds
-          // must finish before publishing. Consume updates before calling user
-          // hooks, which may invalidate a compiler again.
-          const allStats = nodes.map((node) => node.result!);
-          try {
-            this.hooks.done.call(new MultiStats(allStats));
-          } catch (err) {
-            const error = err as Error;
-            // Aggregate done used to run inside the last child's done hook,
-            // whose error path notified that child's failed hook.
-            lastCompletedCompiler!.hooks.failed.call(error);
-            return handleError(error);
-          }
           callback(null, new MultiStats(stats));
         }
       }
