@@ -224,26 +224,6 @@ function check(
     .filter((line) => !line.includes('@rstest/core/dist'))
     .join('\n');
 
-  // Cap logging stack traces at 8 frames, the depth produced by Node's
-  // default `Error.stackTraceLimit` (10) after the logger trims its own
-  // frames. Longer traces only appear when the limit is raised (e.g. via
-  // `--stack-trace-limit`) or when async stack stitching appends caller
-  // frames, both of which make snapshots depend on the environment and on
-  // test execution order. All existing snapshots are already at this depth.
-  const MAX_TRACE_FRAMES = 8;
-  let traceFrames = 0;
-  actual = actual
-    .split('\n')
-    .filter((line) => {
-      if (/^\|\s+at /.test(line)) {
-        traceFrames += 1;
-        return traceFrames <= MAX_TRACE_FRAMES;
-      }
-      traceFrames = 0;
-      return true;
-    })
-    .join('\n');
-
   const snapshotPath = path.isAbsolute(snapshot)
     ? snapshot
     : path.resolve(context.getSource(), `./__snapshots__/${snapshot}`);
