@@ -1,5 +1,15 @@
 const VERSION_PATTERN_REGEXP = /^([\d^=v<>~]|[*xX]$)/;
 
+export function validateLayer(
+  layer: string | undefined,
+  plugin: string,
+  option = 'layer',
+) {
+  if (layer === '') {
+    throw new Error(`[${plugin}] ${option} must be a non-empty string`);
+  }
+}
+
 export function isRequiredVersion(str: string) {
   return VERSION_PATTERN_REGEXP.test(str);
 }

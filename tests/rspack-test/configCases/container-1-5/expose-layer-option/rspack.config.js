@@ -17,7 +17,6 @@ module.exports = {
       exposes: {
         './server': { import: './module.js', layer: 'server' },
         './client': { import: './module.js', layer: 'client' },
-        './empty': { import: './module.js', layer: '' },
         './default': { import: './module.js' },
       },
     }),

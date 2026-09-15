@@ -16,7 +16,7 @@ import {
   type ShareScope,
   type SharedConfig,
 } from '../sharing/SharePlugin';
-import { isRequiredVersion } from '../sharing/utils';
+import { isRequiredVersion, validateLayer } from '../sharing/utils';
 import {
   getRemoteInfos,
   type ModuleFederationPluginOptions,
@@ -242,6 +242,7 @@ function collectManifestExposes(
     }),
   );
   const result = parsed.map(([exposeKey, info]) => {
+    validateLayer(info.layer, 'ModuleFederationManifestPlugin');
     const exposeName = info.name ?? exposeKey.replace(/^\.\//, '');
     return {
       path: exposeKey,
@@ -270,6 +271,12 @@ function collectManifestShared(
     (item) => item,
   );
   const result = parsed.map(([key, config]) => {
+    validateLayer(config.layer, 'ModuleFederationManifestPlugin');
+    validateLayer(
+      config.issuerLayer,
+      'ModuleFederationManifestPlugin',
+      'issuerLayer',
+    );
     const name = config.shareKey || key;
     const version =
       config.version === false
