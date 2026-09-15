@@ -167,12 +167,6 @@ export type TTestConfig = {
   isolateSource?: boolean;
   writeStatsOuptut?: boolean;
   writeStatsJson?: boolean;
-  // Replace content hashes in emitted file names with `xxx` in the stats
-  // snapshot (e.g. `main-9fd762b353acf5cf.js` -> `main-xxx.js`). The hash
-  // value depends on the emitted content and must not invalidate the
-  // snapshot when the content legitimately differs, e.g. across operating
-  // systems. Only valid for StatsOutput tests.
-  normalizeHash?: boolean;
   beforeExecute?: (options: RspackOptions) => void;
   afterExecute?: (options: RspackOptions) => void;
   moduleScope?: (

@@ -39,6 +39,24 @@ export function createStatsProcessor(
       await statsCompiler(context, c);
     },
     build: async (context: ITestContext) => {
+      // Align with webpack's StatsTestCases (rimraf in beforeEach): clean
+      // every child's output directory before building, so files left by a
+      // previous run don't flip assets between "[emitted]" and "[cached]".
+      // This also covers case-defined output paths, which are outside the
+      // harness-cleaned dist directory. Never remove the case source dir
+      // or any of its ancestors.
+      const options = context.getCompiler().getOptions();
+      const source = context.getSource();
+      for (const o of Array.isArray(options) ? options : [options]) {
+        const outputPath = o.output?.path;
+        if (
+          outputPath &&
+          outputPath !== source &&
+          !source.startsWith(outputPath + path.sep)
+        ) {
+          fs.removeSync(outputPath);
+        }
+      }
       await build(context, name);
     },
     run: async (env: ITestEnv, context: ITestContext) => {
@@ -219,13 +237,11 @@ function check(
       .replace(/[0-9]+(\.[0-9]+)? ms/g, 'xx ms');
   }
 
-  if (context.getTestConfig().normalizeHash) {
-    // Align with webpack's StatsTestCases normalization: replace content
-    // hashes in emitted file names with a placeholder so the snapshot does
-    // not depend on the emitted content. The `(?!\d+-)` guard keeps
-    // deterministic chunk ids like `270-` intact.
-    actual = actual.replace(/(?!\d+-)[0-9a-f]{6,32}(?=\.)/g, 'xxx');
-  }
+  // Align with webpack's StatsTestCases normalization: replace content
+  // hashes in emitted file names with a placeholder so the snapshot does
+  // not depend on the emitted content. The `(?!\d+-)` guard keeps
+  // deterministic chunk ids like `270-` intact.
+  actual = actual.replace(/(?!\d+-)[0-9a-f]{6,32}(?=\.)/g, 'xxx');
 
   actual = actual
     .split('\n')
