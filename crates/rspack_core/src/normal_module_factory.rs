@@ -1120,7 +1120,12 @@ module.exports = "data:,";
       )
     };
 
-    let resolved_module_type = self.calculate_module_type(match_module_type, &matched_module_rules);
+    let resolved_module_type = if no_pre_post_auto_loaders {
+      // Like webpack, `!!` also disables Rule.type, but preserves an explicit matchResource type.
+      match_module_type.unwrap_or(ModuleType::JsAuto)
+    } else {
+      self.calculate_module_type(match_module_type, &matched_module_rules)
+    };
     let resolved_module_layer =
       self.calculate_module_layer(data.issuer_layer.as_ref(), &matched_module_rules);
 
