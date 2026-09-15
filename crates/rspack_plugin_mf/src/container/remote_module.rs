@@ -142,7 +142,7 @@ impl Module for RemoteModule {
   }
 
   async fn build(
-    mut self: Box<Self>,
+    mut self: std::sync::UniqueArc<Self>,
     build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {

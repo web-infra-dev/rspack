@@ -181,7 +181,7 @@ impl Module for ContainerEntryModule {
   }
 
   async fn build(
-    mut self: Box<Self>,
+    mut self: std::sync::UniqueArc<Self>,
     _build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
   ) -> Result<BoxModule> {

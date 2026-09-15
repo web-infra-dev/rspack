@@ -1150,16 +1150,17 @@ impl Module for ExternalModule {
   }
 
   async fn build(
-    mut self: Box<Self>,
+    mut self: std::sync::UniqueArc<Self>,
     build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
   ) -> Result<BoxModule> {
     self.build_info.get_mut().module = build_context.compiler_options.output.module;
     let resolved_external_type = self.resolve_external_type();
-    let request = match &self.request {
+    let request_has_rest = match &self.request {
       ExternalRequest::Single(request) => Some(request),
       ExternalRequest::Map(map) => map.get(&self.external_type),
-    };
+    }
+    .is_some_and(|request| request.has_rest());
     let mut can_mangle = false;
     let mut exports_type = BuildMetaExportsType::Dynamic;
 
@@ -1167,20 +1168,20 @@ impl Module for ExternalModule {
     match resolved_external_type {
       "this" => self.build_info.get_mut().strict = false,
       "system" => {
-        if !request.is_some_and(|r| r.has_rest()) {
+        if !request_has_rest {
           exports_type = BuildMetaExportsType::Namespace;
           can_mangle = true;
         }
       }
       "module" => {
         if self.build_info.get_mut().module {
-          if !request.is_some_and(|r| r.has_rest()) {
+          if !request_has_rest {
             exports_type = BuildMetaExportsType::Namespace;
             can_mangle = true;
           }
         } else {
           self.build_meta.get_mut().set_has_top_level_await(true);
-          if !request.is_some_and(|r| r.has_rest()) {
+          if !request_has_rest {
             exports_type = BuildMetaExportsType::Namespace;
             can_mangle = false;
           }
@@ -1189,7 +1190,7 @@ impl Module for ExternalModule {
       "script" | "promise" => self.build_meta.get_mut().set_has_top_level_await(true),
       "import" => {
         self.build_meta.get_mut().set_has_top_level_await(true);
-        if !request.is_some_and(|r| r.has_rest()) {
+        if !request_has_rest {
           exports_type = BuildMetaExportsType::Namespace;
           can_mangle = false;
         }

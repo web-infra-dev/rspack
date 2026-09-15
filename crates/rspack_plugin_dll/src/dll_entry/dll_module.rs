@@ -76,7 +76,7 @@ impl Module for DllModule {
   }
 
   async fn build(
-    mut self: Box<Self>,
+    mut self: std::sync::UniqueArc<Self>,
     _build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
