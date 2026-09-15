@@ -739,6 +739,23 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   /**
+   * Read an asset without parsing its serialized source map in JavaScript.
+   * The returned content is a copy, not a live view of the asset.
+   */
+  getAssetSource(filename: string): JsSource | undefined {
+    return this.#inner.getAssetSource(filename) ?? undefined;
+  }
+
+  /**
+   * Set an asset's content and serialized map without changing existing info.
+   * Creates an asset with default info if the filename is not present.
+   * A Buffer represents unmapped binary data. Omit map for unmapped text.
+   */
+  setAssetSource(filename: string, source: JsSource): void {
+    this.#inner.setAssetSource(filename, source);
+  }
+
+  /**
    * Note: This is not a webpack public API, maybe removed in future.
    *
    * @internal
@@ -1079,11 +1096,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
    * @internal
    */
   __internal__getAssetSource(filename: string): Source | void {
-    const rawSource = this.#inner.getAssetSource(filename);
-    if (!rawSource) {
+    const snapshot = this.#inner.getAssetSourceSnapshot(filename);
+    if (!snapshot) {
       return;
     }
-    return SourceAdapter.fromBinding(rawSource);
+    return SourceAdapter.fromSnapshot(snapshot);
   }
 
   /**
