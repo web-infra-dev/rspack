@@ -52,6 +52,7 @@ pub type CssExportsRef<'a> = FxIndexMap<&'a str, &'a FxIndexSet<CssExport>>;
 pub struct CssParserAndGenerator {
   pub hot: bool,
   pub export_type: Option<CssExportType>,
+  pub runtime_public_path: bool,
   pub exports_only: bool,
   pub es_module: bool,
 }
@@ -62,6 +63,11 @@ impl CssParserAndGenerator {
       .parser_options()
       .and_then(|options| options.get_css_module())
       .and_then(|options| options.export_type);
+    let runtime_public_path = module_options
+      .parser_options()
+      .and_then(|options| options.get_css_module())
+      .and_then(|options| options.runtime_public_path)
+      .unwrap_or(false);
     let generator_options = css_generator_options(module_options.generator_options());
     let exports_only = generator_options
       .exports_only
@@ -70,6 +76,7 @@ impl CssParserAndGenerator {
 
     Self {
       export_type,
+      runtime_public_path,
       exports_only,
       es_module,
       ..Default::default()
@@ -364,6 +371,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let mut hasher = RspackHasher::from(&compilation.options.output);
     self.es_module.hash(&mut hasher);
     self.exports_only.hash(&mut hasher);
+    self.runtime_public_path.hash(&mut hasher);
     self.effective_export_type(module).hash(&mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }

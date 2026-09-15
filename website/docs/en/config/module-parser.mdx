@@ -1147,6 +1147,34 @@ export default {
 };
 ```
 
+### ["css/auto"].runtimePublicPath
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Use the runtime public path for emitted asset URLs when `exportType` is `'style'`. This option has no effect on other export types.
+
+By default, injected CSS uses asset URLs resolved at build time. With `output.publicPath: 'auto'`, these URLs remain relative to the document. Set `runtimePublicPath: true` to use the runtime public path instead, including values assigned to `__webpack_public_path__`.
+
+If you set `__webpack_public_path__` dynamically, set it in a separate module that runs before importing the styles. Explicit [asset generator public paths](/config/module-generator#assetpublicpath) take precedence. Inline data URLs and external URLs are unchanged.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        type: 'css/auto',
+        parser: {
+          exportType: 'style',
+          runtimePublicPath: true,
+        },
+      },
+    ],
+  },
+};
+```
+
 ### ["css/auto"].namedExports
 
 - **Type:** `boolean`
@@ -1438,6 +1466,10 @@ export default {
 };
 ```
 
+### css.runtimePublicPath
+
+Same as [`module.parser["css/auto"].runtimePublicPath`](#cssautoruntimepublicpath).
+
 ### css.namedExports
 
 Same as [`module.parser["css/auto"].namedExports`](#cssautonamedexports).
@@ -1535,6 +1567,10 @@ export default {
   },
 };
 ```
+
+### ["css/global"].runtimePublicPath
+
+Same as [`module.parser["css/auto"].runtimePublicPath`](#cssautoruntimepublicpath).
 
 ### ["css/global"].namedExports
 
@@ -1729,6 +1765,10 @@ export default {
   },
 };
 ```
+
+### ["css/module"].runtimePublicPath
+
+Same as [`module.parser["css/auto"].runtimePublicPath`](#cssautoruntimepublicpath).
 
 ### ["css/module"].namedExports
 
