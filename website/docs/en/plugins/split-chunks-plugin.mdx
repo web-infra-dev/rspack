@@ -233,7 +233,7 @@ Maximum number of parallel requests at an entry point.
 
 Set a size threshold that lets Rspack continue splitting once a candidate chunk is large enough.
 
-When a candidate reaches this threshold, Rspack ignores request-limit checks such as [`splitChunks.maxAsyncRequests`](#splitchunksmaxasyncrequests) and [`splitChunks.maxInitialRequests`](#splitchunksmaxinitialrequests).
+When a candidate reaches this threshold, Rspack ignores [`splitChunks.minRemainingSize`](#splitchunksminremainingsize) and request-limit checks such as [`splitChunks.maxAsyncRequests`](#splitchunksmaxasyncrequests) and [`splitChunks.maxInitialRequests`](#splitchunksmaxinitialrequests).
 
 Compared with [`splitChunks.cacheGroups.{cacheGroup}.enforce`](#splitchunkscachegroupscachegroupenforce), this is more targeted: only sufficiently large candidates are forced to keep splitting, while smaller ones still follow the normal heuristics.
 
@@ -308,6 +308,33 @@ export default {
 ```
 
 For example, the above configuration means that the minimum size of javascript modules in the split chunks needs to be at least 100KB, and the minimum size of css modules needs to be at least 300KB.
+
+### splitChunks.minRemainingSize
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.minRemainingSize
+
+- **Type:** `number | Record<string, number>`
+- **Default:** `0` in development mode; falls back to `minSize` in other modes
+
+The minimum size, in bytes, of the modules left in the source chunk after splitting. This check applies only when the split has one source chunk, after excluding a reused destination chunk and applying request limits. It prevents splitting from leaving a very small chunk behind.
+
+For example, extracting CSS from a named asynchronous chunk can leave only a small JavaScript module in that chunk. In production mode, `minRemainingSize` can prevent this split, keeping the CSS in the original named chunk.
+
+The size is checked separately for each source type. A number applies to the types in [`defaultSizeTypes`](#splitchunksdefaultsizetypes); an object sets individual thresholds. Source types with no remaining modules or a remaining size of zero are skipped.
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      minRemainingSize: {
+        javascript: 20 * 1000,
+      },
+    },
+  },
+};
+```
+
+A cache group's explicit `minRemainingSize` takes precedence over its own `minSize`, which in turn takes precedence over the global `minRemainingSize`. A cache group with `enforce: true` does not inherit the global value, but its own `minRemainingSize` and `minSize` still apply. Reaching [`enforceSizeThreshold`](#splitchunksenforcesizethreshold) bypasses the remaining-size check.
 
 ### splitChunks.minSizeReduction
 
@@ -647,7 +674,7 @@ Using the function type of `test` will significantly reduce build performance, a
 
 - **Type:** `boolean`
 
-Tells Rspack to ignore `splitChunks.minSize`, splitChunks`.minChunks`, `splitChunks.maxAsyncRequests` and `splitChunks.maxInitialRequests` options and always create chunks for this cache group.
+Tells Rspack to ignore the global `splitChunks.minSize`, `splitChunks.minRemainingSize`, `splitChunks.minChunks`, `splitChunks.maxAsyncRequests` and `splitChunks.maxInitialRequests` options for this cache group. Values explicitly configured on the cache group still apply.
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.idHint
 

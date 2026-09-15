@@ -392,6 +392,7 @@ module.exports = {
 			      maxAsyncRequests: Infinity,
 			      maxInitialRequests: Infinity,
 			      minChunks: 1,
+			      minRemainingSize: undefined,
 			      minSize: 10000,
 			      usedExports: false,
 			    },
