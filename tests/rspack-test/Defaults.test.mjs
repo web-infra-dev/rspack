@@ -1,7 +1,7 @@
-const { createDefaultsCase, describeByWalk } = require("@rspack/test-tools");
+import { createDefaultsCase, describeByWalk } from "@rspack/test-tools";
 
 describeByWalk(
-	__filename,
+	import.meta.filename,
 	(name, src, dist) => {
 		createDefaultsCase(name, src);
 	},

@@ -1,7 +1,7 @@
-const { createHashCase, describeByWalk } = require("@rspack/test-tools");
+import { createHashCase, describeByWalk } from "@rspack/test-tools";
 
 describeByWalk(
-	__filename,
+	import.meta.filename,
 	(name, src, dist) => {
 		createHashCase(name, src, dist);
 	},
