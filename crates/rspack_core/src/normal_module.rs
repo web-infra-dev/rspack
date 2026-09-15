@@ -82,7 +82,6 @@ impl ModuleIssuer {
 
 define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData, fs: &Arc<dyn ReadableFileSystem>) -> Content,tracing=false);
 define_hook!(NormalModuleLoader: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
-define_hook!(NormalModuleLoaderShouldYield: SeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool,tracing=false);
 define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
 define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule),tracing=false);
 
@@ -90,7 +89,6 @@ define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule),tracin
 pub struct NormalModuleHooks {
   pub read_resource: NormalModuleReadResourceHook,
   pub loader: NormalModuleLoaderHook,
-  pub loader_should_yield: NormalModuleLoaderShouldYieldHook,
   pub loader_yield: NormalModuleLoaderStartYieldingHook,
   pub before_loaders: NormalModuleBeforeLoadersHook,
 }
@@ -465,7 +463,7 @@ impl Module for NormalModule {
   )]
   async fn build(
     mut self: Box<Self>,
-    build_context: BuildContext,
+    build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
     self.dependencies_block = Default::default();
@@ -509,8 +507,8 @@ impl Module for NormalModule {
         compilation_id,
         options: compiler_options,
         fs: fs.clone(),
-        loader_cache: build_context.loader_cache,
-        file_system_info: build_context.file_system_info,
+        loader_cache: build_context.loader_cache.clone(),
+        file_system_info: build_context.file_system_info.clone(),
         resolver_factory,
         source_map_kind: self.source_map_kind,
         loader_context_data: Default::default(),

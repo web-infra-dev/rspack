@@ -691,7 +691,9 @@ impl CodeSplitter {
       )
     };
 
-    if options.depend_on.is_none() && !matches!(&options.runtime, Some(EntryRuntime::String(_))) {
+    if options.depend_on.is_none()
+      && !matches!(&options.runtime, Some(EntryRuntime::String(runtime)) if !runtime.is_empty())
+    {
       entrypoint.set_runtime_chunk(chunk.ukey());
     }
 
@@ -888,7 +890,9 @@ Remove the 'runtime' option from the entrypoint."
           entry_point.add_parent(parent);
         }
       }
-    } else if let Some(EntryRuntime::String(runtime)) = &options.runtime {
+    } else if let Some(EntryRuntime::String(runtime)) = &options.runtime
+      && !runtime.is_empty()
+    {
       let ukey = compilation
         .build_chunk_graph_artifact
         .entrypoints
