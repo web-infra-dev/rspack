@@ -557,6 +557,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
 
+    // A provided module can also be imported locally into an expose chunk.
+    // Shared assets are not exclusive: never filter out an expose's own files.
+    for chunk_key in expose_chunk_keys.values() {
+      let chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(chunk_key);
+      for file in chunk.files() {
+        shared_asset_files.remove(file);
+      }
+    }
+
     for (expose_file_key, expose) in exposes_map.iter_mut() {
       let mut assets = None;
       if let Some(chunk_key) = expose_chunk_keys.get(expose_file_key) {
