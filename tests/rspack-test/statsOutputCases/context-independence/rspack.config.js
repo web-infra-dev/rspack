@@ -45,6 +45,43 @@ const base = (name, devtool) => ({
       ],
     },
   },
+  // pnpm links packages with symlinks on POSIX but with junctions on
+  // Windows, and junctions are not reported as symlinks to the resolver,
+  // so the resolved loader path keeps the `node_modules/babel-loader`
+  // spelling on Windows while POSIX canonicalizes it into the `.pnpm`
+  // store. The two spellings relativize to different module names, which
+  // changes deterministic module/chunk ids and content hashes across
+  // operating systems. Skipping symlink resolution keeps the resolved
+  // loader path spelling identical on every platform.
+  resolveLoader: {
+    symlinks: false,
+  },
+  plugins: [
+    // TEMP: dump module identifiers and chunk ids for CI diagnostics.
+    (compiler) => {
+      compiler.hooks.compilation.tap('DumpIdents', (compilation) => {
+        compilation.hooks.processAssets.tap(
+          { name: 'DumpIdents', stage: 10000 },
+          () => {
+            for (const m of compilation.modules) {
+              console.log(
+                '[context-independence] module identifier:',
+                m.identifier(),
+              );
+            }
+            for (const c of compilation.chunks) {
+              console.log(
+                '[context-independence] chunk',
+                c.id,
+                c.name,
+                [...c.files].join(','),
+              );
+            }
+          },
+        );
+      });
+    },
+  ],
 });
 
 /** @type {import("@rspack/core").Configuration[]} */
