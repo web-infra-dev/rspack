@@ -10,7 +10,7 @@ const config = {
   module: {
     rules: [
       {
-        test: /module\.js$/,
+        test: /(?:module|https|data)\.js$/,
         use: [
           {
             loader: require.resolve('./loader.js'),
