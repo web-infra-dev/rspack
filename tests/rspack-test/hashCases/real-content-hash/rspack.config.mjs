@@ -1,4 +1,4 @@
-const path = require('path');
+import path from 'node:path';
 
 const base = {
   mode: 'production',
@@ -25,14 +25,14 @@ const base = {
 };
 
 /** @type {import("@rspack/core").Configuration[]} */
-module.exports = [
+export default [
   {
     ...base,
     name: 'a-normal',
-    context: path.resolve(__dirname, 'a'),
+    context: path.resolve(import.meta.dirname, 'a'),
     devtool: false,
     output: {
-      path: path.resolve(__dirname, './dist/a-normal'),
+      path: path.resolve(import.meta.dirname, './dist/a-normal'),
       filename: '[contenthash]-[contenthash:6].js',
       assetModuleFilename: '[contenthash][ext]',
     },
@@ -40,10 +40,10 @@ module.exports = [
   {
     ...base,
     name: 'b-normal',
-    context: path.resolve(__dirname, 'b'),
+    context: path.resolve(import.meta.dirname, 'b'),
     devtool: false,
     output: {
-      path: path.resolve(__dirname, './dist/b-normal'),
+      path: path.resolve(import.meta.dirname, './dist/b-normal'),
       filename: '[contenthash]-[contenthash:6].js',
       assetModuleFilename: '[contenthash][ext]',
     },
@@ -51,10 +51,10 @@ module.exports = [
   {
     ...base,
     name: 'a-source-map',
-    context: path.resolve(__dirname, 'a'),
+    context: path.resolve(import.meta.dirname, 'a'),
     devtool: 'source-map',
     output: {
-      path: path.resolve(__dirname, './dist/a-source-map'),
+      path: path.resolve(import.meta.dirname, './dist/a-source-map'),
       filename: '[contenthash]-[contenthash:6].js',
       assetModuleFilename: '[contenthash][ext]',
     },
@@ -62,10 +62,10 @@ module.exports = [
   {
     ...base,
     name: 'b-source-map',
-    context: path.resolve(__dirname, 'b'),
+    context: path.resolve(import.meta.dirname, 'b'),
     devtool: 'source-map',
     output: {
-      path: path.resolve(__dirname, './dist/b-source-map'),
+      path: path.resolve(import.meta.dirname, './dist/b-source-map'),
       filename: '[contenthash]-[contenthash:6].js',
       assetModuleFilename: '[contenthash][ext]',
     },

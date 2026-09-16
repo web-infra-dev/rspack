@@ -1,4 +1,4 @@
-const { normalizePlaceholder } = require('@rspack/test-tools');
+import { normalizePlaceholder } from '@rspack/test-tools';
 
 expect.extend({
   toBeEquivalentStatsStringWith(received, expected) {

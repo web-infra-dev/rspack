@@ -1,11 +1,11 @@
-const path = require('path');
-const rspack = require('@rspack/core');
+import path from 'node:path';
+import { rspack } from '@rspack/core';
 
 function config(version) {
   return {
     mode: 'development',
     target: 'node',
-    context: __dirname,
+    context: import.meta.dirname,
     entry: {
       runtime: {
         import: './runtime.js',
@@ -17,7 +17,7 @@ function config(version) {
       },
     },
     output: {
-      path: path.resolve(__dirname, `dist/${version}`),
+      path: path.resolve(import.meta.dirname, `dist/${version}`),
       filename: '[name].[fullhash:base64:8].js',
       chunkFilename: '[id].js',
       chunkLoading: 'require',
@@ -35,4 +35,4 @@ function config(version) {
 }
 
 /** @type {import('@rspack/core').Configuration[]} */
-module.exports = [config('version0'), config('version1')];
+export default [config('version0'), config('version1')];

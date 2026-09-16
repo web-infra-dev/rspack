@@ -1,5 +1,5 @@
 /** @type {import("@rspack/core").Configuration[]} */
-module.exports = {
+export default {
   mode: 'production',
   entry: './index',
   optimization: {

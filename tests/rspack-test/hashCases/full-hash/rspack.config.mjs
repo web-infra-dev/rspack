@@ -1,11 +1,11 @@
-const path = require('path');
+import path from 'node:path';
 
 function config(subpath, realContentHash = false) {
   return {
     entry: `./index.js`,
-    context: path.resolve(__dirname, subpath),
+    context: path.resolve(import.meta.dirname, subpath),
     output: {
-      path: path.resolve(__dirname, `dist/${subpath}`),
+      path: path.resolve(import.meta.dirname, `dist/${subpath}`),
       filename: '[name].[contenthash].js',
       chunkFilename: '[name].js',
     },
@@ -21,7 +21,7 @@ function config(subpath, realContentHash = false) {
 }
 
 /** @type {import("@rspack/core").Configuration} */
-module.exports = [
+export default [
   config('version0'),
   config('version0-copy'),
   config('version1'),

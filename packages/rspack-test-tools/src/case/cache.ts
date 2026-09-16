@@ -491,7 +491,9 @@ async function generateOptions(
   options = await config(
     context,
     'cacheCase',
-    ['rspack.config.js', 'webpack.config.js'].map((i) => path.resolve(temp, i)),
+    ['rspack.config.mjs', 'rspack.config.js', 'webpack.config.js'].map((i) =>
+      path.resolve(temp, i),
+    ),
     options,
   );
 

@@ -1,23 +1,20 @@
 /** @type {import("@rspack/core").Configuration} */
-module.exports = {
+export default {
   mode: 'production',
   entry: './src/index.js',
   devtool: false,
   output: {
     filename: 'main.js',
-    hashFunction: 'md4',
-    hashDigestLength: 20,
-    assetModuleFilename: '[contenthash][ext]',
+    assetModuleFilename: '[name].[contenthash][ext]',
   },
   module: {
     rules: [
       {
-        test: /\.(png|jpg|svg)$/,
+        test: /\.(svg)$/,
         type: 'asset/resource',
       },
     ],
   },
-  context: __dirname,
   optimization: {
     realContentHash: true,
   },
