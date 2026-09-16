@@ -38,6 +38,8 @@ pub struct JsLoaderMetadata {
 
 #[napi(object)]
 pub struct JsLoaderItemState {
+  /// Data shared only between this loader's pitch and normal stages.
+  pub data: serde_json::Value,
   pub normal_executed: bool,
   pub pitch_executed: bool,
   pub no_pitch: bool,
@@ -169,6 +171,13 @@ impl From<JsLoaderDependencies> for LoaderDependencies {
 
 #[napi(object)]
 pub struct JsLoaderContext {
+  pub meta: JsLoaderContextMetadata,
+  pub state: JsLoaderContextState,
+}
+
+/// Input metadata, never returned to Rust with the execution state.
+#[napi(object)]
+pub struct JsLoaderContextMetadata {
   pub resource: String,
   #[napi(js_name = "_module", ts_type = "Module")]
   pub module: ModuleObject,
@@ -176,29 +185,20 @@ pub struct JsLoaderContext {
   pub hot: bool,
 
   pub loader_items: Vec<JsLoaderMetadata>,
-  #[napi(ts_type = "Readonly<JsLoaderState>")]
-  pub loader_state: JsLoaderState,
   #[napi(
     js_name = "__internal__loaderCache",
     ts_type = "JsLoaderCache | undefined"
   )]
   pub loader_cache: Option<JsLoaderCacheObject>,
-  /// Each loader's pitch data, separate from execution flags.
-  pub loader_data: Vec<serde_json::Value>,
-  pub state: JsLoaderContextState,
 }
 
-/// The two mutable parts returned in one crossing, without loader metadata.
-#[napi(object)]
-pub struct JsLoaderResult {
-  pub loader_data: Vec<serde_json::Value>,
-  pub state: JsLoaderContextState,
-}
-
-/// Per-invocation execution state, separate from each loader's pitch data.
+/// Mutable state for the loader chain, including each loader's data and flags.
 /// The native runner keeps ownership of its LoaderContext throughout.
 #[napi(object)]
 pub struct JsLoaderContextState {
+  /// The native scheduler controls phase transitions between invocations.
+  #[napi(ts_type = "Readonly<JsLoaderState>")]
+  pub loader_state: JsLoaderState,
   #[napi(ts_type = "object | undefined")]
   pub loader_context_state: Option<ThreadsafeOneShotRef>,
   /// Content may be empty in the pitching stage.
@@ -229,14 +229,40 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
 
     #[allow(clippy::unwrap_used)]
     Ok(JsLoaderContext {
-      resource: cx.resource_data.resource().to_owned(),
-      module: ModuleObject::with_ptr(
-        NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module).unwrap(),
-        cx.context.compiler_id,
-      ),
-      hot: cx.hot,
-      loader_data: cx.loader_data.clone(),
+      meta: JsLoaderContextMetadata {
+        resource: cx.resource_data.resource().to_owned(),
+        module: ModuleObject::with_ptr(
+          NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module).unwrap(),
+          cx.context.compiler_id,
+        ),
+        hot: cx.hot,
+        loader_items: cx
+          .loader_items()
+          .iter()
+          .map(|item| JsLoaderMetadata {
+            loader: item.request().to_string(),
+            r#type: item.r#type().to_string(),
+            cache: item.cache(),
+          })
+          .collect(),
+        loader_cache: cx
+          .loader_items()
+          .iter()
+          .any(|loader| loader.cache())
+          .then(|| {
+            JsLoaderCacheObject::new(
+              cx.context.loader_cache.clone(),
+              cx.context.file_system_info.clone(),
+              module.identifier().to_string(),
+              cx.loader_items()
+                .iter()
+                .map(|loader| loader.cache_options().cloned().unwrap_or_default())
+                .collect(),
+            )
+          }),
+      },
       state: JsLoaderContextState {
+        loader_state: cx.state().into(),
         loader_context_state: cx
           .context
           .loader_context_data
@@ -259,7 +285,9 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         loader_item_states: cx
           .loader_item_states
           .iter()
-          .map(|state| JsLoaderItemState {
+          .zip(&cx.loader_data)
+          .map(|(state, data)| JsLoaderItemState {
+            data: data.clone(),
             normal_executed: state.normal_executed(),
             pitch_executed: state.pitch_executed(),
             no_pitch: false,
@@ -267,31 +295,6 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
           .collect(),
         error: None,
       },
-      loader_items: cx
-        .loader_items()
-        .iter()
-        .map(|item| JsLoaderMetadata {
-          loader: item.request().to_string(),
-          r#type: item.r#type().to_string(),
-          cache: item.cache(),
-        })
-        .collect(),
-      loader_state: cx.state().into(),
-      loader_cache: cx
-        .loader_items()
-        .iter()
-        .any(|loader| loader.cache())
-        .then(|| {
-          JsLoaderCacheObject::new(
-            cx.context.loader_cache.clone(),
-            cx.context.file_system_info.clone(),
-            module.identifier().to_string(),
-            cx.loader_items()
-              .iter()
-              .map(|loader| loader.cache_options().cloned().unwrap_or_default())
-              .collect(),
-          )
-        }),
     })
   }
 }

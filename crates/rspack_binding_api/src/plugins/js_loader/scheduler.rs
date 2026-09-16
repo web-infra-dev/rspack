@@ -4,9 +4,7 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
 
-use super::{
-  JsLoaderContextState, JsLoaderResult, JsLoaderRspackPlugin, JsLoaderRspackPluginInner,
-};
+use super::{JsLoaderContextState, JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
 impl JsLoaderRspackPlugin {
   async fn update_loaders_without_pitch(&self, list: Vec<String>) {
@@ -54,25 +52,21 @@ pub(crate) async fn loader_yield(
     .to_rspack_result()?;
 
   if loader_context.state() == LoaderState::Pitching {
-    let list = collect_loaders_without_pitch(loader_context, &result.state);
+    let list = collect_loaders_without_pitch(loader_context, &result);
     if !list.is_empty() {
       self.update_loaders_without_pitch(list).await;
     }
   }
 
-  merge_loader_result(loader_context, result)?;
+  merge_loader_state(loader_context, result)?;
 
   Ok(())
 }
 
-pub(crate) fn merge_loader_result(
+pub(crate) fn merge_loader_state(
   to: &mut LoaderContext<RunnerContext>,
-  result: JsLoaderResult,
+  mut from: JsLoaderContextState,
 ) -> Result<()> {
-  let JsLoaderResult {
-    loader_data,
-    state: mut from,
-  } = result;
   if let Some(state) = from.loader_context_state.take() {
     to.context.loader_context_data.insert(state);
   }
@@ -103,12 +97,14 @@ pub(crate) fn merge_loader_result(
   });
   to.__finish_with((content, source_map, additional_data));
 
-  // update per-run loader status without mutating the shared loader metadata
-  for (to, from) in to
+  // Write back each loader's data and flags without touching its metadata.
+  for ((to, data), from) in to
     .loader_item_states
     .iter_mut()
+    .zip(&mut to.loader_data)
     .zip(from.loader_item_states.drain(..))
   {
+    *data = from.data;
     if from.normal_executed {
       to.set_normal_executed();
       to.set_finish_called();
@@ -116,10 +112,6 @@ pub(crate) fn merge_loader_result(
     if from.pitch_executed {
       to.set_pitch_executed();
     }
-  }
-  // Pitch data and execution flags have independent storage and writeback.
-  for (to, data) in to.loader_data.iter_mut().zip(loader_data) {
-    *to = data;
   }
   to.loader_index = from.loader_index;
   to.parse_meta.extend(
