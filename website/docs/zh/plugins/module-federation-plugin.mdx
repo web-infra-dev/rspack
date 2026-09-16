@@ -153,6 +153,9 @@ export default {
   }
   interface SharedConfig {
     import?: false | SharedItem;
+    request?: string;
+    layer?: string;
+    issuerLayer?: string;
     eager?: boolean;
     packageName?: string;
     requiredVersion?: false | string;
@@ -170,6 +173,9 @@ export default {
 其中 `SharedConfig` 可以包含以下子选项：
 
 - import：应放置在共享模块的命名空间中的模块。如果在共享模块的命名空间中找不到共享模块或版本无效，则此提供的模块可作为后备模块进行兜底。
+- request：覆盖此共享配置匹配的模块请求。省略 `import` 时，默认使用 `request`；若同时省略 `request`，则使用配置键。
+- layer：指定共享提供者和后备模块的层。匹配的层优先于不指定层的后备配置。空字符串表示显式指定的层，与省略该选项不同。
+- issuerLayer：仅对从此层导入的模块应用共享消费配置，与共享模块自身的 `layer` 相互独立。
 - eager：如果设置为 `true`，则共享模块会在初始 Chunk 中被加载，而不是在使用时才被动态加载。这意味着共享模块会随着主入口点一起加载，而不考虑是否已经被使用。这可以消除动态加载造成的延迟，但是会增加初始包的大小。另外，请注意，启用此配置时，将始终下载所有提供的模块和后备模块。
 - packageName：用于从 `package.json` 中确定所需版本的包名称。仅当无法根据请求自动确定包名称时才需要进行配置。
 - requiredVersion：接受语义版本号。例如 `"^1.2.3"`。用来设定共享模块的版本范围，如果远程应用的模块版本不符合这个范围，模块将不会被加载。

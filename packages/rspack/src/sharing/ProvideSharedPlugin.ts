@@ -9,7 +9,7 @@ import {
 } from '../builtin-plugin/base';
 import type { Compiler } from '../Compiler';
 import { parseOptions } from '../container/options';
-import type { ShareScope } from './SharePlugin';
+import { normalizeShareScope, type ShareScope } from './SharePlugin';
 import { ShareRuntimePlugin } from './ShareRuntimePlugin';
 
 export type ProvideSharedPluginOptions<Enhanced extends boolean = false> = {
@@ -34,6 +34,8 @@ type ProvidesV1Config = {
 };
 type ProvidesEnhancedConfig = ProvidesV1Config & ProvidesEnhancedExtraConfig;
 type ProvidesEnhancedExtraConfig = {
+  layer?: string;
+  request?: string;
   singleton?: boolean;
   strictVersion?: boolean;
   requiredVersion?: false | string;
@@ -47,29 +49,50 @@ export function normalizeProvideShareOptions<Enhanced extends boolean = false>(
   options: Provides<Enhanced>,
   shareScope?: ShareScope,
   enhanced?: boolean,
-) {
-  return parseOptions(
+): [string, Omit<RawProvideOptions, 'key'>][] {
+  return parseOptions<ProvidesConfig<Enhanced>, Omit<RawProvideOptions, 'key'>>(
     options,
     (item) => {
       if (Array.isArray(item)) throw new Error('Unexpected array of provides');
       return {
         shareKey: item,
         version: undefined,
-        shareScope: shareScope || 'default',
+        shareScope: normalizeShareScope(
+          shareScope || 'default',
+          !!enhanced,
+          'ProvideSharedPlugin',
+        ),
         eager: false,
       };
     },
     (item) => {
+      const enhancedItem = item as ProvidesConfig<true>;
+      if (!enhanced) {
+        const unsupported = ['request', 'layer'].find(
+          (field) =>
+            enhancedItem[field as keyof ProvidesConfig<true>] !== undefined,
+        );
+        if (unsupported) {
+          throw new Error(
+            `[ProvideSharedPlugin] ${unsupported} requires enhanced=true`,
+          );
+        }
+      }
       const raw = {
         shareKey: item.shareKey,
         version: item.version,
-        shareScope: item.shareScope || shareScope || 'default',
+        shareScope: normalizeShareScope(
+          item.shareScope || shareScope || 'default',
+          !!enhanced,
+          'ProvideSharedPlugin',
+        ),
         eager: !!item.eager,
       };
       if (enhanced) {
-        const enhancedItem: ProvidesConfig<true> = item;
         return {
           ...raw,
+          layer: enhancedItem.layer,
+          request: enhancedItem.request,
           singleton: enhancedItem.singleton,
           requiredVersion: enhancedItem.requiredVersion,
           strictVersion: enhancedItem.strictVersion,

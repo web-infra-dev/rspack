@@ -9,35 +9,67 @@ import {
 } from '../builtin-plugin/base';
 import type { Compiler } from '../Compiler';
 import { parseOptions } from '../container/options';
+import { normalizeShareScope, type ShareScope } from './SharePlugin';
 import { ShareRuntimePlugin } from './ShareRuntimePlugin';
-import { isRequiredVersion } from './utils';
+import {
+  isRequiredVersion,
+  resolveShareKey,
+  resolveShareRequest,
+  resolveShareScope,
+} from './utils';
 
-export type ConsumeSharedPluginOptions = {
-  consumes: Consumes;
-  shareScope?: string | string[];
+type ConsumeSharedPluginBaseOptions<Enhanced extends boolean> = {
+  consumes: Consumes<Enhanced>;
+  shareScope?: ShareScope;
+};
+// Public, extendable (`interface X extends ConsumeSharedPluginOptions`) and
+// source-compatible with the pre-enhanced options shape.
+export interface ConsumeSharedPluginOptions extends ConsumeSharedPluginBaseOptions<false> {
   enhanced?: boolean;
-};
-export type Consumes = (ConsumesItem | ConsumesObject)[] | ConsumesObject;
+}
+export interface EnhancedConsumeSharedPluginOptions extends ConsumeSharedPluginBaseOptions<true> {
+  enhanced: true;
+}
+// Strict discrimination happens only at the constructor boundary.
+type ConsumeSharedPluginConstructorOptions<Enhanced extends boolean = boolean> =
+  [Enhanced] extends [true]
+    ? EnhancedConsumeSharedPluginOptions
+    : [Enhanced] extends [false]
+      ? ConsumeSharedPluginBaseOptions<false> & { enhanced?: false }
+      : | (ConsumeSharedPluginBaseOptions<false> & { enhanced?: false })
+        | EnhancedConsumeSharedPluginOptions
+        | (ConsumeSharedPluginBaseOptions<false> & { enhanced: boolean });
+export type Consumes<Enhanced extends boolean = boolean> =
+  (ConsumesItem | ConsumesObject<Enhanced>)[] | ConsumesObject<Enhanced>;
 export type ConsumesItem = string;
-export type ConsumesObject = {
-  [k: string]: ConsumesConfig | ConsumesItem;
+export type ConsumesObject<Enhanced extends boolean = boolean> = {
+  [k: string]: ConsumesConfig<Enhanced> | ConsumesItem;
 };
-export type ConsumesConfig = {
+type ConsumesV1Config = {
   eager?: boolean;
   import?: false | ConsumesItem;
   packageName?: string;
   requiredVersion?: false | string;
   shareKey?: string;
-  shareScope?: string | string[];
+  shareScope?: ShareScope;
   singleton?: boolean;
   strictVersion?: boolean;
   treeShakingMode?: 'server-calc' | 'runtime-infer';
 };
+type ConsumesEnhancedConfig = ConsumesV1Config & {
+  issuerLayer?: string;
+  layer?: string;
+  request?: string;
+};
+export type ConsumesConfig<Enhanced extends boolean = boolean> = [
+  Enhanced,
+] extends [true]
+  ? ConsumesEnhancedConfig
+  : ConsumesV1Config;
 
-export function normalizeConsumeShareOptions(
-  consumes: Consumes,
-  shareScope?: string | string[],
-) {
+export function normalizeConsumeShareOptions<
+  Enhanced extends boolean = boolean,
+>(consumes: Consumes<Enhanced>, shareScope?: ShareScope, enhanced?: Enhanced) {
   return parseOptions(
     consumes,
     (item, key) => {
@@ -47,57 +79,98 @@ export function normalizeConsumeShareOptions(
           ? // item is a request/key
             {
               import: key,
-              shareScope: shareScope || 'default',
+              shareScope: normalizeShareScope(
+                resolveShareScope(undefined, shareScope),
+                !!enhanced,
+                'ConsumeSharedPlugin',
+              ),
               shareKey: key,
               requiredVersion: undefined,
               packageName: undefined,
               strictVersion: false,
               singleton: false,
               eager: false,
+              issuerLayer: undefined,
+              layer: undefined,
+              request: key,
               treeShakingMode: undefined,
             }
           : // key is a request/key
             // item is a version
             {
               import: key,
-              shareScope: shareScope || 'default',
+              shareScope: normalizeShareScope(
+                resolveShareScope(undefined, shareScope),
+                !!enhanced,
+                'ConsumeSharedPlugin',
+              ),
               shareKey: key,
               requiredVersion: item,
               strictVersion: true,
               packageName: undefined,
               singleton: false,
               eager: false,
+              issuerLayer: undefined,
+              layer: undefined,
+              request: key,
               treeShakingMode: undefined,
             };
       return result;
     },
-    (item, key) => ({
-      import: item.import === false ? undefined : item.import || key,
-      shareScope: item.shareScope || shareScope || 'default',
-      shareKey: item.shareKey || key,
-      requiredVersion: item.requiredVersion,
-      strictVersion:
-        typeof item.strictVersion === 'boolean'
-          ? item.strictVersion
-          : item.import !== false && !item.singleton,
-      packageName: item.packageName,
-      singleton: !!item.singleton,
-      eager: !!item.eager,
-      treeShakingMode: item.treeShakingMode,
-    }),
+    (item, key) => {
+      const enhancedItem = item as ConsumesEnhancedConfig;
+      if (!enhanced) {
+        const unsupported = ['request', 'issuerLayer', 'layer'].find(
+          (field) =>
+            enhancedItem[field as keyof ConsumesEnhancedConfig] !== undefined,
+        );
+        if (unsupported) {
+          throw new Error(
+            `[ConsumeSharedPlugin] ${unsupported} requires enhanced=true`,
+          );
+        }
+      }
+      const request = enhanced
+        ? resolveShareRequest(enhancedItem.request, key)
+        : key;
+      return {
+        import: item.import === false ? undefined : item.import || request,
+        shareScope: normalizeShareScope(
+          resolveShareScope(item.shareScope, shareScope),
+          !!enhanced,
+          'ConsumeSharedPlugin',
+        ),
+        shareKey: resolveShareKey(item.shareKey, key),
+        requiredVersion: item.requiredVersion,
+        strictVersion:
+          typeof item.strictVersion === 'boolean'
+            ? item.strictVersion
+            : item.import !== false && !item.singleton,
+        packageName: item.packageName,
+        singleton: !!item.singleton,
+        eager: !!item.eager,
+        issuerLayer: enhanced ? enhancedItem.issuerLayer : undefined,
+        layer: enhanced ? enhancedItem.layer : undefined,
+        request,
+        treeShakingMode: item.treeShakingMode,
+      };
+    },
   );
 }
 
-export class ConsumeSharedPlugin extends RspackBuiltinPlugin {
+export class ConsumeSharedPlugin<
+  Enhanced extends boolean = boolean,
+> extends RspackBuiltinPlugin {
   name = BuiltinPluginName.ConsumeSharedPlugin;
   _options;
 
-  constructor(options: ConsumeSharedPluginOptions) {
+  constructor(options: ConsumeSharedPluginConstructorOptions<Enhanced>) {
     super();
     this._options = {
       consumes: normalizeConsumeShareOptions(
         options.consumes,
         options.shareScope,
+        options.enhanced,
       ),
       enhanced: options.enhanced ?? false,
     };

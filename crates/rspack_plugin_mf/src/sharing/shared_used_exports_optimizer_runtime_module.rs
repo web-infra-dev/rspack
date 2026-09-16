@@ -5,27 +5,52 @@ use rspack_core::{
   Compilation, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
   impl_runtime_module,
 };
-use rspack_error::{Result, error};
+use rspack_error::Result;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::utils::{runtime_require_scope_name, runtime_require_scope_requirement};
+use crate::{
+  SharedIdentity,
+  utils::{runtime_require_scope_name, runtime_require_scope_requirement},
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct SharedUsedExportsOptimizerRuntimeModule {
-  // Keep type consistent with plugin: FxHashMap<String, FxHashSet<String>>
-  shared_used_exports: Arc<FxHashMap<String, FxHashSet<String>>>,
+  used_exports_json: Option<String>,
 }
 
 impl SharedUsedExportsOptimizerRuntimeModule {
-  pub fn new(
+  pub(crate) fn new(
     runtime_template: &RuntimeTemplate,
-    shared_used_exports: Arc<FxHashMap<String, FxHashSet<String>>>,
+    shared_used_exports: Arc<FxHashMap<SharedIdentity, FxHashSet<String>>>,
   ) -> Self {
+    let mut merged_exports = FxHashMap::<String, FxHashSet<String>>::default();
+    for (identity, set) in shared_used_exports.iter() {
+      merged_exports
+        .entry(identity.share_key.clone())
+        .or_default()
+        .extend(set.iter().cloned());
+    }
+    let used_exports_json = if merged_exports.is_empty() {
+      None
+    } else {
+      let stable_map: BTreeMap<String, Vec<String>> = merged_exports
+        .iter()
+        .map(|(share_key, set)| {
+          let mut exports: Vec<String> = set.iter().cloned().collect();
+          exports.sort();
+          (share_key.clone(), exports)
+        })
+        .collect();
+      Some(
+        simd_json::to_string(&stable_map)
+          .expect("shared used exports contain only serializable strings"),
+      )
+    };
     Self::with_name(
       runtime_template,
       "module_federation/shared_used_exports",
-      shared_used_exports,
+      used_exports_json,
     )
   }
 }
@@ -55,28 +80,13 @@ impl RuntimeModule for SharedUsedExportsOptimizerRuntimeModule {
   }
 
   async fn generate(&self, context: &RuntimeModuleGenerateContext<'_>) -> Result<String> {
-    if self.shared_used_exports.is_empty() {
+    let Some(used_exports_json) = &self.used_exports_json else {
       return Ok(String::new());
-    }
+    };
     let federation_global = format!(
       "{}.federation",
       runtime_require_scope_name(context.runtime_template)
     );
-    // Convert set to vec for JSON serialization stability
-    let stable_map: BTreeMap<String, Vec<String>> = self
-      .shared_used_exports
-      .iter()
-      .map(|(share_key, set)| {
-        let mut v: Vec<String> = set.iter().cloned().collect();
-        v.sort();
-        (share_key.clone(), v)
-      })
-      .collect();
-    let used_exports_json = simd_json::to_string(&stable_map).map_err(|err| {
-      error!(
-        "OptimizeDependencyReferencedExportsRuntimeModule: failed to serialize used exports: {err}"
-      )
-    })?;
     Ok(format!(
       r#"
 if(!{federation_global}){{return;}}
