@@ -22,3 +22,35 @@ declare class RuntimeModule {
 ```
 
 </>
+
+## 更新保留的入口导出
+
+Rspack 插件可以通过 `additionalTreeRuntimeRequirements` 请求
+`compiler.webpack.RuntimeGlobals.updateEntryExports`，生成以下运行时函数：
+
+```ts
+updateEntryExports(entryModuleId: string | number, nextExports: unknown): boolean;
+```
+
+当模块 ID 匹配当前 runtime chunk 默认启动流程的最后一个入口模块时，该函数替换
+bootstrap 保留的启动导出并返回 `true`。其他模块 ID、没有入口的共享 runtime chunk，
+以及自定义启动流程（`startupNoDefault`）均返回 `false`，不修改导出。
+调用方必须在不支持同步时回退到应用重建。
+
+这是为长期运行的 Node.js 应用提供的、显式启用的入口重载能力，不依赖具体框架或
+Module Federation。SSR 服务是其中一个场景；RSC 服务也可能使用此基础能力，
+但它不实现或验证 RSC 更新协议。
+
+它不执行模块、不清除模块缓存，也不释放业务持有的引用。调用方需要先重新执行
+同一份编译后的入口，再同步启动导出。对外发布行为取决于下文的 library 输出类型。
+
+对于导出名称在构建时已知的同步 ESM 入口，`commonjs2` 和 `commonjs-module` 输出会发布
+一个稳定的命名空间，其 getter 跟随启动导出。这样 Node 私有的首次导出快照便不会保留
+旧入口的导出。命名空间保持编译时的导出名称，不支持通过此 API 改变其结构。
+其他 library 输出以及异步或动态导出结构保持原有发布行为，需要调用方自行处理引用。
+
+请求此能力会禁用入口内联；未请求此能力的构建不受影响。
+
+调用方已捕获的值（例如解构出的导出）不会自动替换，调用方仍需协调在途请求并解除自己持有的旧引用。
+稳定命名空间使用 getter 属性描述符，而不是可写的值属性。
+此 API 不替代 HMR，不更新服务端 manifest，也不清理任意业务副作用。

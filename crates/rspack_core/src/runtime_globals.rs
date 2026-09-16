@@ -319,6 +319,8 @@ define_runtime_globals! {
   /// Expected JavaScript versions of asynchronously loadable chunks.
   const HMR_CHUNK_VERSIONS;
 
+  /// Replace the retained startup exports for their owning entry module.
+  const UPDATE_ENTRY_EXPORTS;
 }
 
 impl Default for RuntimeGlobals {
@@ -362,6 +364,7 @@ pub static BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLoc
     | RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
     | RuntimeGlobals::STARTUP_ENTRYPOINT
     | RuntimeGlobals::STARTUP
+    | RuntimeGlobals::UPDATE_ENTRY_EXPORTS
     | RuntimeGlobals::CSS_INJECT_STYLE
     | RuntimeGlobals::CSS_STYLE_SHEET
 });
@@ -428,6 +431,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::STARTUP_NO_DEFAULT => "x (no default handler)",
     RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES => "f (include entries)",
     RuntimeGlobals::STARTUP => "x",
+    RuntimeGlobals::UPDATE_ENTRY_EXPORTS => "updateEntryExports",
     RuntimeGlobals::MAKE_NAMESPACE_OBJECT => "r",
     RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT => "z",
     RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT => "zO",
