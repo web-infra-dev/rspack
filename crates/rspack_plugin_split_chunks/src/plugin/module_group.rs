@@ -270,7 +270,7 @@ impl Combinator {
 
   fn group_chunks_by_exports(
     module_identifier: &ModuleIdentifier,
-    module_chunks: &FxHashSet<ChunkUkey>,
+    module_chunks: &rspack_core::ModuleChunks,
     exports_info_artifact: &ExportsInfoArtifact,
     chunk_by_ukey: &ChunkByUkey,
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
@@ -279,7 +279,7 @@ impl Combinator {
     if module_chunks.len() == 1 {
       return vec![ChunkCombination::new(
         get_key(module_chunks.iter().copied(), chunk_index_map),
-        module_chunks.clone(),
+        module_chunks.iter().copied().collect(),
         chunk_index_map,
       )];
     }
@@ -450,7 +450,9 @@ impl Combinator {
           module_chunks
             .get(module_index)
             .expect("module chunks")
-            .clone(),
+            .iter()
+            .copied()
+            .collect(),
           chunk_index_map,
         )
       });

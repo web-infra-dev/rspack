@@ -38,13 +38,7 @@ impl SplitChunksPlugin {
     let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
     all_modules
       .par_iter()
-      .map(|module| {
-        chunk_graph
-          .get_module_chunks(*module)
-          .iter()
-          .copied()
-          .collect()
-      })
+      .map(|module| chunk_graph.get_module_chunks(*module).clone())
       .collect::<Vec<_>>()
   }
   /// Affected by `splitChunks.cacheGroups.{cacheGroup}.reuseExistingChunk`
