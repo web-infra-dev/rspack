@@ -29,7 +29,7 @@ export function createStatsProcessor(
       configMultiCompiler(
         context,
         name,
-        ['rspack.config.mjs', 'rspack.config.js', 'webpack.config.js'],
+        ['rspack.config.mjs', 'rspack.config.js'],
         defaultOptions,
         overrideOptions,
       );
@@ -69,8 +69,7 @@ export function createStatsOutputCase(name: string, src: string, dist: string) {
 function defaultOptions(index: number, context: ITestContext): RspackOptions {
   if (
     fs.existsSync(path.join(context.getSource(), 'rspack.config.mjs')) ||
-    fs.existsSync(path.join(context.getSource(), 'rspack.config.js')) ||
-    fs.existsSync(path.join(context.getSource(), 'webpack.config.js'))
+    fs.existsSync(path.join(context.getSource(), 'rspack.config.js'))
   ) {
     return {
       output: {
@@ -150,12 +149,6 @@ function check(
   const options = compiler.getOptions() as RspackOptions;
   const stats = compiler.getStats();
   if (!stats || !compiler) return;
-
-  for (const compilation of []
-    .concat((stats as any).stats || stats)
-    .map((s: any) => s.compilation)) {
-    compilation.logging.delete('webpack.Compilation.ModuleProfile');
-  }
 
   if (REG_ERROR_CASE.test(name)) {
     env.expect(stats.hasErrors()).toBe(true);

@@ -41,12 +41,7 @@ const creator = new BasicCaseCreator({
         configMultiCompiler(
           context,
           name,
-          [
-            'rspack.config.cjs',
-            'rspack.config.mjs',
-            'rspack.config.js',
-            'webpack.config.js',
-          ],
+          ['rspack.config.cjs', 'rspack.config.mjs', 'rspack.config.js'],
           defaultOptions,
           (_index, _context, options) => {
             mergeRspackOptions(

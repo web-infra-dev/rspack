@@ -13,7 +13,7 @@ function v(name) {
 describeByWalk(
 	v("hot web"),
 	(name, src, dist) => {
-		createHotIncrementalCase(name, src, dist, path.join(tempDir, name), "web", false);
+		createHotIncrementalCase(name, src, dist, path.join(tempDir, name), "web");
 	},
 	{
 		source: path.resolve(import.meta.dirname, "./hotCases"),

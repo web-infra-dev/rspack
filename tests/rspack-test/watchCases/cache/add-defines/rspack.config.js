@@ -35,7 +35,7 @@ module.exports = {
           'DEFINE.C': 3,
         },
       ];
-      compiler.hooks.compilation.tap('webpack.config', (...args) => {
+      compiler.hooks.compilation.tap('rspack.config', (...args) => {
         const plugin = new DefinePlugin(defines[+(currentWatchStep.step || 0)]);
         plugin.apply(
           /** @type {any} */ ({
