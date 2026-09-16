@@ -56,12 +56,6 @@ fn publish_preserves_module_allocation() {
 }
 
 #[test]
-fn boxed_trait_object_can_be_published() {
-  let module: Box<dyn Module> = Box::new(raw_module());
-  assert_shared_allocation(module.into());
-}
-
-#[test]
 fn arc_conversion_preserves_allocation_and_has_one_owner() {
   let module = raw_module().boxed();
   let ptr = module.as_ref() as *const dyn Module;

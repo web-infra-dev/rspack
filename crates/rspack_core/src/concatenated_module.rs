@@ -719,7 +719,7 @@ pub fn render_imports(source: &str, attr: Option<&str>, import_spec: &ImportSpec
   format!("{import_ns_stmt}{import_stmt}")
 }
 
-#[cacheable_dyn]
+#[cacheable_dyn(unique_arc)]
 #[async_trait::async_trait]
 impl Module for ConcatenatedModule {
   fn module_type(&self) -> &ModuleType {

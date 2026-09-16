@@ -8,7 +8,7 @@ use std::{
 use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
-  cacheable, cacheable_dyn,
+  Deserializer, cacheable, cacheable_dyn,
   rkyv::{
     Archive, ArchiveUnsized, Deserialize, Place, Serialize as RkyvSerialize, SerializeUnsized,
     boxed::{ArchivedBox, BoxResolver},
@@ -715,7 +715,7 @@ pub struct ModuleCodeGenerationContext<'a> {
   pub runtime_template: &'a mut ModuleCodeTemplate,
 }
 
-#[cacheable_dyn]
+#[cacheable_dyn(unique_arc)]
 #[async_trait]
 pub trait Module:
   Debug
@@ -723,7 +723,6 @@ pub trait Module:
   + Sync
   + Any
   + AsAny
-  + ModuleExt
   + Identifiable
   + DependenciesBlock
   + Diagnosable
@@ -1062,18 +1061,11 @@ pub fn module_update_hash(
 
 pub trait ModuleExt {
   fn boxed(self) -> BoxModule;
-
-  /// Moves an existing boxed module into the allocation used for shared ownership.
-  fn into_box_module(self: Box<Self>) -> BoxModule;
 }
 
 impl<T: Module> ModuleExt for T {
   fn boxed(self) -> BoxModule {
     BoxModule(UniqueArc::new(self))
-  }
-
-  fn into_box_module(self: Box<Self>) -> BoxModule {
-    (*self).boxed()
   }
 }
 
@@ -1149,8 +1141,7 @@ impl BoxModule {
   }
 }
 
-// Keep the boxed archive representation; deserialization moves the recovered
-// concrete module into a UniqueArc through ModuleExt.
+// Keep the boxed archive representation, but restore directly into a UniqueArc.
 impl Archive for BoxModule {
   type Archived = ArchivedBox<<dyn Module as ArchiveUnsized>::Archived>;
   type Resolver = BoxResolver;
@@ -1170,14 +1161,11 @@ where
   }
 }
 
-impl<D> Deserialize<BoxModule, D> for ArchivedBox<<dyn Module as ArchiveUnsized>::Archived>
-where
-  Self: Deserialize<Box<dyn Module>, D>,
-  D: Fallible + ?Sized,
+impl Deserialize<BoxModule, Deserializer>
+  for ArchivedBox<<dyn Module as ArchiveUnsized>::Archived>
 {
-  fn deserialize(&self, deserializer: &mut D) -> std::result::Result<BoxModule, D::Error> {
-    let module: Box<dyn Module> = self.deserialize(deserializer)?;
-    Ok(module.into())
+  fn deserialize(&self, deserializer: &mut Deserializer) -> rspack_cacheable::Result<BoxModule> {
+    self.get().deserialize_unique(deserializer).map(BoxModule)
   }
 }
 
@@ -1192,12 +1180,6 @@ impl std::ops::Deref for BoxModule {
 impl std::ops::DerefMut for BoxModule {
   fn deref_mut(&mut self) -> &mut Self::Target {
     &mut *self.0
-  }
-}
-
-impl From<Box<dyn Module>> for BoxModule {
-  fn from(inner: Box<dyn Module>) -> Self {
-    inner.into_box_module()
   }
 }
 
@@ -1370,7 +1352,7 @@ mod test {
         }
       }
 
-      #[::rspack_cacheable::cacheable_dyn]
+      #[::rspack_cacheable::cacheable_dyn(unique_arc)]
       #[::async_trait::async_trait]
       impl Module for $ident {
         fn module_type(&self) -> &ModuleType {

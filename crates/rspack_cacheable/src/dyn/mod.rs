@@ -1,5 +1,8 @@
 use core::marker::PhantomData;
-use std::hash::{Hash, Hasher};
+use std::{
+  hash::{Hash, Hasher},
+  sync::UniqueArc,
+};
 
 use inventory;
 use rkyv::{
@@ -42,6 +45,13 @@ pub trait DeserializeDyn<T: Pointee + ?Sized> {
 
   /// Returns the pointer metadata for the deserialized form of this type.
   fn deserialized_pointer_metadata(&self) -> DynMetadata<T>;
+}
+
+/// Deserializes a trait object directly into its unique shared allocation.
+///
+/// Enabled by `#[cacheable_dyn(unique_arc)]` on the trait and its implementations.
+pub trait DeserializeUniqueDyn<T: ?Sized> {
+  fn deserialize_unique(&self, deserializer: &mut Deserializer) -> Result<UniqueArc<T>>;
 }
 
 /// The archived version of `DynMetadata`.

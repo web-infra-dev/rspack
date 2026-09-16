@@ -364,7 +364,7 @@ impl DependenciesBlock for NormalModule {
   }
 }
 
-#[cacheable_dyn]
+#[cacheable_dyn(unique_arc)]
 #[async_trait::async_trait]
 impl Module for NormalModule {
   fn module_type(&self) -> &ModuleType {

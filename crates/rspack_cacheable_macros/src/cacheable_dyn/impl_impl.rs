@@ -54,6 +54,23 @@ pub fn impl_impl(mut input: ItemImpl, args: DynArgs) -> TokenStream {
         }
   });
 
+  let deserialize_unique = args.unique_arc.then(|| {
+    quote! {
+      impl #crate_path::r#dyn::DeserializeUniqueDyn<dyn #trait_ident> for #archived_target_ident
+      where
+        #archived_target_ident: Deserialize<#target_ident, Deserializer>,
+      {
+        fn deserialize_unique(
+          &self,
+          deserializer: &mut Deserializer,
+        ) -> Result<::std::sync::UniqueArc<dyn #trait_ident>, Error> {
+          let value = <Self as Deserialize<#target_ident, Deserializer>>::deserialize(self, deserializer)?;
+          Ok(::std::sync::UniqueArc::new(value))
+        }
+      }
+    }
+  });
+
   quote! {
       const #dyn_id_ident: u64 = #crate_path::xxhash_rust::const_xxh64::xxh64(concat!(module_path!(), ":", line!()).as_bytes(), 0);
 
@@ -79,6 +96,8 @@ pub fn impl_impl(mut input: ItemImpl, args: DynArgs) -> TokenStream {
           }
           inventory::submit! { DynEntry::new(#dyn_id_ident, get_vtable()) }
           inventory::submit! { CheckBytesEntry::new(get_vtable(), default_check_bytes_dyn::<Archived<#target_ident>>) }
+
+          #deserialize_unique
 
           impl DeserializeDyn<dyn #trait_ident> for #archived_target_ident
           where

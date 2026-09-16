@@ -95,7 +95,7 @@ impl CssModule {
   }
 }
 
-#[cacheable_dyn]
+#[cacheable_dyn(unique_arc)]
 #[async_trait::async_trait]
 impl Module for CssModule {
   impl_module_meta_info!();

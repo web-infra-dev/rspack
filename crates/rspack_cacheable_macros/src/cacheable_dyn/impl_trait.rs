@@ -22,6 +22,9 @@ pub fn impl_trait(mut input: ItemTrait, args: DynArgs) -> TokenStream {
   let deserialize_trait_ident =
     Ident::new(&format!("Deserialize{trait_ident}"), trait_ident.span());
   let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+  let unique_arc_bound = args.unique_arc.then(|| {
+    quote! { + #crate_path::r#dyn::DeserializeUniqueDyn<dyn #trait_ident #ty_generics> }
+  });
 
   input
     .supertraits
@@ -78,12 +81,12 @@ pub fn impl_trait(mut input: ItemTrait, args: DynArgs) -> TokenStream {
                 }
             }
 
-            #trait_vis trait #deserialize_trait_ident #ty_generics: DeserializeDyn<dyn #trait_ident #ty_generics> + Portable #where_clause {}
+            #trait_vis trait #deserialize_trait_ident #ty_generics: DeserializeDyn<dyn #trait_ident #ty_generics> #unique_arc_bound + Portable #where_clause {}
             unsafe impl #ty_generics ptr_meta::Pointee for dyn #deserialize_trait_ident #ty_generics #where_clause {
                 type Metadata = ptr_meta::DynMetadata<Self>;
             }
 
-            impl<__T: DeserializeDyn<dyn #trait_ident #ty_generics> + Portable, #generic_params> #deserialize_trait_ident #ty_generics for __T #where_clause {}
+            impl<__T: DeserializeDyn<dyn #trait_ident #ty_generics> #unique_arc_bound + Portable, #generic_params> #deserialize_trait_ident #ty_generics for __T #where_clause {}
 
             impl #ty_generics ArchivePointee for dyn #deserialize_trait_ident #ty_generics #where_clause {
                 type ArchivedMetadata = ArchivedDynMetadata<Self>;
