@@ -1,8 +1,10 @@
-const { spawnSync } = require("node:child_process");
-const fs = require("node:fs");
-const os = require("node:os");
-const path = require("node:path");
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { createRequire } from "node:module";
 
+const require = createRequire(import.meta.url);
 const coreDir = path.dirname(require.resolve("@rspack/core/package.json"));
 const bindingPath = require.resolve("@rspack/binding", { paths: [coreDir] });
 const binding = require(bindingPath);
