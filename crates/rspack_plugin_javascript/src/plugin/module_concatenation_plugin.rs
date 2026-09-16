@@ -10,12 +10,12 @@ use rspack_collections::{
   Identifiable, IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
-  BoxModule, ChunkUkey, Compilation, CompilationOptimizeChunkModules, Dependency, DependencyType,
+  BoxModule, Compilation, CompilationOptimizeChunkModules, Dependency, DependencyType,
   ExportProvided, ExportsInfoArtifact, GetTargetResult, ImportedByDeferModulesArtifact,
-  LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleGraphConnectionId, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, RuntimeSpecMap, SideEffectsStateArtifact,
-  SourceType,
+  LibIdentOptions, Logger, ModuleChunks, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleGraphConnectionId, ModuleGraphModule, ModuleIdentifier,
+  OptimizationBailoutItem, Plugin, ProvidedExports, RuntimeCondition, RuntimeSpec, RuntimeSpecMap,
+  SideEffectsStateArtifact, SourceType,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
   },
@@ -25,7 +25,6 @@ use rspack_core::{
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::itoa;
-use rustc_hash::FxHashSet as HashSet;
 
 fn format_bailout_reason(msg: &str) -> String {
   format!("ModuleConcatenation bailout: {msg}")
@@ -41,7 +40,7 @@ enum Warning {
 enum ConcatenationProblem {
   MissingChunks {
     module: ModuleIdentifier,
-    root_chunks: Arc<HashSet<ChunkUkey>>,
+    root_chunks: Arc<ModuleChunks>,
   },
   ReferencedFromNonModule {
     module: ModuleIdentifier,
@@ -115,7 +114,7 @@ impl ConcatenationProblem {
         let module_chunks = chunk_graph.get_module_chunks(module);
         let mut missing_chunks = root_chunks
           .iter()
-          .filter(|chunk| !module_chunks.contains(*chunk))
+          .filter(|chunk| !module_chunks.contains(chunk))
           .map(|chunk| {
             chunk_by_ukey
               .expect_get(chunk)
@@ -310,7 +309,7 @@ struct ModuleGraphArtifacts<'a> {
 
 struct ConcatenationSearchContext<'a> {
   compilation: &'a Compilation,
-  root_chunks: &'a Arc<HashSet<ChunkUkey>>,
+  root_chunks: &'a Arc<ModuleChunks>,
   runtime: &'a RuntimeSpec,
   possible_modules: &'a IdentifierSet,
   module_cache: &'a IdentifierMap<NoRuntimeModuleCache>,
@@ -1636,7 +1635,7 @@ struct CachedIncomingModule {
 
 #[derive(Debug)]
 struct DifferentChunkModules {
-  root_chunks: Arc<HashSet<ChunkUkey>>,
+  root_chunks: Arc<ModuleChunks>,
   incoming_modules: Arc<[CachedIncomingModule]>,
   modules: OnceLock<Arc<[ModuleIdentifier]>>,
 }
@@ -1702,7 +1701,7 @@ impl CachedIncomingConnection {
 #[derive(Debug)]
 pub struct NoRuntimeModuleCache {
   runtime: RuntimeSpec,
-  chunks: Arc<HashSet<ChunkUkey>>,
+  chunks: Arc<ModuleChunks>,
   provided_names: bool,
   connections: Vec<CachedOutgoingConnection>,
   incomings: IncomingConnections,

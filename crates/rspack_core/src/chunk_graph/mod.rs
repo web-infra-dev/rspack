@@ -5,8 +5,10 @@ use crate::{AsyncDependenciesBlockIdentifierMap, ChunkGroupUkey, ChunkUkey, Modu
 
 pub mod chunk_graph_chunk;
 pub mod chunk_graph_module;
+mod module_chunks;
 pub use chunk_graph_chunk::{ChunkGraphChunk, ChunkIdMap, ChunkSizeOptions, IndexChunkIdMap};
 pub use chunk_graph_module::{ChunkGraphModule, ModuleId, ModuleIdMap};
+pub use module_chunks::ModuleChunks;
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraph {

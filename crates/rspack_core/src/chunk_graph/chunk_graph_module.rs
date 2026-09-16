@@ -15,8 +15,9 @@ use ustr::Ustr;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
-  ChunkGroupUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier, ModuleIdsArtifact,
-  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, for_each_runtime, get_runtime_key,
+  ChunkGroupUkey, ChunkUkey, Compilation, Module, ModuleChunks, ModuleGraph, ModuleIdentifier,
+  ModuleIdsArtifact, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, for_each_runtime,
+  get_runtime_key,
 };
 
 pub type ModuleIdMap<V> =
@@ -83,7 +84,7 @@ impl rspack_hash::RspackHash for ModuleId {
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraphModule {
   pub(super) entry_in_chunks: FxHashSet<ChunkUkey>,
-  pub chunks: FxHashSet<ChunkUkey>,
+  pub chunks: ModuleChunks,
   pub(super) runtime_in_chunks: FxHashSet<ChunkUkey>,
 }
 
@@ -191,7 +192,7 @@ impl ChunkGraph {
       .get_mut(&module_identifier)
   }
 
-  pub fn get_module_chunks(&self, module_identifier: ModuleIdentifier) -> &FxHashSet<ChunkUkey> {
+  pub fn get_module_chunks(&self, module_identifier: ModuleIdentifier) -> &ModuleChunks {
     let chunk_graph_module = self
       .chunk_graph_module_by_module_identifier
       .get(&module_identifier)
@@ -313,7 +314,7 @@ impl ChunkGraph {
   pub fn try_get_module_chunks(
     &self,
     module_identifier: &ModuleIdentifier,
-  ) -> Option<&FxHashSet<ChunkUkey>> {
+  ) -> Option<&ModuleChunks> {
     self
       .chunk_graph_module_by_module_identifier
       .get(module_identifier)
