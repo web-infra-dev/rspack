@@ -93,7 +93,10 @@ pub async fn resolve_matched_configs(
   for (request, config) in configs {
     let request = config.request.as_deref().unwrap_or(request);
     let lookup_key = RequestMatchKey::new(request, config.issuer_layer.as_deref());
-    if RELATIVE_REQUEST.is_match(request) && enhanced {
+    if RELATIVE_REQUEST.is_match(request) && enhanced && config.issuer_layer.is_some() {
+      // A layered relative consume is matched where its issuer imports it, as in
+      // the enhanced webpack plugin. Unlayered ones keep resolving against the
+      // compiler context.
       unresolved.insert(lookup_key, config.clone());
     } else if RELATIVE_REQUEST.is_match(request) {
       let Ok(ResolveResult::Resource(resource)) = resolver
@@ -307,10 +310,14 @@ impl ConsumeSharedPlugin {
     runtime_mode: RuntimeMode,
     mut add_diagnostic: impl FnMut(Diagnostic),
   ) -> ConsumeSharedModule {
+    // A layered relative fallback resolves from its issuer, like the matching
+    // above; every other relative or absolute import resolves from the compiler
+    // context as before.
+    let issuer_relative = self.options.enhanced && config.issuer_layer.is_some();
     let direct_fallback = matches!(
       &config.import,
       Some(i) if ABSOLUTE_REQUEST.is_match(i)
-        || (!self.options.enhanced && RELATIVE_REQUEST.is_match(i))
+        || (!issuer_relative && RELATIVE_REQUEST.is_match(i))
     );
     let import_resolved = match &config.import {
       None => None,

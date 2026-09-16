@@ -38,7 +38,9 @@ it('should keep fallback resources associated with their configured imports', as
     expect(actual.sort()).toEqual(expected.sort());
   }
   for (const [key, expected] of [
-    ['relative', ['relative-a', 'relative-b']],
+    // An unlayered relative import resolves against the compiler context, as in
+    // webpack, so both issuers share the root fallback.
+    ['relative', ['root']],
     ['same-key', ['b', 'query']],
   ]) {
     const handlers = Object.values(
