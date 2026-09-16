@@ -1,0 +1,26 @@
+import { CssExtractRspackPlugin } from '@rspack/core';
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        type: 'javascript/auto',
+        sideEffects: true,
+        use: [
+          {
+            loader: CssExtractRspackPlugin.loader,
+            options: {
+              esModule: false,
+            },
+          },
+          'css-loader',
+        ],
+      },
+    ],
+  },
+  plugins: [
+    new CssExtractRspackPlugin({
+      filename: '[name].css',
+    }),
+  ],
+};
