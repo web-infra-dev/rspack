@@ -62,7 +62,7 @@ impl ModuleSourceMapConfig for TempModule {
   }
 }
 
-#[cacheable_dyn(unique_arc)]
+#[cacheable_dyn(arc)]
 #[async_trait::async_trait]
 impl Module for TempModule {
   fn factory_meta(&self) -> Option<Arc<FactoryMeta>> {

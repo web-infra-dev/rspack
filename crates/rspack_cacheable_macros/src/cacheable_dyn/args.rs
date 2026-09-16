@@ -5,19 +5,19 @@ use syn::{
 };
 
 mod kw {
-  syn::custom_keyword!(unique_arc);
+  syn::custom_keyword!(arc);
 }
 
 /// Options for `#[cacheable_dyn]` traits and implementations.
 pub struct DynArgs {
   pub crate_path: syn::Path,
-  pub unique_arc: bool,
+  pub arc: bool,
 }
 
 impl Parse for DynArgs {
   fn parse(input: ParseStream) -> Result<Self> {
     let mut crate_path = parse_quote! { ::rspack_cacheable };
-    let mut unique_arc = false;
+    let mut arc = false;
 
     let mut needs_punct = false;
     while !input.is_empty() {
@@ -29,9 +29,9 @@ impl Parse for DynArgs {
         input.parse::<syn::token::Crate>()?;
         input.parse::<Token![=]>()?;
         crate_path = input.parse::<syn::Path>()?;
-      } else if input.peek(kw::unique_arc) {
-        input.parse::<kw::unique_arc>()?;
-        unique_arc = true;
+      } else if input.peek(kw::arc) {
+        input.parse::<kw::arc>()?;
+        arc = true;
       } else {
         return Err(input.error("unexpected #[cacheable_dyn] parameters"));
       }
@@ -39,9 +39,6 @@ impl Parse for DynArgs {
       needs_punct = true;
     }
 
-    Ok(Self {
-      crate_path,
-      unique_arc,
-    })
+    Ok(Self { crate_path, arc })
   }
 }

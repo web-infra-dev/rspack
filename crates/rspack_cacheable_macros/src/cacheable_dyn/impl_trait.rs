@@ -22,13 +22,13 @@ pub fn impl_trait(mut input: ItemTrait, args: DynArgs) -> TokenStream {
   let deserialize_trait_ident =
     Ident::new(&format!("Deserialize{trait_ident}"), trait_ident.span());
   let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-  let deserialize_bound = if args.unique_arc {
-    quote! { #crate_path::r#dyn::DeserializeUniqueDyn<dyn #trait_ident #ty_generics> }
+  let deserialize_bound = if args.arc {
+    quote! { #crate_path::r#dyn::DeserializeArcDyn<dyn #trait_ident #ty_generics> }
   } else {
     quote! { #crate_path::r#dyn::DeserializeDyn<dyn #trait_ident #ty_generics> }
   };
 
-  let deserialize_unsized = (!args.unique_arc).then(|| {
+  let deserialize_unsized = (!args.arc).then(|| {
     quote! {
             impl #ty_generics #crate_path::__private::rkyv::DeserializeUnsized<dyn #trait_ident #ty_generics, #crate_path::Deserializer> for dyn #deserialize_trait_ident #ty_generics #where_clause {
                 unsafe fn deserialize_unsized(

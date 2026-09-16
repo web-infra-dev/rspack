@@ -137,7 +137,7 @@ impl LazyCompilationProxyModule {
 
 impl_empty_diagnosable_trait!(LazyCompilationProxyModule);
 
-#[cacheable_dyn(unique_arc)]
+#[cacheable_dyn(arc)]
 #[async_trait::async_trait]
 impl Module for LazyCompilationProxyModule {
   impl_module_meta_info!();

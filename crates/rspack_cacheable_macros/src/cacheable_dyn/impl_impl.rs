@@ -54,20 +54,20 @@ pub fn impl_impl(mut input: ItemImpl, args: DynArgs) -> TokenStream {
         }
   });
 
-  let deserialize = if args.unique_arc {
+  let deserialize = if args.arc {
     quote! {
-      use ::std::sync::UniqueArc;
+      use ::std::sync::Arc;
 
-      impl #crate_path::r#dyn::DeserializeUniqueDyn<dyn #trait_ident> for #archived_target_ident
+      impl #crate_path::r#dyn::DeserializeArcDyn<dyn #trait_ident> for #archived_target_ident
       where
         #archived_target_ident: Deserialize<#target_ident, Deserializer>,
       {
-        fn deserialize_unique(
+        fn deserialize_arc(
           &self,
           deserializer: &mut Deserializer,
-        ) -> Result<UniqueArc<dyn #trait_ident>, Error> {
-          let value = <Self as Deserialize<#target_ident, Deserializer>>::deserialize(self, deserializer)?;
-          Ok(UniqueArc::new(value))
+        ) -> Result<Arc<dyn #trait_ident>, Error> {
+          let value = #crate_path::r#dyn::deserialize_arc::<#target_ident>(self, deserializer)?;
+          Ok(value)
         }
 
         fn deserialized_pointer_metadata(&self) -> ptr_meta::DynMetadata<dyn #trait_ident> {

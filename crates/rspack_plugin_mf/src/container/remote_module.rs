@@ -101,7 +101,7 @@ impl DependenciesBlock for RemoteModule {
   }
 }
 
-#[cacheable_dyn(unique_arc)]
+#[cacheable_dyn(arc)]
 #[async_trait]
 impl Module for RemoteModule {
   impl_module_meta_info!();

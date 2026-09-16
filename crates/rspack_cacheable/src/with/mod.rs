@@ -1,4 +1,5 @@
 mod r#as;
+mod as_arc;
 mod as_cacheable;
 mod as_inner;
 mod as_map;
@@ -8,13 +9,13 @@ mod as_ref_str;
 mod as_string;
 mod as_tuple2;
 mod as_tuple3;
-mod as_unique_arc;
 mod as_vec;
 mod custom;
 mod inline;
 mod unsupported;
 
 pub use r#as::{As, AsConverter};
+pub use as_arc::AsArc;
 pub use as_cacheable::AsCacheable;
 pub use as_inner::{AsInner, AsInnerConverter};
 pub use as_map::{AsMap, AsMapConverter};
@@ -24,7 +25,6 @@ pub use as_ref_str::{AsRefStr, AsRefStrConverter};
 pub use as_string::{AsString, AsStringConverter};
 pub use as_tuple2::AsTuple2;
 pub use as_tuple3::AsTuple3;
-pub use as_unique_arc::AsUniqueArc;
 pub use as_vec::{AsVec, AsVecConverter};
 pub use custom::{Custom, CustomConverter};
 pub use inline::Inline;

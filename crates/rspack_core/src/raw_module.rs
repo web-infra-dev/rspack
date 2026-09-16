@@ -83,7 +83,7 @@ impl DependenciesBlock for RawModule {
   }
 }
 
-#[cacheable_dyn(unique_arc)]
+#[cacheable_dyn(arc)]
 #[async_trait::async_trait]
 impl Module for RawModule {
   impl_module_meta_info!();

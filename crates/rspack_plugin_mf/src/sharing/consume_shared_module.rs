@@ -117,7 +117,7 @@ impl DependenciesBlock for ConsumeSharedModule {
   }
 }
 
-#[cacheable_dyn(unique_arc)]
+#[cacheable_dyn(arc)]
 #[async_trait]
 impl Module for ConsumeSharedModule {
   impl_module_meta_info!();

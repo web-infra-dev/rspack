@@ -206,7 +206,7 @@ impl DependenciesBlock for RscEntryModule {
   }
 }
 
-#[cacheable_dyn(unique_arc)]
+#[cacheable_dyn(arc)]
 #[async_trait]
 impl Module for RscEntryModule {
   impl_module_meta_info!();

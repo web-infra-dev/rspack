@@ -8,13 +8,8 @@ use std::{
 use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
-  Deserializer, cacheable, cacheable_dyn,
-  rkyv::{
-    Archive, ArchiveUnsized, Deserialize, Place, Serialize as RkyvSerialize, SerializeUnsized,
-    boxed::{ArchivedBox, BoxResolver},
-    rancor::Fallible,
-  },
-  with::{As, AsMap, AsOption, AsPreset, AsUniqueArc, AsVec},
+  cacheable, cacheable_dyn,
+  with::{As, AsArc, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -715,7 +710,7 @@ pub struct ModuleCodeGenerationContext<'a> {
   pub runtime_template: &'a mut ModuleCodeTemplate,
 }
 
-#[cacheable_dyn(unique_arc)]
+#[cacheable_dyn(arc)]
 #[async_trait]
 pub trait Module:
   Debug
@@ -1082,7 +1077,7 @@ pub struct BoxModule(UniqueArc<dyn Module>);
 #[cacheable]
 #[derive(Debug, Clone)]
 #[repr(transparent)]
-pub struct ModuleRef(#[cacheable(with=AsUniqueArc)] Arc<dyn Module>);
+pub struct ModuleRef(#[cacheable(with=AsArc)] Arc<dyn Module>);
 
 impl From<BoxModule> for ModuleRef {
   fn from(module: BoxModule) -> Self {
@@ -1138,34 +1133,6 @@ impl BoxModule {
     compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
     self.0.build(build_context, compilation).await
-  }
-}
-
-// Keep the boxed archive representation, but restore directly into a UniqueArc.
-impl Archive for BoxModule {
-  type Archived = ArchivedBox<<dyn Module as ArchiveUnsized>::Archived>;
-  type Resolver = BoxResolver;
-
-  fn resolve(&self, resolver: Self::Resolver, out: Place<Self::Archived>) {
-    ArchivedBox::resolve_from_ref(self.as_ref(), resolver, out);
-  }
-}
-
-impl<S> RkyvSerialize<S> for BoxModule
-where
-  dyn Module: SerializeUnsized<S>,
-  S: Fallible + ?Sized,
-{
-  fn serialize(&self, serializer: &mut S) -> std::result::Result<Self::Resolver, S::Error> {
-    ArchivedBox::serialize_from_ref(self.as_ref(), serializer)
-  }
-}
-
-impl Deserialize<BoxModule, Deserializer>
-  for ArchivedBox<<dyn Module as ArchiveUnsized>::Archived>
-{
-  fn deserialize(&self, deserializer: &mut Deserializer) -> rspack_cacheable::Result<BoxModule> {
-    self.get().deserialize_unique(deserializer).map(BoxModule)
   }
 }
 
@@ -1352,7 +1319,7 @@ mod test {
         }
       }
 
-      #[::rspack_cacheable::cacheable_dyn(unique_arc)]
+      #[::rspack_cacheable::cacheable_dyn(arc)]
       #[::async_trait::async_trait]
       impl Module for $ident {
         fn module_type(&self) -> &ModuleType {

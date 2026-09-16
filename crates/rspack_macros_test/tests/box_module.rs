@@ -66,17 +66,6 @@ fn arc_conversion_preserves_allocation_and_has_one_owner() {
 }
 
 #[test]
-fn restored_module_can_be_mutated_and_published() {
-  let module = raw_module().boxed();
-  module.freeze_build_info();
-  module.freeze_build_meta();
-  let bytes = to_bytes(&module, &Context).expect("serialize module");
-  let restored = from_bytes::<BoxModule, _>(&bytes, &Context).expect("deserialize module");
-  assert!(restored.downcast_ref::<RawModule>().is_some());
-  assert_shared_allocation(restored);
-}
-
-#[test]
 fn restored_module_refs_share_the_same_allocation() {
   let module = raw_module().boxed();
   module.freeze_build_info();

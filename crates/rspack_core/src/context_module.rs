@@ -1307,7 +1307,7 @@ impl DependenciesBlock for ContextModule {
   }
 }
 
-#[cacheable_dyn(unique_arc)]
+#[cacheable_dyn(arc)]
 #[async_trait::async_trait]
 impl Module for ContextModule {
   impl_module_meta_info!();

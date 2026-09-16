@@ -1,4 +1,4 @@
-use std::sync::{Arc, UniqueArc};
+use std::sync::Arc;
 
 use rkyv::{
   Archive, ArchiveUnsized, Place, Serialize,
@@ -9,13 +9,13 @@ use rkyv::{
   with::{ArchiveWith, DeserializeWith, SerializeWith},
 };
 
-use crate::{Deserializer, Error, Result, r#dyn::DeserializeUniqueDyn};
+use crate::{Deserializer, Error, Result, r#dyn::DeserializeArcDyn};
 
-/// Restores shared trait objects through their `UniqueArc` deserializer while
-/// preserving the archive format and reference sharing of `Arc`.
-pub struct AsUniqueArc;
+/// Restores shared trait objects directly into an Arc allocation while preserving
+/// the archive format and reference sharing of Arc.
+pub struct AsArc;
 
-impl<T: ?Sized> ArchiveWith<Arc<T>> for AsUniqueArc
+impl<T: ?Sized> ArchiveWith<Arc<T>> for AsArc
 where
   Arc<T>: Archive,
 {
@@ -27,7 +27,7 @@ where
   }
 }
 
-impl<T: ?Sized, S: Fallible + ?Sized> SerializeWith<Arc<T>, S> for AsUniqueArc
+impl<T: ?Sized, S: Fallible + ?Sized> SerializeWith<Arc<T>, S> for AsArc
 where
   Arc<T>: Serialize<S>,
 {
@@ -36,10 +36,10 @@ where
   }
 }
 
-impl<T> DeserializeWith<ArchivedRc<T::Archived, ArcFlavor>, Arc<T>, Deserializer> for AsUniqueArc
+impl<T> DeserializeWith<ArchivedRc<T::Archived, ArcFlavor>, Arc<T>, Deserializer> for AsArc
 where
   T: ArchiveUnsized + Pointee<Metadata = DynMetadata<T>> + ?Sized,
-  T::Archived: DeserializeUniqueDyn<T>,
+  T::Archived: DeserializeArcDyn<T>,
 {
   fn deserialize_with(
     field: &ArchivedRc<T::Archived, ArcFlavor>,
@@ -49,7 +49,7 @@ where
     let address = archived as *const T::Archived as *const () as usize;
     match deserializer.start_pooling(address) {
       PoolingState::Started => {
-        let value = UniqueArc::into_arc(archived.deserialize_unique(deserializer)?);
+        let value = archived.deserialize_arc(deserializer)?;
         let pooled = Arc::into_raw(Arc::clone(&value));
         // SAFETY: `pooled` owns one strong reference, which the pool releases
         // through `drop_arc`. The concrete Pool takes ownership only on success.
