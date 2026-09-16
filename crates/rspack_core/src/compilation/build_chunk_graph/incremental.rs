@@ -506,12 +506,11 @@ impl CodeSplitter {
     let ordinal_by_module = &mut self.ordinal_by_module;
     for m in module_graph.modules_keys() {
       if !ordinal_by_module.contains_key(m) {
-        ordinal_by_module.insert(*m, ordinal_by_module.len() as u64 + 1);
+        ordinal_by_module.insert(*m, ordinal_by_module.len() as u64);
       }
     }
     for chunk in compilation.build_chunk_graph_artifact.chunk_by_ukey.keys() {
-      // module ordinals start from 1, so capacity is module count + 1
-      let mut mask = FixedBitSet::with_capacity(self.ordinal_by_module.len() + 1);
+      let mut mask = FixedBitSet::with_capacity(self.ordinal_by_module.len());
       for module_id in compilation
         .build_chunk_graph_artifact
         .chunk_graph

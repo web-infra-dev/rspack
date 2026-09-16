@@ -636,8 +636,7 @@ impl CodeSplitter {
     }
     self.mask_by_chunk.insert(
       chunk_ukey,
-      // module ordinals start from 1, so capacity is module count + 1
-      FixedBitSet::with_capacity(self.ordinal_by_module.len() + 1),
+      FixedBitSet::with_capacity(self.ordinal_by_module.len()),
     );
     let runtime = get_entry_runtime(name, options, &compilation.entries);
     let chunk = compilation
@@ -944,7 +943,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           }
           self.mask_by_chunk.insert(
             chunk_ukey,
-            FixedBitSet::with_capacity(self.ordinal_by_module.len() + 1),
+            FixedBitSet::with_capacity(self.ordinal_by_module.len()),
           );
           let chunk = compilation
             .build_chunk_graph_artifact
@@ -1831,7 +1830,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .add_chunk(chunk_ukey);
       self.mask_by_chunk.insert(
         chunk_ukey,
-        FixedBitSet::with_capacity(self.ordinal_by_module.len() + 1),
+        FixedBitSet::with_capacity(self.ordinal_by_module.len()),
       );
       let module_graph = compilation.get_module_graph();
       let block = module_graph
@@ -2401,7 +2400,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .clone()
           .expect("should have resulting available modules")
       } else {
-        let mut available_modules = FixedBitSet::with_capacity(self.ordinal_by_module.len() + 1);
+        let mut available_modules = FixedBitSet::with_capacity(self.ordinal_by_module.len());
 
         // combine min_available_modules from all resulting_available_modules
         for source_ukey in source_ukeys {
