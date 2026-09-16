@@ -9,7 +9,7 @@ use rspack_core::{
   CodeGenerationRuntimeRequirementsWrite, Compilation, Context, DependenciesBlock,
   DependenciesBlockData, Dependency, DependencyType, ExportsArgument, FactoryMetaStore, FreezeLock,
   GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleCodeTemplate,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
   RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
   impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
@@ -35,7 +35,6 @@ pub struct ContainerEntryModule {
   identifier: ModuleIdentifier,
   lib_ident: String,
   exposes: Vec<(String, ExposeOptions)>,
-  expose_layers: Vec<Option<ModuleLayer>>,
   share_scope: ShareScope,
   factory_meta: FactoryMetaStore,
   build_info: FreezeLock<BuildInfo>,
@@ -57,25 +56,6 @@ impl ContainerEntryModule {
     enhanced: bool,
     runtime_mode: RuntimeMode,
   ) -> Self {
-    let expose_layers = vec![None; exposes.len()];
-    Self::new_with_expose_layers(
-      name,
-      exposes,
-      expose_layers,
-      share_scope,
-      enhanced,
-      runtime_mode,
-    )
-  }
-
-  pub(crate) fn new_with_expose_layers(
-    name: String,
-    exposes: Vec<(String, ExposeOptions)>,
-    expose_layers: Vec<Option<ModuleLayer>>,
-    share_scope: ShareScope,
-    enhanced: bool,
-    runtime_mode: RuntimeMode,
-  ) -> Self {
     let namespace = module_identifier_namespace(runtime_mode);
     let lib_ident = format!("{namespace}/container/entry/{name}");
     Self {
@@ -84,13 +64,12 @@ impl ContainerEntryModule {
         "container entry {} {}",
         share_scope.identifier_fragment(),
         // Same `[[key, options]]` payload as webpack's ContainerEntryModule,
-        // which external manifest readers parse; a layer is carried inside
-        // its expose's options object and only when present.
-        json_stringify(&expose_identifier_payload(&exposes, &expose_layers)),
+        // which external manifest readers parse; `ExposeOptions::layer` is
+        // serialized only when present.
+        json_stringify(&exposes),
       )),
       lib_ident,
       exposes,
-      expose_layers,
       share_scope,
       factory_meta: Default::default(),
       build_info: BuildInfo {
@@ -131,7 +110,6 @@ impl ContainerEntryModule {
       identifier: ModuleIdentifier::from(format!("share container entry {identity_key}@{version}")),
       lib_ident,
       exposes: vec![],
-      expose_layers: vec![],
       share_scope,
       factory_meta: Default::default(),
       build_info: BuildInfo {
@@ -156,10 +134,6 @@ impl ContainerEntryModule {
 
   pub fn exposes(&self) -> &[(String, ExposeOptions)] {
     &self.exposes
-  }
-
-  pub fn expose_layers(&self) -> &[Option<ModuleLayer>] {
-    &self.expose_layers
   }
 
   pub fn name(&self) -> &str {
@@ -250,7 +224,7 @@ impl Module for ContainerEntryModule {
       }
     } else {
       // Container logic
-      for (index, (name, options)) in self.exposes.iter().enumerate() {
+      for (name, options) in &self.exposes {
         let mut block = AsyncDependenciesBlock::new(
           self.identifier,
           None,
@@ -262,7 +236,7 @@ impl Module for ContainerEntryModule {
               BoxDependency::new(ContainerExposedDependency::new_with_layer(
                 name.clone(),
                 request.clone(),
-                self.expose_layers.get(index).cloned().flatten(),
+                options.layer.clone(),
               ))
             })
             .collect(),
@@ -507,36 +481,6 @@ var init = function(shareScope, initScope) {{
 }
 
 impl_empty_diagnosable_trait!(ContainerEntryModule);
-
-/// One expose as serialized into the container identifier: the public
-/// `ExposeOptions` fields plus the expose's layer when it has one.
-#[derive(serde::Serialize)]
-struct ExposeIdentifierPayload<'a> {
-  name: &'a Option<String>,
-  import: &'a [String],
-  #[serde(skip_serializing_if = "Option::is_none")]
-  layer: &'a Option<ModuleLayer>,
-}
-
-fn expose_identifier_payload<'a>(
-  exposes: &'a [(String, ExposeOptions)],
-  expose_layers: &'a [Option<ModuleLayer>],
-) -> Vec<(&'a str, ExposeIdentifierPayload<'a>)> {
-  exposes
-    .iter()
-    .enumerate()
-    .map(|(index, (key, options))| {
-      (
-        key.as_str(),
-        ExposeIdentifierPayload {
-          name: &options.name,
-          import: &options.import,
-          layer: expose_layers.get(index).unwrap_or(&None),
-        },
-      )
-    })
-    .collect()
-}
 
 #[cacheable]
 #[derive(Debug, Clone)]

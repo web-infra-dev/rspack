@@ -39,14 +39,9 @@ pub struct RawContainerPluginOptions {
 }
 
 impl RawContainerPluginOptions {
-  pub fn into_options(self) -> (ContainerPluginOptions, Vec<Option<String>>) {
+  pub fn into_options(self) -> ContainerPluginOptions {
     let share_scope = into_share_scope(self.share_scope);
-    let expose_layers = self
-      .exposes
-      .iter()
-      .map(|expose| expose.layer.clone())
-      .collect();
-    let options = ContainerPluginOptions {
+    ContainerPluginOptions {
       name: self.name,
       share_scope,
       library: self.library.into(),
@@ -54,8 +49,7 @@ impl RawContainerPluginOptions {
       filename: self.filename.map(|f| f.into()),
       exposes: self.exposes.into_iter().map(|e| e.into()).collect(),
       enhanced: self.enhanced,
-    };
-    (options, expose_layers)
+    }
   }
 }
 
@@ -75,6 +69,7 @@ impl From<RawExposeOptions> for (String, ExposeOptions) {
       ExposeOptions {
         name: value.name,
         import: value.import,
+        layer: value.layer,
       },
     )
   }

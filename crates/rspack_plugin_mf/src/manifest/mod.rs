@@ -373,11 +373,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           };
           let id_comp = compose_id_with_separator(&container_name, &expose_name);
           let expose_file_key = strip_ext(import);
-          let expose_layer = container_entry
-            .expose_layers()
-            .get(index)
-            .cloned()
-            .flatten();
+          let expose_layer = options.layer.clone();
           let expose_identity = ExposeIdentity::new(expose_key, expose_layer.as_deref());
           expose_imports.insert(expose_identity.clone(), expose_file_key.clone());
           let expose_block = blocks

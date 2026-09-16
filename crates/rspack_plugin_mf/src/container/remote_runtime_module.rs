@@ -13,7 +13,7 @@ use serde::Serialize;
 use super::{fallback_module::FallbackModule, remote_module::RemoteModule};
 use crate::{
   ShareScope,
-  utils::{runtime_require_scope_name, runtime_require_scope_requirement},
+  utils::{json_stringify, runtime_require_scope_name, runtime_require_scope_requirement},
 };
 
 static REMOTES_LOADING_TEMPLATE: &str = include_str!("./remotesLoading.ejs");
@@ -177,10 +177,8 @@ impl RuntimeModule for RemoteRuntimeModule {
 {remotes_loading_impl}
 "#,
       require_name = runtime_require_scope_name(runtime_template),
-      chunk_mapping =
-        simd_json::to_string(&chunk_to_remotes_mapping).expect("valid remote chunk mapping"),
-      id_to_remote_data_mapping =
-        simd_json::to_string(&id_to_remote_data_mapping).expect("valid remote data"),
+      chunk_mapping = json_stringify(&chunk_to_remotes_mapping),
+      id_to_remote_data_mapping = json_stringify(&id_to_remote_data_mapping),
       remotes_loading_impl = remotes_loading_impl,
     ))
   }
