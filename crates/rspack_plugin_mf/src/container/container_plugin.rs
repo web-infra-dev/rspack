@@ -3,8 +3,8 @@ use std::sync::Arc;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements, CompilationParams,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerMake, DependencyRef,
-  DependencyType, EntryOptions, EntryRuntime, Filename, LibraryOptions, Plugin, RuntimeGlobals,
-  RuntimeModule, SourceType,
+  DependencyType, EntryOptions, EntryRuntime, Filename, LibraryOptions, ModuleLayer, Plugin,
+  RuntimeGlobals, RuntimeModule, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -33,6 +33,11 @@ pub struct ContainerPluginOptions {
 pub struct ExposeOptions {
   pub name: Option<String>,
   pub import: Vec<String>,
+  /// Layer the exposed module is built in. Serialized into the container
+  /// identifier only when present so unlayered identifiers keep webpack's
+  /// `[[key, options]]` payload.
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub layer: Option<ModuleLayer>,
 }
 
 #[plugin]
@@ -176,5 +181,39 @@ impl Plugin for ContainerPlugin {
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));
     Ok(())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::ExposeOptions;
+  use crate::utils::json_stringify;
+
+  #[test]
+  fn expose_options_serialize_to_the_webpack_identifier_payload() {
+    let plain = (
+      "./a",
+      ExposeOptions {
+        name: None,
+        import: vec!["./a.js".into()],
+        layer: None,
+      },
+    );
+    assert_eq!(
+      json_stringify(&[&plain]),
+      r#"[["./a",{"name":null,"import":["./a.js"]}]]"#
+    );
+    let layered = (
+      "./b",
+      ExposeOptions {
+        name: Some("b".into()),
+        import: vec!["./b.js".into()],
+        layer: Some("server".into()),
+      },
+    );
+    assert_eq!(
+      json_stringify(&[&layered]),
+      r#"[["./b",{"name":"b","import":["./b.js"],"layer":"server"}]]"#
+    );
   }
 }

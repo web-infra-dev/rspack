@@ -13,31 +13,57 @@ import { parseOptions } from '../container/options';
 import { normalizeShareScope, type ShareScope } from '../sharing/SharePlugin';
 import { ShareRuntimePlugin } from '../sharing/ShareRuntimePlugin';
 
-export type ContainerPluginOptions = {
-  exposes: Exposes;
+type ContainerPluginBaseOptions<Enhanced extends boolean> = {
+  exposes: Exposes<Enhanced>;
   filename?: FilenameTemplate;
   library?: LibraryOptions;
   name: string;
   runtime?: EntryRuntime;
   shareScope?: ShareScope;
-  enhanced?: boolean;
 };
-export type Exposes = (ExposesItem | ExposesObject)[] | ExposesObject;
+export interface ContainerPluginOptions extends ContainerPluginBaseOptions<false> {
+  enhanced?: boolean;
+}
+
+export interface EnhancedContainerPluginOptions extends ContainerPluginBaseOptions<true> {
+  enhanced: true;
+}
+
+type ContainerPluginConstructorOptions<Enhanced extends boolean = boolean> = [
+  Enhanced,
+] extends [true]
+  ? EnhancedContainerPluginOptions
+  : [Enhanced] extends [false]
+    ? ContainerPluginBaseOptions<false> & { enhanced?: false }
+    : | (ContainerPluginBaseOptions<false> & { enhanced?: false })
+      | EnhancedContainerPluginOptions
+      | (ContainerPluginBaseOptions<false> & { enhanced: boolean });
+export type Exposes<Enhanced extends boolean = false> =
+  (ExposesItem | ExposesObject<Enhanced>)[] | ExposesObject<Enhanced>;
 export type ExposesItem = string;
 export type ExposesItems = ExposesItem[];
-export type ExposesObject = {
-  [k: string]: ExposesConfig | ExposesItem | ExposesItems;
+export type ExposesObject<Enhanced extends boolean = false> = {
+  [k: string]: ExposesConfig<Enhanced> | ExposesItem | ExposesItems;
 };
-export type ExposesConfig = {
+type ExposesBaseConfig = {
   import: ExposesItem | ExposesItems;
   name?: string;
 };
+export type ExposesConfig<Enhanced extends boolean = false> = [
+  Enhanced,
+] extends [true]
+  ? ExposesBaseConfig & { layer?: string }
+  : [Enhanced] extends [false]
+    ? ExposesBaseConfig & { layer?: never }
+    : ExposesBaseConfig & { layer?: string };
 
-export class ContainerPlugin extends RspackBuiltinPlugin {
+export class ContainerPlugin<
+  Enhanced extends boolean = boolean,
+> extends RspackBuiltinPlugin {
   name = BuiltinPluginName.ContainerPlugin;
   _options;
 
-  constructor(options: ContainerPluginOptions) {
+  constructor(options: ContainerPluginConstructorOptions<Enhanced>) {
     super();
     const enhanced = options.enhanced ?? false;
     const shareScope = normalizeShareScope(
@@ -59,11 +85,18 @@ export class ContainerPlugin extends RspackBuiltinPlugin {
         (item) => ({
           import: Array.isArray(item) ? item : [item],
           name: undefined,
+          layer: undefined,
         }),
-        (item) => ({
-          import: Array.isArray(item.import) ? item.import : [item.import],
-          name: item.name || undefined,
-        }),
+        (item) => {
+          if (!enhanced && item.layer !== undefined) {
+            throw new Error('[ContainerPlugin] layer requires enhanced=true');
+          }
+          return {
+            import: Array.isArray(item.import) ? item.import : [item.import],
+            name: item.name || undefined,
+            layer: enhanced ? item.layer : undefined,
+          };
+        },
       ),
       enhanced,
     };

@@ -177,10 +177,8 @@ impl RuntimeModule for RemoteRuntimeModule {
 {remotes_loading_impl}
 "#,
       require_name = runtime_require_scope_name(runtime_template),
-      chunk_mapping =
-        json_stringify(&chunk_to_remotes_mapping),
-      id_to_remote_data_mapping =
-        json_stringify(&id_to_remote_data_mapping),
+      chunk_mapping = json_stringify(&chunk_to_remotes_mapping),
+      id_to_remote_data_mapping = json_stringify(&id_to_remote_data_mapping),
       remotes_loading_impl = remotes_loading_impl,
     ))
   }

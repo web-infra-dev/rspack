@@ -135,10 +135,29 @@ Definition of the modules and their addresses that will be loaded remotely. The 
   interface ExposesConfig {
     import: ExposesItem | ExposesItems;
     name?: string;
+    layer?: string;
   }
   ```
 
 Define how local modules can be referenced by remote containers. The key is the name of the module when referenced as a remote module in the remote container, and the value is the module path relative to the current folder. You can provide a name to specify the name of the exposed local module.
+
+#### exposes.layer
+
+- Type: `string`
+
+Assign a [module layer](/guide/advanced/layer) to an exposed module. This allows the same module request to be exposed in different layers without assigning its layer through `module.rules`:
+
+```js
+new rspack.container.ModuleFederationPlugin({
+  name: 'app',
+  exposes: {
+    './server': { import: './src/module.js', layer: 'server' },
+    './client': { import: './src/module.js', layer: 'client' },
+  },
+});
+```
+
+This option is available with Module Federation 1.5, which uses the enhanced runtime. When using `ContainerPlugin` directly, set `enhanced: true`; Module Federation 1.0 does not support this option. Omitting `layer` leaves it unspecified. An empty string (`layer: ''`) is preserved as an explicit layer value and is distinct from an omitted layer.
 
 ### shared
 
