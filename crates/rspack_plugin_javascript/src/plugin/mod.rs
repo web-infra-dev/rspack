@@ -251,6 +251,50 @@ var module = ({module_cache}[moduleId] = {{"#,
     sources
   }
 
+  fn render_entry_exports_update<'a>(
+    chunk_ukey: &ChunkUkey,
+    compilation: &Compilation,
+    runtime_template: &RuntimeCodeTemplate,
+    runtime_requirements: RuntimeGlobals,
+    header: &mut Vec<Cow<'a, str>>,
+  ) {
+    if runtime_requirements.contains(RuntimeGlobals::UPDATE_ENTRY_EXPORTS) {
+      // Only the final default startup entry owns this binding. A shared runtime
+      // or a custom startup has no provable owner; callers must use their fallback.
+      let owner = if runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT) {
+        None
+      } else {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
+          .iter()
+          .next_back()
+          .and_then(|(module, _)| {
+            ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
+          })
+      };
+      let body = owner.map_or_else(
+        || "return false;".to_string(),
+        |id| {
+          format!(
+            "if (moduleId !== {}) return false;\n{} = nextExports;\nreturn true;",
+            rspack_util::json_stringify(id),
+            runtime_template.render_runtime_variable(&RuntimeVariable::Exports)
+          )
+        },
+      );
+      header.push(
+        format!(
+          "{} = {};",
+          runtime_template.render_runtime_globals(&RuntimeGlobals::UPDATE_ENTRY_EXPORTS),
+          runtime_template.basic_function("moduleId, nextExports", &body)
+        )
+        .into(),
+      );
+    }
+  }
+
   pub async fn render_bootstrap<'me>(
     chunk_ukey: &ChunkUkey,
     compilation: &'me Compilation,
@@ -296,6 +340,9 @@ var module = ({module_cache}[moduleId] = {{"#,
       .output
       .environment
       .supports_arrow_function();
+    if runtime_requirements.contains(RuntimeGlobals::UPDATE_ENTRY_EXPORTS) {
+      allow_inline_startup = false;
+    }
     if allow_inline_startup && module_factories {
       startup.push("// module factories are used so entry inlining is disabled".into());
       allow_inline_startup = false;
@@ -689,6 +736,14 @@ var {} = {{}};
         .into(),
       );
     }
+
+    Self::render_entry_exports_update(
+      chunk_ukey,
+      compilation,
+      runtime_template,
+      runtime_requirements,
+      &mut header,
+    );
 
     Ok(RenderBootstrapResult {
       header,

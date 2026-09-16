@@ -22,3 +22,25 @@ declare class RuntimeModule {
 ```
 
 </>
+
+## Updating retained entry exports
+
+Rspack plugins can request `compiler.webpack.RuntimeGlobals.updateEntryExports`
+through `additionalTreeRuntimeRequirements`. This emits a runtime function:
+
+```ts
+updateEntryExports(entryModuleId: string | number, nextExports: unknown): boolean;
+```
+
+The function replaces the bootstrap's retained startup exports when the module ID
+matches the final entry module of the default startup in that runtime chunk. It
+returns `true` on replacement. It returns `false` without modifying exports for
+other IDs, shared runtime chunks without an entry, or custom startup
+(`startupNoDefault`). Callers must fall back to rebuilding their application when
+synchronization is unsupported.
+
+This is a Rspack-only capability for plugins implementing entry reloading. It does
+not execute modules, invalidate module caches, update published library exports,
+or release application-owned references. The caller must reload the entry first
+and separately publish its new exports. Requesting this capability disables entry
+inlining; builds that do not request it are unchanged.

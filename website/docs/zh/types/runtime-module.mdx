@@ -22,3 +22,21 @@ declare class RuntimeModule {
 ```
 
 </>
+
+## 更新保留的入口导出
+
+Rspack 插件可以通过 `additionalTreeRuntimeRequirements` 请求
+`compiler.webpack.RuntimeGlobals.updateEntryExports`，生成以下运行时函数：
+
+```ts
+updateEntryExports(entryModuleId: string | number, nextExports: unknown): boolean;
+```
+
+当模块 ID 匹配当前 runtime chunk 默认启动流程的最后一个入口模块时，该函数替换
+bootstrap 保留的启动导出并返回 `true`。其他模块 ID、没有入口的共享 runtime chunk，
+以及自定义启动流程（`startupNoDefault`）均返回 `false`，不修改导出。
+调用方必须在不支持同步时回退到应用重建。
+
+这是 Rspack 为实现入口重载的插件提供的专有能力。它不执行模块、不清除模块缓存、
+不更新已发布的 library 导出，也不释放业务持有的引用。调用方需要先重载入口，
+并单独发布新的导出。请求此能力会禁用入口内联；未请求此能力的构建不受影响。
