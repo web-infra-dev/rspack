@@ -400,6 +400,7 @@ pub struct RawRemoteAliasTarget {
 pub struct RawManifestExposeOption {
   pub path: String,
   pub name: String,
+  pub layer: Option<String>,
 }
 
 #[derive(Debug)]
@@ -408,6 +409,8 @@ pub struct RawManifestSharedOption {
   pub name: String,
   pub version: Option<String>,
   pub required_version: Option<String>,
+  pub share_scope: Option<Either<String, Vec<String>>>,
+  pub layer: Option<String>,
   pub singleton: Option<bool>,
 }
 
@@ -466,6 +469,7 @@ impl From<RawModuleFederationManifestPluginOptions> for ModuleFederationManifest
         .map(|expose| ManifestExposeOption {
           path: expose.path,
           name: expose.name,
+          layer: expose.layer,
         })
         .collect(),
       shared: value
@@ -476,6 +480,11 @@ impl From<RawModuleFederationManifestPluginOptions> for ModuleFederationManifest
           name: shared.name,
           version: shared.version,
           required_version: shared.required_version,
+          share_scope: shared.share_scope.map_or_else(
+            || ShareScope::Single("default".to_string()),
+            into_share_scope,
+          ),
+          layer: shared.layer,
           singleton: shared.singleton,
         })
         .collect(),
