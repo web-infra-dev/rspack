@@ -702,23 +702,6 @@ export async function runLoaders(
     return options;
   };
 
-  let compilation: Compilation | undefined = compiler._lastCompilation;
-  let step = 0;
-  while (compilation) {
-    NormalModule.getCompilationHooks(compilation).loader.call(
-      loaderContext,
-      loaderContext._module,
-    );
-    compilation = compilation.compiler.parentCompilation;
-    step++;
-    if (step > 1000) {
-      throw Error(
-        'Too many nested child compiler, exceeded max limitation 1000',
-      );
-    }
-  }
-  dependencies.mergeChanges();
-
   /// Sync with `context`
   Object.defineProperty(loaderContext, 'loaderIndex', {
     enumerable: true,
@@ -744,6 +727,23 @@ export async function runLoaders(
   loaderContext.__internal__setParseMeta = (key: string, value: string) => {
     context.__internal__parseMeta[key] = value;
   };
+
+  let compilation: Compilation | undefined = compiler._lastCompilation;
+  let step = 0;
+  while (compilation) {
+    NormalModule.getCompilationHooks(compilation).loader.call(
+      loaderContext,
+      loaderContext._module,
+    );
+    compilation = compilation.compiler.parentCompilation;
+    step++;
+    if (step > 1000) {
+      throw Error(
+        'Too many nested child compiler, exceeded max limitation 1000',
+      );
+    }
+  }
+  dependencies.mergeChanges();
 
   const getWorkerLoaderContext = () => {
     const normalModule =
