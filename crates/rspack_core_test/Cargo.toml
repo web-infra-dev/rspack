@@ -5,7 +5,11 @@ name              = "rspack_core_test"
 publish           = false
 version.workspace = true
 
-[dependencies]
+[lib]
+doctest = false
+test    = false
+
+[dev-dependencies]
 rspack_cacheable   = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_core        = { workspace = true }

@@ -35,10 +35,9 @@ impl RemoveEmptyChunksPlugin {
         .build_chunk_graph_artifact
         .remove_chunk(chunk_ukey)
         .is_some()
+        && let Some(mut mutations) = compilation.incremental.mutations_write()
       {
-        if let Some(mut mutations) = compilation.incremental.mutations_write() {
-          mutations.add(Mutation::ChunkRemove { chunk: *chunk_ukey });
-        }
+        mutations.add(Mutation::ChunkRemove { chunk: *chunk_ukey });
       }
     }
 

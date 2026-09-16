@@ -929,7 +929,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             .build_chunk_graph_artifact
             .chunk_graph
             .chunks
-            .expect_get_mut(&ukey)
+            .expect_get_mut(ukey)
         }
         None => {
           let (chunk_ukey, created) = compilation
