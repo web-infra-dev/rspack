@@ -35,7 +35,7 @@ const creator = new HashCaseCreator({
         configMultiCompiler(
           context,
           name,
-          ['rspack.config.js', 'webpack.config.js'],
+          ['rspack.config.mjs', 'rspack.config.js'],
           defaultOptions,
           overrideOptions,
         );

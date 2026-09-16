@@ -14,6 +14,10 @@ export function readConfigFile(
   const existsFile = files.find((i) => fs.existsSync(i));
   let fileConfig = existsFile ? require(existsFile) : {};
 
+  if (existsFile?.endsWith('.mjs')) {
+    fileConfig = fileConfig.default;
+  }
+
   if (typeof fileConfig === 'function') {
     fileConfig = fileConfig(
       { config: prevOption },

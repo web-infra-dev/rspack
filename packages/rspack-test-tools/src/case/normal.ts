@@ -50,7 +50,7 @@ export function createNormalProcessor(
       options = await config(
         context,
         name,
-        ['rspack.config.js', 'webpack.config.js'],
+        ['rspack.config.mjs', 'rspack.config.js'],
         options,
       );
       overrideOptions(context, options);

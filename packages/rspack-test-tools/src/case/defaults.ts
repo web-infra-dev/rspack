@@ -41,10 +41,10 @@ export function getRspackDefaultConfig(
   config: RspackOptions,
 ): RspackOptionsNormalized {
   process.chdir(cwd);
-  const { applyWebpackOptionsDefaults, getNormalizedWebpackOptions } =
+  const { applyRspackOptionsDefaults, getNormalizedRspackOptions } =
     rspackConfig;
-  const normalizedConfig = getNormalizedWebpackOptions(config);
-  applyWebpackOptionsDefaults(normalizedConfig);
+  const normalizedConfig = getNormalizedRspackOptions(config);
+  applyRspackOptionsDefaults(normalizedConfig);
   // make snapshot stable
   (normalizedConfig as any).output.bundlerInfo.version = '$version$';
   process.chdir(CURRENT_CWD);
