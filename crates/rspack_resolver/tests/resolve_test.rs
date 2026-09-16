@@ -1,6 +1,11 @@
-use std::{env, path::PathBuf};
+use std::{
+  env,
+  path::{Path, PathBuf},
+};
 
-use rspack_resolver::{ResolveError, ResolveOptions, Resolver};
+use rspack_resolver::{
+  ResolveError, ResolveOptions, Resolver, TsconfigOptions, TsconfigReferences,
+};
 
 fn dir() -> PathBuf {
   env::current_dir().expect("current dir should be accessible")
@@ -214,4 +219,60 @@ async fn decimal_js_from_mathjs() {
       .map(|r| r.full_path());
     assert_eq!(resolution, Ok(module_path.clone()));
   }
+}
+
+/// Creates the symlink a pnpm install would: `node_modules/shared-config`
+/// points into a store directory where its `@tsconfig/base` dependency sits
+/// next to it, so the dependency is reachable only through the real path.
+///
+/// Returns `false` when symlink creation is not permitted, which is the
+/// normal case for an unprivileged Windows session.
+fn link_shared_config(fixture: &Path) -> bool {
+  let link = fixture.join("node_modules").join("shared-config");
+  if link.exists() {
+    return true;
+  }
+  // An absolute target with native separators: Windows stores a relative
+  // target verbatim and does not resolve one written with `/`.
+  let target = fixture
+    .join("store")
+    .join("node_modules")
+    .join("shared-config");
+  std::fs::create_dir_all(link.parent().expect("link has a parent")).expect("can create dir");
+  #[cfg(target_family = "unix")]
+  let created = std::os::unix::fs::symlink(target, &link);
+  #[cfg(target_family = "windows")]
+  let created = std::os::windows::fs::symlink_dir(target, &link);
+  created.is_ok()
+}
+
+/// A tsconfig `extends` chain that passes through a symlinked package must
+/// continue from the package's real path, where its own dependencies live.
+/// <https://github.com/web-infra-dev/rspack/issues/15717>
+#[tokio::test]
+async fn tsconfig_extends_through_symlinked_package() {
+  let fixture = dir()
+    .join("fixtures")
+    .join("tsconfig")
+    .join("cases")
+    .join("extends-symlink");
+  if !link_shared_config(&fixture) {
+    return;
+  }
+
+  let resolver = Resolver::new(ResolveOptions {
+    tsconfig: Some(TsconfigOptions {
+      config_file: fixture.join("tsconfig.json"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+  let resolution = resolver
+    .resolve(&fixture, "foo")
+    .await
+    .map(|r| r.full_path());
+  assert_eq!(
+    resolution,
+    Ok(fixture.join("store/node_modules/@tsconfig/base/foo.js"))
+  );
 }
