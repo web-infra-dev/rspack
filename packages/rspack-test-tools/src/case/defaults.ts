@@ -6,13 +6,14 @@ import {
   type RspackOptionsNormalized,
 } from '@rspack/core';
 import { diff as jestDiff } from 'jest-diff';
+import { readTestFile } from '../helper/read-test-file';
 import { TestContext } from '../test/context';
 import type { ITestContext, ITestEnv, ITestProcessor } from '../type';
 
 const CURRENT_CWD = process.cwd();
 
 export function createDefaultsCase(name: string, src: string) {
-  const caseConfig = require(src) as TDefaultsCaseConfig;
+  const caseConfig = readTestFile<TDefaultsCaseConfig>(src);
   it(`should generate the correct defaults from ${caseConfig.description}`, async () => {
     await run(name, {
       config: (context: ITestContext) => {
