@@ -16,6 +16,7 @@ import {
   resolveShareKey,
   resolveShareRequest,
   resolveShareScope,
+  validateLayer,
 } from './utils';
 
 type ConsumeSharedPluginBaseOptions<Enhanced extends boolean> = {
@@ -133,6 +134,12 @@ export function normalizeConsumeShareOptions<
       const request = enhanced
         ? resolveShareRequest(enhancedItem.request, key)
         : key;
+      validateLayer(enhancedItem.layer, 'ConsumeSharedPlugin');
+      validateLayer(
+        enhancedItem.issuerLayer,
+        'ConsumeSharedPlugin',
+        'issuerLayer',
+      );
       return {
         import: item.import === false ? undefined : item.import || request,
         shareScope: normalizeShareScope(
