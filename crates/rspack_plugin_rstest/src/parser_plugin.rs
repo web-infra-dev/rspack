@@ -866,6 +866,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     _source: &Atom,
     _export_name: Option<&Atom>,
     identifier_name: &Atom,
+    _identifier: swc_next_ecma_ast::BindingIdentifier,
   ) -> Option<bool> {
     if matches!(identifier_name.as_str(), "rs" | "rstest") {
       let source_order = parser.current_esm_import_order();
