@@ -36,7 +36,7 @@ use crate::{
   ModuleLayer, ModuleType, NeedBuildContext, OptimizationBailoutItem, OutputOptions, ParseContext,
   ParseResult, ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions,
   RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  SnapshotValidationResult, SourceType, contextify,
+  SnapshotValidationResult, SourceType, contextify, contextify_source_map, contextify_source_url,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -561,6 +561,7 @@ impl Module for NormalModule {
       Content::String(loader_result.content.into_string_lossy())
     };
     let source = self.create_source(
+      build_context.compiler_options.context.as_str(),
       content,
       loader_result.source_map.map(|source_map| *source_map),
     )?;
@@ -931,6 +932,7 @@ impl Diagnosable for NormalModule {
 impl NormalModule {
   fn create_source(
     &self,
+    context: &str,
     content: Content,
     source_map: Option<SourceMap<'static>>,
   ) -> Result<BoxSource> {
@@ -939,13 +941,14 @@ impl NormalModule {
     }
     let source_map_kind = self.get_source_map_kind();
     if source_map_kind.enabled()
-      && let Some(source_map) = source_map
+      && let Some(mut source_map) = source_map
     {
+      contextify_source_map(context, &mut source_map);
       let content = content.into_string_lossy();
       return Ok(
         SourceMapSource::new(WithoutOriginalOptions {
           value: content,
-          name: self.request(),
+          name: contextify_source_url(context, self.request()),
           source_map,
         })
         .boxed(),
@@ -954,7 +957,9 @@ impl NormalModule {
     if source_map_kind.enabled()
       && let Content::String(content) = content
     {
-      return Ok(OriginalSource::new(content, self.request()).boxed());
+      return Ok(
+        OriginalSource::new(content, contextify_source_url(context, self.request())).boxed(),
+      );
     }
     Ok(RawStringSource::from(content.into_string_lossy()).boxed())
   }

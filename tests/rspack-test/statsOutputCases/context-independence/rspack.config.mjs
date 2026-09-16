@@ -18,12 +18,14 @@ const base = (name, devtool) => ({
     ],
   },
   stats: {
+    assets: true,
+    modules: true,
     relatedAssets: true,
   },
   entry: {
     main: {
       import: './index',
-      layer: path.resolve(import.meta.dirname, name),
+      layer: 'my-layer',
     },
   },
   context: path.resolve(import.meta.dirname, name),
@@ -41,6 +43,10 @@ const base = (name, devtool) => ({
         path.resolve(import.meta.dirname, name, 'cc'),
       ],
     },
+  },
+  // Keep loader paths and deterministic ids consistent across POSIX symlinks and Windows junctions.
+  resolveLoader: {
+    symlinks: false,
   },
 });
 

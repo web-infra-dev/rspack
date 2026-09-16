@@ -39,6 +39,19 @@ export function createStatsProcessor(
       await statsCompiler(context, c);
     },
     build: async (context: ITestContext) => {
+      // Clean custom output paths too, so previous runs don't affect asset emission status.
+      const options = context.getCompiler().getOptions();
+      const source = context.getSource();
+      for (const o of Array.isArray(options) ? options : [options]) {
+        const outputPath = o.output?.path;
+        if (
+          outputPath &&
+          outputPath !== source &&
+          !source.startsWith(outputPath + path.sep)
+        ) {
+          fs.removeSync(outputPath);
+        }
+      }
       await build(context, name);
     },
     run: async (env: ITestEnv, context: ITestContext) => {
@@ -212,6 +225,14 @@ function check(
       .replace(/[0-9]+(\.[0-9]+)? bytes/g, 'xx bytes')
       .replace(/[0-9]+(\.[0-9]+)? ms/g, 'xx ms');
   }
+
+  // Normalize content hashes while preserving chunk ids and names such as `abcdef.js`.
+  // Digit-only hashes need 8+ characters to distinguish them from ids in these cases.
+  actual = actual.replace(/(?!\d+-)[0-9a-f]{6,32}(?=\.)/g, (match) =>
+    /\d/.test(match) && (/[a-f]/.test(match) || match.length >= 8)
+      ? 'xxx'
+      : match,
+  );
 
   actual = actual
     .split('\n')
