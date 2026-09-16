@@ -5,4 +5,3 @@ export { createContextModuleFactoryHooksRegisters } from './contextModuleFactory
 export { createExternalModuleHooksRegisters } from './externalModule';
 export { createJavaScriptModulesHooksRegisters } from './javascriptModules';
 export { createNormalModuleFactoryHooksRegisters } from './normalModuleFactory';
-export { createNormalModuleHooksRegisters } from './normalModule';
