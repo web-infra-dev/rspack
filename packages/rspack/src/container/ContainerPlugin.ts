@@ -12,6 +12,7 @@ import type { EntryRuntime, FilenameTemplate, LibraryOptions } from '../config';
 import { parseOptions } from '../container/options';
 import { normalizeShareScope, type ShareScope } from '../sharing/SharePlugin';
 import { ShareRuntimePlugin } from '../sharing/ShareRuntimePlugin';
+import { validateLayer } from '../sharing/utils';
 
 type ContainerPluginBaseOptions<Enhanced extends boolean> = {
   exposes: Exposes<Enhanced>;
@@ -91,10 +92,11 @@ export class ContainerPlugin<
           if (!enhanced && item.layer !== undefined) {
             throw new Error('[ContainerPlugin] layer requires enhanced=true');
           }
+          validateLayer(item.layer, 'ContainerPlugin');
           return {
             import: Array.isArray(item.import) ? item.import : [item.import],
             name: item.name || undefined,
-            layer: enhanced ? item.layer : undefined,
+            layer: item.layer,
           };
         },
       ),

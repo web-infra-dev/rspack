@@ -157,7 +157,7 @@ new rspack.container.ModuleFederationPlugin({
 });
 ```
 
-This option is available with Module Federation 1.5, which uses the enhanced runtime. When using `ContainerPlugin` directly, set `enhanced: true`; Module Federation 1.0 does not support this option. Omitting `layer` leaves it unspecified. An empty string (`layer: ''`) is preserved as an explicit layer value and is distinct from an omitted layer.
+This option is available with Module Federation 1.5, which uses the enhanced runtime. When using `ContainerPlugin` directly, set `enhanced: true`; Module Federation 1.0 does not support this option. Omitting `layer` leaves it unspecified. A layer is a non-empty string; an empty string is rejected.
 
 ### shared
 

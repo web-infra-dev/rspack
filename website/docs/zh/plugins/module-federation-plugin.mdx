@@ -157,7 +157,7 @@ new rspack.container.ModuleFederationPlugin({
 });
 ```
 
-此选项适用于使用增强运行时的 Module Federation 1.5。直接使用 `ContainerPlugin` 时，需要设置 `enhanced: true`；Module Federation 1.0 不支持此选项。省略 `layer` 表示不指定层。空字符串（`layer: ''`）会作为显式的层值保留，与省略 `layer` 不同。
+此选项适用于使用增强运行时的 Module Federation 1.5。直接使用 `ContainerPlugin` 时，需要设置 `enhanced: true`；Module Federation 1.0 不支持此选项。省略 `layer` 表示不指定层。层必须是非空字符串，空字符串会被拒绝。
 
 ### shared
 
