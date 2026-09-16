@@ -13,7 +13,7 @@ import type { Compilation, Compiler } from '.';
 import { Stats } from '.';
 import type { WatchOptions } from './config';
 import type { FileSystemInfoEntry, Watcher } from './util/fs';
-import { deferWatchTimeInfo } from './util/watchTimeInfo';
+import { markInternalCallback } from './util/watchTimeInfo';
 
 type PendingWatchDelta = { added: Set<string>; removed: Set<string> };
 
@@ -118,7 +118,7 @@ export class Watching {
       missing,
       this.lastWatcherStartTime,
       this.watchOptions,
-      deferWatchTimeInfo(
+      markInternalCallback(
         (
           err,
           fileTimeInfoEntries,

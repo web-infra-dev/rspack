@@ -2,7 +2,7 @@ import type { WatchFileSystem } from './fs';
 
 type WatchCallback = Parameters<WatchFileSystem['watch']>[5];
 type WatchCallbackArgs = Parameters<WatchCallback>;
-type DeferredWatchCallback = (
+type OptionalTimeInfoWatchCallback = (
   error: WatchCallbackArgs[0],
   fileTimeInfoEntries: WatchCallbackArgs[1] | undefined,
   contextTimeInfoEntries: WatchCallbackArgs[2] | undefined,
@@ -12,17 +12,17 @@ type DeferredWatchCallback = (
 
 // Only the original callback can opt in. Wrappers, including ones that copy
 // all callback properties, retain the public contract of receiving Maps.
-const deferredCallbacks = new WeakSet<WatchCallback>();
+const internalCallbacks = new WeakSet<WatchCallback>();
 
-export function deferWatchTimeInfo(
-  callback: DeferredWatchCallback,
-): DeferredWatchCallback {
-  deferredCallbacks.add(callback);
+export function markInternalCallback(
+  callback: OptionalTimeInfoWatchCallback,
+): OptionalTimeInfoWatchCallback {
+  internalCallbacks.add(callback);
   return callback;
 }
 
-export function canDeferWatchTimeInfo(
+export function isInternalCallback(
   callback: WatchCallback,
-): callback is DeferredWatchCallback {
-  return deferredCallbacks.has(callback);
+): callback is OptionalTimeInfoWatchCallback {
+  return internalCallbacks.has(callback);
 }

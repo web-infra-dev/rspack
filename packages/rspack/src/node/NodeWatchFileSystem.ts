@@ -19,7 +19,7 @@ import type {
   Watcher,
   WatchFileSystem,
 } from '../util/fs';
-import { canDeferWatchTimeInfo } from '../util/watchTimeInfo';
+import { isInternalCallback } from '../util/watchTimeInfo';
 
 const require = createRequire(import.meta.url);
 
@@ -120,7 +120,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
           fs.purge?.(item);
         }
       }
-      if (canDeferWatchTimeInfo(callback)) {
+      if (isInternalCallback(callback)) {
         // Watching reads fresh timestamps through getInfo when the build starts.
         callback(null, undefined, undefined, changes, removals);
         return;
