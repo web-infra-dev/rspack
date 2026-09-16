@@ -1,10 +1,10 @@
-const path = require("path");
-const fs = require("fs");
+import path from "node:path";
+import fs from "node:fs";
 
 describe("RsdoctorPlugin", () => {
 	describe("JSON Module Size Collection", () => {
 		const testCasePath = path.join(
-			__dirname,
+			import.meta.dirname,
 			"builtinCases/plugin-rsdoctor/json-size-tree-shaking"
 		);
 
