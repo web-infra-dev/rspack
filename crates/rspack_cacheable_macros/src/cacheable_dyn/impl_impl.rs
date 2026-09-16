@@ -54,8 +54,10 @@ pub fn impl_impl(mut input: ItemImpl, args: DynArgs) -> TokenStream {
         }
   });
 
-  let deserialize_unique = args.unique_arc.then(|| {
+  let deserialize = if args.unique_arc {
     quote! {
+      use ::std::sync::UniqueArc;
+
       impl #crate_path::r#dyn::DeserializeUniqueDyn<dyn #trait_ident> for #archived_target_ident
       where
         #archived_target_ident: Deserialize<#target_ident, Deserializer>,
@@ -63,13 +65,38 @@ pub fn impl_impl(mut input: ItemImpl, args: DynArgs) -> TokenStream {
         fn deserialize_unique(
           &self,
           deserializer: &mut Deserializer,
-        ) -> Result<::std::sync::UniqueArc<dyn #trait_ident>, Error> {
+        ) -> Result<UniqueArc<dyn #trait_ident>, Error> {
           let value = <Self as Deserialize<#target_ident, Deserializer>>::deserialize(self, deserializer)?;
-          Ok(::std::sync::UniqueArc::new(value))
+          Ok(UniqueArc::new(value))
+        }
+
+        fn deserialized_pointer_metadata(&self) -> ptr_meta::DynMetadata<dyn #trait_ident> {
+          ptr_meta::metadata(core::ptr::null::<#target_ident>() as *const dyn #trait_ident)
         }
       }
     }
-  });
+  } else {
+    quote! {
+          impl #crate_path::r#dyn::DeserializeDyn<dyn #trait_ident> for #archived_target_ident
+          where
+              #archived_target_ident: Deserialize<#target_ident, Deserializer>,
+          {
+              fn deserialize_dyn(
+                  &self,
+                  deserializer: &mut Deserializer,
+                  out: *mut dyn #trait_ident
+              ) -> Result<(), Error> {
+                  unsafe {
+                      <Self as #crate_path::__private::rkyv::DeserializeUnsized<#target_ident, _>>::deserialize_unsized(self, deserializer, out.cast())
+                  }
+              }
+
+              fn deserialized_pointer_metadata(&self) -> ptr_meta::DynMetadata<dyn #trait_ident> {
+                  ptr_meta::metadata(core::ptr::null::<#target_ident>() as *const dyn #trait_ident)
+              }
+          }
+    }
+  };
 
   quote! {
       const #dyn_id_ident: u64 = #crate_path::xxhash_rust::const_xxh64::xxh64(concat!(module_path!(), ":", line!()).as_bytes(), 0);
@@ -79,12 +106,12 @@ pub fn impl_impl(mut input: ItemImpl, args: DynArgs) -> TokenStream {
       const _: () = {
           use #crate_path::__private::{
               inventory,
-              rkyv::{ptr_meta, ArchiveUnsized, Archived, Deserialize, DeserializeUnsized},
+              rkyv::{ptr_meta, ArchiveUnsized, Archived, Deserialize},
           };
           use #crate_path::{
               r#dyn::{
                   validation::{default_check_bytes_dyn, CheckBytesEntry},
-                  DeserializeDyn, DynEntry, VTablePtr,
+                  DynEntry, VTablePtr,
               },
               Error, Deserializer,
           };
@@ -97,26 +124,7 @@ pub fn impl_impl(mut input: ItemImpl, args: DynArgs) -> TokenStream {
           inventory::submit! { DynEntry::new(#dyn_id_ident, get_vtable()) }
           inventory::submit! { CheckBytesEntry::new(get_vtable(), default_check_bytes_dyn::<Archived<#target_ident>>) }
 
-          #deserialize_unique
-
-          impl DeserializeDyn<dyn #trait_ident> for #archived_target_ident
-          where
-              #archived_target_ident: Deserialize<#target_ident, Deserializer>,
-          {
-              fn deserialize_dyn(
-                  &self,
-                  deserializer: &mut Deserializer,
-                  out: *mut dyn #trait_ident
-              ) -> Result<(), Error> {
-                  unsafe {
-                      <Self as DeserializeUnsized<#target_ident, _>>::deserialize_unsized(self, deserializer, out.cast())
-                  }
-              }
-
-              fn deserialized_pointer_metadata(&self) -> ptr_meta::DynMetadata<dyn #trait_ident> {
-                  ptr_meta::metadata(core::ptr::null::<#target_ident>() as *const dyn #trait_ident)
-              }
-          }
+          #deserialize
       };
   }
   .into()

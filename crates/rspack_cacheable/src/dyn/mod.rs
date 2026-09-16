@@ -50,8 +50,11 @@ pub trait DeserializeDyn<T: Pointee + ?Sized> {
 /// Deserializes a trait object directly into its unique shared allocation.
 ///
 /// Enabled by `#[cacheable_dyn(unique_arc)]` on the trait and its implementations.
-pub trait DeserializeUniqueDyn<T: Pointee + ?Sized>: DeserializeDyn<T> {
+pub trait DeserializeUniqueDyn<T: Pointee + ?Sized> {
   fn deserialize_unique(&self, deserializer: &mut Deserializer) -> Result<UniqueArc<T>>;
+
+  /// Returns metadata for shared references restored from the deserialization pool.
+  fn deserialized_pointer_metadata(&self) -> DynMetadata<T>;
 }
 
 /// The archived version of `DynMetadata`.

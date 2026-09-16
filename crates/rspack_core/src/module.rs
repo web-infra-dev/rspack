@@ -14,7 +14,7 @@ use rspack_cacheable::{
     boxed::{ArchivedBox, BoxResolver},
     rancor::Fallible,
   },
-  with::{As, AsMap, AsOption, AsPreset, AsVec},
+  with::{As, AsMap, AsOption, AsPreset, AsUniqueArc, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -1082,7 +1082,7 @@ pub struct BoxModule(UniqueArc<dyn Module>);
 #[cacheable]
 #[derive(Debug, Clone)]
 #[repr(transparent)]
-pub struct ModuleRef(Arc<dyn Module>);
+pub struct ModuleRef(#[cacheable(with=AsUniqueArc)] Arc<dyn Module>);
 
 impl From<BoxModule> for ModuleRef {
   fn from(module: BoxModule) -> Self {

@@ -75,3 +75,18 @@ fn restored_module_can_be_mutated_and_published() {
   assert!(restored.downcast_ref::<RawModule>().is_some());
   assert_shared_allocation(restored);
 }
+
+#[test]
+fn restored_module_refs_share_the_same_allocation() {
+  let module = raw_module().boxed();
+  module.freeze_build_info();
+  module.freeze_build_meta();
+  let shared = ModuleRef::from(module);
+  let bytes = to_bytes(&(shared.clone(), shared), &Context).expect("serialize shared modules");
+  let (first, second) =
+    from_bytes::<(ModuleRef, ModuleRef), _>(&bytes, &Context).expect("deserialize shared modules");
+  assert!(std::ptr::eq(first.as_ref(), second.as_ref()));
+  assert!(first.downcast_ref::<RawModule>().is_some());
+  drop(first);
+  assert_eq!(second.identifier(), "unique-module".into());
+}
