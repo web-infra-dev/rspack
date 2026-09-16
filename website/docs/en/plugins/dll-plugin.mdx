@@ -11,8 +11,11 @@ The `DllPlugin` is used in a separate rspack configuration exclusively to create
 ## Examples
 
 ```js
+import { rspack } from '@rspack/core';
+import path from 'node:path';
+
 new rspack.DllPlugin({
-  path: path.resolve(__dirname, 'manifest.json'),
+  path: path.resolve(import.meta.dirname, 'manifest.json'),
   name: '[name]_dll_lib',
 });
 ```

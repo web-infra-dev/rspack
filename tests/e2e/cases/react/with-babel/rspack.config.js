@@ -1,9 +1,10 @@
-const { rspack } = require('@rspack/core');
-const { ReactRefreshRspackPlugin } = require('@rspack/plugin-react-refresh');
+import { fileURLToPath } from 'node:url';
+import { rspack } from '@rspack/core';
+import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
 
 /** @type { import('@rspack/core').RspackOptions } */
-module.exports = {
-  context: __dirname,
+export default {
+  context: import.meta.dirname,
   mode: 'development',
   resolve: {
     extensions: ['...', '.ts', '.tsx', '.jsx'],
@@ -37,7 +38,9 @@ module.exports = {
             loader: 'babel-loader',
             options: {
               presets: [['@babel/preset-react', { runtime: 'automatic' }]],
-              plugins: [require.resolve('react-refresh/babel')],
+              plugins: [
+                fileURLToPath(import.meta.resolve('react-refresh/babel')),
+              ],
             },
           },
         ],

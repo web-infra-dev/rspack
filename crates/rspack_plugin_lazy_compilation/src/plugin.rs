@@ -190,8 +190,8 @@ async fn normal_module_factory_module(
   if DEV_SERVER_CLIENT_RE.test(create_data.resource_resolve_data.resource())
     || !self
       .check_test(
-        module_factory_create_data.compiler_id,
-        module_factory_create_data.compilation_id,
+        module_factory_create_data.build_context.compiler_id,
+        module_factory_create_data.build_context.compilation_id,
         module,
       )
       .await
@@ -213,7 +213,11 @@ async fn normal_module_factory_module(
     .await
     .contains(&module_identifier);
   let lib_ident = module.lib_ident(LibIdentOptions {
-    context: module_factory_create_data.options.context.as_str(),
+    context: module_factory_create_data
+      .build_context
+      .compiler_options
+      .context
+      .as_str(),
   });
 
   *module = LazyCompilationProxyModule::new(
@@ -291,8 +295,8 @@ async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
     .build_module_graph_artifact
     .get_module_graph_mut();
   for module_id in &to_invalidate {
-    if let Some(active_module) = module_graph.module_by_identifier_mut(module_id)
-      && let Some(active_module) = active_module.downcast_mut::<LazyCompilationProxyModule>()
+    if let Some(active_module) = module_graph.module_by_identifier(module_id)
+      && let Some(active_module) = active_module.downcast_ref::<LazyCompilationProxyModule>()
     {
       active_module.invalid();
     }

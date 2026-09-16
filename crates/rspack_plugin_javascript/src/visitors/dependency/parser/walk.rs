@@ -1762,24 +1762,21 @@ impl JavascriptParser<'_> {
       {
         self.walk_expression(&expr.right);
       }
-      self.enter_pattern(
-        PatRef::Owned(warp_ident_to_pat(&ident.id, self.ast.allocator)),
-        |this, ident| {
-          if !ident
-            .sym
-            .call_hooks_name(this, |this, for_name| {
-              drive.assign(this, expr, ident, for_name)
-            })
-            .unwrap_or_default()
-          {
-            // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_identifier`
-            this.walk_identifier(ident);
-          }
-        },
-      );
+      self.enter_assignment_target(&expr.left, |this, ident| {
+        if !ident
+          .sym
+          .call_hooks_name(this, |this, for_name| {
+            drive.assign(this, expr, ident, for_name)
+          })
+          .unwrap_or_default()
+        {
+          // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_identifier`
+          this.walk_identifier(ident);
+        }
+      });
     } else if let Some(pat) = expr.left.as_pat() {
       self.walk_expression(&expr.right);
-      self.enter_assign_target_pattern(pat, |this: &mut JavascriptParser<'_>, ident| {
+      self.enter_assignment_target(&expr.left, |this: &mut JavascriptParser<'_>, ident| {
         if !ident
           .sym
           .call_hooks_name(this, |this, for_name| {
@@ -1872,8 +1869,10 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_do_while_statement(&mut self, stmt: &DoWhileStmt) {
-    self.walk_nested_statement(&stmt.body);
-    self.walk_expression(&stmt.test);
+    self.in_block_scope(false, |this| {
+      this.walk_nested_statement(&stmt.body);
+      this.walk_expression(&stmt.test);
+    });
   }
 
   fn walk_block_statement(&mut self, stmt: &BlockStmt) {

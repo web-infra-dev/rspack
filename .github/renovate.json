@@ -131,17 +131,13 @@
       "groupName": "patch npm dependencies",
       "matchManagers": ["npm"],
       "matchUpdateTypes": ["patch"],
-      "matchPackageNames": [
-        "!webpack{/,}**",
-        "!typescript",
-        "!@playwright/test"
-      ]
+      "matchPackageNames": ["!webpack{/,}**", "!typescript", "!playwright"]
     },
     {
-      "description": "Update the Playwright image in .github/workflows/reusable-build.yml together with @playwright/test.",
+      "description": "Update the Playwright image in .github/workflows/reusable-build-test.yml together with playwright.",
       "groupName": "playwright",
       "matchManagers": ["npm"],
-      "matchPackageNames": ["@playwright/test{/,}**"]
+      "matchPackageNames": ["playwright"]
     },
     {
       "description": "Disable Node.js updates.",

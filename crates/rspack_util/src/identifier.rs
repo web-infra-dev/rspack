@@ -9,6 +9,8 @@ use concat_string::concat_string;
 use cow_utils::CowUtils;
 use memchr::memchr2_iter;
 use regex::Regex;
+#[cfg(windows)]
+use rspack_paths::dos_device_path_prefix_len;
 use smallvec::SmallVec;
 use sugar_path::SugarPath;
 
@@ -21,8 +23,15 @@ static WINDOWS_PATH_SEPARATOR: &[char] = &['/', '\\'];
 ///   ("/hello", Some("?world=1"))
 /// )
 /// ```
-fn split_at_query_mark(path: &str) -> (&str, Option<&str>) {
+pub fn split_at_query_mark(path: &str) -> (&str, Option<&str>) {
+  #[cfg(windows)]
+  let query_mark_pos = {
+    let prefix_len = dos_device_path_prefix_len(path);
+    path[prefix_len..].find('?').map(|pos| prefix_len + pos)
+  };
+  #[cfg(not(windows))]
   let query_mark_pos = path.find('?');
+
   query_mark_pos.map_or((path, None), |pos| (&path[..pos], Some(&path[pos..])))
 }
 
@@ -70,6 +79,11 @@ pub fn relative_path_to_request(rel: &str) -> Cow<'_, str> {
 
 #[inline]
 fn is_windows_absolute_path(path: &str) -> bool {
+  #[cfg(windows)]
+  if dos_device_path_prefix_len(path) != 0 {
+    return true;
+  }
+
   let bytes = path.as_bytes();
   bytes.len() >= 3
     && bytes[0].is_ascii_alphabetic()

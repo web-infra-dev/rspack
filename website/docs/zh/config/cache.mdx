@@ -121,16 +121,15 @@ export default {
 `cache.buildDependencies` 是构建依赖的文件或目录路径数组。Rspack 会追踪这些路径，并在任意被追踪的构建依赖发生变化时使持久化缓存失效。
 
 ```js title="rspack.config.mjs"
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { join } from 'node:path';
 
 export default {
   cache: {
     type: 'persistent',
-    buildDependencies: [__filename, join(__dirname, './tsconfig.json')],
+    buildDependencies: [
+      import.meta.filename,
+      join(import.meta.dirname, './tsconfig.json'),
+    ],
   },
 };
 ```

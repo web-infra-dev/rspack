@@ -11,7 +11,7 @@ use std::{borrow::Cow, sync::LazyLock};
 
 use regex::Regex;
 use rspack_core::{
-  BoxModule, ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, SourceType,
+  ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, ModuleRef, SourceType,
   incremental::Mutation, module_chunk_condition,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -255,7 +255,7 @@ fn get_key(module: &dyn Module, delimiter: &str, compilation: &Compilation) -> S
 
 fn deterministic_grouping_for_modules(
   compilation: &Compilation,
-  items: &[&BoxModule],
+  items: &[&ModuleRef],
   allow_max_size: &SplitChunkSizes,
   min_size: &SplitChunkSizes,
   delimiter: &str,
@@ -480,6 +480,19 @@ impl SplitChunksPlugin {
     max_size_setting_map: &FxHashMap<ChunkUkey, MaxSizeSetting>,
   ) -> Result<()> {
     let fallback_cache_group = &self.fallback_cache_group;
+    // With no maximum sizes, every chunk task would return `None`. Native
+    // filters are pure; function filters must still run for their observable
+    // callback behavior, including errors, even when no chunk needs splitting.
+    if !fallback_cache_group.chunks_filter.is_func()
+      && fallback_cache_group.max_async_size.is_empty()
+      && fallback_cache_group.max_initial_size.is_empty()
+      && max_size_setting_map
+        .values()
+        .all(|s| s.max_async_size.is_empty() && s.max_initial_size.is_empty())
+    {
+      return Ok(());
+    }
+
     let chunk_group_db = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
     let compilation_ref = &*compilation;
 

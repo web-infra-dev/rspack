@@ -182,8 +182,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         let module = module_graph
           .module_by_identifier(&module.identifier())
           .expect("should have module identifier");
-        let json_data = module
-          .build_info()
+        let build_info = module.build_info();
+        let json_data = build_info
           .json_data
           .as_ref()
           .expect("should have json data");

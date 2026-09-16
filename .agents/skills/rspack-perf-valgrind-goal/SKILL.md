@@ -1,6 +1,6 @@
 ---
 name: rspack-perf-valgrind-goal
-description: Use when optimizing a benchmarked Rspack code path against a requested percentage target with reproducible local Docker and Valgrind measurements instead of GitHub Actions or CodSpeed cloud results. Combine this workflow with the rspack-perf skill for repeated performance rounds, local correctness validation, review-comment handling, retained-versus-reverted decisions, and PR progress reporting while keeping changes within the user-specified plugin, file, crate, feature, compilation stage, benchmark, or hot path.
+description: Optimize a requested Rspack benchmark target with reproducible local Docker/Callgrind instruction counts; excludes CI/CodSpeed measurement.
 ---
 
 # Rspack perf valgrind goal

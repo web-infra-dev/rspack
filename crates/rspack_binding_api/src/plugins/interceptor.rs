@@ -37,17 +37,18 @@ use rspack_core::{
   CompilerShouldEmitHook, CompilerThisCompilation, CompilerThisCompilationHook,
   ContextModuleFactoryAfterResolve, ContextModuleFactoryAfterResolveHook,
   ContextModuleFactoryBeforeResolve, ContextModuleFactoryBeforeResolveHook, ExecuteModuleId,
-  ExternalModuleChunkCondition, ExternalModuleChunkConditionHook, Module, ModuleFactoryCreateData,
-  ModuleId, ModuleIdentifier, ModuleIdsArtifact, NormalModuleCreateData,
+  ExternalModuleChunkCondition, ExternalModuleChunkConditionHook, LoaderContext, Module,
+  ModuleFactoryCreateData, ModuleId, ModuleIdentifier, ModuleIdsArtifact, NormalModuleCreateData,
   NormalModuleFactoryAfterResolve, NormalModuleFactoryAfterResolveHook,
   NormalModuleFactoryBeforeResolve, NormalModuleFactoryBeforeResolveHook,
   NormalModuleFactoryCreateModule, NormalModuleFactoryCreateModuleHook,
   NormalModuleFactoryFactorize, NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveError, NormalModuleFactoryResolveErrorHook,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
-  NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleGenerateContext, Scheme,
-  build_module_graph::BuildModuleGraphArtifact, parse_resource, rspack_sources::RawStringSource,
+  NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, NormalModuleLoader,
+  NormalModuleLoaderHook, ResourceData, RunnerContext, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleGenerateContext, Scheme, build_module_graph::BuildModuleGraphArtifact,
+  parse_resource, rspack_sources::RawStringSource,
 };
 use rspack_error::Diagnostic;
 use rspack_hash::RspackHasher;
@@ -101,6 +102,7 @@ use crate::{
     JsCreateData, JsNormalModuleFactoryCreateModuleArgs, JsResolveData, JsResolveErrorArgs,
     JsResolveForSchemeArgs, JsResolveForSchemeOutput,
   },
+  plugins::js_loader::{JsLoaderContext, merge_loader_context},
   rsdoctor::{
     JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
     JsRsdoctorModuleSourcesPatch,
@@ -289,7 +291,7 @@ impl RegisterJsTapsInner {
 
   pub async fn call_register(
     &self,
-    hook: &impl Hook,
+    used_stages: &[i32],
   ) -> rspack_error::Result<RegisterFunctionOutput> {
     if let RegisterJsTapsCache::Cache(rw) = &self.cache {
       let cache = {
@@ -299,7 +301,7 @@ impl RegisterJsTapsInner {
       Ok(match cache {
         Some(js_taps) => js_taps,
         None => {
-          let js_taps = self.call_register_impl(hook).await?;
+          let js_taps = self.call_register_impl(used_stages).await?;
           {
             #[allow(clippy::unwrap_used)]
             let mut cache = rw.write().unwrap();
@@ -309,17 +311,18 @@ impl RegisterJsTapsInner {
         }
       })
     } else {
-      let js_taps = self.call_register_impl(hook).await?;
+      let js_taps = self.call_register_impl(used_stages).await?;
       Ok(js_taps)
     }
   }
 
   async fn call_register_impl(
     &self,
-    hook: &impl Hook,
+    used_stages: &[i32],
   ) -> rspack_error::Result<RegisterFunctionOutput> {
-    let mut used_stages = Vec::from_iter(hook.used_stages());
+    let mut used_stages = used_stages.to_vec();
     used_stages.sort_unstable();
+    used_stages.dedup();
     self.register.call_with_sync(used_stages).await
   }
 
@@ -426,7 +429,7 @@ macro_rules! define_register {
         if let Some(non_skippable_registers) = &self.inner.non_skippable_registers && !non_skippable_registers.is_non_skippable(&$kind) {
           return Ok(Vec::new());
         }
-        let js_taps = self.inner.call_register(hook).await?;
+        let js_taps = self.inner.call_register(hook.tap_stages()).await?;
         let js_taps = js_taps
           .iter()
           .map(|t| Box::new($tap_name::new(t.clone())) as <$tap_hook as Hook>::Tap)
@@ -495,6 +498,7 @@ pub enum RegisterJsTapKind {
   RsdoctorPluginModuleIds,
   RsdoctorPluginModuleSources,
   RsdoctorPluginAssets,
+  NormalModuleLoader,
 }
 
 #[derive(Default, Clone)]
@@ -623,6 +627,10 @@ pub struct RegisterJsTaps {
     ts_type = "(stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>"
   )]
   pub register_compilation_after_seal_taps: RegisterFunction,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => JsLoaderContext); stage: number; }>"
+  )]
+  pub register_normal_module_loader_taps: RegisterFunction,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>"
   )]
@@ -934,6 +942,15 @@ define_register!(
   tap = CompilationAfterSealTap<(), Promise<()>> @ CompilationAfterSealHook,
   cache = false,
   kind = RegisterJsTapKind::CompilationAfterSeal,
+  skip = true,
+);
+
+/* NormalModule Hooks */
+define_register!(
+  RegisterNormalModuleLoaderTaps,
+  tap = NormalModuleLoaderTap<JsLoaderContext, JsLoaderContext> @ NormalModuleLoaderHook,
+  cache = true,
+  kind = RegisterJsTapKind::NormalModuleLoader,
   skip = true,
 );
 
@@ -1303,15 +1320,11 @@ impl CompilationStillValidModule for CompilationStillValidModuleTap {
     &self,
     compiler_id: CompilerId,
     _compilation_id: CompilationId,
-    module: &mut BoxModule,
+    module: &dyn Module,
   ) -> rspack_error::Result<()> {
-    #[allow(clippy::unwrap_used)]
     let _ = self
       .function
-      .call_with_sync(ModuleObject::with_ptr(
-        NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
-        compiler_id,
-      ))
+      .call_with_sync(ModuleObject::with_ptr(NonNull::from(module), compiler_id))
       .await?;
     Ok(())
   }
@@ -1695,6 +1708,21 @@ impl CompilationSeal for CompilationSealTap {
 impl CompilationAfterSeal for CompilationAfterSealTap {
   async fn run(&self, _compilation: &Compilation) -> rspack_error::Result<()> {
     self.function.call_with_promise(()).await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl NormalModuleLoader for NormalModuleLoaderTap {
+  async fn run(&self, context: &mut LoaderContext<RunnerContext>) -> rspack_error::Result<()> {
+    let data = self
+      .function
+      .call_with_sync(JsLoaderContext::try_from(&mut *context)?)
+      .await?;
+    merge_loader_context(context, data)
   }
 
   fn stage(&self) -> i32 {

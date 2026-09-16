@@ -11,9 +11,9 @@ use super::{
   StatsModule, StatsModuleTrace,
 };
 use crate::{
-  BoxModule, BoxRuntimeModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
+  BoxRuntimeModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
   ChunkGroupOrderKey, ChunkGroupUkey, CompilationAssets, Context, ModuleGraph, ModuleId,
-  ModuleIdsArtifact, SourceType, compare_chunks_iterables, rspack_sources::BoxSource,
+  ModuleIdsArtifact, ModuleRef, SourceType, compare_chunks_iterables, rspack_sources::BoxSource,
 };
 
 pub fn get_asset_size(file: &str, assets: &CompilationAssets) -> usize {
@@ -42,7 +42,7 @@ pub fn sort_modules(modules: &mut [StatsModule]) {
 }
 
 pub fn get_stats_module_name_and_id<'s>(
-  module: &'s BoxModule,
+  module: &'s ModuleRef,
   module_ids_artifact: &ModuleIdsArtifact,
   context: &Context,
 ) -> (Cow<'s, str>, Option<ModuleId>) {

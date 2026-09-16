@@ -1,6 +1,6 @@
 import path from 'node:path';
 import fs from 'fs-extra';
-import type { Fixtures } from '@playwright/test';
+import type { Fixtures } from 'rstack/test';
 import type { RspackFixtures } from './rspack';
 
 type FileAction = {
@@ -13,11 +13,7 @@ type FileActionFixtures = {
   fileAction: FileAction;
 };
 
-export const fileActionFixtures: Fixtures<
-  FileActionFixtures,
-  {},
-  RspackFixtures
-> = {
+export const fileActionFixtures = {
   fileAction: async ({ rspack }, use) => {
     await use({
       renameFile(oldPath, newPath) {
@@ -43,4 +39,4 @@ export const fileActionFixtures: Fixtures<
       },
     });
   },
-};
+} satisfies Fixtures<FileActionFixtures, RspackFixtures>;

@@ -691,7 +691,9 @@ impl CodeSplitter {
       )
     };
 
-    if options.depend_on.is_none() && !matches!(&options.runtime, Some(EntryRuntime::String(_))) {
+    if options.depend_on.is_none()
+      && !matches!(&options.runtime, Some(EntryRuntime::String(runtime)) if !runtime.is_empty())
+    {
       entrypoint.set_runtime_chunk(chunk.ukey());
     }
 
@@ -888,7 +890,9 @@ Remove the 'runtime' option from the entrypoint."
           entry_point.add_parent(parent);
         }
       }
-    } else if let Some(EntryRuntime::String(runtime)) = &options.runtime {
+    } else if let Some(EntryRuntime::String(runtime)) = &options.runtime
+      && !runtime.is_empty()
+    {
       let ukey = compilation
         .build_chunk_graph_artifact
         .entrypoints
@@ -981,7 +985,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
           let mut outgoing = Vec::with_capacity(outgoing_connections.len());
           for id in outgoing_connections {
-            if let Some(con) = mg.connection_by_dependency_id(id) {
+            if let Some(con) = mg.connection_by_id(id) {
               outgoing.push(*con.module_identifier());
             }
           }
@@ -1235,8 +1239,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           continue;
         };
         let root_modules = block
-          .get_dependencies()
-          .iter()
+          .get_dependency_ids()
           .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
           .copied()
           .collect::<Vec<_>>();

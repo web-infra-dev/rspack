@@ -10,8 +10,7 @@ use std::{
 
 use criterion::{BatchSize, Criterion};
 use rspack_core::{
-  CacheOptions, Mode, PersistentCacheOptions, SnapshotOptions, StorageOptions,
-  cache::MaxMemoryGenerations,
+  CacheOptions, MaxMemoryGenerations, Mode, PersistentCacheOptions, StorageOptions,
 };
 use rspack_fs::{NativeFileSystem, NoopFileSystem};
 use rspack_tasks::{CompilerContext, within_compiler_context, within_compiler_context_sync};
@@ -197,7 +196,6 @@ fn persistent_compiler(project_dir: &Path, cache_dir: &Path) -> rspack::builder:
     .cache(CacheOptions::Persistent(PersistentCacheOptions {
       build_dependencies: vec![project_dir.join(CONFIG_FILE)],
       version: String::new(),
-      snapshot: SnapshotOptions::default(),
       storage: StorageOptions::FileSystem {
         directory: cache_dir.to_string_lossy().to_string().into(),
       },

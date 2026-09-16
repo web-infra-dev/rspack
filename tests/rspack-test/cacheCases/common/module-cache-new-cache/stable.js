@@ -1,3 +1,3 @@
-export default 'stable';
+export default (() => 'stable')();
 
 export const loadAsync = () => import('./async');

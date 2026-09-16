@@ -12,10 +12,10 @@ use itertools::{
 };
 use rspack_collections::Identifier;
 use rspack_core::{
-  BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind,
+  Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind,
   ChunkNamedIdArtifact, ChunkUkey, Compilation, CompilerId, DependencyLocation,
   ExportsInfoArtifact, Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleIdsArtifact, SideEffectsStateArtifact, compare_runtime,
+  ModuleIdsArtifact, ModuleRef, SideEffectsStateArtifact, compare_runtime,
 };
 use rspack_error::{Result, error};
 use rspack_util::{
@@ -38,7 +38,7 @@ pub(crate) fn should_assign_module_id_without_chunk(module: &dyn Module) -> bool
 pub fn get_used_module_ids_and_modules_with_artifact(
   compilation: &Compilation,
   module_ids_artifact: &ModuleIdsArtifact,
-  filter: Option<Box<dyn Fn(&BoxModule) -> bool>>,
+  filter: Option<Box<dyn Fn(&ModuleRef) -> bool>>,
 ) -> (FxHashSet<String>, Vec<ModuleIdentifier>) {
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let mut modules = vec![];
@@ -104,7 +104,7 @@ pub async fn get_used_module_ids_and_modules_with_async_filter(
   Ok((used_ids, modules))
 }
 
-pub fn get_short_module_name(module: &BoxModule, context: &str) -> String {
+pub fn get_short_module_name(module: &ModuleRef, context: &str) -> String {
   let lib_ident = module.lib_ident(rspack_core::LibIdentOptions { context });
   if let Some(lib_ident) = lib_ident {
     return avoid_number(&lib_ident).to_string();
@@ -114,6 +114,40 @@ pub fn get_short_module_name(module: &BoxModule, context: &str) -> String {
     return avoid_number(&make_paths_relative(context, &name_for_condition)).to_string();
   };
   String::new()
+}
+
+pub(crate) fn get_short_module_name_with_graph(
+  module: &ModuleRef,
+  context: &str,
+  module_graph: &ModuleGraph,
+) -> String {
+  if module.as_external_module().is_some() {
+    let module_identifier = module.identifier();
+    let mut requests = module_graph
+      .get_incoming_connections(&module_identifier)
+      .filter_map(|connection| {
+        module_graph
+          .dependency_by_id(&connection.dependency_id)
+          .as_module_dependency()
+      })
+      .map(|dependency| dependency.request());
+    if let Some(first_request) = requests.next() {
+      let mut min_request = first_request;
+      let mut has_multiple_requests = false;
+      for request in requests {
+        has_multiple_requests |= request != first_request;
+        min_request = min_request.min(request);
+      }
+      if has_multiple_requests {
+        // External modules are deduplicated by their resolved request. Choose a stable
+        // name from all incoming requests instead of the request whose factorization
+        // happened to finish first.
+        return avoid_number(min_request).to_string();
+      }
+    }
+  }
+
+  get_short_module_name(module, context)
 }
 
 fn avoid_number(s: &str) -> Cow<'_, str> {
@@ -138,13 +172,13 @@ fn avoid_number(s: &str) -> Cow<'_, str> {
   Cow::Borrowed(s)
 }
 
-pub fn get_long_module_name(short_name: &str, module: &BoxModule, context: &str) -> String {
+pub fn get_long_module_name(short_name: &str, module: &ModuleRef, context: &str) -> String {
   let full_name = get_full_module_name(module, context);
 
   format!("{}?{}", short_name, get_hash(full_name, 4))
 }
 
-pub fn get_full_module_name(module: &BoxModule, context: &str) -> String {
+pub fn get_full_module_name(module: &ModuleRef, context: &str) -> String {
   make_paths_relative(context, &module.identifier())
 }
 
@@ -224,11 +258,11 @@ pub(crate) fn assign_deterministic_ids_with_hash<T>(
 
 pub fn assign_ascending_module_ids(
   used_ids: &FxHashSet<String>,
-  modules: Vec<&BoxModule>,
+  modules: Vec<&ModuleRef>,
   module_ids: &mut ModuleIdsArtifact,
 ) {
   let mut next_id = 0;
-  let mut assign_id = |module: &BoxModule| {
+  let mut assign_id = |module: &ModuleRef| {
     if ChunkGraph::get_module_id(module_ids, module.identifier()).is_none() {
       while used_ids.contains(&next_id.to_string()) {
         next_id += 1;
@@ -461,7 +495,7 @@ pub fn get_short_chunk_name(
   let short_module_names = modules
     .iter()
     .map(|module| {
-      let name = get_short_module_name(module, context);
+      let name = get_short_module_name_with_graph(module, context, module_graph);
       request_to_id(&name)
     })
     .collect::<Vec<_>>();
@@ -525,7 +559,7 @@ pub fn get_long_chunk_name(
 
   let short_module_names = modules
     .iter()
-    .map(|m| request_to_id(&get_short_module_name(m, context)))
+    .map(|m| request_to_id(&get_short_module_name_with_graph(m, context, module_graph)))
     .collect::<Vec<_>>();
 
   let long_module_names = modules

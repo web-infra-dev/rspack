@@ -124,16 +124,15 @@ export default {
 `cache.buildDependencies` is an array of file or directory paths treated as build dependencies. Rspack tracks these paths and invalidates the persistent cache when any tracked build dependency changes.
 
 ```js title="rspack.config.mjs"
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { join } from 'node:path';
 
 export default {
   cache: {
     type: 'persistent',
-    buildDependencies: [__filename, join(__dirname, './tsconfig.json')],
+    buildDependencies: [
+      import.meta.filename,
+      join(import.meta.dirname, './tsconfig.json'),
+    ],
   },
 };
 ```

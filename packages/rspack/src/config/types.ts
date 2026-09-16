@@ -2072,7 +2072,7 @@ export type Loader = Record<string, any>;
 /**
  * Snapshot options for determining which files have been modified.
  */
-export type CacheSnapshotOptions = {
+export type SnapshotOptions = {
   /**
    * An array of paths to immutable files, changes to these paths will be ignored during hot restart.
    */
@@ -2086,7 +2086,27 @@ export type CacheSnapshotOptions = {
    * @default [/[\\/]node_modules[\\/][^.]/]
    */
   managedPaths?: (string | RegExp)[];
+  /** Snapshot strategy for build dependencies. */
+  buildDependencies?: SnapshotStrategyOptions;
+  /** Snapshot strategy for resolving build dependencies. */
+  resolveBuildDependencies?: SnapshotStrategyOptions;
+  /** Snapshot strategy for module dependencies. */
+  module?: SnapshotStrategyOptions;
+  /** Snapshot strategy for context modules. */
+  contextModule?: SnapshotStrategyOptions;
+  /** Snapshot strategy for resolving requests. */
+  resolve?: SnapshotStrategyOptions;
 };
+
+export type SnapshotStrategyOptions = {
+  /** Use content hashes to detect changes. */
+  hash?: boolean;
+  /** Use timestamps to detect changes. */
+  timestamp?: boolean;
+};
+
+/** @deprecated Use `SnapshotOptions` and the top-level `snapshot` option. */
+export type CacheSnapshotOptions = SnapshotOptions;
 
 /**
  * Storage options for persistent cache.
@@ -2150,9 +2170,7 @@ export type PersistentCacheOptions = {
    * cache per compiler path.
    */
   maxVersions?: number;
-  /**
-   * Snapshot options for determining which files have been modified.
-   */
+  /** @deprecated Use the top-level `snapshot` option instead. */
   snapshot?: CacheSnapshotOptions;
   /**
    * Storage options for cache.
@@ -2180,10 +2198,35 @@ export type MemoryCacheOptions = {
    * Cache type.
    */
   type: 'memory';
+};
+
+/** Filesystem cache options. Requires `experiments.newCache` to be enabled. */
+export type FileSystemCacheOptions = {
+  type: 'filesystem';
+  /** Name for the cache. Different names create coexisting caches. */
+  name?: string;
+  /** Build dependencies grouped by category. Changes invalidate the cache. */
+  buildDependencies?: Record<string, string[]>;
+  /** Base directory for the cache. Defaults to `node_modules/.cache/rspack`. */
+  cacheDirectory?: string;
+  /** Cache location. Defaults to `<cacheDirectory>/<name>`. */
+  cacheLocation?: string;
+  /** Cache version. Changing this value invalidates the cache. Defaults to `""`. */
+  version?: string;
+  /** Read existing cache data without writing to disk. Defaults to `false`. */
+  readonly?: boolean;
   /**
-   * Snapshot options for determining which files have been modified.
+   * Generations to retain unused entries in memory. Use 0 to disable the memory
+   * cache or Infinity to retain entries forever. Defaults to 5 in development,
+   * Infinity otherwise.
    */
-  snapshot?: CacheSnapshotOptions;
+  maxMemoryGenerations?: number;
+  /** Idle time before writing to disk, in milliseconds. Defaults to 60000. */
+  idleTimeout?: number;
+  /** Idle time before the initial write, in milliseconds. Defaults to 5000. */
+  idleTimeoutForInitialStore?: number;
+  /** Idle time after large changes, in milliseconds. Defaults to 1000. */
+  idleTimeoutAfterLargeChanges?: number;
 };
 
 /**
@@ -2198,7 +2241,10 @@ export type MemoryCacheOptions = {
  * cache: false
  */
 export type CacheOptions =
-  boolean | MemoryCacheOptions | PersistentCacheOptions;
+  | boolean
+  | MemoryCacheOptions
+  | PersistentCacheOptions
+  | FileSystemCacheOptions;
 //#endregion
 
 //#region Stats
@@ -3427,6 +3473,8 @@ export type RspackOptions = {
    * Options for caching.
    */
   cache?: CacheOptions;
+  /** Options for detecting changes to dependencies. */
+  snapshot?: SnapshotOptions;
   /**
    * The context in which the compilation should occur.
    */

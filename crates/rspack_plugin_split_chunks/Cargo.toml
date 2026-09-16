@@ -23,6 +23,7 @@ rspack_parallel    = { workspace = true }
 rspack_regex       = { workspace = true }
 rspack_util        = { workspace = true }
 rustc-hash         = { workspace = true }
+smallvec           = { workspace = true }
 tracing            = { workspace = true }
 
 [lints]

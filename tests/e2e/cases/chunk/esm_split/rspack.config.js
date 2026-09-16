@@ -1,8 +1,7 @@
-'use strict';
-let rspack = require('@rspack/core');
+import rspack from '@rspack/core';
 
 /** @type {import("@rspack/core").Configuration} */
-module.exports = {
+export default {
   mode: 'development',
   output: {
     module: true,

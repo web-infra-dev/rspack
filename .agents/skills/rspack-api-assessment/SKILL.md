@@ -1,6 +1,6 @@
 ---
 name: rspack-api-assessment
-description: Strictly evaluate proposed or newly added public APIs, including hooks, specifically in web-infra-dev/rspack from Rspack's architecture, existing extension points, performance, webpack compatibility, and observed usage. Use when deciding whether Rspack should add or keep such a surface; default against addition when a viable Rspack substitute exists unless broad independent plugin compatibility is demonstrated.
+description: Assess whether a proposed Rspack public API or hook is necessary, considering substitutes, performance, and webpack ecosystem evidence.
 ---
 
 # Assess an Rspack API

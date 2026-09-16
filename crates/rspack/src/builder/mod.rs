@@ -52,13 +52,14 @@ use rspack_core::{
   JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
   MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
   ModuleType, NewCacheOptions, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption,
-  Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo,
-  PrintlnInfrastructureLogSink, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
-  SideEffectOption, SnapshotOptions, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading,
-  WasmLoadingType, incremental::IncrementalOptions, runtime_mode::RuntimeMode,
+  Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PathMatcher,
+  PrintlnInfrastructureLogSink, PublicPath, Resolve, ResolverFactory, RuleSetCondition,
+  RuleSetLogicalConditions, SideEffectOption, SnapshotOptions, SnapshotStrategyOptions,
+  StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType, create_cache,
+  incremental::IncrementalOptions, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Error, Result};
-use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
+use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
 use rspack_regex::RspackRegex;
@@ -454,23 +455,53 @@ impl CompilerBuilder {
     let platform = builder_context.take_platform();
     plugins.append(&mut self.plugins);
 
-    let input_filesystem = self.input_filesystem.take();
-    let intermediate_filesystem = self.intermediate_filesystem.take();
-    let output_filesystem = self.output_filesystem.take();
+    // pnp is only meaningful for input_filesystem, so disable it for intermediate_filesystem and output_filesystem
+    let pnp = compiler_options.resolve.pnp.unwrap_or(false);
+    let input_filesystem = self
+      .input_filesystem
+      .take()
+      .unwrap_or_else(|| Arc::new(NativeFileSystem::new(pnp)));
+    let intermediate_filesystem = self
+      .intermediate_filesystem
+      .take()
+      .unwrap_or_else(|| Arc::new(NativeFileSystem::new(false)));
+    let output_filesystem = self
+      .output_filesystem
+      .take()
+      .unwrap_or_else(|| Arc::new(NativeFileSystem::new(false)));
+
+    let resolver_factory = Arc::new(ResolverFactory::new(
+      compiler_options.resolve.clone(),
+      input_filesystem.clone(),
+    ));
+    let loader_resolver_factory = Arc::new(ResolverFactory::new(
+      compiler_options.resolve_loader.clone(),
+      input_filesystem.clone(),
+    ));
+
     let compiler_context = CURRENT_COMPILER_CONTEXT.try_with(|v| v.clone()).ok();
+
+    let infrastructure_log_sink = Arc::new(PrintlnInfrastructureLogSink);
+    let cache = Arc::new(create_cache(
+      &compiler_options,
+      input_filesystem.clone(),
+      infrastructure_log_sink.clone(),
+    ));
+
     Ok(Compiler::new(
-      String::new(),
+      Arc::default(),
       compiler_options,
       plugins,
       vec![],
+      input_filesystem,
       output_filesystem,
       intermediate_filesystem,
-      input_filesystem,
-      None,
-      None,
+      resolver_factory,
+      loader_resolver_factory,
       compiler_context,
-      Arc::new(PrintlnInfrastructureLogSink),
       Arc::new(platform),
+      cache,
+      infrastructure_log_sink,
     ))
   }
 }
@@ -580,6 +611,8 @@ pub struct CompilerOptionsBuilder {
   context: Option<Context>,
   /// Options for caching.
   cache: Option<CacheOptions>,
+  /// Options for detecting dependency changes.
+  snapshot: Option<SnapshotOptions>,
   /// The mode in which Rspack should operate.
   mode: Option<Mode>,
   /// The type of externals.
@@ -619,6 +652,7 @@ impl From<&mut CompilerOptionsBuilder> for CompilerOptionsBuilder {
       externals_presets: value.externals_presets.take(),
       context: value.context.take(),
       cache: value.cache.take(),
+      snapshot: value.snapshot.take(),
       mode: value.mode.take(),
       resolve: value.resolve.take(),
       resolve_loader: value.resolve_loader.take(),
@@ -694,6 +728,12 @@ impl CompilerOptionsBuilder {
   /// Set options for caching.
   pub fn cache(&mut self, cache: CacheOptions) -> &mut Self {
     self.cache = Some(cache);
+    self
+  }
+
+  /// Set options for detecting dependency changes.
+  pub fn snapshot(&mut self, snapshot: SnapshotOptions) -> &mut Self {
+    self.snapshot = Some(snapshot);
     self
   }
 
@@ -943,10 +983,7 @@ impl CompilerOptionsBuilder {
     let bail = d!(self.bail.take(), false);
     let cache = d!(self.cache.take(), {
       if development {
-        CacheOptions::Memory {
-          max_generations: 1,
-          snapshot: SnapshotOptions::default(),
-        }
+        CacheOptions::Memory { max_generations: 1 }
       } else {
         CacheOptions::Disabled
       }
@@ -955,6 +992,28 @@ impl CompilerOptionsBuilder {
     // apply experiments defaults
     let mut experiments_builder = f!(self.experiments.take(), Experiments::builder);
     let experiments = experiments_builder.build(builder_context, development, production)?;
+    if matches!(&cache, CacheOptions::FileSystem(_)) && !experiments.new_cache.is_enabled() {
+      return Err(
+        BuilderError::Option(
+          "cache.type".into(),
+          "filesystem requires experiments.newCache to be enabled".into(),
+        )
+        .into(),
+      );
+    }
+    // apply snapshot defaults
+    let snapshot = f!(self.snapshot.take(), || SnapshotOptions {
+      immutable_paths: vec![],
+      unmanaged_paths: vec![],
+      managed_paths: vec![PathMatcher::Regexp(
+        RspackRegex::new(r"[\\/]node_modules[\\/][^.]").expect("should initialize `Regex`"),
+      )],
+      resolve_build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
+      build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
+      resolve: SnapshotStrategyOptions::new(production, true),
+      module: SnapshotStrategyOptions::new(production, true),
+      context_module: SnapshotStrategyOptions::timestamp(),
+    });
 
     // apply incremental defaults
     let incremental = f!(self.incremental.take(), IncrementalOptions::advanced_silent);
@@ -1291,6 +1350,7 @@ impl CompilerOptionsBuilder {
       module,
       stats,
       cache,
+      snapshot,
       experiments,
       incremental,
       node,

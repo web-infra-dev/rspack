@@ -24,22 +24,23 @@ define.test(() => {
       setupFiles: [...setupFilesAfterEnv, '@rspack/test-tools/setup-wasm'],
       exclude: [
         // Skip because they rely on snapshots
-        'Diagnostics.test.js',
-        'Error.test.js',
-        'StatsAPI.test.js',
-        'StatsOutput.test.js',
+        'Diagnostics.test.{js,mjs}',
+        'Error.test.{js,mjs}',
+        'StatsAPI.test.{js,mjs}',
+        'StatsOutput.test.{js,mjs}',
         // Skip because the loader can not be loaded in CI
-        'Hot*.test.js',
+        'Hot*.test.{js,mjs}',
 
         // Skip temporarily and should investigate in the future
-        'Cache.test.js',
-        'Compiler.test.js',
-        'MultiCompiler.test.js',
-        'Serial.test.js',
-        'Defaults.test.js',
-        'Example.test.js',
-        'Incremental-*.test.js',
-        'NativeWatcher*.test.js',
+        'Cache.test.{js,mjs}',
+        'NewCache.test.{js,mjs}',
+        'Compiler.test.{js,mjs}',
+        'MultiCompiler.test.{js,mjs}',
+        'Serial.test.{js,mjs}',
+        'Defaults.test.{js,mjs}',
+        'Example.test.{js,mjs}',
+        'Incremental-*.test.{js,mjs}',
+        'NativeWatcher*.test.{js,mjs}',
       ],
     });
 
@@ -81,7 +82,7 @@ define.test(() => {
     setupFiles: setupFilesAfterEnv,
     testTimeout: process.env.CI ? 60000 : 30000,
     hookTimeout: process.env.CI ? 60000 : 30000,
-    include: ['*.test.js'],
+    include: ['*.test.{js,mjs}'],
     slowTestThreshold: 5000,
     // Retry on CI to reduce flakes
     retry: process.env.CI ? 3 : 0,
@@ -148,21 +149,21 @@ define.test(() => {
       {
         extends: sharedConfig,
         name: 'base',
-        exclude: ['NativeWatcher*.test.js'],
+        exclude: ['NativeWatcher*.test.{js,mjs}'],
       },
       {
         extends: sharedConfig,
         name: 'hottest',
-        include: process.env.WASM ? [] : ['<rootDir>/*.hottest.js'],
+        include: process.env.WASM ? [] : ['<rootDir>/*.hottest.{js,mjs}'],
         env: {
           RSPACK_HOT_TEST: 'true',
         },
-        exclude: ['NativeWatcher*.test.js'],
+        exclude: ['NativeWatcher*.test.{js,mjs}'],
       },
       {
         extends: sharedConfig,
         name: 'nativeWatcher',
-        include: ['NativeWatcher*.test.js'],
+        include: ['NativeWatcher*.test.{js,mjs}'],
         retry: 0, // re-try in native watcher tests is useless
         maxConcurrency: 1,
         testTimeout: 30_000,

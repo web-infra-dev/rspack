@@ -6,6 +6,7 @@ use rspack_core::{ChunkGraph, Compilation, OutputOptions, contextify, runtime_mo
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::Utf8Path;
+use rspack_util::identifier::split_at_query_mark;
 use rustc_hash::FxHashMap as HashMap;
 use sugar_path::SugarPath;
 
@@ -323,7 +324,7 @@ fn create_default_module_filename(
   };
 
   let resource = short_identifier.split('!').next_back().unwrap_or("");
-  let resource_path = resource.split_once('?').map_or(resource, |(path, _)| path);
+  let resource_path = split_at_query_mark(resource).0;
 
   let mut result = String::with_capacity(scheme.len() + namespace.len() + 1 + resource_path.len());
   result.push_str(scheme);

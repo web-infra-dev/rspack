@@ -1,6 +1,5 @@
 use std::{collections::VecDeque, sync::Arc};
 
-use rspack_fs::ReadableFileSystem;
 use rspack_util::time::current_time;
 use rustc_hash::FxHashSet;
 
@@ -8,9 +7,8 @@ use super::{
   TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  AsyncDependenciesBlockBuildResult, AsyncDependenciesBlockRef, BoxModule, BuildContext,
-  BuildResult, CacheFacade, CompilationId, CompilerId, CompilerOptions, DependencyParents,
-  DependencyRef, FileSystemInfo, ModuleCodeTemplate, ResolverFactory, SharedPluginDriver,
+  AsyncDependenciesBlockRef, BoxModule, BuildContext, DependenciesBlock, DependencyParents,
+  DependencyRef, ModuleRef, SharedPluginDriver,
   compilation::build_module_graph::{
     ForwardedIdSet, HasLazyDependencies, LazyDependencies, module_build_cache::ModuleBuildCache,
   },
@@ -22,16 +20,8 @@ use crate::{
 
 #[derive(Debug)]
 pub struct BuildTask {
-  pub compiler_id: CompilerId,
-  pub compilation_id: CompilationId,
+  pub build_context: Arc<BuildContext>,
   pub module: BoxModule,
-  pub resolver_factory: Arc<ResolverFactory>,
-  pub compiler_options: Arc<CompilerOptions>,
-  pub loader_cache: CacheFacade,
-  pub file_system_info: FileSystemInfo,
-  pub runtime_template: ModuleCodeTemplate,
-  pub plugin_driver: SharedPluginDriver,
-  pub fs: Arc<dyn ReadableFileSystem>,
   pub forwarded_ids: ForwardedIdSet,
   pub module_build_cache: Option<ModuleBuildCache>,
 }
@@ -43,53 +33,35 @@ impl Task<TaskContext> for BuildTask {
   }
   async fn background_run(self: Box<Self>) -> TaskResult<TaskContext> {
     let Self {
-      compiler_id,
-      compilation_id,
-      compiler_options,
-      loader_cache,
-      file_system_info,
-      resolver_factory,
-      plugin_driver,
-      runtime_template,
+      build_context,
       mut module,
-      fs,
       forwarded_ids,
       module_build_cache,
     } = *self;
+    let plugin_driver = build_context.plugin_driver.clone();
 
     let build_start_time = module_build_cache.as_ref().map(|_| current_time());
 
     plugin_driver
       .compilation_hooks
       .build_module
-      .call(compiler_id, compilation_id, &mut module)
-      .await?;
-
-    let result = module
-      .build(
-        BuildContext {
-          compiler_id,
-          compilation_id,
-          compiler_options: compiler_options.clone(),
-          loader_cache,
-          file_system_info: file_system_info.clone(),
-          resolver_factory: resolver_factory.clone(),
-          plugin_driver: plugin_driver.clone(),
-          runtime_template,
-          fs: fs.clone(),
-        },
-        None,
+      .call(
+        build_context.compiler_id,
+        build_context.compilation_id,
+        &mut module,
       )
       .await?;
+
+    let result = module.build(build_context, None).await?;
 
     if let (Some(module_build_cache), Some(build_start_time)) =
       (module_build_cache, build_start_time)
     {
-      module_build_cache.mark_pending(result.module.identifier(), build_start_time);
+      module_build_cache.mark_pending(result.identifier(), build_start_time);
     }
 
     Ok(vec![Box::new(BuildResultTask {
-      build_result: Box::new(result),
+      build_result: ModuleBuildResult::Built(result),
       plugin_driver,
       forwarded_ids,
     })])
@@ -97,8 +69,14 @@ impl Task<TaskContext> for BuildTask {
 }
 
 #[derive(Debug)]
+pub(super) enum ModuleBuildResult {
+  Built(BoxModule),
+  Cached(ModuleRef),
+}
+
+#[derive(Debug)]
 pub(super) struct BuildResultTask {
-  pub build_result: Box<BuildResult>,
+  pub build_result: ModuleBuildResult,
   pub plugin_driver: SharedPluginDriver,
   pub forwarded_ids: ForwardedIdSet,
 }
@@ -114,13 +92,32 @@ impl Task<TaskContext> for BuildResultTask {
       plugin_driver,
       mut forwarded_ids,
     } = *self;
-    let mut module = build_result.module;
-
-    plugin_driver
-      .compilation_hooks
-      .succeed_module
-      .call(context.compiler_id, context.compilation_id, &mut module)
-      .await?;
+    let module = match build_result {
+      ModuleBuildResult::Built(mut module) => {
+        plugin_driver
+          .compilation_hooks
+          .succeed_module
+          .call(
+            context.build_context.compiler_id,
+            context.build_context.compilation_id,
+            &mut module,
+          )
+          .await?;
+        ModuleRef::from(module)
+      }
+      ModuleBuildResult::Cached(module) => {
+        plugin_driver
+          .compilation_hooks
+          .still_valid_module
+          .call(
+            context.build_context.compiler_id,
+            context.build_context.compilation_id,
+            module.as_ref(),
+          )
+          .await?;
+        module
+      }
+    };
 
     let build_info = module.build_info();
 
@@ -136,7 +133,7 @@ impl Task<TaskContext> for BuildResultTask {
       .artifact
       .module_graph
       .get_optimization_bailout_mut(&module.identifier())
-      .extend(build_result.optimization_bailouts);
+      .extend_from_slice(&build_info.optimization_bailouts);
     let resource_id = ResourceId::from(module.identifier());
     context
       .artifact
@@ -154,51 +151,40 @@ impl Task<TaskContext> for BuildResultTask {
       .artifact
       .build_dependencies
       .add_files(&resource_id, &build_info.dependencies.build);
+    drop(build_info);
 
     let module_graph = &mut context.artifact.module_graph;
     let mut lazy_dependencies = LazyDependencies::default();
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
-    let mut handle_block = |dependencies: Vec<DependencyRef>,
-                            blocks: Vec<AsyncDependenciesBlockBuildResult>,
-                            current_block: Option<AsyncDependenciesBlockRef>|
-     -> Vec<AsyncDependenciesBlockBuildResult> {
-      for (index_in_block, dependency) in dependencies.into_iter().enumerate() {
-        let dependency_id = *dependency.id();
-        if let Some(until) = dependency.lazy() {
-          lazy_dependencies.insert(&dependency, until);
+    let mut handle_block =
+      |dependencies: &[DependencyRef], current_block: Option<&AsyncDependenciesBlockRef>| {
+        for (index_in_block, dependency) in dependencies.iter().enumerate() {
+          let dependency_id = *dependency.id();
+          if let Some(until) = dependency.lazy() {
+            lazy_dependencies.insert(dependency, until);
+          }
+          all_dependencies.push(dependency_id);
+          module_graph.set_parents(
+            dependency_id,
+            DependencyParents {
+              block: current_block.map(|block| block.identifier()),
+              module: module.identifier(),
+              index_in_block,
+            },
+          );
+          module_graph.add_dependency_ref(dependency.clone());
         }
-        if current_block.is_none() {
-          module.add_dependency_id(dependency_id);
+        if let Some(current_block) = current_block {
+          module_graph.add_block(current_block.clone());
         }
-        all_dependencies.push(dependency_id);
-        module_graph.set_parents(
-          dependency_id,
-          DependencyParents {
-            block: current_block.as_ref().map(|block| block.identifier()),
-            module: module.identifier(),
-            index_in_block,
-          },
-        );
-        module_graph.add_dependency_ref(dependency);
-      }
-      if let Some(current_block) = current_block {
-        module.add_block_id(current_block.identifier());
-        module_graph.add_block(current_block);
-      }
-      blocks
-    };
-    let blocks = handle_block(build_result.dependencies, build_result.blocks, None);
-    queue.extend(blocks);
+      };
+    handle_block(module.get_dependencies(), None);
+    queue.extend(module.get_block_refs().iter().cloned());
 
-    while let Some(AsyncDependenciesBlockBuildResult {
-      block,
-      dependencies,
-      blocks,
-    }) = queue.pop_front()
-    {
-      let blocks = handle_block(dependencies, blocks, Some(block));
-      queue.extend(blocks);
+    while let Some(block) = queue.pop_front() {
+      handle_block(block.get_dependencies(), Some(&block));
+      queue.extend(block.get_block_refs().iter().cloned());
     }
 
     {

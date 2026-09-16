@@ -5,7 +5,7 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   ChunkGraph, Context, CssBuildInfo, CssExport, CssExportType, CssExports,
   CssModuleRenderCondition, Dependency, DependencyCodeGeneration, DependencyId, DependencyType,
-  ExportsArgument, GenerateContext, Module, ModuleArgument, ModuleIdentifier, ModuleInitFragments,
+  GenerateContext, Module, ModuleArgument, ModuleIdentifier, ModuleInitFragments,
   RESERVED_IDENTIFIER, RuntimeGlobals, SourceType, TemplateContext, UsageState, UsedNameItem,
   css_module_render_conditions_identifier,
   rspack_sources::{
@@ -20,6 +20,7 @@ use rspack_util::{
   itoa, json_stringify, json_stringify_str,
 };
 use rustc_hash::FxHashSet as HashSet;
+use smol_str::SmolStr;
 
 use crate::{
   css_syntax::unescape_identifier,
@@ -93,15 +94,11 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   pub fn new(
     source: BoxSource,
     module: &'a dyn Module,
+    css_build_info: &'a CssBuildInfo,
     generate_context: &'a mut GenerateContext<'g>,
     with_hmr: bool,
     es_module: bool,
   ) -> Self {
-    let css_build_info = module
-      .build_info()
-      .css
-      .as_deref()
-      .expect("CssParserAndGenerator should populate BuildInfo.css during parse");
     let generator_options = css_generator_options(generate_context.module_generator_options);
 
     Self {
@@ -271,10 +268,12 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     &'b mut self,
     source: BoxSource,
     module: &'b dyn Module,
+    css_build_info: &'b CssBuildInfo,
   ) -> CssModuleGenerator<'b, 'g> {
     CssModuleGenerator::new(
       source,
       module,
+      css_build_info,
       self.generate_context,
       self.with_hmr,
       self.es_module,
@@ -295,10 +294,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       runtime_template: self.generate_context.runtime_template,
     };
 
-    let module_graph = compilation.get_module_graph();
-    self.module.get_dependencies().iter().for_each(|id| {
-      let dep = module_graph.dependency_by_id(id);
-
+    self.module.get_dependencies().iter().for_each(|dep| {
       if let Some(dependency) = dep.as_dependency_code_generation() {
         render_dependency_template(dependency, &mut source, &mut context);
       }
@@ -316,11 +312,11 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   }
 
   fn css_text_expr_with_imports(&mut self) -> String {
-    let module_graph = self.generate_context.compilation.get_module_graph();
-    let has_css_imports = self.module.get_dependencies().iter().any(|dependency_id| {
-      let dependency = module_graph.dependency_by_id(dependency_id);
-      matches!(dependency.dependency_type(), DependencyType::CssImport)
-    });
+    let has_css_imports = self
+      .module
+      .get_dependencies()
+      .iter()
+      .any(|dependency| matches!(dependency.dependency_type(), DependencyType::CssImport));
     if !has_css_imports {
       let css_source = self.render_css_module_source();
       return self.css_text_expr(css_source, &[]);
@@ -380,7 +376,16 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         continue;
       };
 
-      let mut child = self.child_generator(imported_source.clone(), imported_module.as_ref());
+      let build_info = imported_module.build_info();
+      let css_build_info = build_info
+        .css
+        .as_deref()
+        .expect("imported CSS module should have build info");
+      let mut child = self.child_generator(
+        imported_source.clone(),
+        imported_module.as_ref(),
+        css_build_info,
+      );
       child.render_ordered_css_sources(builder, &css_import.render_conditions, seen);
     }
   }
@@ -393,8 +398,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       .module
       .get_dependencies()
       .iter()
-      .filter_map(move |dependency_id| {
-        let dependency = module_graph.dependency_by_id(dependency_id);
+      .filter_map(move |dependency| {
         if !matches!(dependency.dependency_type(), DependencyType::CssImport) {
           return None;
         }
@@ -403,7 +407,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
             "dependency with type DependencyType::CssImport should only be CssImportDependency"
           );
         };
-        let imported_module = module_graph.module_graph_module_by_dependency_id(dependency_id)?;
+        let imported_module = module_graph.module_graph_module_by_dependency_id(dependency.id())?;
 
         Some(CssImportedModule {
           module_identifier: imported_module.module_identifier,
@@ -579,7 +583,13 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         continue;
       }
 
-      let mut child = self.child_generator(source.clone(), imported_module.as_ref());
+      let build_info = imported_module.build_info();
+      let css_build_info = build_info
+        .css
+        .as_deref()
+        .expect("imported CSS module should have build info");
+      let mut child =
+        self.child_generator(source.clone(), imported_module.as_ref(), css_build_info);
       code.push_str(&child.render_style_imports(visited_inlined_modules));
       let css_source = child.render_css_module_source();
       let css = child.css_text_expr(css_source, &css_import.render_conditions);
@@ -703,19 +713,6 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       .get_exports_info_data(&module.identifier());
     let mut state = CssConcatenationState::new(compilation);
 
-    if self.es_module {
-      let exports_argument = if compilation.options.output.module {
-        ExportsArgument::RspackExports
-      } else {
-        self.module.get_exports_argument()
-      };
-      let esm_flag = self
-        .generate_context
-        .runtime_template
-        .define_es_module_flag_statement(exports_argument);
-      self.concat_source.add(RawStringSource::from(esm_flag));
-    }
-
     if let Some(default_expr) = default_expr {
       let export_info = exports_info.get_read_only_export_info(&Atom::from("default"));
       if let Some(UsedNameItem::Str(used_name)) = export_info.get_used_name(None, runtime) {
@@ -804,13 +801,12 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let from = id
       .and_then(find_target_module)
       .or_else(|| {
-        self.module.get_dependencies().iter().find_map(|id| {
-          let dependency = module_graph.dependency_by_id(id);
-          let request = dependency_request(dependency);
+        self.module.get_dependencies().iter().find_map(|dependency| {
+          let request = dependency_request(dependency.as_ref());
           if let Some(request) = request
             && request == from_name
           {
-            return find_target_module(id);
+            return find_target_module(dependency.id());
           }
           None
         })
@@ -820,10 +816,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
           .module
           .get_dependencies()
           .iter()
-          .filter_map(|id| {
-            let dependency = module_graph.dependency_by_id(id);
-            dependency_request(dependency)
-          })
+          .filter_map(|dependency| dependency_request(dependency.as_ref()))
           .collect::<Vec<_>>();
         panic!(
           "should have css from module: ident={ident}, from={from_name}, id={id:?}, dependency_requests={dependency_requests:?}"
@@ -913,11 +906,8 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         module
           .get_dependencies()
           .iter()
-          .filter(|dep_id| {
-            let dependency = module_graph.dependency_by_id(dep_id);
-            dependency_request(dependency) == Some(from_name)
-          })
-          .filter_map(find_target_module)
+          .filter(|dependency| dependency_request(dependency.as_ref()) == Some(from_name))
+          .filter_map(|dependency| find_target_module(dependency.id()))
           .max_by_key(|(_, priority)| *priority)
       })
       .map(|(target, _)| target)
@@ -1026,14 +1016,14 @@ if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_
 struct CssConcatenationState<'a> {
   compilation: &'a rspack_core::Compilation,
   used_identifiers: HashSet<String>,
-  seen_static_exports: HashSet<(rspack_core::ModuleIdentifier, &'a str)>,
+  seen_static_exports: HashSet<(rspack_core::ModuleIdentifier, SmolStr)>,
   static_export_queue: VecDeque<StaticCssExportFrame<'a>>,
 }
 
 struct StaticCssExportFrame<'a> {
   module: &'a dyn Module,
-  css_build_info: &'a CssBuildInfo,
-  export_name: &'a str,
+  css_build_info: rspack_core::FreezeReadGuard<'a, CssBuildInfo>,
+  export_name: SmolStr,
   next_index: usize,
   resolved: String,
 }
@@ -1048,11 +1038,7 @@ impl<'a> CssConcatenationState<'a> {
     }
   }
 
-  fn resolve_static_export(
-    &mut self,
-    module: &'a dyn Module,
-    export_name: &'a str,
-  ) -> Option<String> {
+  fn resolve_static_export(&mut self, module: &'a dyn Module, export_name: &str) -> Option<String> {
     self.seen_static_exports.clear();
     self.static_export_queue.clear();
 
@@ -1099,28 +1085,25 @@ impl<'a> CssConcatenationState<'a> {
     None
   }
 
-  fn push_static_export_frame(
-    &mut self,
-    module: &'a dyn Module,
-    export_name: &'a str,
-  ) -> Option<()> {
-    let css_build_info = module
-      .build_info()
-      .css
-      .as_deref()
-      .expect("CssParserAndGenerator should populate BuildInfo.css during parse");
+  fn push_static_export_frame(&mut self, module: &'a dyn Module, export_name: &str) -> Option<()> {
+    let css_build_info = module.build_info().map(|info| {
+      info
+        .css
+        .as_deref()
+        .expect("CssParserAndGenerator should populate BuildInfo.css during parse")
+    });
     css_build_info.exports.get(export_name)?;
     let module_identifier = module.identifier();
     if !self
       .seen_static_exports
-      .insert((module_identifier, export_name))
+      .insert((module_identifier, export_name.into()))
     {
       return None;
     }
     self.static_export_queue.push_back(StaticCssExportFrame {
       module,
       css_build_info,
-      export_name,
+      export_name: export_name.into(),
       next_index: 0,
       resolved: String::new(),
     });
@@ -1132,13 +1115,15 @@ impl<'a> CssConcatenationState<'a> {
     if let Some(css_export) = frame
       .css_build_info
       .exports
-      .get(frame.export_name)
+      .get(frame.export_name.as_str())
       .and_then(|elements| elements.get_index(frame.next_index))
     {
       frame.next_index += 1;
       Some(StaticCssExportStep::Resolve {
         module: frame.module,
-        css_export,
+        // The frame retains the metadata guard while the next step mutates
+        // the queue. Retain just this export's small strings for that step.
+        css_export: css_export.clone(),
       })
     } else {
       Some(StaticCssExportStep::Complete(
@@ -1155,7 +1140,7 @@ impl<'a> CssConcatenationState<'a> {
 enum StaticCssExportStep<'a> {
   Resolve {
     module: &'a dyn Module,
-    css_export: &'a CssExport,
+    css_export: CssExport,
   },
   Complete(String),
 }
@@ -1180,12 +1165,11 @@ fn find_static_export_target(
       .map(|module| module.identifier())
   })
   .or_else(|| {
-    module.get_dependencies().iter().find_map(|id| {
-      let dependency = module_graph.dependency_by_id(id);
-      let request = dependency_request(dependency);
+    module.get_dependencies().iter().find_map(|dependency| {
+      let request = dependency_request(dependency.as_ref());
       (request == Some(from_request)).then(|| {
         module_graph
-          .get_module_by_dependency_id(id)
+          .get_module_by_dependency_id(dependency.id())
           .map(|module| module.identifier())
       })?
     })

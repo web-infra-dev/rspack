@@ -140,7 +140,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
         (
           key,
           consume.share_scope().clone(),
-          consume.get_dependencies(),
+          consume.get_dependency_ids(),
           consume.get_blocks(),
           None,
         )
@@ -155,7 +155,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
         (
           provide.share_key().to_string(),
           provide.share_scope().clone(),
-          provide.get_dependencies(),
+          provide.get_dependency_ids(),
           provide.get_blocks(),
           provide.version().map(str::to_string),
         )
@@ -177,7 +177,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
     }
     for block_id in blocks {
       if let Some(block) = module_graph.block_by_id(block_id) {
-        for dep_id in block.get_dependencies() {
+        for dep_id in block.get_dependency_ids() {
           if let Some(target_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
             target_modules.push(*target_id);
           }

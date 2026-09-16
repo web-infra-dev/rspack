@@ -36,13 +36,12 @@ pub fn cutout_worker_externals(
       let Some(block) = mg.block_by_id(block_id) else {
         continue;
       };
-      for block_dep_id in block.get_dependencies() {
-        let dependency = mg.dependency_by_id(block_dep_id);
+      for dependency in block.get_dependencies() {
         if !dependency.as_any().is::<WorkerDependency>() {
           continue;
         }
 
-        let Some(connection) = mg.connection_by_dependency_id(block_dep_id) else {
+        let Some(connection) = mg.connection_by_dependency_id(dependency.id()) else {
           continue;
         };
         let Some(module) = mg.module_by_identifier(connection.module_identifier()) else {
@@ -53,7 +52,7 @@ pub fn cutout_worker_externals(
         };
 
         if should_cutout_worker_external(cutout_all_externals, output_module, external_module) {
-          connections_to_disable.push(*block_dep_id);
+          connections_to_disable.push(*dependency.id());
         }
       }
     }
