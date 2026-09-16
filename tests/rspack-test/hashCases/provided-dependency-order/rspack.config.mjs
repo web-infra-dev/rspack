@@ -1,14 +1,14 @@
-const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
-const path = require('path');
+import NodePolyfillPlugin from 'node-polyfill-webpack-plugin';
+import path from 'node:path';
 
 function config(subpath, realContentHash = false) {
   return {
     mode: 'development',
     devtool: false,
-    context: __dirname,
+    context: import.meta.dirname,
     entry: './index.js',
     output: {
-      path: path.resolve(__dirname, `./dist/${subpath}`),
+      path: path.resolve(import.meta.dirname, `./dist/${subpath}`),
       filename: '[name].[contenthash]-[contenthash:6].js',
     },
     optimization: {
@@ -19,7 +19,7 @@ function config(subpath, realContentHash = false) {
 }
 
 /** @type {import("@rspack/core").Configuration} */
-module.exports = [
+export default [
   config('a'),
   config('b'),
   config('c'),

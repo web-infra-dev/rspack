@@ -1,16 +1,16 @@
-const path = require('path');
+import path from 'node:path';
 
 function config(name, delayedRequest) {
   return {
     name,
     mode: 'production',
-    context: __dirname,
+    context: import.meta.dirname,
     entry: './index.js',
     target: 'node',
     cache: false,
     devtool: 'source-map',
     output: {
-      path: path.resolve(__dirname, `dist/${name}`),
+      path: path.resolve(import.meta.dirname, `dist/${name}`),
       filename: 'bundle.js',
       library: { type: 'commonjs2' },
     },
@@ -34,7 +34,7 @@ function config(name, delayedRequest) {
 }
 
 /** @type {import('@rspack/core').Configuration[]} */
-module.exports = [
+export default [
   config('delay-parent-request', '../shared'),
   config('delay-current-request', './shared'),
 ];

@@ -1,4 +1,4 @@
-const path = require('node:path');
+import path from 'node:path';
 
 const hashes = new Set();
 
@@ -6,14 +6,14 @@ class CheckHashPlugin {
   apply(compiler) {
     compiler.hooks.compilation.tap(CheckHashPlugin.name, (compilation) => {
       compilation.hooks.processAssets.tap(CheckHashPlugin.name, () => {
-        const sharedModule = Array.from(compilation.modules).find((module) =>
-          module.resource?.endsWith('shared.cjs'),
+        const barrelModule = Array.from(compilation.modules).find((module) =>
+          module.resource?.endsWith('barrel.js'),
         );
-        expect(sharedModule).toBeTruthy();
+        expect(barrelModule).toBeTruthy();
 
         const moduleHash = compilation.chunkGraph.getModuleHash(
-          sharedModule,
-          'runtime',
+          barrelModule,
+          'main',
         );
         expect(moduleHash).toBeTruthy();
 
@@ -26,15 +26,11 @@ class CheckHashPlugin {
 
 function config(name) {
   return {
-    name,
     mode: 'production',
+    entry: './barrel.js',
     devtool: false,
-    entry: {
-      loose: './loose.cjs',
-      strict: './strict.mjs',
-    },
     output: {
-      path: path.join(__dirname, 'dist', name),
+      path: path.join(import.meta.dirname, 'dist', name),
       filename: '[name].[contenthash].js',
     },
     optimization: {
@@ -42,12 +38,10 @@ function config(name) {
       moduleIds: 'named',
       minimize: false,
       realContentHash: false,
-      runtimeChunk: {
-        name: 'runtime',
-      },
     },
     plugins: [new CheckHashPlugin()],
   };
 }
 
-module.exports = Array.from({ length: 8 }).map((_, i) => config(String(i)));
+/** @type {import("@rspack/core").Configuration[]} */
+export default Array.from({ length: 4 }, (_, i) => config(String(i)));

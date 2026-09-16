@@ -1,4 +1,4 @@
-const path = require('path');
+import path from 'node:path';
 
 function config(subpath, filename) {
   return {
@@ -9,7 +9,7 @@ function config(subpath, filename) {
       },
     },
     output: {
-      path: path.resolve(__dirname, `dist/${subpath}`),
+      path: path.resolve(import.meta.dirname, `dist/${subpath}`),
       filename,
     },
     target: 'node',
@@ -23,7 +23,7 @@ function config(subpath, filename) {
 }
 
 /** @type {import("@rspack/core").Configuration} */
-module.exports = [
+export default [
   config('a', '[name].[chunkhash].js'),
   config('b', '[name].[contenthash].js'),
 ];

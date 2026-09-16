@@ -34,7 +34,7 @@ const creator = new BasicCaseCreator({
           const options = await config(
             context,
             name,
-            ['rspack.config.js', 'webpack.config.js'],
+            ['rspack.config.mjs', 'rspack.config.js', 'webpack.config.js'],
             defaultOptions(context, caseConfig.options),
           );
           if (!global.printLogger) {

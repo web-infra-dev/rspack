@@ -1,5 +1,5 @@
 /** @type {import("@rspack/core").Configuration} */
-module.exports = {
+export default {
   mode: 'production',
   entry: './src/index.js',
   devtool: false,
@@ -16,7 +16,7 @@ module.exports = {
       },
     ],
   },
-  context: __dirname,
+  context: import.meta.dirname,
   optimization: {
     realContentHash: true,
   },

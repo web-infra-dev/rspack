@@ -1,4 +1,4 @@
-const path = require('path');
+import path from 'node:path';
 const base = {
   mode: 'production',
   entry: './src/index.js',
@@ -16,16 +16,16 @@ const base = {
     ],
   },
   stats: 'normal',
-  context: __dirname,
+  context: import.meta.dirname,
 };
 
 /** @type {import("@rspack/core").Configuration[]} */
-module.exports = [
+export default [
   {
     ...base,
     output: {
       ...base.output,
-      path: path.resolve(__dirname, './dist/enable'),
+      path: path.resolve(import.meta.dirname, './dist/enable'),
     },
     optimization: {
       realContentHash: true,
@@ -35,7 +35,7 @@ module.exports = [
     ...base,
     output: {
       ...base.output,
-      path: path.resolve(__dirname, './dist/disable'),
+      path: path.resolve(import.meta.dirname, './dist/disable'),
     },
     optimization: {
       realContentHash: false,

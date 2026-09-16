@@ -50,8 +50,8 @@ export function createWatchInitialProcessor(
       const testConfig = context.getTestConfig();
       const multiCompilerOptions = [];
       const caseOptions: RspackOptions[] = readConfigFile(
-        ['rspack.config.js', 'webpack.config.js'].map((i) =>
-          context.getSource(i),
+        ['rspack.config.mjs', 'rspack.config.js', 'webpack.config.js'].map(
+          (i) => context.getSource(i),
         ),
         context,
         {},

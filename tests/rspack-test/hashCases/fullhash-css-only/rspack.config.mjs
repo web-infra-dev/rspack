@@ -1,13 +1,13 @@
-const path = require('path');
-const rspack = require('@rspack/core');
+import path from 'node:path';
+import { rspack } from '@rspack/core';
 
 function builtinConfig(subpath) {
   return {
     mode: 'production',
     entry: './index.js',
-    context: path.resolve(__dirname, subpath),
+    context: path.resolve(import.meta.dirname, subpath),
     output: {
-      path: path.resolve(__dirname, `dist/builtin-${subpath}`),
+      path: path.resolve(import.meta.dirname, `dist/builtin-${subpath}`),
       filename: 'main.[fullhash].js',
       cssFilename: 'main.[contenthash].css',
     },
@@ -26,9 +26,9 @@ function extractConfig(subpath) {
   return {
     mode: 'production',
     entry: './index.js',
-    context: path.resolve(__dirname, subpath),
+    context: path.resolve(import.meta.dirname, subpath),
     output: {
-      path: path.resolve(__dirname, `dist/extract-${subpath}`),
+      path: path.resolve(import.meta.dirname, `dist/extract-${subpath}`),
       filename: 'main.[fullhash].js',
     },
     module: {
@@ -52,7 +52,7 @@ function extractConfig(subpath) {
 }
 
 /** @type {import("@rspack/core").Configuration[]} */
-module.exports = [
+export default [
   builtinConfig('version0'),
   builtinConfig('version1'),
   extractConfig('version0'),
