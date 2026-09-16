@@ -96,7 +96,7 @@ export class ContainerPlugin<
           return {
             import: Array.isArray(item.import) ? item.import : [item.import],
             name: item.name || undefined,
-            layer: enhanced ? item.layer : undefined,
+            layer: item.layer,
           };
         },
       ),

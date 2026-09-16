@@ -239,6 +239,17 @@ impl ProvideSharedPlugin {
     let title = "rspack.ProvideSharedPlugin";
     let error_header = "No version specified and unable to automatically determine one.";
     let lookup_key = RequestMatchKey::new(resource, layer.as_deref());
+    // Same fast path as webpack's `resolvedProvideMap.has(lookupKey)`: a resource
+    // already resolved for this config skips the version lookup and the write lock.
+    if self
+      .resolved_provide_map
+      .read()
+      .await
+      .get(&lookup_key)
+      .is_some_and(|configs| configs.iter().any(|config| config.config_id == config_id))
+    {
+      return;
+    }
     if let Some(version) = version {
       let mut resolved_provide_map = self.resolved_provide_map.write().await;
       insert_resolved_config(

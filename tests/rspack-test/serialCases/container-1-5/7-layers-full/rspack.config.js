@@ -71,10 +71,6 @@ module.exports = [
   },
   {
     ...commonConfig,
-    experiments: {
-      ...commonConfig.experiments,
-      outputModule: true,
-    },
     output: {
       module: true,
       filename: 'module/[name].mjs',

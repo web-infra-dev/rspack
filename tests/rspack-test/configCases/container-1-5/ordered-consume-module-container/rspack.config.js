@@ -10,7 +10,6 @@ module.exports = (_, { testPath }) =>
       name === 'initial'
         ? { index: './index.js', ordered: './ordered.js' }
         : { index: './index.js' },
-    experiments: { outputModule: true },
     output: {
       path: path.join(testPath, name),
       filename: '[name].mjs',

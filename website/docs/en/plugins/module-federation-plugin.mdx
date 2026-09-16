@@ -83,7 +83,7 @@ Define the output format of remote container entry. The default libraryType is "
 
 Define the namespace for shared dependencies in the current container. By configuring share scopes between different containers, the sharing behavior of modules can be controlled, including determining which modules are shared between different containers. The default share scope is `"default"`.
 
-An array preserves scope order. For example, `['custom', 'default']` uses `"custom"` as the primary scope when initializing a legacy container. Enhanced containers receive the complete ordered scope list. The scopes keep separate shared registries.
+An array preserves scope order. For example, `['custom', 'default']` uses `"custom"` as the primary scope when initializing a legacy container. Enhanced containers receive the complete ordered scope list. The scopes keep separate shared registries. An entry whose initial chunks consume a shared module from an ordered scope array starts asynchronously, since the scopes are initialized before the consume is installed; module-library output awaits that initialization.
 
 An array must contain at least one scope. Multiple scopes require the enhanced runtime used by `ModuleFederationPlugin`, or `enhanced: true` when using the lower-level federation plugins. Without the enhanced runtime, a single-element array is treated as a string and arrays with multiple entries are rejected. These rules also apply to `remotes.*.shareScope` and `shared.*.shareScope`.
 
@@ -157,7 +157,7 @@ new rspack.container.ModuleFederationPlugin({
 });
 ```
 
-This option is available with Module Federation 1.5, which uses the enhanced runtime. When using `ContainerPlugin` directly, set `enhanced: true`; Module Federation 1.0 does not support this option. Omitting `layer` leaves it unspecified.
+This option is available with Module Federation 1.5, which uses the enhanced runtime. When using `ContainerPlugin` directly, set `enhanced: true`; Module Federation 1.0 does not support this option. Omitting `layer` leaves it unspecified. A layer is a non-empty string; an empty string is rejected.
 
 ### shared
 
@@ -196,9 +196,9 @@ Specify which dependencies should be shared dependencies. This allows multiple m
 The SharedConfig can include the following sub-options:
 
 - import: Module that should be placed in the share scope of the shared module. If the shared module cannot be found in the share scope of the shared module or the version is invalid, this provided module can be used as a fallback module.
-- request: Override the module request matched by this shared configuration. When `import` is omitted, it defaults to `request`, or to the configuration key when `request` is omitted.
-- layer: Select the layer of the shared provider and fallback module. Matching layers take precedence over fallback configurations without a layer.
-- issuerLayer: Restrict consumption to modules imported from this layer. This is independent of the shared module's `layer`.
+- request: Override the module request matched by this shared configuration. When `import` is omitted, it defaults to `request`, or to the configuration key when `request` is omitted. Requires the enhanced runtime (Module Federation 1.5); set `enhanced: true` when using `ConsumeSharedPlugin` or `ProvideSharedPlugin` directly.
+- layer: Select the layer of the shared provider and fallback module. Matching layers take precedence over fallback configurations without a layer. A layer is a non-empty string; an empty string is rejected. Requires the enhanced runtime.
+- issuerLayer: Restrict consumption to modules imported from this layer. This is independent of the shared module's `layer`. A non-empty string; requires the enhanced runtime.
 - eager: If set to `true`, the shared module will be loaded in the initial chunk instead of being dynamically loaded when used. This means that the shared module will be loaded together with the main entry point regardless of whether it has been used. This can eliminate the delay caused by dynamic loading, but it will increase the size of the initial package. Also, please note that when this configuration is enabled, all provided modules and fallback modules will always be downloaded.
 - packageName: Used to determine the package name and required version from `package.json`. Configuration is only necessary when the package name cannot be automatically determined based on the request.
 - requiredVersion: Accepts semantic version number. For example, `"^1.2.3"`. Used to set the version range of shared modules. If the module version of the remote container does not meet this range, the module will not be loaded.
@@ -248,7 +248,7 @@ Readers must accept older manifests without these optional fields.
 
 - `filePath`: Target directory for the manifest files. Applies to both manifest and stats outputs.
 - `fileName`: Manifest file name. When set, the stats file automatically appends a `-stats` suffix (for example, `fileName: 'mf.json'` produces `mf.json` and `mf-stats.json`). All files are emitted into the directory defined by `filePath` (if provided).
-- `disableAssetsAnalyze`: Disables asset analysis. Shared and exposed modules are described from configuration, with empty asset lists. Resolved provider details are omitted.
+- `disableAssetsAnalyze`: Disables asset analysis. Shared and exposed modules are described from configuration, with empty asset lists.
 
 ### injectTreeShakingUsedExports
 

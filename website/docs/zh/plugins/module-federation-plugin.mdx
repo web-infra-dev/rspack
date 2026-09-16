@@ -83,7 +83,7 @@ export default {
 
 定义当前应用共享依赖的命名空间。通过在不同的应用之间配置命名空间，可以控制模块的共享行为，包括确定哪些模块在不同的应用之间是共享的。默认的命名空间为 `"default"`。
 
-数组会保留共享作用域的顺序。例如，`['custom', 'default']` 在初始化旧版容器时使用 `"custom"` 作为主作用域。增强容器会接收完整的有序作用域列表，各作用域保留独立的共享模块注册表。
+数组会保留共享作用域的顺序。例如，`['custom', 'default']` 在初始化旧版容器时使用 `"custom"` 作为主作用域。增强容器会接收完整的有序作用域列表，各作用域保留独立的共享模块注册表。若入口的初始 chunk 消费了有序作用域数组中的共享模块，该入口会异步启动，因为作用域会先于消费模块安装完成初始化；module 类型的库输出会等待该初始化完成。
 
 数组必须至少包含一个作用域。多个作用域需要 `ModuleFederationPlugin` 使用的增强运行时，或在使用底层联邦插件时设置 `enhanced: true`。不使用增强运行时时，单元素数组会被视为字符串，包含多个元素的数组会被拒绝。这些规则也适用于 `remotes.*.shareScope` 和 `shared.*.shareScope`。
 
@@ -157,7 +157,7 @@ new rspack.container.ModuleFederationPlugin({
 });
 ```
 
-此选项适用于使用增强运行时的 Module Federation 1.5。直接使用 `ContainerPlugin` 时，需要设置 `enhanced: true`；Module Federation 1.0 不支持此选项。省略 `layer` 表示不指定层。
+此选项适用于使用增强运行时的 Module Federation 1.5。直接使用 `ContainerPlugin` 时，需要设置 `enhanced: true`；Module Federation 1.0 不支持此选项。省略 `layer` 表示不指定层。层必须是非空字符串，空字符串会被拒绝。
 
 ### shared
 
@@ -196,9 +196,9 @@ new rspack.container.ModuleFederationPlugin({
 其中 `SharedConfig` 可以包含以下子选项：
 
 - import：应放置在共享模块的命名空间中的模块。如果在共享模块的命名空间中找不到共享模块或版本无效，则此提供的模块可作为后备模块进行兜底。
-- request：覆盖此共享配置匹配的模块请求。省略 `import` 时，默认使用 `request`；若同时省略 `request`，则使用配置键。
-- layer：指定共享提供者和后备模块的层。匹配的层优先于不指定层的后备配置。
-- issuerLayer：仅对从此层导入的模块应用共享消费配置，与共享模块自身的 `layer` 相互独立。
+- request：覆盖此共享配置匹配的模块请求。省略 `import` 时，默认使用 `request`；若同时省略 `request`，则使用配置键。需要增强运行时（Module Federation 1.5）；直接使用 `ConsumeSharedPlugin` 或 `ProvideSharedPlugin` 时需设置 `enhanced: true`。
+- layer：指定共享提供者和后备模块的层。匹配的层优先于不指定层的后备配置。层必须是非空字符串，空字符串会被拒绝。需要增强运行时。
+- issuerLayer：仅对从此层导入的模块应用共享消费配置，与共享模块自身的 `layer` 相互独立。必须是非空字符串；需要增强运行时。
 - eager：如果设置为 `true`，则共享模块会在初始 Chunk 中被加载，而不是在使用时才被动态加载。这意味着共享模块会随着主入口点一起加载，而不考虑是否已经被使用。这可以消除动态加载造成的延迟，但是会增加初始包的大小。另外，请注意，启用此配置时，将始终下载所有提供的模块和后备模块。
 - packageName：用于从 `package.json` 中确定所需版本的包名称。仅当无法根据请求自动确定包名称时才需要进行配置。
 - requiredVersion：接受语义版本号。例如 `"^1.2.3"`。用来设定共享模块的版本范围，如果远程应用的模块版本不符合这个范围，模块将不会被加载。
@@ -246,7 +246,7 @@ new rspack.container.ModuleFederationPlugin({
 
 - filePath：manifest 文件路径，设置后同时作用于 stats 。
 - fileName：manifest 文件名称，如果设置了 `fileName`，对应的 stats 文件名会自动附加 `-stats` 后缀（例如 `fileName: 'mf.json'` 时会同时生成 `mf.json` 与 `mf-stats.json`）。所有文件都会写入 `filePath`（若配置）指定的子目录。
-- disableAssetsAnalyze：禁用产物分析。共享和暴露模块的信息来自配置，资源列表为空，且不包含解析后的提供者详情。
+- disableAssetsAnalyze：禁用产物分析。共享和暴露模块的信息来自配置，资源列表为空。
 
 ### injectTreeShakingUsedExports
 
