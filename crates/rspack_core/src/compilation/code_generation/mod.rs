@@ -141,10 +141,7 @@ pub(crate) async fn code_generation_modules(
   let mut jobs = Vec::new();
   for module in modules {
     let mut map: HashMap<RspackHashDigest, CodeGenerationJob> = HashMap::default();
-    for runtime in chunk_graph.get_module_runtimes_iter(
-      module,
-      &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-    ) {
+    for runtime in chunk_graph.get_module_runtimes_iter(module) {
       let hash = ChunkGraph::get_module_hash(compilation, module, runtime)
         .expect("should have cgm.hash in code generation");
       let scope = compilation

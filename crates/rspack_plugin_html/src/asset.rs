@@ -82,7 +82,7 @@ impl HtmlPluginAssets {
     let included_assets = sorted_entry_names
       .iter()
       .map(|entry_name| compilation.entrypoint_by_name(entry_name))
-      .flat_map(|entry| entry.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey))
+      .flat_map(|entry| entry.get_files(&compilation.build_chunk_graph_artifact.chunk_graph.chunks))
       .filter_map(|asset_name| {
         let asset = compilation
           .assets()

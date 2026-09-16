@@ -40,7 +40,13 @@ impl Chunks {
   #[napi(getter)]
   pub fn size(&self) -> napi::Result<u32> {
     let compilation = self.as_ref()?;
-    Ok(compilation.build_chunk_graph_artifact.chunk_by_ukey.len() as u32)
+    Ok(
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .chunks
+        .len() as u32,
+    )
   }
 
   #[napi(js_name = "_values", ts_return_type = "Chunk[]")]
@@ -49,7 +55,8 @@ impl Chunks {
     Ok(
       compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .keys()
         .map(|chunk_ukey| ChunkWrapper::new(*chunk_ukey, compilation))
         .collect::<Vec<_>>(),
@@ -59,11 +66,6 @@ impl Chunks {
   #[napi(js_name = "_has")]
   pub fn has(&self, chunk: &Chunk) -> napi::Result<bool> {
     let compilation = self.as_ref()?;
-    Ok(
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .contains(&chunk.chunk_ukey),
-    )
+    Ok(chunk.belongs_to(compilation))
   }
 }

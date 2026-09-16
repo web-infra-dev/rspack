@@ -213,7 +213,8 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
           compiler
             .compilation
             .build_chunk_graph_artifact
-            .chunk_by_ukey
+            .chunk_graph
+            .chunks
             .len(),
           NUM_MODULES / 10
         );
@@ -353,7 +354,6 @@ fn configure_swc_loader(builder: &mut CompilerBuilder) {
 }
 
 fn reset_chunk_graph_state(compilation: &mut Compilation) {
-  compilation.build_chunk_graph_artifact.chunk_by_ukey = Default::default();
   compilation.build_chunk_graph_artifact.chunk_graph = Default::default();
   compilation.build_chunk_graph_artifact.chunk_group_by_ukey = Default::default();
   compilation.build_chunk_graph_artifact.entrypoints = Default::default();

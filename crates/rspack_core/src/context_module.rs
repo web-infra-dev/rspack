@@ -803,7 +803,8 @@ impl ContextModule {
           .map(|c| {
             compilation
               .build_chunk_graph_artifact
-              .chunk_by_ukey
+              .chunk_graph
+              .chunks
               .expect_get(c)
               .id()
               .expect("should have chunk id in code generation")

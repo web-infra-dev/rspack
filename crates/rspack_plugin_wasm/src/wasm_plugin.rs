@@ -41,7 +41,8 @@ async fn render_manifest(
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   let module_graph = &compilation.get_module_graph();
 

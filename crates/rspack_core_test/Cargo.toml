@@ -1,0 +1,15 @@
+[package]
+edition.workspace = true
+license.workspace = true
+name              = "rspack_core_test"
+publish           = false
+version.workspace = true
+
+[dependencies]
+rspack_cacheable   = { workspace = true }
+rspack_collections = { workspace = true }
+rspack_core        = { workspace = true }
+rspack_error       = { workspace = true }
+
+[lints]
+workspace = true

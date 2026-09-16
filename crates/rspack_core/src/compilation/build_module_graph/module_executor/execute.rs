@@ -10,10 +10,10 @@ use tokio::sync::oneshot::Sender;
 
 use super::context::{ExecutorTaskContext, ImportModuleMeta};
 use crate::{
-  Chunk, ChunkGraph, ChunkKind, ChunkUkey, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
-  CodeGenerationResult, CodeGenerationResultBuilder, Compilation, CompilationAsset,
-  CompilationAssets, EntryOptions, Entrypoint, ModuleCodeGenerationContext, ModuleType, PublicPath,
-  RuntimeSpec, SourceType,
+  ChunkGraph, ChunkKind, ChunkSet, ChunkUkey, CodeGenerationDataAssetInfo,
+  CodeGenerationDataFilename, CodeGenerationResult, CodeGenerationResultBuilder, Compilation,
+  CompilationAsset, CompilationAssets, EntryOptions, Entrypoint, ModuleCodeGenerationContext,
+  ModuleType, PublicPath, RuntimeSpec, SourceType,
   compilation::{
     code_generation::code_generation_modules,
     create_module_hashes::create_module_hashes,
@@ -330,7 +330,9 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
 
     let mut chunk_graph = ChunkGraph::default();
 
-    let mut chunk = Chunk::new(Some("build time chunk".into()), ChunkKind::Normal);
+    let chunk_ukey =
+      chunk_graph.create_chunk(Some("build time chunk".into()), ChunkKind::Normal)?;
+    let chunk = chunk_graph.chunks.expect_get_mut(&chunk_ukey);
 
     if let Some(name) = chunk.name() {
       let name = name.to_string();
@@ -357,14 +359,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       }),
     });
 
-    // add chunk to this compilation
-    let chunk = compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .add(chunk);
-    let chunk_ukey = chunk.ukey();
-
-    chunk_graph.connect_chunk_and_entry_module(
+    chunk_graph.topology.connect_chunk_and_entry_module(
       chunk.ukey(),
       entry_module_identifier,
       entrypoint.ukey,
@@ -399,9 +394,12 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     let plugin_driver = compilation.plugin_driver.clone();
     process_modules_runtime_requirements(&mut compilation, modules.clone(), plugin_driver.clone())
       .await?;
+    let chunks = &compilation.build_chunk_graph_artifact.chunk_graph.chunks;
+    let mut runtime_requirement_chunks = ChunkSet::with_capacity(chunks.slot_count());
+    runtime_requirement_chunks.insert(chunks, chunk_ukey);
     process_chunks_runtime_requirements(
       &mut compilation,
-      FxHashSet::from_iter([chunk_ukey]),
+      runtime_requirement_chunks,
       FxHashSet::from_iter([chunk_ukey]),
       plugin_driver,
     )

@@ -3,8 +3,8 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::*;
 use crate::{
-  CodeGenerationRuntimeRequirementsWrite, RuntimeProxyMetadata, compilation::pass::PassExt,
-  logger::Logger, runtime_globals::BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS,
+  ChunkMap, ChunkSet, CodeGenerationRuntimeRequirementsWrite, RuntimeProxyMetadata,
+  compilation::pass::PassExt, logger::Logger, runtime_globals::BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS,
   runtime_mode::RuntimeMode as ExperimentRuntimeMode,
 };
 
@@ -80,7 +80,9 @@ async fn runtime_requirements_pass_impl(compilation: &mut Compilation) -> Result
     compilation.cgc_runtime_requirements_artifact.clear();
   }
 
-  let process_runtime_requirements_chunks = if let Some(mutations) = compilation
+  let owner = &compilation.build_chunk_graph_artifact.chunk_graph.chunks;
+  let mut process_runtime_requirements_chunks = ChunkSet::with_capacity(owner.slot_count());
+  if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
     && !compilation.cgc_runtime_requirements_artifact.is_empty()
@@ -110,24 +112,31 @@ async fn runtime_requirements_pass_impl(compilation: &mut Compilation) -> Result
       .retain(|chunk, _| {
         compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .contains(chunk)
       });
     let logger = compilation.get_logger("rspack.incremental.chunksRuntimeRequirements");
     logger.log(format!(
       "{} chunks are affected, {} in total",
       affected_chunks.len(),
-      compilation.build_chunk_graph_artifact.chunk_by_ukey.len()
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .chunks
+        .len()
     ));
-    affected_chunks
+    for key in affected_chunks
+      .into_iter()
+      .filter(|key| owner.contains(key))
+    {
+      process_runtime_requirements_chunks.insert(owner, key);
+    }
   } else {
-    compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .keys()
-      .copied()
-      .collect()
-  };
+    for key in owner.keys() {
+      process_runtime_requirements_chunks.insert(owner, *key);
+    }
+  }
   process_chunks_runtime_requirements(
     compilation,
     process_runtime_requirements_chunks,
@@ -211,10 +220,7 @@ pub async fn process_modules_runtime_requirements(
           let runtimes = compilation
             .build_chunk_graph_artifact
             .chunk_graph
-            .get_module_runtimes_iter(
-              module,
-              &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-            );
+            .get_module_runtimes_iter(module);
           for runtime in runtimes {
             let runtime_requirements = compilation
               .process_runtime_requirements_cache_artifact
@@ -296,39 +302,40 @@ pub async fn process_modules_runtime_requirements(
 #[instrument(name = "Compilation:process_chunks_runtime_requirements", target=TRACING_BENCH_TARGET skip_all)]
 pub async fn process_chunks_runtime_requirements(
   compilation: &mut Compilation,
-  chunks: FxHashSet<ChunkUkey>,
+  chunks: ChunkSet,
   entries: FxHashSet<ChunkUkey>,
   plugin_driver: SharedPluginDriver,
 ) -> Result<()> {
   let logger = compilation.get_logger("rspack.Compilation");
   let start = logger.time("runtime requirements.chunks");
-  let chunk_requirements = chunks
-    .iter()
-    .chain(entries.iter())
-    .par_bridge()
-    .map(|chunk_ukey| {
-      let mut set = RuntimeGlobals::default();
+  let owner = &compilation.build_chunk_graph_artifact.chunk_graph.chunks;
+  let mut chunk_requirements = ChunkMap::with_capacity(owner.slot_count());
+  for key in chunks.into_keys().chain(entries.iter().copied()) {
+    chunk_requirements.insert(owner, key, RuntimeGlobals::default());
+  }
+  // Each current Chunk is computed once, even if it is in both input sets.
+  chunk_requirements
+    .par_iter_mut()
+    .for_each(|(chunk_ukey, set)| {
+      let chunk = owner.expect_get(chunk_ukey);
       for mid in compilation
         .build_chunk_graph_artifact
         .chunk_graph
         .get_chunk_modules_identifier(chunk_ukey)
       {
-        let chunk = compilation
-          .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .expect_get(chunk_ukey);
-        if let Some(runtime_requirements) =
+        if let Some(requirements) =
           ChunkGraph::get_module_runtime_requirements(compilation, *mid, chunk.runtime())
         {
-          set.insert(*runtime_requirements);
+          set.insert(*requirements);
         }
       }
+    });
 
-      (*chunk_ukey, set)
-    })
-    .collect::<FxHashMap<_, _>>();
-
-  for (chunk_ukey, mut set) in chunk_requirements {
+  // Hook order must not depend on reusable slot indices or parallel scheduling.
+  for (chunk_ukey, mut set) in chunk_requirements
+    .into_entries()
+    .sorted_unstable_by_key(|(key, _)| *key)
+  {
     let mut additional_runtime_modules = Vec::new();
     plugin_driver
       .compilation_hooks
@@ -407,7 +414,8 @@ pub async fn process_chunks_runtime_requirements(
 
     let entry = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(&entry_ukey);
     for chunk_ukey in entry
       .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
@@ -525,13 +533,15 @@ pub async fn process_chunks_runtime_requirements(
 
   let metadata_chunk_ukeys = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .keys()
     .copied()
     .filter(|chunk_ukey| {
       let chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get(chunk_ukey);
       chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         || compilation
@@ -544,7 +554,8 @@ pub async fn process_chunks_runtime_requirements(
   for chunk_ukey in metadata_chunk_ukeys {
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(&chunk_ukey);
     let owns_runtime =
       chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
@@ -559,7 +570,8 @@ pub async fn process_chunks_runtime_requirements(
     for referenced_chunk_ukey in referenced_chunks.iter() {
       let referenced_chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get(referenced_chunk_ukey);
       for mid in compilation
         .build_chunk_graph_artifact

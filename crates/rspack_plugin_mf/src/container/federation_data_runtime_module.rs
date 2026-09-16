@@ -39,7 +39,8 @@ impl RuntimeModule for FederationDataRuntimeModule {
     let runtime_template = context.runtime_template;
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(&self.chunk().expect("The chunk should be attached."));
     Ok(federation_runtime_template(chunk, runtime_template, compilation).await)
   }

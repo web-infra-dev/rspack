@@ -96,7 +96,8 @@ async fn render_startup(
 
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(chunk_ukey);
     let info_name = export_info.name().expect("should have name");
     let var_name = format!("{exports_name}{}", to_identifier(info_name));

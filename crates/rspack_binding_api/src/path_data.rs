@@ -105,7 +105,7 @@ impl JsPathData {
         Some(
           compilation
             .build_chunk_graph_artifact
-            .chunk_by_ukey
+            .chunk_graph.chunks
             .get(&chunk_ukey)
             .ok_or_else(|| {
               napi::Error::from_reason(format!(

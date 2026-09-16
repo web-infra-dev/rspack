@@ -24,7 +24,8 @@ async fn additional_chunk_runtime_requirements(
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   if compilation
     .build_chunk_graph_artifact
@@ -56,7 +57,8 @@ async fn additional_tree_runtime_requirements(
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   let chunk_filter = |_: &ChunkUkey, __: &Compilation| true;
   let mut chunk_map = chunk.get_child_ids_by_orders_map(false, compilation, &chunk_filter);

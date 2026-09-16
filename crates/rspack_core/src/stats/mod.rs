@@ -305,7 +305,12 @@ impl Stats<'_> {
     let mut compilation_file_to_chunks: HashMap<&String, Vec<&Chunk>> = HashMap::default();
     let mut compilation_file_to_auxiliary_chunks: HashMap<&String, Vec<&Chunk>> =
       HashMap::default();
-    for chunk in self.build_chunk_graph_artifact().chunk_by_ukey.values() {
+    for chunk in self
+      .build_chunk_graph_artifact()
+      .chunk_graph
+      .chunks
+      .values()
+    {
       for file in chunk.files() {
         let chunks = compilation_file_to_chunks.entry(file).or_default();
         chunks.push(chunk);
@@ -603,7 +608,8 @@ impl Stats<'_> {
 
     let mut chunks: Vec<StatsChunk> = self
       .build_chunk_graph_artifact()
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .values()
       .par_bridge()
       .map(|c| -> Result<_> {
@@ -665,7 +671,7 @@ impl Stats<'_> {
             get_chunk_relations(
               c,
               &build_chunk_graph_artifact.chunk_group_by_ukey,
-              &build_chunk_graph_artifact.chunk_by_ukey,
+              &build_chunk_graph_artifact.chunk_graph.chunks,
             )
           })
           .map_or((None, None, None), |(parents, children, siblings)| {
@@ -678,7 +684,7 @@ impl Stats<'_> {
             c,
             order,
             &build_chunk_graph_artifact.chunk_group_by_ukey,
-            &build_chunk_graph_artifact.chunk_by_ukey,
+            &build_chunk_graph_artifact.chunk_graph.chunks,
             &build_chunk_graph_artifact.chunk_graph,
             module_graph,
           ) {
@@ -794,7 +800,8 @@ impl Stats<'_> {
       .filter_map(|c| {
         self
           .build_chunk_graph_artifact()
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get(c)
           .id()
           .map(|id| id.as_str())
@@ -805,7 +812,7 @@ impl Stats<'_> {
       .chunks
       .par_iter()
       .map(|c| {
-        let chunk = build_chunk_graph_artifact.chunk_by_ukey.expect_get(c);
+        let chunk = build_chunk_graph_artifact.chunk_graph.chunks.expect_get(c);
         chunk.files().par_iter().map(|file| StatsChunkGroupAsset {
           name: file.as_str(),
           size: get_asset_size(file, self.assets()),
@@ -818,7 +825,7 @@ impl Stats<'_> {
       cg.chunks
         .par_iter()
         .map(|c| {
-          let chunk = build_chunk_graph_artifact.chunk_by_ukey.expect_get(c);
+          let chunk = build_chunk_graph_artifact.chunk_graph.chunks.expect_get(c);
           chunk
             .auxiliary_files()
             .par_iter()
@@ -864,13 +871,13 @@ impl Stats<'_> {
             &ordered_children,
             &ChunkGroupOrderKey::Preload,
             &build_chunk_graph_artifact.chunk_group_by_ukey,
-            &build_chunk_graph_artifact.chunk_by_ukey,
+            &build_chunk_graph_artifact.chunk_graph.chunks,
           ),
           prefetch: get_chunk_group_ordered_child_assets(
             &ordered_children,
             &ChunkGroupOrderKey::Prefetch,
             &build_chunk_graph_artifact.chunk_group_by_ukey,
-            &build_chunk_graph_artifact.chunk_by_ukey,
+            &build_chunk_graph_artifact.chunk_graph.chunks,
           ),
         },
       )
@@ -986,11 +993,12 @@ impl Stats<'_> {
           })
           .unzip();
 
-        let chunk = d.chunk.map(ChunkUkey::from).map(|key| {
+        let chunk = d.chunk.and_then(ChunkUkey::from_u64).and_then(|key| {
           self
             .build_chunk_graph_artifact()
-            .chunk_by_ukey
-            .expect_get(&key)
+            .chunk_graph
+            .chunks
+            .get(&key)
         });
 
         let module_trace = get_module_trace(
@@ -1069,11 +1077,12 @@ impl Stats<'_> {
           })
           .unzip();
 
-        let chunk = d.chunk.map(ChunkUkey::from).map(|key| {
+        let chunk = d.chunk.and_then(ChunkUkey::from_u64).and_then(|key| {
           self
             .build_chunk_graph_artifact()
-            .chunk_by_ukey
-            .expect_get(&key)
+            .chunk_graph
+            .chunks
+            .get(&key)
         });
 
         let module_trace = get_module_trace(
@@ -1316,7 +1325,8 @@ impl Stats<'_> {
               .filter_map(|k| {
                 self
                   .build_chunk_graph_artifact()
-                  .chunk_by_ukey
+                  .chunk_graph
+                  .chunks
                   .expect_get(k)
                   .id()
                   .map(|id| id.as_str())
@@ -1615,7 +1625,8 @@ impl Stats<'_> {
       .filter_map(|k| {
         self
           .build_chunk_graph_artifact()
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get(k)
           .id()
           .map(|id| id.as_str())
@@ -1740,11 +1751,12 @@ pub fn create_stats_errors<'a>(
         })
         .unzip();
 
-      let chunk = d.chunk.map(ChunkUkey::from).map(|key| {
+      let chunk = d.chunk.and_then(ChunkUkey::from_u64).and_then(|key| {
         compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .expect_get(&key)
+          .chunk_graph
+          .chunks
+          .get(&key)
       });
 
       let module_trace = get_module_trace(

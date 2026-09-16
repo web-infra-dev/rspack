@@ -291,7 +291,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
 
-  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_graph.chunks;
   let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let chunks = chunk_by_ukey
@@ -377,7 +377,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   let mut rsd_dependencies = HashMap::default();
 
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
-  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_graph.chunks;
   let modules = module_graph
     .modules()
     .map(|(id, module)| (*id, module))
@@ -622,7 +622,7 @@ async fn after_process_assets(
 
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
 
-  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_graph.chunks;
   let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
   let rsd_assets = collect_assets(compilation.assets(), chunk_by_ukey);
   let rsd_chunk_assets = collect_chunk_assets(chunk_by_ukey, &rsd_assets);

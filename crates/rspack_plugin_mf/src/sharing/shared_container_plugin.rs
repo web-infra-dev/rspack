@@ -86,7 +86,8 @@ async fn additional_tree_runtime_requirements(
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   if let Some(name) = chunk.name()
     && name == self.options.name

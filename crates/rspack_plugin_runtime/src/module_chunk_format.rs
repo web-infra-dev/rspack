@@ -51,7 +51,8 @@ async fn additional_chunk_runtime_requirements(
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
 
   if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
@@ -80,7 +81,8 @@ async fn js_chunk_hash(
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
     return Ok(());
@@ -114,7 +116,8 @@ fn compilation_dependent_full_hash(
 
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
 
   if !chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph) {
@@ -139,7 +142,8 @@ async fn render_chunk(
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
   let chunk_runtime_template = compilation.runtime_template.create_chunk_code_template();
@@ -246,7 +250,8 @@ async fn render_chunk(
         let index = loaded_chunks.len();
         let chunk = compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get(chunk_ukey);
         let other_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
         let mut index_buffer = itoa::Buffer::new();
@@ -340,7 +345,8 @@ async fn render_startup(
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   let entries_count = compilation
     .build_chunk_graph_artifact
@@ -354,7 +360,6 @@ async fn render_startup(
       .chunk_graph
       .get_chunk_entry_dependent_chunks_iterable(
         chunk_ukey,
-        &compilation.build_chunk_graph_artifact.chunk_by_ukey,
         &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
       );
 
@@ -368,7 +373,8 @@ async fn render_startup(
 
       let dependant_chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get(&ck);
 
       let named_import = format!("__rspack_imports_{index}");

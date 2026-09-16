@@ -81,6 +81,8 @@ watch 模式下，应使用当前构建 hook 提供的 `Compilation` 和 native-
 - 如果稍后仍需要某些信息，应提前保存 identifier、name、path、hash 等字符串或数字，或者转换成普通 JavaScript 对象。
 - watch rebuild 后，应从新的 `Compilation` 重新获取对象，不要复用上一次构建保存的对象。
 
+`Chunk` 句柄属于提供它的 `Compilation`。将其他 compiler 或之前构建的 Chunk 传给 `compilation.chunks.has()` 会返回 `false`；将其传给 ChunkGraph 方法会抛出错误。增量构建内部复用 Chunk 数据，不会延长之前 JavaScript 句柄的有效期。
+
 ## Hook 和回调执行
 
 Rust compiler 可以使用多个线程，同时执行多个彼此独立的编译任务。但是，JavaScript hook、loader 和其他回调不能直接在这些 Rust 线程上运行，它们必须被调度回创建 Rspack compiler 的 JavaScript 环境。

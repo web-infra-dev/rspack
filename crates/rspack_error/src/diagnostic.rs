@@ -1,6 +1,6 @@
 use rspack_cacheable::{
   cacheable,
-  with::{AsOption, AsPreset},
+  with::{AsOption, AsPreset, Unsupported},
 };
 use rspack_collections::Identifier;
 use rspack_location::DependencyLocation;
@@ -19,7 +19,8 @@ pub struct Diagnostic {
   pub loc: Option<DependencyLocation>,
   #[cacheable(with=AsOption<AsPreset>)]
   pub file: Option<Utf8PathBuf>,
-  pub chunk: Option<u32>,
+  #[cacheable(with=AsOption<Unsupported>)]
+  pub chunk: Option<u64>,
 }
 
 impl std::ops::Deref for Diagnostic {

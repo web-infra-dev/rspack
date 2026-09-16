@@ -24,7 +24,9 @@ use crate::EsmLibraryPlugin;
 ///
 /// This function extracts such shared modules into separate chunks to break
 /// the cycle. It returns `true` if modules were actually extracted.
-pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool {
+pub(crate) fn extract_tla_shared_modules(
+  compilation: &mut Compilation,
+) -> rspack_error::Result<bool> {
   let module_graph = compilation.get_module_graph();
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
@@ -61,7 +63,8 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
         for &chunk_ukey in chunk_graph.get_module_chunks(*target) {
           let chunk = compilation
             .build_chunk_graph_artifact
-            .chunk_by_ukey
+            .chunk_graph
+            .chunks
             .expect_get(&chunk_ukey);
           if !chunk.is_only_initial(chunk_group_by_ukey) {
             async_chunks_set.insert(chunk_ukey);
@@ -72,7 +75,7 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
   }
 
   if async_chunks_set.is_empty() {
-    return false;
+    return Ok(false);
   }
 
   // Phase 2 + 3: For each at-risk async chunk, compute its ancestor chunks and
@@ -88,7 +91,8 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
     // Collect ancestor chunks via chunk group parent traversal
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(&async_chunk_ukey);
     let mut ancestor_groups = FxHashSet::default();
     for group_ukey in chunk.groups() {
@@ -167,7 +171,7 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
   }
 
   if modules_to_extract.is_empty() {
-    return false;
+    return Ok(false);
   }
 
   // Phase 4: Group modules by their exact source-chunk set (modules that live
@@ -181,8 +185,10 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
   }
 
   for (source_chunks, modules) in chunk_group_map {
-    let new_chunk_ukey =
-      Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
+    let new_chunk_ukey = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .create_chunk(None, rspack_core::ChunkKind::Normal)?;
     if let Some(mut mutations) = compilation.incremental.mutations_write() {
       mutations.add(Mutation::ChunkAdd {
         chunk: new_chunk_ukey,
@@ -191,14 +197,11 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
     {
       let new_chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get_mut(&new_chunk_ukey);
       *new_chunk.chunk_reason_mut() = Some("extracted to break TLA circular dependency".into());
     }
-    compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .add_chunk(new_chunk_ukey);
 
     // For each module: collect which source chunks had it registered as an
     // entry module, then disconnect from all source chunks and connect to the
@@ -238,17 +241,14 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
     // Establish chunk group relationships: new_chunk joins each source chunk's
     // groups (making it a sibling — it will be loaded alongside the source).
     for source_chunk_ukey in &source_chunks {
-      let [Some(source_chunk), Some(new_chunk)] = compilation
+      compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .get_many_mut([source_chunk_ukey, &new_chunk_ukey])
-      else {
-        unreachable!("both chunks should exist")
-      };
-      source_chunk.split(
-        new_chunk,
-        &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-      );
+        .chunk_graph
+        .split_chunk(
+          source_chunk_ukey,
+          &new_chunk_ukey,
+          &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+        );
       if let Some(mut mutations) = compilation.incremental.mutations_write() {
         mutations.add(Mutation::ChunkSplit {
           from: *source_chunk_ukey,
@@ -258,7 +258,7 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
     }
   }
 
-  true
+  Ok(true)
 }
 
 /// Ensure that all entry chunks only export the exports used by other chunks,
@@ -268,7 +268,7 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
 /// entry chunk: a, b
 /// async chunk: c
 /// c depends on a, so entry chunk needs to re-export symbols from a
-pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
+pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) -> rspack_error::Result<()> {
   let module_graph = compilation.get_module_graph();
   let mut entrypoint_chunks = FxHashMap::<ChunkUkey, ChunkGroupUkey>::default();
   let mut entry_module_belongs: IdentifierMap<FxHashSet<ChunkUkey>> = IdentifierMap::default();
@@ -302,7 +302,8 @@ pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
 
   compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .iter()
     .par_bridge()
     .filter(|(ukey, _)| !entrypoint_chunks.contains_key(ukey))
@@ -348,17 +349,15 @@ pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
       .copied()
       .collect::<Vec<_>>();
 
-    let new_chunk_ukey =
-      Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
+    let new_chunk_ukey = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .create_chunk(None, rspack_core::ChunkKind::Normal)?;
     if let Some(mut mutation) = compilation.incremental.mutations_write() {
       mutation.add(Mutation::ChunkAdd {
         chunk: new_chunk_ukey,
       });
     }
-    compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .add_chunk(new_chunk_ukey);
 
     // move entrypoint runtime as well
     let entrypoint_ukey = entrypoint_chunks[&entry_chunk_ukey];
@@ -398,19 +397,16 @@ pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
         .connect_chunk_and_entry_module(new_chunk_ukey, m, entrypoint);
     }
 
-    let [Some(entry_chunk), Some(new_chunk)] = compilation
+    compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .get_many_mut([&entry_chunk_ukey, &new_chunk_ukey])
-    else {
-      unreachable!()
-    };
-
-    entry_chunk.split(
-      new_chunk,
-      &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-    );
+      .chunk_graph
+      .split_chunk(
+        &entry_chunk_ukey,
+        &new_chunk_ukey,
+        &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+      );
   }
+  Ok(())
 }
 
 /// For each entrypoint, if the runtime chunk is the same as the entry chunk
@@ -420,7 +416,7 @@ pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
 ///
 /// This must run AFTER SplitChunksPlugin and RemoveDuplicateModulesPlugin
 /// to inspect the final chunk graph topology.
-pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) {
+pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) -> rspack_error::Result<()> {
   // Phase 1: Collect entrypoints that need runtime splitting
   let entrypoints_to_split: Vec<ChunkGroupUkey> = compilation
     .entrypoints()
@@ -443,7 +439,8 @@ pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) {
 
       let chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get(&runtime_chunk_ukey);
 
       if chunk.has_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
@@ -472,8 +469,10 @@ pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) {
     };
 
     // Create a new chunk
-    let new_chunk_ukey =
-      Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
+    let new_chunk_ukey = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .create_chunk(None, rspack_core::ChunkKind::Normal)?;
 
     // Record mutation for incremental compilation
     if let Some(mut mutation) = compilation.incremental.mutations_write() {
@@ -487,10 +486,6 @@ pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) {
     }
 
     // Register the chunk in the chunk graph
-    compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .add_chunk(new_chunk_ukey);
 
     // Set the entrypoint's runtime chunk to the new chunk
     let entrypoint = compilation
@@ -501,26 +496,26 @@ pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) {
     entrypoint.unshift_chunk(new_chunk_ukey);
 
     // Configure the new chunk
-    let [Some(entry_chunk), Some(new_chunk)] = compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .get_many_mut([&entry_chunk_ukey, &new_chunk_ukey])
-    else {
-      unreachable!("entry_chunk and new_chunk should both exist")
-    };
-
-    new_chunk.set_runtime(entry_chunk.runtime().clone());
+    let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
+    let runtime = chunk_graph
+      .chunks
+      .expect_get(&entry_chunk_ukey)
+      .runtime()
+      .clone();
+    let new_chunk = chunk_graph.chunks.expect_get_mut(&new_chunk_ukey);
+    new_chunk.set_runtime(runtime);
     new_chunk.add_id_name_hints("runtime".to_string());
     new_chunk.set_prevent_integration(true);
     new_chunk.add_group(entrypoint_ukey);
   }
+  Ok(())
 }
 
 /// Mark module-less entrypoint chunks as facades after modern-module chunk
 /// optimizations have finished.
 pub(crate) fn mark_facade_chunks(compilation: &mut Compilation) {
   let artifact = &mut compilation.build_chunk_graph_artifact;
-  for chunk in artifact.chunk_by_ukey.values_mut() {
+  for chunk in artifact.chunk_graph.chunks.values_mut() {
     if chunk.kind() == ChunkKind::Facade {
       chunk.set_kind(ChunkKind::Normal);
     }
@@ -545,7 +540,8 @@ pub(crate) fn mark_facade_chunks(compilation: &mut Compilation) {
       == 0
     {
       artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get_mut(&chunk_ukey)
         .set_kind(ChunkKind::Facade);
     }
@@ -885,10 +881,20 @@ pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation)
 
   // Collect candidates: (chunk_ukey, root_module_identifier) for unnamed non-initial chunks
   // with exactly one root module
-  let mut candidates: Vec<(ChunkUkey, ModuleIdentifier)> =
-    Vec::with_capacity(compilation.build_chunk_graph_artifact.chunk_by_ukey.len());
+  let mut candidates: Vec<(ChunkUkey, ModuleIdentifier)> = Vec::with_capacity(
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .chunks
+      .len(),
+  );
 
-  for (chunk_ukey, chunk) in compilation.build_chunk_graph_artifact.chunk_by_ukey.iter() {
+  for (chunk_ukey, chunk) in compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .chunks
+    .iter()
+  {
     // Skip chunks that already have a name
     if chunk.name().is_some() {
       continue;
@@ -979,7 +985,8 @@ pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation)
   for (chunk_ukey, name) in assignments {
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get_mut(&chunk_ukey);
     chunk.set_name(Some(name.clone()));
     compilation

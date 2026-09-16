@@ -82,7 +82,8 @@ impl RuntimeModule for ShareRuntimeModule {
       .expect("should have chunk in <ShareRuntimeModule as RuntimeModule>::generate");
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(&chunk_ukey);
     let module_graph = compilation.get_module_graph();
     let mut init_per_scope: FxHashMap<
@@ -94,7 +95,8 @@ impl RuntimeModule for ShareRuntimeModule {
     {
       let chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get(&c);
       let mut modules = compilation
         .build_chunk_graph_artifact

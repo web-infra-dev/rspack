@@ -45,7 +45,8 @@ fn extend_required_chunks(
   for chunk_ukey in &chunk_group.chunks {
     let Some(chunk) = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .get(chunk_ukey)
     else {
       continue;
@@ -103,7 +104,8 @@ fn record_module(
   let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, module_identifier);
   let css_files: Vec<String> = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .get(chunk_ukey)
     .map(|chunk| {
       let prefix = &module_loading.prefix;
@@ -141,7 +143,7 @@ fn collect_css_files_from_chunks<'a>(
   compilation: &Compilation,
 ) -> Vec<String> {
   let prefix = &module_loading.prefix;
-  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_graph.chunks;
   chunk_ukeys
     .into_iter()
     .filter_map(|chunk_ukey| chunk_by_ukey.get(chunk_ukey))
@@ -365,7 +367,7 @@ fn collect_bootstrap_scripts(
       .prefix;
 
     let bootstrap_scripts = chunk_group
-      .get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey)
+      .get_files(&compilation.build_chunk_graph_artifact.chunk_graph.chunks)
       .into_iter()
       .filter(|chunk_file| chunk_file.ends_with(".js"))
       .filter(|chunk_file| {

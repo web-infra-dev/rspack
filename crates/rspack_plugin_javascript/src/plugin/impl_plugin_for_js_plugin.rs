@@ -474,7 +474,8 @@ async fn chunk_hash(
   self.get_chunk_hash(chunk_ukey, compilation, hasher).await?;
   if compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey)
     .has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
   {
@@ -494,7 +495,8 @@ async fn content_hash(
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   let hasher = hashes
     .entry(SourceType::JavaScript)
@@ -555,7 +557,8 @@ async fn render_manifest(
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   let filename_template = get_js_chunk_filename_template(
     chunk,
@@ -721,7 +724,8 @@ fn module_has_js(module_identifier: &ModuleIdentifier, module_graph: &ModuleGrap
 fn is_js_entry_chunk(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   let module_graph = compilation.get_module_graph();
   // ESM optimizations can move both the entry module and its chunk graph entry
@@ -732,7 +736,7 @@ fn is_js_entry_chunk(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool 
       .chunk_group_by_ukey
       .expect_get(group_ukey);
     group.is_initial()
-      && group.get_entrypoint_chunk() == *chunk_ukey
+      && group.is_entrypoint_chunk(chunk_ukey)
       && group
         .name()
         .and_then(|name| compilation.entries.get(name))
@@ -774,7 +778,8 @@ fn chunk_has_required_runtime(chunk_ukey: &ChunkUkey, compilation: &Compilation)
 
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   for group_ukey in chunk.groups() {
     let chunk_group = compilation

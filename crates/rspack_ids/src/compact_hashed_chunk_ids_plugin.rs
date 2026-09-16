@@ -1,9 +1,6 @@
 use rayon::prelude::*;
-use rspack_core::{
-  ChunkByUkey, ChunkNamedIdArtifact, Compilation, CompilationChunkIds, Plugin,
-  incremental::IncrementalPasses,
-};
-use rspack_error::{Diagnostic, Result, error};
+use rspack_core::{Compilation, CompilationChunkIds, Plugin, incremental::IncrementalPasses};
+use rspack_error::{Result, error};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
@@ -41,20 +38,14 @@ impl CompactHashedChunkIdsPlugin {
 }
 
 #[plugin_hook(CompilationChunkIds for CompactHashedChunkIdsPlugin)]
-async fn chunk_ids(
-  &self,
-  compilation: &Compilation,
-  chunk_by_ukey: &mut ChunkByUkey,
-  _named_chunk_ids_artifact: &mut ChunkNamedIdArtifact,
-  diagnostics: &mut Vec<Diagnostic>,
-) -> Result<()> {
+async fn chunk_ids(&self, compilation: &mut Compilation) -> Result<()> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
     IncrementalPasses::CHUNK_IDS | IncrementalPasses::MODULES_HASHES,
     "CompactHashedChunkIdsPlugin (optimization.chunkIds = \"compact-hashed\")",
     "it requires calculating the id of all the chunks, which is a global effect",
   ) && let Some(diagnostic) = diagnostic
   {
-    diagnostics.push(diagnostic);
+    compilation.extend_diagnostics([diagnostic]);
   }
 
   validate_min_length(
@@ -65,6 +56,7 @@ async fn chunk_ids(
 
   // [name] falls back to the chunk id for unnamed chunks. Reserve names as well as
   // preassigned ids to avoid filename collisions, including on case-insensitive file systems.
+  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_graph.chunks;
   let used_ids = get_used_chunk_ids(chunk_by_ukey)
     .into_iter()
     .chain(
@@ -132,7 +124,12 @@ async fn chunk_ids(
   }
 
   for (chunk_ukey, id) in chunk_key_to_id {
-    chunk_by_ukey.expect_get_mut(&chunk_ukey).set_id(id);
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .chunks
+      .expect_get_mut(&chunk_ukey)
+      .set_id(id);
   }
 
   Ok(())

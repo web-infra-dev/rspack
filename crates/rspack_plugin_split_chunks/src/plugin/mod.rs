@@ -10,7 +10,7 @@ use futures::future::BoxFuture;
 use itertools::Itertools;
 use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 use rspack_collections::IdentifierMap;
-use rspack_core::{ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};
+use rspack_core::{ChunkMap, ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{fx_hash::FxIndexMap, tracing_preset::TRACING_BENCH_TARGET};
@@ -105,10 +105,13 @@ impl SplitChunksPlugin {
       .collect::<IdentifierMap<_>>();
     logger.time_end(start);
 
-    let chunk_index_map: FxHashMap<ChunkUkey, u32> = {
+    let chunk_index_map = {
+      let chunks = &compilation.build_chunk_graph_artifact.chunk_graph.chunks;
+      let mut indices = ChunkMap::with_capacity(chunks.slot_count());
       let mut ordered_chunks = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .values()
         .collect::<Vec<_>>();
 
@@ -133,16 +136,14 @@ impl SplitChunksPlugin {
         (group.index, chunk_index)
       });
 
-      ordered_chunks
-        .iter()
-        .enumerate()
-        .map(|(index, chunk)| {
-          (
-            chunk.ukey(),
-            u32::try_from(index + 1).expect("chunk index should fit in u32"),
-          )
-        })
-        .collect()
+      for (index, chunk) in ordered_chunks.iter().enumerate() {
+        indices.insert(
+          chunks,
+          chunk.ukey(),
+          u32::try_from(index + 1).expect("chunk index should fit in u32"),
+        );
+      }
+      indices
     };
 
     let start = logger.time("prepare cache groups");
@@ -209,7 +210,7 @@ impl SplitChunksPlugin {
         combinator.prepare_group_by_used_exports(
           &all_modules,
           &compilation.exports_info_artifact,
-          &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+          &compilation.build_chunk_graph_artifact.chunk_graph.chunks,
           available_module_chunks,
           &chunk_index_map,
         );
@@ -250,13 +251,14 @@ impl SplitChunksPlugin {
           &mut module_group,
           &mut is_reuse_existing_chunk,
           &mut is_reuse_existing_chunk_with_all_modules,
-        );
+        )?;
 
         tracing::trace!(
           "{module_group_key}, get Chunk {:?} with is_reuse_existing_chunk: {is_reuse_existing_chunk:?} and {is_reuse_existing_chunk_with_all_modules:?}",
           compilation
             .build_chunk_graph_artifact
-            .chunk_by_ukey
+            .chunk_graph
+            .chunks
             .expect_get(&new_chunk)
             .chunk_reason()
         );
@@ -429,7 +431,8 @@ impl SplitChunksPlugin {
         // a chunk it did not actually use.
         let new_chunk_mut = compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get_mut(&new_chunk);
         if let Some(chunk_reason) = new_chunk_mut.chunk_reason_mut() {
           chunk_reason.push_str(&format!(" (cache group: {})", cache_group.key.as_str()));

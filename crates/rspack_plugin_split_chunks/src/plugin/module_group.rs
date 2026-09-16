@@ -12,8 +12,8 @@ use futures::{
 use itertools::Either;
 use rayon::prelude::*;
 use rspack_core::{
-  ChunkByUkey, ChunkUkey, Compilation, ExportsInfoArtifact, Module, ModuleIdentifier,
-  RuntimeKeyMap, UsageKey, get_runtime_key,
+  Chunk, ChunkMap, ChunkSlotMap, ChunkUkey, Compilation, ExportsInfoArtifact, Module,
+  ModuleIdentifier, RuntimeKeyMap, UsageKey, get_runtime_key,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::{fx_hash::FxDashMap, tracing_preset::TRACING_BENCH_TARGET};
@@ -49,11 +49,7 @@ struct ChunkCombinationData {
 }
 
 impl ChunkCombination {
-  fn new(
-    key: ChunksKey,
-    chunks: FxHashSet<ChunkUkey>,
-    _indices: &FxHashMap<ChunkUkey, u32>,
-  ) -> Self {
+  fn new(key: ChunksKey, chunks: FxHashSet<ChunkUkey>, _indices: &ChunkMap<u32>) -> Self {
     Self {
       key,
       data: Arc::new(ChunkCombinationData { chunks }),
@@ -180,10 +176,7 @@ async fn process_name_requests(
   Ok(())
 }
 
-fn get_key<I: Iterator<Item = ChunkUkey>>(
-  chunks: I,
-  chunk_index_map: &FxHashMap<ChunkUkey, u32>,
-) -> ChunksKey {
+fn get_key<I: Iterator<Item = ChunkUkey>>(chunks: I, chunk_index_map: &ChunkMap<u32>) -> ChunksKey {
   let mut sorted_chunk_ukeys = chunks
     .map(|chunk| {
       // Increment each chunk index by 1 to avoid hashing the value 0 with FxHasher, which would always return a hash of 0
@@ -272,8 +265,8 @@ impl Combinator {
     module_identifier: &ModuleIdentifier,
     module_chunks: &FxHashSet<ChunkUkey>,
     exports_info_artifact: &ExportsInfoArtifact,
-    chunk_by_ukey: &ChunkByUkey,
-    chunk_index_map: &FxHashMap<ChunkUkey, u32>,
+    chunk_by_ukey: &ChunkSlotMap<Chunk>,
+    chunk_index_map: &ChunkMap<u32>,
   ) -> Vec<ChunkCombination> {
     // A single chunk cannot produce runtime-dependent usage groups.
     if module_chunks.len() == 1 {
@@ -416,7 +409,7 @@ impl Combinator {
     &mut self,
     all_modules: &[ModuleIdentifier],
     module_chunks: &ModuleChunks,
-    chunk_index_map: &FxHashMap<ChunkUkey, u32>,
+    chunk_index_map: &ChunkMap<u32>,
     min_chunks: usize,
   ) {
     self.non_used_exports_chunks_keys = all_modules
@@ -466,9 +459,9 @@ impl Combinator {
     &mut self,
     all_modules: &[ModuleIdentifier],
     exports_info_artifact: &ExportsInfoArtifact,
-    chunk_by_ukey: &ChunkByUkey,
+    chunk_by_ukey: &ChunkSlotMap<Chunk>,
     module_chunks: &ModuleChunks,
-    chunk_index_map: &FxHashMap<ChunkUkey, u32>,
+    chunk_index_map: &ChunkMap<u32>,
   ) {
     let (grouped_by_exports, used_exports_chunks): (Vec<_>, Vec<_>) = all_modules
       .par_iter()
@@ -549,7 +542,7 @@ impl SplitChunksPlugin {
     cache_groups: Vec<IndexedCacheGroup<'_>>,
     compilation: &Compilation,
     module_chunks: &ModuleChunks,
-    chunk_index_map: &FxHashMap<ChunkUkey, u32>,
+    chunk_index_map: &ChunkMap<u32>,
   ) -> Result<ModuleGroupMap> {
     let module_graph = compilation.get_module_graph();
     let module_group_map: FxDashMap<ModuleGroupKey, ModuleGroup> = FxDashMap::default();
@@ -951,7 +944,7 @@ fn merge_matched_item_into_module_group_map(
   matched_item: MatchedItem<'_>,
   chunk_name: Option<String>,
   module_group_map: &FxDashMap<ModuleGroupKey, ModuleGroup>,
-  chunk_index_map: &FxHashMap<ChunkUkey, u32>,
+  chunk_index_map: &ChunkMap<u32>,
 ) {
   let MatchedItem {
     module,

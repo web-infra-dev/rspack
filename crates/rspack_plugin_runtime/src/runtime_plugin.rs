@@ -183,7 +183,8 @@ async fn runtime_requirements_in_tree(
   {
     let c = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(chunk_ukey);
     let has_async_chunks =
       c.has_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
@@ -196,7 +197,8 @@ async fn runtime_requirements_in_tree(
   let library_type = {
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(chunk_ukey);
     chunk
       .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
@@ -225,7 +227,8 @@ async fn runtime_requirements_in_tree(
       RuntimeGlobals::PUBLIC_PATH => {
         let public_path = compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get(chunk_ukey)
           .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
           .and_then(|options| options.public_path.clone())

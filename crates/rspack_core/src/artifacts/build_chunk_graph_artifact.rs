@@ -8,8 +8,7 @@ use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
-  ArtifactExt, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation,
-  Logger,
+  ArtifactExt, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, Logger,
   build_chunk_graph::code_splitter::CodeSplitter,
   fast_set,
   incremental::{IncrementalPasses, Mutation},
@@ -17,7 +16,6 @@ use crate::{
 
 #[derive(Debug, Default)]
 pub struct BuildChunkGraphArtifact {
-  pub chunk_by_ukey: ChunkByUkey,
   pub chunk_graph: ChunkGraph,
   pub chunk_group_by_ukey: ChunkGroupByUkey,
   pub entrypoints: FxIndexMap<String, ChunkGroupUkey>,
@@ -29,6 +27,26 @@ pub struct BuildChunkGraphArtifact {
 }
 
 impl BuildChunkGraphArtifact {
+  pub fn add_named_chunk(&mut self, name: String) -> rspack_error::Result<(ChunkUkey, bool)> {
+    if let Some(key) = self.named_chunks.get(&name).copied() {
+      assert!(self.chunk_graph.chunks.contains(&key));
+      return Ok((key, false));
+    }
+    let key = self
+      .chunk_graph
+      .create_chunk(Some(name.clone()), crate::ChunkKind::Normal)?;
+    self.named_chunks.insert(name, key);
+    Ok((key, true))
+  }
+
+  pub fn remove_chunk(&mut self, key: &ChunkUkey) -> Option<crate::Chunk> {
+    let chunk = self
+      .chunk_graph
+      .remove_chunk(key, &mut self.chunk_group_by_ukey)?;
+    self.named_chunks.retain(|_, stored| stored != key);
+    Some(chunk)
+  }
+
   pub(crate) fn set_code_splitter(&mut self, code_splitter: CodeSplitter) {
     fast_set(&mut self.code_splitter, code_splitter);
   }
@@ -104,13 +122,12 @@ impl BuildChunkGraphArtifact {
   /// cached chunks across incremental compilations, so we need to restore the
   /// same state before running the next sealing/rendering pipeline.
   fn reset_chunk_rendered_state(&mut self) {
-    for chunk in self.chunk_by_ukey.values_mut() {
+    for chunk in self.chunk_graph.chunks.values_mut() {
       chunk.set_rendered(false);
     }
   }
 
   fn reset_for_rebuild(&mut self) {
-    self.chunk_by_ukey = Default::default();
     self.chunk_graph = Default::default();
     self.chunk_group_by_ukey = Default::default();
     self.entrypoints.clear();
@@ -188,7 +205,6 @@ impl ArtifactExt for BuildChunkGraphArtifact {
   fn recover(_incremental: &crate::incremental::Incremental, new: &mut Self, old: &mut Self) {
     new.code_splitter = mem::take(&mut old.code_splitter);
     rayon::scope(|s| {
-      s.spawn(|_| new.chunk_by_ukey.clone_from(&old.chunk_by_ukey));
       s.spawn(|_| new.chunk_graph.clone_from(&old.chunk_graph));
       s.spawn(|_| new.chunk_group_by_ukey.clone_from(&old.chunk_group_by_ukey));
 

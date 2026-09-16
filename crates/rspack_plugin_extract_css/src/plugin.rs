@@ -350,7 +350,8 @@ impl PluginCssExtract {
       diagnostics.extend(conflicts.into_iter().map(|conflict| {
         let chunk = compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get(&conflict.chunk);
         let fallback_module = module_graph
           .module_by_identifier(&conflict.fallback_module)
@@ -398,7 +399,7 @@ despite it was not able to fulfill desired ordering with these modules:
           ),
         );
         diagnostic.file = Some(filename.to_owned().into());
-        diagnostic.chunk = Some(chunk.ukey().as_u32());
+        diagnostic.chunk = Some(chunk.ukey().as_u64());
         diagnostic
       }));
     }
@@ -632,7 +633,8 @@ async fn content_hash(
   }
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
 
   let (used_modules, diagnostics) =
@@ -668,7 +670,8 @@ async fn render_manifest(
   let module_graph = compilation.get_module_graph();
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
 
   if matches!(chunk.kind(), ChunkKind::HotUpdate) {

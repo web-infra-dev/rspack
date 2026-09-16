@@ -9,7 +9,7 @@ use atomic_refcell::AtomicRefCell;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
+  AssetInfo, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationContentHash,
   CompilationParams, CompilationProcessAssets, CompilationRecords, CompilerCompilation,
   DependencyType, LoaderContext, ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
@@ -113,7 +113,8 @@ async fn content_hash(
     LazyLock::new(|| SourceType::Custom("css/mini-extract".into()));
   let Some(chunk) = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .get(chunk_ukey)
   else {
     return Ok(());
@@ -165,7 +166,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   current_css_hashes.extend(collected);
   let live_chunk_ids: ChunkIdSet = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .values()
     .filter(|chunk| chunk.kind() != ChunkKind::HotUpdate)
     .filter_map(|chunk| chunk.id().cloned())
@@ -228,7 +230,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .collect();
   let current_chunk_ukeys: ChunkIdMap<ChunkUkey> = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .iter()
     .map(|(ukey, chunk)| (chunk.expect_id().clone(), *ukey))
     .collect();
@@ -261,7 +264,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let current_chunk = current_chunk_ukey.and_then(|ukey| {
       compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .get(&ukey)
     });
 
@@ -385,10 +389,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let runtimes = compilation
         .build_chunk_graph_artifact
         .chunk_graph
-        .get_module_runtimes(
-          *module_identifier,
-          &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-        );
+        .get_module_runtimes(*module_identifier);
       if old_runtime == &new_runtime && runtimes.contains(&new_runtime) {
         let new_hash = compilation
           .code_generation_results
@@ -406,42 +407,26 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     if !new_modules.is_empty() || !new_runtime_modules.is_empty() {
-      let mut hot_update_chunk = Chunk::new(None, ChunkKind::HotUpdate);
-      hot_update_chunk.set_id(chunk_id.clone());
-      hot_update_chunk.set_runtime(if let Some(current_chunk) = current_chunk {
-        current_chunk.runtime().clone()
-      } else {
-        new_runtime.clone()
-      });
-      let ukey = hot_update_chunk.ukey();
-
-      if let Some(current_chunk) = current_chunk {
-        current_chunk
-          .groups()
-          .iter()
-          .for_each(|group| hot_update_chunk.add_group(*group))
-      }
-
-      // In webpack, there is no need to add HotUpdateChunk to compilation.chunks,
-      // because HotUpdateChunk is no longer used after generating the manifest.
-      //
-      // However, in Rspack, we need to add HotUpdateChunk to compilation.build_chunk_graph_artifact.chunk_by_ukey
-      // because during the manifest generation, HotUpdateChunk is passed to various plugins via the ukey.
-      // The plugins then use the ukey to query compilation.build_chunk_graph_artifact.chunk_by_ukey to get the HotUpdateChunk instance.
-      // Therefore, in Rspack, after the manifest is generated, we need to manually remove the HotUpdateChunk from compilation.chunks.
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .add(hot_update_chunk);
-
-      // In webpack, compilation.chunkGraph uses a WeakMap to maintain the relationship between Chunks and Modules.
-      // This means the lifecycle of these data is tied to the Chunk, and they are garbage-collected when the Chunk is.
-      //
-      // In Rspack, we need to manually clean up the data in compilation.build_chunk_graph_artifact.chunk_graph after HotUpdateChunk is used.
-      compilation
+      let runtime =
+        current_chunk.map_or_else(|| new_runtime.clone(), |chunk| chunk.runtime().clone());
+      let groups = current_chunk
+        .map(|chunk| chunk.groups().iter().copied().collect::<Vec<_>>())
+        .unwrap_or_default();
+      let ukey = compilation
         .build_chunk_graph_artifact
         .chunk_graph
-        .add_chunk(ukey);
+        .create_chunk(None, ChunkKind::HotUpdate)?;
+      let hot_update_chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .chunks
+        .expect_get_mut(&ukey);
+      hot_update_chunk.set_id(chunk_id.clone());
+      hot_update_chunk.set_runtime(runtime);
+      for group in groups {
+        hot_update_chunk.add_group(group);
+      }
+
       for module_identifier in &new_modules {
         compilation
           .build_chunk_graph_artifact
@@ -465,29 +450,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .call(compilation, &ukey, &mut manifest, &mut diagnostics)
         .await?;
 
-      // Manually clean up ChunkGraph and chunks
-      for module_identifier in new_modules {
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .disconnect_chunk_and_module(&ukey, module_identifier);
-      }
-      for runtime_module in new_runtime_modules {
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .disconnect_chunk_and_runtime_module(&ukey, &runtime_module);
-      }
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .remove_chunk(&ukey);
-      #[allow(clippy::unwrap_used)]
       let hot_update_chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .remove(&ukey)
-        .unwrap();
+        .remove_chunk(&ukey)
+        .expect("hot update Chunk is live");
 
       compilation.extend_diagnostics(diagnostics);
 
@@ -538,7 +504,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   for (chunk_ukey, files) in updated_chunks {
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get_mut(&chunk_ukey);
     for file in files {
       chunk.add_file(file);

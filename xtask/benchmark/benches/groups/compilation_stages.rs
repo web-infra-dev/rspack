@@ -14,8 +14,8 @@ use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  AssignRuntimeIdsPass, AsyncModulesArtifact, CacheOptions, ChunkByUkey, ChunkContentHash,
-  ChunkGraph, ChunkNamedIdArtifact, ChunkUkey, CodeGenerationJob, CodeGenerationPass, Compilation,
+  AssignRuntimeIdsPass, AsyncModulesArtifact, CacheOptions, ChunkContentHash, ChunkGraph,
+  ChunkNamedIdArtifact, ChunkUkey, CodeGenerationJob, CodeGenerationPass, Compilation,
   CompilationAsset, CompilationAssets, Compiler, CreateChunkAssetsPass, CreateHashPass,
   CreateModuleAssetsPass, CreateModuleHashesPass, DEFAULT_DELIMITER, LogType, MangleExportsOption,
   Mode, ModuleCodeGenerationContext, ModuleIdsArtifact, Optimization, OptimizeCodeGenerationPass,
@@ -245,11 +245,6 @@ pub(crate) fn split_chunks_benchmark(c: &mut Criterion, rt: &Runtime) {
     .build_chunk_graph_artifact
     .chunk_graph
     .clone();
-  let initial_chunk_by_ukey = compiler
-    .compilation
-    .build_chunk_graph_artifact
-    .chunk_by_ukey
-    .clone();
   let initial_chunk_group_by_ukey = compiler
     .compilation
     .build_chunk_graph_artifact
@@ -275,11 +270,10 @@ pub(crate) fn split_chunks_benchmark(c: &mut Criterion, rt: &Runtime) {
     .build_chunk_graph_artifact
     .named_chunks
     .clone();
-  let chunk_count_before = initial_chunk_by_ukey.len();
+  let chunk_count_before = initial_chunk_graph.chunks.len();
 
   let restore_initial_chunk_state = |compilation: &mut Compilation| {
     compilation.build_chunk_graph_artifact.chunk_graph = initial_chunk_graph.clone();
-    compilation.build_chunk_graph_artifact.chunk_by_ukey = initial_chunk_by_ukey.clone();
     compilation.build_chunk_graph_artifact.chunk_group_by_ukey =
       initial_chunk_group_by_ukey.clone();
     compilation.build_chunk_graph_artifact.entrypoints = initial_entrypoints.clone();
@@ -297,7 +291,8 @@ pub(crate) fn split_chunks_benchmark(c: &mut Criterion, rt: &Runtime) {
   let chunk_count_after = compiler
     .compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .len();
   assert!(
     chunk_count_after > chunk_count_before,
@@ -324,7 +319,8 @@ pub(crate) fn split_chunks_benchmark(c: &mut Criterion, rt: &Runtime) {
           compiler
             .compilation
             .build_chunk_graph_artifact
-            .chunk_by_ukey
+            .chunk_graph
+            .chunks
             .len(),
         );
       },
@@ -347,33 +343,35 @@ pub(crate) fn create_chunk_ids_benchmark(c: &mut Criterion, rt: &Runtime) {
   });
 
   assert_no_compilation_errors(&compiler.compilation, "create_chunk_ids setup");
-  let initial_chunk_by_ukey = compiler
+  let initial_chunk_graph = compiler
     .compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
     .clone();
 
   let compiler = RefCell::new(compiler);
   c.bench_function("rust@create_chunk_ids", |b| {
     b.iter_batched(
       || {
-        (
-          initial_chunk_by_ukey.clone(),
-          ChunkNamedIdArtifact::default(),
-        )
+        let mut compiler = compiler.borrow_mut();
+        compiler
+          .compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .clone_from(&initial_chunk_graph);
+        compiler.compilation.named_chunk_ids_artifact = ChunkNamedIdArtifact::default().into();
       },
-      |(mut chunk_by_ukey, mut named_chunk_ids_artifact)| {
-        let compiler = compiler.borrow();
-        rt.block_on(async {
-          run_chunk_ids_hook(
-            &compiler.compilation,
-            &mut chunk_by_ukey,
-            &mut named_chunk_ids_artifact,
-          )
-          .await
+      |_| {
+        let mut compiler = compiler.borrow_mut();
+        rt.block_on(run_chunk_ids_hook(&mut compiler.compilation))
           .unwrap();
-        });
-        black_box(named_chunk_ids_artifact.chunk_ids.len());
+        black_box(
+          compiler
+            .compilation
+            .named_chunk_ids_artifact
+            .chunk_ids
+            .len(),
+        );
       },
       BatchSize::PerIteration,
     );
@@ -394,33 +392,35 @@ pub(crate) fn create_named_chunk_ids_benchmark(c: &mut Criterion, rt: &Runtime) 
   });
 
   assert_no_compilation_errors(&compiler.compilation, "create_named_chunk_ids setup");
-  let initial_chunk_by_ukey = compiler
+  let initial_chunk_graph = compiler
     .compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
     .clone();
 
   let compiler = RefCell::new(compiler);
   c.bench_function("rust@create_named_chunk_ids", |b| {
     b.iter_batched(
       || {
-        (
-          initial_chunk_by_ukey.clone(),
-          ChunkNamedIdArtifact::default(),
-        )
+        let mut compiler = compiler.borrow_mut();
+        compiler
+          .compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .clone_from(&initial_chunk_graph);
+        compiler.compilation.named_chunk_ids_artifact = ChunkNamedIdArtifact::default().into();
       },
-      |(mut chunk_by_ukey, mut named_chunk_ids_artifact)| {
-        let compiler = compiler.borrow();
-        rt.block_on(async {
-          run_chunk_ids_hook(
-            &compiler.compilation,
-            &mut chunk_by_ukey,
-            &mut named_chunk_ids_artifact,
-          )
-          .await
+      |_| {
+        let mut compiler = compiler.borrow_mut();
+        rt.block_on(run_chunk_ids_hook(&mut compiler.compilation))
           .unwrap();
-        });
-        black_box(named_chunk_ids_artifact.chunk_ids.len());
+        black_box(
+          compiler
+            .compilation
+            .named_chunk_ids_artifact
+            .chunk_ids
+            .len(),
+        );
       },
       BatchSize::PerIteration,
     );
@@ -891,11 +891,6 @@ fn register_create_concatenate_module_benchmark(
     .build_chunk_graph_artifact
     .chunk_graph
     .clone();
-  let initial_chunk_by_ukey = compiler
-    .compilation
-    .build_chunk_graph_artifact
-    .chunk_by_ukey
-    .clone();
 
   rt.block_on(async {
     run_optimize_chunk_modules_hook(&mut compiler.compilation)
@@ -922,10 +917,6 @@ fn register_create_concatenate_module_benchmark(
     .get_module_graph_mut()
     .reset();
   compiler.compilation.build_chunk_graph_artifact.chunk_graph = initial_chunk_graph.clone();
-  compiler
-    .compilation
-    .build_chunk_graph_artifact
-    .chunk_by_ukey = initial_chunk_by_ukey.clone();
   clear_concatenation_statistics_logs(&compiler.compilation);
 
   let compiler = RefCell::new(compiler);
@@ -949,10 +940,6 @@ fn register_create_concatenate_module_benchmark(
           .get_module_graph_mut()
           .checkpoint();
         compiler.compilation.build_chunk_graph_artifact.chunk_graph = initial_chunk_graph.clone();
-        compiler
-          .compilation
-          .build_chunk_graph_artifact
-          .chunk_by_ukey = initial_chunk_by_ukey.clone();
         clear_concatenation_statistics_logs(&compiler.compilation);
       },
       |_| {
@@ -1500,43 +1487,20 @@ async fn run_module_ids_hook(compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-async fn run_chunk_ids_hook(
-  compilation: &Compilation,
-  chunk_by_ukey: &mut ChunkByUkey,
-  named_chunk_ids_artifact: &mut ChunkNamedIdArtifact,
-) -> Result<()> {
-  let mut diagnostics = vec![];
+async fn run_chunk_ids_hook(compilation: &mut Compilation) -> Result<()> {
   compilation
     .plugin_driver
     .clone()
     .compilation_hooks
     .chunk_ids
-    .call(
-      compilation,
-      chunk_by_ukey,
-      named_chunk_ids_artifact,
-      &mut diagnostics,
-    )
+    .call(compilation)
     .await?;
-  assert!(
-    diagnostics.is_empty(),
-    "chunk_ids benchmark setup should not produce diagnostics"
-  );
+  assert_no_compilation_errors(compilation, "chunk_ids benchmark");
   Ok(())
 }
 
 async fn run_chunk_ids_on_compilation(compilation: &mut Compilation) -> Result<()> {
-  let mut chunk_by_ukey = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
-  let mut named_chunk_ids_artifact = compilation.named_chunk_ids_artifact.steal();
-  run_chunk_ids_hook(
-    compilation,
-    &mut chunk_by_ukey,
-    &mut named_chunk_ids_artifact,
-  )
-  .await?;
-  compilation.build_chunk_graph_artifact.chunk_by_ukey = chunk_by_ukey;
-  compilation.named_chunk_ids_artifact = named_chunk_ids_artifact.into();
-  Ok(())
+  run_chunk_ids_hook(compilation).await
 }
 
 async fn run_create_module_hashes_pass(compiler: &mut Compiler) -> Result<()> {
@@ -1550,13 +1514,13 @@ async fn run_code_generation_pass(compiler: &mut Compiler) -> Result<()> {
 #[derive(Clone)]
 struct ChunkAssetStateSnapshot {
   assets: CompilationAssets,
-  chunk_by_ukey: ChunkByUkey,
+  chunk_graph: ChunkGraph,
 }
 
 fn snapshot_chunk_asset_state(compilation: &Compilation) -> ChunkAssetStateSnapshot {
   ChunkAssetStateSnapshot {
     assets: compilation.assets().clone(),
-    chunk_by_ukey: compilation.build_chunk_graph_artifact.chunk_by_ukey.clone(),
+    chunk_graph: compilation.build_chunk_graph_artifact.chunk_graph.clone(),
   }
 }
 
@@ -1568,7 +1532,10 @@ fn restore_chunk_asset_state(compilation: &mut Compilation, snapshot: &ChunkAsse
   for (asset_name, asset) in snapshot.assets.clone() {
     compilation.emit_asset(asset_name, asset);
   }
-  compilation.build_chunk_graph_artifact.chunk_by_ukey = snapshot.chunk_by_ukey.clone();
+  compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .clone_from(&snapshot.chunk_graph);
 }
 
 fn chunk_asset_totals(compilation: &Compilation) -> (usize, usize, usize) {
@@ -1578,7 +1545,8 @@ fn chunk_asset_totals(compilation: &Compilation) -> (usize, usize, usize) {
 
   for chunk in compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .values()
   {
     emitted_files += chunk.files().len();
@@ -1692,10 +1660,7 @@ async fn compute_module_hashes(compilation: &Compilation) -> Result<usize> {
     for runtime in compilation
       .build_chunk_graph_artifact
       .chunk_graph
-      .get_module_runtimes_iter(
-        module_identifier,
-        &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-      )
+      .get_module_runtimes_iter(module_identifier)
     {
       let hash = module.get_runtime_hash(compilation, Some(runtime)).await?;
       black_box(hash);
@@ -1709,7 +1674,8 @@ async fn compute_module_hashes(compilation: &Compilation) -> Result<usize> {
 async fn compute_chunk_hashes(compilation: &Compilation) -> Result<usize> {
   let chunk_ukeys = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .keys()
     .copied()
     .collect::<Vec<_>>();
@@ -1735,7 +1701,8 @@ async fn process_chunk_hash(
   let mut hasher = RspackHasher::from(&compilation.options.output);
   if let Some(chunk) = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .get(&chunk_ukey)
   {
     chunk.update_hash(&mut hasher, compilation);
@@ -1778,13 +1745,12 @@ async fn compute_concatenated_module_codegen(
   concatenated_modules: &[rspack_core::ModuleIdentifier],
 ) -> Result<usize> {
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
-  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
   let module_graph = compilation.get_module_graph();
   let mut jobs = Vec::new();
 
   for &module_identifier in concatenated_modules {
     let mut grouped_jobs = HashMap::<rspack_hash::RspackHashDigest, CodeGenerationJob>::new();
-    for runtime in chunk_graph.get_module_runtimes_iter(module_identifier, chunk_by_ukey) {
+    for runtime in chunk_graph.get_module_runtimes_iter(module_identifier) {
       let hash = ChunkGraph::get_module_hash(compilation, module_identifier, runtime)
         .expect("concatenated module should have a module hash")
         .clone();

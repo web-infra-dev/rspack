@@ -52,11 +52,13 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
 
   async fn generate(&self, context: &RuntimeModuleGenerateContext<'_>) -> Result<String> {
     let compilation = context.compilation;
-    let Some(chunk) = self
-      .chunk()
-      .as_ref()
-      .and_then(|c| compilation.build_chunk_graph_artifact.chunk_by_ukey.get(c))
-    else {
+    let Some(chunk) = self.chunk().as_ref().and_then(|c| {
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .chunks
+        .get(c)
+    }) else {
       return Err(error!(
         "Generate sri runtime module failed: chunk not found"
       ));
@@ -68,7 +70,8 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
       .filter_map(|c| {
         let chunk = compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .get(c)?;
         let id = chunk.id()?;
         let rendered_hash = chunk.rendered_hash(
@@ -130,7 +133,8 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
         .map(|c| {
           compilation
             .build_chunk_graph_artifact
-            .chunk_by_ukey
+            .chunk_graph
+            .chunks
             .expect_get(c)
             .expect_id()
         })

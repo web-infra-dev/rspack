@@ -102,6 +102,37 @@ Manages modules and their relationships through dependencies and connections.
 
 ### Chunk system
 
+`ChunkGraph` owns both Chunk values and their relationships. Allocate through
+`ChunkGraph::create_chunk`; named creation and removal go through
+`BuildChunkGraphArtifact`. `ChunkSlotMap<Chunk>` exposes value access, not independent
+insertion or removal. `CompilationChunkIds` receives `&mut Compilation`.
+
+A `ChunkUkey` combines an array slot with a process-wide allocation identity.
+Deleted slots may be reused, but every access checks the full key. Graph snapshots
+copy values and the graph's free-slot stack without copying the identity allocator.
+Identities are `NonZeroU32`. Following the layout used by `slotmap::SecondaryMap`,
+each table stores `Vec<Option<(ChunkUkey, T)>>`: the identity supplies a niche for
+the empty state, without manual initialization or destruction. Only `ChunkGraph`
+allocates identities and recycles slots; value tables carry no allocation state.
+Sequential insertion uses `Vec::push`, and `with_capacity` reserves storage without
+initializing slots. Traversal still scans the slot high-water mark, so sparse or
+historical collections should retain HashMap/HashSet storage.
+`ChunkMap<T>` reuses that storage for per-Chunk working data, such as CodeSplitter's
+module masks. Its insertion API requires the current owning Chunk table and checks
+membership before replacing a slot. Reserve using `slot_count()` (plus expected
+new Chunks while building), not `len()`. A map can hold one identity per slot and
+must not replace caches that need multiple historical identities.
+`ChunkSet` uses the same storage for current-graph membership, retaining the full
+identity instead of only a slot bit. Per-pass tables for split-chunk indices,
+chunk-combination lookup, and chunk runtime requirements reserve the slot
+high-water mark up front. Algorithms that expose processing order sort by their
+semantic order or the full key; they must not derive order from reusable slots.
+The `as_u32()`
+projection is for tooling identities, never array indexing; `as_u64()` preserves
+both fields for process-local diagnostics. These handles are not persistent cache
+identities. Graph algorithms access their owned Chunk table directly; topology
+and values can be borrowed separately when an algorithm needs both.
+
 Chunks are groups of modules bundled together.
 
 **Chunk Types:**

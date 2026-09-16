@@ -53,7 +53,8 @@ pub fn should_export_rspack_runtime_globals(
 
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   let module_graph = compilation.get_module_graph();
   chunk
@@ -620,7 +621,8 @@ pub async fn render_rspack_runtime_modules(
 ) -> Result<BoxSource> {
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     render_hot_update_chunk_runtime_modules(compilation, chunk_ukey, runtime_template).await

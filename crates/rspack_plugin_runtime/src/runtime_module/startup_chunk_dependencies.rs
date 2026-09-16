@@ -68,13 +68,13 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
         .chunk_graph
         .get_chunk_entry_dependent_chunks_iterable(
           &chunk_ukey,
-          &compilation.build_chunk_graph_artifact.chunk_by_ukey,
           &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
         )
         .map(|chunk_ukey| {
           compilation
             .build_chunk_graph_artifact
-            .chunk_by_ukey
+            .chunk_graph
+            .chunks
             .expect_get(&chunk_ukey)
             .expect_id()
             .clone()

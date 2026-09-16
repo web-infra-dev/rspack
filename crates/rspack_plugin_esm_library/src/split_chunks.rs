@@ -313,11 +313,9 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
     };
 
     let chunk_ukey = if let Some(chunk_name) = chunk_name {
-      let (ukey, created) = Compilation::add_named_chunk(
-        chunk_name.clone(),
-        &mut compilation.build_chunk_graph_artifact.chunk_by_ukey,
-        &mut compilation.build_chunk_graph_artifact.named_chunks,
-      );
+      let (ukey, created) = compilation
+        .build_chunk_graph_artifact
+        .add_named_chunk(chunk_name.clone())?;
 
       if !created {
         compilation.push_diagnostic(rspack_error::Diagnostic::warn(
@@ -329,17 +327,16 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
 
       ukey
     } else {
-      Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey)
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .create_chunk(None, rspack_core::ChunkKind::Normal)?
     };
-
-    compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .add_chunk(chunk_ukey);
 
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get_mut(&chunk_ukey);
     if let Some(filename_template) = match_group.filename_template {
       chunk.set_filename_template(Some(filename_template));
@@ -384,29 +381,27 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
 
         let entrypoints = compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get(&orig_chunk)
           .groups();
         for entrypoint in entrypoints {
           compilation
             .build_chunk_graph_artifact
             .chunk_graph
+            .topology
             .connect_chunk_and_entry_module(chunk_ukey, *m, *entrypoint);
         }
       }
 
-      let [Some(chunk), Some(orig_chunk)] = compilation
+      compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .get_many_mut([&chunk_ukey, &orig_chunk])
-      else {
-        unreachable!()
-      };
-
-      orig_chunk.split(
-        chunk,
-        &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-      );
+        .chunk_graph
+        .split_chunk(
+          &orig_chunk,
+          &chunk_ukey,
+          &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+        );
     }
 
     splitted_modules.extend(match_group.modules);

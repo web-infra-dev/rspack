@@ -114,7 +114,8 @@ impl GetChunkFilenameRuntimeModule {
     let chunk_ukey = self.chunk().unwrap_or(self.chunk_ukey);
     compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .get(&chunk_ukey)
       .map(|chunk| {
         let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey());
@@ -134,7 +135,6 @@ impl GetChunkFilenameRuntimeModule {
                 .chunk_graph
                 .get_runtime_chunk_dependent_chunks_iterable(
                   &chunk.ukey(),
-                  &compilation.build_chunk_graph_artifact.chunk_by_ukey,
                   &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
                 ),
             );
@@ -231,7 +231,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         .filter_map(|chunk_ukey| {
           compilation
             .build_chunk_graph_artifact
-            .chunk_by_ukey
+            .chunk_graph
+            .chunks
             .get(chunk_ukey)
         })
         .for_each(|chunk| {

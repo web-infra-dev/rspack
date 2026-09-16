@@ -178,7 +178,8 @@ impl CompilationRecords {
         {
           let chunk = compilation
             .build_chunk_graph_artifact
-            .chunk_by_ukey
+            .chunk_graph
+            .chunks
             .expect_get(chunk);
           let chunk_id = chunk.id().expect("should have chunk_id").clone();
           let hash = compilation
@@ -215,7 +216,8 @@ impl CompilationRecords {
       .filter_map(|entry_ukey| {
         compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .get(&entry_ukey)
       })
       .flat_map(|entry_chunk| entry_chunk.runtime().iter().copied())
@@ -225,7 +227,8 @@ impl CompilationRecords {
   fn record_chunks(compilation: &Compilation) -> ChunkIdMap<(RuntimeSpec, ModuleIdSet)> {
     compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .values()
       .filter(|chunk| chunk.kind() != ChunkKind::HotUpdate)
       .map(|chunk| {

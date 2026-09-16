@@ -57,7 +57,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       adjust_chunk_size += 1;
       if let Some(chunk) = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .get(chunk_key)
       {
         let mut chunk_group_keys = chunk.groups().iter().collect::<Vec<_>>();

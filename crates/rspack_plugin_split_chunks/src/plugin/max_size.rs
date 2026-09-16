@@ -499,7 +499,7 @@ impl SplitChunksPlugin {
     let chunks_with_size_info_results = rspack_parallel::scope::<_, Result<_>>(|token| {
       compilation_ref
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph.chunks
         .values()
         .for_each(|chunk| {
         let s = unsafe {
@@ -653,7 +653,8 @@ impl SplitChunksPlugin {
         };
         let chunk = compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get_mut(&info.chunk);
         let delimiter = info.automatic_name_delimiter.as_str();
         let mut name = chunk
@@ -671,11 +672,9 @@ impl SplitChunksPlugin {
         if index != last_index {
           let old_chunk = chunk.ukey();
           let new_chunk_ukey = if let Some(name) = name {
-            let (new_chunk_ukey, created) = Compilation::add_named_chunk(
-              name,
-              &mut compilation.build_chunk_graph_artifact.chunk_by_ukey,
-              &mut compilation.build_chunk_graph_artifact.named_chunks,
-            );
+            let (new_chunk_ukey, created) = compilation
+              .build_chunk_graph_artifact
+              .add_named_chunk(name)?;
             if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
               mutations.add(Mutation::ChunkAdd {
                 chunk: new_chunk_ukey,
@@ -683,8 +682,10 @@ impl SplitChunksPlugin {
             }
             new_chunk_ukey
           } else {
-            let new_chunk_ukey =
-              Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
+            let new_chunk_ukey = compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .create_chunk(None, rspack_core::ChunkKind::Normal)?;
             if let Some(mut mutations) = compilation.incremental.mutations_write() {
               mutations.add(Mutation::ChunkAdd {
                 chunk: new_chunk_ukey,
@@ -693,21 +694,20 @@ impl SplitChunksPlugin {
             new_chunk_ukey
           };
 
-          let [Some(new_part), Some(chunk)] = compilation
-            .build_chunk_graph_artifact
-            .chunk_by_ukey
-            .get_many_mut([&new_chunk_ukey, &old_chunk])
-          else {
-            panic!("split_from_original_chunks failed")
-          };
-          let new_part_ukey = new_part.ukey();
-          chunk.split(
-            new_part,
+          let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
+          let chunk = chunk_graph.chunks.expect_get(&old_chunk);
+          let reason = chunk.chunk_reason().map(ToString::to_string);
+          let filename_template = chunk.filename_template().cloned();
+          chunk_graph.split_chunk(
+            &old_chunk,
+            &new_chunk_ukey,
             &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
           );
-          *new_part.chunk_reason_mut() = chunk.chunk_reason().map(ToString::to_string);
-          if chunk.filename_template().is_some() {
-            new_part.set_filename_template(chunk.filename_template().cloned());
+          let new_part = chunk_graph.chunks.expect_get_mut(&new_chunk_ukey);
+          let new_part_ukey = new_part.ukey();
+          *new_part.chunk_reason_mut() = reason;
+          if filename_template.is_some() {
+            new_part.set_filename_template(filename_template);
           }
           if let Some(mut mutations) = compilation.incremental.mutations_write() {
             mutations.add(Mutation::ChunkSplit {
@@ -717,11 +717,6 @@ impl SplitChunksPlugin {
           }
 
           for group_node in &group.nodes {
-            compilation
-              .build_chunk_graph_artifact
-              .chunk_graph
-              .add_chunk(new_part_ukey);
-
             if let Some(module) = compilation.module_by_identifier(&group_node.module)
               && module_chunk_condition(module.as_ref(), &new_part_ukey, compilation)
                 .await?

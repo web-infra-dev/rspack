@@ -24,25 +24,14 @@ impl PassExt for ChunkIdsPass {
       compilation.named_chunk_ids_artifact.clear();
     }
 
-    let mut diagnostics = vec![];
-    let mut chunk_by_ukey = mem::take(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
-    let mut named_chunk_ids_artifact = compilation.named_chunk_ids_artifact.steal();
     compilation
       .plugin_driver
       .clone()
       .compilation_hooks
       .chunk_ids
-      .call(
-        compilation,
-        &mut chunk_by_ukey,
-        &mut named_chunk_ids_artifact,
-        &mut diagnostics,
-      )
+      .call(compilation)
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.chunkIds"))?;
-    compilation.build_chunk_graph_artifact.chunk_by_ukey = chunk_by_ukey;
-    compilation.named_chunk_ids_artifact = named_chunk_ids_artifact.into();
-    compilation.extend_diagnostics(diagnostics);
     Ok(())
   }
 }

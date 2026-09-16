@@ -1,8 +1,6 @@
 use rayon::prelude::*;
-use rspack_core::{
-  ChunkByUkey, ChunkNamedIdArtifact, CompilationChunkIds, Plugin, incremental::IncrementalPasses,
-};
-use rspack_error::{Diagnostic, Result};
+use rspack_core::{CompilationChunkIds, Plugin, incremental::IncrementalPasses};
+use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 
@@ -21,22 +19,17 @@ pub struct DeterministicChunkIdsPlugin {
 impl DeterministicChunkIdsPlugin {}
 
 #[plugin_hook(CompilationChunkIds for DeterministicChunkIdsPlugin)]
-async fn chunk_ids(
-  &self,
-  compilation: &rspack_core::Compilation,
-  chunk_by_ukey: &mut ChunkByUkey,
-  _named_chunk_ids_artifact: &mut ChunkNamedIdArtifact,
-  diagnostics: &mut Vec<Diagnostic>,
-) -> rspack_error::Result<()> {
+async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
     IncrementalPasses::CHUNK_IDS | IncrementalPasses::MODULES_HASHES,
     "DeterministicChunkIdsPlugin (optimization.chunkIds = \"deterministic\")",
     "it requires calculating the id of all the chunks, which is a global effect",
   ) && let Some(diagnostic) = diagnostic
   {
-    diagnostics.push(diagnostic);
+    compilation.extend_diagnostics([diagnostic]);
   }
 
+  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_graph.chunks;
   let mut used_ids = get_used_chunk_ids(chunk_by_ukey);
   let used_ids_len = used_ids.len();
 
@@ -117,7 +110,11 @@ async fn chunk_ids(
   );
 
   for (chunk_ukey, id) in chunk_key_to_id {
-    let chunk = chunk_by_ukey.expect_get_mut(&chunk_ukey);
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .chunks
+      .expect_get_mut(&chunk_ukey);
     chunk.set_id(id.to_string());
   }
 

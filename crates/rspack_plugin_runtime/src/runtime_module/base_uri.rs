@@ -41,7 +41,8 @@ impl RuntimeModule for BaseUriRuntimeModule {
       .and_then(|ukey| {
         compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .get(&ukey)
       })
       .and_then(|chunk| {

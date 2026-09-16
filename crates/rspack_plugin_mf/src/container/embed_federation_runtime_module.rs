@@ -137,14 +137,16 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     if self.options.experiments.async_startup {
       let entry_chunk_ids = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get(&chunk_ukey)
         .get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         .into_iter()
         .map(|chunk_ukey| {
           compilation
             .build_chunk_graph_artifact
-            .chunk_by_ukey
+            .chunk_graph
+            .chunks
             .expect_get(&chunk_ukey)
             .expect_id()
             .clone()

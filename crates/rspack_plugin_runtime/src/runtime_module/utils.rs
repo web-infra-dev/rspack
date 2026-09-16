@@ -20,7 +20,8 @@ pub fn get_initial_chunk_ids(
   match chunk {
     Some(chunk_ukey) => match compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .get(&chunk_ukey)
     {
       Some(chunk) => {
@@ -31,7 +32,8 @@ pub fn get_initial_chunk_ids(
           .map(|chunk_ukey| {
             let chunk = compilation
               .build_chunk_graph_artifact
-              .chunk_by_ukey
+              .chunk_graph
+              .chunks
               .expect_get(chunk_ukey);
             chunk.expect_id().clone()
           })
@@ -79,7 +81,8 @@ pub fn render_chunk_loading_hmr_state_expression(
 ) -> String {
   let chunk_loading = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .get(chunk_ukey)
     .and_then(|chunk| {
       chunk.get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
@@ -148,7 +151,8 @@ pub fn is_enabled_for_chunk(
 ) -> bool {
   let chunk_loading = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .get(chunk_ukey)
     .and_then(|chunk| {
       chunk.get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)

@@ -2,33 +2,12 @@ mod chunk_combination;
 
 use chunk_combination::{ChunkCombination, ChunkCombinationBucket, ChunkCombinationUkey};
 use rspack_core::{
-  ChunkSizeOptions, ChunkUkey, Compilation, CompilationOptimizeChunks, Plugin,
+  ChunkMap, ChunkSizeOptions, ChunkUkey, Compilation, CompilationOptimizeChunks, Plugin,
   compare_chunks_with_graph, incremental::Mutation,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rustc_hash::{FxHashMap, FxHashSet};
-
-fn add_to_set_map(
-  map: &mut FxHashMap<ChunkUkey, FxHashSet<ChunkCombinationUkey>>,
-  key: &ChunkUkey,
-  value: ChunkCombinationUkey,
-) {
-  if map.get(key).is_none() {
-    let mut set = FxHashSet::default();
-    set.insert(value);
-    map.insert(*key, set);
-  } else {
-    let set = map.get_mut(key);
-    if let Some(set) = set {
-      set.insert(value);
-    } else {
-      let mut set = FxHashSet::default();
-      set.insert(value);
-      map.insert(*key, set);
-    }
-  }
-}
+use rustc_hash::FxHashSet;
 
 #[derive(Debug, Clone, Default)]
 pub struct LimitChunkCountPluginOptions {
@@ -61,7 +40,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
   let mut chunks_ukeys = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .keys()
     .copied()
     .collect::<Vec<_>>();
@@ -69,20 +49,16 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     return Ok(None);
   }
 
-  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey.clone();
-  let chunk_group_by_ukey = &compilation
+  // Snapshot the input graph for combination scoring while mutating the live graph.
+  let graph_snapshot = compilation.build_chunk_graph_artifact.chunk_graph.clone();
+  let chunk_by_ukey = &graph_snapshot.chunks;
+  let chunk_graph = &graph_snapshot;
+  let groups_snapshot = compilation
     .build_chunk_graph_artifact
     .chunk_group_by_ukey
     .clone();
-  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph.clone();
-  let mut new_chunk_by_ukey =
-    std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
-  let mut new_chunk_group_by_ukey =
-    std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
-  let mut new_chunk_graph = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
-
-  //    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph.clone();
-  let module_graph = compilation.get_module_graph();
+  let chunk_group_by_ukey = &groups_snapshot;
+  let module_graph = compilation.build_module_graph_artifact.get_module_graph();
   let mut remaining_chunks_to_merge = (chunks_ukeys.len() - max_chunks) as i64;
 
   // order chunks in a deterministic way
@@ -97,8 +73,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   // we keep a mapping from chunk to all combinations
   // but this mapping is not kept up-to-date with deletions
   // so `deleted` flag need to be considered when iterating this
-  let mut combinations_by_chunk: FxHashMap<ChunkUkey, FxHashSet<ChunkCombinationUkey>> =
-    FxHashMap::default();
+  let mut combinations_by_chunk: ChunkMap<FxHashSet<ChunkCombinationUkey>> =
+    ChunkMap::with_capacity(chunk_by_ukey.slot_count());
 
   let chunk_size_option = ChunkSizeOptions {
     chunk_overhead: self.options.chunk_overhead,
@@ -107,7 +83,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
   for (b_idx, b) in chunks_ukeys.iter().enumerate() {
     for (a_idx, a) in chunks_ukeys.iter().enumerate().take(b_idx) {
-      if !chunk_graph.can_chunks_be_integrated(a, b, chunk_by_ukey, chunk_group_by_ukey) {
+      if !chunk_graph.can_chunks_be_integrated(a, b, chunk_group_by_ukey) {
         continue;
       }
 
@@ -115,7 +91,6 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         a,
         b,
         &chunk_size_option,
-        chunk_by_ukey,
         chunk_group_by_ukey,
         module_graph,
         compilation,
@@ -123,7 +98,6 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       let a_size = chunk_graph.get_chunk_size(
         a,
         &chunk_size_option,
-        chunk_by_ukey,
         chunk_group_by_ukey,
         module_graph,
         compilation,
@@ -131,7 +105,6 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       let b_size = chunk_graph.get_chunk_size(
         b,
         &chunk_size_option,
-        chunk_by_ukey,
         chunk_group_by_ukey,
         module_graph,
         compilation,
@@ -150,8 +123,12 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         b_size,
       };
 
-      add_to_set_map(&mut combinations_by_chunk, a, c.ukey);
-      add_to_set_map(&mut combinations_by_chunk, b, c.ukey);
+      combinations_by_chunk
+        .get_or_insert_default(chunk_by_ukey, *a)
+        .insert(c.ukey);
+      combinations_by_chunk
+        .get_or_insert_default(chunk_by_ukey, *b)
+        .insert(c.ukey);
       combinations.add(c);
     }
   }
@@ -202,16 +179,16 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       }
     }
 
-    if chunk_graph.can_chunks_be_integrated(&a, &b, chunk_by_ukey, chunk_group_by_ukey) {
-      new_chunk_graph.integrate_chunks(
+    if chunk_graph.can_chunks_be_integrated(&a, &b, chunk_group_by_ukey) {
+      let artifact = &mut compilation.build_chunk_graph_artifact;
+      artifact.chunk_graph.integrate_chunks(
         &a,
         &b,
-        &mut new_chunk_by_ukey,
-        &mut new_chunk_group_by_ukey,
+        &mut artifact.chunk_group_by_ukey,
         module_graph,
       );
       integrated_chunks.insert(a);
-      new_chunk_by_ukey.remove(&b);
+      artifact.remove_chunk(&b);
       removed_chunks.insert(b);
 
       // flag chunk a as modified as further optimization are possible for all children here
@@ -246,7 +223,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             continue;
           }
           if combination.a == b {
-            if !chunk_graph.can_chunks_be_integrated(&a, &b, chunk_by_ukey, chunk_group_by_ukey) {
+            if !chunk_graph.can_chunks_be_integrated(&a, &b, chunk_group_by_ukey) {
               combination.deleted = true;
               combinations.delete(ukey);
               continue;
@@ -256,7 +233,6 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
               &a,
               &combination.b,
               &chunk_size_option,
-              chunk_by_ukey,
               chunk_group_by_ukey,
               module_graph,
               compilation,
@@ -267,7 +243,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             combination.size_diff = combination.b_size + integrated_size - new_integrated_size;
             combinations.update();
           } else if combination.b == b {
-            if !chunk_graph.can_chunks_be_integrated(&b, &a, chunk_by_ukey, chunk_group_by_ukey) {
+            if !chunk_graph.can_chunks_be_integrated(&b, &a, chunk_group_by_ukey) {
               combination.deleted = true;
               combinations.delete(ukey);
               continue;
@@ -277,7 +253,6 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
               &combination.a,
               &a,
               &chunk_size_option,
-              chunk_by_ukey,
               chunk_group_by_ukey,
               module_graph,
               compilation,
@@ -293,14 +268,14 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       let combinations = combinations_by_chunk
         .get(&b)
         .expect("chunk combination not found");
-      combinations_by_chunk.insert(a, combinations.clone());
+      combinations_by_chunk.insert(
+        &compilation.build_chunk_graph_artifact.chunk_graph.chunks,
+        a,
+        combinations.clone(),
+      );
       combinations_by_chunk.remove(&b);
     }
   }
-
-  compilation.build_chunk_graph_artifact.chunk_by_ukey = new_chunk_by_ukey;
-  compilation.build_chunk_graph_artifact.chunk_group_by_ukey = new_chunk_group_by_ukey;
-  compilation.build_chunk_graph_artifact.chunk_graph = new_chunk_graph;
 
   if let Some(mut mutations) = compilation.incremental.mutations_write() {
     // ChunkRemove mutations must be added last because a chunk can be removed after another chunk

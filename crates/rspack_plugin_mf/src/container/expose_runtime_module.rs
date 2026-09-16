@@ -25,7 +25,8 @@ impl ExposeRuntimeModule {
   ) -> Option<&'a CodeGenerationDataExpose> {
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(chunk_ukey);
     let module_graph = compilation.get_module_graph();
     for c in
@@ -33,7 +34,8 @@ impl ExposeRuntimeModule {
     {
       let chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get(&c);
       let modules = compilation
         .build_chunk_graph_artifact

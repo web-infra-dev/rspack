@@ -54,7 +54,13 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
   for batch in batches {
     let chunks = batch
       .into_iter()
-      .filter_map(|c| compilation.build_chunk_graph_artifact.chunk_by_ukey.get(&c))
+      .filter_map(|c| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .chunks
+          .get(&c)
+      })
       .collect::<Vec<_>>();
 
     let results = chunks
@@ -223,7 +229,8 @@ fn digest_chunks(compilation: &Compilation) -> Vec<Vec<ChunkUkey>> {
           }
           let Some(chunk) = compilation
             .build_chunk_graph_artifact
-            .chunk_by_ukey
+            .chunk_graph
+            .chunks
             .get(chunk_ukey)
           else {
             continue;
@@ -311,7 +318,8 @@ pub async fn detect_unresolved_integrity(
   let mut contain_unresolved_files = vec![];
   for chunk in compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .values()
   {
     for file in chunk.files() {

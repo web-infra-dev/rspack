@@ -89,7 +89,8 @@ fn move_empty_anonymous_non_initial_entrypoints(
 
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(chunk_ukey);
     if chunk.name().is_some() || chunk.filename_template().is_some() {
       continue;
@@ -107,7 +108,7 @@ fn move_empty_anonymous_non_initial_entrypoints(
       if modules.contains(module)
         && chunk_group.kind.is_entrypoint()
         && !chunk_group.is_initial()
-        && chunk_group.get_entrypoint_chunk() == *chunk_ukey
+        && chunk_group.is_entrypoint_chunk(chunk_ukey)
       {
         entrypoints.push((*chunk_ukey, *module, *group));
       }
@@ -122,6 +123,7 @@ fn move_empty_anonymous_non_initial_entrypoints(
     compilation
       .build_chunk_graph_artifact
       .chunk_graph
+      .topology
       .connect_chunk_and_entry_module(new_chunk_ukey, module, group);
     compilation
       .build_chunk_graph_artifact
@@ -196,8 +198,10 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
       chunk
     } else {
-      let new_chunk_ukey =
-        Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
+      let new_chunk_ukey = compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .create_chunk(None, rspack_core::ChunkKind::Normal)?;
       if let Some(mut mutations) = compilation.incremental.mutations_write() {
         mutations.add(Mutation::ChunkAdd {
           chunk: new_chunk_ukey,
@@ -205,13 +209,10 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       };
       let new_chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get_mut(&new_chunk_ukey);
       *new_chunk.chunk_reason_mut() = Some("modules are shared across multiple chunks".into());
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .add_chunk(new_chunk_ukey);
 
       new_chunk_ukey
     };
@@ -223,23 +224,21 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         continue;
       }
 
-      let [Some(new_chunk), Some(origin)] = compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .get_many_mut([&new_chunk_ukey, chunk_ukey])
-      else {
-        panic!("should have both chunks")
-      };
       entry_modules.extend(
         compilation
           .build_chunk_graph_artifact
           .chunk_graph
+          .topology
           .get_chunk_entry_modules(chunk_ukey),
       );
-      origin.split(
-        new_chunk,
-        &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-      );
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .split_chunk(
+          chunk_ukey,
+          &new_chunk_ukey,
+          &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+        );
       if let Some(mut mutations) = compilation.incremental.mutations_write() {
         mutations.add(Mutation::ChunkSplit {
           from: *chunk_ukey,
@@ -277,7 +276,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       if is_entry && !preserve_entry_chunks {
         let chunk = compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get(&new_chunk_ukey);
         for group in chunk.groups().iter().filter(|group| {
           let group = compilation
@@ -290,6 +290,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           compilation
             .build_chunk_graph_artifact
             .chunk_graph
+            .topology
             .connect_chunk_and_entry_module(new_chunk_ukey, m, *group);
         }
       }

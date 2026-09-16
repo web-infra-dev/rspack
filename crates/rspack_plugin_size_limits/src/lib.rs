@@ -45,7 +45,8 @@ impl SizeLimitsPlugin {
   async fn get_entrypoint_size(&self, entrypoint: &ChunkGroup, compilation: &Compilation) -> f64 {
     let mut size = 0.0;
 
-    for filename in entrypoint.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey) {
+    for filename in entrypoint.get_files(&compilation.build_chunk_graph_artifact.chunk_graph.chunks)
+    {
       let asset = compilation.assets().get(&filename);
 
       if let Some(asset) = asset {
@@ -184,7 +185,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
     if is_over_size_limit {
       let mut files = vec![];
 
-      for filename in entry.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey) {
+      for filename in entry.get_files(&compilation.build_chunk_graph_artifact.chunk_graph.chunks) {
         let asset = compilation.assets().get(&filename);
 
         if let Some(asset) = asset
@@ -222,7 +223,8 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
     if !diagnostics.is_empty() {
       let has_async_chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .values()
         .any(|chunk| {
           !chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)

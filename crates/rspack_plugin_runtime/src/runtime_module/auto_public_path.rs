@@ -45,7 +45,8 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
     let chunk = self.chunk().expect("The chunk should be attached");
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(&chunk);
     let filename = get_js_chunk_filename_template(
       chunk,
