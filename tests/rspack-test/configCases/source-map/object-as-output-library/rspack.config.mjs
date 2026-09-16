@@ -1,0 +1,12 @@
+/** @type {import("@rspack/core").Configuration} */
+export default {
+  devtool: 'source-map',
+  output: {
+    library: {
+      root: '[name]',
+      amd: '[name]',
+      commonjs: '[name]',
+    },
+    library: { type: 'umd' },
+  },
+};

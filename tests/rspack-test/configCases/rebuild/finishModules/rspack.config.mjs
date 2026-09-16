@@ -1,0 +1,64 @@
+import { resolve, join } from 'node:path';
+import { NormalModule } from '@rspack/core';
+
+/**
+ * @param {import("@rspack/core").Compiler} compiler the compiler
+ */
+var testPlugin = (compiler) => {
+  compiler.hooks.compilation.tap('TestPlugin', (compilation) => {
+    let shouldReplace = false;
+    NormalModule.getCompilationHooks(compilation).loader.tap(
+      'TestPlugin',
+      (loaderContext) => {
+        /** @type {any} */ (loaderContext).shouldReplace = shouldReplace;
+      },
+    );
+    compilation.hooks.finishModules.tapAsync(
+      'TestPlugin',
+      function (modules, callback) {
+        const src = resolve(join(import.meta.dirname, 'other-file.js'));
+
+        /**
+         *
+         * @param {any} m test
+         * @returns {boolean} test
+         */
+        function matcher(m) {
+          return m.resource && m.resource === src;
+        }
+
+        const module = Array.from(modules).find(matcher);
+
+        if (!module) {
+          throw new Error('something went wrong');
+        }
+
+        // Check if already build the updated version
+        // this will happen when using caching
+        if (module.buildInfo._isReplaced) return callback();
+
+        shouldReplace = true;
+        compilation.rebuildModule(module, (err) => {
+          shouldReplace = false;
+          callback(err);
+        });
+      },
+    );
+  });
+};
+
+/** @type {import("@rspack/core").Configuration} */
+export default {
+  module: {
+    rules: [
+      {
+        test: /other-file/,
+        use: './loader',
+      },
+    ],
+  },
+  optimization: {
+    concatenateModules: false,
+  },
+  plugins: [testPlugin],
+};
