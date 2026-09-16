@@ -5,7 +5,7 @@ function checkHookContext(context) {
   assert.equal(context.hookValue, 'from loader hook');
   assert.equal(context.hookContext, context);
   assert.equal(context[Symbol.for('loader-hook-value')].value, 42);
-  const dependency = path.resolve(__dirname, 'rspack.config.js');
+  const dependency = path.resolve(__dirname, 'rspack.config.mjs');
   context.clearDependencies();
   context.addHookDependency();
   assert(context.getDependencies().includes(dependency));

@@ -1,0 +1,9 @@
+import { rspack } from '@rspack/core';
+
+/** @type {import("@rspack/core").Configuration} */
+export default {
+  output: {
+    publicPath: '/base',
+  },
+  plugins: [new rspack.HtmlRspackPlugin({})],
+};
