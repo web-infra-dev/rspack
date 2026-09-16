@@ -16,7 +16,7 @@ export default {
       chunks: 'all',
       cacheGroups: {
         defaultVendors: {
-          name: 'vendors', // add name for defaultVendors, need a specific name to run it at test.config.js findBundle
+          name: 'vendors', // add name for defaultVendors, need a specific name to run it at test.config.mjs findBundle
           reuseExistingChunk: true,
           test: /[\\/]node_modules[\\/]/i,
           priority: -10,
