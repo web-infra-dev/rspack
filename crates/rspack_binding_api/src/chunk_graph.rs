@@ -46,6 +46,7 @@ impl ChunkGraph {
   #[napi(ts_return_type = "boolean")]
   pub fn has_chunk_entry_dependent_chunks(&self, chunk: &Chunk) -> Result<bool> {
     self.with_compilation(|compilation| {
+      chunk.validate_compilation(compilation)?;
       Ok(
         compilation
           .build_chunk_graph_artifact
@@ -61,6 +62,7 @@ impl ChunkGraph {
   #[napi(ts_return_type = "Module[]")]
   pub fn get_chunk_modules(&self, chunk: &Chunk) -> Result<Vec<ModuleObject>> {
     self.with_compilation(|compilation| {
+      chunk.validate_compilation(compilation)?;
       let module_graph = compilation.get_module_graph();
       let modules = compilation
         .build_chunk_graph_artifact
@@ -84,6 +86,7 @@ impl ChunkGraph {
   #[napi(ts_return_type = "Iterable<Module>")]
   pub fn get_chunk_entry_modules_iterable(&self, chunk: &Chunk) -> Result<Vec<ModuleObject>> {
     self.with_compilation(|compilation| {
+      chunk.validate_compilation(compilation)?;
       let modules = compilation
         .build_chunk_graph_artifact
         .chunk_graph
@@ -102,6 +105,7 @@ impl ChunkGraph {
   #[napi(ts_return_type = "number")]
   pub fn get_number_of_entry_modules(&self, chunk: &Chunk) -> Result<u32> {
     self.with_compilation(|compilation| {
+      chunk.validate_compilation(compilation)?;
       Ok(
         compilation
           .build_chunk_graph_artifact
@@ -117,12 +121,12 @@ impl ChunkGraph {
     chunk: &Chunk,
   ) -> Result<Vec<ChunkWrapper>> {
     self.with_compilation(|compilation| {
+      chunk.validate_compilation(compilation)?;
       let chunks = compilation
         .build_chunk_graph_artifact
         .chunk_graph
         .get_chunk_entry_dependent_chunks_iterable(
           &chunk.chunk_ukey,
-          &compilation.build_chunk_graph_artifact.chunk_by_ukey,
           &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
         );
 
@@ -142,6 +146,7 @@ impl ChunkGraph {
     source_type: String,
   ) -> Result<Vec<ModuleObject>> {
     self.with_compilation(|compilation| {
+      chunk.validate_compilation(compilation)?;
       let module_graph = compilation.get_module_graph();
 
       let chunk_modules = compilation

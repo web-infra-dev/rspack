@@ -137,7 +137,8 @@ pub async fn render_module(
   let module_identifier = module.identifier();
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   let code_gen_result = compilation
     .code_generation_results
@@ -380,7 +381,8 @@ pub async fn render_chunk_runtime_modules(
     if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
       let chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get(chunk_ukey);
       if matches!(chunk.kind(), ChunkKind::HotUpdate) {
         crate::runtime_context::render_hot_update_chunk_runtime_modules(

@@ -145,7 +145,8 @@ var module = ({module_cache}[moduleId] = {{"#,
       .unwrap_or_default();
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(chunk_ukey);
     let module_factories = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
     let require_function = runtime_requirements.contains(RuntimeGlobals::REQUIRE);
@@ -345,7 +346,8 @@ function {}(moduleId) {{
             .map(|chunk_ukey| {
               compilation
                 .build_chunk_graph_artifact
-                .chunk_by_ukey
+                .chunk_graph
+                .chunks
                 .expect_get(chunk_ukey)
                 .expect_id()
                 .to_string()
@@ -375,10 +377,7 @@ function {}(moduleId) {{
                 }) && compilation
                   .build_chunk_graph_artifact
                   .chunk_graph
-                  .get_module_runtimes_iter(
-                    *origin_module,
-                    &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-                  )
+                  .get_module_runtimes_iter(*origin_module)
                   .any(|runtime| runtime.intersection(chunk.runtime()).count() > 0)
               })
           } {
@@ -625,7 +624,8 @@ impl JsPlugin {
       .expect("should have js plugin drive");
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(chunk_ukey);
     let supports_arrow_function = compilation
       .options

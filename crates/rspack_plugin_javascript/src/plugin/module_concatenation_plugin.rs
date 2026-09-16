@@ -110,14 +110,16 @@ impl ConcatenationProblem {
 
     match self {
       Self::MissingChunks { root_chunks, .. } => {
-        let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
         let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
         let module_chunks = chunk_graph.get_module_chunks(module);
         let mut missing_chunks = root_chunks
           .iter()
           .filter(|chunk| !module_chunks.contains(*chunk))
           .map(|chunk| {
-            chunk_by_ukey
+            compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .chunks
               .expect_get(chunk)
               .name()
               .unwrap_or("unnamed chunk(s)")
@@ -128,7 +130,10 @@ impl ConcatenationProblem {
         let mut chunks = module_chunks
           .iter()
           .map(|chunk| {
-            chunk_by_ukey
+            compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .chunks
               .expect_get(chunk)
               .name()
               .unwrap_or("unnamed chunk(s)")
@@ -543,7 +548,6 @@ impl ModuleConcatenationPlugin {
     let runtime = context.runtime;
     let module_cache = context.module_cache;
     let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
-    let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
     let module_graph = compilation.get_module_graph();
     let module_graph_artifacts = context.module_graph_artifacts();
     let mut modules = Vec::with_capacity(cached.incomings.from_modules.len());
@@ -567,9 +571,8 @@ impl ModuleConcatenationPlugin {
         {
           !runtime.is_disjoint(origin_runtime)
         } else {
-          let origin_runtime = RuntimeSpec::from_runtimes(
-            chunk_graph.get_module_runtimes_iter(*origin_module, chunk_by_ukey),
-          );
+          let origin_runtime =
+            RuntimeSpec::from_runtimes(chunk_graph.get_module_runtimes_iter(*origin_module));
           !runtime.is_disjoint(&origin_runtime)
         };
 
@@ -617,9 +620,8 @@ impl ModuleConcatenationPlugin {
         {
           !runtime.is_disjoint(origin_runtime)
         } else {
-          let origin_runtime = RuntimeSpec::from_runtimes(
-            chunk_graph.get_module_runtimes_iter(*origin_module, chunk_by_ukey),
-          );
+          let origin_runtime =
+            RuntimeSpec::from_runtimes(chunk_graph.get_module_runtimes_iter(*origin_module));
           !runtime.is_disjoint(&origin_runtime)
         };
 
@@ -1144,7 +1146,8 @@ impl ModuleConcatenationPlugin {
         let runtime = RuntimeSpec::from_runtimes(chunks.iter().map(|chunk| {
           compilation
             .build_chunk_graph_artifact
-            .chunk_by_ukey
+            .chunk_graph
+            .chunks
             .expect_get(chunk)
             .runtime()
         }));

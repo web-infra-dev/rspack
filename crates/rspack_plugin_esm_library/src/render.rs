@@ -77,7 +77,8 @@ fn replace_preserved_asset_import_binding(
 fn get_chunk(compilation: &Compilation, chunk_ukey: ChunkUkey) -> &Chunk {
   compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(&chunk_ukey)
 }
 
@@ -87,7 +88,8 @@ impl EsmLibraryPlugin {
   fn get_entrypoint(chunk_ukey: ChunkUkey, compilation: &Compilation) -> Option<&ChunkGroup> {
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(&chunk_ukey);
     let group = chunk.groups().iter().next()?;
     let group = compilation
@@ -547,7 +549,8 @@ var {} = {{}};
       }
       let chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get(chunk);
 
       if imported.is_empty() {
@@ -691,7 +694,8 @@ var {} = {{}};
         crate::chunk_link::ReExportFrom::Chunk(chunk_ukey) => {
           let chunk = compilation
             .build_chunk_graph_artifact
-            .chunk_by_ukey
+            .chunk_graph
+            .chunks
             .expect_get(chunk_ukey);
           Cow::Owned(format!("__RSPACK_ESM_CHUNK_{}", chunk.expect_id().as_str()))
         }

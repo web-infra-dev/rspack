@@ -14,7 +14,7 @@ use serde::{Serialize, Serializer};
 use ustr::Ustr;
 
 use crate::{
-  Chunk, ChunkByUkey, ChunkGraph, ChunkGraphModule, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey,
+  Chunk, ChunkGraph, ChunkGraphModule, ChunkGroupByUkey, ChunkGroupUkey, ChunkSlotMap, ChunkUkey,
   Compilation, ExportsInfoArtifact, Module, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleIdentifier, ModuleRef, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact, SourceType,
   find_graph_roots, merge_runtime,
@@ -113,18 +113,7 @@ fn get_modules_size(modules: &[&ModuleRef], compilation: &Compilation) -> f64 {
   size
 }
 
-impl ChunkGraph {
-  pub fn add_chunk(&mut self, chunk_ukey: ChunkUkey) {
-    self
-      .chunk_graph_chunk_by_chunk_ukey
-      .entry(chunk_ukey)
-      .or_default();
-  }
-
-  pub fn remove_chunk(&mut self, chunk_ukey: &ChunkUkey) -> Option<ChunkGraphChunk> {
-    self.chunk_graph_chunk_by_chunk_ukey.remove(chunk_ukey)
-  }
-
+impl super::ChunkGraphTopology {
   pub fn replace_module(
     &mut self,
     old_module_id: &ModuleIdentifier,
@@ -248,8 +237,8 @@ impl ChunkGraph {
 
     let chunk_graph_chunk = self
       .chunk_graph_chunk_by_chunk_ukey
-      .entry(chunk)
-      .or_default();
+      .get_mut(&chunk)
+      .expect("Chunk must be created before connecting it");
     chunk_graph_chunk
       .entry_modules
       .insert(module_identifier, entrypoint);
@@ -285,8 +274,8 @@ impl ChunkGraph {
 
     let chunk_graph_chunk = self
       .chunk_graph_chunk_by_chunk_ukey
-      .entry(chunk)
-      .or_default();
+      .get_mut(&chunk)
+      .expect("Chunk must be created before connecting it");
     chunk_graph_chunk.modules.insert(module_identifier);
   }
 
@@ -304,8 +293,8 @@ impl ChunkGraph {
 
     self
       .chunk_graph_chunk_by_chunk_ukey
-      .entry(chunk)
-      .or_default();
+      .get_mut(&chunk)
+      .expect("Chunk must be created before connecting it");
     let cgc = self.expect_chunk_graph_chunk_mut(chunk);
     if !cgc.runtime_modules.contains(&module_identifier) {
       cgc.runtime_modules.push(module_identifier);
@@ -562,51 +551,6 @@ impl ChunkGraph {
     false
   }
 
-  pub fn set_chunk_runtime_requirements(
-    compilation: &mut Compilation,
-    chunk_ukey: ChunkUkey,
-    runtime_requirements: RuntimeGlobals,
-  ) {
-    compilation
-      .cgc_runtime_requirements_artifact
-      .insert(chunk_ukey, runtime_requirements);
-  }
-
-  pub fn set_tree_runtime_requirements(
-    compilation: &mut Compilation,
-    chunk_ukey: ChunkUkey,
-    runtime_requirements: RuntimeGlobals,
-  ) {
-    Self::set_chunk_runtime_requirements(compilation, chunk_ukey, runtime_requirements);
-  }
-
-  pub fn get_chunk_runtime_requirements<'a>(
-    compilation: &'a Compilation,
-    chunk_ukey: &ChunkUkey,
-  ) -> &'a RuntimeGlobals {
-    compilation
-      .cgc_runtime_requirements_artifact
-      .get(chunk_ukey)
-      .unwrap_or_else(|| {
-        let chunk = compilation
-          .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .expect_get(chunk_ukey);
-        let cgc = compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .expect_chunk_graph_chunk(chunk_ukey);
-        panic!("Should have runtime requirements for chunk:\n{chunk:#?}\n{cgc:#?}")
-      })
-  }
-
-  pub fn get_tree_runtime_requirements<'a>(
-    compilation: &'a Compilation,
-    chunk_ukey: &ChunkUkey,
-  ) -> &'a RuntimeGlobals {
-    Self::get_chunk_runtime_requirements(compilation, chunk_ukey)
-  }
-
   pub fn get_chunk_runtime_modules_in_order<'a>(
     &self,
     chunk_ukey: &ChunkUkey,
@@ -657,7 +601,8 @@ impl ChunkGraph {
 
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(chunk_ukey);
     for c in chunk
       .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
@@ -665,7 +610,8 @@ impl ChunkGraph {
     {
       let chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get(c);
       map.insert(chunk.expect_id().to_string(), filter(c, compilation));
     }
@@ -737,21 +683,6 @@ impl ChunkGraph {
 
     modules
   }
-  pub fn disconnect_chunk(
-    &mut self,
-    chunk: &mut Chunk,
-    chunk_group_by_ukey: &mut ChunkGroupByUkey,
-  ) {
-    let chunk_ukey = &chunk.ukey();
-    let cgc = self.expect_chunk_graph_chunk_mut(*chunk_ukey);
-    let cgc_modules = std::mem::take(&mut cgc.modules);
-    for module in cgc_modules {
-      let cgm = self.expect_chunk_graph_module_mut(module);
-      cgm.chunks.remove(chunk_ukey);
-    }
-    chunk.disconnect_from_groups(chunk_group_by_ukey)
-  }
-
   pub fn has_chunk_entry_dependent_chunks(
     &self,
     chunk_ukey: &ChunkUkey,
@@ -769,102 +700,13 @@ impl ChunkGraph {
     false
   }
 
-  pub fn get_runtime_chunk_dependent_chunks_iterable(
-    &self,
-    chunk_ukey: &ChunkUkey,
-    chunk_by_ukey: &ChunkByUkey,
-    chunk_group_by_ukey: &ChunkGroupByUkey,
-  ) -> impl Iterator<Item = ChunkUkey> {
-    let mut set = FxIndexSet::default();
-    let mut entrypoints = FxIndexSet::default();
-
-    let chunk = chunk_by_ukey.expect_get(chunk_ukey);
-
-    for chunk_group_key in chunk.get_sorted_groups_iter(chunk_group_by_ukey) {
-      let chunk_group = chunk_group_by_ukey.expect_get(chunk_group_key);
-      if chunk_group.kind.is_entrypoint() {
-        let mut queue = VecDeque::new();
-        queue.push_back(chunk_group);
-        while let Some(current) = queue.pop_front() {
-          entrypoints.insert(current.ukey);
-          let mut has_children_entrypoint = false;
-          for child in current.children_iterable() {
-            let child_chunk_group = chunk_group_by_ukey.expect_get(child);
-            if child_chunk_group.kind.is_entrypoint() {
-              has_children_entrypoint = true;
-              queue.push_back(child_chunk_group);
-            }
-          }
-
-          if has_children_entrypoint {
-            let entrypoint_chunk_ukey = current.get_entrypoint_chunk();
-            let entrypoint_chunk = chunk_by_ukey.expect_get(&entrypoint_chunk_ukey);
-            if entrypoint_chunk_ukey != *chunk_ukey
-              && !entrypoint_chunk.has_runtime(chunk_group_by_ukey)
-            {
-              set.insert(entrypoint_chunk_ukey);
-            }
-          }
-        }
-      }
-    }
-
-    for entrypoint_ukey in entrypoints {
-      let entrypoint = chunk_group_by_ukey.expect_get(&entrypoint_ukey);
-      let entrypoint_chunk_ukey = entrypoint.get_entrypoint_chunk();
-      let chunk_graph_chunk = self.expect_chunk_graph_chunk(&entrypoint_chunk_ukey);
-      for chunk_group_ukey in chunk_graph_chunk.entry_modules.values() {
-        let chunk_group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
-        for c in chunk_group.chunks.iter() {
-          let chunk = chunk_by_ukey.expect_get(c);
-          if c != chunk_ukey
-            && c != &entrypoint_chunk_ukey
-            && !chunk.has_runtime(chunk_group_by_ukey)
-          {
-            set.insert(*c);
-          }
-        }
-      }
-    }
-
-    set.into_iter()
-  }
-
-  pub fn get_chunk_entry_dependent_chunks_iterable(
-    &self,
-    chunk_ukey: &ChunkUkey,
-    chunk_by_ukey: &ChunkByUkey,
-    chunk_group_by_ukey: &ChunkGroupByUkey,
-  ) -> impl Iterator<Item = ChunkUkey> {
-    let chunk = chunk_by_ukey.expect_get(chunk_ukey);
-    let mut set = FxIndexSet::default();
-    for chunk_group_ukey in chunk.get_sorted_groups_iter(chunk_group_by_ukey) {
-      let chunk_group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
-      if chunk_group.kind.is_entrypoint() {
-        let entry_point_chunk = chunk_group.get_entrypoint_chunk();
-        let cgc = self.expect_chunk_graph_chunk(&entry_point_chunk);
-        for (_, chunk_group_ukey) in cgc.entry_modules.iter() {
-          let chunk_group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
-          for c in chunk_group.chunks.iter() {
-            let chunk = chunk_by_ukey.expect_get(c);
-            if c != chunk_ukey && c != &entry_point_chunk && !chunk.has_runtime(chunk_group_by_ukey)
-            {
-              set.insert(*c);
-            }
-          }
-        }
-      }
-    }
-    set.into_iter()
-  }
-
   pub fn disconnect_chunk_and_entry_module(
     &mut self,
     chunk: &ChunkUkey,
     module_identifier: ModuleIdentifier,
   ) {
     let chunk_graph_module = self.expect_chunk_graph_module_mut(module_identifier);
-    chunk_graph_module.chunks.remove(chunk);
+    chunk_graph_module.entry_in_chunks.remove(chunk);
 
     let chunk_graph_chunk = self.expect_chunk_graph_chunk_mut(*chunk);
     chunk_graph_chunk.entry_modules.remove(&module_identifier);
@@ -874,142 +716,11 @@ impl ChunkGraph {
     }
   }
 
-  pub fn can_chunks_be_integrated(
-    &self,
-    chunk_a_ukey: &ChunkUkey,
-    chunk_b_ukey: &ChunkUkey,
-    chunk_by_ukey: &ChunkByUkey,
-    chunk_group_by_ukey: &ChunkGroupByUkey,
-  ) -> bool {
-    let chunk_a = chunk_by_ukey.expect_get(chunk_a_ukey);
-    let chunk_b = chunk_by_ukey.expect_get(chunk_b_ukey);
-    if chunk_a.prevent_integration() || chunk_b.prevent_integration() {
-      return false;
-    }
-
-    let has_runtime_a = chunk_a.has_runtime(chunk_group_by_ukey);
-    let has_runtime_b = chunk_b.has_runtime(chunk_group_by_ukey);
-
-    // true, if a is always a parent of b
-    let is_available_chunk = |a: &Chunk, b: &Chunk| {
-      let mut queue = b
-        .groups()
-        .iter()
-        .copied()
-        .collect::<FxIndexSet<ChunkGroupUkey>>();
-      let mut index: usize = 0;
-      while index < queue.len() {
-        let chunk_group_ukey = queue[index];
-        index += 1;
-
-        if a.is_in_group(&chunk_group_ukey) {
-          continue;
-        }
-        let chunk_group = chunk_group_by_ukey.expect_get(&chunk_group_ukey);
-        if chunk_group.is_initial() {
-          return false;
-        }
-        for parent in chunk_group.parents_iterable() {
-          queue.insert(*parent);
-        }
-      }
-      true
-    };
-
-    if has_runtime_a != has_runtime_b {
-      if has_runtime_a {
-        return is_available_chunk(chunk_a, chunk_b);
-      } else if has_runtime_b {
-        return is_available_chunk(chunk_b, chunk_a);
-      } else {
-        return false;
-      }
-    }
-
-    if self.get_number_of_entry_modules(&chunk_a.ukey()) > 0
-      || self.get_number_of_entry_modules(&chunk_b.ukey()) > 0
-    {
-      return false;
-    }
-
-    true
-  }
-
-  pub fn get_chunk_size(
-    &self,
-    chunk_ukey: &ChunkUkey,
-    options: &ChunkSizeOptions,
-    chunk_by_ukey: &ChunkByUkey,
-    chunk_group_by_ukey: &ChunkGroupByUkey,
-    module_graph: &ModuleGraph,
-    compilation: &Compilation,
-  ) -> f64 {
-    let cgc = self.expect_chunk_graph_chunk(chunk_ukey);
-    let modules: Vec<&ModuleRef> = cgc
-      .modules
-      .iter()
-      .filter_map(|id| module_graph.module_by_identifier(id))
-      .collect::<Vec<_>>();
-    let modules_size = get_modules_size(&modules, compilation);
-    let chunk_overhead = options.chunk_overhead.unwrap_or(10000f64);
-    let entry_chunk_multiplicator = options.entry_chunk_multiplicator.unwrap_or(10f64);
-    let chunk = chunk_by_ukey.expect_get(chunk_ukey);
-    chunk_overhead
-      + modules_size
-        * (if chunk.can_be_initial(chunk_group_by_ukey) {
-          entry_chunk_multiplicator
-        } else {
-          1f64
-        })
-  }
-
-  #[allow(clippy::too_many_arguments)]
-  pub fn get_integrated_chunks_size(
-    &self,
-    chunk_a_ukey: &ChunkUkey,
-    chunk_b_ukey: &ChunkUkey,
-    options: &ChunkSizeOptions,
-    chunk_by_ukey: &ChunkByUkey,
-    chunk_group_by_ukey: &ChunkGroupByUkey,
-    module_graph: &ModuleGraph,
-    compilation: &Compilation,
-  ) -> f64 {
-    let cgc_a = self.expect_chunk_graph_chunk(chunk_a_ukey);
-    let cgc_b = self.expect_chunk_graph_chunk(chunk_b_ukey);
-    let mut all_modules: Vec<&ModuleRef> = cgc_a
-      .modules
-      .iter()
-      .filter_map(|id| module_graph.module_by_identifier(id))
-      .collect::<Vec<_>>();
-    for id in &cgc_b.modules {
-      let module = module_graph.module_by_identifier(id);
-      if let Some(module) = module {
-        all_modules.push(module);
-      }
-    }
-    let modules_size = get_modules_size(&all_modules, compilation);
-    let chunk_overhead = options.chunk_overhead.unwrap_or(10000f64);
-    let entry_chunk_multiplicator = options.entry_chunk_multiplicator.unwrap_or(10f64);
-
-    let chunk_a = chunk_by_ukey.expect_get(chunk_a_ukey);
-    let chunk_b = chunk_by_ukey.expect_get(chunk_b_ukey);
-
-    chunk_overhead
-      + modules_size
-        * (if chunk_a.can_be_initial(chunk_group_by_ukey)
-          || chunk_b.can_be_initial(chunk_group_by_ukey)
-        {
-          entry_chunk_multiplicator
-        } else {
-          1f64
-        })
-  }
-
-  pub fn integrate_chunks(
+  pub(super) fn integrate_chunks(
     &mut self,
     a: &ChunkUkey,
     b: &ChunkUkey,
-    chunk_by_ukey: &mut ChunkByUkey,
+    chunk_by_ukey: &mut ChunkSlotMap<Chunk>,
     chunk_group_by_ukey: &mut ChunkGroupByUkey,
     module_graph: &ModuleGraph,
   ) {
@@ -1122,6 +833,268 @@ impl ChunkGraph {
         None
       })
       .unwrap_or_else(|| module.source_types(module_graph).iter().copied().collect())
+  }
+}
+
+impl ChunkGraph {
+  pub fn set_chunk_runtime_requirements(
+    compilation: &mut Compilation,
+    chunk_ukey: ChunkUkey,
+    runtime_requirements: RuntimeGlobals,
+  ) {
+    compilation
+      .cgc_runtime_requirements_artifact
+      .insert(chunk_ukey, runtime_requirements);
+  }
+  pub fn set_tree_runtime_requirements(
+    compilation: &mut Compilation,
+    chunk_ukey: ChunkUkey,
+    runtime_requirements: RuntimeGlobals,
+  ) {
+    Self::set_chunk_runtime_requirements(compilation, chunk_ukey, runtime_requirements);
+  }
+  pub fn get_chunk_runtime_requirements<'a>(
+    compilation: &'a Compilation,
+    chunk_ukey: &ChunkUkey,
+  ) -> &'a RuntimeGlobals {
+    compilation
+      .cgc_runtime_requirements_artifact
+      .get(chunk_ukey)
+      .unwrap_or_else(|| {
+        let chunk = compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .chunks
+          .expect_get(chunk_ukey);
+        let cgc = compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .expect_chunk_graph_chunk(chunk_ukey);
+        panic!("Should have runtime requirements for chunk:\n{chunk:#?}\n{cgc:#?}")
+      })
+  }
+  pub fn get_tree_runtime_requirements<'a>(
+    compilation: &'a Compilation,
+    chunk_ukey: &ChunkUkey,
+  ) -> &'a RuntimeGlobals {
+    Self::get_chunk_runtime_requirements(compilation, chunk_ukey)
+  }
+}
+
+impl ChunkGraph {
+  pub fn get_runtime_chunk_dependent_chunks_iterable(
+    &self,
+    chunk_ukey: &ChunkUkey,
+    chunk_group_by_ukey: &ChunkGroupByUkey,
+  ) -> impl Iterator<Item = ChunkUkey> {
+    let chunk_by_ukey = &self.chunks;
+    let mut set = FxIndexSet::default();
+    let mut entrypoints = FxIndexSet::default();
+
+    let chunk = chunk_by_ukey.expect_get(chunk_ukey);
+
+    for chunk_group_key in chunk.get_sorted_groups_iter(chunk_group_by_ukey) {
+      let chunk_group = chunk_group_by_ukey.expect_get(chunk_group_key);
+      if chunk_group.kind.is_entrypoint() {
+        let mut queue = VecDeque::new();
+        queue.push_back(chunk_group);
+        while let Some(current) = queue.pop_front() {
+          entrypoints.insert(current.ukey);
+          let mut has_children_entrypoint = false;
+          for child in current.children_iterable() {
+            let child_chunk_group = chunk_group_by_ukey.expect_get(child);
+            if child_chunk_group.kind.is_entrypoint() {
+              has_children_entrypoint = true;
+              queue.push_back(child_chunk_group);
+            }
+          }
+
+          if has_children_entrypoint {
+            let entrypoint_chunk_ukey = current.get_entrypoint_chunk();
+            let entrypoint_chunk = chunk_by_ukey.expect_get(&entrypoint_chunk_ukey);
+            if entrypoint_chunk_ukey != *chunk_ukey
+              && !entrypoint_chunk.has_runtime(chunk_group_by_ukey)
+            {
+              set.insert(entrypoint_chunk_ukey);
+            }
+          }
+        }
+      }
+    }
+
+    for entrypoint_ukey in entrypoints {
+      let entrypoint = chunk_group_by_ukey.expect_get(&entrypoint_ukey);
+      let entrypoint_chunk_ukey = entrypoint.get_entrypoint_chunk();
+      let chunk_graph_chunk = self.expect_chunk_graph_chunk(&entrypoint_chunk_ukey);
+      for chunk_group_ukey in chunk_graph_chunk.entry_modules.values() {
+        let chunk_group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
+        for c in chunk_group.chunks.iter() {
+          let chunk = chunk_by_ukey.expect_get(c);
+          if c != chunk_ukey
+            && c != &entrypoint_chunk_ukey
+            && !chunk.has_runtime(chunk_group_by_ukey)
+          {
+            set.insert(*c);
+          }
+        }
+      }
+    }
+
+    set.into_iter()
+  }
+  pub fn get_chunk_entry_dependent_chunks_iterable(
+    &self,
+    chunk_ukey: &ChunkUkey,
+    chunk_group_by_ukey: &ChunkGroupByUkey,
+  ) -> impl Iterator<Item = ChunkUkey> {
+    let chunk_by_ukey = &self.chunks;
+    let chunk = chunk_by_ukey.expect_get(chunk_ukey);
+    let mut set = FxIndexSet::default();
+    for chunk_group_ukey in chunk.get_sorted_groups_iter(chunk_group_by_ukey) {
+      let chunk_group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
+      if chunk_group.kind.is_entrypoint() {
+        let entry_point_chunk = chunk_group.get_entrypoint_chunk();
+        let cgc = self.expect_chunk_graph_chunk(&entry_point_chunk);
+        for (_, chunk_group_ukey) in cgc.entry_modules.iter() {
+          let chunk_group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
+          for c in chunk_group.chunks.iter() {
+            let chunk = chunk_by_ukey.expect_get(c);
+            if c != chunk_ukey && c != &entry_point_chunk && !chunk.has_runtime(chunk_group_by_ukey)
+            {
+              set.insert(*c);
+            }
+          }
+        }
+      }
+    }
+    set.into_iter()
+  }
+  pub fn can_chunks_be_integrated(
+    &self,
+    chunk_a_ukey: &ChunkUkey,
+    chunk_b_ukey: &ChunkUkey,
+    chunk_group_by_ukey: &ChunkGroupByUkey,
+  ) -> bool {
+    let chunk_by_ukey = &self.chunks;
+    let chunk_a = chunk_by_ukey.expect_get(chunk_a_ukey);
+    let chunk_b = chunk_by_ukey.expect_get(chunk_b_ukey);
+    if chunk_a.prevent_integration() || chunk_b.prevent_integration() {
+      return false;
+    }
+
+    let has_runtime_a = chunk_a.has_runtime(chunk_group_by_ukey);
+    let has_runtime_b = chunk_b.has_runtime(chunk_group_by_ukey);
+
+    // true, if a is always a parent of b
+    let is_available_chunk = |a: &Chunk, b: &Chunk| {
+      let mut queue = b
+        .groups()
+        .iter()
+        .copied()
+        .collect::<FxIndexSet<ChunkGroupUkey>>();
+      let mut index: usize = 0;
+      while index < queue.len() {
+        let chunk_group_ukey = queue[index];
+        index += 1;
+
+        if a.is_in_group(&chunk_group_ukey) {
+          continue;
+        }
+        let chunk_group = chunk_group_by_ukey.expect_get(&chunk_group_ukey);
+        if chunk_group.is_initial() {
+          return false;
+        }
+        for parent in chunk_group.parents_iterable() {
+          queue.insert(*parent);
+        }
+      }
+      true
+    };
+
+    if has_runtime_a != has_runtime_b {
+      if has_runtime_a {
+        return is_available_chunk(chunk_a, chunk_b);
+      } else if has_runtime_b {
+        return is_available_chunk(chunk_b, chunk_a);
+      } else {
+        return false;
+      }
+    }
+
+    if self.get_number_of_entry_modules(&chunk_a.ukey()) > 0
+      || self.get_number_of_entry_modules(&chunk_b.ukey()) > 0
+    {
+      return false;
+    }
+
+    true
+  }
+  pub fn get_chunk_size(
+    &self,
+    chunk_ukey: &ChunkUkey,
+    options: &ChunkSizeOptions,
+    chunk_group_by_ukey: &ChunkGroupByUkey,
+    module_graph: &ModuleGraph,
+    compilation: &Compilation,
+  ) -> f64 {
+    let chunk_by_ukey = &self.chunks;
+    let cgc = self.expect_chunk_graph_chunk(chunk_ukey);
+    let modules: Vec<&ModuleRef> = cgc
+      .modules
+      .iter()
+      .filter_map(|id| module_graph.module_by_identifier(id))
+      .collect::<Vec<_>>();
+    let modules_size = get_modules_size(&modules, compilation);
+    let chunk_overhead = options.chunk_overhead.unwrap_or(10000f64);
+    let entry_chunk_multiplicator = options.entry_chunk_multiplicator.unwrap_or(10f64);
+    let chunk = chunk_by_ukey.expect_get(chunk_ukey);
+    chunk_overhead
+      + modules_size
+        * (if chunk.can_be_initial(chunk_group_by_ukey) {
+          entry_chunk_multiplicator
+        } else {
+          1f64
+        })
+  }
+  pub fn get_integrated_chunks_size(
+    &self,
+    chunk_a_ukey: &ChunkUkey,
+    chunk_b_ukey: &ChunkUkey,
+    options: &ChunkSizeOptions,
+    chunk_group_by_ukey: &ChunkGroupByUkey,
+    module_graph: &ModuleGraph,
+    compilation: &Compilation,
+  ) -> f64 {
+    let chunk_by_ukey = &self.chunks;
+    let cgc_a = self.expect_chunk_graph_chunk(chunk_a_ukey);
+    let cgc_b = self.expect_chunk_graph_chunk(chunk_b_ukey);
+    let mut all_modules: Vec<&ModuleRef> = cgc_a
+      .modules
+      .iter()
+      .filter_map(|id| module_graph.module_by_identifier(id))
+      .collect::<Vec<_>>();
+    for id in &cgc_b.modules {
+      let module = module_graph.module_by_identifier(id);
+      if let Some(module) = module {
+        all_modules.push(module);
+      }
+    }
+    let modules_size = get_modules_size(&all_modules, compilation);
+    let chunk_overhead = options.chunk_overhead.unwrap_or(10000f64);
+    let entry_chunk_multiplicator = options.entry_chunk_multiplicator.unwrap_or(10f64);
+
+    let chunk_a = chunk_by_ukey.expect_get(chunk_a_ukey);
+    let chunk_b = chunk_by_ukey.expect_get(chunk_b_ukey);
+
+    chunk_overhead
+      + modules_size
+        * (if chunk_a.can_be_initial(chunk_group_by_ukey)
+          || chunk_b.can_be_initial(chunk_group_by_ukey)
+        {
+          entry_chunk_multiplicator
+        } else {
+          1f64
+        })
   }
 }
 

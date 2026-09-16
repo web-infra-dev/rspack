@@ -15,10 +15,11 @@ impl RemoveEmptyChunksPlugin {
     let logger = compilation.get_logger(self.name());
     let start = logger.time("remove empty chunks");
 
-    let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
+    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
     let empty_chunks = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .values()
       .filter(|chunk| {
         chunk.kind() != ChunkKind::Facade
@@ -30,18 +31,13 @@ impl RemoveEmptyChunksPlugin {
       .collect::<Vec<_>>();
 
     for chunk_ukey in empty_chunks.iter() {
-      if let Some(mut chunk) = compilation
+      if compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .remove(chunk_ukey)
+        .remove_chunk(chunk_ukey)
+        .is_some()
+        && let Some(mut mutations) = compilation.incremental.mutations_write()
       {
-        chunk_graph.disconnect_chunk(
-          &mut chunk,
-          &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-        );
-        if let Some(mut mutations) = compilation.incremental.mutations_write() {
-          mutations.add(Mutation::ChunkRemove { chunk: *chunk_ukey });
-        }
+        mutations.add(Mutation::ChunkRemove { chunk: *chunk_ukey });
       }
     }
 

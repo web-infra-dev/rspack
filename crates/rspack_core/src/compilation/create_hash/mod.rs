@@ -3,7 +3,7 @@ use rspack_hash::RspackHasher;
 use rustc_hash::FxHashSet;
 
 use super::*;
-use crate::{ModuleCodeGenerationContext, compilation::pass::PassExt, logger::Logger};
+use crate::{ChunkSet, ModuleCodeGenerationContext, compilation::pass::PassExt, logger::Logger};
 
 pub struct ChunkHashResult {
   pub hash: RspackHashDigest,
@@ -43,7 +43,8 @@ pub async fn create_hash(
   // dependent_full_hash hook to declare it.
   let mut full_hash_chunks: FxHashSet<_> = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .keys()
     .copied()
     .collect::<Vec<_>>()
@@ -87,7 +88,9 @@ pub async fn create_hash(
     compilation.chunk_hashes_artifact.clear();
   }
 
-  let create_hash_chunks = if let Some(mutations) = compilation
+  let owner = &compilation.build_chunk_graph_artifact.chunk_graph.chunks;
+  let mut create_hash_chunks = ChunkSet::with_capacity(owner.slot_count());
+  if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::CHUNKS_HASHES)
     && !compilation.chunk_hashes_artifact.is_empty()
@@ -102,7 +105,8 @@ pub async fn create_hash(
     compilation.chunk_hashes_artifact.retain(|chunk, _| {
       compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .contains(chunk)
     });
     let chunks = mutations.get_affected_chunks_with_chunk_graph(compilation);
@@ -111,17 +115,20 @@ pub async fn create_hash(
     logger.log(format!(
       "{} chunks are affected, {} in total",
       chunks.len(),
-      compilation.build_chunk_graph_artifact.chunk_by_ukey.len(),
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .chunks
+        .len(),
     ));
-    chunks
+    for key in chunks.into_iter().filter(|key| owner.contains(key)) {
+      create_hash_chunks.insert(owner, key);
+    }
   } else {
-    compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .keys()
-      .copied()
-      .collect()
-  };
+    for key in owner.keys() {
+      create_hash_chunks.insert(owner, *key);
+    }
+  }
 
   let mut compilation_hasher = RspackHasher::from(&compilation.options.output);
 
@@ -133,7 +140,8 @@ pub async fn create_hash(
       let (chunk_ukey, chunk_hash_result) = hash_result?;
       let chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get(&chunk_ukey);
       let chunk_hashes_changed = chunk.set_hashes(
         &mut compilation.chunk_hashes_artifact,
@@ -154,6 +162,7 @@ pub async fn create_hash(
   let other_chunks: Vec<_> = create_hash_chunks
     .iter()
     .filter(|key| !unordered_runtime_chunks.contains(key))
+    .sorted_unstable()
     .collect();
 
   // create hash for runtime modules in other chunks
@@ -217,7 +226,8 @@ pub async fn create_hash(
   for runtime_chunk_ukey in runtime_chunk_keys {
     let runtime_chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(&runtime_chunk_ukey);
     let groups = runtime_chunk.get_all_referenced_async_entrypoints(
       &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
@@ -309,7 +319,8 @@ pub async fn create_hash(
       .map(|(chunk_ukey, _)| {
         compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get(chunk_ukey)
       })
       .collect();
@@ -365,7 +376,8 @@ pub async fn create_hash(
       process_chunk_hash(compilation, runtime_chunk_ukey, &plugin_driver).await?;
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(&runtime_chunk_ukey);
     let chunk_hashes_changed = chunk.set_hashes(
       &mut compilation.chunk_hashes_artifact,
@@ -383,7 +395,8 @@ pub async fn create_hash(
   // create full hash
   compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .values()
     .sorted_unstable_by_key(|chunk| chunk.ukey())
     .for_each(|chunk| {
@@ -421,7 +434,8 @@ pub async fn create_hash(
     }
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(&chunk_ukey);
     let new_chunk_hash = {
       let chunk_hash = chunk
@@ -527,7 +541,8 @@ async fn process_chunk_hash(
   let mut hasher = RspackHasher::from(&compilation.options.output);
   if let Some(chunk) = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .get(&chunk_ukey)
   {
     chunk.update_hash(&mut hasher, compilation);

@@ -182,7 +182,8 @@ async fn universal_compile_async_wasm_plugin_runtime_requirements_in_tree(
 
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   let wasm_loading = chunk
     .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)

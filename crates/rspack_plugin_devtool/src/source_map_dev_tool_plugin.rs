@@ -1257,7 +1257,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mut file_to_chunk_ukey: HashMap<String, ChunkUkey> = HashMap::default();
   for chunk in compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .values()
   {
     for file in chunk.files() {
@@ -1356,7 +1357,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let chunk = chunk_ukey.map(|ukey| {
         compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get_mut(ukey)
       });
       if let Some(chunk) = chunk {

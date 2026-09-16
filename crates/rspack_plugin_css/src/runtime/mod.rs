@@ -248,7 +248,8 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     if let Some(chunk_ukey) = self.chunk() {
       let chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get(&chunk_ukey);
       let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
 
@@ -277,7 +278,8 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       for chunk_ukey in initial_chunks.iter() {
         let id = compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get(chunk_ukey)
           .expect_id()
           .clone();

@@ -130,7 +130,8 @@ impl CssLoadingRuntimeModule {
 
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(&self.chunk().expect("should attached chunk"));
 
     for chunk in
@@ -259,7 +260,8 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     let chunk_ukey = self.chunk().expect("should attached chunk");
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(&chunk_ukey);
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
 
@@ -358,7 +360,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
               chunks
                 .iter()
                 .filter_map(|id| {
-                  let css_chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(id);
+                  let css_chunk = compilation.build_chunk_graph_artifact.chunk_graph.chunks.expect_get(id);
 
                   css_chunk.id().map(|id| {
                     format!(
@@ -386,7 +388,8 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       {
         if let Some(id) = compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get(chunk_ukey)
           .id()
         {

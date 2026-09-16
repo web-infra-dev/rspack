@@ -138,7 +138,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   // filter file
   for chunk in compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .values()
   {
     let can_be_initial =

@@ -60,7 +60,8 @@ fn get_remote_entry_name(compilation: &Compilation, container_name: &str) -> Opt
   let pick_chunk_file = |chunk_ukey: &rspack_core::ChunkUkey| -> Option<String> {
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(chunk_ukey);
     chunk
       .files()
@@ -371,7 +372,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                 chunk_group.chunks.iter().find(|chunk_key| {
                   compilation
                     .build_chunk_graph_artifact
-                    .chunk_by_ukey
+                    .chunk_graph
+                    .chunks
                     .get(chunk_key)
                     .and_then(|chunk| chunk.name())
                     .is_some_and(|name| candidates.iter().any(|candidate| candidate == name))
@@ -384,7 +386,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             if let Some(chunk_key) = chunk_group.chunks.iter().find(|chunk_key| {
               compilation
                 .build_chunk_graph_artifact
-                .chunk_by_ukey
+                .chunk_graph
+                .chunks
                 .get(chunk_key)
                 .and_then(|chunk| chunk.name())
                 .is_some()
@@ -514,7 +517,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           entry.insert(*chunk_ukey);
           let chunk = compilation
             .build_chunk_graph_artifact
-            .chunk_by_ukey
+            .chunk_graph
+            .chunks
             .expect_get(chunk_ukey);
           for group_ukey in chunk.groups() {
             let group = compilation
@@ -586,7 +590,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       for chunk_key in chunk_keys {
         let chunk = compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get(&chunk_key);
         // A provided module can also be imported locally into an expose chunk.
         // Protect the same chunks used to collect assets, including unnamed ones.

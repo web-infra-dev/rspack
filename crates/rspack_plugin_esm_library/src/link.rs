@@ -293,7 +293,8 @@ impl EsmLibraryPlugin {
     // allocated before bundled top-level declarations and participate in the same deconfliction.
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(&chunk_link.chunk);
     let decl_modules = chunk_link.decl_modules.iter().copied().collect::<Vec<_>>();
 
@@ -533,7 +534,8 @@ impl EsmLibraryPlugin {
     // initialize data for link chunks
     let mut link: FxHashMap<ChunkUkey, ChunkLinkContext> = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .keys()
       .map(|ukey| {
         let modules = compilation
@@ -2127,13 +2129,15 @@ var {} = {{}};
     // chunk_link.required ahead.
     let mut exports = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .keys()
       .map(|chunk| (*chunk, Default::default()))
       .collect::<FxHashMap<ChunkUkey, ExportsContext>>();
     let mut imports = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .keys()
       .map(|chunk| (*chunk, Default::default()))
       .collect::<FxHashMap<ChunkUkey, IdentifierIndexMap<FxHashMap<Atom, Atom>>>>();
@@ -3179,7 +3183,7 @@ fn normal_render(
 #[cfg(test)]
 mod tests {
   use rspack_core::{
-    ChunkInitFragments, ChunkUkey, ConcatenationNameAllocator, InitFragmentKey, ModuleIdentifier,
+    ChunkInitFragments, ConcatenationNameAllocator, InitFragmentKey, ModuleIdentifier,
   };
   use rspack_intern::Atom;
   use rspack_util::fx_hash::{FxHashMap, FxHashSet};
@@ -3203,8 +3207,16 @@ mod tests {
   fn get_module_chunk_multiple_chunks_returns_error() {
     let m = ModuleIdentifier::from("test_module");
     let mut chunks = FxHashSet::default();
-    chunks.insert(ChunkUkey::new());
-    chunks.insert(ChunkUkey::new());
+    chunks.insert(
+      rspack_core::ChunkGraph::default()
+        .create_chunk(None, rspack_core::ChunkKind::Normal)
+        .expect("test Chunk allocation"),
+    );
+    chunks.insert(
+      rspack_core::ChunkGraph::default()
+        .create_chunk(None, rspack_core::ChunkKind::Normal)
+        .expect("test Chunk allocation"),
+    );
     let result = EsmLibraryPlugin::validate_single_chunk(m, &chunks);
     assert!(result.is_err());
     let err_msg = result.unwrap_err().to_string();
@@ -3217,7 +3229,9 @@ mod tests {
   #[test]
   fn get_module_chunk_single_chunk_returns_ok() {
     let m = ModuleIdentifier::from("test_module");
-    let expected_chunk = ChunkUkey::new();
+    let expected_chunk = rspack_core::ChunkGraph::default()
+      .create_chunk(None, rspack_core::ChunkKind::Normal)
+      .expect("test Chunk allocation");
     let mut chunks = FxHashSet::default();
     chunks.insert(expected_chunk);
     let result = EsmLibraryPlugin::validate_single_chunk(m, &chunks);

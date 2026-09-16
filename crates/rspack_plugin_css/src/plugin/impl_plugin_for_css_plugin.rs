@@ -128,7 +128,8 @@ impl CssPlugin {
       diagnostics.extend(conflicts.into_iter().map(|conflict| {
         let chunk = compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get(&conflict.chunk);
 
         let failed_module = mg
@@ -150,7 +151,7 @@ impl CssPlugin {
           ),
         );
         diagnostic.file = Some(output_path.to_owned().into());
-        diagnostic.chunk = Some(chunk.ukey().as_u32());
+        diagnostic.chunk = Some(chunk.ukey().as_u64());
         diagnostic
       }));
     }
@@ -211,7 +212,7 @@ impl CssPlugin {
                 }
               };
 
-              let chunk_ukey = chunk.as_u32().into();
+              let chunk_ukey = chunk;
               // Module package hooks may add module-specific decorations such as pathinfo.
               // Deduplicate the undecorated source but emit the rendered source.
               let source_before_hooks = post_module_container.source.clone();
@@ -527,7 +528,8 @@ async fn content_hash(
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   let module_graph = compilation.get_module_graph();
   let css_import_modules = compilation
@@ -574,7 +576,8 @@ async fn render_manifest(
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   let _runtime_template = compilation
     .runtime_template

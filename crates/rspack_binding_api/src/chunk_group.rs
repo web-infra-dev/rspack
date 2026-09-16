@@ -169,7 +169,8 @@ impl ChunkGroup {
           .filter_map(|chunk_ukey| {
             compilation
               .build_chunk_graph_artifact
-              .chunk_by_ukey
+              .chunk_graph
+              .chunks
               .get(chunk_ukey)
               .map(|chunk| chunk.files().iter())
           })

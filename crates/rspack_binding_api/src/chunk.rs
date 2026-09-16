@@ -23,6 +23,27 @@ pub struct Chunk {
 }
 
 impl Chunk {
+  // Incremental snapshots preserve keys across compilations. Native identity
+  // does not extend the lifetime of a JavaScript handle from an earlier build.
+  pub(crate) fn belongs_to(&self, compilation: &Compilation) -> bool {
+    self.compilation_id == compilation.id()
+      && compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .chunks
+        .contains(&self.chunk_ukey)
+  }
+
+  pub(crate) fn validate_compilation(&self, compilation: &Compilation) -> napi::Result<()> {
+    if self.belongs_to(compilation) {
+      Ok(())
+    } else {
+      Err(napi::Error::from_reason(
+        "Chunk does not belong to this Compilation or has been removed",
+      ))
+    }
+  }
+
   fn with_compilation<R>(
     &self,
     f: impl FnOnce(&Compilation) -> napi::Result<R>,
@@ -37,7 +58,7 @@ impl Chunk {
     self.with_compilation(|compilation| {
       if let Some(chunk) = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph.chunks
         .get(&self.chunk_ukey)
       {
         f(compilation, chunk)

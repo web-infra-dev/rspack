@@ -9,7 +9,7 @@ use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::FxHashSet;
 
 use crate::{
-  Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
+  Chunk, ChunkGroupByUkey, ChunkGroupUkey, ChunkLoading, ChunkSlotMap, ChunkUkey, Compilation,
   DependencyLocation, DynamicImportFetchPriority, Filename, LibraryOptions, ModuleIdentifier,
   ModuleLayer, PublicPath, WasmLoading,
 };
@@ -101,7 +101,7 @@ impl ChunkGroup {
       .copied()
   }
 
-  pub fn get_files(&self, chunk_by_ukey: &ChunkByUkey) -> Vec<String> {
+  pub fn get_files(&self, chunk_by_ukey: &ChunkSlotMap<Chunk>) -> Vec<String> {
     self
       .chunks
       .iter()
@@ -157,6 +157,11 @@ impl ChunkGroup {
 
   pub fn set_entrypoint_chunk(&mut self, chunk_ukey: ChunkUkey) {
     self.entrypoint_chunk = Some(chunk_ukey);
+  }
+
+  /// An empty entry Chunk may have been removed after an entry failed to resolve.
+  pub fn is_entrypoint_chunk(&self, chunk_ukey: &ChunkUkey) -> bool {
+    self.entrypoint_chunk.as_ref() == Some(chunk_ukey)
   }
 
   pub fn get_entrypoint_chunk(&self) -> ChunkUkey {
@@ -220,6 +225,12 @@ impl ChunkGroup {
   }
 
   pub fn remove_chunk(&mut self, chunk: &ChunkUkey) -> bool {
+    if self.runtime_chunk == Some(*chunk) {
+      self.runtime_chunk = None;
+    }
+    if self.entrypoint_chunk == Some(*chunk) {
+      self.entrypoint_chunk = None;
+    }
     let idx = self.chunks.iter().position(|ukey| ukey == chunk);
     if let Some(idx) = idx {
       self.chunks.remove(idx);
@@ -278,7 +289,8 @@ impl ChunkGroup {
       .filter_map(|chunk| {
         compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .get(chunk)
           .and_then(|item| item.id())
       })

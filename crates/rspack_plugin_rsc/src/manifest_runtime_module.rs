@@ -55,7 +55,8 @@ impl RuntimeModule for RscManifestRuntimeModule {
       .and_then(|chunk_ukey| {
         compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .get(chunk_ukey)
       })
       .and_then(|chunk| {

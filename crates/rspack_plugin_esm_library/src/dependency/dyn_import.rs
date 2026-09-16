@@ -306,7 +306,8 @@ impl DynamicImportDependencyTemplate {
     let ref_chunk = code_generatable_context
       .compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(&ref_chunk_ukey);
     let import_promise = if already_in_chunk {
       Cow::Borrowed("Promise.resolve()")

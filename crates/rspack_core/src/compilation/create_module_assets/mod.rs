@@ -62,7 +62,8 @@ pub async fn create_module_assets(
   for (chunk, asset_name) in chunk_asset_map {
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get_mut(&chunk);
     chunk.add_auxiliary_file(asset_name);
   }

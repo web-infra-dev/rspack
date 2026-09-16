@@ -16,8 +16,8 @@ impl PassExt for AssignRuntimeIdsPass {
     fn process_entrypoint(
       entrypoint_ukey: &ChunkGroupUkey,
       chunk_group_by_ukey: &ChunkGroupByUkey,
-      chunk_by_ukey: &ChunkByUkey,
-      chunk_graph: &mut ChunkGraph,
+      chunk_by_ukey: &ChunkSlotMap<Chunk>,
+      chunk_graph: &mut crate::chunk_graph::ChunkGraphTopology,
     ) {
       let entrypoint = chunk_group_by_ukey.expect_get(entrypoint_ukey);
       let runtime = entrypoint
@@ -40,8 +40,8 @@ impl PassExt for AssignRuntimeIdsPass {
       process_entrypoint(
         i.1,
         &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-        &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-        &mut compilation.build_chunk_graph_artifact.chunk_graph,
+        &compilation.build_chunk_graph_artifact.chunk_graph.chunks,
+        &mut compilation.build_chunk_graph_artifact.chunk_graph.topology,
       )
     }
     for i in compilation
@@ -52,8 +52,8 @@ impl PassExt for AssignRuntimeIdsPass {
       process_entrypoint(
         i,
         &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-        &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-        &mut compilation.build_chunk_graph_artifact.chunk_graph,
+        &compilation.build_chunk_graph_artifact.chunk_graph.chunks,
+        &mut compilation.build_chunk_graph_artifact.chunk_graph.topology,
       )
     }
 

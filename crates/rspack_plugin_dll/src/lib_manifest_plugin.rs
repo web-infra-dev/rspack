@@ -57,7 +57,12 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
 
   let module_graph = compilation.get_module_graph();
 
-  for (_, chunk) in compilation.build_chunk_graph_artifact.chunk_by_ukey.iter() {
+  for (_, chunk) in compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .chunks
+    .iter()
+  {
     if !chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
       continue;
     }

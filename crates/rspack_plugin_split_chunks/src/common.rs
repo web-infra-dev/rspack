@@ -45,21 +45,24 @@ impl ChunkFilter {
       ChunkFilter::Regex(re) => {
         let chunk = compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get(chunk_ukey);
         chunk.name().is_some_and(|name| re.test(name))
       }
       ChunkFilter::Async => {
         let chunk = compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get(chunk_ukey);
         !chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       }
       ChunkFilter::Initial => {
         let chunk = compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get(chunk_ukey);
         chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       }

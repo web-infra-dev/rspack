@@ -86,7 +86,8 @@ pub async fn create_chunk_assets(
     compilation.chunk_render_artifact.retain(|chunk, _| {
       compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .contains(chunk)
     });
     let chunks: FxHashSet<ChunkUkey> = mutations
@@ -101,13 +102,18 @@ pub async fn create_chunk_assets(
     logger.log(format!(
       "{} chunks are affected, {} in total",
       chunks.len(),
-      compilation.build_chunk_graph_artifact.chunk_by_ukey.len()
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .chunks
+        .len()
     ));
     chunks
   } else {
     compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .keys()
       .copied()
       .collect()
@@ -171,7 +177,8 @@ pub async fn create_chunk_assets(
       let filename = file_manifest.filename;
       let current_chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get_mut(&chunk_ukey);
 
       current_chunk.set_rendered(true);

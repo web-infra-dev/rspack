@@ -54,7 +54,8 @@ impl SplitChunksPlugin {
     let candidates = module_group.chunks.iter().filter_map(|chunk| {
       let chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get(chunk);
 
       if compilation
@@ -129,8 +130,8 @@ impl SplitChunksPlugin {
     module_group: &mut ModuleGroup,
     is_reuse_existing_chunk: &mut bool,
     is_reuse_existing_chunk_with_all_modules: &mut bool,
-  ) -> ChunkUkey {
-    if let Some(chunk_name) = &module_group.chunk_name {
+  ) -> rspack_error::Result<ChunkUkey> {
+    Ok(if let Some(chunk_name) = &module_group.chunk_name {
       if let Some(chunk) = compilation
         .build_chunk_graph_artifact
         .named_chunks
@@ -139,11 +140,9 @@ impl SplitChunksPlugin {
         *is_reuse_existing_chunk = true;
         *chunk
       } else {
-        let (new_chunk_ukey, created) = Compilation::add_named_chunk(
-          chunk_name.clone(),
-          &mut compilation.build_chunk_graph_artifact.chunk_by_ukey,
-          &mut compilation.build_chunk_graph_artifact.named_chunks,
-        );
+        let (new_chunk_ukey, created) = compilation
+          .build_chunk_graph_artifact
+          .add_named_chunk(chunk_name.clone())?;
         if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
           mutations.add(Mutation::ChunkAdd {
             chunk: new_chunk_ukey,
@@ -151,18 +150,14 @@ impl SplitChunksPlugin {
         }
         let new_chunk = compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get_mut(&new_chunk_ukey);
 
         put_split_chunk_reason(
           new_chunk.chunk_reason_mut(),
           *is_reuse_existing_chunk_with_all_modules,
         );
-
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .add_chunk(new_chunk.ukey());
         new_chunk.ukey()
       }
     } else if module_group.cache_group_reuse_existing_chunk
@@ -172,8 +167,10 @@ impl SplitChunksPlugin {
       *is_reuse_existing_chunk_with_all_modules = true;
       reusable_chunk
     } else {
-      let new_chunk_ukey =
-        Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
+      let new_chunk_ukey = compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .create_chunk(None, rspack_core::ChunkKind::Normal)?;
       if let Some(mut mutations) = compilation.incremental.mutations_write() {
         mutations.add(Mutation::ChunkAdd {
           chunk: new_chunk_ukey,
@@ -181,20 +178,16 @@ impl SplitChunksPlugin {
       }
       let new_chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get_mut(&new_chunk_ukey);
 
       put_split_chunk_reason(
         new_chunk.chunk_reason_mut(),
         *is_reuse_existing_chunk_with_all_modules,
       );
-
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .add_chunk(new_chunk.ukey());
       new_chunk.ukey()
-    }
+    })
   }
 
   /// Returns the selected source chunks for modules that can move into `new_chunk`.
@@ -320,7 +313,7 @@ impl SplitChunksPlugin {
     }
 
     {
-      let chunk_by_ukey = &mut compilation.build_chunk_graph_artifact.chunk_by_ukey;
+      let chunk_by_ukey = &mut compilation.build_chunk_graph_artifact.chunk_graph.chunks;
       let chunk_group_by_ukey = &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
       let mut split_data = ChunkSplitData::default();
       for original_chunk_ukey in original_chunks {

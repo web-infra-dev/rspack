@@ -62,7 +62,8 @@ pub fn get_options_for_chunk<'a>(
   }
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   chunk
     .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)

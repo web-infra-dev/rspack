@@ -47,7 +47,8 @@ pub fn collect_entry_files(compilation: &Compilation, container_name: &str) -> H
     for chunk_ukey in &entrypoint.chunks {
       if let Some(chunk) = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .get(chunk_ukey)
       {
         for file in chunk.files() {
@@ -58,7 +59,8 @@ pub fn collect_entry_files(compilation: &Compilation, container_name: &str) -> H
         {
           if let Some(async_chunk) = compilation
             .build_chunk_graph_artifact
-            .chunk_by_ukey
+            .chunk_graph
+            .chunks
             .get(&async_chunk_ukey)
           {
             let mut should_filter = false;
@@ -88,7 +90,8 @@ pub fn collect_entry_files(compilation: &Compilation, container_name: &str) -> H
       entrypoint.get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
     if let Some(chunk) = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .get(&runtime_chunk_ukey)
     {
       for file in chunk.files() {

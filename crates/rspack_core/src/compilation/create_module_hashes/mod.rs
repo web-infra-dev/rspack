@@ -49,7 +49,7 @@ async fn create_module_hashes_pass_impl(compilation: &mut Compilation) -> Result
       let module_runtimes = compilation
         .build_chunk_graph_artifact
         .chunk_graph
-        .get_module_runtimes(*mi, &compilation.build_chunk_graph_artifact.chunk_by_ukey);
+        .get_module_runtimes(*mi);
       let module_runtime_keys = module_runtimes
         .values()
         .map(get_runtime_key)
@@ -122,25 +122,22 @@ pub async fn create_module_hashes(
 ) -> Result<()> {
   let mg = compilation.get_module_graph();
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
-  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
   let compilation_ref = &*compilation;
 
   let results = rspack_parallel::scope::<_, Result<_>>(|token| {
     for module_identifier in modules {
-      let s = unsafe { token.used((compilation_ref, &mg, chunk_graph, chunk_by_ukey)) };
-      s.spawn(
-        move |(compilation, mg, chunk_graph, chunk_by_ukey)| async move {
-          let mut hashes = RuntimeSpecMap::new();
-          let module = mg
-            .module_by_identifier(&module_identifier)
-            .expect("should have module");
-          for runtime in chunk_graph.get_module_runtimes_iter(module_identifier, chunk_by_ukey) {
-            let hash = module.get_runtime_hash(compilation, Some(runtime)).await?;
-            hashes.set(runtime.clone(), hash);
-          }
-          Ok((module_identifier, hashes))
-        },
-      );
+      let s = unsafe { token.used((compilation_ref, &mg, chunk_graph)) };
+      s.spawn(move |(compilation, mg, chunk_graph)| async move {
+        let mut hashes = RuntimeSpecMap::new();
+        let module = mg
+          .module_by_identifier(&module_identifier)
+          .expect("should have module");
+        for runtime in chunk_graph.get_module_runtimes_iter(module_identifier) {
+          let hash = module.get_runtime_hash(compilation, Some(runtime)).await?;
+          hashes.set(runtime.clone(), hash);
+        }
+        Ok((module_identifier, hashes))
+      });
     }
   })
   .await

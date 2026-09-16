@@ -91,7 +91,8 @@ async fn render(
   let name = if let Some(name) = options.name {
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .get(chunk_ukey);
     let filename = Filename::from(name);
     let path_data = match chunk {

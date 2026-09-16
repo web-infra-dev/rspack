@@ -138,18 +138,29 @@ impl ChunkCombinationBucket {
 
 #[cfg(test)]
 mod test {
-  use rspack_core::ChunkUkey;
 
   use super::*;
 
   #[test]
   fn pop_delete_and_update() {
-    let chunk_0 = ChunkUkey::new();
-    let chunk_1 = ChunkUkey::new();
-    let chunk_2 = ChunkUkey::new();
-    let chunk_3 = ChunkUkey::new();
-    let chunk_4 = ChunkUkey::new();
-    let chunk_5 = ChunkUkey::new();
+    let chunk_0 = rspack_core::ChunkGraph::default()
+      .create_chunk(None, rspack_core::ChunkKind::Normal)
+      .expect("test Chunk allocation");
+    let chunk_1 = rspack_core::ChunkGraph::default()
+      .create_chunk(None, rspack_core::ChunkKind::Normal)
+      .expect("test Chunk allocation");
+    let chunk_2 = rspack_core::ChunkGraph::default()
+      .create_chunk(None, rspack_core::ChunkKind::Normal)
+      .expect("test Chunk allocation");
+    let chunk_3 = rspack_core::ChunkGraph::default()
+      .create_chunk(None, rspack_core::ChunkKind::Normal)
+      .expect("test Chunk allocation");
+    let chunk_4 = rspack_core::ChunkGraph::default()
+      .create_chunk(None, rspack_core::ChunkKind::Normal)
+      .expect("test Chunk allocation");
+    let chunk_5 = rspack_core::ChunkGraph::default()
+      .create_chunk(None, rspack_core::ChunkKind::Normal)
+      .expect("test Chunk allocation");
 
     let mut combinations = ChunkCombinationBucket::new();
 

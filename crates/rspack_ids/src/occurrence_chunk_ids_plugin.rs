@@ -1,9 +1,6 @@
 use itertools::Itertools;
-use rspack_core::{
-  Chunk, ChunkByUkey, ChunkNamedIdArtifact, CompilationChunkIds, Plugin,
-  incremental::IncrementalPasses,
-};
-use rspack_error::{Diagnostic, Result};
+use rspack_core::{Chunk, CompilationChunkIds, Plugin, incremental::IncrementalPasses};
+use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap as HashMap;
 
@@ -29,22 +26,17 @@ impl OccurrenceChunkIdsPlugin {
 }
 
 #[plugin_hook(CompilationChunkIds for OccurrenceChunkIdsPlugin)]
-async fn chunk_ids(
-  &self,
-  compilation: &rspack_core::Compilation,
-  chunk_by_ukey: &mut ChunkByUkey,
-  _named_chunk_ids_artifact: &mut ChunkNamedIdArtifact,
-  diagnostics: &mut Vec<Diagnostic>,
-) -> Result<()> {
+async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
     IncrementalPasses::CHUNK_IDS | IncrementalPasses::MODULES_HASHES,
     "OccurrenceChunkIdsPlugin (optimization.chunkIds = \"size\")",
     "it requires calculating the id of all the chunks, which is a global effect",
   ) && let Some(diagnostic) = diagnostic
   {
-    diagnostics.push(diagnostic);
+    compilation.extend_diagnostics([diagnostic]);
   }
 
+  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_graph.chunks;
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
   let mut occurs_in_initial_chunks_map = HashMap::default();
@@ -96,7 +88,10 @@ async fn chunk_ids(
     .map(|chunk| chunk.ukey())
     .collect::<Vec<_>>();
 
-  assign_ascending_chunk_ids(&chunks, chunk_by_ukey);
+  assign_ascending_chunk_ids(
+    &chunks,
+    &mut compilation.build_chunk_graph_artifact.chunk_graph.chunks,
+  );
 
   Ok(())
 }

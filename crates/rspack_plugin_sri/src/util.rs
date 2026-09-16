@@ -74,7 +74,8 @@ fn recurse_chunk(
 
   if let Some(chunk) = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .get(chunk)
   {
     for group in chunk.groups() {

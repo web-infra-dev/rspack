@@ -65,7 +65,8 @@ async fn additional_chunk_runtime_requirements_tree(
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
 
   // Skip build time chunks
@@ -109,7 +110,8 @@ async fn runtime_requirement_in_tree(
 ) -> Result<Option<()>> {
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
 
   // Skip build time chunks
@@ -187,7 +189,8 @@ async fn render_startup(
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
 
   // Skip build time chunks

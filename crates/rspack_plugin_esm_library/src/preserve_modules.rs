@@ -114,7 +114,7 @@ fn module_resource_path(module: &dyn Module) -> Option<PathBuf> {
 pub async fn preserve_modules(
   root: &Path,
   compilation: &mut Compilation,
-) -> Vec<rspack_error::Diagnostic> {
+) -> rspack_error::Result<Vec<rspack_error::Diagnostic>> {
   let mut errors = vec![];
   let modules = compilation
     .get_module_graph()
@@ -225,7 +225,8 @@ pub async fn preserve_modules(
     let js_filename_template: Option<Filename> = if has_js {
       let extension = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .get(&chunk)
         .and_then(|c| c.filename_template().cloned())
         .unwrap_or_else(|| compilation.options.output.filename.clone());
@@ -270,7 +271,8 @@ pub async fn preserve_modules(
       // This is the last module in the chunk — rename in-place.
       let old_chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get_mut(&chunk);
       if let Some(old_name) = old_chunk.name().map(|s| s.to_string())
         && old_name != base_name
@@ -291,28 +293,28 @@ pub async fn preserve_modules(
       continue;
     }
 
-    let new_chunk_ukey =
-      Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
-    compilation
+    let new_chunk_ukey = compilation
       .build_chunk_graph_artifact
       .chunk_graph
-      .add_chunk(new_chunk_ukey);
-    let [Some(new_chunk), Some(old_chunk)] = compilation
+      .create_chunk(None, rspack_core::ChunkKind::Normal)?;
+    let new_chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .get_many_mut([&new_chunk_ukey, &chunk])
-    else {
-      unreachable!("new_chunk and old_chunk should be inserted already")
-    };
+      .chunk_graph
+      .chunks
+      .expect_get_mut(&new_chunk_ukey);
 
     new_chunk.set_name(Some(base_name.clone()));
     if let Some(template) = js_filename_template {
       new_chunk.set_filename_template(Some(template));
     }
-    old_chunk.split(
-      new_chunk,
-      &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-    );
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .split_chunk(
+        &chunk,
+        &new_chunk_ukey,
+        &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+      );
     compilation
       .build_chunk_graph_artifact
       .named_chunks
@@ -350,7 +352,8 @@ pub async fn preserve_modules(
       // the new chunk that already owns that name.
       let old_chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get_mut(&chunk);
       if let Some(old_name) = old_chunk.name().map(|s| s.to_string()) {
         old_chunk.set_name(None);
@@ -364,5 +367,5 @@ pub async fn preserve_modules(
     }
   }
 
-  errors
+  Ok(errors)
 }

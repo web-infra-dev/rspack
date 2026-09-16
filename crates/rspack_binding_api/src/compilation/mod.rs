@@ -304,7 +304,8 @@ impl JsCompilation {
         .and_then(|c| {
           compilation
             .build_chunk_graph_artifact
-            .chunk_by_ukey
+            .chunk_graph
+            .chunks
             .get(c)
             .map(|chunk| ChunkWrapper::new(chunk.ukey(), compilation))
         }),

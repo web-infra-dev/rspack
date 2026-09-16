@@ -19,7 +19,8 @@ pub fn collect_assets_from_chunk(
   let mut css_async = HashSet::<String>::default();
   let Some(chunk) = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .get(chunk_key)
   else {
     return empty_assets_group();
@@ -45,7 +46,8 @@ pub fn collect_assets_from_chunk(
       for chunk_ukey in &group.chunks {
         let group_chunk = compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get(chunk_ukey);
         if let Some(group_chunk_name) = group_chunk.name()
           && let Some(chunk_name) = chunk.name()
@@ -70,7 +72,8 @@ pub fn collect_assets_from_chunk(
   {
     let async_chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(&async_chunk_key);
     for file in async_chunk.files() {
       if file.ends_with(".css") {
@@ -88,7 +91,7 @@ pub fn collect_assets_from_chunk(
         .name()
         .is_some_and(|name| entry_point_names.contains(name));
       if !skip {
-        for file in group.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey) {
+        for file in group.get_files(&compilation.build_chunk_graph_artifact.chunk_graph.chunks) {
           if file.ends_with(".css") {
             css_async.insert(file.clone());
           } else if !is_hot_file(&file) {

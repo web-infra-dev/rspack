@@ -1,9 +1,5 @@
 use itertools::Itertools;
-use rspack_core::{
-  Chunk, ChunkByUkey, ChunkNamedIdArtifact, CompilationChunkIds, Plugin,
-  incremental::IncrementalPasses,
-};
-use rspack_error::Diagnostic;
+use rspack_core::{Chunk, CompilationChunkIds, Plugin, incremental::IncrementalPasses};
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::id_helpers::{
@@ -15,22 +11,17 @@ use crate::id_helpers::{
 pub struct NaturalChunkIdsPlugin;
 
 #[plugin_hook(CompilationChunkIds for NaturalChunkIdsPlugin)]
-async fn chunk_ids(
-  &self,
-  compilation: &rspack_core::Compilation,
-  chunk_by_ukey: &mut ChunkByUkey,
-  _named_chunk_ids_artifact: &mut ChunkNamedIdArtifact,
-  diagnostics: &mut Vec<Diagnostic>,
-) -> rspack_error::Result<()> {
+async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
     IncrementalPasses::CHUNK_IDS | IncrementalPasses::MODULES_HASHES,
     "NaturalChunkIdsPlugin (optimization.chunkIds = \"natural\")",
     "it requires calculating the id of all the chunks, which is a global effect",
   ) && let Some(diagnostic) = diagnostic
   {
-    diagnostics.push(diagnostic);
+    compilation.extend_diagnostics([diagnostic]);
   }
 
+  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_graph.chunks;
   let module_ids = &compilation.module_ids_artifact;
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let mut chunk_compare_cache = NaturalChunkCompareCache::default();
@@ -52,7 +43,10 @@ async fn chunk_ids(
     .collect::<Vec<_>>();
 
   if !chunks.is_empty() {
-    assign_ascending_chunk_ids(&chunks, chunk_by_ukey);
+    assign_ascending_chunk_ids(
+      &chunks,
+      &mut compilation.build_chunk_graph_artifact.chunk_graph.chunks,
+    );
   }
 
   Ok(())

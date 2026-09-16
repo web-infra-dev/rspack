@@ -82,7 +82,8 @@ pub(super) trait RuntimeModeRenderer: Sync {
 fn get_chunk(compilation: &Compilation, chunk_ukey: ChunkUkey) -> &Chunk {
   compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(&chunk_ukey)
 }
 

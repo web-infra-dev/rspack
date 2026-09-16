@@ -107,7 +107,8 @@ async fn render_module_content(
   let output_options = &compilation.options.output;
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk);
   let module_hash = compilation
     .code_generation_results

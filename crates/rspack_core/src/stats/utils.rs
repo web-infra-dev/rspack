@@ -11,8 +11,8 @@ use super::{
   StatsModule, StatsModuleTrace,
 };
 use crate::{
-  BoxRuntimeModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
-  ChunkGroupOrderKey, ChunkGroupUkey, CompilationAssets, Context, ModuleGraph, ModuleId,
+  BoxRuntimeModule, Chunk, ChunkGraph, ChunkGroup, ChunkGroupByUkey, ChunkGroupOrderKey,
+  ChunkGroupUkey, ChunkSlotMap, CompilationAssets, Context, ModuleGraph, ModuleId,
   ModuleIdsArtifact, ModuleRef, SourceType, compare_chunks_iterables, rspack_sources::BoxSource,
 };
 
@@ -81,7 +81,7 @@ pub fn get_chunk_group_ordered_child_assets<'a>(
   ordered_children: &HashMap<ChunkGroupOrderKey, Vec<ChunkGroupUkey>>,
   order_key: &ChunkGroupOrderKey,
   chunk_group_by_ukey: &ChunkGroupByUkey,
-  chunk_by_ukey: &'a ChunkByUkey,
+  chunk_by_ukey: &'a ChunkSlotMap<Chunk>,
 ) -> Vec<&'a str> {
   ordered_children
     .get(order_key)
@@ -168,7 +168,7 @@ pub fn get_chunk_child_ids_by_order(
   chunk: &Chunk,
   order_key: &ChunkGroupOrderKey,
   chunk_group_by_ukey: &ChunkGroupByUkey,
-  chunk_by_ukey: &ChunkByUkey,
+  chunk_by_ukey: &ChunkSlotMap<Chunk>,
   chunk_graph: &ChunkGraph,
   module_graph: &ModuleGraph,
 ) -> Option<Vec<String>> {
@@ -226,7 +226,7 @@ pub fn get_chunk_child_ids_by_order(
 pub fn get_chunk_relations<'a>(
   chunk: &Chunk,
   chunk_group_by_ukey: &'a ChunkGroupByUkey,
-  chunk_by_ukey: &'a ChunkByUkey,
+  chunk_by_ukey: &'a ChunkSlotMap<Chunk>,
 ) -> (Vec<&'a str>, Vec<&'a str>, Vec<&'a str>) {
   let mut parents = HashSet::default();
   let mut children = HashSet::default();

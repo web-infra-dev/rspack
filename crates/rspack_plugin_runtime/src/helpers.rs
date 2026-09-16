@@ -65,7 +65,8 @@ pub fn update_hash_for_entry_startup(
       ) {
         if let Some(chunk) = compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .get(&chunk_ukey)
         {
           chunk.id().hash(hasher);
@@ -161,7 +162,8 @@ pub async fn get_runtime_chunk_output_name(
 
   let runtime_chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(
       &entry_point.get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey),
     );
@@ -191,7 +193,8 @@ pub fn runtime_chunk_has_hash(compilation: &Compilation, chunk_ukey: &ChunkUkey)
     entry_point.get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
   let runtime_chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(&runtime_chunk_ukey);
 
   let filename = get_js_chunk_filename_template(
@@ -266,7 +269,8 @@ pub fn generate_entry_startup(
           .map(|chunk_ukey| {
             let chunk = compilation
               .build_chunk_graph_artifact
-              .chunk_by_ukey
+              .chunk_graph
+              .chunks
               .expect_get(chunk_ukey);
             chunk.expect_id().clone()
           })

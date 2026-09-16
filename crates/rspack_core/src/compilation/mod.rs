@@ -72,9 +72,9 @@ pub use self::{
 use crate::{
   AsyncModulesArtifact, BindingCell, BoxModule, BuildChunkGraphArtifact, CacheCount, CacheOptions,
   CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact, Chunk,
-  ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
-  ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact, ChunkRenderCacheArtifact,
-  ChunkRenderResult, ChunkUkey, CircularModulesInfo, CodeGenerateCacheArtifact, CodeGenerationJob,
+  ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
+  ChunkNamedIdArtifact, ChunkRenderArtifact, ChunkRenderCacheArtifact, ChunkRenderResult,
+  ChunkSlotMap, ChunkUkey, CircularModulesInfo, CodeGenerateCacheArtifact, CodeGenerationJob,
   CodeGenerationResult, CodeGenerationResultBuilder, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
   DependenciesDiagnosticsArtifact, Dependency, DependencyId, DependencyRef, DependencyTemplate,
@@ -129,7 +129,7 @@ define_hook!(CompilationReviveModules: Series(compilation: &Compilation, modules
 define_hook!(CompilationBeforeModuleIds: Series(compilation: &Compilation, modules: &IdentifierSet, preserved_module_ids: &mut ModuleIdsArtifact));
 define_hook!(CompilationModuleIds: Series(compilation: &Compilation, module_ids: &mut ModuleIdsArtifact, preserved_module_ids: &ModuleIdsArtifact, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationRecordModules: Series(compilation: &Compilation, module_ids: &ModuleIdsArtifact));
-define_hook!(CompilationChunkIds: Series(compilation: &Compilation, chunk_by_ukey: &mut ChunkByUkey, named_chunk_ids_artifact: &mut ChunkNamedIdArtifact, diagnostics: &mut Vec<Diagnostic>));
+define_hook!(CompilationChunkIds: Series(compilation: &mut Compilation));
 define_hook!(CompilationRuntimeModule: Series(compilation: &Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey, runtime_modules: &mut IdentifierMap<Box<dyn RuntimeModule>>));
 define_hook!(CompilationAdditionalModuleRuntimeRequirements: Series(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &mut RuntimeGlobals),tracing=false);
 define_hook!(CompilationRuntimeRequirementInModule: SeriesBail(compilation: &Compilation, module_identifier: &ModuleIdentifier, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals),tracing=false);
@@ -889,7 +889,8 @@ impl Compilation {
       }
       self
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .iter_mut()
         .for_each(|(_, chunk)| {
           chunk.remove_file(filename);
@@ -915,7 +916,8 @@ impl Compilation {
 
       self
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .iter_mut()
         .for_each(|(_, chunk)| {
           if chunk.remove_file(filename) {
@@ -936,7 +938,8 @@ impl Compilation {
   pub fn par_rename_assets(&mut self, renames: Vec<(String, String)>) {
     self
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .values_mut()
       .par_bridge()
       .for_each(|chunk| {
@@ -1057,31 +1060,6 @@ impl Compilation {
     Stats::new(StatsContext::new(self))
   }
 
-  pub fn add_named_chunk(
-    name: String,
-    chunk_by_ukey: &mut ChunkByUkey,
-    named_chunks: &mut HashMap<String, ChunkUkey>,
-  ) -> (ChunkUkey, bool) {
-    let existed_chunk_ukey = named_chunks.get(&name);
-    if let Some(chunk_ukey) = existed_chunk_ukey {
-      assert!(chunk_by_ukey.contains(chunk_ukey));
-      (*chunk_ukey, false)
-    } else {
-      let chunk = Chunk::new(Some(name.clone()), ChunkKind::Normal);
-      let ukey = chunk.ukey();
-      named_chunks.insert(name, ukey);
-      chunk_by_ukey.entry(ukey).or_insert_with(|| chunk);
-      (ukey, true)
-    }
-  }
-
-  pub fn add_chunk(chunk_by_ukey: &mut ChunkByUkey) -> ChunkUkey {
-    let chunk = Chunk::new(None, ChunkKind::Normal);
-    let ukey = chunk.ukey();
-    chunk_by_ukey.add(chunk);
-    ukey
-  }
-
   pub async fn rebuild_module<T>(
     &mut self,
     module_identifiers: IdentifierSet,
@@ -1184,7 +1162,8 @@ impl Compilation {
     // add chunk runtime to prefix module identifier to avoid multiple entry runtime modules conflict
     let chunk = self
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(chunk_ukey);
     let runtime_module_identifier = ModuleIdentifier::from(format!(
       "{}/{}",

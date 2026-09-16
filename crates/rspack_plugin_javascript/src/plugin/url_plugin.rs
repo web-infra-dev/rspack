@@ -28,7 +28,8 @@ pub struct URLPlugin {}
 async fn get_chunk_output_path(compilation: &Compilation, chunk_ukey: ChunkUkey) -> Result<String> {
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(&chunk_ukey);
   let filename_template = get_js_chunk_filename_template(
     chunk,
@@ -213,7 +214,8 @@ async fn render_module_content(
 ) -> Result<()> {
   let runtime = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey)
     .runtime();
   let codegen_result = compilation

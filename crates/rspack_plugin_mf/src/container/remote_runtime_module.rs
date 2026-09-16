@@ -73,7 +73,8 @@ impl RuntimeModule for RemoteRuntimeModule {
       .expect("should have chunk in <RemoteRuntimeModule as RuntimeModule>::generate");
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(&chunk_ukey);
     let mut chunk_to_remotes_mapping = FxHashMap::default();
     let mut id_to_remote_data_mapping = FxHashMap::default();
@@ -126,7 +127,8 @@ impl RuntimeModule for RemoteRuntimeModule {
       }
       let chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get(&chunk);
       chunk_to_remotes_mapping.insert(
         chunk

@@ -43,7 +43,8 @@ async fn additional_chunk_runtime_requirements(
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
 
   if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
@@ -74,7 +75,8 @@ async fn js_chunk_hash(
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
     return Ok(());
@@ -111,7 +113,8 @@ async fn render_chunk(
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   let has_runtime_modules = compilation
     .build_chunk_graph_artifact

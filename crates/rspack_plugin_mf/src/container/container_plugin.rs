@@ -107,7 +107,8 @@ async fn additional_tree_runtime_requirements(
 ) -> Result<()> {
   let Some(entry_options) = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .get(chunk_ukey)
     .and_then(|chunk| {
       chunk.get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)

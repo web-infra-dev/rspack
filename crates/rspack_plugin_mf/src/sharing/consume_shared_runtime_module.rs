@@ -112,7 +112,8 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       .expect("should have chunk in <ConsumeSharedRuntimeModule as RuntimeModule>::generate");
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(&chunk_ukey);
     let module_graph = compilation.get_module_graph();
     let mut chunk_to_module_mapping = BTreeMap::default();
@@ -168,7 +169,8 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       modules.sort_unstable();
       let chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get(&chunk);
       let mut ids = vec![];
       for mid in modules {
@@ -199,7 +201,8 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       modules.sort_unstable();
       let chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get(&chunk);
       for mid in modules {
         add_module(mid, chunk, &mut initial_consumes);

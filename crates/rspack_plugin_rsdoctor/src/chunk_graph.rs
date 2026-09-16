@@ -3,7 +3,7 @@ use std::sync::{Arc, atomic::AtomicI32};
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, CompilationAsset,
+  Chunk, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkSlotMap, ChunkUkey, CompilationAsset,
   ModuleGraph,
 };
 use rspack_util::fx_hash::{FxHashMap, FxIndexMap};
@@ -57,7 +57,7 @@ pub fn collect_chunk_dependencies(
   chunks: &HashMap<ChunkUkey, &Chunk>,
   rsd_chunks: &HashMap<ChunkUkey, RsdoctorChunk>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
-  chunk_by_ukey: &ChunkByUkey,
+  chunk_by_ukey: &ChunkSlotMap<Chunk>,
 ) -> HashMap<ChunkUkey, (HashSet<RsdoctorChunkUkey>, HashSet<RsdoctorChunkUkey>)> {
   chunks
     .par_iter()
@@ -138,7 +138,7 @@ pub fn collect_entrypoints(
 
 pub fn collect_assets(
   assets: &HashMap<String, CompilationAsset>,
-  chunk_by_ukey: &ChunkByUkey,
+  chunk_by_ukey: &ChunkSlotMap<Chunk>,
 ) -> HashMap<String, RsdoctorAsset> {
   let asset_ukey_counter: Arc<AtomicI32> = Arc::new(AtomicI32::new(0));
   let mut compilation_file_to_chunks: HashMap<&String, Vec<&ChunkUkey>> = HashMap::default();
@@ -177,7 +177,7 @@ pub fn collect_assets(
 }
 
 pub fn collect_chunk_modules(
-  chunk_by_ukey: &ChunkByUkey,
+  chunk_by_ukey: &ChunkSlotMap<Chunk>,
   module_ukeys: &IdentifierMap<RsdoctorChunkUkey>,
   chunk_graph: &ChunkGraph,
   module_graph: &ModuleGraph,
@@ -217,7 +217,7 @@ pub fn collect_chunk_modules(
 }
 
 pub fn collect_chunk_assets(
-  chunk_by_ukey: &ChunkByUkey,
+  chunk_by_ukey: &ChunkSlotMap<Chunk>,
   rsd_assets: &HashMap<String, RsdoctorAsset>,
 ) -> Vec<RsdoctorChunkAssets> {
   chunk_by_ukey
@@ -239,7 +239,7 @@ pub fn collect_entrypoint_assets(
   rsd_assets: &FxHashMap<String, RsdoctorAsset>,
   entrypoint_ukey_map: &HashMap<ChunkGroupUkey, RsdoctorEntrypointUkey>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
-  chunk_by_ukey: &ChunkByUkey,
+  chunk_by_ukey: &ChunkSlotMap<Chunk>,
 ) -> Vec<RsdoctorEntrypointAssets> {
   entrypoints
     .par_iter()

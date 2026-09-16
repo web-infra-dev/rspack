@@ -80,7 +80,8 @@ async fn render(
   };
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   let name = compilation
     .get_path(

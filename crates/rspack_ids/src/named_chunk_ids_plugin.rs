@@ -1,11 +1,10 @@
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
 use rspack_core::{
-  ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkNamedIdArtifact, ChunkUkey, CompilationChunkIds,
-  ExportsInfoArtifact, Logger, ModuleGraph, ModuleGraphCacheArtifact, Plugin,
+  Chunk, ChunkGroupByUkey, ChunkNamedIdArtifact, ChunkSet, ChunkSlotMap, ChunkUkey,
+  CompilationChunkIds, ExportsInfoArtifact, Logger, ModuleGraph, ModuleGraphCacheArtifact, Plugin,
   chunk_graph_chunk::{ChunkId, ChunkIdMap, ChunkIdSet},
   incremental::{self, IncrementalPasses, Mutation, Mutations},
 };
-use rspack_error::Diagnostic;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{fx_hash::FxIndexSet, itoa};
 use rustc_hash::FxHashSet;
@@ -17,9 +16,9 @@ use crate::id_helpers::{
 #[tracing::instrument(skip_all)]
 #[allow(clippy::too_many_arguments)]
 fn assign_named_chunk_ids(
-  chunks: FxHashSet<ChunkUkey>,
-  chunk_by_ukey: &mut ChunkByUkey,
-  chunk_graph: &ChunkGraph,
+  chunks: ChunkSet,
+  chunk_by_ukey: &mut ChunkSlotMap<Chunk>,
+  chunk_graph: &rspack_core::ChunkGraphTopology,
   chunk_group_by_ukey: &ChunkGroupByUkey,
   module_ids_artifact: &rspack_core::ModuleIdsArtifact,
   context: &str,
@@ -33,7 +32,9 @@ fn assign_named_chunk_ids(
   mutations: &mut Option<Mutations>,
 ) -> Vec<ChunkUkey> {
   let chunks_len = chunks.len();
-  let item_name_pair: Vec<_> = chunks
+  let mut chunk_keys = Vec::with_capacity(chunks_len);
+  chunk_keys.extend(chunks.into_keys());
+  let item_name_pair: Vec<_> = chunk_keys
     .into_par_iter()
     .map(|item| {
       let chunk = chunk_by_ukey.expect_get(&item);
@@ -183,6 +184,7 @@ fn assign_named_chunk_ids(
           b,
           &mut chunk_compare_cache,
         )
+        .then_with(|| a.ukey().cmp(&b.ukey()))
       });
       let mut i = 0;
       for item in items {
@@ -219,6 +221,7 @@ fn assign_named_chunk_ids(
       b,
       &mut chunk_compare_cache,
     )
+    .then_with(|| a.ukey().cmp(&b.ukey()))
   });
   unnamed_items
 }
@@ -237,13 +240,12 @@ impl NamedChunkIdsPlugin {
 }
 
 #[plugin_hook(CompilationChunkIds for NamedChunkIdsPlugin)]
-async fn chunk_ids(
-  &self,
-  compilation: &rspack_core::Compilation,
-  chunk_by_ukey: &mut ChunkByUkey,
-  named_chunk_ids_artifact: &mut ChunkNamedIdArtifact,
-  _diagnostics: &mut Vec<Diagnostic>,
-) -> rspack_error::Result<()> {
+async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
+  let logger = compilation.get_logger("rspack.incremental.chunkIds");
+  let artifact = &mut compilation.build_chunk_graph_artifact;
+  let chunk_by_ukey = &mut artifact.chunk_graph.chunks;
+  let named_chunk_ids_artifact = &mut *compilation.named_chunk_ids_artifact;
+
   if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::CHUNK_IDS)
@@ -256,10 +258,7 @@ async fn chunk_ids(
           named_chunk_ids_artifact.remove(chunk);
         }
         Mutation::ModuleSetId { module } => {
-          let chunks = compilation
-            .build_chunk_graph_artifact
-            .chunk_graph
-            .get_module_chunks(*module);
+          let chunks = artifact.chunk_graph.topology.get_module_chunks(*module);
           affected_chunks.extend(chunks.iter().copied());
         }
         _ => {}
@@ -270,15 +269,17 @@ async fn chunk_ids(
       .retain(|chunk| chunk_by_ukey.contains(chunk) && !affected_chunks.contains(chunk));
   }
 
-  let mut chunks: FxHashSet<ChunkUkey> = chunk_by_ukey
-    .values_mut()
-    .map(|chunk| {
+  if !named_chunk_ids_artifact.chunk_ids.is_empty() {
+    for chunk in chunk_by_ukey.values_mut() {
       if let Some(id) = named_chunk_ids_artifact.chunk_ids.get(&chunk.ukey()) {
         chunk.set_id(id.clone());
       }
-      chunk.ukey()
-    })
-    .collect();
+    }
+  }
+  let mut chunks = ChunkSet::with_capacity(chunk_by_ukey.slot_count());
+  for key in chunk_by_ukey.keys() {
+    chunks.insert(chunk_by_ukey, *key);
+  }
 
   let chunks_len = chunks.len();
 
@@ -306,13 +307,13 @@ async fn chunk_ids(
   });
   let named_chunks_len = chunks_len - chunks.len();
 
-  let module_graph = compilation.get_module_graph();
+  let module_graph = compilation.build_module_graph_artifact.get_module_graph();
   let context = compilation.options.context.as_str();
   let unnamed_chunks = assign_named_chunk_ids(
     chunks,
     chunk_by_ukey,
-    &compilation.build_chunk_graph_artifact.chunk_graph,
-    &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+    &artifact.chunk_graph.topology,
+    &artifact.chunk_group_by_ukey,
     &compilation.module_ids_artifact,
     context,
     module_graph,
@@ -352,7 +353,6 @@ async fn chunk_ids(
     .mutations_readable(IncrementalPasses::CHUNK_IDS)
     && let Some(mutations) = &mutations
   {
-    let logger = compilation.get_logger("rspack.incremental.chunkIds");
     logger.log(format!(
       "{} chunks are updated by set_chunk_id, with {} chunks using name as id, and {} unnamed chunks",
       mutations.len(),

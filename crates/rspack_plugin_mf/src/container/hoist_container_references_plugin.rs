@@ -199,7 +199,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     .filter_map(|runtime_chunk| {
       compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .get(&runtime_chunk)
         .map(|chunk| (chunk.runtime().clone(), runtime_chunk))
     })
@@ -209,10 +210,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     let runtime_chunks = compilation
       .build_chunk_graph_artifact
       .chunk_graph
-      .get_module_runtimes_iter(
-        *module,
-        &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-      )
+      .get_module_runtimes_iter(*module)
       .flat_map(|runtime| runtime.iter())
       .filter_map(|runtime| runtime_chunk_by_runtime.get(runtime).copied())
       .collect::<Vec<_>>();
@@ -260,30 +258,11 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           .chunk_graph
           .get_number_of_entry_modules(&chunk)
           == 0
-        && let Some(mut removed_chunk) = compilation
+        && compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .remove(&chunk)
+          .remove_chunk(&chunk)
+          .is_some()
       {
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .disconnect_chunk(
-            &mut removed_chunk,
-            &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-          );
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .remove_chunk(&chunk);
-
-        // Remove from named chunks if it has a name
-        if let Some(name) = removed_chunk.name() {
-          compilation
-            .build_chunk_graph_artifact
-            .named_chunks
-            .remove(name);
-        }
         // Record mutation
         if let Some(mut mutations) = compilation.incremental.mutations_write() {
           mutations.add(Mutation::ChunkRemove { chunk });

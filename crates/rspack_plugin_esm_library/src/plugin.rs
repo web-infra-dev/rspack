@@ -368,10 +368,16 @@ async fn after_code_generation(
 ) -> Result<()> {
   let mut chunk_ids_to_ukey = FxHashMap::default();
 
-  for chunk_ukey in compilation.build_chunk_graph_artifact.chunk_by_ukey.keys() {
+  for chunk_ukey in compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .chunks
+    .keys()
+  {
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(chunk_ukey);
 
     if let Some(id) = chunk.id() {
@@ -536,7 +542,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let Some(chunk) = chunk_ids_to_ukey.get(chunk_id).map(|chunk_ukey| {
           compilation
             .build_chunk_graph_artifact
-            .chunk_by_ukey
+            .chunk_graph
+            .chunks
             .get(chunk_ukey)
             .expect("should have chunk for chunk ukey")
         }) else {
@@ -607,7 +614,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   // check if we have to generate proxy chunks
   if let Some(preserve_modules_root) = &self.preserve_modules {
-    let errors = preserve_modules(preserve_modules_root, compilation).await;
+    let errors = preserve_modules(preserve_modules_root, compilation).await?;
     if !errors.is_empty() {
       compilation.extend_diagnostics(errors);
     }
@@ -615,7 +622,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     crate::split_chunks::split(cache_groups, compilation).await?;
   }
 
-  let extracted_tla_shared = extract_tla_shared_modules(compilation);
+  let extracted_tla_shared = extract_tla_shared_modules(compilation)?;
   if extracted_tla_shared {
     compilation.push_diagnostic(rspack_error::Diagnostic::warn(
       "EsmLibraryPlugin".into(),
@@ -627,7 +634,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     ));
   }
 
-  ensure_entry_exports(compilation);
+  ensure_entry_exports(compilation)?;
   let concate_modules_map = self.concatenated_modules_map.read().await;
   let concatenated_modules = concate_modules_map
     .iter()
@@ -649,7 +656,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
 #[plugin_hook(CompilationOptimizeChunks for EsmLibraryPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED + 1)]
 async fn optimize_runtime_chunk_hook(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
-  optimize_runtime_chunks(compilation);
+  optimize_runtime_chunks(compilation)?;
   mark_facade_chunks(compilation);
   Ok(None)
 }

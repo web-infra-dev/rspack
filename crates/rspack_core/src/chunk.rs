@@ -310,12 +310,12 @@ impl Chunk {
 }
 
 impl Chunk {
-  pub fn new(name: Option<String>, kind: ChunkKind) -> Self {
+  pub(crate) fn new(ukey: ChunkUkey, name: Option<String>, kind: ChunkKind) -> Self {
     Self {
       name,
       filename_template: None,
       css_filename_template: None,
-      ukey: ChunkUkey::new(),
+      ukey,
       id: None,
       id_name_hints: Default::default(),
       prevent_integration: false,
@@ -376,12 +376,6 @@ impl Chunk {
       .id_name_hints
       .extend(self.id_name_hints.iter().cloned());
     split_data.add_runtime(&self.runtime);
-  }
-
-  pub fn split(&mut self, new_chunk: &mut Chunk, chunk_group_by_ukey: &mut ChunkGroupByUkey) {
-    let mut split_data = ChunkSplitData::with_capacity(self.groups.len(), self.id_name_hints.len());
-    self.split_collect_new_chunk_data(new_chunk.ukey, chunk_group_by_ukey, &mut split_data);
-    split_data.apply_to(new_chunk);
   }
 
   pub fn can_be_initial(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> bool {
@@ -921,7 +915,8 @@ impl Chunk {
         if filter_fn(chunk_ukey, compilation)
           && let Some(chunk_id) = compilation
             .build_chunk_graph_artifact
-            .chunk_by_ukey
+            .chunk_graph
+            .chunks
             .expect_get(chunk_ukey)
             .id()
             .cloned()
@@ -952,7 +947,8 @@ impl Chunk {
     ) -> Option<(ChunkId, Vec<ChunkId>)> {
       let chunk = compilation
         .build_chunk_graph_artifact
-        .chunk_by_ukey
+        .chunk_graph
+        .chunks
         .expect_get(chunk_ukey);
       if let (Some(chunk_id), Some(child_chunk_ids)) = (
         chunk.id().cloned(),

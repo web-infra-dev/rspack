@@ -16,7 +16,8 @@ use crate::{
 fn is_modern_module_library_chunk(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
   let chunk = compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
+    .chunk_graph
+    .chunks
     .expect_get(chunk_ukey);
   chunk
     .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)

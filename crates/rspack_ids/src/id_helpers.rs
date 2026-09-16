@@ -12,10 +12,10 @@ use itertools::{
 };
 use rspack_collections::Identifier;
 use rspack_core::{
-  Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind,
-  ChunkNamedIdArtifact, ChunkUkey, Compilation, CompilerId, DependencyLocation,
-  ExportsInfoArtifact, Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleIdsArtifact, ModuleRef, SideEffectsStateArtifact, compare_runtime,
+  Chunk, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind, ChunkNamedIdArtifact,
+  ChunkSlotMap, ChunkUkey, Compilation, CompilerId, DependencyLocation, ExportsInfoArtifact,
+  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleRef,
+  SideEffectsStateArtifact, compare_runtime,
 };
 use rspack_error::{Result, error};
 use rspack_util::{
@@ -317,7 +317,7 @@ mod tests {
   use std::cmp::Ordering;
 
   use rspack_core::{
-    Chunk, ChunkGraph, ChunkGroup, ChunkGroupByUkey, ChunkKind, ModuleIdentifier, ModuleIdsArtifact,
+    ChunkGraph, ChunkGroup, ChunkGroupByUkey, ChunkKind, ModuleIdentifier, ModuleIdsArtifact,
   };
   use rustc_hash::FxHashMap;
 
@@ -407,8 +407,18 @@ mod tests {
     let mut chunk_group_by_ukey = ChunkGroupByUkey::default();
     let mut cache = NaturalChunkCompareCache::default();
 
-    let chunk_a = Chunk::new(None, ChunkKind::Normal);
-    let chunk_b = Chunk::new(None, ChunkKind::Normal);
+    let chunk_a = {
+      let key = chunk_graph
+        .create_chunk(None, ChunkKind::Normal)
+        .expect("test Chunk allocation");
+      chunk_graph.chunks.expect_get(&key).clone()
+    };
+    let chunk_b = {
+      let key = chunk_graph
+        .create_chunk(None, ChunkKind::Normal)
+        .expect("test Chunk allocation");
+      chunk_graph.chunks.expect_get(&key).clone()
+    };
     let module_a: ModuleIdentifier = "module-a".into();
     let module_b: ModuleIdentifier = "module-b".into();
 
@@ -429,8 +439,18 @@ mod tests {
       Ordering::Less
     );
 
-    let mut chunk_c = Chunk::new(None, ChunkKind::Normal);
-    let mut chunk_d = Chunk::new(None, ChunkKind::Normal);
+    let mut chunk_c = {
+      let key = chunk_graph
+        .create_chunk(None, ChunkKind::Normal)
+        .expect("test Chunk allocation");
+      chunk_graph.chunks.expect_get(&key).clone()
+    };
+    let mut chunk_d = {
+      let key = chunk_graph
+        .create_chunk(None, ChunkKind::Normal)
+        .expect("test Chunk allocation");
+      chunk_graph.chunks.expect_get(&key).clone()
+    };
     let shared_module: ModuleIdentifier = "shared-module".into();
     ChunkGraph::set_module_id(&mut module_ids, shared_module, "shared".into());
     chunk_graph.connect_chunk_and_module(chunk_c.ukey(), shared_module);
@@ -461,7 +481,7 @@ mod tests {
 #[allow(clippy::too_many_arguments)]
 pub fn get_short_chunk_name(
   chunk: &Chunk,
-  chunk_graph: &ChunkGraph,
+  chunk_graph: &rspack_core::ChunkGraphTopology,
   context: &str,
   delimiter: &str,
   module_graph: &ModuleGraph,
@@ -528,7 +548,7 @@ pub fn shorten_long_string(string: String, delimiter: &str) -> String {
 #[allow(clippy::too_many_arguments)]
 pub fn get_long_chunk_name(
   chunk: &Chunk,
-  chunk_graph: &ChunkGraph,
+  chunk_graph: &rspack_core::ChunkGraphTopology,
   context: &str,
   delimiter: &str,
   module_graph: &ModuleGraph,
@@ -581,7 +601,7 @@ pub fn get_long_chunk_name(
 #[allow(clippy::too_many_arguments)]
 pub fn get_full_chunk_name(
   chunk: &Chunk,
-  chunk_graph: &ChunkGraph,
+  chunk_graph: &rspack_core::ChunkGraphTopology,
   chunk_group_by_ukey: &ChunkGroupByUkey,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
@@ -669,7 +689,7 @@ pub fn get_full_chunk_name(
 
 pub use rspack_util::identifier::request_to_id;
 
-pub fn get_used_chunk_ids(chunk_by_ukey: &ChunkByUkey) -> FxHashSet<String> {
+pub fn get_used_chunk_ids(chunk_by_ukey: &ChunkSlotMap<Chunk>) -> FxHashSet<String> {
   let mut used_ids = FxHashSet::default();
   for chunk in chunk_by_ukey.values() {
     if let Some(id) = chunk.id() {
@@ -679,7 +699,7 @@ pub fn get_used_chunk_ids(chunk_by_ukey: &ChunkByUkey) -> FxHashSet<String> {
   used_ids
 }
 
-pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], chunk_by_ukey: &mut ChunkByUkey) {
+pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], chunk_by_ukey: &mut ChunkSlotMap<Chunk>) {
   let used_ids = get_used_chunk_ids(chunk_by_ukey);
 
   let mut next_id = 0;
@@ -712,7 +732,7 @@ pub struct NaturalChunkCompareCache<'a> {
 }
 
 fn compare_chunks_by_modules<'a>(
-  chunk_graph: &ChunkGraph,
+  chunk_graph: &rspack_core::ChunkGraphTopology,
   module_ids: &'a ModuleIdsArtifact,
   a: &Chunk,
   b: &Chunk,
@@ -842,7 +862,7 @@ fn compare_chunks_by_groups(
 }
 
 pub fn compare_chunks_natural<'a>(
-  chunk_graph: &ChunkGraph,
+  chunk_graph: &rspack_core::ChunkGraphTopology,
   chunk_group_by_ukey: &ChunkGroupByUkey,
   module_ids: &'a ModuleIdsArtifact,
   a: &Chunk,

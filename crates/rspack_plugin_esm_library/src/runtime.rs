@@ -129,7 +129,8 @@ impl RuntimeModule for EsmChunkLoadingRuntimeModule {
     let chunk_ukey = self.chunk().expect("should have chunk");
     let chunk = compilation
       .build_chunk_graph_artifact
-      .chunk_by_ukey
+      .chunk_graph
+      .chunks
       .expect_get(&chunk_ukey);
     let runtime = chunk.runtime().clone();
     let initial_chunks =
@@ -143,7 +144,8 @@ impl RuntimeModule for EsmChunkLoadingRuntimeModule {
       .map(|chunk_ukey| {
         compilation
           .build_chunk_graph_artifact
-          .chunk_by_ukey
+          .chunk_graph
+          .chunks
           .expect_get(chunk_ukey)
       })
       .filter(|chunk| !chunk.runtime().is_disjoint(&runtime))
