@@ -83,6 +83,10 @@ export default {
 
 定义当前应用共享依赖的命名空间。通过在不同的应用之间配置命名空间，可以控制模块的共享行为，包括确定哪些模块在不同的应用之间是共享的。默认的命名空间为 `"default"`。
 
+数组会保留共享作用域的顺序。例如，`['custom', 'default']` 在初始化旧版容器时使用 `"custom"` 作为主作用域。增强容器会接收完整的有序作用域列表，各作用域保留独立的共享模块注册表。
+
+数组必须至少包含一个作用域。多个作用域需要 `ModuleFederationPlugin` 使用的增强运行时，或在使用底层联邦插件时设置 `enhanced: true`。不使用增强运行时时，单元素数组会被视为字符串，包含多个元素的数组会被拒绝。这些规则也适用于 `remotes.*.shareScope` 和 `shared.*.shareScope`。
+
 ### shareStrategy
 
 - 类型：`'version-first' | 'loaded-first'`

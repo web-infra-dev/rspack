@@ -83,6 +83,10 @@ Define the output format of remote container entry. The default libraryType is "
 
 Define the namespace for shared dependencies in the current container. By configuring share scopes between different containers, the sharing behavior of modules can be controlled, including determining which modules are shared between different containers. The default share scope is `"default"`.
 
+An array preserves scope order. For example, `['custom', 'default']` uses `"custom"` as the primary scope when initializing a legacy container. Enhanced containers receive the complete ordered scope list. The scopes keep separate shared registries.
+
+An array must contain at least one scope. Multiple scopes require the enhanced runtime used by `ModuleFederationPlugin`, or `enhanced: true` when using the lower-level federation plugins. Without the enhanced runtime, a single-element array is treated as a string and arrays with multiple entries are rejected. These rules also apply to `remotes.*.shareScope` and `shared.*.shareScope`.
+
 ### shareStrategy
 
 - Type: `'version-first' | 'loaded-first'`
