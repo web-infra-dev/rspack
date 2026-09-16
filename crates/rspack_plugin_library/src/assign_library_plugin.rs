@@ -3,13 +3,13 @@ use std::sync::LazyLock;
 use futures::future::join_all;
 use regex::Regex;
 use rspack_core::{
-  AsyncModulesArtifact, BoxModule, CanInlineUse, Chunk, ChunkUkey,
+  AsyncModulesArtifact, BoxModule, BuildMetaExportsType, CanInlineUse, Chunk, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
   CompilerCompilation, EntryData, ExportProvided, ExportsInfoArtifact, Filename, LibraryExport,
-  LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeVariable, SideEffectsStateArtifact,
-  SourceType, UsageState, get_entry_runtime, property_access,
+  LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleGraph, ModuleIdentifier, PathData,
+  Plugin, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeVariable,
+  SideEffectsStateArtifact, SourceType, UsageState, get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -342,10 +342,58 @@ async fn render_startup(
       "if({exports}.__esModule) Object.defineProperty({exports_assign}, '__esModule', {{ value: true }});\n"
     )));
   } else {
-    source.add(RawStringSource::from(format!(
-      "{} = {exports_name}{export_access};\n",
-      access_with_init(&full_name_resolved, self.options.prefix.len(), false)
-    )));
+    let requirements = compilation
+      .cgc_runtime_requirements_artifact
+      .get(chunk_ukey)
+      .copied()
+      .unwrap_or_default();
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(module);
+    let module_graph = compilation.get_module_graph();
+    let namespace_entry = module_graph
+      .module_by_identifier(module)
+      .is_some_and(|m| m.build_meta().exports_type() == BuildMetaExportsType::Namespace);
+    let live_namespace = requirements.contains(RuntimeGlobals::UPDATE_ENTRY_EXPORTS)
+      && matches!(
+        self.options.library_type.as_str(),
+        "commonjs2" | "commonjs-module"
+      )
+      && export_access.is_empty()
+      && namespace_entry
+      && !ModuleGraph::is_async(&compilation.async_modules_artifact, module)
+      && matches!(
+        exports_info.other_exports_info().provided(),
+        Some(ExportProvided::NotProvided)
+      );
+    if live_namespace {
+      // Node retains the first CommonJS export in a private Module field. Export
+      // a namespace whose getters follow the startup binding, so that reference
+      // cannot pin a retired entry even while the runtime still uses Node require.
+      let reference = "__rspack_entry_exports_reference__";
+      source.add(RawStringSource::from(format!("var {reference} = {{}};\nObject.defineProperty({reference}, '__esModule', {{ value: true }});\nif(typeof Symbol !== 'undefined' && Symbol.toStringTag) Object.defineProperty({reference}, Symbol.toStringTag, {{ value: 'Module' }});\n")));
+      for export_info in exports_info.exports().values() {
+        if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
+          continue;
+        }
+        let name = export_info.name().expect("should have name").to_string();
+        let access = property_access([name.clone()], 0);
+        source.add(RawStringSource::from(format!(
+          "Object.defineProperty({reference}, {}, {{ enumerable: true, get: {} }});\n",
+          rspack_util::json_stringify(&name),
+          runtime_template.basic_function("", &format!("return {exports_name}{access};"))
+        )));
+      }
+      source.add(RawStringSource::from(format!(
+        "{} = {reference};\n",
+        access_with_init(&full_name_resolved, self.options.prefix.len(), false)
+      )));
+    } else {
+      source.add(RawStringSource::from(format!(
+        "{} = {exports_name}{export_access};\n",
+        access_with_init(&full_name_resolved, self.options.prefix.len(), false)
+      )));
+    }
   }
   render_source.source = source.boxed();
   Ok(())

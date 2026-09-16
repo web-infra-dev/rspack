@@ -41,6 +41,14 @@ synchronization is unsupported.
 
 This is a Rspack-only capability for plugins implementing entry reloading. It does
 not execute modules, invalidate module caches, update published library exports,
-or release application-owned references. The caller must reload the entry first
-and separately publish its new exports. Requesting this capability disables entry
+or release application-owned references. The caller must reload the same compiled
+entry first and separately publish its new exports.
+
+For a synchronous ESM entry with statically known exports, `commonjs2` and
+`commonjs-module` output publishes a stable namespace with getters that follow the
+startup exports. This prevents Node's private initial-export snapshot from
+retaining the previous entry exports. The namespace keeps its compiled export
+names; this API does not support changing its shape. Other
+library outputs and asynchronous or dynamic export shapes retain their existing
+publication behavior and require caller-managed cleanup. Requesting this capability disables entry
 inlining; builds that do not request it are unchanged.

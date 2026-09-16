@@ -7,7 +7,12 @@ module.exports = [false, true].map((startup) => ({
   plugins: [
     (compiler) => {
       const { RuntimeGlobals, DefinePlugin } = compiler.webpack;
-      new DefinePlugin({ __TEST_RUNTIME__: compiler.options.experiments.runtimeMode === 'rspack' ? RuntimeGlobals.requireScope : RuntimeGlobals.require }).apply(compiler);
+      new DefinePlugin({
+        __TEST_RUNTIME__:
+          compiler.options.experiments.runtimeMode === 'rspack'
+            ? RuntimeGlobals.requireScope
+            : RuntimeGlobals.require,
+      }).apply(compiler);
       compiler.hooks.thisCompilation.tap('TestEntryExports', (compilation) => {
         compilation.hooks.additionalTreeRuntimeRequirements.tap(
           'TestEntryExports',
@@ -21,7 +26,10 @@ module.exports = [false, true].map((startup) => ({
               }
             }
             if (compiler.options.experiments.runtimeMode !== 'rspack') {
-              compilation.addRuntimeModule(chunk, new InspectStartup('inspect startup'));
+              compilation.addRuntimeModule(
+                chunk,
+                new InspectStartup('inspect startup'),
+              );
             }
           },
         );
