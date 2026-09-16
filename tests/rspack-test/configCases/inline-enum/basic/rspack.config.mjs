@@ -1,0 +1,57 @@
+/**
+ * @return {
+    externals: {
+      fs: "node-commonjs fs",
+    },import("@rspack/core").Configuration}
+ */
+function config(index, { concatenateModules } = {}) {
+  return {
+    entry: './index.js',
+    output: {
+      filename: `bundle.${index}.js`,
+      pathinfo: false,
+    },
+    resolve: {
+      extensions: ['.ts', '...'],
+    },
+    module: {
+      rules: [
+        {
+          test: /\.ts$/,
+          use: [
+            {
+              loader: 'builtin:swc-loader',
+              options: {
+                detectSyntax: 'auto',
+                jsc: {
+                  target: 'esnext',
+                },
+                collectTypeScriptInfo: {
+                  exportedEnum: true,
+                },
+              },
+            },
+          ],
+        },
+      ],
+    },
+    plugins: [
+      function (compiler) {
+        new compiler.rspack.DefinePlugin({
+          CONCATENATED: JSON.stringify(concatenateModules),
+        }).apply(compiler);
+      },
+    ],
+    optimization: {
+      concatenateModules,
+      moduleIds: 'named',
+      inlineExports: true,
+    },
+  };
+}
+
+/** @type {import("@rspack/core").Configuration[]} */
+export default [
+  config(0, { concatenateModules: true }),
+  config(1, { concatenateModules: false }),
+];

@@ -1,0 +1,15 @@
+import path from 'node:path';
+
+/** @type {function(any, any): import("../../../../types").Configuration} */
+export default (env, { testPath }) => ({
+  target: 'node14',
+  output: {
+    module: true,
+    chunkLoading: 'import',
+  },
+  resolve: {
+    alias: {
+      library: path.resolve(testPath, '../0-create-library/lib.js'),
+    },
+  },
+});
