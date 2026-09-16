@@ -42,7 +42,7 @@ pub async fn update_module_graph(
 
   let revoked_modules = artifact.revoked_modules().copied().collect();
   compilation
-    .plugin_driver
+    .plugin_driver()
     .compilation_hooks
     .revoked_modules
     .call(compilation, &revoked_modules)

@@ -178,7 +178,7 @@ async fn runtime_requirements_in_tree(
   }
 
   if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK)
-    || (!compilation.options.output.module
+    || (!compilation.options().output.module
       && runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS))
   {
     let c = compilation
@@ -201,7 +201,7 @@ async fn runtime_requirements_in_tree(
     chunk
       .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       .and_then(|options| options.library.as_ref())
-      .or(compilation.options.output.library.as_ref())
+      .or(compilation.options().output.library.as_ref())
       .map(|library| library.library_type.clone())
   };
 
@@ -229,7 +229,7 @@ async fn runtime_requirements_in_tree(
           .expect_get(chunk_ukey)
           .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
           .and_then(|options| options.public_path.clone())
-          .unwrap_or_else(|| compilation.options.output.public_path.clone());
+          .unwrap_or_else(|| compilation.options().output.public_path.clone());
         match &public_path {
           PublicPath::Filename(filename) => {
             runtime_modules_to_add.push((
@@ -267,7 +267,7 @@ async fn runtime_requirements_in_tree(
               chunk_has_js(&chunk.ukey(), compilation).then(|| {
                 get_js_chunk_filename_template(
                   chunk,
-                  &compilation.options.output,
+                  &compilation.options().output,
                   &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
                 )
               })
@@ -275,9 +275,9 @@ async fn runtime_requirements_in_tree(
             *chunk_ukey,
           )
           .with_full_hash(
-            compilation.options.output.filename.has_full_hash_digest()
+            compilation.options().output.filename.has_full_hash_digest()
               || compilation
-                .options
+                .options()
                 .output
                 .chunk_filename
                 .has_full_hash_digest(),
@@ -303,7 +303,7 @@ async fn runtime_requirements_in_tree(
               chunk_has_css(&chunk.ukey(), compilation).then(|| {
                 get_css_chunk_filename_template(
                   chunk,
-                  &compilation.options.output,
+                  &compilation.options().output,
                   &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
                 )
                 .clone()
@@ -313,12 +313,12 @@ async fn runtime_requirements_in_tree(
           )
           .with_full_hash(
             compilation
-              .options
+              .options()
               .output
               .css_filename
               .has_full_hash_digest()
               || compilation
-                .options
+                .options()
                 .output
                 .css_chunk_filename
                 .has_full_hash_digest(),
@@ -339,7 +339,11 @@ async fn runtime_requirements_in_tree(
             &compilation.runtime_template,
             "update manifest",
             RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME,
-            compilation.options.output.hot_update_main_filename.clone(),
+            compilation
+              .options()
+              .output
+              .hot_update_main_filename
+              .clone(),
           )
           .boxed(),
         ));
@@ -349,8 +353,8 @@ async fn runtime_requirements_in_tree(
           *chunk_ukey,
           LoadScriptRuntimeModule::new(
             &compilation.runtime_template,
-            compilation.options.output.unique_name.clone(),
-            compilation.options.output.trusted_types.is_some(),
+            compilation.options().output.unique_name.clone(),
+            compilation.options().output.trusted_types.is_some(),
             *chunk_ukey,
           )
           .boxed(),
@@ -495,7 +499,7 @@ async fn runtime_requirements_in_tree(
         ));
       }
       RuntimeGlobals::AMD_DEFINE => {
-        if compilation.options.amd.is_some() {
+        if compilation.options().amd.is_some() {
           runtime_modules_to_add.push((
             *chunk_ukey,
             AmdDefineRuntimeModule::new(&compilation.runtime_template).boxed(),
@@ -503,7 +507,7 @@ async fn runtime_requirements_in_tree(
         }
       }
       RuntimeGlobals::AMD_OPTIONS => {
-        if let Some(options) = &compilation.options.amd {
+        if let Some(options) = &compilation.options().amd {
           runtime_modules_to_add.push((
             *chunk_ukey,
             AmdOptionsRuntimeModule::new(&compilation.runtime_template, options.clone()).boxed(),

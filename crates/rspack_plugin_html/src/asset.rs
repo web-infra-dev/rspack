@@ -148,7 +148,7 @@ impl HtmlPluginAssets {
             PathData::default().filename(output_path.as_str()),
           )
           .await?;
-        let output_path = compilation.options.output.path.as_std_path();
+        let output_path = compilation.options().output.path.as_std_path();
         favicon_path = output_path
           .relative(output_path.join(fake_html_file_name).join(".."))
           .join(favicon_relative_path);
@@ -302,16 +302,17 @@ pub async fn create_favicon_asset(
     .to_string_lossy()
     .to_string();
 
-  let resolved_favicon = compilation.options.context.as_path().join(favicon);
+  let resolved_favicon = compilation.options().context.as_path().join(favicon);
 
   compilation
-    .input_filesystem
+    .input_filesystem()
     .read(&resolved_favicon)
     .await
     .map_err(|err| anyhow!(err))
     .context(format!(
       "HtmlRspackPlugin: could not load file `{}` from `{}`",
-      favicon, &compilation.options.context
+      favicon,
+      &compilation.options().context
     ))
     .map(|content| {
       (
@@ -328,9 +329,9 @@ pub async fn create_html_asset(
   template_file_name: &str,
   compilation: &Compilation,
 ) -> Result<(String, CompilationAsset)> {
-  let mut hasher = RspackHasher::from(&compilation.options.output);
+  let mut hasher = RspackHasher::from(&compilation.options().output);
   html.hash(&mut hasher);
-  let hash_digest = hasher.digest(&compilation.options.output.hash_digest);
+  let hash_digest = hasher.digest(&compilation.options().output.hash_digest);
   let content_hash = hash_digest.encoded();
 
   let mut asset_info = AssetInfo::default();

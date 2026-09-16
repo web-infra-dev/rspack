@@ -318,7 +318,7 @@ impl EsmLibraryPlugin {
             &module,
             compilation.get_module_graph(),
             &compilation.module_static_cache,
-            &compilation.options.context,
+            &compilation.options().context,
           );
           let binding =
             name_allocator.find_new_name("", &escaped_identifiers[&readable_identifier]);
@@ -668,7 +668,7 @@ impl EsmLibraryPlugin {
             .module_by_identifier(module_info_id)
             .expect("should have box module");
           let module_readable_identifier =
-            box_module.readable_identifier(&compilation.options.context);
+            box_module.readable_identifier(&compilation.options().context);
           let strict_esm_module = box_module.build_meta().strict_esm_module();
 
           // scope hoisted module can only exist in only 1 chunk
@@ -1010,7 +1010,7 @@ var {} = {{}};
     chunk_link: &mut ChunkLinkContext,
     deconflict_context: &DeconflictSymbolsContext<'_>,
   ) {
-    let context = &compilation.options.context;
+    let context = &compilation.options().context;
     let DeconflictSymbolsContext {
       runtime_module_used_names,
       concatenation_context,

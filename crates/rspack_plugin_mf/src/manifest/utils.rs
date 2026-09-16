@@ -189,7 +189,7 @@ pub fn record_shared_usage(
   }
   if let Some(issuer_module) = module_graph.get_issuer(module_identifier) {
     let issuer_name = issuer_module
-      .readable_identifier(&compilation.options.context)
+      .readable_identifier(&compilation.options().context)
       .to_string();
     if !issuer_name.is_empty() {
       let key = strip_ext(&strip_aggregate_suffix(&issuer_name));

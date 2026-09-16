@@ -1302,7 +1302,7 @@ async fn run_finish_modules_hook(compilation: &mut Compilation) -> Result<()> {
       .side_effects_state_artifact,
   );
   compilation
-    .plugin_driver
+    .plugin_driver()
     .clone()
     .compilation_hooks
     .finish_modules
@@ -1324,7 +1324,7 @@ async fn run_finish_modules_hook(compilation: &mut Compilation) -> Result<()> {
 async fn run_seal_hook(compilation: &mut Compilation) -> Result<()> {
   let mut diagnostics = vec![];
   compilation
-    .plugin_driver
+    .plugin_driver()
     .clone()
     .compilation_hooks
     .seal
@@ -1344,7 +1344,7 @@ async fn run_optimize_dependencies_hook(compilation: &mut Compilation) -> Result
   let mut exports_info_artifact = compilation.exports_info_artifact.steal();
   while matches!(
     compilation
-      .plugin_driver
+      .plugin_driver()
       .clone()
       .compilation_hooks
       .optimize_dependencies
@@ -1373,7 +1373,7 @@ async fn run_optimize_modules_hook(compilation: &mut Compilation) -> Result<()> 
   let mut circular_modules = Default::default();
   while matches!(
     compilation
-      .plugin_driver
+      .plugin_driver()
       .clone()
       .compilation_hooks
       .optimize_modules
@@ -1382,7 +1382,7 @@ async fn run_optimize_modules_hook(compilation: &mut Compilation) -> Result<()> 
     Some(true)
   ) {}
   compilation
-    .plugin_driver
+    .plugin_driver()
     .clone()
     .compilation_hooks
     .after_optimize_modules
@@ -1398,7 +1398,7 @@ async fn run_optimize_modules_hook(compilation: &mut Compilation) -> Result<()> 
 async fn run_optimize_chunks_hook(compilation: &mut Compilation) -> Result<()> {
   while matches!(
     compilation
-      .plugin_driver
+      .plugin_driver()
       .clone()
       .compilation_hooks
       .optimize_chunks
@@ -1411,7 +1411,7 @@ async fn run_optimize_chunks_hook(compilation: &mut Compilation) -> Result<()> {
 
 async fn run_optimize_tree_hook(compilation: &mut Compilation) -> Result<()> {
   compilation
-    .plugin_driver
+    .plugin_driver()
     .clone()
     .compilation_hooks
     .optimize_tree
@@ -1422,7 +1422,7 @@ async fn run_optimize_tree_hook(compilation: &mut Compilation) -> Result<()> {
 
 async fn run_optimize_chunk_modules_hook(compilation: &mut Compilation) -> Result<()> {
   compilation
-    .plugin_driver
+    .plugin_driver()
     .clone()
     .compilation_hooks
     .optimize_chunk_modules
@@ -1453,14 +1453,14 @@ async fn run_module_ids_hook(compilation: &mut Compilation) -> Result<()> {
   let mut module_ids_artifact = compilation.module_ids_artifact.steal();
   let mut preserved_module_ids_artifact = ModuleIdsArtifact::default();
   if !compilation
-    .plugin_driver
+    .plugin_driver()
     .compilation_hooks
     .before_module_ids
     .is_empty()
   {
     let modules_needing_ids = get_modules_needing_ids(compilation, &preserved_module_ids_artifact);
     compilation
-      .plugin_driver
+      .plugin_driver()
       .clone()
       .compilation_hooks
       .before_module_ids
@@ -1481,7 +1481,7 @@ async fn run_module_ids_hook(compilation: &mut Compilation) -> Result<()> {
   let mut diagnostics = vec![];
   let mut module_ids_artifact = compilation.module_ids_artifact.steal();
   compilation
-    .plugin_driver
+    .plugin_driver()
     .clone()
     .compilation_hooks
     .module_ids
@@ -1507,7 +1507,7 @@ async fn run_chunk_ids_hook(
 ) -> Result<()> {
   let mut diagnostics = vec![];
   compilation
-    .plugin_driver
+    .plugin_driver()
     .clone()
     .compilation_hooks
     .chunk_ids
@@ -1732,7 +1732,7 @@ async fn process_chunk_hash(
   compilation: &Compilation,
   chunk_ukey: ChunkUkey,
 ) -> Result<(rspack_hash::RspackHashDigest, ChunkContentHash)> {
-  let mut hasher = RspackHasher::from(&compilation.options.output);
+  let mut hasher = RspackHasher::from(&compilation.options().output);
   if let Some(chunk) = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
@@ -1742,17 +1742,17 @@ async fn process_chunk_hash(
   }
 
   compilation
-    .plugin_driver
+    .plugin_driver()
     .clone()
     .compilation_hooks
     .chunk_hash
     .call(compilation, &chunk_ukey, &mut hasher)
     .await?;
-  let chunk_hash = hasher.digest(&compilation.options.output.hash_digest);
+  let chunk_hash = hasher.digest(&compilation.options().output.hash_digest);
 
   let mut content_hashes = FxHashMap::default();
   compilation
-    .plugin_driver
+    .plugin_driver()
     .clone()
     .compilation_hooks
     .content_hash
@@ -1765,7 +1765,7 @@ async fn process_chunk_hash(
       chunk_hash.hash(&mut content_hash);
       (
         source_type,
-        content_hash.digest(&compilation.options.output.hash_digest),
+        content_hash.digest(&compilation.options().output.hash_digest),
       )
     })
     .collect();
@@ -1789,7 +1789,7 @@ async fn compute_concatenated_module_codegen(
         .expect("concatenated module should have a module hash")
         .clone();
       let scope = compilation
-        .plugin_driver
+        .plugin_driver()
         .clone()
         .compilation_hooks
         .concatenation_scope
@@ -1832,9 +1832,9 @@ async fn compute_concatenated_module_codegen(
       .extend(*runtime_template.runtime_requirements());
     code_generation_result.set_hash_for_concatenated_module(
       &job.hash,
-      &compilation.options.output.hash_function,
-      &compilation.options.output.hash_digest,
-      &compilation.options.output.hash_salt,
+      &compilation.options().output.hash_function,
+      &compilation.options().output.hash_digest,
+      &compilation.options().output.hash_salt,
     );
     black_box(code_generation_result);
     generated += 1;

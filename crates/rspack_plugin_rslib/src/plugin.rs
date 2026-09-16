@@ -61,14 +61,14 @@ struct EmitIsolatedDtsAssetContext {
 
 impl EmitIsolatedDtsAssetContext {
   fn new(compilation: &Compilation, emit_dts_options: &SwcEmitDtsOptions) -> Self {
-    let compiler_root = compilation.options.context.as_path().to_path_buf();
+    let compiler_root = compilation.options().context.as_path().to_path_buf();
     Self {
       resolved_root_dir: resolve_emit_dts_path(&compiler_root, &emit_dts_options.root_dir),
       resolved_declaration_dir: resolve_emit_dts_path(
         &compiler_root,
         &emit_dts_options.declaration_dir,
       ),
-      output_path: compilation.options.output.path.clone(),
+      output_path: compilation.options().output.path.clone(),
       compiler_root,
     }
   }
@@ -340,17 +340,17 @@ async fn optimize_dependencies(
 ) -> Result<Option<bool>> {
   cutout_dyn_import_externals(
     true,
-    compilation.options.output.module,
+    compilation.options().output.module,
     build_module_graph_artifact,
   );
   cutout_worker_externals(
     true,
-    compilation.options.output.module,
+    compilation.options().output.module,
     build_module_graph_artifact,
   );
   cutout_url_externals(
     true,
-    compilation.options.output.module,
+    compilation.options().output.module,
     build_module_graph_artifact,
   );
   cutout_star_re_export_externals(

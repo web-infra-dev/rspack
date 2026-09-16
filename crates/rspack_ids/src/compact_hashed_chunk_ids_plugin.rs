@@ -80,7 +80,7 @@ async fn chunk_ids(
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let module_graph = compilation.get_module_graph();
   let module_graph_cache = &compilation.module_graph_cache_artifact;
-  let context = compilation.options.context.as_ref();
+  let context = compilation.options().context.as_ref();
   let chunks = chunk_by_ukey
     .values()
     .filter(|chunk| chunk.id().is_none())

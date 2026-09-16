@@ -691,7 +691,7 @@ impl RscServerPlugin {
     let layer = LAYERS_NAMES.react_server_components.to_string();
     let action_entry_dep = EntryDependency::new(
       action_entry_loader,
-      compilation.options.context.clone(),
+      compilation.options().context.clone(),
       Some(layer.clone()),
       false,
     );

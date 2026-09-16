@@ -30,7 +30,7 @@ impl JsPlugin {
       .copied()
       .unwrap_or_default();
 
-    let strict_module_error_handling = compilation.options.output.strict_module_error_handling;
+    let strict_module_error_handling = compilation.options().output.strict_module_error_handling;
     let need_module_defer =
       runtime_requirements.contains(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
     let callable_require = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
@@ -184,7 +184,7 @@ var module = ({module_cache}[moduleId] = {{"#,
     let mut startup: Vec<Cow<str>> = Vec::new();
     let mut allow_inline_startup = true;
     let supports_arrow_function = compilation
-      .options
+      .options()
       .output
       .environment
       .supports_arrow_function();
@@ -628,7 +628,7 @@ impl JsPlugin {
       .chunk_by_ukey
       .expect_get(chunk_ukey);
     let supports_arrow_function = compilation
-      .options
+      .options()
       .output
       .environment
       .supports_arrow_function();
@@ -639,8 +639,8 @@ impl JsPlugin {
       .unwrap_or_default();
     let has_bootstrap_runtime_context = runtime_requirements.needs_bootstrap_runtime_context();
     let mut chunk_init_fragments = ChunkInitFragments::default();
-    let iife = compilation.options.output.iife;
-    let mut all_strict = compilation.options.output.module;
+    let iife = compilation.options().output.iife;
+    let mut all_strict = compilation.options().output.module;
     let RenderBootstrapResult {
       header,
       startup,
@@ -758,7 +758,7 @@ impl JsPlugin {
         )));
       }
 
-      let renamed_inline_modules = if compilation.options.optimization.avoid_entry_iife {
+      let renamed_inline_modules = if compilation.options().optimization.avoid_entry_iife {
         self
           .get_renamed_inline_module(
             &all_modules,

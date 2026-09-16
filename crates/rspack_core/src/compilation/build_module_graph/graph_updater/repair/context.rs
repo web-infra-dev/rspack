@@ -38,18 +38,7 @@ impl TaskContext {
     exports_info_artifact: ExportsInfoArtifact,
   ) -> Self {
     Self {
-      build_context: Arc::new(BuildContext {
-        compiler_id: compilation.compiler_id(),
-        compilation_id: compilation.id(),
-        compiler_options: compilation.options.clone(),
-        loader_cache: compilation.get_cache("loader"),
-        file_system_info: compilation.file_system_info.clone(),
-        resolver_factory: compilation.resolver_factory.clone(),
-        runtime_template: RuntimeTemplate::new(compilation.options.clone())
-          .create_module_code_template(),
-        plugin_driver: compilation.plugin_driver.clone(),
-        fs: compilation.input_filesystem.clone(),
-      }),
+      build_context: compilation.build_context.clone(),
       buildtime_plugin_driver: compilation.buildtime_plugin_driver.clone(),
       platform: compilation.platform.clone(),
       loader_resolver_factory: compilation.loader_resolver_factory.clone(),
@@ -75,22 +64,26 @@ impl TaskContext {
   // TODO remove it after incremental rebuild cover all stage
   pub fn transform_to_temp_compilation(&mut self) -> Compilation {
     let compiler_context = CURRENT_COMPILER_CONTEXT.get();
+    let logging = crate::CompilationLogging::default();
+    let runtime_template =
+      RuntimeTemplate::for_module_execution(self.build_context.compiler_options.clone());
+    let mut build_context = self.build_context.for_new_compilation(logging.clone());
+    // Module execution uses its own hooks and webpack-compatible runtime globals.
+    // Never change the context still shared by the parent compilation's build tasks.
+    build_context.plugin_driver = self.buildtime_plugin_driver.clone();
+    build_context.runtime_template = runtime_template.create_module_code_template();
     let mut compilation = Compilation::new(
-      self.build_context.compiler_id,
-      self.build_context.compiler_options.clone(),
+      Arc::new(build_context),
       self.platform.clone(),
-      self.build_context.plugin_driver.clone(),
       self.buildtime_plugin_driver.clone(),
-      self.build_context.resolver_factory.clone(),
       self.loader_resolver_factory.clone(),
       None,
       Incremental::new_cold(self.build_context.compiler_options.incremental),
       None,
-      Default::default(),
+      logging,
       self.cache.clone(),
       Default::default(),
       Default::default(),
-      self.build_context.fs.clone(),
       self.intermediate_fs.clone(),
       self.output_fs.clone(),
       // Preserve the module executor's initial-compilation behavior. Its module
@@ -99,8 +92,7 @@ impl TaskContext {
       compiler_context,
     );
     compilation.module_build_cache = None;
-    compilation.runtime_template =
-      RuntimeTemplate::for_module_execution(self.build_context.compiler_options.clone());
+    compilation.runtime_template = runtime_template;
     compilation.dependency_factories = self.dependency_factories.clone();
     compilation.dependency_templates = self.dependency_templates.clone();
     std::mem::swap(

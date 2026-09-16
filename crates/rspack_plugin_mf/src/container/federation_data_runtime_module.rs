@@ -87,7 +87,7 @@ chunkMatcher: function(chunkId) {{
   let root_output_dir = {
     let filename = get_js_chunk_filename_template(
       chunk,
-      &compilation.options.output,
+      &compilation.options().output,
       &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
     );
     let output_name = compilation
@@ -97,14 +97,14 @@ chunkMatcher: function(chunkId) {{
           .chunk(chunk.ukey(), compilation)
           .chunk_hash_optional(chunk.rendered_hash(
             &compilation.chunk_hashes_artifact,
-            compilation.options.output.hash_digest_length,
+            compilation.options().output.hash_digest_length,
           ))
           .chunk_id_optional(chunk.id().map(|id| id.as_str()))
           .chunk_name_optional(chunk.name_for_filename_template())
           .content_hash_optional(chunk.rendered_content_hash_by_source_type(
             &compilation.chunk_hashes_artifact,
             &SourceType::JavaScript,
-            compilation.options.output.hash_digest_length,
+            compilation.options().output.hash_digest_length,
           ))
           .runtime(chunk.runtime().as_str()),
       )
@@ -112,7 +112,7 @@ chunkMatcher: function(chunkId) {{
       .expect("failed to get output path");
     get_undo_path(
       &output_name,
-      compilation.options.output.path.to_string(),
+      compilation.options().output.path.to_string(),
       false,
     )
   };

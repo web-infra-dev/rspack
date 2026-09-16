@@ -23,7 +23,7 @@ impl PassExt for CreateHashPass {
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
-    let plugin_driver = compilation.plugin_driver.clone();
+    let plugin_driver = compilation.plugin_driver().clone();
     create_hash(compilation, plugin_driver).await?;
     runtime_modules_code_generation(compilation).await?;
     Ok(())
@@ -123,7 +123,7 @@ pub async fn create_hash(
       .collect()
   };
 
-  let mut compilation_hasher = RspackHasher::from(&compilation.options.output);
+  let mut compilation_hasher = RspackHasher::from(&compilation.options().output);
 
   fn try_process_chunk_hash_results(
     compilation: &mut Compilation,
@@ -401,7 +401,7 @@ pub async fn create_hash(
       }
     });
   compilation_hasher.update(&compilation.hot_index);
-  compilation.hash = Some(compilation_hasher.digest(&compilation.options.output.hash_digest));
+  compilation.hash = Some(compilation_hasher.digest(&compilation.options().output.hash_digest));
 
   // re-create runtime chunk hash that depend on full hash
   let start = logger.time("hashing: process full hash chunks");
@@ -427,7 +427,7 @@ pub async fn create_hash(
       let chunk_hash = chunk
         .hash(&compilation.chunk_hashes_artifact)
         .expect("should have chunk hash");
-      let mut hasher = RspackHasher::from(&compilation.options.output);
+      let mut hasher = RspackHasher::from(&compilation.options().output);
       hasher.update(chunk_hash);
       hasher.update(
         compilation
@@ -435,7 +435,7 @@ pub async fn create_hash(
           .as_ref()
           .expect("compilation hash should be set"),
       );
-      hasher.digest(&compilation.options.output.hash_digest)
+      hasher.digest(&compilation.options().output.hash_digest)
     };
     let new_content_hash = {
       let content_hash = chunk
@@ -444,7 +444,7 @@ pub async fn create_hash(
       content_hash
         .iter()
         .map(|(source_type, content_hash)| {
-          let mut hasher = RspackHasher::from(&compilation.options.output);
+          let mut hasher = RspackHasher::from(&compilation.options().output);
           hasher.update(content_hash);
           hasher.update(
             compilation
@@ -454,7 +454,7 @@ pub async fn create_hash(
           );
           (
             *source_type,
-            hasher.digest(&compilation.options.output.hash_digest),
+            hasher.digest(&compilation.options().output.hash_digest),
           )
         })
         .collect()
@@ -524,7 +524,7 @@ async fn process_chunk_hash(
   chunk_ukey: ChunkUkey,
   plugin_driver: &SharedPluginDriver,
 ) -> Result<ChunkHashResult> {
-  let mut hasher = RspackHasher::from(&compilation.options.output);
+  let mut hasher = RspackHasher::from(&compilation.options().output);
   if let Some(chunk) = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
@@ -537,7 +537,7 @@ async fn process_chunk_hash(
     .chunk_hash
     .call(compilation, &chunk_ukey, &mut hasher)
     .await?;
-  let chunk_hash = hasher.digest(&compilation.options.output.hash_digest);
+  let chunk_hash = hasher.digest(&compilation.options().output.hash_digest);
 
   let mut content_hashes: HashMap<SourceType, RspackHasher> = HashMap::default();
   plugin_driver
@@ -550,7 +550,7 @@ async fn process_chunk_hash(
     .into_iter()
     .map(|(t, mut hasher)| {
       hasher.update(&chunk_hash);
-      (t, hasher.digest(&compilation.options.output.hash_digest))
+      (t, hasher.digest(&compilation.options().output.hash_digest))
     })
     .collect();
 

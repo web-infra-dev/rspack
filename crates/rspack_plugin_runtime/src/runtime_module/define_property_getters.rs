@@ -45,7 +45,7 @@ impl RuntimeModule for DefinePropertyGettersRuntimeModule {
   ) -> rspack_error::Result<String> {
     let define_property_code = if context
       .compilation
-      .options
+      .options()
       .output
       .environment
       .supports_computed_property()

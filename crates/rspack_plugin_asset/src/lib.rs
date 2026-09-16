@@ -230,7 +230,7 @@ impl AssetParserAndGenerator {
 
   fn get_source_file_name(&self, module: &NormalModule, compilation: &Compilation) -> String {
     let relative = make_paths_relative(
-      compilation.options.context.as_ref(),
+      compilation.options().context.as_ref(),
       module
         .match_resource()
         .unwrap_or(module.resource_resolved_data())
@@ -259,7 +259,7 @@ impl AssetParserAndGenerator {
       .as_ref()
       .or_else(|| build_info.asset.as_ref().and_then(|x| x.filename.as_ref()))
       .or_else(|| module_generator_options.and_then(|x| x.asset_filename()))
-      .unwrap_or(&compilation.options.output.asset_module_filename);
+      .unwrap_or(&compilation.options().output.asset_module_filename);
     let path_data = PathData::default()
       .module_id_optional(
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.id())
@@ -594,8 +594,8 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
           rspack_util::json_stringify_str(&encoded_source)
         } else if parsed_asset_config.is_resource() {
-          let contenthash = self.hash_for_source(source, &compilation.options);
-          let contenthash = contenthash.rendered(compilation.options.output.hash_digest_length);
+          let contenthash = self.hash_for_source(source, compilation.options());
+          let contenthash = contenthash.rendered(compilation.options().output.hash_digest_length);
 
           let source_file_name = self.get_source_file_name(normal_module, compilation);
           let (original_filename, filename, mut asset_info) = self
@@ -650,7 +650,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
           let public_path = match module_generator_options
             .and_then(|x| x.asset_public_path())
-            .unwrap_or_else(|| &compilation.options.output.public_path)
+            .unwrap_or_else(|| &compilation.options().output.public_path)
           {
             PublicPath::Filename(p) => PublicPath::render_filename(compilation, p).await,
             PublicPath::Auto => AUTO_PUBLIC_PATH_PLACEHOLDER.to_string(),
@@ -685,7 +685,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         }
 
         if import_mode.is_preserve() && parsed_asset_config.is_resource() {
-          let is_module = compilation.options.output.module;
+          let is_module = compilation.options().output.module;
           if let Some(ref mut scope) = generate_context.concatenation_scope {
             scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
             if is_module {
@@ -696,7 +696,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
                 .boxed(),
               );
             } else {
-              let supports_const = compilation.options.output.environment.supports_const();
+              let supports_const = compilation.options().output.environment.supports_const();
               let declaration_kind = if supports_const { "const" } else { "var" };
               return Ok(
                 RawStringSource::from(format!(
@@ -741,7 +741,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
         if let Some(ref mut scope) = generate_context.concatenation_scope {
           scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
-          let supports_const = compilation.options.output.environment.supports_const();
+          let supports_const = compilation.options().output.environment.supports_const();
           let declaration_kind = if supports_const { "const" } else { "var" };
           Ok(
             RawStringSource::from(format!(
@@ -767,8 +767,8 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             "Inline or Source asset does not have source type `asset`"
           ))
         } else {
-          let contenthash = self.hash_for_source(source, &compilation.options);
-          let contenthash = contenthash.rendered(compilation.options.output.hash_digest_length);
+          let contenthash = self.hash_for_source(source, compilation.options());
+          let contenthash = contenthash.rendered(compilation.options().output.hash_digest_length);
           let source_file_name = self.get_source_file_name(normal_module, compilation);
           let (_, filename, mut asset_info) = self
             .get_asset_module_filename(
@@ -787,7 +787,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
               filename,
               match module_generator_options
                 .and_then(|x| x.asset_public_path())
-                .unwrap_or_else(|| &compilation.options.output.public_path)
+                .unwrap_or_else(|| &compilation.options().output.public_path)
               {
                 PublicPath::Filename(p) => PublicPath::render_filename(compilation, p).await,
                 PublicPath::Auto => AUTO_PUBLIC_PATH_PLACEHOLDER.to_string(),
@@ -824,7 +824,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHasher::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options().output);
     let build_info = module.build_info();
     let asset_build_info = build_info
       .asset
@@ -869,7 +869,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         }
       };
     }
-    Ok(hasher.digest(&compilation.options.output.hash_digest))
+    Ok(hasher.digest(&compilation.options().output.hash_digest))
   }
 
   fn has_runtime_hash(&self) -> bool {

@@ -912,7 +912,7 @@ impl Module for ConcatenatedModule {
       runtime.map(Cow::Borrowed)
     };
     let runtime = runtime.as_deref();
-    let context = compilation.options.context.clone();
+    let context = compilation.options().context.clone();
     let module_graph = compilation.get_module_graph();
 
     let (references_info, module_to_info_map) = self.get_modules_with_info(
@@ -997,7 +997,7 @@ impl Module for ConcatenatedModule {
     for (id, info) in module_to_info_map.iter_mut() {
       if let ModuleInfo::Concatenated(info) = info {
         compilation
-          .plugin_driver
+          .plugin_driver()
           .concatenated_module_hooks
           .concatenated_info
           .call(compilation, *id, runtime, info, &mut all_used_names)
@@ -1397,7 +1397,7 @@ impl Module for ConcatenatedModule {
       let exports_argument = self.get_exports_argument();
 
       let should_skip_render_definitions = compilation
-        .plugin_driver
+        .plugin_driver()
         .concatenated_module_hooks
         .exports_definitions
         .call(
@@ -1766,7 +1766,7 @@ impl Module for ConcatenatedModule {
     compilation: &Compilation,
     generation_runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHasher::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options().output);
     let runtime = if let Some(self_runtime) = &self.runtime
       && let Some(generation_runtime) = generation_runtime
     {
@@ -1826,7 +1826,7 @@ impl Module for ConcatenatedModule {
     }
 
     module_update_hash(self, &mut hasher, compilation, generation_runtime);
-    Ok(hasher.digest(&compilation.options.output.hash_digest))
+    Ok(hasher.digest(&compilation.options().output.hash_digest))
   }
 
   fn name_for_condition(&self) -> Option<Box<str>> {

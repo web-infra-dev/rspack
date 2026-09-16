@@ -345,7 +345,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       );
 
       compilation
-        .plugin_driver
+        .plugin_driver()
         .compilation_hooks
         .dependency_referenced_exports
         .call(

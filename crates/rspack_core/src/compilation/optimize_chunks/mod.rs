@@ -14,7 +14,7 @@ impl PassExt for OptimizeChunksPass {
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     while matches!(
       compilation
-        .plugin_driver
+        .plugin_driver()
         .clone()
         .compilation_hooks
         .optimize_chunks

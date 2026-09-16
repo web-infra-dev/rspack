@@ -49,7 +49,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
       .expect_get(&chunk);
     let filename = get_js_chunk_filename_template(
       chunk,
-      &compilation.options.output,
+      &compilation.options().output,
       &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
     );
     let filename = compilation
@@ -60,13 +60,13 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
           .chunk_id_optional(chunk.id().map(|id| id.as_str()))
           .chunk_hash_optional(chunk.rendered_hash(
             &compilation.chunk_hashes_artifact,
-            compilation.options.output.hash_digest_length,
+            compilation.options().output.hash_digest_length,
           ))
           .chunk_name_optional(chunk.name_for_filename_template())
           .content_hash_optional(chunk.rendered_content_hash_by_source_type(
             &compilation.chunk_hashes_artifact,
             &SourceType::JavaScript,
-            compilation.options.output.hash_digest_length,
+            compilation.options().output.hash_digest_length,
           )),
       )
       .await?;
@@ -74,7 +74,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
       runtime_template,
       self.id(),
       &filename,
-      &compilation.options.output,
+      &compilation.options().output,
     )
   }
   fn runtime_requirements(
@@ -82,7 +82,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
     compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      dependencies: if compilation.options.output.script_type == "module" {
+      dependencies: if compilation.options().output.script_type == "module" {
         RuntimeGlobals::default()
       } else {
         RuntimeGlobals::GLOBAL

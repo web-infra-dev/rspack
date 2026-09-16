@@ -223,7 +223,7 @@ impl HtmlRspackPluginOptions {
       Some(p) => PublicPath::ensure_ends_with_slash(p.clone()),
       None => {
         compilation
-          .options
+          .options()
           .output
           .public_path
           .render(compilation, filename)
@@ -235,7 +235,7 @@ impl HtmlRspackPluginOptions {
     let mut file_path = PathBuf::from(filename);
 
     if file_path.is_absolute() {
-      let context_path = PathBuf::from(compilation.options.context.to_string());
+      let context_path = PathBuf::from(compilation.options().context.to_string());
       file_path = file_path.relative(context_path);
     }
 

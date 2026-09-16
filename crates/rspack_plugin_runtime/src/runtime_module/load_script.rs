@@ -114,12 +114,12 @@ impl RuntimeModule for LoadScriptRuntimeModule {
     let create_script_code = runtime_template.render(
       &self.template_id(TemplateId::CreateScript),
       Some(serde_json::json!({
-        "_script_type": &compilation.options.output.script_type,
+        "_script_type": &compilation.options().output.script_type,
         "_unique_prefix": unique_prefix.is_some(),
         "_with_fetch_priority": with_fetch_priority,
         "_with_create_script_url": self.with_create_script_url,
-        "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
-        "_chunk_load_timeout": compilation.options.output.chunk_load_timeout.saturating_div(1000).to_string(),
+        "_cross_origin": compilation.options().output.cross_origin_loading.to_string(),
+        "_chunk_load_timeout": compilation.options().output.chunk_load_timeout.saturating_div(1000).to_string(),
       })),
     )?;
 
@@ -142,7 +142,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
       Some(serde_json::json!({
         "_unique_prefix": unique_prefix.unwrap_or_default(),
         "_create_script": res.code,
-        "_chunk_load_timeout": compilation.options.output.chunk_load_timeout.to_string(),
+        "_chunk_load_timeout": compilation.options().output.chunk_load_timeout.to_string(),
         "_fetch_priority": if with_fetch_priority { ", fetchPriority" } else { "" },
       })),
     )?;

@@ -203,7 +203,7 @@ impl DependencyTemplate for WorkerDependencyTemplate {
     let mut worker_import_str = if matches!(
       dep.url_mode,
       Some(JavascriptParserWorkerUrl::NewUrlRelative)
-    ) && compilation.options.output.module
+    ) && compilation.options().output.module
     {
       code_generatable_context.data.insert(URLStaticMode);
       let request = rspack_util::json_stringify_str(&concat_string!(

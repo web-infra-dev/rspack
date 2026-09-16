@@ -255,7 +255,7 @@ async fn module_ids(
     .collect();
   let modules_len = modules.len();
 
-  let context: &str = compilation.options.context.as_ref();
+  let context: &str = compilation.options().context.as_ref();
   let mut mutations = compilation
     .incremental
     .mutations_writable()

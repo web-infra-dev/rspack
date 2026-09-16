@@ -47,7 +47,7 @@ impl HtmlTemplate {
       // TODO: support loader query form
       let resolved_template = path_clean::clean(
         compilation
-          .options
+          .options()
           .context
           .as_path()
           .join(template.as_str()),
@@ -65,13 +65,14 @@ impl HtmlTemplate {
         })
       } else {
         compilation
-          .input_filesystem
+          .input_filesystem()
           .read_to_string(&resolved_template)
           .await
           .map_err(|err| anyhow!(err))
           .context(format!(
             "HtmlRspackPlugin: could not load file `{}` from `{}`",
-            template, &compilation.options.context
+            template,
+            &compilation.options().context
           ))
           .map(|content| Self {
             render: TemplateRender::Template(content),
@@ -83,12 +84,17 @@ impl HtmlTemplate {
           .to_rspack_result_from_anyhow()
       }
     } else {
-      let default_src_template =
-        path_clean::clean(compilation.options.context.as_path().join("src/index.ejs"))
-          .assert_utf8();
+      let default_src_template = path_clean::clean(
+        compilation
+          .options()
+          .context
+          .as_path()
+          .join("src/index.ejs"),
+      )
+      .assert_utf8();
 
       if let Ok(content) = compilation
-        .input_filesystem
+        .input_filesystem()
         .read_to_string(&default_src_template)
         .await
       {
@@ -145,14 +151,14 @@ impl HtmlTemplate {
         &mut res,
         serde_json::json!({
           "rspackConfig": {
-            "mode": match compilation.options.mode {
+            "mode": match compilation.options().mode {
               Mode::Development => "development",
               Mode::Production => "production",
               Mode::None => "none",
             },
             "output": {
               "publicPath": config.get_public_path(compilation, filename).await,
-              "crossOriginLoading": compilation.options.output.cross_origin_loading.to_string(),
+              "crossOriginLoading": compilation.options().output.cross_origin_loading.to_string(),
             }
           },
         }),

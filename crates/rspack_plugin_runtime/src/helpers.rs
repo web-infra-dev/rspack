@@ -196,7 +196,7 @@ pub fn runtime_chunk_has_hash(compilation: &Compilation, chunk_ukey: &ChunkUkey)
 
   let filename = get_js_chunk_filename_template(
     runtime_chunk,
-    &compilation.options.output,
+    &compilation.options().output,
     &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
   );
 
@@ -362,11 +362,11 @@ pub fn get_relative_path(base_chunk_output_name: &str, other_chunk_output_name: 
 pub async fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> Result<String> {
   let hash = chunk.rendered_hash(
     &compilation.chunk_hashes_artifact,
-    compilation.options.output.hash_digest_length,
+    compilation.options().output.hash_digest_length,
   );
   let filename = get_js_chunk_filename_template(
     chunk,
-    &compilation.options.output,
+    &compilation.options().output,
     &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
   );
   compilation
@@ -377,13 +377,13 @@ pub async fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> 
         .chunk_id_optional(chunk.id().map(|id| id.as_str()))
         .chunk_hash_optional(chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
-          compilation.options.output.hash_digest_length,
+          compilation.options().output.hash_digest_length,
         ))
         .chunk_name_optional(chunk.name_for_filename_template())
         .content_hash_optional(chunk.rendered_content_hash_by_source_type(
           &compilation.chunk_hashes_artifact,
           &SourceType::JavaScript,
-          compilation.options.output.hash_digest_length,
+          compilation.options().output.hash_digest_length,
         ))
         .hash_optional(hash),
     )

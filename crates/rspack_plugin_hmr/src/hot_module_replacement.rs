@@ -53,7 +53,7 @@ impl RuntimeModule for HotModuleReplacementRuntimeModule {
       self.id().as_str(),
       Some(serde_json::json!({
         "_is_hot_test": is_hot_test(),
-        "_is_rspack_runtime_mode": context.compilation.options.experiments.runtime_mode == RuntimeMode::Rspack,
+        "_is_rspack_runtime_mode": context.compilation.options().experiments.runtime_mode == RuntimeMode::Rspack,
       })),
     )?;
 

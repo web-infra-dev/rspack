@@ -24,7 +24,7 @@ impl PassExt for OptimizeDependenciesPass {
     let mut exports_info_artifact = compilation.exports_info_artifact.steal();
     while matches!(
       compilation
-        .plugin_driver
+        .plugin_driver()
         .clone()
         .compilation_hooks
         .optimize_dependencies

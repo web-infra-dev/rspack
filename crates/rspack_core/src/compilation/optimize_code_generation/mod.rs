@@ -16,7 +16,7 @@ impl PassExt for OptimizeCodeGenerationPass {
     let mut exports_info_artifact = compilation.exports_info_artifact.steal();
     let mut diagnostics = vec![];
     compilation
-      .plugin_driver
+      .plugin_driver()
       .clone()
       .compilation_hooks
       .optimize_code_generation

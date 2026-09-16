@@ -518,7 +518,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       let mut replace_source = ReplaceSource::new(source.clone());
-      let output_path = compilation.options.output.path.as_std_path();
+      let output_path = compilation.options().output.path.as_std_path();
       let mut self_path = output_path.join(asset_name);
 
       // only use the path, pop filename
@@ -800,12 +800,12 @@ async fn optimize_dependencies(
 ) -> Result<Option<bool>> {
   cutout_dyn_import_externals(
     false,
-    compilation.options.output.module,
+    compilation.options().output.module,
     build_module_graph_artifact,
   );
   cutout_worker_externals(
     false,
-    compilation.options.output.module,
+    compilation.options().output.module,
     build_module_graph_artifact,
   );
 

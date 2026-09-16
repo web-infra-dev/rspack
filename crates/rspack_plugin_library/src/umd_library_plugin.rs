@@ -104,7 +104,7 @@ async fn render(
     return Ok(());
   };
   let supports_arrow_function = compilation
-    .options
+    .options()
     .output
     .environment
     .supports_arrow_function();
@@ -311,7 +311,7 @@ async fn render(
       }})({}, {} {{
           return ",
     get_auxiliary_comment("amd", auxiliary_comment),
-    compilation.options.output.global_object,
+    compilation.options().output.global_object,
     if supports_arrow_function {
       format!("({}) =>", external_arguments(&externals, compilation))
     } else {
@@ -335,7 +335,7 @@ async fn js_chunk_hash(
     return Ok(());
   };
   PLUGIN_NAME.hash(hasher);
-  compilation.options.output.library.hash(hasher);
+  compilation.options().output.library.hash(hasher);
   Ok(())
 }
 
@@ -383,13 +383,13 @@ async fn replace_keys(v: String, chunk: &Chunk, compilation: &Compilation) -> Re
         .chunk_id_optional(chunk.id().map(|id| id.as_str()))
         .chunk_hash_optional(chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
-          compilation.options.output.hash_digest_length,
+          compilation.options().output.hash_digest_length,
         ))
         .chunk_name_optional(chunk.name_for_filename_template())
         .content_hash_optional(chunk.rendered_content_hash_by_source_type(
           &compilation.chunk_hashes_artifact,
           &SourceType::JavaScript,
-          compilation.options.output.hash_digest_length,
+          compilation.options().output.hash_digest_length,
         )),
     )
     .await

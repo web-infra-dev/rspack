@@ -134,7 +134,7 @@ impl ModuleChunkLoadingRuntimeModule {
           format!(
             "new URL({}, {}.url);",
             rspack_util::json_stringify_str(root_output_dir),
-            compilation.options.output.import_meta_name
+            compilation.options().output.import_meta_name
           )
         },
         |base_uri| rspack_util::json_stringify_str(base_uri),
@@ -290,7 +290,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     let is_neutral_platform = compilation.platform.is_neutral();
 
     let with_prefetch = runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS)
-      && (compilation.options.output.environment.supports_document() || is_neutral_platform)
+      && (compilation.options().output.environment.supports_document() || is_neutral_platform)
       && chunk.has_child_by_order(
         compilation,
         &ChunkGroupOrderKey::Prefetch,
@@ -298,7 +298,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         &chunk_has_js,
       );
     let with_preload = runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS)
-      && (compilation.options.output.environment.supports_document() || is_neutral_platform)
+      && (compilation.options().output.environment.supports_document() || is_neutral_platform)
       && chunk.has_child_by_order(
         compilation,
         &ChunkGroupOrderKey::Preload,
@@ -314,7 +314,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     let initial_chunks = get_initial_chunk_ids(self.chunk(), compilation, chunk_has_js);
 
     let root_output_dir = get_output_dir(chunk, compilation, true).await?;
-    let import_function_name = &compilation.options.output.import_function_name;
+    let import_function_name = &compilation.options().output.import_function_name;
 
     let mut source = String::default();
 
@@ -368,7 +368,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           &self.template(TemplateId::WithLoading),
           Some(serde_json::json!({
             "_js_matcher": &has_js_matcher.render("chunkId"),
-            "_import_function_name":&compilation.options.output.import_function_name,
+            "_import_function_name":&compilation.options().output.import_function_name,
             "_output_dir": &root_output_dir,
             "_match_fallback":    if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
               ""
@@ -393,7 +393,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
 
     if !matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
       let js_matcher = has_js_matcher.render("chunkId");
-      let cross_origin_loading = &compilation.options.output.cross_origin_loading;
+      let cross_origin_loading = &compilation.options().output.cross_origin_loading;
       if with_prefetch {
         let link_prefetch_code = runtime_template.render(
           &self.template(TemplateId::WithPrefetchLink),

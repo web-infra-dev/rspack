@@ -158,7 +158,7 @@ impl ModuleInfoHeaderPlugin {
   }
 
   pub fn generate_header(module: &dyn Module, compilation: &Compilation) -> String {
-    let req = module.readable_identifier(&compilation.options.context);
+    let req = module.readable_identifier(&compilation.options().context);
     let req = req.split("*/").collect::<Vec<_>>().join("*_/");
 
     let req_stars_str = "*".repeat(req.len());
@@ -264,7 +264,7 @@ async fn render_js_module_package(
         module_graph
           .module_by_identifier(id)
           .expect("target module should exists")
-          .readable_identifier(&compilation.options.context)
+          .readable_identifier(&compilation.options().context)
           .to_string()
       };
 

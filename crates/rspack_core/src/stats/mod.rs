@@ -49,7 +49,7 @@ impl<'compilation> StatsContext<'compilation> {
   }
 
   fn options(&self) -> &'compilation CompilerOptions {
-    self.0.options.as_ref()
+    self.0.options().as_ref()
   }
 
   fn assets(&self) -> &'compilation CompilationAssets {
@@ -1735,7 +1735,7 @@ pub fn create_stats_errors<'a>(
           Some(get_stats_module_name_and_id(
             module_graph.module_by_identifier(identifier)?,
             &compilation.module_ids_artifact,
-            &compilation.options.context,
+            &compilation.options().context,
           ))
         })
         .unzip();
@@ -1751,7 +1751,7 @@ pub fn create_stats_errors<'a>(
         module_identifier,
         module_graph,
         &compilation.module_ids_artifact,
-        &compilation.options.context,
+        &compilation.options().context,
       );
 
       let code = d.code.clone();

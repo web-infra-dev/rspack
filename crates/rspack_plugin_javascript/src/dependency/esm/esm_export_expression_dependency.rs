@@ -228,7 +228,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       );
     } else {
       // 'var' is a little bit incorrect as TDZ is not correct, but we can't use 'const'
-      let supports_const = compilation.options.output.environment.supports_const();
+      let supports_const = compilation.options().output.environment.supports_const();
       let content = if let Some(scope) = concatenation_scope {
         scope.register_export(JS_DEFAULT_KEYWORD.clone(), DEFAULT_EXPORT.to_string());
         format!(

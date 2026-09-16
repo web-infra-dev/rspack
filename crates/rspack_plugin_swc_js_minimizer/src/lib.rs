@@ -226,7 +226,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let minimizer_options = &self.options.minimizer_options;
 
   let new_cache = compilation
-    .options
+    .options()
     .experiments
     .new_cache
     .minimize

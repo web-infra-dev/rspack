@@ -312,7 +312,10 @@ impl CopyRspackPlugin {
     // TODO cache
 
     logger.debug(format!("reading '{absolute_filename}'..."));
-    let data = compilation.input_filesystem.read(&absolute_filename).await;
+    let data = compilation
+      .input_filesystem()
+      .read(&absolute_filename)
+      .await;
 
     let source_vec = match data {
       Ok(data) => {
@@ -353,11 +356,11 @@ impl CopyRspackPlugin {
 
       let content_hash = Self::get_content_hash(
         &source,
-        &compilation.options.output.hash_function,
-        &compilation.options.output.hash_digest,
-        &compilation.options.output.hash_salt,
+        &compilation.options().output.hash_function,
+        &compilation.options().output.hash_digest,
+        &compilation.options().output.hash_salt,
       );
-      let content_hash = content_hash.rendered(compilation.options.output.hash_digest_length);
+      let content_hash = content_hash.rendered(compilation.options().output.hash_digest_length);
       let template_str = compilation
         .get_asset_path(
           &Filename::from(filename.to_string()),
@@ -403,11 +406,13 @@ impl CopyRspackPlugin {
     let normalized_orig_from = Utf8PathBuf::from(orig_from);
 
     let pattern_context = if pattern.context.is_none() {
-      Some(Cow::Borrowed(compilation.options.context.as_path()))
+      Some(Cow::Borrowed(compilation.options().context.as_path()))
     } else if let Some(ref ctx) = pattern.context
       && !ctx.is_absolute()
     {
-      Some(Cow::Owned(compilation.options.context.as_path().join(ctx)))
+      Some(Cow::Owned(
+        compilation.options().context.as_path().join(ctx),
+      ))
     } else {
       pattern.context.as_deref().map(Into::into)
     };
@@ -417,7 +422,7 @@ impl CopyRspackPlugin {
     ));
 
     let mut context =
-      pattern_context.unwrap_or_else(|| Cow::Borrowed(compilation.options.context.as_path()));
+      pattern_context.unwrap_or_else(|| Cow::Borrowed(compilation.options().context.as_path()));
 
     let abs_from = if normalized_orig_from.is_absolute() {
       normalized_orig_from
@@ -427,7 +432,7 @@ impl CopyRspackPlugin {
 
     logger.debug(format!("getting stats for '{abs_from}'..."));
 
-    let from_type = if let Ok(meta) = compilation.input_filesystem.metadata(&abs_from).await {
+    let from_type = if let Ok(meta) = compilation.input_filesystem().metadata(&abs_from).await {
       if meta.is_directory {
         logger.debug(format!("determined '{abs_from}' is a directory"));
         FromType::Dir
@@ -517,7 +522,7 @@ impl CopyRspackPlugin {
     let glob_entries = find_files_by_glob(
       &glob_query,
       &glob_match_options,
-      compilation.input_filesystem.clone(),
+      compilation.input_filesystem().clone(),
     )
     .await;
 
@@ -549,7 +554,7 @@ impl CopyRspackPlugin {
           return Ok(None);
         }
 
-        let output_path = &compilation.options.output.path;
+        let output_path = &compilation.options().output.path;
 
         let copied_result = rspack_parallel::scope::<_, Result<_>>(|token| {
           entries.into_iter().for_each(|entry| {
@@ -659,7 +664,7 @@ impl CopyRspackPlugin {
       let permission_copy = copy_permissions.then(|| {
         (
           result.absolute_filename.clone(),
-          compilation.options.output.path.join(&result.filename),
+          compilation.options().output.path.join(&result.filename),
         )
       });
 
@@ -707,7 +712,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mut context_dependencies = Vec::new();
   let mut diagnostics = Vec::new();
   let cache_counter = logger.cache("copy pattern cache");
-  let pattern_cache_enabled = !matches!(&compilation.options.cache, CacheOptions::Disabled);
+  let pattern_cache_enabled = !matches!(&compilation.options().cache, CacheOptions::Disabled);
 
   let mut results_by_pattern = vec![None; self.patterns.len()];
   let mut pending_patterns = Vec::new();
@@ -843,7 +848,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   // Handle permission copying after all assets are emitted
   for (source_path, dest_path) in permission_copies.iter() {
-    if let Ok(Some(permissions)) = compilation.input_filesystem.permissions(source_path).await {
+    if let Ok(Some(permissions)) = compilation
+      .input_filesystem()
+      .permissions(source_path)
+      .await
+    {
       // Make sure the output directory exists
       if let Some(parent) = dest_path.parent() {
         compilation

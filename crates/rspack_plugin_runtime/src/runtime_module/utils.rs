@@ -85,7 +85,7 @@ pub fn render_chunk_loading_hmr_state_expression(
       chunk.get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
     })
     .and_then(|options| options.chunk_loading.as_ref())
-    .unwrap_or(&compilation.options.output.chunk_loading);
+    .unwrap_or(&compilation.options().output.chunk_loading);
   let key = match chunk_loading {
     ChunkLoading::Enable(ChunkLoadingType::Import) => "module",
     ChunkLoading::Enable(ChunkLoadingType::ImportScripts) => "importScripts",
@@ -113,7 +113,7 @@ pub async fn get_output_dir(
 ) -> rspack_error::Result<String> {
   let filename = get_js_chunk_filename_template(
     chunk,
-    &compilation.options.output,
+    &compilation.options().output,
     &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
   );
   let output_dir = compilation
@@ -124,19 +124,19 @@ pub async fn get_output_dir(
         .chunk_id_optional(chunk.id().map(|id| id.as_str()))
         .chunk_hash_optional(chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
-          compilation.options.output.hash_digest_length,
+          compilation.options().output.hash_digest_length,
         ))
         .chunk_name_optional(chunk.name_for_filename_template())
         .content_hash_optional(chunk.rendered_content_hash_by_source_type(
           &compilation.chunk_hashes_artifact,
           &SourceType::JavaScript,
-          compilation.options.output.hash_digest_length,
+          compilation.options().output.hash_digest_length,
         )),
     )
     .await?;
   Ok(get_undo_path(
     output_dir.as_str(),
-    compilation.options.output.path.as_str().to_string(),
+    compilation.options().output.path.as_str().to_string(),
     enforce_relative,
   ))
 }
@@ -154,7 +154,7 @@ pub fn is_enabled_for_chunk(
       chunk.get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
     })
     .and_then(|options| options.chunk_loading.as_ref())
-    .unwrap_or(&compilation.options.output.chunk_loading);
+    .unwrap_or(&compilation.options().output.chunk_loading);
   chunk_loading == expected
 }
 

@@ -297,7 +297,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
     // Anonymous entry chunks have no output identity to preserve and may not be emitted by
     // module output. Named entry chunks stay in place as facades for the shared module chunk.
-    if preserve_entry_chunks && compilation.options.output.module {
+    if preserve_entry_chunks && compilation.options().output.module {
       move_empty_anonymous_non_initial_entrypoints(compilation, &chunks, &modules, new_chunk_ukey);
     }
   }

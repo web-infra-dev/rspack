@@ -16,9 +16,10 @@ use tracing::instrument;
 
 pub use self::rebuild::CompilationRecords;
 use crate::{
-  BoxPlugin, CacheOptions, CleanOptions, Compilation, CompilationAsset, CompilationLogging,
-  CompilerOptions, CompilerPlatform, ContextModuleFactory, Filename, InfrastructureLogSink,
-  KeepPattern, NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
+  BoxPlugin, BuildContext, CacheOptions, CleanOptions, Compilation, CompilationAsset,
+  CompilationLogging, CompilerOptions, CompilerPlatform, ContextModuleFactory, Filename,
+  InfrastructureLogSink, KeepPattern, NormalModuleFactory, PluginDriver, ResolverFactory,
+  SharedPluginDriver,
   artifacts::IncrementalArtifacts,
   compilation::build_module_graph::ModuleExecutor,
   fast_set,
@@ -166,12 +167,17 @@ impl Compiler {
       id,
       options: options.clone(),
       compilation: Compilation::new(
-        id,
-        options,
+        Arc::new(BuildContext::new(
+          id,
+          options,
+          new_cache.facade("loader"),
+          resolver_factory.clone(),
+          plugin_driver.clone(),
+          input_filesystem.clone(),
+          compilation_logging.clone(),
+        )),
         platform.clone(),
-        plugin_driver.clone(),
         buildtime_plugin_driver.clone(),
-        resolver_factory.clone(),
         loader_resolver_factory.clone(),
         None,
         incremental,
@@ -180,7 +186,6 @@ impl Compiler {
         new_cache.clone(),
         Default::default(),
         Default::default(),
-        input_filesystem.clone(),
         intermediate_filesystem.clone(),
         output_filesystem.clone(),
         false,
@@ -287,15 +292,18 @@ impl Compiler {
     compilation_logging.clear();
     self.incremental_artifacts.reset();
 
+    let build_context = Arc::new(
+      self
+        .compilation
+        .build_context
+        .for_new_compilation(compilation_logging.clone()),
+    );
     fast_set(
       &mut self.compilation,
       Compilation::new(
-        self.id,
-        self.options.clone(),
+        build_context,
         self.platform.clone(),
-        self.plugin_driver.clone(),
         self.buildtime_plugin_driver.clone(),
-        self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         None,
         Incremental::new_cold(self.options.incremental),
@@ -304,7 +312,6 @@ impl Compiler {
         self.new_cache.clone(),
         Default::default(),
         Default::default(),
-        self.input_filesystem.clone(),
         self.intermediate_filesystem.clone(),
         self.output_filesystem.clone(),
         false,

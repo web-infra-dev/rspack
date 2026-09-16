@@ -130,7 +130,7 @@ async fn finish_modules(
     let library_options = options
       .library
       .as_ref()
-      .or_else(|| compilation.options.output.library.as_ref());
+      .or_else(|| compilation.options().output.library.as_ref());
     let module_of_last_dep = dependencies
       .last()
       .and_then(|dep| module_graph.get_module_by_dependency_id(dep));

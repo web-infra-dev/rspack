@@ -92,7 +92,7 @@ async fn module_ids(
   let context = self
     .context
     .as_deref()
-    .unwrap_or(compilation.options.context.as_ref());
+    .unwrap_or(compilation.options().context.as_ref());
   let mut conflicts = 0;
 
   let module_graph = compilation.get_module_graph();

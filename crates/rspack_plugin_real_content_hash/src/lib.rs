@@ -226,11 +226,11 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
               let new_hash = if let Some(new_hash) = updated_hash {
                 new_hash
               } else {
-                let mut hasher = RspackHasher::from(&compilation.options.output);
+                let mut hasher = RspackHasher::from(&compilation.options().output);
                 for asset_content in asset_contents {
                   hasher.write(&asset_content.buffer());
                 }
-                let new_hash = hasher.digest(&compilation.options.output.hash_digest);
+                let new_hash = hasher.digest(&compilation.options().output.hash_digest);
 
                 new_hash.rendered(old_hash.len()).to_string()
               };
