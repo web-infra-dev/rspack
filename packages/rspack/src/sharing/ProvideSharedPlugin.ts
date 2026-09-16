@@ -11,6 +11,7 @@ import type { Compiler } from '../Compiler';
 import { parseOptions } from '../container/options';
 import { normalizeShareScope, type ShareScope } from './SharePlugin';
 import { ShareRuntimePlugin } from './ShareRuntimePlugin';
+import { validateLayer } from './utils';
 
 export type ProvideSharedPluginOptions<Enhanced extends boolean = false> = {
   provides: Provides<Enhanced>;
@@ -89,6 +90,7 @@ export function normalizeProvideShareOptions<Enhanced extends boolean = false>(
         eager: !!item.eager,
       };
       if (enhanced) {
+        validateLayer(enhancedItem.layer, 'ProvideSharedPlugin');
         return {
           ...raw,
           layer: enhancedItem.layer,
