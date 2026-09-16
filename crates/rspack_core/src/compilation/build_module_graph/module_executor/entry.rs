@@ -54,8 +54,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
         mg.add_dependency_ref(dep.clone());
 
         res.extend(overwrite_tasks(vec![Box::new(FactorizeTask {
-          compiler_id: origin_context.compiler_id,
-          compilation_id: origin_context.compilation_id,
+          build_context: origin_context.build_context.clone(),
           module_factory: origin_context
             .dependency_factories
             .get(dep.dependency_type())
@@ -73,8 +72,6 @@ impl Task<ExecutorTaskContext> for EntryTask {
           original_module_context: None,
           dependencies: vec![dep],
           resolve_options: None,
-          options: origin_context.compiler_options.clone(),
-          resolver_factory: origin_context.resolver_factory.clone(),
           from_unlazy: false,
         })]));
         (*v.insert(dep_id), true)

@@ -209,5 +209,5 @@ export type TCompilerCaseConfig = {
     compiler: Compiler;
     compilation?: Compilation;
   }) => MaybePromise<void>;
-  compilerCallback?: (error: Error | null, stats: Stats | null) => void;
+  compilerCallback?: (error: Error | null, stats?: Stats) => void;
 };

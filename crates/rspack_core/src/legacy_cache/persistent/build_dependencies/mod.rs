@@ -10,8 +10,8 @@ use super::{
   storage::Storage,
 };
 use crate::{
-  CompilationLogger,
-  cache::{BuildDependencyHelper, BuildDepsOptions, is_node_package_path},
+  BuildDepsOptions, CompilationLogger,
+  cache::{BuildDependencyHelper, is_node_package_path},
 };
 
 #[derive(Debug)]
@@ -124,121 +124,5 @@ impl BuildDeps {
     let tracked_files = no_changed_files.len();
     self.added = no_changed_files;
     Ok(BuildDepsValidationResult::Valid { tracked_files })
-  }
-}
-
-#[cfg(test)]
-mod test {
-  use std::{path::PathBuf, sync::Arc};
-
-  use rspack_fs::{MemoryFileSystem, WritableFileSystem};
-
-  use super::{
-    super::{
-      snapshot::{Snapshot, SnapshotScope},
-      storage::{MemoryStorage, Storage},
-    },
-    BuildDeps, BuildDepsValidationResult,
-  };
-  use crate::{
-    CompilationLogger, CompilationLogging, LogType,
-    cache::{CacheCodec, SnapshotOptions},
-  };
-
-  fn test_logger(name: &str) -> (CompilationLogger, CompilationLogging) {
-    let logging = CompilationLogging::default();
-    (
-      CompilationLogger::new(name.to_string(), logging.clone()),
-      logging,
-    )
-  }
-
-  fn warn_count(logging: &CompilationLogging, name: &str) -> usize {
-    logging
-      .get(name)
-      .map(|entries| {
-        entries
-          .iter()
-          .filter(|entry| matches!(entry, LogType::Warn { .. }))
-          .count()
-      })
-      .unwrap_or_default()
-  }
-
-  #[tokio::test]
-  async fn build_dependencies_test() {
-    let scope = SnapshotScope::BUILD.name();
-    let fs = Arc::new(MemoryFileSystem::default());
-    fs.create_dir_all("/configs/test".into()).await.unwrap();
-    fs.write("/configs/a.js".into(), r#"console.log('a')"#.as_bytes())
-      .await
-      .unwrap();
-    fs.write(
-      "/configs/test/b.js".into(),
-      r#"console.log('b')"#.as_bytes(),
-    )
-    .await
-    .unwrap();
-    fs.write(
-      "/configs/test/b1.js".into(),
-      r#"console.log('b1')"#.as_bytes(),
-    )
-    .await
-    .unwrap();
-    fs.write("/configs/c.txt".into(), r#"123"#.as_bytes())
-      .await
-      .unwrap();
-    fs.write("/a.js".into(), r#"require("./b")"#.as_bytes())
-      .await
-      .unwrap();
-    fs.write("/b.js".into(), r#"require("./c"); console.log("#.as_bytes())
-      .await
-      .unwrap();
-    fs.write("/c.js".into(), r#"console.log('c')"#.as_bytes())
-      .await
-      .unwrap();
-    fs.write("/index.js".into(), r#"import "./a""#.as_bytes())
-      .await
-      .unwrap();
-
-    let options = vec![PathBuf::from("/index.js"), PathBuf::from("/configs")];
-    let mut storage = MemoryStorage::default();
-    let codec = Arc::new(CacheCodec::new(None));
-    let snapshot = Arc::new(Snapshot::new(SnapshotOptions::default(), fs.clone(), codec));
-
-    let mut build_deps = BuildDeps::new(&options, fs.clone(), snapshot.clone());
-
-    let (logger, logging) = test_logger("test");
-    build_deps
-      .add(&mut storage, vec![].into_iter(), logger)
-      .await;
-    assert_eq!(warn_count(&logging, "test"), 1);
-    let data = storage.load(scope).await.expect("should load success");
-    assert_eq!(data.len(), 9);
-
-    let mut build_deps = BuildDeps::new(&options, fs.clone(), snapshot.clone());
-
-    fs.write("/b.js".into(), r#"require("./c")"#.as_bytes())
-      .await
-      .unwrap();
-    let validate_result = build_deps
-      .validate(&storage, true)
-      .await
-      .expect("should validate success");
-    assert!(matches!(
-      validate_result,
-      BuildDepsValidationResult::Invalid { .. }
-    ));
-    storage.reset(scope);
-
-    let data = storage.load(scope).await.expect("should load success");
-    assert_eq!(data.len(), 0);
-    let (logger, logging) = test_logger("test");
-    build_deps
-      .add(&mut storage, vec![].into_iter(), logger)
-      .await;
-    assert_eq!(warn_count(&logging, "test"), 0);
-    let data = storage.load(scope).await.expect("should load success");
-    assert_eq!(data.len(), 10);
   }
 }

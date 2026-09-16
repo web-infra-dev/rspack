@@ -978,7 +978,7 @@ export interface JsLoaderContext {
   _module: Module
   hot: Readonly<boolean>
   /** Content maybe empty in pitching stage */
-  content: null | Buffer
+  content: string | Buffer | null
   additionalData?: any
   __internal__parseMeta: Record<string, string>
   sourceMap?: Buffer
@@ -989,11 +989,6 @@ export interface JsLoaderContext {
   loaderState: Readonly<JsLoaderState>
   __internal__error?: RspackError
   __internal__loaderCache?: JsLoaderCache | undefined
-  /**
-   * UTF-8 hint for `content`
-   * - Some(true): `content` is a `UTF-8` encoded sequence
-   */
-  __internal__utf8Hint?: boolean
 }
 
 export interface JsLoaderDependencies {
@@ -1959,7 +1954,6 @@ export interface RawCacheGroupOptions {
 
 export interface RawCacheOptionsMemory {
   maxGenerations?: number
-  snapshot?: RawSnapshotOptions
 }
 
 export interface RawCacheOptionsPersistent {
@@ -1967,7 +1961,6 @@ export interface RawCacheOptionsPersistent {
   version?: string
   maxAge: number
   maxMemoryGenerations?: number
-  snapshot?: RawSnapshotOptions
   storage?: RawStorageOptions
   portable?: boolean
   readonly?: boolean
@@ -2392,6 +2385,18 @@ export interface RawFallbackCacheGroupOptions {
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes
   automaticNameDelimiter?: string
+}
+
+export interface RawFileSystemCacheOptions {
+  buildDependencies: Array<string>
+  cacheDirectory: string
+  cacheLocation: string
+  version: string
+  readonly: boolean
+  maxMemoryGenerations?: number
+  idleTimeout: number
+  idleTimeoutForInitialStore: number
+  idleTimeoutAfterLargeChanges: number
 }
 
 export interface RawFlagAllModulesAsUsedPluginOptions {
@@ -2847,7 +2852,8 @@ export interface RawOptions {
   module: RawModuleOptions
   optimization: RawOptimizationOptions
   stats: RawStatsOptions
-  cache: boolean | { type: "memory", snapshot: RawSnapshotOptions } | ({ type: "persistent" } & RawCacheOptionsPersistent)
+  cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent) | ({ type: "filesystem" } & RawFileSystemCacheOptions)
+  snapshot: RawSnapshotOptions
   experiments: RawExperiments
 incremental?: false | { [key: string]: boolean }
 node?: RawNodeOption
@@ -3129,6 +3135,16 @@ export interface RawSnapshotOptions {
   immutablePaths: Array<string|RegExp>
   unmanagedPaths: Array<string|RegExp>
   managedPaths: Array<string|RegExp>
+  buildDependencies: RawSnapshotStrategyOptions
+  resolveBuildDependencies: RawSnapshotStrategyOptions
+  module: RawSnapshotStrategyOptions
+  contextModule: RawSnapshotStrategyOptions
+  resolve: RawSnapshotStrategyOptions
+}
+
+export interface RawSnapshotStrategyOptions {
+  hash: boolean
+  timestamp: boolean
 }
 
 export interface RawSplitChunkSizes {

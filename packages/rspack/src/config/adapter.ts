@@ -42,7 +42,6 @@ import {
 } from './adapterRuleUse';
 import type {
   CacheNormalized,
-  CacheSnapshotNormalized,
   ExperimentsNormalized,
   ModuleOptionsNormalized,
   OutputNormalized,
@@ -116,6 +115,7 @@ export const getRawOptions = (
     optimization: options.optimization as Required<Optimization>,
     stats: getRawStats(options.stats),
     cache: getRawCache(cache),
+    snapshot: getRawSnapshot(options.snapshot),
     experiments,
     incremental: mode === 'development' && options.incremental,
     node: getRawNode(options.node),
@@ -125,21 +125,32 @@ export const getRawOptions = (
   };
 };
 
-function getRawSnapshot(snapshot: CacheSnapshotNormalized): RawSnapshotOptions {
+function getRawSnapshot(
+  snapshot: RspackOptionsNormalized['snapshot'],
+): RawSnapshotOptions {
+  const strategy = (
+    value: { hash?: boolean; timestamp?: boolean } | undefined,
+  ) => ({
+    hash: value?.hash ?? false,
+    timestamp: value?.timestamp ?? false,
+  });
   return {
     immutablePaths: snapshot.immutablePaths!,
     unmanagedPaths: snapshot.unmanagedPaths!,
     managedPaths: snapshot.managedPaths!,
+    buildDependencies: strategy(snapshot.buildDependencies),
+    resolveBuildDependencies: strategy(snapshot.resolveBuildDependencies),
+    module: strategy(snapshot.module),
+    contextModule: strategy(snapshot.contextModule),
+    resolve: strategy(snapshot.resolve),
   };
 }
 
 function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
   if (cache === false) return false;
-  const snapshot = getRawSnapshot(cache.snapshot);
   if (cache.type === 'memory') {
     return {
       type: cache.type,
-      snapshot,
     };
   }
   const toRawStorageLimit = (name: string, value: number) => {
@@ -160,6 +171,34 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
     }
     return value;
   };
+  if (cache.type === 'filesystem') {
+    const toRawTimeout = (name: string, value: number) => {
+      if (!Number.isSafeInteger(value) || value < 0) {
+        throw new Error(
+          `Invalid Rspack configuration: "${name}" must be a non-negative safe integer in milliseconds, get \`${value}\`.`,
+        );
+      }
+      return value;
+    };
+    return {
+      type: cache.type,
+      buildDependencies: Object.values(cache.buildDependencies!).flat(),
+      cacheDirectory: cache.cacheDirectory!,
+      cacheLocation: cache.cacheLocation!,
+      version: cache.version!,
+      readonly: cache.readonly!,
+      maxMemoryGenerations: toRawMemoryGenerations(cache.maxMemoryGenerations!),
+      idleTimeout: toRawTimeout('cache.idleTimeout', cache.idleTimeout!),
+      idleTimeoutForInitialStore: toRawTimeout(
+        'cache.idleTimeoutForInitialStore',
+        cache.idleTimeoutForInitialStore!,
+      ),
+      idleTimeoutAfterLargeChanges: toRawTimeout(
+        'cache.idleTimeoutAfterLargeChanges',
+        cache.idleTimeoutAfterLargeChanges!,
+      ),
+    };
+  }
   return {
     type: cache.type,
     buildDependencies: cache.buildDependencies,
@@ -171,7 +210,6 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
       // Raw `directory` expects the final cache path; normalized `directory` is only the base.
       directory: cache.storage.location!,
     },
-    snapshot,
     portable: cache.portable,
     readonly: cache.readonly,
   };

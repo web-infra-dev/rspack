@@ -13,7 +13,6 @@ use rspack_util::time::current_time;
 use crate::{
   CacheFacade, CacheValue, Etag, FileSystemInfo, IsolatedDts, ItemCacheFacade, Module, RscMeta,
   RunnerContext,
-  cache::SnapshotStrategyOptions,
   new_cache::{Snapshot, SnapshotValidationResult},
 };
 
@@ -43,7 +42,9 @@ pub fn loader_cache_etag(
   // Context and missing dependencies intentionally invalidate the minimal cache: inherited values
   // disable lookup, and entries that add either kind are skipped at store time. This trade-off lets
   // the etag omit both kinds entirely.
+  // Equal bytes are not equivalent inputs: non-raw JS loaders strip a BOM only from buffers.
   rspack_hash::rspack_hash_object!(&mut hasher, {
+    "content_is_string" => !content.is_buffer(),
     "content" => content,
     "file_dependencies" => sorted_dependency_paths(&existing.file),
     "build_dependencies" => sorted_dependency_paths(&existing.build),
@@ -105,7 +106,7 @@ pub async fn loader_cache_dependency_snapshot(
       &files,
       &empty,
       &empty,
-      SnapshotStrategyOptions::timestamp(),
+      file_system_info.module_strategy(),
     )
     .await
     .ok()?;

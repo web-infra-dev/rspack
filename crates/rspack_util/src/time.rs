@@ -1,19 +1,12 @@
 //! Filesystem timestamp helpers shared by watch and cache validation.
-//!
-//! This mirrors watchpack's mtime-accuracy mechanism (`FS_ACCURACY`,
-//! `ensureFsAccuracy`, and the `setFileTime(initial)` safe-time calculation).
 
 use std::{
   sync::atomic::{AtomicU64, Ordering},
   time::{SystemTime, UNIX_EPOCH},
 };
 
-/// Worst-case filesystem mtime resolution, in milliseconds. It starts
-/// pessimistically at 2000ms and only decreases as observed mtimes prove that
-/// the filesystem records timestamps more precisely.
 static FS_ACCURACY: AtomicU64 = AtomicU64::new(2000);
 
-/// Get the current time in milliseconds since the Unix epoch.
 pub fn current_time() -> u64 {
   system_time_to_millis(SystemTime::now())
 }
@@ -29,11 +22,13 @@ pub fn system_time_to_millis(time: SystemTime) -> u64 {
 pub fn mtime_accuracy(mtime_ms: u64) -> u64 {
   let mut accuracy = FS_ACCURACY.load(Ordering::Relaxed);
   loop {
-    let next = if accuracy > 10 && !mtime_ms.is_multiple_of(10) {
+    let next = if accuracy > 1 && !mtime_ms.is_multiple_of(2) {
+      1
+    } else if accuracy > 10 && !mtime_ms.is_multiple_of(20) {
       10
-    } else if accuracy > 100 && !mtime_ms.is_multiple_of(100) {
+    } else if accuracy > 100 && !mtime_ms.is_multiple_of(200) {
       100
-    } else if accuracy > 1000 && !mtime_ms.is_multiple_of(1000) {
+    } else if accuracy > 1000 && !mtime_ms.is_multiple_of(2000) {
       1000
     } else {
       accuracy
@@ -61,13 +56,10 @@ pub fn mtime_safe_time(mtime_ms: u64) -> u64 {
 mod tests {
   use super::*;
 
-  // FS_ACCURACY is process-global and monotonically decreasing; tests assert
-  // relative behavior, never an absolute value.
-
   #[test]
   fn mtime_accuracy_only_decreases() {
     let after = mtime_accuracy(1_700_000_000_123);
-    assert!(after <= 10, "sub-10ms mtime must drop accuracy to <= 10");
+    assert_eq!(after, 1, "odd-millisecond mtime must drop accuracy to 1ms");
 
     assert_eq!(
       mtime_accuracy(1_700_000_000_000),
@@ -78,7 +70,12 @@ mod tests {
 
   #[test]
   fn mtime_accuracy_uses_observed_precision() {
-    assert!(mtime_accuracy(1230) <= 100);
+    for (mtime, accuracy) in [(1000, 1000), (100, 100), (10, 10), (1, 1)] {
+      assert!(
+        mtime_accuracy(mtime) <= accuracy,
+        "mtime of {mtime}ms must drop accuracy to <= {accuracy}ms"
+      );
+    }
   }
 
   #[test]

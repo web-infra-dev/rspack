@@ -45,7 +45,7 @@ module.exports = [
 
   function configureCompiler(compiler) {
     compiler.outputFileSystem = fs;
-    expect(compiler.options.cache.type).toBe("persistent");
+    expect(compiler.options.cache.type).toBe(newCache === false ? "persistent" : "filesystem");
     if (newCache === false) {
       expect(compiler.options.experiments.newCache).toBe(false);
     } else {
