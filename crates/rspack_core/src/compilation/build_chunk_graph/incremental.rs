@@ -464,7 +464,7 @@ impl CodeSplitter {
       chunk_graph.connect_chunk_and_module(chunk, *module);
 
       let mask = self.mask_by_chunk.entry(chunk).or_default();
-      mask.grow_and_insert(ordinal as usize);
+      mask.insert(ordinal as usize);
     }
 
     let group = compilation
@@ -518,7 +518,7 @@ impl CodeSplitter {
         .get_chunk_modules_identifier(chunk)
       {
         let module_ordinal = self.get_module_ordinal(*module_id);
-        mask.grow_and_insert(module_ordinal as usize);
+        mask.insert(module_ordinal as usize);
       }
       self.mask_by_chunk.insert(*chunk, mask);
     }

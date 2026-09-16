@@ -41,13 +41,6 @@ type BlockConnectionMap = DependenciesBlockIdentifierMap<Arc<BlockModules>>;
 
 static EMPTY_BLOCK_MODULES: LazyLock<Arc<BlockModules>> = LazyLock::new(|| Arc::new(Vec::new()));
 
-// Compare two module bitsets by their set bits.
-// `FixedBitSet` equality is capacity-sensitive, while available-module sets
-// only care about which module bits are set.
-fn available_modules_eq(a: &FixedBitSet, b: &FixedBitSet) -> bool {
-  a.is_subset(b) && b.is_subset(a)
-}
-
 #[derive(Debug)]
 struct PreparedBlockConnection {
   block: DependenciesBlockIdentifier,
@@ -1448,7 +1441,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .mask_by_chunk
       .get_mut(&item.chunk)
       .expect("chunk must in mask_by_chunk");
-    chunk_mask.grow_and_insert(module_ordinal as usize);
+    chunk_mask.insert(module_ordinal as usize);
 
     self.add_and_enter_module(
       &AddAndEnterModule {
@@ -1493,7 +1486,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .mask_by_chunk
       .get_mut(&item.chunk)
       .expect("chunk must in mask_by_chunk");
-    chunk_mask.grow_and_insert(module_ordinal as usize);
+    chunk_mask.insert(module_ordinal as usize);
 
     self.enter_module(
       &EnterModule {
@@ -2436,10 +2429,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .get(&info_ukey)
           .unwrap_or_else(|| panic!("ChunkGroupInfo({info_ukey:?}) not found"));
         !info.min_available_modules_init
-          || !available_modules_eq(
-            info.min_available_modules.as_ref(),
-            available_modules.as_ref(),
-          )
+          || info.min_available_modules.as_ref() != available_modules.as_ref()
       };
 
       if !should_update {
