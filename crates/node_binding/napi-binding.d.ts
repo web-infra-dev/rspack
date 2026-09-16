@@ -973,22 +973,26 @@ export interface JsLoaderCacheEntry {
 }
 
 export interface JsLoaderContext {
+  meta: JsLoaderContextMetadata
+  state: JsLoaderContextState
+}
+
+/** Input metadata, never returned to Rust with the execution state. */
+export interface JsLoaderContextMetadata {
   resource: string
   _module: Module
   hot: Readonly<boolean>
   loaderItems: Array<JsLoaderMetadata>
-  loaderState: Readonly<JsLoaderState>
   __internal__loaderCache?: JsLoaderCache | undefined
-  /** Each loader's pitch data, separate from execution flags. */
-  loaderData: Array<any>
-  state: JsLoaderContextState
 }
 
 /**
- * Per-invocation execution state, separate from each loader's pitch data.
+ * Mutable state for the loader chain, including each loader's data and flags.
  * The native runner keeps ownership of its LoaderContext throughout.
  */
 export interface JsLoaderContextState {
+  /** The native scheduler controls phase transitions between invocations. */
+  loaderState: Readonly<JsLoaderState>
   loaderContextState?: object | undefined
   /** Content may be empty in the pitching stage. */
   content: string | Buffer | null
@@ -1021,6 +1025,8 @@ export interface JsLoaderItem {
 }
 
 export interface JsLoaderItemState {
+  /** Data shared only between this loader's pitch and normal stages. */
+  data: any
   normalExecuted: boolean
   pitchExecuted: boolean
   noPitch: boolean
@@ -1031,12 +1037,6 @@ export interface JsLoaderMetadata {
   loader: string
   type: string
   cache: boolean
-}
-
-/** The two mutable parts returned in one crossing, without loader metadata. */
-export interface JsLoaderResult {
-  loaderData: Array<any>
-  state: JsLoaderContextState
 }
 
 export declare enum JsLoaderState {
@@ -3387,7 +3387,7 @@ export interface RegisterJsTaps {
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilationSealTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationAfterSealTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
-  registerNormalModuleLoaderTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => JsLoaderResult); stage: number; }>
+  registerNormalModuleLoaderTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => JsLoaderContextState); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
   registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
   registerNormalModuleFactoryResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
