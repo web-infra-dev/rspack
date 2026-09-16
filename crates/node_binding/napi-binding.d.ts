@@ -3125,10 +3125,14 @@ export interface RawSharedUsedExportsOptimizerPluginOptions {
 }
 
 export interface RawSizeLimitsPluginOptions {
+  asyncChunkWaterfalls?: boolean
   assetFilter?: (assetFilename: string) => boolean
+  embeddedSourceMaps?: boolean
   hints?: "error" | "warning"
+  inlinedAssets?: boolean
   maxAssetSize?: number
   maxEntrypointSize?: number
+  topLevelThis?: boolean
 }
 
 export interface RawSnapshotOptions {

@@ -1,7 +1,8 @@
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_core::{
-  ChunkGroup, ChunkGroupUkey, Compilation, CompilationAsset, CompilerAfterEmit, Plugin,
+  CanonicalizedDataUrlOption, ChunkGroup, ChunkGroupUkey, Compilation, CompilationAsset,
+  CompilerAfterEmit, Plugin,
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
@@ -12,11 +13,15 @@ pub type AssetFilterFn = Box<dyn for<'a> Fn(&'a str) -> BoxFuture<'a, Result<boo
 
 #[derive(Debug)]
 pub struct SizeLimitsPluginOptions {
+  pub async_chunk_waterfalls: bool,
   #[debug(skip)]
   pub asset_filter: Option<AssetFilterFn>,
+  pub embedded_source_maps: bool,
   pub hints: Option<String>,
+  pub inlined_assets: bool,
   pub max_asset_size: Option<f64>,
   pub max_entrypoint_size: Option<f64>,
+  pub top_level_this: bool,
 }
 
 #[plugin]
@@ -128,6 +133,201 @@ impl SizeLimitsPlugin {
 
     Self::add_diagnostic(hints, title, message, diagnostics);
   }
+
+  fn chunk_group_name(compilation: &Compilation, group: &ChunkGroup) -> String {
+    if let Some(name) = group.name() {
+      return name.to_string();
+    }
+
+    group
+      .chunks
+      .first()
+      .and_then(|ukey| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .get(ukey)
+      })
+      .and_then(|chunk| chunk.name().or_else(|| chunk.id().map(|id| id.as_str())))
+      .unwrap_or("(unnamed)")
+      .to_string()
+  }
+
+  fn async_chunk_waterfall_message(compilation: &Compilation) -> Option<String> {
+    const MIN_REPORTED_DEPTH: usize = 3;
+    const MAX_REPORTED_WATERFALLS: usize = 5;
+
+    let groups = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
+    let mut paths: HashMap<ChunkGroupUkey, Vec<ChunkGroupUkey>> = HashMap::default();
+    let mut queue = vec![];
+
+    for (ukey, group) in groups.iter() {
+      if group.is_initial() {
+        paths.insert(*ukey, vec![]);
+        queue.push(*ukey);
+      }
+    }
+
+    let mut index = 0;
+    while index < queue.len() {
+      let group = groups.expect_get(&queue[index]);
+      let path = paths
+        .get(&queue[index])
+        .expect("queued chunk group should have a path")
+        .clone();
+      for child in group.children_iterable() {
+        // Propagate deeper routes through shared groups without following cycles.
+        if groups.expect_get(child).is_initial()
+          || path.contains(child)
+          || paths
+            .get(child)
+            .is_some_and(|previous_path| previous_path.len() > path.len())
+        {
+          continue;
+        }
+        let mut child_path = path.clone();
+        child_path.push(*child);
+        paths.insert(*child, child_path);
+        queue.push(*child);
+      }
+      index += 1;
+    }
+
+    let mut waterfalls = vec![];
+    let mut deepest = 0;
+    for (ukey, path) in paths {
+      if path.len() < MIN_REPORTED_DEPTH
+        || groups
+          .expect_get(&ukey)
+          .children_iterable()
+          .next()
+          .is_some()
+      {
+        continue;
+      }
+
+      let size = path
+        .iter()
+        .flat_map(|ukey| {
+          groups
+            .expect_get(ukey)
+            .get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey)
+        })
+        .filter_map(|filename| compilation.assets().get(&filename))
+        .filter_map(CompilationAsset::get_source)
+        .map(|source| source.size())
+        .sum::<usize>();
+      deepest = deepest.max(path.len());
+      waterfalls.push((
+        path
+          .iter()
+          .map(|ukey| Self::chunk_group_name(compilation, groups.expect_get(ukey)))
+          .collect::<Vec<_>>(),
+        size,
+      ));
+    }
+
+    if waterfalls.is_empty() {
+      return None;
+    }
+    waterfalls.sort_by(|a, b| {
+      b.0
+        .len()
+        .cmp(&a.0.len())
+        .then_with(|| b.1.cmp(&a.1))
+        .then_with(|| a.0.cmp(&b.0))
+    });
+    let details = waterfalls
+      .iter()
+      .take(MAX_REPORTED_WATERFALLS)
+      .map(|(chain, size)| format!("\n  {} ({})", chain.join(" -> "), format_size(*size as f64)))
+      .collect::<String>();
+    Some(format!(
+      "Async chunk waterfall: {deepest} sequential async chunks are required before these leaves can load. Collapse nested import() calls or prefetch an earlier chunk.\nWaterfalls:{details}"
+    ))
+  }
+
+  fn inlined_assets_message(compilation: &Compilation) -> Option<String> {
+    const MAX_REPORTED_ASSETS: usize = 5;
+    const DEFAULT_MAX_SIZE: usize = 8096;
+    let mut assets = vec![];
+    let mut total = 0;
+    let module_graph = compilation.get_module_graph();
+    for (_, module) in module_graph.modules() {
+      if !matches!(
+        module
+          .build_info()
+          .asset
+          .as_deref()
+          .map(|asset| &asset.data_url),
+        Some(CanonicalizedDataUrlOption::Asset(true))
+      ) {
+        continue;
+      }
+      let size = module
+        .source_types(module_graph)
+        .iter()
+        .map(|source_type| module.size(Some(source_type), Some(compilation)))
+        .sum::<f64>()
+        .round() as usize;
+      if size <= DEFAULT_MAX_SIZE {
+        continue;
+      }
+      total += size;
+      assets.push((
+        module
+          .readable_identifier(&compilation.options.context)
+          .into_owned(),
+        size,
+      ));
+    }
+    if assets.is_empty() {
+      return None;
+    }
+    assets.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+    let details = assets
+      .iter()
+      .take(MAX_REPORTED_ASSETS)
+      .map(|(name, size)| format!("\n  {name} ({})", format_size(*size as f64)))
+      .collect::<String>();
+    Some(format!(
+      "Inlined assets: {} asset module(s) with estimated generated sizes over {DEFAULT_MAX_SIZE} bytes are embedded as data URLs ({} total). Consider asset/resource so browsers can cache them separately.\nAssets:{}",
+      assets.len(),
+      format_size(total as f64),
+      details
+    ))
+  }
+
+  fn top_level_this_message(compilation: &Compilation) -> Option<String> {
+    const MAX_REPORTED_MODULES: usize = 5;
+    let mut modules = vec![];
+    let mut total = 0;
+    for (_, module) in compilation.get_module_graph().modules() {
+      let count = module.build_info().top_level_this;
+      if count == 0 {
+        continue;
+      }
+      total += count;
+      modules.push((
+        module
+          .readable_identifier(&compilation.options.context)
+          .into_owned(),
+        count,
+      ));
+    }
+    if modules.is_empty() {
+      return None;
+    }
+    modules.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+    let details = modules
+      .iter()
+      .take(MAX_REPORTED_MODULES)
+      .map(|(name, count)| format!("\n  {name} ({count} occurrence(s))"))
+      .collect::<String>();
+    Some(format!(
+      "Top-level this: {total} occurrence(s) in ES modules were replaced with undefined. Use imports, exports, or module exports explicitly instead.\nModules:{details}"
+    ))
+  }
 }
 
 #[plugin_hook(CompilerAfterEmit for SizeLimitsPlugin)]
@@ -219,7 +419,49 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
       );
     }
 
-    if !diagnostics.is_empty() {
+    if self.options.async_chunk_waterfalls
+      && let Some(message) = Self::async_chunk_waterfall_message(compilation)
+    {
+      Self::add_diagnostic(
+        hints,
+        "async chunk waterfalls warning".to_string(),
+        message,
+        &mut diagnostics,
+      );
+    }
+
+    if self.options.embedded_source_maps {
+      Self::add_diagnostic(
+        hints,
+        "embedded source maps warning".to_string(),
+        "Embedded source maps increase every production JavaScript download. Use a separate source-map file or disable source maps for this build.".to_string(),
+        &mut diagnostics,
+      );
+    }
+
+    if self.options.inlined_assets
+      && let Some(message) = Self::inlined_assets_message(compilation)
+    {
+      Self::add_diagnostic(
+        hints,
+        "inlined assets warning".to_string(),
+        message,
+        &mut diagnostics,
+      );
+    }
+
+    if self.options.top_level_this
+      && let Some(message) = Self::top_level_this_message(compilation)
+    {
+      Self::add_diagnostic(
+        hints,
+        "top-level this warning".to_string(),
+        message,
+        &mut diagnostics,
+      );
+    }
+
+    if !assets_over_size_limit.is_empty() || !entrypoints_over_limit.is_empty() {
       let has_async_chunk = compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
@@ -236,9 +478,8 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
 
         Self::add_diagnostic(hints, title, message, &mut diagnostics);
       }
-
-      compilation.extend_diagnostics(diagnostics);
     }
+    compilation.extend_diagnostics(diagnostics);
   }
 
   for (name, asset) in compilation.assets_mut() {
