@@ -1,4 +1,4 @@
-const { setTimeout } = require("node:timers/promises");
+import { setTimeout } from "node:timers/promises";
 
 function runCompiler(compiler) {
   return new Promise((resolve, reject) => {
@@ -52,7 +52,7 @@ function createGCTracker() {
   };
 }
 
-module.exports = {
+export {
   closeCompiler,
   createGCTracker,
   forceGC,

@@ -1,17 +1,17 @@
-const rspack = require("@rspack/core");
-const { createFsFromVolume, Volume } = require("memfs");
-const {
+import { rspack } from "@rspack/core";
+import { createFsFromVolume, Volume } from "memfs";
+import {
   closeCompiler,
   createGCTracker,
   runCompiler,
-} = require("./helpers.cjs");
+} from "./helpers.mjs";
 
 async function main() {
   const gcTracker = createGCTracker();
   let build = 0;
 
   const compiler = rspack({
-    context: __dirname,
+    context: import.meta.dirname,
     mode: "development",
     entry: "./entry.js",
     output: {

@@ -1,9 +1,9 @@
-const rspack = require("@rspack/core");
-const { createFsFromVolume, Volume } = require("memfs");
-const { closeCompiler, forceGC, runCompiler } = require("./helpers.cjs");
+import { rspack } from "@rspack/core";
+import { createFsFromVolume, Volume } from "memfs";
+import { closeCompiler, forceGC, runCompiler } from "./helpers.mjs";
 
 async function main() {
-  const fixtureDir = __dirname;
+  const fixtureDir = import.meta.dirname;
   let filenameCalls = 0;
   let bannerCalls = 0;
   let observedCompiler = false;

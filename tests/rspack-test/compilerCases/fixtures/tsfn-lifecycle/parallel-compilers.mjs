@@ -1,5 +1,5 @@
-const rspack = require("@rspack/core");
-const { createFsFromVolume, Volume } = require("memfs");
+import { rspack } from "@rspack/core";
+import { createFsFromVolume, Volume } from "memfs";
 
 function runCompiler(compiler) {
   return new Promise((resolve, reject) => {
@@ -25,7 +25,7 @@ async function main() {
     resolveCompiler1Done = resolve;
   });
 
-  const fixtureDir = __dirname;
+  const fixtureDir = import.meta.dirname;
   const compiler1 = rspack({
     context: fixtureDir,
     mode: "development",
