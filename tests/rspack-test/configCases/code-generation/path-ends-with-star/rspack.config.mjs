@@ -18,7 +18,7 @@ export default {
       if (!isWindows) {
         const fs = fs2;
         const path = path2;
-        // `isolateSource` (test.config.js) makes __dirname a per-suite copy, so
+        // `isolateSource` (test.config.mjs) makes __dirname a per-suite copy, so
         // creating/removing `star*` here can't race the parallel RuntimeMode suite.
         const dir = path.resolve(import.meta.dirname, 'star*');
         if (!fs.existsSync(dir)) {

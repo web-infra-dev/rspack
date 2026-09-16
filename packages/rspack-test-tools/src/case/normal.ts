@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import TerserPlugin from 'terser-webpack-plugin';
 import {
@@ -6,6 +5,7 @@ import {
   HotModuleReplacementPlugin,
   type RspackOptions,
 } from '@rspack/core';
+import { findTestFile, readTestFile } from '../helper/read-test-file';
 import {
   BasicCaseCreator,
   type IBasicCaseCreatorOptions,
@@ -115,9 +115,9 @@ function defaultOptions(
   mode?: 'development' | 'production',
 ) {
   let testConfig: RspackOptions = {};
-  const testConfigPath = path.join(context.getSource(), 'test.config.js');
-  if (fs.existsSync(testConfigPath)) {
-    testConfig = require(testConfigPath);
+  const testConfigPath = findTestFile(context.getSource(), 'test.config');
+  if (testConfigPath) {
+    testConfig = readTestFile<RspackOptions>(testConfigPath);
   }
   const terserForTesting = new TerserPlugin({
     parallel: false,
