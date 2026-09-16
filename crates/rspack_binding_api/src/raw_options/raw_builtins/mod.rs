@@ -523,10 +523,10 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(SharedUsedExportsOptimizerPlugin::new(options).boxed());
       }
       BuiltinPluginName::ContainerPlugin => {
-        let (options, expose_layers) = downcast_into::<RawContainerPluginOptions>(self.options)
+        let options = downcast_into::<RawContainerPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?
           .into_options();
-        plugins.push(ContainerPlugin::new_with_expose_layers(options, expose_layers).boxed());
+        plugins.push(ContainerPlugin::new(options).boxed());
       }
       BuiltinPluginName::ContainerReferencePlugin => {
         plugins.push(

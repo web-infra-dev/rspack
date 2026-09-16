@@ -37,10 +37,9 @@ impl ModuleFactory for ContainerEntryModuleFactory {
       ))
     } else {
       Ok(ModuleFactoryResult::new_with_module(
-        ContainerEntryModule::new_with_expose_layers(
+        ContainerEntryModule::new(
           dep.name.clone(),
           dep.exposes.clone(),
-          dep.expose_layers.clone(),
           dep.share_scope.clone(),
           dep.enhanced,
           data.build_context.compiler_options.experiments.runtime_mode,
