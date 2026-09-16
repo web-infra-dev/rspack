@@ -11,10 +11,12 @@ import {
 } from '../builtin-plugin/base';
 import type { Compiler } from '../Compiler';
 import {
+  normalizeShareScope,
   normalizeSharedOptions,
+  type ShareScope,
   type SharedConfig,
 } from '../sharing/SharePlugin';
-import { isRequiredVersion } from '../sharing/utils';
+import { isRequiredVersion, validateLayer } from '../sharing/utils';
 import {
   getRemoteInfos,
   type ModuleFederationPluginOptions,
@@ -112,12 +114,15 @@ export type RemoteAliasMap = Record<string, { name: string; entry?: string }>;
 export type ManifestExposeOption = {
   path: string;
   name: string;
+  layer?: string;
 };
 
 export type ManifestSharedOption = {
   name: string;
   version?: string;
   requiredVersion?: string;
+  shareScope: ShareScope;
+  layer?: string;
   singleton?: boolean;
 };
 
@@ -213,24 +218,36 @@ function collectManifestExposes(
   exposes: ModuleFederationPluginOptions['exposes'],
 ): ManifestExposeOption[] | undefined {
   if (!exposes) return undefined;
-  type NormalizedExpose = { import: string[]; name?: string };
-  type ExposesConfigInput = { import: string | string[]; name?: string };
+  type NormalizedExpose = {
+    import: string[];
+    name?: string;
+    layer?: string;
+  };
+  type ExposesConfigInput = {
+    import: string | string[];
+    name?: string;
+    layer?: string;
+  };
   const parsed = parseOptions<ExposesConfigInput, NormalizedExpose>(
     exposes,
     (value) => ({
       import: Array.isArray(value) ? value : [value],
       name: undefined,
+      layer: undefined,
     }),
     (value) => ({
       import: Array.isArray(value.import) ? value.import : [value.import],
       name: value.name ?? undefined,
+      layer: value.layer ?? undefined,
     }),
   );
   const result = parsed.map(([exposeKey, info]) => {
+    validateLayer(info.layer, 'ModuleFederationManifestPlugin');
     const exposeName = info.name ?? exposeKey.replace(/^\.\//, '');
     return {
       path: exposeKey,
       name: exposeName,
+      layer: info.layer,
     };
   });
   return result.length > 0 ? result : undefined;
@@ -238,6 +255,7 @@ function collectManifestExposes(
 
 function collectManifestShared(
   shared: ModuleFederationPluginOptions['shared'],
+  rootShareScope: ShareScope | undefined,
 ): ManifestSharedOption[] | undefined {
   if (!shared) return undefined;
   const parsed = parseOptions<SharedConfig, SharedConfig>(
@@ -253,9 +271,19 @@ function collectManifestShared(
     (item) => item,
   );
   const result = parsed.map(([key, config]) => {
+    validateLayer(config.layer, 'ModuleFederationManifestPlugin');
+    validateLayer(
+      config.issuerLayer,
+      'ModuleFederationManifestPlugin',
+      'issuerLayer',
+    );
     const name = config.shareKey || key;
     const version =
-      typeof config.version === 'string' ? config.version : undefined;
+      config.version === false
+        ? '0'
+        : typeof config.version === 'string'
+          ? config.version
+          : undefined;
     const requiredVersion =
       typeof config.requiredVersion === 'string'
         ? config.requiredVersion
@@ -264,6 +292,12 @@ function collectManifestShared(
       name,
       version,
       requiredVersion,
+      shareScope: normalizeShareScope(
+        config.shareScope || rootShareScope || 'default',
+        true,
+        'ModuleFederationManifestPlugin',
+      ),
+      layer: config.layer,
       singleton: config.singleton,
     };
   });
@@ -298,7 +332,10 @@ function normalizeManifestOptions(mfConfig: ModuleFederationPluginOptions) {
   if (manifestOptions.exposes === undefined && manifestExposes) {
     manifestOptions.exposes = manifestExposes;
   }
-  const manifestShared = collectManifestShared(mfConfig.shared);
+  const manifestShared = collectManifestShared(
+    mfConfig.shared,
+    mfConfig.shareScope,
+  );
   if (manifestOptions.shared === undefined && manifestShared) {
     manifestOptions.shared = manifestShared;
   }

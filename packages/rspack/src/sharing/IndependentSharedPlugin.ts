@@ -425,14 +425,16 @@ export class IndependentSharedPlugin {
                     ({ shareKey, version, layer, shareScope }) =>
                       shareKey === targetShared.name &&
                       version === targetShared.version &&
-                      (targetShared.layer === undefined ||
-                        layer === targetShared.layer) &&
-                      (targetShared.shareScope === undefined ||
-                        shareScopesEqual(shareScope, targetShared.shareScope)),
+                      layer === targetShared.layer &&
+                      shareScopesEqual(
+                        shareScope,
+                        targetShared.shareScope ?? 'default',
+                      ),
                   );
-                  if (candidates.length !== 1) return;
-                  targetShared.fallback = candidates[0].entry;
-                  targetShared.fallbackName = candidates[0].globalName;
+                  if (candidates.length === 1) {
+                    targetShared.fallback = candidates[0].entry;
+                    targetShared.fallbackName = candidates[0].globalName;
+                  }
                 });
 
                 compilation.updateAsset(

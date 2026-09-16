@@ -157,7 +157,7 @@ new rspack.container.ModuleFederationPlugin({
 });
 ```
 
-This option is available with Module Federation 1.5, which uses the enhanced runtime. When using `ContainerPlugin` directly, set `enhanced: true`; Module Federation 1.0 does not support this option. Omitting `layer` leaves it unspecified. An empty string (`layer: ''`) is preserved as an explicit layer value and is distinct from an omitted layer.
+This option is available with Module Federation 1.5, which uses the enhanced runtime. When using `ContainerPlugin` directly, set `enhanced: true`; Module Federation 1.0 does not support this option. Omitting `layer` leaves it unspecified.
 
 ### shared
 
@@ -197,7 +197,7 @@ The SharedConfig can include the following sub-options:
 
 - import: Module that should be placed in the share scope of the shared module. If the shared module cannot be found in the share scope of the shared module or the version is invalid, this provided module can be used as a fallback module.
 - request: Override the module request matched by this shared configuration. When `import` is omitted, it defaults to `request`, or to the configuration key when `request` is omitted.
-- layer: Select the layer of the shared provider and fallback module. Matching layers take precedence over fallback configurations without a layer. An empty string is an explicit layer and differs from an omitted value.
+- layer: Select the layer of the shared provider and fallback module. Matching layers take precedence over fallback configurations without a layer.
 - issuerLayer: Restrict consumption to modules imported from this layer. This is independent of the shared module's `layer`.
 - eager: If set to `true`, the shared module will be loaded in the initial chunk instead of being dynamically loaded when used. This means that the shared module will be loaded together with the main entry point regardless of whether it has been used. This can eliminate the delay caused by dynamic loading, but it will increase the size of the initial package. Also, please note that when this configuration is enabled, all provided modules and fallback modules will always be downloaded.
 - packageName: Used to determine the package name and required version from `package.json`. Configuration is only necessary when the package name cannot be automatically determined based on the request.
@@ -235,11 +235,20 @@ When enabled, the plugin emits both `mf-manifest.json` and `mf-stats.json` (you 
 - `mf-stats.json`: Contains full build statistics, including the asset lists for exposes/shared/remotes, `metaData` (plugin version, build info, `remoteEntry`, etc.), and extra asset analysis data, making it suitable for later aggregation or diagnostics.
 - `mf-manifest.json`: A runtime manifest distilled from the stats file. The structure stays stable and can be consumed by Module Federation clients when loading remote modules. The exposes/shared/remotes sections describe what is publicly exposed.
 
+Layer-aware builds add optional identity fields to both outputs:
+
+- `layer` identifies the layer of an exposed or shared entry; entries without a layer omit it.
+- Shared entries include `shareScope` for non-default scopes or ordered scope arrays. An omitted scope means the scalar `"default"` scope.
+- Shares with a scalar scope and no layer retain the legacy `id`, which is not guaranteed to be unique. Within a manifest, use `name`, `shareScope`, and `layer` together to distinguish shared entries, preserving scope-array order.
+- Exposes include `requiredShared` when shared names alone are insufficient. Each requirement contains `name` and optional `shareScope` and `layer`; the stats output also retains the key-only `requires` list. Inferred requirements are omitted when asset analysis is disabled.
+
+Readers must accept older manifests without these optional fields.
+
 `ManifestConfig` provides the following options:
 
 - `filePath`: Target directory for the manifest files. Applies to both manifest and stats outputs.
 - `fileName`: Manifest file name. When set, the stats file automatically appends a `-stats` suffix (for example, `fileName: 'mf.json'` produces `mf.json` and `mf-stats.json`). All files are emitted into the directory defined by `filePath` (if provided).
-- `disableAssetsAnalyze`: Disables asset analysis. When `true`, the manifest omits the `shared` and `exposes` fields, and the `remotes` entries will not include asset information.
+- `disableAssetsAnalyze`: Disables asset analysis. Shared and exposed modules are described from configuration, with empty asset lists. Resolved provider details are omitted.
 
 ### injectTreeShakingUsedExports
 
