@@ -39,10 +39,14 @@ other IDs, shared runtime chunks without an entry, or custom startup
 (`startupNoDefault`). Callers must fall back to rebuilding their application when
 synchronization is unsupported.
 
-This is a Rspack-only capability for plugins implementing entry reloading. It does
-not execute modules, invalidate module caches, update published library exports,
-or release application-owned references. The caller must reload the same compiled
-entry first and separately publish its new exports.
+This is an opt-in bundler capability for entry reloaders in long-running Node.js
+applications. SSR servers are one use case; RSC servers may also use this primitive,
+but it does not implement or validate an RSC update protocol. It has no dependency
+on a framework or Module Federation.
+
+It does not execute modules, invalidate module caches, or release application-owned
+references. The caller must reload the same compiled entry first, then synchronize
+its startup exports. Publication behavior depends on the library output below.
 
 For a synchronous ESM entry with statically known exports, `commonjs2` and
 `commonjs-module` output publishes a stable namespace with getters that follow the
@@ -52,3 +56,8 @@ names; this API does not support changing its shape. Other
 library outputs and asynchronous or dynamic export shapes retain their existing
 publication behavior and require caller-managed cleanup. Requesting this capability disables entry
 inlining; builds that do not request it are unchanged.
+
+Values already captured by callers (for example, destructured exports) are not
+rewritten. Callers must coordinate active requests and retire their own old references.
+The stable namespace uses getter descriptors rather than writable value properties.
+This API does not replace HMR, update server manifests, or clean up arbitrary side effects.

@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-use rspack_collections::{Identifiable, IdentifierSet};
+use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_core::{
   ChunkGraph, Compilation, DependenciesBlock, ModuleGraph, ModuleId, ModuleIdentifier,
   RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements,
@@ -250,8 +250,8 @@ fn get_module_id(
 fn collect_consumers(
   compilation: &Compilation,
   module_graph: &ModuleGraph,
-) -> FxHashMap<ModuleIdentifier, Vec<(ModuleIdentifier, ModuleId)>> {
-  let mut consumers = FxHashMap::<_, Vec<_>>::default();
+) -> IdentifierMap<Vec<(ModuleIdentifier, ModuleId)>> {
+  let mut consumers = IdentifierMap::<Vec<_>>::default();
   for (identifier, _) in module_graph.modules() {
     let Some(id) = get_module_id(compilation, identifier) else {
       continue;
