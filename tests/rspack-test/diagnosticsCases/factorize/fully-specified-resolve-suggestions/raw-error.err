@@ -1,5 +1,6 @@
 Array [
   Object {
+    code: ModuleNotFoundError,
     loc: 1:1-15,
     moduleIdentifier: javascript/esm|<TEST_ROOT>/diagnosticsCases/factorize/fully-specified-resolve-suggestions/index.js,
     moduleName: ./index.js,

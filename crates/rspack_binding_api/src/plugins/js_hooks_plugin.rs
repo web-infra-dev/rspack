@@ -53,6 +53,7 @@ pub struct JsHooksAdapterPlugin {
   register_normal_module_factory_before_resolve_taps: RegisterNormalModuleFactoryBeforeResolveTaps,
   register_normal_module_factory_factorize_taps: RegisterNormalModuleFactoryFactorizeTaps,
   register_normal_module_factory_resolve_taps: RegisterNormalModuleFactoryResolveTaps,
+  register_normal_module_factory_resolve_error_taps: RegisterNormalModuleFactoryResolveErrorTaps,
   register_normal_module_factory_resolve_for_scheme_taps:
     RegisterNormalModuleFactoryResolveForSchemeTaps,
   register_normal_module_factory_after_resolve_taps: RegisterNormalModuleFactoryAfterResolveTaps,
@@ -235,6 +236,11 @@ impl Plugin for JsHooksAdapterPlugin {
       .normal_module_factory_hooks
       .resolve
       .intercept(self.register_normal_module_factory_resolve_taps.clone());
+    ctx.normal_module_factory_hooks.resolve_error.intercept(
+      self
+        .register_normal_module_factory_resolve_error_taps
+        .clone(),
+    );
     ctx
       .normal_module_factory_hooks
       .resolve_for_scheme
@@ -349,6 +355,9 @@ impl Plugin for JsHooksAdapterPlugin {
       .clear_cache();
     self
       .register_normal_module_factory_resolve_taps
+      .clear_cache();
+    self
+      .register_normal_module_factory_resolve_error_taps
       .clear_cache();
     self
       .register_normal_module_factory_resolve_for_scheme_taps
@@ -663,6 +672,11 @@ impl JsHooksAdapterPlugin {
           register_js_taps.register_normal_module_factory_resolve_taps,
           non_skippable_registers.clone(),
         ),
+        register_normal_module_factory_resolve_error_taps:
+          RegisterNormalModuleFactoryResolveErrorTaps::new(
+            register_js_taps.register_normal_module_factory_resolve_error_taps,
+            non_skippable_registers.clone(),
+          ),
         register_normal_module_factory_resolve_for_scheme_taps:
           RegisterNormalModuleFactoryResolveForSchemeTaps::new(
             register_js_taps.register_normal_module_factory_resolve_for_scheme_taps,

@@ -12,6 +12,9 @@ export type NormalModuleCreateData =
     settings: {};
   };
 
+export type NormalModuleFactoryResolveError = binding.RspackError;
+export type NormalModuleFactoryResolveErrorResult = { retry: true } | void;
+
 export class NormalModuleFactory {
   hooks: {
     // TODO: second param resolveData
@@ -21,6 +24,10 @@ export class NormalModuleFactory {
     beforeResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
     factorize: liteTapable.AsyncSeriesBailHook<[ResolveData], void>;
     resolve: liteTapable.AsyncSeriesBailHook<[ResolveData], void>;
+    resolveError: liteTapable.AsyncSeriesBailHook<
+      [ResolveData, NormalModuleFactoryResolveError],
+      NormalModuleFactoryResolveErrorResult
+    >;
     afterResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
     createModule: liteTapable.AsyncSeriesBailHook<
       [NormalModuleCreateData, {}],
@@ -38,6 +45,10 @@ export class NormalModuleFactory {
       beforeResolve: new liteTapable.AsyncSeriesBailHook(['resolveData']),
       factorize: new liteTapable.AsyncSeriesBailHook(['resolveData']),
       resolve: new liteTapable.AsyncSeriesBailHook(['resolveData']),
+      resolveError: new liteTapable.AsyncSeriesBailHook([
+        'resolveData',
+        'error',
+      ]),
       afterResolve: new liteTapable.AsyncSeriesBailHook(['resolveData']),
       createModule: new liteTapable.AsyncSeriesBailHook([
         'createData',

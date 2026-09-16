@@ -51,6 +51,23 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
         };
       },
     ),
+    registerNormalModuleFactoryResolveErrorTaps: createTap(
+      binding.RegisterJsTapKind.NormalModuleFactoryResolveError,
+
+      function () {
+        return getCompiler().__internal__get_compilation_params()!
+          .normalModuleFactory.hooks.resolveError;
+      },
+
+      function (queried) {
+        return async function (args: binding.JsResolveErrorArgs) {
+          const ret = await queried.promise(args.resolveData, args.error);
+          // Anything other than `{ retry: true }` means no retry, letting the
+          // resolution error propagate.
+          return [ret?.retry === true ? true : undefined, args.resolveData];
+        };
+      },
+    ),
     registerNormalModuleFactoryResolveForSchemeTaps: createMapTap(
       binding.RegisterJsTapKind.NormalModuleFactoryResolveForScheme,
 
