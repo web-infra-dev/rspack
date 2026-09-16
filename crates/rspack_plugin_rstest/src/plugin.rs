@@ -232,7 +232,7 @@ impl RstestPlugin {
       resolve_to_context: false,
       dependency_category,
     };
-    let resolver = data.resolver_factory.get(dep);
+    let resolver = data.build_context.resolver_factory.get(dep);
 
     let resolved_directory_target = if stripped.starts_with('.') {
       let (resolve_result, resolve_dependencies) = resolver
@@ -255,15 +255,64 @@ impl RstestPlugin {
       None
     };
 
-    let resolved_request = resolved_directory_target
+    let mut resolved_request = resolved_directory_target
       .unwrap_or(default_target)
       .to_string();
 
-    let (manual_mock_result, manual_mock_dependencies) = resolver
+    let (mut manual_mock_result, manual_mock_dependencies) = resolver
       .resolve_with_context(data.context.as_ref(), &resolved_request)
       .await;
     data.add_file_dependencies(manual_mock_dependencies.file_dependencies);
     data.add_missing_dependencies(manual_mock_dependencies.missing_dependencies);
+
+    // Keep project-level mocks authoritative, including for aliases and workspace packages.
+    // Only a missing mock should fall through; other resolver errors must remain visible.
+    if !stripped.starts_with('.')
+      && matches!(
+        &manual_mock_result,
+        Err(ResolveInnerError::RspackResolver(
+          rspack_resolver::ResolveError::NotFound(_)
+            | rspack_resolver::ResolveError::MatchedAliasNotFound(_, _)
+        ))
+      )
+    {
+      let (resolve_result, resolve_dependencies) = resolver
+        .resolve_with_context(data.context.as_ref(), stripped)
+        .await;
+      data.add_file_dependencies(resolve_dependencies.file_dependencies);
+      data.add_missing_dependencies(resolve_dependencies.missing_dependencies);
+
+      if let Ok(ResolveResult::Resource(resource)) = resolve_result
+        && let (Some(parent), Some(file_name)) = (resource.path.parent(), resource.path.file_name())
+      {
+        resolved_request = parent.join("__mocks__").join(file_name).to_string();
+        let (result, dependencies) = resolver
+          .resolve_with_context(data.context.as_ref(), &resolved_request)
+          .await;
+        data.add_file_dependencies(dependencies.file_dependencies);
+        data.add_missing_dependencies(dependencies.missing_dependencies);
+        manual_mock_result = result;
+
+        // Preserve format-specific mocks before trying a shared mock via resolve.extensions.
+        if matches!(
+          &manual_mock_result,
+          Err(ResolveInnerError::RspackResolver(
+            rspack_resolver::ResolveError::NotFound(_)
+              | rspack_resolver::ResolveError::MatchedAliasNotFound(_, _)
+          ))
+        ) && let Some(stem) = resource.path.file_stem()
+          && stem != file_name
+        {
+          resolved_request = parent.join("__mocks__").join(stem).to_string();
+          let (result, dependencies) = resolver
+            .resolve_with_context(data.context.as_ref(), &resolved_request)
+            .await;
+          data.add_file_dependencies(dependencies.file_dependencies);
+          data.add_missing_dependencies(dependencies.missing_dependencies);
+          manual_mock_result = result;
+        }
+      }
+    }
 
     match manual_mock_result {
       Err(ResolveInnerError::RspackResolver(

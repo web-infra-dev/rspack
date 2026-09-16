@@ -1747,6 +1747,38 @@ CompilerOptions {
         colors: <env-dependent>,
     },
     cache: Disabled,
+    snapshot: SnapshotOptions {
+        immutable_paths: [],
+        unmanaged_paths: [],
+        managed_paths: [
+            Regexp(
+                RspackRegex {
+                    flags: "",
+                    source: "[\\\\/]node_modules[\\\\/][^.]",
+                },
+            ),
+        ],
+        resolve_build_dependencies: SnapshotStrategyOptions {
+            hash: true,
+            timestamp: true,
+        },
+        build_dependencies: SnapshotStrategyOptions {
+            hash: true,
+            timestamp: true,
+        },
+        resolve: SnapshotStrategyOptions {
+            hash: false,
+            timestamp: true,
+        },
+        module: SnapshotStrategyOptions {
+            hash: false,
+            timestamp: true,
+        },
+        context_module: SnapshotStrategyOptions {
+            hash: false,
+            timestamp: true,
+        },
+    },
     experiments: Experiments {
         css: false,
         new_cache: NewCacheOptions {

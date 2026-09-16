@@ -16,13 +16,6 @@ module.exports = {
 			+     "name": "none",
 			+     "portable": false,
 			+     "readonly": false,
-			+     "snapshot": Object {
-			+       "immutablePaths": Array [],
-			+       "managedPaths": Array [
-			+         /[\\\\/]node_modules[\\\\/][^.]/,
-			+       ],
-			+       "unmanagedPaths": Array [],
-			+     },
 			+     "storage": Object {
 			+       "directory": "<cwd>/node_modules/.cache/rspack",
 			+       "location": "<cwd>/node_modules/.cache/rspack/none",

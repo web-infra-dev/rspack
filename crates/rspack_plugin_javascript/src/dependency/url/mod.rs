@@ -1,5 +1,6 @@
 use std::sync::LazyLock;
 
+use concat_string::concat_string;
 use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
@@ -48,6 +49,17 @@ impl URLDependency {
 
   pub fn used_by_exports(&self) -> Option<&UsedByExports> {
     self.used_by_exports.as_ref()
+  }
+
+  /// Replace the arguments of `new URL(request, import.meta.url)` with the given
+  /// request, keeping the `new URL(...)` call itself untouched.
+  pub fn replace_request(&self, source: &mut TemplateReplaceSource, request: String) {
+    source.replace(
+      self.range_url.start,
+      self.range_url.end,
+      concat_string!(request, ", import.meta.url"),
+      None,
+    );
   }
 }
 
