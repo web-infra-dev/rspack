@@ -1,13 +1,13 @@
-const rspack = require("@rspack/core");
-const { createFsFromVolume, Volume } = require("memfs");
-const { closeCompiler, runCompiler } = require("./helpers.cjs");
+import { rspack } from "@rspack/core";
+import { createFsFromVolume, Volume } from "memfs";
+import { closeCompiler, runCompiler } from "./helpers.mjs";
 
 const EXPECTED_MESSAGE =
   "Rspack compiler has already been closed by `compiler.close()`. Do not call Rspack compiler APIs after close; create a new compiler instead.";
 
 async function main() {
   const compiler = rspack({
-    context: __dirname,
+    context: import.meta.dirname,
     mode: "development",
     entry: "./entry.js",
     output: {

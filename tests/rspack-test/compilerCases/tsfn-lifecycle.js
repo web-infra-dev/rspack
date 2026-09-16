@@ -46,7 +46,7 @@ module.exports = [
           __dirname,
           "fixtures",
           "tsfn-lifecycle",
-          "gc-check-hooks.cjs",
+          "gc-check-hooks.mjs",
         ),
       );
     },
@@ -60,7 +60,7 @@ module.exports = [
           __dirname,
           "fixtures",
           "tsfn-lifecycle",
-          "gc-check-options.cjs",
+          "gc-check-options.mjs",
         ),
       );
     },
@@ -74,7 +74,7 @@ module.exports = [
           __dirname,
           "fixtures",
           "tsfn-lifecycle",
-          "gc-check-options-multiple-builds.cjs",
+          "gc-check-options-multiple-builds.mjs",
         ),
       );
     },
@@ -88,7 +88,7 @@ module.exports = [
           __dirname,
           "fixtures",
           "tsfn-lifecycle",
-          "gc-check-chunk.cjs",
+          "gc-check-chunk.mjs",
         ),
       );
     },
@@ -102,7 +102,7 @@ module.exports = [
           __dirname,
           "fixtures",
           "tsfn-lifecycle",
-          "gc-check-module-graph-connection.cjs",
+          "gc-check-module-graph-connection.mjs",
         ),
       );
     },
@@ -116,7 +116,7 @@ module.exports = [
           __dirname,
           "fixtures",
           "tsfn-lifecycle",
-          "gc-check-runtime-module.cjs",
+          "gc-check-runtime-module.mjs",
         ),
       );
     },
@@ -129,7 +129,7 @@ module.exports = [
           __dirname,
           "fixtures",
           "tsfn-lifecycle",
-          "closed-compiler-error.cjs",
+          "closed-compiler-error.mjs",
         ),
       );
     },
