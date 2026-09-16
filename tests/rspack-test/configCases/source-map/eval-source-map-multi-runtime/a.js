@@ -12,8 +12,6 @@ it("basic", () => {
 		const map = JSON.parse(Buffer.from(base64, "base64").toString("utf-8"));
 		files.push(map.file);
 	}
-	// Align with webpack: `file` is the module id (`${id}.js` for numeric ids),
-	// not the absolute path
 	expect(files).toHaveLength(2);
 	for (const file of files) {
 		expect(file).toMatch(/^\d+\.js$/);

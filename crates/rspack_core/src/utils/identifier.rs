@@ -32,17 +32,8 @@ pub fn contextify(context: impl AsRef<Utf8Path>, request: &str) -> String {
   result
 }
 
-/// Turns a source path into a `webpack://`-prefixed, context-relative source URL,
-/// as used for the `sources` of module-level source maps.
-///
-/// Aligned with webpack's `contextifySourceUrl`:
-/// <https://github.com/webpack/webpack/blob/main/lib/util/identifier.js>
+/// Converts a source path to a context-relative `webpack://` URL, preserving existing URLs.
 pub fn contextify_source_url(context: &str, source: &str) -> String {
-  // `webpack://` and `rspack://` source URLs are already context-independent,
-  // and standard URL sources (`data:`, `http:`, `https:`) are passed through
-  // verbatim by the devtool plugins; prefixing any of them again would
-  // produce doubly-schemed URLs that downstream source-map consumers cannot
-  // resolve.
   if source.starts_with("webpack://")
     || source.starts_with("rspack://")
     || source.starts_with("data:")
@@ -57,10 +48,7 @@ pub fn contextify_source_url(context: &str, source: &str) -> String {
   result
 }
 
-/// Returns true when a source-map `sources` entry is absolute: either
-/// slash-absolute or carrying a URI scheme. Mirrors
-/// `rspack_sources::helpers::get_source`, which lets such sources override
-/// `sourceRoot`.
+/// Matches absolute sources that override `sourceRoot` in `rspack_sources::helpers::get_source`.
 fn is_absolute_source(source: &str) -> bool {
   if source.starts_with('/') {
     return true;
@@ -73,16 +61,8 @@ fn is_absolute_source(source: &str) -> bool {
     && chars.all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '+' | '-' | '.'))
 }
 
-/// Normalizes a loader-provided source map before it is stored on a module:
-/// path-like fields (`sources`, `sourceRoot`, `file`) are rewritten so that
-/// machine-specific absolute paths (e.g. sandboxed CI worker paths) do not leak
-/// into module hashes, cache keys, or emitted assets.
-///
-/// Aligned with webpack's `contextifySourceMap`:
-/// <https://github.com/webpack/webpack/blob/main/lib/NormalModule.js>
+/// Removes context-dependent paths from a loader-provided source map.
 pub fn contextify_source_map(context: &str, source_map: &mut SourceMap<'static>) {
-  // webpack checks `!sourceRoot`, so an empty `sourceRoot` is treated as absent
-  // instead of being joined onto every source as a leading `/`.
   let source_root = source_map
     .source_root()
     .filter(|source_root| !source_root.is_empty())
@@ -91,10 +71,6 @@ pub fn contextify_source_map(context: &str, source_map: &mut SourceMap<'static>)
     .sources()
     .iter()
     .map(|source| {
-      // Apply `sourceRoot` only to relative entries: URI-schemed and
-      // slash-absolute sources override it, matching the source-map streaming
-      // reader (`rspack_sources::helpers::get_source`). Joining the root onto
-      // a URL like `https://cdn.example/a.js` would destroy the URL.
       let source = match &source_root {
         Some(source_root) if !is_absolute_source(source) => {
           if source_root.ends_with('/') {

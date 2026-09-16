@@ -14,6 +14,5 @@ it("basic", () => {
 	expect(map.sources[0]).toMatch(
 		new RegExp(`${scheme}:\\/\\/\\/\\.\\/index\\.js\\?[a-zA-Z0-9]+`)
 	);
-	// Align with webpack: `file` is the module id, not the absolute path
 	expect(map.file).toBe("./index.js");
 });

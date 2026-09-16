@@ -943,9 +943,6 @@ impl NormalModule {
     if source_map_kind.enabled()
       && let Some(mut source_map) = source_map
     {
-      // Rewrite path-like source map fields to context-relative `webpack://` URLs,
-      // aligned with webpack's `contextifySourceMap`, so that machine-specific
-      // absolute paths do not leak into module hashes or emitted assets.
       contextify_source_map(context, &mut source_map);
       let content = content.into_string_lossy();
       return Ok(

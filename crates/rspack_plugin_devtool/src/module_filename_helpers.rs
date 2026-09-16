@@ -111,13 +111,9 @@ impl ModuleFilenameHelpers {
             panic!("failed to find a module for the given identifier '{module_identifier}'")
           });
 
-        // Aligned with webpack's `ModuleFilenameHelpers.createFilename`:
-        // <https://github.com/webpack/webpack/blob/main/lib/ModuleFilenameHelpers.js>
         let short_identifier = module.readable_identifier(context).to_string();
         let identifier = contextify(context, module_identifier);
-        // `[resource]` and `[loaders]` must stay request paths: a subclass's
-        // readable identifier may carry display-only decorations (e.g. CssModule's
-        // `css ` prefix), so they are derived from the user request instead.
+        // Readable identifiers may contain display-only prefixes such as `css `.
         let resource_identifier = match module.as_normal_module() {
           Some(normal_module) => contextify(context, normal_module.user_request()),
           None => short_identifier.clone(),
@@ -431,9 +427,6 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
   }
 
   pub fn relative_resource_path(&self) -> Option<Cow<'_, str>> {
-    // Resolve against the source map file's directory when the path is
-    // available; otherwise fall back to the resource identifier for module
-    // references so eval devtool modes do not leave the literal placeholder.
     let absolute_resource_path = self.absolute_resource_path();
     let resolved = resolve_relative_resource_path(
       absolute_resource_path,
@@ -444,6 +437,7 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
     match (resolved, &self.source_reference) {
       (Some(path), _) => Some(Cow::Owned(path)),
       (None, SourceReference::Module(_)) => {
+        // Eval devtool modes have no source map file path to resolve against.
         let resource_identifier = self.resource_identifier();
         let resource = resource_identifier.split('!').next_back().unwrap_or("");
         Some(Cow::Owned(resource.to_string()))
@@ -467,12 +461,7 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
     get_before(resource_identifier, "!")
   }
 
-  /// Aligned with webpack's `ModuleFilenameHelpers.createFilename`:
-  /// <https://github.com/webpack/webpack/blob/main/lib/ModuleFilenameHelpers.js>
-  ///
-  /// `[resource]` and `[loaders]` must stay request paths: a subclass's
-  /// readable identifier may carry display-only decorations (e.g. CssModule's
-  /// `css ` prefix), so they are derived from the user request instead.
+  /// Returns the request path without readable-identifier decorations such as `css `.
   pub fn resource_identifier(&self) -> &str {
     self.resource_identifier.get_or_init(|| {
       let Compilation { options, .. } = self.compilation;

@@ -253,10 +253,6 @@ async fn render_module_content(
         } else {
           "unknown"
         };
-      // Align with webpack: the map's `file` is the module id (with a `.js`
-      // suffix for numeric ids), never the absolute module identifier, so the
-      // emitted content does not depend on the build machine's paths.
-      // <https://github.com/webpack/webpack/blob/main/lib/EvalSourceMapDevToolPlugin.js>
       let map_file = if module_id.bytes().all(|b| b.is_ascii_digit()) {
         format!("{module_id}.js")
       } else {
