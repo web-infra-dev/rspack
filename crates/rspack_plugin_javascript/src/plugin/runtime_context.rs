@@ -192,6 +192,10 @@ var module = ({module_cache}[moduleId] = {{"#,
     let uses_runtime_context =
       runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackContext;
 
+    if runtime_requirements.contains(RuntimeGlobals::UPDATE_ENTRY_EXPORTS) {
+      allow_inline_startup = false;
+    }
+
     if allow_inline_startup && module_factories {
       startup.push("// module factories are used so entry inlining is disabled".into());
       allow_inline_startup = false;
@@ -602,6 +606,14 @@ function {}(moduleId) {{
         .into(),
       );
     }
+
+    Self::render_entry_exports_update(
+      chunk_ukey,
+      compilation,
+      runtime_template,
+      runtime_requirements,
+      &mut header,
+    );
 
     Ok(RenderBootstrapResult {
       header,

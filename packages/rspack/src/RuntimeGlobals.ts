@@ -298,6 +298,9 @@ enum RuntimeGlobals {
    */
   startup,
 
+  /** Replace retained startup exports. Returns false for an unsupported entry. */
+  updateEntryExports,
+
   /**
    * @deprecated
    * creating a default startup function with the entry modules
@@ -632,6 +635,8 @@ function renderRuntimeGlobals(
       return `${scope_name}.hu`;
     case RuntimeGlobals.getChunkUpdateCssFilename:
       return `${scope_name}.hk`;
+    case RuntimeGlobals.updateEntryExports:
+      return `${scope_name}.updateEntryExports`;
     case RuntimeGlobals.startup:
       return `${scope_name}.x`;
     case RuntimeGlobals.startupNoDefault:

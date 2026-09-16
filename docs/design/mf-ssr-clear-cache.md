@@ -673,7 +673,6 @@ MF runtime 在仍有 shared 使用或加载时直接调用此方法。当前实�
 
 原生回归位于 `configCases/container/mf-clear-cache-metadata` 和 `configCases/container/mf-selective-provider-cache`。覆盖多层/多父节点/循环父链，以及拼接开关、数字 ID、压缩、更新后首次 lazy 加载和再次清理后的严格身份保持。外部 MF 基线另有 WeakRef/GC 和真实 Modern antd consumer 验证。当前完整 Modern CI 仍存在独立的 runtime capture 断言失败，不代表整个生产生命周期已经验收。
 
-
 ## Concatenated consumer ownership (2026-09-11)
 
 A shared source module can be concatenated into several emitted page/loader
