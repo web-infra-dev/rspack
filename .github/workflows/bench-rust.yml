@@ -75,6 +75,9 @@ jobs:
 
       - name: Build benchmark (${{ inputs.measurement }})
         run: |
+          echo "====="
+          echo "${ENDPOINT}"
+          echo "====="
           bench_args=()
           if [ -n "${{ inputs.bench_target }}" ]; then
             bench_args+=(--bench "${{ inputs.bench_target }}")
@@ -89,7 +92,7 @@ jobs:
       - name: Run benchmark (simulation)
         if: ${{ inputs.measurement == 'simulation' }}
         uses: hardfist/action@750625725fb8def914579fc789c6249580c84a95
-        timeout-minutes: 30
+        # timeout-minutes: 30
         env:
           TMPDIR: ${{ runner.temp }}/codspeed-valgrind-tmp
           CODSPEED_EXPERIMENTAL_FAIR_SCHED: true
@@ -121,7 +124,7 @@ jobs:
       - name: Run benchmark (walltime)
         if: ${{ inputs.measurement == 'walltime' }}
         uses: hardfist/action@750625725fb8def914579fc789c6249580c84a95
-        timeout-minutes: 30
+        # timeout-minutes: 30
         env:
           TMPDIR: ${{ runner.temp }}/codspeed-valgrind-tmp
           # self-hosted physical runner runs as root but does not export HOME;
