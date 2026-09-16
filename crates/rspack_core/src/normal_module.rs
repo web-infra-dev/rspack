@@ -1,7 +1,7 @@
 use std::{
   borrow::Cow,
   sync::{
-    Arc,
+    Arc, UniqueArc,
     atomic::{AtomicUsize, Ordering},
   },
 };
@@ -459,7 +459,7 @@ impl Module for NormalModule {
     module.loaders = ?self.loaders.iter().map(|l| l.identifier().as_str()).collect::<Vec<_>>())
   )]
   async fn build(
-    mut self: std::sync::UniqueArc<Self>,
+    mut self: UniqueArc<Self>,
     build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {

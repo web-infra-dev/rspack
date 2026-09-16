@@ -1,4 +1,9 @@
-use std::{borrow::Cow, fmt::Write, hash::Hash, sync::Arc};
+use std::{
+  borrow::Cow,
+  fmt::Write,
+  hash::Hash,
+  sync::{Arc, UniqueArc},
+};
 
 use concat_string::concat_string;
 use cow_utils::CowUtils;
@@ -1406,7 +1411,7 @@ impl Module for ContextModule {
   }
 
   async fn build(
-    mut self: std::sync::UniqueArc<Self>,
+    mut self: UniqueArc<Self>,
     _build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
   ) -> Result<BoxModule> {

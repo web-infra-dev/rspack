@@ -1,4 +1,8 @@
-use std::{borrow::Cow, iter, sync::Arc};
+use std::{
+  borrow::Cow,
+  iter,
+  sync::{Arc, UniqueArc},
+};
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
@@ -1150,7 +1154,7 @@ impl Module for ExternalModule {
   }
 
   async fn build(
-    mut self: std::sync::UniqueArc<Self>,
+    mut self: UniqueArc<Self>,
     build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
   ) -> Result<BoxModule> {

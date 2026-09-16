@@ -1,4 +1,7 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{
+  borrow::Cow,
+  sync::{Arc, UniqueArc},
+};
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
@@ -117,7 +120,7 @@ impl Module for SelfModule {
   }
 
   async fn build(
-    self: std::sync::UniqueArc<Self>,
+    self: UniqueArc<Self>,
     _build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {

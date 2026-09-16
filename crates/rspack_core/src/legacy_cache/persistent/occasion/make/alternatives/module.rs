@@ -1,4 +1,7 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{
+  borrow::Cow,
+  sync::{Arc, UniqueArc},
+};
 
 use rspack_cacheable::{cacheable, cacheable_dyn, utils::OwnedOrRef};
 use rspack_collections::Identifiable;
@@ -26,7 +29,7 @@ pub struct TempModule {
 impl TempModule {
   pub fn transform_from(module: OwnedOrRef<crate::ModuleRef>) -> OwnedOrRef<crate::ModuleRef> {
     let m = module.as_ref();
-    let module = BoxModule::new(std::sync::UniqueArc::new(Self {
+    let module = BoxModule::new(UniqueArc::new(Self {
       id: m.identifier(),
       build_info: BuildInfo {
         dependencies: m.build_info().dependencies.clone(),
@@ -139,7 +142,7 @@ impl Module for TempModule {
   }
 
   async fn build(
-    self: std::sync::UniqueArc<Self>,
+    self: UniqueArc<Self>,
     _build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {

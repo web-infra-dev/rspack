@@ -1,4 +1,8 @@
-use std::{borrow::Cow, fmt::Write, sync::Arc};
+use std::{
+  borrow::Cow,
+  fmt::Write,
+  sync::{Arc, UniqueArc},
+};
 
 use async_trait::async_trait;
 use cow_utils::CowUtils;
@@ -236,7 +240,7 @@ impl Module for RscEntryModule {
   }
 
   async fn build(
-    mut self: std::sync::UniqueArc<Self>,
+    mut self: UniqueArc<Self>,
     _build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
   ) -> Result<BoxModule> {

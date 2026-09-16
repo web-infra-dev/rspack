@@ -749,7 +749,7 @@ pub trait Module:
   /// The actual build of the module, which will be called by the `Compilation`.
   /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
   async fn build(
-    self: std::sync::UniqueArc<Self>,
+    self: UniqueArc<Self>,
     _build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule>;
@@ -1325,7 +1325,10 @@ pub struct LibIdentOptions<'me> {
 
 #[cfg(test)]
 mod test {
-  use std::{borrow::Cow, sync::Arc};
+  use std::{
+    borrow::Cow,
+    sync::{Arc, UniqueArc},
+  };
 
   use rspack_cacheable::cacheable;
   use rspack_collections::{Identifiable, Identifier};
@@ -1395,7 +1398,7 @@ mod test {
         }
 
         async fn build(
-          self: std::sync::UniqueArc<Self>,
+          self: UniqueArc<Self>,
           _build_context: Arc<BuildContext>,
           _compilation: Option<&Compilation>,
         ) -> Result<BoxModule> {
