@@ -13,6 +13,7 @@ import type { Compilation, Compiler } from '.';
 import { Stats } from '.';
 import type { WatchOptions } from './config';
 import type { FileSystemInfoEntry, Watcher } from './util/fs';
+import { markInternalCallback } from './util/watchTimeInfo';
 
 type PendingWatchDelta = { added: Set<string>; removed: Set<string> };
 
@@ -117,28 +118,30 @@ export class Watching {
       missing,
       this.lastWatcherStartTime,
       this.watchOptions,
-      (
-        err,
-        fileTimeInfoEntries,
-        contextTimeInfoEntries,
-        changedFiles,
-        removedFiles,
-      ) => {
-        if (err) {
-          this.compiler.fileTimestamps = undefined;
-          this.compiler.contextTimestamps = undefined;
-          this.compiler.modifiedFiles = undefined;
-          this.compiler.removedFiles = undefined;
-          return this.handler(err);
-        }
-        this.#invalidate(
+      markInternalCallback(
+        (
+          err,
           fileTimeInfoEntries,
           contextTimeInfoEntries,
           changedFiles,
           removedFiles,
-        );
-        this.onChange();
-      },
+        ) => {
+          if (err) {
+            this.compiler.fileTimestamps = undefined;
+            this.compiler.contextTimestamps = undefined;
+            this.compiler.modifiedFiles = undefined;
+            this.compiler.removedFiles = undefined;
+            return this.handler(err);
+          }
+          this.#invalidate(
+            fileTimeInfoEntries,
+            contextTimeInfoEntries,
+            changedFiles,
+            removedFiles,
+          );
+          this.onChange();
+        },
+      ),
       (fileName, changeTime) => {
         if (!this.#invalidReported) {
           this.#invalidReported = true;
