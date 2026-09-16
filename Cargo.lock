@@ -5711,6 +5711,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_util_test"
+version = "0.102.3"
+dependencies = [
+ "rspack_util",
+]
+
+[[package]]
 name = "rspack_watcher"
 version = "0.102.5"
 dependencies = [

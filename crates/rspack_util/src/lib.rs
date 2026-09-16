@@ -1,5 +1,8 @@
+#![feature(unique_rc_arc)]
+
 mod merge;
 
+pub mod arc;
 pub mod asset_condition;
 pub mod base64;
 pub mod comparators;
