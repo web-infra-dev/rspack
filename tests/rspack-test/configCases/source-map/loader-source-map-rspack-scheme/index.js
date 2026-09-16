@@ -8,7 +8,11 @@ it('should preserve context-independent source URLs provided by loaders', functi
   for (const s of map.sources) {
     expect(s.match(/(webpack|rspack):\/\//g)?.length ?? 0).toBeLessThan(2);
   }
-  expect(map.sources.some((s) => s.endsWith('/module.js'))).toBe(true);
+  const normalized = map.sources.map((s) => s.replace(/\\/g, '/'));
+  // The `rspack:///./module.js` source still identifies the module; its
+  // absolute URL overrides the loader map's `sourceRoot: "/src"`.
+  expect(normalized.some((s) => s.endsWith('/module.js'))).toBe(true);
+  expect(normalized.some((s) => s.includes('/src/'))).toBe(false);
   // Standard URL sources are passed through verbatim.
   expect(map.sources).toContain('https://cdn.example/https.js');
   expect(map.sources).toContain('data:text/javascript,console.log(1)');

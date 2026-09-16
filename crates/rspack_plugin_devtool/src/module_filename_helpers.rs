@@ -127,18 +127,17 @@ impl ModuleFilenameHelpers {
             .map(|s| s.to_string())
             .unwrap_or_default();
         let absolute_resource_path = match module.as_normal_module() {
-          Some(normal_module) => normal_module
-            .resource_resolved_data()
-            .path()
-            .map(|p| p.to_string())
-            .unwrap_or_else(|| {
+          Some(normal_module) => normal_module.resource_resolved_data().path().map_or_else(
+            || {
               module
                 .identifier()
                 .split('!')
                 .next_back()
                 .unwrap_or("")
                 .to_string()
-            }),
+            },
+            |p| p.to_string(),
+          ),
           None => module
             .identifier()
             .split('!')

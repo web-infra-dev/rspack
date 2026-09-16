@@ -57,6 +57,22 @@ pub fn contextify_source_url(context: &str, source: &str) -> String {
   result
 }
 
+/// Returns true when a source-map `sources` entry is absolute: either
+/// slash-absolute or carrying a URI scheme. Mirrors
+/// `rspack_sources::helpers::get_source`, which lets such sources override
+/// `sourceRoot`.
+fn is_absolute_source(source: &str) -> bool {
+  if source.starts_with('/') {
+    return true;
+  }
+  let Some((scheme, _)) = source.split_once(':') else {
+    return false;
+  };
+  let mut chars = scheme.chars();
+  matches!(chars.next(), Some(first) if first.is_ascii_alphabetic())
+    && chars.all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '+' | '-' | '.'))
+}
+
 /// Normalizes a loader-provided source map before it is stored on a module:
 /// path-like fields (`sources`, `sourceRoot`, `file`) are rewritten so that
 /// machine-specific absolute paths (e.g. sandboxed CI worker paths) do not leak
@@ -75,13 +91,19 @@ pub fn contextify_source_map(context: &str, source_map: &mut SourceMap<'static>)
     .sources()
     .iter()
     .map(|source| {
+      // Apply `sourceRoot` only to relative entries: URI-schemed and
+      // slash-absolute sources override it, matching the source-map streaming
+      // reader (`rspack_sources::helpers::get_source`). Joining the root onto
+      // a URL like `https://cdn.example/a.js` would destroy the URL.
       let source = match &source_root {
-        None => source.to_string(),
-        Some(source_root) => match (source_root.ends_with('/'), source.starts_with('/')) {
-          (true, true) => format!("{}{source}", &source_root[..source_root.len() - 1]),
-          (true, false) | (false, true) => format!("{source_root}{source}"),
-          (false, false) => format!("{source_root}/{source}"),
-        },
+        Some(source_root) if !is_absolute_source(source) => {
+          if source_root.ends_with('/') {
+            format!("{source_root}{source}")
+          } else {
+            format!("{source_root}/{source}")
+          }
+        }
+        _ => source.to_string(),
       };
       contextify_source_url(context, &source)
     })
