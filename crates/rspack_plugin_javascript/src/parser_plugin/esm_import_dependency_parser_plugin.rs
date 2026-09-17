@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rspack_core::{
   BoxDependency, ConstDependency, Dependency, DependencyRange, DependencyType, ExportPresenceMode,
-  ImportAttributes, ImportPhase,
+  ImportAttributes, ImportPhase, ResourceIdentifier,
 };
 use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{
@@ -17,7 +17,10 @@ use super::{
 };
 use crate::{
   Atom,
-  dependency::{ESMImportSideEffectDependency, ESMImportSpecifierDependency},
+  dependency::{
+    ESMImportSideEffectDependency, ESMImportSpecifierDependency,
+    create_resource_identifier_for_esm_dependency,
+  },
   utils::{
     eval::{BasicEvaluatedExpression, DependencyData},
     object_properties::get_import_attributes,
@@ -68,6 +71,7 @@ fn check_import_phase(parser: &mut JavascriptParser, phase: ImportPhase) {
 pub struct ESMSpecifierData {
   pub name: Atom,
   pub source: Atom,
+  pub resource_identifier: ResourceIdentifier,
   pub ids: AtomMembers,
   pub namespace_import: bool,
   pub source_order: i32,
@@ -89,6 +93,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
     let phase = get_import_phase(parser, import_decl.phase(ast));
     check_import_phase(parser, phase);
     let import_span = import_decl.span(ast);
+    let resource_identifier =
+      create_resource_identifier_for_esm_dependency(source, phase, attributes.as_ref());
     let dependency = ESMImportSideEffectDependency::new(
       source.into(),
       parser.last_esm_import_order,
@@ -96,9 +102,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       DependencyType::EsmImport,
       phase,
       attributes,
+      resource_identifier,
       parser.to_dependency_location(DependencyRange::from(import_span)),
       false,
     );
+    parser.last_import_resource_identifier = Some((import_decl.node_id(), resource_identifier));
 
     parser.add_dependency(BoxDependency::new(dependency));
 
@@ -126,6 +134,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
     let ast = parser.ast.ast;
     let is_create_require = is_create_require_import(parser, source, id);
     let phase = get_import_phase(parser, statement.phase(ast));
+    let attributes = get_import_attributes(ast, statement.attributes(ast));
+    let resource_identifier = match parser.last_import_resource_identifier {
+      Some((node, resource_identifier)) if node == statement.node_id() => resource_identifier,
+      _ => create_resource_identifier_for_esm_dependency(source, phase, attributes.as_ref()),
+    };
     let resolution = parser
       .definitions_db
       .resolve_binding(parser.ast, identifier);
@@ -135,11 +148,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       Some(TagInfoData::into_any(ESMSpecifierData {
         name: name.clone(),
         source: source.clone(),
+        resource_identifier,
         ids: id.into_iter().cloned().collect(),
         namespace_import: id.is_none(),
         source_order: parser.last_esm_import_order,
         phase,
-        attributes: get_import_attributes(ast, statement.attributes(ast)),
+        attributes,
       })),
       crate::visitors::VariableInfoFlags::TAGGED,
       resolution,
@@ -167,6 +181,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
     let ESMSpecifierData {
       source,
       name,
+      resource_identifier,
       mut ids,
       namespace_import,
       source_order,
@@ -207,6 +222,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       None,
       phase,
       attributes,
+      resource_identifier,
       loc,
     );
     dep.evaluated_in_operator = true;
@@ -308,6 +324,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       referenced_properties_in_destructuring,
       settings.phase,
       settings.attributes,
+      settings.resource_identifier,
       loc,
     );
     let dep_id = *dep.id();
@@ -378,6 +395,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       None,
       settings.phase,
       settings.attributes,
+      settings.resource_identifier,
       parser.to_dependency_location(range),
     );
     dep.namespace_object_as_context = parser
@@ -454,6 +472,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       referenced_properties_in_destructuring,
       settings.phase,
       settings.attributes,
+      settings.resource_identifier,
       parser.to_dependency_location(range),
     );
     let dep_id = *dep.id();

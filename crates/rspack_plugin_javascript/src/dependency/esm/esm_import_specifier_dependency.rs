@@ -19,7 +19,6 @@ use rspack_hash::{RspackHash, RspackHasher};
 use rspack_util::json_stringify_str;
 
 use super::{
-  create_resource_identifier_for_esm_dependency,
   esm_import_dependency::esm_import_dependency_get_linking_error, esm_import_dependency_apply,
 };
 use crate::{
@@ -79,10 +78,9 @@ impl ESMImportSpecifierDependency {
     referenced_properties_in_destructuring: Option<DestructuringAssignmentProperties>,
     phase: ImportPhase,
     attributes: Option<ImportAttributes>,
+    resource_identifier: ResourceIdentifier,
     loc: Option<DependencyLocation>,
   ) -> Self {
-    let resource_identifier =
-      create_resource_identifier_for_esm_dependency(&request, phase, attributes.as_ref());
     Self {
       id: DependencyId::new(),
       request,

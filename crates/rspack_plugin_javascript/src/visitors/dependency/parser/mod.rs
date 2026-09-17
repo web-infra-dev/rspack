@@ -27,7 +27,8 @@ use rspack_core::{
   Dependency, DependencyCodeGeneration, DependencyCodeGenerationRef, DependencyId,
   DependencyLocation, DependencyRange, FactoryMeta, ImportMeta, ImportMetaKnownProperties,
   JavascriptParserCommonjsExportsOption, JavascriptParserOptions, ModuleIdentifier, ModuleLayer,
-  ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData, SideEffectsBailoutItemWithSpan,
+  ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData, ResourceIdentifier,
+  SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::fx_hash::FxIndexSet;
@@ -36,8 +37,8 @@ use smallvec::SmallVec;
 use swc_next_ecma_ast::{
   ArrayPattern, AssignmentPattern, Ast, BindingIdentifier, BindingPattern, BindingPatternData,
   BindingRestElement, CallExpression, Decl, DeclData, Expr, ExprData, GetSpan, IdentifierReference,
-  MemberExpression, MetaProperty, ObjectPattern, Program, PropertyKey, PropertyKeyData, Span,
-  StmtData, ThisExpression,
+  MemberExpression, MetaProperty, NodeId, ObjectPattern, Program, PropertyKey, PropertyKeyData,
+  Span, StmtData, ThisExpression,
 };
 
 use crate::{
@@ -543,6 +544,9 @@ pub struct JavascriptParser<'parser> {
   pub(crate) parser_exports_state: Option<bool>,
   pub(crate) local_modules: Vec<LocalModule>,
   pub(crate) last_esm_import_order: i32,
+  /// Resource identifier built for the import declaration currently being
+  /// visited, shared by its side effect dependency and all specifier dependencies.
+  pub(crate) last_import_resource_identifier: Option<(NodeId, ResourceIdentifier)>,
   pub(crate) inner_graph: InnerGraphState,
   pub(crate) side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
   pub(crate) is_renaming: Option<Atom>,
@@ -689,6 +693,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     Self {
       last_esm_import_order: 0,
+      last_import_resource_identifier: None,
       ast,
       synthetic_asts: Vec::new(),
       active_synthetic_ast: None,
