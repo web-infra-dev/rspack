@@ -323,9 +323,9 @@ export default {
 };
 ```
 
-### Referencing JavaScript and CSS modules by URL
+### Referencing JavaScript modules by URL
 
-You can use `new URL('./module.js', import.meta.url)` or `new URL('./style.css', import.meta.url)` to get the URL of a bundled JavaScript or CSS module. Configure rules with `dependency: 'url'` and the corresponding module `type`:
+You can use `new URL('./module.js', import.meta.url)` to get the URL of a bundled JavaScript module. Configure rules with `dependency: 'url'` and the corresponding module `type`:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -336,11 +336,6 @@ export default {
         dependency: 'url',
         type: 'javascript/auto',
       },
-      {
-        test: /\.css$/,
-        dependency: 'url',
-        type: 'css',
-      },
     ],
   },
 };
@@ -348,12 +343,11 @@ export default {
 
 ```js title="src/index.js"
 const scriptUrl = new URL('./script.js', import.meta.url);
-const styleUrl = new URL('./style.css', import.meta.url);
 ```
 
-Creating the URL does not execute the script or apply the stylesheet; you can use these URLs to load them later, for example through `<script src>` and `<link rel="stylesheet" href>`.
+Creating the URL does not execute the script; you can use the URL to load it later, for example through `<script src>`.
 
-By default, files referenced by `new URL()` are treated as assets, even if their extensions are `.js` or `.css`. A rule containing only `test` does not change this behavior: explicitly set `dependency: 'url'` and `type` as shown above to bundle them as modules.
+By default, files referenced by `new URL()` are treated as assets, even if their extension is `.js`. A rule containing only `test` does not change this behavior: explicitly set `dependency: 'url'` and `type` as shown above to bundle them as modules.
 
 ## rules[].phase
 
