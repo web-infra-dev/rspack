@@ -24,6 +24,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashSet;
+pub(crate) use scheduler::merge_loader_context;
 use tokio::sync::{OnceCell, RwLock};
 
 use crate::{COMPILER_REFERENCES, error::RspackResultToNapiResultExt};
