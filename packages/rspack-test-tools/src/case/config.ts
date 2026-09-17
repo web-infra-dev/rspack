@@ -43,7 +43,7 @@ export function createConfigProcessor(
       configMultiCompiler(
         context,
         name,
-        ['rspack.config.cjs', 'rspack.config.js', 'webpack.config.js'],
+        ['rspack.config.cjs', 'rspack.config.mjs', 'rspack.config.js'],
         defaultOptions,
         (index, context, options) => {
           overrideOptions(index, context, options);

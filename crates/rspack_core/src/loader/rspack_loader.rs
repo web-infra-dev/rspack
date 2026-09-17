@@ -119,7 +119,7 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     };
     if matches!(cache_action, LoaderCacheAction::Hit) {
       for loader_index in range.clone() {
-        let state = context.loader_item_state_mut(usize::from(loader_index));
+        let state = &context.loader_items[usize::from(loader_index)];
         state.set_normal_executed();
         state.set_finish_called();
       }

@@ -1,7 +1,6 @@
 it('should expose loader context APIs in parallel loaders', () => {
   expect(require('./resource')).toEqual({
     version: 2,
-    data: { fromArgument: true, fromPitch: true },
     logger: true,
     resolve: true,
     getResolve: true,

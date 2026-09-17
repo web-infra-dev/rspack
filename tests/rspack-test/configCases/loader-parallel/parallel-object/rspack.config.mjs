@@ -1,0 +1,23 @@
+export default {
+  context: import.meta.dirname,
+  module: {
+    rules: [
+      {
+        test: /lib\.js/,
+        use: [
+          {
+            loader: './unclonable.js',
+            options: {
+              notclonable() {},
+            },
+          },
+          {
+            loader: './loader-in-worker.js',
+            parallel: { maxWorkers: 2 },
+            options: {},
+          },
+        ],
+      },
+    ],
+  },
+};

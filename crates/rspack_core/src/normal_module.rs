@@ -16,7 +16,9 @@ use rspack_error::{Diagnosable, Diagnostic, Result, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
-use rspack_loader_runner::{Content, LoaderContext, ResourceData, run_loaders};
+use rspack_loader_runner::{
+  Content, LoaderContext, LoaderRunnerOptions, ResourceData, run_loaders,
+};
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
@@ -26,15 +28,15 @@ use serde_json::json;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph, CodeGenerationResultBuilder,
-  Compilation, ConnectionState, Context, DependenciesBlock, DependenciesBlockData,
-  DependencyCodeGenerationRef, DependencyId, FactoryMeta, FactoryMetaStore, FreezeLock,
-  GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Loaders, Module,
+  BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
+  CodeGenerationResultBuilder, Compilation, ConnectionState, Context, DependenciesBlock,
+  DependenciesBlockData, DependencyCodeGenerationRef, DependencyId, FactoryMeta, FactoryMetaStore,
+  FreezeLock, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   ModuleLayer, ModuleType, NeedBuildContext, OptimizationBailoutItem, OutputOptions, ParseContext,
-  ParseResult, ParserAndGenerator, ParserOptions, Resolve, ResolvedLoader, ResolvedModuleOptions,
+  ParseResult, ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions,
   RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  SnapshotValidationResult, SourceType, contextify,
+  SnapshotValidationResult, SourceType, contextify, contextify_source_map, contextify_source_url,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -113,7 +115,8 @@ pub struct NormalModule {
   resource_data: Arc<ResourceData>,
   /// Loaders for the module
   #[debug(skip)]
-  pub(crate) loaders: Loaders,
+  loaders: Vec<BoxLoader>,
+  loader_options: Option<Vec<LoaderRunnerOptions>>,
 
   /// Resolve options derived from [Rule.resolve]
   resolve_options: Option<Arc<Resolve>>,
@@ -186,7 +189,8 @@ impl NormalModule {
     match_resource: Option<ResourceData>,
     resource_data: Arc<ResourceData>,
     resolve_options: Option<Arc<Resolve>>,
-    loaders: Loaders,
+    loaders: Vec<BoxLoader>,
+    loader_options: Option<Vec<LoaderRunnerOptions>>,
     context: Option<Context>,
     extract_source_map: Option<bool>,
     import_phase: ImportPhase,
@@ -211,6 +215,7 @@ impl NormalModule {
       resource_data,
       resolve_options,
       loaders,
+      loader_options,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
       extract_source_map,
 
@@ -260,8 +265,8 @@ impl NormalModule {
     &self.raw_request
   }
 
-  pub fn loaders(&self) -> &[ResolvedLoader] {
-    self.loaders.loaders()
+  pub fn loaders(&self) -> &[BoxLoader] {
+    &self.loaders
   }
 
   pub fn parser_and_generator(&self) -> &dyn ParserAndGenerator {
@@ -451,7 +456,7 @@ impl Module for NormalModule {
     perfetto.process_name = format!("Rspack Build Detail"),
     module.resource = self.resource_resolved_data().resource(),
     module.identifier = self.identifier().as_str(),
-    module.loaders = ?self.loaders.loaders().iter().map(|l| l.loader.identifier().as_str()).collect::<Vec<_>>())
+    module.loaders = ?self.loaders.iter().map(|l| l.identifier().as_str()).collect::<Vec<_>>())
   )]
   async fn build(
     mut self: Box<Self>,
@@ -490,6 +495,8 @@ impl Module for NormalModule {
     let resolver_factory = build_context.resolver_factory.clone();
     let fs = build_context.fs.clone();
     let (loader_result, err) = run_loaders(
+      self.loaders.clone(),
+      self.loader_options.clone(),
       self.resource_data.clone(),
       Some(plugin.clone()),
       RunnerContext {
@@ -501,14 +508,12 @@ impl Module for NormalModule {
         file_system_info: build_context.file_system_info.clone(),
         resolver_factory,
         source_map_kind: self.source_map_kind,
-        loader_context_data: Default::default(),
         module: self,
       },
       fs,
     )
     .instrument(info_span!("NormalModule:run_loaders",))
     .await;
-    drop(loader_result.context.loader_context_data);
     self = loader_result.context.module;
 
     if let Some(err) = err {
@@ -554,6 +559,7 @@ impl Module for NormalModule {
       Content::String(loader_result.content.into_string_lossy())
     };
     let source = self.create_source(
+      build_context.compiler_options.context.as_str(),
       content,
       loader_result.source_map.map(|source_map| *source_map),
     )?;
@@ -599,7 +605,7 @@ impl Module for NormalModule {
         module_user_request: &self.user_request,
         module_match_resource: self.match_resource.as_ref(),
         module_source_map_kind: self.source_map_kind,
-        loaders: self.loaders.loaders(),
+        loaders: &self.loaders,
         resource_data: &self.resource_data,
         compiler_options: &build_context.compiler_options,
         additional_data: loader_result.additional_data,
@@ -924,6 +930,7 @@ impl Diagnosable for NormalModule {
 impl NormalModule {
   fn create_source(
     &self,
+    context: &str,
     content: Content,
     source_map: Option<SourceMap<'static>>,
   ) -> Result<BoxSource> {
@@ -932,13 +939,14 @@ impl NormalModule {
     }
     let source_map_kind = self.get_source_map_kind();
     if source_map_kind.enabled()
-      && let Some(source_map) = source_map
+      && let Some(mut source_map) = source_map
     {
+      contextify_source_map(context, &mut source_map);
       let content = content.into_string_lossy();
       return Ok(
         SourceMapSource::new(WithoutOriginalOptions {
           value: content,
-          name: self.request(),
+          name: contextify_source_url(context, self.request()),
           source_map,
         })
         .boxed(),
@@ -947,7 +955,9 @@ impl NormalModule {
     if source_map_kind.enabled()
       && let Content::String(content) = content
     {
-      return Ok(OriginalSource::new(content, self.request()).boxed());
+      return Ok(
+        OriginalSource::new(content, contextify_source_url(context, self.request())).boxed(),
+      );
     }
     Ok(RawStringSource::from(content.into_string_lossy()).boxed())
   }

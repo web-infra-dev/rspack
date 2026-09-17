@@ -1,0 +1,12 @@
+/** @type {import("@rspack/core").Configuration} */
+export default {
+  mode: 'none',
+  entry: {
+    'foo/bar': './',
+  },
+  target: 'node',
+  optimization: {
+    chunkIds: 'named',
+    moduleIds: 'named',
+  },
+};

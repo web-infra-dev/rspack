@@ -9,9 +9,7 @@ use std::{
   sync::{Arc, Mutex},
 };
 
-pub use context::{
-  JsLoaderContext, JsLoaderContextState, JsLoaderDependencies, JsNormalModuleLoaderItem,
-};
+pub use context::{JsLoaderContext, JsLoaderDependencies, JsLoaderItem};
 use napi::{
   bindgen_prelude::*,
   sys::{napi_call_threadsafe_function, napi_threadsafe_function},
@@ -24,14 +22,13 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashSet;
-pub(crate) use scheduler::merge_loader_state;
 use tokio::sync::{OnceCell, RwLock};
 
 use crate::{COMPILER_REFERENCES, error::RspackResultToNapiResultExt};
 
 pub type JsLoaderRunner = ThreadsafeFunction<
   JsLoaderContext,
-  Promise<JsLoaderContextState>,
+  Promise<JsLoaderContext>,
   JsLoaderContext,
   Status,
   false,
@@ -65,9 +62,7 @@ extern "C" fn napi_js_callback(
         Object::from_napi_value(env, napi_value)?
       };
       let run_loader = compiler_object
-        .get_named_property::<Function<JsLoaderContext, Promise<JsLoaderContextState>>>(
-          "_runLoader",
-        )?;
+        .get_named_property::<Function<JsLoaderContext, Promise<JsLoaderContext>>>("_runLoader")?;
       let ts_fn: JsLoaderRunner = run_loader
         .build_threadsafe_function::<JsLoaderContext>()
         .weak::<true>()

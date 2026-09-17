@@ -2,7 +2,7 @@ import path from 'node:path';
 import type { RspackOptions } from '@rspack/core';
 import fs from 'fs-extra';
 import { merge } from 'rspack-merge';
-import { isJavaScript } from '../helper';
+import { isJavaScript, readConfigFile } from '../helper';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv } from '../type';
 import { build, checkSnapshot, compiler } from './common';
@@ -151,9 +151,11 @@ export function defaultOptions(context: ITestContext): RspackOptions {
     plugins: [],
   } as RspackOptions;
 
-  const testConfigFile = context.getSource('rspack.config.js');
-  if (fs.existsSync(testConfigFile)) {
-    const caseOptions = require(testConfigFile);
+  const testConfigFile = ['rspack.config.mjs', 'rspack.config.js']
+    .map((file) => context.getSource(file))
+    .find((file) => fs.existsSync(file));
+  if (testConfigFile) {
+    const [caseOptions] = readConfigFile([testConfigFile], context);
     if (caseOptions.entry) {
       delete defaultOptions.entry;
     }

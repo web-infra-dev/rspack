@@ -6,13 +6,13 @@ use rspack_paths::InternedPathSet;
 use rspack_sources::SourceMap;
 
 use crate::{
-  LoaderContext, LoaderRunnerContext,
+  LoaderContext,
   content::{Content, ResourceData},
 };
 
 #[async_trait::async_trait]
 pub trait LoaderRunnerPlugin: Send + Sync {
-  type Context: LoaderRunnerContext;
+  type Context: Send;
 
   fn name(&self) -> &'static str {
     "unknown"

@@ -4188,11 +4188,14 @@ name = "rspack_collections"
 version = "0.102.5"
 dependencies = [
  "dashmap",
+ "either",
  "hashlink",
  "indexmap",
  "rspack-allocative",
  "rspack_cacheable",
+ "rustc-hash",
  "serde",
+ "smallvec",
  "ustr-fxhash",
 ]
 
@@ -4212,6 +4215,7 @@ dependencies = [
  "dyn-clone",
  "either",
  "fast-glob",
+ "fixedbitset",
  "futures",
  "hashlink",
  "heck",
@@ -4224,7 +4228,6 @@ dependencies = [
  "memchr",
  "mime_guess",
  "napi",
- "num-bigint",
  "once_cell",
  "parking_lot",
  "paste",

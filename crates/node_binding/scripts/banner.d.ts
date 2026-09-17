@@ -65,7 +65,7 @@ export interface NormalModule extends Module {
 	readonly userRequest: string;
 	readonly rawRequest: string;
 	readonly resourceResolveData: Readonly<JsResourceData> | undefined;
-	readonly loaders: JsNormalModuleLoaderItem[];
+	readonly loaders: JsLoaderItem[];
 	get matchResource(): string | undefined;
 	set matchResource(val: string | undefined);
 	get error(): RspackError | undefined;

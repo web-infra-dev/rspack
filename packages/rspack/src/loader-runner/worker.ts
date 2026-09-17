@@ -350,6 +350,7 @@ async function loaderImpl(
   } as LoaderContext['_compilation'];
 
   const _module = loaderContext._module as any;
+  const buildInfo: Record<string, unknown> = { ...(_module.buildInfo ?? {}) };
   loaderContext._module = {
     type: _module.type,
     identifier() {
@@ -359,7 +360,8 @@ async function loaderImpl(
     request: _module.request,
     userRequest: _module.userRequest,
     rawRequest: _module.rawRequest,
-  } as NormalModule;
+    buildInfo,
+  } as unknown as NormalModule;
 
   // @ts-expect-error
   loaderContext.importModule = function importModule(
@@ -474,9 +476,9 @@ async function loaderImpl(
 
   Object.defineProperty(loaderContext, 'data', {
     enumerable: true,
-    get: () => loaderContext.loaders[loaderContext.loaderIndex].data,
+    get: () => loaderContext.loaders[loaderContext.loaderIndex].loaderItem.data,
     set: (value) => {
-      loaderContext.loaders[loaderContext.loaderIndex].data = value;
+      loaderContext.loaders[loaderContext.loaderIndex].loaderItem.data = value;
     },
   });
 
@@ -511,7 +513,7 @@ async function loaderImpl(
           (await runSyncOrAsync(fn, loaderContext, [
             loaderContext.remainingRequest,
             loaderContext.previousRequest,
-            currentLoaderObject.data,
+            currentLoaderObject.loaderItem.data,
           ])) || [];
 
         const hasArg = args.some((value) => value !== undefined);
@@ -546,12 +548,14 @@ async function loaderImpl(
     RequestType.UpdateLoaderObjects,
     loaderContext.loaders.map((item) => {
       return {
-        data: item.data,
+        data: item.loaderItem.data,
         normalExecuted: item.normalExecuted,
         pitchExecuted: item.pitchExecuted,
       };
     }),
   );
+
+  sendRequest(RequestType.UpdateBuildInfo, buildInfo);
 
   return args;
 }

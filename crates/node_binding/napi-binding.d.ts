@@ -65,7 +65,7 @@ export interface NormalModule extends Module {
 	readonly userRequest: string;
 	readonly rawRequest: string;
 	readonly resourceResolveData: Readonly<JsResourceData> | undefined;
-	readonly loaders: JsNormalModuleLoaderItem[];
+	readonly loaders: JsLoaderItem[];
 	get matchResource(): string | undefined;
 	set matchResource(val: string | undefined);
 	get error(): RspackError | undefined;
@@ -963,34 +963,21 @@ export interface JsLoaderContext {
   resource: string
   _module: Module
   hot: Readonly<boolean>
-  loaderItems: Array<JsLoaderItem>
-  state: JsLoaderContextState
-}
-
-/**
- * Mutable state for the loader chain, including each loader's data and flags.
- * The native runner keeps ownership of its LoaderContext throughout.
- */
-export interface JsLoaderContextState {
-  /** Inclusive start and exclusive end of the current JavaScript execution span. */
-  loaderChainStart: number
-  loaderChainEnd: number
-  /** The native scheduler controls phase transitions between invocations. */
-  loaderState: Readonly<JsLoaderState>
-  loaderContextState?: object | undefined
-  /** Content may be empty in the pitching stage. */
+  /** Content maybe empty in pitching stage */
   content: string | Buffer | null
   additionalData?: any
+  __internal__parseMeta: Record<string, string>
   sourceMap?: Buffer
   cacheable: boolean
   dependencies: JsLoaderDependencies
   addedDependencies: JsLoaderDependencies
   removedDependencies: JsLoaderDependencies
-  loaderItemStates: Array<JsLoaderItemState>
+  loaderItems: Array<JsLoaderItem>
   loaderIndex: number
-  /** Additions from JavaScript, merged into the native typed parse metadata. */
-  parseMeta: Record<string, string>
-  error?: RspackError
+  loaderState: Readonly<JsLoaderState>
+  loaderChainStart: number
+  loaderChainEnd: number
+  __internal__error?: RspackError
 }
 
 export interface JsLoaderDependencies {
@@ -1000,15 +987,10 @@ export interface JsLoaderDependencies {
   buildDependencies: Array<string>
 }
 
-/** Immutable loader metadata, separate from the state returned by JavaScript. */
 export interface JsLoaderItem {
   loader: string
   type: string
   cache: boolean
-}
-
-export interface JsLoaderItemState {
-  /** Data shared only between this loader's pitch and normal stages. */
   data: any
   normalExecuted: boolean
   pitchExecuted: boolean
@@ -1043,16 +1025,6 @@ export interface JsNormalModuleFactoryCreateModuleArgs {
   resourceResolveData: JsResourceData
   context: string
   matchResource?: string
-}
-
-export interface JsNormalModuleLoaderItem {
-  loader: string
-  type: string
-  cache: boolean
-  data: any
-  normalExecuted: boolean
-  pitchExecuted: boolean
-  noPitch: boolean
 }
 
 export interface JsOriginRecord {
@@ -3340,8 +3312,7 @@ export declare enum RegisterJsTapKind {
   RsdoctorPluginChunkGraph = 50,
   RsdoctorPluginModuleIds = 51,
   RsdoctorPluginModuleSources = 52,
-  RsdoctorPluginAssets = 53,
-  NormalModuleLoader = 54
+  RsdoctorPluginAssets = 53
 }
 
 export interface RegisterJsTaps {
@@ -3373,7 +3344,6 @@ export interface RegisterJsTaps {
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilationSealTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationAfterSealTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
-  registerNormalModuleLoaderTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => JsLoaderContextState); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
   registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
   registerNormalModuleFactoryResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>

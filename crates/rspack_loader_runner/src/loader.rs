@@ -1,6 +1,11 @@
-#[cfg(feature = "test-loader")]
-use std::ops::Deref;
-use std::{fmt::Display, sync::Arc};
+use std::{
+  fmt::Display,
+  ops::Deref,
+  sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+  },
+};
 
 use async_trait::async_trait;
 use derive_more::Debug;
@@ -36,17 +41,21 @@ pub struct LoaderItem<Context: Send> {
   /// Fragment of a loader, starts with `#`.
   #[allow(dead_code)]
   fragment: Option<String>,
+  /// Data shared between pitching and normal
+  data: serde_json::Value,
   r#type: String,
   cache_options: Option<Box<LoaderRunnerOptions>>,
   execution_kind: LoaderExecutionKind,
-}
-
-#[derive(Debug, Default)]
-pub struct LoaderItemState {
-  pitch_executed: bool,
-  normal_executed: bool,
+  pitch_executed: AtomicBool,
+  normal_executed: AtomicBool,
   /// Whether loader was called with [LoaderContext::finish_with].
-  finish_called: bool,
+  ///
+  /// Indicates that the loader has finished its work,
+  /// otherwise loader runner will reset [`LoaderContext::content`], [`LoaderContext::source_map`], [`LoaderContext::additional_data`].
+  ///
+  /// This flag is used to align with webpack's behavior:
+  /// If nothing is modified in the loader, the loader will reset the content, source map, and additional data.
+  finish_called: AtomicBool,
 }
 
 impl<C: Send> LoaderItem<C> {
@@ -112,42 +121,51 @@ impl<C: Send> LoaderItem<C> {
   pub fn cache_options(&self) -> Option<&LoaderRunnerOptions> {
     self.cache_options.as_deref()
   }
-}
 
-impl LoaderItemState {
+  #[inline]
+  pub fn data(&self) -> &serde_json::Value {
+    &self.data
+  }
+
+  #[inline]
+  #[doc(hidden)]
+  pub fn set_data(&mut self, data: serde_json::Value) {
+    self.data = data;
+  }
+
   #[inline]
   #[doc(hidden)]
   pub fn pitch_executed(&self) -> bool {
-    self.pitch_executed
+    self.pitch_executed.load(Ordering::Relaxed)
   }
 
   #[inline]
   pub fn normal_executed(&self) -> bool {
-    self.normal_executed
+    self.normal_executed.load(Ordering::Relaxed)
   }
 
   #[inline]
   #[doc(hidden)]
   pub fn finish_called(&self) -> bool {
-    self.finish_called
+    self.finish_called.load(Ordering::Relaxed)
   }
 
   #[inline]
   #[doc(hidden)]
-  pub fn set_pitch_executed(&mut self) {
-    self.pitch_executed = true;
+  pub fn set_pitch_executed(&self) {
+    self.pitch_executed.store(true, Ordering::Relaxed)
   }
 
   #[inline]
   #[doc(hidden)]
-  pub fn set_normal_executed(&mut self) {
-    self.normal_executed = true;
+  pub fn set_normal_executed(&self) {
+    self.normal_executed.store(true, Ordering::Relaxed)
   }
 
   #[inline]
   #[doc(hidden)]
-  pub fn set_finish_called(&mut self) {
-    self.finish_called = true;
+  pub fn set_finish_called(&self) {
+    self.finish_called.store(true, Ordering::Relaxed)
   }
 }
 
@@ -157,11 +175,9 @@ impl<C: Send> Display for LoaderItem<C> {
   }
 }
 
-#[cfg(feature = "test-loader")]
 #[derive(Debug)]
 pub struct LoaderItemList<'a, Context: Send>(pub &'a [LoaderItem<Context>]);
 
-#[cfg(feature = "test-loader")]
 impl<Context: Send> Deref for LoaderItemList<'_, Context> {
   type Target = [LoaderItem<Context>];
 
@@ -170,7 +186,6 @@ impl<Context: Send> Deref for LoaderItemList<'_, Context> {
   }
 }
 
-#[cfg(feature = "test-loader")]
 impl<Context: Send> Default for LoaderItemList<'_, Context> {
   fn default() -> Self {
     Self(&[])
@@ -187,10 +202,8 @@ pub trait DisplayWithSuffix: Display {
   }
 }
 
-#[cfg(feature = "test-loader")]
 impl<Context: Send> DisplayWithSuffix for LoaderItemList<'_, Context> {}
 impl<Context: Send> DisplayWithSuffix for LoaderItem<Context> {}
-#[cfg(feature = "test-loader")]
 impl<Context: Send> Display for LoaderItemList<'_, Context> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     let s = self
@@ -216,7 +229,7 @@ where
   async fn run(&self, loader_context: &mut LoaderContext<Context>) -> Result<()> {
     // If loader does not implement normal stage,
     // it should inherit the result from the previous loader.
-    loader_context.set_current_loader_finish_called();
+    loader_context.current_loader().set_finish_called();
     Ok(())
   }
 
@@ -242,7 +255,6 @@ where
   }
 }
 
-#[cfg(test)]
 impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
   fn from(loader: Arc<dyn Loader<C>>) -> Self {
     Self::new(loader, LoaderRunnerOptions::default())
@@ -267,9 +279,13 @@ impl<C: Send> LoaderItem<C> {
         path,
         query,
         fragment,
+        data: serde_json::Value::Null,
         r#type: ty,
         cache_options,
         execution_kind,
+        pitch_executed: AtomicBool::new(false),
+        normal_executed: AtomicBool::new(false),
+        finish_called: AtomicBool::new(false),
       };
     }
     let ident = loader.identifier();
@@ -284,9 +300,13 @@ impl<C: Send> LoaderItem<C> {
       path,
       query,
       fragment,
+      data: serde_json::Value::Null,
       r#type: String::default(),
       cache_options,
       execution_kind,
+      pitch_executed: AtomicBool::new(false),
+      normal_executed: AtomicBool::new(false),
+      finish_called: AtomicBool::new(false),
     }
   }
 }

@@ -1,7 +1,5 @@
-use std::sync::{Arc, OnceLock};
+use std::{fmt::Debug, sync::Arc};
 
-use derive_more::Debug;
-use rspack_cacheable::{cacheable, with::Skip};
 use rspack_error::{Diagnostic, Error, Result, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::Utf8PathBuf;
@@ -12,73 +10,12 @@ use crate::{
   LoaderExecutionKind, LoaderRunnerOptions, ParseMeta,
   chain::LoaderChains,
   content::{AdditionalData, Content, ResourceData},
-  context::{LoaderContext, LoaderDependencies, LoaderRunnerContext, State},
-  loader::{Loader, LoaderItem, LoaderItemState},
+  context::{LoaderContext, LoaderDependencies, State},
+  loader::{Loader, LoaderItem},
   plugin::LoaderRunnerPlugin,
 };
 
-#[cacheable]
-#[derive(Debug)]
-pub struct ResolvedLoader<Context: Send> {
-  #[debug("{}", loader.identifier())]
-  pub loader: Arc<dyn Loader<Context>>,
-  pub options: LoaderRunnerOptions,
-}
-
-impl<Context: Send> ResolvedLoader<Context> {
-  #[inline]
-  pub fn uncached(loader: Arc<dyn Loader<Context>>) -> Self {
-    Self {
-      loader,
-      options: LoaderRunnerOptions::default(),
-    }
-  }
-}
-
-#[cacheable]
-#[derive(Debug)]
-pub struct Loaders<Context: Send> {
-  #[debug(skip)]
-  loaders: Vec<ResolvedLoader<Context>>,
-  #[cacheable(with=Skip)]
-  loader_items: OnceLock<Vec<LoaderItem<Context>>>,
-  #[cacheable(with=Skip)]
-  loader_chains: OnceLock<LoaderChains>,
-}
-
-impl<Context: Send> Loaders<Context> {
-  #[inline]
-  pub fn new(loaders: Vec<ResolvedLoader<Context>>) -> Self {
-    Self {
-      loaders,
-      loader_items: OnceLock::new(),
-      loader_chains: OnceLock::new(),
-    }
-  }
-
-  #[inline]
-  pub fn loaders(&self) -> &[ResolvedLoader<Context>] {
-    &self.loaders
-  }
-
-  pub(crate) fn loader_items(&self) -> &[LoaderItem<Context>] {
-    self.loader_items.get_or_init(|| {
-      self
-        .loaders
-        .iter()
-        .map(|resolved| LoaderItem::new(resolved.loader.clone(), resolved.options.clone()))
-        .collect()
-    })
-  }
-
-  pub(crate) fn loader_chains(&self) -> &LoaderChains {
-    self
-      .loader_chains
-      .get_or_init(|| LoaderChains::new(self.loader_items()))
-  }
-}
-
-impl<Context: LoaderRunnerContext> LoaderContext<Context> {
+impl<Context: Send> LoaderContext<Context> {
   async fn start_yielding(&mut self) -> Result<bool> {
     if self.current_loader().execution_kind() == LoaderExecutionKind::JavaScript
       && let Some(plugin) = &self.plugin
@@ -90,7 +27,7 @@ impl<Context: LoaderRunnerContext> LoaderContext<Context> {
   }
 }
 
-async fn run_pitch_chain<Context: LoaderRunnerContext>(
+async fn run_pitch_chain<Context: Send>(
   cx: &mut LoaderContext<Context>,
   resource: &str,
 ) -> Result<()> {
@@ -117,12 +54,12 @@ async fn run_pitch_chain<Context: LoaderRunnerContext>(
         continue;
       }
 
-      if cx.current_loader_state().pitch_executed() {
+      if cx.current_loader().pitch_executed() {
         cx.loader_index += 1;
         continue;
       }
 
-      cx.set_current_loader_pitch_executed();
+      cx.current_loader().set_pitch_executed();
       let loader = cx.current_loader().loader().clone();
       let loader_span = info_span!("run_loader:pitch", resource);
       cx.reset_dependency_changes();
@@ -139,7 +76,7 @@ async fn run_pitch_chain<Context: LoaderRunnerContext>(
   .await
 }
 
-impl<Context: LoaderRunnerContext> LoaderContext<Context> {
+impl<Context: Send> LoaderContext<Context> {
   /// Execute the current root chain's normal loaders without consulting the loader cache.
   pub async fn run_normal_chain(&mut self) -> Result<()> {
     let cx = self;
@@ -163,16 +100,16 @@ impl<Context: LoaderRunnerContext> LoaderContext<Context> {
           continue;
         }
 
-        if cx.current_loader_state().normal_executed() {
+        if cx.current_loader().normal_executed() {
           cx.loader_index -= 1;
           continue;
         }
 
-        cx.set_current_loader_normal_executed();
+        cx.current_loader().set_normal_executed();
         let loader = cx.current_loader().loader().clone();
         let loader_span = info_span!("run_loader:normal", resource = cx.resource());
         let result = loader.run(cx).instrument(loader_span).await;
-        if result.is_ok() && !cx.current_loader_state().finish_called() {
+        if result.is_ok() && !cx.current_loader().finish_called() {
           // If nothing is returned from this loader, set every output to None
           // to match webpack loader-runner behavior.
           cx.finish_with_empty();
@@ -191,7 +128,7 @@ impl<Context: LoaderRunnerContext> LoaderContext<Context> {
   skip_all,
   fields(resource = loader_context.resource_data.resource())
 )]
-async fn process_resource<Context: LoaderRunnerContext>(
+async fn process_resource<Context: Send>(
   loader_context: &mut LoaderContext<Context>,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
@@ -224,7 +161,8 @@ You may need an additional plugin to handle "{scheme}:" URIs."#
   ))
 }
 
-fn create_loader_context<Context: LoaderRunnerContext>(
+fn create_loader_context<Context: Send>(
+  loader_items: Vec<LoaderItem<Context>>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
@@ -236,11 +174,6 @@ fn create_loader_context<Context: LoaderRunnerContext>(
     dependencies.file.insert(resource_path.into());
   }
 
-  let loader_items = context.loaders().loader_items();
-  let loader_data = vec![serde_json::Value::Null; loader_items.len()];
-  let loader_item_states = (0..loader_items.len())
-    .map(|_| LoaderItemState::default())
-    .collect();
   LoaderContext {
     hot: false,
     cacheable: true,
@@ -254,8 +187,8 @@ fn create_loader_context<Context: LoaderRunnerContext>(
     additional_data: None,
     state: State::Init,
     loader_index: 0,
-    loader_item_states,
-    loader_data,
+    loader_chains: LoaderChains::new(&loader_items),
+    loader_items,
     plugin,
     resource_data,
     diagnostics: vec![],
@@ -263,18 +196,34 @@ fn create_loader_context<Context: LoaderRunnerContext>(
 }
 
 #[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
-pub async fn run_loaders<Context: LoaderRunnerContext>(
+pub async fn run_loaders<Context: Send>(
+  loaders: Vec<Arc<dyn Loader<Context>>>,
+  loader_options: Option<Vec<LoaderRunnerOptions>>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> (LoaderResult<Context>, Option<Error>) {
-  let mut cx = create_loader_context(resource_data, plugin, context);
+  let loaders = if let Some(loader_options) = loader_options {
+    assert_eq!(
+      loaders.len(),
+      loader_options.len(),
+      "loader options must stay aligned with loaders"
+    );
+    loaders
+      .into_iter()
+      .zip(loader_options)
+      .map(|(loader, options)| LoaderItem::new(loader, options))
+      .collect::<Vec<LoaderItem<Context>>>()
+  } else {
+    loaders.into_iter().map(LoaderItem::from).collect()
+  };
+  let mut cx = create_loader_context(loaders, resource_data, plugin, context);
   let result = run_loaders_impl(&mut cx, fs).await;
   (LoaderResult::new(cx), result.err())
 }
 
-async fn run_loaders_impl<Context: LoaderRunnerContext>(
+async fn run_loaders_impl<Context: Send>(
   cx: &mut LoaderContext<Context>,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
@@ -289,7 +238,7 @@ async fn run_loaders_impl<Context: LoaderRunnerContext>(
         cx.state.transition(State::Pitching);
       }
       State::Pitching => {
-        if cx.loader_index >= cx.loader_items().len() as i32 {
+        if cx.loader_index >= cx.loader_items.len() as i32 {
           cx.state.transition(State::ProcessResource);
           continue;
         }
@@ -302,7 +251,7 @@ async fn run_loaders_impl<Context: LoaderRunnerContext>(
       State::ProcessResource => {
         let span = info_span!("run_loader:process_resource", resource);
         process_resource(cx, fs.clone()).instrument(span).await?;
-        cx.loader_index = cx.loader_items().len() as i32 - 1;
+        cx.loader_index = cx.loader_items.len() as i32 - 1;
         cx.state.transition(State::Normal);
       }
       State::Normal => {
@@ -324,8 +273,8 @@ async fn run_loaders_impl<Context: LoaderRunnerContext>(
   }
 
   if cx.content.is_none() {
-    if !cx.loader_items().is_empty() {
-      let loader = cx.loader_items()[0].to_string();
+    if !cx.loader_items.is_empty() {
+      let loader = cx.loader_items[0].to_string();
       return Err(error!(
         "Final loader({loader}) didn't return a Buffer or String"
       ));
@@ -350,16 +299,8 @@ pub struct LoaderResult<Context> {
   pub current_loader: Option<Utf8PathBuf>,
 }
 
-impl<Context: LoaderRunnerContext> LoaderResult<Context> {
+impl<Context: Send> LoaderResult<Context> {
   pub fn new(loader_context: LoaderContext<Context>) -> Self {
-    let current_loader = (loader_context.loader_index >= 0)
-      .then(|| {
-        loader_context
-          .loader_items()
-          .get(loader_context.loader_index as usize)
-      })
-      .flatten()
-      .map(|loader| loader.path().to_path_buf());
     LoaderResult {
       context: loader_context.context,
       cacheable: loader_context.cacheable,
@@ -371,7 +312,14 @@ impl<Context: LoaderRunnerContext> LoaderResult<Context> {
       source_map: loader_context.source_map,
       additional_data: loader_context.additional_data,
       parse_meta: loader_context.parse_meta,
-      current_loader,
+      current_loader: (loader_context.loader_index >= 0)
+        .then(|| {
+          loader_context
+            .loader_items
+            .get(loader_context.loader_index as usize)
+        })
+        .flatten()
+        .map(|loader| loader.path().to_path_buf()),
     }
   }
 }
@@ -387,24 +335,14 @@ mod test {
   use rspack_paths::InternedPathSet;
   use rspack_sources::SourceMap;
 
-  use super::{
-    Loader, LoaderContext, LoaderRunnerContext, Loaders, ResolvedLoader, ResourceData, run_loaders,
-  };
+  use super::{Loader, LoaderContext, ResourceData, run_loaders};
   use crate::{AdditionalData, content::Content, plugin::LoaderRunnerPlugin};
-
-  struct TestContext(Loaders<Self>);
-
-  impl LoaderRunnerContext for TestContext {
-    fn loaders(&self) -> &Loaders<Self> {
-      &self.0
-    }
-  }
 
   struct TestContentPlugin;
 
   #[async_trait::async_trait]
   impl LoaderRunnerPlugin for TestContentPlugin {
-    type Context = TestContext;
+    type Context = ();
 
     fn name(&self) -> &'static str {
       "test-content"
@@ -434,12 +372,12 @@ mod test {
 
     #[cacheable_dyn]
     #[async_trait::async_trait]
-    impl Loader<TestContext> for Pitching {
+    impl Loader<()> for Pitching {
       fn identifier(&self) -> Identifier {
         "/rspack/pitching-loader1".into()
       }
 
-      async fn pitch(&self, _loader_context: &mut LoaderContext<TestContext>) -> Result<()> {
+      async fn pitch(&self, _loader_context: &mut LoaderContext<()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("pitch1".to_string()));
         Ok(())
       }
@@ -450,12 +388,12 @@ mod test {
 
     #[cacheable_dyn]
     #[async_trait::async_trait]
-    impl Loader<TestContext> for Pitching2 {
+    impl Loader<()> for Pitching2 {
       fn identifier(&self) -> Identifier {
         "/rspack/pitching-loader2".into()
       }
 
-      async fn pitch(&self, _loader_context: &mut LoaderContext<TestContext>) -> Result<()> {
+      async fn pitch(&self, _loader_context: &mut LoaderContext<()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("pitch2".to_string()));
         Ok(())
       }
@@ -466,12 +404,12 @@ mod test {
 
     #[cacheable_dyn]
     #[async_trait::async_trait]
-    impl Loader<TestContext> for Normal {
+    impl Loader<()> for Normal {
       fn identifier(&self) -> Identifier {
         "/rspack/normal-loader1".into()
       }
 
-      async fn run(&self, _loader_context: &mut LoaderContext<TestContext>) -> Result<()> {
+      async fn run(&self, _loader_context: &mut LoaderContext<()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("normal1".to_string()));
         Ok(())
       }
@@ -482,12 +420,12 @@ mod test {
 
     #[cacheable_dyn]
     #[async_trait::async_trait]
-    impl Loader<TestContext> for Normal2 {
+    impl Loader<()> for Normal2 {
       fn identifier(&self) -> Identifier {
         "/rspack/normal-loader2".into()
       }
 
-      async fn run(&self, _loader_context: &mut LoaderContext<TestContext>) -> Result<()> {
+      async fn run(&self, _loader_context: &mut LoaderContext<()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("normal2".to_string()));
         Ok(())
       }
@@ -498,17 +436,17 @@ mod test {
 
     #[cacheable_dyn]
     #[async_trait::async_trait]
-    impl Loader<TestContext> for PitchNormalBase {
+    impl Loader<()> for PitchNormalBase {
       fn identifier(&self) -> Identifier {
         "/rspack/pitch-normal-base-loader".into()
       }
 
-      async fn run(&self, _loader_context: &mut LoaderContext<TestContext>) -> Result<()> {
+      async fn run(&self, _loader_context: &mut LoaderContext<()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("pitch-normal-base-normal".to_string()));
         Ok(())
       }
 
-      async fn pitch(&self, _loader_context: &mut LoaderContext<TestContext>) -> Result<()> {
+      async fn pitch(&self, _loader_context: &mut LoaderContext<()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("pitch-normal-base-pitch".to_string()));
         Ok(())
       }
@@ -519,17 +457,17 @@ mod test {
 
     #[cacheable_dyn]
     #[async_trait::async_trait]
-    impl Loader<TestContext> for PitchNormal {
+    impl Loader<()> for PitchNormal {
       fn identifier(&self) -> Identifier {
         "/rspack/pitch-normal-loader".into()
       }
 
-      async fn run(&self, _loader_context: &mut LoaderContext<TestContext>) -> Result<()> {
+      async fn run(&self, _loader_context: &mut LoaderContext<()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("pitch-normal-normal".to_string()));
         Ok(())
       }
 
-      async fn pitch(&self, loader_context: &mut LoaderContext<TestContext>) -> Result<()> {
+      async fn pitch(&self, loader_context: &mut LoaderContext<()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("pitch-normal-pitch".to_string()));
         loader_context.content = Some(Content::Buffer(vec![]));
         Ok(())
@@ -541,27 +479,27 @@ mod test {
 
     #[cacheable_dyn]
     #[async_trait::async_trait]
-    impl Loader<TestContext> for PitchNormal2 {
+    impl Loader<()> for PitchNormal2 {
       fn identifier(&self) -> Identifier {
         "/rspack/pitch-normal-2-loader".into()
       }
 
-      async fn run(&self, _loader_context: &mut LoaderContext<TestContext>) -> Result<()> {
+      async fn run(&self, _loader_context: &mut LoaderContext<()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("pitch-normal-normal-2".to_string()));
         Ok(())
       }
 
-      async fn pitch(&self, loader_context: &mut LoaderContext<TestContext>) -> Result<()> {
+      async fn pitch(&self, loader_context: &mut LoaderContext<()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("pitch-normal-pitch-2".to_string()));
         loader_context.content = Some(Content::Buffer(vec![]));
         Ok(())
       }
     }
 
-    let c1 = ResolvedLoader::uncached(Arc::new(Normal));
-    let c2 = ResolvedLoader::uncached(Arc::new(Normal2));
-    let p1 = ResolvedLoader::uncached(Arc::new(Pitching));
-    let p2 = ResolvedLoader::uncached(Arc::new(Pitching2));
+    let c1 = Arc::new(Normal) as Arc<dyn Loader<()>>;
+    let c2 = Arc::new(Normal2) as Arc<dyn Loader<()>>;
+    let p1 = Arc::new(Pitching) as Arc<dyn Loader<()>>;
+    let p2 = Arc::new(Pitching2) as Arc<dyn Loader<()>>;
 
     let rs = Arc::new(ResourceData::new_with_resource(
       "/rspack/main.js?abc=123#efg".to_owned(),
@@ -570,10 +508,12 @@ mod test {
     // Ignore error: Final loader didn't return a Buffer or String
     assert!(
       run_loaders(
+        vec![p1, p2, c1, c2],
+        None,
         rs.clone(),
         Some(Arc::new(TestContentPlugin)),
-        TestContext(Loaders::new(vec![p1, p2, c1, c2])),
-        Arc::new(NativeFileSystem::new(false)),
+        (),
+        Arc::new(NativeFileSystem::new(false))
       )
       .await
       .1
@@ -582,17 +522,19 @@ mod test {
     IDENTS.with(|i| assert_eq!(*i.borrow(), &["pitch1", "pitch2", "normal2", "normal1"]));
     IDENTS.with(|i| i.borrow_mut().clear());
 
-    let p1 = ResolvedLoader::uncached(Arc::new(PitchNormalBase));
-    let p2 = ResolvedLoader::uncached(Arc::new(PitchNormal));
-    let p3 = ResolvedLoader::uncached(Arc::new(PitchNormal2));
+    let p1 = Arc::new(PitchNormalBase) as Arc<dyn Loader<()>>;
+    let p2 = Arc::new(PitchNormal) as Arc<dyn Loader<()>>;
+    let p3 = Arc::new(PitchNormal2) as Arc<dyn Loader<()>>;
 
     // Ignore error: Final loader didn't return a Buffer or String
     assert!(
       run_loaders(
+        vec![p1, p2, p3],
+        None,
         rs.clone(),
         Some(Arc::new(TestContentPlugin)),
-        TestContext(Loaders::new(vec![p1, p2, p3])),
-        Arc::new(NativeFileSystem::new(false)),
+        (),
+        Arc::new(NativeFileSystem::new(false))
       )
       .await
       .1
@@ -619,12 +561,12 @@ mod test {
 
     #[cacheable_dyn]
     #[async_trait::async_trait]
-    impl Loader<TestContext> for Normal {
+    impl Loader<()> for Normal {
       fn identifier(&self) -> Identifier {
         "/rspack/normal-loader1".into()
       }
 
-      async fn run(&self, loader_context: &mut LoaderContext<TestContext>) -> Result<()> {
+      async fn run(&self, loader_context: &mut LoaderContext<()>) -> Result<()> {
         let data = loader_context
           .additional_data
           .as_ref()
@@ -642,12 +584,12 @@ mod test {
 
     #[cacheable_dyn]
     #[async_trait::async_trait]
-    impl Loader<TestContext> for Normal2 {
+    impl Loader<()> for Normal2 {
       fn identifier(&self) -> Identifier {
         "/rspack/normal-loader2".into()
       }
 
-      async fn run(&self, loader_context: &mut LoaderContext<TestContext>) -> Result<()> {
+      async fn run(&self, loader_context: &mut LoaderContext<()>) -> Result<()> {
         let mut additional_data: AdditionalData = Default::default();
         additional_data.insert("additional-data");
         loader_context.finish_with((String::new(), None, Some(additional_data)));
@@ -661,12 +603,11 @@ mod test {
 
     assert!(
       run_loaders(
+        vec![Arc::new(Normal) as Arc<dyn Loader>, Arc::new(Normal2)],
+        None,
         rs,
         Some(Arc::new(TestContentPlugin)),
-        TestContext(Loaders::new(vec![
-          ResolvedLoader::uncached(Arc::new(Normal)),
-          ResolvedLoader::uncached(Arc::new(Normal2)),
-        ])),
+        (),
         Arc::new(NativeFileSystem::new(false)),
       )
       .await
@@ -682,12 +623,12 @@ mod test {
 
     #[cacheable_dyn]
     #[async_trait::async_trait]
-    impl Loader<TestContext> for Normal {
+    impl Loader<()> for Normal {
       fn identifier(&self) -> Identifier {
         "/rspack/normal-loader1".into()
       }
 
-      async fn run(&self, loader_context: &mut LoaderContext<TestContext>) -> Result<()> {
+      async fn run(&self, loader_context: &mut LoaderContext<()>) -> Result<()> {
         assert!(loader_context.content.is_some());
         // Does not call `LoaderContext::finish_with`
         Ok(())
@@ -703,12 +644,12 @@ mod test {
 
     #[cacheable_dyn]
     #[async_trait::async_trait]
-    impl Loader<TestContext> for Normal2 {
+    impl Loader<()> for Normal2 {
       fn identifier(&self) -> Identifier {
         "/rspack/normal-loader2".into()
       }
 
-      async fn run(&self, loader_context: &mut LoaderContext<TestContext>) -> Result<()> {
+      async fn run(&self, loader_context: &mut LoaderContext<()>) -> Result<()> {
         let (content, source_map, additional_data) = loader_context.take_all();
         assert!(content.is_none());
         assert!(source_map.is_none());
@@ -720,13 +661,12 @@ mod test {
     // Ignore error: Final loader didn't return a Buffer or String
     assert!(
       run_loaders(
+        vec![Arc::new(Normal2), Arc::new(Normal)],
+        None,
         rs,
         Some(Arc::new(TestContentPlugin)),
-        TestContext(Loaders::new(vec![
-          ResolvedLoader::uncached(Arc::new(Normal2)),
-          ResolvedLoader::uncached(Arc::new(Normal)),
-        ])),
-        Arc::new(NativeFileSystem::new(false)),
+        (),
+        Arc::new(NativeFileSystem::new(false))
       )
       .await
       .1

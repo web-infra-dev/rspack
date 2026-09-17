@@ -212,7 +212,7 @@ pub(crate) async fn before_normal_chain(
     module_identifier.as_str(),
     chain
       .range()
-      .map(|index| context.loader_items()[usize::from(index)].cache_options()),
+      .map(|index| context.loader_items[usize::from(index)].cache_options()),
   ) else {
     return Ok(LoaderCacheAction::Disabled);
   };

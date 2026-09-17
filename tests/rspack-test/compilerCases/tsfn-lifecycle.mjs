@@ -1,0 +1,137 @@
+import path from "node:path";
+import { spawn } from "node:child_process";
+
+function runChild(script) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, ["--expose-gc", script], {
+      cwd: path.resolve(import.meta.dirname, "../../.."),
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", chunk => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on("data", chunk => {
+      stderr += chunk.toString();
+    });
+
+    child.on("error", reject);
+    child.on("close", code => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      reject(
+        new Error(
+          stderr ||
+          stdout ||
+          `GC lifecycle script exited with code ${code}`,
+        ),
+      );
+    });
+  });
+}
+
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
+export default [
+  {
+    description:
+      "should garbage collect hook closures that capture both compilation and compiler",
+    async build() {
+      await runChild(
+        path.join(
+          import.meta.dirname,
+          "fixtures",
+          "tsfn-lifecycle",
+          "gc-check-hooks.mjs",
+        ),
+      );
+    },
+  },
+  {
+    description:
+      "should garbage collect option callbacks that capture both compilation and compiler",
+    async build() {
+      await runChild(
+        path.join(
+          import.meta.dirname,
+          "fixtures",
+          "tsfn-lifecycle",
+          "gc-check-options.mjs",
+        ),
+      );
+    },
+  },
+  {
+    description:
+      "should keep option callbacks alive across multiple builds even after forced gc",
+    async build() {
+      await runChild(
+        path.join(
+          import.meta.dirname,
+          "fixtures",
+          "tsfn-lifecycle",
+          "gc-check-options-multiple-builds.mjs",
+        ),
+      );
+    },
+  },
+  {
+    description:
+      "should garbage collect chunks after compiler is garbage collected",
+    async build() {
+      await runChild(
+        path.join(
+          import.meta.dirname,
+          "fixtures",
+          "tsfn-lifecycle",
+          "gc-check-chunk.mjs",
+        ),
+      );
+    },
+  },
+  {
+    description:
+      "should garbage collect module graph connections from a previous build",
+    async build() {
+      await runChild(
+        path.join(
+          import.meta.dirname,
+          "fixtures",
+          "tsfn-lifecycle",
+          "gc-check-module-graph-connection.mjs",
+        ),
+      );
+    },
+  },
+  {
+    description:
+      "should garbage collect custom runtime modules after compiler close",
+    async build() {
+      await runChild(
+        path.join(
+          import.meta.dirname,
+          "fixtures",
+          "tsfn-lifecycle",
+          "gc-check-runtime-module.mjs",
+        ),
+      );
+    },
+  },
+  {
+    description: "should report a clear error when APIs are called after close",
+    async build() {
+      await runChild(
+        path.join(
+          import.meta.dirname,
+          "fixtures",
+          "tsfn-lifecycle",
+          "closed-compiler-error.mjs",
+        ),
+      );
+    },
+  },
+];

@@ -10,7 +10,7 @@ use crate::{
   error::RspackError,
   impl_module_methods,
   module::{MODULE_PROPERTIES_BUFFER, Module},
-  plugins::JsNormalModuleLoaderItem,
+  plugins::JsLoaderItem,
   resource_data::ReadonlyResourceDataWrapper,
 };
 
@@ -48,7 +48,7 @@ impl NormalModule {
             module
               .loaders()
               .iter()
-              .map(|resolved| JsNormalModuleLoaderItem::from(&resolved.loader))
+              .map(JsLoaderItem::from)
               .collect::<Vec<_>>(),
           )?
         });

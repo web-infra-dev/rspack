@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use num_bigint::BigUint;
+use fixedbitset::FixedBitSet;
 use rspack_collections::{IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_error::Result;
 use rustc_hash::FxHashSet;
@@ -464,7 +464,7 @@ impl CodeSplitter {
       chunk_graph.connect_chunk_and_module(chunk, *module);
 
       let mask = self.mask_by_chunk.entry(chunk).or_default();
-      mask.set_bit(ordinal, true);
+      mask.insert(ordinal as usize);
     }
 
     let group = compilation
@@ -506,18 +506,18 @@ impl CodeSplitter {
     let ordinal_by_module = &mut self.ordinal_by_module;
     for m in module_graph.modules_keys() {
       if !ordinal_by_module.contains_key(m) {
-        ordinal_by_module.insert(*m, ordinal_by_module.len() as u64 + 1);
+        ordinal_by_module.insert(*m, ordinal_by_module.len() as u64);
       }
     }
     for chunk in compilation.build_chunk_graph_artifact.chunk_by_ukey.keys() {
-      let mut mask = BigUint::from(0u32);
+      let mut mask = FixedBitSet::with_capacity(self.ordinal_by_module.len());
       for module_id in compilation
         .build_chunk_graph_artifact
         .chunk_graph
         .get_chunk_modules_identifier(chunk)
       {
         let module_ordinal = self.get_module_ordinal(*module_id);
-        mask.set_bit(module_ordinal, true);
+        mask.insert(module_ordinal as usize);
       }
       self.mask_by_chunk.insert(*chunk, mask);
     }
@@ -806,7 +806,7 @@ impl CodeSplitter {
     &self,
     cache: &ChunkCreateData,
     runtime: &RuntimeSpec,
-    new_available_modules: Arc<BigUint>,
+    new_available_modules: Arc<FixedBitSet>,
     options: Option<&GroupOptions>,
   ) -> bool {
     cache.can_rebuild
@@ -818,7 +818,7 @@ impl CodeSplitter {
   pub fn available_modules_affected(
     &self,
     cache: &ChunkCreateData,
-    new_available_modules: Arc<BigUint>,
+    new_available_modules: Arc<FixedBitSet>,
   ) -> bool {
     if new_available_modules == cache.available_modules {
       return false;
@@ -841,7 +841,7 @@ impl CodeSplitter {
       .chain(cache_result.skipped_modules.iter())
     {
       let m = self.get_module_ordinal(*m);
-      if diff.bit(m) {
+      if diff.contains(m as usize) {
         return true;
       }
     }
@@ -862,7 +862,7 @@ struct CacheResult {
 #[derive(Debug, Clone)]
 pub struct ChunkCreateData {
   // input
-  available_modules: Arc<BigUint>,
+  available_modules: Arc<FixedBitSet>,
   options: Option<GroupOptions>,
   runtime: RuntimeSpec,
   pub module: ModuleIdentifier,
