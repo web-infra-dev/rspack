@@ -1,14 +1,15 @@
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const sharedSize = [0, 1, 2].reduce(
-  (sum, index) => sum + fs.statSync(path.join(__dirname, `m${index}.js`)).size,
+  (sum, index) =>
+    sum + fs.statSync(path.join(import.meta.dirname, `m${index}.js`)).size,
   0,
 );
 
 /** @type {import("@rspack/core").Configuration[]} */
-module.exports = [
+export default [
   { usedExports: false },
   { usedExports: true },
   { usedExports: false, dedupDepth: 0 },

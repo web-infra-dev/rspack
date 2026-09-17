@@ -1,16 +1,18 @@
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const { SplitChunksPlugin } = require('@rspack/core').optimize;
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { optimize } from '@rspack/core';
 
-const context = path.resolve(__dirname, '../intersections-min-size');
+const { SplitChunksPlugin } = optimize;
+
+const context = path.resolve(import.meta.dirname, '../intersections-min-size');
 const minSize = [0, 1, 2].reduce(
   (sum, index) => sum + fs.statSync(path.join(context, `m${index}.js`)).size,
   0,
 );
 
 /** @type {import('@rspack/core').Configuration[]} */
-module.exports = [
+export default [
   { mode: 'production', defaultDepth: 1 },
   { mode: 'development', defaultDepth: 0 },
   { mode: 'none', defaultDepth: 0 },

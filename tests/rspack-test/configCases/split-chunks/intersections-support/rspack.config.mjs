@@ -1,7 +1,7 @@
-const assert = require('node:assert/strict');
-const {
-  experiments: { VirtualModulesPlugin },
-} = require('@rspack/core');
+import assert from 'node:assert/strict';
+import { experiments } from '@rspack/core';
+
+const { VirtualModulesPlugin } = experiments;
 
 const moduleCount = 130;
 const indices = Array.from({ length: moduleCount }, (_, i) => i);
@@ -35,7 +35,7 @@ for (let i = 0; i < moduleCount; i += 2) {
 // Every module has a distinct original chunk set. The a/b intersection has
 // dense support; each p/q pair is supported by only two of the 130 sets.
 /** @type {import('@rspack/core').Configuration[]} */
-module.exports = [false, true]
+export default [false, true]
   .flatMap((usedExports) =>
     ['all', 'pairs', 'common'].map((selection) => ({ usedExports, selection })),
   )

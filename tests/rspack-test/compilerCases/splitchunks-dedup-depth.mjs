@@ -1,5 +1,5 @@
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
-module.exports = [-1, 1.5, NaN, Infinity, 0x100000000, "2", null].map(
+export default [-1, 1.5, NaN, Infinity, 0x100000000, "2", null].map(
   (dedupDepth) => ({
     description: `rejects splitChunks.dedupDepth ${String(dedupDepth)}`,
     options(context) {

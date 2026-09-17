@@ -1,9 +1,9 @@
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 const sharedSize = Array.from(
   { length: 5 },
-  (_, i) => fs.statSync(path.join(__dirname, `m${i}.js`)).size,
+  (_, i) => fs.statSync(path.join(import.meta.dirname, `m${i}.js`)).size,
 ).reduce((a, b) => a + b, 0);
 
 // Each module belongs to {a,b} and four of the five c entries. Discovering
@@ -11,7 +11,7 @@ const sharedSize = Array.from(
 // round 2 at most four, and round 3 can finally include all five. Intermediate
 // intersections fail minSize, but their smaller descendants must survive.
 /** @type {import("@rspack/core").Configuration[]} */
-module.exports = [false, true]
+export default [false, true]
   .flatMap((usedExports) =>
     [0, 1, 2, 3, 4, 0xffffffff].map((dedupDepth) => ({
       usedExports,
