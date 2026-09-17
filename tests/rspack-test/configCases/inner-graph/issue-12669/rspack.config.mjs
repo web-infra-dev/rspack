@@ -1,4 +1,4 @@
-import createTestCases from '../_helpers/createTestCases.js';
+import createTestCases from '../_helpers/createTestCases.mjs';
 // TODO: figure out why some exports are missing
 export default createTestCases({
   nothing: {

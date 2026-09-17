@@ -1,5 +1,5 @@
 import path from 'node:path';
-import customHttpClient from './custom-http-client.js';
+import customHttpClient from './custom-http-client.mjs';
 
 /** @type {import("@rspack/core").Configuration} */
 export default {

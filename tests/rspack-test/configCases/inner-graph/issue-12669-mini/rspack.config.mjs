@@ -1,4 +1,4 @@
-import createTestCases from '../_helpers/createTestCases.js';
+import createTestCases from '../_helpers/createTestCases.mjs';
 export default createTestCases({
   // nothing: {
   // 	usedExports: [],

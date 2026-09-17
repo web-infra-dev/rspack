@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { DefinePlugin } from '@rspack/core';
-import cases from './cases.js';
+import cases from './cases.mjs';
 
 const url = 'http://integrity.example/module.js';
 const source = (value) => `export default ${JSON.stringify(value)};\n`;

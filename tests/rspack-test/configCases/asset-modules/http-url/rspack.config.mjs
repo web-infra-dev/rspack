@@ -1,4 +1,4 @@
-import ServerPlugin from './server/index.js';
+import ServerPlugin from './server/index.mjs';
 import { rspack } from '@rspack/core';
 
 const {
@@ -15,11 +15,11 @@ const base = {
     rules: [
       {
         test: /\.css$/,
-        loader: './loaders/css-loader',
+        loader: './loaders/css-loader.mjs',
       },
       {
         test: /\.md$/,
-        loader: './loaders/md-loader',
+        loader: './loaders/md-loader.mjs',
       },
       {
         test: /\.txt$/,
