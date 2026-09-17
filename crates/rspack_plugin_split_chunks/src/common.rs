@@ -276,7 +276,6 @@ impl ModuleSourceSizes {
 }
 
 pub type ModuleSizes = IdentifierMap<ModuleSourceSizes>;
-pub(crate) type ModuleChunks = Vec<rspack_core::ModuleChunks>;
 
 /// Returns a lossy mask for quickly proving that two chunk sets are disjoint. Chunk keys may
 /// collide in the mask, so overlapping masks must always fall back to an exact check.

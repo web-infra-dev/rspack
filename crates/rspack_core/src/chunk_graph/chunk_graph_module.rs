@@ -6,7 +6,7 @@ use std::{
 };
 
 use rspack_cacheable::{cacheable, with::AsPreset};
-use rspack_collections::{IdentifierHasher, IdentifierSet};
+use rspack_collections::{IdentifierHasher, IdentifierSet, SsoHashSet};
 use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_util::ext::DynHash;
 use rustc_hash::{FxHashSet, FxHasher};
@@ -15,9 +15,8 @@ use ustr::Ustr;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
-  ChunkGroupUkey, ChunkUkey, Compilation, Module, ModuleChunks, ModuleGraph, ModuleIdentifier,
-  ModuleIdsArtifact, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, for_each_runtime,
-  get_runtime_key,
+  ChunkGroupUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier, ModuleIdsArtifact,
+  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, for_each_runtime, get_runtime_key,
 };
 
 pub type ModuleIdMap<V> =
@@ -84,7 +83,7 @@ impl rspack_hash::RspackHash for ModuleId {
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraphModule {
   pub(super) entry_in_chunks: FxHashSet<ChunkUkey>,
-  pub chunks: ModuleChunks,
+  pub chunks: SsoHashSet<ChunkUkey>,
   pub(super) runtime_in_chunks: FxHashSet<ChunkUkey>,
 }
 
@@ -192,7 +191,7 @@ impl ChunkGraph {
       .get_mut(&module_identifier)
   }
 
-  pub fn get_module_chunks(&self, module_identifier: ModuleIdentifier) -> &ModuleChunks {
+  pub fn get_module_chunks(&self, module_identifier: ModuleIdentifier) -> &SsoHashSet<ChunkUkey> {
     let chunk_graph_module = self
       .chunk_graph_module_by_module_identifier
       .get(&module_identifier)
@@ -314,7 +313,7 @@ impl ChunkGraph {
   pub fn try_get_module_chunks(
     &self,
     module_identifier: &ModuleIdentifier,
-  ) -> Option<&ModuleChunks> {
+  ) -> Option<&SsoHashSet<ChunkUkey>> {
     self
       .chunk_graph_module_by_module_identifier
       .get(module_identifier)

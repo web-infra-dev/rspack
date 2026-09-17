@@ -5,7 +5,7 @@ use std::{
 };
 
 use rayon::iter::Either;
-use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
+use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, SsoHashSet};
 use rspack_core::{
   ChunkGraph, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataChunkInitFragments, CodeGenerationDataConcatenationScopeOutput,
@@ -13,12 +13,12 @@ use rspack_core::{
   ConcatenationBindingPlan, ConcatenationBindingResolver, ConcatenationBindingTarget,
   ConcatenationContext, ConcatenationInterop, ConcatenationNameAllocator, ConditionalInitFragment,
   DependencyType, ExportInfo, ExportMode, ExportProvided, ExportsInfoArtifact, ExportsType,
-  FindTargetResult, ImportSpec, InitFragmentKey, ModuleChunks, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals,
-  RuntimeGlobalsRenderMode, RuntimeTemplateRenderMode, RuntimeVariable, SideEffectsStateArtifact,
-  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, all_runtime_module_variables,
-  analyze_module_scope, find_target, get_cached_readable_identifier, get_module_directives,
-  get_module_hashbang, property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
+  FindTargetResult, ImportSpec, InitFragmentKey, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals, RuntimeGlobalsRenderMode,
+  RuntimeTemplateRenderMode, RuntimeVariable, SideEffectsStateArtifact, SourceType, URLStaticMode,
+  UsageState, UsedName, UsedNameItem, all_runtime_module_variables, analyze_module_scope,
+  find_target, get_cached_readable_identifier, get_module_directives, get_module_hashbang,
+  property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
   rspack_sources::ReplaceSource, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Result};
@@ -952,7 +952,7 @@ var {} = {{}};
 
   fn validate_single_chunk(
     m: ModuleIdentifier,
-    chunks: &ModuleChunks,
+    chunks: &SsoHashSet<ChunkUkey>,
   ) -> rspack_error::Result<ChunkUkey> {
     match chunks.len() {
       0 => Err(rspack_error::error!("module {m} is not in any chunk")),
@@ -3178,9 +3178,9 @@ fn normal_render(
 
 #[cfg(test)]
 mod tests {
+  use rspack_collections::SsoHashSet;
   use rspack_core::{
-    ChunkInitFragments, ChunkUkey, ConcatenationNameAllocator, InitFragmentKey, ModuleChunks,
-    ModuleIdentifier,
+    ChunkInitFragments, ChunkUkey, ConcatenationNameAllocator, InitFragmentKey, ModuleIdentifier,
   };
   use rspack_intern::Atom;
   use rspack_util::fx_hash::{FxHashMap, FxHashSet};
@@ -3190,7 +3190,7 @@ mod tests {
   #[test]
   fn get_module_chunk_empty_chunks_returns_error() {
     let m = ModuleIdentifier::from("test_module");
-    let chunks = ModuleChunks::default();
+    let chunks = SsoHashSet::default();
     let result = EsmLibraryPlugin::validate_single_chunk(m, &chunks);
     assert!(result.is_err());
     let err_msg = result.unwrap_err().to_string();
@@ -3203,7 +3203,7 @@ mod tests {
   #[test]
   fn get_module_chunk_multiple_chunks_returns_error() {
     let m = ModuleIdentifier::from("test_module");
-    let mut chunks = ModuleChunks::default();
+    let mut chunks = SsoHashSet::default();
     chunks.insert(ChunkUkey::new());
     chunks.insert(ChunkUkey::new());
     let result = EsmLibraryPlugin::validate_single_chunk(m, &chunks);
@@ -3219,7 +3219,7 @@ mod tests {
   fn get_module_chunk_single_chunk_returns_ok() {
     let m = ModuleIdentifier::from("test_module");
     let expected_chunk = ChunkUkey::new();
-    let mut chunks = ModuleChunks::default();
+    let mut chunks = SsoHashSet::default();
     chunks.insert(expected_chunk);
     let result = EsmLibraryPlugin::validate_single_chunk(m, &chunks);
     assert!(result.is_ok());

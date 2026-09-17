@@ -7,15 +7,15 @@ use std::{
 
 use rayon::prelude::*;
 use rspack_collections::{
-  Identifiable, IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
+  Identifiable, IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, SsoHashSet,
 };
 use rspack_core::{
-  BoxModule, Compilation, CompilationOptimizeChunkModules, Dependency, DependencyType,
+  BoxModule, ChunkUkey, Compilation, CompilationOptimizeChunkModules, Dependency, DependencyType,
   ExportProvided, ExportsInfoArtifact, GetTargetResult, ImportedByDeferModulesArtifact,
-  LibIdentOptions, Logger, ModuleChunks, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleGraphConnectionId, ModuleGraphModule, ModuleIdentifier,
-  OptimizationBailoutItem, Plugin, ProvidedExports, RuntimeCondition, RuntimeSpec, RuntimeSpecMap,
-  SideEffectsStateArtifact, SourceType,
+  LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ModuleGraphConnectionId, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, RuntimeSpecMap, SideEffectsStateArtifact,
+  SourceType,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
   },
@@ -40,7 +40,7 @@ enum Warning {
 enum ConcatenationProblem {
   MissingChunks {
     module: ModuleIdentifier,
-    root_chunks: Arc<ModuleChunks>,
+    root_chunks: Arc<SsoHashSet<ChunkUkey>>,
   },
   ReferencedFromNonModule {
     module: ModuleIdentifier,
@@ -309,7 +309,7 @@ struct ModuleGraphArtifacts<'a> {
 
 struct ConcatenationSearchContext<'a> {
   compilation: &'a Compilation,
-  root_chunks: &'a Arc<ModuleChunks>,
+  root_chunks: &'a Arc<SsoHashSet<ChunkUkey>>,
   runtime: &'a RuntimeSpec,
   possible_modules: &'a IdentifierSet,
   module_cache: &'a IdentifierMap<NoRuntimeModuleCache>,
@@ -1635,7 +1635,7 @@ struct CachedIncomingModule {
 
 #[derive(Debug)]
 struct DifferentChunkModules {
-  root_chunks: Arc<ModuleChunks>,
+  root_chunks: Arc<SsoHashSet<ChunkUkey>>,
   incoming_modules: Arc<[CachedIncomingModule]>,
   modules: OnceLock<Arc<[ModuleIdentifier]>>,
 }
@@ -1701,7 +1701,7 @@ impl CachedIncomingConnection {
 #[derive(Debug)]
 pub struct NoRuntimeModuleCache {
   runtime: RuntimeSpec,
-  chunks: Arc<ModuleChunks>,
+  chunks: Arc<SsoHashSet<ChunkUkey>>,
   provided_names: bool,
   connections: Vec<CachedOutgoingConnection>,
   incomings: IncomingConnections,
