@@ -40,7 +40,7 @@ export function diagnostics(stage, baseline, current) {
   );
 }
 
-export async function settle(stage, baseline, asyncOnly = false) {
+export async function waitForStableHandles(stage, baseline, asyncOnly = false) {
   assert.equal(typeof global.gc, "function", "requires --expose-gc");
   const deadline = performance.now() + 5000;
   let previous;

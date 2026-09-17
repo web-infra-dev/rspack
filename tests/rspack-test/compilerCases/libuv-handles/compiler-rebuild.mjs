@@ -1,6 +1,6 @@
 import { createCompiler, build, lifecycle } from "./compiler.mjs";
 import { closeCompiler } from "@rspack/test-tools/helper/lifecycle";
-import { settle } from "./handles.mjs";
+import { waitForStableHandles } from "./handles.mjs";
 async function repeatedBuilds() {
   const { compiler, state } = createCompiler(4);
   try {
@@ -8,10 +8,14 @@ async function repeatedBuilds() {
     // until the next compilation. Warm the rebuild path before comparing it.
     await build(compiler, state, 4, false);
     await build(compiler, state, 4, false);
-    const liveBaseline = await settle("compiler-rebuild warmup");
+    const liveBaseline = await waitForStableHandles("compiler-rebuild warmup");
     for (let round = 1; round <= 5; round++) {
       await build(compiler, state, 4, false);
-      await settle(`compiler-rebuild ${round}`, liveBaseline, true);
+      await waitForStableHandles(
+        `compiler-rebuild ${round}`,
+        liveBaseline,
+        true,
+      );
     }
   } finally {
     await closeCompiler(compiler);
@@ -20,7 +24,10 @@ async function repeatedBuilds() {
 
 export default async function run() {
   await lifecycle(4);
-  const baseline = await settle("warmup");
+  const baseline = await waitForStableHandles("warmup");
   await repeatedBuilds();
-  await settle("compiler-rebuild: closed and collected", baseline);
+  await waitForStableHandles(
+    "compiler-rebuild: closed and collected",
+    baseline,
+  );
 }

@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
 import { MessageChannel } from "node:worker_threads";
-import { diagnostics, exceedsBaseline, settle, snapshot } from "./handles.mjs";
+import {
+  diagnostics,
+  exceedsBaseline,
+  waitForStableHandles,
+  snapshot,
+} from "./handles.mjs";
 
 export default async function run() {
-  const baseline = await settle("unref-detection baseline");
+  const baseline = await waitForStableHandles("unref-detection baseline");
   // Negative control: deliberately retain unref'ed async handles. Verify the
   // detector rejects them, then verify closing them restores the baseline.
   const { port1, port2 } = new MessageChannel();
@@ -21,12 +26,12 @@ export default async function run() {
     );
     assert(added.length >= 2 && added.every((h) => !h.is_referenced));
     await assert.rejects(
-      settle("intentional unref handle leak", baseline),
+      waitForStableHandles("intentional unref handle leak", baseline),
       /intentional unref handle leak/,
     );
   } finally {
     port1.close();
     port2.close();
   }
-  await settle("closed ports", baseline);
+  await waitForStableHandles("closed ports", baseline);
 }
