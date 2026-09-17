@@ -24,7 +24,7 @@ function createExampleProcessor(name: string): ITestProcessor {
       configMultiCompiler(
         context,
         name,
-        ['rspack.config.mjs', 'rspack.config.js', 'webpack.config.js'],
+        ['rspack.config.mjs', 'rspack.config.js'],
         () => ({}),
         overrideOptions,
       );

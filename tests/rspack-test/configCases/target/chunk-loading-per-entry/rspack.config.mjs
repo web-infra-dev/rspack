@@ -1,0 +1,28 @@
+const base = {
+  entry: {
+    web: './web',
+    webworker: {
+      import: './webworker',
+      chunkLoading: 'import-scripts',
+    },
+  },
+  target: 'web',
+};
+
+/** @type {import("@rspack/core").Configuration[]} */
+export default [
+  {
+    externals: {
+      './chunk-0.js': 'commonjs ./chunk-0.js',
+    },
+    ...base,
+    output: { ...base.output, filename: '[name]-0.js' },
+  },
+  {
+    externals: {
+      './chunk-0.js': 'commonjs ./chunk-0.js',
+    },
+    ...base,
+    output: { ...base.output, filename: '[name]-1.js' },
+  },
+];

@@ -1,0 +1,14 @@
+import path from 'node:path';
+
+/**@type {import('@rspack/core').Configuration} */
+export default {
+  entry: {
+    index: './src/index.js',
+  },
+  output: {
+    library: {
+      type: 'modern-module',
+      preserveModules: path.resolve(import.meta.dirname, 'src'),
+    },
+  },
+};

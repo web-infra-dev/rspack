@@ -1,1 +1,0 @@
-module.exports = () => "TODO: support additional assets info";

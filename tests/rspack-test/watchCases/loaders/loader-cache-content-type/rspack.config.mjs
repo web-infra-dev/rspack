@@ -1,0 +1,48 @@
+import { rspack } from '@rspack/core';
+import { fileURLToPath } from 'node:url';
+export default [false, true].flatMap((cache) =>
+  [false, true].flatMap((parallel) =>
+    [false, true].map((mixed) => ({
+      mode: 'development',
+      output: {
+        filename: `bundle-${cache}-${parallel}-${mixed}.js`,
+      },
+      incremental: false,
+      cache: cache ? { type: 'memory' } : false,
+      experiments: {
+        newCache: {
+          codeGeneration: false,
+          loader: cache,
+          minimize: false,
+        },
+      },
+      module: {
+        rules: [
+          {
+            test: /input\.txt$/,
+            type: 'javascript/auto',
+            use: [
+              {
+                loader: fileURLToPath(
+                  import.meta.resolve('./consumer-loader.js'),
+                ),
+                options: { name: `${cache}-${parallel}-${mixed}` },
+                cache,
+                parallel: parallel ? { maxWorkers: 1 } : false,
+              },
+              ...(mixed
+                ? [{ loader: 'builtin:test-passthrough-loader', cache }]
+                : []),
+              {
+                loader: fileURLToPath(
+                  import.meta.resolve('./producer-loader.js'),
+                ),
+              },
+            ],
+          },
+        ],
+      },
+      plugins: [new rspack.DefinePlugin({ LOADER_CACHE_ENABLED: cache })],
+    })),
+  ),
+);

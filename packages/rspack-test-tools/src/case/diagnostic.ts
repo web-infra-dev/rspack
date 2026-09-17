@@ -16,8 +16,8 @@ const creator = new BasicCaseCreator({
         const compiler = context.getCompiler();
         let options = defaultOptions(context);
         const custom = readConfigFile(
-          ['rspack.config.mjs', 'rspack.config.js', 'webpack.config.js'].map(
-            (i) => context.getSource(i),
+          ['rspack.config.mjs', 'rspack.config.js'].map((i) =>
+            context.getSource(i),
           ),
           context,
           options,
