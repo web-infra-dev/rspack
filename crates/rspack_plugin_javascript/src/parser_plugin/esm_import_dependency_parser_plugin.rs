@@ -121,14 +121,18 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
     source: &Atom,
     id: Option<&Atom>,
     name: &Atom,
+    identifier: swc_next_ecma_ast::BindingIdentifier,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
     let is_create_require = is_create_require_import(parser, source, id);
     let phase = get_import_phase(parser, statement.phase(ast));
-    parser.tag_variable::<ESMSpecifierData>(
+    let resolution = parser
+      .definitions_db
+      .resolve_binding(parser.ast, identifier);
+    parser.tag_variable_resolved(
       name.clone(),
       ESM_SPECIFIER_TAG,
-      Some(ESMSpecifierData {
+      Some(TagInfoData::into_any(ESMSpecifierData {
         name: name.clone(),
         source: source.clone(),
         ids: id.into_iter().cloned().collect(),
@@ -136,7 +140,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
         source_order: parser.last_esm_import_order,
         phase,
         attributes: get_import_attributes(ast, statement.attributes(ast)),
-      }),
+      })),
+      crate::visitors::VariableInfoFlags::TAGGED,
+      resolution,
     );
     if is_create_require {
       tag_create_require(parser, name.clone());

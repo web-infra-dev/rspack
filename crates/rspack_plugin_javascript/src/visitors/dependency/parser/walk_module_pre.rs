@@ -57,6 +57,7 @@ impl JavascriptParser<'_> {
             &source_atom,
             Some(&export_name),
             &identifier_name,
+            local,
           );
         }
         ImportDeclarationSpecifierData::ImportDefaultSpecifier(default) => {
@@ -67,11 +68,19 @@ impl JavascriptParser<'_> {
             &source_atom,
             Some(&JS_DEFAULT_KEYWORD),
             &identifier_name,
+            default.local(ast),
           );
         }
         ImportDeclarationSpecifierData::ImportNamespaceSpecifier(namespace) => {
           let identifier_name = Atom::from(ast.get_utf8(namespace.local(ast).name(ast)));
-          drive.import_specifier(self, declaration, &source_atom, None, &identifier_name);
+          drive.import_specifier(
+            self,
+            declaration,
+            &source_atom,
+            None,
+            &identifier_name,
+            namespace.local(ast),
+          );
         }
       }
     }
