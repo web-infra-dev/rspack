@@ -4188,11 +4188,14 @@ name = "rspack_collections"
 version = "0.102.5"
 dependencies = [
  "dashmap",
+ "either",
  "hashlink",
  "indexmap",
  "rspack-allocative",
  "rspack_cacheable",
+ "rustc-hash",
  "serde",
+ "smallvec",
  "ustr-fxhash",
 ]
 

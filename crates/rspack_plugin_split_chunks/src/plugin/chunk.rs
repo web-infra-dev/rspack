@@ -1,5 +1,5 @@
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierMap, IdentifierSet, SsoHashSet};
 use rspack_core::{
   Chunk, ChunkSplitData, ChunkUkey, Compilation, ModuleIdentifier, incremental::Mutation,
   module_chunk_condition,
@@ -7,11 +7,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rustc_hash::FxHashSet;
 
-use crate::{
-  SplitChunksPlugin,
-  common::{ModuleChunkMap, ModuleChunks},
-  module_group::ModuleGroup,
-};
+use crate::{SplitChunksPlugin, common::ModuleChunkMap, module_group::ModuleGroup};
 
 fn put_split_chunk_reason(
   chunk_reason: &mut Option<String>,
@@ -34,7 +30,7 @@ impl SplitChunksPlugin {
   pub(crate) fn get_module_chunks(
     all_modules: &[ModuleIdentifier],
     compilation: &Compilation,
-  ) -> ModuleChunks {
+  ) -> Vec<SsoHashSet<ChunkUkey>> {
     let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
     all_modules
       .par_iter()

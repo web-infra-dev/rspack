@@ -11,6 +11,7 @@ use futures::{
 };
 use itertools::Either;
 use rayon::prelude::*;
+use rspack_collections::SsoHashSet;
 use rspack_core::{
   ChunkByUkey, ChunkUkey, Compilation, ExportsInfoArtifact, Module, ModuleIdentifier,
   RuntimeKeyMap, UsageKey, get_runtime_key,
@@ -24,7 +25,7 @@ use super::ModuleGroupMap;
 use crate::{
   SplitChunksNameBatchFn, SplitChunksPlugin,
   common::{
-    ChunkFilter, ModuleChunkMap, ModuleChunks, ModuleSizes, is_default_module_layer_filter,
+    ChunkFilter, ModuleChunkMap, ModuleSizes, is_default_module_layer_filter,
     is_default_module_type_filter,
   },
   min_size::remove_min_size_violating_modules,
@@ -270,7 +271,7 @@ impl Combinator {
 
   fn group_chunks_by_exports(
     module_identifier: &ModuleIdentifier,
-    module_chunks: &FxHashSet<ChunkUkey>,
+    module_chunks: &SsoHashSet<ChunkUkey>,
     exports_info_artifact: &ExportsInfoArtifact,
     chunk_by_ukey: &ChunkByUkey,
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
@@ -279,7 +280,7 @@ impl Combinator {
     if module_chunks.len() == 1 {
       return vec![ChunkCombination::new(
         get_key(module_chunks.iter().copied(), chunk_index_map),
-        module_chunks.clone(),
+        module_chunks.iter().copied().collect(),
         chunk_index_map,
       )];
     }
@@ -415,7 +416,7 @@ impl Combinator {
   pub(super) fn prepare_group_by_chunks(
     &mut self,
     all_modules: &[ModuleIdentifier],
-    module_chunks: &ModuleChunks,
+    module_chunks: &[SsoHashSet<ChunkUkey>],
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
     min_chunks: usize,
   ) {
@@ -450,7 +451,9 @@ impl Combinator {
           module_chunks
             .get(module_index)
             .expect("module chunks")
-            .clone(),
+            .iter()
+            .copied()
+            .collect(),
           chunk_index_map,
         )
       });
@@ -467,7 +470,7 @@ impl Combinator {
     all_modules: &[ModuleIdentifier],
     exports_info_artifact: &ExportsInfoArtifact,
     chunk_by_ukey: &ChunkByUkey,
-    module_chunks: &ModuleChunks,
+    module_chunks: &[SsoHashSet<ChunkUkey>],
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
   ) {
     let (grouped_by_exports, used_exports_chunks): (Vec<_>, Vec<_>) = all_modules
@@ -548,7 +551,7 @@ impl SplitChunksPlugin {
     all_modules: &[ModuleIdentifier],
     cache_groups: Vec<IndexedCacheGroup<'_>>,
     compilation: &Compilation,
-    module_chunks: &ModuleChunks,
+    module_chunks: &[SsoHashSet<ChunkUkey>],
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
   ) -> Result<ModuleGroupMap> {
     let module_graph = compilation.get_module_graph();
