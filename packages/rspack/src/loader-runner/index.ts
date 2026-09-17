@@ -34,7 +34,6 @@ import {
   type LoaderContext,
   type ResolveCallback,
 } from '../config/adapterRuleUse';
-import { NormalModule } from '../NormalModule';
 import { Resolver, type ResolveContext } from '../Resolver';
 import { NonErrorEmittedError, type RspackError } from '../RspackError';
 import { JavaScriptTracer } from '../trace';
@@ -57,6 +56,7 @@ import { memoize } from '../util/memoize';
 import { ModuleError, ModuleWarning } from './ModuleError';
 import { LoaderCache, type LoaderCacheEntry } from './cache';
 import { LoaderDependenciesState } from './dependencies';
+import { collectLoaderHookChanges, runLoaderHooks } from './hooks';
 import {
   deserializeLoaderOptions,
   prepareWorkerFunctionValue,
@@ -727,51 +727,31 @@ async function runLoadersInternal(
     return options;
   };
 
-  const contextBeforeHooks = hooksOnly
-    ? new Map(
-        Reflect.ownKeys(loaderContext).map((key) => [
-          key,
-          Object.getOwnPropertyDescriptor(loaderContext, key),
-        ]),
-      )
-    : undefined;
-  let compilation: Compilation | undefined =
-    worker && !hooksOnly ? undefined : compiler._lastCompilation;
-  let step = 0;
-  while (compilation) {
-    NormalModule.getCompilationHooks(compilation).loader.call(
-      loaderContext,
-      loaderContext._module,
-    );
-    compilation = compilation.compiler.parentCompilation;
-    step++;
-    if (step > 1000) {
-      throw Error(
-        'Too many nested child compiler, exceeded max limitation 1000',
-      );
-    }
-  }
+  const contextBeforeHooks =
+    hooksOnly || worker
+      ? new Map(
+          Reflect.ownKeys(loaderContext).map((key) => [
+            key,
+            Object.getOwnPropertyDescriptor(loaderContext, key),
+          ]),
+        )
+      : undefined;
+  const workerHooks =
+    worker && !hooksOnly
+      ? []
+      : await runLoaderHooks(compiler, loaderContext, hooksOnly);
   dependencies.mergeChanges();
   if (hooksOnly) {
+    const { properties, symbols } = collectLoaderHookChanges(
+      loaderContext,
+      contextBeforeHooks!,
+    );
     const hookExtensions: Record<string, any> = {
       ...(compilerLoaderOptions ?? {}),
+      ...properties,
     };
-    for (const key of Reflect.ownKeys(loaderContext)) {
-      const before = contextBeforeHooks!.get(key);
-      const after = Object.getOwnPropertyDescriptor(loaderContext, key);
-      if (
-        typeof key === 'string' &&
-        after &&
-        'value' in after &&
-        (!before ||
-          !('value' in before) ||
-          !Object.is(before.value, after.value))
-      ) {
-        hookExtensions[key] = after.value;
-      }
-    }
     context.__internal__hookExtensions = serializeLoaderOptions(
-      hookExtensions,
+      { properties: hookExtensions, symbols, functions: workerHooks },
       compiler,
     );
     context.loaderItems = loaderContext.loaders.map((item) =>
@@ -780,10 +760,24 @@ async function runLoadersInternal(
     return Promise.resolve(context);
   }
   if (worker && context.__internal__hookExtensions) {
-    hookLoaderContextExtensions = await prepareWorkerFunctionValue(
+    const hooks = await prepareWorkerFunctionValue(
       deserializeLoaderOptions(context.__internal__hookExtensions),
     );
+    hookLoaderContextExtensions = hooks.properties;
     Object.assign(loaderContext, hookLoaderContextExtensions);
+    for (const [name, value] of hooks.symbols) {
+      (loaderContext as unknown as Record<symbol, any>)[Symbol.for(name)] =
+        value;
+    }
+    for (const fn of hooks.functions) {
+      fn(loaderContext, loaderContext._module);
+    }
+    // RPC functions on the context must also see fields initialized by worker taps.
+    Object.assign(
+      hookLoaderContextExtensions,
+      collectLoaderHookChanges(loaderContext, contextBeforeHooks!).properties,
+    );
+    dependencies.mergeChanges();
   }
 
   markLoaderFunctionThis(loaderContext, {

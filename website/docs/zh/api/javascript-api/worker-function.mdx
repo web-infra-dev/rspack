@@ -75,6 +75,14 @@ module.exports = (module, chunks, cacheGroupKey, options) =>
 
 参数是冻结的独立快照，仅支持 `module.identifier()`、`module.nameForCondition()`、`module.type`、`module.layer` 和 `chunks[].name`。缺失的 condition name、layer 和 chunk 名称为 `undefined`。worker 无法访问原生 Module/Chunk 的其他方法或 compilation graph。可以安全保留快照，快照无法修改编译状态。普通名称回调仍使用原有的 Module 和 Chunk 对象。模块状态在每个 worker 中独立存在；调用顺序及 worker 分配不固定，命名函数应返回确定的结果。
 
+## Loader hooks
+
+`NormalModule.getCompilationHooks(compilation).loader.tap` 支持同步的 `workerFunction`，目标模块接收 `(loaderContext, module, options)`。内置 `CssExtractRspackPlugin` 使用它初始化 loader context。
+
+对于并行 loader，如果当前 compilation 及其父 compilation 的所有 loader tap 都是 worker function，且没有 interceptor，Rspack 会在执行 loader 的同一个 worker 中先运行这些 taps。普通 loader 在本地执行这些函数。如果 hook 链中包含普通 tap 或 interceptor，整条链会在主线程执行，以保持同步调用顺序及 context 修改的可见性；随后将可传输的 context 扩展字段（包括 `Symbol.for` 属性）传给并行 loader。
+
+回调必须同步完成。Loader context 和 module 遵循并行 loader API 及生命周期限制，不应在回调结束后保留它们，也不应假设 worker 拥有主线程 compiler 的 JavaScript 状态。
+
 ## Options 中的函数
 
 Options 支持可传输数据、循环引用、`Map`、`Set` 及嵌套的 `workerFunction`。嵌套函数在使用 options 的 isolate 内执行。ESM 模块会在进入用户代码前准备完成，因此读取 loader options 仍然是同步操作：
@@ -93,6 +101,6 @@ Loader 可以调用 `this.getOptions().transform(value)`。普通 loader 在主�
 
 ## 支持环境与限制
 
-原生调度需要 Node.js worker，暂不支持 browser 和 WASI。其他 hook、`tap`、`tapAsync`、HookMap 中的 worker 注册会明确报错。暂不支持 worker tap 与 JavaScript hook interceptor 组合使用。
+原生调度需要 Node.js worker，暂不支持 browser 和 WASI。其他 hook、`tapAsync`、HookMap 中的 worker 注册会明确报错。`beforeResolve` 只支持 `tapPromise`，不支持 JavaScript hook interceptor。Loader hook 只支持同步 `tap`，并按上述规则回退到主线程执行。
 
 工厂返回的是用于 Rspack 注册和数据准备的带标记占位符，请勿直接调用。泛型 `Fn` 只描述暴露的签名，运行时仍会校验描述符和模块导出。失败或被中断的 worker 任务会使构建报错，不会自动重试用户函数。

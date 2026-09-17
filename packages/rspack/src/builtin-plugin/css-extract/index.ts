@@ -5,13 +5,16 @@ import {
 } from '@rspack/binding';
 import type { Compiler, LiteralUnion } from '../..';
 import { NormalModule } from '../../NormalModule';
+import { workerFunction } from '../../workerFunction';
 import { MODULE_TYPE } from './loader';
-import { type CssExtractPluginData, PLUGIN_NAME, pluginSymbol } from './utils';
+import loaderHook from './loaderHook';
+import { PLUGIN_NAME } from './utils';
 
 export * from './loader';
 
 const DEFAULT_FILENAME = '[name].css';
 const LOADER_PATH = join(import.meta.dirname, 'cssExtractLoader.js');
+const LOADER_HOOK_PATH = join(import.meta.dirname, 'cssExtractLoaderHook.js');
 
 export type { CssExtractRspackLoaderOptions } from './loader';
 
@@ -42,15 +45,12 @@ export class CssExtractRspackPlugin {
 
   apply(compiler: Compiler) {
     compiler.hooks.thisCompilation.tap(PLUGIN_NAME, (compilation) => {
+      const options = { runtime: this.options.runtime !== false };
       NormalModule.getCompilationHooks(compilation).loader.tap(
         PLUGIN_NAME,
-        (loaderContext) => {
-          (loaderContext as unknown as Record<symbol, CssExtractPluginData>)[
-            pluginSymbol
-          ] = {
-            runtime: this.options.runtime !== false,
-          };
-        },
+        IS_BROWSER || process.env.WASM
+          ? (context, module) => loaderHook(context, module, options)
+          : workerFunction(LOADER_HOOK_PATH, options),
       );
     });
 

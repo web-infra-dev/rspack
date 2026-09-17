@@ -75,6 +75,14 @@ The function may return a string or `undefined`, synchronously or through a Prom
 
 Arguments are frozen, owned snapshots, with a deliberately limited API: `module.identifier()`, `module.nameForCondition()`, `module.type`, `module.layer`, and `chunks[].name`. An absent condition name, layer, or chunk name is `undefined`. Native Module/Chunk methods and compilation graphs are unavailable in workers. Retaining snapshots is safe, and they cannot mutate the compilation. Ordinary name callbacks keep their existing Module and Chunk objects. Module state is per worker; use deterministic naming because call order and worker assignment are unspecified.
 
+## Loader hooks
+
+`NormalModule.getCompilationHooks(compilation).loader.tap` accepts a synchronous `workerFunction`. Its module export receives `(loaderContext, module, options)`. The built-in `CssExtractRspackPlugin` uses this to initialize its loader context.
+
+For a parallel loader, Rspack runs these taps in the loader's worker before executing the loader, provided every loader tap in the compilation and its parent compilations is a worker function and there are no interceptors. Ordinary loaders execute the functions locally. If the hook chain includes an ordinary tap or an interceptor, Rspack executes the entire chain on the main thread to preserve synchronous ordering and observation of context changes. Transferable context extensions, including properties keyed by `Symbol.for`, are then passed to the parallel loader.
+
+The callback must finish synchronously. The loader context and module follow the parallel loader API and lifetime restrictions; do not retain them after the callback or assume the worker has the main compiler's JavaScript state.
+
 ## Functions in options
 
 Options support transferable data, cycles, `Map`, `Set`, and nested `workerFunction` values. Nested worker functions execute in the isolate using the options. ESM exports are prepared before user code runs, so reading loader options stays synchronous:
@@ -93,6 +101,6 @@ A loader can call `this.getOptions().transform(value)`. An ordinary main-thread 
 
 ## Supported environments and restrictions
 
-Native scheduling requires Node.js workers. Browser and WASI scheduling are unsupported. Other hooks, `tap`, `tapAsync`, and HookMap registrations reject worker functions. Combining worker taps with JavaScript hook interceptors is currently unsupported and produces an explicit error.
+Native scheduling requires Node.js workers. Browser and WASI scheduling are unsupported. Other hooks, `tapAsync`, and HookMap registrations reject worker functions. `beforeResolve` only supports `tapPromise` and rejects JavaScript hook interceptors. Loader hooks only support synchronous `tap`, with the main-thread fallback described above.
 
 The returned value is a marked placeholder for Rspack registration and data preparation. Do not invoke the placeholder directly. The generic `Fn` describes the exposed signature; Rspack separately validates the descriptor and the module export at runtime. A failed or interrupted worker task is reported to the build and is not automatically retried.

@@ -13,7 +13,7 @@ const descriptors = new WeakMap<Function, WorkerFunctionDescriptor>();
 
 /**
  * Executes a module export with options appended to its arguments.
- * Native worker scheduling supports NormalModuleFactory.beforeResolve.tapPromise and splitChunks.name.
+ * Supports beforeResolve, splitChunks.name, and synchronous loader hooks.
  */
 export function workerFunction<Fn extends Function>(
   target: string,
@@ -67,7 +67,7 @@ export function createWorkerFunctionPlaceholder(
   validateWorkerFunctionDescriptor(descriptor);
   const placeholder = function () {
     throw new Error(
-      'workerFunction must be prepared by Rspack before use; scheduling supports NormalModuleFactory.beforeResolve.tapPromise and splitChunks.name',
+      'workerFunction must be prepared by Rspack before use; scheduling supports NormalModuleFactory.beforeResolve.tapPromise, splitChunks.name, and NormalModule.loader.tap',
     );
   };
   descriptors.set(placeholder, descriptor);

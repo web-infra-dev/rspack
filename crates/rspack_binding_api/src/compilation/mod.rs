@@ -1077,19 +1077,19 @@ impl ToNapiValue for JsCompilationWrapper {
       COMPILATION_INSTANCE_REFS.with(|ref_cell| {
         let mut refs = ref_cell.borrow_mut();
 
-        match refs.entry(val.id) {
-          std::collections::hash_map::Entry::Occupied(entry) => {
-            let r = entry.get();
-            ToNapiValue::to_napi_value(env, r.clone())
-          }
-          std::collections::hash_map::Entry::Vacant(entry) => {
-            let js_compilation = JsCompilation::new(val.id, val.inner);
-            let napi_value = ToNapiValue::to_napi_value(env, js_compilation)?;
-            let reference: Reference<JsCompilation> = Reference::from_napi_value(env, napi_value)?;
-            let weak_reference = entry.insert(reference.downgrade());
-            ToNapiValue::to_napi_value(env, weak_reference.clone())
-          }
+        if let Some(weak_reference) = refs.get(&val.id)
+          && let Some(reference) = weak_reference.upgrade(Env::from_raw(env))?
+        {
+          return ToNapiValue::to_napi_value(env, reference);
         }
+
+        // Worker loader tasks do not keep a JS Compiler alive between invocations.
+        // Recreate a collected wrapper using the current, live Rust compilation.
+        let js_compilation = JsCompilation::new(val.id, val.inner);
+        let napi_value = ToNapiValue::to_napi_value(env, js_compilation)?;
+        let reference: Reference<JsCompilation> = Reference::from_napi_value(env, napi_value)?;
+        refs.insert(val.id, reference.downgrade());
+        Ok(napi_value)
       })
     }
   }

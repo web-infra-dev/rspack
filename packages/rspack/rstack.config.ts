@@ -227,6 +227,8 @@ define.lib({
       source: {
         entry: {
           cssExtractLoader: './src/builtin-plugin/css-extract/loader.ts',
+          cssExtractLoaderHook:
+            './src/builtin-plugin/css-extract/loaderHook.ts',
         },
       },
     }),
