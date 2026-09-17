@@ -1,4 +1,4 @@
-module.exports = async (url) => {
+export default async (url) => {
   const pathname = new URL(url).pathname;
 
   if (pathname === "/value.js") {

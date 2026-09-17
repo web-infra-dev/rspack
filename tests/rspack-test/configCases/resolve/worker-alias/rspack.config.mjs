@@ -1,6 +1,6 @@
-const path = require('path');
+import path from 'node:path';
 
-module.exports = {
+export default {
   optimization: {
     chunkIds: 'named',
     moduleIds: 'named',
@@ -20,7 +20,10 @@ module.exports = {
         type: 'javascript/auto',
         resolve: {
           alias: {
-            somefakemodule: path.resolve(__dirname, './node_modules/corejs'),
+            somefakemodule: path.resolve(
+              import.meta.dirname,
+              './node_modules/corejs',
+            ),
           },
         },
       },

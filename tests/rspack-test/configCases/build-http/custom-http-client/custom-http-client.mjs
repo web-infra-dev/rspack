@@ -37,4 +37,4 @@ const httpClient = async (url, headers) => {
   };
 };
 
-module.exports = httpClient;
+export default httpClient;

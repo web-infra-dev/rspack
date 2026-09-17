@@ -1,5 +1,5 @@
 /** @type {import("@rspack/core").LoaderDefinition<string>} */
-module.exports = function () {
+export default function () {
 	const usedExports = JSON.parse(this.query.slice(1));
 	return [
 		`import { ${usedExports

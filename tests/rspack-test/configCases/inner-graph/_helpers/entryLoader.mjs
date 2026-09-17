@@ -1,9 +1,9 @@
 /** @type {import("@rspack/core").LoaderDefinition<string>} */
-module.exports = function () {
+export default function () {
 	const { name, expect, usedExports } = JSON.parse(this.query.slice(1));
 	return [
 		`if (Math.random() < 0) require(${JSON.stringify(
-			`../_helpers/testModuleLoader?${JSON.stringify(usedExports)}!`
+			`../_helpers/testModuleLoader.mjs?${JSON.stringify(usedExports)}!`
 		)});`,
 		"",
 		...Object.keys(expect).map((source, i) =>

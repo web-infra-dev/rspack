@@ -1,6 +1,6 @@
-const http = require("http");
-const fs = require("fs");
-const path = require("path");
+import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
 
 /**
  * @returns {import("http").Server} server instance
@@ -16,12 +16,12 @@ function createServer() {
 		}
 		try {
 			file = fs
-				.readFileSync(path.resolve(__dirname, pathname))
+				.readFileSync(path.resolve(import.meta.dirname, pathname))
 				.toString()
 				.replace(/\r\n?/g, "\n")
 				.trim();
 		} catch (e) {
-			if (fs.existsSync(path.resolve(__dirname, pathname + ".js"))) {
+			if (fs.existsSync(path.resolve(import.meta.dirname, pathname + ".js"))) {
 				res.statusCode = 301;
 				res.setHeader("Location", pathname.slice(1) + ".js");
 				res.end();
@@ -85,4 +85,4 @@ class ServerPlugin {
 	}
 }
 
-module.exports = ServerPlugin;
+export default ServerPlugin;
