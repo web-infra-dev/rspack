@@ -360,6 +360,7 @@ async function loaderImpl(
   } as LoaderContext['_compilation'];
 
   const _module = loaderContext._module as any;
+  const buildInfo: Record<string, unknown> = { ...(_module.buildInfo ?? {}) };
   loaderContext._module = {
     type: _module.type,
     identifier() {
@@ -369,7 +370,8 @@ async function loaderImpl(
     request: _module.request,
     userRequest: _module.userRequest,
     rawRequest: _module.rawRequest,
-  } as NormalModule;
+    buildInfo,
+  } as unknown as NormalModule;
 
   // @ts-expect-error
   loaderContext.importModule = function importModule(
@@ -610,6 +612,8 @@ async function loaderImpl(
       };
     }),
   );
+
+  sendRequest(RequestType.UpdateBuildInfo, buildInfo);
 
   return args;
 }
