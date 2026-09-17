@@ -4284,7 +4284,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_core_test"
-version = "0.102.3"
+version = "0.102.5"
 dependencies = [
  "rspack",
  "rspack_core",
@@ -5725,7 +5725,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_util_test"
-version = "0.102.3"
+version = "0.102.5"
 dependencies = [
  "rspack_util",
 ]
