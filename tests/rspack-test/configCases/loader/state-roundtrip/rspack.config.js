@@ -19,16 +19,16 @@ module.exports = {
           const run = plugin.options;
           plugin.options = async (context) => {
             calls++;
-            const { meta, state } = context;
-            expect(Object.keys(context).sort()).toEqual(['meta', 'state']);
+            const { state } = context;
+            expect('meta' in context).toBe(false);
             expect(state.loaderItemStates.every((item) => 'data' in item)).toBe(
               true,
             );
             expect(Object.getPrototypeOf(state)).toBe(Object.prototype);
             expect(state.loaderItemStates).toHaveLength(
-              meta.loaderItems.length,
+              context.loaderItems.length,
             );
-            for (const item of meta.loaderItems) {
+            for (const item of context.loaderItems) {
               expect(Object.keys(item).sort()).toEqual([
                 'cache',
                 'loader',
@@ -36,8 +36,7 @@ module.exports = {
               ]);
               Object.freeze(item);
             }
-            Object.freeze(meta.loaderItems);
-            Object.freeze(meta);
+            Object.freeze(context.loaderItems);
             if (state.loaderState === 'Normal' && state.loaderIndex === 0) {
               expect(state.cacheable).toBe(false);
             }
@@ -46,7 +45,7 @@ module.exports = {
             expect('loaderItems' in state).toBe(false);
             expect('resource' in state).toBe(false);
             // The return conversion consumes only state, never metadata.
-            Object.defineProperty(context, 'meta', {
+            Object.defineProperty(context, 'loaderItems', {
               get() {
                 throw new Error('metadata must not be read on return');
               },

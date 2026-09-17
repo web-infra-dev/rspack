@@ -973,17 +973,12 @@ export interface JsLoaderCacheEntry {
 }
 
 export interface JsLoaderContext {
-  meta: JsLoaderContextMetadata
-  state: JsLoaderContextState
-}
-
-/** Input metadata, never returned to Rust with the execution state. */
-export interface JsLoaderContextMetadata {
   resource: string
   _module: Module
   hot: Readonly<boolean>
   loaderItems: Array<JsLoaderMetadata>
   __internal__loaderCache?: JsLoaderCache | undefined
+  state: JsLoaderContextState
 }
 
 /**

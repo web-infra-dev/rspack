@@ -27,7 +27,7 @@ export const createNormalModuleHooksRegisters: CreatePartialRegisters<
       queried.call(loaderContext, loaderContext._module);
       dependencies.mergeChanges();
       if (compiler.options.cache) {
-        commitCustomFieldsToRust(context.meta._module.buildInfo);
+        commitCustomFieldsToRust(context._module.buildInfo);
       }
       return context.state;
     },
