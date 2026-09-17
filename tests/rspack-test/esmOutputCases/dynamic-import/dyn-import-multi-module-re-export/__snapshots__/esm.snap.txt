@@ -1,4 +1,6 @@
 ```mjs title=ab-chunk.mjs
+// fs
+
 // ./a.js
 
 
@@ -6,6 +8,8 @@
 // ./shared.js
 const value = 42
 const helper = () => 1
+
+// path
 
 // ./b.js
 

@@ -1,20 +1,22 @@
 ```mjs title=main.mjs
 import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
-import * as external from "fs";
+import * as __rspack_external_fs from "fs";
 
 // NAMESPACE OBJECT: ./externals.js
 var externals_namespaceObject = {};
 makeNamespaceObject(externals_namespaceObject);
 definePropertyGetters(externals_namespaceObject, { 
-  "default": () => (fs),
-  readFile: () => (externals_readFile) });
-var externals_namespaceObject_starExports = external;
+  "default": () => (__rspack_external_fs["default"]),
+  readFile: () => (__rspack_external_fs.readFile) });
+var externals_namespaceObject_starExports = __rspack_external_fs;
 Object.keys(externals_namespaceObject_starExports).forEach(function(key) {
   if (key !== "default" && key !== "__esModule") {
     definePropertyGetters(externals_namespaceObject, { [key]: function() { return externals_namespaceObject_starExports[key]; } });
   }
 });
 
+
+// fs
 
 // ./externals.js
 
@@ -35,9 +37,12 @@ it('should have exports', async () => {
 	expect(externalsNs).toBeDefined();
 });
 
-export { externals_namespaceObject as externalsNs };
+var default_0 = __rspack_external_fs["default"];
+var externals_0 = __rspack_external_fs["default"];
+var readFile_0 = __rspack_external_fs.readFile;
+export { externals_0 as externals, externals_namespaceObject as externalsNs, readFile_0 as readFile };
 export * from "fs";
-export { default, default as externals, readFile } from "fs";
+export default default_0;
 
 ```
 

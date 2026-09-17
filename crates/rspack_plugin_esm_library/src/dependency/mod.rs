@@ -1,6 +1,5 @@
 pub mod commonjs_external;
 pub mod dyn_import;
-pub mod esm_external;
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
@@ -8,7 +7,7 @@ use rspack_core::{
   TemplateReplaceSource,
 };
 
-/// Keep generated external bindings outside issuers that use Rspack's identifier
+/// Keep generated CommonJS external bindings outside issuers using Rspack's identifier
 /// namespace. Persist this parser result with the module, including nested scopes.
 #[cacheable]
 #[derive(Debug)]
@@ -16,7 +15,7 @@ pub(crate) struct ExternalBindingBailout;
 
 impl ExternalBindingBailout {
   pub fn template_type() -> DependencyTemplateType {
-    DependencyTemplateType::Custom("EsmExternalBindingBailout")
+    DependencyTemplateType::Custom("CommonJsExternalBindingBailout")
   }
 
   pub fn is_present(module: &dyn Module) -> bool {

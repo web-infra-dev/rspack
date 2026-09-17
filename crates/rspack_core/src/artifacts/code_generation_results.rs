@@ -196,11 +196,7 @@ impl CodeGenerationDataItem for CodeGenerationDataChunkInitFragments {
 }
 
 #[cacheable_dyn]
-impl CodeGenerationDataItem for CodeGenerationDataConcatenationScopeOutput {
-  fn update_hash(&self, hasher: &mut RspackHasher) {
-    std::hash::Hash::hash(self, hasher);
-  }
-}
+impl CodeGenerationDataItem for CodeGenerationDataConcatenationScopeOutput {}
 
 #[cacheable]
 #[derive(Debug, Default)]

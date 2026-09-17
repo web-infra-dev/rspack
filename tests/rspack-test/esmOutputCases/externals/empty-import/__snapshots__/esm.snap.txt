@@ -1,6 +1,8 @@
 ```mjs title=main.mjs
 import "fs";
 
+// fs
+
 // ./index.js
 
 export {};

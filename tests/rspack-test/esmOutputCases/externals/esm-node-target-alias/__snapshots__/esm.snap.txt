@@ -22,6 +22,10 @@ exports.g = nodeUrl.parse;
 
 },
 });
+// node:fs
+
+// node:url
+
 // ./index.js
 const cjs_consumer = __webpack_require__("./cjs-consumer.cjs");
 var g = cjs_consumer.g;

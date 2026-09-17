@@ -1,4 +1,8 @@
 ```mjs title=main.mjs
+import * as __rspack_external_path from "path";
+
+// external
+
 // ./index.js
 
 

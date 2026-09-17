@@ -1,8 +1,9 @@
-import { foo } from "external1-alias";
+import * as __rspack_external_external1_alias_dd38afe7 from "external1-alias";
 
 
 
-const bar = foo + 1
+
+const bar = __rspack_external_external1_alias_dd38afe7.foo + 1
 
 
 

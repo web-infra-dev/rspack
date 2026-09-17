@@ -2,6 +2,10 @@
 import { rspackRequire, createFakeNamespaceObject } from "./runtime.mjs";
 import { resolve } from "path";
 
+// path
+
+// fs
+
 // ./index.js
 
 

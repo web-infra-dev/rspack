@@ -2,6 +2,10 @@
 import { resolve } from "path";
 import { __webpack_require__ } from "./runtime.mjs";
 
+// path
+
+// fs
+
 // ./index.js
 
 

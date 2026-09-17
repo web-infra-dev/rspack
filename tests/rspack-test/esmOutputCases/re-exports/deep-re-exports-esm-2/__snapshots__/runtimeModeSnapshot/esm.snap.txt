@@ -9,7 +9,7 @@ moduleFactories.add({
   \****************/
 (__unused_rspack_module, exports) {
 makeNamespaceObject(exports);
-var fs__rspack_import_0 = __rspack_external_fs;
+/* import */ var fs__rspack_import_0 = rspackRequire(/*! fs */ "fs");
 
 /* reexport */ var __rspack_reexport = {};
 /* reexport */ for( const __rspack_import_key in fs__rspack_import_0) if(["default","lib"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => fs__rspack_import_0[__rspack_import_key]
@@ -38,7 +38,7 @@ definePropertyGetters(exports, {
   \*****************/
 (__unused_rspack_module, exports) {
 makeNamespaceObject(exports);
-var path__rspack_import_0 = __rspack_external_path;
+/* import */ var path__rspack_import_0 = rspackRequire(/*! path */ "path");
 
 /* reexport */ var __rspack_reexport = {};
 /* reexport */ for( const __rspack_import_key in path__rspack_import_0) if(["default","lib2"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => path__rspack_import_0[__rspack_import_key]
@@ -65,7 +65,7 @@ definePropertyGetters(exports, {
   !*** ./lib3.js ***!
   \*****************/
 (__unused_rspack_module, exports) {
-var fs__rspack_import_0 = __rspack_external_fs;
+/* import */ var fs__rspack_import_0 = rspackRequire(/*! fs */ "fs");
 const lib3 = 42
 
 const lib_local = 24
@@ -76,6 +76,26 @@ const lib_local = 24
 definePropertyGetters(exports, {
   fs: () => (/* reexport module object */ fs__rspack_import_0)
 });
+
+
+},
+"fs"
+/*!*********************!*\
+  !*** external "fs" ***!
+  \*********************/
+(module) {
+
+module.exports = __rspack_external_fs;
+
+
+},
+"path"
+/*!***********************!*\
+  !*** external "path" ***!
+  \***********************/
+(module) {
+
+module.exports = __rspack_external_path;
 
 
 },

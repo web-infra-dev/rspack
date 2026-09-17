@@ -11,6 +11,8 @@ export {};
 ```
 
 ```mjs title=wrapper.mjs
+// fs
+
 // ./wrapper.js
 
 

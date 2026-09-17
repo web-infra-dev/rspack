@@ -1,5 +1,5 @@
 ```mjs title=hoisted.mjs
-import { EventEmitter, once } from "node:events";
+import { once, EventEmitter } from "./node_events-node_events.mjs";
 
 // ./src/hoisted.js
 
@@ -41,6 +41,31 @@ it('should keep module external exports correct for hoisted named imports and wr
 });
 
 export {};
+
+```
+
+```mjs title=node_events-node_events.mjs
+import { rspackRequire, moduleFactories, definePropertyGetters } from "./runtime.mjs";
+import * as __rspack_external_node_events_3969b2b3 from "node:events";
+moduleFactories.add({
+"node:events?df85"
+/*!******************************!*\
+  !*** external "node:events" ***!
+  \******************************/
+(module) {
+var __rspack_create_module_external_namespace_node_events_3969b2b3 = (y) => {
+var x = {};
+definePropertyGetters(x, y);
+return x;
+};
+var __rspack_wrap_module_external_namespace_node_events_3969b2b3 = (x) => (() => (x));
+module.exports = __rspack_create_module_external_namespace_node_events_3969b2b3({["a"]: () => (__rspack_external_node_events_3969b2b3.EventEmitter), ["b"]: () => (__rspack_external_node_events_3969b2b3.once)});
+
+},
+});
+// node:events?41dc
+
+export { EventEmitter, once } from "node:events";
 
 ```
 
@@ -109,19 +134,15 @@ var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, p
 
 ```mjs title=wrapped.mjs
 import { rspackRequire, moduleFactories, definePropertyGetters, esmModuleDecorator } from "./runtime.mjs";
-import * as __rspack_external_node_events_3969b2b3 from "node:events";
+import "./node_events-node_events.mjs";
+
 moduleFactories.add({
 "./src/wrapped.js"
 /*!************************!*\
   !*** ./src/wrapped.js ***!
   \************************/
 (module, exports) {
-var __rspack_create_module_external_namespace_node_events_3969b2b3 = (y) => {
-var x = {};
-definePropertyGetters(x, y);
-return x;
-};
-var __rspack_wrap_module_external_namespace_node_events_3969b2b3 = (x) => (() => (x));var node_events__rspack_import_0 = __rspack_create_module_external_namespace_node_events_3969b2b3({["a"]: () => (__rspack_external_node_events_3969b2b3.EventEmitter), ["b"]: () => (__rspack_external_node_events_3969b2b3.once)});
+/* import */ var node_events__rspack_import_0 = rspackRequire(/*! node:events */ "node:events?df85");
 /* module decorator */ module = esmModuleDecorator(module);
 
 

@@ -3,6 +3,8 @@ import * as __rspack_external_webpack_sources_lib_index_js_9a113ddb from "webpac
 
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+// ws-ns
+
 // ./namespace.js
 
 

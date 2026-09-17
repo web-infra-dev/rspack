@@ -20,15 +20,14 @@ use rspack_core::{
   ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoArtifact,
-  ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, ExportsType, ExternalModule, ForwardId,
-  ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
-  ReferencedExport, ResourceIdentifier, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  SideEffectsStateArtifact, StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState,
-  UsedName, collect_referenced_export_items, create_exports_object_referenced,
-  create_no_exports_referenced, filter_runtime, get_exports_type, get_runtime_key,
-  get_terminal_binding, property_access, property_name,
+  ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, ExportsType, ForwardId, ImportAttributes,
+  ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions,
+  LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  NormalInitFragment, NormalReexportItem, ReferencedExport, ResourceIdentifier, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, StarReexportsInfo, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedName, collect_referenced_export_items,
+  create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
+  get_runtime_key, get_terminal_binding, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Severity};
@@ -40,7 +39,6 @@ use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use super::{
   create_resource_identifier_for_esm_dependency,
   esm_import_dependency::esm_import_dependency_get_linking_error, esm_import_dependency_apply,
-  esm_import_external,
 };
 use crate::{Atom, connection_active_inline_value_for_esm_export_imported_specifier};
 
@@ -519,15 +517,6 @@ impl ESMExportImportedSpecifierDependency {
   }
 
   pub fn add_export_fragments(&self, ctxt: &mut TemplateContext, mode: ExportMode) {
-    self.add_export_fragments_with_connection(ctxt, mode, None);
-  }
-
-  fn add_export_fragments_with_connection(
-    &self,
-    ctxt: &mut TemplateContext,
-    mode: ExportMode,
-    connection: Option<&ModuleGraphConnection>,
-  ) {
     let module = ctxt.module;
     let runtime = ctxt.runtime;
     let compilation = ctxt.compilation;
@@ -731,9 +720,7 @@ impl ESMExportImportedSpecifierDependency {
             let key = InitFragmentKey::ESMImport(format!("reexport (checked) {import_var} {name}"));
             let runtime_condition = if self.weak() {
               RuntimeCondition::Boolean(false)
-            } else if let Some(connection) =
-              connection.or_else(|| mg.connection_by_dependency_id(self.id()))
-            {
+            } else if let Some(connection) = mg.connection_by_dependency_id(self.id()) {
               filter_runtime(ctxt.runtime, |r| {
                 connection.is_target_active(
                   mg,
@@ -1720,64 +1707,6 @@ pub struct ESMExportImportedSpecifierDependencyTemplate;
 impl ESMExportImportedSpecifierDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
     DependencyTemplateType::Dependency(DependencyType::EsmExportImportedSpecifier)
-  }
-
-  pub fn supports_direct_scope_export(mode: &ExportMode) -> bool {
-    match mode {
-      ExportMode::Unused(_)
-      | ExportMode::EmptyStar(_)
-      | ExportMode::ReexportNamespaceObject(_)
-      | ExportMode::DynamicReexport(_) => true,
-      ExportMode::NormalReexport(mode) => mode
-        .items
-        .iter()
-        .all(|item| item.hidden || (!item.checked && item.ids.len() == 1)),
-      _ => false,
-    }
-  }
-
-  pub fn render_external(
-    &self,
-    dep: &ESMExportImportedSpecifierDependency,
-    external: &ExternalModule,
-    connection: &ModuleGraphConnection,
-    context: &mut TemplateContext,
-  ) {
-    let compilation = context.compilation;
-    let mode = dep.get_mode(
-      compilation.get_module_graph(),
-      context.runtime,
-      &compilation.module_graph_cache_artifact,
-      &compilation.exports_info_artifact,
-    );
-    if matches!(
-      mode,
-      ExportMode::Unused(_) | ExportMode::EmptyStar(_) | ExportMode::LazyMake
-    ) {
-      return;
-    }
-    if let Some(scope) = context.concatenation_scope.as_mut() {
-      match mode {
-        // The ESM linker follows the original export-star connection and emits
-        // native reexports, including local-export precedence and live bindings.
-        ExportMode::DynamicReexport(_) => {}
-        ExportMode::ReexportNamespaceObject(mode) => {
-          let binding = external.register_module_import(compilation, scope, None, None);
-          scope.register_raw_export(mode.name, binding);
-        }
-        ExportMode::NormalReexport(mode) => {
-          for item in mode.items.into_iter().filter(|item| !item.hidden) {
-            let binding =
-              external.register_module_import(compilation, scope, item.ids.first(), None);
-            scope.register_raw_export(item.name, binding);
-          }
-        }
-        _ => unreachable!("unsupported external reexport must retain its module wrapper"),
-      }
-    } else {
-      esm_import_external(external, dep, context);
-      dep.add_export_fragments_with_connection(context, mode, Some(connection));
-    }
   }
 }
 

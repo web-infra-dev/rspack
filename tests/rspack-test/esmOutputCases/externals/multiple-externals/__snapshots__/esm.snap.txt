@@ -1,24 +1,32 @@
 ```mjs title=async.mjs
-import * as ns from "fs";
+import * as __rspack_external_fs from "fs";
+
+// fs?3cf4
 
 // ./async.js
 
 
 // access namespace
-console.log.bind(ns)
+console.log.bind(__rspack_external_fs)
 
 
-export { ns };
+export { __rspack_external_fs as ns };
 
 ```
 
 ```mjs title=main.mjs
 import fs, { readFile } from "fs";
 
+// fs?771d
+
+// fs?5ccf
+
 // ./other.js
 
 /* export default */ const other = (fs);
 
+
+// fs?22cf
 
 // ./other2.js
 

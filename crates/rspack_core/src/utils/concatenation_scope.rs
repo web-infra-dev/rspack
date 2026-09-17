@@ -1,7 +1,4 @@
-use std::{
-  hash::Hash,
-  sync::{Arc, LazyLock},
-};
+use std::sync::{Arc, LazyLock};
 
 use anymap::CloneAny;
 use rspack_cacheable::{
@@ -25,7 +22,7 @@ const MODULE_REFERENCE_PREFIX: &str = "__rspack_module_ref";
 const MODULE_REFERENCE_PROPERTY_ACCESS_SUFFIX: &str = "._";
 
 #[cacheable]
-#[derive(Default, Debug, Clone, Hash)]
+#[derive(Default, Debug, Clone)]
 pub struct ModuleReferenceOptions {
   #[cacheable(with=AsVec<AsPreset>)]
   pub ids: Vec<Atom>,
@@ -52,57 +49,6 @@ pub struct CodeGenerationDataConcatenationScopeOutput {
   import_map: ConcatenatedImportMap,
   #[cacheable(with=AsMap<AsCacheable, AsMap<AsCacheable, AsCacheable>>)]
   refs: IdentifierIndexMap<FxIndexMap<String, ModuleReferenceOptions>>,
-}
-
-impl Hash for CodeGenerationDataConcatenationScopeOutput {
-  fn hash<H: std::hash::Hasher>(&self, hasher: &mut H) {
-    fn hash_entries<H: std::hash::Hasher>(entries: &mut [(&str, &str)], hasher: &mut H) {
-      // Map keys are unique, so comparing values cannot change their order.
-      entries.sort_unstable_by_key(|(name, _)| *name);
-      entries.hash(hasher);
-    }
-
-    // Native imports/reexports are emitted by the linker, not the module
-    // source. They must participate in the chunk-render cache key as well.
-    self.namespace_export_symbol.hash(hasher);
-    let mut entries = Vec::new();
-    for map in [&self.export_map, &self.raw_export_map] {
-      entries.clear();
-      if let Some(map) = map {
-        entries.reserve(map.len());
-        for (name, value) in map {
-          entries.push((name.as_str(), value.as_str()));
-        }
-      }
-      hash_entries(&mut entries, hasher);
-    }
-    if let Some(import_map) = &self.import_map {
-      let mut namespaces = Vec::new();
-      for (source, imports) in import_map {
-        source.hash(hasher);
-        entries.clear();
-        entries.reserve(imports.specifiers.len());
-        for (local, imported) in &imports.specifiers {
-          entries.push((local.as_str(), imported.as_str()));
-        }
-        hash_entries(&mut entries, hasher);
-        namespaces.clear();
-        namespaces.reserve(imports.namespaces.len());
-        for namespace in &imports.namespaces {
-          namespaces.push(namespace.as_str());
-        }
-        namespaces.sort_unstable();
-        namespaces.hash(hasher);
-      }
-    }
-    for (module, refs) in &self.refs {
-      module.hash(hasher);
-      for (symbol, options) in refs {
-        symbol.hash(hasher);
-        options.hash(hasher);
-      }
-    }
-  }
 }
 
 impl CodeGenerationDataConcatenationScopeOutput {
@@ -193,13 +139,20 @@ impl ConcatenationScope {
     import_source: String,
     attributes: Option<String>,
     import_symbol: Atom,
-  ) {
+  ) -> &Atom {
     let raw_import_map = self.current_module.import_map.get_or_insert_default();
     let entry = raw_import_map
       .entry((import_source, attributes))
       .or_default();
 
-    entry.namespaces.insert(import_symbol);
+    if entry.namespace.is_none() {
+      entry.namespace = Some(import_symbol)
+    }
+
+    entry
+      .namespace
+      .as_ref()
+      .expect("should have namespace symbol")
   }
 
   pub fn register_import(
@@ -217,26 +170,7 @@ impl ConcatenationScope {
       return;
     };
 
-    entry
-      .specifiers
-      .insert(import_symbol.clone(), import_symbol);
-  }
-
-  pub fn register_import_as(
-    &mut self,
-    import_source: String,
-    attributes: Option<String>,
-    imported: Atom,
-    local: Atom,
-  ) {
-    self
-      .current_module
-      .import_map
-      .get_or_insert_default()
-      .entry((import_source, attributes))
-      .or_default()
-      .specifiers
-      .insert(local, imported);
+    entry.specifiers.insert(import_symbol);
   }
 
   pub fn register_namespace_export(&mut self, symbol: &str) {

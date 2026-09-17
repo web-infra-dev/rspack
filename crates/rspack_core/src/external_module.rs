@@ -5,7 +5,6 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
-use rspack_intern::Atom;
 use rspack_macros::impl_source_map_config;
 use rspack_util::{json_stringify_str, source_map::SourceMapKind};
 use rustc_hash::FxHashMap as HashMap;
@@ -628,93 +627,6 @@ impl ExternalModule {
     self.dependency_meta.phase
   }
 
-  fn module_import_identifier(&self, compilation: &Compilation) -> String {
-    let request = self.get_request();
-    let identifier = to_identifier(&request.primary);
-    if identifier == request.primary && self.dependency_meta.attributes.is_none() {
-      return request.primary.clone();
-    }
-    let mut hasher = RspackHasher::from(&compilation.options.output);
-    use rspack_hash::RspackHash as _;
-    request.primary.hash(&mut hasher);
-    if let Some(attributes) = &self.dependency_meta.attributes {
-      simd_json::to_string(attributes)
-        .expect("json stringify failed")
-        .hash(&mut hasher);
-    }
-    let hash_suffix = hasher.digest(&compilation.options.output.hash_digest);
-    format!("{identifier}_{}", hash_suffix.rendered(8))
-  }
-
-  /// Register a native import owned by the referencing module's scope.
-  pub fn register_module_import(
-    &self,
-    compilation: &Compilation,
-    scope: &mut ConcatenationScope,
-    imported: Option<&Atom>,
-    local: Option<&Atom>,
-  ) -> String {
-    let request = self.get_request();
-    let attributes = self.module_import_attributes();
-    let namespace = format!(
-      "__rspack_external_{}",
-      self.module_import_identifier(compilation)
-    );
-    if let Some(imported) = imported {
-      let local = local.map_or_else(
-        || format!("{namespace}_{}", hex::encode(imported.as_bytes())),
-        ToString::to_string,
-      );
-      scope.register_import_as(
-        request.primary.clone(),
-        attributes,
-        imported.clone(),
-        local.as_str().into(),
-      );
-      local
-    } else {
-      let local = local.cloned().unwrap_or_else(|| namespace.into());
-      scope.register_namespace_import(request.primary.clone(), attributes, local.clone());
-      local.to_string()
-    }
-  }
-
-  pub fn module_import_attributes(&self) -> Option<String> {
-    self.dependency_meta.attributes.as_ref().map(|attributes| {
-      format!(
-        " with {}",
-        simd_json::to_string(attributes).expect("json stringify failed")
-      )
-    })
-  }
-
-  pub fn register_module_side_effect(&self, scope: &mut ConcatenationScope) {
-    scope.register_import(
-      self.get_request().primary.clone(),
-      self.module_import_attributes(),
-      None,
-    );
-  }
-
-  pub fn render_module_namespace(
-    &self,
-    compilation: &Compilation,
-    runtime: Option<&RuntimeSpec>,
-    runtime_template: &mut ModuleCodeTemplate,
-  ) -> (Option<String>, String, ChunkInitFragments) {
-    get_source_for_module_external(
-      self.get_request(),
-      &self.module_import_identifier(compilation),
-      &self.dependency_meta,
-      &compilation.exports_info_artifact,
-      compilation
-        .exports_info_artifact
-        .get_exports_info_data(&self.identifier()),
-      runtime,
-      runtime_template,
-    )
-  }
-
   pub fn resolve_external_type(&self) -> &str {
     resolve_external_type(self.external_type.as_str(), &self.dependency_meta)
   }
@@ -896,7 +808,26 @@ impl ExternalModule {
         if compilation.options.output.module
           && let Some(request) = request
         {
-          let id = self.module_import_identifier(compilation);
+          let id: Cow<'_, str> = if to_identifier(&request.primary) != request.primary
+            || self.dependency_meta.attributes.is_some()
+          {
+            let mut hasher = RspackHasher::from(&compilation.options.output);
+            use rspack_hash::RspackHash as _;
+            request.primary.hash(&mut hasher);
+            if let Some(attributes) = &self.dependency_meta.attributes {
+              simd_json::to_string(attributes)
+                .expect("json stringify failed")
+                .hash(&mut hasher);
+            }
+            let hash_suffix = hasher.digest(&compilation.options.output.hash_digest);
+            Cow::Owned(format!(
+              "{}_{}",
+              to_identifier(&request.primary),
+              hash_suffix.rendered(8)
+            ))
+          } else {
+            to_identifier(&request.primary)
+          };
           if let Some(concatenation_scope) = concatenation_scope {
             let exports_info = compilation
               .exports_info_artifact
@@ -913,7 +844,12 @@ impl ExternalModule {
                       .ns_access()
                   })
             );
-            let attributes = self.module_import_attributes();
+            let attributes = self.dependency_meta.attributes.as_ref().map(|meta| {
+              format!(
+                " with {}",
+                simd_json::to_string(meta).expect("json stringify failed"),
+              )
+            });
 
             #[derive(Clone, Copy)]
             struct ExternalImportOptimize(pub bool);

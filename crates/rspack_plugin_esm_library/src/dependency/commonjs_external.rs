@@ -31,7 +31,7 @@ struct DirectExternalRequireHeaders(
 #[cacheable_dyn]
 impl CodeGenerationDataItem for DirectExternalRequireHeaders {}
 
-pub(super) fn is_relative_external_request(request: &str) -> bool {
+fn is_relative_external_request(request: &str) -> bool {
   request == "."
     || request == ".."
     || request.starts_with("./")

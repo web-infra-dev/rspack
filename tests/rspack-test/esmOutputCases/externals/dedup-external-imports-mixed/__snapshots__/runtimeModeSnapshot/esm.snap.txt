@@ -2,7 +2,7 @@
 import { rspackRequire, moduleFactories } from "./runtime.mjs";
 import * as __rspack_external_fs from "fs";
 moduleFactories.add({
-"fs"
+"fs?94de"
 /*!*********************!*\
   !*** external "fs" ***!
   \*********************/
@@ -19,12 +19,14 @@ module.exports = __rspack_external_fs;
 (__unused_rspack_module, exports) {
 // CJS module - will NOT be scope-hoisted, causing its fs dep
 // to go through init fragment path instead of raw_import_stmts
-const fs = rspackRequire(/*! fs */ "fs")
+const fs = rspackRequire(/*! fs */ "fs?94de")
 exports.g = fs.readFileSync
 
 
 },
 });
+// fs?fa25
+
 // ./esm-consumer.js
 // ESM module importing fs namespace - will be scope-hoisted (Concatenated)
 

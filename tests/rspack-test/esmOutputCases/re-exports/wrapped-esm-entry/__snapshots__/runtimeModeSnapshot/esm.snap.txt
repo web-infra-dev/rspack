@@ -8,7 +8,7 @@ moduleFactories.add({
   \******************/
 (module, exports) {
 makeNamespaceObject(exports);
-var fs__rspack_import_0 = __rspack_external_fs;
+/* import */ var fs__rspack_import_0 = rspackRequire(/*! fs */ "fs");
 
 /* reexport */ var __rspack_reexport = {};
 /* reexport */ for( const __rspack_import_key in fs__rspack_import_0) if(["r","named","default","fs","starExports","readFile"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => fs__rspack_import_0[__rspack_import_key]
@@ -44,6 +44,16 @@ definePropertyGetters(exports, {
   readFile: () => (/* reexport safe */ fs__rspack_import_0.readFile),
   starExports: () => (/* reexport safe */ (/* inlined export _lib2__rspack_import_2 */42))
 });
+
+
+},
+"fs"
+/*!*********************!*\
+  !*** external "fs" ***!
+  \*********************/
+(module) {
+
+module.exports = __rspack_external_fs;
 
 
 },

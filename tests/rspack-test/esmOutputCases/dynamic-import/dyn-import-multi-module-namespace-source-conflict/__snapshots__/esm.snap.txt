@@ -18,10 +18,14 @@ export {};
 import * as __rspack_external_fs from "fs";
 import * as __rspack_external_path from "path";
 
+// fs
+
 // ./a.js
 
 
 
+
+// path
 
 // ./b.js
 

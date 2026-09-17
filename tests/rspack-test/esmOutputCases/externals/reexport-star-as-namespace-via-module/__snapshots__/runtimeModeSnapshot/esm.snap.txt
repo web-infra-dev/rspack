@@ -1,17 +1,19 @@
 ```mjs title=main.mjs
 import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
-import * as external from "fs";
+import * as __rspack_external_fs from "fs";
 
 // NAMESPACE OBJECT: ./reexport-external.js
 var reexport_external_namespaceObject = {};
 makeNamespaceObject(reexport_external_namespaceObject);
-var reexport_external_namespaceObject_starExports = external;
+var reexport_external_namespaceObject_starExports = __rspack_external_fs;
 Object.keys(reexport_external_namespaceObject_starExports).forEach(function(key) {
   if (key !== "default" && key !== "__esModule") {
     definePropertyGetters(reexport_external_namespaceObject, { [key]: function() { return reexport_external_namespaceObject_starExports[key]; } });
   }
 });
 
+
+// fs
 
 // ./reexport-external.js
 

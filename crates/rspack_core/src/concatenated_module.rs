@@ -10,7 +10,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{As, AsMap, AsPreset, AsVec},
+  with::{As, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
@@ -184,11 +184,10 @@ impl ConcatenationEntryExternal {
 #[cacheable]
 #[derive(Clone, Debug, Default)]
 pub struct ConcatenatedImportMapItem {
-  /// Local binding to the original external export name.
-  #[cacheable(with=AsMap<AsPreset, AsPreset>)]
-  pub specifiers: HashMap<Atom, Atom>,
   #[cacheable(with=AsVec<AsPreset>)]
-  pub namespaces: HashSet<Atom>,
+  pub specifiers: HashSet<Atom>,
+  #[cacheable(with=AsOption<AsPreset>)]
+  pub namespace: Option<Atom>,
 }
 
 pub type ConcatenatedImportMap =
@@ -708,7 +707,7 @@ pub fn render_imports(source: &str, attr: Option<&str>, import_spec: &ImportSpec
           if atom == internal {
             atom.to_string()
           } else {
-            format!("{} as {internal}", crate::to_module_export_name(atom))
+            format!("{atom} as {internal}")
           }
         })
         .collect::<Vec<String>>()
@@ -1051,7 +1050,7 @@ impl Module for ConcatenatedModule {
             for ((source, attr), imported) in import_map {
               let total_imported_atoms = import_stmts.entry((source.clone(), attr)).or_default();
 
-              for ns_import in imported.namespaces {
+              if let Some(ns_import) = imported.namespace {
                 if let Some(internal_ns_import) = total_imported_atoms.ns_import.as_ref() {
                   info
                     .internal_names
@@ -1076,21 +1075,10 @@ impl Module for ConcatenatedModule {
                 }
               }
 
-              for (local_name, imported_name) in imported.specifiers {
-                let existing_name = total_imported_atoms
-                  .atoms
-                  .get(&imported_name)
-                  .or_else(|| {
-                    if imported_name == "default" {
-                      total_imported_atoms.default_import.as_ref()
-                    } else {
-                      None
-                    }
-                  })
-                  .cloned();
+              for atom in imported.specifiers {
+                let existing_name = total_imported_atoms.atoms.get(&atom).cloned();
                 let new_name = name_allocator.assign_import_binding_name(
-                  &local_name,
-                  &imported_name,
+                  &atom,
                   existing_name.as_ref(),
                   &source,
                   info,
@@ -1098,10 +1086,10 @@ impl Module for ConcatenatedModule {
                 );
 
                 if existing_name.is_none() {
-                  if imported_name == "default" {
+                  if atom == "default" {
                     total_imported_atoms.default_import = Some(new_name);
                   } else {
-                    total_imported_atoms.atoms.insert(imported_name, new_name);
+                    total_imported_atoms.atoms.insert(atom, new_name);
                   }
                 }
               }

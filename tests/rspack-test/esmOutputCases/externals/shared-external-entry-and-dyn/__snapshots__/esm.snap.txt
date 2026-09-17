@@ -1,4 +1,6 @@
 ```mjs title=async.mjs
+// fs?3cf4
+
 // ./async.js
 
 const asyncValue = 'async'
@@ -9,6 +11,8 @@ export { readFile } from "fs";
 
 ```mjs title=main.mjs
 import { readFile } from "fs";
+
+// fs?771d
 
 // ./index.js
 

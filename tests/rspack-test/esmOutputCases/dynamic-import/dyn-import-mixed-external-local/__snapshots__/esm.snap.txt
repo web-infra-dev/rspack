@@ -12,6 +12,8 @@ export {};
 ```
 
 ```mjs title=wrapper.mjs
+// fs
+
 // ./wrapper.js
 
 const localValue = 42

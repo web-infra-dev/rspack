@@ -26,7 +26,6 @@ def(exports)
 /* import */ var _dynamic_exports__rspack_import_0 = __webpack_require__(/*! ./dynamic-exports */ "./dynamic-exports.js");
 /* import */ var _dynamic_exports__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_dynamic_exports__rspack_import_0);
 if(__webpack_require__.o(_dynamic_exports__rspack_import_0, "readFile")) __webpack_require__.d(__webpack_exports__, { readFile: function() { return _dynamic_exports__rspack_import_0.readFile; } });
-var fs__rspack_import_1 = __rspack_external_fs;
 /* import */ var fs__rspack_import_1 = __webpack_require__(/*! fs */ "fs");
 if(__webpack_require__.o(fs__rspack_import_1, "readFile")) __webpack_require__.d(__webpack_exports__, { readFile: function() { return fs__rspack_import_1.readFile; } });
 

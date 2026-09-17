@@ -30,9 +30,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
   dependency::{
     CommonJsExportRequireDependencyTemplate, CommonJsFullRequireDependencyTemplate,
-    CommonJsRequireDependencyTemplate, ESMExportImportedSpecifierDependencyTemplate,
-    ESMImportSideEffectDependencyTemplate, ESMImportSpecifierDependencyTemplate,
-    ImportDependencyTemplate, RequireHeaderDependencyTemplate,
+    CommonJsRequireDependencyTemplate, ImportDependencyTemplate, RequireHeaderDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
 };
@@ -54,9 +52,6 @@ use crate::{
       DirectRequireHeaderDependencyTemplate, cutout_commonjs_externals,
     },
     dyn_import::DynamicImportDependencyTemplate,
-    esm_external::{
-      DirectEsmExternalDependencies, DirectEsmExternalDependencyTemplate, cutout_esm_externals,
-    },
   },
   esm_lib_parser_plugin::EsmLibParserPlugin,
   optimize_chunks::{
@@ -90,7 +85,6 @@ pub struct EsmLibraryPlugin {
   pub(crate) all_dyn_targets: AtomicRefCell<IdentifierSet>,
   pub(crate) namespace_targets: AtomicRefCell<IdentifierSet>,
   pub(crate) direct_commonjs_external_dependencies: DirectCommonJsExternalDependencies,
-  pub(crate) direct_esm_external_dependencies: DirectEsmExternalDependencies,
   /// module_id → namespace export name in the chunk, for modules whose exports
   /// were renamed in a multi-module chunk. Written during link, read during code generation.
   pub(crate) dyn_import_ns_map: Arc<AtomicRefCell<IdentifierMap<Atom>>>,
@@ -101,7 +95,6 @@ impl EsmLibraryPlugin {
     Self::new_inner(
       preserve_modules,
       split_chunks,
-      Default::default(),
       Default::default(),
       Default::default(),
       Default::default(),
@@ -289,26 +282,10 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  self.direct_esm_external_dependencies.borrow_mut().clear();
   compilation.set_dependency_template(
     ExternalBindingBailout::template_type(),
     Arc::new(ExternalBindingBailout),
   );
-  for template_type in [
-    ESMImportSideEffectDependencyTemplate::template_type(),
-    ESMImportSpecifierDependencyTemplate::template_type(),
-    ESMExportImportedSpecifierDependencyTemplate::template_type(),
-  ] {
-    if let Some(template) = compilation.get_dependency_template(template_type.clone()) {
-      compilation.set_dependency_template(
-        template_type,
-        Arc::new(DirectEsmExternalDependencyTemplate {
-          direct: self.direct_esm_external_dependencies.clone(),
-          template,
-        }),
-      );
-    }
-  }
   let hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   let mut hooks = hooks.write().await;
   hooks
@@ -863,12 +840,6 @@ async fn optimize_dependencies(
 ) -> Result<Option<bool>> {
   let direct_dependencies = cutout_commonjs_externals(build_module_graph_artifact);
   *self.direct_commonjs_external_dependencies.borrow_mut() = direct_dependencies;
-  cutout_esm_externals(
-    compilation,
-    build_module_graph_artifact,
-    exports_info_artifact,
-    &self.direct_esm_external_dependencies,
-  );
   cutout_dyn_import_externals(
     false,
     compilation.options.output.module,
