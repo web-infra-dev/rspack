@@ -35,19 +35,17 @@ pub type JsLoaderRunner = ThreadsafeFunction<
   0,
 >;
 
+type JsLoaderRunnerGetterTsfn = ThreadsafeFunction<
+  External<CompilerId>,
+  Unknown<'static>,
+  External<CompilerId>,
+  Status,
+  false,
+  true,
+>;
+
 pub struct JsLoaderRunnerGetter {
-  ts_fn: Mutex<
-    Option<
-      ThreadsafeFunction<
-        External<CompilerId>,
-        Unknown<'static>,
-        External<CompilerId>,
-        Status,
-        false,
-        true,
-      >,
-    >,
-  >,
+  ts_fn: Mutex<Option<JsLoaderRunnerGetterTsfn>>,
 }
 
 impl JsLoaderRunnerGetter {
