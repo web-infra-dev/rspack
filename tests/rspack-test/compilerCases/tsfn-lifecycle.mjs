@@ -1,34 +1,41 @@
 import path from "node:path";
 import { spawn } from "node:child_process";
 
-function runChild(script) {
+function runChild(script, ...args) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, ["--expose-gc", script], {
+    const child = spawn(process.execPath, ["--expose-gc", script, ...args], {
       cwd: path.resolve(import.meta.dirname, "../../.."),
       stdio: ["ignore", "pipe", "pipe"],
     });
 
     let stdout = "";
     let stderr = "";
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGKILL");
+    }, 20000);
 
-    child.stdout.on("data", chunk => {
+    child.stdout.on("data", (chunk) => {
       stdout += chunk.toString();
     });
-    child.stderr.on("data", chunk => {
+    child.stderr.on("data", (chunk) => {
       stderr += chunk.toString();
     });
 
-    child.on("error", reject);
-    child.on("close", code => {
-      if (code === 0) {
-        resolve();
+    child.on("error", (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+    child.on("close", (code, signal) => {
+      clearTimeout(timeout);
+      if (code === 0 && !timedOut) {
+        resolve(stdout);
         return;
       }
       reject(
         new Error(
-          stderr ||
-          stdout ||
-          `GC lifecycle script exited with code ${code}`,
+          `${path.basename(script)} ${args.join(" ")}: ${timedOut ? "timed out after 20s" : `exited with code ${code}, signal ${signal}`}\n${stdout}\n${stderr}`,
         ),
       );
     });
@@ -132,6 +139,30 @@ export default [
           "closed-compiler-error.mjs",
         ),
       );
+    },
+  },
+  ...["lifecycle", "rebuild", "failure", "no-emit", "detector"].map((mode) => ({
+    description: `should detect libuv handle leaks: ${mode}`,
+    async build() {
+      await runChild(
+        path.join(
+          import.meta.dirname,
+          "fixtures/tsfn-lifecycle/check-libuv-handles.mjs",
+        ),
+        mode,
+      );
+    },
+  })),
+  {
+    description: "should not allocate libuv async handles per loader module",
+    async build() {
+      const script = path.join(
+        import.meta.dirname,
+        "fixtures/tsfn-lifecycle/check-libuv-handles.mjs",
+      );
+      const small = JSON.parse(await runChild(script, "scale", "4"));
+      const large = JSON.parse(await runChild(script, "scale", "64"));
+      expect(large.asyncDelta).toBe(small.asyncDelta);
     },
   },
 ];

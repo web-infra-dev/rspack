@@ -114,7 +114,7 @@ use napi::{CallContext, bindgen_prelude::*};
 pub use raw_options::{CustomPluginBuilder, register_custom_plugin};
 use rspack_core::{
   Compilation, CompilationId, CompilerId, CompilerPlatform, DependencyRef, EntryOptions,
-  ModuleIdentifier, PluginExt,
+  ModuleIdentifier, Plugin, PluginExt,
 };
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
@@ -524,6 +524,11 @@ impl JsCompiler {
       return spawn_future_result;
     };
     promise.finally(|_env| {
+      // Cached hook taps can retain the compiler after the final rebuild.
+      // Release them even when a close hook fails, after in-flight work is idle.
+      self
+        .js_hooks_plugin
+        .clear_cache(self.compiler.compilation.id());
       self.compiler_scoped_tsfn_manager.release();
       drop(reference);
       Ok(())
