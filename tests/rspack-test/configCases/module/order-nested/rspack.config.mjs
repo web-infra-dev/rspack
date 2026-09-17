@@ -9,16 +9,16 @@ export default {
         test: /lib.js/,
         rules: [
           {
-            use: ['./loader2.js'],
+            use: ['./loader2.mjs'],
           },
         ],
         oneOf: [
           {
             resourceQuery: /random-string/,
-            use: ['./loader1.js'],
+            use: ['./loader1.mjs'],
           },
           {
-            use: ['./loader.js'],
+            use: ['./loader.mjs'],
           },
         ],
       },

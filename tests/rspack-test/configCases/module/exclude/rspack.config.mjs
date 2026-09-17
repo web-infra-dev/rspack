@@ -13,7 +13,7 @@ export default {
         exclude: /lib\.js/,
         use: [
           {
-            loader: './loader.js',
+            loader: './loader.mjs',
           },
         ],
       },
@@ -21,7 +21,7 @@ export default {
         exclude: resolve('index.js'),
         use: [
           {
-            loader: './loader.js',
+            loader: './loader.mjs',
           },
         ],
       },

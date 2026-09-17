@@ -6,7 +6,7 @@ export default {
         test: /[ab]\.js$/,
         use: function (data) {
           return {
-            loader: './loader',
+            loader: './loader.mjs',
             // DIFF: need to use ident to identify the loader options
             ident: `${data.issuer}|${data.resource}?${data.resourceQuery}`,
             options: {

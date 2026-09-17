@@ -7,11 +7,11 @@ export default {
     rules: [
       {
         test: /\.js$/,
-        use: ['./loader2.js', './loader1.js'],
+        use: ['./loader2.mjs', './loader1.mjs'],
         rules: [
           {
             test: /lib\.js$/,
-            use: ['./loader.js'],
+            use: ['./loader.mjs'],
           },
         ],
       },

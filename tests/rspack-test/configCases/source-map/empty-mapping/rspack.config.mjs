@@ -14,7 +14,7 @@ export default {
     rules: [
       {
         test: /\.css$/,
-        use: ['./loader.js', 'builtin:lightningcss-loader'],
+        use: ['./loader.mjs', 'builtin:lightningcss-loader'],
         sideEffects: true,
         type: 'css/auto',
       },

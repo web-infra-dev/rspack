@@ -7,7 +7,7 @@ export default {
     rules: [
       {
         test: /\.png$/,
-        use: './loader.js',
+        use: './loader.mjs',
         type: 'asset/resource',
       },
     ],

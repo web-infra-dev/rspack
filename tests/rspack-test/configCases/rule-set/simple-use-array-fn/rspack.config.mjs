@@ -10,7 +10,7 @@ export default {
             test: {
               and: [/a.\.js$/, /b\.js$/],
             },
-            loader: './loader',
+            loader: './loader.mjs',
             options: 'first',
           },
           {
@@ -20,13 +20,13 @@ export default {
             ],
             issuer: fileURLToPath(import.meta.resolve('./b.js')),
             use: (data) => [
-              './loader',
+              './loader.mjs',
               {
-                loader: './loader',
+                loader: './loader.mjs',
                 options: 'second-2',
               },
               {
-                loader: './loader',
+                loader: './loader.mjs',
                 options: {
                   get: function () {
                     return 'second-3';
@@ -42,7 +42,7 @@ export default {
                 fileURLToPath(import.meta.resolve('./c.js')),
               ],
             },
-            loader: './loader',
+            loader: './loader.mjs',
             options: 'third',
           },
         ],

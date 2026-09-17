@@ -13,7 +13,7 @@ export default {
         test: /lib\.js/,
         use: [
           {
-            loader: './loader-2.js',
+            loader: './loader-2.mjs',
           },
         ],
       },
@@ -21,7 +21,7 @@ export default {
         test: resolve('lib.js'),
         use: [
           {
-            loader: './loader-1.js',
+            loader: './loader-1.mjs',
           },
         ],
       },

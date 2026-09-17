@@ -61,7 +61,7 @@ export default {
 				rules: [
 					{
 						test: /\.js$/,
-						loader: path.resolve(context.getSource(), "./callback-loader.js"),
+						loader: path.resolve(context.getSource(), "./callback-loader.mjs"),
 						options: {
 							callback(loaderContext) {
 								if (inChild) {

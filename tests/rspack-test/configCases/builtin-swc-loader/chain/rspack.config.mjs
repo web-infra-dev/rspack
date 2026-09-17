@@ -14,7 +14,7 @@ export default {
               detectSyntax: 'auto',
             },
           },
-          './loader.js',
+          './loader.mjs',
           {
             loader: 'builtin:swc-loader',
             options: {

@@ -11,13 +11,13 @@ export default {
     rules: [
       {
         include: (value) => value === resolve('lib.js'),
-        use: './loader-3.js',
+        use: './loader-3.mjs',
       },
       {
         include: /lib\.js/,
         use: [
           {
-            loader: './loader-2.js',
+            loader: './loader-2.mjs',
           },
         ],
       },
@@ -25,7 +25,7 @@ export default {
         include: resolve('lib.js'),
         use: [
           {
-            loader: './loader-1.js',
+            loader: './loader-1.mjs',
           },
         ],
       },

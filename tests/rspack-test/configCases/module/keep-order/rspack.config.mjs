@@ -13,7 +13,7 @@ export default {
         test: resolve('index.js'),
         use: [
           {
-            loader: './test-loader.js',
+            loader: './test-loader.mjs',
           },
         ],
       },

@@ -6,7 +6,7 @@ function createTestCase(changeTimeout, invalidate) {
   const fixturePath = path.join(import.meta.dirname, "../fixtures", "temp-" + changeTimeout);
   const filePath = path.join(fixturePath, "file.js");
   const file2Path = path.join(fixturePath, "file2.js");
-  const loaderPath = path.join(import.meta.dirname, "../fixtures", "delay-loader.js");
+  const loaderPath = path.join(import.meta.dirname, "../fixtures", "delay-loader.mjs");
   const memfs = createFsFromVolume(new Volume());
 
   return {

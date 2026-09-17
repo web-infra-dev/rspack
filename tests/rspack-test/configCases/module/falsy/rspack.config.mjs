@@ -8,7 +8,7 @@ export default {
       undefined,
       {
         test: /lib.js/,
-        use: ['./loader2.js'],
+        use: ['./loader2.mjs'],
       },
       {
         test: /lib.js/,
@@ -16,13 +16,13 @@ export default {
           undefined,
           {
             resourceQuery: '/(__inline=false|url)/',
-            use: ['./loader1.js'],
+            use: ['./loader1.mjs'],
           },
           {
-            use: ['./loader.js'],
+            use: ['./loader.mjs'],
           },
           {
-            use: ['./loader1.js'],
+            use: ['./loader1.mjs'],
           },
         ],
       },
