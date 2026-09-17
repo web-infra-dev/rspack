@@ -318,6 +318,34 @@ pub enum Statement {
 }
 
 impl Statement {
+  /// Identifies the underlying AST node without decoding its source span.
+  pub fn node_id(self) -> swc_next_ecma_ast::NodeId {
+    match self {
+      Self::Block(node) => node.node_id(),
+      Self::Empty(node) => node.node_id(),
+      Self::Debugger(node) => node.node_id(),
+      Self::With(node) => node.node_id(),
+      Self::Return(node) => node.node_id(),
+      Self::Labeled(node) => node.node_id(),
+      Self::Break(node) => node.node_id(),
+      Self::Continue(node) => node.node_id(),
+      Self::If(node) => node.node_id(),
+      Self::Switch(node) => node.node_id(),
+      Self::Throw(node) => node.node_id(),
+      Self::Try(node) => node.node_id(),
+      Self::While(node) => node.node_id(),
+      Self::DoWhile(node) => node.node_id(),
+      Self::For(node) => node.node_id(),
+      Self::ForIn(node) => node.node_id(),
+      Self::ForOf(node) => node.node_id(),
+      Self::Expr(node) => node.node_id(),
+      Self::Class(node) => node.0.node_id(),
+      Self::Fn(node) => node.0.node_id(),
+      Self::Var(node) => node.0.node_id(),
+      Self::Other(node) => node.node_id(),
+    }
+  }
+
   pub fn from_stmt(ast: &Ast<'_>, statement: Stmt) -> Self {
     match ast.kind_data(statement.node_id()) {
       NodeKindData::BlockStatement(node) => Self::Block(node),
