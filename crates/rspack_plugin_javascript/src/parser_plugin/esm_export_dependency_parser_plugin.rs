@@ -23,8 +23,8 @@ use crate::{
   parser_plugin::compatibility_plugin::CompatibilityPlugin,
   utils::object_properties::get_import_attributes,
   visitors::{
-    ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal, JavascriptParser,
-    create_traceable_error,
+    BindingState, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal,
+    JavascriptParser, create_traceable_error,
   },
 };
 
@@ -33,17 +33,11 @@ pub struct ESMExportDependencyParserPlugin;
 fn create_default_exported_namespace_dependency(
   parser: &mut JavascriptParser,
   statement: ExportDefaultDeclaration,
-  expr: ExportDefaultExpression,
+  state: Option<BindingState>,
 ) -> Option<ESMExportImportedSpecifierDependency> {
   let ast = parser.ast.ast;
-  let ExportDefaultExpression::Expr(expression) = expr else {
-    return None;
-  };
-  let ExprData::IdentifierReference(identifier) = ast.expr_data(expression) else {
-    return None;
-  };
   let settings = parser
-    .get_tag_data::<ESMSpecifierData>(ast.get_utf8(identifier.name(ast)), ESM_SPECIFIER_TAG)
+    .get_variable_tag_data::<ESMSpecifierData>(state?, ESM_SPECIFIER_TAG)
     .filter(|settings| settings.namespace_import && settings.ids.is_empty())?
     .clone();
   let statement_span = statement.span(ast);
@@ -293,7 +287,23 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     let ast = parser.ast.ast;
     let expr_span = expr.span(ast);
     let statement_span = statement.span(ast);
-    if let Some(dep) = create_default_exported_namespace_dependency(parser, statement, expr) {
+    // Both tag checks refer to the same binding; no hook mutates it between them.
+    let identifier_state = if let ExportDefaultExpression::Expr(expression) = expr
+      && let ExprData::IdentifierReference(identifier) = ast.expr_data(expression)
+    {
+      let resolution = parser
+        .definitions_db
+        .semantic_context
+        .identifier_resolution(parser.ast, identifier);
+      parser
+        .definitions_db
+        .resolve_identifier(parser.ast, identifier, resolution)
+    } else {
+      None
+    };
+    if let Some(dep) =
+      create_default_exported_namespace_dependency(parser, statement, identifier_state)
+    {
       parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         DependencyRange::new(statement_span.real_lo(), expr_span.real_lo()),
         "".into(),
@@ -353,9 +363,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     };
     let const_value = match expr {
       ExportDefaultExpression::Expr(expression) => {
-        if let ExprData::IdentifierReference(identifier) = ast.expr_data(expression) {
-          parser
-            .get_tag_data::<ConstValueData>(ast.get_utf8(identifier.name(ast)), INLINABLE_CONST_TAG)
+        if let ExprData::IdentifierReference(_) = ast.expr_data(expression) {
+          identifier_state
+            .and_then(|state| {
+              parser.get_variable_tag_data::<ConstValueData>(state, INLINABLE_CONST_TAG)
+            })
             .map(|data| data.value.clone())
         } else {
           to_evaluated_inlinable_value(&parser.evaluate_expression(expression))

@@ -790,9 +790,17 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
     source: &rspack_intern::Atom,
     export_name: Option<&Atom>,
     identifier_name: &Atom,
+    identifier: swc_next_ecma_ast::BindingIdentifier,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::ImportSpecifier) {
-      let res = plugin.import_specifier(parser, statement, source, export_name, identifier_name);
+      let res = plugin.import_specifier(
+        parser,
+        statement,
+        source,
+        export_name,
+        identifier_name,
+        identifier,
+      );
       // `SyncBailHook`
       if res.is_some() {
         return res;
