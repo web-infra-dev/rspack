@@ -13,7 +13,7 @@ use crate::{error::RspackError, module::ModuleObject};
 
 #[napi(object)]
 #[derive(Hash)]
-pub struct JsLoaderItem {
+pub struct JsNormalModuleLoaderItem {
   pub loader: String,
   pub r#type: String,
   pub cache: bool,
@@ -30,7 +30,7 @@ pub struct JsLoaderItem {
 
 /// Immutable loader metadata, separate from the state returned by JavaScript.
 #[napi(object)]
-pub struct JsLoaderMetadata {
+pub struct JsLoaderItem {
   pub loader: String,
   pub r#type: String,
   pub cache: bool,
@@ -45,7 +45,7 @@ pub struct JsLoaderItemState {
   pub no_pitch: bool,
 }
 
-impl<C> From<&Arc<dyn rspack_core::Loader<C>>> for JsLoaderItem
+impl<C> From<&Arc<dyn rspack_core::Loader<C>>> for JsNormalModuleLoaderItem
 where
   C: Send,
 {
@@ -177,7 +177,7 @@ pub struct JsLoaderContext {
   #[napi(ts_type = "Readonly<boolean>")]
   pub hot: bool,
 
-  pub loader_items: Vec<JsLoaderMetadata>,
+  pub loader_items: Vec<JsLoaderItem>,
   #[napi(
     js_name = "__internal__loaderCache",
     ts_type = "JsLoaderCache | undefined"
@@ -232,7 +232,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       loader_items: cx
         .loader_items()
         .iter()
-        .map(|item| JsLoaderMetadata {
+        .map(|item| JsLoaderItem {
           loader: item.request().to_string(),
           r#type: item.r#type().to_string(),
           cache: item.cache(),

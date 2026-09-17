@@ -12,7 +12,7 @@ import {
   formatDiagnostic,
   type JsLoaderContext,
   type JsLoaderContextState,
-  type JsLoaderMetadata,
+  type JsLoaderItem,
   type JsLoaderItemState,
   JsLoaderState,
   JsRspackSeverity,
@@ -91,11 +91,11 @@ export class LoaderObject {
   /**
    * @internal This field is rspack internal. Do not edit.
    */
-  readonly loaderItem: JsLoaderMetadata;
+  readonly loaderItem: JsLoaderItem;
   readonly state: JsLoaderItemState;
 
   constructor(
-    loaderItem: JsLoaderMetadata,
+    loaderItem: JsLoaderItem,
     state: JsLoaderItemState,
     compiler: Compiler,
   ) {

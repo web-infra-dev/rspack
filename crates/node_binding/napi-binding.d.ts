@@ -65,7 +65,7 @@ export interface NormalModule extends Module {
 	readonly userRequest: string;
 	readonly rawRequest: string;
 	readonly resourceResolveData: Readonly<JsResourceData> | undefined;
-	readonly loaders: JsLoaderItem[];
+	readonly loaders: JsNormalModuleLoaderItem[];
 	get matchResource(): string | undefined;
 	set matchResource(val: string | undefined);
 	get error(): RspackError | undefined;
@@ -976,7 +976,7 @@ export interface JsLoaderContext {
   resource: string
   _module: Module
   hot: Readonly<boolean>
-  loaderItems: Array<JsLoaderMetadata>
+  loaderItems: Array<JsLoaderItem>
   __internal__loaderCache?: JsLoaderCache | undefined
   state: JsLoaderContextState
 }
@@ -1009,14 +1009,11 @@ export interface JsLoaderDependencies {
   buildDependencies: Array<string>
 }
 
+/** Immutable loader metadata, separate from the state returned by JavaScript. */
 export interface JsLoaderItem {
   loader: string
   type: string
   cache: boolean
-  data: any
-  normalExecuted: boolean
-  pitchExecuted: boolean
-  noPitch: boolean
 }
 
 export interface JsLoaderItemState {
@@ -1025,13 +1022,6 @@ export interface JsLoaderItemState {
   normalExecuted: boolean
   pitchExecuted: boolean
   noPitch: boolean
-}
-
-/** Immutable loader metadata, separate from the state returned by JavaScript. */
-export interface JsLoaderMetadata {
-  loader: string
-  type: string
-  cache: boolean
 }
 
 export declare enum JsLoaderState {
@@ -1062,6 +1052,16 @@ export interface JsNormalModuleFactoryCreateModuleArgs {
   resourceResolveData: JsResourceData
   context: string
   matchResource?: string
+}
+
+export interface JsNormalModuleLoaderItem {
+  loader: string
+  type: string
+  cache: boolean
+  data: any
+  normalExecuted: boolean
+  pitchExecuted: boolean
+  noPitch: boolean
 }
 
 export interface JsOriginRecord {
