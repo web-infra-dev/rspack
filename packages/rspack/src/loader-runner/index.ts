@@ -260,7 +260,7 @@ export function createLoaderContext(
     return contextState.loaderContext;
   }
   let { state } = context;
-  const { resource } = context.meta;
+  const { resource } = context;
   const splittedResource = resource && parseResource(resource);
   const resourcePath = splittedResource ? splittedResource.path : undefined;
   const resourceQuery = splittedResource ? splittedResource.query : undefined;
@@ -272,12 +272,12 @@ export function createLoaderContext(
   /// Construct `loaderContext`
   const loaderContext = {} as LoaderContext;
 
-  loaderContext.loaders = context.meta.loaderItems.map(
+  loaderContext.loaders = context.loaderItems.map(
     (item, index) =>
       new LoaderObject(item, state.loaderItemStates[index], compiler),
   );
 
-  loaderContext.hot = context.meta.hot;
+  loaderContext.hot = context.hot;
   loaderContext.context = contextDirectory;
   loaderContext.resourcePath = resourcePath!;
   loaderContext.resourceQuery = resourceQuery!;
@@ -489,7 +489,7 @@ export function createLoaderContext(
   loaderContext.version = 2;
   loaderContext.sourceMap = compiler.options.devtool
     ? isUseSourceMap(compiler.options.devtool)
-    : (context.meta._module.useSourceMap ?? false);
+    : (context._module.useSourceMap ?? false);
   loaderContext.mode = compiler.options.mode;
   Object.assign(loaderContext, compiler.options.loader);
 
@@ -638,7 +638,7 @@ export function createLoaderContext(
           diagnostic.severity === 'warning'
             ? `ModuleWarning: ${diagnostic.message}`
             : `ModuleError: ${diagnostic.message}`,
-        moduleIdentifier: context.meta._module.identifier(),
+        moduleIdentifier: context._module.identifier(),
       });
       compiler._lastCompilation!.__internal__pushDiagnostic(
         formatDiagnostic(d),
@@ -675,7 +675,7 @@ export function createLoaderContext(
 
   loaderContext._compiler = compiler;
   loaderContext._compilation = compiler._lastCompilation!;
-  loaderContext._module = context.meta._module;
+  loaderContext._module = context._module;
 
   loaderContext.getOptions = () => {
     const loader = getCurrentLoader(loaderContext);
@@ -738,9 +738,9 @@ export function createLoaderContext(
       state = context.state;
       dependencies = nextDependencies;
       traceData = nextTraceData;
-      loaderContext.hot = context.meta.hot;
-      loaderContext._module = context.meta._module;
-      loaderContext.loaders = context.meta.loaderItems.map(
+      loaderContext.hot = context.hot;
+      loaderContext._module = context._module;
+      loaderContext.loaders = context.loaderItems.map(
         (item, index) =>
           new LoaderObject(item, state.loaderItemStates[index], compiler),
       );
@@ -758,7 +758,7 @@ export async function runLoaders(
   const loaderState = state.loaderState;
   const pitch = loaderState === JsLoaderState.Pitching;
 
-  const { resource } = context.meta;
+  const { resource } = context;
   const traceData = JavaScriptTracer.isEnabled()
     ? {
         uuid: JavaScriptTracer.uuid(),
@@ -770,7 +770,7 @@ export async function runLoaders(
     : undefined;
 
   const dependencies = new LoaderDependenciesState(state.dependencies);
-  const loaderCache = context.meta.__internal__loaderCache
+  const loaderCache = context.__internal__loaderCache
     ? new LoaderCache(context, dependencies)
     : undefined;
   const loaderContext = createLoaderContext(
@@ -1303,7 +1303,7 @@ export async function runLoaders(
   }
 
   if (compiler.options?.cache) {
-    commitCustomFieldsToRust(context.meta._module.buildInfo);
+    commitCustomFieldsToRust(context._module.buildInfo);
   }
 
   return state;

@@ -171,13 +171,6 @@ impl From<JsLoaderDependencies> for LoaderDependencies {
 
 #[napi(object)]
 pub struct JsLoaderContext {
-  pub meta: JsLoaderContextMetadata,
-  pub state: JsLoaderContextState,
-}
-
-/// Input metadata, never returned to Rust with the execution state.
-#[napi(object)]
-pub struct JsLoaderContextMetadata {
   pub resource: String,
   #[napi(js_name = "_module", ts_type = "Module")]
   pub module: ModuleObject,
@@ -190,6 +183,7 @@ pub struct JsLoaderContextMetadata {
     ts_type = "JsLoaderCache | undefined"
   )]
   pub loader_cache: Option<JsLoaderCacheObject>,
+  pub state: JsLoaderContextState,
 }
 
 /// Mutable state for the loader chain, including each loader's data and flags.
@@ -229,38 +223,36 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
 
     #[allow(clippy::unwrap_used)]
     Ok(JsLoaderContext {
-      meta: JsLoaderContextMetadata {
-        resource: cx.resource_data.resource().to_owned(),
-        module: ModuleObject::with_ptr(
-          NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module).unwrap(),
-          cx.context.compiler_id,
-        ),
-        hot: cx.hot,
-        loader_items: cx
-          .loader_items()
-          .iter()
-          .map(|item| JsLoaderMetadata {
-            loader: item.request().to_string(),
-            r#type: item.r#type().to_string(),
-            cache: item.cache(),
-          })
-          .collect(),
-        loader_cache: cx
-          .loader_items()
-          .iter()
-          .any(|loader| loader.cache())
-          .then(|| {
-            JsLoaderCacheObject::new(
-              cx.context.loader_cache.clone(),
-              cx.context.file_system_info.clone(),
-              module.identifier().to_string(),
-              cx.loader_items()
-                .iter()
-                .map(|loader| loader.cache_options().cloned().unwrap_or_default())
-                .collect(),
-            )
-          }),
-      },
+      resource: cx.resource_data.resource().to_owned(),
+      module: ModuleObject::with_ptr(
+        NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module).unwrap(),
+        cx.context.compiler_id,
+      ),
+      hot: cx.hot,
+      loader_items: cx
+        .loader_items()
+        .iter()
+        .map(|item| JsLoaderMetadata {
+          loader: item.request().to_string(),
+          r#type: item.r#type().to_string(),
+          cache: item.cache(),
+        })
+        .collect(),
+      loader_cache: cx
+        .loader_items()
+        .iter()
+        .any(|loader| loader.cache())
+        .then(|| {
+          JsLoaderCacheObject::new(
+            cx.context.loader_cache.clone(),
+            cx.context.file_system_info.clone(),
+            module.identifier().to_string(),
+            cx.loader_items()
+              .iter()
+              .map(|loader| loader.cache_options().cloned().unwrap_or_default())
+              .collect(),
+          )
+        }),
       state: JsLoaderContextState {
         loader_state: cx.state().into(),
         loader_context_state: cx

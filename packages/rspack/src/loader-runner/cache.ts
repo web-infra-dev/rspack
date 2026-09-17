@@ -37,7 +37,7 @@ export class LoaderCache {
 
   constructor(context: JsLoaderContext, dependencies: LoaderDependenciesState) {
     this.#context = context;
-    this.#api = context.meta.__internal__loaderCache as LoaderCacheApi;
+    this.#api = context.__internal__loaderCache as LoaderCacheApi;
     this.#dependencies = dependencies;
   }
 
@@ -47,7 +47,7 @@ export class LoaderCache {
     additionalData: unknown,
   ): Promise<LoaderCacheEntry | null | undefined> {
     const context = this.#context;
-    const loader = context.meta.loaderItems[loaderIndex];
+    const loader = context.loaderItems[loaderIndex];
     if (
       !context.state.cacheable ||
       !loader ||
