@@ -41,7 +41,7 @@ export default {
           compilation.hooks.afterProcessAssets.tap(
             'testcase',
             (
-              /** @type {Record<string, import("webpack-sources").Source>} */ assets,
+              /** @type {Record<string, import("@rspack/core").sources.Source>} */ assets,
             ) => {
               const source = assets['entry.mjs'].source();
               let snapshotDir;

@@ -1,5 +1,4 @@
 import { Compilation } from '@rspack/core';
-// const Source = require("webpack-sources").Source;
 
 /** @type {import("@rspack/core").Configuration} */
 export default {

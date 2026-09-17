@@ -1,7 +1,6 @@
 import { rspack } from '@rspack/core';
-import sources from 'webpack-sources';
 
-const { RawSource } = sources;
+const { RawSource } = rspack.sources;
 
 /** @typedef {import("../../../../lib/Compiler")} Compiler */
 

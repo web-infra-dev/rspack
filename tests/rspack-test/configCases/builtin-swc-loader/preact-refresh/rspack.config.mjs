@@ -1,8 +1,7 @@
 import { rspack } from '@rspack/core';
 import { PreactRefreshRspackPlugin } from '@rspack/plugin-preact-refresh';
-import sources from 'webpack-sources';
 
-const { ConcatSource, RawSource } = sources;
+const { ConcatSource, RawSource } = rspack.sources;
 /** @type {import("@rspack/core").Configuration} */
 export default {
   entry: './index.jsx',
