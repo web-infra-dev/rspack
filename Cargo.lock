@@ -4283,6 +4283,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_core_test"
+version = "0.102.3"
+dependencies = [
+ "rspack",
+ "rspack_core",
+ "rspack_error",
+ "rspack_fs",
+ "rspack_hook",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "rspack_dojang"
 version = "0.102.5"
 dependencies = [

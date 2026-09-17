@@ -81,6 +81,12 @@ watch 模式下，应使用当前构建 hook 提供的 `Compilation` 和 native-
 - 如果稍后仍需要某些信息，应提前保存 identifier、name、path、hash 等字符串或数字，或者转换成普通 JavaScript 对象。
 - watch rebuild 后，应从新的 `Compilation` 重新获取对象，不要复用上一次构建保存的对象。
 
+### Rust compiler 的所有权
+
+`Compiler.compilation` 使用仅由 compiler 持有的所有权容器，内部为 `Arc<Compilation>` 或 `UniqueArc<Compilation>`。hook 和 pass 保持原来的 `&Compilation`、`&mut Compilation` 参数。这个容器不在线程间共享；调度器在共享阶段发布 owned Arc，并在修改前回收 UniqueArc。
+
+compiler 的 emit 调度在 `emit` 与 `afterEmit` 之间完成这个交接：后台任务持有 Arc，写入资产并调用 `assetEmitted`；任务全部结束后，调度器先恢复 UniqueArc，再传播任务错误或调用 `afterEmit`。如果 reader 仍被持有，回收返回错误。build/rebuild 通过替换内容保留分配地址。Weak 只在共享阶段能够 upgrade，读取的是当前 compilation，而非历史快照。其他 scoped 任务仍沿用借用方式。JavaScript native-backed 句柄尚未迁移为 Weak，仍遵循上面的生命周期约束。
+
 ## Hook 和回调执行
 
 Rust compiler 可以使用多个线程，同时执行多个彼此独立的编译任务。但是，JavaScript hook、loader 和其他回调不能直接在这些 Rust 线程上运行，它们必须被调度回创建 Rspack compiler 的 JavaScript 环境。

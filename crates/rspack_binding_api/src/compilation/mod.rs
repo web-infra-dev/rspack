@@ -54,9 +54,10 @@ impl JsCompilation {
     Self { id, inner }
   }
 
-  // `inner` points at the `Compilation` inlined in `Compiler`, and `Compiler::rebuild`
-  // replaces the value in that slot, so a handle from an earlier build aliases whichever
-  // compilation occupies the slot now. Reading the module graph through such a handle is
+  // `inner` points into the stable allocation owned by `Compiler.compilation`.
+  // `Compiler::rebuild` replaces the value during its unique phase, so a handle from an
+  // earlier build aliases whichever compilation occupies the slot now. Reading the
+  // module graph through such a handle is
   // the case that aborts the process: these accessors reach into
   // `build_module_graph_artifact`, which the running build steals for the whole make phase.
   //

@@ -1,3 +1,4 @@
+mod compilation;
 mod rebuild;
 use std::sync::{Arc, atomic::AtomicU32};
 
@@ -14,7 +15,7 @@ use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::Semaphore;
 use tracing::instrument;
 
-pub use self::rebuild::CompilationRecords;
+pub use self::{compilation::CompilationCell, rebuild::CompilationRecords};
 use crate::{
   BoxPlugin, CacheOptions, CleanOptions, Compilation, CompilationAsset, CompilationLogging,
   CompilerOptions, CompilerPlatform, ContextModuleFactory, Filename, InfrastructureLogSink,
@@ -104,7 +105,7 @@ pub struct Compiler {
   pub output_filesystem: Arc<dyn WritableFileSystem>,
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
-  pub compilation: Compilation,
+  pub compilation: CompilationCell,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -165,7 +166,7 @@ impl Compiler {
     Self {
       id,
       options: options.clone(),
-      compilation: Compilation::new(
+      compilation: CompilationCell::new(Compilation::new(
         id,
         options,
         platform.clone(),
@@ -185,7 +186,7 @@ impl Compiler {
         output_filesystem.clone(),
         false,
         compiler_context.clone(),
-      ),
+      )),
       compiler_path,
       output_filesystem,
       intermediate_filesystem,
@@ -212,9 +213,10 @@ impl Compiler {
     self.new_cache.facade(name)
   }
 
-  fn store_cache_metadata(&mut self) {
+  fn store_cache_metadata(&mut self) -> Result<()> {
     if self.new_cache.has_file_cache() {
       if let CacheOptions::FileSystem(options) = &self.options.cache {
+        self.compilation.try_make_unique()?;
         self.compilation.build_dependencies.extend(
           options
             .build_dependencies
@@ -234,6 +236,7 @@ impl Compiler {
         }),
       );
     };
+    Ok(())
   }
 
   pub async fn run(&mut self) -> Result<()> {
@@ -242,6 +245,7 @@ impl Compiler {
   }
 
   pub async fn build(&mut self) -> Result<()> {
+    self.compilation.try_make_unique()?;
     let compiler_context = self.compiler_context.clone();
     let result = match within_compiler_context(compiler_context, self.build_inner()).await {
       Ok(_) => {
@@ -262,7 +266,7 @@ impl Compiler {
         failed.and(Err(e))
       }
     };
-    self.store_cache_metadata();
+    self.store_cache_metadata()?;
     result
   }
 
@@ -288,7 +292,7 @@ impl Compiler {
     self.incremental_artifacts.reset();
 
     fast_set(
-      &mut self.compilation,
+      &mut *self.compilation,
       Compilation::new(
         self.id,
         self.options.clone(),
@@ -404,6 +408,7 @@ impl Compiler {
 
   #[instrument("emit_assets", skip_all)]
   pub async fn emit_assets(&mut self) -> Result<()> {
+    self.compilation.try_make_unique()?;
     let output_path_str = self
       .compilation
       .get_path(
@@ -427,41 +432,50 @@ impl Compiler {
       .incremental
       .passes_enabled(IncrementalPasses::EMIT_ASSETS);
 
+    // Publish only for the read phase. Workers own Arc readers, not &Compiler.
+    let compilation = self.compilation.share();
     let emit_limit = Arc::new(Semaphore::new(EMIT_ASSETS_CONCURRENCY_LIMIT));
     let emit_results = rspack_parallel::scope(|token| {
-      self
-        .compilation
-        .assets()
-        .iter()
-        .for_each(|(filename, asset)| {
-          // collect version info to new_emitted_asset_versions
-          if emit_assets_incremental {
-            new_emitted_asset_versions.insert(filename.clone(), asset.info.version.clone());
-          }
+      for (filename, asset) in compilation.assets() {
+        if emit_assets_incremental {
+          new_emitted_asset_versions.insert(filename.clone(), asset.info.version.clone());
+        }
+        if emit_assets_incremental
+          && let Some(old_version) = self.emitted_asset_versions.get(filename)
+          && old_version.as_str() == asset.info.version
+          && !old_version.is_empty()
+        {
+          continue;
+        }
 
-          if emit_assets_incremental
-            && let Some(old_version) = self.emitted_asset_versions.get(filename)
-            && old_version.as_str() == asset.info.version
-            && !old_version.is_empty()
-          {
-            return;
-          }
-
-          // SAFETY: await immediately and trust caller to poll future entirely
-          let s = unsafe { token.used((&self, filename, asset, output_path)) };
-
-          let emit_limit = emit_limit.clone();
-          s.spawn(|(this, filename, asset, output_path)| async move {
-            let _permit = emit_limit
-              .acquire()
-              .await
-              .expect("emit limit semaphore should not be closed");
-            this.emit_asset(output_path, filename, asset).await
-          });
-        })
+        let context = EmitAssetContext {
+          compilation: Arc::clone(&compilation),
+          output_filesystem: Arc::clone(&self.output_filesystem),
+          options: Arc::clone(&self.options),
+          plugin_driver: Arc::clone(&self.plugin_driver),
+        };
+        // SAFETY: the task owns every input, including its compilation reader.
+        let task = unsafe { token.used((context, filename.clone(), output_path.to_owned())) };
+        let emit_limit = Arc::clone(&emit_limit);
+        task.spawn(move |(context, filename, output_path)| async move {
+          let _permit = emit_limit
+            .acquire()
+            .await
+            .expect("emit limit semaphore should not be closed");
+          let asset = context
+            .compilation
+            .assets()
+            .get(&filename)
+            .expect("asset must exist");
+          context.emit_asset(&output_path, &filename, asset).await
+        });
+      }
     })
     .await;
 
+    // Recover before propagating task errors or calling the mutable afterEmit hook.
+    drop(compilation);
+    self.compilation.try_make_unique()?;
     for result in emit_results {
       result.map_err(|error| rspack_error::error!("Emit asset failed: {error}"))??;
     }
@@ -475,89 +489,6 @@ impl Compiler {
       .call(&mut self.compilation)
       .await
   }
-  async fn emit_asset(
-    &self,
-    output_path: &Utf8Path,
-    filename: &str,
-    asset: &CompilationAsset,
-  ) -> Result<()> {
-    if let Some(source) = asset.get_source() {
-      let (target_file, query) = filename.split_once('?').unwrap_or((filename, ""));
-      let file_path = output_path.node_join(target_file);
-      self
-        .output_filesystem
-        .create_dir_all(
-          file_path
-            .parent()
-            .unwrap_or_else(|| panic!("The parent of {file_path} can't found")),
-        )
-        .await?;
-
-      let content = source.buffer();
-
-      let mut immutable = asset.info.immutable.unwrap_or(false);
-      if !query.is_empty() {
-        immutable = immutable
-          && asset
-            .info
-            .content_hash
-            .iter()
-            .chain(&asset.info.chunk_hash)
-            .chain(&asset.info.full_hash)
-            .any(|hash| target_file.contains(hash));
-      }
-
-      let stat = self
-        .output_filesystem
-        .stat(file_path.as_path().as_ref())
-        .await
-        .ok();
-
-      let need_write = if !self.options.output.compare_before_emit {
-        // write when compare_before_emit is false
-        true
-      } else if !stat.as_ref().is_some_and(|stat| stat.is_file) {
-        // write when not exists or not a file
-        true
-      } else if immutable {
-        // do not write when asset is immutable and the file exists
-        false
-      } else if (content.len() as u64) == stat.as_ref().unwrap_or_else(|| unreachable!()).size {
-        match self
-          .output_filesystem
-          .read_file(file_path.as_path().as_ref())
-          .await
-        {
-          // write when content is different
-          Ok(c) => content != c,
-          // write when file can not be read
-          Err(_) => true,
-        }
-      } else {
-        // write if content length is different
-        true
-      };
-
-      if need_write {
-        self.output_filesystem.write(&file_path, &content).await?;
-        self.compilation.emitted_assets.insert(filename.to_string());
-      }
-
-      let info = AssetEmittedInfo {
-        output_path: output_path.to_owned(),
-        source: source.clone(),
-        target_path: file_path,
-      };
-      self
-        .plugin_driver
-        .compiler_hooks
-        .asset_emitted
-        .call(&self.compilation, filename, &info)
-        .await?;
-    }
-    Ok(())
-  }
-
   async fn run_clean_options(&mut self, output_path: &Utf8Path) -> Result<()> {
     let clean_options = &self.options.output.clean;
 
@@ -652,4 +583,98 @@ pub struct AssetEmittedInfo {
   pub source: BoxSource,
   pub output_path: Utf8PathBuf,
   pub target_path: Utf8PathBuf,
+}
+
+// Worker-owned inputs for Compiler's shared emit phase. The Cell stays on the
+// scheduler; only the immutable compilation owner crosses this boundary.
+struct EmitAssetContext {
+  compilation: Arc<Compilation>,
+  output_filesystem: Arc<dyn WritableFileSystem>,
+  options: Arc<CompilerOptions>,
+  plugin_driver: SharedPluginDriver,
+}
+
+impl EmitAssetContext {
+  async fn emit_asset(
+    &self,
+    output_path: &Utf8Path,
+    filename: &str,
+    asset: &CompilationAsset,
+  ) -> Result<()> {
+    if let Some(source) = asset.get_source() {
+      let (target_file, query) = filename.split_once('?').unwrap_or((filename, ""));
+      let file_path = output_path.node_join(target_file);
+      self
+        .output_filesystem
+        .create_dir_all(
+          file_path
+            .parent()
+            .unwrap_or_else(|| panic!("The parent of {file_path} can't found")),
+        )
+        .await?;
+
+      let content = source.buffer();
+
+      let mut immutable = asset.info.immutable.unwrap_or(false);
+      if !query.is_empty() {
+        immutable = immutable
+          && asset
+            .info
+            .content_hash
+            .iter()
+            .chain(&asset.info.chunk_hash)
+            .chain(&asset.info.full_hash)
+            .any(|hash| target_file.contains(hash));
+      }
+
+      let stat = self
+        .output_filesystem
+        .stat(file_path.as_path().as_ref())
+        .await
+        .ok();
+
+      let need_write = if !self.options.output.compare_before_emit {
+        // write when compare_before_emit is false
+        true
+      } else if !stat.as_ref().is_some_and(|stat| stat.is_file) {
+        // write when not exists or not a file
+        true
+      } else if immutable {
+        // do not write when asset is immutable and the file exists
+        false
+      } else if (content.len() as u64) == stat.as_ref().unwrap_or_else(|| unreachable!()).size {
+        match self
+          .output_filesystem
+          .read_file(file_path.as_path().as_ref())
+          .await
+        {
+          // write when content is different
+          Ok(c) => content != c,
+          // write when file can not be read
+          Err(_) => true,
+        }
+      } else {
+        // write if content length is different
+        true
+      };
+
+      if need_write {
+        self.output_filesystem.write(&file_path, &content).await?;
+        self.compilation.emitted_assets.insert(filename.to_string());
+      }
+
+      let info = AssetEmittedInfo {
+        output_path: output_path.to_owned(),
+        source: source.clone(),
+        target_path: file_path,
+      };
+      self
+        .plugin_driver
+        .compiler_hooks
+        .asset_emitted
+        .call(&self.compilation, filename, &info)
+        .await?;
+    }
+    Ok(())
+  }
 }

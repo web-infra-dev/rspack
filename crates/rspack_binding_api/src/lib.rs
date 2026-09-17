@@ -212,6 +212,11 @@ pub(crate) fn with_compilation_mut<R>(
     )));
   };
 
+  compiler
+    .compiler
+    .compilation
+    .try_make_unique()
+    .map_err(|error| napi::Error::from_reason(error.to_string()))?;
   f(&mut compiler.compiler.compilation)
 }
 

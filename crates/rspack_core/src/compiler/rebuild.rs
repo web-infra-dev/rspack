@@ -21,6 +21,7 @@ impl Compiler {
     changed_files: FxHashSet<String>,
     deleted_files: FxHashSet<String>,
   ) -> Result<()> {
+    self.compilation.try_make_unique()?;
     let result = match within_compiler_context(
       self.compiler_context.clone(),
       self.rebuild_inner(changed_files, deleted_files),
@@ -45,7 +46,7 @@ impl Compiler {
         failed.and(Err(e))
       }
     };
-    self.store_cache_metadata();
+    self.store_cache_metadata()?;
     result
   }
 
@@ -109,7 +110,7 @@ impl Compiler {
 
       // Artifact recovery belongs to incremental compilation and is independent
       // from the configured build cache.
-      let old_compilation = std::mem::replace(&mut self.compilation, next_compilation);
+      let old_compilation = std::mem::replace(&mut *self.compilation, next_compilation);
       self
         .incremental_artifacts
         .store_previous_compilation(Box::new(old_compilation));

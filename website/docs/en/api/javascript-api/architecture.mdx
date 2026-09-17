@@ -81,6 +81,12 @@ Follow these rules:
 - If information is needed later, save JavaScript-owned strings or numbers such as identifiers, names, paths, and hashes, or convert the data into an ordinary JavaScript object.
 - After a watch rebuild, obtain objects again from the new `Compilation` instead of reusing objects saved from the previous build.
 
+### Rust compiler ownership
+
+`Compiler.compilation` uses a compiler-local ownership cell containing either `Arc<Compilation>` or `UniqueArc<Compilation>`. Hooks and passes keep their existing `&Compilation` and `&mut Compilation` parameters. The cell is not shared with worker threads; scheduling boundaries publish owned Arc readers and recover unique ownership before mutation.
+
+The compiler's emit scheduler performs this handoff between `emit` and `afterEmit`: workers own Arc readers while writing assets and running `assetEmitted`; once all workers finish, the scheduler recovers UniqueArc before propagating errors or calling `afterEmit`. A retained reader prevents recovery and returns an error. Build/rebuild preserves the allocation by replacing its contents. Weak references can upgrade only in a shared phase and refer to the current compilation, not a historical snapshot. Other scoped tasks retain their existing borrowed access. JavaScript native-backed handles have not been migrated to Weak and still follow the lifetime rules above.
+
 ## Hook and callback execution
 
 The Rust compiler can use multiple threads to run several independent compilation tasks at the same time. JavaScript hooks, loaders, and other callbacks cannot run directly on those Rust threads. They must be scheduled back into the JavaScript environment in which the Rspack compiler was created.

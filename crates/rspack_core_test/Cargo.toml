@@ -1,0 +1,23 @@
+[package]
+description       = "Integration tests for rspack_core"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_core_test"
+publish           = false
+repository        = "https://github.com/web-infra-dev/rspack"
+version.workspace = true
+
+[dev-dependencies]
+rspack       = { workspace = true }
+rspack_core  = { workspace = true }
+rspack_error = { workspace = true }
+rspack_fs    = { workspace = true }
+rspack_hook  = { workspace = true }
+tokio        = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tracing      = { workspace = true }
+
+[package.metadata.cargo-shear]
+ignored = ["tracing"]
+
+[lints]
+workspace = true
