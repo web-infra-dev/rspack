@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use memchr::memchr_iter;
 use rspack_paths::Utf8Path;
 use rspack_sources::SourceMap;
 use rspack_util::identifier::{make_paths_relative, push_absolute_to_request};
@@ -20,12 +21,10 @@ pub fn contextify(context: impl AsRef<Utf8Path>, request: &str) -> String {
   let mut result = String::with_capacity(request.len());
   let mut last = 0;
 
-  for (index, byte) in request.bytes().enumerate() {
-    if byte == b'!' {
-      push_absolute_to_request(context, &request[last..index], &mut result);
-      result.push('!');
-      last = index + 1;
-    }
+  for index in memchr_iter(b'!', request.as_bytes()) {
+    push_absolute_to_request(context, &request[last..index], &mut result);
+    result.push('!');
+    last = index + 1;
   }
 
   push_absolute_to_request(context, &request[last..], &mut result);
