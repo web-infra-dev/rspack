@@ -27,7 +27,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph,
+  BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph,
   ChunkGroupOptions, CodeGenerationResultBuilder, Compilation, Context, ContextElementDependency,
   DependenciesBlock, DependenciesBlockData, DependencyCategory, DependencyId, DependencyLocation,
   DependencyRef, DynamicImportMode, ExportsType, FactoryMetaStore, FakeNamespaceObjectMode,
@@ -1409,7 +1409,7 @@ impl Module for ContextModule {
     mut self: Box<Self>,
     _build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
-  ) -> Result<BoxModule> {
+  ) -> Result<BuildResult> {
     let resolve_dependencies = &self.resolve_dependencies;
     let context_element_dependencies = resolve_dependencies(self.options.clone()).await?;
 
@@ -1500,10 +1500,14 @@ impl Module for ContextModule {
       self.build_info.get_mut().dependencies.context = context_dependencies;
     }
 
-    Ok(BoxModule::new(self).with_dependencies(
-      dependencies.into_iter().map(Into::into).collect(),
-      blocks.into_iter().map(Into::into).collect(),
-    ))
+    Ok(
+      BoxModule::new(self)
+        .with_dependencies(
+          dependencies.into_iter().map(Into::into).collect(),
+          blocks.into_iter().map(Into::into).collect(),
+        )
+        .into(),
+    )
   }
 
   // #[tracing::instrument("ContextModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]

@@ -21,32 +21,50 @@ module.exports = {
     new NormalModuleReplacementPlugin(/replace-target\.txt$/, './target.js'),
     new NormalModuleReplacementPlugin(/replace-target\.js$/, './target.txt'),
     (compiler) => {
-      compiler.hooks.compilation.tap('CheckTypeProbe', (compilation) => {
-        const builds = [];
-        compilation.hooks.buildModule.tap('CheckTypeProbe', (module) => {
-          builds.push(module.resource);
-        });
-        compilation.hooks.finishModules.tap('CheckTypeProbe', (modules) => {
-          const issuer = [...modules].find(
-            (module) => module.rawRequest === './index.js',
+      compiler.hooks.compilation.tap(
+        'CheckTypeProbe',
+        (compilation, { normalModuleFactory }) => {
+          const factorizations = [];
+          normalModuleFactory.hooks.beforeResolve.tap(
+            { name: 'CheckTypeProbe', stage: -1000 },
+            ({ request }) => {
+              factorizations.push(request);
+            },
           );
-          expect(issuer.blocks).toHaveLength(1);
-          expect(
-            issuer.dependencies.filter((dep) => dep.type === 'new URL()'),
-          ).toHaveLength(1);
-          const blockTarget = compilation.moduleGraph.getModule(
-            issuer.blocks[0].dependencies[0],
-          );
-          expect(blockTarget.type).toBe('javascript/auto');
-          for (const target of ['target.js', 'target.txt']) {
+          const builds = [];
+          compilation.hooks.buildModule.tap('CheckTypeProbe', (module) => {
+            builds.push(module.resource);
+          });
+          compilation.hooks.finishModules.tap('CheckTypeProbe', (modules) => {
+            const issuer = [...modules].find(
+              (module) => module.rawRequest === './index.js',
+            );
+            expect(issuer.blocks).toHaveLength(1);
+            for (const request of [
+              './replace-target.txt',
+              './replace-target.js',
+            ]) {
+              expect(
+                factorizations.filter((value) => value === request),
+              ).toHaveLength(1);
+            }
             expect(
-              builds.filter(
-                (resource) => resource && path.basename(resource) === target,
-              ),
+              issuer.dependencies.filter((dep) => dep.type === 'new URL()'),
             ).toHaveLength(1);
-          }
-        });
-      });
+            const blockTarget = compilation.moduleGraph.getModule(
+              issuer.blocks[0].dependencies[0],
+            );
+            expect(blockTarget.type).toBe('javascript/auto');
+            for (const target of ['target.js', 'target.txt']) {
+              expect(
+                builds.filter(
+                  (resource) => resource && path.basename(resource) === target,
+                ),
+              ).toHaveLength(1);
+            }
+          });
+        },
+      );
     },
   ],
 };

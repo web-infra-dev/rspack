@@ -35,10 +35,11 @@ use crate::{
   DependencyCodeGenerationRef, DependencyId, DependencyRef, DependencyType, ExportProvided,
   ExportsInfoArtifact, ExternalModule, FileSystemInfo, Filename, GetTargetResult, ImportPhase,
   ModuleCodeTemplate, ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer,
-  ModuleType, NormalModule, OptimizationBailoutItem, RawModule, Resolve, ResolverFactory,
-  RuntimeSpec, SelfModule, SharedPluginDriver, SideEffectsStateArtifact, Snapshot, SourceType,
-  concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
-  get_target, value_cache_versions::ValueCacheVersions,
+  ModuleType, NormalModule, OptimizationBailoutItem, ParserCreatedModuleConnection, RawModule,
+  Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SideEffectsStateArtifact,
+  Snapshot, SourceType, concatenated_module::ConcatenatedModule,
+  dependencies_block::dependencies_block_update_hash, get_target,
+  value_cache_versions::ValueCacheVersions,
 };
 
 #[derive(Debug)]
@@ -53,6 +54,27 @@ pub struct BuildContext {
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+}
+
+/// The built module and transient modules created by its parser.
+///
+/// Parser-created modules are kept outside the built module and handed to the
+/// task pool separately; they are not part of the module cache entry.
+#[derive(Debug)]
+pub struct BuildResult {
+  pub module: BoxModule,
+  pub modules: Vec<BoxModule>,
+  pub module_connections: Vec<ParserCreatedModuleConnection>,
+}
+
+impl From<BoxModule> for BuildResult {
+  fn from(module: BoxModule) -> Self {
+    Self {
+      module,
+      modules: vec![],
+      module_connections: vec![],
+    }
+  }
 }
 
 /// Context used to decide whether a previously built module is still valid.
@@ -742,12 +764,13 @@ pub trait Module:
   fn size(&self, source_type: Option<&SourceType>, compilation: Option<&Compilation>) -> f64;
 
   /// The actual build of the module, which will be called by the `Compilation`.
-  /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
+  /// Returns the built module with its dependencies and any additional modules
+  /// created by the parser, which are added through the module graph task pool.
   async fn build(
     self: Box<Self>,
     _build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
-  ) -> Result<BoxModule>;
+  ) -> Result<BuildResult>;
 
   fn factory_meta(&self) -> Option<Arc<FactoryMeta>>;
 
@@ -1124,7 +1147,7 @@ impl BoxModule {
     self,
     build_context: Arc<BuildContext>,
     compilation: Option<&Compilation>,
-  ) -> Result<BoxModule> {
+  ) -> Result<BuildResult> {
     self.0.build(build_context, compilation).await
   }
 }
@@ -1294,7 +1317,7 @@ mod test {
   use rspack_sources::BoxSource;
   use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
-  use super::{BoxModule, Module};
+  use super::{BoxModule, BuildResult, Module};
   use crate::{
     BuildContext, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock,
     ModuleCodeGenerationContext, ModuleExt, ModuleGraph, ModuleType, RuntimeSpec, SourceType,
@@ -1358,7 +1381,7 @@ mod test {
           self: Box<Self>,
           _build_context: Arc<BuildContext>,
           _compilation: Option<&Compilation>,
-        ) -> Result<BoxModule> {
+        ) -> Result<BuildResult> {
           unreachable!()
         }
 
