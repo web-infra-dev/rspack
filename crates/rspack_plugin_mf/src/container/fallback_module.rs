@@ -83,7 +83,7 @@ impl DependenciesBlock for FallbackModule {
   }
 }
 
-#[cacheable_dyn(arc)]
+#[cacheable_dyn]
 #[async_trait]
 impl Module for FallbackModule {
   impl_module_meta_info!();

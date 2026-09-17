@@ -60,7 +60,7 @@ impl DelegatedModule {
   }
 }
 
-#[cacheable_dyn(arc)]
+#[cacheable_dyn]
 #[async_trait]
 impl Module for DelegatedModule {
   impl_module_meta_info!();

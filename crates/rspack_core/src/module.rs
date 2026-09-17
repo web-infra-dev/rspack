@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{As, AsArc, AsMap, AsOption, AsPreset, AsVec},
+  with::{As, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -710,7 +710,7 @@ pub struct ModuleCodeGenerationContext<'a> {
   pub runtime_template: &'a mut ModuleCodeTemplate,
 }
 
-#[cacheable_dyn(arc)]
+#[cacheable_dyn]
 #[async_trait]
 pub trait Module:
   Debug
@@ -1077,7 +1077,7 @@ pub struct BoxModule(UniqueArc<dyn Module>);
 #[cacheable]
 #[derive(Debug, Clone)]
 #[repr(transparent)]
-pub struct ModuleRef(#[cacheable(with=AsArc)] Arc<dyn Module>);
+pub struct ModuleRef(Arc<dyn Module>);
 
 impl From<BoxModule> for ModuleRef {
   fn from(module: BoxModule) -> Self {
@@ -1319,7 +1319,7 @@ mod test {
         }
       }
 
-      #[::rspack_cacheable::cacheable_dyn(arc)]
+      #[::rspack_cacheable::cacheable_dyn]
       #[::async_trait::async_trait]
       impl Module for $ident {
         fn module_type(&self) -> &ModuleType {

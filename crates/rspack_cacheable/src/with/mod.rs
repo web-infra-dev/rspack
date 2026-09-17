@@ -1,5 +1,4 @@
 mod r#as;
-mod as_arc;
 mod as_cacheable;
 mod as_inner;
 mod as_map;
@@ -15,7 +14,6 @@ mod inline;
 mod unsupported;
 
 pub use r#as::{As, AsConverter};
-pub use as_arc::AsArc;
 pub use as_cacheable::AsCacheable;
 pub use as_inner::{AsInner, AsInnerConverter};
 pub use as_map::{AsMap, AsMapConverter};

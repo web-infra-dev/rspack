@@ -146,7 +146,7 @@ impl DependenciesBlock for ContainerEntryModule {
   }
 }
 
-#[cacheable_dyn(arc)]
+#[cacheable_dyn]
 #[async_trait]
 impl Module for ContainerEntryModule {
   impl_module_meta_info!();

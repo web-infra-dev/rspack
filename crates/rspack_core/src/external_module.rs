@@ -1081,7 +1081,7 @@ impl DependenciesBlock for ExternalModule {
   }
 }
 
-#[cacheable_dyn(arc)]
+#[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for ExternalModule {
   impl_module_meta_info!();

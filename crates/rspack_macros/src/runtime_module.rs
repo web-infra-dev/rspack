@@ -121,7 +121,7 @@ pub fn impl_runtime_module(
 
     #runtime_module_variable_provider
 
-    #[rspack_cacheable::cacheable_dyn(arc)]
+    #[rspack_cacheable::cacheable_dyn]
     #[async_trait::async_trait]
     impl #impl_generics ::rspack_core::Module for #name #ty_generics #where_clause {
       fn module_type(&self) -> &::rspack_core::ModuleType {

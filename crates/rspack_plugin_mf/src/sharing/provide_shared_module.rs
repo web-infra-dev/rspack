@@ -125,7 +125,7 @@ impl DependenciesBlock for ProvideSharedModule {
   }
 }
 
-#[cacheable_dyn(arc)]
+#[cacheable_dyn]
 #[async_trait]
 impl Module for ProvideSharedModule {
   impl_module_meta_info!();

@@ -22,29 +22,6 @@ pub fn impl_trait(mut input: ItemTrait, args: DynArgs) -> TokenStream {
   let deserialize_trait_ident =
     Ident::new(&format!("Deserialize{trait_ident}"), trait_ident.span());
   let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-  let deserialize_bound = if args.arc {
-    quote! { #crate_path::r#dyn::DeserializeArcDyn<dyn #trait_ident #ty_generics> }
-  } else {
-    quote! { #crate_path::r#dyn::DeserializeDyn<dyn #trait_ident #ty_generics> }
-  };
-
-  let deserialize_unsized = (!args.arc).then(|| {
-    quote! {
-            impl #ty_generics #crate_path::__private::rkyv::DeserializeUnsized<dyn #trait_ident #ty_generics, #crate_path::Deserializer> for dyn #deserialize_trait_ident #ty_generics #where_clause {
-                unsafe fn deserialize_unsized(
-                    &self,
-                    deserializer: &mut #crate_path::Deserializer,
-                    out: *mut dyn #trait_ident #ty_generics
-                ) -> Result<(), Error> {
-                    self.deserialize_dyn(deserializer, out)
-                }
-
-                fn deserialize_metadata(&self) -> <dyn #trait_ident #ty_generics as ptr_meta::Pointee>::Metadata {
-                    self.deserialized_pointer_metadata()
-                }
-            }
-    }
-  });
 
   input
     .supertraits
@@ -65,11 +42,11 @@ pub fn impl_trait(mut input: ItemTrait, args: DynArgs) -> TokenStream {
                 bytecheck::CheckBytes,
                 ptr_meta,
                 traits::{ArchivePointee, LayoutRaw},
-                ArchiveUnsized, ArchivedMetadata, Portable, SerializeUnsized,
+                ArchiveUnsized, ArchivedMetadata, DeserializeUnsized, Portable, SerializeUnsized,
             };
             use #crate_path::{
-                r#dyn::{validation::CHECK_BYTES_REGISTRY, ArchivedDynMetadata, VTablePtr},
-                Error, Serializer, Validator,
+                r#dyn::{validation::CHECK_BYTES_REGISTRY, ArchivedDynMetadata, DeserializeDyn, VTablePtr},
+                Error, Deserializer, Serializer, Validator,
             };
 
             unsafe impl #impl_generics ptr_meta::Pointee for dyn #trait_ident #ty_generics #where_clause {
@@ -101,12 +78,12 @@ pub fn impl_trait(mut input: ItemTrait, args: DynArgs) -> TokenStream {
                 }
             }
 
-            #trait_vis trait #deserialize_trait_ident #ty_generics: #deserialize_bound + Portable #where_clause {}
+            #trait_vis trait #deserialize_trait_ident #ty_generics: DeserializeDyn<dyn #trait_ident #ty_generics> + Portable #where_clause {}
             unsafe impl #ty_generics ptr_meta::Pointee for dyn #deserialize_trait_ident #ty_generics #where_clause {
                 type Metadata = ptr_meta::DynMetadata<Self>;
             }
 
-            impl<__T: #deserialize_bound + Portable, #generic_params> #deserialize_trait_ident #ty_generics for __T #where_clause {}
+            impl<__T: DeserializeDyn<dyn #trait_ident #ty_generics> + Portable, #generic_params> #deserialize_trait_ident #ty_generics for __T #where_clause {}
 
             impl #ty_generics ArchivePointee for dyn #deserialize_trait_ident #ty_generics #where_clause {
                 type ArchivedMetadata = ArchivedDynMetadata<Self>;
@@ -118,7 +95,20 @@ pub fn impl_trait(mut input: ItemTrait, args: DynArgs) -> TokenStream {
                 }
             }
 
-            #deserialize_unsized
+
+            impl #ty_generics DeserializeUnsized<dyn #trait_ident #ty_generics, Deserializer> for dyn #deserialize_trait_ident #ty_generics #where_clause {
+                unsafe fn deserialize_unsized(
+                    &self,
+                    deserializer: &mut Deserializer,
+                    out: *mut dyn #trait_ident #ty_generics
+                ) -> Result<(), Error> {
+                    self.deserialize_dyn(deserializer, out)
+                }
+
+                fn deserialize_metadata(&self) -> <dyn #trait_ident #ty_generics as ptr_meta::Pointee>::Metadata {
+                    self.deserialized_pointer_metadata()
+                }
+            }
 
             impl #ty_generics LayoutRaw for dyn #deserialize_trait_ident #ty_generics #where_clause {
                 fn layout_raw(

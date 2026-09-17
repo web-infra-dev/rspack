@@ -1,12 +1,9 @@
 use core::marker::PhantomData;
-use std::{
-  hash::{Hash, Hasher},
-  sync::Arc,
-};
+use std::hash::{Hash, Hasher};
 
 use inventory;
 use rkyv::{
-  Archived, Deserialize, Portable, SerializeUnsized,
+  Archived, Portable, SerializeUnsized,
   bytecheck::{CheckBytes, StructCheckContext},
   ptr_meta::{DynMetadata, Pointee},
   rancor::{Fallible, Trace},
@@ -45,34 +42,6 @@ pub trait DeserializeDyn<T: Pointee + ?Sized> {
 
   /// Returns the pointer metadata for the deserialized form of this type.
   fn deserialized_pointer_metadata(&self) -> DynMetadata<T>;
-}
-
-/// Deserializes a trait object directly into an Arc allocation.
-///
-/// Enabled by `#[cacheable_dyn(arc)]` on the trait and its implementations.
-pub trait DeserializeArcDyn<T: Pointee + ?Sized> {
-  fn deserialize_arc(&self, deserializer: &mut Deserializer) -> Result<Arc<T>>;
-
-  /// Returns metadata for shared references restored from the deserialization pool.
-  fn deserialized_pointer_metadata(&self) -> DynMetadata<T>;
-}
-
-// Keep allocation and field restoration separate from the per-type trait-object
-// coercion. Embedding a different vtable in each restoration body prevents LTO
-// from merging identical implementations, especially for runtime modules.
-#[doc(hidden)]
-#[inline(never)]
-pub fn deserialize_arc<T>(
-  archived: &impl Deserialize<T, Deserializer>,
-  deserializer: &mut Deserializer,
-) -> Result<Arc<T>> {
-  let mut value = Arc::<T>::new_uninit();
-  Arc::get_mut(&mut value)
-    .expect("a fresh Arc is unique")
-    .write(archived.deserialize(deserializer)?);
-  // SAFETY: the payload was fully initialized above. On error, MaybeUninit
-  // frees the allocation without trying to drop an uninitialized T.
-  Ok(unsafe { value.assume_init() })
 }
 
 /// The archived version of `DynMetadata`.

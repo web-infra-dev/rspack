@@ -66,7 +66,7 @@ impl DependenciesBlock for SelfModule {
   }
 }
 
-#[cacheable_dyn(arc)]
+#[cacheable_dyn]
 #[async_trait]
 impl Module for SelfModule {
   impl_module_meta_info!();

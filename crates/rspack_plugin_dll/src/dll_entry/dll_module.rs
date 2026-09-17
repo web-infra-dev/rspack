@@ -57,7 +57,7 @@ impl DllModule {
   }
 }
 
-#[cacheable_dyn(arc)]
+#[cacheable_dyn]
 #[async_trait]
 impl Module for DllModule {
   impl_module_meta_info!();

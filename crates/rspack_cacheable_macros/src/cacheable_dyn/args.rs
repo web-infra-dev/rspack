@@ -4,20 +4,14 @@ use syn::{
   parse_quote,
 };
 
-mod kw {
-  syn::custom_keyword!(arc);
-}
-
-/// Options for `#[cacheable_dyn]` traits and implementations.
+/// #[cacheable] type-only args
 pub struct DynArgs {
   pub crate_path: syn::Path,
-  pub arc: bool,
 }
 
 impl Parse for DynArgs {
   fn parse(input: ParseStream) -> Result<Self> {
     let mut crate_path = parse_quote! { ::rspack_cacheable };
-    let mut arc = false;
 
     let mut needs_punct = false;
     while !input.is_empty() {
@@ -29,16 +23,13 @@ impl Parse for DynArgs {
         input.parse::<syn::token::Crate>()?;
         input.parse::<Token![=]>()?;
         crate_path = input.parse::<syn::Path>()?;
-      } else if input.peek(kw::arc) {
-        input.parse::<kw::arc>()?;
-        arc = true;
       } else {
-        return Err(input.error("unexpected #[cacheable_dyn] parameters"));
+        return Err(input.error("unexpected #[cacheable] type-only parameters"));
       }
 
       needs_punct = true;
     }
 
-    Ok(Self { crate_path, arc })
+    Ok(Self { crate_path })
   }
 }
