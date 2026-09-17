@@ -7,12 +7,13 @@ class CheckUrlEntryBlocksPlugin {
       'CheckUrlEntryBlocksPlugin',
       (compilation) => {
         const currentBuild = buildIndex++;
+        const hasCssEntry = currentBuild !== 2;
         compilation.hooks.finishModules.tap('CheckUrlEntryBlocksPlugin', () => {
           const originModule = Array.from(compilation.modules).find(
             (module) => module.rawRequest === './index.js',
           );
           expect(originModule).toBeDefined();
-          expect(originModule.blocks).toHaveLength(1);
+          expect(originModule.blocks).toHaveLength(hasCssEntry ? 2 : 1);
           for (const block of originModule.blocks) {
             expect(block.dependencies).toHaveLength(1);
             expect(block.dependencies[0].type).toBe('new URL()');
@@ -33,6 +34,9 @@ class CheckUrlEntryBlocksPlugin {
             expect(
               assets.filter((asset) => asset.endsWith('.js')),
             ).toHaveLength(2);
+            expect(
+              assets.filter((asset) => asset.endsWith('.css')),
+            ).toHaveLength(hasCssEntry ? 1 : 0);
             const jsAsset = compilation
               .getAssets()
               .find(
@@ -42,6 +46,16 @@ class CheckUrlEntryBlocksPlugin {
             expect(jsAsset.source.source().toString()).toContain(
               currentBuild === 0 ? 'initial' : 'updated',
             );
+            if (hasCssEntry) {
+              const cssAsset = compilation
+                .getAssets()
+                .find((asset) => asset.name.endsWith('.css'));
+              expect(cssAsset.source.source().toString()).toContain(
+                currentBuild === 4
+                  ? '.url-entry-rebuilt'
+                  : '.url-entry-rebuild-target',
+              );
+            }
           },
         );
       },
@@ -57,6 +71,7 @@ const config = {
   output: {
     filename: 'bundle.js',
     chunkFilename: 'url-[id].js',
+    cssChunkFilename: 'url-[id].css',
     publicPath: '/assets/',
   },
   module: {
@@ -65,6 +80,11 @@ const config = {
         test: /target\.js$/,
         dependency: 'url',
         type: 'javascript/auto',
+      },
+      {
+        test: /target\.css$/,
+        dependency: 'url',
+        type: 'css',
       },
     ],
   },
@@ -82,6 +102,7 @@ module.exports = [false, true].flatMap((cache) =>
         ...config.output,
         filename: `bundle-${name}.js`,
         chunkFilename: `url-${name}-[id].js`,
+        cssChunkFilename: `url-${name}-[id].css`,
       },
       plugins: [new CheckUrlEntryBlocksPlugin()],
     };
