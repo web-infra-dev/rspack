@@ -1,12 +1,6 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
-
-const sharedSize = [0, 1, 2].reduce(
-  (sum, index) =>
-    sum + fs.statSync(path.join(import.meta.dirname, `m${index}.js`)).size,
-  0,
-);
+import { experiments } from '@rspack/core';
+import { modules, sharedSize } from './modules.mjs';
 
 /** @type {import("@rspack/core").Configuration[]} */
 export default [
@@ -75,6 +69,7 @@ export default [
       },
     },
     plugins: [
+      new experiments.VirtualModulesPlugin(modules),
       {
         apply(compiler) {
           compiler.hooks.beforeRun.tap('AssertDedupDepthDefault', () => {

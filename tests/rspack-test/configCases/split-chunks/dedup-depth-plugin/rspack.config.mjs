@@ -1,16 +1,11 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import path from 'node:path';
-import { optimize } from '@rspack/core';
+import { experiments, optimize } from '@rspack/core';
+import { modules, sharedSize } from '../intersections-min-size/modules.mjs';
 
 const { SplitChunksPlugin } = optimize;
 
 const context = path.resolve(import.meta.dirname, '../intersections-min-size');
-const minSize = [0, 1, 2].reduce(
-  (sum, index) => sum + fs.statSync(path.join(context, `m${index}.js`)).size,
-  0,
-);
-
 /** @type {import('@rspack/core').Configuration[]} */
 export default [
   { mode: 'production', defaultDepth: 1 },
@@ -40,10 +35,11 @@ export default [
       splitChunks: false,
     },
     plugins: [
+      new experiments.VirtualModulesPlugin(modules),
       new SplitChunksPlugin({
         chunks: 'all',
         dedupDepth,
-        minSize,
+        minSize: sharedSize,
         maxInitialRequests: Infinity,
         maxAsyncRequests: Infinity,
         cacheGroups: { shared: { test: /[\\/]m[012]\.js$/, minChunks: 2 } },

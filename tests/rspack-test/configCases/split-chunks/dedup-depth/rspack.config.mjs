@@ -1,10 +1,19 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
-const sharedSize = Array.from(
-  { length: 5 },
-  (_, i) => fs.statSync(path.join(import.meta.dirname, `m${i}.js`)).size,
-).reduce((a, b) => a + b, 0);
+import { experiments } from '@rspack/core';
+import { createModules } from '../intersections-min-size/modules.mjs';
+
+const indices = [0, 1, 2, 3, 4];
+const modules = createModules(5, {
+  a: indices,
+  b: indices,
+  ...Object.fromEntries(
+    indices.map((i) => [`c${i}`, indices.filter((j) => i !== j)]),
+  ),
+});
+const sharedSize = indices.reduce(
+  (size, i) => size + modules[`m${i}.js`].length,
+  0,
+);
 
 // Each module belongs to {a,b} and four of the five c entries. Discovering
 // {a,b} requires intersecting five original sets: round 1 combines at most two,
@@ -51,6 +60,7 @@ export default [false, true]
       },
     },
     plugins: [
+      new experiments.VirtualModulesPlugin(modules),
       {
         apply(compiler) {
           compiler.hooks.done.tap('AssertDedupDepth', (stats) => {

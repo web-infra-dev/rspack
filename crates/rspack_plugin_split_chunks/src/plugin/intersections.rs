@@ -7,8 +7,9 @@ use std::{
   hash::{Hash, Hasher},
 };
 
+use hashbrown::HashTable;
 use rayon::prelude::*;
-use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
+use rustc_hash::{FxHashMap, FxHasher};
 
 use super::bitmap::ChunkBitmap;
 
@@ -17,40 +18,14 @@ pub(super) struct Intersection {
   pub support: Vec<usize>,
 }
 
-// A bitmap is hashed once when discovered, then reused during original-set
-// lookup and task-table merging. Equality still compares every bitmap word.
-#[derive(PartialEq, Eq)]
-struct HashedBitmap<T = ChunkBitmap> {
-  bitmap: T,
-  hash: u64,
+fn bitmap_hash(bitmap: &ChunkBitmap) -> u64 {
+  let mut hasher = FxHasher::default();
+  bitmap.hash(&mut hasher);
+  hasher.finish()
 }
 
-impl HashedBitmap {
-  fn new(bitmap: ChunkBitmap) -> Self {
-    let mut hasher = FxHasher::default();
-    bitmap.hash(&mut hasher);
-    Self {
-      bitmap,
-      hash: hasher.finish(),
-    }
-  }
-
-  fn rehash(&mut self) {
-    let mut hasher = FxHasher::default();
-    self.bitmap.hash(&mut hasher);
-    self.hash = hasher.finish();
-  }
-}
-
-impl<T> Hash for HashedBitmap<T> {
-  fn hash<H: Hasher>(&self, state: &mut H) {
-    state.write_u64(self.hash);
-  }
-}
-
-// Borrow the immutable round inputs. The lookup keeps the same exact word
-// comparisons without allocating another copy of every original bitmap.
-type KnownBitmaps<'a> = FxHashSet<HashedBitmap<&'a [u64]>>;
+// Borrow each round's inputs and reuse their hashes without cloning bitmaps.
+type KnownBitmaps<'a> = HashTable<(&'a ChunkBitmap, u64)>;
 
 fn has_min_size(rows: impl Iterator<Item = usize>, sizes: &[u64], min_size: u64) -> bool {
   let mut size = 0u64;
@@ -66,53 +41,27 @@ fn has_min_size(rows: impl Iterator<Item = usize>, sizes: &[u64], min_size: u64)
 struct CandidateGenerator {
   hash: u64,
   order: (usize, usize),
-  next: Option<usize>,
 }
 
-// Most discovered pairs repeat an existing candidate. Keep only a generator
-// into the immutable input, avoiding one allocated bitmap per task/candidate.
-// Hash collisions form an exact-equality chain, never a probabilistic match.
-#[derive(Default)]
-struct CandidateTable {
-  heads: FxHashMap<u64, usize>,
-  entries: Vec<CandidateGenerator>,
-}
-
-impl CandidateTable {
-  fn insert(
-    &mut self,
-    bitmap: &HashedBitmap,
-    order: (usize, usize),
-    inputs: &[ChunkBitmap],
-    originals: Option<&KnownBitmaps<'_>>,
-  ) {
-    let head = self.heads.get(&bitmap.hash).copied();
-    let mut current = head;
-    while let Some(index) = current {
-      let entry = &mut self.entries[index];
-      if bitmap
-        .bitmap
-        .equals_intersection(&inputs[entry.order.0], &inputs[entry.order.1])
-      {
-        entry.order = entry.order.min(order);
-        return;
-      }
-      current = entry.next;
-    }
-    if originals.is_some_and(|originals| {
-      originals.contains(&HashedBitmap {
-        bitmap: bitmap.bitmap.words(),
-        hash: bitmap.hash,
-      })
-    }) {
-      return;
-    }
-    self.heads.insert(bitmap.hash, self.entries.len());
-    self.entries.push(CandidateGenerator {
-      hash: bitmap.hash,
-      order,
-      next: head,
-    });
+// Store a generator into the immutable inputs instead of copying each bitmap.
+// HashTable accepts the cached hash while still checking exact equality.
+fn insert_candidate(
+  candidates: &mut HashTable<CandidateGenerator>,
+  bitmap: &ChunkBitmap,
+  candidate: CandidateGenerator,
+  inputs: &[ChunkBitmap],
+  known: Option<&KnownBitmaps<'_>>,
+) {
+  if let Some(previous) = candidates.find_mut(candidate.hash, |entry| {
+    bitmap.equals_intersection(&inputs[entry.order.0], &inputs[entry.order.1])
+  }) {
+    previous.order = previous.order.min(candidate.order);
+  } else if !known.is_some_and(|known| {
+    known
+      .find(candidate.hash, |&(original, _)| original == bitmap)
+      .is_some()
+  }) {
+    candidates.insert_unique(candidate.hash, candidate, |entry| entry.hash);
   }
 }
 
@@ -125,13 +74,9 @@ fn discover_intersections(
   min_chunks: usize,
   chunk_count: usize,
 ) -> Vec<CandidateGenerator> {
-  let init = || {
-    (
-      CandidateTable::default(),
-      HashedBitmap::new(ChunkBitmap::new(chunk_count)),
-    )
-  };
-  let discover = |(mut candidates, mut scratch): (CandidateTable, HashedBitmap), i: usize| {
+  let init = || (HashTable::new(), ChunkBitmap::new(chunk_count));
+  let discover = |(mut candidates, mut scratch): (HashTable<CandidateGenerator>, ChunkBitmap),
+                  i: usize| {
     let a_len = lengths[i];
     if a_len > min_chunks {
       for (j, &b_len) in lengths[..i].iter().enumerate() {
@@ -142,13 +87,9 @@ fn discover_intersections(
         // scan avoids their cost on targets without that instruction sequence.
         if min_chunks == 1 && !cfg!(target_arch = "aarch64") {
           let proper = if let Some(excluded) = excluded {
-            scratch.bitmap.assign_nonempty_proper_intersection::<true>(
-              &bitmaps[i],
-              &bitmaps[j],
-              excluded,
-            )
+            scratch.assign_nonempty_proper_intersection::<true>(&bitmaps[i], &bitmaps[j], excluded)
           } else {
-            scratch.bitmap.assign_nonempty_proper_intersection::<false>(
+            scratch.assign_nonempty_proper_intersection::<false>(
               &bitmaps[i],
               &bitmaps[j],
               &bitmaps[i],
@@ -160,22 +101,28 @@ fn discover_intersections(
         } else {
           let count = if let Some(excluded) = excluded {
             let Some(count) =
-              scratch
-                .bitmap
-                .assign_intersection_excluding(&bitmaps[i], &bitmaps[j], excluded)
+              scratch.assign_intersection_excluding(&bitmaps[i], &bitmaps[j], excluded)
             else {
               continue;
             };
             count
           } else {
-            scratch.bitmap.assign_intersection(&bitmaps[i], &bitmaps[j])
+            scratch.assign_intersection(&bitmaps[i], &bitmaps[j])
           };
           if count < min_chunks || count >= a_len || count >= b_len {
             continue;
           }
         }
-        scratch.rehash();
-        candidates.insert(&scratch, (i, j), bitmaps, Some(known));
+        insert_candidate(
+          &mut candidates,
+          &scratch,
+          CandidateGenerator {
+            hash: bitmap_hash(&scratch),
+            order: (i, j),
+          },
+          bitmaps,
+          Some(known),
+        );
       }
     }
     (candidates, scratch)
@@ -190,22 +137,19 @@ fn discover_intersections(
       .with_min_len(64)
       .fold(init, discover)
       .map(|(candidates, _)| candidates)
-      .reduce(CandidateTable::default, |mut left, mut right| {
-        if left.entries.len() < right.entries.len() {
+      .reduce(HashTable::new, |mut left, mut right| {
+        if left.len() < right.len() {
           std::mem::swap(&mut left, &mut right);
         }
-        let mut scratch = HashedBitmap::new(ChunkBitmap::new(chunk_count));
-        for entry in right.entries {
-          scratch
-            .bitmap
-            .assign_intersection(&bitmaps[entry.order.0], &bitmaps[entry.order.1]);
-          scratch.hash = entry.hash;
-          left.insert(&scratch, entry.order, bitmaps, None);
+        let mut scratch = ChunkBitmap::new(chunk_count);
+        for entry in right {
+          scratch.assign_intersection(&bitmaps[entry.order.0], &bitmaps[entry.order.1]);
+          insert_candidate(&mut left, &scratch, entry, bitmaps, None);
         }
         left
       })
   };
-  let mut candidates = candidates.entries;
+  let mut candidates = candidates.into_iter().collect::<Vec<_>>();
   // Preserve serial first-discovery order, including ties in the final sort.
   candidates.sort_unstable_by_key(|entry| entry.order);
   candidates
@@ -255,14 +199,7 @@ pub(super) fn collect_intersections(
       bitmap
     })
     .collect::<Vec<_>>();
-  let mut hashes = bitmaps
-    .iter()
-    .map(|bitmap| {
-      let mut hasher = FxHasher::default();
-      bitmap.hash(&mut hasher);
-      hasher.finish()
-    })
-    .collect::<Vec<_>>();
+  let mut hashes = bitmaps.iter().map(bitmap_hash).collect::<Vec<_>>();
   let mut excluded = ChunkBitmap::new(coordinates.len());
   let mut has_excluded = false;
   for (chunk, size) in chunk_bounds.into_iter().enumerate() {
@@ -278,14 +215,10 @@ pub(super) fn collect_intersections(
     // A smaller descendant may discard an excluded chunk, so pruning an
     // intermediate intersection here could hide a valid later candidate.
     let excluded = (has_excluded && round + 1 == dedup_depth).then_some(&excluded);
-    let known = bitmaps
-      .iter()
-      .zip(&hashes)
-      .map(|(bitmap, &hash)| HashedBitmap {
-        bitmap: bitmap.words(),
-        hash,
-      })
-      .collect::<KnownBitmaps<'_>>();
+    let mut known = KnownBitmaps::with_capacity(bitmaps.len());
+    for (bitmap, &hash) in bitmaps.iter().zip(&hashes) {
+      known.insert_unique(hash, (bitmap, hash), |&(_, hash)| hash);
+    }
     let next = discover_intersections(
       &bitmaps,
       &lengths,

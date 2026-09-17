@@ -7,10 +7,6 @@ pub(super) struct ChunkBitmap {
 }
 
 impl ChunkBitmap {
-  pub(super) fn words(&self) -> &[u64] {
-    &self.words
-  }
-
   pub(super) fn new(width: usize) -> Self {
     Self {
       words: vec![0; width.div_ceil(64)].into_boxed_slice(),
