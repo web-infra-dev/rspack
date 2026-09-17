@@ -11,7 +11,9 @@ use std::{
 };
 
 pub use cache::{JsLoaderCache, JsLoaderCacheEntry};
-pub use context::{JsLoaderContext, JsLoaderContextState, JsLoaderDependencies, JsLoaderItem};
+pub use context::{
+  JsLoaderContext, JsLoaderContextState, JsLoaderDependencies, JsNormalModuleLoaderItem,
+};
 use napi::{
   bindgen_prelude::*,
   sys::{napi_call_threadsafe_function, napi_threadsafe_function},

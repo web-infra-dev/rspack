@@ -65,7 +65,7 @@ export interface NormalModule extends Module {
 	readonly userRequest: string;
 	readonly rawRequest: string;
 	readonly resourceResolveData: Readonly<JsResourceData> | undefined;
-	readonly loaders: JsLoaderItem[];
+	readonly loaders: JsNormalModuleLoaderItem[];
 	get matchResource(): string | undefined;
 	set matchResource(val: string | undefined);
 	get error(): RspackError | undefined;
@@ -976,7 +976,7 @@ export interface JsLoaderContext {
   resource: string
   _module: Module
   hot: Readonly<boolean>
-  loaderItems: Array<JsLoaderMetadata>
+  loaderItems: Array<JsLoaderItem>
   __internal__loaderCache?: JsLoaderCache | undefined
   state: JsLoaderContextState
 }
@@ -988,7 +988,6 @@ export interface JsLoaderContext {
 export interface JsLoaderContextState {
   /** The native scheduler controls phase transitions between invocations. */
   loaderState: Readonly<JsLoaderState>
-  loaderContextState?: object | undefined
   /** Content may be empty in the pitching stage. */
   content: string | Buffer | null
   additionalData?: any
@@ -1009,14 +1008,11 @@ export interface JsLoaderDependencies {
   buildDependencies: Array<string>
 }
 
+/** Immutable loader metadata, separate from the state returned by JavaScript. */
 export interface JsLoaderItem {
   loader: string
   type: string
   cache: boolean
-  data: any
-  normalExecuted: boolean
-  pitchExecuted: boolean
-  noPitch: boolean
 }
 
 export interface JsLoaderItemState {
@@ -1025,13 +1021,6 @@ export interface JsLoaderItemState {
   normalExecuted: boolean
   pitchExecuted: boolean
   noPitch: boolean
-}
-
-/** Immutable loader metadata, separate from the state returned by JavaScript. */
-export interface JsLoaderMetadata {
-  loader: string
-  type: string
-  cache: boolean
 }
 
 export declare enum JsLoaderState {
@@ -1062,6 +1051,16 @@ export interface JsNormalModuleFactoryCreateModuleArgs {
   resourceResolveData: JsResourceData
   context: string
   matchResource?: string
+}
+
+export interface JsNormalModuleLoaderItem {
+  loader: string
+  type: string
+  cache: boolean
+  data: any
+  normalExecuted: boolean
+  pitchExecuted: boolean
+  noPitch: boolean
 }
 
 export interface JsOriginRecord {
@@ -3349,8 +3348,7 @@ export declare enum RegisterJsTapKind {
   RsdoctorPluginChunkGraph = 50,
   RsdoctorPluginModuleIds = 51,
   RsdoctorPluginModuleSources = 52,
-  RsdoctorPluginAssets = 53,
-  NormalModuleLoader = 54
+  RsdoctorPluginAssets = 53
 }
 
 export interface RegisterJsTaps {
@@ -3382,7 +3380,6 @@ export interface RegisterJsTaps {
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilationSealTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationAfterSealTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
-  registerNormalModuleLoaderTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => JsLoaderContextState); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
   registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
   registerNormalModuleFactoryResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>

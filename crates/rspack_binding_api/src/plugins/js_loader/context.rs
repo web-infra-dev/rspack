@@ -13,7 +13,7 @@ use crate::{error::RspackError, module::ModuleObject};
 
 #[napi(object)]
 #[derive(Hash)]
-pub struct JsLoaderItem {
+pub struct JsNormalModuleLoaderItem {
   pub loader: String,
   pub r#type: String,
   pub cache: bool,
@@ -30,7 +30,7 @@ pub struct JsLoaderItem {
 
 /// Immutable loader metadata, separate from the state returned by JavaScript.
 #[napi(object)]
-pub struct JsLoaderMetadata {
+pub struct JsLoaderItem {
   pub loader: String,
   pub r#type: String,
   pub cache: bool,
@@ -45,7 +45,7 @@ pub struct JsLoaderItemState {
   pub no_pitch: bool,
 }
 
-impl<C> From<&Arc<dyn rspack_core::Loader<C>>> for JsLoaderItem
+impl<C> From<&Arc<dyn rspack_core::Loader<C>>> for JsNormalModuleLoaderItem
 where
   C: Send,
 {
@@ -177,7 +177,7 @@ pub struct JsLoaderContext {
   #[napi(ts_type = "Readonly<boolean>")]
   pub hot: bool,
 
-  pub loader_items: Vec<JsLoaderMetadata>,
+  pub loader_items: Vec<JsLoaderItem>,
   #[napi(
     js_name = "__internal__loaderCache",
     ts_type = "JsLoaderCache | undefined"
@@ -193,8 +193,6 @@ pub struct JsLoaderContextState {
   /// The native scheduler controls phase transitions between invocations.
   #[napi(ts_type = "Readonly<JsLoaderState>")]
   pub loader_state: JsLoaderState,
-  #[napi(ts_type = "object | undefined")]
-  pub loader_context_state: Option<ThreadsafeOneShotRef>,
   /// Content may be empty in the pitching stage.
   pub content: Either3<String, Buffer, Null>,
   #[napi(ts_type = "any")]
@@ -232,7 +230,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       loader_items: cx
         .loader_items()
         .iter()
-        .map(|item| JsLoaderMetadata {
+        .map(|item| JsLoaderItem {
           loader: item.request().to_string(),
           r#type: item.r#type().to_string(),
           cache: item.cache(),
@@ -255,10 +253,6 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         }),
       state: JsLoaderContextState {
         loader_state: cx.state().into(),
-        loader_context_state: cx
-          .context
-          .loader_context_data
-          .remove::<ThreadsafeOneShotRef>(),
         content: match cx.content() {
           Some(Content::String(content)) => Either3::A(content.clone()),
           Some(Content::Buffer(content)) => Either3::B(content.clone().into()),

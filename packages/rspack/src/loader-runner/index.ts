@@ -12,7 +12,7 @@ import {
   formatDiagnostic,
   type JsLoaderContext,
   type JsLoaderContextState,
-  type JsLoaderMetadata,
+  type JsLoaderItem,
   type JsLoaderItemState,
   JsLoaderState,
   JsRspackSeverity,
@@ -42,7 +42,7 @@ import {
 import { NormalModule } from '../NormalModule';
 import type { ResolveContext } from '../Resolver';
 import { NonErrorEmittedError, type RspackError } from '../RspackError';
-import { JavaScriptTracer } from '../trace';
+import { type ChromeEvent, JavaScriptTracer } from '../trace';
 import {
   isNil,
   serializeObject,
@@ -96,11 +96,11 @@ export class LoaderObject {
   /**
    * @internal This field is rspack internal. Do not edit.
    */
-  readonly loaderItem: JsLoaderMetadata;
+  readonly loaderItem: JsLoaderItem;
   readonly state: JsLoaderItemState;
 
   constructor(
-    loaderItem: JsLoaderMetadata,
+    loaderItem: JsLoaderItem,
     state: JsLoaderItemState,
     compiler: Compiler,
   ) {
@@ -238,28 +238,13 @@ function getCurrentLoader(
   return null;
 }
 
-interface LoaderContextState {
-  loaderContext: LoaderContext;
-  update(
-    context: JsLoaderContext,
-    dependencies: LoaderDependenciesState,
-    traceData?: Pick<ChromeEvent, 'uuid' | 'args'>,
-  ): void;
-}
-
 export function createLoaderContext(
   compiler: Compiler,
   context: JsLoaderContext,
   dependencies: LoaderDependenciesState,
   traceData?: Pick<ChromeEvent, 'uuid' | 'args'>,
 ): LoaderContext {
-  const contextState = context.state.loaderContextState as
-    LoaderContextState | undefined;
-  if (contextState) {
-    contextState.update(context, dependencies, traceData);
-    return contextState.loaderContext;
-  }
-  let { state } = context;
+  const { state } = context;
   const { resource } = context;
   const splittedResource = resource && parseResource(resource);
   const resourcePath = splittedResource ? splittedResource.path : undefined;
@@ -727,25 +712,6 @@ export function createLoaderContext(
   loaderContext.__internal__setParseMeta = (key: string, value: string) => {
     state.parseMeta[key] = value;
   };
-
-  // Rust retains this state only for the current run_loaders invocation. Update
-  // the captured snapshot on every entry so hook-installed closures use the
-  // current loader index, dependencies and module pointer across native loaders.
-  state.loaderContextState = {
-    loaderContext,
-    update(nextContext, nextDependencies, nextTraceData) {
-      context = nextContext;
-      state = context.state;
-      dependencies = nextDependencies;
-      traceData = nextTraceData;
-      loaderContext.hot = context.hot;
-      loaderContext._module = context._module;
-      loaderContext.loaders = context.loaderItems.map(
-        (item, index) =>
-          new LoaderObject(item, state.loaderItemStates[index], compiler),
-      );
-    },
-  } satisfies LoaderContextState;
 
   return loaderContext;
 }

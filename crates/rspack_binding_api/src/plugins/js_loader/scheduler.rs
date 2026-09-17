@@ -67,9 +67,6 @@ pub(crate) fn merge_loader_state(
   to: &mut LoaderContext<RunnerContext>,
   mut from: JsLoaderContextState,
 ) -> Result<()> {
-  if let Some(state) = from.loader_context_state.take() {
-    to.context.loader_context_data.insert(state);
-  }
   to.cacheable = from.cacheable;
   to.replace_dependencies(from.dependencies.into());
 
