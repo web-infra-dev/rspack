@@ -475,8 +475,7 @@ impl CodeSplitter {
     let module_graph = compilation.get_module_graph();
     for block_id in current_blocks {
       let block = module_graph.block_by_id_expect(block_id);
-      // Nested async blocks are not constructed today. Keep the reuse path
-      // conservative if that changes.
+      // Nested async blocks need recursive validation. Keep the reuse path conservative.
       if !block.get_blocks().is_empty() {
         return false;
       }
@@ -2725,7 +2724,14 @@ fn extract_block_modules(
   let mut module_map: DependenciesBlockIdentifierMap<BlockModules> =
     DependenciesBlockIdentifierMap::with_capacity_and_hasher(blocks.len() + 1, Default::default());
   module_map.insert(block, Vec::new());
-  module_map.extend(blocks.iter().map(|block| ((*block).into(), Vec::new())));
+  let mut queue = blocks.to_vec();
+  while let Some(block) = queue.pop() {
+    let block = block.into();
+    module_map.insert(block, Vec::new());
+    if let Some(blocks) = prepared_blocks_map.get(&block) {
+      queue.extend_from_slice(blocks);
+    }
+  }
 
   if let Some(connection_map) = connection_map {
     for connection in connection_map {
