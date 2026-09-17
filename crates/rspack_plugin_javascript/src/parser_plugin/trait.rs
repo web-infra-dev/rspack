@@ -540,6 +540,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     None
   }
 
+  #[allow(clippy::too_many_arguments)]
   fn import_specifier(
     &self,
     _parser: &mut JavascriptParser<'p>,
@@ -547,6 +548,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     _source: &Atom,
     _export_name: Option<&Atom>,
     _identifier_name: &Atom,
+    _identifier: swc_next_ecma_ast::BindingIdentifier,
   ) -> Option<bool> {
     None
   }
