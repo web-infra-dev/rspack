@@ -1127,6 +1127,7 @@ fn add_deferred_create_require_callee_dependency(
     None,
     settings.phase,
     settings.attributes,
+    settings.resource_identifier,
     parser.to_dependency_location(range),
   );
   dep.namespace_object_as_context = parser
