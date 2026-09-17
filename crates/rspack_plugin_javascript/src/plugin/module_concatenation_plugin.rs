@@ -114,7 +114,7 @@ impl ConcatenationProblem {
         let module_chunks = chunk_graph.get_module_chunks(module);
         let mut missing_chunks = root_chunks
           .iter()
-          .filter(|chunk| !module_chunks.contains(chunk))
+          .filter(|chunk| !module_chunks.contains(*chunk))
           .map(|chunk| {
             chunk_by_ukey
               .expect_get(chunk)
