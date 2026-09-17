@@ -18,7 +18,7 @@ use crate::{
   dependency::{
     DeclarationId, DeclarationInfo, ESMExportExpressionDependency, ESMExportHeaderDependency,
     ESMExportImportedSpecifierDependency, ESMExportSpecifierDependency,
-    ESMImportSideEffectDependency,
+    ESMImportSideEffectDependency, create_resource_identifier_for_esm_dependency,
   },
   parser_plugin::compatibility_plugin::CompatibilityPlugin,
   utils::object_properties::get_import_attributes,
@@ -51,6 +51,7 @@ fn create_default_exported_namespace_dependency(
     ESMExportImportedSpecifierDependency::create_export_presence_mode(parser.javascript_options),
     settings.phase,
     settings.attributes,
+    settings.resource_identifier,
     parser.to_dependency_location(DependencyRange::from(statement_span)),
   );
   if parser
@@ -92,13 +93,20 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     parser.add_presentational_dependency(Arc::new(clean_dep));
     let range = DependencyRange::from(statement_span);
     let loc = parser.to_dependency_location(range);
+    let attributes = get_import_attributes(ast, statement.attributes(ast));
+    let resource_identifier = create_resource_identifier_for_esm_dependency(
+      source,
+      ImportPhase::Evaluation,
+      attributes.as_ref(),
+    );
     let side_effect_dep = ESMImportSideEffectDependency::new(
       source.clone(),
       parser.last_esm_import_order,
       statement_span.into(),
       DependencyType::EsmExportImport,
       ImportPhase::Evaluation,
-      get_import_attributes(ast, statement.attributes(ast)),
+      attributes,
+      resource_identifier,
       loc,
       statement.is_star_export(ast),
     );
@@ -148,17 +156,19 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
         .into(),
       );
     }
-    let dep = if let Some((source, source_order, ids, phase, attributes)) = parser
-      .get_tag_data::<ESMSpecifierData>(local_id, ESM_SPECIFIER_TAG)
-      .map(|settings| {
-        (
-          settings.source.clone(),
-          settings.source_order,
-          settings.ids.clone(),
-          settings.phase,
-          settings.attributes.clone(),
-        )
-      }) {
+    let dep = if let Some((source, source_order, ids, phase, attributes, resource_identifier)) =
+      parser
+        .get_tag_data::<ESMSpecifierData>(local_id, ESM_SPECIFIER_TAG)
+        .map(|settings| {
+          (
+            settings.source.clone(),
+            settings.source_order,
+            settings.ids.clone(),
+            settings.phase,
+            settings.attributes.clone(),
+            settings.resource_identifier,
+          )
+        }) {
       let range = DependencyRange::from(statement_span);
       let loc = parser.to_dependency_location(range);
       let dep = ESMExportImportedSpecifierDependency::new(
@@ -173,6 +183,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
         ),
         phase,
         attributes,
+        resource_identifier,
         loc,
       );
       if parser
@@ -248,6 +259,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     } else {
       Some(parser.build_info.all_star_exports.clone())
     };
+    let attributes = get_import_attributes(ast, statement.attributes(ast));
+    let resource_identifier = create_resource_identifier_for_esm_dependency(
+      source,
+      ImportPhase::Evaluation,
+      attributes.as_ref(),
+    );
     let dep = ESMExportImportedSpecifierDependency::new(
       source.clone(),
       parser.last_esm_import_order,
@@ -257,7 +274,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       statement_span.into(),
       ESMExportImportedSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       ImportPhase::Evaluation,
-      get_import_attributes(ast, statement.attributes(ast)),
+      attributes,
+      resource_identifier,
       parser.to_dependency_location(DependencyRange::from(statement_span)),
     );
     if export_name.is_none() {
