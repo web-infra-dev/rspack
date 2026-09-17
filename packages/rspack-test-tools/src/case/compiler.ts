@@ -6,6 +6,7 @@ import type {
   Stats,
   StatsCompilation,
 } from '@rspack/core';
+import { readTestFile } from '../helper/read-test-file';
 import { BasicCaseCreator } from '../test/creator';
 import type {
   ITestContext,
@@ -170,9 +171,8 @@ export function createCompilerCase(
   dist: string,
   testConfig: string,
 ) {
-  let caseConfigList: TCompilerCaseConfig | TCompilerCaseConfig[] = require(
-    testConfig,
-  );
+  let caseConfigList: TCompilerCaseConfig | TCompilerCaseConfig[] =
+    readTestFile(testConfig);
   if (!Array.isArray(caseConfigList)) {
     caseConfigList = [caseConfigList];
   }
