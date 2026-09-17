@@ -196,29 +196,8 @@ async fn matches_module_to_cache_group(
 
 pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) -> Result<()> {
   let modules = compilation.build_chunk_graph_artifact.chunk_graph.modules();
-  let protected_modules = modules
-    .iter()
-    .copied()
-    .filter(|module| {
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_module_chunks(*module)
-        .iter()
-        .any(|chunk| {
-          compilation
-            .build_chunk_graph_artifact
-            .chunk_by_ukey
-            .expect_get(chunk)
-            .prevent_integration()
-        })
-    })
-    .collect::<IdentifierSet>();
   let results: Vec<std::result::Result<_, _>> = rspack_parallel::scope::<_, Result<_>>(|token| {
     modules.iter().copied().for_each(|module_identifier| {
-      if protected_modules.contains(&module_identifier) {
-        return;
-      }
       // SAFETY: `groups` and `compilation` outlive the scope and are only read (not mutated) concurrently.
       let s = unsafe { token.used((groups, &*compilation)) };
       s.spawn(move |(groups, compilation)| async move {
@@ -267,8 +246,6 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
   let modules = compilation.build_chunk_graph_artifact.chunk_graph.modules();
   let mut modules_in_group: IdentifierIndexSet =
     IdentifierIndexSet::with_capacity_and_hasher(modules.len(), BuildHasherDefault::default());
-  // Respect the same integration boundary for matched roots and dependencies.
-  modules_in_group.extend(protected_modules);
   let mut group_modules: HashMap<Either<String, usize>, MatchGroup> =
     HashMap::with_capacity_and_hasher(results.len(), Default::default());
 
