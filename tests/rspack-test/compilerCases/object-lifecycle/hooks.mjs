@@ -4,9 +4,9 @@ import {
   closeCompiler,
   createGCTracker,
   runCompiler,
-} from "./helpers.mjs";
+} from "@rspack/test-tools/helper/lifecycle";
 
-async function main() {
+export default async function run() {
   const gcTracker = createGCTracker();
   const fixtureDir = import.meta.dirname;
 
@@ -27,7 +27,7 @@ async function main() {
   let processAssetsUsedCompilation = false;
   {
     const compilerRef = compiler;
-    compiler.hooks.compilation.tap("TsfnLifecycleHooks", compilation => {
+    compiler.hooks.compilation.tap("TsfnLifecycleHooks", (compilation) => {
       capturedCompilations.push(compilation);
       const compilationRef = compilation;
 
@@ -41,30 +41,38 @@ async function main() {
     });
   }
 
-  let firstStats = await runCompiler(compiler);
-  if (!processAssetsUsedCompiler || !processAssetsUsedCompilation) {
-    throw new Error("hook closures did not observe both compiler and compilation");
+  let firstStats;
+  let firstCompilation;
+  let secondStats;
+  let secondCompilation;
+  try {
+    firstStats = await runCompiler(compiler);
+    if (!processAssetsUsedCompiler || !processAssetsUsedCompilation) {
+      throw new Error(
+        "hook closures did not observe both compiler and compilation",
+      );
+    }
+
+    firstCompilation = capturedCompilations[0];
+    gcTracker.track(firstCompilation, "first hook compilation");
+    firstStats = null;
+    firstCompilation = null;
+    capturedCompilations[0] = null;
+
+    secondStats = await runCompiler(compiler);
+    secondCompilation = capturedCompilations[capturedCompilations.length - 1];
+    gcTracker.track(secondCompilation, "second hook compilation");
+
+    if (processAssetsCalls < 2) {
+      throw new Error("hook closures were not invoked for both builds");
+    }
+
+    await gcTracker.waitForCollection("first hook compilation");
+
+    gcTracker.track(compiler, "hook compiler");
+  } finally {
+    await closeCompiler(compiler);
   }
-
-  let firstCompilation = capturedCompilations[0];
-  gcTracker.track(firstCompilation, "first hook compilation");
-  firstStats = null;
-  firstCompilation = null;
-  capturedCompilations[0] = null;
-
-  let secondStats = await runCompiler(compiler);
-  let secondCompilation = capturedCompilations[capturedCompilations.length - 1];
-  gcTracker.track(secondCompilation, "second hook compilation");
-
-  if (processAssetsCalls < 2) {
-    throw new Error("hook closures were not invoked for both builds");
-  }
-
-  await gcTracker.waitForCollection("first hook compilation");
-
-  gcTracker.track(compiler, "hook compiler");
-
-  await closeCompiler(compiler);
 
   secondStats = null;
   secondCompilation = null;
@@ -74,8 +82,3 @@ async function main() {
   await gcTracker.waitForCollection("second hook compilation");
   await gcTracker.waitForCollection("hook compiler");
 }
-
-main().catch(error => {
-  console.error(error);
-  process.exitCode = 1;
-});
