@@ -9,7 +9,7 @@ use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_next_ecma_ast::{
   AssignmentExpression, AssignmentOperator, BindingIdentifier, ClassElement, ClassElementData,
-  ExportDefaultDeclarationKindData, Expr, ExprData, GetSpan, Program, Span, Stmt, StmtData,
+  ExportDefaultDeclarationKindData, Expr, ExprData, GetSpan, NodeId, Program, Span, Stmt, StmtData,
   ThisExpression, VariableDeclarator,
 };
 
@@ -75,15 +75,19 @@ impl InnerGraphParserPlugin {
     }
   }
 
-  pub fn for_each_statement(parser: &mut JavascriptParser, stmt_span: &Span) {
+  pub fn for_each_statement(parser: &mut JavascriptParser, node: NodeId) {
     if let Some(v) = parser
       .inner_graph
       .statement_with_top_level_symbol
-      .get(stmt_span)
+      .get(parser.active_synthetic_ast, node)
     {
       parser.inner_graph.set_top_level_symbol(Some(*v));
 
-      if let Some(pure_part) = parser.inner_graph.statement_pure_part.get(stmt_span) {
+      if let Some(pure_part) = parser
+        .inner_graph
+        .statement_pure_part
+        .get(parser.active_synthetic_ast, node)
+      {
         let pure_part: &Span = pure_part;
         let pure_part_start = pure_part.real_lo();
         let pure_part_end = pure_part.real_hi();
@@ -434,10 +438,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
       );
       let fn_variable = Self::tag_top_level_symbol(parser, name, identifier);
 
-      parser
-        .inner_graph
-        .statement_with_top_level_symbol
-        .insert(stmt.span(ast), fn_variable);
+      parser.inner_graph.statement_with_top_level_symbol.insert(
+        parser.active_synthetic_ast,
+        stmt.node_id(),
+        fn_variable,
+      );
 
       return Some(true);
     }
@@ -470,10 +475,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
         |ident| ast.get_utf8(ident.name(ast)),
       );
       let class_variable = Self::tag_top_level_symbol(parser, name, identifier);
-      parser
-        .inner_graph
-        .class_with_top_level_symbol
-        .insert(stmt.span(ast), class_variable);
+      parser.inner_graph.class_with_top_level_symbol.insert(
+        parser.active_synthetic_ast,
+        class_decl.class().node_id(),
+        class_variable,
+      );
       return Some(true);
     }
 
@@ -504,19 +510,21 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
         )
       {
         let variable = Self::tag_top_level_symbol(parser, &*DEFAULT_STAR_JS_WORD, None);
-        parser
-          .inner_graph
-          .class_with_top_level_symbol
-          .insert(declaration.span(ast), variable);
+        parser.inner_graph.class_with_top_level_symbol.insert(
+          parser.active_synthetic_ast,
+          class.node_id(),
+          variable,
+        );
       } else if let ExportDefaultDeclarationKindData::Function(function) =
         ast.export_default_declaration_kind_data(declaration)
         && is_pure_function(parser, function)
       {
         let variable = Self::tag_top_level_symbol(parser, &*DEFAULT_STAR_JS_WORD, None);
-        parser
-          .inner_graph
-          .statement_with_top_level_symbol
-          .insert(export_decl.span(ast), variable);
+        parser.inner_graph.statement_with_top_level_symbol.insert(
+          parser.active_synthetic_ast,
+          export_decl.node_id(),
+          variable,
+        );
       }
       if let ExportDefaultDeclarationKindData::Expr(export_part) =
         ast.export_default_declaration_kind_data(declaration)
@@ -533,11 +541,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
           for (name, span) in callees {
             variable.add_depend_on(&mut parser.inner_graph, name, span);
           }
-          let export_span = export_decl.span(ast);
-          parser
-            .inner_graph
-            .statement_with_top_level_symbol
-            .insert(export_span, variable);
+          let export_node = export_decl.node_id();
+          parser.inner_graph.statement_with_top_level_symbol.insert(
+            parser.active_synthetic_ast,
+            export_node,
+            variable,
+          );
           if !matches!(
             ast.expr_data(export_part),
             ExprData::Function(_)
@@ -549,10 +558,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
               | ExprData::NullLiteral(_)
               | ExprData::RegExpLiteral(_)
           ) {
-            parser
-              .inner_graph
-              .statement_pure_part
-              .insert(export_span, export_part.span(ast));
+            parser.inner_graph.statement_pure_part.insert(
+              parser.active_synthetic_ast,
+              export_node,
+              export_part.span(ast),
+            );
           }
         }
       }
@@ -589,10 +599,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
       {
         let v = Self::tag_top_level_symbol(parser, name, Some(identifier));
 
-        parser
-          .inner_graph
-          .class_with_top_level_symbol
-          .insert(init.span(ast), v);
+        parser.inner_graph.class_with_top_level_symbol.insert(
+          parser.active_synthetic_ast,
+          class.node_id(),
+          v,
+        );
       } else if !init.is_class(ast)
         && is_pure_expression(
           parser,
@@ -607,10 +618,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
           v.add_depend_on(&mut parser.inner_graph, symbol, span);
         }
 
-        parser
-          .inner_graph
-          .decl_with_top_level_symbol
-          .insert(decl.span(ast), v);
+        parser.inner_graph.decl_with_top_level_symbol.insert(
+          parser.active_synthetic_ast,
+          decl.node_id(),
+          v,
+        );
       }
     }
 
@@ -628,7 +640,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
 
     parser.inner_graph.set_top_level_symbol(None);
 
-    Self::for_each_statement(parser, &stmt.span(parser.ast.ast));
+    Self::for_each_statement(parser, stmt.node_id());
 
     None
   }
@@ -640,16 +652,20 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
 
     parser.inner_graph.set_top_level_symbol(None);
     let ast = parser.ast.ast;
-    let stmt_span = stmt.span(ast);
+    let stmt_node = stmt.node_id();
 
     if let Some(v) = parser
       .inner_graph
       .statement_with_top_level_symbol
-      .get(&stmt_span)
+      .get(parser.active_synthetic_ast, stmt_node)
     {
       parser.inner_graph.set_top_level_symbol(Some(*v));
 
-      if let Some(pure_part) = parser.inner_graph.statement_pure_part.get(&stmt_span) {
+      if let Some(pure_part) = parser
+        .inner_graph
+        .statement_pure_part
+        .get(parser.active_synthetic_ast, stmt_node)
+      {
         let pure_part: &Span = pure_part;
         let pure_part_start = pure_part.real_lo();
         let pure_part_end = pure_part.real_hi();
@@ -666,10 +682,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
     if let StmtData::ExportDefaultDeclaration(default_decl) = ast.stmt_data(stmt) {
       match ast.export_default_declaration_kind_data(default_decl.declaration(ast)) {
         ExportDefaultDeclarationKindData::Class(class) => {
-          Self::for_each_statement(parser, &class.span(ast));
+          Self::for_each_statement(parser, class.node_id());
         }
         ExportDefaultDeclarationKindData::Function(function) => {
-          Self::for_each_statement(parser, &function.span(ast));
+          Self::for_each_statement(parser, function.node_id());
         }
         _ => {}
       }
@@ -696,11 +712,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
       None,
     );
 
-    if let Some(v) = parser
-      .inner_graph
-      .class_with_top_level_symbol
-      .get(&class_decl_or_expr.span(parser.ast.ast))
-      && is_pure_super_class
+    if let Some(v) = parser.inner_graph.class_with_top_level_symbol.get(
+      parser.active_synthetic_ast,
+      class_decl_or_expr.node().node_id(),
+    ) && is_pure_super_class
     {
       parser.inner_graph.set_top_level_symbol(Some(*v));
 
@@ -727,11 +742,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
     if !parser.inner_graph.is_enabled() || !parser.is_top_level_scope() {
       return None;
     }
-    if let Some(top_level_symbol) = parser
-      .inner_graph
-      .class_with_top_level_symbol
-      .get(&class_decl_or_expr.span(parser.ast.ast))
-    {
+    if let Some(top_level_symbol) = parser.inner_graph.class_with_top_level_symbol.get(
+      parser.active_synthetic_ast,
+      class_decl_or_expr.node().node_id(),
+    ) {
       let top_level_symbol_variable_name = parser
         .inner_graph
         .top_level_symbol(top_level_symbol)
@@ -789,11 +803,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
       parser.ast.comments,
       None,
     );
-    if let Some(v) = parser
-      .inner_graph
-      .class_with_top_level_symbol
-      .get(&class_decl_or_expr.span(parser.ast.ast))
-    {
+    if let Some(v) = parser.inner_graph.class_with_top_level_symbol.get(
+      parser.active_synthetic_ast,
+      class_decl_or_expr.node().node_id(),
+    ) {
       if !class_member_is_static(parser, element) || pure_member {
         parser.inner_graph.set_top_level_symbol(Some(*v));
         if !matches!(
@@ -830,7 +843,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
     if let Some(v) = parser
       .inner_graph
       .decl_with_top_level_symbol
-      .get(&decl.span(parser.ast.ast))
+      .get(parser.active_synthetic_ast, decl.node_id())
     {
       parser.inner_graph.set_top_level_symbol(Some(*v));
 
@@ -871,7 +884,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
       && parser
         .inner_graph
         .class_with_top_level_symbol
-        .contains_key(&init.span(parser.ast.ast))
+        .get(parser.active_synthetic_ast, init.node_id())
+        .is_some()
     {
       parser.walk_expression(init);
       parser.inner_graph.set_top_level_symbol(None);

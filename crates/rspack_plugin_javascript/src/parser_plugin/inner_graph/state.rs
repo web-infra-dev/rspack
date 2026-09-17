@@ -1,5 +1,5 @@
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_next_ecma_ast::Span;
+use swc_next_ecma_ast::{NodeId, Span};
 
 use crate::Atom;
 
@@ -69,16 +69,53 @@ impl From<InnerGraphMapUsage> for InnerGraphMapSetValue {
   }
 }
 
+/// Sparse node metadata. Fragment-local IDs must not alias the original AST.
+pub(super) struct NodeMetadata<T> {
+  original: HashMap<NodeId, T>,
+  synthetic: HashMap<(usize, NodeId), T>,
+}
+
+impl<T> Default for NodeMetadata<T> {
+  fn default() -> Self {
+    Self {
+      original: HashMap::default(),
+      synthetic: HashMap::default(),
+    }
+  }
+}
+
+impl<T> NodeMetadata<T> {
+  /// Reads metadata in the AST that owns this node.
+  pub(super) fn get(&self, ast: Option<usize>, node: NodeId) -> Option<&T> {
+    match ast {
+      None => self.original.get(&node),
+      Some(ast) => self.synthetic.get(&(ast, node)),
+    }
+  }
+
+  /// Keeps the common original-AST key compact without allocating a dense node table.
+  pub(super) fn insert(&mut self, ast: Option<usize>, node: NodeId, value: T) {
+    match ast {
+      None => {
+        self.original.insert(node, value);
+      }
+      Some(ast) => {
+        self.synthetic.insert((ast, node), value);
+      }
+    }
+  }
+}
+
 #[derive(Default)]
 pub(crate) struct InnerGraphState {
   /// Dense symbol data and usage state; slot zero is the global symbol.
   pub(super) symbols: Vec<TopLevelSymbolData>,
   current_top_level_symbol: Option<TopLevelSymbol>,
   enable: bool,
-  pub(super) statement_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
-  pub(super) statement_pure_part: HashMap<Span, Span>,
-  pub(super) class_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
-  pub(super) decl_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
+  pub(super) statement_with_top_level_symbol: NodeMetadata<TopLevelSymbol>,
+  pub(super) statement_pure_part: NodeMetadata<Span>,
+  pub(super) class_with_top_level_symbol: NodeMetadata<TopLevelSymbol>,
+  pub(super) decl_with_top_level_symbol: NodeMetadata<TopLevelSymbol>,
 }
 
 impl InnerGraphState {
