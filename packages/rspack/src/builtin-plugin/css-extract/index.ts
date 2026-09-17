@@ -4,7 +4,6 @@ import {
   type RawCssExtractPluginOption,
 } from '@rspack/binding';
 import type { Compiler, LiteralUnion } from '../..';
-import { NormalModule } from '../../NormalModule';
 import { MODULE_TYPE } from './loader';
 import { type CssExtractPluginData, PLUGIN_NAME, pluginSymbol } from './utils';
 
@@ -41,18 +40,11 @@ export class CssExtractRspackPlugin {
   }
 
   apply(compiler: Compiler) {
-    compiler.hooks.thisCompilation.tap(PLUGIN_NAME, (compilation) => {
-      NormalModule.getCompilationHooks(compilation).loader.tap(
-        PLUGIN_NAME,
-        (loaderContext) => {
-          (loaderContext as unknown as Record<symbol, CssExtractPluginData>)[
-            pluginSymbol
-          ] = {
-            runtime: this.options.runtime !== false,
-          };
-        },
-      );
-    });
+    (compiler.options.loader as Record<symbol, CssExtractPluginData>)[
+      pluginSymbol
+    ] = {
+      runtime: this.options.runtime !== false,
+    };
 
     const { splitChunks } = compiler.options.optimization;
 
