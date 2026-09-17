@@ -9,7 +9,7 @@ use rspack_core::{
   DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportsInfoArtifact, GroupOptions, JavascriptParserUrl,
   Module, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleType, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, TemplateContext,
+  ModuleType, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
   TemplateReplaceSource, URLStaticMode, UsedByExports,
 };
 
@@ -131,12 +131,6 @@ pub static URL_STATIC_PLACEHOLDER_RE: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(&format!(r#"{URL_STATIC_PLACEHOLDER}(?<dep>\d+)"#)).expect("should be valid regex")
 });
 
-pub(crate) fn url_entry_has_js(module: &dyn Module, module_graph: &ModuleGraph) -> bool {
-  module
-    .source_types(module_graph)
-    .contains(&SourceType::JavaScript)
-}
-
 pub(crate) fn is_url_value_module(module: &dyn Module) -> bool {
   module.module_type().is_asset_like()
     || matches!(
@@ -177,37 +171,6 @@ pub(crate) fn get_dependency_entry_chunk(
   dependency_id: &DependencyId,
 ) -> Option<ChunkUkey> {
   get_dependency_entrypoint(compilation, dependency_id).map(ChunkGroup::get_entrypoint_chunk)
-}
-
-pub(crate) fn get_url_dependency_chunk(
-  compilation: &Compilation,
-  dependency_id: &DependencyId,
-) -> Option<ChunkUkey> {
-  let entrypoint = get_dependency_entrypoint(compilation, dependency_id)?;
-  let module_graph = compilation.get_module_graph();
-  let target_module = module_graph
-    .get_module_by_dependency_id(dependency_id)
-    .expect("URL entry should have a target module");
-  if url_entry_has_js(target_module.as_ref(), module_graph) {
-    return Some(entrypoint.get_entrypoint_chunk());
-  }
-
-  // splitChunks can move CSS out of the entry chunk. Restrict the lookup to this
-  // entrypoint because the same module can also occur in unrelated chunks.
-  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
-  entrypoint
-    .chunks
-    .iter()
-    .copied()
-    .find(|chunk| {
-      if !chunk_graph.is_module_in_chunk(&target_module.identifier(), *chunk) {
-        return false;
-      }
-      let source_types =
-        chunk_graph.get_chunk_module_source_types(chunk, target_module, module_graph);
-      source_types.contains(&SourceType::Css) || source_types.contains(&SourceType::CssImport)
-    })
-    .or_else(|| Some(entrypoint.get_entrypoint_chunk()))
 }
 
 fn render_static_url(
@@ -286,7 +249,7 @@ impl DependencyTemplate for URLDependencyTemplate {
       ..
     } = code_generatable_context;
     let (expression, comment) =
-      if let Some(chunk_ukey) = get_url_dependency_chunk(compilation, &dep.id) {
+      if let Some(chunk_ukey) = get_dependency_entry_chunk(compilation, &dep.id) {
         let chunk_id = compilation
           .build_chunk_graph_artifact
           .chunk_by_ukey
@@ -294,17 +257,9 @@ impl DependencyTemplate for URLDependencyTemplate {
           .id()
           .map(rspack_util::json_stringify)
           .expect("URL entry should have a chunk id");
-        let module_graph = compilation.get_module_graph();
-        let target_module = module_graph
-          .get_module_by_dependency_id(&dep.id)
-          .expect("URL entry should have a target module");
-        let chunk_filename_global = if url_entry_has_js(target_module.as_ref(), module_graph) {
-          RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME
-        } else {
-          RuntimeGlobals::GET_CHUNK_CSS_FILENAME
-        };
         let public_path = runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH);
-        let chunk_filename = runtime_template.render_runtime_globals(&chunk_filename_global);
+        let chunk_filename =
+          runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME);
         (
           concat_string!(public_path, " + ", chunk_filename, "(", chunk_id, ")"),
           "/* entry url */",
