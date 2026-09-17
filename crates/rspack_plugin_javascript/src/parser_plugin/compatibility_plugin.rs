@@ -36,7 +36,7 @@ impl CompatibilityPlugin {
     parser
       .parser_runtime_requirements
       .compatibility_runtime_scope
-      .as_str()
+      .as_ref()
   }
 
   /// Rewrite a reference to a tagged nested binding to its deconflicted name,
@@ -219,7 +219,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
         end,
       );
       return Some(true);
-    } else if name == parser.parser_runtime_requirements.exports {
+    } else if name == parser.parser_runtime_requirements.exports.as_ref() {
       // Only top-level declarations can collide with the runtime exports
       // binding. In nested scopes the declaration shadows it and keeps its
       // original name.
@@ -268,7 +268,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     {
       return None;
     }
-    if for_name == parser.parser_runtime_requirements.exports {
+    if for_name == parser.parser_runtime_requirements.exports.as_ref() {
       // Only bindings in the top-level scope can collide with the runtime
       // exports binding. Bindings in nested scopes shadow it and must not be
       // renamed.
@@ -348,7 +348,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     if let BindingPatternData::BindingIdentifier(ident) =
       ast.binding_pattern_data(declarator.id(ast))
       && let name = ast.get_utf8(ident.name(ast))
-      && (name == parser.parser_runtime_requirements.exports
+      && (name == parser.parser_runtime_requirements.exports.as_ref()
         || name == self.nested_require_name(parser))
     {
       let data = parser.get_tag_data_mut::<NestedRequireData>(name, NESTED_IDENTIFIER_TAG)?;

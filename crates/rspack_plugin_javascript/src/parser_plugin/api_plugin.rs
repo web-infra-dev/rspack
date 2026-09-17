@@ -530,12 +530,12 @@ fn static_require_member_chain(
       };
       parser.add_presentational_dependency(Arc::new(dep));
     } else {
-      let require_scope = if parser.parser_runtime_requirements.render_mode
+      let require_scope: &str = if parser.parser_runtime_requirements.render_mode
         == RuntimeGlobalsRenderMode::RspackExport
       {
-        &parser.parser_runtime_requirements.require
+        parser.parser_runtime_requirements.require.as_ref()
       } else {
-        &parser.parser_runtime_requirements.context
+        parser.parser_runtime_requirements.context
       };
       let content = format!(
         "{}{}",

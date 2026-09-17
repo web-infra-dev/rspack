@@ -49,7 +49,7 @@ pub async fn render_chunk_modules(
           output_path,
           hooks,
           runtime_template,
-          module_runtime_scope.as_str(),
+          module_runtime_scope.as_ref(),
         ))
       };
       s.spawn(

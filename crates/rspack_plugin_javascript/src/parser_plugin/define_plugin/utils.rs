@@ -41,7 +41,7 @@ pub fn gen_const_dep(
     .is_match(&code)
   {
     to_const_dep(Some(RuntimeGlobals::REQUIRE))
-  } else if code.contains(&parser.parser_runtime_requirements.require) {
+  } else if code.contains(parser.parser_runtime_requirements.require.as_ref()) {
     to_const_dep(Some(RuntimeGlobals::REQUIRE_SCOPE))
   } else {
     to_const_dep(None)
