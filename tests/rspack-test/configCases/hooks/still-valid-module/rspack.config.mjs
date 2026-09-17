@@ -1,4 +1,4 @@
-import MyStillValidModulePlugin from './plugins/MyStillValidModulePlugin.js';
+import MyStillValidModulePlugin from './plugins/MyStillValidModulePlugin.mjs';
 
 /** @type {import("@rspack/core").Configuration} */
 const config = {

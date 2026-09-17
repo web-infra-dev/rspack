@@ -1,4 +1,4 @@
-import TestPlugin from './plugin.js';
+import TestPlugin from './plugin.mjs';
 
 /** @type {import("@rspack/core").Configuration} */
 export default {

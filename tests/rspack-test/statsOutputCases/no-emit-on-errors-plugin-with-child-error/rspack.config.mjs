@@ -1,5 +1,5 @@
 import { NoEmitOnErrorsPlugin } from '@rspack/core';
-import TestChildCompilationFailurePlugin from './TestChildCompilationFailurePlugin.js';
+import TestChildCompilationFailurePlugin from './TestChildCompilationFailurePlugin.mjs';
 
 /** @type {import("@rspack/core").Configuration} */
 export default {

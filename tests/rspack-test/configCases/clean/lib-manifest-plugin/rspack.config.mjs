@@ -1,5 +1,5 @@
 import path from 'node:path';
-import readDir from './readdir.js';
+import readDir from './readdir.mjs';
 import { rspack } from '@rspack/core';
 
 /** @type {import("@rspack/core").Configuration} */

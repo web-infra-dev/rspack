@@ -1,4 +1,4 @@
-import throwErrorPlugin from "../fixtures/errors/throw-error-plugin.js";
+import throwErrorPlugin from "../fixtures/errors/throw-error-plugin.mjs";
 
 /** @type {import('@rspack/test-tools').TErrorCaseConfig} */
 export default {
