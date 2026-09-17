@@ -120,7 +120,10 @@ pub fn cutout_commonjs_externals(
         continue;
       };
 
-      let request = external_module.get_request();
+      // Missing object-form requests must keep the normal external rendering path.
+      let Some(request) = external_module.try_get_request() else {
+        continue;
+      };
       if CommonJsExternalRequireKind::from_external_type(external_module.resolve_external_type())
         .is_some()
         && !request.has_rest()
@@ -159,7 +162,7 @@ fn get_direct_external_require(
     .and_then(|module| module.as_external_module())?;
 
   Some((
-    external_module.get_request().primary().to_string(),
+    external_module.try_get_request()?.primary().to_string(),
     CommonJsExternalRequireKind::from_external_type(external_module.resolve_external_type())?,
   ))
 }

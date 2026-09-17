@@ -674,6 +674,10 @@ impl ExternalModule {
     }
   }
 
+  pub fn try_get_request(&self) -> Option<&ExternalRequestValue> {
+    self.get_request_and_external_type().0
+  }
+
   fn get_request_and_external_type(&self) -> (Option<&ExternalRequestValue>, &ExternalType) {
     match &self.request {
       ExternalRequest::Single(request) => (Some(request), &self.external_type),
