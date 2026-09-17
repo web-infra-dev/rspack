@@ -1,4 +1,4 @@
-import TestApplyEntryOptionPlugin from './TestApplyEntryOptionPlugin.js';
+import TestApplyEntryOptionPlugin from './TestApplyEntryOptionPlugin.mjs';
 
 /** @type {import("@rspack/core").Configuration} */
 export default {

@@ -1,4 +1,4 @@
-import MySucceedModulePlugin from './plugins/MySucceedModulePlugin.js';
+import MySucceedModulePlugin from './plugins/MySucceedModulePlugin.mjs';
 
 /** @type {import("@rspack/core").Configuration} */
 const config = {

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { rspack } from '@rspack/core';
-import readDir from '../enabled/readdir.js';
+import readDir from '../enabled/readdir.mjs';
 
 /** @type {import("@rspack/core").Configuration} */
 export default {
