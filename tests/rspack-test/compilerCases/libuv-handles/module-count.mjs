@@ -1,16 +1,20 @@
-import { createCompiler, build, lifecycle } from "./compiler.mjs";
+import {
+  createCompiler,
+  buildAndCheckLoaders,
+  lifecycle,
+} from "./compiler.mjs";
 import { closeCompiler } from "@rspack/test-tools/helper/lifecycle";
 import { waitForStableHandles } from "./handles.mjs";
-async function scale(count, baseline) {
-  const { compiler, state } = createCompiler(count);
+async function measureAsyncHandleDelta(count, processBaseline) {
+  const { compiler, loaderState } = createCompiler(count);
   try {
-    await build(compiler, state, count, false);
+    await buildAndCheckLoaders(compiler, loaderState, count, false);
     // Measure while the compiler is still alive: per-module handles can hurt
     // the event loop during use even if they are all released after close.
     const current = await waitForStableHandles(
       `live compiler with ${count} modules`,
     );
-    return current.counts.async - baseline.counts.async;
+    return current.counts.async - processBaseline.counts.async;
   } finally {
     await closeCompiler(compiler);
   }
@@ -19,8 +23,10 @@ async function scale(count, baseline) {
 export default async function run(count) {
   // Separate processes compare relative counts, not platform-specific totals.
   await lifecycle(4);
-  const baseline = await waitForStableHandles("warmup");
-  const asyncDelta = await scale(count, baseline);
-  await waitForStableHandles("module-count: closed and collected", baseline);
+  const processBaseline = await waitForStableHandles("warmup");
+  const asyncDelta = await measureAsyncHandleDelta(count, processBaseline);
+  await waitForStableHandles("module-count: closed and collected", {
+    baseline: processBaseline,
+  });
   return { asyncDelta };
 }

@@ -7,7 +7,11 @@ process.stdout;
 process.stderr;
 process.report.excludeNetwork = true;
 
-export function snapshot() {
+const CLEANUP_TIMEOUT_MS = 5000;
+const SAMPLE_INTERVAL_MS = 10;
+const REQUIRED_STABLE_SAMPLES = 3;
+
+export function captureHandleSnapshot() {
   const handles = process.report
     .getReport()
     .libuv.filter((h) => h.type !== "loop");
@@ -19,14 +23,20 @@ export function snapshot() {
   return { counts, handles };
 }
 
-export function exceedsBaseline(current, baseline, asyncOnly = false) {
+/** @param {{ baselineScope?: "all" | "async" }} options */
+export function hasHandleCountGrowth(
+  current,
+  baseline,
+  { baselineScope = "all" } = {},
+) {
   return Object.entries(current.counts).some(
     ([type, count]) =>
-      (!asyncOnly || type === "async") && count > (baseline.counts[type] || 0),
+      (baselineScope === "all" || type === "async") &&
+      count > (baseline.counts[type] || 0),
   );
 }
 
-export function diagnostics(stage, baseline, current) {
+export function formatHandleDiagnostics(stage, baseline, current) {
   const addresses = new Set(baseline.handles.map((h) => h.address));
   return JSON.stringify(
     {
@@ -40,25 +50,47 @@ export function diagnostics(stage, baseline, current) {
   );
 }
 
-export async function waitForStableHandles(stage, baseline, asyncOnly = false) {
+/**
+ * Without a baseline, return a stable snapshot. With a baseline, also require
+ * the selected counts to stay within it. Stability always compares all types;
+ * baselineScope only selects which types are checked for growth.
+ * @param {string} stage
+ * @param {{ baseline?: ReturnType<typeof captureHandleSnapshot>, baselineScope?: "all" | "async" }} options
+ */
+export async function waitForStableHandles(
+  stage,
+  { baseline, baselineScope = "all" } = {},
+) {
   assert.equal(typeof global.gc, "function", "requires --expose-gc");
-  const deadline = performance.now() + 5000;
-  let previous;
-  let consecutive = 0;
+  const deadline = performance.now() + CLEANUP_TIMEOUT_MS;
+  let previousCountsSignature;
+  let stableSamples = 0;
   let current;
   do {
     global.gc();
-    await setTimeout(10);
+    await setTimeout(SAMPLE_INTERVAL_MS);
     await setImmediate();
-    current = snapshot();
-    const counts = JSON.stringify(Object.entries(current.counts).sort());
-    const acceptable =
-      !baseline || !exceedsBaseline(current, baseline, asyncOnly);
-    consecutive = acceptable ? (counts === previous ? consecutive + 1 : 1) : 0;
-    if (consecutive >= 3) return current;
-    previous = counts;
+    current = captureHandleSnapshot();
+    const countsSignature = JSON.stringify(
+      Object.entries(current.counts).sort(),
+    );
+    const withinBaseline =
+      !baseline || !hasHandleCountGrowth(current, baseline, { baselineScope });
+    if (!withinBaseline) {
+      stableSamples = 0;
+    } else if (countsSignature === previousCountsSignature) {
+      stableSamples++;
+    } else {
+      stableSamples = 1;
+    }
+    if (stableSamples >= REQUIRED_STABLE_SAMPLES) return current;
+    previousCountsSignature = countsSignature;
   } while (performance.now() < deadline);
   throw new Error(
-    diagnostics(stage, baseline || { counts: {}, handles: [] }, current),
+    formatHandleDiagnostics(
+      stage,
+      baseline || { counts: {}, handles: [] },
+      current,
+    ),
   );
 }

@@ -7,7 +7,11 @@ import {
   closeCompiler,
 } from "@rspack/test-tools/helper/lifecycle";
 export function createCompiler(count, fail = false, emit = true) {
-  const state = { marker: "loader-hook", produced: 0, consumed: 0 };
+  const loaderState = {
+    marker: "loader-hook",
+    producerCalls: 0,
+    consumerCalls: 0,
+  };
   const loader = path.join(import.meta.dirname, "loader.js");
   const compiler = rspack({
     context: import.meta.dirname,
@@ -48,8 +52,8 @@ export function createCompiler(count, fail = false, emit = true) {
             ).loader.tap("LibuvHandles", (context) => {
               // Exercise loader-context state crossing the JS/Rust boundary,
               // including a closure that retains the loader context itself.
-              context.handleState = state;
-              context.handleContext = () => context;
+              context.loaderTestState = loaderState;
+              context.getCapturedLoaderContext = () => context;
             });
           });
         },
@@ -57,12 +61,12 @@ export function createCompiler(count, fail = false, emit = true) {
     ],
   });
   compiler.outputFileSystem = createFsFromVolume(new Volume());
-  return { compiler, state };
+  return { compiler, loaderState };
 }
 
-export async function build(compiler, state, count, fail) {
-  const produced = state.produced;
-  const consumed = state.consumed;
+export async function buildAndCheckLoaders(compiler, loaderState, count, fail) {
+  const producerCallsBeforeBuild = loaderState.producerCalls;
+  const consumerCallsBeforeBuild = loaderState.consumerCalls;
   const stats = await runCompiler(compiler);
   assert.equal(
     stats.hasErrors(),
@@ -78,19 +82,22 @@ export async function build(compiler, state, count, fail) {
   // A cached/skipped loader could make handle counts look stable without
   // exercising the reference-management path on subsequent builds.
   assert.equal(
-    state.produced - produced,
+    loaderState.producerCalls - producerCallsBeforeBuild,
     count,
     "producer must execute for every module/build",
   );
-  assert.equal(state.consumed - consumed, fail ? 0 : count);
+  assert.equal(
+    loaderState.consumerCalls - consumerCallsBeforeBuild,
+    fail ? 0 : count,
+  );
 }
 
 export async function lifecycle(count, fail = false, emit = true) {
   // Keep compiler/stats references inside this scope so the caller can GC them
   // after close, rather than counting resources retained by the test itself.
-  const { compiler, state } = createCompiler(count, fail, emit);
+  const { compiler, loaderState } = createCompiler(count, fail, emit);
   try {
-    await build(compiler, state, count, fail);
+    await buildAndCheckLoaders(compiler, loaderState, count, fail);
   } finally {
     await closeCompiler(compiler);
   }
