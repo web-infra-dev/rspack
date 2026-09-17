@@ -415,11 +415,6 @@ export declare class JsExportsInfo {
   getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
 }
 
-export declare class JsLoaderCache {
-  get(loaderIndex: number, content: string | Uint8Array, existing: JsLoaderDependencies): Promise<JsLoaderCacheEntry | null>
-  store(loaderIndex: number, output: JsLoaderCacheEntry): Promise<void>
-}
-
 export declare class JsModuleGraph {
   getModule(dependency: Dependency): Module | null
   getResolvedModule(dependency: Dependency): Module | null
@@ -964,14 +959,6 @@ export interface JsLinkPreloadData {
   chunk: Chunk
 }
 
-export interface JsLoaderCacheEntry {
-  content: null | string | Uint8Array
-  sourceMap?: Uint8Array
-  addedDependencies: JsLoaderDependencies
-  removedDependencies: JsLoaderDependencies
-  parseMeta: Record<string, string>
-}
-
 export interface JsLoaderContext {
   resource: string
   _module: Module
@@ -983,11 +970,14 @@ export interface JsLoaderContext {
   sourceMap?: Buffer
   cacheable: boolean
   dependencies: JsLoaderDependencies
+  addedDependencies: JsLoaderDependencies
+  removedDependencies: JsLoaderDependencies
   loaderItems: Array<JsLoaderItem>
   loaderIndex: number
   loaderState: Readonly<JsLoaderState>
+  loaderChainStart: number
+  loaderChainEnd: number
   __internal__error?: RspackError
-  __internal__loaderCache?: JsLoaderCache | undefined
 }
 
 export interface JsLoaderDependencies {

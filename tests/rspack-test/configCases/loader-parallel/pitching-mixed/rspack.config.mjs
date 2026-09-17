@@ -12,7 +12,11 @@ export default [
           use: [
             { loader: './simple-loader.js', parallel: true, options: {} },
             { loader: './pitching-loader.js', parallel: false, options: {} },
-            { loader: './simple-async-loader.js', parallel: true, options: {} },
+            {
+              loader: './simple-async-loader.js',
+              parallel: true,
+              options: { uncloneable: () => {} },
+            },
           ],
         },
       ],
