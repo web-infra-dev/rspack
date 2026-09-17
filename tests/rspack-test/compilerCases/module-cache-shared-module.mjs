@@ -1,6 +1,6 @@
-import sources from "webpack-sources";
+import { rspack } from "@rspack/core";
 
-const { RawSource } = sources;
+const { RawSource } = rspack.sources;
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 export default ["memory", "persistent"].map(type => {

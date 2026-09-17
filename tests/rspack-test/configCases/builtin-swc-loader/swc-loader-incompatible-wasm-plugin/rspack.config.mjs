@@ -1,9 +1,8 @@
 import { rspack } from '@rspack/core';
 import path from 'node:path';
-import sources from 'webpack-sources';
 import { fileURLToPath } from 'node:url';
 
-const { RawSource } = sources;
+const { RawSource } = rspack.sources;
 
 /** @type {import('@rspack/cli').Configuration} */
 const config = {

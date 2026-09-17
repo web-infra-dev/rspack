@@ -1,6 +1,6 @@
-import sources from 'webpack-sources';
+import { rspack } from '@rspack/core';
 
-const { ConcatSource, RawSource } = sources;
+const { ConcatSource, RawSource } = rspack.sources;
 
 /**
  * @type {import('@rspack/core').RspackOptions}

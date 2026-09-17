@@ -1,7 +1,7 @@
 import assert from 'node:assert';
-import sources from 'webpack-sources';
+import { rspack } from '@rspack/core';
 
-const { RawSource, ConcatSource } = sources;
+const { RawSource, ConcatSource } = rspack.sources;
 
 /**
  * @type {import('@rspack/core').RspackOptions}
