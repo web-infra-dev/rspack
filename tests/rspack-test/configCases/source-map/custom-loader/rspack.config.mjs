@@ -9,7 +9,7 @@ export default {
   module: {
     rules: [
       {
-        loader: './loader.js',
+        loader: './loader.mjs',
       },
     ],
   },

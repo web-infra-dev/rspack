@@ -6,11 +6,11 @@ export default {
         resource: /abc\.js$/,
         use: [
           {
-            loader: './loader',
+            loader: './loader.mjs',
             options: 'a',
           },
           {
-            loader: './loader',
+            loader: './loader.mjs',
             options: 'b',
           },
         ],
@@ -19,11 +19,11 @@ export default {
         resource: /def\.js$/,
         use: [
           {
-            loader: './loader',
+            loader: './loader.mjs',
             options: 'c',
           },
           {
-            loader: './loader',
+            loader: './loader.mjs',
             options: 'd',
           },
         ],

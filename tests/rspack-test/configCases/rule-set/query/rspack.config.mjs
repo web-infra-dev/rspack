@@ -4,7 +4,7 @@ export default {
     rules: [
       {
         resourceQuery: /^\?loader/,
-        use: './loader?query',
+        use: './loader.mjs?query',
       },
     ],
   },

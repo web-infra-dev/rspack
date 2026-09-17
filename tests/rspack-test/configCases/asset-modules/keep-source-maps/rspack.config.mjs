@@ -22,7 +22,7 @@ export default {
           binary: false,
           filename: (pathInfo) => pathInfo.filename.replace(/\.scss/gi, '.css'),
         },
-        use: ['./loader.js'],
+        use: ['./loader.mjs'],
       },
     ],
   },

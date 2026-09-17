@@ -7,15 +7,15 @@ export default {
     rules: [
       {
         test: /\.js$/,
-        use: ['./loader.js'],
+        use: ['./loader.mjs'],
         oneOf: [
           {
             test: /lib\.js$/,
-            use: ['./loader1.js'],
+            use: ['./loader1.mjs'],
           },
           {
             test: /random-string/,
-            use: ['./loader2.js'],
+            use: ['./loader2.mjs'],
           },
         ],
       },

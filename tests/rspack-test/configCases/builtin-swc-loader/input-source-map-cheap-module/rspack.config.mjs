@@ -24,7 +24,7 @@ export default {
               sourceMaps: true,
             },
           },
-          './prev-loader',
+          './prev-loader.mjs',
         ],
       },
     ],

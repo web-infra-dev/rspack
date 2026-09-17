@@ -32,7 +32,7 @@ export default {
                         test: /\.js$/,
                         use: [
                             {
-                                loader: context.getSource("build-info-loader.js"),
+                                loader: context.getSource("build-info-loader.mjs"),
                             }
                         ]
                     }

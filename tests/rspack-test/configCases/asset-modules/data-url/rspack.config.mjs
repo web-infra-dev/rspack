@@ -23,7 +23,7 @@ export default {
       {
         mimetype: 'text/plain',
         type: 'asset/inline',
-        loader: './loader',
+        loader: './loader.mjs',
       },
     ],
   },

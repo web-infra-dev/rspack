@@ -13,7 +13,7 @@ export default {
         resource: /lib\.js/,
         use: [
           {
-            loader: './loader-2.js',
+            loader: './loader-2.mjs',
           },
         ],
       },
@@ -21,7 +21,7 @@ export default {
         resource: resolve('lib.js'),
         use: [
           {
-            loader: './loader-1.js',
+            loader: './loader-1.mjs',
           },
         ],
       },

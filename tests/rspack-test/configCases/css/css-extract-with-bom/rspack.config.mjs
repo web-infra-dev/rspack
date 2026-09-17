@@ -31,7 +31,7 @@ export default {
         use: [
           rspack.CssExtractRspackPlugin.loader,
           'css-loader',
-          fileURLToPath(import.meta.resolve('./bom-loader.js')),
+          fileURLToPath(import.meta.resolve('./bom-loader.mjs')),
         ],
       },
     ],

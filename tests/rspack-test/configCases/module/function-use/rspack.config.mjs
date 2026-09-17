@@ -22,7 +22,7 @@ export default {
           if (resourceQuery === '?test')
             return [
               'less-loader',
-              fileURLToPath(import.meta.resolve('./loader.js')),
+              fileURLToPath(import.meta.resolve('./loader.mjs')),
             ];
           else return ['less-loader'];
         },
