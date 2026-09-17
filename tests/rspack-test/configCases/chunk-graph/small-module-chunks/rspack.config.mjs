@@ -5,7 +5,7 @@ export default [1, 4, 5, 9].flatMap((count) =>
     mode: 'production',
     target: 'node',
     entry: Object.fromEntries(
-      Array.from({ length: count }, (_, i) => [`entry${i}`, './index.js']),
+      Array.from({ length: count }, (_, i) => [`entry${i}`, './shared.js']),
     ),
     output: { filename: '[name].js' },
     optimization: {
