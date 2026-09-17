@@ -1,7 +1,7 @@
 use concat_string::concat_string;
 use rspack_core::{
   AsyncDependenciesBlock, DependencyRef, EntryOptions, GroupOptions, ModuleDependency,
-  ModuleFactoryCreateData, ParseContext, ParseResult,
+  ModuleFactoryCreateData, ModuleType, ParseContext, ParseResult,
 };
 use rspack_hash::{HashDigest, RspackHash, RspackHasher};
 use rspack_util::identifier::split_at_query_mark;
@@ -67,7 +67,12 @@ pub(super) async fn promote_url_dependencies(
       .ok()
       .and_then(|result| result.module)
       .is_some_and(|module| {
-        !is_url_value_module(module.as_ref()) && module.module_type().is_js_like()
+        !is_url_value_module(module.as_ref())
+          && (module.module_type().is_js_like()
+            || matches!(
+              module.module_type(),
+              ModuleType::Css | ModuleType::CssAuto | ModuleType::CssModule
+            ))
       });
     if !promote {
       result.dependencies.push(dependency);
