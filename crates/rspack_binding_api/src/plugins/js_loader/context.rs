@@ -2,14 +2,12 @@ use std::{ptr::NonNull, sync::Arc};
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use rspack_collections::Identifiable;
 use rspack_core::{Content, LoaderContext, LoaderDependencies, Module, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::ThreadsafeOneShotRef;
 use rustc_hash::FxHashMap as HashMap;
 
-use super::cache::JsLoaderCacheObject;
 use crate::{error::RspackError, module::ModuleObject};
 
 #[napi(object)]
@@ -102,15 +100,6 @@ pub struct JsLoaderDependencies {
   pub build_dependencies: Vec<String>,
 }
 
-impl JsLoaderDependencies {
-  pub(super) fn is_empty(&self) -> bool {
-    self.file_dependencies.is_empty()
-      && self.context_dependencies.is_empty()
-      && self.missing_dependencies.is_empty()
-      && self.build_dependencies.is_empty()
-  }
-}
-
 impl From<&LoaderDependencies> for JsLoaderDependencies {
   fn from(value: &LoaderDependencies) -> Self {
     Self {
@@ -186,18 +175,17 @@ pub struct JsLoaderContext {
   pub source_map: Option<Buffer>,
   pub cacheable: bool,
   pub dependencies: JsLoaderDependencies,
+  pub added_dependencies: JsLoaderDependencies,
+  pub removed_dependencies: JsLoaderDependencies,
 
   pub loader_items: Vec<JsLoaderItem>,
   pub loader_index: i32,
   #[napi(ts_type = "Readonly<JsLoaderState>")]
   pub loader_state: JsLoaderState,
+  pub loader_chain_start: u32,
+  pub loader_chain_end: u32,
   #[napi(js_name = "__internal__error")]
   pub error: Option<RspackError>,
-  #[napi(
-    js_name = "__internal__loaderCache",
-    ts_type = "JsLoaderCache | undefined"
-  )]
-  pub loader_cache: Option<JsLoaderCacheObject>,
 }
 
 impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
@@ -212,11 +200,14 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
 
     let module = &cx.context.module;
 
-    #[allow(clippy::unwrap_used)]
+    let execution_span = cx
+      .current_chain()
+      .map_or(0..cx.loader_items.len(), |chain| chain.start()..chain.end());
     Ok(JsLoaderContext {
       resource: cx.resource_data.resource().to_owned(),
       module: ModuleObject::with_ptr(
-        NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module).unwrap(),
+        NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module)
+          .expect("module reference should always produce a non-null pointer"),
         cx.context.compiler_id,
       ),
       hot: cx.hot,
@@ -235,26 +226,15 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .map(|v| v.into_bytes().into()),
       cacheable: cx.cacheable,
       dependencies: cx.dependencies().as_ref().into(),
+      added_dependencies: cx.added_dependencies().into(),
+      removed_dependencies: cx.removed_dependencies().into(),
 
       loader_items: cx.loader_items.iter().map(Into::into).collect(),
       loader_index: cx.loader_index,
       loader_state: cx.state().into(),
       error: None,
-      loader_cache: cx
-        .loader_items
-        .iter()
-        .any(|loader| loader.cache())
-        .then(|| {
-          JsLoaderCacheObject::new(
-            cx.context.loader_cache.clone(),
-            cx.context.file_system_info.clone(),
-            module.identifier().to_string(),
-            cx.loader_items
-              .iter()
-              .map(|loader| loader.cache_options().cloned().unwrap_or_default())
-              .collect(),
-          )
-        }),
+      loader_chain_start: execution_span.start as u32,
+      loader_chain_end: execution_span.end as u32,
     })
   }
 }

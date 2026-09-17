@@ -37,12 +37,18 @@ const arraysFrom = (sets: DependencySets): LoaderDependencies => ({
 export class LoaderDependenciesState {
   readonly existing: LoaderDependencies;
   readonly #existingSets: DependencySets;
-  readonly #addedSets = createSets();
-  readonly #removedSets = createSets();
+  readonly #addedSets: DependencySets;
+  readonly #removedSets: DependencySets;
 
-  constructor(existing: LoaderDependencies) {
+  constructor(
+    existing: LoaderDependencies,
+    added?: LoaderDependencies,
+    removed?: LoaderDependencies,
+  ) {
     this.existing = existing;
     this.#existingSets = setsFrom(existing);
+    this.#addedSets = added ? setsFrom(added) : createSets();
+    this.#removedSets = removed ? setsFrom(removed) : createSets();
   }
 
   get added(): LoaderDependencies {
@@ -61,6 +67,7 @@ export class LoaderDependenciesState {
   }
 
   mergeChanges() {
+    // Keep the change records until the root chain finishes on the Rust side.
     for (const key of DEPENDENCY_KEYS) {
       const added = this.#addedSets[key];
       const removed = this.#removedSets[key];
@@ -80,7 +87,6 @@ export class LoaderDependenciesState {
         target.push(dependency);
       }
     }
-    this.resetChanges();
   }
 
   addDependencies(dependencies: LoaderDependencies) {
@@ -126,7 +132,7 @@ export class LoaderDependenciesState {
   }
 
   private add(key: DependencyKey, dependency: string) {
-    this.#removedSets[key].delete(dependency);
+    // Additions win in get(), but keep removals to prevent caching this chain.
     this.#addedSets[key].add(dependency);
   }
 
@@ -146,7 +152,6 @@ export class LoaderDependenciesState {
 
   private clear(key: DependencyKey) {
     const removed = this.#removedSets[key];
-    removed.clear();
     for (const dependency of this.#existingSets[key]) {
       removed.add(dependency);
     }
