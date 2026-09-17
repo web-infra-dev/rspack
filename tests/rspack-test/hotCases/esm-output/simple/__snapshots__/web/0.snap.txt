@@ -1,11 +1,10 @@
-# Case css-modules: Step 0
+# Case simple: Step 0
 
 ## Changed Files
 
 
 ## Asset Files
 - Bundle: main.mjs
-- Bundle: style2_module_css.chunk.mjs
 
 ## Manifest
 
