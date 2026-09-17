@@ -1,3 +1,4 @@
+import path from 'node:path';
 import type {
   Compilation,
   Compiler,
@@ -17,7 +18,7 @@ import type {
 
 function createCompilerProcessor(
   name: string,
-  caseConfig: TCompilerCaseConfig,
+  caseConfig: TManagedCompilerCaseConfig,
 ) {
   const logs = {
     mkdir: [] as string[],
@@ -160,7 +161,24 @@ const creator = new BasicCaseCreator({
   clean: true,
   describe: false,
   steps: ({ name, caseConfig }) => {
-    return [createCompilerProcessor(name, caseConfig as TCompilerCaseConfig)];
+    const config = caseConfig as TCompilerCaseConfig;
+    if (typeof config.run === 'function') {
+      // Lifecycle cases own their compilers: a manager retaining compiler/stats
+      // would prevent GC assertions, and process-only cases need no compiler here.
+      // Execute in the build phase so failures use the existing case error handling.
+      return [
+        {
+          config() {},
+          compiler() {},
+          run() {},
+          check() {},
+          build: async () => {
+            await config.run();
+          },
+        },
+      ];
+    }
+    return [createCompilerProcessor(name, config)];
   },
   concurrent: false,
 });
@@ -176,23 +194,80 @@ export function createCompilerCase(
   if (!Array.isArray(caseConfigList)) {
     caseConfigList = [caseConfigList];
   }
+  // Names become both filter identifiers and output path segments. Validate the
+  // whole group before registration to avoid collisions or partially registered cases.
+  const names = new Set<string>();
+  for (const config of caseConfigList) {
+    if (config.name !== undefined) {
+      if (
+        !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(config.name) ||
+        names.has(config.name)
+      ) {
+        throw new Error(
+          `Invalid or duplicate compiler case name: ${config.name}`,
+        );
+      }
+      names.add(config.name);
+    }
+    // JS configs bypass the type union; reject mixed ownership instead of
+    // silently ignoring hooks that only apply to a framework-managed compiler.
+    if ('run' in config) {
+      const managed = [
+        'options',
+        'compiler',
+        'build',
+        'check',
+        'compilerCallback',
+        'error',
+      ];
+      if (
+        typeof config.run !== 'function' ||
+        managed.some((key) => key in config)
+      ) {
+        throw new Error(
+          `Compiler case "${config.description}" must not mix run with managed compiler fields`,
+        );
+      }
+    }
+  }
   for (let i = 0; i < caseConfigList.length; i++) {
     const caseConfig = caseConfigList[i];
+    // Stable names allow selecting one scenario without depending on array order.
+    // Preserve the existing identifiers and output paths for unnamed cases.
+    const caseName = caseConfig.name
+      ? `${name}/${caseConfig.name}`
+      : `${name}[${i}]`;
     if (caseConfig.skip) {
-      it.skip(`${name}[${i}]`, () => {});
+      it.skip(caseName, () => {});
       continue;
     }
-    creator.create(`${name}[${i}]`, src, dist, undefined, {
-      caseConfig,
-      description: () => caseConfig.description,
-    });
+    creator.create(
+      caseName,
+      src,
+      caseConfig.name ? path.join(dist, caseConfig.name) : dist,
+      undefined,
+      {
+        caseConfig,
+        // Rstest filters display names; BasicCaseCreator filters caseName.
+        // Include the same path in both so a single filter selects the scenario.
+        description: () =>
+          caseConfig.name
+            ? `${caseName}: ${caseConfig.description}`
+            : caseConfig.description,
+      },
+    );
   }
 }
 
-export type TCompilerCaseConfig = {
+type TCompilerCaseBase = {
   description: string;
-  error?: boolean;
+  name?: string;
   skip?: boolean;
+};
+
+type TManagedCompilerCaseConfig = TCompilerCaseBase & {
+  run?: never;
+  error?: boolean;
   options?: (context: ITestContext) => RspackOptions;
   compiler?: (context: ITestContext, compiler: Compiler) => MaybePromise<void>;
   build?: (context: ITestContext, compiler: Compiler) => MaybePromise<void>;
@@ -211,3 +286,16 @@ export type TCompilerCaseConfig = {
   }) => MaybePromise<void>;
   compilerCallback?: (error: Error | null, stats?: Stats) => void;
 };
+
+export type TCompilerCaseConfig =
+  | TManagedCompilerCaseConfig
+  | (TCompilerCaseBase & {
+      /** Owns compiler creation and cleanup; close owned compilers in finally. */
+      run: () => MaybePromise<void>;
+      options?: never;
+      compiler?: never;
+      build?: never;
+      check?: never;
+      compilerCallback?: never;
+      error?: never;
+    });

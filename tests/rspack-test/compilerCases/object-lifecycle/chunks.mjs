@@ -4,9 +4,9 @@ import {
   closeCompiler,
   createGCTracker,
   runCompiler,
-} from "./helpers.mjs";
+} from "@rspack/test-tools/helper/lifecycle";
 
-async function main() {
+export default async function run() {
   const gcTracker = createGCTracker();
   const fixtureDir = import.meta.dirname;
   let observedChunks = false;
@@ -24,7 +24,7 @@ async function main() {
         apply(compiler) {
           compiler.hooks.compilation.tap(
             "TsfnLifecycleChunks",
-            compilation => {
+            (compilation) => {
               compilation.hooks.afterProcessAssets.tap(
                 "TsfnLifecycleChunks",
                 () => {
@@ -60,14 +60,17 @@ async function main() {
   });
   compiler.outputFileSystem = createFsFromVolume(new Volume());
 
-  let stats = await runCompiler(compiler);
-  if (!observedChunks) {
-    throw new Error("chunks were not observed");
+  let stats;
+  try {
+    stats = await runCompiler(compiler);
+    if (!observedChunks) {
+      throw new Error("chunks were not observed");
+    }
+
+    gcTracker.track(compiler, "chunk compiler");
+  } finally {
+    await closeCompiler(compiler);
   }
-
-  gcTracker.track(compiler, "chunk compiler");
-
-  await closeCompiler(compiler);
 
   stats = null;
   compiler = null;
@@ -76,8 +79,3 @@ async function main() {
   await gcTracker.waitForCollection("chunk");
   await gcTracker.waitForCollection("chunk group");
 }
-
-main().catch(error => {
-  console.error(error);
-  process.exitCode = 1;
-});

@@ -4,9 +4,9 @@ import {
   closeCompiler,
   createGCTracker,
   runCompiler,
-} from "./helpers.mjs";
+} from "@rspack/test-tools/helper/lifecycle";
 
-async function main() {
+export default async function run() {
   const gcTracker = createGCTracker();
   let build = 0;
 
@@ -23,7 +23,7 @@ async function main() {
         apply(compiler) {
           compiler.hooks.compilation.tap(
             "TsfnLifecycleModuleGraphConnection",
-            compilation => {
+            (compilation) => {
               compilation.hooks.afterProcessAssets.tap(
                 "TsfnLifecycleModuleGraphConnection",
                 () => {
@@ -67,8 +67,3 @@ async function main() {
     await closeCompiler(compiler);
   }
 }
-
-main().catch(error => {
-  console.error(error);
-  process.exitCode = 1;
-});

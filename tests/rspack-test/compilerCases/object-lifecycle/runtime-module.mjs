@@ -4,7 +4,7 @@ import {
   closeCompiler,
   createGCTracker,
   runCompiler,
-} from "./helpers.mjs";
+} from "@rspack/test-tools/helper/lifecycle";
 
 class CustomRuntimeModule extends rspack.RuntimeModule {
   constructor() {
@@ -16,7 +16,7 @@ class CustomRuntimeModule extends rspack.RuntimeModule {
   }
 }
 
-async function main() {
+export default async function run() {
   const gcTracker = createGCTracker();
   const fixtureDir = import.meta.dirname;
   let compilation;
@@ -35,11 +35,11 @@ async function main() {
         apply(compiler) {
           compiler.hooks.thisCompilation.tap(
             "TsfnLifecycleRuntimeModule",
-            currentCompilation => {
+            (currentCompilation) => {
               compilation = currentCompilation;
               currentCompilation.hooks.additionalTreeRuntimeRequirements.tap(
                 "TsfnLifecycleRuntimeModule",
-                chunk => {
+                (chunk) => {
                   runtimeModule = new CustomRuntimeModule();
                   currentCompilation.addRuntimeModule(chunk, runtimeModule);
                 },
@@ -52,16 +52,20 @@ async function main() {
   });
   compiler.outputFileSystem = createFsFromVolume(new Volume());
 
-  let stats = await runCompiler(compiler);
-  if (!compilation || !runtimeModule) {
-    throw new Error("custom runtime module was not added to the compilation");
+  let stats;
+  try {
+    stats = await runCompiler(compiler);
+    if (!compilation || !runtimeModule) {
+      throw new Error("custom runtime module was not added to the compilation");
+    }
+
+    gcTracker.track(compilation, "custom runtime module compilation");
+    gcTracker.track(runtimeModule, "custom runtime module");
+    gcTracker.track(compiler, "custom runtime module compiler");
+  } finally {
+    await closeCompiler(compiler);
   }
 
-  gcTracker.track(compilation, "custom runtime module compilation");
-  gcTracker.track(runtimeModule, "custom runtime module");
-  gcTracker.track(compiler, "custom runtime module compiler");
-
-  await closeCompiler(compiler);
   stats = null;
   compilation = null;
   runtimeModule = null;
@@ -71,8 +75,3 @@ async function main() {
   await gcTracker.waitForCollection("custom runtime module compilation");
   await gcTracker.waitForCollection("custom runtime module compiler");
 }
-
-main().catch(error => {
-  console.error(error);
-  process.exitCode = 1;
-});
