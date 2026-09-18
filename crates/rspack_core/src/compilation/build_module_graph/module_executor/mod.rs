@@ -63,6 +63,10 @@ impl Default for ModuleExecutor {
 }
 
 impl ModuleExecutor {
+  pub fn is_running(&self) -> bool {
+    self.event_sender.is_some()
+  }
+
   pub async fn before_build_module_graph(&mut self, compilation: &Compilation) -> Result<()> {
     let mut make_artifact = self.make_artifact.steal();
     let mut exports_info_artifact = self.exports_info_artifact.steal();
