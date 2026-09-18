@@ -203,8 +203,8 @@ catalogs:
       specifier: 1.11.3
       version: 1.11.3
     enhanced-resolve:
-      specifier: 5.24.5
-      version: 5.24.5
+      specifier: 5.25.1
+      version: 5.25.1
     es5-ext:
       specifier: ^0.10.64
       version: 0.10.64
@@ -724,7 +724,7 @@ importers:
         version: 5.0.0
       enhanced-resolve:
         specifier: 'catalog:'
-        version: 5.24.5
+        version: 5.25.1
       http-proxy-middleware:
         specifier: 'catalog:'
         version: 4.2.0(supports-color@8.1.1)
@@ -1064,7 +1064,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@webdiscus/pug-loader':
         specifier: 'catalog:'
-        version: 2.11.1(enhanced-resolve@5.24.5)
+        version: 2.11.1(enhanced-resolve@5.25.1)
       acorn:
         specifier: 'catalog:'
         version: 8.18.0
@@ -4913,6 +4913,10 @@ packages:
 
   enhanced-resolve@5.24.5:
     resolution: {integrity: sha512-L1l8TNvomm6UVW5B253AGxQagSQr+vGwhMlrrfRS2qmhx46AMpMVJKQYLvWYbysTMY8VoicOvzHzoHMbyzB+4A==}
+    engines: {node: '>=10.13.0'}
+
+  enhanced-resolve@5.25.1:
+    resolution: {integrity: sha512-nGXts5znJzmWPu+mIE9izCOzdg63oJca2mDzGWWTth7sr4aCToKcoyFVBQwN75Ij5Pf6p510EwkTqViTRzDV+w==}
     engines: {node: '>=10.13.0'}
 
   entities@4.5.0:
@@ -9217,12 +9221,12 @@ snapshots:
     optionalDependencies:
       '@rsbuild/core': 2.2.8(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
 
-  '@rsbuild/plugin-react@2.1.0(@rsbuild/core@2.2.6)(@rspack/core@2.2.6)':
+  '@rsbuild/plugin-react@2.1.0(@rsbuild/core@2.2.8)(@rspack/core@2.2.6)':
     dependencies:
       '@rspack/plugin-react-refresh': 2.0.2(@rspack/core@2.2.6)(react-refresh@0.18.0)
       react-refresh: 0.18.0
     optionalDependencies:
-      '@rsbuild/core': 2.2.6(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.8(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
     transitivePeerDependencies:
       - '@rspack/core'
 
@@ -9468,8 +9472,8 @@ snapshots:
     dependencies:
       '@mdx-js/mdx': 3.1.1(supports-color@8.1.1)
       '@mdx-js/react': 3.1.1(@types/react@19.3.0)(react@19.3.0)
-      '@rsbuild/core': 2.2.6(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
-      '@rsbuild/plugin-react': 2.1.0(@rsbuild/core@2.2.6)(@rspack/core@2.2.6)
+      '@rsbuild/core': 2.2.8(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
+      '@rsbuild/plugin-react': 2.1.0(@rsbuild/core@2.2.8)(@rspack/core@2.2.6)
       '@rspress/shared': 2.0.21(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)(supports-color@8.1.1)
       '@shikijs/rehype': 4.4.2
       '@types/mdast': 4.0.4
@@ -9540,7 +9544,7 @@ snapshots:
 
   '@rspress/shared@2.0.21(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)(supports-color@8.1.1)':
     dependencies:
-      '@rsbuild/core': 2.2.6(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.8(@module-federation/runtime-tools@2.9.0)(core-js@3.50.0)
       '@shikijs/rehype': 4.4.2
       '@types/react': 19.3.0
       mdast-util-mdx-jsx: 3.2.0(supports-color@8.1.1)
@@ -10148,10 +10152,10 @@ snapshots:
 
   '@vue/shared@3.5.42': {}
 
-  '@webdiscus/pug-loader@2.11.1(enhanced-resolve@5.24.5)':
+  '@webdiscus/pug-loader@2.11.1(enhanced-resolve@5.25.1)':
     dependencies:
       ansis: 3.10.0
-      enhanced-resolve: 5.24.5
+      enhanced-resolve: 5.25.1
       parse5: 7.3.0
       pug: 3.0.4
       webpack-merge: 6.0.1
@@ -11156,6 +11160,11 @@ snapshots:
   emojis-list@3.0.0: {}
 
   enhanced-resolve@5.24.5:
+    dependencies:
+      graceful-fs: 4.2.11
+      tapable: 2.3.3
+
+  enhanced-resolve@5.25.1:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.3.3
