@@ -27,13 +27,13 @@ use rspack_util::swc::RspackComments;
 use rustc_hash::FxHashSet;
 use swc_next_allocator::Allocator;
 use swc_next_ecma_ast::{Lang, Severity as SwcSeverity, SourceType as SwcSourceType};
-use swc_next_ecma_parser::{CommentMode, Options, ParseReturn, Parser, TokenParserConfig};
+use swc_next_ecma_parser::{CommentMode, NoTokenParserConfig, Options, ParseReturn, Parser};
 use swc_next_ecma_semantic::{AnalyzeOptions, SemanticReturn, analyze};
 
 use crate::{
   BoxJavascriptParserPlugin,
   dependency::ESMCompatibilityDependency,
-  visitors::{ParsedJavaScriptAst, ScanDependenciesResult, scan_dependencies, semicolon},
+  visitors::{ParsedJavaScriptAst, ScanDependenciesResult, scan_dependencies},
 };
 
 #[derive(Debug)]
@@ -278,8 +278,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           lang: if jsx { Lang::Jsx } else { Lang::Js },
           preserve_parens: false,
           comments: CommentMode::Flat,
+          record_implicit_semicolons: true,
         },
-        TokenParserConfig,
+        NoTokenParserConfig,
       )
       .parse()
     };
@@ -297,8 +298,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     }
     let ParseReturn {
       ast,
-      tokens,
+      // Tokens are not collected for this parse; see `NoTokenParserConfig`.
+      tokens: _,
       diagnostics: parse_diagnostics,
+      implicit_semicolons,
     } = parse_return;
 
     if !parse_diagnostics.is_empty() {
@@ -336,8 +339,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let program = ast.root_program();
     let comments = RspackComments::from_ast(&ast);
-    let mut semicolons = Default::default();
-    semicolon::collect(&ast, &mut semicolons, &tokens);
+    // The parser reports the semicolons it inserted implicitly, so the parser
+    // does not need to collect the token stream for ASI bookkeeping.
+    let mut semicolons: FxHashSet<u32> = implicit_semicolons.iter().copied().collect();
     let parsed_ast = ParsedJavaScriptAst {
       ast: &ast,
       comments: &comments,
