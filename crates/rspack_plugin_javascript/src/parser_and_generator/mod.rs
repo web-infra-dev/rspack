@@ -39,15 +39,15 @@ use crate::{
 #[derive(Debug)]
 pub struct ParserRuntimeRequirementsData {
   pub render_mode: RuntimeGlobalsRenderMode,
-  pub context: String,
-  pub module: String,
-  pub rspack_module: String,
-  pub exports: String,
-  pub require: String,
-  pub compatibility_runtime_scope: String,
+  pub context: &'static str,
+  pub module: Arc<str>,
+  pub rspack_module: &'static str,
+  pub exports: Arc<str>,
+  pub require: Arc<str>,
+  pub compatibility_runtime_scope: Arc<str>,
   pub require_regex: &'static LazyLock<Regex>,
-  pub module_cache: String,
-  pub entry_module_id: String,
+  pub module_cache: Arc<str>,
+  pub entry_module_id: Arc<str>,
 }
 
 static LEGACY_REQUIRE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
@@ -114,8 +114,8 @@ impl ParserRuntimeRequirementsData {
 
   pub fn module_argument(&self, module_argument: &ModuleArgument) -> String {
     match module_argument {
-      ModuleArgument::Module => self.module.clone(),
-      ModuleArgument::RspackModule => self.rspack_module.clone(),
+      ModuleArgument::Module => self.module.to_string(),
+      ModuleArgument::RspackModule => self.rspack_module.to_string(),
     }
   }
 }
