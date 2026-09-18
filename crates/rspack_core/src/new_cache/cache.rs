@@ -1,42 +1,32 @@
-use std::{sync::Arc, time::Duration};
+use std::{ops::Deref, sync::Arc, time::Duration};
 
-use rspack_error::Result;
 use rspack_paths::InternedPathSet;
 
 use super::{
-  CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult, Meta,
+  CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult,
   cache_value::CacheValueData,
 };
 
-/// Cache entry point backed by memory and optional filesystem storage.
-///
-/// Reads follow webpack's cache stage order: memory is queried first and only
-/// an unknown key falls through to the filesystem cache. Filesystem results,
-/// including misses, are recorded in memory for subsequent reads.
+/// Storage shared by all compiler-scoped cache views.
 #[derive(Debug)]
 struct CacheStorage {
   memory_cache: Option<MemoryCache>,
   idle_file_cache: Option<IdleFileCache>,
 }
 
+/// Shared cache storage, independent of a compiler's namespace.
+///
+/// Reads follow webpack's cache stage order: memory is queried first and only
+/// an unknown key falls through to the filesystem cache. Filesystem results,
+/// including misses, are recorded in memory for subsequent reads.
 #[derive(Debug)]
-struct CacheInner {
-  compiler_path: String,
+pub struct Cache {
   storage: Option<CacheStorage>,
 }
 
-/// Cheaply cloneable handle to the shared cache state.
-#[derive(Debug, Clone)]
-pub struct Cache {
-  inner: Arc<CacheInner>,
-}
-
 impl Cache {
-  pub fn new(
-    compiler_path: String,
-    memory_cache: Option<MemoryCache>,
-    idle_file_cache: Option<IdleFileCache>,
-  ) -> Self {
+  /// Creates storage from the configured memory and filesystem caches.
+  pub fn new(memory_cache: Option<MemoryCache>, idle_file_cache: Option<IdleFileCache>) -> Self {
     let storage = if memory_cache.is_some() || idle_file_cache.is_some() {
       Some(CacheStorage {
         memory_cache,
@@ -45,32 +35,15 @@ impl Cache {
     } else {
       None
     };
-    Self {
-      inner: Arc::new(CacheInner {
-        compiler_path,
-        storage,
-      }),
-    }
+    Self { storage }
   }
 
-  pub fn new_disabled(compiler_path: String) -> Self {
-    Self {
-      inner: Arc::new(CacheInner {
-        compiler_path,
-        storage: None,
-      }),
-    }
-  }
-
-  pub(crate) fn facade(&self, name: &str) -> CacheFacade {
-    let mut cache_name = String::with_capacity(self.inner.compiler_path.len() + name.len());
-    cache_name.push_str(&self.inner.compiler_path);
-    cache_name.push_str(name);
-    CacheFacade::new(self.clone(), cache_name)
+  pub fn new_disabled() -> Self {
+    Self::new(None, None)
   }
 
   pub fn get<T: CacheValueData>(&self, key: CacheKey, etag: Option<Etag>) -> Option<CacheValue<T>> {
-    let Some(storage) = &self.inner.storage else {
+    let Some(storage) = &self.storage else {
       return None;
     };
     if let Some(memory_cache) = &storage.memory_cache {
@@ -105,7 +78,7 @@ impl Cache {
   }
 
   pub fn store<T: CacheValueData>(&self, key: CacheKey, etag: Option<Etag>, value: CacheValue<T>) {
-    let Some(storage) = &self.inner.storage else {
+    let Some(storage) = &self.storage else {
       return;
     };
     if let Some(memory_cache) = &storage.memory_cache {
@@ -117,7 +90,7 @@ impl Cache {
   }
 
   pub fn store_build_dependencies(&self, dependencies: InternedPathSet) {
-    let Some(storage) = &self.inner.storage else {
+    let Some(storage) = &self.storage else {
       return;
     };
     if let Some(file_cache) = &storage.idle_file_cache {
@@ -125,36 +98,15 @@ impl Cache {
     }
   }
 
-  pub fn store_meta(&self, meta: Meta) {
-    let Some(storage) = &self.inner.storage else {
-      return;
-    };
-    if let Some(file_cache) = &storage.idle_file_cache {
-      file_cache.store_meta(meta);
-    }
-  }
-
-  pub fn restore_meta(&self) -> Result<Option<Meta>> {
-    let Some(storage) = &self.inner.storage else {
-      return Ok(None);
-    };
-    if let Some(file_cache) = &storage.idle_file_cache {
-      file_cache.restore_meta()
-    } else {
-      Ok(None)
-    }
-  }
-
   pub fn has_file_cache(&self) -> bool {
     self
-      .inner
       .storage
       .as_ref()
       .is_some_and(|storage| storage.idle_file_cache.is_some())
   }
 
   pub fn begin_idle(&self, build_time: Duration) {
-    let Some(storage) = &self.inner.storage else {
+    let Some(storage) = &self.storage else {
       return;
     };
     if let Some(memory_cache) = &storage.memory_cache {
@@ -166,7 +118,7 @@ impl Cache {
   }
 
   pub fn end_idle(&self) {
-    let Some(storage) = &self.inner.storage else {
+    let Some(storage) = &self.storage else {
       return;
     };
     if let Some(file_cache) = &storage.idle_file_cache {
@@ -175,7 +127,7 @@ impl Cache {
   }
 
   pub async fn shutdown(&self) {
-    let Some(storage) = &self.inner.storage else {
+    let Some(storage) = &self.storage else {
       return;
     };
     if let Some(memory_cache) = &storage.memory_cache {
@@ -184,5 +136,34 @@ impl Cache {
     if let Some(file_cache) = &storage.idle_file_cache {
       file_cache.shutdown().await;
     }
+  }
+}
+
+/// A compiler's view of shared cache storage.
+#[derive(Debug, Clone)]
+pub struct CompilerCache {
+  cache: Arc<Cache>,
+  compiler_path: Arc<str>,
+}
+
+impl Deref for CompilerCache {
+  type Target = Cache;
+
+  fn deref(&self) -> &Self::Target {
+    &self.cache
+  }
+}
+
+impl CompilerCache {
+  pub fn new(cache: Arc<Cache>, compiler_path: Arc<str>) -> Self {
+    Self {
+      cache,
+      compiler_path,
+    }
+  }
+
+  pub fn facade(&self, name: &str) -> CacheFacade {
+    let cache_name = [self.compiler_path.as_ref(), name].join("|");
+    CacheFacade::new(Arc::clone(&self.cache), cache_name)
   }
 }

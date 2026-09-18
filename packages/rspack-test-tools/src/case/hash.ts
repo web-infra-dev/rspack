@@ -35,7 +35,7 @@ const creator = new HashCaseCreator({
         configMultiCompiler(
           context,
           name,
-          ['rspack.config.js', 'webpack.config.js'],
+          ['rspack.config.mjs', 'rspack.config.js'],
           defaultOptions,
           overrideOptions,
         );
@@ -119,7 +119,7 @@ function check(env: ITestEnv, context: ITestContext, name: string) {
     testConfig.validate(stats);
   } else {
     throw new Error(
-      'HashTestCases should have test.config.js and a validate method',
+      'HashTestCases should have a test.config file and a validate method',
     );
   }
 }

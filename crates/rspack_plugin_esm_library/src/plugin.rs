@@ -28,7 +28,11 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_intern::Atom;
 use rspack_plugin_javascript::{
   JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
-  dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
+  dependency::{
+    CommonJsExportRequireDependencyTemplate, CommonJsFullRequireDependencyTemplate,
+    CommonJsRequireDependencyTemplate, ImportDependencyTemplate, RequireHeaderDependencyTemplate,
+  },
+  parser_and_generator::JavaScriptParserAndGenerator,
 };
 use rspack_plugin_rslib::{
   dyn_import_external::cutout_dyn_import_externals,
@@ -41,7 +45,14 @@ use tokio::sync::RwLock;
 
 use crate::{
   chunk_link::ChunkLinkContext,
-  dependency::dyn_import::DynamicImportDependencyTemplate,
+  dependency::{
+    ExternalBindingBailout,
+    commonjs_external::{
+      DirectCommonJsDependencyTemplate, DirectCommonJsExternalDependencies,
+      DirectRequireHeaderDependencyTemplate, cutout_commonjs_externals,
+    },
+    dyn_import::DynamicImportDependencyTemplate,
+  },
   esm_lib_parser_plugin::EsmLibParserPlugin,
   optimize_chunks::{
     analyze_dyn_import_targets, assign_dyn_import_chunk_short_names, ensure_entry_exports,
@@ -73,6 +84,7 @@ pub struct EsmLibraryPlugin {
   pub(crate) strict_export_chunks: AtomicRefCell<FxHashSet<ChunkUkey>>,
   pub(crate) all_dyn_targets: AtomicRefCell<IdentifierSet>,
   pub(crate) namespace_targets: AtomicRefCell<IdentifierSet>,
+  pub(crate) direct_commonjs_external_dependencies: DirectCommonJsExternalDependencies,
   /// module_id → namespace export name in the chunk, for modules whose exports
   /// were renamed in a multi-module chunk. Written during link, read during code generation.
   pub(crate) dyn_import_ns_map: Arc<AtomicRefCell<IdentifierMap<Atom>>>,
@@ -83,6 +95,7 @@ impl EsmLibraryPlugin {
     Self::new_inner(
       preserve_modules,
       split_chunks,
+      Default::default(),
       Default::default(),
       Default::default(),
       Default::default(),
@@ -269,6 +282,10 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
+  compilation.set_dependency_template(
+    ExternalBindingBailout::template_type(),
+    Arc::new(ExternalBindingBailout),
+  );
   let hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   let mut hooks = hooks.write().await;
   hooks
@@ -280,6 +297,28 @@ async fn compilation(
     ImportDependencyTemplate::template_type(),
     Arc::new(DynamicImportDependencyTemplate {
       dyn_import_ns_map: self.dyn_import_ns_map.clone(),
+    }),
+  );
+  for template_type in [
+    CommonJsRequireDependencyTemplate::template_type(),
+    CommonJsExportRequireDependencyTemplate::template_type(),
+    CommonJsFullRequireDependencyTemplate::template_type(),
+  ] {
+    let template = compilation.get_dependency_template(template_type.clone());
+    compilation.set_dependency_template(
+      template_type,
+      Arc::new(DirectCommonJsDependencyTemplate {
+        direct_dependencies: self.direct_commonjs_external_dependencies.clone(),
+        template,
+      }),
+    );
+  }
+  let require_header_template =
+    compilation.get_dependency_template(RequireHeaderDependencyTemplate::template_type());
+  compilation.set_dependency_template(
+    RequireHeaderDependencyTemplate::template_type(),
+    Arc::new(DirectRequireHeaderDependencyTemplate {
+      template: require_header_template,
     }),
   );
   let worker_template = compilation.get_dependency_template(
@@ -789,7 +828,8 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   Ok(None)
 }
 
-#[plugin_hook(CompilationOptimizeDependencies for EsmLibraryPlugin)]
+// Cut out placement edges only after dependency optimizers have settled.
+#[plugin_hook(CompilationOptimizeDependencies for EsmLibraryPlugin, stage = i32::MAX)]
 async fn optimize_dependencies(
   &self,
   compilation: &Compilation,
@@ -798,6 +838,8 @@ async fn optimize_dependencies(
   exports_info_artifact: &mut ExportsInfoArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
+  let direct_dependencies = cutout_commonjs_externals(build_module_graph_artifact);
+  *self.direct_commonjs_external_dependencies.borrow_mut() = direct_dependencies;
   cutout_dyn_import_externals(
     false,
     compilation.options.output.module,

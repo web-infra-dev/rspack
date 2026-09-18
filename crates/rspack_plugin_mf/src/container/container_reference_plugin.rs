@@ -72,7 +72,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
         && (request.len() == key_len || request[key_len..].starts_with('/'))
       {
         let internal_request = &request[key_len..];
-        let runtime_mode = data.options.experiments.runtime_mode;
+        let runtime_mode = data.build_context.compiler_options.experiments.runtime_mode;
         let namespace = module_identifier_namespace(runtime_mode);
         let remote = RemoteModule::new(
           request.to_owned(),

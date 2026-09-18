@@ -4,7 +4,10 @@ import fs from 'fs-extra';
 import merge from 'rspack-merge';
 import { ECompilerEvent } from '../compiler';
 import { readConfigFile } from '../helper';
-import { checkArrayExpectation } from '../helper/legacy/checkArrayExpectation';
+import {
+  checkArrayExpectation,
+  findExpectationFile,
+} from '../helper/legacy/checkArrayExpectation';
 import { copyDiff } from '../helper/legacy/copyDiff';
 import { WebRunner } from '../runner';
 import { BasicCaseCreator } from '../test/creator';
@@ -50,7 +53,7 @@ export function createWatchInitialProcessor(
       const testConfig = context.getTestConfig();
       const multiCompilerOptions = [];
       const caseOptions: RspackOptions[] = readConfigFile(
-        ['rspack.config.js', 'webpack.config.js'].map((i) =>
+        ['rspack.config.mjs', 'rspack.config.js'].map((i) =>
           context.getSource(i),
         ),
         context,
@@ -201,9 +204,10 @@ export function createWatchInitialProcessor(
           );
         }
         if (
-          fs.existsSync(context.getSource(`${watchContext.step}/errors.js`)) ||
-          fs.existsSync(
-            context.getSource(`${watchContext.step}/warnings.js`),
+          findExpectationFile(context.getSource(watchContext.step), 'errors') ||
+          findExpectationFile(
+            context.getSource(watchContext.step),
+            'warnings',
           ) ||
           stats.hasErrors() ||
           stats.hasWarnings()
@@ -244,7 +248,7 @@ export function createWatchInitialProcessor(
       );
 
       // clear error if checked
-      if (fs.existsSync(context.getSource('errors.js'))) {
+      if (findExpectationFile(context.getSource(), 'errors')) {
         context.clearError();
       }
 

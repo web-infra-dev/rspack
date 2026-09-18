@@ -1,7 +1,6 @@
 use rayon::prelude::*;
 use rspack_collections::IdentifierSet;
 use rspack_core::{ChunkUkey, ModuleIdentifier, SourceType};
-use rustc_hash::FxHashSet;
 
 use super::ModuleGroupMap;
 use crate::{
@@ -81,6 +80,12 @@ pub(crate) fn remove_min_size_violating_modules<T: std::fmt::Display>(
     return module_group.modules.is_empty();
   }
 
+  // A group covered entirely by violating types will be discarded. Partial
+  // matches still use the original set and its removal order below.
+  if module_group.has_only_source_types(&violating_source_types) {
+    return true;
+  }
+
   // Remove modules having violating SourceType
   let violating_modules =
     module_group.get_source_types_modules(&violating_source_types, module_sizes);
@@ -134,7 +139,7 @@ impl SplitChunksPlugin {
 
       let mut has_non_zero_size = false;
       let mut total_size_reduction = 0.0;
-      let mut add_module_reduction = |module: &ModuleIdentifier, chunks: &FxHashSet<ChunkUkey>| {
+      let mut add_module_reduction = |module: &ModuleIdentifier, source_chunk_count: usize| {
         let Some(size) = module_sizes
           .get(module)
           .and_then(|module_sizes| module_sizes.get(ty))
@@ -146,21 +151,20 @@ impl SplitChunksPlugin {
         }
 
         has_non_zero_size = true;
-        let source_chunk_count = chunks
-          .iter()
-          .filter(|chunk| **chunk != destination_chunk)
-          .count();
         total_size_reduction += size * source_chunk_count as f64;
       };
       match module_chunks {
         ModuleChunkMap::Shared { modules, chunks } => {
+          let source_chunk_count = chunks.len() - usize::from(chunks.contains(&destination_chunk));
           for module in modules {
-            add_module_reduction(module, chunks);
+            add_module_reduction(module, source_chunk_count);
           }
         }
         ModuleChunkMap::ByModule(module_chunks) => {
           for (module, chunks) in module_chunks {
-            add_module_reduction(module, chunks);
+            let source_chunk_count =
+              chunks.len() - usize::from(chunks.contains(&destination_chunk));
+            add_module_reduction(module, source_chunk_count);
           }
         }
       }
@@ -217,12 +221,16 @@ impl SplitChunksPlugin {
       })
       .collect::<Vec<_>>();
 
-    invalidated_module_groups.into_iter().for_each(|key| {
-      tracing::debug!(
-        "ModuleGroup({}) is removed. Reason: empty modules cause by `minSize` checking",
-        key,
-      );
-      module_group_map.swap_remove(&key);
-    });
+    let removed = invalidated_module_groups
+      .into_iter()
+      .filter_map(|key| {
+        tracing::debug!(
+          "ModuleGroup({}) is removed. Reason: empty modules cause by `minSize` checking",
+          key,
+        );
+        module_group_map.swap_remove(&key)
+      })
+      .collect::<Vec<_>>();
+    removed.into_par_iter().for_each(drop);
   }
 }

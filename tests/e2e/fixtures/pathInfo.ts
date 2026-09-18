@@ -1,6 +1,6 @@
 import path from 'node:path';
 import fs from 'fs-extra';
-import type { Fixtures } from '@playwright/test';
+import type { Fixtures } from 'rstack/test';
 
 type PathInfo = {
   testFile: string;
@@ -38,8 +38,11 @@ export async function calcPathInfo(
 }
 
 export const pathInfoFixtures: Fixtures<PathInfoFixtures> = {
-  pathInfo: async ({ page: _ }: any, use, { file, workerIndex }) => {
-    const pathInfo: PathInfo = await calcPathInfo(file, String(workerIndex));
+  pathInfo: async ({ task }, use) => {
+    const pathInfo: PathInfo = await calcPathInfo(
+      task.filepath!,
+      process.env.RSTEST_WORKER_ID!,
+    );
     await use(pathInfo);
     await fs.remove(pathInfo.tempProjectDir);
   },

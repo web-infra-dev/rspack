@@ -1,5 +1,6 @@
 import path from 'node:path';
-import rspack, {
+import {
+  rspack,
   type RspackOptions,
   type Stats,
   type StatsCompilation,
@@ -52,7 +53,7 @@ export function createHotProcessor(
       options = await config(
         context,
         name,
-        ['rspack.config.js', 'webpack.config.js'],
+        ['rspack.config.mjs', 'rspack.config.js'],
         options,
       );
       overrideOptions(context, options, target, updatePlugin);

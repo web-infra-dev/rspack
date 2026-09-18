@@ -1869,8 +1869,10 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_do_while_statement(&mut self, stmt: &DoWhileStmt) {
-    self.walk_nested_statement(&stmt.body);
-    self.walk_expression(&stmt.test);
+    self.in_block_scope(false, |this| {
+      this.walk_nested_statement(&stmt.body);
+      this.walk_expression(&stmt.test);
+    });
   }
 
   fn walk_block_statement(&mut self, stmt: &BlockStmt) {

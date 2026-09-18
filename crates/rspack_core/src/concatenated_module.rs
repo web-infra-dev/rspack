@@ -801,7 +801,7 @@ impl Module for ConcatenatedModule {
   /// the compilation is asserted to be `Some(Compilation)`, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L394-L418
   async fn build(
     mut self: Box<Self>,
-    _build_context: BuildContext,
+    _build_context: Arc<BuildContext>,
     compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
     let compilation = compilation.expect("should pass compilation");
@@ -3028,11 +3028,10 @@ pub fn collect_ident<'a>(
       }
     }
 
-    /// https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1173-L1197
+    /// Reserve every class expression's inner name, even without a superclass,
+    /// so renaming an outer binding cannot make it captured by the class scope.
     fn visit_class_expr(&mut self, node: &ClassExpr<'a>) {
-      if let Some(ident) = &node.ident
-        && node.class.super_class.is_some()
-      {
+      if let Some(ident) = &node.ident {
         self.ids.push(NewConcatenatedModuleIdent {
           id: ident.as_ref().clone_in(self.allocator),
           shorthand: false,

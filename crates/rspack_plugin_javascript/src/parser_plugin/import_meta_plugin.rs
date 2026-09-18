@@ -39,6 +39,7 @@ use crate::{
     AllowedMemberTypes, ExportedVariableInfo, ExprRef, JavascriptParser, MemberExpressionInfo,
     RootName, context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
     get_non_optional_member_chain_from_expr, member_property_to_atom,
+    resolve_call_trailing_comma_range,
   },
 };
 
@@ -393,6 +394,10 @@ impl ImportMetaPlugin {
     let import_meta_resolve_header_dependency = BoxDependency::new(
       ImportMetaResolveHeaderDependency::new(callee_span.into(), loc),
     );
+
+    if let Some(range) = resolve_call_trailing_comma_range(parser, call_expr) {
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(range, ")".into())));
+    }
 
     if param.is_conditional() {
       for option in param.options() {

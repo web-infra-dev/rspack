@@ -1,0 +1,13 @@
+/** @type {import("@rspack/core").Configuration} */
+export default {
+  module: {
+    parser: {
+      javascript: {
+        exportsPresence: 'auto',
+      },
+    },
+  },
+  experiments: {
+    asyncWebAssembly: true,
+  },
+};

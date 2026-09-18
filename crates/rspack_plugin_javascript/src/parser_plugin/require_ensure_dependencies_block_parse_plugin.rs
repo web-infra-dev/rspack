@@ -106,7 +106,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
         None
       },
     ))];
-    // TODO: Webpack sets `parser.state.current = depBlock`, but rspack doesn't support nested block yet.
     let mut failed = false;
     parser.in_function_scope(true, std::iter::empty(), |_| {
       for item in dependencies_items {
@@ -123,7 +122,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
     if failed {
       return None;
     }
-    deps = parser.collect_dependencies_for_block(parser.next_block_idx(), deps, |parser| {
+    let block_idx = parser.reserve_block();
+    deps = parser.collect_dependencies_for_block(block_idx, deps, |parser| {
       if let Some(success_expr) = &success_expr {
         let old_terminated = parser.terminated;
         match success_expr.func {
@@ -147,7 +147,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
     block.set_group_options(GroupOptions::ChunkGroup(
       ChunkGroupOptions::default().name_optional(chunk_name),
     ));
-    parser.add_block(Box::new(block));
+    parser.set_block(block_idx, Box::new(block));
 
     if success_expr.is_none() {
       parser.walk_expression(success_arg);

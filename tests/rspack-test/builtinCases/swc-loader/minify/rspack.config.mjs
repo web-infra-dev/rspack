@@ -1,0 +1,31 @@
+/** @type {import("@rspack/core").Configuration} */
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              detectSyntax: 'auto',
+              jsc: {
+                target: 'es2015',
+                preserveAllComments: true,
+                minify: {
+                  compress: true,
+                },
+                parser: {
+                  dynamicImport: true,
+                  classProperty: true,
+                  exportNamespaceFrom: true,
+                  exportDefaultFrom: true,
+                },
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+};

@@ -38,6 +38,7 @@ use crate::{
     CallHooksName, ExportedVariableInfo, JavascriptParser, StatementPath, TagInfoData,
     VariableDeclaration, VariableDeclarationKind, VariableInfo, VariableInfoFlags, context_reg_exp,
     create_context_dependency, create_traceable_error, expr_name, get_non_optional_part,
+    resolve_call_trailing_comma_range,
   },
 };
 
@@ -1565,6 +1566,10 @@ impl CommonJsImportsParserPlugin {
     let loc = parser.to_dependency_location(range);
     let require_resolve_header_dependency =
       BoxDependency::new(RequireResolveHeaderDependency::new(range, loc));
+
+    if let Some(range) = resolve_call_trailing_comma_range(parser, call_expr) {
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(range, ")".into())));
+    }
 
     if param.is_conditional() {
       for option in param.options() {

@@ -4,8 +4,8 @@ use std::{
   sync::{Arc, LazyLock, atomic::AtomicU32},
 };
 
+use fixedbitset::FixedBitSet;
 use itertools::Itertools;
-use num_bigint::BigUint;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnostic, Error, Result, error};
@@ -165,9 +165,9 @@ pub struct ChunkGroupInfo {
   pub chunk_loading: bool,
   pub async_chunks: bool,
   pub runtime: Arc<RuntimeSpec>,
-  pub min_available_modules: Arc<BigUint>,
+  pub min_available_modules: Arc<FixedBitSet>,
   pub min_available_modules_init: bool,
-  pub available_modules_to_be_merged: Vec<Arc<BigUint>>,
+  pub available_modules_to_be_merged: Vec<Arc<FixedBitSet>>,
 
   pub skipped_items: IdentifierIndexSet,
   pub skipped_module_connections: FxIndexSet<(ModuleIdentifier, ConnectionIdList)>,
@@ -180,7 +180,7 @@ pub struct ChunkGroupInfo {
 
   // set of modules available including modules from this chunk group
   // A derived attribute, therefore utilizing interior mutability to manage updates
-  resulting_available_modules: Option<Arc<BigUint>>,
+  resulting_available_modules: Option<Arc<FixedBitSet>>,
 
   pub outgoing_blocks: AsyncDependenciesBlockIdentifierSet,
 }
@@ -215,7 +215,7 @@ impl ChunkGroupInfo {
   fn calculate_resulting_available_modules(
     &mut self,
     chunk_group: &ChunkGroup,
-    mask_by_chunk: &HashMap<ChunkUkey, BigUint>,
+    mask_by_chunk: &HashMap<ChunkUkey, FixedBitSet>,
   ) {
     if self.resulting_available_modules.is_some() {
       return;
@@ -351,7 +351,7 @@ pub(crate) struct CodeSplitter {
   pub(crate) named_async_entrypoints: HashMap<String, CgiUkey>,
   pub(crate) block_modules_runtime_map: BlockModulesRuntimeMap,
   pub(crate) ordinal_by_module: IdentifierMap<u64>,
-  pub(crate) mask_by_chunk: HashMap<ChunkUkey, BigUint>,
+  pub(crate) mask_by_chunk: HashMap<ChunkUkey, FixedBitSet>,
 
   stat_processed_queue_items: u32,
   stat_processed_blocks: u32,
@@ -475,9 +475,16 @@ impl CodeSplitter {
     let module_graph = compilation.get_module_graph();
     for block_id in current_blocks {
       let block = module_graph.block_by_id_expect(block_id);
-      // Nested async blocks are not constructed today. Keep the reuse path
-      // conservative if that changes.
-      if !block.get_blocks().is_empty() {
+      // Nested async blocks need recursive validation, including children removed
+      // since the previous compilation. Keep the reuse path conservative.
+      if !block.get_blocks().is_empty()
+        || self
+          .prepared_blocks_map
+          .get(&DependenciesBlockIdentifier::AsyncDependenciesBlock(
+            *block_id,
+          ))
+          .is_some_and(|blocks| !blocks.is_empty())
+      {
         return false;
       }
 
@@ -634,7 +641,10 @@ impl CodeSplitter {
     if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
       mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
     }
-    self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
+    self.mask_by_chunk.insert(
+      chunk_ukey,
+      FixedBitSet::with_capacity(self.ordinal_by_module.len()),
+    );
     let runtime = get_entry_runtime(name, options, &compilation.entries);
     let chunk = compilation
       .build_chunk_graph_artifact
@@ -691,7 +701,9 @@ impl CodeSplitter {
       )
     };
 
-    if options.depend_on.is_none() && !matches!(&options.runtime, Some(EntryRuntime::String(_))) {
+    if options.depend_on.is_none()
+      && !matches!(&options.runtime, Some(EntryRuntime::String(runtime)) if !runtime.is_empty())
+    {
       entrypoint.set_runtime_chunk(chunk.ukey());
     }
 
@@ -888,7 +900,9 @@ Remove the 'runtime' option from the entrypoint."
           entry_point.add_parent(parent);
         }
       }
-    } else if let Some(EntryRuntime::String(runtime)) = &options.runtime {
+    } else if let Some(EntryRuntime::String(runtime)) = &options.runtime
+      && !runtime.is_empty()
+    {
       let ukey = compilation
         .build_chunk_graph_artifact
         .entrypoints
@@ -914,7 +928,7 @@ Remove the 'runtime' option from the entrypoint."
 It's not valid to use other entrypoints as runtime chunk.
 Did you mean to use 'dependOn: \"{runtime}\"' instead to allow using entrypoint '{name}' within the runtime of entrypoint '{runtime}'? For this '{runtime}' must always be loaded when '{name}' is used.
 Or do you want to use the entrypoints '{name}' and '{runtime}' independently on the same page with a shared runtime? In this case give them both the same value for the 'runtime' option. It must be a name not already used by an entrypoint."
-                              ),
+              ),
             );
             diagnostic.chunk = Some(entry_chunk.as_u32());
             runtime_errors.push(diagnostic);
@@ -934,7 +948,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
             mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
           }
-          self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
+          self.mask_by_chunk.insert(
+            chunk_ukey,
+            FixedBitSet::with_capacity(self.ordinal_by_module.len()),
+          );
           let chunk = compilation
             .build_chunk_graph_artifact
             .chunk_by_ukey
@@ -1410,14 +1427,14 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .mask_by_chunk
       .get(&item.chunk)
       .expect("chunk must in mask_by_chunk")
-      .bit(module_ordinal)
+      .contains(module_ordinal as usize)
     {
       return;
     }
 
     let cgi = self.chunk_group_info_mut(&item.chunk_group_info);
 
-    if cgi.min_available_modules.bit(module_ordinal) {
+    if cgi.min_available_modules.contains(module_ordinal as usize) {
       cgi.skipped_items.insert(item.module);
       return;
     }
@@ -1430,7 +1447,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .mask_by_chunk
       .get_mut(&item.chunk)
       .expect("chunk must in mask_by_chunk");
-    chunk_mask.set_bit(module_ordinal, true);
+    chunk_mask.insert(module_ordinal as usize);
 
     self.add_and_enter_module(
       &AddAndEnterModule {
@@ -1461,7 +1478,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     });
     let cgi = self.chunk_group_info_mut(&item.chunk_group_info);
 
-    if cgi.min_available_modules.bit(module_ordinal) {
+    if cgi.min_available_modules.contains(module_ordinal as usize) {
       cgi.skipped_items.insert(item.module);
       return;
     }
@@ -1475,7 +1492,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .mask_by_chunk
       .get_mut(&item.chunk)
       .expect("chunk must in mask_by_chunk");
-    chunk_mask.set_bit(module_ordinal, true);
+    chunk_mask.insert(module_ordinal as usize);
 
     self.enter_module(
       &EnterModule {
@@ -1676,7 +1693,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         }
       }
 
-      if active_state.is_true() && min_available_modules.bit(ordinal) {
+      if active_state.is_true() && min_available_modules.contains(ordinal as usize) {
         // already in parent chunks, skip it for now
         chunk_group_info.skipped_items.insert(*module);
         continue;
@@ -1818,7 +1835,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .build_chunk_graph_artifact
         .chunk_graph
         .add_chunk(chunk_ukey);
-      self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
+      self.mask_by_chunk.insert(
+        chunk_ukey,
+        FixedBitSet::with_capacity(self.ordinal_by_module.len()),
+      );
       let module_graph = compilation.get_module_graph();
       let block = module_graph
         .block_by_id(&block_id)
@@ -2223,7 +2243,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           let ordinal = ordinal_by_module.get(module).unwrap_or_else(|| {
             panic!("expected a module ordinal for identifier '{module}', but none was found.")
           });
-          if !min_available_modules.bit(*ordinal) {
+          if !min_available_modules.contains(*ordinal as usize) {
             queue.push(QueueAction::AddAndEnterModule(AddAndEnterModule {
               module: *module,
               chunk_group_info: cgi_ukey,
@@ -2268,7 +2288,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
               let module_ordinal = ordinal_by_module.get(module).unwrap_or_else(|| {
                 panic!("expected a module ordinal for identifier '{module}', but none was found.")
               });
-              if min_available_modules.bit(*module_ordinal) {
+              if min_available_modules.contains(*module_ordinal as usize) {
                 skipped_items.insert(*module);
                 return false;
               }
@@ -2336,11 +2356,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
   }
 
-  fn _debug_available_modules(&self, available_modules: &BigUint) -> IdentifierSet {
+  fn _debug_available_modules(&self, available_modules: &FixedBitSet) -> IdentifierSet {
     let mut set: IdentifierSet = Default::default();
 
     for (module, ordinal) in &self.ordinal_by_module {
-      if available_modules.bit(*ordinal) {
+      if available_modules.contains(*ordinal as usize) {
         set.insert(*module);
       }
     }
@@ -2387,7 +2407,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .clone()
           .expect("should have resulting available modules")
       } else {
-        let mut available_modules = BigUint::from(0u32);
+        let mut available_modules = FixedBitSet::with_capacity(self.ordinal_by_module.len());
 
         // combine min_available_modules from all resulting_available_modules
         for source_ukey in source_ukeys {
@@ -2481,7 +2501,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
                 continue;
               }
 
-              let merged = cgi.min_available_modules.as_ref() & modules_to_be_merged.as_ref();
+              let mut merged = cgi.min_available_modules.as_ref().clone();
+              merged.intersect_with(modules_to_be_merged.as_ref());
               if &merged != cgi.min_available_modules.as_ref() {
                 cgi.min_available_modules = Arc::new(merged);
                 changed = true;
@@ -2711,7 +2732,14 @@ fn extract_block_modules(
   let mut module_map: DependenciesBlockIdentifierMap<BlockModules> =
     DependenciesBlockIdentifierMap::with_capacity_and_hasher(blocks.len() + 1, Default::default());
   module_map.insert(block, Vec::new());
-  module_map.extend(blocks.iter().map(|block| ((*block).into(), Vec::new())));
+  let mut queue = blocks.to_vec();
+  while let Some(block) = queue.pop() {
+    let block = block.into();
+    module_map.insert(block, Vec::new());
+    if let Some(blocks) = prepared_blocks_map.get(&block) {
+      queue.extend_from_slice(blocks);
+    }
+  }
 
   if let Some(connection_map) = connection_map {
     for connection in connection_map {

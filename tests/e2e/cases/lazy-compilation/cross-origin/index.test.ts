@@ -1,10 +1,10 @@
 import http from 'node:http';
 import path from 'node:path';
-import { test as base, expect } from '@playwright/test';
+import { pathToFileURL } from 'node:url';
+import { test as base, expect } from '@/fixtures/base';
 import fs from 'fs-extra';
 import { type Compiler, type Configuration, rspack } from '@rspack/core';
 import { RspackDevServer } from '@rspack/dev-server';
-import { pathToFileURL } from 'node:url';
 import { calcPathInfo } from '@/fixtures/pathInfo';
 
 // Create a separate lazy compilation server on a different port (cross-origin)
@@ -37,19 +37,19 @@ const test = base.extend<{
   };
 }>({
   crossOriginSetup: [
-    async ({ page }, use, testInfo) => {
-      const workerId = String(testInfo.workerIndex);
-      const { tempProjectDir } = await calcPathInfo(testInfo.file, workerId);
+    async ({ page, task }, use) => {
+      const workerId = process.env.RSTEST_WORKER_ID!;
+      const { tempProjectDir } = await calcPathInfo(task.filepath!, workerId);
 
       // Use different ports for frontend and lazy compilation server
       const basePort = 8500;
-      const frontendPort = basePort + testInfo.workerIndex;
+      const frontendPort = basePort + Number(workerId);
       const lazyCompilationPort = frontendPort + 100;
 
       // Load and modify config
       const configPath = path.resolve(tempProjectDir, 'rspack.config.js');
       const { default: config }: { default: Configuration } = await import(
-        pathToFileURL(configPath).href
+        /* webpackIgnore: true */ pathToFileURL(configPath).href
       );
 
       config.context = tempProjectDir;

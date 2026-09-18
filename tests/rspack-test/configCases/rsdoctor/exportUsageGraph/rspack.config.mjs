@@ -1,0 +1,442 @@
+import path from 'node:path';
+import { rspack } from '@rspack/core';
+
+const {
+  experiments: { RsdoctorPlugin },
+} = rspack;
+
+function normalizeRequest(request) {
+  return request.replaceAll('\\', '/');
+}
+
+/** @type {import("@rspack/core").Configuration} */
+export default {
+  mode: 'production',
+  optimization: {
+    concatenateModules: false,
+    usedExports: true,
+  },
+  output: {
+    assetModuleFilename: '[path][name][ext]',
+  },
+  module: {
+    parser: {
+      javascript: {
+        strictThisContextOnImports: true,
+        reexportExportsPresence: false,
+      },
+    },
+  },
+  plugins: [
+    new RsdoctorPlugin({
+      moduleGraphFeatures: ['graph'],
+      chunkGraphFeatures: false,
+      exportUsageGraph: true,
+    }),
+    {
+      apply(compiler) {
+        let moduleGraphCalled = false;
+        compiler.hooks.compilation.tap(
+          'TestPlugin::ExportUsageGraph',
+          (compilation) => {
+            const hooks = RsdoctorPlugin.getCompilationHooks(compilation);
+            hooks.moduleGraph.tap(
+              'TestPlugin::ExportUsageGraph',
+              (moduleGraph) => {
+                moduleGraphCalled = true;
+                const modulePathByUkey = new Map(
+                  moduleGraph.modules.map((module) => [
+                    module.ukey,
+                    normalizeRequest(module.path),
+                  ]),
+                );
+                const edges = moduleGraph.exportUsageEdges
+                  .map(
+                    ([
+                      originModule,
+                      originExport,
+                      targetModule,
+                      targetExport,
+                    ]) => ({
+                      originModulePath: modulePathByUkey.get(originModule),
+                      originExport,
+                      targetModulePath: modulePathByUkey.get(targetModule),
+                      targetExport,
+                    }),
+                  )
+                  .sort((a, b) =>
+                    `${a.originModulePath}:${a.originExport}:${a.targetModulePath}:${a.targetExport}` >
+                    `${b.originModulePath}:${b.originExport}:${b.targetModulePath}:${b.targetExport}`
+                      ? 1
+                      : -1,
+                  );
+                expect(edges).toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'index.js'),
+                  ),
+                  originExport: null,
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'lib.js'),
+                  ),
+                  targetExport: ['foo'],
+                });
+                expect(edges).toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'lib.js'),
+                  ),
+                  originExport: ['foo'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'shared.js'),
+                  ),
+                  targetExport: ['bar'],
+                });
+                expect(edges).toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'lib.js'),
+                  ),
+                  originExport: ['foo'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'shared.js'),
+                  ),
+                  targetExport: ['namespaceFoo'],
+                });
+                expect(edges).toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'lib.js'),
+                  ),
+                  originExport: ['foo'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'star-a.js'),
+                  ),
+                  targetExport: ['multiFoo'],
+                });
+                expect(edges).toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'lib.js'),
+                  ),
+                  originExport: ['foo'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'star-b.js'),
+                  ),
+                  targetExport: ['multiBar'],
+                });
+                expect(edges).toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'index.js'),
+                  ),
+                  originExport: null,
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'json-user.js'),
+                  ),
+                  targetExport: ['getJsonName'],
+                });
+                expect(edges).toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'json-user.js'),
+                  ),
+                  originExport: ['getJsonName'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'data.json'),
+                  ),
+                  targetExport: ['name'],
+                });
+                expect(edges).toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'cjs-user.js'),
+                  ),
+                  originExport: ['getCjsFoo'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'cjs.js'),
+                  ),
+                  targetExport: null,
+                });
+                expect(edges).toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'callable-user.js'),
+                  ),
+                  originExport: ['callMethod'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'callable-source.js'),
+                  ),
+                  targetExport: ['callableObj'],
+                });
+                expect(edges).toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'namespace-user.js'),
+                  ),
+                  originExport: ['getNamespaceValue'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'namespace-source.js'),
+                  ),
+                  targetExport: ['nsValue'],
+                });
+                expect(edges).toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'namespace-whole-user.js'),
+                  ),
+                  originExport: ['getNamespaceObject'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'namespace-source.js'),
+                  ),
+                  targetExport: null,
+                });
+                expect(edges).toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'normal-user.js'),
+                  ),
+                  originExport: ['getNormalReexportUsed'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'normal-source.js'),
+                  ),
+                  targetExport: ['obj', 'used'],
+                });
+                expect(edges).toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'overlap-star-user.js'),
+                  ),
+                  originExport: ['getOverlapStar'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'overlap-star-a.js'),
+                  ),
+                  targetExport: ['overlapFoo'],
+                });
+                expect(edges).toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'overlap-star-user.js'),
+                  ),
+                  originExport: ['getOverlapStar'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'overlap-star-b.js'),
+                  ),
+                  targetExport: ['overlapBar'],
+                });
+                expect(edges).toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'star-nested-user.js'),
+                  ),
+                  originExport: ['getStarNestedUsed'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'star-nested-source.js'),
+                  ),
+                  targetExport: ['nestedObj', 'used'],
+                });
+                expect(edges).toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'url-user.js'),
+                  ),
+                  originExport: ['getAssetUrl'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'url-asset.wasm'),
+                  ),
+                  targetExport: null,
+                });
+                expect(edges).not.toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'json-user.js'),
+                  ),
+                  originExport: ['getJsonName'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'data.json'),
+                  ),
+                  targetExport: ['default', 'name'],
+                });
+                expect(edges).not.toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'cjs-user.js'),
+                  ),
+                  originExport: ['getCjsFoo'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'cjs.js'),
+                  ),
+                  targetExport: ['default', 'foo'],
+                });
+                expect(edges).not.toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'callable-user.js'),
+                  ),
+                  originExport: ['callMethod'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'callable-source.js'),
+                  ),
+                  targetExport: ['callableObj', 'method'],
+                });
+                expect(edges).not.toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'empty-destructure-user.js'),
+                  ),
+                  originExport: ['getEmptyDestructure'],
+                  targetModulePath: normalizeRequest(
+                    path.join(
+                      import.meta.dirname,
+                      'empty-destructure-source.js',
+                    ),
+                  ),
+                  targetExport: ['emptyDestructureValue'],
+                });
+                expect(edges).not.toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'empty-destructure-user.js'),
+                  ),
+                  originExport: ['getEmptyDestructure'],
+                  targetModulePath: normalizeRequest(
+                    path.join(
+                      import.meta.dirname,
+                      'empty-destructure-source.js',
+                    ),
+                  ),
+                  targetExport: null,
+                });
+                expect(edges).not.toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'namespace-user.js'),
+                  ),
+                  originExport: ['getNamespaceValue'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'namespace-source.js'),
+                  ),
+                  targetExport: null,
+                });
+                expect(edges).not.toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'namespace-whole-user.js'),
+                  ),
+                  originExport: ['getNamespaceObject'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'namespace-source.js'),
+                  ),
+                  targetExport: [],
+                });
+                expect(edges).not.toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'normal-user.js'),
+                  ),
+                  originExport: ['getNormalReexportUsed'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'normal-source.js'),
+                  ),
+                  targetExport: ['obj'],
+                });
+                expect(edges).not.toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'overlap-star-user.js'),
+                  ),
+                  originExport: ['getOverlapStar'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'overlap-star-b.js'),
+                  ),
+                  targetExport: ['overlapFoo'],
+                });
+                expect(edges).not.toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'star-nested-user.js'),
+                  ),
+                  originExport: ['getStarNestedUsed'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'star-nested-source.js'),
+                  ),
+                  targetExport: ['nestedObj'],
+                });
+                expect(edges).not.toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'undefined-barrel.js'),
+                  ),
+                  originExport: ['jsonNamed'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'undefined-json.json'),
+                  ),
+                  targetExport: ['foo'],
+                });
+                expect(edges).not.toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'lib.js'),
+                  ),
+                  originExport: ['foo'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'star-b.js'),
+                  ),
+                  targetExport: ['multiFoo'],
+                });
+                expect(edges).not.toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'lib.js'),
+                  ),
+                  originExport: ['foo'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'star-a.js'),
+                  ),
+                  targetExport: ['multiBar'],
+                });
+                expect(edges).not.toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'lib.js'),
+                  ),
+                  originExport: ['foo'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'shared.js'),
+                  ),
+                  targetExport: null,
+                });
+                expect(edges).not.toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'lib.js'),
+                  ),
+                  originExport: ['unusedFoo'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'shared.js'),
+                  ),
+                  targetExport: ['bar'],
+                });
+                expect(edges).not.toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'barrel.js'),
+                  ),
+                  originExport: ['unusedReexport'],
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'shared.js'),
+                  ),
+                  targetExport: ['unused'],
+                });
+                expect(edges).not.toContainEqual({
+                  originModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'star.js'),
+                  ),
+                  originExport: null,
+                  targetModulePath: normalizeRequest(
+                    path.join(import.meta.dirname, 'shared.js'),
+                  ),
+                  targetExport: null,
+                });
+
+                // Each edge appends [dependencyId, loc] (Part A). dependencyId is always a
+                // non-empty string; loc is the consuming reference site as rspack's location
+                // string (`line:col` / `line:col-endLine:endCol`), populated for real specifier
+                // references such as the named imports used inside lib.js#foo().
+                const rawEdges = moduleGraph.exportUsageEdges;
+                expect(
+                  rawEdges.every(
+                    (e) => typeof e[4] === 'string' && e[4].length > 0,
+                  ),
+                ).toBe(true);
+                const libPath = normalizeRequest(
+                  path.join(import.meta.dirname, 'lib.js'),
+                );
+                const libFooEdgesWithLoc = rawEdges.filter(
+                  (e) =>
+                    modulePathByUkey.get(e[0]) === libPath &&
+                    Array.isArray(e[1]) &&
+                    e[1].indexOf('foo') !== -1 &&
+                    typeof e[5] === 'string' &&
+                    e[5].length > 0,
+                );
+                expect(libFooEdgesWithLoc.length).toBeGreaterThan(0);
+              },
+            );
+          },
+        );
+        compiler.hooks.done.tap('TestPlugin::ExportUsageGraph', () => {
+          expect(moduleGraphCalled).toBe(true);
+        });
+      },
+    },
+  ],
+};

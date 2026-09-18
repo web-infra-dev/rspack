@@ -5,6 +5,7 @@ import.meta.webpackHot.accept(["./module.js"]);
 it("should update a simple ES module with HMR", async () => {
 	expect(greeting).toBe("Hello World!");
 	await NEXT_HMR();
+	expect(greeting).toBe("Hello HMR!");
 	const updatedModule = await import("./module.js");
 	expect(updatedModule.greeting).toBe("Hello HMR!");
 });

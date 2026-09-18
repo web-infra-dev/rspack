@@ -35,6 +35,8 @@ pub struct ThreadsafeNodeFS {
   #[napi(ts_type = "(name: string) => Promise<NodeFsStats | void>")]
   pub lstat: ThreadsafeFunction<String, Promise<Either<NodeFsStats, ()>>>,
   #[napi(ts_type = "(name: string) => Promise<string | void>")]
+  pub readlink: ThreadsafeFunction<String, Promise<Either<String, ()>>>,
+  #[napi(ts_type = "(name: string) => Promise<string | void>")]
   pub realpath: ThreadsafeFunction<String, Promise<Either<String, ()>>>,
   #[napi(ts_type = "(name: string, flags: string) => Promise<number | void>")]
   pub open: Open,

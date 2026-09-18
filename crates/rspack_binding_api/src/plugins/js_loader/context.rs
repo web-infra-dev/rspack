@@ -3,10 +3,10 @@ use std::{ptr::NonNull, sync::Arc};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_collections::Identifiable;
-use rspack_core::{LoaderContext, LoaderDependencies, Module, RunnerContext};
+use rspack_core::{Content, LoaderContext, LoaderDependencies, Module, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
-use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
+use rspack_napi::ThreadsafeOneShotRef;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::cache::JsLoaderCacheObject;
@@ -178,9 +178,9 @@ pub struct JsLoaderContext {
   pub hot: bool,
 
   /// Content maybe empty in pitching stage
-  pub content: Either<Null, Buffer>,
+  pub content: Either3<String, Buffer, Null>,
   #[napi(ts_type = "any")]
-  pub additional_data: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
+  pub additional_data: Option<ThreadsafeOneShotRef>,
   #[napi(js_name = "__internal__parseMeta")]
   pub parse_meta: HashMap<String, String>,
   pub source_map: Option<Buffer>,
@@ -198,11 +198,6 @@ pub struct JsLoaderContext {
     ts_type = "JsLoaderCache | undefined"
   )]
   pub loader_cache: Option<JsLoaderCacheObject>,
-
-  /// UTF-8 hint for `content`
-  /// - Some(true): `content` is a `UTF-8` encoded sequence
-  #[napi(js_name = "__internal__utf8Hint")]
-  pub utf8_hint: Option<bool>,
 }
 
 impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
@@ -211,6 +206,10 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
   fn try_from(
     cx: &mut rspack_core::LoaderContext<RunnerContext>,
   ) -> std::result::Result<Self, Self::Error> {
+    let additional_data = cx
+      .take_additional_data()
+      .and_then(|mut data| data.remove::<ThreadsafeOneShotRef>());
+
     let module = &cx.context.module;
 
     #[allow(clippy::unwrap_used)]
@@ -222,16 +221,14 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       ),
       hot: cx.hot,
       content: match cx.content() {
-        Some(c) => Either::B(c.to_owned().into_bytes().into()),
-        None => Either::A(Null),
+        Some(Content::String(content)) => Either3::A(content.clone()),
+        Some(Content::Buffer(content)) => Either3::B(content.clone().into()),
+        None => Either3::C(Null),
       },
       // Since js side only set parse meta, and can't read it, so we can use Default here to only bring the
       // set values from js side to rust side.
       parse_meta: Default::default(),
-      additional_data: cx
-        .additional_data()
-        .and_then(|data| data.get::<ThreadsafeJsValueRef<Unknown>>())
-        .cloned(),
+      additional_data,
       source_map: cx
         .source_map()
         .map(|v| v.to_json())
@@ -258,7 +255,6 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
               .collect(),
           )
         }),
-      utf8_hint: None,
     })
   }
 }

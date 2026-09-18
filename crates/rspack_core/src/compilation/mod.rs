@@ -86,7 +86,6 @@ use crate::{
   RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec,
   RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
   SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
-  cache::SnapshotOptions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, module_build_cache::ModuleBuildCache,
     update_module_graph,
@@ -98,7 +97,7 @@ use crate::{
   legacy_cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
-  new_cache::{Cache, CacheFacade},
+  new_cache::{CacheFacade, CompilerCache},
   to_identifier,
 };
 
@@ -239,7 +238,7 @@ pub struct Compilation {
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
-  cache: Cache,
+  cache: CompilerCache,
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
   pub file_system_info: FileSystemInfo,
   pub plugin_driver: SharedPluginDriver,
@@ -352,7 +351,7 @@ impl Compilation {
     incremental: Incremental,
     module_executor: Option<ModuleExecutor>,
     logging: CompilationLogging,
-    cache: Cache,
+    cache: CompilerCache,
     modified_files: InternedPathSet,
     removed_files: InternedPathSet,
     input_filesystem: Arc<dyn ReadableFileSystem>,
@@ -361,21 +360,17 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
-    // Incremental make reuses the previous module graph and owns its own
-    // invalidation path. Keep that fast path unchanged.
-    let module_build_cache = (options.experiments.new_cache.module
-      && !is_rebuild
-      && !matches!(&options.cache, CacheOptions::Disabled))
-    .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules")));
-    let snapshot_options = match &options.cache {
-      CacheOptions::Disabled => SnapshotOptions::default(),
-      CacheOptions::Memory { snapshot, .. } => snapshot.clone(),
-      CacheOptions::Persistent(options) => options.snapshot.clone(),
-    };
+    // Rebuilds own their invalidation path, so skip module restoration while
+    // still publishing rebuilt modules for subsequent compilations.
+    let module_build_cache = options
+      .experiments
+      .new_cache
+      .module
+      .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules"), !is_rebuild));
     let file_system_info = FileSystemInfo::new(
       input_filesystem.clone(),
       CompilationLogger::new("rspack.FileSystemInfo", logging.clone()),
-      snapshot_options,
+      options.snapshot.clone(),
       options.output.hash_function,
     );
 
@@ -428,10 +423,7 @@ impl Compilation {
       chunk_render_cache_artifact: StealCell::new(ChunkRenderCacheArtifact::new(
         match &options.cache {
           CacheOptions::Disabled => 0, // FIXME: this should be removed in future
-          CacheOptions::Memory {
-            max_generations, ..
-          } => *max_generations,
-          CacheOptions::Persistent(_) => 1,
+          _ => 1,
         },
       )),
       code_generate_cache_artifact: StealCell::new(CodeGenerateCacheArtifact::new(&options)),
