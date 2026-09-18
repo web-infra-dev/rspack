@@ -73,20 +73,25 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 
       return async (ctx: RawExternalItemFnCtx) => {
         return new Promise((resolve, reject) => {
-          const data = ctx.data();
           // Track which inputs the user function actually reads so the native
           // side only caches on the fields that can affect the result. Bit 32
           // marks a call that used `getResolve` as uncacheable.
           let observed = 0;
           let resolveUsed = false;
+          // Read fields lazily through the native ctx so unused inputs are
+          // never materialized.
+          const rawCtx = ctx as any;
+          // Older native bindings only expose the bulk `data()` accessor.
+          const lazy = typeof rawCtx.request === 'string';
+          const data = lazy ? undefined : ctx.data();
           const contextInfo = {
             get issuer() {
               observed |= 8;
-              return data.contextInfo.issuer;
+              return lazy ? rawCtx.issuer : data!.contextInfo.issuer;
             },
             get issuerLayer() {
               observed |= 16;
-              return data.contextInfo.issuerLayer ?? null;
+              return (lazy ? rawCtx.issuerLayer : data!.contextInfo.issuerLayer) ?? null;
             },
           };
           const rawResult = (
@@ -101,15 +106,15 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
             {
               get request() {
                 observed |= 1;
-                return data.request;
+                return lazy ? rawCtx.request : data!.request;
               },
               get dependencyType() {
                 observed |= 4;
-                return data.dependencyType;
+                return lazy ? rawCtx.dependencyType : data!.dependencyType;
               },
               get context() {
                 observed |= 2;
-                return data.context;
+                return lazy ? rawCtx.context : data!.context;
               },
               get contextInfo() {
                 observed |= 24;
