@@ -2,7 +2,7 @@ use std::{
   fmt::Display,
   ops::Deref,
   sync::{
-    Arc,
+    Arc, LazyLock,
     atomic::{AtomicBool, Ordering},
   },
 };
@@ -10,7 +10,7 @@ use std::{
 use async_trait::async_trait;
 use derive_more::Debug;
 use rspack_cacheable::cacheable_dyn;
-use rspack_collections::Identifier;
+use rspack_collections::{Identifier, IdentifierDashMap};
 use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::identifier::strip_zero_width_space_for_fragment;
@@ -29,18 +29,14 @@ pub struct LoaderItem<Context: Send> {
   loader: Arc<dyn Loader<Context>>,
   /// Loader identifier
   request: Identifier,
+  /// The loader request split into its path, query and fragment. Requests are shared by every
+  /// module that uses the same loader, so the parsed parts are shared through an [`Arc`] as well.
+  ///
   /// An absolute path or a virtual path for represent the loader.
   /// The absolute path is used to represent a loader stayed on the JS side.
   /// `$` split chain may be used to represent a composed loader chain from the JS side.
   /// Virtual path with a builtin protocol to represent a loader from the native side. e.g "builtin:".
-  #[allow(dead_code)]
-  path: Utf8PathBuf,
-  /// Query of a loader, starts with `?`
-  #[allow(dead_code)]
-  query: Option<String>,
-  /// Fragment of a loader, starts with `#`.
-  #[allow(dead_code)]
-  fragment: Option<String>,
+  parsed_request: Arc<ResourceParsedData>,
   /// Data shared between pitching and normal
   data: serde_json::Value,
   r#type: String,
@@ -75,12 +71,12 @@ impl<C: Send> LoaderItem<C> {
 
   #[inline]
   pub fn path(&self) -> &Utf8Path {
-    &self.path
+    &self.parsed_request.path
   }
 
   #[inline]
   pub fn query(&self) -> Option<&str> {
-    self.query.as_deref()
+    self.parsed_request.query.as_deref()
   }
 
   #[inline]
@@ -264,44 +260,18 @@ impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
 impl<C: Send> LoaderItem<C> {
   pub(crate) fn new(loader: Arc<dyn Loader<C>>, options: LoaderRunnerOptions) -> Self {
     let cache_options = options.cache.then(|| Box::new(options));
-    let ident = &**loader.identifier();
     let execution_kind = loader.execution_kind();
-    if let Some(r#type) = loader.r#type() {
-      let ResourceParsedData {
-        path,
-        query,
-        fragment,
-      } = parse_resource(ident).expect("identifier should be valid");
-      let ty = r#type.to_string();
-      return Self {
-        loader,
-        request: ident.into(),
-        path,
-        query,
-        fragment,
-        data: serde_json::Value::Null,
-        r#type: ty,
-        cache_options,
-        execution_kind,
-        pitch_executed: AtomicBool::new(false),
-        normal_executed: AtomicBool::new(false),
-        finish_called: AtomicBool::new(false),
-      };
-    }
-    let ident = loader.identifier();
-    let ResourceParsedData {
-      path,
-      query,
-      fragment,
-    } = parse_resource(&ident).expect("identifier should be valid");
+    let request = loader.identifier();
+    let parsed_request = cached_loader_request(request);
+    let r#type = loader
+      .r#type()
+      .map_or_else(String::default, ToOwned::to_owned);
     Self {
       loader,
-      request: ident,
-      path,
-      query,
-      fragment,
+      request,
+      parsed_request,
       data: serde_json::Value::Null,
-      r#type: String::default(),
+      r#type,
       cache_options,
       execution_kind,
       pitch_executed: AtomicBool::new(false),
@@ -318,8 +288,13 @@ pub struct ResourceParsedData {
   pub fragment: Option<String>,
 }
 
+/// Splits a resource into its path, query and fragment.
+///
+/// The query and the fragment keep their leading `?` and `#`. A zero-width space escapes the
+/// next character, so an escaped `?` or `#` stays part of the current segment instead of
+/// starting a new one.
 pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
-  let (path, query, fragment) = path_query_fragment(resource).ok()?;
+  let (path, query, fragment) = path_query_fragment(resource);
 
   Some(ResourceParsedData {
     path: strip_zero_width_space_for_fragment(path)
@@ -330,50 +305,128 @@ pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
   })
 }
 
+/// Loader requests are shared by every module that uses the same loader, so the parsed parts are
+/// cached instead of being parsed for each module.
+static LOADER_REQUEST_CACHE: LazyLock<IdentifierDashMap<Arc<ResourceParsedData>>> =
+  LazyLock::new(Default::default);
+
+/// Upper bound for [`LOADER_REQUEST_CACHE`]. Loader requests are a small, stable set in practice;
+/// the bound only keeps configs that generate unique requests per module from growing the cache
+/// without limit. Requests beyond the bound are parsed on demand.
+const MAX_CACHED_LOADER_REQUESTS: usize = 4096;
+
+fn cached_loader_request(request: Identifier) -> Arc<ResourceParsedData> {
+  if let Some(parsed) = LOADER_REQUEST_CACHE.get(&request) {
+    return parsed.clone();
+  }
+
+  let parsed = Arc::new(parse_resource(request.as_str()).expect("identifier should be valid"));
+  if LOADER_REQUEST_CACHE.len() < MAX_CACHED_LOADER_REQUESTS {
+    LOADER_REQUEST_CACHE.insert(request, parsed.clone());
+  }
+  parsed
+}
+
 #[cfg(not(windows))]
-fn path_query_fragment(input: &str) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
-  path_query_fragment_impl(input)
+fn path_query_fragment(input: &str) -> (&str, Option<&str>, Option<&str>) {
+  let (path_len, query, fragment) = split_path_query_fragment(input);
+  (&input[..path_len], query, fragment)
 }
 
 #[cfg(windows)]
-fn path_query_fragment(input: &str) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
+fn path_query_fragment(input: &str) -> (&str, Option<&str>, Option<&str>) {
   let prefix_len = rspack_paths::dos_device_path_prefix_len(input);
-  let (path, query, fragment) = path_query_fragment_impl(&input[prefix_len..])?;
-  let path = &input[..prefix_len + path.len()];
-  Ok((path, query, fragment))
+  let (path_len, query, fragment) = split_path_query_fragment(&input[prefix_len..]);
+  (&input[..prefix_len + path_len], query, fragment)
 }
 
-fn path_query_fragment_impl(
-  mut input: &str,
-) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
-  use winnow::{
-    combinator::{alt, opt, repeat},
-    prelude::*,
-    token::{any, none_of, rest},
+/// Splits `input` into the path length, the query and the fragment.
+fn split_path_query_fragment(input: &str) -> (usize, Option<&str>, Option<&str>) {
+  let bytes = input.as_bytes();
+  let path_len = scan_segment(bytes, 0, false);
+  let mut index = path_len;
+
+  // Both the query and the fragment keep their leading `?`/`#`.
+  let query = if bytes.get(index) == Some(&b'?') {
+    let query_start = index;
+    index = scan_segment(bytes, index + 1, true);
+    Some(&input[query_start..index])
+  } else {
+    None
   };
 
-  let path = alt((
-    ('\u{200b}', any).take(),
-    none_of(('?', '#', '\u{200b}')).take(),
-  ));
-  let query = alt((('\u{200b}', any).take(), none_of(('#', '\u{200b}')).take()));
-  let fragment = rest;
+  let fragment = if bytes.get(index) == Some(&b'#') {
+    Some(&input[index..])
+  } else {
+    None
+  };
 
-  let mut parser = (
-    repeat::<_, _, (), _, _>(.., path).take(),
-    opt(('?', repeat::<_, _, (), _, _>(.., query)).take()),
-    opt(('#', fragment).take()),
-  );
+  (path_len, query, fragment)
+}
 
-  parser.parse_next(&mut input)
+/// Returns the end offset of a path or query segment.
+///
+/// `#` ends both segments while `?` only ends a path. The scan skips whole characters, so
+/// multi-byte content survives the split.
+#[inline]
+fn scan_segment(bytes: &[u8], start: usize, in_query: bool) -> usize {
+  // A zero-width space escapes the following character.
+  const ZERO_WIDTH_SPACE: &[u8] = "\u{200b}".as_bytes();
+  const ZERO_WIDTH_SPACE_FIRST_BYTE: u8 = ZERO_WIDTH_SPACE[0];
+
+  let mut index = start;
+  loop {
+    let rest = &bytes[index..];
+    let offset = if in_query {
+      memchr::memchr2(b'#', ZERO_WIDTH_SPACE_FIRST_BYTE, rest)
+    } else {
+      memchr::memchr3(b'?', b'#', ZERO_WIDTH_SPACE_FIRST_BYTE, rest)
+    };
+    let Some(offset) = offset else {
+      return bytes.len();
+    };
+    index += offset;
+
+    match bytes[index] {
+      b'#' => return index,
+      b'?' if !in_query => return index,
+      _ => {}
+    }
+
+    if bytes[index..].starts_with(ZERO_WIDTH_SPACE) {
+      let escaped = index + ZERO_WIDTH_SPACE.len();
+      let Some(&escaped_first_byte) = bytes.get(escaped) else {
+        // A trailing zero-width space escapes nothing, so it is not part of the segment.
+        return index;
+      };
+      index = escaped + char_width(escaped_first_byte);
+    } else {
+      // A leading byte of some other multi-byte character. The remaining bytes of that
+      // character are continuation bytes, which the next scan ignores.
+      index += 1;
+    }
+  }
+}
+
+/// Returns the byte width of a character from its leading byte.
+#[inline]
+const fn char_width(leading_byte: u8) -> usize {
+  match leading_byte {
+    0xc0..=0xdf => 2,
+    0xe0..=0xef => 3,
+    0xf0..=0xf7 => 4,
+    // ASCII leading bytes and continuation bytes, which never start a character.
+    _ => 1,
+  }
 }
 
 #[cfg(test)]
 pub(crate) mod test {
-  use std::{path::PathBuf, sync::Arc};
+  use std::sync::Arc;
 
   use rspack_cacheable::{cacheable, cacheable_dyn};
   use rspack_collections::Identifier;
+  use rspack_paths::Utf8Path;
 
   use super::{Loader, LoaderItem};
 
@@ -435,17 +488,17 @@ pub(crate) mod test {
   fn should_handle_posix_non_len_blank_unicode_correctly() {
     let c1 = Arc::new(PosixNonLenBlankUnicode) as Arc<dyn Loader<()>>;
     let l: LoaderItem<()> = c1.into();
-    assert_eq!(l.path, PathBuf::from("/a/b/c.js"));
-    assert_eq!(l.query, Some("?{\"c\": \"#foo\"}".into()));
-    assert_eq!(l.fragment, None);
+    assert_eq!(l.path(), Utf8Path::new("/a/b/c.js"));
+    assert_eq!(l.query(), Some("?{\"c\": \"#foo\"}"));
+    assert_eq!(l.parsed_request.fragment, None);
   }
 
   #[test]
   fn should_handle_win_non_len_blank_unicode_correctly() {
     let c1 = Arc::new(WinNonLenBlankUnicode) as Arc<dyn Loader<()>>;
     let l: LoaderItem<()> = c1.into();
-    assert_eq!(l.path, PathBuf::from(r#"\a\b\c.js"#));
-    assert_eq!(l.query, Some("?{\"c\": \"#foo\"}".into()));
-    assert_eq!(l.fragment, None);
+    assert_eq!(l.path(), Utf8Path::new(r#"\a\b\c.js"#));
+    assert_eq!(l.query(), Some("?{\"c\": \"#foo\"}"));
+    assert_eq!(l.parsed_request.fragment, None);
   }
 }
