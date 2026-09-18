@@ -282,6 +282,8 @@ export declare class FileSystemDependencies {
   get removed(): Array<string>
   size(): number
   has(value: string): boolean
+  clear(): void
+  update(added: Array<string>, deleted: Array<string>): void
   values(): ReadonlyArray<string>
   add(value: string): void
   addAll(values: Array<string>): void

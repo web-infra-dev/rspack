@@ -5,8 +5,7 @@ use napi::{
 use napi_derive::napi;
 use rspack_core::{Compilation, CompilationId, FileCounter};
 use rspack_napi::OneShotRef;
-use rspack_paths::{InternedPath, InternedPathIndexSet, InternedPathMap};
-use rustc_hash::FxHashSet;
+use rspack_paths::{InternedPath, InternedPathIndexSet, InternedPathMap, InternedPathSet};
 
 use crate::{with_compilation, with_compilation_mut};
 
@@ -15,6 +14,7 @@ use crate::{with_compilation, with_compilation_mut};
 pub struct FileSystemDependencies {
   kind: FileSystemDependencyKind,
   compilation_id: CompilationId,
+  deleted_paths: InternedPathSet,
   // Cached JS values live with this wrapper and are released on GC.
   dependency_strings: Option<DependencyStrings>,
 }
@@ -54,11 +54,15 @@ impl FileSystemDependencies {
       kind,
       compilation_id,
       dependency_strings: None,
+      deleted_paths: InternedPathSet::default(),
     }
   }
 
-  fn dependency_strings(&mut self, env: &Env) -> napi::Result<&mut DependencyStrings> {
-    match &mut self.dependency_strings {
+  fn dependency_strings<'a>(
+    env: &Env,
+    slot: &'a mut Option<DependencyStrings>,
+  ) -> napi::Result<&'a mut DependencyStrings> {
+    match slot {
       Some(dependency_strings) => Ok(dependency_strings),
       slot @ None => {
         let array = create_array(env, 0)?;
@@ -77,11 +81,12 @@ impl FileSystemDependencies {
   ) -> napi::Result<()> {
     with_compilation_mut(self.compilation_id, |compilation| {
       let additions = self.additions(compilation);
-      let dependency_strings = self.dependency_strings(env)?;
+      let dependency_strings = Self::dependency_strings(env, &mut self.dependency_strings)?;
       let mut array = referenced_array(env, &dependency_strings.array)?;
       for value in values {
         let utf8 = value.into_utf8()?;
         let path: InternedPath = utf8.as_str()?.into();
+        self.deleted_paths.remove(&path);
         additions.insert(path.clone());
         if !dependency_strings.indices.contains_key(&path) {
           let index = array.len();
@@ -145,18 +150,43 @@ impl FileSystemDependencies {
 
 #[napi]
 impl FileSystemDependencies {
-  #[napi(getter)]
-  pub fn added(&self) -> napi::Result<Vec<String>> {
+  #[napi(getter, ts_return_type = "Array<string>")]
+  pub fn added<'env>(&mut self, env: &'env Env) -> napi::Result<Array<'env>> {
     with_compilation(self.compilation_id, |compilation| {
       let (counter, added) = self.sources(compilation)?;
       // Plugin additions are included in every build's watch delta.
-      Ok(
-        counter
-          .added_files()
-          .chain(added)
-          .map(|path| path.to_string_lossy().into_owned())
-          .collect(),
-      )
+      let paths = counter.added_files().chain(added);
+      let mut result = create_array(env, paths.size_hint().0)?;
+      let Some(dependency_strings) = self.dependency_strings.as_mut() else {
+        // Watch may read only this delta once. Avoid building a second array
+        // and an index when no collection read or JS addition needs them yet.
+        for (index, path) in paths.enumerate() {
+          result.set(
+            index as u32,
+            env.create_string(path.to_string_lossy().as_ref())?,
+          )?;
+        }
+        return Ok(result);
+      };
+      let mut strings = referenced_array(env, &dependency_strings.array)?;
+      for (index, path) in paths.enumerate() {
+        let value = match dependency_strings.indices.get(path) {
+          Some(&index) => strings
+            .get::<JsString>(index)?
+            .ok_or_else(|| napi::Error::from_reason("Missing cached dependency string"))?,
+          None => {
+            // Native dependencies may have changed since values() was read.
+            // Root new strings in the shared array, without rescanning all paths.
+            let value = env.create_string(path.to_string_lossy().as_ref())?;
+            let index = strings.len();
+            strings.set(index, value)?;
+            dependency_strings.indices.insert(path.clone(), index);
+            value
+          }
+        };
+        result.set(index as u32, value)?;
+      }
+      Ok(result)
     })
   }
 
@@ -176,21 +206,68 @@ impl FileSystemDependencies {
   #[napi]
   pub fn size(&self) -> napi::Result<u32> {
     with_compilation(self.compilation_id, |compilation| {
-      // Match values() by deduplicating native paths without converting strings.
-      let paths: FxHashSet<_> = self.paths(compilation)?.collect();
-      Ok(paths.len() as u32)
+      let (counter, added) = self.sources(compilation)?;
+      let native_count = if self.deleted_paths.is_empty() {
+        counter.files().count()
+      } else {
+        counter
+          .files()
+          .filter(|path| !self.deleted_paths.contains(*path))
+          .count()
+      };
+      // Both sources are already unique. Count only plugin paths absent from
+      // the native counter, without allocating a temporary union set.
+      let added_count = added
+        .iter()
+        .filter(|path| {
+          !self.deleted_paths.contains(*path) && counter.related_resource_ids(path).is_none()
+        })
+        .count();
+      Ok((native_count + added_count) as u32)
     })
   }
 
   #[napi]
   pub fn has(&self, value: String) -> napi::Result<bool> {
     with_compilation(self.compilation_id, |compilation| {
+      let path: InternedPath = value.as_str().into();
+      let (counter, added) = self.sources(compilation)?;
       Ok(
-        self
-          .paths(compilation)?
-          .any(|path| path.to_string_lossy() == value),
+        !self.deleted_paths.contains(&path)
+          && (counter.related_resource_ids(&path).is_some() || added.contains(&path))
+          && path.to_string_lossy() == value,
       )
     })
+  }
+
+  #[napi]
+  pub fn clear(&mut self) -> napi::Result<()> {
+    with_compilation(self.compilation_id, |compilation| {
+      let (counter, added) = self.sources(compilation)?;
+      self
+        .deleted_paths
+        .extend(counter.files().chain(added).cloned());
+      Ok(())
+    })
+  }
+
+  #[napi]
+  pub fn update(
+    &mut self,
+    env: &Env,
+    added: Vec<JsString<'_>>,
+    deleted: Vec<String>,
+  ) -> napi::Result<()> {
+    if added.is_empty() {
+      // Deletion-only batches still validate the compilation's lifetime.
+      with_compilation(self.compilation_id, |_| Ok(()))?;
+    } else {
+      self.add_values(env, added)?;
+    }
+    self
+      .deleted_paths
+      .extend(deleted.iter().map(|path| path.as_str().into()));
+    Ok(())
   }
 
   #[napi(ts_return_type = "ReadonlyArray<string>")]
@@ -200,7 +277,11 @@ impl FileSystemDependencies {
       let capacity = paths.size_hint().0;
       let mut unique_paths = Vec::with_capacity(capacity);
       let mut indices = InternedPathMap::with_capacity_and_hasher(capacity, Default::default());
+      let has_deleted_paths = !self.deleted_paths.is_empty();
       for path in paths {
+        if has_deleted_paths && self.deleted_paths.contains(path) {
+          continue;
+        }
         // A path can occur in both native dependencies and plugin additions.
         indices.entry(path.clone()).or_insert_with(|| {
           let index = unique_paths.len() as u32;
@@ -208,7 +289,7 @@ impl FileSystemDependencies {
           index
         });
       }
-      let dependency_strings = self.dependency_strings(env)?;
+      let dependency_strings = Self::dependency_strings(env, &mut self.dependency_strings)?;
       let mut array = referenced_array(env, &dependency_strings.array)?;
       let length = unique_paths.len() as u32;
       let mut updates = Vec::new();

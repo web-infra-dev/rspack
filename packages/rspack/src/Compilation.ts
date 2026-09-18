@@ -333,6 +333,14 @@ export class Compilation {
   };
   needAdditionalPass: boolean;
 
+  #fileSystemDependencies: Pick<
+    JsCompilation,
+    | 'fileDependencies'
+    | 'contextDependencies'
+    | 'missingDependencies'
+    | 'buildDependencies'
+  >;
+
   #addIncludeDispatcher: AddEntryItemDispatcher;
   #addEntryDispatcher: AddEntryItemDispatcher;
 
@@ -340,17 +348,24 @@ export class Compilation {
 
   constructor(compiler: Compiler, inner: JsCompilation) {
     this.#inner = inner;
+    // Share the binding's string cache between collection reads and watch deltas.
+    const dependencies = (this.#fileSystemDependencies = {
+      fileDependencies: inner.fileDependencies,
+      contextDependencies: inner.contextDependencies,
+      missingDependencies: inner.missingDependencies,
+      buildDependencies: inner.buildDependencies,
+    });
     this.fileDependencies = createFileSystemDependencies(
-      inner.fileDependencies,
+      dependencies.fileDependencies,
     );
     this.contextDependencies = createFileSystemDependencies(
-      inner.contextDependencies,
+      dependencies.contextDependencies,
     );
     this.missingDependencies = createFileSystemDependencies(
-      inner.missingDependencies,
+      dependencies.missingDependencies,
     );
     this.buildDependencies = createFileSystemDependencies(
-      inner.buildDependencies,
+      dependencies.buildDependencies,
     );
     this.#shutdown = false;
 
@@ -957,27 +972,27 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   get __internal__addedFileDependencies() {
-    return this.#inner.fileDependencies.added;
+    return this.#fileSystemDependencies.fileDependencies.added;
   }
 
   get __internal__removedFileDependencies() {
-    return this.#inner.fileDependencies.removed;
+    return this.#fileSystemDependencies.fileDependencies.removed;
   }
 
   get __internal__addedContextDependencies() {
-    return this.#inner.contextDependencies.added;
+    return this.#fileSystemDependencies.contextDependencies.added;
   }
 
   get __internal__removedContextDependencies() {
-    return this.#inner.contextDependencies.removed;
+    return this.#fileSystemDependencies.contextDependencies.removed;
   }
 
   get __internal__addedMissingDependencies() {
-    return this.#inner.missingDependencies.added;
+    return this.#fileSystemDependencies.missingDependencies.added;
   }
 
   get __internal__removedMissingDependencies() {
-    return this.#inner.missingDependencies.removed;
+    return this.#fileSystemDependencies.missingDependencies.removed;
   }
 
   fileDependencies: FileSystemDependencies;
