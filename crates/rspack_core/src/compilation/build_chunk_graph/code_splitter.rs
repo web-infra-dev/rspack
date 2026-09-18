@@ -35,7 +35,9 @@ pub(crate) type DependenciesBlockIdentifierMap<V> =
 pub(crate) type DependenciesBlockIdentifierSet =
   std::collections::HashSet<DependenciesBlockIdentifier, BuildHasherDefault<FxHasher>>;
 
-type ConnectionIdList = Arc<[DependencyId]>;
+// Most prepared connection groups hold one or two dependencies, so keep the ids
+// inline instead of allocating a shared slice per group.
+type ConnectionIdList = SmallVec<[DependencyId; 2]>;
 type PreparedBlockConnectionMap = Vec<PreparedBlockConnection>;
 type BlockModules = Vec<(ModuleIdentifier, ConnectionState, ConnectionIdList)>;
 type BlockConnectionMap = DependenciesBlockIdentifierMap<Arc<BlockModules>>;
@@ -55,17 +57,11 @@ struct PreparedBlockConnectionBuilder {
   dependency: DependencyId,
 }
 
-struct PreparedBlockConnectionGroup {
-  block: DependenciesBlockIdentifier,
-  module: ModuleIdentifier,
-  connections: SmallVec<[DependencyId; 2]>,
-}
-
 fn finalize_prepared_connection_map(
   connections: impl IntoIterator<Item = PreparedBlockConnectionBuilder>,
   capacity: usize,
 ) -> PreparedBlockConnectionMap {
-  let mut groups = Vec::<PreparedBlockConnectionGroup>::with_capacity(capacity);
+  let mut groups = Vec::<PreparedBlockConnection>::with_capacity(capacity);
   // `capacity` is an upper bound on the group count for this module, so the index
   // table can be sized up front instead of rehashing while groups are discovered.
   let mut group_index_by_key =
@@ -82,7 +78,7 @@ fn finalize_prepared_connection_map(
       hash_map::Entry::Vacant(entry) => {
         let index = groups.len();
         entry.insert(index);
-        groups.push(PreparedBlockConnectionGroup {
+        groups.push(PreparedBlockConnection {
           block: connection.block,
           module: connection.module,
           connections: smallvec![connection.dependency],
@@ -92,13 +88,6 @@ fn finalize_prepared_connection_map(
   }
 
   groups
-    .into_iter()
-    .map(|group| PreparedBlockConnection {
-      block: group.block,
-      module: group.module,
-      connections: group.connections.as_slice().into(),
-    })
-    .collect()
 }
 
 fn prepare_module_connection_map(
