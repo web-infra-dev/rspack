@@ -490,6 +490,15 @@ export declare class NativeWatchResult {
 
 export declare class RawExternalItemFnCtx {
   data(): RawExternalItemFnCtxData
+  /**
+   * Individual accessors so the JS adapter only materializes the fields the
+   * user function actually reads (see `data()` for the bulk accessor).
+   */
+  get request(): string
+  get context(): string
+  get dependencyType(): string
+  get issuer(): string
+  get issuerLayer(): string | null
   getResolve(options?: RawResolveOptionsWithDependencyType | undefined | null): (context: string, path: string, callback: (error?: Error, text?: string) => void) => void
 }
 
@@ -2353,6 +2362,11 @@ export interface RawExternalItemFnCtxData {
 export interface RawExternalItemFnResult {
   externalType?: string
   result?: string | boolean | string[] | Record<string, string[]>
+  /**
+   * Bitmask of the inputs the externals function actually read, reported by
+   * the JS adapter so results can be memoized on the fields that matter.
+   */
+  observed?: number
 }
 
 export interface RawExternalsPluginOptions {
