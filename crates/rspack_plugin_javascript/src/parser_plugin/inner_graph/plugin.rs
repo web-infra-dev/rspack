@@ -1,5 +1,5 @@
 use rspack_core::{
-  BoxDependency, Dependency, DependencyId, DependencyRange, UsedByExports,
+  AsyncDependenciesBlock, BoxDependency, Dependency, DependencyId, DependencyRange, UsedByExports,
   UsedByExportsDeferredPureCheck,
 };
 use rspack_util::SpanExt;
@@ -243,6 +243,7 @@ impl InnerGraphParserPlugin {
   pub fn finalize_dependency_usage(
     state: &mut InnerGraphState,
     dependencies: &mut [BoxDependency],
+    blocks: &mut [Box<AsyncDependenciesBlock>],
   ) {
     if !state.is_enabled() || state.usage_map.is_empty() {
       return;
@@ -298,12 +299,16 @@ impl InnerGraphParserPlugin {
     for (operation, used_by_exports) in
       Self::infer_dependency_usage(state, &deferred_pure_checks_by_symbol)
     {
-      let dep_idx = match operation {
+      let dep = match operation {
         InnerGraphUsageOperation::PureExpression(dep_idx)
-        | InnerGraphUsageOperation::ESMImportSpecifier(dep_idx)
-        | InnerGraphUsageOperation::URLDependency(dep_idx) => dep_idx,
+        | InnerGraphUsageOperation::ESMImportSpecifier(dep_idx) => {
+          dependencies.get_mut(dep_idx).map(|dep| dep.as_mut())
+        }
+        InnerGraphUsageOperation::URLDependency(block_idx) => blocks
+          .get_mut(block_idx)
+          .and_then(|block| block.get_dependency_mut(0)),
       };
-      let Some(dep) = dependencies.get_mut(dep_idx) else {
+      let Some(dep) = dep else {
         continue;
       };
       match operation {
