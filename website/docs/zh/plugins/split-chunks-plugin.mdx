@@ -54,7 +54,7 @@ Rspack 的默认配置符合 Web 性能最佳实践，但是项目的最佳策�
 
 ### optimization.splitChunks
 
-下面这个配置对象代表 `SplitChunksPlugin` 的默认行为。
+下面这个配置对象代表 `SplitChunksPlugin` 在生产模式下的默认行为。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -62,6 +62,7 @@ export default {
   optimization: {
     splitChunks: {
       chunks: 'async',
+      dedupDepth: 1,
       minChunks: 1,
       minSize: 20000,
       maxAsyncRequests: 30,
@@ -94,6 +95,67 @@ export default {
 Rspack 不允许将 entry 名称传递给 `{cacheGroup}.test` 或者为 `{cacheGroup}.name` 使用现有的 chunk 的名称。
 
 :::
+
+### splitChunks.dedupDepth
+
+- **类型：** `number`
+- **默认值：** `production` 模式下为 `1`，`development` 或 `none` 模式下为 `0`。
+
+该配置指定 Rspack 寻找不同 chunk 共享的模块算法。
+
+举个例子：假设每个页面先生成一个 chunk。`{ A, B }` 表示这段代码被页面 `A` 和 `B` 使用。把他们共同使用的模块放进共享包，可以减少重复。
+
+**`dedupDepth: 0`：利用已经出现过的页面组合**
+
+假设模块 `x` 被页面 `A`、`B` 使用，模块 `y` 被页面 `A`、`B`、`C` 使用：
+
+```text
+x → { A, B }
+y → { A, B, C }
+```
+
+`{ A, B }` 已经是 `x` 的使用范围，而 `y` 也被这两个页面使用，因此 Rspack 可以考虑把 `x` 和 `y` 放进供 `A`、`B` 共用的包中。深度 `0` 会利用这种包含关系，但不会主动找出尚未出现过的页面组合。
+
+**`dedupDepth: 1`：再找一轮共同组合**
+
+换一个例子，三个模块分别被以下页面使用：
+
+| 模块 | 使用它的页面       |
+| ---- | ------------------ |
+| `x`  | `A`、`B`、`C`、`D` |
+| `y`  | `A`、`B`、`C`、`E` |
+| `z`  | `A`、`B`、`D`、`E` |
+
+每次比较两个模块，找出共同使用它们的页面：
+
+```text
+x 和 y → { A, B, C }
+x 和 z → { A, B, D }
+y 和 z → { A, B, E }
+```
+
+这些组合原本没有单独出现过。深度 `1` 可以发现它们，Rspack 也许会尝试把 `x` 和 `y` 抽出形成一个单独 chunk，供 `A`、`B`、`C` 依赖。
+
+**`dedupDepth: 2`：让上一轮找到的组合继续计算**
+
+在同一个例子中，上一轮找到的 `{ A, B, C }` 和 `{ A, B, D }` 都包含 `A`、`B`。再比较一次，就能找到新的组合 `{ A, B }`。由于 `x`、`y`、`z` 都被这两个页面使用，Rspack 便可以考虑将三个模块一起放进供 `A`、`B` 共用的包中。这个组合在第一轮还找不到。
+
+更大的深度会继续这个过程。如果没有找到新组合，就提前结束。以上例子说明的是寻找共享代码的过程，最终是否生成共享包还取决于 `splitChunks` 的其他配置。
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      dedupDepth: 1,
+    },
+  },
+};
+```
+
+一般 `dedupDepth: 1` 足够用了，每次增加 1 次计算，是指数级别的计算耗时增加，体积增加也许并不明显。
+
+此选项配置在 `splitChunks` 上，不支持配置在单个缓存组中。
 
 ### splitChunks.cacheGroups
 

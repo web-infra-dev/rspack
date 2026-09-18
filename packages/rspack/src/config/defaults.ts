@@ -1261,6 +1261,7 @@ const applyOptimizationDefaults = (
   });
   const { splitChunks } = optimization;
   if (splitChunks) {
+    D(splitChunks, 'dedupDepth', production ? 1 : 0);
     A(splitChunks, 'defaultSizeTypes', () => ['javascript', 'css', 'unknown']);
     D(splitChunks, 'hidePathInfo', production);
     D(splitChunks, 'chunks', 'async');
