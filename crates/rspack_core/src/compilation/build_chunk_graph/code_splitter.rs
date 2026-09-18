@@ -2747,6 +2747,65 @@ fn extract_block_modules(
     return;
   }
 
+  let resolve_connection = |connection: &PreparedBlockConnection| {
+    let active_state = get_active_state_of_connections(
+      &connection.connections,
+      runtime.as_deref(),
+      compilation.get_module_graph(),
+      &compilation.module_graph_cache_artifact,
+      &compilation
+        .build_module_graph_artifact
+        .side_effects_state_artifact,
+      &compilation.exports_info_artifact,
+    );
+    (
+      connection.module,
+      active_state,
+      connection.connections.clone(),
+    )
+  };
+
+  // Most roots have no async block or a single async block. Construct their results
+  // directly, without a temporary hash map or repeatedly growing the output vectors.
+  if blocks.len() <= 1 {
+    let connections = connection_map.map(Vec::as_slice).unwrap_or_default();
+    let root_cached = map.contains_key(&block);
+    let async_block = blocks
+      .first()
+      .copied()
+      .map(DependenciesBlockIdentifier::from);
+    let async_cached = async_block.is_some_and(|block| map.contains_key(&block));
+    let root_count = connections.iter().filter(|c| c.block == block).count();
+    let mut root_modules = Vec::with_capacity(if root_cached { 0 } else { root_count });
+    let mut async_modules = Vec::with_capacity(if async_cached {
+      0
+    } else {
+      connections.len() - root_count
+    });
+    // Preserve connection evaluation order, including interleaved root/async entries.
+    for connection in connections {
+      let (modules, cached) = if connection.block == block {
+        (&mut root_modules, root_cached)
+      } else if Some(connection.block) == async_block {
+        (&mut async_modules, async_cached)
+      } else {
+        assert!(
+          map.contains_key(&connection.block),
+          "should have modules in block_modules_runtime_map"
+        );
+        continue;
+      };
+      if !cached {
+        modules.push(resolve_connection(connection));
+      }
+    }
+    map.insert(block, Arc::new(root_modules));
+    if let Some(block) = async_block {
+      map.insert(block, Arc::new(async_modules));
+    }
+    return;
+  }
+
   let mut module_map: DependenciesBlockIdentifierMap<BlockModules> =
     DependenciesBlockIdentifierMap::with_capacity_and_hasher(blocks.len() + 1, Default::default());
   module_map.insert(block, Vec::new());
@@ -2767,21 +2826,7 @@ fn extract_block_modules(
       let modules = module_map
         .get_mut(&connection.block)
         .expect("should have modules in block_modules_runtime_map");
-      let active_state = get_active_state_of_connections(
-        &connection.connections,
-        runtime.as_deref(),
-        compilation.get_module_graph(),
-        &compilation.module_graph_cache_artifact,
-        &compilation
-          .build_module_graph_artifact
-          .side_effects_state_artifact,
-        &compilation.exports_info_artifact,
-      );
-      modules.push((
-        connection.module,
-        active_state,
-        connection.connections.clone(),
-      ));
+      modules.push(resolve_connection(connection));
     }
   }
   for (block, modules) in module_map {
