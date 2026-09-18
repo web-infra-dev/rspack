@@ -66,8 +66,13 @@ fn finalize_prepared_connection_map(
   capacity: usize,
 ) -> PreparedBlockConnectionMap {
   let mut groups = Vec::<PreparedBlockConnectionGroup>::with_capacity(capacity);
+  // `capacity` is an upper bound on the group count for this module, so the index
+  // table can be sized up front instead of rehashing while groups are discovered.
   let mut group_index_by_key =
-    HashMap::<(DependenciesBlockIdentifier, ModuleIdentifier), usize>::default();
+    HashMap::<(DependenciesBlockIdentifier, ModuleIdentifier), usize>::with_capacity_and_hasher(
+      capacity,
+      Default::default(),
+    );
   for connection in connections {
     let key = (connection.block, connection.module);
     match group_index_by_key.entry(key) {
