@@ -11,7 +11,7 @@ export default {
       {
         test: /\.ts$/,
         use: [
-          './loader.js',
+          './loader.mjs',
           {
             loader: 'builtin:swc-loader',
             options: {

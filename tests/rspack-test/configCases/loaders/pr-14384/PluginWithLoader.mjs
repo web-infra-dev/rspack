@@ -2,7 +2,7 @@ import path from "node:path";
 import { NormalModule } from "@rspack/core";
 
 const PLUGIN_NAME = "PluginWithLoader";
-const loaderPath = path.join(import.meta.dirname, "loader.js");
+const loaderPath = path.join(import.meta.dirname, "loader.mjs");
 
 class PluginWithLoader {
 	apply(compiler) {

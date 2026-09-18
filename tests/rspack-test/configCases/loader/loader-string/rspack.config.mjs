@@ -9,7 +9,7 @@ export default {
         test: /lib\.js/,
         use: [
           {
-            loader: './my-loader.js',
+            loader: './my-loader.mjs',
           },
         ],
       },

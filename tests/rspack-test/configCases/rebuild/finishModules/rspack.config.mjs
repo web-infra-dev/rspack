@@ -53,7 +53,7 @@ export default {
     rules: [
       {
         test: /other-file/,
-        use: './loader',
+        use: './loader.mjs',
       },
     ],
   },

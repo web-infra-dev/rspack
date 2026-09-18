@@ -9,7 +9,7 @@ export default {
         use: () => {
           return [
             {
-              loader: './loader1',
+              loader: './loader1.mjs',
             },
           ];
         },
@@ -19,7 +19,7 @@ export default {
         use: () => {
           return [
             {
-              loader: './loader2',
+              loader: './loader2.mjs',
             },
           ];
         },
@@ -30,7 +30,7 @@ export default {
         use: () => {
           return [
             {
-              loader: './loader3',
+              loader: './loader3.mjs',
             },
           ];
         },

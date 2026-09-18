@@ -11,7 +11,7 @@ export default {
         test: path.join(import.meta.dirname, 'a.js'),
         use: [
           {
-            loader: './my-loader.js',
+            loader: './my-loader.mjs',
           },
         ],
       },
@@ -19,7 +19,7 @@ export default {
         test: path.join(import.meta.dirname, 'b.js'),
         use: [
           {
-            loader: './my-loader.js',
+            loader: './my-loader.mjs',
           },
         ],
       },

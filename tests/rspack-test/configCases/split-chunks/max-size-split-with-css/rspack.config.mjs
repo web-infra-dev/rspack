@@ -15,7 +15,7 @@ export default {
       {
         test: /\.css$/,
         type: 'javascript/auto',
-        use: [rspack.CssExtractRspackPlugin.loader, './css-loader'],
+        use: [rspack.CssExtractRspackPlugin.loader, './css-loader.mjs'],
       },
     ],
   },

@@ -13,7 +13,7 @@ export default {
         test: /\.css$/,
         oneOf: [
           {
-            use: ['./style-loader', './css-loader'],
+            use: ['./style-loader.mjs', './css-loader.mjs'],
             issuer: /\.(js)$/,
           },
           {

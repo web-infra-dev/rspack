@@ -8,8 +8,8 @@ export default {
       {
         test: /lib\.js/,
         use: [
-          { loader: './worker-loader.js', parallel: true, options: {} },
-          { loader: './seed-loader.js' },
+          { loader: './worker-loader.mjs', parallel: true, options: {} },
+          { loader: './seed-loader.mjs' },
         ],
       },
     ],

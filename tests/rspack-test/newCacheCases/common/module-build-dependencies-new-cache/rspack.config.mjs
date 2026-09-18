@@ -22,7 +22,7 @@ export default {
     rules: [
       {
         test: /input\.js$/,
-        loader: './loader.js',
+        loader: './loader.mjs',
       },
     ],
   },

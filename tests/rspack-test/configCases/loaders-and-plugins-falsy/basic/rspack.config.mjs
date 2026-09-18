@@ -86,7 +86,7 @@ export default {
             loader: 'unknown-loader',
           },
           {
-            loader: './loader.js',
+            loader: './loader.mjs',
           },
         ],
       },

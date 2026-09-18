@@ -2,12 +2,8 @@ import { rspackRequire, moduleFactories, compatGetDefaultExport } from "./runtim
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 moduleFactories.add({
-928(module) {
-module.exports = __rspack_createRequire_require("path");
-
-},
 227(module) {
-const path = rspackRequire(928)
+const path = __rspack_createRequire_require("path")
 
 module.exports = path.sep
 

@@ -9,7 +9,7 @@ export default {
     rules: [
       {
         test: /stylesheet\.js$/i,
-        use: ['./a-pitching-loader.js'],
+        use: ['./a-pitching-loader.mjs'],
         type: 'asset/source',
       },
       {

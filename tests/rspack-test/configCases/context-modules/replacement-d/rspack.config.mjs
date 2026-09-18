@@ -7,7 +7,7 @@ export default {
     rules: [
       {
         test: /a\.js$/,
-        use: ['./queryloader?lions=roar'],
+        use: ['./queryloader.mjs?lions=roar'],
       },
     ],
   },

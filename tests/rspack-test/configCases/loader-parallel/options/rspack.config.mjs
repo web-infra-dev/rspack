@@ -10,7 +10,7 @@ export default {
         test: /a\.js$/,
         use: [
           {
-            loader: './loader',
+            loader: './loader.mjs',
             parallel: true,
             options: {
               arg: true,
@@ -28,7 +28,7 @@ export default {
         test: /b\.js$/,
         use: [
           {
-            loader: './loader-1',
+            loader: './loader-1.mjs',
             parallel: true,
             options: {
               arg: true,
@@ -44,7 +44,7 @@ export default {
       },
       {
         test: /c\.js$/,
-        loader: './loader-1',
+        loader: './loader-1.mjs',
         // This does not support by `parllel`, `Rule.use.options` must be an
         // object.
         options: JSON.stringify({
@@ -59,32 +59,32 @@ export default {
       },
       {
         test: /d\.js$/,
-        loader: './loader-1',
+        loader: './loader-1.mjs',
         options: 'arg4=text',
       },
       {
         test: /d\.js$/,
-        loader: './loader',
+        loader: './loader.mjs',
         options: '',
       },
       {
         test: /f\.js$/,
-        loader: './loader',
+        loader: './loader.mjs',
         options: 'name=cheesecake&slices=8&delicious&warm=false',
       },
       {
         test: /g\.js$/,
-        loader: './loader',
+        loader: './loader.mjs',
         options: '%3d=%3D',
       },
       {
         test: /h\.js$/,
-        loader: './loader',
+        loader: './loader.mjs',
         options: 'foo=bar',
       },
       {
         test: /i\.js$/,
-        loader: './loader',
+        loader: './loader.mjs',
         options: `${JSON.stringify({
           foo: 'bar',
         })}`,
@@ -93,7 +93,7 @@ export default {
         test: /error1\.js$/,
         use: [
           {
-            loader: './loader-1',
+            loader: './loader-1.mjs',
             parallel: true,
             options: {
               arg6: { foo: 'value', bar: { baz: 42 } },
@@ -105,7 +105,7 @@ export default {
         test: /error2\.js$/,
         use: [
           {
-            loader: './loader-2',
+            loader: './loader-2.mjs',
             parallel: true,
             options: {
               arg: false,

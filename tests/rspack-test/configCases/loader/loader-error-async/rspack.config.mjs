@@ -14,7 +14,7 @@ export default {
         resourceQuery: /async/,
         use: [
           {
-            loader: './async.js',
+            loader: './async.mjs',
           },
         ],
       },
@@ -23,7 +23,7 @@ export default {
         resourceQuery: /callback/,
         use: [
           {
-            loader: './callback.js',
+            loader: './callback.mjs',
           },
         ],
       },

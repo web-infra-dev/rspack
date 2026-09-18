@@ -14,7 +14,7 @@ export default {
         resourceQuery: /async/,
         use: [
           {
-            loader: './async.js',
+            loader: './async.mjs',
             parallel: true,
             options: {},
           },
@@ -25,7 +25,7 @@ export default {
         resourceQuery: /callback/,
         use: [
           {
-            loader: './callback.js',
+            loader: './callback.mjs',
             parallel: true,
             options: {},
           },
@@ -36,7 +36,7 @@ export default {
         resourceQuery: /aggregate/,
         use: [
           {
-            loader: './aggregate.js',
+            loader: './aggregate.mjs',
             parallel: true,
             options: {},
           },

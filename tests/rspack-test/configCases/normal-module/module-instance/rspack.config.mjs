@@ -21,7 +21,7 @@ class Plugin {
 
       expect(module.resource).toContain('index.js');
       expect(module.userRequest).toBe(
-        `${path.join(import.meta.dirname, 'passthrough-loader.js')}!${path.join(import.meta.dirname, 'index.js')}`,
+        `${path.join(import.meta.dirname, 'passthrough-loader.mjs')}!${path.join(import.meta.dirname, 'index.js')}`,
       );
       expect(module.rawRequest).toContain('index.js');
       expect(module.resourceResolveData.fragment).toBe('');
@@ -37,7 +37,7 @@ class Plugin {
         module.loaders.map(({ loader }) =>
           path.relative(compiler.context, loader),
         ),
-      ).toEqual(['passthrough-loader.js']);
+      ).toEqual(['passthrough-loader.mjs']);
       expect(module.type).toBe('javascript/auto');
 
       expect(Object.hasOwn(module, 'type')).toBe(true);
@@ -60,6 +60,6 @@ class Plugin {
 /** @type {import("@rspack/core").Configuration} */
 export default {
   devtool: 'source-map',
-  entry: './passthrough-loader.js!./index.js',
+  entry: './passthrough-loader.mjs!./index.js',
   plugins: [new Plugin()],
 };

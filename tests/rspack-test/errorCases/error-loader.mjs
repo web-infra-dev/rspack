@@ -4,7 +4,7 @@ export default [
 		description: "should emit error for async-error-loader",
 		options() {
 			return {
-				entry: "./async-error-loader!./entry-point.js"
+				entry: "./async-error-loader.mjs!./entry-point.js"
 			};
 		},
 		async check(diagnostics) {
@@ -13,10 +13,10 @@ export default [
 				  "errors": Array [
 				    Object {
 				      "code": "ModuleBuildError",
-				      "message": "  × Module build failed (from ./async-error-loader.js):  ╰─▶   × Error: this is a callback error        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx      ",
-				      "moduleId": "./async-error-loader.js!./entry-point.js",
-				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/async-error-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
-				      "moduleName": "./async-error-loader.js!./entry-point.js",
+				      "message": "  × Module build failed (from ./async-error-loader.mjs):  ╰─▶   × Error: this is a callback error        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx      ",
+				      "moduleId": "./async-error-loader.mjs!./entry-point.js",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/async-error-loader.mjs!<TEST_ROOT>/fixtures/errors/entry-point.js",
+				      "moduleName": "./async-error-loader.mjs!./entry-point.js",
 				      "moduleTrace": Array [],
 				      "stack": undefined,
 				    },
@@ -30,7 +30,7 @@ export default [
 		description: "should emit error thrown from raw loader",
 		options() {
 			return {
-				entry: "./throw-error-loader!./entry-point.js"
+				entry: "./throw-error-loader.mjs!./entry-point.js"
 			};
 		},
 		async check(diagnostics) {
@@ -39,10 +39,10 @@ export default [
 				  "errors": Array [
 				    Object {
 				      "code": "ModuleBuildError",
-				      "message": "  × Module build failed (from ./throw-error-loader.js):  ╰─▶   × Error: this is a thrown error        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx      ",
-				      "moduleId": "./throw-error-loader.js!./entry-point.js",
-				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/throw-error-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
-				      "moduleName": "./throw-error-loader.js!./entry-point.js",
+				      "message": "  × Module build failed (from ./throw-error-loader.mjs):  ╰─▶   × Error: this is a thrown error        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx      ",
+				      "moduleId": "./throw-error-loader.mjs!./entry-point.js",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/throw-error-loader.mjs!<TEST_ROOT>/fixtures/errors/entry-point.js",
+				      "moduleName": "./throw-error-loader.mjs!./entry-point.js",
 				      "moduleTrace": Array [],
 				      "stack": undefined,
 				    },
@@ -56,7 +56,7 @@ export default [
 		description: "should emit error thrown from pitch loader",
 		options() {
 			return {
-				entry: "./throw-error-pitch-loader!./entry-point.js"
+				entry: "./throw-error-pitch-loader.mjs!./entry-point.js"
 			};
 		},
 		async check(diagnostics) {
@@ -65,10 +65,10 @@ export default [
 				  "errors": Array [
 				    Object {
 				      "code": "ModuleBuildError",
-				      "message": "  × Module build failed (from ./throw-error-pitch-loader.js):  ╰─▶   × Error: this is a thrown error        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx      ",
-				      "moduleId": "./throw-error-pitch-loader.js!./entry-point.js",
-				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/throw-error-pitch-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
-				      "moduleName": "./throw-error-pitch-loader.js!./entry-point.js",
+				      "message": "  × Module build failed (from ./throw-error-pitch-loader.mjs):  ╰─▶   × Error: this is a thrown error        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx      ",
+				      "moduleId": "./throw-error-pitch-loader.mjs!./entry-point.js",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/throw-error-pitch-loader.mjs!<TEST_ROOT>/fixtures/errors/entry-point.js",
+				      "moduleName": "./throw-error-pitch-loader.mjs!./entry-point.js",
 				      "moduleTrace": Array [],
 				      "stack": undefined,
 				    },
@@ -82,7 +82,7 @@ export default [
 		description: "should emit errors & warnings for irregular-error-loader",
 		options() {
 			return {
-				entry: "./irregular-error-loader!./entry-point.js"
+				entry: "./irregular-error-loader.mjs!./entry-point.js"
 			};
 		},
 		async check(diagnostics) {
@@ -91,28 +91,28 @@ export default [
 				  "errors": Array [
 				    Object {
 				      "code": "ModuleError",
-				      "message": "  × Module Error (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):  │ (Emitted value instead of an instance of Error) null",
-				      "moduleId": "./irregular-error-loader.js!./entry-point.js",
-				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/irregular-error-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
-				      "moduleName": "./irregular-error-loader.js!./entry-point.js",
+				      "message": "  × Module Error (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.mjs):  │ (Emitted value instead of an instance of Error) null",
+				      "moduleId": "./irregular-error-loader.mjs!./entry-point.js",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/irregular-error-loader.mjs!<TEST_ROOT>/fixtures/errors/entry-point.js",
+				      "moduleName": "./irregular-error-loader.mjs!./entry-point.js",
 				      "moduleTrace": Array [],
-				      "stack": "ModuleError: Module Error (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):(Emitted value instead of an instance of Error) null    at Object.loaderContext.emitError (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at Object.module.exports (<TEST_ROOT>/fixtures/errors/irregular-error-loader.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at node:internal/util<LINE_COL>    at new Promise (<anonymous>)    at node:internal/util<LINE_COL>    at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)",
+				      "stack": "ModuleError: Module Error (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.mjs):(Emitted value instead of an instance of Error) null    at Object.loaderContext.emitError (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at Object.default (<ROOT>/tests/rspack-test/fixtures/errors/irregular-error-loader.mjs<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at node:internal/util<LINE_COL>    at new Promise (<anonymous>)    at node:internal/util<LINE_COL>    at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)",
 				    },
 				    Object {
 				      "code": "ModuleError",
-				      "message": "  × Module Error (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):  │ Error",
-				      "moduleId": "./irregular-error-loader.js!./entry-point.js",
-				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/irregular-error-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
-				      "moduleName": "./irregular-error-loader.js!./entry-point.js",
+				      "message": "  × Module Error (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.mjs):  │ Error",
+				      "moduleId": "./irregular-error-loader.mjs!./entry-point.js",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/irregular-error-loader.mjs!<TEST_ROOT>/fixtures/errors/entry-point.js",
+				      "moduleName": "./irregular-error-loader.mjs!./entry-point.js",
 				      "moduleTrace": Array [],
-				      "stack": "ModuleError: Module Error (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):Error    at Object.loaderContext.emitError (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at Object.module.exports (<TEST_ROOT>/fixtures/errors/irregular-error-loader.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at node:internal/util<LINE_COL>    at new Promise (<anonymous>)    at node:internal/util<LINE_COL>    at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)",
+				      "stack": "ModuleError: Module Error (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.mjs):Error    at Object.loaderContext.emitError (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at Object.default (<ROOT>/tests/rspack-test/fixtures/errors/irregular-error-loader.mjs<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at node:internal/util<LINE_COL>    at new Promise (<anonymous>)    at node:internal/util<LINE_COL>    at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)",
 				    },
 				    Object {
 				      "code": "ModuleBuildError",
-				      "message": "  × Module build failed (from ./irregular-error-loader.js):  ╰─▶   × TypeError: Cannot use 'in' operator to search for 'hideStack' in a string error        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx      ",
-				      "moduleId": "./irregular-error-loader.js!./entry-point.js",
-				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/irregular-error-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
-				      "moduleName": "./irregular-error-loader.js!./entry-point.js",
+				      "message": "  × Module build failed (from ./irregular-error-loader.mjs):  ╰─▶   × TypeError: Cannot use 'in' operator to search for 'hideStack' in a string error        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx      ",
+				      "moduleId": "./irregular-error-loader.mjs!./entry-point.js",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/irregular-error-loader.mjs!<TEST_ROOT>/fixtures/errors/entry-point.js",
+				      "moduleName": "./irregular-error-loader.mjs!./entry-point.js",
 				      "moduleTrace": Array [],
 				      "stack": undefined,
 				    },
@@ -120,21 +120,21 @@ export default [
 				  "warnings": Array [
 				    Object {
 				      "code": "ModuleWarning",
-				      "message": "  ⚠ Module Warning (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):  │ (Emitted value instead of an instance of Error) null",
-				      "moduleId": "./irregular-error-loader.js!./entry-point.js",
-				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/irregular-error-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
-				      "moduleName": "./irregular-error-loader.js!./entry-point.js",
+				      "message": "  ⚠ Module Warning (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.mjs):  │ (Emitted value instead of an instance of Error) null",
+				      "moduleId": "./irregular-error-loader.mjs!./entry-point.js",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/irregular-error-loader.mjs!<TEST_ROOT>/fixtures/errors/entry-point.js",
+				      "moduleName": "./irregular-error-loader.mjs!./entry-point.js",
 				      "moduleTrace": Array [],
-				      "stack": "ModuleWarning: Module Warning (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):(Emitted value instead of an instance of Error) null    at Object.loaderContext.emitWarning (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at Object.module.exports (<TEST_ROOT>/fixtures/errors/irregular-error-loader.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at node:internal/util<LINE_COL>    at new Promise (<anonymous>)    at node:internal/util<LINE_COL>    at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)",
+				      "stack": "ModuleWarning: Module Warning (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.mjs):(Emitted value instead of an instance of Error) null    at Object.loaderContext.emitWarning (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at Object.default (<ROOT>/tests/rspack-test/fixtures/errors/irregular-error-loader.mjs<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at node:internal/util<LINE_COL>    at new Promise (<anonymous>)    at node:internal/util<LINE_COL>    at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)",
 				    },
 				    Object {
 				      "code": "ModuleWarning",
-				      "message": "  ⚠ Module Warning (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):  │ Error",
-				      "moduleId": "./irregular-error-loader.js!./entry-point.js",
-				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/irregular-error-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
-				      "moduleName": "./irregular-error-loader.js!./entry-point.js",
+				      "message": "  ⚠ Module Warning (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.mjs):  │ Error",
+				      "moduleId": "./irregular-error-loader.mjs!./entry-point.js",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/irregular-error-loader.mjs!<TEST_ROOT>/fixtures/errors/entry-point.js",
+				      "moduleName": "./irregular-error-loader.mjs!./entry-point.js",
 				      "moduleTrace": Array [],
-				      "stack": "ModuleWarning: Module Warning (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):Error    at Object.loaderContext.emitWarning (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at Object.module.exports (<TEST_ROOT>/fixtures/errors/irregular-error-loader.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at node:internal/util<LINE_COL>    at new Promise (<anonymous>)    at node:internal/util<LINE_COL>    at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)",
+				      "stack": "ModuleWarning: Module Warning (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.mjs):Error    at Object.loaderContext.emitWarning (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at Object.default (<ROOT>/tests/rspack-test/fixtures/errors/irregular-error-loader.mjs<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at node:internal/util<LINE_COL>    at new Promise (<anonymous>)    at node:internal/util<LINE_COL>    at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)",
 				    },
 				  ],
 				}
@@ -144,7 +144,7 @@ export default [
 	{
 		description: "should emit error for no-return-loader",
 		options() {
-			return { entry: "./no-return-loader!./entry-point.js" };
+			return { entry: "./no-return-loader.mjs!./entry-point.js" };
 		},
 		async check(diagnostics) {
 			expect(diagnostics).toMatchInlineSnapshot(`
@@ -152,10 +152,10 @@ export default [
 				  "errors": Array [
 				    Object {
 				      "code": "ModuleBuildError",
-				      "message": "  × Module build failed:  ╰─▶   × Final loader(<TEST_ROOT>/fixtures/errors/no-return-loader.js) didn't return a Buffer or String      ",
-				      "moduleId": "./no-return-loader.js!./entry-point.js",
-				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/no-return-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
-				      "moduleName": "./no-return-loader.js!./entry-point.js",
+				      "message": "  × Module build failed:  ╰─▶   × Final loader(<TEST_ROOT>/fixtures/errors/no-return-loader.mjs) didn't return a Buffer or String      ",
+				      "moduleId": "./no-return-loader.mjs!./entry-point.js",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/no-return-loader.mjs!<TEST_ROOT>/fixtures/errors/entry-point.js",
+				      "moduleName": "./no-return-loader.mjs!./entry-point.js",
 				      "moduleTrace": Array [],
 				      "stack": undefined,
 				    },
@@ -191,7 +191,7 @@ export default [
 		description: "should emit error for return-undefined-loader",
 		options() {
 			return {
-				entry: "./return-undefined-loader!./entry-point.js"
+				entry: "./return-undefined-loader.mjs!./entry-point.js"
 			};
 		},
 		async check(diagnostics) {
@@ -200,10 +200,10 @@ export default [
 				  "errors": Array [
 				    Object {
 				      "code": "ModuleBuildError",
-				      "message": "  × Module build failed:  ╰─▶   × Final loader(<TEST_ROOT>/fixtures/errors/return-undefined-loader.js) didn't return a Buffer or String      ",
-				      "moduleId": "./return-undefined-loader.js!./entry-point.js",
-				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/return-undefined-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
-				      "moduleName": "./return-undefined-loader.js!./entry-point.js",
+				      "message": "  × Module build failed:  ╰─▶   × Final loader(<TEST_ROOT>/fixtures/errors/return-undefined-loader.mjs) didn't return a Buffer or String      ",
+				      "moduleId": "./return-undefined-loader.mjs!./entry-point.js",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/return-undefined-loader.mjs!<TEST_ROOT>/fixtures/errors/entry-point.js",
+				      "moduleName": "./return-undefined-loader.mjs!./entry-point.js",
 				      "moduleTrace": Array [],
 				      "stack": undefined,
 				    },

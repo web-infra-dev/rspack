@@ -28,7 +28,7 @@ export default {
         test: /\.js$/,
         use: [
           {
-            loader: path.join(import.meta.dirname, 'loader.js'),
+            loader: path.join(import.meta.dirname, 'loader.mjs'),
           },
         ],
       },

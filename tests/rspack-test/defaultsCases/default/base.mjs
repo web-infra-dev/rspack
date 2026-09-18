@@ -382,6 +382,7 @@ export default {
 			        },
 			      },
 			      chunks: async,
+			      dedupDepth: 0,
 			      defaultSizeTypes: Array [
 			        javascript,
 			        css,

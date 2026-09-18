@@ -5,7 +5,7 @@ export default ['css/module', 'css/auto'].flatMap((type) =>
       rules: [
         {
           test: /index\.js$/,
-          loader: './loader.js',
+          loader: './loader.mjs',
         },
         {
           test: /\.module\.css$/,

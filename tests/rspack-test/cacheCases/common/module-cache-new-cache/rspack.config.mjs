@@ -31,7 +31,7 @@ export default {
     rules: [
       {
         test: /(?:changed|stable)\.js$/,
-        loader: './loader.js',
+        loader: './loader.mjs',
         options: loaderOptions,
       },
       {
@@ -40,7 +40,7 @@ export default {
         parser: {
           parse: JSON.parse,
         },
-        loader: './loader.js',
+        loader: './loader.mjs',
         options: loaderOptions,
       },
     ],

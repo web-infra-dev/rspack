@@ -2,7 +2,7 @@
 export default {
   resolveLoader: {
     alias: {
-      'my-loader': './loader.js?query=alias',
+      'my-loader': './loader.mjs?query=alias',
     },
   },
   module: {
@@ -10,7 +10,7 @@ export default {
       {
         test: /a\.js$/,
         use: {
-          loader: './loader?query=a',
+          loader: './loader.mjs?query=a',
         },
       },
       {
@@ -28,21 +28,21 @@ export default {
       {
         test: /d\.js$/,
         use: {
-          loader: './loader',
+          loader: './loader.mjs',
           options: 'query=d',
         },
       },
       {
         test: /e\.js$/,
         use: {
-          loader: './loader?query=e',
+          loader: './loader.mjs?query=e',
           options: 'query=options-e',
         },
       },
       {
         test: /f\.js$/,
         use: {
-          loader: './loader?query=f',
+          loader: './loader.mjs?query=f',
           options: {
             query: 'options-object-f',
           },

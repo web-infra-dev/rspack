@@ -20,7 +20,7 @@ export default {
       },
       runtimePlugins: [
         [
-          './plugin-with-params.js',
+          './plugin-with-params.mjs',
           {
             'custom-params': {
               msg: 'custom-params',

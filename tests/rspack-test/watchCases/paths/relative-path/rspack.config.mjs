@@ -8,7 +8,7 @@ const config = {
     rules: [
       {
         test: /index\.js$/,
-        loader: fileURLToPath(import.meta.resolve('./loader.js')),
+        loader: fileURLToPath(import.meta.resolve('./loader.mjs')),
       },
     ],
   },

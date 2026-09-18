@@ -9,7 +9,7 @@ export default {
     rules: [
       {
         test: path.join(import.meta.dirname, 'a.js'),
-        use: [{ loader: './loader-2.js' }, { loader: './loader-1.js' }],
+        use: [{ loader: './loader-2.mjs' }, { loader: './loader-1.mjs' }],
       },
     ],
   },

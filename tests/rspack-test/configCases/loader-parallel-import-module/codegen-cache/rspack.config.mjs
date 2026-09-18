@@ -10,7 +10,7 @@ export default {
         test: /app-proxy\.js/,
         use: [
           {
-            loader: './loader',
+            loader: './loader.mjs',
             options: {},
             parallel: true,
           },

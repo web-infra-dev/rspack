@@ -5,9 +5,9 @@ export default {
       {
         test: /a\.js$/,
         use: [
-          './loader1',
+          './loader1.mjs',
           {
-            loader: './loader2',
+            loader: './loader2.mjs',
             options: {
               f: function () {
                 return 'ok';
@@ -18,12 +18,12 @@ export default {
       },
       {
         test: /(b|c)\.js$/,
-        use: ['./loader1'],
+        use: ['./loader1.mjs'],
       },
       {
         test: /b\.js$/,
         use: {
-          loader: './loader2',
+          loader: './loader2.mjs',
           options: {
             f: function () {
               return 'maybe';
@@ -34,7 +34,7 @@ export default {
       {
         test: /c\.js$/,
         use: {
-          loader: './loader2',
+          loader: './loader2.mjs',
           options: {
             f: function () {
               return 'yes';
@@ -45,11 +45,11 @@ export default {
       {
         test: /d\.js$/,
         use: [
-          './loader1',
-          './loader1',
-          './loader1',
+          './loader1.mjs',
+          './loader1.mjs',
+          './loader1.mjs',
           {
-            loader: './loader2',
+            loader: './loader2.mjs',
             options: {
               f: function () {
                 return 'ok';

@@ -10,13 +10,13 @@ export default {
       {
         test: path.join(import.meta.dirname, 'a.js'),
         use: [
-          { loader: './loader-2.js', parallel: true, options: {} },
+          { loader: './loader-2.mjs', parallel: true, options: {} },
           {
             loader: 'builtin:test-no-passthrough-loader',
             parallel: true,
             options: {},
           },
-          { loader: './loader-1.js', parallel: true, options: {} },
+          { loader: './loader-1.mjs', parallel: true, options: {} },
         ],
       },
     ],

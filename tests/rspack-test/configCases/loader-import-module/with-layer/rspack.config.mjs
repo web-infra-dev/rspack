@@ -5,7 +5,7 @@ export default {
     rules: [
       {
         test: /\.js/,
-        loader: './loader',
+        loader: './loader.mjs',
         issuerLayer: 'main',
         options: {},
       },
