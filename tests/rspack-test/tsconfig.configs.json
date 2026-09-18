@@ -11,5 +11,6 @@
     "erasableSyntaxOnly": true,
     "types": ["node", "./rstest.d.ts"]
   },
-  "include": ["*Cases/**/rspack.config.ts"]
+  "include": ["**/rspack.config.ts"],
+  "exclude": ["node_modules", "**/dist", "js"]
 }
