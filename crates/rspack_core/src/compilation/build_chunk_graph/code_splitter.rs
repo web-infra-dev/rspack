@@ -980,7 +980,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   pub fn prepare_input_entrypoints_and_modules(
     &mut self,
-    all_modules: &Vec<ModuleIdentifier>,
+    all_modules: &[ModuleIdentifier],
     compilation: &mut Compilation,
   ) -> Result<FxIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
     let mut input_entrypoints_and_modules: FxIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
