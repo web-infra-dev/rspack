@@ -173,13 +173,10 @@ pub fn impl_runtime_module(
         unreachable!()
       }
 
-      fn build_meta(&self) -> ::rspack_core::FreezeReadGuard<'_, ::rspack_core::BuildMeta> {
+      fn build_meta(&self) -> &::rspack_core::BuildMeta {
         unreachable!()
       }
 
-      fn freeze_build_meta(&self) -> &::rspack_core::SharedBuildMeta {
-        unreachable!()
-      }
 
       async fn code_generation(
         &self,

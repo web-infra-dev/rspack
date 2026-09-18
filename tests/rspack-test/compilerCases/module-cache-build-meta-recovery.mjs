@@ -23,7 +23,7 @@ function expectAsync(compilation, expected) {
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 export default {
   description:
-    "should preserve frozen build metadata across failed rebuilds and replace it on recovery",
+    "should preserve build metadata across failed rebuilds and replace it on recovery",
   options(context) {
     const root = context.getDist("src");
     fs.mkdirSync(root, { recursive: true });
@@ -66,7 +66,7 @@ export default {
     expectAsync(failed, true);
 
     // Recovering metadata from another failed build must retain the last
-    // successful Arc, even when that metadata already belongs to the cache.
+    // successful values, even when that metadata already belongs to the cache.
     const failedAgain = await rebuild(compiler, [dependency]);
     expect(failedAgain.errors).toHaveLength(1);
     expectAsync(failedAgain, true);

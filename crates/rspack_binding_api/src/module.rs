@@ -944,7 +944,7 @@ impl From<JsBuildMeta> for BuildMeta {
       .map(BuildMetaExportsType::from)
       .unwrap_or_default();
 
-    BuildMeta {
+    rspack_core::BuildMetaSnapshot {
       strict_esm_module,
       has_top_level_await,
       esm,
@@ -954,5 +954,6 @@ impl From<JsBuildMeta> for BuildMeta {
       default_object,
       side_effect_free,
     }
+    .into()
   }
 }

@@ -378,10 +378,10 @@ impl AMDDefineDependencyParserPlugin {
       // DynamicExports.bailout(parser.state);
       //  TODO: consider how to share this code
       if parser.parser_exports_state.is_some_and(|x| x) {
-        parser.build_meta.clear_exports_type();
-        parser
-          .build_meta
-          .set_default_object(BuildMetaDefaultObject::False);
+        parser.build_meta.set_exports(
+          rspack_core::BuildMetaExportsType::Unset,
+          BuildMetaDefaultObject::False,
+        );
       }
       parser.parser_exports_state = Some(false);
     }

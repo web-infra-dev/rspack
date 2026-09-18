@@ -32,7 +32,7 @@ pub struct RawModule {
   runtime_requirements: RuntimeGlobals,
   factory_meta: FactoryMetaStore,
   build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
+  build_meta: BuildMeta,
 }
 
 static RAW_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];

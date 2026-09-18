@@ -40,7 +40,7 @@ pub struct RemoteModule {
   pub remote_key: String,
   factory_meta: FactoryMetaStore,
   build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
+  build_meta: BuildMeta,
 }
 
 impl RemoteModule {

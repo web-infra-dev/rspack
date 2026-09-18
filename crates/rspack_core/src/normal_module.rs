@@ -139,7 +139,7 @@ pub struct NormalModule {
   code_generation_dependencies: Option<Vec<DependencyId>>,
   presentational_dependencies: Option<Vec<DependencyCodeGenerationRef>>,
   build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
+  build_meta: BuildMeta,
   parsed: bool,
   force_build: bool,
   source_map_kind: SourceMapKind,
@@ -151,8 +151,8 @@ pub struct NormalModule {
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
-  pub(crate) fn restore_build_meta(&self, build_meta: crate::SharedBuildMeta) {
-    self.build_meta.freeze_with(build_meta);
+  pub(crate) fn restore_build_meta(&self, build_meta: crate::BuildMetaSnapshot) {
+    self.build_meta.restore(build_meta);
   }
 
   fn create_id<'request>(
@@ -534,10 +534,8 @@ impl Module for NormalModule {
       )));
       self.diagnostics.push(diagnostic);
 
-      self.build_info.get_mut().hash = Some(self.init_build_hash(
-        &build_context.compiler_options.output,
-        &self.build_meta.read(),
-      ));
+      self.build_info.get_mut().hash =
+        Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
       return Ok(BoxModule::new(self));
     };
 
@@ -573,10 +571,8 @@ impl Module for NormalModule {
       self.code_generation_dependencies = Some(Vec::new());
       self.presentational_dependencies = Some(Vec::new());
 
-      self.build_info.get_mut().hash = Some(self.init_build_hash(
-        &build_context.compiler_options.output,
-        &self.build_meta.read(),
-      ));
+      self.build_info.get_mut().hash =
+        Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
 
       return Ok(BoxModule::new(self));
     }
@@ -611,7 +607,7 @@ impl Module for NormalModule {
         additional_data: loader_result.additional_data,
         factory_meta: factory_meta.as_deref(),
         build_info: self.build_info.get_mut(),
-        build_meta: self.build_meta.get_mut(),
+        build_meta: &mut self.build_meta,
         parse_meta: loader_result.parse_meta,
         runtime_template: &build_context.runtime_template,
       })
@@ -643,10 +639,8 @@ impl Module for NormalModule {
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
 
-    self.build_info.get_mut().hash = Some(self.init_build_hash(
-      &build_context.compiler_options.output,
-      &self.build_meta.read(),
-    ));
+    self.build_info.get_mut().hash =
+      Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
 
     Ok(BoxModule::new(self).with_dependencies(
       dependencies.into_iter().map(Into::into).collect(),
@@ -894,12 +888,8 @@ impl Module for NormalModule {
     self.build_info.get_mut()
   }
 
-  fn build_meta(&self) -> crate::FreezeReadGuard<'_, BuildMeta> {
-    self.build_meta.read()
-  }
-
-  fn freeze_build_meta(&self) -> &triomphe::Arc<BuildMeta> {
-    self.build_meta.freeze()
+  fn build_meta(&self) -> &BuildMeta {
+    &self.build_meta
   }
 }
 

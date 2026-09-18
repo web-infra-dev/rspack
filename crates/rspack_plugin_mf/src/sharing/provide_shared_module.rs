@@ -42,7 +42,7 @@ pub struct ProvideSharedModule {
   tree_shaking_mode: Option<String>,
   factory_meta: FactoryMetaStore,
   build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
+  build_meta: BuildMeta,
 }
 
 impl ProvideSharedModule {

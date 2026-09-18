@@ -46,7 +46,7 @@ pub struct RscEntryModule {
   is_server_side_rendering: bool,
   factory_meta: FactoryMetaStore,
   build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
+  build_meta: BuildMeta,
   layer: Option<ModuleLayer>,
 }
 
@@ -91,9 +91,7 @@ impl RscEntryModule {
         ..Default::default()
       }
       .into(),
-      build_meta: BuildMeta::default()
-        .with_exports_type(BuildMetaExportsType::Namespace)
-        .into(),
+      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
       source_map_kind: SourceMapKind::empty(),
       layer,
     }

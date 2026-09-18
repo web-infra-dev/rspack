@@ -83,7 +83,7 @@ pub struct RootModuleContext {
   pub layer: Option<ModuleLayer>,
   pub side_effect_connection_state: ConnectionState,
   pub factory_meta: FactoryMetaStore,
-  pub build_meta: FreezeLock<BuildMeta>,
+  pub build_meta: BuildMeta,
   pub exports_argument: ExportsArgument,
   pub module_argument: ModuleArgument,
 }
@@ -755,12 +755,8 @@ impl Module for ConcatenatedModule {
     self.build_info.get_mut()
   }
 
-  fn build_meta(&self) -> crate::FreezeReadGuard<'_, BuildMeta> {
-    self.root_module_ctxt.build_meta.read()
-  }
-
-  fn freeze_build_meta(&self) -> &triomphe::Arc<BuildMeta> {
-    self.root_module_ctxt.build_meta.freeze()
+  fn build_meta(&self) -> &BuildMeta {
+    &self.root_module_ctxt.build_meta
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {

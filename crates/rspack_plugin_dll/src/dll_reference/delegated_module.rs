@@ -34,7 +34,7 @@ pub struct DelegatedModule {
   dependencies_block: DependenciesBlockData,
   factory_meta: FactoryMetaStore,
   build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
+  build_meta: BuildMeta,
 }
 
 impl DelegatedModule {
@@ -108,7 +108,7 @@ impl Module for DelegatedModule {
         false,
       )),
     ];
-    self.build_meta = self.delegate_data.build_meta.clone().into();
+    self.build_meta = self.delegate_data.build_meta.clone();
     Ok(
       BoxModule::new(self)
         .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![]),

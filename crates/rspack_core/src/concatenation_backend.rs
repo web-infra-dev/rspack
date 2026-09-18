@@ -522,8 +522,7 @@ impl ConcatenationNameAllocator {
       .module_by_identifier(&module)
       .expect("should have module")
       .build_meta();
-    let exports_type: BuildMetaExportsType = build_meta.exports_type();
-    let default_object: BuildMetaDefaultObject = build_meta.default_object();
+    let (exports_type, default_object) = build_meta.exports();
     let module_identifier = context.module_identifier(&module);
     if exports_type != BuildMetaExportsType::Namespace {
       module_info.set_interop_namespace_object_name(Some(

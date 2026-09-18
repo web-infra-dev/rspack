@@ -34,7 +34,7 @@ pub(crate) struct CssModule {
 
   factory_meta: FactoryMetaStore,
   build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
+  build_meta: BuildMeta,
 
   dependencies_block: DependenciesBlockData,
 

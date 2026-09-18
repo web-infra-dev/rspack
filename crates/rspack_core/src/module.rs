@@ -6,10 +6,11 @@ use std::{
 };
 
 use async_trait::async_trait;
+use crossbeam_utils::atomic::AtomicCell;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{As, AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
+  with::{As, AsConverter, AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -370,6 +371,7 @@ impl crate::FreezeLock<BuildInfo> {
 #[cacheable]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[repr(u8)]
 pub enum BuildMetaExportsType {
   #[default]
   Unset,
@@ -448,6 +450,7 @@ impl ExportsType {
 #[cacheable]
 #[derive(Debug, Default, Clone, Copy, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[repr(u8)]
 pub enum BuildMetaDefaultObject {
   #[default]
   False,
@@ -532,10 +535,12 @@ impl ExportsArgument {
   }
 }
 
+/// Owned metadata values for failed-rebuild recovery, serialization and hashing.
+/// The export configuration is captured with a single atomic load.
 #[cacheable]
-#[derive(Debug, Default, Clone, Serialize, rspack_hash::RspackHash)]
+#[derive(Debug, Default, Clone, Copy, Serialize, rspack_hash::RspackHash)]
 #[serde(rename_all = "camelCase")]
-pub struct BuildMeta {
+pub struct BuildMetaSnapshot {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub strict_esm_module: Option<bool>,
   // same as is_async https://github.com/webpack/webpack/blob/3919c844eca394d73ca930e4fc5506fb86e2b094/lib/Module.js#L107
@@ -554,73 +559,131 @@ pub struct BuildMeta {
   pub side_effect_free: Option<bool>,
 }
 
+// Both enums occupy one byte (including Option's None discriminant). Align the
+// pair to two bytes so AtomicCell can use a native u16 atomic instead of a lock.
+#[derive(Debug, Default, Clone, Copy)]
+#[repr(C, align(2))]
+struct BuildMetaExports {
+  exports_type: BuildMetaExportsType,
+  default_object: Option<BuildMetaDefaultObject>,
+}
+
+// Keep these cells lock-free on targets with the corresponding native atomics.
+#[cfg(target_has_atomic = "8")]
+const _: () = assert!(AtomicCell::<Option<bool>>::is_lock_free());
+#[cfg(target_has_atomic = "16")]
+const _: () = assert!(AtomicCell::<BuildMetaExports>::is_lock_free());
+
+/// Build metadata with atomic fields for recovery after a module is shared.
+/// Cloning copies the values into independent cells for concatenated modules and
+/// DLL manifests; it must not share mutations with the original module.
+#[cacheable(with=As::<BuildMetaSnapshot>)]
+#[derive(Debug, Default)]
+pub struct BuildMeta {
+  strict_esm_module: AtomicCell<Option<bool>>,
+  has_top_level_await: AtomicCell<Option<bool>>,
+  esm: AtomicCell<Option<bool>>,
+  is_css_module: AtomicCell<Option<bool>>,
+  need_id_in_concatenation: AtomicCell<Option<bool>>,
+  side_effect_free: AtomicCell<Option<bool>>,
+  exports: AtomicCell<BuildMetaExports>,
+}
+
 impl BuildMeta {
   pub fn strict_esm_module(&self) -> bool {
-    self.strict_esm_module.unwrap_or(false)
-  }
-
-  pub fn has_top_level_await(&self) -> bool {
-    self.has_top_level_await.unwrap_or(false)
-  }
-
-  pub fn esm(&self) -> bool {
-    self.esm.unwrap_or(false)
-  }
-
-  pub fn is_css_module(&self) -> bool {
-    self.is_css_module.unwrap_or(false)
-  }
-
-  pub fn need_id_in_concatenation(&self) -> bool {
-    self.need_id_in_concatenation.unwrap_or(false)
-  }
-
-  pub fn exports_type(&self) -> BuildMetaExportsType {
-    self.exports_type
-  }
-
-  pub fn default_object(&self) -> BuildMetaDefaultObject {
-    self.default_object.unwrap_or(BuildMetaDefaultObject::False)
-  }
-
-  pub fn side_effect_free(&self) -> bool {
-    self.side_effect_free.unwrap_or(false)
+    self.strict_esm_module.load().unwrap_or(false)
   }
 
   pub fn set_strict_esm_module(&mut self, value: bool) {
-    self.strict_esm_module = Some(value);
+    self.strict_esm_module.store(Some(value));
+  }
+
+  pub fn has_top_level_await(&self) -> bool {
+    self.has_top_level_await.load().unwrap_or(false)
   }
 
   pub fn set_has_top_level_await(&mut self, value: bool) {
-    self.has_top_level_await = Some(value);
+    self.has_top_level_await.store(Some(value));
+  }
+
+  pub fn esm(&self) -> bool {
+    self.esm.load().unwrap_or(false)
   }
 
   pub fn set_esm(&mut self, value: bool) {
-    self.esm = Some(value);
+    self.esm.store(Some(value));
+  }
+
+  pub fn is_css_module(&self) -> bool {
+    self.is_css_module.load().unwrap_or(false)
   }
 
   pub fn set_is_css_module(&mut self, value: bool) {
-    self.is_css_module = Some(value);
+    self.is_css_module.store(Some(value));
+  }
+
+  pub fn need_id_in_concatenation(&self) -> bool {
+    self.need_id_in_concatenation.load().unwrap_or(false)
   }
 
   pub fn set_need_id_in_concatenation(&mut self, value: bool) {
-    self.need_id_in_concatenation = Some(value);
+    self.need_id_in_concatenation.store(Some(value));
   }
 
-  pub fn set_exports_type(&mut self, value: BuildMetaExportsType) {
-    self.exports_type = value;
+  pub fn side_effect_free(&self) -> bool {
+    self.side_effect_free_option().unwrap_or(false)
   }
 
-  pub fn clear_exports_type(&mut self) {
-    self.exports_type = BuildMetaExportsType::Unset;
-  }
-
-  pub fn set_default_object(&mut self, value: BuildMetaDefaultObject) {
-    self.default_object = Some(value);
+  pub fn side_effect_free_option(&self) -> Option<bool> {
+    self.side_effect_free.load()
   }
 
   pub fn set_side_effect_free(&mut self, value: bool) {
-    self.side_effect_free = Some(value);
+    self.side_effect_free.store(Some(value));
+  }
+
+  /// Read the related export fields from the same version.
+  pub fn exports(&self) -> (BuildMetaExportsType, BuildMetaDefaultObject) {
+    let exports = self.exports.load();
+    (
+      exports.exports_type,
+      exports.default_object.unwrap_or_default(),
+    )
+  }
+
+  pub fn exports_type(&self) -> BuildMetaExportsType {
+    self.exports.load().exports_type
+  }
+
+  pub fn default_object(&self) -> BuildMetaDefaultObject {
+    self.exports.load().default_object.unwrap_or_default()
+  }
+
+  pub fn set_exports(
+    &mut self,
+    exports_type: BuildMetaExportsType,
+    default_object: BuildMetaDefaultObject,
+  ) {
+    self.exports.store(BuildMetaExports {
+      exports_type,
+      default_object: Some(default_object),
+    });
+  }
+
+  pub fn set_exports_type(&mut self, value: BuildMetaExportsType) {
+    let mut exports = self.exports.load();
+    exports.exports_type = value;
+    self.exports.store(exports);
+  }
+
+  pub fn clear_exports_type(&mut self) {
+    self.set_exports_type(BuildMetaExportsType::Unset);
+  }
+
+  pub fn set_default_object(&mut self, value: BuildMetaDefaultObject) {
+    let mut exports = self.exports.load();
+    exports.default_object = Some(value);
+    self.exports.store(exports);
   }
 
   pub fn with_exports_type(mut self, value: BuildMetaExportsType) -> Self {
@@ -631,6 +694,87 @@ impl BuildMeta {
   pub fn with_default_object(mut self, value: BuildMetaDefaultObject) -> Self {
     self.set_default_object(value);
     self
+  }
+
+  /// Capture values after build/recovery, when metadata is no longer changing.
+  /// Independent fields are not a transactional snapshot during recovery.
+  pub fn snapshot(&self) -> BuildMetaSnapshot {
+    let exports = self.exports.load();
+    BuildMetaSnapshot {
+      strict_esm_module: self.strict_esm_module.load(),
+      has_top_level_await: self.has_top_level_await.load(),
+      esm: self.esm.load(),
+      is_css_module: self.is_css_module.load(),
+      need_id_in_concatenation: self.need_id_in_concatenation.load(),
+      side_effect_free: self.side_effect_free.load(),
+      exports_type: exports.exports_type,
+      default_object: exports.default_object,
+    }
+  }
+
+  /// Restore a failed module after graph repair has joined its build tasks and
+  /// before downstream analysis starts. Other metadata writes require &mut self.
+  pub(crate) fn restore(&self, snapshot: BuildMetaSnapshot) {
+    self.strict_esm_module.store(snapshot.strict_esm_module);
+    self.has_top_level_await.store(snapshot.has_top_level_await);
+    self.esm.store(snapshot.esm);
+    self.is_css_module.store(snapshot.is_css_module);
+    self
+      .need_id_in_concatenation
+      .store(snapshot.need_id_in_concatenation);
+    self.side_effect_free.store(snapshot.side_effect_free);
+    self.exports.store(BuildMetaExports {
+      exports_type: snapshot.exports_type,
+      default_object: snapshot.default_object,
+    });
+  }
+}
+
+impl From<BuildMetaSnapshot> for BuildMeta {
+  fn from(snapshot: BuildMetaSnapshot) -> Self {
+    Self {
+      strict_esm_module: AtomicCell::new(snapshot.strict_esm_module),
+      has_top_level_await: AtomicCell::new(snapshot.has_top_level_await),
+      esm: AtomicCell::new(snapshot.esm),
+      is_css_module: AtomicCell::new(snapshot.is_css_module),
+      need_id_in_concatenation: AtomicCell::new(snapshot.need_id_in_concatenation),
+      side_effect_free: AtomicCell::new(snapshot.side_effect_free),
+      exports: AtomicCell::new(BuildMetaExports {
+        exports_type: snapshot.exports_type,
+        default_object: snapshot.default_object,
+      }),
+    }
+  }
+}
+
+impl Clone for BuildMeta {
+  fn clone(&self) -> Self {
+    self.snapshot().into()
+  }
+}
+
+impl Serialize for BuildMeta {
+  fn serialize<S: serde::Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
+    self.snapshot().serialize(serializer)
+  }
+}
+
+impl RspackHash for BuildMeta {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.snapshot().hash(state);
+  }
+}
+
+impl AsConverter<BuildMeta> for BuildMetaSnapshot {
+  fn serialize(
+    data: &BuildMeta,
+    _: &rspack_cacheable::ContextGuard,
+  ) -> rspack_cacheable::Result<Self> {
+    Ok(data.snapshot())
+  }
+
+  fn deserialize(self, _: &rspack_cacheable::ContextGuard) -> rspack_cacheable::Result<BuildMeta> {
+    Ok(self.into())
   }
 }
 
@@ -696,8 +840,6 @@ impl From<Option<Arc<FactoryMeta>>> for FactoryMetaStore {
     Self(value.into())
   }
 }
-
-pub type SharedBuildMeta = triomphe::Arc<BuildMeta>;
 
 pub type ModuleIdentifier = Identifier;
 pub type ResourceIdentifier = Identifier;
@@ -765,10 +907,7 @@ pub trait Module:
 
   fn build_info_mut(&mut self) -> &mut BuildInfo;
 
-  fn build_meta(&self) -> crate::FreezeReadGuard<'_, BuildMeta>;
-
-  /// Publish build metadata after failed-rebuild recovery has finished.
-  fn freeze_build_meta(&self) -> &triomphe::Arc<BuildMeta>;
+  fn build_meta(&self) -> &BuildMeta;
 
   fn get_exports_argument(&self) -> ExportsArgument {
     self.build_info().exports_argument
@@ -788,7 +927,7 @@ pub trait Module:
     module_graph_cache.cached_get_exports_type((self.identifier(), strict), || {
       get_exports_type_impl(
         self.identifier(),
-        &self.build_meta(),
+        self.build_meta(),
         module_graph,
         exports_info_artifact,
         strict,
@@ -932,8 +1071,7 @@ fn get_exports_type_impl(
   exports_info_artifact: &ExportsInfoArtifact,
   strict: bool,
 ) -> ExportsType {
-  let export_type = build_meta.exports_type();
-  let default_object = build_meta.default_object();
+  let (export_type, default_object) = build_meta.exports();
   match export_type {
     BuildMetaExportsType::Flagged => {
       if strict {
@@ -1070,8 +1208,9 @@ impl<T: Module> ModuleExt for T {
 pub struct BoxModule(Box<dyn Module>);
 
 /// A built module shared by the module graph and the in-memory build cache.
-/// Build metadata has its own publication boundary. Shared modules only expose
-/// field-specific updates; obtaining mutable access to the whole module is not supported.
+/// Build information is frozen after its final updates; build metadata uses
+/// atomic fields for failed-rebuild recovery. Shared modules only expose specific
+/// updates; obtaining mutable access to the whole module is not supported.
 #[cacheable]
 #[derive(Debug, Clone)]
 #[repr(transparent)]
@@ -1227,12 +1366,8 @@ macro_rules! impl_module_meta_info {
       self.build_info.get_mut()
     }
 
-    fn build_meta(&self) -> $crate::FreezeReadGuard<'_, $crate::BuildMeta> {
-      self.build_meta.read()
-    }
-
-    fn freeze_build_meta(&self) -> &$crate::SharedBuildMeta {
-      self.build_meta.freeze()
+    fn build_meta(&self) -> &$crate::BuildMeta {
+      &self.build_meta
     }
   };
 }
@@ -1400,11 +1535,7 @@ mod test {
           unreachable!()
         }
 
-        fn build_meta(&self) -> crate::FreezeReadGuard<'_, crate::BuildMeta> {
-          unreachable!()
-        }
-
-        fn freeze_build_meta(&self) -> &crate::SharedBuildMeta {
+        fn build_meta(&self) -> &crate::BuildMeta {
           unreachable!()
         }
 

@@ -48,7 +48,7 @@ fn has_closure_library(output: &OutputOptions) -> bool {
 #[derive(Debug)]
 pub(crate) struct LazyCompilationProxyModule {
   build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
+  build_meta: BuildMeta,
   factory_meta: FactoryMetaStore,
 
   readable_identifier: String,

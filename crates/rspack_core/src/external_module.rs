@@ -527,7 +527,7 @@ pub struct ExternalModule {
   user_request: String,
   factory_meta: FactoryMetaStore,
   build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
+  build_meta: BuildMeta,
   dependency_meta: DependencyMeta,
   place_in_initial: bool,
 }
@@ -1232,16 +1232,16 @@ impl Module for ExternalModule {
             can_mangle = true;
           }
         } else {
-          self.build_meta.get_mut().set_has_top_level_await(true);
+          self.build_meta.set_has_top_level_await(true);
           if !request.is_some_and(|r| r.has_rest()) {
             exports_type = BuildMetaExportsType::Namespace;
             can_mangle = false;
           }
         }
       }
-      "script" | "promise" => self.build_meta.get_mut().set_has_top_level_await(true),
+      "script" | "promise" => self.build_meta.set_has_top_level_await(true),
       "import" => {
-        self.build_meta.get_mut().set_has_top_level_await(true);
+        self.build_meta.set_has_top_level_await(true);
         if !request.is_some_and(|r| r.has_rest()) {
           exports_type = BuildMetaExportsType::Namespace;
           can_mangle = false;
@@ -1249,7 +1249,7 @@ impl Module for ExternalModule {
       }
       _ => {}
     }
-    self.build_meta.get_mut().set_exports_type(exports_type);
+    self.build_meta.set_exports_type(exports_type);
     Ok(BoxModule::new(self).with_dependencies(
       vec![DependencyRef::new(StaticExportsDependency::new(
         StaticExportsSpec::True,

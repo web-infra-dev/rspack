@@ -74,10 +74,9 @@ impl JavascriptParser<'_> {
   // can't scan `__esModule` value
   fn bailout(&mut self) {
     if matches!(self.parser_exports_state, Some(true)) {
-      self.build_meta.clear_exports_type();
       self
         .build_meta
-        .set_default_object(BuildMetaDefaultObject::False);
+        .set_exports(BuildMetaExportsType::Unset, BuildMetaDefaultObject::False);
     }
     self.parser_exports_state = Some(false);
   }
@@ -88,12 +87,10 @@ impl JavascriptParser<'_> {
       return;
     }
     if self.parser_exports_state.is_none() {
-      self
-        .build_meta
-        .set_exports_type(BuildMetaExportsType::Default);
-      self
-        .build_meta
-        .set_default_object(BuildMetaDefaultObject::Redirect);
+      self.build_meta.set_exports(
+        BuildMetaExportsType::Default,
+        BuildMetaDefaultObject::Redirect,
+      );
     }
     self.parser_exports_state = Some(true);
   }

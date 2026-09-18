@@ -477,8 +477,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       ..
     } = parse_context;
     build_info.strict = true;
-    build_meta.set_exports_type(BuildMetaExportsType::Default);
-    build_meta.set_default_object(BuildMetaDefaultObject::False);
+    build_meta.set_exports(BuildMetaExportsType::Default, BuildMetaDefaultObject::False);
     let size = source.size();
 
     let data_url = match &self.data_url {

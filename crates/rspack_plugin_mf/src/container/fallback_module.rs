@@ -30,7 +30,7 @@ pub struct FallbackModule {
   requests: Vec<String>,
   factory_meta: FactoryMetaStore,
   build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
+  build_meta: BuildMeta,
 }
 
 impl FallbackModule {

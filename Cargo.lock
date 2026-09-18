@@ -4211,6 +4211,7 @@ dependencies = [
  "bitflags 2.13.1",
  "concat-string",
  "cow-utils",
+ "crossbeam-utils",
  "dashmap",
  "derive_more",
  "dyn-clone",

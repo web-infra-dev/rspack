@@ -25,7 +25,7 @@ pub struct SelfModule {
   dependencies_block: DependenciesBlockData,
   factory_meta: FactoryMetaStore,
   build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
+  build_meta: BuildMeta,
 }
 
 impl SelfModule {

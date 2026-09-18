@@ -274,7 +274,7 @@ pub struct ContextModule {
   options: ContextModuleOptions,
   factory_meta: FactoryMetaStore,
   build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
+  build_meta: BuildMeta,
   #[debug(skip)]
   #[cacheable(with=Unsupported)]
   resolve_dependencies: ResolveContextModuleDependencies,
@@ -299,8 +299,7 @@ impl ContextModule {
       build_info: build_info.into(),
       build_meta: BuildMeta::default()
         .with_exports_type(BuildMetaExportsType::Default)
-        .with_default_object(BuildMetaDefaultObject::RedirectWarn)
-        .into(),
+        .with_default_object(BuildMetaDefaultObject::RedirectWarn),
       source_map_kind: SourceMapKind::empty(),
       resolve_dependencies,
     }

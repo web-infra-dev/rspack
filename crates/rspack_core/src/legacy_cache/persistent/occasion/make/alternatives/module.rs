@@ -19,7 +19,7 @@ use crate::{
 pub struct TempModule {
   id: ModuleIdentifier,
   build_info: FreezeLock<BuildInfo>,
-  build_meta: FreezeLock<BuildMeta>,
+  build_meta: BuildMeta,
   dependencies_block: DependenciesBlockData,
 }
 
@@ -33,7 +33,7 @@ impl TempModule {
         ..Default::default()
       }
       .into(),
-      build_meta: m.freeze_build_meta().clone().into(),
+      build_meta: m.build_meta().clone(),
       dependencies_block: DependenciesBlockData::new(
         m.get_dependencies()
           .iter()
@@ -90,12 +90,8 @@ impl Module for TempModule {
     self.build_info.get_mut()
   }
 
-  fn build_meta(&self) -> crate::FreezeReadGuard<'_, BuildMeta> {
-    self.build_meta.read()
-  }
-
-  fn freeze_build_meta(&self) -> &triomphe::Arc<BuildMeta> {
-    self.build_meta.freeze()
+  fn build_meta(&self) -> &BuildMeta {
+    &self.build_meta
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
