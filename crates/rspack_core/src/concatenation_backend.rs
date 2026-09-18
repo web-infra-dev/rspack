@@ -594,6 +594,7 @@ fn analyze_identifiers<T>(
       lang: if jsx { Lang::Jsx } else { Lang::Js },
       preserve_parens: true,
       comments: CommentMode::None,
+      record_implicit_semicolons: false,
     },
     NoTokenParserConfig,
   )
