@@ -1,5 +1,5 @@
 let time = 0;
-module.exports = function (source) {
+export default function (source) {
   this.cacheable(false);
   time++;
   if (time === 2) {

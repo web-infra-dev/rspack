@@ -1,5 +1,5 @@
 /** @type {import("@rspack/core").LoaderDefinition} */
-module.exports = function() {
+export default function() {
 	this.experiments.emitDiagnostic({
 		message: "`React` is not defined",
 		severity: "error",

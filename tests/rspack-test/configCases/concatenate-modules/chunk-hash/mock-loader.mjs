@@ -1,5 +1,5 @@
 let mocked = false;
-module.exports = function () {
+export default function () {
   if (mocked) {
     return `export const m2 = function () { return "content2" };`;
   } else {

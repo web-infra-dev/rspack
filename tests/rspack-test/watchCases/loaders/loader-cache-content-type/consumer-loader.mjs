@@ -1,6 +1,6 @@
 const runs = new Map();
 
-module.exports = function (source) {
+export default function (source) {
   const key = `${this.getOptions().name}:${this.resource}`;
   const count = (runs.get(key) || 0) + 1;
   runs.set(key, count);

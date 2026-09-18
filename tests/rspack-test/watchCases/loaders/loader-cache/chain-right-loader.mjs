@@ -1,6 +1,6 @@
-const path = require("path");
+import path from "node:path";
 
-module.exports = function (source) {
+export default function (source) {
 	this.addDependency(path.join(path.dirname(this.resourcePath), "chain-right.txt"));
 	return source;
 };

@@ -9,7 +9,7 @@ export default {
       {
         include: path.resolve(import.meta.dirname, 'a.js'),
         use: [
-          './get-source.js',
+          './get-source.mjs',
           {
             loader: 'builtin:swc-loader',
             options: {

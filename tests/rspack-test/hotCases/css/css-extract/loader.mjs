@@ -1,5 +1,5 @@
 let i = 0;
-module.exports = function(content) {
+export default function(content) {
   this.cacheable(false);
   i++;
   if (i === 1) {

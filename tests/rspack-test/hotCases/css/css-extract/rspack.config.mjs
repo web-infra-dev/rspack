@@ -26,7 +26,7 @@ export default {
               },
             },
           },
-          './loader.js',
+          './loader.mjs',
         ],
       },
     ],

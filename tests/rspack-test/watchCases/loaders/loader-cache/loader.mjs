@@ -1,5 +1,5 @@
-const path = require("path");
-const fs = require("fs");
+import path from "node:path";
+import fs from "node:fs";
 
 const loaderRuns = {
 	left: 0,
@@ -15,7 +15,7 @@ const loaderRuns = {
 	"chain-left": 0
 };
 
-module.exports = function (source, sourceMap) {
+export default function (source, sourceMap) {
 	const { name: configuredName } = this.getOptions();
 	const name = configuredName === "dependency"
 		? path.basename(this.resourcePath, path.extname(this.resourcePath))
