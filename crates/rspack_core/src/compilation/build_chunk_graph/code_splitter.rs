@@ -2766,9 +2766,19 @@ fn extract_block_modules(
     )
   };
 
+  // A single direct async block can still contain nested async blocks, and the
+  // dependencies inside those are attributed to the nested block rather than to
+  // the root or its direct child. Only take the direct path when the single
+  // block has no nested children; the map-based path below walks them.
+  let has_nested_async_blocks = blocks.first().is_some_and(|async_block| {
+    prepared_blocks_map
+      .get(&DependenciesBlockIdentifier::from(*async_block))
+      .is_some_and(|nested| !nested.is_empty())
+  });
+
   // Most roots have no async block or a single async block. Construct their results
   // directly, without a temporary hash map or repeatedly growing the output vectors.
-  if blocks.len() <= 1 {
+  if blocks.len() <= 1 && !has_nested_async_blocks {
     let connections = connection_map.map(Vec::as_slice).unwrap_or_default();
     let root_cached = map.contains_key(&block);
     let async_block = blocks
