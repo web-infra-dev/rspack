@@ -64,8 +64,15 @@ pub struct RspackComments<'a> {
 impl<'a> RspackComments<'a> {
   pub fn from_ast(ast: &'a Ast<'a>) -> Self {
     let source = ast.source();
-    let mut comments = Self::default();
-    for comment in ast.comments() {
+    let attached = ast.comments();
+    // One slot per attached comment bounds the number of distinct attachment
+    // positions, so neither map rehashes while it is being filled.
+    let capacity = attached.len();
+    let mut comments = Self {
+      leading: FxHashMap::with_capacity_and_hasher(capacity, Default::default()),
+      trailing: FxHashMap::with_capacity_and_hasher(capacity, Default::default()),
+    };
+    for comment in attached {
       let value = ast.get_utf8(comment.value(source.as_bytes()));
       let item = RspackComment {
         span: comment.span,
