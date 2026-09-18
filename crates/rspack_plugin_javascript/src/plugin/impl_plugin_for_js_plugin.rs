@@ -708,7 +708,10 @@ pub struct ExtractedCommentsInfo {
   pub comments_file_name: String,
 }
 
-fn module_has_js(module_identifier: &ModuleIdentifier, module_graph: &ModuleGraph) -> bool {
+pub(super) fn module_has_js(
+  module_identifier: &ModuleIdentifier,
+  module_graph: &ModuleGraph,
+) -> bool {
   module_graph
     .module_by_identifier(module_identifier)
     .is_some_and(|module| {
