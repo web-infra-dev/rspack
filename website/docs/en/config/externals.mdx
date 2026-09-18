@@ -166,6 +166,8 @@ This syntax is used to describe all the possible ways that an external library c
 
 It might be useful to define your own function to control the behavior of what you want to externalize from Rspack. [webpack-node-externals](https://www.npmjs.com/package/webpack-node-externals), for example, excludes all modules from the `node_modules` directory and provides options to allowlist packages.
 
+Rspack memoizes the result per distinct set of inputs the function actually reads, so a function that only reads `request` runs once per distinct request instead of once per import. Functions that use `getResolve` are never memoized.
+
 Here're arguments the function can receive:
 
 - `ctx` (`object`): Object containing details of the file.

@@ -166,6 +166,8 @@ export default {
 
 如果你想要自定义外部化的行为，可以使用函数。例如使用 [webpack-node-externals](https://www.npmjs.com/package/webpack-node-externals) 排除所有来自 `node_modules` 目录的模块，并提供了选项来允许列出白名单中的包。
 
+Rspack 会根据函数实际读取的输入缓存其结果：只读取 `request` 的函数对每个不同的 `request` 只会执行一次，而不是每次导入都执行一次；函数中使用了 `getResolve` 时不会缓存结果。
+
 函数接收两个入参：
 
 - `ctx` (`object`): 包含文件的详细信息的对象。
