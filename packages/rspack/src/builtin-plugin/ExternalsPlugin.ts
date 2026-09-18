@@ -70,8 +70,12 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 
     if (typeof item === 'function') {
       const processResolveResult = this.#processResolveResult;
+      const processRequest = this.#processRequest;
+      // Whether the native binding exposes the per-field getters; resolved
+      // once per externals item to keep it out of the per-call path.
+      let lazyCtx: boolean | undefined;
 
-      return async (ctx: RawExternalItemFnCtx) => {
+      return (ctx: RawExternalItemFnCtx) => {
         return new Promise((resolve, reject) => {
           // Track which inputs the user function actually reads so the native
           // side only caches on the fields that can affect the result. Bit 32
@@ -82,7 +86,7 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
           // never materialized.
           const rawCtx = ctx as any;
           // Older native bindings only expose the bulk `data()` accessor.
-          const lazy = typeof rawCtx.request === 'string';
+          const lazy = (lazyCtx ??= typeof rawCtx.request === 'string');
           const data = lazy ? undefined : ctx.data();
           const contextInfo = {
             get issuer() {
@@ -120,16 +124,18 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
                 observed |= 24;
                 return contextInfo;
               },
-              getResolve: (options) => {
+              // Only build the resolver closure when the function asks for it.
+              get getResolve() {
                 resolveUsed = true;
-                const rawResolve = options ? getRawResolve(options) : undefined;
-                const resolve = ctx.getResolve(rawResolve);
+                return (options: any) => {
+                  const rawResolve = options ? getRawResolve(options) : undefined;
+                  const resolve = ctx.getResolve(rawResolve);
 
-                return (
-                  context: string,
-                  request: string,
-                  callback?: ResolveCallback,
-                ) => {
+                  return (
+                    context: string,
+                    request: string,
+                    callback?: ResolveCallback,
+                  ) => {
                   if (callback) {
                     resolve(context, request, (error, text) => {
                       if (error) {
@@ -138,7 +144,7 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
                         const req = processResolveResult(text);
                         callback(
                           null,
-                          req ? this.#processRequest(req) : false,
+                          req ? processRequest(req) : false,
                           req,
                         );
                       }
@@ -151,12 +157,13 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
                         } else {
                           const req = processResolveResult(text);
                           promiseResolve(
-                            req ? this.#processRequest(req) : undefined,
+                            req ? processRequest(req) : undefined,
                           );
                         }
                       });
                     });
                   }
+                  };
                 };
               },
             },
