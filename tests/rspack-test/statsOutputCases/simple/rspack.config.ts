@@ -1,4 +1,6 @@
-export default {
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
   entry: './index.js',
   stats: {
     assets: true,
@@ -7,4 +9,4 @@ export default {
   output: {
     filename: 'bundle.js',
   },
-};
+});

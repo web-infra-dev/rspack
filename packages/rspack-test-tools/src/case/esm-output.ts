@@ -1,4 +1,5 @@
 import type { RspackOptions } from '@rspack/core';
+import { RSPACK_CONFIG_FILES } from '../helper/read-config-file';
 import {
   BasicCaseCreator,
   type IBasicCaseCreatorOptions,
@@ -41,7 +42,7 @@ const creator = new BasicCaseCreator({
         configMultiCompiler(
           context,
           name,
-          ['rspack.config.cjs', 'rspack.config.mjs', 'rspack.config.js'],
+          RSPACK_CONFIG_FILES,
           defaultOptions,
           (_index, _context, options) => {
             mergeRspackOptions(

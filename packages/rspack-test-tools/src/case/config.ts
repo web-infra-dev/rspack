@@ -1,6 +1,7 @@
 import path from 'node:path';
 import type { RspackOptions } from '@rspack/core';
 import fs from 'fs-extra';
+import { RSPACK_CONFIG_FILES } from '../helper/read-config-file';
 import { parseResource } from '../helper/legacy/parseResource';
 import {
   BasicCaseCreator,
@@ -43,7 +44,7 @@ export function createConfigProcessor(
       configMultiCompiler(
         context,
         name,
-        ['rspack.config.cjs', 'rspack.config.mjs', 'rspack.config.js'],
+        RSPACK_CONFIG_FILES,
         defaultOptions,
         (index, context, options) => {
           overrideOptions(index, context, options);
