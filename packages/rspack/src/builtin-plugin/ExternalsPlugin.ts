@@ -5,7 +5,12 @@ import {
   type RawExternalsPluginOptions,
 } from '@rspack/binding';
 
-import type { ExternalItem, ExternalItemValue, Externals } from '..';
+import type {
+  ExternalItem,
+  ExternalItemFunctionData,
+  ExternalItemValue,
+  Externals,
+} from '..';
 import { getRawResolve } from '../config/adapter';
 import type { ResolveCallback } from '../config/adapterRuleUse';
 import type { ResolveRequest } from '../Resolver';
@@ -70,6 +75,9 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 
     if (typeof item === 'function') {
       const processResolveResult = this.#processResolveResult;
+      // Whether the native binding exposes the per-field getters; resolved
+      // once per externals item so the check stays out of the per-call path.
+      let lazyCtx: boolean | undefined;
 
       return async (ctx: RawExternalItemFnCtx) => {
         return new Promise((resolve, reject) => {
@@ -81,20 +89,35 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
           // Read fields lazily through the native ctx so unused inputs are
           // never materialized.
           const rawCtx = ctx as any;
-          // Older native bindings only expose the bulk `data()` accessor.
-          const lazy = typeof rawCtx.request === 'string';
+          // Older native bindings only expose the bulk `data()` accessor. The
+          // check must not read a field, otherwise every call would materialize
+          // it just to detect the binding.
+          const lazy = (lazyCtx ??= 'request' in rawCtx);
           const data = lazy ? undefined : ctx.data();
+          // Fields the callback assigned keep the writable behaviour they had
+          // while they were plain data properties; overrides stay per call.
+          let assigned: any;
           const contextInfo = {
             get issuer() {
               observed |= 8;
+              if (assigned && 'issuer' in assigned) return assigned.issuer;
               return lazy ? rawCtx.issuer : data!.contextInfo.issuer;
+            },
+            set issuer(value: string) {
+              (assigned ??= {}).issuer = value;
             },
             get issuerLayer() {
               observed |= 16;
+              if (assigned && 'issuerLayer' in assigned) {
+                return assigned.issuerLayer;
+              }
               return (
                 (lazy ? rawCtx.issuerLayer : data!.contextInfo.issuerLayer) ??
                 null
               );
+            },
+            set issuerLayer(value: string | null) {
+              (assigned ??= {}).issuerLayer = value;
             },
           };
           const rawResult = (
@@ -109,19 +132,39 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
             {
               get request() {
                 observed |= 1;
+                if (assigned && 'request' in assigned) return assigned.request;
                 return lazy ? rawCtx.request : data!.request;
+              },
+              set request(value: string) {
+                (assigned ??= {}).request = value;
               },
               get dependencyType() {
                 observed |= 4;
+                if (assigned && 'dependencyType' in assigned) {
+                  return assigned.dependencyType;
+                }
                 return lazy ? rawCtx.dependencyType : data!.dependencyType;
+              },
+              set dependencyType(value: string) {
+                (assigned ??= {}).dependencyType = value;
               },
               get context() {
                 observed |= 2;
+                if (assigned && 'context' in assigned) return assigned.context;
                 return lazy ? rawCtx.context : data!.context;
+              },
+              set context(value: string) {
+                (assigned ??= {}).context = value;
               },
               get contextInfo() {
                 observed |= 24;
+                if (assigned && 'contextInfo' in assigned) {
+                  return assigned.contextInfo;
+                }
                 return contextInfo;
+              },
+              set contextInfo(value: ExternalItemFunctionData['contextInfo']) {
+                (assigned ??= {}).contextInfo = value;
               },
               getResolve: (options) => {
                 resolveUsed = true;
