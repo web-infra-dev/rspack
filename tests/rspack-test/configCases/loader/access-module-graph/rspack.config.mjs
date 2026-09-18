@@ -8,7 +8,7 @@ export default {
     rules: [
       {
         test: /index.js/,
-        use: [{ loader: './access-mg-loader.js' }],
+        use: [{ loader: './access-mg-loader.mjs' }],
       },
     ],
   },

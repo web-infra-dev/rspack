@@ -14,7 +14,7 @@ export default [false, true].flatMap((pitch) =>
                 {
                   loader: fileURLToPath(
                     new URL(
-                      raw ? './raw-loader.js' : './normal-loader.js',
+                      raw ? './raw-loader.mjs' : './normal-loader.mjs',
                       import.meta.url,
                     ),
                   ),
@@ -25,7 +25,7 @@ export default [false, true].flatMap((pitch) =>
                 {
                   loader: fileURLToPath(
                     new URL(
-                      pitch ? './pitch-loader.js' : './producer-loader.js',
+                      pitch ? './pitch-loader.mjs' : './producer-loader.mjs',
                       import.meta.url,
                     ),
                   ),
@@ -46,7 +46,7 @@ export default [false, true].flatMap((pitch) =>
                 {
                   loader: fileURLToPath(
                     new URL(
-                      raw ? './raw-loader.js' : './normal-loader.js',
+                      raw ? './raw-loader.mjs' : './normal-loader.mjs',
                       import.meta.url,
                     ),
                   ),

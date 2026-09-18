@@ -29,12 +29,12 @@ export default {
     rules: [
       {
         test: /\.mycss$/,
-        loader: './string-loader',
+        loader: './string-loader.mjs',
         type: 'css/global',
       },
       {
         test: /\.less$/,
-        use: ['./remove-source-map-url-loader', 'less-loader'],
+        use: ['./remove-source-map-url-loader.mjs', 'less-loader'],
         type: 'css/global',
       },
       {

@@ -13,7 +13,7 @@ export default {
       {
         test: /module\.js$/,
         phase: 'defer',
-        loader: './phase-loader.js',
+        loader: './phase-loader.mjs',
         options: {
           phase: 'defer',
         },
@@ -21,7 +21,7 @@ export default {
       {
         test: /module\.js$/,
         phase: 'source',
-        loader: './phase-loader.js',
+        loader: './phase-loader.mjs',
         options: {
           phase: 'source',
         },
@@ -29,7 +29,7 @@ export default {
       {
         test: /module\.js$/,
         phase: 'evaluation',
-        loader: './phase-loader.js',
+        loader: './phase-loader.mjs',
         options: {
           phase: 'evaluation',
         },

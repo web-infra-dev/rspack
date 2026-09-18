@@ -11,7 +11,7 @@ export default {
         oneOf: [
           {
             test: /\.css\.js$/,
-            use: './loader',
+            use: './loader.mjs',
             type: 'asset/source',
           },
           { test: /\.(js|jpg|png)$/ },

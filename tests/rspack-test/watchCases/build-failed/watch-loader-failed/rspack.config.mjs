@@ -6,7 +6,7 @@ export default {
     rules: [
       {
         test: /.txt$/,
-        loader: path.resolve(import.meta.dirname, './loader.js'),
+        loader: path.resolve(import.meta.dirname, './loader.mjs'),
       },
     ],
   },

@@ -12,7 +12,7 @@ export function createCompiler(count, fail = false, emit = true) {
     producerCalls: 0,
     consumerCalls: 0,
   };
-  const loader = path.join(import.meta.dirname, "loader.js");
+  const loader = path.join(import.meta.dirname, "loader.mjs");
   const compiler = rspack({
     context: import.meta.dirname,
     mode: "development",

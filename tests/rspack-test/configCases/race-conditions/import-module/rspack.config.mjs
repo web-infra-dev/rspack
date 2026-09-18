@@ -9,7 +9,7 @@ export default {
       {
         test: /\.css$/i,
         type: 'javascript/auto',
-        use: [fileURLToPath(import.meta.resolve('./loader.js')), 'css-loader'],
+        use: [fileURLToPath(import.meta.resolve('./loader.mjs')), 'css-loader'],
       },
     ],
   },

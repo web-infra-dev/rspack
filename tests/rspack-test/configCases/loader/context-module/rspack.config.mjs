@@ -13,7 +13,7 @@ export default {
         sideEffects: false,
         use: [
           {
-            loader: './my-loader.js',
+            loader: './my-loader.mjs',
           },
         ],
       },

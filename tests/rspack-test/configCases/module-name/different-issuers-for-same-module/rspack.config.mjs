@@ -7,12 +7,12 @@ export default {
       {
         test: /c\.js/,
         issuer: /a\.js/,
-        loader: './loader-a',
+        loader: './loader-a.mjs',
       },
       {
         test: /c\.js/,
         issuer: /b\.js/,
-        loader: './loader-b',
+        loader: './loader-b.mjs',
       },
     ],
   },

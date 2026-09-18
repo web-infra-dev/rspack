@@ -9,7 +9,7 @@ export default {
         test: /\.svg$/,
         use: [
           {
-            loader: './my-loader.js',
+            loader: './my-loader.mjs',
           },
         ],
         type: 'asset',

@@ -10,7 +10,7 @@ export default {
         test: /a.js/,
         use: [
           {
-            loader: './convert-loader.js',
+            loader: './convert-loader.mjs',
             options: {},
             parallel: true,
           },

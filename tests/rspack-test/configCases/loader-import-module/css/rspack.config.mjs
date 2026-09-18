@@ -23,7 +23,7 @@ export default {
         oneOf: [
           {
             test: /other-stylesheet\.js$/,
-            loader: './loader',
+            loader: './loader.mjs',
             options: {
               publicPath: '/other/',
               baseUri: 'my-schema://base',
@@ -32,7 +32,7 @@ export default {
           },
           {
             test: /stylesheet\.js$/,
-            loader: './loader',
+            loader: './loader.mjs',
             options: {
               baseUri: 'my-schema://base',
             },

@@ -22,7 +22,7 @@ export default {
       {
         test: /module\.js$/,
         issuerLayer: 'other-layer',
-        loader: './loader.js',
+        loader: './loader.mjs',
         options: {
           value: 'other',
         },
@@ -30,7 +30,7 @@ export default {
       {
         test: /module\.js$/,
         issuerLayer: 'layer',
-        loader: './loader.js',
+        loader: './loader.mjs',
         options: {
           value: 'ok',
         },
@@ -38,7 +38,7 @@ export default {
       {
         test: /module\.js$/,
         issuerLayer: 'entry-layer',
-        loader: './loader.js',
+        loader: './loader.mjs',
         options: {
           value: 'entry',
         },

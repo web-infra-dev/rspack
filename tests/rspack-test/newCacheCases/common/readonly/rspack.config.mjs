@@ -19,7 +19,7 @@ export default {
       {
         test: /file\.js$/,
         use: {
-          loader: './loader.js',
+          loader: './loader.mjs',
           options: { count: 0 },
         },
       },

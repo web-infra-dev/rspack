@@ -16,7 +16,7 @@ export default {
     rules: [
       {
         test: /\.abc\.js$/,
-        loader: './g-loader.js',
+        loader: './g-loader.mjs',
         options: {
           test: 1,
         },

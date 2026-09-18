@@ -6,7 +6,7 @@ export default {
     rules: [
       {
         test: /index\.js$/,
-        loader: './loader.js',
+        loader: './loader.mjs',
       },
     ],
   },

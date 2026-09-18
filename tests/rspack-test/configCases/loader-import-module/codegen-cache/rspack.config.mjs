@@ -8,7 +8,7 @@ export default {
     rules: [
       {
         test: /app-proxy\.js/,
-        loader: './loader',
+        loader: './loader.mjs',
         options: {},
       },
     ],

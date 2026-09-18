@@ -51,42 +51,42 @@ export default {
       {
         test: path.join(import.meta.dirname, 'swc.jsx'),
         use: [
-          './loader-2.js',
+          './loader-2.mjs',
           {
             loader: 'builtin:swc-loader',
             options: reactSwcOptions,
           },
-          './loader-1.js',
+          './loader-1.mjs',
         ],
       },
       {
         test: path.join(import.meta.dirname, 'react-refresh.jsx'),
         use: [
-          './loader-2.js',
+          './loader-2.mjs',
           'builtin:react-refresh-loader',
           {
             loader: 'builtin:swc-loader',
             options: reactSwcOptions,
           },
-          './loader-1.js',
+          './loader-1.mjs',
         ],
       },
       {
         test: path.join(import.meta.dirname, 'preact-refresh.jsx'),
         use: [
-          './loader-2.js',
+          './loader-2.mjs',
           'builtin:preact-refresh-loader',
           {
             loader: 'builtin:swc-loader',
             options: preactSwcOptions,
           },
-          './loader-1.js',
+          './loader-1.mjs',
         ],
       },
       {
         test: path.join(import.meta.dirname, 'lightning.css'),
         use: [
-          './loader-2.js',
+          './loader-2.mjs',
           {
             loader: 'builtin:lightningcss-loader',
             options: {
@@ -94,7 +94,7 @@ export default {
               targets: '> 0.2%',
             },
           },
-          './loader-1.js',
+          './loader-1.mjs',
         ],
         type: 'javascript/auto',
       },

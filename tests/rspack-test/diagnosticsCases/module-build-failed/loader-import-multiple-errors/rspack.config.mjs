@@ -7,7 +7,7 @@ export default {
         test: /index\.js$/,
         use: [
           {
-            loader: './import-loader.js',
+            loader: './import-loader.mjs',
             options: {},
             parallel: true,
           },

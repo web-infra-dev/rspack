@@ -22,7 +22,7 @@ export default {
         type: 'asset/source',
         test: /source\.txt$/,
         use: {
-          loader: './loader.js',
+          loader: './loader.mjs',
           options: {
             message: 'asset/source error message',
           },
@@ -32,7 +32,7 @@ export default {
         type: 'asset/resource',
         test: /file\.svg$/,
         use: {
-          loader: './loader.js',
+          loader: './loader.mjs',
           options: {
             message: 'asset/resource error message',
           },
@@ -42,7 +42,7 @@ export default {
         type: 'asset/resource',
         test: /other\.svg$/,
         use: {
-          loader: './loader.js',
+          loader: './loader.mjs',
           options: {
             message: 'asset/resource other error message',
           },
@@ -52,7 +52,7 @@ export default {
         type: 'asset/inline',
         test: /inline\.txt$/,
         use: {
-          loader: './loader.js',
+          loader: './loader.mjs',
           options: {
             message: 'asset/inline error message',
           },
@@ -62,7 +62,7 @@ export default {
         type: 'css/auto',
         test: /style\.css$/,
         use: {
-          loader: './loader.js',
+          loader: './loader.mjs',
           options: {
             message: 'css error message',
           },
@@ -72,7 +72,7 @@ export default {
         type: 'asset/resource',
         test: /in-style\.png$/,
         use: {
-          loader: './loader.js',
+          loader: './loader.mjs',
           options: {
             message: 'asset/resource in css error message',
           },
@@ -82,7 +82,7 @@ export default {
         type: 'asset/source',
         test: /in-style-source\.png$/,
         use: {
-          loader: './loader.js',
+          loader: './loader.mjs',
           options: {
             message: 'asset/source in css error message',
           },
@@ -92,7 +92,7 @@ export default {
         type: 'javascript/auto',
         test: /module\.js$/,
         use: {
-          loader: './loader.js',
+          loader: './loader.mjs',
           options: {
             message: 'javascript/auto error message',
           },
@@ -102,7 +102,7 @@ export default {
         type: 'json',
         test: /file\.json$/,
         use: {
-          loader: './loader.js',
+          loader: './loader.mjs',
           options: {
             message: 'json error message',
           },
@@ -112,7 +112,7 @@ export default {
         type: 'json',
         test: /other\.json$/,
         use: {
-          loader: './loader.js',
+          loader: './loader.mjs',
           options: {
             message: 'json other error message',
           },
@@ -125,7 +125,7 @@ export default {
         },
         test: /style\.modules\.css$/,
         use: {
-          loader: './loader.js',
+          loader: './loader.mjs',
           options: {
             message: 'css/auto error message',
           },
@@ -135,7 +135,7 @@ export default {
         type: 'webassembly/async',
         test: /async-wasm\.wat$/,
         use: {
-          loader: './loader.js',
+          loader: './loader.mjs',
           options: {
             message: 'webassembly/async error message',
           },

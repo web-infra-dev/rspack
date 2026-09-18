@@ -7,7 +7,7 @@ export default {
         test: /\.js/,
         use: [
           {
-            loader: './loader',
+            loader: './loader.mjs',
             options: {},
             parallel: true,
           },

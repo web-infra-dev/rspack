@@ -13,7 +13,7 @@ export default {
         },
         use: [
           {
-            loader: './loader.js',
+            loader: './loader.mjs',
           },
         ],
       },

@@ -3,7 +3,7 @@ export default {
     rules: [
       {
         test: /value\.txt$/,
-        use: { loader: './loader.js', options: { marker: true } },
+        use: { loader: './loader.mjs', options: { marker: true } },
       },
     ],
   },

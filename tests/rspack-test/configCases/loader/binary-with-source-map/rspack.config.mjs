@@ -10,7 +10,7 @@ export default {
     rules: [
       {
         test: path.join(import.meta.dirname, 'logo.png'),
-        use: ['./empty-loader.js'],
+        use: ['./empty-loader.mjs'],
         type: 'asset/resource',
       },
     ],

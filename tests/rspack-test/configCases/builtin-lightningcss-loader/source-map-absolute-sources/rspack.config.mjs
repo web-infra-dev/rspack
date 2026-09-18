@@ -12,7 +12,7 @@ export default {
     rules: [
       {
         test: /\.css$/,
-        use: ['./assert-source-map-loader.js', 'builtin:lightningcss-loader'],
+        use: ['./assert-source-map-loader.mjs', 'builtin:lightningcss-loader'],
         sideEffects: true,
         type: 'css/auto',
       },
