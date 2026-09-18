@@ -4,7 +4,7 @@ export default {
     rules: [
       {
         test: /\.js$/,
-        loader: path.resolve(import.meta.dirname, './example-loader'),
+        loader: path.resolve(import.meta.dirname, './example-loader.mjs'),
       },
     ],
   },
@@ -12,7 +12,7 @@ export default {
     alias: {
       'import-module-example': path.resolve(
         import.meta.dirname,
-        './import-module-example-loader',
+        './import-module-example-loader.mjs',
       ),
     },
   },

@@ -45,7 +45,7 @@ export default {
         },
       },
       runtimePlugins: [
-        path.resolve(import.meta.dirname, './runtime-plugin.js'),
+        path.resolve(import.meta.dirname, './runtime-plugin.mjs'),
       ],
     }),
   ],

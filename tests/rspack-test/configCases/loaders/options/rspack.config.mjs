@@ -5,7 +5,7 @@ export default {
     rules: [
       {
         test: /a\.js$/,
-        loader: './loader',
+        loader: './loader.mjs',
         options: {
           arg: true,
           arg1: null,
@@ -18,7 +18,7 @@ export default {
       },
       {
         test: /b\.js$/,
-        loader: './loader-1',
+        loader: './loader-1.mjs',
         options: {
           arg: true,
           arg1: null,
@@ -31,7 +31,7 @@ export default {
       },
       {
         test: /c\.js$/,
-        loader: './loader-1',
+        loader: './loader-1.mjs',
         options: JSON.stringify({
           arg: true,
           arg1: null,
@@ -44,46 +44,46 @@ export default {
       },
       {
         test: /d\.js$/,
-        loader: './loader-1',
+        loader: './loader-1.mjs',
         options: 'arg4=text',
       },
       {
         test: /d\.js$/,
-        loader: './loader',
+        loader: './loader.mjs',
         options: '',
       },
       {
         test: /f\.js$/,
-        loader: './loader',
+        loader: './loader.mjs',
         options: 'name=cheesecake&slices=8&delicious&warm=false',
       },
       {
         test: /g\.js$/,
-        loader: './loader',
+        loader: './loader.mjs',
         options: '%3d=%3D',
       },
       {
         test: /h\.js$/,
-        loader: './loader',
+        loader: './loader.mjs',
         options: 'foo=bar',
       },
       {
         test: /i\.js$/,
-        loader: './loader',
+        loader: './loader.mjs',
         options: `${JSON.stringify({
           foo: 'bar',
         })}`,
       },
       {
         test: /error1\.js$/,
-        loader: './loader-1',
+        loader: './loader-1.mjs',
         options: {
           arg6: { foo: 'value', bar: { baz: 42 } },
         },
       },
       {
         test: /error2\.js$/,
-        loader: './loader-2',
+        loader: './loader-2.mjs',
         options: {
           arg: false,
         },

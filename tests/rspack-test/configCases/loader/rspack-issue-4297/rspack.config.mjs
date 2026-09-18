@@ -10,7 +10,7 @@ export default {
       {
         test: /lib\.js$/,
         resourceQuery: { not: [/source/] },
-        loader: './queryloader.js',
+        loader: './queryloader.mjs',
       },
       {
         test: /lib\.js$/,
@@ -19,7 +19,7 @@ export default {
       {
         test: /lib\.js$/,
         resourceFragment: { not: [/source/] },
-        loader: './fragmentloader.js',
+        loader: './fragmentloader.mjs',
       },
     ],
   },

@@ -13,7 +13,7 @@ export default {
     rules: [
       {
         test: /resource\.js$/,
-        use: [`${path.join(context, 'loader.js')}?loader-query`],
+        use: [`${path.join(context, 'loader.mjs')}?loader-query`],
       },
     ],
   },

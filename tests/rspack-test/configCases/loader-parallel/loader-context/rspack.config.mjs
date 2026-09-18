@@ -6,7 +6,7 @@ export default {
         test: /resource\.js$/,
         use: [
           {
-            loader: './loader.js',
+            loader: './loader.mjs',
             parallel: true,
             options: {},
           },

@@ -6,7 +6,7 @@ export default {
     rules: [
       {
         with: { type: 'RANDOM' },
-        use: fileURLToPath(import.meta.resolve('./test-loader.js')),
+        use: fileURLToPath(import.meta.resolve('./test-loader.mjs')),
       },
     ],
   },

@@ -50,7 +50,7 @@ Actual: ${warningLogs.join('\n')}\nStderr: ${warningOutput}`,
     rules: [
       {
         test: /\.js$/,
-        use: [fileURLToPath(import.meta.resolve('./warning-loader.js'))],
+        use: [fileURLToPath(import.meta.resolve('./warning-loader.mjs'))],
       },
     ],
   },

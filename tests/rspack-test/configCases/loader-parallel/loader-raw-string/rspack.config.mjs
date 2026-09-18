@@ -11,12 +11,12 @@ export default {
       {
         test: file,
         resourceQuery: /case-1/,
-        use: createUse(['./raw', './string', './raw']),
+        use: createUse(['./raw.mjs', './string.mjs', './raw.mjs']),
       },
       {
         test: file,
         resourceQuery: /case-2/,
-        use: createUse(['./string', './raw', './string']),
+        use: createUse(['./string.mjs', './raw.mjs', './string.mjs']),
       },
     ],
   },

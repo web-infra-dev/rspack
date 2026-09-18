@@ -6,7 +6,7 @@ export default {
   mode: 'development',
   devtool: false,
   module: {
-    rules: [{ test: /imported-module\.js/, use: ['./loader'] }],
+    rules: [{ test: /imported-module\.js/, use: ['./loader.mjs'] }],
   },
   optimization: {
     minimize: false,

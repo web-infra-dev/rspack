@@ -10,9 +10,9 @@ export default [
         {
           test: /lib\.js$/,
           use: [
-            './simple-loader.js',
-            './pitching-loader.js',
-            './simple-async-loader.js',
+            './simple-loader.mjs',
+            './pitching-loader.mjs',
+            './simple-async-loader.mjs',
           ],
         },
       ],
@@ -30,8 +30,8 @@ export default [
           test: /lib\.js$/,
           use: [
             'builtin:test-simple-loader',
-            './pitching-loader.js',
-            './simple-async-loader.js',
+            './pitching-loader.mjs',
+            './simple-async-loader.mjs',
           ],
         },
       ],
@@ -48,9 +48,9 @@ export default [
         {
           test: /lib\.js$/,
           use: [
-            './simple-loader.js',
+            './simple-loader.mjs',
             'builtin:test-pitching-loader',
-            './simple-async-loader.js',
+            './simple-async-loader.mjs',
           ],
         },
       ],
@@ -67,8 +67,8 @@ export default [
         {
           test: /lib\.js$/,
           use: [
-            './simple-loader.js',
-            './pitching-loader.js',
+            './simple-loader.mjs',
+            './pitching-loader.mjs',
             'builtin:test-simple-async-loader.js',
           ],
         },

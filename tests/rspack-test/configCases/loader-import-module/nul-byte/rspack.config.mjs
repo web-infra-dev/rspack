@@ -8,7 +8,7 @@ export default {
     rules: [
       {
         test: /a.js/,
-        loader: './convert-loader.js',
+        loader: './convert-loader.mjs',
       },
     ],
   },

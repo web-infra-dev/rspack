@@ -4,7 +4,7 @@ export default {
     rules: [
       {
         test: /resource\.js$/,
-        use: ['./loader.js'],
+        use: ['./loader.mjs'],
       },
     ],
   },

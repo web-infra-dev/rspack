@@ -25,19 +25,19 @@ export default {
       {
         test: /lib\.js/,
         use: [
-          { loader: './worker-delete-loader.js', parallel: true, options: {} },
-          { loader: './seed-loader.js' },
+          { loader: './worker-delete-loader.mjs', parallel: true, options: {} },
+          { loader: './seed-loader.mjs' },
         ],
       },
       {
         test: /lib2\.js/,
         use: [
           {
-            loader: './worker-delete-all-loader.js',
+            loader: './worker-delete-all-loader.mjs',
             parallel: true,
             options: {},
           },
-          { loader: './seed-single-loader.js' },
+          { loader: './seed-single-loader.mjs' },
         ],
       },
     ],

@@ -25,7 +25,7 @@ export default {
             test: /other-stylesheet\.js$/,
             use: [
               {
-                loader: './loader',
+                loader: './loader.mjs',
                 options: {
                   publicPath: '/other/',
                   baseUri: 'my-schema://base',
@@ -39,7 +39,7 @@ export default {
             test: /stylesheet\.js$/,
             use: [
               {
-                loader: './loader',
+                loader: './loader.mjs',
                 options: {
                   baseUri: 'my-schema://base',
                 },

@@ -4,7 +4,7 @@ export default {
     rules: [
       {
         test: path.resolve(import.meta.dirname, 'index.js'),
-        loader: './loader',
+        loader: './loader.mjs',
       },
     ],
   },

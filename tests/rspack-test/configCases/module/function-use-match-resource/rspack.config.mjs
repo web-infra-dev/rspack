@@ -7,7 +7,7 @@ export default {
         use: (info) => {
           return [
             {
-              loader: './loader.js',
+              loader: './loader.mjs',
               options: info,
             },
           ];

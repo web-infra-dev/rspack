@@ -1,7 +1,7 @@
 /** @type {import("@rspack/core").Configuration[]} */
 export default [
   {
-    entry: './loader!./index.js',
+    entry: './loader.mjs!./index.js',
     mode: 'production',
     stats: {
       assets: true,
@@ -11,7 +11,7 @@ export default [
     },
   },
   {
-    entry: './loader!./index.js',
+    entry: './loader.mjs!./index.js',
     mode: 'production',
     stats: {
       assets: true,
@@ -21,7 +21,7 @@ export default [
     },
   },
   {
-    entry: './loader!./index.js',
+    entry: './loader.mjs!./index.js',
     mode: 'production',
     stats: {
       assets: true,
@@ -31,7 +31,7 @@ export default [
     },
   },
   {
-    entry: './loader!./index.js',
+    entry: './loader.mjs!./index.js',
     mode: 'production',
     stats: {
       assets: true,
@@ -41,7 +41,7 @@ export default [
     },
   },
   {
-    entry: './loader!./index.js',
+    entry: './loader.mjs!./index.js',
     mode: 'production',
     stats: {
       assets: true,
@@ -51,7 +51,7 @@ export default [
     },
   },
   {
-    entry: './loader!./index.js',
+    entry: './loader.mjs!./index.js',
     mode: 'production',
     stats: {
       assets: true,

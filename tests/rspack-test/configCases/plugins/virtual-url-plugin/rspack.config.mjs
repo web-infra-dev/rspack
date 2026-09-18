@@ -56,11 +56,11 @@ const config = {
         use: [
           {
             loader: fileURLToPath(
-              import.meta.resolve('./strip-types-loader.js'),
+              import.meta.resolve('./strip-types-loader.mjs'),
             ),
           },
           {
-            loader: fileURLToPath(import.meta.resolve('./babel-loader.js')),
+            loader: fileURLToPath(import.meta.resolve('./babel-loader.mjs')),
           },
         ],
       },

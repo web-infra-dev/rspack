@@ -5,7 +5,7 @@ export default {
     rules: [
       {
         test: /a\.js$/,
-        use: './loader',
+        use: './loader.mjs',
       },
     ],
   },

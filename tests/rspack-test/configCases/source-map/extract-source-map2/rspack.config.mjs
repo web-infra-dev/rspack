@@ -10,7 +10,7 @@ export default {
       {
         test: /\.js$/,
         extractSourceMap: true,
-        loader: fileURLToPath(import.meta.resolve('./babel-loader.js')),
+        loader: fileURLToPath(import.meta.resolve('./babel-loader.mjs')),
       },
     ],
   },

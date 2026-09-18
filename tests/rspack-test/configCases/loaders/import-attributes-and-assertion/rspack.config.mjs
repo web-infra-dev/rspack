@@ -7,7 +7,7 @@ export default {
     rules: [
       {
         with: { type: 'json' },
-        loader: fileURLToPath(import.meta.resolve('./loader-with.js')),
+        loader: fileURLToPath(import.meta.resolve('./loader-with.mjs')),
       },
     ],
   },

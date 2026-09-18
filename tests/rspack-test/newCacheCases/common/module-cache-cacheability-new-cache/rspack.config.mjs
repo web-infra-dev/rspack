@@ -41,11 +41,11 @@ export default {
     rules: [
       {
         test: /[\\/](?:a|b|c|d|e|f)\.js$/,
-        loader: './no-cache-loader.js',
+        loader: './no-cache-loader.mjs',
       },
       {
         test: /[\\/]cleared\.js$/,
-        loader: './clear-loader.js',
+        loader: './clear-loader.mjs',
       },
     ],
   },

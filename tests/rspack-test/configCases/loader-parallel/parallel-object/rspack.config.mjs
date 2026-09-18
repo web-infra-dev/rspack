@@ -6,13 +6,13 @@ export default {
         test: /lib\.js/,
         use: [
           {
-            loader: './unclonable.js',
+            loader: './unclonable.mjs',
             options: {
               notclonable() {},
             },
           },
           {
-            loader: './loader-in-worker.js',
+            loader: './loader-in-worker.mjs',
             parallel: { maxWorkers: 2 },
             options: {},
           },

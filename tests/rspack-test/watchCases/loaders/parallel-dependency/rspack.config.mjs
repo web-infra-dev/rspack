@@ -10,7 +10,7 @@ export default {
         test: /worker-return\.js$/,
         use: [
           {
-            loader: path.resolve(import.meta.dirname, 'dependency-loader.js'),
+            loader: path.resolve(import.meta.dirname, 'dependency-loader.mjs'),
             options: { dependency: 'return-dependency.txt' },
             parallel: { maxWorkers: 1 },
             cache: false,
@@ -23,10 +23,10 @@ export default {
         test: /worker-yield\.js$/,
         use: [
           {
-            loader: path.resolve(import.meta.dirname, 'passthrough-loader.js'),
+            loader: path.resolve(import.meta.dirname, 'passthrough-loader.mjs'),
           },
           {
-            loader: path.resolve(import.meta.dirname, 'dependency-loader.js'),
+            loader: path.resolve(import.meta.dirname, 'dependency-loader.mjs'),
             options: { dependency: 'yield-dependency.txt' },
             parallel: { maxWorkers: 1 },
           },

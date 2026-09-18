@@ -5,7 +5,7 @@ export default {
     rules: [
       {
         test: /\.png$/,
-        use: [{ loader: './loader.js' }],
+        use: [{ loader: './loader.mjs' }],
         type: 'asset/resource',
       },
     ],

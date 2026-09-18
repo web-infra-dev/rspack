@@ -12,7 +12,7 @@ export default {
       },
       {
         test: /index\.js/,
-        loader: './loader',
+        loader: './loader.mjs',
       },
     ],
   },
