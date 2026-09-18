@@ -2,7 +2,7 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Diagnosable;
 
 use super::BuildModuleGraphArtifact;
-use crate::BuildMetaSnapshot;
+use crate::BuildMeta;
 
 /// A toolkit for cutout to fix build meta
 ///
@@ -10,7 +10,7 @@ use crate::BuildMetaSnapshot;
 /// This toolkit will restore build meta from successful build to keep importing state.
 #[derive(Debug, Default)]
 pub struct FixBuildMeta {
-  origin_module_build_meta: IdentifierMap<BuildMetaSnapshot>,
+  origin_module_build_meta: IdentifierMap<BuildMeta>,
 }
 
 impl FixBuildMeta {
@@ -26,7 +26,7 @@ impl FixBuildMeta {
         .expect("should have module");
       self
         .origin_module_build_meta
-        .insert(*module_identifier, module.build_meta().snapshot());
+        .insert(*module_identifier, module.build_meta().clone());
     }
   }
 

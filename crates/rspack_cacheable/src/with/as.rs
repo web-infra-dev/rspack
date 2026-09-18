@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use arc_swap::ArcSwapOption;
+use crossbeam_utils::atomic::AtomicCell;
 use rkyv::{
   Archive, Archived, Deserialize, Place, Resolver, Serialize,
   de::Pooling,
@@ -25,6 +26,16 @@ impl<T> AsConverter<ArcSwapOption<T>> for Option<Arc<T>> {
 
   fn deserialize(self, _guard: &ContextGuard) -> Result<ArcSwapOption<T>> {
     Ok(self.into())
+  }
+}
+
+impl<T: Copy> AsConverter<AtomicCell<T>> for T {
+  fn serialize(data: &AtomicCell<T>, _guard: &ContextGuard) -> Result<Self> {
+    Ok(data.load())
+  }
+
+  fn deserialize(self, _guard: &ContextGuard) -> Result<AtomicCell<T>> {
+    Ok(AtomicCell::new(self))
   }
 }
 

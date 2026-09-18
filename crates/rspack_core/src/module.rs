@@ -10,7 +10,7 @@ use crossbeam_utils::atomic::AtomicCell;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{As, AsConverter, AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
+  with::{As, AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -24,7 +24,7 @@ use rspack_util::{
   source_map::ModuleSourceMapConfig,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use serde::Serialize;
+use serde::{Serialize, ser::SerializeMap};
 use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
@@ -535,32 +535,9 @@ impl ExportsArgument {
   }
 }
 
-/// Owned metadata values for failed-rebuild recovery, serialization and hashing.
-/// The export configuration is captured with a single atomic load.
-#[cacheable]
-#[derive(Debug, Default, Clone, Copy, Serialize, rspack_hash::RspackHash)]
-#[serde(rename_all = "camelCase")]
-pub struct BuildMetaSnapshot {
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub strict_esm_module: Option<bool>,
-  // same as is_async https://github.com/webpack/webpack/blob/3919c844eca394d73ca930e4fc5506fb86e2b094/lib/Module.js#L107
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub has_top_level_await: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub esm: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub is_css_module: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub need_id_in_concatenation: Option<bool>,
-  pub exports_type: BuildMetaExportsType,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub default_object: Option<BuildMetaDefaultObject>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub side_effect_free: Option<bool>,
-}
-
 // Both enums occupy one byte (including Option's None discriminant). Align the
 // pair to two bytes so AtomicCell can use a native u16 atomic instead of a lock.
+#[cacheable]
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(C, align(2))]
 struct BuildMetaExports {
@@ -575,17 +552,26 @@ const _: () = assert!(AtomicCell::<Option<bool>>::is_lock_free());
 const _: () = assert!(AtomicCell::<BuildMetaExports>::is_lock_free());
 
 /// Build metadata with atomic fields for recovery after a module is shared.
-/// Cloning copies the values into independent cells for concatenated modules and
-/// DLL manifests; it must not share mutations with the original module.
-#[cacheable(with=As::<BuildMetaSnapshot>)]
+/// Cloning copies the values into independent cells for failed-rebuild recovery,
+/// concatenated modules and DLL manifests; mutations never affect the original.
+/// Cloning, hashing and caching must not overlap recovery: independent flags do
+/// not form a single atomic snapshot.
+#[cacheable]
 #[derive(Debug, Default)]
 pub struct BuildMeta {
+  #[cacheable(with=As<Option<bool>>)]
   strict_esm_module: AtomicCell<Option<bool>>,
+  #[cacheable(with=As<Option<bool>>)]
   has_top_level_await: AtomicCell<Option<bool>>,
+  #[cacheable(with=As<Option<bool>>)]
   esm: AtomicCell<Option<bool>>,
+  #[cacheable(with=As<Option<bool>>)]
   is_css_module: AtomicCell<Option<bool>>,
+  #[cacheable(with=As<Option<bool>>)]
   need_id_in_concatenation: AtomicCell<Option<bool>>,
+  #[cacheable(with=As<Option<bool>>)]
   side_effect_free: AtomicCell<Option<bool>>,
+  #[cacheable(with=As<BuildMetaExports>)]
   exports: AtomicCell<BuildMetaExports>,
 }
 
@@ -696,85 +682,104 @@ impl BuildMeta {
     self
   }
 
-  /// Capture values after build/recovery, when metadata is no longer changing.
-  /// Independent fields are not a transactional snapshot during recovery.
-  pub fn snapshot(&self) -> BuildMetaSnapshot {
-    let exports = self.exports.load();
-    BuildMetaSnapshot {
-      strict_esm_module: self.strict_esm_module.load(),
-      has_top_level_await: self.has_top_level_await.load(),
-      esm: self.esm.load(),
-      is_css_module: self.is_css_module.load(),
-      need_id_in_concatenation: self.need_id_in_concatenation.load(),
-      side_effect_free: self.side_effect_free.load(),
-      exports_type: exports.exports_type,
-      default_object: exports.default_object,
-    }
-  }
-
   /// Restore a failed module after graph repair has joined its build tasks and
   /// before downstream analysis starts. Other metadata writes require &mut self.
-  pub(crate) fn restore(&self, snapshot: BuildMetaSnapshot) {
-    self.strict_esm_module.store(snapshot.strict_esm_module);
-    self.has_top_level_await.store(snapshot.has_top_level_await);
-    self.esm.store(snapshot.esm);
-    self.is_css_module.store(snapshot.is_css_module);
+  pub(crate) fn restore(&self, meta: BuildMeta) {
+    self
+      .strict_esm_module
+      .store(meta.strict_esm_module.into_inner());
+    self
+      .has_top_level_await
+      .store(meta.has_top_level_await.into_inner());
+    self.esm.store(meta.esm.into_inner());
+    self.is_css_module.store(meta.is_css_module.into_inner());
     self
       .need_id_in_concatenation
-      .store(snapshot.need_id_in_concatenation);
-    self.side_effect_free.store(snapshot.side_effect_free);
-    self.exports.store(BuildMetaExports {
-      exports_type: snapshot.exports_type,
-      default_object: snapshot.default_object,
-    });
-  }
-}
-
-impl From<BuildMetaSnapshot> for BuildMeta {
-  fn from(snapshot: BuildMetaSnapshot) -> Self {
-    Self {
-      strict_esm_module: AtomicCell::new(snapshot.strict_esm_module),
-      has_top_level_await: AtomicCell::new(snapshot.has_top_level_await),
-      esm: AtomicCell::new(snapshot.esm),
-      is_css_module: AtomicCell::new(snapshot.is_css_module),
-      need_id_in_concatenation: AtomicCell::new(snapshot.need_id_in_concatenation),
-      side_effect_free: AtomicCell::new(snapshot.side_effect_free),
-      exports: AtomicCell::new(BuildMetaExports {
-        exports_type: snapshot.exports_type,
-        default_object: snapshot.default_object,
-      }),
-    }
+      .store(meta.need_id_in_concatenation.into_inner());
+    self
+      .side_effect_free
+      .store(meta.side_effect_free.into_inner());
+    self.exports.store(meta.exports.into_inner());
   }
 }
 
 impl Clone for BuildMeta {
   fn clone(&self) -> Self {
-    self.snapshot().into()
+    Self {
+      strict_esm_module: AtomicCell::new(self.strict_esm_module.load()),
+      has_top_level_await: AtomicCell::new(self.has_top_level_await.load()),
+      esm: AtomicCell::new(self.esm.load()),
+      is_css_module: AtomicCell::new(self.is_css_module.load()),
+      need_id_in_concatenation: AtomicCell::new(self.need_id_in_concatenation.load()),
+      side_effect_free: AtomicCell::new(self.side_effect_free.load()),
+      exports: AtomicCell::new(self.exports.load()),
+    }
   }
 }
 
 impl Serialize for BuildMeta {
   fn serialize<S: serde::Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
-    self.snapshot().serialize(serializer)
+    let exports = self.exports.load();
+    let mut map = serializer.serialize_map(None)?;
+    macro_rules! optional_field {
+      ($name:literal, $value:expr) => {
+        if let Some(value) = $value {
+          map.serialize_entry($name, &value)?;
+        }
+      };
+    }
+    optional_field!("strictEsmModule", self.strict_esm_module.load());
+    optional_field!("hasTopLevelAwait", self.has_top_level_await.load());
+    optional_field!("esm", self.esm.load());
+    optional_field!("isCssModule", self.is_css_module.load());
+    optional_field!(
+      "needIdInConcatenation",
+      self.need_id_in_concatenation.load()
+    );
+    map.serialize_entry("exportsType", &exports.exports_type)?;
+    optional_field!("defaultObject", exports.default_object);
+    optional_field!("sideEffectFree", self.side_effect_free.load());
+    map.end()
+  }
+}
+
+impl RspackHash for BuildMetaExports {
+  fn hash(&self, state: &mut RspackHasher) {
+    // Keep the export fields inline in BuildMeta's existing content-hash format.
+    state.write(b"exports_type:");
+    self.exports_type.hash(state);
+    if let Some(value) = self.default_object {
+      state.write(b",default_object:");
+      value.hash(state);
+    }
   }
 }
 
 impl RspackHash for BuildMeta {
   fn hash(&self, state: &mut RspackHasher) {
-    self.snapshot().hash(state);
-  }
-}
-
-impl AsConverter<BuildMeta> for BuildMetaSnapshot {
-  fn serialize(
-    data: &BuildMeta,
-    _: &rspack_cacheable::ContextGuard,
-  ) -> rspack_cacheable::Result<Self> {
-    Ok(data.snapshot())
-  }
-
-  fn deserialize(self, _: &rspack_cacheable::ContextGuard) -> rspack_cacheable::Result<BuildMeta> {
-    Ok(self.into())
+    state.write(b"{");
+    // The original hash omitted absent fields. Load each optional flag once to
+    // decide whether to include its key and value, preserving None versus false.
+    macro_rules! optional_flag {
+      ($field:ident) => {
+        if let Some(value) = self.$field.load() {
+          state.write(concat!(stringify!($field), ":").as_bytes());
+          value.hash(state);
+          state.write(b",");
+        }
+      };
+    }
+    optional_flag!(strict_esm_module);
+    optional_flag!(has_top_level_await);
+    optional_flag!(esm);
+    optional_flag!(is_css_module);
+    optional_flag!(need_id_in_concatenation);
+    self.exports.hash(state);
+    if let Some(value) = self.side_effect_free.load() {
+      state.write(b",side_effect_free:");
+      value.hash(state);
+    }
+    state.write(b"}");
   }
 }
 

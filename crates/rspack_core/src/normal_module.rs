@@ -151,7 +151,7 @@ pub struct NormalModule {
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
-  pub(crate) fn restore_build_meta(&self, build_meta: crate::BuildMetaSnapshot) {
+  pub(crate) fn restore_build_meta(&self, build_meta: BuildMeta) {
     self.build_meta.restore(build_meta);
   }
 

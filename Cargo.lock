@@ -4135,6 +4135,7 @@ version = "0.102.6"
 dependencies = [
  "arc-swap",
  "camino",
+ "crossbeam-utils",
  "dashmap",
  "hashlink",
  "indexmap",
@@ -4331,6 +4332,7 @@ name = "rspack_hash"
 version = "0.102.6"
 dependencies = [
  "base64-simd 0.8.0",
+ "crossbeam-utils",
  "itoa",
  "lightningcss",
  "md4",
@@ -4559,6 +4561,7 @@ name = "rspack_macros_test"
 version = "0.102.6"
 dependencies = [
  "async-trait",
+ "crossbeam-utils",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
@@ -4567,6 +4570,7 @@ dependencies = [
  "rspack_hook",
  "rspack_macros",
  "rspack_util",
+ "serde_json",
  "tokio",
  "tracing",
  "trybuild",

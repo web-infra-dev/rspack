@@ -1,3 +1,4 @@
+use crossbeam_utils::atomic::AtomicCell;
 use lightningcss::targets::Browsers;
 use swc_config::types::{BoolOr, BoolOrDataConfig};
 
@@ -29,5 +30,11 @@ impl<T: RspackHash> RspackHash for BoolOrDataConfig<T> {
 impl RspackHash for Browsers {
   fn hash(&self, state: &mut RspackHasher) {
     hash_by_json(self, state);
+  }
+}
+
+impl<T: Copy + RspackHash> RspackHash for AtomicCell<T> {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.load().hash(state);
   }
 }
