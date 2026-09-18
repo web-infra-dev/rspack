@@ -1159,6 +1159,37 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   // #[tracing::instrument(skip_all)]
   pub fn split(&mut self, compilation: &mut Compilation) -> Result<()> {
+    // Async blocks provide a capacity hint, not an exact group count: named groups
+    // may be shared and some blocks may never create a chunk. Bound speculative space.
+    let capacity = compilation
+      .get_module_graph()
+      .blocks()
+      .len()
+      .saturating_add(compilation.entries.len())
+      .min(4096);
+    self
+      .chunk_group_infos
+      .reserve(capacity.saturating_sub(self.chunk_group_infos.len()));
+    self
+      .chunk_group_info_map
+      .reserve(capacity.saturating_sub(self.chunk_group_info_map.len()));
+    self
+      .mask_by_chunk
+      .reserve(capacity.saturating_sub(self.mask_by_chunk.len()));
+    self
+      .block_to_chunk_group
+      .reserve(capacity.saturating_sub(self.block_to_chunk_group.len()));
+    self
+      .block_owner
+      .reserve(capacity.saturating_sub(self.block_owner.len()));
+    self
+      .edges
+      .reserve(capacity.saturating_sub(self.edges.len()));
+    let artifact = &mut compilation.build_chunk_graph_artifact;
+    artifact.chunk_by_ukey.reserve_capacity(capacity);
+    artifact.chunk_group_by_ukey.reserve_capacity(capacity);
+    artifact.chunk_graph.reserve_chunks(capacity);
+
     let logger = compilation.get_logger("rspack.buildChunkGraph");
 
     // pop() is used to read from the queue
