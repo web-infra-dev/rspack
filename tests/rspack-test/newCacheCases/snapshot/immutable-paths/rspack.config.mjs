@@ -6,7 +6,7 @@ export default {
   cache: {
     type: 'persistent',
     snapshot: {
-      immutablePaths: [path.join(import.meta.dirname, './file.js')],
+      immutablePaths: [path.join(import.meta.dirname, 'immutable')],
     },
   },
 };

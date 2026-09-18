@@ -14,7 +14,7 @@ export default {
     type: 'persistent',
     buildDependencies: [BuildDependency],
     snapshot: {
-      immutablePaths: [path.join(import.meta.dirname, './file.js')],
+      immutablePaths: [path.join(import.meta.dirname, 'immutable')],
     },
   },
   plugins: [

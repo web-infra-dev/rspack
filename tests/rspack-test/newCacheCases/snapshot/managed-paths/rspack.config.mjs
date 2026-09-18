@@ -6,7 +6,7 @@ export default {
   cache: {
     type: 'persistent',
     snapshot: {
-      managedPaths: [path.join(import.meta.dirname, './test_lib')],
+      managedPaths: [path.join(import.meta.dirname, './packages')],
     },
   },
 };

@@ -14,7 +14,7 @@ export default {
     type: 'persistent',
     snapshot: {
       module: { timestamp: true },
-      immutablePaths: [path.resolve(import.meta.dirname, './file.js')],
+      immutablePaths: [path.join(import.meta.dirname, 'immutable')],
     },
   },
   plugins: [

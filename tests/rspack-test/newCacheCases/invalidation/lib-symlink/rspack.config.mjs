@@ -14,8 +14,8 @@ export default {
   cache: {
     type: 'persistent',
     snapshot: {
-      immutablePaths: [path.join(import.meta.dirname, './file.js')],
-      managedPaths: [path.join(import.meta.dirname, './libs'), /node_modules/],
+      immutablePaths: [path.join(import.meta.dirname, 'immutable')],
+      managedPaths: [path.join(import.meta.dirname, './libs'), nodeModulesPath],
     },
   },
   plugins: [
