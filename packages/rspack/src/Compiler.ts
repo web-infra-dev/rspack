@@ -49,6 +49,12 @@ import type { FileSystemInfoEntry } from './FileSystemInfo';
 import type { rspack } from './index';
 import Cache from './lib/Cache';
 import CacheFacade from './lib/CacheFacade';
+import {
+  getLoaderChannel,
+  registerLoaderCompiler,
+  unregisterLoaderCompiler,
+  runWithLoaderTasks,
+} from './loader-runner/channel';
 import { Logger, type LogTypeEnum } from './logging/Logger';
 import { NormalModuleFactory } from './NormalModuleFactory';
 import { ResolverFactory } from './ResolverFactory';
@@ -139,6 +145,7 @@ export const GET_COMPILER_ID = Symbol('getCompilerId');
 
 class Compiler {
   #instance?: binding.JsCompiler;
+  #loaderCompilerId?: number;
   #initial: boolean;
 
   #compilation?: Compilation;
@@ -341,7 +348,7 @@ class Compiler {
       options.resolve,
       options.resolveLoader,
     );
-    new JsLoaderRspackPlugin(this).apply(this);
+    new JsLoaderRspackPlugin().apply(this);
     new ExecuteModulePlugin().apply(this);
     // Trace hook interception only pays off once global tracing is already on.
     if (!IS_BROWSER && JavaScriptTracer.isEnabled()) {
@@ -830,10 +837,13 @@ class Compiler {
     const instanceCallback = (error?: Error | null) => {
       const close = this.#instance?.close();
       if (close) {
-        close.then(
-          () => callback(error),
-          (closeError) => callback(error || closeError),
-        );
+        const finish = (closeError?: Error | null) => {
+          if (this.#loaderCompilerId !== undefined) {
+            unregisterLoaderCompiler(this.#loaderCompilerId, this);
+          }
+          callback(error || closeError);
+        };
+        close.then(() => finish(), finish);
       } else {
         callback(error);
       }
@@ -850,16 +860,18 @@ class Compiler {
       if (error) {
         return callback(error);
       }
-      if (!this.#initial) {
-        instance!.rebuild(
-          Array.from(this.modifiedFiles || []),
-          Array.from(this.removedFiles || []),
-          callback,
-        );
-        return;
-      }
-      this.#initial = false;
-      instance!.build(callback);
+      runWithLoaderTasks((done) => {
+        if (!this.#initial) {
+          instance!.rebuild(
+            Array.from(this.modifiedFiles || []),
+            Array.from(this.removedFiles || []),
+            done,
+          );
+          return;
+        }
+        this.#initial = false;
+        instance!.build(done);
+      }, callback);
     });
   }
 
@@ -876,15 +888,14 @@ class Compiler {
       if (error) {
         return callback?.(error);
       }
-      instance!.rebuild(
-        Array.from(modifiedFiles || []),
-        Array.from(removedFiles || []),
-        (error) => {
-          if (error) {
-            return callback?.(error);
-          }
-          callback?.(null);
-        },
+      runWithLoaderTasks(
+        (done) =>
+          instance!.rebuild(
+            Array.from(modifiedFiles || []),
+            Array.from(removedFiles || []),
+            done,
+          ),
+        (error) => callback?.(error),
       );
     });
   }
@@ -994,8 +1005,11 @@ class Compiler {
           }
         },
         Cache.__to_binding(this.cache),
+        getLoaderChannel(),
       );
 
+      this.#loaderCompilerId = this.#instance.getCompilerId();
+      registerLoaderCompiler(this.#loaderCompilerId, this);
       callback(null, this.#instance);
     } catch (err) {
       if (err instanceof Error) {

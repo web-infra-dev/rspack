@@ -14,18 +14,6 @@ use crate::{
   plugin::LoaderRunnerPlugin,
 };
 
-impl<Context: Send> LoaderContext<Context> {
-  async fn start_yielding(&mut self) -> Result<bool> {
-    if self.current_loader().execution_kind() == LoaderExecutionKind::JavaScript
-      && let Some(plugin) = &self.plugin
-    {
-      plugin.clone().start_yielding(self).await?;
-      return Ok(true);
-    }
-    Ok(false)
-  }
-}
-
 #[tracing::instrument("LoaderRunner:process_resource",
   skip_all,
   fields(resource = loader_context.resource_data.resource())
@@ -144,7 +132,9 @@ async fn run_loaders_impl<Context: Send>(
           continue;
         }
         let span = info_span!("run_loader:pitch:yield_to_js", resource);
-        if cx.start_yielding().instrument(span).await? {
+        if cx.current_loader().execution_kind() == LoaderExecutionKind::JavaScript {
+          let loader = cx.current_loader().loader().clone();
+          loader.pitch(cx).instrument(span).await?;
           if cx.content.is_some() {
             cx.state.transition(State::Normal);
             cx.loader_index -= 1;
@@ -186,7 +176,9 @@ async fn run_loaders_impl<Context: Send>(
           continue;
         }
         let span = info_span!("run_loader:yield_to_js", resource);
-        if cx.start_yielding().instrument(span).await? {
+        if cx.current_loader().execution_kind() == LoaderExecutionKind::JavaScript {
+          let loader = cx.current_loader().loader().clone();
+          loader.run(cx).instrument(span).await?;
           continue;
         }
 

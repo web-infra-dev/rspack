@@ -1,32 +1,19 @@
 use napi::bindgen_prelude::{Either3, JsValuesTupleIntoVec};
-use rspack_core::{AdditionalData, LoaderContext, NormalModuleLoaderStartYielding, RunnerContext};
+use rspack_core::{AdditionalData, LoaderContext, RunnerContext};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
-use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
 
-use super::{JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
+use super::{JsLoaderContext, LoaderDispatcher};
 
-impl JsLoaderRspackPlugin {
-  async fn update_loaders_without_pitch(&self, list: Vec<String>) {
-    let mut loaders_without_pitch = self.loaders_without_pitch.write().await;
-    for path in list {
-      loaders_without_pitch.insert(path);
-    }
-  }
-}
-
-#[plugin_hook(NormalModuleLoaderStartYielding for JsLoaderRspackPlugin,tracing=false)]
-pub(crate) async fn loader_yield(
-  &self,
-  loader_context: &mut LoaderContext<RunnerContext>,
-) -> Result<()> {
+pub(crate) async fn run_loaders(loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
+  let dispatcher = LoaderDispatcher::get(loader_context.context.compiler_id)?;
   // Keep pitch capability discovery on the JS side of the runtime boundary.
   // A loader known not to have a pitch function does not need a JS callback.
   if loader_context.state() == LoaderState::Pitching
-    && self
+    && dispatcher
       .loaders_without_pitch
       .read()
-      .await
+      .expect("should get lock")
       .contains(loader_context.current_loader().path().as_str())
   {
     loader_context.current_loader().set_pitch_executed();
@@ -34,27 +21,16 @@ pub(crate) async fn loader_yield(
     return Ok(());
   }
 
-  let runner = self.runner.lock().expect("should get lock").clone();
-  let runner = runner
-    .get_or_try_init(|| async {
-      #[allow(clippy::unwrap_used)]
-      let compiler_id = self.compiler_id.get().unwrap();
-      self.runner_getter.call(compiler_id).await
-    })
-    .await
-    .to_rspack_result()?;
-
-  let new_cx = runner
-    .call_async(loader_context.try_into()?)
-    .await
-    .to_rspack_result()?
-    .await
-    .to_rspack_result()?;
+  let new_cx = dispatcher.run(loader_context.try_into()?).await?;
 
   if loader_context.state() == LoaderState::Pitching {
     let list = collect_loaders_without_pitch(loader_context, &new_cx);
     if !list.is_empty() {
-      self.update_loaders_without_pitch(list).await;
+      dispatcher
+        .loaders_without_pitch
+        .write()
+        .expect("should get lock")
+        .extend(list);
     }
   }
 

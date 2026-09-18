@@ -20,6 +20,8 @@ use super::{LoaderContext, LoaderRunnerOptions};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LoaderExecutionKind {
   Native,
+  /// `pitch` and `run` delegate a segment of the loader chain to JavaScript.
+  /// They update the loader index and execution flags before returning to the Rust runner.
   JavaScript,
 }
 

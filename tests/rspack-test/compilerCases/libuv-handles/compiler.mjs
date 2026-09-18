@@ -41,8 +41,7 @@ export function createCompiler(count, fail = false, emit = true) {
     plugins: [
       {
         apply(compiler) {
-          // Skipping emit also skips the loader plugin's usual runner cleanup;
-          // its close hook must release the runner even on this path.
+          // Skipping emit must still let the loader task loop become idle.
           if (!emit) {
             compiler.hooks.shouldEmit.tap("LibuvHandles", () => false);
           }

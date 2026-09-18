@@ -230,6 +230,7 @@ fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
 struct JsCompiler {
   // whether to skip drop compiler in finalize
   unsafe_fast_drop: bool,
+  loader_dispatcher: Arc<plugins::LoaderDispatcher>,
   infrastructure_log_dispatcher: Arc<InfrastructureLogDispatcher>,
   compiler_scoped_tsfn_manager: CompilerScopedTsFnManager,
   js_hooks_plugin: JsHooksAdapterPlugin,
@@ -247,11 +248,10 @@ impl JsCompiler {
   #[allow(clippy::too_many_arguments)]
   #[napi(
     constructor,
-    ts_args_type = "compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache"
+    ts_args_type = "compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache, loaderChannel: JsLoaderChannel"
   )]
   pub fn new(
     env: Env,
-    mut this: This,
     compiler_path: String,
     raw_options: Unknown<'static>,
     raw_builtin_plugins: Unknown<'static>,
@@ -264,6 +264,7 @@ impl JsCompiler {
     platform: RawCompilerPlatform,
     raw_infrastructure_log_callback: Unknown<'static>,
     cache: Reference<JsCache>,
+    loader_channel: &plugins::JsLoaderChannel,
   ) -> Result<Self> {
     tracing::info!(name:"rspack_version", version = rspack_workspace::rspack_pkg_version!());
 
@@ -316,7 +317,7 @@ impl JsCompiler {
       plugins.push(js_cleanup_plugin.boxed());
 
       for bp in builtin_plugins {
-        compiler_scoped_tsfn_manager.scope(|| bp.append_to(env, &mut this, &mut plugins))?;
+        compiler_scoped_tsfn_manager.scope(|| bp.append_to(env, &mut plugins))?;
       }
 
       let pnp = options.resolve.pnp.unwrap_or(false);
@@ -406,7 +407,10 @@ impl JsCompiler {
         infrastructure_log_sink,
       );
 
+      let loader_dispatcher = plugins::LoaderDispatcher::new(rspack.id(), loader_channel);
+
       Ok(Self {
+        loader_dispatcher,
         infrastructure_log_dispatcher,
         compiler_scoped_tsfn_manager,
         compiler: ManuallyDrop::new(Compiler::from(rspack)),
@@ -520,6 +524,7 @@ impl JsCompiler {
     });
     let Ok(mut promise) = spawn_future_result else {
       self.compiler_scoped_tsfn_manager.release();
+      self.loader_dispatcher.close();
       drop(reference);
       return spawn_future_result;
     };
@@ -530,6 +535,7 @@ impl JsCompiler {
         .js_hooks_plugin
         .clear_cache(self.compiler.compilation.id());
       self.compiler_scoped_tsfn_manager.release();
+      self.loader_dispatcher.close();
       drop(reference);
       Ok(())
     })
@@ -544,8 +550,8 @@ impl JsCompiler {
   }
 
   #[napi]
-  pub fn get_compiler_id(&self) -> External<CompilerId> {
-    External::new(self.compiler.id())
+  pub fn get_compiler_id(&self) -> u32 {
+    self.compiler.id().as_u32()
   }
 }
 

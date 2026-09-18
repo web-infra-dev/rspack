@@ -6,7 +6,7 @@ mod rsc;
 
 pub use js_cleanup_plugin::*;
 pub use js_hooks_plugin::*;
-pub(super) use js_loader::{JsLoaderItem, JsLoaderRspackPlugin, JsLoaderRunnerGetter};
+pub(super) use js_loader::{JsLoaderChannel, JsLoaderItem, JsLoaderRspackPlugin, LoaderDispatcher};
 pub mod buildtime_plugins;
 pub use interceptor::*;
 pub use rsc::{JsCoordinator, JsRscClientPluginOptions, JsRscServerPluginOptions};

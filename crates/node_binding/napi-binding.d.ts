@@ -342,7 +342,7 @@ export declare class JsCompilation {
 }
 
 export declare class JsCompiler {
-  constructor(compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache)
+  constructor(compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache, loaderChannel: JsLoaderChannel)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -350,7 +350,7 @@ export declare class JsCompiler {
   rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
   close(): Promise<void>
   getVirtualFileStore(): VirtualFileStore | null
-  getCompilerId(): ExternalObject<CompilerId>
+  getCompilerId(): number
 }
 
 export declare class JsContextModuleFactoryAfterResolveData {
@@ -418,6 +418,23 @@ export declare class JsExportsInfo {
 export declare class JsLoaderCache {
   get(loaderIndex: number, content: string | Uint8Array, existing: JsLoaderDependencies): Promise<JsLoaderCacheEntry | null>
   store(loaderIndex: number, output: JsLoaderCacheEntry): Promise<void>
+}
+
+/**
+ * Shared by the compilers using the JS loader task loop. A wake message lets the
+ * loop stop receiving when all builds are idle, so a pending receive cannot keep Node alive.
+ */
+export declare class JsLoaderChannel {
+  constructor()
+  receive(): Promise<JsLoaderTask | undefined | null>
+  wake(): void
+}
+
+export declare class JsLoaderTask {
+  readonly compilerId: number
+  takeContext(): JsLoaderContext
+  reply(context: JsLoaderContext): void
+  fail(message: string): void
 }
 
 export declare class JsModuleGraph {
