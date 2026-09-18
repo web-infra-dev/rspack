@@ -999,33 +999,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     let entries = compilation.entries.keys().cloned().collect::<Vec<_>>();
 
-    let outgoings = {
-      let mg = compilation.get_module_graph();
-      all_modules
-        .par_iter()
-        .filter_map(|m| {
-          let mgm = mg.module_graph_module_by_identifier(m)?;
-          let outgoing_connections = mgm.outgoing_connections();
-          if outgoing_connections.is_empty() {
-            return None;
-          }
-
-          let mut outgoing = Vec::with_capacity(outgoing_connections.len());
-          for id in outgoing_connections {
-            if let Some(con) = mg.connection_by_id(id) {
-              outgoing.push(*con.module_identifier());
-            }
-          }
-
-          if outgoing.is_empty() {
-            None
-          } else {
-            Some((*m, outgoing))
-          }
-        })
-        .collect::<IdentifierMap<_>>()
-    };
-
     let assign_tasks = entries
       .iter()
       .map(|name| self.prepare_entry_input(name, compilation))
@@ -1035,21 +1008,24 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .checked_div(entries.len())
       .unwrap_or_default();
 
-    let assign_depths_maps = assign_tasks
-      .par_iter()
-      .map(|(_, modules)| {
-        let initial_depth_capacity = initial_depth_capacity.max(modules.len());
-        let mut assign_depths_map =
-          IdentifierMap::with_capacity_and_hasher(initial_depth_capacity, Default::default());
-        assign_depths(
-          &mut assign_depths_map,
-          modules.iter(),
-          &outgoings,
-          initial_depth_capacity,
-        );
-        assign_depths_map
-      })
-      .collect::<Vec<_>>();
+    let assign_depths_maps = {
+      let module_graph = compilation.get_module_graph();
+      assign_tasks
+        .par_iter()
+        .map(|(_, modules)| {
+          let initial_depth_capacity = initial_depth_capacity.max(modules.len());
+          let mut assign_depths_map =
+            IdentifierMap::with_capacity_and_hasher(initial_depth_capacity, Default::default());
+          assign_depths(
+            &mut assign_depths_map,
+            modules.iter(),
+            module_graph,
+            initial_depth_capacity,
+          );
+          assign_depths_map
+        })
+        .collect::<Vec<_>>()
+    };
 
     for (entry_point, modules) in assign_tasks {
       input_entrypoints_and_modules.insert(entry_point, modules);
