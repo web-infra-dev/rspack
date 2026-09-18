@@ -3,7 +3,7 @@ use std::{
   sync::{Arc, RwLock},
 };
 
-use rspack_fs::{FileMetadata, FilePermissions, ReadableFileSystem, Result};
+use rspack_fs::{Error, FileMetadata, FilePermissions, ReadableFileSystem, Result};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 
 use crate::virtual_modules::VirtualFileStore;
@@ -84,6 +84,19 @@ impl ReadableFileSystem for VirtualFileSystem {
     }
 
     self.real_fs.symlink_metadata(path).await
+  }
+
+  async fn read_link(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
+    if let Ok(store) = self.virtual_file_store.read()
+      && store.contains(path)
+    {
+      return Err(Error::new(
+        std::io::ErrorKind::InvalidInput,
+        "virtual file is not a symbolic link",
+      ));
+    }
+
+    self.real_fs.read_link(path).await
   }
 
   async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {

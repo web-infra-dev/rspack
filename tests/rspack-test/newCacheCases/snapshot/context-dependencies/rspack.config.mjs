@@ -10,7 +10,7 @@ export default {
   cache: {
     type: 'persistent',
     snapshot: {
-      immutablePaths: [path.resolve(import.meta.dirname, './file.js')],
+      immutablePaths: [path.join(import.meta.dirname, 'immutable')],
     },
   },
   plugins: [

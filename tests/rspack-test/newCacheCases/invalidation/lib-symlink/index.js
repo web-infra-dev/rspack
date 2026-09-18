@@ -1,5 +1,5 @@
 import { version } from "tools";
-import value from "./file";
+import value from "./immutable/file";
 
 it("should invalidation work when using lib symlink", async () => {
 	if (COMPILER_INDEX == 0) {

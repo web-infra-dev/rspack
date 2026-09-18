@@ -6,8 +6,10 @@ export default {
   cache: {
     type: 'persistent',
     snapshot: {
-      managedPaths: [path.join(import.meta.dirname, './test_lib')],
-      unmanagedPaths: [path.join(import.meta.dirname, './test_lib/changed.js')],
+      managedPaths: [path.join(import.meta.dirname, './packages')],
+      unmanagedPaths: [
+        path.join(import.meta.dirname, 'packages/test_lib/unmanaged'),
+      ],
     },
   },
 };

@@ -25,7 +25,7 @@ export default {
     type: 'persistent',
     buildDependencies: [buildDependency],
     snapshot: {
-      immutablePaths: [path.join(import.meta.dirname, './file.js')],
+      immutablePaths: [path.join(import.meta.dirname, 'immutable')],
       unmanagedPaths: [path.join(import.meta.dirname, 'node_modules/lib')],
     },
   },

@@ -311,6 +311,13 @@ impl ReadableFileSystem for MemoryFileSystem {
     self.metadata(path).await
   }
 
+  async fn read_link(&self, _path: &Utf8Path) -> Result<Utf8PathBuf> {
+    Err(Error::new(
+      std::io::ErrorKind::Unsupported,
+      "read_link is not supported by this filesystem",
+    ))
+  }
+
   async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
     let path = dunce::canonicalize(path)?;
     Ok(path.assert_utf8())
