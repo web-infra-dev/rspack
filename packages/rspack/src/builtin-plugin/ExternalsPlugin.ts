@@ -74,16 +74,49 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
       return async (ctx: RawExternalItemFnCtx) => {
         return new Promise((resolve, reject) => {
           const data = ctx.data();
+          // Track which inputs the user function actually reads so the native
+          // side only caches on the fields that can affect the result. Bit 32
+          // marks a call that used `getResolve` as uncacheable.
+          let observed = 0;
+          let resolveUsed = false;
+          const contextInfo = {
+            get issuer() {
+              observed |= 8;
+              return data.contextInfo.issuer;
+            },
+            get issuerLayer() {
+              observed |= 16;
+              return data.contextInfo.issuerLayer ?? null;
+            },
+          };
+          const rawResult = (
+            result: ExternalItemValue | undefined,
+            externalType: any,
+          ) => ({
+            result: getRawExternalItemValueFormFnResult(result),
+            externalType,
+            observed: (resolveUsed ? 32 : 0) | observed,
+          });
           const promise = item(
             {
-              request: data.request,
-              dependencyType: data.dependencyType,
-              context: data.context,
-              contextInfo: {
-                issuer: data.contextInfo.issuer,
-                issuerLayer: data.contextInfo.issuerLayer ?? null,
+              get request() {
+                observed |= 1;
+                return data.request;
+              },
+              get dependencyType() {
+                observed |= 4;
+                return data.dependencyType;
+              },
+              get context() {
+                observed |= 2;
+                return data.context;
+              },
+              get contextInfo() {
+                observed |= 24;
+                return contextInfo;
               },
               getResolve: (options) => {
+                resolveUsed = true;
                 const rawResolve = options ? getRawResolve(options) : undefined;
                 const resolve = ctx.getResolve(rawResolve);
 
@@ -124,29 +157,19 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
             },
             (err, result, type) => {
               if (err) reject(err);
-              resolve({
-                result: getRawExternalItemValueFormFnResult(result),
-                externalType: type,
-              });
+              resolve(rawResult(result, type));
             },
           ) as Promise<ExternalItemValue> | ExternalItemValue | undefined;
           if ((promise as Promise<ExternalItemValue>)?.then) {
             (promise as Promise<ExternalItemValue>).then(
-              (result) =>
-                resolve({
-                  result: getRawExternalItemValueFormFnResult(result),
-                  externalType: undefined,
-                }),
+              (result) => resolve(rawResult(result, undefined)),
               (e) => reject(e),
             );
           } else if (item.length === 1) {
             // No callback and no promise returned, regarded as a synchronous function
-            resolve({
-              result: getRawExternalItemValueFormFnResult(
-                promise as ExternalItemValue | undefined,
-              ),
-              externalType: undefined,
-            });
+            resolve(
+              rawResult(promise as ExternalItemValue | undefined, undefined),
+            );
           }
         });
       };
