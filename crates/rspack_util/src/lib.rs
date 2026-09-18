@@ -14,6 +14,7 @@ pub mod node_path;
 pub mod number_hash;
 pub mod queue;
 pub mod ryu_js;
+pub mod serde_atomic_cell;
 pub mod size;
 pub mod source_map;
 pub mod span;

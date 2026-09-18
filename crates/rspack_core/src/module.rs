@@ -21,10 +21,11 @@ use rspack_sources::BoxSource;
 use rspack_util::{
   ext::AsAny,
   fx_hash::{FxIndexMap, FxIndexSet},
+  serde_atomic_cell,
   source_map::ModuleSourceMapConfig,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use serde::{Serialize, ser::SerializeMap};
+use serde::Serialize;
 use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
@@ -538,10 +539,12 @@ impl ExportsArgument {
 // Both enums occupy one byte (including Option's None discriminant). Align the
 // pair to two bytes so AtomicCell can use a native u16 atomic instead of a lock.
 #[cacheable]
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, Serialize)]
+#[serde(rename_all = "camelCase")]
 #[repr(C, align(2))]
 struct BuildMetaExports {
   exports_type: BuildMetaExportsType,
+  #[serde(skip_serializing_if = "Option::is_none")]
   default_object: Option<BuildMetaDefaultObject>,
 }
 
@@ -554,25 +557,51 @@ const _: () = assert!(AtomicCell::<BuildMetaExports>::is_lock_free());
 /// Build metadata with atomic fields for recovery after a module is shared.
 /// Cloning copies the values into independent cells for failed-rebuild recovery,
 /// concatenated modules and DLL manifests; mutations never affect the original.
-/// Cloning, hashing and caching must not overlap recovery: independent flags do
-/// not form a single atomic snapshot.
+/// Cloning, hashing, serialization and caching must not overlap recovery:
+/// independent flags do not form a single atomic snapshot.
 #[cacheable]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BuildMeta {
   #[cacheable(with=As<Option<bool>>)]
+  #[serde(
+    with = "serde_atomic_cell",
+    skip_serializing_if = "serde_atomic_cell::is_none"
+  )]
   strict_esm_module: AtomicCell<Option<bool>>,
   #[cacheable(with=As<Option<bool>>)]
+  #[serde(
+    with = "serde_atomic_cell",
+    skip_serializing_if = "serde_atomic_cell::is_none"
+  )]
   has_top_level_await: AtomicCell<Option<bool>>,
   #[cacheable(with=As<Option<bool>>)]
+  #[serde(
+    with = "serde_atomic_cell",
+    skip_serializing_if = "serde_atomic_cell::is_none"
+  )]
   esm: AtomicCell<Option<bool>>,
   #[cacheable(with=As<Option<bool>>)]
+  #[serde(
+    with = "serde_atomic_cell",
+    skip_serializing_if = "serde_atomic_cell::is_none"
+  )]
   is_css_module: AtomicCell<Option<bool>>,
   #[cacheable(with=As<Option<bool>>)]
+  #[serde(
+    with = "serde_atomic_cell",
+    skip_serializing_if = "serde_atomic_cell::is_none"
+  )]
   need_id_in_concatenation: AtomicCell<Option<bool>>,
-  #[cacheable(with=As<Option<bool>>)]
-  side_effect_free: AtomicCell<Option<bool>>,
   #[cacheable(with=As<BuildMetaExports>)]
+  #[serde(flatten, with = "serde_atomic_cell")]
   exports: AtomicCell<BuildMetaExports>,
+  #[cacheable(with=As<Option<bool>>)]
+  #[serde(
+    with = "serde_atomic_cell",
+    skip_serializing_if = "serde_atomic_cell::is_none"
+  )]
+  side_effect_free: AtomicCell<Option<bool>>,
 }
 
 impl BuildMeta {
@@ -714,32 +743,6 @@ impl Clone for BuildMeta {
       side_effect_free: AtomicCell::new(self.side_effect_free.load()),
       exports: AtomicCell::new(self.exports.load()),
     }
-  }
-}
-
-impl Serialize for BuildMeta {
-  fn serialize<S: serde::Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
-    let exports = self.exports.load();
-    let mut map = serializer.serialize_map(None)?;
-    macro_rules! optional_field {
-      ($name:literal, $value:expr) => {
-        if let Some(value) = $value {
-          map.serialize_entry($name, &value)?;
-        }
-      };
-    }
-    optional_field!("strictEsmModule", self.strict_esm_module.load());
-    optional_field!("hasTopLevelAwait", self.has_top_level_await.load());
-    optional_field!("esm", self.esm.load());
-    optional_field!("isCssModule", self.is_css_module.load());
-    optional_field!(
-      "needIdInConcatenation",
-      self.need_id_in_concatenation.load()
-    );
-    map.serialize_entry("exportsType", &exports.exports_type)?;
-    optional_field!("defaultObject", exports.default_object);
-    optional_field!("sideEffectFree", self.side_effect_free.load());
-    map.end()
   }
 }
 

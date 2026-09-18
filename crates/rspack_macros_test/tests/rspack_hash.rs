@@ -34,8 +34,8 @@ fn build_meta_preserves_hash_and_json_fields() {
   let mut meta = BuildMeta::default();
   assert_eq!(hash(&meta), hash(&"{exports_type:}"));
   assert_eq!(
-    serde_json::to_value(&meta).unwrap(),
-    serde_json::json!({"exportsType": "unset"})
+    serde_json::to_string(&meta).unwrap(),
+    r#"{"exportsType":"unset"}"#
   );
 
   meta.set_strict_esm_module(false);
@@ -57,17 +57,12 @@ fn build_meta_preserves_hash_and_json_fields() {
     ))
   );
   assert_eq!(
-    serde_json::to_value(&meta).unwrap(),
-    serde_json::json!({
-      "strictEsmModule": false,
-      "hasTopLevelAwait": true,
-      "esm": true,
-      "isCssModule": false,
-      "needIdInConcatenation": false,
-      "exportsType": "default",
-      "defaultObject": "redirect-warn",
-      "sideEffectFree": false
-    })
+    serde_json::to_string(&meta).unwrap(),
+    concat!(
+      r#"{"strictEsmModule":false,"hasTopLevelAwait":true,"esm":true,"#,
+      r#""isCssModule":false,"needIdInConcatenation":false,"#,
+      r#""exportsType":"default","defaultObject":"redirect-warn","sideEffectFree":false}"#
+    )
   );
 }
 
@@ -80,6 +75,14 @@ fn build_meta_clone_and_cache_restore_have_independent_cells() {
     if let Some(value) = side_effect_free {
       meta.set_side_effect_free(value);
     }
+    let mut expected = serde_json::json!({
+      "exportsType": "default",
+      "defaultObject": "redirect-warn"
+    });
+    if let Some(value) = side_effect_free {
+      expected["sideEffectFree"] = value.into();
+    }
+    assert_eq!(serde_json::to_value(&meta).unwrap(), expected);
     let cloned = meta.clone();
     let bytes = rspack_cacheable::to_bytes(&meta, &()).unwrap();
     let restored: BuildMeta = rspack_cacheable::from_bytes(&bytes, &()).unwrap();
