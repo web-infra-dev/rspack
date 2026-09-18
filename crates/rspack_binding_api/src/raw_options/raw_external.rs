@@ -212,6 +212,44 @@ impl RawExternalItemFnCtx {
     }
   }
 
+  /// Individual accessors so the JS adapter only materializes the fields the
+  /// user function actually reads (see `data()` for the bulk accessor).
+  #[napi(getter)]
+  pub fn request(&self) -> &str {
+    #[allow(clippy::unwrap_used)]
+    self.i.as_ref().unwrap().request.as_str()
+  }
+
+  #[napi(getter)]
+  pub fn context(&self) -> &str {
+    #[allow(clippy::unwrap_used)]
+    self.i.as_ref().unwrap().context.as_str()
+  }
+
+  #[napi(getter)]
+  pub fn dependency_type(&self) -> &str {
+    #[allow(clippy::unwrap_used)]
+    self.i.as_ref().unwrap().dependency_type.as_str()
+  }
+
+  #[napi(getter)]
+  pub fn issuer(&self) -> &str {
+    #[allow(clippy::unwrap_used)]
+    self.i.as_ref().unwrap().context_info.issuer.as_str()
+  }
+
+  #[napi(getter)]
+  pub fn issuer_layer(&self) -> Option<&str> {
+    #[allow(clippy::unwrap_used)]
+    self
+      .i
+      .as_ref()
+      .unwrap()
+      .context_info
+      .issuer_layer
+      .as_deref()
+  }
+
   #[napi(
     ts_return_type = "(context: string, path: string, callback: (error?: Error, text?: string) => void) => void"
   )]
