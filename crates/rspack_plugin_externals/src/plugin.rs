@@ -228,6 +228,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
           context: context.to_string(),
           request: request.to_string(),
           dependency_type: dependency.category().to_string(),
+          compilation_id: data.build_context.compilation_id,
           context_info: ContextInfo {
             issuer: data
               .issuer

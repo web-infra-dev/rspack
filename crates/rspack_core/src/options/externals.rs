@@ -5,7 +5,7 @@ use rspack_error::Result;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{ResolveOptionsWithDependencyType, ResolverFactory};
+use crate::{CompilationId, ResolveOptionsWithDependencyType, ResolverFactory};
 
 #[derive(Debug, Clone)]
 pub enum ExternalItemValue {
@@ -27,6 +27,10 @@ pub struct ExternalItemFnCtx {
   pub context: String,
   pub dependency_type: String,
   pub context_info: ContextInfo,
+  /// Compilation which is factorizing this request. Results of externals
+  /// functions may be memoized for the lifetime of one compilation, but a new
+  /// compilation has to observe the state of the world again.
+  pub compilation_id: CompilationId,
   pub resolve_options_with_dependency_type: ResolveOptionsWithDependencyType,
   pub resolver_factory: Arc<ResolverFactory>,
 }

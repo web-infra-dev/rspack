@@ -13,7 +13,7 @@ use napi::{
 };
 use napi_derive::napi;
 use rspack_core::{
-  ExternalItem, ExternalItemFnCtx, ExternalItemFnResult, ExternalItemValue,
+  CompilationId, ExternalItem, ExternalItemFnCtx, ExternalItemFnResult, ExternalItemValue,
   ResolveOptionsWithDependencyType, ResolverFactory,
 };
 use rspack_regex::RspackRegex;
@@ -59,9 +59,15 @@ struct RawExternalItemValueWrapper(RawExternalItemValue);
 /// Memoizes externals function results, keyed only by the inputs the function
 /// has actually read (reported by the JS adapter). The mask grows as more
 /// fields are observed; calls that used `getResolve` disable the cache.
+///
+/// Entries never outlive the compilation that produced them: a function may
+/// read state that only the next compilation can see changed, which is why the
+/// first use of a new compilation drops the previous results.
 #[derive(Debug, Default)]
 struct ExternalsFnCache {
   mask: AtomicU32,
+  /// Compilation the cached entries belong to.
+  generation: AtomicU32,
   entries: Mutex<HashMap<String, ExternalItemFnResult>>,
 }
 
@@ -81,6 +87,30 @@ impl ExternalsFnCache {
     self.mask.fetch_or(observed, Ordering::Relaxed);
   }
 
+  /// Locks the entry map, clearing it first when `compilation` differs from the
+  /// compilation which produced the current entries.
+  fn entries(
+    &self,
+    compilation: CompilationId,
+  ) -> std::sync::MutexGuard<'_, HashMap<String, ExternalItemFnResult>> {
+    let mut entries = self.entries.lock().unwrap_or_else(|e| e.into_inner());
+    if self.generation.swap(compilation.0, Ordering::Relaxed) != compilation.0 {
+      entries.clear();
+    }
+    entries
+  }
+
+  /// Writes a field so that values containing the separator cannot shift field
+  /// boundaries.
+  fn push_field(key: &mut String, value: &str) {
+    use std::fmt::Write as _;
+
+    key.push('\u{1}');
+    // The length is always followed by `:`, so the encoding is unambiguous.
+    let _ = write!(key, "{}:", value.len());
+    key.push_str(value);
+  }
+
   /// Cache key for `ctx`, or `None` while the observed fields are unknown or
   /// the function depends on `getResolve`.
   fn key(&self, ctx: &ExternalItemFnCtx) -> Option<String> {
@@ -94,43 +124,37 @@ impl ExternalsFnCache {
     }
     let mut key = format!("{mask}");
     if mask & Self::REQUEST != 0 {
-      key.push('\u{1}');
-      key.push_str(&ctx.request);
+      Self::push_field(&mut key, &ctx.request);
     }
     if mask & Self::CONTEXT != 0 {
-      key.push('\u{1}');
-      key.push_str(&ctx.context);
+      Self::push_field(&mut key, &ctx.context);
     }
     if mask & Self::DEPENDENCY_TYPE != 0 {
-      key.push('\u{1}');
-      key.push_str(&ctx.dependency_type);
+      Self::push_field(&mut key, &ctx.dependency_type);
     }
     if mask & Self::ISSUER != 0 {
-      key.push('\u{1}');
-      key.push_str(&ctx.context_info.issuer);
+      Self::push_field(&mut key, &ctx.context_info.issuer);
     }
     if mask & Self::ISSUER_LAYER != 0 {
-      key.push('\u{1}');
-      key.push_str(ctx.context_info.issuer_layer.as_deref().unwrap_or_default());
+      // `None` and `Some("")` are different inputs for the function, so the
+      // presence of a layer is part of the key.
+      match ctx.context_info.issuer_layer.as_deref() {
+        Some(layer) => Self::push_field(&mut key, layer),
+        None => {
+          key.push('\u{1}');
+          key.push('-');
+        }
+      }
     }
     Some(key)
   }
 
-  fn get(&self, key: &str) -> Option<ExternalItemFnResult> {
-    self
-      .entries
-      .lock()
-      .unwrap_or_else(|e| e.into_inner())
-      .get(key)
-      .cloned()
+  fn get(&self, compilation: CompilationId, key: &str) -> Option<ExternalItemFnResult> {
+    self.entries(compilation).get(key).cloned()
   }
 
-  fn insert(&self, key: String, result: ExternalItemFnResult) {
-    self
-      .entries
-      .lock()
-      .unwrap_or_else(|e| e.into_inner())
-      .insert(key, result);
+  fn insert(&self, compilation: CompilationId, key: String, result: ExternalItemFnResult) {
+    self.entries(compilation).insert(key, result);
   }
 }
 
@@ -360,17 +384,24 @@ impl TryFrom<RawExternalItemWrapper> for ExternalItem {
           let v = v.clone();
           let cache = Arc::clone(&cache);
           Box::pin(async move {
+            let compilation = ctx.compilation_id;
+            let mask = cache.observed_mask();
             let key = cache.key(&ctx);
             if let Some(key) = &key
-              && let Some(cached) = cache.get(key)
+              && let Some(cached) = cache.get(compilation, key)
             {
               return Ok(cached);
             }
             let raw: RawExternalItemFnResult = v.call_with_promise(ctx.into()).await?;
             cache.record_observed(raw.observed.unwrap_or_default());
             let result: ExternalItemFnResult = raw.into();
-            if let Some(key) = key {
-              cache.insert(key, result.clone());
+            // Only entries whose inputs were already known before the call are
+            // reused: a call which widened the observed mask read inputs that
+            // this key does not cover.
+            if let Some(key) = key
+              && cache.observed_mask() == mask
+            {
+              cache.insert(compilation, key, result.clone());
             }
             Ok(result)
           })
