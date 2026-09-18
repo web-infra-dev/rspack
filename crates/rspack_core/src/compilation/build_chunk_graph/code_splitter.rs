@@ -475,8 +475,16 @@ impl CodeSplitter {
     let module_graph = compilation.get_module_graph();
     for block_id in current_blocks {
       let block = module_graph.block_by_id_expect(block_id);
-      // Nested async blocks need recursive validation. Keep the reuse path conservative.
-      if !block.get_blocks().is_empty() {
+      // Nested async blocks need recursive validation, including children removed
+      // since the previous compilation. Keep the reuse path conservative.
+      if !block.get_blocks().is_empty()
+        || self
+          .prepared_blocks_map
+          .get(&DependenciesBlockIdentifier::AsyncDependenciesBlock(
+            *block_id,
+          ))
+          .is_some_and(|blocks| !blocks.is_empty())
+      {
         return false;
       }
 
