@@ -7,6 +7,22 @@ use rspack_regex::RspackRegex;
 
 pub type IgnoredFn = Arc<dyn Fn(String) -> BoxFuture<'static, bool> + Send + Sync>;
 
+/// One entry of the `Mixed` form: an array may hold glob patterns and regular
+/// expressions side by side.
+pub enum FsWatcherIgnoredItem {
+  Path(String),
+  Regex(RspackRegex),
+}
+
+impl Debug for FsWatcherIgnoredItem {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      FsWatcherIgnoredItem::Path(s) => write!(f, "FsWatcherIgnoredItem::Path({s})"),
+      FsWatcherIgnoredItem::Regex(reg) => write!(f, "FsWatcherIgnoredItem::Regex({reg:?})"),
+    }
+  }
+}
+
 #[derive(Default)]
 pub enum FsWatcherIgnored {
   #[default]
@@ -15,6 +31,7 @@ pub enum FsWatcherIgnored {
   Paths(Vec<String>),
   Regex(RspackRegex),
   Function(IgnoredFn),
+  Mixed(Vec<FsWatcherIgnoredItem>),
 }
 
 impl Debug for FsWatcherIgnored {
@@ -25,6 +42,7 @@ impl Debug for FsWatcherIgnored {
       FsWatcherIgnored::Paths(s) => write!(f, "FsWatcherIgnored::Paths({s:?})"),
       FsWatcherIgnored::Regex(reg) => write!(f, "FsWatcherIgnored::Regex({reg:?})"),
       FsWatcherIgnored::Function(_) => write!(f, "FsWatcherIgnored::Function"),
+      FsWatcherIgnored::Mixed(items) => write!(f, "FsWatcherIgnored::Mixed({items:?})"),
     }
   }
 }
@@ -121,6 +139,8 @@ fn glob_to_regexp(glob: &str) -> String {
 /// into one precompiled regex (a single `is_match` per event), while a
 /// user-supplied `Regex` is applied as-is and a user-supplied `Function` is
 /// asked about each entry. `None` short-circuits before normalizing the path.
+/// `Mixed` is the one strategy that combines two of them, for an array holding
+/// both globs and regular expressions.
 #[derive(Default)]
 pub enum IgnoredMatcher {
   #[default]
@@ -128,11 +148,15 @@ pub enum IgnoredMatcher {
   Globs(Regex),
   Regex(RspackRegex),
   Function(IgnoredFn),
+  Mixed {
+    globs: Option<Regex>,
+    regexes: Vec<RspackRegex>,
+  },
 }
 
 impl IgnoredMatcher {
   pub fn new(ignored: FsWatcherIgnored) -> Self {
-    fn compile(patterns: &[String]) -> IgnoredMatcher {
+    fn compile_globs(patterns: &[String]) -> Option<Regex> {
       let parts: Vec<String> = patterns
         .iter()
         .filter(|g| !g.is_empty())
@@ -145,26 +169,46 @@ impl IgnoredMatcher {
         })
         .collect();
       if parts.is_empty() {
-        return IgnoredMatcher::None;
+        return None;
       }
       match Regex::new(&parts.join("|")) {
-        Ok(re) => IgnoredMatcher::Globs(re),
+        Ok(re) => Some(re),
         // Glob escaping guarantees valid syntax, so the only realistic failure
         // is the regex size limit on a pathological `ignored` config. Degrade
         // to "no glob filtering" (events flow, no missed changes) but surface
         // it — never disable ignores silently.
         Err(e) => {
           tracing::error!("failed to compile ignored patterns, ignore filtering disabled: {e}");
-          IgnoredMatcher::None
+          None
         }
       }
     }
+    fn globs(patterns: &[String]) -> IgnoredMatcher {
+      compile_globs(patterns).map_or(IgnoredMatcher::None, IgnoredMatcher::Globs)
+    }
     match ignored {
       FsWatcherIgnored::None => IgnoredMatcher::None,
-      FsWatcherIgnored::Path(p) => compile(&[p]),
-      FsWatcherIgnored::Paths(ps) => compile(&ps),
+      FsWatcherIgnored::Path(p) => globs(&[p]),
+      FsWatcherIgnored::Paths(ps) => globs(&ps),
       FsWatcherIgnored::Regex(reg) => IgnoredMatcher::Regex(reg),
       FsWatcherIgnored::Function(f) => IgnoredMatcher::Function(f),
+      FsWatcherIgnored::Mixed(items) => {
+        let mut patterns = Vec::new();
+        let mut regexes = Vec::new();
+        for item in items {
+          match item {
+            FsWatcherIgnoredItem::Path(p) => patterns.push(p),
+            FsWatcherIgnoredItem::Regex(reg) => regexes.push(reg),
+          }
+        }
+        if regexes.is_empty() {
+          return globs(&patterns);
+        }
+        IgnoredMatcher::Mixed {
+          globs: compile_globs(&patterns),
+          regexes,
+        }
+      }
     }
   }
 
@@ -178,6 +222,11 @@ impl IgnoredMatcher {
       // watchpack hands the arbitrary function the raw entry — it is the only
       // form whose path keeps the platform separators.
       IgnoredMatcher::Function(f) => f(path.to_owned()).await,
+      IgnoredMatcher::Mixed { globs, regexes } => {
+        let normalized = normalize_path(path);
+        globs.as_ref().is_some_and(|re| re.is_match(&normalized))
+          || regexes.iter().any(|re| re.test(&normalized))
+      }
     }
   }
 }
@@ -291,5 +340,30 @@ mod tests {
     assert!(!temp.is_ignored(r"C:\proj\dist\main.js").await);
     // mixed separators must work too
     assert!(temp.is_ignored("C:/proj/dist/.rstest-temp/x.mjs").await);
+  }
+
+  #[tokio::test]
+  async fn mixed_array_applies_globs_and_regexes() {
+    // `ignored: ["**/dist", /\.cache\//]` — watchpack itself cannot take a
+    // mixed array, so both halves are classified here.
+    let m = IgnoredMatcher::new(FsWatcherIgnored::Mixed(vec![
+      FsWatcherIgnoredItem::Path("**/dist".to_owned()),
+      FsWatcherIgnoredItem::Regex(RspackRegex::new(r"\.cache/").unwrap()),
+    ]));
+    assert!(m.is_ignored("/project/dist/index.js").await);
+    assert!(m.is_ignored("/project/.cache/output.js").await);
+    assert!(!m.is_ignored("/project/src/index.js").await);
+  }
+
+  #[tokio::test]
+  async fn mixed_array_of_only_globs_folds_into_one_regex() {
+    let m = IgnoredMatcher::new(FsWatcherIgnored::Mixed(vec![
+      FsWatcherIgnoredItem::Path("**/foo".to_owned()),
+      FsWatcherIgnoredItem::Path("**/bar".to_owned()),
+    ]));
+    assert!(matches!(m, IgnoredMatcher::Globs(_)));
+    assert!(m.is_ignored("/x/foo/a.js").await);
+    assert!(m.is_ignored("/x/bar").await);
+    assert!(!m.is_ignored("/x/baz").await);
   }
 }
