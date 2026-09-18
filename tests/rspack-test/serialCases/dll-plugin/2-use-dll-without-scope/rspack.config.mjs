@@ -10,7 +10,7 @@ export default {
         oneOf: [
           {
             test: /\.abc\.js$/,
-            loader: '../0-create-dll/g-loader.js',
+            loader: '../0-create-dll/g-loader.mjs',
             options: {
               test: 1,
             },
