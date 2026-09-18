@@ -88,24 +88,8 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
           // Older native bindings only expose the bulk `data()` accessor.
           const lazy = (lazyCtx ??= typeof rawCtx.request === 'string');
           const data = lazy ? undefined : ctx.data();
-          const contextInfo = {
-            get issuer() {
-              observed |= 8;
-              return lazy ? rawCtx.issuer : data!.contextInfo.issuer;
-            },
-            get issuerLayer() {
-              observed |= 16;
-              return (lazy ? rawCtx.issuerLayer : data!.contextInfo.issuerLayer) ?? null;
-            },
-          };
-          const rawResult = (
-            result: ExternalItemValue | undefined,
-            externalType: any,
-          ) => ({
-            result: getRawExternalItemValueFormFnResult(result),
-            externalType,
-            observed: (resolveUsed ? 32 : 0) | observed,
-          });
+          // Only materialized when the function reads `contextInfo`.
+          let contextInfo: any;
           const promise = item(
             {
               get request() {
@@ -122,7 +106,19 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
               },
               get contextInfo() {
                 observed |= 24;
-                return contextInfo;
+                return (contextInfo ??= {
+                  get issuer() {
+                    observed |= 8;
+                    return lazy ? rawCtx.issuer : data!.contextInfo.issuer;
+                  },
+                  get issuerLayer() {
+                    observed |= 16;
+                    return (
+                      (lazy ? rawCtx.issuerLayer : data!.contextInfo.issuerLayer) ??
+                      null
+                    );
+                  },
+                });
               },
               // Only build the resolver closure when the function asks for it.
               get getResolve() {
@@ -169,18 +165,35 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
             },
             (err, result, type) => {
               if (err) reject(err);
-              resolve(rawResult(result, type));
+              resolve(
+                rawExternalItemFnResult(
+                  result,
+                  type,
+                  (resolveUsed ? 32 : 0) | observed,
+                ),
+              );
             },
           ) as Promise<ExternalItemValue> | ExternalItemValue | undefined;
           if ((promise as Promise<ExternalItemValue>)?.then) {
             (promise as Promise<ExternalItemValue>).then(
-              (result) => resolve(rawResult(result, undefined)),
+              (result) =>
+                resolve(
+                  rawExternalItemFnResult(
+                    result,
+                    undefined,
+                    (resolveUsed ? 32 : 0) | observed,
+                  ),
+                ),
               (e) => reject(e),
             );
           } else if (item.length === 1) {
             // No callback and no promise returned, regarded as a synchronous function
             resolve(
-              rawResult(promise as ExternalItemValue | undefined, undefined),
+              rawExternalItemFnResult(
+                promise as ExternalItemValue | undefined,
+                undefined,
+                (resolveUsed ? 32 : 0) | observed,
+              ),
             );
           }
         });
@@ -202,6 +215,22 @@ type RawExternalItemValue = RecordValue<RawExternalItem>;
 
 function getRawExternalItemValueFormFnResult(result?: ExternalItemValue) {
   return result === undefined ? result : getRawExternalItemValue(result);
+}
+
+/**
+ * Result object handed back to the native side, including the mask of inputs
+ * the externals function read (used by the native side to memoize).
+ */
+function rawExternalItemFnResult(
+  result: ExternalItemValue | undefined,
+  externalType: any,
+  observed: number,
+) {
+  return {
+    result: getRawExternalItemValueFormFnResult(result),
+    externalType,
+    observed,
+  };
 }
 
 function getRawExternalItemValue(
