@@ -1,12 +1,11 @@
-const {
-	EntryPlugin: SingleEntryPlugin,
-	node: { NodeTemplatePlugin }
-} = require("@rspack/core");
+import { EntryPlugin, node } from "@rspack/core";
+
+const { NodeTemplatePlugin } = node;
 
 const compilerCache = new WeakMap();
 
 /** @type {import("@rspack/core").LoaderDefinition} */
-module.exports = function (source) {
+export default function (source) {
 	let childCompiler = compilerCache.get(this._compiler);
 	if (childCompiler === undefined) {
 		childCompiler = this._compilation.createChildCompiler(
@@ -16,7 +15,7 @@ module.exports = function (source) {
 			},
 			[
 				new NodeTemplatePlugin(),
-				new SingleEntryPlugin(this.context, this.resource)
+				new EntryPlugin(this.context, this.resource)
 			]
 		);
 		compilerCache.set(this._compiler, childCompiler);

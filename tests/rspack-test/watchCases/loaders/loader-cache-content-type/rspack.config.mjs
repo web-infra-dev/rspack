@@ -24,7 +24,7 @@ export default [false, true].flatMap((cache) =>
             use: [
               {
                 loader: fileURLToPath(
-                  import.meta.resolve('./consumer-loader.js'),
+                  import.meta.resolve('./consumer-loader.mjs'),
                 ),
                 options: { name: `${cache}-${parallel}-${mixed}` },
                 cache,
@@ -35,7 +35,7 @@ export default [false, true].flatMap((cache) =>
                 : []),
               {
                 loader: fileURLToPath(
-                  import.meta.resolve('./producer-loader.js'),
+                  import.meta.resolve('./producer-loader.mjs'),
                 ),
               },
             ],

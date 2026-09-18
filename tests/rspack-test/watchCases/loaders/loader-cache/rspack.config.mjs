@@ -37,17 +37,17 @@ export default {
         test: /value\.js$/,
         use: [
           {
-            loader: path.resolve(import.meta.dirname, 'loader.js'),
+            loader: path.resolve(import.meta.dirname, 'loader.mjs'),
             options: { name: 'left' },
           },
           {
-            loader: path.resolve(import.meta.dirname, 'marked-loader.js'),
+            loader: path.resolve(import.meta.dirname, 'marked-loader.mjs'),
             options: { name: 'marked' },
             parallel: { maxWorkers: 1 },
             cache: true,
           },
           {
-            loader: path.resolve(import.meta.dirname, 'right-loader.js'),
+            loader: path.resolve(import.meta.dirname, 'right-loader.mjs'),
             options: { name: 'right' },
             parallel: { maxWorkers: 1 },
             cache: true,
@@ -58,11 +58,11 @@ export default {
         test: /bom\.js$/,
         use: [
           {
-            loader: path.resolve(import.meta.dirname, 'loader.js'),
+            loader: path.resolve(import.meta.dirname, 'loader.mjs'),
             options: { name: 'bom-consumer' },
           },
           {
-            loader: path.resolve(import.meta.dirname, 'loader.js'),
+            loader: path.resolve(import.meta.dirname, 'loader.mjs'),
             options: { name: 'bom-producer' },
             cache: true,
           },
@@ -72,7 +72,7 @@ export default {
         test: /module-[ab]\.js$/,
         use: [
           {
-            loader: path.resolve(import.meta.dirname, 'loader.js'),
+            loader: path.resolve(import.meta.dirname, 'loader.mjs'),
             options: { name: 'module-id' },
             cache: true,
           },
@@ -82,7 +82,7 @@ export default {
         test: /(?:file|build|missing)-dependency\.js$/,
         use: [
           {
-            loader: path.resolve(import.meta.dirname, 'loader.js'),
+            loader: path.resolve(import.meta.dirname, 'loader.mjs'),
             options: { name: 'dependency' },
             cache: true,
           },
@@ -92,12 +92,12 @@ export default {
         test: /context-dependency\.js$/,
         use: [
           {
-            loader: path.resolve(import.meta.dirname, 'loader.js'),
+            loader: path.resolve(import.meta.dirname, 'loader.mjs'),
             options: { name: 'context-downstream' },
             cache: true,
           },
           {
-            loader: path.resolve(import.meta.dirname, 'loader.js'),
+            loader: path.resolve(import.meta.dirname, 'loader.mjs'),
             options: { name: 'dependency' },
             cache: true,
           },
@@ -107,12 +107,12 @@ export default {
         test: /chain-dependency\.js$/,
         use: [
           {
-            loader: path.resolve(import.meta.dirname, 'loader.js'),
+            loader: path.resolve(import.meta.dirname, 'loader.mjs'),
             options: { name: 'chain-left' },
             cache: true,
           },
           {
-            loader: path.resolve(import.meta.dirname, 'chain-right-loader.js'),
+            loader: path.resolve(import.meta.dirname, 'chain-right-loader.mjs'),
             cache: true,
           },
         ],
@@ -127,7 +127,7 @@ export default {
           {
             loader: path.resolve(
               import.meta.dirname,
-              'overlap-owner-loader.js',
+              'overlap-owner-loader.mjs',
             ),
           },
         ],
@@ -138,14 +138,14 @@ export default {
           {
             loader: path.resolve(
               import.meta.dirname,
-              'js-overlap-value-loader.js',
+              'js-overlap-value-loader.mjs',
             ),
             cache: true,
           },
           {
             loader: path.resolve(
               import.meta.dirname,
-              'overlap-owner-loader.js',
+              'overlap-owner-loader.mjs',
             ),
           },
         ],

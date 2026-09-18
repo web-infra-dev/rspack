@@ -1,6 +1,6 @@
 let builds = 0;
 
-module.exports = function () {
+export default function () {
 	this.cacheable(false);
 	return `export default ${++builds}`;
 };

@@ -1,4 +1,4 @@
-module.exports = function (source) {
+export default function (source) {
   const firstType = this.resourceQuery === "?string-first";
   const isString = Number(source.trim()) < 2 ? firstType : !firstType;
   const content = "\uFEFFhello";

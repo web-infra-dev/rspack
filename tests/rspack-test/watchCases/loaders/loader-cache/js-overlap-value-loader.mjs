@@ -1,9 +1,9 @@
-const fs = require("fs");
-const path = require("path");
+import fs from "node:fs";
+import path from "node:path";
 
 let runs = 0;
 
-module.exports = function () {
+export default function () {
 	const dependency = path.join(path.dirname(this.resourcePath), "overlap-dependency.txt");
 	this.addDependency(dependency);
 	runs++;

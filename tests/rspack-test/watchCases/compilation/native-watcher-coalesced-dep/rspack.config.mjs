@@ -6,7 +6,7 @@ export default {
     rules: [
       {
         test: /late\.js$/,
-        use: path.resolve(import.meta.dirname, 'coalesce.loader.js'),
+        use: path.resolve(import.meta.dirname, 'coalesce.loader.mjs'),
       },
     ],
   },

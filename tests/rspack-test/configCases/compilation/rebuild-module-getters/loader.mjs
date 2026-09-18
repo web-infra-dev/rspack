@@ -1,5 +1,5 @@
 let count = 0;
-module.exports = function (source) {
+export default function (source) {
 	count++;
 	if (count === 1) {
 		return source;

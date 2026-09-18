@@ -1,6 +1,6 @@
 let times = 0;
 
-module.exports = async function (code) {
+export default async function (code) {
 	times++;
 	if (times === 2) {
 		return ")))";

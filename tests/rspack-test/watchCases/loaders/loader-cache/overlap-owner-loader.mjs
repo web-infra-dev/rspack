@@ -1,7 +1,7 @@
-const fs = require("fs");
-const path = require("path");
+import fs from "node:fs";
+import path from "node:path";
 
-module.exports = function (source) {
+export default function (source) {
 	const dirname = path.dirname(this.resourcePath);
 	const owner = path.join(dirname, "overlap-owner.txt");
 	this.addDependency(owner);
