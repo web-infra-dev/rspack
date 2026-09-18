@@ -2,7 +2,7 @@
 use std::{
   borrow::Cow,
   collections::VecDeque,
-  sync::{Arc, OnceLock},
+  sync::{Arc, OnceLock, UniqueArc},
 };
 
 use rayon::prelude::*;
@@ -1779,7 +1779,7 @@ async fn create_concatenated_module(
       }
     })
     .collect::<Vec<_>>();
-  let mut new_module = BoxModule::new(Box::from(ConcatenatedModule::create(
+  let mut new_module = BoxModule::new(UniqueArc::new(ConcatenatedModule::create(
     root_module_ctxt,
     modules,
     Some(rspack_hash::HashFunction::Xxhash64),

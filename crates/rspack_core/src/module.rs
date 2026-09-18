@@ -2,14 +2,14 @@ use std::{
   any::Any,
   borrow::Cow,
   fmt::{Debug, Display, Formatter},
-  sync::Arc,
+  sync::{Arc, UniqueArc},
 };
 
 use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{As, AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
+  with::{As, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -743,7 +743,7 @@ pub trait Module:
   /// The actual build of the module, which will be called by the `Compilation`.
   /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
   async fn build(
-    self: Box<Self>,
+    self: UniqueArc<Self>,
     _build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule>;
@@ -1060,14 +1060,16 @@ pub trait ModuleExt {
 
 impl<T: Module> ModuleExt for T {
   fn boxed(self) -> BoxModule {
-    BoxModule(Box::new(self))
+    BoxModule(UniqueArc::new(self))
   }
 }
 
-/// A newtype wrapper around `Box<dyn Module>` for improved type safety.
-#[cacheable(with=AsInner)]
+/// A module with unique ownership during construction and building.
+///
+/// Uses the same allocation as [`ModuleRef`], so publishing a built module does not
+/// reallocate or move it.
 #[repr(transparent)]
-pub struct BoxModule(Box<dyn Module>);
+pub struct BoxModule(UniqueArc<dyn Module>);
 
 /// A built module shared by the module graph and the in-memory build cache.
 /// Build metadata has its own publication boundary. Shared modules only expose
@@ -1079,7 +1081,13 @@ pub struct ModuleRef(Arc<dyn Module>);
 
 impl From<BoxModule> for ModuleRef {
   fn from(module: BoxModule) -> Self {
-    Self(Arc::from(module.0))
+    Self(module.into())
+  }
+}
+
+impl From<BoxModule> for Arc<dyn Module> {
+  fn from(module: BoxModule) -> Self {
+    UniqueArc::into_arc(module.0)
   }
 }
 
@@ -1114,8 +1122,8 @@ impl BoxModule {
     self
   }
 
-  /// Create a new BoxModule from a boxed Module trait object.
-  pub fn new(module: Box<dyn Module>) -> Self {
+  /// Wraps a uniquely owned module without reallocating it.
+  pub fn new(module: UniqueArc<dyn Module>) -> Self {
     BoxModule(module)
   }
 
@@ -1128,35 +1136,17 @@ impl BoxModule {
   }
 }
 
-impl AsInnerConverter for BoxModule {
-  type Inner = Box<dyn Module>;
-
-  fn to_inner(&self) -> &Self::Inner {
-    &self.0
-  }
-
-  fn from_inner(data: Self::Inner) -> Self {
-    BoxModule(data)
-  }
-}
-
 impl std::ops::Deref for BoxModule {
-  type Target = Box<dyn Module>;
+  type Target = dyn Module;
 
   fn deref(&self) -> &Self::Target {
-    &self.0
+    &*self.0
   }
 }
 
 impl std::ops::DerefMut for BoxModule {
   fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.0
-  }
-}
-
-impl From<Box<dyn Module>> for BoxModule {
-  fn from(inner: Box<dyn Module>) -> Self {
-    BoxModule(inner)
+    &mut *self.0
   }
 }
 
@@ -1284,7 +1274,10 @@ pub struct LibIdentOptions<'me> {
 
 #[cfg(test)]
 mod test {
-  use std::{borrow::Cow, sync::Arc};
+  use std::{
+    borrow::Cow,
+    sync::{Arc, UniqueArc},
+  };
 
   use rspack_cacheable::cacheable;
   use rspack_collections::{Identifiable, Identifier};
@@ -1354,7 +1347,7 @@ mod test {
         }
 
         async fn build(
-          self: Box<Self>,
+          self: UniqueArc<Self>,
           _build_context: Arc<BuildContext>,
           _compilation: Option<&Compilation>,
         ) -> Result<BoxModule> {

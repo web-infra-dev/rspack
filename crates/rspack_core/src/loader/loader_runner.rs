@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, UniqueArc};
 
 use rspack_fs::ReadableFileSystem;
 pub use rspack_loader_runner::{
@@ -21,7 +21,7 @@ pub struct RunnerContext {
   pub loader_cache: CacheFacade,
   pub file_system_info: FileSystemInfo,
   pub resolver_factory: Arc<ResolverFactory>,
-  pub module: Box<NormalModule>,
+  pub module: UniqueArc<NormalModule>,
   pub source_map_kind: SourceMapKind,
 }
 

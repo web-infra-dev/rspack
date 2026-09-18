@@ -1,7 +1,7 @@
 use std::{
   borrow::Cow,
   sync::{
-    Arc,
+    Arc, UniqueArc,
     atomic::{AtomicUsize, Ordering},
   },
 };
@@ -459,7 +459,7 @@ impl Module for NormalModule {
     module.loaders = ?self.loaders.iter().map(|l| l.identifier().as_str()).collect::<Vec<_>>())
   )]
   async fn build(
-    mut self: Box<Self>,
+    mut self: UniqueArc<Self>,
     build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
@@ -534,10 +534,11 @@ impl Module for NormalModule {
       )));
       self.diagnostics.push(diagnostic);
 
-      self.build_info.get_mut().hash = Some(self.init_build_hash(
+      let hash = self.init_build_hash(
         &build_context.compiler_options.output,
         &self.build_meta.read(),
-      ));
+      );
+      self.build_info.get_mut().hash = Some(hash);
       return Ok(BoxModule::new(self));
     };
 
@@ -573,15 +574,17 @@ impl Module for NormalModule {
       self.code_generation_dependencies = Some(Vec::new());
       self.presentational_dependencies = Some(Vec::new());
 
-      self.build_info.get_mut().hash = Some(self.init_build_hash(
+      let hash = self.init_build_hash(
         &build_context.compiler_options.output,
         &self.build_meta.read(),
-      ));
+      );
+      self.build_info.get_mut().hash = Some(hash);
 
       return Ok(BoxModule::new(self));
     }
 
-    let factory_meta = self.factory_meta.get();
+    let this = &mut *self;
+    let factory_meta = this.factory_meta.get();
     let (
       ParseResult {
         source,
@@ -592,26 +595,26 @@ impl Module for NormalModule {
         side_effects_bailout,
       },
       diagnostics,
-    ) = self
+    ) = this
       .parser_and_generator
       .parse(ParseContext {
         source: source.clone(),
-        module_context: &self.context,
-        module_identifier: self.id,
-        module_parser_options: self.parser_and_generator_options.parser_options(),
-        module_generator_options: self.parser_and_generator_options.generator_options(),
-        module_type: &self.module_type,
-        module_layer: self.layer.as_ref(),
-        module_user_request: &self.user_request,
-        module_match_resource: self.match_resource.as_ref(),
-        module_source_map_kind: self.source_map_kind,
-        loaders: &self.loaders,
-        resource_data: &self.resource_data,
+        module_context: &this.context,
+        module_identifier: this.id,
+        module_parser_options: this.parser_and_generator_options.parser_options(),
+        module_generator_options: this.parser_and_generator_options.generator_options(),
+        module_type: &this.module_type,
+        module_layer: this.layer.as_ref(),
+        module_user_request: &this.user_request,
+        module_match_resource: this.match_resource.as_ref(),
+        module_source_map_kind: this.source_map_kind,
+        loaders: &this.loaders,
+        resource_data: &this.resource_data,
         compiler_options: &build_context.compiler_options,
         additional_data: loader_result.additional_data,
         factory_meta: factory_meta.as_deref(),
-        build_info: self.build_info.get_mut(),
-        build_meta: self.build_meta.get_mut(),
+        build_info: this.build_info.get_mut(),
+        build_meta: this.build_meta.get_mut(),
         parse_meta: loader_result.parse_meta,
         runtime_template: &build_context.runtime_template,
       })
@@ -643,10 +646,11 @@ impl Module for NormalModule {
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
 
-    self.build_info.get_mut().hash = Some(self.init_build_hash(
+    let hash = self.init_build_hash(
       &build_context.compiler_options.output,
       &self.build_meta.read(),
-    ));
+    );
+    self.build_info.get_mut().hash = Some(hash);
 
     Ok(BoxModule::new(self).with_dependencies(
       dependencies.into_iter().map(Into::into).collect(),

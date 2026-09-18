@@ -1,4 +1,7 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{
+  borrow::Cow,
+  sync::{Arc, UniqueArc},
+};
 
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsVec};
 use rspack_collections::Identifiable;
@@ -191,7 +194,7 @@ impl Module for LazyCompilationProxyModule {
   }
 
   async fn build(
-    mut self: Box<Self>,
+    mut self: UniqueArc<Self>,
     build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {

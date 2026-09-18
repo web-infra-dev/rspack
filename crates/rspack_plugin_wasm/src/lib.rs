@@ -1,3 +1,5 @@
+#![feature(arbitrary_self_types, unique_rc_arc)]
+
 mod dependency;
 mod loading_plugin;
 mod parser_and_generator;

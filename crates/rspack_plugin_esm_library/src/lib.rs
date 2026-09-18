@@ -1,3 +1,5 @@
+#![feature(arbitrary_self_types, unique_rc_arc)]
+
 mod chunk_link;
 mod dependency;
 mod esm_lib_parser_plugin;

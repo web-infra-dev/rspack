@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, UniqueArc};
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
@@ -163,7 +163,7 @@ impl Module for CssModule {
   }
 
   async fn build(
-    mut self: Box<Self>,
+    mut self: UniqueArc<Self>,
     build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
