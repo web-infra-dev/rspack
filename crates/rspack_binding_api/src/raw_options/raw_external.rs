@@ -1,5 +1,7 @@
 use std::{fmt::Debug, path::Path, sync::Arc};
 
+use std::sync::{Mutex, atomic::{AtomicU32, Ordering}};
+
 use napi::{
   Either, Env,
   bindgen_prelude::{Either4, Function, FunctionCallContext, Object, Promise, ToNapiValue},
@@ -49,6 +51,84 @@ type RawExternalItemValue = Either4<String, bool, Vec<String>, HashMap<String, V
 pub(crate) struct RawExternalItemWrapper(pub(crate) RawExternalItem);
 struct RawExternalItemValueWrapper(RawExternalItemValue);
 
+/// Memoizes externals function results, keyed only by the inputs the function
+/// has actually read (reported by the JS adapter). The mask grows as more
+/// fields are observed; calls that used `getResolve` disable the cache.
+#[derive(Debug, Default)]
+struct ExternalsFnCache {
+  mask: AtomicU32,
+  entries: Mutex<HashMap<String, ExternalItemFnResult>>,
+}
+
+impl ExternalsFnCache {
+  const REQUEST: u32 = 1 << 0;
+  const CONTEXT: u32 = 1 << 1;
+  const DEPENDENCY_TYPE: u32 = 1 << 2;
+  const ISSUER: u32 = 1 << 3;
+  const ISSUER_LAYER: u32 = 1 << 4;
+  const UNCACHEABLE: u32 = 1 << 5;
+
+  fn observed_mask(&self) -> u32 {
+    self.mask.load(Ordering::Relaxed)
+  }
+
+  fn record_observed(&self, observed: u32) {
+    self
+      .mask
+      .fetch_or(observed, Ordering::Relaxed);
+  }
+
+  /// Cache key for `ctx`, or `None` while the observed fields are unknown or
+  /// the function depends on `getResolve`.
+  fn key(&self, ctx: &ExternalItemFnCtx) -> Option<String> {
+    let mask = self.observed_mask();
+    if mask & (Self::REQUEST | Self::CONTEXT | Self::DEPENDENCY_TYPE | Self::ISSUER | Self::ISSUER_LAYER) == 0
+      || mask & Self::UNCACHEABLE != 0
+    {
+      return None;
+    }
+    let mut key = format!("{mask}");
+    if mask & Self::REQUEST != 0 {
+      key.push('\u{1}');
+      key.push_str(&ctx.request);
+    }
+    if mask & Self::CONTEXT != 0 {
+      key.push('\u{1}');
+      key.push_str(&ctx.context);
+    }
+    if mask & Self::DEPENDENCY_TYPE != 0 {
+      key.push('\u{1}');
+      key.push_str(&ctx.dependency_type);
+    }
+    if mask & Self::ISSUER != 0 {
+      key.push('\u{1}');
+      key.push_str(&ctx.context_info.issuer);
+    }
+    if mask & Self::ISSUER_LAYER != 0 {
+      key.push('\u{1}');
+      key.push_str(ctx.context_info.issuer_layer.as_deref().unwrap_or_default());
+    }
+    Some(key)
+  }
+
+  fn get(&self, key: &str) -> Option<ExternalItemFnResult> {
+    self
+      .entries
+      .lock()
+      .unwrap_or_else(|e| e.into_inner())
+      .get(key)
+      .cloned()
+  }
+
+  fn insert(&self, key: String, result: ExternalItemFnResult) {
+    self
+      .entries
+      .lock()
+      .unwrap_or_else(|e| e.into_inner())
+      .insert(key, result);
+  }
+}
+
 impl From<RawExternalItemValueWrapper> for ExternalItemValue {
   fn from(value: RawExternalItemValueWrapper) -> Self {
     match value.0 {
@@ -67,6 +147,9 @@ pub struct RawExternalItemFnResult {
   // sadly, napi.rs does not support type alias at the moment. Need to add Either here
   #[napi(ts_type = "string | boolean | string[] | Record<string, string[]>")]
   pub result: Option<RawExternalItemValue>,
+  /// Bitmask of the inputs the externals function actually read, reported by
+  /// the JS adapter so results can be memoized on the fields that matter.
+  pub observed: Option<u32>,
 }
 
 impl From<RawExternalItemFnResult> for ExternalItemFnResult {
@@ -228,9 +311,27 @@ impl TryFrom<RawExternalItemWrapper> for ExternalItem {
           .map(|(k, v)| (k, RawExternalItemValueWrapper(v).into()))
           .collect(),
       )),
-      Either4::D(v) => Ok(Self::Fn(Box::new(move |ctx: ExternalItemFnCtx| {
-        let v = v.clone();
-        Box::pin(async move { v.call_with_promise(ctx.into()).await.map(|r| r.into()) })
+      Either4::D(v) => Ok(Self::Fn(Box::new({
+        let cache = Arc::new(ExternalsFnCache::default());
+        move |ctx: ExternalItemFnCtx| {
+          let v = v.clone();
+          let cache = Arc::clone(&cache);
+          Box::pin(async move {
+            let key = cache.key(&ctx);
+            if let Some(key) = &key
+              && let Some(cached) = cache.get(key)
+            {
+              return Ok(cached);
+            }
+            let raw: RawExternalItemFnResult = v.call_with_promise(ctx.into()).await?;
+            cache.record_observed(raw.observed.unwrap_or_default());
+            let result: ExternalItemFnResult = raw.into();
+            if let Some(key) = key {
+              cache.insert(key, result.clone());
+            }
+            Ok(result)
+          })
+        }
       }))),
     }
   }
