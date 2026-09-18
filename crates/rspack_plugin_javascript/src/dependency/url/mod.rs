@@ -8,9 +8,9 @@ use rspack_core::{
   ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
   DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportsInfoArtifact, GroupOptions, JavascriptParserUrl,
-  Module, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleType, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
-  TemplateReplaceSource, URLStaticMode, UsedByExports,
+  Module, ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleType, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
+  TemplateContext, TemplateReplaceSource, URLStaticMode, UsedByExports,
 };
 
 use crate::{Atom, connection_active_used_by_exports, runtime::AUTO_PUBLIC_PATH_PLACEHOLDER};
@@ -155,35 +155,47 @@ impl DependencyTemplate for URLDependencyTemplate {
     } = code_generatable_context;
 
     match dep.mode {
+      Some(JavascriptParserUrl::Relative) => {
+        let (expression, comment) = get_url_expression(dep, compilation, runtime_template);
+        source.replace(
+          dep.range.start,
+          dep.range.end,
+          format!(
+            "{comment} new {}({expression})",
+            runtime_template.render_runtime_globals(&RuntimeGlobals::RELATIVE_URL),
+          ),
+          None,
+        );
+      }
       Some(JavascriptParserUrl::NewUrlRelative) => {
-        render_static_url(dep, source, code_generatable_context);
+        code_generatable_context.data.insert(URLStaticMode);
+        code_generatable_context
+          .data
+          .insert(CodeGenerationPublicPathAutoReplace(true));
+        source.replace(
+          dep.range.start,
+          dep.range.end,
+          format!(
+            "new URL({}, import.meta.url)",
+            rspack_util::json_stringify_str(&format!(
+              "{AUTO_PUBLIC_PATH_PLACEHOLDER}{URL_STATIC_PLACEHOLDER}{}",
+              &dep.id.as_u32()
+            )),
+          ),
+          None,
+        );
       }
       _ => {
-        let (expression, comment) =
-          if let Some(chunk_ukey) = get_dependency_entry_chunk(compilation, &dep.id) {
-            let chunk_id = compilation
-              .build_chunk_graph_artifact
-              .chunk_by_ukey
-              .expect_get(&chunk_ukey)
-              .id()
-              .map(rspack_util::json_stringify)
-              .expect("URL entry should have a chunk id");
-            let public_path = runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH);
-            let chunk_filename =
-              runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME);
-            (
-              concat_string!(public_path, " + ", chunk_filename, "(", chunk_id, ")"),
-              "/* entry url */",
-            )
-          } else {
-            let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
-            let module_id = runtime_template.module_id(compilation, &dep.id, &dep.request, false);
-            (
-              concat_string!(require, "(", module_id, ")"),
-              "/* asset import */",
-            )
-          };
-        render_url_expression(dep, source, code_generatable_context, &expression, comment);
+        let (expression, comment) = get_url_expression(dep, compilation, runtime_template);
+        source.replace(
+          dep.range_url.start,
+          dep.range_url.end,
+          format!(
+            "{comment}{expression}, {}",
+            runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI)
+          ),
+          None,
+        );
       }
     }
   }
@@ -265,50 +277,32 @@ pub(crate) fn get_dependency_entry_chunk(
   get_dependency_entrypoint(compilation, dependency_id).map(ChunkGroup::get_entrypoint_chunk)
 }
 
-fn render_static_url(
+fn get_url_expression(
   dep: &URLDependency,
-  source: &mut TemplateReplaceSource,
-  context: &mut TemplateContext,
-) {
-  context.data.insert(URLStaticMode);
-  context
-    .data
-    .insert(CodeGenerationPublicPathAutoReplace(true));
-  let url = rspack_util::json_stringify_str(&format!(
-    "{AUTO_PUBLIC_PATH_PLACEHOLDER}{URL_STATIC_PLACEHOLDER}{}",
-    dep.id.as_u32()
-  ));
-  source.replace(
-    dep.range.start,
-    dep.range.end,
-    concat_string!("new URL(", url, ", import.meta.url)"),
-    None,
-  );
-}
-
-fn render_url_expression(
-  dep: &URLDependency,
-  source: &mut TemplateReplaceSource,
-  context: &mut TemplateContext,
-  expression: &str,
-  comment: &str,
-) {
-  let runtime_template = &mut *context.runtime_template;
-  if matches!(dep.mode, Some(JavascriptParserUrl::Relative)) {
-    let relative_url = runtime_template.render_runtime_globals(&RuntimeGlobals::RELATIVE_URL);
-    source.replace(
-      dep.range.start,
-      dep.range.end,
-      concat_string!(comment, " new ", relative_url, "(", expression, ")"),
-      None,
-    );
+  compilation: &Compilation,
+  runtime_template: &mut ModuleCodeTemplate,
+) -> (String, &'static str) {
+  if let Some(chunk_ukey) = get_dependency_entry_chunk(compilation, &dep.id) {
+    let chunk_id = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(&chunk_ukey)
+      .id()
+      .map(rspack_util::json_stringify)
+      .expect("URL entry should have a chunk id");
+    let public_path = runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH);
+    let chunk_filename =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME);
+    (
+      concat_string!(public_path, " + ", chunk_filename, "(", chunk_id, ")"),
+      "/* entry url */",
+    )
   } else {
-    let base_uri = runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI);
-    source.replace(
-      dep.range_url.start,
-      dep.range_url.end,
-      concat_string!(comment, expression, ", ", base_uri),
-      None,
-    );
+    let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let module_id = runtime_template.module_id(compilation, &dep.id, &dep.request, false);
+    (
+      concat_string!(require, "(", module_id, ")"),
+      "/* asset import */",
+    )
   }
 }
