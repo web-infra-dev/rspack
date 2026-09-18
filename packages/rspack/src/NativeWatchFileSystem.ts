@@ -2,11 +2,14 @@ import { EventEmitter } from 'node:events';
 import binding from '@rspack/binding';
 import type Watchpack from 'watchpack';
 import type {
+  ExistenceOnlyTimeEntry,
   FileSystemInfoEntry,
   InputFileSystem,
+  TimeInfoEntries,
   Watcher,
   WatchFileSystem,
 } from './util/fs';
+import { isInternalCallback } from './util/watchTimeInfo';
 
 /**
  * The following code is modified based on
@@ -34,6 +37,38 @@ const toJsWatcherIgnored = (
   return undefined;
 };
 
+/** watchpack's existence-only time entry (`{}`): known to exist, no time info. */
+const EXISTENCE_ONLY_TIME_ENTRY: ExistenceOnlyTimeEntry = Object.freeze({});
+
+/**
+ * Rebuild watchpack's `TimeInfoEntries` from the native rows: a file's `Entry`
+ * ({ safeTime, timestamp, accuracy }), a directory's `OnlySafeTimeEntry`
+ * ({ safeTime }), an `ExistenceOnlyTimeEntry` ({}), or `null` for a watched
+ * path absent on disk.
+ */
+const toTimeInfoEntries = (
+  rows: binding.NativeTimeInfoEntry[],
+): TimeInfoEntries => {
+  const entries: TimeInfoEntries = new Map();
+  for (const row of rows) {
+    if (row.existenceOnly) {
+      entries.set(row.path, EXISTENCE_ONLY_TIME_ENTRY);
+    } else if (row.safeTime == null) {
+      entries.set(row.path, null);
+    } else {
+      const entry: FileSystemInfoEntry = { safeTime: row.safeTime };
+      if (row.timestamp != null) {
+        entry.timestamp = row.timestamp;
+      }
+      if (row.accuracy != null) {
+        entry.accuracy = row.accuracy;
+      }
+      entries.set(row.path, entry);
+    }
+  }
+  return entries;
+};
+
 /**
  * Minimal watchpack-compatible shim exposed as `NativeWatchFileSystem.watcher`.
  *
@@ -41,16 +76,18 @@ const toJsWatcherIgnored = (
  * `fork-ts-checker-webpack-plugin` rely on — `on`/`once` for `change`/`remove`,
  * plus `_onChange`/`_onRemove` to inject events — onto the native watcher, so
  * those plugins keep working under `experiments.nativeWatcher` unmodified.
+ * The times API (`getTimes`/`getTimeInfoEntries`/`collectTimeInfoEntries`) is
+ * forwarded to the owning file system, which reads it off the native watcher.
  *
  * APIs that iterate `fileWatchers`/`directoryWatchers` are intentionally not
  * supported; plugins needing those should use `WatchFileSystem.emit` instead.
  */
 class NativeWatcherShim extends EventEmitter {
-  #trigger: (kind: 'change' | 'remove', path: string) => void;
+  #fileSystem: NativeWatchFileSystem;
 
-  constructor(trigger: (kind: 'change' | 'remove', path: string) => void) {
+  constructor(fileSystem: NativeWatchFileSystem) {
     super();
-    this.#trigger = trigger;
+    this.#fileSystem = fileSystem;
   }
 
   _onChange(
@@ -59,11 +96,29 @@ class NativeWatcherShim extends EventEmitter {
     file?: string,
     _type?: string,
   ): void {
-    this.#trigger('change', file ?? item);
+    this.#fileSystem.triggerEvent('change', file ?? item);
   }
 
   _onRemove(item: string, file?: string, _type?: string): void {
-    this.#trigger('remove', file ?? item);
+    this.#fileSystem.triggerEvent('remove', file ?? item);
+  }
+
+  getTimes(): Record<string, number | null> {
+    return this.#fileSystem.getTimes();
+  }
+
+  getTimeInfoEntries(): TimeInfoEntries {
+    return this.#fileSystem.getTimeInfoEntries();
+  }
+
+  collectTimeInfoEntries(
+    fileTimestamps: TimeInfoEntries,
+    directoryTimestamps: TimeInfoEntries,
+  ): void {
+    this.#fileSystem.collectTimeInfoEntries(
+      fileTimestamps,
+      directoryTimestamps,
+    );
   }
 }
 
@@ -107,8 +162,8 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
     options: Watchpack.WatchOptions,
     callback: (
       error: Error | null,
-      fileTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>,
-      contextTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>,
+      fileTimeInfoEntries: TimeInfoEntries,
+      contextTimeInfoEntries: TimeInfoEntries,
       changedFiles: Set<string>,
       removedFiles: Set<string>,
     ) => void,
@@ -146,9 +201,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
     // Fresh shim per cycle (see field comment). Events are emitted to both the
     // long-lived `#events` (the `on`/`once` API) and this cycle's shim (the
     // `.watcher` surface).
-    const watcher = new NativeWatcherShim((kind, path) =>
-      this.#inner?.triggerEvent(kind, path),
-    );
+    const watcher = new NativeWatcherShim(this);
     this.#watcher = watcher;
 
     nativeWatcher.watch(
@@ -173,7 +226,6 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
             fs.purge?.(item);
           }
         }
-        // TODO: add fileTimeInfoEntries and contextTimeInfoEntries
         const changes = new Set(changedFiles);
         const removals = new Set(removedFiles);
         // Mirror watchpack's public `aggregated` event (the batched summary
@@ -184,7 +236,20 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
         // path, where the forwarded `aggregated` runs before its rebuild callback.
         this.#events.emit('aggregated', changes, removals);
         watcher.emit('aggregated', changes, removals);
-        callback(err, new Map(), new Map(), changes, removals);
+        if (isInternalCallback(callback)) {
+          // Watching reads fresh timestamps through getInfo when the build starts.
+          callback(null, undefined, undefined, changes, removals);
+          return;
+        }
+        const { fileTimeInfoEntries, contextTimeInfoEntries } =
+          this.#fetchTimeInfo(nativeWatcher);
+        callback(
+          err,
+          fileTimeInfoEntries,
+          contextTimeInfoEntries,
+          changes,
+          removals,
+        );
       },
       (event) => {
         if (event.kind === 'change') {
@@ -221,17 +286,91 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
         nativeWatcher.pause();
       },
 
-      getInfo() {
-        // This is a placeholder implementation.
-        // TODO: The actual implementation should return the current state of the watcher.
+      getInfo: () => {
+        // Aggregated changes/removals are consumed by the `watch` callback and
+        // are not retained, so this query path reports only the time tables —
+        // what `compiler.fileTimestamps`/`contextTimestamps` need.
+        const { fileTimeInfoEntries, contextTimeInfoEntries } =
+          this.#fetchTimeInfo(nativeWatcher);
         return {
-          changes: new Set(),
-          removals: new Set(),
-          fileTimeInfoEntries: new Map(),
-          contextTimeInfoEntries: new Map(),
+          changes: new Set<string>(),
+          removals: new Set<string>(),
+          fileTimeInfoEntries,
+          contextTimeInfoEntries,
         };
       },
     };
+  }
+
+  // The native `collectTimeInfoEntries`, under the names the `watch` callback
+  // and `Watcher.getInfo()` hand to webpack.
+  #fetchTimeInfo(nativeWatcher: binding.NativeWatcher): {
+    fileTimeInfoEntries: TimeInfoEntries;
+    contextTimeInfoEntries: TimeInfoEntries;
+  } {
+    const { fileTimestamps, directoryTimestamps } =
+      nativeWatcher.collectTimeInfoEntries();
+    return {
+      fileTimeInfoEntries: toTimeInfoEntries(fileTimestamps),
+      contextTimeInfoEntries: toTimeInfoEntries(directoryTimestamps),
+    };
+  }
+
+  /**
+   * watchpack's `getTimes` / `getTimeInfoEntries` / `collectTimeInfoEntries`,
+   * served from the native watcher's registered paths. Before the first
+   * `watch()` (and after `close()`) nothing is registered, so they read as
+   * empty.
+   */
+  getTimes(): Record<string, number | null> {
+    const times: Record<string, number | null> = Object.create(null);
+    if (!this.#inner) {
+      return times;
+    }
+    const { fileTimestamps, directoryTimestamps } =
+      this.#inner.collectTimeInfoEntries();
+    for (const row of fileTimestamps) {
+      // `getTimes` reports the paths that carry a time: a file's `Entry` as
+      // the later of its safe time and timestamp, a watched path absent on
+      // disk as null. Existence-only entries have no time to report.
+      if (row.existenceOnly) {
+        continue;
+      }
+      times[row.path] =
+        row.safeTime == null
+          ? null
+          : Math.max(row.safeTime, row.timestamp ?? row.safeTime);
+    }
+    for (const row of directoryTimestamps) {
+      times[row.path] = row.safeTime ?? null;
+    }
+    return times;
+  }
+
+  getTimeInfoEntries(): TimeInfoEntries {
+    const entries: TimeInfoEntries = new Map();
+    // watchpack fills both tables into one map here; a context entry, written
+    // last, wins over a file entry for the same path.
+    this.collectTimeInfoEntries(entries, entries);
+    return entries;
+  }
+
+  collectTimeInfoEntries(
+    fileTimestamps: TimeInfoEntries,
+    directoryTimestamps: TimeInfoEntries,
+  ): void {
+    if (!this.#inner) {
+      return;
+    }
+    const { fileTimeInfoEntries, contextTimeInfoEntries } = this.#fetchTimeInfo(
+      this.#inner,
+    );
+    for (const [path, entry] of fileTimeInfoEntries) {
+      fileTimestamps.set(path, entry);
+    }
+    for (const [path, entry] of contextTimeInfoEntries) {
+      directoryTimestamps.set(path, entry);
+    }
   }
 
   getNativeWatcher(options: Watchpack.WatchOptions): binding.NativeWatcher {

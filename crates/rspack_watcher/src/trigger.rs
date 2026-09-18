@@ -185,14 +185,24 @@ impl EventProcessor {
       kind
     };
 
-    let is_registered_file = self.path_manager.access().files().0.contains(path);
+    // A removed file's baseline mtime no longer describes anything on disk:
+    // drop it so `collect_time_info_entries` re-stats the path and reports it as
+    // absent, matching watchpack, which reports a removed entry as `null`.
+    if kind == FsEventKind::Remove {
+      self.path_manager.remove_file_mtime(path);
+    }
+
+    let accessor = self.path_manager.access();
+    let is_watched_path = accessor.files().0.contains(path) || accessor.missing().0.contains(path);
 
     // Filter stale FSEvents: on macOS, FSEvents can deliver events for files
     // written before the watcher was created. Stat the file and compare mtime
     // against the recorded baseline to suppress events where nothing changed.
     // Apply the same suppression to Create for already-registered files, since
     // macOS may emit stale Create events for files that predate the watcher.
-    if (kind == FsEventKind::Change || (kind == FsEventKind::Create && is_registered_file))
+    // A registered-missing path takes its first baseline here, which is what
+    // lets `collect_time_info_entries` report it as present once it exists.
+    if (kind == FsEventKind::Change || (kind == FsEventKind::Create && is_watched_path))
       && !self.path_manager.has_mtime_changed(path)
     {
       return;
@@ -200,6 +210,13 @@ impl EventProcessor {
 
     let finder = self.finder();
     let associated_event = finder.find_associated_event(path, kind);
+    // watchpack's per-directory `lastWatchEvent`: an event reaching a
+    // registered context — its own or a descendant's — advances it, so the
+    // context's safe time still moves when the change did not touch the
+    // directory mtime (an edit inside it).
+    for (path, _) in &associated_event {
+      self.path_manager.set_last_watch_event(path);
+    }
     self.trigger_events(associated_event);
   }
   /// Helper to construct a `DependencyFinder` for the current path register state.

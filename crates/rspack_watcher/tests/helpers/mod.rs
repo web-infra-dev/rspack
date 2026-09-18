@@ -12,7 +12,9 @@ use std::{
 
 use rspack_paths::{InternedPath, Utf8PathBuf};
 use rspack_util::fx_hash::FxHashSet;
-use rspack_watcher::{EventAggregateHandler, EventHandler, FsWatcher};
+use rspack_watcher::{
+  EventAggregateHandler, EventHandler, FsWatcher, TimeInfoEntries, TimeInfoEntry,
+};
 use tempfile::TempDir;
 use tokio::sync::RwLock;
 
@@ -192,6 +194,24 @@ impl TestHelper {
   pub fn tick(&self, f: impl FnOnce()) {
     std::thread::sleep(std::time::Duration::from_millis(200));
     f();
+  }
+
+  /// watchpack's `collectTimeInfoEntries`, as `(fileTimestamps, directoryTimestamps)`.
+  pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
+    TOKIO_RUNTIME.block_on(async { self.watcher.read().await.collect_time_info_entries() })
+  }
+
+  /// The entry recorded for `name` (relative to the temporary directory) in
+  /// `entries`, panicking when the path was never reported.
+  pub fn time_info_entry<'a>(&self, entries: &'a TimeInfoEntries, name: &str) -> &'a TimeInfoEntry {
+    let path = self.join(name);
+    entries
+      .iter()
+      .find(|(entry_path, _)| entry_path == path.as_str())
+      .map_or_else(
+        || panic!("no time-info entry for {path}"),
+        |(_, entry)| entry,
+      )
   }
 
   /// Watches the specified files, directories, and missing paths.

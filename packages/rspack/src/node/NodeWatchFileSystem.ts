@@ -14,8 +14,8 @@ import util from 'node:util';
 import type Watchpack from 'watchpack';
 
 import type {
-  FileSystemInfoEntry,
   InputFileSystem,
+  TimeInfoEntries,
   Watcher,
   WatchFileSystem,
 } from '../util/fs';
@@ -49,8 +49,8 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
     options: Watchpack.WatchOptions,
     callback: (
       error: Error | null,
-      fileTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>,
-      contextTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>,
+      fileTimeInfoEntries: TimeInfoEntries,
+      contextTimeInfoEntries: TimeInfoEntries,
       changedFiles: Set<string>,
       removedFiles: Set<string>,
     ) => void,
@@ -220,6 +220,24 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
         };
       },
     };
+  }
+
+  // watchpack's own times API, forwarded from the current cycle's watcher.
+  // Before the first `watch()` (and after `close()`) there is nothing watched
+  // yet, so the tables read as empty.
+  getTimes(): Record<string, number | null> {
+    return this.watcher?.getTimes() ?? {};
+  }
+
+  getTimeInfoEntries(): TimeInfoEntries {
+    return this.watcher?.getTimeInfoEntries() ?? new Map();
+  }
+
+  collectTimeInfoEntries(
+    fileTimestamps: TimeInfoEntries,
+    directoryTimestamps: TimeInfoEntries,
+  ): void {
+    this.watcher?.collectTimeInfoEntries(fileTimestamps, directoryTimestamps);
   }
 
   on(

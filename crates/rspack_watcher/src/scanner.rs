@@ -5,6 +5,7 @@ use rspack_util::time::{mtime_safe_time, system_time_to_millis};
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{EventBatch, FsEvent, FsEventKind, PathManager};
+use crate::paths::disk_mtime;
 
 // Scanner will scann the path whether it is exist or not in disk on initialization
 pub struct Scanner {
@@ -76,13 +77,20 @@ impl Scanner {
         .iter()
         .map(|p| p.deref().clone())
         .collect::<Vec<_>>();
+      let path_manager = Arc::clone(&self.path_manager);
       tokio::spawn(async move {
-        _ = scan_path_events(
-          &missing_added,
-          |p| changed_since(p, start_time),
-          FsEventKind::Create,
-          &tx,
-        );
+        let created = missing_added
+          .into_iter()
+          .filter(|p| changed_since(p, start_time))
+          .collect::<Vec<_>>();
+        // This backfill bypasses `Trigger`, so record the baseline here: it is
+        // what lets `collect_time_info_entries` report the dependency as present.
+        for path in &created {
+          if let Some(mtime) = disk_mtime(path) {
+            path_manager.set_file_time(path, mtime);
+          }
+        }
+        _ = scan_path_events(&created, |_| true, FsEventKind::Create, &tx);
       });
     }
   }
