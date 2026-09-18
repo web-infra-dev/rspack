@@ -4525,7 +4525,6 @@ dependencies = [
  "simdutf8",
  "tokio",
  "tracing",
- "winnow",
 ]
 
 [[package]]
