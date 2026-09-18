@@ -7,7 +7,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{ResolveOptionsWithDependencyType, ResolverFactory};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ExternalItemValue {
   String(String),
   Array(Vec<String>),
@@ -31,6 +31,7 @@ pub struct ExternalItemFnCtx {
   pub resolver_factory: Arc<ResolverFactory>,
 }
 
+#[derive(Debug, Clone)]
 pub struct ExternalItemFnResult {
   pub external_type: Option<ExternalType>,
   pub result: Option<ExternalItemValue>,
