@@ -80,6 +80,13 @@ impl<T> FreezeLock<T> {
         .shareable()
     })
   }
+
+  /// Publish metadata retained from a successful build after a failed rebuild.
+  pub(crate) fn freeze_with(&self, value: Arc<T>) {
+    let mut building = self.building.write();
+    assert!(self.frozen.set(value).is_ok(), "metadata is already frozen");
+    building.take();
+  }
 }
 
 impl<T: Default> Default for FreezeLock<T> {
