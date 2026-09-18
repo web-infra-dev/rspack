@@ -41,10 +41,10 @@ type Compilation = {
   readonly modules: ReadonlySet<Module>; // set of all modules
   readonly chunks: ReadonlySet<Chunk>; // set of all chunks
   readonly namedChunks: ReadonlyMap<string, Readonly<Chunk>>; // mapping of named chunks
-  fileDependencies: CompilationDependencies; // dependent files
-  contextDependencies: CompilationDependencies; // dependent directories
-  missingDependencies: CompilationDependencies; // dependent missing files
-  buildDependencies: CompilationDependencies; // dependent build files
+  fileDependencies: FileSystemDependencies; // dependent files
+  contextDependencies: FileSystemDependencies; // dependent directories
+  missingDependencies: FileSystemDependencies; // dependent missing files
+  buildDependencies: FileSystemDependencies; // dependent build files
   errors: RspackError[]; // errors during compilation
   warnings: RspackError[]; // warnings during compilation
 };

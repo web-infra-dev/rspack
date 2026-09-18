@@ -59,7 +59,6 @@ import { StatsFactory } from './stats/StatsFactory';
 import { StatsPrinter } from './stats/StatsPrinter';
 import { AsyncTask } from './util/AsyncTask';
 import { createReadonlyMap } from './util/createReadonlyMap';
-import { createFakeCompilationDependencies } from './util/fake';
 import type { InputFileSystem } from './util/fs';
 import type Hash from './util/hash';
 import { SourceAdapter } from './util/source';
@@ -70,6 +69,10 @@ import './ChunkGraph';
 // patch CodeGenerationResults
 import './CodeGenerationResults';
 import { createDiagnosticArray } from './Diagnostics';
+import {
+  createFileSystemDependencies,
+  type FileSystemDependencies,
+} from './FileSystemDependencies';
 import type { CodeGenerationResult } from './taps/compilation';
 
 export type Assets = Record<string, Source>;
@@ -337,6 +340,18 @@ export class Compilation {
 
   constructor(compiler: Compiler, inner: JsCompilation) {
     this.#inner = inner;
+    this.fileDependencies = createFileSystemDependencies(
+      inner.fileDependencies,
+    );
+    this.contextDependencies = createFileSystemDependencies(
+      inner.contextDependencies,
+    );
+    this.missingDependencies = createFileSystemDependencies(
+      inner.missingDependencies,
+    );
+    this.buildDependencies = createFileSystemDependencies(
+      inner.buildDependencies,
+    );
     this.#shutdown = false;
 
     const processAssetsHook = new liteTapable.AsyncSeriesHook<Assets>([
@@ -941,49 +956,34 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     );
   }
 
-  fileDependencies = createFakeCompilationDependencies(
-    () => this.#inner.dependencies().fileDependencies,
-    (d) => this.#inner.addFileDependencies(d),
-  );
-
   get __internal__addedFileDependencies() {
-    return this.#inner.dependencies().addedFileDependencies;
+    return this.#inner.fileDependencies.added;
   }
 
   get __internal__removedFileDependencies() {
-    return this.#inner.dependencies().removedFileDependencies;
+    return this.#inner.fileDependencies.removed;
   }
 
   get __internal__addedContextDependencies() {
-    return this.#inner.dependencies().addedContextDependencies;
+    return this.#inner.contextDependencies.added;
   }
 
   get __internal__removedContextDependencies() {
-    return this.#inner.dependencies().removedContextDependencies;
+    return this.#inner.contextDependencies.removed;
   }
 
   get __internal__addedMissingDependencies() {
-    return this.#inner.dependencies().addedMissingDependencies;
+    return this.#inner.missingDependencies.added;
   }
 
   get __internal__removedMissingDependencies() {
-    return this.#inner.dependencies().removedMissingDependencies;
+    return this.#inner.missingDependencies.removed;
   }
 
-  contextDependencies = createFakeCompilationDependencies(
-    () => this.#inner.dependencies().contextDependencies,
-    (d) => this.#inner.addContextDependencies(d),
-  );
-
-  missingDependencies = createFakeCompilationDependencies(
-    () => this.#inner.dependencies().missingDependencies,
-    (d) => this.#inner.addMissingDependencies(d),
-  );
-
-  buildDependencies = createFakeCompilationDependencies(
-    () => this.#inner.dependencies().buildDependencies,
-    (d) => this.#inner.addBuildDependencies(d),
-  );
+  fileDependencies: FileSystemDependencies;
+  contextDependencies: FileSystemDependencies;
+  missingDependencies: FileSystemDependencies;
+  buildDependencies: FileSystemDependencies;
 
   getStats() {
     return new Stats(this);

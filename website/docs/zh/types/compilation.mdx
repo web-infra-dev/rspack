@@ -41,10 +41,10 @@ type Compilation = {
   readonly modules: ReadonlySet<Module>; // 所有模块信息
   readonly chunks: ReadonlySet<Chunk>; // 所有 Chunk 信息
   readonly namedChunks: ReadonlyMap<string, Readonly<Chunk>>; // 名称与 Chunk 的映射表
-  fileDependencies: CompilationDependencies; // 本地文件依赖
-  contextDependencies: CompilationDependencies; // 本地目录依赖
-  missingDependencies: CompilationDependencies; // 缺失文件依赖
-  buildDependencies: CompilationDependencies; // 构建文件依赖
+  fileDependencies: FileSystemDependencies; // 本地文件依赖
+  contextDependencies: FileSystemDependencies; // 本地目录依赖
+  missingDependencies: FileSystemDependencies; // 缺失文件依赖
+  buildDependencies: FileSystemDependencies; // 构建文件依赖
   errors: RspackError[]; // 构建错误列表
   warnings: RspackError[]; // 构建警告列表
 };

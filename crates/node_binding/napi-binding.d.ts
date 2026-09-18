@@ -276,6 +276,17 @@ export declare class ExternalModule {
   _emitFile(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
+/** Native operations on one compilation dependency collection. */
+export declare class FileSystemDependencies {
+  get added(): Array<string>
+  get removed(): Array<string>
+  size(): number
+  has(value: string): boolean
+  values(): ReadonlyArray<string>
+  add(value: string): void
+  addAll(values: Array<string>): void
+}
+
 /** One shared cache, initialized from the first compiler that uses it. */
 export declare class JsCache {
   constructor()
@@ -307,7 +318,10 @@ export declare class JsCompilation {
   get entrypoints(): ChunkGroup[]
   get chunkGroups(): ChunkGroup[]
   get hash(): string | null
-  dependencies(): JsDependencies
+  get fileDependencies(): FileSystemDependencies
+  get contextDependencies(): FileSystemDependencies
+  get missingDependencies(): FileSystemDependencies
+  get buildDependencies(): FileSystemDependencies
   pushDiagnostic(diagnostic: JsRspackDiagnostic): void
   pushNativeDiagnostic(diagnostic: ExternalObject<'Diagnostic'>): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
@@ -380,21 +394,6 @@ export declare class JsContextModuleFactoryBeforeResolveData {
 
 export declare class JsCoordinator {
   constructor()
-}
-
-export declare class JsDependencies {
-  get fileDependencies(): Array<string>
-  get addedFileDependencies(): Array<string>
-  get removedFileDependencies(): Array<string>
-  get contextDependencies(): Array<string>
-  get addedContextDependencies(): Array<string>
-  get removedContextDependencies(): Array<string>
-  get missingDependencies(): Array<string>
-  get addedMissingDependencies(): Array<string>
-  get removedMissingDependencies(): Array<string>
-  get buildDependencies(): Array<string>
-  get addedBuildDependencies(): Array<string>
-  get removedBuildDependencies(): Array<string>
 }
 
 export declare class JsEntries {
