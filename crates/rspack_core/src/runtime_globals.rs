@@ -291,6 +291,16 @@ define_runtime_globals! {
 
   const HAS_FETCH_PRIORITY;
 
+  /**
+   * object mapping chunk ids to the extract-css filenames emitted for them by hot
+   * updates seen so far, so the extract-css HMR handler and its chunk loading can
+   * resolve the fresh stylesheet URL instead of relying on the (possibly stale)
+   * chunk filename runtime function. Namespaced as "mini css" (matching the
+   * `miniCssF` chunk filename function) to stay distinct from any equivalent
+   * mechanism for the native (non-extracted) CSS runtime.
+   */
+  const HMR_MINI_CSS_FILENAMES;
+
   // amd module support
   const AMD_DEFINE;
   const AMD_OPTIONS;
@@ -449,6 +459,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::CSS_STYLE_SHEET => "css",
     RuntimeGlobals::ASYNC_STARTUP => "asyncStartup",
     RuntimeGlobals::HAS_FETCH_PRIORITY => "has fetch priority",
+    RuntimeGlobals::HMR_MINI_CSS_FILENAMES => "hmrMCF",
 
     RuntimeGlobals::RSC_MANIFEST => "rscM",
     RuntimeGlobals::TO_BINARY => "tb",

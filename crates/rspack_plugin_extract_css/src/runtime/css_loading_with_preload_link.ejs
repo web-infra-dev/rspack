@@ -4,7 +4,10 @@ if (<%- weak(SCRIPT_NONCE) %>) {
 }
 link.rel = "preload";
 link.as = "style";
-link.href = <%- PUBLIC_PATH %> + <%- _get_chunk_css_filename %>(chunkId);
+// Prefer the fresh filename an intervening HMR update recorded for this not-yet-loaded
+// chunk over the stale `miniCssF` literal, so a hashed name is preloaded correctly.
+var extractCssPreloadMiniCssFilenames = <%- weak(HMR_MINI_CSS_FILENAMES) %>;
+link.href = <%- PUBLIC_PATH %> + ((extractCssPreloadMiniCssFilenames && extractCssPreloadMiniCssFilenames[chunkId]) || <%- _get_chunk_css_filename %>(chunkId));
 <% if (_cross_origin == "use-credentials") { %>
 link.crossOrigin = "use-credentials";
 <% } else if (_cross_origin != "") { %>

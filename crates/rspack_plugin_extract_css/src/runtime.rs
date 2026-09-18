@@ -189,14 +189,22 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS.dependencies
           | CSS_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS.dependencies,
       );
-      weak.insert(CSS_LOADING_CREATE_LINK_RUNTIME_REQUIREMENTS.weak);
+      // The basic template's own weak set carries HMR_MINI_CSS_FILENAMES (consulted by
+      // extractCssLoadStylesheet for lazy chunks); propagate it alongside create-link's.
+      weak.insert(
+        CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS.weak
+          | CSS_LOADING_CREATE_LINK_RUNTIME_REQUIREMENTS.weak,
+      );
     }
     if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
       dependencies.insert(
         CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS.dependencies
           | CSS_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS.dependencies,
       );
-      weak.insert(CSS_LOADING_CREATE_LINK_RUNTIME_REQUIREMENTS.weak);
+      weak.insert(
+        CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS.weak
+          | CSS_LOADING_CREATE_LINK_RUNTIME_REQUIREMENTS.weak,
+      );
     }
     if runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS) {
       let requirements = *CSS_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS;
@@ -300,6 +308,17 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     }
     let mut res = vec![];
 
+    // Namespaces the chunk-identity attribute (data-webpack-chunk) used to find a
+    // currently installed stylesheet by output.uniqueName, the same chunk/module identity
+    // scheme script loading already uses (see load_script.ejs). Rendered as a JS string
+    // literal; left as "" when unset, matching that scheme's own behavior.
+    let unique_name = &compilation.options.output.unique_name;
+    let unique_name_prefix = if unique_name.is_empty() {
+      "\"\"".to_string()
+    } else {
+      serde_json::to_string(&format!("{unique_name}:")).expect("should stringify unique name")
+    };
+
     let create_link_raw = runtime_template.render(
       &self.template_id(TemplateId::CreateLink),
       Some(serde_json::json!({
@@ -326,6 +345,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       &self.template_id(TemplateId::Raw),
       Some(serde_json::json!({
         "_create_link": &create_link.code,
+        "_unique_name_prefix": &unique_name_prefix,
         "_insert": match &self.insert {
           InsertType::Fn(f) => format!("({f})(linkTag);"),
           InsertType::Selector(sel) => format!("var target = document.querySelector({sel});\ntarget.parentNode.insertBefore(linkTag, target.nextSibling);"),

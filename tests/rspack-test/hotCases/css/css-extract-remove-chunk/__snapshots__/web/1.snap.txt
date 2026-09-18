@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 147
-- Update: main.LAST_HASH.hot-update.js, size: 21591
+- Update: main.LAST_HASH.hot-update.js, size: 24242
 
 ## Manifest
 
@@ -53,11 +53,20 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 // webpack/runtime/css loading
 (() => {
 if (typeof document === "undefined") return;
+// Scopes the chunk-identity attribute used to find a currently installed stylesheet
+// (see extractCssFindStylesheet) to this compilation, so two independently compiled
+// apps sharing a chunk id on the same page can't steal or remove each other's
+// stylesheet. Matches the same output.uniqueName-based identity scheme chunk/module
+// script loading already uses (see load_script.ejs).
+var extractCssUniquePrefix = "";
 var extractCssCreateStylesheet = function (
 	chunkId, fullhref, oldTag, resolve, reject, fetchPriority
 ) {
 	var linkTag = document.createElement("link");
 
+// Tag the link with its chunk identity so a later HMR update can still find it after
+// its href changes (a hashed filename), when href-based lookup no longer matches.
+linkTag.setAttribute("data-webpack-chunk", extractCssUniquePrefix + chunkId);
 linkTag.rel = "stylesheet";
 
 linkTag.type = "text/css";
@@ -93,10 +102,16 @@ linkTag.href = fullhref;
           }
 	return linkTag;
 }
-var extractCssFindStylesheet = function (href, fullhref) {
+var extractCssFindStylesheet = function (href, fullhref, chunkId) {
 	var existingLinkTags = document.getElementsByTagName("link");
 	for (var i = 0; i < existingLinkTags.length; i++) {
 		var tag = existingLinkTags[i];
+		// When a chunkId is given (an HMR replacement lookup), prefer the tag created for
+		// that chunk: the href it was created with may since have changed (a hashed
+		// filename), so it can no longer be found by comparing hrefs.
+		if (chunkId !== undefined && tag.getAttribute("data-webpack-chunk") === extractCssUniquePrefix + String(chunkId)) {
+			return tag;
+		}
 		var dataHref = tag.getAttribute("data-href") || tag.getAttribute("href");
 		if (dataHref) {
 			dataHref = dataHref.split('?')[0]
@@ -114,7 +129,15 @@ var extractCssFindStylesheet = function (href, fullhref) {
 
 var extractCssLoadStylesheet = function (chunkId, fetchPriority) {
 	return new Promise(function (resolve, reject) {
-		var href = __webpack_require__.miniCssF(chunkId);
+		/**
+			A chunk not loaded yet (e.g. a lazy route not imported so far) has no tag for the
+			HMR handler to update, so an intervening update only records its fresh filename in
+			HMR_MINI_CSS_FILENAMES. Consult that retained mapping here too, or loading the
+			chunk for the first time after its CSS changed would request the stale, pre-edit
+			filename baked into `miniCssF`.
+		 */
+		var miniCssFilenames = __webpack_require__.hmrMCF;
+		var href = (miniCssFilenames && miniCssFilenames[chunkId]) || __webpack_require__.miniCssF(chunkId);
 		var fullhref = __webpack_require__.p + href;
 		if (extractCssFindStylesheet(href, fullhref)) return resolve();
 		extractCssCreateStylesheet(chunkId, fullhref, null, resolve, reject, fetchPriority);
@@ -158,20 +181,35 @@ __webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedMod
 	 */
 	var cssRemovedChunkIds = (miniCss && miniCss.r) || [];
 	var cssChunkIds = (miniCss && miniCss.c) || [];
+	/**
+		`miniCss.f` maps each changed chunk to the filename this update actually emitted
+		for it. The build-time `miniCssF` literal can't reflect that filename once it is
+		content-hashed ([contenthash]) - it stays frozen at the initial-load name - so the
+		fresh entry is preferred and `miniCssF` kept only as the fallback for unhashed names.
+	 */
+	var cssFreshFilenames = (miniCss && miniCss.f) || {};
 	var seen = {};
 	cssRemovedChunkIds.forEach(function (chunkId) {
+		// Match by chunk identity first: a hashed tag's live href is whatever the latest
+		// update set it to, so href matching alone can miss it; the stale `miniCssF` href
+		// still matches an original, never-updated tag.
 		var href = __webpack_require__.miniCssF(chunkId);
-		if (!href) return;
-		var oldTag = extractCssFindStylesheet(href, __webpack_require__.p + href);
+		var oldTag = extractCssFindStylesheet(href, __webpack_require__.p + href, chunkId);
 		if (oldTag) extractCssOldTags.push(oldTag);
 	});
 	cssChunkIds.forEach(function (chunkId) {
-		var href = __webpack_require__.miniCssF(chunkId);
+		var staleHref = __webpack_require__.miniCssF(chunkId);
+		var href = cssFreshFilenames[chunkId] || staleHref;
 		if (!href) return;
 		var fullhref = __webpack_require__.p + href;
 		if (seen[fullhref]) return;
 		seen[fullhref] = true;
-		var oldTag = extractCssFindStylesheet(href, fullhref);
+		// Find the installed tag by chunk identity first: once the href changes the tag
+		// this handler created can no longer be found by href, but it still carries its
+		// chunk id. The very first update has no such tag yet (the initial stylesheet was
+		// written into the HTML by HtmlRspackPlugin, untagged), so the stale `miniCssF`
+		// href is passed as the fallback, which still matches that original tag.
+		var oldTag = extractCssFindStylesheet(staleHref, __webpack_require__.p + staleHref, chunkId);
 		// The manifest is computed from the compilation and also lists chunks this
 		// page never loaded. A missing tag is legitimate only for a chunk that is
 		// actually on the page: an initial chunk gaining its first stylesheet, or

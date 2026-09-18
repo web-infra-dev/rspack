@@ -127,7 +127,7 @@ export { rspackRequire };
 var moduleFactories = modules;
 export { moduleFactories };
 
-var scriptNonce;
+var scriptNonce, hmrMiniCssFilenames;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -198,11 +198,20 @@ export { publicPath };
 // rspack/runtime/css loading
 (() => {
 if (typeof document === "undefined") return;
+// Scopes the chunk-identity attribute used to find a currently installed stylesheet
+// (see extractCssFindStylesheet) to this compilation, so two independently compiled
+// apps sharing a chunk id on the same page can't steal or remove each other's
+// stylesheet. Matches the same output.uniqueName-based identity scheme chunk/module
+// script loading already uses (see load_script.ejs).
+var extractCssUniquePrefix = "";
 var extractCssCreateStylesheet = function (
 	chunkId, fullhref, oldTag, resolve, reject, fetchPriority
 ) {
 	var linkTag = document.createElement("link");
 
+// Tag the link with its chunk identity so a later HMR update can still find it after
+// its href changes (a hashed filename), when href-based lookup no longer matches.
+linkTag.setAttribute("data-webpack-chunk", extractCssUniquePrefix + chunkId);
 linkTag.rel = "stylesheet";
 
 linkTag.type = "text/css";
@@ -242,10 +251,16 @@ if (fetchPriority) {
           }
 	return linkTag;
 }
-var extractCssFindStylesheet = function (href, fullhref) {
+var extractCssFindStylesheet = function (href, fullhref, chunkId) {
 	var existingLinkTags = document.getElementsByTagName("link");
 	for (var i = 0; i < existingLinkTags.length; i++) {
 		var tag = existingLinkTags[i];
+		// When a chunkId is given (an HMR replacement lookup), prefer the tag created for
+		// that chunk: the href it was created with may since have changed (a hashed
+		// filename), so it can no longer be found by comparing hrefs.
+		if (chunkId !== undefined && tag.getAttribute("data-webpack-chunk") === extractCssUniquePrefix + String(chunkId)) {
+			return tag;
+		}
 		var dataHref = tag.getAttribute("data-href") || tag.getAttribute("href");
 		if (dataHref) {
 			dataHref = dataHref.split('?')[0]
@@ -263,7 +278,15 @@ var extractCssFindStylesheet = function (href, fullhref) {
 
 var extractCssLoadStylesheet = function (chunkId, fetchPriority) {
 	return new Promise(function (resolve, reject) {
-		var href = __rspack_get_mini_css_chunk_filename(chunkId);
+		/**
+			A chunk not loaded yet (e.g. a lazy route not imported so far) has no tag for the
+			HMR handler to update, so an intervening update only records its fresh filename in
+			HMR_MINI_CSS_FILENAMES. Consult that retained mapping here too, or loading the
+			chunk for the first time after its CSS changed would request the stale, pre-edit
+			filename baked into `miniCssF`.
+		 */
+		var miniCssFilenames = hmrMiniCssFilenames;
+		var href = (miniCssFilenames && miniCssFilenames[chunkId]) || __rspack_get_mini_css_chunk_filename(chunkId);
 		var fullhref = publicPath + href;
 		if (extractCssFindStylesheet(href, fullhref)) return resolve();
 		extractCssCreateStylesheet(chunkId, fullhref, null, resolve, reject, fetchPriority);

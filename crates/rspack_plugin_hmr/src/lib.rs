@@ -12,9 +12,9 @@ use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationContentHash,
   CompilationParams, CompilationProcessAssets, CompilationRecords, CompilerCompilation,
-  DependencyType, LoaderContext, ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
-  NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData, Plugin, RunnerContext,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec, SourceType,
+  DependencyType, LoaderContext, ManifestAssetType, ModuleId, ModuleIdentifier, ModuleType,
+  NormalModuleFactoryParser, NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData,
+  Plugin, RunnerContext, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec, SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdMap, ChunkIdSet},
   incremental::{IncrementalPasses, Mutation},
   rspack_sources::{RawStringSource, SourceExt},
@@ -330,6 +330,28 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       new_css_hashes.and_then(|hashes| hashes.mini_css.as_ref()),
     );
 
+    // The extract-css filename this build emitted for the chunk, matched by asset
+    // ownership (the extract-css plugin tags its own assets with this type, the same
+    // convention rspack_plugin_sri relies on) rather than by a `.css` suffix: a chunk
+    // can carry both native css and extract-css output, or another plugin's own
+    // `.css`-suffixed asset, and picking "the first `.css` file" could grab the wrong
+    // one. Threaded into the manifest so the runtime can resolve a hashed stylesheet
+    // URL that the build-time `miniCssF` literal can no longer reflect.
+    let updated_mini_css_filename = current_chunk.and_then(|chunk| {
+      chunk
+        .files()
+        .iter()
+        .find(|filename| {
+          compilation.assets().get(*filename).is_some_and(|asset| {
+            matches!(
+              &asset.info.asset_type,
+              ManifestAssetType::Custom(name) if name.as_str() == EXTRACT_CSS_ASSET_TYPE_NAME
+            )
+          })
+        })
+        .cloned()
+    });
+
     for removed in removed_from_runtime.iter() {
       if let Some(info) = hot_update_main_content_by_runtime.get_mut(removed) {
         info.removed_chunk_ids.insert(chunk_id.clone());
@@ -358,6 +380,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           }
           if mini_css_update == CssUpdate::Changed {
             info.mini_css_updated_chunk_ids.insert(chunk_id.clone());
+            if let Some(css_filename) = &updated_mini_css_filename {
+              info
+                .mini_css_filenames
+                .insert(chunk_id.clone(), css_filename.clone());
+            }
           }
         }
       }
@@ -579,6 +606,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         old_content
           .mini_css_removed_chunk_ids
           .extend(content.mini_css_removed_chunk_ids);
+        old_content
+          .mini_css_filenames
+          .extend(content.mini_css_filenames);
         compilation.push_diagnostic(Diagnostic::warn(
           "HotModuleReplacementPlugin".to_string(),
           r#"The configured output.hotUpdateMainFilename doesn't lead to unique filenames per runtime and HMR update differs between runtimes.
@@ -605,14 +635,17 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
       "r": r,
       "m": m,
     });
-    if let Some(css) =
-      css_manifest_json(content.css_updated_chunk_ids, content.css_removed_chunk_ids)
-    {
+    if let Some(css) = css_manifest_json(
+      content.css_updated_chunk_ids,
+      content.css_removed_chunk_ids,
+      Default::default(),
+    ) {
       manifest_json["css"] = css;
     }
     if let Some(mini_css) = css_manifest_json(
       content.mini_css_updated_chunk_ids,
       content.mini_css_removed_chunk_ids,
+      content.mini_css_filenames,
     ) {
       manifest_json["miniCss"] = mini_css;
     }
@@ -715,6 +748,11 @@ impl Plugin for HotModuleReplacementPlugin {
   }
 }
 
+// The asset type extract-css tags its own emitted stylesheets with
+// (see crates/rspack_plugin_extract_css/src/plugin.rs render_manifest, and the
+// equivalent lookup in rspack_plugin_sri/src/runtime.rs).
+const EXTRACT_CSS_ASSET_TYPE_NAME: &str = "extract-css";
+
 #[derive(Default)]
 struct HotUpdateContent {
   updated_chunk_ids: ChunkIdSet,
@@ -724,6 +762,11 @@ struct HotUpdateContent {
   css_removed_chunk_ids: ChunkIdSet,
   mini_css_updated_chunk_ids: ChunkIdSet,
   mini_css_removed_chunk_ids: ChunkIdSet,
+  // extract-css filename freshly emitted for an updated chunk, keyed by chunk id. Lets
+  // the extract-css HMR runtime resolve the current stylesheet URL directly instead of
+  // relying on the chunk filename runtime function (`miniCssF`), which is never
+  // re-evaluated by HMR and so cannot reflect a filename that includes a content hash.
+  mini_css_filenames: ChunkIdMap<String>,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -743,7 +786,11 @@ impl CssUpdate {
   }
 }
 
-fn css_manifest_json(updated: ChunkIdSet, removed: ChunkIdSet) -> Option<serde_json::Value> {
+fn css_manifest_json(
+  updated: ChunkIdSet,
+  removed: ChunkIdSet,
+  filenames: ChunkIdMap<String>,
+) -> Option<serde_json::Value> {
   if updated.is_empty() && removed.is_empty() {
     return None;
   }
@@ -755,6 +802,17 @@ fn css_manifest_json(updated: ChunkIdSet, removed: ChunkIdSet) -> Option<serde_j
   if !removed.is_empty() {
     let r: Vec<ChunkId> = removed.into_iter().collect();
     css.insert("r".to_string(), serde_json::json!(r));
+  }
+  // `f` maps each updated chunk id to its freshly emitted stylesheet filename, so the
+  // runtime can request the current (possibly content-hashed) URL rather than the stale
+  // one frozen into the `miniCssF` literal at build time. Only the extract-css consumer
+  // populates this; the native css runtime passes an empty map.
+  if !filenames.is_empty() {
+    let f: serde_json::Map<String, serde_json::Value> = filenames
+      .into_iter()
+      .map(|(chunk_id, filename)| (chunk_id.to_string(), serde_json::Value::String(filename)))
+      .collect();
+    css.insert("f".to_string(), serde_json::Value::Object(f));
   }
   Some(serde_json::Value::Object(css))
 }
