@@ -131,6 +131,146 @@ pub static URL_STATIC_PLACEHOLDER_RE: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(&format!(r#"{URL_STATIC_PLACEHOLDER}(?<dep>\d+)"#)).expect("should be valid regex")
 });
 
+impl URLDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::NewUrl)
+  }
+}
+
+impl DependencyTemplate for URLDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<URLDependency>()
+      .expect("URLDependencyTemplate should be used for URLDependency");
+    let TemplateContext {
+      compilation,
+      runtime_template,
+      ..
+    } = code_generatable_context;
+
+    if !matches!(dep.mode, Some(JavascriptParserUrl::NewUrlRelative))
+      && let Some(chunk_ukey) = get_dependency_entry_chunk(compilation, &dep.id)
+    {
+      let chunk_id = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(&chunk_ukey)
+        .id()
+        .map(rspack_util::json_stringify)
+        .expect("URL entry should have a chunk id");
+      let public_path = runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH);
+      let chunk_filename =
+        runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME);
+      let expression = concat_string!(public_path, " + ", chunk_filename, "(", chunk_id, ")");
+      if matches!(dep.mode, Some(JavascriptParserUrl::Relative)) {
+        let relative_url = runtime_template.render_runtime_globals(&RuntimeGlobals::RELATIVE_URL);
+        source.replace(
+          dep.range.start,
+          dep.range.end,
+          concat_string!("/* entry url */ new ", relative_url, "(", expression, ")"),
+          None,
+        );
+      } else {
+        let base_uri = runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI);
+        source.replace(
+          dep.range_url.start,
+          dep.range_url.end,
+          concat_string!("/* entry url */", expression, ", ", base_uri),
+          None,
+        );
+      }
+      return;
+    }
+
+    match dep.mode {
+      Some(JavascriptParserUrl::Relative) => {
+        source.replace(
+          dep.range.start,
+          dep.range.end,
+          format!(
+            "/* asset import */ new {}({}({}))",
+            runtime_template.render_runtime_globals(&RuntimeGlobals::RELATIVE_URL),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+            runtime_template.module_id(compilation, &dep.id, &dep.request, false),
+          ),
+          None,
+        );
+      }
+      Some(JavascriptParserUrl::NewUrlRelative) => {
+        code_generatable_context.data.insert(URLStaticMode);
+        code_generatable_context
+          .data
+          .insert(CodeGenerationPublicPathAutoReplace(true));
+        source.replace(
+          dep.range.start,
+          dep.range.end,
+          format!(
+            "new URL({}, import.meta.url)",
+            rspack_util::json_stringify_str(&format!(
+              "{AUTO_PUBLIC_PATH_PLACEHOLDER}{URL_STATIC_PLACEHOLDER}{}",
+              &dep.id.as_u32()
+            )),
+          ),
+          None,
+        );
+      }
+      _ => {
+        source.replace(
+          dep.range_url.start,
+          dep.range_url.end,
+          format!(
+            "/* asset import */{}({}), {}",
+            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+            runtime_template.module_id(compilation, &dep.id, &dep.request, false),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI)
+          ),
+          None,
+        );
+      }
+    }
+  }
+}
+
+struct URLDependencyCondition;
+
+impl DependencyConditionFn for URLDependencyCondition {
+  fn get_connection_state(
+    &self,
+    connection: &ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+  ) -> ConnectionState {
+    let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+    let dependency = dependency
+      .downcast_ref::<URLDependency>()
+      .expect("should be URLDependency");
+    let runtime = if module_graph
+      .get_parent_block(&connection.dependency_id)
+      .is_some()
+    {
+      None
+    } else {
+      runtime
+    };
+    ConnectionState::Active(connection_active_used_by_exports(
+      connection,
+      runtime,
+      module_graph,
+      exports_info_artifact,
+      dependency.used_by_exports.as_ref(),
+    ))
+  }
+}
+
 pub(crate) fn is_url_value_module(module: &dyn Module) -> bool {
   module.module_type().is_asset_like()
     || matches!(
@@ -171,141 +311,4 @@ pub(crate) fn get_dependency_entry_chunk(
   dependency_id: &DependencyId,
 ) -> Option<ChunkUkey> {
   get_dependency_entrypoint(compilation, dependency_id).map(ChunkGroup::get_entrypoint_chunk)
-}
-
-fn render_static_url(
-  dep: &URLDependency,
-  source: &mut TemplateReplaceSource,
-  context: &mut TemplateContext,
-) {
-  context.data.insert(URLStaticMode);
-  context
-    .data
-    .insert(CodeGenerationPublicPathAutoReplace(true));
-  let url = rspack_util::json_stringify_str(&format!(
-    "{AUTO_PUBLIC_PATH_PLACEHOLDER}{URL_STATIC_PLACEHOLDER}{}",
-    dep.id.as_u32()
-  ));
-  source.replace(
-    dep.range.start,
-    dep.range.end,
-    concat_string!("new URL(", url, ", import.meta.url)"),
-    None,
-  );
-}
-
-fn render_url_expression(
-  dep: &URLDependency,
-  source: &mut TemplateReplaceSource,
-  context: &mut TemplateContext,
-  expression: &str,
-  comment: &str,
-) {
-  let runtime_template = &mut *context.runtime_template;
-  if matches!(dep.mode, Some(JavascriptParserUrl::Relative)) {
-    let relative_url = runtime_template.render_runtime_globals(&RuntimeGlobals::RELATIVE_URL);
-    source.replace(
-      dep.range.start,
-      dep.range.end,
-      concat_string!(comment, " new ", relative_url, "(", expression, ")"),
-      None,
-    );
-  } else {
-    let base_uri = runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI);
-    source.replace(
-      dep.range_url.start,
-      dep.range_url.end,
-      concat_string!(comment, expression, ", ", base_uri),
-      None,
-    );
-  }
-}
-
-impl URLDependencyTemplate {
-  pub fn template_type() -> DependencyTemplateType {
-    DependencyTemplateType::Dependency(DependencyType::NewUrl)
-  }
-}
-
-impl DependencyTemplate for URLDependencyTemplate {
-  fn render(
-    &self,
-    dep: &dyn DependencyCodeGeneration,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    let dep = dep
-      .as_any()
-      .downcast_ref::<URLDependency>()
-      .expect("URLDependencyTemplate should be used for URLDependency");
-    if matches!(dep.mode, Some(JavascriptParserUrl::NewUrlRelative)) {
-      render_static_url(dep, source, code_generatable_context);
-      return;
-    }
-
-    let TemplateContext {
-      compilation,
-      runtime_template,
-      ..
-    } = code_generatable_context;
-    let (expression, comment) =
-      if let Some(chunk_ukey) = get_dependency_entry_chunk(compilation, &dep.id) {
-        let chunk_id = compilation
-          .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .expect_get(&chunk_ukey)
-          .id()
-          .map(rspack_util::json_stringify)
-          .expect("URL entry should have a chunk id");
-        let public_path = runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH);
-        let chunk_filename =
-          runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME);
-        (
-          concat_string!(public_path, " + ", chunk_filename, "(", chunk_id, ")"),
-          "/* entry url */",
-        )
-      } else {
-        let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
-        let module_id = runtime_template.module_id(compilation, &dep.id, &dep.request, false);
-        (
-          concat_string!(require, "(", module_id, ")"),
-          "/* asset import */",
-        )
-      };
-    render_url_expression(dep, source, code_generatable_context, &expression, comment);
-  }
-}
-
-struct URLDependencyCondition;
-
-impl DependencyConditionFn for URLDependencyCondition {
-  fn get_connection_state(
-    &self,
-    connection: &ModuleGraphConnection,
-    runtime: Option<&RuntimeSpec>,
-    module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
-    _side_effects_state_artifact: &SideEffectsStateArtifact,
-    exports_info_artifact: &ExportsInfoArtifact,
-  ) -> ConnectionState {
-    let dependency = module_graph.dependency_by_id(&connection.dependency_id);
-    let dependency = dependency
-      .downcast_ref::<URLDependency>()
-      .expect("should be URLDependency");
-    let runtime = if module_graph
-      .get_parent_block(&connection.dependency_id)
-      .is_some()
-    {
-      None
-    } else {
-      runtime
-    };
-    ConnectionState::Active(connection_active_used_by_exports(
-      connection,
-      runtime,
-      module_graph,
-      exports_info_artifact,
-      dependency.used_by_exports.as_ref(),
-    ))
-  }
 }
