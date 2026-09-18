@@ -1,4 +1,4 @@
-use rspack_core::{Chunk, ChunkUkey, Compilation, CompilationId};
+use rspack_core::{Chunk, ChunkUkey, Compilation, CompilationId, CompilerId};
 use rspack_hook::define_hook;
 #[cfg(allocative)]
 use rspack_util::allocative;
@@ -30,6 +30,7 @@ pub struct LinkPrefetchData<'a> {
 #[derive(Debug, Clone)]
 pub struct RuntimeModuleChunkWrapper {
   pub chunk_ukey: ChunkUkey,
+  pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
 }
 
