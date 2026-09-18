@@ -10,7 +10,6 @@ use super::{
     ClassDeclOrExpr, ExportDefaultDeclaration, MaybeNamedClassDecl, MaybeNamedFunctionDecl,
     Statement, formal_parameter_patterns, formal_parameters_are_simple_identifiers,
   },
-  object_and_members_to_name,
 };
 use crate::{
   Atom,
@@ -1068,16 +1067,19 @@ impl JavascriptParser<'_> {
       || ExportedVariableInfo::Name(root_name.into()),
       |info| ExportedVariableInfo::VariableInfo(info.binding_state()),
     );
-    let mut members: AtomMembers = member_nodes
-      .iter()
-      .map(|member| Atom::from(ast.get_utf8(member.property(ast).name(ast))))
-      .collect();
-    let name = object_and_members_to_name(resolved_root, &members);
-    members.reverse();
-    member_nodes.reverse();
+    let mut members: AtomMembers = AtomMembers::with_capacity(member_nodes.len());
+    let mut name = String::with_capacity(resolved_root.len() + member_nodes.len() * 8);
+    name.push_str(resolved_root);
+    for member in member_nodes.iter().rev() {
+      let atom = Atom::from(ast.get_utf8(member.property(ast).name(ast)));
+      name.push('.');
+      name.push_str(atom.as_ref());
+      members.push(atom);
+    }
     let members_optionals = std::iter::repeat_n(false, member_nodes.len()).collect();
     let member_ranges = member_nodes
       .iter()
+      .rev()
       .map(|member| member.object(ast).span(ast))
       .collect();
 

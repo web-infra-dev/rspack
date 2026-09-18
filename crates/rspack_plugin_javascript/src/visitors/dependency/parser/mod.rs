@@ -213,19 +213,44 @@ struct RawExtractedMemberExpressionChainData {
 }
 
 /// Preserve extraction order (outermost first) for consumers that reverse it.
-fn materialize_members(
+/// Materialize a raw member chain into the parallel hook arguments. The raw
+/// chain is in extraction order (outermost first) while hook arguments are
+/// innermost-first, so the chain is consumed in reverse in a single pass.
+fn materialize_members_reversed(
   ast: &Ast<'_>,
   members: RawMembers,
 ) -> (AtomMembers, OptionalMembers, MemberRanges) {
   let mut atoms = AtomMembers::with_capacity(members.len());
   let mut optionals = OptionalMembers::with_capacity(members.len());
   let mut ranges = MemberRanges::with_capacity(members.len());
-  for member in members {
+  for member in members.iter().rev() {
     atoms.push(member.atom(ast));
     optionals.push(member.optional);
     ranges.push(member.object.span(ast));
   }
   (atoms, optionals, ranges)
+}
+
+/// Materialize a raw member chain and build its dotted name in the same pass.
+fn materialize_members_reversed_with_name(
+  ast: &Ast<'_>,
+  object: &str,
+  members: RawMembers,
+) -> (AtomMembers, OptionalMembers, MemberRanges, String) {
+  let mut atoms = AtomMembers::with_capacity(members.len());
+  let mut optionals = OptionalMembers::with_capacity(members.len());
+  let mut ranges = MemberRanges::with_capacity(members.len());
+  let mut name = String::with_capacity(object.len() + members.len() * 8);
+  name.push_str(object);
+  for member in members.iter().rev() {
+    let atom = member.atom(ast);
+    name.push('.');
+    name.push_str(atom.as_ref());
+    atoms.push(atom);
+    optionals.push(member.optional);
+    ranges.push(member.object.span(ast));
+  }
+  (atoms, optionals, ranges, name)
 }
 
 #[derive(Debug)]
@@ -273,24 +298,6 @@ pub struct ExpressionExpressionInfo {
 pub enum ExportedVariableInfo {
   Name(Atom),
   VariableInfo(BindingState),
-}
-
-fn object_and_members_to_name(object: &str, members_reversed: &[impl AsRef<str>]) -> String {
-  let total_len = object.len()
-    + members_reversed.len()
-    + members_reversed
-      .iter()
-      .map(|m| m.as_ref().len())
-      .sum::<usize>();
-
-  let mut name = String::with_capacity(total_len);
-  name.push_str(object);
-  let iter = members_reversed.iter();
-  for member in iter.rev() {
-    name.push('.');
-    name.push_str(member.as_ref());
-  }
-  name
 }
 
 pub trait RootName {
@@ -1262,11 +1269,8 @@ impl<'parser> JavascriptParser<'parser> {
           .rev()
           .map(|member| member.atom(ast))
           .collect();
-        let (mut members, mut members_optionals, mut member_ranges) =
-          materialize_members(ast, members);
-        members.reverse();
-        members_optionals.reverse();
-        member_ranges.reverse();
+        let (members, members_optionals, member_ranges) =
+          materialize_members_reversed(ast, members);
         Some(MemberExpressionInfo::Call(CallExpressionInfo {
           call: expr,
           root_info: root_info.map_or_else(
@@ -1288,12 +1292,8 @@ impl<'parser> JavascriptParser<'parser> {
           info: root_info,
         } = self.get_name_info_from_root(object)?;
 
-        let (mut members, mut members_optionals, mut member_ranges) =
-          materialize_members(ast, members);
-        let name = object_and_members_to_name(resolved_root, &members);
-        members.reverse();
-        members_optionals.reverse();
-        member_ranges.reverse();
+        let (members, members_optionals, member_ranges, name) =
+          materialize_members_reversed_with_name(ast, resolved_root, members);
         Some(MemberExpressionInfo::Expression(ExpressionExpressionInfo {
           name,
           root_info: root_info.map_or_else(
@@ -1339,7 +1339,8 @@ impl<'parser> JavascriptParser<'parser> {
   ) -> ExtractedMemberExpressionChainData {
     let RawExtractedMemberExpressionChainData { object, members } =
       self.extract_member_expression_chain_raw(expr);
-    let (members, members_optionals, member_ranges) = materialize_members(self.ast.ast, members);
+    let (members, members_optionals, member_ranges) =
+      materialize_members_reversed(self.ast.ast, members);
     ExtractedMemberExpressionChainData {
       object,
       members,
