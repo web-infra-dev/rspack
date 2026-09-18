@@ -52,11 +52,11 @@ jobs:
       - name: Pnpm Install
         run: pnpm i
 
-      - name: Calculate Node Bin Path
-        id: calculate-node-bin-path
+      - name: Calculate Node.js and pnpm Bin Paths
+        id: calculate-bin-paths
         run: |
-          NODE_BIN_PATH=$(dirname $(which node))
-          echo "path=$NODE_BIN_PATH" >> $GITHUB_OUTPUT
+          echo "node=$(dirname "$(command -v node)")" >> "$GITHUB_OUTPUT"
+          echo "pnpm=$(dirname "$(command -v pnpm)")" >> "$GITHUB_OUTPUT"
 
       - name: Run e2e
         uses: ./.github/actions/docker/run
@@ -66,10 +66,10 @@ jobs:
           # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
           image: mcr.microsoft.com/playwright:v1.62.1-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker/run
-          # .tool_cache is required by pnpm
+          # The tool cache contains both Node.js and pnpm.
           options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
           script: |
-            export PATH=${{ steps.calculate-node-bin-path.outputs.path }}:$PATH
+            export PATH="${{ steps.calculate-bin-paths.outputs.node }}:${{ steps.calculate-bin-paths.outputs.pnpm }}:$PATH"
             pnpm run build:js
             pnpm run test:e2e
 
@@ -81,10 +81,10 @@ jobs:
           # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
           image: mcr.microsoft.com/playwright:v1.62.1-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker/run
-          # .tool_cache is required by pnpm
+          # The tool cache contains both Node.js and pnpm.
           options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
           script: |
-            export PATH=${{ steps.calculate-node-bin-path.outputs.path }}:$PATH
+            export PATH="${{ steps.calculate-bin-paths.outputs.node }}:${{ steps.calculate-bin-paths.outputs.pnpm }}:$PATH"
             export WASM=1
             pnpm run build:js
             pnpm run test:e2e-browser

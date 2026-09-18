@@ -21,7 +21,6 @@ impl Compiler {
     changed_files: FxHashSet<String>,
     deleted_files: FxHashSet<String>,
   ) -> Result<()> {
-    let start = self.end_idle();
     let result = match within_compiler_context(
       self.compiler_context.clone(),
       self.rebuild_inner(changed_files, deleted_files),
@@ -46,7 +45,7 @@ impl Compiler {
         failed.and(Err(e))
       }
     };
-    self.begin_idle(start.elapsed());
+    self.store_cache_metadata();
     result
   }
 

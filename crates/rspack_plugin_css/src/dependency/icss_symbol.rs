@@ -122,14 +122,13 @@ fn resolve_icss_import(
   request: &str,
 ) -> Option<String> {
   let module_graph = compilation.get_module_graph();
-  let imported_module = module.get_dependencies().iter().find_map(|id| {
-    let dependency = module_graph.dependency_by_id(id);
+  let imported_module = module.get_dependencies().iter().find_map(|dependency| {
     let dependency_request = dependency
       .as_module_dependency()
       .map(|d| d.request())
       .or_else(|| dependency.as_context_dependency().map(|d| d.request()));
     if dependency_request == Some(request) {
-      module_graph.module_graph_module_by_dependency_id(id)
+      module_graph.module_graph_module_by_dependency_id(dependency.id())
     } else {
       None
     }
@@ -153,7 +152,8 @@ fn resolve_css_export_value(
     return None;
   }
 
-  let css_build_info = module.build_info().css.as_deref()?;
+  let build_info = module.build_info();
+  let css_build_info = build_info.css.as_deref()?;
   let exports = css_build_info.exports()?;
   let css_exports = exports.get(name)?;
   let mut resolved = Vec::with_capacity(css_exports.len());

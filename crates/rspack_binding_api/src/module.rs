@@ -428,6 +428,11 @@ impl Module {
     let module = {
       if let Some(module) = compilation.module_by_identifier(&self.identifier) {
         module.as_ref()
+      } else if let Some(ptr) = self.ptr {
+        // SAFETY:
+        // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
+        // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
+        unsafe { ptr.as_ref() }
       } else {
         return Ok(Either::B(()));
       }
@@ -502,10 +507,10 @@ impl Module {
           "Module.dependencies is unavailable while the module graph is under construction (e.g. inside a loader during compilation.rebuildModule)",
         ));
       };
-      let dependencies = module.get_dependencies();
+      // Only expose dependencies that are still present in the current graph.
+      let dependencies = module.get_dependency_ids();
       Ok(
         dependencies
-          .iter()
           .filter_map(|dependency_id| {
             internal::try_dependency_by_id(module_graph, dependency_id).map(|dep| {
               DependencyWrapper::new(

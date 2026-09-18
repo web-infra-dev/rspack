@@ -417,23 +417,51 @@ export default {
 - **类型：** `{ [key: string]: Condition }`
 - **默认值：** `undefined`
 
-`descriptionData` 选项允许你通过匹配描述文件（通常是 `package.json`）中的属性值，来决定某个 rule 应该应用于哪些模块。这是一个基于 `package.json` 来应用 rule 的实用方法。
+`descriptionData` 用于匹配模块描述文件（通常是 `package.json`）中的属性值，从而决定规则适用于哪些模块。你可以根据包名、版本等信息，为特定包中的模块配置规则。
 
-`descriptionData` 对象中的 key 对应模块的 `package.json` 中的键，例如 `name`、`version` 等。每个 key 与一个用于匹配 `package.json` 数据的 [`Condition`](#condition) 进行关联。
+`descriptionData` 对象的每个键指定要匹配的属性（如 `name`、`version`），对应的值则是用于检查该属性值的 [`Condition`](#condition)。如果指定了多个属性，它们必须同时满足各自的条件，模块才能通过 `descriptionData` 的匹配。
 
-例如，下面的配置会将 rule 应用于 `package.json` 的 `name` 中包含 `'rspack'` 字符串的 JavaScript 资源。
+字符串条件检查属性值是否以给定字符串开头，下面会匹配 `react`、`react-dom` 等包中的模块：
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     rules: [
       {
-        test: /\.js$/,
-        include: /node_modules/,
+        descriptionData: { name: 'react' },
+        // 其他规则选项...
+      },
+    ],
+  },
+};
+```
+
+正则表达式条件检查属性值是否符合给定模式，下面使用 `^` 和 `$` 仅匹配包名为 `react` 的模块：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        descriptionData: { name: /^react$/ },
+        // 其他规则选项...
+      },
+    ],
+  },
+};
+```
+
+函数条件可自定义匹配逻辑，下面匹配包名中包含 `rspack` 的模块：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
         descriptionData: {
-          name: (packageJsonName) => packageJsonName.includes('rspack'),
+          name: (name) => name.includes('rspack'),
         },
-        // 其他 rule options...
+        // 其他规则选项...
       },
     ],
   },

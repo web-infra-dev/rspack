@@ -570,7 +570,6 @@ class Compiler {
     const finalCallback = (err: Error | null, stats?: Stats) => {
       this.idle = true;
       this.cache.beginIdle();
-      this.idle = true;
       this.running = false;
       if (err) {
         this.hooks.failed.call(err);
@@ -637,7 +636,7 @@ class Compiler {
 
     if (this.idle) {
       this.cache.endIdle((err) => {
-        if (err) return callback(err);
+        if (err) return finalCallback(err);
         this.idle = false;
         run();
       });
@@ -828,16 +827,21 @@ class Compiler {
       return;
     }
 
+    const instanceCallback = (error?: Error | null) => {
+      const close = this.#instance?.close();
+      if (close) {
+        close.then(
+          () => callback(error),
+          (closeError) => callback(error || closeError),
+        );
+      } else {
+        callback(error);
+      }
+    };
+
     this.hooks.shutdown.callAsync((err) => {
       if (err) return callback(err);
-      this.cache.shutdown(() => {
-        const closePromise = this.#instance?.close();
-        if (closePromise) {
-          closePromise.then(() => callback(), callback);
-        } else {
-          callback();
-        }
-      });
+      this.cache.shutdown(instanceCallback);
     });
   }
 
@@ -989,6 +993,7 @@ class Compiler {
             compiler.#logInfrastructureBatch(logs);
           }
         },
+        Cache.__to_binding(this.cache),
       );
 
       callback(null, this.#instance);

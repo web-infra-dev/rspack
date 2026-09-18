@@ -1,0 +1,51 @@
+import { rspack } from '@rspack/core';
+import { fileURLToPath } from 'node:url';
+
+/** @type {import("@rspack/core").Configuration} */
+export default {
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
+  target: 'web',
+  devtool: 'source-map',
+  node: false,
+  module: {
+    rules: [
+      {
+        test: /\.scss$/,
+        use: [
+          {
+            loader: 'postcss-loader',
+            options: {
+              postcssOptions: {
+                plugins: [
+                  fileURLToPath(import.meta.resolve('postcss-pxtorem')),
+                ],
+              },
+            },
+          },
+          {
+            loader: 'sass-loader',
+            options: {
+              // use legacy API to generate source maps
+              api: 'legacy',
+              sassOptions: {
+                silenceDeprecations: ['legacy-js-api'],
+              },
+            },
+          },
+        ],
+        type: 'css',
+        generator: {
+          exportsOnly: false,
+        },
+      },
+    ],
+  },
+  plugins: [
+    new rspack.DefinePlugin({
+      CONTEXT: JSON.stringify(import.meta.dirname),
+    }),
+  ],
+};

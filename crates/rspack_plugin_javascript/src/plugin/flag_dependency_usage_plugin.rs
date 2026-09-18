@@ -689,13 +689,13 @@ fn collect_active_dependencies(
         let block = module_graph
           .module_by_identifier(&module)
           .expect("should have module");
-        (block.get_blocks(), block.get_dependencies())
+        (block.get_blocks(), block.get_dependency_ids())
       }
       ModuleOrAsyncDependenciesBlock::AsyncDependenciesBlock(async_dependencies_block_id) => {
         let block = module_graph
           .block_by_id(&async_dependencies_block_id)
           .expect("should have module");
-        (block.get_blocks(), block.get_dependencies())
+        (block.get_blocks(), block.get_dependency_ids())
       }
     };
     for &dep_id in block_dependencies {

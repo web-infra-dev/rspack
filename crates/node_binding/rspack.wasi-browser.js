@@ -88,6 +88,7 @@ export const EntryDependency = __napiModule.exports.EntryDependency
 export const EntryOptionsDto = __napiModule.exports.EntryOptionsDto
 export const EntryOptionsDTO = __napiModule.exports.EntryOptionsDTO
 export const ExternalModule = __napiModule.exports.ExternalModule
+export const JsCache = __napiModule.exports.JsCache
 export const JsCompilation = __napiModule.exports.JsCompilation
 export const JsCompiler = __napiModule.exports.JsCompiler
 export const JsContextModuleFactoryAfterResolveData = __napiModule.exports.JsContextModuleFactoryAfterResolveData

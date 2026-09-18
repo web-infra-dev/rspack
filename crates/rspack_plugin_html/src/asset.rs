@@ -277,17 +277,8 @@ pub fn generate_posix_path(path: &str) -> Cow<'_, str> {
 }
 
 fn url_encode_path(file_path: &str) -> String {
-  let query_string_start = file_path.find('?');
-  let url_path = if let Some(query_string_start) = query_string_start {
-    &file_path[..query_string_start]
-  } else {
-    file_path
-  };
-  let query_string = if let Some(query_string_start) = query_string_start {
-    &file_path[query_string_start..]
-  } else {
-    ""
-  };
+  let (url_path, query_string) = rspack_util::identifier::split_at_query_mark(file_path);
+  let query_string = query_string.unwrap_or_default();
 
   format!(
     "{}{}",

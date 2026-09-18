@@ -176,8 +176,8 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       data,
       ..
     } = generate_context;
-    let hash = module
-      .build_info()
+    let build_info = module.build_info();
+    let hash = build_info
       .hash
       .as_ref()
       .map(|hash| hash.rendered(16))
@@ -237,7 +237,6 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         module
           .get_dependencies()
           .iter()
-          .map(|id| module_graph.dependency_by_id(id))
           .filter(|dep| dep.dependency_type() == &DependencyType::WasmImport)
           .map(|dep| {
             (

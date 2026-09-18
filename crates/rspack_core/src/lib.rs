@@ -16,8 +16,8 @@ pub use compilation::{
 };
 pub use exports::*;
 pub use new_cache::{
-  Cache, CacheFacade, CacheValue, Etag, FileSystemInfo, ItemCacheFacade, MultiItemCache, Snapshot,
-  SnapshotValidationResult,
+  Cache, CacheFacade, CacheValue, CompilerCache, Etag, FileSystemInfo, ItemCacheFacade,
+  MultiItemCache, Snapshot, SnapshotValidationResult, create_cache,
 };
 pub use transient_cache::*;
 pub use value_cache_versions::ValueCacheVersions;
@@ -27,9 +27,9 @@ pub use concatenation_backend::*;
 pub mod diagnostics;
 pub mod incremental;
 pub use dependencies_block::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockBuildResult, AsyncDependenciesBlockIdentifier,
-  AsyncDependenciesBlockIdentifierMap, AsyncDependenciesBlockIdentifierSet,
-  AsyncDependenciesBlockRef, DependenciesBlock,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
+  AsyncDependenciesBlockIdentifierSet, AsyncDependenciesBlockRef, DependenciesBlock,
+  DependenciesBlockData, DependencyIds,
 };
 mod fake_namespace_object;
 pub use fake_namespace_object::*;
@@ -152,6 +152,8 @@ pub enum SourceType {
   CssImport,
   Runtime,
 }
+
+pub static NO_SOURCE_TYPE_LIST: &[SourceType; 0] = &[];
 
 impl std::fmt::Display for SourceType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

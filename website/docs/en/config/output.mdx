@@ -58,9 +58,9 @@ export default {
 
   ```ts
   type BundlerInfo = {
-    version?: string,
-    bundler?: string,
-    force?: ('version' | 'uniqueId')[] ｜ boolean;
+    version?: string;
+    bundler?: string;
+    force?: boolean | ('version' | 'uniqueId')[];
   };
   ```
 
@@ -85,14 +85,27 @@ export default {
 
 ## output.chunkFilename
 
-- **Type:** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
+- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** Determined by [`output.filename`](/config/output#outputfilename) when it is not a function, otherwise `'[id].js'`.
 
 This option determines the name of non-initial chunk files. See [`output.filename`](/config/output#outputfilename) option for details on the possible values.
 
 Note that these filenames need to be generated at runtime to send the requests for chunks. Because of this, placeholders like `[name]` and `[chunkhash]` need to add a mapping from chunk id to placeholder value to the output bundle with the Rspack runtime. This increases the size and may invalidate the bundle when placeholder value for any chunk changes.
 
-By default `[id].js` is used or a value inferred from [`output.filename`](/config/output#outputfilename)(`[name]` is replaced with `[id]` or `[id].` is prepended).
+When this option is omitted, Rspack derives it from [`output.filename`](#outputfilename):
+
+- If `output.filename` is a string containing `[name]`, `[id]`, `[chunkhash]`, or `[contenthash]`, Rspack reuses that string. In particular, `[name]` is not replaced with `[id]`.
+- Otherwise, Rspack inserts `[id].` before the basename, preserving the directory and query string.
+- If `output.filename` is a function, the default is `'[id].js'`. Rspack does not call that function to derive `output.chunkFilename`.
+
+| `output.filename`     | Default `output.chunkFilename` |
+| --------------------- | ------------------------------ |
+| `'[name].js'`         | `'[name].js'`                  |
+| `'[name].mjs'`        | `'[name].mjs'`                 |
+| `'scripts/bundle.js'` | `'scripts/[id].bundle.js'`     |
+| A function            | `'[id].js'`                    |
+
+To choose a different template explicitly:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -194,29 +207,44 @@ export default {
 - **Type:** `boolean | { keep?: string | RegExp | ((path: string) => boolean) }`
 - **Default:** `false`
 
-Before generating the products, delete all files in the output directory.
+Remove files from the output directory before emitting assets. Set `clean` to `true` to enable cleaning:
 
 ```js title="rspack.config.mjs"
 export default {
   output: {
     clean: true, // Clean the output directory before emit.
   },
+};
+```
 
-  // or
+To preserve a path, use `clean.keep`:
+
+```js title="rspack.config.mjs"
+export default {
   output: {
     clean: {
       keep: 'ignored/dir', // keep these assets under 'dist/ignored/dir'.
     },
   },
+};
+```
 
-  // or
+Alternatively, match paths with a regular expression:
+
+```js title="rspack.config.mjs"
+export default {
   output: {
     clean: {
       keep: /ignored\/dir/, // keep these assets under 'dist/ignored/dir'.
     },
   },
+};
+```
 
-  // or
+For custom matching, return `true` from a function to keep a file:
+
+```js title="rspack.config.mjs"
+export default {
   output: {
     clean: {
       keep: (path) => path.includes('ignored/dir'), // keep these assets under 'dist/ignored/dir'.
@@ -284,19 +312,40 @@ When Rspack dynamically loads JavaScript resources, it will generate the followi
 
 ## output.cssChunkFilename
 
-- **Type:** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
+- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** Determined by [`output.chunkFilename`](/config/output#outputchunkfilename) when it is not a function, otherwise `'[id].css'`.
 
 This option determines the name of non-initial CSS output files on disk. See [`output.filename`](/config/output#outputfilename) option for details on the possible values.
+
+For a string `output.chunkFilename`, Rspack replaces its `.js`, `.mjs`, or `.cjs` extension with `.css`, preserving any query string. For a function, the default is `'[id].css'`; the function is not called to derive the CSS filename.
 
 You **must not** specify an absolute path here. However, feel free to include folders separated by `'/'`. This specified path combines with the [`output.path`](#outputpath) value to pinpoint the location on the disk.
 
 ## output.cssFilename
 
-- **Type:** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
-- **Default:** Determined by [`output.filename`](/config/output#outputfilename)
+- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
+- **Default:** Derived from [`output.filename`](#outputfilename) when it is a string, otherwise `'[id].css'`.
 
 This option determines the name of CSS output files on disk. See [`output.filename`](/config/output#outputfilename) option for details on the possible values.
+
+For a string `output.filename`, Rspack replaces its `.js`, `.mjs`, or `.cjs` extension with `.css`, preserving any query string. If none of these extensions is present, the string is unchanged.
+
+| `output.filename`        | Default `output.cssFilename` |
+| ------------------------ | ---------------------------- |
+| `'scripts/[name].js'`    | `'scripts/[name].css'`       |
+| `'[name].mjs?version=1'` | `'[name].css?version=1'`     |
+| A function               | `'[id].css'`                 |
+
+When using a function for JavaScript filenames, configure CSS filenames separately if you need named CSS assets:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    filename: () => 'scripts/[name].js',
+    cssFilename: 'styles/[name].css',
+  },
+};
+```
 
 You **must not** specify an absolute path here. However, feel free to include folders separated by `'/'`. This specified path combines with the [`output.path`](#outputpath) value to pinpoint the location on the disk.
 
@@ -370,7 +419,7 @@ If multiple modules would result in the same name, [`output.devtoolFallbackModul
 ## output.devtoolNamespace
 
 - **Type:** `string`
-- **Default:** `undefined`
+- **Default:** [`output.uniqueName`](#outputuniquename)
 
 This option determines the module's namespace used with the [`output.devtoolModuleFilenameTemplate`](#outputdevtoolmodulefilenametemplate). When not specified, it will default to the value of: [`output.uniqueName`](#outputuniquename). It's used to prevent source file path collisions in sourcemaps when loading multiple libraries built with Rspack.
 
@@ -501,7 +550,7 @@ export default {
 
 ## output.filename
 
-- **Type:** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
+- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** When [`output.module`](#outputmodule) is `true`, it is `'[name].mjs'`, otherwise it is `'[name].js'`.
 
 This option determines the name of each output bundle. The bundle is written to the directory specified by the [`output.path`](#outputpath) option.
@@ -591,9 +640,17 @@ Note this option does not affect output files for on-demand-loaded chunks. It on
 ## output.globalObject
 
 - **Type:** `string`
-- **Default:** `'self'`
+- **Default:** Derived from [`target`](/config/target): `'global'` when the target provides `global`, otherwise `'globalThis'` when it supports `globalThis`, otherwise `'self'`.
 
-When targeting a library, especially when `library.type` is `'umd'`, this option indicates what global object will be used to mount the library. To make UMD build available on both browsers and Node.js, set `output.globalObject` option to `'this'`. Defaults to `self` for Web-like targets.
+When targeting a library, especially when `library.type` is `'umd'`, this option indicates what global object will be used to mount the library. To make UMD build available on both browsers and Node.js, set `output.globalObject` to `'this'`.
+
+For example, when `output.globalObject` is omitted:
+
+| `target`            | Default `output.globalObject` |
+| ------------------- | ----------------------------- |
+| `'web'`             | `'self'`                      |
+| `['web', 'es2020']` | `'globalThis'`                |
+| `'node'`            | `'global'`                    |
 
 The return value of your entry point will be assigned to the global object using the value of `output.library.name`. Depending on the value of the `type` option, the global object could change respectively, e.g., `self`, `global`, or `globalThis`.
 
@@ -659,11 +716,11 @@ An optional salt to update the hash.
 ## output.hotUpdateChunkFilename
 
 - **Type:** `string`
-- **Default:** `"[id].[fullhash].hot-update.js"`
+- **Default:** When [`output.module`](#outputmodule) is `true`, it is `'[id].[fullhash].hot-update.mjs'`, otherwise it is `'[id].[fullhash].hot-update.js'`.
 
 Customize the filenames of hot update chunks. See [`output.filename`](#outputfilename) option for details on the possible values.
 
-The only placeholders allowed here are `[id]` and `[fullhash]`, the default being:
+The only placeholders allowed here are `[id]` and `[fullhash]`. For example:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -691,7 +748,7 @@ For details see [`output.chunkLoadingGlobal`](#outputchunkloadingglobal).
 ## output.hotUpdateMainFilename
 
 - **Type:** `string`
-- **Default:** `"[runtime].[fullhash].hot-update.json"`
+- **Default:** When [`output.module`](#outputmodule) is `true`, it is `'[runtime].[fullhash].hot-update.json.mjs'`, otherwise it is `'[runtime].[fullhash].hot-update.json'`.
 
 Customize the main hot update filename. `[fullhash]` and `[runtime]` are available as placeholder.
 
@@ -702,7 +759,7 @@ Typically you don't need to change `output.hotUpdateMainFilename`.
 ## output.iife
 
 - **Type:** `boolean`
-- **Default:** `true`
+- **Default:** `false` when [`output.module`](#outputmodule) is `true`, otherwise `true`.
 
 Tells Rspack to add [IIFE](https://developer.mozilla.org/en-US/docs/Glossary/IIFE) wrapper around emitted code.
 
@@ -1551,7 +1608,7 @@ export default {
 
 Output JavaScript files as module type.
 
-When enabled, Rspack will set [`output.iife`](#outputiife) to `false`, [`output.scriptType`](#outputscripttype) to `'module'` and `terserOptions.module` to `true` internally.
+When enabled, [`output.iife`](#outputiife) defaults to `false` and [`output.scriptType`](#outputscripttype) defaults to `'module'`. Explicit values for these options take precedence over the defaults.
 
 If you set [`output.library.type`](#outputlibrarytype) to 'module' or 'modern-module', Rspack will set `output.module` to `true` for you automatically.
 
@@ -1575,13 +1632,10 @@ The output directory as an **absolute** path.
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   output: {
-    path: path.resolve(__dirname, 'dist/assets'),
+    path: path.resolve(import.meta.dirname, 'dist/assets'),
   },
 };
 ```
@@ -1647,9 +1701,11 @@ The generated bundle will contain comments like:
 ## output.publicPath
 
 - **Type:** `'auto' | string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
-- **Default:** `'auto'` when [target](/config/target) is `'web'` or `'webworker'`, `undefined` otherwise
+- **Default:** `'auto'` when the [target](/config/target) supports `document` or `importScripts`, otherwise `''`.
 
 Set the base URL path prefix for bundled static assets (such as JS, CSS, images, etc.).
+
+For example, `'web'` and `'webworker'` targets default to `'auto'`, while `'node'` defaults to an empty string. With an empty string, asset URLs have no additional prefix.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1794,14 +1850,23 @@ export default {
 ## output.wasmLoading
 
 - **Type:** `false | 'fetch' | 'async-node' | 'universal'`
-- **Default:** `'fetch'`
+- **Default:** Derived from [`target`](/config/target), [`output.module`](#outputmodule), and [`output.environment`](#outputenvironment).
 
-Option to set the method of loading WebAssembly Modules. Supported methods are `'fetch'` (web/webworker), `'async-node'` (Node.js), and `'universal'`.
+Selects the method used to load WebAssembly modules. Set it to `false` to disable WebAssembly loading.
 
-The default value can be affected by different [`target`](/config/target):
+Rspack chooses `'fetch'` when the target supports fetching WebAssembly, or `'async-node'` when it provides Node.js built-ins. For mixed targets where these capabilities differ, ESM output with dynamic import support can use `'universal'`. If no method can be selected, the default is `false`.
 
-- Defaults to `'fetch'` if [`target`](/config/target) is set to `'web'`, `'webworker'`, `'electron-renderer'` or `'node-webkit'`.
-- Defaults to `'async-node'` if [`target`](/config/target) is set to `'node'`, `'async-node'`, `'electron-main'` or `'electron-preload'`.
+Examples with otherwise default output settings:
+
+| `target`                                                    | `output.module` | Default `output.wasmLoading` |
+| ----------------------------------------------------------- | --------------- | ---------------------------- |
+| `'web'` or `'webworker'`                                    | `false`         | `'fetch'`                    |
+| `'electron-renderer'`                                       | `false`         | `'fetch'`                    |
+| `'node'` or `'async-node'`                                  | `false`         | `'async-node'`               |
+| `'electron-main'`, `'electron-preload'`, or `'node-webkit'` | `false`         | `'async-node'`               |
+| `['web', 'node']`                                           | `true`          | `'universal'`                |
+
+To override the inferred method:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1849,14 +1914,23 @@ See [Filename placeholders](/config/filename-placeholders) for more information.
 
 ## output.workerChunkLoading
 
-- **Type:** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import' | string`
-- **Default:** `false`
+- **Type:** `false | 'import-scripts' | 'require' | 'async-node' | 'import' | 'universal' | string`
+- **Default:** Derived from [`target`](/config/target), [`output.chunkFormat`](#outputchunkformat), and [`output.environment`](#outputenvironment).
 
-The new option `workerChunkLoading` controls the chunk loading of workers.
+Controls how workers load additional JavaScript chunks. This is separate from [`output.chunkLoading`](#outputchunkloading), which controls chunk loading outside workers.
 
-:::tip
-The default value of this option depends on the [`target`](/config/target) setting. For more details, search for `"workerChunkLoading"` [in the Rspack defaults](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts).
-:::
+For example, with otherwise default output settings:
+
+| `target`                 | `output.module` | Default `output.workerChunkLoading` |
+| ------------------------ | --------------- | ----------------------------------- |
+| `'web'` or `'webworker'` | `false`         | `'import-scripts'`                  |
+| `'node'`                 | `false`         | `'require'`                         |
+| `'async-node'`           | `false`         | `'async-node'`                      |
+| `'web'`                  | `true`          | `'import'`                          |
+
+For module-format chunks, Rspack uses `'import'` when `output.environment.dynamicImportInWorker` is enabled. Mixed targets can use `'universal'` with ESM output and dynamic import support. If no loading method can be selected, the default is `false`.
+
+To disable worker chunk loading explicitly:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1884,14 +1958,16 @@ export default {
 ## output.workerWasmLoading
 
 - **Type:** `false | 'fetch' | 'async-node' | 'universal'`
-- **Default:** `false`
+- **Default:** [`output.wasmLoading`](#outputwasmloading)
 
-Option to set the method of loading WebAssembly Modules in workers, defaults to the value of [output.wasmLoading](#outputwasmloading).
+Sets how workers load WebAssembly modules. Defaults to `output.wasmLoading`.
+
+Set to `false` to disable WebAssembly loading inside workers:
 
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    workerWasmLoading: 'fetch',
+    workerWasmLoading: false,
   },
 };
 ```

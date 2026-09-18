@@ -24,10 +24,11 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   ArcComputed, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, CompilerOptions,
-  Dependency, DependencyCodeGeneration, DependencyCodeGenerationRef, DependencyId,
-  DependencyLocation, DependencyRange, FactoryMeta, ImportMeta, ImportMetaKnownProperties,
-  JavascriptParserCommonjsExportsOption, JavascriptParserOptions, ModuleIdentifier, ModuleLayer,
-  ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData, SideEffectsBailoutItemWithSpan,
+  DependenciesBlock, Dependency, DependencyCodeGeneration, DependencyCodeGenerationRef,
+  DependencyId, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
+  ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption, JavascriptParserOptions,
+  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData,
+  SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::fx_hash::FxIndexSet;
@@ -35,8 +36,8 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
 use swc_experimental_allocator::{Allocator, CloneIn};
 use swc_experimental_ecma_ast::{
-  ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, Decl, Expr, GetSpan, Ident, Lit,
-  MemberExpr, MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase,
+  ArrayPat, AssignPat, AssignTarget, AssignTargetPat, CallExpr, Callee, Decl, Expr, GetSpan, Ident,
+  Lit, MemberExpr, MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase,
   OptChainExpr, Pat, Program, RestPat, Span, Stmt, ThisExpr,
 };
 
@@ -416,7 +417,8 @@ pub struct JavascriptParser<'parser> {
   // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
   // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
   #[allow(clippy::vec_box)]
-  blocks: Vec<Box<AsyncDependenciesBlock>>,
+  blocks: Vec<Option<Box<AsyncDependenciesBlock>>>,
+  block_parents: Vec<Option<usize>>,
   // ===== inputs =======
   pub(crate) source: &'parser str,
   pub ast: &'parser ParsedJavaScriptAst<'parser>,
@@ -440,6 +442,7 @@ pub struct JavascriptParser<'parser> {
   pub in_try: bool,
   pub(crate) terminated: Option<ScopeTerminated>,
   pub(crate) in_short_hand: bool,
+  pub(crate) in_assignment_pattern: bool,
   pub(crate) in_tagged_template_tag: bool,
   pub(crate) member_expr_in_optional_chain: bool,
   pub(crate) semicolons: &'parser mut FxHashSet<u32>,
@@ -612,6 +615,7 @@ impl<'parser> JavascriptParser<'parser> {
       in_try: false,
       terminated: None,
       in_short_hand: false,
+      in_assignment_pattern: false,
       top_level_scope: TopLevelScope::Top,
       is_esm: matches!(module_type, ModuleType::JsEsm),
       in_tagged_template_tag: false,
@@ -645,6 +649,7 @@ impl<'parser> JavascriptParser<'parser> {
       is_renaming: None,
       location_advancer: DependencyLocationAdvancer::new(),
       collecting_dependencies_for_block: None,
+      block_parents: Vec::new(),
       dependencies_in_branch_guard: None,
       current_branch_guard: None,
     }
@@ -656,9 +661,31 @@ impl<'parser> JavascriptParser<'parser> {
         &mut self.inner_graph,
         &mut self.dependencies,
       );
+      // Keep flat indices stable for dependency analysis, then assemble the tree
+      // from children to parents while preserving each block's insertion order.
+      let mut nested_blocks = vec![Vec::new(); self.blocks.len()];
+      let mut blocks = Vec::new();
+      for (index, (block, parent)) in self
+        .blocks
+        .into_iter()
+        .zip(self.block_parents)
+        .enumerate()
+        .rev()
+      {
+        let mut block = block.expect("reserved parser block should be initialized");
+        for child in nested_blocks[index].drain(..).rev() {
+          block.add_block(child);
+        }
+        if let Some(parent) = parent {
+          nested_blocks[parent].push(block.into());
+        } else {
+          blocks.push(block);
+        }
+      }
+      blocks.reverse();
       Ok(ScanDependenciesResult {
         dependencies: self.dependencies,
-        blocks: self.blocks,
+        blocks,
         presentational_dependencies: self.presentational_dependencies,
         warning_diagnostics: self.warning_diagnostics,
         side_effects_item: self.side_effects_item,
@@ -761,13 +788,28 @@ impl<'parser> JavascriptParser<'parser> {
     Arc::get_mut(self.presentational_dependencies.get_mut(idx)?)
   }
 
-  pub fn add_block(&mut self, mut block: Box<AsyncDependenciesBlock>) {
+  pub fn reserve_block(&mut self) -> usize {
+    let index = self.blocks.len();
+    self.blocks.push(None);
+    self
+      .block_parents
+      .push(self.collecting_dependencies_for_block);
+    index
+  }
+
+  pub fn set_block(&mut self, index: usize, mut block: Box<AsyncDependenciesBlock>) {
     if let Some(guard) = &self.current_branch_guard {
       for dep in block.dependencies_mut() {
         guard.bind_dependency(dep);
       }
     }
-    self.blocks.push(block);
+    debug_assert!(self.blocks[index].is_none());
+    self.blocks[index] = Some(block);
+  }
+
+  pub fn add_block(&mut self, block: Box<AsyncDependenciesBlock>) {
+    let index = self.reserve_block();
+    self.set_block(index, block);
   }
 
   pub fn next_block_idx(&self) -> usize {
@@ -775,7 +817,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn get_block_mut(&mut self, idx: usize) -> Option<&mut Box<AsyncDependenciesBlock>> {
-    self.blocks.get_mut(idx)
+    self.blocks.get_mut(idx).and_then(Option::as_mut)
   }
 
   pub fn add_error(&mut self, error: Diagnostic) {
@@ -1315,9 +1357,8 @@ impl<'parser> JavascriptParser<'parser> {
         ObjectPatProp::KeyValue(kv) => self.enter_pattern(PatRef::Borrowed(&kv.value), on_ident),
         ObjectPatProp::Assign(assign) => {
           let old = self.in_short_hand;
-          if assign.value.is_none() {
-            self.in_short_hand = true;
-          }
+          // Defaulted shorthand bindings must also preserve their property key.
+          self.in_short_hand = true;
           self.enter_ident(&assign.key.id, on_ident);
           self.in_short_hand = old;
         }
@@ -1333,7 +1374,7 @@ impl<'parser> JavascriptParser<'parser> {
     self.enter_pattern(PatRef::Borrowed(&rest.arg), on_ident)
   }
 
-  fn enter_pattern<F>(&mut self, pattern: PatRef<'_>, on_ident: F)
+  pub(crate) fn enter_pattern<F>(&mut self, pattern: PatRef<'_>, on_ident: F)
   where
     F: FnOnce(&mut Self, &Ident) + Copy,
   {
@@ -1348,15 +1389,25 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn enter_assign_target_pattern<F>(&mut self, pattern: &AssignTargetPat, on_ident: F)
+  fn enter_assignment_target<F>(&mut self, target: &AssignTarget, on_ident: F)
   where
     F: FnOnce(&mut Self, &Ident) + Copy,
   {
-    match pattern {
-      AssignTargetPat::Array(array) => self.enter_array_pattern(array, on_ident),
-      AssignTargetPat::Object(obj) => self.enter_object_pattern(obj, on_ident),
-      AssignTargetPat::Invalid(_) => (),
+    let old = self.in_assignment_pattern;
+    self.in_assignment_pattern = true;
+    match target {
+      AssignTarget::Simple(simple) => {
+        if let Some(ident) = simple.as_ident() {
+          self.enter_ident(&ident.id, on_ident);
+        }
+      }
+      AssignTarget::Pat(pattern) => match &**pattern {
+        AssignTargetPat::Array(array) => self.enter_array_pattern(array, on_ident),
+        AssignTargetPat::Object(obj) => self.enter_object_pattern(obj, on_ident),
+        AssignTargetPat::Invalid(_) => (),
+      },
     }
+    self.in_assignment_pattern = old;
   }
 
   fn enter_patterns<'a, I, F>(&mut self, patterns: I, on_ident: F)

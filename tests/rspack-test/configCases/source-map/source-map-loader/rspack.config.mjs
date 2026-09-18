@@ -1,0 +1,24 @@
+/** @type {import("@rspack/core").Configuration} */
+export default {
+  node: {
+    __dirname: false,
+    __filename: false,
+  },
+  devtool: 'source-map',
+  module: {
+    rules: [
+      {
+        test: /\.[tj]sx?$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          detectSyntax: 'auto',
+        },
+      },
+      {
+        test: /\.[tj]sx?$/,
+        enforce: 'pre',
+        loader: 'source-map-loader',
+      },
+    ],
+  },
+};

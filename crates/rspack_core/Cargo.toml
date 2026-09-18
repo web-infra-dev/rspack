@@ -8,6 +8,7 @@ version.workspace = true
 
 [dependencies]
 anymap                     = { workspace = true }
+arc-swap                   = { workspace = true }
 async-recursion            = { workspace = true }
 async-trait                = { workspace = true }
 bitflags                   = { workspace = true }
@@ -18,6 +19,7 @@ derive_more                = { workspace = true, features = ["debug"] }
 dyn-clone                  = { workspace = true }
 either                     = { workspace = true }
 fast-glob                  = { workspace = true }
+fixedbitset                = { workspace = true }
 futures                    = { workspace = true }
 hashlink                   = { workspace = true }
 heck                       = { workspace = true }
@@ -30,8 +32,8 @@ json                       = { workspace = true }
 memchr                     = { workspace = true }
 mime_guess                 = { workspace = true }
 napi                       = { workspace = true, optional = true }
-num-bigint                 = { workspace = true }
 once_cell                  = { workspace = true }
+parking_lot                = { workspace = true }
 paste                      = { workspace = true }
 rayon                      = { workspace = true }
 regex                      = { workspace = true }

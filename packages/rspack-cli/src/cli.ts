@@ -257,19 +257,29 @@ export class RspackCLI {
         }
       }
 
-      // set configPaths to persistent cache build dependencies
+      // Track loaded config files as build dependencies for both disk caches.
       const cacheOptions = item.cache;
       if (
         typeof cacheOptions === 'object' &&
-        cacheOptions.type === 'persistent'
+        (cacheOptions.type === 'persistent' ||
+          cacheOptions.type === 'filesystem')
       ) {
         const configPaths = pathMap.get(item);
         if (configPaths) {
-          // for persistent cache
-          cacheOptions.buildDependencies = [
-            ...configPaths,
-            ...(cacheOptions.buildDependencies || []),
-          ];
+          if (cacheOptions.type === 'persistent') {
+            cacheOptions.buildDependencies = [
+              ...configPaths,
+              ...(cacheOptions.buildDependencies || []),
+            ];
+          } else {
+            cacheOptions.buildDependencies = {
+              ...cacheOptions.buildDependencies,
+              config: [
+                ...configPaths,
+                ...(cacheOptions.buildDependencies?.config || []),
+              ],
+            };
+          }
         }
       }
 

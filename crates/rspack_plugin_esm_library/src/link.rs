@@ -5,7 +5,7 @@ use std::{
 };
 
 use rayon::iter::Either;
-use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
+use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, SsoHashSet};
 use rspack_core::{
   ChunkGraph, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataChunkInitFragments, CodeGenerationDataConcatenationScopeOutput,
@@ -952,7 +952,7 @@ var {} = {{}};
 
   fn validate_single_chunk(
     m: ModuleIdentifier,
-    chunks: &FxHashSet<ChunkUkey>,
+    chunks: &SsoHashSet<ChunkUkey>,
   ) -> rspack_error::Result<ChunkUkey> {
     match chunks.len() {
       0 => Err(rspack_error::error!("module {m} is not in any chunk")),
@@ -1574,7 +1574,7 @@ var {} = {{}};
     };
 
     for dep in module.get_dependencies() {
-      let Some(conn) = module_graph.connection_by_dependency_id(dep) else {
+      let Some(conn) = module_graph.connection_by_dependency_id(dep.id()) else {
         continue;
       };
 
@@ -1588,7 +1588,6 @@ var {} = {{}};
         continue;
       }
 
-      let dep = module_graph.dependency_by_id(dep);
       if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
         && dep.name.is_none()
       {
@@ -2546,10 +2545,8 @@ var {} = {{}};
         // eg.
         // import './foo.cjs'
         // should be rendered as __rspack_require('./foo.cjs')
-        for dep_id in module.get_dependencies() {
-          let dep = module_graph.dependency_by_id(dep_id);
-
-          let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
+        for dep in module.get_dependencies() {
+          let Some(conn) = module_graph.connection_by_dependency_id(dep.id()) else {
             continue;
           };
 
@@ -2747,7 +2744,7 @@ var {} = {{}};
         let module = module_graph
           .module_by_identifier(m)
           .expect("should have module");
-        for dep_id in module.get_dependencies() {
+        for dep_id in module.get_dependency_ids() {
           let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
             continue;
           };
@@ -3181,6 +3178,7 @@ fn normal_render(
 
 #[cfg(test)]
 mod tests {
+  use rspack_collections::SsoHashSet;
   use rspack_core::{
     ChunkInitFragments, ChunkUkey, ConcatenationNameAllocator, InitFragmentKey, ModuleIdentifier,
   };
@@ -3192,7 +3190,7 @@ mod tests {
   #[test]
   fn get_module_chunk_empty_chunks_returns_error() {
     let m = ModuleIdentifier::from("test_module");
-    let chunks = FxHashSet::default();
+    let chunks = SsoHashSet::default();
     let result = EsmLibraryPlugin::validate_single_chunk(m, &chunks);
     assert!(result.is_err());
     let err_msg = result.unwrap_err().to_string();
@@ -3205,7 +3203,7 @@ mod tests {
   #[test]
   fn get_module_chunk_multiple_chunks_returns_error() {
     let m = ModuleIdentifier::from("test_module");
-    let mut chunks = FxHashSet::default();
+    let mut chunks = SsoHashSet::default();
     chunks.insert(ChunkUkey::new());
     chunks.insert(ChunkUkey::new());
     let result = EsmLibraryPlugin::validate_single_chunk(m, &chunks);
@@ -3221,7 +3219,7 @@ mod tests {
   fn get_module_chunk_single_chunk_returns_ok() {
     let m = ModuleIdentifier::from("test_module");
     let expected_chunk = ChunkUkey::new();
-    let mut chunks = FxHashSet::default();
+    let mut chunks = SsoHashSet::default();
     chunks.insert(expected_chunk);
     let result = EsmLibraryPlugin::validate_single_chunk(m, &chunks);
     assert!(result.is_ok());

@@ -1,11 +1,11 @@
-const path = require('path');
-const fs = require('fs');
-const rspack = require('@rspack/core');
+import path from 'node:path';
+import fs from 'node:fs';
+import rspack from '@rspack/core';
 
 /** @type {import("@rspack/core").Configuration} */
-module.exports = {
+export default {
   entry: async () => {
-    const context = path.resolve(__dirname, 'src');
+    const context = path.resolve(import.meta.dirname, 'src');
     const files = await fs.promises.readdir(context);
     const result = {};
     for (const f of files) {
@@ -15,7 +15,7 @@ module.exports = {
     }
     return result;
   },
-  context: __dirname,
+  context: import.meta.dirname,
   mode: 'development',
   plugins: [
     new rspack.HtmlRspackPlugin({ chunks: ['main'], filename: 'index.html' }),

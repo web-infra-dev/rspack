@@ -167,7 +167,7 @@ pub struct StatsModule<'a> {
   pub issuer_id: Option<ModuleId>,
   pub issuer_path: Option<Vec<StatsModuleIssuer<'a>>>,
   pub reasons: Option<Vec<StatsModuleReason<'a>>>,
-  pub assets: Option<Vec<&'a str>>,
+  pub assets: Option<Vec<String>>,
   pub modules: Option<Vec<StatsModule<'a>>>,
   pub source: Option<&'a BoxSource>,
   pub orphan: Option<bool>,

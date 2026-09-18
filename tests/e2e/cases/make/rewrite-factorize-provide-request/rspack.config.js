@@ -1,13 +1,13 @@
-const { rspack } = require('@rspack/core');
+import { rspack } from '@rspack/core';
 
 const sharedObj = {
   time: 1,
 };
 
 /** @type {import("@rspack/core").Configuration} */
-module.exports = {
+export default {
   entry: './index.js',
-  context: __dirname,
+  context: import.meta.dirname,
   cache: true,
   experiments: {
     cache: true,
@@ -29,7 +29,7 @@ module.exports = {
               'PLUGIN',
               async (resolveData) => {
                 if (resolveData.request == './provided.js') {
-                  resolveData.request = `./loader.cjs?time=${sharedObj.time}!./provided.js`;
+                  resolveData.request = `./loader.mjs?time=${sharedObj.time}!./provided.js`;
                 }
               },
             );

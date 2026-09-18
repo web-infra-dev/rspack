@@ -1,11 +1,11 @@
-const rspack = require('@rspack/core');
+import rspack from '@rspack/core';
 
 const sharedObj = {
   useFullEntry: true,
 };
 
 /** @type {import("@rspack/core").Configuration} */
-module.exports = {
+export default {
   entry: async () => {
     if (sharedObj.useFullEntry) {
       return {
@@ -24,7 +24,7 @@ module.exports = {
       };
     }
   },
-  context: __dirname,
+  context: import.meta.dirname,
   mode: 'development',
   optimization: {
     runtimeChunk: 'single',

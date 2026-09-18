@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "2.2.2",
+  "version": "2.2.6",
   "description": "Test tools for rspack",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -10,21 +10,55 @@
     "directory": "packages/rspack-test-tools"
   },
   "license": "MIT",
+  "type": "module",
   "exports": {
     ".": {
-      "default": "./dist/index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     },
-    "./setup-expect": "./dist/helper/setup-expect.js",
-    "./setup-env": "./dist/helper/setup-env.js",
-    "./setup-wasm": "./dist/helper/setup-wasm.js",
+    "./setup-expect": {
+      "types": "./dist/helper/setup-expect.d.ts",
+      "import": "./dist/helper/setup-expect.js",
+      "require": "./dist/helper/setup-expect.cjs"
+    },
+    "./setup-env": {
+      "types": "./dist/helper/setup-env.d.ts",
+      "import": "./dist/helper/setup-env.js",
+      "require": "./dist/helper/setup-env.cjs"
+    },
+    "./setup-wasm": {
+      "types": "./dist/helper/setup-wasm.d.ts",
+      "import": "./dist/helper/setup-wasm.js",
+      "require": "./dist/helper/setup-wasm.cjs"
+    },
     "./package.json": "./package.json",
-    "./helper/*": "./dist/helper/*.js",
-    "./helper/legacy/*": "./dist/helper/legacy/*.js",
-    "./helper/util/*": "./dist/helper/util/*.js",
-    "./reporter": "./dist/reporter/index.js",
-    "./reporter/*": "./dist/reporter/*.js"
+    "./helper/*": {
+      "types": "./dist/helper/*.d.ts",
+      "import": "./dist/helper/*.js",
+      "require": "./dist/helper/*.cjs"
+    },
+    "./helper/legacy/*": {
+      "types": "./dist/helper/legacy/*.d.ts",
+      "import": "./dist/helper/legacy/*.js",
+      "require": "./dist/helper/legacy/*.cjs"
+    },
+    "./helper/util/*": {
+      "types": "./dist/helper/util/*.d.ts",
+      "import": "./dist/helper/util/*.js",
+      "require": "./dist/helper/util/*.cjs"
+    },
+    "./reporter": {
+      "types": "./dist/reporter/index.d.ts",
+      "import": "./dist/reporter/index.js",
+      "require": "./dist/reporter/index.cjs"
+    },
+    "./reporter/*": {
+      "types": "./dist/reporter/*.d.ts",
+      "import": "./dist/reporter/*.js",
+      "require": "./dist/reporter/*.cjs"
+    }
   },
-  "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
     "client",

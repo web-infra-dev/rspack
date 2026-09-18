@@ -179,9 +179,7 @@ impl JsModuleGraph {
       Ok(
         module_graph
           .connection_by_dependency_id(&dependency_id)
-          .map(|connection| {
-            ModuleGraphConnectionWrapper::new(connection.dependency_id, compilation)
-          }),
+          .map(|connection| ModuleGraphConnectionWrapper::new(connection, compilation)),
       )
     })
   }
@@ -205,10 +203,7 @@ impl JsModuleGraph {
       }
       let module_graph = compilation.get_module_graph();
       for connection in module_graph.get_outgoing_connections(&module.identifier) {
-        vec.push(ModuleGraphConnectionWrapper::new(
-          connection.dependency_id,
-          compilation,
-        ));
+        vec.push(ModuleGraphConnectionWrapper::new(connection, compilation));
       }
       let mut arr = env.create_array(vec.len() as u32)?;
       for (i, v) in vec.drain(..).enumerate() {
@@ -236,11 +231,8 @@ impl JsModuleGraph {
         ));
       }
       let module_graph = compilation.get_module_graph();
-      for dependency_id in module_graph.get_outgoing_deps_in_order(&module.identifier) {
-        vec.push(ModuleGraphConnectionWrapper::new(
-          *dependency_id,
-          compilation,
-        ));
+      for connection in module_graph.get_ordered_outgoing_connections(&module.identifier) {
+        vec.push(ModuleGraphConnectionWrapper::new(connection, compilation));
       }
       let mut arr = env.create_array(vec.len() as u32)?;
       for (i, v) in vec.drain(..).enumerate() {
@@ -269,10 +261,7 @@ impl JsModuleGraph {
       }
       let module_graph = compilation.get_module_graph();
       for connection in module_graph.get_incoming_connections(&module.identifier) {
-        vec.push(ModuleGraphConnectionWrapper::new(
-          connection.dependency_id,
-          compilation,
-        ));
+        vec.push(ModuleGraphConnectionWrapper::new(connection, compilation));
       }
       let mut arr = env.create_array(vec.len() as u32)?;
       for (i, v) in vec.drain(..).enumerate() {

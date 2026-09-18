@@ -109,7 +109,7 @@ le3.css?=bar4');
 \
 \
 ';
-@import url('./string-loader.js?esModule=false!./test.css');
+@import url('./string-loader.mjs?esModule=false!./test.css');
 @import url(style4.css?foo=bar);
 @import url(style4.css?foo=bar#hash);
 @import url(style4.css?#hash);
@@ -121,8 +121,8 @@ le3.css?=bar4');
 @import url(   ./style4.css?foo=5   );
 
 @import url('   https://fonts.googleapis.com/css?family=Roboto   ');
-@import url('./string-loader.js?esModule=false');
-@import url('   ./string-loader.js?esModule=false!./test.css   ') screen and (orientation: landscape);
+@import url('./string-loader.mjs?esModule=false');
+@import url('   ./string-loader.mjs?esModule=false!./test.css   ') screen and (orientation: landscape);
 @import url(data:text/css;charset=utf-8,a%20%7B%0D%0A%20%20color%3A%20red%3B%0D%0A%7D);
 @import url(data:text/css;charset=utf-8,a%20%7B%0D%0A%20%20color%3A%20blue%3B%0D%0A%7D) screen and (orientation:landscape);
 @import url("data:text/css;charset=utf-8;base64,YSB7DQogIGNvbG9yOiByZWQ7DQp9");
@@ -256,6 +256,9 @@ url(style6.css?foo=14)
 @import url("external-12.css") screen and (orientation: landscape);
 @import url("external-13.css") supports(not (display: flex));
 @import url("external-14.css") layer(default) supports(display: grid) screen and (max-width: 400px);
+@import url("external-1.css") layer(theme);
+@import url("external-1.css") supports(display: grid);
+@import url("external-1.css") print;
 
 @import url("ignore.css");
 @import url("list-of-media-queries.css");

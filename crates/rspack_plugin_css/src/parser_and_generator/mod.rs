@@ -15,8 +15,9 @@ use rspack_cacheable::{
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CodeGenerationDataItem, Compilation,
   CssAutoOrModuleParserOptions, CssBuildInfo, CssExportType, DependencyType, ExportsInfoArtifact,
-  GenerateContext, Module, ModuleGraph, ModuleIdentifier, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, ResolvedModuleOptions, RuntimeSpec, SourceType, UsageState,
+  GenerateContext, Module, ModuleGraph, ModuleIdentifier, NO_SOURCE_TYPE_LIST, NormalModule,
+  ParseContext, ParseResult, ParserAndGenerator, ParserOptions, ResolvedModuleOptions, RuntimeSpec,
+  SourceType, UsageState,
   rspack_sources::{BoxSource, Source},
 };
 pub use rspack_core::{CssExport, CssExports};
@@ -203,19 +204,40 @@ impl ParserAndGenerator for CssParserAndGenerator {
       return CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST;
     }
 
-    if self.exports_only {
-      return CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST;
+    if module.build_meta().is_css_module() {
+      return if self.exports_only {
+        CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST
+      } else {
+        CSS_MODULE_AND_JS_SOURCE_TYPE_LIST
+      };
     }
 
-    let no_need_js = module_graph
-      .get_incoming_connections(&module.identifier())
-      .all(|conn| {
-        let dep = module_graph.dependency_by_id(&conn.dependency_id);
-        matches!(
-          dep.dependency_type(),
-          DependencyType::CssImport | DependencyType::EsmImport
-        )
-      });
+    let module_identifier = module.identifier();
+    let mut incoming_connections = module_graph.get_incoming_connections(&module_identifier);
+
+    if self.exports_only {
+      let is_root_only = incoming_connections
+        .next()
+        .is_some_and(|conn| conn.original_module_identifier.is_none())
+        && incoming_connections.all(|conn| conn.original_module_identifier.is_none());
+      return if is_root_only {
+        NO_SOURCE_TYPE_LIST
+      } else {
+        CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST
+      };
+    }
+
+    let no_need_js = incoming_connections.all(|conn| {
+      if conn.original_module_identifier.is_none() {
+        return true;
+      }
+
+      let dep = module_graph.dependency_by_id(&conn.dependency_id);
+      matches!(
+        dep.dependency_type(),
+        DependencyType::CssImport | DependencyType::EsmImport
+      )
+    });
 
     if no_need_js {
       CSS_MODULE_SOURCE_TYPE_LIST
@@ -275,11 +297,17 @@ impl ParserAndGenerator for CssParserAndGenerator {
     module: &dyn rspack_core::Module,
     generate_context: &mut GenerateContext,
   ) -> Result<BoxSource> {
+    let build_info = module.build_info();
+    let css_build_info = build_info
+      .css
+      .as_deref()
+      .expect("CSS module should have build info");
     match generate_context.requested_source_type {
       SourceType::Css => Ok(
         CssModuleGenerator::new(
           source.clone(),
           module,
+          css_build_info,
           generate_context,
           self.hot,
           self.es_module,
@@ -289,6 +317,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       SourceType::JavaScript => CssModuleGenerator::new(
         source.clone(),
         module,
+        css_build_info,
         generate_context,
         self.hot,
         self.es_module,

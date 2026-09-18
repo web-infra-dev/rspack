@@ -21,7 +21,7 @@ use rspack_core::{
   Mode, ModuleCodeGenerationContext, ModuleIdsArtifact, Optimization, OptimizeCodeGenerationPass,
   OutputOptions, ProcessAssetsPass, RuntimeRequirementsPass, SideEffectsOptimizeArtifact,
   SourceType, UsedExportsOption, build_chunk_graph,
-  build_module_graph::{build_module_graph_pass, finish_build_module_graph},
+  build_module_graph::pass::BuildModuleGraphPhasePass,
   incremental::IncrementalOptions,
   legacy_cache::Cache,
   pass::PassExt,
@@ -226,8 +226,29 @@ pub(crate) fn create_named_module_ids_benchmark(c: &mut Criterion, rt: &Runtime)
 }
 
 pub(crate) fn split_chunks_benchmark(c: &mut Criterion, rt: &Runtime) {
+  split_chunks_benchmark_with_min_size(c, rt, 0.0, 0, "rust@split_chunks");
+}
+
+pub(crate) fn split_chunks_dedup_depth_benchmark(c: &mut Criterion, rt: &Runtime) {
+  for (dedup_depth, name) in [
+    (0, "rust@split_chunks_dedup_depth_0"),
+    (1, "rust@split_chunks_dedup_depth_1"),
+    (2, "rust@split_chunks_dedup_depth_2"),
+    (3, "rust@split_chunks_dedup_depth_3"),
+  ] {
+    split_chunks_benchmark_with_min_size(c, rt, 128.0, dedup_depth, name);
+  }
+}
+
+fn split_chunks_benchmark_with_min_size(
+  c: &mut Criterion,
+  rt: &Runtime,
+  min_size: f64,
+  dedup_depth: u32,
+  name: &str,
+) {
   let fs = Arc::new(MemoryFileSystem::default());
-  let mut compiler = create_split_chunks_stage_compiler(fs.clone());
+  let mut compiler = create_split_chunks_stage_compiler(fs.clone(), min_size, dedup_depth);
 
   rt.block_on(async {
     fs.create_dir_all("/src".into())
@@ -307,7 +328,7 @@ pub(crate) fn split_chunks_benchmark(c: &mut Criterion, rt: &Runtime) {
   restore_initial_chunk_state(&mut compiler.compilation);
 
   let compiler = RefCell::new(compiler);
-  c.bench_function("rust@split_chunks", |b| {
+  c.bench_function(name, |b| {
     b.iter_batched_ref(
       || {
         let mut compiler = compiler.borrow_mut();
@@ -756,8 +777,8 @@ pub(crate) fn create_module_assets_benchmark(c: &mut Criterion, rt: &Runtime) {
 
   assert_no_compilation_errors(&compiler.compilation, "create_module_assets setup");
   let seeded_module_assets = count_module_assets(&compiler.compilation);
-  assert!(
-    seeded_module_assets > 0,
+  assert_eq!(
+    seeded_module_assets, MODULE_ASSET_SEED_COUNT,
     "create_module_assets setup should seed module build_info assets"
   );
   let initial_state = snapshot_chunk_asset_state(&compiler.compilation);
@@ -771,9 +792,10 @@ pub(crate) fn create_module_assets_benchmark(c: &mut Criterion, rt: &Runtime) {
   });
   let emitted_asset_count = compiler.compilation.assets().len();
   let emitted_totals = chunk_asset_totals(&compiler.compilation);
-  assert!(
-    emitted_asset_count > initial_asset_count,
-    "create_module_assets setup should emit seeded module assets"
+  assert_eq!(
+    emitted_asset_count - initial_asset_count,
+    seeded_module_assets,
+    "create_module_assets setup should emit all seeded module assets"
   );
   assert!(
     emitted_totals.2 > initial_totals.2,
@@ -1093,7 +1115,11 @@ fn create_real_content_hash_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compile
     .unwrap()
 }
 
-fn create_split_chunks_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
+fn create_split_chunks_stage_compiler(
+  fs: Arc<MemoryFileSystem>,
+  min_size: f64,
+  dedup_depth: u32,
+) -> Compiler {
   let mut builder = Compiler::builder();
   builder
     .context("/")
@@ -1110,7 +1136,7 @@ fn create_split_chunks_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
         .concatenate_modules(false),
     )
     .incremental(IncrementalOptions::empty_passes())
-    .plugin(Box::new(create_split_chunks_plugin()));
+    .plugin(Box::new(create_split_chunks_plugin(min_size, dedup_depth)));
   for entry_index in 0..SPLIT_CHUNKS_ENTRY_COUNT {
     builder.entry(
       format!("entry-{entry_index}"),
@@ -1142,6 +1168,11 @@ fn create_concatenate_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
 }
 
 async fn prepare_build_module_graph_phase(compiler: &mut Compiler) -> Result<()> {
+  build_modules(compiler).await?;
+  finish_build_module_graph_phase(compiler).await
+}
+
+async fn build_modules(compiler: &mut Compiler) -> Result<()> {
   let mut compilation_params = compiler.new_compilation_params();
   compiler
     .plugin_driver
@@ -1155,32 +1186,28 @@ async fn prepare_build_module_graph_phase(compiler: &mut Compiler) -> Result<()>
     .compilation
     .call(&mut compiler.compilation, &mut compilation_params)
     .await?;
-  compiler
-    .plugin_driver
-    .compiler_hooks
-    .make
-    .call(&mut compiler.compilation)
-    .await?;
-  build_module_graph_pass(&mut compiler.compilation).await?;
-  compiler
-    .plugin_driver
-    .compiler_hooks
-    .finish_make
-    .call(&mut compiler.compilation)
-    .await?;
+  BuildModuleGraphPhasePass
+    .before_pass(&mut compiler.compilation, &mut *compiler.cache)
+    .await;
+  BuildModuleGraphPhasePass
+    .run_pass(&mut compiler.compilation)
+    .await
+}
 
-  let make_artifact = compiler.compilation.build_module_graph_artifact.steal();
-  let exports_info_artifact = compiler.compilation.exports_info_artifact.steal();
-  let (make_artifact, exports_info_artifact) =
-    finish_build_module_graph(&compiler.compilation, make_artifact, exports_info_artifact).await?;
-  compiler.compilation.build_module_graph_artifact = make_artifact.into();
-  compiler.compilation.exports_info_artifact = exports_info_artifact.into();
-
-  Ok(())
+async fn finish_build_module_graph_phase(compiler: &mut Compiler) -> Result<()> {
+  // Match production: publish build metadata before finish_modules and seal.
+  // Keep this outside the measured finish_modules hook, including on repeat runs.
+  BuildModuleGraphPhasePass
+    .after_pass(&mut compiler.compilation, &mut *compiler.cache)
+    .await
 }
 
 async fn prepare_for_module_ids(compiler: &mut Compiler) -> Result<()> {
   prepare_build_module_graph_phase(compiler).await?;
+  prepare_for_module_ids_with_built_modules(compiler).await
+}
+
+async fn prepare_for_module_ids_with_built_modules(compiler: &mut Compiler) -> Result<()> {
   run_finish_modules_hook(&mut compiler.compilation).await?;
   run_seal_hook(&mut compiler.compilation).await?;
   run_optimize_dependencies_hook(&mut compiler.compilation).await?;
@@ -1222,7 +1249,17 @@ async fn prepare_for_module_hashes(compiler: &mut Compiler) -> Result<()> {
 }
 
 async fn prepare_for_runtime_requirements(compiler: &mut Compiler) -> Result<()> {
-  prepare_for_optimize_code_generation(compiler).await?;
+  prepare_build_module_graph_phase(compiler).await?;
+  prepare_for_runtime_requirements_with_built_modules(compiler).await
+}
+
+async fn prepare_for_runtime_requirements_with_built_modules(
+  compiler: &mut Compiler,
+) -> Result<()> {
+  prepare_for_module_ids_with_built_modules(compiler).await?;
+  run_module_ids_hook(&mut compiler.compilation).await?;
+  run_chunk_ids_on_compilation(&mut compiler.compilation).await?;
+  run_compiler_pass(&AssignRuntimeIdsPass, compiler).await?;
   run_compiler_pass(&OptimizeCodeGenerationPass, compiler).await?;
   run_create_module_hashes_pass(compiler).await?;
   run_code_generation_pass(compiler).await?;
@@ -1230,14 +1267,30 @@ async fn prepare_for_runtime_requirements(compiler: &mut Compiler) -> Result<()>
 }
 
 async fn prepare_for_module_assets(compiler: &mut Compiler) -> Result<()> {
-  prepare_for_runtime_requirements(compiler).await?;
-  run_runtime_requirements_pass(compiler).await?;
-  run_create_hash_pass(compiler).await?;
+  build_modules(compiler).await?;
+  // Loader assets are produced before build metadata is frozen in real builds.
   let seeded_module_assets = seed_module_assets(&mut compiler.compilation);
-  assert!(
-    seeded_module_assets > 0,
+  assert_eq!(
+    seeded_module_assets, MODULE_ASSET_SEED_COUNT,
     "create_module_assets setup should seed module build_info assets"
   );
+  finish_build_module_graph_phase(compiler).await?;
+  prepare_for_runtime_requirements_with_built_modules(compiler).await?;
+  run_runtime_requirements_pass(compiler).await?;
+  run_create_hash_pass(compiler).await?;
+  for (_, module) in compiler.compilation.get_module_graph().modules() {
+    if !module.build_info().assets.is_empty() {
+      assert!(
+        compiler
+          .compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_number_of_module_chunks(module.identifier())
+          > 0,
+        "seeded module assets should belong to chunks"
+      );
+    }
+  }
   Ok(())
 }
 
@@ -1612,28 +1665,25 @@ fn seed_module_assets(compilation: &mut Compilation) -> usize {
     .get_module_graph()
     .modules_keys()
     .copied()
-    .filter(|module_identifier| {
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_number_of_module_chunks(*module_identifier)
-        > 0
-    })
     .collect::<Vec<_>>();
   module_identifiers.sort_unstable();
   module_identifiers.truncate(MODULE_ASSET_SEED_COUNT);
 
   for (asset_index, module_identifier) in module_identifiers.iter().copied().enumerate() {
     let module = compilation
-      .get_module_graph_mut()
-      .module_by_identifier_mut(&module_identifier)
+      .get_module_graph()
+      .module_by_identifier(&module_identifier)
       .expect("seeded module should exist");
-    module.build_info_mut().assets.insert(
-      format!("module-assets/module-{asset_index}.txt"),
-      CompilationAsset::new(
-        Some(RawStringSource::from(format!("module asset fixture {asset_index}")).boxed()),
-        Default::default(),
-      ),
+    module.extend_build_assets(
+      [(
+        format!("module-assets/module-{asset_index}.txt"),
+        CompilationAsset::new(
+          Some(RawStringSource::from(format!("module asset fixture {asset_index}")).boxed()),
+          Default::default(),
+        ),
+      )]
+      .into_iter()
+      .collect(),
     );
   }
 
@@ -1942,10 +1992,11 @@ fn count_assigned_export_used_names(compilation: &Compilation) -> usize {
     .sum()
 }
 
-fn create_split_chunks_plugin() -> SplitChunksPlugin {
+fn create_split_chunks_plugin(min_size: f64, dedup_depth: u32) -> SplitChunksPlugin {
   let js_zero_sizes = SplitChunkSizes::with_initial_value(&[SourceType::JavaScript], 0.0);
 
   SplitChunksPlugin::new(PluginOptions {
+    dedup_depth,
     cache_groups: vec![CacheGroup {
       key: "shared-modules".to_string(),
       chunk_filter: create_all_chunk_filter(),
@@ -1954,7 +2005,7 @@ fn create_split_chunks_plugin() -> SplitChunksPlugin {
       layer: create_default_module_layer_filter(),
       name: ChunkNameGetter::Disabled,
       priority: 0.0,
-      min_size: js_zero_sizes.clone(),
+      min_size: SplitChunkSizes::with_initial_value(&[SourceType::JavaScript], min_size),
       min_size_reduction: js_zero_sizes.clone(),
       enforce_size_threshold: SplitChunkSizes::default(),
       reuse_existing_chunk: false,

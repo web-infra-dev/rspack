@@ -11,8 +11,11 @@ Dll 插件用于在一个单独的 rspack 配置中生成一个 dll 库，DllRef
 ## 示例
 
 ```js
+import { rspack } from '@rspack/core';
+import path from 'node:path';
+
 new rspack.DllPlugin({
-  path: path.resolve(__dirname, 'manifest.json'),
+  path: path.resolve(import.meta.dirname, 'manifest.json'),
   name: '[name]_dll_lib',
 });
 ```

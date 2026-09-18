@@ -1,3 +1,5 @@
+#[cfg(windows)]
+use std::borrow::Cow;
 #[cfg(unix)]
 use std::os::unix::ffi::OsStrExt;
 use std::{
@@ -21,6 +23,59 @@ use rspack_cacheable::{
 use rspack_intern::{InternSliceStorage, InternedSlice, SliceInternable};
 use rustc_hash::FxHasher;
 pub use ustr::IdentityHasher;
+
+/// Returns the byte index immediately after a DOS device path prefix
+/// (`\\\\?\\` or `\\\\.\\`), or zero when `path` has no such prefix.
+///
+/// The prefix is ASCII, so the byte index is also a valid UTF-8 slice boundary.
+#[cfg(windows)]
+#[inline]
+pub fn dos_device_path_prefix_len(path: &str) -> usize {
+  let bytes = path.as_bytes();
+  if bytes.len() >= 4
+    && bytes[0] == b'\\'
+    && bytes[1] == b'\\'
+    && matches!(bytes[2], b'?' | b'.')
+    && bytes[3] == b'\\'
+  {
+    4
+  } else {
+    0
+  }
+}
+
+/// Converts a DOS device drive or UNC path to its legacy Win32 spelling.
+/// Other DOS device namespaces are returned unchanged.
+#[cfg(windows)]
+#[inline]
+pub fn strip_dos_device_path_prefix(path: &str) -> Cow<'_, str> {
+  let prefix_len = dos_device_path_prefix_len(path);
+  if prefix_len == 0 {
+    return Cow::Borrowed(path);
+  }
+
+  let path_without_prefix = &path[prefix_len..];
+  let bytes = path_without_prefix.as_bytes();
+  if bytes.len() >= 3
+    && bytes[0].is_ascii_alphabetic()
+    && bytes[1] == b':'
+    && matches!(bytes[2], b'/' | b'\\')
+  {
+    return Cow::Borrowed(path_without_prefix);
+  }
+
+  if bytes
+    .get(..4)
+    .is_some_and(|prefix| prefix.eq_ignore_ascii_case(b"UNC\\"))
+  {
+    let mut legacy_path = String::with_capacity(path_without_prefix.len() - 2);
+    legacy_path.push_str(r"\\");
+    legacy_path.push_str(&path_without_prefix[4..]);
+    return Cow::Owned(legacy_path);
+  }
+
+  Cow::Borrowed(path)
+}
 
 pub trait AssertUtf8 {
   type Output;

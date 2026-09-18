@@ -1,0 +1,23 @@
+/**
+ * @type {import('webpack').Configuration | import('@rspack/cli').Configuration}
+ */
+export default {
+  mode: 'development',
+  target: 'web',
+  devtool: 'source-map',
+  module: {
+    generator: {
+      'css/auto': {
+        exportsOnly: false,
+      },
+    },
+    rules: [
+      {
+        test: /\.css$/,
+        use: ['./loader.mjs', 'builtin:lightningcss-loader'],
+        sideEffects: true,
+        type: 'css/auto',
+      },
+    ],
+  },
+};

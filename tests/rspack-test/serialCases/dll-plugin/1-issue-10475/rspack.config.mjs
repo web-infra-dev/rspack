@@ -1,0 +1,22 @@
+import { rspack as webpack } from '@rspack/core';
+import { readFileSync } from 'node:fs';
+
+/** @type {import("@rspack/core").Configuration} */
+export default {
+  plugins: [
+    new webpack.DllReferencePlugin({
+      manifest: JSON.parse(
+        readFileSync(
+          new URL(
+            '../../../js/config/dll-plugin/issue-10475.json',
+            import.meta.url,
+          ),
+          'utf-8',
+        ),
+      ), // eslint-disable-line node/no-missing-require
+      name: '../0-issue-10475/dll.js',
+      scope: 'dll',
+      sourceType: 'commonjs2',
+    }),
+  ],
+};

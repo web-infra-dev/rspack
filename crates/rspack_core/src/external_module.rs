@@ -1,4 +1,4 @@
-use std::{borrow::Cow, iter};
+use std::{borrow::Cow, iter, sync::Arc};
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
@@ -11,16 +11,17 @@ use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
-  CodeGenerationDataChunkInitFragments, CodeGenerationDataUrl, CodeGenerationResultBuilder,
-  Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRef,
-  ExportProvided, ExternalType, FactoryMeta, ImportAttributes, ImportPhase, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
+  BoxChunkInitFragment, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType,
+  ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationDataChunkInitFragments,
+  CodeGenerationDataUrl, CodeGenerationResultBuilder, Compilation, ConcatenationScope, Context,
+  CssLayer, CssModuleRenderCondition, DependenciesBlock, DependenciesBlockData, DependencyRef,
+  ExportProvided, ExternalType, FactoryMetaStore, FreezeLock, ImportAttributes, ImportPhase,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
   NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
   StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
-  extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
+  css_module_render_conditions_identifier, extract_url_and_global, impl_module_meta_info,
+  module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -52,6 +53,57 @@ pub struct ExternalRequestValue {
 impl ExternalRequestValue {
   pub fn has_rest(&self) -> bool {
     self.rest.as_ref().is_some_and(|r| !r.is_empty())
+  }
+}
+
+/// The CommonJS require form used to render an external request.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CommonJsExternalRequireKind {
+  CommonJs,
+  NodeCommonJs,
+}
+
+impl CommonJsExternalRequireKind {
+  pub fn from_external_type(external_type: &str) -> Option<Self> {
+    match external_type {
+      "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" => Some(Self::CommonJs),
+      "node-commonjs" => Some(Self::NodeCommonJs),
+      _ => None,
+    }
+  }
+
+  /// Renders the complete require expression and installs any init fragment
+  /// required by its callee.
+  pub fn render_expression<S: AsRef<str>>(
+    self,
+    request: Option<&str>,
+    properties: impl IntoIterator<Item = S>,
+    compilation: &Compilation,
+    chunk_init_fragments: &mut ChunkInitFragments,
+  ) -> String {
+    let require = self.render_callee(compilation, chunk_init_fragments);
+    format!(
+      "{require}({}){}",
+      request.map_or_else(|| "undefined".to_string(), json_stringify_str),
+      property_access(properties, 0)
+    )
+  }
+
+  /// Renders only the require callee and installs its required init fragment.
+  ///
+  /// This is the split-range counterpart of [`Self::render_expression`].
+  pub fn render_callee(
+    self,
+    compilation: &Compilation,
+    chunk_init_fragments: &mut ChunkInitFragments,
+  ) -> &'static str {
+    match self {
+      Self::NodeCommonJs if compilation.options.output.module => {
+        chunk_init_fragments.push(create_node_commonjs_init_fragment(compilation));
+        "__rspack_createRequire_require"
+      }
+      Self::CommonJs | Self::NodeCommonJs => "require",
+    }
   }
 }
 
@@ -127,16 +179,34 @@ fn get_request_string(request: &ExternalRequestValue) -> String {
   format!("{variable_name}{object_lookup}")
 }
 
-fn get_source_for_commonjs(module_and_specifiers: Option<&ExternalRequestValue>) -> String {
-  let (module_name, properties) = if let Some(module_and_specifiers) = module_and_specifiers {
-    (
-      module_and_specifiers.primary(),
-      property_access(module_and_specifiers.iter(), 1),
-    )
-  } else {
-    ("undefined", String::new())
-  };
-  format!("require({}){}", json_stringify_str(module_name), properties)
+fn create_node_commonjs_init_fragment(compilation: &Compilation) -> BoxChunkInitFragment {
+  let need_prefix = compilation
+    .options
+    .output
+    .environment
+    .supports_node_prefix_for_core_modules();
+
+  NormalInitFragment::new(
+    format!(
+      "import {{ createRequire as __rspack_createRequire }} from \"{}\";\n{} __rspack_createRequire_require = __rspack_createRequire({}.url);\n",
+      if need_prefix { "node:module" } else { "module" },
+      if compilation.options.output.environment.supports_const() {
+        "const"
+      } else {
+        "var"
+      },
+      compilation.options.output.import_meta_name
+    ),
+    InitFragmentStage::StageESMImports,
+    0,
+    InitFragmentKey::ModuleExternal("node-commonjs".to_string()),
+    None,
+  )
+  .with_top_level_decl_symbols(vec![
+    "__rspack_createRequire".into(),
+    "__rspack_createRequire_require".into(),
+  ])
+  .boxed()
 }
 
 fn get_source_for_import(
@@ -449,16 +519,15 @@ fn resolve_external_type<'a>(
 #[cacheable]
 #[derive(Debug)]
 pub struct ExternalModule {
-  dependencies: Vec<DependencyId>,
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  dependencies_block: DependenciesBlockData,
   pub id: Identifier,
   pub request: ExternalRequest,
   pub external_type: ExternalType,
   /// Request intended by user (without loaders from config)
   user_request: String,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  factory_meta: FactoryMetaStore,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
   dependency_meta: DependencyMeta,
   place_in_initial: bool,
 }
@@ -480,9 +549,41 @@ pub struct DependencyMeta {
   pub attributes: Option<ImportAttributes>,
   pub phase: ImportPhase,
   pub source_type: Option<SourceType>,
+  pub css_import_conditions: Option<CssModuleRenderCondition>,
 }
 
 impl ExternalModule {
+  fn create_identifier(
+    request: &ExternalRequest,
+    external_type: &str,
+    dependency_meta: &DependencyMeta,
+  ) -> Identifier {
+    let resolved_type = resolve_external_type(external_type, dependency_meta);
+    let request_str = simd_json::to_string(request).expect("invalid json to_string");
+    let attrs_str = dependency_meta
+      .attributes
+      .as_ref()
+      .map_or(String::new(), |attrs| {
+        format!(
+          " {}",
+          simd_json::to_string(attrs).expect("invalid json to_string")
+        )
+      });
+    let phase_str = if dependency_meta.phase == ImportPhase::Evaluation {
+      String::new()
+    } else {
+      format!(" phase={}", dependency_meta.phase.as_str())
+    };
+    let css_import_str =
+      css_module_render_conditions_identifier(dependency_meta.css_import_conditions.iter())
+        .map_or(String::new(), |conditions| {
+          format!(" css-import-conditions={}", json_stringify_str(&conditions))
+        });
+    Identifier::from(format!(
+      "external {resolved_type} {request_str}{attrs_str}{phase_str}{css_import_str}"
+    ))
+  }
+
   pub fn new(
     request: ExternalRequest,
     external_type: ExternalType,
@@ -491,36 +592,18 @@ impl ExternalModule {
     place_in_initial: bool,
   ) -> Self {
     Self {
-      dependencies: Vec::new(),
-      blocks: Vec::new(),
-      id: Identifier::from({
-        let resolved_type = resolve_external_type(external_type.as_str(), &dependency_meta);
-        let request_str = simd_json::to_string(&request).expect("invalid json to_string");
-        let attrs_str = dependency_meta
-          .attributes
-          .as_ref()
-          .map_or(String::new(), |attrs| {
-            format!(
-              " {}",
-              simd_json::to_string(attrs).expect("invalid json to_string")
-            )
-          });
-        let phase_str = if dependency_meta.phase == ImportPhase::Evaluation {
-          String::new()
-        } else {
-          format!(" phase={}", dependency_meta.phase.as_str())
-        };
-        format!("external {resolved_type} {request_str}{attrs_str}{phase_str}")
-      }),
+      dependencies_block: Default::default(),
+      id: Self::create_identifier(&request, &external_type, &dependency_meta),
       request,
       external_type,
       user_request,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         top_level_declarations: Some(Default::default()),
         strict: true,
         ..Default::default()
-      },
+      }
+      .into(),
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
       dependency_meta,
@@ -571,7 +654,17 @@ impl ExternalModule {
   }
 
   pub fn set_external_type(&mut self, new_type: ExternalType) {
+    if let ExternalRequest::Map(map) = &mut self.request
+      && !map.contains_key(&new_type)
+      && let Some(request) = map.get(&self.external_type).cloned()
+    {
+      // Preserve the request selected by the previous type when a plugin
+      // changes how the external is rendered. Object-form externals are keyed
+      // by type, so changing only the type would make `get_request` panic.
+      map.insert(new_type.clone(), request);
+    }
     self.external_type = new_type;
+    self.id = Self::create_identifier(&self.request, &self.external_type, &self.dependency_meta);
   }
 
   pub fn get_request(&self) -> &ExternalRequestValue {
@@ -579,6 +672,10 @@ impl ExternalModule {
       ExternalRequest::Single(request) => request,
       ExternalRequest::Map(map) => &map[&self.external_type],
     }
+  }
+
+  pub fn try_get_request(&self) -> Option<&ExternalRequestValue> {
+    self.get_request_and_external_type().0
   }
 
   fn get_request_and_external_type(&self) -> (Option<&ExternalRequestValue>, &ExternalType) {
@@ -600,6 +697,28 @@ impl ExternalModule {
     let mut chunk_init_fragments: ChunkInitFragments = Default::default();
     let supports_const = compilation.options.output.environment.supports_const();
     let resolved_external_type = self.resolve_external_type();
+    if let Some(require_kind) =
+      CommonJsExternalRequireKind::from_external_type(resolved_external_type)
+    {
+      // For a missing object-form request, only ESM node-commonjs uses the
+      // undefined value; other CommonJS types request the name "undefined".
+      let fallback = (require_kind != CommonJsExternalRequireKind::NodeCommonJs
+        || !compilation.options.output.module)
+        .then_some("undefined");
+      let require_expression = require_kind.render_expression(
+        request.map(ExternalRequestValue::primary).or(fallback),
+        request
+          .and_then(ExternalRequestValue::rest)
+          .unwrap_or_default(),
+        compilation,
+        &mut chunk_init_fragments,
+      );
+      let source = format!(
+        "{} = {require_expression};",
+        get_namespace_object_export(concatenation_scope, supports_const, runtime_template)
+      );
+      return Ok((RawStringSource::from(source).boxed(), chunk_init_fragments));
+    }
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
 
@@ -619,66 +738,6 @@ impl ExternalModule {
         get_namespace_object_export(concatenation_scope, supports_const, runtime_template),
         get_source_for_global_variable_external(request, &compilation.options.output.global_object)
       ),
-      "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" => {
-        format!(
-          "{} = {};",
-          get_namespace_object_export(concatenation_scope, supports_const, runtime_template),
-          get_source_for_commonjs(request)
-        )
-      }
-      "node-commonjs" => {
-        let need_prefix = compilation
-          .options
-          .output
-          .environment
-          .supports_node_prefix_for_core_modules();
-
-        if compilation.options.output.module {
-          chunk_init_fragments.push(
-            NormalInitFragment::new(
-              format!(
-                "import {{ createRequire as __rspack_createRequire }} from \"{}\";\n{} __rspack_createRequire_require = __rspack_createRequire({}.url);\n",
-                if need_prefix { "node:module" } else { "module" },
-                if compilation.options.output.environment.supports_const() {
-                  "const"
-                } else {
-                  "var"
-                },
-                compilation.options.output.import_meta_name
-              ),
-              InitFragmentStage::StageESMImports,
-              0,
-              InitFragmentKey::ModuleExternal("node-commonjs".to_string()),
-              None,
-            )
-            .with_top_level_decl_symbols(vec![
-              "__rspack_createRequire".into(),
-              "__rspack_createRequire_require".into(),
-            ])
-            .boxed(),
-          );
-          let (request, specifiers) = if let Some(request) = request {
-            (
-              json_stringify_str(request.primary()),
-              property_access(request.iter(), 1),
-            )
-          } else {
-            ("undefined".to_string(), String::new())
-          };
-          format!(
-            "{} = __rspack_createRequire_require({}){};",
-            get_namespace_object_export(concatenation_scope, supports_const, runtime_template),
-            request,
-            specifiers
-          )
-        } else {
-          format!(
-            "{} = {};",
-            get_namespace_object_export(concatenation_scope, supports_const, runtime_template),
-            get_source_for_commonjs(request)
-          )
-        }
-      }
       "amd" | "amd-require" | "umd" | "umd2" | "system" | "jsonp" => {
         let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.identifier())
           .map(|s| s.as_str())
@@ -1062,24 +1121,12 @@ impl Identifiable for ExternalModule {
 }
 
 impl DependenciesBlock for ExternalModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency)
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }
 
@@ -1157,10 +1204,10 @@ impl Module for ExternalModule {
 
   async fn build(
     mut self: Box<Self>,
-    build_context: BuildContext,
+    build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
-  ) -> Result<BuildResult> {
-    self.build_info.module = build_context.compiler_options.output.module;
+  ) -> Result<BoxModule> {
+    self.build_info.get_mut().module = build_context.compiler_options.output.module;
     let resolved_external_type = self.resolve_external_type();
     let request = match &self.request {
       ExternalRequest::Single(request) => Some(request),
@@ -1171,7 +1218,7 @@ impl Module for ExternalModule {
 
     #[allow(clippy::collapsible_match)]
     match resolved_external_type {
-      "this" => self.build_info.strict = false,
+      "this" => self.build_info.get_mut().strict = false,
       "system" => {
         if !request.is_some_and(|r| r.has_rest()) {
           exports_type = BuildMetaExportsType::Namespace;
@@ -1179,22 +1226,22 @@ impl Module for ExternalModule {
         }
       }
       "module" => {
-        if self.build_info.module {
+        if self.build_info.get_mut().module {
           if !request.is_some_and(|r| r.has_rest()) {
             exports_type = BuildMetaExportsType::Namespace;
             can_mangle = true;
           }
         } else {
-          self.build_meta.set_has_top_level_await(true);
+          self.build_meta.get_mut().set_has_top_level_await(true);
           if !request.is_some_and(|r| r.has_rest()) {
             exports_type = BuildMetaExportsType::Namespace;
             can_mangle = false;
           }
         }
       }
-      "script" | "promise" => self.build_meta.set_has_top_level_await(true),
+      "script" | "promise" => self.build_meta.get_mut().set_has_top_level_await(true),
       "import" => {
-        self.build_meta.set_has_top_level_await(true);
+        self.build_meta.get_mut().set_has_top_level_await(true);
         if !request.is_some_and(|r| r.has_rest()) {
           exports_type = BuildMetaExportsType::Namespace;
           can_mangle = false;
@@ -1202,16 +1249,14 @@ impl Module for ExternalModule {
       }
       _ => {}
     }
-    self.build_meta.set_exports_type(exports_type);
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies: vec![DependencyRef::new(StaticExportsDependency::new(
+    self.build_meta.get_mut().set_exports_type(exports_type);
+    Ok(BoxModule::new(self).with_dependencies(
+      vec![DependencyRef::new(StaticExportsDependency::new(
         StaticExportsSpec::True,
         can_mangle,
       ))],
-      blocks: Vec::new(),
-      optimization_bailouts: vec![],
-    })
+      Vec::new(),
+    ))
   }
 
   // #[tracing::instrument("ExternalModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
@@ -1252,14 +1297,38 @@ impl Module for ExternalModule {
       }
       "css-import" if request.is_some() => {
         let request = request.expect("request should be some");
-        cgr.add(
-          SourceType::Css,
-          RawStringSource::from(format!(
-            "@import url({});",
-            rspack_util::json_stringify_str(request.primary())
-          ))
-          .boxed(),
+        let mut source = format!(
+          "@import url({})",
+          rspack_util::json_stringify_str(request.primary())
         );
+        if let Some(conditions) = &self.dependency_meta.css_import_conditions {
+          if let Some(layer) = &conditions.layer {
+            source.push_str(" layer(");
+            if let CssLayer::Named(layer) = layer {
+              source.push_str(layer);
+            }
+            source.push(')');
+          }
+          if let Some(supports) = conditions
+            .supports
+            .as_deref()
+            .filter(|value| !value.is_empty())
+          {
+            source.push_str(" supports(");
+            source.push_str(supports);
+            source.push(')');
+          }
+          if let Some(media) = conditions
+            .media
+            .as_deref()
+            .filter(|value| !value.is_empty())
+          {
+            source.push(' ');
+            source.push_str(media);
+          }
+        }
+        source.push(';');
+        cgr.add(SourceType::Css, RawStringSource::from(source).boxed());
       }
       _ => {
         let (source, chunk_init_fragments) = self.get_source(

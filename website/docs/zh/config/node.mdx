@@ -15,9 +15,11 @@ import Attribution from '@components/Attribution';
 ## node.global
 
 - **类型：** `boolean | 'warn'`
-- **默认值：** `'warn'`
+- **默认值：** 当 [target](/config/target) 原生提供 `global` 时为 `false`，否则为 `'warn'`。
 
 控制 Rspack 在为非 Node 环境打包时，是否需要为 Node.js 的 `global` 对象提供 polyfill。
+
+例如，`target: 'node'` 时默认为 `false`，`target: 'web'` 时默认为 `'warn'`。
 
 关于该对象的具体行为，请参考 [Node.js 文档](https://nodejs.org/api/globals.html#globals_global)。
 

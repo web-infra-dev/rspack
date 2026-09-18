@@ -1,8 +1,8 @@
-const { rspack } = require('@rspack/core');
+import { rspack } from '@rspack/core';
 
 /** @type { import('@rspack/core').RspackOptions } */
-module.exports = {
-  context: __dirname,
+export default {
+  context: import.meta.dirname,
   mode: 'development',
   entry: {
     main: './src/index.js',
@@ -34,7 +34,7 @@ module.exports = {
         use: [
           rspack.CssExtractRspackPlugin.loader,
           'css-loader',
-          './dep-loader.cjs',
+          './dep-loader.mjs',
         ],
       },
     ],

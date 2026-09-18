@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
 use rspack_core::{
-  ConstDependency, ContextDependency, DependencyCodeGenerationRef, DependencyRange,
+  ConstDependency, ContextDependency, DependencyCodeGenerationRef, DependencyRange, ExportsArgument,
 };
 use rspack_util::{SpanExt, itoa};
-use swc_experimental_ecma_ast::{CallExpr, GetSpan, Ident, Program, VarDeclarator};
+use swc_experimental_ecma_ast::{CallExpr, GetSpan, Ident, Program, UnaryExpr, VarDeclarator};
 
 use super::JavascriptParserPlugin;
 use crate::{
   Atom,
   dependency::CommonJsRequireContextDependency,
-  visitors::{JavascriptParser, Statement, TagInfoData, VariableDeclaration, expr_name},
+  visitors::{JavascriptParser, PatRef, Statement, TagInfoData, VariableDeclaration, expr_name},
 };
 
 pub const NESTED_IDENTIFIER_TAG: &str = "_identifier__nested_rspack_identifier__";
@@ -31,6 +31,48 @@ impl CompatibilityPlugin {
       .parser_runtime_requirements
       .compatibility_runtime_scope
       .as_str()
+  }
+
+  /// Rewrite a reference to a tagged nested binding to its deconflicted name,
+  /// materializing the declaration replacement on the first rewrite.
+  fn rewrite_nested_identifier<'p>(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    ident: &Ident,
+    in_short_hand: bool,
+  ) -> Option<bool> {
+    let tag_info = parser
+      .definitions_db
+      .expect_get_mut_tag_info(parser.current_tag_info?)
+      .data
+      .as_deref_mut()?;
+
+    let nested_require_data = NestedRequireData::downcast_mut(tag_info);
+    let mut deps: Vec<DependencyCodeGenerationRef> = Vec::with_capacity(2);
+    let name = nested_require_data.name.clone();
+    if !nested_require_data.update {
+      let shorthand = nested_require_data.in_short_hand;
+      deps.push(Arc::new(ConstDependency::new(
+        nested_require_data.loc,
+        if shorthand {
+          format!("{}: {}", ident.sym, name).into()
+        } else {
+          name.clone().into()
+        },
+      )));
+      nested_require_data.update = true;
+    }
+
+    deps.push(Arc::new(ConstDependency::new(
+      ident.span.into(),
+      if in_short_hand {
+        format!("{}: {}", ident.sym, name).into()
+      } else {
+        name.into()
+      },
+    )));
+    parser.add_presentational_dependencies(deps);
+    Some(true)
   }
 
   pub fn browserify_require_handler(
@@ -132,7 +174,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     decl: &VarDeclarator,
     _statement: VariableDeclaration<'_>,
   ) -> Option<bool> {
-    let ident = decl.name.as_ident()?;
+    let Some(ident) = decl.name.as_ident() else {
+      // Register nested bindings before other pre-declarator hooks define them,
+      // which can prevent the subsequent pattern hooks from seeing their names.
+      parser.enter_pattern(PatRef::Borrowed(&decl.name), |_, _| {});
+      return None;
+    };
 
     if ident.id.sym == self.nested_require_name(parser) {
       let span = ident.span();
@@ -154,6 +201,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
       );
       return Some(true);
     } else if ident.id.sym == parser.parser_runtime_requirements.exports.as_str() {
+      // Only top-level declarations can collide with the runtime exports
+      // binding. In nested scopes the declaration shadows it and keeps its
+      // original name.
+      if !parser.is_top_level_scope() {
+        return None;
+      }
       let span = ident.span();
       self.tag_nested_require_data(
         parser,
@@ -175,7 +228,27 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
+    // Keep the declaration tag and rewrite the target before another assignment
+    // hook can bail out, including targets inside destructuring assignments.
+    if for_name == NESTED_IDENTIFIER_TAG && parser.in_assignment_pattern {
+      return self.identifier(parser, ident, for_name);
+    }
+    // Do not interpret assignments to the CommonJS factory parameter as
+    // declarations of a nested runtime binding. Automatic modules can also be
+    // ESM, so check the actual factory binding rather than the module type.
+    if for_name == "exports"
+      && parser.in_assignment_pattern
+      && parser.build_info.exports_argument == ExportsArgument::Exports
+    {
+      return None;
+    }
     if for_name == parser.parser_runtime_requirements.exports {
+      // Only bindings in the top-level scope can collide with the runtime
+      // exports binding. Bindings in nested scopes shadow it and must not be
+      // renamed.
+      if !parser.is_top_level_scope() {
+        return None;
+      }
       self.tag_nested_require_data(
         parser,
         Atom::from(&ident.sym),
@@ -184,10 +257,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
         ident.span().real_lo(),
         ident.span().real_hi(),
       );
-      if !parser.is_top_level_scope() {
-        return Some(true);
-      }
+      return None;
     } else if for_name == self.nested_require_name(parser) {
+      // The require binding must be renamed in every scope: rewritten
+      // require() calls inject references to the runtime require name, which
+      // would otherwise be captured by a shadowing binding.
       let span = ident.span();
       let start = span.real_lo();
       let end = span.real_hi();
@@ -265,38 +339,24 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     if for_name != NESTED_IDENTIFIER_TAG {
       return None;
     }
-    let tag_info = parser
-      .definitions_db
-      .expect_get_mut_tag_info(parser.current_tag_info?)
-      .data
-      .as_deref_mut()?;
+    self.rewrite_nested_identifier(parser, ident, parser.in_short_hand)
+  }
 
-    let nested_require_data = NestedRequireData::downcast_mut(tag_info);
-    let mut deps: Vec<DependencyCodeGenerationRef> = Vec::with_capacity(2);
-    let name = nested_require_data.name.clone();
-    if !nested_require_data.update {
-      let shorthand = nested_require_data.in_short_hand;
-      deps.push(Arc::new(ConstDependency::new(
-        nested_require_data.loc,
-        if shorthand {
-          format!("{}: {}", ident.sym, name).into()
-        } else {
-          name.clone().into()
-        },
-      )));
-      nested_require_data.update = true;
+  fn r#typeof(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    expr: &UnaryExpr,
+    for_name: &str,
+  ) -> Option<bool> {
+    if for_name != NESTED_IDENTIFIER_TAG {
+      return None;
     }
-
-    deps.push(Arc::new(ConstDependency::new(
-      ident.span.into(),
-      if parser.in_short_hand {
-        format!("{}: {}", ident.sym, name).into()
-      } else {
-        name.into()
-      },
-    )));
-    parser.add_presentational_dependencies(deps);
-    Some(true)
+    // typeof operands are not walked through the identifier hook when another
+    // plugin claims the expression (e.g. ESM detection for exports), so the
+    // reference must be rewritten here to stay consistent with the renamed
+    // binding.
+    let ident = expr.arg.as_ident()?;
+    self.rewrite_nested_identifier(parser, ident, false)
   }
 
   fn call(

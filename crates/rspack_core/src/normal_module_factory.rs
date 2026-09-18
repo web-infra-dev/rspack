@@ -850,7 +850,8 @@ impl NormalModuleFactory {
             loader: r.to_owned(),
             options: ident.and_then(|ident| {
               data
-                .options
+                .build_context
+                .compiler_options
                 .__references
                 .get(ident)
                 .map(|object| object.to_string())
@@ -922,7 +923,7 @@ impl NormalModuleFactory {
             let ident = format!("{}/{}", &data.context, resource);
             let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
-            let mut raw_module = if matches!(
+            let raw_module = if matches!(
               dependency_type,
               DependencyType::CssUrl | DependencyType::NewUrl
             ) {
@@ -1119,7 +1120,12 @@ module.exports = "data:,";
       )
     };
 
-    let resolved_module_type = self.calculate_module_type(match_module_type, &matched_module_rules);
+    let resolved_module_type = if no_pre_post_auto_loaders {
+      // Like webpack, `!!` also disables Rule.type, but preserves an explicit matchResource type.
+      match_module_type.unwrap_or(ModuleType::JsAuto)
+    } else {
+      self.calculate_module_type(match_module_type, &matched_module_rules)
+    };
     let resolved_module_layer =
       self.calculate_module_layer(data.issuer_layer.as_ref(), &matched_module_rules);
 

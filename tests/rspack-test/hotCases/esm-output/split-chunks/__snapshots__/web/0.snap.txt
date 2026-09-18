@@ -4,7 +4,9 @@
 
 
 ## Asset Files
-
+- Bundle: common.chunk.mjs
+- Bundle: main.mjs
+- Bundle: vendor.chunk.mjs
 
 ## Manifest
 
