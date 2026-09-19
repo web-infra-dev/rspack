@@ -63,25 +63,25 @@ impl<'a> Specifier<'a> {
     let mut fragment_start: Option<usize> = None;
     let mut escaped_indexes: Vec<usize> = Vec::new();
 
-    // Scan as bytes: `?`, `#`, and `\0` are single-byte ASCII (< 0x80), so their
-    // byte positions coincide with char positions in any UTF-8 input. This skips
-    // the per-step UTF-8 decode that `char_indices()` performs, which dominated
-    // the callgrind baseline.
+    // Scan as bytes: '?', '#', and NUL are single-byte ASCII (< 0x80), so their
+    // byte positions coincide with char positions in any UTF-8 input, and one
+    // memchr2 pass can skip straight between them instead of testing every byte.
     let bytes = specifier.as_bytes();
-    let mut prev = bytes[0];
-    for (i, &b) in bytes.iter().enumerate().skip(skip) {
-      if b == b'?' && query_start.is_none() {
-        query_start = Some(i);
-      }
-      if b == b'#' {
-        if prev == 0 {
-          escaped_indexes.push(i - 1);
-        } else {
-          fragment_start = Some(i);
-          break;
+    let mut offset = skip;
+    while let Some(found) = memchr::memchr2(b'?', b'#', &bytes[offset..]) {
+      let i = offset + found;
+      if bytes[i] == b'?' {
+        if query_start.is_none() {
+          query_start = Some(i);
         }
+      } else if i > 0 && bytes[i - 1] == 0 {
+        // A NUL byte escapes the following '#' in a request.
+        escaped_indexes.push(i - 1);
+      } else {
+        fragment_start = Some(i);
+        break;
       }
-      prev = b;
+      offset = i + 1;
     }
 
     let (path, query, fragment) = match (query_start, fragment_start) {
