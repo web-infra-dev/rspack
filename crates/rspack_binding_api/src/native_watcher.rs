@@ -79,8 +79,6 @@ pub struct NativeTimeInfoEntry {
   pub existence_only: bool,
 }
 
-/// watchpack's `collectTimeInfoEntries(fileTimestamps, directoryTimestamps)`
-/// output.
 #[napi(object)]
 pub struct NativeTimeInfoEntries {
   pub file_timestamps: Vec<NativeTimeInfoEntry>,
@@ -193,10 +191,7 @@ impl NativeWatcher {
     })
   }
 
-  /// watchpack's `collectTimeInfoEntries`, over every registered path. Read
-  /// synchronously from JS after an aggregated event (to populate
-  /// `compiler.fileTimestamps` / `contextTimestamps`) and by `getTimes` /
-  /// `getTimeInfoEntries`.
+  /// watchpack's `collectTimeInfoEntries`, over every registered path.
   #[napi]
   pub fn collect_time_info_entries(&self) -> NativeTimeInfoEntries {
     let (file_timestamps, directory_timestamps) = self.watcher.collect_time_info_entries();

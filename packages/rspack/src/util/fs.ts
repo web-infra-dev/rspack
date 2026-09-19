@@ -12,10 +12,9 @@ import path from 'node:path';
 
 import type { WatchOptions } from '../config';
 
-// watchpack's `TimeInfoEntries` (types/index.d.ts): a file's `Entry`
-// ({ safeTime, timestamp, accuracy }), a directory's `OnlySafeTimeEntry`
-// ({ safeTime }), an `ExistenceOnlyTimeEntry` ({}), or `null` for a watched
-// path absent on disk; webpack adds 'ignore'.
+// watchpack's `TimeInfoEntries`: `Entry` ({ safeTime, timestamp, accuracy }),
+// `OnlySafeTimeEntry` ({ safeTime }), `ExistenceOnlyTimeEntry` ({}) or `null`
+// for a watched path absent on disk; webpack adds 'ignore'.
 export type ExistenceOnlyTimeEntry = Record<string, never>;
 export type TimeInfoEntries = Map<
   string,
@@ -708,7 +707,6 @@ export const mkdirp = (
 export interface FileSystemInfoEntry {
   safeTime: number;
   timestamp?: number;
-  // watchpack's `Entry` also records the mtime resolution it assumed.
   accuracy?: number;
 }
 
@@ -738,10 +736,8 @@ export interface WatchFileSystem {
     callbackUndelayed: (fileName: string, changeTime: number) => void,
   ): Watcher;
 
-  // watchpack-compatible times API, so plugins can read watched-path timestamps
-  // through `compiler.watchFileSystem` regardless of which watcher backs it.
-  // Optional to avoid a breaking change for external `WatchFileSystem`
-  // implementations.
+  // watchpack-compatible times API. Optional to avoid a breaking change for
+  // external `WatchFileSystem` implementations.
   getTimes?(): Record<string, number | null>;
   getTimeInfoEntries?(): TimeInfoEntries;
   collectTimeInfoEntries?(

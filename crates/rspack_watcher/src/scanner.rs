@@ -100,9 +100,7 @@ impl Scanner {
           .into_iter()
           .filter(|p| changed_since(p, start_time))
           .collect::<Vec<_>>();
-        // This backfill bypasses `Trigger`, so record the file time here: it
-        // is what lets `collect_time_info_entries` report the dependency as
-        // present.
+        // This backfill bypasses `Trigger`, so record the file time here.
         for path in &created {
           if let Some(mtime) = disk_mtime(path) {
             path_manager.set_file_time(path, mtime, true, false);
@@ -129,8 +127,6 @@ fn absent_paths(paths: &[InternedPath], missing: &InternedPathDashSet) -> Vec<In
     .collect()
 }
 
-/// Sends one `kind` event per path as a single batch; nothing to send counts
-/// as sent.
 fn send_events(
   paths: Vec<InternedPath>,
   kind: FsEventKind,

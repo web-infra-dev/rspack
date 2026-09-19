@@ -1,13 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-// Records what the watcher reports about watched-path timestamps: the tables
-// webpack receives through the `watch` callback (`compiler.fileTimestamps` /
-// `contextTimestamps`) and the watchpack-compatible times API on
-// `WatchFileSystem` (plus the same API on the `watcher` shim, the surface
-// plugins like ts-checker-rspack-plugin reach for). Written next to the bundle
-// so the test bundle can assert on it. Runs against both watcher backends:
-// watchpack (`Watch.part*`) and the native watcher (`NativeWatcher.part*`).
+// Dumps `compiler.fileTimestamps` / `contextTimestamps` and the times API of
+// `WatchFileSystem` (and its `watcher` shim) next to the bundle for the test
+// to assert on. Runs under both the watchpack and native watcher projects.
 class RecordWatchTimesPlugin {
   apply(compiler) {
     const dump = (entries) => (entries ? Array.from(entries.entries()) : null);

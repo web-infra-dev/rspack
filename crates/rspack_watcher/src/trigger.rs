@@ -185,9 +185,7 @@ impl EventProcessor {
       kind
     };
 
-    // A removed file's record no longer describes anything on disk: drop it
-    // so `collect_time_info_entries` re-stats the path and reports it as
-    // absent, matching watchpack, which reports a removed entry as `null`.
+    // Drop a removed file's record so it reads as `null`, like watchpack.
     if kind == FsEventKind::Remove {
       self.path_manager.remove_file_time(path);
     }
@@ -200,8 +198,7 @@ impl EventProcessor {
     // against the recorded baseline to suppress events where nothing changed.
     // Apply the same suppression to Create for already-registered files, since
     // macOS may emit stale Create events for files that predate the watcher.
-    // A registered-missing path takes its first baseline here, which is what
-    // lets `collect_time_info_entries` report it as present once it exists.
+    // A registered-missing path takes its first record here, once it exists.
     if (kind == FsEventKind::Change || (kind == FsEventKind::Create && is_watched_path))
       && !self.path_manager.has_mtime_changed(path)
     {
@@ -210,10 +207,7 @@ impl EventProcessor {
 
     let finder = self.finder();
     let associated_event = finder.find_associated_event(path, kind);
-    // watchpack's per-directory `lastWatchEvent`: an event reaching a
-    // registered context — its own or a descendant's — advances it, so the
-    // context's safe time still moves when the change did not touch the
-    // directory mtime (an edit inside it).
+    // watchpack's `lastWatchEvent`: every registered context the event reached.
     for (path, _) in &associated_event {
       self.path_manager.set_last_watch_event(path);
     }

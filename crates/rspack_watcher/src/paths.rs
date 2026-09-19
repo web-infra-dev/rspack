@@ -254,18 +254,16 @@ pub(crate) struct PathManager {
   directories: PathTracker,
   missing: PathTracker,
   ignored: IgnoredMatcher,
-  /// watchpack's `files` map: the last observation of each watched path —
-  /// registered files (seeded at scan time) and registered-missing paths once
-  /// an event has shown them on disk. Its mtime filters stale FSEvents for
-  /// paths not actually modified; the whole record is the no-syscall source
-  /// for `collect_time_info_entries`.
+  /// watchpack's `files` map: the last observation of each registered file,
+  /// and of each registered-missing path once an event has shown it on disk.
+  /// Its mtime filters stale FSEvents; the whole record feeds
+  /// `collect_time_info_entries` without a syscall.
   /// See: https://gist.github.com/stormslowly/ed758500de6f23211fd63b39eba5ed07
   file_times: InternedPathDashMap<FileTime>,
-  /// watchpack's per-`DirectoryWatcher` `lastWatchEvent`, per registered
-  /// context directory: when an event last reached it — its own or a
-  /// descendant's — in epoch millis. The floor for the context's safe time:
-  /// an edit inside the directory does not bump the directory's mtime, so
-  /// mtime alone misses it.
+  /// watchpack's per-`DirectoryWatcher` `lastWatchEvent`: when an event last
+  /// reached each registered context (its own or a descendant's), in epoch
+  /// millis. An edit inside a directory does not bump its mtime, so this is
+  /// the floor for the context's safe time.
   last_watch_events: InternedPathDashMap<u64>,
 }
 
@@ -351,9 +349,7 @@ impl PathManager {
     true
   }
 
-  /// An event reached the registered context `path`: advance its
-  /// `lastWatchEvent` (see `last_watch_events`). No-op for paths not
-  /// registered as directories.
+  /// An event reached the registered context `path`: advance its `lastWatchEvent`.
   pub fn set_last_watch_event(&self, path: &InternedPath) {
     if self.directories.all.contains(path) {
       self.last_watch_events.insert(path.clone(), current_time());
@@ -457,13 +453,10 @@ impl PathManager {
     disk_mtime(path).map(FileTime::initial)
   }
 
-  /// A path's mtime in epoch-millis from a fresh stat (directories have no
-  /// baseline cache).
   fn stat_mtime_ms(path: &InternedPath) -> Option<u64> {
     disk_mtime(path).map(system_time_to_millis)
   }
 
-  /// watchpack's `Entry` for a file's `files` record.
   fn entry(time: FileTime) -> TimeInfoEntry {
     TimeInfoEntry::Entry {
       safe_time: time.safe_time,
@@ -527,8 +520,7 @@ impl PathManager {
         own_safe_time.map(|own| last_watch_event.map_or(own, |event| own.max(event))),
       );
     }
-    // Raise each registered ancestor directory by its descendant files' safe
-    // times (mirrors `Trigger::recurse_parent_directories`).
+    // Raise each registered ancestor directory by its descendant files' safe times.
     for (file, safe_time) in &file_safe_times {
       let mut cursor = file.parent().map(InternedPath::from);
       while let Some(dir) = cursor {

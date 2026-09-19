@@ -40,12 +40,7 @@ const toJsWatcherIgnored = (
 /** watchpack's existence-only time entry (`{}`): known to exist, no time info. */
 const EXISTENCE_ONLY_TIME_ENTRY: ExistenceOnlyTimeEntry = Object.freeze({});
 
-/**
- * Rebuild watchpack's `TimeInfoEntries` from the native rows: a file's `Entry`
- * ({ safeTime, timestamp, accuracy }), a directory's `OnlySafeTimeEntry`
- * ({ safeTime }), an `ExistenceOnlyTimeEntry` ({}), or `null` for a watched
- * path absent on disk.
- */
+/** Rebuild watchpack's `TimeInfoEntries` from the flattened native rows. */
 const toTimeInfoEntries = (
   rows: binding.NativeTimeInfoEntry[],
 ): TimeInfoEntries => {
@@ -302,8 +297,6 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
     };
   }
 
-  // The native `collectTimeInfoEntries`, under the names the `watch` callback
-  // and `Watcher.getInfo()` hand to webpack.
   #fetchTimeInfo(nativeWatcher: binding.NativeWatcher): {
     fileTimeInfoEntries: TimeInfoEntries;
     contextTimeInfoEntries: TimeInfoEntries;
@@ -317,10 +310,8 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
   }
 
   /**
-   * watchpack's `getTimes` / `getTimeInfoEntries` / `collectTimeInfoEntries`,
-   * served from the native watcher's registered paths. Before the first
-   * `watch()` (and after `close()`) nothing is registered, so they read as
-   * empty.
+   * watchpack's times API, served from the native watcher's registered paths.
+   * Empty before the first `watch()` and after `close()`.
    */
   getTimes(): Record<string, number | null> {
     const times: Record<string, number | null> = Object.create(null);
@@ -330,9 +321,8 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
     const { fileTimestamps, directoryTimestamps } =
       this.#inner.collectTimeInfoEntries();
     for (const row of fileTimestamps) {
-      // `getTimes` reports the paths that carry a time: a file's `Entry` as
-      // the later of its safe time and timestamp, a watched path absent on
-      // disk as null. Existence-only entries have no time to report.
+      // Like watchpack: a file reports the later of its safe time and
+      // timestamp, an absent path null, an existence-only entry nothing.
       if (row.existenceOnly) {
         continue;
       }

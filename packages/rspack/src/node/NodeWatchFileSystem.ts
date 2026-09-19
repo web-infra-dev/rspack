@@ -222,9 +222,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
     };
   }
 
-  // watchpack's own times API, forwarded from the current cycle's watcher.
-  // Before the first `watch()` (and after `close()`) there is nothing watched
-  // yet, so the tables read as empty.
+  // watchpack's times API, forwarded from the current cycle's watcher.
   getTimes(): Record<string, number | null> {
     return this.watcher?.getTimes() ?? {};
   }
