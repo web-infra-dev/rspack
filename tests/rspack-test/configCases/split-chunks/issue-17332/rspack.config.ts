@@ -1,0 +1,25 @@
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  mode: 'development',
+  entry: {
+    main: './index',
+  },
+  output: {
+    filename: '[name].js',
+  },
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        default: false,
+        defaultVendors: false,
+        bar: {
+          chunks: /foo/,
+          test: /bar\.js/,
+          name: 'split-foo',
+          minSize: 1,
+        },
+      },
+    },
+  },
+});
