@@ -6,10 +6,12 @@ use std::{
   fmt::{Debug, Formatter},
   marker::PhantomData,
   path::{Path, PathBuf},
+  sync::OnceLock,
 };
 
 use camino::Utf8Path;
 use cow_utils::CowUtils;
+use rspack_paths::InternedPath;
 use serde::de::{Deserialize, Deserializer, IgnoredAny, MapAccess, Visitor};
 use simd_json::{
   BorrowedValue, Error as SimdParseError, ObjectHasher,
@@ -139,6 +141,10 @@ pub struct PackageJson {
   /// Path to `package.json`. Contains the `package.json` filename.
   pub path: PathBuf,
 
+  /// Interned form of [`Self::path`], memoized so dependency tracking does not
+  /// rehash and re-intern the same `package.json` on every resolution.
+  path_interned: OnceLock<InternedPath>,
+
   /// Realpath to `package.json`. Contains the `package.json` filename.
   pub realpath: PathBuf,
 
@@ -192,6 +198,14 @@ impl From<SimdParseError> for ParseError {
 }
 
 impl PackageJson {
+  /// Interned [`Self::path`], computed once per `package.json`.
+  pub fn interned_path(&self) -> InternedPath {
+    self
+      .path_interned
+      .get_or_init(|| InternedPath::new(&self.path))
+      .clone()
+  }
+
   /// # Panics
   /// # Errors
   pub(crate) fn parse(path: PathBuf, realpath: PathBuf, json: Vec<u8>) -> Result<Self, ParseError> {
