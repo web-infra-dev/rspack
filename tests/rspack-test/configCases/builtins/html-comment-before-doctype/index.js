@@ -4,11 +4,12 @@ const path = require("path");
 const countDoctype = (content) =>
 	content.toLowerCase().split("<!doctype").length - 1;
 
-it("should keep the doctype when it is preceded by a comment", () => {
+it("should keep the doctype when it is preceded by comments", () => {
 	const htmlPath = path.join(__dirname, "./index.html");
 	const htmlContent = fs.readFileSync(htmlPath, "utf-8");
 	expect(countDoctype(htmlContent)).toBe(1);
 	expect(htmlContent).toContain("<!-- lorem ipsum -->");
+	expect(htmlContent).toContain("<!-- another comment -->");
 	expect(htmlContent).toContain('<div id="root"></div>');
 });
 
