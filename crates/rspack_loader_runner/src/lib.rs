@@ -9,7 +9,8 @@ mod runner;
 mod scheme;
 
 pub use content::{
-  AdditionalData, Content, DescriptionData, ParseMeta, ParseMetaValue, ResourceData,
+  AdditionalData, Content, DescriptionData, DescriptionSideEffects, ParseMeta, ParseMetaValue,
+  ResourceData,
 };
 pub use context::{LoaderContext, LoaderDependencies, State};
 pub use loader::{

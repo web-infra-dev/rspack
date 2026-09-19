@@ -21,14 +21,20 @@ pub struct ResolveRequest {
 
 impl From<rspack_core::Resource> for ResolveRequest {
   fn from(value: rspack_core::Resource) -> Self {
-    let (description_file_path, description_file_data) =
-      value.description_data.map(|data| data.into_parts()).unzip();
+    let description_file_path = value
+      .description_data
+      .as_ref()
+      .map(|data| data.path().to_string_lossy().into_owned());
+    let description_file_data = value
+      .description_data
+      .as_ref()
+      .and_then(crate::resource_data::description_file_json);
     Self {
       path: value.path.to_string(),
       query: value.query,
       fragment: value.fragment,
-      description_file_data: description_file_data.map(std::sync::Arc::unwrap_or_clone),
-      description_file_path: description_file_path.map(|path| path.to_string_lossy().into_owned()),
+      description_file_data,
+      description_file_path,
       file_dependencies: vec![],
       missing_dependencies: vec![],
     }

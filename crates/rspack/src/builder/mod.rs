@@ -470,13 +470,24 @@ impl CompilerBuilder {
       .take()
       .unwrap_or_else(|| Arc::new(NativeFileSystem::new(false)));
 
-    let resolver_factory = Arc::new(ResolverFactory::new(
+    // Only descriptionData conditions that need keys other than `type` observe
+    // the raw package.json mirror; everything else consumes the typed fields.
+    let description_json = compiler_options
+      .module
+      .rules
+      .iter()
+      .any(ModuleRule::needs_raw_description_data);
+    let resolver_factory = Arc::new(ResolverFactory::new_with_description_json(
       compiler_options.resolve.clone(),
       input_filesystem.clone(),
+      description_json,
     ));
-    let loader_resolver_factory = Arc::new(ResolverFactory::new(
+    // The loader resolver classifies ESM and CommonJS loaders from the package
+    // type, so it always keeps the description.
+    let loader_resolver_factory = Arc::new(ResolverFactory::new_with_description_json(
       compiler_options.resolve_loader.clone(),
       input_filesystem.clone(),
+      true,
     ));
 
     let compiler_context = CURRENT_COMPILER_CONTEXT.try_with(|v| v.clone()).ok();

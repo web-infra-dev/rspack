@@ -18,6 +18,8 @@ pub struct JsResolverFactory {
   input_filesystem: Arc<dyn ReadableFileSystem>,
   resolve_options: Resolve,
   loader_resolve_options: Resolve,
+  /// Whether resolved resources must carry the raw package.json description.
+  description_json: bool,
 
   resolver_factory: Option<Arc<ResolverFactory>>,
   loader_resolver_factory: Option<Arc<ResolverFactory>>,
@@ -51,10 +53,21 @@ impl JsResolverFactory {
     Ok(Self {
       resolve_options,
       loader_resolve_options,
+      description_json: true,
       resolver_factory: None,
       loader_resolver_factory: None,
       input_filesystem,
     })
+  }
+
+  /// Set whether resolved resources carry the raw package.json description.
+  /// Already created factories are invalidated when the value changes.
+  pub fn set_description_json(&mut self, description_json: bool) {
+    if self.description_json != description_json {
+      self.resolver_factory = None;
+      self.loader_resolver_factory = None;
+      self.description_json = description_json;
+    }
   }
 
   pub fn update_options(
@@ -80,9 +93,10 @@ impl JsResolverFactory {
       Some(resolver_factory) => resolver_factory.clone(),
 
       None => {
-        let resolver_factory = Arc::new(ResolverFactory::new(
+        let resolver_factory = Arc::new(ResolverFactory::new_with_description_json(
           self.resolve_options.clone(),
           self.input_filesystem.clone(),
+          self.description_json,
         ));
         self.resolver_factory = Some(resolver_factory.clone());
         resolver_factory
@@ -94,9 +108,12 @@ impl JsResolverFactory {
     match &self.loader_resolver_factory {
       Some(resolver_factory) => resolver_factory.clone(),
       None => {
-        let resolver_factory = Arc::new(ResolverFactory::new(
+        let resolver_factory = Arc::new(ResolverFactory::new_with_description_json(
           self.loader_resolve_options.clone(),
           self.input_filesystem.clone(),
+          // The loader resolver classifies ESM and CommonJS loaders from the
+          // package type, so it always keeps the description.
+          true,
         ));
         self.loader_resolver_factory = Some(resolver_factory.clone());
         resolver_factory

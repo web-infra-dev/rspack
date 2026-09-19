@@ -119,8 +119,8 @@ pub use inventory;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_hash::{RspackHash, RspackHasher};
 pub use rspack_loader_runner::{
-  AdditionalData, BUILTIN_LOADER_PREFIX, ParseMeta, ResourceData, ResourceParsedData, Scheme,
-  get_scheme, parse_resource,
+  AdditionalData, BUILTIN_LOADER_PREFIX, DescriptionSideEffects, ParseMeta, ResourceData,
+  ResourceParsedData, Scheme, get_scheme, parse_resource,
 };
 pub use rspack_macros::{impl_runtime_module, impl_source_map_config};
 pub use rspack_sources;

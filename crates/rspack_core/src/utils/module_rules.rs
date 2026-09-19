@@ -203,12 +203,19 @@ fn module_rule_matcher_sync<'rule, 'ctx>(
   if let Some(description_data) = &module_rule.description_data {
     if let Some(resource_description) = resource_data.description() {
       for (k, matcher) in description_data {
-        ensure_sync_matched!(check_optional_sync(
-          matcher,
+        let typed;
+        let value = if k == "type" {
+          // The resolver already parsed this field, so it can be answered even
+          // when the raw package.json mirror is not collected.
+          typed = resource_description
+            .module_type()
+            .map(|t| serde_json::Value::String(t.to_owned()));
+          typed.as_ref()
+        } else {
           k.split('.')
             .try_fold(resource_description.json(), |acc, key| acc.get(key))
-            .map(Into::into),
-        ));
+        };
+        ensure_sync_matched!(check_optional_sync(matcher, value.map(Into::into)));
       }
     } else {
       for matcher in description_data.values() {
@@ -367,14 +374,19 @@ async fn module_rule_matcher_async<'rule, 'ctx>(
   if let Some(description_data) = &module_rule.description_data {
     if let Some(resource_description) = resource_data.description() {
       for (k, matcher) in description_data {
-        if !check_optional_async(
-          matcher,
+        let typed;
+        let value = if k == "type" {
+          // The resolver already parsed this field, so it can be answered even
+          // when the raw package.json mirror is not collected.
+          typed = resource_description
+            .module_type()
+            .map(|t| serde_json::Value::String(t.to_owned()));
+          typed.as_ref()
+        } else {
           k.split('.')
             .try_fold(resource_description.json(), |acc, key| acc.get(key))
-            .map(Into::into),
-        )
-        .await?
-        {
+        };
+        if !check_optional_async(matcher, value.map(Into::into)).await? {
           return Ok(false);
         }
       }

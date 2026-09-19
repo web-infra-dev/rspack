@@ -322,6 +322,9 @@ impl JsCompiler {
       let pnp = options.resolve.pnp.unwrap_or(false);
       let virtual_files = options.__virtual_files.take();
       let use_input_fs = options.experiments.use_input_file_system.take();
+      // Virtual and hybrid input filesystems cannot be re-read from disk by JS
+      // consumers later, so their descriptions stay materialized.
+      let has_custom_input_fs = virtual_files.is_some() || use_input_fs.is_some();
       let compiler_options: rspack_core::CompilerOptions = options.try_into().to_napi_result()?;
 
       tracing::debug!(name:"normalized_options", options=?&compiler_options);
@@ -366,6 +369,17 @@ impl JsCompiler {
         input_file_system.clone(),
         compiler_options.resolve.clone(),
         compiler_options.resolve_loader.clone(),
+      );
+      // Rules only observe the raw package.json mirror through descriptionData
+      // conditions that need keys other than `type`, which is served from the
+      // typed field; every other build skips materializing the mirror.
+      resolver_factory_reference.set_description_json(
+        has_custom_input_fs
+          || compiler_options
+            .module
+            .rules
+            .iter()
+            .any(rspack_core::ModuleRule::needs_raw_description_data),
       );
       let resolver_factory = resolver_factory_reference.get_resolver_factory();
       let loader_resolver_factory = resolver_factory_reference.get_loader_resolver_factory();

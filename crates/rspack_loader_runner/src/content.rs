@@ -311,6 +311,18 @@ impl ResourceData {
   }
 }
 
+/// Typed subset of `package.json.sideEffects` extracted while the resolver
+/// parsed the file, so consumers do not have to re-read the raw JSON.
+#[cacheable]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DescriptionSideEffects {
+  /// The field is absent or has an unsupported shape.
+  Unset,
+  Bool(bool),
+  /// A plain string pattern or an array of patterns.
+  Patterns(Vec<String>),
+}
+
 /// Used for [Rule.descriptionData](https://rspack.rs/config/module.html#ruledescriptiondata) and
 /// package.json.sideEffects in tree shaking.
 #[cacheable]
@@ -320,22 +332,82 @@ pub struct DescriptionData {
   #[cacheable(with=As<PortablePath>)]
   path: PathBuf,
 
+  /// Path to the described `package.json` file itself.
+  #[cacheable(with=As<PortablePath>)]
+  json_path: PathBuf,
+
   /// Raw package.json
   #[cacheable(with=AsInner<AsPreset>)]
   json: Arc<serde_json::Value>,
+
+  /// Raw `type` field, served to `descriptionData` matchers without the
+  /// JSON mirror.
+  module_type: Option<String>,
+
+  /// Raw `version` field, kept for consumers that resolve it eagerly.
+  version: Option<String>,
+
+  /// Typed `sideEffects` parsed by the resolver. None means the resolver
+  /// did not collect it and consumers should fall back to `json`.
+  side_effects: Option<DescriptionSideEffects>,
 }
 
 impl DescriptionData {
   pub fn new(path: PathBuf, json: Arc<serde_json::Value>) -> Self {
-    Self { path, json }
+    Self {
+      json_path: path.clone(),
+      path,
+      json,
+      module_type: None,
+      version: None,
+      side_effects: None,
+    }
+  }
+
+  pub fn new_with_description(
+    path: PathBuf,
+    json_path: PathBuf,
+    json: Arc<serde_json::Value>,
+    module_type: Option<String>,
+    version: Option<String>,
+    side_effects: Option<DescriptionSideEffects>,
+  ) -> Self {
+    Self {
+      path,
+      json_path,
+      json,
+      module_type,
+      version,
+      side_effects,
+    }
   }
 
   pub fn path(&self) -> &Path {
     &self.path
   }
 
+  /// Path to the described `package.json` file.
+  pub fn json_path(&self) -> &Path {
+    &self.json_path
+  }
+
   pub fn json(&self) -> &serde_json::Value {
     self.json.as_ref()
+  }
+
+  /// Raw `type` field of the described package.json.
+  pub fn module_type(&self) -> Option<&str> {
+    self.module_type.as_deref()
+  }
+
+  /// Raw `version` field of the described package.json.
+  pub fn version(&self) -> Option<&str> {
+    self.version.as_deref()
+  }
+
+  /// Typed `sideEffects` when the resolver collected it.
+  pub fn side_effects(&self) -> Option<&DescriptionSideEffects> {
+    self.side_effects.as_ref()
   }
 
   pub fn into_parts(self) -> (PathBuf, Arc<serde_json::Value>) {

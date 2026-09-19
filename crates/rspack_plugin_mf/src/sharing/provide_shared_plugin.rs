@@ -164,11 +164,16 @@ impl ProvideSharedPlugin {
       );
     } else if let Some(description) = resource_data.description() {
       let version = description
-        .json()
-        .as_object()
-        .and_then(|d| d.get("version"))
-        .and_then(|v| v.as_str())
+        .version()
         .map(|v| v.to_string())
+        .or_else(|| {
+          description
+            .json()
+            .as_object()
+            .and_then(|d| d.get("version"))
+            .and_then(|v| v.as_str())
+            .map(ToString::to_string)
+        })
         .or_else(|| Self::find_parent_package_version(description.path(), share_key));
 
       if let Some(version) = version {

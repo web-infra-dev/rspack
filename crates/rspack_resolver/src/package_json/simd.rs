@@ -6,10 +6,12 @@ use std::{
   fmt::{Debug, Formatter},
   marker::PhantomData,
   path::{Path, PathBuf},
+  sync::OnceLock,
 };
 
 use camino::Utf8Path;
 use cow_utils::CowUtils;
+use rspack_paths::InternedPath;
 use serde::de::{Deserialize, Deserializer, IgnoredAny, MapAccess, Visitor};
 use simd_json::{
   BorrowedValue, Error as SimdParseError, ObjectHasher,
@@ -139,6 +141,10 @@ pub struct PackageJson {
   /// Path to `package.json`. Contains the `package.json` filename.
   pub path: PathBuf,
 
+  /// Interned form of [`Self::path`], memoized so dependency tracking does not
+  /// rehash and re-intern the same `package.json` on every resolution.
+  path_interned: OnceLock<InternedPath>,
+
   /// Realpath to `package.json`. Contains the `package.json` filename.
   pub realpath: PathBuf,
 
@@ -148,10 +154,17 @@ pub struct PackageJson {
   /// <https://nodejs.org/api/packages.html#name>
   pub name: Option<String>,
 
+  /// The "version" field, kept so consumers can read it without the JSON mirror.
+  pub version: Option<String>,
+
   /// The "type" field.
   ///
   /// <https://nodejs.org/api/packages.html#type>
   pub r#type: Option<ModuleType>,
+
+  /// The raw "type" value, as written in package.json. Consumers use it to
+  /// answer `descriptionData.type` questions without reading the file.
+  pub type_text: Option<String>,
 
   /// The "sideEffects" field.
   ///
@@ -161,7 +174,7 @@ pub struct PackageJson {
   raw_json: std::sync::Arc<JSONCell>,
 
   #[cfg(feature = "package_json_raw_json_api")]
-  serde_json: std::sync::Arc<serde_json::Value>,
+  serde_json: std::sync::OnceLock<std::sync::Arc<serde_json::Value>>,
 }
 
 const BOM: [u8; 3] = [0xEF, 0xBB, 0xBF];
@@ -192,6 +205,14 @@ impl From<SimdParseError> for ParseError {
 }
 
 impl PackageJson {
+  /// Interned [`Self::path`], computed once per `package.json`.
+  pub fn interned_path(&self) -> InternedPath {
+    self
+      .path_interned
+      .get_or_init(|| InternedPath::new(&self.path))
+      .clone()
+  }
+
   /// # Panics
   /// # Errors
   pub(crate) fn parse(path: PathBuf, realpath: PathBuf, json: Vec<u8>) -> Result<Self, ParseError> {
@@ -216,14 +237,23 @@ impl PackageJson {
         .and_then(|str| str.as_str())
         .and_then(|str| str.try_into().ok());
 
+      package_json.version = json_object
+        .get("version")
+        .and_then(|str| str.as_str())
+        .map(ToString::to_string);
+
+      package_json.type_text = json_object
+        .get("type")
+        .and_then(|str| str.as_str())
+        .map(ToString::to_string);
+
       package_json.side_effects = json_object
         .get("sideEffects")
         .and_then(|value| SideEffects::try_from(value).ok());
 
-      #[cfg(feature = "package_json_raw_json_api")]
-      {
-        package_json.init_serde_json(json_object);
-      }
+      // The serde_json mirror of the raw object is materialized lazily in
+      // raw_json(); most package.json files are only needed for their typed
+      // fields, and converting every parsed file up front is significant work.
     }
 
     package_json.path = path;
@@ -234,15 +264,17 @@ impl PackageJson {
   }
 
   #[cfg(feature = "package_json_raw_json_api")]
-  fn init_serde_json(&mut self, value: &JSONMap) {
+  fn build_serde_json(value: &JSONValue<'_>) -> serde_json::Value {
     let mut json_map = serde_json::value::Map::with_capacity(9);
 
-    for (key, value) in value {
-      if let Ok(v) = from_refborrowed_value(value) {
-        json_map.insert(key.to_string(), v);
+    if let Some(value) = value.as_object() {
+      for (key, value) in value {
+        if let Ok(v) = from_refborrowed_value(value) {
+          json_map.insert(key.to_string(), v);
+        }
       }
     }
-    self.serde_json = std::sync::Arc::new(serde_json::Value::Object(json_map));
+    serde_json::Value::Object(json_map)
   }
 
   fn get_value_by_paths<'a>(fields: &'a JSONMap, paths: &[String]) -> Option<&'a JSONValue<'a>> {
@@ -272,7 +304,9 @@ impl PackageJson {
   /// `dependencies` and `devDependencies`, `peerDependencies`, `optionalDependencies`.
   #[cfg(feature = "package_json_raw_json_api")]
   pub fn raw_json(&self) -> &std::sync::Arc<serde_json::Value> {
-    &self.serde_json
+    self
+      .serde_json
+      .get_or_init(|| std::sync::Arc::new(Self::build_serde_json(self.raw_json.borrow_dependent())))
   }
 
   /// Directory to `package.json`
