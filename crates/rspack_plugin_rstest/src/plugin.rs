@@ -225,10 +225,7 @@ impl RstestPlugin {
     let default_target = self.calc_default_mocked_target(&request);
 
     let dep = ResolveOptionsWithDependencyType {
-      resolve_options: data
-        .resolve_options
-        .clone()
-        .map(|options| Box::new(Arc::unwrap_or_clone(options))),
+      resolve_options: data.resolve_options.clone(),
       resolve_to_context: false,
       dependency_category,
     };

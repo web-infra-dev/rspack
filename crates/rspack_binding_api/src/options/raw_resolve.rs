@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use napi::Either;
 use napi_derive::napi;
 use rspack_core::{
@@ -309,7 +311,7 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         builtin_modules: false,
       };
       Ok(ResolveOptionsWithDependencyType {
-        resolve_options: Some(Box::new(resolve_options)),
+        resolve_options: Some(Arc::new(resolve_options)),
         resolve_to_context: raw.resolve_to_context.unwrap_or(default_resolve_to_context),
         dependency_category: raw
           .dependency_type
