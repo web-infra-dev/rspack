@@ -59,6 +59,9 @@ impl DefineParserPlugin {
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
   fn can_rename(&self, parser: &mut JavascriptParser<'p>, str: &str) -> Option<bool> {
+    if !self.walk_data.may_match_record(str) {
+      return None;
+    }
     if let Some(first_key) = self.walk_data.can_rename.get(str) {
       self.add_value_dependency(parser, str);
       if let Some(first_key) = first_key
@@ -78,6 +81,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
     expr: UnaryExpression,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression<'p>> {
+    if !self.walk_data.may_match_record(for_name) {
+      return None;
+    }
     if let Some(record) = self.get_define_record(for_name)
       && let Some(on_evaluate_typeof) = &record.on_evaluate_typeof
     {
