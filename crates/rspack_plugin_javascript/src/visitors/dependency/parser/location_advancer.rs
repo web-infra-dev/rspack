@@ -30,6 +30,7 @@ impl DependencyLocationAdvancer {
 
   /// Advance a source position from one byte offset to another, counting newlines and UTF-16 columns.
   /// Optimized with ASCII fast-paths and SIMD reverse searching.
+  #[inline]
   fn advance_pos(
     source: &str,
     from_off: usize,

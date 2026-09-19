@@ -129,7 +129,7 @@ fn trim_dot_slash(pattern: &str) -> &str {
 
 fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
   let trim_start = trim_dot_slash(pattern);
-  let string = string.trim_start_matches("./");
+  let string = trim_dot_slash(string);
   // A pattern without a separator cannot cross path segments (a single `*`
   // never matches `/`), so `**/` only adds a leading-segment scan. Matching
   // the last segment directly is equivalent and skips that scan, which
