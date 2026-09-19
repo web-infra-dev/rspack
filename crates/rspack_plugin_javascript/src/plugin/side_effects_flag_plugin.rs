@@ -70,12 +70,22 @@ fn get_side_effects_from_package_json(side_effects: SideEffects, relative_path: 
 
 fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
   let trim_start = pattern.trim_start_matches("./");
+  let string = string.trim_start_matches("./");
+  // A pattern without a separator cannot cross path segments (a single `*`
+  // never matches `/`), so `**/` only adds a leading-segment scan. Matching
+  // the last segment directly is equivalent and skips that scan, which
+  // otherwise walks every separator of the module path.
+  let tail = trim_start.strip_prefix("**/").unwrap_or(trim_start);
+  if !tail.contains('/') && !trim_start.starts_with('!') {
+    let last_segment = string.rsplit('/').next().unwrap_or(string);
+    return fast_glob::glob_match(tail, last_segment);
+  }
   let normalized_glob = if trim_start.contains('/') {
     trim_start.to_string()
   } else {
     String::from("**/") + trim_start
   };
-  fast_glob::glob_match(&normalized_glob, string.trim_start_matches("./"))
+  fast_glob::glob_match(&normalized_glob, string)
 }
 
 #[plugin]

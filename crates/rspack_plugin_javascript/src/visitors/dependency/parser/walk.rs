@@ -1801,6 +1801,12 @@ impl JavascriptParser<'_> {
     Option<(ImportExpression, AtomMembers, AwaitExpression)>,
   ) {
     let ast = self.ast.ast;
+    // Skip the chain materialization when the root cannot resolve; an awaited
+    // import is the only root that is handled without resolving.
+    let root = self.member_chain_root(ExprRef::Member(expr));
+    if !matches!(root, ExprRef::Await(_)) && self.get_name_info_from_root(root).is_none() {
+      return (None, None);
+    }
     let super::RawExtractedMemberExpressionChainData { object, members } =
       self.extract_member_expression_chain_raw(ExprRef::Member(expr));
     if let ExprRef::Await(await_expr) = object

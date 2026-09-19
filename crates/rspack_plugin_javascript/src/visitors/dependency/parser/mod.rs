@@ -1350,6 +1350,11 @@ impl<'parser> JavascriptParser<'parser> {
     expr: ExprRef,
     allowed_types: AllowedMemberTypes,
   ) -> Option<MemberExpressionInfo> {
+    // Resolve the chain root first: when it is a plain local variable nothing
+    // downstream can produce info, so the chain is never materialized.
+    if self.member_chain_root_unresolvable(expr, allowed_types) {
+      return None;
+    }
     let RawExtractedMemberExpressionChainData { object, members } =
       self.extract_member_expression_chain_raw(expr);
     self._get_member_expression_info(object, members, allowed_types)
@@ -1369,6 +1374,69 @@ impl<'parser> JavascriptParser<'parser> {
       members_optionals,
       member_ranges,
     }
+  }
+
+  /// Walks a member chain to its root object without materializing the chain.
+  /// The walk mirrors `extract_member_expression_chain_raw`, including its
+  /// early exits, so the returned root is the same `object` that extraction
+  /// would report.
+  fn member_chain_root(&self, expr: ExprRef) -> ExprRef {
+    let ast = self.ast.ast;
+    let mut object = expr;
+    loop {
+      match object {
+        ExprRef::Member(member) => {
+          let property = member.property(ast);
+          let convertible = if member.computed(ast) {
+            member_property_key_data_can_be_atom(ast, ast.property_key_data(property))
+          } else {
+            property.as_identifier_name(ast).is_some()
+          };
+          if !convertible {
+            break;
+          }
+          object = ExprRef::from_expr(ast, member.object(ast));
+        }
+        ExprRef::OptChain(chain) => {
+          let expression = chain.expression(ast);
+          match expression.as_member_expression(ast) {
+            Some(member) => object = ExprRef::Member(member),
+            None => break,
+          }
+        }
+        _ => break,
+      }
+    }
+    object
+  }
+
+  /// `true` when the member chain hanging off `expr` cannot produce member
+  /// info because its root only resolves to a non-free, non-tagged variable.
+  /// `_get_member_expression_info` rejects that root before looking at the
+  /// chain, so resolving it first lets the common local root case skip the
+  /// extraction and its atom interning.
+  fn member_chain_root_unresolvable(
+    &mut self,
+    expr: ExprRef,
+    allowed_types: AllowedMemberTypes,
+  ) -> bool {
+    let ast = self.ast.ast;
+    let root = match self.member_chain_root(expr) {
+      ExprRef::Call(call) => {
+        if !allowed_types.contains(AllowedMemberTypes::CallExpression) {
+          return false;
+        }
+        let callee = call.callee(ast);
+        match callee.as_member_expression(ast) {
+          Some(member) => self.member_chain_root(ExprRef::Member(member)),
+          None => ExprRef::from_expr(ast, callee),
+        }
+      }
+      object => object,
+    };
+    // Same predicate the info builder applies to the root; for roots that
+    // cannot be named this returns `None` without touching the scope database.
+    self.get_name_info_from_root(root).is_none()
   }
 
   fn extract_member_expression_chain_raw(
