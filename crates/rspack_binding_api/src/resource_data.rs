@@ -135,6 +135,13 @@ pub struct JsResourceData {
   pub description_file_path: Option<String>,
 }
 
+/// Cached `(modification time, parsed package.json)` for one description file.
+type CachedDescriptionJson = (Option<std::time::SystemTime>, Option<serde_json::Value>);
+
+/// Process-wide cache of package.json descriptions that JS consumers asked for.
+type DescriptionJsonCache =
+  std::sync::Mutex<rustc_hash::FxHashMap<std::path::PathBuf, CachedDescriptionJson>>;
+
 /// Reads a package.json description for JS consumers. The resolver only
 /// materializes descriptions that the compilation observes, so this falls back
 /// to reading the file when JS asks for one that was not collected.
@@ -142,14 +149,8 @@ pub(crate) fn read_description_file_json(path: &std::path::Path) -> Option<serde
   // The same package.json backs many modules, so cache the parsed value;
   // validate it against the file's modification time so watch mode and
   // long-lived processes pick up edits.
-  static CACHE: std::sync::LazyLock<
-    std::sync::Mutex<
-      rustc_hash::FxHashMap<
-        std::path::PathBuf,
-        (Option<std::time::SystemTime>, Option<serde_json::Value>),
-      >,
-    >,
-  > = std::sync::LazyLock::new(Default::default);
+  static CACHE: std::sync::LazyLock<DescriptionJsonCache> =
+    std::sync::LazyLock::new(Default::default);
   let modified = std::fs::metadata(path).and_then(|meta| meta.modified()).ok();
   let mut cache = CACHE.lock().unwrap_or_else(|err| err.into_inner());
   if let Some((cached_modified, value)) = cache.get(path)
