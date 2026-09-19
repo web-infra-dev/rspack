@@ -6,7 +6,7 @@ use rspack_cacheable::{
 };
 use rspack_collections::Identifier;
 use rspack_core::{
-  BoxLoader, Context, Loader, LoaderExecutionKind, ModuleRuleUseLoader,
+  BoxLoader, Context, Loader, LoaderContext, LoaderExecutionKind, ModuleRuleUseLoader,
   NormalModuleFactoryResolveLoader, ResolveResult, Resolver, Resource, RunnerContext,
 };
 use rspack_error::Result;
@@ -25,7 +25,16 @@ pub struct JsLoader(
 );
 
 #[cacheable_dyn]
+#[async_trait::async_trait]
 impl Loader<RunnerContext> for JsLoader {
+  async fn run(&self, context: &mut LoaderContext<RunnerContext>) -> Result<()> {
+    super::scheduler::run_loaders(context).await
+  }
+
+  async fn pitch(&self, context: &mut LoaderContext<RunnerContext>) -> Result<()> {
+    super::scheduler::run_loaders(context).await
+  }
+
   fn identifier(&self) -> Identifier {
     self.0
   }
