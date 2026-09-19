@@ -529,6 +529,12 @@ pub struct JavascriptParser<'parser> {
   pub(crate) module_layer: Option<&'parser ModuleLayer>,
   pub module_identifier: &'parser ModuleIdentifier,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
+  /// Raw pointer to the drive allocation. Hot paths borrow the drive while
+  /// `&mut self` is handed to the plugin hooks, which a field borrow cannot
+  /// express; cloning the `Rc` on every node is measurably expensive. The
+  /// pointer is derived from `plugin_drive` in the constructor, and the `Rc`
+  /// keeps that allocation alive for the parser's whole lifetime.
+  plugin_drive_ptr: *const JavaScriptParserPluginDrive,
   // ===== states =======
   pub(crate) definitions_db: ScopeInfoDB<'parser>,
   pub(crate) top_level_scope: TopLevelScope,
@@ -564,6 +570,14 @@ pub struct JavascriptParser<'parser> {
 }
 
 impl<'parser> JavascriptParser<'parser> {
+  /// Borrows the parser plugin drive without touching its refcount.
+  #[inline]
+  pub(crate) fn plugin_drive(&self) -> &'static JavaScriptParserPluginDrive {
+    // SAFETY: the pointer is created from `plugin_drive` in the constructor and
+    // the `Rc` keeps the allocation alive for the parser's whole lifetime; the
+    // pointer is never reassigned.
+    unsafe { &*self.plugin_drive_ptr }
+  }
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     source: &'parser str,
@@ -719,6 +733,7 @@ impl<'parser> JavascriptParser<'parser> {
       is_esm: matches!(module_type, ModuleType::JsEsm),
       in_tagged_template_tag: false,
       definitions_db: ScopeInfoDB::with_semantic(ast),
+      plugin_drive_ptr: Rc::as_ptr(&plugin_drive),
       plugin_drive,
       resource_data,
       factory_meta,
@@ -1402,7 +1417,7 @@ impl<'parser> JavascriptParser<'parser> {
   {
     let ast = self.ast.ast;
     let name = ast.get_utf8(ident.name(ast));
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     // Declaration hooks inspect the declared name, even when its semantic
     // binding is already initialized as a normal local variable.
     if !drive
@@ -1559,7 +1574,7 @@ impl<'parser> JavascriptParser<'parser> {
     expr: Expr,
   ) -> Option<Expr> {
     let ast = self.ast.ast;
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     let expr = if let Some(await_expr) = expr.as_await_expression(ast) {
       await_expr.argument(ast)
     } else {
@@ -1588,7 +1603,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn walk_program(&mut self, program: Program) {
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     if drive.program(self, program).is_none() {
       let ast = self.ast.ast;
       let body = program.body(ast);
@@ -1763,7 +1778,7 @@ impl<'parser> JavascriptParser<'parser> {
           eval.set_undefined();
           return Some(eval);
         }
-        let drive = self.plugin_drive.clone();
+        let drive = self.plugin_drive();
         let resolution = self
           .definitions_db
           .semantic_context
@@ -1812,7 +1827,7 @@ impl<'parser> JavascriptParser<'parser> {
       }
       ExprData::ThisExpression(this) => {
         let span = this.span(ast);
-        let drive = self.plugin_drive.clone();
+        let drive = self.plugin_drive();
         let default_eval = || {
           let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
           eval.set_identifier(
