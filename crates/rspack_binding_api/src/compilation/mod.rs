@@ -8,7 +8,7 @@ use std::{cell::RefCell, path::Path, ptr::NonNull};
 
 use chunks::Chunks;
 pub use code_generation_results::*;
-use dependencies::JsDependencies;
+use dependencies::{FileSystemDependencies, FileSystemDependencyKind};
 use diagnostics::Diagnostics;
 use entries::JsEntries;
 use napi_derive::napi;
@@ -467,11 +467,24 @@ impl JsCompilation {
     Ok(compilation.get_hash().map(|hash| hash.to_owned()))
   }
 
-  #[napi]
-  pub fn dependencies(&'static self) -> Result<JsDependencies> {
-    let compilation = self.as_ref()?;
+  #[napi(getter)]
+  pub fn file_dependencies(&self) -> FileSystemDependencies {
+    FileSystemDependencies::new(FileSystemDependencyKind::File, self.id)
+  }
 
-    Ok(JsDependencies::new(compilation))
+  #[napi(getter)]
+  pub fn context_dependencies(&self) -> FileSystemDependencies {
+    FileSystemDependencies::new(FileSystemDependencyKind::Context, self.id)
+  }
+
+  #[napi(getter)]
+  pub fn missing_dependencies(&self) -> FileSystemDependencies {
+    FileSystemDependencies::new(FileSystemDependencyKind::Missing, self.id)
+  }
+
+  #[napi(getter)]
+  pub fn build_dependencies(&self) -> FileSystemDependencies {
+    FileSystemDependencies::new(FileSystemDependencyKind::Build, self.id)
   }
 
   #[napi]
