@@ -371,7 +371,7 @@ impl CachedPathImpl {
     if let Some(pkg) = self.package_json.get() {
       // Preserve ctx dependency tracking on cache hit.
       match pkg {
-        Some(package_json) => ctx.add_file_dependency(&package_json.path),
+        Some(package_json) => ctx.add_file_dependency(package_json.interned_path()),
         None => {
           if ctx.missing_dependencies.is_some() {
             ctx.add_missing_dependency(self.package_json_dep_path());
@@ -436,7 +436,7 @@ impl CachedPathImpl {
     // https://github.com/webpack/enhanced-resolve/blob/58464fc7cb56673c9aa849e68e6300239601e615/lib/DescriptionFileUtils.js#L68-L82
     match &result {
       Ok(Some(package_json)) => {
-        ctx.add_file_dependency(&package_json.path);
+        ctx.add_file_dependency(package_json.interned_path());
       }
       Ok(None) => {
         // Avoid an allocation by making this lazy
