@@ -77,6 +77,8 @@ export class MultiCompiler {
     >;
   };
   _options: MultiCompilerOptions;
+  #resetCompilerDone = new WeakMap<Compiler, () => void>();
+  #isGraphReady?: () => boolean;
   running: boolean;
   watching?: MultiWatching;
 
@@ -137,16 +139,21 @@ export class MultiCompiler {
           doneCompilers++;
         }
         compilerStats[compilerIndex] = stats;
-        if (doneCompilers === this.compilers.length) {
+        if (
+          doneCompilers === this.compilers.length &&
+          (!this.#isGraphReady || this.#isGraphReady())
+        ) {
           this.hooks.done.call(new MultiStats(compilerStats as Stats[]));
         }
       });
-      compiler.hooks.invalid.tap('MultiCompiler', () => {
+      const resetDone = () => {
         if (compilerDone) {
           compilerDone = false;
           doneCompilers--;
         }
-      });
+      };
+      this.#resetCompilerDone.set(compiler, resetDone);
+      compiler.hooks.invalid.tap('MultiCompiler', resetDone);
     }
   }
 
@@ -323,6 +330,7 @@ export class MultiCompiler {
       done: liteTapable.Callback<Error, Stats>,
     ) => void,
     callback: liteTapable.Callback<Error, MultiStats>,
+    watch = false,
   ): SetupResult[] {
     // State transitions for nodes:
     // -> blocked (initial)
@@ -367,6 +375,31 @@ export class MultiCompiler {
     let running = 0;
     const parallelism = this._options.parallelism!;
 
+    const isGraphReady = () =>
+      !errored &&
+      nodes.every((node) => {
+        // Detached watchers no longer represent work owned by this graph.
+        if (
+          watch &&
+          (node.setupResult === undefined ||
+            node.compiler.watching !== node.setupResult)
+        ) {
+          return true;
+        }
+        // The original done counter includes children still executing their
+        // asynchronous done hooks. Only outstanding compilation work blocks it.
+        return (
+          node.state === 'done' ||
+          node.state === 'running' ||
+          node.state === 'starting'
+        );
+      });
+    this.#isGraphReady = isGraphReady;
+    const releaseGraph = () => {
+      // A callback can start another graph; never clear its readiness check.
+      if (this.#isGraphReady === isGraphReady) this.#isGraphReady = undefined;
+    };
+
     const nodeDone = (
       node: Node<SetupResult>,
       err: Error,
@@ -375,6 +408,7 @@ export class MultiCompiler {
       if (errored) return;
       if (err) {
         errored = true;
+        releaseGraph();
         return asyncLib.each(
           nodes,
           (node, callback) => {
@@ -495,6 +529,7 @@ export class MultiCompiler {
           }
         }
         if (stats.length > 0) {
+          if (!watch) releaseGraph();
           callback(null, new MultiStats(stats));
         }
       }
@@ -533,9 +568,13 @@ export class MultiCompiler {
         },
         (compiler, watching, _done) => {
           if (compiler.watching !== watching) return;
+          // A graph restart may not emit another public invalid notification.
+          // Only reset children whose watcher still belongs to this graph.
+          this.#resetCompilerDone.get(compiler)!();
           if (!watching.running) watching.invalidate();
         },
         handler,
+        true,
       );
       this.watching = new MultiWatching(watchings, this);
       return this.watching;
@@ -564,7 +603,11 @@ export class MultiCompiler {
     if (this.validateDependencies(callback)) {
       this.#runGraph(
         () => {},
-        (compiler, _, callback) => compiler.run(callback, options),
+        (compiler, _, callback) => {
+          // A rejected concurrent run must retain the active run's completion.
+          if (!compiler.running) this.#resetCompilerDone.get(compiler)!();
+          compiler.run(callback, options);
+        },
         (err, stats) => {
           this.running = false;
 
