@@ -1,0 +1,53 @@
+import { defineConfig } from '@rspack/cli';
+
+import { CssExtractRspackPlugin } from '@rspack/core';
+
+export default defineConfig({
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
+  devtool: false,
+  target: 'web',
+  entry: './index.js',
+  mode: 'development',
+  optimization: {
+    concatenateModules: true,
+  },
+  experiments: {
+    css: false,
+  },
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        type: 'javascript/auto',
+        use: [
+          {
+            loader: CssExtractRspackPlugin.loader,
+          },
+          {
+            loader: 'css-loader',
+            options: {
+              esModule: true,
+              modules: {
+                namedExport: false,
+                localIdentName: '[name]',
+              },
+            },
+          },
+        ],
+        sideEffects: true,
+      },
+    ],
+  },
+  plugins: [
+    new CssExtractRspackPlugin({
+      filename: '[name].css',
+    }),
+  ],
+  node: {
+    __dirname: false,
+    __filename: false,
+  },
+});
