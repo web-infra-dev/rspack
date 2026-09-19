@@ -373,3 +373,60 @@ fn collect_time_info_entries_advances_a_context_for_an_edit_inside_it() {
     "context safeTime must advance past {before}"
   );
 }
+
+/// A live event stamps the file safe as of the moment it was observed,
+/// whatever mtime the new content carries (watchpack's
+/// `setFileTime(initial = false)`): a file swapped for a copy that kept an
+/// older mtime must not read as unchanged since the last build.
+#[test]
+fn collect_time_info_entries_stamps_a_live_event_with_the_observed_time() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  helper.file("a");
+
+  let rx = watch!(helper, "a");
+  // Drain the start-up scan and any stale FSEvents for the pre-watch write.
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+
+  let an_hour = std::time::Duration::from_secs(3600);
+  let parked = std::time::SystemTime::now() - an_hour;
+  let edited_at = now_millis();
+  helper.tick(|| {
+    // Swap in new content whose mtime is an hour old, through one rename so
+    // the watcher sees a single event that already carries the old mtime.
+    let staged = helper.join("a.staged");
+    std::fs::write(&staged, b"restored").unwrap();
+    std::fs::File::open(&staged)
+      .and_then(|file| file.set_modified(parked))
+      .unwrap();
+    std::fs::rename(&staged, helper.join("a")).unwrap();
+  });
+  let swapped = helper.join("a");
+  wait_for_aggregated(&helper, rx, |batch| {
+    batch.changed_files.contains(swapped.as_str())
+  });
+
+  let entry = helper
+    .time_info_entry(&helper.collect_time_info_entries().0, "a")
+    .clone();
+  let TimeInfoEntry::Entry {
+    safe_time,
+    timestamp,
+    accuracy,
+  } = entry
+  else {
+    panic!("swapped file is an Entry: {entry:?}");
+  };
+  assert!(
+    timestamp + an_hour.as_millis() as u64 / 2 < edited_at,
+    "timestamp {timestamp} carries the swapped-in file's old mtime"
+  );
+  assert!(
+    safe_time >= edited_at,
+    "safeTime {safe_time} must reach the event observed at {edited_at}"
+  );
+  assert_eq!(accuracy, 0, "a live event is exact");
+}

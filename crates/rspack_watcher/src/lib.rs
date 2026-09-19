@@ -435,7 +435,7 @@ impl FsWatcherInner {
         .metadata()
         .and_then(|m| m.modified().or_else(|_| m.created()))
       {
-        self.path_manager.set_file_mtime_if_absent(path, mtime);
+        self.path_manager.set_file_time_if_absent(path, mtime);
       }
     }
   }

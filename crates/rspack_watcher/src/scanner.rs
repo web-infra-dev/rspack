@@ -41,14 +41,28 @@ impl Scanner {
         .collect::<Vec<_>>();
       let missing = accessor.missing().0.clone();
       let files_tx = tx.clone();
+      let files_path_manager = Arc::clone(&self.path_manager);
       tokio::spawn(async move {
-        _ = scan_path_missing(&files, &missing, &files_tx);
-        _ = scan_path_events(
-          &files,
-          |p| changed_since(p, start_time),
-          FsEventKind::Change,
-          &files_tx,
-        );
+        let removed = absent_paths(&files, &missing);
+        let changed = files
+          .iter()
+          .filter(|p| changed_since(p, start_time))
+          .cloned()
+          .collect::<Vec<_>>();
+        // These backfills bypass `Trigger`, which is what normally keeps the
+        // file-time records in step with delivered events: a `Remove` drops
+        // the record, a `Change` re-reads it if the mtime moved on since it
+        // was seeded.
+        for path in &removed {
+          files_path_manager.remove_file_time(path);
+        }
+        for path in &changed {
+          if let Some(mtime) = disk_mtime(path) {
+            files_path_manager.set_file_time(path, mtime, true, true);
+          }
+        }
+        _ = send_events(removed, FsEventKind::Remove, &files_tx);
+        _ = send_events(changed, FsEventKind::Change, &files_tx);
       });
 
       let directories = accessor
@@ -60,13 +74,16 @@ impl Scanner {
       let missing = accessor.missing().0.clone();
       let dirs_tx = tx.clone();
       tokio::spawn(async move {
-        _ = scan_path_missing(&directories, &missing, &dirs_tx);
-        _ = scan_path_events(
-          &directories,
-          |p| changed_since(p, start_time),
-          FsEventKind::Change,
+        _ = send_events(
+          absent_paths(&directories, &missing),
+          FsEventKind::Remove,
           &dirs_tx,
         );
+        let changed = directories
+          .into_iter()
+          .filter(|p| changed_since(p, start_time))
+          .collect::<Vec<_>>();
+        _ = send_events(changed, FsEventKind::Change, &dirs_tx);
       });
 
       // Backfill registered-missing dependencies created in the gap before this
@@ -83,14 +100,15 @@ impl Scanner {
           .into_iter()
           .filter(|p| changed_since(p, start_time))
           .collect::<Vec<_>>();
-        // This backfill bypasses `Trigger`, so record the baseline here: it is
-        // what lets `collect_time_info_entries` report the dependency as present.
+        // This backfill bypasses `Trigger`, so record the file time here: it
+        // is what lets `collect_time_info_entries` report the dependency as
+        // present.
         for path in &created {
           if let Some(mtime) = disk_mtime(path) {
-            path_manager.set_file_time(path, mtime);
+            path_manager.set_file_time(path, mtime, true, false);
           }
         }
-        _ = scan_path_events(&created, |_| true, FsEventKind::Create, &tx);
+        _ = send_events(created, FsEventKind::Create, &tx);
       });
     }
   }
@@ -101,42 +119,30 @@ impl Scanner {
   }
 }
 
-fn scan_path_missing(
-  paths: &[InternedPath],
-  missing: &InternedPathDashSet,
-  tx: &UnboundedSender<EventBatch>,
-) -> bool {
-  let remove_event = paths
+/// The registered `paths` gone from disk (a registered-missing path is
+/// expected to be absent and is not one of them).
+fn absent_paths(paths: &[InternedPath], missing: &InternedPathDashSet) -> Vec<InternedPath> {
+  paths
     .iter()
     .filter(|path| !path.exists() && !missing.contains(*path))
     .cloned()
-    .map(|path| FsEvent {
-      path,
-      kind: FsEventKind::Remove,
-    })
-    .collect::<Vec<_>>();
-  if remove_event.is_empty() {
-    return true;
-  }
-  tx.send(remove_event).is_ok()
+    .collect()
 }
 
-fn scan_path_events(
-  paths: &[InternedPath],
-  selected: impl Fn(&InternedPath) -> bool,
+/// Sends one `kind` event per path as a single batch; nothing to send counts
+/// as sent.
+fn send_events(
+  paths: Vec<InternedPath>,
   kind: FsEventKind,
   tx: &UnboundedSender<EventBatch>,
 ) -> bool {
-  let events = paths
-    .iter()
-    .filter(|path| selected(path))
-    .cloned()
-    .map(|path| FsEvent { path, kind })
-    .collect::<Vec<_>>();
-
-  if events.is_empty() {
+  if paths.is_empty() {
     return true;
   }
+  let events = paths
+    .into_iter()
+    .map(|path| FsEvent { path, kind })
+    .collect::<Vec<_>>();
   tx.send(events).is_ok()
 }
 

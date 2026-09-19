@@ -185,11 +185,11 @@ impl EventProcessor {
       kind
     };
 
-    // A removed file's baseline mtime no longer describes anything on disk:
-    // drop it so `collect_time_info_entries` re-stats the path and reports it as
+    // A removed file's record no longer describes anything on disk: drop it
+    // so `collect_time_info_entries` re-stats the path and reports it as
     // absent, matching watchpack, which reports a removed entry as `null`.
     if kind == FsEventKind::Remove {
-      self.path_manager.remove_file_mtime(path);
+      self.path_manager.remove_file_time(path);
     }
 
     let accessor = self.path_manager.access();
