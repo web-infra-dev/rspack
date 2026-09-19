@@ -3,7 +3,7 @@ use std::{borrow::Cow, fmt::Debug, path::Path};
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsyncModulesArtifact, BoxModule, Compilation, CompilationFinishModules,
+  AsyncModulesArtifact, BoxModule, Compilation, CompilationFinishModules, DescriptionSideEffects,
   CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta, DependencyId,
   ExportsInfoArtifact, FactoryMeta, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
@@ -75,11 +75,11 @@ fn get_side_effects_from_package_json(side_effects: SideEffects, relative_path: 
 /// which only ever matches the last path segment, so those packages never need
 /// the (comparatively expensive) package-relative path.
 fn side_effects_for_resource(
-  side_effects: SideEffects,
+  side_effects: &SideEffects,
   resource_path: &Utf8Path,
   package_path: &Path,
 ) -> bool {
-  match &side_effects {
+  match side_effects {
     SideEffects::Bool(value) => *value,
     SideEffects::String(pattern) if is_simple_pattern(pattern) => {
       match_file_name(pattern, resource_path)
@@ -94,7 +94,7 @@ fn side_effects_for_resource(
         .as_std_path()
         .relative(package_path)
         .assert_utf8();
-      get_side_effects_from_package_json(side_effects, relative_path.as_path())
+      get_side_effects_from_package_json(side_effects.clone(), relative_path.as_path())
     }
   }
 }
@@ -181,10 +181,21 @@ async fn nmf_module(
     return Ok(());
   };
   let package_path = description.path();
-  let Some(side_effects) = SideEffects::from_description(description.json()) else {
-    return Ok(());
+  let has_side_effects = match description.side_effects() {
+    // The resolver already parsed the field while reading package.json.
+    Some(DescriptionSideEffects::Unset) => return Ok(()),
+    Some(DescriptionSideEffects::Bool(value)) => *value,
+    Some(DescriptionSideEffects::Patterns(patterns)) => {
+      let side_effects = SideEffects::Array(patterns.clone());
+      side_effects_for_resource(&side_effects, resource_path, package_path)
+    }
+    None => {
+      let Some(side_effects) = SideEffects::from_description(description.json()) else {
+        return Ok(());
+      };
+      side_effects_for_resource(&side_effects, resource_path, package_path)
+    }
   };
-  let has_side_effects = side_effects_for_resource(side_effects, resource_path, package_path);
 
   module.set_factory_meta(FactoryMeta {
     side_effect_free: Some(!has_side_effects),

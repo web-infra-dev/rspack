@@ -311,6 +311,18 @@ impl ResourceData {
   }
 }
 
+/// Typed subset of `package.json.sideEffects` extracted while the resolver
+/// parsed the file, so consumers do not have to re-read the raw JSON.
+#[cacheable]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DescriptionSideEffects {
+  /// The field is absent or has an unsupported shape.
+  Unset,
+  Bool(bool),
+  /// A plain string pattern or an array of patterns.
+  Patterns(Vec<String>),
+}
+
 /// Used for [Rule.descriptionData](https://rspack.rs/config/module.html#ruledescriptiondata) and
 /// package.json.sideEffects in tree shaking.
 #[cacheable]
@@ -323,11 +335,31 @@ pub struct DescriptionData {
   /// Raw package.json
   #[cacheable(with=AsInner<AsPreset>)]
   json: Arc<serde_json::Value>,
+
+  /// Typed `sideEffects` parsed by the resolver. None means the resolver
+  /// did not collect it and consumers should fall back to `json`.
+  side_effects: Option<DescriptionSideEffects>,
 }
 
 impl DescriptionData {
   pub fn new(path: PathBuf, json: Arc<serde_json::Value>) -> Self {
-    Self { path, json }
+    Self {
+      path,
+      json,
+      side_effects: None,
+    }
+  }
+
+  pub fn new_with_side_effects(
+    path: PathBuf,
+    json: Arc<serde_json::Value>,
+    side_effects: Option<DescriptionSideEffects>,
+  ) -> Self {
+    Self {
+      path,
+      json,
+      side_effects,
+    }
   }
 
   pub fn path(&self) -> &Path {
@@ -336,6 +368,11 @@ impl DescriptionData {
 
   pub fn json(&self) -> &serde_json::Value {
     self.json.as_ref()
+  }
+
+  /// Typed `sideEffects` when the resolver collected it.
+  pub fn side_effects(&self) -> Option<&DescriptionSideEffects> {
+    self.side_effects.as_ref()
   }
 
   pub fn into_parts(self) -> (PathBuf, Arc<serde_json::Value>) {

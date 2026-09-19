@@ -1,7 +1,4 @@
-use std::{
-  fmt::Debug,
-  sync::{Arc, LazyLock},
-};
+use std::{fmt::Debug, sync::LazyLock};
 
 use regex::Regex;
 use rspack_core::{

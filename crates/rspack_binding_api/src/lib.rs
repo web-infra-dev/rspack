@@ -367,6 +367,15 @@ impl JsCompiler {
         compiler_options.resolve.clone(),
         compiler_options.resolve_loader.clone(),
       );
+      // Only rules matching on descriptionData can observe the raw JSON mirror,
+      // so builds without such rules skip materializing it.
+      resolver_factory_reference.set_description_json(
+        !compiler_options
+          .module
+          .rules
+          .iter()
+          .any(rspack_core::ModuleRule::uses_description_data),
+      );
       let resolver_factory = resolver_factory_reference.get_resolver_factory();
       let loader_resolver_factory = resolver_factory_reference.get_loader_resolver_factory();
 

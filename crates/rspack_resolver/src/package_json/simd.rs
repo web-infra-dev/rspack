@@ -167,7 +167,7 @@ pub struct PackageJson {
   raw_json: std::sync::Arc<JSONCell>,
 
   #[cfg(feature = "package_json_raw_json_api")]
-  serde_json: std::sync::Arc<serde_json::Value>,
+  serde_json: std::sync::OnceLock<std::sync::Arc<serde_json::Value>>,
 }
 
 const BOM: [u8; 3] = [0xEF, 0xBB, 0xBF];
@@ -234,10 +234,9 @@ impl PackageJson {
         .get("sideEffects")
         .and_then(|value| SideEffects::try_from(value).ok());
 
-      #[cfg(feature = "package_json_raw_json_api")]
-      {
-        package_json.init_serde_json(json_object);
-      }
+      // The serde_json mirror of the raw object is materialized lazily in
+      // raw_json(); most package.json files are only needed for their typed
+      // fields, and converting every parsed file up front is significant work.
     }
 
     package_json.path = path;
@@ -248,15 +247,17 @@ impl PackageJson {
   }
 
   #[cfg(feature = "package_json_raw_json_api")]
-  fn init_serde_json(&mut self, value: &JSONMap) {
+  fn build_serde_json(value: &JSONValue<'_>) -> serde_json::Value {
     let mut json_map = serde_json::value::Map::with_capacity(9);
 
-    for (key, value) in value {
-      if let Ok(v) = from_refborrowed_value(value) {
-        json_map.insert(key.to_string(), v);
+    if let Some(value) = value.as_object() {
+      for (key, value) in value {
+        if let Ok(v) = from_refborrowed_value(value) {
+          json_map.insert(key.to_string(), v);
+        }
       }
     }
-    self.serde_json = std::sync::Arc::new(serde_json::Value::Object(json_map));
+    serde_json::Value::Object(json_map)
   }
 
   fn get_value_by_paths<'a>(fields: &'a JSONMap, paths: &[String]) -> Option<&'a JSONValue<'a>> {
@@ -286,7 +287,9 @@ impl PackageJson {
   /// `dependencies` and `devDependencies`, `peerDependencies`, `optionalDependencies`.
   #[cfg(feature = "package_json_raw_json_api")]
   pub fn raw_json(&self) -> &std::sync::Arc<serde_json::Value> {
-    &self.serde_json
+    self
+      .serde_json
+      .get_or_init(|| std::sync::Arc::new(Self::build_serde_json(self.raw_json.borrow_dependent())))
   }
 
   /// Directory to `package.json`

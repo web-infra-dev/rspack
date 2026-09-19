@@ -470,13 +470,22 @@ impl CompilerBuilder {
       .take()
       .unwrap_or_else(|| Arc::new(NativeFileSystem::new(false)));
 
-    let resolver_factory = Arc::new(ResolverFactory::new(
+    // The raw package.json mirror is only observable through descriptionData
+    // rules; everything else consumes the typed fields.
+    let description_json = !compiler_options
+      .module
+      .rules
+      .iter()
+      .any(ModuleRule::uses_description_data);
+    let resolver_factory = Arc::new(ResolverFactory::new_with_description_json(
       compiler_options.resolve.clone(),
       input_filesystem.clone(),
+      description_json,
     ));
-    let loader_resolver_factory = Arc::new(ResolverFactory::new(
+    let loader_resolver_factory = Arc::new(ResolverFactory::new_with_description_json(
       compiler_options.resolve_loader.clone(),
       input_filesystem.clone(),
+      description_json,
     ));
 
     let compiler_context = CURRENT_COMPILER_CONTEXT.try_with(|v| v.clone()).ok();

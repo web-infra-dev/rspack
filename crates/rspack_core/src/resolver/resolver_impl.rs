@@ -6,7 +6,7 @@ use std::{
 
 use rspack_error::{Error, Severity, cyan, yellow};
 use rspack_fs::ReadableFileSystem;
-use rspack_loader_runner::DescriptionData;
+use rspack_loader_runner::{DescriptionData, DescriptionSideEffects};
 use rspack_paths::{AssertUtf8, InternedPathSet};
 use rspack_util::location::byte_line_column_to_offset;
 
@@ -90,20 +90,34 @@ impl ResolveInnerOptions<'_> {
 pub struct Resolver {
   inner_fs: Arc<dyn ReadableFileSystem>,
   resolver: rspack_resolver::ResolverGeneric<BoxFS>,
+  description_json: bool,
 }
 
 impl Resolver {
   pub fn new(options: Resolve, fs: Arc<dyn ReadableFileSystem>) -> Self {
-    Self::new_rspack_resolver(options, fs)
+    Self::new_with_description_json(options, fs, true)
   }
 
-  fn new_rspack_resolver(options: Resolve, fs: Arc<dyn ReadableFileSystem>) -> Self {
+  pub fn new_with_description_json(
+    options: Resolve,
+    fs: Arc<dyn ReadableFileSystem>,
+    description_json: bool,
+  ) -> Self {
+    Self::new_rspack_resolver(options, fs, description_json)
+  }
+
+  fn new_rspack_resolver(
+    options: Resolve,
+    fs: Arc<dyn ReadableFileSystem>,
+    description_json: bool,
+  ) -> Self {
     let options = to_rspack_resolver_options(options, false, DependencyCategory::Unknown);
     let boxfs = BoxFS::new(fs.clone());
     let resolver = rspack_resolver::ResolverGeneric::new_with_file_system(boxfs, options);
     Self {
       inner_fs: fs,
       resolver,
+      description_json,
     }
   }
 
@@ -129,6 +143,7 @@ impl Resolver {
     Self {
       inner_fs: self.inner_fs.clone(),
       resolver,
+      description_json: self.description_json,
     }
   }
 
@@ -150,7 +165,7 @@ impl Resolver {
         fragment: r.fragment().unwrap_or_default().to_string(),
         description_data: r
           .package_json()
-          .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),
+          .map(|d| self.description_data(d)),
       })),
       Err(rspack_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
       Err(error) => Err(ResolveInnerError::RspackResolver(error)),
@@ -182,7 +197,7 @@ impl Resolver {
         fragment: r.fragment().unwrap_or_default().to_string(),
         description_data: r
           .package_json()
-          .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),
+          .map(|d| self.description_data(d)),
       })),
       Err(rspack_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
       Err(error) => Err(ResolveInnerError::RspackResolver(error)),
@@ -193,6 +208,38 @@ impl Resolver {
   pub fn inner_fs(&self) -> Arc<dyn ReadableFileSystem> {
     self.inner_fs.clone()
   }
+
+  /// Description data for a resolved resource. The raw JSON is only carried
+  /// alongside the typed side effects the resolver parsed while reading the
+  /// file, which saves consumers from re-reading it.
+  fn description_data(&self, package_json: &rspack_resolver::PackageJson) -> DescriptionData {
+    let side_effects = Some(match package_json.side_effects.as_ref() {
+      None => DescriptionSideEffects::Unset,
+      Some(rspack_resolver::SideEffects::Bool(value)) => DescriptionSideEffects::Bool(*value),
+      Some(rspack_resolver::SideEffects::String(pattern)) => {
+        DescriptionSideEffects::Patterns(vec![pattern.clone()])
+      }
+      Some(rspack_resolver::SideEffects::Array(patterns)) => {
+        DescriptionSideEffects::Patterns(patterns.clone())
+      }
+    });
+    DescriptionData::new_with_side_effects(
+      package_json.directory().to_path_buf(),
+      if self.description_json {
+        Arc::clone(package_json.raw_json())
+      } else {
+        empty_description_json()
+      },
+      side_effects,
+    )
+  }
+}
+
+/// Shared placeholder for resources whose raw description is not collected.
+fn empty_description_json() -> Arc<serde_json::Value> {
+  static EMPTY: std::sync::LazyLock<Arc<serde_json::Value>> =
+    std::sync::LazyLock::new(|| Arc::new(serde_json::Value::Null));
+  EMPTY.clone()
 }
 
 impl ResolveInnerError {

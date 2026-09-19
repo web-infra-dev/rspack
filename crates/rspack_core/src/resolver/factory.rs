@@ -26,6 +26,9 @@ pub struct ResolverFactory {
   /// Different resolvers are used for different resolution strategies such as ESM and CJS.
   /// All resolvers share the same underlying cache.
   resolvers: DashMap<ResolveOptionsWithDependencyType, Arc<Resolver>, BuildHasherDefault<FxHasher>>,
+  /// Whether resolved resources carry the raw package.json description.
+  /// Builds whose rules cannot observe it skip materializing the mirror.
+  description_json: bool,
 }
 
 impl ResolverFactory {
@@ -34,10 +37,21 @@ impl ResolverFactory {
   }
 
   pub fn new(options: Resolve, fs: Arc<dyn ReadableFileSystem>) -> Self {
+    Self::new_with_description_json(options, fs, true)
+  }
+
+  /// `description_json` controls whether resolved resources carry a raw
+  /// `package.json` JSON copy; see `ResolverFactory::description_json`.
+  pub fn new_with_description_json(
+    options: Resolve,
+    fs: Arc<dyn ReadableFileSystem>,
+    description_json: bool,
+  ) -> Self {
     Self {
       base_options: options.clone(),
-      resolver: Resolver::new(options, fs),
+      resolver: Resolver::new_with_description_json(options, fs, description_json),
       resolvers: Default::default(),
+      description_json,
     }
   }
 
@@ -54,5 +68,10 @@ impl ResolverFactory {
       self.resolvers.insert(options, resolver.clone());
       resolver
     }
+  }
+
+  /// Whether resolved resources carry the raw `package.json` description.
+  pub fn description_json(&self) -> bool {
+    self.description_json
   }
 }
