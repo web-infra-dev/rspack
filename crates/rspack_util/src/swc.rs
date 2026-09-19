@@ -59,6 +59,10 @@ pub struct RspackComment<'a> {
 pub struct RspackComments<'a> {
   pub leading: FxHashMap<u32, Vec<RspackComment<'a>>>,
   pub trailing: FxHashMap<u32, Vec<RspackComment<'a>>>,
+  /// Whether any comment carries an `#__`/`@__` annotation marker. Annotation
+  /// lookups (`"NO_SIDE_EFFECTS"`, ...) skip the map lookups and line scans
+  /// entirely while this is false, which is the common case.
+  pub has_annotation_markers: bool,
 }
 
 impl<'a> RspackComments<'a> {
@@ -71,6 +75,7 @@ impl<'a> RspackComments<'a> {
     let mut comments = Self {
       leading: FxHashMap::with_capacity_and_hasher(capacity, Default::default()),
       trailing: FxHashMap::with_capacity_and_hasher(capacity, Default::default()),
+      has_annotation_markers: false,
     };
     for comment in attached {
       let value = ast.get_utf8(comment.value(source.as_bytes()));
@@ -79,6 +84,19 @@ impl<'a> RspackComments<'a> {
         kind: comment.kind,
         text: value,
       };
+      if !comments.has_annotation_markers {
+        // Cheap marker probe: memchr for the leading byte, then verify "__".
+        let bytes = value.as_bytes();
+        let mut offset = 0;
+        while let Some(found) = memchr::memchr2(b'#', b'@', &bytes[offset..]) {
+          let index = offset + found;
+          if bytes.get(index + 1) == Some(&b'_') && bytes.get(index + 2) == Some(&b'_') {
+            comments.has_annotation_markers = true;
+            break;
+          }
+          offset = index + 1;
+        }
+      }
       match comment.position {
         CommentPosition::Leading => comments
           .leading
@@ -96,6 +114,9 @@ impl<'a> RspackComments<'a> {
   }
 
   pub fn has_flag(&self, pos: u32, flag: &str) -> bool {
+    if !self.has_annotation_markers {
+      return false;
+    }
     self.leading.get(&pos).is_some_and(|comment_list| {
       comment_list.iter().any(|comment| {
         comment.kind == NextCommentKind::Block
