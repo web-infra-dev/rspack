@@ -191,6 +191,22 @@ pub struct WalkData {
   pub define_record: FxHashMap<Arc<str>, DefineRecord>,
   pub typeof_define_record: FxHashMap<Arc<str>, DefineRecord>,
   pub object_define_record: FxHashMap<Arc<str>, ObjectDefineRecord>,
+  /// First bytes of every name stored in the record and rename maps. Hooks
+  /// check this before hashing a name into the maps, and the vast majority of
+  /// names cannot start like any definition.
+  record_first_byte_bits: [u64; 4],
+}
+
+/// Bitset of the first bytes of `names`, indexed by byte value.
+fn first_byte_bits<'a>(names: impl Iterator<Item = &'a Arc<str>>) -> [u64; 4] {
+  let mut bits = [0u64; 4];
+  for name in names {
+    if let Some(byte) = name.as_bytes().first() {
+      let index = *byte as usize;
+      bits[index / 64] |= 1u64 << (index % 64);
+    }
+  }
+  bits
 }
 
 impl WalkData {
@@ -198,7 +214,24 @@ impl WalkData {
     let mut data = Self::default();
     data.setup_value_cache(definitions.iter(), "".into());
     data.setup_record(definitions);
+    data.record_first_byte_bits = first_byte_bits(
+      data
+        .define_record
+        .keys()
+        .chain(data.typeof_define_record.keys())
+        .chain(data.object_define_record.keys())
+        .chain(data.can_rename.keys()),
+    );
     data
+  }
+
+  /// Whether some definition name starts with the first byte of `name`.
+  #[inline]
+  pub fn may_match_record(&self, name: &str) -> bool {
+    name.as_bytes().first().is_some_and(|byte| {
+      let index = *byte as usize;
+      self.record_first_byte_bits[index / 64] & (1u64 << (index % 64)) != 0
+    })
   }
 
   fn setup_value_cache<'d, 's>(
@@ -235,6 +268,7 @@ impl WalkData {
   }
 
   fn setup_record(&mut self, definitions: &DefineValue) {
+    // (the first-byte filter is filled in `new`, once all maps are complete)
     fn apply_define_key(prefix: Cow<str>, key: Cow<str>, walk_data: &mut WalkData) {
       let splitted: Vec<&str> = key.split('.').collect();
       if !splitted.is_empty() {

@@ -45,6 +45,9 @@ impl DefineParserPlugin {
   }
 
   fn get_define_record(&self, for_name: &str) -> Option<&DefineRecord> {
+    if !self.walk_data.may_match_record(for_name) {
+      return None;
+    }
     self
       .walk_data
       .define_record
@@ -107,6 +110,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'p>> {
+    if !self.walk_data.may_match_record(for_name) {
+      return None;
+    }
     if let Some(record) = self.get_define_record(for_name)
       && let Some(on_evaluate_identifier) = &record.on_evaluate_identifier
     {
@@ -133,6 +139,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
     expr: UnaryExpression,
     for_name: &str,
   ) -> Option<bool> {
+    if !self.walk_data.may_match_record(for_name) {
+      return None;
+    }
     if let Some(record) = self.get_define_record(for_name)
       && let Some(on_typeof) = &record.on_typeof
     {
@@ -184,6 +193,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
     expr: HookMemberExpression,
     for_name: &str,
   ) -> Option<bool> {
+    if !self.walk_data.may_match_record(for_name) {
+      return None;
+    }
     if let Some(record) = self.get_define_record(for_name)
       && let Some(on_expression) = &record.on_expression
     {
@@ -220,6 +232,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
     ident: &Identifier,
     for_name: &str,
   ) -> Option<bool> {
+    if !self.walk_data.may_match_record(for_name) {
+      return None;
+    }
     if let Some(record) = self.get_define_record(for_name)
       && let Some(on_expression) = &record.on_expression
     {
