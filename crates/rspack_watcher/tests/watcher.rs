@@ -399,7 +399,10 @@ fn collect_time_info_entries_stamps_a_live_event_with_the_observed_time() {
     // the watcher sees a single event that already carries the old mtime.
     let staged = helper.join("a.staged");
     std::fs::write(&staged, b"restored").unwrap();
-    std::fs::File::open(&staged)
+    // Windows only lets a handle opened for writing retime the file.
+    std::fs::File::options()
+      .write(true)
+      .open(&staged)
       .and_then(|file| file.set_modified(parked))
       .unwrap();
     std::fs::rename(&staged, helper.join("a")).unwrap();

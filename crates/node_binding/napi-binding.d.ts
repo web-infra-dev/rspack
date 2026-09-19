@@ -479,12 +479,7 @@ export declare class NativeWatcher {
   watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], startTime: bigint, callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (event: NativeWatchUndelayedEvent) => void): void
   triggerEvent(kind: 'change' | 'remove' | 'create', path: string): void
   close(): Promise<void>
-  /**
-   * watchpack's `collectTimeInfoEntries`, over every registered path. Read
-   * synchronously from JS after an aggregated event (to populate
-   * `compiler.fileTimestamps` / `contextTimestamps`) and by `getTimes` /
-   * `getTimeInfoEntries`.
-   */
+  /** watchpack's `collectTimeInfoEntries`, over every registered path. */
   collectTimeInfoEntries(): NativeTimeInfoEntries
   pause(): void
 }
@@ -1823,10 +1818,6 @@ export interface NapiResolveOptions {
   enablePnp?: boolean
 }
 
-/**
- * watchpack's `collectTimeInfoEntries(fileTimestamps, directoryTimestamps)`
- * output.
- */
 export interface NativeTimeInfoEntries {
   fileTimestamps: Array<NativeTimeInfoEntry>
   directoryTimestamps: Array<NativeTimeInfoEntry>
