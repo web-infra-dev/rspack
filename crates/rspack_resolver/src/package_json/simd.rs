@@ -159,6 +159,10 @@ pub struct PackageJson {
   /// <https://nodejs.org/api/packages.html#type>
   pub r#type: Option<ModuleType>,
 
+  /// The raw "type" value, as written in package.json. Consumers use it to
+  /// answer `descriptionData.type` questions without reading the file.
+  pub type_text: Option<String>,
+
   /// The "sideEffects" field.
   ///
   /// <https://webpack.js.org/guides/tree-shaking>
@@ -229,6 +233,11 @@ impl PackageJson {
         .get("type")
         .and_then(|str| str.as_str())
         .and_then(|str| str.try_into().ok());
+
+      package_json.type_text = json_object
+        .get("type")
+        .and_then(|str| str.as_str())
+        .map(ToString::to_string);
 
       package_json.side_effects = json_object
         .get("sideEffects")

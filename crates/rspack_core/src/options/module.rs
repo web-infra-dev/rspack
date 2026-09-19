@@ -1718,19 +1718,22 @@ pub struct ModuleRule {
 }
 
 impl ModuleRule {
-  /// Whether this rule or a nested rule matches on `descriptionData`.
-  /// When nothing does, the raw package.json mirror is never observed and
-  /// resolvers can skip materializing it.
-  pub fn uses_description_data(&self) -> bool {
-    self.description_data.is_some()
+  /// Whether this rule or a nested rule matches on a `descriptionData` key
+  /// that cannot be served from the fields the resolver already parsed. Only
+  /// `type` is available without the raw package.json mirror.
+  pub fn needs_raw_description_data(&self) -> bool {
+    self
+      .description_data
+      .as_ref()
+      .is_some_and(|data| data.keys().any(|key| key != "type"))
       || self
         .rules
         .as_ref()
-        .is_some_and(|rules| rules.iter().any(ModuleRule::uses_description_data))
+        .is_some_and(|rules| rules.iter().any(ModuleRule::needs_raw_description_data))
       || self
         .one_of
         .as_ref()
-        .is_some_and(|rules| rules.iter().any(ModuleRule::uses_description_data))
+        .is_some_and(|rules| rules.iter().any(ModuleRule::needs_raw_description_data))
   }
 }
 

@@ -111,7 +111,9 @@ impl JsResolverFactory {
         let resolver_factory = Arc::new(ResolverFactory::new_with_description_json(
           self.loader_resolve_options.clone(),
           self.input_filesystem.clone(),
-          self.description_json,
+          // The loader resolver classifies ESM and CommonJS loaders from the
+          // package type, so it always keeps the description.
+          true,
         ));
         self.loader_resolver_factory = Some(resolver_factory.clone());
         resolver_factory

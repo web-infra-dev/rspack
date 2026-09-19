@@ -153,13 +153,16 @@ pub(crate) fn read_description_file_json(path: &std::path::Path) -> Option<serde
     .clone()
 }
 
-fn description_file_json(resource_data: &rspack_core::ResourceData) -> Option<serde_json::Value> {
-  let description = resource_data.description()?;
+/// Package.json content of a description: the collected mirror when present,
+/// otherwise read from the described file.
+pub(crate) fn description_file_json(
+  description: &rspack_loader_runner::DescriptionData,
+) -> Option<serde_json::Value> {
   let json = description.json();
   if !json.is_null() {
     return Some(json.clone());
   }
-  read_description_file_json(description.path())
+  read_description_file_json(description.json_path())
 }
 
 impl From<&rspack_core::ResourceData> for JsResourceData {
@@ -169,7 +172,9 @@ impl From<&rspack_core::ResourceData> for JsResourceData {
       path: value.path().map(|p| p.as_str().to_string()),
       fragment: value.fragment().map(|r| r.to_owned()),
       query: value.query().map(|r| r.to_owned()),
-      description_file_data: description_file_json(value),
+      description_file_data: value
+        .description()
+        .and_then(description_file_json),
       description_file_path: value
         .description()
         .map(|data| data.path().to_string_lossy().into_owned()),

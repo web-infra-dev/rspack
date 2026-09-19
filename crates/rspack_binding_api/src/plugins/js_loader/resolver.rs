@@ -116,9 +116,14 @@ pub(crate) async fn resolve_loader(
       } else {
         description_data.as_ref().and_then(|data| {
           data
-            .json()
-            .get("type")
-            .and_then(|t| t.as_str().map(|t| Cow::Owned(t.to_owned())))
+            .module_type()
+            .map(|t| Cow::Owned(t.to_owned()))
+            .or_else(|| {
+              data
+                .json()
+                .get("type")
+                .and_then(|t| t.as_str().map(|t| Cow::Owned(t.to_owned())))
+            })
         })
       };
       #[cfg(windows)]

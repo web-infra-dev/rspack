@@ -223,13 +223,15 @@ impl Resolver {
         DescriptionSideEffects::Patterns(patterns.clone())
       }
     });
-    DescriptionData::new_with_side_effects(
+    DescriptionData::new_with_description(
       package_json.directory().to_path_buf(),
+      package_json.path.clone(),
       if self.description_json {
         Arc::clone(package_json.raw_json())
       } else {
         empty_description_json()
       },
+      package_json.type_text.clone(),
       side_effects,
     )
   }

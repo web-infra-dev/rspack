@@ -332,9 +332,17 @@ pub struct DescriptionData {
   #[cacheable(with=As<PortablePath>)]
   path: PathBuf,
 
+  /// Path to the described `package.json` file itself.
+  #[cacheable(with=As<PortablePath>)]
+  json_path: PathBuf,
+
   /// Raw package.json
   #[cacheable(with=AsInner<AsPreset>)]
   json: Arc<serde_json::Value>,
+
+  /// Raw `type` field, served to `descriptionData` matchers without the
+  /// JSON mirror.
+  module_type: Option<String>,
 
   /// Typed `sideEffects` parsed by the resolver. None means the resolver
   /// did not collect it and consumers should fall back to `json`.
@@ -344,20 +352,26 @@ pub struct DescriptionData {
 impl DescriptionData {
   pub fn new(path: PathBuf, json: Arc<serde_json::Value>) -> Self {
     Self {
+      json_path: path.clone(),
       path,
       json,
+      module_type: None,
       side_effects: None,
     }
   }
 
-  pub fn new_with_side_effects(
+  pub fn new_with_description(
     path: PathBuf,
+    json_path: PathBuf,
     json: Arc<serde_json::Value>,
+    module_type: Option<String>,
     side_effects: Option<DescriptionSideEffects>,
   ) -> Self {
     Self {
       path,
+      json_path,
       json,
+      module_type,
       side_effects,
     }
   }
@@ -366,8 +380,18 @@ impl DescriptionData {
     &self.path
   }
 
+  /// Path to the described `package.json` file.
+  pub fn json_path(&self) -> &Path {
+    &self.json_path
+  }
+
   pub fn json(&self) -> &serde_json::Value {
     self.json.as_ref()
+  }
+
+  /// Raw `type` field of the described package.json.
+  pub fn module_type(&self) -> Option<&str> {
+    self.module_type.as_deref()
   }
 
   /// Typed `sideEffects` when the resolver collected it.
