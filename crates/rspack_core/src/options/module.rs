@@ -1717,6 +1717,24 @@ pub struct ModuleRule {
   pub extract_source_map: Option<bool>,
 }
 
+impl ModuleRule {
+  /// Whether this rule or a nested rule matches on `descriptionData`.
+  /// When nothing does, the raw package.json mirror is never observed and
+  /// resolvers can skip materializing it.
+  pub fn uses_description_data(&self) -> bool {
+    self.description_data.is_some()
+      || self
+        .rules
+        .as_ref()
+        .is_some_and(|rules| rules.iter().any(ModuleRule::uses_description_data))
+      || self
+        .one_of
+        .as_ref()
+        .is_some_and(|rules| rules.iter().any(ModuleRule::uses_description_data))
+  }
+}
+
+
 pub type ModuleRuleId = u16;
 pub const MODULE_RULE_ID_UNASSIGNED: ModuleRuleId = ModuleRuleId::MAX;
 pub type ModuleRuleIds = SmallVec<[ModuleRuleId; 4]>;

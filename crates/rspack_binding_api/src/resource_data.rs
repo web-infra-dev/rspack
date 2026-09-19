@@ -134,6 +134,34 @@ pub struct JsResourceData {
   pub description_file_path: Option<String>,
 }
 
+/// Reads a package.json description for JS consumers. The resolver only
+/// materializes descriptions that the compilation observes, so this falls back
+/// to reading the file when JS asks for one that was not collected.
+pub(crate) fn read_description_file_json(path: &std::path::Path) -> Option<serde_json::Value> {
+  // The same package.json backs many modules, so cache the parsed value to
+  // keep repeated reads cheap.
+  static CACHE: std::sync::LazyLock<
+    std::sync::Mutex<rustc_hash::FxHashMap<std::path::PathBuf, Option<serde_json::Value>>>,
+  > = std::sync::LazyLock::new(Default::default);
+  let mut cache = CACHE.lock().unwrap_or_else(|err| err.into_inner());
+  cache
+    .entry(path.to_path_buf())
+    .or_insert_with(|| {
+      let source = std::fs::read_to_string(path).ok()?;
+      serde_json::from_str(&source).ok()
+    })
+    .clone()
+}
+
+fn description_file_json(resource_data: &rspack_core::ResourceData) -> Option<serde_json::Value> {
+  let description = resource_data.description()?;
+  let json = description.json();
+  if !json.is_null() {
+    return Some(json.clone());
+  }
+  read_description_file_json(description.path())
+}
+
 impl From<&rspack_core::ResourceData> for JsResourceData {
   fn from(value: &rspack_core::ResourceData) -> Self {
     Self {
@@ -141,7 +169,7 @@ impl From<&rspack_core::ResourceData> for JsResourceData {
       path: value.path().map(|p| p.as_str().to_string()),
       fragment: value.fragment().map(|r| r.to_owned()),
       query: value.query().map(|r| r.to_owned()),
-      description_file_data: value.description().map(|data| data.json().to_owned()),
+      description_file_data: description_file_json(value),
       description_file_path: value
         .description()
         .map(|data| data.path().to_string_lossy().into_owned()),

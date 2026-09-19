@@ -7,7 +7,6 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, cyan, yellow};
 use rspack_util::SpanExt;
-use sugar_path::SugarPath;
 use swc_next_ecma_ast::{Expr, GetSpan, UnaryExpression};
 
 use crate::{

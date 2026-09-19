@@ -23,12 +23,22 @@ impl From<rspack_core::Resource> for ResolveRequest {
   fn from(value: rspack_core::Resource) -> Self {
     let (description_file_path, description_file_data) =
       value.description_data.map(|data| data.into_parts()).unzip();
+    let description_file_path =
+      description_file_path.map(|path| path.to_string_lossy().into_owned());
+    let description_file_data = description_file_data
+      .map(std::sync::Arc::unwrap_or_clone)
+      .filter(|json| !json.is_null())
+      .or_else(|| {
+        crate::resource_data::read_description_file_json(std::path::Path::new(
+          description_file_path.as_deref()?,
+        ))
+      });
     Self {
       path: value.path.to_string(),
       query: value.query,
       fragment: value.fragment,
-      description_file_data: description_file_data.map(std::sync::Arc::unwrap_or_clone),
-      description_file_path: description_file_path.map(|path| path.to_string_lossy().into_owned()),
+      description_file_data,
+      description_file_path,
       file_dependencies: vec![],
       missing_dependencies: vec![],
     }

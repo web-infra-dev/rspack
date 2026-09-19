@@ -4,7 +4,6 @@ use rspack_core::{
   NodeDirnameOption, NodeFilenameOption, NodeOption, parse_resource,
 };
 use rspack_error::{Diagnostic, cyan, yellow};
-use sugar_path::SugarPath;
 use url::Url;
 
 use crate::{dependency::ExternalModuleDependency, visitors::JavascriptParser};
