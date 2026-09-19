@@ -232,6 +232,7 @@ impl Resolver {
         empty_description_json()
       },
       package_json.type_text.clone(),
+      package_json.version.clone(),
       side_effects,
     )
   }

@@ -38,7 +38,8 @@ impl ReadonlyResourceData {
     self.with_ref(|resource_data| {
       resource_data
         .description()
-        .map(|desc| unsafe { ToNapiValue::to_napi_value(env.raw(), desc.json()) })
+        .and_then(description_file_json)
+        .map(|json| unsafe { ToNapiValue::to_napi_value(env.raw(), json) })
         .transpose()
     })
   }

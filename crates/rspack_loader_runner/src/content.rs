@@ -344,6 +344,9 @@ pub struct DescriptionData {
   /// JSON mirror.
   module_type: Option<String>,
 
+  /// Raw `version` field, kept for consumers that resolve it eagerly.
+  version: Option<String>,
+
   /// Typed `sideEffects` parsed by the resolver. None means the resolver
   /// did not collect it and consumers should fall back to `json`.
   side_effects: Option<DescriptionSideEffects>,
@@ -356,6 +359,7 @@ impl DescriptionData {
       path,
       json,
       module_type: None,
+      version: None,
       side_effects: None,
     }
   }
@@ -365,6 +369,7 @@ impl DescriptionData {
     json_path: PathBuf,
     json: Arc<serde_json::Value>,
     module_type: Option<String>,
+    version: Option<String>,
     side_effects: Option<DescriptionSideEffects>,
   ) -> Self {
     Self {
@@ -372,6 +377,7 @@ impl DescriptionData {
       json_path,
       json,
       module_type,
+      version,
       side_effects,
     }
   }
@@ -392,6 +398,11 @@ impl DescriptionData {
   /// Raw `type` field of the described package.json.
   pub fn module_type(&self) -> Option<&str> {
     self.module_type.as_deref()
+  }
+
+  /// Raw `version` field of the described package.json.
+  pub fn version(&self) -> Option<&str> {
+    self.version.as_deref()
   }
 
   /// Typed `sideEffects` when the resolver collected it.

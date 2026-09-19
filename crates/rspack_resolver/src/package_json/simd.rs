@@ -154,6 +154,9 @@ pub struct PackageJson {
   /// <https://nodejs.org/api/packages.html#name>
   pub name: Option<String>,
 
+  /// The "version" field, kept so consumers can read it without the JSON mirror.
+  pub version: Option<String>,
+
   /// The "type" field.
   ///
   /// <https://nodejs.org/api/packages.html#type>
@@ -233,6 +236,11 @@ impl PackageJson {
         .get("type")
         .and_then(|str| str.as_str())
         .and_then(|str| str.try_into().ok());
+
+      package_json.version = json_object
+        .get("version")
+        .and_then(|str| str.as_str())
+        .map(ToString::to_string);
 
       package_json.type_text = json_object
         .get("type")
