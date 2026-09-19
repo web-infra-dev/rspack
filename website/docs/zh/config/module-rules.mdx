@@ -323,6 +323,32 @@ export default {
 };
 ```
 
+### 通过 URL 引用 JavaScript 模块
+
+你可以使用 `new URL('./module.js', import.meta.url)` 获取 JavaScript 模块打包后的 URL。需要在规则中配置 `dependency: 'url'` 和对应的模块 `type`：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        dependency: 'url',
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+```
+
+```js title="src/index.js"
+const scriptUrl = new URL('./script.js', import.meta.url);
+```
+
+创建 URL 本身不会执行脚本，你可以在需要时通过 `<script src>` 等方式使用 URL 加载产物。
+
+默认情况下，`new URL()` 引用的文件会被视为资源，即使扩展名是 `.js`。仅包含 `test` 的规则不会改变这一行为：需要像上面的示例一样显式配置 `dependency: 'url'` 和 `type`，才能将它们作为模块打包。
+
 ## rules[].phase
 
 <ApiMeta stability={Stability.Experimental} addedVersion="2.0.8" />

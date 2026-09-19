@@ -323,6 +323,32 @@ export default {
 };
 ```
 
+### Referencing JavaScript modules by URL
+
+You can use `new URL('./module.js', import.meta.url)` to get the URL of a bundled JavaScript module. Configure rules with `dependency: 'url'` and the corresponding module `type`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        dependency: 'url',
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+```
+
+```js title="src/index.js"
+const scriptUrl = new URL('./script.js', import.meta.url);
+```
+
+Creating the URL does not execute the script; you can use the URL to load it later, for example through `<script src>`.
+
+By default, files referenced by `new URL()` are treated as assets, even if their extension is `.js`. A rule containing only `test` does not change this behavior: explicitly set `dependency: 'url'` and `type` as shown above to bundle them as modules.
+
 ## rules[].phase
 
 <ApiMeta stability={Stability.Experimental} addedVersion="2.0.8" />

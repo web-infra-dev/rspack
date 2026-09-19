@@ -16,7 +16,7 @@ use crate::{
   JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
   dependency::{
     URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE, WORKER_STATIC_URL_PLACEHOLDER,
-    WORKER_STATIC_URL_PLACEHOLDER_RE, WorkerDependency,
+    WORKER_STATIC_URL_PLACEHOLDER_RE, WorkerDependency, get_dependency_entry_chunk,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
 };
@@ -57,6 +57,13 @@ async fn get_chunk_output_path(compilation: &Compilation, chunk_ukey: ChunkUkey)
     .await
 }
 
+fn parse_placeholder_dependency_id(value: &str) -> DependencyId {
+  value
+    .parse::<u32>()
+    .unwrap_or_else(|_| panic!("should be valid dependency id \"{value}\""))
+    .into()
+}
+
 fn is_relative_public_path(public_path: &str) -> bool {
   !public_path.starts_with('/') && url::Url::parse(public_path).is_err()
 }
@@ -76,20 +83,26 @@ pub async fn replace_static_url_placeholders(
 
   for (start, end) in replacements {
     let dep_id = &content[start + URL_STATIC_PLACEHOLDER.len()..end];
-    let dep_id: DependencyId = dep_id
-      .parse::<u32>()
-      .unwrap_or_else(|_| panic!("should be valid dependency id \"{dep_id}\""))
-      .into();
-    let Some(module) = module_graph.module_identifier_by_dependency_id(&dep_id) else {
+    let dep_id = parse_placeholder_dependency_id(dep_id);
+    let Some(module_identifier) = module_graph.module_identifier_by_dependency_id(&dep_id) else {
       continue;
     };
+    if let Some(chunk_ukey) = get_dependency_entry_chunk(compilation, &dep_id) {
+      let filename = get_chunk_output_path(compilation, chunk_ukey).await?;
+      replace_source.replace(start as u32, end as u32, filename, None);
+      continue;
+    }
     // The asset may be extracted into a shared chunk whose runtime is the union
     // of the referencing chunks' runtimes. Fall back to the unique code generation
     // result when the referencing runtime has no exact entry.
     let codegen_result = compilation
       .code_generation_results
-      .try_get(module, runtime)
-      .or_else(|_| compilation.code_generation_results.try_get(module, None))?;
+      .try_get(module_identifier, runtime)
+      .or_else(|_| {
+        compilation
+          .code_generation_results
+          .try_get(module_identifier, None)
+      })?;
     let Some(filename) = codegen_result.data().get::<CodeGenerationDataFilename>() else {
       unreachable!()
     };
@@ -108,28 +121,14 @@ pub async fn replace_static_url_placeholders(
 
   for (start, end) in worker_replacements {
     let dep_id = &content[start + WORKER_STATIC_URL_PLACEHOLDER.len()..end];
-    let dep_id: DependencyId = dep_id
-      .parse::<u32>()
-      .unwrap_or_else(|_| panic!("should be valid dependency id \"{dep_id}\""))
-      .into();
+    let dep_id = parse_placeholder_dependency_id(dep_id);
     let worker_dep = module_graph
       .dependency_by_id(&dep_id)
       .downcast_ref::<WorkerDependency>()
       .expect("should be WorkerDependency");
     let worker_public_path = worker_dep.public_path().to_string();
-    let worker_chunk_ukey = module_graph
-      .get_parent_block(&dep_id)
-      .and_then(|block| {
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_block_chunk_group(
-            block,
-            &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-          )
-      })
-      .map(|entrypoint| entrypoint.get_entrypoint_chunk())
-      .expect("failed to get worker chunk");
+    let worker_chunk_ukey =
+      get_dependency_entry_chunk(compilation, &dep_id).expect("failed to get worker chunk");
     let filename = get_chunk_output_path(compilation, worker_chunk_ukey).await?;
     let public_path = if !worker_public_path.is_empty() {
       worker_public_path
@@ -211,11 +210,11 @@ async fn render_module_content(
   _init_fragments: &mut ChunkInitFragments,
   _runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
-  let runtime = compilation
+  let chunk = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
-    .expect_get(chunk_ukey)
-    .runtime();
+    .expect_get(chunk_ukey);
+  let runtime = chunk.runtime();
   let codegen_result = compilation
     .code_generation_results
     .get(&module.identifier(), Some(runtime));

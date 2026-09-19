@@ -1,0 +1,89 @@
+const { rspack } = require('@rspack/core');
+
+class CheckUrlEntryBlocksPlugin {
+  apply(compiler) {
+    let buildIndex = 0;
+    compiler.hooks.compilation.tap(
+      'CheckUrlEntryBlocksPlugin',
+      (compilation) => {
+        const currentBuild = buildIndex++;
+        compilation.hooks.finishModules.tap('CheckUrlEntryBlocksPlugin', () => {
+          const originModule = Array.from(compilation.modules).find(
+            (module) => module.rawRequest === './index.js',
+          );
+          expect(originModule).toBeDefined();
+          expect(originModule.blocks).toHaveLength(1);
+          for (const block of originModule.blocks) {
+            expect(block.dependencies).toHaveLength(1);
+            expect(block.dependencies[0].type).toBe('new URL()');
+          }
+          expect(
+            originModule.dependencies.filter(
+              (dependency) => dependency.type === 'new URL()',
+            ),
+          ).toHaveLength(0);
+        });
+        compilation.hooks.processAssets.tap(
+          {
+            name: 'CheckUrlEntryBlocksPlugin',
+            stage: rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONS,
+          },
+          () => {
+            const assets = compilation.getAssets().map((asset) => asset.name);
+            expect(
+              assets.filter((asset) => asset.endsWith('.js')),
+            ).toHaveLength(2);
+            const jsAsset = compilation
+              .getAssets()
+              .find(
+                (asset) =>
+                  asset.name.startsWith('url-') && asset.name.endsWith('.js'),
+              );
+            expect(jsAsset.source.source().toString()).toContain(
+              currentBuild === 0 ? 'initial' : 'updated',
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+/** @type {import("@rspack/core").Configuration} */
+const config = {
+  mode: 'development',
+  devtool: false,
+  target: 'web',
+  output: {
+    filename: 'bundle.js',
+    chunkFilename: 'url-[id].js',
+    publicPath: '/assets/',
+  },
+  module: {
+    rules: [
+      {
+        test: /target\.js$/,
+        dependency: 'url',
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+
+module.exports = [false, true].flatMap((cache) =>
+  [false, undefined].map((incremental) => {
+    const name = `cache-${cache}-incremental-${incremental !== false}`;
+    return {
+      ...config,
+      name,
+      cache,
+      incremental,
+      output: {
+        ...config.output,
+        filename: `bundle-${name}.js`,
+        chunkFilename: `url-${name}-[id].js`,
+      },
+      plugins: [new CheckUrlEntryBlocksPlugin()],
+    };
+  }),
+);
