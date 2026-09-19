@@ -139,19 +139,29 @@ pub struct JsResourceData {
 /// materializes descriptions that the compilation observes, so this falls back
 /// to reading the file when JS asks for one that was not collected.
 pub(crate) fn read_description_file_json(path: &std::path::Path) -> Option<serde_json::Value> {
-  // The same package.json backs many modules, so cache the parsed value to
-  // keep repeated reads cheap.
+  // The same package.json backs many modules, so cache the parsed value;
+  // validate it against the file's modification time so watch mode and
+  // long-lived processes pick up edits.
   static CACHE: std::sync::LazyLock<
-    std::sync::Mutex<rustc_hash::FxHashMap<std::path::PathBuf, Option<serde_json::Value>>>,
+    std::sync::Mutex<
+      rustc_hash::FxHashMap<
+        std::path::PathBuf,
+        (Option<std::time::SystemTime>, Option<serde_json::Value>),
+      >,
+    >,
   > = std::sync::LazyLock::new(Default::default);
+  let modified = std::fs::metadata(path).and_then(|meta| meta.modified()).ok();
   let mut cache = CACHE.lock().unwrap_or_else(|err| err.into_inner());
-  cache
-    .entry(path.to_path_buf())
-    .or_insert_with(|| {
-      let source = std::fs::read_to_string(path).ok()?;
-      serde_json::from_str(&source).ok()
-    })
-    .clone()
+  if let Some((cached_modified, value)) = cache.get(path)
+    && *cached_modified == modified
+  {
+    return value.clone();
+  }
+  let value = std::fs::read_to_string(path)
+    .ok()
+    .and_then(|source| serde_json::from_str(&source).ok());
+  cache.insert(path.to_path_buf(), (modified, value.clone()));
+  value
 }
 
 /// Package.json content of a description: the collected mirror when present,
