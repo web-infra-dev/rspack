@@ -317,6 +317,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       AnalyzeOptions {
         check_syntax: true,
         build_module_record: false,
+        // Rspack drops the "Invalid regular expression literal" diagnostic
+        // below, so the validation that produces it is pure work here.
+        check_regexp_literals: false,
+        ..AnalyzeOptions::default()
       },
     );
     // The legacy parser accepted several redeclaration combinations that the
