@@ -1,4 +1,5 @@
 use rspack_core::DependencyRange;
+use smallvec::SmallVec;
 use rspack_util::SpanExt;
 use swc_next_ecma_ast::{
   BinaryExpression, BinaryOperator, GetSpan, LogicalExpression, LogicalOperator,
@@ -543,7 +544,7 @@ pub fn eval_binary_expression<'parser>(
   expr: BinaryExpression,
 ) -> Option<BasicEvaluatedExpression<'parser>> {
   let ast = scanner.ast.ast;
-  let mut stack = vec![expr];
+  let mut stack: SmallVec<[BinaryExpression; 8]> = SmallVec::from_elem(expr, 1);
   let mut left_expression = expr.left(ast);
   while let Some(bin) = left_expression.as_binary_expression(ast) {
     stack.push(bin);
@@ -580,7 +581,7 @@ pub fn eval_logical_expression<'parser>(
   expr: LogicalExpression,
 ) -> Option<BasicEvaluatedExpression<'parser>> {
   let ast = scanner.ast.ast;
-  let mut stack = vec![expr];
+  let mut stack: SmallVec<[LogicalExpression; 8]> = SmallVec::from_elem(expr, 1);
   let mut left_expression = expr.left(ast);
   while let Some(logical) = left_expression.as_logical_expression(ast) {
     stack.push(logical);
