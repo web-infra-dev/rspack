@@ -386,12 +386,7 @@ async fn module_rule_matcher_async<'rule, 'ctx>(
           k.split('.')
             .try_fold(resource_description.json(), |acc, key| acc.get(key))
         };
-        if !check_optional_async(
-          matcher,
-          value.map(Into::into),
-        )
-        .await?
-        {
+        if !check_optional_async(matcher, value.map(Into::into)).await? {
           return Ok(false);
         }
       }

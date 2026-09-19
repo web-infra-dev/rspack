@@ -3,13 +3,13 @@ use std::{borrow::Cow, fmt::Debug, path::Path};
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsyncModulesArtifact, BoxModule, Compilation, CompilationFinishModules, DescriptionSideEffects,
+  AsyncModulesArtifact, BoxModule, Compilation, CompilationFinishModules,
   CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta, DependencyId,
-  ExportsInfoArtifact, FactoryMeta, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
-  OptimizationBailoutItem, Plugin, ResolvedExportInfoTarget, SideEffectsDoOptimize,
-  SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact, SideEffectsState,
-  SideEffectsStateArtifact,
+  DescriptionSideEffects, ExportsInfoArtifact, FactoryMeta, GetTargetResult, Logger,
+  ModuleFactoryCreateData, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  NormalModuleCreateData, NormalModuleFactoryModule, OptimizationBailoutItem, Plugin,
+  ResolvedExportInfoTarget, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
+  SideEffectsOptimizeArtifact, SideEffectsState, SideEffectsStateArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   can_move_target, get_target,
   incremental::{self, IncrementalPasses, Mutation},

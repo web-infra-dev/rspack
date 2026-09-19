@@ -1737,7 +1737,6 @@ impl ModuleRule {
   }
 }
 
-
 pub type ModuleRuleId = u16;
 pub const MODULE_RULE_ID_UNASSIGNED: ModuleRuleId = ModuleRuleId::MAX;
 pub type ModuleRuleIds = SmallVec<[ModuleRuleId; 4]>;

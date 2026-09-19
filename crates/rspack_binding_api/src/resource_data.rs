@@ -151,7 +151,9 @@ pub(crate) fn read_description_file_json(path: &std::path::Path) -> Option<serde
   // long-lived processes pick up edits.
   static CACHE: std::sync::LazyLock<DescriptionJsonCache> =
     std::sync::LazyLock::new(Default::default);
-  let modified = std::fs::metadata(path).and_then(|meta| meta.modified()).ok();
+  let modified = std::fs::metadata(path)
+    .and_then(|meta| meta.modified())
+    .ok();
   let mut cache = CACHE.lock().unwrap_or_else(|err| err.into_inner());
   if let Some((cached_modified, value)) = cache.get(path)
     && *cached_modified == modified
@@ -184,9 +186,7 @@ impl From<&rspack_core::ResourceData> for JsResourceData {
       path: value.path().map(|p| p.as_str().to_string()),
       fragment: value.fragment().map(|r| r.to_owned()),
       query: value.query().map(|r| r.to_owned()),
-      description_file_data: value
-        .description()
-        .and_then(description_file_json),
+      description_file_data: value.description().and_then(description_file_json),
       description_file_path: value
         .description()
         .map(|data| data.path().to_string_lossy().into_owned()),
