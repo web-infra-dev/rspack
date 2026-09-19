@@ -185,14 +185,21 @@ impl EventProcessor {
       kind
     };
 
-    let is_registered_file = self.path_manager.access().files().0.contains(path);
+    // Drop a removed file's record so it reads as `null`, like watchpack.
+    if kind == FsEventKind::Remove {
+      self.path_manager.remove_file_time(path);
+    }
+
+    let accessor = self.path_manager.access();
+    let is_watched_path = accessor.files().0.contains(path) || accessor.missing().0.contains(path);
 
     // Filter stale FSEvents: on macOS, FSEvents can deliver events for files
     // written before the watcher was created. Stat the file and compare mtime
     // against the recorded baseline to suppress events where nothing changed.
     // Apply the same suppression to Create for already-registered files, since
     // macOS may emit stale Create events for files that predate the watcher.
-    if (kind == FsEventKind::Change || (kind == FsEventKind::Create && is_registered_file))
+    // A registered-missing path takes its first record here, once it exists.
+    if (kind == FsEventKind::Change || (kind == FsEventKind::Create && is_watched_path))
       && !self.path_manager.has_mtime_changed(path)
     {
       return;
@@ -200,6 +207,10 @@ impl EventProcessor {
 
     let finder = self.finder();
     let associated_event = finder.find_associated_event(path, kind);
+    // watchpack's `lastWatchEvent`: every registered context the event reached.
+    for (path, _) in &associated_event {
+      self.path_manager.set_last_watch_event(path);
+    }
     self.trigger_events(associated_event);
   }
   /// Helper to construct a `DependencyFinder` for the current path register state.

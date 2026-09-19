@@ -47,6 +47,27 @@ pub(crate) struct FsEvent {
   pub kind: FsEventKind,
 }
 
+/// One value of watchpack's `TimeInfoEntries` map (`types/index.d.ts`):
+/// `Entry | OnlySafeTimeEntry | ExistenceOnlyTimeEntry | null`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TimeInfoEntry {
+  Entry {
+    safe_time: u64,
+    timestamp: u64,
+    accuracy: u64,
+  },
+  OnlySafeTimeEntry {
+    safe_time: u64,
+  },
+  /// Known to exist, with no time info (`{}`).
+  ExistenceOnlyTimeEntry,
+  /// A watched path absent on disk.
+  Null,
+}
+
+/// watchpack's `TimeInfoEntries`, as `(path, entry)` rows.
+pub type TimeInfoEntries = Vec<(String, TimeInfoEntry)>;
+
 pub(crate) type EventBatch = Vec<FsEvent>;
 
 /// `EventAggregateHandler` is a trait for handling aggregated file system events.
@@ -114,6 +135,9 @@ pub struct FsWatcher {
   paused: Arc<AtomicBool>,
   trigger: Arc<Mutex<Option<Arc<Trigger>>>>,
   op_tx: mpsc::UnboundedSender<WatcherOp>,
+  /// Shared with the owner thread's [`FsWatcherInner`], so the synchronous
+  /// napi getter can read time info without awaiting the op channel.
+  path_manager: Arc<PathManager>,
 }
 
 struct FsWatcherInner {
@@ -143,7 +167,7 @@ impl FsWatcher {
     let trigger = Arc::new(Mutex::new(Some(trigger)));
 
     let inner = FsWatcherInner {
-      path_manager,
+      path_manager: Arc::clone(&path_manager),
       disk_watcher,
       executor,
       scanner,
@@ -155,7 +179,13 @@ impl FsWatcher {
       paused,
       trigger,
       op_tx: spawn_owner_thread(inner),
+      path_manager,
     }
+  }
+
+  /// watchpack's `collectTimeInfoEntries`, as `(fileTimestamps, directoryTimestamps)`.
+  pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
+    self.path_manager.collect_time_info_entries()
   }
 
   /// Starts the file system watcher.
@@ -399,7 +429,7 @@ impl FsWatcherInner {
         .metadata()
         .and_then(|m| m.modified().or_else(|_| m.created()))
       {
-        self.path_manager.set_file_mtime_if_absent(path, mtime);
+        self.path_manager.set_file_time_if_absent(path, mtime);
       }
     }
   }
