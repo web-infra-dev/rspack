@@ -1684,11 +1684,15 @@ impl<'parser> JavascriptParser<'parser> {
 
 impl<'parser> JavascriptParser<'parser> {
   pub fn evaluate_expression(&mut self, expr: Expr) -> BasicEvaluatedExpression<'parser> {
-    let span = expr.span(self.ast.ast);
     match self.evaluating(expr) {
       Some(evaluated) => evaluated.with_expression_ast(Some(expr), self.active_synthetic_ast),
-      None => BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi())
-        .with_expression_ast(Some(expr), self.active_synthetic_ast),
+      None => {
+        // Only the unevaluated result needs the expression's span, so the span
+        // lookup stays out of the common path.
+        let span = expr.span(self.ast.ast);
+        BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi())
+          .with_expression_ast(Some(expr), self.active_synthetic_ast)
+      }
     }
   }
 

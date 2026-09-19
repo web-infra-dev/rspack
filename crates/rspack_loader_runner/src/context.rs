@@ -210,31 +210,44 @@ impl<Context: Send> LoaderContext<Context> {
 
   pub fn add_file_dependency(&mut self, dependency: impl Into<InternedPath>) {
     let dependency = dependency.into();
-    self.removed_dependencies.file.remove(&dependency);
+    // Loaders that never remove dependencies leave the removal set empty, so
+    // the cancel step can be skipped entirely instead of probing for a key
+    // that cannot be there.
+    if !self.removed_dependencies.file.is_empty() {
+      self.removed_dependencies.file.remove(&dependency);
+    }
     self.added_dependencies.file.insert(dependency);
   }
 
   pub fn add_context_dependency(&mut self, dependency: impl Into<InternedPath>) {
     let dependency = dependency.into();
-    self.removed_dependencies.context.remove(&dependency);
+    if !self.removed_dependencies.context.is_empty() {
+      self.removed_dependencies.context.remove(&dependency);
+    }
     self.added_dependencies.context.insert(dependency);
   }
 
   pub fn add_missing_dependency(&mut self, dependency: impl Into<InternedPath>) {
     let dependency = dependency.into();
-    self.removed_dependencies.missing.remove(&dependency);
+    if !self.removed_dependencies.missing.is_empty() {
+      self.removed_dependencies.missing.remove(&dependency);
+    }
     self.added_dependencies.missing.insert(dependency);
   }
 
   pub fn add_build_dependency(&mut self, dependency: impl Into<InternedPath>) {
     let dependency = dependency.into();
-    self.removed_dependencies.build.remove(&dependency);
+    if !self.removed_dependencies.build.is_empty() {
+      self.removed_dependencies.build.remove(&dependency);
+    }
     self.added_dependencies.build.insert(dependency);
   }
 
   pub fn remove_file_dependency(&mut self, dependency: impl Into<InternedPath>) {
     let dependency = dependency.into();
-    self.added_dependencies.file.remove(&dependency);
+    if !self.added_dependencies.file.is_empty() {
+      self.added_dependencies.file.remove(&dependency);
+    }
     if self.dependencies.file.contains(&dependency) {
       self.removed_dependencies.file.insert(dependency);
     }
