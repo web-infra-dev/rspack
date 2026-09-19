@@ -34,6 +34,7 @@ use rspack_error::{Diagnostic, Result};
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
+use sugar_path::SugarPath;
 use swc_next_ecma_ast::{
   ArrayPattern, AssignmentPattern, Ast, BindingIdentifier, BindingPattern, BindingPatternData,
   BindingRestElement, CallExpression, Decl, DeclData, Expr, ExprData, GetSpan, IdentifierReference,
@@ -522,6 +523,11 @@ pub struct JavascriptParser<'parser> {
   pub build_meta: &'parser mut BuildMeta,
   pub build_info: &'parser mut BuildInfo,
   pub resource_data: &'parser ResourceData,
+  /// Memoized "resource path relative to the compiler context" for
+  /// `__filename` / `__dirname` / `import.meta.filename|dirname`: the plugins
+  /// ask for it on every occurrence, but it is constant for the module.
+  /// Index 0 is the file itself, index 1 its directory.
+  relative_resource_paths: [Option<Option<String>>; 2],
   pub(crate) compiler_options: &'parser CompilerOptions,
   pub(crate) javascript_options: &'parser JavascriptParserOptions,
   pub parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
@@ -736,6 +742,7 @@ impl<'parser> JavascriptParser<'parser> {
       plugin_drive_ptr: Rc::as_ptr(&plugin_drive),
       plugin_drive,
       resource_data,
+      relative_resource_paths: [None, None],
       factory_meta,
       build_meta,
       build_info,
@@ -1683,6 +1690,21 @@ impl<'parser> JavascriptParser<'parser> {
 }
 
 impl<'parser> JavascriptParser<'parser> {
+  /// `<resource>` (or its directory for `dirname`) relative to the compiler
+  /// context, computed once per parser.
+  pub(crate) fn relative_resource_path(&mut self, dirname: bool) -> Option<String> {
+    let resource_data = self.resource_data;
+    let context = &self.compiler_options.context;
+    let slot = &mut self.relative_resource_paths[usize::from(dirname)];
+    slot
+      .get_or_insert_with(|| {
+        let path = resource_data.path()?.as_std_path();
+        let path = if dirname { path.parent()? } else { path };
+        Some(path.relative(context).to_string_lossy().to_string())
+      })
+      .clone()
+  }
+
   pub fn evaluate_expression(&mut self, expr: Expr) -> BasicEvaluatedExpression<'parser> {
     match self.evaluating(expr) {
       Some(evaluated) => evaluated.with_expression_ast(Some(expr), self.active_synthetic_ast),

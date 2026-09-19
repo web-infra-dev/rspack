@@ -59,28 +59,8 @@ impl NodeStuffPlugin {
     Self { handle_cjs }
   }
 
-  fn get_relative_path(parser: &JavascriptParser, property: NodeMetaProperty) -> Option<String> {
-    match property {
-      NodeMetaProperty::Filename => Some(
-        parser
-          .resource_data
-          .path()?
-          .as_std_path()
-          .relative(&parser.compiler_options.context)
-          .to_string_lossy()
-          .to_string(),
-      ),
-      NodeMetaProperty::Dirname => Some(
-        parser
-          .resource_data
-          .path()?
-          .parent()?
-          .as_std_path()
-          .relative(&parser.compiler_options.context)
-          .to_string_lossy()
-          .to_string(),
-      ),
-    }
+  fn get_relative_path(parser: &mut JavascriptParser, property: NodeMetaProperty) -> Option<String> {
+    parser.relative_resource_path(matches!(property, NodeMetaProperty::Dirname))
   }
 
   fn add_node_module_dependencies(parser: &mut JavascriptParser, property: NodeMetaProperty) {

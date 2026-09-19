@@ -158,29 +158,12 @@ pub(crate) fn should_handle_import_meta_path(
 }
 
 fn get_relative_path(
-  parser: &JavascriptParser,
+  parser: &mut JavascriptParser,
   property: ImportMetaKnownProperties,
 ) -> Option<String> {
   match property {
-    ImportMetaKnownProperties::FILENAME => Some(
-      parser
-        .resource_data
-        .path()?
-        .as_std_path()
-        .relative(&parser.compiler_options.context)
-        .to_string_lossy()
-        .to_string(),
-    ),
-    ImportMetaKnownProperties::DIRNAME => Some(
-      parser
-        .resource_data
-        .path()?
-        .parent()?
-        .as_std_path()
-        .relative(&parser.compiler_options.context)
-        .to_string_lossy()
-        .to_string(),
-    ),
+    ImportMetaKnownProperties::FILENAME => parser.relative_resource_path(false),
+    ImportMetaKnownProperties::DIRNAME => parser.relative_resource_path(true),
     _ => unreachable!("only import.meta.dirname and import.meta.filename are supported"),
   }
 }
@@ -270,7 +253,7 @@ fn add_import_meta_cached_dependency(
 }
 
 pub(crate) fn get_import_meta_eval_value(
-  parser: &JavascriptParser,
+  parser: &mut JavascriptParser,
   property: ImportMetaKnownProperties,
 ) -> Option<String> {
   let node_option = parser.compiler_options.node.as_ref()?;
