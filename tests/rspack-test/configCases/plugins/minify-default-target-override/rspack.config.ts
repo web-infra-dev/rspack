@@ -1,0 +1,38 @@
+import { defineConfig } from '@rspack/cli';
+
+import { rspack } from '@rspack/core';
+
+export default defineConfig({
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
+  target: ['web', 'browserslist:safari >= 4'],
+  node: {
+    __dirname: false,
+    __filename: false,
+  },
+  module: {
+    rules: [
+      {
+        test: /\.css/,
+        type: 'css/auto',
+      },
+    ],
+  },
+  optimization: {
+    minimize: true,
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin({
+        minimizerOptions: {
+          ecma: 2020,
+        },
+      }),
+      new rspack.LightningCssMinimizerRspackPlugin({
+        minimizerOptions: {
+          targets: 'chrome > 95',
+        },
+      }),
+    ],
+  },
+});
