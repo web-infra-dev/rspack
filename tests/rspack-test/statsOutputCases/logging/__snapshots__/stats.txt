@@ -19,8 +19,6 @@ LOG from LogOtherTestPlugin
 LOG from <TEST_ROOT>/statsOutputCases/logging/index.js
 <e> An error
 |     at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at SyncBailHook.callAsyncStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at SyncBailHook.callStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at SyncBailHook.call (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at <RSPACK_ROOT>/dist/index.js<LINE_COL>
 |     at StatsFactory._forEachLevel (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
@@ -38,8 +36,6 @@ LOG from <TEST_ROOT>/statsOutputCases/logging/index.js
 |     at <RSPACK_ROOT>-test-tools/dist/test/creator.js<LINE_COL>
 <w> A warning
 |     at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at SyncBailHook.callAsyncStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at SyncBailHook.callStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at SyncBailHook.call (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at <RSPACK_ROOT>/dist/index.js<LINE_COL>
 |     at StatsFactory._forEachLevel (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
