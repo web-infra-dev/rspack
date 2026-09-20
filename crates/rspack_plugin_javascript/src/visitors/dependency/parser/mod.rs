@@ -12,7 +12,6 @@ mod walk_pre;
 use std::{
   fmt::Display,
   hash::{Hash, Hasher},
-  rc::Rc,
   sync::Arc,
 };
 
@@ -534,13 +533,11 @@ pub struct JavascriptParser<'parser> {
   pub module_type: &'parser ModuleType,
   pub(crate) module_layer: Option<&'parser ModuleLayer>,
   pub module_identifier: &'parser ModuleIdentifier,
-  pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
-  /// Raw pointer to the drive allocation. Hot paths borrow the drive while
-  /// `&mut self` is handed to the plugin hooks, which a field borrow cannot
-  /// express; cloning the `Rc` on every node is measurably expensive. The
-  /// pointer is derived from `plugin_drive` in the constructor, and the `Rc`
-  /// keeps that allocation alive for the parser's whole lifetime.
-  plugin_drive_ptr: *const JavaScriptParserPluginDrive,
+  /// The drive is owned by the caller and borrowed here for the parser lifetime.
+  /// Hot paths hand the drive to a hook while `&mut self` goes to the same hook;
+  /// an Rc field could only express that by cloning the handle on every call,
+  /// while a reference field is copied out for free.
+  pub(crate) plugin_drive: &'parser JavaScriptParserPluginDrive,
   // ===== states =======
   pub(crate) definitions_db: ScopeInfoDB<'parser>,
   pub(crate) top_level_scope: TopLevelScope,
@@ -576,40 +573,24 @@ pub struct JavascriptParser<'parser> {
 }
 
 impl<'parser> JavascriptParser<'parser> {
-  /// Borrows the parser plugin drive without touching its refcount.
+  /// Borrows the parser plugin drive without borrowing the parser itself, so a
+  /// hook can take `&mut parser` while the drive stays borrowed.
   #[inline]
-  pub(crate) fn plugin_drive(&self) -> &'static JavaScriptParserPluginDrive {
-    // SAFETY: the pointer is created from `plugin_drive` in the constructor and
-    // the `Rc` keeps the allocation alive for the parser's whole lifetime; the
-    // pointer is never reassigned.
-    unsafe { &*self.plugin_drive_ptr }
+  pub(crate) fn plugin_drive(&self) -> &'parser JavaScriptParserPluginDrive {
+    self.plugin_drive
   }
-  #[allow(clippy::too_many_arguments)]
-  pub fn new(
-    source: &'parser str,
-    ast: &'parser ParsedJavaScriptAst<'parser>,
-    compiler_options: &'parser CompilerOptions,
-    javascript_options: &'parser JavascriptParserOptions,
-    import_meta: ArcComputed<ResolvedModuleOptions, ImportMeta>,
-    module_identifier: &'parser ModuleIdentifier,
-    module_type: &'parser ModuleType,
-    module_layer: Option<&'parser ModuleLayer>,
-    resource_data: &'parser ResourceData,
-    factory_meta: Option<&'parser FactoryMeta>,
-    build_meta: &'parser mut BuildMeta,
-    build_info: &'parser mut BuildInfo,
-    semicolons: &'parser mut FxHashSet<u32>,
-    parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
-    parse_meta: ParseMeta,
-    parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
-  ) -> Self {
-    let warning_diagnostics: Vec<Diagnostic> = Vec::new();
-    let errors = Vec::new();
-    let dependencies = Vec::with_capacity(64);
-    let blocks = Vec::with_capacity(64);
-    let presentational_dependencies = Vec::with_capacity(64);
-    let parser_exports_state: Option<bool> = None;
 
+  /// Assembles the per-module plugin list and its hook dispatch table.
+  ///
+  /// The drive is returned by value so the caller owns it for the parser lifetime.
+  pub(crate) fn build_plugin_drive(
+    compiler_options: &CompilerOptions,
+    javascript_options: &JavascriptParserOptions,
+    module_type: &ModuleType,
+    import_meta: ArcComputed<ResolvedModuleOptions, ImportMeta>,
+    build_info: &mut BuildInfo,
+    parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
+  ) -> JavaScriptParserPluginDrive {
     let mut plugins: Vec<BoxJavascriptParserPlugin> = Vec::with_capacity(32 + parser_plugins.len());
 
     plugins.append(parser_plugins);
@@ -716,7 +697,33 @@ impl<'parser> JavascriptParser<'parser> {
       )));
     }
 
-    let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
+    JavaScriptParserPluginDrive::new(plugins)
+  }
+
+  #[allow(clippy::too_many_arguments)]
+  pub fn new(
+    source: &'parser str,
+    ast: &'parser ParsedJavaScriptAst<'parser>,
+    compiler_options: &'parser CompilerOptions,
+    javascript_options: &'parser JavascriptParserOptions,
+    plugin_drive: &'parser JavaScriptParserPluginDrive,
+    module_identifier: &'parser ModuleIdentifier,
+    module_type: &'parser ModuleType,
+    module_layer: Option<&'parser ModuleLayer>,
+    resource_data: &'parser ResourceData,
+    factory_meta: Option<&'parser FactoryMeta>,
+    build_meta: &'parser mut BuildMeta,
+    build_info: &'parser mut BuildInfo,
+    semicolons: &'parser mut FxHashSet<u32>,
+    parse_meta: ParseMeta,
+    parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
+  ) -> Self {
+    let warning_diagnostics: Vec<Diagnostic> = Vec::new();
+    let errors = Vec::new();
+    let dependencies = Vec::with_capacity(64);
+    let blocks = Vec::with_capacity(64);
+    let presentational_dependencies = Vec::with_capacity(64);
+    let parser_exports_state: Option<bool> = None;
 
     Self {
       last_esm_import_order: 0,
@@ -739,7 +746,6 @@ impl<'parser> JavascriptParser<'parser> {
       is_esm: matches!(module_type, ModuleType::JsEsm),
       in_tagged_template_tag: false,
       definitions_db: ScopeInfoDB::with_semantic(ast),
-      plugin_drive_ptr: Rc::as_ptr(&plugin_drive),
       plugin_drive,
       resource_data,
       relative_resource_paths: [None, None],
