@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspack/cli';
-
 import packageJson from './package.json' with { type: 'json' };
 import { container } from '@rspack/core';
 

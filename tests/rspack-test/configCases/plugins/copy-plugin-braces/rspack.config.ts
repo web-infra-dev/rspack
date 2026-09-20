@@ -1,6 +1,6 @@
 import { defineConfig } from '@rspack/cli';
-
 import { CopyRspackPlugin } from '@rspack/core';
+
 export default defineConfig({
   entry: './index.js',
   target: 'node',

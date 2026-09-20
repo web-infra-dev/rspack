@@ -1,5 +1,4 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
-
 import { CircularDependencyRspackPlugin } from '@rspack/core';
 
 const startFn = rstest.fn();

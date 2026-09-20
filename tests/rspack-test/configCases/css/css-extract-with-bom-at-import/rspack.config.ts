@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspack/cli';
-
 import { rspack } from '@rspack/core';
 import { fileURLToPath } from 'node:url';
 // `import: false` keeps the `@import` inside the module content instead of

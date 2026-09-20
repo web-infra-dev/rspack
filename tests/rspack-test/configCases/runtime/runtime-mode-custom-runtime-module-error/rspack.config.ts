@@ -1,5 +1,4 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
-
 import { RuntimeModule } from '@rspack/core';
 
 class CustomRuntimeModule extends RuntimeModule {

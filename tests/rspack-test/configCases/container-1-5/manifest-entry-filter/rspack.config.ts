@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspack/cli';
-
 import path from 'node:path';
 import { container } from '@rspack/core';
 

@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspack/cli';
-
 import { IgnorePlugin } from '@rspack/core';
 
 export default defineConfig({

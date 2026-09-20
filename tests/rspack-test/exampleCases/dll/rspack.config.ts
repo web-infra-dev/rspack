@@ -1,7 +1,7 @@
 import { defineConfig } from '@rspack/cli';
-
 import path from 'node:path';
 import { rspack as webpack } from '@rspack/core';
+
 export default defineConfig({
   // mode: "development" || "production",
   resolve: {

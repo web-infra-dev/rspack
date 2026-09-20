@@ -1,8 +1,8 @@
 import { defineConfig } from '@rspack/cli';
-
 import { CopyRspackPlugin } from '@rspack/core';
 import path from 'node:path';
 import assert from 'node:assert';
+
 export default defineConfig({
   entry: './index.js',
   target: 'node',

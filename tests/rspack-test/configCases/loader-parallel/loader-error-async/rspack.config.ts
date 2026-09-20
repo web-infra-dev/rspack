@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspack/cli';
-
 import path from 'node:path';
 
 const file = path.resolve(import.meta.dirname, 'lib.js');

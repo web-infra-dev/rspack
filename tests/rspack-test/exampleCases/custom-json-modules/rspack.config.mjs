@@ -1,6 +1,7 @@
 import toml from 'toml';
 import json from 'json5';
 import yaml from 'yamljs';
+
 export default {
   module: {
     rules: [

@@ -1,4 +1,5 @@
 import { rspack } from '@rspack/core';
+
 export default {
   entry: './index.png',
   module: {

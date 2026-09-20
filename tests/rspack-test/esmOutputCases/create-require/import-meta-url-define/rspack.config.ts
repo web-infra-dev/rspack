@@ -1,8 +1,8 @@
 import { defineConfig } from '@rspack/cli';
-
 import { DefinePlugin } from '@rspack/core';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+
 export default defineConfig({
   module: {
     parser: {

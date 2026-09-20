@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspack/cli';
-
 import ImageMinimizerPlugin from 'image-minimizer-webpack-plugin';
 
 export default defineConfig({

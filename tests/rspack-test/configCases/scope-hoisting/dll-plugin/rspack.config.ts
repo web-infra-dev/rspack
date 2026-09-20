@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspack/cli';
-
 import { DllReferencePlugin } from '@rspack/core';
 
 export default defineConfig({

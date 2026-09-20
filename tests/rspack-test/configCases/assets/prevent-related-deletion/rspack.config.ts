@@ -1,5 +1,4 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
-
 import { Compilation } from '@rspack/core';
 
 export default defineConfig({
