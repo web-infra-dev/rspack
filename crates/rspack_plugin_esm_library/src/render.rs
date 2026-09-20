@@ -479,7 +479,6 @@ var {} = {{}};
     }
 
     // render imports and exports to other chunks
-    let mut registration_chunks = Vec::new();
     for required_module in already_required {
       runtime_requirements.insert(RuntimeGlobals::REQUIRE);
       let target_chunk = Self::get_module_chunk(required_module, compilation)?;
@@ -494,7 +493,7 @@ var {} = {{}};
         {
           continue;
         }
-        registration_chunks.push(target_chunk);
+        imported_chunks.entry(target_chunk).or_default();
       }
     }
 
@@ -538,20 +537,15 @@ var {} = {{}};
       }
     }
 
-    // Registration-only imports must not precede the ordered module dependencies.
-    for chunk in registration_chunks {
-      imported_chunks.entry(chunk).or_default();
-    }
     for chunk in chunk_link.namespace_re_exports.keys() {
       imported_chunks.entry(*chunk).or_default();
     }
     for (chunk, imported) in &imported_chunks {
       let namespace_export_names = chunk_link.namespace_re_exports.get(chunk);
       if imported.is_empty()
-        && namespace_export_names.is_none()
-        // A re-export rendered later can replace a bare import only when there
-        // is no ordering relative to other chunks to preserve.
-        && imported_chunks.len() == 1
+        // Native namespace exports are emitted here, before ordinary re-exports.
+        // Keep their dependency order when both forms occur in the same chunk.
+        && chunk_link.namespace_re_exports.is_empty()
         && chunk_link
           .re_exports()
           .contains_key(&ReExportFrom::Chunk(*chunk))

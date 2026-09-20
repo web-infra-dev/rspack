@@ -5,9 +5,9 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierIndexMap, IdentifierMap, IdentifierSet};
 use rspack_core::{
   BuildMetaExportsType, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
-  ConcatenationNameAllocator, DependenciesBlock, DependencyType, ExportProvided, GetTargetResult,
-  ModuleIdentifier, ModuleInfo, SourceType, UsageState, get_cached_readable_identifier, get_target,
-  incremental::Mutation, split_readable_identifier,
+  ConcatenationNameAllocator, DependenciesBlock, DependencyType, ExportProvided, ModuleIdentifier,
+  ModuleInfo, SourceType, UsageState, get_cached_readable_identifier, incremental::Mutation,
+  split_readable_identifier,
 };
 use rspack_intern::Atom;
 use rspack_plugin_javascript::dependency::{
@@ -22,33 +22,14 @@ use crate::EsmLibraryPlugin;
 
 const ENTRY_NAMESPACE_TARGET_CHUNK_REASON: &str = "entry namespace export target";
 
-#[derive(Debug, Clone)]
-pub(crate) struct EntryNamespaceExport {
-  pub(crate) entry_module: ModuleIdentifier,
-  pub(crate) export_name: Atom,
-  pub(crate) target_module: ModuleIdentifier,
-}
-
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub(crate) struct EntryNamespaceExports {
   pub(crate) initialized: bool,
-  pub(crate) exports: Vec<EntryNamespaceExport>,
+  pub(crate) exports: FxHashMap<(ModuleIdentifier, Atom), ModuleIdentifier>,
   pub(crate) targets: IdentifierSet,
 }
 
 impl EntryNamespaceExports {
-  pub(crate) fn target(
-    &self,
-    entry_module: ModuleIdentifier,
-    export_name: &Atom,
-  ) -> Option<ModuleIdentifier> {
-    self
-      .exports
-      .iter()
-      .find(|item| item.entry_module == entry_module && &item.export_name == export_name)
-      .map(|item| item.target_module)
-  }
-
   fn has_safe_entry_order(&self, compilation: &Compilation) -> bool {
     let module_graph = compilation.get_module_graph();
     compilation.entries.values().all(|entry| {
@@ -64,8 +45,8 @@ impl EntryNamespaceExports {
       let targets = self
         .exports
         .iter()
-        .filter(|item| modules.contains(&item.entry_module))
-        .map(|item| item.target_module)
+        .filter(|((entry_module, _), _)| modules.contains(entry_module))
+        .map(|(_, target)| *target)
         .collect::<IdentifierSet>();
       targets.is_empty()
         || (modules.len() == 1
@@ -86,17 +67,19 @@ impl EntryNamespaceExports {
     let namespace_targets = self.targets.clone();
 
     self.targets.retain(|target| {
-      // Resolve public bindings without modifying the linker. Property reads,
-      // external namespaces and wrappers stay on the existing path.
-      let Some(bindings) = namespace_export_bindings(compilation, *target) else {
+      let Some(ModuleInfo::Concatenated(info)) = module_infos.get(target) else {
         return false;
       };
-      if !matches!(module_infos.get(target), Some(ModuleInfo::Concatenated(_)))
-        || bindings.iter().any(|(module, name)| {
-          !matches!(module_infos.get(module), Some(ModuleInfo::Concatenated(info))
-            if info.export_map.as_ref().is_some_and(|map| map.contains_key(name)))
-        })
-      {
+      let exports_info = compilation
+        .exports_info_artifact
+        .get_exports_info_data(target);
+      if exports_info.exports().iter().any(|(name, export)| {
+        !matches!(export.provided(), Some(ExportProvided::NotProvided))
+          && !info
+            .export_map
+            .as_ref()
+            .is_some_and(|map| map.contains_key(name))
+      }) {
         return false;
       }
 
@@ -137,60 +120,24 @@ impl EntryNamespaceExports {
 
     self
       .exports
-      .retain(|item| self.targets.contains(&item.target_module));
+      .retain(|_, target| self.targets.contains(target));
   }
 }
 
-// Keep the optimization to statically known ESM bindings, including ordinary
-// named re-exports. Reuse export-target resolution rather than running the linker.
-fn namespace_export_bindings(
-  compilation: &Compilation,
-  module: ModuleIdentifier,
-) -> Option<Vec<(ModuleIdentifier, Atom)>> {
-  let module_graph = compilation.get_module_graph();
+// Only optimize local bindings. Re-export chains stay on the existing path.
+fn has_direct_exports(compilation: &Compilation, module: ModuleIdentifier) -> bool {
   let exports_info = compilation
     .exports_info_artifact
     .get_exports_info_data(&module);
-  if !matches!(
+  matches!(
     exports_info.other_exports_info().provided(),
     Some(ExportProvided::NotProvided)
-  ) {
-    return None;
-  }
-  let mut bindings = Vec::new();
-  for (name, export) in exports_info.exports() {
-    if matches!(export.provided(), Some(ExportProvided::NotProvided)) {
-      continue;
-    }
-    if name == "__esModule" || !matches!(export.provided(), Some(ExportProvided::Provided)) {
-      return None;
-    }
-    let binding = match get_target(
-      export,
-      module_graph,
-      &compilation.exports_info_artifact,
-      &|_| true,
-      &mut Default::default(),
-    ) {
-      None if !export.is_reexport() => (module, name.clone()),
-      Some(GetTargetResult::Target(target)) => {
-        let names = target.export?;
-        if names.len() != 1 {
-          return None;
-        }
-        (target.module, names[0].clone())
-      }
-      _ => return None,
-    };
-    let target = module_graph.module_by_identifier(&binding.0)?;
-    if target.as_external_module().is_some()
-      || target.build_meta().exports_type() != BuildMetaExportsType::Namespace
-    {
-      return None;
-    }
-    bindings.push(binding);
-  }
-  Some(bindings)
+  ) && exports_info.exports().iter().all(|(name, export)| {
+    matches!(export.provided(), Some(ExportProvided::NotProvided))
+      || (name != "__esModule"
+        && matches!(export.provided(), Some(ExportProvided::Provided))
+        && !export.is_reexport())
+  })
 }
 
 fn is_active_connection(
@@ -219,6 +166,17 @@ fn has_unsafe_namespace_observer(
   entry_modules: &IdentifierSet,
 ) -> bool {
   let module_graph = compilation.get_module_graph();
+  let exports_info = compilation
+    .exports_info_artifact
+    .get_exports_info_data(&target_module);
+  let is_missing_export = |name: &Atom| {
+    !matches!(
+      exports_info
+        .get_export_info_without_mut_module_graph(name)
+        .provided(),
+      Some(ExportProvided::Provided)
+    )
+  };
   module_graph
     .get_incoming_connections(&target_module)
     .any(|connection| {
@@ -228,27 +186,14 @@ fn has_unsafe_namespace_observer(
 
       let dependency = module_graph.dependency_by_id(&connection.dependency_id);
       if let Some(import) = dependency.downcast_ref::<ESMImportSpecifierDependency>() {
-        return import.get_ids(module_graph).first().is_none_or(|name| {
-          !matches!(
-            compilation
-              .exports_info_artifact
-              .get_exports_info_data(&target_module)
-              .get_export_info_without_mut_module_graph(name)
-              .provided(),
-            Some(ExportProvided::Provided)
-          )
-        });
+        return import
+          .get_ids(module_graph)
+          .first()
+          .is_none_or(is_missing_export);
       }
       if let Some(re_export) = dependency.downcast_ref::<ESMExportImportedSpecifierDependency>() {
         if let Some(name) = re_export.get_ids(module_graph).first() {
-          return !matches!(
-            compilation
-              .exports_info_artifact
-              .get_exports_info_data(&target_module)
-              .get_export_info_without_mut_module_graph(name)
-              .provided(),
-            Some(ExportProvided::Provided)
-          );
+          return is_missing_export(name);
         }
         let is_namespace_re_export =
           re_export.name.is_some() && re_export.get_ids(module_graph).is_empty();
@@ -321,11 +266,8 @@ fn collect_entry_namespace_exports(compilation: &Compilation) -> EntryNamespaceE
   let module_graph = compilation.get_module_graph();
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let entry_modules = compilation.entry_modules();
-  let mut sorted_entry_modules = entry_modules.iter().copied().collect::<Vec<_>>();
-  sorted_entry_modules.sort_unstable();
-
-  let mut exports = Vec::new();
-  for entry_module in sorted_entry_modules {
+  let mut exports = FxHashMap::default();
+  for entry_module in entry_modules.iter().copied() {
     let Some(module) = module_graph.module_by_identifier(&entry_module) else {
       continue;
     };
@@ -364,7 +306,7 @@ fn collect_entry_namespace_exports(compilation: &Compilation) -> EntryNamespaceE
           .contains(&SourceType::JavaScript)
         || chunk_graph.get_module_chunks(target_module).is_empty()
         || chunk_graph.is_entry_module(&target_module)
-        || namespace_export_bindings(compilation, target_module).is_none()
+        || !has_direct_exports(compilation, target_module)
       {
         continue;
       }
@@ -377,29 +319,15 @@ fn collect_entry_namespace_exports(compilation: &Compilation) -> EntryNamespaceE
         continue;
       }
 
-      if !exports.iter().any(|item: &EntryNamespaceExport| {
-        item.entry_module == entry_module && item.export_name == *export_name
-      }) {
-        exports.push(EntryNamespaceExport {
-          entry_module,
-          export_name: export_name.clone(),
-          target_module,
-        });
-      }
+      exports
+        .entry((entry_module, export_name.clone()))
+        .or_insert(target_module);
     }
   }
 
-  exports.sort_by(|a, b| {
-    a.entry_module
-      .cmp(&b.entry_module)
-      .then_with(|| a.export_name.cmp(&b.export_name))
-      .then_with(|| a.target_module.cmp(&b.target_module))
-  });
-  let targets = exports.iter().map(|item| item.target_module).collect();
-
   EntryNamespaceExports {
+    targets: exports.values().copied().collect(),
     exports,
-    targets,
     ..Default::default()
   }
 }
@@ -415,13 +343,9 @@ pub(crate) fn optimize_entry_namespace_exports(
   split_targets: bool,
 ) -> EntryNamespaceExports {
   let state = collect_entry_namespace_exports(compilation);
-  if state.exports.is_empty() {
+  // Order checks constrain splitting, not linking already separated targets.
+  if !split_targets || state.exports.is_empty() || !state.has_safe_entry_order(compilation) {
     return state;
-  }
-  // Do not partially split ambiguous entry graphs: pruning one shared target can
-  // change another entry's evaluation order. The ordinary chunking path is safe.
-  if !state.has_safe_entry_order(compilation) {
-    return Default::default();
   }
 
   let mut targets = state.targets.iter().copied().collect::<Vec<_>>();
@@ -451,14 +375,10 @@ pub(crate) fn optimize_entry_namespace_exports(
       },
     );
     if unsafe_dependency {
-      return Default::default();
+      return state;
     }
     target_closures.insert(*target, closure);
   }
-  if !split_targets {
-    return state;
-  }
-
   for target in &targets {
     let target_chunk =
       Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);

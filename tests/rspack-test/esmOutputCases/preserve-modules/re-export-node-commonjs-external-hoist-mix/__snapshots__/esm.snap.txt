@@ -34,9 +34,9 @@ export { readFile as readFileHoisted, readFileSync as readFileSyncHoisted };
 
 ```mjs title=index.mjs
 import { __webpack_require__ } from "./runtime.mjs";
-import "./hoisted.mjs";
 import "./wrapped.mjs";
 import "./fs.mjs";
+import "./hoisted.mjs";
 
 // ./src/index.js
 const wrapped_0 = __webpack_require__("./src/wrapped.js");

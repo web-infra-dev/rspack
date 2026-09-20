@@ -1887,7 +1887,9 @@ var {} = {{}};
         let namespace_target = self
           .entry_namespace_exports
           .borrow()
-          .target(entry_module, &name);
+          .exports
+          .get(&(entry_module, name.clone()))
+          .copied();
         if let Some(namespace_target) = namespace_target {
           let target_chunk = Self::get_module_chunk(namespace_target, compilation)
             .expect("validated namespace target");

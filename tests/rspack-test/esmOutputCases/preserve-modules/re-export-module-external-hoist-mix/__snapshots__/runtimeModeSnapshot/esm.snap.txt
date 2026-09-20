@@ -30,8 +30,8 @@ export { readFileHoisted, readFileSyncHoisted } from "./fs-fs.mjs";
 
 ```mjs title=index.mjs
 import { rspackRequire } from "./runtime.mjs";
-import "./hoisted.mjs";
 import "./wrapped.mjs";
+import "./hoisted.mjs";
 import { readFileSyncHoisted as readFileSync, readFileHoisted as readFile } from "./fs-fs.mjs";
 
 // ./src/index.js
