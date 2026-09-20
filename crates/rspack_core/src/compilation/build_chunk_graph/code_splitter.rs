@@ -357,6 +357,9 @@ pub(crate) struct CodeSplitter {
   pub(crate) named_async_entrypoints: HashMap<String, CgiUkey>,
   pub(crate) block_modules_runtime_map: BlockModulesRuntimeMap,
   pub(crate) ordinal_by_module: IdentifierMap<u64>,
+  /// Modules that have prepared connections or async blocks, indexed by the ordinal above.
+  /// `process_block` skips every module outside this set with a single bit test.
+  modules_with_prepared_data: FixedBitSet,
   pub(crate) mask_by_chunk: HashMap<ChunkUkey, FixedBitSet>,
 
   stat_processed_queue_items: u32,
@@ -608,6 +611,32 @@ impl CodeSplitter {
 
   pub(crate) fn push_removed_module(&mut self, module: ModuleIdentifier) {
     self.removed_modules.push(module);
+  }
+
+  fn has_prepared_data(&self, module: ModuleIdentifier) -> bool {
+    self
+      .ordinal_by_module
+      .get(&module)
+      .is_some_and(|ordinal| self.modules_with_prepared_data.contains(*ordinal as usize))
+  }
+
+  /// Records the modules that own prepared connections or async blocks in the ordinal space, so
+  /// `process_block` can skip leaf modules with a single bit test.
+  pub(crate) fn rebuild_modules_with_prepared_data(&mut self) {
+    let mut modules_with_prepared_data = FixedBitSet::with_capacity(self.ordinal_by_module.len());
+    for module in self.prepared_connection_map.keys() {
+      if let Some(ordinal) = self.ordinal_by_module.get(module) {
+        modules_with_prepared_data.insert(*ordinal as usize);
+      }
+    }
+    for block in self.prepared_blocks_map.keys() {
+      if let DependenciesBlockIdentifier::Module(module) = block
+        && let Some(ordinal) = self.ordinal_by_module.get(module)
+      {
+        modules_with_prepared_data.insert(*ordinal as usize);
+      }
+    }
+    self.modules_with_prepared_data = modules_with_prepared_data;
   }
 
   pub fn prepare_entry_input(
@@ -1686,6 +1715,14 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     tracing::trace!("process_block {:?}", item);
 
     self.stat_processed_blocks += 1;
+
+    if let DependenciesBlockIdentifier::Module(module) = item.block
+      && !self.has_prepared_data(module)
+    {
+      // Leaf modules have neither prepared blocks nor prepared connections, which is the common
+      // case in a large graph. Skip all per-module bookkeeping for them.
+      return;
+    }
 
     let (runtime, min_available_modules) = {
       let chunk_group_info = self

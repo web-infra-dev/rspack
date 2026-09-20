@@ -523,6 +523,9 @@ impl CodeSplitter {
         }
       }
     }
+
+    self.rebuild_modules_with_prepared_data();
+
     for chunk in compilation.build_chunk_graph_artifact.chunk_by_ukey.keys() {
       let mut mask = FixedBitSet::with_capacity(self.ordinal_by_module.len());
       for module_id in compilation
