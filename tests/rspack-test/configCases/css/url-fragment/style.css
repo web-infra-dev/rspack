@@ -1,0 +1,23 @@
+div {
+	a18: url(#highlight);
+}
+
+div {
+	a19: url('#line-marker');
+}
+
+.filtered-element {
+	width: 200px;
+	height: 100px;
+	background-color: lightblue;
+	margin: 50px;
+	filter: url("./filters.svg#myFilter"); /* Applying the SVG filter */
+}
+
+.filtered-element-old-url {
+	width: 200px;
+	height: 100px;
+	background-color: lightblue;
+	margin: 50px;
+	filter: url(./filters.svg#myFilter); /* Applying the SVG filter */
+}
