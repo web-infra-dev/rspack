@@ -1,4 +1,7 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{
+  borrow::Cow,
+  sync::{Arc, Mutex},
+};
 
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
@@ -14,8 +17,13 @@ use rspack_hash::{HashFunction, RspackHasher};
 use rspack_hook::plugin_hook;
 use rspack_paths::Utf8Path;
 use rspack_util::identifier::split_at_query_mark;
+use rustc_hash::FxHashMap;
+use tokio::sync::OnceCell;
 
 use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
+
+type ResolveKey = (String, String, usize, bool);
+pub(super) type LoaderResolveCache = Mutex<FxHashMap<ResolveKey, Arc<OnceCell<Option<BoxLoader>>>>>;
 
 pub(crate) async fn loader_cache_version(
   resolver: &Resolver,
@@ -82,6 +90,30 @@ pub fn get_builtin_test_loader(builtin: &str) -> Option<BoxLoader> {
 #[plugin_hook(NormalModuleFactoryResolveLoader for JsLoaderRspackPlugin,tracing=false)]
 pub(crate) async fn resolve_loader(
   &self,
+  context: &Context,
+  resolver: &Resolver,
+  l: &ModuleRuleUseLoader,
+) -> Result<Option<BoxLoader>> {
+  let key = (
+    context.to_string(),
+    l.loader.clone(),
+    resolver as *const Resolver as usize,
+    l.cache,
+  );
+  let cell = self
+    .resolved_loaders
+    .lock()
+    .expect("loader resolution cache lock poisoned")
+    .entry(key)
+    .or_default()
+    .clone();
+  cell
+    .get_or_try_init(|| resolve_loader_uncached(context, resolver, l))
+    .await
+    .cloned()
+}
+
+async fn resolve_loader_uncached(
   context: &Context,
   resolver: &Resolver,
   l: &ModuleRuleUseLoader,

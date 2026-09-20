@@ -245,10 +245,11 @@ impl SwcLoader {
     if let Some(isolated_dts) = isolated_dts? {
       handle_isolated_dts_diagnostics(isolated_dts.diagnostics)?;
 
+      let context = &mut loader_context.context;
       set_build_info(
-        loader_context.context.module.build_info_mut(),
+        context.module.build_info_mut(),
         resource_path.as_path(),
-        loader_context.context.options.context.as_path(),
+        context.options.context.as_path(),
         isolated_dts.code,
         isolated_dts.references,
       );

@@ -896,8 +896,8 @@ export default {
 
 :::tip
 
-- loader 的选项需要满足 [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist)，否则会发送失败。
-- 目前 loader 在 worker 中不支持 `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` 上的大多数方法。
+- loader 选项必须是对象。选项可以包含函数，函数在主线程执行。
+- compilation 和 module API 通过代理访问主线程实现，loader hook 也在主线程执行。`additionalData` 经过并行 loader 和 builtin loader 时，会保留主线程上的对象身份。
 
 :::
 
@@ -908,7 +908,7 @@ export default {
 
 当 `parallel` 配置为对象时，限制共享 loader worker pool 使用的最大 worker 线程数。请使用正整数。
 
-如果省略 `maxWorkers`，Rspack 会自动选择 worker 数量。loader worker pool 在当前进程内共享；如果多个 loader 都配置 `parallel`，建议使用一致的 `maxWorkers` 值。
+如果省略 `maxWorkers`，Rspack 默认使用 CPU 数量减一，且至少启动一个 worker。注册并行 loader 规则时会异步初始化 worker，编译会在构建模块前等待初始化完成。loader worker pool 在当前进程内共享；如果多个 loader 都配置 `parallel`，建议使用一致的 `maxWorkers` 值。
 
 ```js title="rspack.config.mjs"
 export default {

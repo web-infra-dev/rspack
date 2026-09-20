@@ -1,6 +1,8 @@
+mod bridge;
 mod context;
 mod resolver;
 mod scheduler;
+mod worker;
 
 use std::{
   ffi::c_void,
@@ -148,20 +150,24 @@ impl JsLoaderRunnerGetter {
 
 #[plugin]
 pub(crate) struct JsLoaderRspackPlugin {
+  pub(crate) main_object_handle: u32,
   compiler_id: once_cell::sync::OnceCell<CompilerId>,
   pub(crate) runner_getter: JsLoaderRunnerGetter,
   /// This complex data structure is used to avoid deadlock when running loaders which contain `importModule`
   /// See: https://github.com/web-infra-dev/rspack/pull/10632
   pub(crate) runner: Mutex<Arc<tokio::sync::OnceCell<JsLoaderRunner>>>,
+  pub(crate) resolved_loaders: resolver::LoaderResolveCache,
   pub(crate) loaders_without_pitch: RwLock<FxHashSet<String>>,
 }
 
 impl JsLoaderRspackPlugin {
-  pub fn new(runner_getter: JsLoaderRunnerGetter) -> Self {
+  pub fn new(runner_getter: JsLoaderRunnerGetter, main_object_handle: u32) -> Self {
     Self::new_inner(
+      main_object_handle,
       Default::default(),
       runner_getter,
       Mutex::default(),
+      Default::default(),
       RwLock::new(FxHashSet::default()),
     )
   }
@@ -179,6 +185,11 @@ async fn this_compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
+  self
+    .resolved_loaders
+    .lock()
+    .expect("loader resolution cache lock poisoned")
+    .clear();
   let compiler_id = compilation.compiler_id();
   let _ = self.compiler_id.get_or_init(|| compiler_id);
   Ok(())

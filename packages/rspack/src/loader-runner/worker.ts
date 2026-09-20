@@ -1,742 +1,92 @@
-import fs from 'node:fs';
-import querystring from 'node:querystring';
-import { promisify } from 'node:util';
-import { type MessagePort, receiveMessageOnPort } from 'node:worker_threads';
-
-import { JsLoaderState, type NormalModule } from '@rspack/binding';
-import type { LoaderContext } from '../config';
-import type { ResolveCallback } from '../config/adapterRuleUse';
-import type { ResolveRequest } from '../Resolver';
-import * as swc from '../swc';
-import { cleverMerge } from '../util/cleverMerge';
-import { createHash } from '../util/createHash';
-import { absolutify, contextify } from '../util/identifier';
-import { memoize } from '../util/memoize';
-import loadLoader from './loadLoader';
+import { threadId, type MessagePort } from 'node:worker_threads';
 import {
-  deserializeError,
-  isWorkerResponseErrorMessage,
-  isWorkerResponseMessage,
-  RequestSyncType,
-  RequestType,
-  serializeError,
-  type WorkerError,
-  type WorkerMessage,
-  type WorkerRequestMessage,
-  type WorkerRequestSyncMessage,
-  type WorkerResponseErrorMessage,
-  type WorkerResponseMessage,
+  cancelWorkerReceive,
+  recvWorkerTask,
+  type JsLoaderTask,
+} from '@rspack/binding';
+import { runLoaders } from '.';
+import {
+  type WorkerLoaderContext,
+  prepareWorkerTask,
+  clearWorkerLoaderContext,
+  createWorkerCompiler,
+  getMainObject,
+  setLoaderObjectBridge,
+  setWorkerImportScheduler,
 } from './service';
-import { convertArgs, runSyncOrAsync } from './utils';
 
-interface WorkerOptions {
-  loaderContext: LoaderContext & {
-    loaderChainStart: number;
-    loaderChainEnd: number;
-  };
-  loaderState: JsLoaderState;
-  args: any[];
+let nextReceive = 1;
+let activeTasks = 0;
 
-  workerData?: {
-    workerPort: MessagePort;
-    workerSyncPort: MessagePort;
-  };
-}
-
-const loadLoaderAsync: (
-  loaderObject: any,
-  loaderContext: any,
-) => Promise<void> = promisify(loadLoader);
-
-function dirname(path: string) {
-  if (path === '/') return '/';
-  const i = path.lastIndexOf('/');
-  const j = path.lastIndexOf('\\');
-  const i2 = path.indexOf('/');
-  const j2 = path.indexOf('\\');
-  const idx = i > j ? i : j;
-  const idx2 = i > j ? i2 : j2;
-  if (idx < 0) return path;
-  if (idx === idx2) return path.slice(0, idx + 1);
-  return path.slice(0, idx);
-}
-
-async function loaderImpl(
-  { args, loaderContext, loaderState }: WorkerOptions,
-  sendRequest: SendRequestFunction,
-  waitForPendingRequest: WaitForPendingRequestFunction,
-) {
-  //
-  const resourcePath = loaderContext.resourcePath;
-  const contextDirectory = resourcePath ? dirname(resourcePath) : null;
-
-  const pendingDependencyRequest: SendRequestResult[] = [];
-
-  // @ts-expect-error `loaderContext.parallel` only works with loaders in worker
-  loaderContext.parallel = true;
-  loaderContext.dependency = loaderContext.addDependency =
-    function addDependency(file) {
-      pendingDependencyRequest.push(
-        sendRequest(RequestType.AddDependency, file),
-      );
-    };
-  loaderContext.addContextDependency = function addContextDependency(context) {
-    pendingDependencyRequest.push(
-      sendRequest(RequestType.AddContextDependency, context),
+async function execute(task: JsLoaderTask): Promise<void> {
+  activeTasks++;
+  try {
+    await prepareWorkerTask(task.mainObjectHandle, task.id);
+    const context = task.takeContext();
+    const main = getMainObject<WorkerLoaderContext>(context.bridgeHandle!);
+    const nativeModule = context._module;
+    context._module = main.module;
+    const result = await runLoaders(
+      createWorkerCompiler(main),
+      context,
+      main.extensions,
     );
-  };
-  loaderContext.addMissingDependency = function addMissingDependency(missing) {
-    pendingDependencyRequest.push(
-      sendRequest(RequestType.AddMissingDependency, missing),
+    result._module = nativeModule;
+    task.complete(result);
+  } catch (error) {
+    task.fail(
+      error instanceof Error ? (error.stack ?? error.message) : String(error),
     );
-  };
-  loaderContext.addBuildDependency = function addBuildDependency(file) {
-    pendingDependencyRequest.push(
-      sendRequest(RequestType.AddBuildDependency, file),
-    );
-  };
-  loaderContext.getDependencies = function getDependencies() {
-    waitForPendingRequest(pendingDependencyRequest);
-    return sendRequest(RequestType.GetDependencies).wait();
-  };
-  loaderContext.getContextDependencies = function getContextDependencies() {
-    waitForPendingRequest(pendingDependencyRequest);
-    return sendRequest(RequestType.GetContextDependencies).wait();
-  };
-  loaderContext.getMissingDependencies = function getMissingDependencies() {
-    waitForPendingRequest(pendingDependencyRequest);
-    return sendRequest(RequestType.GetMissingDependencies).wait();
-  };
-  loaderContext.clearDependencies = function clearDependencies() {
-    pendingDependencyRequest.push(sendRequest(RequestType.ClearDependencies));
-  };
-
-  loaderContext.resolve = function resolve(context, request, callback) {
-    sendRequest(RequestType.Resolve, context, request).then(
-      ([result, resolveRequest]) => {
-        callback(null, result, resolveRequest);
-      },
-      (err) => {
-        callback(err);
-      },
-    );
-  };
-  loaderContext.getResolve = function getResolve(options) {
-    function resolveWithOptions(
-      context: string,
-      request: string,
-      callback: ResolveCallback,
-    ): void;
-    function resolveWithOptions(
-      context: string,
-      request: string,
-    ): Promise<string | false | undefined>;
-    function resolveWithOptions(
-      context: string,
-      request: string,
-      callback?: ResolveCallback,
-    ) {
-      if (!callback) {
-        return new Promise<string | false | undefined>((resolve, reject) => {
-          sendRequest<[string | false | undefined, ResolveRequest | undefined]>(
-            RequestType.GetResolve,
-            options,
-            context,
-            request,
-          ).then(
-            ([result]) => {
-              resolve(result);
-            },
-            (err) => {
-              reject(err);
-            },
-          );
-        });
-      }
-      sendRequest(RequestType.GetResolve, options, context, request).then(
-        ([result, resolveRequest]) => {
-          callback(null, result, resolveRequest);
-        },
-        (err) => {
-          callback(err);
-        },
-      );
-    }
-
-    return resolveWithOptions;
-  };
-  loaderContext.getLogger = function getLogger(name) {
-    return {
-      error(...args) {
-        sendRequest(RequestType.GetLogger, 'error', name, args);
-      },
-      warn(...args) {
-        sendRequest(RequestType.GetLogger, 'warn', name, args);
-      },
-      info(...args) {
-        sendRequest(RequestType.GetLogger, 'info', name, args);
-      },
-      log(...args) {
-        sendRequest(RequestType.GetLogger, 'log', name, args);
-      },
-      debug(...args) {
-        sendRequest(RequestType.GetLogger, 'debug', name, args);
-      },
-      assert(assertion, ...args) {
-        if (!assertion) {
-          sendRequest(RequestType.GetLogger, 'error', name, args);
-        }
-      },
-      trace() {
-        sendRequest(RequestType.GetLogger, 'trace', name, ['Trace']);
-      },
-      clear() {
-        sendRequest(RequestType.GetLogger, 'clear', name, []);
-      },
-      status(...args) {
-        sendRequest(RequestType.GetLogger, 'status', name, args);
-      },
-      group(...args) {
-        sendRequest(RequestType.GetLogger, 'group', name, args);
-      },
-      groupCollapsed(...args) {
-        sendRequest(RequestType.GetLogger, 'groupCollapsed', name, args);
-      },
-      groupEnd(...args) {
-        sendRequest(RequestType.GetLogger, 'groupEnd', name, args);
-      },
-      profile(label) {
-        sendRequest(RequestType.GetLogger, 'profile', name, [label]);
-      },
-      profileEnd(label) {
-        sendRequest(RequestType.GetLogger, 'profileEnd', name, [label]);
-      },
-      time(label) {
-        sendRequest(RequestType.GetLogger, 'time', name, [label]);
-      },
-      timeEnd(label) {
-        sendRequest(RequestType.GetLogger, 'timeEnd', name, [label]);
-      },
-      timeLog(label, ...args) {
-        sendRequest(RequestType.GetLogger, 'timeLog', name, [label, ...args]);
-      },
-      timeAggregate(label) {
-        sendRequest(RequestType.GetLogger, 'timeAggregate', name, [label]);
-      },
-      timeAggregateEnd(label) {
-        sendRequest(RequestType.GetLogger, 'timeAggregateEnd', name, [label]);
-      },
-    };
-  } as LoaderContext['getLogger'];
-
-  loaderContext.emitError = function emitError(err) {
-    sendRequest(RequestType.EmitError, serializeError(err));
-  };
-  loaderContext.emitWarning = function emitWarning(warning) {
-    sendRequest(RequestType.EmitWarning, serializeError(warning));
-  };
-  loaderContext.emitFile = function emitFile(
-    name,
-    content,
-    sourceMap,
-    assetInfo,
-  ) {
-    sendRequest(RequestType.EmitFile, name, content, sourceMap, assetInfo);
-  };
-  loaderContext.experiments = {
-    emitDiagnostic(diagnostic) {
-      sendRequest(RequestType.EmitDiagnostic, diagnostic);
-    },
-  };
-
-  const getAbsolutify = memoize(() => absolutify.bindCache({}));
-  const getAbsolutifyInContext = memoize(() =>
-    absolutify.bindContextCache(contextDirectory!, {}),
-  );
-  const getContextify = memoize(() => contextify.bindCache({}));
-  const getContextifyInContext = memoize(() =>
-    contextify.bindContextCache(contextDirectory!, {}),
-  );
-
-  loaderContext.utils = {
-    absolutify: (context, request) => {
-      return context === contextDirectory
-        ? getAbsolutifyInContext()(request)
-        : getAbsolutify()(context, request);
-    },
-    contextify: (context, request) => {
-      return context === contextDirectory
-        ? getContextifyInContext()(request)
-        : getContextify()(context, request);
-    },
-    createHash: (type) => {
-      return createHash(
-        type || loaderContext._compilation.outputOptions.hashFunction!,
-      );
-    },
-  };
-
-  loaderContext._compiler = {
-    ...loaderContext._compiler,
-    rspack: {
-      // @ts-expect-error: some properties are missing.
-      experiments: {
-        swc,
-      },
-    },
-    // @ts-expect-error: some properties are missing.
-    webpack: {
-      util: {
-        createHash,
-        cleverMerge,
-      },
-    },
-  };
-
-  loaderContext._compilation = {
-    ...loaderContext._compilation,
-    getPath(filename, data = {}) {
-      if (!data.hash) {
-        data = {
-          hash: loaderContext._compilation.hash ?? undefined,
-          ...data,
-        };
-      }
-      const template =
-        typeof filename === 'function' ? filename(data) : filename;
-      return sendRequest(RequestType.CompilationGetPath, template, data).wait();
-    },
-    getPathWithInfo(filename, data = {}) {
-      if (!data.hash) {
-        data = {
-          hash: loaderContext._compilation.hash ?? undefined,
-          ...data,
-        };
-      }
-      const info = {};
-      const template =
-        typeof filename === 'function' ? filename(data, info) : filename;
-      const result = sendRequest(
-        RequestType.CompilationGetPathWithInfo,
-        template,
-        data,
-        info,
-      ).wait();
-      Object.assign(info, result.info);
-      return { path: result.path, info };
-    },
-    getAssetPath(filename, data = {}) {
-      const template =
-        typeof filename === 'function' ? filename(data) : filename;
-      return sendRequest(
-        RequestType.CompilationGetAssetPath,
-        template,
-        data,
-      ).wait();
-    },
-    getAssetPathWithInfo(filename, data = {}) {
-      const info = {};
-      const template =
-        typeof filename === 'function' ? filename(data, info) : filename;
-      const result = sendRequest(
-        RequestType.CompilationGetAssetPathWithInfo,
-        template,
-        data,
-        info,
-      ).wait();
-      Object.assign(info, result.info);
-      return { path: result.path, info };
-    },
-  } as LoaderContext['_compilation'];
-
-  const _module = loaderContext._module as any;
-  const buildInfo: Record<string, unknown> = { ...(_module.buildInfo ?? {}) };
-  loaderContext._module = {
-    type: _module.type,
-    identifier() {
-      return _module.identifier;
-    },
-    matchResource: _module.matchResource,
-    request: _module.request,
-    userRequest: _module.userRequest,
-    rawRequest: _module.rawRequest,
-    buildInfo,
-  } as unknown as NormalModule;
-
-  // @ts-expect-error
-  loaderContext.importModule = function importModule(
-    request,
-    options,
-    callback,
-  ) {
-    if (!callback) {
-      return new Promise((resolve, reject) => {
-        sendRequest(RequestType.ImportModule, request, options).then(
-          (result) => {
-            resolve(result);
-          },
-          (err) => {
-            reject(err);
-          },
-        );
-      });
-    }
-    sendRequest(RequestType.ImportModule, request, options).then(
-      (result) => {
-        callback(null, result);
-      },
-      (err) => {
-        callback(err);
-      },
-    );
-  };
-
-  loaderContext.fs = fs;
-
-  Object.defineProperty(loaderContext, 'request', {
-    enumerable: true,
-    get: () =>
-      loaderContext.loaders
-        .map((o) => o.request)
-        .concat(loaderContext.resource || '')
-        .join('!'),
-  });
-  Object.defineProperty(loaderContext, 'remainingRequest', {
-    enumerable: true,
-    get: () => {
-      if (
-        loaderContext.loaderIndex >= loaderContext.loaders.length - 1 &&
-        !loaderContext.resource
-      )
-        return '';
-      return loaderContext.loaders
-        .slice(loaderContext.loaderIndex + 1)
-        .map((o) => o.request)
-        .concat(loaderContext.resource || '')
-        .join('!');
-    },
-  });
-  Object.defineProperty(loaderContext, 'currentRequest', {
-    enumerable: true,
-    get: () =>
-      loaderContext.loaders
-        .slice(loaderContext.loaderIndex)
-        .map((o) => o.request)
-        .concat(loaderContext.resource || '')
-        .join('!'),
-  });
-  Object.defineProperty(loaderContext, 'previousRequest', {
-    enumerable: true,
-    get: () =>
-      loaderContext.loaders
-        .slice(0, loaderContext.loaderIndex)
-        .map((o) => o.request)
-        .join('!'),
-  });
-  Object.defineProperty(loaderContext, 'query', {
-    enumerable: true,
-    get: () => {
-      const entry = loaderContext.loaders[loaderContext.loaderIndex];
-      return entry.options && typeof entry.options === 'object'
-        ? entry.options
-        : entry.query;
-    },
-  });
-
-  loaderContext.getOptions = function getOptions() {
-    const loader = getCurrentLoader(loaderContext);
-    let options = loader?.options;
-
-    if (typeof options === 'string') {
-      if (options.startsWith('{') && options.endsWith('}')) {
-        try {
-          options = JSON.parse(options);
-        } catch (e: any) {
-          throw new Error(
-            `JSON parsing failed for loader's string options: ${e.message}`,
-          );
-        }
-      } else {
-        options = querystring.parse(options);
-      }
-    }
-
-    if (options === null || options === undefined) {
-      options = {};
-    }
-
-    return options;
-  };
-
-  loaderContext.cacheable = function cacheable(flag?: boolean) {
-    if (flag === false) {
-      sendRequest(RequestType.SetCacheable, false);
-    }
-  };
-
-  Object.defineProperty(loaderContext, 'data', {
-    enumerable: true,
-    get: () => loaderContext.loaders[loaderContext.loaderIndex].loaderItem.data,
-    set: (value) => {
-      loaderContext.loaders[loaderContext.loaderIndex].loaderItem.data = value;
-    },
-  });
-
-  const shouldYieldToMainThread = (currentLoaderObject: any) => {
-    if (!currentLoaderObject?.parallel) {
-      return true;
-    }
-    return false;
-  };
-
-  // Execute loader list until the current loader object is to yield to the main
-  // thread. This happens when the loader is marked as non-parallel. The
-  // factory-prepared execution chain guarantees that this range contains only
-  // JavaScript loaders.
-  switch (loaderState) {
-    case JsLoaderState.Pitching: {
-      while (loaderContext.loaderIndex < loaderContext.loaderChainEnd) {
-        const currentLoaderObject =
-          loaderContext.loaders[loaderContext.loaderIndex];
-        if (shouldYieldToMainThread(currentLoaderObject)) break;
-        if (currentLoaderObject.pitchExecuted) {
-          loaderContext.loaderIndex += 1;
-          continue;
-        }
-
-        await loadLoaderAsync(currentLoaderObject, loaderContext._compiler);
-        const fn = currentLoaderObject.pitch;
-        currentLoaderObject.pitchExecuted = true;
-        if (!fn) continue;
-
-        args =
-          (await runSyncOrAsync(fn, loaderContext, [
-            loaderContext.remainingRequest,
-            loaderContext.previousRequest,
-            currentLoaderObject.loaderItem.data,
-          ])) || [];
-
-        const hasArg = args.some((value) => value !== undefined);
-        if (hasArg) {
-          break;
-        }
-      }
-      break;
-    }
-    case JsLoaderState.Normal: {
-      while (loaderContext.loaderIndex >= loaderContext.loaderChainStart) {
-        const currentLoaderObject =
-          loaderContext.loaders[loaderContext.loaderIndex];
-
-        if (shouldYieldToMainThread(currentLoaderObject)) break;
-        if (currentLoaderObject.normalExecuted) {
-          loaderContext.loaderIndex--;
-          continue;
-        }
-
-        await loadLoaderAsync(currentLoaderObject, loaderContext._compiler);
-        const fn = currentLoaderObject.normal;
-        currentLoaderObject.normalExecuted = true;
-        if (!fn) continue;
-        convertArgs(args, !!currentLoaderObject.raw);
-        args = (await runSyncOrAsync(fn, loaderContext, args)) || [];
-      }
-    }
-  }
-
-  sendRequest(
-    RequestType.UpdateLoaderObjects,
-    loaderContext.loaders.map((item) => {
-      return {
-        data: item.loaderItem.data,
-        normalExecuted: item.normalExecuted,
-        pitchExecuted: item.pitchExecuted,
-      };
-    }),
-  );
-
-  sendRequest(RequestType.UpdateBuildInfo, buildInfo);
-
-  return args;
-}
-
-let nextId = 0;
-const responseCallbacks: Record<
-  number,
-  (err: WorkerError | null, data: any) => void
-> = {};
-
-function handleIncomingResponses(workerMessage: WorkerMessage) {
-  if (isWorkerResponseMessage(workerMessage)) {
-    const { id, data } = workerMessage;
-    const callback = responseCallbacks[id];
-    if (callback) {
-      delete responseCallbacks[id];
-      callback(null, /* data */ data);
-    } else {
-      throw new Error(`No callback found for response with id ${id}`);
-    }
-  } else if (isWorkerResponseErrorMessage(workerMessage)) {
-    const { id, error } = workerMessage;
-    const callback = responseCallbacks[id];
-    if (callback) {
-      delete responseCallbacks[id];
-      callback(deserializeError(error), undefined);
-    } else {
-      throw new Error(`No callback found for response with id ${id}`);
-    }
+  } finally {
+    if (--activeTasks === 0) clearWorkerLoaderContext();
   }
 }
 
-type SendRequestResult<T = any> = Promise<T> & {
-  // Put current thread into sleep until the request is resolved.
-  // Should not return error in `wait`
-  //
-  // Pending requests now are not returning errors.
-  // To handle errors, you should not call `wait()` on send request
-  // result;
-  //
-  // You should use `sendRequest` directly or use `sendRequest.sync`.
-  wait: () => T;
-  // The request Id
-  id: number;
-};
-
-interface SendRequestFunction {
-  <T = any>(requestType: RequestType, ...args: any[]): SendRequestResult<T>;
-  sync<T = any>(requestType: RequestSyncType, ...args: any[]): T;
-}
-
-type WaitForPendingRequestFunction = (
-  id: SendRequestResult[] | SendRequestResult,
-) => any;
-
-function createWaitForPendingRequest(
-  sendRequest: SendRequestFunction,
-): WaitForPendingRequestFunction {
-  return (requests: SendRequestResult[] | SendRequestResult) => {
-    return sendRequest.sync(
-      RequestSyncType.WaitForPendingRequest,
-      (Array.isArray(requests) ? requests : [requests]).map((request) => {
-        return request.id;
-      }),
-    );
+// An import can recursively build another parallel module. While its loader is
+// awaiting main, the same isolate must be able to service that module even with
+// maxWorkers: 1. Cancel the extra receive when the import callback settles.
+function beginImport(): () => void {
+  let stopped = false;
+  let receive = 0;
+  const loop = async () => {
+    while (!stopped) {
+      receive = nextReceive++;
+      const task = await recvWorkerTask(threadId, receive);
+      if (task) await execute(task);
+    }
+  };
+  void loop().catch((error) => {
+    throw error;
+  });
+  return () => {
+    stopped = true;
+    cancelWorkerReceive(threadId, receive);
   };
 }
 
-function createSendRequest(
-  workerPort: MessagePort,
-  workerSyncPort: MessagePort,
-): SendRequestFunction {
-  const sendRequest = ((requestType, ...args) => {
-    const id = nextId++;
-    workerPort.postMessage({
-      type: 'request',
-      id,
-      requestType,
-      data: args,
-    } satisfies WorkerRequestMessage);
-    const result = new Promise((resolve, reject) => {
-      responseCallbacks[id] = (err, data) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve(data);
-      };
-    }) as SendRequestResult;
-    result.wait = () => {
-      return sendRequest.sync(RequestSyncType.WaitForPendingRequest, id);
-    };
-    result.id = id;
-    return result;
-  }) as SendRequestFunction;
-  sendRequest.sync = createSendRequestSync(workerPort, workerSyncPort);
-  return sendRequest;
-}
-
-function createSendRequestSync(
-  workerPort: MessagePort,
-  workerSyncPort: MessagePort,
-) {
-  return (requestType: RequestSyncType, ...args: any[]) => {
-    const id = nextId++;
-
-    // Create `sharedArrayBuffer` for each request.
-    // This is used to synchronize between the main thread and worker thread.
-    const sharedBuffer = new SharedArrayBuffer(8);
-    const sharedBufferView = new Int32Array(sharedBuffer);
-
-    workerPort.postMessage({
-      type: 'request-sync',
-      id,
-      requestType,
-      data: args,
-      sharedBuffer,
-    } satisfies WorkerRequestSyncMessage);
-
-    // Atomics.wait returns immediately with the value 'not-equal'
-    // Otherwise, the thread is blocked until another thread calls Atomics.notify
-    // with the same memory location or the timeout is reached.
-    //
-    // See: https://v8.dev/features/atomics
-    const status = Atomics.wait(sharedBufferView, 0, 0);
-    if (status !== 'ok' && status !== 'not-equal')
-      throw new Error(`Internal error: Atomics.wait() failed: ${status}`);
-
-    const {
-      message,
-    }: { message: WorkerResponseMessage | WorkerResponseErrorMessage } =
-      receiveMessageOnPort(workerSyncPort)!;
-
-    if (id !== message.id) {
-      throw new Error(`Unexpected response id: ${message.id}, expected: ${id}`);
-    }
-
-    if (isWorkerResponseMessage(message)) {
-      return message.data;
-    }
-
-    throw deserializeError(message.error);
-  };
-}
-
-function worker(workerOptions: WorkerOptions) {
-  const workerData = workerOptions.workerData!;
-  delete workerOptions.workerData;
-
-  workerData.workerPort.on('message', handleIncomingResponses);
-  const sendRequest = createSendRequest(
-    workerData.workerPort,
-    workerData.workerSyncPort,
-  );
-  const waitFor = createWaitForPendingRequest(sendRequest);
-
-  loaderImpl(workerOptions, sendRequest, waitFor)
-    .then((data) => {
-      workerData.workerPort.postMessage({ type: 'done', data });
-    })
-    .catch((err) => {
-      workerData.workerPort.postMessage({
-        type: 'done-error',
-        error: serializeError(err),
-      });
-    });
-}
-
-function getCurrentLoader(
-  loaderContext: LoaderContext,
-  index = loaderContext.loaderIndex,
-) {
-  if (
-    loaderContext.loaders?.length &&
-    index < loaderContext.loaders.length &&
-    index >= 0 &&
-    loaderContext.loaders[index]
-  ) {
-    return loaderContext.loaders[index];
+async function run(): Promise<void> {
+  while (true) {
+    const task = await recvWorkerTask(threadId, nextReceive++);
+    if (task) await execute(task);
   }
-  return null;
 }
 
-export default worker;
+let initialized = false;
+export default async function initialize({
+  port,
+}: {
+  port: MessagePort;
+}): Promise<void> {
+  port.postMessage({ id: threadId, initialized });
+  await new Promise<void>((resolve) => port.once('message', () => resolve()));
+  if (initialized) {
+    port.close();
+    return;
+  }
+  setLoaderObjectBridge(port, threadId);
+  setWorkerImportScheduler(beginImport);
+  initialized = true;
+  void run().catch((error) => {
+    throw error;
+  });
+}

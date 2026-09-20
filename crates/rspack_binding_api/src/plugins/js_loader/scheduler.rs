@@ -4,7 +4,11 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
 
-use super::{JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
+use super::{
+  JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner,
+  bridge::{MainObjectHandle, is_parallel},
+  worker::{LoaderTask, dispatch},
+};
 
 impl JsLoaderRspackPlugin {
   async fn update_loaders_without_pitch(&self, list: Vec<String>) {
@@ -44,33 +48,94 @@ pub(crate) async fn loader_yield(
     }
   }
 
-  let runner = self.runner.lock().expect("should get lock").clone();
-  let runner = runner
-    .get_or_try_init(|| async {
-      #[allow(clippy::unwrap_used)]
-      let compiler_id = self.compiler_id.get().unwrap();
-      self.runner_getter.call(compiler_id).await
+  // JS execution spans may contain both main-thread and parallel loaders. The
+  // binding alone splits them at the current runtime boundary.
+  let current = loader_context.loader_index as usize;
+  let parallel_at = |index: usize| {
+    !cfg!(target_family = "wasm")
+      && is_parallel(
+        self.main_object_handle,
+        loader_context.loader_items[index].query(),
+      )
+  };
+  let parallel = parallel_at(current);
+  let chain = loader_context
+    .current_chain()
+    .expect("yield requires a loader chain");
+  let mut start = current;
+  let mut end = current + 1;
+  while start > chain.start() && parallel_at(start - 1) == parallel {
+    start -= 1;
+  }
+  while end < chain.end() && parallel_at(end) == parallel {
+    end += 1;
+  }
+  if parallel {
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    dispatch(LoaderTask {
+      context: loader_context.take_owned(),
+      bridge_handle: None,
+      main_object_handle: self.main_object_handle,
+      start: start as u32,
+      end: end as u32,
+      result: tx,
     })
-    .await
-    .to_rspack_result()?;
-
-  let new_cx = runner
-    .call_async(loader_context.try_into()?)
-    .await
-    .to_rspack_result()?
-    .await
-    .to_rspack_result()?;
-
-  if loader_context.state() == LoaderState::Pitching {
-    let list = collect_loaders_without_pitch(loader_context, &new_cx);
-    if !list.is_empty() {
-      self.update_loaders_without_pitch(list).await;
+    .await;
+    // The queue/worker always returns the owned context, including worker exit.
+    let (context, pitches, result) = rx.await.expect("loader task must restore native state");
+    loader_context.restore_owned(*context);
+    if !pitches.is_empty() {
+      self.update_loaders_without_pitch(pitches).await;
     }
+    result?;
+  } else {
+    let runner = self.runner.lock().expect("should get lock").clone();
+    let runner = runner
+      .get_or_try_init(|| async {
+        #[allow(clippy::unwrap_used)]
+        let compiler_id = self.compiler_id.get().unwrap();
+        self.runner_getter.call(compiler_id).await
+      })
+      .await
+      .to_rspack_result()?;
+
+    let mut js_context = JsLoaderContext::try_from(&mut *loader_context)?;
+    js_context.loader_chain_start = start as u32;
+    js_context.loader_chain_end = end as u32;
+    let new_cx = runner
+      .call_async(js_context)
+      .await
+      .to_rspack_result()?
+      .await
+      .to_rspack_result()?;
+    if loader_context.state() == LoaderState::Pitching {
+      let list = collect_loaders_without_pitch(loader_context, &new_cx);
+      if !list.is_empty() {
+        self.update_loaders_without_pitch(list).await;
+      }
+    }
+    merge_loader_context(loader_context, new_cx)?;
   }
 
-  merge_loader_context(loader_context, new_cx)?;
-
   Ok(())
+}
+
+pub(super) fn merge_loader_hooks(to: &mut LoaderContext<RunnerContext>, mut from: JsLoaderContext) {
+  to.cacheable = from.cacheable;
+  to.replace_dependencies(
+    from.dependencies.into(),
+    from.added_dependencies.into(),
+    from.removed_dependencies.into(),
+  );
+  for (to, from) in to.loader_items.iter_mut().zip(from.loader_items.drain(..)) {
+    to.set_data(from.data);
+  }
+  to.parse_meta.extend(
+    from
+      .parse_meta
+      .into_iter()
+      .map(|(key, value)| (key, Box::new(value) as _)),
+  );
 }
 
 pub(crate) fn merge_loader_context(
@@ -83,6 +148,19 @@ pub(crate) fn merge_loader_context(
     from.added_dependencies.into(),
     from.removed_dependencies.into(),
   );
+
+  // Own returned handles before fallible conversion so errors also release them.
+  let additional_data = from.additional_data.take().map(|data| {
+    let mut additional = AdditionalData::default();
+    let handle = to
+      .additional_data()
+      .and_then(|data| data.get::<MainObjectHandle>())
+      .filter(|handle| handle.handle() == data)
+      .cloned()
+      .unwrap_or_else(|| MainObjectHandle::new(data));
+    additional.insert(handle);
+    additional
+  });
 
   if let Some(error) = from.error {
     if let Some(diagnostic) = error.rust_diagnostic.as_ref() {
@@ -101,11 +179,6 @@ pub(crate) fn merge_loader_context(
     .map(|buffer| rspack_core::rspack_sources::SourceMap::from_bytes(buffer.into()))
     .transpose()
     .to_rspack_result()?;
-  let additional_data = from.additional_data.take().map(|data| {
-    let mut additional = AdditionalData::default();
-    additional.insert(data);
-    additional
-  });
   to.__finish_with((content, source_map, additional_data));
 
   // update loader status

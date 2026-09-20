@@ -415,6 +415,14 @@ export declare class JsExportsInfo {
   getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
 }
 
+export declare class JsLoaderTask {
+  get id(): number
+  get mainObjectHandle(): number
+  takeContext(): JsLoaderContext
+  complete(context: JsLoaderContext): void
+  fail(error: string): void
+}
+
 export declare class JsModuleGraph {
   getModule(dependency: Dependency): Module | null
   getResolvedModule(dependency: Dependency): Module | null
@@ -633,7 +641,11 @@ export declare enum BuiltinPluginName {
   RscClientPlugin = 'RscClientPlugin'
 }
 
+export declare function cancelWorkerReceive(worker: number, receive: number): void
+
 export declare function cleanupGlobalTrace(): void
+
+export declare function completeLoaderTaskHooks(id: number, context: JsLoaderContext): void
 
 export interface ContextInfo {
   issuer: string
@@ -961,11 +973,13 @@ export interface JsLinkPreloadData {
 
 export interface JsLoaderContext {
   resource: string
-  _module: Module
+  _module?: Module
   hot: Readonly<boolean>
   /** Content maybe empty in pitching stage */
   content: string | Buffer | null
-  additionalData?: any
+  additionalData?: number
+  hooksOnly: boolean
+  bridgeHandle?: number
   __internal__parseMeta: Record<string, string>
   sourceMap?: Buffer
   cacheable: boolean
@@ -1844,6 +1858,9 @@ export interface PathWithInfo {
   path: string
   info: AssetInfo
 }
+
+/** Main-isolate hook view. Called through RPC after a worker receives native work. */
+export declare function prepareLoaderTask(id: number): JsLoaderContext
 
 export interface RawAliasOptionItem {
   path: string
@@ -3248,6 +3265,8 @@ export interface RealDependencyLocation {
   end?: SourcePosition
 }
 
+export declare function recvWorkerTask(worker: number, receive: number): Promise<JsLoaderTask | undefined | null>
+
 /** * this is a process level tracing, which means it would be shared by all compilers in the same process
  * only the first call would take effect, the following calls would be ignored
  * Some code is modified based on
@@ -3372,6 +3391,14 @@ export interface RegisterJsTaps {
   registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>
 }
 
+export declare function registerLoaderReference(owner: number, ident: string, parallel: boolean): void
+
+export declare function registerLoaderWorker(id: number): void
+
+export declare function registerMainObjectRelease(release: ((arg: number) => void)): void
+
+export declare function releaseLoaderReferences(owner: number): void
+
 export interface ResolveResult {
   path?: string
   error?: string
@@ -3411,6 +3438,9 @@ export interface SourcePosition {
   line: number
   column?: number
 }
+
+/** Called only after Node reports worker exit: no JS can still access its context. */
+export declare function stopLoaderWorker(id: number): void
 
 export declare function sync(path: string, request: string): ResolveResult
 

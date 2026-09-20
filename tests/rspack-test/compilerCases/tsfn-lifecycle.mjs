@@ -134,4 +134,22 @@ export default [
       );
     },
   },
+  {
+    description: "should release loader additionalData handles after compiler close",
+    async build() {
+      await runChild(path.join(import.meta.dirname, "fixtures", "tsfn-lifecycle", "gc-check-loader-additional-data.mjs"));
+    },
+  },
+  {
+    description: "should exit with idle native loader workers",
+    async build() {
+      await runChild(path.join(import.meta.dirname, "fixtures", "tsfn-lifecycle", "parallel-loader-process-exit.mjs"));
+    },
+  },
+  {
+    description: "should distribute native loader tasks and recover from worker exit",
+    async build() {
+      await runChild(path.join(import.meta.dirname, "fixtures", "tsfn-lifecycle", "parallel-loader-dispatch.mjs"));
+    },
+  },
 ];

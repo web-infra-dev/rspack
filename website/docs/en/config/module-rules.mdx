@@ -898,8 +898,8 @@ When multiple loaders within the same rule have `parallel` enabled, Rspack execu
 
 :::tip
 
-- The loader options must comply with the [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist), otherwise transmission will fail.
-- In worker mode, most methods on `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` are not supported.
+- Loader options must be an object. Function-valued options are supported and execute on the main thread.
+- Compilation and module APIs use proxies to access their main-thread implementations. Loader hooks also run on the main thread. `additionalData` retains main-thread object identity when passing through parallel and builtin loaders.
 
 :::
 
@@ -910,7 +910,7 @@ When multiple loaders within the same rule have `parallel` enabled, Rspack execu
 
 Limits the maximum number of worker threads used by the shared loader worker pool when `parallel` is configured as an object. Use a positive integer.
 
-When `maxWorkers` is omitted, Rspack automatically chooses the worker count. The loader worker pool is shared within the current process, so use a consistent `maxWorkers` value if multiple loaders configure `parallel`.
+When `maxWorkers` is omitted, Rspack uses the number of CPUs minus one, with a minimum of one worker. Workers initialize asynchronously when parallel loader rules are registered; compilation waits for initialization before making modules. The loader worker pool is shared within the current process, so use a consistent `maxWorkers` value if multiple loaders configure `parallel`.
 
 ```js title="rspack.config.mjs"
 export default {

@@ -1,4 +1,8 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{
+  borrow::Cow,
+  ops::{Deref, DerefMut},
+  sync::Arc,
+};
 
 use derive_more::Debug;
 use rspack_cacheable::cacheable;
@@ -53,6 +57,13 @@ impl LoaderDependencies {
 
 #[derive(Debug)]
 pub struct LoaderContext<Context: Send> {
+  pub(crate) data: Option<Box<LoaderContextData<Context>>>,
+}
+
+// The holder stays on the runner stack while an asynchronous adapter owns the data.
+// This is independent of the execution environment used by that adapter.
+#[derive(Debug)]
+pub struct LoaderContextData<Context: Send> {
   pub hot: bool,
   pub resource_data: Arc<ResourceData>,
   #[debug(skip)]
@@ -85,7 +96,45 @@ pub struct LoaderContext<Context: Send> {
   pub plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
 }
 
+impl<Context: Send> Deref for LoaderContext<Context> {
+  type Target = LoaderContextData<Context>;
+
+  fn deref(&self) -> &Self::Target {
+    self
+      .data
+      .as_deref()
+      .expect("loader context is owned by its yield adapter")
+  }
+}
+
+impl<Context: Send> DerefMut for LoaderContext<Context> {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    self
+      .data
+      .as_deref_mut()
+      .expect("loader context is owned by its yield adapter")
+  }
+}
+
 impl<Context: Send> LoaderContext<Context> {
+  /// Move all native state into an owned context for an asynchronous yield adapter.
+  /// The adapter must restore it before returning, including on failure.
+  #[doc(hidden)]
+  pub fn take_owned(&mut self) -> Box<Self> {
+    Box::new(Self {
+      data: Some(self.data.take().expect("loader context already taken")),
+    })
+  }
+
+  #[doc(hidden)]
+  pub fn restore_owned(&mut self, mut context: Self) {
+    assert!(
+      self.data.is_none(),
+      "loader context must be taken before restoration"
+    );
+    self.data = context.data.take();
+  }
+
   #[inline]
   pub fn current_root_chain(&self) -> Option<&LoaderChain> {
     self
@@ -186,15 +235,19 @@ impl<Context: Send> LoaderContext<Context> {
   /// Update the effective dependencies while retaining the chain's change records.
   #[doc(hidden)]
   pub fn merge_dependency_changes(&mut self) {
+    let data = self
+      .data
+      .as_deref_mut()
+      .expect("loader context is available");
     macro_rules! merge_dependencies {
       ($field:ident) => {{
-        for dependency in &self.removed_dependencies.$field {
-          self.dependencies.$field.remove(dependency);
+        for dependency in &data.removed_dependencies.$field {
+          data.dependencies.$field.remove(dependency);
         }
-        self
+        data
           .dependencies
           .$field
-          .extend(self.added_dependencies.$field.iter().cloned());
+          .extend(data.added_dependencies.$field.iter().cloned());
       }};
     }
 
@@ -285,21 +338,25 @@ impl<Context: Send> LoaderContext<Context> {
   }
 
   pub fn clear_dependencies(&mut self) {
-    self
+    let data = self
+      .data
+      .as_deref_mut()
+      .expect("loader context is available");
+    data
       .removed_dependencies
       .file
-      .extend(self.dependencies.file.iter().cloned());
-    self
+      .extend(data.dependencies.file.iter().cloned());
+    data
       .removed_dependencies
       .context
-      .extend(self.dependencies.context.iter().cloned());
-    self
+      .extend(data.dependencies.context.iter().cloned());
+    data
       .removed_dependencies
       .missing
-      .extend(self.dependencies.missing.iter().cloned());
-    self.added_dependencies.file.clear();
-    self.added_dependencies.context.clear();
-    self.added_dependencies.missing.clear();
+      .extend(data.dependencies.missing.iter().cloned());
+    data.added_dependencies.file.clear();
+    data.added_dependencies.context.clear();
+    data.added_dependencies.missing.clear();
   }
 
   pub fn remaining_request(&self) -> LoaderItemList<'_, Context> {

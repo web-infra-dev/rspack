@@ -10,7 +10,7 @@ use crate::{
   LoaderExecutionKind, LoaderRunnerOptions, ParseMeta,
   chain::LoaderChains,
   content::{AdditionalData, Content, ResourceData},
-  context::{LoaderContext, LoaderDependencies, State},
+  context::{LoaderContext, LoaderContextData, LoaderDependencies, State},
   loader::{Loader, LoaderItem},
   plugin::LoaderRunnerPlugin,
 };
@@ -175,23 +175,25 @@ fn create_loader_context<Context: Send>(
   }
 
   LoaderContext {
-    hot: false,
-    cacheable: true,
-    parse_meta: Default::default(),
-    dependencies,
-    added_dependencies: Default::default(),
-    removed_dependencies: Default::default(),
-    content: None,
-    context,
-    source_map: None,
-    additional_data: None,
-    state: State::Init,
-    loader_index: 0,
-    loader_chains: LoaderChains::new(&loader_items),
-    loader_items,
-    plugin,
-    resource_data,
-    diagnostics: vec![],
+    data: Some(Box::new(LoaderContextData {
+      hot: false,
+      cacheable: true,
+      parse_meta: Default::default(),
+      dependencies,
+      added_dependencies: Default::default(),
+      removed_dependencies: Default::default(),
+      content: None,
+      context,
+      source_map: None,
+      additional_data: None,
+      state: State::Init,
+      loader_index: 0,
+      loader_chains: LoaderChains::new(&loader_items),
+      loader_items,
+      plugin,
+      resource_data,
+      diagnostics: vec![],
+    })),
   }
 }
 
@@ -301,6 +303,9 @@ pub struct LoaderResult<Context> {
 
 impl<Context: Send> LoaderResult<Context> {
   pub fn new(loader_context: LoaderContext<Context>) -> Self {
+    let loader_context = *loader_context
+      .data
+      .expect("yield adapter must restore loader context");
     LoaderResult {
       context: loader_context.context,
       cacheable: loader_context.cacheable,
