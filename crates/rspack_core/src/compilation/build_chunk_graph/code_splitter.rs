@@ -14,6 +14,7 @@ use rspack_util::{
   itoa,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use smallvec::{SmallVec, smallvec};
 
 use super::incremental::ChunkCreateData;
 use crate::{
@@ -34,7 +35,9 @@ pub(crate) type DependenciesBlockIdentifierMap<V> =
 pub(crate) type DependenciesBlockIdentifierSet =
   std::collections::HashSet<DependenciesBlockIdentifier, BuildHasherDefault<FxHasher>>;
 
-type ConnectionIdList = Arc<Vec<DependencyId>>;
+// Most prepared connection groups hold one or two dependencies, so keep the ids
+// inline instead of allocating a shared slice per group.
+type ConnectionIdList = SmallVec<[DependencyId; 2]>;
 type PreparedBlockConnectionMap = Vec<PreparedBlockConnection>;
 type BlockModules = Vec<(ModuleIdentifier, ConnectionState, ConnectionIdList)>;
 type BlockConnectionMap = DependenciesBlockIdentifierMap<Arc<BlockModules>>;
@@ -58,19 +61,19 @@ fn finalize_prepared_connection_map(
   connections: impl IntoIterator<Item = PreparedBlockConnectionBuilder>,
   capacity: usize,
 ) -> PreparedBlockConnectionMap {
-  let mut groups = PreparedBlockConnectionMap::with_capacity(capacity);
-  let mut group_index_by_block = DependenciesBlockIdentifierMap::<IdentifierMap<usize>>::default();
+  let mut groups = Vec::<PreparedBlockConnection>::with_capacity(capacity);
+  // `capacity` is an upper bound on the group count for this module, so the index
+  // table can be sized up front instead of rehashing while groups are discovered.
+  let mut group_index_by_key =
+    HashMap::<(DependenciesBlockIdentifier, ModuleIdentifier), usize>::with_capacity_and_hasher(
+      capacity,
+      Default::default(),
+    );
   for connection in connections {
-    let index_by_module = match group_index_by_block.entry(connection.block) {
-      hash_map::Entry::Occupied(entry) => entry.into_mut(),
-      hash_map::Entry::Vacant(entry) => entry.insert(IdentifierMap::default()),
-    };
-
-    match index_by_module.entry(connection.module) {
+    let key = (connection.block, connection.module);
+    match group_index_by_key.entry(key) {
       hash_map::Entry::Occupied(entry) => {
-        Arc::get_mut(&mut groups[*entry.get()].connections)
-          .expect("prepared connections should not be shared during finalize")
-          .push(connection.dependency);
+        groups[*entry.get()].connections.push(connection.dependency);
       }
       hash_map::Entry::Vacant(entry) => {
         let index = groups.len();
@@ -78,7 +81,7 @@ fn finalize_prepared_connection_map(
         groups.push(PreparedBlockConnection {
           block: connection.block,
           module: connection.module,
-          connections: Arc::new(vec![connection.dependency]),
+          connections: smallvec![connection.dependency],
         });
       }
     }
@@ -100,8 +103,8 @@ fn prepare_module_connection_map(
     return None;
   }
 
-  let mut ordered_dependencies = Vec::new();
-  let mut unordered_dependencies = Vec::with_capacity(dependency_count);
+  let mut ordered_dependencies = Vec::with_capacity(dependency_count);
+  let mut unordered_dependencies = Vec::new();
   let mut ordered_dependencies_sorted = true;
   let mut last_source_order = None;
   for dependency_id in all_dependencies {
@@ -977,40 +980,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   pub fn prepare_input_entrypoints_and_modules(
     &mut self,
-    all_modules: &Vec<ModuleIdentifier>,
+    all_modules: &[ModuleIdentifier],
     compilation: &mut Compilation,
   ) -> Result<FxIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
     let mut input_entrypoints_and_modules: FxIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
       FxIndexMap::with_capacity_and_hasher(compilation.entries.len(), Default::default());
 
     let entries = compilation.entries.keys().cloned().collect::<Vec<_>>();
-
-    let outgoings = {
-      let mg = compilation.get_module_graph();
-      all_modules
-        .par_iter()
-        .filter_map(|m| {
-          let mgm = mg.module_graph_module_by_identifier(m)?;
-          let outgoing_connections = mgm.outgoing_connections();
-          if outgoing_connections.is_empty() {
-            return None;
-          }
-
-          let mut outgoing = Vec::with_capacity(outgoing_connections.len());
-          for id in outgoing_connections {
-            if let Some(con) = mg.connection_by_id(id) {
-              outgoing.push(*con.module_identifier());
-            }
-          }
-
-          if outgoing.is_empty() {
-            None
-          } else {
-            Some((*m, outgoing))
-          }
-        })
-        .collect::<IdentifierMap<_>>()
-    };
 
     let assign_tasks = entries
       .iter()
@@ -1021,21 +997,24 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .checked_div(entries.len())
       .unwrap_or_default();
 
-    let assign_depths_maps = assign_tasks
-      .par_iter()
-      .map(|(_, modules)| {
-        let initial_depth_capacity = initial_depth_capacity.max(modules.len());
-        let mut assign_depths_map =
-          IdentifierMap::with_capacity_and_hasher(initial_depth_capacity, Default::default());
-        assign_depths(
-          &mut assign_depths_map,
-          modules.iter(),
-          &outgoings,
-          initial_depth_capacity,
-        );
-        assign_depths_map
-      })
-      .collect::<Vec<_>>();
+    let assign_depths_maps = {
+      let module_graph = compilation.get_module_graph();
+      assign_tasks
+        .par_iter()
+        .map(|(_, modules)| {
+          let initial_depth_capacity = initial_depth_capacity.max(modules.len());
+          let mut assign_depths_map =
+            IdentifierMap::with_capacity_and_hasher(initial_depth_capacity, Default::default());
+          assign_depths(
+            &mut assign_depths_map,
+            modules.iter(),
+            module_graph,
+            initial_depth_capacity,
+          );
+          assign_depths_map
+        })
+        .collect::<Vec<_>>()
+    };
 
     for (entry_point, modules) in assign_tasks {
       input_entrypoints_and_modules.insert(entry_point, modules);
@@ -1150,6 +1129,37 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   // #[tracing::instrument(skip_all)]
   pub fn split(&mut self, compilation: &mut Compilation) -> Result<()> {
+    // Async blocks provide a capacity hint, not an exact group count: named groups
+    // may be shared and some blocks may never create a chunk. Bound speculative space.
+    let capacity = compilation
+      .get_module_graph()
+      .blocks()
+      .len()
+      .saturating_add(compilation.entries.len())
+      .min(4096);
+    self
+      .chunk_group_infos
+      .reserve(capacity.saturating_sub(self.chunk_group_infos.len()));
+    self
+      .chunk_group_info_map
+      .reserve(capacity.saturating_sub(self.chunk_group_info_map.len()));
+    self
+      .mask_by_chunk
+      .reserve(capacity.saturating_sub(self.mask_by_chunk.len()));
+    self
+      .block_to_chunk_group
+      .reserve(capacity.saturating_sub(self.block_to_chunk_group.len()));
+    self
+      .block_owner
+      .reserve(capacity.saturating_sub(self.block_owner.len()));
+    self
+      .edges
+      .reserve(capacity.saturating_sub(self.edges.len()));
+    let artifact = &mut compilation.build_chunk_graph_artifact;
+    artifact.chunk_by_ukey.reserve_capacity(capacity);
+    artifact.chunk_group_by_ukey.reserve_capacity(capacity);
+    artifact.chunk_graph.reserve_chunks(capacity);
+
     let logger = compilation.get_logger("rspack.buildChunkGraph");
 
     // pop() is used to read from the queue
@@ -2483,9 +2493,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         chunk_groups_merging_tasks.push((info_ukey, process_block, cgi));
       }
 
-      let mut chunk_group_merging_results = chunk_groups_merging_tasks
-        .into_par_iter()
-        .map(|(info_ukey, process_block, mut cgi)| {
+      let merge_chunk_group =
+        |(info_ukey, process_block, mut cgi): (CgiUkey, Option<ProcessBlock>, ChunkGroupInfo)| {
           let mut changed = false;
           let available_modules_length = cgi.available_modules_to_be_merged.len() as u32;
 
@@ -2521,8 +2530,18 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             changed,
             available_modules_length,
           )
-        })
-        .collect::<Vec<_>>();
+        };
+      let mut chunk_group_merging_results = if chunk_groups_merging_tasks.len() == 1 {
+        chunk_groups_merging_tasks
+          .into_iter()
+          .map(merge_chunk_group)
+          .collect::<Vec<_>>()
+      } else {
+        chunk_groups_merging_tasks
+          .into_par_iter()
+          .map(merge_chunk_group)
+          .collect::<Vec<_>>()
+      };
 
       for (info_ukey, cgi, _, _, _) in &mut chunk_group_merging_results {
         *self.chunk_group_info_mut(info_ukey) = cgi.take().expect("should have chunk group info");
@@ -2729,6 +2748,75 @@ fn extract_block_modules(
     return;
   }
 
+  let resolve_connection = |connection: &PreparedBlockConnection| {
+    let active_state = get_active_state_of_connections(
+      &connection.connections,
+      runtime.as_deref(),
+      compilation.get_module_graph(),
+      &compilation.module_graph_cache_artifact,
+      &compilation
+        .build_module_graph_artifact
+        .side_effects_state_artifact,
+      &compilation.exports_info_artifact,
+    );
+    (
+      connection.module,
+      active_state,
+      connection.connections.clone(),
+    )
+  };
+
+  // A single direct async block can still contain nested async blocks, and the
+  // dependencies inside those are attributed to the nested block rather than to
+  // the root or its direct child. Only take the direct path when the single
+  // block has no nested children; the map-based path below walks them.
+  let has_nested_async_blocks = blocks.first().is_some_and(|async_block| {
+    prepared_blocks_map
+      .get(&DependenciesBlockIdentifier::from(*async_block))
+      .is_some_and(|nested| !nested.is_empty())
+  });
+
+  // Most roots have no async block or a single async block. Construct their results
+  // directly, without a temporary hash map or repeatedly growing the output vectors.
+  if blocks.len() <= 1 && !has_nested_async_blocks {
+    let connections = connection_map.map(Vec::as_slice).unwrap_or_default();
+    let root_cached = map.contains_key(&block);
+    let async_block = blocks
+      .first()
+      .copied()
+      .map(DependenciesBlockIdentifier::from);
+    let async_cached = async_block.is_some_and(|block| map.contains_key(&block));
+    let root_count = connections.iter().filter(|c| c.block == block).count();
+    let mut root_modules = Vec::with_capacity(if root_cached { 0 } else { root_count });
+    let mut async_modules = Vec::with_capacity(if async_cached {
+      0
+    } else {
+      connections.len() - root_count
+    });
+    // Preserve connection evaluation order, including interleaved root/async entries.
+    for connection in connections {
+      let (modules, cached) = if connection.block == block {
+        (&mut root_modules, root_cached)
+      } else if Some(connection.block) == async_block {
+        (&mut async_modules, async_cached)
+      } else {
+        assert!(
+          map.contains_key(&connection.block),
+          "should have modules in block_modules_runtime_map"
+        );
+        continue;
+      };
+      if !cached {
+        modules.push(resolve_connection(connection));
+      }
+    }
+    map.insert(block, Arc::new(root_modules));
+    if let Some(block) = async_block {
+      map.insert(block, Arc::new(async_modules));
+    }
+    return;
+  }
+
   let mut module_map: DependenciesBlockIdentifierMap<BlockModules> =
     DependenciesBlockIdentifierMap::with_capacity_and_hasher(blocks.len() + 1, Default::default());
   module_map.insert(block, Vec::new());
@@ -2749,21 +2837,7 @@ fn extract_block_modules(
       let modules = module_map
         .get_mut(&connection.block)
         .expect("should have modules in block_modules_runtime_map");
-      let active_state = get_active_state_of_connections(
-        &connection.connections,
-        runtime.as_deref(),
-        compilation.get_module_graph(),
-        &compilation.module_graph_cache_artifact,
-        &compilation
-          .build_module_graph_artifact
-          .side_effects_state_artifact,
-        &compilation.exports_info_artifact,
-      );
-      modules.push((
-        connection.module,
-        active_state,
-        connection.connections.clone(),
-      ));
+      modules.push(resolve_connection(connection));
     }
   }
   for (block, modules) in module_map {
