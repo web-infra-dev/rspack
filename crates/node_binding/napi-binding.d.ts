@@ -276,7 +276,7 @@ export declare class ExternalModule {
   _emitFile(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
-/** Native operations on one compilation dependency collection. */
+/** Native operations on the owning compiler's current dependency collection. */
 export declare class FileSystemDependencies {
   get added(): Array<string>
   get removed(): Array<string>

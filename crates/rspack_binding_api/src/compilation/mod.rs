@@ -468,23 +468,35 @@ impl JsCompilation {
   }
 
   #[napi(getter)]
-  pub fn file_dependencies(&self) -> FileSystemDependencies {
-    FileSystemDependencies::new(FileSystemDependencyKind::File, self.id)
+  pub fn file_dependencies(&self) -> Result<FileSystemDependencies> {
+    Ok(FileSystemDependencies::new(
+      FileSystemDependencyKind::File,
+      self.as_ref()?.compiler_id(),
+    ))
   }
 
   #[napi(getter)]
-  pub fn context_dependencies(&self) -> FileSystemDependencies {
-    FileSystemDependencies::new(FileSystemDependencyKind::Context, self.id)
+  pub fn context_dependencies(&self) -> Result<FileSystemDependencies> {
+    Ok(FileSystemDependencies::new(
+      FileSystemDependencyKind::Context,
+      self.as_ref()?.compiler_id(),
+    ))
   }
 
   #[napi(getter)]
-  pub fn missing_dependencies(&self) -> FileSystemDependencies {
-    FileSystemDependencies::new(FileSystemDependencyKind::Missing, self.id)
+  pub fn missing_dependencies(&self) -> Result<FileSystemDependencies> {
+    Ok(FileSystemDependencies::new(
+      FileSystemDependencyKind::Missing,
+      self.as_ref()?.compiler_id(),
+    ))
   }
 
   #[napi(getter)]
-  pub fn build_dependencies(&self) -> FileSystemDependencies {
-    FileSystemDependencies::new(FileSystemDependencyKind::Build, self.id)
+  pub fn build_dependencies(&self) -> Result<FileSystemDependencies> {
+    Ok(FileSystemDependencies::new(
+      FileSystemDependencyKind::Build,
+      self.as_ref()?.compiler_id(),
+    ))
   }
 
   #[napi]

@@ -43,20 +43,6 @@ export default {
                 );
                 const shared = path.join(prefix, `shared.${kind}`);
                 const expected = [current, shared].sort();
-                const addedKey = `__internal__added${kind[0].toUpperCase()}${kind.slice(1)}Dependencies`;
-                let added;
-                if (kind !== 'build') {
-                  // Read the watch delta before values() refreshes the cache.
-                  added = compilation[addedKey];
-                  expect(added).toContain(current);
-                  expect(added).not.toContain(removed);
-                  expect(compilation[addedKey]).toEqual(added);
-                  // Watch consumers own their array; mutating it must not
-                  // overwrite cached strings or subsequent deltas.
-                  const mutable = compilation[addedKey];
-                  mutable.length = 0;
-                  expect(compilation[addedKey]).toEqual(added);
-                }
                 expect(tracked(deps)).toEqual(expected);
                 expect(tracked(deps.values())).toEqual(expected);
                 expect(tracked(deps.keys())).toEqual(expected);
@@ -72,24 +58,53 @@ export default {
                 await Promise.resolve();
                 expect(tracked(deps.values())).toEqual(expected);
                 expect(deps.size).toBe(size);
-                if (added) {
-                  expect(compilation[addedKey]).toContain(shared);
-                  expect(added).toContain(current);
-                  expect(added).not.toContain(removed);
-                  const pluginAdded = path.join(
-                    compiler.context,
-                    `plugin-${name}-依赖🦀.${kind}`,
-                  );
-                  deps.add(pluginAdded);
-                  await Promise.resolve();
-                  expect(compilation[addedKey]).toContain(pluginAdded);
-                  expect(added).not.toContain(pluginAdded);
-                }
+                const pluginAdded = path.join(
+                  compiler.context,
+                  `plugin-${name}-依赖🦀.${kind}`,
+                );
+                deps.add(pluginAdded);
+                await Promise.resolve();
+                expect(deps.has(pluginAdded)).toBe(true);
+                expect(Array.from(deps)).toContain(pluginAdded);
 
                 // A previously returned iterator remains a snapshot of that build.
                 const last = previous.get(kind);
-                if (last) expect(tracked(last.iterator)).toEqual(last.expected);
-                previous.set(kind, { iterator: deps.values(), expected });
+                if (last) {
+                  expect(tracked(last.iterator)).toEqual(last.expected);
+                  // Retained wrappers read the current compilation after rebuild.
+                  expect(last.compilation[`${kind}Dependencies`]).toBe(
+                    last.deps,
+                  );
+                  expect(last.deps).not.toBe(deps);
+                  expect(tracked(last.deps)).toEqual(expected);
+                  expect(last.deps.has(current)).toBe(true);
+                  expect(last.deps.has(removed)).toBe(false);
+                  expect(last.deps.size).toBe(deps.size);
+
+                  // Old wrappers add to the current compilation, but deletions
+                  // remain local to the wrapper, matching the previous JS API.
+                  const lateAddition = path.join(
+                    compiler.context,
+                    `late-${name}.${kind}`,
+                  );
+                  last.deps.add(lateAddition);
+                  await Promise.resolve();
+                  expect(deps.has(lateAddition)).toBe(true);
+                  expect(last.deps.delete(current)).toBe(true);
+                  expect(last.deps.has(current)).toBe(false);
+                  expect(tracked(last.deps)).toEqual([shared]);
+                  expect(last.deps.size).toBe(deps.size - 1);
+                  expect(deps.has(current)).toBe(true);
+                  last.deps.add(current);
+                  await Promise.resolve();
+                  expect(tracked(last.deps)).toEqual(expected);
+                }
+                previous.set(kind, {
+                  compilation,
+                  deps,
+                  iterator: deps.values(),
+                  expected,
+                });
               }
             },
           );

@@ -3,17 +3,17 @@ use napi::{
   bindgen_prelude::{Array, FromNapiValue, JsObjectValue, ToNapiValue},
 };
 use napi_derive::napi;
-use rspack_core::{Compilation, CompilationId, FileCounter};
+use rspack_core::{Compilation, CompilerId, FileCounter};
 use rspack_napi::OneShotRef;
 use rspack_paths::{InternedPath, InternedPathIndexSet, InternedPathMap, InternedPathSet};
 
-use crate::{with_compilation, with_compilation_mut};
+use crate::COMPILER_REFERENCES;
 
-/// Native operations on one compilation dependency collection.
+/// Native operations on the owning compiler's current dependency collection.
 #[napi]
 pub struct FileSystemDependencies {
   kind: FileSystemDependencyKind,
-  compilation_id: CompilationId,
+  compiler_id: CompilerId,
   deleted_paths: InternedPathSet,
   // Cached JS values live with this wrapper and are released on GC.
   dependency_strings: Option<DependencyStrings>,
@@ -23,6 +23,38 @@ struct DependencyStrings {
   // Updated in place: every values() call returns this same array.
   array: OneShotRef,
   indices: InternedPathMap<u32>,
+}
+
+// Retained JS dependency wrappers follow rebuilds, just like JsCompilation.
+// Resolve the weak compiler reference on each access without retaining its graph.
+fn with_current_compilation<R>(
+  compiler_id: CompilerId,
+  f: impl FnOnce(&Compilation) -> napi::Result<R>,
+) -> napi::Result<R> {
+  let compiler_reference =
+    COMPILER_REFERENCES.with(|references| references.borrow().get(&compiler_id).cloned());
+  let compiler = compiler_reference
+    .as_ref()
+    .and_then(|reference| reference.get())
+    .ok_or_else(|| napi::Error::from_reason(format!(
+      "Unable to access dependencies for compiler with id = {compiler_id:?}. The Compiler has been garbage collected by JavaScript."
+    )))?;
+  f(&compiler.compiler.compilation)
+}
+
+fn with_current_compilation_mut<R>(
+  compiler_id: CompilerId,
+  f: impl FnOnce(&mut Compilation) -> napi::Result<R>,
+) -> napi::Result<R> {
+  let mut compiler_reference =
+    COMPILER_REFERENCES.with(|references| references.borrow().get(&compiler_id).cloned());
+  let compiler = compiler_reference
+    .as_mut()
+    .and_then(|reference| reference.get_mut())
+    .ok_or_else(|| napi::Error::from_reason(format!(
+      "Unable to access dependencies for compiler with id = {compiler_id:?}. The Compiler has been garbage collected by JavaScript."
+    )))?;
+  f(&mut compiler.compiler.compilation)
 }
 
 fn referenced_array<'env>(env: &'env Env, reference: &OneShotRef) -> napi::Result<Array<'env>> {
@@ -49,10 +81,10 @@ pub enum FileSystemDependencyKind {
 }
 
 impl FileSystemDependencies {
-  pub fn new(kind: FileSystemDependencyKind, compilation_id: CompilationId) -> Self {
+  pub fn new(kind: FileSystemDependencyKind, compiler_id: CompilerId) -> Self {
     Self {
       kind,
-      compilation_id,
+      compiler_id,
       dependency_strings: None,
       deleted_paths: InternedPathSet::default(),
     }
@@ -79,7 +111,7 @@ impl FileSystemDependencies {
     env: &Env,
     values: impl IntoIterator<Item = JsString<'env>>,
   ) -> napi::Result<()> {
-    with_compilation_mut(self.compilation_id, |compilation| {
+    with_current_compilation_mut(self.compiler_id, |compilation| {
       let additions = self.additions(compilation);
       let dependency_strings = Self::dependency_strings(env, &mut self.dependency_strings)?;
       let mut array = referenced_array(env, &dependency_strings.array)?;
@@ -152,7 +184,7 @@ impl FileSystemDependencies {
 impl FileSystemDependencies {
   #[napi(getter, ts_return_type = "Array<string>")]
   pub fn added<'env>(&mut self, env: &'env Env) -> napi::Result<Array<'env>> {
-    with_compilation(self.compilation_id, |compilation| {
+    with_current_compilation(self.compiler_id, |compilation| {
       let (counter, added) = self.sources(compilation)?;
       // Plugin additions are included in every build's watch delta.
       let paths = counter.added_files().chain(added);
@@ -192,7 +224,7 @@ impl FileSystemDependencies {
 
   #[napi(getter)]
   pub fn removed(&self) -> napi::Result<Vec<String>> {
-    with_compilation(self.compilation_id, |compilation| {
+    with_current_compilation(self.compiler_id, |compilation| {
       let (counter, _) = self.sources(compilation)?;
       Ok(
         counter
@@ -205,7 +237,7 @@ impl FileSystemDependencies {
 
   #[napi]
   pub fn size(&self) -> napi::Result<u32> {
-    with_compilation(self.compilation_id, |compilation| {
+    with_current_compilation(self.compiler_id, |compilation| {
       let (counter, added) = self.sources(compilation)?;
       let native_count = if self.deleted_paths.is_empty() {
         counter.files().count()
@@ -229,7 +261,7 @@ impl FileSystemDependencies {
 
   #[napi]
   pub fn has(&self, value: String) -> napi::Result<bool> {
-    with_compilation(self.compilation_id, |compilation| {
+    with_current_compilation(self.compiler_id, |compilation| {
       let path: InternedPath = value.as_str().into();
       let (counter, added) = self.sources(compilation)?;
       Ok(
@@ -242,7 +274,7 @@ impl FileSystemDependencies {
 
   #[napi]
   pub fn clear(&mut self) -> napi::Result<()> {
-    with_compilation(self.compilation_id, |compilation| {
+    with_current_compilation(self.compiler_id, |compilation| {
       let (counter, added) = self.sources(compilation)?;
       self
         .deleted_paths
@@ -259,8 +291,8 @@ impl FileSystemDependencies {
     deleted: Vec<String>,
   ) -> napi::Result<()> {
     if added.is_empty() {
-      // Deletion-only batches still validate the compilation's lifetime.
-      with_compilation(self.compilation_id, |_| Ok(()))?;
+      // Deletion-only batches still validate the compiler's lifetime.
+      with_current_compilation(self.compiler_id, |_| Ok(()))?;
     } else {
       self.add_values(env, added)?;
     }
@@ -272,7 +304,7 @@ impl FileSystemDependencies {
 
   #[napi(ts_return_type = "ReadonlyArray<string>")]
   pub fn values<'env>(&mut self, env: &'env Env) -> napi::Result<Array<'env>> {
-    with_compilation(self.compilation_id, |compilation| {
+    with_current_compilation(self.compiler_id, |compilation| {
       let paths = self.paths(compilation)?;
       let capacity = paths.size_hint().0;
       let mut unique_paths = Vec::with_capacity(capacity);
