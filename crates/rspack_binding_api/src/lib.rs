@@ -117,7 +117,7 @@ use rspack_core::{
   ModuleIdentifier, Plugin, PluginExt,
 };
 use rspack_error::Diagnostic;
-use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
+use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_tasks::{CURRENT_COMPILER_CONTEXT, CompilerContext, within_compiler_context_sync};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::common::util::take::Take;
@@ -247,7 +247,7 @@ impl JsCompiler {
   #[allow(clippy::too_many_arguments)]
   #[napi(
     constructor,
-    ts_args_type = "compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache"
+    ts_args_type = "compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS | undefined | null, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache"
   )]
   pub fn new(
     env: Env,
@@ -256,7 +256,7 @@ impl JsCompiler {
     raw_options: Unknown<'static>,
     raw_builtin_plugins: Unknown<'static>,
     raw_register_js_taps: Unknown<'static>,
-    output_filesystem: ThreadsafeNodeFS,
+    output_filesystem: Option<ThreadsafeNodeFS>,
     intermediate_filesystem: Option<ThreadsafeNodeFS>,
     input_filesystem: Option<ThreadsafeNodeFS>,
     mut resolver_factory_reference: Reference<JsResolverFactory>,
@@ -380,10 +380,14 @@ impl JsCompiler {
         };
 
       let platform = Arc::new(CompilerPlatform::from(platform));
-      let output_filesystem = Arc::new(
-        NodeFileSystem::new(output_filesystem)
-          .to_napi_result_with_message(|e| format!("Failed to create writable filesystem: {e}"))?,
-      );
+      let output_filesystem: Arc<dyn WritableFileSystem> =
+        if let Some(fs) = output_filesystem {
+          Arc::new(NodeFileSystem::new(fs).to_napi_result_with_message(|e| {
+            format!("Failed to create writable filesystem: {e}")
+          })?)
+        } else {
+          Arc::new(NativeFileSystem::new(false))
+        };
       let cache = cache.get_or_initialize(
         &compiler_options,
         input_file_system.clone(),

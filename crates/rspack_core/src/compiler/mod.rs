@@ -569,7 +569,11 @@ impl Compiler {
     if self.emitted_asset_versions.is_empty() {
       match clean_options {
         CleanOptions::CleanAll(true) => {
-          self.output_filesystem.remove_dir_all(output_path).await?;
+          match self.output_filesystem.remove_dir_all(output_path).await {
+            // the output directory may not exist yet
+            Err(rspack_fs::Error::Io(e)) if e.kind() == std::io::ErrorKind::NotFound => {}
+            result => result?,
+          }
         }
         CleanOptions::KeepPath(p) => {
           let path = output_path.join(p);

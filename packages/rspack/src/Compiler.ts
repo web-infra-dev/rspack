@@ -8,6 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import type binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
@@ -969,6 +970,11 @@ class Compiler {
       ThreadsafeInputNodeFS.needsBinding(options.experiments.useInputFileSystem)
         ? ThreadsafeInputNodeFS.__to_binding(this.inputFileSystem)
         : undefined;
+    // `undefined` tells the binding to emit assets through the native filesystem.
+    const outputFileSystem =
+      !IS_BROWSER && this.outputFileSystem === fs
+        ? undefined
+        : ThreadsafeOutputNodeFS.__to_binding(this.outputFileSystem!);
     const compilerRef = new WeakRef(this);
 
     try {
@@ -977,7 +983,7 @@ class Compiler {
         this.#rawOptions,
         this.#builtinPlugins,
         this.#registers,
-        ThreadsafeOutputNodeFS.__to_binding(this.outputFileSystem!),
+        outputFileSystem,
         this.intermediateFileSystem
           ? ThreadsafeIntermediateNodeFS.__to_binding(
               this.intermediateFileSystem,
