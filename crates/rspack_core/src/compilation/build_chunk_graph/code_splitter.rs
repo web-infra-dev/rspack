@@ -98,10 +98,13 @@ fn prepare_module_connection_map(
   module_graph: &ModuleGraph,
   scratch: &mut PreparedConnectionScratch,
 ) -> Option<PreparedBlockConnectionMap> {
-  let all_dependencies = module_graph
-    .module_graph_module_by_identifier(&module)
-    .map(|module| module.all_dependencies())
-    .unwrap_or_default();
+  let module_graph_module = module_graph.module_graph_module_by_identifier(&module)?;
+  // Every group in the prepared map comes from the module's outgoing connections, so a module
+  // without any cannot contribute one. This skips the whole dependency walk for leaf modules.
+  if module_graph_module.outgoing_connections().is_empty() {
+    return None;
+  }
+  let all_dependencies = module_graph_module.all_dependencies();
   let dependency_count = all_dependencies.len();
   if dependency_count == 0 {
     return None;
