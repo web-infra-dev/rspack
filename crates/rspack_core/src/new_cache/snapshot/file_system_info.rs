@@ -122,6 +122,7 @@ struct FileSystemInfoInner {
   fs: Arc<dyn ReadableFileSystem>,
   logger: FileSystemInfoLogger,
   module: SnapshotStrategyOptions,
+  context_module: SnapshotStrategyOptions,
   build_dependencies: SnapshotStrategyOptions,
   unmanaged_paths_with_slash: Vec<String>,
   unmanaged_paths_reg_exps: Vec<RspackRegex>,
@@ -167,6 +168,7 @@ impl FileSystemInfo {
         fs,
         logger: logger.into(),
         module: options.module,
+        context_module: options.context_module,
         build_dependencies: options.build_dependencies,
         unmanaged_paths_with_slash,
         unmanaged_paths_reg_exps,
@@ -278,6 +280,10 @@ impl FileSystemInfo {
 
   pub fn module_strategy(&self) -> SnapshotStrategyOptions {
     self.inner.module
+  }
+
+  pub fn context_module_strategy(&self) -> SnapshotStrategyOptions {
+    self.inner.context_module
   }
 
   pub fn build_dependencies_strategy(&self) -> SnapshotStrategyOptions {
