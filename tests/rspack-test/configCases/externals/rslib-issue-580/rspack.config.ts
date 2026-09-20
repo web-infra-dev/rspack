@@ -1,7 +1,7 @@
 import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
-export default defineConfig((_env, { testPath: _testPath }) => {
+export default defineConfig(() => {
   return {
     externals: [/.*foo.*/],
     externalsType: 'module',

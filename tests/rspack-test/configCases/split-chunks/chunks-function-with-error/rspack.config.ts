@@ -14,7 +14,7 @@ export default defineConfig({
       minSize: 0,
       cacheGroups: {
         splitLib2: {
-          chunks(_chunk) {
+          chunks() {
             throw new Error('CHUNKS_FUNCTION_WITH_ERROR');
           },
           test: /\.js/,

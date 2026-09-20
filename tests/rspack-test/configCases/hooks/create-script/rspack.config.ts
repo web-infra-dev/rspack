@@ -12,7 +12,7 @@ export default defineConfig({
         const RuntimePlugin = compiler.rspack.RuntimePlugin;
         compiler.hooks.compilation.tap('mock-plugin', (compilation) => {
           const hooks = RuntimePlugin.getCompilationHooks(compilation);
-          hooks.createScript.tap('mock-plugin', (code, _chunk) => {
+          hooks.createScript.tap('mock-plugin', (code) => {
             return `${code}\nscript.setAttribute("data-create-script-injected", "true");`;
           });
         });

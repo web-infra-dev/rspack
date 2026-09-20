@@ -1,6 +1,6 @@
 import { defineConfig } from '@rspack/cli';
 
-export default defineConfig((_env, { testPath: _testPath }) => ({
+export default defineConfig(() => ({
   output: {
     clean: true,
     filename: '[name].js',

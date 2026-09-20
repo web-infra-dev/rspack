@@ -18,7 +18,7 @@ export default defineConfig((_, { testPath }) => ({
     }),
     definePlugin({
       apply(compiler) {
-        compiler.hooks.afterEmit.tap('AfterEmitPlugin', (_compilation) => {
+        compiler.hooks.afterEmit.tap('AfterEmitPlugin', () => {
           const content = fs.readFileSync(
             path.resolve(testPath, 'bundle0.js'),
             'utf-8',

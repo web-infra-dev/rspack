@@ -9,7 +9,7 @@ export default defineConfig((_, { testPath }) => ({
   plugins: [
     definePlugin({
       apply(compiler) {
-        compiler.hooks.done.tap('Test', (_stats) => {
+        compiler.hooks.done.tap('Test', () => {
           const dirs = fs.readdirSync(testPath);
           expect(dirs).not.toContain('__[fullhash]__');
         });

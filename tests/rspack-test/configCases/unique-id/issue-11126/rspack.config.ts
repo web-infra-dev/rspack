@@ -11,7 +11,7 @@ export default defineConfig({
       compiler.hooks.compilation.tap('test', (compilation) => {
         compilation.hooks.additionalTreeRuntimeRequirements.tap(
           'test',
-          (_, _set) => {},
+          () => {},
         );
       });
     }),

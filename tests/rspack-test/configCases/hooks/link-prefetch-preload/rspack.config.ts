@@ -12,10 +12,10 @@ export default defineConfig({
         const RuntimePlugin = compiler.rspack.RuntimePlugin;
         compiler.hooks.compilation.tap('mock-plugin', (compilation) => {
           const hooks = RuntimePlugin.getCompilationHooks(compilation);
-          hooks.linkPrefetch.tap('mock-plugin', (code, _chunk) => {
+          hooks.linkPrefetch.tap('mock-plugin', (code) => {
             return `${code}\nlink.setAttribute("data-prefetch-injected", "true");`;
           });
-          hooks.linkPreload.tap('mock-plugin', (code, _chunk) => {
+          hooks.linkPreload.tap('mock-plugin', (code) => {
             return `${code}\nlink.setAttribute("data-preload-injected", "true");`;
           });
         });

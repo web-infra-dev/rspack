@@ -19,7 +19,7 @@ export default defineConfig({
               fileURLToPath(import.meta.resolve('./c.js')),
             ],
             issuer: fileURLToPath(import.meta.resolve('./b.js')),
-            use: (_data) => [
+            use: () => [
               './loader.mjs',
               {
                 loader: './loader.mjs',

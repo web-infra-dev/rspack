@@ -9,7 +9,7 @@ export default defineConfig({
   },
   plugins: [
     new rspack.IgnorePlugin({
-      checkResource: (resource, _request) => {
+      checkResource: (resource) => {
         if (resource.includes('zh') || resource.includes('globalIndex')) {
           return true;
         }

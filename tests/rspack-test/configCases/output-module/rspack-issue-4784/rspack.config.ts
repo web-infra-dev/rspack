@@ -24,7 +24,7 @@ export default defineConfig({
     definePlugin({
       apply(compiler) {
         compiler.hooks.thisCompilation.tap('test', (compilation) => {
-          compilation.hooks.processAssets.tap('test', (_assets) => {
+          compilation.hooks.processAssets.tap('test', () => {
             compilation.updateAsset(
               'm.mjs',
               new RawSource(`import { a, b } from './main.mjs';

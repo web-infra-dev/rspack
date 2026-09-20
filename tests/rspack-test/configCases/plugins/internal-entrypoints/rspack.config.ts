@@ -14,7 +14,7 @@ export default defineConfig({
         compiler.hooks.compilation.tap('compilation', (compilation) => {
           compilation.hooks.processAssets.tapPromise(
             'processAssets1',
-            async (_assets) => {
+            async () => {
               let inspect = new ConcatSource();
               for (let [n, cg] of compilation.entrypoints) {
                 inspect.add(`entry name: ${n}\n`);

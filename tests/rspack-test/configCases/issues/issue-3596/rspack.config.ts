@@ -11,7 +11,7 @@ export default defineConfig({
   plugins: [
     definePlugin(function () {
       this.hooks.compilation.tap('TestPlugin', function (compilation) {
-        compilation.hooks.processAssets.tap('TestPlugin', function (_assets) {
+        compilation.hooks.processAssets.tap('TestPlugin', function () {
           delete compilation.assets['b.js'];
         });
       });

@@ -15,7 +15,7 @@ export default defineConfig({
       cacheGroups: {
         foo: {
           test: /\.js/,
-          name(_module, _chunks) {
+          name() {
             throw new Error('CACHE_GROUP_NAME_FUNCTION_WITH_ERROR');
           },
         },
