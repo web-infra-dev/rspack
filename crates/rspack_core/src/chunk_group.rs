@@ -423,6 +423,7 @@ impl Display for EntryRuntime {
 pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<EntryRuntime>,
+  /// Browser worker entry; Node workers retain module-factory top-level `this`.
   pub worker: Option<bool>,
   pub worklet: Option<bool>,
   pub chunk_loading: Option<ChunkLoading>,
