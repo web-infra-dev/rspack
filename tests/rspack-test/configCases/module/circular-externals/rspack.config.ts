@@ -1,0 +1,63 @@
+import { defineConfig, definePlugin } from '@rspack/cli';
+
+import fs from 'node:fs';
+import path from 'node:path';
+
+export default defineConfig({
+  entry: './index.js',
+  output: {
+    module: true,
+    library: {
+      type: 'module',
+    },
+    filename: '[name].mjs',
+    chunkFormat: 'module',
+  },
+  externals: {
+    'external-module-a': 'module ./external-a.mjs',
+    'external-module-b': 'module ./external-b.mjs',
+  },
+  externalsType: 'module',
+  optimization: {
+    concatenateModules: false,
+  },
+  plugins: [
+    definePlugin({
+      apply(compiler) {
+        compiler.hooks.thisCompilation.tap(
+          'copy-external-files',
+          (compilation) => {
+            compilation.hooks.processAssets.tap(
+              {
+                name: 'copy-external-files',
+                stage:
+                  compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+              },
+              () => {
+                // Read the external module files
+                const externalA = fs.readFileSync(
+                  path.join(import.meta.dirname, 'external-a.mjs'),
+                  'utf8',
+                );
+                const externalB = fs.readFileSync(
+                  path.join(import.meta.dirname, 'external-b.mjs'),
+                  'utf8',
+                );
+
+                // Emit them as assets
+                compilation.emitAsset(
+                  'external-a.mjs',
+                  new compiler.rspack.sources.RawSource(externalA),
+                );
+                compilation.emitAsset(
+                  'external-b.mjs',
+                  new compiler.rspack.sources.RawSource(externalB),
+                );
+              },
+            );
+          },
+        );
+      },
+    }),
+  ],
+});

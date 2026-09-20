@@ -1,0 +1,37 @@
+import { defineConfig, definePlugin } from '@rspack/cli';
+
+import { rspack } from '@rspack/core';
+
+export default defineConfig({
+  target: ['node', 'es2020'],
+  output: {
+    module: true,
+    iife: true,
+  },
+  optimization: {
+    concatenateModules: false,
+  },
+  plugins: [
+    definePlugin({
+      apply(compiler) {
+        compiler.hooks.compilation.tap('Test', (compilation) => {
+          compilation.hooks.processAssets.tap(
+            {
+              name: 'copy-webpack-plugin',
+              stage:
+                compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+            },
+            () => {
+              compilation.emitAsset(
+                'mod.js',
+                new rspack.sources.RawSource(
+                  "module.exports = 'module text';\n",
+                ),
+              );
+            },
+          );
+        });
+      },
+    }),
+  ],
+});

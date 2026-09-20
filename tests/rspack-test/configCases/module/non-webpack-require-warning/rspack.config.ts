@@ -1,0 +1,46 @@
+import { defineConfig, definePlugin } from '@rspack/cli';
+
+import { rspack } from '@rspack/core';
+
+export default defineConfig([
+  {
+    output: {
+      module: true,
+    },
+    target: ['node'],
+    plugins: [
+      definePlugin({
+        apply(compiler) {
+          compiler.hooks.compilation.tap('Test', (compilation) => {
+            compilation.hooks.processAssets.tap(
+              {
+                name: 'copy-webpack-plugin',
+                stage:
+                  compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+              },
+              () => {
+                compilation.emitAsset(
+                  'bar.js',
+                  new rspack.sources.RawSource('module.exports = 1;'),
+                );
+              },
+            );
+          });
+        },
+      }),
+    ],
+  },
+  {
+    output: {
+      module: true,
+    },
+    target: 'web',
+    plugins: [
+      new rspack.BannerPlugin({
+        raw: true,
+        banner:
+          'import { createRequire } from "module"; const require = createRequire(import.meta.url)',
+      }),
+    ],
+  },
+]);
