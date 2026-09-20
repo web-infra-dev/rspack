@@ -103,7 +103,7 @@ catalog:
   'javascript-stringify': '^2.1.0'
   'jest-diff': '^30.5.2'
   'jiti': '^2.7.0'
-  'jsdom': '^30.0.1'
+  'jsdom': '^30.1.0'
   'json-loader': '^0.5.7'
   'json5': '^2.2.3'
   'less': '4.9.1'
