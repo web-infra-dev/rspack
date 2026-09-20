@@ -14,10 +14,6 @@ const config: RspackOptions = {
     new rspack.DefinePlugin({
       __TYPE_TEST__: JSON.stringify(true),
     }),
-    new rspack.experiments.RslibPlugin(),
-    new rspack.experiments.RslibPlugin(undefined),
-    new rspack.experiments.RslibPlugin({}),
-    new rspack.experiments.RslibPlugin({ forceNodeShims: true }),
   ],
   devServer: {
     proxy: [
