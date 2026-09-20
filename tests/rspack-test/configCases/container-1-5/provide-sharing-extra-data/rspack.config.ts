@@ -1,16 +1,16 @@
+import { defineConfig } from '@rspack/cli';
 import { container } from '@rspack/core';
 
 const { ModuleFederationPlugin } = container;
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   output: {
     filename: '[name].js',
-    uniqueName: 'share-strategy',
+    uniqueName: 'provide-sharing-extra-data',
   },
   plugins: [
     new ModuleFederationPlugin({
-      shareStrategy: 'loaded-first',
+      name: 'container-provide-sharing-extra-data',
       shared: {
         react: {
           version: '0.1.2',
@@ -21,4 +21,4 @@ export default {
       },
     }),
   ],
-};
+});
