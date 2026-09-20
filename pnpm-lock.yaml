@@ -1364,8 +1364,8 @@ packages:
     resolution: {integrity: sha512-IxddtGnnoidVSO6O/aiTueptbTThHvi2qGHu9/AWuD1J7i86Ox+jl+Y5SXcDH1RixzQlP2cjH/PjnlImZiAurQ==}
     engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
 
-  '@asamuzakjp/dom-selector@9.1.4':
-    resolution: {integrity: sha512-ynDE7RDZM1z+YuSU+iGhRp8WcSXHqK9+G32ZEzsL35TKSoy72fYR7VfrJCQkWe3ciiIWGSTAIBc9XB5jVpqyTw==}
+  '@asamuzakjp/dom-selector@9.2.0':
+    resolution: {integrity: sha512-qKvLetaSd/OTWif9JT0eu1SHBg3H7Nvp9SoMwMxqT5tmYyrxea/P1A5pIfGbnIJlOtm3yVeqw+ORxDOkjN1aEw==}
     engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
 
   '@ast-grep/napi-darwin-arm64@0.45.3':
@@ -7777,7 +7777,7 @@ snapshots:
       '@csstools/css-tokenizer': 4.0.0
       lru-cache: 11.5.2
 
-  '@asamuzakjp/dom-selector@9.1.4':
+  '@asamuzakjp/dom-selector@9.2.0':
     dependencies:
       bidi-js: 1.1.0
       css-tree: 3.2.1
@@ -11910,7 +11910,7 @@ snapshots:
   jsdom@30.1.0:
     dependencies:
       '@asamuzakjp/css-color': 7.0.0
-      '@asamuzakjp/dom-selector': 9.1.4
+      '@asamuzakjp/dom-selector': 9.2.0
       '@bramus/specificity': 2.4.2
       '@csstools/css-syntax-patches-for-csstree': 1.1.14(css-tree@3.2.1)
       '@exodus/bytes': 1.15.1
