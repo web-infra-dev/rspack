@@ -1,0 +1,39 @@
+import { defineConfig, definePlugin } from '@rspack/cli';
+
+import { rspack } from '@rspack/core';
+
+const { ConcatSource, RawSource } = rspack.sources;
+
+export default defineConfig({
+  entry: {
+    main: './index.js',
+  },
+  devtool: 'source-map',
+  plugins: [
+    definePlugin({
+      name: 'test',
+      apply(compiler) {
+        compiler.hooks.compilation.tap('compilation', (compilation) => {
+          compilation.hooks.processAssets.tapPromise(
+            {
+              name: 'processAssets1',
+              stage: compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE,
+            },
+            async (assets) => {
+              const dup = 'dup.txt';
+              assets[dup] = new RawSource(dup);
+              const beforeDelete = new RawSource(Object.keys(assets).join(','));
+              delete assets[dup];
+              const afterDelete = new RawSource(Object.keys(assets).join(','));
+              assets['assets-keys.txt'] = new ConcatSource(
+                beforeDelete,
+                '\n',
+                afterDelete,
+              );
+            },
+          );
+        });
+      },
+    }),
+  ],
+});

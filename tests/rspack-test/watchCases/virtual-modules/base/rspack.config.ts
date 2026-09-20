@@ -1,0 +1,35 @@
+import { defineConfig, definePlugin } from '@rspack/cli';
+
+import { rspack } from '@rspack/core';
+
+const {
+  experiments: { VirtualModulesPlugin },
+} = rspack;
+
+export default defineConfig({
+  plugins: [
+    /**
+     * @param {import("@rspack/core").Compiler} compiler
+     */
+    definePlugin(function testWatch(compiler) {
+      const virtualModules = new VirtualModulesPlugin({
+        'dynamic-module.js': 'export const step = "0";',
+      });
+
+      virtualModules.apply(compiler);
+
+      let initialized = false;
+      compiler.hooks.afterDone.tap('test-watch', function (_stats) {
+        if (!initialized) {
+          initialized = true;
+          setTimeout(() => {
+            virtualModules.writeModule(
+              'dynamic-module.js',
+              'export const step = "1";',
+            );
+          }, 500);
+        }
+      });
+    }),
+  ],
+});
