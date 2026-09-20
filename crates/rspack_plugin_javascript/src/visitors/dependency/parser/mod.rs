@@ -12,7 +12,6 @@ mod walk_pre;
 use std::{
   fmt::Display,
   hash::{Hash, Hasher},
-  rc::Rc,
   sync::Arc,
 };
 
@@ -521,7 +520,11 @@ pub struct JavascriptParser<'parser> {
   pub module_type: &'parser ModuleType,
   pub(crate) module_layer: Option<&'parser ModuleLayer>,
   pub module_identifier: &'parser ModuleIdentifier,
-  pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
+  /// The drive is owned by the caller and borrowed here for the parser lifetime.
+  /// Hot paths hand the drive to a hook while `&mut self` goes to the same hook;
+  /// an Rc field could only express that by cloning the handle on every call,
+  /// while a reference field is copied out for free.
+  pub(crate) plugin_drive: &'parser JavaScriptParserPluginDrive,
   // ===== states =======
   pub(crate) definitions_db: ScopeInfoDB<'parser>,
   pub(crate) top_level_scope: TopLevelScope,
@@ -557,32 +560,24 @@ pub struct JavascriptParser<'parser> {
 }
 
 impl<'parser> JavascriptParser<'parser> {
-  #[allow(clippy::too_many_arguments)]
-  pub fn new(
-    source: &'parser str,
-    ast: &'parser ParsedJavaScriptAst<'parser>,
-    compiler_options: &'parser CompilerOptions,
-    javascript_options: &'parser JavascriptParserOptions,
-    import_meta: ArcComputed<ResolvedModuleOptions, ImportMeta>,
-    module_identifier: &'parser ModuleIdentifier,
-    module_type: &'parser ModuleType,
-    module_layer: Option<&'parser ModuleLayer>,
-    resource_data: &'parser ResourceData,
-    factory_meta: Option<&'parser FactoryMeta>,
-    build_meta: &'parser mut BuildMeta,
-    build_info: &'parser mut BuildInfo,
-    semicolons: &'parser mut FxHashSet<u32>,
-    parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
-    parse_meta: ParseMeta,
-    parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
-  ) -> Self {
-    let warning_diagnostics: Vec<Diagnostic> = Vec::new();
-    let errors = Vec::new();
-    let dependencies = Vec::with_capacity(64);
-    let blocks = Vec::with_capacity(64);
-    let presentational_dependencies = Vec::with_capacity(64);
-    let parser_exports_state: Option<bool> = None;
+  /// Borrows the parser plugin drive without borrowing the parser itself, so a
+  /// hook can take `&mut parser` while the drive stays borrowed.
+  #[inline]
+  pub(crate) fn plugin_drive(&self) -> &'parser JavaScriptParserPluginDrive {
+    self.plugin_drive
+  }
 
+  /// Assembles the per-module plugin list and its hook dispatch table.
+  ///
+  /// The drive is returned by value so the caller owns it for the parser lifetime.
+  pub(crate) fn build_plugin_drive(
+    compiler_options: &CompilerOptions,
+    javascript_options: &JavascriptParserOptions,
+    module_type: &ModuleType,
+    import_meta: ArcComputed<ResolvedModuleOptions, ImportMeta>,
+    build_info: &mut BuildInfo,
+    parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
+  ) -> JavaScriptParserPluginDrive {
     let mut plugins: Vec<BoxJavascriptParserPlugin> = Vec::with_capacity(32 + parser_plugins.len());
 
     plugins.append(parser_plugins);
@@ -689,7 +684,33 @@ impl<'parser> JavascriptParser<'parser> {
       )));
     }
 
-    let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
+    JavaScriptParserPluginDrive::new(plugins)
+  }
+
+  #[allow(clippy::too_many_arguments)]
+  pub fn new(
+    source: &'parser str,
+    ast: &'parser ParsedJavaScriptAst<'parser>,
+    compiler_options: &'parser CompilerOptions,
+    javascript_options: &'parser JavascriptParserOptions,
+    plugin_drive: &'parser JavaScriptParserPluginDrive,
+    module_identifier: &'parser ModuleIdentifier,
+    module_type: &'parser ModuleType,
+    module_layer: Option<&'parser ModuleLayer>,
+    resource_data: &'parser ResourceData,
+    factory_meta: Option<&'parser FactoryMeta>,
+    build_meta: &'parser mut BuildMeta,
+    build_info: &'parser mut BuildInfo,
+    semicolons: &'parser mut FxHashSet<u32>,
+    parse_meta: ParseMeta,
+    parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
+  ) -> Self {
+    let warning_diagnostics: Vec<Diagnostic> = Vec::new();
+    let errors = Vec::new();
+    let dependencies = Vec::with_capacity(64);
+    let blocks = Vec::with_capacity(64);
+    let presentational_dependencies = Vec::with_capacity(64);
+    let parser_exports_state: Option<bool> = None;
 
     Self {
       last_esm_import_order: 0,
@@ -1401,7 +1422,7 @@ impl<'parser> JavascriptParser<'parser> {
   {
     let ast = self.ast.ast;
     let name = ast.get_utf8(ident.name(ast));
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     // Declaration hooks inspect the declared name, even when its semantic
     // binding is already initialized as a normal local variable.
     if !drive
@@ -1558,7 +1579,7 @@ impl<'parser> JavascriptParser<'parser> {
     expr: Expr,
   ) -> Option<Expr> {
     let ast = self.ast.ast;
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     let expr = if let Some(await_expr) = expr.as_await_expression(ast) {
       await_expr.argument(ast)
     } else {
@@ -1587,7 +1608,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn walk_program(&mut self, program: Program) {
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     if drive.program(self, program).is_none() {
       let ast = self.ast.ast;
       let body = program.body(ast);
@@ -1762,7 +1783,7 @@ impl<'parser> JavascriptParser<'parser> {
           eval.set_undefined();
           return Some(eval);
         }
-        let drive = self.plugin_drive.clone();
+        let drive = self.plugin_drive();
         let resolution = self
           .definitions_db
           .semantic_context
@@ -1811,7 +1832,7 @@ impl<'parser> JavascriptParser<'parser> {
       }
       ExprData::ThisExpression(this) => {
         let span = this.span(ast);
-        let drive = self.plugin_drive.clone();
+        let drive = self.plugin_drive();
         let default_eval = || {
           let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
           eval.set_identifier(

@@ -32,7 +32,7 @@ pub fn eval_member_expression_with_info<'parser>(
 ) -> Option<BasicEvaluatedExpression<'parser>> {
   let result = if let Some(info) = info {
     let span = member.span(parser.ast.ast);
-    let drive = parser.plugin_drive.clone();
+    let drive = parser.plugin_drive();
     let is_created_require_member = parser.javascript_options.is_create_require_enabled()
       && matches!(
         info.root_info,

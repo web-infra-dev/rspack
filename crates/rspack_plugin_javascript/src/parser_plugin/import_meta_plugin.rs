@@ -666,8 +666,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
             content.push(',');
           }
           let res = parser
-            .plugin_drive
-            .clone()
+            .plugin_drive()
             .import_meta_property_in_destructuring(parser, prop);
 
           if let Some(property) = res {
